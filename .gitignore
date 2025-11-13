@@ -1,1 +1,17 @@
 .env
+# Python cache
+__pycache__/
+*.pyc
+
+# Environments
+venv/
+env/
+
+# Databases
+*.db
+
+# VSCode local settings
+.vscode/
+
+# System files
+*.log
