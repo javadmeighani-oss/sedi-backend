@@ -11,7 +11,7 @@ from app.routers import (
     notifications,
     ai_core,
 )
-from app.core.scheduler import start_scheduler  # برای نوتیف خودکار
+from app.core.scheduler import start_scheduler  # Scheduler import
 
 # ------------------ ایجاد جداول ------------------
 Base.metadata.create_all(bind=engine)
@@ -21,16 +21,14 @@ app = FastAPI(
     title="Sedi Intelligent Health Assistant",
     description=(
         "Sedi is an AI-based health assistant that provides continuous, personalized care. "
-        "It supports multilingual interaction (English base + Persian + Arabic) "
-        "and integrates GPT-powered intelligence, adaptive memory, and emotional engagement."
+        "It supports multilingual interaction (English + Persian + Arabic) and integrates "
+        "GPT-powered intelligence, adaptive memory, and emotional engagement."
     ),
     version="2.0.1",
 )
 
 # ------------------ تنظیمات CORS ------------------
-origins = [
-    "*",  # در محیط production باید محدود شود
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,16 +47,15 @@ app.include_router(notifications.router, prefix="/notifications", tags=["Notific
 app.include_router(ai_core.router, prefix="/ai_core", tags=["AI Core"])
 
 # ------------------ فعال‌سازی Scheduler ------------------
-from app.core.scheduler import start_scheduler
 start_scheduler()
-# ------------------ مسیر اصلی برای تست ------------------
+
+# ------------------ مسیر اصلی ------------------
 @app.get("/")
 def root():
     return {
-        "status": "Sedi AI Backend Running ✅",
+        "status": "Sedi AI Backend Running",
         "version": "2.0.1",
-        "base_language": "en",
         "supported_languages": ["en", "fa", "ar"],
-        "server_time": datetime.utcnow(),
-        "message": "Welcome to Sedi – your intelligent, caring, and proactive health companion 🌿"
+        "server_time": str(datetime.utcnow()),
+        "message": "Welcome to Sedi – your intelligent, caring, and proactive health companion"
     }
