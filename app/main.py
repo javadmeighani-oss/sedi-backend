@@ -25,7 +25,6 @@ app = FastAPI(
         "and integrates GPT-powered intelligence, adaptive memory, and emotional engagement."
     ),
     version="2.0.1",
-    redirect_slashes=False,  # Disable automatic redirect from /path to /path/
 )
 
 # ------------------ تنظیمات CORS ------------------

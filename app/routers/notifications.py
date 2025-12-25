@@ -12,7 +12,8 @@ router = APIRouter()
 
 
 # ------------------ دریافت لیست نوتیف‌ها (Contract Section 7) ------------------
-@router.get("/", response_model=APIResponse)
+@router.get("", response_model=APIResponse)  # Empty string to match /notifications (no trailing slash)
+@router.get("/", response_model=APIResponse)  # Also match /notifications/ (with trailing slash)
 def get_notifications(
     user_id: int,
     limit: int = Query(20, ge=1, le=100),
