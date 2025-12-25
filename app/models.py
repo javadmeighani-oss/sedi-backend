@@ -27,13 +27,29 @@ class Memory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+# -------------------- HealthData --------------------
+class HealthData(Base):
+    __tablename__ = "health_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    heart_rate = Column(String, nullable=True)
+    temperature = Column(String, nullable=True)
+    spo2 = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # -------------------- Notification --------------------
 class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    message = Column(String, nullable=False)
-    sound_id = Column(String, nullable=True)
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    type = Column(String, nullable=False, default="info")  # Contract: type enum
+    priority = Column(String, nullable=False, default="normal")  # Contract: priority enum
+    title = Column(String, nullable=True)  # Contract: optional title
+    message = Column(String, nullable=False)  # Contract: required message
+    actions = Column(String, nullable=True)  # JSON string of actions array
+    metadata = Column(String, nullable=True)  # JSON string of metadata object
+    is_read = Column(Boolean, default=False)  # Contract: is_read
+    created_at = Column(DateTime, default=datetime.utcnow)  # Contract: created_at
