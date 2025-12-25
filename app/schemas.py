@@ -188,3 +188,4 @@ class InteractionResponse(BaseModel):
     language: str
     user_id: Optional[int] = None
     timestamp: datetime
+    requires_security_check: Optional[bool] = False  # Flag for suspicious behavior detection

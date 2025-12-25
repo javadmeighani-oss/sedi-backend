@@ -1,7 +1,8 @@
 [Unit]
 Description=Sedi FastAPI Backend Service
-After=network-online.target
+After=network-online.target postgresql.service
 Wants=network-online.target
+Requires=postgresql.service
 
 [Service]
 Type=simple
@@ -9,6 +10,7 @@ User=root
 Group=root
 WorkingDirectory=/var/www/sedi/backend
 Environment="PATH=/var/www/sedi/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=/var/www/sedi/backend/.env
 ExecStart=/var/www/sedi/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
