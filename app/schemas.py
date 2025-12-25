@@ -30,7 +30,7 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic V2: renamed from orm_mode
 
 
 # ------------------ داده سلامت ------------------
@@ -50,7 +50,7 @@ class HealthDataResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic V2: renamed from orm_mode
 
 
 # ------------------ سبک زندگی ------------------
@@ -72,7 +72,7 @@ class LifestyleDataResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic V2: renamed from orm_mode
 
 
 # ------------------ نوتیف‌ها (Contract-Compliant) ------------------
@@ -117,7 +117,7 @@ class NotificationResponse(BaseModel):
     is_read: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic V2: renamed from orm_mode
 
     @classmethod
     def from_orm(cls, obj):
@@ -179,7 +179,7 @@ class MemoryResponse(BaseModel):
     last_interaction: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic V2: renamed from orm_mode
 
 
 # ------------------ تعاملات (Chat / GPT) ------------------
