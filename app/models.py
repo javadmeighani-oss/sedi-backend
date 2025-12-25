@@ -50,6 +50,6 @@ class Notification(Base):
     title = Column(String, nullable=True)  # Contract: optional title
     message = Column(String, nullable=False)  # Contract: required message
     actions = Column(String, nullable=True)  # JSON string of actions array
-    metadata = Column(String, nullable=True)  # JSON string of metadata object
+    metadata_json = Column("metadata", String, nullable=True)  # JSON string of metadata object (column name is 'metadata' in DB)
     is_read = Column(Boolean, default=False)  # Contract: is_read
     created_at = Column(DateTime, default=datetime.utcnow)  # Contract: created_at
