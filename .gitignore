@@ -16,3 +16,7 @@ env/
 
 # System files
 *.log
+
+# GitHub Actions SSH keys (never commit!)
+.github_actions_key
+.github_actions_key.pub
