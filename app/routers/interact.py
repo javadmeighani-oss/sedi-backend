@@ -1,9 +1,19 @@
 # app/routers/interact.py
+"""
+Interaction Router - Thin API Layer
+
+RESPONSIBILITY:
+- Receives API request
+- Calls Conversation Brain
+- Returns response
+- NO logic, NO decisions
+"""
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Memory
-from app.core.gpt_engine import ask_sedi
+from app.core.conversation.brain import ConversationBrain
 from app.schemas import InteractionResponse
 from datetime import datetime
 from fastapi import Depends
@@ -19,6 +29,10 @@ def introduce_user(
     lang: str = Query("en"),
     db: Session = Depends(get_db)
 ):
+    """
+    Create new user account.
+    Returns greeting from Conversation Brain.
+    """
     existing_user = db.query(User).filter(User.name == name).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -28,14 +42,12 @@ def introduce_user(
     db.commit()
     db.refresh(new_user)
 
-    message = {
-        "en": f"Hello {name}! I'm Sedi, your intelligent health companion 🌿",
-        "fa": f"سلام {name}! من صدی هستم، همراه هوشمند مراقبت سلامتت 🌿",
-        "ar": f"مرحباً {name}! أنا سدي، رفيقك الذكي للعناية بالصحة 🌿"
-    }
+    # Use Conversation Brain for greeting
+    brain = ConversationBrain(db, language=lang)
+    greeting = brain.get_greeting(new_user.id)
 
     return InteractionResponse(
-        message=message.get(lang, message["en"]),
+        message=greeting["message"],
         language=lang,
         user_id=new_user.id,
         timestamp=datetime.utcnow()
@@ -47,15 +59,13 @@ def introduce_user(
 def chat_with_sedi(
     message: str = Query(...),
     lang: str = Query("en"),
-    name: Optional[str] = Query(None),  # Optional - for new users
-    secret_key: Optional[str] = Query(None),  # Optional - for new users
+    name: Optional[str] = Query(None),
+    secret_key: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     """
-    Chat endpoint with optional authentication.
-    - New users can chat without name/password
-    - Existing users provide name/secret_key for verification
-    - Backend can detect suspicious behavior and return security flag
+    Chat endpoint - Thin API layer.
+    All conversation logic handled by Conversation Brain.
     """
     user = None
     requires_security_check = False
@@ -67,47 +77,55 @@ def chat_with_sedi(
             User.secret_key == secret_key
         ).first()
         
-        # If user not found with provided credentials, might be suspicious
         if not user:
-            # Could be suspicious behavior - but allow chat for now
-            # AI layer will detect this
             requires_security_check = True
     
-    # Generate response using AI
-    sedi_reply = ask_sedi(message, language=lang)
+    # If no user found, return error (user must be authenticated)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="User authentication required. Please provide valid name and secret_key."
+        )
     
-    # If user exists, save to memory
-    if user:
-        memory = Memory(
-            user_id=user.id,
-            user_message=message,
-            sedi_response=sedi_reply,
-            language=lang
-        )
-        db.add(memory)
-        db.commit()
-        
-        # TODO: Add AI-based suspicious behavior detection here
-        # For now, requires_security_check is False
-        # Future: Use AI to analyze message patterns, language changes, etc.
-        
-        return InteractionResponse(
-            message=sedi_reply,
-            language=lang,
-            user_id=user.id,
-            timestamp=datetime.utcnow(),
-            requires_security_check=requires_security_check
-        )
-    else:
-        # New user or unauthenticated - allow chat but don't save to memory yet
-        # Frontend will handle user creation when name/password are collected
-        return InteractionResponse(
-            message=sedi_reply,
-            language=lang,
-            user_id=None,
-            timestamp=datetime.utcnow(),
-            requires_security_check=False  # New users don't need security check yet
-        )
+    # Use Conversation Brain to process message
+    brain = ConversationBrain(db, language=lang)
+    result = brain.process_message(user.id, message)
+    
+    return InteractionResponse(
+        message=result["message"],
+        language=result["language"],
+        user_id=user.id,
+        timestamp=datetime.utcnow(),
+        requires_security_check=requires_security_check
+    )
+
+
+# ---------------- Get Greeting ----------------
+@router.get("/greeting")
+def get_greeting(
+    user_id: int = Query(...),
+    lang: str = Query("en"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get greeting message from Conversation Brain.
+    Used when user opens chat.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    brain = ConversationBrain(db, language=lang)
+    greeting = brain.get_greeting(user_id)
+    
+    return {
+        "message": greeting["message"],
+        "language": greeting["language"],
+        "stage": greeting["stage"],
+        "metadata": greeting.get("metadata", {})
+    }
+
+
 # ------------------ Memory History ------------------
 @router.get("/history")
 def get_user_history(
@@ -116,7 +134,7 @@ def get_user_history(
     db: Session = Depends(get_db)
 ):
     """
-    دریافت تاریخچه گفتگوهای کاربر با صدی
+    Get conversation history for user.
     """
     user = db.query(User).filter(
         User.name == name,
