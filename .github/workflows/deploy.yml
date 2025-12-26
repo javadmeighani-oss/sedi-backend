@@ -23,19 +23,31 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY || secrets.SEDI_DEPLOY_KEY }}
 
       - name: Add server to known hosts
         run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_HOST || '91.107.168.130' }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Test SSH connection
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER || 'root' }}@${{ secrets.SERVER_HOST || '91.107.168.130' }} "echo 'SSH connection successful ✅'"
+          ssh -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              -o ConnectTimeout=10 \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              ${{ secrets.SERVER_USER || 'root' }}@${{ secrets.SERVER_HOST || '91.107.168.130' }} \
+              "echo 'SSH connection successful ✅'"
 
       - name: Deploy to server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER || 'root' }}@${{ secrets.SERVER_HOST || '91.107.168.130' }} << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              -o ConnectTimeout=10 \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              ${{ secrets.SERVER_USER || 'root' }}@${{ secrets.SERVER_HOST || '91.107.168.130' }} << 'ENDSSH'
             set -e
             echo "🚀 Starting deployment..."
             
