@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# ---------- بارگذاری کلید از .env ----------
+# ---------- Load API key from .env ----------
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -15,7 +15,7 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-# ---------- انواع نوتیف ----------
+# ---------- Notification Types ----------
 NOTIF_TYPE_MORNING = "morning_summary"
 NOTIF_TYPE_HEALTH_CHECK = "health_check"
 NOTIF_TYPE_INACTIVE = "inactive_ping"
@@ -29,10 +29,10 @@ def _build_prompt(
     hours_since_last_talk: Optional[int] = None,
 ) -> str:
     """
-    ساختن پرامپت برای تولید متن نوتیف توسط GPT
+    Build prompt for generating notification text using GPT
     """
 
-    # متن توضیح وضعیت سلامت (اگر موجود نباشد، ساده در نظر گرفته می‌شود)
+    # Health status description text (if not available, use simple default)
     health_text = health_summary or "No critical health issues detected recently."
 
     base = f"""
@@ -90,7 +90,7 @@ Context:
 Create a short friendly notification.
 """
 
-    # تعیین زبان
+    # Determine language
     if language not in ("fa", "ar", "en"):
         language = "en"
 
@@ -126,7 +126,7 @@ def generate_notification_text(
 
     try:
         completion = client.chat.completions.create(
-            model="gpt-4.1-mini",  # مدل سبک برای نوتیف
+            model="gpt-4.1-mini",  # Lightweight model for notifications
             messages=[
                 {
                     "role": "system",
@@ -147,7 +147,7 @@ def generate_notification_text(
     except Exception as e:
         print(f"[AI_TEXT_ENGINE ERROR] {e}")
 
-        # فالبک در صورت قطع بودن GPT
+        # Fallback if GPT is unavailable
         fallback = {
             "fa": "هی جواد، امیدوارم حالت خوب باشه. هر وقت خواستی در مورد حالت باهام حرف بزن 🌿",
             "ar": "مرحباً، أتمنى أن تكون بخير. أنا هنا إذا أحببت أن تتحدث عن حالتك 🌿",

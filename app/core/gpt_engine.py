@@ -3,16 +3,16 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# بارگذاری کلید از فایل .env
+# Load API key from .env file
 load_dotenv()
 
-# نیازی به ارسال api_key به constructor نیست — خودش از env می‌خواند
+# No need to pass api_key to constructor - it reads from env automatically
 client = OpenAI()
 
 
 def ask_sedi(prompt: str, language: str = "en") -> str:
     """
-    ارتباط با GPT برای تولید پاسخ طبیعی صدی (سازگار با نسخه جدید SDK)
+    Connect to GPT to generate natural Sedi responses (compatible with new SDK version)
     """
     try:
         base_prompt = {

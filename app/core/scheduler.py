@@ -15,16 +15,16 @@ from app.core.ai_text_engine import (
 )
 
 # -------------------------------
-# تنظیمات زمان‌بندی و بررسی‌ها
+# Scheduling and Check Settings
 # -------------------------------
-CHECK_INTERVAL_HOURS = 2       # بررسی هر ۲ ساعت
-INACTIVE_HOURS = 3             # اگر بیش از ۳ ساعت تعامل نداشت
-MORNING_HOUR = 8               # ارسال پیام صبحگاهی ساعت ۸ صبح
+CHECK_INTERVAL_HOURS = 2       # Health check interval (every 2 hours)
+INACTIVE_HOURS = 3             # Inactive threshold (if no interaction for 3+ hours)
+MORNING_HOUR = 8               # Morning greeting time (8 AM)
 
 scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Tehran"))
 
 # -------------------------------
-# تابع: بررسی کاربران غیرفعال
+# Function: Check inactive users
 # -------------------------------
 def check_inactive_users():
     with next(get_db()) as db:
@@ -62,13 +62,13 @@ def check_inactive_users():
             save_notification(db, user.id, message, "inactive_ping")
 
 # -------------------------------
-# تابع: بررسی وضعیت سلامت روزانه
+# Function: Check daily health status
 # -------------------------------
 def check_health_status():
     with next(get_db()) as db:
         users = db.query(User).all()
         for user in users:
-            # برای تست ساده، از خلاصه سلامت ثابت استفاده می‌کنیم
+            # For simple testing, use a fixed health summary
             health_summary = "Your heart rate and temperature are within normal range."
 
             message = generate_notification_text(
@@ -80,7 +80,7 @@ def check_health_status():
             save_notification(db, user.id, message, "health_check")
 
 # -------------------------------
-# تابع: پیام صبحگاهی
+# Function: Send morning greeting
 # -------------------------------
 def send_morning_greeting():
     with next(get_db()) as db:
@@ -96,7 +96,7 @@ def send_morning_greeting():
             save_notification(db, user.id, message, "morning_summary")
     
 # -------------------------------
-# ذخیره نوتیف در پایگاه داده
+# Save notification to database
 # -------------------------------
 def save_notification(db: Session, user_id: int, message: str, notif_type: str):
     new_notif = Notification(
@@ -112,12 +112,12 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
     print(f"[Sedi Scheduler] Notification created for user {user_id} → {notif_type}")
 
 # -------------------------------
-# راه‌اندازی Scheduler
+# Start Scheduler
 # -------------------------------
 def start_scheduler():
     print("[Sedi Scheduler] Background scheduler started successfully ✅")
 
-    # اجرای پیام صبحگاهی هر روز ساعت ۸ صبح
+    # Schedule morning greeting every day at 8 AM
     scheduler.add_job(
         send_morning_greeting,
         "cron",
@@ -127,7 +127,7 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # بررسی وضعیت سلامت هر ۲ ساعت
+    # Schedule health status check every 2 hours
     scheduler.add_job(
         check_health_status,
         "interval",
@@ -136,7 +136,7 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # بررسی کاربران غیرفعال هر ۳ ساعت
+    # Schedule inactive users check every 3 hours
     scheduler.add_job(
         check_inactive_users,
         "interval",

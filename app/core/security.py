@@ -2,12 +2,12 @@
 import jwt
 from datetime import datetime, timedelta
 
-SECRET_KEY = "sedi_secret_key_2025"  # بعداً با ENV جایگزین میشه
+SECRET_KEY = "sedi_secret_key_2025"  # TODO: Replace with ENV variable later
 ALGORITHM = "HS256"
 
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=1)):
-    """تولید Access Token"""
+    """Generate Access Token"""
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire})
@@ -15,7 +15,7 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=1
 
 
 def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=7)):
-    """تولید Refresh Token"""
+    """Generate Refresh Token"""
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire, "scope": "refresh_token"})
@@ -23,7 +23,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=7
 
 
 def verify_token(token: str):
-    """بررسی اعتبار Token"""
+    """Verify Token validity"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
