@@ -8,7 +8,7 @@ $keyPath = ".github_actions_key"
 
 if (-not (Test-Path $keyPath)) {
     Write-Host "❌ SSH key not found: $keyPath" -ForegroundColor Red
-    Write-Host "Generate it first using: ssh-keygen -t ed25519 -C 'github-actions-sedi' -f '.github_actions_key' -N '""'" -ForegroundColor Yellow
+    Write-Host "Generate it first using: ssh-keygen -t ed25519 -C 'github-actions-sedi' -f '.github_actions_key' -N ''" -ForegroundColor Yellow
     exit 1
 }
 
@@ -37,7 +37,7 @@ if ($keyContent -match "-----END OPENSSH PRIVATE KEY-----") {
 # Check 3: Not encrypted (no passphrase)
 if ($keyContent -match "Proc-Type: 4,ENCRYPTED") {
     Write-Host "❌ Key is ENCRYPTED (has passphrase)" -ForegroundColor Red
-    Write-Host "   Regenerate key with: ssh-keygen -t ed25519 -f '.github_actions_key' -N '""'" -ForegroundColor Yellow
+    Write-Host "   Regenerate key with: ssh-keygen -t ed25519 -f '.github_actions_key' -N ''" -ForegroundColor Yellow
 } else {
     Write-Host "✅ Key is NOT encrypted (no passphrase)" -ForegroundColor Green
 }
@@ -66,11 +66,11 @@ if ($keyContent -ne $trimmed) {
 }
 
 Write-Host ""
-Write-Host "=" * 60 -ForegroundColor Cyan
+Write-Host ("=" * 60) -ForegroundColor Cyan
 Write-Host "📋 PRIVATE KEY (Copy this to GitHub Secrets):" -ForegroundColor Yellow
-Write-Host "=" * 60 -ForegroundColor Cyan
+Write-Host ("=" * 60) -ForegroundColor Cyan
 Get-Content $keyPath -Raw
-Write-Host "=" * 60 -ForegroundColor Cyan
+Write-Host ("=" * 60) -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "📝 Next steps:" -ForegroundColor Green
