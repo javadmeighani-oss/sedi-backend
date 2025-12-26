@@ -28,19 +28,36 @@ scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Tehran"))
 # -------------------------------
 def check_inactive_users():
     with next(get_db()) as db:
+        from app.models import Memory
         now = datetime.utcnow()
         threshold = now - timedelta(hours=INACTIVE_HOURS)
 
-        inactive_users = db.query(User).filter(
-            User.last_interaction < threshold
-        ).all()
+        # Find users who haven't interacted recently (based on Memory table)
+        users = db.query(User).all()
+        inactive_users = []
+        
+        for user in users:
+            last_memory = db.query(Memory).filter(
+                Memory.user_id == user.id
+            ).order_by(Memory.created_at.desc()).first()
+            
+            if not last_memory or last_memory.created_at < threshold:
+                inactive_users.append(user)
 
         for user in inactive_users:
+            hours_since = INACTIVE_HOURS
+            if user.id in [u.id for u in inactive_users]:
+                last_mem = db.query(Memory).filter(
+                    Memory.user_id == user.id
+                ).order_by(Memory.created_at.desc()).first()
+                if last_mem:
+                    hours_since = int((now - last_mem.created_at).total_seconds() / 3600)
+            
             message = generate_notification_text(
-                language=user.language or "en",
+                language=user.preferred_language or "en",
                 notification_type=NOTIF_TYPE_INACTIVE,
                 user_name=user.name or "my friend",
-                hours_since_last_talk=INACTIVE_HOURS,
+                hours_since_last_talk=hours_since,
             )
             save_notification(db, user.id, message, "inactive_ping")
 
@@ -55,7 +72,7 @@ def check_health_status():
             health_summary = "Your heart rate and temperature are within normal range."
 
             message = generate_notification_text(
-                language=user.language or "en",
+                language=user.preferred_language or "en",
                 notification_type=NOTIF_TYPE_HEALTH_CHECK,
                 user_name=user.name or "my friend",
                 health_summary=health_summary,
@@ -71,7 +88,7 @@ def send_morning_greeting():
         for user in users:
             health_summary = "You seem to be doing fine. Ready for a new day!"
             message = generate_notification_text(
-                language=user.language or "en",
+                language=user.preferred_language or "en",
                 notification_type=NOTIF_TYPE_MORNING,
                 user_name=user.name or "my friend",
                 health_summary=health_summary,
@@ -84,10 +101,11 @@ def send_morning_greeting():
 def save_notification(db: Session, user_id: int, message: str, notif_type: str):
     new_notif = Notification(
         user_id=user_id,
-        message=message,
         type=notif_type,
-        timestamp=datetime.utcnow(),
-        status="unread",
+        priority="normal",
+        message=message,
+        is_read=False,
+        created_at=datetime.utcnow(),
     )
     db.add(new_notif)
     db.commit()
