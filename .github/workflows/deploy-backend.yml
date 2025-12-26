@@ -1,0 +1,31 @@
+name: Deploy Sedi Backend (Root)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SEDI_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan 91.107.168.130 >> ~/.ssh/known_hosts
+
+      - name: Deploy to Server
+        run: |
+          ssh root@91.107.168.130 << 'EOF'
+            set -e
+            cd /var/www/sedi/backend
+            git pull origin main
+            source .venv/bin/activate
+            pip install -r requirements.txt
+            systemctl restart sedi-backend
+          EOF
