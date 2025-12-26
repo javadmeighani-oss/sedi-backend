@@ -11,12 +11,12 @@ from app.routers import (
     notifications,
     ai_core,
 )
-from app.core.scheduler import start_scheduler  # برای نوتیف خودکار
+from app.core.scheduler import start_scheduler  # For automatic notifications
 
-# ------------------ ایجاد جداول ------------------
+# ------------------ Create Database Tables ------------------
 Base.metadata.create_all(bind=engine)
 
-# ------------------ ساخت اپلیکیشن FastAPI ------------------
+# ------------------ Create FastAPI Application ------------------
 app = FastAPI(
     title="Sedi Intelligent Health Assistant",
     description=(
@@ -27,9 +27,9 @@ app = FastAPI(
     version="2.0.1",
 )
 
-# ------------------ تنظیمات CORS ------------------
+# ------------------ CORS Configuration ------------------
 origins = [
-    "*",  # در محیط production باید محدود شود
+    "*",  # Should be restricted in production environment
 ]
 
 app.add_middleware(
@@ -40,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ------------------ مسیرهای اصلی (Routers) ------------------
+# ------------------ Main Routes (Routers) ------------------
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(interact.router, prefix="/interact", tags=["Interaction"])
 app.include_router(health.router, prefix="/health", tags=["Health Data"])
@@ -48,11 +48,11 @@ app.include_router(lifestyle.router, prefix="/lifestyle", tags=["Lifestyle Data"
 app.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 app.include_router(ai_core.router, prefix="/ai_core", tags=["AI Core"])
 
-# ------------------ فعال‌سازی Scheduler ------------------
+# ------------------ Activate Scheduler ------------------
 from app.core.scheduler import start_scheduler
 start_scheduler()
 
-# ------------------ مسیر اصلی برای تست ------------------
+# ------------------ Root Endpoint for Testing ------------------
 @app.get("/")
 def root():
     return {
