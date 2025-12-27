@@ -22,15 +22,12 @@ jobs:
 
       - name: Setup SSH
         run: |
-            mkdir -p ~/.ssh
-            chmod 700 ~/.ssh
-
-            printf "%s" "${{ secrets.SEDI_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
-            chmod 600 ~/.ssh/id_ed25519
-
-            ssh-keyscan -H 91.107.168.130 >> ~/.ssh/known_hosts
-            chmod 600 ~/.ssh/known_hosts
-
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 91.107.168.130 >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Test SSH connection
         run: |
