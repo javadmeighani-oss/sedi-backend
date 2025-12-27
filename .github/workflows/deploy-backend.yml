@@ -24,7 +24,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY || secrets.SEDI_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.SEDI_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H 91.107.168.130 >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
@@ -128,4 +128,5 @@ jobs:
           else
             echo "❌ Deployment failed. Check logs above." >> $GITHUB_STEP_SUMMARY
           fi
+
 # trigger deploy - 2024-12-27
