@@ -73,11 +73,11 @@ class ConversationBrain:
                 "error": "User not found"
             }
         
-        # Get current stage
+        # Get current stage (BEFORE save - to know where we are)
         current_stage = get_stage(user_id, self.db)
         print(f"[BRAIN DEBUG] Current stage: {current_stage.value}")
         
-        # Build context
+        # Build context (BEFORE save - includes previous state)
         context = ConversationContext(
             user_id=user_id,
             stage=current_stage,
@@ -99,7 +99,8 @@ class ConversationBrain:
         )
         print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
         
-        # Save conversation to memory
+        # CRITICAL FIX: Save conversation to memory BEFORE checking stage transition
+        # This ensures memory_count is updated for next request
         self.memory.save_conversation(
             user_id=user_id,
             user_message=user_message,
@@ -107,7 +108,7 @@ class ConversationBrain:
             language=self.language
         )
         
-        # Check for stage transition
+        # Check for stage transition (AFTER save - uses updated memory_count)
         new_stage = transition_stage(current_stage, user_id, self.db)
         print(f"[BRAIN DEBUG] New stage: {new_stage.value}")
         print(f"[BRAIN DEBUG] ===== MESSAGE PROCESSED =====")
