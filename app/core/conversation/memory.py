@@ -28,13 +28,16 @@ class ConversationMemory:
     
     def get_recent_messages(self, user_id: int, limit: int = 10) -> List[Memory]:
         """Get recent conversation messages"""
-        return (
+        memories = (
             self.db.query(Memory)
             .filter(Memory.user_id == user_id)
             .order_by(Memory.created_at.desc())
             .limit(limit)
             .all()
         )
+        # TEMP DEBUG: Log memory load
+        print(f"[MEMORY DEBUG] Loaded {len(memories)} recent messages for user_id={user_id}")
+        return memories
     
     def extract_memory_facts(self, user_id: int) -> Dict[str, any]:
         """
@@ -74,6 +77,11 @@ class ConversationMemory:
         language: str = "en"
     ) -> Memory:
         """Save a conversation exchange to memory"""
+        # TEMP DEBUG: Log before save
+        memory_count_before = self.get_conversation_count(user_id)
+        print(f"[MEMORY DEBUG] Saving conversation - user_id={user_id}, count_before={memory_count_before}")
+        print(f"[MEMORY DEBUG] Message snippet: {user_message[:50]}...")
+        
         memory = Memory(
             user_id=user_id,
             user_message=user_message,
@@ -84,6 +92,11 @@ class ConversationMemory:
         self.db.add(memory)
         self.db.commit()
         self.db.refresh(memory)
+        
+        # TEMP DEBUG: Log after save
+        memory_count_after = self.get_conversation_count(user_id)
+        print(f"[MEMORY DEBUG] Memory saved - user_id={user_id}, count_after={memory_count_after}, memory_id={memory.id}")
+        
         return memory
     
     def get_conversation_count(self, user_id: int) -> int:

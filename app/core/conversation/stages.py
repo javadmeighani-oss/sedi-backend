@@ -40,16 +40,22 @@ def get_stage(user_id: int, db: Session) -> ConversationStage:
     """
     memory_count = db.query(Memory).filter(Memory.user_id == user_id).count()
     
+    # TEMP DEBUG: Log stage detection
+    print(f"[STAGE DEBUG] user_id={user_id}, memory_count={memory_count}")
+    
     if memory_count == 0:
-        return ConversationStage.FIRST_CONTACT
+        stage = ConversationStage.FIRST_CONTACT
     elif memory_count <= 3:
-        return ConversationStage.INTRODUCTION
+        stage = ConversationStage.INTRODUCTION
     elif memory_count <= 10:
-        return ConversationStage.GETTING_TO_KNOW
+        stage = ConversationStage.GETTING_TO_KNOW
     elif memory_count <= 30:
-        return ConversationStage.DAILY_RELATION
+        stage = ConversationStage.DAILY_RELATION
     else:
-        return ConversationStage.STABLE_RELATION
+        stage = ConversationStage.STABLE_RELATION
+    
+    print(f"[STAGE DEBUG] Detected stage: {stage.value}")
+    return stage
 
 
 def transition_stage(

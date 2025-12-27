@@ -58,9 +58,14 @@ class ConversationBrain:
             - stage: Current conversation stage
             - metadata: Optional metadata (tone, intent, etc.)
         """
+        # TEMP DEBUG: Log entry
+        print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
+        print(f"[BRAIN DEBUG] user_id={user_id}, message={user_message[:50]}...")
+        
         # Validate user exists
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
+            print(f"[BRAIN DEBUG] ERROR: User not found")
             return {
                 "message": self._get_error_message("user_not_found"),
                 "language": self.language,
@@ -70,6 +75,7 @@ class ConversationBrain:
         
         # Get current stage
         current_stage = get_stage(user_id, self.db)
+        print(f"[BRAIN DEBUG] Current stage: {current_stage.value}")
         
         # Build context
         context = ConversationContext(
@@ -79,9 +85,11 @@ class ConversationBrain:
             user_message=user_message
         )
         context_data = context.build()
+        print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
         
         # Determine engagement level (minimal logic - selection only)
         engagement_level = self._determine_engagement_level(context_data)
+        print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
         
         # Generate response with engagement-aware prompts
         sedi_response = self.prompts.generate_response(
@@ -89,6 +97,7 @@ class ConversationBrain:
             user_message,
             engagement_level
         )
+        print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
         
         # Save conversation to memory
         self.memory.save_conversation(
@@ -100,6 +109,8 @@ class ConversationBrain:
         
         # Check for stage transition
         new_stage = transition_stage(current_stage, user_id, self.db)
+        print(f"[BRAIN DEBUG] New stage: {new_stage.value}")
+        print(f"[BRAIN DEBUG] ===== MESSAGE PROCESSED =====")
         
         # Build metadata
         metadata = {

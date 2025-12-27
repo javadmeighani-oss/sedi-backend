@@ -98,6 +98,7 @@ def introduce_user(
 def chat_with_sedi(
     message: str = Query(...),
     lang: str = Query("en"),
+    user_id: Optional[int] = Query(None),  # CRITICAL: Frontend must send user_id from previous response
     name: Optional[str] = Query(None),
     secret_key: Optional[str] = Query(None),
     db: Session = Depends(get_db)
@@ -108,13 +109,26 @@ def chat_with_sedi(
     
     Supports both authenticated users and new anonymous users.
     For new users without credentials, creates a temporary anonymous user.
+    
+    CRITICAL: Frontend should send user_id from previous response to maintain conversation continuity.
     """
     user = None
     requires_security_check = False
     is_anonymous = False
     
-    # If credentials provided, try to find user
-    if name and secret_key:
+    # PRIORITY 1: If user_id provided, use it directly (maintains conversation continuity)
+    if user_id:
+        print(f"[ROUTER DEBUG] user_id provided: {user_id}")
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            print(f"[ROUTER DEBUG] Found user: id={user.id}, name={user.name}")
+        else:
+            # Invalid user_id provided - fall through to create new user
+            print(f"[ROUTER DEBUG] Invalid user_id - will create new user")
+            user = None
+    
+    # PRIORITY 2: If credentials provided, try to find user
+    if not user and name and secret_key:
         user = db.query(User).filter(
             User.name == name,
             User.secret_key == secret_key
@@ -123,35 +137,27 @@ def chat_with_sedi(
         if not user:
             requires_security_check = True
     
-    # If no user found and no credentials, create anonymous user for new users
+    # PRIORITY 3: If no user found and no credentials, create anonymous user for new users
     if not user and (not name or not secret_key):
-        # Check if this is a greeting request (special marker)
-        is_greeting = message.strip() == "__GREETING__"
+        # TEMP DEBUG: Log anonymous user creation
+        print(f"[ROUTER DEBUG] No user_id/credentials provided - creating anonymous user")
         
         # Create temporary anonymous user for new users
-        # Use UUID to ensure uniqueness
+        # Use UUID to ensure uniqueness - always create new to avoid conflicts
         anonymous_name = f"anonymous_{uuid.uuid4().hex[:12]}"
         anonymous_secret = "temp_" + uuid.uuid4().hex[:12]
         
-        # Check if anonymous user already exists (shouldn't happen, but safety check)
-        existing_anonymous = db.query(User).filter(
-            User.name.like("anonymous_%"),
-            User.secret_key.like("temp_%")
-        ).first()
-        
-        if existing_anonymous:
-            user = existing_anonymous
-        else:
-            # Create new anonymous user
-            user = User(
-                name=anonymous_name,
-                secret_key=anonymous_secret,
-                preferred_language=lang
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            is_anonymous = True
+        # Create new anonymous user (don't reuse existing - each session gets unique user_id)
+        user = User(
+            name=anonymous_name,
+            secret_key=anonymous_secret,
+            preferred_language=lang
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        is_anonymous = True
+        print(f"[ROUTER DEBUG] Created anonymous user - user_id={user.id}, name={user.name}")
     
     # If still no user (shouldn't happen), return error
     if not user:
