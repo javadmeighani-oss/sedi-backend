@@ -173,6 +173,10 @@ CRITICAL - RESPONDING TO USER:
 - ALWAYS read the conversation history above to understand what was said before.
 - ALWAYS answer user's questions FIRST, then optionally ask ONE question.
 - If user asks a question, ANSWER IT directly and naturally - DO NOT ignore it.
+- If user asks you to introduce yourself (like "introduce yourself", "tell me about yourself", "who are you"), provide a COMPLETE introduction:
+  * Who you are: Sedi, AI-powered health care assistant
+  * Your purpose: How you help improve their quality of life
+  * How you work: Through conversation and smart device monitoring
 - If user makes a statement, acknowledge it and respond appropriately.
 - If user says something short like "what?" or "sedi?", they are asking for clarification or attention - respond helpfully.
 - NEVER repeat the same response you gave in previous messages - check conversation history.
@@ -226,6 +230,10 @@ MEMORY USAGE:
 - همیشه تاریخچه گفتگو را بخوان تا ببینی قبلاً چه گفته شده.
 - همیشه اول به سوالات کاربر پاسخ بده، سپس اختیاری یک سوال بپرس.
 - اگر کاربر سوالی پرسید، مستقیماً و طبیعی به آن پاسخ بده - نادیده نگیر.
+- اگر کاربر از تو می‌خواهد خودت را معرفی کنی (مثل "خودت رو معرفی کن"، "بگو کی هستی"، "خودت رو برام معرفی کن")، یک معرفی کامل ارائه بده:
+  * کیستی: صدی، دستیار مراقبت سلامت با هوش مصنوعی
+  * هدف تو: چگونه به بهبود کیفیت زندگی‌شان کمک می‌کنی
+  * نحوه کارت: از طریق گفتگو و نظارت گجت‌های هوشمند
 - اگر کاربر جمله‌ای گفت، آن را تأیید کن و مناسب پاسخ بده.
 - اگر کاربر چیزی کوتاه گفت مثل "چی؟" یا "صدی؟"، دارد توضیح یا توجه می‌خواهد - مفید پاسخ بده.
 - هیچ‌وقت همان پاسخ قبلی را تکرار نکن - تاریخچه گفتگو را چک کن.
@@ -279,6 +287,10 @@ MEMORY USAGE:
 - دائماً اقرأ تاريخ المحادثة أعلاه لفهم ما قيل من قبل.
 - دائماً أجب على أسئلة المستخدم أولاً، ثم اسأل سؤالاً واحداً اختيارياً.
 - إذا سأل المستخدم سؤالاً، أجب عليه مباشرة وبشكل طبيعي - لا تتجاهله.
+- إذا طلب المستخدم منك تقديم نفسك (مثل "قدم نفسك"، "أخبرني عن نفسك"، "من أنت")، قدم مقدمة كاملة:
+  * من أنت: صدي، مساعد رعاية صحية مدعوم بالذكاء الاصطناعي
+  * هدفك: كيف تساعد على تحسين جودة حياتهم
+  * كيف تعمل: من خلال المحادثة ومراقبة الأجهزة الذكية
 - إذا قال المستخدم جملة، اعترف بها ورد بشكل مناسب.
 - إذا قال المستخدم شيئاً قصيراً مثل "ماذا؟" أو "صدي؟"، فهو يطلب توضيحاً أو انتباهاً - رد بشكل مفيد.
 - لا تكرر أبداً نفس الرد الذي أعطيته في الرسائل السابقة - تحقق من تاريخ المحادثة.
@@ -350,6 +362,10 @@ SCENARIO: FIRST_CONTACT
                 "en": f"""
 SCENARIO: INTRODUCTION
 - You're getting to know {user_name} better.
+- If user asks you to introduce yourself (like "introduce yourself", "tell me about yourself"), provide a COMPLETE introduction:
+  * Who you are: Sedi, their AI-powered health care assistant
+  * Your purpose: You help improve their quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring via smart devices
+  * How you work: You learn about their lifestyle through natural conversation and use smart devices to track vital signs (heart rate, temperature, SpO2) continuously
 - Start learning about their lifestyle naturally (work, daily routine, health interests).
 - Ask ONE optional question about their lifestyle or health interests if it feels natural.
 - Begin understanding their health goals and preferences.
@@ -359,6 +375,10 @@ SCENARIO: INTRODUCTION
                 "fa": f"""
 سناریو: معرفی
 - داری {user_name} را بهتر می‌شناسی.
+- اگر کاربر از تو می‌خواهد خودت را معرفی کنی (مثل "خودت رو معرفی کن"، "بگو کی هستی"، "خودت رو برام معرفی کن")، یک معرفی کامل ارائه بده:
+  * کیستی: صدی، دستیار مراقبت سلامت‌شان با هوش مصنوعی
+  * هدف تو: کمک به بهبود کیفیت زندگی‌شان از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند
+  * نحوه کارت: از طریق گفتگوی طبیعی درباره سبک زندگی‌شان یاد می‌گیری و از گجت‌های هوشمند برای ثبت علائم حیاتی (ضربان قلب، دما، SpO2) به صورت پیوسته استفاده می‌کنی
 - شروع به یادگیری درباره سبک زندگی‌شان به طور طبیعی کن (کار، روال روزانه، علایق سلامت).
 - اگر طبیعی به نظر می‌رسد، یک سوال اختیاری درباره سبک زندگی یا علایق سلامت بپرس.
 - شروع به درک اهداف و ترجیحات سلامت‌شان کن.
@@ -368,6 +388,10 @@ SCENARIO: INTRODUCTION
                 "ar": f"""
 السيناريو: التعريف
 - أنت تتعرف على {user_name} بشكل أفضل.
+- إذا طلب المستخدم منك تقديم نفسك (مثل "قدم نفسك"، "أخبرني عن نفسك")، قدم مقدمة كاملة:
+  * من أنت: صدي، مساعد رعاية صحية الخاص بهم المدعوم بالذكاء الاصطناعي
+  * هدفك: مساعدتهم على تحسين جودة حياتهم من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية
+  * كيف تعمل: تتعلم عن نمط حياتهم من خلال محادثة طبيعية وتستخدم الأجهزة الذكية لتتبع العلامات الحيوية (معدل ضربات القلب، درجة الحرارة، SpO2) بشكل مستمر
 - ابدأ بتعلم نمط حياتهم بشكل طبيعي (العمل، الروتين اليومي، اهتمامات الصحة).
 - اسأل سؤالاً اختيارياً واحداً حول نمط حياتهم أو اهتمامات الصحة إذا كان طبيعياً.
 - ابدأ بفهم أهدافهم الصحية وتفضيلاتهم.
@@ -551,11 +575,30 @@ SCENARIO: STABLE_RELATION
         """
         Build user prompt for health care assistant.
         
-        Keep it simple - conversation history is already in messages array.
-        Only add minimal context if needed.
+        Adds intent hints to help GPT understand user's request better.
         """
-        # Keep user message simple - conversation history is already provided in messages array
-        # Adding too much context can confuse GPT
+        # Detect if user is asking for introduction
+        user_lower = user_message.lower()
+        intro_keywords = {
+            "en": ["introduce yourself", "tell me about yourself", "who are you", "what are you"],
+            "fa": ["خودت رو معرفی کن", "خودت رو برام معرفی کن", "بگو کی هستی", "خودت رو معرفی", "معرفی کن"],
+            "ar": ["قدم نفسك", "أخبرني عن نفسك", "من أنت", "ما أنت"]
+        }
+        
+        # Check if user is asking for introduction
+        keywords = intro_keywords.get(self.language, intro_keywords["en"])
+        is_intro_request = any(keyword in user_lower for keyword in keywords)
+        
+        if is_intro_request:
+            # Add intent hint for introduction request
+            intent_hint = {
+                "en": "\n[User is asking you to introduce yourself. Provide a complete introduction about who you are, your purpose, and how you work.]",
+                "fa": "\n[کاربر از تو می‌خواهد خودت را معرفی کنی. یک معرفی کامل درباره کیستی، هدفت و نحوه کارت ارائه بده.]",
+                "ar": "\n[المستخدم يطلب منك تقديم نفسك. قدم مقدمة كاملة عن من أنت وهدفك وكيف تعمل.]"
+            }
+            return user_message + intent_hint.get(self.language, intent_hint["en"])
+        
+        # Keep user message simple for other cases
         return user_message
     
     def _get_fallback_response(self, stage: ConversationStage) -> str:
