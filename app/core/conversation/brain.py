@@ -172,26 +172,75 @@ class ConversationBrain:
         stage: ConversationStage
     ) -> str:
         """
-        Generate greeting message based on context and stage.
+        Generate greeting message - Sedi introduces herself and explains how she can help.
         
-        SCENARIO 7: Daily greeting - calm, optional, no reply required.
+        CRITICAL: Sedi must be a conversation initiator and explain:
+        - Who she is (health care assistant)
+        - How she can improve user's quality of life
+        - Through health care suggestions, lifestyle improvements, and smart device monitoring
         """
         user_name = context.get("user_name") or "friend"
         time_since = context.get("time_since_last")
         engagement_level = self._determine_engagement_level(context)
         
-        # Build greeting prompt - calm and non-intrusive
+        # Build comprehensive greeting prompt based on stage
         if stage == ConversationStage.FIRST_CONTACT:
-            greeting_prompt = f"Say hello and introduce yourself as Sedi. Use their name: {user_name}. Keep it brief and calm."
+            # FIRST CONTACT: Sedi must introduce herself and explain her purpose
+            greeting_prompt = {
+                "en": f"""Introduce yourself as Sedi, an AI-powered health care assistant.
+
+Explain to {user_name}:
+1. WHO YOU ARE: You are Sedi, their personal health care assistant and wellness companion
+2. YOUR PURPOSE: You help improve their quality of life through:
+   - Personalized health care suggestions
+   - Lifestyle improvement recommendations
+   - Continuous monitoring of their daily health data through smart devices
+3. HOW YOU WORK: You learn about their lifestyle through natural conversation and use smart devices to track their vital signs (heart rate, temperature, SpO2) continuously
+4. YOUR GOAL: Help them live a healthier, better life
+
+Be warm, friendly, and conversational. Make them feel comfortable. This is the FIRST conversation - be welcoming and explain everything clearly. Keep it natural, not robotic. Use 1-2 sentences per point, max 300 characters total.""",
+                "fa": f"""خودت را به عنوان صدی، یک دستیار مراقبت سلامت با هوش مصنوعی معرفی کن.
+
+به {user_name} توضیح بده:
+1. کیستی: تو صدی هستی، دستیار مراقبت سلامت و همراه تندرستی شخصی‌شان
+2. هدف تو: کمک به بهبود کیفیت زندگی‌شان از طریق:
+   - پیشنهادهای شخصی‌سازی شده مراقبت سلامت
+   - توصیه‌های بهبود سبک زندگی
+   - پایش پیوسته داده‌های سلامت روزمره‌شان از طریق گجت‌های هوشمند
+3. چگونه کار می‌کنی: از طریق گفتگوی طبیعی درباره سبک زندگی‌شان یاد می‌گیری و از گجت‌های هوشمند برای ثبت علائم حیاتی (ضربان قلب، دما، SpO2) به صورت پیوسته استفاده می‌کنی
+4. هدف تو: کمک به آن‌ها برای زندگی سالم‌تر و بهتر
+
+گرم، دوستانه و گفتگویی باش. آن‌ها را راحت کن. این اولین گفتگو است - خوش‌آمدگو باش و همه چیز را واضح توضیح بده. طبیعی باش، نه رباتی. از 1-2 جمله برای هر نکته استفاده کن، حداکثر 300 کاراکتر در کل.""",
+                "ar": f"""قدم نفسك كصدي، مساعد رعاية صحية مدعوم بالذكاء الاصطناعي.
+
+اشرح لـ {user_name}:
+1. من أنت: أنت صدي، مساعد رعاية صحية ورفيق صحة شخصي
+2. هدفك: مساعدتهم على تحسين جودة حياتهم من خلال:
+   - اقتراحات رعاية صحية مخصصة
+   - توصيات تحسين نمط الحياة
+   - مراقبة مستمرة لبيانات صحتهم اليومية من خلال الأجهزة الذكية
+3. كيف تعمل: تتعلم عن نمط حياتهم من خلال محادثة طبيعية وتستخدم الأجهزة الذكية لتتبع علاماتهم الحيوية (معدل ضربات القلب، درجة الحرارة، SpO2) بشكل مستمر
+4. هدفك: مساعدتهم على عيش حياة أكثر صحة وأفضل
+
+كن دافئاً وودوداً ومحادثاً. اجعلهم يشعرون بالراحة. هذه المحادثة الأولى - كن مرحباً واشرح كل شيء بوضوح. كن طبيعياً، وليس روبوتياً. استخدم 1-2 جملة لكل نقطة، بحد أقصى 300 حرف في المجموع."""
+            }
         elif time_since:
-            # User returning after absence - be warm but not pushy
-            greeting_prompt = f"Greet {user_name} calmly. You haven't talked in a while. Be warm but not overwhelming. No pressure to respond."
+            # User returning after absence - be warm and check in
+            greeting_prompt = {
+                "en": f"""Greet {user_name} warmly. You haven't talked in a while. Remind them briefly who you are (Sedi, their health care assistant) and that you're here to help improve their quality of life through health monitoring and lifestyle suggestions. Be warm but not overwhelming. Ask how they've been.""",
+                "fa": f"""با {user_name} گرم سلام کن. مدتی است که حرف نزده‌اید. مختصر یادآوری کن که تو کیستی (صدی، دستیار مراقبت سلامت‌شان) و اینجا هستی تا از طریق نظارت سلامت و پیشنهادهای سبک زندگی کیفیت زندگی‌شان را بهبود دهی. گرم باش اما نه بیش از حد. بپرس چطور بوده‌اند.""",
+                "ar": f"""حي {user_name} بحرارة. لم تتحدثا منذ فترة. ذكره باختصار من أنت (صدي، مساعد رعاية صحية) وأنك هنا لمساعدتهم على تحسين جودة حياتهم من خلال مراقبة الصحة واقتراحات نمط الحياة. كن دافئاً لكن ليس ساحقاً. اسأل كيف كانوا."""
+            }
         else:
-            # Regular greeting - short and optional
-            greeting_prompt = f"Greet {user_name} with a calm, short greeting. This is optional - no reply required. Keep it brief."
+            # Regular greeting - proactive health check-in
+            greeting_prompt = {
+                "en": f"""Greet {user_name} warmly. As their health care assistant, proactively check in on their wellness. You can mention their health data if available, or ask about their day. Be conversational and supportive. Keep it brief (1-2 sentences, max 150 characters).""",
+                "fa": f"""با {user_name} گرم سلام کن. به عنوان دستیار مراقبت سلامت‌شان، به صورت فعالانه چک‌آپ تندرستی کن. می‌توانی به داده‌های سلامت‌شان اشاره کنی اگر در دسترس است، یا درباره روزشان بپرسی. گفتگویی و حمایت‌کننده باش. مختصر نگه دار (1-2 جمله، حداکثر 150 کاراکتر).""",
+                "ar": f"""حي {user_name} بحرارة. كمساعد رعاية صحية، تحقق بشكل استباقي من صحتهم. يمكنك ذكر بيانات صحتهم إذا كانت متاحة، أو السؤال عن يومهم. كن محادثاً وداعماً. اجعلها مختصرة (1-2 جملة، بحد أقصى 150 حرف)."""
+            }
         
         try:
-            completion = self.prompts._build_system_prompt(
+            system_prompt = self.prompts._build_system_prompt(
                 stage,
                 user_name,
                 context.get("conversation_count", 0),
@@ -200,30 +249,40 @@ class ConversationBrain:
             
             # Add greeting-specific instruction
             greeting_instruction = {
-                "en": "\nThis is a greeting message. Keep it calm and brief. No questions required. User can respond if they want, or not.",
-                "fa": "\nاین یک پیام سلام است. آرام و مختصر نگه دار. سوال لازم نیست. کاربر می‌تواند پاسخ دهد یا نه.",
-                "ar": "\nهذه رسالة تحية. اجعلها هادئة ومختصرة. لا أسئلة مطلوبة. يمكن للمستخدم الرد إذا أراد، أو لا."
+                "en": "\n\nIMPORTANT: This is a greeting message where you introduce yourself and explain your purpose. Be conversational, warm, and engaging. Make the user want to respond and start a real conversation. Explain clearly how you can help improve their quality of life.",
+                "fa": "\n\nمهم: این یک پیام سلام است که در آن خودت را معرفی می‌کنی و هدفت را توضیح می‌دهی. گفتگویی، گرم و جذاب باش. کاربر را تشویق کن که پاسخ دهد و یک گفتگوی واقعی شروع کند. واضح توضیح بده چگونه می‌توانی کیفیت زندگی‌شان را بهبود دهی.",
+                "ar": "\n\nمهم: هذه رسالة تحية حيث تقدم نفسك وتشرح هدفك. كن محادثاً ودافئاً وجذاباً. اجعل المستخدم يريد الرد وبدء محادثة حقيقية. اشرح بوضوح كيف يمكنك مساعدتهم على تحسين جودة حياتهم."
             }
             
-            completion += greeting_instruction.get(self.language, greeting_instruction["en"])
+            system_prompt += greeting_instruction.get(self.language, greeting_instruction["en"])
+            
+            prompt_text = greeting_prompt.get(self.language, greeting_prompt["en"])
             
             messages = [
-                {"role": "system", "content": completion},
-                {"role": "user", "content": greeting_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt_text}
             ]
             
             from app.core.conversation.prompts import client as gpt_client
             response = gpt_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                temperature=0.7,
-                max_tokens=80,  # Shorter for greetings
+                temperature=0.8,  # Slightly higher for more natural, engaging greeting
+                max_tokens=300,  # Increased for comprehensive introduction
             )
             
             return response.choices[0].message.content.strip()
             
         except Exception as e:
             print(f"[BRAIN GREETING ERROR] {e}")
+            # Fallback with introduction
+            if stage == ConversationStage.FIRST_CONTACT:
+                fallbacks = {
+                    "en": "Hello! I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring of your daily health data via smart devices. How can I help you today?",
+                    "fa": "سلام! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته داده‌های سلامت روزمره‌تان از طریق گجت‌های هوشمند، به بهبود کیفیت زندگی‌تان کمک می‌کنم. امروز چطور می‌تونم کمکتون کنم؟",
+                    "ar": "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة لبيانات صحتك اليومية عبر الأجهزة الذكية. كيف يمكنني مساعدتك اليوم؟"
+                }
+                return fallbacks.get(self.language, fallbacks["en"])
             return self.prompts._get_fallback_response(stage)
     
     def _determine_engagement_level(self, context: Dict[str, any]) -> str:
