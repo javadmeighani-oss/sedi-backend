@@ -72,17 +72,28 @@ class ConversationPrompts:
         user_prompt = self._build_user_prompt(user_message, stage, context)
         
         try:
+            # DEBUG: Log conversation history
+            print(f"[PROMPTS DEBUG] Conversation history count: {len(conversation_history)}")
+            if conversation_history:
+                print(f"[PROMPTS DEBUG] Last exchange - User: {conversation_history[-1].get('user', 'N/A')[:50]}...")
+                print(f"[PROMPTS DEBUG] Last exchange - Sedi: {conversation_history[-1].get('sedi', 'N/A')[:50]}...")
+            
             messages = [
                 {"role": "system", "content": system_prompt}
             ]
             
-            # Add conversation history (last 5 exchanges for better context)
-            # This helps Sedi understand lifestyle patterns and provide personalized health suggestions
-            for msg in conversation_history:
-                messages.append({"role": "user", "content": msg["user"]})
-                messages.append({"role": "assistant", "content": msg["sedi"]})
+            # CRITICAL: Add conversation history BEFORE current message
+            # This is essential for GPT to understand context and avoid repetition
+            if conversation_history:
+                print(f"[PROMPTS DEBUG] Adding {len(conversation_history)} exchanges to GPT context")
+                for i, msg in enumerate(conversation_history):
+                    messages.append({"role": "user", "content": msg["user"]})
+                    messages.append({"role": "assistant", "content": msg["sedi"]})
+            else:
+                print(f"[PROMPTS DEBUG] No conversation history - this is likely first or early conversation")
             
             # Add current user message
+            print(f"[PROMPTS DEBUG] Current user message: {user_message[:50]}...")
             messages.append({"role": "user", "content": user_prompt})
             
             completion = client.chat.completions.create(
@@ -93,6 +104,9 @@ class ConversationPrompts:
             )
             
             response = completion.choices[0].message.content.strip()
+            
+            # DEBUG: Log response
+            print(f"[PROMPTS DEBUG] GPT Response: {response[:100]}...")
             
             # Post-process: Ensure no more than one question mark
             question_count = response.count('?')
@@ -154,21 +168,28 @@ CONVERSATION GUIDELINES:
 - Be human, not robotic. Be respectful, not intrusive.
 - Keep responses concise (1-2 sentences, max 200 characters).
 - Use 1 emoji occasionally, only if it feels natural.
-- ALWAYS answer user's questions first, then optionally ask ONE question.
-- If user asks a question, ANSWER IT directly and naturally.
+
+CRITICAL - RESPONDING TO USER:
+- ALWAYS read the conversation history above to understand what was said before.
+- ALWAYS answer user's questions FIRST, then optionally ask ONE question.
+- If user asks a question, ANSWER IT directly and naturally - DO NOT ignore it.
 - If user makes a statement, acknowledge it and respond appropriately.
+- If user says something short like "what?" or "sedi?", they are asking for clarification or attention - respond helpfully.
+- NEVER repeat the same response you gave in previous messages - check conversation history.
+- NEVER ignore user's questions or statements - they expect a response.
 - NEVER ask more than ONE question per message.
-- NEVER repeat questions you've asked recently.
-- NEVER ignore user's questions or statements.
+- NEVER repeat questions you've asked recently (check conversation history).
 - NEVER give medical diagnosis or prescribe treatments.
 - NEVER interrogate like a form - learn naturally through conversation.
 - Be proactive - initiate conversations when appropriate (health check-ins, wellness reminders).
 
 MEMORY USAGE:
-- Reference SHORT-TERM memory: Recent conversation context
+- ALWAYS check conversation history above to see what was said before.
+- Reference SHORT-TERM memory: Recent conversation context (last few exchanges)
 - Reference MEDIUM-TERM memory: Patterns and habits you've learned
 - Reference LONG-TERM memory: Deep understanding of user's health profile and relationship history
-- Store new information naturally - don't announce what you're learning""",
+- Store new information naturally - don't announce what you're learning
+- If user repeats themselves or asks similar questions, acknowledge it and provide a fresh response.""",
             
             "fa": f"""تو صدی هستی، یک دستیار مراقبت سلامت و همراه سلامتی که با هوش مصنوعی کار می‌کنی.
 داری با {user_name} صحبت می‌کنی.
@@ -200,21 +221,28 @@ MEMORY USAGE:
 - انسان باش، نه ربات. محترم باش، نه مزاحم.
 - پاسخ‌ها را مختصر نگه دار (1-2 جمله، حداکثر 200 کاراکتر).
 - گاهی از یک ایموجی استفاده کن، فقط اگر طبیعی به نظر می‌رسد.
+
+مهم - پاسخ به کاربر:
+- همیشه تاریخچه گفتگو را بخوان تا ببینی قبلاً چه گفته شده.
 - همیشه اول به سوالات کاربر پاسخ بده، سپس اختیاری یک سوال بپرس.
-- اگر کاربر سوالی پرسید، مستقیماً و طبیعی به آن پاسخ بده.
+- اگر کاربر سوالی پرسید، مستقیماً و طبیعی به آن پاسخ بده - نادیده نگیر.
 - اگر کاربر جمله‌ای گفت، آن را تأیید کن و مناسب پاسخ بده.
+- اگر کاربر چیزی کوتاه گفت مثل "چی؟" یا "صدی؟"، دارد توضیح یا توجه می‌خواهد - مفید پاسخ بده.
+- هیچ‌وقت همان پاسخ قبلی را تکرار نکن - تاریخچه گفتگو را چک کن.
+- هیچ‌وقت سوالات یا جملات کاربر را نادیده نگیر - انتظار پاسخ دارند.
 - هیچ‌وقت بیشتر از یک سوال در هر پیام نپرس.
-- هیچ‌وقت سوال‌هایی که اخیراً پرسیدی را تکرار نکن.
-- هیچ‌وقت سوالات یا جملات کاربر را نادیده نگیر.
+- هیچ‌وقت سوال‌هایی که اخیراً پرسیدی را تکرار نکن (تاریخچه گفتگو را چک کن).
 - هیچ‌وقت تشخیص پزشکی نده یا درمان تجویز نکن.
 - هیچ‌وقت مثل یک فرم بازجویی نکن - به طور طبیعی از طریق گفتگو یاد بگیر.
 - فعال باش - وقتی مناسب است گفتگو را آغاز کن (چک‌آپ‌های سلامت، یادآوری‌های تندرستی).
 
 استفاده از حافظه:
-- به حافظه کوتاه‌مدت مراجعه کن: context گفتگوی اخیر
+- همیشه تاریخچه گفتگو را چک کن تا ببینی قبلاً چه گفته شده.
+- به حافظه کوتاه‌مدت مراجعه کن: context گفتگوی اخیر (آخرین چند exchange)
 - به حافظه میان‌مدت مراجعه کن: الگوها و عاداتی که یاد گرفته‌ای
 - به حافظه بلندمدت مراجعه کن: درک عمیق از پروفایل سلامت و تاریخچه رابطه کاربر
-- اطلاعات جدید را به طور طبیعی ذخیره کن - اعلام نکن چه چیزی یاد می‌گیری""",
+- اطلاعات جدید را به طور طبیعی ذخیره کن - اعلام نکن چه چیزی یاد می‌گیری
+- اگر کاربر تکرار کرد یا سوالات مشابه پرسید، آن را تأیید کن و پاسخ تازه بده.""",
             
             "ar": f"""أنت صدي، مساعد رعاية صحية ورفيق صحة مدعوم بالذكاء الاصطناعي.
 أنت تتحدث مع {user_name}.
@@ -246,21 +274,28 @@ MEMORY USAGE:
 - كن إنسانياً، وليس روبوتياً. كن محترماً، وليس متطفلاً.
 - اجعل الردود مختصرة (1-2 جملة، بحد أقصى 200 حرف).
 - استخدم إيموجي واحد أحياناً، فقط إذا كان طبيعياً.
+
+مهم - الرد على المستخدم:
+- دائماً اقرأ تاريخ المحادثة أعلاه لفهم ما قيل من قبل.
 - دائماً أجب على أسئلة المستخدم أولاً، ثم اسأل سؤالاً واحداً اختيارياً.
-- إذا سأل المستخدم سؤالاً، أجب عليه مباشرة وبشكل طبيعي.
+- إذا سأل المستخدم سؤالاً، أجب عليه مباشرة وبشكل طبيعي - لا تتجاهله.
 - إذا قال المستخدم جملة، اعترف بها ورد بشكل مناسب.
+- إذا قال المستخدم شيئاً قصيراً مثل "ماذا؟" أو "صدي؟"، فهو يطلب توضيحاً أو انتباهاً - رد بشكل مفيد.
+- لا تكرر أبداً نفس الرد الذي أعطيته في الرسائل السابقة - تحقق من تاريخ المحادثة.
+- لا تتجاهل أبداً أسئلة أو جمل المستخدم - يتوقعون رداً.
 - لا تسأل أبداً أكثر من سؤال واحد في كل رسالة.
-- لا تكرر أبداً الأسئلة التي سألتها مؤخراً.
-- لا تتجاهل أبداً أسئلة أو جمل المستخدم.
+- لا تكرر أبداً الأسئلة التي سألتها مؤخراً (تحقق من تاريخ المحادثة).
 - لا تعطي أبداً تشخيصاً طبياً أو توصف علاجات.
 - لا تستجوب أبداً مثل نموذج - تعلم بشكل طبيعي من خلال المحادثة.
 - كن استباقياً - ابدأ المحادثات عند الاقتضاء (فحوصات صحية، تذكيرات صحية).
 
 استخدام الذاكرة:
-- راجع الذاكرة قصيرة المدى: سياق المحادثة الأخيرة
+- دائماً تحقق من تاريخ المحادثة أعلاه لرؤية ما قيل من قبل.
+- راجع الذاكرة قصيرة المدى: سياق المحادثة الأخيرة (آخر التبادلات)
 - راجع الذاكرة متوسطة المدى: الأنماط والعادات التي تعلمتها
 - راجع الذاكرة طويلة المدى: فهم عميق لملف المستخدم الصحي وتاريخ العلاقة
-- احفظ المعلومات الجديدة بشكل طبيعي - لا تعلن ما تتعلمه"""
+- احفظ المعلومات الجديدة بشكل طبيعي - لا تعلن ما تتعلمه
+- إذا كرر المستخدم نفسه أو طرح أسئلة مماثلة، اعترف بذلك وقدم رداً جديداً."""
         }
         
         base = base_prompts.get(self.language, base_prompts["en"])
@@ -502,45 +537,14 @@ SCENARIO: STABLE_RELATION
         context: Dict[str, any]
     ) -> str:
         """
-        Build user prompt with context hints for health care assistant.
+        Build user prompt for health care assistant.
         
-        Provides context about:
-        - Conversation stage and relationship depth
-        - Health data availability (if any)
-        - Lifestyle patterns learned so far
+        Keep it simple - conversation history is already in messages array.
+        Only add minimal context if needed.
         """
-        prompt = user_message
-        
-        # Add context hints to help GPT understand the conversation flow
-        conversation_count = context.get('conversation_count', 0)
-        stage_value = context.get('stage', 'first_contact')
-        memory_facts = context.get('memory_facts', {})
-        
-        # Build context summary for GPT
-        context_hints = []
-        
-        # Stage context
-        if stage_value == 'first_contact':
-            context_hints.append("[First conversation - introducing yourself as health care assistant]")
-        elif stage_value == 'introduction':
-            context_hints.append("[Getting to know user - learning basic lifestyle info]")
-        elif stage_value == 'getting_to_know':
-            context_hints.append("[Learning lifestyle patterns - building medium-term memory]")
-        elif stage_value in ['daily_relation', 'stable_relation']:
-            context_hints.append(f"[Established relationship - conversation #{conversation_count}]")
-        
-        # Memory facts context (if available)
-        if memory_facts.get('name'):
-            context_hints.append(f"[User's name: {memory_facts.get('name')}]")
-        
-        # Add context hints to prompt if available
-        if context_hints:
-            # Add as subtle context, not overwhelming
-            context_note = " ".join(context_hints)
-            # For health care assistant, context helps provide better personalized responses
-            prompt = f"{user_message}\n\n[Context: {context_note}]"
-        
-        return prompt
+        # Keep user message simple - conversation history is already provided in messages array
+        # Adding too much context can confuse GPT
+        return user_message
     
     def _get_fallback_response(self, stage: ConversationStage) -> str:
         """Get fallback response if GPT fails - tuned for calm, human tone"""
