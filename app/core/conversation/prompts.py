@@ -230,10 +230,12 @@ MEMORY USAGE:
 - همیشه تاریخچه گفتگو را بخوان تا ببینی قبلاً چه گفته شده.
 - همیشه اول به سوالات کاربر پاسخ بده، سپس اختیاری یک سوال بپرس.
 - اگر کاربر سوالی پرسید، مستقیماً و طبیعی به آن پاسخ بده - نادیده نگیر.
-- اگر کاربر از تو می‌خواهد خودت را معرفی کنی (مثل "خودت رو معرفی کن"، "بگو کی هستی"، "خودت رو برام معرفی کن")، یک معرفی کامل ارائه بده:
+- مهم: اگر کاربر از تو می‌خواهد خودت را معرفی کنی (مثل "خودت رو معرفی کن"، "معرفی کن خودتو"، "بگو کی هستی")، تو باید خودت را معرفی کنی، نه از کاربر بخواهی خودش را معرفی کند.
+- وقتی کاربر می‌خواهد معرفی شوی، یک معرفی کامل ارائه بده:
   * کیستی: صدی، دستیار مراقبت سلامت با هوش مصنوعی
-  * هدف تو: چگونه به بهبود کیفیت زندگی‌شان کمک می‌کنی
-  * نحوه کارت: از طریق گفتگو و نظارت گجت‌های هوشمند
+  * هدف تو: چگونه از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌شان کمک می‌کنی
+  * نحوه کارت: از طریق گفتگوی طبیعی درباره سبک زندگی‌شان یاد می‌گیری و از گجت‌های هوشمند برای ثبت علائم حیاتی (ضربان قلب، دما، SpO2) به صورت پیوسته استفاده می‌کنی
+- اشتباه نکن: "معرفی کن خودتو" یعنی تو باید خودت را معرفی کنی، نه از کاربر بخواهی خودش را معرفی کند.
 - اگر کاربر جمله‌ای گفت، آن را تأیید کن و مناسب پاسخ بده.
 - اگر کاربر چیزی کوتاه گفت مثل "چی؟" یا "صدی؟"، دارد توضیح یا توجه می‌خواهد - مفید پاسخ بده.
 - هیچ‌وقت همان پاسخ قبلی را تکرار نکن - تاریخچه گفتگو را چک کن.
@@ -579,22 +581,29 @@ SCENARIO: STABLE_RELATION
         """
         # Detect if user is asking for introduction
         user_lower = user_message.lower()
+        user_lower_fa = user_message  # For Persian, check without lower() to preserve Persian characters
+        
         intro_keywords = {
-            "en": ["introduce yourself", "tell me about yourself", "who are you", "what are you"],
-            "fa": ["خودت رو معرفی کن", "خودت رو برام معرفی کن", "بگو کی هستی", "خودت رو معرفی", "معرفی کن"],
-            "ar": ["قدم نفسك", "أخبرني عن نفسك", "من أنت", "ما أنت"]
+            "en": ["introduce yourself", "tell me about yourself", "who are you", "what are you", "introduce", "yourself"],
+            "fa": ["خودت رو معرفی کن", "خودت رو برام معرفی کن", "بگو کی هستی", "خودت رو معرفی", "معرفی کن", "معرفی کن خودتو", "معرفی کن خودت", "خودتو معرفی کن", "خودت معرفی کن", "معرفی", "خودت"],
+            "ar": ["قدم نفسك", "أخبرني عن نفسك", "من أنت", "ما أنت", "قدم", "نفسك"]
         }
         
         # Check if user is asking for introduction
         keywords = intro_keywords.get(self.language, intro_keywords["en"])
-        is_intro_request = any(keyword in user_lower for keyword in keywords)
+        
+        # For Persian, check both lower and original (Persian doesn't have case)
+        if self.language == "fa":
+            is_intro_request = any(keyword in user_lower_fa for keyword in keywords) or any(keyword in user_lower for keyword in keywords)
+        else:
+            is_intro_request = any(keyword in user_lower for keyword in keywords)
         
         if is_intro_request:
-            # Add intent hint for introduction request
+            # Add strong intent hint for introduction request
             intent_hint = {
-                "en": "\n[User is asking you to introduce yourself. Provide a complete introduction about who you are, your purpose, and how you work.]",
-                "fa": "\n[کاربر از تو می‌خواهد خودت را معرفی کنی. یک معرفی کامل درباره کیستی، هدفت و نحوه کارت ارائه بده.]",
-                "ar": "\n[المستخدم يطلب منك تقديم نفسك. قدم مقدمة كاملة عن من أنت وهدفك وكيف تعمل.]"
+                "en": "\n\n[CRITICAL INSTRUCTION: The user is asking YOU (Sedi) to introduce YOURSELF. You must introduce yourself, NOT ask the user to introduce themselves. Provide a complete introduction: 1) Who you are (Sedi, AI-powered health care assistant), 2) Your purpose (how you help improve quality of life), 3) How you work (through conversation and smart devices).]",
+                "fa": "\n\n[دستور مهم: کاربر از تو (صدی) می‌خواهد که خودت را معرفی کنی. تو باید خودت را معرفی کنی، نه از کاربر بخواهی خودش را معرفی کند. یک معرفی کامل ارائه بده: 1) کیستی (صدی، دستیار مراقبت سلامت با هوش مصنوعی)، 2) هدف تو (چگونه به بهبود کیفیت زندگی کمک می‌کنی)، 3) نحوه کارت (از طریق گفتگو و گجت‌های هوشمند).]",
+                "ar": "\n\n[تعليمات مهمة: المستخدم يطلب منك (صدي) تقديم نفسك. يجب أن تقدم نفسك، وليس أن تطلب من المستخدم تقديم نفسه. قدم مقدمة كاملة: 1) من أنت (صدي، مساعد رعاية صحية مدعوم بالذكاء الاصطناعي)، 2) هدفك (كيف تساعد على تحسين جودة الحياة)، 3) كيف تعمل (من خلال المحادثة والأجهزة الذكية).]"
             }
             return user_message + intent_hint.get(self.language, intent_hint["en"])
         
