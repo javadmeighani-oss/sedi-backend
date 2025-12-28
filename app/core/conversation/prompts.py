@@ -89,12 +89,21 @@ class ConversationPrompts:
                 for i, msg in enumerate(conversation_history):
                     messages.append({"role": "user", "content": msg["user"]})
                     messages.append({"role": "assistant", "content": msg["sedi"]})
+                print(f"[PROMPTS DEBUG] Conversation history added successfully")
             else:
                 print(f"[PROMPTS DEBUG] No conversation history - this is likely first or early conversation")
             
             # Add current user message
             print(f"[PROMPTS DEBUG] Current user message: {user_message[:50]}...")
+            print(f"[PROMPTS DEBUG] User prompt (with intent hints): {user_prompt[:100]}...")
             messages.append({"role": "user", "content": user_prompt})
+            
+            # DEBUG: Print full messages array for troubleshooting
+            print(f"[PROMPTS DEBUG] Total messages to GPT: {len(messages)}")
+            for i, msg in enumerate(messages[-3:], start=len(messages)-2):  # Print last 3 messages
+                role = msg["role"]
+                content_preview = msg["content"][:150] + "..." if len(msg["content"]) > 150 else msg["content"]
+                print(f"[PROMPTS DEBUG] Message {i} ({role}): {content_preview}")
             
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
