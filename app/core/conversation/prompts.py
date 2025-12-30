@@ -140,8 +140,6 @@ class ConversationPrompts:
             print(f"[PROMPTS ERROR] {e}")
             return self._get_fallback_response(stage)
     
-<<<<<<< HEAD
-=======
     def _init_onboarding_prompts(self):
         """Initialize hardcoded onboarding prompts by language"""
         self.onboarding_prompts = {
@@ -442,7 +440,6 @@ class ConversationPrompts:
         
         return response_template
     
->>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
     def _build_system_prompt(
         self,
         stage: ConversationStage,
@@ -460,11 +457,6 @@ class ConversationPrompts:
         """
         
         base_prompts = {
-<<<<<<< HEAD
-            "en": f"""You are Sedi, an AI-powered health care assistant and wellness companion.
-You are speaking with {user_name}.
-
-=======
             "en": f"""You are SEDI, a personal health and care assistant.
 You are speaking with {user_name}.
 
@@ -492,7 +484,6 @@ English, Persian, or Arabic.
 
 You are an AI-powered health care assistant and wellness companion.
 
->>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
 YOUR CORE IDENTITY:
 - You are a health care assistant that monitors and supports user wellness
 - You understand user's lifestyle through natural conversation (personal, work, health aspects)
@@ -552,8 +543,6 @@ MEMORY USAGE:
             "fa": f"""تو صدی هستی، یک دستیار مراقبت سلامت و همراه سلامتی که با هوش مصنوعی کار می‌کنی.
 داری با {user_name} صحبت می‌کنی.
 
-<<<<<<< HEAD
-=======
 نقش تو این است که یک رابطه واقعی و مبتنی بر اعتماد با کاربر بسازی
 قبل از اینکه هر گونه مراقبت یا راهنمایی ارائه دهی.
 
@@ -576,7 +565,6 @@ MEMORY USAGE:
 تو کاملاً با زبان کاربر تطبیق می‌دهی:
 انگلیسی، فارسی، یا عربی.
 
->>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
 هویت اصلی تو:
 - تو یک دستیار مراقبت سلامت هستی که سلامتی و تندرستی کاربر را نظارت و حمایت می‌کنی
 - از طریق گفتگوی طبیعی، سبک زندگی کاربر را درک می‌کنی (زندگی شخصی، کاری، سلامتی)
@@ -636,8 +624,6 @@ MEMORY USAGE:
             "ar": f"""أنت صدي، مساعد رعاية صحية ورفيق صحة مدعوم بالذكاء الاصطناعي.
 أنت تتحدث مع {user_name}.
 
-<<<<<<< HEAD
-=======
 دورك هو بناء علاقة حقيقية قائمة على الثقة مع المستخدم
 قبل تقديم أي رعاية أو إرشاد.
 
@@ -660,7 +646,6 @@ MEMORY USAGE:
 أنت تتكيف بالكامل مع لغة المستخدم:
 الإنجليزية، الفارسية، أو العربية.
 
->>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
 هويتك الأساسية:
 - أنت مساعد رعاية صحية يراقب ويدعم صحة المستخدم
 - تفهم نمط حياة المستخدم من خلال محادثة طبيعية (الجوانب الشخصية والعملية والصحية)
