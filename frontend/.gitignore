@@ -1,0 +1,70 @@
+# ============================================
+# Flutter & Dart
+# ============================================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+Generated.xcconfig
+Flutter.podspec
+
+# ============================================
+# Android
+# ============================================
+android/.gradle/
+android/.idea/
+android/app/build/
+android/local.properties
+
+# Keystore files (security)
+*.jks
+*.keystore
+
+# ============================================
+# iOS / macOS
+# ============================================
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+macos/Flutter/ephemeral/
+
+# ============================================
+# Visual Studio Code
+# ============================================
+.vscode/
+.idea/
+
+# ============================================
+# Logs & Temporary Files
+# ============================================
+*.log
+*.tmp
+*.lock
+
+# ============================================
+# Dependency Lock Files
+# (Flutter خودش مدیریت می‌کند)
+# ============================================
+pubspec.lock
+packages.lock.json
+
+# ============================================
+# Web
+# ============================================
+web/.dart_tool/
+web/manifest.json
+web/.firebase/
+
+# ============================================
+# Windows Build
+# ============================================
+windows/runner/Debug/
+windows/runner/Release/
+
+# ============================================
+# Linux Build
+# ============================================
+linux/build/

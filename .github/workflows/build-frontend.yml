@@ -1,0 +1,86 @@
+name: Build Flutter Frontend
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/build-frontend.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+      
+      - name: Get dependencies
+        working-directory: ./frontend
+        run: flutter pub get
+      
+      - name: Build APK
+        working-directory: ./frontend
+        run: flutter build apk --release
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sedi-android-apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+  
+  build-ios:
+    name: Build iOS (if needed)
+    runs-on: macos-latest
+    if: false  # Disable by default, enable when iOS build is needed
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+      
+      - name: Get dependencies
+        working-directory: ./frontend
+        run: flutter pub get
+      
+      - name: Build iOS
+        working-directory: ./frontend
+        run: flutter build ios --release --no-codesign
+      
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: sedi-ios-build
+          path: frontend/build/ios
+          retention-days: 30
+
