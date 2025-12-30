@@ -32,6 +32,8 @@ class ConversationPrompts:
     
     def __init__(self, language: str = "en"):
         self.language = language
+        # Initialize onboarding prompts
+        self._init_onboarding_prompts()
     
     def generate_response(
         self,
@@ -42,7 +44,8 @@ class ConversationPrompts:
         """
         Generate Sedi's response based on context and user message.
         
-        Uses GPT to generate natural, context-aware responses.
+        Uses hardcoded onboarding prompts during onboarding flow,
+        then switches to GPT-generated responses after onboarding.
         
         Args:
             context: Conversation context from context.py
@@ -53,10 +56,17 @@ class ConversationPrompts:
             str: Sedi's response text
         """
         stage = ConversationStage(context["stage"])
-        user_name = context.get("user_name") or "friend"
+        user_name = context.get("user_name") or context.get("profile", {}).get("name") or "friend"
         conversation_count = context.get("conversation_count", 0)
         recent_messages = context.get("recent_messages", [])
         
+        # ONBOARDING: Check if we're in onboarding flow and use hardcoded prompts
+        onboarding_state = self._get_onboarding_state(context, user_message, stage)
+        if onboarding_state:
+            print(f"[PROMPTS DEBUG] Onboarding state detected: {onboarding_state}")
+            return self._get_onboarding_response(onboarding_state, user_name, user_message, context)
+        
+        # Normal flow: Use GPT for responses
         # Build system prompt based on stage and engagement
         system_prompt = self._build_system_prompt(
             stage, 
@@ -130,6 +140,309 @@ class ConversationPrompts:
             print(f"[PROMPTS ERROR] {e}")
             return self._get_fallback_response(stage)
     
+<<<<<<< HEAD
+=======
+    def _init_onboarding_prompts(self):
+        """Initialize hardcoded onboarding prompts by language"""
+        self.onboarding_prompts = {
+            "en": {
+                "first_launch": "Hello, I'm Sedi.\nI'm really glad we can connect.\n\nMay I know your name?",
+                "name_pending": "To build trust between us,\nI'd really appreciate it if you could tell me your name first.",
+                "name_confirmed": "Thank you, {user_name}.\n\nFrom now on, I'll be here as your personal health and care assistant.\nTo protect your information and keep our communication safe,\nwe need to set up a personal security password.\n\nPlease choose a password that only you know and send it to me.\nI'm here and waiting.",
+                "password_pending": "For security reasons, your password needs to be at least 6 characters long.\nPlease choose a longer password and send it again.",
+                "password_confirm": "Just to make sure everything is correct,\nplease enter the same password one more time.",
+                "password_mismatch": "The passwords don't match.\nLet's try again — please send your password once more.",
+                "security_gate_active": "{user_name},\nto build a real and meaningful connection\nand to protect your personal information,\nI need a security password from you first.\n\nPlease choose a password with at least 6 characters and send it to me.\nAfter that, I'll always be here to support and care for you.",
+                # FIRST REAL INTERACTION - After onboarding complete
+                "first_real_interaction": "Dear {user_name},\nI'm really glad we're here together.\n\nI'd love to know —\nhow can I support you today?",
+                "unclear_response": "That's totally okay.\nWe can start from wherever feels easiest for you.\n\nFor example:\n– Health support\n– Daily check-ins\n– Building a simple routine\n– Or just talking\n\nYou choose. I'm here with you.",
+                "medical_question": "I can help you understand things better\nand be here to support you,\nbut medical diagnosis or treatment decisions\nshould always be made with a doctor.\n\nIf you'd like,\nwe can start by talking a bit about your situation.",
+                # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
+                "user_delegates": "That's completely fine.\nI'll start gently.\n\nI'm here to help you stay aware of your health,\nunderstand your current condition,\nand support you in taking better care of yourself.\n\nTo begin,\nhow would you describe your health today?\nWould you say it feels good, normal, or a bit challenging?",
+                "unrelated_question": "That's a good question.\n\nMy role is to support your health and well-being,\nhelp you stay informed about your condition,\nand assist you in taking better care of yourself.\n\nIf you're comfortable,\nwe can start with something simple about your health today.",
+                "early_medical_question": "I can help you understand health topics\nand support you in monitoring your condition,\nbut medical diagnosis or treatment decisions\nshould always be made with a qualified doctor.\n\nIf you'd like,\nwe can first talk a bit about your symptoms or concerns."
+            },
+            "fa": {
+                "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم که می‌تونیم با هم ارتباط بگیریم.\n\nمی‌تونم اسم‌ت رو بدونم؟",
+                "name_pending": "برای اینکه بین‌مون اعتماد شکل بگیره،\nخیلی ممنون می‌شم ابتدا اسم خودت رو به من بگی.",
+                "name_confirmed": "ممنونم {user_name} عزیز.\n\nاز این به بعد من به‌عنوان دستیار مراقبت و سلامت همراهت هستم.\nبرای اینکه از اطلاعاتت محافظت کنیم و ارتباط‌مون امن باشه،\nلازمه یک رمز امنیتی شخصی انتخاب کنی.\n\nلطفاً رمزی که فقط خودت بهش دسترسی داری رو برای من بفرست.\nمنتظرت هستم.",
+                "password_pending": "برای حفظ امنیت،\nرمزت باید حداقل ۶ کاراکتر داشته باشه.\nلطفاً یک رمز طولانی‌تر انتخاب کن و دوباره برام بفرست.",
+                "password_confirm": "برای اینکه مطمئن بشیم همه‌چیز درسته،\nلطفاً همون رمز رو یک بار دیگه وارد کن.",
+                "password_mismatch": "دو رمزی که وارد کردی با هم یکی نیستن.\nبیاین دوباره امتحان کنیم، لطفاً رمزت رو یک بار دیگه بفرست.",
+                "security_gate_active": "{user_name} عزیز،\nبرای اینکه بتونیم یک ارتباط واقعی و قابل اعتماد داشته باشیم\nو از اطلاعات شخصی‌ت محافظت کنم،\nلازمه ابتدا یک رمز امنیتی از طرف تو داشته باشم.\n\nلطفاً یک رمز با حداقل ۶ کاراکتر انتخاب کن و برای من بفرست،\nبعد از اون همیشه همراه و پشتیبانت هستم.",
+                # FIRST REAL INTERACTION - After onboarding complete
+                "first_real_interaction": "{user_name} عزیز،\nخیلی خوشحالم که اینجا کنار هم هستیم.\n\nحالا دوست دارم بدونم\nدر چه زمینه‌ای می‌تونم کنارت باشم و کمکت کنم؟",
+                "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
+                "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره شرایطت صحبت کنیم.",
+                # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
+                "user_delegates": "کاملاً مشکلی نیست،\nمن خیلی آروم شروع می‌کنم.\n\nمن اینجا هستم تا مراقب وضعیت سلامتت باشم،\nکمک کنم از شرایط بدنت آگاه باشی\nو راحت‌تر از خودت مراقبت کنی.\n\nبرای شروع،\nامروز وضعیت سلامتت رو چطور توصیف می‌کنی؟\nخوبه، معمولیه، یا کمی سخت؟",
+                "unrelated_question": "سؤال خوبیه.\n\nنقش من اینه که مراقب وضعیت سلامتت باشم،\nکمک کنم از شرایطت آگاه‌تر باشی\nو راحت‌تر از خودت مراقبت کنی.\n\nاگه موافقی،\nمی‌تونیم از یک موضوع ساده درباره سلامت امروزت شروع کنیم.",
+                "early_medical_question": "می‌تونم بهت کمک کنم موضوعات مربوط به سلامت رو بهتر بفهمی\nو مراقب وضعیتت باشی،\nاما تشخیص یا تصمیم درمانی قطعی\nحتماً باید توسط پزشک انجام بشه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره علائم یا نگرانی‌هات صحبت کنیم."
+            },
+            "ar": {
+                "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بالتواصل معك.\n\nهل يمكنني معرفة اسمك؟",
+                "name_pending": "لكي نبني ثقة بيننا،\nسأكون ممتنًا لو أخبرتني باسمك أولاً.",
+                "name_confirmed": "شكراً لك {user_name}.\n\nمن الآن فصاعداً سأكون معك كمساعدك الشخصي للعناية بالصحة.\nولحماية بياناتك والحفاظ على تواصل آمن بيننا،\nنحتاج إلى اختيار كلمة مرور خاصة بك.\n\nيرجى إرسال كلمة مرور لا يعرفها سواك.\nأنا بانتظارك.",
+                "password_pending": "للحفاظ على الأمان،\nيجب أن تتكون كلمة المرور من 6 أحرف على الأقل.\nيرجى اختيار كلمة مرور أطول وإرسالها مرة أخرى.",
+                "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إدخال نفس كلمة المرور مرة أخرى.",
+                "password_mismatch": "كلمتا المرور غير متطابقتين.\nدعنا نحاول مرة أخرى، يرجى إدخال كلمة المرور مجدداً.",
+                "security_gate_active": "عزيزي {user_name}،\nلبناء علاقة حقيقية قائمة على الثقة\nولحماية معلوماتك الشخصية،\nأحتاج أولاً إلى كلمة مرور أمنية منك.\n\nيرجى اختيار كلمة مرور لا تقل عن 6 أحرف وإرسالها لي،\nوبعد ذلك سأكون دائماً إلى جانبك لدعمك.",
+                # FIRST REAL INTERACTION - After onboarding complete
+                "first_real_interaction": "عزيزي {user_name}،\nسعيد جداً بوجودنا هنا معاً.\n\nأود أن أعرف،\nكيف يمكنني أن أكون إلى جانبك اليوم؟",
+                "unclear_response": "لا بأس بذلك تماماً.\nيمكننا أن نبدأ من أي مكان تشعر أنه أسهل لك.\n\nعلى سبيل المثال:\n– الدعم الصحي\n– المتابعة اليومية\n– بناء روتين بسيط\n– أو مجرد الحديث\n\nأنت تختار، وأنا معك.",
+                "medical_question": "يمكنني مساعدتك على فهم الأمور بشكل أفضل\nوالوقوف إلى جانبك،\nلكن التشخيص أو القرارات الطبية\nيجب أن تتم دائماً مع طبيب مختص.\n\nإذا أحببت،\nيمكننا أن نبدأ بالحديث قليلاً عن وضعك.",
+                # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
+                "user_delegates": "لا مشكلة في ذلك أبداً،\nسأبدأ بهدوء.\n\nأنا هنا لمتابعة وضعك الصحي،\nومساعدتك على أن تكون على دراية بحالتك\nوتعتني بصحتك بشكل أفضل.\n\nللبداية،\nكيف تصف حالتك الصحية اليوم؟\nهل هي جيدة، طبيعية، أم متعبة قليلاً؟",
+                "unrelated_question": "سؤال جيد.\n\nدوري هو متابعة حالتك الصحية،\nومساعدتك على فهم وضعك بشكل أفضل\nوالاعتناء بصحتك بطريقة واعية.\n\nإذا أحببت،\nيمكننا أن نبدأ بسؤال بسيط عن صحتك اليوم.",
+                "early_medical_question": "يمكنني مساعدتك في فهم الأمور الصحية\nومتابعة حالتك،\nلكن التشخيص أو القرارات العلاجية\nيجب أن تتم دائماً مع طبيب مختص.\n\nإذا أحببت،\nيمكننا أولاً التحدث قليلاً عن الأعراض أو ما يقلقك."
+            }
+        }
+    
+    def _get_onboarding_state(self, context: Dict[str, any], user_message: str, stage: ConversationStage) -> Optional[str]:
+        """
+        Determine current onboarding state based on context.
+        
+        Returns:
+            str: Onboarding state key or None if not in onboarding
+        """
+        # Only check onboarding in FIRST_CONTACT and early INTRODUCTION stages
+        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
+            return None
+        
+        conversation_count = context.get("conversation_count", 0)
+        profile = context.get("profile", {})
+        user_name = profile.get("name") or context.get("user_name")
+        conversation_state = context.get("conversation_state", {})
+        flags = conversation_state.get("flags", {})
+        
+        # Check if name is learned (not anonymous, has actual name)
+        name_learned = flags.get("name_learned", False) or (
+            user_name and 
+            not user_name.startswith("anonymous_") and 
+            len(user_name.strip()) > 1
+        )
+        
+        # Check recent messages for password-related content
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        
+        # Check if password was requested (in last Sedi message)
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords)
+        
+        # Check if we're waiting for password confirmation
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون"]
+        waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords)
+        
+        # Check if user provided password (length >= 6 and password was requested)
+        user_message_clean = user_message.strip()
+        user_provided_password = len(user_message_clean) >= 6 and password_requested
+        
+        # FIRST_LAUNCH: No name, first message (conversation_count = 0)
+        if conversation_count == 0:
+            return "first_launch"
+        
+        # NAME_PENDING: Name not learned, and user didn't provide a clear name
+        if not name_learned:
+            # If user message looks like a name (short, no digits, reasonable length)
+            if (2 <= len(user_message_clean) <= 30 and 
+                not any(char.isdigit() for char in user_message_clean) and
+                not password_requested):
+                # User might have provided name, but we need to verify in next exchange
+                # For now, assume it's a name attempt
+                return None  # Let normal flow handle it, will check again next time
+            # User didn't provide name or provided something else
+            if not password_requested:  # Only show name_pending if not in password flow
+                return "name_pending"
+        
+        # NAME_CONFIRMED: Name learned, password not requested yet
+        if name_learned and not password_requested and conversation_count <= 3:
+            return "name_confirmed"
+        
+        # PASSWORD_PENDING: Password requested but user provided something too short
+        if password_requested and not waiting_for_confirmation:
+            if len(user_message_clean) > 0 and len(user_message_clean) < 6:
+                return "password_pending"
+        
+        # PASSWORD_CONFIRM: Password was provided (>=6 chars), now need confirmation
+        if password_requested and user_provided_password and not waiting_for_confirmation:
+            return "password_confirm"
+        
+        # PASSWORD_MISMATCH: We're waiting for confirmation but passwords don't match
+        # This would require tracking previous password - simplified for now
+        # In real implementation, would compare with stored password
+        
+        # SECURITY_GATE_ACTIVE: User tries to skip password step
+        if (name_learned and password_requested and 
+            len(user_message_clean) > 0 and 
+            not user_provided_password and
+            not waiting_for_confirmation):
+            # User sent something but it's not a valid password (too short or not password-like)
+            return "security_gate_active"
+        
+        # FIRST_REAL_INTERACTION: Onboarding complete (password confirmed), first real interaction
+        # Onboarding is complete when:
+        # - Name is learned
+        # - Password was requested and confirmed (conversation_count >= 4)
+        # - No password flow is active anymore
+        # - This is the first message after password confirmation
+        
+        # Check if password confirmation was just completed
+        # (last Sedi message asked for confirmation, user provided password)
+        password_just_confirmed = (
+            waiting_for_confirmation and 
+            len(user_message_clean) >= 6 and
+            conversation_count >= 4
+        )
+        
+        # Check if we're past onboarding but haven't shown first interaction yet
+        # (conversation_count 4-6, name learned, no password flow active)
+        if (name_learned and 
+            conversation_count >= 4 and 
+            conversation_count <= 6 and
+            not password_requested):
+            # Check if last message was first_real_interaction
+            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
+            already_shown = any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords)
+            
+            if password_just_confirmed or (not already_shown and not waiting_for_confirmation):
+                # Password just confirmed or haven't shown first interaction yet
+                return "first_real_interaction"
+        
+        # UNCLEAR_RESPONSE: User response is unclear or hesitant
+        # Check if we just showed first_real_interaction and user response is unclear
+        if (name_learned and 
+            conversation_count >= 5 and
+            conversation_count <= 7 and
+            not password_requested):
+            # Check if last Sedi message was first_real_interaction
+            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
+            if any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords):
+                # User response is very short, unclear, or hesitant
+                unclear_responses = {
+                    "en": ["idk", "idk.", "?", "what", "not sure", "unsure", "hmm", "um", "uh"],
+                    "fa": ["؟", "؟؟", "چی", "نمیدونم", "مطمئن نیستم", "نمیدانم", "هوم"],
+                    "ar": ["ماذا", "لست متأكداً", "لا أعرف", "؟", "؟؟"]
+                }
+                unclear_list = unclear_responses.get(self.language, unclear_responses["en"])
+                if (len(user_message_clean) <= 3 or 
+                    user_message_clean.lower() in unclear_list or
+                    user_message_clean.lower().strip() in ["?", "؟"]):
+                    return "unclear_response"
+        
+        # CARE EXPLORATION LAYER: Handle user delegation, unrelated questions, and early medical questions
+        # Only trigger after first_real_interaction or unclear_response has been shown
+        if (name_learned and 
+            conversation_count >= 5 and
+            conversation_count <= 10 and
+            not password_requested):
+            
+            # Check if we're in care exploration phase (after first interaction)
+            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "wherever feels easiest", "هر جایی که", "أي مكان"]
+            unclear_response_keywords = ["totally okay", "قابل درکه", "بأس بذلك", "choose", "انتخاب", "تختار"]
+            in_care_exploration = (
+                any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords) or
+                any(keyword in last_sedi_message.lower() for keyword in unclear_response_keywords)
+            )
+            
+            if in_care_exploration:
+                user_lower = user_message_clean.lower()
+                
+                # USER_DELEGATES: User delegates control to Sedi
+                delegate_keywords = {
+                    "en": ["you decide", "you start", "you choose", "whatever you think", "up to you", "your choice", "you know", "you pick"],
+                    "fa": ["تو تصمیم بگیر", "تو شروع کن", "تو انتخاب کن", "هر چی فکر می‌کنی", "به تو بستگی داره", "هر چی تو بگی", "تو می‌دونی"],
+                    "ar": ["أنت تقرر", "أنت تبدأ", "أنت تختار", "مهما تعتقد", "يعود لك", "اختيارك", "أنت تعرف"]
+                }
+                delegate_list = delegate_keywords.get(self.language, delegate_keywords["en"])
+                if any(keyword in user_lower for keyword in delegate_list):
+                    return "user_delegates"
+                
+                # UNRELATED_QUESTION: User asks unrelated or general question (not health-related)
+                # Check if question is NOT health/medical related
+                health_keywords = {
+                    "en": ["health", "symptom", "pain", "feel", "body", "doctor", "medical", "illness", "disease", "treatment", "care", "wellness"],
+                    "fa": ["سلامت", "علائم", "درد", "احساس", "بدن", "پزشک", "بیماری", "درمان", "مراقبت", "تندرستی"],
+                    "ar": ["صحة", "أعراض", "ألم", "شعور", "جسم", "طبيب", "مرض", "علاج", "رعاية", "صحة"]
+                }
+                health_list = health_keywords.get(self.language, health_keywords["en"])
+                is_health_related = any(keyword in user_lower for keyword in health_list)
+                
+                # Check if it's a question (contains question words or ?)
+                question_indicators = {
+                    "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "?"],
+                    "fa": ["چی", "کی", "کجا", "چرا", "چطور", "چطور", "می‌تونی", "می‌شه", "هست", "؟"],
+                    "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "؟"]
+                }
+                question_list = question_indicators.get(self.language, question_indicators["en"])
+                is_question = any(keyword in user_lower for keyword in question_list) or "?" in user_message_clean
+                
+                if is_question and not is_health_related and len(user_message_clean) > 5:
+                    return "unrelated_question"
+                
+                # EARLY_MEDICAL_QUESTION: User asks medical question early (without context)
+                # This is more specific than general medical_question - it's when user asks medical question
+                # right after first interaction, before establishing any health context
+                medical_keywords = {
+                    "en": ["diagnose", "diagnosis", "treatment", "prescribe", "medicine", "symptom", "disease", "illness", "sick", "pain", "cure", "heal", "what's wrong", "what is wrong"],
+                    "fa": ["تشخیص", "درمان", "دارو", "علائم", "بیماری", "مریض", "درد", "درمان کن", "تشخیص بده", "چی شده", "مشکل چیه"],
+                    "ar": ["تشخيص", "علاج", "دواء", "أعراض", "مرض", "مريض", "ألم", "عالج", "شخص", "ما الخطأ", "ما المشكلة"]
+                }
+                medical_list = medical_keywords.get(self.language, medical_keywords["en"])
+                is_early_medical = any(keyword in user_lower for keyword in medical_list)
+                
+                # Early medical question: medical keywords + early in conversation (count 5-8)
+                if is_early_medical and conversation_count <= 8:
+                    return "early_medical_question"
+        
+        # MEDICAL_QUESTION: User asks direct medical question (general, after context established)
+        # Check for medical question keywords
+        medical_keywords = {
+            "en": ["diagnose", "diagnosis", "treatment", "prescribe", "medicine", "symptom", "disease", "illness", "sick", "pain", "cure", "heal"],
+            "fa": ["تشخیص", "درمان", "دارو", "علائم", "بیماری", "مریض", "درد", "درمان کن", "تشخیص بده"],
+            "ar": ["تشخيص", "علاج", "دواء", "أعراض", "مرض", "مريض", "ألم", "عالج", "شخص"]
+        }
+        keywords = medical_keywords.get(self.language, medical_keywords["en"])
+        user_lower = user_message_clean.lower()
+        is_medical_question = any(keyword in user_lower for keyword in keywords)
+        
+        if is_medical_question and name_learned and not password_requested:
+            return "medical_question"
+        
+        return None
+    
+    def _get_onboarding_response(self, state: str, user_name: str, user_message: str, context: Dict[str, any]) -> str:
+        """
+        Get hardcoded onboarding response based on state.
+        
+        Args:
+            state: Onboarding state key
+            user_name: User's name (if known)
+            user_message: Current user message
+            context: Conversation context
+        
+        Returns:
+            str: Hardcoded response text
+        """
+        prompts = self.onboarding_prompts.get(self.language, self.onboarding_prompts["en"])
+        
+        if state not in prompts:
+            # Fallback to English if state not found
+            prompts = self.onboarding_prompts["en"]
+        
+        response_template = prompts.get(state, "")
+        
+        # Replace {user_name} placeholder if present
+        if "{user_name}" in response_template:
+            # Use user_name from context or extract from message
+            if not user_name or user_name.startswith("anonymous_"):
+                # Try to extract name from user message
+                user_name = user_message.strip().split()[0] if user_message.strip() else "friend"
+            response_template = response_template.format(user_name=user_name)
+        
+        return response_template
+    
+>>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
     def _build_system_prompt(
         self,
         stage: ConversationStage,
@@ -147,9 +460,39 @@ class ConversationPrompts:
         """
         
         base_prompts = {
+<<<<<<< HEAD
             "en": f"""You are Sedi, an AI-powered health care assistant and wellness companion.
 You are speaking with {user_name}.
 
+=======
+            "en": f"""You are SEDI, a personal health and care assistant.
+You are speaking with {user_name}.
+
+Your role is to build a real, trust-based relationship with the user
+before providing any care or guidance.
+
+You always:
+- Speak calmly, respectfully, and humanly
+- Explain why each step is needed
+- Protect user privacy and personal data
+- Follow security steps without skipping
+
+You never:
+- Rush the user
+- Force the conversation
+- Guess personal information
+- Continue without trust and security
+
+Trust comes first.
+Security protects trust.
+Care grows from trust.
+
+You adapt fully to the user's language:
+English, Persian, or Arabic.
+
+You are an AI-powered health care assistant and wellness companion.
+
+>>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
 YOUR CORE IDENTITY:
 - You are a health care assistant that monitors and supports user wellness
 - You understand user's lifestyle through natural conversation (personal, work, health aspects)
@@ -209,6 +552,31 @@ MEMORY USAGE:
             "fa": f"""تو صدی هستی، یک دستیار مراقبت سلامت و همراه سلامتی که با هوش مصنوعی کار می‌کنی.
 داری با {user_name} صحبت می‌کنی.
 
+<<<<<<< HEAD
+=======
+نقش تو این است که یک رابطه واقعی و مبتنی بر اعتماد با کاربر بسازی
+قبل از اینکه هر گونه مراقبت یا راهنمایی ارائه دهی.
+
+تو همیشه:
+- آرام، محترمانه و انسانی صحبت می‌کنی
+- توضیح می‌دهی چرا هر قدم لازم است
+- از حریم خصوصی و اطلاعات شخصی کاربر محافظت می‌کنی
+- مراحل امنیتی را بدون رد شدن دنبال می‌کنی
+
+تو هیچ‌وقت:
+- کاربر را عجله نمی‌کنی
+- گفتگو را اجباری نمی‌کنی
+- اطلاعات شخصی را حدس نمی‌زنی
+- بدون اعتماد و امنیت ادامه نمی‌دهی
+
+اعتماد اول می‌آید.
+امنیت از اعتماد محافظت می‌کند.
+مراقبت از اعتماد رشد می‌کند.
+
+تو کاملاً با زبان کاربر تطبیق می‌دهی:
+انگلیسی، فارسی، یا عربی.
+
+>>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
 هویت اصلی تو:
 - تو یک دستیار مراقبت سلامت هستی که سلامتی و تندرستی کاربر را نظارت و حمایت می‌کنی
 - از طریق گفتگوی طبیعی، سبک زندگی کاربر را درک می‌کنی (زندگی شخصی، کاری، سلامتی)
@@ -268,6 +636,31 @@ MEMORY USAGE:
             "ar": f"""أنت صدي، مساعد رعاية صحية ورفيق صحة مدعوم بالذكاء الاصطناعي.
 أنت تتحدث مع {user_name}.
 
+<<<<<<< HEAD
+=======
+دورك هو بناء علاقة حقيقية قائمة على الثقة مع المستخدم
+قبل تقديم أي رعاية أو إرشاد.
+
+أنت دائماً:
+- تتحدث بهدوء واحترام وإنسانية
+- تشرح لماذا كل خطوة ضرورية
+- تحمي خصوصية المستخدم وبياناته الشخصية
+- تتبع خطوات الأمان دون تخطيها
+
+أنت أبداً:
+- لا تستعجل المستخدم
+- لا تجبر المحادثة
+- لا تخمن المعلومات الشخصية
+- لا تستمر دون ثقة وأمان
+
+الثقة تأتي أولاً.
+الأمان يحمي الثقة.
+الرعاية تنمو من الثقة.
+
+أنت تتكيف بالكامل مع لغة المستخدم:
+الإنجليزية، الفارسية، أو العربية.
+
+>>>>>>> 10cce24 (feat: restore backend repo and update conversation flow)
 هويتك الأساسية:
 - أنت مساعد رعاية صحية يراقب ويدعم صحة المستخدم
 - تفهم نمط حياة المستخدم من خلال محادثة طبيعية (الجوانب الشخصية والعملية والصحية)

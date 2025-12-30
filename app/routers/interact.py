@@ -117,15 +117,21 @@ def chat_with_sedi(
     is_anonymous = False
     
     # PRIORITY 1: If user_id provided, use it directly (maintains conversation continuity)
+    # EXPERIENCE STABILITY: If user_id is provided, we MUST use it or return error
+    # Creating new user when user_id is invalid causes conversation reset
     if user_id:
         print(f"[ROUTER DEBUG] user_id provided: {user_id}")
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             print(f"[ROUTER DEBUG] Found user: id={user.id}, name={user.name}")
         else:
-            # Invalid user_id provided - fall through to create new user
-            print(f"[ROUTER DEBUG] Invalid user_id - will create new user")
-            user = None
+            # EXPERIENCE STABILITY FIX: Invalid user_id = error, don't create new user
+            # This prevents conversation reset when frontend sends invalid user_id
+            print(f"[ROUTER DEBUG] ERROR: Invalid user_id provided - returning error to prevent conversation reset")
+            raise HTTPException(
+                status_code=404,
+                detail=f"User with id {user_id} not found. Please check your user_id or start a new conversation."
+            )
     
     # PRIORITY 2: If credentials provided, try to find user
     if not user and name and secret_key:

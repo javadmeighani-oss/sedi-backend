@@ -76,11 +76,14 @@ class ConversationBrain:
                 "error": "User not found"
             }
         
-        # Get current stage (BEFORE save - to know where we are)
+        # EXPERIENCE STABILITY: Strict orchestration order
+        # 1. IDENTIFY: Ensure user_id is valid (already validated above)
+        # 2. LOAD: Get current state (stage, memory count, facts)
         current_stage = get_stage(user_id, self.db)
-        print(f"[BRAIN DEBUG] Current stage: {current_stage.value}")
+        current_memory_count = self.memory.get_conversation_count(user_id)
+        print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
         
-        # Build context (BEFORE save - includes previous state)
+        # 3. BUILD CONTEXT: Build context with CURRENT state (before new message)
         context = ConversationContext(
             user_id=user_id,
             stage=current_stage,
@@ -90,11 +93,10 @@ class ConversationBrain:
         context_data = context.build()
         print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
         
-        # Determine engagement level (minimal logic - selection only)
+        # 4. GENERATE: Generate response with current context
         engagement_level = self._determine_engagement_level(context_data)
         print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
         
-        # Generate response with engagement-aware prompts
         sedi_response = self.prompts.generate_response(
             context_data, 
             user_message,
@@ -102,31 +104,37 @@ class ConversationBrain:
         )
         print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
         
-        # CRITICAL FIX: Save conversation to memory BEFORE checking stage transition
-        # This ensures memory_count is updated for next request
+        # 5. SAVE: Save conversation to memory (updates memory_count)
         self.memory.save_conversation(
             user_id=user_id,
             user_message=user_message,
             sedi_response=sedi_response,
             language=self.language
         )
+        print(f"[BRAIN DEBUG] Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
         
-        # Check for stage transition (AFTER save - uses updated memory_count)
+        # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
         new_stage = transition_stage(current_stage, user_id, self.db)
-        print(f"[BRAIN DEBUG] New stage: {new_stage.value}")
+        print(f"[BRAIN DEBUG] Stage transition: {current_stage.value} -> {new_stage.value}")
+        
+        # 7. UPDATE: Update context_data with new stage for response
+        context_data["stage"] = new_stage.value
+        context_data["conversation_count"] = self.memory.get_conversation_count(user_id)
+        
         print(f"[BRAIN DEBUG] ===== MESSAGE PROCESSED =====")
         
-        # Build metadata
+        # Build metadata with updated state
         metadata = {
             "stage": new_stage.value,
-            "conversation_count": context_data.get("conversation_count", 0) + 1,
+            "conversation_count": context_data.get("conversation_count", 0),
             "tone": self._infer_tone(sedi_response),
+            "stage_transitioned": new_stage != current_stage
         }
         
         return {
             "message": sedi_response,
             "language": self.language,
-            "stage": new_stage.value,
+            "stage": new_stage.value,  # Return NEW stage (after save and transition)
             "metadata": metadata
         }
     

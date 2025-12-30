@@ -60,6 +60,7 @@ class ConversationContext:
             - health_data: Recent vital signs data (if available)
             - lifestyle_patterns: Extracted lifestyle patterns (MEDIUM-TERM)
         """
+        # EXPERIENCE STABILITY: Load structured memory domains (RAG-ready)
         memory_facts = self.memory.extract_memory_facts(self.user_id)
         recent_messages = self.memory.get_recent_messages(self.user_id, limit=10)  # More for health context
         conversation_count = self.memory.get_conversation_count(self.user_id)
@@ -80,17 +81,28 @@ class ConversationContext:
         # Extract lifestyle patterns from conversation history (MEDIUM-TERM memory)
         lifestyle_patterns = self._extract_lifestyle_patterns(recent_messages)
         
+        # EXPERIENCE STABILITY: Build context with structured memory domains
+        # This prevents repetition by providing organized, RAG-ready facts
         return {
             "user_id": self.user_id,
             "stage": self.stage.value,
-            "user_name": memory_facts.get("name"),
-            "memory_facts": memory_facts,
-            "recent_messages": recent_history,
+            "user_name": memory_facts.get("profile", {}).get("name"),  # From structured profile domain
+            "memory_facts": memory_facts,  # Structured domains (profile, medical, vitals, etc.)
+            "recent_messages": recent_history,  # SHORT-TERM: Recent conversation context
             "conversation_count": conversation_count,
             "time_since_last": str(time_since_last) if time_since_last else None,
             "user_message": self.user_message,
             "health_data": health_data,  # Vital signs data
             "lifestyle_patterns": lifestyle_patterns,  # MEDIUM-TERM patterns
+            # EXPERIENCE STABILITY: Structured domains for RAG
+            "profile": memory_facts.get("profile", {}),
+            "medical": memory_facts.get("medical", {}),
+            "vitals": memory_facts.get("vitals", {}),
+            "lifestyle": memory_facts.get("lifestyle", {}),
+            "preferences": memory_facts.get("preferences", {}),
+            "routines": memory_facts.get("routines", {}),
+            "goals": memory_facts.get("goals", {}),
+            "conversation_state": memory_facts.get("conversation_state", {})
         }
     
     def _get_recent_health_data(self) -> Optional[Dict[str, any]]:
