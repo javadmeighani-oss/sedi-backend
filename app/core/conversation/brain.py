@@ -197,51 +197,9 @@ class ConversationBrain:
         
         # Build comprehensive greeting prompt based on stage
         if stage == ConversationStage.FIRST_CONTACT:
-            # FIRST CONTACT: Sedi must introduce herself and explain her purpose
-            greeting_prompt = {
-                "en": f"""Introduce yourself as Sedi, an AI-powered health care assistant.
-
-Write a warm, friendly, and natural introduction that:
-1. Greets them warmly: "Hello! I'm Sedi, your AI-powered health care assistant."
-2. Explains your purpose naturally (not as a list, but as a flowing conversation):
-   - You help improve their quality of life
-   - Through personalized health care suggestions and lifestyle improvements
-   - By continuously monitoring their daily health data through smart devices
-3. Explains how you work briefly:
-   - You learn about their lifestyle through natural conversation
-   - You use smart devices to track vital signs (heart rate, temperature, SpO2)
-4. Ends with asking their name: "Can I know your name?" or "What's your name?"
-
-Be conversational, warm, and engaging. Make it feel like a real person talking, not a robot. Keep it concise but complete (max 250 characters). End with asking for their name naturally.""",
-                "fa": f"""خودت را به عنوان صدی، یک دستیار مراقبت سلامت با هوش مصنوعی معرفی کن.
-
-یک معرفی گرم، دوستانه و طبیعی بنویس که:
-1. با گرمی به آن‌ها سلام کند: "سلام! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی."
-2. هدفت را به طور طبیعی توضیح دهد (نه به صورت لیست، بلکه به صورت یک گفتگوی روان):
-   - کمک به بهبود کیفیت زندگی‌شان
-   - از طریق پیشنهادهای شخصی‌سازی شده مراقبت سلامت و بهبود سبک زندگی
-   - با پایش پیوسته داده‌های سلامت روزمره‌شان از طریق گجت‌های هوشمند
-3. نحوه کارت را مختصر توضیح دهد:
-   - از طریق گفتگوی طبیعی درباره سبک زندگی‌شان یاد می‌گیری
-   - از گجت‌های هوشمند برای ثبت علائم حیاتی (ضربان قلب، دما، SpO2) استفاده می‌کنی
-4. با پرسیدن نامشان تمام شود: "میتونم اسمتون را بدونم؟" یا "اسم شما چیه؟"
-
-گفتگویی، گرم و جذاب باش. طوری باش که مثل یک انسان واقعی صحبت می‌کنی، نه ربات. مختصر اما کامل نگه دار (حداکثر 250 کاراکتر). با پرسیدن نامشان به طور طبیعی تمام کن.""",
-                "ar": f"""قدم نفسك كصدي، مساعد رعاية صحية مدعوم بالذكاء الاصطناعي.
-
-اكتب مقدمة دافئة وودودة وطبيعية:
-1. حييهم بحرارة: "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي."
-2. اشرح هدفك بشكل طبيعي (ليس كقائمة، بل كمحادثة متدفقة):
-   - مساعدتهم على تحسين جودة حياتهم
-   - من خلال اقتراحات رعاية صحية مخصصة وتحسينات نمط الحياة
-   - من خلال مراقبة مستمرة لبيانات صحتهم اليومية عبر الأجهزة الذكية
-3. اشرح كيف تعمل باختصار:
-   - تتعلم عن نمط حياتهم من خلال محادثة طبيعية
-   - تستخدم الأجهزة الذكية لتتبع العلامات الحيوية (معدل ضربات القلب، درجة الحرارة، SpO2)
-4. انتهي بطلب اسمهم: "هل يمكنني معرفة اسمك؟" أو "ما اسمك؟"
-
-كن محادثاً ودافئاً وجذاباً. اجعله يبدو كأن شخصاً حقيقياً يتحدث، وليس روبوتاً. اجعله مختصراً لكن كاملاً (بحد أقصى 250 حرف). انتهي بطلب اسمهم بشكل طبيعي."""
-            }
+            # FIRST CONTACT: Use hardcoded prompt (no GPT)
+            # This ensures consistent first message
+            return self.prompts.onboarding_prompts.get(self.language, self.prompts.onboarding_prompts["en"]).get("first_launch", "Hello, I'm Sedi. I'm really glad to meet you. What's your name?")
         elif time_since:
             # User returning after absence - be warm and check in
             greeting_prompt = {
@@ -257,6 +215,7 @@ Be conversational, warm, and engaging. Make it feel like a real person talking, 
                 "ar": f"""حي {user_name} بحرارة. كمساعد رعاية صحية، تحقق بشكل استباقي من صحتهم. يمكنك ذكر بيانات صحتهم إذا كانت متاحة، أو السؤال عن يومهم. كن محادثاً وداعماً. اجعلها مختصرة (1-2 جملة، بحد أقصى 150 حرف)."""
             }
         
+        # For non-FIRST_CONTACT stages, use GPT for greeting
         try:
             system_prompt = self.prompts._build_system_prompt(
                 stage,
@@ -264,15 +223,6 @@ Be conversational, warm, and engaging. Make it feel like a real person talking, 
                 context.get("conversation_count", 0),
                 engagement_level
             )
-            
-            # Add greeting-specific instruction
-            greeting_instruction = {
-                "en": "\n\nIMPORTANT: This is a greeting message where you introduce yourself and explain your purpose. Be conversational, warm, and engaging. Make the user want to respond and start a real conversation. Explain clearly how you can help improve their quality of life. CRITICAL: End your message by asking for their name naturally, like 'Can I know your name?' or 'What's your name?' - DO NOT ask 'How can I help you today?'",
-                "fa": "\n\nمهم: این یک پیام سلام است که در آن خودت را معرفی می‌کنی و هدفت را توضیح می‌دهی. گفتگویی، گرم و جذاب باش. کاربر را تشویق کن که پاسخ دهد و یک گفتگوی واقعی شروع کند. واضح توضیح بده چگونه می‌توانی کیفیت زندگی‌شان را بهبود دهی. مهم: پیامت را با پرسیدن نامشان به طور طبیعی تمام کن، مثل 'میتونم اسمتون را بدونم؟' یا 'اسم شما چیه؟' - نپرس 'چطور می‌تونم کمکتون کنم؟'",
-                "ar": "\n\nمهم: هذه رسالة تحية حيث تقدم نفسك وتشرح هدفك. كن محادثاً ودافئاً وجذاباً. اجعل المستخدم يريد الرد وبدء محادثة حقيقية. اشرح بوضوح كيف يمكنك مساعدتهم على تحسين جودة حياتهم. مهم: انتهي رسالتك بطلب اسمهم بشكل طبيعي، مثل 'هل يمكنني معرفة اسمك؟' أو 'ما اسمك؟' - لا تسأل 'كيف يمكنني مساعدتك اليوم؟'"
-            }
-            
-            system_prompt += greeting_instruction.get(self.language, greeting_instruction["en"])
             
             prompt_text = greeting_prompt.get(self.language, greeting_prompt["en"])
             
@@ -285,22 +235,14 @@ Be conversational, warm, and engaging. Make it feel like a real person talking, 
             response = gpt_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                temperature=0.8,  # Slightly higher for more natural, engaging greeting
-                max_tokens=300,  # Increased for comprehensive introduction
+                temperature=0.8,
+                max_tokens=300,
             )
             
             return response.choices[0].message.content.strip()
             
         except Exception as e:
             print(f"[BRAIN GREETING ERROR] {e}")
-            # Fallback with introduction
-            if stage == ConversationStage.FIRST_CONTACT:
-                fallbacks = {
-                    "en": "Hello! I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring of your daily health data via smart devices. Can I know your name?",
-                    "fa": "سلام! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته داده‌های سلامت روزمره‌تان از طریق گجت‌های هوشمند، به بهبود کیفیت زندگی‌تان کمک می‌کنم. میتونم اسمتون را بدونم؟",
-                    "ar": "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة لبيانات صحتك اليومية عبر الأجهزة الذكية. هل يمكنني معرفة اسمك؟"
-                }
-                return fallbacks.get(self.language, fallbacks["en"])
             return self.prompts._get_fallback_response(stage)
     
     def _determine_engagement_level(self, context: Dict[str, any]) -> str:

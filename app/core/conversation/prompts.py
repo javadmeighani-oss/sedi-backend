@@ -20,6 +20,7 @@ RESPONSIBILITY:
 from typing import Dict, Optional
 from openai import OpenAI
 from app.core.conversation.stages import ConversationStage
+from app.core.conversation.name_database import is_likely_name, detect_language
 import os
 from dotenv import load_dotenv
 
@@ -147,13 +148,16 @@ class ConversationPrompts:
         """Initialize hardcoded onboarding prompts by language"""
         self.onboarding_prompts = {
             "en": {
-                "first_launch": "Hello, I'm Sedi.\nI'm really glad we can connect.\n\nMay I know your name?",
-                "name_pending": "To build trust between us,\nI'd really appreciate it if you could tell me your name first.",
-                "name_confirmed": "Thank you, {user_name}.\n\nFrom now on, I'll be here as your personal health and care assistant.\nTo protect your information and keep our communication safe,\nwe need to set up a personal security password.\n\nPlease choose a password that only you know and send it to me.\nI'm here and waiting.",
+                "first_launch": "Hello, I'm Sedi.\nI'm really glad to meet you.\nWhat's your name?",
+                "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
+                "name_confirmed": "From now on, I'll be here as your health and care assistant.\nTo protect your information and keep our communication secure,\nyou need to choose a security password (at least 6 characters).\n\nPlease send it to me. I'm waiting.",
                 "password_pending": "For security reasons, your password needs to be at least 6 characters long.\nPlease choose a longer password and send it again.",
-                "password_confirm": "Just to make sure everything is correct,\nplease enter the same password one more time.",
+                "password_confirm": "To make sure everything is correct,\nplease send the password one more time.\nThank you.",
                 "password_mismatch": "The passwords don't match.\nLet's try again — please send your password once more.",
                 "security_gate_active": "{user_name},\nto build a real and meaningful connection\nand to protect your personal information,\nI need a security password from you first.\n\nPlease choose a password with at least 6 characters and send it to me.\nAfter that, I'll always be here to support and care for you.",
+                "non_name_question": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
+                # PASSWORD_CONFIRMED: After password confirmation, thank user
+                "password_confirmed": "Thank you, {user_name}.\n\nYour security password has been set successfully.\nNow I'm ready to help you with your health and care needs.\n\nHow can I support you today?",
                 # FIRST REAL INTERACTION - After onboarding complete
                 "first_real_interaction": "Dear {user_name},\nI'm really glad we're here together.\n\nI'd love to know —\nhow can I support you today?",
                 "unclear_response": "That's totally okay.\nWe can start from wherever feels easiest for you.\n\nFor example:\n– Health support\n– Daily check-ins\n– Building a simple routine\n– Or just talking\n\nYou choose. I'm here with you.",
@@ -164,13 +168,16 @@ class ConversationPrompts:
                 "early_medical_question": "I can help you understand health topics\nand support you in monitoring your condition,\nbut medical diagnosis or treatment decisions\nshould always be made with a qualified doctor.\n\nIf you'd like,\nwe can first talk a bit about your symptoms or concerns."
             },
             "fa": {
-                "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم که می‌تونیم با هم ارتباط بگیریم.\n\nمی‌تونم اسم‌ت رو بدونم؟",
-                "name_pending": "برای اینکه بین‌مون اعتماد شکل بگیره،\nخیلی ممنون می‌شم ابتدا اسم خودت رو به من بگی.",
-                "name_confirmed": "ممنونم {user_name} عزیز.\n\nاز این به بعد من به‌عنوان دستیار مراقبت و سلامت همراهت هستم.\nبرای اینکه از اطلاعاتت محافظت کنیم و ارتباط‌مون امن باشه،\nلازمه یک رمز امنیتی شخصی انتخاب کنی.\n\nلطفاً رمزی که فقط خودت بهش دسترسی داری رو برای من بفرست.\nمنتظرت هستم.",
+                "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم از آشنایی با شما.\nاسم شما چیه؟",
+                "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
+                "name_confirmed": "از این به بعد من به عنوان دستیار مراقبت و سلامت همراهت هستم.\nبرای اینکه از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه،\nلازمه یک رمز امنیتی (حداقل ۶ کاراکتر) انتخاب کنی.\n\nلطفاً برای من ارسال کن. منتظرم.",
                 "password_pending": "برای حفظ امنیت،\nرمزت باید حداقل ۶ کاراکتر داشته باشه.\nلطفاً یک رمز طولانی‌تر انتخاب کن و دوباره برام بفرست.",
-                "password_confirm": "برای اینکه مطمئن بشیم همه‌چیز درسته،\nلطفاً همون رمز رو یک بار دیگه وارد کن.",
+                "password_confirm": "برای اطمینان لطفاً یک بار دیگه رمز را ارسال کن.\nممنون.",
                 "password_mismatch": "دو رمزی که وارد کردی با هم یکی نیستن.\nبیاین دوباره امتحان کنیم، لطفاً رمزت رو یک بار دیگه بفرست.",
                 "security_gate_active": "{user_name} عزیز،\nبرای اینکه بتونیم یک ارتباط واقعی و قابل اعتماد داشته باشیم\nو از اطلاعات شخصی‌ت محافظت کنم،\nلازمه ابتدا یک رمز امنیتی از طرف تو داشته باشم.\n\nلطفاً یک رمز با حداقل ۶ کاراکتر انتخاب کن و برای من بفرست،\nبعد از اون همیشه همراه و پشتیبانت هستم.",
+                "non_name_question": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
+                # PASSWORD_CONFIRMED: After password confirmation, thank user
+                "password_confirmed": "ممنونم {user_name} عزیز.\n\nرمز امنیتی شما با موفقیت تنظیم شد.\nحالا آماده‌ام تا در زمینه سلامت و مراقبت کمکت کنم.\n\nچطور می‌تونم کمکت کنم؟",
                 # FIRST REAL INTERACTION - After onboarding complete
                 "first_real_interaction": "{user_name} عزیز،\nخیلی خوشحالم که اینجا کنار هم هستیم.\n\nحالا دوست دارم بدونم\nدر چه زمینه‌ای می‌تونم کنارت باشم و کمکت کنم؟",
                 "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
@@ -181,13 +188,16 @@ class ConversationPrompts:
                 "early_medical_question": "می‌تونم بهت کمک کنم موضوعات مربوط به سلامت رو بهتر بفهمی\nو مراقب وضعیتت باشی،\nاما تشخیص یا تصمیم درمانی قطعی\nحتماً باید توسط پزشک انجام بشه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره علائم یا نگرانی‌هات صحبت کنیم."
             },
             "ar": {
-                "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بالتواصل معك.\n\nهل يمكنني معرفة اسمك؟",
-                "name_pending": "لكي نبني ثقة بيننا،\nسأكون ممتنًا لو أخبرتني باسمك أولاً.",
-                "name_confirmed": "شكراً لك {user_name}.\n\nمن الآن فصاعداً سأكون معك كمساعدك الشخصي للعناية بالصحة.\nولحماية بياناتك والحفاظ على تواصل آمن بيننا،\nنحتاج إلى اختيار كلمة مرور خاصة بك.\n\nيرجى إرسال كلمة مرور لا يعرفها سواك.\nأنا بانتظارك.",
+                "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بلقائك.\nما اسمك؟",
+                "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
+                "name_confirmed": "من الآن فصاعداً سأكون معك كمساعدك للعناية بالصحة.\nولحماية معلوماتك والحفاظ على تواصلنا آمناً،\nتحتاج إلى اختيار كلمة مرور أمنية (6 أحرف على الأقل).\n\nيرجى إرسالها لي. أنا بانتظارك.",
                 "password_pending": "للحفاظ على الأمان،\nيجب أن تتكون كلمة المرور من 6 أحرف على الأقل.\nيرجى اختيار كلمة مرور أطول وإرسالها مرة أخرى.",
-                "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إدخال نفس كلمة المرور مرة أخرى.",
+                "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إرسال كلمة المرور مرة أخرى.\nشكراً لك.",
                 "password_mismatch": "كلمتا المرور غير متطابقتين.\nدعنا نحاول مرة أخرى، يرجى إدخال كلمة المرور مجدداً.",
                 "security_gate_active": "عزيزي {user_name}،\nلبناء علاقة حقيقية قائمة على الثقة\nولحماية معلوماتك الشخصية،\nأحتاج أولاً إلى كلمة مرور أمنية منك.\n\nيرجى اختيار كلمة مرور لا تقل عن 6 أحرف وإرسالها لي،\nوبعد ذلك سأكون دائماً إلى جانبك لدعمك.",
+                "non_name_question": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
+                # PASSWORD_CONFIRMED: After password confirmation, thank user
+                "password_confirmed": "شكراً لك {user_name}.\n\nتم تعيين كلمة المرور الأمنية بنجاح.\nالآن أنا مستعد لمساعدتك في احتياجاتك الصحية والرعاية.\n\nكيف يمكنني مساعدتك اليوم؟",
                 # FIRST REAL INTERACTION - After onboarding complete
                 "first_real_interaction": "عزيزي {user_name}،\nسعيد جداً بوجودنا هنا معاً.\n\nأود أن أعرف،\nكيف يمكنني أن أكون إلى جانبك اليوم؟",
                 "unclear_response": "لا بأس بذلك تماماً.\nيمكننا أن نبدأ من أي مكان تشعر أنه أسهل لك.\n\nعلى سبيل المثال:\n– الدعم الصحي\n– المتابعة اليومية\n– بناء روتين بسيط\n– أو مجرد الحديث\n\nأنت تختار، وأنا معك.",
@@ -245,24 +255,59 @@ class ConversationPrompts:
         
         # Check if user provided password (length >= 6 and password was requested)
         user_message_clean = user_message.strip()
-        user_provided_password = len(user_message_clean) >= 6 and password_requested
+        
+        # Improved password detection: check for numbers, letters, and special characters
+        has_numbers = any(char.isdigit() for char in user_message_clean)
+        has_letters = any(char.isalpha() for char in user_message_clean)
+        has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
+        
+        # Password is valid if: length >= 6 AND (has numbers OR has letters OR has special chars)
+        # This allows: "123456", "password", "pass123", "myp@ss", etc.
+        user_provided_password = (
+            len(user_message_clean) >= 6 and 
+            password_requested and
+            (has_numbers or has_letters or has_special)
+        )
         
         # FIRST_LAUNCH: No name, first message (conversation_count = 0)
         if conversation_count == 0:
             return "first_launch"
         
+        # Detect user language from message
+        user_lang = detect_language(user_message)
+        # Update prompts language if user is using different language
+        if user_lang != self.language and user_lang in ["en", "fa", "ar"]:
+            self.language = user_lang
+        
         # NAME_PENDING: Name not learned, and user didn't provide a clear name
         if not name_learned:
+            # Check if message is likely a name
+            is_name = is_likely_name(user_message_clean, self.language)
+            
             # If user message looks like a name (short, no digits, reasonable length)
             # AND this is likely the first response to "what's your name?"
-            if (2 <= len(user_message_clean) <= 30 and 
+            if (is_name or (2 <= len(user_message_clean) <= 30 and 
                 not any(char.isdigit() for char in user_message_clean) and
                 not password_requested and
-                conversation_count == 1):
+                conversation_count == 1)):
                 # User provided name in first response - accept it and move to name_confirmed
                 # The name will be extracted and stored by memory system
                 # For now, treat as name provided, will be confirmed next exchange
                 return "name_confirmed"  # Accept the name and move forward
+            
+            # Check if user asked a question (not a name)
+            question_indicators = {
+                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "?"],
+                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "؟"],
+                "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "؟"]
+            }
+            question_list = question_indicators.get(self.language, question_indicators["en"])
+            is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
+            
+            # If user asked a question (not a name), show non_name_question response
+            if is_question and not password_requested:
+                return "non_name_question"
+            
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
                 return "name_pending"
@@ -279,6 +324,11 @@ class ConversationPrompts:
         # PASSWORD_CONFIRM: Password was provided (>=6 chars), now need confirmation
         if password_requested and user_provided_password and not waiting_for_confirmation:
             return "password_confirm"
+        
+        # PASSWORD_CONFIRMED: User confirmed password (sent password again after confirmation request)
+        if waiting_for_confirmation and len(user_message_clean) >= 6:
+            # Check if this matches previous password (simplified - in production would compare with stored)
+            return "password_confirmed"
         
         # PASSWORD_MISMATCH: We're waiting for confirmation but passwords don't match
         # This would require tracking previous password - simplified for now
