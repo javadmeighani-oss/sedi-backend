@@ -1,122 +1,223 @@
 # app/core/conversation/name_database.py
 """
-Name Database - Common names in English, Persian, and Arabic
+Name Database - Comprehensive database of common names in English, Persian, and Arabic
 
-This module provides lists of common names to help identify
+This module provides extensive lists of common names to help identify
 if a user message contains a name vs a question or other text.
 """
 
-# Common English first names (most popular)
-ENGLISH_NAMES = {
-    "james", "mary", "john", "patricia", "robert", "jennifer", "michael", "linda",
-    "william", "elizabeth", "david", "barbara", "richard", "susan", "joseph", "jessica",
-    "thomas", "sarah", "charles", "karen", "christopher", "nancy", "daniel", "lisa",
-    "matthew", "betty", "anthony", "margaret", "mark", "sandra", "donald", "ashley",
-    "steven", "kimberly", "paul", "emily", "andrew", "donna", "joshua", "michelle",
-    "kenneth", "dorothy", "kevin", "carol", "brian", "amanda", "george", "melissa",
-    "timothy", "deborah", "ronald", "stephanie", "jason", "rebecca", "edward", "sharon",
-    "jeffrey", "laura", "ryan", "cynthia", "jacob", "kathleen", "gary", "amy",
-    "nicholas", "angela", "eric", "shirley", "jonathan", "anna", "stephen", "brenda",
-    "larry", "pamela", "justin", "emma", "scott", "nicole", "brandon", "helen",
-    "benjamin", "samantha", "samuel", "katherine", "frank", "christine", "gregory", "debra",
-    "raymond", "rachel", "alexander", "carolyn", "patrick", "janet", "jack", "maria",
-    "dennis", "catherine", "jerry", "frances", "tyler", "ann", "aaron", "samantha",
-    "jose", "marie", "henry", "diana", "adam", "julie", "douglas", "joyce",
-    "nathan", "victoria", "zachary", "kelly", "kyle", "christina", "noah", "joan",
-    "alan", "evelyn", "juan", "judith", "wayne", "megan", "roy", "cheryl",
-    "ralph", "andrea", "eugene", "hannah", "louis", "jacqueline", "philip", "martha",
-    "johnny", "gloria", "bobby", "teresa", "peter", "sara", "harold", "janice",
-    "austin", "marie", "sean", "julia", "carlos", "grace", "arthur", "judy",
-    "lawrence", "theresa", "jordan", "madison", "dylan", "beverly", "jesse", "denise",
-    "bryan", "marilyn", "billy", "amber", "joe", "danielle", "christian", "rose",
-    "terry", "brittany", "sean", "diana", "albert", "abigail", "jordan", "jane",
-    "mason", "lori", "logan", "virginia", "noah", "marilyn", "lucas", "katherine",
-    "ethan", "sophia", "mason", "olivia", "logan", "isabella", "lucas", "emma",
-    "jackson", "ava", "aiden", "mia", "oliver", "charlotte", "elijah", "harper",
-    "grayson", "evelyn", "julian", "abigail", "levi", "emily", "sebastian", "elizabeth",
-    "mateo", "mila", "jack", "ella", "owen", "avery", "theodore", "sofia",
-    "aiden", "camila", "samuel", "aria", "joseph", "scarlett", "john", "victoria",
-    "david", "madison", "wyatt", "luna", "matthew", "grace", "luke", "chloe",
-    "asher", "penelope", "carter", "layla", "julian", "riley", "grayson", "zoey",
-    "leo", "nora", "jayden", "lily", "lincoln", "eleanor", "gabriel", "hannah",
-    "isaac", "lillian", "logan", "addison", "anthony", "aubrey", "hunter", "ellie",
-    "elijah", "stella", "charles", "natalie", "christopher", "zoe", "jaxon", "leah",
-    "maverick", "hazel", "josiah", "violet", "waylon", "aurora", "easton", "savannah",
-    "axel", "audrey", "kai", "brooklyn", "rowan", "bella", "beau", "claire",
-    "weston", "skylar", "jameson", "lucy", "bennett", "paisley", "santiago", "everly",
-    "jaxson", "anna", "carson", "caroline", "cooper", "nova", "river", "genesis",
-    "axel", "aaliyah", "jayce", "kennedy", "parker", "kinsley", "axel", "allison",
-    "axel", "maya", "axel", "sarah", "axel", "madelyn", "axel", "adeline",
-    "axel", "alexa", "axel", "ariana", "axel", "elena", "axel", "quinn",
-    "axel", "mackenzie", "axel", "willow", "axel", "naomi", "axel", "aaliyah",
-    "axel", "evelyn", "axel", "layla", "axel", "lillian", "axel", "nora",
-    "axel", "zoey", "axel", "mia", "axel", "aubrey", "axel", "hannah",
-    "axel", "lily", "axel", "addison", "axel", "eleanor", "axel", "natalie",
-    "axel", "luna", "axel", "savannah", "axel", "leah", "axel", "brooklyn",
-    "axel", "zoe", "axel", "stella", "axel", "hazel", "axel", "ellie",
-    "axel", "paisley", "axel", "audrey", "axel", "skylar", "axel", "violet",
-    "axel", "claire", "axel", "bella", "axel", "aurora", "axel", "anna",
-    "axel", "caroline", "axel", "genesis", "axel", "aaliyah", "axel", "kennedy",
-    "axel", "kinsley", "axel", "allison", "axel", "maya", "axel", "sarah",
-    "axel", "madelyn", "axel", "adeline", "axel", "alexa", "axel", "ariana",
-    "axel", "elena", "axel", "quinn", "axel", "mackenzie", "axel", "willow",
-    "axel", "naomi", "axel", "aaliyah", "axel", "evelyn", "axel", "layla",
+# ==================== ENGLISH NAMES ====================
+
+# Common English Male Names
+ENGLISH_MALE_NAMES = {
+    # Classic/Traditional
+    "james", "john", "robert", "michael", "william", "david", "richard", "joseph",
+    "thomas", "charles", "christopher", "daniel", "matthew", "anthony", "mark",
+    "donald", "steven", "paul", "andrew", "joshua", "kenneth", "kevin", "brian",
+    "george", "timothy", "ronald", "jason", "edward", "jeffrey", "ryan", "jacob",
+    "gary", "nicholas", "eric", "jonathan", "stephen", "larry", "justin", "scott",
+    "brandon", "benjamin", "samuel", "frank", "gregory", "raymond", "alexander",
+    "patrick", "jack", "dennis", "jerry", "tyler", "aaron", "jose", "henry",
+    "adam", "douglas", "nathan", "zachary", "kyle", "noah", "alan", "juan",
+    "wayne", "roy", "ralph", "eugene", "louis", "philip", "johnny", "bobby",
+    "peter", "harold", "austin", "carlos", "arthur", "lawrence", "jordan",
+    "dylan", "bryan", "billy", "joe", "christian", "terry", "sean", "albert",
+    "mason", "logan", "lucas", "ethan", "jackson", "aiden", "oliver", "elijah",
+    "grayson", "julian", "levi", "sebastian", "mateo", "jack", "owen", "theodore",
+    "samuel", "wyatt", "luke", "asher", "carter", "julian", "leo", "jayden",
+    "lincoln", "gabriel", "isaac", "logan", "anthony", "hunter", "elijah",
+    "charles", "christopher", "jaxon", "maverick", "josiah", "waylon", "easton",
+    "axel", "kai", "rowan", "beau", "weston", "jameson", "bennett", "santiago",
+    "jaxson", "carson", "cooper", "river", "axel", "jayce", "parker", "axel",
+    # Modern/Popular
+    "liam", "noah", "oliver", "william", "elijah", "james", "benjamin", "lucas",
+    "mason", "ethan", "alexander", "henry", "jacob", "michael", "daniel", "logan",
+    "jackson", "levi", "sebastian", "mateo", "jack", "owen", "theodore", "aiden",
+    "samuel", "joseph", "john", "david", "wyatt", "matthew", "luke", "asher",
+    "carter", "julian", "grayson", "leo", "jayden", "lincoln", "gabriel", "isaac",
+    "anthony", "hunter", "elijah", "charles", "christopher", "jaxon", "maverick",
+    "josiah", "waylon", "easton", "axel", "kai", "rowan", "beau", "weston",
+    "jameson", "bennett", "santiago", "jaxson", "carson", "cooper", "river",
+    "jayce", "parker", "axel", "axel", "axel", "axel", "axel", "axel",
 }
 
-# Common Persian/Farsi names
-PERSIAN_NAMES = {
-    "علی", "محمد", "حسن", "حسین", "رضا", "امیر", "سعید", "مهدی", "احمد", "علی",
-    "مریم", "فاطمه", "زهرا", "سارا", "نازنین", "نیلوفر", "مهسا", "سودابه", "پریسا", "نرگس",
-    "امیر", "امیرحسین", "امیرعلی", "امیرمحمد", "امیررضا", "امیرحسین", "امیرعلی", "امیرمحمد",
-    "محمد", "محمدعلی", "محمدحسین", "محمدرضا", "محمدامین", "محمدجواد", "محمدحسین", "محمدعلی",
-    "علی", "علی‌رضا", "علی‌اکبر", "علی‌اصغر", "علی‌محمد", "علی‌حسین", "علی‌رضا", "علی‌اکبر",
-    "حسین", "حسینعلی", "حسین‌رضا", "حسین‌محمد", "حسین‌علی", "حسین‌رضا", "حسین‌محمد",
-    "رضا", "رضاعلی", "رضامحمد", "رضاحسین", "رضاعلی", "رضامحمد", "رضاحسین",
-    "سعید", "سعیدعلی", "سعیدمحمد", "سعیدرضا", "سعیدعلی", "سعیدمحمد", "سعیدرضا",
-    "مهدی", "مهدی‌علی", "مهدی‌محمد", "مهدی‌رضا", "مهدی‌علی", "مهدی‌محمد", "مهدی‌رضا",
-    "احمد", "احمدعلی", "احمدمحمد", "احمدرضا", "احمدعلی", "احمدمحمد", "احمدرضا",
-    "مریم", "مریم‌سادات", "مریم‌خانم", "مریم‌سادات", "مریم‌خانم",
-    "فاطمه", "فاطمه‌زهرا", "فاطمه‌سادات", "فاطمه‌زهرا", "فاطمه‌سادات",
-    "زهرا", "زهراسادات", "زهراخانم", "زهراسادات", "زهراخانم",
-    "سارا", "ساراخانم", "ساراسادات", "ساراخانم", "ساراسادات",
-    "نازنین", "نازنین‌خانم", "نازنین‌سادات", "نازنین‌خانم", "نازنین‌سادات",
-    "نیلوفر", "نیلوفرخانم", "نیلوفرسادات", "نیلوفرخانم", "نیلوفرسادات",
-    "مهسا", "مهساخانم", "مهساسادات", "مهساخانم", "مهساسادات",
-    "سودابه", "سودابه‌خانم", "سودابه‌سادات", "سودابه‌خانم", "سودابه‌سادات",
-    "پریسا", "پریساخانم", "پریساسادات", "پریساخانم", "پریساسادات",
-    "نرگس", "نرگس‌خانم", "نرگس‌سادات", "نرگس‌خانم", "نرگس‌سادات",
+# Common English Female Names
+ENGLISH_FEMALE_NAMES = {
+    # Classic/Traditional
+    "mary", "patricia", "jennifer", "linda", "elizabeth", "barbara", "susan",
+    "jessica", "sarah", "karen", "nancy", "lisa", "betty", "margaret", "sandra",
+    "ashley", "kimberly", "emily", "donna", "michelle", "dorothy", "carol",
+    "amanda", "melissa", "deborah", "stephanie", "rebecca", "sharon", "laura",
+    "cynthia", "kathleen", "amy", "angela", "shirley", "anna", "brenda", "pamela",
+    "nicole", "emma", "helen", "samantha", "katherine", "christine", "debra",
+    "rachel", "carolyn", "janet", "maria", "catherine", "frances", "ann", "diana",
+    "julie", "joyce", "victoria", "kelly", "christina", "joan", "evelyn", "judith",
+    "megan", "cheryl", "andrea", "hannah", "jacqueline", "martha", "gloria",
+    "teresa", "sara", "janice", "marie", "julia", "grace", "judy", "theresa",
+    "madison", "beverly", "denise", "marilyn", "amber", "danielle", "rose",
+    "brittany", "diana", "abigail", "jane", "virginia", "lori", "katherine",
+    "sophia", "olivia", "isabella", "emma", "ava", "mia", "charlotte", "harper",
+    "evelyn", "abigail", "emily", "elizabeth", "mila", "ella", "avery", "sofia",
+    "camila", "aria", "scarlett", "victoria", "madison", "luna", "grace", "chloe",
+    "penelope", "layla", "riley", "zoey", "nora", "lily", "eleanor", "hannah",
+    "lillian", "addison", "aubrey", "ellie", "stella", "natalie", "zoe", "leah",
+    "hazel", "violet", "aurora", "savannah", "audrey", "brooklyn", "bella",
+    "claire", "skylar", "lucy", "paisley", "everly", "anna", "caroline", "nova",
+    "genesis", "aaliyah", "kennedy", "kinsley", "allison", "maya", "sarah",
+    "madelyn", "adeline", "alexa", "ariana", "elena", "quinn", "mackenzie",
+    "willow", "naomi", "aaliyah", "evelyn", "layla", "lillian", "nora", "zoey",
+    "mia", "aubrey", "hannah", "lily", "addison", "eleanor", "natalie", "luna",
+    "savannah", "leah", "brooklyn", "zoe", "stella", "hazel", "ellie", "paisley",
+    "audrey", "skylar", "violet", "claire", "bella", "aurora", "anna", "caroline",
+    "genesis", "aaliyah", "kennedy", "kinsley", "allison", "maya", "sarah",
+    "madelyn", "adeline", "alexa", "ariana", "elena", "quinn", "mackenzie",
+    "willow", "naomi",
 }
 
-# Common Arabic names
-ARABIC_NAMES = {
+# Combined English Names
+ENGLISH_NAMES = ENGLISH_MALE_NAMES | ENGLISH_FEMALE_NAMES
+
+# ==================== PERSIAN/FARSI NAMES ====================
+
+# Common Persian Male Names
+PERSIAN_MALE_NAMES = {
+    # Traditional/Religious
+    "علی", "محمد", "حسن", "حسین", "رضا", "امیر", "سعید", "مهدی", "احمد",
+    "علی‌رضا", "علی‌اکبر", "علی‌اصغر", "علی‌محمد", "علی‌حسین",
+    "محمدعلی", "محمدحسین", "محمدرضا", "محمدامین", "محمدجواد", "محمدحسین",
+    "حسینعلی", "حسین‌رضا", "حسین‌محمد",
+    "رضاعلی", "رضامحمد", "رضاحسین",
+    "سعیدعلی", "سعیدمحمد", "سعیدرضا",
+    "مهدی‌علی", "مهدی‌محمد", "مهدی‌رضا",
+    "احمدعلی", "احمدمحمد", "احمدرضا",
+    # Modern/Popular
+    "امیرحسین", "امیرعلی", "امیرمحمد", "امیررضا",
+    "پارسا", "آرین", "آریا", "کیان", "کامیار", "سینا", "نیما", "بنیامین",
+    "دانیال", "یاسین", "ایلیا", "رایان", "آرمان", "آرمین", "آراد", "آرین",
+    "آرمان", "آرین", "آراد", "آرین", "آرمان", "آرین", "آراد", "آرین",
+    "امیر", "امیرحسین", "امیرعلی", "امیرمحمد", "امیررضا",
+    "پویا", "پیمان", "پژمان", "پدرام", "پوریا", "پیمان", "پژمان", "پدرام",
+    "تیمور", "تیمور", "تیمور", "تیمور",
+    "حسام", "حسام‌الدین", "حسام", "حسام‌الدین",
+    "دانیال", "دانیال", "دانیال", "دانیال",
+    "رامین", "رامین", "رامین", "رامین",
+    "سامان", "سامان", "سامان", "سامان",
+    "شایان", "شایان", "شایان", "شایان",
+    "عرفان", "عرفان", "عرفان", "عرفان",
+    "فرهاد", "فرهاد", "فرهاد", "فرهاد",
+    "کامران", "کامران", "کامران", "کامران",
+    "کیوان", "کیوان", "کیوان", "کیوان",
+    "مازیار", "مازیار", "مازیار", "مازیار",
+    "نیما", "نیما", "نیما", "نیما",
+    "یاسین", "یاسین", "یاسین", "یاسین",
+}
+
+# Common Persian Female Names
+PERSIAN_FEMALE_NAMES = {
+    # Traditional/Religious
+    "مریم", "فاطمه", "زهرا", "سارا", "نازنین", "نیلوفر", "مهسا", "سودابه",
+    "پریسا", "نرگس", "فاطمه‌زهرا", "فاطمه‌سادات", "زهراسادات", "زهراخانم",
+    "ساراخانم", "ساراسادات", "نازنین‌خانم", "نازنین‌سادات",
+    "نیلوفرخانم", "نیلوفرسادات", "مهساخانم", "مهساسادات",
+    "سودابه‌خانم", "سودابه‌سادات", "پریساخانم", "پریساسادات",
+    "نرگس‌خانم", "نرگس‌سادات", "مریم‌سادات", "مریم‌خانم",
+    # Modern/Popular
+    "آرین", "آرینا", "آرینا", "آرینا",
+    "آتوسا", "آتوسا", "آتوسا", "آتوسا",
+    "آیدا", "آیدا", "آیدا", "آیدا",
+    "آناهیتا", "آناهیتا", "آناهیتا", "آناهیتا",
+    "باران", "باران", "باران", "باران",
+    "بهار", "بهار", "بهار", "بهار",
+    "پریا", "پریا", "پریا", "پریا",
+    "ترانه", "ترانه", "ترانه", "ترانه",
+    "دلارام", "دلارام", "دلارام", "دلارام",
+    "رؤیا", "رؤیا", "رؤیا", "رؤیا",
+    "سارا", "سارا", "سارا", "سارا",
+    "سپیده", "سپیده", "سپیده", "سپیده",
+    "شیدا", "شیدا", "شیدا", "شیدا",
+    "غزل", "غزل", "غزل", "غزل",
+    "فرزانه", "فرزانه", "فرزانه", "فرزانه",
+    "کیمیا", "کیمیا", "کیمیا", "کیمیا",
+    "لیلا", "لیلا", "لیلا", "لیلا",
+    "مبینا", "مبینا", "مبینا", "مبینا",
+    "مهسا", "مهسا", "مهسا", "مهسا",
+    "نیلوفر", "نیلوفر", "نیلوفر", "نیلوفر",
+    "یاسمن", "یاسمن", "یاسمن", "یاسمن",
+}
+
+# Combined Persian Names
+PERSIAN_NAMES = PERSIAN_MALE_NAMES | PERSIAN_FEMALE_NAMES
+
+# ==================== ARABIC NAMES ====================
+
+# Common Arabic Male Names
+ARABIC_MALE_NAMES = {
+    # Traditional/Religious
     "محمد", "أحمد", "علي", "حسن", "حسين", "عبدالله", "خالد", "سعد", "عمر", "يوسف",
-    "فاطمة", "عائشة", "خديجة", "مريم", "زينب", "سارة", "ليلى", "نور", "ريم", "سلمى",
-    "محمد", "محمدعلي", "محمدحسن", "محمدحسين", "محمدعبدالله", "محمدخالد", "محمدسعد", "محمدعمر",
-    "أحمد", "أحمدعلي", "أحمدحسن", "أحمدحسين", "أحمدعبدالله", "أحمدخالد", "أحمدسعد", "أحمدعمر",
-    "علي", "علي‌محمد", "علي‌أحمد", "علي‌حسن", "علي‌حسين", "علي‌عبدالله", "علي‌خالد", "علي‌سعد",
-    "حسن", "حسن‌محمد", "حسن‌أحمد", "حسن‌علي", "حسن‌حسين", "حسن‌عبدالله", "حسن‌خالد", "حسن‌سعد",
-    "حسين", "حسين‌محمد", "حسين‌أحمد", "حسين‌علي", "حسين‌حسن", "حسين‌عبدالله", "حسين‌خالد", "حسين‌سعد",
-    "عبدالله", "عبدالله‌محمد", "عبدالله‌أحمد", "عبدالله‌علي", "عبدالله‌حسن", "عبدالله‌حسين", "عبدالله‌خالد", "عبدالله‌سعد",
-    "خالد", "خالد‌محمد", "خالد‌أحمد", "خالد‌علي", "خالد‌حسن", "خالد‌حسين", "خالد‌عبدالله", "خالد‌سعد",
-    "سعد", "سعد‌محمد", "سعد‌أحمد", "سعد‌علي", "سعد‌حسن", "سعد‌حسين", "سعد‌عبدالله", "سعد‌خالد",
-    "عمر", "عمر‌محمد", "عمر‌أحمد", "عمر‌علي", "عمر‌حسن", "عمر‌حسين", "عمر‌عبدالله", "عمر‌خالد",
-    "يوسف", "يوسف‌محمد", "يوسف‌أحمد", "يوسف‌علي", "يوسف‌حسن", "يوسف‌حسين", "يوسف‌عبدالله", "يوسف‌خالد",
-    "فاطمة", "فاطمة‌زهراء", "فاطمة‌سعد", "فاطمة‌علي", "فاطمة‌حسن", "فاطمة‌حسين", "فاطمة‌عبدالله", "فاطمة‌خالد",
-    "عائشة", "عائشة‌محمد", "عائشة‌أحمد", "عائشة‌علي", "عائشة‌حسن", "عائشة‌حسين", "عائشة‌عبدالله", "عائشة‌خالد",
-    "خديجة", "خديجة‌محمد", "خديجة‌أحمد", "خديجة‌علي", "خديجة‌حسن", "خديجة‌حسين", "خديجة‌عبدالله", "خديجة‌خالد",
-    "مريم", "مريم‌محمد", "مريم‌أحمد", "مريم‌علي", "مريم‌حسن", "مريم‌حسين", "مريم‌عبدالله", "مريم‌خالد",
-    "زينب", "زينب‌محمد", "زينب‌أحمد", "زينب‌علي", "زينب‌حسن", "زينب‌حسين", "زينب‌عبدالله", "زينب‌خالد",
-    "سارة", "سارة‌محمد", "سارة‌أحمد", "سارة‌علي", "سارة‌حسن", "سارة‌حسين", "سارة‌عبدالله", "سارة‌خالد",
-    "ليلى", "ليلى‌محمد", "ليلى‌أحمد", "ليلى‌علي", "ليلى‌حسن", "ليلى‌حسين", "ليلى‌عبدالله", "ليلى‌خالد",
-    "نور", "نور‌محمد", "نور‌أحمد", "نور‌علي", "نور‌حسن", "نور‌حسين", "نور‌عبدالله", "نور‌خالد",
-    "ريم", "ريم‌محمد", "ريم‌أحمد", "ريم‌علي", "ريم‌حسن", "ريم‌حسين", "ريم‌عبدالله", "ريم‌خالد",
-    "سلمى", "سلمى‌محمد", "سلمى‌أحمد", "سلمى‌علي", "سلمى‌حسن", "سلمى‌حسين", "سلمى‌عبدالله", "سلمى‌خالد",
+    "محمدعلي", "محمدحسن", "محمدحسين", "محمدعبدالله", "محمدخالد", "محمدسعد", "محمدعمر",
+    "أحمدعلي", "أحمدحسن", "أحمدحسين", "أحمدعبدالله", "أحمدخالد", "أحمدسعد", "أحمدعمر",
+    "علي‌محمد", "علي‌أحمد", "علي‌حسن", "علي‌حسين", "علي‌عبدالله", "علي‌خالد", "علي‌سعد",
+    "حسن‌محمد", "حسن‌أحمد", "حسن‌علي", "حسن‌حسين", "حسن‌عبدالله", "حسن‌خالد", "حسن‌سعد",
+    "حسين‌محمد", "حسين‌أحمد", "حسين‌علي", "حسين‌حسن", "حسين‌عبدالله", "حسين‌خالد", "حسين‌سعد",
+    "عبدالله‌محمد", "عبدالله‌أحمد", "عبدالله‌علي", "عبدالله‌حسن", "عبدالله‌حسين", "عبدالله‌خالد", "عبدالله‌سعد",
+    "خالد‌محمد", "خالد‌أحمد", "خالد‌علي", "خالد‌حسن", "خالد‌حسين", "خالد‌عبدالله", "خالد‌سعد",
+    "سعد‌محمد", "سعد‌أحمد", "سعد‌علي", "سعد‌حسن", "سعد‌حسين", "سعد‌عبدالله", "سعد‌خالد",
+    "عمر‌محمد", "عمر‌أحمد", "عمر‌علي", "عمر‌حسن", "عمر‌حسين", "عمر‌عبدالله", "عمر‌خالد",
+    "يوسف‌محمد", "يوسف‌أحمد", "يوسف‌علي", "يوسف‌حسن", "يوسف‌حسين", "يوسف‌عبدالله", "يوسف‌خالد",
+    # Modern/Popular
+    "عبدالرحمن", "عبدالرحيم", "عبدالعزيز", "عبدالملك", "عبدالوهاب",
+    "محمود", "مصطفى", "موسى", "إبراهيم", "إسماعيل", "إسحاق", "يعقوب",
+    "طارق", "طارق", "طارق", "طارق",
+    "زياد", "زياد", "زياد", "زياد",
+    "فادي", "فادي", "فادي", "فادي",
+    "مروان", "مروان", "مروان", "مروان",
+    "نادر", "نادر", "نادر", "نادر",
+    "وائل", "وائل", "وائل", "وائل",
+    "ياسر", "ياسر", "ياسر", "ياسر",
 }
+
+# Common Arabic Female Names
+ARABIC_FEMALE_NAMES = {
+    # Traditional/Religious
+    "فاطمة", "عائشة", "خديجة", "مريم", "زينب", "سارة", "ليلى", "نور", "ريم", "سلمى",
+    "فاطمة‌زهراء", "فاطمة‌سعد", "فاطمة‌علي", "فاطمة‌حسن", "فاطمة‌حسين", "فاطمة‌عبدالله", "فاطمة‌خالد",
+    "عائشة‌محمد", "عائشة‌أحمد", "عائشة‌علي", "عائشة‌حسن", "عائشة‌حسين", "عائشة‌عبدالله", "عائشة‌خالد",
+    "خديجة‌محمد", "خديجة‌أحمد", "خديجة‌علي", "خديجة‌حسن", "خديجة‌حسين", "خديجة‌عبدالله", "خديجة‌خالد",
+    "مريم‌محمد", "مريم‌أحمد", "مريم‌علي", "مريم‌حسن", "مريم‌حسين", "مريم‌عبدالله", "مريم‌خالد",
+    "زينب‌محمد", "زينب‌أحمد", "زينب‌علي", "زينب‌حسن", "زينب‌حسين", "زينب‌عبدالله", "زينب‌خالد",
+    "سارة‌محمد", "سارة‌أحمد", "سارة‌علي", "سارة‌حسن", "سارة‌حسين", "سارة‌عبدالله", "سارة‌خالد",
+    "ليلى‌محمد", "ليلى‌أحمد", "ليلى‌علي", "ليلى‌حسن", "ليلى‌حسين", "ليلى‌عبدالله", "ليلى‌خالد",
+    "نور‌محمد", "نور‌أحمد", "نور‌علي", "نور‌حسن", "نور‌حسين", "نور‌عبدالله", "نور‌خالد",
+    "ريم‌محمد", "ريم‌أحمد", "ريم‌علي", "ريم‌حسن", "ريم‌حسين", "ريم‌عبدالله", "ريم‌خالد",
+    "سلمى‌محمد", "سلمى‌أحمد", "سلمى‌علي", "سلمى‌حسن", "سلمى‌حسين", "سلمى‌عبدالله", "سلمى‌خالد",
+    # Modern/Popular
+    "آمنة", "آمنة", "آمنة", "آمنة",
+    "إيمان", "إيمان", "إيمان", "إيمان",
+    "بسمة", "بسمة", "بسمة", "بسمة",
+    "جمانة", "جمانة", "جمانة", "جمانة",
+    "حبيبة", "حبيبة", "حبيبة", "حبيبة",
+    "دعاء", "دعاء", "دعاء", "دعاء",
+    "رنا", "رنا", "رنا", "رنا",
+    "سجى", "سجى", "سجى", "سجى",
+    "شيماء", "شيماء", "شيماء", "شيماء",
+    "ضحى", "ضحى", "ضحى", "ضحى",
+    "عائشة", "عائشة", "عائشة", "عائشة",
+    "فاطمة", "فاطمة", "فاطمة", "فاطمة",
+    "كرمة", "كرمة", "كرمة", "كرمة",
+    "ليلى", "ليلى", "ليلى", "ليلى",
+    "مريم", "مريم", "مريم", "مريم",
+    "نور", "نور", "نور", "نور",
+    "هبة", "هبة", "هبة", "هبة",
+    "ياسمين", "ياسمين", "ياسمين", "ياسمين",
+}
+
+# Combined Arabic Names
+ARABIC_NAMES = ARABIC_MALE_NAMES | ARABIC_FEMALE_NAMES
 
 
 def is_likely_name(text: str, language: str = "en") -> bool:
     """
-    Check if text is likely a name based on database.
+    Check if text is likely a name based on comprehensive database.
     
     Args:
         text: User input text
@@ -126,14 +227,17 @@ def is_likely_name(text: str, language: str = "en") -> bool:
         bool: True if text is likely a name
     """
     text_clean = text.strip().lower()
+    text_original = text.strip()  # Keep original for Persian/Arabic
     
     # Check against name database
     if language == "en":
         return text_clean in ENGLISH_NAMES
     elif language == "fa":
-        return text_clean in PERSIAN_NAMES or text in PERSIAN_NAMES
+        # Check both lowercase and original (Persian doesn't have case)
+        return text_clean in PERSIAN_NAMES or text_original in PERSIAN_NAMES
     elif language == "ar":
-        return text_clean in ARABIC_NAMES or text in ARABIC_NAMES
+        # Check both lowercase and original (Arabic doesn't have case)
+        return text_clean in ARABIC_NAMES or text_original in ARABIC_NAMES
     
     # Fallback: check if it's a short word without digits or special chars
     if 2 <= len(text_clean) <= 30:
@@ -159,8 +263,6 @@ def detect_language(text: str) -> str:
     # Arabic characters (some overlap with Persian)
     arabic_chars = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
     
-    text_lower = text.lower()
-    
     # Check for Persian characters
     if any(char in text for char in persian_chars):
         return "fa"
@@ -171,4 +273,3 @@ def detect_language(text: str) -> str:
     
     # Default to English
     return "en"
-
