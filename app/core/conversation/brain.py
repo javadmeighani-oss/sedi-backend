@@ -97,6 +97,10 @@ class ConversationBrain:
         engagement_level = self._determine_engagement_level(context_data)
         print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
         
+        # Check if we need to save user name from onboarding
+        # This happens when user provides name in response to "what's your name?"
+        self._save_user_name_if_provided(user_id, user_message, current_stage, context_data)
+        
         sedi_response = self.prompts.generate_response(
             context_data, 
             user_message,
@@ -350,6 +354,69 @@ Be conversational, warm, and engaging. Make it feel like a real person talking, 
             return "warm"
         else:
             return "neutral"
+    
+    def _save_user_name_if_provided(
+        self,
+        user_id: int,
+        user_message: str,
+        stage: ConversationStage,
+        context: Dict[str, any]
+    ):
+        """
+        Save user name if provided during onboarding.
+        
+        This handles the case where user provides name in response to "what's your name?"
+        during FIRST_CONTACT or INTRODUCTION stage.
+        """
+        # Only check in onboarding stages
+        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
+            return
+        
+        # Check if user already has a real name (not anonymous)
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return
+        
+        # If user already has a real name, don't overwrite
+        if user.name and not user.name.startswith("anonymous_"):
+            return
+        
+        # Check if this looks like a name response
+        # (short, no digits, reasonable length, and this is early in conversation)
+        user_message_clean = user_message.strip()
+        conversation_count = context.get("conversation_count", 0)
+        
+        # Check if last Sedi message asked for name
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        
+        name_keywords = ["name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك"]
+        name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
+        
+        # If name was requested and user message looks like a name
+        if (name_was_requested and 
+            conversation_count <= 2 and  # Early in conversation
+            2 <= len(user_message_clean) <= 30 and  # Reasonable name length
+            not any(char.isdigit() for char in user_message_clean) and  # No digits
+            not any(char in user_message_clean for char in ["?", "؟", "!", "!"])):  # Not a question/exclamation
+            # Extract name (first word, clean)
+            name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
+            name = name.strip()
+            
+            # Check if name is valid (not empty, not just punctuation)
+            if name and len(name) > 1:
+                # Check if name is already taken by another user
+                existing_user = self.db.query(User).filter(
+                    User.name == name,
+                    User.id != user_id
+                ).first()
+                
+                if not existing_user:
+                    # Save name to user
+                    user.name = name
+                    self.db.commit()
+                    self.db.refresh(user)
+                    print(f"[BRAIN DEBUG] Saved user name: {name} for user_id={user_id}")
     
     def _get_error_message(self, error_type: str) -> str:
         """Get error message based on type"""

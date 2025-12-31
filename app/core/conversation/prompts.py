@@ -63,8 +63,11 @@ class ConversationPrompts:
         # ONBOARDING: Check if we're in onboarding flow and use hardcoded prompts
         onboarding_state = self._get_onboarding_state(context, user_message, stage)
         if onboarding_state:
-            print(f"[PROMPTS DEBUG] Onboarding state detected: {onboarding_state}")
+            print(f"[PROMPTS DEBUG] ✅ Onboarding state detected: {onboarding_state}")
+            print(f"[PROMPTS DEBUG] Stage: {stage.value}, conversation_count: {conversation_count}, user_name: {user_name}")
             return self._get_onboarding_response(onboarding_state, user_name, user_message, context)
+        else:
+            print(f"[PROMPTS DEBUG] ❌ No onboarding state - using GPT (stage: {stage.value}, count: {conversation_count})")
         
         # Normal flow: Use GPT for responses
         # Build system prompt based on stage and engagement
@@ -221,16 +224,24 @@ class ConversationPrompts:
         )
         
         # Check recent messages for password-related content
+        # NOTE: recent_messages is reversed (oldest first), so [-1] is the most recent
         recent_messages = context.get("recent_messages", [])
         last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
         
+        # DEBUG: Log onboarding detection
+        print(f"[ONBOARDING DEBUG] conversation_count={conversation_count}, name_learned={name_learned}, user_name={user_name}")
+        print(f"[ONBOARDING DEBUG] recent_messages count={len(recent_messages)}, last_sedi_message length={len(last_sedi_message)}")
+        if last_sedi_message:
+            print(f"[ONBOARDING DEBUG] last_sedi_message preview: {last_sedi_message[:100]}...")
+        
         # Check if password was requested (in last Sedi message)
         password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
-        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords)
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        print(f"[ONBOARDING DEBUG] password_requested={password_requested}")
         
         # Check if we're waiting for password confirmation
         confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون"]
-        waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords)
+        waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
         
         # Check if user provided password (length >= 6 and password was requested)
         user_message_clean = user_message.strip()
@@ -243,12 +254,15 @@ class ConversationPrompts:
         # NAME_PENDING: Name not learned, and user didn't provide a clear name
         if not name_learned:
             # If user message looks like a name (short, no digits, reasonable length)
+            # AND this is likely the first response to "what's your name?"
             if (2 <= len(user_message_clean) <= 30 and 
                 not any(char.isdigit() for char in user_message_clean) and
-                not password_requested):
-                # User might have provided name, but we need to verify in next exchange
-                # For now, assume it's a name attempt
-                return None  # Let normal flow handle it, will check again next time
+                not password_requested and
+                conversation_count == 1):
+                # User provided name in first response - accept it and move to name_confirmed
+                # The name will be extracted and stored by memory system
+                # For now, treat as name provided, will be confirmed next exchange
+                return "name_confirmed"  # Accept the name and move forward
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
                 return "name_pending"
