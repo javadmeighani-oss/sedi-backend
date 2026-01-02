@@ -198,7 +198,7 @@ class ConversationMemory:
             "language": memories[0].language if memories else "en",
             "communication_style": "conversational"  # Can be enhanced with analysis
         }
-    
+
     # EXPERIENCE STABILITY: Structured extraction methods for RAG-ready domains
     def _extract_name(self, memories: List[Memory], user_name: Optional[str]) -> Optional[str]:
         """Extract user's name from conversations or use stored name"""
@@ -370,7 +370,7 @@ class ConversationMemory:
         if user_name and not user_name.startswith("anonymous_"):
             return True
         return self._extract_name(memories, user_name) is not None
-    
+
     def save_conversation(
         self,
         user_id: int,
