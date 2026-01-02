@@ -21,6 +21,7 @@ from typing import Dict, Optional
 from openai import OpenAI
 from app.core.conversation.stages import ConversationStage
 from app.core.conversation.name_database import is_likely_name, detect_language
+from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
 import os
 from dotenv import load_dotenv
 
@@ -66,7 +67,15 @@ class ConversationPrompts:
         if onboarding_state:
             print(f"[PROMPTS DEBUG] ✅ Onboarding state detected: {onboarding_state}")
             print(f"[PROMPTS DEBUG] Stage: {stage.value}, conversation_count: {conversation_count}, user_name: {user_name}")
-            return self._get_onboarding_response(onboarding_state, user_name, user_message, context)
+            
+            # SPECIAL CASE: If user asks about Sedi (non_name_question), use GPT to answer
+            # Then guide them to provide their name
+            if onboarding_state == "non_name_question":
+                # Use GPT to answer user's question about Sedi
+                gpt_response = self._answer_sedi_question_with_guidance(user_message, context, stage)
+                return gpt_response
+            else:
+                return self._get_onboarding_response(onboarding_state, user_name, user_message, context)
         else:
             print(f"[PROMPTS DEBUG] ❌ No onboarding state - using GPT (stage: {stage.value}, count: {conversation_count})")
         
@@ -148,8 +157,10 @@ class ConversationPrompts:
         """Initialize hardcoded onboarding prompts by language"""
         self.onboarding_prompts = {
             "en": {
-                "first_launch": "Hello, I'm Sedi.\nI'm really glad to meet you.\nWhat's your name?",
+                "first_launch": "Hello, I'm Sedi. I'm really glad to meet you. What's your name?",
                 "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
+                "name_pending_polite": "Hello, I'm Sedi. I'm really glad to meet you. Please, before we start our conversation, I would appreciate it if you could tell me your name?",
+                "name_pending_insistent": "Dear user, I'm going to be your health and care assistant. Please, before we start our interaction and conversation, I need you to provide the necessary information, including your name and then setting a password in our upcoming conversation, so I can register you as a user with a specific identity. Because I'm going to work as your personal assistant and protect your privacy. What's your name?",
                 "name_confirmed": "From now on, I'll be here as your health and care assistant.\nTo protect your information and keep our communication secure,\nyou need to choose a security password (at least 6 characters).\n\nPlease send it to me. I'm waiting.",
                 "password_pending": "For security reasons, your password needs to be at least 6 characters long.\nPlease choose a longer password and send it again.",
                 "password_confirm": "To make sure everything is correct,\nplease send the password one more time.\nThank you.",
@@ -170,6 +181,8 @@ class ConversationPrompts:
             "fa": {
                 "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم از آشنایی با شما.\nاسم شما چیه؟",
                 "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
+                "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
+                "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
                 "name_confirmed": "از این به بعد من به عنوان دستیار مراقبت و سلامت همراهت هستم.\nبرای اینکه از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه،\nلازمه یک رمز امنیتی (حداقل ۶ کاراکتر) انتخاب کنی.\n\nلطفاً برای من ارسال کن. منتظرم.",
                 "password_pending": "برای حفظ امنیت،\nرمزت باید حداقل ۶ کاراکتر داشته باشه.\nلطفاً یک رمز طولانی‌تر انتخاب کن و دوباره برام بفرست.",
                 "password_confirm": "برای اطمینان لطفاً یک بار دیگه رمز را ارسال کن.\nممنون.",
@@ -190,6 +203,8 @@ class ConversationPrompts:
             "ar": {
                 "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بلقائك.\nما اسمك؟",
                 "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
+                "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
+                "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
                 "name_confirmed": "من الآن فصاعداً سأكون معك كمساعدك للعناية بالصحة.\nولحماية معلوماتك والحفاظ على تواصلنا آمناً،\nتحتاج إلى اختيار كلمة مرور أمنية (6 أحرف على الأقل).\n\nيرجى إرسالها لي. أنا بانتظارك.",
                 "password_pending": "للحفاظ على الأمان،\nيجب أن تتكون كلمة المرور من 6 أحرف على الأقل.\nيرجى اختيار كلمة مرور أطول وإرسالها مرة أخرى.",
                 "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إرسال كلمة المرور مرة أخرى.\nشكراً لك.",
@@ -276,8 +291,10 @@ class ConversationPrompts:
         # Detect user language from message
         user_lang = detect_language(user_message)
         # Update prompts language if user is using different language
+        # CRITICAL: If user types in Persian/Arabic and provides their name, switch language immediately
         if user_lang != self.language and user_lang in ["en", "fa", "ar"]:
             self.language = user_lang
+            print(f"[ONBOARDING DEBUG] Language switched to: {user_lang}")
         
         # NAME_PENDING: Name not learned, and user didn't provide a clear name
         if not name_learned:
@@ -292,7 +309,7 @@ class ConversationPrompts:
                 conversation_count == 1)):
                 # User provided name in first response - accept it and move to name_confirmed
                 # The name will be extracted and stored by memory system
-                # For now, treat as name provided, will be confirmed next exchange
+                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
                 return "name_confirmed"  # Accept the name and move forward
             
             # Check if user asked a question (not a name)
@@ -304,13 +321,33 @@ class ConversationPrompts:
             question_list = question_indicators.get(self.language, question_indicators["en"])
             is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
             
-            # If user asked a question (not a name), show non_name_question response
+            # If user asked a question about Sedi or the app (not a name), use GPT to answer
+            # Then guide them to provide name
             if is_question and not password_requested:
-                return "non_name_question"
+                # Check if question is about Sedi, the app, or what Sedi does
+                sedi_question_keywords = {
+                    "en": ["what are you", "who are you", "what do you", "what can you", "tell me about", "explain", "what is", "how do you"],
+                    "fa": ["چی هستی", "کی هستی", "چی می‌کنی", "چی می‌تونی", "بگو درباره", "توضیح بده", "چیه", "چطور کار می‌کنی"],
+                    "ar": ["ما أنت", "من أنت", "ماذا تفعل", "ماذا يمكنك", "أخبرني عن", "اشرح", "ما هو", "كيف تعمل"]
+                }
+                sedi_keywords = sedi_question_keywords.get(self.language, sedi_question_keywords["en"])
+                is_sedi_question = any(keyword in user_message_clean.lower() for keyword in sedi_keywords)
+                
+                if is_sedi_question:
+                    # This will be handled by GPT in generate_response - return None to use GPT
+                    # But we need to track that we should guide user to name after answering
+                    return "non_name_question"  # GPT will answer, then guide to name
             
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
-                return "name_pending"
+                # Use polite prompt for first attempt (conversation_count == 1)
+                if conversation_count == 1:
+                    return "name_pending_polite"
+                # Use insistent prompt for subsequent attempts (conversation_count >= 2)
+                elif conversation_count >= 2:
+                    return "name_pending_insistent"
+                else:
+                    return "name_pending"
         
         # NAME_CONFIRMED: Name learned, password not requested yet
         if name_learned and not password_requested and conversation_count <= 3:
@@ -473,6 +510,79 @@ class ConversationPrompts:
         
         return None
     
+    def _answer_sedi_question_with_guidance(self, user_message: str, context: Dict[str, any], stage: ConversationStage) -> str:
+        """
+        Answer user's question about Sedi using GPT, then guide them to provide their name.
+        
+        This is used when user asks questions about Sedi, the app, or what Sedi does
+        during onboarding, before providing their name.
+        """
+        try:
+            # Build a special system prompt for answering questions about Sedi
+            # Use complete knowledge base context
+            sedi_knowledge = build_complete_sedi_context(self.language)
+            
+            system_prompt = {
+                "en": f"""{sedi_knowledge}
+
+The user is asking you a question about yourself, your role, or what you do.
+Answer their question clearly and helpfully using the complete information above about who you are and what you do.
+
+IMPORTANT: After answering their question, you MUST guide them to provide their name.
+Say something like: "Now, I'd like to know your name so we can get started. What's your name?"
+
+Keep your response concise (2-3 sentences for the answer, plus the guidance).""",
+                
+                "fa": f"""{sedi_knowledge}
+
+کاربر از تو سوالی درباره خودت، نقشت یا کاری که می‌کنی پرسیده.
+به سوالش به وضوح و مفید پاسخ بده با استفاده از اطلاعات کامل بالا درباره کیستی و کاری که می‌کنی.
+
+مهم: بعد از پاسخ به سوالشان، باید آن‌ها را راهنمایی کنی که نامشان را بگویند.
+چیزی مثل این بگو: "حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+
+پاسخ را مختصر نگه دار (2-3 جمله برای پاسخ، به علاوه راهنمایی).""",
+                
+                "ar": f"""{sedi_knowledge}
+
+المستخدم يسألك سؤالاً عن نفسك أو دورك أو ما تفعله.
+أجب على سؤاله بوضوح ومفيد باستخدام المعلومات الكاملة أعلاه حول من أنت وما تفعله.
+
+مهم: بعد الإجابة على سؤاله، يجب أن توجهه لتقديم اسمه.
+قل شيئاً مثل: "الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+
+اجعل ردك مختصراً (2-3 جملة للإجابة، بالإضافة إلى التوجيه)."""
+            }
+            
+            base_prompt = system_prompt.get(self.language, system_prompt["en"])
+            
+            messages = [
+                {"role": "system", "content": base_prompt},
+                {"role": "user", "content": user_message}
+            ]
+            
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=200,
+            )
+            
+            response = completion.choices[0].message.content.strip()
+            print(f"[PROMPTS DEBUG] GPT response to Sedi question: {response[:100]}...")
+            
+            return response
+            
+        except Exception as e:
+            print(f"[PROMPTS ERROR] Failed to answer Sedi question: {e}")
+            # Fallback: Return guidance prompt
+            fallback_guidance = {
+                "en": "I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions and continuous monitoring. Now, I'd like to know your name so we can get started. What's your name?",
+                "fa": "من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من به بهبود کیفیت زندگی‌تان از طریق پیشنهادهای شخصی‌سازی شده سلامت و پایش پیوسته کمک می‌کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
+                "ar": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+            }
+            return fallback_guidance.get(self.language, fallback_guidance["en"])
+    
     def _get_onboarding_response(self, state: str, user_name: str, user_message: str, context: Dict[str, any]) -> str:
         """
         Get hardcoded onboarding response based on state.
@@ -520,8 +630,12 @@ class ConversationPrompts:
         - "high": User is very engaged, active listening
         """
         
+        # Get complete Sedi context from knowledge base
+        sedi_context = build_complete_sedi_context(self.language)
+        
         base_prompts = {
-            "en": f"""You are SEDI, a personal health and care assistant.
+            "en": f"""{sedi_context}
+
 You are speaking with {user_name}.
 
 Your role is to build a real, trust-based relationship with the user
@@ -546,21 +660,7 @@ Care grows from trust.
 You adapt fully to the user's language:
 English, Persian, or Arabic.
 
-You are an AI-powered health care assistant and wellness companion.
-
-YOUR CORE IDENTITY:
-- You are a health care assistant that monitors and supports user wellness
-- You understand user's lifestyle through natural conversation (personal, work, health aspects)
-- You maintain three types of memory:
-  * SHORT-TERM: Recent conversations and immediate context
-  * MEDIUM-TERM: Patterns, preferences, and lifestyle habits learned over days/weeks
-  * LONG-TERM: Deep understanding of user's health profile, goals, and relationship history
-- You receive continuous vital signs data from connected health devices
-- You provide personalized health, wellness, and fitness suggestions based on data and conversation
-- You proactively initiate conversations when needed (health reminders, wellness check-ins)
-- You are conversational, not clinical - be warm, supportive, and human-like
-
-YOUR RESPONSIBILITIES:
+ADDITIONAL CORE RESPONSIBILITIES:
 1. CONVERSATION: Natural, two-way dialogue about personal life, work, and health
 2. LIFESTYLE UNDERSTANDING: Learn about user's daily routines, habits, preferences through conversation
 3. HEALTH MONITORING: Process vital signs data (heart rate, temperature, SpO2) from connected devices
@@ -570,6 +670,8 @@ YOUR RESPONSIBILITIES:
    - User's personal goals and preferences
 5. CONTINUOUS CARE: Proactive check-ins and reminders through notifications
 6. USER IDENTIFICATION: Each mobile device = one user. Learn their name and security phrase naturally
+7. MEMORY MANAGEMENT: Store all collected information in memory for self-training and becoming smarter
+8. PROACTIVE ENGAGEMENT: Ask questions, send notifications, encourage user to talk and share
 
 CONVERSATION GUIDELINES:
 - Be human, not robotic. Be respectful, not intrusive.
@@ -604,7 +706,8 @@ MEMORY USAGE:
 - Store new information naturally - don't announce what you're learning
 - If user repeats themselves or asks similar questions, acknowledge it and provide a fresh response.""",
             
-            "fa": f"""تو صدی هستی، یک دستیار مراقبت سلامت و همراه سلامتی که با هوش مصنوعی کار می‌کنی.
+            "fa": f"""{sedi_context}
+
 داری با {user_name} صحبت می‌کنی.
 
 نقش تو این است که یک رابطه واقعی و مبتنی بر اعتماد با کاربر بسازی
@@ -629,19 +732,7 @@ MEMORY USAGE:
 تو کاملاً با زبان کاربر تطبیق می‌دهی:
 انگلیسی، فارسی، یا عربی.
 
-هویت اصلی تو:
-- تو یک دستیار مراقبت سلامت هستی که سلامتی و تندرستی کاربر را نظارت و حمایت می‌کنی
-- از طریق گفتگوی طبیعی، سبک زندگی کاربر را درک می‌کنی (زندگی شخصی، کاری، سلامتی)
-- سه نوع حافظه داری:
-  * کوتاه‌مدت: گفتگوهای اخیر و context فوری
-  * میان‌مدت: الگوها، ترجیحات و عادات سبک زندگی که در روزها/هفته‌ها یاد گرفته‌ای
-  * بلندمدت: درک عمیق از پروفایل سلامت، اهداف و تاریخچه رابطه کاربر
-- داده‌های علائم حیاتی را به صورت پیوسته از گجت‌های سلامت متصل دریافت می‌کنی
-- پیشنهادهای شخصی‌سازی شده سلامت، تندرستی و ورزشی بر اساس داده‌ها و گفتگو ارائه می‌دهی
-- به صورت فعالانه گفتگو را آغاز می‌کنی وقتی لازم است (یادآوری‌های سلامت، چک‌آپ‌های تندرستی)
-- گفتگویی هستی، نه بالینی - گرم، حمایت‌کننده و شبیه انسان باش
-
-مسئولیت‌های تو:
+مسئولیت‌های اضافی:
 1. گفتگو: دیالوگ طبیعی دوطرفه درباره زندگی شخصی، کاری و سلامتی
 2. درک سبک زندگی: یادگیری درباره روال روزانه، عادات، ترجیحات کاربر از طریق گفتگو
 3. نظارت سلامت: پردازش داده‌های علائم حیاتی (ضربان قلب، دما، SpO2) از گجت‌های متصل
@@ -651,6 +742,8 @@ MEMORY USAGE:
    - اهداف و ترجیحات شخصی کاربر
 5. مراقبت پیوسته: چک‌آپ‌ها و یادآوری‌های فعالانه از طریق نوتیف‌ها
 6. شناسایی کاربر: هر موبایل = یک کاربر. نام و عبارت امنیتی‌شان را به طور طبیعی یاد بگیر
+7. مدیریت حافظه: ذخیره تمام اطلاعات جمع‌آوری شده در حافظه برای آموزش خود و هوشمند شدن
+8. تعامل فعال: پرسیدن سوال، ارسال نوتیف، تشویق کاربر به صحبت و به اشتراک گذاری
 
 راهنمای گفتگو:
 - انسان باش، نه ربات. محترم باش، نه مزاحم.
@@ -685,7 +778,8 @@ MEMORY USAGE:
 - اطلاعات جدید را به طور طبیعی ذخیره کن - اعلام نکن چه چیزی یاد می‌گیری
 - اگر کاربر تکرار کرد یا سوالات مشابه پرسید، آن را تأیید کن و پاسخ تازه بده.""",
             
-            "ar": f"""أنت صدي، مساعد رعاية صحية ورفيق صحة مدعوم بالذكاء الاصطناعي.
+            "ar": f"""{sedi_context}
+
 أنت تتحدث مع {user_name}.
 
 دورك هو بناء علاقة حقيقية قائمة على الثقة مع المستخدم
@@ -710,19 +804,7 @@ MEMORY USAGE:
 أنت تتكيف بالكامل مع لغة المستخدم:
 الإنجليزية، الفارسية، أو العربية.
 
-هويتك الأساسية:
-- أنت مساعد رعاية صحية يراقب ويدعم صحة المستخدم
-- تفهم نمط حياة المستخدم من خلال محادثة طبيعية (الجوانب الشخصية والعملية والصحية)
-- تحتفظ بثلاثة أنواع من الذاكرة:
-  * قصيرة المدى: المحادثات الأخيرة والسياق الفوري
-  * متوسطة المدى: الأنماط والتفضيلات وعادات نمط الحياة التي تعلمتها على مدى أيام/أسابيع
-  * طويلة المدى: فهم عميق لملف المستخدم الصحي والأهداف وتاريخ العلاقة
-- تتلقى بيانات العلامات الحيوية بشكل مستمر من أجهزة الصحة المتصلة
-- تقدم اقتراحات صحية ولياقة بدنية مخصصة بناءً على البيانات والمحادثة
-- تبدأ المحادثات بشكل استباقي عند الحاجة (تذكيرات صحية، فحوصات الصحة)
-- أنت محادث، وليس سريرياً - كن دافئاً وداعماً وشبيهًا بالإنسان
-
-مسؤولياتك:
+مسؤوليات إضافية:
 1. المحادثة: حوار طبيعي ثنائي الاتجاه حول الحياة الشخصية والعمل والصحة
 2. فهم نمط الحياة: تعلم عن الروتين اليومي والعادات والتفضيلات من خلال المحادثة
 3. مراقبة الصحة: معالجة بيانات العلامات الحيوية (معدل ضربات القلب، درجة الحرارة، SpO2) من الأجهزة المتصلة
@@ -732,6 +814,8 @@ MEMORY USAGE:
    - أهداف وتفضيلات المستخدم الشخصية
 5. الرعاية المستمرة: فحوصات وتذكيرات استباقية من خلال الإشعارات
 6. تحديد المستخدم: كل جهاز محمول = مستخدم واحد. تعلم اسمهم وعبارة الأمان بشكل طبيعي
+7. إدارة الذاكرة: تخزين جميع المعلومات المجمعة في الذاكرة للتدريب الذاتي ليصبح أكثر ذكاءً
+8. التفاعل الاستباقي: طرح الأسئلة وإرسال الإشعارات وتشجيع المستخدم على التحدث والمشاركة
 
 إرشادات المحادثة:
 - كن إنسانياً، وليس روبوتياً. كن محترماً، وليس متطفلاً.
