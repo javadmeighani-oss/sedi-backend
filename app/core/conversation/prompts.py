@@ -396,15 +396,8 @@ class ConversationPrompts:
             
             print(f"[ONBOARDING DEBUG] Question detection: is_question={is_question}, language={self.language}, message={user_message_clean[:50]}")
             
-            # If user message looks like a name (short, no digits, reasonable length, not a question)
-            # AND this is likely the first response to "what's your name?"
-            if looks_like_name and not is_question and not password_requested and conversation_count == 1:
-                # User provided name in first response - accept it and move to name_confirmed
-                # The name will be extracted and stored by memory system
-                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
-                print(f"[ONBOARDING DEBUG] Name detected: {user_message_clean}")
-                return "name_confirmed"  # Accept the name and move forward
-            
+            # CRITICAL: Check for questions FIRST, before name detection
+            # Questions should always be answered, even if they look like names
             # If user asked a question (not a name), use GPT to answer
             # Then guide them to provide name
             # CRITICAL: ANY question during onboarding should be answered by GPT, not just questions about Sedi
@@ -414,9 +407,20 @@ class ConversationPrompts:
                 # - Questions about Sedi ("چی هستی؟", "who are you?")
                 # - General questions ("چرا میپرسی؟", "why are you asking?")
                 # - Any other question the user might ask
-                print(f"[ONBOARDING DEBUG] Question detected: {user_message_clean}")
-                print(f"[ONBOARDING DEBUG] Routing to GPT for answer (non_name_question)")
+                print(f"[ONBOARDING DEBUG] ✅ Question detected: {user_message_clean}")
+                print(f"[ONBOARDING DEBUG] ✅ Routing to GPT for answer (non_name_question)")
+                print(f"[ONBOARDING DEBUG] ✅ Language: {self.language}")
                 return "non_name_question"  # GPT will answer, then guide to name
+            
+            # If user message looks like a name (short, no digits, reasonable length, not a question, not a greeting)
+            # AND this is likely the first response to "what's your name?"
+            # CRITICAL: Only check for name AFTER checking for questions
+            if looks_like_name and not is_question and not is_greeting and not password_requested and conversation_count == 1:
+                # User provided name in first response - accept it and move to name_confirmed
+                # The name will be extracted and stored by memory system
+                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
+                print(f"[ONBOARDING DEBUG] ✅ Name detected: {user_message_clean}")
+                return "name_confirmed"  # Accept the name and move forward
             
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
