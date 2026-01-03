@@ -59,7 +59,17 @@ class ConversationPrompts:
             str: Sedi's response text
         """
         stage = ConversationStage(context["stage"])
-        user_name = context.get("user_name") or context.get("profile", {}).get("name") or "friend"
+        # CRITICAL: Get user_name from multiple sources, prioritizing database
+        user_name = (
+            context.get("profile", {}).get("name") or  # From memory_facts.profile.name (database)
+            context.get("user_name") or  # From context.user_name (also from database)
+            "friend"
+        )
+        # DEBUG: Log user_name source
+        if user_name and user_name != "friend":
+            print(f"[PROMPTS DEBUG] ✅ User name found: {user_name} (from profile: {context.get('profile', {}).get('name')}, from user_name: {context.get('user_name')})")
+        else:
+            print(f"[PROMPTS DEBUG] ⚠️ User name not found, using 'friend' (profile: {context.get('profile', {})}, user_name: {context.get('user_name')})")
         conversation_count = context.get("conversation_count", 0)
         recent_messages = context.get("recent_messages", [])
         
@@ -1165,26 +1175,44 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
             
             # Replace {user_name} placeholder if present
             if "{user_name}" in response_template:
-                # Use user_name from context or extract from message
-                if not user_name or user_name.startswith("anonymous_"):
-                    # Try to get name from context
-                    profile = context.get("profile", {})
-                    user_name = profile.get("name") or context.get("user_name") or "friend"
-                    # If still anonymous, try to extract from message (but only if it looks like a name)
-                    if user_name.startswith("anonymous_") and user_message.strip():
-                        # Don't use password as name - check if it looks like a name
+                # CRITICAL: Get user_name from multiple sources, prioritizing database
+                # First try from profile (from memory_facts.profile.name - database)
+                profile = context.get("profile", {})
+                db_name = profile.get("name") if profile else None
+                
+                # Then try from context.user_name (also from database)
+                context_name = context.get("user_name")
+                
+                # Use the best available name
+                if db_name and not db_name.startswith("anonymous_") and len(db_name.strip()) > 1:
+                    user_name = db_name
+                    print(f"[PROMPTS DEBUG] ✅ Using name from profile: {user_name}")
+                elif context_name and not context_name.startswith("anonymous_") and len(context_name.strip()) > 1:
+                    user_name = context_name
+                    print(f"[PROMPTS DEBUG] ✅ Using name from context.user_name: {user_name}")
+                elif not user_name or user_name.startswith("anonymous_") or user_name == "friend":
+                    # If still no valid name, try to extract from message (but only if it looks like a name)
+                    if user_message.strip():
                         msg_clean = user_message.strip()
+                        # Don't use password as name - check if it looks like a name
                         if (2 <= len(msg_clean) <= 30 and 
                             not any(char.isdigit() for char in msg_clean) and
                             "?" not in msg_clean and
-                            "؟" not in msg_clean):
+                            "؟" not in msg_clean and
+                            not any(keyword in msg_clean.lower() for keyword in ["password", "رمز", "confirm", "تأیید"])):
                             user_name = msg_clean.split()[0] if msg_clean.split() else "friend"
+                            print(f"[PROMPTS DEBUG] ⚠️ Extracted name from message: {user_name}")
                         else:
                             user_name = "friend"
+                            print(f"[PROMPTS DEBUG] ⚠️ Message doesn't look like a name, using 'friend'")
+                    else:
+                        user_name = "friend"
+                        print(f"[PROMPTS DEBUG] ⚠️ No valid name found, using 'friend'")
                 
                 # Ensure user_name is not None or empty
                 if not user_name or user_name.strip() == "":
                     user_name = "friend"
+                    print(f"[PROMPTS DEBUG] ⚠️ User name is empty, using 'friend'")
                 
                 try:
                     response_template = response_template.format(user_name=user_name)
