@@ -274,8 +274,11 @@ class ConversationPrompts:
         print(f"[ONBOARDING DEBUG] password_requested={password_requested}")
         
         # Check if we're waiting for password confirmation
-        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "مرة أخرى"]
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "یک بار دیگه", "مرة أخرى", "ارسال کن", "بفرست", "بفرستید"]
         waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
+        print(f"[ONBOARDING DEBUG] waiting_for_confirmation={waiting_for_confirmation}, last_sedi_message length={len(last_sedi_message) if last_sedi_message else 0}")
+        if last_sedi_message:
+            print(f"[ONBOARDING DEBUG] last_sedi_message preview for confirmation check: {last_sedi_message[:150]}...")
         
         # Check if user refused to provide password
         refusal_keywords = {
