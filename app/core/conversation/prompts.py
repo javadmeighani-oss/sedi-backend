@@ -669,26 +669,63 @@ Keep your response concise (2-3 sentences for the answer, plus the guidance)."""
                 {"role": "user", "content": user_message}
             ]
             
+            print(f"[PROMPTS DEBUG] ===== CALLING GPT FOR QUESTION ANSWER =====")
+            print(f"[PROMPTS DEBUG] Language: {self.language}")
+            print(f"[PROMPTS DEBUG] User question: {user_message[:100]}...")
+            print(f"[PROMPTS DEBUG] System prompt length: {len(base_prompt)}")
+            
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
                 temperature=0.7,
-                max_tokens=200,
+                max_tokens=250,  # Increased to allow for complete answer + guidance
             )
             
             response = completion.choices[0].message.content.strip()
-            print(f"[PROMPTS DEBUG] GPT response to Sedi question: {response[:100]}...")
+            print(f"[PROMPTS DEBUG] ✅ GPT response received: {response[:150]}...")
+            print(f"[PROMPTS DEBUG] Response length: {len(response)}")
+            
+            # Validate response is not empty
+            if not response or len(response.strip()) < 10:
+                print(f"[PROMPTS WARNING] GPT response too short, using fallback")
+                raise Exception("GPT response too short")
             
             return response
             
         except Exception as e:
-            print(f"[PROMPTS ERROR] Failed to answer Sedi question: {e}")
-            # Fallback: Return guidance prompt
-            fallback_guidance = {
-                "en": "I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions and continuous monitoring. Now, I'd like to know your name so we can get started. What's your name?",
-                "fa": "من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من به بهبود کیفیت زندگی‌تان از طریق پیشنهادهای شخصی‌سازی شده سلامت و پایش پیوسته کمک می‌کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
-                "ar": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+            print(f"[PROMPTS ERROR] ❌ Failed to answer Sedi question: {e}")
+            print(f"[PROMPTS ERROR] Exception type: {type(e).__name__}")
+            import traceback
+            print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+            
+            # Fallback: Return guidance prompt based on question type
+            # Try to provide a relevant answer even if GPT fails
+            user_lower = user_message.lower()
+            
+            # Check if question is "why are you asking?" or similar
+            why_asking_keywords = {
+                "en": ["why are you asking", "why do you need", "why ask"],
+                "fa": ["چرا میپرسی", "چرا می‌پرسی", "چرا میپرس", "چرا می‌پرس", "چرا به اسم", "چرا نیاز"],
+                "ar": ["لماذا تسأل", "لماذا تحتاج", "لماذا تطلب"]
             }
+            
+            why_keywords = why_asking_keywords.get(self.language, why_asking_keywords["en"])
+            is_why_asking = any(keyword in user_lower for keyword in why_keywords)
+            
+            if is_why_asking:
+                fallback_guidance = {
+                    "en": "I'm asking because I'm your health care assistant and I need to know your name to personalize our conversations and protect your privacy. Now, I'd like to know your name so we can get started. What's your name?",
+                    "fa": "من می‌پرسم چون دستیار مراقبت سلامت شما هستم و نیاز دارم اسمتون را بدونم تا گفتگوهایمان را شخصی‌سازی کنم و از حریم خصوصی‌تان محافظت کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
+                    "ar": "أسأل لأنني مساعد رعاية صحية الخاص بك وأحتاج إلى معرفة اسمك لتخصيص محادثاتنا وحماية خصوصيتك. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+                }
+            else:
+                # Generic fallback
+                fallback_guidance = {
+                    "en": "I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions and continuous monitoring. Now, I'd like to know your name so we can get started. What's your name?",
+                    "fa": "من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من به بهبود کیفیت زندگی‌تان از طریق پیشنهادهای شخصی‌سازی شده سلامت و پایش پیوسته کمک می‌کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
+                    "ar": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+                }
+            
             return fallback_guidance.get(self.language, fallback_guidance["en"])
     
     def _get_onboarding_response(self, state: str, user_name: str, user_message: str, context: Dict[str, any]) -> str:
