@@ -334,22 +334,18 @@ class ConversationPrompts:
                 print(f"[ONBOARDING DEBUG] Name detected: {user_message_clean}")
                 return "name_confirmed"  # Accept the name and move forward
             
-            # If user asked a question about Sedi or the app (not a name), use GPT to answer
+            # If user asked a question (not a name), use GPT to answer
             # Then guide them to provide name
+            # CRITICAL: ANY question during onboarding should be answered by GPT, not just questions about Sedi
             if is_question and not password_requested:
-                # Check if question is about Sedi, the app, or what Sedi does
-                sedi_question_keywords = {
-                    "en": ["what are you", "who are you", "what do you", "what can you", "tell me about", "explain", "what is", "how do you"],
-                    "fa": ["چی هستی", "کی هستی", "چی می‌کنی", "چی می‌تونی", "بگو درباره", "توضیح بده", "چیه", "چطور کار می‌کنی"],
-                    "ar": ["ما أنت", "من أنت", "ماذا تفعل", "ماذا يمكنك", "أخبرني عن", "اشرح", "ما هو", "كيف تعمل"]
-                }
-                sedi_keywords = sedi_question_keywords.get(self.language, sedi_question_keywords["en"])
-                is_sedi_question = any(keyword in user_message_clean.lower() for keyword in sedi_keywords)
-                
-                if is_sedi_question:
-                    # This will be handled by GPT in generate_response - return None to use GPT
-                    # But we need to track that we should guide user to name after answering
-                    return "non_name_question"  # GPT will answer, then guide to name
+                # ALL questions during onboarding should go to GPT for proper response
+                # This includes:
+                # - Questions about Sedi ("چی هستی؟", "who are you?")
+                # - General questions ("چرا میپرسی؟", "why are you asking?")
+                # - Any other question the user might ask
+                print(f"[ONBOARDING DEBUG] Question detected: {user_message_clean}")
+                print(f"[ONBOARDING DEBUG] Routing to GPT for answer (non_name_question)")
+                return "non_name_question"  # GPT will answer, then guide to name
             
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
@@ -525,44 +521,68 @@ class ConversationPrompts:
     
     def _answer_sedi_question_with_guidance(self, user_message: str, context: Dict[str, any], stage: ConversationStage) -> str:
         """
-        Answer user's question about Sedi using GPT, then guide them to provide their name.
+        Answer user's question using GPT, then guide them to provide their name.
         
-        This is used when user asks questions about Sedi, the app, or what Sedi does
-        during onboarding, before providing their name.
+        This is used when user asks ANY question during onboarding, before providing their name.
+        Questions can be about Sedi, the app, or general questions like "why are you asking?"
         """
         try:
-            # Build a special system prompt for answering questions about Sedi
+            # Build a special system prompt for answering questions during onboarding
             # Use complete knowledge base context
             sedi_knowledge = build_complete_sedi_context(self.language)
             
             system_prompt = {
                 "en": f"""{sedi_knowledge}
 
-The user is asking you a question about yourself, your role, or what you do.
-Answer their question clearly and helpfully using the complete information above about who you are and what you do.
+The user is asking you a question during onboarding (before providing their name).
+This could be:
+- A question about yourself, your role, or what you do
+- A general question like "why are you asking?" or "why do you need my name?"
+- Any other question they might have
 
-IMPORTANT: After answering their question, you MUST guide them to provide their name.
-Say something like: "Now, I'd like to know your name so we can get started. What's your name?"
+CRITICAL INSTRUCTIONS:
+1. FIRST: Answer their question clearly and helpfully. If it's about you, use the complete information above about who you are and what you do.
+2. SECOND: After answering, you MUST guide them to provide their name. Say something like: "Now, I'd like to know your name so we can get started. What's your name?"
+
+Example responses:
+- If they ask "why are you asking?": "I'm asking because I'm your health care assistant and I need to know your name to personalize our conversations and protect your privacy. Now, I'd like to know your name so we can get started. What's your name?"
+- If they ask "who are you?": "I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions and continuous monitoring. Now, I'd like to know your name so we can get started. What's your name?"
 
 Keep your response concise (2-3 sentences for the answer, plus the guidance).""",
                 
                 "fa": f"""{sedi_knowledge}
 
-کاربر از تو سوالی درباره خودت، نقشت یا کاری که می‌کنی پرسیده.
-به سوالش به وضوح و مفید پاسخ بده با استفاده از اطلاعات کامل بالا درباره کیستی و کاری که می‌کنی.
+کاربر در حین onboarding (قبل از دادن نام) از تو سوالی پرسیده.
+این می‌تواند باشد:
+- سوالی درباره خودت، نقشت یا کاری که می‌کنی
+- سوال عمومی مثل "چرا میپرسی؟" یا "چرا به اسم من نیاز داری؟"
+- هر سوال دیگری که ممکن است داشته باشند
 
-مهم: بعد از پاسخ به سوالشان، باید آن‌ها را راهنمایی کنی که نامشان را بگویند.
-چیزی مثل این بگو: "حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+دستورات مهم:
+1. اول: به سوالشان به وضوح و مفید پاسخ بده. اگر درباره تو است، از اطلاعات کامل بالا درباره کیستی و کاری که می‌کنی استفاده کن.
+2. دوم: بعد از پاسخ، باید آن‌ها را راهنمایی کنی که نامشان را بگویند. چیزی مثل این بگو: "حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+
+مثال پاسخ‌ها:
+- اگر پرسیدند "چرا میپرسی؟": "من می‌پرسم چون دستیار مراقبت سلامت شما هستم و نیاز دارم اسمتون را بدونم تا گفتگوهایمان را شخصی‌سازی کنم و از حریم خصوصی‌تان محافظت کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+- اگر پرسیدند "کی هستی؟": "من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من به بهبود کیفیت زندگی‌تان از طریق پیشنهادهای شخصی‌سازی شده سلامت و پایش پیوسته کمک می‌کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
 
 پاسخ را مختصر نگه دار (2-3 جمله برای پاسخ، به علاوه راهنمایی).""",
                 
                 "ar": f"""{sedi_knowledge}
 
-المستخدم يسألك سؤالاً عن نفسك أو دورك أو ما تفعله.
-أجب على سؤاله بوضوح ومفيد باستخدام المعلومات الكاملة أعلاه حول من أنت وما تفعله.
+المستخدم يسألك سؤالاً أثناء onboarding (قبل تقديم اسمه).
+يمكن أن يكون هذا:
+- سؤالاً عن نفسك أو دورك أو ما تفعله
+- سؤالاً عاماً مثل "لماذا تسأل؟" أو "لماذا تحتاج اسمي؟"
+- أي سؤال آخر قد يكون لديهم
 
-مهم: بعد الإجابة على سؤاله، يجب أن توجهه لتقديم اسمه.
-قل شيئاً مثل: "الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+تعليمات مهمة:
+1. أولاً: أجب على سؤاله بوضوح ومفيد. إذا كان عنك، استخدم المعلومات الكاملة أعلاه حول من أنت وما تفعله.
+2. ثانياً: بعد الإجابة، يجب أن توجهه لتقديم اسمه. قل شيئاً مثل: "الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+
+أمثلة على الردود:
+- إذا سألوا "لماذا تسأل؟": "أسأل لأنني مساعد رعاية صحية الخاص بك وأحتاج إلى معرفة اسمك لتخصيص محادثاتنا وحماية خصوصيتك. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+- إذا سألوا "من أنت؟": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
 
 اجعل ردك مختصراً (2-3 جملة للإجابة، بالإضافة إلى التوجيه)."""
             }
