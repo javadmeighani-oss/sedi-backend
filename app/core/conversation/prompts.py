@@ -162,6 +162,7 @@ class ConversationPrompts:
                 "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
                 "name_pending_polite": "Hello, I'm Sedi. I'm really glad to meet you. Please, before we start our conversation, I would appreciate it if you could tell me your name?",
                 "name_pending_insistent": "Dear user, I'm going to be your health and care assistant. Please, before we start our interaction and conversation, I need you to provide the necessary information, including your name and then setting a password in our upcoming conversation, so I can register you as a user with a specific identity. Because I'm going to work as your personal assistant and protect your privacy. What's your name?",
+                "name_refusal_with_question": "I'm going to be your health and care assistant and I need to know your real name so I can exchange accurate and correct information with doctors or health institutions. Please, could you tell me your name now?",
                 "name_confirmed": "Dear {user_name}, from now on I will always be with you as your health and care assistant and advisor. Just before starting this relationship, to protect your information and keep our communication secure, you need to choose a password (at least 6 characters of letters and symbols). I'm waiting for you to send the password.",
                 "password_pending": "For security reasons, your password needs to be at least 6 characters long.\nPlease choose a longer password and send it again.",
                 "password_confirm": "To make sure everything is correct,\nplease send the password one more time.\nThank you.",
@@ -186,6 +187,7 @@ class ConversationPrompts:
                 "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
                 "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
+                "name_refusal_with_question": "من قراره دستیار مراقبت و سلامت شما باشم و باید نام واقعی شما را بدانم تا در ارتباط با پزشک یا نهادهای سلامت اطلاعات واقعی و درست را تبادل کنم. ممنون میشم حالا اسم خودت رو بگی؟",
                 "name_confirmed": "{user_name} عزیز از این به بعد من به عنوان دستیار و مشاور مراقبت و سلامت تو همیشه کنارت هستم. فقط قبل از شروع این رابطه، برای اینکه بتونم از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه تو باید یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کنی. منتظر ارسال رمز هستم.",
                 "password_pending": "برای حفظ امنیت،\nرمزت باید حداقل ۶ کاراکتر داشته باشه.\nلطفاً یک رمز طولانی‌تر انتخاب کن و دوباره برام بفرست.",
                 "password_confirm": "برای اطمینان لطفاً یک بار دیگه رمز را ارسال کن.\nممنون.",
@@ -210,6 +212,7 @@ class ConversationPrompts:
                 "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
                 "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
+                "name_refusal_with_question": "أنا سأكون مساعدك للعناية بالصحة وأحتاج أن أعرف اسمك الحقيقي حتى أتمكن من تبادل المعلومات الصحيحة والدقيقة مع الأطباء أو المؤسسات الصحية. من فضلك، هل يمكنك إخباري باسمك الآن؟",
                 "name_confirmed": "عزيزي {user_name}، من الآن فصاعداً سأكون دائماً معك كمساعد ومستشار للعناية بالصحة. فقط قبل بدء هذه العلاقة، لحماية معلوماتك والحفاظ على تواصلنا آمناً، تحتاج إلى اختيار كلمة مرور (6 أحرف على الأقل من الحروف والرموز). أنا بانتظار إرسال كلمة المرور.",
                 "password_pending": "للحفاظ على الأمان،\nيجب أن تتكون كلمة المرور من 6 أحرف على الأقل.\nيرجى اختيار كلمة مرور أطول وإرسالها مرة أخرى.",
                 "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إرسال كلمة المرور مرة أخرى.\nشكراً لك.",
@@ -480,8 +483,13 @@ class ConversationPrompts:
             
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
+                # CRITICAL: If user refused name for second time AND asked a question
+                # Use special prompt that explains why name is needed for health communication
+                if conversation_count >= 2 and is_question:
+                    print(f"[ONBOARDING DEBUG] User refused name (second time) and asked question - using name_refusal_with_question")
+                    return "name_refusal_with_question"
                 # Use polite prompt for first attempt (conversation_count == 1)
-                if conversation_count == 1:
+                elif conversation_count == 1:
                     return "name_pending_polite"
                 # Use insistent prompt for subsequent attempts (conversation_count >= 2)
                 elif conversation_count >= 2:
