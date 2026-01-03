@@ -372,9 +372,30 @@ class ConversationBrain:
         ]
         name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
         
+        # CRITICAL: Check if password was requested - don't save name if we're in password flow
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # List of common short responses that should NOT be saved as names
+        invalid_name_responses = {
+            "en": ["good", "fine", "ok", "okay", "yes", "no", "hi", "hello", "hey", "thanks", "thank you", "well", "great", "nice"],
+            "fa": ["خوب", "خوبم", "خوبی", "خوبه", "بله", "نه", "سلام", "درود", "ممنون", "تشکر", "عالی", "خوب است", "خوبم", "خوبی", "خوبه", "خوب است", "خوبم", "خوبی", "خوبه"],
+            "ar": ["جيد", "حسنا", "نعم", "لا", "مرحبا", "شكرا", "شكراً"]
+        }
+        invalid_responses = invalid_name_responses.get(self.language, invalid_name_responses["en"])
+        # Also check in all languages
+        all_invalid = []
+        for lang_responses in invalid_name_responses.values():
+            all_invalid.extend(lang_responses)
+        
+        is_invalid_response = user_message_clean.lower() in [r.lower() for r in all_invalid]
+        
         # If name was requested and user message looks like a name
+        # CRITICAL: Don't save name if password was requested or if it's an invalid response
         # Allow name detection in early conversation (first 5 messages) or if name was explicitly requested
         if (name_was_requested and 
+            not password_requested and  # CRITICAL: Don't save name during password flow
+            not is_invalid_response and  # CRITICAL: Don't save common responses as names
             conversation_count <= 5 and  # Early in conversation (increased from 2 to 5)
             2 <= len(user_message_clean) <= 30 and  # Reasonable name length
             not any(char.isdigit() for char in user_message_clean) and  # No digits

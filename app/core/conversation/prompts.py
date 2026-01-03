@@ -100,7 +100,43 @@ class ConversationPrompts:
                     }
                     return fallback_messages.get(self.language, fallback_messages["en"])
         else:
-            print(f"[PROMPTS DEBUG] ❌ No onboarding state - using GPT (stage: {stage.value}, count: {conversation_count})")
+            print(f"[PROMPTS DEBUG] ❌ No onboarding state - checking if password was requested (stage: {stage.value}, count: {conversation_count})")
+            
+            # CRITICAL: If password was requested but no onboarding state detected, 
+            # check if user provided something that should trigger password flow
+            recent_messages = context.get("recent_messages", [])
+            last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+            password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+            password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+            
+            if password_requested:
+                # Password was requested but state not detected - check user message
+                user_message_clean = user_message.strip()
+                persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+                has_persian_digits = any(char in persian_digits for char in user_message_clean)
+                has_english_digits = any(char.isdigit() for char in user_message_clean)
+                has_numbers = has_persian_digits or has_english_digits
+                has_letters = any(char.isalpha() for char in user_message_clean)
+                has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
+                
+                # Check if user provided password
+                user_provided_password = (
+                    len(user_message_clean) >= 6 and 
+                    (has_numbers or has_letters or has_special)
+                )
+                
+                if user_provided_password:
+                    # User provided password - request confirmation
+                    print(f"[PROMPTS DEBUG] Password detected in fallback check - requesting confirmation")
+                    return self._get_onboarding_response("password_confirm", user_name, user_message, context)
+                elif len(user_message_clean) > 0 and len(user_message_clean) < 6:
+                    # Password too short
+                    print(f"[PROMPTS DEBUG] Password too short in fallback check")
+                    return self._get_onboarding_response("password_pending", user_name, user_message, context)
+                else:
+                    # User sent something else - show security gate
+                    print(f"[PROMPTS DEBUG] Invalid password response in fallback check")
+                    return self._get_onboarding_response("security_gate_active", user_name, user_message, context)
         
         # Normal flow: Use GPT for responses
         # Build system prompt based on stage and engagement
@@ -334,10 +370,11 @@ class ConversationPrompts:
         # CRITICAL: Support both English (0-9) and Persian (۰-۹) digits
         persian_digits = "۰۱۲۳۴۵۶۷۸۹"
         english_digits = "0123456789"
-        has_numbers = (
-            any(char.isdigit() for char in user_message_clean) or  # English digits (0-9) and Persian digits (۰-۹)
-            any(char in persian_digits for char in user_message_clean)  # Explicit Persian digit check
-        )
+        # Check for Persian digits explicitly (isdigit() may not work for all Persian digits)
+        has_persian_digits = any(char in persian_digits for char in user_message_clean)
+        # Check for English digits and other Unicode digits
+        has_english_digits = any(char.isdigit() for char in user_message_clean)
+        has_numbers = has_persian_digits or has_english_digits
         has_letters = any(char.isalpha() for char in user_message_clean)
         has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
         
