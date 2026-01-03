@@ -291,9 +291,15 @@ Speak in {language} language.
         
         # Build comprehensive greeting prompt based on stage
         if stage == ConversationStage.FIRST_CONTACT:
-            # FIRST CONTACT: Use hardcoded prompt (no GPT)
-            # This ensures consistent first message
-            return self.prompts.onboarding_prompts.get(self.language, self.prompts.onboarding_prompts["en"]).get("first_launch", "Hello, I'm Sedi. I'm really glad to meet you. What's your name?")
+            # FIRST CONTACT: Use GPT with Sedi's knowledge base for introduction
+            # This ensures Sedi introduces herself properly based on her knowledge
+            user_id = context.get("user_id")
+            if user_id:
+                user = self.db.query(User).filter(User.id == user_id).first()
+                if user:
+                    return self.get_initial_message(user_id, user_name, self.language)
+            # Fallback if user_id not available
+            return self.prompts._get_fallback_response(stage)
         elif time_since:
             # User returning after absence - be warm and check in
             greeting_prompt = {
