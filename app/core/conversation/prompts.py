@@ -560,16 +560,16 @@ class ConversationPrompts:
         
         # Check if we're past onboarding but haven't shown first interaction yet
         # (conversation_count 4-6, name learned, no password flow active)
+        # OR user refused password twice (password_refusal_accepted)
         if (name_learned and 
-            conversation_count >= 4 and 
-            conversation_count <= 6 and
-            not password_requested):
+            ((conversation_count >= 4 and conversation_count <= 6 and not password_requested) or
+             password_refusal_accepted)):
             # Check if last message was first_real_interaction
             first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
             already_shown = any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords)
             
-            if password_just_confirmed or (not already_shown and not waiting_for_confirmation):
-                # Password just confirmed or haven't shown first interaction yet
+            if password_just_confirmed or password_refusal_accepted or (not already_shown and not waiting_for_confirmation):
+                # Password just confirmed OR user refused password twice OR haven't shown first interaction yet
                 return "first_real_interaction"
         
         # UNCLEAR_RESPONSE: User response is unclear or hesitant
