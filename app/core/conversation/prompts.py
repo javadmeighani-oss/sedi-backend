@@ -303,6 +303,25 @@ class ConversationPrompts:
         if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
             return None
         
+        # CRITICAL: Check if first_real_interaction was already shown
+        # If yes, onboarding is complete - return None to use GPT
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        if last_sedi_message:
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities", "from this moment", "at your service", "continuous care", "integrated care", "quality of life", "which one to start"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم", "تماما در خدمت", "از این لحظه به بعد"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي", "من هذه اللحظة", "في خدمتك", "رعاية مستمرة"]
+            }
+            all_keywords = []
+            for lang_keywords in first_interaction_keywords.values():
+                all_keywords.extend(lang_keywords)
+            first_interaction_shown = any(keyword in last_sedi_message.lower() for keyword in all_keywords)
+            
+            if first_interaction_shown:
+                print(f"[ONBOARDING DEBUG] ✅ first_real_interaction already shown - onboarding complete, using GPT")
+                return None  # Onboarding complete, use GPT
+        
         conversation_count = context.get("conversation_count", 0)
         profile = context.get("profile", {})
         user_name = profile.get("name") or context.get("user_name")
@@ -655,6 +674,18 @@ class ConversationPrompts:
         
         # PASSWORD_CONFIRMED: User confirmed password (sent password again after confirmation request)
         if waiting_for_confirmation and len(user_message_clean) >= 6:
+            # CRITICAL: Detect language from password (Persian digits indicate Persian user)
+            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+            if any(char in persian_digits for char in user_message_clean):
+                if self.language != "fa":
+                    print(f"[ONBOARDING DEBUG] Persian digits detected in password confirmation, switching language to fa")
+                    self.language = "fa"
+            # Also check last Sedi message for Persian
+            elif last_sedi_message:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in last_sedi_message for char in persian_chars) and self.language != "fa":
+                    print(f"[ONBOARDING DEBUG] Persian detected in last Sedi message, switching language to fa")
+                    self.language = "fa"
             # Check if this matches previous password (simplified - in production would compare with stored)
             return "password_confirmed"
         
