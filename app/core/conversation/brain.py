@@ -65,82 +65,115 @@ class ConversationBrain:
         print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
         print(f"[BRAIN DEBUG] user_id={user_id}, message={user_message[:50]}...")
         
-        # Validate user exists
-        user = self.db.query(User).filter(User.id == user_id).first()
-        if not user:
-            print(f"[BRAIN DEBUG] ERROR: User not found")
-            return {
-                "message": self._get_error_message("user_not_found"),
-                "language": self.language,
-                "stage": None,
-                "error": "User not found"
+        try:
+            # Validate user exists
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if not user:
+                print(f"[BRAIN DEBUG] ERROR: User not found")
+                return {
+                    "message": self._get_error_message("user_not_found"),
+                    "language": self.language,
+                    "stage": None,
+                    "error": "User not found"
+                }
+            
+            # EXPERIENCE STABILITY: Strict orchestration order
+            # 1. IDENTIFY: Ensure user_id is valid (already validated above)
+            # 2. LOAD: Get current state (stage, memory count, facts)
+            current_stage = get_stage(user_id, self.db)
+            current_memory_count = self.memory.get_conversation_count(user_id)
+            print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
+            
+            # 3. BUILD CONTEXT: Build context with CURRENT state (before new message)
+            context = ConversationContext(
+                user_id=user_id,
+                stage=current_stage,
+                memory=self.memory,
+                user_message=user_message
+            )
+            context_data = context.build()
+            print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
+            
+            # 4. GENERATE: Generate response with current context
+            engagement_level = self._determine_engagement_level(context_data)
+            print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
+            
+            # Check if we need to save user name from onboarding
+            # This happens when user provides name in response to "what's your name?"
+            self._save_user_name_if_provided(user_id, user_message, current_stage, context_data)
+            
+            sedi_response = self.prompts.generate_response(
+                context_data, 
+                user_message,
+                engagement_level
+            )
+            print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
+            
+            # 5. SAVE: Save conversation to memory (updates memory_count)
+            self.memory.save_conversation(
+                user_id=user_id,
+                user_message=user_message,
+                sedi_response=sedi_response,
+                language=self.language
+            )
+            print(f"[BRAIN DEBUG] Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
+            
+            # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
+            new_stage = transition_stage(current_stage, user_id, self.db)
+            print(f"[BRAIN DEBUG] Stage transition: {current_stage.value} -> {new_stage.value}")
+            
+            # 7. UPDATE: Update context_data with new stage for response
+            context_data["stage"] = new_stage.value
+            context_data["conversation_count"] = self.memory.get_conversation_count(user_id)
+            
+            print(f"[BRAIN DEBUG] ===== MESSAGE PROCESSED =====")
+            
+            # Build metadata with updated state
+            metadata = {
+                "stage": new_stage.value,
+                "conversation_count": context_data.get("conversation_count", 0),
+                "tone": self._infer_tone(sedi_response),
+                "stage_transitioned": new_stage != current_stage
             }
-        
-        # EXPERIENCE STABILITY: Strict orchestration order
-        # 1. IDENTIFY: Ensure user_id is valid (already validated above)
-        # 2. LOAD: Get current state (stage, memory count, facts)
-        current_stage = get_stage(user_id, self.db)
-        current_memory_count = self.memory.get_conversation_count(user_id)
-        print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
-        
-        # 3. BUILD CONTEXT: Build context with CURRENT state (before new message)
-        context = ConversationContext(
-            user_id=user_id,
-            stage=current_stage,
-            memory=self.memory,
-            user_message=user_message
-        )
-        context_data = context.build()
-        print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
-        
-        # 4. GENERATE: Generate response with current context
-        engagement_level = self._determine_engagement_level(context_data)
-        print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
-        
-        # Check if we need to save user name from onboarding
-        # This happens when user provides name in response to "what's your name?"
-        self._save_user_name_if_provided(user_id, user_message, current_stage, context_data)
-        
-        sedi_response = self.prompts.generate_response(
-            context_data, 
-            user_message,
-            engagement_level
-        )
-        print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
-        
-        # 5. SAVE: Save conversation to memory (updates memory_count)
-        self.memory.save_conversation(
-            user_id=user_id,
-            user_message=user_message,
-            sedi_response=sedi_response,
-            language=self.language
-        )
-        print(f"[BRAIN DEBUG] Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
-        
-        # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
-        new_stage = transition_stage(current_stage, user_id, self.db)
-        print(f"[BRAIN DEBUG] Stage transition: {current_stage.value} -> {new_stage.value}")
-        
-        # 7. UPDATE: Update context_data with new stage for response
-        context_data["stage"] = new_stage.value
-        context_data["conversation_count"] = self.memory.get_conversation_count(user_id)
-        
-        print(f"[BRAIN DEBUG] ===== MESSAGE PROCESSED =====")
-        
-        # Build metadata with updated state
-        metadata = {
-            "stage": new_stage.value,
-            "conversation_count": context_data.get("conversation_count", 0),
-            "tone": self._infer_tone(sedi_response),
-            "stage_transitioned": new_stage != current_stage
-        }
-        
-        return {
-            "message": sedi_response,
-            "language": self.language,
-            "stage": new_stage.value,  # Return NEW stage (after save and transition)
-            "metadata": metadata
-        }
+            
+            return {
+                "message": sedi_response,
+                "language": self.language,
+                "stage": new_stage.value,  # Return NEW stage (after save and transition)
+                "metadata": metadata
+            }
+        except Exception as e:
+            # Log the error for debugging
+            print(f"[BRAIN ERROR] Exception in process_message: {e}")
+            print(f"[BRAIN ERROR] Exception type: {type(e).__name__}")
+            import traceback
+            print(f"[BRAIN ERROR] Traceback: {traceback.format_exc()}")
+            
+            # Return a user-friendly error message
+            error_messages = {
+                "en": "I'm sorry, I encountered an error processing your message. Please try again.",
+                "fa": "متاسفم، در پردازش پیام شما خطایی رخ داد. لطفاً دوباره تلاش کنید.",
+                "ar": "عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى."
+            }
+            
+            error_message = error_messages.get(self.language, error_messages["en"])
+            
+            # Try to get current stage for response
+            try:
+                current_stage = get_stage(user_id, self.db)
+                stage_value = current_stage.value
+            except:
+                stage_value = "FIRST_CONTACT"
+            
+            return {
+                "message": error_message,
+                "language": self.language,
+                "stage": stage_value,
+                "metadata": {
+                    "error": True,
+                    "error_type": type(e).__name__
+                }
+            }
     
     def get_greeting(self, user_id: int) -> Dict[str, any]:
         """
