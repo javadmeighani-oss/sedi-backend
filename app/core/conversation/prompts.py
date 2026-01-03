@@ -299,6 +299,96 @@ class ConversationPrompts:
             self.language = user_lang
             print(f"[ONBOARDING DEBUG] Language switched to: {user_lang}")
         
+        # CRITICAL: Check for questions FIRST, regardless of name_learned status
+        # Questions should always be answered, even if name is already learned
+        # This ensures users can ask questions at any point during onboarding
+        
+        # Check if user asked a question (not a name)
+        # CRITICAL: Use multiple detection methods for better accuracy
+        # 1. Check common questions database (most reliable)
+        # 2. Check question indicators (keywords)
+        # 3. Check question patterns
+        # 4. Check for question marks
+        
+        is_question = False
+        question_category = None
+        
+        # METHOD 1: Check common questions database (MOST RELIABLE)
+        # This uses a comprehensive database of common questions
+        # CRITICAL: Use "auto" language detection to ensure we check all languages
+        is_question = is_common_question(user_message_clean, "auto")
+        if not is_question:
+            # Also try with original message (not lowercased) for Persian/Arabic
+            is_question = is_common_question(user_message, "auto")
+        
+        if is_question:
+            question_category = get_question_category(user_message_clean, "auto")
+            if not question_category:
+                question_category = get_question_category(user_message, "auto")
+            print(f"[ONBOARDING DEBUG] ✅ Common question detected from database: {user_message_clean} (category: {question_category})")
+            # Switch language if needed
+            persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+            if any(char in user_message for char in persian_chars) and self.language != "fa":
+                self.language = "fa"
+                print(f"[ONBOARDING DEBUG] Language switched to Persian")
+        
+        # METHOD 2: Check question indicators (keywords) if not found in database
+        if not is_question:
+            question_indicators = {
+                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "what are", "what do", "what can", "why are you", "why do you", "why is"],
+                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "چی هستی", "چی می‌کنی", "چی می‌تونی", "میپرسی", "می‌پرسی", "میپرس", "می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا میپرس", "چرا می‌پرس", "؟"],
+                "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "ما أنت", "ماذا تفعل", "ماذا يمكنك", "؟"]
+            }
+            
+            # Check in detected language
+            question_list = question_indicators.get(self.language, question_indicators["en"])
+            is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
+            
+            # CRITICAL: Also check in Persian if message contains Persian characters
+            if not is_question:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_questions = question_indicators["fa"]
+                    is_question = any(keyword in user_message_clean.lower() for keyword in persian_questions) or "؟" in user_message_clean
+                    if is_question:
+                        print(f"[ONBOARDING DEBUG] Persian question detected via keywords (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_question:
+                english_questions = question_indicators["en"]
+                is_question = any(keyword in user_message_clean.lower() for keyword in english_questions) or "?" in user_message_clean
+        
+        # METHOD 3: Check for question patterns (verb + question word)
+        # This catches patterns like "چرا میپرسی؟" even if not in database
+        if not is_question:
+            persian_question_patterns = ["چرا می", "چرا می‌", "چرا میپرس", "چرا می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا می‌خوای", "چرا میخوای", "چرا نیاز", "چرا به اسم"]
+            if any(pattern in user_message_clean.lower() for pattern in persian_question_patterns):
+                is_question = True
+                if self.language != "fa":
+                    print(f"[ONBOARDING DEBUG] Persian question pattern detected (language was {self.language}): {user_message_clean}")
+                    self.language = "fa"
+        
+        # METHOD 4: Check for question marks (simple but effective)
+        if not is_question:
+            is_question = "?" in user_message_clean or "؟" in user_message_clean
+        
+        print(f"[ONBOARDING DEBUG] Question detection: is_question={is_question}, language={self.language}, message={user_message_clean[:50]}")
+        
+        # CRITICAL: Check for questions FIRST, before any other logic
+        # Questions should always be answered, even if name is already learned
+        # CRITICAL: Questions should be answered even if password was requested (user might ask "why?")
+        if is_question:
+            # ALL questions during onboarding should go to GPT for proper response
+            # This includes:
+            # - Questions about Sedi ("چی هستی؟", "who are you?")
+            # - General questions ("چرا میپرسی؟", "why are you asking?")
+            # - Any other question the user might ask
+            print(f"[ONBOARDING DEBUG] ✅ Question detected: {user_message_clean}")
+            print(f"[ONBOARDING DEBUG] ✅ Routing to GPT for answer (non_name_question)")
+            print(f"[ONBOARDING DEBUG] ✅ Language: {self.language}")
+            return "non_name_question"  # GPT will answer, then guide to name
+        
         # NAME_PENDING: Name not learned, and user didn't provide a clear name
         if not name_learned:
             # CRITICAL: First check if it's a greeting (not a name)
@@ -350,95 +440,6 @@ class ConversationPrompts:
                     not is_greeting  # CRITICAL: Exclude greetings
                 )
             )
-            
-            # Check if user asked a question (not a name)
-            # CRITICAL: Use multiple detection methods for better accuracy
-            # 1. Check common questions database (most reliable)
-            # 2. Check question indicators (keywords)
-            # 3. Check question patterns
-            # 4. Check for question marks
-            
-            is_question = False
-            question_category = None
-            
-            # METHOD 1: Check common questions database (MOST RELIABLE)
-            # This uses a comprehensive database of common questions
-            # CRITICAL: Use "auto" language detection to ensure we check all languages
-            is_question = is_common_question(user_message_clean, "auto")
-            if not is_question:
-                # Also try with original message (not lowercased) for Persian/Arabic
-                is_question = is_common_question(user_message, "auto")
-            
-            if is_question:
-                question_category = get_question_category(user_message_clean, "auto")
-                if not question_category:
-                    question_category = get_question_category(user_message, "auto")
-                print(f"[ONBOARDING DEBUG] ✅ Common question detected from database: {user_message_clean} (category: {question_category})")
-                # Switch language if needed
-                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
-                if any(char in user_message for char in persian_chars) and self.language != "fa":
-                    self.language = "fa"
-                    print(f"[ONBOARDING DEBUG] Language switched to Persian")
-            
-            # METHOD 2: Check question indicators (keywords) if not found in database
-            if not is_question:
-                question_indicators = {
-                    "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "what are", "what do", "what can", "why are you", "why do you", "why is"],
-                    "fa": ["چی", "کی", "کجا", "چرا", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "چی هستی", "چی می‌کنی", "چی می‌تونی", "میپرسی", "می‌پرسی", "میپرس", "می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا میپرس", "چرا می‌پرس", "؟"],
-                    "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "ما أنت", "ماذا تفعل", "ماذا يمكنك", "؟"]
-                }
-                
-                # Check in detected language
-                question_list = question_indicators.get(self.language, question_indicators["en"])
-                is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
-                
-                # CRITICAL: Also check in Persian if message contains Persian characters
-                if not is_question:
-                    persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
-                    if any(char in user_message for char in persian_chars):
-                        persian_questions = question_indicators["fa"]
-                        is_question = any(keyword in user_message_clean.lower() for keyword in persian_questions) or "؟" in user_message_clean
-                        if is_question:
-                            print(f"[ONBOARDING DEBUG] Persian question detected via keywords (language was {self.language}): {user_message_clean}")
-                            self.language = "fa"  # Switch to Persian
-                
-                # Also check in English as fallback
-                if not is_question:
-                    english_questions = question_indicators["en"]
-                    is_question = any(keyword in user_message_clean.lower() for keyword in english_questions) or "?" in user_message_clean
-            
-            # METHOD 3: Check for question patterns (verb + question word)
-            # This catches patterns like "چرا میپرسی؟" even if not in database
-            if not is_question:
-                persian_question_patterns = ["چرا می", "چرا می‌", "چرا میپرس", "چرا می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا می‌خوای", "چرا میخوای", "چرا نیاز", "چرا به اسم"]
-                if any(pattern in user_message_clean.lower() for pattern in persian_question_patterns):
-                    is_question = True
-                    if self.language != "fa":
-                        print(f"[ONBOARDING DEBUG] Persian question pattern detected (language was {self.language}): {user_message_clean}")
-                        self.language = "fa"
-            
-            # METHOD 4: Check for question marks (simple but effective)
-            if not is_question:
-                is_question = "?" in user_message_clean or "؟" in user_message_clean
-            
-            print(f"[ONBOARDING DEBUG] Question detection: is_question={is_question}, language={self.language}, message={user_message_clean[:50]}")
-            
-            # CRITICAL: Check for questions FIRST, before name detection
-            # Questions should always be answered, even if they look like names
-            # If user asked a question (not a name), use GPT to answer
-            # Then guide them to provide name
-            # CRITICAL: ANY question during onboarding should be answered by GPT, not just questions about Sedi
-            # CRITICAL: Questions should be answered even if password was requested (user might ask "why?")
-            if is_question:
-                # ALL questions during onboarding should go to GPT for proper response
-                # This includes:
-                # - Questions about Sedi ("چی هستی؟", "who are you?")
-                # - General questions ("چرا میپرسی؟", "why are you asking?")
-                # - Any other question the user might ask
-                print(f"[ONBOARDING DEBUG] ✅ Question detected: {user_message_clean}")
-                print(f"[ONBOARDING DEBUG] ✅ Routing to GPT for answer (non_name_question)")
-                print(f"[ONBOARDING DEBUG] ✅ Language: {self.language}")
-                return "non_name_question"  # GPT will answer, then guide to name
             
             # If user message looks like a name (short, no digits, reasonable length, not a question, not a greeting)
             # AND this is likely the first response to "what's your name?"
