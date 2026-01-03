@@ -305,17 +305,25 @@ class ConversationPrompts:
         user_message_clean = user_message.strip()
         
         # Improved password detection: check for numbers, letters, and special characters
-        has_numbers = any(char.isdigit() for char in user_message_clean)
+        # CRITICAL: Support both English (0-9) and Persian (۰-۹) digits
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        has_numbers = (
+            any(char.isdigit() for char in user_message_clean) or  # English digits (0-9) and Persian digits (۰-۹)
+            any(char in persian_digits for char in user_message_clean)  # Explicit Persian digit check
+        )
         has_letters = any(char.isalpha() for char in user_message_clean)
         has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
         
         # Password is valid if: length >= 6 AND (has numbers OR has letters OR has special chars)
-        # This allows: "123456", "password", "pass123", "myp@ss", etc.
+        # This allows: "123456", "۱۲۳۴۵۶", "password", "pass123", "myp@ss", etc.
         user_provided_password = (
             len(user_message_clean) >= 6 and 
             password_requested and
             (has_numbers or has_letters or has_special)
         )
+        
+        print(f"[ONBOARDING DEBUG] Password detection: length={len(user_message_clean)}, has_numbers={has_numbers}, has_letters={has_letters}, has_special={has_special}, is_password={user_provided_password}")
         
         # FIRST_LAUNCH: No name, first message (conversation_count = 0)
         if conversation_count == 0:
