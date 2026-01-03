@@ -332,12 +332,17 @@ class ConversationBrain:
         recent_messages = context.get("recent_messages", [])
         last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
         
-        name_keywords = ["name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك"]
+        name_keywords = [
+            "name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك",
+            "اسمتون", "اسمت", "اسمتون را", "اسم شما چیه", "اسم شما چیست", "اسمت چیه", "اسمت چیست",
+            "میتونم اسمتون", "میتونم اسمت", "بدونم اسمتون", "بدونم اسمت", "بدانم اسمتون", "بدانم اسمت"
+        ]
         name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
         
         # If name was requested and user message looks like a name
+        # Allow name detection in early conversation (first 5 messages) or if name was explicitly requested
         if (name_was_requested and 
-            conversation_count <= 2 and  # Early in conversation
+            conversation_count <= 5 and  # Early in conversation (increased from 2 to 5)
             2 <= len(user_message_clean) <= 30 and  # Reasonable name length
             not any(char.isdigit() for char in user_message_clean) and  # No digits
             not any(char in user_message_clean for char in ["?", "؟", "!", "!"])):  # Not a question/exclamation

@@ -527,13 +527,24 @@ class ConversationPrompts:
             )
             
             # If user message looks like a name (short, no digits, reasonable length, not a question, not a greeting)
-            # AND this is likely the first response to "what's your name?"
             # CRITICAL: Only check for name AFTER checking for questions
-            if looks_like_name and not is_question and not is_greeting and not password_requested and conversation_count == 1:
-                # User provided name in first response - accept it and move to name_confirmed
+            # Check if last Sedi message asked for name
+            name_keywords = [
+                "name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك", "اسمتون", "اسمت",
+                "اسمتون را", "اسم شما چیه", "اسم شما چیست", "اسمت چیه", "اسمت چیست",
+                "میتونم اسمتون", "میتونم اسمت", "بدونم اسمتون", "بدونم اسمت", "بدانم اسمتون", "بدانم اسمت"
+            ]
+            name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
+            
+            if (looks_like_name and 
+                not is_question and 
+                not is_greeting and 
+                not password_requested and 
+                (name_was_requested or conversation_count <= 3)):  # Allow name detection in early conversation or if name was requested
+                # User provided name - accept it and move to name_confirmed
                 # The name will be extracted and stored by memory system
                 # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
-                print(f"[ONBOARDING DEBUG] ✅ Name detected: {user_message_clean}")
+                print(f"[ONBOARDING DEBUG] ✅ Name detected: {user_message_clean} (conversation_count={conversation_count}, name_was_requested={name_was_requested})")
                 return "name_confirmed"  # Accept the name and move forward
             
             # User didn't provide name or provided something else
@@ -562,7 +573,12 @@ class ConversationPrompts:
                 return "password_pending"
         
         # PASSWORD_CONFIRM: Password was provided (>=6 chars), now need confirmation
-        if password_requested and user_provided_password and not waiting_for_confirmation:
+        # CRITICAL: This must be checked BEFORE password_just_confirmed to ensure confirmation request is shown
+        if (password_requested and 
+            user_provided_password and 
+            not waiting_for_confirmation and
+            name_learned):
+            print(f"[ONBOARDING DEBUG] ✅ Password provided (length={len(user_message_clean)}), requesting confirmation")
             return "password_confirm"
         
         # PASSWORD_CONFIRMED: User confirmed password (sent password again after confirmation request)
