@@ -91,8 +91,8 @@ class ConversationPrompts:
         # Build conversation history for context (limit to avoid repetition)
         conversation_history = self._build_conversation_history(recent_messages)
         
-        # Build user prompt
-        user_prompt = self._build_user_prompt(user_message, stage, context)
+        # Build user prompt with enhanced context awareness
+        user_prompt = self._build_user_prompt(user_message, stage, context, conversation_history)
         
         try:
             # DEBUG: Log conversation history
@@ -301,25 +301,38 @@ class ConversationPrompts:
             # Check if message is likely a name
             is_name = is_likely_name(user_message_clean, self.language)
             
-            # If user message looks like a name (short, no digits, reasonable length)
-            # AND this is likely the first response to "what's your name?"
-            if (is_name or (2 <= len(user_message_clean) <= 30 and 
-                not any(char.isdigit() for char in user_message_clean) and
-                not password_requested and
-                conversation_count == 1)):
-                # User provided name in first response - accept it and move to name_confirmed
-                # The name will be extracted and stored by memory system
-                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
-                return "name_confirmed"  # Accept the name and move forward
+            # Enhanced name detection: Check if message looks like a name
+            # 1. Check against name database
+            # 2. Check length (2-30 chars, typical for names)
+            # 3. Check for no digits (names usually don't have digits)
+            # 4. Check for no question marks
+            # 5. Check for no common question words
+            looks_like_name = (
+                is_name or (
+                    2 <= len(user_message_clean) <= 30 and 
+                    not any(char.isdigit() for char in user_message_clean) and
+                    "?" not in user_message_clean and
+                    "؟" not in user_message_clean
+                )
+            )
             
             # Check if user asked a question (not a name)
             question_indicators = {
-                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "?"],
-                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "؟"],
-                "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "؟"]
+                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "what are", "what do", "what can"],
+                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "چی هستی", "چی می‌کنی", "چی می‌تونی", "؟"],
+                "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "ما أنت", "ماذا تفعل", "ماذا يمكنك", "؟"]
             }
             question_list = question_indicators.get(self.language, question_indicators["en"])
             is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
+            
+            # If user message looks like a name (short, no digits, reasonable length, not a question)
+            # AND this is likely the first response to "what's your name?"
+            if looks_like_name and not is_question and not password_requested and conversation_count == 1:
+                # User provided name in first response - accept it and move to name_confirmed
+                # The name will be extracted and stored by memory system
+                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
+                print(f"[ONBOARDING DEBUG] Name detected: {user_message_clean}")
+                return "name_confirmed"  # Accept the name and move forward
             
             # If user asked a question about Sedi or the app (not a name), use GPT to answer
             # Then guide them to provide name
@@ -694,6 +707,12 @@ CRITICAL - RESPONDING TO USER:
 - NEVER ignore user's questions or statements - they expect a response.
 - NEVER ask more than ONE question per message.
 - NEVER repeat questions you've asked recently (check conversation history).
+- CRITICAL - AVOID REPETITION:
+  * Before asking ANY question, check conversation history to see if you've asked it before.
+  * If you asked a similar question in the last 5 messages, DO NOT ask it again.
+  * If user already answered a question, DO NOT ask it again - reference their answer instead.
+  * If you're about to ask "How are you?" or "How can I help?" and you asked it recently, ask something DIFFERENT.
+  * Vary your questions - don't ask the same type of question repeatedly.
 - NEVER give medical diagnosis or prescribe treatments.
 - NEVER interrogate like a form - learn naturally through conversation.
 - Be proactive - initiate conversations when appropriate (health check-ins, wellness reminders).
@@ -704,7 +723,12 @@ MEMORY USAGE:
 - Reference MEDIUM-TERM memory: Patterns and habits you've learned
 - Reference LONG-TERM memory: Deep understanding of user's health profile and relationship history
 - Store new information naturally - don't announce what you're learning
-- If user repeats themselves or asks similar questions, acknowledge it and provide a fresh response.""",
+- If user repeats themselves or asks similar questions, acknowledge it and provide a fresh response.
+- CRITICAL - PREVENT REPETITIVE QUESTIONS:
+  * Before asking a question, scan conversation history for similar questions you've asked.
+  * If you asked "How are you?" in the last 3 messages, ask something different like "How did your day go?" or "What are you up to?"
+  * If you asked about their health recently, reference that instead of asking again.
+  * If user mentioned something (work, exercise, sleep), reference it in your next message instead of asking about it again.""",
             
             "fa": f"""{sedi_context}
 
@@ -766,6 +790,12 @@ MEMORY USAGE:
 - هیچ‌وقت سوالات یا جملات کاربر را نادیده نگیر - انتظار پاسخ دارند.
 - هیچ‌وقت بیشتر از یک سوال در هر پیام نپرس.
 - هیچ‌وقت سوال‌هایی که اخیراً پرسیدی را تکرار نکن (تاریخچه گفتگو را چک کن).
+- مهم - جلوگیری از تکرار:
+  * قبل از پرسیدن هر سوالی، تاریخچه گفتگو را چک کن تا ببینی قبلاً پرسیده‌ای یا نه.
+  * اگر سوال مشابهی در 5 پیام اخیر پرسیدی، دوباره نپرس.
+  * اگر کاربر قبلاً به سوالی پاسخ داد، دوباره نپرس - به جوابشان اشاره کن.
+  * اگر می‌خواهی بپرسی "چطوری؟" یا "چطور می‌تونم کمکت کنم؟" و اخیراً پرسیدی، سوال متفاوتی بپرس.
+  * سوالاتت را متنوع کن - یک نوع سوال را مکرر نپرس.
 - هیچ‌وقت تشخیص پزشکی نده یا درمان تجویز نکن.
 - هیچ‌وقت مثل یک فرم بازجویی نکن - به طور طبیعی از طریق گفتگو یاد بگیر.
 - فعال باش - وقتی مناسب است گفتگو را آغاز کن (چک‌آپ‌های سلامت، یادآوری‌های تندرستی).
@@ -1111,7 +1141,8 @@ SCENARIO: STABLE_RELATION
         self,
         user_message: str,
         stage: ConversationStage,
-        context: Dict[str, any]
+        context: Dict[str, any],
+        conversation_history: list = None
     ) -> str:
         """
         Build user prompt for health care assistant.
@@ -1145,6 +1176,25 @@ SCENARIO: STABLE_RELATION
                 "ar": "\n\n[تعليمات مهمة: المستخدم يطلب منك (صدي) تقديم نفسك. يجب أن تقدم نفسك، وليس أن تطلب من المستخدم تقديم نفسه. قدم مقدمة كاملة: 1) من أنت (صدي، مساعد رعاية صحية مدعوم بالذكاء الاصطناعي)، 2) هدفك (كيف تساعد على تحسين جودة الحياة)، 3) كيف تعمل (من خلال المحادثة والأجهزة الذكية).]"
             }
             return user_message + intent_hint.get(self.language, intent_hint["en"])
+        
+        # Add context-aware hints to prevent repetitive questions
+        if conversation_history:
+            # Check if we've asked similar questions recently
+            recent_questions = []
+            for msg in conversation_history[-3:]:  # Last 3 exchanges
+                sedi_msg = msg.get("sedi", "")
+                # Extract questions from Sedi's messages
+                if "?" in sedi_msg or "؟" in sedi_msg:
+                    recent_questions.append(sedi_msg)
+            
+            # Add hint to avoid repetition if we've asked similar questions
+            if recent_questions:
+                repetition_hint = {
+                    "en": "\n\n[IMPORTANT: Check conversation history above. You've asked questions recently. Make sure your response doesn't repeat the same questions. If you need to ask something, ask something DIFFERENT from what you asked before.]",
+                    "fa": "\n\n[مهم: تاریخچه گفتگو را چک کن. اخیراً سوالاتی پرسیده‌ای. مطمئن شو که پاسخ تو همان سوالات را تکرار نمی‌کند. اگر نیاز به پرسیدن چیزی داری، سوال متفاوتی از آنچه قبلاً پرسیدی بپرس.]",
+                    "ar": "\n\n[مهم: تحقق من تاريخ المحادثة أعلاه. لقد طرحت أسئلة مؤخراً. تأكد من أن ردك لا يكرر نفس الأسئلة. إذا كنت بحاجة إلى طرح شيء ما، اسأل شيئاً مختلفاً عما سألته من قبل.]"
+                }
+                return user_message + repetition_hint.get(self.language, repetition_hint["en"])
         
         # Keep user message simple for other cases
         return user_message
