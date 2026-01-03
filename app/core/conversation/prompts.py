@@ -180,6 +180,7 @@ class ConversationPrompts:
             },
             "fa": {
                 "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم از آشنایی با شما.\nاسم شما چیه؟",
+                "greeting_response": "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خیلی خوشحالم از آشنایی با شما. برای شروع، لطفاً اسمتون را به من بگین؟",
                 "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
                 "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
@@ -202,6 +203,7 @@ class ConversationPrompts:
             },
             "ar": {
                 "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بلقائك.\nما اسمك؟",
+                "greeting_response": "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. سعيد جداً بلقائك. للبدء، هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
                 "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
@@ -298,6 +300,36 @@ class ConversationPrompts:
         
         # NAME_PENDING: Name not learned, and user didn't provide a clear name
         if not name_learned:
+            # CRITICAL: First check if it's a greeting (not a name)
+            # Greetings should be responded to, not treated as names
+            greeting_words = {
+                "en": ["hello", "hi", "hey", "greetings", "good morning", "good afternoon", "good evening", "good night", "morning", "afternoon", "evening"],
+                "fa": ["سلام", "درود", "صبح بخیر", "ظهر بخیر", "عصر بخیر", "شب بخیر", "بدرود", "خداحافظ"],
+                "ar": ["مرحبا", "أهلا", "السلام عليكم", "صباح الخير", "مساء الخير", "ليلة سعيدة", "مع السلامة"]
+            }
+            greeting_list = greeting_words.get(self.language, greeting_words["en"])
+            is_greeting = any(greeting in user_message_clean.lower() for greeting in greeting_list)
+            
+            # Also check in Persian if message contains Persian characters
+            if not is_greeting:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_greetings = greeting_words["fa"]
+                    is_greeting = any(greeting in user_message_clean.lower() for greeting in persian_greetings)
+                    if is_greeting:
+                        print(f"[ONBOARDING DEBUG] Persian greeting detected (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_greeting:
+                english_greetings = greeting_words["en"]
+                is_greeting = any(greeting in user_message_clean.lower() for greeting in english_greetings)
+            
+            # If it's a greeting, respond to it and ask for name again
+            if is_greeting:
+                print(f"[ONBOARDING DEBUG] Greeting detected: {user_message_clean}")
+                return "greeting_response"  # Respond to greeting, then ask for name
+            
             # Check if message is likely a name
             is_name = is_likely_name(user_message_clean, self.language)
             
@@ -307,12 +339,14 @@ class ConversationPrompts:
             # 3. Check for no digits (names usually don't have digits)
             # 4. Check for no question marks
             # 5. Check for no common question words
+            # 6. CRITICAL: NOT a greeting
             looks_like_name = (
                 is_name or (
                     2 <= len(user_message_clean) <= 30 and 
                     not any(char.isdigit() for char in user_message_clean) and
                     "?" not in user_message_clean and
-                    "؟" not in user_message_clean
+                    "؟" not in user_message_clean and
+                    not is_greeting  # CRITICAL: Exclude greetings
                 )
             )
             
