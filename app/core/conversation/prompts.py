@@ -692,7 +692,7 @@ class ConversationPrompts:
             # Check if first_real_interaction was already shown
             first_interaction_keywords = {
                 "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
             }
             interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
@@ -733,7 +733,7 @@ class ConversationPrompts:
             # Check if last Sedi message was first_real_interaction
             first_interaction_keywords = {
                 "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
             }
             interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
