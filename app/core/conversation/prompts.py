@@ -168,12 +168,12 @@ class ConversationPrompts:
                 "password_confirm": "To make sure everything is correct,\nplease send the password one more time.\nThank you.",
                 "password_mismatch": "The passwords don't match.\nLet's try again — please send your password once more.",
                 "security_gate_active": "Dear {user_name}, without a security password, others might access your private information and your personal data could be at risk. To protect you and your information, please choose a password (at least 6 characters of letters and symbols) and send it to me.",
-                "password_refusal_acceptance": "Dear {user_name}, I need to remind you that providing a password is for protecting your own privacy, and whenever you need, you can create a password with the same features I mentioned (at least 6 characters of letters and symbols) and I will save that password.",
+                "password_refusal_acceptance": "Dear {user_name}, without a security password, others might access your private information and your personal data could be at risk. To protect you and your information, a security password is essential. However, if you don't want to set a password now, we can continue without one. Just remember that whenever you want, you can create a password (at least 6 characters of letters and symbols) and I will save it.",
                 "non_name_question": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "Thank you, {user_name}.\n\nYour security password has been set successfully.\nNow I'm ready to help you with your health and care needs.\n\nHow can I support you today?",
                 # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "Dear {user_name},\nI'm really glad we're here together.\n\nI'd love to know —\nhow can I support you today?",
+                "first_real_interaction": "Dear {user_name}, from today I'm with you forever.\n\nWould you like to tell me a bit about yourself? Or would you like me to tell you about my capabilities, what I can do for you, and the purpose of my existence?",
                 "unclear_response": "That's totally okay.\nWe can start from wherever feels easiest for you.\n\nFor example:\n– Health support\n– Daily check-ins\n– Building a simple routine\n– Or just talking\n\nYou choose. I'm here with you.",
                 "medical_question": "I can help you understand things better\nand be here to support you,\nbut medical diagnosis or treatment decisions\nshould always be made with a doctor.\n\nIf you'd like,\nwe can start by talking a bit about your situation.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -193,12 +193,12 @@ class ConversationPrompts:
                 "password_confirm": "برای اطمینان لطفاً یک بار دیگه رمز را ارسال کن.\nممنون.",
                 "password_mismatch": "دو رمزی که وارد کردی با هم یکی نیستن.\nبیاین دوباره امتحان کنیم، لطفاً رمزت رو یک بار دیگه بفرست.",
                 "security_gate_active": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، لطفاً یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کن و برای من بفرست.",
-                "password_refusal_acceptance": "{user_name} عزیز من لازم است یادآوری کنم که ارائه رمز برای محافظت از حریم شخصی خودت است و هر وقت لازم دونستی میتوانی یک رمز با همان ویژگی که نام بردم (حداقل 6 کاراکتر از حروف و علائم) ایجاد کنی و من آن رمز را ذخیره میکنم.",
+                "password_refusal_acceptance": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، رمز امنیتی ضروری است. اما اگر الان نمی‌خوای رمز بذاری، می‌تونیم بدون رمز هم ادامه بدیم. فقط یادت باشه که هر وقت خواستی می‌تونی یک رمز (حداقل 6 کاراکتر از حروف و علائم) ایجاد کنی و من آن را ذخیره می‌کنم.",
                 "non_name_question": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "ممنونم {user_name} عزیز.\n\nرمز امنیتی شما با موفقیت تنظیم شد.\nحالا آماده‌ام تا در زمینه سلامت و مراقبت کمکت کنم.\n\nچطور می‌تونم کمکت کنم؟",
                 # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "{user_name} عزیز،\nخیلی خوشحالم که اینجا کنار هم هستیم.\n\nحالا دوست دارم بدونم\nدر چه زمینه‌ای می‌تونم کنارت باشم و کمکت کنم؟",
+                "first_real_interaction": "{user_name} عزیز، از امروز من در کنارت هستم تا همیشه.\n\nالان دوست داری کمی از خودت بگی؟ یا اینکه من از توانایی‌هام برات بگم از اینکه چه کارهایی می‌تونم برات انجام بدم و هدف از وجود من چیه؟",
                 "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
                 "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره شرایطت صحبت کنیم.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -218,12 +218,12 @@ class ConversationPrompts:
                 "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إرسال كلمة المرور مرة أخرى.\nشكراً لك.",
                 "password_mismatch": "كلمتا المرور غير متطابقتين.\nدعنا نحاول مرة أخرى، يرجى إدخال كلمة المرور مجدداً.",
                 "security_gate_active": "عزيزي {user_name}، بدون كلمة مرور أمنية، قد يتمكن الآخرون من الوصول إلى خصوصيتك وقد تكون معلوماتك الشخصية في خطر. لحمايتك ومعلوماتك، يرجى اختيار كلمة مرور (6 أحرف على الأقل من الحروف والرموز) وإرسالها لي.",
-                "password_refusal_acceptance": "عزيزي {user_name}، أحتاج أن أذكرك أن تقديم كلمة المرور هو لحماية خصوصيتك، وكلما احتجت، يمكنك إنشاء كلمة مرور بنفس المواصفات التي ذكرتها (6 أحرف على الأقل من الحروف والرموز) وسأحفظ تلك كلمة المرور.",
+                "password_refusal_acceptance": "عزيزي {user_name}، بدون كلمة مرور أمنية، قد يتمكن الآخرون من الوصول إلى خصوصيتك وقد تكون معلوماتك الشخصية في خطر. لحمايتك ومعلوماتك، كلمة المرور الأمنية ضرورية. ومع ذلك، إذا كنت لا تريد تعيين كلمة مرور الآن، يمكننا المتابعة بدونها. فقط تذكر أنه كلما أردت، يمكنك إنشاء كلمة مرور (6 أحرف على الأقل من الحروف والرموز) وسأحفظها.",
                 "non_name_question": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "شكراً لك {user_name}.\n\nتم تعيين كلمة المرور الأمنية بنجاح.\nالآن أنا مستعد لمساعدتك في احتياجاتك الصحية والرعاية.\n\nكيف يمكنني مساعدتك اليوم؟",
                 # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "عزيزي {user_name}،\nسعيد جداً بوجودنا هنا معاً.\n\nأود أن أعرف،\nكيف يمكنني أن أكون إلى جانبك اليوم؟",
+                "first_real_interaction": "عزيزي {user_name}، من اليوم أنا معك إلى الأبد.\n\nهل تريد أن تخبرني قليلاً عن نفسك؟ أم تريدني أن أخبرك عن قدراتي، ما يمكنني فعله من أجلك، والغرض من وجودي؟",
                 "unclear_response": "لا بأس بذلك تماماً.\nيمكننا أن نبدأ من أي مكان تشعر أنه أسهل لك.\n\nعلى سبيل المثال:\n– الدعم الصحي\n– المتابعة اليومية\n– بناء روتين بسيط\n– أو مجرد الحديث\n\nأنت تختار، وأنا معك.",
                 "medical_question": "يمكنني مساعدتك على فهم الأمور بشكل أفضل\nوالوقوف إلى جانبك،\nلكن التشخيص أو القرارات الطبية\nيجب أن تتم دائماً مع طبيب مختص.\n\nإذا أحببت،\nيمكننا أن نبدأ بالحديث قليلاً عن وضعك.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -279,9 +279,9 @@ class ConversationPrompts:
         
         # Check if user refused to provide password
         refusal_keywords = {
-            "en": ["no", "don't", "won't", "refuse", "skip", "later", "not now", "don't want", "not necessary", "not needed"],
-            "fa": ["نه", "نمی‌خوام", "نمیخوام", "لازم نیست", "نیازی نیست", "بعداً", "الان نه", "رد", "امتناع", "نمی‌خواهم", "نمیخواهم"],
-            "ar": ["لا", "لا أريد", "لست بحاجة", "ليس ضرورياً", "لاحقاً", "ليس الآن", "رفض"]
+            "en": ["no", "don't", "won't", "refuse", "skip", "later", "not now", "don't want", "not necessary", "not needed", "i won't give", "i don't give", "won't give", "don't give"],
+            "fa": ["نه", "نمی‌خوام", "نمیخوام", "لازم نیست", "نیازی نیست", "بعداً", "الان نه", "رد", "امتناع", "نمی‌خواهم", "نمیخواهم", "نمیدم", "نمی‌دم", "نمیدهم", "نمی‌دهم", "رمز نمیدم", "رمز نمی‌دم", "رمز نمیدهم", "رمز نمی‌دهم"],
+            "ar": ["لا", "لا أريد", "لست بحاجة", "ليس ضرورياً", "لاحقاً", "ليس الآن", "رفض", "لن أعطي", "لا أعطي"]
         }
         user_refused_password = False
         if password_requested and not waiting_for_confirmation:
@@ -616,23 +616,61 @@ class ConversationPrompts:
         )
         
         # Check if user just accepted password refusal (last message was password_refusal_acceptance)
+        # Look for keywords that indicate password_refusal_acceptance was shown
+        password_refusal_accepted_keywords = {
+            "en": ["remind", "save", "continue without", "whenever you want", "can create"],
+            "fa": ["یادآوری", "ذخیره", "بدون رمز", "هر وقت", "می‌تونی", "ایجاد کنی", "ذخیره می‌کنم"],
+            "ar": ["تذكر", "حفظ", "بدون كلمة مرور", "كلما", "يمكنك", "إنشاء"]
+        }
+        refusal_keywords_list = password_refusal_accepted_keywords.get(self.language, password_refusal_accepted_keywords["en"])
         password_refusal_accepted = (
             last_sedi_message and
-            any(keyword in last_sedi_message.lower() for keyword in ["یادآوری", "remind", "ذخیره", "save", "تذكر", "حفظ"])
+            any(keyword in last_sedi_message.lower() for keyword in refusal_keywords_list)
         )
+        
+        # CRITICAL: After password_refusal_acceptance, when user responds, show first_real_interaction
+        # This happens when:
+        # 1. Last Sedi message was password_refusal_acceptance (contains keywords above)
+        # 2. User just sent a message (this is their response)
+        # 3. Name is learned
+        # 4. Not waiting for password confirmation
+        if (name_learned and 
+            password_refusal_accepted and
+            not waiting_for_confirmation and
+            not password_requested):
+            # Check if first_real_interaction was already shown
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
+            }
+            interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
+            already_shown = any(keyword in last_sedi_message.lower() for keyword in interaction_keywords)
+            
+            if not already_shown:
+                # User responded after password_refusal_acceptance - show first_real_interaction
+                print(f"[ONBOARDING DEBUG] User responded after password_refusal_acceptance - showing first_real_interaction")
+                return "first_real_interaction"
         
         # Check if we're past onboarding but haven't shown first interaction yet
         # (conversation_count 4-6, name learned, no password flow active)
-        # OR user refused password twice (password_refusal_accepted)
+        # OR password was just confirmed
         if (name_learned and 
             ((conversation_count >= 4 and conversation_count <= 6 and not password_requested) or
-             password_refusal_accepted)):
+             password_just_confirmed)):
             # Check if last message was first_real_interaction
-            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
-            already_shown = any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords)
+            first_interaction_keywords_all = {
+                "en": ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "from today", "with you forever"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد"]
+            }
+            all_keywords = []
+            for lang_keywords in first_interaction_keywords_all.values():
+                all_keywords.extend(lang_keywords)
+            already_shown = any(keyword in last_sedi_message.lower() for keyword in all_keywords)
             
-            if password_just_confirmed or password_refusal_accepted or (not already_shown and not waiting_for_confirmation):
-                # Password just confirmed OR user refused password twice OR haven't shown first interaction yet
+            if password_just_confirmed or (not already_shown and not waiting_for_confirmation):
+                # Password just confirmed OR haven't shown first interaction yet
                 return "first_real_interaction"
         
         # UNCLEAR_RESPONSE: User response is unclear or hesitant
@@ -642,8 +680,16 @@ class ConversationPrompts:
             conversation_count <= 7 and
             not password_requested):
             # Check if last Sedi message was first_real_interaction
-            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
-            if any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords):
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
+            }
+            interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
+            all_keywords = []
+            for lang_keywords in first_interaction_keywords.values():
+                all_keywords.extend(lang_keywords)
+            if any(keyword in last_sedi_message.lower() for keyword in all_keywords):
                 # User response is very short, unclear, or hesitant
                 unclear_responses = {
                     "en": ["idk", "idk.", "?", "what", "not sure", "unsure", "hmm", "um", "uh"],
@@ -664,11 +710,27 @@ class ConversationPrompts:
             not password_requested):
             
             # Check if we're in care exploration phase (after first interaction)
-            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "wherever feels easiest", "هر جایی که", "أي مكان"]
-            unclear_response_keywords = ["totally okay", "قابل درکه", "بأس بذلك", "choose", "انتخاب", "تختار"]
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities", "wherever feels easiest"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "هر جایی که"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي", "أي مكان"]
+            }
+            unclear_response_keywords = {
+                "en": ["totally okay", "choose"],
+                "fa": ["قابل درکه", "انتخاب"],
+                "ar": ["بأس بذلك", "تختار"]
+            }
+            interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
+            unclear_keywords = unclear_response_keywords.get(self.language, unclear_response_keywords["en"])
+            all_interaction_keywords = []
+            for lang_keywords in first_interaction_keywords.values():
+                all_interaction_keywords.extend(lang_keywords)
+            all_unclear_keywords = []
+            for lang_keywords in unclear_response_keywords.values():
+                all_unclear_keywords.extend(lang_keywords)
             in_care_exploration = (
-                any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords) or
-                any(keyword in last_sedi_message.lower() for keyword in unclear_response_keywords)
+                any(keyword in last_sedi_message.lower() for keyword in all_interaction_keywords) or
+                any(keyword in last_sedi_message.lower() for keyword in all_unclear_keywords)
             )
             
             if in_care_exploration:
