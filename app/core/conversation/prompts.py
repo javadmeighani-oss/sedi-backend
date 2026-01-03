@@ -217,10 +217,11 @@ class ConversationPrompts:
                 "security_gate_active": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، لطفاً یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کن و برای من بفرست.",
                 "password_refusal_acceptance": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، رمز امنیتی ضروری است. اما اگر الان نمی‌خوای رمز بذاری، می‌تونیم بدون رمز هم ادامه بدیم. فقط یادت باشه که هر وقت خواستی می‌تونی یک رمز (حداقل 6 کاراکتر از حروف و علائم) ایجاد کنی و من آن را ذخیره می‌کنم.",
                 "non_name_question": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
-                # PASSWORD_CONFIRMED: After password confirmation, thank user
-                "password_confirmed": "ممنونم {user_name} عزیز.\n\nرمز امنیتی شما با موفقیت تنظیم شد.\nحالا آماده‌ام تا در زمینه سلامت و مراقبت کمکت کنم.\n\nچطور می‌تونم کمکت کنم؟",
-                # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "{user_name} عزیز، از امروز من در کنارت هستم تا همیشه.\n\nالان دوست داری کمی از خودت بگی؟ یا اینکه من از توانایی‌هام برات بگم از اینکه چه کارهایی می‌تونم برات انجام بدم و هدف از وجود من چیه؟",
+                # PASSWORD_CONFIRMED: After password confirmation, immediately show first_real_interaction
+                # This state is used internally but the actual message shown is first_real_interaction
+                "password_confirmed": "",
+                # FIRST REAL INTERACTION - After onboarding complete (password confirmed)
+                "first_real_interaction": "{user_name} عزیز از این لحظه به بعد من تماما در خدمت تو هستم تا یک مراقبت پیوسته و یکپارچه برای ارتقا کیفیت زندگی تو داشته باشیم.\n\nحالا دوست داری یکم از خودت بگی یا من بیشتر از خودم بگم. فقط بگو با کدوم شروع کنیم؟",
                 "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
                 "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره شرایطت صحبت کنیم.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -711,7 +712,7 @@ class ConversationPrompts:
             # Check if last message was first_real_interaction
             first_interaction_keywords_all = {
                 "en": ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "from today", "with you forever"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد"]
             }
             all_keywords = []
@@ -762,7 +763,7 @@ class ConversationPrompts:
             # Check if we're in care exploration phase (after first interaction)
             first_interaction_keywords = {
                 "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities", "wherever feels easiest"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "هر جایی که"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "هر جایی که", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي", "أي مكان"]
             }
             unclear_response_keywords = {
@@ -1041,6 +1042,15 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
                 prompts = self.onboarding_prompts["en"]
             
             response_template = prompts.get(state, "")
+            
+            # CRITICAL: If password_confirmed, immediately show first_real_interaction instead
+            if state == "password_confirmed":
+                print(f"[PROMPTS DEBUG] password_confirmed detected, showing first_real_interaction instead")
+                response_template = prompts.get("first_real_interaction", "")
+                if not response_template:
+                    # Fallback to English if not found
+                    prompts_en = self.onboarding_prompts.get("en", {})
+                    response_template = prompts_en.get("first_real_interaction", "")
             
             if not response_template:
                 # If state still not found, return a safe fallback
