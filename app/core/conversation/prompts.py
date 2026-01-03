@@ -76,7 +76,22 @@ class ConversationPrompts:
                 gpt_response = self._answer_sedi_question_with_guidance(user_message, context, stage)
                 return gpt_response
             else:
-                return self._get_onboarding_response(onboarding_state, user_name, user_message, context)
+                try:
+                    response = self._get_onboarding_response(onboarding_state, user_name, user_message, context)
+                    print(f"[PROMPTS DEBUG] ✅ Onboarding response generated (length={len(response)})")
+                    return response
+                except Exception as e:
+                    print(f"[PROMPTS ERROR] ❌ Exception in generate_response when calling _get_onboarding_response: {e}")
+                    print(f"[PROMPTS ERROR] State: {onboarding_state}, user_name: {user_name}")
+                    import traceback
+                    print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+                    # Return safe fallback
+                    fallback_messages = {
+                        "en": "I'm here to help you. Please continue.",
+                        "fa": "من اینجا هستم تا کمکت کنم. لطفاً ادامه بده.",
+                        "ar": "أنا هنا لمساعدتك. يرجى المتابعة."
+                    }
+                    return fallback_messages.get(self.language, fallback_messages["en"])
         else:
             print(f"[PROMPTS DEBUG] ❌ No onboarding state - using GPT (stage: {stage.value}, count: {conversation_count})")
         
@@ -585,6 +600,7 @@ class ConversationPrompts:
         
         # PASSWORD_CONFIRM: Password was provided (>=6 chars), now need confirmation
         # CRITICAL: This must be checked BEFORE password_just_confirmed to ensure confirmation request is shown
+        print(f"[ONBOARDING DEBUG] Checking password_confirm: password_requested={password_requested}, user_provided_password={user_provided_password}, waiting_for_confirmation={waiting_for_confirmation}, name_learned={name_learned}")
         if (password_requested and 
             user_provided_password and 
             not waiting_for_confirmation and
