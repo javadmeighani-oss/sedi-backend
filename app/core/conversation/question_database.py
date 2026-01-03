@@ -153,20 +153,29 @@ def is_common_question(text: str, language: str = "auto") -> bool:
     # Check against question database based on language
     question_list = ALL_QUESTIONS.get(language, ALL_QUESTIONS["en"])
     
-    # Check exact match
+    # Check exact match (case-insensitive for English, exact for Persian/Arabic)
     if text_clean in question_list or text_original in question_list:
         return True
     
-    # Check if any question from database is contained in the text
+    # CRITICAL: Check if any question from database is contained in the text
+    # This handles cases where user might add extra words or punctuation
     for question in question_list:
+        # Check if question is in text (both clean and original)
         if question in text_clean or question in text_original:
             return True
+        # Also check reverse (text in question) for partial matches
+        if text_clean in question or text_original in question:
+            return True
     
-    # Also check in all languages as fallback
+    # CRITICAL: Also check in all languages as fallback (especially Persian)
+    # This ensures we catch questions even if language detection is wrong
     for lang, questions in ALL_QUESTIONS.items():
         if lang != language:
             for question in questions:
                 if question in text_clean or question in text_original:
+                    return True
+                # Also check reverse for partial matches
+                if text_clean in question or text_original in question:
                     return True
     
     return False

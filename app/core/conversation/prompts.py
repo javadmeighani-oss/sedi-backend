@@ -363,9 +363,16 @@ class ConversationPrompts:
             
             # METHOD 1: Check common questions database (MOST RELIABLE)
             # This uses a comprehensive database of common questions
-            is_question = is_common_question(user_message_clean, self.language)
+            # CRITICAL: Use "auto" language detection to ensure we check all languages
+            is_question = is_common_question(user_message_clean, "auto")
+            if not is_question:
+                # Also try with original message (not lowercased) for Persian/Arabic
+                is_question = is_common_question(user_message, "auto")
+            
             if is_question:
-                question_category = get_question_category(user_message_clean, self.language)
+                question_category = get_question_category(user_message_clean, "auto")
+                if not question_category:
+                    question_category = get_question_category(user_message, "auto")
                 print(f"[ONBOARDING DEBUG] ✅ Common question detected from database: {user_message_clean} (category: {question_category})")
                 # Switch language if needed
                 persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
@@ -421,7 +428,8 @@ class ConversationPrompts:
             # If user asked a question (not a name), use GPT to answer
             # Then guide them to provide name
             # CRITICAL: ANY question during onboarding should be answered by GPT, not just questions about Sedi
-            if is_question and not password_requested:
+            # CRITICAL: Questions should be answered even if password was requested (user might ask "why?")
+            if is_question:
                 # ALL questions during onboarding should go to GPT for proper response
                 # This includes:
                 # - Questions about Sedi ("چی هستی؟", "who are you?")
