@@ -317,13 +317,50 @@ class ConversationPrompts:
             )
             
             # Check if user asked a question (not a name)
+            # CRITICAL: Check in ALL languages, not just detected language
+            # User might mix languages or language detection might be wrong
             question_indicators = {
-                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "what are", "what do", "what can"],
-                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "چی هستی", "چی می‌کنی", "چی می‌تونی", "؟"],
+                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "what are", "what do", "what can", "why are you", "why do you", "why is"],
+                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "چی هستی", "چی می‌کنی", "چی می‌تونی", "میپرسی", "می‌پرسی", "میپرس", "می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا میپرس", "چرا می‌پرس", "؟"],
                 "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "ما أنت", "ماذا تفعل", "ماذا يمكنك", "؟"]
             }
+            
+            # CRITICAL: Check in ALL languages, not just detected language
+            # This ensures we catch questions even if language detection is wrong
+            is_question = False
+            
+            # First, check in detected language
             question_list = question_indicators.get(self.language, question_indicators["en"])
             is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
+            
+            # CRITICAL: Also check in Persian if message contains Persian characters
+            # This handles cases where language detection might be wrong
+            if not is_question:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_questions = question_indicators["fa"]
+                    is_question = any(keyword in user_message_clean.lower() for keyword in persian_questions) or "؟" in user_message_clean
+                    if is_question:
+                        print(f"[ONBOARDING DEBUG] Persian question detected (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_question:
+                english_questions = question_indicators["en"]
+                is_question = any(keyword in user_message_clean.lower() for keyword in english_questions) or "?" in user_message_clean
+            
+            # CRITICAL: Also check for question patterns (verb + question word)
+            # This catches patterns like "چرا میپرسی؟" even if individual words aren't in the list
+            if not is_question:
+                # Check for Persian question patterns
+                persian_question_patterns = ["چرا می", "چرا می‌", "چرا میپرس", "چرا می‌پرس", "چرا میپرسی", "چرا می‌پرسی"]
+                if any(pattern in user_message_clean.lower() for pattern in persian_question_patterns):
+                    is_question = True
+                    if self.language != "fa":
+                        print(f"[ONBOARDING DEBUG] Persian question pattern detected (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"
+            
+            print(f"[ONBOARDING DEBUG] Question detection: is_question={is_question}, language={self.language}, message={user_message_clean[:50]}")
             
             # If user message looks like a name (short, no digits, reasonable length, not a question)
             # AND this is likely the first response to "what's your name?"
