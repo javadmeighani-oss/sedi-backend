@@ -1083,11 +1083,44 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
             # CRITICAL: If password_confirmed, immediately show first_real_interaction instead
             if state == "password_confirmed":
                 print(f"[PROMPTS DEBUG] password_confirmed detected, showing first_real_interaction instead")
+                print(f"[PROMPTS DEBUG] Current language: {self.language}")
                 response_template = prompts.get("first_real_interaction", "")
                 if not response_template:
-                    # Fallback to English if not found
-                    prompts_en = self.onboarding_prompts.get("en", {})
-                    response_template = prompts_en.get("first_real_interaction", "")
+                    # CRITICAL: Before falling back to English, try to detect language from context
+                    # Check last Sedi message for Persian/Arabic characters
+                    recent_messages = context.get("recent_messages", [])
+                    last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+                    if last_sedi_message:
+                        persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                        arabic_chars = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
+                        has_persian = any(char in last_sedi_message for char in persian_chars)
+                        has_arabic = any(char in last_sedi_message for char in arabic_chars)
+                        
+                        if has_persian and self.language != "fa":
+                            print(f"[PROMPTS DEBUG] Persian detected in last message, switching language to fa")
+                            self.language = "fa"
+                            prompts = self.onboarding_prompts.get("fa", {})
+                            response_template = prompts.get("first_real_interaction", "")
+                        elif has_arabic and self.language != "ar":
+                            print(f"[PROMPTS DEBUG] Arabic detected in last message, switching language to ar")
+                            self.language = "ar"
+                            prompts = self.onboarding_prompts.get("ar", {})
+                            response_template = prompts.get("first_real_interaction", "")
+                    
+                    # If still not found, try to detect from user message
+                    if not response_template:
+                        user_lang = detect_language(user_message)
+                        if user_lang in ["fa", "ar"] and user_lang != self.language:
+                            print(f"[PROMPTS DEBUG] Language detected from user message: {user_lang}, switching")
+                            self.language = user_lang
+                            prompts = self.onboarding_prompts.get(user_lang, {})
+                            response_template = prompts.get("first_real_interaction", "")
+                    
+                    # Final fallback to English if still not found
+                    if not response_template:
+                        print(f"[PROMPTS WARNING] first_real_interaction not found in {self.language}, using English")
+                        prompts_en = self.onboarding_prompts.get("en", {})
+                        response_template = prompts_en.get("first_real_interaction", "")
             
             if not response_template:
                 # If state still not found, return a safe fallback
