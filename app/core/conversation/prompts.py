@@ -47,8 +47,9 @@ class ConversationPrompts:
         """
         Generate Sedi's response based on context and user message.
         
-        Uses hardcoded onboarding prompts during onboarding flow,
-        then switches to GPT-generated responses after onboarding.
+        CRITICAL: GPT is ALWAYS active from the start. Contexts guide GPT's expression style,
+        and prompts guide the conversation flow. User identification (name/password) is only
+        for storing information, not for changing the flow.
         
         Args:
             context: Conversation context from context.py
@@ -73,82 +74,20 @@ class ConversationPrompts:
         conversation_count = context.get("conversation_count", 0)
         recent_messages = context.get("recent_messages", [])
         
-        # ONBOARDING: Check if we're in onboarding flow and use hardcoded prompts
+        # ONBOARDING: Detect onboarding state ONLY for storing user info (name/password)
+        # This does NOT change the flow - GPT is always used for responses
+        onboarding_state = None
         try:
             onboarding_state = self._get_onboarding_state(context, user_message, stage)
+            if onboarding_state:
+                print(f"[PROMPTS DEBUG] ✅ Onboarding state detected (for info storage): {onboarding_state}")
         except Exception as e:
             print(f"[PROMPTS ERROR] ❌ Exception in _get_onboarding_state: {e}")
             import traceback
             print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
-            onboarding_state = None  # Continue with normal GPT flow if onboarding detection fails
+            onboarding_state = None  # Continue with GPT flow
         
-        if onboarding_state:
-            print(f"[PROMPTS DEBUG] ✅ Onboarding state detected: {onboarding_state}")
-            print(f"[PROMPTS DEBUG] Stage: {stage.value}, conversation_count: {conversation_count}, user_name: {user_name}")
-            
-            # SPECIAL CASE: If user asks about Sedi (non_name_question), use GPT to answer
-            # Then guide them to provide their name
-            if onboarding_state == "non_name_question":
-                # Use GPT to answer user's question about Sedi
-                gpt_response = self._answer_sedi_question_with_guidance(user_message, context, stage)
-                return gpt_response
-            else:
-                try:
-                    response = self._get_onboarding_response(onboarding_state, user_name, user_message, context)
-                    print(f"[PROMPTS DEBUG] ✅ Onboarding response generated (length={len(response)})")
-                    return response
-                except Exception as e:
-                    print(f"[PROMPTS ERROR] ❌ Exception in generate_response when calling _get_onboarding_response: {e}")
-                    print(f"[PROMPTS ERROR] State: {onboarding_state}, user_name: {user_name}")
-                    import traceback
-                    print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
-                    # Return safe fallback
-                    fallback_messages = {
-                        "en": "I'm here to help you. Please continue.",
-                        "fa": "من اینجا هستم تا کمکت کنم. لطفاً ادامه بده.",
-                        "ar": "أنا هنا لمساعدتك. يرجى المتابعة."
-                    }
-                    return fallback_messages.get(self.language, fallback_messages["en"])
-        else:
-            print(f"[PROMPTS DEBUG] ❌ No onboarding state - checking if password was requested (stage: {stage.value}, count: {conversation_count})")
-            
-            # CRITICAL: If password was requested but no onboarding state detected, 
-            # check if user provided something that should trigger password flow
-            recent_messages = context.get("recent_messages", [])
-            last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
-            password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
-            password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
-            
-            if password_requested:
-                # Password was requested but state not detected - check user message
-                user_message_clean = user_message.strip()
-                persian_digits = "۰۱۲۳۴۵۶۷۸۹"
-                has_persian_digits = any(char in persian_digits for char in user_message_clean)
-                has_english_digits = any(char.isdigit() for char in user_message_clean)
-                has_numbers = has_persian_digits or has_english_digits
-                has_letters = any(char.isalpha() for char in user_message_clean)
-                has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
-                
-                # Check if user provided password
-                user_provided_password = (
-                    len(user_message_clean) >= 6 and 
-                    (has_numbers or has_letters or has_special)
-                )
-                
-                if user_provided_password:
-                    # User provided password - request confirmation
-                    print(f"[PROMPTS DEBUG] Password detected in fallback check - requesting confirmation")
-                    return self._get_onboarding_response("password_confirm", user_name, user_message, context)
-                elif len(user_message_clean) > 0 and len(user_message_clean) < 6:
-                    # Password too short
-                    print(f"[PROMPTS DEBUG] Password too short in fallback check")
-                    return self._get_onboarding_response("password_pending", user_name, user_message, context)
-                else:
-                    # User sent something else - show security gate
-                    print(f"[PROMPTS DEBUG] Invalid password response in fallback check")
-                    return self._get_onboarding_response("security_gate_active", user_name, user_message, context)
-        
-        # Normal flow: Use GPT for responses
+        # ALWAYS use GPT for responses - contexts and prompts guide GPT's behavior
         # Build system prompt based on stage and engagement
         system_prompt = self._build_system_prompt(
             stage, 
@@ -1715,6 +1654,12 @@ SCENARIO: STABLE_RELATION
         
         guidance = stage_guidance.get(stage, {}).get(self.language, "")
         
+        # Add onboarding context guidance if in onboarding flow
+        # This guides GPT's expression style during onboarding
+        onboarding_context = self._get_onboarding_context_guidance(context, user_name, stage)
+        if onboarding_context:
+            guidance += onboarding_context
+        
         # Add engagement-level specific guidance
         engagement_guidance = {
             "low": {
@@ -1786,6 +1731,12 @@ SCENARIO: STABLE_RELATION
             }
             return user_message + intent_hint.get(self.language, intent_hint["en"])
         
+        # Add onboarding prompt guidance if in onboarding flow
+        # This guides the conversation flow during onboarding
+        onboarding_prompt = self._get_onboarding_prompt_guidance(context, user_message, stage)
+        if onboarding_prompt:
+            user_message = user_message + onboarding_prompt
+        
         # Add context-aware hints to prevent repetitive questions
         if conversation_history:
             # Check if we've asked similar questions recently
@@ -1807,6 +1758,129 @@ SCENARIO: STABLE_RELATION
         
         # Keep user message simple for other cases
         return user_message
+    
+    def _get_onboarding_context_guidance(self, context: Dict[str, any], user_name: str, stage: ConversationStage) -> str:
+        """
+        Get onboarding context guidance for system prompt.
+        This guides GPT's expression style during onboarding.
+        """
+        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
+            return ""
+        
+        conversation_count = context.get("conversation_count", 0)
+        profile = context.get("profile", {})
+        user_name_from_db = profile.get("name") or context.get("user_name")
+        name_learned = user_name_from_db and not user_name_from_db.startswith("anonymous_") and len(user_name_from_db.strip()) > 1
+        
+        # Check recent messages for password-related content
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # Build context guidance based on onboarding state
+        if conversation_count == 0:
+            # First launch - introduce yourself and ask for name
+            return {
+                "en": "\n\nONBOARDING CONTEXT: This is your first conversation. Introduce yourself warmly and ask for their name naturally.",
+                "fa": "\n\nکانتکس onboarding: این اولین گفتگوی شماست. خودت را گرم معرفی کن و به طور طبیعی نامشان را بپرس.",
+                "ar": "\n\nسياق onboarding: هذه محادثتك الأولى. قدم نفسك بحرارة واسأل عن اسمهم بشكل طبيعي."
+            }.get(self.language, "")
+        elif not name_learned:
+            # Name not learned - ask for name
+            return {
+                "en": "\n\nONBOARDING CONTEXT: You need to learn the user's name. Ask for their name naturally and warmly.",
+                "fa": "\n\nکانتکس onboarding: باید نام کاربر را یاد بگیری. به طور طبیعی و گرم نامشان را بپرس.",
+                "ar": "\n\nسياق onboarding: تحتاج إلى معرفة اسم المستخدم. اسأل عن اسمهم بشكل طبيعي ودافئ."
+            }.get(self.language, "")
+        elif password_requested:
+            # Password requested - guide user to set password
+            return {
+                "en": "\n\nONBOARDING CONTEXT: You've asked for a security password. Guide the user to set a password (at least 6 characters) for their privacy protection.",
+                "fa": "\n\nکانتکس onboarding: از کاربر خواسته‌ای رمز امنیتی تنظیم کند. کاربر را راهنمایی کن که رمزی (حداقل 6 کاراکتر) برای محافظت از حریم خصوصی‌اش تنظیم کند.",
+                "ar": "\n\nسياق onboarding: طلبت كلمة مرور أمنية. أرشد المستخدم لتعيين كلمة مرور (6 أحرف على الأقل) لحماية خصوصيته."
+            }.get(self.language, "")
+        
+        return ""
+    
+    def _get_onboarding_prompt_guidance(self, context: Dict[str, any], user_message: str, stage: ConversationStage) -> str:
+        """
+        Get onboarding prompt guidance for user prompt.
+        This guides the conversation flow during onboarding.
+        """
+        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
+            return ""
+        
+        conversation_count = context.get("conversation_count", 0)
+        profile = context.get("profile", {})
+        user_name_from_db = profile.get("name") or context.get("user_name")
+        name_learned = user_name_from_db and not user_name_from_db.startswith("anonymous_") and len(user_name_from_db.strip()) > 1
+        
+        # Check recent messages for password-related content
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # Check if waiting for password confirmation
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "ارسال کن", "بفرست", "بفرستید"]
+        waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
+        
+        # Check if user provided password
+        user_message_clean = user_message.strip()
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        has_persian_digits = any(char in persian_digits for char in user_message_clean)
+        has_english_digits = any(char.isdigit() for char in user_message_clean)
+        has_numbers = has_persian_digits or has_english_digits
+        has_letters = any(char.isalpha() for char in user_message_clean)
+        has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
+        user_provided_password = (
+            len(user_message_clean) >= 6 and 
+            password_requested and
+            (has_numbers or has_letters or has_special)
+        )
+        
+        # Build prompt guidance based on onboarding state
+        if conversation_count == 0:
+            # First launch - guide to introduce and ask for name
+            return {
+                "en": "\n\n[ONBOARDING PROMPT: This is your first conversation. Introduce yourself as Sedi, explain your purpose, and ask for their name naturally.]",
+                "fa": "\n\n[پرامپت onboarding: این اولین گفتگوی شماست. خودت را به عنوان صدی معرفی کن، هدفت را توضیح بده و به طور طبیعی نامشان را بپرس.]",
+                "ar": "\n\n[مطالبة onboarding: هذه محادثتك الأولى. قدم نفسك كصدي، اشرح هدفك واسأل عن اسمهم بشكل طبيعي.]"
+            }.get(self.language, "")
+        elif not name_learned:
+            # Name not learned - guide to ask for name
+            return {
+                "en": "\n\n[ONBOARDING PROMPT: You need to learn the user's name. Ask for their name naturally and warmly.]",
+                "fa": "\n\n[پرامپت onboarding: باید نام کاربر را یاد بگیری. به طور طبیعی و گرم نامشان را بپرس.]",
+                "ar": "\n\n[مطالبة onboarding: تحتاج إلى معرفة اسم المستخدم. اسأل عن اسمهم بشكل طبيعي ودافئ.]"
+            }.get(self.language, "")
+        elif password_requested and not waiting_for_confirmation:
+            if user_provided_password:
+                # User provided password - ask for confirmation
+                return {
+                    "en": "\n\n[ONBOARDING PROMPT: The user has provided a password. Ask them to confirm it by sending it again.]",
+                    "fa": "\n\n[پرامپت onboarding: کاربر رمز را ارسال کرده. از آن‌ها بخواه که برای تأیید دوباره ارسال کنند.]",
+                    "ar": "\n\n[مطالبة onboarding: قدم المستخدم كلمة مرور. اطلب منهم تأكيدها بإرسالها مرة أخرى.]"
+                }.get(self.language, "")
+            else:
+                # Password requested but not provided - guide to request password
+                return {
+                    "en": "\n\n[ONBOARDING PROMPT: You've asked for a security password. Guide the user to set a password (at least 6 characters) for their privacy protection.]",
+                    "fa": "\n\n[پرامپت onboarding: از کاربر خواسته‌ای رمز امنیتی تنظیم کند. کاربر را راهنمایی کن که رمزی (حداقل 6 کاراکتر) برای محافظت از حریم خصوصی‌اش تنظیم کند.]",
+                    "ar": "\n\n[مطالبة onboarding: طلبت كلمة مرور أمنية. أرشد المستخدم لتعيين كلمة مرور (6 أحرف على الأقل) لحماية خصوصيته.]"
+                }.get(self.language, "")
+        elif waiting_for_confirmation:
+            # Waiting for password confirmation
+            if user_provided_password:
+                # Password confirmed - start real interaction
+                return {
+                    "en": "\n\n[ONBOARDING PROMPT: The user has confirmed their password. Thank them and start the real interaction by asking if they want to tell you about themselves or if you should tell them about your capabilities.]",
+                    "fa": "\n\n[پرامپت onboarding: کاربر رمز را تأیید کرده. از آن‌ها تشکر کن و تعامل واقعی را با پرسیدن اینکه آیا می‌خواهند درباره خودشان بگویند یا تو باید درباره توانایی‌هایت بگویی شروع کن.]",
+                    "ar": "\n\n[مطالبة onboarding: أكد المستخدم كلمة المرور. اشكره وابدأ التفاعل الحقيقي بطرح ما إذا كان يريد إخبارك عن نفسه أم يجب أن تخبره عن قدراتك.]"
+                }.get(self.language, "")
+        
+        return ""
     
     def _get_fallback_response(self, stage: ConversationStage) -> str:
         """Get fallback response if GPT fails - tuned for calm, human tone"""
