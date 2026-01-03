@@ -403,6 +403,61 @@ class ConversationPrompts:
         if not is_question:
             is_question = "?" in user_message_clean or "؟" in user_message_clean
         
+        # METHOD 5: Check for conditional/question patterns (if, maybe, what if, etc.)
+        # This catches conditional statements like "اگر نگم" (if I don't say) that are questions/refusals
+        if not is_question:
+            conditional_patterns = {
+                "en": ["if i don't", "if i don't say", "if i don't tell", "if i don't give", "if i don't provide",
+                       "what if i don't", "what if i don't say", "what if i don't tell",
+                       "maybe i won't", "maybe i won't say", "maybe i don't", "maybe i don't say",
+                       "perhaps i won't", "perhaps i don't"],
+                "fa": ["اگر نگم", "اگر نگم اسمم", "اگر نگم اسمم رو", "اگر اسمم رو نگم", "اگر اسمم نگم",
+                       "اگر نگم چی", "اگر نگم چه", "اگر نگم چطور", "اگر نگم چی میشه", "اگر نگم چه می‌شه",
+                       "شاید نگم", "شاید نگم اسمم", "شاید نگم اسمم رو", "شاید اسمم رو نگم", "شاید اسمم نگم",
+                       "ممکنه نگم", "ممکنه نگم اسمم", "ممکنه نگم اسمم رو", "ممکنه اسمم رو نگم",
+                       "احتمالا نگم", "احتمالا نگم اسمم"],
+                "ar": ["إذا لم أقل", "إذا لم أقل اسمي", "إذا لم أخبرك", "إذا لم أعطيك",
+                       "ماذا لو لم أقل", "ماذا لو لم أخبرك", "ربما لن", "ربما لن أقل"]
+            }
+            
+            # Check in detected language
+            pattern_list = conditional_patterns.get(self.language, conditional_patterns["en"])
+            is_question = any(pattern in user_message_clean.lower() for pattern in pattern_list)
+            
+            # CRITICAL: Also check in Persian if message contains Persian characters
+            if not is_question:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_patterns = conditional_patterns["fa"]
+                    is_question = any(pattern in user_message_clean.lower() for pattern in persian_patterns)
+                    if is_question:
+                        print(f"[ONBOARDING DEBUG] Persian conditional pattern detected (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_question:
+                english_patterns = conditional_patterns["en"]
+                is_question = any(pattern in user_message_clean.lower() for pattern in english_patterns)
+            
+            # CRITICAL: Also check for standalone conditional words at the start of message
+            # This catches cases like "اگر نگم" even if exact pattern not matched
+            if not is_question:
+                conditional_words = {
+                    "en": ["if", "maybe", "perhaps", "what if"],
+                    "fa": ["اگر", "شاید", "ممکنه", "احتمالا"],
+                    "ar": ["إذا", "ربما", "ماذا لو"]
+                }
+                word_list = conditional_words.get(self.language, conditional_words["en"])
+                # Check if message starts with conditional word (common pattern for conditional questions)
+                message_start = user_message_clean.lower().split()[0] if user_message_clean.split() else ""
+                if message_start in word_list:
+                    is_question = True
+                    print(f"[ONBOARDING DEBUG] Conditional word detected at start: {message_start}")
+                    # Switch language if Persian
+                    persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                    if any(char in user_message for char in persian_chars) and self.language != "fa":
+                        self.language = "fa"
+        
         print(f"[ONBOARDING DEBUG] Question detection: is_question={is_question}, language={self.language}, message={user_message_clean[:50]}")
         
         # CRITICAL: Check for questions FIRST, before any other logic
@@ -701,6 +756,7 @@ The user is asking you a question during onboarding (before providing their name
 This could be:
 - A question about yourself, your role, or what you do
 - A general question like "why are you asking?" or "why do you need my name?"
+- A conditional question like "if I don't say" or "اگر نگم" (if I don't say) - these are questions/concerns that need to be addressed
 - Any other question they might have
 
 CRITICAL INSTRUCTIONS:
@@ -717,11 +773,16 @@ CRITICAL INSTRUCTIONS:
      * Primary Role: Personal health and wellness companion
      * Mission: Continuous monitoring, care, and improvement of health and quality of life
      * Core Capabilities: Health monitoring, lifestyle understanding, care recommendations, etc.
+   - If they ask "if I don't say" or "if I don't tell you my name": This is a question/concern. You should explain that:
+     * You need their real name to function as their health assistant and communicate with doctors or health institutions
+     * Real name is essential for exchanging accurate and correct information with medical professionals
+     * Then ask them to provide their name
 2. SECOND: After fully answering their question, you MUST guide them to provide their name. Say something like: "Now, I'd like to know your name so we can get started. What's your name?"
 
 Example responses (using the context above):
 - If they ask "why are you asking?": "I'm asking because I'm your health care assistant. I'm going to act as your personal assistant and protect your privacy. To personalize our conversations and help you in the best way possible, I need to know your name. Now, I'd like to know your name so we can get started. What's your name?"
 - If they ask "who are you?": "I'm Sedi, your AI-powered health and care assistant. I act as your personal health and wellness companion. My mission is to continuously monitor, care for, and improve your health and quality of life through intelligent interaction, smart device monitoring, and personalized care recommendations. Now, I'd like to know your name so we can get started. What's your name?"
+- If they ask "if I don't say" or "if I don't tell you my name": "I'm going to be your health and care assistant and I need to know your real name so I can exchange accurate and correct information with doctors or health institutions. Your real name is essential for exchanging accurate information with medical professionals. Please, could you tell me your name now?"
 
 CRITICAL: Always use the complete context above. Never answer without using the context.""",
                 
@@ -731,6 +792,7 @@ CRITICAL: Always use the complete context above. Never answer without using the 
 این می‌تواند باشد:
 - سوالی درباره خودت، نقشت یا کاری که می‌کنی
 - سوال عمومی مثل "چرا میپرسی؟" یا "چرا به اسم من نیاز داری؟"
+- سوال شرطی مثل "اگر نگم" یا "اگر نگم اسمم رو" - این‌ها سوالات/نگرانی‌هایی هستند که باید به آن‌ها پاسخ داده شود
 - هر سوال دیگری که ممکن است داشته باشند
 
 دستورات CRITICAL:
@@ -741,6 +803,10 @@ CRITICAL: Always use the complete context above. Never answer without using the 
      * نیاز داری اسمشان را بدانی تا گفتگوها را شخصی‌سازی کنی
      * از حریم خصوصی‌شان محافظت کنی
      * به عنوان دستیار شخصی‌شان فعالیت کنی
+   - اگر پرسیدند "اگر نگم" یا "اگر نگم اسمم رو": این یک سوال/نگرانی است. باید توضیح بدهی که:
+     * برای اینکه بتوانی به عنوان دستیار سلامت آنها فعالیت کنی و با پزشکان یا نهادهای سلامت ارتباط برقرار کنی، نیاز به نام واقعی آنها داری
+     * نام واقعی برای تبادل اطلاعات دقیق و درست با پزشکان ضروری است
+     * سپس از آنها بخواه که نامشان را بگویند
    - اگر پرسیدند "کی هستی؟" یا "چی هستی؟": از کانتکس بالا استفاده کن و کامل معرفی کن:
      * نام: صدی
      * نوع: دستیار مراقبت و سلامت با هوش مصنوعی
@@ -752,6 +818,7 @@ CRITICAL: Always use the complete context above. Never answer without using the 
 مثال پاسخ‌ها (از کانتکس بالا استفاده کن):
 - اگر پرسیدند "چرا میپرسی؟": "من می‌پرسم چون دستیار مراقبت سلامت شما هستم. من قراره به عنوان دستیار شخصی‌تان فعالیت کنم و از حریم خصوصی‌تان محافظت کنم. برای اینکه گفتگوهایمان را شخصی‌سازی کنم و بتوانم به بهترین شکل به شما کمک کنم، نیاز دارم اسمتون را بدونم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
 - اگر پرسیدند "کی هستی؟": "من صدی هستم، دستیار مراقبت و سلامت شما با هوش مصنوعی. من به عنوان همراه شخصی سلامت و تندرستی شما فعالیت می‌کنم. ماموریت من نظارت پیوسته، مراقبت و بهبود سلامت و کیفیت زندگی شما از طریق تعامل هوشمند، پایش گجت‌های هوشمند و پیشنهادهای مراقبتی شخصی‌سازی شده است. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+- اگر پرسیدند "اگر نگم" یا "اگر نگم اسمم رو": "من قراره دستیار مراقبت و سلامت شما باشم و باید نام واقعی شما را بدانم تا در ارتباط با پزشک یا نهادهای سلامت اطلاعات واقعی و درست را تبادل کنم. نام واقعی برای تبادل اطلاعات دقیق با پزشکان ضروری است. ممنون میشم حالا اسم خودت رو بگی؟"
 
 CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. هرگز بدون استفاده از کانتکس پاسخ نده.""",
                 
