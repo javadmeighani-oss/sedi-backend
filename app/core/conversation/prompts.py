@@ -1006,23 +1006,70 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
         Returns:
             str: Hardcoded response text
         """
-        prompts = self.onboarding_prompts.get(self.language, self.onboarding_prompts["en"])
-        
-        if state not in prompts:
-            # Fallback to English if state not found
-            prompts = self.onboarding_prompts["en"]
-        
-        response_template = prompts.get(state, "")
-        
-        # Replace {user_name} placeholder if present
-        if "{user_name}" in response_template:
-            # Use user_name from context or extract from message
-            if not user_name or user_name.startswith("anonymous_"):
-                # Try to extract name from user message
-                user_name = user_message.strip().split()[0] if user_message.strip() else "friend"
-            response_template = response_template.format(user_name=user_name)
-        
-        return response_template
+        try:
+            prompts = self.onboarding_prompts.get(self.language, self.onboarding_prompts["en"])
+            
+            if state not in prompts:
+                # Fallback to English if state not found
+                print(f"[PROMPTS WARNING] State '{state}' not found in {self.language} prompts, using English")
+                prompts = self.onboarding_prompts["en"]
+            
+            response_template = prompts.get(state, "")
+            
+            if not response_template:
+                # If state still not found, return a safe fallback
+                print(f"[PROMPTS ERROR] State '{state}' not found in any prompts, using fallback")
+                fallback_messages = {
+                    "en": "I'm here to help you. Please continue.",
+                    "fa": "من اینجا هستم تا کمکت کنم. لطفاً ادامه بده.",
+                    "ar": "أنا هنا لمساعدتك. يرجى المتابعة."
+                }
+                return fallback_messages.get(self.language, fallback_messages["en"])
+            
+            # Replace {user_name} placeholder if present
+            if "{user_name}" in response_template:
+                # Use user_name from context or extract from message
+                if not user_name or user_name.startswith("anonymous_"):
+                    # Try to get name from context
+                    profile = context.get("profile", {})
+                    user_name = profile.get("name") or context.get("user_name") or "friend"
+                    # If still anonymous, try to extract from message (but only if it looks like a name)
+                    if user_name.startswith("anonymous_") and user_message.strip():
+                        # Don't use password as name - check if it looks like a name
+                        msg_clean = user_message.strip()
+                        if (2 <= len(msg_clean) <= 30 and 
+                            not any(char.isdigit() for char in msg_clean) and
+                            "?" not in msg_clean and
+                            "؟" not in msg_clean):
+                            user_name = msg_clean.split()[0] if msg_clean.split() else "friend"
+                        else:
+                            user_name = "friend"
+                
+                # Ensure user_name is not None or empty
+                if not user_name or user_name.strip() == "":
+                    user_name = "friend"
+                
+                try:
+                    response_template = response_template.format(user_name=user_name)
+                except (KeyError, ValueError) as e:
+                    print(f"[PROMPTS ERROR] Failed to format user_name in template: {e}")
+                    # Remove {user_name} placeholder if format fails
+                    response_template = response_template.replace("{user_name}", user_name or "friend")
+            
+            return response_template
+        except Exception as e:
+            print(f"[PROMPTS ERROR] Exception in _get_onboarding_response: {e}")
+            print(f"[PROMPTS ERROR] State: {state}, user_name: {user_name}")
+            import traceback
+            print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+            
+            # Return safe fallback message
+            fallback_messages = {
+                "en": "I'm here to help you. Please continue.",
+                "fa": "من اینجا هستم تا کمکت کنم. لطفاً ادامه بده.",
+                "ar": "أنا هنا لمساعدتك. يرجى المتابعة."
+            }
+            return fallback_messages.get(self.language, fallback_messages["en"])
     
     def _build_system_prompt(
         self,
