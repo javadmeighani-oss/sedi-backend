@@ -222,6 +222,55 @@ def chat_with_sedi(
         )
 
 
+# ---------------- Onboarding - Setup User ----------------
+@router.post("/onboarding")
+def setup_onboarding(
+    name: str = Query(...),
+    password: str = Query(...),
+    language: str = Query("fa"),
+    db: Session = Depends(get_db)
+):
+    """
+    Setup user onboarding: create user with name, password, and language.
+    Returns user_id and initial greeting message.
+    """
+    # Validate password requirements
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if not any(c.isalpha() for c in password):
+        raise HTTPException(status_code=400, detail="Password must contain letters")
+    if not any(c.isdigit() for c in password):
+        raise HTTPException(status_code=400, detail="Password must contain numbers")
+    if not any(c.isupper() for c in password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
+    
+    # Check if name already exists
+    existing_user = db.query(User).filter(User.name == name).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User name already exists")
+    
+    # Create new user
+    new_user = User(
+        name=name,
+        secret_key=password,
+        preferred_language=language
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    # Generate initial greeting using GPT with Sedi's knowledge base
+    brain = ConversationBrain(db, language=language)
+    initial_message = brain.get_initial_message(new_user.id, name, language)
+    
+    return {
+        "user_id": new_user.id,
+        "message": initial_message,
+        "language": language,
+        "name": name
+    }
+
+
 # ---------------- Get Greeting ----------------
 @router.get("/greeting")
 def get_greeting(

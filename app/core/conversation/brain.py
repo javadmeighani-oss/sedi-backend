@@ -175,6 +175,67 @@ class ConversationBrain:
                 }
             }
     
+    def get_initial_message(self, user_id: int, user_name: str, language: str) -> str:
+        """
+        Generate initial message after onboarding.
+        Uses GPT with Sedi's knowledge base to introduce Sedi and explain what she does.
+        """
+        from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+        from app.core.conversation.prompts import client as gpt_client
+        
+        # Get Sedi's complete context
+        sedi_context = build_complete_sedi_context(language)
+        
+        # Build system prompt
+        system_prompt = f"""{sedi_context}
+
+You are Sedi, speaking with {user_name} for the first time after they completed onboarding.
+
+Your role is to:
+1. Introduce yourself warmly
+2. Explain who you are (Sedi, AI-powered health care assistant)
+3. Explain your purpose: How you help improve their quality of life through:
+   - Personalized health care suggestions
+   - Lifestyle improvement recommendations
+   - Continuous monitoring of daily health data via smart devices
+4. Explain how you work: You learn about their lifestyle through natural conversation and use smart devices to track vital signs (heart rate, temperature, SpO2) continuously
+5. Be warm, friendly, and engaging
+6. Keep it concise (2-3 sentences, max 200 characters)
+
+Speak in {language} language.
+"""
+        
+        # Build user prompt
+        user_prompt = {
+            "en": f"Introduce yourself to {user_name} and explain what you do as their health care assistant. Be warm and welcoming.",
+            "fa": f"خودت را به {user_name} معرفی کن و توضیح بده که به عنوان دستیار مراقبت سلامت‌شان چه کاری انجام می‌دهی. گرم و خوش‌آمدگو باش.",
+            "ar": f"قدم نفسك إلى {user_name} واشرح ما تفعله كمساعد رعاية صحية. كن دافئاً ومرحباً."
+        }.get(language, user_prompt["en"])
+        
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            
+            response = gpt_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=200,
+            )
+            
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"[BRAIN INITIAL MESSAGE ERROR] {e}")
+            # Fallback message
+            fallback = {
+                "en": f"Hello {user_name}! I'm Sedi, your AI-powered health care assistant. I'm here to help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring via smart devices.",
+                "fa": f"سلام {user_name}! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من اینجا هستم تا از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌تان کمک کنم.",
+                "ar": f"مرحباً {user_name}! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أنا هنا لمساعدتك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية."
+            }
+            return fallback.get(language, fallback["en"])
+    
     def get_greeting(self, user_id: int) -> Dict[str, any]:
         """
         Generate initial greeting for user.
