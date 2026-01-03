@@ -64,7 +64,14 @@ class ConversationPrompts:
         recent_messages = context.get("recent_messages", [])
         
         # ONBOARDING: Check if we're in onboarding flow and use hardcoded prompts
-        onboarding_state = self._get_onboarding_state(context, user_message, stage)
+        try:
+            onboarding_state = self._get_onboarding_state(context, user_message, stage)
+        except Exception as e:
+            print(f"[PROMPTS ERROR] ❌ Exception in _get_onboarding_state: {e}")
+            import traceback
+            print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+            onboarding_state = None  # Continue with normal GPT flow if onboarding detection fails
+        
         if onboarding_state:
             print(f"[PROMPTS DEBUG] ✅ Onboarding state detected: {onboarding_state}")
             print(f"[PROMPTS DEBUG] Stage: {stage.value}, conversation_count: {conversation_count}, user_name: {user_name}")
