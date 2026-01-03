@@ -173,29 +173,53 @@ def chat_with_sedi(
         )
     
     # Use Conversation Brain to process message
-    brain = ConversationBrain(db, language=lang)
-    
-    # If this is a greeting request, use get_greeting instead
-    if message.strip() == "__GREETING__":
-        greeting = brain.get_greeting(user.id)
+    try:
+        brain = ConversationBrain(db, language=lang)
+        
+        # If this is a greeting request, use get_greeting instead
+        if message.strip() == "__GREETING__":
+            greeting = brain.get_greeting(user.id)
+            return InteractionResponse(
+                message=greeting["message"],
+                language=greeting["language"],
+                user_id=user.id,
+                timestamp=datetime.utcnow(),
+                requires_security_check=requires_security_check
+            )
+        
+        # Normal chat message
+        result = brain.process_message(user.id, message)
+        
         return InteractionResponse(
-            message=greeting["message"],
-            language=greeting["language"],
+            message=result["message"],
+            language=result["language"],
             user_id=user.id,
             timestamp=datetime.utcnow(),
             requires_security_check=requires_security_check
         )
-    
-    # Normal chat message
-    result = brain.process_message(user.id, message)
-    
-    return InteractionResponse(
-        message=result["message"],
-        language=result["language"],
-        user_id=user.id,
-        timestamp=datetime.utcnow(),
-        requires_security_check=requires_security_check
-    )
+    except Exception as e:
+        # Log the error for debugging
+        print(f"[ROUTER ERROR] Exception in chat endpoint: {e}")
+        print(f"[ROUTER ERROR] Exception type: {type(e).__name__}")
+        import traceback
+        print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
+        
+        # Return a user-friendly error message instead of crashing
+        error_messages = {
+            "en": "I'm sorry, I encountered an error processing your message. Please try again.",
+            "fa": "متاسفم، در پردازش پیام شما خطایی رخ داد. لطفاً دوباره تلاش کنید.",
+            "ar": "عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى."
+        }
+        
+        error_message = error_messages.get(lang, error_messages["en"])
+        
+        return InteractionResponse(
+            message=error_message,
+            language=lang,
+            user_id=user.id,
+            timestamp=datetime.utcnow(),
+            requires_security_check=requires_security_check
+        )
 
 
 # ---------------- Get Greeting ----------------

@@ -6,6 +6,8 @@ This module provides comprehensive knowledge about Sedi that GPT needs to unders
 who Sedi is, what Sedi does, and how Sedi works.
 """
 
+from typing import Dict
+
 # ==================== SEDI CORE IDENTITY ====================
 
 SEDI_IDENTITY = {

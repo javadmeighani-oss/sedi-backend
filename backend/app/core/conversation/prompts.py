@@ -22,6 +22,7 @@ from openai import OpenAI
 from app.core.conversation.stages import ConversationStage
 from app.core.conversation.name_database import is_likely_name, detect_language
 from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+from app.core.conversation.question_database import is_common_question, get_question_category
 import os
 from dotenv import load_dotenv
 
@@ -91,8 +92,8 @@ class ConversationPrompts:
         # Build conversation history for context (limit to avoid repetition)
         conversation_history = self._build_conversation_history(recent_messages)
         
-        # Build user prompt
-        user_prompt = self._build_user_prompt(user_message, stage, context)
+        # Build user prompt with enhanced context awareness
+        user_prompt = self._build_user_prompt(user_message, stage, context, conversation_history)
         
         try:
             # DEBUG: Log conversation history
@@ -161,16 +162,18 @@ class ConversationPrompts:
                 "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
                 "name_pending_polite": "Hello, I'm Sedi. I'm really glad to meet you. Please, before we start our conversation, I would appreciate it if you could tell me your name?",
                 "name_pending_insistent": "Dear user, I'm going to be your health and care assistant. Please, before we start our interaction and conversation, I need you to provide the necessary information, including your name and then setting a password in our upcoming conversation, so I can register you as a user with a specific identity. Because I'm going to work as your personal assistant and protect your privacy. What's your name?",
-                "name_confirmed": "From now on, I'll be here as your health and care assistant.\nTo protect your information and keep our communication secure,\nyou need to choose a security password (at least 6 characters).\n\nPlease send it to me. I'm waiting.",
+                "name_refusal_with_question": "I'm going to be your health and care assistant and I need to know your real name so I can exchange accurate and correct information with doctors or health institutions. Please, could you tell me your name now?",
+                "name_confirmed": "Dear {user_name}, from now on I will always be with you as your health and care assistant and advisor. Just before starting this relationship, to protect your information and keep our communication secure, you need to choose a password (at least 6 characters of letters and symbols). I'm waiting for you to send the password.",
                 "password_pending": "For security reasons, your password needs to be at least 6 characters long.\nPlease choose a longer password and send it again.",
                 "password_confirm": "To make sure everything is correct,\nplease send the password one more time.\nThank you.",
                 "password_mismatch": "The passwords don't match.\nLet's try again — please send your password once more.",
-                "security_gate_active": "{user_name},\nto build a real and meaningful connection\nand to protect your personal information,\nI need a security password from you first.\n\nPlease choose a password with at least 6 characters and send it to me.\nAfter that, I'll always be here to support and care for you.",
+                "security_gate_active": "Dear {user_name}, without a security password, others might access your private information and your personal data could be at risk. To protect you and your information, please choose a password (at least 6 characters of letters and symbols) and send it to me.",
+                "password_refusal_acceptance": "Dear {user_name}, without a security password, others might access your private information and your personal data could be at risk. To protect you and your information, a security password is essential. However, if you don't want to set a password now, we can continue without one. Just remember that whenever you want, you can create a password (at least 6 characters of letters and symbols) and I will save it.",
                 "non_name_question": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "Thank you, {user_name}.\n\nYour security password has been set successfully.\nNow I'm ready to help you with your health and care needs.\n\nHow can I support you today?",
                 # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "Dear {user_name},\nI'm really glad we're here together.\n\nI'd love to know —\nhow can I support you today?",
+                "first_real_interaction": "Dear {user_name}, from today I'm with you forever.\n\nWould you like to tell me a bit about yourself? Or would you like me to tell you about my capabilities, what I can do for you, and the purpose of my existence?",
                 "unclear_response": "That's totally okay.\nWe can start from wherever feels easiest for you.\n\nFor example:\n– Health support\n– Daily check-ins\n– Building a simple routine\n– Or just talking\n\nYou choose. I'm here with you.",
                 "medical_question": "I can help you understand things better\nand be here to support you,\nbut medical diagnosis or treatment decisions\nshould always be made with a doctor.\n\nIf you'd like,\nwe can start by talking a bit about your situation.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -180,19 +183,22 @@ class ConversationPrompts:
             },
             "fa": {
                 "first_launch": "سلام، من صدی هستم.\nخیلی خوشحالم از آشنایی با شما.\nاسم شما چیه؟",
+                "greeting_response": "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خیلی خوشحالم از آشنایی با شما. برای شروع، لطفاً اسمتون را به من بگین؟",
                 "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
                 "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
-                "name_confirmed": "از این به بعد من به عنوان دستیار مراقبت و سلامت همراهت هستم.\nبرای اینکه از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه،\nلازمه یک رمز امنیتی (حداقل ۶ کاراکتر) انتخاب کنی.\n\nلطفاً برای من ارسال کن. منتظرم.",
+                "name_refusal_with_question": "من قراره دستیار مراقبت و سلامت شما باشم و باید نام واقعی شما را بدانم تا در ارتباط با پزشک یا نهادهای سلامت اطلاعات واقعی و درست را تبادل کنم. ممنون میشم حالا اسم خودت رو بگی؟",
+                "name_confirmed": "{user_name} عزیز از این به بعد من به عنوان دستیار و مشاور مراقبت و سلامت تو همیشه کنارت هستم. فقط قبل از شروع این رابطه، برای اینکه بتونم از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه تو باید یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کنی. منتظر ارسال رمز هستم.",
                 "password_pending": "برای حفظ امنیت،\nرمزت باید حداقل ۶ کاراکتر داشته باشه.\nلطفاً یک رمز طولانی‌تر انتخاب کن و دوباره برام بفرست.",
                 "password_confirm": "برای اطمینان لطفاً یک بار دیگه رمز را ارسال کن.\nممنون.",
                 "password_mismatch": "دو رمزی که وارد کردی با هم یکی نیستن.\nبیاین دوباره امتحان کنیم، لطفاً رمزت رو یک بار دیگه بفرست.",
-                "security_gate_active": "{user_name} عزیز،\nبرای اینکه بتونیم یک ارتباط واقعی و قابل اعتماد داشته باشیم\nو از اطلاعات شخصی‌ت محافظت کنم،\nلازمه ابتدا یک رمز امنیتی از طرف تو داشته باشم.\n\nلطفاً یک رمز با حداقل ۶ کاراکتر انتخاب کن و برای من بفرست،\nبعد از اون همیشه همراه و پشتیبانت هستم.",
+                "security_gate_active": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، لطفاً یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کن و برای من بفرست.",
+                "password_refusal_acceptance": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، رمز امنیتی ضروری است. اما اگر الان نمی‌خوای رمز بذاری، می‌تونیم بدون رمز هم ادامه بدیم. فقط یادت باشه که هر وقت خواستی می‌تونی یک رمز (حداقل 6 کاراکتر از حروف و علائم) ایجاد کنی و من آن را ذخیره می‌کنم.",
                 "non_name_question": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "ممنونم {user_name} عزیز.\n\nرمز امنیتی شما با موفقیت تنظیم شد.\nحالا آماده‌ام تا در زمینه سلامت و مراقبت کمکت کنم.\n\nچطور می‌تونم کمکت کنم؟",
                 # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "{user_name} عزیز،\nخیلی خوشحالم که اینجا کنار هم هستیم.\n\nحالا دوست دارم بدونم\nدر چه زمینه‌ای می‌تونم کنارت باشم و کمکت کنم؟",
+                "first_real_interaction": "{user_name} عزیز، از امروز من در کنارت هستم تا همیشه.\n\nالان دوست داری کمی از خودت بگی؟ یا اینکه من از توانایی‌هام برات بگم از اینکه چه کارهایی می‌تونم برات انجام بدم و هدف از وجود من چیه؟",
                 "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
                 "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره شرایطت صحبت کنیم.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -202,19 +208,22 @@ class ConversationPrompts:
             },
             "ar": {
                 "first_launch": "مرحباً، أنا صدي.\nسعيد جداً بلقائك.\nما اسمك؟",
+                "greeting_response": "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. سعيد جداً بلقائك. للبدء، هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
                 "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
-                "name_confirmed": "من الآن فصاعداً سأكون معك كمساعدك للعناية بالصحة.\nولحماية معلوماتك والحفاظ على تواصلنا آمناً،\nتحتاج إلى اختيار كلمة مرور أمنية (6 أحرف على الأقل).\n\nيرجى إرسالها لي. أنا بانتظارك.",
+                "name_refusal_with_question": "أنا سأكون مساعدك للعناية بالصحة وأحتاج أن أعرف اسمك الحقيقي حتى أتمكن من تبادل المعلومات الصحيحة والدقيقة مع الأطباء أو المؤسسات الصحية. من فضلك، هل يمكنك إخباري باسمك الآن؟",
+                "name_confirmed": "عزيزي {user_name}، من الآن فصاعداً سأكون دائماً معك كمساعد ومستشار للعناية بالصحة. فقط قبل بدء هذه العلاقة، لحماية معلوماتك والحفاظ على تواصلنا آمناً، تحتاج إلى اختيار كلمة مرور (6 أحرف على الأقل من الحروف والرموز). أنا بانتظار إرسال كلمة المرور.",
                 "password_pending": "للحفاظ على الأمان،\nيجب أن تتكون كلمة المرور من 6 أحرف على الأقل.\nيرجى اختيار كلمة مرور أطول وإرسالها مرة أخرى.",
                 "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إرسال كلمة المرور مرة أخرى.\nشكراً لك.",
                 "password_mismatch": "كلمتا المرور غير متطابقتين.\nدعنا نحاول مرة أخرى، يرجى إدخال كلمة المرور مجدداً.",
-                "security_gate_active": "عزيزي {user_name}،\nلبناء علاقة حقيقية قائمة على الثقة\nولحماية معلوماتك الشخصية،\nأحتاج أولاً إلى كلمة مرور أمنية منك.\n\nيرجى اختيار كلمة مرور لا تقل عن 6 أحرف وإرسالها لي،\nوبعد ذلك سأكون دائماً إلى جانبك لدعمك.",
+                "security_gate_active": "عزيزي {user_name}، بدون كلمة مرور أمنية، قد يتمكن الآخرون من الوصول إلى خصوصيتك وقد تكون معلوماتك الشخصية في خطر. لحمايتك ومعلوماتك، يرجى اختيار كلمة مرور (6 أحرف على الأقل من الحروف والرموز) وإرسالها لي.",
+                "password_refusal_acceptance": "عزيزي {user_name}، بدون كلمة مرور أمنية، قد يتمكن الآخرون من الوصول إلى خصوصيتك وقد تكون معلوماتك الشخصية في خطر. لحمايتك ومعلوماتك، كلمة المرور الأمنية ضرورية. ومع ذلك، إذا كنت لا تريد تعيين كلمة مرور الآن، يمكننا المتابعة بدونها. فقط تذكر أنه كلما أردت، يمكنك إنشاء كلمة مرور (6 أحرف على الأقل من الحروف والرموز) وسأحفظها.",
                 "non_name_question": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "شكراً لك {user_name}.\n\nتم تعيين كلمة المرور الأمنية بنجاح.\nالآن أنا مستعد لمساعدتك في احتياجاتك الصحية والرعاية.\n\nكيف يمكنني مساعدتك اليوم؟",
                 # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "عزيزي {user_name}،\nسعيد جداً بوجودنا هنا معاً.\n\nأود أن أعرف،\nكيف يمكنني أن أكون إلى جانبك اليوم؟",
+                "first_real_interaction": "عزيزي {user_name}، من اليوم أنا معك إلى الأبد.\n\nهل تريد أن تخبرني قليلاً عن نفسك؟ أم تريدني أن أخبرك عن قدراتي، ما يمكنني فعله من أجلك، والغرض من وجودي؟",
                 "unclear_response": "لا بأس بذلك تماماً.\nيمكننا أن نبدأ من أي مكان تشعر أنه أسهل لك.\n\nعلى سبيل المثال:\n– الدعم الصحي\n– المتابعة اليومية\n– بناء روتين بسيط\n– أو مجرد الحديث\n\nأنت تختار، وأنا معك.",
                 "medical_question": "يمكنني مساعدتك على فهم الأمور بشكل أفضل\nوالوقوف إلى جانبك،\nلكن التشخيص أو القرارات الطبية\nيجب أن تتم دائماً مع طبيب مختص.\n\nإذا أحببت،\nيمكننا أن نبدأ بالحديث قليلاً عن وضعك.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -265,24 +274,56 @@ class ConversationPrompts:
         print(f"[ONBOARDING DEBUG] password_requested={password_requested}")
         
         # Check if we're waiting for password confirmation
-        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون"]
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "مرة أخرى"]
         waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
+        
+        # Check if user refused to provide password
+        refusal_keywords = {
+            "en": ["no", "don't", "won't", "refuse", "skip", "later", "not now", "don't want", "not necessary", "not needed", "i won't give", "i don't give", "won't give", "don't give"],
+            "fa": ["نه", "نمی‌خوام", "نمیخوام", "لازم نیست", "نیازی نیست", "بعداً", "الان نه", "رد", "امتناع", "نمی‌خواهم", "نمیخواهم", "نمیدم", "نمی‌دم", "نمیدهم", "نمی‌دهم", "رمز نمیدم", "رمز نمی‌دم", "رمز نمیدهم", "رمز نمی‌دهم"],
+            "ar": ["لا", "لا أريد", "لست بحاجة", "ليس ضرورياً", "لاحقاً", "ليس الآن", "رفض", "لن أعطي", "لا أعطي"]
+        }
+        user_refused_password = False
+        if password_requested and not waiting_for_confirmation:
+            lang_refusals = refusal_keywords.get(self.language, refusal_keywords["en"])
+            # Also check in all languages
+            all_refusals = []
+            for lang_refs in refusal_keywords.values():
+                all_refusals.extend(lang_refs)
+            user_refused_password = any(refusal in user_message_clean.lower() for refusal in all_refusals)
+        
+        # Track how many times user refused password
+        # Check recent messages for previous refusal
+        refusal_count = 0
+        if recent_messages:
+            for msg in recent_messages[-3:]:  # Check last 3 messages
+                msg_text = msg.get("sedi", "").lower()
+                if any(keyword in msg_text for keyword in ["security_gate_active", "password_refusal"]):
+                    refusal_count += 1
         
         # Check if user provided password (length >= 6 and password was requested)
         user_message_clean = user_message.strip()
         
         # Improved password detection: check for numbers, letters, and special characters
-        has_numbers = any(char.isdigit() for char in user_message_clean)
+        # CRITICAL: Support both English (0-9) and Persian (۰-۹) digits
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        english_digits = "0123456789"
+        has_numbers = (
+            any(char.isdigit() for char in user_message_clean) or  # English digits (0-9) and Persian digits (۰-۹)
+            any(char in persian_digits for char in user_message_clean)  # Explicit Persian digit check
+        )
         has_letters = any(char.isalpha() for char in user_message_clean)
         has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
         
         # Password is valid if: length >= 6 AND (has numbers OR has letters OR has special chars)
-        # This allows: "123456", "password", "pass123", "myp@ss", etc.
+        # This allows: "123456", "۱۲۳۴۵۶", "password", "pass123", "myp@ss", etc.
         user_provided_password = (
             len(user_message_clean) >= 6 and 
             password_requested and
             (has_numbers or has_letters or has_special)
         )
+        
+        print(f"[ONBOARDING DEBUG] Password detection: length={len(user_message_clean)}, has_numbers={has_numbers}, has_letters={has_letters}, has_special={has_special}, is_password={user_provided_password}")
         
         # FIRST_LAUNCH: No name, first message (conversation_count = 0)
         if conversation_count == 0:
@@ -296,52 +337,233 @@ class ConversationPrompts:
             self.language = user_lang
             print(f"[ONBOARDING DEBUG] Language switched to: {user_lang}")
         
-        # NAME_PENDING: Name not learned, and user didn't provide a clear name
-        if not name_learned:
-            # Check if message is likely a name
-            is_name = is_likely_name(user_message_clean, self.language)
-            
-            # If user message looks like a name (short, no digits, reasonable length)
-            # AND this is likely the first response to "what's your name?"
-            if (is_name or (2 <= len(user_message_clean) <= 30 and 
-                not any(char.isdigit() for char in user_message_clean) and
-                not password_requested and
-                conversation_count == 1)):
-                # User provided name in first response - accept it and move to name_confirmed
-                # The name will be extracted and stored by memory system
-                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
-                return "name_confirmed"  # Accept the name and move forward
-            
-            # Check if user asked a question (not a name)
+        # CRITICAL: Check for questions FIRST, regardless of name_learned status
+        # Questions should always be answered, even if name is already learned
+        # This ensures users can ask questions at any point during onboarding
+        
+        # Check if user asked a question (not a name)
+        # CRITICAL: Use multiple detection methods for better accuracy
+        # 1. Check common questions database (most reliable)
+        # 2. Check question indicators (keywords)
+        # 3. Check question patterns
+        # 4. Check for question marks
+        
+        is_question = False
+        question_category = None
+        
+        # METHOD 1: Check common questions database (MOST RELIABLE)
+        # This uses a comprehensive database of common questions
+        # CRITICAL: Use "auto" language detection to ensure we check all languages
+        is_question = is_common_question(user_message_clean, "auto")
+        if not is_question:
+            # Also try with original message (not lowercased) for Persian/Arabic
+            is_question = is_common_question(user_message, "auto")
+        
+        if is_question:
+            question_category = get_question_category(user_message_clean, "auto")
+            if not question_category:
+                question_category = get_question_category(user_message, "auto")
+            print(f"[ONBOARDING DEBUG] ✅ Common question detected from database: {user_message_clean} (category: {question_category})")
+            # Switch language if needed
+            persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+            if any(char in user_message for char in persian_chars) and self.language != "fa":
+                self.language = "fa"
+                print(f"[ONBOARDING DEBUG] Language switched to Persian")
+        
+        # METHOD 2: Check question indicators (keywords) if not found in database
+        if not is_question:
             question_indicators = {
-                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "?"],
-                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "؟"],
-                "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "؟"]
+                "en": ["what", "who", "where", "when", "why", "how", "can you", "do you", "are you", "is it", "tell me", "explain", "what are", "what do", "what can", "why are you", "why do you", "why is"],
+                "fa": ["چی", "کی", "کجا", "چرا", "چطور", "می‌تونی", "می‌شه", "هست", "بگو", "توضیح", "چی هستی", "چی می‌کنی", "چی می‌تونی", "میپرسی", "می‌پرسی", "میپرس", "می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا میپرس", "چرا می‌پرس", "؟"],
+                "ar": ["ماذا", "من", "أين", "متى", "لماذا", "كيف", "هل يمكنك", "هل أنت", "أخبرني", "اشرح", "ما أنت", "ماذا تفعل", "ماذا يمكنك", "؟"]
             }
+            
+            # Check in detected language
             question_list = question_indicators.get(self.language, question_indicators["en"])
             is_question = any(keyword in user_message_clean.lower() for keyword in question_list) or "?" in user_message_clean or "؟" in user_message_clean
             
-            # If user asked a question about Sedi or the app (not a name), use GPT to answer
-            # Then guide them to provide name
-            if is_question and not password_requested:
-                # Check if question is about Sedi, the app, or what Sedi does
-                sedi_question_keywords = {
-                    "en": ["what are you", "who are you", "what do you", "what can you", "tell me about", "explain", "what is", "how do you"],
-                    "fa": ["چی هستی", "کی هستی", "چی می‌کنی", "چی می‌تونی", "بگو درباره", "توضیح بده", "چیه", "چطور کار می‌کنی"],
-                    "ar": ["ما أنت", "من أنت", "ماذا تفعل", "ماذا يمكنك", "أخبرني عن", "اشرح", "ما هو", "كيف تعمل"]
+            # CRITICAL: Also check in Persian if message contains Persian characters
+            if not is_question:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_questions = question_indicators["fa"]
+                    is_question = any(keyword in user_message_clean.lower() for keyword in persian_questions) or "؟" in user_message_clean
+                    if is_question:
+                        print(f"[ONBOARDING DEBUG] Persian question detected via keywords (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_question:
+                english_questions = question_indicators["en"]
+                is_question = any(keyword in user_message_clean.lower() for keyword in english_questions) or "?" in user_message_clean
+        
+        # METHOD 3: Check for question patterns (verb + question word)
+        # This catches patterns like "چرا میپرسی؟" even if not in database
+        if not is_question:
+            persian_question_patterns = ["چرا می", "چرا می‌", "چرا میپرس", "چرا می‌پرس", "چرا میپرسی", "چرا می‌پرسی", "چرا می‌خوای", "چرا میخوای", "چرا نیاز", "چرا به اسم"]
+            if any(pattern in user_message_clean.lower() for pattern in persian_question_patterns):
+                is_question = True
+                if self.language != "fa":
+                    print(f"[ONBOARDING DEBUG] Persian question pattern detected (language was {self.language}): {user_message_clean}")
+                    self.language = "fa"
+        
+        # METHOD 4: Check for question marks (simple but effective)
+        if not is_question:
+            is_question = "?" in user_message_clean or "؟" in user_message_clean
+        
+        # METHOD 5: Check for conditional/question patterns (if, maybe, what if, etc.)
+        # This catches conditional statements like "اگر نگم" (if I don't say) that are questions/refusals
+        if not is_question:
+            conditional_patterns = {
+                "en": ["if i don't", "if i don't say", "if i don't tell", "if i don't give", "if i don't provide",
+                       "what if i don't", "what if i don't say", "what if i don't tell",
+                       "maybe i won't", "maybe i won't say", "maybe i don't", "maybe i don't say",
+                       "perhaps i won't", "perhaps i don't"],
+                "fa": ["اگر نگم", "اگر نگم اسمم", "اگر نگم اسمم رو", "اگر اسمم رو نگم", "اگر اسمم نگم",
+                       "اگر نگم چی", "اگر نگم چه", "اگر نگم چطور", "اگر نگم چی میشه", "اگر نگم چه می‌شه",
+                       "شاید نگم", "شاید نگم اسمم", "شاید نگم اسمم رو", "شاید اسمم رو نگم", "شاید اسمم نگم",
+                       "ممکنه نگم", "ممکنه نگم اسمم", "ممکنه نگم اسمم رو", "ممکنه اسمم رو نگم",
+                       "احتمالا نگم", "احتمالا نگم اسمم"],
+                "ar": ["إذا لم أقل", "إذا لم أقل اسمي", "إذا لم أخبرك", "إذا لم أعطيك",
+                       "ماذا لو لم أقل", "ماذا لو لم أخبرك", "ربما لن", "ربما لن أقل"]
+            }
+            
+            # Check in detected language
+            pattern_list = conditional_patterns.get(self.language, conditional_patterns["en"])
+            is_question = any(pattern in user_message_clean.lower() for pattern in pattern_list)
+            
+            # CRITICAL: Also check in Persian if message contains Persian characters
+            if not is_question:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_patterns = conditional_patterns["fa"]
+                    is_question = any(pattern in user_message_clean.lower() for pattern in persian_patterns)
+                    if is_question:
+                        print(f"[ONBOARDING DEBUG] Persian conditional pattern detected (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_question:
+                english_patterns = conditional_patterns["en"]
+                is_question = any(pattern in user_message_clean.lower() for pattern in english_patterns)
+            
+            # CRITICAL: Also check for standalone conditional words at the start of message
+            # This catches cases like "اگر نگم" even if exact pattern not matched
+            if not is_question:
+                conditional_words = {
+                    "en": ["if", "maybe", "perhaps", "what if"],
+                    "fa": ["اگر", "شاید", "ممکنه", "احتمالا"],
+                    "ar": ["إذا", "ربما", "ماذا لو"]
                 }
-                sedi_keywords = sedi_question_keywords.get(self.language, sedi_question_keywords["en"])
-                is_sedi_question = any(keyword in user_message_clean.lower() for keyword in sedi_keywords)
-                
-                if is_sedi_question:
-                    # This will be handled by GPT in generate_response - return None to use GPT
-                    # But we need to track that we should guide user to name after answering
-                    return "non_name_question"  # GPT will answer, then guide to name
+                word_list = conditional_words.get(self.language, conditional_words["en"])
+                # Check if message starts with conditional word (common pattern for conditional questions)
+                message_start = user_message_clean.lower().split()[0] if user_message_clean.split() else ""
+                if message_start in word_list:
+                    is_question = True
+                    print(f"[ONBOARDING DEBUG] Conditional word detected at start: {message_start}")
+                    # Switch language if Persian
+                    persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                    if any(char in user_message for char in persian_chars) and self.language != "fa":
+                        self.language = "fa"
+        
+        print(f"[ONBOARDING DEBUG] Question detection: is_question={is_question}, language={self.language}, message={user_message_clean[:50]}")
+        
+        # CRITICAL: Check for questions FIRST, before any other logic
+        # Questions should always be answered, even if name is already learned
+        # CRITICAL: Questions should be answered even if password was requested (user might ask "why?")
+        if is_question:
+            # ALL questions during onboarding should go to GPT for proper response
+            # This includes:
+            # - Questions about Sedi ("چی هستی؟", "who are you?")
+            # - General questions ("چرا میپرسی؟", "why are you asking?")
+            # - Any other question the user might ask
+            print(f"[ONBOARDING DEBUG] ✅ Question detected: {user_message_clean}")
+            print(f"[ONBOARDING DEBUG] ✅ Routing to GPT for answer (non_name_question)")
+            print(f"[ONBOARDING DEBUG] ✅ Language: {self.language}")
+            return "non_name_question"  # GPT will answer, then guide to name
+        
+        # NAME_PENDING: Name not learned, and user didn't provide a clear name
+        if not name_learned:
+            # CRITICAL: First check if it's a greeting (not a name)
+            # Greetings should be responded to, not treated as names
+            greeting_words = {
+                "en": ["hello", "hi", "hey", "greetings", "good morning", "good afternoon", "good evening", "good night", "morning", "afternoon", "evening"],
+                "fa": ["سلام", "درود", "صبح بخیر", "ظهر بخیر", "عصر بخیر", "شب بخیر", "بدرود", "خداحافظ"],
+                "ar": ["مرحبا", "أهلا", "السلام عليكم", "صباح الخير", "مساء الخير", "ليلة سعيدة", "مع السلامة"]
+            }
+            greeting_list = greeting_words.get(self.language, greeting_words["en"])
+            is_greeting = any(greeting in user_message_clean.lower() for greeting in greeting_list)
+            
+            # Also check in Persian if message contains Persian characters
+            if not is_greeting:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in user_message for char in persian_chars):
+                    persian_greetings = greeting_words["fa"]
+                    is_greeting = any(greeting in user_message_clean.lower() for greeting in persian_greetings)
+                    if is_greeting:
+                        print(f"[ONBOARDING DEBUG] Persian greeting detected (language was {self.language}): {user_message_clean}")
+                        self.language = "fa"  # Switch to Persian
+            
+            # Also check in English as fallback
+            if not is_greeting:
+                english_greetings = greeting_words["en"]
+                is_greeting = any(greeting in user_message_clean.lower() for greeting in english_greetings)
+            
+            # If it's a greeting, respond to it and ask for name again
+            if is_greeting:
+                print(f"[ONBOARDING DEBUG] Greeting detected: {user_message_clean}")
+                return "greeting_response"  # Respond to greeting, then ask for name
+            
+            # Check if message is likely a name
+            is_name = is_likely_name(user_message_clean, self.language)
+            
+            # Enhanced name detection: Check if message looks like a name
+            # 1. Check against name database
+            # 2. Check length (2-30 chars, typical for names)
+            # 3. Check for no digits (names usually don't have digits)
+            # 4. Check for no question marks
+            # 5. Check for no common question words
+            # 6. CRITICAL: NOT a greeting
+            looks_like_name = (
+                is_name or (
+                    2 <= len(user_message_clean) <= 30 and 
+                    not any(char.isdigit() for char in user_message_clean) and
+                    "?" not in user_message_clean and
+                    "؟" not in user_message_clean and
+                    not is_greeting  # CRITICAL: Exclude greetings
+                )
+            )
+            
+            # If user message looks like a name (short, no digits, reasonable length, not a question, not a greeting)
+            # CRITICAL: Only check for name AFTER checking for questions
+            # Check if last Sedi message asked for name
+            name_keywords = [
+                "name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك", "اسمتون", "اسمت",
+                "اسمتون را", "اسم شما چیه", "اسم شما چیست", "اسمت چیه", "اسمت چیست",
+                "میتونم اسمتون", "میتونم اسمت", "بدونم اسمتون", "بدونم اسمت", "بدانم اسمتون", "بدانم اسمت"
+            ]
+            name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
+            
+            if (looks_like_name and 
+                not is_question and 
+                not is_greeting and 
+                not password_requested and 
+                (name_was_requested or conversation_count <= 3)):  # Allow name detection in early conversation or if name was requested
+                # User provided name - accept it and move to name_confirmed
+                # The name will be extracted and stored by memory system
+                # IMPORTANT: If user provided name in Persian/Arabic, language is already switched above
+                print(f"[ONBOARDING DEBUG] ✅ Name detected: {user_message_clean} (conversation_count={conversation_count}, name_was_requested={name_was_requested})")
+                return "name_confirmed"  # Accept the name and move forward
             
             # User didn't provide name or provided something else
             if not password_requested:  # Only show name_pending if not in password flow
+                # CRITICAL: If user refused name for second time AND asked a question
+                # Use special prompt that explains why name is needed for health communication
+                if conversation_count >= 2 and is_question:
+                    print(f"[ONBOARDING DEBUG] User refused name (second time) and asked question - using name_refusal_with_question")
+                    return "name_refusal_with_question"
                 # Use polite prompt for first attempt (conversation_count == 1)
-                if conversation_count == 1:
+                elif conversation_count == 1:
                     return "name_pending_polite"
                 # Use insistent prompt for subsequent attempts (conversation_count >= 2)
                 elif conversation_count >= 2:
@@ -359,7 +581,12 @@ class ConversationPrompts:
                 return "password_pending"
         
         # PASSWORD_CONFIRM: Password was provided (>=6 chars), now need confirmation
-        if password_requested and user_provided_password and not waiting_for_confirmation:
+        # CRITICAL: This must be checked BEFORE password_just_confirmed to ensure confirmation request is shown
+        if (password_requested and 
+            user_provided_password and 
+            not waiting_for_confirmation and
+            name_learned):
+            print(f"[ONBOARDING DEBUG] ✅ Password provided (length={len(user_message_clean)}), requesting confirmation")
             return "password_confirm"
         
         # PASSWORD_CONFIRMED: User confirmed password (sent password again after confirmation request)
@@ -371,20 +598,38 @@ class ConversationPrompts:
         # This would require tracking previous password - simplified for now
         # In real implementation, would compare with stored password
         
-        # SECURITY_GATE_ACTIVE: User tries to skip password step
+        # PASSWORD_REFUSAL: User refuses to provide password
+        # First refusal: Show security warning
+        if (name_learned and password_requested and 
+            user_refused_password and
+            refusal_count == 0):
+            # First time user refuses - show security warning
+            print(f"[ONBOARDING DEBUG] User refused password (first time) - showing security warning")
+            return "security_gate_active"
+        
+        # Second refusal: Accept and remind about password option
+        if (name_learned and password_requested and 
+            user_refused_password and
+            refusal_count >= 1):
+            # User refused again - accept and remind about password option
+            print(f"[ONBOARDING DEBUG] User refused password (second time) - accepting and reminding about option")
+            return "password_refusal_acceptance"
+        
+        # SECURITY_GATE_ACTIVE: User tries to skip password step (sends something but not password)
         if (name_learned and password_requested and 
             len(user_message_clean) > 0 and 
             not user_provided_password and
+            not user_refused_password and
             not waiting_for_confirmation):
             # User sent something but it's not a valid password (too short or not password-like)
             return "security_gate_active"
         
-        # FIRST_REAL_INTERACTION: Onboarding complete (password confirmed), first real interaction
+        # FIRST_REAL_INTERACTION: Onboarding complete (password confirmed OR user refused password), first real interaction
         # Onboarding is complete when:
         # - Name is learned
-        # - Password was requested and confirmed (conversation_count >= 4)
+        # - Password was requested and confirmed (conversation_count >= 4) OR user refused password twice
         # - No password flow is active anymore
-        # - This is the first message after password confirmation
+        # - This is the first message after password confirmation or refusal acceptance
         
         # Check if password confirmation was just completed
         # (last Sedi message asked for confirmation, user provided password)
@@ -394,18 +639,62 @@ class ConversationPrompts:
             conversation_count >= 4
         )
         
+        # Check if user just accepted password refusal (last message was password_refusal_acceptance)
+        # Look for keywords that indicate password_refusal_acceptance was shown
+        password_refusal_accepted_keywords = {
+            "en": ["remind", "save", "continue without", "whenever you want", "can create"],
+            "fa": ["یادآوری", "ذخیره", "بدون رمز", "هر وقت", "می‌تونی", "ایجاد کنی", "ذخیره می‌کنم"],
+            "ar": ["تذكر", "حفظ", "بدون كلمة مرور", "كلما", "يمكنك", "إنشاء"]
+        }
+        refusal_keywords_list = password_refusal_accepted_keywords.get(self.language, password_refusal_accepted_keywords["en"])
+        password_refusal_accepted = (
+            last_sedi_message and
+            any(keyword in last_sedi_message.lower() for keyword in refusal_keywords_list)
+        )
+        
+        # CRITICAL: After password_refusal_acceptance, when user responds, show first_real_interaction
+        # This happens when:
+        # 1. Last Sedi message was password_refusal_acceptance (contains keywords above)
+        # 2. User just sent a message (this is their response)
+        # 3. Name is learned
+        # 4. Not waiting for password confirmation
+        if (name_learned and 
+            password_refusal_accepted and
+            not waiting_for_confirmation and
+            not password_requested):
+            # Check if first_real_interaction was already shown
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
+            }
+            interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
+            already_shown = any(keyword in last_sedi_message.lower() for keyword in interaction_keywords)
+            
+            if not already_shown:
+                # User responded after password_refusal_acceptance - show first_real_interaction
+                print(f"[ONBOARDING DEBUG] User responded after password_refusal_acceptance - showing first_real_interaction")
+                return "first_real_interaction"
+        
         # Check if we're past onboarding but haven't shown first interaction yet
         # (conversation_count 4-6, name learned, no password flow active)
+        # OR password was just confirmed
         if (name_learned and 
-            conversation_count >= 4 and 
-            conversation_count <= 6 and
-            not password_requested):
+            ((conversation_count >= 4 and conversation_count <= 6 and not password_requested) or
+             password_just_confirmed)):
             # Check if last message was first_real_interaction
-            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
-            already_shown = any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords)
+            first_interaction_keywords_all = {
+                "en": ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "from today", "with you forever"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد"]
+            }
+            all_keywords = []
+            for lang_keywords in first_interaction_keywords_all.values():
+                all_keywords.extend(lang_keywords)
+            already_shown = any(keyword in last_sedi_message.lower() for keyword in all_keywords)
             
             if password_just_confirmed or (not already_shown and not waiting_for_confirmation):
-                # Password just confirmed or haven't shown first interaction yet
+                # Password just confirmed OR haven't shown first interaction yet
                 return "first_real_interaction"
         
         # UNCLEAR_RESPONSE: User response is unclear or hesitant
@@ -415,8 +704,16 @@ class ConversationPrompts:
             conversation_count <= 7 and
             not password_requested):
             # Check if last Sedi message was first_real_interaction
-            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً"]
-            if any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords):
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
+            }
+            interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
+            all_keywords = []
+            for lang_keywords in first_interaction_keywords.values():
+                all_keywords.extend(lang_keywords)
+            if any(keyword in last_sedi_message.lower() for keyword in all_keywords):
                 # User response is very short, unclear, or hesitant
                 unclear_responses = {
                     "en": ["idk", "idk.", "?", "what", "not sure", "unsure", "hmm", "um", "uh"],
@@ -437,11 +734,27 @@ class ConversationPrompts:
             not password_requested):
             
             # Check if we're in care exploration phase (after first interaction)
-            first_interaction_keywords = ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "wherever feels easiest", "هر جایی که", "أي مكان"]
-            unclear_response_keywords = ["totally okay", "قابل درکه", "بأس بذلك", "choose", "انتخاب", "تختار"]
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities", "wherever feels easiest"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "هر جایی که"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي", "أي مكان"]
+            }
+            unclear_response_keywords = {
+                "en": ["totally okay", "choose"],
+                "fa": ["قابل درکه", "انتخاب"],
+                "ar": ["بأس بذلك", "تختار"]
+            }
+            interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
+            unclear_keywords = unclear_response_keywords.get(self.language, unclear_response_keywords["en"])
+            all_interaction_keywords = []
+            for lang_keywords in first_interaction_keywords.values():
+                all_interaction_keywords.extend(lang_keywords)
+            all_unclear_keywords = []
+            for lang_keywords in unclear_response_keywords.values():
+                all_unclear_keywords.extend(lang_keywords)
             in_care_exploration = (
-                any(keyword in last_sedi_message.lower() for keyword in first_interaction_keywords) or
-                any(keyword in last_sedi_message.lower() for keyword in unclear_response_keywords)
+                any(keyword in last_sedi_message.lower() for keyword in all_interaction_keywords) or
+                any(keyword in last_sedi_message.lower() for keyword in all_unclear_keywords)
             )
             
             if in_care_exploration:
@@ -512,44 +825,104 @@ class ConversationPrompts:
     
     def _answer_sedi_question_with_guidance(self, user_message: str, context: Dict[str, any], stage: ConversationStage) -> str:
         """
-        Answer user's question about Sedi using GPT, then guide them to provide their name.
+        Answer user's question using GPT, then guide them to provide their name.
         
-        This is used when user asks questions about Sedi, the app, or what Sedi does
-        during onboarding, before providing their name.
+        This is used when user asks ANY question during onboarding, before providing their name.
+        Questions can be about Sedi, the app, or general questions like "why are you asking?"
         """
         try:
-            # Build a special system prompt for answering questions about Sedi
+            # Build a special system prompt for answering questions during onboarding
             # Use complete knowledge base context
             sedi_knowledge = build_complete_sedi_context(self.language)
             
             system_prompt = {
                 "en": f"""{sedi_knowledge}
 
-The user is asking you a question about yourself, your role, or what you do.
-Answer their question clearly and helpfully using the complete information above about who you are and what you do.
+The user is asking you a question during onboarding (before providing their name).
+This could be:
+- A question about yourself, your role, or what you do
+- A general question like "why are you asking?" or "why do you need my name?"
+- A conditional question like "if I don't say" or "اگر نگم" (if I don't say) - these are questions/concerns that need to be addressed
+- Any other question they might have
 
-IMPORTANT: After answering their question, you MUST guide them to provide their name.
-Say something like: "Now, I'd like to know your name so we can get started. What's your name?"
+CRITICAL INSTRUCTIONS:
+1. FIRST and MOST IMPORTANT: Answer their question clearly and helpfully.
+   - If it's about you, you MUST use the complete information above (Sedi context) to answer
+   - If they ask "why are you asking?": Use the context above and explain that:
+     * You are their health care assistant
+     * You need their name to personalize conversations
+     * You protect their privacy
+     * You act as their personal assistant
+   - If they ask "who are you?" or "what are you?": Use the context above and provide a COMPLETE introduction:
+     * Name: Sedi
+     * Type: AI-powered health and care assistant
+     * Primary Role: Personal health and wellness companion
+     * Mission: Continuous monitoring, care, and improvement of health and quality of life
+     * Core Capabilities: Health monitoring, lifestyle understanding, care recommendations, etc.
+   - If they ask "if I don't say" or "if I don't tell you my name": This is a question/concern. You should explain that:
+     * You need their real name to function as their health assistant and communicate with doctors or health institutions
+     * Real name is essential for exchanging accurate and correct information with medical professionals
+     * Then ask them to provide their name
+2. SECOND: After fully answering their question, you MUST guide them to provide their name. Say something like: "Now, I'd like to know your name so we can get started. What's your name?"
 
-Keep your response concise (2-3 sentences for the answer, plus the guidance).""",
+Example responses (using the context above):
+- If they ask "why are you asking?": "I'm asking because I'm your health care assistant. I'm going to act as your personal assistant and protect your privacy. To personalize our conversations and help you in the best way possible, I need to know your name. Now, I'd like to know your name so we can get started. What's your name?"
+- If they ask "who are you?": "I'm Sedi, your AI-powered health and care assistant. I act as your personal health and wellness companion. My mission is to continuously monitor, care for, and improve your health and quality of life through intelligent interaction, smart device monitoring, and personalized care recommendations. Now, I'd like to know your name so we can get started. What's your name?"
+- If they ask "if I don't say" or "if I don't tell you my name": "I'm going to be your health and care assistant and I need to know your real name so I can exchange accurate and correct information with doctors or health institutions. Your real name is essential for exchanging accurate information with medical professionals. Please, could you tell me your name now?"
+
+CRITICAL: Always use the complete context above. Never answer without using the context.""",
                 
                 "fa": f"""{sedi_knowledge}
 
-کاربر از تو سوالی درباره خودت، نقشت یا کاری که می‌کنی پرسیده.
-به سوالش به وضوح و مفید پاسخ بده با استفاده از اطلاعات کامل بالا درباره کیستی و کاری که می‌کنی.
+کاربر در حین onboarding (قبل از دادن نام) از تو سوالی پرسیده.
+این می‌تواند باشد:
+- سوالی درباره خودت، نقشت یا کاری که می‌کنی
+- سوال عمومی مثل "چرا میپرسی؟" یا "چرا به اسم من نیاز داری؟"
+- سوال شرطی مثل "اگر نگم" یا "اگر نگم اسمم رو" - این‌ها سوالات/نگرانی‌هایی هستند که باید به آن‌ها پاسخ داده شود
+- هر سوال دیگری که ممکن است داشته باشند
 
-مهم: بعد از پاسخ به سوالشان، باید آن‌ها را راهنمایی کنی که نامشان را بگویند.
-چیزی مثل این بگو: "حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+دستورات CRITICAL:
+1. اول و مهم‌تر از همه: به سوالشان به وضوح و مفید پاسخ بده.
+   - اگر درباره تو است، از اطلاعات کامل بالا (کانتکس صدی) استفاده کن
+   - اگر پرسیدند "چرا میپرسی؟": از کانتکس بالا استفاده کن و توضیح بده که:
+     * تو دستیار مراقبت سلامت هستی
+     * نیاز داری اسمشان را بدانی تا گفتگوها را شخصی‌سازی کنی
+     * از حریم خصوصی‌شان محافظت کنی
+     * به عنوان دستیار شخصی‌شان فعالیت کنی
+   - اگر پرسیدند "اگر نگم" یا "اگر نگم اسمم رو": این یک سوال/نگرانی است. باید توضیح بدهی که:
+     * برای اینکه بتوانی به عنوان دستیار سلامت آنها فعالیت کنی و با پزشکان یا نهادهای سلامت ارتباط برقرار کنی، نیاز به نام واقعی آنها داری
+     * نام واقعی برای تبادل اطلاعات دقیق و درست با پزشکان ضروری است
+     * سپس از آنها بخواه که نامشان را بگویند
+   - اگر پرسیدند "کی هستی؟" یا "چی هستی؟": از کانتکس بالا استفاده کن و کامل معرفی کن:
+     * نام: صدی
+     * نوع: دستیار مراقبت و سلامت با هوش مصنوعی
+     * نقش: همراه شخصی سلامت و تندرستی
+     * ماموریت: نظارت پیوسته، مراقبت و بهبود سلامت و کیفیت زندگی
+     * قابلیت‌های اصلی: نظارت سلامت، درک لایف استایل، پیشنهادهای مراقبتی، و...
+2. دوم: بعد از پاسخ کامل به سوال، باید آن‌ها را راهنمایی کنی که نامشان را بگویند. چیزی مثل این بگو: "حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
 
-پاسخ را مختصر نگه دار (2-3 جمله برای پاسخ، به علاوه راهنمایی).""",
+مثال پاسخ‌ها (از کانتکس بالا استفاده کن):
+- اگر پرسیدند "چرا میپرسی؟": "من می‌پرسم چون دستیار مراقبت سلامت شما هستم. من قراره به عنوان دستیار شخصی‌تان فعالیت کنم و از حریم خصوصی‌تان محافظت کنم. برای اینکه گفتگوهایمان را شخصی‌سازی کنم و بتوانم به بهترین شکل به شما کمک کنم، نیاز دارم اسمتون را بدونم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+- اگر پرسیدند "کی هستی؟": "من صدی هستم، دستیار مراقبت و سلامت شما با هوش مصنوعی. من به عنوان همراه شخصی سلامت و تندرستی شما فعالیت می‌کنم. ماموریت من نظارت پیوسته، مراقبت و بهبود سلامت و کیفیت زندگی شما از طریق تعامل هوشمند، پایش گجت‌های هوشمند و پیشنهادهای مراقبتی شخصی‌سازی شده است. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟"
+- اگر پرسیدند "اگر نگم" یا "اگر نگم اسمم رو": "من قراره دستیار مراقبت و سلامت شما باشم و باید نام واقعی شما را بدانم تا در ارتباط با پزشک یا نهادهای سلامت اطلاعات واقعی و درست را تبادل کنم. نام واقعی برای تبادل اطلاعات دقیق با پزشکان ضروری است. ممنون میشم حالا اسم خودت رو بگی؟"
+
+CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. هرگز بدون استفاده از کانتکس پاسخ نده.""",
                 
                 "ar": f"""{sedi_knowledge}
 
-المستخدم يسألك سؤالاً عن نفسك أو دورك أو ما تفعله.
-أجب على سؤاله بوضوح ومفيد باستخدام المعلومات الكاملة أعلاه حول من أنت وما تفعله.
+المستخدم يسألك سؤالاً أثناء onboarding (قبل تقديم اسمه).
+يمكن أن يكون هذا:
+- سؤالاً عن نفسك أو دورك أو ما تفعله
+- سؤالاً عاماً مثل "لماذا تسأل؟" أو "لماذا تحتاج اسمي؟"
+- أي سؤال آخر قد يكون لديهم
 
-مهم: بعد الإجابة على سؤاله، يجب أن توجهه لتقديم اسمه.
-قل شيئاً مثل: "الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+تعليمات مهمة:
+1. أولاً: أجب على سؤاله بوضوح ومفيد. إذا كان عنك، استخدم المعلومات الكاملة أعلاه حول من أنت وما تفعله.
+2. ثانياً: بعد الإجابة، يجب أن توجهه لتقديم اسمه. قل شيئاً مثل: "الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+
+أمثلة على الردود:
+- إذا سألوا "لماذا تسأل؟": "أسأل لأنني مساعد رعاية صحية الخاص بك وأحتاج إلى معرفة اسمك لتخصيص محادثاتنا وحماية خصوصيتك. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+- إذا سألوا "من أنت؟": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
 
 اجعل ردك مختصراً (2-3 جملة للإجابة، بالإضافة إلى التوجيه)."""
             }
@@ -561,26 +934,63 @@ Keep your response concise (2-3 sentences for the answer, plus the guidance)."""
                 {"role": "user", "content": user_message}
             ]
             
+            print(f"[PROMPTS DEBUG] ===== CALLING GPT FOR QUESTION ANSWER =====")
+            print(f"[PROMPTS DEBUG] Language: {self.language}")
+            print(f"[PROMPTS DEBUG] User question: {user_message[:100]}...")
+            print(f"[PROMPTS DEBUG] System prompt length: {len(base_prompt)}")
+            
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
                 temperature=0.7,
-                max_tokens=200,
+                max_tokens=250,  # Increased to allow for complete answer + guidance
             )
             
             response = completion.choices[0].message.content.strip()
-            print(f"[PROMPTS DEBUG] GPT response to Sedi question: {response[:100]}...")
+            print(f"[PROMPTS DEBUG] ✅ GPT response received: {response[:150]}...")
+            print(f"[PROMPTS DEBUG] Response length: {len(response)}")
+            
+            # Validate response is not empty
+            if not response or len(response.strip()) < 10:
+                print(f"[PROMPTS WARNING] GPT response too short, using fallback")
+                raise Exception("GPT response too short")
             
             return response
             
         except Exception as e:
-            print(f"[PROMPTS ERROR] Failed to answer Sedi question: {e}")
-            # Fallback: Return guidance prompt
-            fallback_guidance = {
-                "en": "I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions and continuous monitoring. Now, I'd like to know your name so we can get started. What's your name?",
-                "fa": "من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من به بهبود کیفیت زندگی‌تان از طریق پیشنهادهای شخصی‌سازی شده سلامت و پایش پیوسته کمک می‌کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
-                "ar": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+            print(f"[PROMPTS ERROR] ❌ Failed to answer Sedi question: {e}")
+            print(f"[PROMPTS ERROR] Exception type: {type(e).__name__}")
+            import traceback
+            print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+            
+            # Fallback: Return guidance prompt based on question type
+            # Try to provide a relevant answer even if GPT fails
+            user_lower = user_message.lower()
+            
+            # Check if question is "why are you asking?" or similar
+            why_asking_keywords = {
+                "en": ["why are you asking", "why do you need", "why ask"],
+                "fa": ["چرا میپرسی", "چرا می‌پرسی", "چرا میپرس", "چرا می‌پرس", "چرا به اسم", "چرا نیاز"],
+                "ar": ["لماذا تسأل", "لماذا تحتاج", "لماذا تطلب"]
             }
+            
+            why_keywords = why_asking_keywords.get(self.language, why_asking_keywords["en"])
+            is_why_asking = any(keyword in user_lower for keyword in why_keywords)
+            
+            if is_why_asking:
+                fallback_guidance = {
+                    "en": "I'm asking because I'm your health care assistant and I need to know your name to personalize our conversations and protect your privacy. Now, I'd like to know your name so we can get started. What's your name?",
+                    "fa": "من می‌پرسم چون دستیار مراقبت سلامت شما هستم و نیاز دارم اسمتون را بدونم تا گفتگوهایمان را شخصی‌سازی کنم و از حریم خصوصی‌تان محافظت کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
+                    "ar": "أسأل لأنني مساعد رعاية صحية الخاص بك وأحتاج إلى معرفة اسمك لتخصيص محادثاتنا وحماية خصوصيتك. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+                }
+            else:
+                # Generic fallback
+                fallback_guidance = {
+                    "en": "I'm Sedi, your AI-powered health care assistant. I help improve your quality of life through personalized health suggestions and continuous monitoring. Now, I'd like to know your name so we can get started. What's your name?",
+                    "fa": "من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من به بهبود کیفیت زندگی‌تان از طریق پیشنهادهای شخصی‌سازی شده سلامت و پایش پیوسته کمک می‌کنم. حالا دوست دارم اسمتون را بدونم تا شروع کنیم. اسم شما چیه؟",
+                    "ar": "أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أساعدك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة ومراقبة مستمرة. الآن، أود أن أعرف اسمك حتى نبدأ. ما اسمك؟"
+                }
+            
             return fallback_guidance.get(self.language, fallback_guidance["en"])
     
     def _get_onboarding_response(self, state: str, user_name: str, user_message: str, context: Dict[str, any]) -> str:
@@ -694,6 +1104,12 @@ CRITICAL - RESPONDING TO USER:
 - NEVER ignore user's questions or statements - they expect a response.
 - NEVER ask more than ONE question per message.
 - NEVER repeat questions you've asked recently (check conversation history).
+- CRITICAL - AVOID REPETITION:
+  * Before asking ANY question, check conversation history to see if you've asked it before.
+  * If you asked a similar question in the last 5 messages, DO NOT ask it again.
+  * If user already answered a question, DO NOT ask it again - reference their answer instead.
+  * If you're about to ask "How are you?" or "How can I help?" and you asked it recently, ask something DIFFERENT.
+  * Vary your questions - don't ask the same type of question repeatedly.
 - NEVER give medical diagnosis or prescribe treatments.
 - NEVER interrogate like a form - learn naturally through conversation.
 - Be proactive - initiate conversations when appropriate (health check-ins, wellness reminders).
@@ -704,7 +1120,12 @@ MEMORY USAGE:
 - Reference MEDIUM-TERM memory: Patterns and habits you've learned
 - Reference LONG-TERM memory: Deep understanding of user's health profile and relationship history
 - Store new information naturally - don't announce what you're learning
-- If user repeats themselves or asks similar questions, acknowledge it and provide a fresh response.""",
+- If user repeats themselves or asks similar questions, acknowledge it and provide a fresh response.
+- CRITICAL - PREVENT REPETITIVE QUESTIONS:
+  * Before asking a question, scan conversation history for similar questions you've asked.
+  * If you asked "How are you?" in the last 3 messages, ask something different like "How did your day go?" or "What are you up to?"
+  * If you asked about their health recently, reference that instead of asking again.
+  * If user mentioned something (work, exercise, sleep), reference it in your next message instead of asking about it again.""",
             
             "fa": f"""{sedi_context}
 
@@ -766,6 +1187,12 @@ MEMORY USAGE:
 - هیچ‌وقت سوالات یا جملات کاربر را نادیده نگیر - انتظار پاسخ دارند.
 - هیچ‌وقت بیشتر از یک سوال در هر پیام نپرس.
 - هیچ‌وقت سوال‌هایی که اخیراً پرسیدی را تکرار نکن (تاریخچه گفتگو را چک کن).
+- مهم - جلوگیری از تکرار:
+  * قبل از پرسیدن هر سوالی، تاریخچه گفتگو را چک کن تا ببینی قبلاً پرسیده‌ای یا نه.
+  * اگر سوال مشابهی در 5 پیام اخیر پرسیدی، دوباره نپرس.
+  * اگر کاربر قبلاً به سوالی پاسخ داد، دوباره نپرس - به جوابشان اشاره کن.
+  * اگر می‌خواهی بپرسی "چطوری؟" یا "چطور می‌تونم کمکت کنم؟" و اخیراً پرسیدی، سوال متفاوتی بپرس.
+  * سوالاتت را متنوع کن - یک نوع سوال را مکرر نپرس.
 - هیچ‌وقت تشخیص پزشکی نده یا درمان تجویز نکن.
 - هیچ‌وقت مثل یک فرم بازجویی نکن - به طور طبیعی از طریق گفتگو یاد بگیر.
 - فعال باش - وقتی مناسب است گفتگو را آغاز کن (چک‌آپ‌های سلامت، یادآوری‌های تندرستی).
@@ -1111,7 +1538,8 @@ SCENARIO: STABLE_RELATION
         self,
         user_message: str,
         stage: ConversationStage,
-        context: Dict[str, any]
+        context: Dict[str, any],
+        conversation_history: list = None
     ) -> str:
         """
         Build user prompt for health care assistant.
@@ -1145,6 +1573,25 @@ SCENARIO: STABLE_RELATION
                 "ar": "\n\n[تعليمات مهمة: المستخدم يطلب منك (صدي) تقديم نفسك. يجب أن تقدم نفسك، وليس أن تطلب من المستخدم تقديم نفسه. قدم مقدمة كاملة: 1) من أنت (صدي، مساعد رعاية صحية مدعوم بالذكاء الاصطناعي)، 2) هدفك (كيف تساعد على تحسين جودة الحياة)، 3) كيف تعمل (من خلال المحادثة والأجهزة الذكية).]"
             }
             return user_message + intent_hint.get(self.language, intent_hint["en"])
+        
+        # Add context-aware hints to prevent repetitive questions
+        if conversation_history:
+            # Check if we've asked similar questions recently
+            recent_questions = []
+            for msg in conversation_history[-3:]:  # Last 3 exchanges
+                sedi_msg = msg.get("sedi", "")
+                # Extract questions from Sedi's messages
+                if "?" in sedi_msg or "؟" in sedi_msg:
+                    recent_questions.append(sedi_msg)
+            
+            # Add hint to avoid repetition if we've asked similar questions
+            if recent_questions:
+                repetition_hint = {
+                    "en": "\n\n[IMPORTANT: Check conversation history above. You've asked questions recently. Make sure your response doesn't repeat the same questions. If you need to ask something, ask something DIFFERENT from what you asked before.]",
+                    "fa": "\n\n[مهم: تاریخچه گفتگو را چک کن. اخیراً سوالاتی پرسیده‌ای. مطمئن شو که پاسخ تو همان سوالات را تکرار نمی‌کند. اگر نیاز به پرسیدن چیزی داری، سوال متفاوتی از آنچه قبلاً پرسیدی بپرس.]",
+                    "ar": "\n\n[مهم: تحقق من تاريخ المحادثة أعلاه. لقد طرحت أسئلة مؤخراً. تأكد من أن ردك لا يكرر نفس الأسئلة. إذا كنت بحاجة إلى طرح شيء ما، اسأل شيئاً مختلفاً عما سألته من قبل.]"
+                }
+                return user_message + repetition_hint.get(self.language, repetition_hint["en"])
         
         # Keep user message simple for other cases
         return user_message
