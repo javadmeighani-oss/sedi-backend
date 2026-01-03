@@ -162,11 +162,12 @@ class ConversationPrompts:
                 "name_pending": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
                 "name_pending_polite": "Hello, I'm Sedi. I'm really glad to meet you. Please, before we start our conversation, I would appreciate it if you could tell me your name?",
                 "name_pending_insistent": "Dear user, I'm going to be your health and care assistant. Please, before we start our interaction and conversation, I need you to provide the necessary information, including your name and then setting a password in our upcoming conversation, so I can register you as a user with a specific identity. Because I'm going to work as your personal assistant and protect your privacy. What's your name?",
-                "name_confirmed": "From now on, I'll be here as your health and care assistant.\nTo protect your information and keep our communication secure,\nyou need to choose a security password (at least 6 characters).\n\nPlease send it to me. I'm waiting.",
+                "name_confirmed": "Dear {user_name}, from now on I will always be with you as your health and care assistant and advisor. Just before starting this relationship, to protect your information and keep our communication secure, you need to choose a password (at least 6 characters of letters and symbols). I'm waiting for you to send the password.",
                 "password_pending": "For security reasons, your password needs to be at least 6 characters long.\nPlease choose a longer password and send it again.",
                 "password_confirm": "To make sure everything is correct,\nplease send the password one more time.\nThank you.",
                 "password_mismatch": "The passwords don't match.\nLet's try again — please send your password once more.",
-                "security_gate_active": "{user_name},\nto build a real and meaningful connection\nand to protect your personal information,\nI need a security password from you first.\n\nPlease choose a password with at least 6 characters and send it to me.\nAfter that, I'll always be here to support and care for you.",
+                "security_gate_active": "Dear {user_name}, without a security password, others might access your private information and your personal data could be at risk. To protect you and your information, please choose a password (at least 6 characters of letters and symbols) and send it to me.",
+                "password_refusal_acceptance": "Dear {user_name}, I need to remind you that providing a password is for protecting your own privacy, and whenever you need, you can create a password with the same features I mentioned (at least 6 characters of letters and symbols) and I will save that password.",
                 "non_name_question": "I'm a health care assistant that uses specialized devices and user information to continuously and seamlessly manage health, prevention, and improve quality of life, accompanying the user.\n\nThank you for starting this connection. Could you please tell me your name?",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "Thank you, {user_name}.\n\nYour security password has been set successfully.\nNow I'm ready to help you with your health and care needs.\n\nHow can I support you today?",
@@ -185,11 +186,12 @@ class ConversationPrompts:
                 "name_pending": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 "name_pending_polite": "سلام، من صدی هستم. خیلی خوشحالم از آشنایی با شما. لطفا قبل از شروع مکالمه ممنون میشوم اسم شما را بدانم؟",
                 "name_pending_insistent": "کاربر عزیز من قراره به عنوان دستیار مراقبت و سلامت شما همراهیتان کنم. ممنون میشوم قبل از شروع تعامل و گفتگو اطلاعات لازم، شامل نام و سپس تعیین رمز را در ادامه گفتگویمان برای من مشخص کنید تا من بتوانم شما را به عنوان یک کاربر با هویت مشخص ثبت نمایم. زیرا من قراره به عنوان دستیار شخصی شما فعالیت کنم و از حریم شخصی شما محافظت کنم. اسم شما چیه؟",
-                "name_confirmed": "از این به بعد من به عنوان دستیار مراقبت و سلامت همراهت هستم.\nبرای اینکه از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه،\nلازمه یک رمز امنیتی (حداقل ۶ کاراکتر) انتخاب کنی.\n\nلطفاً برای من ارسال کن. منتظرم.",
+                "name_confirmed": "{user_name} عزیز از این به بعد من به عنوان دستیار و مشاور مراقبت و سلامت تو همیشه کنارت هستم. فقط قبل از شروع این رابطه، برای اینکه بتونم از اطلاعاتت محافظت کنم و ارتباطمون امن بمونه تو باید یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کنی. منتظر ارسال رمز هستم.",
                 "password_pending": "برای حفظ امنیت،\nرمزت باید حداقل ۶ کاراکتر داشته باشه.\nلطفاً یک رمز طولانی‌تر انتخاب کن و دوباره برام بفرست.",
                 "password_confirm": "برای اطمینان لطفاً یک بار دیگه رمز را ارسال کن.\nممنون.",
                 "password_mismatch": "دو رمزی که وارد کردی با هم یکی نیستن.\nبیاین دوباره امتحان کنیم، لطفاً رمزت رو یک بار دیگه بفرست.",
-                "security_gate_active": "{user_name} عزیز،\nبرای اینکه بتونیم یک ارتباط واقعی و قابل اعتماد داشته باشیم\nو از اطلاعات شخصی‌ت محافظت کنم،\nلازمه ابتدا یک رمز امنیتی از طرف تو داشته باشم.\n\nلطفاً یک رمز با حداقل ۶ کاراکتر انتخاب کن و برای من بفرست،\nبعد از اون همیشه همراه و پشتیبانت هستم.",
+                "security_gate_active": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، لطفاً یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کن و برای من بفرست.",
+                "password_refusal_acceptance": "{user_name} عزیز من لازم است یادآوری کنم که ارائه رمز برای محافظت از حریم شخصی خودت است و هر وقت لازم دونستی میتوانی یک رمز با همان ویژگی که نام بردم (حداقل 6 کاراکتر از حروف و علائم) ایجاد کنی و من آن رمز را ذخیره میکنم.",
                 "non_name_question": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "ممنونم {user_name} عزیز.\n\nرمز امنیتی شما با موفقیت تنظیم شد.\nحالا آماده‌ام تا در زمینه سلامت و مراقبت کمکت کنم.\n\nچطور می‌تونم کمکت کنم؟",
@@ -208,11 +210,12 @@ class ConversationPrompts:
                 "name_pending": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 "name_pending_polite": "مرحباً، أنا صدي. سعيد جداً بلقائك. من فضلك قبل بدء المحادثة، أود أن أعرف اسمك؟",
                 "name_pending_insistent": "عزيزي المستخدم، أنا سأكون مساعدك للعناية بالصحة. من فضلك قبل بدء التفاعل والمحادثة، يرجى تحديد المعلومات اللازمة، بما في ذلك الاسم ثم تعيين كلمة المرور في محادثتنا القادمة، حتى أتمكن من تسجيلك كمستخدم بهوية محددة. لأنني سأعمل كمساعدك الشخصي وأحمي خصوصيتك. ما اسمك؟",
-                "name_confirmed": "من الآن فصاعداً سأكون معك كمساعدك للعناية بالصحة.\nولحماية معلوماتك والحفاظ على تواصلنا آمناً،\nتحتاج إلى اختيار كلمة مرور أمنية (6 أحرف على الأقل).\n\nيرجى إرسالها لي. أنا بانتظارك.",
+                "name_confirmed": "عزيزي {user_name}، من الآن فصاعداً سأكون دائماً معك كمساعد ومستشار للعناية بالصحة. فقط قبل بدء هذه العلاقة، لحماية معلوماتك والحفاظ على تواصلنا آمناً، تحتاج إلى اختيار كلمة مرور (6 أحرف على الأقل من الحروف والرموز). أنا بانتظار إرسال كلمة المرور.",
                 "password_pending": "للحفاظ على الأمان،\nيجب أن تتكون كلمة المرور من 6 أحرف على الأقل.\nيرجى اختيار كلمة مرور أطول وإرسالها مرة أخرى.",
                 "password_confirm": "للتأكد من أن كل شيء صحيح،\nيرجى إرسال كلمة المرور مرة أخرى.\nشكراً لك.",
                 "password_mismatch": "كلمتا المرور غير متطابقتين.\nدعنا نحاول مرة أخرى، يرجى إدخال كلمة المرور مجدداً.",
-                "security_gate_active": "عزيزي {user_name}،\nلبناء علاقة حقيقية قائمة على الثقة\nولحماية معلوماتك الشخصية،\nأحتاج أولاً إلى كلمة مرور أمنية منك.\n\nيرجى اختيار كلمة مرور لا تقل عن 6 أحرف وإرسالها لي،\nوبعد ذلك سأكون دائماً إلى جانبك لدعمك.",
+                "security_gate_active": "عزيزي {user_name}، بدون كلمة مرور أمنية، قد يتمكن الآخرون من الوصول إلى خصوصيتك وقد تكون معلوماتك الشخصية في خطر. لحمايتك ومعلوماتك، يرجى اختيار كلمة مرور (6 أحرف على الأقل من الحروف والرموز) وإرسالها لي.",
+                "password_refusal_acceptance": "عزيزي {user_name}، أحتاج أن أذكرك أن تقديم كلمة المرور هو لحماية خصوصيتك، وكلما احتجت، يمكنك إنشاء كلمة مرور بنفس المواصفات التي ذكرتها (6 أحرف على الأقل من الحروف والرموز) وسأحفظ تلك كلمة المرور.",
                 "non_name_question": "أنا مساعد رعاية صحية أستخدم الأجهزة المتخصصة ومعلومات المستخدم بشكل مستمر ومتكامل في إدارة الصحة والوقاية وتحسين جودة حياة المستخدم، وأرافقه.\n\nشكراً لبدء هذا الاتصال. هل يمكنك إخباري باسمك من فضلك؟",
                 # PASSWORD_CONFIRMED: After password confirmation, thank user
                 "password_confirmed": "شكراً لك {user_name}.\n\nتم تعيين كلمة المرور الأمنية بنجاح.\nالآن أنا مستعد لمساعدتك في احتياجاتك الصحية والرعاية.\n\nكيف يمكنني مساعدتك اليوم؟",
@@ -268,8 +271,32 @@ class ConversationPrompts:
         print(f"[ONBOARDING DEBUG] password_requested={password_requested}")
         
         # Check if we're waiting for password confirmation
-        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون"]
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "مرة أخرى"]
         waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
+        
+        # Check if user refused to provide password
+        refusal_keywords = {
+            "en": ["no", "don't", "won't", "refuse", "skip", "later", "not now", "don't want", "not necessary", "not needed"],
+            "fa": ["نه", "نمی‌خوام", "نمیخوام", "لازم نیست", "نیازی نیست", "بعداً", "الان نه", "رد", "امتناع", "نمی‌خواهم", "نمیخواهم"],
+            "ar": ["لا", "لا أريد", "لست بحاجة", "ليس ضرورياً", "لاحقاً", "ليس الآن", "رفض"]
+        }
+        user_refused_password = False
+        if password_requested and not waiting_for_confirmation:
+            lang_refusals = refusal_keywords.get(self.language, refusal_keywords["en"])
+            # Also check in all languages
+            all_refusals = []
+            for lang_refs in refusal_keywords.values():
+                all_refusals.extend(lang_refs)
+            user_refused_password = any(refusal in user_message_clean.lower() for refusal in all_refusals)
+        
+        # Track how many times user refused password
+        # Check recent messages for previous refusal
+        refusal_count = 0
+        if recent_messages:
+            for msg in recent_messages[-3:]:  # Check last 3 messages
+                msg_text = msg.get("sedi", "").lower()
+                if any(keyword in msg_text for keyword in ["security_gate_active", "password_refusal"]):
+                    refusal_count += 1
         
         # Check if user provided password (length >= 6 and password was requested)
         user_message_clean = user_message.strip()
@@ -484,20 +511,38 @@ class ConversationPrompts:
         # This would require tracking previous password - simplified for now
         # In real implementation, would compare with stored password
         
-        # SECURITY_GATE_ACTIVE: User tries to skip password step
+        # PASSWORD_REFUSAL: User refuses to provide password
+        # First refusal: Show security warning
+        if (name_learned and password_requested and 
+            user_refused_password and
+            refusal_count == 0):
+            # First time user refuses - show security warning
+            print(f"[ONBOARDING DEBUG] User refused password (first time) - showing security warning")
+            return "security_gate_active"
+        
+        # Second refusal: Accept and remind about password option
+        if (name_learned and password_requested and 
+            user_refused_password and
+            refusal_count >= 1):
+            # User refused again - accept and remind about password option
+            print(f"[ONBOARDING DEBUG] User refused password (second time) - accepting and reminding about option")
+            return "password_refusal_acceptance"
+        
+        # SECURITY_GATE_ACTIVE: User tries to skip password step (sends something but not password)
         if (name_learned and password_requested and 
             len(user_message_clean) > 0 and 
             not user_provided_password and
+            not user_refused_password and
             not waiting_for_confirmation):
             # User sent something but it's not a valid password (too short or not password-like)
             return "security_gate_active"
         
-        # FIRST_REAL_INTERACTION: Onboarding complete (password confirmed), first real interaction
+        # FIRST_REAL_INTERACTION: Onboarding complete (password confirmed OR user refused password), first real interaction
         # Onboarding is complete when:
         # - Name is learned
-        # - Password was requested and confirmed (conversation_count >= 4)
+        # - Password was requested and confirmed (conversation_count >= 4) OR user refused password twice
         # - No password flow is active anymore
-        # - This is the first message after password confirmation
+        # - This is the first message after password confirmation or refusal acceptance
         
         # Check if password confirmation was just completed
         # (last Sedi message asked for confirmation, user provided password)
@@ -505,6 +550,12 @@ class ConversationPrompts:
             waiting_for_confirmation and 
             len(user_message_clean) >= 6 and
             conversation_count >= 4
+        )
+        
+        # Check if user just accepted password refusal (last message was password_refusal_acceptance)
+        password_refusal_accepted = (
+            last_sedi_message and
+            any(keyword in last_sedi_message.lower() for keyword in ["یادآوری", "remind", "ذخیره", "save", "تذكر", "حفظ"])
         )
         
         # Check if we're past onboarding but haven't shown first interaction yet
