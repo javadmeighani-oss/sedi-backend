@@ -44,15 +44,7 @@ def introduce_user(
         if existing_user:
             # Check if it's an anonymous user (can be upgraded)
             if existing_user.name.startswith("anonymous_") and existing_user.secret_key.startswith("temp_"):
-                # Check if new name is already taken
-                name_taken = db.query(User).filter(
-                    User.name == name,
-                    User.id != user_id
-                ).first()
-                if name_taken:
-                    raise HTTPException(status_code=400, detail="User name already exists")
-                
-                # Upgrade anonymous user to registered user
+                # Upgrade anonymous user to registered user (no name uniqueness check)
                 existing_user.name = name
                 existing_user.secret_key = secret_key
                 existing_user.preferred_language = lang
@@ -70,12 +62,7 @@ def introduce_user(
                     timestamp=datetime.utcnow()
                 )
     
-    # Check if name already exists
-    existing_user = db.query(User).filter(User.name == name).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
-
-    # Create new user
+    # Create new user (no name uniqueness check - allow duplicate names)
     new_user = User(name=name, secret_key=secret_key, preferred_language=lang)
     db.add(new_user)
     db.commit()
@@ -239,12 +226,7 @@ def setup_onboarding(
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Check if name already exists
-    existing_user = db.query(User).filter(User.name == name).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User name already exists")
-    
-    # Create new user
+    # Create new user (no name uniqueness check - allow duplicate names)
     new_user = User(
         name=name,
         secret_key=password,

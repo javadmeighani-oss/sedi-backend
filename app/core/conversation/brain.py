@@ -473,18 +473,11 @@ Speak in {language} language.
             
             # Check if name is valid (not empty, not just punctuation)
             if name and len(name) > 1:
-                # Check if name is already taken by another user
-                existing_user = self.db.query(User).filter(
-                    User.name == name,
-                    User.id != user_id
-                ).first()
-                
-                if not existing_user:
-                    # Save name to user
-                    user.name = name
-                    self.db.commit()
-                    self.db.refresh(user)
-                    print(f"[BRAIN DEBUG] Saved user name: {name} for user_id={user_id}")
+                # Save name to user (no uniqueness check - allow duplicate names)
+                user.name = name
+                self.db.commit()
+                self.db.refresh(user)
+                print(f"[BRAIN DEBUG] Saved user name: {name} for user_id={user_id}")
     
     def _get_error_message(self, error_type: str) -> str:
         """Get error message based on type"""

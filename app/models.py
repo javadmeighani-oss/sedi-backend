@@ -9,7 +9,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)              # نام کاربر
+    name = Column(String, nullable=False)              # نام کاربر (no unique constraint - allow duplicate names)
     secret_key = Column(String, nullable=False)                     # رمز شخصی
     preferred_language = Column(String, default="en")               # زبان انتخابی کاربر
     created_at = Column(DateTime, default=datetime.utcnow)          # زمان ثبت‌نام
