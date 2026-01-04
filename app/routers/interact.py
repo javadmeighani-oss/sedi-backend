@@ -217,29 +217,57 @@ def setup_onboarding(
     Returns user_id and initial greeting message.
     Note: Name is no longer stored in database.
     """
-    # Validate password requirements
-    # Only check minimum length (6 characters), any characters allowed
-    if len(password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-    
-    # Create new user (no name field)
-    new_user = User(
-        secret_key=password,
-        preferred_language=language
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    # Generate initial greeting using GPT with Sedi's knowledge base
-    brain = ConversationBrain(db, language=language)
-    initial_message = brain.get_initial_message(new_user.id, None, language)
-    
-    return {
-        "user_id": new_user.id,
-        "message": initial_message,
-        "language": language
-    }
+    try:
+        # Validate password requirements
+        # Only check minimum length (6 characters), any characters allowed
+        if len(password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
+        # Create new user (no name field)
+        new_user = User(
+            secret_key=password,
+            preferred_language=language
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        
+        # Generate initial greeting using GPT with Sedi's knowledge base
+        try:
+            brain = ConversationBrain(db, language=language)
+            initial_message = brain.get_initial_message(new_user.id, None, language)
+        except Exception as e:
+            print(f"[ROUTER ERROR] Error generating initial message: {e}")
+            import traceback
+            print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
+            # Use fallback message if GPT fails
+            if language == "fa":
+                initial_message = f"سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
+            elif language == "ar":
+                initial_message = f"مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
+            else:
+                initial_message = f"Hello! I'm Sedi, your health care assistant. Welcome!"
+        
+        return {
+            "user_id": new_user.id,
+            "message": initial_message,
+            "language": language
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 400 for validation)
+        raise
+    except Exception as e:
+        # Log the error for debugging
+        print(f"[ROUTER ERROR] Exception in onboarding endpoint: {e}")
+        print(f"[ROUTER ERROR] Exception type: {type(e).__name__}")
+        import traceback
+        print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
+        
+        # Return 500 error with user-friendly message
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while setting up your account. Please try again."
+        )
 
 
 # ---------------- Get Greeting ----------------
