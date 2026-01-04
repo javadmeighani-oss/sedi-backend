@@ -235,14 +235,9 @@ def setup_onboarding(
     Returns user_id and initial greeting message.
     """
     # Validate password requirements
+    # Only check minimum length (6 characters), any characters allowed
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-    if not any(c.isalpha() for c in password):
-        raise HTTPException(status_code=400, detail="Password must contain letters")
-    if not any(c.isdigit() for c in password):
-        raise HTTPException(status_code=400, detail="Password must contain numbers")
-    if not any(c.isupper() for c in password):
-        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
     
     # Check if name already exists
     existing_user = db.query(User).filter(User.name == name).first()
