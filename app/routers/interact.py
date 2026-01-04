@@ -84,6 +84,7 @@ def chat_with_sedi(
     message: str = Query(...),
     lang: str = Query("en"),
     user_id: Optional[int] = Query(None),  # CRITICAL: Frontend must send user_id from previous response
+    name: Optional[str] = Query(None),  # User's name from frontend (stored locally)
     secret_key: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
@@ -168,15 +169,16 @@ def chat_with_sedi(
                 requires_security_check=requires_security_check
             )
         
-        # Normal chat message
-        result = brain.process_message(user.id, message)
+        # Normal chat message (pass name from frontend)
+        result = brain.process_message(user.id, message, user_name=name)
         
         return InteractionResponse(
             message=result["message"],
             language=result["language"],
             user_id=user.id,
             timestamp=datetime.utcnow(),
-            requires_security_check=requires_security_check
+            requires_security_check=requires_security_check,
+            detected_name=result.get("detected_name")  # Name detected from conversation
         )
     except Exception as e:
         # Log the error for debugging

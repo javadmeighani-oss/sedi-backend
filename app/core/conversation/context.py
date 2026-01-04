@@ -29,12 +29,14 @@ class ConversationContext:
         user_id: int,
         stage: ConversationStage,
         memory: ConversationMemory,
-        user_message: Optional[str] = None
+        user_message: Optional[str] = None,
+        user_name: Optional[str] = None  # User's name from frontend (stored locally)
     ):
         self.user_id = user_id
         self.stage = stage
         self.memory = memory
         self.user_message = user_message
+        self.user_name = user_name  # Name from frontend
     
     def build(self) -> Dict[str, any]:
         """
@@ -83,10 +85,14 @@ class ConversationContext:
         
         # EXPERIENCE STABILITY: Build context with structured memory domains
         # This prevents repetition by providing organized, RAG-ready facts
+        # Priority: frontend name > extracted name from memory > None
+        extracted_name = memory_facts.get("profile", {}).get("name")
+        final_user_name = self.user_name or extracted_name  # Use frontend name if available, otherwise extracted
+        
         return {
             "user_id": self.user_id,
             "stage": self.stage.value,
-            "user_name": memory_facts.get("profile", {}).get("name"),  # From structured profile domain
+            "user_name": final_user_name,  # From frontend (priority) or extracted from memory
             "memory_facts": memory_facts,  # Structured domains (profile, medical, vitals, etc.)
             "recent_messages": recent_history,  # SHORT-TERM: Recent conversation context
             "conversation_count": conversation_count,

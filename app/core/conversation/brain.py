@@ -89,7 +89,8 @@ class ConversationBrain:
                 user_id=user_id,
                 stage=current_stage,
                 memory=self.memory,
-                user_message=user_message
+                user_message=user_message,
+                user_name=user_name  # Pass name from frontend
             )
             context_data = context.build()
             print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
@@ -98,9 +99,9 @@ class ConversationBrain:
             engagement_level = self._determine_engagement_level(context_data)
             print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
             
-            # Check if we need to save user name from onboarding
-            # This happens when user provides name in response to "what's your name?"
-            self._save_user_name_if_provided(user_id, user_message, current_stage, context_data)
+            # Check if we need to extract user name from conversation
+            # This happens when user provides name in response to "what's your name?" or changes name
+            detected_name = self._extract_name_from_message(user_id, user_message, current_stage, context_data)
             
             sedi_response = self.prompts.generate_response(
                 context_data, 
@@ -140,7 +141,8 @@ class ConversationBrain:
                 "message": sedi_response,
                 "language": self.language,
                 "stage": new_stage.value,  # Return NEW stage (after save and transition)
-                "metadata": metadata
+                "metadata": metadata,
+                "detected_name": detected_name  # Name detected from conversation (to update frontend)
             }
         except Exception as e:
             # Log the error for debugging
@@ -397,30 +399,94 @@ Speak in {language} language.
         else:
             return "neutral"
     
-    def _save_user_name_if_provided(
+    def _extract_name_from_message(
         self,
         user_id: int,
         user_message: str,
         stage: ConversationStage,
         context: Dict[str, any]
-    ):
+    ) -> Optional[str]:
         """
-        Save user name if provided during onboarding.
+        Extract user name from conversation message if provided.
         
-        This handles the case where user provides name in response to "what's your name?"
-        during FIRST_CONTACT or INTRODUCTION stage.
+        Returns detected name if found, None otherwise.
+        Name is not saved to database - frontend will update UserProfile.
         """
-        # Only check in onboarding stages
-        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
-            return
+        # Check if this looks like a name response
+        user_message_clean = user_message.strip()
+        conversation_count = context.get("conversation_count", 0)
         
-        # Check if user already has a real name (not anonymous)
-        user = self.db.query(User).filter(User.id == user_id).first()
-        if not user:
-            return
+        # Check if last Sedi message asked for name or user wants to change name
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
         
-        # Name is no longer stored in database - skip name saving
-        return
+        name_keywords = [
+            "name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك",
+            "اسمتون", "اسمت", "اسمتون را", "اسم شما چیه", "اسم شما چیست", "اسمت چیه", "اسمت چیست",
+            "میتونم اسمتون", "میتونم اسمت", "بدونم اسمتون", "بدونم اسمت", "بدانم اسمتون", "بدانم اسمت",
+            "call me", "من را", "منو", "بگو", "بگو به من"
+        ]
+        name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
+        
+        # Also check if user explicitly says they want to change name
+        change_name_keywords = [
+            "my name is", "i'm", "i am", "اسم من", "من", "اسمم", "اسم", 
+            "call me", "من را", "منو", "بگو", "بگو به من"
+        ]
+        user_wants_to_change_name = any(keyword in user_message_clean.lower() for keyword in change_name_keywords)
+        
+        # CRITICAL: Check if password was requested - don't extract name if we're in password flow
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # List of common short responses that should NOT be saved as names
+        invalid_name_responses = {
+            "en": ["good", "fine", "ok", "okay", "yes", "no", "hi", "hello", "hey", "thanks", "thank you", "well", "great", "nice"],
+            "fa": ["خوب", "خوبم", "خوبی", "خوبه", "بله", "نه", "سلام", "درود", "ممنون", "تشکر", "عالی", "خوب است"],
+            "ar": ["جيد", "حسنا", "نعم", "لا", "مرحبا", "شكرا", "شكراً"]
+        }
+        invalid_responses = invalid_name_responses.get(self.language, invalid_name_responses["en"])
+        all_invalid = []
+        for lang_responses in invalid_name_responses.values():
+            all_invalid.extend(lang_responses)
+        
+        is_invalid_response = user_message_clean.lower() in [r.lower() for r in all_invalid]
+        
+        # Extract name if:
+        # 1. Name was requested OR user wants to change name
+        # 2. Not in password flow
+        # 3. Not an invalid response
+        # 4. Looks like a name (reasonable length, no digits, etc.)
+        if ((name_was_requested or user_wants_to_change_name) and 
+            not password_requested and
+            not is_invalid_response and
+            2 <= len(user_message_clean) <= 30 and
+            not any(char.isdigit() for char in user_message_clean) and
+            not any(char in user_message_clean for char in ["?", "؟", "!", "!"])):
+            
+            # Extract name (first word, clean)
+            if user_wants_to_change_name:
+                # Extract after keyword
+                for kw in change_name_keywords:
+                    if kw in user_message_clean.lower():
+                        parts = user_message_clean.split(kw, 1)
+                        if len(parts) > 1:
+                            name = parts[1].strip().split()[0] if parts[1].strip() else None
+                            if name and len(name) > 1:
+                                print(f"[BRAIN DEBUG] Name detected from change request: {name} for user_id={user_id}")
+                                return name
+                # If no keyword found, use first word
+                name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
+            else:
+                # Direct name response
+                name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
+            
+            name = name.strip()
+            if name and len(name) > 1:
+                print(f"[BRAIN DEBUG] Name detected: {name} for user_id={user_id} (will be sent to frontend)")
+                return name
+        
+        return None
         
         # Check if this looks like a name response
         # (short, no digits, reasonable length, and this is early in conversation)
