@@ -44,7 +44,7 @@ def add_health_data(payload: dict, db: Session = Depends(get_db)):
 
     # تولید متن هوشمند با توجه به وضعیت سلامت
     msg = generate_notification_text(
-        user_name=user.name,
+        user_name=None,  # Name no longer stored in database
         language=user.preferred_language or "en",
         context={
             "heart_rate": data.heart_rate,
@@ -68,7 +68,7 @@ def add_health_data(payload: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(notif)
 
-    print(f"[HEALTH] New health data saved for {user.name or user.phone}")
+    print(f"[HEALTH] New health data saved for user_id={user.id}")
     print(f"[NOTIF] {msg}")
 
     return APIResponse(

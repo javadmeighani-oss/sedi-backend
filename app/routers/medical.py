@@ -60,7 +60,7 @@ def get_medical_records(user_id: int, db: Session = Depends(get_db)):
     )
 
     record = {
-        "user": {"id": user.id, "name": user.name, "phone": user.phone},
+        "user": {"id": user.id, "phone": user.phone},  # Name no longer stored
         "last_health": {
             "heart_rate": getattr(latest_health, "heart_rate", None),
             "spo2": getattr(latest_health, "spo2", None),

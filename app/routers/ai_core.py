@@ -48,7 +48,7 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
 
     # تولید نوتیف هوشمند از موتور زبانی
     notif_data = generate_notification_text(
-        user_name=user.name,
+        user_name=None,  # Name no longer stored in database
         language=user.preferred_language or "en",
         context={
             "heart_rate": avg_hr,
@@ -85,7 +85,7 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
     db.add(memory)
     db.commit()
 
-    print(f"[AI CORE] Notification created for {user.name}: {notif.message}")
+    print(f"[AI CORE] Notification created for user_id={user.id}: {notif.message}")
 
     return APIResponse(
         ok=True,

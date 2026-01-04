@@ -175,7 +175,7 @@ class ConversationBrain:
                 }
             }
     
-    def get_initial_message(self, user_id: int, user_name: str, language: str) -> str:
+    def get_initial_message(self, user_id: int, user_name: Optional[str], language: str) -> str:
         """
         Generate initial message after onboarding.
         Uses GPT with Sedi's knowledge base to introduce Sedi and explain what she does.
@@ -419,9 +419,8 @@ Speak in {language} language.
         if not user:
             return
         
-        # If user already has a real name, don't overwrite
-        if user.name and not user.name.startswith("anonymous_"):
-            return
+        # Name is no longer stored in database - skip name saving
+        return
         
         # Check if this looks like a name response
         # (short, no digits, reasonable length, and this is early in conversation)
@@ -471,13 +470,8 @@ Speak in {language} language.
             name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
             name = name.strip()
             
-            # Check if name is valid (not empty, not just punctuation)
-            if name and len(name) > 1:
-                # Save name to user (no uniqueness check - allow duplicate names)
-                user.name = name
-                self.db.commit()
-                self.db.refresh(user)
-                print(f"[BRAIN DEBUG] Saved user name: {name} for user_id={user_id}")
+            # Name is no longer stored in database - skip saving
+            print(f"[BRAIN DEBUG] Name detected: {name} for user_id={user_id} (not saved to database)")
     
     def _get_error_message(self, error_type: str) -> str:
         """Get error message based on type"""

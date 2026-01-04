@@ -26,9 +26,8 @@ class ConversationMemory:
         self.db = db
     
     def get_user_name(self, user_id: int) -> Optional[str]:
-        """Get user's name from User model"""
-        user = self.db.query(User).filter(User.id == user_id).first()
-        return user.name if user else None
+        """Get user's name from User model - always returns None (name not stored in database)"""
+        return None
     
     def get_recent_messages(self, user_id: int, limit: int = 10) -> List[Memory]:
         """Get recent conversation messages"""
@@ -65,9 +64,9 @@ class ConversationMemory:
         medium_term = self.get_recent_messages(user_id, limit=50)  # Last 50 exchanges (days/weeks)
         long_term = self.get_recent_messages(user_id, limit=200)  # All significant history
         
-        # Get user info
+        # Get user info (name no longer stored in database)
         user = self.db.query(User).filter(User.id == user_id).first()
-        user_name = user.name if user else None
+        user_name = None  # Name no longer stored in database
         
         # EXPERIENCE STABILITY: Structured memory domains
         facts = {
