@@ -216,15 +216,18 @@ def setup_onboarding(
     Setup user onboarding: create user with password and language.
     Returns user_id and initial greeting message.
     Note: Name is no longer stored in database.
+    
+    CRITICAL: This endpoint MUST always return 200 with user_id, even if GPT fails.
+    Only validation errors (400) should prevent user creation.
     """
+    # Step 1: Validate password (only validation that can fail)
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Step 2: Create user - this MUST succeed
+    new_user = None
     try:
-        # Validate password requirements
-        # Only check minimum length (6 characters), any characters allowed
-        if len(password) < 6:
-            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-        
-        # Create new user (no name field)
-        print(f"[ROUTER] Creating new user with password length: {len(password)}, language: {language}")
+        print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
         new_user = User(
             secret_key=password,
             preferred_language=language
@@ -232,55 +235,43 @@ def setup_onboarding(
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        print(f"[ROUTER] ✅ User created successfully - user_id: {new_user.id}")
-        
-        # Generate initial greeting using GPT with Sedi's knowledge base
-        # IMPORTANT: Even if GPT fails, we should still return success with fallback message
-        # User creation is successful, GPT failure should not prevent onboarding
-        initial_message = None
-        try:
-            brain = ConversationBrain(db, language=language)
-            initial_message = brain.get_initial_message(new_user.id, None, language)
-            print(f"[ROUTER] Successfully generated initial message from GPT")
-        except Exception as e:
-            print(f"[ROUTER WARNING] Error generating initial message from GPT: {e}")
-            import traceback
-            print(f"[ROUTER WARNING] Traceback: {traceback.format_exc()}")
-            # Use fallback message if GPT fails - this is not a critical error
-            # User is already created, we just use a simple greeting
-            if language == "fa":
-                initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
-            elif language == "ar":
-                initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
-            else:
-                initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
-            print(f"[ROUTER] Using fallback message: {initial_message}")
-        
-        # Always return success - user is created, message is ready (GPT or fallback)
-        print(f"[ROUTER] ✅ Returning success response - user_id: {new_user.id}, message length: {len(initial_message) if initial_message else 0}")
-        response_data = {
-            "user_id": new_user.id,
-            "message": initial_message,
-            "language": language
-        }
-        print(f"[ROUTER] Response data: {response_data}")
-        return response_data
-    except HTTPException:
-        # Re-raise HTTP exceptions (like 400 for validation)
-        raise
+        print(f"[ONBOARDING] ✅ Step 1 SUCCESS: User created - user_id: {new_user.id}")
     except Exception as e:
-        # Log the error for debugging
-        print(f"[ROUTER ERROR] Critical exception in onboarding endpoint: {e}")
-        print(f"[ROUTER ERROR] Exception type: {type(e).__name__}")
+        print(f"[ONBOARDING] ❌ Step 1 FAILED: Database error creating user: {e}")
         import traceback
-        print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
-        
-        # Only return 500 for critical errors (database, etc.)
-        # GPT failures should not cause 500 errors
+        print(f"[ONBOARDING] Traceback: {traceback.format_exc()}")
+        db.rollback()
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while setting up your account. Please try again."
+            detail="Database error. Please try again."
         )
+    
+    # Step 3: Generate greeting message (GPT or fallback - never fails)
+    initial_message = None
+    try:
+        print(f"[ONBOARDING] Step 2: Generating greeting message from GPT...")
+        brain = ConversationBrain(db, language=language)
+        initial_message = brain.get_initial_message(new_user.id, None, language)
+        print(f"[ONBOARDING] ✅ Step 2 SUCCESS: GPT message generated")
+    except Exception as e:
+        print(f"[ONBOARDING] ⚠️ Step 2 WARNING: GPT failed, using fallback - {e}")
+        # GPT failure is NOT critical - use fallback
+        if language == "fa":
+            initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
+        elif language == "ar":
+            initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
+        else:
+            initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+        print(f"[ONBOARDING] ✅ Step 2 FALLBACK: Using fallback message")
+    
+    # Step 4: Return success response - ALWAYS 200 with user_id
+    response_data = {
+        "user_id": new_user.id,  # CRITICAL: Always present
+        "message": initial_message,  # Always present (GPT or fallback)
+        "language": language  # Always present
+    }
+    print(f"[ONBOARDING] ✅ Step 3: Returning success - user_id: {response_data['user_id']}, message: {response_data['message'][:50]}...")
+    return response_data
 
 
 # ---------------- Get Greeting ----------------
