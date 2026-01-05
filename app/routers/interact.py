@@ -228,22 +228,63 @@ def setup_onboarding(
     new_user = None
     try:
         print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
+        
+        # Check database connection first
+        try:
+            db.execute("SELECT 1")
+            print(f"[ONBOARDING] Database connection: OK")
+        except Exception as conn_error:
+            print(f"[ONBOARDING] ❌ Database connection failed: {conn_error}")
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection failed. Please try again later."
+            )
+        
+        # Create user object
         new_user = User(
             secret_key=password,
             preferred_language=language
         )
+        print(f"[ONBOARDING] User object created: secret_key length={len(password)}, language={language}")
+        
+        # Add to session
         db.add(new_user)
+        print(f"[ONBOARDING] User added to session")
+        
+        # Commit transaction
         db.commit()
+        print(f"[ONBOARDING] Transaction committed")
+        
+        # Refresh to get ID
         db.refresh(new_user)
         print(f"[ONBOARDING] ✅ Step 1 SUCCESS: User created - user_id: {new_user.id}")
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
         print(f"[ONBOARDING] ❌ Step 1 FAILED: Database error creating user: {e}")
+        print(f"[ONBOARDING] Error type: {type(e).__name__}")
         import traceback
         print(f"[ONBOARDING] Traceback: {traceback.format_exc()}")
-        db.rollback()
+        
+        # Rollback transaction
+        try:
+            db.rollback()
+            print(f"[ONBOARDING] Transaction rolled back")
+        except Exception as rollback_error:
+            print(f"[ONBOARDING] ⚠️ Rollback failed: {rollback_error}")
+        
+        # Provide more specific error message
+        error_detail = "Database error. Please try again."
+        if "IntegrityError" in str(type(e).__name__) or "unique" in str(e).lower():
+            error_detail = "User with this password already exists. Please use a different password."
+        elif "OperationalError" in str(type(e).__name__) or "connection" in str(e).lower():
+            error_detail = "Database connection error. Please try again later."
+        
         raise HTTPException(
             status_code=500,
-            detail="Database error. Please try again."
+            detail=error_detail
         )
     
     # Step 3: Generate greeting message (GPT or fallback - never fails)
