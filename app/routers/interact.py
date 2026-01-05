@@ -150,8 +150,11 @@ def setup_onboarding(
     try:
         from app.database import Base, engine
         Base.metadata.create_all(bind=engine)
+        print(f"[ONBOARDING] Tables ensured to exist")
     except Exception as table_error:
         print(f"[ONBOARDING] ⚠️ Warning: Could not ensure tables exist: {table_error}")
+        import traceback
+        print(f"[ONBOARDING] Table creation error traceback: {traceback.format_exc()}")
         # Continue anyway - tables might already exist
     
     # Step 3: Create user - with comprehensive error handling
@@ -160,18 +163,33 @@ def setup_onboarding(
     
     try:
         print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
+        print(f"[ONBOARDING] Password value (first 3 chars): {password[:3]}...")
         
+        # Create user object with explicit values
         new_user = User(
             secret_key=password,
-            preferred_language=language
+            preferred_language=language or "en"  # Ensure language is never None
         )
-        print(f"[ONBOARDING] Step 2: User object created")
+        print(f"[ONBOARDING] Step 2: User object created successfully")
+        print(f"[ONBOARDING] User object: secret_key length={len(new_user.secret_key)}, language={new_user.preferred_language}")
         
         db.add(new_user)
         print(f"[ONBOARDING] Step 3: User added to session")
         
+        # Try to flush first to catch any constraint errors early
+        try:
+            db.flush()
+            print(f"[ONBOARDING] Step 3.5: Flush successful - no constraint errors detected")
+        except Exception as flush_error:
+            print(f"[ONBOARDING] ❌ FLUSH ERROR (before commit): {flush_error}")
+            print(f"[ONBOARDING] Flush error type: {type(flush_error).__name__}")
+            import traceback
+            print(f"[ONBOARDING] Flush error traceback: {traceback.format_exc()}")
+            db.rollback()
+            raise  # Re-raise to be caught by outer except
+        
         db.commit()
-        print(f"[ONBOARDING] Step 4: Transaction committed")
+        print(f"[ONBOARDING] Step 4: Transaction committed successfully")
         
         db.refresh(new_user)
         user_id = new_user.id
@@ -180,32 +198,66 @@ def setup_onboarding(
     except Exception as e:
         print(f"[ONBOARDING] ❌ ERROR in user creation: {e}")
         print(f"[ONBOARDING] Error type: {type(e).__name__}")
+        print(f"[ONBOARDING] Error class: {e.__class__.__name__}")
+        print(f"[ONBOARDING] Error module: {e.__class__.__module__}")
         import traceback
         print(f"[ONBOARDING] Full traceback:\n{traceback.format_exc()}")
         
         try:
             db.rollback()
-            print(f"[ONBOARDING] Transaction rolled back")
+            print(f"[ONBOARDING] Transaction rolled back successfully")
         except Exception as rollback_error:
-            print(f"[ONBOARDING] Rollback error: {rollback_error}")
+            print(f"[ONBOARDING] ⚠️ Rollback error: {rollback_error}")
         
-        # Determine specific error message
+        # Determine specific error message with more detailed analysis
         error_str = str(e).lower()
         error_detail = "Error creating account. Please try again."
         
-        if "connection" in error_str or "connect" in error_str or "could not connect" in error_str:
+        # Check error type first
+        error_type_name = type(e).__name__.lower()
+        error_module = e.__class__.__module__.lower()
+        
+        print(f"[ONBOARDING] Error analysis - type: {error_type_name}, module: {error_module}, str: {error_str[:200]}")
+        
+        if "integrityerror" in error_type_name or "integrity" in error_module:
+            # This is a constraint violation
+            if "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
+                error_detail = "A user with this password already exists. Please use a different password."
+            elif "foreign key" in error_str or "fk_" in error_str:
+                error_detail = "Database foreign key constraint error. Please contact support."
+            elif "check" in error_str:
+                error_detail = "Database check constraint error. Please contact support."
+            elif "not null" in error_str or "null value" in error_str:
+                error_detail = "Required field is missing. Please contact support."
+            else:
+                # Generic constraint error - provide more info
+                error_detail = f"Database constraint error: {error_str[:100]}. Please contact support."
+        elif "operationalerror" in error_type_name or "operational" in error_module:
+            if "connection" in error_str or "connect" in error_str or "could not connect" in error_str:
+                error_detail = "Cannot connect to database. Please check if the database server is running."
+            elif "timeout" in error_str:
+                error_detail = "Database connection timeout. Please try again."
+            else:
+                error_detail = "Database operation error. Please try again."
+        elif "programmingerror" in error_type_name or "programming" in error_module:
+            if "relation" in error_str and "does not exist" in error_str:
+                error_detail = "Database table not found. Please run database migrations."
+            elif "column" in error_str and "does not exist" in error_str:
+                error_detail = "Database column not found. Please run database migrations."
+            else:
+                error_detail = "Database schema error. Please contact support."
+        elif "connection" in error_str or "connect" in error_str or "could not connect" in error_str:
             error_detail = "Cannot connect to database. Please check if the database server is running."
         elif "relation" in error_str and "does not exist" in error_str:
             error_detail = "Database table not found. Please run database migrations."
         elif "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
             error_detail = "A user with this password already exists. Please use a different password."
-        elif "constraint" in error_str or "violates" in error_str:
-            error_detail = "Database constraint error. Please contact support."
         elif "permission" in error_str or "access" in error_str:
             error_detail = "Database permission error. Please contact support."
         elif "timeout" in error_str:
             error_detail = "Database connection timeout. Please try again."
         
+        print(f"[ONBOARDING] Final error detail: {error_detail}")
         raise HTTPException(status_code=500, detail=error_detail)
     
     # Step 4: Generate greeting message - NEVER FAILS
