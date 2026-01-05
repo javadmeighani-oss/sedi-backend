@@ -26,7 +26,7 @@ router = APIRouter()
 def introduce_user(
     secret_key: str = Query(...),
     lang: str = Query("en"),
-    user_id: Optional[int] = Query(None),  # Optional: for upgrading anonymous users
+    user_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -35,15 +35,12 @@ def introduce_user(
     """
     user = None
     
-    # If user_id provided, try to find and upgrade user
     if user_id:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
-            # Update secret key
             user.secret_key = secret_key
             db.commit()
     
-    # If no user found, create new one
     if not user:
         new_user = User(
             secret_key=secret_key,
@@ -54,7 +51,6 @@ def introduce_user(
         db.refresh(new_user)
         user = new_user
     
-    # Get greeting
     brain = ConversationBrain(db, language=lang)
     greeting = brain.get_greeting(user.id)
     
@@ -71,65 +67,44 @@ def introduce_user(
 def chat_with_sedi(
     message: str = Query(...),
     lang: str = Query("en"),
-    user_id: Optional[int] = Query(None),  # CRITICAL: Frontend must send user_id from previous response
-    name: Optional[str] = Query(None),  # User's name from frontend (stored locally)
+    user_id: Optional[int] = Query(None),
+    name: Optional[str] = Query(None),
     secret_key: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     """
     Chat endpoint - Thin API layer.
     All conversation logic handled by Conversation Brain.
-    
-    Supports both authenticated users and new anonymous users.
-    For new users without credentials, creates a temporary anonymous user.
-    
-    CRITICAL: Frontend should send user_id from previous response to maintain conversation continuity.
     """
     user = None
     requires_security_check = False
     is_anonymous = False
     
-    # PRIORITY 1: If user_id provided, use it directly (maintains conversation continuity)
-    # EXPERIENCE STABILITY: If user_id is provided, we MUST use it or return error
-    # Creating new user when user_id is invalid causes conversation reset
     if user_id:
-        print(f"[ROUTER DEBUG] user_id provided: {user_id}")
         user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            print(f"[ROUTER DEBUG] Found user: id={user.id}")
-        else:
-            # EXPERIENCE STABILITY FIX: Invalid user_id = error, don't create new user
-            # This prevents conversation reset when frontend sends invalid user_id
-            print(f"[ROUTER DEBUG] ERROR: Invalid user_id provided - returning error to prevent conversation reset")
+        if not user:
             raise HTTPException(
                 status_code=404,
                 detail=f"User with id {user_id} not found. Please check your user_id or start a new conversation."
             )
     
-    # PRIORITY 2: If credentials provided, try to find user
     if not user and secret_key:
         user = db.query(User).filter(User.secret_key == secret_key).first()
-        if user:
-            print(f"[ROUTER DEBUG] Found user by secret_key: id={user.id}")
     
-    # PRIORITY 3: Create anonymous user if no user found
     if not user:
-        print(f"[ROUTER DEBUG] No user found - creating anonymous user")
         is_anonymous = True
         new_user = User(
-            secret_key=str(uuid.uuid4()),  # Random UUID for anonymous users
+            secret_key=str(uuid.uuid4()),
             preferred_language=lang
         )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         user = new_user
-        print(f"[ROUTER DEBUG] Created anonymous user: id={user.id}")
     
-    # Process message with Conversation Brain
     try:
         brain = ConversationBrain(db, language=lang)
-        result = brain.process_message(user.id, message, name)  # Pass name from frontend
+        result = brain.process_message(user.id, message, name)
         
         return InteractionResponse(
             message=result["message"],
@@ -140,11 +115,6 @@ def chat_with_sedi(
             detected_name=result.get("detected_name")
         )
     except Exception as e:
-        print(f"[ROUTER ERROR] Error processing message: {e}")
-        import traceback
-        print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
-        
-        # Return user-friendly error message
         error_messages = {
             "en": "I'm sorry, I encountered an error processing your message. Please try again.",
             "fa": "متاسفم، در پردازش پیام شما خطایی رخ داد. لطفاً دوباره تلاش کنید.",
@@ -170,75 +140,114 @@ def setup_onboarding(
 ):
     """
     SIMPLE ONBOARDING: Create user and return success.
+    Handles ALL possible errors gracefully.
     """
-    # Validate password
+    # Step 1: Validate password
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Create user - SIMPLE with detailed error logging
-    new_user = None
+    # Step 2: Ensure tables exist (create if needed)
     try:
-        print(f"[ONBOARDING] Creating user with password length: {len(password)}, language: {language}")
+        from app.database import Base, engine
+        Base.metadata.create_all(bind=engine)
+    except Exception as table_error:
+        print(f"[ONBOARDING] ⚠️ Warning: Could not ensure tables exist: {table_error}")
+        # Continue anyway - tables might already exist
+    
+    # Step 3: Create user - with comprehensive error handling
+    new_user = None
+    user_id = None
+    
+    try:
+        print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
+        
         new_user = User(
             secret_key=password,
             preferred_language=language
         )
-        print(f"[ONBOARDING] User object created")
+        print(f"[ONBOARDING] Step 2: User object created")
+        
         db.add(new_user)
-        print(f"[ONBOARDING] User added to session")
+        print(f"[ONBOARDING] Step 3: User added to session")
+        
         db.commit()
-        print(f"[ONBOARDING] Transaction committed")
+        print(f"[ONBOARDING] Step 4: Transaction committed")
+        
         db.refresh(new_user)
-        print(f"[ONBOARDING] User refreshed - user_id: {new_user.id}")
+        user_id = new_user.id
+        print(f"[ONBOARDING] Step 5: User refreshed - user_id: {user_id}")
+        
     except Exception as e:
-        print(f"[ONBOARDING] ❌ ERROR creating user: {e}")
+        print(f"[ONBOARDING] ❌ ERROR in user creation: {e}")
         print(f"[ONBOARDING] Error type: {type(e).__name__}")
         import traceback
-        print(f"[ONBOARDING] Traceback: {traceback.format_exc()}")
+        print(f"[ONBOARDING] Full traceback:\n{traceback.format_exc()}")
+        
         try:
             db.rollback()
             print(f"[ONBOARDING] Transaction rolled back")
         except Exception as rollback_error:
             print(f"[ONBOARDING] Rollback error: {rollback_error}")
         
-        # Provide more specific error message
-        error_detail = "Error creating account. Please try again."
+        # Determine specific error message
         error_str = str(e).lower()
+        error_detail = "Error creating account. Please try again."
         
-        if "connection" in error_str or "connect" in error_str:
-            error_detail = "Database connection error. Please check if the database server is running."
+        if "connection" in error_str or "connect" in error_str or "could not connect" in error_str:
+            error_detail = "Cannot connect to database. Please check if the database server is running."
         elif "relation" in error_str and "does not exist" in error_str:
             error_detail = "Database table not found. Please run database migrations."
-        elif "unique" in error_str or "duplicate" in error_str:
+        elif "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
             error_detail = "A user with this password already exists. Please use a different password."
-        elif "constraint" in error_str:
+        elif "constraint" in error_str or "violates" in error_str:
             error_detail = "Database constraint error. Please contact support."
+        elif "permission" in error_str or "access" in error_str:
+            error_detail = "Database permission error. Please contact support."
+        elif "timeout" in error_str:
+            error_detail = "Database connection timeout. Please try again."
         
-        raise HTTPException(
-            status_code=500,
-            detail=error_detail
-        )
+        raise HTTPException(status_code=500, detail=error_detail)
     
-    # Generate greeting (GPT or fallback)
-    try:
-        print(f"[ONBOARDING] Generating greeting from GPT...")
-        brain = ConversationBrain(db, language=language)
-        initial_message = brain.get_initial_message(new_user.id, None, language)
-        print(f"[ONBOARDING] GPT greeting generated")
-    except Exception as gpt_error:
-        print(f"[ONBOARDING] GPT failed, using fallback: {gpt_error}")
+    # Step 4: Generate greeting message - NEVER FAILS
+    initial_message = ""
+    
+    if user_id:
+        try:
+            print(f"[ONBOARDING] Step 6: Generating greeting from GPT for user_id: {user_id}")
+            brain = ConversationBrain(db, language=language)
+            initial_message = brain.get_initial_message(user_id, None, language)
+            print(f"[ONBOARDING] Step 7: GPT greeting generated successfully")
+        except Exception as gpt_error:
+            print(f"[ONBOARDING] ⚠️ GPT failed (non-critical), using fallback: {gpt_error}")
+            # GPT failure is NOT critical - use fallback
+            if language == "fa":
+                initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
+            elif language == "ar":
+                initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
+            else:
+                initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+            print(f"[ONBOARDING] Step 7: Using fallback greeting")
+    else:
+        # Fallback if user_id is None (shouldn't happen, but just in case)
+        print(f"[ONBOARDING] ⚠️ WARNING: user_id is None, using fallback greeting")
         if language == "fa":
             initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
         elif language == "ar":
             initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
         else:
             initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
-        print(f"[ONBOARDING] Using fallback message")
     
-    # Return success
-    print(f"[ONBOARDING] ✅ SUCCESS - Returning user_id: {new_user.id}")
+    # Step 5: Return success - ALWAYS with user_id
+    if user_id is None:
+        print(f"[ONBOARDING] ❌ CRITICAL: user_id is None after user creation!")
+        raise HTTPException(
+            status_code=500,
+            detail="User created but could not retrieve user ID. Please try again."
+        )
+    
+    print(f"[ONBOARDING] ✅ SUCCESS - Returning response with user_id: {user_id}")
     return {
-        "user_id": new_user.id,
+        "user_id": user_id,
         "message": initial_message,
         "language": language
     }
