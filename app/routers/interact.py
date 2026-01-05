@@ -162,32 +162,39 @@ def setup_onboarding(
     user_id = None
     
     try:
-        print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
-        print(f"[ONBOARDING] Password value (first 3 chars): {password[:3]}...")
+        print(f"[ONBOARDING] ========== USER CREATION START ==========")
+        print(f"[ONBOARDING] Step 1: Input validation")
+        print(f"[ONBOARDING]   - Password length: {len(password)}")
+        print(f"[ONBOARDING]   - Password (first 3): {password[:3]}...")
+        print(f"[ONBOARDING]   - Language: '{language}'")
         
-        # Create user object with explicit values - ensure all fields are valid
+        # Ensure language is valid
         user_language = language if language and language.strip() else "en"
-        print(f"[ONBOARDING] Step 2: Creating user object - password length: {len(password)}, language: '{user_language}'")
+        print(f"[ONBOARDING]   - Final language: '{user_language}'")
         
+        # Step 2: Create user object
+        print(f"[ONBOARDING] Step 2: Creating User object...")
         new_user = User(
             secret_key=password,
             preferred_language=user_language
         )
-        print(f"[ONBOARDING] Step 2.1: User object created successfully")
-        print(f"[ONBOARDING] User object details:")
-        print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}, value (first 3): {new_user.secret_key[:3]}...")
+        print(f"[ONBOARDING] ✅ User object created")
+        print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}")
         print(f"[ONBOARDING]   - preferred_language: '{new_user.preferred_language}'")
         print(f"[ONBOARDING]   - created_at: {new_user.created_at}")
         
+        # Step 3: Add to session
+        print(f"[ONBOARDING] Step 3: Adding to session...")
         db.add(new_user)
-        print(f"[ONBOARDING] Step 3: User added to session")
+        print(f"[ONBOARDING] ✅ User added to session")
         
-        # Try to flush first to catch any constraint errors early
+        # Step 4: Flush to catch constraint errors early
+        print(f"[ONBOARDING] Step 4: Flushing (checking constraints)...")
         try:
             db.flush()
-            print(f"[ONBOARDING] Step 3.5: Flush successful - no constraint errors detected")
+            print(f"[ONBOARDING] ✅ Flush successful - no constraint errors")
         except Exception as flush_error:
-            print(f"[ONBOARDING] ❌ FLUSH ERROR (before commit): {flush_error}")
+            print(f"[ONBOARDING] ❌ FLUSH ERROR: {flush_error}")
             print(f"[ONBOARDING] Flush error type: {type(flush_error).__name__}")
             print(f"[ONBOARDING] Flush error class: {flush_error.__class__.__name__}")
             print(f"[ONBOARDING] Flush error module: {flush_error.__class__.__module__}")
@@ -200,15 +207,21 @@ def setup_onboarding(
                 pass
             raise  # Re-raise to be caught by outer except
         
+        # Step 5: Commit transaction
+        print(f"[ONBOARDING] Step 5: Committing transaction...")
         db.commit()
-        print(f"[ONBOARDING] Step 4: Transaction committed successfully")
+        print(f"[ONBOARDING] ✅ Transaction committed successfully")
         
+        # Step 6: Refresh to get ID
+        print(f"[ONBOARDING] Step 6: Refreshing user to get ID...")
         db.refresh(new_user)
         user_id = new_user.id
-        print(f"[ONBOARDING] Step 5: User refreshed - user_id: {user_id}")
+        print(f"[ONBOARDING] ✅ User refreshed - user_id: {user_id}")
+        print(f"[ONBOARDING] ========== USER CREATION SUCCESS ==========")
         
     except Exception as e:
-        print(f"[ONBOARDING] ❌ ERROR in user creation: {e}")
+        print(f"[ONBOARDING] ========== USER CREATION ERROR ==========")
+        print(f"[ONBOARDING] ❌ ERROR: {e}")
         print(f"[ONBOARDING] Error type: {type(e).__name__}")
         print(f"[ONBOARDING] Error class: {e.__class__.__name__}")
         print(f"[ONBOARDING] Error module: {e.__class__.__module__}")
@@ -217,34 +230,49 @@ def setup_onboarding(
         
         try:
             db.rollback()
-            print(f"[ONBOARDING] Transaction rolled back successfully")
+            print(f"[ONBOARDING] ✅ Transaction rolled back")
         except Exception as rollback_error:
             print(f"[ONBOARDING] ⚠️ Rollback error: {rollback_error}")
         
-        # Determine specific error message with more detailed analysis
+        # Determine specific error message with detailed analysis
         error_str = str(e).lower()
         error_detail = "Error creating account. Please try again."
         
-        # Check error type first
+        # Check error type first (most reliable)
         error_type_name = type(e).__name__.lower()
         error_module = e.__class__.__module__.lower()
         
-        print(f"[ONBOARDING] Error analysis - type: {error_type_name}, module: {error_module}, str: {error_str[:200]}")
+        print(f"[ONBOARDING] Error analysis:")
+        print(f"[ONBOARDING]   - Type name: {error_type_name}")
+        print(f"[ONBOARDING]   - Module: {error_module}")
+        print(f"[ONBOARDING]   - Error string (first 200 chars): {error_str[:200]}")
         
         if "integrityerror" in error_type_name or "integrity" in error_module:
             # This is a constraint violation
+            print(f"[ONBOARDING] Detected: IntegrityError (constraint violation)")
             if "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
                 error_detail = "A user with this password already exists. Please use a different password."
-            elif "foreign key" in error_str or "fk_" in error_str:
+            elif "foreign key" in error_str or "fk_" in error_str or "references" in error_str:
                 error_detail = "Database foreign key constraint error. Please contact support."
-            elif "check" in error_str:
+            elif "check" in error_str or "check constraint" in error_str:
                 error_detail = "Database check constraint error. Please contact support."
-            elif "not null" in error_str or "null value" in error_str:
+            elif "not null" in error_str or "null value" in error_str or "null constraint" in error_str:
                 error_detail = "Required field is missing. Please contact support."
             else:
-                # Generic constraint error - provide more info
-                error_detail = f"Database constraint error: {error_str[:100]}. Please contact support."
+                # Generic constraint error - extract more info from error
+                constraint_name = ""
+                if "constraint" in error_str:
+                    # Try to extract constraint name
+                    import re
+                    match = re.search(r'constraint\s+["\']?(\w+)["\']?', error_str, re.IGNORECASE)
+                    if match:
+                        constraint_name = match.group(1)
+                if constraint_name:
+                    error_detail = f"Database constraint error ({constraint_name}). Please contact support."
+                else:
+                    error_detail = f"Database constraint error: {error_str[:150]}. Please contact support."
         elif "operationalerror" in error_type_name or "operational" in error_module:
+            print(f"[ONBOARDING] Detected: OperationalError")
             if "connection" in error_str or "connect" in error_str or "could not connect" in error_str:
                 error_detail = "Cannot connect to database. Please check if the database server is running."
             elif "timeout" in error_str:
@@ -252,6 +280,7 @@ def setup_onboarding(
             else:
                 error_detail = "Database operation error. Please try again."
         elif "programmingerror" in error_type_name or "programming" in error_module:
+            print(f"[ONBOARDING] Detected: ProgrammingError")
             if "relation" in error_str and "does not exist" in error_str:
                 error_detail = "Database table not found. Please run database migrations."
             elif "column" in error_str and "does not exist" in error_str:
@@ -270,6 +299,7 @@ def setup_onboarding(
             error_detail = "Database connection timeout. Please try again."
         
         print(f"[ONBOARDING] Final error detail: {error_detail}")
+        print(f"[ONBOARDING] ========== END ERROR ANALYSIS ==========")
         raise HTTPException(status_code=500, detail=error_detail)
     
     # Step 4: Generate greeting message - NEVER FAILS
@@ -277,10 +307,10 @@ def setup_onboarding(
     
     if user_id:
         try:
-            print(f"[ONBOARDING] Step 6: Generating greeting from GPT for user_id: {user_id}")
+            print(f"[ONBOARDING] Step 7: Generating greeting from GPT for user_id: {user_id}")
             brain = ConversationBrain(db, language=language)
             initial_message = brain.get_initial_message(user_id, None, language)
-            print(f"[ONBOARDING] Step 7: GPT greeting generated successfully")
+            print(f"[ONBOARDING] ✅ GPT greeting generated successfully")
         except Exception as gpt_error:
             print(f"[ONBOARDING] ⚠️ GPT failed (non-critical), using fallback: {gpt_error}")
             # GPT failure is NOT critical - use fallback
@@ -290,7 +320,7 @@ def setup_onboarding(
                 initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
             else:
                 initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
-            print(f"[ONBOARDING] Step 7: Using fallback greeting")
+            print(f"[ONBOARDING] ✅ Using fallback greeting")
     else:
         # Fallback if user_id is None (shouldn't happen, but just in case)
         print(f"[ONBOARDING] ⚠️ WARNING: user_id is None, using fallback greeting")
