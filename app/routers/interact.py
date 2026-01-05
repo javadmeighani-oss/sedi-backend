@@ -165,13 +165,19 @@ def setup_onboarding(
         print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
         print(f"[ONBOARDING] Password value (first 3 chars): {password[:3]}...")
         
-        # Create user object with explicit values
+        # Create user object with explicit values - ensure all fields are valid
+        user_language = language if language and language.strip() else "en"
+        print(f"[ONBOARDING] Step 2: Creating user object - password length: {len(password)}, language: '{user_language}'")
+        
         new_user = User(
             secret_key=password,
-            preferred_language=language or "en"  # Ensure language is never None
+            preferred_language=user_language
         )
-        print(f"[ONBOARDING] Step 2: User object created successfully")
-        print(f"[ONBOARDING] User object: secret_key length={len(new_user.secret_key)}, language={new_user.preferred_language}")
+        print(f"[ONBOARDING] Step 2.1: User object created successfully")
+        print(f"[ONBOARDING] User object details:")
+        print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}, value (first 3): {new_user.secret_key[:3]}...")
+        print(f"[ONBOARDING]   - preferred_language: '{new_user.preferred_language}'")
+        print(f"[ONBOARDING]   - created_at: {new_user.created_at}")
         
         db.add(new_user)
         print(f"[ONBOARDING] Step 3: User added to session")
@@ -183,9 +189,15 @@ def setup_onboarding(
         except Exception as flush_error:
             print(f"[ONBOARDING] ❌ FLUSH ERROR (before commit): {flush_error}")
             print(f"[ONBOARDING] Flush error type: {type(flush_error).__name__}")
+            print(f"[ONBOARDING] Flush error class: {flush_error.__class__.__name__}")
+            print(f"[ONBOARDING] Flush error module: {flush_error.__class__.__module__}")
             import traceback
-            print(f"[ONBOARDING] Flush error traceback: {traceback.format_exc()}")
-            db.rollback()
+            print(f"[ONBOARDING] Flush error traceback:\n{traceback.format_exc()}")
+            try:
+                db.rollback()
+                print(f"[ONBOARDING] Rolled back after flush error")
+            except:
+                pass
             raise  # Re-raise to be caught by outer except
         
         db.commit()
