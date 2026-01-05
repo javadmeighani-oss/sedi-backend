@@ -219,75 +219,215 @@ def setup_onboarding(
     
     CRITICAL: This endpoint MUST always return 200 with user_id, even if GPT fails.
     Only validation errors (400) should prevent user creation.
+    
+    COMPREHENSIVE ERROR HANDLING:
+    - Validates database connection
+    - Checks if users table exists
+    - Handles all database errors gracefully
+    - Provides specific error messages
     """
+    from sqlalchemy import text, inspect
+    from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
+    
     # Step 1: Validate password (only validation that can fail)
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Step 2: Create user - this MUST succeed
-    new_user = None
+    print(f"[ONBOARDING] ========== START ONBOARDING ==========")
+    print(f"[ONBOARDING] Password length: {len(password)}, Language: {language}")
+    
+    # Step 2: Comprehensive database checks
     try:
-        print(f"[ONBOARDING] Step 1: Creating user - password length: {len(password)}, language: {language}")
-        
-        # Check database connection first
+        # Check 1: Database connection
+        print(f"[ONBOARDING] Check 1: Testing database connection...")
         try:
-            from sqlalchemy import text
             db.execute(text("SELECT 1"))
-            print(f"[ONBOARDING] Database connection: OK")
+            print(f"[ONBOARDING] ✅ Database connection: OK")
         except Exception as conn_error:
             print(f"[ONBOARDING] ❌ Database connection failed: {conn_error}")
             import traceback
             print(f"[ONBOARDING] Connection error traceback: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=503,
-                detail="Database connection failed. Please try again later."
+                detail="Database connection failed. Please check if the database server is running."
             )
+        
+        # Check 2: Verify users table exists
+        print(f"[ONBOARDING] Check 2: Verifying users table exists...")
+        try:
+            inspector = inspect(db.bind)
+            tables = inspector.get_table_names()
+            if 'users' not in tables:
+                print(f"[ONBOARDING] ❌ Table 'users' does not exist!")
+                print(f"[ONBOARDING] Available tables: {tables}")
+                # Try to create tables
+                print(f"[ONBOARDING] Attempting to create tables...")
+                from app.database import Base, engine
+                Base.metadata.create_all(bind=engine)
+                print(f"[ONBOARDING] ✅ Tables created successfully")
+            else:
+                print(f"[ONBOARDING] ✅ Table 'users' exists")
+        except Exception as table_error:
+            print(f"[ONBOARDING] ⚠️ Error checking/creating tables: {table_error}")
+            import traceback
+            print(f"[ONBOARDING] Table error traceback: {traceback.format_exc()}")
+            # Continue anyway - might be a permission issue, but table might still exist
+        
+        # Check 3: Verify users table structure
+        print(f"[ONBOARDING] Check 3: Verifying users table structure...")
+        try:
+            inspector = inspect(db.bind)
+            columns = {col['name']: col for col in inspector.get_columns('users')}
+            required_columns = ['id', 'secret_key', 'preferred_language', 'created_at']
+            missing_columns = [col for col in required_columns if col not in columns]
+            if missing_columns:
+                print(f"[ONBOARDING] ❌ Missing columns in users table: {missing_columns}")
+                print(f"[ONBOARDING] Available columns: {list(columns.keys())}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Database schema error: Missing columns {missing_columns}. Please run database migrations."
+                )
+            print(f"[ONBOARDING] ✅ Users table structure: OK")
+        except HTTPException:
+            raise
+        except Exception as struct_error:
+            print(f"[ONBOARDING] ⚠️ Error checking table structure: {struct_error}")
+            # Continue anyway
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as check_error:
+        print(f"[ONBOARDING] ❌ Database check failed: {check_error}")
+        import traceback
+        print(f"[ONBOARDING] Check error traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=503,
+            detail="Database configuration error. Please contact support."
+        )
+    
+    # Step 3: Create user - this MUST succeed
+    new_user = None
+    try:
+        print(f"[ONBOARDING] Step 3: Creating user object...")
         
         # Create user object
         new_user = User(
             secret_key=password,
             preferred_language=language
         )
-        print(f"[ONBOARDING] User object created: secret_key length={len(password)}, language={language}")
+        print(f"[ONBOARDING] ✅ User object created")
         
         # Add to session
+        print(f"[ONBOARDING] Step 4: Adding user to session...")
         db.add(new_user)
-        print(f"[ONBOARDING] User added to session")
+        print(f"[ONBOARDING] ✅ User added to session")
         
         # Commit transaction
+        print(f"[ONBOARDING] Step 5: Committing transaction...")
         db.commit()
-        print(f"[ONBOARDING] Transaction committed")
+        print(f"[ONBOARDING] ✅ Transaction committed")
         
         # Refresh to get ID
+        print(f"[ONBOARDING] Step 6: Refreshing user to get ID...")
         db.refresh(new_user)
-        print(f"[ONBOARDING] ✅ Step 1 SUCCESS: User created - user_id: {new_user.id}")
+        print(f"[ONBOARDING] ✅ Step 3 SUCCESS: User created - user_id: {new_user.id}")
         
+    except IntegrityError as integrity_error:
+        # Handle constraint violations (unique, foreign key, etc.)
+        print(f"[ONBOARDING] ❌ IntegrityError: {integrity_error}")
+        import traceback
+        print(f"[ONBOARDING] IntegrityError traceback: {traceback.format_exc()}")
+        db.rollback()
+        
+        error_msg = str(integrity_error).lower()
+        if "unique" in error_msg or "duplicate" in error_msg:
+            raise HTTPException(
+                status_code=409,
+                detail="A user with this password already exists. Please use a different password."
+            )
+        elif "foreign key" in error_msg or "constraint" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail="Database constraint error. Please contact support."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Database integrity error. Please try again."
+            )
+            
+    except OperationalError as op_error:
+        # Handle connection/operational errors
+        print(f"[ONBOARDING] ❌ OperationalError: {op_error}")
+        import traceback
+        print(f"[ONBOARDING] OperationalError traceback: {traceback.format_exc()}")
+        db.rollback()
+        
+        error_msg = str(op_error).lower()
+        if "connection" in error_msg or "connect" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection lost. Please try again."
+            )
+        elif "server closed" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Database server closed the connection. Please try again."
+            )
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail="Database operation failed. Please try again later."
+            )
+            
+    except ProgrammingError as prog_error:
+        # Handle SQL syntax/schema errors
+        print(f"[ONBOARDING] ❌ ProgrammingError: {prog_error}")
+        import traceback
+        print(f"[ONBOARDING] ProgrammingError traceback: {traceback.format_exc()}")
+        db.rollback()
+        
+        error_msg = str(prog_error).lower()
+        if "relation" in error_msg and "does not exist" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail="Database table not found. Please run database migrations."
+            )
+        elif "column" in error_msg and "does not exist" in error_msg:
+            raise HTTPException(
+                status_code=500,
+                detail="Database schema error. Please run database migrations."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Database schema error. Please contact support."
+            )
+            
     except HTTPException:
         # Re-raise HTTP exceptions
+        db.rollback()
         raise
+        
     except Exception as e:
-        print(f"[ONBOARDING] ❌ Step 1 FAILED: Database error creating user: {e}")
+        # Handle any other unexpected errors
+        print(f"[ONBOARDING] ❌ Unexpected error: {e}")
         print(f"[ONBOARDING] Error type: {type(e).__name__}")
         import traceback
-        print(f"[ONBOARDING] Traceback: {traceback.format_exc()}")
+        print(f"[ONBOARDING] Unexpected error traceback: {traceback.format_exc()}")
         
         # Rollback transaction
         try:
             db.rollback()
-            print(f"[ONBOARDING] Transaction rolled back")
+            print(f"[ONBOARDING] ✅ Transaction rolled back")
         except Exception as rollback_error:
             print(f"[ONBOARDING] ⚠️ Rollback failed: {rollback_error}")
         
-        # Provide more specific error message
-        error_detail = "Database error. Please try again."
-        if "IntegrityError" in str(type(e).__name__) or "unique" in str(e).lower():
-            error_detail = "User with this password already exists. Please use a different password."
-        elif "OperationalError" in str(type(e).__name__) or "connection" in str(e).lower():
-            error_detail = "Database connection error. Please try again later."
-        
+        # Generic error message
         raise HTTPException(
             status_code=500,
-            detail=error_detail
+            detail="An unexpected error occurred while creating your account. Please try again."
         )
     
     # Step 3: Generate greeting message (GPT or fallback - never fails)
