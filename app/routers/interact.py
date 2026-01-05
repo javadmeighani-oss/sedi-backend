@@ -175,35 +175,68 @@ def setup_onboarding(
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Create user - SIMPLE
+    # Create user - SIMPLE with detailed error logging
+    new_user = None
     try:
+        print(f"[ONBOARDING] Creating user with password length: {len(password)}, language: {language}")
         new_user = User(
             secret_key=password,
             preferred_language=language
         )
+        print(f"[ONBOARDING] User object created")
         db.add(new_user)
+        print(f"[ONBOARDING] User added to session")
         db.commit()
+        print(f"[ONBOARDING] Transaction committed")
         db.refresh(new_user)
+        print(f"[ONBOARDING] User refreshed - user_id: {new_user.id}")
     except Exception as e:
-        db.rollback()
+        print(f"[ONBOARDING] ❌ ERROR creating user: {e}")
+        print(f"[ONBOARDING] Error type: {type(e).__name__}")
+        import traceback
+        print(f"[ONBOARDING] Traceback: {traceback.format_exc()}")
+        try:
+            db.rollback()
+            print(f"[ONBOARDING] Transaction rolled back")
+        except Exception as rollback_error:
+            print(f"[ONBOARDING] Rollback error: {rollback_error}")
+        
+        # Provide more specific error message
+        error_detail = "Error creating account. Please try again."
+        error_str = str(e).lower()
+        
+        if "connection" in error_str or "connect" in error_str:
+            error_detail = "Database connection error. Please check if the database server is running."
+        elif "relation" in error_str and "does not exist" in error_str:
+            error_detail = "Database table not found. Please run database migrations."
+        elif "unique" in error_str or "duplicate" in error_str:
+            error_detail = "A user with this password already exists. Please use a different password."
+        elif "constraint" in error_str:
+            error_detail = "Database constraint error. Please contact support."
+        
         raise HTTPException(
             status_code=500,
-            detail="Error creating account. Please try again."
+            detail=error_detail
         )
     
     # Generate greeting (GPT or fallback)
     try:
+        print(f"[ONBOARDING] Generating greeting from GPT...")
         brain = ConversationBrain(db, language=language)
         initial_message = brain.get_initial_message(new_user.id, None, language)
-    except:
+        print(f"[ONBOARDING] GPT greeting generated")
+    except Exception as gpt_error:
+        print(f"[ONBOARDING] GPT failed, using fallback: {gpt_error}")
         if language == "fa":
             initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
         elif language == "ar":
             initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
         else:
             initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+        print(f"[ONBOARDING] Using fallback message")
     
     # Return success
+    print(f"[ONBOARDING] ✅ SUCCESS - Returning user_id: {new_user.id}")
     return {
         "user_id": new_user.id,
         "message": initial_message,
