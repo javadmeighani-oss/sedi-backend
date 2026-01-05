@@ -231,10 +231,13 @@ def setup_onboarding(
         
         # Check database connection first
         try:
-            db.execute("SELECT 1")
+            from sqlalchemy import text
+            db.execute(text("SELECT 1"))
             print(f"[ONBOARDING] Database connection: OK")
         except Exception as conn_error:
             print(f"[ONBOARDING] ❌ Database connection failed: {conn_error}")
+            import traceback
+            print(f"[ONBOARDING] Connection error traceback: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=503,
                 detail="Database connection failed. Please try again later."
