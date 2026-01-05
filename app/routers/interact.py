@@ -224,6 +224,7 @@ def setup_onboarding(
             raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
         
         # Create new user (no name field)
+        print(f"[ROUTER] Creating new user with password length: {len(password)}, language: {language}")
         new_user = User(
             secret_key=password,
             preferred_language=language
@@ -231,6 +232,7 @@ def setup_onboarding(
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
+        print(f"[ROUTER] ✅ User created successfully - user_id: {new_user.id}")
         
         # Generate initial greeting using GPT with Sedi's knowledge base
         # IMPORTANT: Even if GPT fails, we should still return success with fallback message
@@ -255,11 +257,14 @@ def setup_onboarding(
             print(f"[ROUTER] Using fallback message: {initial_message}")
         
         # Always return success - user is created, message is ready (GPT or fallback)
-        return {
+        print(f"[ROUTER] ✅ Returning success response - user_id: {new_user.id}, message length: {len(initial_message) if initial_message else 0}")
+        response_data = {
             "user_id": new_user.id,
             "message": initial_message,
             "language": language
         }
+        print(f"[ROUTER] Response data: {response_data}")
+        return response_data
     except HTTPException:
         # Re-raise HTTP exceptions (like 400 for validation)
         raise
