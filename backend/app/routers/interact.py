@@ -25,7 +25,6 @@ router = APIRouter()
 # ---------------- Introduce User ----------------
 @router.post("/introduce", response_model=InteractionResponse)
 def introduce_user(
-    name: str = Query(...),
     secret_key: str = Query(...),
     lang: str = Query("en"),
     user_id: Optional[int] = Query(None),  # Optional: for upgrading anonymous users
@@ -43,17 +42,8 @@ def introduce_user(
         existing_user = db.query(User).filter(User.id == user_id).first()
         if existing_user:
             # Check if it's an anonymous user (can be upgraded)
-            if existing_user.name.startswith("anonymous_") and existing_user.secret_key.startswith("temp_"):
-                # Check if new name is already taken
-                name_taken = db.query(User).filter(
-                    User.name == name,
-                    User.id != user_id
-                ).first()
-                if name_taken:
-                    raise HTTPException(status_code=400, detail="User name already exists")
-                
+            if existing_user.secret_key.startswith("temp_"):
                 # Upgrade anonymous user to registered user
-                existing_user.name = name
                 existing_user.secret_key = secret_key
                 existing_user.preferred_language = lang
                 db.commit()
@@ -70,13 +60,8 @@ def introduce_user(
                     timestamp=datetime.utcnow()
                 )
     
-    # Check if name already exists
-    existing_user = db.query(User).filter(User.name == name).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
-
-    # Create new user
-    new_user = User(name=name, secret_key=secret_key, preferred_language=lang)
+    # Create new user (no name field)
+    new_user = User(secret_key=secret_key, preferred_language=lang)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -99,7 +84,7 @@ def chat_with_sedi(
     message: str = Query(...),
     lang: str = Query("en"),
     user_id: Optional[int] = Query(None),  # CRITICAL: Frontend must send user_id from previous response
-    name: Optional[str] = Query(None),
+    name: Optional[str] = Query(None),  # User's name from frontend (stored locally)
     secret_key: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
@@ -123,7 +108,7 @@ def chat_with_sedi(
         print(f"[ROUTER DEBUG] user_id provided: {user_id}")
         user = db.query(User).filter(User.id == user_id).first()
         if user:
-            print(f"[ROUTER DEBUG] Found user: id={user.id}, name={user.name}")
+            print(f"[ROUTER DEBUG] Found user: id={user.id}")
         else:
             # EXPERIENCE STABILITY FIX: Invalid user_id = error, don't create new user
             # This prevents conversation reset when frontend sends invalid user_id
@@ -134,9 +119,8 @@ def chat_with_sedi(
             )
     
     # PRIORITY 2: If credentials provided, try to find user
-    if not user and name and secret_key:
+    if not user and secret_key:
         user = db.query(User).filter(
-            User.name == name,
             User.secret_key == secret_key
         ).first()
         
@@ -144,18 +128,16 @@ def chat_with_sedi(
             requires_security_check = True
     
     # PRIORITY 3: If no user found and no credentials, create anonymous user for new users
-    if not user and (not name or not secret_key):
+    if not user and not secret_key:
         # TEMP DEBUG: Log anonymous user creation
         print(f"[ROUTER DEBUG] No user_id/credentials provided - creating anonymous user")
         
         # Create temporary anonymous user for new users
         # Use UUID to ensure uniqueness - always create new to avoid conflicts
-        anonymous_name = f"anonymous_{uuid.uuid4().hex[:12]}"
         anonymous_secret = "temp_" + uuid.uuid4().hex[:12]
         
         # Create new anonymous user (don't reuse existing - each session gets unique user_id)
         user = User(
-            name=anonymous_name,
             secret_key=anonymous_secret,
             preferred_language=lang
         )
@@ -163,7 +145,7 @@ def chat_with_sedi(
         db.commit()
         db.refresh(user)
         is_anonymous = True
-        print(f"[ROUTER DEBUG] Created anonymous user - user_id={user.id}, name={user.name}")
+        print(f"[ROUTER DEBUG] Created anonymous user - user_id={user.id}")
     
     # If still no user (shouldn't happen), return error
     if not user:
@@ -187,15 +169,16 @@ def chat_with_sedi(
                 requires_security_check=requires_security_check
             )
         
-        # Normal chat message
-        result = brain.process_message(user.id, message)
+        # Normal chat message (pass name from frontend)
+        result = brain.process_message(user.id, message, user_name=name)
         
         return InteractionResponse(
             message=result["message"],
             language=result["language"],
             user_id=user.id,
             timestamp=datetime.utcnow(),
-            requires_security_check=requires_security_check
+            requires_security_check=requires_security_check,
+            detected_name=result.get("detected_name")  # Name detected from conversation
         )
     except Exception as e:
         # Log the error for debugging
@@ -219,6 +202,79 @@ def chat_with_sedi(
             user_id=user.id,
             timestamp=datetime.utcnow(),
             requires_security_check=requires_security_check
+        )
+
+
+# ---------------- Onboarding - Setup User ----------------
+@router.post("/onboarding")
+def setup_onboarding(
+    password: str = Query(...),
+    language: str = Query("fa"),
+    db: Session = Depends(get_db)
+):
+    """
+    Setup user onboarding: create user with password and language.
+    Returns user_id and initial greeting message.
+    Note: Name is no longer stored in database.
+    """
+    try:
+        # Validate password requirements
+        # Only check minimum length (6 characters), any characters allowed
+        if len(password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
+        # Create new user (no name field)
+        new_user = User(
+            secret_key=password,
+            preferred_language=language
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        
+        # Generate initial greeting using GPT with Sedi's knowledge base
+        # IMPORTANT: Even if GPT fails, we should still return success with fallback message
+        # User creation is successful, GPT failure should not prevent onboarding
+        initial_message = None
+        try:
+            brain = ConversationBrain(db, language=language)
+            initial_message = brain.get_initial_message(new_user.id, None, language)
+            print(f"[ROUTER] Successfully generated initial message from GPT")
+        except Exception as e:
+            print(f"[ROUTER WARNING] Error generating initial message from GPT: {e}")
+            import traceback
+            print(f"[ROUTER WARNING] Traceback: {traceback.format_exc()}")
+            # Use fallback message if GPT fails - this is not a critical error
+            # User is already created, we just use a simple greeting
+            if language == "fa":
+                initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
+            elif language == "ar":
+                initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
+            else:
+                initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+            print(f"[ROUTER] Using fallback message: {initial_message}")
+        
+        # Always return success - user is created, message is ready (GPT or fallback)
+        return {
+            "user_id": new_user.id,
+            "message": initial_message,
+            "language": language
+        }
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 400 for validation)
+        raise
+    except Exception as e:
+        # Log the error for debugging
+        print(f"[ROUTER ERROR] Critical exception in onboarding endpoint: {e}")
+        print(f"[ROUTER ERROR] Exception type: {type(e).__name__}")
+        import traceback
+        print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
+        
+        # Only return 500 for critical errors (database, etc.)
+        # GPT failures should not cause 500 errors
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while setting up your account. Please try again."
         )
 
 
@@ -251,7 +307,6 @@ def get_greeting(
 # ------------------ Memory History ------------------
 @router.get("/history")
 def get_user_history(
-    name: str = Query(...),
     secret_key: str = Query(...),
     db: Session = Depends(get_db)
 ):
@@ -259,7 +314,6 @@ def get_user_history(
     Get conversation history for user.
     """
     user = db.query(User).filter(
-        User.name == name,
         User.secret_key == secret_key
     ).first()
 
