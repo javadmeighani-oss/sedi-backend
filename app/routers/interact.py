@@ -233,21 +233,28 @@ def setup_onboarding(
         db.refresh(new_user)
         
         # Generate initial greeting using GPT with Sedi's knowledge base
+        # IMPORTANT: Even if GPT fails, we should still return success with fallback message
+        # User creation is successful, GPT failure should not prevent onboarding
+        initial_message = None
         try:
             brain = ConversationBrain(db, language=language)
             initial_message = brain.get_initial_message(new_user.id, None, language)
+            print(f"[ROUTER] Successfully generated initial message from GPT")
         except Exception as e:
-            print(f"[ROUTER ERROR] Error generating initial message: {e}")
+            print(f"[ROUTER WARNING] Error generating initial message from GPT: {e}")
             import traceback
-            print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
-            # Use fallback message if GPT fails
+            print(f"[ROUTER WARNING] Traceback: {traceback.format_exc()}")
+            # Use fallback message if GPT fails - this is not a critical error
+            # User is already created, we just use a simple greeting
             if language == "fa":
-                initial_message = f"سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
+                initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
             elif language == "ar":
-                initial_message = f"مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
+                initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
             else:
-                initial_message = f"Hello! I'm Sedi, your health care assistant. Welcome!"
+                initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+            print(f"[ROUTER] Using fallback message: {initial_message}")
         
+        # Always return success - user is created, message is ready (GPT or fallback)
         return {
             "user_id": new_user.id,
             "message": initial_message,
@@ -258,12 +265,13 @@ def setup_onboarding(
         raise
     except Exception as e:
         # Log the error for debugging
-        print(f"[ROUTER ERROR] Exception in onboarding endpoint: {e}")
+        print(f"[ROUTER ERROR] Critical exception in onboarding endpoint: {e}")
         print(f"[ROUTER ERROR] Exception type: {type(e).__name__}")
         import traceback
         print(f"[ROUTER ERROR] Traceback: {traceback.format_exc()}")
         
-        # Return 500 error with user-friendly message
+        # Only return 500 for critical errors (database, etc.)
+        # GPT failures should not cause 500 errors
         raise HTTPException(
             status_code=500,
             detail="An error occurred while setting up your account. Please try again."
