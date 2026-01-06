@@ -181,24 +181,44 @@ def setup_onboarding(
         
         # Create user with explicit values for ALL fields
         from datetime import datetime
+        import time
+        
+        # Ensure password is not empty
+        if not password or not password.strip():
+            raise ValueError("Password cannot be empty")
+        
+        # Ensure language is not empty
+        if not user_language or not user_language.strip():
+            user_language = "en"
+        
+        # Create timestamp explicitly
+        now = datetime.utcnow()
+        
+        print(f"[ONBOARDING] Creating User with:")
+        print(f"[ONBOARDING]   - secret_key: '{password[:3]}...' (length: {len(password)})")
+        print(f"[ONBOARDING]   - preferred_language: '{user_language}'")
+        print(f"[ONBOARDING]   - created_at: {now}")
+        
         new_user = User(
-            secret_key=password,
-            preferred_language=user_language,
-            created_at=datetime.utcnow()  # Explicitly set created_at
+            secret_key=password.strip(),  # Ensure no whitespace
+            preferred_language=user_language.strip(),  # Ensure no whitespace
+            created_at=now  # Explicitly set created_at
         )
+        
         print(f"[ONBOARDING] ✅ User object created")
-        print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}")
+        print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}, value (first 3): '{new_user.secret_key[:3]}...'")
         print(f"[ONBOARDING]   - preferred_language: '{new_user.preferred_language}'")
         print(f"[ONBOARDING]   - created_at: {new_user.created_at}")
         
-        # Verify all required fields are set
-        if not new_user.secret_key:
-            raise ValueError("secret_key cannot be empty")
-        if not new_user.preferred_language:
-            raise ValueError("preferred_language cannot be empty")
-        if not new_user.created_at:
+        # Verify all required fields are set and not None
+        if not new_user.secret_key or not new_user.secret_key.strip():
+            raise ValueError("secret_key cannot be empty or whitespace")
+        if not new_user.preferred_language or not new_user.preferred_language.strip():
+            raise ValueError("preferred_language cannot be empty or whitespace")
+        if new_user.created_at is None:
             raise ValueError("created_at cannot be None")
-        print(f"[ONBOARDING] ✅ All required fields verified")
+        
+        print(f"[ONBOARDING] ✅ All required fields verified and not None")
         
         # Step 3: Add to session
         print(f"[ONBOARDING] Step 3: Adding to session...")
