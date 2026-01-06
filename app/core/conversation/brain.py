@@ -194,10 +194,12 @@ class ConversationBrain:
         display_name = user_name.strip() if user_name and user_name.strip() else "friend"
         print(f"[BRAIN] get_initial_message: user_id={user_id}, user_name='{user_name}', display_name='{display_name}', language={language}")
         
-        # Get Sedi's complete context
-        sedi_context = build_complete_sedi_context(language)
+        # CRITICAL: Initial greeting MUST be in English (for context)
+        # User's preferred language will be used for subsequent responses
+        # Get Sedi's complete context in English (core thinking language)
+        sedi_context = build_complete_sedi_context("en")
         
-        # Build system prompt
+        # Build system prompt - ALWAYS in English for initial greeting
         system_prompt = f"""{sedi_context}
 
 You are Sedi, speaking with {display_name} for the first time after they completed onboarding.
@@ -214,15 +216,12 @@ Your role is to:
 6. Keep it concise (2-3 sentences, max 200 characters)
 7. {"Use their name naturally in the greeting" if display_name != "friend" else "Greet them warmly"}
 
-Speak in {language} language.
+CRITICAL: This is the initial greeting message. It MUST be in English.
+The user's preferred language ({language}) will be used for all subsequent responses.
 """
         
-        # Build user prompt
-        user_prompt = {
-            "en": f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming." + (f" Use their name: {display_name}." if display_name != "friend" else ""),
-            "fa": f"خودت را به {display_name} معرفی کن و توضیح بده که به عنوان دستیار مراقبت سلامت‌شان چه کاری انجام می‌دهی. گرم و خوش‌آمدگو باش." + (f" از نامشان استفاده کن: {display_name}." if display_name != "friend" else ""),
-            "ar": f"قدم نفسك إلى {display_name} واشرح ما تفعله كمساعد رعاية صحية. كن دافئاً ومرحباً." + (f" استخدم اسمهم: {display_name}." if display_name != "friend" else "")
-        }.get(language, f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming.")
+        # Build user prompt - ALWAYS in English for initial greeting
+        user_prompt = f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming." + (f" Use their name: {display_name}." if display_name != "friend" else "")
         
         try:
             messages = [
@@ -248,7 +247,8 @@ Speak in {language} language.
                 "fa": f"سلام {display_name}! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من اینجا هستم تا از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌تان کمک کنم.",
                 "ar": f"مرحباً {display_name}! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أنا هنا لمساعدتك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية."
             }
-            return fallback.get(language, fallback["en"])
+            # Fallback message - ALWAYS in English for initial greeting
+            return fallback["en"]
     
     def get_greeting(self, user_id: int, user_name: Optional[str] = None) -> Dict[str, any]:
         """

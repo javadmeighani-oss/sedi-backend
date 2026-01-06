@@ -354,8 +354,10 @@ def setup_onboarding(
             print(f"[ONBOARDING] User name from frontend: '{name}'")
             # Use name from frontend if provided, otherwise None (GPT will use fallback)
             user_name_for_gpt = name.strip() if name and name.strip() else None
-            brain = ConversationBrain(db, language=language)
-            initial_message = brain.get_initial_message(user_id, user_name_for_gpt, language)
+            # CRITICAL: Initial greeting is ALWAYS in English (for context)
+            # User's preferred language will be used for subsequent responses
+            brain = ConversationBrain(db, language="en")  # Use English for initial greeting
+            initial_message = brain.get_initial_message(user_id, user_name_for_gpt, "en")  # Always English for initial message
             print(f"[ONBOARDING] ✅ GPT greeting generated successfully")
         except Exception as gpt_error:
             print(f"[ONBOARDING] ⚠️ GPT failed (non-critical), using fallback: {gpt_error}")
