@@ -172,16 +172,31 @@ def setup_onboarding(
         user_language = language if language and language.strip() else "en"
         print(f"[ONBOARDING]   - Final language: '{user_language}'")
         
-        # Step 2: Create user object
+        # Step 2: Create user object - ensure ALL required fields are set
         print(f"[ONBOARDING] Step 2: Creating User object...")
+        print(f"[ONBOARDING]   - secret_key: length={len(password)}, value (first 3): {password[:3]}...")
+        print(f"[ONBOARDING]   - preferred_language: '{user_language}'")
+        
+        # Create user with explicit values for ALL fields
+        from datetime import datetime
         new_user = User(
             secret_key=password,
-            preferred_language=user_language
+            preferred_language=user_language,
+            created_at=datetime.utcnow()  # Explicitly set created_at
         )
         print(f"[ONBOARDING] ✅ User object created")
         print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}")
         print(f"[ONBOARDING]   - preferred_language: '{new_user.preferred_language}'")
         print(f"[ONBOARDING]   - created_at: {new_user.created_at}")
+        
+        # Verify all required fields are set
+        if not new_user.secret_key:
+            raise ValueError("secret_key cannot be empty")
+        if not new_user.preferred_language:
+            raise ValueError("preferred_language cannot be empty")
+        if not new_user.created_at:
+            raise ValueError("created_at cannot be None")
+        print(f"[ONBOARDING] ✅ All required fields verified")
         
         # Step 3: Add to session
         print(f"[ONBOARDING] Step 3: Adding to session...")

@@ -10,8 +10,8 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     secret_key = Column(String, nullable=False, unique=False)      # رمز شخصی (NOT unique - multiple users can have same password)
-    preferred_language = Column(String, default="en", nullable=True)  # زبان انتخابی کاربر (nullable for safety)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)  # زمان ثبت‌نام (nullable for safety)
+    preferred_language = Column(String, default="en", nullable=False)  # زبان انتخابی کاربر (NOT nullable - always has default)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, server_default=None)  # زمان ثبت‌نام (NOT nullable - always has default)
 
 
 # -------------------- Memory --------------------
