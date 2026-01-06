@@ -146,16 +146,18 @@ def setup_onboarding(
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    # Step 2: Ensure tables exist (create if needed)
+    # Step 2: Ensure tables exist (create if needed) - with explicit User table
     try:
         from app.database import Base, engine
-        Base.metadata.create_all(bind=engine)
-        print(f"[ONBOARDING] Tables ensured to exist")
+        from app.models import User
+        # Explicitly create User table to ensure schema matches
+        Base.metadata.create_all(bind=engine, tables=[User.__table__])
+        print(f"[ONBOARDING] User table ensured to exist with correct schema")
     except Exception as table_error:
-        print(f"[ONBOARDING] ⚠️ Warning: Could not ensure tables exist: {table_error}")
+        print(f"[ONBOARDING] ⚠️ Warning: Could not ensure User table exists: {table_error}")
         import traceback
         print(f"[ONBOARDING] Table creation error traceback: {traceback.format_exc()}")
-        # Continue anyway - tables might already exist
+        # Continue anyway - table might already exist
     
     # Step 3: Create user - with comprehensive error handling
     new_user = None
