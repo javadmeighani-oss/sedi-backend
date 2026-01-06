@@ -1067,34 +1067,10 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
                 response_template = prompts.get("first_real_interaction", "")
                 if not response_template:
                     # CRITICAL: Before falling back to English, try to detect language from context
-                    # Check last Sedi message for Persian/Arabic characters
-                    recent_messages = context.get("recent_messages", [])
-                    last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
-                    if last_sedi_message:
-                        persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
-                        arabic_chars = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
-                        has_persian = any(char in last_sedi_message for char in persian_chars)
-                        has_arabic = any(char in last_sedi_message for char in arabic_chars)
-                        
-                        if has_persian and self.language != "fa":
-                            print(f"[PROMPTS DEBUG] Persian detected in last message, switching language to fa")
-                            self.language = "fa"
-                            prompts = self.onboarding_prompts.get("fa", {})
-                            response_template = prompts.get("first_real_interaction", "")
-                        elif has_arabic and self.language != "ar":
-                            print(f"[PROMPTS DEBUG] Arabic detected in last message, switching language to ar")
-                            self.language = "ar"
-                            prompts = self.onboarding_prompts.get("ar", {})
-                            response_template = prompts.get("first_real_interaction", "")
-                    
-                    # If still not found, try to detect from user message
-                    if not response_template:
-                        user_lang = detect_language(user_message)
-                        if user_lang in ["fa", "ar"] and user_lang != self.language:
-                            print(f"[PROMPTS DEBUG] Language detected from user message: {user_lang}, switching")
-                            self.language = user_lang
-                            prompts = self.onboarding_prompts.get(user_lang, {})
-                            response_template = prompts.get("first_real_interaction", "")
+                    # CRITICAL: NO LANGUAGE AUTO-DETECTION
+                    # Language is set explicitly from user's preferred_language
+                    # Do NOT detect or switch language based on message content
+                    # This ensures deterministic behavior
                     
                     # Final fallback to English if still not found
                     if not response_template:
@@ -1192,10 +1168,27 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
         """
         
         # Get complete Sedi context from knowledge base
-        sedi_context = build_complete_sedi_context(self.language)
+        # CRITICAL: Always use English for Sedi's knowledge base (core thinking)
+        sedi_context = build_complete_sedi_context("en")
+        
+        # Determine response language (output language, not thinking language)
+        response_language = self.language if self.language in ["en", "fa", "ar"] else "en"
+        
+        # CRITICAL LANGUAGE RULE: Sedi's internal reasoning is ALWAYS in English
+        # Response output is in user's preferred language (response_language)
+        language_rule = f"""
+CRITICAL LANGUAGE RULE:
+- Sedi's internal reasoning, personality, and knowledge base are defined in ENGLISH.
+- You MUST always think in English internally.
+- You MUST respond to the user ONLY in {response_language.upper()} language.
+- NEVER auto-detect language from message content.
+- NEVER infer language from IP, locale, or any other source.
+- Use ONLY the explicitly provided response_language ({response_language.upper()}) for output.
+"""
         
         base_prompts = {
             "en": f"""{sedi_context}
+{language_rule}
 
 You are speaking with {user_name}.
 
@@ -1279,6 +1272,7 @@ MEMORY USAGE:
   * If user mentioned something (work, exercise, sleep), reference it in your next message instead of asking about it again.""",
             
             "fa": f"""{sedi_context}
+{language_rule}
 
 داری با {user_name} صحبت می‌کنی.
 
@@ -1357,6 +1351,7 @@ MEMORY USAGE:
 - اگر کاربر تکرار کرد یا سوالات مشابه پرسید، آن را تأیید کن و پاسخ تازه بده.""",
             
             "ar": f"""{sedi_context}
+{language_rule}
 
 أنت تتحدث مع {user_name}.
 
