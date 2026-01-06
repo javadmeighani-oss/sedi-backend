@@ -134,9 +134,9 @@ def chat_with_sedi(
 # ---------------- Onboarding - Setup User ---------------- 
 @router.post("/onboarding")
 def setup_onboarding(
-    password: str = Query(...),
-    language: str = Query("fa"),
-    name: Optional[str] = Query(None),  # Optional: name from frontend (for GPT personalization)
+    password: str = Query(..., description="User security password (minimum 6 characters)"),  # REQUIRED
+    language: Optional[str] = Query("fa", description="Preferred language (default: 'fa')"),  # OPTIONAL with default
+    name: Optional[str] = Query(None, description="User name (optional, for GPT personalization)"),  # OPTIONAL
     db: Session = Depends(get_db)
 ):
     """
@@ -175,8 +175,9 @@ def setup_onboarding(
         print(f"[ONBOARDING]   - Password (first 3): {password[:3]}...")
         print(f"[ONBOARDING]   - Language: '{language}'")
         
-        # Ensure language is valid
-        user_language = language if language and language.strip() else "en"
+        # Ensure language is valid (handle None case)
+        user_language = (language.strip() if language and language.strip() else "en")
+        print(f"[ONBOARDING]   - Language from request: '{language}'")
         print(f"[ONBOARDING]   - Final language: '{user_language}'")
         
         # Step 2: Create user object - ensure ALL required fields are set
