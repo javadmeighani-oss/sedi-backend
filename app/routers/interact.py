@@ -147,12 +147,16 @@ def setup_onboarding(
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
     # Step 2: Ensure tables exist (create if needed) - with explicit User table
+    # NOTE: create_all does NOT modify existing tables - it only creates if missing
+    # If schema mismatch exists, you need to run fix_schema.py
     try:
         from app.database import Base, engine
         from app.models import User
         # Explicitly create User table to ensure schema matches
+        # This will only create if table doesn't exist - won't modify existing schema
         Base.metadata.create_all(bind=engine, tables=[User.__table__])
-        print(f"[ONBOARDING] User table ensured to exist with correct schema")
+        print(f"[ONBOARDING] User table ensured to exist")
+        print(f"[ONBOARDING] NOTE: If schema mismatch exists, run 'python fix_schema.py'")
     except Exception as table_error:
         print(f"[ONBOARDING] ⚠️ Warning: Could not ensure User table exists: {table_error}")
         import traceback
