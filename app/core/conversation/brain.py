@@ -181,9 +181,18 @@ class ConversationBrain:
         """
         Generate initial message after onboarding.
         Uses GPT with Sedi's knowledge base to introduce Sedi and explain what she does.
+        
+        Args:
+            user_id: User ID from database
+            user_name: User's name from frontend (optional, for personalization)
+            language: Language code ('en', 'fa', 'ar')
         """
         from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
         from app.core.conversation.prompts import client as gpt_client
+        
+        # CRITICAL: Use user_name if provided, otherwise use "friend" as fallback
+        display_name = user_name.strip() if user_name and user_name.strip() else "friend"
+        print(f"[BRAIN] get_initial_message: user_id={user_id}, user_name='{user_name}', display_name='{display_name}', language={language}")
         
         # Get Sedi's complete context
         sedi_context = build_complete_sedi_context(language)
@@ -191,7 +200,7 @@ class ConversationBrain:
         # Build system prompt
         system_prompt = f"""{sedi_context}
 
-You are Sedi, speaking with {user_name} for the first time after they completed onboarding.
+You are Sedi, speaking with {display_name} for the first time after they completed onboarding.
 
 Your role is to:
 1. Introduce yourself warmly
@@ -203,16 +212,17 @@ Your role is to:
 4. Explain how you work: You learn about their lifestyle through natural conversation and use smart devices to track vital signs (heart rate, temperature, SpO2) continuously
 5. Be warm, friendly, and engaging
 6. Keep it concise (2-3 sentences, max 200 characters)
+7. {"Use their name naturally in the greeting" if display_name != "friend" else "Greet them warmly"}
 
 Speak in {language} language.
 """
         
         # Build user prompt
         user_prompt = {
-            "en": f"Introduce yourself to {user_name} and explain what you do as their health care assistant. Be warm and welcoming.",
-            "fa": f"خودت را به {user_name} معرفی کن و توضیح بده که به عنوان دستیار مراقبت سلامت‌شان چه کاری انجام می‌دهی. گرم و خوش‌آمدگو باش.",
-            "ar": f"قدم نفسك إلى {user_name} واشرح ما تفعله كمساعد رعاية صحية. كن دافئاً ومرحباً."
-        }.get(language, user_prompt["en"])
+            "en": f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming." + (f" Use their name: {display_name}." if display_name != "friend" else ""),
+            "fa": f"خودت را به {display_name} معرفی کن و توضیح بده که به عنوان دستیار مراقبت سلامت‌شان چه کاری انجام می‌دهی. گرم و خوش‌آمدگو باش." + (f" از نامشان استفاده کن: {display_name}." if display_name != "friend" else ""),
+            "ar": f"قدم نفسك إلى {display_name} واشرح ما تفعله كمساعد رعاية صحية. كن دافئاً ومرحباً." + (f" استخدم اسمهم: {display_name}." if display_name != "friend" else "")
+        }.get(language, f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming.")
         
         try:
             messages = [
@@ -230,15 +240,17 @@ Speak in {language} language.
             return response.choices[0].message.content.strip()
         except Exception as e:
             print(f"[BRAIN INITIAL MESSAGE ERROR] {e}")
-            # Fallback message
+            import traceback
+            print(f"[BRAIN INITIAL MESSAGE ERROR] Traceback: {traceback.format_exc()}")
+            # Fallback message - use display_name (already set to "friend" if None)
             fallback = {
-                "en": f"Hello {user_name}! I'm Sedi, your AI-powered health care assistant. I'm here to help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring via smart devices.",
-                "fa": f"سلام {user_name}! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من اینجا هستم تا از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌تان کمک کنم.",
-                "ar": f"مرحباً {user_name}! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أنا هنا لمساعدتك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية."
+                "en": f"Hello {display_name}! I'm Sedi, your AI-powered health care assistant. I'm here to help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring via smart devices.",
+                "fa": f"سلام {display_name}! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من اینجا هستم تا از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌تان کمک کنم.",
+                "ar": f"مرحباً {display_name}! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أنا هنا لمساعدتك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية."
             }
             return fallback.get(language, fallback["en"])
     
-    def get_greeting(self, user_id: int) -> Dict[str, any]:
+    def get_greeting(self, user_id: int, user_name: Optional[str] = None) -> Dict[str, any]:
         """
         Generate initial greeting for user.
         
@@ -246,20 +258,25 @@ Speak in {language} language.
         
         Args:
             user_id: User ID
+            user_name: Optional user name from frontend (for personalization)
         
         Returns:
             Dict with greeting message and metadata
         """
+        print(f"[BRAIN] get_greeting: user_id={user_id}, user_name='{user_name}'")
+        
         # Get current stage
         stage = get_stage(user_id, self.db)
         
-        # Build context
+        # Build context - pass user_name from frontend
         context = ConversationContext(
             user_id=user_id,
             stage=stage,
-            memory=self.memory
+            memory=self.memory,
+            user_name=user_name  # CRITICAL: Pass name from frontend
         )
         context_data = context.build()
+        print(f"[BRAIN] Context built - user_name in context: '{context_data.get('user_name')}'")
         
         # Generate greeting based on stage
         greeting = self._generate_greeting(context_data, stage)

@@ -136,6 +136,7 @@ def chat_with_sedi(
 def setup_onboarding(
     password: str = Query(...),
     language: str = Query("fa"),
+    name: Optional[str] = Query(None),  # Optional: name from frontend (for GPT personalization)
     db: Session = Depends(get_db)
 ):
     """
@@ -349,8 +350,11 @@ def setup_onboarding(
     if user_id:
         try:
             print(f"[ONBOARDING] Step 7: Generating greeting from GPT for user_id: {user_id}")
+            print(f"[ONBOARDING] User name from frontend: '{name}'")
+            # Use name from frontend if provided, otherwise None (GPT will use fallback)
+            user_name_for_gpt = name.strip() if name and name.strip() else None
             brain = ConversationBrain(db, language=language)
-            initial_message = brain.get_initial_message(user_id, None, language)
+            initial_message = brain.get_initial_message(user_id, user_name_for_gpt, language)
             print(f"[ONBOARDING] ✅ GPT greeting generated successfully")
         except Exception as gpt_error:
             print(f"[ONBOARDING] ⚠️ GPT failed (non-critical), using fallback: {gpt_error}")
@@ -393,6 +397,7 @@ def setup_onboarding(
 def get_greeting(
     user_id: int = Query(...),
     lang: str = Query("en"),
+    name: Optional[str] = Query(None),  # Optional: name from frontend (for GPT personalization)
     db: Session = Depends(get_db)
 ):
     """
@@ -402,11 +407,19 @@ def get_greeting(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    print(f"[GREETING] Getting greeting for user_id: {user_id}, name: '{name}', lang: {lang}")
+    
     brain = ConversationBrain(db, language=lang)
-    greeting = brain.get_greeting(user_id)
+    # Pass name to get_greeting if provided
+    greeting_result = brain.get_greeting(user_id, user_name=name)
+    
+    # get_greeting returns dict with message
+    greeting_message = greeting_result.get("message", "") if isinstance(greeting_result, dict) else str(greeting_result)
+    
+    print(f"[GREETING] Greeting generated: '{greeting_message[:50]}...'")
     
     return {
-        "message": greeting,
+        "message": greeting_message,
         "language": lang,
         "user_id": user_id
     }
