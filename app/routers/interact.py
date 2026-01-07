@@ -64,10 +64,9 @@ def introduce_user(
 
 # ---------------- Chat with Sedi ----------------  
 @router.post("/chat", response_model=InteractionResponse)
-def chat_with_sedi(
-    message: str = Query(..., description="User message (required, non-empty)"),
+async def chat(
+    payload: ChatRequest,
     lang: Optional[str] = Query(None, description="Preferred language (optional, will be detected from message if not provided)"),
-    user_id: Optional[int] = Query(None, description="User ID (required for authenticated users)"),
     name: Optional[str] = Query(None, description="User name (optional, for GPT personalization)"),
     secret_key: Optional[str] = Query(None, description="User secret key (optional, for authentication)"),
     db: Session = Depends(get_db)
@@ -77,15 +76,19 @@ def chat_with_sedi(
     All conversation logic handled by Conversation Brain.
     
     CRITICAL VALIDATION:
-    - message: Required, non-empty
-    - user_id: Required for authenticated users (after onboarding)
+    - message: Required, non-empty (from JSON body)
+    - user_id: Required (from JSON body)
     - lang: Optional, will be detected from message if not provided
     """
-    # Step 1: Validate message
-    if not message or not message.strip():
+    # Step 1: Extract values from payload
+    user_id = payload.user_id
+    message = payload.message.strip()
+    
+    # Step 2: Validate message
+    if not message:
         raise HTTPException(
             status_code=400,
-            detail="Message cannot be empty. Please provide a non-empty message."
+            detail="Message cannot be empty"
         )
     
     # Step 2: Validate and find user
