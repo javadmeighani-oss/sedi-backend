@@ -190,9 +190,23 @@ class ConversationPrompts:
                     print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
                     raise ValueError(error_msg)
             
+            # STEP 3: Ensure exactly one system message
+            system_messages = [msg for msg in messages if msg.get("role") == "system"]
+            if len(system_messages) != 1:
+                error_msg = f"Messages must contain exactly one system message, got {len(system_messages)}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
             # Ensure first message is system prompt
             if messages[0].get("role") != "system":
                 error_msg = f"First message must be system prompt, got role: {messages[0].get('role')}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # STEP 3: Ensure at least one user message
+            user_messages = [msg for msg in messages if msg.get("role") == "user"]
+            if len(user_messages) < 1:
+                error_msg = f"Messages must contain at least one user message, got {len(user_messages)}"
                 print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
                 raise ValueError(error_msg)
             

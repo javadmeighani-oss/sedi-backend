@@ -67,9 +67,6 @@ def introduce_user(
 @router.post("/chat", response_model=InteractionResponse)
 async def chat(
     payload: ChatRequest,
-    lang: Optional[str] = Query(None, description="Preferred language (optional, will be detected from message if not provided)"),
-    name: Optional[str] = Query(None, description="User name (optional, for GPT personalization)"),
-    secret_key: Optional[str] = Query(None, description="User secret key (optional, for authentication)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -79,75 +76,70 @@ async def chat(
     CRITICAL VALIDATION:
     - message: Required, non-empty (from JSON body)
     - user_id: Required (from JSON body)
-    - lang: Optional, will be detected from message if not provided
+    - Language: Detected ONLY from message content (no query params)
+    - Name: Retrieved from memory/context (no query params)
     """
-    # Step 1: Extract values from payload
-    user_id = payload.user_id
-    message = payload.message.strip()
-    
-    # Step 2: Validate message
-    if not message:
+    # STEP 3: HARDEN CHAT FLOW - Validate payload
+    if not payload.message or not payload.message.strip():
         raise HTTPException(
             status_code=400,
             detail="Message cannot be empty"
         )
     
-    # Step 2: Validate and find user
-    user = None
-    requires_security_check = False
-    is_anonymous = False
+    # Extract values from payload
+    user_id = payload.user_id
+    message = payload.message.strip()
     
-    if user_id:
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail=f"User with id {user_id} not found. Please check your user_id or start a new conversation."
-            )
-    
-    if not user and secret_key:
-        user = db.query(User).filter(User.secret_key == secret_key).first()
-    
-    # Step 3: Create anonymous user only if no user found (should not happen after onboarding)
-    if not user:
-        is_anonymous = True
-        print(f"[CHAT] WARNING: No user found, creating anonymous user (user_id={user_id}, has_secret_key={secret_key is not None})")
-        new_user = User(
-            secret_key=str(uuid.uuid4()),
-            preferred_language="en"  # Default to English for anonymous users
+    # Validate user_id
+    if not user_id or user_id <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid user_id. Must be a positive integer."
         )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        user = new_user
+    
+    # Find user by user_id (required after onboarding)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"User with id {user_id} not found. Please check your user_id or start a new conversation."
+        )
     
     try:
-        # Step 4: Detect language from user message text ONLY (not IP/locale)
-        # This ensures deterministic language behavior
+        # STEP 2: SINGLE SOURCE OF LANGUAGE TRUTH
+        # Detect language from user message text ONLY (not IP/locale/query params)
         from app.core.conversation.name_database import detect_language
         detected_lang = detect_language(message)
         
-        # Use detected language if valid, otherwise use lang parameter, otherwise default to "en"
+        # Use detected language if valid, otherwise default to "en"
+        # NO query parameter fallback - message content is the ONLY source
         if detected_lang in ["en", "fa", "ar"]:
             response_language = detected_lang
-        elif lang and lang in ["en", "fa", "ar"]:
-            response_language = lang
         else:
             response_language = "en"  # Default to English
         
-        print(f"[CHAT] Language detection: message='{message[:50]}...', detected={detected_lang}, provided={lang}, using={response_language}")
+        print(f"[CHAT] Language detection: message='{message[:50]}...', detected={detected_lang}, using={response_language}")
+        print(f"[CHAT] ✅ Language determined ONLY from message content (no query params)")
         
-        # Step 5: Initialize brain with detected language for response
-        # But Sedi's internal thinking is ALWAYS English (enforced in prompts)
+        # STEP 3: HARDEN CHAT FLOW - Validate message before GPT call
+        # This validation is also done in prompts.py, but we validate here too for early failure
+        if not isinstance(message, str) or not message.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Message must be a non-empty string"
+            )
+        
+        # Initialize brain with detected language for response
+        # Sedi's internal thinking is ALWAYS English (enforced in prompts)
         print(f"[CHAT] ===== BEFORE GPT CALL =====")
         print(f"[CHAT] User ID: {user.id}")
         print(f"[CHAT] Message: '{message[:100]}...'")
         print(f"[CHAT] Response language: {response_language}")
-        print(f"[CHAT] Name: {name}")
         print(f"[CHAT] ===== END BEFORE GPT =====")
         
+        # Name is retrieved from memory/context by ConversationBrain - not passed as parameter
         brain = ConversationBrain(db, language=response_language)
-        result = brain.process_message(user.id, message, name)
+        result = brain.process_message(user.id, message, None)  # name=None - will be retrieved from memory
         
         print(f"[CHAT] ===== AFTER GPT CALL =====")
         print(f"[CHAT] Response received: {result.get('message', '')[:100]}...")
