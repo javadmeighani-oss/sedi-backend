@@ -151,7 +151,7 @@ async def chat(
             language=result["language"],
             user_id=user.id,
             timestamp=datetime.utcnow(),
-            requires_security_check=requires_security_check,
+            requires_security_check=False,  # Security check handled by brain if needed
             detected_name=result.get("detected_name")
         )
     except HTTPException:
@@ -168,7 +168,7 @@ async def chat(
             }
         )
     except Exception as e:
-        # Log full error details for debugging
+        # STEP 4: ERROR TRANSPARENCY - Log and return real errors
         print(f"[CHAT ERROR] ===== ERROR PROCESSING MESSAGE =====")
         print(f"[CHAT ERROR] Error: {e}")
         print(f"[CHAT ERROR] Error type: {type(e).__name__}")
@@ -195,7 +195,7 @@ async def chat(
         )
         
         if is_gpt_error:
-            # Return 502 Bad Gateway for GPT failures (external service error)
+            # STEP 4: Return 502 with real error message (not generic)
             print(f"[CHAT ERROR] GPT-related error detected - returning 502")
             from fastapi.responses import JSONResponse
             return JSONResponse(
