@@ -146,17 +146,48 @@ class ConversationPrompts:
                 content_preview = msg["content"][:150] + "..." if len(msg["content"]) > 150 else msg["content"]
                 print(f"[PROMPTS DEBUG] Message {i} ({role}): {content_preview}")
             
-            completion = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=200,  # Increased for health care assistant to provide more context
-            )
+            # ===== GPT_CHAT_START - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_CHAT_START] ===== CALLING GPT FOR CHAT RESPONSE =====")
+            print(f"[GPT_CHAT_START] Model: gpt-4o-mini")
+            print(f"[GPT_CHAT_START] Message length: {len(user_message)} characters")
+            print(f"[GPT_CHAT_START] User message preview: {user_message[:100]}...")
+            print(f"[GPT_CHAT_START] Total messages in context: {len(messages)}")
+            print(f"[GPT_CHAT_START] API key available: {bool(os.getenv('OPENAI_API_KEY'))}")
+            print(f"[GPT_CHAT_START] API key length: {len(os.getenv('OPENAI_API_KEY', ''))}")
+            print("=" * 80)
             
-            response = completion.choices[0].message.content.strip()
-            
-            # DEBUG: Log response
-            print(f"[PROMPTS DEBUG] GPT Response: {response[:100]}...")
+            try:
+                completion = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=200,  # Increased for health care assistant to provide more context
+                )
+                
+                response = completion.choices[0].message.content.strip()
+                
+                # ===== GPT_CHAT_SUCCESS - HARD LOGGING =====
+                print("=" * 80)
+                print("[GPT_CHAT_SUCCESS] ===== GPT CALL SUCCESSFUL =====")
+                print(f"[GPT_CHAT_SUCCESS] Response length: {len(response)} characters")
+                print(f"[GPT_CHAT_SUCCESS] Response preview: {response[:150]}...")
+                print("=" * 80)
+                
+                # DEBUG: Log response
+                print(f"[PROMPTS DEBUG] GPT Response: {response[:100]}...")
+            except Exception as gpt_error:
+                # ===== GPT_CHAT_ERROR - HARD LOGGING =====
+                print("=" * 80)
+                print("[GPT_CHAT_ERROR] ===== GPT CALL FAILED =====")
+                print(f"[GPT_CHAT_ERROR] Exception type: {type(gpt_error).__name__}")
+                print(f"[GPT_CHAT_ERROR] Exception message: {str(gpt_error)}")
+                import traceback
+                print(f"[GPT_CHAT_ERROR] Full stack trace:")
+                print(traceback.format_exc())
+                print("=" * 80)
+                # Re-raise to be handled by outer try/except
+                raise
             
             # Post-process: Ensure no more than one question mark
             question_count = response.count('?')
