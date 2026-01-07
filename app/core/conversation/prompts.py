@@ -34,6 +34,8 @@ class ConversationPrompts:
     """Generates conversation texts based on context - AI-powered health care assistant"""
     
     def __init__(self, language: str = "en"):
+        # CRITICAL: language is the RESPONSE language (output language)
+        # Sedi's internal thinking is ALWAYS English (enforced in system prompt)
         self.language = language
         # Initialize onboarding prompts
         self._init_onboarding_prompts()
@@ -1175,14 +1177,16 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
         response_language = self.language if self.language in ["en", "fa", "ar"] else "en"
         
         # CRITICAL LANGUAGE RULE: Sedi's internal reasoning is ALWAYS in English
-        # Response output is in user's preferred language (response_language)
+        # Response output is dynamically determined from user's message language
         language_rule = f"""
 CRITICAL LANGUAGE RULE:
 - Sedi's internal reasoning, personality, and knowledge base are defined in ENGLISH.
 - You MUST always think in English internally.
 - You MUST respond to the user ONLY in {response_language.upper()} language.
-- NEVER auto-detect language from message content.
-- NEVER infer language from IP, locale, or any other source.
+- The response_language ({response_language.upper()}) is determined from the user's last message text ONLY.
+- NEVER auto-detect language from IP, locale, headers, or any other source.
+- NEVER infer language from anything other than the user's message text.
+- After onboarding, response_language is updated dynamically based ONLY on the language of the user's last message.
 - Use ONLY the explicitly provided response_language ({response_language.upper()}) for output.
 """
         

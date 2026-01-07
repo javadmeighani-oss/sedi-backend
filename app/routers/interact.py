@@ -103,7 +103,16 @@ def chat_with_sedi(
         user = new_user
     
     try:
-        brain = ConversationBrain(db, language=lang)
+        # CRITICAL: Detect language from user message text ONLY (not IP/locale)
+        # This ensures deterministic language behavior
+        from app.core.conversation.name_database import detect_language
+        detected_lang = detect_language(message)
+        # Use detected language if valid, otherwise use lang parameter
+        response_language = detected_lang if detected_lang in ["en", "fa", "ar"] else lang
+        
+        # CRITICAL: Initialize brain with detected language for response
+        # But Sedi's internal thinking is ALWAYS English (enforced in prompts)
+        brain = ConversationBrain(db, language=response_language)
         result = brain.process_message(user.id, message, name)
         
         return InteractionResponse(

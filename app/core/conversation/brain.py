@@ -37,7 +37,8 @@ class ConversationBrain:
     def process_message(
         self,
         user_id: int,
-        user_message: str
+        user_message: str,
+        user_name: Optional[str] = None
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
