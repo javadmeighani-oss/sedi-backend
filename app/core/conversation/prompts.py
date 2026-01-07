@@ -35,7 +35,9 @@ if not api_key:
     raise RuntimeError("OPENAI_API_KEY is not set in .env file. GPT functionality will not work.")
 else:
     print(f"[PROMPTS] ✅ OPENAI_API_KEY found (length: {len(api_key)}, starts with: {api_key[:7]}...)")
+# VERIFY: Same client used in onboarding and chat
 client = OpenAI(api_key=api_key)
+print(f"[PROMPTS] ✅ OpenAI client initialized (model: gpt-4o-mini supported)")
 
 
 class ConversationPrompts:
@@ -146,47 +148,59 @@ class ConversationPrompts:
                 content_preview = msg["content"][:150] + "..." if len(msg["content"]) > 150 else msg["content"]
                 print(f"[PROMPTS DEBUG] Message {i} ({role}): {content_preview}")
             
-            # ===== GPT_CHAT_START - HARD LOGGING =====
+            # ===== CHAT_GPT_CALL_START - HARD LOGGING =====
             print("=" * 80)
-            print("[GPT_CHAT_START] ===== CALLING GPT FOR CHAT RESPONSE =====")
-            print(f"[GPT_CHAT_START] Model: gpt-4o-mini")
-            print(f"[GPT_CHAT_START] Message length: {len(user_message)} characters")
-            print(f"[GPT_CHAT_START] User message preview: {user_message[:100]}...")
-            print(f"[GPT_CHAT_START] Total messages in context: {len(messages)}")
-            print(f"[GPT_CHAT_START] API key available: {bool(os.getenv('OPENAI_API_KEY'))}")
-            print(f"[GPT_CHAT_START] API key length: {len(os.getenv('OPENAI_API_KEY', ''))}")
+            print("[CHAT_GPT_CALL_START] ===== EXACT GPT CALL LOCATION =====")
+            print(f"[CHAT_GPT_CALL_START] File: prompts.py")
+            print(f"[CHAT_GPT_CALL_START] Function: generate_response()")
+            print(f"[CHAT_GPT_CALL_START] Model name: gpt-4o-mini")
+            print(f"[CHAT_GPT_CALL_START] Messages array length: {len(messages)}")
+            if messages:
+                first_msg = messages[0]
+                print(f"[CHAT_GPT_CALL_START] First message role: {first_msg.get('role', 'N/A')}")
+                print(f"[CHAT_GPT_CALL_START] First message content length: {len(first_msg.get('content', ''))}")
+            else:
+                print(f"[CHAT_GPT_CALL_START] ⚠️ WARNING: Messages array is EMPTY!")
+            print(f"[CHAT_GPT_CALL_START] User ID: {context.get('user_id', 'N/A')}")
+            print(f"[CHAT_GPT_CALL_START] Detected language: {self.language}")
+            api_key_available = bool(os.getenv('OPENAI_API_KEY'))
+            print(f"[CHAT_GPT_CALL_START] OPENAI_API_KEY present: {api_key_available}")
+            if not api_key_available:
+                print(f"[CHAT_GPT_CALL_START] ❌ CRITICAL: API key is MISSING!")
+            print(f"[CHAT_GPT_CALL_START] Client type: {type(client).__name__}")
+            print(f"[CHAT_GPT_CALL_START] Client API key set: {bool(client.api_key)}")
             print("=" * 80)
             
+            # Wrap ONLY the GPT call in try/except
             try:
                 completion = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=messages,
                     temperature=0.7,
-                    max_tokens=200,  # Increased for health care assistant to provide more context
+                    max_tokens=200,
                 )
                 
                 response = completion.choices[0].message.content.strip()
                 
-                # ===== GPT_CHAT_SUCCESS - HARD LOGGING =====
+                # ===== CHAT_GPT_CALL_SUCCESS - HARD LOGGING =====
                 print("=" * 80)
-                print("[GPT_CHAT_SUCCESS] ===== GPT CALL SUCCESSFUL =====")
-                print(f"[GPT_CHAT_SUCCESS] Response length: {len(response)} characters")
-                print(f"[GPT_CHAT_SUCCESS] Response preview: {response[:150]}...")
+                print("[CHAT_GPT_CALL_SUCCESS] ===== GPT CALL SUCCESSFUL =====")
+                print(f"[CHAT_GPT_CALL_SUCCESS] Response length: {len(response)} characters")
                 print("=" * 80)
                 
                 # DEBUG: Log response
                 print(f"[PROMPTS DEBUG] GPT Response: {response[:100]}...")
             except Exception as gpt_error:
-                # ===== GPT_CHAT_ERROR - HARD LOGGING =====
+                # ===== CHAT_GPT_CALL_FAILED - HARD LOGGING =====
                 print("=" * 80)
-                print("[GPT_CHAT_ERROR] ===== GPT CALL FAILED =====")
-                print(f"[GPT_CHAT_ERROR] Exception type: {type(gpt_error).__name__}")
-                print(f"[GPT_CHAT_ERROR] Exception message: {str(gpt_error)}")
+                print("[CHAT_GPT_CALL_FAILED] ===== GPT CALL FAILED =====")
+                print(f"[CHAT_GPT_CALL_FAILED] Exception type: {type(gpt_error).__name__}")
+                print(f"[CHAT_GPT_CALL_FAILED] Exception message: {str(gpt_error)}")
                 import traceback
-                print(f"[GPT_CHAT_ERROR] Full stack trace:")
+                print(f"[CHAT_GPT_CALL_FAILED] Full traceback:")
                 print(traceback.format_exc())
                 print("=" * 80)
-                # Re-raise to be handled by outer try/except
+                # DO NOT swallow the error - re-raise it
                 raise
             
             # Post-process: Ensure no more than one question mark
@@ -199,8 +213,14 @@ class ConversationPrompts:
             return response
             
         except Exception as e:
-            print(f"[PROMPTS ERROR] {e}")
-            return self._get_fallback_response(stage)
+            # This exception is from GPT call - re-raise it to be handled by brain/endpoint
+            print(f"[PROMPTS ERROR] Exception caught in generate_response: {e}")
+            print(f"[PROMPTS ERROR] Exception type: {type(e).__name__}")
+            import traceback
+            print(f"[PROMPTS ERROR] Full traceback:")
+            print(traceback.format_exc())
+            # DO NOT return fallback - re-raise to show real error
+            raise
     
     def _init_onboarding_prompts(self):
         """Initialize hardcoded onboarding prompts by language"""

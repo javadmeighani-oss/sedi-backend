@@ -173,11 +173,38 @@ def chat_with_sedi(
         print(f"[CHAT ERROR] User found: {user is not None}")
         print(f"[CHAT ERROR] ===== END ERROR =====")
         
-        # Return structured error message instead of generic "server connection error"
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing message: {str(e)[:200]}. Please try again."
+        # Check if this is a GPT-related error
+        error_str = str(e).lower()
+        error_type_name = type(e).__name__.lower()
+        is_gpt_error = (
+            "openai" in error_str or
+            "api key" in error_str or
+            "authentication" in error_str or
+            "rate limit" in error_str or
+            "gpt" in error_str or
+            "completion" in error_str or
+            "openai" in error_type_name or
+            "authenticationerror" in error_type_name or
+            "apierror" in error_type_name
         )
+        
+        if is_gpt_error:
+            # Return 502 Bad Gateway for GPT failures (external service error)
+            print(f"[CHAT ERROR] GPT-related error detected - returning 502")
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=502,
+                content={
+                    "error": "gpt_failure",
+                    "detail": str(e)[:500]  # Real error message, not generic
+                }
+            )
+        else:
+            # Return 500 for other internal errors
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error processing message: {str(e)[:200]}. Please try again."
+            )
 
 
 # ---------------- Onboarding - Setup User ---------------- 

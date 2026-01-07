@@ -111,6 +111,9 @@ class ConversationBrain:
             )
             print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
             
+            # If we get here, GPT call was successful
+            # If GPT call failed, exception would have been raised from generate_response
+            
             # 5. SAVE: Save conversation to memory (updates memory_count)
             self.memory.save_conversation(
                 user_id=user_id,
@@ -189,7 +192,9 @@ class ConversationBrain:
             language: Language code ('en', 'fa', 'ar')
         """
         from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+        # VERIFY: Same client used in onboarding and chat
         from app.core.conversation.prompts import client as gpt_client
+        print(f"[BRAIN] ✅ Using same OpenAI client as chat (verified: same client from prompts.py)")
         
         # CRITICAL: Use user_name if provided, otherwise use "friend" as fallback
         display_name = user_name.strip() if user_name and user_name.strip() else "friend"
