@@ -65,17 +65,30 @@ def introduce_user(
 # ---------------- Chat with Sedi ----------------  
 @router.post("/chat", response_model=InteractionResponse)
 def chat_with_sedi(
-    message: str = Query(...),
-    lang: str = Query("en"),
-    user_id: Optional[int] = Query(None),
-    name: Optional[str] = Query(None),
-    secret_key: Optional[str] = Query(None),
+    message: str = Query(..., description="User message (required, non-empty)"),
+    lang: Optional[str] = Query(None, description="Preferred language (optional, will be detected from message if not provided)"),
+    user_id: Optional[int] = Query(None, description="User ID (required for authenticated users)"),
+    name: Optional[str] = Query(None, description="User name (optional, for GPT personalization)"),
+    secret_key: Optional[str] = Query(None, description="User secret key (optional, for authentication)"),
     db: Session = Depends(get_db)
 ):
     """
     Chat endpoint - Thin API layer.
     All conversation logic handled by Conversation Brain.
+    
+    CRITICAL VALIDATION:
+    - message: Required, non-empty
+    - user_id: Required for authenticated users (after onboarding)
+    - lang: Optional, will be detected from message if not provided
     """
+    # Step 1: Validate message
+    if not message or not message.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Message cannot be empty. Please provide a non-empty message."
+        )
+    
+    # Step 2: Validate and find user
     user = None
     requires_security_check = False
     is_anonymous = False
@@ -91,11 +104,13 @@ def chat_with_sedi(
     if not user and secret_key:
         user = db.query(User).filter(User.secret_key == secret_key).first()
     
+    # Step 3: Create anonymous user only if no user found (should not happen after onboarding)
     if not user:
         is_anonymous = True
+        print(f"[CHAT] WARNING: No user found, creating anonymous user (user_id={user_id}, has_secret_key={secret_key is not None})")
         new_user = User(
             secret_key=str(uuid.uuid4()),
-            preferred_language=lang
+            preferred_language="en"  # Default to English for anonymous users
         )
         db.add(new_user)
         db.commit()
@@ -103,14 +118,22 @@ def chat_with_sedi(
         user = new_user
     
     try:
-        # CRITICAL: Detect language from user message text ONLY (not IP/locale)
+        # Step 4: Detect language from user message text ONLY (not IP/locale)
         # This ensures deterministic language behavior
         from app.core.conversation.name_database import detect_language
         detected_lang = detect_language(message)
-        # Use detected language if valid, otherwise use lang parameter
-        response_language = detected_lang if detected_lang in ["en", "fa", "ar"] else lang
         
-        # CRITICAL: Initialize brain with detected language for response
+        # Use detected language if valid, otherwise use lang parameter, otherwise default to "en"
+        if detected_lang in ["en", "fa", "ar"]:
+            response_language = detected_lang
+        elif lang and lang in ["en", "fa", "ar"]:
+            response_language = lang
+        else:
+            response_language = "en"  # Default to English
+        
+        print(f"[CHAT] Language detection: message='{message[:50]}...', detected={detected_lang}, provided={lang}, using={response_language}")
+        
+        # Step 5: Initialize brain with detected language for response
         # But Sedi's internal thinking is ALWAYS English (enforced in prompts)
         brain = ConversationBrain(db, language=response_language)
         result = brain.process_message(user.id, message, name)
