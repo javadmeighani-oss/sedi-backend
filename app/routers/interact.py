@@ -135,8 +135,20 @@ def chat_with_sedi(
         
         # Step 5: Initialize brain with detected language for response
         # But Sedi's internal thinking is ALWAYS English (enforced in prompts)
+        print(f"[CHAT] ===== BEFORE GPT CALL =====")
+        print(f"[CHAT] User ID: {user.id}")
+        print(f"[CHAT] Message: '{message[:100]}...'")
+        print(f"[CHAT] Response language: {response_language}")
+        print(f"[CHAT] Name: {name}")
+        print(f"[CHAT] ===== END BEFORE GPT =====")
+        
         brain = ConversationBrain(db, language=response_language)
         result = brain.process_message(user.id, message, name)
+        
+        print(f"[CHAT] ===== AFTER GPT CALL =====")
+        print(f"[CHAT] Response received: {result.get('message', '')[:100]}...")
+        print(f"[CHAT] Response language: {result.get('language', 'unknown')}")
+        print(f"[CHAT] ===== END AFTER GPT =====")
         
         return InteractionResponse(
             message=result["message"],

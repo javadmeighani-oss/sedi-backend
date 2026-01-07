@@ -27,7 +27,15 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# CRITICAL: Check API key availability at module load
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("[PROMPTS CRITICAL] ❌ OPENAI_API_KEY is not set in environment!")
+    print("[PROMPTS CRITICAL] This will cause GPT calls to fail.")
+    raise RuntimeError("OPENAI_API_KEY is not set in .env file. GPT functionality will not work.")
+else:
+    print(f"[PROMPTS] ✅ OPENAI_API_KEY found (length: {len(api_key)}, starts with: {api_key[:7]}...)")
+client = OpenAI(api_key=api_key)
 
 
 class ConversationPrompts:

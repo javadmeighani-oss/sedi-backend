@@ -230,6 +230,21 @@ The user's preferred language ({language}) will be used for all subsequent respo
                 {"role": "user", "content": user_prompt}
             ]
             
+            # ===== GPT_ONBOARDING_START - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_ONBOARDING_START] ===== CALLING GPT FOR ONBOARDING GREETING =====")
+            print(f"[GPT_ONBOARDING_START] Model: gpt-4o-mini")
+            print(f"[GPT_ONBOARDING_START] User ID: {user_id}")
+            print(f"[GPT_ONBOARDING_START] User name: {user_name}")
+            print(f"[GPT_ONBOARDING_START] Display name: {display_name}")
+            print(f"[GPT_ONBOARDING_START] Language: {language}")
+            print(f"[GPT_ONBOARDING_START] System prompt length: {len(system_prompt)} characters")
+            print(f"[GPT_ONBOARDING_START] User prompt length: {len(user_prompt)} characters")
+            import os
+            print(f"[GPT_ONBOARDING_START] API key available: {bool(os.getenv('OPENAI_API_KEY'))}")
+            print(f"[GPT_ONBOARDING_START] API key length: {len(os.getenv('OPENAI_API_KEY', ''))}")
+            print("=" * 80)
+            
             response = gpt_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
@@ -237,10 +252,27 @@ The user's preferred language ({language}) will be used for all subsequent respo
                 max_tokens=200,
             )
             
-            return response.choices[0].message.content.strip()
+            greeting_text = response.choices[0].message.content.strip()
+            
+            # ===== GPT_ONBOARDING_SUCCESS - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_ONBOARDING_SUCCESS] ===== GPT ONBOARDING CALL SUCCESSFUL =====")
+            print(f"[GPT_ONBOARDING_SUCCESS] Response length: {len(greeting_text)} characters")
+            print(f"[GPT_ONBOARDING_SUCCESS] Response preview: {greeting_text[:150]}...")
+            print("=" * 80)
+            
+            return greeting_text
         except Exception as e:
-            print(f"[BRAIN INITIAL MESSAGE ERROR] {e}")
+            # ===== GPT_ONBOARDING_ERROR - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_ONBOARDING_ERROR] ===== GPT ONBOARDING CALL FAILED =====")
+            print(f"[GPT_ONBOARDING_ERROR] Exception type: {type(e).__name__}")
+            print(f"[GPT_ONBOARDING_ERROR] Exception message: {str(e)}")
             import traceback
+            print(f"[GPT_ONBOARDING_ERROR] Full stack trace:")
+            print(traceback.format_exc())
+            print("=" * 80)
+            print(f"[BRAIN INITIAL MESSAGE ERROR] {e}")
             print(f"[BRAIN INITIAL MESSAGE ERROR] Traceback: {traceback.format_exc()}")
             # Fallback message - use display_name (already set to "friend" if None)
             fallback = {
