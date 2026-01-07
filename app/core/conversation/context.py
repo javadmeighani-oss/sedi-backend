@@ -63,10 +63,20 @@ class ConversationContext:
             - lifestyle_patterns: Extracted lifestyle patterns (MEDIUM-TERM)
         """
         # EXPERIENCE STABILITY: Load structured memory domains (RAG-ready)
-        memory_facts = self.memory.extract_memory_facts(self.user_id)
-        recent_messages = self.memory.get_recent_messages(self.user_id, limit=10)  # More for health context
-        conversation_count = self.memory.get_conversation_count(self.user_id)
-        time_since_last = self.memory.get_time_since_last_interaction(self.user_id)
+        # STEP 4: Memory is OPTIONAL - handle failures gracefully
+        try:
+            memory_facts = self.memory.extract_memory_facts(self.user_id)
+            recent_messages = self.memory.get_recent_messages(self.user_id, limit=10)  # More for health context
+            conversation_count = self.memory.get_conversation_count(self.user_id)
+            time_since_last = self.memory.get_time_since_last_interaction(self.user_id)
+        except Exception as memory_error:
+            # STEP 4: Memory failure is non-critical - use defaults
+            print(f"[CONTEXT WARNING] ⚠️ Memory load failed (non-critical): {memory_error}")
+            print(f"[CONTEXT WARNING] Using empty defaults - chat will work without memory")
+            memory_facts = {}
+            recent_messages = []
+            conversation_count = 0
+            time_since_last = None
         
         # Format recent messages for context (SHORT-TERM memory)
         recent_history = []

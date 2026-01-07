@@ -161,6 +161,16 @@ def chat_with_sedi(
     except HTTPException:
         # Re-raise HTTP exceptions (validation errors, etc.)
         raise
+    except ValueError as validation_error:
+        # STEP 3: Validation errors from message construction - return 400
+        print(f"[CHAT ERROR] Validation error: {validation_error}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "validation_error",
+                "detail": str(validation_error)
+            }
+        )
     except Exception as e:
         # Log full error details for debugging
         print(f"[CHAT ERROR] ===== ERROR PROCESSING MESSAGE =====")

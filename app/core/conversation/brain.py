@@ -133,14 +133,23 @@ class ConversationBrain:
                 raise
             
             # If we get here, GPT call was successful
-            # 5. SAVE: Save conversation to memory (updates memory_count)
-            self.memory.save_conversation(
-                user_id=user_id,
-                user_message=user_message,
-                sedi_response=sedi_response,
-                language=self.language
-            )
-            print(f"[BRAIN DEBUG] Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
+            # STEP 4: SAVE: Save conversation to memory (updates memory_count)
+            # CRITICAL: Memory is OPTIONAL - memory failure must NOT block chat
+            try:
+                self.memory.save_conversation(
+                    user_id=user_id,
+                    user_message=user_message,
+                    sedi_response=sedi_response,
+                    language=self.language
+                )
+                print(f"[BRAIN DEBUG] ✅ Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
+            except Exception as memory_error:
+                # STEP 4: Memory failure is non-critical - log but continue
+                print(f"[BRAIN WARNING] ⚠️ Memory save failed (non-critical): {memory_error}")
+                print(f"[BRAIN WARNING] Chat response will still be returned to user")
+                import traceback
+                print(f"[BRAIN WARNING] Memory error traceback: {traceback.format_exc()}")
+                # Continue - don't block chat response
             
             # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
             new_stage = transition_stage(current_stage, user_id, self.db)

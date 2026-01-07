@@ -108,7 +108,8 @@ class ConversationPrompts:
             engagement_level
         )
         
-        # Build conversation history for context (limit to avoid repetition)
+        # STEP 2: Build conversation history for context (limit to avoid repetition)
+        # CRITICAL: Memory/history is OPTIONAL - chat works without it
         conversation_history = self._build_conversation_history(recent_messages)
         
         # Build user prompt with enhanced context awareness
@@ -120,26 +121,89 @@ class ConversationPrompts:
             if conversation_history:
                 print(f"[PROMPTS DEBUG] Last exchange - User: {conversation_history[-1].get('user', 'N/A')[:50]}...")
                 print(f"[PROMPTS DEBUG] Last exchange - Sedi: {conversation_history[-1].get('sedi', 'N/A')[:50]}...")
+            else:
+                print(f"[PROMPTS DEBUG] ✅ No conversation history - chat will work with system prompt + user message only")
             
+            # STEP 2: Build messages array - ALWAYS start with system prompt (Sedi identity)
+            # System prompt MUST be first and MUST contain Sedi identity
             messages = [
                 {"role": "system", "content": system_prompt}
             ]
             
-            # CRITICAL: Add conversation history BEFORE current message
+            # STEP 2: Add conversation history ONLY if it exists (memory is optional)
             # This is essential for GPT to understand context and avoid repetition
             if conversation_history:
                 print(f"[PROMPTS DEBUG] Adding {len(conversation_history)} exchanges to GPT context")
                 for i, msg in enumerate(conversation_history):
-                    messages.append({"role": "user", "content": msg["user"]})
-                    messages.append({"role": "assistant", "content": msg["sedi"]})
+                    # Validate history message before adding
+                    user_msg = msg.get("user", "").strip()
+                    sedi_msg = msg.get("sedi", "").strip()
+                    if user_msg and sedi_msg:
+                        messages.append({"role": "user", "content": user_msg})
+                        messages.append({"role": "assistant", "content": sedi_msg})
+                    else:
+                        print(f"[PROMPTS WARNING] Skipping invalid history message at index {i}")
                 print(f"[PROMPTS DEBUG] Conversation history added successfully")
             else:
                 print(f"[PROMPTS DEBUG] No conversation history - this is likely first or early conversation")
             
-            # Add current user message
+            # STEP 2: Add current user message (ALWAYS required)
             print(f"[PROMPTS DEBUG] Current user message: {user_message[:50]}...")
             print(f"[PROMPTS DEBUG] User prompt (with intent hints): {user_prompt[:100]}...")
             messages.append({"role": "user", "content": user_prompt})
+            
+            # STEP 3: HARD FAIL-SAFE VALIDATION before GPT call
+            print(f"[PROMPTS VALIDATION] ===== VALIDATING MESSAGES BEFORE GPT CALL =====")
+            
+            # Ensure messages is a list
+            if not isinstance(messages, list):
+                error_msg = f"Messages must be a list, got {type(messages).__name__}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure at least 2 messages exist (system + user)
+            if len(messages) < 2:
+                error_msg = f"Messages array must have at least 2 messages (system + user), got {len(messages)}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure all message contents are non-empty strings
+            for i, msg in enumerate(messages):
+                if not isinstance(msg, dict):
+                    error_msg = f"Message at index {i} must be a dict, got {type(msg).__name__}"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+                
+                if "role" not in msg or "content" not in msg:
+                    error_msg = f"Message at index {i} must have 'role' and 'content' keys"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+                
+                content = msg.get("content", "")
+                if not isinstance(content, str):
+                    error_msg = f"Message content at index {i} must be a string, got {type(content).__name__}"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+                
+                if not content.strip():
+                    error_msg = f"Message content at index {i} (role: {msg.get('role')}) is empty"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+            
+            # Ensure first message is system prompt
+            if messages[0].get("role") != "system":
+                error_msg = f"First message must be system prompt, got role: {messages[0].get('role')}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure last message is user message
+            if messages[-1].get("role") != "user":
+                error_msg = f"Last message must be user message, got role: {messages[-1].get('role')}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            print(f"[PROMPTS VALIDATION] ✅ PASSED: {len(messages)} messages validated")
+            print(f"[PROMPTS VALIDATION] ===== END VALIDATION =====")
             
             # DEBUG: Print full messages array for troubleshooting
             print(f"[PROMPTS DEBUG] Total messages to GPT: {len(messages)}")
