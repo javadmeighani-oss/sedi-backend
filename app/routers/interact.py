@@ -8,16 +8,17 @@ RESPONSIBILITY:
 - NO logic, NO decisions
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy.orm import Session
+from typing import Optional
+from datetime import datetime
+import uuid
+
 from app.database import get_db
 from app.models import User, Memory
 from app.core.conversation.brain import ConversationBrain
 from app.schemas import InteractionResponse
-from datetime import datetime
-from fastapi import Depends
-from typing import Optional
-import uuid
+from app.schemas.chat import ChatRequest
 
 router = APIRouter()
 
