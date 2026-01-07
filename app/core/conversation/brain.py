@@ -104,16 +104,35 @@ class ConversationBrain:
             # This happens when user provides name in response to "what's your name?" or changes name
             detected_name = self._extract_name_from_message(user_id, user_message, current_stage, context_data)
             
-            sedi_response = self.prompts.generate_response(
-                context_data, 
-                user_message,
-                engagement_level
-            )
-            print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
+            # 4. GENERATE: Generate response with current context
+            # CRITICAL: This is where GPT is called for chat
+            print(f"[BRAIN] ===== BEFORE GPT CALL (generate_response) =====")
+            print(f"[BRAIN] User ID: {user_id}")
+            print(f"[BRAIN] User message: '{user_message[:100]}...'")
+            print(f"[BRAIN] Language: {self.language}")
+            print(f"[BRAIN] Stage: {current_stage.value}")
+            print(f"[BRAIN] ===== END BEFORE GPT =====")
+            
+            try:
+                sedi_response = self.prompts.generate_response(
+                    context_data, 
+                    user_message,
+                    engagement_level
+                )
+                print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
+            except Exception as gpt_exception:
+                # CRITICAL: This exception is from GPT call - re-raise it
+                print(f"[BRAIN] ===== GPT EXCEPTION IN process_message =====")
+                print(f"[BRAIN] Exception type: {type(gpt_exception).__name__}")
+                print(f"[BRAIN] Exception message: {str(gpt_exception)}")
+                import traceback
+                print(f"[BRAIN] Full traceback:")
+                print(traceback.format_exc())
+                print(f"[BRAIN] ===== END GPT EXCEPTION =====")
+                # Re-raise to be handled by endpoint (will return 502 for GPT errors)
+                raise
             
             # If we get here, GPT call was successful
-            # If GPT call failed, exception would have been raised from generate_response
-            
             # 5. SAVE: Save conversation to memory (updates memory_count)
             self.memory.save_conversation(
                 user_id=user_id,
