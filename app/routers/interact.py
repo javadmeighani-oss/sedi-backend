@@ -146,20 +146,25 @@ def chat_with_sedi(
             requires_security_check=requires_security_check,
             detected_name=result.get("detected_name")
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions (validation errors, etc.)
+        raise
     except Exception as e:
-        error_messages = {
-            "en": "I'm sorry, I encountered an error processing your message. Please try again.",
-            "fa": "متاسفم، در پردازش پیام شما خطایی رخ داد. لطفاً دوباره تلاش کنید.",
-            "ar": "عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى."
-        }
+        # Log full error details for debugging
+        print(f"[CHAT ERROR] ===== ERROR PROCESSING MESSAGE =====")
+        print(f"[CHAT ERROR] Error: {e}")
+        print(f"[CHAT ERROR] Error type: {type(e).__name__}")
+        import traceback
+        print(f"[CHAT ERROR] Traceback: {traceback.format_exc()}")
+        print(f"[CHAT ERROR] Message: '{message[:100]}...'")
+        print(f"[CHAT ERROR] User ID: {user_id}")
+        print(f"[CHAT ERROR] User found: {user is not None}")
+        print(f"[CHAT ERROR] ===== END ERROR =====")
         
-        error_message = error_messages.get(lang, error_messages["en"])
-        
-        return InteractionResponse(
-            message=error_message,
-            language=lang,
-            user_id=user.id,
-            requires_security_check=requires_security_check
+        # Return structured error message instead of generic "server connection error"
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing message: {str(e)[:200]}. Please try again."
         )
 
 
