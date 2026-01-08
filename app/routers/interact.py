@@ -221,30 +221,25 @@ def setup_onboarding(
     db: Session = Depends(get_db)
 ):
     """
-    SIMPLE ONBOARDING: Create user and return success.
+    SIMPLE ONBOARDING: Create user with username only.
     Handles ALL possible errors gracefully.
     
     CRITICAL:
     - name is REQUIRED (from JSON body)
-    - password is REQUIRED (from JSON body)
-    - language is optional (default: "fa")
+    - password is REMOVED - no authentication
     - User.name is ALWAYS saved (non-empty, stripped)
+    - Onboarding ALWAYS succeeds if name is provided and non-empty
+    - Multiple users with same name are allowed
     """
     # Step 1: Validate payload
-    password = payload.password.strip()
     name = payload.name.strip()
-    language = payload.language.strip() if payload.language else "fa"
     
-    # Validate name (REQUIRED, non-empty)
+    # Validate name (REQUIRED, non-empty) - ONLY validation needed
     if not name or len(name) == 0:
         raise HTTPException(
             status_code=400,
             detail="Name is required and cannot be empty"
         )
-    
-    # Validate password
-    if len(password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
     # Step 2: Ensure tables exist (create if needed) - with explicit User table
     # NOTE: create_all does NOT modify existing tables - it only creates if missing
@@ -271,60 +266,44 @@ def setup_onboarding(
         print(f"[ONBOARDING] ========== USER CREATION START ==========")
         print(f"[ONBOARDING] Step 1: Input validation")
         print(f"[ONBOARDING]   - Name: '{name}' (length: {len(name)})")
-        print(f"[ONBOARDING]   - Password length: {len(password)}")
-        print(f"[ONBOARDING]   - Password (first 3): {password[:3]}...")
-        print(f"[ONBOARDING]   - Language: '{language}'")
         
-        # Ensure language is valid (handle None case)
-        user_language = (language.strip() if language and language.strip() else "en")
-        print(f"[ONBOARDING]   - Language from request: '{language}'")
-        print(f"[ONBOARDING]   - Final language: '{user_language}'")
-        
-        # Step 2: Create user object - ensure ALL required fields are set
+        # Step 2: Create user object - password removed, using dummy value for secret_key
         print(f"[ONBOARDING] Step 2: Creating User object...")
-        print(f"[ONBOARDING]   - secret_key: length={len(password)}, value (first 3): {password[:3]}...")
-        print(f"[ONBOARDING]   - preferred_language: '{user_language}'")
+        print(f"[ONBOARDING]   - name: '{name}'")
+        print(f"[ONBOARDING]   - secret_key: '<ignored>' (password removed, using placeholder)")
+        print(f"[ONBOARDING]   - preferred_language: 'en' (default)")
         
-        # Create user with explicit values for ALL fields
+        # Create user with explicit values
         from datetime import datetime
-        import time
         
-        # Ensure password is not empty
-        if not password or not password.strip():
-            raise ValueError("Password cannot be empty")
-        
-        # Ensure language is not empty
-        if not user_language or not user_language.strip():
-            user_language = "en"
+        # Set default language
+        user_language = "en"
         
         # Create timestamp explicitly
         now = datetime.utcnow()
         
         print(f"[ONBOARDING] Creating User with:")
         print(f"[ONBOARDING]   - name: '{name}' (length: {len(name)})")
-        print(f"[ONBOARDING]   - secret_key: '{password[:3]}...' (length: {len(password)})")
+        print(f"[ONBOARDING]   - secret_key: '<ignored>' (placeholder, not used)")
         print(f"[ONBOARDING]   - preferred_language: '{user_language}'")
         print(f"[ONBOARDING]   - created_at: {now}")
         
+        # Create user - secret_key is set to placeholder since column exists but is ignored
         new_user = User(
-            name=name.strip(),  # STEP 2: ALWAYS save user name (required, non-empty, stripped)
-            secret_key=password.strip(),  # Ensure no whitespace
-            preferred_language=user_language.strip(),  # Ensure no whitespace
+            name=name.strip(),  # ALWAYS save user name (required, non-empty, stripped)
+            secret_key="<ignored>",  # Placeholder - password removed, column ignored
+            preferred_language=user_language,  # Default to English
             created_at=now  # Explicitly set created_at
         )
         
         print(f"[ONBOARDING] ✅ User object created")
-        print(f"[ONBOARDING]   - secret_key: length={len(new_user.secret_key)}, value (first 3): '{new_user.secret_key[:3]}...'")
+        print(f"[ONBOARDING]   - name: '{new_user.name}'")
         print(f"[ONBOARDING]   - preferred_language: '{new_user.preferred_language}'")
         print(f"[ONBOARDING]   - created_at: {new_user.created_at}")
         
-        # Verify all required fields are set and not None
+        # Verify required fields are set and not None
         if not new_user.name or not new_user.name.strip():
             raise ValueError("name cannot be empty or whitespace")
-        if not new_user.secret_key or not new_user.secret_key.strip():
-            raise ValueError("secret_key cannot be empty or whitespace")
-        if not new_user.preferred_language or not new_user.preferred_language.strip():
-            raise ValueError("preferred_language cannot be empty or whitespace")
         if new_user.created_at is None:
             raise ValueError("created_at cannot be None")
         
@@ -397,9 +376,7 @@ def setup_onboarding(
         if "integrityerror" in error_type_name or "integrity" in error_module:
             # This is a constraint violation
             print(f"[ONBOARDING] Detected: IntegrityError (constraint violation)")
-            if "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
-                error_detail = "A user with this password already exists. Please use a different password."
-            elif "foreign key" in error_str or "fk_" in error_str or "references" in error_str:
+            if "foreign key" in error_str or "fk_" in error_str or "references" in error_str:
                 error_detail = "Database foreign key constraint error. Please contact support."
             elif "check" in error_str or "check constraint" in error_str:
                 error_detail = "Database check constraint error. Please contact support."
@@ -439,7 +416,8 @@ def setup_onboarding(
         elif "relation" in error_str and "does not exist" in error_str:
             error_detail = "Database table not found. Please run database migrations."
         elif "unique" in error_str or "duplicate" in error_str or "already exists" in error_str:
-            error_detail = "A user with this password already exists. Please use a different password."
+            # Multiple users with same name are allowed - this should not happen
+            error_detail = "Database constraint error. Please try again."
         elif "permission" in error_str or "access" in error_str:
             error_detail = "Database permission error. Please contact support."
         elif "timeout" in error_str:
@@ -476,12 +454,8 @@ def setup_onboarding(
     else:
         # Fallback if user_id is None (shouldn't happen, but just in case)
         print(f"[ONBOARDING] ⚠️ WARNING: user_id is None, using fallback greeting")
-        if language == "fa":
-            initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
-        elif language == "ar":
-            initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
-        else:
-            initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
+        # Use default English greeting
+        initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
     
     # Step 5: Return success - ALWAYS with user_id
     if user_id is None:
@@ -495,7 +469,7 @@ def setup_onboarding(
     return {
         "user_id": user_id,
         "message": initial_message,
-        "language": language
+        "language": user_language  # Use default language (en)
     }
 
 
