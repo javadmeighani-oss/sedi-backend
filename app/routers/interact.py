@@ -386,25 +386,30 @@ def setup_onboarding(
         if "integrityerror" in error_type_name or "integrity" in error_module:
             # This is a constraint violation
             print(f"[ONBOARDING] Detected: IntegrityError (constraint violation)")
-            if "foreign key" in error_str or "fk_" in error_str or "references" in error_str:
+            # Check if it's a unique constraint on name - this should not happen after migration
+            if "users_name_key" in error_str or ("unique" in error_str and "name" in error_str):
+                print(f"[ONBOARDING] ⚠️ UNIQUE constraint on name still exists - attempting to remove...")
+                # Try to remove constraint and retry user creation
+                try:
+                    from app.database import engine
+                    from sqlalchemy import text
+                    with engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_name_key"))
+                        conn.commit()
+                        print(f"[ONBOARDING] ✅ Removed constraint, but user creation already failed")
+                except Exception as drop_error:
+                    print(f"[ONBOARDING] ⚠️ Could not remove constraint: {drop_error}")
+                # Return generic error - don't leak constraint details
+                error_detail = "Registration failed. Please try again."
+            elif "foreign key" in error_str or "fk_" in error_str or "references" in error_str:
                 error_detail = "Database foreign key constraint error. Please contact support."
             elif "check" in error_str or "check constraint" in error_str:
                 error_detail = "Database check constraint error. Please contact support."
             elif "not null" in error_str or "null value" in error_str or "null constraint" in error_str:
                 error_detail = "Required field is missing. Please contact support."
             else:
-                # Generic constraint error - extract more info from error
-                constraint_name = ""
-                if "constraint" in error_str:
-                    # Try to extract constraint name
-                    import re
-                    match = re.search(r'constraint\s+["\']?(\w+)["\']?', error_str, re.IGNORECASE)
-                    if match:
-                        constraint_name = match.group(1)
-                if constraint_name:
-                    error_detail = f"Database constraint error ({constraint_name}). Please contact support."
-                else:
-                    error_detail = f"Database constraint error: {error_str[:150]}. Please contact support."
+                # Generic constraint error - don't leak details
+                error_detail = "Registration failed. Please try again."
         elif "operationalerror" in error_type_name or "operational" in error_module:
             print(f"[ONBOARDING] Detected: OperationalError")
             if "connection" in error_str or "connect" in error_str or "could not connect" in error_str:
