@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../onboarding/presentation/pages/onboarding_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
+import '../../../../core/utils/user_profile_manager.dart';
 
 /// ============================================
 /// IntroPage - Pre-Welcome Screen
@@ -104,10 +106,10 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
       }
     });
 
-    // Auto-transition to ChatPage after 2.0s
+    // Auto-transition to OnboardingPage or ChatPage after 2.0s
     Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
-        _navigateToChat();
+        _navigateToNextPage();
       }
     });
   }
@@ -120,47 +122,111 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _navigateToChat() {
-    // Use pushReplacement to remove IntroPage from stack
-    // This prevents user from going back to IntroPage
-    Navigator.of(context).pushReplacement(
-      _createCubeTransitionRoute(),
-    );
+  Future<void> _navigateToNextPage() async {
+    // Check if user has completed onboarding
+    // Onboarding is complete if:
+    // 1. Name is provided and not empty
+    // 2. Security password is provided and not empty
+    // 3. User is verified (isVerified = true) OR hasSecurityPassword = true
+    final profile = await UserProfileManager.loadProfile();
+    
+    final hasName = profile.name != null && profile.name!.isNotEmpty;
+    final hasPassword = profile.securityPassword != null && 
+                        profile.securityPassword!.isNotEmpty;
+    final isVerified = profile.isVerified || profile.hasSecurityPassword;
+    
+    final hasCompletedOnboarding = hasName && hasPassword && isVerified;
+    
+    print('[IntroPage] Checking onboarding status:');
+    print('[IntroPage] - hasName: $hasName (${profile.name})');
+    print('[IntroPage] - hasPassword: $hasPassword (${profile.securityPassword != null ? "***" : "null"})');
+    print('[IntroPage] - isVerified: $isVerified (isVerified: ${profile.isVerified}, hasSecurityPassword: ${profile.hasSecurityPassword})');
+    print('[IntroPage] - hasCompletedOnboarding: $hasCompletedOnboarding');
+    
+    if (hasCompletedOnboarding) {
+      // User has completed onboarding, go directly to chat
+      print('[IntroPage] ✅ Onboarding completed - navigating to ChatPage');
+      Navigator.of(context).pushReplacement(
+        _createCubeTransitionRouteToChat(),
+      );
+    } else {
+      // User needs to complete onboarding first
+      print('[IntroPage] ⚠️ Onboarding not completed - navigating to OnboardingPage');
+      Navigator.of(context).pushReplacement(
+        _createCubeTransitionRouteToOnboarding(),
+      );
+    }
   }
-
-  /// Dual transition: IntroPage exits left, ChatPage enters from right
-  PageRouteBuilder _createCubeTransitionRoute() {
-    // Store reference to this state for building IntroPage
-    final introPageState = this;
-
+  
+  PageRouteBuilder _createCubeTransitionRouteToOnboarding() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) {
-        // Build ChatPage immediately to ensure it's ready
-        return const ChatPage();
+        return const OnboardingPage();
       },
       transitionDuration: const Duration(milliseconds: 600),
       reverseTransitionDuration: const Duration(milliseconds: 600),
-      opaque: false, // Allow both pages to be visible during transition
+      opaque: false,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curvedAnimation = CurvedAnimation(
           parent: animation,
           curve: Curves.easeInOutCubic,
         );
-
-        // Exit animation for IntroPage (slides left)
-        // secondaryAnimation goes from 1.0 to 0.0 for the exiting page
         final exitAnimation = CurvedAnimation(
           parent: secondaryAnimation,
           curve: Curves.easeInOutCubic,
         );
-
         return Stack(
           children: [
-            // IntroPage: Exit to left (using secondaryAnimation)
             SlideTransition(
               position: Tween<Offset>(
                 begin: Offset.zero,
-                end: const Offset(-1.0, 0.0), // Exit to left
+                end: const Offset(-1.0, 0.0),
+              ).animate(exitAnimation),
+              child: FadeTransition(
+                opacity: exitAnimation,
+                child: build(context),
+              ),
+            ),
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(curvedAnimation),
+              child: FadeTransition(
+                opacity: curvedAnimation,
+                child: child,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  PageRouteBuilder _createCubeTransitionRouteToChat() {
+    final introPageState = this;
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return ChatPage();
+      },
+      transitionDuration: const Duration(milliseconds: 600),
+      reverseTransitionDuration: const Duration(milliseconds: 600),
+      opaque: false,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        );
+        final exitAnimation = CurvedAnimation(
+          parent: secondaryAnimation,
+          curve: Curves.easeInOutCubic,
+        );
+        return Stack(
+          children: [
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset.zero,
+                end: const Offset(-1.0, 0.0),
               ).animate(exitAnimation),
               child: FadeTransition(
                 opacity: exitAnimation,
@@ -169,15 +235,14 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            // ChatPage: Enter from right
             SlideTransition(
               position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0), // Start from right
-                end: Offset.zero, // End at center
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
               ).animate(curvedAnimation),
               child: FadeTransition(
                 opacity: curvedAnimation,
-                child: child, // New ChatPage
+                child: child,
               ),
             ),
           ],
@@ -185,6 +250,7 @@ class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

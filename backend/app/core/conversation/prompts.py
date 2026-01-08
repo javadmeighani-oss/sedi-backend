@@ -27,13 +27,25 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# CRITICAL: Check API key availability at module load
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("[PROMPTS CRITICAL] ❌ OPENAI_API_KEY is not set in environment!")
+    print("[PROMPTS CRITICAL] This will cause GPT calls to fail.")
+    raise RuntimeError("OPENAI_API_KEY is not set in .env file. GPT functionality will not work.")
+else:
+    print(f"[PROMPTS] ✅ OPENAI_API_KEY found (length: {len(api_key)}, starts with: {api_key[:7]}...)")
+# VERIFY: Same client used in onboarding and chat
+client = OpenAI(api_key=api_key)
+print(f"[PROMPTS] ✅ OpenAI client initialized (model: gpt-4o-mini supported)")
 
 
 class ConversationPrompts:
     """Generates conversation texts based on context - AI-powered health care assistant"""
     
     def __init__(self, language: str = "en"):
+        # CRITICAL: language is the RESPONSE language (output language)
+        # Sedi's internal thinking is ALWAYS English (enforced in system prompt)
         self.language = language
         # Initialize onboarding prompts
         self._init_onboarding_prompts()
@@ -47,8 +59,9 @@ class ConversationPrompts:
         """
         Generate Sedi's response based on context and user message.
         
-        Uses hardcoded onboarding prompts during onboarding flow,
-        then switches to GPT-generated responses after onboarding.
+        CRITICAL: GPT is ALWAYS active from the start. Contexts guide GPT's expression style,
+        and prompts guide the conversation flow. User identification (name/password) is only
+        for storing information, not for changing the flow.
         
         Args:
             context: Conversation context from context.py
@@ -59,28 +72,34 @@ class ConversationPrompts:
             str: Sedi's response text
         """
         stage = ConversationStage(context["stage"])
-        user_name = context.get("user_name") or context.get("profile", {}).get("name") or "friend"
+        # CRITICAL: Get user_name from multiple sources, prioritizing database
+        user_name = (
+            context.get("profile", {}).get("name") or  # From memory_facts.profile.name (database)
+            context.get("user_name") or  # From context.user_name (also from database)
+            "friend"
+        )
+        # DEBUG: Log user_name source
+        if user_name and user_name != "friend":
+            print(f"[PROMPTS DEBUG] ✅ User name found: {user_name} (from profile: {context.get('profile', {}).get('name')}, from user_name: {context.get('user_name')})")
+        else:
+            print(f"[PROMPTS DEBUG] ⚠️ User name not found, using 'friend' (profile: {context.get('profile', {})}, user_name: {context.get('user_name')})")
         conversation_count = context.get("conversation_count", 0)
         recent_messages = context.get("recent_messages", [])
         
-        # ONBOARDING: Check if we're in onboarding flow and use hardcoded prompts
-        onboarding_state = self._get_onboarding_state(context, user_message, stage)
-        if onboarding_state:
-            print(f"[PROMPTS DEBUG] ✅ Onboarding state detected: {onboarding_state}")
-            print(f"[PROMPTS DEBUG] Stage: {stage.value}, conversation_count: {conversation_count}, user_name: {user_name}")
-            
-            # SPECIAL CASE: If user asks about Sedi (non_name_question), use GPT to answer
-            # Then guide them to provide their name
-            if onboarding_state == "non_name_question":
-                # Use GPT to answer user's question about Sedi
-                gpt_response = self._answer_sedi_question_with_guidance(user_message, context, stage)
-                return gpt_response
-            else:
-                return self._get_onboarding_response(onboarding_state, user_name, user_message, context)
-        else:
-            print(f"[PROMPTS DEBUG] ❌ No onboarding state - using GPT (stage: {stage.value}, count: {conversation_count})")
+        # ONBOARDING: Detect onboarding state ONLY for storing user info (name/password)
+        # This does NOT change the flow - GPT is always used for responses
+        onboarding_state = None
+        try:
+            onboarding_state = self._get_onboarding_state(context, user_message, stage)
+            if onboarding_state:
+                print(f"[PROMPTS DEBUG] ✅ Onboarding state detected (for info storage): {onboarding_state}")
+        except Exception as e:
+            print(f"[PROMPTS ERROR] ❌ Exception in _get_onboarding_state: {e}")
+            import traceback
+            print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+            onboarding_state = None  # Continue with GPT flow
         
-        # Normal flow: Use GPT for responses
+        # ALWAYS use GPT for responses - contexts and prompts guide GPT's behavior
         # Build system prompt based on stage and engagement
         system_prompt = self._build_system_prompt(
             stage, 
@@ -89,7 +108,8 @@ class ConversationPrompts:
             engagement_level
         )
         
-        # Build conversation history for context (limit to avoid repetition)
+        # STEP 2: Build conversation history for context (limit to avoid repetition)
+        # CRITICAL: Memory/history is OPTIONAL - chat works without it
         conversation_history = self._build_conversation_history(recent_messages)
         
         # Build user prompt with enhanced context awareness
@@ -101,26 +121,103 @@ class ConversationPrompts:
             if conversation_history:
                 print(f"[PROMPTS DEBUG] Last exchange - User: {conversation_history[-1].get('user', 'N/A')[:50]}...")
                 print(f"[PROMPTS DEBUG] Last exchange - Sedi: {conversation_history[-1].get('sedi', 'N/A')[:50]}...")
+            else:
+                print(f"[PROMPTS DEBUG] ✅ No conversation history - chat will work with system prompt + user message only")
             
+            # STEP 2: Build messages array - ALWAYS start with system prompt (Sedi identity)
+            # System prompt MUST be first and MUST contain Sedi identity
             messages = [
                 {"role": "system", "content": system_prompt}
             ]
             
-            # CRITICAL: Add conversation history BEFORE current message
+            # STEP 2: Add conversation history ONLY if it exists (memory is optional)
             # This is essential for GPT to understand context and avoid repetition
             if conversation_history:
                 print(f"[PROMPTS DEBUG] Adding {len(conversation_history)} exchanges to GPT context")
                 for i, msg in enumerate(conversation_history):
-                    messages.append({"role": "user", "content": msg["user"]})
-                    messages.append({"role": "assistant", "content": msg["sedi"]})
+                    # Validate history message before adding
+                    user_msg = msg.get("user", "").strip()
+                    sedi_msg = msg.get("sedi", "").strip()
+                    if user_msg and sedi_msg:
+                        messages.append({"role": "user", "content": user_msg})
+                        messages.append({"role": "assistant", "content": sedi_msg})
+                    else:
+                        print(f"[PROMPTS WARNING] Skipping invalid history message at index {i}")
                 print(f"[PROMPTS DEBUG] Conversation history added successfully")
             else:
                 print(f"[PROMPTS DEBUG] No conversation history - this is likely first or early conversation")
             
-            # Add current user message
+            # STEP 2: Add current user message (ALWAYS required)
             print(f"[PROMPTS DEBUG] Current user message: {user_message[:50]}...")
             print(f"[PROMPTS DEBUG] User prompt (with intent hints): {user_prompt[:100]}...")
             messages.append({"role": "user", "content": user_prompt})
+            
+            # STEP 3: HARD FAIL-SAFE VALIDATION before GPT call
+            print(f"[PROMPTS VALIDATION] ===== VALIDATING MESSAGES BEFORE GPT CALL =====")
+            
+            # Ensure messages is a list
+            if not isinstance(messages, list):
+                error_msg = f"Messages must be a list, got {type(messages).__name__}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure at least 2 messages exist (system + user)
+            if len(messages) < 2:
+                error_msg = f"Messages array must have at least 2 messages (system + user), got {len(messages)}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure all message contents are non-empty strings
+            for i, msg in enumerate(messages):
+                if not isinstance(msg, dict):
+                    error_msg = f"Message at index {i} must be a dict, got {type(msg).__name__}"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+                
+                if "role" not in msg or "content" not in msg:
+                    error_msg = f"Message at index {i} must have 'role' and 'content' keys"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+                
+                content = msg.get("content", "")
+                if not isinstance(content, str):
+                    error_msg = f"Message content at index {i} must be a string, got {type(content).__name__}"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+                
+                if not content.strip():
+                    error_msg = f"Message content at index {i} (role: {msg.get('role')}) is empty"
+                    print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                    raise ValueError(error_msg)
+            
+            # STEP 3: Ensure exactly one system message
+            system_messages = [msg for msg in messages if msg.get("role") == "system"]
+            if len(system_messages) != 1:
+                error_msg = f"Messages must contain exactly one system message, got {len(system_messages)}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure first message is system prompt
+            if messages[0].get("role") != "system":
+                error_msg = f"First message must be system prompt, got role: {messages[0].get('role')}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # STEP 3: Ensure at least one user message
+            user_messages = [msg for msg in messages if msg.get("role") == "user"]
+            if len(user_messages) < 1:
+                error_msg = f"Messages must contain at least one user message, got {len(user_messages)}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Ensure last message is user message
+            if messages[-1].get("role") != "user":
+                error_msg = f"Last message must be user message, got role: {messages[-1].get('role')}"
+                print(f"[PROMPTS VALIDATION] ❌ FAILED: {error_msg}")
+                raise ValueError(error_msg)
+            
+            print(f"[PROMPTS VALIDATION] ✅ PASSED: {len(messages)} messages validated")
+            print(f"[PROMPTS VALIDATION] ===== END VALIDATION =====")
             
             # DEBUG: Print full messages array for troubleshooting
             print(f"[PROMPTS DEBUG] Total messages to GPT: {len(messages)}")
@@ -129,17 +226,60 @@ class ConversationPrompts:
                 content_preview = msg["content"][:150] + "..." if len(msg["content"]) > 150 else msg["content"]
                 print(f"[PROMPTS DEBUG] Message {i} ({role}): {content_preview}")
             
-            completion = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=200,  # Increased for health care assistant to provide more context
-            )
+            # ===== CHAT_GPT_CALL_START - HARD LOGGING =====
+            print("=" * 80)
+            print("[CHAT_GPT_CALL_START] ===== EXACT GPT CALL LOCATION =====")
+            print(f"[CHAT_GPT_CALL_START] File: prompts.py")
+            print(f"[CHAT_GPT_CALL_START] Function: generate_response()")
+            print(f"[CHAT_GPT_CALL_START] Model name: gpt-4o-mini")
+            print(f"[CHAT_GPT_CALL_START] Messages array length: {len(messages)}")
+            if messages:
+                first_msg = messages[0]
+                print(f"[CHAT_GPT_CALL_START] First message role: {first_msg.get('role', 'N/A')}")
+                print(f"[CHAT_GPT_CALL_START] First message content length: {len(first_msg.get('content', ''))}")
+            else:
+                print(f"[CHAT_GPT_CALL_START] ⚠️ WARNING: Messages array is EMPTY!")
+            print(f"[CHAT_GPT_CALL_START] User ID: {context.get('user_id', 'N/A')}")
+            print(f"[CHAT_GPT_CALL_START] Detected language: {self.language}")
+            api_key_available = bool(os.getenv('OPENAI_API_KEY'))
+            print(f"[CHAT_GPT_CALL_START] OPENAI_API_KEY present: {api_key_available}")
+            if not api_key_available:
+                print(f"[CHAT_GPT_CALL_START] ❌ CRITICAL: API key is MISSING!")
+            print(f"[CHAT_GPT_CALL_START] Client type: {type(client).__name__}")
+            print(f"[CHAT_GPT_CALL_START] Client API key set: {bool(client.api_key)}")
+            print("=" * 80)
             
-            response = completion.choices[0].message.content.strip()
-            
-            # DEBUG: Log response
-            print(f"[PROMPTS DEBUG] GPT Response: {response[:100]}...")
+            # Wrap ONLY the GPT call in try/except
+            try:
+                completion = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=200,
+                )
+                
+                response = completion.choices[0].message.content.strip()
+                
+                # ===== CHAT_GPT_CALL_SUCCESS - HARD LOGGING =====
+                print("=" * 80)
+                print("[CHAT_GPT_CALL_SUCCESS] ===== GPT CALL SUCCESSFUL =====")
+                print(f"[CHAT_GPT_CALL_SUCCESS] Response length: {len(response)} characters")
+                print("=" * 80)
+                
+                # DEBUG: Log response
+                print(f"[PROMPTS DEBUG] GPT Response: {response[:100]}...")
+            except Exception as gpt_error:
+                # ===== CHAT_GPT_CALL_FAILED - HARD LOGGING =====
+                print("=" * 80)
+                print("[CHAT_GPT_CALL_FAILED] ===== GPT CALL FAILED =====")
+                print(f"[CHAT_GPT_CALL_FAILED] Exception type: {type(gpt_error).__name__}")
+                print(f"[CHAT_GPT_CALL_FAILED] Exception message: {str(gpt_error)}")
+                import traceback
+                print(f"[CHAT_GPT_CALL_FAILED] Full traceback:")
+                print(traceback.format_exc())
+                print("=" * 80)
+                # DO NOT swallow the error - re-raise it
+                raise
             
             # Post-process: Ensure no more than one question mark
             question_count = response.count('?')
@@ -151,8 +291,14 @@ class ConversationPrompts:
             return response
             
         except Exception as e:
-            print(f"[PROMPTS ERROR] {e}")
-            return self._get_fallback_response(stage)
+            # This exception is from GPT call - re-raise it to be handled by brain/endpoint
+            print(f"[PROMPTS ERROR] Exception caught in generate_response: {e}")
+            print(f"[PROMPTS ERROR] Exception type: {type(e).__name__}")
+            import traceback
+            print(f"[PROMPTS ERROR] Full traceback:")
+            print(traceback.format_exc())
+            # DO NOT return fallback - re-raise to show real error
+            raise
     
     def _init_onboarding_prompts(self):
         """Initialize hardcoded onboarding prompts by language"""
@@ -195,10 +341,11 @@ class ConversationPrompts:
                 "security_gate_active": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، لطفاً یک رمز (حداقل با 6 کاراکتر از حروف و علائم) انتخاب کن و برای من بفرست.",
                 "password_refusal_acceptance": "{user_name} عزیز، بدون رمز امنیتی، امکان داره افراد دیگری به حریم خصوصی تو دسترسی داشته باشن و اطلاعات شخصی‌ت در معرض خطر قرار بگیره. برای محافظت از تو و اطلاعاتت، رمز امنیتی ضروری است. اما اگر الان نمی‌خوای رمز بذاری، می‌تونیم بدون رمز هم ادامه بدیم. فقط یادت باشه که هر وقت خواستی می‌تونی یک رمز (حداقل 6 کاراکتر از حروف و علائم) ایجاد کنی و من آن را ذخیره می‌کنم.",
                 "non_name_question": "من دستیار مراقبت سلامت هستم که با استفاده از گجت‌های تخصصی و اطلاعات کاربر به صورت پیوسته و یکپارچه در مدیریت سلامت و پیشگیری و افزایش کیفیت زندگی کاربر، او را همراهی می‌کنم.\n\nممنون می‌شوم برای شروع این ارتباط اسمتون را به من بگین؟",
-                # PASSWORD_CONFIRMED: After password confirmation, thank user
-                "password_confirmed": "ممنونم {user_name} عزیز.\n\nرمز امنیتی شما با موفقیت تنظیم شد.\nحالا آماده‌ام تا در زمینه سلامت و مراقبت کمکت کنم.\n\nچطور می‌تونم کمکت کنم؟",
-                # FIRST REAL INTERACTION - After onboarding complete
-                "first_real_interaction": "{user_name} عزیز، از امروز من در کنارت هستم تا همیشه.\n\nالان دوست داری کمی از خودت بگی؟ یا اینکه من از توانایی‌هام برات بگم از اینکه چه کارهایی می‌تونم برات انجام بدم و هدف از وجود من چیه؟",
+                # PASSWORD_CONFIRMED: After password confirmation, immediately show first_real_interaction
+                # This state is used internally but the actual message shown is first_real_interaction
+                "password_confirmed": "",
+                # FIRST REAL INTERACTION - After onboarding complete (password confirmed)
+                "first_real_interaction": "{user_name} عزیز از این لحظه به بعد من تماما در خدمت تو هستم تا یک مراقبت پیوسته و یکپارچه برای ارتقا کیفیت زندگی تو داشته باشیم.\n\nحالا دوست داری یکم از خودت بگی یا من بیشتر از خودم بگم. فقط بگو با کدوم شروع کنیم؟",
                 "unclear_response": "کاملاً قابل درکه.\nمی‌تونیم از هر جایی که برات راحت‌تره شروع کنیم.\n\nمثلاً:\n– مراقبت از سلامت\n– پیگیری حال‌و‌احوال روزانه\n– ساختن یک روتین ساده\n– یا فقط صحبت کردن\n\nتو انتخاب کن، من کنارت هستم.",
                 "medical_question": "می‌تونم کمکت کنم موضوع رو بهتر بفهمی\nو کنارت باشم،\nاما تشخیص یا توصیه پزشکی قطعی\nوظیفه پزشکه.\n\nاگه دوست داری،\nمی‌تونیم اول کمی درباره شرایطت صحبت کنیم.",
                 # CARE EXPLORATION LAYER - When user delegates or asks unrelated questions
@@ -244,6 +391,25 @@ class ConversationPrompts:
         if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
             return None
         
+        # CRITICAL: Check if first_real_interaction was already shown
+        # If yes, onboarding is complete - return None to use GPT
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        if last_sedi_message:
+            first_interaction_keywords = {
+                "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities", "from this moment", "at your service", "continuous care", "integrated care", "quality of life", "which one to start"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم", "تماما در خدمت", "از این لحظه به بعد"],
+                "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي", "من هذه اللحظة", "في خدمتك", "رعاية مستمرة"]
+            }
+            all_keywords = []
+            for lang_keywords in first_interaction_keywords.values():
+                all_keywords.extend(lang_keywords)
+            first_interaction_shown = any(keyword in last_sedi_message.lower() for keyword in all_keywords)
+            
+            if first_interaction_shown:
+                print(f"[ONBOARDING DEBUG] ✅ first_real_interaction already shown - onboarding complete, using GPT")
+                return None  # Onboarding complete, use GPT
+        
         conversation_count = context.get("conversation_count", 0)
         profile = context.get("profile", {})
         user_name = profile.get("name") or context.get("user_name")
@@ -274,8 +440,11 @@ class ConversationPrompts:
         print(f"[ONBOARDING DEBUG] password_requested={password_requested}")
         
         # Check if we're waiting for password confirmation
-        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "مرة أخرى"]
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "یک بار دیگه", "مرة أخرى", "ارسال کن", "بفرست", "بفرستید"]
         waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
+        print(f"[ONBOARDING DEBUG] waiting_for_confirmation={waiting_for_confirmation}, last_sedi_message length={len(last_sedi_message) if last_sedi_message else 0}")
+        if last_sedi_message:
+            print(f"[ONBOARDING DEBUG] last_sedi_message preview for confirmation check: {last_sedi_message[:150]}...")
         
         # Check if user refused to provide password
         refusal_keywords = {
@@ -308,10 +477,11 @@ class ConversationPrompts:
         # CRITICAL: Support both English (0-9) and Persian (۰-۹) digits
         persian_digits = "۰۱۲۳۴۵۶۷۸۹"
         english_digits = "0123456789"
-        has_numbers = (
-            any(char.isdigit() for char in user_message_clean) or  # English digits (0-9) and Persian digits (۰-۹)
-            any(char in persian_digits for char in user_message_clean)  # Explicit Persian digit check
-        )
+        # Check for Persian digits explicitly (isdigit() may not work for all Persian digits)
+        has_persian_digits = any(char in persian_digits for char in user_message_clean)
+        # Check for English digits and other Unicode digits
+        has_english_digits = any(char.isdigit() for char in user_message_clean)
+        has_numbers = has_persian_digits or has_english_digits
         has_letters = any(char.isalpha() for char in user_message_clean)
         has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
         
@@ -582,6 +752,7 @@ class ConversationPrompts:
         
         # PASSWORD_CONFIRM: Password was provided (>=6 chars), now need confirmation
         # CRITICAL: This must be checked BEFORE password_just_confirmed to ensure confirmation request is shown
+        print(f"[ONBOARDING DEBUG] Checking password_confirm: password_requested={password_requested}, user_provided_password={user_provided_password}, waiting_for_confirmation={waiting_for_confirmation}, name_learned={name_learned}")
         if (password_requested and 
             user_provided_password and 
             not waiting_for_confirmation and
@@ -591,6 +762,18 @@ class ConversationPrompts:
         
         # PASSWORD_CONFIRMED: User confirmed password (sent password again after confirmation request)
         if waiting_for_confirmation and len(user_message_clean) >= 6:
+            # CRITICAL: Detect language from password (Persian digits indicate Persian user)
+            persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+            if any(char in persian_digits for char in user_message_clean):
+                if self.language != "fa":
+                    print(f"[ONBOARDING DEBUG] Persian digits detected in password confirmation, switching language to fa")
+                    self.language = "fa"
+            # Also check last Sedi message for Persian
+            elif last_sedi_message:
+                persian_chars = "ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"
+                if any(char in last_sedi_message for char in persian_chars) and self.language != "fa":
+                    print(f"[ONBOARDING DEBUG] Persian detected in last Sedi message, switching language to fa")
+                    self.language = "fa"
             # Check if this matches previous password (simplified - in production would compare with stored)
             return "password_confirmed"
         
@@ -665,7 +848,7 @@ class ConversationPrompts:
             # Check if first_real_interaction was already shown
             first_interaction_keywords = {
                 "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
             }
             interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
@@ -685,7 +868,7 @@ class ConversationPrompts:
             # Check if last message was first_real_interaction
             first_interaction_keywords_all = {
                 "en": ["support you", "کمکت کنم", "إلى جانبك", "glad we're here", "کنار هم", "معاً", "from today", "with you forever"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد"]
             }
             all_keywords = []
@@ -706,7 +889,7 @@ class ConversationPrompts:
             # Check if last Sedi message was first_real_interaction
             first_interaction_keywords = {
                 "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي"]
             }
             interaction_keywords = first_interaction_keywords.get(self.language, first_interaction_keywords["en"])
@@ -736,7 +919,7 @@ class ConversationPrompts:
             # Check if we're in care exploration phase (after first interaction)
             first_interaction_keywords = {
                 "en": ["support you", "glad we're here", "from today", "with you forever", "tell me about yourself", "my capabilities", "wherever feels easiest"],
-                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "هر جایی که"],
+                "fa": ["کمکت کنم", "کنار هم", "از امروز", "در کنارت", "تا همیشه", "کمی از خودت", "توانایی‌هام", "هر جایی که", "از این لحظه", "در خدمت", "مراقبت پیوسته", "یکپارچه", "ارتقا کیفیت زندگی", "بگو با کدوم"],
                 "ar": ["إلى جانبك", "معاً", "من اليوم", "معك", "إلى الأبد", "عن نفسك", "قدراتي", "أي مكان"]
             }
             unclear_response_keywords = {
@@ -1006,23 +1189,106 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
         Returns:
             str: Hardcoded response text
         """
-        prompts = self.onboarding_prompts.get(self.language, self.onboarding_prompts["en"])
-        
-        if state not in prompts:
-            # Fallback to English if state not found
-            prompts = self.onboarding_prompts["en"]
-        
-        response_template = prompts.get(state, "")
-        
-        # Replace {user_name} placeholder if present
-        if "{user_name}" in response_template:
-            # Use user_name from context or extract from message
-            if not user_name or user_name.startswith("anonymous_"):
-                # Try to extract name from user message
-                user_name = user_message.strip().split()[0] if user_message.strip() else "friend"
-            response_template = response_template.format(user_name=user_name)
-        
-        return response_template
+        try:
+            prompts = self.onboarding_prompts.get(self.language, self.onboarding_prompts["en"])
+            
+            if state not in prompts:
+                # Fallback to English if state not found
+                print(f"[PROMPTS WARNING] State '{state}' not found in {self.language} prompts, using English")
+                prompts = self.onboarding_prompts["en"]
+            
+            response_template = prompts.get(state, "")
+            
+            # CRITICAL: If password_confirmed, immediately show first_real_interaction instead
+            if state == "password_confirmed":
+                print(f"[PROMPTS DEBUG] password_confirmed detected, showing first_real_interaction instead")
+                print(f"[PROMPTS DEBUG] Current language: {self.language}")
+                response_template = prompts.get("first_real_interaction", "")
+                if not response_template:
+                    # CRITICAL: Before falling back to English, try to detect language from context
+                    # CRITICAL: NO LANGUAGE AUTO-DETECTION
+                    # Language is set explicitly from user's preferred_language
+                    # Do NOT detect or switch language based on message content
+                    # This ensures deterministic behavior
+                    
+                    # Final fallback to English if still not found
+                    if not response_template:
+                        print(f"[PROMPTS WARNING] first_real_interaction not found in {self.language}, using English")
+                        prompts_en = self.onboarding_prompts.get("en", {})
+                        response_template = prompts_en.get("first_real_interaction", "")
+            
+            if not response_template:
+                # If state still not found, return a safe fallback
+                print(f"[PROMPTS ERROR] State '{state}' not found in any prompts, using fallback")
+                fallback_messages = {
+                    "en": "I'm here to help you. Please continue.",
+                    "fa": "من اینجا هستم تا کمکت کنم. لطفاً ادامه بده.",
+                    "ar": "أنا هنا لمساعدتك. يرجى المتابعة."
+                }
+                return fallback_messages.get(self.language, fallback_messages["en"])
+            
+            # Replace {user_name} placeholder if present
+            if "{user_name}" in response_template:
+                # CRITICAL: Get user_name from multiple sources, prioritizing database
+                # First try from profile (from memory_facts.profile.name - database)
+                profile = context.get("profile", {})
+                db_name = profile.get("name") if profile else None
+                
+                # Then try from context.user_name (also from database)
+                context_name = context.get("user_name")
+                
+                # Use the best available name
+                if db_name and not db_name.startswith("anonymous_") and len(db_name.strip()) > 1:
+                    user_name = db_name
+                    print(f"[PROMPTS DEBUG] ✅ Using name from profile: {user_name}")
+                elif context_name and not context_name.startswith("anonymous_") and len(context_name.strip()) > 1:
+                    user_name = context_name
+                    print(f"[PROMPTS DEBUG] ✅ Using name from context.user_name: {user_name}")
+                elif not user_name or user_name.startswith("anonymous_") or user_name == "friend":
+                    # If still no valid name, try to extract from message (but only if it looks like a name)
+                    if user_message.strip():
+                        msg_clean = user_message.strip()
+                        # Don't use password as name - check if it looks like a name
+                        if (2 <= len(msg_clean) <= 30 and 
+                            not any(char.isdigit() for char in msg_clean) and
+                            "?" not in msg_clean and
+                            "؟" not in msg_clean and
+                            not any(keyword in msg_clean.lower() for keyword in ["password", "رمز", "confirm", "تأیید"])):
+                            user_name = msg_clean.split()[0] if msg_clean.split() else "friend"
+                            print(f"[PROMPTS DEBUG] ⚠️ Extracted name from message: {user_name}")
+                        else:
+                            user_name = "friend"
+                            print(f"[PROMPTS DEBUG] ⚠️ Message doesn't look like a name, using 'friend'")
+                    else:
+                        user_name = "friend"
+                        print(f"[PROMPTS DEBUG] ⚠️ No valid name found, using 'friend'")
+                
+                # Ensure user_name is not None or empty
+                if not user_name or user_name.strip() == "":
+                    user_name = "friend"
+                    print(f"[PROMPTS DEBUG] ⚠️ User name is empty, using 'friend'")
+                
+                try:
+                    response_template = response_template.format(user_name=user_name)
+                except (KeyError, ValueError) as e:
+                    print(f"[PROMPTS ERROR] Failed to format user_name in template: {e}")
+                    # Remove {user_name} placeholder if format fails
+                    response_template = response_template.replace("{user_name}", user_name or "friend")
+            
+            return response_template
+        except Exception as e:
+            print(f"[PROMPTS ERROR] Exception in _get_onboarding_response: {e}")
+            print(f"[PROMPTS ERROR] State: {state}, user_name: {user_name}")
+            import traceback
+            print(f"[PROMPTS ERROR] Traceback: {traceback.format_exc()}")
+            
+            # Return safe fallback message
+            fallback_messages = {
+                "en": "I'm here to help you. Please continue.",
+                "fa": "من اینجا هستم تا کمکت کنم. لطفاً ادامه بده.",
+                "ar": "أنا هنا لمساعدتك. يرجى المتابعة."
+            }
+            return fallback_messages.get(self.language, fallback_messages["en"])
     
     def _build_system_prompt(
         self,
@@ -1041,10 +1307,29 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
         """
         
         # Get complete Sedi context from knowledge base
-        sedi_context = build_complete_sedi_context(self.language)
+        # CRITICAL: Always use English for Sedi's knowledge base (core thinking)
+        sedi_context = build_complete_sedi_context("en")
+        
+        # Determine response language (output language, not thinking language)
+        response_language = self.language if self.language in ["en", "fa", "ar"] else "en"
+        
+        # CRITICAL LANGUAGE RULE: Sedi's internal reasoning is ALWAYS in English
+        # Response output is dynamically determined from user's message language
+        language_rule = f"""
+CRITICAL LANGUAGE RULE:
+- Sedi's internal reasoning, personality, and knowledge base are defined in ENGLISH.
+- You MUST always think in English internally.
+- You MUST respond to the user ONLY in {response_language.upper()} language.
+- The response_language ({response_language.upper()}) is determined from the user's last message text ONLY.
+- NEVER auto-detect language from IP, locale, headers, or any other source.
+- NEVER infer language from anything other than the user's message text.
+- After onboarding, response_language is updated dynamically based ONLY on the language of the user's last message.
+- Use ONLY the explicitly provided response_language ({response_language.upper()}) for output.
+"""
         
         base_prompts = {
             "en": f"""{sedi_context}
+{language_rule}
 
 You are speaking with {user_name}.
 
@@ -1128,6 +1413,7 @@ MEMORY USAGE:
   * If user mentioned something (work, exercise, sleep), reference it in your next message instead of asking about it again.""",
             
             "fa": f"""{sedi_context}
+{language_rule}
 
 داری با {user_name} صحبت می‌کنی.
 
@@ -1206,6 +1492,7 @@ MEMORY USAGE:
 - اگر کاربر تکرار کرد یا سوالات مشابه پرسید، آن را تأیید کن و پاسخ تازه بده.""",
             
             "ar": f"""{sedi_context}
+{language_rule}
 
 أنت تتحدث مع {user_name}.
 
@@ -1503,6 +1790,12 @@ SCENARIO: STABLE_RELATION
         
         guidance = stage_guidance.get(stage, {}).get(self.language, "")
         
+        # Add onboarding context guidance if in onboarding flow
+        # This guides GPT's expression style during onboarding
+        onboarding_context = self._get_onboarding_context_guidance(context, user_name, stage)
+        if onboarding_context:
+            guidance += onboarding_context
+        
         # Add engagement-level specific guidance
         engagement_guidance = {
             "low": {
@@ -1574,6 +1867,12 @@ SCENARIO: STABLE_RELATION
             }
             return user_message + intent_hint.get(self.language, intent_hint["en"])
         
+        # Add onboarding prompt guidance if in onboarding flow
+        # This guides the conversation flow during onboarding
+        onboarding_prompt = self._get_onboarding_prompt_guidance(context, user_message, stage)
+        if onboarding_prompt:
+            user_message = user_message + onboarding_prompt
+        
         # Add context-aware hints to prevent repetitive questions
         if conversation_history:
             # Check if we've asked similar questions recently
@@ -1595,6 +1894,129 @@ SCENARIO: STABLE_RELATION
         
         # Keep user message simple for other cases
         return user_message
+    
+    def _get_onboarding_context_guidance(self, context: Dict[str, any], user_name: str, stage: ConversationStage) -> str:
+        """
+        Get onboarding context guidance for system prompt.
+        This guides GPT's expression style during onboarding.
+        """
+        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
+            return ""
+        
+        conversation_count = context.get("conversation_count", 0)
+        profile = context.get("profile", {})
+        user_name_from_db = profile.get("name") or context.get("user_name")
+        name_learned = user_name_from_db and not user_name_from_db.startswith("anonymous_") and len(user_name_from_db.strip()) > 1
+        
+        # Check recent messages for password-related content
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # Build context guidance based on onboarding state
+        if conversation_count == 0:
+            # First launch - introduce yourself and ask for name
+            return {
+                "en": "\n\nONBOARDING CONTEXT: This is your first conversation. Introduce yourself warmly and ask for their name naturally.",
+                "fa": "\n\nکانتکس onboarding: این اولین گفتگوی شماست. خودت را گرم معرفی کن و به طور طبیعی نامشان را بپرس.",
+                "ar": "\n\nسياق onboarding: هذه محادثتك الأولى. قدم نفسك بحرارة واسأل عن اسمهم بشكل طبيعي."
+            }.get(self.language, "")
+        elif not name_learned:
+            # Name not learned - ask for name
+            return {
+                "en": "\n\nONBOARDING CONTEXT: You need to learn the user's name. Ask for their name naturally and warmly.",
+                "fa": "\n\nکانتکس onboarding: باید نام کاربر را یاد بگیری. به طور طبیعی و گرم نامشان را بپرس.",
+                "ar": "\n\nسياق onboarding: تحتاج إلى معرفة اسم المستخدم. اسأل عن اسمهم بشكل طبيعي ودافئ."
+            }.get(self.language, "")
+        elif password_requested:
+            # Password requested - guide user to set password
+            return {
+                "en": "\n\nONBOARDING CONTEXT: You've asked for a security password. Guide the user to set a password (at least 6 characters) for their privacy protection.",
+                "fa": "\n\nکانتکس onboarding: از کاربر خواسته‌ای رمز امنیتی تنظیم کند. کاربر را راهنمایی کن که رمزی (حداقل 6 کاراکتر) برای محافظت از حریم خصوصی‌اش تنظیم کند.",
+                "ar": "\n\nسياق onboarding: طلبت كلمة مرور أمنية. أرشد المستخدم لتعيين كلمة مرور (6 أحرف على الأقل) لحماية خصوصيته."
+            }.get(self.language, "")
+        
+        return ""
+    
+    def _get_onboarding_prompt_guidance(self, context: Dict[str, any], user_message: str, stage: ConversationStage) -> str:
+        """
+        Get onboarding prompt guidance for user prompt.
+        This guides the conversation flow during onboarding.
+        """
+        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
+            return ""
+        
+        conversation_count = context.get("conversation_count", 0)
+        profile = context.get("profile", {})
+        user_name_from_db = profile.get("name") or context.get("user_name")
+        name_learned = user_name_from_db and not user_name_from_db.startswith("anonymous_") and len(user_name_from_db.strip()) > 1
+        
+        # Check recent messages for password-related content
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # Check if waiting for password confirmation
+        confirm_keywords = ["confirm", "تأیید", "تأكيد", "دوباره", "مرة أخرى", "same", "همون", "یک بار دیگه", "ارسال کن", "بفرست", "بفرستید"]
+        waiting_for_confirmation = any(keyword in last_sedi_message.lower() for keyword in confirm_keywords) if last_sedi_message else False
+        
+        # Check if user provided password
+        user_message_clean = user_message.strip()
+        persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+        has_persian_digits = any(char in persian_digits for char in user_message_clean)
+        has_english_digits = any(char.isdigit() for char in user_message_clean)
+        has_numbers = has_persian_digits or has_english_digits
+        has_letters = any(char.isalpha() for char in user_message_clean)
+        has_special = any(char in user_message_clean for char in "!@#$%^&*()_+-=[]{}|;:,.<>?/~`")
+        user_provided_password = (
+            len(user_message_clean) >= 6 and 
+            password_requested and
+            (has_numbers or has_letters or has_special)
+        )
+        
+        # Build prompt guidance based on onboarding state
+        if conversation_count == 0:
+            # First launch - guide to introduce and ask for name
+            return {
+                "en": "\n\n[ONBOARDING PROMPT: This is your first conversation. Introduce yourself as Sedi, explain your purpose, and ask for their name naturally.]",
+                "fa": "\n\n[پرامپت onboarding: این اولین گفتگوی شماست. خودت را به عنوان صدی معرفی کن، هدفت را توضیح بده و به طور طبیعی نامشان را بپرس.]",
+                "ar": "\n\n[مطالبة onboarding: هذه محادثتك الأولى. قدم نفسك كصدي، اشرح هدفك واسأل عن اسمهم بشكل طبيعي.]"
+            }.get(self.language, "")
+        elif not name_learned:
+            # Name not learned - guide to ask for name
+            return {
+                "en": "\n\n[ONBOARDING PROMPT: You need to learn the user's name. Ask for their name naturally and warmly.]",
+                "fa": "\n\n[پرامپت onboarding: باید نام کاربر را یاد بگیری. به طور طبیعی و گرم نامشان را بپرس.]",
+                "ar": "\n\n[مطالبة onboarding: تحتاج إلى معرفة اسم المستخدم. اسأل عن اسمهم بشكل طبيعي ودافئ.]"
+            }.get(self.language, "")
+        elif password_requested and not waiting_for_confirmation:
+            if user_provided_password:
+                # User provided password - ask for confirmation
+                return {
+                    "en": "\n\n[ONBOARDING PROMPT: The user has provided a password. Ask them to confirm it by sending it again.]",
+                    "fa": "\n\n[پرامپت onboarding: کاربر رمز را ارسال کرده. از آن‌ها بخواه که برای تأیید دوباره ارسال کنند.]",
+                    "ar": "\n\n[مطالبة onboarding: قدم المستخدم كلمة مرور. اطلب منهم تأكيدها بإرسالها مرة أخرى.]"
+                }.get(self.language, "")
+            else:
+                # Password requested but not provided - guide to request password
+                return {
+                    "en": "\n\n[ONBOARDING PROMPT: You've asked for a security password. Guide the user to set a password (at least 6 characters) for their privacy protection.]",
+                    "fa": "\n\n[پرامپت onboarding: از کاربر خواسته‌ای رمز امنیتی تنظیم کند. کاربر را راهنمایی کن که رمزی (حداقل 6 کاراکتر) برای محافظت از حریم خصوصی‌اش تنظیم کند.]",
+                    "ar": "\n\n[مطالبة onboarding: طلبت كلمة مرور أمنية. أرشد المستخدم لتعيين كلمة مرور (6 أحرف على الأقل) لحماية خصوصيته.]"
+                }.get(self.language, "")
+        elif waiting_for_confirmation:
+            # Waiting for password confirmation
+            if user_provided_password:
+                # Password confirmed - start real interaction
+                return {
+                    "en": "\n\n[ONBOARDING PROMPT: The user has confirmed their password. Thank them and start the real interaction by asking if they want to tell you about themselves or if you should tell them about your capabilities.]",
+                    "fa": "\n\n[پرامپت onboarding: کاربر رمز را تأیید کرده. از آن‌ها تشکر کن و تعامل واقعی را با پرسیدن اینکه آیا می‌خواهند درباره خودشان بگویند یا تو باید درباره توانایی‌هایت بگویی شروع کن.]",
+                    "ar": "\n\n[مطالبة onboarding: أكد المستخدم كلمة المرور. اشكره وابدأ التفاعل الحقيقي بطرح ما إذا كان يريد إخبارك عن نفسه أم يجب أن تخبره عن قدراتك.]"
+                }.get(self.language, "")
+        
+        return ""
     
     def _get_fallback_response(self, stage: ConversationStage) -> str:
         """Get fallback response if GPT fails - tuned for calm, human tone"""

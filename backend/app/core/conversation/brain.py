@@ -37,7 +37,8 @@ class ConversationBrain:
     def process_message(
         self,
         user_id: int,
-        user_message: str
+        user_message: str,
+        user_name: Optional[str] = None
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
@@ -89,7 +90,8 @@ class ConversationBrain:
                 user_id=user_id,
                 stage=current_stage,
                 memory=self.memory,
-                user_message=user_message
+                user_message=user_message,
+                user_name=user_name  # Pass name from frontend
             )
             context_data = context.build()
             print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
@@ -98,25 +100,56 @@ class ConversationBrain:
             engagement_level = self._determine_engagement_level(context_data)
             print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
             
-            # Check if we need to save user name from onboarding
-            # This happens when user provides name in response to "what's your name?"
-            self._save_user_name_if_provided(user_id, user_message, current_stage, context_data)
+            # Check if we need to extract user name from conversation
+            # This happens when user provides name in response to "what's your name?" or changes name
+            detected_name = self._extract_name_from_message(user_id, user_message, current_stage, context_data)
             
-            sedi_response = self.prompts.generate_response(
-                context_data, 
-                user_message,
-                engagement_level
-            )
-            print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
+            # 4. GENERATE: Generate response with current context
+            # CRITICAL: This is where GPT is called for chat
+            print(f"[BRAIN] ===== BEFORE GPT CALL (generate_response) =====")
+            print(f"[BRAIN] User ID: {user_id}")
+            print(f"[BRAIN] User message: '{user_message[:100]}...'")
+            print(f"[BRAIN] Language: {self.language}")
+            print(f"[BRAIN] Stage: {current_stage.value}")
+            print(f"[BRAIN] ===== END BEFORE GPT =====")
             
-            # 5. SAVE: Save conversation to memory (updates memory_count)
-            self.memory.save_conversation(
-                user_id=user_id,
-                user_message=user_message,
-                sedi_response=sedi_response,
-                language=self.language
-            )
-            print(f"[BRAIN DEBUG] Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
+            try:
+                sedi_response = self.prompts.generate_response(
+                    context_data, 
+                    user_message,
+                    engagement_level
+                )
+                print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
+            except Exception as gpt_exception:
+                # CRITICAL: This exception is from GPT call - re-raise it
+                print(f"[BRAIN] ===== GPT EXCEPTION IN process_message =====")
+                print(f"[BRAIN] Exception type: {type(gpt_exception).__name__}")
+                print(f"[BRAIN] Exception message: {str(gpt_exception)}")
+                import traceback
+                print(f"[BRAIN] Full traceback:")
+                print(traceback.format_exc())
+                print(f"[BRAIN] ===== END GPT EXCEPTION =====")
+                # Re-raise to be handled by endpoint (will return 502 for GPT errors)
+                raise
+            
+            # If we get here, GPT call was successful
+            # STEP 4: SAVE: Save conversation to memory (updates memory_count)
+            # CRITICAL: Memory is OPTIONAL - memory failure must NOT block chat
+            try:
+                self.memory.save_conversation(
+                    user_id=user_id,
+                    user_message=user_message,
+                    sedi_response=sedi_response,
+                    language=self.language
+                )
+                print(f"[BRAIN DEBUG] ✅ Conversation saved - new memory_count: {self.memory.get_conversation_count(user_id)}")
+            except Exception as memory_error:
+                # STEP 4: Memory failure is non-critical - log but continue
+                print(f"[BRAIN WARNING] ⚠️ Memory save failed (non-critical): {memory_error}")
+                print(f"[BRAIN WARNING] Chat response will still be returned to user")
+                import traceback
+                print(f"[BRAIN WARNING] Memory error traceback: {traceback.format_exc()}")
+                # Continue - don't block chat response
             
             # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
             new_stage = transition_stage(current_stage, user_id, self.db)
@@ -140,7 +173,8 @@ class ConversationBrain:
                 "message": sedi_response,
                 "language": self.language,
                 "stage": new_stage.value,  # Return NEW stage (after save and transition)
-                "metadata": metadata
+                "metadata": metadata,
+                "detected_name": detected_name  # Name detected from conversation (to update frontend)
             }
         except Exception as e:
             # Log the error for debugging
@@ -175,7 +209,114 @@ class ConversationBrain:
                 }
             }
     
-    def get_greeting(self, user_id: int) -> Dict[str, any]:
+    def get_initial_message(self, user_id: int, user_name: Optional[str], language: str) -> str:
+        """
+        Generate initial message after onboarding.
+        Uses GPT with Sedi's knowledge base to introduce Sedi and explain what she does.
+        
+        Args:
+            user_id: User ID from database
+            user_name: User's name from frontend (optional, for personalization)
+            language: Language code ('en', 'fa', 'ar')
+        """
+        from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+        # VERIFY: Same client used in onboarding and chat
+        from app.core.conversation.prompts import client as gpt_client
+        print(f"[BRAIN] ✅ Using same OpenAI client as chat (verified: same client from prompts.py)")
+        
+        # CRITICAL: Use user_name if provided, otherwise use "friend" as fallback
+        display_name = user_name.strip() if user_name and user_name.strip() else "friend"
+        print(f"[BRAIN] get_initial_message: user_id={user_id}, user_name='{user_name}', display_name='{display_name}', language={language}")
+        
+        # CRITICAL: Initial greeting MUST be in English (for context)
+        # User's preferred language will be used for subsequent responses
+        # Get Sedi's complete context in English (core thinking language)
+        sedi_context = build_complete_sedi_context("en")
+        
+        # Build system prompt - ALWAYS in English for initial greeting
+        system_prompt = f"""{sedi_context}
+
+You are Sedi, speaking with {display_name} for the first time after they completed onboarding.
+
+Your role is to:
+1. Introduce yourself warmly
+2. Explain who you are (Sedi, AI-powered health care assistant)
+3. Explain your purpose: How you help improve their quality of life through:
+   - Personalized health care suggestions
+   - Lifestyle improvement recommendations
+   - Continuous monitoring of daily health data via smart devices
+4. Explain how you work: You learn about their lifestyle through natural conversation and use smart devices to track vital signs (heart rate, temperature, SpO2) continuously
+5. Be warm, friendly, and engaging
+6. Keep it concise (2-3 sentences, max 200 characters)
+7. {"Use their name naturally in the greeting" if display_name != "friend" else "Greet them warmly"}
+
+CRITICAL: This is the initial greeting message. It MUST be in English.
+The user's preferred language ({language}) will be used for all subsequent responses.
+"""
+        
+        # Build user prompt - ALWAYS in English for initial greeting
+        user_prompt = f"Introduce yourself to {display_name} and explain what you do as their health care assistant. Be warm and welcoming." + (f" Use their name: {display_name}." if display_name != "friend" else "")
+        
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            
+            # ===== GPT_ONBOARDING_START - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_ONBOARDING_START] ===== CALLING GPT FOR ONBOARDING GREETING =====")
+            print(f"[GPT_ONBOARDING_START] Model: gpt-4o-mini")
+            print(f"[GPT_ONBOARDING_START] User ID: {user_id}")
+            print(f"[GPT_ONBOARDING_START] User name: {user_name}")
+            print(f"[GPT_ONBOARDING_START] Display name: {display_name}")
+            print(f"[GPT_ONBOARDING_START] Language: {language}")
+            print(f"[GPT_ONBOARDING_START] System prompt length: {len(system_prompt)} characters")
+            print(f"[GPT_ONBOARDING_START] User prompt length: {len(user_prompt)} characters")
+            import os
+            print(f"[GPT_ONBOARDING_START] API key available: {bool(os.getenv('OPENAI_API_KEY'))}")
+            print(f"[GPT_ONBOARDING_START] API key length: {len(os.getenv('OPENAI_API_KEY', ''))}")
+            print("=" * 80)
+            
+            response = gpt_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=200,
+            )
+            
+            greeting_text = response.choices[0].message.content.strip()
+            
+            # ===== GPT_ONBOARDING_SUCCESS - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_ONBOARDING_SUCCESS] ===== GPT ONBOARDING CALL SUCCESSFUL =====")
+            print(f"[GPT_ONBOARDING_SUCCESS] Response length: {len(greeting_text)} characters")
+            print(f"[GPT_ONBOARDING_SUCCESS] Response preview: {greeting_text[:150]}...")
+            print("=" * 80)
+            
+            return greeting_text
+        except Exception as e:
+            # ===== GPT_ONBOARDING_ERROR - HARD LOGGING =====
+            print("=" * 80)
+            print("[GPT_ONBOARDING_ERROR] ===== GPT ONBOARDING CALL FAILED =====")
+            print(f"[GPT_ONBOARDING_ERROR] Exception type: {type(e).__name__}")
+            print(f"[GPT_ONBOARDING_ERROR] Exception message: {str(e)}")
+            import traceback
+            print(f"[GPT_ONBOARDING_ERROR] Full stack trace:")
+            print(traceback.format_exc())
+            print("=" * 80)
+            print(f"[BRAIN INITIAL MESSAGE ERROR] {e}")
+            print(f"[BRAIN INITIAL MESSAGE ERROR] Traceback: {traceback.format_exc()}")
+            # Fallback message - use display_name (already set to "friend" if None)
+            fallback = {
+                "en": f"Hello {display_name}! I'm Sedi, your AI-powered health care assistant. I'm here to help improve your quality of life through personalized health suggestions, lifestyle improvements, and continuous monitoring via smart devices.",
+                "fa": f"سلام {display_name}! من صدی هستم، دستیار مراقبت سلامت شما با هوش مصنوعی. من اینجا هستم تا از طریق پیشنهادهای شخصی‌سازی شده سلامت، بهبود سبک زندگی و پایش پیوسته از طریق گجت‌های هوشمند به بهبود کیفیت زندگی‌تان کمک کنم.",
+                "ar": f"مرحباً {display_name}! أنا صدي، مساعد رعاية صحية الخاص بك المدعوم بالذكاء الاصطناعي. أنا هنا لمساعدتك على تحسين جودة حياتك من خلال اقتراحات صحية مخصصة وتحسينات نمط الحياة ومراقبة مستمرة عبر الأجهزة الذكية."
+            }
+            # Fallback message - ALWAYS in English for initial greeting
+            return fallback["en"]
+    
+    def get_greeting(self, user_id: int, user_name: Optional[str] = None) -> Dict[str, any]:
         """
         Generate initial greeting for user.
         
@@ -183,20 +324,25 @@ class ConversationBrain:
         
         Args:
             user_id: User ID
+            user_name: Optional user name from frontend (for personalization)
         
         Returns:
             Dict with greeting message and metadata
         """
+        print(f"[BRAIN] get_greeting: user_id={user_id}, user_name='{user_name}'")
+        
         # Get current stage
         stage = get_stage(user_id, self.db)
         
-        # Build context
+        # Build context - pass user_name from frontend
         context = ConversationContext(
             user_id=user_id,
             stage=stage,
-            memory=self.memory
+            memory=self.memory,
+            user_name=user_name  # CRITICAL: Pass name from frontend
         )
         context_data = context.build()
+        print(f"[BRAIN] Context built - user_name in context: '{context_data.get('user_name')}'")
         
         # Generate greeting based on stage
         greeting = self._generate_greeting(context_data, stage)
@@ -230,9 +376,15 @@ class ConversationBrain:
         
         # Build comprehensive greeting prompt based on stage
         if stage == ConversationStage.FIRST_CONTACT:
-            # FIRST CONTACT: Use hardcoded prompt (no GPT)
-            # This ensures consistent first message
-            return self.prompts.onboarding_prompts.get(self.language, self.prompts.onboarding_prompts["en"]).get("first_launch", "Hello, I'm Sedi. I'm really glad to meet you. What's your name?")
+            # FIRST CONTACT: Use GPT with Sedi's knowledge base for introduction
+            # This ensures Sedi introduces herself properly based on her knowledge
+            user_id = context.get("user_id")
+            if user_id:
+                user = self.db.query(User).filter(User.id == user_id).first()
+                if user:
+                    return self.get_initial_message(user_id, user_name, self.language)
+            # Fallback if user_id not available
+            return self.prompts._get_fallback_response(stage)
         elif time_since:
             # User returning after absence - be warm and check in
             greeting_prompt = {
@@ -330,31 +482,94 @@ class ConversationBrain:
         else:
             return "neutral"
     
-    def _save_user_name_if_provided(
+    def _extract_name_from_message(
         self,
         user_id: int,
         user_message: str,
         stage: ConversationStage,
         context: Dict[str, any]
-    ):
+    ) -> Optional[str]:
         """
-        Save user name if provided during onboarding.
+        Extract user name from conversation message if provided.
         
-        This handles the case where user provides name in response to "what's your name?"
-        during FIRST_CONTACT or INTRODUCTION stage.
+        Returns detected name if found, None otherwise.
+        Name is not saved to database - frontend will update UserProfile.
         """
-        # Only check in onboarding stages
-        if stage not in [ConversationStage.FIRST_CONTACT, ConversationStage.INTRODUCTION]:
-            return
+        # Check if this looks like a name response
+        user_message_clean = user_message.strip()
+        conversation_count = context.get("conversation_count", 0)
         
-        # Check if user already has a real name (not anonymous)
-        user = self.db.query(User).filter(User.id == user_id).first()
-        if not user:
-            return
+        # Check if last Sedi message asked for name or user wants to change name
+        recent_messages = context.get("recent_messages", [])
+        last_sedi_message = recent_messages[-1].get("sedi", "") if recent_messages else ""
         
-        # If user already has a real name, don't overwrite
-        if user.name and not user.name.startswith("anonymous_"):
-            return
+        name_keywords = [
+            "name", "اسم", "اسمك", "اسمك", "what's your name", "اسم شما", "ما اسمك",
+            "اسمتون", "اسمت", "اسمتون را", "اسم شما چیه", "اسم شما چیست", "اسمت چیه", "اسمت چیست",
+            "میتونم اسمتون", "میتونم اسمت", "بدونم اسمتون", "بدونم اسمت", "بدانم اسمتون", "بدانم اسمت",
+            "call me", "من را", "منو", "بگو", "بگو به من"
+        ]
+        name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
+        
+        # Also check if user explicitly says they want to change name
+        change_name_keywords = [
+            "my name is", "i'm", "i am", "اسم من", "من", "اسمم", "اسم", 
+            "call me", "من را", "منو", "بگو", "بگو به من"
+        ]
+        user_wants_to_change_name = any(keyword in user_message_clean.lower() for keyword in change_name_keywords)
+        
+        # CRITICAL: Check if password was requested - don't extract name if we're in password flow
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # List of common short responses that should NOT be saved as names
+        invalid_name_responses = {
+            "en": ["good", "fine", "ok", "okay", "yes", "no", "hi", "hello", "hey", "thanks", "thank you", "well", "great", "nice"],
+            "fa": ["خوب", "خوبم", "خوبی", "خوبه", "بله", "نه", "سلام", "درود", "ممنون", "تشکر", "عالی", "خوب است"],
+            "ar": ["جيد", "حسنا", "نعم", "لا", "مرحبا", "شكرا", "شكراً"]
+        }
+        invalid_responses = invalid_name_responses.get(self.language, invalid_name_responses["en"])
+        all_invalid = []
+        for lang_responses in invalid_name_responses.values():
+            all_invalid.extend(lang_responses)
+        
+        is_invalid_response = user_message_clean.lower() in [r.lower() for r in all_invalid]
+        
+        # Extract name if:
+        # 1. Name was requested OR user wants to change name
+        # 2. Not in password flow
+        # 3. Not an invalid response
+        # 4. Looks like a name (reasonable length, no digits, etc.)
+        if ((name_was_requested or user_wants_to_change_name) and 
+            not password_requested and
+            not is_invalid_response and
+            2 <= len(user_message_clean) <= 30 and
+            not any(char.isdigit() for char in user_message_clean) and
+            not any(char in user_message_clean for char in ["?", "؟", "!", "!"])):
+            
+            # Extract name (first word, clean)
+            if user_wants_to_change_name:
+                # Extract after keyword
+                for kw in change_name_keywords:
+                    if kw in user_message_clean.lower():
+                        parts = user_message_clean.split(kw, 1)
+                        if len(parts) > 1:
+                            name = parts[1].strip().split()[0] if parts[1].strip() else None
+                            if name and len(name) > 1:
+                                print(f"[BRAIN DEBUG] Name detected from change request: {name} for user_id={user_id}")
+                                return name
+                # If no keyword found, use first word
+                name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
+            else:
+                # Direct name response
+                name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
+            
+            name = name.strip()
+            if name and len(name) > 1:
+                print(f"[BRAIN DEBUG] Name detected: {name} for user_id={user_id} (will be sent to frontend)")
+                return name
+        
+        return None
         
         # Check if this looks like a name response
         # (short, no digits, reasonable length, and this is early in conversation)
@@ -372,9 +587,30 @@ class ConversationBrain:
         ]
         name_was_requested = any(keyword in last_sedi_message.lower() for keyword in name_keywords) if last_sedi_message else False
         
+        # CRITICAL: Check if password was requested - don't save name if we're in password flow
+        password_keywords = ["password", "رمز", "كلمة مرور", "security", "امنیت", "أمان", "امنیتی"]
+        password_requested = any(keyword in last_sedi_message.lower() for keyword in password_keywords) if last_sedi_message else False
+        
+        # List of common short responses that should NOT be saved as names
+        invalid_name_responses = {
+            "en": ["good", "fine", "ok", "okay", "yes", "no", "hi", "hello", "hey", "thanks", "thank you", "well", "great", "nice"],
+            "fa": ["خوب", "خوبم", "خوبی", "خوبه", "بله", "نه", "سلام", "درود", "ممنون", "تشکر", "عالی", "خوب است", "خوبم", "خوبی", "خوبه", "خوب است", "خوبم", "خوبی", "خوبه"],
+            "ar": ["جيد", "حسنا", "نعم", "لا", "مرحبا", "شكرا", "شكراً"]
+        }
+        invalid_responses = invalid_name_responses.get(self.language, invalid_name_responses["en"])
+        # Also check in all languages
+        all_invalid = []
+        for lang_responses in invalid_name_responses.values():
+            all_invalid.extend(lang_responses)
+        
+        is_invalid_response = user_message_clean.lower() in [r.lower() for r in all_invalid]
+        
         # If name was requested and user message looks like a name
+        # CRITICAL: Don't save name if password was requested or if it's an invalid response
         # Allow name detection in early conversation (first 5 messages) or if name was explicitly requested
         if (name_was_requested and 
+            not password_requested and  # CRITICAL: Don't save name during password flow
+            not is_invalid_response and  # CRITICAL: Don't save common responses as names
             conversation_count <= 5 and  # Early in conversation (increased from 2 to 5)
             2 <= len(user_message_clean) <= 30 and  # Reasonable name length
             not any(char.isdigit() for char in user_message_clean) and  # No digits
@@ -383,20 +619,8 @@ class ConversationBrain:
             name = user_message_clean.split()[0] if user_message_clean.split() else user_message_clean
             name = name.strip()
             
-            # Check if name is valid (not empty, not just punctuation)
-            if name and len(name) > 1:
-                # Check if name is already taken by another user
-                existing_user = self.db.query(User).filter(
-                    User.name == name,
-                    User.id != user_id
-                ).first()
-                
-                if not existing_user:
-                    # Save name to user
-                    user.name = name
-                    self.db.commit()
-                    self.db.refresh(user)
-                    print(f"[BRAIN DEBUG] Saved user name: {name} for user_id={user_id}")
+            # Name is no longer stored in database - skip saving
+            print(f"[BRAIN DEBUG] Name detected: {name} for user_id={user_id} (not saved to database)")
     
     def _get_error_message(self, error_type: str) -> str:
         """Get error message based on type"""

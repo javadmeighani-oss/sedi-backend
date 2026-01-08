@@ -8,6 +8,7 @@ on:
       - develop
     paths:
       - 'frontend/**'
+      - 'backend/**'  # Trigger on backend changes to ensure compatibility
       - '.github/workflows/build-frontend.yml'
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - develop
     paths:
       - 'frontend/**'
+      - 'backend/**'
   workflow_dispatch:
 
 jobs:
@@ -42,6 +44,14 @@ jobs:
       - name: Get dependencies
         working-directory: ./frontend
         run: flutter pub get
+      
+      - name: Verify Flutter installation
+        working-directory: ./frontend
+        run: flutter doctor -v
+      
+      - name: Analyze code
+        working-directory: ./frontend
+        run: flutter analyze || true  # Continue even if there are warnings
       
       - name: Clean build
         working-directory: ./frontend

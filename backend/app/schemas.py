@@ -189,3 +189,4 @@ class InteractionResponse(BaseModel):
     user_id: Optional[int] = None
     timestamp: datetime
     requires_security_check: Optional[bool] = False  # Flag for suspicious behavior detection
+    detected_name: Optional[str] = None  # Name detected from conversation (to update frontend)

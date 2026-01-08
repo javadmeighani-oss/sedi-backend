@@ -56,7 +56,7 @@ def check_inactive_users():
             message = generate_notification_text(
                 language=user.preferred_language or "en",
                 notification_type=NOTIF_TYPE_INACTIVE,
-                user_name=user.name or "my friend",
+                user_name="my friend",  # Name no longer stored in database
                 hours_since_last_talk=hours_since,
             )
             save_notification(db, user.id, message, "inactive_ping")
@@ -74,7 +74,7 @@ def check_health_status():
             message = generate_notification_text(
                 language=user.preferred_language or "en",
                 notification_type=NOTIF_TYPE_HEALTH_CHECK,
-                user_name=user.name or "my friend",
+                user_name="my friend",  # Name no longer stored in database
                 health_summary=health_summary,
             )
             save_notification(db, user.id, message, "health_check")
@@ -90,7 +90,7 @@ def send_morning_greeting():
             message = generate_notification_text(
                 language=user.preferred_language or "en",
                 notification_type=NOTIF_TYPE_MORNING,
-                user_name=user.name or "my friend",
+                user_name="my friend",  # Name no longer stored in database
                 health_summary=health_summary,
             )
             save_notification(db, user.id, message, "morning_summary")
