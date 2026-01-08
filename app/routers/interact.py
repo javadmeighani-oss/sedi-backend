@@ -19,6 +19,7 @@ from app.models import User, Memory
 from app.core.conversation.brain import ConversationBrain
 from app.schemas import InteractionResponse
 from app.schemas.chat import ChatRequest
+from app.schemas.onboarding import OnboardingRequest
 
 router = APIRouter()
 
@@ -216,16 +217,32 @@ async def chat(
 # ---------------- Onboarding - Setup User ---------------- 
 @router.post("/onboarding")
 def setup_onboarding(
-    password: str = Query(..., description="User security password (minimum 6 characters)"),  # REQUIRED
-    language: Optional[str] = Query("fa", description="Preferred language (default: 'fa')"),  # OPTIONAL with default
-    name: Optional[str] = Query(None, description="User name (optional, for GPT personalization)"),  # OPTIONAL
+    payload: OnboardingRequest,
     db: Session = Depends(get_db)
 ):
     """
     SIMPLE ONBOARDING: Create user and return success.
     Handles ALL possible errors gracefully.
+    
+    CRITICAL:
+    - name is REQUIRED (from JSON body)
+    - password is REQUIRED (from JSON body)
+    - language is optional (default: "fa")
+    - User.name is ALWAYS saved (non-empty, stripped)
     """
-    # Step 1: Validate password
+    # Step 1: Validate payload
+    password = payload.password.strip()
+    name = payload.name.strip()
+    language = payload.language.strip() if payload.language else "fa"
+    
+    # Validate name (REQUIRED, non-empty)
+    if not name or len(name) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Name is required and cannot be empty"
+        )
+    
+    # Validate password
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
@@ -253,6 +270,7 @@ def setup_onboarding(
     try:
         print(f"[ONBOARDING] ========== USER CREATION START ==========")
         print(f"[ONBOARDING] Step 1: Input validation")
+        print(f"[ONBOARDING]   - Name: '{name}' (length: {len(name)})")
         print(f"[ONBOARDING]   - Password length: {len(password)}")
         print(f"[ONBOARDING]   - Password (first 3): {password[:3]}...")
         print(f"[ONBOARDING]   - Language: '{language}'")
@@ -283,11 +301,13 @@ def setup_onboarding(
         now = datetime.utcnow()
         
         print(f"[ONBOARDING] Creating User with:")
+        print(f"[ONBOARDING]   - name: '{name}' (length: {len(name)})")
         print(f"[ONBOARDING]   - secret_key: '{password[:3]}...' (length: {len(password)})")
         print(f"[ONBOARDING]   - preferred_language: '{user_language}'")
         print(f"[ONBOARDING]   - created_at: {now}")
         
         new_user = User(
+            name=name.strip(),  # STEP 2: ALWAYS save user name (required, non-empty, stripped)
             secret_key=password.strip(),  # Ensure no whitespace
             preferred_language=user_language.strip(),  # Ensure no whitespace
             created_at=now  # Explicitly set created_at
@@ -299,6 +319,8 @@ def setup_onboarding(
         print(f"[ONBOARDING]   - created_at: {new_user.created_at}")
         
         # Verify all required fields are set and not None
+        if not new_user.name or not new_user.name.strip():
+            raise ValueError("name cannot be empty or whitespace")
         if not new_user.secret_key or not new_user.secret_key.strip():
             raise ValueError("secret_key cannot be empty or whitespace")
         if not new_user.preferred_language or not new_user.preferred_language.strip():
@@ -433,9 +455,9 @@ def setup_onboarding(
     if user_id:
         try:
             print(f"[ONBOARDING] Step 7: Generating greeting from GPT for user_id: {user_id}")
-            print(f"[ONBOARDING] User name from frontend: '{name}'")
-            # Use name from frontend if provided, otherwise None (GPT will use fallback)
-            user_name_for_gpt = name.strip() if name and name.strip() else None
+            print(f"[ONBOARDING] User name from payload: '{name}'")
+            # STEP 2: Use name from payload (always available, required)
+            user_name_for_gpt = name.strip()
             # CRITICAL: Initial greeting is ALWAYS in English (for context)
             # User's preferred language will be used for subsequent responses
             brain = ConversationBrain(db, language="en")  # Use English for initial greeting
