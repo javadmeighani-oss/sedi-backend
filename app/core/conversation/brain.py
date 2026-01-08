@@ -85,40 +85,66 @@ class ConversationBrain:
             current_memory_count = self.memory.get_conversation_count(user_id)
             print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
             
-            # 3. BUILD CONTEXT: Build context with CURRENT state (before new message)
-            context = ConversationContext(
-                user_id=user_id,
-                stage=current_stage,
-                memory=self.memory,
-                user_message=user_message,
-                user_name=user_name  # Pass name from frontend
-            )
-            context_data = context.build()
-            print(f"[BRAIN DEBUG] Context built - conversation_count={context_data.get('conversation_count', 0)}")
+            # 3. BUILD MESSAGES: Build messages explicitly without context dependency
+            from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+            from app.core.conversation.prompts import client as gpt_client
             
-            # 4. GENERATE: Generate response with current context
-            engagement_level = self._determine_engagement_level(context_data)
-            print(f"[BRAIN DEBUG] Engagement level: {engagement_level}")
+            # Always start with system prompt (English)
+            system_prompt_content = build_complete_sedi_context("en")
+            messages = [
+                {"role": "system", "content": system_prompt_content}
+            ]
+            
+            # Optionally append history if available (non-blocking)
+            try:
+                recent_messages = self.memory.get_recent_messages(user_id, limit=10)
+                for msg in reversed(recent_messages):  # Oldest first
+                    if msg.user_message and msg.sedi_response:
+                        messages.append({"role": "user", "content": msg.user_message})
+                        messages.append({"role": "assistant", "content": msg.sedi_response})
+            except Exception as history_error:
+                # Memory failure is non-critical - continue without history
+                print(f"[BRAIN WARNING] Could not load history (non-critical): {history_error}")
+            
+            # Always append current user message
+            messages.append({"role": "user", "content": user_message})
+            
+            print(f"[BRAIN DEBUG] Messages built - count: {len(messages)}")
             
             # Check if we need to extract user name from conversation
-            # This happens when user provides name in response to "what's your name?" or changes name
-            detected_name = self._extract_name_from_message(user_id, user_message, current_stage, context_data)
+            # Build minimal context_data for helper methods only
+            minimal_context = {
+                "user_id": user_id,
+                "stage": current_stage.value,
+                "conversation_count": current_memory_count,
+                "recent_messages": []
+            }
+            try:
+                recent_messages_list = self.memory.get_recent_messages(user_id, limit=5)
+                minimal_context["recent_messages"] = [
+                    {"sedi": msg.sedi_response or ""} for msg in recent_messages_list
+                ]
+            except:
+                pass
+            detected_name = self._extract_name_from_message(user_id, user_message, current_stage, minimal_context)
             
-            # 4. GENERATE: Generate response with current context
+            # 4. GENERATE: Call GPT directly with messages
             # CRITICAL: This is where GPT is called for chat
-            print(f"[BRAIN] ===== BEFORE GPT CALL (generate_response) =====")
+            print(f"[BRAIN] ===== BEFORE GPT CALL =====")
             print(f"[BRAIN] User ID: {user_id}")
             print(f"[BRAIN] User message: '{user_message[:100]}...'")
             print(f"[BRAIN] Language: {self.language}")
             print(f"[BRAIN] Stage: {current_stage.value}")
+            print(f"[BRAIN] Messages count: {len(messages)}")
             print(f"[BRAIN] ===== END BEFORE GPT =====")
             
             try:
-                sedi_response = self.prompts.generate_response(
-                    context_data, 
-                    user_message,
-                    engagement_level
+                # Call GPT using Responses API
+                completion = gpt_client.responses.create(
+                    model="gpt-4o-mini",
+                    input=messages
                 )
+                sedi_response = completion.output_text.strip()
                 print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
             except Exception as gpt_exception:
                 # CRITICAL: This exception is from GPT call - re-raise it
@@ -155,16 +181,15 @@ class ConversationBrain:
             new_stage = transition_stage(current_stage, user_id, self.db)
             print(f"[BRAIN DEBUG] Stage transition: {current_stage.value} -> {new_stage.value}")
             
-            # 7. UPDATE: Update context_data with new stage for response
-            context_data["stage"] = new_stage.value
-            context_data["conversation_count"] = self.memory.get_conversation_count(user_id)
+            # Get updated conversation count
+            updated_conversation_count = self.memory.get_conversation_count(user_id)
             
             print(f"[BRAIN DEBUG] ===== MESSAGE PROCESSED =====")
             
             # Build metadata with updated state
             metadata = {
                 "stage": new_stage.value,
-                "conversation_count": context_data.get("conversation_count", 0),
+                "conversation_count": updated_conversation_count,
                 "tone": self._infer_tone(sedi_response),
                 "stage_transitioned": new_stage != current_stage
             }
