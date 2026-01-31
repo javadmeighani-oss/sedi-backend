@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+openai
+requests
+passlib
+bcrypt
+python-jose
+apscheduler
+sqlalchemy
+pytz
+psycopg2-binary

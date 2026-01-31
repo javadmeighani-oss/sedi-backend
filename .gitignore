@@ -1,21 +1,69 @@
-.env
-# Python cache
+# Python
 __pycache__/
-*.pyc
-
-# Environments
-venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
 env/
-.venv/
-
-# Databases
+venv/
+ENV/
+.venv
 *.db
+*.sqlite
+*.sqlite3
 
-# VSCode local settings
+# Flutter
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/.pub-cache/
+frontend/.pub/
+frontend/build/
+frontend/.ios/
+frontend/.android/
+frontend/.idea/
+frontend/*.iml
+frontend/.vscode/
+frontend/.fvm/
+
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# System files
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+logs/
+
+# Backend specific
+backend/sedi.db
+backend/__pycache__/
+backend/*.pyc
+
+# Frontend specific
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/ios/Pods/
+frontend/ios/.symlinks/
+frontend/ios/Flutter/Flutter.framework
+frontend/ios/Flutter/Flutter.podspec
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
 
 # GitHub Actions SSH keys (never commit!)
 .github_actions_key
