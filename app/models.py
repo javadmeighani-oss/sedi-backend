@@ -60,8 +60,9 @@ class MedicalCondition(Base):
     __tablename__ = "medical_conditions"
 
     id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, nullable=True, unique=True)  # Unique code (e.g. "ALS", "MS", "DIABETES_T2") - for seed script lookup
     name = Column(String, nullable=False, unique=True)  # e.g. "Diabetes Type 2", "Hypertension"
-    description = Column(String, nullable=True)  # Brief description of the condition
+    description = Column(String, nullable=True)  # Brief description of the condition (can store JSON for keywords, severity, chronic flag)
     category = Column(String, nullable=True)  # e.g. "chronic", "acute", "cardiovascular"
     embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -75,7 +76,8 @@ class Medication(Base):
     name = Column(String, nullable=False)  # Medication name
     generic_name = Column(String, nullable=True)  # Generic name if available
     dosage_form = Column(String, nullable=True)  # e.g. "tablet", "capsule", "injection"
-    default_dosage = Column(String, nullable=True)  # e.g. "500mg", "10ml"
+    default_dosage = Column(String, nullable=True)  # e.g. "500mg", "10ml" (can also store dosage_info here)
+    condition_id = Column(Integer, ForeignKey("medical_conditions.id", ondelete="SET NULL"), nullable=True)  # Link to condition (optional)
     embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
