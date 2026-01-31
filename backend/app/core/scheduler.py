@@ -103,8 +103,11 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
         user_id=user_id,
         type=notif_type,
         priority="normal",
-        message=message,
+        title=None,  # Title can be added later if needed
+        body=message,  # Updated: message -> body
         is_read=False,
+        is_sent=False,  # Will be marked as sent when scheduler processes it
+        scheduled_for=None,  # Can be set for future scheduled notifications
         created_at=datetime.utcnow(),
     )
     db.add(new_notif)
