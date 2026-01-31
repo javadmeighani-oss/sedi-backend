@@ -64,3 +64,7 @@ frontend/ios/Flutter/Flutter.podspec
 *.tmp
 *.temp
 *.bak
+
+# GitHub Actions SSH keys (never commit!)
+.github_actions_key
+.github_actions_key.pub
