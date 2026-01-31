@@ -15,11 +15,12 @@ def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
     """
     گجت فرمان‌های صوتی جدید را از این مسیر می‌گیرد
     """
+    # Query high/critical priority notifications (priority is now a string)
     alerts = (
         db.query(models.Notification)
         .filter(models.Notification.user_id == user_id)
         .filter(models.Notification.is_read == False)
-        .filter(models.Notification.priority >= 3)
+        .filter(models.Notification.priority.in_(["high", "critical"]))  # Updated: priority is now string
         .order_by(models.Notification.created_at.desc())
         .all()
     )
@@ -27,15 +28,21 @@ def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
     if not alerts:
         return APIResponse(ok=True, data={"commands": []})
 
+    # Helper function to convert string priority to numeric for comparison
+    def priority_to_numeric(priority_str: str) -> int:
+        priority_map = {"low": 1, "normal": 2, "high": 3, "critical": 4}
+        return priority_map.get(priority_str, 2)
+    
     commands = []
     for a in alerts:
+        priority_num = priority_to_numeric(a.priority)
         command = {
-            "sound_id": a.sound_id or "alert_default",
-            "text": a.message or a.title or "هشدار سلامت",
+            "sound_id": "alert_default",  # sound_id removed from new model
+            "text": a.body or a.title or "هشدار سلامت",  # Updated: message -> body
             "volume": 90,
-            "repeat": 2 if a.priority >= 3 else 1,
-            "language": a.language or "fa",
-            "priority": a.priority,
+            "repeat": 2 if priority_num >= 3 else 1,
+            "language": "fa",  # language removed from new model, using default
+            "priority": priority_num,
         }
         commands.append(command)
         a.is_read = True
@@ -70,10 +77,13 @@ def device_heartbeat(payload: dict, db: Session = Depends(get_db)):
 
     notif = models.Notification(
         user_id=user.id,
-        type="info",
+        type="HEALTH",  # Updated to match new type enum
         title="Heartbeat",
-        message=msg,
-        priority=1,
+        body=msg,  # Updated: message -> body
+        priority="low",  # Updated: priority is now string
+        is_read=False,
+        is_sent=False,
+        scheduled_for=None,
         created_at=datetime.utcnow(),
     )
     db.add(notif)
@@ -101,10 +111,13 @@ def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
 
     notif = models.Notification(
         user_id=user.id,
-        type="log",
+        type="HEALTH",  # Updated to match new type enum
         title="Command acknowledged",
-        message=f"Sound '{payload.get('sound_id')}' executed with status: {payload.get('status')}",
-        priority=1,
+        body=f"Sound '{payload.get('sound_id')}' executed with status: {payload.get('status')}",  # Updated: message -> body
+        priority="low",  # Updated: priority is now string
+        is_read=False,
+        is_sent=False,
+        scheduled_for=None,
         created_at=datetime.utcnow(),
     )
     db.add(notif)

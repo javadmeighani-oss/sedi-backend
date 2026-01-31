@@ -44,12 +44,12 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # CASCADE delete when user deleted
-    type = Column(String, nullable=False, default="info")  # Contract: type enum
-    priority = Column(String, nullable=False, default="normal")  # Contract: priority enum
-    title = Column(String, nullable=True)  # Contract: optional title
-    message = Column(String, nullable=False)  # Contract: required message
-    actions = Column(String, nullable=True)  # JSON string of actions array
-    metadata_json = Column("metadata", String, nullable=True)  # JSON string of metadata object (column name is 'metadata' in DB)
-    is_read = Column(Boolean, default=False, nullable=True)  # Contract: is_read
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)  # Contract: created_at
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)  # CASCADE delete when user deleted, indexed for queries
+    type = Column(String, nullable=False)  # e.g. HEALTH, REMINDER, INSIGHT
+    title = Column(String, nullable=True)
+    body = Column(String, nullable=False)  # Notification body/message content
+    priority = Column(String, nullable=False, default="normal")  # low | normal | high | critical
+    is_read = Column(Boolean, default=False, nullable=False)
+    is_sent = Column(Boolean, default=False, nullable=False)  # Track if notification has been sent (for scheduler integration)
+    scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

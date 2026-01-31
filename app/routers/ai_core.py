@@ -58,14 +58,18 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
         },
     )
 
+    # Extract message from notification data (handle both old and new formats)
+    notif_message = notif_data.get("message", "Health analysis completed")
+    
     notif = models.Notification(
         user_id=user.id,
-        type="alert",
+        type="HEALTH",  # Updated to match new type enum
         title="Health Update",
-        message=notif_data["message"],
-        tone=notif_data["tone"],
-        feedback_options=notif_data["feedback_options"],
-        language=user.preferred_language or "en",
+        body=notif_message,  # Updated: message -> body
+        priority="normal",
+        is_read=False,
+        is_sent=False,
+        scheduled_for=None,
         created_at=datetime.utcnow(),
     )
 
@@ -76,16 +80,15 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
     # ثبت در حافظه‌ی صدی
     memory = models.Memory(
         user_id=user.id,
-        summary=f"Health analyzed: HR={round(avg_hr,1)}, Temp={round(avg_temp,1)}, SpO2={round(avg_spo2,1)}",
-        mood=mood_state,
-        context="auto_health_analysis",
+        user_message=f"Health analyzed: HR={round(avg_hr,1)}, Temp={round(avg_temp,1)}, SpO2={round(avg_spo2,1)}",
+        sedi_response=notif_message,
+        language=user.preferred_language or "en",
         created_at=datetime.utcnow(),
-        last_interaction=datetime.utcnow(),
     )
     db.add(memory)
     db.commit()
 
-    print(f"[AI CORE] Notification created for user_id={user.id}: {notif.message}")
+    print(f"[AI CORE] Notification created for user_id={user.id}: {notif.body}")
 
     return APIResponse(
         ok=True,
@@ -94,9 +97,10 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
             "language": user.preferred_language,
             "notification": {
                 "id": notif.id,
-                "message": notif.message,
-                "tone": notif.tone,
-                "feedback_options": notif.feedback_options
+                "type": notif.type,
+                "title": notif.title,
+                "body": notif.body,
+                "priority": notif.priority
             }
         },
     )

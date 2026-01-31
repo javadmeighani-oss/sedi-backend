@@ -8,11 +8,9 @@ from .user import UserCreate, UserResponse
 from .health import HealthDataCreate, HealthDataResponse
 from .lifestyle import LifestyleDataCreate, LifestyleDataResponse
 from .notification import (
-    Action,
-    NotificationMetadata,
+    NotificationBase,
     NotificationCreate,
-    NotificationResponse,
-    NotificationFeedback
+    NotificationResponse
 )
 from .memory import MemoryCreate, MemoryResponse
 from .interaction import InteractionResponse
@@ -35,11 +33,9 @@ __all__ = [
     "LifestyleDataCreate",
     "LifestyleDataResponse",
     # Notification
-    "Action",
-    "NotificationMetadata",
+    "NotificationBase",
     "NotificationCreate",
     "NotificationResponse",
-    "NotificationFeedback",
     # Memory
     "MemoryCreate",
     "MemoryResponse",
