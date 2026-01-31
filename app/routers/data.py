@@ -11,14 +11,19 @@ router = APIRouter()
 
 def create_auto_notification(db: Session, user_id: int, title: str, message: str, priority: int = 2):
     """ساخت خودکار اعلان در صورت تشخیص وضعیت غیرعادی"""
+    # Convert integer priority to string
+    priority_map = {1: "low", 2: "normal", 3: "high", 4: "critical"}
+    priority_str = priority_map.get(priority, "normal")
+    
     notif = models.Notification(
         user_id=user_id,
-        type="alert",
+        type="HEALTH",  # Updated to match new type enum
         title=title,
-        message=message,
-        priority=priority,
-        sound_id="alert_health",
-        language="fa",
+        body=message,  # Updated: message -> body
+        priority=priority_str,  # Updated: priority is now string
+        is_read=False,
+        is_sent=False,
+        scheduled_for=None,
         created_at=datetime.utcnow(),
     )
     db.add(notif)

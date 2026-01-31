@@ -56,12 +56,13 @@ def add_health_data(payload: dict, db: Session = Depends(get_db)):
     # ثبت نوتیف جدید
     notif = models.Notification(
         user_id=user.id,
-        type="alert",
+        type="HEALTH",  # Updated to match new type enum
         title="Health Update",
-        message=msg,
-        priority=3,
-        sound_id="alert_health",
-        language=user.preferred_language or "en",
+        body=msg,  # Updated: message -> body
+        priority="high",  # Updated: priority is now string (3 -> high)
+        is_read=False,
+        is_sent=False,
+        scheduled_for=None,
         created_at=datetime.utcnow(),
     )
     db.add(notif)

@@ -95,10 +95,13 @@ def add_doctor_note(payload: dict, db: Session = Depends(get_db)):
 
     notif = models.Notification(
         user_id=user.id,
-        type="doctor_note",
+        type="HEALTH",  # Updated to match new type enum
         title="یادداشت پزشک",
-        message=msg,
-        priority=2,
+        body=msg,  # Updated: message -> body
+        priority="normal",  # Updated: priority is now string (2 -> normal)
+        is_read=False,
+        is_sent=False,
+        scheduled_for=None,
         created_at=datetime.utcnow(),
     )
     db.add(notif)
