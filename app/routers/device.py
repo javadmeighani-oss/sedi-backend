@@ -5,6 +5,7 @@ from datetime import datetime
 from app.database import get_db
 from app import models
 from app.schemas import APIResponse, ErrorInfo
+from app.services.notification_engine import DecisionEngine
 
 router = APIRouter()
 
@@ -75,19 +76,13 @@ def device_heartbeat(payload: dict, db: Session = Depends(get_db)):
         f"Battery={payload.get('battery')}%, Temp={payload.get('temperature')}°C"
     )
 
-    notif = models.Notification(
+    # Use DecisionEngine instead of direct Notification creation
+    decision_engine = DecisionEngine(db)
+    notif = decision_engine.create_insight_notification(
         user_id=user.id,
-        type="HEALTH",  # Updated to match new type enum
-        title="Heartbeat",
-        body=msg,  # Updated: message -> body
-        priority="low",  # Updated: priority is now string
-        is_read=False,
-        is_sent=False,
-        scheduled_for=None,
-        created_at=datetime.utcnow(),
+        insight_text=msg,
+        priority="low"
     )
-    db.add(notif)
-    db.commit()
 
     return APIResponse(ok=True, data={"message": "Heartbeat received successfully."})
 
@@ -109,18 +104,12 @@ def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
             ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
         )
 
-    notif = models.Notification(
+    # Use DecisionEngine instead of direct Notification creation
+    decision_engine = DecisionEngine(db)
+    notif = decision_engine.create_insight_notification(
         user_id=user.id,
-        type="HEALTH",  # Updated to match new type enum
-        title="Command acknowledged",
-        body=f"Sound '{payload.get('sound_id')}' executed with status: {payload.get('status')}",  # Updated: message -> body
-        priority="low",  # Updated: priority is now string
-        is_read=False,
-        is_sent=False,
-        scheduled_for=None,
-        created_at=datetime.utcnow(),
+        insight_text=f"Sound '{payload.get('sound_id')}' executed with status: {payload.get('status')}",
+        priority="low"
     )
-    db.add(notif)
-    db.commit()
 
     return APIResponse(ok=True, data={"acknowledged": True})

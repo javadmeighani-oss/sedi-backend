@@ -53,3 +53,42 @@ class Notification(Base):
     is_sent = Column(Boolean, default=False, nullable=False)  # Track if notification has been sent (for scheduler integration)
     scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- MedicalCondition --------------------
+class MedicalCondition(Base):
+    __tablename__ = "medical_conditions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)  # e.g. "Diabetes Type 2", "Hypertension"
+    description = Column(String, nullable=True)  # Brief description of the condition
+    category = Column(String, nullable=True)  # e.g. "chronic", "acute", "cardiovascular"
+    embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- Medication --------------------
+class Medication(Base):
+    __tablename__ = "medications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Medication name
+    generic_name = Column(String, nullable=True)  # Generic name if available
+    dosage_form = Column(String, nullable=True)  # e.g. "tablet", "capsule", "injection"
+    default_dosage = Column(String, nullable=True)  # e.g. "500mg", "10ml"
+    embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserCondition --------------------
+class UserCondition(Base):
+    __tablename__ = "user_conditions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    condition_id = Column(Integer, ForeignKey("medical_conditions.id", ondelete="CASCADE"), nullable=False)
+    diagnosed_date = Column(DateTime, nullable=True)  # When condition was diagnosed
+    severity = Column(String, nullable=True)  # e.g. "mild", "moderate", "severe"
+    notes = Column(String, nullable=True)  # Additional notes about user's condition
+    embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

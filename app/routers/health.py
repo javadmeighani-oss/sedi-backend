@@ -6,6 +6,7 @@ from app.database import get_db
 from app import models
 from app.schemas import APIResponse, ErrorInfo
 from app.core.ai_text_engine import generate_notification_text
+from app.services.notification_engine import DecisionEngine
 
 router = APIRouter()
 
@@ -53,21 +54,21 @@ def add_health_data(payload: dict, db: Session = Depends(get_db)):
         }
     )
 
-    # ثبت نوتیف جدید
-    notif = models.Notification(
-        user_id=user.id,
-        type="HEALTH",  # Updated to match new type enum
-        title="Health Update",
-        body=msg,  # Updated: message -> body
-        priority="high",  # Updated: priority is now string (3 -> high)
-        is_read=False,
-        is_sent=False,
-        scheduled_for=None,
-        created_at=datetime.utcnow(),
-    )
-    db.add(notif)
-    db.commit()
-    db.refresh(notif)
+    # Use DecisionEngine to create notification (replaces direct Notification creation)
+    decision_engine = DecisionEngine(db)
+    notif = decision_engine.evaluate_health_data(user.id, data)
+    
+    # If DecisionEngine didn't create notification (no alerts), create a simple one for backward compatibility
+    if not notif:
+        from app.services.notification_engine import NotificationBuilder
+        builder = NotificationBuilder(db)
+        notif = builder.create_and_save(
+            user_id=user.id,
+            notification_type="HEALTH",
+            title="Health Update",
+            body=msg,
+            priority="normal"
+        )
 
     print(f"[HEALTH] New health data saved for user_id={user.id}")
     print(f"[NOTIF] {msg}")

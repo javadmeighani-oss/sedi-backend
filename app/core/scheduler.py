@@ -13,6 +13,7 @@ from app.core.ai_text_engine import (
     NOTIF_TYPE_HEALTH_CHECK,
     NOTIF_TYPE_INACTIVE,
 )
+from app.services.notification_engine import DecisionEngine
 
 # -------------------------------
 # Scheduling and Check Settings
@@ -99,19 +100,40 @@ def send_morning_greeting():
 # Save notification to database
 # -------------------------------
 def save_notification(db: Session, user_id: int, message: str, notif_type: str):
-    new_notif = Notification(
-        user_id=user_id,
-        type=notif_type,
-        priority="normal",
-        title=None,  # Title can be added later if needed
-        body=message,  # Updated: message -> body
-        is_read=False,
-        is_sent=False,  # Will be marked as sent when scheduler processes it
-        scheduled_for=None,  # Can be set for future scheduled notifications
-        created_at=datetime.utcnow(),
-    )
-    db.add(new_notif)
-    db.commit()
+    # Use DecisionEngine instead of direct Notification creation
+    decision_engine = DecisionEngine(db)
+    
+    # Map scheduler notification types to DecisionEngine methods
+    if notif_type == "morning_summary":
+        notif = decision_engine.create_insight_notification(
+            user_id=user_id,
+            insight_text=message,
+            priority="normal"
+        )
+    elif notif_type == "health_check":
+        notif = decision_engine.create_insight_notification(
+            user_id=user_id,
+            insight_text=message,
+            priority="normal"
+        )
+    elif notif_type == "inactive_ping":
+        notif = decision_engine.create_insight_notification(
+            user_id=user_id,
+            insight_text=message,
+            priority="low"
+        )
+    else:
+        # Fallback for unknown types
+        from app.services.notification_engine import NotificationBuilder
+        builder = NotificationBuilder(db)
+        notif = builder.create_and_save(
+            user_id=user_id,
+            notification_type="REMINDER",
+            title=None,
+            body=message,
+            priority="normal"
+        )
+    
     print(f"[Sedi Scheduler] Notification created for user {user_id} → {notif_type}")
 
 # -------------------------------
