@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from app.models import Notification, User, UserCondition, HealthData
 from app.services.medical import MedicalService
 from app.services.rag import RAGService
+from app.services.memory import MemoryContext, build_memory_context
 
 
 # -------------------- Timing Rules --------------------
@@ -172,11 +173,83 @@ class DecisionEngine:
         self.rag_service = RAGService(db)
         self.timing_rules = TimingRules()
     
+    # -------------------- Lifestyle-Based Notifications --------------------
+    
+    def evaluate_lifestyle_context(
+        self,
+        user_id: int,
+        memory_context: Optional[MemoryContext] = None
+    ) -> Optional[Notification]:
+        """
+        Evaluate lifestyle context and create notifications if needed.
+        
+        Lifestyle rules:
+        - Low sleep (< 6 hours) -> gentle sleep-care notification
+        - Low hydration (< 1500ml) -> hydration reminder
+        - Inactivity (no activity data) -> gentle movement reminder
+        
+        Args:
+            user_id: User ID
+            memory_context: Optional MemoryContext (will be built if not provided)
+        
+        Returns:
+            Notification if created, None otherwise.
+        """
+        # Build context if not provided
+        if memory_context is None:
+            memory_context = build_memory_context(self.db, user_id)
+        
+        # Rule 1: Low sleep duration
+        if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
+            if memory_context.sleep_duration_hours < 6.0:
+                return self.builder.create_and_save(
+                    user_id=user_id,
+                    notification_type="REMINDER",
+                    title="Sleep Care Reminder",
+                    body=f"You slept {memory_context.sleep_duration_hours:.1f} hours last night. Consider getting more rest for better health.",
+                    priority="normal"
+                )
+        
+        # Rule 2: Low hydration
+        if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
+            if memory_context.hydration_ml < 1500:
+                return self.builder.create_and_save(
+                    user_id=user_id,
+                    notification_type="REMINDER",
+                    title="Hydration Reminder",
+                    body=f"You've had {memory_context.hydration_ml:.0f}ml of water today. Try to reach at least 1500ml for optimal hydration.",
+                    priority="low"
+                )
+        
+        # Rule 3: Inactivity (no activity data available)
+        if not memory_context.has_activity_data():
+            # Check if user has been inactive for a while (no recent activity data)
+            # This is a gentle reminder, not urgent
+            return self.builder.create_and_save(
+                user_id=user_id,
+                notification_type="INSIGHT",
+                title="Activity Reminder",
+                body="Consider adding some light movement to your day. Even a short walk can boost your energy and mood.",
+                priority="low"
+            )
+        
+        return None
+    
     # -------------------- Health-Based Notifications --------------------
     
-    def evaluate_health_data(self, user_id: int, health_data: HealthData) -> Optional[Notification]:
+    def evaluate_health_data(
+        self,
+        user_id: int,
+        health_data: HealthData,
+        memory_context: Optional[MemoryContext] = None
+    ) -> Optional[Notification]:
         """
         Evaluate health data and create notification if needed.
+        
+        Args:
+            user_id: User ID
+            health_data: HealthData object
+            memory_context: Optional MemoryContext for lifestyle-aware decisions
         
         Returns Notification if created, None otherwise.
         """
@@ -395,3 +468,105 @@ class DecisionEngine:
             body=insight_text,
             priority=priority
         )
+    
+    # -------------------- Lifestyle-Based Notifications --------------------
+    
+    def evaluate_lifestyle_context(
+        self,
+        user_id: int,
+        memory_context: Optional[MemoryContext] = None
+    ) -> Optional[Notification]:
+        """
+        Evaluate lifestyle context and create notifications if needed.
+        
+        Lifestyle rules:
+        - Low sleep (< 6 hours) -> gentle sleep-care notification
+        - Low hydration (< 1500ml) -> hydration reminder
+        - Inactivity (no activity data) -> gentle movement reminder
+        
+        Args:
+            user_id: User ID
+            memory_context: Optional MemoryContext (will be built if not provided)
+        
+        Returns:
+            Notification if created, None otherwise.
+        """
+        # Build context if not provided
+        if memory_context is None:
+            memory_context = build_memory_context(self.db, user_id)
+        
+        # Rule 1: Low sleep duration
+        if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
+            if memory_context.sleep_duration_hours < 6.0:
+                return self.builder.create_and_save(
+                    user_id=user_id,
+                    notification_type="REMINDER",
+                    title="Sleep Care Reminder",
+                    body=f"You slept {memory_context.sleep_duration_hours:.1f} hours last night. Consider getting more rest for better health.",
+                    priority="normal"
+                )
+        
+        # Rule 2: Low hydration
+        if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
+            if memory_context.hydration_ml < 1500:
+                return self.builder.create_and_save(
+                    user_id=user_id,
+                    notification_type="REMINDER",
+                    title="Hydration Reminder",
+                    body=f"You've had {memory_context.hydration_ml:.0f}ml of water today. Try to reach at least 1500ml for optimal hydration.",
+                    priority="low"
+                )
+        
+        # Rule 3: Inactivity (no activity data available)
+        if not memory_context.has_activity_data():
+            # Check if user has been inactive for a while (no recent activity data)
+            # This is a gentle reminder, not urgent
+            return self.builder.create_and_save(
+                user_id=user_id,
+                notification_type="INSIGHT",
+                title="Activity Reminder",
+                body="Consider adding some light movement to your day. Even a short walk can boost your energy and mood.",
+                priority="low"
+            )
+        
+        return None
+    
+    # -------------------- Combined Evaluation (Health + Lifestyle) --------------------
+    
+    def evaluate_user_state(
+        self,
+        user_id: int,
+        health_data: Optional[HealthData] = None,
+        memory_context: Optional[MemoryContext] = None
+    ) -> List[Notification]:
+        """
+        Evaluate both health data and lifestyle context, returning all relevant notifications.
+        
+        This is a convenience method that combines health and lifestyle evaluation.
+        
+        Args:
+            user_id: User ID
+            health_data: Optional HealthData object
+            memory_context: Optional MemoryContext (will be built if not provided)
+        
+        Returns:
+            List of Notification objects (may be empty)
+        """
+        notifications = []
+        
+        # Build context if not provided
+        if memory_context is None:
+            memory_context = build_memory_context(self.db, user_id)
+        
+        # Evaluate health data
+        if health_data:
+            health_notif = self.evaluate_health_data(user_id, health_data, memory_context)
+            if health_notif:
+                notifications.append(health_notif)
+        
+        # Evaluate lifestyle context
+        lifestyle_notif = self.evaluate_lifestyle_context(user_id, memory_context)
+        if lifestyle_notif:
+            notifications.append(lifestyle_notif)
+        
+        return notifications

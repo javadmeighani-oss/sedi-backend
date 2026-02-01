@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Text
 from datetime import datetime
 from app.database import Base
 
@@ -94,3 +94,33 @@ class UserCondition(Base):
     notes = Column(String, nullable=True)  # Additional notes about user's condition
     embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- DailyMemorySummary --------------------
+class DailyMemorySummary(Base):
+    __tablename__ = "daily_memory_summaries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    summary = Column(Text, nullable=False)  # Daily summary text
+    mood = Column(String, nullable=True)  # User mood (e.g., "happy", "neutral", "tired")
+    context = Column(Text, nullable=True)  # Additional context information
+    last_interaction = Column(DateTime, nullable=True)  # Last interaction timestamp
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserMemoryFact --------------------
+class UserMemoryFact(Base):
+    __tablename__ = "user_memory_facts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    domain = Column(String, nullable=False, index=True)  # e.g., "lifestyle", "medical", "preferences"
+    key = Column(String, nullable=False, index=True)  # e.g., "sleep_duration_hours", "hydration_ml"
+    value_json = Column(Text, nullable=False)  # JSON string storing the value
+    confidence = Column(Float, default=0.7, nullable=False)  # Confidence score (0.0 to 1.0)
+    source = Column(String, nullable=False)  # Source: "chat" | "device" | "manual"
+    last_seen_at = Column(DateTime, nullable=True)  # When this fact was last observed/updated
+    embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

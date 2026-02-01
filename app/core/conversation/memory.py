@@ -26,7 +26,10 @@ class ConversationMemory:
         self.db = db
     
     def get_user_name(self, user_id: int) -> Optional[str]:
-        """Get user's name from User model - always returns None (name not stored in database)"""
+        """Get user's name from User model"""
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if user and user.name:
+            return user.name
         return None
     
     def get_recent_messages(self, user_id: int, limit: int = 10) -> List[Memory]:
@@ -420,4 +423,70 @@ class ConversationMemory:
         if last_time:
             return datetime.utcnow() - last_time
         return None
+    
+    def upsert_extracted_facts(
+        self,
+        user_id: int,
+        facts: Dict[str, any],
+        source: str = "chat"
+    ) -> None:
+        """
+        OPTIONAL method to upsert extracted facts into UserMemoryFact.
+        
+        This does NOT change the main chat flow unless called explicitly.
+        Keeps current keyword extraction logic.
+        
+        Args:
+            user_id: User ID
+            facts: Dictionary of facts to extract (from extract_memory_facts output)
+            source: Source of facts ("chat" | "device" | "manual")
+        """
+        try:
+            from app.services.memory import MemoryRepository
+            
+            repo = MemoryRepository(self.db)
+            
+            # Extract lifestyle facts
+            lifestyle = facts.get("lifestyle", {})
+            if lifestyle:
+                # Sleep patterns
+                sleep_patterns = lifestyle.get("sleep_patterns", {})
+                if sleep_patterns.get("mentioned"):
+                    # Try to extract sleep duration from recent message
+                    recent = sleep_patterns.get("recent", "")
+                    if recent:
+                        # Simple extraction (can be enhanced)
+                        import re
+                        hours_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)', recent.lower())
+                        if hours_match:
+                            try:
+                                hours = float(hours_match.group(1))
+                                if 0 <= hours <= 24:
+                                    repo.upsert_fact(
+                                        user_id=user_id,
+                                        domain="lifestyle",
+                                        key="sleep_duration_hours",
+                                        value=hours,
+                                        confidence=0.6,
+                                        source=source
+                                    )
+                            except (ValueError, TypeError):
+                                pass
+            
+            # Extract preferences
+            preferences = facts.get("preferences", {})
+            if preferences:
+                comm_style = preferences.get("communication_style")
+                if comm_style:
+                    repo.upsert_fact(
+                        user_id=user_id,
+                        domain="preferences",
+                        key="communication_style",
+                        value=comm_style,
+                        confidence=0.7,
+                        source=source
+                    )
+        except Exception as e:
+            # Fail silently - this is optional functionality
+            print(f"[Memory] Optional fact extraction failed: {e}")
 
