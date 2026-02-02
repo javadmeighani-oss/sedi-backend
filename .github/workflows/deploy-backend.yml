@@ -33,16 +33,14 @@ jobs:
 
       - name: Test SSH connection
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
+          ssh -o BatchMode=yes \
               -o ConnectTimeout=10 \
               root@91.107.168.130 \
               "echo 'SSH connection successful ✅'"
 
       - name: Deploy to Server
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
+          ssh -o BatchMode=yes \
               -o ConnectTimeout=10 \
               root@91.107.168.130 << 'EOF'
             set -e
@@ -74,7 +72,7 @@ jobs:
             
             # Restart service
             echo "🔄 Restarting service..."
-            systemctl restart sedi-backend || {
+            systemctl restart sedi-backend.service || {
               echo "❌ Service restart failed"
               exit 1
             }
@@ -84,7 +82,7 @@ jobs:
             
             # Check service status
             echo "📊 Checking service status..."
-            systemctl status sedi-backend --no-pager | head -15 || {
+            systemctl status sedi-backend.service --no-pager | head -15 || {
               echo "❌ Service status check failed"
               exit 1
             }
