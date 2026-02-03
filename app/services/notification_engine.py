@@ -21,8 +21,8 @@ from app.services.medical import MedicalService
 from app.services.rag import RAGService
 from app.services.memory import MemoryContext, build_memory_context
 from app.schemas.notification import NotificationPayload
-from app.services.notification_engine.fallback_generator import generate_fallback_text
-from app.services.notification_engine.ai_enhancer import enhance_with_ai
+from app.services.notification_runtime.fallback_generator import generate_fallback_text
+from app.services.notification_runtime.ai_enhancer import enhance_with_ai
 
 logger = logging.getLogger(__name__)
 

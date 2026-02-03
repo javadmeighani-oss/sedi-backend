@@ -13,8 +13,8 @@ from datetime import datetime
 from typing import Optional
 
 from app.schemas.notification import NotificationPayload
-from app.services.notification_engine.fallback_generator import generate_fallback_text
-from app.services.notification_engine.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
+from app.services.notification_runtime.fallback_generator import generate_fallback_text
+from app.services.notification_runtime.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
 from app.services.notification_engine import NotificationBuilder
 from app.services.memory.memory_context import MemoryContext
 
@@ -239,7 +239,7 @@ def test_ai_enhance_disabled_returns_unchanged():
         
         # Reload module to pick up new env value
         import importlib
-        from app.services.notification_engine import ai_enhancer
+        from app.services.notification_runtime import ai_enhancer
         importlib.reload(ai_enhancer)
         
         payload = NotificationPayload(
@@ -268,7 +268,7 @@ def test_ai_enhance_disabled_returns_unchanged():
         else:
             os.environ.pop("NOTIF_AI_ENHANCE", None)
         import importlib
-        from app.services.notification_engine import ai_enhancer
+        from app.services.notification_runtime import ai_enhancer
         importlib.reload(ai_enhancer)
 
 

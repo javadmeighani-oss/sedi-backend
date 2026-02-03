@@ -38,9 +38,8 @@ This directory contains SQL migration files for the Sedi backend database.
 # Check column exists
 sudo -u postgres psql -d sedi_db -c "\d+ notifications" | grep dedupe_key
 
-# Check indexes
-sudo -u postgres psql -d sedi_db -c "\di+ idx_notifications_user_dedupe_key"
-sudo -u postgres psql -d sedi_db -c "\di+ idx_notifications_dedupe_key"
+# Check index (matches production: ix_notifications_user_dedupe)
+sudo -u postgres psql -d sedi_db -c "\di+ ix_notifications_user_dedupe"
 ```
 
 ## Migration Order

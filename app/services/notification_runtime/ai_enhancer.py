@@ -1,4 +1,4 @@
-# app/services/notification_engine/ai_enhancer.py
+# app/services/notification_runtime/ai_enhancer.py
 """
 Safe AI Enhancement Wrapper (Release B - Part B1)
 

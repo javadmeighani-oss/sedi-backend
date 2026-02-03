@@ -1,4 +1,4 @@
-# app/services/notification_engine/fallback_generator.py
+# app/services/notification_runtime/fallback_generator.py
 """
 Deterministic Fallback Text Generator (Release B - Part B1)
 
