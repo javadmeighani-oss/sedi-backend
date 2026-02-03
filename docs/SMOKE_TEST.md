@@ -125,3 +125,35 @@ curl -X POST "http://localhost:8000/notifications/1/feedback?user_id=1" \
 - `mark-read` and `feedback` endpoints validate ownership (notification must belong to the user)
 - Feedback is stored in UserMemoryFact for morning_brief notifications
 - Rate limits are enforced via dedupe_key (logged when suppressed)
+
+---
+
+# Release B3: DB Verification (Production)
+
+## Verify no legacy notification types exist
+
+```sql
+SELECT DISTINCT type
+FROM notifications
+ORDER BY type;
+```
+
+## Verify `dedupe_key` is non-null for recent rows
+
+```sql
+SELECT
+  COUNT(*) FILTER (WHERE dedupe_key IS NULL) AS nulls,
+  COUNT(*) AS total
+FROM notifications
+WHERE created_at > NOW() - INTERVAL '6 hours';
+```
+
+## Detect duplicates by `dedupe_key` (last 24h)
+
+```sql
+SELECT type, dedupe_key, COUNT(*)
+FROM notifications
+WHERE created_at > NOW() - INTERVAL '24 hours'
+GROUP BY type, dedupe_key
+HAVING COUNT(*) > 1;
+```
