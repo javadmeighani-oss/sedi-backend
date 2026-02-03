@@ -45,13 +45,14 @@ class Notification(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)  # CASCADE delete when user deleted, indexed for queries
-    type = Column(String, nullable=False)  # e.g. HEALTH, REMINDER, INSIGHT
+    type = Column(String, nullable=False)  # e.g. HEALTH, REMINDER, INSIGHT, morning_brief, connection_ping, health_alert
     title = Column(String, nullable=True)
     body = Column(String, nullable=False)  # Notification body/message content
     priority = Column(String, nullable=False, default="normal")  # low | normal | high | critical
     is_read = Column(Boolean, default=False, nullable=False)
     is_sent = Column(Boolean, default=False, nullable=False)  # Track if notification has been sent (for scheduler integration)
     scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
+    dedupe_key = Column(String, nullable=True, index=True)  # Release B: Deterministic deduplication key (indexed for fast lookups)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 

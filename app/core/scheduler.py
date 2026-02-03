@@ -8,12 +8,6 @@ import json
 
 from app.database import get_db
 from app.models import User, Notification
-from app.core.ai_text_engine import (
-    generate_notification_text,
-    NOTIF_TYPE_MORNING,
-    NOTIF_TYPE_HEALTH_CHECK,
-    NOTIF_TYPE_INACTIVE,
-)
 from app.services.notification_engine import DecisionEngine
 from app.core.conversation.memory import ConversationMemory
 from app.services.memory import MemoryRepository, build_memory_context
@@ -113,27 +107,26 @@ def run_inactivity_notifications():
             if has_recent_inactive:
                 continue  # Cooldown active
             
-            # Create inactive ping notification
-            hours_since = int(time_since.total_seconds() / 3600)
-            message = generate_notification_text(
-                language=user.preferred_language or "en",
-                notification_type=NOTIF_TYPE_INACTIVE,
-                user_name="my friend",
-                hours_since_last_talk=hours_since,
-            )
+            # Create inactive ping notification using new contract (Release B - Part B1)
+            # Build memory context for personalization
+            try:
+                memory_context = build_memory_context(db, user.id)
+            except Exception as e:
+                print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
+                memory_context = None
             
-            # Use DecisionEngine to create notification with title for tracking
-            from app.services.notification_engine import NotificationBuilder
-            builder = NotificationBuilder(db)
-            notif = builder.create_and_save(
+            # Use DecisionEngine with new contract
+            notif = decision_engine.create_connection_ping(
                 user_id=user.id,
-                notification_type="INSIGHT",
-                title="Inactivity Reminder",
-                body=message,
-                priority="low"
+                memory_context=memory_context,
+                scheduled_for=now
             )
             
-            print(f"[Sedi Scheduler] Inactive ping created for user {user.id} ({hours_since}h inactive)")
+            if notif:
+                hours_since = int(time_since.total_seconds() / 3600)
+                print(f"[Sedi Scheduler] Connection ping created for user {user.id} ({hours_since}h inactive)")
+            else:
+                print(f"[Sedi Scheduler] Connection ping skipped for user {user.id} (duplicate or error)")
 
 # -------------------------------
 # Function: Check daily health status
@@ -143,15 +136,10 @@ def check_health_status():
         users = db.query(User).all()
         for user in users:
             # For simple testing, use a fixed health summary
-            health_summary = "Your heart rate and temperature are within normal range."
-
-            message = generate_notification_text(
-                language=user.preferred_language or "en",
-                notification_type=NOTIF_TYPE_HEALTH_CHECK,
-                user_name="my friend",  # Name no longer stored in database
-                health_summary=health_summary,
-            )
-            save_notification(db, user.id, message, "health_check")
+            # Note: Health alerts should be created by health data evaluation, not scheduled checks
+            # This function is kept for backward compatibility but does not create notifications
+            # to avoid spam. Actual health alerts are created via DecisionEngine.create_health_alert()
+            pass
 
 # -------------------------------
 # Function: Send morning greeting (UPDATED - Phase 9.4)
@@ -235,32 +223,17 @@ def run_morning_notifications():
                 print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
                 memory_context = None
             
-            # Generate morning message
-            health_summary = "You seem to be doing fine. Ready for a new day!"
-            if memory_context and memory_context.has_sleep_data():
-                # Personalize based on sleep data
-                if memory_context.sleep_duration_hours and memory_context.sleep_duration_hours < 6:
-                    health_summary = "Hope you get better rest tonight. Ready for a new day!"
-            
-            message = generate_notification_text(
-                language=user.preferred_language or "en",
-                notification_type=NOTIF_TYPE_MORNING,
-                user_name="my friend",
-                health_summary=health_summary,
-            )
-            
-            # Use DecisionEngine to create notification with title for tracking
-            from app.services.notification_engine import NotificationBuilder
-            builder = NotificationBuilder(db)
-            notif = builder.create_and_save(
+            # Create morning notification using new contract (Release B - Part B1)
+            notif = decision_engine.create_morning_brief(
                 user_id=user.id,
-                notification_type="INSIGHT",
-                title="Morning Summary",
-                body=message,
-                priority="normal"
+                memory_context=memory_context,
+                scheduled_for=now
             )
             
-            print(f"[Sedi Scheduler] Morning summary created for user {user.id} at {morning_hour}:{morning_minute:02d}")
+            if notif:
+                print(f"[Sedi Scheduler] Morning brief created for user {user.id} at {morning_hour}:{morning_minute:02d}")
+            else:
+                print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
     
 # -------------------------------
 # Save notification to database

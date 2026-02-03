@@ -12,13 +12,19 @@ Routers should NOT create notifications directly.
 """
 
 from sqlalchemy.orm import Session
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime, timedelta
+import logging
 
 from app.models import Notification, User, UserCondition, HealthData
 from app.services.medical import MedicalService
 from app.services.rag import RAGService
 from app.services.memory import MemoryContext, build_memory_context
+from app.schemas.notification import NotificationPayload
+from app.services.notification_engine.fallback_generator import generate_fallback_text
+from app.services.notification_engine.ai_enhancer import enhance_with_ai
+
+logger = logging.getLogger(__name__)
 
 
 # -------------------- Timing Rules --------------------
@@ -75,11 +81,188 @@ class TimingRules:
 
 # -------------------- Notification Builder --------------------
 class NotificationBuilder:
-    """Builds notification objects with proper structure"""
+    """Builds notification objects with proper structure (Release B - Part B1)"""
     
     def __init__(self, db: Session):
         self.db = db
         self.timing_rules = TimingRules()
+    
+    # -------------------- Release B: New Contract Methods --------------------
+    
+    def compute_dedupe_key(
+        self,
+        notification_type: Literal["morning_brief", "connection_ping", "health_alert"],
+        user_id: int,
+        scheduled_for: Optional[datetime] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        Compute deterministic dedupe key for notification.
+        
+        Format:
+        - morning_brief:{user_id}:{YYYY-MM-DD}
+        - connection_ping:{user_id}:{YYYY-MM-DD}:{window}  (4h bucket)
+        - health_alert:{user_id}:{alert_code}:{YYYY-MM-DDTHH}
+        """
+        now = scheduled_for or datetime.utcnow()
+        date_str = now.strftime("%Y-%m-%d")
+        
+        if notification_type == "morning_brief":
+            return f"morning_brief:{user_id}:{date_str}"
+        
+        elif notification_type == "connection_ping":
+            # Use 4-hour window bucket
+            hour_bucket = (now.hour // 4) * 4
+            return f"connection_ping:{user_id}:{date_str}:{hour_bucket:02d}"
+        
+        elif notification_type == "health_alert":
+            alert_code = metadata.get("alert_code", "generic") if metadata else "generic"
+            hour_str = now.strftime("%H")
+            return f"health_alert:{user_id}:{alert_code}:{date_str}T{hour_str}"
+        
+        else:
+            # Fallback for unknown types
+            return f"{notification_type}:{user_id}:{date_str}"
+    
+    def check_dedupe(self, dedupe_key: str, time_window_hours: int = 24) -> bool:
+        """
+        Check if a notification with the same dedupe_key exists within time window.
+        
+        Args:
+            dedupe_key: Deduplication key
+            time_window_hours: Time window in hours (default: 24)
+        
+        Returns:
+            True if duplicate exists, False otherwise
+        """
+        cutoff_time = datetime.utcnow() - timedelta(hours=time_window_hours)
+        
+        existing = (
+            self.db.query(Notification)
+            .filter(
+                Notification.dedupe_key == dedupe_key,
+                Notification.created_at >= cutoff_time
+            )
+            .first()
+        )
+        
+        return existing is not None
+    
+    def build_payload(
+        self,
+        user_id: int,
+        notification_type: Literal["morning_brief", "connection_ping", "health_alert"],
+        title: str,
+        body: str,
+        priority: Literal["low", "normal", "high", "critical"] = "normal",
+        scheduled_for: Optional[datetime] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> NotificationPayload:
+        """
+        Build NotificationPayload (Release B - Part B1).
+        
+        This is the entry point for the new notification contract.
+        """
+        # Compute dedupe key
+        dedupe_key = self.compute_dedupe_key(
+            notification_type=notification_type,
+            user_id=user_id,
+            scheduled_for=scheduled_for,
+            metadata=metadata
+        )
+        
+        # Calculate scheduled time if not provided
+        if scheduled_for is None:
+            scheduled_for = self.timing_rules.calculate_scheduled_time(priority)
+        
+        return NotificationPayload(
+            user_id=user_id,
+            type=notification_type,
+            title=title,
+            body=body,
+            priority=priority,
+            scheduled_for=scheduled_for,
+            dedupe_key=dedupe_key,
+            metadata=metadata
+        )
+    
+    def apply_fallback(
+        self,
+        payload: NotificationPayload,
+        user_name: Optional[str] = None,
+        memory_context: Optional[MemoryContext] = None
+    ) -> NotificationPayload:
+        """
+        Apply deterministic fallback text generation.
+        
+        Always returns payload with non-empty body. Never raises.
+        """
+        # Generate fallback text
+        fallback_body = generate_fallback_text(
+            payload=payload,
+            user_name=user_name,
+            memory_context=memory_context
+        )
+        
+        # Update payload with fallback body (if original is empty, use fallback)
+        if not payload.body or len(payload.body.strip()) == 0:
+            return NotificationPayload(
+                **{**payload.model_dump(), "body": fallback_body}
+            )
+        
+        # Otherwise keep original body (fallback is just a safety net)
+        return payload
+    
+    def persist(
+        self,
+        payload: NotificationPayload,
+        check_dedupe: bool = True,
+        time_window_hours: int = 24
+    ) -> Optional[Notification]:
+        """
+        Persist notification to database with dedupe check.
+        
+        Args:
+            payload: NotificationPayload to persist
+            check_dedupe: Whether to check for duplicates (default: True)
+            time_window_hours: Time window for dedupe check (default: 24)
+        
+        Returns:
+            Notification object if created, None if duplicate found
+        """
+        # Check dedupe if enabled
+        if check_dedupe and self.check_dedupe(payload.dedupe_key, time_window_hours):
+            logger.debug(f"[Notification] Duplicate detected, skipping: dedupe_key={payload.dedupe_key}")
+            return None
+        
+        # Build notification object
+        notification = Notification(
+            user_id=payload.user_id,
+            type=payload.type,
+            title=payload.title,
+            body=payload.body,
+            priority=payload.priority,
+            is_read=False,
+            is_sent=False,
+            scheduled_for=payload.scheduled_for,
+            dedupe_key=payload.dedupe_key,
+            created_at=datetime.utcnow()
+        )
+        
+        self.db.add(notification)
+        self.db.commit()
+        self.db.refresh(notification)
+        
+        # Log creation
+        ai_enhanced = "true" if payload.metadata and payload.metadata.get("ai_enhanced") else "false"
+        logger.info(
+            f"[Notification] created type={payload.type} user={payload.user_id} "
+            f"dedupe_key={payload.dedupe_key} ai_enhanced={ai_enhanced}"
+        )
+        
+        return notification
+    
+    # -------------------- Legacy Methods (Backward Compatible) --------------------
     
     def build(
         self,
@@ -91,7 +274,7 @@ class NotificationBuilder:
         scheduled_for: Optional[datetime] = None
     ) -> Notification:
         """
-        Build a notification object.
+        Build a notification object (legacy method).
         
         Args:
             user_id: User ID
@@ -137,7 +320,7 @@ class NotificationBuilder:
         scheduled_for: Optional[datetime] = None
     ) -> Notification:
         """
-        Build and save notification to database.
+        Build and save notification to database (legacy method).
         
         Returns the saved notification object.
         """
@@ -164,6 +347,9 @@ class DecisionEngine:
     
     This is the central decision-making component for notifications.
     All notification creation logic should go through this engine.
+    
+    Release B - Part B1: Routes all notification creation through the new contract:
+    build_payload → apply_fallback → enhance_with_ai → persist
     """
     
     def __init__(self, db: Session):
@@ -172,6 +358,161 @@ class DecisionEngine:
         self.medical_service = MedicalService(db)
         self.rag_service = RAGService(db)
         self.timing_rules = TimingRules()
+    
+    # -------------------- Release B: New Contract Methods --------------------
+    
+    def create_morning_brief(
+        self,
+        user_id: int,
+        memory_context: Optional[MemoryContext] = None,
+        scheduled_for: Optional[datetime] = None
+    ) -> Optional[Notification]:
+        """
+        Create morning_brief notification using new contract.
+        
+        Args:
+            user_id: User ID
+            memory_context: Optional MemoryContext for personalization
+            scheduled_for: Optional scheduled time
+        
+        Returns:
+            Notification if created, None if duplicate or error
+        """
+        # Get user name
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        
+        # Build memory context if not provided
+        if memory_context is None:
+            memory_context = build_memory_context(self.db, user_id)
+        
+        # Build payload
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="morning_brief",
+            title="صبح بخیر",
+            body="",  # Will be filled by fallback
+            priority="normal",
+            scheduled_for=scheduled_for,
+            metadata=None
+        )
+        
+        # Apply fallback
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=memory_context
+        )
+        
+        # Enhance with AI (safe wrapper)
+        payload = enhance_with_ai(payload)
+        
+        # Persist with dedupe check
+        return self.builder.persist(payload, check_dedupe=True)
+    
+    def create_connection_ping(
+        self,
+        user_id: int,
+        memory_context: Optional[MemoryContext] = None,
+        scheduled_for: Optional[datetime] = None
+    ) -> Optional[Notification]:
+        """
+        Create connection_ping notification using new contract.
+        
+        Args:
+            user_id: User ID
+            memory_context: Optional MemoryContext for personalization
+            scheduled_for: Optional scheduled time
+        
+        Returns:
+            Notification if created, None if duplicate or error
+        """
+        # Get user name
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        
+        # Build memory context if not provided
+        if memory_context is None:
+            memory_context = build_memory_context(self.db, user_id)
+        
+        # Build payload
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="connection_ping",
+            title="سلام",
+            body="",  # Will be filled by fallback
+            priority="low",
+            scheduled_for=scheduled_for,
+            metadata=None
+        )
+        
+        # Apply fallback
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=memory_context
+        )
+        
+        # Enhance with AI (safe wrapper)
+        payload = enhance_with_ai(payload)
+        
+        # Persist with dedupe check
+        return self.builder.persist(payload, check_dedupe=True, time_window_hours=4)
+    
+    def create_health_alert(
+        self,
+        user_id: int,
+        alert_code: str,
+        alert_reason: Optional[str] = None,
+        priority: Literal["low", "normal", "high", "critical"] = "high",
+        scheduled_for: Optional[datetime] = None
+    ) -> Optional[Notification]:
+        """
+        Create health_alert notification using new contract.
+        
+        Args:
+            user_id: User ID
+            alert_code: Alert code (e.g. "high_heart_rate", "low_spo2")
+            alert_reason: Optional alert reason text
+            priority: Priority level (default: high)
+            scheduled_for: Optional scheduled time
+        
+        Returns:
+            Notification if created, None if duplicate or error
+        """
+        # Get user name
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        
+        # Build metadata
+        metadata = {
+            "alert_code": alert_code,
+            "alert_reason": alert_reason
+        }
+        
+        # Build payload
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="health_alert",
+            title="هشدار سلامت",
+            body="",  # Will be filled by fallback
+            priority=priority,
+            scheduled_for=scheduled_for,
+            metadata=metadata
+        )
+        
+        # Apply fallback
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=None  # Health alerts don't need lifestyle context
+        )
+        
+        # Enhance with AI (safe wrapper)
+        payload = enhance_with_ai(payload)
+        
+        # Persist with dedupe check (1 hour window for health alerts)
+        return self.builder.persist(payload, check_dedupe=True, time_window_hours=1)
     
     # -------------------- Lifestyle-Based Notifications --------------------
     
