@@ -230,9 +230,13 @@ class NotificationBuilder:
         Returns:
             Notification object if created, None if duplicate found
         """
-        # Check dedupe if enabled
+        # Check dedupe if enabled (Release B2: Rate limit enforcement)
         if check_dedupe and self.check_dedupe(payload.dedupe_key, time_window_hours):
-            logger.debug(f"[Notification] Duplicate detected, skipping: dedupe_key={payload.dedupe_key}")
+            logger.info(
+                f"[Notification] Rate limit/dedupe: Suppressed type={payload.type} "
+                f"user={payload.user_id} dedupe_key={payload.dedupe_key} "
+                f"(window={time_window_hours}h)"
+            )
             return None
         
         # Build notification object
@@ -407,8 +411,11 @@ class DecisionEngine:
         # Enhance with AI (safe wrapper)
         payload = enhance_with_ai(payload)
         
-        # Persist with dedupe check
-        return self.builder.persist(payload, check_dedupe=True)
+        # Persist with dedupe check (Rate limit: 1 per day per user)
+        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
+        if result is None:
+            logger.info(f"[Notification] Rate limit: morning_brief suppressed for user {user_id} (already sent today)")
+        return result
     
     def create_connection_ping(
         self,
@@ -456,8 +463,11 @@ class DecisionEngine:
         # Enhance with AI (safe wrapper)
         payload = enhance_with_ai(payload)
         
-        # Persist with dedupe check
-        return self.builder.persist(payload, check_dedupe=True, time_window_hours=4)
+        # Persist with dedupe check (Rate limit: 1 per user per 4-hour window)
+        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=4)
+        if result is None:
+            logger.info(f"[Notification] Rate limit: connection_ping suppressed for user {user_id} (within 4h window)")
+        return result
     
     def create_health_alert(
         self,
@@ -511,8 +521,14 @@ class DecisionEngine:
         # Enhance with AI (safe wrapper)
         payload = enhance_with_ai(payload)
         
-        # Persist with dedupe check (1 hour window for health alerts)
-        return self.builder.persist(payload, check_dedupe=True, time_window_hours=1)
+        # Persist with dedupe check (Rate limit: dedupe by alert_code + time bucket)
+        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=1)
+        if result is None:
+            logger.info(
+                f"[Notification] Rate limit: health_alert suppressed for user {user_id} "
+                f"alert_code={alert_code} (within 1h window)"
+            )
+        return result
     
     # -------------------- Lifestyle-Based Notifications --------------------
     

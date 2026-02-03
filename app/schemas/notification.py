@@ -57,3 +57,12 @@ class NotificationPayload(BaseModel):
     scheduled_for: Optional[datetime] = Field(None, description="Scheduled datetime for notification")
     dedupe_key: str = Field(..., description="Deterministic deduplication key (format: type:user_id:time_window)")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Optional metadata (e.g. alert_code for health_alert)")
+
+
+# -------------------- Release B2: Feedback Schema --------------------
+
+class NotificationFeedbackRequest(BaseModel):
+    """Standardized feedback request schema (Release B2)"""
+    feedback: Literal["positive", "negative", "neutral"] = Field(..., description="Feedback type")
+    reason: Optional[str] = Field(None, description="Optional reason for feedback")
+    action: Optional[str] = Field(None, description="Optional action (e.g. 'too_early', 'too_late', 'irrelevant')")
