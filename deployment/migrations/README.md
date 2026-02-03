@@ -1,0 +1,52 @@
+# Database Migrations
+
+This directory contains SQL migration files for the Sedi backend database.
+
+## Migration Files
+
+- `001_add_dedupe_key_to_notifications.sql` - Adds `dedupe_key` column and indexes to notifications table (Release B - Part B1)
+
+## How to Apply Migrations
+
+### On Production Server
+
+1. **Connect to PostgreSQL:**
+   ```bash
+   sudo -u postgres psql -d sedi_db
+   ```
+
+2. **Apply migration:**
+   ```sql
+   \i /var/www/sedi/backend/deployment/migrations/001_add_dedupe_key_to_notifications.sql
+   ```
+   
+   Or copy-paste the SQL directly:
+   ```bash
+   sudo -u postgres psql -d sedi_db -f /var/www/sedi/backend/deployment/migrations/001_add_dedupe_key_to_notifications.sql
+   ```
+
+3. **Verify migration:**
+   ```sql
+   \d+ notifications
+   ```
+   
+   You should see the `dedupe_key` column and the indexes.
+
+### Verification Commands
+
+```bash
+# Check column exists
+sudo -u postgres psql -d sedi_db -c "\d+ notifications" | grep dedupe_key
+
+# Check indexes
+sudo -u postgres psql -d sedi_db -c "\di+ idx_notifications_user_dedupe_key"
+sudo -u postgres psql -d sedi_db -c "\di+ idx_notifications_dedupe_key"
+```
+
+## Migration Order
+
+Migrations should be applied in order (001, 002, etc.). Always check the migration file for any prerequisites.
+
+## Rollback
+
+If you need to rollback a migration, check the migration file for rollback instructions or create a rollback script.

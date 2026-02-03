@@ -52,7 +52,7 @@ class Notification(Base):
     is_read = Column(Boolean, default=False, nullable=False)
     is_sent = Column(Boolean, default=False, nullable=False)  # Track if notification has been sent (for scheduler integration)
     scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
-    dedupe_key = Column(String, nullable=True, index=True)  # Release B: Deterministic deduplication key (indexed for fast lookups)
+    dedupe_key = Column(String(255), nullable=True)  # Release B: Deterministic deduplication key (indexes created via migration)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
