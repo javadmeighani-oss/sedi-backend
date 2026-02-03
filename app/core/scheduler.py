@@ -56,27 +56,18 @@ def run_inactivity_notifications():
             
             # Dedupe: Check if we already sent inactive_ping today (max 2 per day)
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Release B2.1: Check for connection_ping type instead of legacy INSIGHT
             today_notifications = (
                 db.query(Notification)
                 .filter(
                     Notification.user_id == user.id,
-                    Notification.type == "INSIGHT",
+                    Notification.type == "connection_ping",
                     Notification.created_at >= today_start
                 )
                 .all()
             )
             
-            # Count inactive pings by checking title or body content
-            inactive_count = 0
-            for notif in today_notifications:
-                is_inactive = False
-                if notif.title and "inactive" in notif.title.lower():
-                    is_inactive = True
-                elif notif.body and ("inactive" in notif.body.lower() or "haven't" in notif.body.lower() or "haven" in notif.body.lower()):
-                    is_inactive = True
-                if is_inactive:
-                    inactive_count += 1
-            
+            inactive_count = len(today_notifications)
             if inactive_count >= 2:
                 continue  # Max 2 per day reached
             
@@ -86,25 +77,13 @@ def run_inactivity_notifications():
                 db.query(Notification)
                 .filter(
                     Notification.user_id == user.id,
-                    Notification.type == "INSIGHT",
+                    Notification.type == "connection_ping",
                     Notification.created_at >= cooldown_threshold
                 )
                 .all()
             )
             
-            # Check if any recent notification is an inactive ping
-            has_recent_inactive = False
-            for recent_notif in recent_notifications:
-                is_inactive = False
-                if recent_notif.title and "inactive" in recent_notif.title.lower():
-                    is_inactive = True
-                elif recent_notif.body and ("inactive" in recent_notif.body.lower() or "haven't" in recent_notif.body.lower() or "haven" in recent_notif.body.lower()):
-                    is_inactive = True
-                if is_inactive:
-                    has_recent_inactive = True
-                    break
-            
-            if has_recent_inactive:
+            if len(recent_notifications) > 0:
                 continue  # Cooldown active
             
             # Create inactive ping notification using new contract (Release B - Part B1)
@@ -191,29 +170,18 @@ def run_morning_notifications():
             
             # Dedupe: Check if we already sent morning_summary today
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Release B2.1: Check for morning_brief type instead of legacy INSIGHT
             today_notifications = (
                 db.query(Notification)
                 .filter(
                     Notification.user_id == user.id,
-                    Notification.type == "INSIGHT",
+                    Notification.type == "morning_brief",
                     Notification.created_at >= today_start
                 )
                 .all()
             )
             
-            # Check if any notification today is a morning summary
-            has_morning_today = False
-            for notif in today_notifications:
-                is_morning = False
-                if notif.title and ("morning" in notif.title.lower() or "day" in notif.title.lower()):
-                    is_morning = True
-                elif notif.body and ("morning" in notif.body.lower() or ("day" in notif.body.lower() and "ready" in notif.body.lower())):
-                    is_morning = True
-                if is_morning:
-                    has_morning_today = True
-                    break
-            
-            if has_morning_today:
+            if len(today_notifications) > 0:
                 continue  # Already sent today
             
             # Build memory context for personalized message
@@ -262,14 +230,13 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
             priority="low"
         )
     else:
-        # Fallback for unknown types
-        from app.services.notification_engine import NotificationBuilder
-        builder = NotificationBuilder(db)
-        notif = builder.create_and_save(
+        # Release B2.1: Use connection_ping type instead of legacy REMINDER
+        from app.services.notification_engine import DecisionEngine
+        decision_engine = DecisionEngine(db)
+        # Use create_insight_notification which maps to connection_ping
+        notif = decision_engine.create_insight_notification(
             user_id=user_id,
-            notification_type="REMINDER",
-            title=None,
-            body=message,
+            insight_text=message,
             priority="normal"
         )
     

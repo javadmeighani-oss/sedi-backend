@@ -59,14 +59,13 @@ def add_health_data(payload: dict, db: Session = Depends(get_db)):
     notif = decision_engine.evaluate_health_data(user.id, data)
     
     # If DecisionEngine didn't create notification (no alerts), create a simple one for backward compatibility
+    # Release B2.1: Use health_alert type instead of legacy HEALTH
     if not notif:
-        from app.services.notification_engine import NotificationBuilder
-        builder = NotificationBuilder(db)
-        notif = builder.create_and_save(
+        # Use DecisionEngine's create_health_alert method to ensure contract compliance
+        notif = decision_engine.create_health_alert(
             user_id=user.id,
-            notification_type="HEALTH",
-            title="Health Update",
-            body=msg,
+            alert_code="health_data_update",
+            alert_reason=msg,
             priority="normal"
         )
 

@@ -23,8 +23,44 @@ from app.services.memory import MemoryContext, build_memory_context
 from app.schemas.notification import NotificationPayload
 from app.services.notification_runtime.fallback_generator import generate_fallback_text
 from app.services.notification_runtime.ai_enhancer import enhance_with_ai
+from app.services.notification_runtime.language_resolver import resolve_effective_language
 
 logger = logging.getLogger(__name__)
+
+
+# -------------------- Helper Functions (Release B2.1) --------------------
+
+def _get_title_for_language(notification_type: str, language: str) -> str:
+    """
+    Get notification title in the specified language (Release B2.1).
+    
+    Args:
+        notification_type: Type of notification (morning_brief, connection_ping, health_alert)
+        language: Language code ("en" | "fa" | "ar")
+    
+    Returns:
+        Title string in the specified language
+    """
+    titles = {
+        "morning_brief": {
+            "en": "Good Morning",
+            "fa": "صبح بخیر",
+            "ar": "صباح الخير"
+        },
+        "connection_ping": {
+            "en": "Hello",
+            "fa": "سلام",
+            "ar": "مرحباً"
+        },
+        "health_alert": {
+            "en": "Health Alert",
+            "fa": "هشدار سلامت",
+            "ar": "تنبيه صحي"
+        }
+    }
+    
+    type_titles = titles.get(notification_type, {})
+    return type_titles.get(language, type_titles.get("en", "Notification"))
 
 
 # -------------------- Timing Rules --------------------
@@ -190,16 +226,30 @@ class NotificationBuilder:
         self,
         payload: NotificationPayload,
         user_name: Optional[str] = None,
-        memory_context: Optional[MemoryContext] = None
+        memory_context: Optional[MemoryContext] = None,
+        language: Optional[str] = None
     ) -> NotificationPayload:
         """
-        Apply deterministic fallback text generation.
+        Apply deterministic fallback text generation (Release B2.1).
         
         Always returns payload with non-empty body. Never raises.
+        Uses language from payload.metadata if available, otherwise uses provided language.
         """
-        # Generate fallback text
+        # Resolve language from metadata or provided parameter
+        effective_language = "en"  # Default fallback
+        if payload.metadata and "language" in payload.metadata:
+            effective_language = payload.metadata["language"]
+        elif language:
+            effective_language = language
+        
+        # Ensure language is valid
+        if effective_language not in ("en", "fa", "ar"):
+            effective_language = "en"
+        
+        # Generate fallback text with language
         fallback_body = generate_fallback_text(
             payload=payload,
+            language=effective_language,
             user_name=user_name,
             memory_context=memory_context
         )
@@ -372,7 +422,7 @@ class DecisionEngine:
         scheduled_for: Optional[datetime] = None
     ) -> Optional[Notification]:
         """
-        Create morning_brief notification using new contract.
+        Create morning_brief notification using new contract (Release B2.1).
         
         Args:
             user_id: User ID
@@ -382,7 +432,7 @@ class DecisionEngine:
         Returns:
             Notification if created, None if duplicate or error
         """
-        # Get user name
+        # Get user and resolve language
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
         
@@ -390,22 +440,35 @@ class DecisionEngine:
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
         
-        # Build payload
+        # Resolve effective language (Release B2.1)
+        effective_language = resolve_effective_language(
+            db=self.db,
+            user_id=user_id,
+            memory_context=memory_context
+        )
+        
+        # Build metadata with language (Release B2.1)
+        metadata = {
+            "language": effective_language
+        }
+        
+        # Build payload with correct type and metadata
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="morning_brief",
-            title="صبح بخیر",
+            title=_get_title_for_language("morning_brief", effective_language),
             body="",  # Will be filled by fallback
             priority="normal",
             scheduled_for=scheduled_for,
-            metadata=None
+            metadata=metadata
         )
         
-        # Apply fallback
+        # Apply fallback with language
         payload = self.builder.apply_fallback(
             payload=payload,
             user_name=user_name,
-            memory_context=memory_context
+            memory_context=memory_context,
+            language=effective_language
         )
         
         # Enhance with AI (safe wrapper)
@@ -414,7 +477,15 @@ class DecisionEngine:
         # Persist with dedupe check (Rate limit: 1 per day per user)
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
         if result is None:
-            logger.info(f"[Notification] Rate limit: morning_brief suppressed for user {user_id} (already sent today)")
+            logger.info(
+                f"[NOTIFICATION] SUPPRESSED type=morning_brief user={user_id} "
+                f"lang={effective_language} reason=dedupe"
+            )
+        else:
+            logger.info(
+                f"[NOTIFICATION] type=morning_brief user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key}"
+            )
         return result
     
     def create_connection_ping(
@@ -424,7 +495,7 @@ class DecisionEngine:
         scheduled_for: Optional[datetime] = None
     ) -> Optional[Notification]:
         """
-        Create connection_ping notification using new contract.
+        Create connection_ping notification using new contract (Release B2.1).
         
         Args:
             user_id: User ID
@@ -434,7 +505,7 @@ class DecisionEngine:
         Returns:
             Notification if created, None if duplicate or error
         """
-        # Get user name
+        # Get user and resolve language
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
         
@@ -442,22 +513,35 @@ class DecisionEngine:
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
         
-        # Build payload
+        # Resolve effective language (Release B2.1)
+        effective_language = resolve_effective_language(
+            db=self.db,
+            user_id=user_id,
+            memory_context=memory_context
+        )
+        
+        # Build metadata with language (Release B2.1)
+        metadata = {
+            "language": effective_language
+        }
+        
+        # Build payload with correct type and metadata
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="connection_ping",
-            title="سلام",
+            title=_get_title_for_language("connection_ping", effective_language),
             body="",  # Will be filled by fallback
             priority="low",
             scheduled_for=scheduled_for,
-            metadata=None
+            metadata=metadata
         )
         
-        # Apply fallback
+        # Apply fallback with language
         payload = self.builder.apply_fallback(
             payload=payload,
             user_name=user_name,
-            memory_context=memory_context
+            memory_context=memory_context,
+            language=effective_language
         )
         
         # Enhance with AI (safe wrapper)
@@ -466,7 +550,15 @@ class DecisionEngine:
         # Persist with dedupe check (Rate limit: 1 per user per 4-hour window)
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=4)
         if result is None:
-            logger.info(f"[Notification] Rate limit: connection_ping suppressed for user {user_id} (within 4h window)")
+            logger.info(
+                f"[NOTIFICATION] SUPPRESSED type=connection_ping user={user_id} "
+                f"lang={effective_language} reason=dedupe"
+            )
+        else:
+            logger.info(
+                f"[NOTIFICATION] type=connection_ping user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key}"
+            )
         return result
     
     def create_health_alert(
@@ -478,7 +570,7 @@ class DecisionEngine:
         scheduled_for: Optional[datetime] = None
     ) -> Optional[Notification]:
         """
-        Create health_alert notification using new contract.
+        Create health_alert notification using new contract (Release B2.1).
         
         Args:
             user_id: User ID
@@ -490,32 +582,41 @@ class DecisionEngine:
         Returns:
             Notification if created, None if duplicate or error
         """
-        # Get user name
+        # Get user and resolve language
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
         
-        # Build metadata
+        # Resolve effective language (Release B2.1)
+        effective_language = resolve_effective_language(
+            db=self.db,
+            user_id=user_id,
+            memory_context=None
+        )
+        
+        # Build metadata with language and alert info (Release B2.1)
         metadata = {
+            "language": effective_language,
             "alert_code": alert_code,
             "alert_reason": alert_reason
         }
         
-        # Build payload
+        # Build payload with correct type and metadata
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="health_alert",
-            title="هشدار سلامت",
+            title=_get_title_for_language("health_alert", effective_language),
             body="",  # Will be filled by fallback
             priority=priority,
             scheduled_for=scheduled_for,
             metadata=metadata
         )
         
-        # Apply fallback
+        # Apply fallback with language
         payload = self.builder.apply_fallback(
             payload=payload,
             user_name=user_name,
-            memory_context=None  # Health alerts don't need lifestyle context
+            memory_context=None,  # Health alerts don't need lifestyle context
+            language=effective_language
         )
         
         # Enhance with AI (safe wrapper)
@@ -525,8 +626,13 @@ class DecisionEngine:
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=1)
         if result is None:
             logger.info(
-                f"[Notification] Rate limit: health_alert suppressed for user {user_id} "
-                f"alert_code={alert_code} (within 1h window)"
+                f"[NOTIFICATION] SUPPRESSED type=health_alert user={user_id} "
+                f"lang={effective_language} alert_code={alert_code} reason=dedupe"
+            )
+        else:
+            logger.info(
+                f"[NOTIFICATION] type=health_alert user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key}"
             )
         return result
     
@@ -556,38 +662,35 @@ class DecisionEngine:
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
         
-        # Rule 1: Low sleep duration
+        # Release B2.1: Use new contract types instead of legacy REMINDER/INSIGHT
+        # Resolve language
+        effective_language = resolve_effective_language(
+            db=self.db,
+            user_id=user_id,
+            memory_context=memory_context
+        )
+        
+        # Rule 1: Low sleep duration -> use connection_ping (gentle reminder)
         if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
             if memory_context.sleep_duration_hours < 6.0:
-                return self.builder.create_and_save(
+                return self.create_connection_ping(
                     user_id=user_id,
-                    notification_type="REMINDER",
-                    title="Sleep Care Reminder",
-                    body=f"You slept {memory_context.sleep_duration_hours:.1f} hours last night. Consider getting more rest for better health.",
-                    priority="normal"
+                    memory_context=memory_context
                 )
         
-        # Rule 2: Low hydration
+        # Rule 2: Low hydration -> use connection_ping (gentle reminder)
         if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
             if memory_context.hydration_ml < 1500:
-                return self.builder.create_and_save(
+                return self.create_connection_ping(
                     user_id=user_id,
-                    notification_type="REMINDER",
-                    title="Hydration Reminder",
-                    body=f"You've had {memory_context.hydration_ml:.0f}ml of water today. Try to reach at least 1500ml for optimal hydration.",
-                    priority="low"
+                    memory_context=memory_context
                 )
         
-        # Rule 3: Inactivity (no activity data available)
+        # Rule 3: Inactivity -> use connection_ping (gentle reminder)
         if not memory_context.has_activity_data():
-            # Check if user has been inactive for a while (no recent activity data)
-            # This is a gentle reminder, not urgent
-            return self.builder.create_and_save(
+            return self.create_connection_ping(
                 user_id=user_id,
-                notification_type="INSIGHT",
-                title="Activity Reminder",
-                body="Consider adding some light movement to your day. Even a short walk can boost your energy and mood.",
-                priority="low"
+                memory_context=memory_context
             )
         
         return None
@@ -673,14 +776,50 @@ class DecisionEngine:
         #     if rag_context:
         #         body += f"\n\nCare tip: {rag_context}"
         
-        # Create notification
-        return self.builder.create_and_save(
+        # Create notification using health_alert type (Release B2.1)
+        # Resolve language
+        effective_language = resolve_effective_language(
+            db=self.db,
             user_id=user_id,
-            notification_type="HEALTH",
-            title=title,
-            body=body,
-            priority=priority
+            memory_context=memory_context
         )
+        
+        # Build metadata with language and alert info
+        metadata = {
+            "language": effective_language,
+            "alert_code": "health_data_alert",
+            "alert_reason": body
+        }
+        
+        # Use health_alert type instead of legacy HEALTH
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="health_alert",
+            title=_get_title_for_language("health_alert", effective_language),
+            body=body,
+            priority=priority,
+            scheduled_for=None,
+            metadata=metadata
+        )
+        
+        # Apply fallback
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=memory_context,
+            language=effective_language
+        )
+        
+        # Persist
+        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method
+        if result:
+            logger.info(
+                f"[NOTIFICATION] type=health_alert user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:evaluate_health_data)"
+            )
+        return result
     
     # -------------------- Condition-Based Notifications --------------------
     
@@ -742,14 +881,50 @@ class DecisionEngine:
         # if rag_context:
         #     body += f"\n\nCare tip: {rag_context}"
         
-        return self.builder.create_and_save(
+        # Release B2.1: Use health_alert type for condition reminders
+        # Resolve language
+        effective_language = resolve_effective_language(
+            db=self.db,
             user_id=user_id,
-            notification_type="REMINDER",
-            title=title,
+            memory_context=None
+        )
+        
+        # Build metadata with language
+        metadata = {
+            "language": effective_language,
+            "alert_code": f"condition_reminder_{reminder_type}",
+            "alert_reason": body
+        }
+        
+        # Use health_alert type instead of legacy REMINDER
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="health_alert",
+            title=_get_title_for_language("health_alert", effective_language),
             body=body,
             priority=priority,
-            scheduled_for=scheduled_for
+            scheduled_for=scheduled_for,
+            metadata=metadata
         )
+        
+        # Apply fallback
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=None,
+            language=effective_language
+        )
+        
+        # Persist
+        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method
+        if result:
+            logger.info(
+                f"[NOTIFICATION] type=health_alert user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:create_condition_reminder)"
+            )
+        return result
     
     # -------------------- Medication Reminders --------------------
     
@@ -760,7 +935,7 @@ class DecisionEngine:
         dosage: Optional[str] = None
     ) -> Notification:
         """
-        Create a medication reminder notification.
+        Create a medication reminder notification (Release B2.1).
         
         Args:
             user_id: User ID
@@ -791,14 +966,50 @@ class DecisionEngine:
         # if rag_context:
         #     body += f"\n\nNote: {rag_context}"
         
-        return self.builder.create_and_save(
+        # Release B2.1: Use health_alert type for medication reminders
+        # Resolve language
+        effective_language = resolve_effective_language(
+            db=self.db,
             user_id=user_id,
-            notification_type="REMINDER",
-            title=title,
+            memory_context=None
+        )
+        
+        # Build metadata with language
+        metadata = {
+            "language": effective_language,
+            "alert_code": "medication_reminder",
+            "alert_reason": body
+        }
+        
+        # Use health_alert type instead of legacy REMINDER
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="health_alert",
+            title=_get_title_for_language("health_alert", effective_language),
             body=body,
             priority=priority,
-            scheduled_for=scheduled_for
+            scheduled_for=scheduled_for,
+            metadata=metadata
         )
+        
+        # Apply fallback
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=None,
+            language=effective_language
+        )
+        
+        # Persist
+        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method
+        if result:
+            logger.info(
+                f"[NOTIFICATION] type=health_alert user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:create_condition_reminder)"
+            )
+        return result
     
     # -------------------- Insight Notifications --------------------
     
@@ -809,7 +1020,10 @@ class DecisionEngine:
         priority: str = "normal"
     ) -> Notification:
         """
-        Create an insight notification (health insights, trends, etc.).
+        Create an insight notification (health insights, trends, etc.) - Release B2.1.
+        
+        Legacy method: Maps to connection_ping type (gentle check-in style).
+        Maintains backward compatibility while using new contract.
         
         Args:
             user_id: User ID
@@ -818,13 +1032,47 @@ class DecisionEngine:
         
         Returns Notification object.
         """
-        return self.builder.create_and_save(
+        # Resolve language
+        effective_language = resolve_effective_language(
+            db=self.db,
             user_id=user_id,
-            notification_type="INSIGHT",
-            title="Health Insight",
-            body=insight_text,
-            priority=priority
+            memory_context=None
         )
+        
+        # Build metadata with language
+        metadata = {
+            "language": effective_language
+        }
+        
+        # Use connection_ping type (gentle check-in) instead of legacy INSIGHT
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="connection_ping",
+            title=_get_title_for_language("connection_ping", effective_language),
+            body=insight_text,  # Use provided text
+            priority=priority,
+            scheduled_for=None,
+            metadata=metadata
+        )
+        
+        # Apply fallback (will use provided text if not empty)
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=None,
+            language=effective_language
+        )
+        
+        # Persist
+        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method doesn't enforce dedupe
+        if result:
+            logger.info(
+                f"[NOTIFICATION] type=connection_ping user={user_id} "
+                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:create_insight_notification)"
+            )
+        return result
     
     # -------------------- Lifestyle-Based Notifications --------------------
     
@@ -852,38 +1100,35 @@ class DecisionEngine:
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
         
-        # Rule 1: Low sleep duration
+        # Release B2.1: Use new contract types instead of legacy REMINDER/INSIGHT
+        # Resolve language
+        effective_language = resolve_effective_language(
+            db=self.db,
+            user_id=user_id,
+            memory_context=memory_context
+        )
+        
+        # Rule 1: Low sleep duration -> use connection_ping (gentle reminder)
         if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
             if memory_context.sleep_duration_hours < 6.0:
-                return self.builder.create_and_save(
+                return self.create_connection_ping(
                     user_id=user_id,
-                    notification_type="REMINDER",
-                    title="Sleep Care Reminder",
-                    body=f"You slept {memory_context.sleep_duration_hours:.1f} hours last night. Consider getting more rest for better health.",
-                    priority="normal"
+                    memory_context=memory_context
                 )
         
-        # Rule 2: Low hydration
+        # Rule 2: Low hydration -> use connection_ping (gentle reminder)
         if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
             if memory_context.hydration_ml < 1500:
-                return self.builder.create_and_save(
+                return self.create_connection_ping(
                     user_id=user_id,
-                    notification_type="REMINDER",
-                    title="Hydration Reminder",
-                    body=f"You've had {memory_context.hydration_ml:.0f}ml of water today. Try to reach at least 1500ml for optimal hydration.",
-                    priority="low"
+                    memory_context=memory_context
                 )
         
-        # Rule 3: Inactivity (no activity data available)
+        # Rule 3: Inactivity -> use connection_ping (gentle reminder)
         if not memory_context.has_activity_data():
-            # Check if user has been inactive for a while (no recent activity data)
-            # This is a gentle reminder, not urgent
-            return self.builder.create_and_save(
+            return self.create_connection_ping(
                 user_id=user_id,
-                notification_type="INSIGHT",
-                title="Activity Reminder",
-                body="Consider adding some light movement to your day. Even a short walk can boost your energy and mood.",
-                priority="low"
+                memory_context=memory_context
             )
         
         return None
