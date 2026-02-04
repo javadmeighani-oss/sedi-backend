@@ -191,6 +191,17 @@ FROM device_events
 ORDER BY received_at DESC
 LIMIT 10;
 
+-- Verify scale indexes exist (Release C1.1)
+-- Expected:
+-- - ix_device_events_user_time (user_id, received_at DESC)
+-- - ix_device_events_user_dedupe (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE schemaname = 'public'
+  AND tablename = 'device_events'
+  AND indexname IN ('ix_device_events_user_time', 'ix_device_events_user_dedupe')
+ORDER BY indexname;
+
 -- Check memory facts created from device events
 SELECT id, user_id, domain, key, value_json, source, last_seen_at
 FROM user_memory_facts

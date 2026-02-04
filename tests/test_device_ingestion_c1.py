@@ -87,6 +87,11 @@ def test_build_dedupe_key_5_minute_buckets():
     """Test that 5-minute buckets work correctly for deduplication"""
     user_id = 1
     
+    # 06:41 should map to 06:40 bucket
+    time0 = datetime(2026, 2, 3, 6, 41, 0)
+    key0 = build_dedupe_key("heart_rate", user_id, time0)
+    assert key0 == "heart_rate:1:2026-02-03T06:40"
+
     # 06:44 should map to 06:40 bucket
     time1 = datetime(2026, 2, 3, 6, 44, 0)
     key1 = build_dedupe_key("heart_rate", user_id, time1)
@@ -97,6 +102,7 @@ def test_build_dedupe_key_5_minute_buckets():
     key2 = build_dedupe_key("heart_rate", user_id, time2)
     assert key2 == "heart_rate:1:2026-02-03T06:40"
     assert key1 == key2  # Same bucket
+    assert key0 == key1  # 06:41 and 06:44 dedupe to same bucket
     
     # 06:45 should map to different 06:45 bucket
     time3 = datetime(2026, 2, 3, 6, 45, 0)
