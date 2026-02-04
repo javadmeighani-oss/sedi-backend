@@ -54,6 +54,10 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
     ],
     "vitals": [
         "heart_rate_bpm",
+        "blood_pressure_sys",
+        "blood_pressure_dia",
+        "glucose_mg_dl",
+        "temperature_c",
     ],
 }
 

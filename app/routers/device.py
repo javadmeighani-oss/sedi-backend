@@ -9,6 +9,7 @@ from app.services.notification_engine import DecisionEngine
 from app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
 from app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
 from app.core.device_auth import get_device_token, authorize_device_or_legacy
+from app.services.vitals.vital_registry import VitalValidationError
 
 router = APIRouter()
 
@@ -208,6 +209,9 @@ def ingest_device_event(
             ok=False,
             error={"code": "VALIDATION_ERROR", "message": str(e)}
         )
+    except VitalValidationError as e:
+        # Schema-driven validation errors -> 422
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except DeviceRateLimitExceeded as e:
         # Return 429 (do not write to DB)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))

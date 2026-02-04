@@ -12,7 +12,9 @@ class DeviceIngestRequest(BaseModel):
     """Request schema for device event ingestion"""
     user_id: int = Field(..., description="User ID")
     device_id: Optional[str] = Field(None, description="Device identifier (optional for v0)")
-    event_type: Literal["heart_rate"] = Field(..., description="Event type (extensible in future)")
+    event_type: Literal["heart_rate", "blood_pressure", "glucose", "temperature"] = Field(
+        ..., description="Event type (multi-vital ready)"
+    )
     payload: Dict[str, Any] = Field(..., description="Event payload (must not be empty)")
     recorded_at: Optional[datetime] = Field(None, description="Timestamp from device (optional)")
     

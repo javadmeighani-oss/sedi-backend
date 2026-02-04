@@ -182,6 +182,51 @@ curl -X POST "http://localhost:8000/device/ingest" \
 }
 ```
 
+## Ingest Blood Pressure Event
+
+```bash
+curl -X POST "http://localhost:8000/device/ingest" \
+  -H "Content-Type: application/json" \
+  -H "X-DEVICE-TOKEN: $DEVICE_TOKEN" \
+  -d '{
+    "user_id": 1,
+    "device_id": "Sedi001",
+    "event_type": "blood_pressure",
+    "payload": { "sys": 120, "dia": 80, "pulse": 72 },
+    "recorded_at": "2026-02-03T06:41:00Z"
+  }'
+```
+
+## Ingest Glucose Event (mmol/L or mg/dL)
+
+```bash
+curl -X POST "http://localhost:8000/device/ingest" \
+  -H "Content-Type: application/json" \
+  -H "X-DEVICE-TOKEN: $DEVICE_TOKEN" \
+  -d '{
+    "user_id": 1,
+    "device_id": "Sedi001",
+    "event_type": "glucose",
+    "payload": { "mmol_l": 5.0 },
+    "recorded_at": "2026-02-03T06:41:00Z"
+  }'
+```
+
+## Ingest Temperature Event (F or C)
+
+```bash
+curl -X POST "http://localhost:8000/device/ingest" \
+  -H "Content-Type: application/json" \
+  -H "X-DEVICE-TOKEN: $DEVICE_TOKEN" \
+  -d '{
+    "user_id": 1,
+    "device_id": "Sedi001",
+    "event_type": "temperature",
+    "payload": { "f": 98.6 },
+    "recorded_at": "2026-02-03T06:41:00Z"
+  }'
+```
+
 ## Verify Device Events in Database
 
 ```sql

@@ -226,6 +226,54 @@ def test_ingest_event_maps_to_memory_fact(db: Session, test_user):
     assert value.get("device_id") == "Sedi001"
 
 
+def test_ingest_blood_pressure_creates_memory_facts(db: Session, test_user):
+    event, _ = ingest_event(
+        db=db,
+        user_id=test_user.id,
+        event_type="blood_pressure",
+        payload={"sys": 120, "dia": 80, "pulse": 72},
+        device_id="Sedi001",
+        recorded_at=datetime(2026, 2, 3, 6, 41, 0),
+    )
+    assert event is not None
+
+    repo = MemoryRepository(db)
+    sys_fact = repo.get_fact(test_user.id, "vitals", "blood_pressure_sys")
+    dia_fact = repo.get_fact(test_user.id, "vitals", "blood_pressure_dia")
+    assert sys_fact is not None
+    assert dia_fact is not None
+
+
+def test_ingest_glucose_normalizes_and_creates_memory_fact(db: Session, test_user):
+    event, _ = ingest_event(
+        db=db,
+        user_id=test_user.id,
+        event_type="glucose",
+        payload={"mmol_l": 5.0},
+        device_id="Sedi001",
+        recorded_at=datetime(2026, 2, 3, 6, 41, 0),
+    )
+    assert event is not None
+    repo = MemoryRepository(db)
+    fact = repo.get_fact(test_user.id, "vitals", "glucose_mg_dl")
+    assert fact is not None
+
+
+def test_ingest_temperature_normalizes_and_creates_memory_fact(db: Session, test_user):
+    event, _ = ingest_event(
+        db=db,
+        user_id=test_user.id,
+        event_type="temperature",
+        payload={"f": 98.6},
+        device_id="Sedi001",
+        recorded_at=datetime(2026, 2, 3, 6, 41, 0),
+    )
+    assert event is not None
+    repo = MemoryRepository(db)
+    fact = repo.get_fact(test_user.id, "vitals", "temperature_c")
+    assert fact is not None
+
+
 def test_ingest_endpoint_requires_token(client, device_token):
     """Test that /device/ingest requires valid X-DEVICE-TOKEN"""
     # Request without token

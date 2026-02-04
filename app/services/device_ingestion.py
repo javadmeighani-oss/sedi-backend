@@ -20,6 +20,8 @@ from sqlalchemy.orm import Session
 from app.models import DeviceEvent, User, UserMemoryFact
 from app.services.memory.memory_repository import MemoryRepository
 from app.services.notification_engine import DecisionEngine
+from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
+from app.services.vitals.rule_alerts import maybe_create_alert
 
 logger = logging.getLogger(__name__)
 
@@ -124,13 +126,8 @@ def ingest_event(
     Returns:
         (DeviceEvent if created, dedupe_key) or (None, dedupe_key) if duplicate
     """
-    # Validate event_type
-    if event_type != "heart_rate":
-        raise ValueError(f"Unsupported event_type: {event_type}. Supported: ['heart_rate']")
-    
-    # Validate payload is not empty
-    if not payload:
-        raise ValueError("Payload must not be empty")
+    # Validate + normalize payload via registry
+    normalized = validate_event(event_type, payload)
 
     # Rate limit (per device_id only)
     if device_id:
@@ -141,8 +138,14 @@ def ingest_event(
     if recorded_at is None:
         recorded_at = received_at
     
-    # Build dedupe key (use recorded_at if present, else received_at)
-    dedupe_key = build_dedupe_key(event_type, user_id, recorded_at, received_at)
+    # Build dedupe key via registry (use recorded_at if present, else received_at)
+    dedupe_key = build_dedupe_key(
+        user_id=user_id,
+        event_type=event_type,  # type: ignore[arg-type]
+        recorded_at=recorded_at,
+        received_at=received_at,
+        device_id=device_id,
+    )
     
     # Check for existing event with same dedupe_key
     existing = (
@@ -181,116 +184,38 @@ def ingest_event(
         f"dedupe={dedupe_key} event_id={event.id}"
     )
     
-    # Map to memory fact
+    # Map to memory facts (schema-driven)
     try:
-        _map_to_memory_fact(db, user_id, event_type, payload, device_id, recorded_at)
+        repo = MemoryRepository(db)
+        updates = map_to_memory_facts(
+            user_id=user_id,
+            event_type=event_type,  # type: ignore[arg-type]
+            normalized_payload=normalized,
+            device_id=device_id,
+            recorded_at=recorded_at,
+        )
+        for u in updates:
+            repo.upsert_fact(
+                user_id=user_id,
+                domain=u.domain,
+                key=u.key,
+                value=u.value,
+                confidence=u.confidence,
+                source=u.source,
+            )
+        logger.info(
+            f"[DEVICE_INGEST] Mapped to memory user={user_id} type={event_type} facts={len(updates)}"
+        )
     except Exception as e:
         logger.error(f"[DEVICE_INGEST] Failed to map to memory: {e}", exc_info=True)
-        # Don't fail ingestion if memory mapping fails
-    
-    # Check for health alerts (rule-based, no AI)
+
+    # Rule-based alerts (no AI)
     try:
-        _check_health_alerts(db, user_id, event_type, payload)
+        maybe_create_alert(db=db, user_id=user_id, event_type=event_type, normalized_payload=normalized)
     except Exception as e:
         logger.error(f"[DEVICE_INGEST] Failed to check health alerts: {e}", exc_info=True)
-        # Don't fail ingestion if alert check fails
     
     return event, dedupe_key
 
 
-def _map_to_memory_fact(
-    db: Session,
-    user_id: int,
-    event_type: str,
-    payload: Dict[str, Any],
-    device_id: Optional[str],
-    recorded_at: Optional[datetime]
-):
-    """Map device event to UserMemoryFact with source='device'"""
-    repo = MemoryRepository(db)
-    
-    if event_type == "heart_rate":
-        # Extract BPM from payload
-        bpm = payload.get("bpm")
-        if bpm is None:
-            logger.warning(f"[DEVICE_INGEST] Missing 'bpm' in heart_rate payload: {payload}")
-            return
-        
-        # Build value_json
-        value = {
-            "bpm": float(bpm),
-            "recorded_at": recorded_at.isoformat() if recorded_at else None,
-            "device_id": device_id,
-        }
-        
-        # Include any additional fields from payload
-        if "quality" in payload:
-            value["quality"] = payload["quality"]
-        if "confidence" in payload:
-            value["confidence"] = payload["confidence"]
-        
-        # Upsert memory fact
-        repo.upsert_fact(
-            user_id=user_id,
-            domain="vitals",
-            key="heart_rate_bpm",
-            value=value,
-            confidence=0.9,  # High confidence for device data
-            source="device"
-        )
-        
-        logger.info(
-            f"[DEVICE_INGEST] Mapped to memory user={user_id} "
-            f"domain=vitals key=heart_rate_bpm bpm={bpm}"
-        )
-
-
-def _check_health_alerts(
-    db: Session,
-    user_id: int,
-    event_type: str,
-    payload: Dict[str, Any]
-):
-    """Check for health alerts based on rule-based thresholds (no AI)"""
-    if event_type != "heart_rate":
-        return
-    
-    bpm = payload.get("bpm")
-    if bpm is None:
-        return
-    
-    bpm_float = float(bpm)
-    alert_code = None
-    alert_reason = None
-    priority = "normal"
-    
-    # Check thresholds
-    if bpm_float > HEART_RATE_MAX_SAFE:
-        alert_code = "high_heart_rate"
-        alert_reason = f"Heart rate is elevated: {bpm_float:.0f} bpm (normal: {HEART_RATE_MIN_SAFE}-{HEART_RATE_MAX_SAFE})"
-        priority = "high"
-    elif bpm_float < HEART_RATE_MIN_SAFE:
-        alert_code = "low_heart_rate"
-        alert_reason = f"Heart rate is low: {bpm_float:.0f} bpm (normal: {HEART_RATE_MIN_SAFE}-{HEART_RATE_MAX_SAFE})"
-        priority = "high"
-    
-    if alert_code:
-        # Use DecisionEngine to create health alert (respects dedupe/rate limits)
-        decision_engine = DecisionEngine(db)
-        notif = decision_engine.create_health_alert(
-            user_id=user_id,
-            alert_code=alert_code,
-            alert_reason=alert_reason,
-            priority=priority
-        )
-        
-        if notif:
-            logger.info(
-                f"[DEVICE_INGEST] ALERT CREATED user={user_id} "
-                f"code={alert_code} bpm={bpm_float} notif_id={notif.id}"
-            )
-        else:
-            logger.info(
-                f"[DEVICE_INGEST] ALERT SUPPRESSED user={user_id} "
-                f"code={alert_code} bpm={bpm_float} reason=dedupe"
-            )
+## Legacy C1 hardcoded mapping/alerts removed in Release C3 (now registry-driven)
