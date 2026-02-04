@@ -20,8 +20,7 @@ from sqlalchemy.orm import Session
 from app.models import DeviceEvent, User, UserMemoryFact
 from app.services.memory.memory_repository import MemoryRepository
 from app.services.notification_engine import DecisionEngine
-from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, VitalValidationError
-from app.services.vitals.dedupe import build_dedupe_key
+from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
 from app.services.vitals.rule_alerts import maybe_create_alert
 
 logger = logging.getLogger(__name__)
@@ -98,12 +97,12 @@ def ingest_event(
         recorded_at = received_at
     
     # Build dedupe key via registry (use recorded_at if present, else received_at)
+    # Dedupe is intentionally independent of device_id to avoid circular imports and keep deterministic bucketing.
     dedupe_key = build_dedupe_key(
         user_id=user_id,
         event_type=event_type,  # type: ignore[arg-type]
         recorded_at=recorded_at,
         received_at=received_at,
-        device_id=device_id,
     )
     
     # Check for existing event with same dedupe_key
