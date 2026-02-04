@@ -29,30 +29,42 @@ HEART_RATE_MAX_SAFE = int(os.getenv("HEART_RATE_MAX_SAFE", "100"))
 def build_dedupe_key(
     event_type: str,
     user_id: int,
-    recorded_at: Optional[datetime] = None
+    recorded_at: Optional[datetime] = None,
+    received_at: Optional[datetime] = None
 ) -> str:
     """
-    Build deterministic dedupe key for device events.
+    Build deterministic dedupe key for device events using 5-minute time buckets.
     
-    Format: {event_type}:{user_id}:{YYYY-MM-DDTHH}:{rounded_minute_bucket}
-    Uses 5-minute buckets for deduplication.
+    Format: {event_type}:{user_id}:{YYYY-MM-DDTHH}:{bucket_min:02d}
+    Uses 5-minute buckets: rounds down minute to nearest 5 (0, 5, 10, 15, ..., 55).
+    
+    Examples:
+    - 06:44 -> bucket 06:40
+    - 06:40 -> bucket 06:40 (same bucket)
+    - 06:45 -> bucket 06:45 (different bucket)
     
     Args:
         event_type: Event type (e.g., "heart_rate")
         user_id: User ID
-        recorded_at: Timestamp from device (or None to use now)
+        recorded_at: Timestamp from device (preferred if present)
+        received_at: Server timestamp (fallback if recorded_at is None)
     
     Returns:
-        Dedupe key string
+        Dedupe key string (e.g., "heart_rate:1:2026-02-03T06:40")
     """
-    if recorded_at is None:
-        recorded_at = datetime.utcnow()
+    # Use recorded_at if present, else received_at, else now
+    if recorded_at is not None:
+        timestamp = recorded_at
+    elif received_at is not None:
+        timestamp = received_at
+    else:
+        timestamp = datetime.utcnow()
     
-    # Round to 5-minute bucket
-    minute_bucket = (recorded_at.minute // 5) * 5
-    bucket_time = recorded_at.replace(minute=minute_bucket, second=0, microsecond=0)
+    # Round down to 5-minute bucket (0, 5, 10, 15, ..., 55)
+    bucket_minute = (timestamp.minute // 5) * 5
+    bucket_time = timestamp.replace(minute=bucket_minute, second=0, microsecond=0)
     
-    # Format: heart_rate:1:2026-02-02T10:30
+    # Format: heart_rate:1:2026-02-03T06:40 (explicit 2-digit minute)
     return f"{event_type}:{user_id}:{bucket_time.strftime('%Y-%m-%dT%H:%M')}"
 
 
@@ -86,8 +98,13 @@ def ingest_event(
     if not payload:
         raise ValueError("Payload must not be empty")
     
-    # Build dedupe key
-    dedupe_key = build_dedupe_key(event_type, user_id, recorded_at)
+    # Create new event
+    received_at = datetime.utcnow()
+    if recorded_at is None:
+        recorded_at = received_at
+    
+    # Build dedupe key (use recorded_at if present, else received_at)
+    dedupe_key = build_dedupe_key(event_type, user_id, recorded_at, received_at)
     
     # Check for existing event with same dedupe_key
     existing = (
@@ -105,11 +122,6 @@ def ingest_event(
             f"dedupe={dedupe_key} existing_id={existing.id}"
         )
         return None, dedupe_key
-    
-    # Create new event
-    received_at = datetime.utcnow()
-    if recorded_at is None:
-        recorded_at = received_at
     
     event = DeviceEvent(
         user_id=user_id,

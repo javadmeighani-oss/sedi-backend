@@ -209,10 +209,54 @@ HAVING COUNT(*) > 1;
 ## Notes
 
 - Requires `X-DEVICE-TOKEN` header matching `DEVICE_INGEST_TOKEN` environment variable
-- Events are deduplicated using 5-minute time buckets
+- Events are deduplicated using **5-minute time buckets**:
+  - Dedupe key format: `{event_type}:{user_id}:{YYYY-MM-DDTHH}:{bucket_min:02d}`
+  - Minutes are rounded **down** to nearest 5-minute bucket (0, 5, 10, 15, ..., 55)
+  - Examples:
+    - `06:44` and `06:40` → same bucket `06:40`
+    - `06:45` → different bucket `06:45`
+    - `06:49` → same bucket as `06:45` (`06:45`)
+  - Uses `recorded_at` from device if present, else `received_at` (server timestamp)
 - Heart rate events are automatically mapped to `vitals.heart_rate_bpm` memory fact
 - Health alerts are triggered rule-based (no AI) when heart rate is outside safe range (60-100 bpm by default)
 - Alerts respect existing notification dedupe/rate-limit policies
+
+## Verify 5-Minute Dedupe Buckets
+
+```sql
+-- Check dedupe keys and their time buckets
+SELECT 
+    id,
+    user_id,
+    event_type,
+    recorded_at,
+    received_at,
+    dedupe_key,
+    EXTRACT(MINUTE FROM recorded_at) as recorded_minute,
+    EXTRACT(MINUTE FROM received_at) as received_minute
+FROM device_events
+WHERE user_id = 1
+ORDER BY received_at DESC
+LIMIT 20;
+
+-- Verify events in same 5-minute bucket share same dedupe_key
+SELECT 
+    dedupe_key,
+    COUNT(*) as event_count,
+    MIN(recorded_at) as first_recorded,
+    MAX(recorded_at) as last_recorded,
+    ARRAY_AGG(id ORDER BY received_at) as event_ids
+FROM device_events
+WHERE user_id = 1 
+  AND event_type = 'heart_rate'
+  AND received_at > NOW() - INTERVAL '1 hour'
+GROUP BY dedupe_key
+HAVING COUNT(*) > 1
+ORDER BY first_recorded DESC;
+
+-- Expected: Events within same 5-minute window should have same dedupe_key
+-- Example: Events at 06:40, 06:41, 06:44 should all have dedupe_key ending in "06:40"
+```
 
 ---
 

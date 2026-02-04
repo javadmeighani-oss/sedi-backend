@@ -65,22 +65,66 @@ def device_token(monkeypatch):
 
 
 def test_build_dedupe_key():
-    """Test dedupe key generation"""
-    recorded_at = datetime(2026, 2, 2, 10, 33, 0)
+    """Test dedupe key generation with 5-minute buckets"""
+    # Test rounding down to 5-minute bucket
+    recorded_at = datetime(2026, 2, 3, 6, 33, 0)
     key = build_dedupe_key("heart_rate", 1, recorded_at)
-    # Should round to 5-minute bucket: 10:30
-    assert key == "heart_rate:1:2026-02-02T10:30"
+    # Should round to 5-minute bucket: 06:30
+    assert key == "heart_rate:1:2026-02-03T06:30"
     
     # Test with different minute (should round down)
-    recorded_at2 = datetime(2026, 2, 2, 10, 37, 0)
+    recorded_at2 = datetime(2026, 2, 3, 6, 37, 0)
     key2 = build_dedupe_key("heart_rate", 1, recorded_at2)
-    assert key2 == "heart_rate:1:2026-02-02T10:35"
+    assert key2 == "heart_rate:1:2026-02-03T06:35"
+    
+    # Test exact bucket boundary
+    recorded_at3 = datetime(2026, 2, 3, 6, 40, 0)
+    key3 = build_dedupe_key("heart_rate", 1, recorded_at3)
+    assert key3 == "heart_rate:1:2026-02-03T06:40"
+
+
+def test_build_dedupe_key_5_minute_buckets():
+    """Test that 5-minute buckets work correctly for deduplication"""
+    user_id = 1
+    
+    # 06:44 should map to 06:40 bucket
+    time1 = datetime(2026, 2, 3, 6, 44, 0)
+    key1 = build_dedupe_key("heart_rate", user_id, time1)
+    assert key1 == "heart_rate:1:2026-02-03T06:40"
+    
+    # 06:40 should map to same 06:40 bucket
+    time2 = datetime(2026, 2, 3, 6, 40, 0)
+    key2 = build_dedupe_key("heart_rate", user_id, time2)
+    assert key2 == "heart_rate:1:2026-02-03T06:40"
+    assert key1 == key2  # Same bucket
+    
+    # 06:45 should map to different 06:45 bucket
+    time3 = datetime(2026, 2, 3, 6, 45, 0)
+    key3 = build_dedupe_key("heart_rate", user_id, time3)
+    assert key3 == "heart_rate:1:2026-02-03T06:45"
+    assert key3 != key1  # Different bucket
+    
+    # 06:49 should also map to 06:45 bucket
+    time4 = datetime(2026, 2, 3, 6, 49, 0)
+    key4 = build_dedupe_key("heart_rate", user_id, time4)
+    assert key4 == "heart_rate:1:2026-02-03T06:45"
+    assert key4 == key3  # Same bucket as 06:45
+
+
+def test_build_dedupe_key_fallback_to_received_at():
+    """Test that dedupe key uses received_at as fallback when recorded_at is None"""
+    user_id = 1
+    received_at = datetime(2026, 2, 3, 6, 44, 0)
+    
+    # No recorded_at, use received_at
+    key = build_dedupe_key("heart_rate", user_id, recorded_at=None, received_at=received_at)
+    assert key == "heart_rate:1:2026-02-03T06:40"  # Rounded to 5-minute bucket
 
 
 def test_ingest_event_creates_device_event(db: Session, test_user):
     """Test that ingest_event creates DeviceEvent"""
     event, dedupe_key = ingest_event(
-        db=db_session,
+        db=db,
         user_id=test_user.id,
         event_type="heart_rate",
         payload={"bpm": 82, "quality": "good"},
@@ -103,36 +147,46 @@ def test_ingest_event_creates_device_event(db: Session, test_user):
 
 
 def test_ingest_event_deduplication(db: Session, test_user):
-    """Test that duplicate events are prevented"""
-    recorded_at = datetime(2026, 2, 2, 10, 33, 0)
-    
-    # First event
+    """Test that duplicate events are prevented using 5-minute buckets"""
+    # First event at 06:44 -> bucket 06:40
     event1, dedupe_key1 = ingest_event(
-        db=db_session,
+        db=db,
         user_id=test_user.id,
         event_type="heart_rate",
         payload={"bpm": 82},
-        recorded_at=recorded_at
+        recorded_at=datetime(2026, 2, 3, 6, 44, 0)
     )
     assert event1 is not None
+    assert dedupe_key1 == "heart_rate:1:2026-02-03T06:40"
     
-    # Second event with same time bucket (should be duplicate)
+    # Second event at 06:40 -> same bucket 06:40 (should be duplicate)
     event2, dedupe_key2 = ingest_event(
-        db=db_session,
+        db=db,
         user_id=test_user.id,
         event_type="heart_rate",
         payload={"bpm": 85},
-        recorded_at=datetime(2026, 2, 2, 10, 34, 0)  # Same 5-min bucket
+        recorded_at=datetime(2026, 2, 3, 6, 40, 0)  # Same 5-min bucket
     )
     assert event2 is None  # Duplicate
     assert dedupe_key1 == dedupe_key2
     
-    # Verify only one event in DB
+    # Third event at 06:45 -> different bucket 06:45 (should create new event)
+    event3, dedupe_key3 = ingest_event(
+        db=db,
+        user_id=test_user.id,
+        event_type="heart_rate",
+        payload={"bpm": 88},
+        recorded_at=datetime(2026, 2, 3, 6, 45, 0)  # Different bucket
+    )
+    assert event3 is not None  # New event
+    assert dedupe_key3 == "heart_rate:1:2026-02-03T06:45"
+    assert dedupe_key3 != dedupe_key1
+    
+    # Verify only two events in DB (one for each bucket)
     count = db.query(DeviceEvent).filter(
-        DeviceEvent.user_id == test_user.id,
-        DeviceEvent.dedupe_key == dedupe_key1
+        DeviceEvent.user_id == test_user.id
     ).count()
-    assert count == 1
+    assert count == 2
 
 
 def test_ingest_event_maps_to_memory_fact(db: Session, test_user):
