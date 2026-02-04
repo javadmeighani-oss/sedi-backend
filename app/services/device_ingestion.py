@@ -12,7 +12,9 @@ import os
 import json
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime
+import time
+from collections import deque
 from sqlalchemy.orm import Session
 
 from app.models import DeviceEvent, User, UserMemoryFact
@@ -24,6 +26,38 @@ logger = logging.getLogger(__name__)
 # Heart rate thresholds (configurable via env, defaults to safe ranges)
 HEART_RATE_MIN_SAFE = int(os.getenv("HEART_RATE_MIN_SAFE", "60"))
 HEART_RATE_MAX_SAFE = int(os.getenv("HEART_RATE_MAX_SAFE", "100"))
+
+# Rate limiting (Release C2)
+DEVICE_RATE_LIMIT_PER_MINUTE = int(os.getenv("DEVICE_RATE_LIMIT_PER_MINUTE", "30"))
+_rate_buckets: Dict[str, "deque[float]"] = {}
+
+
+class DeviceRateLimitExceeded(Exception):
+    pass
+
+
+def _check_rate_limit(device_id: str) -> None:
+    """
+    In-memory sliding-window rate limit per device_id (no external deps).
+    Limitation: per-process only (not shared across workers).
+    """
+    if DEVICE_RATE_LIMIT_PER_MINUTE <= 0:
+        return
+
+    now = time.time()
+    window_start = now - 60.0
+    q = _rate_buckets.get(device_id)
+    if q is None:
+        q = deque()
+        _rate_buckets[device_id] = q
+
+    while q and q[0] < window_start:
+        q.popleft()
+
+    if len(q) >= DEVICE_RATE_LIMIT_PER_MINUTE:
+        raise DeviceRateLimitExceeded(f"Rate limit exceeded for device_id={device_id}")
+
+    q.append(now)
 
 
 def build_dedupe_key(
@@ -97,6 +131,10 @@ def ingest_event(
     # Validate payload is not empty
     if not payload:
         raise ValueError("Payload must not be empty")
+
+    # Rate limit (per device_id only)
+    if device_id:
+        _check_rate_limit(device_id)
     
     # Create new event
     received_at = datetime.utcnow()

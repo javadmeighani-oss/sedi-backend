@@ -1,5 +1,5 @@
 # app/routers/device.py
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.database import get_db
@@ -7,8 +7,8 @@ from app import models
 from app.schemas import APIResponse, ErrorInfo
 from app.services.notification_engine import DecisionEngine
 from app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
-from app.services.device_ingestion import ingest_event
-from app.core.device_auth import verify_device_token
+from app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
+from app.core.device_auth import get_device_token, authorize_device_or_legacy
 
 router = APIRouter()
 
@@ -123,12 +123,17 @@ def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
 def ingest_device_event(
     request: DeviceIngestRequest,
     db: Session = Depends(get_db),
-    _token: str = Depends(verify_device_token)
+    token: str = Depends(get_device_token)
 ):
     """
     Ingest device event (vital signs) with deduplication and memory mapping.
     
-    Requires X-DEVICE-TOKEN header matching DEVICE_INGEST_TOKEN environment variable.
+    Requires X-DEVICE-TOKEN header.
+    
+    Auth modes (Release C2):
+    - DEVICE_AUTH_MODE=legacy_only: validate shared DEVICE_INGEST_TOKEN (C1 behavior)
+    - DEVICE_AUTH_MODE=db_only: validate per-device token from DB (requires request.device_id)
+    - DEVICE_AUTH_MODE=hybrid (default): try DB first, then legacy if enabled
     
     Example:
     {
@@ -143,6 +148,17 @@ def ingest_device_event(
     }
     """
     try:
+        # Authorize device (hybrid / db_only / legacy_only)
+        _auth_result, device = authorize_device_or_legacy(
+            db=db,
+            user_id=request.user_id,
+            device_id=request.device_id,
+            token=token
+        )
+        # In DB-auth mode, trust registered device_id
+        if device is not None:
+            request.device_id = device.device_id
+
         # Validate user exists
         user = db.query(models.User).filter(models.User.id == request.user_id).first()
         if not user:
@@ -192,6 +208,9 @@ def ingest_device_event(
             ok=False,
             error={"code": "VALIDATION_ERROR", "message": str(e)}
         )
+    except DeviceRateLimitExceeded as e:
+        # Return 429 (do not write to DB)
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)

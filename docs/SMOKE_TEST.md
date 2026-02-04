@@ -271,6 +271,76 @@ ORDER BY first_recorded DESC;
 
 ---
 
+# Release C2: Device Identity v1 (Per-device tokens)
+
+## Register Device (returns token once)
+
+```bash
+curl -X POST "http://localhost:8000/devices/register?user_id=1" \
+  -H "Content-Type: application/json" \
+  -d '{"device_id":"Sedi001","device_type":"heart_rate"}'
+```
+
+**Response (token shown once):**
+```json
+{
+  "ok": true,
+  "data": {
+    "device_id": "Sedi001",
+    "token": "...."
+  }
+}
+```
+
+## Ingest using per-device token (DB auth)
+
+```bash
+export DEVICE_TOKEN="(token from register)"
+
+curl -X POST "http://localhost:8000/device/ingest" \
+  -H "Content-Type: application/json" \
+  -H "X-DEVICE-TOKEN: $DEVICE_TOKEN" \
+  -d '{
+    "user_id": 1,
+    "device_id": "Sedi001",
+    "event_type": "heart_rate",
+    "payload": { "bpm": 82 }
+  }'
+```
+
+## Revoke device
+
+```bash
+curl -X POST "http://localhost:8000/devices/Sedi001/revoke?user_id=1"
+```
+
+## Rotate token (returns new token once)
+
+```bash
+curl -X POST "http://localhost:8000/devices/Sedi001/rotate-token?user_id=1"
+```
+
+## List devices
+
+```bash
+curl -X GET "http://localhost:8000/devices?user_id=1"
+```
+
+## DB verification (devices)
+
+```sql
+SELECT device_id, device_type, status, last_seen_at, created_at, revoked_at
+FROM devices
+ORDER BY id DESC
+LIMIT 20;
+```
+
+## Auth Modes
+
+- `DEVICE_AUTH_MODE=hybrid` (default): try DB per-device token first, fallback to legacy `DEVICE_INGEST_TOKEN` if set
+- `DEVICE_AUTH_MODE=db_only`: only DB per-device token (requires `device_id` in ingest request)
+- `DEVICE_AUTH_MODE=legacy_only`: only shared token `DEVICE_INGEST_TOKEN` (C1 behavior)
+
 # Release B3: DB Verification (Production)
 
 ## Verify no legacy notification types exist

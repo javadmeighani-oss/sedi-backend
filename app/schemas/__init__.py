@@ -30,6 +30,12 @@ from .device import (
     DeviceIngestResponse,
     DeviceEventResponse
 )
+from .devices import (
+    DeviceRegisterRequest,
+    DeviceRegisterResponse,
+    DevicePublicInfo,
+    DevicesListResponse,
+)
 
 __all__ = [
     # Common
@@ -71,5 +77,10 @@ __all__ = [
     "DeviceIngestRequest",
     "DeviceIngestResponse",
     "DeviceEventResponse",
+    # Devices (identity)
+    "DeviceRegisterRequest",
+    "DeviceRegisterResponse",
+    "DevicePublicInfo",
+    "DevicesListResponse",
 ]
 

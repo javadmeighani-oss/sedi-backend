@@ -140,3 +140,18 @@ class DeviceEvent(Base):
     received_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # Server timestamp
     dedupe_key = Column(String(255), nullable=True)  # Deduplication key
     embedding_id = Column(String(255), nullable=True)  # For RAG integration - vector embedding ID
+
+
+# -------------------- Device --------------------
+class Device(Base):
+    __tablename__ = "devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id = Column(String(255), nullable=False, unique=True)  # logical device id (e.g. "Sedi001")
+    device_type = Column(String(50), nullable=False, default="heart_rate")
+    status = Column(String(20), nullable=False, default="active")  # active | revoked
+    token_hash = Column(String(255), nullable=False)  # sha256 hex digest; never store raw token
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    last_seen_at = Column(DateTime, nullable=True)
