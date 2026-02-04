@@ -20,7 +20,8 @@ from sqlalchemy.orm import Session
 from app.models import DeviceEvent, User, UserMemoryFact
 from app.services.memory.memory_repository import MemoryRepository
 from app.services.notification_engine import DecisionEngine
-from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
+from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, VitalValidationError
+from app.services.vitals.dedupe import build_dedupe_key
 from app.services.vitals.rule_alerts import maybe_create_alert
 
 logger = logging.getLogger(__name__)
@@ -60,48 +61,6 @@ def _check_rate_limit(device_id: str) -> None:
         raise DeviceRateLimitExceeded(f"Rate limit exceeded for device_id={device_id}")
 
     q.append(now)
-
-
-def build_dedupe_key(
-    event_type: str,
-    user_id: int,
-    recorded_at: Optional[datetime] = None,
-    received_at: Optional[datetime] = None
-) -> str:
-    """
-    Build deterministic dedupe key for device events using 5-minute time buckets.
-    
-    Format: {event_type}:{user_id}:{YYYY-MM-DDTHH}:{bucket_min:02d}
-    Uses 5-minute buckets: rounds down minute to nearest 5 (0, 5, 10, 15, ..., 55).
-    
-    Examples:
-    - 06:44 -> bucket 06:40
-    - 06:40 -> bucket 06:40 (same bucket)
-    - 06:45 -> bucket 06:45 (different bucket)
-    
-    Args:
-        event_type: Event type (e.g., "heart_rate")
-        user_id: User ID
-        recorded_at: Timestamp from device (preferred if present)
-        received_at: Server timestamp (fallback if recorded_at is None)
-    
-    Returns:
-        Dedupe key string (e.g., "heart_rate:1:2026-02-03T06:40")
-    """
-    # Use recorded_at if present, else received_at, else now
-    if recorded_at is not None:
-        timestamp = recorded_at
-    elif received_at is not None:
-        timestamp = received_at
-    else:
-        timestamp = datetime.utcnow()
-    
-    # Round down to 5-minute bucket (0, 5, 10, 15, ..., 55)
-    bucket_minute = (timestamp.minute // 5) * 5
-    bucket_time = timestamp.replace(minute=bucket_minute, second=0, microsecond=0)
-    
-    # Format: heart_rate:1:2026-02-03T06:40 (explicit 2-digit minute)
-    return f"{event_type}:{user_id}:{bucket_time.strftime('%Y-%m-%dT%H:%M')}"
 
 
 def ingest_event(

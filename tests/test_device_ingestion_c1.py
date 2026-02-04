@@ -16,7 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models import DeviceEvent, User, UserMemoryFact
-from app.services.device_ingestion import ingest_event, build_dedupe_key
+from app.services.device_ingestion import ingest_event
+from app.services.vitals.dedupe import build_dedupe_key
 from app.services.memory.memory_repository import MemoryRepository
 
 
