@@ -14,6 +14,7 @@ ALLOWED_DOMAINS = {
     "preferences": "User preferences (communication style, interests)",
     "routines": "Daily and weekly routines",
     "goals": "Health and fitness goals",
+    "vitals": "Vital signs data from devices (heart_rate_bpm, etc.)",
 }
 
 # Allowed keys per domain
@@ -50,6 +51,9 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "health_goals",
         "fitness_goals",
         "lifestyle_goals",
+    ],
+    "vitals": [
+        "heart_rate_bpm",
     ],
 }
 

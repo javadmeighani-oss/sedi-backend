@@ -6,6 +6,9 @@ from app.database import get_db
 from app import models
 from app.schemas import APIResponse, ErrorInfo
 from app.services.notification_engine import DecisionEngine
+from app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
+from app.services.device_ingestion import ingest_event
+from app.core.device_auth import verify_device_token
 
 router = APIRouter()
 
@@ -113,3 +116,87 @@ def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
     )
 
     return APIResponse(ok=True, data={"acknowledged": True})
+
+
+# 🔹 4. Device Event Ingestion (Release C1)
+@router.post("/ingest", response_model=DeviceIngestResponse)
+def ingest_device_event(
+    request: DeviceIngestRequest,
+    db: Session = Depends(get_db),
+    _token: str = Depends(verify_device_token)
+):
+    """
+    Ingest device event (vital signs) with deduplication and memory mapping.
+    
+    Requires X-DEVICE-TOKEN header matching DEVICE_INGEST_TOKEN environment variable.
+    
+    Example:
+    {
+        "user_id": 1,
+        "device_id": "Sedi001",
+        "event_type": "heart_rate",
+        "payload": {
+            "bpm": 82,
+            "quality": "good"
+        },
+        "recorded_at": "2026-02-02T10:30:00Z"
+    }
+    """
+    try:
+        # Validate user exists
+        user = db.query(models.User).filter(models.User.id == request.user_id).first()
+        if not user:
+            return DeviceIngestResponse(
+                ok=False,
+                error={"code": "USER_NOT_FOUND", "message": "User not found"}
+            )
+        
+        # Validate payload is not empty
+        if not request.payload:
+            return DeviceIngestResponse(
+                ok=False,
+                error={"code": "INVALID_PAYLOAD", "message": "Payload must not be empty"}
+            )
+        
+        # Ingest event
+        event, dedupe_key = ingest_event(
+            db=db,
+            user_id=request.user_id,
+            event_type=request.event_type,
+            payload=request.payload,
+            device_id=request.device_id,
+            recorded_at=request.recorded_at
+        )
+        
+        if event is None:
+            # Duplicate event (already exists)
+            return DeviceIngestResponse(
+                ok=True,
+                data={
+                    "event_id": None,
+                    "dedupe_key": dedupe_key,
+                    "message": "Event already exists (duplicate)"
+                }
+            )
+        
+        return DeviceIngestResponse(
+            ok=True,
+            data={
+                "event_id": event.id,
+                "dedupe_key": dedupe_key
+            }
+        )
+    
+    except ValueError as e:
+        return DeviceIngestResponse(
+            ok=False,
+            error={"code": "VALIDATION_ERROR", "message": str(e)}
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[DEVICE_INGEST] Endpoint error: {e}", exc_info=True)
+        return DeviceIngestResponse(
+            ok=False,
+            error={"code": "INTERNAL_ERROR", "message": "Failed to ingest event"}
+        )

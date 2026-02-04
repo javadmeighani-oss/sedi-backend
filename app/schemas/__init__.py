@@ -25,6 +25,11 @@ from .medical import (
     UserConditionCreate,
     UserConditionResponse
 )
+from .device import (
+    DeviceIngestRequest,
+    DeviceIngestResponse,
+    DeviceEventResponse
+)
 
 __all__ = [
     # Common
@@ -62,5 +67,9 @@ __all__ = [
     "UserConditionBase",
     "UserConditionCreate",
     "UserConditionResponse",
+    # Device
+    "DeviceIngestRequest",
+    "DeviceIngestResponse",
+    "DeviceEventResponse",
 ]
 

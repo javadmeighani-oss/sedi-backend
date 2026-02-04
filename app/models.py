@@ -125,3 +125,18 @@ class UserMemoryFact(Base):
     embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- DeviceEvent --------------------
+class DeviceEvent(Base):
+    __tablename__ = "device_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id = Column(String(255), nullable=True, index=True)
+    event_type = Column(String(100), nullable=False, index=True)  # e.g., "heart_rate"
+    payload_json = Column(Text, nullable=False)  # Raw JSON string from device
+    recorded_at = Column(DateTime, nullable=True)  # Timestamp from device
+    received_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # Server timestamp
+    dedupe_key = Column(String(255), nullable=True)  # Deduplication key
+    embedding_id = Column(String(255), nullable=True)  # For RAG integration - vector embedding ID

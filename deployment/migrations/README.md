@@ -5,6 +5,7 @@ This directory contains SQL migration files for the Sedi backend database.
 ## Migration Files
 
 - `001_add_dedupe_key_to_notifications.sql` - Adds `dedupe_key` column and indexes to notifications table (Release B - Part B1)
+- `002_add_device_events.sql` - Creates `device_events` table for device ingestion platform (Release C1)
 
 ## How to Apply Migrations
 

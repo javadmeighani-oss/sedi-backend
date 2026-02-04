@@ -128,6 +128,94 @@ curl -X POST "http://localhost:8000/notifications/1/feedback?user_id=1" \
 
 ---
 
+# Release C1: Device Ingestion Examples
+
+## Ingest Heart Rate Event
+
+```bash
+# Set device token (must match DEVICE_INGEST_TOKEN env var)
+export DEVICE_TOKEN="your-secret-token"
+
+# Ingest heart rate event
+curl -X POST "http://localhost:8000/device/ingest" \
+  -H "Content-Type: application/json" \
+  -H "X-DEVICE-TOKEN: $DEVICE_TOKEN" \
+  -d '{
+    "user_id": 1,
+    "device_id": "Sedi001",
+    "event_type": "heart_rate",
+    "payload": {
+      "bpm": 82,
+      "quality": "good"
+    },
+    "recorded_at": "2026-02-02T10:30:00Z"
+  }'
+```
+
+**Response (Success):**
+```json
+{
+  "ok": true,
+  "data": {
+    "event_id": 123,
+    "dedupe_key": "heart_rate:1:2026-02-02T10:30"
+  }
+}
+```
+
+**Response (Duplicate):**
+```json
+{
+  "ok": true,
+  "data": {
+    "event_id": null,
+    "dedupe_key": "heart_rate:1:2026-02-02T10:30",
+    "message": "Event already exists (duplicate)"
+  }
+}
+```
+
+**Response (Invalid Token):**
+```json
+{
+  "detail": "Invalid device token"
+}
+```
+
+## Verify Device Events in Database
+
+```sql
+-- Check device_events table
+SELECT id, user_id, device_id, event_type, payload_json, recorded_at, received_at, dedupe_key
+FROM device_events
+ORDER BY received_at DESC
+LIMIT 10;
+
+-- Check memory facts created from device events
+SELECT id, user_id, domain, key, value_json, source, last_seen_at
+FROM user_memory_facts
+WHERE source = 'device' AND domain = 'vitals'
+ORDER BY last_seen_at DESC
+LIMIT 10;
+
+-- Verify no duplicates by dedupe_key
+SELECT event_type, dedupe_key, COUNT(*) as count
+FROM device_events
+WHERE received_at > NOW() - INTERVAL '24 hours'
+GROUP BY event_type, dedupe_key
+HAVING COUNT(*) > 1;
+```
+
+## Notes
+
+- Requires `X-DEVICE-TOKEN` header matching `DEVICE_INGEST_TOKEN` environment variable
+- Events are deduplicated using 5-minute time buckets
+- Heart rate events are automatically mapped to `vitals.heart_rate_bpm` memory fact
+- Health alerts are triggered rule-based (no AI) when heart rate is outside safe range (60-100 bpm by default)
+- Alerts respect existing notification dedupe/rate-limit policies
+
+---
+
 # Release B3: DB Verification (Production)
 
 ## Verify no legacy notification types exist
