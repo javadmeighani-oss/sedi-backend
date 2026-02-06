@@ -50,8 +50,10 @@ jobs:
             # Navigate to backend directory
             cd /var/www/sedi/backend
             
-            # Discard any local changes and sync with remote (server must match repo)
+            # Force server to match remote (no merge; discard all local changes)
             echo "📥 Syncing with Git (discarding local changes)..."
+            git reset --hard HEAD
+            git clean -fd
             git fetch origin
             git reset --hard origin/main || {
               echo "❌ Git sync failed"
