@@ -52,7 +52,7 @@ jobs:
             
             # Discard any local changes and sync with remote (server must match repo)
             echo "📥 Syncing with Git (discarding local changes)..."
-            git fetch origin main
+            git fetch origin
             git reset --hard origin/main || {
               echo "❌ Git sync failed"
               exit 1
