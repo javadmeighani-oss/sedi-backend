@@ -261,7 +261,7 @@ def ingest_device_event(
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
 
     except HTTPException as e:
-        # Preserve correct HTTP status codes (e.g., 401/429/422). Do not log stacktrace for expected auth/validation failures.
+        # Preserve correct HTTP status codes (e.g., 401/429/422). Do not swallow auth/validation exceptions.
         logger.debug("[DEVICE_INGEST] Re-raising HTTPException status_code=%s", e.status_code)
         raise
 
