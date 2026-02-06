@@ -50,10 +50,13 @@ jobs:
             # Navigate to backend directory
             cd /var/www/sedi/backend
             
-            # Pull latest changes
-            echo "📥 Pulling latest changes from Git..."
-            git pull origin main || {
-              echo "❌ Git pull failed"
+            # Force server to match remote (no merge; discard all local changes)
+            echo "📥 Syncing with Git (discarding local changes)..."
+            git reset --hard HEAD
+            git clean -fd
+            git fetch origin
+            git reset --hard origin/main || {
+              echo "❌ Git sync failed"
               exit 1
             }
             
