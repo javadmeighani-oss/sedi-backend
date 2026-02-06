@@ -257,8 +257,8 @@ def ingest_device_event(
     except DeviceRateLimitExceeded as e:
         # Return 429 (do not write to DB)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
-    except HTTPException as e:
-        # Preserve correct HTTP status codes (e.g., 401/429/422)
+    except HTTPException:
+        # Preserve correct HTTP status codes (e.g., 401/429/422).
         raise
     except Exception as e:
         logger.exception("[DEVICE_INGEST] Unexpected error (returning HTTP 500): %s", e)
