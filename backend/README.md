@@ -122,6 +122,11 @@ frontend/
 - **REST API** (تعریف شده در `backend/app/routers/`)
 - **Notification Contract** (تعریف شده در `backend/docs/notification_contract.md`)
 
+## Release notes
+
+- **Release C (closed):** DB evidence in the Release C test script is non-interactive. If `DATABASE_URL` is not set (or no password available), DB evidence is skipped with INFO status (`SKIPPED_NO_DATABASE_URL`, `SKIPPED_NO_PASSWORD`, etc.) and does not fail the run. Evidence folder always contains `summary.json`.
+- **Release D (skeleton):** A rule-based Decision Engine exists under `app/decision_engine/`. It consumes ingested device events and returns a `Decision` (none / notify / store_only). It can be exercised via `POST /decision/evaluate` with a JSON event body. Memory/notification side effects are planned for later steps.
+
 ---
 
 **نسخه:** 2.0.1  

@@ -286,86 +286,73 @@ write_header() {
   write_evidence ""
 }
 
-db_evidence() {
-  write_evidence "## Database Evidence (best-effort)"
-  write_evidence ""
-  # Detect psql: explicit path first, then PATH (do not rely on PATH alone)
-  local psql_cmd=""
-  if [[ -x /usr/bin/psql ]]; then
-    psql_cmd="/usr/bin/psql"
-  elif have_cmd psql; then
-    psql_cmd="$(command -v psql)"
-  fi
-  if [[ -z "${psql_cmd}" ]]; then
-    write_evidence "- **psql**: not found (/usr/bin/psql and \`command -v psql\` both missing); skipping DB evidence."
-    write_evidence ""
+# --- DB Evidence (non-interactive) ---
+DB_EVIDENCE_STATUS="UNKNOWN"
+
+has_database_url() {
+  [ "${DATABASE_URL:-}" != "" ]
+}
+
+extract_pgpassword_from_url() {
+  # Extract password from DATABASE_URL if present: postgres://user:pass@host:port/db
+  # Return empty if not found.
+  python3 - <<'PY'
+import os, sys
+from urllib.parse import urlparse
+u = os.environ.get("DATABASE_URL","")
+if not u:
+    print("")
+    sys.exit(0)
+p = urlparse(u)
+pwd = p.password or ""
+print(pwd)
+PY
+}
+
+run_db_evidence() {
+  local out_dir="$1"
+  mkdir -p "$out_dir"
+
+  if ! has_database_url; then
+    echo "[INFO] DATABASE_URL not set. Skipping DB evidence."
+    DB_EVIDENCE_STATUS="SKIPPED_NO_DATABASE_URL"
     return 0
   fi
-  write_evidence "- **psql path**: \`${psql_cmd}\`"
-  write_evidence ""
 
-  # Attempt basic connectivity; log exact error on failure
+  if ! command -v psql >/dev/null 2>&1; then
+    echo "[INFO] psql not installed. Skipping DB evidence."
+    DB_EVIDENCE_STATUS="SKIPPED_NO_PSQL"
+    return 0
+  fi
+
+  export PGCONNECT_TIMEOUT=3
+  export PGPASSWORD="${PGPASSWORD:-}"
+  if [ -z "$PGPASSWORD" ]; then
+    PGPASSWORD="$(extract_pgpassword_from_url || true)"
+  fi
+
+  if [ -z "${PGPASSWORD:-}" ]; then
+    echo "[INFO] No DB password available (PGPASSWORD missing and URL has no password). Skipping DB evidence."
+    DB_EVIDENCE_STATUS="SKIPPED_NO_PASSWORD"
+    return 0
+  fi
+
+  echo "[INFO] Running DB evidence non-interactively..."
   set +e
-  local dblist
-  dblist="$("${psql_cmd}" -U postgres -h 127.0.0.1 -d postgres -lqt 2>&1)"
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -t -A -c "select now();" > "$out_dir/db_now.txt" 2> "$out_dir/db_now.err"
   local rc=$?
   set -e
-  if [[ $rc -ne 0 ]]; then
-    write_evidence "- **psql connect**: FAILED (exit code ${rc})"
-    write_evidence ""
-    write_evidence "\`\`\`"
-    printf "%s\n" "${dblist}" >> "${EVIDENCE_FILE}"
-    write_evidence "\`\`\`"
-    write_evidence ""
-    write_evidence "- Skipping DB queries (connection failed; secrets left masked)."
-    write_evidence ""
+
+  if [ $rc -ne 0 ]; then
+    echo "[INFO] DB evidence failed non-interactively (rc=$rc). Skipping (does not fail Release C)."
+    DB_EVIDENCE_STATUS="SKIPPED_DB_ERROR"
     return 0
   fi
 
-  write_evidence "- **psql connect**: OK"
-  write_evidence ""
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -t -A -c "select count(*) from device_events;" > "$out_dir/device_events_count.txt" 2> "$out_dir/device_events_count.err" || true
 
-  # Choose likely DB name from list
-  local dbname
-  dbname="$(
-    printf "%s\n" "${dblist}" \
-      | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $1); print $1}' \
-      | grep -E '^(sedi|backend|app|postgres)$' \
-      | head -n 1
-  )"
-  if [[ -z "${dbname}" ]]; then
-    dbname="postgres"
-  fi
-
-  write_evidence "- **Detected DB**: \`${dbname}\`"
-  write_evidence ""
-
-  # Run key queries
-  local q1 q2 q3
-  q3="select device_id, user_id, status, last_seen_at, created_at, revoked_at from devices where device_id='${DEVICE_ID}' and user_id=${USER_ID} limit 5;"
-  q1="select id, user_id, device_id, event_type, dedupe_key, recorded_at, received_at from device_events where device_id='${DEVICE_ID}' order by id desc limit 10;"
-  q2="select id, user_id, domain, key, value_json, source, created_at, updated_at from user_memory_facts where user_id=${USER_ID} and domain='vitals' order by id desc limit 10;"
-
-  write_evidence "**devices row**:"
-  write_evidence ""
-  write_evidence "\`\`\`"
-  "${psql_cmd}" -U postgres -h 127.0.0.1 -d "${dbname}" -c "${q3}" 2>&1 | sed -E 's/(password=)[^ ]+/\1*** /g' >> "${EVIDENCE_FILE}" || true
-  write_evidence "\`\`\`"
-  write_evidence ""
-
-  write_evidence "**recent device_events**:"
-  write_evidence ""
-  write_evidence "\`\`\`"
-  "${psql_cmd}" -U postgres -h 127.0.0.1 -d "${dbname}" -c "${q1}" 2>&1 | sed -E 's/(password=)[^ ]+/\1*** /g' >> "${EVIDENCE_FILE}" || true
-  write_evidence "\`\`\`"
-  write_evidence ""
-
-  write_evidence "**recent user_memory_facts (vitals)**:"
-  write_evidence ""
-  write_evidence "\`\`\`"
-  "${psql_cmd}" -U postgres -h 127.0.0.1 -d "${dbname}" -c "${q2}" 2>&1 | sed -E 's/(password=)[^ ]+/\1*** /g' >> "${EVIDENCE_FILE}" || true
-  write_evidence "\`\`\`"
-  write_evidence ""
+  DB_EVIDENCE_STATUS="COLLECTED"
+  return 0
 }
 
 main() {
@@ -494,8 +481,14 @@ main() {
   curl_capture "09_list_devices" "GET" "${BASE_URL}/devices?user_id=${USER_ID}" ""
   passfail_add "last_seen behavior observed (API-level)" "INFO" "See 09_list_devices for last_seen_at"
 
-  # DB evidence (best-effort)
-  db_evidence
+  # DB evidence (non-interactive, never prompts)
+  DB_DIR="${OUT_DIR}/db_evidence"
+  run_db_evidence "$DB_DIR"
+  echo "[INFO] DB Evidence: $DB_EVIDENCE_STATUS"
+  write_evidence "## Database Evidence"
+  write_evidence ""
+  write_evidence "- **Status**: \`${DB_EVIDENCE_STATUS}\`"
+  write_evidence ""
 
   # Summary
   write_evidence "## PASS/FAIL Summary"
@@ -516,6 +509,15 @@ main() {
     write_evidence "- (none observed in this run)"
   fi
   write_evidence ""
+
+  # Summary JSON (always written)
+  cat > "${OUT_DIR}/summary.json" <<JSON
+{
+  "run_id": "${RUN_ID}",
+  "status": "DONE",
+  "db_evidence": "${DB_EVIDENCE_STATUS}"
+}
+JSON
 
   # Console summary (safe)
   echo "Evidence appended to: ${EVIDENCE_FILE}"

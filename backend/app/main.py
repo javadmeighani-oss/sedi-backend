@@ -13,6 +13,7 @@ from app.routers import (
     conditions,
     device,
     devices,
+    decision,
 )
 from app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -53,6 +54,7 @@ app.include_router(ai_core.router, prefix="/ai_core", tags=["AI Core"])
 app.include_router(conditions.router, prefix="/conditions", tags=["Medical Conditions"])
 app.include_router(device.router, prefix="/device", tags=["Device"])
 app.include_router(devices.router, prefix="/devices", tags=["Devices"])
+app.include_router(decision.router)
 
 # ------------------ Activate Scheduler ------------------
 from app.core.scheduler import start_scheduler
