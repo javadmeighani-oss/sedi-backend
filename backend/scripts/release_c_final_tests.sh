@@ -32,88 +32,67 @@ mask_token() {
   fi
 }
 
-json_get() {
-  # Extract a field from JSON via jq if available, else python.
-  # usage: echo "$json" | json_get ".data.token"
-  local expr="$1"
-  if have_cmd jq; then
-    jq -r "${expr}"
-    return
+json_get_file() {
+  # Read JSON from file and extract field by dot path (avoids stdin JSONDecodeError).
+  # usage: json_get_file "$file" ".data.token"
+  local file="$1"
+  local expr="$2"
+  if [[ ! -s "$file" ]]; then
+    echo "ERROR: missing/empty JSON file: $file" >&2
+    return 1
   fi
   if have_cmd python3; then
-    python3 - <<PY
+    python3 - "$file" "$expr" <<'PY'
 import json, sys
-data = json.load(sys.stdin)
-expr = ${expr@Q}
-if not expr.startswith("."):
-  print("")
-  sys.exit(0)
-keys = [k for k in expr.lstrip(".").split(".") if k]
+path = sys.argv[1]
+expr = sys.argv[2]
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
 cur = data
-for k in keys:
-  if isinstance(cur, dict) and k in cur:
-    cur = cur[k]
-  else:
-    cur = None
-    break
+for part in expr.lstrip(".").split("."):
+    if part == "":
+        continue
+    if isinstance(cur, dict) and part in cur:
+        cur = cur[part]
+    else:
+        cur = None
+        break
 if cur is None:
-  print("")
+    print("")
 elif isinstance(cur, (dict, list)):
-  print(json.dumps(cur))
+    print(json.dumps(cur, ensure_ascii=False))
 else:
-  print(cur)
+    print(cur)
 PY
     return
   fi
   if have_cmd python; then
-    python - <<PY
+    python - "$file" "$expr" <<'PY'
 import json, sys
-data = json.load(sys.stdin)
-expr = ${expr@Q}
-if not expr.startswith("."):
-  print("")
-  sys.exit(0)
-keys = [k for k in expr.lstrip(".").split(".") if k]
+path = sys.argv[1]
+expr = sys.argv[2]
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
 cur = data
-for k in keys:
-  if isinstance(cur, dict) and k in cur:
-    cur = cur[k]
-  else:
-    cur = None
-    break
+for part in expr.lstrip(".").split("."):
+    if part == "":
+        continue
+    if isinstance(cur, dict) and part in cur:
+        cur = cur[part]
+    else:
+        cur = None
+        break
 if cur is None:
-  print("")
+    print("")
 elif isinstance(cur, (dict, list)):
-  print(json.dumps(cur))
+    print(json.dumps(cur, ensure_ascii=False))
 else:
-  print(cur)
+    print(cur)
 PY
     return
   fi
-  # Last-resort fallback (no jq/python): minimal regex extraction for the few fields we need.
-  # WARNING: not a general JSON parser; good enough for these test responses.
-  local raw
-  raw="$(cat)"
-  case "${expr}" in
-    ".data.token")
-      printf "%s" "${raw}" | sed -nE 's/.*"token"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -n 1
-      ;;
-    ".data.event_id")
-      printf "%s" "${raw}" | sed -nE 's/.*"event_id"[[:space:]]*:[[:space:]]*([^,}]+).*/\1/p' | head -n 1
-      ;;
-    ".data.message")
-      printf "%s" "${raw}" | sed -nE 's/.*"message"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -n 1
-      ;;
-    ".ok")
-      printf "%s" "${raw}" | sed -nE 's/.*"ok"[[:space:]]*:[[:space:]]*(true|false).*/\1/p' | head -n 1
-      ;;
-    ".error.code")
-      printf "%s" "${raw}" | sed -nE 's/.*"code"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -n 1
-      ;;
-    *)
-      echo ""
-      ;;
-  esac
+  echo "ERROR: python3 or python required for json_get_file" >&2
+  return 1
 }
 
 write_evidence() {
@@ -363,7 +342,7 @@ main() {
 
   local reg_json="${OUT_DIR}/01_register_token1.json"
   local token1
-  token1="$(cat "${reg_json}" | json_get ".data.token")"
+  token1="$(json_get_file "${reg_json}" ".data.token")"
 
   if [[ -n "${token1}" && "${token1}" != "null" ]]; then
     passfail_add "Register issues device token" "PASS" "token1=$(mask_token "${token1}")"
@@ -375,7 +354,7 @@ main() {
   curl_capture "02_reregister_token2" "POST" "${reg_url}" "${reg_body}"
   local reg2_json="${OUT_DIR}/02_reregister_token2.json"
   local token2
-  token2="$(cat "${reg2_json}" | json_get ".data.token")"
+  token2="$(json_get_file "${reg2_json}" ".data.token")"
 
   if [[ -n "${token2}" && "${token2}" != "null" ]]; then
     if [[ -n "${token1}" && "${token1}" != "null" && "${token2}" != "${token1}" ]]; then
@@ -408,8 +387,8 @@ main() {
 
   local ing_json="${OUT_DIR}/05_ingest_token2.json"
   local event_id ok_flag
-  ok_flag="$(cat "${ing_json}" | json_get ".ok")"
-  event_id="$(cat "${ing_json}" | json_get ".data.event_id")"
+  ok_flag="$(json_get_file "${ing_json}" ".ok")"
+  event_id="$(json_get_file "${ing_json}" ".data.event_id")"
   if [[ "${ok_flag}" == "true" && -n "${event_id}" && "${event_id}" != "null" ]]; then
     passfail_add "Ingest with token2 works (200 and event_id returned)" "PASS" "event_id=${event_id}"
   else
@@ -420,8 +399,8 @@ main() {
   curl_capture "06_ingest_duplicate" "POST" "${ingest_url}" "${ingest_body}" "${token2:-}"
   local dup_json="${OUT_DIR}/06_ingest_duplicate.json"
   local dup_msg dup_event_id
-  dup_msg="$(cat "${dup_json}" | json_get ".data.message")"
-  dup_event_id="$(cat "${dup_json}" | json_get ".data.event_id")"
+  dup_msg="$(json_get_file "${dup_json}" ".data.message")"
+  dup_event_id="$(json_get_file "${dup_json}" ".data.event_id")"
   if [[ "${dup_msg}" == "Event already exists (duplicate)" && ( "${dup_event_id}" == "" || "${dup_event_id}" == "null" ) ]]; then
     passfail_add "Ingest duplicate does NOT create new event" "PASS" "message=${dup_msg}"
   else
@@ -434,8 +413,8 @@ main() {
   local old_json="${OUT_DIR}/07_ingest_old_token1.json"
   local old_status old_ok old_err_code
   old_status="$(get_status_from_capture "${old_txt}")"
-  old_ok="$(cat "${old_json}" | json_get ".ok")"
-  old_err_code="$(cat "${old_json}" | json_get ".error.code")"
+  old_ok="$(json_get_file "${old_json}" ".ok")"
+  old_err_code="$(json_get_file "${old_json}" ".error.code")"
 
   if [[ "${old_status}" == "401" ]]; then
     passfail_add "Ingest with invalid/old token returns HTTP 401" "PASS" "status=401"
