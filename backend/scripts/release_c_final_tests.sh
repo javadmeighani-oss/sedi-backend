@@ -20,6 +20,48 @@ mkdir -p "${OUT_DIR}"
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+wait_for_http_ok() {
+  # Wait up to 30s for service to respond with HTTP 200 (avoids "Connection refused" after restart).
+  local max=30
+  local port=8000
+  if [[ "${BASE_URL}" =~ ://([^:/]+):([0-9]+) ]]; then
+    port="${BASH_REMATCH[2]}"
+  fi
+  local fallback_url="http://127.0.0.1:${port}/"
+  local try_fallback=0
+  if [[ "${BASE_URL}" != *"127.0.0.1"* && "${BASE_URL}" != *"localhost"* ]]; then
+    try_fallback=1
+  fi
+  local url_with_slash="${BASE_URL%/}/"
+  echo -n "Waiting for service at ${url_with_slash} (max ${max}s)..." >&2
+  local i=0
+  while [[ $i -lt $max ]]; do
+    local code=""
+    code="$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "${url_with_slash}" 2>/dev/null)" || true
+    if [[ "${code}" == "200" ]]; then
+      echo " OK (HTTP 200)" >&2
+      return 0
+    fi
+    if [[ $try_fallback -eq 1 ]]; then
+      code="$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "${fallback_url}" 2>/dev/null)" || true
+      if [[ "${code}" == "200" ]]; then
+        echo " OK (HTTP 200 via 127.0.0.1:${port})" >&2
+        return 0
+      fi
+    fi
+    sleep 1
+    i=$((i + 1))
+    echo -n "." >&2
+  done
+  echo " TIMEOUT" >&2
+  echo "ERROR: service did not respond with HTTP 200 within ${max}s" >&2
+  echo "--- systemctl status sedi-backend ---" >&2
+  systemctl status sedi-backend 2>&1 | head -20 >&2 || true
+  echo "--- ss -lntp | grep :8000 ---" >&2
+  ss -lntp 2>&1 | grep ":8000" >&2 || true
+  exit 1
+}
+
 mask_token() {
   # Mask any token-like secret (show only prefix/suffix)
   # usage: mask_token "rawtoken"
@@ -327,6 +369,7 @@ db_evidence() {
 }
 
 main() {
+  wait_for_http_ok
   write_header
   passfail_init
 
