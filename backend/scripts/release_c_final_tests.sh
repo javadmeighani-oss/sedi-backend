@@ -168,6 +168,25 @@ curl_capture() {
   status="$(grep -Eo 'CURL_HTTP_STATUS:[0-9]+' "${out}" | tail -n 1 | cut -d: -f2 || true)"
   if [[ -z "${status}" ]]; then status="(unknown)"; fi
 
+  # Extract JSON body only (first "{" up to line before CURL_HTTP_STATUS:) into .json for parsing
+  local json_file="${OUT_DIR}/${name}.json"
+  awk 'BEGIN{p=0} /^\{/{p=1} /^CURL_HTTP_STATUS:/{p=0} p{print}' "${out}" > "${json_file}" || true
+  if [[ ! -s "${json_file}" ]]; then
+    echo "ERROR: empty JSON body for ${name} (${json_file})" >&2
+    exit 1
+  fi
+  if have_cmd python3; then
+    python3 -c "import json, sys; json.load(open(sys.argv[1]))" "${json_file}" 2>/dev/null || {
+      echo "ERROR: invalid JSON for ${name} (${json_file})" >&2
+      exit 1
+    }
+  elif have_cmd python; then
+    python -c "import json, sys; json.load(open(sys.argv[1]))" "${json_file}" 2>/dev/null || {
+      echo "ERROR: invalid JSON for ${name} (${json_file})" >&2
+      exit 1
+    }
+  fi
+
   # Extract a compact body snippet (best-effort)
   local body_snip
   body_snip="$(awk 'BEGIN{inbody=0} /^\r?$/{inbody=1; next} {if(inbody) print}' "${out}" | tail -n 60 | tr -d '\r' || true)"
@@ -342,11 +361,9 @@ main() {
   reg_body="$(printf '{"device_id":"%s","device_type":"heart_rate"}' "${DEVICE_ID}")"
   curl_capture "01_register_token1" "POST" "${reg_url}" "${reg_body}"
 
-  local reg_file="${OUT_DIR}/01_register_token1.txt"
-  local reg_body_json
-  reg_body_json="$(extract_body_json "${reg_file}")"
+  local reg_json="${OUT_DIR}/01_register_token1.json"
   local token1
-  token1="$(printf "%s" "${reg_body_json}" | json_get ".data.token")"
+  token1="$(cat "${reg_json}" | json_get ".data.token")"
 
   if [[ -n "${token1}" && "${token1}" != "null" ]]; then
     passfail_add "Register issues device token" "PASS" "token1=$(mask_token "${token1}")"
@@ -356,10 +373,9 @@ main() {
 
   # 2) Re-register -> token2 (rotation path)
   curl_capture "02_reregister_token2" "POST" "${reg_url}" "${reg_body}"
-  local reg2_file="${OUT_DIR}/02_reregister_token2.txt"
-  local reg2_body_json token2
-  reg2_body_json="$(extract_body_json "${reg2_file}")"
-  token2="$(printf "%s" "${reg2_body_json}" | json_get ".data.token")"
+  local reg2_json="${OUT_DIR}/02_reregister_token2.json"
+  local token2
+  token2="$(cat "${reg2_json}" | json_get ".data.token")"
 
   if [[ -n "${token2}" && "${token2}" != "null" ]]; then
     if [[ -n "${token1}" && "${token1}" != "null" && "${token2}" != "${token1}" ]]; then
@@ -390,11 +406,10 @@ main() {
   ingest_body="$(printf '{"user_id":%s,"device_id":"%s","event_type":"heart_rate","payload":{"bpm":82},"recorded_at":"%s"}' "${USER_ID}" "${DEVICE_ID}" "${recorded_at}")"
   curl_capture "05_ingest_token2" "POST" "${ingest_url}" "${ingest_body}" "${token2:-}"
 
-  local ing_file="${OUT_DIR}/05_ingest_token2.txt"
-  local ing_json event_id ok_flag
-  ing_json="$(extract_body_json "${ing_file}")"
-  ok_flag="$(printf "%s" "${ing_json}" | json_get ".ok")"
-  event_id="$(printf "%s" "${ing_json}" | json_get ".data.event_id")"
+  local ing_json="${OUT_DIR}/05_ingest_token2.json"
+  local event_id ok_flag
+  ok_flag="$(cat "${ing_json}" | json_get ".ok")"
+  event_id="$(cat "${ing_json}" | json_get ".data.event_id")"
   if [[ "${ok_flag}" == "true" && -n "${event_id}" && "${event_id}" != "null" ]]; then
     passfail_add "Ingest with token2 works (200 and event_id returned)" "PASS" "event_id=${event_id}"
   else
@@ -403,11 +418,10 @@ main() {
 
   # 6) Ingest duplicate (same recorded_at => same 5-min bucket dedupe)
   curl_capture "06_ingest_duplicate" "POST" "${ingest_url}" "${ingest_body}" "${token2:-}"
-  local dup_file="${OUT_DIR}/06_ingest_duplicate.txt"
-  local dup_json dup_msg dup_event_id
-  dup_json="$(extract_body_json "${dup_file}")"
-  dup_msg="$(printf "%s" "${dup_json}" | json_get ".data.message")"
-  dup_event_id="$(printf "%s" "${dup_json}" | json_get ".data.event_id")"
+  local dup_json="${OUT_DIR}/06_ingest_duplicate.json"
+  local dup_msg dup_event_id
+  dup_msg="$(cat "${dup_json}" | json_get ".data.message")"
+  dup_event_id="$(cat "${dup_json}" | json_get ".data.event_id")"
   if [[ "${dup_msg}" == "Event already exists (duplicate)" && ( "${dup_event_id}" == "" || "${dup_event_id}" == "null" ) ]]; then
     passfail_add "Ingest duplicate does NOT create new event" "PASS" "message=${dup_msg}"
   else
@@ -416,12 +430,12 @@ main() {
 
   # 7) Ingest with invalid/old token (token1) MUST be HTTP 401; if not, flag masking bug.
   curl_capture "07_ingest_old_token1" "POST" "${ingest_url}" "${ingest_body}" "${token1:-}"
-  local old_file="${OUT_DIR}/07_ingest_old_token1.txt"
-  local old_status old_json old_ok old_err_code
-  old_status="$(get_status_from_capture "${old_file}")"
-  old_json="$(extract_body_json "${old_file}")"
-  old_ok="$(printf "%s" "${old_json}" | json_get ".ok")"
-  old_err_code="$(printf "%s" "${old_json}" | json_get ".error.code")"
+  local old_txt="${OUT_DIR}/07_ingest_old_token1.txt"
+  local old_json="${OUT_DIR}/07_ingest_old_token1.json"
+  local old_status old_ok old_err_code
+  old_status="$(get_status_from_capture "${old_txt}")"
+  old_ok="$(cat "${old_json}" | json_get ".ok")"
+  old_err_code="$(cat "${old_json}" | json_get ".error.code")"
 
   if [[ "${old_status}" == "401" ]]; then
     passfail_add "Ingest with invalid/old token returns HTTP 401" "PASS" "status=401"
