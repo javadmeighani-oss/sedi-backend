@@ -251,21 +251,24 @@ def ingest_device_event(
             ok=False,
             error={"code": "VALIDATION_ERROR", "message": str(e)}
         )
+
     except VitalValidationError as e:
         # Schema-driven validation errors -> 422
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+
     except DeviceRateLimitExceeded as e:
         # Return 429 (do not write to DB)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+
     except HTTPException:
         # Preserve correct HTTP status codes (e.g., 401/429/422).
         raise
+
     except Exception as e:
-        logger.exception("[DEVICE_INGEST] Unexpected error (returning HTTP 500): %s", e)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "ok": False,
-                "error": {"code": "INTERNAL_ERROR", "message": "Failed to ingest event"},
-            },
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[DEVICE_INGEST] Endpoint error: {e}", exc_info=True)
+        return DeviceIngestResponse(
+            ok=False,
+            error={"code": "INTERNAL_ERROR", "message": "Failed to ingest event"}
         )
