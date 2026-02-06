@@ -246,20 +246,20 @@ def ingest_device_event(
             }
         )
     
-    except HTTPException:
-        # Preserve 401, 422, 429, etc. from auth/validation/rate-limit
-        raise
+    except ValueError as e:
+        return DeviceIngestResponse(
+            ok=False,
+            error={"code": "VALIDATION_ERROR", "message": str(e)}
+        )
     except VitalValidationError as e:
         # Schema-driven validation errors -> 422
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except DeviceRateLimitExceeded as e:
         # Return 429 (do not write to DB)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
-    except ValueError as e:
-        return DeviceIngestResponse(
-            ok=False,
-            error={"code": "VALIDATION_ERROR", "message": str(e)}
-        )
+    except HTTPException as e:
+        # Preserve correct HTTP status codes (e.g., 401/429/422)
+        raise
     except Exception as e:
         logger.exception("[DEVICE_INGEST] Unexpected error (returning HTTP 500): %s", e)
         return JSONResponse(
