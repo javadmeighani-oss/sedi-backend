@@ -416,13 +416,19 @@ main() {
   curl_capture "05_ingest_token2" "POST" "${ingest_url}" "${ingest_body}" "${token2:-}"
 
   local ing_json="${OUT_DIR}/05_ingest_token2.json"
-  local event_id ok_flag
+  local ing_txt="${OUT_DIR}/05_ingest_token2.txt"
+  local event_id ok_flag ing_status ing_detail
+  ing_status="$(get_status_from_capture "${ing_txt}")"
   ok_flag="$(json_get_file "${ing_json}" ".ok")"
   event_id="$(json_get_file "${ing_json}" ".data.event_id")"
+  ing_detail="$(json_get_file "${ing_json}" ".detail")"
+  if [[ -z "${ing_detail}" ]]; then
+    ing_detail="$(json_get_file "${ing_json}" ".error.message")"
+  fi
   if [[ "${ok_flag}" == "true" && -n "${event_id}" && "${event_id}" != "null" ]]; then
     passfail_add "Ingest with token2 works (200 and event_id returned)" "PASS" "event_id=${event_id}"
   else
-    passfail_add "Ingest with token2 works (200 and event_id returned)" "FAIL" "ok=${ok_flag} event_id=${event_id}"
+    passfail_add "Ingest with token2 works (200 and event_id returned)" "FAIL" "status=${ing_status} ok=${ok_flag} event_id=${event_id} detail=${ing_detail} header=${DEVICE_AUTH_HEADER}"
   fi
 
   # 6) Ingest duplicate (same recorded_at => same 5-min bucket dedupe)
@@ -446,11 +452,16 @@ main() {
   old_ok="$(json_get_file "${old_json}" ".ok")"
   old_err_code="$(json_get_file "${old_json}" ".error.code")"
 
+  local old_detail
+  old_detail="$(json_get_file "${old_json}" ".detail")"
+  if [[ -z "${old_detail}" ]]; then
+    old_detail="$(json_get_file "${old_json}" ".error.message")"
+  fi
   if [[ "${old_status}" == "401" ]]; then
     passfail_add "Ingest with invalid/old token returns HTTP 401" "PASS" "status=401"
   else
     # Many routers mistakenly mask HTTPException into 200 + ok:false
-    passfail_add "Ingest with invalid/old token returns HTTP 401" "FAIL" "status=${old_status} ok=${old_ok} error.code=${old_err_code} (BUG: HTTP status masking?)"
+    passfail_add "Ingest with invalid/old token returns HTTP 401" "FAIL" "status=${old_status} ok=${old_ok} error.code=${old_err_code} detail=${old_detail} header=${DEVICE_AUTH_HEADER} (BUG: HTTP status masking?)"
   fi
 
   # 8) Rate limit: burst ingestion requests until 429 observed (best-effort).

@@ -54,11 +54,18 @@ def hash_device_token(token: str) -> str:
     return _hash_token(token)
 
 
+def _token_snippet(token: str) -> str:
+    """Safe prefix/suffix for logging (never full token)."""
+    if not token or len(token) <= 8:
+        return "***"
+    return f"{token[:4]}...{token[-4:]}"
+
+
 def get_device_token(x_device_token: str = Header(..., alias="X-DEVICE-TOKEN")) -> str:
     """
     Extract X-DEVICE-TOKEN header (always required on ingestion).
     """
-    return x_device_token
+    return (x_device_token or "").strip()
 
 
 def validate_device_token(
@@ -75,6 +82,7 @@ def validate_device_token(
     - sha256(token) must match token_hash
     - update last_seen_at on success
     """
+    token = (token or "").strip()
     token_hash = _hash_token(token)
     device = (
         db.query(Device)
@@ -86,10 +94,22 @@ def validate_device_token(
     )
 
     if not device:
+        logger.debug(
+            "[DEVICE_AUTH] validate_device_token reject reason=device_not_found device_id=%s user_id=%s token_snippet=%s",
+            device_id, user_id, _token_snippet(token),
+        )
         return None
     if device.status != "active":
+        logger.debug(
+            "[DEVICE_AUTH] validate_device_token reject reason=status_not_active device_id=%s status=%s token_snippet=%s",
+            device_id, device.status, _token_snippet(token),
+        )
         return None
     if device.token_hash != token_hash:
+        logger.debug(
+            "[DEVICE_AUTH] validate_device_token reject reason=token_hash_mismatch device_id=%s user_id=%s token_snippet=%s",
+            device_id, user_id, _token_snippet(token),
+        )
         return None
 
     # Update last_seen_at (best-effort)
@@ -124,6 +144,11 @@ def authorize_device_or_legacy(
     if mode not in ("hybrid", "db_only", "legacy_only"):
         mode = "hybrid"
 
+    logger.debug(
+        "[DEVICE_AUTH] authorize mode=%s device_id=%s user_id=%s token_snippet=%s",
+        mode, device_id, user_id, _token_snippet(token),
+    )
+
     # DB mode (requires device_id)
     if mode in ("hybrid", "db_only"):
         if not device_id:
@@ -142,7 +167,7 @@ def authorize_device_or_legacy(
 
     # Legacy fallback
     legacy = _get_legacy_token()
-    if legacy and token == legacy:
+    if legacy and token == legacy.strip():
         logger.info(f"[DEVICE_AUTH] mode={mode} result=legacy_ok device_id={device_id} user={user_id}")
         return "legacy", None
 
@@ -152,6 +177,10 @@ def authorize_device_or_legacy(
             detail="Device ingestion is not configured (DEVICE_INGEST_TOKEN not set)"
         )
 
+    logger.debug(
+        "[DEVICE_AUTH] reject reason=no_db_match_and_legacy_fail mode=%s device_id=%s user_id=%s token_snippet=%s",
+        mode, device_id, user_id, _token_snippet(token),
+    )
     logger.info(f"[DEVICE_AUTH] mode={mode} result=reject device_id={device_id} user={user_id}")
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid device token")
 
