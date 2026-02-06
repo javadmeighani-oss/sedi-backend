@@ -260,15 +260,14 @@ def ingest_device_event(
         # Return 429 (do not write to DB)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
 
-    except HTTPException:
-        # Preserve correct HTTP status codes (e.g., 401/429/422).
+    except HTTPException as e:
+        # Preserve correct HTTP status codes (e.g., 401/429/422). Do not log stacktrace for expected auth/validation failures.
+        logger.debug("[DEVICE_INGEST] Re-raising HTTPException status_code=%s", e.status_code)
         raise
 
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"[DEVICE_INGEST] Endpoint error: {e}", exc_info=True)
-        return DeviceIngestResponse(
-            ok=False,
-            error={"code": "INTERNAL_ERROR", "message": "Failed to ingest event"}
+        logger.exception("Failed to ingest event")
+        return JSONResponse(
+            status_code=500,
+            content={"ok": False, "code": "INTERNAL_ERROR", "message": "Failed to ingest event"},
         )
