@@ -30,47 +30,39 @@ else
   echo "A2) from fastapi.responses import JSONResponse already present"
 fi
 
-# A3) Verify ingest_device_event has "except HTTPException as e: ... raise" BEFORE "except Exception as e:". If missing, patch.
+# A3) Patch exception block by markers (no function name). Idempotent: skip if HTTPException already before Exception.
 python3 << 'PYEOF'
-import re
-
 path = "app/routers/device.py"
 with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 
-# Find the body of ingest_device_event (content-based; no line-number assumption)
-def_match = re.search(
-    r"def ingest_device_event\s*\([^)]*\)\s*:.*?(?=\n(?:def |@router\.|\Z))",
-    content,
-    re.DOTALL,
-)
-if not def_match:
-    print("A3) ERROR: ingest_device_event not found")
+# Locate the unique block by markers: VitalValidationError then DeviceRateLimitExceeded then Exception (within a window)
+WINDOW = 3500
+start = content.find("except VitalValidationError as e:")
+if start == -1:
+    start = content.find("except VitalValidationError ")
+if start == -1:
+    print("A3) ERROR: except VitalValidationError not found")
     exit(1)
-func_body = def_match.group(0)
 
-# Check: "except HTTPException" block with "raise" must appear before "except Exception as e:"
-has_http_exception = "except HTTPException" in func_body and "raise" in func_body
-# Order: index of "except HTTPException" < index of "except Exception as e:"
-idx_http = func_body.find("except HTTPException")
-idx_generic = func_body.find("except Exception as e:")
-order_ok = (
-    idx_http >= 0
-    and idx_generic >= 0
-    and idx_http < idx_generic
-    and "raise" in func_body[idx_http : idx_generic]
-)
+window = content[start : start + WINDOW]
+# Must see DeviceRateLimitExceeded and Exception in order in this window
+if "except DeviceRateLimitExceeded" not in window or "except Exception as e:" not in window:
+    print("A3) ERROR: exception chain (VitalValidationError -> DeviceRateLimitExceeded -> Exception) not found in window")
+    exit(1)
 
-if order_ok:
-    print("A3) OK: except HTTPException ... raise already before except Exception as e: (no patch needed)")
+# Idempotent: if HTTPException already present before Exception in this block, skip
+idx_http = window.find("except HTTPException")
+idx_generic = window.find("except Exception as e:")
+if idx_http >= 0 and idx_generic >= 0 and idx_http < idx_generic and "raise" in window[idx_http:idx_generic]:
+    print("A3) SKIP: already patched")
     exit(0)
 
-# Patch: replace exception block by content (find start/end by markers, not line numbers)
-lines = content.splitlines(keepends=True)  # content from same file read above
-start_marker = "    except VitalValidationError as e:"
+# Find line-based span (preserve indentation; block is inside try)
+lines = content.splitlines(keepends=True)
 start_i = None
 for i, line in enumerate(lines):
-    if start_marker in line:
+    if "except VitalValidationError" in line:
         start_i = i
         break
 if start_i is None:
