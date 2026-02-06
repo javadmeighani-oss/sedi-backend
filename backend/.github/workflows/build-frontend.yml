@@ -8,7 +8,6 @@ on:
       - develop
     paths:
       - 'frontend/**'
-      - 'backend/**'  # Trigger on backend changes to ensure compatibility
       - '.github/workflows/build-frontend.yml'
   pull_request:
     branches:
@@ -17,7 +16,6 @@ on:
       - develop
     paths:
       - 'frontend/**'
-      - 'backend/**'
   workflow_dispatch:
 
 jobs:
