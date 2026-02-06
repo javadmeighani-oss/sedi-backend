@@ -10,6 +10,9 @@ from app.routers import (
     lifestyle,
     notifications,
     ai_core,
+    conditions,
+    device,
+    devices,
 )
 from app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -47,6 +50,9 @@ app.include_router(health.router, prefix="/health", tags=["Health Data"])
 app.include_router(lifestyle.router, prefix="/lifestyle", tags=["Lifestyle Data"])
 app.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 app.include_router(ai_core.router, prefix="/ai_core", tags=["AI Core"])
+app.include_router(conditions.router, prefix="/conditions", tags=["Medical Conditions"])
+app.include_router(device.router, prefix="/device", tags=["Device"])
+app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 
 # ------------------ Activate Scheduler ------------------
 from app.core.scheduler import start_scheduler

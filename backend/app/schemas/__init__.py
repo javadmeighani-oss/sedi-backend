@@ -14,6 +14,28 @@ from .notification import (
 )
 from .memory import MemoryCreate, MemoryResponse
 from .interaction import InteractionResponse
+from .medical import (
+    MedicalConditionBase,
+    MedicalConditionCreate,
+    MedicalConditionResponse,
+    MedicationBase,
+    MedicationCreate,
+    MedicationResponse,
+    UserConditionBase,
+    UserConditionCreate,
+    UserConditionResponse
+)
+from .device import (
+    DeviceIngestRequest,
+    DeviceIngestResponse,
+    DeviceEventResponse
+)
+from .devices import (
+    DeviceRegisterRequest,
+    DeviceRegisterResponse,
+    DevicePublicInfo,
+    DevicesListResponse,
+)
 
 __all__ = [
     # Common
@@ -41,5 +63,24 @@ __all__ = [
     "MemoryResponse",
     # Interaction
     "InteractionResponse",
+    # Medical
+    "MedicalConditionBase",
+    "MedicalConditionCreate",
+    "MedicalConditionResponse",
+    "MedicationBase",
+    "MedicationCreate",
+    "MedicationResponse",
+    "UserConditionBase",
+    "UserConditionCreate",
+    "UserConditionResponse",
+    # Device
+    "DeviceIngestRequest",
+    "DeviceIngestResponse",
+    "DeviceEventResponse",
+    # Devices (identity)
+    "DeviceRegisterRequest",
+    "DeviceRegisterResponse",
+    "DevicePublicInfo",
+    "DevicesListResponse",
 ]
 

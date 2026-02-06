@@ -24,19 +24,20 @@ def save_memory(payload: dict, db: Session = Depends(get_db)):
     if not user:
         return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
 
-    memory = models.Memory(
+    # Use DailyMemorySummary instead of Memory
+    memory_summary = models.DailyMemorySummary(
         user_id=user.id,
-        summary=payload.get("summary"),
+        summary=payload.get("summary", ""),
         mood=payload.get("mood"),
         context=payload.get("context"),
         last_interaction=datetime.utcnow(),
         created_at=datetime.utcnow()
     )
-    db.add(memory)
+    db.add(memory_summary)
     db.commit()
-    db.refresh(memory)
+    db.refresh(memory_summary)
 
-    return APIResponse(ok=True, data={"memory_id": memory.id})
+    return APIResponse(ok=True, data={"memory_id": memory_summary.id})
 
 
 @router.get("/latest", response_model=APIResponse)
@@ -44,10 +45,11 @@ def get_latest_memory(user_id: int, db: Session = Depends(get_db)):
     """
     دریافت آخرین حافظه ثبت‌شده برای کاربر
     """
+    # Use DailyMemorySummary instead of Memory
     record = (
-        db.query(models.Memory)
-        .filter(models.Memory.user_id == user_id)
-        .order_by(models.Memory.created_at.desc())
+        db.query(models.DailyMemorySummary)
+        .filter(models.DailyMemorySummary.user_id == user_id)
+        .order_by(models.DailyMemorySummary.created_at.desc())
         .first()
     )
 
@@ -58,7 +60,7 @@ def get_latest_memory(user_id: int, db: Session = Depends(get_db)):
         "summary": record.summary,
         "mood": record.mood,
         "context": record.context,
-        "last_interaction": record.last_interaction.isoformat()
+        "last_interaction": record.last_interaction.isoformat() if record.last_interaction else None
     }
 
     return APIResponse(ok=True, data=data)

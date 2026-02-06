@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app import models
 from app.schemas import APIResponse, ErrorInfo
+from app.services.notification_engine import DecisionEngine
 
 router = APIRouter()
 
@@ -93,15 +94,12 @@ def add_doctor_note(payload: dict, db: Session = Depends(get_db)):
 
     msg = f"Note from {payload.get('doctor_name')}: {payload.get('note')}"
 
-    notif = models.Notification(
+    # Use DecisionEngine instead of direct Notification creation
+    decision_engine = DecisionEngine(db)
+    notif = decision_engine.create_insight_notification(
         user_id=user.id,
-        type="doctor_note",
-        title="یادداشت پزشک",
-        message=msg,
-        priority=2,
-        created_at=datetime.utcnow(),
+        insight_text=msg,
+        priority="normal"
     )
-    db.add(notif)
-    db.commit()
 
     return APIResponse(ok=True, data={"note_added": True})

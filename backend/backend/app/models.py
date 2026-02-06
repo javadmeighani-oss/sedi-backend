@@ -1,0 +1,55 @@
+# app/models.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+from datetime import datetime
+from app.database import Base
+
+
+# -------------------- User --------------------
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=True, unique=False)  # User name (NOT unique - multiple users can have same name)
+    secret_key = Column(String, nullable=False, unique=False)      # رمز شخصی (NOT unique - multiple users can have same password)
+    preferred_language = Column(String, default="en", nullable=False, server_default="en")  # زبان انتخابی کاربر (NOT nullable - always has default)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # زمان ثبت‌نام (NOT nullable - always has default)
+
+
+# -------------------- Memory --------------------
+class Memory(Base):
+    __tablename__ = "memory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_message = Column(String, nullable=False)
+    sedi_response = Column(String, nullable=True)
+    language = Column(String, default="en")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# -------------------- HealthData --------------------
+class HealthData(Base):
+    __tablename__ = "health_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # CASCADE delete when user deleted
+    heart_rate = Column(String, nullable=True)
+    temperature = Column(String, nullable=True)
+    spo2 = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)
+
+
+# -------------------- Notification --------------------
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)  # CASCADE delete when user deleted, indexed for queries
+    type = Column(String, nullable=False)  # e.g. HEALTH, REMINDER, INSIGHT
+    title = Column(String, nullable=True)
+    body = Column(String, nullable=False)  # Notification body/message content
+    priority = Column(String, nullable=False, default="normal")  # low | normal | high | critical
+    is_read = Column(Boolean, default=False, nullable=False)
+    is_sent = Column(Boolean, default=False, nullable=False)  # Track if notification has been sent (for scheduler integration)
+    scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

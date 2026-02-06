@@ -251,14 +251,14 @@ class ConversationPrompts:
             
             # Wrap ONLY the GPT call in try/except
             try:
-                completion = client.chat.completions.create(
+                # STEP 1: Use Responses API for project-based keys (sk-proj-*)
+                completion = client.responses.create(
                     model="gpt-4o-mini",
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=200,
+                    input=messages
                 )
                 
-                response = completion.choices[0].message.content.strip()
+                # STEP 1: Extract response text using output_text
+                response = completion.output_text.strip()
                 
                 # ===== CHAT_GPT_CALL_SUCCESS - HARD LOGGING =====
                 print("=" * 80)
@@ -1122,14 +1122,14 @@ CRITICAL: همیشه از کانتکس کامل بالا استفاده کن. ه
             print(f"[PROMPTS DEBUG] User question: {user_message[:100]}...")
             print(f"[PROMPTS DEBUG] System prompt length: {len(base_prompt)}")
             
-            completion = client.chat.completions.create(
+            # STEP 1: Use Responses API for project-based keys (sk-proj-*)
+            completion = client.responses.create(
                 model="gpt-4o-mini",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=250,  # Increased to allow for complete answer + guidance
+                input=messages
             )
             
-            response = completion.choices[0].message.content.strip()
+            # STEP 1: Extract response text using output_text
+            response = completion.output_text.strip()
             print(f"[PROMPTS DEBUG] ✅ GPT response received: {response[:150]}...")
             print(f"[PROMPTS DEBUG] Response length: {len(response)}")
             

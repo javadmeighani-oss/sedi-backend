@@ -1,0 +1,134 @@
+name: Deploy Sedi Backend to Cloud Server
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'requirements.txt'
+      - 'deployment/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SEDI_DEPLOY_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 91.107.168.130 >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              -o ConnectTimeout=10 \
+              root@91.107.168.130 \
+              "echo 'SSH connection successful ✅'"
+
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              -o ConnectTimeout=10 \
+              root@91.107.168.130 << 'EOF'
+            set -e
+            echo "🚀 Starting deployment..."
+            
+            # Navigate to backend directory
+            cd /var/www/sedi/backend
+            
+            # Pull latest changes
+            echo "📥 Pulling latest changes from Git..."
+            git pull origin main || {
+              echo "❌ Git pull failed"
+              exit 1
+            }
+            
+            # Check if virtual environment exists
+            if [ ! -d ".venv" ]; then
+              echo "⚠️  Virtual environment not found, creating..."
+              python3 -m venv .venv
+            fi
+            
+            # Activate virtual environment and install/update dependencies
+            echo "📦 Checking dependencies..."
+            source .venv/bin/activate
+            pip install --quiet --upgrade pip
+            pip install --quiet -r requirements.txt || {
+              echo "⚠️  Some dependencies failed to install, continuing..."
+            }
+            
+            # Restart service
+            echo "🔄 Restarting service..."
+            systemctl restart sedi-backend || {
+              echo "❌ Service restart failed"
+              exit 1
+            }
+            
+            # Wait for service to start
+            sleep 5
+            
+            # Check service status
+            echo "📊 Checking service status..."
+            systemctl status sedi-backend --no-pager | head -15 || {
+              echo "❌ Service status check failed"
+              exit 1
+            }
+            
+            # Test API endpoint
+            echo "🧪 Testing API endpoint..."
+            if curl -f -s http://localhost:8000/ > /dev/null; then
+              echo "✅ API endpoint is responding"
+            else
+              echo "⚠️  API endpoint test failed (service may still be starting)"
+            fi
+            
+            echo "✅ Deployment completed successfully!"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          sleep 3
+          
+          # Test external API access
+          API_RESPONSE=$(curl -s -f http://91.107.168.130:8000/ || echo "FAILED")
+          
+          if [ "$API_RESPONSE" != "FAILED" ]; then
+            echo "✅ External API is accessible"
+            echo "$API_RESPONSE" | head -5
+          else
+            echo "⚠️  External API test failed (may be firewall issue)"
+          fi
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Server:** 91.107.168.130" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Deployment failed. Check logs above." >> $GITHUB_STEP_SUMMARY
+          fi
+
+# trigger deploy - 2024-12-27

@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'app/**'
+      - 'backend/**'
       - 'requirements.txt'
       - 'deployment/**'
       - '.github/workflows/deploy-backend.yml'
@@ -33,16 +34,14 @@ jobs:
 
       - name: Test SSH connection
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
+          ssh -o BatchMode=yes \
               -o ConnectTimeout=10 \
               root@91.107.168.130 \
               "echo 'SSH connection successful ✅'"
 
       - name: Deploy to Server
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
+          ssh -o BatchMode=yes \
               -o ConnectTimeout=10 \
               root@91.107.168.130 << 'EOF'
             set -e
@@ -57,6 +56,12 @@ jobs:
               echo "❌ Git pull failed"
               exit 1
             }
+            
+            # If repo has backend/ subfolder (e.g. pushed from Demo), use it
+            if [ -d backend ] && [ -f backend/requirements.txt ]; then
+              echo "📁 Using backend/ subfolder"
+              cd backend
+            fi
             
             # Check if virtual environment exists
             if [ ! -d ".venv" ]; then

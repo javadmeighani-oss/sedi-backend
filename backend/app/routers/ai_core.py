@@ -6,6 +6,7 @@ from app.database import get_db
 from app import models
 from app.schemas import APIResponse, ErrorInfo
 from app.core.ai_text_engine import generate_notification_text
+from app.services.notification_engine import DecisionEngine
 
 router = APIRouter()
 
@@ -61,21 +62,13 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
     # Extract message from notification data (handle both old and new formats)
     notif_message = notif_data.get("message", "Health analysis completed")
     
-    notif = models.Notification(
+    # Use DecisionEngine instead of direct Notification creation
+    decision_engine = DecisionEngine(db)
+    notif = decision_engine.create_insight_notification(
         user_id=user.id,
-        type="HEALTH",  # Updated to match new type enum
-        title="Health Update",
-        body=notif_message,  # Updated: message -> body
-        priority="normal",
-        is_read=False,
-        is_sent=False,
-        scheduled_for=None,
-        created_at=datetime.utcnow(),
+        insight_text=notif_message,
+        priority="normal"
     )
-
-    db.add(notif)
-    db.commit()
-    db.refresh(notif)
 
     # ثبت در حافظه‌ی صدی
     memory = models.Memory(

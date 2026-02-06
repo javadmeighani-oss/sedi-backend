@@ -1,0 +1,6 @@
+# Runtime Testing Inputs for Release C Final Tests
+# Extracted from codebase without modifications
+
+BASE_URL=http://91.107.168.130:8000
+HEADER=X-DEVICE-TOKEN
+SAMPLE_INGEST_JSON={"user_id": 1, "device_id": "Sedi001", "event_type": "heart_rate", "payload": {"bpm": 82}}

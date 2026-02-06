@@ -1,0 +1,187 @@
+{
+  "conditions": [
+    {
+      "code": "ALS",
+      "name": "Amyotrophic Lateral Sclerosis",
+      "description": "A progressive neurodegenerative disease affecting motor neurons",
+      "category": "chronic",
+      "chronic": true,
+      "severity_level": "high",
+      "keywords": ["als", "motor neuron disease", "amyotrophic", "lou gehrig", "mnd"]
+    },
+    {
+      "code": "MS",
+      "name": "Multiple Sclerosis",
+      "description": "A chronic autoimmune disease affecting the central nervous system",
+      "category": "chronic",
+      "chronic": true,
+      "severity_level": "high",
+      "keywords": ["ms", "multiple sclerosis", "neurological", "autoimmune", "demyelinating"]
+    },
+    {
+      "code": "DIABETES_T2",
+      "name": "Type 2 Diabetes",
+      "description": "A chronic condition affecting how the body processes blood sugar",
+      "category": "chronic",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["diabetes", "type 2", "blood sugar", "insulin resistance", "diabetic"]
+    },
+    {
+      "code": "HYPERTENSION",
+      "name": "Hypertension",
+      "description": "High blood pressure, a common cardiovascular condition",
+      "category": "cardiovascular",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["hypertension", "high blood pressure", "hbp", "blood pressure"]
+    },
+    {
+      "code": "ARRHYTHMIA",
+      "name": "Cardiac Arrhythmia",
+      "description": "Irregular heart rhythm or heartbeat",
+      "category": "cardiovascular",
+      "chronic": false,
+      "severity_level": "medium",
+      "keywords": ["arrhythmia", "irregular heartbeat", "heart rhythm", "atrial fibrillation", "afib"]
+    },
+    {
+      "code": "HEART_FAILURE",
+      "name": "Heart Failure",
+      "description": "A condition where the heart cannot pump blood effectively",
+      "category": "cardiovascular",
+      "chronic": true,
+      "severity_level": "high",
+      "keywords": ["heart failure", "congestive heart failure", "chf", "cardiac failure"]
+    },
+    {
+      "code": "ASTHMA_COPD",
+      "name": "Asthma/COPD",
+      "description": "Chronic respiratory conditions affecting breathing",
+      "category": "respiratory",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["asthma", "copd", "chronic obstructive pulmonary disease", "breathing", "respiratory"]
+    },
+    {
+      "code": "CHRONIC_BACK_PAIN",
+      "name": "Chronic Back Pain",
+      "description": "Persistent pain in the back lasting more than 3 months",
+      "category": "musculoskeletal",
+      "chronic": true,
+      "severity_level": "low",
+      "keywords": ["back pain", "chronic pain", "lower back", "spine", "lumbar"]
+    },
+    {
+      "code": "KNEE_OSTEOARTHRITIS",
+      "name": "Knee Osteoarthritis",
+      "description": "Degenerative joint disease affecting the knee",
+      "category": "musculoskeletal",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["knee", "osteoarthritis", "oa", "joint pain", "arthritis", "knee pain"]
+    },
+    {
+      "code": "MIGRAINE",
+      "name": "Migraine",
+      "description": "Recurrent severe headaches often accompanied by other symptoms",
+      "category": "neurological",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["migraine", "headache", "severe headache", "migraine attack"]
+    },
+    {
+      "code": "INSOMNIA",
+      "name": "Insomnia",
+      "description": "Difficulty falling asleep or staying asleep",
+      "category": "sleep",
+      "chronic": false,
+      "severity_level": "low",
+      "keywords": ["insomnia", "sleep disorder", "sleeplessness", "sleep problems"]
+    },
+    {
+      "code": "ANXIETY",
+      "name": "Anxiety Disorder",
+      "description": "Excessive worry or fear that interferes with daily activities",
+      "category": "mental health",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["anxiety", "anxiety disorder", "worry", "panic", "stress"]
+    },
+    {
+      "code": "DEPRESSION_MILD",
+      "name": "Mild Depression",
+      "description": "Mild form of depression with persistent sadness or loss of interest",
+      "category": "mental health",
+      "chronic": true,
+      "severity_level": "medium",
+      "keywords": ["depression", "mild depression", "sadness", "mood disorder"]
+    }
+  ],
+  "medications": [
+    {
+      "name": "Riluzole",
+      "generic_name": "Riluzole",
+      "condition_code": "ALS",
+      "dosage_form": "tablet",
+      "default_dosage": "50mg twice daily",
+      "keywords": ["riluzole", "als treatment", "motor neuron"]
+    },
+    {
+      "name": "Interferon Beta",
+      "generic_name": "Interferon beta-1a",
+      "condition_code": "MS",
+      "dosage_form": "injection",
+      "default_dosage": "As prescribed by physician",
+      "keywords": ["interferon", "beta", "ms treatment", "multiple sclerosis"]
+    },
+    {
+      "name": "Metformin",
+      "generic_name": "Metformin hydrochloride",
+      "condition_code": "DIABETES_T2",
+      "dosage_form": "tablet",
+      "default_dosage": "500-1000mg twice daily",
+      "keywords": ["metformin", "diabetes", "blood sugar", "glucose"]
+    },
+    {
+      "name": "Insulin (Generic)",
+      "generic_name": "Insulin",
+      "condition_code": "DIABETES_T2",
+      "dosage_form": "injection",
+      "default_dosage": "As prescribed by physician",
+      "keywords": ["insulin", "diabetes", "blood sugar", "injection"]
+    },
+    {
+      "name": "Amlodipine",
+      "generic_name": "Amlodipine besylate",
+      "condition_code": "HYPERTENSION",
+      "dosage_form": "tablet",
+      "default_dosage": "5-10mg once daily",
+      "keywords": ["amlodipine", "blood pressure", "hypertension", "calcium channel blocker"]
+    },
+    {
+      "name": "Losartan",
+      "generic_name": "Losartan potassium",
+      "condition_code": "HYPERTENSION",
+      "dosage_form": "tablet",
+      "default_dosage": "50-100mg once daily",
+      "keywords": ["losartan", "blood pressure", "hypertension", "arb"]
+    },
+    {
+      "name": "Atorvastatin",
+      "generic_name": "Atorvastatin calcium",
+      "condition_code": "HEART_FAILURE",
+      "dosage_form": "tablet",
+      "default_dosage": "10-80mg once daily",
+      "keywords": ["atorvastatin", "statin", "cholesterol", "cardiovascular", "heart"]
+    },
+    {
+      "name": "Sertraline",
+      "generic_name": "Sertraline hydrochloride",
+      "condition_code": "ANXIETY",
+      "dosage_form": "tablet",
+      "default_dosage": "50-200mg once daily",
+      "keywords": ["sertraline", "ssri", "anxiety", "depression", "antidepressant"]
+    }
+  ]
+}

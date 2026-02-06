@@ -5,24 +5,24 @@ from datetime import datetime
 from app.database import get_db
 from app import models
 from app.schemas import APIResponse, ErrorInfo
+from app.services.notification_engine import DecisionEngine
 
 router = APIRouter()
 
 
 def create_auto_notification(db: Session, user_id: int, title: str, message: str, priority: int = 2):
     """ساخت خودکار اعلان در صورت تشخیص وضعیت غیرعادی"""
-    notif = models.Notification(
+    # Convert integer priority to string
+    priority_map = {1: "low", 2: "normal", 3: "high", 4: "critical"}
+    priority_str = priority_map.get(priority, "normal")
+    
+    # Use DecisionEngine instead of direct Notification creation
+    decision_engine = DecisionEngine(db)
+    notif = decision_engine.create_insight_notification(
         user_id=user_id,
-        type="alert",
-        title=title,
-        message=message,
-        priority=priority,
-        sound_id="alert_health",
-        language="fa",
-        created_at=datetime.utcnow(),
+        insight_text=f"{title}: {message}",
+        priority=priority_str
     )
-    db.add(notif)
-    db.commit()
 
 
 @router.post("/upload", response_model=APIResponse)
