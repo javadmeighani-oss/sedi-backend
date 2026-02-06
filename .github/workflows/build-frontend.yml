@@ -8,7 +8,6 @@ on:
       - develop
     paths:
       - 'frontend/**'
-      - '.github/workflows/build-frontend.yml'
   pull_request:
     branches:
       - main
