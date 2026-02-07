@@ -68,6 +68,43 @@ def _get_title_for_language(notification_type: str, language: str) -> str:
     return type_titles.get(language, type_titles.get("en", "Notification"))
 
 
+def _default_body_for_type(
+    notification_type: str,
+    metadata: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    Return a non-empty default body when generated body is empty (e.g. health_alert, device_disconnected).
+    NotificationPayload requires body min_length=1; this avoids validation errors before apply_fallback runs.
+    """
+    language = "en"
+    if metadata and metadata.get("language") in ("en", "fa", "ar"):
+        language = metadata["language"]
+    defaults = {
+        "health_alert": {
+            "en": "Health alert detected. Please check your readings.",
+            "fa": "هشدار سلامت ثبت شد. لطفاً وضعیت خود را بررسی کنید.",
+            "ar": "تم اكتشاف تنبيه صحي. يرجى التحقق من قراءاتك.",
+        },
+        "device_disconnected": {
+            "en": "Device connection lost. Please reconnect your device.",
+            "fa": "اتصال دستگاه قطع شده. لطفاً دستگاه را دوباره وصل کنید.",
+            "ar": "فُقد اتصال الجهاز. يرجى إعادة توصيل جهازك.",
+        },
+        "morning_brief": {
+            "en": "Good morning. Have a wonderful day.",
+            "fa": "صبح بخیر. روز خوبی داشته باشید.",
+            "ar": "صباح الخير. أتمنى لك يوماً سعيداً.",
+        },
+        "connection_ping": {
+            "en": "Hello. Hope you're doing well.",
+            "fa": "سلام. امیدوارم حالتون خوب باشه.",
+            "ar": "مرحباً. أتمنى أن تكون بخير.",
+        },
+    }
+    type_defaults = defaults.get(notification_type, defaults["health_alert"])
+    return type_defaults.get(language, type_defaults["en"])
+
+
 # -------------------- Timing Rules --------------------
 class TimingRules:
     """Manages timing rules for notifications"""
@@ -226,6 +263,10 @@ class NotificationBuilder:
         # Calculate scheduled time if not provided
         if scheduled_for is None:
             scheduled_for = self.timing_rules.calculate_scheduled_time(priority)
+        
+        # NotificationPayload requires body min_length=1; ensure non-empty before apply_fallback
+        if not (body and body.strip()):
+            body = _default_body_for_type(notification_type, metadata)
         
         return NotificationPayload(
             user_id=user_id,
