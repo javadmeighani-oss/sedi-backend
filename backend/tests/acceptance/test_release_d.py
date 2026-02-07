@@ -17,14 +17,14 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-# Use same package as production (backend.app) so DB schema and models match
-_repo_root = Path(__file__).resolve().parents[3]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
+# Use running app package (app = backend/app when run from backend); avoid backend.app.* (mixed layout)
+_backend_dir = Path(__file__).resolve().parents[2]
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
 
-from backend.app.database import Base, DATABASE_URL, SessionLocal, engine
-from backend.app.main import app
-from backend.app.models import Device, Medication, Notification, User, UserMedication
+from app.database import Base, DATABASE_URL, SessionLocal, engine
+from app.main import app
+from app.models import Device, Medication, Notification, User, UserMedication
 
 
 # Notification.type values from production (notification_engine.py)
@@ -131,18 +131,25 @@ def test_release_d_abnormal_hr_creates_health_alert(
     assert "data" in data
 
     db.expire_all()
-    notifications = (
-        db.query(Notification)
+    # Query only columns that exist (avoid sent_at if table schema is stale)
+    rows = (
+        db.query(
+            Notification.id,
+            Notification.user_id,
+            Notification.type,
+            Notification.body,
+            Notification.priority,
+        )
         .filter(
             Notification.user_id == release_d_user.id,
             Notification.type == NOTIFICATION_TYPE_HEALTH_ALERT,
         )
         .all()
     )
-    assert len(notifications) >= 1
-    notif = notifications[0]
-    assert notif.body and len(notif.body.strip()) > 0
-    assert notif.priority in ("high", "critical")
+    assert len(rows) >= 1
+    row = rows[0]
+    assert row.body and len(row.body.strip()) > 0
+    assert row.priority in ("high", "critical")
 
 
 def test_release_d_device_disconnected_creates_notification(
@@ -150,7 +157,7 @@ def test_release_d_device_disconnected_creates_notification(
     release_d_user: User,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import backend.app.core.scheduler as sched_mod
+    import app.core.scheduler as sched_mod
 
     monkeypatch.setenv("DEVICE_DISCONNECTED_THRESHOLD_MIN", "15")
     sched_mod.DEVICE_DISCONNECTED_THRESHOLD_MIN = 15
@@ -170,22 +177,29 @@ def test_release_d_device_disconnected_creates_notification(
     db.commit()
     db.refresh(device)
 
-    from backend.app.core.scheduler import run_device_disconnected_check
+    from app.core.scheduler import run_device_disconnected_check
 
     run_device_disconnected_check()
 
     db.expire_all()
-    notifications = (
-        db.query(Notification)
+    # Query only columns that exist (avoid sent_at if table schema is stale)
+    rows = (
+        db.query(
+            Notification.id,
+            Notification.user_id,
+            Notification.type,
+            Notification.body,
+            Notification.dedupe_key,
+        )
         .filter(
             Notification.user_id == release_d_user.id,
             Notification.type == NOTIFICATION_TYPE_DEVICE_DISCONNECTED,
         )
         .all()
     )
-    assert len(notifications) >= 1
-    notif = notifications[0]
-    assert "device_disconnected" in (notif.dedupe_key or "")
+    assert len(rows) >= 1
+    row = rows[0]
+    assert "device_disconnected" in (row.dedupe_key or "")
 
 
 def test_release_d_medication_reminder_creates_notification(
@@ -209,15 +223,19 @@ def test_release_d_medication_reminder_creates_notification(
     db.add(um)
     db.commit()
 
-    from backend.app.core.scheduler import run_medication_reminders
+    from app.core.scheduler import run_medication_reminders
 
     run_medication_reminders()
 
     db.expire_all()
-    # Production uses type=health_alert for medication reminders (create_medication_reminder).
-    # Notification model has no payload/metadata column; body contains medication name. Assert on body.
-    notifications = (
-        db.query(Notification)
+    # Query only columns that exist (avoid sent_at if table schema is stale)
+    rows = (
+        db.query(
+            Notification.id,
+            Notification.user_id,
+            Notification.type,
+            Notification.body,
+        )
         .filter(
             Notification.user_id == release_d_user.id,
             Notification.type == NOTIFICATION_TYPE_HEALTH_ALERT,
@@ -225,10 +243,10 @@ def test_release_d_medication_reminder_creates_notification(
         .all()
     )
     medication_name = "TestMed ReleaseD"
-    reminder_notifs = [n for n in notifications if n.body and medication_name in n.body]
-    assert len(reminder_notifs) >= 1, (
+    reminder_rows = [r for r in rows if r.body and medication_name in r.body]
+    assert len(reminder_rows) >= 1, (
         f"Expected at least one health_alert with body containing {medication_name!r}"
     )
-    notif = reminder_notifs[0]
-    assert notif.body
-    assert medication_name in notif.body
+    row = reminder_rows[0]
+    assert row.body
+    assert medication_name in row.body

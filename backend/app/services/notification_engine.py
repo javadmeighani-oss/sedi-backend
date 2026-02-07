@@ -81,7 +81,7 @@ def _default_body_for_type(
         language = metadata["language"]
     defaults = {
         "health_alert": {
-            "en": "Health alert detected. Please check your readings.",
+            "en": "Health alert detected. Please review your readings.",
             "fa": "هشدار سلامت ثبت شد. لطفاً وضعیت خود را بررسی کنید.",
             "ar": "تم اكتشاف تنبيه صحي. يرجى التحقق من قراءاتك.",
         },
