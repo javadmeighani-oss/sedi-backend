@@ -8,13 +8,19 @@ These acceptance tests are intended to be run on Linux server or CI
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-
 import os
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
+# Ensure backend app is on path (UserMedication exists in backend/app/models.py, not in root app)
+_backend_dir = Path(__file__).resolve().parents[2]
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
 
 from app.database import Base, DATABASE_URL, SessionLocal, engine
 from app.main import app
