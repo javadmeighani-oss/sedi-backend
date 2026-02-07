@@ -51,6 +51,7 @@ class Notification(Base):
     priority = Column(String, nullable=False, default="normal")  # low | normal | high | critical
     is_read = Column(Boolean, default=False, nullable=False)
     is_sent = Column(Boolean, default=False, nullable=False)  # Track if notification has been sent (for scheduler integration)
+    sent_at = Column(DateTime, nullable=True)  # When notification was delivered (set by delivery pipeline)
     scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
     dedupe_key = Column(String(255), nullable=True)  # Release B: Deterministic deduplication key (indexes created via migration)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -94,6 +95,18 @@ class UserCondition(Base):
     severity = Column(String, nullable=True)  # e.g. "mild", "moderate", "severe"
     notes = Column(String, nullable=True)  # Additional notes about user's condition
     embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID (nullable, optional)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserMedication --------------------
+class UserMedication(Base):
+    """User's medications for scheduled reminder loop (e.g. every 8h)."""
+    __tablename__ = "user_medications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    medication_id = Column(Integer, ForeignKey("medications.id", ondelete="CASCADE"), nullable=False)
+    interval_hours = Column(Integer, nullable=False, default=8)  # Reminder every N hours
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 

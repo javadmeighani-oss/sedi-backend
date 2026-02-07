@@ -35,8 +35,8 @@ class NotificationResponse(NotificationBase):
 
 # -------------------- Release B: Notification Contract (B1) --------------------
 
-# Strict contract for 3 notification types
-NotificationType = Literal["morning_brief", "connection_ping", "health_alert"]
+# Strict contract for notification types
+NotificationType = Literal["morning_brief", "connection_ping", "health_alert", "device_disconnected"]
 NotificationPriority = Literal["low", "normal", "high", "critical"]
 
 
@@ -50,7 +50,7 @@ class NotificationPayload(BaseModel):
     - Stable deduplication
     """
     user_id: int = Field(..., description="User ID who will receive the notification")
-    type: NotificationType = Field(..., description="Strict notification type: morning_brief | connection_ping | health_alert")
+    type: NotificationType = Field(..., description="Strict notification type: morning_brief | connection_ping | health_alert | device_disconnected")
     title: str = Field(..., min_length=1, description="Notification title")
     body: str = Field(..., min_length=1, description="Notification body/message content")
     priority: NotificationPriority = Field(default="normal", description="Priority level")

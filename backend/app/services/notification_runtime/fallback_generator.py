@@ -48,6 +48,8 @@ def generate_fallback_text(
         return _generate_connection_ping(greeting_name, language, memory_context)
     elif payload.type == "health_alert":
         return _generate_health_alert(greeting_name, language, payload.metadata)
+    elif payload.type == "device_disconnected":
+        return _generate_device_disconnected(greeting_name, language, payload.metadata)
     else:
         # Fallback for unknown types
         return _get_fallback_greeting(greeting_name, language)
@@ -236,6 +238,21 @@ def _generate_health_alert(
             return f"{base}: {reason}. you should check 🌿"
         else:
             return f"{base}: you should check your health status 🌿"
+
+
+def _generate_device_disconnected(
+    greeting_name: str,
+    language: SupportedLanguage,
+    metadata: Optional[Dict[str, Any]]
+) -> str:
+    """Generate device disconnected notification text in specified language"""
+    device_id = (metadata or {}).get("device_id", "device")
+    if language == "fa":
+        return f"سلام {greeting_name}، اتصال دستگاه ({device_id}) قطع شده. وقتی می‌تونی دوباره وصلش کن 🌿"
+    elif language == "ar":
+        return f"مرحباً {greeting_name}، انقطع اتصال الجهاز ({device_id}). أعد الاتصال عندما تستطيع 🌿"
+    else:  # en
+        return f"Hello {greeting_name}, your device ({device_id}) has been disconnected. Reconnect when you can 🌿"
 
 
 def _get_fallback_greeting(greeting_name: str, language: SupportedLanguage) -> str:

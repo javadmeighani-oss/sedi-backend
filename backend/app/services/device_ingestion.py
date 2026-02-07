@@ -18,10 +18,11 @@ from collections import deque
 from sqlalchemy.orm import Session
 
 from app.models import DeviceEvent, User, UserMemoryFact
+from app.decision_engine.models import EventDto, CreateHealthAlertAction
+from app.decision_engine.service import evaluate_event
 from app.services.memory.memory_repository import MemoryRepository
 from app.services.notification_engine import DecisionEngine
 from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
-from app.services.vitals.rule_alerts import maybe_create_alert
 
 logger = logging.getLogger(__name__)
 
@@ -167,13 +168,39 @@ def ingest_event(
     except Exception as e:
         logger.exception("[DEVICE_INGEST] Failed to map to memory: %s", e)
 
-    # Rule-based alerts (no AI)
+    # Unified decision path: Decision Engine evaluates event -> actions -> executor persists
     try:
-        maybe_create_alert(db=db, user_id=user_id, event_type=event_type, normalized_payload=normalized)
+        event_dto = EventDto(
+            user_id=user_id,
+            device_id=device_id,
+            event_type=event_type,
+            payload=normalized,
+            recorded_at=recorded_at,
+            received_at=received_at,
+            event_id=event.id,
+        )
+        actions = evaluate_event(event_dto)
+        _execute_actions(db, actions)
     except Exception as e:
-        logger.exception("[DEVICE_INGEST] Failed to check health alerts: %s", e)
-    
+        logger.exception("[DEVICE_INGEST] Failed to evaluate/execute decision actions: %s", e)
+
     return event, dedupe_key
+
+
+def _execute_actions(db: Session, actions: list) -> None:
+    """Execute Decision Engine actions (e.g. create health_alert notifications). Best-effort per action."""
+    engine = DecisionEngine(db)
+    for a in actions:
+        try:
+            if isinstance(a, CreateHealthAlertAction):
+                engine.create_health_alert(
+                    user_id=a.user_id,
+                    alert_code=a.alert_code,
+                    alert_reason=a.alert_reason,
+                    priority=a.priority,
+                )
+        except Exception as e:
+            logger.exception("[DEVICE_INGEST] Failed to execute action %s: %s", type(a).__name__, e)
 
 
 ## Legacy C1 hardcoded mapping/alerts removed in Release C3 (now registry-driven)

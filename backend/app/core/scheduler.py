@@ -1,4 +1,5 @@
 # app/core/scheduler.py
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -7,7 +8,7 @@ import pytz
 import json
 
 from app.database import get_db
-from app.models import User, Notification
+from app.models import User, Notification, Device, UserMedication, Medication
 from app.services.notification_engine import DecisionEngine
 from app.core.conversation.memory import ConversationMemory
 from app.services.memory import MemoryRepository, build_memory_context
@@ -20,6 +21,12 @@ INACTIVE_HOURS = 4             # Inactive threshold (if no interaction for 4+ ho
 MORNING_HOUR = 9               # Default morning greeting time (9 AM) - UPDATED
 MORNING_CHECK_INTERVAL_MIN = 10  # Check for morning notifications every 10 minutes
 INACTIVITY_CHECK_INTERVAL_MIN = 15  # Check for inactivity every 15 minutes
+DELIVERY_PENDING_INTERVAL_MIN = 5  # Run notification delivery outbox every 5 minutes
+# Device disconnected: if last_seen_at older than threshold, create notification (dedupe: once per 6h per device)
+DEVICE_DISCONNECTED_THRESHOLD_MIN = int(os.getenv("DEVICE_DISCONNECTED_THRESHOLD_MIN", "15"))
+DEVICE_DISCONNECTED_CHECK_INTERVAL_MIN = 15  # Run check every 15 minutes
+# Medication reminders: loop over UserMedication, create reminder (dedupe per med per 8h)
+MEDICATION_REMINDER_CHECK_INTERVAL_MIN = 15  # Run every 15 minutes
 
 scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Tehran"))
 
@@ -242,6 +249,85 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
     
     print(f"[Sedi Scheduler] Notification created for user {user_id} → {notif_type}")
 
+
+# -------------------------------
+# Device disconnected: last_seen_at older than threshold -> create notification (dedupe per device)
+# -------------------------------
+def run_device_disconnected_check():
+    """
+    For each active device: if now - last_seen_at > THRESHOLD (e.g. 15 min),
+    create device_disconnected notification. Dedupe: once per device per 6h (handled in notification_engine).
+    """
+    with next(get_db()) as db:
+        now = datetime.utcnow()
+        cutoff = now - timedelta(minutes=DEVICE_DISCONNECTED_THRESHOLD_MIN)
+        decision_engine = DecisionEngine(db)
+        # Active devices that have been seen before but not within threshold
+        devices = (
+            db.query(Device)
+            .filter(
+                Device.status == "active",
+                Device.last_seen_at.isnot(None),
+                Device.last_seen_at < cutoff,
+            )
+            .all()
+        )
+        for dev in devices:
+            try:
+                notif = decision_engine.create_device_disconnected(
+                    user_id=dev.user_id,
+                    device_id=dev.device_id,
+                    scheduled_for=now,
+                )
+                if notif:
+                    print(f"[Sedi Scheduler] device_disconnected created for user={dev.user_id} device_id={dev.device_id}")
+            except Exception as e:
+                print(f"[Sedi Scheduler] device_disconnected failed user={dev.user_id} device_id={dev.device_id}: {e}")
+
+
+# -------------------------------
+# Medication reminders: for each UserMedication create reminder (dedupe per med per 8h)
+# -------------------------------
+def run_medication_reminders():
+    """
+    For each UserMedication (user + medication + interval), create a medication reminder
+    if not already sent in the last interval. Dedupe is handled in create_medication_reminder (8h per medication).
+    """
+    with next(get_db()) as db:
+        decision_engine = DecisionEngine(db)
+        # All user-medication rows with medication joined
+        rows = (
+            db.query(UserMedication, Medication)
+            .join(Medication, UserMedication.medication_id == Medication.id)
+            .all()
+        )
+        for um, med in rows:
+            try:
+                result = decision_engine.create_medication_reminder(
+                    user_id=um.user_id,
+                    medication_name=med.name,
+                    dosage=med.default_dosage,
+                    medication_id=med.id,
+                )
+                if result:
+                    print(f"[Sedi Scheduler] medication_reminder created user={um.user_id} medication={med.name}")
+            except Exception as e:
+                print(f"[Sedi Scheduler] medication_reminder failed user={um.user_id} medication_id={med.id}: {e}")
+
+
+# -------------------------------
+# Run notification delivery outbox (mark is_sent)
+# -------------------------------
+def run_deliver_pending():
+    """Query unsent notifications, send via adapter, mark is_sent=true. Idempotent."""
+    from app.services.notifications.delivery_service import DeliveryService
+    with next(get_db()) as db:
+        service = DeliveryService(db=db)
+        sent_count = service.deliver_pending(limit=100)
+        if sent_count > 0:
+            print(f"[Sedi Scheduler] deliver_pending: marked {sent_count} notification(s) as sent")
+
+
 # -------------------------------
 # Start Scheduler (UPDATED - Phase 9.4)
 # -------------------------------
@@ -274,6 +360,32 @@ def start_scheduler():
         id="health_check",
         replace_existing=True,
     )
-    
+
+    # Schedule notification delivery outbox every N minutes
+    scheduler.add_job(
+        run_deliver_pending,
+        "interval",
+        minutes=DELIVERY_PENDING_INTERVAL_MIN,
+        id="deliver_pending",
+        replace_existing=True,
+    )
+
+    # Schedule device disconnected check (last_seen_at > threshold -> notify, dedupe per device)
+    scheduler.add_job(
+        run_device_disconnected_check,
+        "interval",
+        minutes=DEVICE_DISCONNECTED_CHECK_INTERVAL_MIN,
+        id="device_disconnected_check",
+        replace_existing=True,
+    )
+
+    # Schedule medication reminder loop (UserMedication -> create_medication_reminder, dedupe 8h per med)
+    scheduler.add_job(
+        run_medication_reminders,
+        "interval",
+        minutes=MEDICATION_REMINDER_CHECK_INTERVAL_MIN,
+        id="medication_reminders",
+        replace_existing=True,
+    )
 
     scheduler.start()

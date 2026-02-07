@@ -56,6 +56,11 @@ def _get_title_for_language(notification_type: str, language: str) -> str:
             "en": "Health Alert",
             "fa": "هشدار سلامت",
             "ar": "تنبيه صحي"
+        },
+        "device_disconnected": {
+            "en": "Device Disconnected",
+            "fa": "قطع اتصال دستگاه",
+            "ar": "انقطع الاتصال بالجهاز"
         }
     }
     
@@ -127,7 +132,7 @@ class NotificationBuilder:
     
     def compute_dedupe_key(
         self,
-        notification_type: Literal["morning_brief", "connection_ping", "health_alert"],
+        notification_type: Literal["morning_brief", "connection_ping", "health_alert", "device_disconnected"],
         user_id: int,
         scheduled_for: Optional[datetime] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -139,6 +144,7 @@ class NotificationBuilder:
         - morning_brief:{user_id}:{YYYY-MM-DD}
         - connection_ping:{user_id}:{YYYY-MM-DD}:{window}  (4h bucket)
         - health_alert:{user_id}:{alert_code}:{YYYY-MM-DDTHH}
+        - device_disconnected:{device_id}:{YYYY-MM-DD}:{6h_bucket}  (once per 6h per device)
         """
         now = scheduled_for or datetime.utcnow()
         date_str = now.strftime("%Y-%m-%d")
@@ -153,8 +159,18 @@ class NotificationBuilder:
         
         elif notification_type == "health_alert":
             alert_code = metadata.get("alert_code", "generic") if metadata else "generic"
+            # Medication reminders: one per medication per 8h bucket (no spam)
+            if alert_code == "medication_reminder" and metadata and metadata.get("medication_id") is not None:
+                med_id = metadata.get("medication_id")
+                hour_bucket_8 = (now.hour // 8) * 8
+                return f"health_alert:{user_id}:medication_reminder:{med_id}:{date_str}:{hour_bucket_8:02d}"
             hour_str = now.strftime("%H")
             return f"health_alert:{user_id}:{alert_code}:{date_str}T{hour_str}"
+        
+        elif notification_type == "device_disconnected":
+            device_id = (metadata or {}).get("device_id", "unknown")
+            hour_bucket = (now.hour // 6) * 6  # 6-hour bucket: once per X hours
+            return f"device_disconnected:{device_id}:{date_str}:{hour_bucket:02d}"
         
         else:
             # Fallback for unknown types
@@ -187,7 +203,7 @@ class NotificationBuilder:
     def build_payload(
         self,
         user_id: int,
-        notification_type: Literal["morning_brief", "connection_ping", "health_alert"],
+        notification_type: Literal["morning_brief", "connection_ping", "health_alert", "device_disconnected"],
         title: str,
         body: str,
         priority: Literal["low", "normal", "high", "critical"] = "normal",
@@ -636,6 +652,57 @@ class DecisionEngine:
             )
         return result
     
+    def create_device_disconnected(
+        self,
+        user_id: int,
+        device_id: str,
+        scheduled_for: Optional[datetime] = None
+    ) -> Optional[Notification]:
+        """
+        Create device_disconnected notification when a device has not been seen
+        for longer than threshold (scheduler job). Dedupe: once per device per 6h bucket.
+        """
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        effective_language = resolve_effective_language(
+            db=self.db,
+            user_id=user_id,
+            memory_context=None
+        )
+        metadata = {
+            "language": effective_language,
+            "device_id": device_id,
+        }
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="device_disconnected",
+            title=_get_title_for_language("device_disconnected", effective_language),
+            body="",
+            priority="normal",
+            scheduled_for=scheduled_for,
+            metadata=metadata,
+        )
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=None,
+            language=effective_language,
+        )
+        payload = enhance_with_ai(payload)
+        # Once per 6 hours per device (dedupe key includes 6h bucket)
+        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=6)
+        if result is None:
+            logger.info(
+                f"[NOTIFICATION] SUPPRESSED type=device_disconnected user={user_id} "
+                f"device_id={device_id} reason=dedupe"
+            )
+        else:
+            logger.info(
+                f"[NOTIFICATION] type=device_disconnected user={user_id} "
+                f"device_id={device_id} dedupe={payload.dedupe_key}"
+            )
+        return result
+    
     # -------------------- Lifestyle-Based Notifications --------------------
     
     def evaluate_lifestyle_context(
@@ -932,56 +999,46 @@ class DecisionEngine:
         self,
         user_id: int,
         medication_name: str,
-        dosage: Optional[str] = None
-    ) -> Notification:
+        dosage: Optional[str] = None,
+        medication_id: Optional[int] = None,
+    ) -> Optional[Notification]:
         """
         Create a medication reminder notification (Release B2.1).
+        Used by scheduler loop and optional API. Dedupe: once per medication per 8h when medication_id provided.
         
         Args:
             user_id: User ID
             medication_name: Name of medication
             dosage: Dosage information (optional)
+            medication_id: Optional; when set, dedupe is per-medication per 8h (for scheduled loop).
         
-        Returns Notification object.
+        Returns Notification if created, None if duplicate/suppressed.
         """
         title = "Medication Reminder"
         body = f"Time to take {medication_name}"
         if dosage:
             body += f" ({dosage})"
         
-        # Medication reminders are high priority
         priority = "high"
-        
-        # Schedule for next medication time (default: 8 hours)
         interval = self.timing_rules.get_reminder_interval("medication")
         scheduled_for = None
         if interval:
             scheduled_for = datetime.utcnow() + interval
         
-        # TODO: RAG integration - enhance with medication-specific information
-        # rag_context = self.rag_service.retrieve_medication_context(
-        #     medication_name=medication_name,
-        #     user_conditions=self.medical_service.get_user_conditions(user_id)
-        # )
-        # if rag_context:
-        #     body += f"\n\nNote: {rag_context}"
-        
-        # Release B2.1: Use health_alert type for medication reminders
-        # Resolve language
         effective_language = resolve_effective_language(
             db=self.db,
             user_id=user_id,
             memory_context=None
         )
         
-        # Build metadata with language
         metadata = {
             "language": effective_language,
             "alert_code": "medication_reminder",
-            "alert_reason": body
+            "alert_reason": body,
         }
+        if medication_id is not None:
+            metadata["medication_id"] = medication_id
         
-        # Use health_alert type instead of legacy REMINDER
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="health_alert",
@@ -992,7 +1049,6 @@ class DecisionEngine:
             metadata=metadata
         )
         
-        # Apply fallback
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
         payload = self.builder.apply_fallback(
@@ -1002,12 +1058,18 @@ class DecisionEngine:
             language=effective_language
         )
         
-        # Persist
-        result = self.builder.persist(payload, check_dedupe=False)  # Legacy method
+        # Dedupe: when medication_id set, at most one per medication per 8h
+        check_dedupe = medication_id is not None
+        time_window_hours = 8 if medication_id is not None else 24
+        result = self.builder.persist(payload, check_dedupe=check_dedupe, time_window_hours=time_window_hours)
         if result:
             logger.info(
-                f"[NOTIFICATION] type=health_alert user={user_id} "
-                f"lang={effective_language} dedupe={payload.dedupe_key} (legacy:create_condition_reminder)"
+                f"[NOTIFICATION] type=health_alert user={user_id} medication_reminder "
+                f"medication_id={medication_id} dedupe={payload.dedupe_key}"
+            )
+        else:
+            logger.info(
+                f"[NOTIFICATION] SUPPRESSED medication_reminder user={user_id} medication_id={medication_id} reason=dedupe"
             )
         return result
     

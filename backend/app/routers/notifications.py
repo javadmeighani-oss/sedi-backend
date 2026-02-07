@@ -367,6 +367,25 @@ def submit_notification_feedback(
     )
 
 
+# ------------------ POST /notifications/deliver_pending (admin/dev) ------------------
+@router.post("/deliver_pending", response_model=APIResponse)
+def deliver_pending_notifications(
+    limit: int = Query(100, ge=1, le=500, description="Max number of unsent notifications to process"),
+    db: Session = Depends(get_db),
+):
+    """
+    Run the notification delivery pipeline: query unsent (is_sent=false),
+    send via configured adapter, mark is_sent=true. Safe to call repeatedly.
+    """
+    from app.services.notifications.delivery_service import DeliveryService
+    service = DeliveryService(db=db)
+    sent_count = service.deliver_pending(limit=limit)
+    return APIResponse(
+        ok=True,
+        data={"sent_count": sent_count, "message": f"Marked {sent_count} notification(s) as sent"}
+    )
+
+
 # ==================== SCHEDULER INTEGRATION READINESS ====================
 # TODO: Future scheduler integration will query notifications with:
 #   - scheduled_for <= current_time
