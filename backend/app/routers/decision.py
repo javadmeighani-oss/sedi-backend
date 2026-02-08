@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Any, Dict
 
-from app.decision_engine.service import decide_from_event
+from backend.app.decision_engine.service import decide_from_event
 
 router = APIRouter(prefix="/decision", tags=["decision"])
 
