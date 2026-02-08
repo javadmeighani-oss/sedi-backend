@@ -9,6 +9,7 @@ This directory contains SQL migration files for the Sedi backend database.
 - `003_harden_device_events.sql` - Hardens `device_events` table with defaults and indexes (Release C1.1)
 - `004_add_devices_table.sql` - Creates `devices` table for per-device identity/tokens (Release C2)
 - `005_harden_devices_defaults.sql` - Adds DB defaults (device_type/status/created_at) and optional status CHECK constraint (Release C2.1)
+- `2026_02_08_release_d_notifications_sent_at.sql` - Adds `sent_at` column and indexes (user_id+type, is_sent+scheduled_for) for Release D
 
 ## How to Apply Migrations
 
@@ -35,6 +36,16 @@ This directory contains SQL migration files for the Sedi backend database.
    ```
    
    You should see the `dedupe_key` column and the indexes.
+
+### Release D: notifications.sent_at + indexes
+
+From repo root (e.g. on server after deploy):
+
+```bash
+sudo -u postgres psql -d sedi_db -f deployment/migrations/2026_02_08_release_d_notifications_sent_at.sql
+```
+
+Or with full path: `sudo -u postgres psql -d sedi_db -f /var/www/sedi/backend/deployment/migrations/2026_02_08_release_d_notifications_sent_at.sql`
 
 ### Verification Commands
 
