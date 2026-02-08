@@ -33,6 +33,8 @@ jobs:
       DEVICE_INGEST_TOKEN: release-d-ingest-token
       ENV: ci
       PYTHONPATH: ${{ github.workspace }}/backend
+      # Required at import by app.core.conversation.prompts; Release D tests do not call GPT
+      OPENAI_API_KEY: "sk-ci-placeholder-not-used"
 
     steps:
       - name: Checkout
