@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from app.decision_engine.models import CreateHealthAlertAction
+from backend.app.decision_engine.models import CreateHealthAlertAction
 
 
 def compute_alert_actions(

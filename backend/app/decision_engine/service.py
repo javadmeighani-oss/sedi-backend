@@ -3,7 +3,7 @@ from typing import Dict, Any, List
 
 from .models import Decision, EventDto, CreateHealthAlertAction, Action
 from .rules import evaluate_rules, default_rules
-from app.services.vitals.rule_alerts import compute_alert_actions
+from backend.app.services.vitals.rule_alerts import compute_alert_actions
 
 
 def decide_from_event(event: Dict[str, Any]) -> Decision:
