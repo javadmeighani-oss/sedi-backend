@@ -57,4 +57,4 @@ jobs:
 
       - name: Run Release D acceptance tests
         working-directory: backend
-        run: python -m pytest -q tests/acceptance/test_release_d.py -v --tb=short
+        run: python -m pytest -q tests/acceptance/test_release_d.py -v --tb=long
