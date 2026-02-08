@@ -55,4 +55,6 @@ jobs:
         run: python -m py_compile backend/tests/acceptance/test_release_d.py
 
       - name: Run Release D acceptance tests
+        env:
+          OPENAI_API_KEY: "sk-ci-placeholder-not-used"
         run: python -m pytest -q backend/tests/acceptance/test_release_d.py -v --tb=short
