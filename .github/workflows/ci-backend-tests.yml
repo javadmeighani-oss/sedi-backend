@@ -32,6 +32,8 @@ jobs:
       DEVICE_AUTH_MODE: legacy_only
       DEVICE_INGEST_TOKEN: release-d-ingest-token
       ENV: ci
+      # Repo root on path so backend.app = outer backend (not nested backend/backend/)
+      PYTHONPATH: ${{ github.workspace }}
       # Required at import by app.core.conversation.prompts; Release D tests do not call GPT
       OPENAI_API_KEY: "sk-ci-placeholder-not-used"
 
@@ -50,11 +52,9 @@ jobs:
           python -m pip install -r backend/requirements.txt
           python -m pip install pytest
 
-      # Run from backend/ so "app" resolves to backend/app (has UserMedication); root app does not
+      # Run from repo root so backend.app = outer backend (nested backend/backend/ would else be used)
       - name: Compile acceptance test
-        working-directory: backend
-        run: python -m py_compile tests/acceptance/test_release_d.py
+        run: python -m py_compile backend/tests/acceptance/test_release_d.py
 
       - name: Run Release D acceptance tests
-        working-directory: backend
-        run: python -m pytest -q tests/acceptance/test_release_d.py -v --tb=long
+        run: python -m pytest -q backend/tests/acceptance/test_release_d.py -v --tb=long

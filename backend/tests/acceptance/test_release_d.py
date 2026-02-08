@@ -17,14 +17,14 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-# Use running app package (app = backend/app when run from backend); avoid backend.app.* (mixed layout)
-_backend_dir = Path(__file__).resolve().parents[2]
-if str(_backend_dir) not in sys.path:
-    sys.path.insert(0, str(_backend_dir))
+# Use backend.app so the correct backend is loaded (repo has nested backend/backend/; repo root must be on path)
+_repo_root = Path(__file__).resolve().parents[3]
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
 
-from app.database import Base, DATABASE_URL, SessionLocal, engine
-from app.main import app
-from app.models import Device, Medication, Notification, User, UserMedication
+from backend.app.database import Base, DATABASE_URL, SessionLocal, engine
+from backend.app.main import app
+from backend.app.models import Device, Medication, Notification, User, UserMedication
 
 
 # Notification.type values from production (notification_engine.py)
@@ -157,7 +157,7 @@ def test_release_d_device_disconnected_creates_notification(
     release_d_user: User,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import app.core.scheduler as sched_mod
+    import backend.app.core.scheduler as sched_mod
 
     monkeypatch.setenv("DEVICE_DISCONNECTED_THRESHOLD_MIN", "15")
     sched_mod.DEVICE_DISCONNECTED_THRESHOLD_MIN = 15
@@ -177,7 +177,7 @@ def test_release_d_device_disconnected_creates_notification(
     db.commit()
     db.refresh(device)
 
-    from app.core.scheduler import run_device_disconnected_check
+    from backend.app.core.scheduler import run_device_disconnected_check
 
     run_device_disconnected_check()
 
@@ -223,7 +223,7 @@ def test_release_d_medication_reminder_creates_notification(
     db.add(um)
     db.commit()
 
-    from app.core.scheduler import run_medication_reminders
+    from backend.app.core.scheduler import run_medication_reminders
 
     run_medication_reminders()
 
