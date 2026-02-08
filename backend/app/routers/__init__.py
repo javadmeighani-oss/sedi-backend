@@ -1,1 +1,38 @@
 # app/routers/__init__.py
+from . import (
+    auth,
+    auth_login,
+    interact,
+    health,
+    lifestyle,
+    notifications,
+    ai_core,
+    conditions,
+    device,
+    devices,
+    decision,
+    data,
+    medical,
+    memory,
+    sms_gateway,
+    device_data,
+)
+
+__all__ = [
+    "auth",
+    "auth_login",
+    "interact",
+    "health",
+    "lifestyle",
+    "notifications",
+    "ai_core",
+    "conditions",
+    "device",
+    "devices",
+    "decision",
+    "data",
+    "medical",
+    "memory",
+    "sms_gateway",
+    "device_data",
+]
