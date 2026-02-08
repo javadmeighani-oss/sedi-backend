@@ -147,7 +147,7 @@ systemctl restart nginx
 ```bash
 cd /path/to/backend
 source venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ---

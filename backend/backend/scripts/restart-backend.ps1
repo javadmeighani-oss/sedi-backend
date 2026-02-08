@@ -47,7 +47,7 @@ switch ($choice) {
     "2" {
         Write-Host ""
         Write-Host "Executing: Full restart with git pull..." -ForegroundColor Yellow
-        $cmd = "ssh $SERVER_USER@$SERVER_IP 'cd $BACKEND_PATH && git pull origin main && pkill -f uvicorn && sleep 2 && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /dev/null 2>&1 &'"
+        $cmd = "ssh $SERVER_USER@$SERVER_IP 'cd $BACKEND_PATH && git pull origin main && pkill -f uvicorn && sleep 2 && uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000 > /dev/null 2>&1 &'"
         Write-Host "Command: $cmd" -ForegroundColor Gray
         Write-Host ""
         Invoke-Expression $cmd
@@ -57,7 +57,7 @@ switch ($choice) {
     "3" {
         Write-Host ""
         Write-Host "Executing: Background restart..." -ForegroundColor Yellow
-        $cmd = "ssh $SERVER_USER@$SERVER_IP 'cd $BACKEND_PATH && git pull origin main && pkill -f uvicorn && nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &'"
+        $cmd = "ssh $SERVER_USER@$SERVER_IP 'cd $BACKEND_PATH && git pull origin main && pkill -f uvicorn && nohup uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &'"
         Write-Host "Command: $cmd" -ForegroundColor Gray
         Write-Host ""
         Invoke-Expression $cmd

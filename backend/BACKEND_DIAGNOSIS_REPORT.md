@@ -73,7 +73,7 @@ ls -la /var/www/sedi/backend/.venv/bin/uvicorn
 ```bash
 cd /var/www/sedi/backend
 source .venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ---

@@ -4,7 +4,7 @@
 - **IP:** 91.107.168.130
 - **OS:** Ubuntu 22.04
 - **مسیر پروژه:** /var/www/sedi/backend
-- **دستور اجرا:** uvicorn app.main:app --host 0.0.0.0 --port 8000
+- **دستور اجرا:** uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 
 ---
 

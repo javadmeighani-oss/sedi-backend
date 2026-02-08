@@ -7,13 +7,13 @@ Backend در حال حاضر در دسترس نیست (503 Server Unavailable) �
 
 ### روش 1: SSH با Password
 ```powershell
-ssh root@91.107.168.130 'cd /root/sedi-backend && git pull origin main && pkill -f uvicorn && sleep 2 && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /dev/null 2>&1 &'
+ssh root@91.107.168.130 'cd /root/sedi-backend && git pull origin main && pkill -f uvicorn && sleep 2 && uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000 > /dev/null 2>&1 &'
 ```
 **نکته:** بعد از اجرای این دستور، از شما password خواسته می‌شود.
 
 ### روش 2: SSH با Key File
 ```powershell
-ssh -i "C:\path\to\your\ssh-key.pem" root@91.107.168.130 'cd /root/sedi-backend && git pull origin main && pkill -f uvicorn && sleep 2 && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /dev/null 2>&1 &'
+ssh -i "C:\path\to\your\ssh-key.pem" root@91.107.168.130 'cd /root/sedi-backend && git pull origin main && pkill -f uvicorn && sleep 2 && uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000 > /dev/null 2>&1 &'
 ```
 **نکته:** مسیر SSH key خود را جایگزین کنید.
 
@@ -24,7 +24,7 @@ ssh root@91.107.168.130 'sudo systemctl restart sedi-backend'
 
 ### روش 4: Background Restart (با nohup)
 ```powershell
-ssh root@91.107.168.130 'cd /root/sedi-backend && git pull origin main && pkill -f uvicorn && nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &'
+ssh root@91.107.168.130 'cd /root/sedi-backend && git pull origin main && pkill -f uvicorn && nohup uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &'
 ```
 
 ## استفاده از اسکریپت

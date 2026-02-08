@@ -152,7 +152,7 @@ sudo journalctl -u sedi-backend --since "10 minutes ago"
 # روی سرور:
 cd /path/to/backend
 source venv/bin/activate  # اگر virtualenv دارید
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ---

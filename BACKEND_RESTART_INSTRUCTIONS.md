@@ -120,7 +120,7 @@ source .venv/bin/activate
 cat .env
 
 # 4. Start uvicorn manually
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
 **بررسی کنید:**
