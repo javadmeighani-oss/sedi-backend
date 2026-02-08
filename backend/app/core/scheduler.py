@@ -7,11 +7,11 @@ from fastapi import Depends
 import pytz
 import json
 
-from app.database import get_db
-from app.models import User, Notification, Device, UserMedication, Medication
-from app.services.notification_engine import DecisionEngine
-from app.core.conversation.memory import ConversationMemory
-from app.services.memory import MemoryRepository, build_memory_context
+from backend.app.database import get_db
+from backend.app.models import User, Notification, Device, UserMedication, Medication
+from backend.app.services.notification_engine import DecisionEngine
+from backend.app.core.conversation.memory import ConversationMemory
+from backend.app.services.memory import MemoryRepository, build_memory_context
 
 # -------------------------------
 # Scheduling and Check Settings
