@@ -15,7 +15,7 @@ RESPONSIBILITY:
 
 from typing import Optional, Dict, List
 from sqlalchemy.orm import Session
-from app.models import User, Memory
+from backend.app.models import User, Memory
 from datetime import datetime, timedelta
 
 
@@ -281,7 +281,7 @@ class ConversationMemory:
     def _extract_vitals(self, user_id: int) -> Dict[str, any]:
         """Extract vital signs data from HealthData"""
         try:
-            from app.models import HealthData
+            from backend.app.models import HealthData
             recent_health = (
                 self.db.query(HealthData)
                 .filter(HealthData.user_id == user_id)
@@ -442,7 +442,7 @@ class ConversationMemory:
             source: Source of facts ("chat" | "device" | "manual")
         """
         try:
-            from app.services.memory import MemoryRepository
+            from backend.app.services.memory import MemoryRepository
             
             repo = MemoryRepository(self.db)
             

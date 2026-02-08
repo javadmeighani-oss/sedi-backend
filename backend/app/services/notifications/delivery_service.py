@@ -10,7 +10,7 @@ from typing import Optional, Protocol
 
 from sqlalchemy.orm import Session
 
-from app.models import Notification
+from backend.app.models import Notification
 
 logger = logging.getLogger(__name__)
 

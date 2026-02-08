@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 from random import randint
 import requests
 
-from app.database import get_db
-from app import models
-from app.schemas import APIResponse, ErrorInfo
-from app.core.security import create_access_token, create_refresh_token, verify_token
+from backend.app.database import get_db
+from backend.app import models
+from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.core.security import create_access_token, create_refresh_token, verify_token
 
 router = APIRouter()
 

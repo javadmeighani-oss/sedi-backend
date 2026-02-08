@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 import json
 
-from app.services.memory.memory_repository import MemoryRepository
+from backend.app.services.memory.memory_repository import MemoryRepository
 
 
 class MemoryContext:

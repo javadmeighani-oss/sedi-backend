@@ -216,7 +216,7 @@ def is_common_question(text: str, language: str = "auto") -> bool:
     
     # Auto-detect language if requested
     if language == "auto":
-        from app.core.conversation.name_database import detect_language
+        from backend.app.core.conversation.name_database import detect_language
         language = detect_language(text)
     
     # Check against question database based on language
@@ -266,7 +266,7 @@ def get_question_category(text: str, language: str = "auto") -> str:
     
     # Auto-detect language if requested
     if language == "auto":
-        from app.core.conversation.name_database import detect_language
+        from backend.app.core.conversation.name_database import detect_language
         language = detect_language(text)
     
     # Check each category

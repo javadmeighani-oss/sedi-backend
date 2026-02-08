@@ -16,9 +16,9 @@ RESPONSIBILITY:
 
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from app.core.conversation.memory import ConversationMemory
-from app.core.conversation.stages import ConversationStage
-from app.models import Memory, HealthData
+from backend.app.core.conversation.memory import ConversationMemory
+from backend.app.core.conversation.stages import ConversationStage
+from backend.app.models import Memory, HealthData
 
 
 class ConversationContext:
@@ -129,7 +129,7 @@ class ConversationContext:
         """
         try:
             # Get recent health data (last 24 hours)
-            from app.models import HealthData
+            from backend.app.models import HealthData
             from datetime import datetime, timedelta
             
             recent_health = (

@@ -16,14 +16,14 @@ from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime, timedelta
 import logging
 
-from app.models import Notification, User, UserCondition, HealthData
-from app.services.medical import MedicalService
-from app.services.rag import RAGService
-from app.services.memory import MemoryContext, build_memory_context
-from app.schemas.notification import NotificationPayload
-from app.services.notification_runtime.fallback_generator import generate_fallback_text
-from app.services.notification_runtime.ai_enhancer import enhance_with_ai
-from app.services.notification_runtime.language_resolver import resolve_effective_language
+from backend.app.models import Notification, User, UserCondition, HealthData
+from backend.app.services.medical import MedicalService
+from backend.app.services.rag import RAGService
+from backend.app.services.memory import MemoryContext, build_memory_context
+from backend.app.schemas.notification import NotificationPayload
+from backend.app.services.notification_runtime.fallback_generator import generate_fallback_text
+from backend.app.services.notification_runtime.ai_enhancer import enhance_with_ai
+from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
 
 logger = logging.getLogger(__name__)
 

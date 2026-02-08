@@ -1,5 +1,5 @@
 # app/services/notifications/
-from app.services.notifications.delivery_service import (
+from backend.app.services.notifications.delivery_service import (
     DeliveryService,
     DeliveryAdapter,
     default_logging_adapter,

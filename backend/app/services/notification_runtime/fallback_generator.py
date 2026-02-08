@@ -10,8 +10,8 @@ Always returns non-empty text. Never raises exceptions.
 from typing import Optional, Dict, Any, Literal
 from datetime import datetime
 
-from app.services.memory.memory_context import MemoryContext
-from app.schemas.notification import NotificationPayload
+from backend.app.services.memory.memory_context import MemoryContext
+from backend.app.schemas.notification import NotificationPayload
 
 SupportedLanguage = Literal["en", "fa", "ar"]
 

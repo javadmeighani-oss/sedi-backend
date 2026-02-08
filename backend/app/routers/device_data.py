@@ -2,9 +2,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
-from app.database import get_db
-from app import models
-from app.schemas import APIResponse, ErrorInfo
+from backend.app.database import get_db
+from backend.app import models
+from backend.app.schemas import APIResponse, ErrorInfo
 import json
 
 router = APIRouter()

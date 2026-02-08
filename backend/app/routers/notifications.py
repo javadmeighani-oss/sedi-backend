@@ -14,10 +14,10 @@ from typing import List, Optional
 from datetime import datetime
 import json
 
-from app.database import get_db
-from app.models import Notification, User
-from app.schemas import APIResponse, ErrorInfo, NotificationResponse
-from app.schemas.notification import NotificationCreate, NotificationFeedbackRequest
+from backend.app.database import get_db
+from backend.app.models import Notification, User
+from backend.app.schemas import APIResponse, ErrorInfo, NotificationResponse
+from backend.app.schemas.notification import NotificationCreate, NotificationFeedbackRequest
 
 router = APIRouter()
 
@@ -267,7 +267,7 @@ def submit_notification_feedback(
     
     if is_morning_brief:
         # Handle morning_summary feedback
-        from app.services.memory import MemoryRepository
+        from backend.app.services.memory import MemoryRepository
         import json
         
         memory_repo = MemoryRepository(db)
@@ -377,7 +377,7 @@ def deliver_pending_notifications(
     Run the notification delivery pipeline: query unsent (is_sent=false),
     send via configured adapter, mark is_sent=true. Safe to call repeatedly.
     """
-    from app.services.notifications.delivery_service import DeliveryService
+    from backend.app.services.notifications.delivery_service import DeliveryService
     service = DeliveryService(db=db)
     sent_count = service.deliver_pending(limit=limit)
     return APIResponse(

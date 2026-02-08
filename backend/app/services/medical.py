@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from app.models import MedicalCondition, Medication, UserCondition, User, HealthData
+from backend.app.models import MedicalCondition, Medication, UserCondition, User, HealthData
 
 
 class MedicalService:

@@ -4,14 +4,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
-from app.database import get_db
-from app import models
-from app.schemas import APIResponse, ErrorInfo
-from app.services.notification_engine import DecisionEngine
-from app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
-from app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
-from app.core.device_auth import get_device_token, authorize_device_or_legacy
-from app.services.vitals.vital_registry import VitalValidationError
+from backend.app.database import get_db
+from backend.app import models
+from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.services.notification_engine import DecisionEngine
+from backend.app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
+from backend.app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
+from backend.app.core.device_auth import get_device_token, authorize_device_or_legacy
+from backend.app.services.vitals.vital_registry import VitalValidationError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -14,12 +14,12 @@ from typing import Optional
 from datetime import datetime
 import uuid
 
-from app.database import get_db
-from app.models import User, Memory
-from app.core.conversation.brain import ConversationBrain
-from app.schemas import InteractionResponse
-from app.schemas.chat import ChatRequest
-from app.schemas.onboarding import OnboardingRequest
+from backend.app.database import get_db
+from backend.app.models import User, Memory
+from backend.app.core.conversation.brain import ConversationBrain
+from backend.app.schemas import InteractionResponse
+from backend.app.schemas.chat import ChatRequest
+from backend.app.schemas.onboarding import OnboardingRequest
 
 router = APIRouter()
 
@@ -109,7 +109,7 @@ async def chat(
     try:
         # STEP 2: SINGLE SOURCE OF LANGUAGE TRUTH
         # Detect language from user message text ONLY (not IP/locale/query params)
-        from app.core.conversation.name_database import detect_language
+        from backend.app.core.conversation.name_database import detect_language
         detected_lang = detect_language(message)
         
         # Use detected language if valid, otherwise default to "en"
@@ -243,8 +243,8 @@ def setup_onboarding(
     
     # Step 2: Ensure tables exist and remove UNIQUE constraint on name if it exists
     try:
-        from app.database import Base, engine
-        from app.models import User
+        from backend.app.database import Base, engine
+        from backend.app.models import User
         from sqlalchemy import text
         
         # Explicitly create User table to ensure schema matches
@@ -391,7 +391,7 @@ def setup_onboarding(
                 print(f"[ONBOARDING] ⚠️ UNIQUE constraint on name still exists - attempting to remove...")
                 # Try to remove constraint and retry user creation
                 try:
-                    from app.database import engine
+                    from backend.app.database import engine
                     from sqlalchemy import text
                     with engine.connect() as conn:
                         conn.execute(text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_name_key"))

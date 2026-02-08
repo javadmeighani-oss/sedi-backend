@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-from app.services.vitals.dedupe import build_dedupe_key as _build_dedupe_key_5m
+from backend.app.services.vitals.dedupe import build_dedupe_key as _build_dedupe_key_5m
 
 
 SupportedVital = Literal["heart_rate", "blood_pressure", "glucose", "temperature"]

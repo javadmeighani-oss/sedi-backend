@@ -17,12 +17,12 @@ import time
 from collections import deque
 from sqlalchemy.orm import Session
 
-from app.models import DeviceEvent, User, UserMemoryFact
-from app.decision_engine.models import EventDto, CreateHealthAlertAction
-from app.decision_engine.service import evaluate_event
-from app.services.memory.memory_repository import MemoryRepository
-from app.services.notification_engine import DecisionEngine
-from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
+from backend.app.models import DeviceEvent, User, UserMemoryFact
+from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
+from backend.app.decision_engine.service import evaluate_event
+from backend.app.services.memory.memory_repository import MemoryRepository
+from backend.app.services.notification_engine import DecisionEngine
+from backend.app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
 
 logger = logging.getLogger(__name__)
 

@@ -20,7 +20,7 @@ import secrets
 from fastapi import Header, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models import Device
+from backend.app.models import Device
 
 logger = logging.getLogger(__name__)
 

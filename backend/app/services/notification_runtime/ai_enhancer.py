@@ -10,7 +10,7 @@ import os
 from typing import Optional
 import logging
 
-from app.schemas.notification import NotificationPayload
+from backend.app.schemas.notification import NotificationPayload
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def enhance_with_ai(payload: NotificationPayload) -> NotificationPayload:
     
     try:
         # Import AI text engine (may not exist in all environments)
-        from app.core.ai_text_engine import generate_notification_text
+        from backend.app.core.ai_text_engine import generate_notification_text
         
         # Map notification types to AI engine types
         ai_type_map = {
@@ -50,7 +50,7 @@ def enhance_with_ai(payload: NotificationPayload) -> NotificationPayload:
         user_name = "عزیزم"  # Default fallback
         try:
             from sqlalchemy.orm import Session
-            from app.models import User
+            from backend.app.models import User
             # Note: We don't have db session here, so we'll use default
             # In practice, user_name should be passed from caller
         except Exception:

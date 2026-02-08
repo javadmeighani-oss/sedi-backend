@@ -11,15 +11,15 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 
-from app.database import get_db
-from app.models import User, MedicalCondition, UserCondition
-from app.schemas import APIResponse, ErrorInfo
-from app.schemas.medical import (
+from backend.app.database import get_db
+from backend.app.models import User, MedicalCondition, UserCondition
+from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas.medical import (
     MedicalConditionResponse,
     UserConditionCreate,
     UserConditionResponse
 )
-from app.services.medical import MedicalService
+from backend.app.services.medical import MedicalService
 
 router = APIRouter()
 

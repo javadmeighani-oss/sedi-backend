@@ -18,11 +18,11 @@ RESPONSIBILITY:
 
 from typing import Dict, Optional
 from sqlalchemy.orm import Session
-from app.core.conversation.stages import ConversationStage, get_stage, transition_stage
-from app.core.conversation.memory import ConversationMemory
-from app.core.conversation.context import ConversationContext
-from app.core.conversation.prompts import ConversationPrompts
-from app.models import User
+from backend.app.core.conversation.stages import ConversationStage, get_stage, transition_stage
+from backend.app.core.conversation.memory import ConversationMemory
+from backend.app.core.conversation.context import ConversationContext
+from backend.app.core.conversation.prompts import ConversationPrompts
+from backend.app.models import User
 
 
 class ConversationBrain:
@@ -86,8 +86,8 @@ class ConversationBrain:
             print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
             
             # 3. BUILD MESSAGES: Build messages explicitly without context dependency
-            from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
-            from app.core.conversation.prompts import client as gpt_client
+            from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+            from backend.app.core.conversation.prompts import client as gpt_client
             
             # Always start with system prompt (English)
             system_prompt_content = build_complete_sedi_context("en")
@@ -244,9 +244,9 @@ class ConversationBrain:
             user_name: User's name from frontend (optional, for personalization)
             language: Language code ('en', 'fa', 'ar')
         """
-        from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+        from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
         # VERIFY: Same client used in onboarding and chat
-        from app.core.conversation.prompts import client as gpt_client
+        from backend.app.core.conversation.prompts import client as gpt_client
         print(f"[BRAIN] ✅ Using same OpenAI client as chat (verified: same client from prompts.py)")
         
         # CRITICAL: Use user_name if provided, otherwise use "friend" as fallback
@@ -441,7 +441,7 @@ The user's preferred language ({language}) will be used for all subsequent respo
                 {"role": "user", "content": prompt_text}
             ]
             
-            from app.core.conversation.prompts import client as gpt_client
+            from backend.app.core.conversation.prompts import client as gpt_client
             response = gpt_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,

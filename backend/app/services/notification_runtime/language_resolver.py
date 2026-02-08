@@ -13,8 +13,8 @@ Supported languages: en, fa, ar
 from typing import Optional, Literal
 from sqlalchemy.orm import Session
 
-from app.models import User
-from app.services.memory.memory_context import MemoryContext
+from backend.app.models import User
+from backend.app.services.memory.memory_context import MemoryContext
 
 SupportedLanguage = Literal["en", "fa", "ar"]
 

@@ -19,10 +19,10 @@ RESPONSIBILITY:
 
 from typing import Dict, Optional
 from openai import OpenAI
-from app.core.conversation.stages import ConversationStage
-from app.core.conversation.name_database import is_likely_name, detect_language
-from app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
-from app.core.conversation.question_database import is_common_question, get_question_category
+from backend.app.core.conversation.stages import ConversationStage
+from backend.app.core.conversation.name_database import is_likely_name, detect_language
+from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
+from backend.app.core.conversation.question_database import is_common_question, get_question_category
 import os
 from dotenv import load_dotenv
 

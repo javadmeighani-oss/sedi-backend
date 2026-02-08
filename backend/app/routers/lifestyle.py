@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field
 
-from app.database import get_db
-from app import models
-from app.schemas import APIResponse, ErrorInfo
-from app.services.memory import MemoryRepository, build_memory_context
+from backend.app.database import get_db
+from backend.app import models
+from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.services.memory import MemoryRepository, build_memory_context
 
 
 router = APIRouter()

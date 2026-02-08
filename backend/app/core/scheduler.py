@@ -238,7 +238,7 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
         )
     else:
         # Release B2.1: Use connection_ping type instead of legacy REMINDER
-        from app.services.notification_engine import DecisionEngine
+        from backend.app.services.notification_engine import DecisionEngine
         decision_engine = DecisionEngine(db)
         # Use create_insight_notification which maps to connection_ping
         notif = decision_engine.create_insight_notification(
@@ -320,7 +320,7 @@ def run_medication_reminders():
 # -------------------------------
 def run_deliver_pending():
     """Query unsent notifications, send via adapter, mark is_sent=true. Idempotent."""
-    from app.services.notifications.delivery_service import DeliveryService
+    from backend.app.services.notifications.delivery_service import DeliveryService
     with next(get_db()) as db:
         service = DeliveryService(db=db)
         sent_count = service.deliver_pending(limit=100)

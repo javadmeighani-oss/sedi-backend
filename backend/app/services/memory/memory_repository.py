@@ -10,8 +10,8 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import json
 
-from app.models import UserMemoryFact
-from app.services.memory.memory_contract import MemoryContract
+from backend.app.models import UserMemoryFact
+from backend.app.services.memory.memory_contract import MemoryContract
 
 
 class MemoryRepository:

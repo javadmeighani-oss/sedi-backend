@@ -12,7 +12,7 @@ RESPONSIBILITY:
 from enum import Enum
 from typing import Optional
 from sqlalchemy.orm import Session
-from app.models import User, Memory
+from backend.app.models import User, Memory
 
 
 class ConversationStage(Enum):
@@ -41,7 +41,7 @@ def get_stage(user_id: int, db: Session) -> ConversationStage:
         ConversationStage: Current stage
     """
     # EXPERIENCE STABILITY: Validate user exists
-    from app.models import User
+    from backend.app.models import User
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         print(f"[STAGE DEBUG] ERROR: User {user_id} not found - returning FIRST_CONTACT")

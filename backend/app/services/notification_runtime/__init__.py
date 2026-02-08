@@ -10,9 +10,9 @@ This package contains runtime components for notification processing:
 Note: This package is imported by app/services/notification_engine.py (the main module).
 """
 
-from app.services.notification_runtime.fallback_generator import generate_fallback_text
-from app.services.notification_runtime.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
-from app.services.notification_runtime.language_resolver import resolve_effective_language
+from backend.app.services.notification_runtime.fallback_generator import generate_fallback_text
+from backend.app.services.notification_runtime.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
+from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
 
 __all__ = [
     "generate_fallback_text",

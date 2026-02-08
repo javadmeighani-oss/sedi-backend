@@ -1,7 +1,7 @@
 # app/routers/sms_gateway.py
 from fastapi import APIRouter, Depends, Request
 from datetime import datetime
-from app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas import APIResponse, ErrorInfo
 
 router = APIRouter()
 

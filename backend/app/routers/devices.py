@@ -3,10 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from app.database import get_db
-from app.models import Device, User
-from app.core.device_auth import generate_device_token, hash_device_token
-from app.schemas.devices import (
+from backend.app.database import get_db
+from backend.app.models import Device, User
+from backend.app.core.device_auth import generate_device_token, hash_device_token
+from backend.app.schemas.devices import (
     DeviceRegisterRequest,
     DeviceRegisterResponse,
     DevicesListResponse,
