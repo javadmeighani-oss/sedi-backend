@@ -1,0 +1,56 @@
+# Run Release D acceptance tests on push/PR to main using ephemeral Postgres (no production).
+name: Backend acceptance tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-acceptance:
+    name: Release D acceptance
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_user
+          POSTGRES_PASSWORD: sedi_pass
+          POSTGRES_DB: sedi_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_user -d sedi_test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://sedi_user:sedi_pass@localhost:5432/sedi_test_db
+      DEVICE_AUTH_MODE: legacy_only
+      DEVICE_INGEST_TOKEN: release-d-ingest-token
+      ENV: ci
+      PYTHONPATH: ${{ github.workspace }}/backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest
+
+      - name: Compile acceptance test
+        run: python -m py_compile backend/tests/acceptance/test_release_d.py
+
+      - name: Run Release D acceptance tests
+        run: python -m pytest -q backend/tests/acceptance/test_release_d.py -v --tb=short

@@ -57,6 +57,17 @@ flutter pub get
 flutter run
 ```
 
+## 🧪 CI and acceptance tests
+
+CI runs Release D acceptance tests via GitHub Actions using a Postgres service (ephemeral, not production). To run the same tests locally or on a server, use a test database and set `DATABASE_URL`:
+
+```bash
+DATABASE_URL="postgresql://sedi_user:YOUR_PASS@localhost:5432/sedi_test_db" \
+  python -m pytest -q backend/tests/acceptance/test_release_d.py -v --tb=short
+```
+
+(Ensure `PYTHONPATH` includes `backend` or run from repo root with backend on path.)
+
 ## 📝 مستندات
 
 - **Backend Docs**: `backend/docs/`
