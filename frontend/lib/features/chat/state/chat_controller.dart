@@ -15,6 +15,7 @@ import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../../data/models/user_profile.dart';
 import '../chat_service.dart';
+import '../logic/greeting_templates.dart';
 import 'package:flutter/foundation.dart';
 
 enum ConversationState {
@@ -137,13 +138,30 @@ class ChatController extends ChangeNotifier {
       return;
     }
 
-    print('[ChatController] No initial message, fetching greeting from backend...');
-    // Otherwise, get greeting from backend (only for returning users)
-    await _getGreetingFromBackend();
+    print('[ChatController] No initial message, using approved intro greeting (once per user, no duplicate on reopen).');
+    await _showIntroGreetingOnce();
     print('[ChatController] ========== INITIALIZE END (GREETING) ==========');
   }
 
-  /// Get greeting from backend - NO frontend logic
+  /// Show approved intro greeting once; do not reinsert on app reopen if already seen.
+  Future<void> _showIntroGreetingOnce() async {
+    final alreadySeen = await UserPreferences.hasSeenIntroGreeting();
+    if (alreadySeen) {
+      print('[ChatController] Intro greeting already seen, skipping (no duplicate on reopen).');
+      conversationState = ConversationState.chatting;
+      notifyListeners();
+      return;
+    }
+    final profileLang = _userProfile.preferredLanguage;
+    final lang = profileLang.isNotEmpty ? profileLang : await UserPreferences.getUserLanguage();
+    final greeting = getIntroGreeting(lang);
+    _addSediMessage(greeting);
+    await UserPreferences.setHasSeenIntroGreeting(true);
+    conversationState = ConversationState.chatting;
+    notifyListeners();
+  }
+
+  /// Get greeting from backend - kept for reference; intro now uses greeting_templates.
   Future<void> _getGreetingFromBackend() async {
     // CRITICAL: Validate user_id before making any API call
     if (_userProfile.userId == null) {

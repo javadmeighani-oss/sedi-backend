@@ -273,3 +273,130 @@ Add to the main QA flow (after Chat step):
 |--------|---------|
 | `flutter analyze` | No new errors. |
 | `flutter test test/brand_name_test.dart` | Brand name tests pass. |
+
+---
+
+# Stage 20.6 Report: Brand enforcement – FA/AR must show "صدی"; no "سدی"
+
+**Date:** 2025-02-10  
+**Goal:** Ensure brand is consistent: EN = "Sedi", FA/AR = "صدی". No "سدی" (wrong spelling) anywhere in UI, intro, chat fallback, notifications, onboarding.
+
+---
+
+## 1) Summary (Stage 20.6)
+
+- **Search:** Repo searched for "سدی" — no occurrences found. All user-facing brand strings already use `sediBrandName(langCode)` from Stage 20.5.
+- **Helper:** `lib/core/utils/brand_name.dart` — comment added: do not use "سدی"; always use helper for FA/AR. Returns "صدی" for fa/ar.
+- **Test:** `test/brand_name_test.dart` — added explicit checks that fa/ar return "صدی" and not "سدی"; fa/ar => صدی, en => Sedi.
+- **Coverage:** Welcome (AppMessages), chat placeholder, SediHeader fallback, chat history mock, devices hint, notification channel — all use `sediBrandName()`. Intro has no brand text; offline/error messages in ChatController are generic (no brand name).
+
+---
+
+## 2) Files changed (Stage 20.6)
+
+| File | Change |
+|------|--------|
+| **lib/core/utils/brand_name.dart** | Comment: do not use "سدی"; use helper. Inline note (correct: صدی). |
+| **test/brand_name_test.dart** | Tests: fa/ar return "صدی" and `isNot('سدی')`; en => Sedi. |
+| **docs/FRONTEND_STAGE20_REPORT.md** | Stage 20.6 section. |
+
+---
+
+## 3) Verify (Stage 20.6)
+
+| Command | Purpose |
+|--------|---------|
+| `flutter analyze` | No new errors. |
+| `flutter test test/brand_name_test.dart` | Brand tests pass (fa/ar => صدی, en => Sedi, never سدی). |
+
+**Manual:** Run app in FA or AR locale; confirm all user-visible strings show "صدی" and never "سدی".
+
+---
+
+# Stage 20.7 Report: Approved Sedi intro greeting (FA/EN/AR) + once per user, no duplicate
+
+**Date:** 2025-02-10  
+**Goal:** Replace greeting with product-approved intro text. FA/AR use "صدی", EN use "Sedi". Greeting shown once per user (persisted flag); no reinsert on app reopen.
+
+---
+
+## 1) Summary (Stage 20.7)
+
+- **greeting_templates.dart:** New file with approved FA/EN/AR intro text. `getIntroGreeting(langCode)` returns the exact copy (FA: گجت، مراقبت پیوسته، صدی; EN: Sedi, specialized gadgets, continuous; AR: صدی).
+- **ChatController:** Uses templates instead of backend for first-time greeting. Calls `_showIntroGreetingOnce()`: if `UserPreferences.hasSeenIntroGreeting()` is true, skips (no duplicate on reopen); else shows `getIntroGreeting(lang)`, then sets `setHasSeenIntroGreeting(true)`. Language from profile or UserPreferences.
+- **UserPreferences:** Added `hasSeenIntroGreeting` / `setHasSeenIntroGreeting` for persistence.
+- **Tests:** `test/greeting_templates_test.dart` — FA/AR contain "صدی" and not "سدی"; EN contains "Sedi"; FA mentions "گجت" and "مراقبت پیوسته"; EN mentions "specialized gadgets" and "continuous".
+
+---
+
+## 2) Files changed (Stage 20.7)
+
+| File | Change |
+|------|--------|
+| **lib/features/chat/logic/greeting_templates.dart** | **New.** Approved FA/EN/AR intro; `getIntroGreeting(langCode)`. |
+| **lib/core/utils/user_preferences.dart** | `hasSeenIntroGreeting`, `setHasSeenIntroGreeting`. |
+| **lib/features/chat/state/chat_controller.dart** | Initialize uses `_showIntroGreetingOnce()` (templates + flag); no backend greeting for intro. |
+| **test/greeting_templates_test.dart** | **New.** Assert FA/AR صدی, EN Sedi, FA گجت/مراقبت پیوسته, EN specialized gadgets/continuous. |
+| **docs/FRONTEND_STAGE20_REPORT.md** | Stage 20.7 section. |
+
+---
+
+## 3) Verify (Stage 20.7)
+
+| Command | Purpose |
+|--------|---------|
+| `flutter analyze` | No new errors. |
+| `flutter test test/greeting_templates_test.dart` | Greeting template tests pass. |
+
+**Manual:** Fresh install → greeting shows once. Reopen app → no duplicate greeting. FA/AR show "صدی" in intro text.
+
+---
+
+# Stage 20.8 Report: App icon fix – Sedi circular logo on Android/iOS
+
+**Date:** 2025-02-10  
+**Goal:** Launcher icon = white circle background + pistachio-green Sedi/صدی logo centered. Use flutter_launcher_icons; commit generated assets; bump version so devices update icon.
+
+---
+
+## 1) Summary (Stage 20.8)
+
+- **Source icon:** `assets/images/sedi_app_icon.png` (square 1024×1024 recommended; visually: white circle + pistachio logo centered). Replace this file if the design does not match.
+- **pubspec.yaml:** `flutter_launcher_icons` config already points to `assets/images/sedi_app_icon.png`; android + ios true.
+- **Version bumped:** `1.0.0+1` → `1.0.0+2` so Android versionCode increments and reinstall/update shows new icon.
+- **Doc:** `docs/APP_ICON.md` — steps to run `flutter pub get` and `dart run flutter_launcher_icons`, commit generated mipmap and iOS AppIcon, and verify.
+
+---
+
+## 2) Files changed (Stage 20.8)
+
+| File | Change |
+|------|--------|
+| **pubspec.yaml** | version 1.0.0+1 → 1.0.0+2. |
+| **docs/APP_ICON.md** | **New.** Icon source, config, generate commands, version bump, verify. |
+| **docs/FRONTEND_STAGE20_REPORT.md** | Stage 20.8 section. |
+
+---
+
+## 3) Generated assets (commit after running launcher_icons)
+
+After running `dart run flutter_launcher_icons`, commit:
+
+- `android/app/src/main/res/mipmap-hdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-mdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-xhdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`
+- `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png` (and Contents.json if changed)
+
+---
+
+## 4) Verify (Stage 20.8)
+
+| Command | Purpose |
+|--------|---------|
+| `flutter analyze` | No new errors. |
+| `flutter test` | All tests pass. |
+| `flutter build apk --debug` | Debug APK builds. |
+
+**Manual:** Uninstall old app, install fresh build, confirm launcher icon shows white circle + pistachio logo.
