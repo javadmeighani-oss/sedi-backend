@@ -4,7 +4,10 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/auth/auth_service.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/debug/chat_last_error_dump.dart';
 import '../../../core/utils/user_preferences.dart';
+import '../../../data/dto/interact_request.dart';
+import '../../../data/repositories/chat_repository.dart';
 
 /// ------------------------------------------------------------
 /// ChatService
@@ -201,23 +204,15 @@ class ChatService {
     }
   }
 
-  /// Setup onboarding - create user with password, language, and name
-  /// Returns: (message, user_id, language) or (error, null, null)
-  /// 
-  /// CRITICAL: 
-  /// - name is REQUIRED (from JSON body)
-  /// - password is REQUIRED (from JSON body)
-  /// - language is optional (default: "fa")
-  /// - This method MUST return user_id if backend returns 200.
-  /// - Only network errors or non-200 status codes should return null user_id.
+  /// Setup onboarding - create user with username only (no password).
+  /// Returns: (message, user_id, language) or (error, null, null).
+  /// Backend expects only "name" in JSON body.
   Future<Map<String, dynamic>> setupOnboarding(
-    String password,
     String language, {
-    required String name, // STEP 2: REQUIRED - name must be provided
+    required String name,
   }) async {
     print('[ChatService] ========== SETUP ONBOARDING START ==========');
     print('[ChatService] Name: "$name" (length: ${name.length})');
-    print('[ChatService] Password length: ${password.length}');
     print('[ChatService] Language: $language');
     print('[ChatService] Local mode: ${AppConfig.useLocalMode}');
 
@@ -247,11 +242,9 @@ class ChatService {
       final uri = Uri.parse('${AppConfig.baseUrl}/interact/onboarding');
       final headers = await _buildHeaders();
       
-      // STEP 2: Create JSON payload
+      // Backend onboarding: username only (no password)
       final payload = {
-        'password': password.trim(),
-        'language': language.trim(),
-        'name': name.trim(), // REQUIRED
+        'name': name.trim(),
       };
 
       print('[ChatService] Request URL: ${uri.toString()}');
@@ -509,15 +502,12 @@ class ChatService {
   }
 
   /// Register user with backend (onboarding) - DEPRECATED, use setupOnboarding
-  /// Returns tuple: (message, user_id) or (error, null)
   Future<Map<String, dynamic>> registerUser(
     String userName,
-    String password,
     String language, {
-    int? existingUserId, // For upgrading anonymous users
+    int? existingUserId,
   }) async {
-    // Use new onboarding endpoint (name required)
-    final result = await setupOnboarding(password, language, name: userName);
+    final result = await setupOnboarding(language, name: userName);
     return {
       'message': result['message'],
       'user_id': result['user_id'],
@@ -543,110 +533,95 @@ class ChatService {
     }
 
     // ---------------- BACKEND MODE ----------------
+    // Backend ChatRequest: JSON body { "user_id": int, "message": string } only.
     try {
-      // Validate message is not empty
       if (userMessage.trim().isEmpty) {
         return 'NETWORK_ERROR: Message cannot be empty';
       }
-
-      // Get current language - prefer provided language, fallback to UserPreferences
-      String currentLang;
-      if (language != null && language.isNotEmpty) {
-        currentLang = language;
-      } else {
-        currentLang = await UserPreferences.getUserLanguage();
+      if (userId == null || userId <= 0) {
+        return 'VALIDATION_ERROR: user_id is required and must be a positive integer.';
       }
 
-      // Build query parameters (name and password are optional for new users)
-      final queryParams = <String, String>{
-        'message': userMessage.trim(), // Ensure trimmed
-        'lang': currentLang.isNotEmpty
-            ? currentLang
-            : 'en', // Default to 'en' if empty
-      };
+      final request = InteractRequest(
+        userId: userId,
+        message: userMessage.trim(),
+      );
+      final bodyJson = request.toJson();
 
-      // CRITICAL: Add user_id if available (maintains conversation continuity)
-      if (userId != null) {
-        queryParams['user_id'] = userId.toString();
-        print('[ChatService] Adding user_id to request: $userId');
-      }
-
-      // Add credentials if available (not required for initial conversations)
-      if (userName != null && userName.isNotEmpty) {
-        queryParams['name'] = userName.trim();
-      }
-      if (userPassword != null && userPassword.isNotEmpty) {
-        queryParams['secret_key'] = userPassword.trim();
-      }
-
-      // Backend uses /interact/chat with query parameters
-      // Use Uri.https or Uri.http to ensure proper encoding
       final baseUri = Uri.parse(AppConfig.baseUrl);
       final uri = Uri(
         scheme: baseUri.scheme,
         host: baseUri.host,
         port: baseUri.port,
         path: '/interact/chat',
-        queryParameters: queryParams,
       );
 
-      final headers = await _buildHeaders();
-
-      // Debug: Print URL for troubleshooting (TEMPORARY - for verification)
+      // Safe debug log: no secrets
       print('[ChatService] ===== SENDING TO BACKEND =====');
-      print('[ChatService] URL: ${uri.toString()}');
-      print('[ChatService] Method: POST');
-      print('[ChatService] Headers: $headers');
-      print('[ChatService] Query params: $queryParams');
-      print('[ChatService] Message: "$userMessage"');
+      print('[ChatService] endpoint: ${uri.toString()}');
+      print('[ChatService] payload keys: ${bodyJson.keys.toList()}');
 
-      // Retry mechanism for network issues
-      http.Response? response;
+      ChatRepositoryResult? result;
       int retryCount = 0;
       const maxRetries = 3;
 
       while (retryCount < maxRetries) {
         try {
-          response = await http
-              .post(
-            uri,
-            headers: headers,
-          )
-              .timeout(
-            const Duration(seconds: 15), // Increased timeout
-            onTimeout: () {
-              print(
-                  '[ChatService] Request timeout after 15 seconds (attempt ${retryCount + 1})');
-              throw Exception('Connection timeout - Server may be down');
-            },
-          );
-          break; // Success, exit retry loop
+          result = await sendChat(request);
+          break;
         } catch (e) {
           retryCount++;
           if (retryCount >= maxRetries) {
             print('[ChatService] All retry attempts failed');
-            rethrow; // Re-throw the last error
+            rethrow;
           }
           print(
               '[ChatService] Retry attempt $retryCount/$maxRetries after error: $e');
           await Future.delayed(
-              Duration(seconds: retryCount * 2)); // Exponential backoff
+              Duration(seconds: retryCount * 2));
         }
       }
 
-      if (response == null) {
+      if (result == null) {
         throw Exception('Failed to get response after $maxRetries attempts');
       }
 
       print('[ChatService] ===== BACKEND RESPONSE =====');
-      print('[ChatService] Status: ${response.statusCode}');
-      print('[ChatService] Response body: ${response.body}');
+      print('[ChatService] Status: ${result.statusCode}');
+      print('[ChatService] Response body: ${result.body}');
+
+      // Handle 422 (payload mismatch) with debug dump and user-friendly message
+      if (result.statusCode == 422) {
+        String detail = 'Validation error';
+        try {
+          final err = jsonDecode(result.body);
+          if (err is Map) {
+            final d = err['detail'];
+            if (d is String) {
+              detail = d;
+            } else if (d is List && d.isNotEmpty) {
+              final e = d.first;
+              detail = (e is Map && e['msg'] != null)
+                  ? e['msg'].toString()
+                  : e.toString();
+            }
+          }
+        } catch (_) {}
+        print('[ChatService] 422: endpoint=${uri.toString()} payload_keys=${bodyJson.keys.toList()} response=$detail');
+        ChatLastErrorDump.set(
+          endpoint: uri.toString(),
+          payloadKeys: bodyJson.keys.map((e) => e.toString()).toList(),
+          responseMessage: detail,
+          statusCode: 422,
+        );
+        return 'REQUEST_FORMAT_ERROR: Request format issue. Please try again.';
+      }
 
       // Handle 502 Bad Gateway (GPT failure) FIRST
-      if (response.statusCode == 502) {
+      if (result.statusCode == 502) {
         print('[ChatService] ❌ 502 Bad Gateway - GPT service error');
         try {
-          final errorBody = jsonDecode(response.body);
+          final errorBody = jsonDecode(result.body);
           final errorDetail =
               errorBody['detail'] ?? errorBody['error'] ?? 'GPT service error';
           print('[ChatService] GPT error detail: $errorDetail');
@@ -657,45 +632,44 @@ class ChatService {
         }
       }
 
-      if (response.statusCode == 200) {
+      if (result.statusCode == 200) {
         print('[ChatService] ✅ SUCCESS - Backend responded');
       } else {
-        print('[ChatService] ❌ ERROR - Status ${response.statusCode}');
-        print('[ChatService] Response body: ${response.body}');
+        print('[ChatService] ❌ ERROR - Status ${result.statusCode}');
+        print('[ChatService] Response body: ${result.body}');
 
         // Parse error response to get real backend error message
         try {
-          final errorBody = jsonDecode(response.body);
+          final errorBody = jsonDecode(result.body);
           final errorDetail = errorBody.get('detail') ??
               errorBody.get('message') ??
               'Unknown error';
           print('[ChatService] Backend error detail: $errorDetail');
 
           // Return structured error message from backend
-          if (response.statusCode == 400) {
+          if (result.statusCode == 400) {
             return 'VALIDATION_ERROR: $errorDetail';
-          } else if (response.statusCode == 404) {
+          } else if (result.statusCode == 404) {
             return 'USER_NOT_FOUND: $errorDetail';
-          } else if (response.statusCode >= 500) {
+          } else if (result.statusCode >= 500) {
             return 'SERVER_ERROR: $errorDetail';
           } else {
-            return 'ERROR_${response.statusCode}: $errorDetail';
+            return 'ERROR_${result.statusCode}: $errorDetail';
           }
         } catch (parseError) {
           print('[ChatService] Could not parse error body: $parseError');
-          // Fallback to status code based error
-          if (response.statusCode == 400) {
+          if (result.statusCode == 400) {
             return 'VALIDATION_ERROR: Invalid request. Please check your input.';
-          } else if (response.statusCode == 404) {
+          } else if (result.statusCode == 404) {
             return 'USER_NOT_FOUND: User not found. Please check your user_id.';
           } else {
-            return 'ERROR_${response.statusCode}: Server returned error status ${response.statusCode}';
+            return 'ERROR_${result.statusCode}: Server returned error status ${result.statusCode}';
           }
         }
       }
 
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
+      if (result.statusCode == 200) {
+        final body = jsonDecode(result.body);
 
         print('[ChatService] Response body keys: ${body.keys.toList()}');
         print('[ChatService] Response body: $body');
@@ -738,43 +712,24 @@ class ChatService {
         return responseString;
       }
 
-      // Handle 422 (Validation Error) - usually means missing required parameter
-      // This can happen if backend hasn't been restarted after code changes
-      if (response.statusCode == 422) {
-        final body = jsonDecode(response.body);
-        final errorDetail = body['detail']?.toString() ?? 'Validation error';
-        print('[ChatService] 422 Validation Error: $errorDetail');
-
-        // Check if error is about missing name/secret_key (backend not updated)
-        if (errorDetail.contains('name') &&
-            errorDetail.contains('secret_key')) {
-          print(
-              '[ChatService] Backend needs restart - name/secret_key still required');
-          return 'BACKEND_UPDATE_REQUIRED: Backend needs to be restarted. Please contact administrator.';
-        }
-
-        return 'SERVER_ERROR_422: $errorDetail';
-      }
-
-      if (response.statusCode == 401 || response.statusCode == 404) {
-        print('[ChatService] Auth error: Status ${response.statusCode}');
+      if (result.statusCode == 401 || result.statusCode == 404) {
+        print('[ChatService] Auth error: Status ${result.statusCode}');
         // User not found - this is okay for new users, they can chat without registration
         // Backend will create user automatically or return error
         // But with anonymous users support, this shouldn't happen
         return 'AUTH_REQUIRED';
       }
 
-      // Log error response body for debugging
-      if (response.statusCode != 200) {
+      if (result.statusCode != 200) {
         try {
-          final errorBody = jsonDecode(response.body);
-          print('[ChatService] Error ${response.statusCode}: $errorBody');
+          final errorBody = jsonDecode(result.body);
+          print('[ChatService] Error ${result.statusCode}: $errorBody');
         } catch (_) {
-          print('[ChatService] Error ${response.statusCode}: ${response.body}');
+          print('[ChatService] Error ${result.statusCode}: ${result.body}');
         }
       }
 
-      return 'SERVER_ERROR_${response.statusCode}';
+      return 'SERVER_ERROR_${result.statusCode}';
     } catch (e) {
       // Better error handling for debugging
       print('[ChatService] ===== EXCEPTION CAUGHT =====');
@@ -818,12 +773,11 @@ class ChatService {
     }
   }
 
-  /// Test backend connection
+  /// Test backend connection (uses same JSON body shape as chat).
   Future<bool> testConnection() async {
     if (AppConfig.useLocalMode) {
-      return false; // No connection test in local mode
+      return false;
     }
-
     try {
       final baseUri = Uri.parse(AppConfig.baseUrl);
       final uri = Uri(
@@ -831,31 +785,19 @@ class ChatService {
         host: baseUri.host,
         port: baseUri.port,
         path: '/interact/chat',
-        queryParameters: {
-          'message': '__CONNECTION_TEST__',
-          'lang': 'en',
-        },
       );
-
       final headers = await _buildHeaders();
-
+      final body = jsonEncode(InteractRequest(userId: 1, message: '__CONNECTION_TEST__').toJson());
       final response = await http
-          .post(
-        uri,
-        headers: headers,
-      )
-          .timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          throw Exception('Connection timeout');
-        },
-      );
-
-      // Backend is reachable if we get any response (even errors mean server is up)
+          .post(uri, headers: headers, body: body)
+          .timeout(const Duration(seconds: 5), onTimeout: () {
+        throw Exception('Connection timeout');
+      });
       return response.statusCode == 200 ||
           response.statusCode == 401 ||
           response.statusCode == 422 ||
-          response.statusCode == 400;
+          response.statusCode == 400 ||
+          response.statusCode == 404;
     } catch (e) {
       print('[ChatService] Connection test failed: $e');
       return false;

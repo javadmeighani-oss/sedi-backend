@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../core/utils/gender_guess.dart';
 import '../../../../data/models/user_profile.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../chat/chat_service.dart';
@@ -19,9 +19,7 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  
-  bool _isPasswordValid = false;
+
   bool _isFormValid = false;
   bool _isSubmitting = false;
 
@@ -38,23 +36,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void initState() {
     super.initState();
     _nameController.addListener(_validateForm);
-    _passwordController.addListener(_validatePassword);
     _checkOnboardingStatus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _validateForm();
-      _validatePassword();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _validateForm());
   }
 
   Future<void> _checkOnboardingStatus() async {
     try {
       final profile = await UserProfileManager.loadProfile();
       final hasName = profile.name != null && profile.name!.isNotEmpty;
-      final hasPassword = profile.securityPassword != null && 
-                          profile.securityPassword!.isNotEmpty;
-      final isVerified = profile.isVerified || profile.hasSecurityPassword;
-      final hasCompletedOnboarding = hasName && hasPassword && isVerified;
-      
+      final isVerified = profile.isVerified;
+      final hasCompletedOnboarding = hasName && isVerified;
+
       if (hasCompletedOnboarding && mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const ChatPage()),
@@ -68,30 +60,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
-  void _validatePassword() {
-    final password = _passwordController.text;
-    final isValid = password.length >= 6;
-    
-    if (mounted) {
-      setState(() {
-        _isPasswordValid = isValid;
-        _validateForm();
-      });
-    }
-  }
-
   void _validateForm() {
-    final nameText = _nameController.text.trim();
-    final nameValid = nameText.isNotEmpty;
-    final isValid = nameValid && _isPasswordValid;
-    
+    final nameValid = _nameController.text.trim().isNotEmpty;
     if (mounted) {
       setState(() {
-        _isFormValid = isValid;
+        _isFormValid = nameValid;
       });
     }
   }
@@ -134,13 +110,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     });
     
     final name = _nameController.text.trim();
-    final password = _passwordController.text;
     final systemLanguage = _getSystemLanguage();
-    
-    debugPrint('[OnboardingPage] Form data:');
-    debugPrint('[OnboardingPage]   - Name: "$name" (length: ${name.length})');
-    debugPrint('[OnboardingPage]   - Password: length=${password.length}');
-    debugPrint('[OnboardingPage]   - Language: $systemLanguage');
+
+    debugPrint('[OnboardingPage] Form data: name="$name", language=$systemLanguage');
 
     // ============================================
     // STEP 4: FIX try/catch STRUCTURE
@@ -156,9 +128,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       final chatService = ChatService();
       // STEP 2: name is REQUIRED (non-empty, validated in form)
       onboardingResponse = await chatService.setupOnboarding(
-        password,
         systemLanguage,
-        name: name, // STEP 2: REQUIRED - name must be provided
+        name: name,
       );
       debugPrint('[OnboardingPage] ===== ONBOARDING API SUCCESS =====');
     } catch (e) {
@@ -288,15 +259,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // Registration == user creation ONLY
     // ============================================
     
-    // Save profile (outside try/catch - if this fails, it's a different error)
+    // Soft gender guess from name (optional, not shown in UI)
+    final guessed = guessGender(name, systemLanguage);
+    final guessedGenderValue = guessedGenderToValue(guessed);
+
     try {
       final profile = UserProfile(
         name: name.isNotEmpty ? name : null,
-        securityPassword: password,
+        securityPassword: null,
         preferredLanguage: onboardingResponse['language']?.toString() ?? systemLanguage,
         userId: userIdInt,
-        hasSecurityPassword: true,
-        securityPasswordSetAt: DateTime.now(),
+        guessedGender: guessedGenderValue,
+        hasSecurityPassword: false,
+        securityPasswordSetAt: null,
         isVerified: true,
       );
       
@@ -354,7 +329,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final containerWidth = screenSize.width * 0.9;
-    final containerHeight = 320.0;
+    final containerHeight = 200.0;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -388,8 +363,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           _buildNameSection(),
-                          const SizedBox(height: 12),
-                          _buildPasswordSection(),
                           const Spacer(),
                           _buildSubmitButton(),
                           const SizedBox(height: 8),
@@ -447,64 +420,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter your name';
-                }
-                return null;
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPasswordSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 4),
-          child: Text(
-            'Security password (minimum 6 characters)',
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.primaryBlack, width: 1.5),
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppTheme.metalGrey.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1.5),
-            ),
-            child: TextFormField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                hintText: 'Enter security password',
-                hintStyle: TextStyle(color: AppTheme.textPrimary.withOpacity(0.5)),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                suffixIcon: _isPasswordValid
-                    ? Icon(Icons.check_circle, color: AppTheme.pistachioGreen, size: 20)
-                    : null,
-              ),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 16,
-              ),
-              obscureText: true,
-              textDirection: TextDirection.ltr,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter security password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
                 }
                 return null;
               },

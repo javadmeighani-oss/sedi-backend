@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/brand_name.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/device_public_info.dart';
 import '../../logic/devices_controller.dart';
@@ -209,7 +210,7 @@ class _DevicesPageState extends State<DevicesPage> {
               controller: _deviceIdController,
               decoration: InputDecoration(
                 labelText: 'Device ID (required)',
-                hintText: 'e.g. Sedi001',
+                hintText: 'e.g. ${sediBrandName('en')}001',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),

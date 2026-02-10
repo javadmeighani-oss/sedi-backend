@@ -138,3 +138,138 @@ Add to the main QA flow (after Chat step):
 |--------|---------|
 | `flutter analyze` | No new errors. |
 | `flutter test` | All existing tests pass. |
+
+---
+
+# Stage 20.3 Report: Onboarding username-only + soft gender guess
+
+**Date:** 2025-02-10  
+**Goal:** Remove password/secret from onboarding; username only. Add soft gender guess from name (FA/AR/EN). Store guessed gender in profile (optional, not shown in UI). Ensure brand name Sedi (EN) / صدی (FA/AR) in copy.
+
+---
+
+## 1) Summary (Stage 20.3)
+
+- **Onboarding & verification:** All password/secret fields and validations removed. Only username (required) is collected. Username is saved to UserProfile and preferences; backend calls still have user context (userId, name).
+- **Gender guess:** New `lib/core/utils/gender_guess.dart`: `guessGender(String name, String langCode)` returns `male` / `female` / `unknown`. Heuristics: FA/AR — endings ه, ة (soft female); EN — endings a, e, ie (soft). Default unknown.
+- **Storage:** Guessed gender saved in UserProfile as optional `guessedGender` ('male'|'female'|'unknown'); not displayed in UI.
+- **API:** `ChatService.setupOnboarding(language, name: name)` — backend receives only `name` (no password).
+- **UI copy:** Chat input placeholder uses "Talk to Sedi…" (EN), "با صدی صحبت کنید…" (FA), "تحدث مع صدي…" (AR). Welcome messages already use صدی in FA/AR in `messages.dart`.
+
+---
+
+## 2) Files Changed (Stage 20.3)
+
+| File | Change |
+|------|--------|
+| **lib/core/utils/gender_guess.dart** | **New.** `guessGender(name, langCode)`, `guessedGenderToValue`, `guessedGenderFromValue`. FA/AR/EN heuristics. |
+| **lib/data/models/user_profile.dart** | Added optional `guessedGender`; fromJson/toJson/copyWith. |
+| **lib/features/chat/chat_service.dart** | `setupOnboarding(language, name: name)` — payload only `name`; no password. `registerUser` updated. |
+| **lib/features/onboarding/presentation/pages/onboarding_page.dart** | Removed password controller/section/validation; username only; call gender guess and save in profile; container height reduced. |
+| **lib/features/user_verification/presentation/pages/user_verification_page.dart** | Removed password section/validation; username + language only; gender guess and save; profile without password. |
+| **lib/features/chat/presentation/pages/chat_page.dart** | `_inputHint()` locale-aware: Sedi (EN), صدی (FA/AR). |
+| **docs/FRONTEND_STAGE20_REPORT.md** | Stage 20.3 section + QA checklist. |
+
+---
+
+## 3) Manual QA Checklist (Stage 20.3)
+
+1. **Onboarding:** Open app (clear profile if needed). Onboarding shows only "Name" field; no password. Enter name → submit → navigates to Chat. Profile has name, userId, isVerified; no security password.
+2. **Verification dialog:** From Chat (or wherever verification is shown). Dialog shows language + name only; no password. Submit → profile updated, dialog closes.
+3. **Chat placeholder:** In EN locale placeholder is "Talk to Sedi…"; switch to FA (or device FA) → "با صدی صحبت کنید…"; AR → "تحدث مع صدي…".
+4. **Navigation:** Intro → Onboarding → Chat flow unchanged; no broken routes.
+5. **Backend:** Onboarding API receives only `{ "name": "..." }`; backend already supports username-only.
+
+---
+
+## 4) Verify (Stage 20.3)
+
+| Command | Purpose |
+|--------|---------|
+| `flutter analyze` | No new errors. |
+| `flutter test` | All existing tests pass. |
+
+*(If pub get fails due to network/auth, run the above in an environment with access to pub.dev.)*
+
+---
+
+# Stage 20.4 Report: Fix Chat 422 – align /interact payload with backend
+
+**Date:** 2025-02-10  
+**Goal:** Ensure chat requests match backend ChatRequest (user_id int, message string) to eliminate HTTP 422. Add safe debug logging and 422 error message. No secrets logged.
+
+---
+
+## 1) Summary (Stage 20.4)
+
+- **Backend contract:** POST `/interact/chat` expects JSON body `{ "user_id": int, "message": string }` only (no query params, no language/name/secret in body). Language is detected from message content on the backend.
+- **InteractRequest:** DTO with `userId` (int), `message` (string), `toJson()` → exact backend shape.
+- **Flow:** ChatController → ChatService.sendMessage → ChatRepository.sendChat(InteractRequest) → http.post with JSON body. No query params for chat.
+- **422 handling:** On 422, log endpoint, payload keys, and response detail; set `ChatLastErrorDump`; return `REQUEST_FORMAT_ERROR`; UI shows "Request format issue. Please try again." (EN) and localized FA/AR.
+- **Debug helper:** `lib/core/debug/chat_last_error_dump.dart` stores last error (endpoint, payloadKeys, responseMessage, statusCode) in memory for quick copy during testing. Not persisted; no secrets.
+- **AppConfig:** baseUrl and useLocalMode unchanged; useLocalMode false for real backend tests.
+
+---
+
+## 2) Files Changed (Stage 20.4)
+
+| File | Change |
+|------|--------|
+| **lib/data/dto/interact_request.dart** | Implemented: `InteractRequest(userId, message)`, `toJson()` → `user_id`, `message`. |
+| **lib/data/dto/interact_response.dart** | Implemented: `InteractResponse.fromJson` for parsing chat response (message, language, user_id, etc.). |
+| **lib/data/repositories/chat_repository.dart** | Implemented: `sendChat(InteractRequest)` → POST /interact/chat with JSON body; returns `ChatRepositoryResult(statusCode, body)`. No secrets in logs. |
+| **lib/features/chat/chat_service.dart** | Builds `InteractRequest`, calls `sendChat(request)`; JSON body only; 422 → dump + "Request format issue. Please try again."; safe debug logs (endpoint, payload keys). |
+| **lib/features/chat/state/chat_controller.dart** | Handles `REQUEST_FORMAT_ERROR:` with EN/FA/AR message. |
+| **lib/core/debug/chat_last_error_dump.dart** | **New.** In-memory last error: endpoint, payloadKeys, responseMessage, statusCode; `summary` getter for logs. |
+| **docs/FRONTEND_STAGE20_REPORT.md** | Stage 20.4 section. |
+
+---
+
+## 3) Verify (Stage 20.4)
+
+| Command | Purpose |
+|--------|---------|
+| `flutter analyze` | No new errors. |
+| `flutter test` | All existing tests pass. |
+
+**Manual:** Send a short message → should return 200 and assistant response. If 422, debug log shows endpoint, payload keys, and response detail; `ChatLastErrorDump.summary` can be copied for diagnosis.
+
+---
+
+# Stage 20.5 Report: Brand naming lock – Sedi (EN) / صدی (FA/AR)
+
+**Date:** 2025-02-10  
+**Goal:** Consistent brand name everywhere: EN = "Sedi", FA/AR = "صدی". Centralized via helper; no other spellings in UI, notifications, onboarding, or intro.
+
+---
+
+## 1) Summary (Stage 20.5)
+
+- **Helper:** `lib/core/utils/brand_name.dart` — `sediBrandName(String langCode)` returns `'صدی'` for fa/ar and `'Sedi'` otherwise.
+- **Replaced:** Welcome message (AppMessages), chat input placeholder, SediHeader fallback text, chat history mock copy, devices hint, notification channel name/description. All use `sediBrandName(lang)` or `sediBrandName('en')` where locale is fixed (e.g. notifications).
+- **Test:** `test/brand_name_test.dart` — fa/ar → صدی, en → Sedi, unknown → Sedi.
+
+---
+
+## 2) Files changed (Stage 20.5)
+
+| File | Change |
+|------|--------|
+| **lib/core/utils/brand_name.dart** | **New.** `sediBrandName(langCode)`. |
+| **lib/core/utils/messages.dart** | `getWelcomeMessage` uses `sediBrandName(language)` for brand in FA/AR/EN strings. |
+| **lib/features/chat/presentation/pages/chat_page.dart** | `_inputHint()` uses `sediBrandName(lang)`. |
+| **lib/features/chat/presentation/widgets/sedi_header.dart** | Fallback text uses `sediBrandName(Localizations.localeOf(context).languageCode)`. |
+| **lib/features/chat/presentation/pages/chat_history_page.dart** | Mock lastMessage uses `sediBrandName('en')`. |
+| **lib/features/devices/presentation/pages/devices_page.dart** | Hint uses `sediBrandName('en')`. |
+| **lib/core/notifications/local_notifications_service.dart** | Channel name and descriptions use `sediBrandName('en')`. |
+| **test/brand_name_test.dart** | **New.** Tests fa/ar → صدی, en → Sedi. |
+| **docs/FRONTEND_STAGE20_REPORT.md** | Stage 20.5 section. |
+
+---
+
+## 3) Verify (Stage 20.5)
+
+| Command | Purpose |
+|--------|---------|
+| `flutter analyze` | No new errors. |
+| `flutter test test/brand_name_test.dart` | Brand name tests pass. |

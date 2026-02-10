@@ -364,6 +364,17 @@ class ChatController extends ChangeNotifier {
         return;
       }
 
+      if (response.startsWith('REQUEST_FORMAT_ERROR:')) {
+        _addSediMessage(
+          currentLanguage == 'fa'
+              ? 'مشکل در فرمت درخواست. لطفاً دوباره تلاش کنید.'
+              : currentLanguage == 'ar'
+                  ? 'مشكلة في تنسيق الطلب. يرجى المحاولة مرة أخرى.'
+                  : 'Request format issue. Please try again.',
+        );
+        return;
+      }
+
       if (response.startsWith('SERVER_CONNECTION_ERROR:')) {
         final errorMessage = response.replaceFirst('SERVER_CONNECTION_ERROR: ', '');
         _addSediMessage(errorMessage);

@@ -6,6 +6,8 @@ import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../utils/brand_name.dart';
+
 /// Expected Android raw resource name (file without extension): sedi_alarm.wav in res/raw/.
 const String _androidSoundResource = 'sedi_alarm';
 
@@ -16,7 +18,7 @@ class LocalNotificationsService {
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 
   static const String _channelId = 'sedi_alerts';
-  static const String _channelName = 'Sedi Alerts';
+  static String get _channelName => '${sediBrandName('en')} Alerts';
 
   static bool _initialized = false;
 
@@ -33,10 +35,10 @@ class LocalNotificationsService {
     final ok = await _plugin.initialize(settings);
     if (ok != true) return false;
     if (Platform.isAndroid) {
-      const channel = AndroidNotificationChannel(
+      final channel = AndroidNotificationChannel(
         _channelId,
         _channelName,
-        description: 'Sedi health and reminder alerts',
+        description: '${sediBrandName('en')} health and reminder alerts',
         importance: Importance.high,
         playSound: true,
         sound: RawResourceAndroidNotificationSound(_androidSoundResource),
@@ -56,10 +58,10 @@ class LocalNotificationsService {
     String? payload,
   }) async {
     if (!_initialized) await init();
-    const android = AndroidNotificationDetails(
+    final android = AndroidNotificationDetails(
       _channelId,
       _channelName,
-      channelDescription: 'Sedi health and reminder alerts',
+      channelDescription: '${sediBrandName('en')} health and reminder alerts',
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,
@@ -70,7 +72,7 @@ class LocalNotificationsService {
       presentSound: true,
       sound: _iosSoundFile,
     );
-    const details = NotificationDetails(android: android, iOS: darwin);
+    final details = NotificationDetails(android: android, iOS: darwin);
     await _plugin.show(id, title, body, details, payload: payload);
   }
 }

@@ -8,6 +8,7 @@ import '../widgets/input_bar.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/sedi_header.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/brand_name.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 import 'chat_history_page.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
@@ -114,10 +115,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// Placeholder: brand name from brand_name.dart
   String _inputHint() {
-    // CRITICAL: Input placeholder MUST ALWAYS be English (per requirements)
-    // Language detection happens after first user message
-    return 'Talk to Sedi…';
+    final lang = _controller.currentLanguage;
+    final brand = sediBrandName(lang);
+    if (lang == 'fa') return 'با $brand صحبت کنید…';
+    if (lang == 'ar') return 'تحدث مع $brand…';
+    return 'Talk to $brand…';
   }
 
   void _scrollToBottom() {
