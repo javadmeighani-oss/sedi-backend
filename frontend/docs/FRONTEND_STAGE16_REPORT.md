@@ -28,7 +28,7 @@
 | **lib/features/notification/logic/notification_sync.dart** | **New.** `syncOnce()`: fetch notifications, detect new via SharedPreferences, show local notification for new. |
 | **lib/features/user_verification/.../user_verification_page.dart** | **Updated.** After saveProfile success, call `NotificationSync.syncOnce()` then pop. |
 | **lib/features/chat/.../chat_page.dart** | **Updated.** App bar: Notifications icon opens `NotificationsInboxPage`. |
-| **android/app/src/main/res/raw/README_SOUND.txt** | **New.** Instructions to add sedi_alarm.wav/mp3 for custom sound. |
+| **android/app/src/main/res/raw/readme_sound.txt** | **New.** Instructions to add sedi_alarm.wav/mp3 for custom sound. |
 | **test/notification_ui_mapping_test.dart** | **New.** Tests for default title by type and action constants. |
 
 ---
@@ -85,7 +85,7 @@
 
 ## 1) Summary (Stage 16.3)
 
-- **Android custom sound:** `LocalNotificationsService` uses `RawResourceAndroidNotificationSound('sedi_alarm')` on channel and notification details. Channel id remains stable: `sedi_alerts`. File name: `sedi_alarm.wav` in `android/app/src/main/res/raw/` (see README_SOUND.txt).
+- **Android custom sound:** `LocalNotificationsService` uses `RawResourceAndroidNotificationSound('sedi_alarm')` on channel and notification details. Channel id remains stable: `sedi_alerts`. File name: `sedi_alarm.wav` in `android/app/src/main/res/raw/` (see readme_sound.txt).
 - **iOS sound:** Permission request includes sound, alert, badge. `DarwinNotificationDetails(sound: 'sedi_alarm.wav')`. Sound file must be added to `ios/Runner` and to Xcode **Copy Bundle Resources** (see iOS integration notes below).
 - **Unread badge:** Chat header notifications icon shows a red badge with unread count (or "99+"). Count from `NotificationService.fetchUnreadList` / `parseUnreadCount`. Refreshed when opening Inbox (on return), after app resume, and on init.
 - **Sync reliability:** `notification_sync.dart`: seen IDs stored in a rolling window (newest first, max 200); `lastSeenId` and `lastSeenTimestamp` stored in SharedPreferences; `syncOnce()` guarded against concurrent runs; sync on app resume via `WidgetsBindingObserver` on Chat page.
@@ -99,7 +99,7 @@
 | File | What / Why |
 |------|-------------|
 | **lib/core/notifications/local_notifications_service.dart** | Android: channel and details use `RawResourceAndroidNotificationSound('sedi_alarm')`. iOS: `DarwinNotificationDetails(sound: 'sedi_alarm.wav')`, init requests alert + sound + badge. |
-| **android/app/src/main/res/raw/README_SOUND.txt** | Exact file name `sedi_alarm.wav`, location, and rules (no extension in code reference). |
+| **android/app/src/main/res/raw/readme_sound.txt** | Exact file name `sedi_alarm.wav`, location, and rules (no extension in code reference). |
 | **lib/features/notification/logic/notification_sync.dart** | Rolling window via `mergeSeenIdsRollingWindow` (newest first, max 200); store `lastSeenId` / `lastSeenTimestamp`; concurrency guard (`_syncing`); uses stable channel. |
 | **lib/features/chat/presentation/pages/chat_page.dart** | `WidgetsBindingObserver`: on resume call `NotificationSync.syncOnce()` and `_refreshUnreadCount()`. Unread badge on notifications icon; refresh on open Inbox (return), init, resume. |
 | **lib/features/notification/data/notification_service.dart** | `parseUnreadCount(resp)` for consistent unread count from fetchUnreadList response (used by Chat + tests). |
@@ -111,7 +111,7 @@
 
 - **File:** `sedi_alarm.wav` (exact name).
 - **Location:** `android/app/src/main/res/raw/sedi_alarm.wav`.
-- **Code:** `RawResourceAndroidNotificationSound('sedi_alarm')` (name without extension). See `README_SOUND.txt` in `android/app/src/main/res/raw/`.
+- **Code:** `RawResourceAndroidNotificationSound('sedi_alarm')` (name without extension). See `readme_sound.txt` in `android/app/src/main/res/raw/`.
 
 ---
 
@@ -142,7 +142,7 @@
 ## 6) Verification checklist (Stage 16.3)
 
 - [x] Android: channel and details use `RawResourceAndroidNotificationSound('sedi_alarm')`; channel id `sedi_alerts` stable.
-- [x] README_SOUND.txt: exact file name and location.
+- [x] readme_sound.txt: exact file name and location.
 - [x] iOS: permission request includes sound/alert/badge; `DarwinNotificationDetails(sound: 'sedi_alarm.wav')`; docs note placement and Copy Bundle Resources.
 - [x] Unread badge on Chat notifications icon; refresh on open Inbox, resume, init.
 - [x] Sync: rolling window (max 200), lastSeenId/lastSeenTimestamp, concurrency guard, sync on resume.
