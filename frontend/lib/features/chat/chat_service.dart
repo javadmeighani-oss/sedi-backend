@@ -516,8 +516,8 @@ class ChatService {
     String language, {
     int? existingUserId, // For upgrading anonymous users
   }) async {
-    // Use new onboarding endpoint (name no longer sent to backend)
-    final result = await setupOnboarding(password, language);
+    // Use new onboarding endpoint (name required)
+    final result = await setupOnboarding(password, language, name: userName);
     return {
       'message': result['message'],
       'user_id': result['user_id'],

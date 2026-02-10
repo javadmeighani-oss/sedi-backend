@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../data/models/user_profile.dart';
 import '../../../chat/chat_service.dart';
+import '../../../notification/logic/notification_sync.dart';
 
 /// ============================================
 /// UserVerificationPage - صفحه تایید کاربری
@@ -85,10 +86,11 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
     try {
       final chatService = ChatService();
       
-      // Setup onboarding with backend (name no longer sent to backend)
+      // Setup onboarding with backend (name required in request body)
       final result = await chatService.setupOnboarding(
         _passwordController.text,
         _selectedLanguage,
+        name: _nameController.text.trim(),
       );
 
       if (result['user_id'] == null) {
@@ -128,6 +130,9 @@ class _UserVerificationPageState extends State<UserVerificationPage> {
         }
         return;
       }
+
+      // Trigger notification sync once (new items may show as local notifications)
+      NotificationSync.syncOnce();
 
       // Close page after successful submission
       if (mounted) {

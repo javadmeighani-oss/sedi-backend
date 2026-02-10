@@ -1,4 +1,4 @@
-﻿name: sedi_app
+name: sedi_app
 description: Sedi Intelligent Health Assistant
 publish_to: "none"
 
@@ -16,6 +16,7 @@ dependencies:
   shared_preferences: ^2.2.2
   provider: ^6.1.1
   intl: ^0.18.1
+  flutter_local_notifications: ^17.2.3
 
 dev_dependencies:
   flutter_test:
