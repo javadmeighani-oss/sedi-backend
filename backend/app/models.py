@@ -55,6 +55,43 @@ class Notification(Base):
     scheduled_for = Column(DateTime, nullable=True)  # For scheduler integration - when notification should be sent
     dedupe_key = Column(String(255), nullable=True)  # Release B: Deterministic deduplication key (indexes created via migration)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Stage 16.6 push (additive; nullable for backward compat)
+    channel = Column(String(50), nullable=True)  # morning | engagement | health_alert
+    language = Column(String(20), nullable=True)
+    actions_json = Column(Text, nullable=True)  # [{"id":"like","type":"LIKE"}, ...]
+    deeplink_url = Column(String(512), nullable=True)  # sedi://chat?from=notif&id=123
+    provider = Column(String(50), nullable=True)  # fcm
+    provider_message_id = Column(String(255), nullable=True)
+    status = Column(String(20), nullable=True)  # queued | sent | failed | delivered
+    last_error = Column(Text, nullable=True)
+    ttl_seconds = Column(Integer, nullable=True)
+
+
+# -------------------- PushDevice (Stage 16.6) --------------------
+class PushDevice(Base):
+    __tablename__ = "push_devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    platform = Column(String(20), nullable=False)  # android
+    fcm_token = Column(String(512), nullable=False, unique=True)
+    device_id = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_seen_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- NotificationFeedback (Stage 16.6) --------------------
+class NotificationFeedback(Base):
+    __tablename__ = "notification_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    notification_id = Column(Integer, ForeignKey("notifications.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String(50), nullable=False)  # like | dislike | open_chat | dismissed
+    meta_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 # -------------------- MedicalCondition --------------------
@@ -184,6 +221,23 @@ class UserProfileKnowledge(Base):
     constraints_json = Column(Text, nullable=True)
     preferences_json = Column(Text, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserFactCandidate (Stage 17.1) --------------------
+class UserFactCandidate(Base):
+    """Candidate facts from chat; pending/accepted/rejected."""
+    __tablename__ = "user_fact_candidates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    domain = Column(String(50), nullable=False, index=True)
+    key = Column(String(255), nullable=False)
+    value_json = Column(Text, nullable=False)
+    source_memory_id = Column(Integer, ForeignKey("memory.id", ondelete="SET NULL"), nullable=True)
+    confidence = Column(Float, default=0.5, nullable=False)
+    is_explicit = Column(Boolean, default=False, nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 # -------------------- UserFact --------------------

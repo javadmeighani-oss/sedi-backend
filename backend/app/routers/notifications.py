@@ -8,18 +8,193 @@ Supports:
 - Future scheduler integration (scheduled_for field is queryable)
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+import logging
 
 from backend.app.database import get_db
-from backend.app.models import Notification, User
+from backend.app.models import Notification, User, PushDevice, NotificationFeedback
 from backend.app.schemas import APIResponse, ErrorInfo, NotificationResponse
-from backend.app.schemas.notification import NotificationCreate, NotificationFeedbackRequest
+from backend.app.schemas.notification import (
+    NotificationCreate,
+    NotificationFeedbackRequest,
+    PushRegisterRequest,
+    PushFeedbackActionRequest,
+    TestPushRequest,
+)
 
 router = APIRouter()
+_log = logging.getLogger(__name__)
+
+DEFAULT_ACTIONS_JSON = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DISLIKE"},{"id":"open_chat","type":"OPEN_CHAT"}]'
+
+
+def _require_admin_if_set(request: Request) -> None:
+    """If ADMIN_TOKEN env is set, require X-Admin-Token header. Same pattern as deliver_pending."""
+    import os
+    admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
+    if admin_token:
+        header_token = (request.headers.get("X-Admin-Token") or "").strip()
+        if header_token != admin_token:
+            raise HTTPException(status_code=401, detail="Admin token required")
+
+
+# ------------------ GET /notifications/admin/push_devices (Stage 16.6.1) ------------------
+@router.get("/admin/push_devices", response_model=APIResponse)
+def admin_list_push_devices(
+    request: Request,
+    user_id: int = Query(..., description="User ID"),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: List push devices for a user. Returns masked tokens (first 6 + last 4).
+    """
+    _require_admin_if_set(request)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
+        )
+    devices = (
+        db.query(PushDevice)
+        .filter(PushDevice.user_id == user_id, PushDevice.is_active == True)  # noqa: E712
+        .all()
+    )
+    items = []
+    for d in devices:
+        tok = d.fcm_token or ""
+        masked = f"{tok[:6]}...{tok[-4:]}" if len(tok) >= 11 else "***"
+        items.append({
+            "id": d.id,
+            "platform": d.platform,
+            "token_masked": masked,
+            "device_id": d.device_id,
+            "last_seen_at": d.last_seen_at.isoformat() if d.last_seen_at else None,
+        })
+    _log.info("[E2E] admin push_devices user_id=%s count=%s", user_id, len(items))
+    return APIResponse(ok=True, data={"devices": items, "count": len(items)})
+
+
+# ------------------ POST /notifications/admin/test_push (Stage 16.6.1) ------------------
+@router.post("/admin/test_push", response_model=APIResponse)
+def admin_test_push(
+    request: Request,
+    body: TestPushRequest,
+    deliver: bool = Query(False, description="If true, run deliver_pending after enqueue"),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Enqueue a test push for a user. Uses unique dedupe_key so it always sends.
+    Optionally run delivery when deliver=true.
+    """
+    _require_admin_if_set(request)
+    user = db.query(User).filter(User.id == body.user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
+        )
+    import uuid
+    now = datetime.utcnow()
+    lang = user.preferred_language or "en"
+    title = body.title or f"Test {body.channel}"
+    body_text = body.body or f"E2E test notification ({body.channel})"
+    dedupe_key = f"admin_test:{body.user_id}:{uuid.uuid4().hex}"
+    deeplink_url = None  # Will be set after persist
+
+    notif = Notification(
+        user_id=body.user_id,
+        type=body.channel,
+        title=title,
+        body=body_text,
+        priority=body.priority,
+        is_read=False,
+        is_sent=False,
+        scheduled_for=now,
+        dedupe_key=dedupe_key,
+        channel=body.channel,
+        language=lang,
+        actions_json=DEFAULT_ACTIONS_JSON,
+        provider=None,
+        status="queued",
+        ttl_seconds=body.ttl_seconds,
+    )
+    db.add(notif)
+    db.commit()
+    db.refresh(notif)
+    notif.deeplink_url = f"sedi://chat?from=notif&id={notif.id}"
+    db.add(notif)
+    db.commit()
+
+    sent_count = 0
+    if deliver:
+        from backend.app.services.notifications.delivery_service import DeliveryService
+        service = DeliveryService(db=db)
+        sent_count = service.deliver_pending(limit=10)
+
+    _log.info(
+        "[E2E] admin test_push user_id=%s channel=%s notification_id=%s deliver=%s sent=%s",
+        body.user_id, body.channel, notif.id, deliver, sent_count,
+    )
+    return APIResponse(
+        ok=True,
+        data={
+            "notification_id": notif.id,
+            "channel": body.channel,
+            "delivered": deliver,
+            "sent_count": sent_count,
+        }
+    )
+
+
+# ------------------ GET /notifications/admin/health (Stage 16.6.2) ------------------
+@router.get("/admin/health", response_model=APIResponse)
+def admin_notification_health(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Lightweight notification subsystem health.
+    Returns pending_count, failed_last_1h, last_deliver_pending_run_at.
+    """
+    _require_admin_if_set(request)
+    from backend.app.services.notifications.delivery_service import (
+        last_deliver_pending_run_at,
+    )
+
+    now = datetime.utcnow()
+    one_hour_ago = now - timedelta(hours=1)
+
+    pending_count = (
+        db.query(Notification)
+        .filter(Notification.is_sent == False)  # noqa: E712
+        .filter(
+            or_(Notification.scheduled_for.is_(None), Notification.scheduled_for <= now)
+        )
+        .count()
+    )
+    failed_last_1h = (
+        db.query(Notification)
+        .filter(Notification.status == "failed", Notification.created_at >= one_hour_ago)
+        .count()
+    )
+
+    return APIResponse(
+        ok=True,
+        data={
+            "notifications_pending_count": pending_count,
+            "notifications_failed_last_1h": failed_last_1h,
+            "last_deliver_pending_run_at": (
+                last_deliver_pending_run_at.isoformat()
+                if last_deliver_pending_run_at else None
+            ),
+        },
+    )
 
 
 # ------------------ GET /notifications?user_id={id} ------------------
@@ -186,7 +361,81 @@ def mark_notification_read(
     )
 
 
-# ------------------ POST /notifications/{notification_id}/feedback (Release B2) ------------------
+# ------------------ POST /notifications/push/register (Stage 16.6) ------------------
+@router.post("/push/register", response_model=APIResponse)
+def push_register(
+    body: PushRegisterRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Register or update FCM token for push notifications (Stage 16.6).
+    Upsert by fcm_token; set user_id, is_active=True, last_seen_at=now.
+    """
+    user = db.query(User).filter(User.id == body.user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
+        )
+    now = datetime.utcnow()
+    existing = db.query(PushDevice).filter(PushDevice.fcm_token == body.fcm_token).first()
+    if existing:
+        existing.user_id = body.user_id
+        existing.platform = body.platform
+        existing.device_id = body.device_id or existing.device_id
+        existing.is_active = True
+        existing.last_seen_at = now
+        existing.updated_at = now
+        db.commit()
+        db.refresh(existing)
+        return APIResponse(
+            ok=True,
+            data={"ok": True, "device_id": existing.id, "updated": True}
+        )
+    device = PushDevice(
+        user_id=body.user_id,
+        platform=body.platform,
+        fcm_token=body.fcm_token,
+        device_id=body.device_id,
+        is_active=True,
+        last_seen_at=now,
+    )
+    db.add(device)
+    db.commit()
+    db.refresh(device)
+    return APIResponse(
+        ok=True,
+        data={"ok": True, "device_id": device.id}
+    )
+
+
+# ------------------ POST /notifications/push/unregister (Stage 16.6) ------------------
+@router.post("/push/unregister", response_model=APIResponse)
+def push_unregister(
+    fcm_token: str = Query(..., description="FCM token to deactivate"),
+    user_id: int = Query(..., description="User ID (must own the token)"),
+    db: Session = Depends(get_db),
+):
+    """Deactivate a push device by FCM token (Stage 16.6)."""
+    device = db.query(PushDevice).filter(
+        PushDevice.fcm_token == fcm_token,
+        PushDevice.user_id == user_id,
+    ).first()
+    if not device:
+        return APIResponse(
+            ok=True,
+            data={"ok": True, "message": "Token not found or already inactive"}
+        )
+    device.is_active = False
+    device.updated_at = datetime.utcnow()
+    db.commit()
+    return APIResponse(
+        ok=True,
+        data={"ok": True, "device_id": device.id, "message": "Token deactivated"}
+    )
+
+
+# ------------------ POST /notifications/{notification_id}/feedback (Release B2 + Stage 16.6) ------------------
 @router.post("/{notification_id}/feedback", response_model=APIResponse)
 def submit_notification_feedback(
     notification_id: int,
@@ -202,6 +451,13 @@ def submit_notification_feedback(
         "feedback": "positive" | "negative" | "neutral",
         "reason": optional string,
         "action": optional string (e.g. "too_early", "too_late", "irrelevant")
+    }
+    
+    Stage 16.6 action-based feedback (stored in notification_feedback table):
+    {
+        "action": "like" | "dislike" | "open_chat" | "dismissed",
+        "client_ts": optional string,
+        "meta": optional object
     }
     
     For backward compatibility: also accepts old format {"reaction": "like" | "dislike"}
@@ -226,6 +482,29 @@ def submit_notification_feedback(
             ok=False,
             error=ErrorInfo(code="FORBIDDEN", message="You do not have permission to provide feedback for this notification.")
         )
+    
+    # Stage 16.6: Store action-based feedback in notification_feedback table
+    action_val = payload.get("action")
+    if action_val in ("like", "dislike", "open_chat", "dismissed"):
+        meta_json = json.dumps(payload.get("meta") or {}) if payload.get("meta") else None
+        feedback_row = NotificationFeedback(
+            notification_id=notification_id,
+            user_id=user_id,
+            action=action_val,
+            meta_json=meta_json,
+        )
+        db.add(feedback_row)
+        db.commit()
+        # If this was the only payload (action-only), return here
+        if not payload.get("feedback") and "reaction" not in payload:
+            return APIResponse(
+                ok=True,
+                data={
+                    "notification_id": notification_id,
+                    "action": action_val,
+                    "message": "Feedback recorded successfully",
+                }
+            )
     
     # Handle backward compatibility: old format {"reaction": "like" | "dislike"}
     if "reaction" in payload:
@@ -370,13 +649,24 @@ def submit_notification_feedback(
 # ------------------ POST /notifications/deliver_pending (admin/dev) ------------------
 @router.post("/deliver_pending", response_model=APIResponse)
 def deliver_pending_notifications(
+    request: Request,
     limit: int = Query(100, ge=1, le=500, description="Max number of unsent notifications to process"),
     db: Session = Depends(get_db),
 ):
     """
     Run the notification delivery pipeline: query unsent (is_sent=false),
     send via configured adapter, mark is_sent=true. Safe to call repeatedly.
+    If ADMIN_TOKEN env is set, requires X-Admin-Token header (admin/dev pattern).
     """
+    import os
+    admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
+    if admin_token:
+        header_token = (request.headers.get("X-Admin-Token") or "").strip()
+        if header_token != admin_token:
+            return APIResponse(
+                ok=False,
+                error=ErrorInfo(code="UNAUTHORIZED", message="Admin token required.")
+            )
     from backend.app.services.notifications.delivery_service import DeliveryService
     service = DeliveryService(db=db)
     sent_count = service.deliver_pending(limit=limit)

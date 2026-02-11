@@ -21,6 +21,10 @@ INACTIVE_HOURS = 4             # Inactive threshold (if no interaction for 4+ ho
 MORNING_HOUR = 9               # Default morning greeting time (9 AM) - UPDATED
 MORNING_CHECK_INTERVAL_MIN = 10  # Check for morning notifications every 10 minutes
 INACTIVITY_CHECK_INTERVAL_MIN = 15  # Check for inactivity every 15 minutes
+ENGAGEMENT_NUDGE_INACTIVE_HOURS = 3  # Stage 16.6: engagement nudge if inactive 3h+
+ENGAGEMENT_MAX_PER_DAY = int(os.getenv("ENGAGEMENT_MAX_PER_DAY", "3"))  # Stage 16.6.2
+ENGAGEMENT_MIN_HOURS = int(os.getenv("ENGAGEMENT_MIN_HOURS", "3"))  # Stage 16.6.2: min hours between nudges
+ENGAGEMENT_CHECK_INTERVAL_MIN = 10  # Run engagement nudge check every 10 minutes
 DELIVERY_PENDING_INTERVAL_MIN = 5  # Run notification delivery outbox every 5 minutes
 # Device disconnected: if last_seen_at older than threshold, create notification (dedupe: once per 6h per device)
 DEVICE_DISCONNECTED_THRESHOLD_MIN = int(os.getenv("DEVICE_DISCONNECTED_THRESHOLD_MIN", "15"))
@@ -134,8 +138,9 @@ def run_morning_notifications():
     """
     Check for morning notification time and send notifications.
     Runs every 10 minutes, but only creates notifications when:
-    - Current time matches user's morning preference (default 9 AM)
+    - Current time (in user's timezone) matches user's morning preference (default 9 AM)
     - Only once per calendar day per user (dedupe)
+    Stage 16.6: Uses user timezone from UserMemoryFact key "timezone" (e.g. Asia/Tehran); else server default.
     """
     with next(get_db()) as db:
         now = datetime.utcnow()
@@ -165,9 +170,28 @@ def run_morning_notifications():
                 except (json.JSONDecodeError, KeyError, TypeError):
                     pass  # Use defaults
             
-            # Check if current time matches morning time (within 10 minute window)
-            current_hour = now.hour
-            current_minute = now.minute
+            # Stage 16.6: Resolve user timezone for per-user scheduling
+            timezone_fact = memory_repo.get_fact(
+                user_id=user.id,
+                domain="preferences",
+                key="timezone"
+            )
+            tz_str = "Asia/Tehran"
+            if timezone_fact:
+                try:
+                    tz_data = json.loads(timezone_fact.value_json)
+                    tz_str = tz_data.get("tz", "Asia/Tehran") if isinstance(tz_data, dict) else str(tz_data)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            try:
+                user_tz = pytz.timezone(tz_str)
+            except pytz.exceptions.UnknownTimeZoneError:
+                user_tz = pytz.timezone("Asia/Tehran")
+            now_local = now.replace(tzinfo=pytz.UTC).astimezone(user_tz)
+            
+            # Check if current time (in user's timezone) matches morning time (within 10 minute window)
+            current_hour = now_local.hour
+            current_minute = now_local.minute
             
             if current_hour != morning_hour:
                 continue  # Not the right hour
@@ -248,6 +272,66 @@ def save_notification(db: Session, user_id: int, message: str, notif_type: str):
         )
     
     print(f"[Sedi Scheduler] Notification created for user {user_id} → {notif_type}")
+
+
+# -------------------------------
+# Stage 16.6: Engagement nudge (inactive 3h+, max 3/day, dedupe engagement:user_id:date:bucket)
+# -------------------------------
+def run_engagement_nudge():
+    """
+    Every 10 min: if user last interaction > 3 hours, enqueue one engagement nudge
+    with dedupe_key engagement:{user_id}:{date}:{bucket}. Max 3 per day per user.
+    """
+    with next(get_db()) as db:
+        now = datetime.utcnow()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        memory = ConversationMemory(db)
+        decision_engine = DecisionEngine(db)
+        users = db.query(User).all()
+        for user in users:
+            last_chat_time = memory.get_last_interaction_time(user.id)
+            if last_chat_time is None:
+                continue
+            if now - last_chat_time < timedelta(hours=ENGAGEMENT_NUDGE_INACTIVE_HOURS):
+                continue
+            # Stage 16.6.2: Max engagement nudges per day (channel=engagement for indexed query)
+            today_engagement = (
+                db.query(Notification)
+                .filter(
+                    Notification.user_id == user.id,
+                    Notification.channel == "engagement",
+                    Notification.created_at >= today_start,
+                )
+                .count()
+            )
+            if today_engagement >= ENGAGEMENT_MAX_PER_DAY:
+                continue
+            # Stage 16.6.2: Min hours since last engagement (anti-spam)
+            min_hours_ago = now - timedelta(hours=ENGAGEMENT_MIN_HOURS)
+            last_engagement = (
+                db.query(Notification)
+                .filter(
+                    Notification.user_id == user.id,
+                    Notification.channel == "engagement",
+                    Notification.created_at >= min_hours_ago,
+                )
+                .order_by(Notification.created_at.desc())
+                .first()
+            )
+            if last_engagement:
+                continue
+            try:
+                memory_context = build_memory_context(db, user.id)
+            except Exception as e:
+                print(f"[Sedi Scheduler] Failed memory context user {user.id}: {e}")
+                memory_context = None
+            notif = decision_engine.create_engagement_nudge(
+                user_id=user.id,
+                memory_context=memory_context,
+                scheduled_for=now,
+            )
+            if notif:
+                print(f"[Sedi Scheduler] Engagement nudge created for user {user.id}")
 
 
 # -------------------------------
@@ -349,6 +433,15 @@ def start_scheduler():
         "interval",
         minutes=INACTIVITY_CHECK_INTERVAL_MIN,
         id="inactivity_notifications",
+        replace_existing=True,
+    )
+
+    # Stage 16.6: Engagement nudge every 10 minutes (3h inactive, max 3/day)
+    scheduler.add_job(
+        run_engagement_nudge,
+        "interval",
+        minutes=ENGAGEMENT_CHECK_INTERVAL_MIN,
+        id="engagement_nudge",
         replace_existing=True,
     )
 

@@ -24,8 +24,40 @@ from backend.app.schemas.notification import NotificationPayload
 from backend.app.services.notification_runtime.fallback_generator import generate_fallback_text
 from backend.app.services.notification_runtime.ai_enhancer import enhance_with_ai
 from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
+from backend.app.services.notification_runtime.renderer import render
+from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
 
 logger = logging.getLogger(__name__)
+
+
+def _build_render_inputs(
+    memory_context: Optional[MemoryContext],
+    metadata: Optional[Dict[str, Any]],
+    user_name: Optional[str],
+    language: str = "en",
+) -> Dict[str, Any]:
+    """Build inputs dict for notification_runtime.render (Stage 16.6.4)."""
+    inputs: Dict[str, Any] = {"user_display_name": user_name}
+    lang = language if language in ("en", "fa", "ar") else "en"
+    _sleep_low = {"en": "Try to get more rest tonight", "fa": "امشب بیشتر استراحت کن", "ar": "احصل على مزيد من الراحة الليلة"}
+    _sleep_ok = {"en": "You had good sleep", "fa": "خواب خوبی داشتی", "ar": "كان نومك جيداً"}
+    _water = {"en": "Remember to drink water", "fa": "یادت نره آب بخوری", "ar": "لا تنس شرب الماء"}
+    _activity = {"en": "You had good activity", "fa": "فعالیت خوبی داشتی", "ar": "كان نشاطك جيداً"}
+    if memory_context:
+        if memory_context.has_sleep_data() and memory_context.sleep_duration_hours is not None:
+            if memory_context.sleep_duration_hours < 6:
+                inputs["sleep_hint"] = _sleep_low.get(lang, _sleep_low["en"])
+            elif memory_context.sleep_duration_hours >= 7:
+                inputs["sleep_hint"] = _sleep_ok.get(lang, _sleep_ok["en"])
+        if memory_context.has_hydration_data() and memory_context.hydration_ml is not None:
+            if memory_context.hydration_ml < 1500:
+                inputs["hydration_hint"] = _water.get(lang, _water["en"])
+        if memory_context.has_activity_data() and memory_context.steps_count and memory_context.steps_count > 5000:
+            inputs["activity_hint"] = _activity.get(lang, _activity["en"])
+    if metadata:
+        inputs["last_vitals_summary"] = metadata.get("alert_reason")
+        inputs["alert_reason"] = metadata.get("alert_reason")
+    return inputs
 
 
 # -------------------- Helper Functions (Release B2.1) --------------------
@@ -66,6 +98,12 @@ def _get_title_for_language(notification_type: str, language: str) -> str:
     
     type_titles = titles.get(notification_type, {})
     return type_titles.get(language, type_titles.get("en", "Notification"))
+
+
+def _channel_for_type(notification_type: str) -> Optional[str]:
+    """Stage 16.6: Map notification type to push channel (morning | engagement | health_alert)."""
+    m = {"morning_brief": "morning", "connection_ping": "engagement", "health_alert": "health_alert"}
+    return m.get(notification_type)
 
 
 def _default_body_for_type(
@@ -346,6 +384,11 @@ class NotificationBuilder:
             )
             return None
         
+        # Stage 16.6: channel + language + status for push pipeline
+        channel = _channel_for_type(payload.type)
+        language = (payload.metadata or {}).get("language") if payload.metadata else None
+        default_actions = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DISLIKE"},{"id":"open_chat","type":"OPEN_CHAT"}]'
+
         # Build notification object
         notification = Notification(
             user_id=payload.user_id,
@@ -357,18 +400,30 @@ class NotificationBuilder:
             is_sent=False,
             scheduled_for=payload.scheduled_for,
             dedupe_key=payload.dedupe_key,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            channel=channel,
+            language=language,
+            status="queued",
+            actions_json=default_actions,
+            provider=None,
         )
         
         self.db.add(notification)
         self.db.commit()
         self.db.refresh(notification)
         
-        # Log creation
-        ai_enhanced = "true" if payload.metadata and payload.metadata.get("ai_enhanced") else "false"
+        # Stage 16.6: Set deeplink_url for app routing
+        if not notification.deeplink_url:
+            notification.deeplink_url = f"sedi://chat?from=notif&id={notification.id}"
+            self.db.add(notification)
+            self.db.commit()
+        
+        # Log creation (Stage 16.6.2: structured [NOTIF] prefix, no secrets)
         logger.info(
-            f"[Notification] created type={payload.type} user={payload.user_id} "
-            f"dedupe_key={payload.dedupe_key} ai_enhanced={ai_enhanced}"
+            "[NOTIF] enqueue channel=%s user_id=%s dedupe=%s",
+            (channel or payload.type or "?"),
+            payload.user_id,
+            payload.dedupe_key[:80] + "..." if len(payload.dedupe_key or "") > 80 else (payload.dedupe_key or "?"),
         )
         
         return notification
@@ -479,48 +534,35 @@ class DecisionEngine:
         scheduled_for: Optional[datetime] = None
     ) -> Optional[Notification]:
         """
-        Create morning_brief notification using new contract (Release B2.1).
-        
-        Args:
-            user_id: User ID
-            memory_context: Optional MemoryContext for personalization
-            scheduled_for: Optional scheduled time
-        
-        Returns:
-            Notification if created, None if duplicate or error
+        Create morning_brief notification using new contract (Release B2.1 / Stage 16.6.4).
         """
-        # Get user and resolve language
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
-        
-        # Build memory context if not provided
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
-        
-        # Resolve effective language (Release B2.1)
         effective_language = resolve_effective_language(
-            db=self.db,
-            user_id=user_id,
-            memory_context=memory_context
+            db=self.db, user_id=user_id, memory_context=memory_context
         )
-        
-        # Build metadata with language (Release B2.1)
-        metadata = {
-            "language": effective_language
-        }
-        
-        # Build payload with correct type and metadata
+        metadata = {"language": effective_language}
+
+        # Stage 16.6.4: Quiet hours suppression
+        if is_within_quiet_hours(self.db, user_id, "morning", "normal"):
+            logger.info("[NOTIF] suppressed channel=morning user_id=%s reason=quiet_hours", user_id)
+            return None
+
+        # Stage 16.6.4: Use renderer for title/body
+        inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
+        rendered = render("morning", effective_language, inputs, "normal")
+
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="morning_brief",
-            title=_get_title_for_language("morning_brief", effective_language),
-            body="",  # Will be filled by fallback
+            title=rendered["title"],
+            body=rendered["body"],
             priority="normal",
             scheduled_for=scheduled_for,
             metadata=metadata
         )
-        
-        # Apply fallback with language
         payload = self.builder.apply_fallback(
             payload=payload,
             user_name=user_name,
@@ -552,48 +594,33 @@ class DecisionEngine:
         scheduled_for: Optional[datetime] = None
     ) -> Optional[Notification]:
         """
-        Create connection_ping notification using new contract (Release B2.1).
-        
-        Args:
-            user_id: User ID
-            memory_context: Optional MemoryContext for personalization
-            scheduled_for: Optional scheduled time
-        
-        Returns:
-            Notification if created, None if duplicate or error
+        Create connection_ping notification (Release B2.1 / Stage 16.6.4).
         """
-        # Get user and resolve language
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
-        
-        # Build memory context if not provided
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
-        
-        # Resolve effective language (Release B2.1)
         effective_language = resolve_effective_language(
-            db=self.db,
-            user_id=user_id,
-            memory_context=memory_context
+            db=self.db, user_id=user_id, memory_context=memory_context
         )
-        
-        # Build metadata with language (Release B2.1)
-        metadata = {
-            "language": effective_language
-        }
-        
-        # Build payload with correct type and metadata
+        metadata = {"language": effective_language}
+
+        if is_within_quiet_hours(self.db, user_id, "engagement", "low"):
+            logger.info("[NOTIF] suppressed channel=engagement user_id=%s reason=quiet_hours", user_id)
+            return None
+
+        inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
+        rendered = render("engagement", effective_language, inputs, "low")
+
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="connection_ping",
-            title=_get_title_for_language("connection_ping", effective_language),
-            body="",  # Will be filled by fallback
+            title=rendered["title"],
+            body=rendered["body"],
             priority="low",
             scheduled_for=scheduled_for,
             metadata=metadata
         )
-        
-        # Apply fallback with language
         payload = self.builder.apply_fallback(
             payload=payload,
             user_name=user_name,
@@ -617,7 +644,62 @@ class DecisionEngine:
                 f"lang={effective_language} dedupe={payload.dedupe_key}"
             )
         return result
-    
+
+    def create_engagement_nudge(
+        self,
+        user_id: int,
+        memory_context: Optional[MemoryContext] = None,
+        scheduled_for: Optional[datetime] = None
+    ) -> Optional[Notification]:
+        """
+        Stage 16.6: Create engagement nudge (inactive 3h+). Stage 16.6.4: quiet hours, renderer.
+        """
+        user = self.db.query(User).filter(User.id == user_id).first()
+        user_name = user.name if user and user.name else None
+        if memory_context is None:
+            memory_context = build_memory_context(self.db, user_id)
+        effective_language = resolve_effective_language(
+            db=self.db, user_id=user_id, memory_context=memory_context
+        )
+        metadata = {"language": effective_language}
+
+        if is_within_quiet_hours(self.db, user_id, "engagement", "normal"):
+            logger.info("[NOTIF] suppressed channel=engagement user_id=%s reason=quiet_hours", user_id)
+            return None
+
+        inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
+        rendered = render("engagement", effective_language, inputs, "normal")
+
+        payload = self.builder.build_payload(
+            user_id=user_id,
+            notification_type="connection_ping",
+            title=rendered["title"],
+            body=rendered["body"],
+            priority="normal",
+            scheduled_for=scheduled_for,
+            metadata=metadata,
+        )
+        payload = self.builder.apply_fallback(
+            payload=payload,
+            user_name=user_name,
+            memory_context=memory_context,
+            language=effective_language,
+        )
+        payload = enhance_with_ai(payload)
+        now = scheduled_for or datetime.utcnow()
+        date_str = now.strftime("%Y-%m-%d")
+        bucket = (now.hour // 3) * 3
+        payload = payload.model_copy(
+            update={"dedupe_key": f"engagement:{user_id}:{date_str}:{bucket:02d}"}
+        )
+        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
+        if result:
+            logger.info(
+                f"[NOTIFICATION] type=engagement_nudge user={user_id} "
+                f"dedupe={payload.dedupe_key}"
+            )
+        return result
+
     def create_health_alert(
         self,
         user_id: int,
@@ -627,48 +709,36 @@ class DecisionEngine:
         scheduled_for: Optional[datetime] = None
     ) -> Optional[Notification]:
         """
-        Create health_alert notification using new contract (Release B2.1).
-        
-        Args:
-            user_id: User ID
-            alert_code: Alert code (e.g. "high_heart_rate", "low_spo2")
-            alert_reason: Optional alert reason text
-            priority: Priority level (default: high)
-            scheduled_for: Optional scheduled time
-        
-        Returns:
-            Notification if created, None if duplicate or error
+        Create health_alert notification (Release B2.1 / Stage 16.6.4).
+        Conservative phrasing; quiet hours suppress non-critical only.
         """
-        # Get user and resolve language
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
-        
-        # Resolve effective language (Release B2.1)
         effective_language = resolve_effective_language(
-            db=self.db,
-            user_id=user_id,
-            memory_context=None
+            db=self.db, user_id=user_id, memory_context=None
         )
-        
-        # Build metadata with language and alert info (Release B2.1)
         metadata = {
             "language": effective_language,
             "alert_code": alert_code,
-            "alert_reason": alert_reason
+            "alert_reason": alert_reason,
         }
-        
-        # Build payload with correct type and metadata
+
+        if is_within_quiet_hours(self.db, user_id, "health_alert", priority):
+            logger.info("[NOTIF] suppressed channel=health_alert user_id=%s reason=quiet_hours", user_id)
+            return None
+
+        inputs = _build_render_inputs(None, metadata, user_name, effective_language)
+        rendered = render("health_alert", effective_language, inputs, priority)
+
         payload = self.builder.build_payload(
             user_id=user_id,
             notification_type="health_alert",
-            title=_get_title_for_language("health_alert", effective_language),
-            body="",  # Will be filled by fallback
+            title=rendered["title"],
+            body=rendered["body"],
             priority=priority,
             scheduled_for=scheduled_for,
             metadata=metadata
         )
-        
-        # Apply fallback with language
         payload = self.builder.apply_fallback(
             payload=payload,
             user_name=user_name,
@@ -1275,3 +1345,27 @@ class DecisionEngine:
             notifications.append(lifestyle_notif)
         
         return notifications
+
+
+# -------------------- Stage 16.6: Health alert hook (safe entrypoint for decision engine / vitals) --------------------
+def enqueue_health_alert(
+    db: Session,
+    user_id: int,
+    alert_code: str,
+    alert_reason: Optional[str] = None,
+    priority: Literal["low", "normal", "high", "critical"] = "high",
+    scheduled_for: Optional[datetime] = None,
+    **kwargs: Any
+) -> Optional[Notification]:
+    """
+    Enqueue a health alert notification. Safe entrypoint callable from decision engine
+    or vitals/rules later. Does NOT implement vitals rules here.
+    """
+    engine = DecisionEngine(db)
+    return engine.create_health_alert(
+        user_id=user_id,
+        alert_code=alert_code,
+        alert_reason=alert_reason,
+        priority=priority,
+        scheduled_for=scheduled_for,
+    )

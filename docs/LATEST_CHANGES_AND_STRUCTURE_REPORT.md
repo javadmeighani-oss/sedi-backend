@@ -1,9 +1,18 @@
 # گزارش آخرین تغییرات و ساختار فرانت‌اند و بک‌اند Sedi
 
-**تاریخ گزارش:** ۱۴۰۳/۱۱/۲۲ (۲۰۲۵-۰۲-۱۱)  
+**تاریخ گزارش:** ۱۴۰۳/۱۲/۰۲ (۲۰۲۶-۰۲-۱۱)  
 **نسخه بک‌اند:** ۲.۰.۱  
 **نسخه فرانت‌اند:** ۱.۰.۰+۲  
 **ریپو:** Demo (Sedi Intelligent Health Assistant)
+
+---
+
+## آخرین وضعیت (خلاصه)
+
+| لایه | وضعیت |
+|------|--------|
+| **بک‌اند** | FastAPI؛ روت‌های `/auth`, `/interact`, `/health`, `/lifestyle`, `/notifications`, `/ai_core`, `/conditions`, `/device`, `/devices`, `/memory`, `/user`؛ مدل‌های UserProfileKnowledge، UserFact؛ تزریق [USER_PROFILE] در brain؛ GET /memory/history با گروه‌بندی؛ POST /user/facts/cleanup (ادمین). |
+| **فرانت‌اند** | Flutter؛ صفحهٔ چت با آیکون‌های Notifications، Devices (ECG)، Vitals، History؛ تاریخچهٔ واقعی از /memory/history؛ صفحهٔ دستگاه‌ها فقط ECG (وضعیت واقعی از بک‌اند یا «Not connected» + «Coming soon»)؛ ویتال فقط مشاهده؛ آیکون سفارشی ECG در هدر. |
 
 ---
 
@@ -17,6 +26,10 @@
 | **Stages 20.1A, 20.3, 20.4, 20.5** | آیکون اپ، onboarding فقط با username، رفع ۴۲۲ چت، قفل نام برند |
 | **فرانت جدید** | صفحات ویتال‌ها، دستگاه‌ها، سبک زندگی، نوار ورودی، ممیزی UI |
 | **ساختار فعلی** | فیچرهای health، devices، lifestyle، notification (inbox، sync)، ویجت‌های چت و انتخاب زبان |
+| **تاریخچه چت** | جایگزینی mock با GET /memory/history؛ گروه Daily/Weekly/Monthly/Yearly؛ loading/empty/error؛ تپ برای نمایش کامل تِرن |
+| **صفحه دستگاه‌ها** | فقط کارت ECG (Chest)؛ وضعیت واقعی از بک‌اند (Connected/Not connected)؛ در صورت عدم اتصال: دکمهٔ غیرفعال «Connect» + «Coming soon»؛ نرمال‌سازی device_type و status |
+| **صفحه ویتال** | فقط مشاهده؛ حذف فرم ثبت دستی و دکمه Save؛ متن راهنما: «Vital data updates are created through chat» |
+| **آیکون دستگاه** | آیکون سفارشی ECG از assets/icons/device_ecg_icon.png در هدر چت |
 
 ### ۱.۲ تغییرات اخیر بک‌اند
 
@@ -27,6 +40,8 @@
 | **Release D** | ستون `sent_at` و ایندکس‌ها برای notifications؛ تحویل اعلان (deliver_pending)؛ تست acceptance |
 | **PyJWT** | نسخه ثابت `PyJWT==2.11.0` در requirements |
 | **راوتِر device** | `/device` شامل: pending-commands، heartbeat، ingest (با احراز دستگاه)، و endpoints مرتبط |
+| **User Knowledge** | مدل‌های UserProfileKnowledge، UserFact؛ روتِر `/user`: GET/PUT /knowledge، GET/POST /facts، POST /facts/cleanup (ادمین با X-Admin-Token)؛ تزریق [USER_PROFILE] در brain (baseline، goals، constraints، preferences، facts) |
+| **Memory history** | GET /memory/history با group=daily|weekly|monthly|yearly؛ گروه‌بندی و pagination؛ اسکیماهای HistoryTurnItem، HistoryGroupItem، HistoryResponse |
 
 ### ۱.۳ وضعیت فریز و دیپلوی
 
@@ -81,11 +96,13 @@ backend/
 │   │   ├── device.py        # /device (ingest، pending-commands، heartbeat)
 │   │   ├── devices.py       # /devices (ثبت دستگاه)
 │   │   ├── decision.py      # موتور تصمیم‌گیری
-│   │   ├── data.py, medical.py, memory.py, device_data.py, sms_gateway.py
+│   │   ├── memory.py        # /memory (history؛ save/latest)
+│   │   ├── user_knowledge.py # /user (knowledge، facts، facts/cleanup)
+│   │   ├── data.py, medical.py, device_data.py, sms_gateway.py
 │   ├── schemas/             # Pydantic (درخواست/پاسخ)
 │   │   ├── common.py, chat.py, device.py, devices.py, health.py
 │   │   ├── lifestyle.py, medical.py, memory.py, notification.py
-│   │   ├── onboarding.py, interaction.py, user.py
+│   │   ├── onboarding.py, interaction.py, user.py, user_knowledge.py
 │   └── services/
 │       ├── notification_engine.py
 │       ├── device_ingestion.py
@@ -114,6 +131,8 @@ backend/
 | `/conditions` | Medical Conditions | conditions.py |
 | `/device` | Device | device.py |
 | `/devices` | Devices | devices.py |
+| `/memory` | Memory | memory.py |
+| `/user` | User | user_knowledge.py |
 | (decision) | — | decision.py |
 
 ### ۲.۴ مدل‌های دیتابیس (خلاصه)
@@ -132,6 +151,8 @@ backend/
 | UserMemoryFact | user_memory_facts | حقایق حافظه (domain, key, value_json) |
 | DeviceEvent | device_events | رویداد دستگاه |
 | Device | devices | device_id، token_hash، last_seen_at |
+| UserProfileKnowledge | user_profile_knowledge | یک ردیف per user؛ baseline_summary، goals_json، constraints_json، preferences_json |
+| UserFact | user_facts | user_id، key، value_json، source، confidence؛ یکتایی (user_id, key) |
 
 ### ۲.۵ وابستگی‌های اصلی (requirements.txt)
 
@@ -180,12 +201,13 @@ frontend/lib/
 │   │   ├── device_ingest_request.dart, device_ingest_response.dart
 │   │   ├── device_public_info.dart, device_register_request.dart, devices_list_response.dart
 │   │   ├── health_data_create.dart, health_data_response.dart
+│   │   ├── history_response.dart   # HistoryTurnItem, HistoryGroupItem, HistoryResponse (/memory/history)
 │   │   ├── lifestyle_data_create.dart, lifestyle_context_response.dart
 │   ├── models/
 │   │   ├── chat_message.dart, user_profile.dart
 │   │   ├── notification.dart, notification_feedback.dart
 │   ├── repositories/
-│   │   ├── chat_repository.dart
+│   │   ├── chat_repository.dart   # sendChat، fetchHistory
 │   │   ├── device_repository.dart, devices_repository.dart
 │   │   ├── health_repository.dart, lifestyle_repository.dart
 ├── features/
@@ -204,10 +226,12 @@ frontend/lib/
 │   │       └── widgets/input_bar, message_bubble, sedi_header, sedi_ring_anim, language_selection_dialog
 │   ├── health/
 │   │   ├── logic/vitals_controller.dart, vitals_cache.dart, vitals_history.dart
-│   │   └── presentation/pages/vitals_page.dart, widgets/vital_value_tile.dart
+│   │   └── presentation/
+│   │       ├── pages/vitals_page.dart   # فقط مشاهده؛ بدون فرم/دکمه Save
+│   │       └── widgets/vital_value_tile.dart
 │   ├── devices/
 │   │   ├── logic/devices_controller.dart
-│   │   └── presentation/pages/devices_page.dart
+│   │   └── presentation/pages/devices_page.dart   # فقط کارت ECG؛ وضعیت واقعی یا Not connected + Coming soon
 │   ├── lifestyle/
 │   │   ├── logic/lifestyle_controller.dart, lifestyle_validation.dart
 │   │   └── presentation/pages/lifestyle_page.dart

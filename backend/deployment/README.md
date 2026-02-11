@@ -65,3 +65,7 @@ journalctl -u sedi-backend.service -f
 - `POSTGRESQL_MIGRATION.md` - PostgreSQL setup and migration guide
 - `ADD_DEDUPE_KEY_MIGRATION.md` - Detailed dedupe_key migration guide
 - `migrations/README.md` - Migration files documentation
+- `../docs/RELEASE_STAGE16_6_NOTIFICATIONS_V1.md` - Push notifications feature overview
+- `../docs/NOTIFICATIONS_V1_FREEZE_GO_NO_GO.md` - Release freeze and go/no-go checklist
+- `../docs/NOTIFICATIONS_E2E_CHECKLIST.md` - E2E verification and curl commands
+- `../docs/PROD_NOTIFICATIONS_ROLLOUT_CHECKLIST.md` - Production rollout, env vars, rollback

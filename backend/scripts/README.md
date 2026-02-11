@@ -15,6 +15,17 @@
 ### `RESTART_INSTRUCTIONS.md`
 راهنمای کامل برای restart کردن backend با روش‌های مختلف.
 
+### `prod_notifications_sanity.sh` (Stage 16.6.3)
+Production sanity checks for push notifications. Checks env vars, health endpoints, test push.
+
+**Usage:**
+```bash
+ADMIN_TOKEN=your_token BASE_URL=http://localhost:8000 USER_ID=1 bash backend/scripts/prod_notifications_sanity.sh
+```
+
+### `notifications_e2e_smoke.py`
+E2E smoke test for notifications (admin endpoints, deliver_pending, feedback).
+
 ## نکات مهم
 
 - تمام اسکریپت‌های backend باید در این پوشه باشند

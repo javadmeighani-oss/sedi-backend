@@ -43,6 +43,7 @@ Future<ChatRepositoryResult> sendChat(InteractRequest request) async {
 }
 
 /// Fetches chat history from GET /memory/history. Throws on non-200.
+/// Path: respects baseUrl path prefix (e.g. https://example.com/api -> /api/memory/history).
 Future<HistoryResponse> fetchHistory({
   required int userId,
   required String group,
@@ -50,11 +51,10 @@ Future<HistoryResponse> fetchHistory({
   int offset = 0,
 }) async {
   final baseUri = Uri.parse(AppConfig.baseUrl);
-  final uri = Uri(
-    scheme: baseUri.scheme,
-    host: baseUri.host,
-    port: baseUri.port,
-    path: '/memory/history',
+  final basePath = baseUri.path.replaceFirst(RegExp(r'/$'), '').trim();
+  final path = basePath.isEmpty ? '/memory/history' : '$basePath/memory/history';
+  final uri = baseUri.replace(
+    path: path,
     queryParameters: {
       'user_id': userId.toString(),
       'group': group,

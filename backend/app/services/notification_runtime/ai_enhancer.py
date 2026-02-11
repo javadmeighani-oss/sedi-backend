@@ -20,19 +20,18 @@ NOTIF_AI_ENHANCE = os.getenv("NOTIF_AI_ENHANCE", "false").lower() in ("true", "1
 
 def enhance_with_ai(payload: NotificationPayload) -> NotificationPayload:
     """
-    Safely enhance notification payload with AI if enabled.
-    
-    Args:
-        payload: NotificationPayload to enhance
-    
-    Returns:
-        Enhanced payload if AI succeeds, original payload otherwise.
-        NEVER raises - always returns payload unchanged on any error.
+    Safely enhance notification payload with AI if enabled (Stage 16.6.4).
+
+    Guardrails: health_alert with priority high/critical -> no AI.
+    Never changes medical meaning; tone only; bounded length.
     """
-    # If AI enhancement is disabled, return unchanged
     if not NOTIF_AI_ENHANCE:
         return payload
-    
+
+    # Stage 16.6.4: Health alerts - AI disabled unless priority=normal
+    if payload.type == "health_alert" and payload.priority in ("high", "critical"):
+        return payload
+
     try:
         # Import AI text engine (may not exist in all environments)
         from backend.app.core.ai_text_engine import generate_notification_text
@@ -73,18 +72,23 @@ def enhance_with_ai(payload: NotificationPayload) -> NotificationPayload:
             hours_since_last_talk=hours_since
         )
         
-        # Only update if we got a valid response
+        # Stage 16.6.4: Bounded length - max 1 short sentence extra (~80 chars)
+        max_extra = 80
+        orig_len = len(payload.body.strip())
         if enhanced_body and len(enhanced_body.strip()) > 0:
+            trimmed = enhanced_body.strip()[: orig_len + max_extra]
+            if len(trimmed) < 5:
+                return payload
             # Update metadata to track AI enhancement
             enhanced_metadata = payload.metadata.copy() if payload.metadata else {}
             enhanced_metadata["ai_enhanced"] = True
-            
+
             # Create new payload with enhanced body
             return NotificationPayload(
                 user_id=payload.user_id,
                 type=payload.type,
                 title=payload.title,
-                body=enhanced_body,
+                body=trimmed,
                 priority=payload.priority,
                 scheduled_for=payload.scheduled_for,
                 dedupe_key=payload.dedupe_key,

@@ -40,6 +40,8 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "notification_preferences",
         "language_preference",
         "interests",
+        "timezone",
+        "quiet_hours",
     ],
     "routines": [
         "wake_time",

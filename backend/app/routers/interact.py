@@ -138,10 +138,41 @@ async def chat(
         print(f"[CHAT] Response language: {response_language}")
         print(f"[CHAT] ===== END BEFORE GPT =====")
         
+        # Stage 16.6.5: Try notification settings commands first (no GPT)
+        from backend.app.services.chat_commands import detect_and_handle_user_settings_command
+        from backend.app.core.conversation.memory import ConversationMemory
+
+        override = detect_and_handle_user_settings_command(user.id, message, db, language=response_language)
+        if override is not None:
+            mem_obj = None
+            try:
+                mem = ConversationMemory(db)
+                mem_obj = mem.save_conversation(user.id, message, override.assistant_message, response_language)
+            except Exception as mem_err:
+                print(f"[CHAT WARNING] Could not save command response to memory (non-critical): {mem_err}")
+            try:
+                from backend.app.services.lifestyle.fact_extractor import (
+                    extract_candidates_from_turn,
+                    store_candidates_and_auto_commit,
+                )
+                candidates = extract_candidates_from_turn(user.id, message, override.assistant_message, response_language)
+                if candidates:
+                    store_candidates_and_auto_commit(db, user.id, candidates, source_memory_id=mem_obj.id if mem_obj else None)
+            except Exception:
+                pass
+            return InteractionResponse(
+                message=override.assistant_message,
+                language=response_language,
+                user_id=user.id,
+                timestamp=datetime.utcnow(),
+                requires_security_check=False,
+                detected_name=None,
+            )
+
         # Name is retrieved from memory/context by ConversationBrain - not passed as parameter
         brain = ConversationBrain(db, language=response_language)
         result = brain.process_message(user.id, message, None)  # name=None - will be retrieved from memory
-        
+
         print(f"[CHAT] ===== AFTER GPT CALL =====")
         print(f"[CHAT] Response received: {result.get('message', '')[:100]}...")
         print(f"[CHAT] Response language: {result.get('language', 'unknown')}")

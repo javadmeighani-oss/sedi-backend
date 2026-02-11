@@ -1,16 +1,27 @@
 # app/routers/lifestyle.py
-from fastapi import APIRouter, Depends, Query, HTTPException
+import os
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
 from backend.app.services.memory import MemoryRepository, build_memory_context
+from backend.app.services.lifestyle.summary_service import generate_summary
+from backend.app.services.lifestyle.fact_extractor import store_candidates_and_auto_commit
 
 
 router = APIRouter()
+
+
+def _require_admin_if_set(request: Request) -> None:
+    admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
+    if admin_token:
+        header_token = (request.headers.get("X-Admin-Token") or "").strip()
+        if header_token != admin_token:
+            raise HTTPException(status_code=401, detail="Admin token required")
 
 
 # -------------------- Request/Response Models --------------------
@@ -134,3 +145,138 @@ def get_lifestyle_context(
         ok=True,
         data=context.to_dict()
     )
+
+
+# -------------------- GET /lifestyle/summary (Stage 17.1) --------------------
+@router.get("/summary", response_model=APIResponse)
+def get_lifestyle_summary(
+    user_id: int = Query(..., description="User ID"),
+    lang: str = Query("en", description="Response language: en, fa, ar"),
+    db: Session = Depends(get_db),
+):
+    """
+    Get lifestyle summary for frontend display.
+    Composes: What I know, Recent patterns, Next suggested check-in.
+    """
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
+    data = generate_summary(db, user_id, language=lang)
+    return APIResponse(ok=True, data=data)
+
+
+# -------------------- Admin: GET /lifestyle/admin/candidates --------------------
+@router.get("/admin/candidates", response_model=APIResponse)
+def admin_list_candidates(
+    request: Request,
+    user_id: int = Query(..., description="User ID"),
+    status: str = Query("pending", description="Filter by status: pending, accepted, rejected"),
+    db: Session = Depends(get_db),
+):
+    """Admin: List fact candidates for a user."""
+    _require_admin_if_set(request)
+    rows = (
+        db.query(models.UserFactCandidate)
+        .filter(
+            models.UserFactCandidate.user_id == user_id,
+            models.UserFactCandidate.status == status,
+        )
+        .order_by(models.UserFactCandidate.created_at.desc())
+        .limit(100)
+        .all()
+    )
+    items = [
+        {
+            "id": r.id,
+            "domain": r.domain,
+            "key": r.key,
+            "value_json": r.value_json,
+            "confidence": r.confidence,
+            "is_explicit": r.is_explicit,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+    return APIResponse(ok=True, data={"candidates": items, "count": len(items)})
+
+
+# -------------------- Admin: POST /lifestyle/admin/candidates/{id}/decision --------------------
+class CandidateDecisionRequest(BaseModel):
+    status: str = Field(..., description="accepted or rejected")
+
+
+@router.post("/admin/candidates/{candidate_id}/decision", response_model=APIResponse)
+def admin_candidate_decision(
+    request: Request,
+    candidate_id: int,
+    body: CandidateDecisionRequest,
+    db: Session = Depends(get_db),
+):
+    """Admin: Accept or reject a fact candidate."""
+    _require_admin_if_set(request)
+    if body.status not in ("accepted", "rejected"):
+        return APIResponse(ok=False, error=ErrorInfo(code="INVALID_STATUS", message="status must be accepted or rejected"))
+    cand = db.query(models.UserFactCandidate).filter(models.UserFactCandidate.id == candidate_id).first()
+    if not cand:
+        return APIResponse(ok=False, error=ErrorInfo(code="NOT_FOUND", message="Candidate not found."))
+    cand.status = body.status
+    db.add(cand)
+    if body.status == "accepted":
+        from backend.app.services.memory import MemoryRepository
+        from backend.app.services.memory.memory_contract import MemoryContract
+        valid, err = MemoryContract.validate_fact(cand.domain, cand.key)
+        if valid:
+            try:
+                import json
+                val = json.loads(cand.value_json)
+                repo = MemoryRepository(db)
+                repo.upsert_fact(user_id=cand.user_id, domain=cand.domain, key=cand.key, value=val, confidence=cand.confidence, source="chat")
+            except Exception:
+                pass
+    db.commit()
+    return APIResponse(ok=True, data={"id": candidate_id, "status": body.status})
+
+
+# -------------------- Admin: GET /lifestyle/admin/source_preview --------------------
+@router.get("/admin/source_preview", response_model=APIResponse)
+def admin_source_preview(
+    request: Request,
+    type: str = Query(..., description="Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact"),
+    id: int = Query(..., description="Source record ID"),
+    db: Session = Depends(get_db),
+):
+    """Admin: Safe preview of a source for debugging and RAG validation."""
+    _require_admin_if_set(request)
+    preview: Optional[Dict[str, Any]] = None
+    if type == "daily_summary":
+        row = db.query(models.DailyMemorySummary).filter(models.DailyMemorySummary.id == id).first()
+        if row:
+            s = (row.summary or "")[:200]
+            preview = {"date": row.created_at.isoformat() if row.created_at else None, "snippet": s}
+    elif type == "user_fact":
+        row = db.query(models.UserFact).filter(models.UserFact.id == id).first()
+        if row:
+            preview = {"key": row.key, "value_json": row.value_json}
+    elif type == "user_memory_fact":
+        row = db.query(models.UserMemoryFact).filter(models.UserMemoryFact.id == id).first()
+        if row:
+            preview = {"domain": row.domain, "key": row.key, "value_json": row.value_json}
+    elif type == "user_profile_knowledge":
+        row = db.query(models.UserProfileKnowledge).filter(models.UserProfileKnowledge.id == id).first()
+        if row:
+            s = (row.baseline_summary or "")[:200]
+            preview = {"snippet": s, "updated_at": row.updated_at.isoformat() if row.updated_at else None}
+    elif type == "memory_turn":
+        row = db.query(models.Memory).filter(models.Memory.id == id).first()
+        if row:
+            preview = {"created_at": row.created_at.isoformat() if row.created_at else None}
+    elif type == "candidate_fact":
+        row = db.query(models.UserFactCandidate).filter(models.UserFactCandidate.id == id).first()
+        if row:
+            preview = {"domain": row.domain, "key": row.key, "value_json": row.value_json}
+    else:
+        return APIResponse(ok=False, error=ErrorInfo(code="INVALID_TYPE", message=f"Unknown type: {type}"))
+    if not preview:
+        return APIResponse(ok=False, error=ErrorInfo(code="NOT_FOUND", message=f"Source not found: type={type}, id={id}"))
+    return APIResponse(ok=True, data={"type": type, "id": id, "preview": preview})

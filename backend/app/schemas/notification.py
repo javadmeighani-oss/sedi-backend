@@ -66,3 +66,33 @@ class NotificationFeedbackRequest(BaseModel):
     feedback: Literal["positive", "negative", "neutral"] = Field(..., description="Feedback type")
     reason: Optional[str] = Field(None, description="Optional reason for feedback")
     action: Optional[str] = Field(None, description="Optional action (e.g. 'too_early', 'too_late', 'irrelevant')")
+
+
+# -------------------- Stage 16.6: Push & Feedback Action --------------------
+
+class PushRegisterRequest(BaseModel):
+    """Request body for POST /notifications/push/register"""
+    user_id: int = Field(..., description="User ID (same auth as existing endpoints)")
+    platform: Literal["android"] = Field(..., description="Platform")
+    fcm_token: str = Field(..., min_length=1, description="FCM device token")
+    device_id: Optional[str] = Field(None, description="Optional device identifier")
+    app_version: Optional[str] = Field(None, description="Optional app version")
+
+
+class PushFeedbackActionRequest(BaseModel):
+    """Request body for action-based feedback (like/dislike/open_chat/dismissed)"""
+    action: Literal["like", "dislike", "open_chat", "dismissed"] = Field(..., description="Action taken")
+    client_ts: Optional[str] = Field(None, description="Client timestamp")
+    meta: Optional[Dict[str, Any]] = Field(None, description="Optional metadata")
+
+
+# -------------------- Stage 16.6.1: Admin Test Push --------------------
+
+class TestPushRequest(BaseModel):
+    """Request body for POST /notifications/admin/test_push"""
+    user_id: int = Field(..., description="User ID to send test push to")
+    channel: Literal["morning", "engagement", "health_alert"] = Field("engagement", description="Push channel")
+    title: Optional[str] = Field(None, description="Optional title (default from channel)")
+    body: Optional[str] = Field(None, description="Optional body (default from channel)")
+    priority: Literal["normal", "high"] = Field("normal", description="Priority")
+    ttl_seconds: Optional[int] = Field(3600, description="TTL in seconds")

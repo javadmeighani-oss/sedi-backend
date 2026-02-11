@@ -86,16 +86,13 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     _fetch();
   }
 
-  /// Parse created_at (ISO) to HH:MM
+  /// Parse created_at (ISO) to HH:MM in local time. Safe: empty/fail -> "--:--".
   String _timeFromCreatedAt(String createdAt) {
-    if (createdAt.isEmpty) return '--:--';
-    try {
-      final dt = DateTime.tryParse(createdAt);
-      if (dt != null) {
-        return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-      }
-    } catch (_) {}
-    return '--:--';
+    if (createdAt.trim().isEmpty) return '--:--';
+    final dt = DateTime.tryParse(createdAt);
+    if (dt == null) return '--:--';
+    final local = dt.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   String _preview(String text, [int maxLen = 60]) {
@@ -266,19 +263,22 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(_timeFromCreatedAt(turn.createdAt)),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('You', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-              const SizedBox(height: 4),
-              Text(turn.userMessage, style: const TextStyle(fontSize: 14)),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.5),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('You', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(turn.userMessage, style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 12),
               const Text('Sedi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
               const SizedBox(height: 4),
               Text(turn.sediResponse ?? '—', style: const TextStyle(fontSize: 14)),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [

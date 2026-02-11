@@ -1,5 +1,6 @@
 # app/routers/ai_core.py
-from fastapi import APIRouter, Depends
+import os
+from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 from backend.app.database import get_db
@@ -9,6 +10,14 @@ from backend.app.core.ai_text_engine import generate_notification_text
 from backend.app.services.notification_engine import DecisionEngine
 
 router = APIRouter()
+
+
+def _require_admin_if_set(request: Request) -> None:
+    admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
+    if admin_token:
+        header_token = (request.headers.get("X-Admin-Token") or "").strip()
+        if header_token != admin_token:
+            raise HTTPException(status_code=401, detail="Admin token required")
 
 
 @router.post("/analyze", response_model=APIResponse)
@@ -97,3 +106,87 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
             }
         },
     )
+
+
+# -------------------- Admin: GET /ai_core/admin/rag_breaker (Stage 17.9) --------------------
+@router.get("/admin/rag_breaker", response_model=APIResponse)
+def admin_rag_breaker(request: Request):
+    """Admin: Circuit breaker state for vector RAG guardrails."""
+    _require_admin_if_set(request)
+    from backend.app.services.local_rag.circuit_breaker import get_state
+
+    return APIResponse(ok=True, data=get_state())
+
+
+# -------------------- Admin: GET /ai_core/admin/rag_metrics (Stage 17.7) --------------------
+@router.get("/admin/rag_metrics", response_model=APIResponse)
+def admin_rag_metrics(request: Request):
+    """Admin: RAG retrieval metrics snapshot. Requires X-Admin-Token if ADMIN_TOKEN set."""
+    _require_admin_if_set(request)
+    from backend.app.services.local_rag.metrics import get_metrics
+
+    data = get_metrics().snapshot()
+    return APIResponse(ok=True, data=data)
+
+
+# -------------------- Admin: POST /ai_core/admin/index_daily_summaries (Stage 17.8) --------------------
+@router.post("/admin/index_daily_summaries", response_model=APIResponse)
+def admin_index_daily_summaries(
+    request: Request,
+    user_id: int = Query(..., description="User ID to index"),
+    days: int = Query(30, description="Days of summaries to index"),
+    db: Session = Depends(get_db),
+):
+    """Admin: Index daily summaries for a user into rag_embeddings."""
+    _require_admin_if_set(request)
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
+    try:
+        from backend.app.services.local_rag.indexing import index_daily_summaries_for_user
+
+        result = index_daily_summaries_for_user(db, user_id, days=days)
+        return APIResponse(ok=True, data={"user_id": user_id, "indexed": result["indexed"], "skipped": result["skipped"], "failed": result["failed"]})
+    except Exception as e:
+        return APIResponse(ok=False, error=ErrorInfo(code="INDEX_ERROR", message=str(e)))
+
+
+# -------------------- Admin: POST /ai_core/admin/index_daily_summaries_all (Stage 17.8) --------------------
+@router.post("/admin/index_daily_summaries_all", response_model=APIResponse)
+def admin_index_daily_summaries_all(
+    request: Request,
+    days: int = Query(30, description="Days of summaries to index"),
+    limit: int = Query(50, description="Max users per batch"),
+    offset: int = Query(0, description="Offset for batch"),
+    db: Session = Depends(get_db),
+):
+    """Admin: Index daily summaries for a batch of users (controlled rollout)."""
+    _require_admin_if_set(request)
+    try:
+        from backend.app.services.local_rag.indexing import index_daily_summaries_all as index_all
+
+        result = index_all(db, days=days, limit=limit, offset=offset)
+        return APIResponse(ok=True, data=result)
+    except Exception as e:
+        return APIResponse(ok=False, error=ErrorInfo(code="INDEX_ERROR", message=str(e)))
+
+
+# -------------------- Admin: POST /ai_core/admin/reindex_embeddings (Stage 17.6) --------------------
+@router.post("/admin/reindex_embeddings", response_model=APIResponse)
+def admin_reindex_embeddings(
+    request: Request,
+    user_id: int = Query(..., description="User ID to index"),
+    db: Session = Depends(get_db),
+):
+    """Admin: Trigger embedding indexing for a user. Requires RAG_VECTOR_REBUILD=true. Best effort."""
+    _require_admin_if_set(request)
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
+    try:
+        from backend.app.services.local_rag.indexing import index_embeddings_for_user
+
+        result = index_embeddings_for_user(db, user_id)
+        return APIResponse(ok=True, data={"user_id": user_id, "result": result})
+    except Exception as e:
+        return APIResponse(ok=False, error=ErrorInfo(code="INDEX_ERROR", message=str(e)))

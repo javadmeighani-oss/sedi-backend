@@ -72,6 +72,21 @@ def _build_user_knowledge_context(db: Session, user_id: int) -> Optional[str]:
         return None
 
 
+def _maybe_append_local_rag_context(messages: list, db, user_id: int, user_message: str, language: str) -> None:
+    """Stage 17.5: Append [LOCAL_CONTEXT] block when RAG_LOCAL_ENABLED. No-op otherwise."""
+    import os
+    if not os.environ.get("RAG_LOCAL_ENABLED", "false").lower() in ("true", "1", "yes"):
+        return
+    try:
+        from backend.app.services.local_rag.provider_router import retrieve as rag_retrieve
+        result = rag_retrieve(db, user_id, user_message or "chat", language)
+        if result.combined_text and len(result.combined_text.strip()) > 10:
+            block = "[LOCAL_CONTEXT]\n" + result.combined_text.strip()
+            messages.append({"role": "system", "content": block})
+    except Exception:
+        pass
+
+
 class ConversationBrain:
     """Central decision engine for all conversation interactions"""
     
@@ -146,6 +161,9 @@ class ConversationBrain:
             if user_knowledge_str:
                 messages.append({"role": "system", "content": user_knowledge_str})
 
+            # Stage 17.5: Optional Local RAG context (gated; no behavior change when disabled)
+            _maybe_append_local_rag_context(messages, self.db, user_id, user_message, self.language)
+
             # Optionally append history if available (non-blocking)
             try:
                 recent_messages = self.memory.get_recent_messages(user_id, limit=10)
@@ -212,8 +230,9 @@ class ConversationBrain:
             # If we get here, GPT call was successful
             # STEP 4: SAVE: Save conversation to memory (updates memory_count)
             # CRITICAL: Memory is OPTIONAL - memory failure must NOT block chat
+            mem = None
             try:
-                self.memory.save_conversation(
+                mem = self.memory.save_conversation(
                     user_id=user_id,
                     user_message=user_message,
                     sedi_response=sedi_response,
@@ -227,7 +246,27 @@ class ConversationBrain:
                 import traceback
                 print(f"[BRAIN WARNING] Memory error traceback: {traceback.format_exc()}")
                 # Continue - don't block chat response
-            
+
+            # Stage 17.1: Lifestyle fact extraction (non-blocking best effort)
+            try:
+                from backend.app.services.lifestyle.fact_extractor import (
+                    extract_candidates_from_turn,
+                    store_candidates_and_auto_commit,
+                )
+                candidates = extract_candidates_from_turn(
+                    user_id=user_id,
+                    user_message=user_message,
+                    assistant_message=sedi_response,
+                    language=self.language,
+                )
+                if candidates:
+                    source_id = mem.id if mem else None
+                    store_candidates_and_auto_commit(
+                        self.db, user_id, candidates, source_memory_id=source_id
+                    )
+            except Exception as extract_err:
+                print(f"[BRAIN] Lifestyle extract (non-critical): {extract_err}")
+
             # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
             new_stage = transition_stage(current_stage, user_id, self.db)
             print(f"[BRAIN DEBUG] Stage transition: {current_stage.value} -> {new_stage.value}")
