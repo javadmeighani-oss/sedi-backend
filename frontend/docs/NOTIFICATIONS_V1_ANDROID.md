@@ -12,7 +12,7 @@ Stage 16.6: FCM-based push notifications with action buttons (LIKE, DISLIKE, OPE
 4. Download `google-services.json`
 5. Place it in `frontend/android/app/google-services.json`
 
-Without this file, the app will run but Firebase/FCM setup will be skipped (graceful fallback).
+Without this file, the app will run but Firebase/FCM setup will be skipped (graceful fallback). CI creates a stub automatically when the file is missing.
 
 ## Android Configuration
 
