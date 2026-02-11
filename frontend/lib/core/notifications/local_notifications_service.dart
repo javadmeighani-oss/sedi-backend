@@ -131,6 +131,7 @@ class LocalNotificationsService {
     String body = notif?.body ?? data['body'] ?? '';
     final notificationId = data['notification_id']?.toString() ?? '';
     final channel = data['channel'] ?? data['type'] ?? 'engagement';
+    final deeplinkUrl = data['deeplink_url']?.toString() ?? '';
 
     final payload = <String, String>{
       'notification_id': notificationId,
