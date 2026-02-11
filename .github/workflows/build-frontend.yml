@@ -76,6 +76,25 @@ jobs:
         working-directory: ./frontend
         run: flutter clean
 
+      - name: Provide google-services.json for CI (stub if missing)
+        run: |
+          GS=frontend/android/app/google-services.json
+          if [ ! -f "$GS" ]; then
+            echo "Creating minimal google-services.json stub for CI (FCM disabled at runtime)"
+            mkdir -p "$(dirname "$GS")"
+            cat > "$GS" << 'EOF'
+          {
+            "project_info": {"project_number": "000000000000", "project_id": "sedi-ci-dummy", "storage_bucket": "sedi-ci-dummy.appspot.com"},
+            "client": [{
+              "client_info": {"mobilesdk_app_id": "1:000000000000:android:0000000000000000000000", "android_client_info": {"package_name": "com.sedi.app"}},
+              "oauth_client": [],
+              "api_key": [{"current_key": "AIzaSyDummyKeyForCIBuildOnly0000000000"}],
+              "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+            }]
+          }
+          EOF
+          fi
+
       - name: Build APK with retry
         working-directory: ./frontend
         run: |
