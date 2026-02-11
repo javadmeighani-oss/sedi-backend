@@ -13,7 +13,6 @@ import '../../../../core/utils/user_profile_manager.dart';
 import 'chat_history_page.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
 import '../../../health/presentation/pages/vitals_page.dart';
-import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notification/data/notification_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 import '../../../notification/presentation/pages/notifications_inbox_page.dart';
@@ -302,21 +301,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                             ),
                           );
                         },
-                      ),
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert, size: 24, color: AppTheme.primaryBlack),
-                        onSelected: (value) {
-                          if (value == 'lifestyle') {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const LifestylePage(),
-                              ),
-                            );
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'lifestyle', child: Text('Lifestyle')),
-                        ],
                       ),
                     ],
                   ),
