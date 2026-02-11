@@ -14,6 +14,7 @@ from . import (
     data,
     medical,
     memory,
+    user_knowledge,
     sms_gateway,
     device_data,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "data",
     "medical",
     "memory",
+    "user_knowledge",
     "sms_gateway",
     "device_data",
 ]

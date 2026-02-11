@@ -14,6 +14,8 @@ from backend.app.routers import (
     device,
     devices,
     decision,
+    memory,
+    user_knowledge,
 )
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -55,6 +57,8 @@ app.include_router(conditions.router, prefix="/conditions", tags=["Medical Condi
 app.include_router(device.router, prefix="/device", tags=["Device"])
 app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 app.include_router(decision.router)
+app.include_router(memory.router, prefix="/memory", tags=["Memory"])
+app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
 
 # ------------------ Activate Scheduler ------------------
 start_scheduler()

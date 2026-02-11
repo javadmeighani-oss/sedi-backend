@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Text, UniqueConstraint
 from datetime import datetime
 from backend.app.database import Base
 
@@ -168,3 +168,34 @@ class Device(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     revoked_at = Column(DateTime, nullable=True)
     last_seen_at = Column(DateTime, nullable=True)
+
+
+# -------------------- UserProfileKnowledge --------------------
+class UserProfileKnowledge(Base):
+    """Stable user baseline: 1 row per user. Used for GPT context."""
+    __tablename__ = "user_profile_knowledge"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    display_name = Column(String(255), nullable=True)
+    language = Column(String(20), nullable=True)
+    baseline_summary = Column(Text, nullable=True)
+    goals_json = Column(Text, nullable=True)  # JSON string
+    constraints_json = Column(Text, nullable=True)
+    preferences_json = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserFact --------------------
+class UserFact(Base):
+    """Key-value facts per user (chat/manual/device). Used for GPT context."""
+    __tablename__ = "user_facts"
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_user_facts_user_id_key"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    key = Column(String(255), nullable=False, index=True)
+    value_json = Column(Text, nullable=True)
+    source = Column(String(50), nullable=False, default="manual")  # "chat" | "manual" | "device"
+    confidence = Column(Float, default=0.7, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

@@ -1,12 +1,103 @@
 # app/routers/memory.py
-from fastapi import APIRouter, Depends
+"""
+Memory router: daily summary (save/latest) + chat history from Memory table.
+GET /memory/history - grouped conversation history for UI (daily/weekly/monthly/yearly).
+"""
+from collections import defaultdict
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas.memory import (
+    HistoryResponse,
+    HistoryGroupItem,
+    HistoryTurnItem,
+)
 
 router = APIRouter()
+
+# Max rows to fetch from DB for grouping (avoid loading unbounded history)
+_HISTORY_FETCH_CAP = 1000
+
+GroupKind = Literal["daily", "weekly", "monthly", "yearly"]
+
+
+def _group_key(created_at: datetime, group: GroupKind) -> str:
+    """Return grouping key for a memory row."""
+    if group == "daily":
+        return created_at.strftime("%Y-%m-%d")
+    if group == "weekly":
+        year, week, _ = created_at.isocalendar()
+        return f"{year}-W{week:02d}"
+    if group == "monthly":
+        return created_at.strftime("%Y-%m")
+    if group == "yearly":
+        return created_at.strftime("%Y")
+    return created_at.strftime("%Y-%m-%d")
+
+
+@router.get("/history", response_model=HistoryResponse)
+def get_chat_history(
+    user_id: int = Query(..., description="User ID (required)"),
+    group: GroupKind = Query("daily", description="Group by: daily | weekly | monthly | yearly"),
+    limit: int = Query(200, ge=1, le=500, description="Max number of groups to return"),
+    offset: int = Query(0, ge=0, description="Skip this many groups (pagination)"),
+    db: Session = Depends(get_db),
+):
+    """
+    Fetch chat history from Memory table, grouped by day/week/month/year.
+    Groups sorted newest first; turns within each group oldest first.
+    Security: only returns data for the given user_id (user must exist).
+    """
+    # Validate user exists
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Fetch memory rows for this user only (strict filter)
+    rows = (
+        db.query(models.Memory)
+        .filter(models.Memory.user_id == user_id)
+        .order_by(models.Memory.created_at.desc())
+        .limit(_HISTORY_FETCH_CAP)
+        .all()
+    )
+
+    # Group by key (oldest-first within group: reverse then group)
+    rows_asc = list(reversed(rows))
+    buckets = defaultdict(list)
+    for m in rows_asc:
+        key = _group_key(m.created_at, group)
+        buckets[key].append(m)
+
+    # Sort groups by key descending (newest first)
+    sorted_keys = sorted(buckets.keys(), reverse=True)
+    # Paginate groups
+    paginated_keys = sorted_keys[offset : offset + limit]
+
+    items = []
+    for key in paginated_keys:
+        turns = [
+            HistoryTurnItem(
+                id=m.id,
+                created_at=m.created_at or datetime.utcnow(),
+                user_message=m.user_message or "",
+                sedi_response=m.sedi_response,
+                language=m.language or "en",
+            )
+            for m in buckets[key]
+        ]
+        items.append(HistoryGroupItem(key=key, turns=turns))
+
+    return HistoryResponse(group=group, items=items)
+
+
+# --- DailyMemorySummary endpoints (existing) ---
 
 
 @router.post("/save", response_model=APIResponse)
@@ -64,3 +155,26 @@ def get_latest_memory(user_id: int, db: Session = Depends(get_db)):
     }
 
     return APIResponse(ok=True, data=data)
+
+
+# ---------------------------------------------------------------------------
+# curl examples for GET /memory/history (run with backend on http://localhost:8000)
+# ---------------------------------------------------------------------------
+#
+# Daily grouping (default), user_id=1:
+#   curl -s "http://localhost:8000/memory/history?user_id=1&group=daily&limit=20&offset=0"
+#
+# Weekly grouping:
+#   curl -s "http://localhost:8000/memory/history?user_id=1&group=weekly&limit=50"
+#
+# Monthly grouping:
+#   curl -s "http://localhost:8000/memory/history?user_id=1&group=monthly"
+#
+# Yearly grouping:
+#   curl -s "http://localhost:8000/memory/history?user_id=1&group=yearly"
+#
+# Pagination (second page of 10 groups):
+#   curl -s "http://localhost:8000/memory/history?user_id=1&group=daily&limit=10&offset=10"
+#
+# 404 when user does not exist:
+#   curl -s "http://localhost:8000/memory/history?user_id=99999"

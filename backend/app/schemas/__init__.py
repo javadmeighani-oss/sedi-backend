@@ -5,6 +5,12 @@ from .common import APIResponse, ErrorInfo
 from .chat import ChatRequest
 from .onboarding import OnboardingRequest
 from .user import UserCreate, UserResponse
+from .user_knowledge import (
+    UserProfileKnowledgeRead,
+    UserProfileKnowledgeUpsert,
+    UserFactRead,
+    UserFactUpsert,
+)
 from .health import HealthDataCreate, HealthDataResponse
 from .lifestyle import LifestyleDataCreate, LifestyleDataResponse
 from .notification import (
@@ -12,7 +18,13 @@ from .notification import (
     NotificationCreate,
     NotificationResponse
 )
-from .memory import MemoryCreate, MemoryResponse
+from .memory import (
+    MemoryCreate,
+    MemoryResponse,
+    HistoryResponse,
+    HistoryGroupItem,
+    HistoryTurnItem,
+)
 from .interaction import InteractionResponse
 from .medical import (
     MedicalConditionBase,
@@ -48,6 +60,11 @@ __all__ = [
     # User
     "UserCreate",
     "UserResponse",
+    # User Knowledge
+    "UserProfileKnowledgeRead",
+    "UserProfileKnowledgeUpsert",
+    "UserFactRead",
+    "UserFactUpsert",
     # Health
     "HealthDataCreate",
     "HealthDataResponse",
@@ -61,6 +78,9 @@ __all__ = [
     # Memory
     "MemoryCreate",
     "MemoryResponse",
+    "HistoryResponse",
+    "HistoryGroupItem",
+    "HistoryTurnItem",
     # Interaction
     "InteractionResponse",
     # Medical

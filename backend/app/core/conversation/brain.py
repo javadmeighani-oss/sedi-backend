@@ -24,6 +24,53 @@ from backend.app.core.conversation.context import ConversationContext
 from backend.app.core.conversation.prompts import ConversationPrompts
 from backend.app.models import User
 
+_USER_KNOWLEDGE_MAX_CHARS = 1200
+
+
+def _build_user_knowledge_context(db: Session, user_id: int) -> Optional[str]:
+    """Load UserProfileKnowledge + UserFact; return [USER_PROFILE] string (max 1200 chars) or None."""
+    try:
+        from backend.app import models
+        lines = []
+        profile = (
+            db.query(models.UserProfileKnowledge)
+            .filter(models.UserProfileKnowledge.user_id == user_id)
+            .first()
+        )
+        if profile:
+            if profile.baseline_summary and profile.baseline_summary.strip():
+                lines.append("baseline: " + profile.baseline_summary.strip())
+            if profile.goals_json and profile.goals_json.strip():
+                lines.append("goals: " + profile.goals_json.strip()[:300])
+            if profile.constraints_json and profile.constraints_json.strip():
+                lines.append("constraints: " + profile.constraints_json.strip()[:300])
+            if profile.preferences_json and profile.preferences_json.strip():
+                lines.append("preferences: " + profile.preferences_json.strip()[:300])
+        facts = (
+            db.query(models.UserFact)
+            .filter(models.UserFact.user_id == user_id)
+            .order_by(models.UserFact.updated_at.desc())
+            .limit(30)
+            .all()
+        )
+        fact_parts = []
+        for f in facts:
+            val = (f.value_json or "").strip()
+            if len(val) > 80:
+                val = val[:77] + "..."
+            fact_parts.append(f"{f.key}={val}")
+        if fact_parts:
+            lines.append("facts: " + "; ".join(fact_parts))
+        if not lines:
+            return None
+        text = "[USER_PROFILE]\n" + "\n".join(lines)
+        if len(text) > _USER_KNOWLEDGE_MAX_CHARS:
+            text = text[:_USER_KNOWLEDGE_MAX_CHARS - 3] + "..."
+        return text
+    except Exception as e:
+        print(f"[BRAIN WARNING] User knowledge load failed (non-critical): {e}")
+        return None
+
 
 class ConversationBrain:
     """Central decision engine for all conversation interactions"""
@@ -94,7 +141,11 @@ class ConversationBrain:
             messages = [
                 {"role": "system", "content": system_prompt_content}
             ]
-            
+            # User Knowledge: stable baseline + facts (compact, after main system, before history)
+            user_knowledge_str = _build_user_knowledge_context(self.db, user_id)
+            if user_knowledge_str:
+                messages.append({"role": "system", "content": user_knowledge_str})
+
             # Optionally append history if available (non-blocking)
             try:
                 recent_messages = self.memory.get_recent_messages(user_id, limit=10)
