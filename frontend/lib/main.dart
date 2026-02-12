@@ -6,9 +6,9 @@ import 'app.dart';
 import 'core/navigation/app_navigator.dart';
 import 'core/notifications/fcm_setup.dart';
 import 'core/notifications/local_notifications_service.dart';
-import 'core/utils/user_profile_manager.dart';
 import 'data/repositories/notification_repository.dart';
 import 'features/chat/presentation/pages/chat_page.dart';
+import 'services/push/push_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -138,19 +138,17 @@ void _navigateToChat({int? notificationId}) {
 
 Future<void> _registerTokenOnStart() async {
   try {
-    final profile = await UserProfileManager.loadProfile();
-    final userId = profile.userId;
-    if (userId == null) return;
-
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
 
-    final repo = NotificationRepository();
-    await repo.registerToken(
-      userId: userId,
-      fcmToken: token,
-      appVersion: '1.0.0', // TODO: from package_info
-    );
+    // Single-line log for debugging (masked: first 8 + last 4)
+    final masked = token.length > 12
+        ? '${token.substring(0, 8)}...${token.substring(token.length - 4)}'
+        : '***';
+    print('[FCM] token: $masked (len=${token.length})');
+
+    await saveTokenToPreferences(token);
+    await registerFcmTokenToBackend(token);
   } catch (e) {
     print('[FCM] Token register error: $e');
   }
