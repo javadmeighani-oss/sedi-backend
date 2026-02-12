@@ -1,5 +1,7 @@
 /// Push notification registration and feedback (Stage 16.6).
 /// Uses ApiClient with auth headers.
+import 'package:flutter/foundation.dart';
+
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_response.dart';
@@ -17,6 +19,7 @@ class NotificationRepository {
     String? deviceId,
     String? appVersion,
   }) async {
+    debugPrint('[FCM] registerToken => POST /notifications/push/register');
     return _client.post<Map<String, dynamic>?>(
       '/notifications/push/register',
       body: {

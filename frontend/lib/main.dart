@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
@@ -29,13 +30,15 @@ final _feedbackSentIds = <int>{};
 const int _maxFeedbackDedupSize = 50;
 
 Future<void> _setupFcm() async {
+  debugPrint('[FCM] setup start');
   // Request notification permission (Android 13+)
-  await FirebaseMessaging.instance.requestPermission(
+  final permission = await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
     sound: true,
     provisional: false,
   );
+  debugPrint('[FCM] permission status: ${permission.authorizationStatus}');
 
   // Initialize local notifications with action handler
   await LocalNotificationsService.init(
@@ -65,7 +68,10 @@ Future<void> _setupFcm() async {
 
   // Register token with backend (when user is logged in)
   _registerTokenOnStart();
-  FirebaseMessaging.instance.onTokenRefresh.listen((_) => _registerTokenOnStart());
+  FirebaseMessaging.instance.onTokenRefresh.listen((String newToken) {
+    debugPrint('[FCM] onTokenRefresh fired: ${_maskToken(newToken)}');
+    _registerTokenOnStart();
+  });
 }
 
 void _handleNotificationResponse(String? actionId, String? payloadJson) {
@@ -136,19 +142,25 @@ void _navigateToChat({int? notificationId}) {
   );
 }
 
+/// Mask FCM token for logging only; never log raw token (Stage 19).
+String _maskToken(String t) {
+  if (t.length <= 10) return '***';
+  return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
+}
+
 Future<void> _registerTokenOnStart() async {
   try {
+    debugPrint('[FCM] getToken() called');
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
 
-    // Single-line log for debugging (masked: first 8 + last 4)
-    final masked = token.length > 12
-        ? '${token.substring(0, 8)}...${token.substring(token.length - 4)}'
-        : '***';
-    print('[FCM] token: $masked (len=${token.length})');
-
+    debugPrint('[FCM] token received: ${_maskToken(token)}');
+    debugPrint('[FCM] saving token to prefs');
     await saveTokenToPreferences(token);
-    await registerFcmTokenToBackend(token);
+    debugPrint('[FCM] saved token to prefs');
+    debugPrint('[FCM] registerFcmTokenToBackend() called');
+    final res = await registerFcmTokenToBackend(token);
+    debugPrint('[FCM] register result: status=${res.statusCode ?? '?'} ok=${res.ok}');
   } catch (e) {
     print('[FCM] Token register error: $e');
   }
