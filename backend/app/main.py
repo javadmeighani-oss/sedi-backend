@@ -2,8 +2,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from backend.app.database import engine, Base
-from backend.app.db.schema_sync import ensure_notifications_columns
 from backend.app.routers import (
     auth,
     interact,
@@ -19,9 +17,6 @@ from backend.app.routers import (
     user_knowledge,
 )
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
-
-# ------------------ Create Database Tables ------------------
-Base.metadata.create_all(bind=engine)
 
 # ------------------ Create FastAPI Application ------------------
 app = FastAPI(
@@ -63,13 +58,6 @@ app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
 
 # ------------------ Activate Scheduler ------------------
 start_scheduler()
-
-
-# ------------------ Schema sync at startup (idempotent) ------------------
-@app.on_event("startup")
-def sync_schema():
-    ensure_notifications_columns()
-
 
 # ------------------ Root Endpoint for Testing ------------------
 @app.get("/")

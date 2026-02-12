@@ -1,0 +1,2 @@
+Place migration revision scripts here.
+Alembic will create files like: xxxx_add_notifications_columns.py
