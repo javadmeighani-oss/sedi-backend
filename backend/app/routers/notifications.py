@@ -11,10 +11,11 @@ Supports:
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime, timedelta
 import json
 import logging
+import os
 
 from backend.app.database import get_db
 from backend.app.models import Notification, User, PushDevice, NotificationFeedback
@@ -35,7 +36,6 @@ DEFAULT_ACTIONS_JSON = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DIS
 
 def _require_admin_if_set(request: Request) -> None:
     """If ADMIN_TOKEN env is set, require X-Admin-Token header. Same pattern as deliver_pending."""
-    import os
     admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
     if admin_token:
         header_token = (request.headers.get("X-Admin-Token") or "").strip()
@@ -149,6 +149,196 @@ def admin_test_push(
             "delivered": deliver,
             "sent_count": sent_count,
         }
+    )
+
+
+# ------------------ POST /notifications/admin/notif/send_now (Stage 18) ------------------
+SEND_NOW_CHANNELS = Literal["morning", "engagement", "health_alert"]
+
+
+def _mask_token(t: str) -> str:
+    """Mask FCM token for logs: first 6 + last 4. Do not log full tokens."""
+    if not t or len(t) < 11:
+        return "***"
+    return f"{t[:6]}...{t[-4:]}"
+
+
+def _get_user_tz_for_log(db: Session, user_id: int) -> str:
+    """Resolve user timezone string for structured logs."""
+    from backend.app.services.memory import MemoryRepository
+    repo = MemoryRepository(db)
+    tz_fact = repo.get_fact(user_id=user_id, domain="preferences", key="timezone")
+    if not tz_fact or not tz_fact.value_json:
+        return "Asia/Tehran"
+    try:
+        tz_data = json.loads(tz_fact.value_json)
+        return tz_data.get("tz", "Asia/Tehran") if isinstance(tz_data, dict) else "Asia/Tehran"
+    except (json.JSONDecodeError, TypeError):
+        return "Asia/Tehran"
+
+
+@router.post("/admin/notif/send_now", response_model=APIResponse)
+def admin_notif_send_now(
+    request: Request,
+    user_id: int = Query(..., description="User ID"),
+    channel: SEND_NOW_CHANNELS = Query(..., description="Channel: morning | engagement | health_alert"),
+    force: bool = Query(False, description="If true, bypass quiet hours and anti-spam"),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Deterministic push debug path. Send one push to user's tokens for the given channel.
+    Returns attempted_tokens, sent_success, sent_fail, reasons, fcm_errors. On NO_TOKENS or policy
+    skip returns 200 with reason; does not create a notification row.
+    """
+    _require_admin_if_set(request)
+    from backend.app.services.notifications.delivery_service import _get_fcm_tokens_for_user
+    from backend.app.services.notifications.fcm_client import (
+        send_push_to_tokens,
+        parse_fcm_error,
+        FCM_DEACTIVATE_ERROR_CODES,
+    )
+    from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
+
+    # Validate user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
+        )
+
+    tokens = _get_fcm_tokens_for_user(db, user_id, limit=20)
+    tz_str = _get_user_tz_for_log(db, user_id)
+    priority = "high" if channel == "health_alert" else "normal"
+    in_quiet = is_within_quiet_hours(db, user_id, channel, priority)
+    tokens_masked = [_mask_token(t) for t in tokens]
+
+    _log.info(
+        "[NOTIF][SEND] user_id=%s channel=%s force=%s tokens=%s tz=%s quiet_hours=%s",
+        user_id, channel, force, tokens_masked, tz_str, in_quiet,
+    )
+
+    if not tokens:
+        _log.info("[NOTIF][SKIP] user_id=%s channel=%s reason=NO_TOKENS", user_id, channel)
+        return APIResponse(
+            ok=True,
+            data={
+                "user_id": user_id,
+                "channel": channel,
+                "force": force,
+                "attempted_tokens": 0,
+                "sent_success": 0,
+                "sent_fail": 0,
+                "reasons": ["NO_TOKENS"],
+                "fcm_errors": [],
+            },
+        )
+
+    if not force:
+        if in_quiet:
+            _log.info("[NOTIF][SKIP] user_id=%s channel=%s reason=QUIET_HOURS", user_id, channel)
+            return APIResponse(
+                ok=True,
+                data={
+                    "user_id": user_id,
+                    "channel": channel,
+                    "force": force,
+                    "attempted_tokens": len(tokens),
+                    "sent_success": 0,
+                    "sent_fail": 0,
+                    "reasons": ["QUIET_HOURS"],
+                    "fcm_errors": [],
+                },
+            )
+        # Anti-spam: engagement channel — min hours since last engagement
+        if channel == "engagement":
+            engagement_min_h = int(os.getenv("ENGAGEMENT_MIN_HOURS", "3"))
+            min_ago = datetime.utcnow() - timedelta(hours=engagement_min_h)
+            last_engagement = (
+                db.query(Notification)
+                .filter(
+                    Notification.user_id == user_id,
+                    Notification.channel == "engagement",
+                    Notification.created_at >= min_ago,
+                )
+                .order_by(Notification.created_at.desc())
+                .first()
+            )
+            if last_engagement:
+                _log.info("[NOTIF][SKIP] user_id=%s channel=%s reason=ANTI_SPAM", user_id, channel)
+                return APIResponse(
+                    ok=True,
+                    data={
+                        "user_id": user_id,
+                        "channel": channel,
+                        "force": force,
+                        "attempted_tokens": len(tokens),
+                        "sent_success": 0,
+                        "sent_fail": 0,
+                        "reasons": ["ANTI_SPAM"],
+                        "fcm_errors": [],
+                    },
+                )
+
+    # Build minimal payload for debug send (no Notification row)
+    title = "Sedi"
+    body = f"Debug send_now ({channel})"
+    data = {"channel": channel, "type": channel, "notification_id": ""}
+    project_id = os.getenv("FCM_PROJECT_ID", "").strip()
+
+    success_count, results = send_push_to_tokens(
+        tokens=tokens,
+        title=title,
+        body=body,
+        data=data,
+        android_priority=priority,
+        ttl_seconds=3600,
+        project_id=project_id or None,
+        timeout_sec=None,
+    )
+
+    reasons: List[str] = []
+    fcm_errors: List[dict] = []
+    sent_fail = 0
+
+    for fcm_token, msg_id, err in results:
+        err_parsed = parse_fcm_error(err) if err else None
+        err_code = (err_parsed or {}).get("code", "OK" if not err else "UNKNOWN")
+        err_message = (err_parsed or {}).get("message", err or "")
+        status = "ok" if not err else "error"
+        _log.info(
+            "[NOTIF][FCM] user_id=%s channel=%s project_id=%s status=%s err_code=%s request_id=%s",
+            user_id, channel, project_id or "", status, err_code, msg_id or "",
+        )
+        if err:
+            sent_fail += 1
+            fcm_errors.append({"code": err_code, "message": err_message})
+            if err_parsed and err_parsed.get("code") in FCM_DEACTIVATE_ERROR_CODES:
+                dev = db.query(PushDevice).filter(
+                    PushDevice.fcm_token == fcm_token,
+                    PushDevice.user_id == user_id,
+                ).first()
+                if dev:
+                    dev.is_active = False
+                    dev.updated_at = datetime.utcnow()
+                    db.add(dev)
+                    reasons.append(f"token_deactivated:{err_code}")
+
+    db.commit()
+
+    sent_success = success_count
+    return APIResponse(
+        ok=True,
+        data={
+            "user_id": user_id,
+            "channel": channel,
+            "force": force,
+            "attempted_tokens": len(tokens),
+            "sent_success": sent_success,
+            "sent_fail": sent_fail,
+            "reasons": reasons if reasons else [],
+            "fcm_errors": fcm_errors,
+        },
     )
 
 

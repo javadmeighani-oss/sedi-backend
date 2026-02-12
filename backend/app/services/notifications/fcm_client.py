@@ -14,6 +14,34 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# FCM error codes that indicate token should be deactivated (Stage 18)
+FCM_DEACTIVATE_ERROR_CODES = frozenset({"UNREGISTERED", "NOT_FOUND"})
+
+
+def parse_fcm_error(error_text: Optional[str]) -> Optional[Dict[str, str]]:
+    """
+    Parse FCM HTTP v1 error response JSON. Returns dict with 'code' and 'message'
+    for structured logging and token deactivation. Handles NOT_FOUND/UNREGISTERED
+    in error.details[].errorCode or error.status.
+    """
+    if not error_text or not error_text.strip():
+        return None
+    try:
+        data = json.loads(error_text)
+        err = data.get("error") if isinstance(data, dict) else None
+        if not isinstance(err, dict):
+            return {"code": "UNKNOWN", "message": error_text[:500]}
+        msg = err.get("message", err.get("status", "unknown"))
+        code = err.get("status", "").strip() or "UNKNOWN"
+        details = err.get("details") or []
+        for d in details:
+            if isinstance(d, dict) and d.get("errorCode"):
+                code = str(d["errorCode"])
+                break
+        return {"code": code, "message": str(msg)[:500]}
+    except (json.JSONDecodeError, TypeError):
+        return {"code": "UNKNOWN", "message": (error_text or "")[:500]}
+
 FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 FCM_SEND_URL_TEMPLATE = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
 MAX_TOKENS_PER_BATCH = 500  # scale: up to 1000 users
