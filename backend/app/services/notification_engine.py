@@ -101,8 +101,13 @@ def _get_title_for_language(notification_type: str, language: str) -> str:
 
 
 def _channel_for_type(notification_type: str) -> Optional[str]:
-    """Stage 16.6: Map notification type to push channel (morning | engagement | health_alert)."""
-    m = {"morning_brief": "morning", "connection_ping": "engagement", "health_alert": "health_alert"}
+    """Stage 16.6: Map notification type to push channel (morning | engagement | health_alert). Stage 19: device_disconnected => engagement."""
+    m = {
+        "morning_brief": "morning",
+        "connection_ping": "engagement",
+        "health_alert": "health_alert",
+        "device_disconnected": "engagement",
+    }
     return m.get(notification_type)
 
 

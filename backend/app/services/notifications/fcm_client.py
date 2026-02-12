@@ -5,6 +5,7 @@ Uses service account JSON (path or content) and OAuth2; minimal deps (google-aut
 When FCM_DISABLED=true, all sends are no-op and return success (dev mock).
 """
 
+import hashlib
 import json
 import logging
 import os
@@ -13,6 +14,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+def _token_hash(token: str) -> str:
+    """Short hash for structured logging only; never log raw token (Stage 19)."""
+    return hashlib.sha256((token or "").encode("utf-8")).hexdigest()[:12]
 
 # FCM error codes that indicate token should be deactivated (Stage 18)
 FCM_DEACTIVATE_ERROR_CODES = frozenset({"UNREGISTERED", "NOT_FOUND"})
@@ -160,10 +166,22 @@ def send_push_to_tokens(
     }
     results: List[Tuple[str, Optional[str], Optional[str]]] = []
     success_count = 0
+    notif_id = (data or {}).get("notification_id", "")
+    chan = (data or {}).get("channel", "")
+    typ = (data or {}).get("type", "")
     for fcm_token in tokens:
+        th = _token_hash(fcm_token or "")
         if not fcm_token or not fcm_token.strip():
             results.append((fcm_token or "", None, "empty token"))
+            logger.info(
+                "event=fcm_send notification_id=%s channel=%s type=%s token_hash=%s result=attempt error_code=empty_token",
+                notif_id, chan, typ, th,
+            )
             continue
+        logger.info(
+            "event=fcm_send notification_id=%s channel=%s type=%s token_hash=%s result=attempt",
+            notif_id, chan, typ, th,
+        )
         payload = _build_fcm_message(
             token=fcm_token,
             title=title,
@@ -184,17 +202,29 @@ def send_push_to_tokens(
                 msg_id = (out.get("name") or "").split("/")[-1] if isinstance(out, dict) else None
                 results.append((fcm_token, msg_id, None))
                 success_count += 1
+                logger.info(
+                    "event=fcm_send notification_id=%s channel=%s type=%s token_hash=%s result=success",
+                    notif_id, chan, typ, th,
+                )
             else:
                 err = resp.text[:500] if resp.text else str(resp.status_code)
+                err_parsed = parse_fcm_error(err)
+                err_code = (err_parsed or {}).get("code", "UNKNOWN")
                 results.append((fcm_token, None, err))
-                logger.warning("[NOTIF] failed fcm_send notification_id=%s error=%s",
-                    (data or {}).get("notification_id", "?"), err)
+                logger.info(
+                    "event=fcm_send notification_id=%s channel=%s type=%s token_hash=%s result=failure error_code=%s",
+                    notif_id, chan, typ, th, err_code,
+                )
         except requests.Timeout:
             results.append((fcm_token, None, "timeout"))
-            logger.warning("[NOTIF] failed fcm_send timeout notification_id=%s",
-                (data or {}).get("notification_id", "?"))
+            logger.info(
+                "event=fcm_send notification_id=%s channel=%s type=%s token_hash=%s result=failure error_code=timeout",
+                notif_id, chan, typ, th,
+            )
         except Exception as e:
             results.append((fcm_token, None, str(e)))
-            logger.warning("[NOTIF] failed fcm_send notification_id=%s error=%s",
-                (data or {}).get("notification_id", "?"), str(e))
+            logger.info(
+                "event=fcm_send notification_id=%s channel=%s type=%s token_hash=%s result=failure error_code=exception",
+                notif_id, chan, typ, th,
+            )
     return (success_count, results)

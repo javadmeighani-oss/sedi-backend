@@ -89,9 +89,15 @@ class FCMAdapter:
 
         title = (notification.title or notification.type or "Notification").strip() or "Sedi"
         body = (notification.body or "").strip() or "New notification"
+        # Stage 19: device_disconnected without channel => engagement
+        effective_channel = (notification.channel or "").strip()
+        if not effective_channel and notification.type == "device_disconnected":
+            effective_channel = "engagement"
+        if not effective_channel:
+            effective_channel = notification.type or ""
         data = {
             "notification_id": str(notification.id),
-            "channel": (notification.channel or notification.type or ""),
+            "channel": effective_channel,
             "type": notification.type or "",
         }
         if notification.deeplink_url:
@@ -99,7 +105,11 @@ class FCMAdapter:
         if notification.actions_json:
             data["actions"] = notification.actions_json[:1024]
 
-        from backend.app.services.notifications.fcm_client import send_push_to_tokens
+        from backend.app.services.notifications.fcm_client import (
+            send_push_to_tokens,
+            parse_fcm_error,
+            FCM_DEACTIVATE_ERROR_CODES,
+        )
 
         success_count, results = send_push_to_tokens(
             tokens=tokens,
@@ -113,6 +123,28 @@ class FCMAdapter:
         now = datetime.utcnow()
         notification.provider = "fcm"
         notification.sent_at = now
+        # Stage 19: deactivate tokens that FCM reports as UNREGISTERED/NOT_FOUND
+        for fcm_token, _msg_id, err in results:
+            if err:
+                err_parsed = parse_fcm_error(err)
+                if err_parsed and err_parsed.get("code") in FCM_DEACTIVATE_ERROR_CODES:
+                    dev = self.db.query(PushDevice).filter(
+                        PushDevice.fcm_token == fcm_token,
+                        PushDevice.user_id == notification.user_id,
+                    ).first()
+                    if dev:
+                        dev.is_active = False
+                        dev.updated_at = datetime.utcnow()
+                        self.db.add(dev)
+                        logger.info(
+                            "[NOTIF] token deactivated notification_id=%s user_id=%s reason=%s",
+                            notification.id, notification.user_id, err_parsed.get("code"),
+                        )
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+
         if success_count > 0:
             notification.is_sent = True
             notification.status = "sent"

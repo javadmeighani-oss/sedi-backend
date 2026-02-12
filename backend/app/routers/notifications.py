@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional, Literal
 from datetime import datetime, timedelta
+import hashlib
 import json
 import logging
 import os
@@ -32,6 +33,28 @@ router = APIRouter()
 _log = logging.getLogger(__name__)
 
 DEFAULT_ACTIONS_JSON = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DISLIKE"},{"id":"open_chat","type":"OPEN_CHAT"}]'
+
+
+def _is_placeholder_or_invalid_fcm_token(token: str) -> bool:
+    """Reject placeholder or invalid FCM tokens (Stage 19 token hygiene)."""
+    if not token:
+        return True
+    t = token.strip()
+    if not t:
+        return True
+    upper = t.upper()
+    if "PASTE_" in upper or "PASTE" in upper or "TOKEN" in upper:
+        return True
+    if any(ch.isspace() for ch in t):
+        return True
+    if len(t) < 80:
+        return True
+    return False
+
+
+def _token_hash(token: str) -> str:
+    """Short hash for logging only; never log raw token (Stage 19)."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:12]
 
 
 def _require_admin_if_set(request: Request) -> None:
@@ -191,6 +214,7 @@ def admin_notif_send_now(
     skip returns 200 with reason; does not create a notification row.
     """
     _require_admin_if_set(request)
+    _log.info("event=send_now channel=%s user_id=%s", channel, user_id)
     from backend.app.services.notifications.delivery_service import _get_fcm_tokens_for_user
     from backend.app.services.notifications.fcm_client import (
         send_push_to_tokens,
@@ -561,6 +585,12 @@ def push_register(
     Register or update FCM token for push notifications (Stage 16.6).
     Upsert by fcm_token; set user_id, is_active=True, last_seen_at=now.
     """
+    token = (body.fcm_token or "").strip()
+    if _is_placeholder_or_invalid_fcm_token(token):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid FCM token (placeholder/too short/whitespace).",
+        )
     user = db.query(User).filter(User.id == body.user_id).first()
     if not user:
         return APIResponse(
@@ -568,7 +598,7 @@ def push_register(
             error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
         )
     now = datetime.utcnow()
-    existing = db.query(PushDevice).filter(PushDevice.fcm_token == body.fcm_token).first()
+    existing = db.query(PushDevice).filter(PushDevice.fcm_token == token).first()
     if existing:
         existing.user_id = body.user_id
         existing.platform = body.platform
@@ -585,7 +615,7 @@ def push_register(
     device = PushDevice(
         user_id=body.user_id,
         platform=body.platform,
-        fcm_token=body.fcm_token,
+        fcm_token=token,
         device_id=body.device_id,
         is_active=True,
         last_seen_at=now,
