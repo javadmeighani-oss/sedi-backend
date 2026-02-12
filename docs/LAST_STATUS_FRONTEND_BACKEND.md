@@ -1,8 +1,9 @@
 # گزارش آخرین وضعیت ساختار فرانت‌اند و بک‌اند — Sedi
 
-**تاریخ:** بهمن ۱۴۰۳  
+**تاریخ:** بهمن ۱۴۰۴ (به‌روز)  
 **ورژن بک‌اند:** 2.0.1  
 **ورژن اپ فرانت:** 1.0.0+2  
+**آخرین به‌روزرسانی:** Stage 19 (token hygiene، FCM logging، device_disconnected→engagement)، Stage 19.1 (ensureFcmRegisteredAfterLogin)، Audit traces.  
 
 ---
 
@@ -51,17 +52,20 @@ lib/
 │   └── notification/         # notifications_inbox_page, notification_sync, notification_service
 ├── services/
 │   └── push/
-│       └── push_service.dart # saveTokenToPreferences, getTokenFromPreferences,
-│                             # registerFcmTokenToBackend, tryRegisterStoredTokenAfterLogin
+│       └── push_service.dart # ensureFcmRegisteredAfterLogin (گارانتی ثبت بعد از لاگین),
+│                             # tryRegisterStoredTokenAfterLogin → ensureFcmRegisteredAfterLogin,
+│                             # saveTokenToPreferences, getTokenFromPreferences,
+│                             # registerFcmTokenToBackend
 └── utils/                    # time_utils
 ```
 
 ### ۱.۴ جریان FCM و پوش
-- **شروع اپ:** `Firebase.initializeApp()` → `_setupFcm()` → درخواست اجازه، `LocalNotificationsService.init`، `_registerTokenOnStart()` و گوش دادن به `onTokenRefresh`.
-- **ثبت توکن:** در `_registerTokenOnStart()`: `getToken()` → لاگ ماسک‌شده → `saveTokenToPreferences(token)` → `registerFcmTokenToBackend(token)`. اگر `userId` نباشد، توکن فقط در prefs ذخیره می‌شود.
-- **بعد از لاگین/onboarding:** در `OnboardingPage` و `UserVerificationPage` بعد از `UserProfileManager.saveProfile(profile)` فراخوانی `tryRegisterStoredTokenAfterLogin()` تا توکن ذخیره‌شده با backend ثبت شود.
+- **شروع اپ:** `Firebase.initializeApp()` → `_setupFcm()` → درخواست اجازه، `LocalNotificationsService.init`، `_registerTokenOnStart()` و گوش دادن به `onTokenRefresh`. (لاگ‌های Audit: `[FCM] setup start`, `permission status`, `getToken() called`, `token received` ماسک‌شده، `register result: status=...`.)
+- **ثبت توکن در شروع:** در `_registerTokenOnStart()`: `getToken()` → لاگ ماسک‌شده → `saveTokenToPreferences(token)` → `registerFcmTokenToBackend(token)`. اگر `userId` نباشد، توکن فقط در prefs ذخیره می‌شود و ثبت به backend انجام نمی‌شود.
+- **گارانتی بعد از لاگین (Stage 19.1):** در `OnboardingPage` و `UserVerificationPage` بعد از `UserProfileManager.saveProfile(profile)` فراخوانی `tryRegisterStoredTokenAfterLogin()` که به `ensureFcmRegisteredAfterLogin()` واگذار می‌کند. این تابع: (۱) بارگذاری پروفایل و بررسی `userId`؛ (۲) اگر توکن در prefs نبود، `FirebaseMessaging.instance.getToken()` و ذخیره در prefs؛ (۳) در هر صورت فراخوانی `registerFcmTokenToBackend(token)`. بنابراین بعد از لاگین حتماً یک بار تلاش برای ثبت توکن با backend انجام می‌شود.
 - **Foreground:** `FirebaseMessaging.onMessage` → `LocalNotificationsService.showRemoteNotification`.
 - **باز شدن از نوتیف:** `onMessageOpenedApp` / `getInitialMessage` → `_navigateToChatFromMessage` و ارسال feedback با `NotificationRepository.sendFeedback`.
+- **لاگ و امنیت:** توکن خام هیچ‌جا لاگ نمی‌شود؛ فقط ماسک (مثلاً ۶ کاراکتر اول + … + ۴ کاراکتر آخر). `ApiResponse` شامل `statusCode` برای trace ثبت است.
 
 ### ۱.۵ CI/CD فرانت
 - **Workflow:** `.github/workflows/build-frontend.yml` (در سطح Demo؛ ممکن است مسیر فرانت در مخزن جدا باشد).
@@ -172,15 +176,26 @@ app/
 
 | بخش | وضعیت |
 |-----|--------|
-| فرانت | FCM: ثبت توکن در شروع و بعد از لاگین/onboarding؛ ذخیره در prefs؛ `tryRegisterStoredTokenAfterLogin()` در Onboarding و UserVerification. |
-| بک | حذف `schema_sync` و `create_all`؛ اسکیما فقط با Alembic؛ باسلاین v1؛ مایگریشن و playbook و اسکریپت ریست در `MIGRATIONS.md` و `reset_db_and_migrate.sh`. |
-| دیتابیس | تمام جداول (users, memory, health_data, notifications, push_devices, notification_feedback, medical_conditions, medications, user_conditions, user_medications, daily_memory_summaries, user_memory_facts, device_events, devices, user_profile_knowledge, user_fact_candidates, user_facts) در یک revision باسلاین تعریف شده‌اند. |
+| فرانت | FCM: ثبت توکن در شروع و **گارانتی بعد از لاگین** با `ensureFcmRegisteredAfterLogin()` (توکن از prefs یا getToken)؛ `tryRegisterStoredTokenAfterLogin()` در Onboarding و UserVerification؛ لاگ‌های Audit ماسک‌شده و `statusCode`؛ `ApiResponse.statusCode` و لاگ `[API] POST`/`response status` در ApiClient. |
+| بک | **Stage 19:** رد توکن placeholder/invalid در `push/register` (۴۰۰)؛ نگاشت `device_disconnected` → کانال `engagement`؛ لاگ ساختاریافته FCM با `token_hash` (بدون توکن خام)؛ غیرفعال‌سازی توکن‌های UNREGISTERED/NOT_FOUND در delivery؛ لاگ `event=send_now`. اسکیما فقط با Alembic؛ باسلاین v1؛ `MIGRATIONS.md` و `reset_db_and_migrate.sh`؛ ران‌بوک E2E در `backend/docs/NOTIFICATION_V1_E2E_TEST.md`. |
+| دیتابیس | تمام جداول (users, memory, health_data, notifications, push_devices, notification_feedback, …) در revision باسلاین؛ بدون `create_all` در runtime. |
 
 ---
 
-## ۵. مخازن و ریموت‌ها (در سطح Demo)
+## ۵. مستندات مرتبط
+
+| فایل | محتوا |
+|------|--------|
+| `docs/LAST_STATUS_FRONTEND_BACKEND.md` | همین گزارش (ساختار و وضعیت فعلی). |
+| `docs/NOTIFICATION_STRUCTURE_REPORT.md` | ساختار نوتیف‌ها: ۴ نوع، ۳ کانال، اکشن‌های فیدبک، نگاشت نوع↔کانال. |
+| `backend/docs/MIGRATIONS.md` | مایگریشن Alembic، دستورات، playbook سرور (Fresh DB)، اسکریپت ریست. |
+| `backend/docs/NOTIFICATION_V1_E2E_TEST.md` | ران‌بوک تست E2E پوش: پیش‌شرط، توکن، تست ۴ نوع/۳ کانال، سه حالت اپ، فیدبک، لاگ سرور. |
+
+---
+
+## ۶. مخازن و ریموت‌ها (در سطح Demo)
 
 - **origin:** `javadmeighani-oss/sedi-backend` (پوش بک‌اند و فرانت در این مخزن یکپارچه انجام می‌شود).
 - **frontend (اختیاری):** `javadmeighani-oss/sedi-frontend` در صورت استفاده از مخزن جدا برای فرانت.
 
-این گزارش با ساختار فعلی پروژه و آخرین تغییرات (تا زمان تهیه گزارش) همخوان است.
+این گزارش با ساختار فعلی پروژه و آخرین تغییرات (Stage 19، 19.1، Alembic، FCM guarantee) همخوان است.

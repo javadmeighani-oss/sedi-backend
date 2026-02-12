@@ -1,6 +1,7 @@
 /// Push (FCM) token registration with backend.
 /// Single entry point: registerFcmTokenToBackend(token).
 /// Uses existing ApiClient via NotificationRepository; optionally stores token in preferences.
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +11,11 @@ import '../../core/utils/user_profile_manager.dart';
 import '../../data/repositories/notification_repository.dart';
 
 const String _prefKeyFcmToken = 'fcm_token';
+
+String _maskToken(String t) {
+  if (t.length <= 10) return '***';
+  return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
+}
 
 /// Register the given FCM token with the backend (POST /notifications/push/register).
 /// Requires a logged-in user (userId from UserProfileManager). Uses existing API client.
@@ -69,10 +75,41 @@ Future<String?> getTokenFromPreferences() async {
   }
 }
 
+/// Guarantee: after login (userId persisted), always attempt to register FCM token (Stage 19.1).
+/// Uses stored token from prefs, or fetches fresh via getToken() if none stored.
+Future<void> ensureFcmRegisteredAfterLogin() async {
+  try {
+    debugPrint('[FCM] ensureFcmRegisteredAfterLogin enter');
+    final profile = await UserProfileManager.loadProfile();
+    final userId = profile.userId;
+    debugPrint('[FCM] ensure after login userId=$userId');
+    if (userId == null) {
+      debugPrint('[FCM] ensure after login: userId still null -> abort');
+      return;
+    }
+
+    String? token = await getTokenFromPreferences();
+    if (token == null || token.trim().isEmpty) {
+      debugPrint('[FCM] ensure after login: no stored token -> getToken()');
+      final fresh = await FirebaseMessaging.instance.getToken();
+      if (fresh == null || fresh.trim().isEmpty) {
+        debugPrint('[FCM] ensure after login: getToken returned null/empty');
+        return;
+      }
+      await saveTokenToPreferences(fresh);
+      token = fresh;
+      debugPrint('[FCM] ensure after login: token saved, registering...');
+    } else {
+      debugPrint('[FCM] ensure after login: found stored token ${_maskToken(token)} -> registering...');
+    }
+    await registerFcmTokenToBackend(token);
+  } catch (e) {
+    debugPrint('[FCM] ensure after login error: $e');
+  }
+}
+
 /// Call after login/onboarding when profile (userId) has just been saved.
-/// If a token was stored in preferences (e.g. before userId was available), registers it now.
+/// Delegates to ensureFcmRegisteredAfterLogin for guaranteed register attempt.
 Future<void> tryRegisterStoredTokenAfterLogin() async {
-  final token = await getTokenFromPreferences();
-  if (token == null || token.isEmpty) return;
-  await registerFcmTokenToBackend(token);
+  await ensureFcmRegisteredAfterLogin();
 }
