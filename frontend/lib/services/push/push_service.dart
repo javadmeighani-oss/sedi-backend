@@ -12,6 +12,9 @@ import '../../data/repositories/notification_repository.dart';
 
 const String _prefKeyFcmToken = 'fcm_token';
 
+/// Stage 19.2: Ensure we only run ensureFcmRegisteredAfterLogin once per app session.
+bool _didEnsureFcmAfterLogin = false;
+
 String _maskToken(String t) {
   if (t.length <= 10) return '***';
   return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
@@ -79,6 +82,10 @@ Future<String?> getTokenFromPreferences() async {
 /// Uses stored token from prefs, or fetches fresh via getToken() if none stored.
 Future<void> ensureFcmRegisteredAfterLogin() async {
   try {
+    if (_didEnsureFcmAfterLogin) {
+      debugPrint('[FCM] ensure after login: already done this session -> skip');
+      return;
+    }
     debugPrint('[FCM] ensureFcmRegisteredAfterLogin enter');
     final profile = await UserProfileManager.loadProfile();
     final userId = profile.userId;
@@ -103,6 +110,7 @@ Future<void> ensureFcmRegisteredAfterLogin() async {
       debugPrint('[FCM] ensure after login: found stored token ${_maskToken(token)} -> registering...');
     }
     await registerFcmTokenToBackend(token);
+    _didEnsureFcmAfterLogin = true;
   } catch (e) {
     debugPrint('[FCM] ensure after login error: $e');
   }
