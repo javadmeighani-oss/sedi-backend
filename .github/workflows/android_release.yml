@@ -1,0 +1,59 @@
+name: Android Release APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  build-release-apk:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Inject google-services.json
+        env:
+          GS_JSON_B64: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -z "$GS_JSON_B64" ]; then
+            echo "Error: ANDROID_GOOGLE_SERVICES_JSON_B64 secret is not set."
+            exit 1
+          fi
+          echo "$GS_JSON_B64" | base64 -d > android/app/google-services.json
+
+      - name: Sanity check google-services.json
+        run: ls -la android/app/google-services.json
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sedi-android-release-apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30

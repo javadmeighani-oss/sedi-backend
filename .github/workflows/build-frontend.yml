@@ -21,6 +21,8 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    # Android builds on push use android_release.yml; this job runs only when manually triggered
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code

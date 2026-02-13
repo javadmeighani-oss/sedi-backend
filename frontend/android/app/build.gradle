@@ -1,3 +1,5 @@
+// Google Services plugin requires android/app/google-services.json for FCM.
+// For real-device FCM: add your project's file from Firebase Console (package com.sedi.app). See README-google-services.md.
 plugins {
     id "com.android.application"
     id "kotlin-android"

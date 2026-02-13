@@ -17,6 +17,7 @@ void main() async {
   // Firebase & FCM (graceful if google-services.json missing)
   try {
     await Firebase.initializeApp();
+    debugPrint('[FCM] Firebase initialized ok');
     await _setupFcm();
   } catch (e) {
     print('[main] Firebase/FCM setup skipped: $e');
@@ -154,7 +155,7 @@ Future<void> _registerTokenOnStart() async {
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
 
-    debugPrint('[FCM] token received: ${_maskToken(token)}');
+    debugPrint('[FCM] token acquired (masked): ${_maskToken(token)}');
     debugPrint('[FCM] saving token to prefs');
     await saveTokenToPreferences(token);
     debugPrint('[FCM] saved token to prefs');
