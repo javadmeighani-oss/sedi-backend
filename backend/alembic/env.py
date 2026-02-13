@@ -40,9 +40,10 @@ except ImportError:
 
 # Alembic Config object
 config = context.config
-# Allow % in DATABASE_URL (URL-encoded passwords); configparser would otherwise interpolate % and raise
+# Allow % in DATABASE_URL (URL-encoded passwords): escape % for configparser so set_main_option does not crash
 _disable_interpolation(config)
-config.set_main_option("sqlalchemy.url", database_url)
+database_url_for_config = database_url.replace("%", "%%")
+config.set_main_option("sqlalchemy.url", database_url_for_config)
 
 if config.config_file_name:
     fileConfig(config.config_file_name)
