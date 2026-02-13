@@ -1,34 +1,64 @@
 # backend.app.services.notification_runtime.rag_provider
 """
-RAG Provider Placeholder (Stage 16.6)
+RAG Provider (Stage 16.6, Stage 23 Step 5)
 
-Clean interface for future RAG integration. NOT wired yet.
-Notification text generation does NOT call RAG. This module provides a placeholder
-for when vitals/rules/decision engine needs condition-specific care guidance.
+Clean interface for RAG integration. V1: facts-anchored RagContextPack summary
+for companion_* templates only; fail-open. No RAG for health_alert or high-risk.
 """
 
 from typing import Optional, List, Dict, Any
 
+from sqlalchemy.orm import Session
+
 
 class RAGProvider:
     """
-    Placeholder for future RAG retrieval.
-    Use this to fetch condition-specific care tips or personalized content.
+    Retrieves context for notification enhancement.
+    Stage 23 Step 5: For companion_* uses RagContextPack summary; fail-open.
     """
+
+    def __init__(self, db: Optional[Session] = None):
+        self.db = db
 
     def retrieve_notification_context(
         self,
         user_id: int,
         notification_type: str,
         metadata: Optional[Dict[str, Any]] = None,
+        query_hint: str = "",
     ) -> Optional[str]:
         """
-        Retrieve context for notification enhancement (e.g. condition-specific tips).
-        
-        Returns None for now. Future: call RAG service for user conditions,
-        medications, recent vitals, etc.
+        Retrieve context for notification (e.g. companion templates).
+        V1: Only for companion/connection_ping; uses RagContextPack summary.
+        Returns None on failure or for non-companion / high-risk.
         """
-        return None
+        try:
+            from backend.app.services.rag_context import (
+                build_rag_context_pack,
+                rag_allowed,
+                serialize_rag_pack_for_context,
+            )
+        except ImportError:
+            try:
+                from app.services.rag_context import (
+                    build_rag_context_pack,
+                    rag_allowed,
+                    serialize_rag_pack_for_context,
+                )
+            except ImportError:
+                return None
+        if not self.db or not notification_type or str(notification_type).strip().lower() not in (
+            "connection_ping",
+            "companion",
+        ):
+            return None
+        if query_hint and not rag_allowed(query_hint, "en"):
+            return None
+        try:
+            pack = build_rag_context_pack(self.db, user_id, fallback_language="en")
+            return serialize_rag_pack_for_context(pack, max_chars=600)
+        except Exception:
+            return None
 
     def retrieve_condition_context(
         self,
@@ -37,7 +67,6 @@ class RAGProvider:
     ) -> Optional[str]:
         """
         Retrieve care context for a medical condition.
-        
         Returns None for now. Future: RAG over condition knowledge base.
         """
         return None

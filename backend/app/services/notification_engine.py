@@ -26,8 +26,121 @@ from backend.app.services.notification_runtime.ai_enhancer import enhance_with_a
 from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
 from backend.app.services.notification_runtime.renderer import render
 from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
+from backend.app.services.notification_runtime.templates_v1 import get_template_v1
+from backend.app.services.notification_runtime.user_context_adapter import build_notification_context
+from backend.app.services.notifications.adaptive_policy_v1 import (
+    compute_adaptive_state,
+    is_companion_send_allowed,
+)
+from backend.app.services.notifications.send_guard_v1 import can_send_v1
 
 logger = logging.getLogger(__name__)
+
+# Canonical companion dedupe_key prefix: "companion:" (channel-prefixed format)
+COMPANION_DEDUPE_PREFIX = "companion:"
+# Legacy: template_key-based format "companion_*" (backward compatible count)
+COMPANION_DEDUPE_LEGACY_PREFIX = "companion_"
+
+
+def _count_companion_notifications_today(db: Session, user_id: int, now: datetime) -> int:
+    """Count notifications with companion dedupe_key for user_id on the same calendar day (UTC).
+    Counts both canonical (companion:) and legacy (companion_*) formats for backward compatibility.
+    """
+    from sqlalchemy import or_
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    count = (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.created_at >= start_of_day,
+            Notification.dedupe_key.isnot(None),
+            or_(
+                Notification.dedupe_key.like(f"{COMPANION_DEDUPE_PREFIX}%"),
+                Notification.dedupe_key.like(f"{COMPANION_DEDUPE_LEGACY_PREFIX}%"),
+            ),
+        )
+        .count()
+    )
+    return count
+
+
+def build_notification_from_template(
+    db: Session,
+    user_id: int,
+    template_key: str,
+    language: Optional[str] = None,
+    inputs: Optional[Dict[str, Any]] = None,
+    priority_override: Optional[str] = None,
+    scheduled_for: Optional[datetime] = None,
+) -> Optional[Notification]:
+    """
+    Create a Notification from a V1 template (code-controlled).
+    Loads template via get_template_v1, renders with renderer, persists via NotificationBuilder.
+    For companion channel, enforces adaptive policy (paused_until, companion_cap_override).
+    template_key is logged only (no meta column on Notification).
+    """
+    template = get_template_v1(template_key)
+    if not template:
+        logger.warning("[NOTIF] template not found: %s", template_key)
+        return None
+    channel = template.get("channel", "engagement")
+    now = datetime.utcnow()
+    user_ctx = build_notification_context(db, user_id)
+    lang = (user_ctx.get("language") or language or "en").strip().lower() if (user_ctx.get("language") or language) else "en"
+    if lang not in ("en", "fa", "ar"):
+        lang = "en"
+    priority = (priority_override or template.get("priority") or "normal").strip().lower()
+    if priority not in ("low", "normal", "high", "critical"):
+        priority = "normal"
+    guard = can_send_v1(db, user_id, channel, template_key, priority, now, lang)
+    if not guard["allowed"]:
+        logger.info("[NOTIF] send guard blocked user_id=%s channel=%s template_key=%s reasons=%s", user_id, channel, template_key, guard["reasons"])
+        return None
+    inputs = inputs or {}
+    # Pass template so renderer uses template.texts via i18n_resolver; user_ctx for personalization
+    rendered = render(
+        channel=template.get("channel", "engagement"),
+        language=lang,
+        inputs=inputs,
+        priority=priority,
+        template=template,
+        user_ctx=user_ctx,
+    )
+    title = (rendered.get("title") or "").strip() or "Sedi"
+    body = (rendered.get("body") or "").strip()
+    if not body:
+        body = (template.get("texts") or {}).get("en") or {}
+        if isinstance(body, dict):
+            body = (body.get("message") or body.get("body") or "Sedi notification.").strip()
+        else:
+            body = "Sedi notification."
+    actions_json = rendered.get("actions_json") or template.get("actions_json")
+    notif_type = template.get("type", "connection_ping")
+    date_str = (scheduled_for or datetime.utcnow()).strftime("%Y-%m-%d")
+    # Canonical format: {channel}:{template_key}:{user_id}:{YYYY-MM-DD}
+    dedupe_key = guard.get("dedupe_key") or f"{channel}:{template_key}:{user_id}:{date_str}"
+    if scheduled_for is None:
+        scheduled_for = NotificationBuilder(db).timing_rules.calculate_scheduled_time(priority)
+    payload = NotificationPayload(
+        user_id=user_id,
+        type=notif_type,
+        title=title,
+        body=body,
+        priority=priority,
+        scheduled_for=scheduled_for,
+        dedupe_key=dedupe_key,
+        metadata={"language": lang},
+    )
+    builder = NotificationBuilder(db)
+    notification = builder.persist(payload, check_dedupe=True, time_window_hours=24)
+    if notification and actions_json:
+        notification.actions_json = actions_json
+        db.add(notification)
+        db.commit()
+        db.refresh(notification)
+    if notification:
+        logger.info("[NOTIF] created from template template_key=%s user_id=%s", template_key, user_id)
+    return notification
 
 
 def _build_render_inputs(
@@ -545,9 +658,12 @@ class DecisionEngine:
         user_name = user.name if user and user.name else None
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
-        effective_language = resolve_effective_language(
+        user_ctx = build_notification_context(self.db, user_id)
+        effective_language = (user_ctx.get("language") or resolve_effective_language(
             db=self.db, user_id=user_id, memory_context=memory_context
-        )
+        ))
+        if effective_language not in ("en", "fa", "ar"):
+            effective_language = "en"
         metadata = {"language": effective_language}
 
         # Stage 16.6.4: Quiet hours suppression
@@ -555,9 +671,9 @@ class DecisionEngine:
             logger.info("[NOTIF] suppressed channel=morning user_id=%s reason=quiet_hours", user_id)
             return None
 
-        # Stage 16.6.4: Use renderer for title/body
+        # Stage 16.6.4: Use renderer for title/body; user_ctx for personalization
         inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
-        rendered = render("morning", effective_language, inputs, "normal")
+        rendered = render("morning", effective_language, inputs, "normal", user_ctx=user_ctx)
 
         payload = self.builder.build_payload(
             user_id=user_id,
@@ -605,9 +721,12 @@ class DecisionEngine:
         user_name = user.name if user and user.name else None
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
-        effective_language = resolve_effective_language(
+        user_ctx = build_notification_context(self.db, user_id)
+        effective_language = (user_ctx.get("language") or resolve_effective_language(
             db=self.db, user_id=user_id, memory_context=memory_context
-        )
+        ))
+        if effective_language not in ("en", "fa", "ar"):
+            effective_language = "en"
         metadata = {"language": effective_language}
 
         if is_within_quiet_hours(self.db, user_id, "engagement", "low"):
@@ -615,7 +734,7 @@ class DecisionEngine:
             return None
 
         inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
-        rendered = render("engagement", effective_language, inputs, "low")
+        rendered = render("engagement", effective_language, inputs, "low", user_ctx=user_ctx)
 
         payload = self.builder.build_payload(
             user_id=user_id,
@@ -663,9 +782,12 @@ class DecisionEngine:
         user_name = user.name if user and user.name else None
         if memory_context is None:
             memory_context = build_memory_context(self.db, user_id)
-        effective_language = resolve_effective_language(
+        user_ctx = build_notification_context(self.db, user_id)
+        effective_language = (user_ctx.get("language") or resolve_effective_language(
             db=self.db, user_id=user_id, memory_context=memory_context
-        )
+        ))
+        if effective_language not in ("en", "fa", "ar"):
+            effective_language = "en"
         metadata = {"language": effective_language}
 
         if is_within_quiet_hours(self.db, user_id, "engagement", "normal"):
@@ -673,7 +795,7 @@ class DecisionEngine:
             return None
 
         inputs = _build_render_inputs(memory_context, metadata, user_name, effective_language)
-        rendered = render("engagement", effective_language, inputs, "normal")
+        rendered = render("engagement", effective_language, inputs, "normal", user_ctx=user_ctx)
 
         payload = self.builder.build_payload(
             user_id=user_id,
@@ -719,9 +841,12 @@ class DecisionEngine:
         """
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.name if user and user.name else None
-        effective_language = resolve_effective_language(
+        user_ctx = build_notification_context(self.db, user_id)
+        effective_language = (user_ctx.get("language") or resolve_effective_language(
             db=self.db, user_id=user_id, memory_context=None
-        )
+        ))
+        if effective_language not in ("en", "fa", "ar"):
+            effective_language = "en"
         metadata = {
             "language": effective_language,
             "alert_code": alert_code,
@@ -733,7 +858,7 @@ class DecisionEngine:
             return None
 
         inputs = _build_render_inputs(None, metadata, user_name, effective_language)
-        rendered = render("health_alert", effective_language, inputs, priority)
+        rendered = render("health_alert", effective_language, inputs, priority, user_ctx=user_ctx)
 
         payload = self.builder.build_payload(
             user_id=user_id,

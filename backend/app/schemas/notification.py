@@ -68,6 +68,32 @@ class NotificationFeedbackRequest(BaseModel):
     action: Optional[str] = Field(None, description="Optional action (e.g. 'too_early', 'too_late', 'irrelevant')")
 
 
+# -------------------- V1: Feedback (contract + legacy, normalized event_type) --------------------
+
+FeedbackReactionContract = Literal["seen", "interact", "dismiss", "like", "dislike"]
+FeedbackReasonV1 = Literal["too_frequent", "irrelevant", "unclear"]
+
+
+class FeedbackRequestV1(BaseModel):
+    """
+    Feedback request body: contract (reaction, timestamp, action_id?, feedback_text?)
+    and legacy (feedback, reason, action) and V1 reason enum.
+    All fields optional for backward compatibility; validation (e.g. action_id when reaction==interact) in router.
+    """
+    # Contract Section 5
+    reaction: Optional[FeedbackReactionContract] = Field(None, description="Contract: seen | interact | dismiss | like | dislike")
+    timestamp: Optional[str] = Field(None, description="Contract: ISO 8601 datetime string")
+    action_id: Optional[str] = Field(None, description="Contract: required when reaction is 'interact'")
+    feedback_text: Optional[str] = Field(None, description="Contract: optional text")
+    # V1 optional reason enum
+    reason: Optional[FeedbackReasonV1] = Field(None, description="V1: too_frequent | irrelevant | unclear")
+    # Legacy B2 / Stage 16.6 (map into normalized event_type in router)
+    feedback: Optional[Literal["positive", "negative", "neutral"]] = Field(None, description="Legacy B2")
+    action: Optional[str] = Field(None, description="Legacy: like | dislike | open_chat | dismissed or too_early | too_late | irrelevant")
+    client_ts: Optional[str] = Field(None, description="Legacy Stage 16.6 client timestamp")
+    meta: Optional[Dict[str, Any]] = Field(None, description="Legacy optional metadata")
+
+
 # -------------------- Stage 16.6: Push & Feedback Action --------------------
 
 class PushRegisterRequest(BaseModel):

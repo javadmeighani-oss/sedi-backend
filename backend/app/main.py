@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from backend.app.routers import (
     auth,
+    auth_otp,
     interact,
     health,
     lifestyle,
@@ -44,6 +45,7 @@ app.add_middleware(
 
 # ------------------ Main Routes (Routers) ------------------
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(auth_otp.router, prefix="/auth", tags=["Authentication"])
 app.include_router(interact.router, prefix="/interact", tags=["Interaction"])
 app.include_router(health.router, prefix="/health", tags=["Health Data"])
 app.include_router(lifestyle.router, prefix="/lifestyle", tags=["Lifestyle Data"])

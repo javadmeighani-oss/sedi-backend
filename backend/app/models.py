@@ -13,6 +13,8 @@ class User(Base):
     secret_key = Column(String, nullable=False, unique=False)      # رمز شخصی (NOT unique - multiple users can have same password)
     preferred_language = Column(String, default="en", nullable=False, server_default="en")  # زبان انتخابی کاربر (NOT nullable - always has default)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # زمان ثبت‌نام (NOT nullable - always has default)
+    # Stage 25: OTP auth – unique per user (nullable for legacy users)
+    phone = Column(String(32), nullable=True, unique=True, index=True)
 
 
 # -------------------- Memory --------------------
@@ -253,3 +255,32 @@ class UserFact(Base):
     source = Column(String(50), nullable=False, default="manual")  # "chat" | "manual" | "device"
     confidence = Column(Float, default=0.7, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- OtpCode (Stage 25 – Phone OTP) --------------------
+class OtpCode(Base):
+    """Single active OTP per phone; hashed code, expiry, attempt limit."""
+    __tablename__ = "otp_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phone = Column(String(32), nullable=False, index=True)
+    code_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0, nullable=False)
+    sent_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- RefreshToken (Stage 25 – Persistent refresh tokens) --------------------
+class RefreshToken(Base):
+    """Refresh token stored hashed; revocable."""
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    device_info = Column(String(512), nullable=True)
+    ip = Column(String(64), nullable=True)

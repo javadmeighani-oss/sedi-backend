@@ -206,15 +206,17 @@ def admin_notif_send_now(
     user_id: int = Query(..., description="User ID"),
     channel: SEND_NOW_CHANNELS = Query(..., description="Channel: morning | engagement | health_alert"),
     force: bool = Query(False, description="If true, bypass quiet hours and anti-spam"),
+    template_key: Optional[str] = Query(None, description="If set, use V1 template for title/body instead of ad-hoc"),
     db: Session = Depends(get_db),
 ):
     """
     Admin-only: Deterministic push debug path. Send one push to user's tokens for the given channel.
+    If template_key is provided, title/body are rendered from that V1 template (language from user).
     Returns attempted_tokens, sent_success, sent_fail, reasons, fcm_errors. On NO_TOKENS or policy
     skip returns 200 with reason; does not create a notification row.
     """
     _require_admin_if_set(request)
-    _log.info("event=send_now channel=%s user_id=%s", channel, user_id)
+    _log.info("event=send_now channel=%s user_id=%s template_key=%s", channel, user_id, template_key)
     from backend.app.services.notifications.delivery_service import _get_fcm_tokens_for_user
     from backend.app.services.notifications.fcm_client import (
         send_push_to_tokens,
@@ -304,9 +306,61 @@ def admin_notif_send_now(
                     },
                 )
 
-    # Build minimal payload for debug send (no Notification row)
+    # Send Guard V1: when template_key present, run full guard (pause, quiet_hours, dedup, cap)
+    if template_key:
+        from backend.app.services.notification_runtime.templates_v1 import get_template_v1
+        from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
+        from backend.app.services.notifications.send_guard_v1 import can_send_v1
+        tpl = get_template_v1(template_key)
+        channel_for_guard = tpl.get("channel", channel) if tpl else channel
+        priority_guard = "high" if channel_for_guard == "health_alert" else "normal"
+        effective_lang = resolve_effective_language(db, user_id) if tpl else None
+        guard = can_send_v1(
+            db, user_id, channel_for_guard, template_key, priority_guard,
+            datetime.utcnow(), language=effective_lang, force=force,
+        )
+        if not guard["allowed"]:
+            _log.info("[NOTIF][SEND] user_id=%s template_key=%s blocked reasons=%s", user_id, template_key, guard["reasons"])
+            data_blocked = {
+                "user_id": user_id,
+                "channel": channel,
+                "force": force,
+                "attempted_tokens": len(tokens),
+                "sent_success": 0,
+                "sent_fail": 0,
+                "blocked": True,
+                "reasons": guard["reasons"],
+                "fcm_errors": [],
+            }
+            if guard.get("paused_until") is not None:
+                data_blocked["paused_until"] = guard["paused_until"]
+            if guard.get("dedupe_key") is not None:
+                data_blocked["dedupe_key"] = guard["dedupe_key"]
+            return APIResponse(ok=True, data=data_blocked)
+    # Build title/body: from V1 template if template_key provided, else ad-hoc
     title = "Sedi"
     body = f"Debug send_now ({channel})"
+    if template_key:
+        from backend.app.services.notification_runtime.templates_v1 import get_template_v1
+        from backend.app.services.notification_runtime.renderer import render
+        from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
+        tpl = get_template_v1(template_key)
+        if tpl:
+            from backend.app.services.notification_runtime.user_context_adapter import build_notification_context
+            user_ctx = build_notification_context(db, user_id)
+            effective_lang = (user_ctx.get("language") or resolve_effective_language(db, user_id))
+            if effective_lang not in ("en", "fa", "ar"):
+                effective_lang = "en"
+            rendered = render(
+                channel=tpl.get("channel", "engagement"),
+                language=effective_lang,
+                inputs={"user_display_name": user_ctx.get("preferred_name") or getattr(user, "name", None)},
+                priority="high" if channel == "health_alert" else "normal",
+                template=tpl,
+                user_ctx=user_ctx,
+            )
+            title = (rendered.get("title") or "").strip() or title
+            body = (rendered.get("body") or "").strip() or body
     data = {"channel": channel, "type": channel, "notification_id": ""}
     project_id = os.getenv("FCM_PROJECT_ID", "").strip()
 
@@ -364,6 +418,146 @@ def admin_notif_send_now(
             "fcm_errors": fcm_errors,
         },
     )
+
+
+# ------------------ GET /notifications/admin/templates/list ------------------
+@router.get("/admin/templates/list", response_model=APIResponse)
+def admin_templates_list(request: Request):
+    """Admin-only: List V1 template keys and basic fields."""
+    _require_admin_if_set(request)
+    from backend.app.services.notification_runtime.templates_v1 import list_templates_v1
+    items = list_templates_v1()
+    return APIResponse(ok=True, data={"templates": items, "count": len(items)})
+
+
+# ------------------ GET /notifications/admin/templates/preview ------------------
+@router.get("/admin/templates/preview", response_model=APIResponse)
+def admin_templates_preview(
+    request: Request,
+    template_key: str = Query(..., description="Template key"),
+    user_id: Optional[int] = Query(None, description="User ID (for language resolution; optional)"),
+    lang: str = Query("fa", description="Language code (fa, en, ar)"),
+    db: Session = Depends(get_db),
+):
+    """Admin-only: Preview template render without sending."""
+    _require_admin_if_set(request)
+    from backend.app.services.notification_runtime.templates_v1 import get_template_v1
+    from backend.app.services.notification_runtime.renderer import render
+    template = get_template_v1(template_key)
+    if not template:
+        return APIResponse(ok=False, error=ErrorInfo(code="TEMPLATE_NOT_FOUND", message=f"Template not found: {template_key}"))
+    language = lang.strip().lower() if lang else "fa"
+    user_ctx = {}
+    if user_id:
+        from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
+        from backend.app.services.notification_runtime.user_context_adapter import build_notification_context
+        try:
+            user_ctx = build_notification_context(db, user_id)
+            language = (user_ctx.get("language") or resolve_effective_language(db=db, user_id=user_id) or language)
+        except Exception:
+            pass
+    if language not in ("en", "fa", "ar"):
+        language = "en"
+    rendered = render(
+        channel=template.get("channel", "engagement"),
+        language=language,
+        inputs={},
+        priority=template.get("priority", "normal"),
+        template=template,
+        user_ctx=user_ctx,
+    )
+    return APIResponse(
+        ok=True,
+        data={
+            "template": {
+                "key": template.get("key"),
+                "version": template.get("version"),
+                "channel": template.get("channel"),
+                "type": template.get("type"),
+                "priority": template.get("priority"),
+            },
+            "rendered": {
+                "title": rendered.get("title", ""),
+                "body": rendered.get("body", ""),
+                "actions_json": rendered.get("actions_json", ""),
+            },
+        },
+    )
+
+
+# ------------------ GET /notifications/admin/feedback_stats ------------------
+@router.get("/admin/feedback_stats", response_model=APIResponse)
+def admin_feedback_stats(
+    request: Request,
+    user_id: Optional[int] = Query(None, description="Filter by user ID (optional)"),
+    days: int = Query(7, ge=1, le=90, description="Last N days"),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Feedback stats for debugging and adaptive policy.
+    Returns counts_by_event_type, counts_by_reason, last_events (max 20).
+    """
+    _require_admin_if_set(request)
+    since = datetime.utcnow() - timedelta(days=days)
+    q = db.query(NotificationFeedback).filter(NotificationFeedback.created_at >= since)
+    if user_id is not None:
+        q = q.filter(NotificationFeedback.user_id == user_id)
+    rows = q.order_by(NotificationFeedback.created_at.desc()).limit(500).all()
+    counts_by_event_type = {}
+    counts_by_reason = {}
+    for r in rows:
+        counts_by_event_type[r.action] = counts_by_event_type.get(r.action, 0) + 1
+        if r.meta_json:
+            try:
+                meta = json.loads(r.meta_json)
+                reason = meta.get("reason")
+                if reason:
+                    counts_by_reason[reason] = counts_by_reason.get(reason, 0) + 1
+            except (json.JSONDecodeError, TypeError):
+                pass
+    last_events = []
+    for r in rows[:20]:
+        meta = {}
+        if r.meta_json:
+            try:
+                meta = json.loads(r.meta_json)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        last_events.append({
+            "timestamp": r.created_at.isoformat() if r.created_at else None,
+            "event_type": r.action,
+            "reason": meta.get("reason"),
+            "notification_id": r.notification_id,
+        })
+    return APIResponse(
+        ok=True,
+        data={
+            "counts_by_event_type": counts_by_event_type,
+            "counts_by_reason": counts_by_reason,
+            "last_events": last_events,
+            "days": days,
+            "user_id": user_id,
+        },
+    )
+
+
+# ------------------ GET /notifications/admin/adaptive_state ------------------
+@router.get("/admin/adaptive_state", response_model=APIResponse)
+def admin_adaptive_state(
+    request: Request,
+    user_id: int = Query(..., description="User ID"),
+    days: int = Query(7, ge=1, le=90, description="Feedback window in days"),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Adaptive policy state for companion channel (debug).
+    Returns paused_until, companion_cap_override, counts, reasons_count, computed_at.
+    """
+    _require_admin_if_set(request)
+    from backend.app.services.notifications.adaptive_policy_v1 import compute_adaptive_state
+    now = datetime.utcnow()
+    state = compute_adaptive_state(db, user_id, now, days)
+    return APIResponse(ok=True, data=state)
 
 
 # ------------------ GET /notifications/admin/health (Stage 16.6.2) ------------------
@@ -431,10 +625,14 @@ def get_notifications(
             error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
         )
     
-    # Query notifications ordered by created_at desc
+    # Base query (no order/limit) for full counts
+    base_query = db.query(Notification).filter(Notification.user_id == user_id)
+    total = base_query.count()
+    unread_count = base_query.filter(Notification.is_read == False).count()
+    
+    # Fetch list with ordering (no limit for this endpoint; pagination can be added later)
     notifications = (
-        db.query(Notification)
-        .filter(Notification.user_id == user_id)
+        base_query
         .order_by(Notification.created_at.desc())
         .all()
     )
@@ -455,10 +653,14 @@ def get_notifications(
         )
         for notif in notifications
     ]
-    
+
     return APIResponse(
         ok=True,
-        data={"notifications": [n.dict() for n in notification_list]}
+        data={
+            "notifications": [n.dict() for n in notification_list],
+            "total": total,
+            "unread_count": unread_count,
+        }
     )
 
 
@@ -495,6 +697,9 @@ def get_unread_notifications(
     if type:
         query = query.filter(Notification.type == type)
     
+    # Total unread count (before limit) for contract total/unread_count
+    unread_total = query.count()
+
     # Order by created_at desc and apply limit
     notifications = (
         query
@@ -524,7 +729,9 @@ def get_unread_notifications(
         ok=True,
         data={
             "notifications": [n.dict() for n in notification_list],
-            "count": len(notification_list)
+            "count": len(notification_list),
+            "total": unread_total,
+            "unread_count": unread_total,
         }
     )
 
@@ -655,7 +862,46 @@ def push_unregister(
     )
 
 
-# ------------------ POST /notifications/{notification_id}/feedback (Release B2 + Stage 16.6) ------------------
+# ------------------ V1: Normalize reaction/action/feedback to event_type ------------------
+def _normalize_feedback_payload(payload: dict) -> tuple:
+    """
+    Resolve reaction and event_type from contract + legacy payload.
+    Returns (event_type: str, reaction_for_b2: str|None, reason: str|None, feedback_text, timestamp, action_id).
+    event_type is one of: like, dislike, open, dismiss.
+    """
+    reaction = payload.get("reaction")
+    action_legacy = payload.get("action")
+    feedback_legacy = payload.get("feedback")
+    # Resolve effective reaction (contract or legacy)
+    if reaction in ("seen", "interact", "dismiss", "like", "dislike"):
+        eff_reaction = reaction
+    elif action_legacy in ("like", "dislike", "open_chat", "dismissed"):
+        eff_reaction = {"like": "like", "dislike": "dislike", "open_chat": "open", "dismissed": "dismiss"}[action_legacy]
+    elif feedback_legacy == "positive":
+        eff_reaction = "like"
+    elif feedback_legacy == "negative":
+        eff_reaction = "dislike"
+    elif feedback_legacy == "neutral":
+        eff_reaction = "open"
+    else:
+        eff_reaction = "open"
+    # Normalize to event_type (V1: like, dislike, open, dismiss)
+    if eff_reaction in ("like", "dislike", "dismiss"):
+        event_type = eff_reaction
+    elif eff_reaction in ("seen", "interact"):
+        event_type = "open"
+    else:
+        event_type = "open"
+    reason = payload.get("reason")
+    if reason and reason not in ("too_frequent", "irrelevant", "unclear"):
+        reason = reason  # keep as string for meta
+    feedback_text = payload.get("feedback_text")
+    timestamp = payload.get("timestamp") or payload.get("client_ts")
+    action_id = payload.get("action_id")
+    return event_type, eff_reaction, reason, feedback_text, timestamp, action_id
+
+
+# ------------------ POST /notifications/{notification_id}/feedback (Release B2 + Stage 16.6 + V1) ------------------
 @router.post("/{notification_id}/feedback", response_model=APIResponse)
 def submit_notification_feedback(
     notification_id: int,
@@ -664,27 +910,9 @@ def submit_notification_feedback(
     db: Session = Depends(get_db)
 ):
     """
-    Submit standardized feedback for a notification (Release B2).
-    
-    Request body (new format):
-    {
-        "feedback": "positive" | "negative" | "neutral",
-        "reason": optional string,
-        "action": optional string (e.g. "too_early", "too_late", "irrelevant")
-    }
-    
-    Stage 16.6 action-based feedback (stored in notification_feedback table):
-    {
-        "action": "like" | "dislike" | "open_chat" | "dismissed",
-        "client_ts": optional string,
-        "meta": optional object
-    }
-    
-    For backward compatibility: also accepts old format {"reaction": "like" | "dislike"}
-    
-    For morning_brief notifications:
-    - Stores feedback in UserMemoryFact
-    - Adjusts morning_notification_time if many negative feedbacks (>=3 negatives and negatives > positives)
+    Submit feedback for a notification. V1: normalized event_type (like/dislike/open/dismiss).
+    Contract: reaction (required), timestamp (required), action_id (required when reaction==interact), feedback_text?, reason?.
+    Legacy: feedback/action/client_ts/meta accepted and mapped. reason enum: too_frequent | irrelevant | unclear.
     """
     # Find notification
     notification = db.query(Notification).filter(Notification.id == notification_id).first()
@@ -693,8 +921,6 @@ def submit_notification_feedback(
             ok=False,
             error=ErrorInfo(code="NOTIFICATION_NOT_FOUND", message="Notification not found.")
         )
-    
-    # Use notification's user_id if user_id not provided
     if user_id is None:
         user_id = notification.user_id
     elif user_id != notification.user_id:
@@ -702,61 +928,37 @@ def submit_notification_feedback(
             ok=False,
             error=ErrorInfo(code="FORBIDDEN", message="You do not have permission to provide feedback for this notification.")
         )
-    
-    # Stage 16.6: Store action-based feedback in notification_feedback table
-    action_val = payload.get("action")
-    if action_val in ("like", "dislike", "open_chat", "dismissed"):
-        meta_json = json.dumps(payload.get("meta") or {}) if payload.get("meta") else None
-        feedback_row = NotificationFeedback(
-            notification_id=notification_id,
-            user_id=user_id,
-            action=action_val,
-            meta_json=meta_json,
+    # V1: If reaction is interact, action_id is required (422)
+    reaction_raw = payload.get("reaction")
+    if reaction_raw == "interact" and not payload.get("action_id"):
+        raise HTTPException(
+            status_code=422,
+            detail="action_id is required when reaction is 'interact'"
         )
-        db.add(feedback_row)
-        db.commit()
-        # If this was the only payload (action-only), return here
-        if not payload.get("feedback") and "reaction" not in payload:
-            return APIResponse(
-                ok=True,
-                data={
-                    "notification_id": notification_id,
-                    "action": action_val,
-                    "message": "Feedback recorded successfully",
-                }
-            )
-    
-    # Handle backward compatibility: old format {"reaction": "like" | "dislike"}
-    if "reaction" in payload:
-        # Convert old format to new format
-        reaction = payload.get("reaction")
-        if reaction == "like":
-            feedback_type = "positive"
-        elif reaction == "dislike":
-            feedback_type = "negative"
-        else:
-            return APIResponse(
-                ok=False,
-                error=ErrorInfo(code="INVALID_REACTION", message="Reaction must be 'like' or 'dislike'.")
-            )
-        feedback_request = NotificationFeedbackRequest(
-            feedback=feedback_type,
-            reason=payload.get("reason"),
-            action=payload.get("action")
-        )
-    else:
-        # New standardized format
-        try:
-            feedback_request = NotificationFeedbackRequest(**payload)
-        except Exception as e:
-            return APIResponse(
-                ok=False,
-                error=ErrorInfo(code="INVALID_FEEDBACK", message=f"Invalid feedback format: {str(e)}")
-            )
-    
-    # Note: Notification model doesn't have metadata field in B2
-    # Feedback is stored in UserMemoryFact only
-    
+    event_type, eff_reaction, reason, feedback_text, timestamp, action_id = _normalize_feedback_payload(payload)
+    meta = {}
+    if reason:
+        meta["reason"] = reason
+    if feedback_text is not None:
+        meta["feedback_text"] = feedback_text
+    if timestamp:
+        meta["client_timestamp"] = timestamp
+    if action_id:
+        meta["action_id"] = action_id
+    if payload.get("meta"):
+        meta["legacy_meta"] = payload.get("meta")
+    meta_json = json.dumps(meta) if meta else None
+    feedback_row = NotificationFeedback(
+        notification_id=notification_id,
+        user_id=user_id,
+        action=event_type,
+        meta_json=meta_json,
+    )
+    db.add(feedback_row)
+    db.commit()
+    # B2 morning_brief path: need feedback_request (positive/negative/neutral)
+    feedback_type = "positive" if eff_reaction == "like" else ("negative" if eff_reaction == "dislike" else "neutral")
+    feedback_request = type("FB", (), {"feedback": feedback_type, "reason": reason, "action": payload.get("action")})()
     # Check if this is a morning_brief notification
     is_morning_brief = (
         notification.type == "morning_brief" or
@@ -859,6 +1061,8 @@ def submit_notification_feedback(
     return APIResponse(
         ok=True,
         data={
+            "feedback_received": True,
+            "message": "Feedback recorded",
             "notification_id": notification_id,
             "feedback": feedback_request.feedback,
             "message": "Feedback recorded successfully"

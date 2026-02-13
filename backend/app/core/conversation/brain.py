@@ -87,6 +87,113 @@ def _maybe_append_local_rag_context(messages: list, db, user_id: int, user_messa
         pass
 
 
+def _maybe_append_rag_context_v1(
+    messages: list,
+    db,
+    user_id: int,
+    user_message: str,
+    language: str,
+    rag_context_max_chars: int = 1200,
+) -> None:
+    """
+    Stage 23 Step 5: Optional facts-anchored [RAG_CONTEXT] block.
+    Builds RagContextPack; if rag_allowed(user_message), appends serialized pack + optional
+    local RAG retrieval (capped). Else appends short safety note. Fail-open.
+    """
+    import os
+    try:
+        from backend.app.services.rag_context import (
+            build_rag_context_pack,
+            rag_allowed,
+            serialize_rag_pack_for_context,
+        )
+    except ImportError:
+        try:
+            from app.services.rag_context import (
+                build_rag_context_pack,
+                rag_allowed,
+                serialize_rag_pack_for_context,
+            )
+        except ImportError:
+            return
+    try:
+        rag_pack = build_rag_context_pack(db, user_id, fallback_language=language)
+        lang = rag_pack.language or language or "en"
+        if not rag_allowed(user_message or "", lang):
+            safety_note = (
+                "[RAG_CONTEXT]\nGeneral info only. If this is a medical emergency or serious concern, "
+                "please contact a clinician or emergency services."
+            )
+            messages.append({"role": "system", "content": safety_note})
+            return
+        summary = serialize_rag_pack_for_context(rag_pack, max_chars=rag_context_max_chars)
+        content = summary
+        if os.environ.get("RAG_LOCAL_ENABLED", "false").lower() in ("true", "1", "yes"):
+            try:
+                from backend.app.services.local_rag.provider_router import retrieve as rag_retrieve
+                result = rag_retrieve(db, user_id, user_message or "chat", lang)
+                if result and getattr(result, "combined_text", None) and result.combined_text.strip():
+                    extra = result.combined_text.strip()[:800]
+                    content = (summary + "\n" + extra).strip()
+            except Exception:
+                pass
+        if len(content) > rag_context_max_chars:
+            content = content[: rag_context_max_chars - 3] + "..."
+        if content.strip():
+            messages.append({"role": "system", "content": "[RAG_CONTEXT]\n" + content.strip()})
+    except Exception as e:
+        print(f"[BRAIN WARNING] RAG context v1 failed (non-critical): {e}")
+
+
+def _pack_to_prompt_dict(pack) -> Dict:
+    """Convert UserContextPack (or None) to a small dict for prompt usage. Safe attributes only."""
+    if pack is None:
+        return {}
+    qh = getattr(pack, "quiet_hours", None)
+    qh_start = getattr(qh, "start", None) if qh else None
+    qh_end = getattr(qh, "end", None) if qh else None
+    goals = getattr(pack, "goals", None)
+    goals_items = getattr(goals, "items", []) if goals else []
+    lifestyle = getattr(pack, "lifestyle", None)
+    lifestyle_text = getattr(lifestyle, "text", None) if lifestyle else None
+    return {
+        "preferred_name": getattr(pack, "preferred_name", None),
+        "language": getattr(pack, "language", None),
+        "timezone": getattr(pack, "timezone", None),
+        "quiet_hours": {"start": qh_start, "end": qh_end},
+        "engagement_level": getattr(pack, "engagement_level", None),
+        "goals_items": goals_items if isinstance(goals_items, list) else [],
+        "lifestyle_text": lifestyle_text,
+        "daily_memory_summary": getattr(pack, "daily_memory_summary", None),
+    }
+
+
+def _build_user_context_block(pack) -> str:
+    """Build a short system-only context block (max ~8 lines). No sensitive raw logs."""
+    if pack is None:
+        return ""
+    lines = ["[USER_CONTEXT]"]
+    if getattr(pack, "preferred_name", None) and str(pack.preferred_name).strip():
+        lines.append("Preferred name: " + str(pack.preferred_name).strip())
+    goals = getattr(pack, "goals", None)
+    if goals and getattr(goals, "items", None):
+        items = [str(x) for x in goals.items if x][:5]
+        if items:
+            lines.append("Goals: " + ", ".join(items))
+    lifestyle = getattr(pack, "lifestyle", None)
+    if lifestyle and getattr(lifestyle, "text", None) and str(lifestyle.text).strip():
+        t = str(lifestyle.text).strip()[:200]
+        if "\n" in t:
+            t = t.split("\n")[0]
+        lines.append("Lifestyle: " + t)
+    daily = getattr(pack, "daily_memory_summary", None)
+    if daily and str(daily).strip():
+        lines.append("Recent: " + str(daily).strip()[:150])
+    if len(lines) <= 1:
+        return ""
+    return "\n".join(lines[:9])
+
+
 class ConversationBrain:
     """Central decision engine for all conversation interactions"""
     
@@ -148,11 +255,24 @@ class ConversationBrain:
             print(f"[BRAIN DEBUG] Current stage: {current_stage.value}, memory_count: {current_memory_count}")
             
             # 3. BUILD MESSAGES: Build messages explicitly without context dependency
-            from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
-            from backend.app.core.conversation.prompts import client as gpt_client
-            
-            # Always start with system prompt (English)
-            system_prompt_content = build_complete_sedi_context("en")
+            from backend.app.core.conversation.prompts import client as gpt_client, build_system_prompt_with_context
+            from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
+
+            # Stage 23 Step 3: User-aware system prompt (Persona v1 + context block). Fail-open if context fetch fails.
+            pack = None
+            try:
+                from backend.app.services.user_context import UserContextService
+                pack = UserContextService(self.db).get_user_context(user_id)
+            except Exception as ctx_err:
+                print(f"[BRAIN WARNING] UserContext fetch failed (non-critical, proceeding): {ctx_err}")
+
+            lang = PersonaPolicyV1.resolve_language(
+                (getattr(pack, "language", None) if pack else None) or self.language
+            )
+            preferred_name = getattr(pack, "preferred_name", None) if pack else None
+            context_block = _build_user_context_block(pack)
+            system_prompt_content = build_system_prompt_with_context(lang, preferred_name, context_block)
+
             messages = [
                 {"role": "system", "content": system_prompt_content}
             ]
@@ -163,6 +283,9 @@ class ConversationBrain:
 
             # Stage 17.5: Optional Local RAG context (gated; no behavior change when disabled)
             _maybe_append_local_rag_context(messages, self.db, user_id, user_message, self.language)
+
+            # Stage 23 Step 5: Facts-anchored RAG context (fail-open; medical risk gate)
+            _maybe_append_rag_context_v1(messages, self.db, user_id, user_message, lang)
 
             # Optionally append history if available (non-blocking)
             try:

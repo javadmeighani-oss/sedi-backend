@@ -12,6 +12,7 @@ This package contains runtime components for notification processing:
 from backend.app.services.notification_runtime.fallback_generator import generate_fallback_text
 from backend.app.services.notification_runtime.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
 from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
+from backend.app.services.notification_runtime.i18n_resolver import resolve_text_by_user_language
 from backend.app.services.notification_runtime.rag_provider import RAGProvider
 from backend.app.services.notification_runtime.renderer import render
 from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
@@ -21,6 +22,7 @@ __all__ = [
     "enhance_with_ai",
     "NOTIF_AI_ENHANCE",
     "resolve_effective_language",
+    "resolve_text_by_user_language",
     "RAGProvider",
     "render",
     "is_within_quiet_hours",

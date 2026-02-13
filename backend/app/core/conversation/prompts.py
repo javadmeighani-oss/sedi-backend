@@ -23,6 +23,7 @@ from backend.app.core.conversation.stages import ConversationStage
 from backend.app.core.conversation.name_database import is_likely_name, detect_language
 from backend.app.core.conversation.sedi_knowledge_base import build_complete_sedi_context
 from backend.app.core.conversation.question_database import is_common_question, get_question_category
+from .persona_policy_v1 import PersonaPolicyV1
 import os
 from dotenv import load_dotenv
 
@@ -2053,3 +2054,20 @@ SCENARIO: STABLE_RELATION
             fallbacks[ConversationStage.DAILY_RELATION]["en"]
         )
 
+
+def build_system_prompt_v1(language: Optional[str], user_context: Optional[Dict] = None) -> str:
+    """Stage 23 Step 2: Build system prompt from Persona Policy v1. Does not replace existing _build_system_prompt."""
+    return PersonaPolicyV1.system_prompt(language, user_context)
+
+
+def build_system_prompt_with_context(
+    language: Optional[str],
+    preferred_name: Optional[str] = None,
+    context_block: Optional[str] = None,
+) -> str:
+    """Stage 23 Step 3: Persona v1 prompt + optional short context block (system-only). Pure function for testing."""
+    user_context = {"preferred_name": preferred_name} if preferred_name else None
+    base = build_system_prompt_v1(language, user_context)
+    if context_block and context_block.strip():
+        return base + "\n\n" + context_block.strip()
+    return base

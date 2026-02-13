@@ -48,6 +48,13 @@ from .devices import (
     DevicePublicInfo,
     DevicesListResponse,
 )
+from .auth_otp import (
+    OtpRequestIn,
+    OtpRequestOut,
+    OtpVerifyIn,
+    TokenOut,
+    MeOut,
+)
 
 __all__ = [
     # Common
@@ -102,5 +109,11 @@ __all__ = [
     "DeviceRegisterResponse",
     "DevicePublicInfo",
     "DevicesListResponse",
+    # Auth OTP (Stage 25)
+    "OtpRequestIn",
+    "OtpRequestOut",
+    "OtpVerifyIn",
+    "TokenOut",
+    "MeOut",
 ]
 

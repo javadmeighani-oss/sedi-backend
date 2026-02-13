@@ -4,9 +4,12 @@ Notification renderer (Stage 16.6.4).
 
 Deterministic templates per channel with language-aware variants.
 Returns {title, body, actions_json}. Conservative phrasing for health alerts.
+Supports optional multi-language template.texts via i18n_resolver.
 """
 
 from typing import Dict, Any, Optional, Literal
+
+from backend.app.services.notification_runtime.i18n_resolver import resolve_text_by_user_language
 
 SupportedLanguage = Literal["en", "fa", "ar"]
 
@@ -18,23 +21,50 @@ def render(
     language: str,
     inputs: Optional[Dict[str, Any]] = None,
     priority: str = "normal",
+    template: Optional[Dict[str, Any]] = None,
+    user_ctx: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, str]:
     """
     Render notification title and body for a channel.
 
     Args:
-        channel: "morning" | "engagement" | "health_alert"
-        language: "en" | "fa" | "ar"
+        channel: "morning" | "engagement" | "health_alert" | "companion"
+        language: "en" | "fa" | "ar" (or locale e.g. "fa-IR"; used for template.texts resolution)
         inputs: optional {user_display_name, last_vitals_summary, last_topic_hint}
         priority: "low" | "normal" | "high" | "critical"
+        template: optional dict; if it has "texts" (multilingual blocks), resolve by language and use
+                  for title/body; otherwise channel-based rendering is used.
+        user_ctx: optional from build_notification_context; preferred_name, goals_items, lifestyle_text, etc.
 
     Returns:
         {title, body, actions_json}
     """
     inputs = inputs or {}
-    lang = language if language in ("en", "fa", "ar") else "en"
-    name = (inputs.get("user_display_name") or "").strip() or None
+    user_ctx = user_ctx or {}
+    lang = (language or user_ctx.get("language") or "en").strip().lower() if (language or user_ctx.get("language")) else "en"
+    if lang not in ("en", "fa", "ar"):
+        lang = "en"
+    name = (user_ctx.get("preferred_name") or "").strip() or (inputs.get("user_display_name") or "").strip() or None
 
+    # Multi-language template: resolve texts by user language
+    if template and isinstance(template.get("texts"), dict):
+        resolved = resolve_text_by_user_language(
+            template["texts"],
+            user_language=language or lang,
+            default="en",
+        )
+        if resolved:
+            title = resolved.get("title", "").strip() or "Sedi"
+            body = (resolved.get("body") or resolved.get("message") or "").strip() or ""
+            if body or title:
+                is_companion = channel in ("companion", "morning", "engagement")
+                body = _personalize_text(body, lang, user_ctx, is_companion, name)
+                return {
+                    "title": title,
+                    "body": body,
+                    "actions_json": template.get("actions_json") or DEFAULT_ACTIONS_JSON,
+                }
+    # Channel-based rendering (existing behavior)
     if channel == "morning":
         title, body = _render_morning(lang, name, inputs)
     elif channel == "engagement":
@@ -44,11 +74,95 @@ def render(
     else:
         title, body = _render_engagement(lang, name, inputs)  # fallback
 
+    is_companion = channel in ("companion", "morning", "engagement")
+    body = _append_goals_hint(body, lang, user_ctx, is_companion)
+
     return {
         "title": title,
         "body": body,
         "actions_json": DEFAULT_ACTIONS_JSON,
     }
+
+
+def _text_starts_with_name(text: str, name: str) -> bool:
+    if not text or not name:
+        return False
+    t = text.strip()
+    n = name.strip()
+    return t.lower().startswith(n.lower()) or t.startswith(n)
+
+
+def _personalize_title(title: str, lang: str, name: Optional[str]) -> str:
+    """Prepend name to title gently for companion (short)."""
+    if not name or not name.strip():
+        return title
+    n = name.strip()
+    if lang == "fa":
+        return f"{n} جان"
+    if lang == "ar":
+        return f"يا {n}"
+    return n
+
+
+def _personalize_text(
+    text: str,
+    lang: str,
+    user_ctx: Dict[str, Any],
+    is_companion: bool,
+    preferred_name: Optional[str] = None,
+) -> str:
+    """
+    For companion channels: optionally prepend name and append one short goals/lifestyle hint.
+    Keeps message short; no change for non-companion or when user_ctx empty.
+    """
+    if not is_companion:
+        return text
+    name = (preferred_name or (user_ctx.get("preferred_name") or "").strip()) or None
+    out = text
+    if name and out and not _text_starts_with_name(out, name):
+        if lang == "fa":
+            out = f"{name} جان، {out}"
+        elif lang == "ar":
+            out = f"يا {name}، {out}"
+        else:
+            out = f"Hey {name}, {out}"
+    hint = _one_goals_lifestyle_hint(lang, user_ctx)
+    if hint and out:
+        out = f"{out} {hint}"
+    return out[:500] if out else out
+
+
+def _one_goals_lifestyle_hint(lang: str, user_ctx: Dict[str, Any]) -> str:
+    """One short supportive clause from goals or lifestyle (max ~60 chars)."""
+    goals = user_ctx.get("goals_items") or []
+    lifestyle = (user_ctx.get("lifestyle_text") or "").strip()
+    if not goals and not lifestyle:
+        return ""
+    if goals:
+        first = str(goals[0])[:30]
+        if lang == "fa":
+            return f"برای هدفت ({first}) همین قدم‌های کوچک موثره."
+        if lang == "ar":
+            return "خطوة صغيرة تساعدك."
+        return f"Small steps help your {first} goal."
+    if lifestyle:
+        snippet = lifestyle[:40].rstrip()
+        if lang == "fa":
+            return "بر اساس سبک زندگیت، همین کارهای کوچک مفیده."
+        if lang == "ar":
+            return "وفق نمط حياتك، خطوة صغيرة مفيدة."
+        return "Small steps help."
+    return ""
+
+
+def _append_goals_hint(body: str, lang: str, user_ctx: Dict[str, Any], is_companion: bool) -> str:
+    """Append one short goals/lifestyle hint for companion channel-based body."""
+    if not is_companion or not body:
+        return body
+    hint = _one_goals_lifestyle_hint(lang, user_ctx)
+    if not hint:
+        return body
+    return f"{body} {hint}"[:500]
 
 
 def _render_morning(lang: str, name: Optional[str], inputs: Dict[str, Any]) -> tuple:
