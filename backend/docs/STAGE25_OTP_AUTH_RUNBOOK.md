@@ -5,8 +5,10 @@
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `JWT_SECRET` | Production | Secret for signing access JWTs. Default: `sedi_secret_key_2025`. |
-| `SMS_DISABLED` | Optional | Set to `true` / `1` / `yes` to skip sending SMS and log OTP with `[OTP_DEV]` (dev mode). |
-| `BASE_URL` | Optional | Base URL for internal SMS gateway call (e.g. `http://127.0.0.1:8000`). Used when SMS is enabled. |
+| `SMS_DISABLED` | Optional | Set to `true` / `1` / `yes` to skip sending SMS and log OTP with `[OTP_DEV]` (dev mode). Preserved in Step 2.2. |
+| `SMS_PROVIDER` | Optional | `kavenegar` (default) or `dummy`. Provider-agnostic gateway (Step 2.2). |
+| `KAVENEGAR_API_KEY` | When SMS_PROVIDER=kavenegar | API key from Kavenegar panel. |
+| `KAVENEGAR_SENDER` | Optional | Sender line (e.g. short number). If empty, Kavenegar default is used. |
 | `DATABASE_URL` | Yes | PostgreSQL connection string (existing). |
 
 ## Migrations
@@ -31,7 +33,8 @@ curl -s -X POST http://127.0.0.1:8000/auth/request_otp \
 ```
 
 Expected: `{"ok": true, "data": {"ok": true, "next": "verify_otp"}}`.  
-With `SMS_DISABLED=true`, the 6-digit code is logged (e.g. `[OTP_DEV] phone=... code_message=...`).
+With `SMS_DISABLED=true`, the 6-digit code is logged (e.g. `[OTP_DEV] phone=... code=...`).  
+Optional: `Accept-Language: fa` or `en` / `ar` for OTP message language (default fa).
 
 ### 2. Verify OTP and get tokens
 
@@ -88,3 +91,35 @@ Expected: `{"ok": true, "data": {"revoked": true}}`.
 - OTP: max 5 verify attempts per code; expiry e.g. 5 min; rate limit 3 requests per 10 min per phone.
 - Access token: JWT, default 60 min.
 - Refresh token: opaque, stored in DB, default 30 days; revocable via `/auth/logout`.
+
+---
+
+## Step 2.2 – Real SMS (Kavenegar)
+
+- When `SMS_DISABLED=false` and `SMS_PROVIDER=kavenegar`, OTP is sent via Kavenegar REST API. On send failure the API returns **503** with detail `SMS delivery unavailable` (request still succeeds from rate-limit/DB perspective; client can retry).
+- OTP text: EN `Sedi verification code: {code}`, FA `کد تایید صدی: {code}`, AR `رمز التحقق من صدي: {code}` (from `Accept-Language`).
+
+### Troubleshooting
+
+- **No SMS received:** Check `KAVENEGAR_API_KEY` and Kavenegar panel (balance, sender, logs). Ensure phone is E.164 (e.g. +989121234567).
+- **503 on request_otp:** Provider returned error or timeout. Check backend logs for `SMS send failed provider=... error=...`.
+
+### Journalctl (backend logs)
+
+```bash
+# SMS/OTP related
+journalctl -u sedi-backend.service -g "OTP_DEV|SMS send failed|SMS delivery" --no-pager -n 100
+
+# Last 50 lines
+journalctl -u sedi-backend.service -n 50 --no-pager
+```
+
+---
+
+## Running tests (Step 2.2)
+
+```bash
+cd backend
+pytest tests/test_auth_otp_v1.py -v
+pytest tests/test_sms_gateway_kavenegar_dummy.py -v
+```

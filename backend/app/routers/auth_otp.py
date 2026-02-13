@@ -1,5 +1,5 @@
 # app/routers/auth_otp.py – Stage 25 Phone OTP endpoints
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -35,9 +35,14 @@ def get_current_user(
 
 
 @router.post("/request_otp", response_model=APIResponse)
-def request_otp(body: OtpRequestIn, db: Session = Depends(get_db)):
-    """Request OTP for phone. Rate-limited; SMS or [OTP_DEV] log."""
-    ok, err = svc.request_otp(db, body.phone)
+def request_otp(
+    body: OtpRequestIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text."""
+    accept_language = request.headers.get("Accept-Language")
+    ok, err = svc.request_otp(db, body.phone, accept_language=accept_language)
     if not ok:
         return APIResponse(ok=False, error=ErrorInfo(code="OTP_REQUEST_FAILED", message=err))
     return APIResponse(ok=True, data={"ok": True, "next": "verify_otp"})

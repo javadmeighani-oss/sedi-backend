@@ -2,6 +2,7 @@
 import os
 import pytest
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 # Force dev mode so request_otp does not require SMS (log only)
 os.environ["SMS_DISABLED"] = "true"
@@ -99,3 +100,31 @@ def test_auth_me_works_with_access_token(db):
     me_data = me.json().get("data", {})
     assert me_data.get("phone") == phone
     assert "user_id" in me_data
+
+
+def test_sms_disabled_does_not_call_provider(db):
+    """When SMS_DISABLED=true, request_otp does not call get_sms_sender (Stage 25 Step 2.2)."""
+    with patch("backend.app.services.sms_gateway.get_sms_sender") as mock_get:
+        ok, err = svc.request_otp(db, "+989100000001")
+        mock_get.assert_not_called()
+        assert ok is True
+        assert err == ""
+
+
+def test_request_otp_succeeds_with_dummy_provider(db):
+    """When SMS_DISABLED=false and SMS_PROVIDER=dummy, request_otp succeeds without network (Stage 25 Step 2.2)."""
+    with patch.object(svc, "SMS_DISABLED", False):
+        with patch.dict(os.environ, {"SMS_PROVIDER": "dummy"}, clear=False):
+            ok, err = svc.request_otp(db, "+989100000002")
+            assert ok is True
+            assert err == ""
+
+
+def test_resolve_lang():
+    """resolve_lang parses Accept-Language; default fa (Stage 25 Step 2.2)."""
+    assert svc.resolve_lang(None) == "fa"
+    assert svc.resolve_lang("") == "fa"
+    assert svc.resolve_lang("en-US,en;q=0.9") == "en"
+    assert svc.resolve_lang("fa") == "fa"
+    assert svc.resolve_lang("ar-EG") == "ar"
+    assert svc.resolve_lang("fr-FR") == "fa"  # unknown -> fa

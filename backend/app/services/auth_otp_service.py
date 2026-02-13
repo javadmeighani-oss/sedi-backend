@@ -1,11 +1,11 @@
 # app/services/auth_otp_service.py – Stage 25 Phone OTP (production-oriented, minimal)
 import os
-import re
 import secrets
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from backend.app import models
@@ -21,8 +21,19 @@ OTP_RATE_LIMIT_WINDOW_MINUTES = 10
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
-# Fail-safe SMS: if SMS_DISABLED=true or send fails, log and continue (dev mode)
+# Fail-safe SMS: if SMS_DISABLED=true do not call provider; log [OTP_DEV] and return success (Stage 25 Step 2.2)
 SMS_DISABLED = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true", "yes")
+
+
+def resolve_lang(accept_language: Optional[str]) -> str:
+    """Parse Accept-Language header to fa|en|ar. Iran-focused default: fa."""
+    if not accept_language or not accept_language.strip():
+        return "fa"
+    # First preferred: "en-US,en;q=0.9,fa;q=0.8" -> take first segment, then language code
+    first = accept_language.split(",")[0].strip().split("-")[0].strip().lower()[:2]
+    if first in ("en", "fa", "ar"):
+        return first
+    return "fa"
 
 
 def _hash_secret(secret: str) -> str:
@@ -58,25 +69,11 @@ def generate_otp_code() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(6))
 
 
-def _send_sms_fail_safe(phone: str, message: str) -> bool:
-    """Send SMS via gateway if configured; else log with [OTP_DEV]. Never raise."""
-    if SMS_DISABLED:
-        logger.info("[OTP_DEV] phone=%s code_message=%s", phone, message)
-        return True
-    try:
-        import requests
-        base = os.environ.get("BASE_URL", "http://127.0.0.1:8000").rstrip("/")
-        url = f"{base}/sms/send"
-        r = requests.post(url, json={"to": phone, "message": message}, timeout=5)
-        if r.status_code == 200:
-            return True
-        logger.warning("SMS gateway returned %s for %s", r.status_code, phone)
-    except Exception as e:
-        logger.warning("SMS send failed (dev-safe): %s", e)
-    return False
-
-
-def request_otp(db: Session, phone: str) -> Tuple[bool, str]:
+def request_otp(
+    db: Session,
+    phone: str,
+    accept_language: Optional[str] = None,
+) -> Tuple[bool, str]:
     """
     Create or update OTP for phone; rate-limit; send SMS (or dev log).
     Returns (success, error_message). On success error_message is "".
@@ -122,8 +119,17 @@ def request_otp(db: Session, phone: str) -> Tuple[bool, str]:
         db.add(row)
     db.commit()
 
-    msg = f"Your Sedi verification code is {code}. It expires in {OTP_EXPIRE_MINUTES} minutes."
-    _send_sms_fail_safe(phone, msg)
+    # SMS: when disabled log only; when enabled use gateway and 503 on failure (Stage 25 Step 2.2)
+    if SMS_DISABLED:
+        logger.info("[OTP_DEV] phone=%s code=%s", phone, code)
+        return True, ""
+    from backend.app.services.sms_gateway import get_sms_sender
+    lang = resolve_lang(accept_language)
+    sender = get_sms_sender()
+    result = sender.send_otp(phone, code, lang)
+    if not result.ok:
+        logger.warning("SMS send failed provider=%s error=%s", result.provider, result.error)
+        raise HTTPException(status_code=503, detail="SMS delivery unavailable")
     return True, ""
 
 
