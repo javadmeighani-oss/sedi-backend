@@ -9,7 +9,7 @@
 | `SMS_PROVIDER` | Optional | `kavenegar` (default) or `dummy`. Provider-agnostic gateway (Step 2.2). |
 | `KAVENEGAR_API_KEY` | When SMS_PROVIDER=kavenegar | API key from Kavenegar panel. |
 | `KAVENEGAR_SENDER` | Optional | Sender line (e.g. short number). If empty, Kavenegar default is used. |
-| `DATABASE_URL` | Yes | PostgreSQL connection string (existing). |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (existing). If it contains `%xx` URL-encoding (e.g. in the password), Alembic env disables configparser interpolation so no `ValueError` is raised. |
 
 ## Migrations
 
@@ -19,6 +19,8 @@ alembic upgrade head
 ```
 
 This applies `002_phone_otp` (adds `users.phone`, `otp_codes`, `refresh_tokens`).
+
+If `DATABASE_URL` contains `%xx` URL-encoding (e.g. in the password), Alembic env disables configparser interpolation to avoid `ValueError`.
 
 ## Curl examples
 

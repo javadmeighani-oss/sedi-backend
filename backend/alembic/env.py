@@ -28,8 +28,12 @@ from logging.config import fileConfig
 from alembic import context
 from backend.app.database import Base, engine
 
+from .env_utils import _disable_interpolation
+
 # Alembic Config object
 config = context.config
+# Allow % in DATABASE_URL (URL-encoded passwords); configparser would otherwise interpolate % and raise
+_disable_interpolation(config)
 config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name:
