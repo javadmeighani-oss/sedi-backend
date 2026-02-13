@@ -5,6 +5,7 @@
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `JWT_SECRET` | Production | Secret for signing access JWTs. Default: `sedi_secret_key_2025`. |
+| `OTP_SECRET` | Recommended | Used only for OTP HMAC hashing (server-side). If missing, `JWT_SECRET` is used. Changing it invalidates active OTP codes only (max 5 minutes), not refresh tokens. |
 | `SMS_DISABLED` | Optional | Set to `true` / `1` / `yes` to skip sending SMS and log OTP with `[OTP_DEV]` (dev mode). Preserved in Step 2.2. |
 | `SMS_PROVIDER` | Optional | `kavenegar` (default) or `dummy`. Provider-agnostic gateway (Step 2.2). |
 | `KAVENEGAR_API_KEY` | When SMS_PROVIDER=kavenegar | API key from Kavenegar panel. |

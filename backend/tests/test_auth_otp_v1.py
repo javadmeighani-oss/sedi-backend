@@ -38,24 +38,17 @@ def test_request_otp_returns_ok_with_sms_disabled(db):
     assert data.get("data", {}).get("next") == "verify_otp"
 
 
-def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(db):
-    """Request OTP, then verify with correct code; get tokens and user created."""
+def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(db, monkeypatch):
+    """Request OTP with mocked code; verify with same code; tokens and user created (HMAC OTP)."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_123")
+    code_plain = "123456"
     phone = "+989123456789"
-    # Request OTP (dev mode logs code; we need to get code from OtpCode row for test)
-    ok, _ = svc.request_otp(db, phone)
+    with patch.object(svc, "generate_otp_code", return_value=code_plain):
+        ok, _ = svc.request_otp(db, phone)
     assert ok is True
     row = db.query(models.OtpCode).filter(models.OtpCode.phone == phone).first()
     assert row is not None
-    # We cannot get plain code from DB (hashed). So use service to verify by generating same code - we can't.
-    # Instead: in test we need to either (1) mock hash/verify to accept a known code, or (2) read code from log.
-    # Simplest: patch or inject a fixed OTP in test. E.g. in request_otp we store hashed; in test we could
-    # create OtpCode manually with a known code hash (hash "123456") and then verify_otp(phone, "123456").
-    code_plain = "123456"
-    from passlib.context import CryptContext
-    row.code_hash = CryptContext(schemes=["bcrypt"], deprecated="auto").hash(code_plain)
-    row.attempts = 0
-    row.expires_at = datetime.utcnow() + timedelta(minutes=5)
-    db.commit()
+    assert row.code_hash  # HMAC hex digest stored
     r = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain})
     assert r.status_code == 200
     data = r.json()
@@ -68,10 +61,12 @@ def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(db):
     assert user is not None
 
 
-def test_verify_otp_wrong_code_increments_attempts_and_fails(db):
-    """verify_otp with wrong code returns error and increments attempts."""
+def test_verify_otp_wrong_code_increments_attempts_and_fails(db, monkeypatch):
+    """verify_otp with wrong code returns error and increments attempts (HMAC OTP)."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_456")
     phone = "+989199999999"
-    ok, _ = svc.request_otp(db, phone)
+    with patch.object(svc, "generate_otp_code", return_value="123456"):
+        ok, _ = svc.request_otp(db, phone)
     assert ok is True
     r = client.post("/auth/verify_otp", json={"phone": phone, "code": "000000"})
     assert r.status_code == 200  # API returns 200 with ok=False
@@ -81,17 +76,13 @@ def test_verify_otp_wrong_code_increments_attempts_and_fails(db):
     assert row.attempts == 1
 
 
-def test_auth_me_works_with_access_token(db):
-    """GET /auth/me with valid Bearer returns user info."""
+def test_auth_me_works_with_access_token(db, monkeypatch):
+    """GET /auth/me with valid Bearer returns user info (HMAC OTP)."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_me")
     phone = "+989128888888"
-    ok, _ = svc.request_otp(db, phone)
+    with patch.object(svc, "generate_otp_code", return_value="654321"):
+        ok, _ = svc.request_otp(db, phone)
     assert ok is True
-    # Set a known code for this phone
-    from passlib.context import CryptContext
-    row = db.query(models.OtpCode).filter(models.OtpCode.phone == phone).first()
-    row.code_hash = CryptContext(schemes=["bcrypt"], deprecated="auto").hash("654321")
-    row.attempts = 0
-    db.commit()
     r = client.post("/auth/verify_otp", json={"phone": phone, "code": "654321"})
     assert r.status_code == 200 and r.json().get("ok") is True
     access_token = r.json()["data"]["access_token"]
@@ -128,3 +119,19 @@ def test_resolve_lang():
     assert svc.resolve_lang("fa") == "fa"
     assert svc.resolve_lang("ar-EG") == "ar"
     assert svc.resolve_lang("fr-FR") == "fa"  # unknown -> fa
+
+
+def test_otp_hmac_deterministic_and_compare_digest(monkeypatch):
+    """_otp_hmac is deterministic; same code+secret gives same hash; wrong code fails compare."""
+    import hmac
+    monkeypatch.setenv("OTP_SECRET", "fixed_secret")
+    # Reload or call through module so it picks up env
+    h1 = svc._otp_hmac("123456")
+    h2 = svc._otp_hmac("123456")
+    assert h1 == h2
+    assert len(h1) == 64  # SHA256 hex
+    assert h1.isalnum()
+    other = svc._otp_hmac("000000")
+    assert other != h1
+    assert hmac.compare_digest(h1, h2) is True
+    assert hmac.compare_digest(h1, other) is False

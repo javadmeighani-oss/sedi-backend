@@ -1,4 +1,6 @@
 # app/services/auth_otp_service.py – Stage 25 Phone OTP (production-oriented, minimal)
+import hashlib
+import hmac
 import os
 import secrets
 import logging
@@ -25,6 +27,18 @@ REFRESH_TOKEN_EXPIRE_DAYS = 30
 SMS_DISABLED = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true", "yes")
 
 
+def _otp_secret() -> str:
+    """Secret for OTP HMAC only; not used for refresh tokens."""
+    return os.getenv("OTP_SECRET") or os.getenv("JWT_SECRET") or "sedi_otp_dev_secret"
+
+
+def _otp_hmac(code: str) -> str:
+    """HMAC-SHA256 of code (deterministic); avoids bcrypt 72-byte limit and passlib issues."""
+    secret = _otp_secret().encode("utf-8")
+    msg = code.encode("utf-8")
+    return hmac.new(secret, msg, hashlib.sha256).hexdigest()
+
+
 def resolve_lang(accept_language: Optional[str]) -> str:
     """Parse Accept-Language header to fa|en|ar. Iran-focused default: fa."""
     if not accept_language or not accept_language.strip():
@@ -37,7 +51,7 @@ def resolve_lang(accept_language: Optional[str]) -> str:
 
 
 def _hash_secret(secret: str) -> str:
-    """Hash a secret (OTP or refresh token) with bcrypt."""
+    """Hash a secret (refresh token only; OTP uses _otp_hmac) with bcrypt."""
     from passlib.context import CryptContext
     ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     return ctx.hash(secret)
@@ -96,7 +110,7 @@ def request_otp(
         return False, "Too many OTP requests. Try again later."
 
     code = generate_otp_code()
-    code_hash = _hash_secret(code)
+    code_hash = _otp_hmac(code)
     expires_at = now + timedelta(minutes=OTP_EXPIRE_MINUTES)
 
     # Upsert single OTP row per phone (one active at a time)
@@ -158,7 +172,8 @@ def verify_otp(db: Session, phone: str, code: str) -> Tuple[Optional[models.User
     row.attempts += 1
     db.commit()
 
-    if not _verify_secret(code, row.code_hash):
+    expected_hash = _otp_hmac(code)
+    if not row.code_hash or not hmac.compare_digest(expected_hash, row.code_hash):
         return None, "Incorrect code"
 
     # Invalidate OTP after successful use (prevent reuse)
