@@ -28,7 +28,15 @@ from logging.config import fileConfig
 from alembic import context
 from backend.app.database import Base, engine
 
-from .env_utils import _disable_interpolation
+# Import works when run by Alembic CLI (no package context); prefer package import, fallback to same-dir
+try:
+    from alembic.env_utils import _disable_interpolation
+except ImportError:
+    _alembic_dir = Path(__file__).resolve().parent
+    if str(_alembic_dir) not in sys.path:
+        sys.path.insert(0, str(_alembic_dir))
+    import env_utils as _env_utils_mod
+    _disable_interpolation = _env_utils_mod._disable_interpolation
 
 # Alembic Config object
 config = context.config
