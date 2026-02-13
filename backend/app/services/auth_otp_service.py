@@ -98,6 +98,11 @@ def generate_otp_code() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(6))
 
 
+def _generate_refresh_token() -> str:
+    """Generate opaque refresh token plaintext (URL-safe, 32 bytes)."""
+    return secrets.token_urlsafe(32)
+
+
 def request_otp(
     db: Session,
     phone: str,
@@ -230,7 +235,7 @@ def issue_tokens(
         {"user_id": user.id},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    refresh_plain = secrets.token_urlsafe(48)
+    refresh_plain = _generate_refresh_token()
     refresh_hash = _hash_secret(refresh_plain)
     expires_at = now() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
@@ -249,23 +254,65 @@ def issue_tokens(
     return access_token, refresh_plain, ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
 
-def get_user_by_refresh_token(db: Session, refresh_token_plain: str) -> Optional[models.User]:
-    """Find user by valid, non-revoked refresh token. Returns None if invalid."""
+def get_refresh_token_row(db: Session, refresh_token_plain: str) -> Optional[models.RefreshToken]:
+    """Find refresh token row by plaintext (token_hash = _refresh_hmac(plain), not revoked, not expired)."""
     if not refresh_token_plain:
         return None
+    token_hash = _refresh_hmac(refresh_token_plain)
     now_ = now()
-    rows = (
+    return (
         db.query(models.RefreshToken)
         .filter(
+            models.RefreshToken.token_hash == token_hash,
             models.RefreshToken.revoked_at.is_(None),
             models.RefreshToken.expires_at > now_,
         )
-        .all()
+        .first()
     )
-    for row in rows:
-        if _verify_secret(refresh_token_plain, row.token_hash):
-            return db.query(models.User).filter(models.User.id == row.user_id).first()
-    return None
+
+
+def get_user_by_refresh_token(db: Session, refresh_token_plain: str) -> Optional[models.User]:
+    """Find user by valid, non-revoked refresh token. Returns None if invalid."""
+    row = get_refresh_token_row(db, refresh_token_plain)
+    if not row:
+        return None
+    return db.query(models.User).filter(models.User.id == row.user_id).first()
+
+
+def rotate_refresh_token(
+    db: Session,
+    refresh_token_plain: str,
+    device_info: Optional[str] = None,
+    ip: Optional[str] = None,
+) -> Tuple[Optional[str], Optional[str], Optional[int]]:
+    """
+    Validate refresh token, revoke it, issue new access + new refresh. Returns (access_token, new_refresh_plain, expires_in_seconds) or (None, None, None) if invalid.
+    """
+    row = get_refresh_token_row(db, refresh_token_plain)
+    if not row:
+        return None, None, None
+    row.revoked_at = now()
+    db.commit()
+    user_id = row.user_id
+    access_token = create_access_token(
+        {"user_id": user_id},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    new_plain = _generate_refresh_token()
+    new_hash = _refresh_hmac(new_plain)
+    expires_at = now() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    new_row = models.RefreshToken(
+        user_id=user_id,
+        token_hash=new_hash,
+        expires_at=expires_at,
+        revoked_at=None,
+        created_at=now(),
+        device_info=device_info,
+        ip=ip,
+    )
+    db.add(new_row)
+    db.commit()
+    return access_token, new_plain, ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
 
 def revoke_refresh_token(db: Session, refresh_token_plain: str) -> bool:

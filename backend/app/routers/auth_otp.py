@@ -88,18 +88,21 @@ def auth_me(user: models.User = Depends(get_current_user)):
 
 @router.post("/refresh", response_model=APIResponse)
 def refresh_tokens(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ):
-    """Exchange refresh token for new access token (Bearer refresh_token)."""
+    """Exchange refresh token for new access + new refresh; used token is revoked (rotation)."""
     if not credentials or credentials.scheme != "Bearer":
-        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
-    refresh_plain = credentials.credentials
-    user = svc.get_user_by_refresh_token(db, refresh_plain)
-    if not user:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-    access_token, new_refresh, expires_in = svc.issue_tokens(db, user)
-    # Optional: revoke old refresh (rotation). For minimal we issue new and leave old valid.
+    refresh_plain = credentials.credentials
+    device_info = request.headers.get("User-Agent") if request else None
+    ip = request.client.host if request and request.client else None
+    access_token, new_refresh, expires_in = svc.rotate_refresh_token(
+        db, refresh_plain, device_info=device_info, ip=ip
+    )
+    if access_token is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
     return APIResponse(
         ok=True,
         data=TokenOut(
