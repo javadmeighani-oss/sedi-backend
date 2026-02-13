@@ -39,6 +39,27 @@ def _otp_hmac(code: str) -> str:
     return hmac.new(secret, msg, hashlib.sha256).hexdigest()
 
 
+def _refresh_secret() -> str:
+    """
+    Secret for refresh-token hashing (HMAC). Must be stable across restarts.
+    Prefer a dedicated env var; fallback to existing secrets for dev.
+    """
+    return (
+        os.getenv("REFRESH_SECRET")
+        or os.getenv("JWT_SECRET")
+        or os.getenv("OTP_SECRET")
+        or SECRET_KEY
+        or "sedi_refresh_dev_secret"
+    )
+
+
+def _refresh_hmac(token: str) -> str:
+    """HMAC-SHA256 of refresh token (deterministic). Safe for long tokens (no 72-byte bcrypt limit)."""
+    secret = _refresh_secret().encode("utf-8")
+    msg = (token or "").encode("utf-8")
+    return hmac.new(secret, msg, hashlib.sha256).hexdigest()
+
+
 def resolve_lang(accept_language: Optional[str]) -> str:
     """Parse Accept-Language header to fa|en|ar. Iran-focused default: fa."""
     if not accept_language or not accept_language.strip():
@@ -51,22 +72,16 @@ def resolve_lang(accept_language: Optional[str]) -> str:
 
 
 def _hash_secret(secret: str) -> str:
-    """Hash a secret (refresh token only; OTP uses _otp_hmac) with bcrypt."""
-    from passlib.context import CryptContext
-    ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return ctx.hash(secret)
+    """Hash a secret (refresh token only; OTP uses _otp_hmac) with HMAC-SHA256."""
+    return _refresh_hmac(secret)
 
 
 def _verify_secret(plain: str, hashed: str) -> bool:
     """Verify plaintext against stored hash."""
     if not hashed:
         return False
-    try:
-        from passlib.context import CryptContext
-        ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return ctx.verify(plain, hashed)
-    except Exception:
-        return False
+    expected = _refresh_hmac(plain)
+    return hmac.compare_digest(expected, hashed)
 
 
 def normalize_phone(phone: str) -> str:
