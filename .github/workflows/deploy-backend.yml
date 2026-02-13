@@ -16,6 +16,7 @@ jobs:
   deploy:
     name: Deploy to Production Server
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Fail if deploy hangs (e.g. pip/git/SSH stuck)
 
     steps:
       - name: Checkout code
@@ -43,6 +44,8 @@ jobs:
         run: |
           ssh -o BatchMode=yes \
               -o ConnectTimeout=10 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=6 \
               root@91.107.168.130 << 'EOF'
             set -e
             echo "🚀 Starting deployment..."
