@@ -49,6 +49,8 @@ curl -s -X POST http://127.0.0.1:8000/auth/verify_otp \
   -d '{"phone": "+989121234567", "code": "123456"}'
 ```
 
+Optional headers for audit (stored on refresh token row): `X-Device-Info`, `X-Client-IP`.
+
 Expected: `{"ok": true, "data": {"access_token": "...", "refresh_token": "...", "token_type": "bearer", "expires_in": 3600}}`.
 
 ### 3. GET /auth/me (requires access token)
@@ -97,6 +99,15 @@ Expected: `{"ok": true, "data": {"revoked": true}}`.
 - OTP: max 5 verify attempts per code; expiry e.g. 5 min; rate limit 3 requests per 10 min per phone.
 - Access token: JWT, default 60 min.
 - Refresh token: opaque, stored in DB, default 30 days; revocable via `/auth/logout`.
+
+### Refresh session policy (V1)
+
+- **(a) Multiple sessions:** Multiple active refresh sessions per user are allowed (multi-device). We do **not** revoke all previous refresh tokens on login.
+- **(b) Rotation:** Each refresh is revoked immediately on use. Calling `POST /auth/refresh` with a valid token returns new tokens and invalidates the one sent.
+- **(c) Logout:** `POST /auth/logout` revokes only the presented refresh token (Bearer). Other sessions remain valid.
+- **(d) Future options (not in V1):** Device-aware revoke or revoke-all-on-login may be added later; not enabled for V1 field test.
+
+Optional audit: `POST /auth/verify_otp` accepts `X-Device-Info` and `X-Client-IP` headers; when present, they are stored on the new refresh token row for auditability.
 
 ---
 

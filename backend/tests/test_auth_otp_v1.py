@@ -61,6 +61,33 @@ def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(db, monkeyp
     assert user is not None
 
 
+def test_verify_otp_stores_device_info_and_ip_when_headers_present(db, monkeypatch):
+    """verify_otp with X-Device-Info and X-Client-IP stores them on the refresh token row (A3.2)."""
+    monkeypatch.setenv("OTP_SECRET", "test_otp_secret_device")
+    code_plain = "111222"
+    phone = "+989177777777"
+    with patch.object(svc, "generate_otp_code", return_value=code_plain):
+        ok, _ = svc.request_otp(db, phone)
+    assert ok is True
+    r = client.post(
+        "/auth/verify_otp",
+        json={"phone": phone, "code": code_plain},
+        headers={"X-Device-Info": "TestDevice/1.0", "X-Client-IP": "192.168.1.100"},
+    )
+    assert r.status_code == 200 and r.json().get("ok") is True
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    assert user is not None
+    rt = (
+        db.query(models.RefreshToken)
+        .filter(models.RefreshToken.user_id == user.id)
+        .order_by(models.RefreshToken.created_at.desc())
+        .first()
+    )
+    assert rt is not None
+    assert rt.device_info == "TestDevice/1.0"
+    assert rt.ip == "192.168.1.100"
+
+
 def test_verify_otp_wrong_code_increments_attempts_and_fails(db, monkeypatch):
     """verify_otp with wrong code returns error and increments attempts (HMAC OTP)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_456")

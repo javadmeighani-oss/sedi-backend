@@ -49,8 +49,12 @@ def request_otp(
 
 
 @router.post("/verify_otp", response_model=APIResponse)
-def verify_otp(body: OtpVerifyIn, db: Session = Depends(get_db)):
-    """Verify OTP; create user if missing; return tokens."""
+def verify_otp(
+    body: OtpVerifyIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Verify OTP; create user if missing; return tokens. Optional X-Device-Info / X-Client-IP for audit."""
     user, err = svc.verify_otp(db, body.phone, body.code)
     if err:
         code = "OTP_INVALID"
@@ -59,7 +63,9 @@ def verify_otp(body: OtpVerifyIn, db: Session = Depends(get_db)):
         elif "attempts" in err.lower():
             code = "TOO_MANY_ATTEMPTS"
         return APIResponse(ok=False, error=ErrorInfo(code=code, message=err))
-    access_token, refresh_token, expires_in = svc.issue_tokens(db, user)
+    device_info = request.headers.get("X-Device-Info") if request else None
+    ip = (request.headers.get("X-Client-IP") or (request.client.host if request.client else None)) if request else None
+    access_token, refresh_token, expires_in = svc.issue_tokens(db, user, device_info=device_info, ip=ip)
     return APIResponse(
         ok=True,
         data=TokenOut(
