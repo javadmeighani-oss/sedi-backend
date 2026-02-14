@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import logging
+import os
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from backend.app.database import get_db
@@ -7,6 +9,13 @@ from backend.app.schemas import APIResponse, ErrorInfo
 from backend.app.core.passkey_utils import hash_passkey, verify_passkey
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# V1: passkey endpoints disabled in production (ENV=prod or DEBUG=false) to avoid query-param leakage.
+def _passkey_disabled_for_v1() -> bool:
+    env = os.environ.get("ENV", "").strip().lower()
+    debug = os.environ.get("DEBUG", "").strip().lower() in ("1", "true", "yes")
+    return env == "prod" or not debug
 
 _failed_attempts = {}
 LOCK_THRESHOLD = 5
@@ -35,6 +44,9 @@ def _is_locked(user_id: int) -> bool:
 
 @router.post("/set-passkey", response_model=APIResponse)
 def set_passkey(user_id: int, passkey: str, db: Session = Depends(get_db)):
+    if _passkey_disabled_for_v1():
+        logger.info("[auth] Passkey endpoint disabled (prod/V1): set-passkey")
+        raise HTTPException(status_code=404, detail="Not Found")
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
@@ -52,6 +64,9 @@ def set_passkey(user_id: int, passkey: str, db: Session = Depends(get_db)):
 
 @router.post("/verify-passkey", response_model=APIResponse)
 def verify_passkey_endpoint(user_id: int, passkey: str, db: Session = Depends(get_db)):
+    if _passkey_disabled_for_v1():
+        logger.info("[auth] Passkey endpoint disabled (prod/V1): verify-passkey")
+        raise HTTPException(status_code=404, detail="Not Found")
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
