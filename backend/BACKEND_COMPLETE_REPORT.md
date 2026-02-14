@@ -407,7 +407,9 @@ backend/
 
 ---
 
-### 4. `app/routers/auth_login.py` - Login & Token
+### 4. `app/routers/auth_login.py` - Login & Token *(LEGACY — DISABLED)*
+
+Stage 25 OTP is the only supported auth; this router is not mounted. Do not re-enable.
 
 **Base Path:** `/auth` (extended)
 

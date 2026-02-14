@@ -1,7 +1,7 @@
 # app/routers/__init__.py
+# auth_login is intentionally excluded: Stage 25 OTP is the only supported auth; legacy router disabled.
 from . import (
     auth,
-    auth_login,
     interact,
     health,
     lifestyle,
@@ -21,7 +21,6 @@ from . import (
 
 __all__ = [
     "auth",
-    "auth_login",
     "interact",
     "health",
     "lifestyle",

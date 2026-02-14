@@ -1,5 +1,7 @@
 # Stage 25 Step 1 – Phone OTP Auth Runbook
 
+**Stage 25 OTP is the only supported auth.** The legacy JWT refresh/login router (`auth_login`) is disabled and must not be re-included.
+
 ## Env vars
 
 | Variable | Required | Description |

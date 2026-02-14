@@ -31,7 +31,8 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes
 
 
 def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=7)):
-    """Legacy: JWT refresh (used by auth_login). Stage 25 uses opaque refresh tokens in DB."""
+    """DEPRECATED — Legacy JWT refresh only. Not used by Stage 25 (opaque refresh tokens in DB).
+    Kept only for auth_login.py which is disabled; do not use in new code or re-enable."""
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire, "scope": "refresh_token"})

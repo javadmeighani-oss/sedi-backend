@@ -48,7 +48,7 @@ backend/
 │   ├── routers/               # API endpoints
 │   │   ├── __init__.py
 │   │   ├── auth.py            # /auth
-│   │   ├── auth_login.py
+│   │   ├── auth_login.py   # LEGACY — disabled; Stage 25 OTP only
 │   │   ├── interact.py        # /interact (چت، معرفی، onboarding)
 │   │   ├── health.py          # /health
 │   │   ├── lifestyle.py       # /lifestyle
