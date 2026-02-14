@@ -4,8 +4,8 @@
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `JWT_SECRET` | Production | Secret for signing access JWTs. Default: `sedi_secret_key_2025`. |
-| `OTP_SECRET` | Recommended | Used only for OTP HMAC hashing (server-side). If missing, `JWT_SECRET` is used. Changing it invalidates active OTP codes only (max 5 minutes), not refresh tokens. |
+| `SECRET_KEY` | Production | **Canonical** secret for JWT signing (access tokens). Must be **≥ 32 bytes**, recommended **64 bytes** random (e.g. `openssl rand -base64 48`). If missing when `DEBUG=false` or `ENV=prod`, the app fails at startup. Backward-compat: `JWT_SECRET` is read when `SECRET_KEY` is not set. **Rotating SECRET_KEY invalidates all existing access tokens** (expected; users must re-auth or use refresh token where applicable). |
+| `OTP_SECRET` | Optional | Used only for OTP HMAC hashing (server-side). If missing, `SECRET_KEY` is used. Changing it invalidates active OTP codes only (max 5 minutes), not refresh tokens. |
 | `SMS_DISABLED` | Optional | Set to `true` / `1` / `yes` to skip sending SMS and log OTP with `[OTP_DEV]` (dev mode). Preserved in Step 2.2. |
 | `SMS_PROVIDER` | Optional | `kavenegar` (default) or `dummy`. Provider-agnostic gateway (Step 2.2). |
 | `KAVENEGAR_API_KEY` | When SMS_PROVIDER=kavenegar | API key from Kavenegar panel. |
@@ -90,7 +90,8 @@ Expected: `{"ok": true, "data": {"revoked": true}}`.
 
 ## Security notes
 
-- OTP and refresh tokens are stored hashed (bcrypt).
+- **SECRET_KEY**: Must be ≥ 32 bytes; 64 bytes random recommended. Rotation invalidates existing access tokens (users re-auth or refresh).
+- OTP and refresh tokens are stored hashed (HMAC-SHA256).
 - OTP: max 5 verify attempts per code; expiry e.g. 5 min; rate limit 3 requests per 10 min per phone.
 - Access token: JWT, default 60 min.
 - Refresh token: opaque, stored in DB, default 30 days; revocable via `/auth/logout`.

@@ -1,12 +1,25 @@
 # app/core/security.py
+import logging
 import os
 import jwt
 from datetime import datetime, timedelta
 
 ALGORITHM = "HS256"
 
-# JWT signing key; prefer env in production (Stage 25).
-SECRET_KEY = os.environ.get("JWT_SECRET", "sedi_secret_key_2025")
+# Canonical JWT signing key: env SECRET_KEY, backward-compat JWT_SECRET. No hardcoded fallback in production.
+_raw = os.environ.get("SECRET_KEY") or os.environ.get("JWT_SECRET")
+_debug = os.environ.get("DEBUG", "").strip().lower() in ("", "1", "true", "yes")
+_env_prod = os.environ.get("ENV", "").strip().lower() == "prod"
+if not _raw:
+    if not _debug or _env_prod:
+        raise RuntimeError("SECRET_KEY must be set when DEBUG=false or ENV=prod")
+    _raw = "x" * 64  # dev-only fallback; 64 bytes to avoid InsecureKeyLengthWarning
+_key_bytes = _raw.encode("utf-8")
+if not _debug or _env_prod:
+    if len(_key_bytes) < 32:
+        raise RuntimeError("SECRET_KEY must be at least 32 bytes in production (recommended 64)")
+SECRET_KEY = _raw
+logging.getLogger(__name__).info("[auth] SECRET_KEY length=%s", len(_key_bytes))
 
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=60)):

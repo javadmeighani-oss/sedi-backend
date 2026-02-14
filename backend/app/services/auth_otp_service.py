@@ -28,8 +28,8 @@ SMS_DISABLED = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true
 
 
 def _otp_secret() -> str:
-    """Secret for OTP HMAC only; not used for refresh tokens."""
-    return os.getenv("OTP_SECRET") or os.getenv("JWT_SECRET") or "sedi_otp_dev_secret"
+    """Secret for OTP HMAC only; not used for refresh tokens. Uses canonical SECRET_KEY if OTP_SECRET unset."""
+    return os.getenv("OTP_SECRET") or SECRET_KEY
 
 
 def _otp_hmac(code: str) -> str:
@@ -42,15 +42,9 @@ def _otp_hmac(code: str) -> str:
 def _refresh_secret() -> str:
     """
     Secret for refresh-token hashing (HMAC). Must be stable across restarts.
-    Prefer a dedicated env var; fallback to existing secrets for dev.
+    Prefer REFRESH_SECRET; fallback to canonical SECRET_KEY.
     """
-    return (
-        os.getenv("REFRESH_SECRET")
-        or os.getenv("JWT_SECRET")
-        or os.getenv("OTP_SECRET")
-        or SECRET_KEY
-        or "sedi_refresh_dev_secret"
-    )
+    return os.getenv("REFRESH_SECRET") or SECRET_KEY
 
 
 def _refresh_hmac(token: str) -> str:
