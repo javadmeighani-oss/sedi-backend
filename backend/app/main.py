@@ -16,6 +16,7 @@ from backend.app.routers import (
     decision,
     memory,
     user_knowledge,
+    system,
 )
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
@@ -44,6 +45,7 @@ app.add_middleware(
 )
 
 # ------------------ Main Routes (Routers) ------------------
+app.include_router(system.router, tags=["System"])  # GET /health for monitoring (Freeze B1)
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(auth_otp.router, prefix="/auth", tags=["Authentication"])
 app.include_router(interact.router, prefix="/interact", tags=["Interaction"])

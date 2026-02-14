@@ -17,6 +17,7 @@ from . import (
     user_knowledge,
     sms_gateway,
     device_data,
+    system,
 )
 
 __all__ = [
@@ -36,4 +37,5 @@ __all__ = [
     "user_knowledge",
     "sms_gateway",
     "device_data",
+    "system",
 ]

@@ -86,6 +86,7 @@ Expected: `{"ok": true, "data": {"revoked": true}}`.
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/health` | **Monitoring (Freeze B1):** 200 JSON with `ok`, `version`, `env` (prod/dev), `db` (ok/error), `timestamp`. No secrets. Use for production health checks. |
 | POST | `/auth/request_otp` | Body: `{ "phone": "+..." }`. Rate-limited (e.g. 3 per 10 min). |
 | POST | `/auth/verify_otp` | Body: `{ "phone": "+...", "code": "123456" }`. Returns tokens. |
 | GET | `/auth/me` | Header: `Authorization: Bearer <access_token>`. |

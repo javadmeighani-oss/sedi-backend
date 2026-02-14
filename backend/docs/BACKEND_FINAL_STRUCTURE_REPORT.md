@@ -62,7 +62,8 @@ backend/
 │   │   ├── medical.py
 │   │   ├── memory.py
 │   │   ├── sms_gateway.py
-│   │   └── device_data.py
+│   │   ├── device_data.py
+│   │   └── system.py          # GET /health (Freeze B1 – production monitoring)
 │   ├── schemas/               # Pydantic (درخواست/پاسخ)
 │   │   ├── __init__.py
 │   │   ├── common.py          # APIResponse, ErrorInfo
