@@ -102,3 +102,49 @@ def test_kc_confirm_flow(client: TestClient, db: Session, test_user: User):
     # Should NOT be confirm_candidate for same fact (candidate was accepted)
     if data4 and data4.get("question_type") == "confirm_candidate":
         assert data4.get("candidate_id") != candidate_id
+
+
+def _make_confirm_candidate(client: TestClient, user_id: int) -> int:
+    """Extract from message, get next_question, return candidate_id."""
+    client.post("/knowledge/extract_from_message", json={"user_id": user_id, "text": "استرس ندارم", "language": "fa"})
+    r = client.get(f"/knowledge/next_question?user_id={user_id}")
+    assert r.status_code == 200
+    data = r.json().get("data")
+    assert data and data.get("question_type") == "confirm_candidate"
+    return data["candidate_id"]
+
+
+def test_apply_answer_with_answer_baleh(client: TestClient, db: Session, test_user: User):
+    """apply_answer with {\"answer\": \"بله\"} => confirm_accepted."""
+    user_id = test_user.id
+    candidate_id = _make_confirm_candidate(client, user_id)
+    r = client.post(
+        "/knowledge/apply_answer",
+        json={"user_id": user_id, "candidate_id": candidate_id, "question_type": "confirm_candidate", "answer": "بله"},
+    )
+    assert r.status_code == 200
+    assert r.json().get("data", {}).get("applied") == "confirm_accepted"
+
+
+def test_apply_answer_with_answer_yes(client: TestClient, db: Session, test_user: User):
+    """apply_answer with {\"answer\": \"yes\"} => confirm_accepted."""
+    user_id = test_user.id
+    candidate_id = _make_confirm_candidate(client, user_id)
+    r = client.post(
+        "/knowledge/apply_answer",
+        json={"user_id": user_id, "candidate_id": candidate_id, "question_type": "confirm_candidate", "answer": "yes"},
+    )
+    assert r.status_code == 200
+    assert r.json().get("data", {}).get("applied") == "confirm_accepted"
+
+
+def test_apply_answer_with_value_still_works(client: TestClient, db: Session, test_user: User):
+    """apply_answer with {\"value\": \"بله\"} still works."""
+    user_id = test_user.id
+    candidate_id = _make_confirm_candidate(client, user_id)
+    r = client.post(
+        "/knowledge/apply_answer",
+        json={"user_id": user_id, "candidate_id": candidate_id, "question_type": "confirm_candidate", "value": "بله"},
+    )
+    assert r.status_code == 200
+    assert r.json().get("data", {}).get("applied") == "confirm_accepted"

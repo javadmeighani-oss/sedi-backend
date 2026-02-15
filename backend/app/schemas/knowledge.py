@@ -30,6 +30,7 @@ class ApplyAnswerRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
     field_key: Optional[str] = Field(None, description="birth_year, sex, ... or fact_type")
     value: Optional[Any] = Field(None, description="Scalar or JSON-serializable value")
+    answer: Optional[str] = Field(None, description="For confirm_candidate: raw answer (alias for value)")
     candidate_id: Optional[int] = Field(None, description="For confirm_candidate: candidate to accept/reject")
     question_type: Optional[str] = Field(None, description="confirm_candidate when answering Yes/No")
 

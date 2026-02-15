@@ -69,11 +69,16 @@ def apply_answer_endpoint(
     """
     _ensure_user(db, payload.user_id)
     try:
+        # For confirm_candidate: use answer if present, else value
+        raw_value = payload.value
+        if payload.candidate_id is not None and (payload.question_type or "").strip().lower() == "confirm_candidate":
+            a = payload.answer if (payload.answer is not None and str(payload.answer).strip()) else payload.value
+            raw_value = a
         result = apply_answer(
             db=db,
             user_id=payload.user_id,
             field_key=payload.field_key,
-            value=payload.value,
+            value=raw_value,
             candidate_id=payload.candidate_id,
             question_type=payload.question_type,
         )
