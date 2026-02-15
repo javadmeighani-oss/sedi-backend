@@ -1,8 +1,25 @@
 # app/schemas/knowledge.py
-"""Schemas for Knowledge Capture V1 admin API."""
+"""Schemas for Knowledge Capture V1 API."""
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
+
+
+class NextQuestionData(BaseModel):
+    """GET /knowledge/next_question data payload."""
+    user_id: int
+    question_id: str
+    field_key: str
+    text: str
+    options: List[str] = []
+    reason: str = ""
+
+
+class ApplyAnswerRequest(BaseModel):
+    """POST /knowledge/admin/answers/apply body."""
+    user_id: int = Field(..., description="User ID")
+    field_key: str = Field(..., description="birth_year, sex, height_cm, weight_kg, language, quiet_hours, or fact_type")
+    value: Any = Field(..., description="Scalar or JSON-serializable value")
 
 
 class KcCandidateCreate(BaseModel):

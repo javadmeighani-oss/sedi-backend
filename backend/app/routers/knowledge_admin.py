@@ -14,8 +14,9 @@ from backend.app.services.knowledge.service import (
     accept_candidate,
     reject_candidate,
     list_user_facts,
+    apply_answer,
 )
-from backend.app.schemas.knowledge import KcCandidateCreate, KcCandidateRead, KcUserFactRead
+from backend.app.schemas.knowledge import KcCandidateCreate, KcCandidateRead, KcUserFactRead, ApplyAnswerRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -89,6 +90,26 @@ def admin_reject_candidate(
     if not ok:
         raise HTTPException(status_code=404, detail="Candidate not found or not pending")
     return {"ok": True}
+
+
+# -------------------- POST /knowledge/admin/answers/apply --------------------
+@router.post("/answers/apply")
+def admin_apply_answer(
+    request: Request,
+    payload: ApplyAnswerRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Apply an answer for testing. If field_key is profile_core column -> update user_profile_core.
+    Else -> create candidate + accept into kc_user_facts with verified_by=user.
+    """
+    _require_admin(request)
+    _ensure_user(db, payload.user_id)
+    try:
+        result = apply_answer(db=db, user_id=payload.user_id, field_key=payload.field_key, value=payload.value)
+        return {"ok": True, **result}
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # -------------------- GET /knowledge/admin/users/{user_id}/facts --------------------
