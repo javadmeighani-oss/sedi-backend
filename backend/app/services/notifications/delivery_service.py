@@ -7,6 +7,7 @@ Stage 16.6.2: Batching, timeouts, in-process retries, structured logs.
 
 import logging
 import os
+import threading
 import time
 from datetime import datetime
 from typing import Optional, Protocol
@@ -25,6 +26,9 @@ _FCM_BACKOFF_SECONDS = int(os.getenv("FCM_BACKOFF_SECONDS", "10"))
 
 # Lightweight health: last run timestamp (updated each deliver_pending)
 last_deliver_pending_run_at: Optional[datetime] = None
+
+# Runtime lock: prevents re-entrancy (scheduler + HTTP endpoint). V1 overlap mitigation.
+_deliver_pending_lock = threading.Lock()
 
 
 class DeliveryAdapter(Protocol):
@@ -201,8 +205,20 @@ class DeliveryService:
         Select notifications where is_sent=false and (scheduled_for is null or scheduled_for <= now),
         send each via adapter (with in-process retries), mark is_sent=True on success.
         Stage 16.6.2: Uses DELIVER_BATCH_SIZE; in-process retry with backoff up to FCM_MAX_RETRIES.
+        V1: In-process lock prevents overlap (scheduler + HTTP); skip if already running.
         """
+        if not _deliver_pending_lock.acquire(blocking=False):
+            logger.info("[NOTIF] deliver_pending skipped: lock held (previous run in progress)")
+            return 0
+        try:
+            return self._deliver_pending_impl(limit)
+        finally:
+            _deliver_pending_lock.release()
+
+    def _deliver_pending_impl(self, limit: Optional[int] = None) -> int:
+        """Inner implementation (called under _deliver_pending_lock)."""
         global last_deliver_pending_run_at
+        t0 = time.perf_counter()
         now = datetime.utcnow()
         batch_size = limit if limit is not None else _DELIVER_BATCH_SIZE
         batch_size = min(batch_size, _DELIVER_BATCH_SIZE)
@@ -216,7 +232,7 @@ class DeliveryService:
             .all()
         )
         last_deliver_pending_run_at = now
-        logger.info("[NOTIF] deliver batch_size=%s pending_count=%s", batch_size, len(pending))
+        logger.info("[NOTIF] deliver_pending start batch_size=%s pending_count=%s", batch_size, len(pending))
 
         sent_count = 0
         for notification in pending:
@@ -257,4 +273,6 @@ class DeliveryService:
                     self.db.commit()
                 except Exception:
                     self.db.rollback()
+        duration_ms = int((time.perf_counter() - t0) * 1000)
+        logger.info("[NOTIF] deliver_pending end duration_ms=%s sent_count=%s", duration_ms, sent_count)
         return sent_count

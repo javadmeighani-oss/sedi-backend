@@ -1,5 +1,6 @@
 # app/core/scheduler.py
 import os
+import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -404,12 +405,14 @@ def run_medication_reminders():
 # -------------------------------
 def run_deliver_pending():
     """Query unsent notifications, send via adapter, mark is_sent=true. Idempotent."""
+    t0 = time.perf_counter()
+    print("[Sedi Scheduler] deliver_pending job start")
     from backend.app.services.notifications.delivery_service import DeliveryService
     with next(get_db()) as db:
         service = DeliveryService(db=db)
         sent_count = service.deliver_pending(limit=100)
-        if sent_count > 0:
-            print(f"[Sedi Scheduler] deliver_pending: marked {sent_count} notification(s) as sent")
+    duration_ms = int((time.perf_counter() - t0) * 1000)
+    print(f"[Sedi Scheduler] deliver_pending job end duration_ms={duration_ms} sent_count={sent_count}")
 
 
 # -------------------------------
@@ -455,12 +458,16 @@ def start_scheduler():
     )
 
     # Schedule notification delivery outbox every N minutes
+    # V1: max_instances=1 + coalesce + misfire_grace_time prevent overlap warning
     scheduler.add_job(
         run_deliver_pending,
         "interval",
         minutes=DELIVERY_PENDING_INTERVAL_MIN,
         id="deliver_pending",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
     )
 
     # Schedule device disconnected check (last_seen_at > threshold -> notify, dedupe per device)
