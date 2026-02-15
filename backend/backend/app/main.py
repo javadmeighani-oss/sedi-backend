@@ -2,8 +2,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
-from app.database import engine, Base
-from app.routers import (
+from backend.app.database import engine, Base
+from backend.app.routers import (
     auth,
     interact,
     health,
@@ -11,7 +11,7 @@ from app.routers import (
     notifications,
     ai_core,
 )
-from app.core.scheduler import start_scheduler  # For automatic notifications
+from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
 # ------------------ Create Database Tables ------------------
 Base.metadata.create_all(bind=engine)
@@ -49,7 +49,7 @@ app.include_router(notifications.router, prefix="/notifications", tags=["Notific
 app.include_router(ai_core.router, prefix="/ai_core", tags=["AI Core"])
 
 # ------------------ Activate Scheduler ------------------
-from app.core.scheduler import start_scheduler
+from backend.app.core.scheduler import start_scheduler
 start_scheduler()
 
 # ------------------ Root Endpoint for Testing ------------------
