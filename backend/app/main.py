@@ -16,6 +16,7 @@ from backend.app.routers import (
     decision,
     memory,
     user_knowledge,
+    knowledge_admin,
     system,
 )
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
@@ -59,6 +60,7 @@ app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 app.include_router(decision.router)
 app.include_router(memory.router, prefix="/memory", tags=["Memory"])
 app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
+app.include_router(knowledge_admin.router, prefix="/knowledge/admin", tags=["Knowledge Admin"])
 
 # ------------------ Activate Scheduler ------------------
 start_scheduler()

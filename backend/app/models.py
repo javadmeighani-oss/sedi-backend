@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Time, ForeignKey, Boolean, Float, Text, UniqueConstraint
 from datetime import datetime
 from backend.app.database import Base
 
@@ -269,6 +269,55 @@ class OtpCode(Base):
     attempts = Column(Integer, default=0, nullable=False)
     sent_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserProfileCore (Knowledge Capture V1) --------------------
+class UserProfileCore(Base):
+    """1 row per user: health + lifestyle profile (birth_year, sex, height, weight, quiet window)."""
+    __tablename__ = "user_profile_core"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    birth_year = Column(Integer, nullable=True)
+    sex = Column(String(32), nullable=True)
+    height_cm = Column(Integer, nullable=True)
+    weight_kg = Column(Float, nullable=True)
+    language = Column(String(32), nullable=True)
+    quiet_start = Column(Time, nullable=True)
+    quiet_end = Column(Time, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- KcFactCandidate (Knowledge Capture V1) --------------------
+class KcFactCandidate(Base):
+    """Candidate facts (chat/form/import) awaiting verification."""
+    __tablename__ = "kc_fact_candidates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    source = Column(String(32), nullable=False)  # chat, form, import
+    fact_type = Column(String(128), nullable=False)
+    value_json = Column(Text, nullable=False)
+    confidence = Column(Float, nullable=False)
+    evidence = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False)  # pending, accepted, rejected
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- KcUserFact (Knowledge Capture V1) --------------------
+class KcUserFact(Base):
+    """Verified facts with validity window. Multiple rows per (user_id, fact_type) allowed."""
+    __tablename__ = "kc_user_facts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    fact_type = Column(String(128), nullable=False, index=True)
+    value_json = Column(Text, nullable=False)
+    verified_by = Column(String(32), nullable=False)  # user, system, clinician
+    valid_from = Column(DateTime, nullable=False)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
 # -------------------- RefreshToken (Stage 25 – Persistent refresh tokens) --------------------
