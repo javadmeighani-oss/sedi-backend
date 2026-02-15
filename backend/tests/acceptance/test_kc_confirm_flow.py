@@ -13,24 +13,42 @@ from pathlib import Path
 import sys
 
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-_path = Path(__file__).resolve().parents[2]
-if str(_path) not in sys.path:
-    sys.path.insert(0, str(_path))
+# Ensure canonical backend.app (with knowledge routes) is used
+# parents[3] = repo root (folder containing backend/) so backend.app -> backend/app/
+_repo_root = Path(__file__).resolve().parents[3]
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
 
 from backend.app.database import Base, SessionLocal, engine
-from backend.app.main import app
+from backend.app.main import app as sedi_app
 
 # Fixed user_id for deterministic tests
 _TEST_USER_ID = 91001
 
 
+def _collect_paths(routes, prefix=""):
+    """Collect all route paths from FastAPI/Starlette app (including mounted routers)."""
+    paths = set()
+    for r in routes:
+        path = getattr(r, "path", None) or ""
+        if hasattr(r, "routes"):
+            paths.update(_collect_paths(r.routes, prefix + path))
+        elif path:
+            paths.add(prefix + path)
+    return paths
+
+
 @pytest.fixture()
 def client() -> TestClient:
-    return TestClient(app)
+    paths = _collect_paths(sedi_app.routes)
+    assert "/knowledge/extract_from_message" in paths, f"Missing knowledge routes. Found: {sorted(paths)}"
+    assert "/knowledge/next_question" in paths
+    assert "/knowledge/apply_answer" in paths
+    return TestClient(sedi_app)
 
 
 @pytest.fixture()
