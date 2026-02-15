@@ -12,7 +12,7 @@ from backend.app import models
 
 logger = logging.getLogger(__name__)
 
-SOURCES = ("chat", "form", "import")
+SOURCES = ("chat", "form", "import", "chat_extraction_v1")
 PROFILE_COLUMNS = {"birth_year", "sex", "height_cm", "weight_kg", "language", "quiet_start", "quiet_end", "quiet_hours"}
 STATUSES = ("pending", "accepted", "rejected")
 VERIFIED_BY = ("user", "system", "clinician")
@@ -33,8 +33,9 @@ def create_candidate(
     value_json: str,
     confidence: float,
     evidence: Optional[str] = None,
+    metadata_json: Optional[str] = None,
 ) -> models.KcFactCandidate:
-    """Create a pending fact candidate. source in (chat, form, import)."""
+    """Create a pending fact candidate. source in (chat, form, import, chat_extraction_v1)."""
     src = (source or "chat").strip().lower()
     if src not in SOURCES:
         src = "chat"
@@ -49,6 +50,7 @@ def create_candidate(
         confidence=float(confidence),
         evidence=ev,
         status="pending",
+        metadata_json=metadata_json,
     )
     db.add(row)
     db.commit()
@@ -175,19 +177,41 @@ def ensure_profile_core(db: Session, user_id: int) -> models.UserProfileCore:
     return row
 
 
+def _is_yes_answer(value: Any) -> bool:
+    """Check if value indicates Yes/affirmative."""
+    if value is None:
+        return False
+    s = str(value).strip().lower()
+    if s in ("بله", "آره", "yes", "true", "1", "درسته", "بله، درسته"):
+        return True
+    return s.startswith("بله") or s.startswith("آره")
+
+
 def apply_answer(
     db: Session,
     user_id: int,
-    field_key: str,
-    value: Any,
+    field_key: Optional[str] = None,
+    value: Any = None,
+    candidate_id: Optional[int] = None,
+    question_type: Optional[str] = None,
 ) -> dict:
     """
-    Apply user answer: update profile_core or create+accept fact.
-    Returns {"applied": "profile"|"fact", "fact_id"?: int}.
+    Apply user answer: profile update, fact create+accept, or confirm_candidate Yes/No.
+    Returns {"applied": "profile"|"fact"|"confirm_accepted"|"confirm_rejected", "fact_id"?: int}.
     """
+    # confirm_candidate flow
+    if candidate_id is not None and (question_type or "").strip().lower() == "confirm_candidate":
+        if _is_yes_answer(value):
+            fact = accept_candidate(db=db, candidate_id=candidate_id, verified_by="user")
+            logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_accepted", user_id, candidate_id)
+            return {"applied": "confirm_accepted", "fact_id": fact.id if fact else None}
+        ok = reject_candidate(db=db, candidate_id=candidate_id)
+        logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_rejected", user_id, candidate_id)
+        return {"applied": "confirm_rejected"}
+
     field_key = (field_key or "").strip()
     if not field_key:
-        raise ValueError("field_key required")
+        raise ValueError("field_key required (or candidate_id+question_type for confirm_candidate)")
 
     if field_key in PROFILE_COLUMNS:
         profile = ensure_profile_core(db, user_id)

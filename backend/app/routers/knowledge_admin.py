@@ -106,7 +106,14 @@ def admin_apply_answer(
     _require_admin(request)
     _ensure_user(db, payload.user_id)
     try:
-        result = apply_answer(db=db, user_id=payload.user_id, field_key=payload.field_key, value=payload.value)
+        result = apply_answer(
+            db=db,
+            user_id=payload.user_id,
+            field_key=payload.field_key,
+            value=payload.value,
+            candidate_id=payload.candidate_id,
+            question_type=payload.question_type,
+        )
         return {"ok": True, **result}
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))

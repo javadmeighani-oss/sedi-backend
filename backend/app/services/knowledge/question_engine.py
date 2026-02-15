@@ -12,6 +12,17 @@ from backend.app.services.knowledge.service import ensure_profile_core
 
 logger = logging.getLogger(__name__)
 
+# Confirmation question text by fact_key. {value} replaced with candidate value.
+CONFIRM_QUESTIONS: Dict[str, str] = {
+    "sleep_quality": "درست متوجه شدم خواب‌تون دیشب خوب نبود؟",
+    "stress_level": "درست متوجه شدم این روزها استرس‌تون بالاست؟",
+    "stress_level_low": "درست متوجه شدم این روزها آرومید؟",
+    "daily_walk_minutes": "درست متوجه شدم روزانه حدود {value} دقیقه پیاده‌روی می‌کنید؟",
+    "medications": "درست متوجه شدم داروی «{value}» مصرف می‌کنید؟",
+}
+
+CONFIRM_QUESTION_FALLBACK = "درست متوجه شدم؟"
+
 # Profile core fields in priority order
 PROFILE_FIELDS = ["birth_year", "sex", "height_cm", "weight_kg", "language", "quiet_hours"]
 
@@ -101,15 +112,67 @@ def _has_sleep_window(db: Session, user_id: int) -> bool:
     return _has_fact(db, user_id, "sleep_window")
 
 
+def _get_pending_confirmation_candidate(db: Session, user_id: int) -> Optional[models.KcFactCandidate]:
+    """Return earliest pending candidate with needs_confirmation in metadata."""
+    rows = (
+        db.query(models.KcFactCandidate)
+        .filter(
+            models.KcFactCandidate.user_id == user_id,
+            models.KcFactCandidate.status == "pending",
+            models.KcFactCandidate.metadata_json.isnot(None),
+        )
+        .order_by(models.KcFactCandidate.created_at.asc())
+        .all()
+    )
+    for row in rows:
+        try:
+            meta = json.loads(row.metadata_json or "{}")
+            if meta.get("needs_confirmation"):
+                return row
+        except (json.JSONDecodeError, TypeError):
+            continue
+    return None
+
+
+def _format_confirm_question(cand: models.KcFactCandidate) -> str:
+    """Build Persian confirmation question from candidate."""
+    try:
+        val = json.loads(cand.value_json)
+        val_str = str(val) if val is not None else ""
+    except (json.JSONDecodeError, TypeError):
+        val_str = ""
+    key = cand.fact_type
+    if key == "stress_level" and val_str == "low":
+        key = "stress_level_low"
+    tpl = CONFIRM_QUESTIONS.get(key, CONFIRM_QUESTIONS.get(cand.fact_type, CONFIRM_QUESTION_FALLBACK))
+    return tpl.format(value=val_str) if "{value}" in tpl else tpl
+
+
 def _get_next_question_data(db: Session, user_id: int) -> Optional[Dict[str, Any]]:
     """
     Return next question payload or None. V1 deterministic priority:
     A) Ensure profile_core exists
+    A1) Pending needs_confirmation candidates -> confirm_candidate first
     B) Missing profile fields -> birth_year, sex, height_cm, weight_kg, language, quiet_hours
     C) sleep_window exists but sleep_quality missing -> sleep_quality first
     D) Missing care facts -> medications, medications_list, activity_level, stress_level, sleep_quality
     """
     profile = ensure_profile_core(db, user_id)
+
+    # A1) Pending confirmation candidates first
+    cand = _get_pending_confirmation_candidate(db, user_id)
+    if cand:
+        text = _format_confirm_question(cand)
+        return {
+            "user_id": user_id,
+            "question_id": "kc_q_confirm_candidate_v1",
+            "question_type": "confirm_candidate",
+            "field_key": cand.fact_type,
+            "candidate_id": cand.id,
+            "text": text,
+            "options": ["بله، درسته", "نه"],
+            "reason": "تایید اطلاعات استخراج‌شده از گفتگو.",
+        }
 
     # B) Missing profile fields
     for f in PROFILE_FIELDS:

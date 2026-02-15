@@ -295,12 +295,13 @@ class KcFactCandidate(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    source = Column(String(32), nullable=False)  # chat, form, import
+    source = Column(String(64), nullable=False)  # chat, form, import, chat_extraction_v1
     fact_type = Column(String(128), nullable=False)
     value_json = Column(Text, nullable=False)
     confidence = Column(Float, nullable=False)
     evidence = Column(Text, nullable=True)
     status = Column(String(32), nullable=False)  # pending, accepted, rejected
+    metadata_json = Column(Text, nullable=True)  # {"needs_confirmation": true, "source_message_id": "..."}
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
