@@ -1,27 +1,31 @@
 """
-Acceptance test: KC confirm flow.
-- POST /knowledge/extract_from_message with medium-confidence (stress_level low = 0.75)
-- GET /knowledge/next_question returns type=confirm_candidate with candidate_id
-- POST /knowledge/apply_answer with Yes => candidate accepted, removed from queue
+Acceptance test: KC confirm flow (API-driven, no ORM imports).
+- POST /knowledge/extract_from_message
+- GET /knowledge/next_question returns confirm_candidate
+- POST /knowledge/apply_answer with answer=Yes
+- GET /knowledge/next_question no longer returns same candidate
 """
 
 from __future__ import annotations
 
-import os
-import sys
+import uuid
 from pathlib import Path
+import sys
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-_repo_root = Path(__file__).resolve().parents[2]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
+_path = Path(__file__).resolve().parents[2]
+if str(_path) not in sys.path:
+    sys.path.insert(0, str(_path))
 
 from backend.app.database import Base, SessionLocal, engine
 from backend.app.main import app
-from backend.app.models import User, KcFactCandidate, KcUserFact
+
+# Fixed user_id for deterministic tests
+_TEST_USER_ID = 91001
 
 
 @pytest.fixture()
@@ -41,34 +45,40 @@ def db() -> Session:
 
 
 @pytest.fixture()
-def test_user(db: Session) -> User:
-    user = User(
-        name="KC Confirm Test",
-        secret_key="secret",
-        preferred_language="fa",
+def test_user_id(db: Session) -> int:
+    """Create user via raw SQL (no ORM model import)."""
+    db.execute(
+        text(
+            "INSERT INTO users (id, name, secret_key, preferred_language, created_at) "
+            "VALUES (:id, :name, :secret, :lang, NOW())"
+        ),
+        {"id": _TEST_USER_ID, "name": "KC Test", "secret": "x", "lang": "fa"},
     )
-    db.add(user)
     db.commit()
-    db.refresh(user)
-    return user
+    return _TEST_USER_ID
 
 
-def test_kc_confirm_flow(client: TestClient, db: Session, test_user: User):
-    """Full flow: extract (medium conf) -> next_question (confirm) -> apply Yes -> accepted."""
-    user_id = test_user.id
+def test_kc_confirm_flow(client: TestClient, test_user_id: int):
+    """Full flow: extract -> next_question (confirm) -> apply Yes -> next_question no longer same candidate."""
+    user_id = test_user_id
+    source_id = f"pytest-{uuid.uuid4().hex[:12]}"
 
-    # 1) Extract from message: "استرس ندارم" => stress_level low @ 0.75 (CONFIRM threshold)
+    # a) POST extract_from_message
     r1 = client.post(
         "/knowledge/extract_from_message",
-        json={"user_id": user_id, "text": "استرس ندارم", "language": "fa"},
+        json={
+            "user_id": user_id,
+            "text": "دارم متفورمین می‌خورم",
+            "language": "fa",
+            "source_message_id": source_id,
+        },
     )
-    assert r1.status_code == 200
+    assert r1.status_code == 200, r1.text
     d1 = r1.json()
     assert d1.get("ok") is True
-    data1 = d1.get("data", {})
-    assert data1.get("created_candidates_count", 0) >= 1
+    assert d1.get("data", {}).get("created_candidates_count", 0) >= 1
 
-    # 2) GET next_question returns confirm_candidate
+    # b) GET next_question
     r2 = client.get(f"/knowledge/next_question?user_id={user_id}")
     assert r2.status_code == 200
     d2 = r2.json()
@@ -76,17 +86,17 @@ def test_kc_confirm_flow(client: TestClient, db: Session, test_user: User):
     data2 = d2.get("data")
     assert data2 is not None
     assert data2.get("question_type") == "confirm_candidate"
-    assert "candidate_id" in data2
+    assert data2.get("candidate_id") is not None
     candidate_id = data2["candidate_id"]
 
-    # 3) Apply answer Yes
+    # c) POST apply_answer
     r3 = client.post(
         "/knowledge/apply_answer",
         json={
             "user_id": user_id,
-            "candidate_id": candidate_id,
             "question_type": "confirm_candidate",
-            "value": "بله، درسته",
+            "candidate_id": candidate_id,
+            "answer": "بله",
         },
     )
     assert r3.status_code == 200
@@ -94,19 +104,27 @@ def test_kc_confirm_flow(client: TestClient, db: Session, test_user: User):
     assert d3.get("ok") is True
     assert d3.get("data", {}).get("applied") == "confirm_accepted"
 
-    # 4) next_question no longer returns this candidate (it's accepted)
+    # d) GET next_question again - should NOT return same candidate_id
     r4 = client.get(f"/knowledge/next_question?user_id={user_id}")
     assert r4.status_code == 200
     d4 = r4.json()
     data4 = d4.get("data")
-    # Should NOT be confirm_candidate for same fact (candidate was accepted)
     if data4 and data4.get("question_type") == "confirm_candidate":
         assert data4.get("candidate_id") != candidate_id
 
 
 def _make_confirm_candidate(client: TestClient, user_id: int) -> int:
-    """Extract from message, get next_question, return candidate_id."""
-    client.post("/knowledge/extract_from_message", json={"user_id": user_id, "text": "استرس ندارم", "language": "fa"})
+    """Extract and return candidate_id for confirmation."""
+    source_id = f"pytest-{uuid.uuid4().hex[:12]}"
+    client.post(
+        "/knowledge/extract_from_message",
+        json={
+            "user_id": user_id,
+            "text": "دارم متفورمین می‌خورم",
+            "language": "fa",
+            "source_message_id": source_id,
+        },
+    )
     r = client.get(f"/knowledge/next_question?user_id={user_id}")
     assert r.status_code == 200
     data = r.json().get("data")
@@ -114,37 +132,49 @@ def _make_confirm_candidate(client: TestClient, user_id: int) -> int:
     return data["candidate_id"]
 
 
-def test_apply_answer_with_answer_baleh(client: TestClient, db: Session, test_user: User):
-    """apply_answer with {\"answer\": \"بله\"} => confirm_accepted."""
-    user_id = test_user.id
-    candidate_id = _make_confirm_candidate(client, user_id)
+def test_apply_answer_with_answer_baleh(client: TestClient, test_user_id: int):
+    """apply_answer with answer='بله' => confirm_accepted."""
+    candidate_id = _make_confirm_candidate(client, test_user_id)
     r = client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "candidate_id": candidate_id, "question_type": "confirm_candidate", "answer": "بله"},
+        json={
+            "user_id": test_user_id,
+            "candidate_id": candidate_id,
+            "question_type": "confirm_candidate",
+            "answer": "بله",
+        },
     )
     assert r.status_code == 200
     assert r.json().get("data", {}).get("applied") == "confirm_accepted"
 
 
-def test_apply_answer_with_answer_yes(client: TestClient, db: Session, test_user: User):
-    """apply_answer with {\"answer\": \"yes\"} => confirm_accepted."""
-    user_id = test_user.id
-    candidate_id = _make_confirm_candidate(client, user_id)
+def test_apply_answer_with_answer_yes(client: TestClient, test_user_id: int):
+    """apply_answer with answer='yes' => confirm_accepted."""
+    candidate_id = _make_confirm_candidate(client, test_user_id)
     r = client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "candidate_id": candidate_id, "question_type": "confirm_candidate", "answer": "yes"},
+        json={
+            "user_id": test_user_id,
+            "candidate_id": candidate_id,
+            "question_type": "confirm_candidate",
+            "answer": "yes",
+        },
     )
     assert r.status_code == 200
     assert r.json().get("data", {}).get("applied") == "confirm_accepted"
 
 
-def test_apply_answer_with_value_still_works(client: TestClient, db: Session, test_user: User):
-    """apply_answer with {\"value\": \"بله\"} still works."""
-    user_id = test_user.id
-    candidate_id = _make_confirm_candidate(client, user_id)
+def test_apply_answer_with_value_still_works(client: TestClient, test_user_id: int):
+    """apply_answer with value='بله' still works."""
+    candidate_id = _make_confirm_candidate(client, test_user_id)
     r = client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "candidate_id": candidate_id, "question_type": "confirm_candidate", "value": "بله"},
+        json={
+            "user_id": test_user_id,
+            "candidate_id": candidate_id,
+            "question_type": "confirm_candidate",
+            "value": "بله",
+        },
     )
     assert r.status_code == 200
     assert r.json().get("data", {}).get("applied") == "confirm_accepted"
