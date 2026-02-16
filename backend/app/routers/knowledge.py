@@ -1,7 +1,8 @@
 # app/routers/knowledge.py
 """Knowledge Capture V1 public API. No admin token required."""
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -18,9 +19,115 @@ from backend.app.services.knowledge.kc_fatigue_policy import (
     mark_asked,
     mark_answer,
 )
+from backend.app.knowledge.tone import apply_companion_tone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# KC → Notification Bridge: best-effort idempotency window (no new migrations)
+_KC_NOTIFY_DEDUPE_MINUTES = 10
+_KC_NOTIFICATION_TYPE = "kc_confirm"
+_KC_CHANNEL = "engagement"
+_DEFAULT_KC_TITLE_FA = "یه سوال کوتاه"
+_DEFAULT_KC_TITLE_EN = "Quick question"
+
+
+_KC_DELIVER_PENDING_LIMIT = 1  # Minimize latency; do not deliver up to 10 in same request
+
+
+def _maybe_send_kc_notification(
+    db: Session,
+    user_id: int,
+    data: Dict[str, Any],
+    lang: str,
+    in_app: bool = False,
+) -> Dict[str, Any]:
+    """
+    When data is confirm_candidate with display_* fields, create notification (and optionally deliver).
+    Best-effort idempotency via dedupe_key; errors are non-fatal.
+    in_app=True: create inbox record only, do not call deliver_pending (user active in app).
+    Returns: { attempted: bool, ok: bool, reason?: str, notification_id?: int }.
+    Reasons: dedupe_skip | in_app_skip_delivery | created_and_delivered | created_pending | error.
+    """
+    result: Dict[str, Any] = {"attempted": False, "ok": False}
+    if (data.get("question_type") or "").strip().lower() != "confirm_candidate":
+        return result
+    body = (data.get("display_body") or "").strip()
+    if not body:
+        result["attempted"] = True
+        result["reason"] = "missing_display_body"
+        return result
+    candidate_id = data.get("candidate_id")
+    title = (data.get("display_title") or "").strip()
+    if not title:
+        title = _DEFAULT_KC_TITLE_EN if (lang or "").strip().lower() in ("en", "en-us", "en-gb") else _DEFAULT_KC_TITLE_FA
+
+    dedupe_key = f"kc_confirm:{user_id}:confirm_candidate:{candidate_id}"
+
+    try:
+        cutoff = datetime.utcnow() - timedelta(minutes=_KC_NOTIFY_DEDUPE_MINUTES)
+        existing = (
+            db.query(models.Notification)
+            .filter(
+                models.Notification.user_id == user_id,
+                models.Notification.dedupe_key == dedupe_key,
+                models.Notification.created_at >= cutoff,
+            )
+            .first()
+        )
+        if existing is not None:
+            result["attempted"] = True
+            result["ok"] = True
+            result["reason"] = "dedupe_skip"
+            result["notification_id"] = existing.id
+            return result
+
+        now = datetime.utcnow()
+        notif = models.Notification(
+            user_id=user_id,
+            type=_KC_NOTIFICATION_TYPE,
+            title=title,
+            body=body,
+            priority="normal",
+            is_read=False,
+            is_sent=False,
+            scheduled_for=now,
+            dedupe_key=dedupe_key,
+            channel=_KC_CHANNEL,
+            language=(lang or "fa")[:20],
+            status="queued",
+            actions_json='[{"id":"open_chat","type":"OPEN_CHAT"}]',
+            provider=None,
+        )
+        if candidate_id is not None:
+            notif.deeplink_url = f"sedi://chat?from=kc&candidate_id={candidate_id}"
+        db.add(notif)
+        db.commit()
+        db.refresh(notif)
+        if not notif.deeplink_url:
+            notif.deeplink_url = f"sedi://chat?from=notif&id={notif.id}"
+            db.add(notif)
+            db.commit()
+
+        result["attempted"] = True
+        result["ok"] = True
+        result["notification_id"] = notif.id
+
+        if in_app:
+            result["reason"] = "in_app_skip_delivery"
+            return result
+
+        from backend.app.services.notifications.delivery_service import DeliveryService
+        delivery = DeliveryService(db=db)
+        delivery.deliver_pending(limit=_KC_DELIVER_PENDING_LIMIT)
+        result["reason"] = "created_and_delivered"
+        return result
+    except Exception as e:
+        logger.warning("kc_notify_failed user_id=%s candidate_id=%s error=%s", user_id, candidate_id, str(e))
+        result["attempted"] = True
+        result["ok"] = False
+        result["reason"] = (str(e) or "error")[:200]
+        return result
 
 
 def _ensure_user(db: Session, user_id: int) -> models.User:
@@ -30,17 +137,33 @@ def _ensure_user(db: Session, user_id: int) -> models.User:
     return user
 
 
+def _resolve_lang(lang_query: Optional[str], user: models.User) -> str:
+    """Language: query param > user.preferred_language > default 'fa'."""
+    if lang_query is not None and (str(lang_query).strip().lower() in ("fa", "en", "en-us", "en-gb")):
+        return str(lang_query).strip().lower()
+    if user and getattr(user, "preferred_language", None):
+        return (str(user.preferred_language).strip().lower() or "fa")[:5]
+    return "fa"
+
+
 @router.get("/next_question", response_model=APIResponse)
 def get_next_question_endpoint(
     user_id: int = Query(..., description="User ID"),
+    lang: Optional[str] = Query(None, description="Display language: fa | en"),
+    notify: bool = Query(False, description="If true and response is confirm_candidate, send a notification"),
+    in_app: bool = Query(False, description="If true with notify=true: create inbox notification only, skip push delivery (user active in app)"),
     db: Session = Depends(get_db),
 ):
     """
     Get the best next question to ask the user for proactive data collection.
     Returns data=null with ok=true when no question needed.
     When blocked by fatigue control: status=no_question, reason=fatigue_control, next_eligible_at, policy.
+    Optional display fields (display_title, display_body, display_choices, tone_version) when confirm_candidate.
+    When notify=true and response is confirm_candidate, enqueues/sends a notification (optional data.notification).
+    When in_app=true with notify=true, notification is created but deliver_pending is not called.
+    Example: GET /knowledge/next_question?user_id=1&lang=fa&notify=true
     """
-    _ensure_user(db, user_id)
+    user = _ensure_user(db, user_id)
     now = datetime.utcnow()
     allowed, reason, next_eligible_at, policy_snapshot = check_can_ask(db, user_id, now)
     if not allowed:
@@ -56,6 +179,15 @@ def get_next_question_endpoint(
         question_type = (data.get("question_type") or "").strip() or "profile_question"
         mark_asked(db, user_id, now, question_type)
         data["policy"] = check_can_ask(db, user_id, now)[3]
+        if question_type == "confirm_candidate":
+            resolved_lang = _resolve_lang(lang, user)
+            data = apply_companion_tone(data, lang=resolved_lang)
+        if notify and question_type == "confirm_candidate":
+            try:
+                data["notification"] = _maybe_send_kc_notification(db, user_id, data, resolved_lang, in_app=in_app)
+            except Exception as e:
+                logger.warning("kc_notify_bridge_error user_id=%s error=%s", user_id, str(e))
+                data["notification"] = {"attempted": True, "ok": False, "reason": (str(e) or "error")[:200]}
     return APIResponse(ok=True, data=data, error=None)
 
 
