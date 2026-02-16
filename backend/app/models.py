@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Time, ForeignKey, Boolean, Float, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint
 from datetime import datetime
 from backend.app.database import Base
 
@@ -319,6 +319,22 @@ class KcUserFact(Base):
     valid_to = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- KcQuestionPolicyState (Knowledge Capture – Question Fatigue V1) --------------------
+class KcQuestionPolicyState(Base):
+    """Per-user fatigue state: daily cap, cooldown, burst guard, reject streak."""
+    __tablename__ = "kc_question_policy_state"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    day = Column(Date, nullable=False)  # current day marker (UTC)
+    asked_count = Column(Integer, nullable=False, default=0)
+    last_asked_at = Column(DateTime, nullable=True)
+    last_question_type = Column(Text, nullable=True)  # e.g. confirm_candidate, profile_question
+    consecutive_rejects = Column(Integer, nullable=False, default=0)
+    cooldown_until = Column(DateTime, nullable=True)
+
+    # Optional: no created_at/updated_at in spec; we can add if needed for debugging
 
 
 # -------------------- RefreshToken (Stage 25 – Persistent refresh tokens) --------------------

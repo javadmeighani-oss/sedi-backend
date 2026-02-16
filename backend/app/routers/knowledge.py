@@ -1,6 +1,7 @@
 # app/routers/knowledge.py
 """Knowledge Capture V1 public API. No admin token required."""
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -12,6 +13,11 @@ from backend.app.schemas.knowledge import ExtractFromMessageRequest, ApplyAnswer
 from backend.app.services.knowledge.question_engine import get_next_question
 from backend.app.services.knowledge.conversation_extraction_service import process_message
 from backend.app.services.knowledge.service import apply_answer
+from backend.app.services.knowledge.kc_fatigue_policy import (
+    check_can_ask,
+    mark_asked,
+    mark_answer,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -32,9 +38,24 @@ def get_next_question_endpoint(
     """
     Get the best next question to ask the user for proactive data collection.
     Returns data=null with ok=true when no question needed.
+    When blocked by fatigue control: status=no_question, reason=fatigue_control, next_eligible_at, policy.
     """
     _ensure_user(db, user_id)
+    now = datetime.utcnow()
+    allowed, reason, next_eligible_at, policy_snapshot = check_can_ask(db, user_id, now)
+    if not allowed:
+        data = {
+            "status": "no_question",
+            "reason": reason,
+            "next_eligible_at": next_eligible_at.isoformat() if next_eligible_at else None,
+            "policy": policy_snapshot,
+        }
+        return APIResponse(ok=True, data=data, error=None)
     data = get_next_question(db=db, user_id=user_id)
+    if data is not None:
+        question_type = (data.get("question_type") or "").strip() or "profile_question"
+        mark_asked(db, user_id, now, question_type)
+        data["policy"] = check_can_ask(db, user_id, now)[3]
     return APIResponse(ok=True, data=data, error=None)
 
 
@@ -82,6 +103,12 @@ def apply_answer_endpoint(
             candidate_id=payload.candidate_id,
             question_type=payload.question_type,
         )
+        outcome = result.get("outcome")
+        if outcome is not None:
+            now = datetime.utcnow()
+            mark_answer(db, payload.user_id, now, outcome)
+            _, _, _, policy_snapshot = check_can_ask(db, payload.user_id, now)
+            result = {**result, "policy": policy_snapshot}
         return APIResponse(ok=True, data=result, error=None)
     except (ValueError, TypeError) as e:
         return APIResponse(ok=False, data=None, error=ErrorInfo(code="INVALID_INPUT", message=str(e)))

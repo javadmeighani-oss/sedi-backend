@@ -187,6 +187,28 @@ def _is_yes_answer(value: Any) -> bool:
     return s.startswith("بله") or s.startswith("آره")
 
 
+def _is_no_answer(value: Any) -> bool:
+    """Explicit negative: fa نه, خیر; en no."""
+    if value is None:
+        return False
+    s = str(value).strip().lower()
+    return s in ("نه", "خیر", "no", "nope", "false", "0")
+
+
+def _is_skip_answer(value: Any) -> bool:
+    """Later / not now: بعدا, فعلا نه, not now; or empty/unknown."""
+    if value is None:
+        return True
+    s = str(value).strip().lower()
+    if not s:
+        return True
+    if s in ("بعدا", "فعلا نه", "فقط نه", "not now", "later", "skip"):
+        return True
+    if "بعدا" in s or "later" in s or "not now" in s:
+        return True
+    return False
+
+
 def apply_answer(
     db: Session,
     user_id: int,
@@ -204,10 +226,14 @@ def apply_answer(
         if _is_yes_answer(value):
             fact = accept_candidate(db=db, candidate_id=candidate_id, verified_by="user")
             logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_accepted", user_id, candidate_id)
-            return {"applied": "confirm_accepted", "fact_id": fact.id if fact else None}
-        ok = reject_candidate(db=db, candidate_id=candidate_id)
-        logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_rejected", user_id, candidate_id)
-        return {"applied": "confirm_rejected"}
+            return {"applied": "confirm_accepted", "fact_id": fact.id if fact else None, "outcome": "accepted"}
+        if _is_no_answer(value):
+            ok = reject_candidate(db=db, candidate_id=candidate_id)
+            logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_rejected", user_id, candidate_id)
+            return {"applied": "confirm_rejected", "outcome": "rejected"}
+        # skipped: بعدا, فعلا نه, not now, empty/unknown — leave candidate pending
+        logger.info("kc_apply_answer user_id=%s candidate_id=%s applied=confirm_skipped", user_id, candidate_id)
+        return {"applied": "confirm_skipped", "outcome": "skipped"}
 
     field_key = (field_key or "").strip()
     if not field_key:
