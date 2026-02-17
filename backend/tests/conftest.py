@@ -1,74 +1,70 @@
-"""
-Pytest conftest: ensure backend.app resolves; disable scheduler in tests; alias app.* to backend.app.*.
-Session fixture: run Alembic upgrade on test DB so schema exists (fixes relation 'users' does not exist).
-"""
+# backend/tests/conftest.py
 import os
-import sys
-import importlib
 import pytest
-from pathlib import Path
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from alembic.config import Config
-from alembic import command
+from starlette.testclient import TestClient
 
-# Before any app/backend.app import: disable scheduler and set test env
-os.environ.setdefault("SEDI_DISABLE_SCHEDULER", "true")
-os.environ.setdefault("ENV", "test")
-
-# backend project root = folder containing tests/ and backend/
-_BACKEND_ROOT = Path(__file__).resolve().parents[1]
-if str(_BACKEND_ROOT) not in sys.path:
-    sys.path.insert(0, str(_BACKEND_ROOT))
-
-# Alias app.* to backend.app.* so SQLAlchemy tables are not defined twice
-sys.modules.setdefault("app", importlib.import_module("backend.app"))
-sys.modules.setdefault("app.models", importlib.import_module("backend.app.models"))
-sys.modules.setdefault("app.main", importlib.import_module("backend.app.main"))
-sys.modules.setdefault("app.core", importlib.import_module("backend.app.core"))
-sys.modules.setdefault("app.core.scheduler", importlib.import_module("backend.app.core.scheduler"))
+from backend.app.database import Base, get_db as _app_get_db
+from backend.app.main import app as sedi_app
 
 
-def _get_test_db_url() -> str:
+def _get_db_url() -> str:
     return (
         os.getenv("TEST_DATABASE_URL")
         or os.getenv("DATABASE_URL")
-        or "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/sedi_test"
+        or "postgresql://postgres:postgres@localhost:5432/postgres"
     )
 
 
+# Single shared test engine for the whole pytest session (fast + consistent)
+_TEST_ENGINE = create_engine(_get_db_url(), future=True)
+
+_TestSession = sessionmaker(
+    bind=_TEST_ENGINE,
+    autoflush=False,
+    autocommit=False,
+    future=True,
+)
+
+
 @pytest.fixture(scope="session", autouse=True)
-def _migrate_test_db():
+def _create_drop_all():
     """
-    Ensures schema exists in test DB (fixes: relation 'users' does not exist).
-    Runs alembic upgrade head once per test session.
+    Create tables once for the full test session.
+    Most tests assume clean DB; they should clean up their own inserted rows.
+    If a test needs full isolation, it can use its own transaction/rollback.
     """
-    db_url = _get_test_db_url()
-    engine = create_engine(db_url, future=True)
-    with engine.connect() as conn:
-        conn.execute(text("SELECT 1"))
-    cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
-    command.upgrade(cfg, "head")
-    yield
+    Base.metadata.create_all(bind=_TEST_ENGINE)
+    try:
+        yield
+    finally:
+        Base.metadata.drop_all(bind=_TEST_ENGINE)
 
 
-@pytest.fixture
+@pytest.fixture()
 def db():
-    """SQLAlchemy session for tests."""
-    db_url = _get_test_db_url()
-    engine = create_engine(db_url, future=True)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
-    session = TestingSessionLocal()
+    session = _TestSession()
     try:
         yield session
+        session.commit()
     finally:
         session.close()
 
 
-if os.environ.get("PYTEST_DEBUG_IMPORTS"):
+def _override_get_db():
+    db = _TestSession()
     try:
-        import backend
-        print(f"[conftest] backend.__file__ = {getattr(backend, '__file__', 'N/A')}")
-    except ImportError:
-        print("[conftest] backend import failed")
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture()
+def client():
+    sedi_app.dependency_overrides[_app_get_db] = _override_get_db
+    try:
+        with TestClient(sedi_app) as c:
+            yield c
+    finally:
+        sedi_app.dependency_overrides.pop(_app_get_db, None)
