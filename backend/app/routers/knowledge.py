@@ -156,7 +156,7 @@ def get_next_question_endpoint(
 ):
     """
     Get the best next question to ask the user for proactive data collection.
-    Returns data=null with ok=true when no question needed.
+    Never returns data=null: when no question is available, returns status=no_question, reason=no_available_question with policy.
     When blocked by fatigue control: status=no_question, reason=fatigue_control, next_eligible_at, policy.
     Optional display fields (display_title, display_body, display_choices, tone_version) when confirm_candidate.
     When notify=true and response is confirm_candidate, enqueues/sends a notification (optional data.notification).
@@ -175,19 +175,30 @@ def get_next_question_endpoint(
         }
         return APIResponse(ok=True, data=data, error=None)
     data = get_next_question(db=db, user_id=user_id)
-    if data is not None:
-        question_type = (data.get("question_type") or "").strip() or "profile_question"
-        mark_asked(db, user_id, now, question_type)
-        data["policy"] = check_can_ask(db, user_id, now)[3]
-        if question_type == "confirm_candidate":
-            resolved_lang = _resolve_lang(lang, user)
-            data = apply_companion_tone(data, lang=resolved_lang)
-        if notify and question_type == "confirm_candidate":
-            try:
-                data["notification"] = _maybe_send_kc_notification(db, user_id, data, resolved_lang, in_app=in_app)
-            except Exception as e:
-                logger.warning("kc_notify_bridge_error user_id=%s error=%s", user_id, str(e))
-                data["notification"] = {"attempted": True, "ok": False, "reason": (str(e) or "error")[:200]}
+    if data is None:
+        _, _, next_eligible_at, policy_snapshot = check_can_ask(db, user_id, now)
+        return APIResponse(
+            ok=True,
+            data={
+                "status": "no_question",
+                "reason": "no_available_question",
+                "next_eligible_at": next_eligible_at.isoformat() if next_eligible_at else None,
+                "policy": policy_snapshot,
+            },
+            error=None,
+        )
+    question_type = (data.get("question_type") or "").strip() or "profile_question"
+    mark_asked(db, user_id, now, question_type)
+    data["policy"] = check_can_ask(db, user_id, now)[3]
+    if question_type == "confirm_candidate":
+        resolved_lang = _resolve_lang(lang, user)
+        data = apply_companion_tone(data, lang=resolved_lang)
+    if notify and question_type == "confirm_candidate":
+        try:
+            data["notification"] = _maybe_send_kc_notification(db, user_id, data, resolved_lang, in_app=in_app)
+        except Exception as e:
+            logger.warning("kc_notify_bridge_error user_id=%s error=%s", user_id, str(e))
+            data["notification"] = {"attempted": True, "ok": False, "reason": (str(e) or "error")[:200]}
     return APIResponse(ok=True, data=data, error=None)
 
 

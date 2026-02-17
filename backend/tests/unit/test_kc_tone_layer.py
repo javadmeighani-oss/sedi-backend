@@ -18,6 +18,7 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 from backend.app.knowledge.tone.companion_v1 import apply_companion_tone
+from backend.app.services.knowledge.question_engine import _format_confirm_question, _value_to_display
 
 
 # --- Tone layer in isolation ---
@@ -121,6 +122,23 @@ def test_non_confirm_candidate_unchanged_by_tone():
     assert out["display_body"]
     assert out["tone_version"] == "companion_v1"
     assert out["question_type"] == "profile_question"
+
+
+def test_confirm_question_value_json_dict_renders_display_value():
+    """value_json='{"value":"Vitamin D"}' renders as 'Vitamin D' in text, not dict repr."""
+    from types import SimpleNamespace
+    cand = SimpleNamespace(value_json='{"value":"Vitamin D"}', fact_type="medications")
+    text = _format_confirm_question(cand)
+    assert "Vitamin D" in text
+    assert "{'value':" not in text
+
+
+def test_value_to_display_dict_value_key():
+    """_value_to_display extracts value from dict for template."""
+    assert _value_to_display({"value": "Vitamin D"}) == "Vitamin D"
+    assert _value_to_display({"value": 42}) == "42"
+    assert _value_to_display({"name": "Foo"}) == "Foo"
+    assert _value_to_display("plain") == "plain"
 
 
 # --- API-level: policy unchanged, display_* and lang param ---

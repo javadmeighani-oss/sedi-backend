@@ -134,18 +134,34 @@ def _get_pending_confirmation_candidate(db: Session, user_id: int) -> Optional[m
     return None
 
 
+def _value_to_display(parsed: Any) -> str:
+    """Derive a short display string from parsed value_json for template {value}."""
+    if parsed is None:
+        return ""
+    if isinstance(parsed, dict):
+        if "value" in parsed and isinstance(parsed["value"], (str, int, float)):
+            return str(parsed["value"])
+        for k in ("name", "title", "text"):
+            if k in parsed and isinstance(parsed[k], (str, int, float)):
+                return str(parsed[k])
+        return json.dumps(parsed, ensure_ascii=False)
+    if isinstance(parsed, (str, int, float)):
+        return str(parsed)
+    return json.dumps(parsed, ensure_ascii=False)
+
+
 def _format_confirm_question(cand: models.KcFactCandidate) -> str:
     """Build Persian confirmation question from candidate."""
     try:
-        val = json.loads(cand.value_json)
-        val_str = str(val) if val is not None else ""
+        parsed = json.loads(cand.value_json)
     except (json.JSONDecodeError, TypeError):
-        val_str = ""
+        parsed = None
+    display_value = _value_to_display(parsed)
     key = cand.fact_type
-    if key == "stress_level" and val_str == "low":
+    if key == "stress_level" and display_value == "low":
         key = "stress_level_low"
     tpl = CONFIRM_QUESTIONS.get(key, CONFIRM_QUESTIONS.get(cand.fact_type, CONFIRM_QUESTION_FALLBACK))
-    return tpl.format(value=val_str) if "{value}" in tpl else tpl
+    return tpl.format(value=display_value) if "{value}" in tpl else tpl
 
 
 def _get_next_question_data(db: Session, user_id: int) -> Optional[Dict[str, Any]]:
