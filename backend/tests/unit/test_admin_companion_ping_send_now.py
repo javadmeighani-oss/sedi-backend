@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
@@ -27,19 +28,28 @@ _TEST_USER_ID = 70010
 
 @pytest.fixture
 def db_session():
+    # IMPORTANT:
+    # SQLite in-memory creates a *separate* DB per connection.
+    # Use StaticPool so create_all() and the Session share the same connection,
+    # otherwise tables "disappear" and we get: sqlite3.OperationalError: no such table: users
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
+
+    # In this repo, models live in backend/app/models.py (module, not package).
+    # Importing ensures all tables are registered on the same Base.metadata.
     from backend.app.database import Base
-    import backend.app.models  # noqa: F401 - register all tables with Base
+    import backend.app.models  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = SessionLocal()
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = TestingSessionLocal()
     try:
-        yield session
+        yield db
     finally:
-        session.close()
+        db.close()
         Base.metadata.drop_all(bind=engine)
 
 
