@@ -5,13 +5,11 @@ import pytest
 
 try:
     from alembic.env_utils import _disable_interpolation  # type: ignore
-except Exception:
-    _disable_interpolation = None
-
-pytestmark = pytest.mark.skipif(
-    _disable_interpolation is None,
-    reason="alembic.env_utils._disable_interpolation not available in this alembic version",
-)
+except (ModuleNotFoundError, ImportError, AttributeError):
+    pytest.skip(
+        "alembic.env_utils._disable_interpolation not available in this environment",
+        allow_module_level=True,
+    )
 
 
 def test_disable_interpolation_is_noop():

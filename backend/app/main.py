@@ -66,9 +66,17 @@ app.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledge"])
 app.include_router(knowledge_admin.router, prefix="/knowledge/admin", tags=["Knowledge Admin"])
 
 # ------------------ Activate Scheduler ------------------
-_disable_sched = os.getenv("SEDI_DISABLE_SCHEDULER", "").lower() in ("1", "true", "yes")
-_under_pytest = "PYTEST_CURRENT_TEST" in os.environ
-if (not _disable_sched) and (not _under_pytest):
+def _should_start_scheduler() -> bool:
+    """Return False if tests (pytest or SEDI_DISABLE_SCHEDULER); True otherwise. Safe for production."""
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return False
+    v = os.getenv("SEDI_DISABLE_SCHEDULER", "").strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return False
+    return True
+
+
+if _should_start_scheduler():
     start_scheduler()
 
 # ------------------ Root Endpoint for Testing ------------------

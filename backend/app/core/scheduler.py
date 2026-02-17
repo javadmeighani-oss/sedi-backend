@@ -493,4 +493,5 @@ def start_scheduler():
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:
+        # Idempotent: already running (e.g. under pytest or double-import), skip
         return
