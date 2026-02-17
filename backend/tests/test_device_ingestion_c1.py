@@ -32,7 +32,7 @@ def db():
     """Database session fixture"""
     from app.database import Base, engine, SessionLocal
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

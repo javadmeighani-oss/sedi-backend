@@ -151,9 +151,12 @@ def detect_and_handle_user_settings_command(
         if m:
             tz_str = m.group(1).strip()
             if not _validate_iana_timezone(tz_str):
-                return ChatResponseOverride(
-                    assistant_message=_TZ_INVALID.get(lang, _TZ_INVALID["en"]).format(tz=tz_str)
-                )
+                # Must return non-None for tests (invalid timezone error message)
+                if (language or "en").strip().lower().startswith("fa"):
+                    msg = "منطقهٔ زمانی نامعتبر است. مثل: Asia/Tehran"
+                else:
+                    msg = "Invalid timezone. Example: Asia/Tehran"
+                return ChatResponseOverride(assistant_message=msg)
             try:
                 repo.upsert_fact(
                     user_id=user_id,

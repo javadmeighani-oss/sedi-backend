@@ -19,7 +19,7 @@ client = TestClient(app)
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

@@ -6,6 +6,8 @@ This layer contains business logic and decision-making components.
 Routers should delegate to services, not implement business logic directly.
 """
 
+from . import sms_gateway  # noqa: F401 – so patch("backend.app.services.sms_gateway...") works
+
 from .medical import MedicalService
 from .notification_engine import DecisionEngine, NotificationBuilder, TimingRules
 from .rag import RAGService

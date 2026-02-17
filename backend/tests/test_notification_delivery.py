@@ -24,7 +24,7 @@ def client():
 def db():
     """Test DB session; create/drop tables for isolation."""
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

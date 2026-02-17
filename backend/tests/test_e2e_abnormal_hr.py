@@ -24,7 +24,7 @@ def db():
     """Database session; creates and drops tables for isolation."""
     from app.database import Base, engine, SessionLocal
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

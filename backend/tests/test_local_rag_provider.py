@@ -14,7 +14,7 @@ from app.services.local_rag.local_provider import LocalRAGProvider, RAG_LOCAL_TO
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

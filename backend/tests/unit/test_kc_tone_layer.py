@@ -155,7 +155,7 @@ def _api_db():
     from backend.app.database import Base, SessionLocal, engine
     from sqlalchemy.orm import Session
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

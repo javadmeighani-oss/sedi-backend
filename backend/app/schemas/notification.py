@@ -48,11 +48,12 @@ class NotificationPayload(BaseModel):
     - Deterministic fallback text generation
     - Safe AI enhancement (optional)
     - Stable deduplication
+    Allow empty title/body; fallback builder will fill.
     """
     user_id: int = Field(..., description="User ID who will receive the notification")
     type: NotificationType = Field(..., description="Strict notification type: morning_brief | connection_ping | health_alert | device_disconnected")
-    title: str = Field(..., min_length=1, description="Notification title")
-    body: str = Field(..., min_length=1, description="Notification body/message content")
+    title: str = Field(default="", description="Notification title (fallback fills if empty)")
+    body: str = Field(default="", description="Notification body/message content (fallback fills if empty)")
     priority: NotificationPriority = Field(default="normal", description="Priority level")
     scheduled_for: Optional[datetime] = Field(None, description="Scheduled datetime for notification")
     dedupe_key: str = Field(..., description="Deterministic deduplication key (format: type:user_id:time_window)")

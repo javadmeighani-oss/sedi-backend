@@ -245,6 +245,8 @@ class DeliveryService:
                             notification.is_sent = True
                         if not getattr(notification, "sent_at", None):
                             notification.sent_at = now
+                        if getattr(notification, "status", None) != "sent":
+                            notification.status = "sent"
                         self.db.add(notification)
                         self.db.commit()
                         self.db.refresh(notification)

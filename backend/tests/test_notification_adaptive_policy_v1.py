@@ -18,7 +18,7 @@ from backend.app.services.notification_engine import _count_companion_notificati
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

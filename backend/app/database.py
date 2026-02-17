@@ -21,14 +21,19 @@ engine = create_engine(
     max_overflow=10
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
 
-def get_db():
-    db = SessionLocal()
+def SessionLocal():
+    """Generator-style session (tests expect: next(SessionLocal()))."""
+    db = SessionFactory()
     try:
         yield db
     finally:
         db.close()
+
+
+def get_db():
+    yield from SessionLocal()

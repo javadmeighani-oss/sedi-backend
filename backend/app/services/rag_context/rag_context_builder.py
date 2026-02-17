@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from backend.app.services.user_context import UserContextService
 from backend.app.services.rag_context.rag_context_pack import RagContextPack
 
 logger = logging.getLogger(__name__)

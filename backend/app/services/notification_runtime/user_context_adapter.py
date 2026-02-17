@@ -9,6 +9,8 @@ from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
+from backend.app.services.user_context import UserContextService
+
 logger = logging.getLogger(__name__)
 _LOG_PREFIX = "[NotifContext]"
 
@@ -25,7 +27,6 @@ def build_notification_context(db: Session, user_id: int) -> Dict[str, Any]:
     On any failure returns {}.
     """
     try:
-        from backend.app.services.user_context import UserContextService
 
         pack = UserContextService(db).get_user_context(user_id)
         if pack is None:

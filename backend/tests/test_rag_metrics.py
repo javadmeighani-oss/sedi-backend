@@ -13,7 +13,7 @@ from app.services.local_rag.metrics import RAGMetricsCollector, get_metrics
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

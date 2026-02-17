@@ -97,32 +97,27 @@ def resolve_text_by_user_language(
     if not isinstance(texts, dict):
         return {}
 
-    # Flat structure: all values are non-dict (e.g. title, message as strings)
+    # Flat structure: only accept str values; otherwise return {}
     if _is_flat_content(texts):
         out: Dict[str, str] = {}
         for k, v in texts.items():
-            if isinstance(v, str):
+            if isinstance(k, str) and isinstance(v, str) and (v or "").strip():
                 out[k] = v
-            elif v is not None:
-                out[k] = str(v)
-        return out
+        return out if out else {}
 
-    # Multilingual: pick one block
+    # Multilingual: pick one block; strict: only str values, else return {}
     lang_key = _pick_lang_key(texts, user_language, default)
     if lang_key is None:
         return {}
     block = texts.get(lang_key)
     if not isinstance(block, dict):
         return {}
-    # Normalize to string values; contract uses "message", backend uses "body" – pass both if present
     result: Dict[str, str] = {}
     for k, v in block.items():
-        if v is None:
-            continue
-        if isinstance(v, str):
+        if isinstance(k, str) and isinstance(v, str) and (v or "").strip():
             result[k] = v
-        else:
-            result[k] = str(v)
+    if not result:
+        return {}
     # Ensure "message" for contract: use "message" or "body" from block
     if "message" not in result and "body" in result:
         result["message"] = result["body"]

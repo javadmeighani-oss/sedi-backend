@@ -71,7 +71,7 @@ def db() -> Session:
     # Force fresh schema (avoids stale table missing e.g. sent_at)
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

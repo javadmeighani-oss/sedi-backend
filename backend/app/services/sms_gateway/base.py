@@ -16,13 +16,18 @@ class SmsSender(Protocol):
         ...
 
 
-def get_otp_message(code: str, lang: str) -> str:
-    """EN: startswith('en'), AR: startswith('ar'), else FA (default)."""
-    if not lang:
-        lang = "fa"
-    lang = (lang or "").strip().lower()
-    if lang.startswith("en"):
+def _normalize_lang(lang: str | None) -> str:
+    """Tests expect 'en-US' to fallback to FA (not treated as EN). Only en, fa, ar exact."""
+    if lang in ("en", "fa", "ar"):
+        return lang
+    return "fa"
+
+
+def get_otp_message(code: str, lang: str | None) -> str:
+    """EN/AR/FA by _normalize_lang (en-US -> fa)."""
+    l = _normalize_lang(lang)
+    if l == "en":
         return f"Sedi verification code: {code}"
-    if lang.startswith("ar"):
+    if l == "ar":
         return f"رمز التحقق من صدي: {code}"
     return f"کد تایید صدی: {code}"

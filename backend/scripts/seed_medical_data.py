@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy.orm import Session
-from app.database import SessionLocal, engine
+from app.database import SessionFactory, engine
 from app.models import MedicalCondition, Medication, Base
 
 # Ensure tables exist
@@ -180,9 +180,8 @@ def main():
     print(f"Found {len(conditions_data)} conditions and {len(medications_data)} medications")
     print()
     
-    # Create database session
-    db: Session = SessionLocal()
-    
+    # Create database session (SessionFactory() for scripts; SessionLocal is a generator for tests)
+    db: Session = SessionFactory()
     try:
         # Seed conditions
         print("Seeding medical conditions...")

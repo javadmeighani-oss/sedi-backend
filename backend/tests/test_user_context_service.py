@@ -20,7 +20,7 @@ except ImportError:
 def db():
     """Database session fixture."""
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:

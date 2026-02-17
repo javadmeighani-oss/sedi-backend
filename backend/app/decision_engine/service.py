@@ -1,7 +1,7 @@
-# Release D: service wrapper for decision engine
+# Release D: service wrapper for decision engine (single import path for isinstance)
 from typing import Dict, Any, List
 
-from .models import Decision, EventDto, CreateHealthAlertAction, Action
+from backend.app.decision_engine.models import Decision, EventDto, CreateHealthAlertAction, Action
 from .rules import evaluate_rules, default_rules
 from backend.app.services.vitals.rule_alerts import compute_alert_actions
 

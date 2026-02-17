@@ -24,7 +24,7 @@ from app.database import SessionLocal, Base, engine
 def db():
     """Create a test database session"""
     Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    db = next(SessionLocal())
     try:
         yield db
     finally:
@@ -176,7 +176,7 @@ def test_no_legacy_types_in_contract_methods():
     from app.services.notification_engine import DecisionEngine
     from app.database import SessionLocal
     
-    db = SessionLocal()
+    db = next(SessionLocal())
     try:
         decision_engine = DecisionEngine(db)
         

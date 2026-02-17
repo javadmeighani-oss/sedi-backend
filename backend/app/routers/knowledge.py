@@ -41,6 +41,7 @@ def _maybe_send_kc_notification(
     data: Dict[str, Any],
     lang: str,
     in_app: bool = False,
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     """
     When data is confirm_candidate with display_* fields, create notification (and optionally deliver).
@@ -200,7 +201,7 @@ def get_next_question_endpoint(
         pass
     if notify and question_type == "confirm_candidate":
         try:
-            data["notification"] = _maybe_send_kc_notification(db, user_id, data, resolved_lang, in_app=in_app)
+            data["notification"] = _maybe_send_kc_notification(db, user_id, data, resolved_lang, in_app)
         except Exception as e:
             logger.warning("kc_notify_bridge_error user_id=%s error=%s", user_id, str(e))
             data["notification"] = {"attempted": True, "ok": False, "reason": (str(e) or "error")[:200]}

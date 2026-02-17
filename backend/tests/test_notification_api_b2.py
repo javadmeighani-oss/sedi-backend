@@ -27,7 +27,7 @@ def db():
     # Create tables
     Base.metadata.create_all(bind=engine)
     
-    db = SessionLocal()
+    db = next(SessionLocal())
     try:
         yield db
     finally:

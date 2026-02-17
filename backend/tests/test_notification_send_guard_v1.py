@@ -15,7 +15,7 @@ from backend.app.services.notifications.send_guard_v1 import can_send_v1
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    session = next(SessionLocal())
     try:
         yield session
     finally:
