@@ -1,12 +1,14 @@
 """
-Alembic env: uses DATABASE_URL from environment and backend.app.database Base/engine.
+Alembic env: prefers TEST_DATABASE_URL (for pytest) then DATABASE_URL.
 Run from repo root or backend with DATABASE_URL set (or in .env).
 """
 import os
 import sys
 from pathlib import Path
+from logging.config import fileConfig
 
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 # Ensure backend.app is importable when running from backend/
 _backend_dir = Path(__file__).resolve().parent.parent
@@ -17,16 +19,16 @@ if str(_repo_root) not in sys.path:
 load_dotenv(_backend_dir / ".env")
 load_dotenv(_repo_root / ".env")
 
-database_url = os.environ.get("DATABASE_URL")
+# Prefer test DB when running pytest / CI
+database_url = os.environ.get("TEST_DATABASE_URL") or os.environ.get("DATABASE_URL")
 if not database_url:
     raise RuntimeError(
         "DATABASE_URL environment variable is not set. "
         "Set it (or add to .env) before running Alembic."
     )
 
-from logging.config import fileConfig
 from alembic import context
-from backend.app.database import Base, engine
+from backend.app.database import Base
 
 # Import works when run by Alembic CLI (no package context); prefer package import, fallback to same-dir
 try:
@@ -38,10 +40,10 @@ except ImportError:
     import env_utils as _env_utils_mod
     _disable_interpolation = _env_utils_mod._disable_interpolation
 
-# Alembic Config object
 config = context.config
-# Allow % in DATABASE_URL (URL-encoded passwords): escape % for configparser so set_main_option does not crash
 _disable_interpolation(config)
+
+# Allow % in URL (URL-encoded passwords): escape % for configparser
 database_url_for_config = database_url.replace("%", "%%")
 config.set_main_option("sqlalchemy.url", database_url_for_config)
 
@@ -65,7 +67,9 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode using engine from backend.app.database."""
+    """Run migrations in 'online' mode using engine built from selected URL."""
+    url = config.get_main_option("sqlalchemy.url")
+    engine = create_engine(url, future=True)
     with engine.connect() as connection:
         context.configure(
             connection=connection,
