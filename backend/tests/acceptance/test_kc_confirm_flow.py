@@ -16,7 +16,7 @@ import sys
 import pytest
 from starlette.testclient import TestClient
 from sqlalchemy import text, create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 # Ensure canonical backend.app (with knowledge routes) is used
 # parents[3] = repo root (folder containing backend/) so backend.app -> backend/app/
@@ -24,7 +24,7 @@ _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from backend.app.database import Base, SessionLocal
+from backend.app.database import Base
 from backend.app.main import app as sedi_app
 
 # Fixed user_id for deterministic tests
@@ -45,6 +45,7 @@ def _get_db_url() -> str:
 
 # Engine for this test file (must follow TEST_DATABASE_URL when set)
 _TEST_ENGINE = create_engine(_get_db_url(), future=True)
+_TestSession = sessionmaker(bind=_TEST_ENGINE, autoflush=False, autocommit=False, future=True)
 
 
 def _collect_paths(routes, prefix=""):
@@ -71,7 +72,7 @@ def client() -> TestClient:
 @pytest.fixture()
 def db() -> Session:
     Base.metadata.create_all(bind=_TEST_ENGINE)
-    session = next(SessionLocal())
+    session = _TestSession()
     try:
         yield session
     finally:
