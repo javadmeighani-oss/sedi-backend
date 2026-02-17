@@ -79,10 +79,11 @@ def client() -> TestClient:
     assert "/knowledge/extract_from_message" in paths, f"Missing knowledge routes. Found: {sorted(paths)}"
     assert "/knowledge/next_question" in paths
     assert "/knowledge/apply_answer" in paths
-    # Override DB dependency for the whole test client lifetime
+    # IMPORTANT: keep override alive during the test by using yield
     sedi_app.dependency_overrides[_app_get_db] = _override_get_db
+    _client = TestClient(sedi_app)
     try:
-        return TestClient(sedi_app)
+        yield _client
     finally:
         sedi_app.dependency_overrides.pop(_app_get_db, None)
 
