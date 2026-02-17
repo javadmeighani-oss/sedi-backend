@@ -121,7 +121,7 @@ def test_medications_arabic_أخذت():
     meds = [c for c in result if c.fact_key == "medications"]
     assert len(meds) >= 1
     med = meds[0]
-    assert "فيتامين" in str(med.fact_value)
+    assert _unicode_normalize_pass("فيتامين") in _unicode_normalize_pass(str(med.fact_value))
     assert med.confidence >= 0.70
 
 
