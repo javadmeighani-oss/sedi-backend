@@ -18,10 +18,8 @@ _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from backend.app.database import Base, get_db
+from backend.app.database import get_db
 from backend.app.main import app
-
-import backend.app.models  # noqa: F401
 
 _ADMIN_TOKEN = "test-admin-companion-ping"
 _TEST_USER_ID = 70010
@@ -33,6 +31,8 @@ def db_session():
         "sqlite+pysqlite:///:memory:",
         connect_args={"check_same_thread": False},
     )
+    from backend.app.database import Base
+    import backend.app.models  # noqa: F401 - register all tables with Base
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = SessionLocal()
