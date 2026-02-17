@@ -28,22 +28,21 @@ _TEST_USER_ID = 70010
 
 @pytest.fixture
 def db_session():
-    # IMPORTANT:
-    # SQLite in-memory creates a *separate* DB per connection.
-    # Use StaticPool so create_all() and the Session share the same connection,
-    # otherwise tables "disappear" and we get: sqlite3.OperationalError: no such table: users
+    # NOTE: SQLite in-memory creates a NEW database per connection.
+    # StaticPool forces a single connection so create_all() and Session share the same DB.
+    # check_same_thread=False is required because TestClient may use different threads.
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
+        future=True,
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 
-    # In this repo, models live in backend/app/models.py (module, not package).
-    # Importing ensures all tables are registered on the same Base.metadata.
-    from backend.app.database import Base
-    import backend.app.models  # noqa: F401
-
+    # IMPORTANT: import models BEFORE create_all so all tables are registered on Base.metadata.
+    import backend.app.models as m
+    Base = m.Base
     Base.metadata.create_all(bind=engine)
+
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = TestingSessionLocal()
     try:
