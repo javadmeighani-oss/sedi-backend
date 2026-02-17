@@ -3,8 +3,48 @@
 import json
 import os
 import re
+import string
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
+
+# Lightweight normalization + noise filter for extraction QA (stopwords/noise not stored as candidates).
+_STOPWORDS_FA = frozenset({
+    "هم", "و", "یا", "که", "در", "به", "از", "با", "برای", "این", "اون", "آن",
+    "من", "تو", "ما", "شما", "او", "اگه", "اگر", "نه", "بله",
+})
+_STOPWORDS_EN = frozenset({
+    "and", "or", "the", "a", "an", "to", "of", "in", "on", "for", "with",
+    "is", "are", "was", "were", "i", "you", "we", "they", "he", "she", "it", "yes", "no",
+})
+_STOPWORDS = _STOPWORDS_FA | _STOPWORDS_EN
+_PUNCT = frozenset(string.punctuation + "،؛؟\u200c")
+
+
+def _normalize_token(s: str) -> str:
+    """Strip, lower, collapse internal whitespace, remove surrounding punctuation."""
+    if not s or not isinstance(s, str):
+        return ""
+    t = s.strip().lower()
+    t = re.sub(r"\s+", " ", t).strip()
+    while t and t[0] in _PUNCT:
+        t = t[1:]
+    while t and t[-1] in _PUNCT:
+        t = t[:-1]
+    return t
+
+
+def _is_noise_or_stopword(s: str) -> bool:
+    """Reject if token is too short, numeric-only, punctuation-only, or in stopwords (after normalize)."""
+    norm = _normalize_token(s)
+    if len(norm) < 2:
+        return True
+    if norm.isdigit():
+        return True
+    if all(c in _PUNCT or c.isspace() for c in norm):
+        return True
+    if norm in _STOPWORDS:
+        return True
+    return False
 
 
 @dataclass
@@ -113,7 +153,7 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
         for m in re.finditer(pat, text, re.I):
             token = (m.group(1) or "").strip()
             token = re.sub(r"[,،.\s]+", " ", token).strip()
-            if len(token) >= 2 and token.lower() not in ("و", "یا", "که", "از"):
+            if len(token) >= 2 and not _is_noise_or_stopword(token):
                 conf = 0.80 if has_mg else 0.70
                 candidates.append(ExtractedCandidate(
                     fact_key="medications",
@@ -123,4 +163,9 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
                     pattern_id="medications_fa",
                 ))
 
+    # Drop any candidate whose string value normalizes to noise/stopword
+    candidates = [
+        c for c in candidates
+        if not (isinstance(c.fact_value, str) and _is_noise_or_stopword(c.fact_value))
+    ]
     return _dedupe_and_cap(candidates, _get_max_extracted())

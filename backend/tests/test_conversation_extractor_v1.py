@@ -68,3 +68,16 @@ def test_daily_walk_minutes_regex():
 def test_empty_text_returns_empty():
     result = extract_candidates("", "fa")
     assert result == []
+
+
+def test_stopword_هم_does_not_create_medication_candidate():
+    """Message containing only stopword 'هم' as medication token must not create a candidate."""
+    result = extract_candidates("دارم هم می‌خورم", "fa")
+    meds = [c for c in result if c.fact_key == "medications"]
+    assert len(meds) == 0, "stopword 'هم' must not become a medications candidate"
+
+
+def test_message_only_stopwords_creates_no_candidates():
+    """Message that is only stopwords (e.g. 'هم') creates no candidates."""
+    result = extract_candidates("هم", "fa")
+    assert result == []
