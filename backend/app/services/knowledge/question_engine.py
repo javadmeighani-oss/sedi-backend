@@ -29,6 +29,25 @@ PROFILE_FIELDS = ["birth_year", "sex", "height_cm", "weight_kg", "language", "qu
 # Care fact types in priority order (medications = medications OR medications_list)
 CARE_FACT_TYPES = ["medications", "medications_list", "activity_level", "stress_level", "sleep_quality"]
 
+# Clinical priority for confirm_candidate selection (higher = chosen first when multiple eligible).
+# Used only when sorting pending confirmation candidates; default 10.
+PRIORITY_BY_FACT_TYPE: Dict[str, int] = {
+    "medications": 100,
+    "medical_conditions": 90,
+    "conditions": 90,
+    "sleep_quality": 80,
+    "sleep": 80,
+    "stress_level": 70,
+    "stress": 70,
+    "activity_level": 60,
+    "activity": 60,
+}
+_DEFAULT_PRIORITY = 10
+
+
+def _priority_for_fact_type(fact_type: str) -> int:
+    return PRIORITY_BY_FACT_TYPE.get(fact_type, _DEFAULT_PRIORITY)
+
 # Question definitions: question_id -> { field_key, text, options, reason }
 QUESTIONS: Dict[str, Dict[str, Any]] = {
     "kc_q_birth_year_v1": {
@@ -113,7 +132,7 @@ def _has_sleep_window(db: Session, user_id: int) -> bool:
 
 
 def _get_pending_confirmation_candidate(db: Session, user_id: int) -> Optional[models.KcFactCandidate]:
-    """Return earliest pending candidate with needs_confirmation in metadata."""
+    """Return highest-priority pending candidate with needs_confirmation; tie-break by id asc (deterministic)."""
     rows = (
         db.query(models.KcFactCandidate)
         .filter(
@@ -121,17 +140,21 @@ def _get_pending_confirmation_candidate(db: Session, user_id: int) -> Optional[m
             models.KcFactCandidate.status == "pending",
             models.KcFactCandidate.metadata_json.isnot(None),
         )
-        .order_by(models.KcFactCandidate.created_at.asc())
         .all()
     )
+    eligible: List[models.KcFactCandidate] = []
     for row in rows:
         try:
             meta = json.loads(row.metadata_json or "{}")
             if meta.get("needs_confirmation"):
-                return row
+                eligible.append(row)
         except (json.JSONDecodeError, TypeError):
             continue
-    return None
+    if not eligible:
+        return None
+    # Sort by clinical priority desc, then id asc for deterministic tie-break
+    eligible.sort(key=lambda c: (-_priority_for_fact_type(c.fact_type), c.id))
+    return eligible[0]
 
 
 def _value_to_display(parsed: Any) -> str:
