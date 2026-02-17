@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import re
 from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session
@@ -14,6 +15,18 @@ from backend.app.services.knowledge.conversation_extractor_v1 import (
 from backend.app.services.knowledge.service import create_candidate, accept_candidate
 
 logger = logging.getLogger(__name__)
+
+# Extractor used by POST /knowledge/extract_from_message (for debug logs)
+_EXTRACTOR_NAME = "conversation_extractor_v1.extract_candidates"
+
+
+def _masked_preview(text: str, max_len: int = 16) -> str:
+    """Collapse whitespace, take first max_len chars, replace digits with '*' (safe for logs)."""
+    if not text or not isinstance(text, str):
+        return ""
+    s = re.sub(r"\s+", " ", text.strip())
+    s = s[:max_len]
+    return "".join("*" if c.isdigit() else c for c in s)
 
 
 def _get_auto_accept_threshold() -> float:
@@ -35,11 +48,23 @@ def process_message(
     Extract candidates from text, create/accept per thresholds.
     Returns: {extracted_count, created_candidates_count, auto_accepted_count, ignored_count}
     """
+    text_len = len(text) if text else 0
+    preview_masked = _masked_preview(text or "", 16)
+    logger.info(
+        "[KC-EXTRACT] entry user_id=%s language=%s text_len=%s preview_masked=%s",
+        user_id, language, text_len, preview_masked,
+    )
+    logger.info("[KC-EXTRACT] extractor=%s", _EXTRACTOR_NAME)
+
     auto_threshold = _get_auto_accept_threshold()
     confirm_threshold = _get_confirm_threshold()
 
     extracted = extract_candidates(text=text, language=language)
     extracted_count = len(extracted)
+    logger.info(
+        "[KC-EXTRACT] extracted_items_count=%s (candidates before create/accept)",
+        extracted_count,
+    )
 
     created_candidates_count = 0
     auto_accepted_count = 0
@@ -101,6 +126,10 @@ def process_message(
                 user_id, c.fact_key, c.confidence,
             )
 
+    logger.info(
+        "[KC-EXTRACT] result extracted_count=%s created_candidates_count=%s",
+        extracted_count, created_candidates_count,
+    )
     return {
         "extracted_count": extracted_count,
         "created_candidates_count": created_candidates_count,

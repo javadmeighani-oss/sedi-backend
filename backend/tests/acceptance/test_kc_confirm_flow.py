@@ -94,7 +94,9 @@ def test_kc_confirm_flow(client: TestClient, test_user_id: int):
     assert r1.status_code == 200, r1.text
     d1 = r1.json()
     assert d1.get("ok") is True
-    assert d1.get("data", {}).get("created_candidates_count", 0) >= 1
+    data1 = d1.get("data", {})
+    assert set(data1.keys()) >= {"extracted_count", "created_candidates_count", "auto_accepted_count", "ignored_count"}
+    assert data1.get("created_candidates_count", 0) >= 1
 
     # b) GET next_question
     r2 = client.get(f"/knowledge/next_question?user_id={user_id}")
