@@ -420,6 +420,45 @@ def admin_notif_send_now(
     )
 
 
+# ------------------ POST /notifications/admin/companion_ping/send_now (Behavior V1) ------------------
+@router.post("/admin/companion_ping/send_now", response_model=APIResponse)
+def admin_companion_ping_send_now(
+    request: Request,
+    user_id: int = Query(..., description="User ID"),
+    language: Optional[str] = Query(None, description="Language (fa, en, ar); optional"),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Trigger Behavior V1 companion_ping for server tests.
+    Uses DecisionEngine.create_companion_ping; respects quiet hours and daily budget.
+    Returns ok=true, created (bool), notification_id (nullable), deeplink (nullable).
+    """
+    _require_admin_if_set(request)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."),
+        )
+    from backend.app.services.notification_engine import DecisionEngine
+    engine = DecisionEngine(db)
+    notif = engine.create_companion_ping(user_id, language=language)
+    if notif is None:
+        return APIResponse(
+            ok=True,
+            data={"created": False, "notification_id": None, "deeplink": None},
+        )
+    return APIResponse(
+        ok=True,
+        data={
+            "created": True,
+            "notification_id": notif.id,
+            "deeplink": notif.deeplink_url,
+            "type": "companion_ping",
+        },
+    )
+
+
 # ------------------ GET /notifications/admin/templates/list ------------------
 @router.get("/admin/templates/list", response_model=APIResponse)
 def admin_templates_list(request: Request):
