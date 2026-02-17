@@ -76,6 +76,10 @@ def client_with_db(db_session, test_user_id):
     tables = set(db_session.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).scalars().all())
     assert "users" in tables, f"Expected 'users' table in sqlite memory db, got: {sorted(list(tables))}"
 
+    # IMPORTANT: routers may have imported get_db from a different module path.
+    # Override BOTH: the get_db imported in this test AND the get_db referenced by the router module.
+    import backend.app.routers.notifications as notif_router
+
     def _override_get_db():
         try:
             yield db_session
@@ -83,6 +87,10 @@ def client_with_db(db_session, test_user_id):
             pass
 
     app.dependency_overrides[get_db] = _override_get_db
+    # Make sure the endpoint uses the same overridden dependency:
+    if hasattr(notif_router, "get_db"):
+        app.dependency_overrides[notif_router.get_db] = _override_get_db
+
     with TestClient(app) as c:
         yield c
     app.dependency_overrides = {}
