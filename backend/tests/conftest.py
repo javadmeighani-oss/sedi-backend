@@ -19,6 +19,8 @@ if str(_BACKEND_ROOT) not in sys.path:
 sys.modules.setdefault("app", importlib.import_module("backend.app"))
 sys.modules.setdefault("app.models", importlib.import_module("backend.app.models"))
 sys.modules.setdefault("app.main", importlib.import_module("backend.app.main"))
+sys.modules.setdefault("app.core", importlib.import_module("backend.app.core"))
+sys.modules.setdefault("app.core.scheduler", importlib.import_module("backend.app.core.scheduler"))
 
 if os.environ.get("PYTEST_DEBUG_IMPORTS"):
     try:
