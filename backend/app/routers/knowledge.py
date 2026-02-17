@@ -190,9 +190,14 @@ def get_next_question_endpoint(
     question_type = (data.get("question_type") or "").strip() or "profile_question"
     mark_asked(db, user_id, now, question_type)
     data["policy"] = check_can_ask(db, user_id, now)[3]
+    resolved_lang = _resolve_lang(lang, user)
     if question_type == "confirm_candidate":
-        resolved_lang = _resolve_lang(lang, user)
         data = apply_companion_tone(data, lang=resolved_lang)
+    try:
+        from backend.app.behavior import apply_behavior_to_question
+        data = apply_behavior_to_question(db, user_id, data, resolved_lang)
+    except Exception:
+        pass
     if notify and question_type == "confirm_candidate":
         try:
             data["notification"] = _maybe_send_kc_notification(db, user_id, data, resolved_lang, in_app=in_app)

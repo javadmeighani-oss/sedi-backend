@@ -214,12 +214,13 @@ def _get_title_for_language(notification_type: str, language: str) -> str:
 
 
 def _channel_for_type(notification_type: str) -> Optional[str]:
-    """Stage 16.6: Map notification type to push channel (morning | engagement | health_alert). Stage 19: device_disconnected => engagement."""
+    """Stage 16.6: Map notification type to push channel (morning | engagement | health_alert). Stage 19: device_disconnected => engagement. Behavior V1: companion_ping => engagement."""
     m = {
         "morning_brief": "morning",
         "connection_ping": "engagement",
         "health_alert": "health_alert",
         "device_disconnected": "engagement",
+        "companion_ping": "engagement",
     }
     return m.get(notification_type)
 
@@ -255,6 +256,11 @@ def _default_body_for_type(
             "en": "Hello. Hope you're doing well.",
             "fa": "سلام. امیدوارم حالتون خوب باشه.",
             "ar": "مرحباً. أتمنى أن تكون بخير.",
+        },
+        "companion_ping": {
+            "en": "Hi; I was thinking of you. If you'd like, tell me how today's going? 🌿",
+            "fa": "سلام؛ دلم برات تنگ شده. اگر دوست داری بگو امروز چطوره؟ 🌿",
+            "ar": "مرحباً؛ كنت أفكر بك. إذا أحببت، أخبرني كيف يومك؟ 🌿",
         },
     }
     type_defaults = defaults.get(notification_type, defaults["health_alert"])
@@ -943,6 +949,20 @@ class DecisionEngine:
                 f"device_id={device_id} dedupe={payload.dedupe_key}"
             )
         return result
+
+    def create_companion_ping(
+        self,
+        user_id: int,
+        language: Optional[str] = None,
+        now: Optional[datetime] = None,
+    ) -> Optional[Notification]:
+        """
+        Behavior Layer V1: Create companion_ping notification when policy allows (quiet hours, daily cap, cooldown).
+        Message and deeplink (from=notif&type=companion_ping) are controlled by BehaviorPolicy.
+        Returns None when disabled, blocked, or dedupe.
+        """
+        from backend.app.behavior.service import try_create_companion_ping_notification
+        return try_create_companion_ping_notification(self.db, user_id, lang=language, now=now)
     
     # -------------------- Lifestyle-Based Notifications --------------------
     

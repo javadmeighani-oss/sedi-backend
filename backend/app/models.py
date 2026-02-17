@@ -337,6 +337,20 @@ class KcQuestionPolicyState(Base):
     # Optional: no created_at/updated_at in spec; we can add if needed for debugging
 
 
+# -------------------- UserBehaviorProfile (Behavior Layer V1) --------------------
+class UserBehaviorProfile(Base):
+    """Per-user behavior state: score, mode, daily initiated count, last initiated/interaction. Tiny table."""
+    __tablename__ = "user_behavior_profiles"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    score = Column(Float, nullable=False, default=0.5)  # 0.0–1.0 for mode mapping
+    mode = Column(String(32), nullable=False, default="normal")  # low | normal | high
+    daily_initiated_count = Column(Integer, nullable=False, default=0)
+    last_initiated_at = Column(DateTime, nullable=True)
+    last_interaction_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 # -------------------- RefreshToken (Stage 25 – Persistent refresh tokens) --------------------
 class RefreshToken(Base):
     """Refresh token stored hashed; revocable."""
