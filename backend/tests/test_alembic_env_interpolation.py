@@ -4,7 +4,7 @@ import configparser
 import pytest
 
 try:
-    from alembic.env_utils import _disable_interpolation
+    from alembic.env_utils import _disable_interpolation  # type: ignore
 except Exception:
     _disable_interpolation = None
 

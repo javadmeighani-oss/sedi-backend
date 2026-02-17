@@ -16,14 +16,10 @@ os.environ.setdefault("SEDI_DISABLE_SCHEDULER", "true")
 
 # Prevent double-import: app.* vs backend.app.* (same codebase)
 try:
-    import backend.app as _bapp
-    sys.modules.setdefault("app", _bapp)
-
-    import backend.app.models as _bmodels
-    sys.modules.setdefault("app.models", _bmodels)
-
-    import backend.app.main as _bmain
-    sys.modules.setdefault("app.main", _bmain)
+    import backend.app as _backend_app
+    sys.modules.setdefault("app", _backend_app)
+    sys.modules.setdefault("app.models", __import__("backend.app.models", fromlist=["*"]))
+    sys.modules.setdefault("app.main", __import__("backend.app.main", fromlist=["*"]))
 except Exception:
     # If import fails during collection, don't crash conftest
     pass
