@@ -1,4 +1,5 @@
 # app/main.py
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
@@ -65,7 +66,10 @@ app.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledge"])
 app.include_router(knowledge_admin.router, prefix="/knowledge/admin", tags=["Knowledge Admin"])
 
 # ------------------ Activate Scheduler ------------------
-start_scheduler()
+_disable_sched = os.getenv("SEDI_DISABLE_SCHEDULER", "").lower() in ("1", "true", "yes")
+_under_pytest = "PYTEST_CURRENT_TEST" in os.environ
+if (not _disable_sched) and (not _under_pytest):
+    start_scheduler()
 
 # ------------------ Root Endpoint for Testing ------------------
 @app.get("/")

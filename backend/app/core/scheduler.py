@@ -2,6 +2,7 @@
 import os
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import SchedulerAlreadyRunningError
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -419,73 +420,77 @@ def run_deliver_pending():
 # Start Scheduler (UPDATED - Phase 9.4)
 # -------------------------------
 def start_scheduler():
-    print("[Sedi Scheduler] Background scheduler started successfully ✅")
+    try:
+        if getattr(scheduler, "running", False):
+            return
+        # Schedule morning notifications check every 10 minutes
+        scheduler.add_job(
+            run_morning_notifications,
+            "interval",
+            minutes=MORNING_CHECK_INTERVAL_MIN,
+            id="morning_notifications",
+            replace_existing=True,
+        )
 
-    # Schedule morning notifications check every 10 minutes
-    scheduler.add_job(
-        run_morning_notifications,
-        "interval",
-        minutes=MORNING_CHECK_INTERVAL_MIN,
-        id="morning_notifications",
-        replace_existing=True,
-    )
+        # Schedule inactivity notifications check every 15 minutes
+        scheduler.add_job(
+            run_inactivity_notifications,
+            "interval",
+            minutes=INACTIVITY_CHECK_INTERVAL_MIN,
+            id="inactivity_notifications",
+            replace_existing=True,
+        )
 
-    # Schedule inactivity notifications check every 15 minutes
-    scheduler.add_job(
-        run_inactivity_notifications,
-        "interval",
-        minutes=INACTIVITY_CHECK_INTERVAL_MIN,
-        id="inactivity_notifications",
-        replace_existing=True,
-    )
+        # Stage 16.6: Engagement nudge every 10 minutes (3h inactive, max 3/day)
+        scheduler.add_job(
+            run_engagement_nudge,
+            "interval",
+            minutes=ENGAGEMENT_CHECK_INTERVAL_MIN,
+            id="engagement_nudge",
+            replace_existing=True,
+        )
 
-    # Stage 16.6: Engagement nudge every 10 minutes (3h inactive, max 3/day)
-    scheduler.add_job(
-        run_engagement_nudge,
-        "interval",
-        minutes=ENGAGEMENT_CHECK_INTERVAL_MIN,
-        id="engagement_nudge",
-        replace_existing=True,
-    )
+        # Schedule health status check every 2 hours (keep existing)
+        scheduler.add_job(
+            check_health_status,
+            "interval",
+            hours=CHECK_INTERVAL_HOURS,
+            id="health_check",
+            replace_existing=True,
+        )
 
-    # Schedule health status check every 2 hours (keep existing)
-    scheduler.add_job(
-        check_health_status,
-        "interval",
-        hours=CHECK_INTERVAL_HOURS,
-        id="health_check",
-        replace_existing=True,
-    )
+        # Schedule notification delivery outbox every N minutes
+        # V1: max_instances=1 + coalesce + misfire_grace_time prevent overlap warning
+        scheduler.add_job(
+            run_deliver_pending,
+            "interval",
+            minutes=DELIVERY_PENDING_INTERVAL_MIN,
+            id="deliver_pending",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60,
+        )
 
-    # Schedule notification delivery outbox every N minutes
-    # V1: max_instances=1 + coalesce + misfire_grace_time prevent overlap warning
-    scheduler.add_job(
-        run_deliver_pending,
-        "interval",
-        minutes=DELIVERY_PENDING_INTERVAL_MIN,
-        id="deliver_pending",
-        replace_existing=True,
-        max_instances=1,
-        coalesce=True,
-        misfire_grace_time=60,
-    )
+        # Schedule device disconnected check (last_seen_at > threshold -> notify, dedupe per device)
+        scheduler.add_job(
+            run_device_disconnected_check,
+            "interval",
+            minutes=DEVICE_DISCONNECTED_CHECK_INTERVAL_MIN,
+            id="device_disconnected_check",
+            replace_existing=True,
+        )
 
-    # Schedule device disconnected check (last_seen_at > threshold -> notify, dedupe per device)
-    scheduler.add_job(
-        run_device_disconnected_check,
-        "interval",
-        minutes=DEVICE_DISCONNECTED_CHECK_INTERVAL_MIN,
-        id="device_disconnected_check",
-        replace_existing=True,
-    )
+        # Schedule medication reminder loop (UserMedication -> create_medication_reminder, dedupe 8h per med)
+        scheduler.add_job(
+            run_medication_reminders,
+            "interval",
+            minutes=MEDICATION_REMINDER_CHECK_INTERVAL_MIN,
+            id="medication_reminders",
+            replace_existing=True,
+        )
 
-    # Schedule medication reminder loop (UserMedication -> create_medication_reminder, dedupe 8h per med)
-    scheduler.add_job(
-        run_medication_reminders,
-        "interval",
-        minutes=MEDICATION_REMINDER_CHECK_INTERVAL_MIN,
-        id="medication_reminders",
-        replace_existing=True,
-    )
-
-    scheduler.start()
+        scheduler.start()
+        print("[Sedi Scheduler] Background scheduler started successfully ✅")
+    except SchedulerAlreadyRunningError:
+        return
