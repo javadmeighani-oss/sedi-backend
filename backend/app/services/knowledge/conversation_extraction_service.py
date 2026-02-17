@@ -50,21 +50,15 @@ def process_message(
     """
     text_len = len(text) if text else 0
     preview_masked = _masked_preview(text or "", 16)
-    logger.info(
-        "[KC-EXTRACT] entry user_id=%s language=%s text_len=%s preview_masked=%s",
-        user_id, language, text_len, preview_masked,
-    )
-    logger.info("[KC-EXTRACT] extractor=%s", _EXTRACTOR_NAME)
+    print(f"[KC-EXTRACT] entry user_id={user_id} language={language} text_len={text_len} preview_masked={preview_masked}")
+    print(f"[KC-EXTRACT] extractor={_EXTRACTOR_NAME}")
 
     auto_threshold = _get_auto_accept_threshold()
     confirm_threshold = _get_confirm_threshold()
 
     extracted = extract_candidates(text=text, language=language)
     extracted_count = len(extracted)
-    logger.info(
-        "[KC-EXTRACT] extracted_items_count=%s (candidates before create/accept)",
-        extracted_count,
-    )
+    print(f"[KC-EXTRACT] extracted_items_count={extracted_count} (candidates before create/accept)")
 
     created_candidates_count = 0
     auto_accepted_count = 0
@@ -126,10 +120,7 @@ def process_message(
                 user_id, c.fact_key, c.confidence,
             )
 
-    logger.info(
-        "[KC-EXTRACT] result extracted_count=%s created_candidates_count=%s",
-        extracted_count, created_candidates_count,
-    )
+    print(f"[KC-EXTRACT] result extracted_count={extracted_count} created_candidates_count={created_candidates_count}")
     return {
         "extracted_count": extracted_count,
         "created_candidates_count": created_candidates_count,
