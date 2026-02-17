@@ -8,21 +8,43 @@ Acceptance tests: KC Question Fatigue Control V1 (API-driven, no ORM imports).
 
 from __future__ import annotations
 
+import os
 import uuid
 from pathlib import Path
 import sys
 
 import pytest
 from starlette.testclient import TestClient
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy import text, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from backend.app.database import Base, SessionLocal, engine
+from backend.app.database import Base, get_db as _app_get_db
 from backend.app.main import app as sedi_app
+
+# ------------------------------
+# Test DB (must not use app engine)
+# ------------------------------
+def _get_db_url() -> str:
+    return (
+        os.getenv("TEST_DATABASE_URL")
+        or os.getenv("DATABASE_URL")
+        or "postgresql://postgres:postgres@localhost:5432/postgres"
+    )
+
+_TEST_ENGINE = create_engine(_get_db_url(), future=True)
+_TestSession = sessionmaker(bind=_TEST_ENGINE, autoflush=False, autocommit=False, future=True)
+
+def _override_get_db():
+    db = _TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 _TEST_USER_ID = 91002
 
@@ -44,18 +66,22 @@ def client() -> TestClient:
     assert "/knowledge/next_question" in paths
     assert "/knowledge/apply_answer" in paths
     assert "/knowledge/extract_from_message" in paths
-    return TestClient(sedi_app)
+    sedi_app.dependency_overrides[_app_get_db] = _override_get_db
+    try:
+        yield TestClient(sedi_app)
+    finally:
+        sedi_app.dependency_overrides.pop(_app_get_db, None)
 
 
 @pytest.fixture()
 def db() -> Session:
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
+    Base.metadata.create_all(bind=_TEST_ENGINE)
+    session = _TestSession()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=_TEST_ENGINE)
 
 
 @pytest.fixture()
