@@ -10,7 +10,7 @@ except Exception:
 
 pytestmark = pytest.mark.skipif(
     _disable_interpolation is None,
-    reason="alembic.env_utils._disable_interpolation not available in installed Alembic version",
+    reason="alembic.env_utils._disable_interpolation not available in this alembic version",
 )
 
 
