@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import sys
 from datetime import datetime
+from sqlalchemy.pool import StaticPool
 from pathlib import Path
 
 import pytest
@@ -66,7 +67,8 @@ def db() -> Session:
     global _test_session_local
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
+         connect_args={"check_same_thread": False},
+         poolclass=StaticPool,
     )
     _test_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
