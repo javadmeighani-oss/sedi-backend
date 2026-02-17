@@ -67,14 +67,20 @@ def test_user_id(db_session):
 
 @pytest.fixture
 def client_with_db(db_session, test_user_id):
-    def _get_test_db():
-        yield db_session
+    """TestClient with dependency override for get_db()."""
+    # Make sure previous tests didn't leave overrides behind
+    app.dependency_overrides = {}
 
-    app.dependency_overrides[get_db] = _get_test_db
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.pop(get_db, None)
+    def _override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = _override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides = {}
 
 
 def test_admin_companion_ping_send_now_created_when_allowed(client_with_db, test_user_id, monkeypatch):
