@@ -8,13 +8,14 @@ Acceptance test: KC confirm flow (API-driven, no ORM imports).
 
 from __future__ import annotations
 
+import os
 import uuid
 from pathlib import Path
 import sys
 
 import pytest
 from starlette.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
 from sqlalchemy.orm import Session
 
 # Ensure canonical backend.app (with knowledge routes) is used
@@ -23,11 +24,27 @@ _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from backend.app.database import Base, SessionLocal, engine
+from backend.app.database import Base, SessionLocal
 from backend.app.main import app as sedi_app
 
 # Fixed user_id for deterministic tests
 _TEST_USER_ID = 91001
+
+
+def _get_db_url() -> str:
+    """
+    Prefer TEST_DATABASE_URL for pytest/CI; fallback to DATABASE_URL.
+    This test must NOT reuse backend.app.database.engine because it may point to prod/dev DB.
+    """
+    return (
+        (os.environ.get("TEST_DATABASE_URL") or "").strip()
+        or (os.environ.get("DATABASE_URL") or "").strip()
+        or "postgresql://postgres:postgres@localhost:5432/postgres"
+    )
+
+
+# Engine for this test file (must follow TEST_DATABASE_URL when set)
+_TEST_ENGINE = create_engine(_get_db_url(), future=True)
 
 
 def _collect_paths(routes, prefix=""):
@@ -53,13 +70,13 @@ def client() -> TestClient:
 
 @pytest.fixture()
 def db() -> Session:
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=_TEST_ENGINE)
     session = next(SessionLocal())
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=_TEST_ENGINE)
 
 
 @pytest.fixture()
