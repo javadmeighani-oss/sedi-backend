@@ -25,6 +25,7 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 from backend.app.database import Base
+from backend.app.database import get_db as _app_get_db
 from backend.app.main import app as sedi_app
 
 # Fixed user_id for deterministic tests
@@ -48,6 +49,18 @@ _TEST_ENGINE = create_engine(_get_db_url(), future=True)
 _TestSession = sessionmaker(bind=_TEST_ENGINE, autoflush=False, autocommit=False, future=True)
 
 
+def _override_get_db():
+    """
+    Force FastAPI dependency get_db() to use the test engine/session.
+    This prevents endpoints from using backend.app.database.engine (dev/prod DB).
+    """
+    db = _TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def _collect_paths(routes, prefix=""):
     """Collect all route paths from FastAPI/Starlette app (including mounted routers)."""
     paths = set()
@@ -66,7 +79,12 @@ def client() -> TestClient:
     assert "/knowledge/extract_from_message" in paths, f"Missing knowledge routes. Found: {sorted(paths)}"
     assert "/knowledge/next_question" in paths
     assert "/knowledge/apply_answer" in paths
-    return TestClient(sedi_app)
+    # Override DB dependency for the whole test client lifetime
+    sedi_app.dependency_overrides[_app_get_db] = _override_get_db
+    try:
+        return TestClient(sedi_app)
+    finally:
+        sedi_app.dependency_overrides.pop(_app_get_db, None)
 
 
 @pytest.fixture()
