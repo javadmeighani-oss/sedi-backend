@@ -20,16 +20,32 @@ _STOPWORDS_AR = frozenset({
     "و", "أو", "او", "في", "على", "من", "إلى", "الي", "عن", "مع",
     "هذا", "هذه", "ذلك", "تلك", "أنا", "انت", "أنت", "نحن", "هو", "هي", "نعم", "لا", "ليس",
 })
-_STOPWORDS = _STOPWORDS_FA | _STOPWORDS_EN | _STOPWORDS_AR
+
+# Unicode normalization: Arabic Yeh/Kaf -> Persian, remove diacritics/tatweel (for matching and stopwords).
+# Ranges removed: [\u064B-\u0652] (harakat), \u0670 (dagger alif), \u0640 (tatweel). ZWNJ \u200c kept.
+def _unicode_normalize_pass(s: str) -> str:
+    """Arabic yeh/kaf -> Persian; remove tatweel and Arabic diacritics. Safe for tokens."""
+    if not s:
+        return s
+    t = s.replace("\u064A", "\u06CC")  # Arabic yeh ي -> Persian ی
+    t = t.replace("\u0643", "\u06A9")  # Arabic kaf ك -> Persian ک
+    t = t.replace("\u0640", "")        # tatweel/kashida ـ
+    t = re.sub(r"[\u064B-\u0652]", "", t)  # Arabic diacritics (FATHATAN through SUKUN)
+    t = t.replace("\u0670", "")        # dagger alif
+    return t
+
+
+_STOPWORDS = _STOPWORDS_FA | _STOPWORDS_EN | frozenset(_unicode_normalize_pass(w) for w in _STOPWORDS_AR)
 _PUNCT = frozenset(string.punctuation + "،؛؟\u200c")
 
 
 def _normalize_token(s: str) -> str:
-    """Strip, lower, collapse internal whitespace, remove surrounding punctuation."""
+    """Strip, lower, collapse internal whitespace, unicode normalize (yeh/kaf, diacritics, tatweel), remove surrounding punctuation. ZWNJ preserved."""
     if not s or not isinstance(s, str):
         return ""
     t = s.strip().lower()
     t = re.sub(r"\s+", " ", t).strip()
+    t = _unicode_normalize_pass(t)
     while t and t[0] in _PUNCT:
         t = t[1:]
     while t and t[-1] in _PUNCT:
@@ -173,7 +189,7 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
     # Arabic medications: when language is ar or text contains Arabic letters
     _has_arabic = language == "ar" or bool(re.search(r"[\u0600-\u06FF]", text))
     if _has_arabic:
-        # Token after trigger: أتناول, تناولت, آخذ, أخذت, دواء, حبوب, قرص
+        text_ar = _unicode_normalize_pass(text)  # so triggers with diacritics (e.g. أَتناول) match
         ar_med_patterns = [
             r"أتناول\s+([^\s،.]+)",
             r"تناولت\s+([^\s،.]+)",
@@ -185,7 +201,7 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
             r"قرص\s+([^\s،.]+)",
         ]
         for pat in ar_med_patterns:
-            for m in re.finditer(pat, text):
+            for m in re.finditer(pat, text_ar):
                 token = (m.group(1) or "").strip()
                 token = re.sub(r"[,،.\s]+", " ", token).strip()
                 if len(token) >= 2 and not _is_noise_or_stopword(token):

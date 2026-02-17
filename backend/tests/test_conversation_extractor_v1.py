@@ -7,6 +7,8 @@ import pytest
 from backend.app.services.knowledge.conversation_extractor_v1 import (
     extract_candidates,
     ExtractedCandidate,
+    _normalize_token,
+    _unicode_normalize_pass,
 )
 
 
@@ -120,4 +122,46 @@ def test_medications_arabic_أخذت():
     assert len(meds) >= 1
     med = meds[0]
     assert "فيتامين" in str(med.fact_value)
+    assert med.confidence >= 0.70
+
+
+# --- Unicode normalization (Arabic yeh/kaf, diacritics, tatweel) ---
+
+
+def test_unicode_normalize_arabic_yeh_to_persian():
+    """Arabic yeh ي (U+064A) normalizes to Persian ی (U+06CC)."""
+    assert _unicode_normalize_pass("\u064A") == "\u06CC"
+    assert _unicode_normalize_pass("في") == "فی"
+
+
+def test_unicode_normalize_arabic_kaf_to_persian():
+    """Arabic kaf ك (U+0643) normalizes to Persian ک (U+06A9)."""
+    assert _unicode_normalize_pass("\u0643") == "\u06A9"
+
+
+def test_unicode_normalize_diacritics_removed():
+    """Arabic diacritics (harakat U+064B--U+0652) and dagger alif U+0670 are removed."""
+    # أَتناول = ALEF+HAMZA + FATHA + TAA etc.
+    assert _unicode_normalize_pass("\u0623\u064e\u062a\u0646\u0627\u0648\u0644") == "\u0623\u062a\u0646\u0627\u0648\u0644"
+    assert "\u064e" not in _unicode_normalize_pass("أَتناول")
+
+
+def test_unicode_normalize_tatweel_removed():
+    """Tatweel/kashida ـ (U+0640) is removed."""
+    assert _unicode_normalize_pass("دواء\u0640\u0640") == "دواء"
+
+
+def test_normalize_token_uses_unicode_pass():
+    """_normalize_token applies yeh/kaf and diacritics so stopwords match across variants."""
+    assert _normalize_token("في") == "فی"
+    assert _normalize_token("كلمة") == "کلمة"
+
+
+def test_medications_arabic_with_diacritics_still_matches():
+    """Trigger with diacritics (أَتناول) still matches and extracts medication."""
+    result = extract_candidates("\u0623\u064e\u062a\u0646\u0627\u0648\u0644 metformin", "ar")
+    meds = [c for c in result if c.fact_key == "medications"]
+    assert len(meds) >= 1
+    med = next((c for c in meds if "metformin" in str(c.fact_value).lower()), None)
+    assert med is not None
     assert med.confidence >= 0.70
