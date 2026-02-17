@@ -13,7 +13,7 @@ from backend.app.behavior.policy import BehaviorPolicy
 from backend.app.behavior.models import BehaviorMode
 from backend.app.behavior.texts_fa import get_lead_in, get_companion_ping_body, get_companion_ping_title
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 _COMPANION_PING_TYPE = "companion_ping"
 _COMPANION_PING_CHANNEL = "engagement"
