@@ -16,7 +16,11 @@ _STOPWORDS_EN = frozenset({
     "and", "or", "the", "a", "an", "to", "of", "in", "on", "for", "with",
     "is", "are", "was", "were", "i", "you", "we", "they", "he", "she", "it", "yes", "no",
 })
-_STOPWORDS = _STOPWORDS_FA | _STOPWORDS_EN
+_STOPWORDS_AR = frozenset({
+    "و", "أو", "او", "في", "على", "من", "إلى", "الي", "عن", "مع",
+    "هذا", "هذه", "ذلك", "تلك", "أنا", "انت", "أنت", "نحن", "هو", "هي", "نعم", "لا", "ليس",
+})
+_STOPWORDS = _STOPWORDS_FA | _STOPWORDS_EN | _STOPWORDS_AR
 _PUNCT = frozenset(string.punctuation + "،؛؟\u200c")
 
 
@@ -142,11 +146,14 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
             pass
 
     # 4) medications
-    # "دارم (X) می‌خورم" / "قرص (X)" / "(X) مصرف می‌کنم"
+    # Persian present: "دارم (X) می‌خورم" / "قرص (X)" / "(X) مصرف می‌کنم"
+    # Persian past: "(X) خوردم", "(X) مصرف کردم" / "مصرف‌کردم" (ZWNJ)
     med_patterns = [
         r"دارم\s+([^\s،.]+?)\s+می[‌\s]*خورم",
         r"قرص\s+([^\s،.]+?)(?:\s+می[‌\s]*خورم|\s*$|[\s،.])",
         r"([^\s،.]+?)\s+مصرف\s+می[‌\s]*کنم",
+        r"([^\s،.]+?)\s+خوردم",
+        r"([^\s،.]+?)\s+مصرف[\s\u200c]*کردم",
     ]
     has_mg = bool(re.search(r"mg|میلی[‌\s]*گرم|ملی[‌\s]*گرم", text, re.I))
     for pat in med_patterns:
@@ -162,6 +169,34 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
                     evidence=text[:200],
                     pattern_id="medications_fa",
                 ))
+
+    # Arabic medications: when language is ar or text contains Arabic letters
+    _has_arabic = language == "ar" or bool(re.search(r"[\u0600-\u06FF]", text))
+    if _has_arabic:
+        # Token after trigger: أتناول, تناولت, آخذ, أخذت, دواء, حبوب, قرص
+        ar_med_patterns = [
+            r"أتناول\s+([^\s،.]+)",
+            r"تناولت\s+([^\s،.]+)",
+            r"آخذ\s+([^\s،.]+)",
+            r"أخذت\s+([^\s،.]+)",
+            r"أخذت\s+([^\s،.]+)",  # alternate hamza
+            r"دواء\s+([^\s،.]+)",
+            r"حبوب\s+([^\s،.]+)",
+            r"قرص\s+([^\s،.]+)",
+        ]
+        for pat in ar_med_patterns:
+            for m in re.finditer(pat, text):
+                token = (m.group(1) or "").strip()
+                token = re.sub(r"[,،.\s]+", " ", token).strip()
+                if len(token) >= 2 and not _is_noise_or_stopword(token):
+                    conf = 0.80 if has_mg else 0.70
+                    candidates.append(ExtractedCandidate(
+                        fact_key="medications",
+                        fact_value=token,
+                        confidence=conf,
+                        evidence=text[:200],
+                        pattern_id="medications_ar",
+                    ))
 
     # Drop any candidate whose string value normalizes to noise/stopword
     candidates = [

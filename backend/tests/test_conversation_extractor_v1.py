@@ -81,3 +81,43 @@ def test_message_only_stopwords_creates_no_candidates():
     """Message that is only stopwords (e.g. 'هم') creates no candidates."""
     result = extract_candidates("هم", "fa")
     assert result == []
+
+
+def test_medications_persian_past_خوردم():
+    """امروز متفورمین خوردم => medications with متفورمین, conf>=0.70"""
+    result = extract_candidates("امروز متفورمین خوردم", "fa")
+    meds = [c for c in result if c.fact_key == "medications"]
+    assert len(meds) >= 1
+    med = next((c for c in meds if "متفورمین" in str(c.fact_value)), None)
+    assert med is not None
+    assert med.confidence >= 0.70
+
+
+def test_medications_persian_past_مصرف_کردم():
+    """متفورمین مصرف کردم => medications with متفورمین, conf>=0.70"""
+    result = extract_candidates("متفورمین مصرف کردم", "fa")
+    meds = [c for c in result if c.fact_key == "medications"]
+    assert len(meds) >= 1
+    med = next((c for c in meds if "متفورمین" in str(c.fact_value)), None)
+    assert med is not None
+    assert med.confidence >= 0.70
+
+
+def test_medications_arabic_اتناول():
+    """أنا أتناول metformin => medications containing metformin, conf>=0.70"""
+    result = extract_candidates("أنا أتناول metformin", "ar")
+    meds = [c for c in result if c.fact_key == "medications"]
+    assert len(meds) >= 1
+    med = next((c for c in meds if "metformin" in str(c.fact_value).lower()), None)
+    assert med is not None
+    assert med.confidence >= 0.70
+
+
+def test_medications_arabic_أخذت():
+    """أخذت فيتامين D => medications includes فيتامين (or related token), conf>=0.70"""
+    result = extract_candidates("أخذت فيتامين D", "ar")
+    meds = [c for c in result if c.fact_key == "medications"]
+    assert len(meds) >= 1
+    med = meds[0]
+    assert "فيتامين" in str(med.fact_value)
+    assert med.confidence >= 0.70
