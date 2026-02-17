@@ -71,6 +71,11 @@ def client_with_db(db_session, test_user_id):
     # Make sure previous tests didn't leave overrides behind
     app.dependency_overrides = {}
 
+    # --- Sanity checks: ensure schema exists in THIS connection ---
+    # If this fails, StaticPool/check_same_thread/Base import is wrong.
+    tables = set(db_session.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).scalars().all())
+    assert "users" in tables, f"Expected 'users' table in sqlite memory db, got: {sorted(list(tables))}"
+
     def _override_get_db():
         try:
             yield db_session
