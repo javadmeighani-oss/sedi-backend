@@ -98,12 +98,17 @@ def _create_drop_all():
 
 @pytest.fixture()
 def db():
-    session = _TestSession()
+    connection = _TEST_ENGINE.connect()
+    transaction = connection.begin()
+
+    session = _TestSession(bind=connection)
+
     try:
         yield session
-        session.commit()
     finally:
         session.close()
+        transaction.rollback()
+        connection.close()
 
 
 def _override_get_db():
