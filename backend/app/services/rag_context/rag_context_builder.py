@@ -51,11 +51,9 @@ def build_rag_context_pack(
     Fail-open: on any failure returns a minimal pack with language resolved to fallback or "en".
     """
     try:
-        from backend.app.services.user_context import UserContextService
         from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
     except ImportError:
         try:
-            from app.services.user_context import UserContextService
             from app.core.conversation.persona_policy_v1 import PersonaPolicyV1
         except ImportError:
             return RagContextPack(
