@@ -27,7 +27,7 @@ def behavior_user_id(db):
         ),
         {"id": uid, "name": "Notif Contract Test", "secret": "z", "lang": "fa"},
     )
-    db_session.commit()
+    db.commit()
     return uid
 
 

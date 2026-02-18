@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from backend.app.models import Device, Medication, Notification, User, UserMedication
+from backend.tests.test_db_config import get_test_database_url
 
 
 # Notification.type values from production (notification_engine.py)
@@ -37,15 +38,15 @@ def _env_indicates_production() -> bool:
     return env == "production" or app_env == "production"
 
 
-_test_db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL") or ""
+_test_db_url = get_test_database_url()
 if _env_indicates_production():
     raise RuntimeError(
         "Refusing to run acceptance tests: ENV or APP_ENV indicates production."
     )
 if _is_production_db_url(_test_db_url):
     raise RuntimeError(
-        "Refusing to run acceptance tests against a production-like DATABASE_URL. "
-        "Point TEST_DATABASE_URL or DATABASE_URL to a safe test database before running."
+        "Refusing to run acceptance tests against a production-like DB URL. "
+        "Set TEST_DATABASE_URL to a safe test database (e.g. sedi_test)."
     )
 
 

@@ -125,7 +125,7 @@ def test_can_initiate_cooldown_block(db, behavior_user_id):
     with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
         policy = BehaviorPolicy(daily_budget=3, cooldown_minutes=60)
         allowed, reason = policy.can_initiate(
-            db_session, behavior_user_id, now,
+            db, behavior_user_id, now,
             daily_initiated_count=0,
             last_initiated_at=one_minute_ago,
         )
@@ -159,7 +159,7 @@ def test_can_initiate_allowed(db, behavior_user_id):
     with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
         policy = BehaviorPolicy(daily_budget=3, cooldown_minutes=60)
         allowed, reason = policy.can_initiate(
-            db_session, behavior_user_id, now,
+            db, behavior_user_id, now,
             daily_initiated_count=0,
             last_initiated_at=two_hours_ago,
         )

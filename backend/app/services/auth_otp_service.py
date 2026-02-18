@@ -148,7 +148,9 @@ def request_otp(
     db.commit()
 
     # SMS: when disabled log only; when enabled use gateway and 503 on failure (Stage 25 Step 2.2)
-    if SMS_DISABLED:
+    # Read at runtime so tests can set SMS_DISABLED before request_otp
+    _sms_disabled = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true", "yes")
+    if _sms_disabled:
         logger.warning("[DEV OTP] phone=%s code=%s", phone, code)
         return True, ""
     from backend.app.services.sms_gateway import get_sms_sender

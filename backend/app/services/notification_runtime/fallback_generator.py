@@ -18,7 +18,7 @@ SupportedLanguage = Literal["en", "fa", "ar"]
 
 def generate_fallback_text(
     payload: NotificationPayload,
-    language: SupportedLanguage,
+    language: Optional[SupportedLanguage] = None,
     user_name: Optional[str] = None,
     memory_context: Optional[MemoryContext] = None
 ) -> str:
@@ -27,32 +27,46 @@ def generate_fallback_text(
     
     Args:
         payload: NotificationPayload with type, metadata, etc.
-        language: User's effective language ("en" | "fa" | "ar")
+        language: User's effective language ("en" | "fa" | "ar"). Optional: uses payload.metadata["language"] if present, else "fa" (project default).
         user_name: Optional user name (from User.name)
         memory_context: Optional MemoryContext for personalization
     
     Returns:
         Non-empty text string in the specified language. Never raises.
     """
-    # Resolve greeting name based on language
-    if language == "fa":
-        greeting_name = user_name or "عزیزم"
-    elif language == "ar":
-        greeting_name = user_name or "عزيزي"
-    else:  # en
-        greeting_name = user_name or "dear"
-    
-    if payload.type == "morning_brief":
-        return _generate_morning_brief(greeting_name, language, memory_context)
-    elif payload.type == "connection_ping":
-        return _generate_connection_ping(greeting_name, language, memory_context)
-    elif payload.type == "health_alert":
-        return _generate_health_alert(greeting_name, language, payload.metadata)
-    elif payload.type == "device_disconnected":
-        return _generate_device_disconnected(greeting_name, language, payload.metadata)
-    else:
-        # Fallback for unknown types
-        return _get_fallback_greeting(greeting_name, language)
+    try:
+        # Resolve language: explicit arg > payload.metadata > default "fa" (project default per knowledge router)
+        if language and str(language).strip().lower() in ("en", "fa", "ar"):
+            lang: SupportedLanguage = str(language).strip().lower()  # type: ignore
+        elif payload.metadata and isinstance(payload.metadata.get("language"), str):
+            raw = str(payload.metadata["language"]).strip().lower()
+            if raw in ("en", "fa", "ar"):
+                lang = raw  # type: ignore
+            else:
+                lang = "fa"
+        else:
+            lang = "fa"
+
+        # Resolve greeting name based on language
+        if lang == "fa":
+            greeting_name = user_name or "عزیزم"
+        elif lang == "ar":
+            greeting_name = user_name or "عزيزي"
+        else:  # en
+            greeting_name = user_name or "dear"
+
+        if payload.type == "morning_brief":
+            return _generate_morning_brief(greeting_name, lang, memory_context)
+        elif payload.type == "connection_ping":
+            return _generate_connection_ping(greeting_name, lang, memory_context)
+        elif payload.type == "health_alert":
+            return _generate_health_alert(greeting_name, lang, payload.metadata)
+        elif payload.type == "device_disconnected":
+            return _generate_device_disconnected(greeting_name, lang, payload.metadata)
+        else:
+            return _get_fallback_greeting(greeting_name, lang)
+    except Exception:
+        return "Hello."
 
 
 def _generate_morning_brief(

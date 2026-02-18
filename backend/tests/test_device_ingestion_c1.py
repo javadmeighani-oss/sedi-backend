@@ -22,9 +22,9 @@ from backend.app.services.memory.memory_repository import MemoryRepository
 
 @pytest.fixture
 def test_user(db: Session):
-    """Create test user"""
+    """Create test user with id=1 for deterministic dedupe_key assertions (Release C1)."""
     user = User(
-        id=999,
+        id=1,
         name="Test User",
         secret_key="test_key",
         preferred_language="en"
@@ -40,8 +40,12 @@ def test_user(db: Session):
 
 @pytest.fixture
 def device_token(monkeypatch):
-    """Set device token for testing"""
+    """Set device token and legacy_only auth for Release C1 tests.
+    DEVICE_AUTH_MODE=legacy_only ensures token-only auth (no device_id required);
+    otherwise hybrid mode returns 400 for missing device_id before token check.
+    """
     monkeypatch.setenv("DEVICE_INGEST_TOKEN", "test-device-token-123")
+    monkeypatch.setenv("DEVICE_AUTH_MODE", "legacy_only")
     return "test-device-token-123"
 
 

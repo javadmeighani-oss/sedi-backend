@@ -68,7 +68,7 @@ def test_next_question_notify_true_sends_for_confirm_candidate(client: TestClien
 
     send_calls: list = []
 
-    def _capture_send(db, user_id, data, lang):
+    def _capture_send(db, user_id, data, lang, in_app=False, **kwargs):
         send_calls.append({"user_id": user_id, "data": dict(data), "lang": lang})
         return {"attempted": True, "ok": True, "notification_id": 999}
 
@@ -95,7 +95,7 @@ def test_next_question_notify_true_no_question_does_not_send(client: TestClient,
     monkeypatch.setenv("KC_DAILY_QUESTION_CAP", "0")
     send_calls: list = []
 
-    def _capture_send(db, user_id, data, lang):
+    def _capture_send(db, user_id, data, lang, in_app=False, **kwargs):
         send_calls.append(True)
         return {"attempted": True, "ok": True}
 
@@ -115,7 +115,7 @@ def test_notify_errors_are_non_fatal(client: TestClient, test_user_id: int, monk
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     _seed_candidate(client, test_user_id)
 
-    def _raise(_db, _user_id, _data, _lang):
+    def _raise(_db, _user_id, _data, _lang, in_app=False, **kwargs):
         raise RuntimeError("fake send failure")
 
     with patch("backend.app.routers.knowledge._maybe_send_kc_notification", side_effect=_raise):

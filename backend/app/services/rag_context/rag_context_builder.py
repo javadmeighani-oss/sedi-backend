@@ -79,8 +79,10 @@ def build_rag_context_pack(
     meta: Dict[str, Any] = {"sources": []}
 
     if pack:
+        # Prefer pack.language when present; respect user context for deterministic tests
+        raw_lang = getattr(pack, "language", None)
         language = PersonaPolicyV1.resolve_language(
-            getattr(pack, "language", None) or fallback_language
+            raw_lang if (raw_lang and str(raw_lang).strip()) else fallback_language
         )
         preferred_name = (getattr(pack, "preferred_name", None) or "").strip() or None
         qh = getattr(pack, "quiet_hours", None)

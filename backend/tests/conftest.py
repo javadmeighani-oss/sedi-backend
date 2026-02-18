@@ -1,5 +1,4 @@
 # backend/tests/conftest.py
-import os
 import sys
 from pathlib import Path
 
@@ -20,6 +19,7 @@ from starlette.testclient import TestClient
 
 from backend.app.database import Base, get_db as _app_get_db
 from backend.app.main import app as sedi_app
+from backend.tests.test_db_config import get_test_database_url
 
 
 def _import_all_models() -> None:
@@ -49,25 +49,9 @@ def _mask_db_url(url: str) -> str:
 
 
 def _get_db_url() -> str:
-    test_url = os.getenv("TEST_DATABASE_URL", "").strip()
-    if test_url:
-        print("[tests] using TEST_DATABASE_URL=" + _mask_db_url(test_url))
-        return test_url
-
-    url = os.getenv("DATABASE_URL", "").strip()
-    if url:
-        lower = url.lower()
-        if any(x in lower for x in ("sedi_db", "prod", "production")):
-            raise RuntimeError(
-                "Refusing to run tests against production-like DATABASE_URL. "
-                "Set TEST_DATABASE_URL to a safe test database."
-            )
-        print("[tests] using DATABASE_URL=" + _mask_db_url(url))
-        return url
-
-    fallback = "postgresql://postgres:postgres@localhost:5432/postgres"
-    print("[tests] using fallback DB URL=" + _mask_db_url(fallback))
-    return fallback
+    url = get_test_database_url()
+    print("[tests] using DB URL=" + _mask_db_url(url))
+    return url
 
 
 # Single shared test engine for the whole pytest session (fast + consistent)

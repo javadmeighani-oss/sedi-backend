@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run Release D acceptance tests safely on the server using sedi_test_db (never production).
+# Run Release D acceptance tests safely on the server using sedi_test (never production).
 # Run from backend root: ./scripts/run_release_d_acceptance.sh
 
 set -euo pipefail
@@ -34,16 +34,16 @@ if ! python -m pytest --version &>/dev/null; then
 fi
 
 # ----- D) Ensure Postgres test DB exists -----
-if sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='sedi_test_db'" | grep -q 1; then
-  echo "Test DB sedi_test_db already exists."
+if sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='sedi_test'" | grep -q 1; then
+  echo "Test DB sedi_test already exists."
 else
-  echo "Creating test DB sedi_test_db..."
-  sudo -u postgres psql -c "CREATE DATABASE sedi_test_db;"
+  echo "Creating test DB sedi_test..."
+  sudo -u postgres psql -c "CREATE DATABASE sedi_test;"
 fi
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sedi_test_db TO sedi_user;" 2>/dev/null || true
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sedi_test TO sedi_user;" 2>/dev/null || true
 
-# ----- E) Run compile + tests with DATABASE_URL override only for these commands -----
-export DATABASE_URL="postgresql://sedi_user:sedi123%21%40%23@localhost:5432/sedi_test_db"
+# ----- E) Run compile + tests with TEST_DATABASE_URL -----
+export TEST_DATABASE_URL="postgresql+psycopg2://sedi_user:sedi123%21%40%23@127.0.0.1:5432/sedi_test"
 python -m py_compile tests/acceptance/test_release_d.py
 python -m pytest -q tests/acceptance/test_release_d.py -v --tb=short
 

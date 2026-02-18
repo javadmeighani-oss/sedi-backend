@@ -57,9 +57,10 @@ def _validate_hhmm(s: str) -> bool:
 
 
 # ---- Timezone patterns ----
+# Permissive pattern first: captures "set timezone X" (any token) for validation
 _TZ_PATTERNS = [
-    # English
-    (r"set\s+timezone\s+([A-Za-z][A-Za-z0-9_+-]+/[A-Za-z][A-Za-z0-9_+-]+)", "en"),
+    # English: set timezone <token> (captures invalid formats like NotATimezone for validation)
+    (r"set\s+timezone\s+(\S+)", "en"),
     (r"timezone\s*:\s*([A-Za-z][A-Za-z0-9_+-]+/[A-Za-z][A-Za-z0-9_+-]+)", "en"),
     # Persian: تایم‌زون / تایم زون / timezone
     (r"(?:تایم[\s‌]?زون|timezone)\s*[:\s]+\s*([A-Za-z][A-Za-z0-9_+-]+/[A-Za-z][A-Za-z0-9_+-]+)", "fa"),

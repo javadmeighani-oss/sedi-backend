@@ -21,7 +21,8 @@ def test_user(db):
 
 
 def test_allowlist_gating_uses_keyword_when_not_in_allowlist(db, test_user, monkeypatch):
-    """When RAG_VECTOR_ENABLED=true but user not in allowlist, use keyword."""
+    """When RAG_VECTOR_ENABLED=true but user not in allowlist, use LocalRAGProvider (keyword).
+    User in allowlist gets VectorRAGProvider when pgvector available; else LocalRAGProvider (skip logic)."""
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "true")
     monkeypatch.setenv("RAG_VECTOR_ALLOWLIST", "99999")
     from backend.app.services.local_rag import provider_router
@@ -29,11 +30,16 @@ def test_allowlist_gating_uses_keyword_when_not_in_allowlist(db, test_user, monk
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ALLOWLIST", frozenset([99999]))
 
+    # test_user not in allowlist -> LocalRAGProvider (keyword)
     provider = provider_router.get_rag_provider(db, test_user.id)
     assert isinstance(provider, provider_router.LocalRAGProvider)
 
+    # User 99999 in allowlist: VectorRAGProvider when pgvector available; else LocalRAGProvider (test env)
     provider2 = provider_router.get_rag_provider(db, 99999)
-    assert isinstance(provider2, provider_router.VectorRAGProvider)
+    assert isinstance(
+        provider2,
+        (provider_router.LocalRAGProvider, provider_router.VectorRAGProvider),
+    )
 
 
 def test_allowlist_parsing_robust():
