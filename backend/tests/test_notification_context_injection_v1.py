@@ -15,13 +15,13 @@ try:
     )
     from backend.app.services.notification_runtime.user_context_adapter import build_notification_context
 except ImportError:
-    from app.services.notification_runtime.renderer import (
+    from backend.app.services.notification_runtime.renderer import (
         render,
         _personalize_text,
         _one_goals_lifestyle_hint,
         _append_goals_hint,
     )
-    from app.services.notification_runtime.user_context_adapter import build_notification_context
+    from backend.app.services.notification_runtime.user_context_adapter import build_notification_context
 
 
 # ---- _personalize_text ----
@@ -161,7 +161,7 @@ def test_build_notification_context_returns_dict_with_truncation(monkeypatch):
             QuietHours,
         )
     except ImportError:
-        from app.services.user_context.context_models import (
+        from backend.app.services.user_context.context_models import (
             UserContextPack,
             UserGoals,
             UserLifestyleSummary,
@@ -204,7 +204,7 @@ def test_build_notification_context_fail_returns_empty(monkeypatch):
     try:
         from backend.app.services.notification_runtime import user_context_adapter as adapter
     except ImportError:
-        from app.services.notification_runtime import user_context_adapter as adapter
+        from backend.app.services.notification_runtime import user_context_adapter as adapter
 
     class FailingService:
         def get_user_context(self, user_id):

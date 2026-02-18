@@ -1,6 +1,6 @@
 # Release D: internal tests for rule evaluation (no DB, no external services)
-from app.decision_engine.models import EventDto, CreateHealthAlertAction
-from app.decision_engine.service import decide_from_event, evaluate_event
+from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
+from backend.app.decision_engine.service import decide_from_event, evaluate_event
 
 
 def test_no_match_returns_none():

@@ -15,7 +15,7 @@ try:
         serialize_rag_pack_for_context,
     )
 except ImportError:
-    from app.services.rag_context import (
+    from backend.app.services.rag_context import (
         RagContextPack,
         build_rag_context_pack,
         is_high_risk_medical,
@@ -31,7 +31,7 @@ def test_build_rag_context_pack_uses_en_when_language_none(monkeypatch):
     try:
         from backend.app.services.rag_context import rag_context_builder as builder
     except ImportError:
-        from app.services.rag_context import rag_context_builder as builder
+        from backend.app.services.rag_context import rag_context_builder as builder
 
     class FailingService:
         def get_user_context(self, user_id):
@@ -53,7 +53,7 @@ def test_build_rag_context_pack_truncation_limits(monkeypatch):
             QuietHours,
         )
     except ImportError:
-        from app.services.user_context.context_models import (
+        from backend.app.services.user_context.context_models import (
             UserContextPack,
             UserGoals,
             UserLifestyleSummary,
@@ -78,7 +78,7 @@ def test_build_rag_context_pack_truncation_limits(monkeypatch):
     try:
         from backend.app.services.rag_context import rag_context_builder as builder
     except ImportError:
-        from app.services.rag_context import rag_context_builder as builder
+        from backend.app.services.rag_context import rag_context_builder as builder
     monkeypatch.setattr(builder, "UserContextService", lambda db: MockService())
 
     result = build_rag_context_pack(None, 1, fallback_language="en")

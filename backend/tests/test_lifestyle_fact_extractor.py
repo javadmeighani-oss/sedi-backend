@@ -5,7 +5,7 @@ Unit tests for Stage 17.1 - Lifestyle fact extraction (deterministic patterns).
 
 import pytest
 
-from app.services.lifestyle.fact_extractor import (
+from backend.app.services.lifestyle.fact_extractor import (
     extract_candidates_from_turn,
     CandidateFact,
     _normalize_value,

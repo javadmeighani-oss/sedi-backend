@@ -2,7 +2,7 @@
 import pytest
 from datetime import datetime
 
-from app.services.vitals.vital_registry import validate_event, map_to_memory_facts, VitalValidationError
+from backend.app.services.vitals.vital_registry import validate_event, map_to_memory_facts, VitalValidationError
 
 
 def test_validate_heart_rate():

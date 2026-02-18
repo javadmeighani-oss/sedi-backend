@@ -12,11 +12,11 @@ import pytest
 from datetime import datetime
 from typing import Optional
 
-from app.schemas.notification import NotificationPayload
-from app.services.notification_runtime.fallback_generator import generate_fallback_text
-from app.services.notification_runtime.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
-from app.services.notification_engine import NotificationBuilder
-from app.services.memory.memory_context import MemoryContext
+from backend.app.schemas.notification import NotificationPayload
+from backend.app.services.notification_runtime.fallback_generator import generate_fallback_text
+from backend.app.services.notification_runtime.ai_enhancer import enhance_with_ai, NOTIF_AI_ENHANCE
+from backend.app.services.notification_engine import NotificationBuilder
+from backend.app.services.memory.memory_context import MemoryContext
 
 
 # -------------------- Test Fallback Generator --------------------

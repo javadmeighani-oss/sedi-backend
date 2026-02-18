@@ -10,7 +10,7 @@ Tests:
 
 import pytest
 
-from app.services.notification_runtime.renderer import render, DEFAULT_ACTIONS_JSON
+from backend.app.services.notification_runtime.renderer import render, DEFAULT_ACTIONS_JSON
 
 
 def test_render_morning_returns_valid_for_en_fa_ar():

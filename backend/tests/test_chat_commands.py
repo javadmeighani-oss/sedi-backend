@@ -12,7 +12,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from sqlalchemy.orm import Session
 
-from app.services.chat_commands import (
+from backend.app.services.chat_commands import (
     detect_and_handle_user_settings_command,
     ChatResponseOverride,
     _validate_iana_timezone,
@@ -54,7 +54,7 @@ def test_set_timezone_command_en():
     """English: set timezone Asia/Tehran -> stores and returns success."""
     db = MagicMock(spec=Session)
     repo_inst = MagicMock()
-    with patch("app.services.chat_commands.MemoryRepository", return_value=repo_inst):
+    with patch("backend.app.services.chat_commands.MemoryRepository", return_value=repo_inst):
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="set timezone Asia/Tehran",
@@ -75,7 +75,7 @@ def test_set_timezone_invalid_returns_message():
     """Invalid timezone -> returns error message, no upsert."""
     db = MagicMock(spec=Session)
     repo_inst = MagicMock()
-    with patch("app.services.chat_commands.MemoryRepository", return_value=repo_inst):
+    with patch("backend.app.services.chat_commands.MemoryRepository", return_value=repo_inst):
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="set timezone NotATimezone",
@@ -91,7 +91,7 @@ def test_set_quiet_hours_command():
     """quiet hours 22:00-08:00 -> stores and returns success."""
     db = MagicMock(spec=Session)
     repo_inst = MagicMock()
-    with patch("app.services.chat_commands.MemoryRepository", return_value=repo_inst):
+    with patch("backend.app.services.chat_commands.MemoryRepository", return_value=repo_inst):
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="quiet hours 22:00-08:00",
@@ -112,7 +112,7 @@ def test_disable_quiet_hours_command():
     """disable quiet hours -> stores enabled=False."""
     db = MagicMock(spec=Session)
     repo_inst = MagicMock()
-    with patch("app.services.chat_commands.MemoryRepository", return_value=repo_inst):
+    with patch("backend.app.services.chat_commands.MemoryRepository", return_value=repo_inst):
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="disable quiet hours",
@@ -143,7 +143,7 @@ def test_persian_timezone_command():
     """Persian: تایم زون: Asia/Tehran -> stores."""
     db = MagicMock(spec=Session)
     repo_inst = MagicMock()
-    with patch("app.services.chat_commands.MemoryRepository", return_value=repo_inst):
+    with patch("backend.app.services.chat_commands.MemoryRepository", return_value=repo_inst):
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="تایم زون: Asia/Tehran",

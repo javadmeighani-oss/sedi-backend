@@ -11,9 +11,9 @@ try:
     from backend.app.core.conversation.brain import _build_user_context_block, _pack_to_prompt_dict
     from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
 except ImportError:
-    from app.core.conversation.prompts import build_system_prompt_with_context
-    from app.core.conversation.brain import _build_user_context_block, _pack_to_prompt_dict
-    from app.core.conversation.persona_policy_v1 import PersonaPolicyV1
+    from backend.app.core.conversation.prompts import build_system_prompt_with_context
+    from backend.app.core.conversation.brain import _build_user_context_block, _pack_to_prompt_dict
+    from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
 
 
 def test_build_system_prompt_with_context_english_includes_javad():

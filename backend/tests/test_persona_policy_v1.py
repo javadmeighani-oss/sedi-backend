@@ -9,7 +9,7 @@ import pytest
 try:
     from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1, PersonaPolicyConfig
 except ImportError:
-    from app.core.conversation.persona_policy_v1 import PersonaPolicyV1, PersonaPolicyConfig
+    from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1, PersonaPolicyConfig
 
 
 def test_default_language_is_english_when_none():
@@ -98,7 +98,7 @@ def test_build_system_prompt_v1_integration():
     try:
         from backend.app.core.conversation.prompts import build_system_prompt_v1
     except ImportError:
-        from app.core.conversation.prompts import build_system_prompt_v1
+        from backend.app.core.conversation.prompts import build_system_prompt_v1
     out = build_system_prompt_v1("en", None)
     assert out == PersonaPolicyV1.system_prompt("en", None)
     assert "female" in out.lower()
