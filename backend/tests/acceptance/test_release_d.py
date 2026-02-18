@@ -95,6 +95,21 @@ def release_d_user(db: Session) -> User:
     return user
 
 
+@pytest.fixture()
+def patch_scheduler_db(monkeypatch: pytest.MonkeyPatch, db: Session) -> None:
+    """
+    Ensure scheduler jobs use the same test DB session as the test.
+    Scheduler uses get_db() which yields from SessionLocal; we patch get_db
+    so it yields our test db instead of the app's default (prod-like) DB.
+    """
+    import backend.app.core.scheduler as sched_mod
+
+    def _get_db_override():
+        yield db
+
+    monkeypatch.setattr(sched_mod, "get_db", _get_db_override, raising=True)
+
+
 @pytest.fixture
 def device_auth_legacy(monkeypatch) -> str:
     # Auth reads DEVICE_AUTH_MODE / DEVICE_INGEST_TOKEN at request time (device_auth._get_*), so setenv is sufficient.
@@ -156,6 +171,7 @@ def test_release_d_device_disconnected_creates_notification(
     db: Session,
     release_d_user: User,
     monkeypatch: pytest.MonkeyPatch,
+    patch_scheduler_db: None,
 ) -> None:
     import backend.app.core.scheduler as sched_mod
 
@@ -205,6 +221,7 @@ def test_release_d_device_disconnected_creates_notification(
 def test_release_d_medication_reminder_creates_notification(
     db: Session,
     release_d_user: User,
+    patch_scheduler_db: None,
 ) -> None:
     med = Medication(
         name="TestMed ReleaseD",

@@ -9,6 +9,14 @@ from backend.app.database import Base, get_db as _app_get_db
 from backend.app.main import app as sedi_app
 
 
+def _import_all_models() -> None:
+    """
+    Ensure SQLAlchemy models are imported so they register on Base.metadata
+    before Base.metadata.create_all() runs in tests.
+    """
+    import backend.app.models  # noqa: F401
+
+
 def _get_db_url() -> str:
     return (
         os.getenv("TEST_DATABASE_URL")
@@ -35,6 +43,7 @@ def _create_drop_all():
     Most tests assume clean DB; they should clean up their own inserted rows.
     If a test needs full isolation, it can use its own transaction/rollback.
     """
+    _import_all_models()
     Base.metadata.create_all(bind=_TEST_ENGINE)
     try:
         yield
