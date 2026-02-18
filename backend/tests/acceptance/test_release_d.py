@@ -95,17 +95,33 @@ def release_d_user(db: Session) -> User:
     return user
 
 
+class _SessionContext:
+    """Context manager that provides the session but does NOT close it on exit.
+    The scheduler uses 'with next(get_db()) as db:' which would call Session.close()
+    and detach release_d_user. We avoid that by wrapping the session."""
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def __enter__(self) -> Session:
+        return self._session
+
+    def __exit__(self, *args: object) -> None:
+        # Do not close - session is managed by the test fixture
+        pass
+
+
 @pytest.fixture()
 def patch_scheduler_db(monkeypatch: pytest.MonkeyPatch, db: Session) -> None:
     """
     Ensure scheduler jobs use the same test DB session as the test.
-    Scheduler uses get_db() which yields from SessionLocal; we patch get_db
-    so it yields our test db instead of the app's default (prod-like) DB.
+    Scheduler uses get_db() and 'with next(get_db()) as db:' which would close
+    the session on exit and detach objects like release_d_user. We yield a
+    wrapper that provides the session but does not close it.
     """
     import backend.app.core.scheduler as sched_mod
 
     def _get_db_override():
-        yield db
+        yield _SessionContext(db)
 
     monkeypatch.setattr(sched_mod, "get_db", _get_db_override, raising=True)
 
