@@ -17,12 +17,44 @@ def _import_all_models() -> None:
     import backend.app.models  # noqa: F401
 
 
+def _mask_db_url(url: str) -> str:
+    """Mask password part in URLs like scheme://user:pass@host:port/db."""
+    if not url:
+        return url
+    at = url.find("@")
+    if at == -1:
+        return url
+    before_at = url[:at]
+    after_at = url[at:]
+    colon_after_scheme = url.find("//") + 2 if "//" in url else 0
+    creds = before_at[colon_after_scheme:]
+    if ":" in creds:
+        user, _ = creds.split(":", 1)
+        masked_creds = user + ":***"
+        return url[:colon_after_scheme] + masked_creds + after_at
+    return url
+
+
 def _get_db_url() -> str:
-    return (
-        os.getenv("TEST_DATABASE_URL")
-        or os.getenv("DATABASE_URL")
-        or "postgresql://postgres:postgres@localhost:5432/postgres"
-    )
+    test_url = os.getenv("TEST_DATABASE_URL", "").strip()
+    if test_url:
+        print("[tests] using TEST_DATABASE_URL=" + _mask_db_url(test_url))
+        return test_url
+
+    url = os.getenv("DATABASE_URL", "").strip()
+    if url:
+        lower = url.lower()
+        if any(x in lower for x in ("sedi_db", "prod", "production")):
+            raise RuntimeError(
+                "Refusing to run tests against production-like DATABASE_URL. "
+                "Set TEST_DATABASE_URL to a safe test database."
+            )
+        print("[tests] using DATABASE_URL=" + _mask_db_url(url))
+        return url
+
+    fallback = "postgresql://postgres:postgres@localhost:5432/postgres"
+    print("[tests] using fallback DB URL=" + _mask_db_url(fallback))
+    return fallback
 
 
 # Single shared test engine for the whole pytest session (fast + consistent)
