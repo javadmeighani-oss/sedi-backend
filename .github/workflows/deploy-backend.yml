@@ -40,6 +40,16 @@ jobs:
               root@91.107.168.130 \
               "echo 'SSH connection successful ✅'"
 
+      - name: Install systemd override (V1 legacy_only)
+        run: |
+          OVERRIDE_PATH="backend/deployment/sedi-backend.service.d/override.conf"
+          if [ ! -f "$OVERRIDE_PATH" ]; then
+            OVERRIDE_PATH="deployment/sedi-backend.service.d/override.conf"
+          fi
+          ssh -o BatchMode=yes -o ConnectTimeout=10 root@91.107.168.130 "mkdir -p /etc/systemd/system/sedi-backend.service.d"
+          scp -o BatchMode=yes -o ConnectTimeout=10 "$OVERRIDE_PATH" root@91.107.168.130:/etc/systemd/system/sedi-backend.service.d/override.conf
+          ssh -o BatchMode=yes -o ConnectTimeout=10 root@91.107.168.130 "systemctl daemon-reload"
+
       - name: Deploy to Server
         run: |
           ssh -o BatchMode=yes \
@@ -83,17 +93,6 @@ jobs:
               echo "⚠️  Some dependencies failed to install, continuing..."
             }
             
-            # Install V1 override (DEVICE_AUTH_MODE=legacy_only)
-            mkdir -p /etc/systemd/system/sedi-backend.service.d
-            cat > /etc/systemd/system/sedi-backend.service.d/override.conf << 'OVERRIDEEOF'
-[Service]
-# Reset original ExecStart from base unit
-ExecStart=
-
-# Inject DEVICE_AUTH_MODE directly into process environment (V1 path)
-ExecStart=/usr/bin/env DEVICE_AUTH_MODE=legacy_only /var/www/sedi/backend/.venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
-OVERRIDEEOF
-            systemctl daemon-reload
             
             # Restart service
             echo "🔄 Restarting service..."
