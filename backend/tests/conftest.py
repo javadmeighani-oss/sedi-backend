@@ -3,6 +3,11 @@ import os
 import sys
 from pathlib import Path
 
+import backend.app as backend_app
+
+# Temporary namespace alias for transitional architecture
+sys.modules["app"] = backend_app
+
 # Remove legacy app/ path from sys.path to avoid importing both app.* and backend.app.*
 _repo = Path(__file__).resolve().parents[2]
 _legacy_app_path = str(_repo / "app")
