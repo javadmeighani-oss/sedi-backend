@@ -5,19 +5,7 @@ Tests for Stage 17.9 - RAG circuit breaker guardrails.
 
 import pytest
 
-from app.database import Base, engine, SessionLocal
-from app.models import User
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User
 
 
 @pytest.fixture
@@ -37,7 +25,7 @@ def test_breaker_trips_when_p95_exceeded(monkeypatch):
     monkeypatch.setenv("RAG_VECTOR_ERROR_MAX", "10")
     monkeypatch.setenv("RAG_VECTOR_FALLBACK_TTL_SECONDS", "60")
     import importlib
-    import app.services.local_rag.circuit_breaker as cb
+    import backend.app.services.local_rag.circuit_breaker as cb
     importlib.reload(cb)
 
     snapshot = {"latency": {"p95_ms": 150}, "errors_in_last_50": 0}
@@ -54,7 +42,7 @@ def test_breaker_trips_when_errors_exceeded(monkeypatch):
     monkeypatch.setenv("RAG_VECTOR_ERROR_MAX", "3")
     monkeypatch.setenv("RAG_VECTOR_FALLBACK_TTL_SECONDS", "60")
     import importlib
-    import app.services.local_rag.circuit_breaker as cb
+    import backend.app.services.local_rag.circuit_breaker as cb
     importlib.reload(cb)
 
     snapshot = {"latency": {"p95_ms": 50}, "errors_in_last_50": 5}
@@ -70,9 +58,9 @@ def test_breaker_prevents_vector_usage_when_tripped(db, test_user, monkeypatch):
     monkeypatch.setenv("RAG_VECTOR_P95_MAX_MS", "1")
     monkeypatch.setenv("RAG_VECTOR_FALLBACK_TTL_SECONDS", "3600")
     import importlib
-    import app.services.local_rag.circuit_breaker as cb
+    import backend.app.services.local_rag.circuit_breaker as cb
     importlib.reload(cb)
-    import app.services.local_rag.provider_router as pr
+    import backend.app.services.local_rag.provider_router as pr
 
     monkeypatch.setattr(pr, "RAG_VECTOR_ENABLED", True)
     monkeypatch.setattr(pr, "RAG_VECTOR_ALLOWLIST", frozenset([test_user.id]))

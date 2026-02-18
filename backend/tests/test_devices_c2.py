@@ -15,24 +15,8 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
-from app.database import Base, engine, SessionLocal
-from app.models import User, Device
-from app.core.device_auth import hash_device_token
-
-
-client = TestClient(app)
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User, Device
+from backend.app.core.device_auth import hash_device_token
 
 
 @pytest.fixture
@@ -44,7 +28,7 @@ def user(db):
     return u
 
 
-def test_register_and_ingest_with_db_token_hybrid(db, user, monkeypatch):
+def test_register_and_ingest_with_db_token_hybrid(client: TestClient, db, user, monkeypatch):
     monkeypatch.setenv("DEVICE_AUTH_MODE", "hybrid")
     monkeypatch.delenv("DEVICE_INGEST_TOKEN", raising=False)  # no legacy token
 
@@ -75,7 +59,7 @@ def test_register_and_ingest_with_db_token_hybrid(db, user, monkeypatch):
     assert j2["data"]["dedupe_key"].startswith(f"heart_rate:{user.id}:")
 
 
-def test_revoke_blocks_ingest(db, user, monkeypatch):
+def test_revoke_blocks_ingest(client: TestClient, db, user, monkeypatch):
     monkeypatch.setenv("DEVICE_AUTH_MODE", "hybrid")
     monkeypatch.delenv("DEVICE_INGEST_TOKEN", raising=False)
 
@@ -94,7 +78,7 @@ def test_revoke_blocks_ingest(db, user, monkeypatch):
     assert ing.status_code == 401
 
 
-def test_rotate_changes_token(db, user, monkeypatch):
+def test_rotate_changes_token(client: TestClient, db, user, monkeypatch):
     monkeypatch.setenv("DEVICE_AUTH_MODE", "hybrid")
     monkeypatch.delenv("DEVICE_INGEST_TOKEN", raising=False)
 
@@ -124,7 +108,7 @@ def test_rotate_changes_token(db, user, monkeypatch):
     assert ing_new.json()["ok"] is True
 
 
-def test_hybrid_fallback_to_legacy_when_db_rejects(db, user, monkeypatch):
+def test_hybrid_fallback_to_legacy_when_db_rejects(client: TestClient, db, user, monkeypatch):
     monkeypatch.setenv("DEVICE_AUTH_MODE", "hybrid")
     monkeypatch.setenv("DEVICE_INGEST_TOKEN", "legacy-secret")
 

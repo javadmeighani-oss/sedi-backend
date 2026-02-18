@@ -6,30 +6,11 @@ import pytest
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 
-from app.database import Base, engine, SessionLocal
-from app.main import app
-from app.models import Notification, User
-from app.services.notifications.delivery_service import (
+from backend.app.models import Notification, User
+from backend.app.services.notifications.delivery_service import (
     DeliveryService,
     LoggingOnlyAdapter,
 )
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Test DB session; create/drop tables for isolation."""
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture

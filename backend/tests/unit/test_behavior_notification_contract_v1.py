@@ -17,33 +17,13 @@ if str(_repo_root) not in sys.path:
 
 
 @pytest.fixture
-def db_session():
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from backend.app.database import Base
-    import backend.app.models  # noqa: F401
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-    )
-    Base.metadata.create_all(bind=engine)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def behavior_user_id(db_session):
+def behavior_user_id(db):
     from sqlalchemy import text
     uid = 70003
-    db_session.execute(
+    db.execute(
         text(
             "INSERT INTO users (id, name, secret_key, preferred_language, created_at) "
-            "VALUES (:id, :name, :secret, :lang, datetime('now'))"
+            "VALUES (:id, :name, :secret, :lang, NOW())"
         ),
         {"id": uid, "name": "Notif Contract Test", "secret": "z", "lang": "fa"},
     )
@@ -51,7 +31,7 @@ def behavior_user_id(db_session):
     return uid
 
 
-def test_companion_ping_blocked_during_quiet_hours(db_session, behavior_user_id):
+def test_companion_ping_blocked_during_quiet_hours(db, behavior_user_id):
     """When is_within_quiet_hours is True, try_create_companion_ping_notification returns None."""
     from unittest.mock import patch
     from backend.app.behavior.service import try_create_companion_ping_notification
@@ -59,12 +39,12 @@ def test_companion_ping_blocked_during_quiet_hours(db_session, behavior_user_id)
     with patch("backend.app.behavior.service.is_behavior_v1_enabled", return_value=True):
         with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=True):
             result = try_create_companion_ping_notification(
-                db_session, behavior_user_id, lang="fa"
+                db, behavior_user_id, lang="fa"
             )
     assert result is None
 
 
-def test_companion_ping_allowed_outside_quiet_hours_under_budget(db_session, behavior_user_id):
+def test_companion_ping_allowed_outside_quiet_hours_under_budget(db, behavior_user_id):
     """When outside quiet hours and under daily budget, creates Notification with type=companion_ping and deeplink from=notif&type=companion_ping."""
     from unittest.mock import patch
     from backend.app.behavior.service import try_create_companion_ping_notification
@@ -72,7 +52,7 @@ def test_companion_ping_allowed_outside_quiet_hours_under_budget(db_session, beh
     with patch("backend.app.behavior.service.is_behavior_v1_enabled", return_value=True):
         with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
             result = try_create_companion_ping_notification(
-                db_session, behavior_user_id, lang="fa"
+                db, behavior_user_id, lang="fa"
             )
     assert result is not None
     assert result.type == "companion_ping"
@@ -82,7 +62,7 @@ def test_companion_ping_allowed_outside_quiet_hours_under_budget(db_session, beh
     assert result.title
 
 
-def test_companion_ping_two_initiations_same_day_blocked(db_session, behavior_user_id):
+def test_companion_ping_two_initiations_same_day_blocked(db, behavior_user_id):
     """Two initiations in the same (user-local) day: second is blocked by initiated_today even if daily_initiated_count is stale or >0."""
     from unittest.mock import patch
     from backend.app.behavior.service import (
@@ -93,7 +73,7 @@ def test_companion_ping_two_initiations_same_day_blocked(db_session, behavior_us
     with patch("backend.app.behavior.service.is_behavior_v1_enabled", return_value=True):
         with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
             first = try_create_companion_ping_notification(
-                db_session, behavior_user_id, lang="fa"
+                db, behavior_user_id, lang="fa"
             )
     assert first is not None
 
@@ -101,18 +81,18 @@ def test_companion_ping_two_initiations_same_day_blocked(db_session, behavior_us
     with patch("backend.app.behavior.service.is_behavior_v1_enabled", return_value=True):
         with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
             second = try_create_companion_ping_notification(
-                db_session, behavior_user_id, lang="fa"
+                db, behavior_user_id, lang="fa"
             )
     assert second is None
 
     # Optional: simulate stale daily_initiated_count (e.g. manually set to 0); policy should still block via initiated_today
-    profile = get_or_create_profile(db_session, behavior_user_id)
+    profile = get_or_create_profile(db, behavior_user_id)
     profile.daily_initiated_count = 0
-    db_session.commit()
-    db_session.refresh(profile)
+    db.commit()
+    db.refresh(profile)
     with patch("backend.app.behavior.service.is_behavior_v1_enabled", return_value=True):
         with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
             third = try_create_companion_ping_notification(
-                db_session, behavior_user_id, lang="fa"
+                db, behavior_user_id, lang="fa"
             )
     assert third is None

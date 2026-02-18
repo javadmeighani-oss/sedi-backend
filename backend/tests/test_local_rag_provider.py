@@ -6,20 +6,8 @@ Tests for Stage 17.5 - Local RAG provider.
 import pytest
 from datetime import datetime, timedelta
 
-from app.database import Base, engine, SessionLocal
-from app.models import User, UserFact, UserMemoryFact, DailyMemorySummary, Memory, UserProfileKnowledge
-from app.services.local_rag.local_provider import LocalRAGProvider, RAG_LOCAL_TOP_K, RAG_LOCAL_MAX_CHARS
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User, UserFact, UserMemoryFact, DailyMemorySummary, Memory, UserProfileKnowledge
+from backend.app.services.local_rag.local_provider import LocalRAGProvider, RAG_LOCAL_TOP_K, RAG_LOCAL_MAX_CHARS
 
 
 @pytest.fixture
@@ -67,7 +55,7 @@ def test_retrieval_respects_top_k(db, test_user, monkeypatch):
         db.add(uf)
     db.commit()
 
-    from app.services.local_rag import local_provider
+    from backend.app.services.local_rag import local_provider
     monkeypatch.setattr(local_provider, "RAG_LOCAL_TOP_K", 3)
 
     provider = LocalRAGProvider(db)
@@ -90,7 +78,7 @@ def test_retrieval_respects_max_chars(db, test_user, monkeypatch):
     db.add(uf)
     db.commit()
 
-    from app.services.local_rag import local_provider
+    from backend.app.services.local_rag import local_provider
     monkeypatch.setattr(local_provider, "RAG_LOCAL_MAX_CHARS", 500)
 
     provider = LocalRAGProvider(db)
@@ -114,7 +102,7 @@ def test_no_error_when_no_data(db, test_user):
 def test_provider_router_uses_keyword_when_vector_disabled(db, test_user, monkeypatch):
     """Provider router returns keyword provider when RAG_VECTOR_ENABLED=false."""
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "false")
-    from app.services.local_rag import provider_router
+    from backend.app.services.local_rag import provider_router
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", False)
 
     provider = provider_router.get_rag_provider(db, test_user.id)
@@ -129,7 +117,7 @@ def test_provider_router_uses_keyword_when_vector_disabled(db, test_user, monkey
 def test_provider_router_falls_back_to_keyword_when_vector_unavailable(db, test_user, monkeypatch):
     """When RAG_VECTOR_ENABLED=true but vector fails, retrieve falls back to keyword."""
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "true")
-    from app.services.local_rag import provider_router
+    from backend.app.services.local_rag import provider_router
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)
 
     result = provider_router.retrieve(db, test_user.id, "lifestyle", "en")
@@ -144,7 +132,7 @@ def test_provider_router_falls_back_to_keyword_when_vector_unavailable(db, test_
 )
 def test_vector_provider_when_pgvector_available(db, test_user):
     """Vector provider retrieve works when pgvector is available. Skipped by default."""
-    from app.services.local_rag.vector_provider import VectorRAGProvider
+    from backend.app.services.local_rag.vector_provider import VectorRAGProvider
 
     provider = VectorRAGProvider(db)
     result = provider.retrieve(test_user.id, "test", "en")

@@ -5,20 +5,8 @@ Tests for Stage 17.7 - RAG metrics.
 
 import pytest
 
-from app.database import Base, engine, SessionLocal
-from app.models import User
-from app.services.local_rag.metrics import RAGMetricsCollector, get_metrics
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User
+from backend.app.services.local_rag.metrics import RAGMetricsCollector, get_metrics
 
 
 @pytest.fixture
@@ -82,8 +70,8 @@ def test_latency_buckets():
 
 def test_provider_router_records_fallback(db, test_user, monkeypatch):
     """provider_router records fallback when vector unavailable (user in allowlist)."""
-    from app.services.local_rag.metrics import get_metrics
-    from app.services.local_rag import provider_router
+    from backend.app.services.local_rag.metrics import get_metrics
+    from backend.app.services.local_rag import provider_router
 
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "true")
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)

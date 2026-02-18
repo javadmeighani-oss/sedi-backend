@@ -9,27 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.main import app
-from app.models import Notification, User
-
-
-@pytest.fixture
-def client():
-    """FastAPI test client."""
-    return TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Database session; creates and drops tables for isolation."""
-    from app.database import Base, engine, SessionLocal
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import Notification, User
 
 
 @pytest.fixture

@@ -11,97 +11,35 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import text
 
 _repo_root = Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
-
-from backend.app.database import get_db
-from backend.app.main import app
 
 _ADMIN_TOKEN = "test-admin-companion-ping"
 _TEST_USER_ID = 70010
 
 
 @pytest.fixture
-def db_session():
-    # NOTE: SQLite in-memory creates a NEW database per connection.
-    # StaticPool forces a single connection so create_all() and Session share the same DB.
-    # check_same_thread=False is required because TestClient may use different threads.
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        future=True,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    # IMPORTANT: import models BEFORE create_all so all tables are registered on Base.metadata.
-    import backend.app.models as m
-    Base = m.Base
-    Base.metadata.create_all(bind=engine)
-
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def test_user_id(db_session):
-    db_session.execute(
+def test_user_id(db):
+    db.execute(
         text(
             "INSERT INTO users (id, name, secret_key, preferred_language, created_at) "
-            "VALUES (:id, :name, :secret, :lang, datetime('now'))"
+            "VALUES (:id, :name, :secret, :lang, NOW())"
         ),
         {"id": _TEST_USER_ID, "name": "Admin Companion Ping Test", "secret": "x", "lang": "fa"},
     )
-    db_session.commit()
+    db.commit()
     return _TEST_USER_ID
 
 
-@pytest.fixture
-def client_with_db(db_session, test_user_id):
-    """TestClient with dependency override for get_db()."""
-    # Make sure previous tests didn't leave overrides behind
-    app.dependency_overrides = {}
-
-    # --- Sanity checks: ensure schema exists in THIS connection ---
-    # If this fails, StaticPool/check_same_thread/Base import is wrong.
-    tables = set(db_session.execute(text("SELECT name FROM sqlite_master WHERE type='table'")).scalars().all())
-    assert "users" in tables, f"Expected 'users' table in sqlite memory db, got: {sorted(list(tables))}"
-
-    # IMPORTANT: routers may have imported get_db from a different module path.
-    # Override BOTH: the get_db imported in this test AND the get_db referenced by the router module.
-    import backend.app.routers.notifications as notif_router
-
-    def _override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
-
-    app.dependency_overrides[get_db] = _override_get_db
-    # Make sure the endpoint uses the same overridden dependency:
-    if hasattr(notif_router, "get_db"):
-        app.dependency_overrides[notif_router.get_db] = _override_get_db
-
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides = {}
-
-
-def test_admin_companion_ping_send_now_created_when_allowed(client_with_db, test_user_id, monkeypatch):
+def test_admin_companion_ping_send_now_created_when_allowed(client, test_user_id, monkeypatch):
     """When BEHAVIOR_V1_ENABLED=true and outside quiet hours and under budget => created true."""
     monkeypatch.setenv("ADMIN_TOKEN", _ADMIN_TOKEN)
     monkeypatch.setenv("BEHAVIOR_V1_ENABLED", "true")
     with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
-        r = client_with_db.post(
+        r = client.post(
             "/notifications/admin/companion_ping/send_now",
             params={"user_id": test_user_id},
             headers={"X-Admin-Token": _ADMIN_TOKEN},
@@ -116,18 +54,18 @@ def test_admin_companion_ping_send_now_created_when_allowed(client_with_db, test
     assert data["data"].get("type") == "companion_ping"
 
 
-def test_admin_companion_ping_send_now_second_call_same_day_created_false(client_with_db, test_user_id, monkeypatch):
+def test_admin_companion_ping_send_now_second_call_same_day_created_false(client, test_user_id, monkeypatch):
     """Second call same day => created false (initiated_today)."""
     monkeypatch.setenv("ADMIN_TOKEN", _ADMIN_TOKEN)
     monkeypatch.setenv("BEHAVIOR_V1_ENABLED", "true")
     with patch("backend.app.behavior.policy.is_within_quiet_hours", return_value=False):
-        r1 = client_with_db.post(
+        r1 = client.post(
             "/notifications/admin/companion_ping/send_now",
             params={"user_id": test_user_id},
             headers={"X-Admin-Token": _ADMIN_TOKEN},
         )
         assert r1.status_code == 200 and r1.json()["data"]["created"] is True
-        r2 = client_with_db.post(
+        r2 = client.post(
             "/notifications/admin/companion_ping/send_now",
             params={"user_id": test_user_id},
             headers={"X-Admin-Token": _ADMIN_TOKEN},
@@ -140,10 +78,10 @@ def test_admin_companion_ping_send_now_second_call_same_day_created_false(client
     assert data2["data"]["deeplink"] is None
 
 
-def test_admin_companion_ping_send_now_requires_admin_token(client_with_db, test_user_id, monkeypatch):
+def test_admin_companion_ping_send_now_requires_admin_token(client, test_user_id, monkeypatch):
     """Without X-Admin-Token or wrong token => 401."""
     monkeypatch.setenv("ADMIN_TOKEN", _ADMIN_TOKEN)
-    r = client_with_db.post(
+    r = client.post(
         "/notifications/admin/companion_ping/send_now",
         params={"user_id": test_user_id},
     )

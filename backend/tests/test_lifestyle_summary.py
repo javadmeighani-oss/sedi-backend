@@ -7,21 +7,8 @@ Asserts sources exist for What I know and Recent patterns when data is present.
 import pytest
 from datetime import datetime, timedelta
 
-from app.database import Base, engine, SessionLocal
-from app.models import User, UserProfileKnowledge, UserMemoryFact, DailyMemorySummary, UserFact
-from app.services.lifestyle.summary_service import generate_summary
-
-
-@pytest.fixture
-def db():
-    """Database session fixture"""
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User, UserProfileKnowledge, UserMemoryFact, DailyMemorySummary, UserFact
+from backend.app.services.lifestyle.summary_service import generate_summary
 
 
 @pytest.fixture

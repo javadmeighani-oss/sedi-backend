@@ -13,23 +13,10 @@ Tests:
 import pytest
 from sqlalchemy.orm import Session
 
-from app.services.notification_runtime.language_resolver import resolve_effective_language
-from app.services.notification_runtime.fallback_generator import generate_fallback_text
-from app.schemas.notification import NotificationPayload
-from app.models import User
-from app.database import SessionLocal, Base, engine
-
-
-@pytest.fixture
-def db():
-    """Create a test database session"""
-    Base.metadata.create_all(bind=engine)
-    db = next(SessionLocal())
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.services.notification_runtime.language_resolver import resolve_effective_language
+from backend.app.services.notification_runtime.fallback_generator import generate_fallback_text
+from backend.app.schemas.notification import NotificationPayload
+from backend.app.models import User
 
 
 @pytest.fixture
@@ -153,8 +140,8 @@ def test_fallback_text_arabic(db: Session):
 
 def test_metadata_language_always_set(db: Session, test_user_en: User):
     """Test that metadata.language is always set in notification creation"""
-    from app.services.notification_engine import DecisionEngine
-    
+    from backend.app.services.notification_engine import DecisionEngine
+
     decision_engine = DecisionEngine(db)
     
     # Create a notification
@@ -171,27 +158,22 @@ def test_metadata_language_always_set(db: Session, test_user_en: User):
     assert notification.type == "morning_brief"  # Correct type, not legacy
 
 
-def test_no_legacy_types_in_contract_methods():
+def test_no_legacy_types_in_contract_methods(db: Session):
     """Test that contract methods only use allowed types"""
-    from app.services.notification_engine import DecisionEngine
-    from app.database import SessionLocal
-    
-    db = next(SessionLocal())
-    try:
-        decision_engine = DecisionEngine(db)
-        
-        # All create methods should use new contract types
-        # morning_brief, connection_ping, health_alert
-        
-        # Verify method signatures exist
-        assert hasattr(decision_engine, 'create_morning_brief')
-        assert hasattr(decision_engine, 'create_connection_ping')
-        assert hasattr(decision_engine, 'create_health_alert')
-        
-        # These should NOT use legacy types
-        # (Verified by code inspection - no INSIGHT/HEALTH/REMINDER in new methods)
-    finally:
-        db.close()
+    from backend.app.services.notification_engine import DecisionEngine
+
+    decision_engine = DecisionEngine(db)
+
+    # All create methods should use new contract types
+    # morning_brief, connection_ping, health_alert
+
+    # Verify method signatures exist
+    assert hasattr(decision_engine, 'create_morning_brief')
+    assert hasattr(decision_engine, 'create_connection_ping')
+    assert hasattr(decision_engine, 'create_health_alert')
+
+    # These should NOT use legacy types
+    # (Verified by code inspection - no INSIGHT/HEALTH/REMINDER in new methods)
 
 
 def test_fallback_never_empty():

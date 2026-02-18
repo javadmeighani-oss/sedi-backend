@@ -128,12 +128,10 @@ def test_fallback_never_raises():
 
 # -------------------- Test Dedupe Key Format --------------------
 
-def test_dedupe_key_morning_brief_format():
+def test_dedupe_key_morning_brief_format(db):
     """Test that dedupe_key format is stable for morning_brief"""
-    from app.services.notification_engine import NotificationBuilder
-    from app.database import SessionLocal
-    
-    db = next(SessionLocal())
+    from backend.app.services.notification_engine import NotificationBuilder
+
     builder = NotificationBuilder(db)
     
     now = datetime(2026, 2, 2, 9, 0, 0)
@@ -155,16 +153,12 @@ def test_dedupe_key_morning_brief_format():
     
     assert key2 == "morning_brief:1:2026-02-02"
     assert key == key2
-    
-    db.close()
 
 
-def test_dedupe_key_connection_ping_format():
+def test_dedupe_key_connection_ping_format(db):
     """Test that dedupe_key format is stable for connection_ping"""
-    from app.services.notification_engine import NotificationBuilder
-    from app.database import SessionLocal
-    
-    db = next(SessionLocal())
+    from backend.app.services.notification_engine import NotificationBuilder
+
     builder = NotificationBuilder(db)
     
     now = datetime(2026, 2, 2, 10, 30, 0)  # 10:30 -> bucket 08
@@ -186,16 +180,12 @@ def test_dedupe_key_connection_ping_format():
     
     assert key2 == "connection_ping:1:2026-02-02:08"
     assert key == key2
-    
-    db.close()
 
 
-def test_dedupe_key_health_alert_format():
+def test_dedupe_key_health_alert_format(db):
     """Test that dedupe_key format is stable for health_alert"""
-    from app.services.notification_engine import NotificationBuilder
-    from app.database import SessionLocal
-    
-    db = next(SessionLocal())
+    from backend.app.services.notification_engine import NotificationBuilder
+
     builder = NotificationBuilder(db)
     
     now = datetime(2026, 2, 2, 14, 30, 0)
@@ -220,8 +210,6 @@ def test_dedupe_key_health_alert_format():
     
     assert key2 == "health_alert:1:high_heart_rate:2026-02-02T14"
     assert key == key2
-    
-    db.close()
 
 
 # -------------------- Test AI Enhancement --------------------
@@ -239,7 +227,7 @@ def test_ai_enhance_disabled_returns_unchanged():
         
         # Reload module to pick up new env value
         import importlib
-        from app.services.notification_runtime import ai_enhancer
+        from backend.app.services.notification_runtime import ai_enhancer
         importlib.reload(ai_enhancer)
         
         payload = NotificationPayload(
@@ -268,7 +256,7 @@ def test_ai_enhance_disabled_returns_unchanged():
         else:
             os.environ.pop("NOTIF_AI_ENHANCE", None)
         import importlib
-        from app.services.notification_runtime import ai_enhancer
+        from backend.app.services.notification_runtime import ai_enhancer
         importlib.reload(ai_enhancer)
 
 
@@ -295,12 +283,10 @@ def test_ai_enhance_never_raises():
 
 # -------------------- Test Integration --------------------
 
-def test_build_payload_creates_valid_payload():
+def test_build_payload_creates_valid_payload(db):
     """Test that build_payload creates valid NotificationPayload"""
-    from app.services.notification_engine import NotificationBuilder
-    from app.database import SessionLocal
-    
-    db = next(SessionLocal())
+    from backend.app.services.notification_engine import NotificationBuilder
+
     builder = NotificationBuilder(db)
     
     payload = builder.build_payload(
@@ -319,8 +305,6 @@ def test_build_payload_creates_valid_payload():
     assert payload.body == "Test"
     assert payload.dedupe_key is not None
     assert len(payload.dedupe_key) > 0
-    
-    db.close()
 
 
 if __name__ == "__main__":

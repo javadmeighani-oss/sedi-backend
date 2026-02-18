@@ -17,24 +17,8 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
-from app.database import Base, engine, SessionLocal
-from app.models import User
-from app.services.notification_engine import DecisionEngine
-
-
-client = TestClient(app)
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User
+from backend.app.services.notification_engine import DecisionEngine
 
 
 @pytest.fixture
@@ -46,7 +30,7 @@ def user_en(db):
     return u
 
 
-def test_notifications_e2e_unread_markread_feedback(db, user_en):
+def test_notifications_e2e_unread_markread_feedback(client: TestClient, db, user_en):
     engine = DecisionEngine(db)
 
     # 1) Create via contract method (language should resolve to en)

@@ -6,26 +6,8 @@ Tests for Stage 23 Step 1 - UserContextService (read-only context pack).
 import pytest
 from datetime import datetime, timedelta
 
-from app.database import Base, engine, SessionLocal
-from app.models import User, UserProfileKnowledge, UserMemoryFact, DailyMemorySummary
-
-# Import service; may use backend.app or app depending on runtime
-try:
-    from backend.app.services.user_context import UserContextService, UserContextPack
-except ImportError:
-    from app.services.user_context import UserContextService, UserContextPack
-
-
-@pytest.fixture
-def db():
-    """Database session fixture."""
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User, UserProfileKnowledge, UserMemoryFact, DailyMemorySummary
+from backend.app.services.user_context import UserContextService, UserContextPack
 
 
 @pytest.fixture

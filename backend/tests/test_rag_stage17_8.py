@@ -5,20 +5,8 @@ Tests for Stage 17.8 - Vector RAG Pilot.
 
 import pytest
 
-from app.database import Base, engine, SessionLocal
-from app.models import User, DailyMemorySummary
-from app.services.local_rag.indexing import index_daily_summaries_for_user, _content_hash
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import User, DailyMemorySummary
+from backend.app.services.local_rag.indexing import index_daily_summaries_for_user, _content_hash
 
 
 @pytest.fixture
@@ -36,7 +24,7 @@ def test_allowlist_gating_uses_keyword_when_not_in_allowlist(db, test_user, monk
     """When RAG_VECTOR_ENABLED=true but user not in allowlist, use keyword."""
     monkeypatch.setenv("RAG_VECTOR_ENABLED", "true")
     monkeypatch.setenv("RAG_VECTOR_ALLOWLIST", "99999")
-    from app.services.local_rag import provider_router
+    from backend.app.services.local_rag import provider_router
 
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ENABLED", True)
     monkeypatch.setattr(provider_router, "RAG_VECTOR_ALLOWLIST", frozenset([99999]))

@@ -14,30 +14,10 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.main import app
-from app.models import DeviceEvent, User, UserMemoryFact
-from app.services.device_ingestion import ingest_event
-from app.services.vitals.dedupe import build_dedupe_key
-from app.services.memory.memory_repository import MemoryRepository
-
-
-@pytest.fixture
-def client():
-    """FastAPI test client"""
-    return TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Database session fixture"""
-    from app.database import Base, engine, SessionLocal
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import DeviceEvent, User, UserMemoryFact
+from backend.app.services.device_ingestion import ingest_event
+from backend.app.services.vitals.dedupe import build_dedupe_key
+from backend.app.services.memory.memory_repository import MemoryRepository
 
 
 @pytest.fixture
@@ -275,7 +255,7 @@ def test_ingest_temperature_normalizes_and_creates_memory_fact(db: Session, test
     assert fact is not None
 
 
-def test_ingest_endpoint_requires_token(client, device_token):
+def test_ingest_endpoint_requires_token(client: TestClient, device_token):
     """Test that /device/ingest requires valid X-DEVICE-TOKEN"""
     # Request without token
     response = client.post(
@@ -302,7 +282,7 @@ def test_ingest_endpoint_requires_token(client, device_token):
     assert "Invalid device token" in response.json()["detail"]
 
 
-def test_ingest_endpoint_success(client, db: Session, test_user, device_token):
+def test_ingest_endpoint_success(client: TestClient, db: Session, test_user, device_token):
     """Test successful ingestion via endpoint"""
     response = client.post(
         "/device/ingest",
@@ -324,7 +304,7 @@ def test_ingest_endpoint_success(client, db: Session, test_user, device_token):
     assert "dedupe_key" in data["data"]
 
 
-def test_ingest_endpoint_duplicate(client, db: Session, test_user, device_token):
+def test_ingest_endpoint_duplicate(client: TestClient, db: Session, test_user, device_token):
     """Test duplicate event handling via endpoint"""
     recorded_at = "2026-02-02T10:30:00Z"
     
@@ -360,7 +340,7 @@ def test_ingest_endpoint_duplicate(client, db: Session, test_user, device_token)
     assert "duplicate" in data2["data"].get("message", "").lower()
 
 
-def test_ingest_endpoint_invalid_user(client, db: Session, device_token):
+def test_ingest_endpoint_invalid_user(client: TestClient, db: Session, device_token):
     """Test ingestion with non-existent user"""
     response = client.post(
         "/device/ingest",
@@ -378,7 +358,7 @@ def test_ingest_endpoint_invalid_user(client, db: Session, device_token):
     assert data["error"]["code"] == "USER_NOT_FOUND"
 
 
-def test_ingest_endpoint_empty_payload(client, db: Session, test_user, device_token):
+def test_ingest_endpoint_empty_payload(client: TestClient, db: Session, test_user, device_token):
     """Test ingestion with empty payload"""
     response = client.post(
         "/device/ingest",
@@ -396,7 +376,7 @@ def test_ingest_endpoint_empty_payload(client, db: Session, test_user, device_to
     assert data["error"]["code"] == "INVALID_PAYLOAD"
 
 
-def test_ingest_endpoint_unsupported_event_type(client, db: Session, test_user, device_token):
+def test_ingest_endpoint_unsupported_event_type(client: TestClient, db: Session, test_user, device_token):
     """Test ingestion with unsupported event type"""
     response = client.post(
         "/device/ingest",

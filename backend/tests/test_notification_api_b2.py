@@ -13,27 +13,7 @@ from fastapi.testclient import TestClient
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from app.main import app
-from app.models import Notification, User
-from app.database import SessionLocal, Base, engine
-
-# Create test client
-client = TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Create a test database session"""
-    # Create tables
-    Base.metadata.create_all(bind=engine)
-    
-    db = next(SessionLocal())
-    try:
-        yield db
-    finally:
-        db.close()
-        # Clean up tables
-        Base.metadata.drop_all(bind=engine)
+from backend.app.models import Notification, User
 
 
 @pytest.fixture
@@ -69,7 +49,7 @@ def test_notification(db: Session, test_user: User):
     return notification
 
 
-def test_get_unread_notifications(db: Session, test_user: User, test_notification: Notification):
+def test_get_unread_notifications(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test GET /notifications/unread returns unread notifications"""
     response = client.get(
         "/notifications/unread",
@@ -88,7 +68,7 @@ def test_get_unread_notifications(db: Session, test_user: User, test_notificatio
     assert test_notification.id in notification_ids
 
 
-def test_get_unread_notifications_with_type_filter(db: Session, test_user: User, test_notification: Notification):
+def test_get_unread_notifications_with_type_filter(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test GET /notifications/unread with type filter"""
     response = client.get(
         "/notifications/unread",
@@ -104,7 +84,7 @@ def test_get_unread_notifications_with_type_filter(db: Session, test_user: User,
         assert notif["type"] == "morning_brief"
 
 
-def test_get_unread_notifications_limit(db: Session, test_user: User):
+def test_get_unread_notifications_limit(client: TestClient, db: Session, test_user: User):
     """Test GET /notifications/unread respects limit parameter"""
     # Create multiple notifications
     for i in range(5):
@@ -132,7 +112,7 @@ def test_get_unread_notifications_limit(db: Session, test_user: User):
     assert len(data["data"]["notifications"]) <= 3
 
 
-def test_mark_notification_read(db: Session, test_user: User, test_notification: Notification):
+def test_mark_notification_read(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test POST /notifications/{id}/mark-read marks notification as read"""
     # Verify notification is unread
     assert test_notification.is_read is False
@@ -152,7 +132,7 @@ def test_mark_notification_read(db: Session, test_user: User, test_notification:
     assert test_notification.is_read is True
 
 
-def test_mark_notification_read_idempotent(db: Session, test_user: User, test_notification: Notification):
+def test_mark_notification_read_idempotent(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test POST /notifications/{id}/mark-read is idempotent"""
     # Mark as read first time
     response1 = client.post(
@@ -170,7 +150,7 @@ def test_mark_notification_read_idempotent(db: Session, test_user: User, test_no
     assert response2.json()["ok"] is True
 
 
-def test_mark_notification_read_ownership_validation(db: Session, test_user: User, test_notification: Notification):
+def test_mark_notification_read_ownership_validation(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test POST /notifications/{id}/mark-read validates ownership"""
     # Create another user
     other_user = User(
@@ -193,7 +173,7 @@ def test_mark_notification_read_ownership_validation(db: Session, test_user: Use
     assert data["error"]["code"] == "FORBIDDEN"
 
 
-def test_submit_feedback_standardized(db: Session, test_user: User, test_notification: Notification):
+def test_submit_feedback_standardized(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test POST /notifications/{id}/feedback accepts standardized payload"""
     feedback_payload = {
         "feedback": "positive",
@@ -213,7 +193,7 @@ def test_submit_feedback_standardized(db: Session, test_user: User, test_notific
     assert data["data"]["feedback"] == "positive"
 
 
-def test_submit_feedback_all_types(db: Session, test_user: User, test_notification: Notification):
+def test_submit_feedback_all_types(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test POST /notifications/{id}/feedback accepts all feedback types"""
     for feedback_type in ["positive", "negative", "neutral"]:
         feedback_payload = {
@@ -234,7 +214,7 @@ def test_submit_feedback_all_types(db: Session, test_user: User, test_notificati
         assert data["data"]["feedback"] == feedback_type
 
 
-def test_submit_feedback_ownership_validation(db: Session, test_user: User, test_notification: Notification):
+def test_submit_feedback_ownership_validation(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test POST /notifications/{id}/feedback validates ownership"""
     # Create another user
     other_user = User(
@@ -263,7 +243,7 @@ def test_submit_feedback_ownership_validation(db: Session, test_user: User, test
     assert data["error"]["code"] == "FORBIDDEN"
 
 
-def test_get_unread_excludes_read_notifications(db: Session, test_user: User, test_notification: Notification):
+def test_get_unread_excludes_read_notifications(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test GET /notifications/unread excludes read notifications"""
     # Mark notification as read
     test_notification.is_read = True

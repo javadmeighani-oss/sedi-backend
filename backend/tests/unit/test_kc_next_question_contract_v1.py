@@ -2,93 +2,19 @@
 Contract test: GET /knowledge/next_question never returns {"ok": true, "data": null}.
 When engine has no question (full profile + care facts, no pending confirm candidate),
 response must be data.status == "no_question", data.reason == "no_available_question".
-
-Uses SQLite in-memory so tests do not depend on Postgres credentials.
 """
 
 from __future__ import annotations
 
-import sys
 from datetime import datetime
-from sqlalchemy.pool import StaticPool
-from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
-
-_repo_root = Path(__file__).resolve().parents[3]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
-
-from backend.app.database import Base, get_db
-from backend.app.main import app as sedi_app
-
-# Import so Base.metadata has all tables (kc_fact_candidates, etc.)
-import backend.app.models  # noqa: F401
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 _CONTRACT_TEST_USER_ID = 2
 _PRIORITY_TEST_USER_ID = 3
-
-# SQLite-compatible timestamp (used in raw SQL below)
-_NOW = "CURRENT_TIMESTAMP"
-
-
-def _collect_paths(routes, prefix=""):
-    paths = set()
-    for r in routes:
-        path = getattr(r, "path", None) or ""
-        if hasattr(r, "routes"):
-            paths.update(_collect_paths(r.routes, prefix + path))
-        elif path:
-            paths.add(prefix + path)
-    return paths
-
-
-def _get_test_db():
-    """Yield a session from the test SQLite engine (set by db fixture)."""
-    if _test_session_local is None:
-        raise RuntimeError("test db fixture not active")
-    db = _test_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Set by db() fixture so _get_test_db uses the same engine
-_test_session_local = None
-
-
-@pytest.fixture()
-def db() -> Session:
-    """SQLite in-memory DB; override get_db so API uses it. No Postgres required."""
-    global _test_session_local
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-         connect_args={"check_same_thread": False},
-         poolclass=StaticPool,
-    )
-    _test_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
-    sedi_app.dependency_overrides[get_db] = _get_test_db
-    session = _test_session_local()
-    try:
-        yield session
-    finally:
-        session.close()
-        sedi_app.dependency_overrides.pop(get_db, None)
-        Base.metadata.drop_all(bind=engine)
-        _test_session_local = None
-
-
-@pytest.fixture()
-def client() -> TestClient:
-    paths = _collect_paths(sedi_app.routes)
-    assert "/knowledge/next_question" in paths
-    return TestClient(sedi_app)
-
 
 @pytest.fixture()
 def full_profile_user(db: Session) -> int:
@@ -99,7 +25,7 @@ def full_profile_user(db: Session) -> int:
     db.execute(
         text(
             "INSERT INTO users (id, name, secret_key, preferred_language, created_at) "
-            f"VALUES (:id, :name, :secret, :lang, {_NOW})"
+            "VALUES (:id, :name, :secret, :lang, NOW())"
         ),
         {"id": uid, "name": "Contract Test User", "secret": "c", "lang": "fa"},
     )
@@ -108,7 +34,7 @@ def full_profile_user(db: Session) -> int:
     db.execute(
         text(
             "INSERT INTO user_profile_core (user_id, birth_year, sex, height_cm, weight_kg, language, quiet_start, quiet_end, created_at, updated_at) "
-            f"VALUES (:uid, 1990, 'مرد', 175, 70.0, 'fa', '22:00:00', '06:00:00', {_NOW}, {_NOW})"
+            "VALUES (:uid, 1990, 'مرد', 175, 70.0, 'fa', '22:00:00', '06:00:00', NOW(), NOW())"
         ),
         {"uid": uid},
     )
@@ -158,14 +84,14 @@ def two_candidates_medications_and_sleep(db: Session) -> int:
     db.execute(
         text(
             "INSERT INTO users (id, name, secret_key, preferred_language, created_at) "
-            f"VALUES (:id, :name, :secret, :lang, {_NOW})"
+            "VALUES (:id, :name, :secret, :lang, NOW())"
         ),
         {"id": uid, "name": "Priority Test User", "secret": "p", "lang": "fa"},
     )
     db.execute(
         text(
             "INSERT INTO user_profile_core (user_id, birth_year, sex, height_cm, weight_kg, language, quiet_start, quiet_end, created_at, updated_at) "
-            f"VALUES (:uid, 1990, 'مرد', 175, 70.0, 'fa', '22:00:00', '06:00:00', {_NOW}, {_NOW})"
+            "VALUES (:uid, 1990, 'مرد', 175, 70.0, 'fa', '22:00:00', '06:00:00', NOW(), NOW())"
         ),
         {"uid": uid},
     )
