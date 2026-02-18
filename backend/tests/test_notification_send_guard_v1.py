@@ -7,20 +7,8 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy.orm import Session
 
-from backend.app.database import SessionLocal, Base, engine
 from backend.app.models import Notification, NotificationFeedback, User
 from backend.app.services.notifications.send_guard_v1 import can_send_v1
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture

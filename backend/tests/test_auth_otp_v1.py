@@ -8,28 +8,12 @@ from unittest.mock import patch
 os.environ["SMS_DISABLED"] = "true"
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from backend.app.database import SessionLocal, Base, engine
-from backend.app.main import app
 from backend.app import models
 from backend.app.services import auth_otp_service as svc
 
-client = TestClient(app)
 
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
-
-
-def test_request_otp_returns_ok_with_sms_disabled(db):
+def test_request_otp_returns_ok_with_sms_disabled(client: TestClient, db):
     """request_otp returns ok and next=verify_otp when SMS_DISABLED=true."""
     r = client.post("/auth/request_otp", json={"phone": "+989121234567"})
     assert r.status_code == 200
@@ -38,7 +22,7 @@ def test_request_otp_returns_ok_with_sms_disabled(db):
     assert data.get("data", {}).get("next") == "verify_otp"
 
 
-def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(db, monkeypatch):
+def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(client: TestClient, db, monkeypatch):
     """Request OTP with mocked code; verify with same code; tokens and user created (HMAC OTP)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_123")
     code_plain = "123456"
@@ -61,7 +45,7 @@ def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(db, monkeyp
     assert user is not None
 
 
-def test_verify_otp_stores_device_info_and_ip_when_headers_present(db, monkeypatch):
+def test_verify_otp_stores_device_info_and_ip_when_headers_present(client: TestClient, db, monkeypatch):
     """verify_otp with X-Device-Info and X-Client-IP stores them on the refresh token row (A3.2)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_device")
     code_plain = "111222"
@@ -88,7 +72,7 @@ def test_verify_otp_stores_device_info_and_ip_when_headers_present(db, monkeypat
     assert rt.ip == "192.168.1.100"
 
 
-def test_verify_otp_wrong_code_increments_attempts_and_fails(db, monkeypatch):
+def test_verify_otp_wrong_code_increments_attempts_and_fails(client: TestClient, db, monkeypatch):
     """verify_otp with wrong code returns error and increments attempts (HMAC OTP)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_456")
     phone = "+989199999999"
@@ -103,7 +87,7 @@ def test_verify_otp_wrong_code_increments_attempts_and_fails(db, monkeypatch):
     assert row.attempts == 1
 
 
-def test_auth_me_works_with_access_token(db, monkeypatch):
+def test_auth_me_works_with_access_token(client: TestClient, db, monkeypatch):
     """GET /auth/me with valid Bearer returns user info (HMAC OTP)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_me")
     phone = "+989128888888"
@@ -120,7 +104,7 @@ def test_auth_me_works_with_access_token(db, monkeypatch):
     assert "user_id" in me_data
 
 
-def test_sms_disabled_does_not_call_provider(db):
+def test_sms_disabled_does_not_call_provider(client: TestClient, db):
     """When SMS_DISABLED=true, request_otp does not call get_sms_sender (Stage 25 Step 2.2)."""
     with patch("backend.app.services.sms_gateway.get_sms_sender") as mock_get:
         ok, err = svc.request_otp(db, "+989100000001")
@@ -129,7 +113,7 @@ def test_sms_disabled_does_not_call_provider(db):
         assert err == ""
 
 
-def test_request_otp_succeeds_with_dummy_provider(db):
+def test_request_otp_succeeds_with_dummy_provider(client: TestClient, db):
     """When SMS_DISABLED=false and SMS_PROVIDER=dummy, request_otp succeeds without network (Stage 25 Step 2.2)."""
     with patch.object(svc, "SMS_DISABLED", False):
         with patch.dict(os.environ, {"SMS_PROVIDER": "dummy"}, clear=False):

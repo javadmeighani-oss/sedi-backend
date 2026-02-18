@@ -5,22 +5,7 @@ import pytest
 from datetime import datetime
 from fastapi.testclient import TestClient
 
-from backend.app.database import SessionLocal, Base, engine
-from backend.app.main import app
 from backend.app.models import Notification, NotificationFeedback, User
-
-client = TestClient(app)
-
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
@@ -50,7 +35,7 @@ def test_notification(db, test_user):
     return n
 
 
-def test_accept_like_with_reason(db, test_user, test_notification):
+def test_accept_like_with_reason(client: TestClient, db, test_user, test_notification):
     """POST feedback with like + reason is accepted and stored with normalized event_type."""
     r = client.post(
         f"/notifications/{test_notification.id}/feedback",
@@ -77,7 +62,7 @@ def test_accept_like_with_reason(db, test_user, test_notification):
         assert meta.get("reason") == "too_frequent"
 
 
-def test_interact_without_action_id_returns_422(db, test_user, test_notification):
+def test_interact_without_action_id_returns_422(client: TestClient, db, test_user, test_notification):
     """POST feedback with reaction=interact and no action_id returns 422."""
     r = client.post(
         f"/notifications/{test_notification.id}/feedback",
@@ -90,7 +75,7 @@ def test_interact_without_action_id_returns_422(db, test_user, test_notification
     assert r.status_code == 422
 
 
-def test_legacy_payload_still_accepted(db, test_user, test_notification):
+def test_legacy_payload_still_accepted(client: TestClient, db, test_user, test_notification):
     """Legacy B2 payload (feedback/reason/action) is accepted and normalized."""
     r = client.post(
         f"/notifications/{test_notification.id}/feedback",
@@ -111,7 +96,7 @@ def test_legacy_payload_still_accepted(db, test_user, test_notification):
     assert row.action == "like"
 
 
-def test_admin_feedback_stats_returns_correct_counts(db, test_user, test_notification):
+def test_admin_feedback_stats_returns_correct_counts(client: TestClient, db, test_user, test_notification):
     """GET admin/feedback_stats returns counts_by_event_type and last_events."""
     client.post(
         f"/notifications/{test_notification.id}/feedback",

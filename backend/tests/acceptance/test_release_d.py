@@ -9,21 +9,12 @@ These acceptance tests are intended to be run on Linux server or CI
 from __future__ import annotations
 
 import os
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-# Use backend.app so the correct backend is loaded (repo has nested backend/backend/; repo root must be on path)
-_repo_root = Path(__file__).resolve().parents[3]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
-
-from backend.app.database import Base, DATABASE_URL, SessionLocal, engine
-from backend.app.main import app
 from backend.app.models import Device, Medication, Notification, User, UserMedication
 
 
@@ -31,12 +22,8 @@ from backend.app.models import Device, Medication, Notification, User, UserMedic
 NOTIFICATION_TYPE_HEALTH_ALERT = "health_alert"
 NOTIFICATION_TYPE_DEVICE_DISCONNECTED = "device_disconnected"
 
-# Blocked DATABASE_URL substrings (case-insensitive). Avoid broad terms to reduce false positives.
-_BLOCKED_DB_SUBSTRINGS = (
-    "91.107.168.130",   # known production host/IP
-    "sedi_prod",        # exact production DB name if used
-    "production",       # URL path/host containing "production"
-)
+# Blocked DB URL substrings (case-insensitive)
+_BLOCKED_DB_SUBSTRINGS = ("sedi_db", "prod", "production")
 
 
 def _is_production_db_url(url: str) -> bool:
@@ -50,33 +37,16 @@ def _env_indicates_production() -> bool:
     return env == "production" or app_env == "production"
 
 
+_test_db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL") or ""
 if _env_indicates_production():
     raise RuntimeError(
         "Refusing to run acceptance tests: ENV or APP_ENV indicates production."
     )
-if _is_production_db_url(DATABASE_URL or ""):
+if _is_production_db_url(_test_db_url):
     raise RuntimeError(
         "Refusing to run acceptance tests against a production-like DATABASE_URL. "
-        "Point DATABASE_URL to a safe test database before running."
+        "Point TEST_DATABASE_URL or DATABASE_URL to a safe test database before running."
     )
-
-
-@pytest.fixture()
-def client() -> TestClient:
-    return TestClient(app)
-
-
-@pytest.fixture()
-def db() -> Session:
-    # Force fresh schema (avoids stale table missing e.g. sent_at)
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture

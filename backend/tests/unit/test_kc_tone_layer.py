@@ -7,15 +7,9 @@ Unit tests: KC Companion Tone Layer V1.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+import uuid
 
 import pytest
-
-# Repo root (folder containing backend/) for backend.app
-_repo_root = Path(__file__).resolve().parents[3]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
 
 from backend.app.knowledge.tone.companion_v1 import apply_companion_tone
 from backend.app.services.knowledge.question_engine import _format_confirm_question, _value_to_display
@@ -144,44 +138,24 @@ def test_value_to_display_dict_value_key():
 # --- API-level: policy unchanged, display_* and lang param ---
 
 @pytest.fixture()
-def _api_client():
-    from starlette.testclient import TestClient
-    from backend.app.main import app as sedi_app
-    return TestClient(sedi_app)
-
-
-@pytest.fixture()
-def _api_db():
-    from backend.app.database import Base, SessionLocal, engine
-    from sqlalchemy.orm import Session
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture()
-def _api_user_id(_api_db):
+def tone_test_user_id(db):
     from sqlalchemy import text
     uid = 91010
-    _api_db.execute(
+    db.execute(
         text(
             "INSERT INTO users (id, name, secret_key, preferred_language, created_at) "
             "VALUES (:id, :name, :secret, :lang, NOW())"
         ),
         {"id": uid, "name": "Tone Test", "secret": "z", "lang": "fa"},
     )
-    _api_db.commit()
+    db.commit()
     return uid
 
 
-def test_next_question_fatigue_still_no_question(_api_client, _api_user_id, monkeypatch):
+def test_next_question_fatigue_still_no_question(client, tone_test_user_id, monkeypatch):
     """Policy unchanged: when blocked by fatigue_control, response is still no_question."""
     monkeypatch.setenv("KC_DAILY_QUESTION_CAP", "0")
-    r = _api_client.get(f"/knowledge/next_question?user_id={_api_user_id}")
+    r = client.get(f"/knowledge/next_question?user_id={tone_test_user_id}")
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None
@@ -189,22 +163,21 @@ def test_next_question_fatigue_still_no_question(_api_client, _api_user_id, monk
     assert data.get("reason") == "fatigue_control"
 
 
-def test_next_question_confirm_candidate_has_display_fields_and_lang(_api_client, _api_user_id, monkeypatch):
+def test_next_question_confirm_candidate_has_display_fields_and_lang(client, tone_test_user_id, monkeypatch):
     """When confirm_candidate is returned, display_* and tone_version exist; lang=en yields English copy."""
-    import uuid
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     # Seed candidate
-    _api_client.post(
+    client.post(
         "/knowledge/extract_from_message",
         json={
-            "user_id": _api_user_id,
+            "user_id": tone_test_user_id,
             "text": "دارم متفورمین می‌خورم",
             "language": "fa",
             "source_message_id": f"pytest-tone-{uuid.uuid4().hex[:12]}",
         },
     )
-    r = _api_client.get(f"/knowledge/next_question?user_id={_api_user_id}&lang=en")
+    r = client.get(f"/knowledge/next_question?user_id={tone_test_user_id}&lang=en")
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None, "expected a question"

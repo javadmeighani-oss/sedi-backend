@@ -6,28 +6,12 @@ from unittest.mock import patch
 os.environ["SMS_DISABLED"] = "true"
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from backend.app.database import SessionLocal, Base, engine
-from backend.app.main import app
 from backend.app import models
 from backend.app.services import auth_otp_service as svc
 
-client = TestClient(app)
 
-
-@pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
-
-
-def test_refresh_rotates_token_and_reusing_old_returns_401(db, monkeypatch):
+def test_refresh_rotates_token_and_reusing_old_returns_401(client: TestClient, db, monkeypatch):
     """Request OTP + verify_otp => refresh_token_1; /auth/refresh with it => 200 + refresh_token_2; reuse refresh_token_1 => 401."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_rotation")
     monkeypatch.setenv("REFRESH_SECRET", "test_refresh_rotation")
@@ -72,7 +56,7 @@ def test_refresh_rotates_token_and_reusing_old_returns_401(db, monkeypatch):
     assert r4.json().get("ok") is True
 
 
-def test_refresh_rotation_only_one_unrevoked_per_user(db, monkeypatch):
+def test_refresh_rotation_only_one_unrevoked_per_user(client: TestClient, db, monkeypatch):
     """After verify_otp + one refresh, DB has exactly one row with revoked_at NULL for that user."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_rotation2")
     monkeypatch.setenv("REFRESH_SECRET", "test_refresh_rotation2")

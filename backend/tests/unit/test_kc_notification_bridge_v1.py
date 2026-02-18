@@ -8,9 +8,7 @@ Unit tests: KC → Notification Bridge V1.
 
 from __future__ import annotations
 
-import sys
 import uuid
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -18,43 +16,7 @@ from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-_repo_root = Path(__file__).resolve().parents[3]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
-
-from backend.app.database import Base, SessionLocal, engine
-from backend.app.main import app as sedi_app
-
 _UID = 91020
-
-
-def _collect_paths(routes, prefix=""):
-    paths = set()
-    for r in routes:
-        path = getattr(r, "path", None) or ""
-        if hasattr(r, "routes"):
-            paths.update(_collect_paths(r.routes, prefix + path))
-        elif path:
-            paths.add(prefix + path)
-    return paths
-
-
-@pytest.fixture()
-def client() -> TestClient:
-    paths = _collect_paths(sedi_app.routes)
-    assert "/knowledge/next_question" in paths
-    return TestClient(sedi_app)
-
-
-@pytest.fixture()
-def db() -> Session:
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture()

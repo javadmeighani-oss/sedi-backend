@@ -9,36 +9,12 @@ Tests:
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-_repo_root = Path(__file__).resolve().parents[3]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
-
-from backend.app.database import Base, SessionLocal, engine
-from backend.app.main import app
 from backend.app.models import Notification, PushDevice, User
-
-
-@pytest.fixture()
-def client() -> TestClient:
-    return TestClient(app)
-
-
-@pytest.fixture()
-def db() -> Session:
-    Base.metadata.create_all(bind=engine)
-    session = next(SessionLocal())
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture()
