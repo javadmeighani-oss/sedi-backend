@@ -83,6 +83,18 @@ jobs:
               echo "⚠️  Some dependencies failed to install, continuing..."
             }
             
+            # Install V1 override (DEVICE_AUTH_MODE=legacy_only)
+            mkdir -p /etc/systemd/system/sedi-backend.service.d
+            cat > /etc/systemd/system/sedi-backend.service.d/override.conf << 'OVERRIDEEOF'
+[Service]
+# Reset original ExecStart from base unit
+ExecStart=
+
+# Inject DEVICE_AUTH_MODE directly into process environment (V1 path)
+ExecStart=/usr/bin/env DEVICE_AUTH_MODE=legacy_only /var/www/sedi/backend/.venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+OVERRIDEEOF
+            systemctl daemon-reload
+            
             # Restart service
             echo "🔄 Restarting service..."
             systemctl restart sedi-backend.service || {
