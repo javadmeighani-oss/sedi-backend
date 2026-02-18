@@ -120,8 +120,13 @@ def _override_get_db():
 
 
 @pytest.fixture()
-def client():
-    sedi_app.dependency_overrides[_app_get_db] = _override_get_db
+def client(db):
+    """Use the same db session as the test so API sees test data (same transaction)."""
+
+    def _get_db_override():
+        yield db
+
+    sedi_app.dependency_overrides[_app_get_db] = _get_db_override
     try:
         with TestClient(sedi_app) as c:
             yield c
