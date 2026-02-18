@@ -1,5 +1,13 @@
 # backend/tests/conftest.py
 import os
+import sys
+from pathlib import Path
+
+# Remove legacy app/ path from sys.path to avoid importing both app.* and backend.app.*
+_repo = Path(__file__).resolve().parents[2]
+_legacy_app_path = str(_repo / "app")
+sys.path = [p for p in sys.path if p != _legacy_app_path]
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
