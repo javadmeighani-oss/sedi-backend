@@ -46,6 +46,7 @@ def evaluate_health_alert_guard(
     """
     Evaluate whether to allow creating a health_alert for this (user, channel, rule_id).
     Returns allow=True if no recent send within cooldown; else allow=False with reason.
+    When a guard row exists, locks it (FOR UPDATE) to reduce race on concurrent ingests.
     """
     row = (
         db.query(NotificationGuardState)
@@ -54,7 +55,8 @@ def evaluate_health_alert_guard(
             NotificationGuardState.channel == channel,
             NotificationGuardState.rule_id == rule_id,
         )
-        .first()
+        .with_for_update()
+        .one_or_none()
     )
     if row is None:
         logger.info(
@@ -87,7 +89,10 @@ def record_health_alert_sent(
     rule_id: str,
     now_utc: datetime,
 ) -> None:
-    """Update guard state after a health_alert was successfully created."""
+    """
+    Update guard state after a health_alert was successfully created.
+    Locks existing row (FOR UPDATE) before update to remain correct under concurrency.
+    """
     now_naive = _naive_utc(now_utc)
     delta = timedelta(seconds=HEALTH_ALERT_COOLDOWN_SECONDS)
     cooldown_until = now_naive + delta
@@ -98,7 +103,8 @@ def record_health_alert_sent(
             NotificationGuardState.channel == channel,
             NotificationGuardState.rule_id == rule_id,
         )
-        .first()
+        .with_for_update()
+        .one_or_none()
     )
     if row is None:
         row = NotificationGuardState(

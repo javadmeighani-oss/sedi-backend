@@ -69,20 +69,19 @@ def test_second_within_cooldown_allow_false_reason_cooldown(db: Session, guard_u
     assert decision.cooldown_until is not None
 
 
-@patch("backend.app.services.notifications.behavior_guard_d2.HEALTH_ALERT_COOLDOWN_SECONDS", 1)
+@patch("backend.app.services.notifications.behavior_guard_d2.HEALTH_ALERT_COOLDOWN_SECONDS", 2)
 def test_after_cooldown_allow_true(db: Session, guard_user) -> None:
-    """After cooldown expires, evaluation -> allow=True."""
-    import time
-    now = datetime.utcnow()
+    """After cooldown expires, evaluation -> allow=True. No sleep: use injected now_utc."""
+    t0 = datetime.utcnow()
     record_health_alert_sent(
         db=db,
         user_id=guard_user.id,
         channel="health_alert",
         rule_id="heart_rate_high",
-        now_utc=now,
+        now_utc=t0,
     )
-    time.sleep(1.1)
-    now_later = datetime.utcnow()
+    # Evaluate at t0 + cooldown + 1s (past cooldown); guard reads monkeypatched 2s
+    now_past_cooldown = t0 + timedelta(seconds=3)
     decision = evaluate_health_alert_guard(
         db=db,
         user_id=guard_user.id,
@@ -90,7 +89,7 @@ def test_after_cooldown_allow_true(db: Session, guard_user) -> None:
         rule_id="heart_rate_high",
         severity="high",
         event_type="heart_rate",
-        now_utc=now_later,
+        now_utc=now_past_cooldown,
     )
     assert decision.allow is True
     assert decision.reason == "cooldown_expired"
