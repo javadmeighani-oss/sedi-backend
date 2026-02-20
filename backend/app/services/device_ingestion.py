@@ -114,11 +114,12 @@ def ingest_event(
     event_type: str,
     payload: Dict[str, Any],
     device_id: Optional[str] = None,
-    recorded_at: Optional[datetime] = None
+    recorded_at: Optional[datetime] = None,
+    trace_id: str = "",
 ) -> Tuple[Optional[DeviceEvent], Optional[str], Dict[str, Any]]:
     """
     Ingest a device event with deduplication and memory mapping.
-    
+
     Args:
         db: Database session
         user_id: User ID
@@ -126,10 +127,12 @@ def ingest_event(
         payload: Event payload (must contain required fields for event_type)
         device_id: Optional device identifier
         recorded_at: Optional timestamp from device
-    
+        trace_id: Optional trace id for log correlation (e.g. from X-TRACE-ID header)
+
     Returns:
-        (DeviceEvent if created, dedupe_key, decision_summary) or (None, dedupe_key, decision_summary) if duplicate.
-        decision_summary includes e.g. {"actions_created": n} for debugging.
+        (DeviceEvent if created, dedupe_key, result_dict). result_dict includes
+        device_event_id, device_event_dedupe_hit, actions_created, decision_outcome,
+        skipped_reason, trace_id.
     """
     # Validate + normalize payload via registry
     normalized = validate_event(event_type, payload)
@@ -164,10 +167,17 @@ def ingest_event(
     
     if existing:
         logger.info(
-            f"[DEVICE_INGEST] DUPLICATE user={user_id} type={event_type} "
-            f"dedupe={dedupe_key} existing_id={existing.id}"
+            "[DEVICE_INGEST] DUPLICATE user=%s type=%s dedupe=%s existing_id=%s trace=%s",
+            user_id, event_type, dedupe_key, existing.id, trace_id,
         )
-        return None, dedupe_key, {"actions_created": 0}
+        return None, dedupe_key, {
+            "device_event_id": None,
+            "device_event_dedupe_hit": True,
+            "actions_created": 0,
+            "decision_outcome": "no_rule",
+            "skipped_reason": None,
+            "trace_id": trace_id,
+        }
     
     event = DeviceEvent(
         user_id=user_id,
@@ -185,8 +195,8 @@ def ingest_event(
     db.refresh(event)
     
     logger.info(
-        f"[DEVICE_INGEST] CREATED user={user_id} type={event_type} "
-        f"dedupe={dedupe_key} event_id={event.id}"
+        "[DEVICE_INGEST] CREATED user=%s type=%s dedupe=%s event_id=%s trace=%s",
+        user_id, event_type, dedupe_key, event.id, trace_id,
     )
     
     # Map to memory facts (schema-driven)
@@ -209,16 +219,19 @@ def ingest_event(
                 source=u.source,
             )
         logger.info(
-            f"[DEVICE_INGEST] Mapped to memory user={user_id} type={event_type} facts={len(updates)}"
+            "[DEVICE_INGEST] Mapped to memory user=%s type=%s facts=%s trace=%s",
+            user_id, event_type, len(updates), trace_id,
         )
     except Exception as e:
-        logger.exception("[DEVICE_INGEST] Failed to map to memory: %s", e)
+        logger.exception("[DEVICE_INGEST] Failed to map to memory: %s trace=%s", e, trace_id)
 
     # D1: recorded_at from payload['ts'] if present else device event
     recorded_at_for_dto = parse_recorded_at_utc(payload, event.recorded_at)
 
     # Unified decision path: Decision Engine evaluates event -> actions -> executor persists
     actions_created = 0
+    skipped_reason: Optional[str] = None
+    decision_outcome: str = "no_rule"
     try:
         event_dto = EventDto(
             user_id=user_id,
@@ -230,18 +243,39 @@ def ingest_event(
             event_id=event.id,
         )
         actions = evaluate_event(event_dto)
-        actions_created, skipped_reason = _execute_d1_actions(db, event_dto, actions)
+        actions_created, skipped_reason = _execute_d1_actions(db, event_dto, actions, trace_id=trace_id)
+        if len(actions) == 0:
+            decision_outcome = "no_rule"
+        elif skipped_reason is not None and actions_created == 0:
+            decision_outcome = "skipped_by_guard"
+        else:
+            decision_outcome = "actions_executed"
     except Exception as e:
-        logger.exception("[DEVICE_INGEST] Failed to evaluate/execute decision actions: %s", e)
+        logger.exception("[DEVICE_INGEST] Failed to evaluate/execute decision actions: %s trace=%s", e, trace_id)
         actions_created, skipped_reason = 0, None
+        decision_outcome = "error"
 
-    decision_summary = {"actions_created": actions_created}
-    if skipped_reason is not None:
-        decision_summary["skipped_reason"] = skipped_reason
-    return event, dedupe_key, decision_summary
+    logger.info(
+        "[DEVICE_INGEST] decision outcome=%s actions_created=%s skipped_reason=%s trace=%s",
+        decision_outcome, actions_created, skipped_reason, trace_id,
+    )
+    result = {
+        "device_event_id": event.id,
+        "device_event_dedupe_hit": False,
+        "actions_created": actions_created,
+        "decision_outcome": decision_outcome,
+        "skipped_reason": skipped_reason,
+        "trace_id": trace_id,
+    }
+    return event, dedupe_key, result
 
 
-def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> Tuple[int, Optional[str]]:
+def _execute_d1_actions(
+    db: Session,
+    event_dto: EventDto,
+    actions: list,
+    trace_id: str = "",
+) -> Tuple[int, Optional[str]]:
     """
     Execute D1 CreateHealthAlertAction: D2 guard, dedupe check, persist, then record guard state.
     Returns (count of notifications created, first skipped_reason if any).
@@ -253,7 +287,6 @@ def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> Tupl
         if not isinstance(a, CreateHealthAlertAction) or not a.rule_id:
             continue
         try:
-            # D2.0: evaluate guard before creating notification
             guard = evaluate_health_alert_guard(
                 db=db,
                 user_id=a.user_id,
@@ -262,6 +295,7 @@ def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> Tupl
                 severity=getattr(a, "severity", "high"),
                 event_type=event_dto.event_type,
                 now_utc=now_utc,
+                trace_id=trace_id or None,
             )
             if not guard.allow:
                 if skipped_reason is None:
@@ -288,6 +322,7 @@ def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> Tupl
                 body=a.body or "هشدار سلامت ثبت شد.",
                 dedupe_key=dedupe_key,
                 priority=a.priority,
+                trace_id=trace_id or None,
             )
             if notif:
                 created += 1
@@ -297,9 +332,10 @@ def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> Tupl
                     channel="health_alert",
                     rule_id=a.rule_id,
                     now_utc=now_utc,
+                    trace_id=trace_id or None,
                 )
         except Exception as e:
-            logger.exception("[DEVICE_INGEST] Failed to execute action %s: %s", type(a).__name__, e)
+            logger.exception("[DEVICE_INGEST] Failed to execute action %s: %s trace=%s", type(a).__name__, e, trace_id)
     return created, skipped_reason
 
 

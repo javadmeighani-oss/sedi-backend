@@ -486,7 +486,8 @@ class NotificationBuilder:
         self,
         payload: NotificationPayload,
         check_dedupe: bool = True,
-        time_window_hours: int = 24
+        time_window_hours: int = 24,
+        trace_id: Optional[str] = None,
     ) -> Optional[Notification]:
         """
         Persist notification to database with dedupe check.
@@ -544,10 +545,11 @@ class NotificationBuilder:
         
         # Log creation (Stage 16.6.2: structured [NOTIF] prefix, no secrets)
         logger.info(
-            "[NOTIF] enqueue channel=%s user_id=%s dedupe=%s",
+            "[NOTIF] enqueue channel=%s user_id=%s dedupe=%s trace=%s",
             (channel or payload.type or "?"),
             payload.user_id,
             payload.dedupe_key[:80] + "..." if len(payload.dedupe_key or "") > 80 else (payload.dedupe_key or "?"),
+            trace_id or "",
         )
         
         return notification
@@ -1529,6 +1531,7 @@ def persist_health_alert_d1(
     body: str,
     dedupe_key: str,
     priority: Literal["low", "normal", "high", "critical"] = "high",
+    trace_id: Optional[str] = None,
 ) -> Optional[Notification]:
     """
     Create a health_alert notification row with given title, body, dedupe_key.
@@ -1547,4 +1550,4 @@ def persist_health_alert_d1(
         metadata={"language": "fa"},
     )
     builder = NotificationBuilder(db)
-    return builder.persist(payload, check_dedupe=False)
+    return builder.persist(payload, check_dedupe=False, trace_id=trace_id)

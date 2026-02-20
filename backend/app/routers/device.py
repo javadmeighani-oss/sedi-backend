@@ -1,9 +1,12 @@
 # app/routers/device.py
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+import uuid
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from datetime import datetime
-import logging
+
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
@@ -165,8 +168,9 @@ def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
 @router.post("/ingest", response_model=DeviceIngestResponse)
 def ingest_device_event(
     request: DeviceIngestRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
-    token: str = Depends(get_device_token)
+    token: str = Depends(get_device_token),
 ):
     """
     Ingest device event (vital signs) with deduplication and memory mapping.
@@ -217,34 +221,34 @@ def ingest_device_event(
                 error={"code": "INVALID_PAYLOAD", "message": "Payload must not be empty"}
             )
         
-        # Ingest event
-        event, dedupe_key, decision_summary = ingest_event(
+        trace_id = http_request.headers.get("X-TRACE-ID") or uuid.uuid4().hex
+        event, dedupe_key, result = ingest_event(
             db=db,
             user_id=request.user_id,
             event_type=request.event_type,
             payload=request.payload,
             device_id=request.device_id,
-            recorded_at=request.recorded_at
+            recorded_at=request.recorded_at,
+            trace_id=trace_id,
         )
-        
+
         if event is None:
-            # Duplicate event (already exists)
             return DeviceIngestResponse(
                 ok=True,
                 data={
                     "event_id": None,
                     "dedupe_key": dedupe_key,
                     "message": "Event already exists (duplicate)",
-                    **decision_summary,
+                    **result,
                 }
             )
-        
+
         return DeviceIngestResponse(
             ok=True,
             data={
                 "event_id": event.id,
                 "dedupe_key": dedupe_key,
-                **decision_summary,
+                **result,
             }
         )
     

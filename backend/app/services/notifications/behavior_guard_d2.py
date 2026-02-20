@@ -46,11 +46,12 @@ def _log_decision(
     reason: str,
     cooldown_until: Optional[datetime],
     in_quiet: bool,
+    trace_id: Optional[str] = None,
 ) -> None:
     """One line per decision for journal/stdout."""
     logger.info(
-        "[D2_GUARD] user_id=%s channel=%s rule_id=%s severity=%s allow=%s reason=%s cooldown_until=%s in_quiet=%s",
-        user_id, channel, rule_id, severity, allow, reason, cooldown_until, in_quiet,
+        "[D2_GUARD] user_id=%s channel=%s rule_id=%s severity=%s allow=%s reason=%s cooldown_until=%s in_quiet=%s trace=%s",
+        user_id, channel, rule_id, severity, allow, reason, cooldown_until, in_quiet, trace_id or "",
     )
 
 
@@ -62,18 +63,18 @@ def evaluate_health_alert_guard(
     severity: str,
     event_type: str,
     now_utc: datetime,
+    trace_id: Optional[str] = None,
 ) -> GuardDecision:
     """
     Evaluate whether to allow creating a health_alert for this (user, channel, rule_id).
     D2.1: Quiet hours block when in_quiet and severity != "high"; high overrides quiet hours.
     Cooldown still applies after quiet-hours check. Row-level lock (FOR UPDATE) when row exists.
     """
-    # Reuse existing quiet-hours helper (health_alert: suppress when priority != "critical")
     qh_priority = "critical" if severity == "high" else "normal"
     in_quiet = is_within_quiet_hours(db, user_id, "health_alert", qh_priority)
 
     if in_quiet and severity != "high":
-        _log_decision(user_id, channel, rule_id, severity, False, "quiet_hours", None, True)
+        _log_decision(user_id, channel, rule_id, severity, False, "quiet_hours", None, True, trace_id)
         return GuardDecision(allow=False, reason="quiet_hours", cooldown_until=None)
 
     row = (
@@ -88,17 +89,17 @@ def evaluate_health_alert_guard(
     )
     if row is None:
         reason = "quiet_hours_override" if (in_quiet and severity == "high") else "first_send"
-        _log_decision(user_id, channel, rule_id, severity, True, reason, None, in_quiet)
+        _log_decision(user_id, channel, rule_id, severity, True, reason, None, in_quiet, trace_id)
         return GuardDecision(allow=True, reason=reason, cooldown_until=None)
 
     cooldown_until = row.cooldown_until
     now_naive = _naive_utc(now_utc)
     if cooldown_until is None or cooldown_until <= now_naive:
         reason = "quiet_hours_override" if (in_quiet and severity == "high") else "cooldown_expired"
-        _log_decision(user_id, channel, rule_id, severity, True, reason, cooldown_until, in_quiet)
+        _log_decision(user_id, channel, rule_id, severity, True, reason, cooldown_until, in_quiet, trace_id)
         return GuardDecision(allow=True, reason=reason, cooldown_until=None)
 
-    _log_decision(user_id, channel, rule_id, severity, False, "cooldown", cooldown_until, in_quiet)
+    _log_decision(user_id, channel, rule_id, severity, False, "cooldown", cooldown_until, in_quiet, trace_id)
     return GuardDecision(allow=False, reason="cooldown", cooldown_until=cooldown_until)
 
 
@@ -108,6 +109,7 @@ def record_health_alert_sent(
     channel: str,
     rule_id: str,
     now_utc: datetime,
+    trace_id: Optional[str] = None,
 ) -> None:
     """
     Update guard state after a health_alert was successfully created.

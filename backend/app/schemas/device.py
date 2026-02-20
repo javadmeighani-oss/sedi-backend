@@ -45,7 +45,12 @@ class DeviceIngestResponse(BaseModel):
                 "ok": True,
                 "data": {
                     "event_id": 123,
-                    "dedupe_key": "heart_rate:1:2026-02-02T10:30"
+                    "dedupe_key": "heart_rate:1:2026-02-02T10:30",
+                    "device_event_dedupe_hit": False,
+                    "decision_outcome": "actions_executed",
+                    "actions_created": 1,
+                    "skipped_reason": None,
+                    "trace_id": "a1b2c3d4e5f6"
                 }
             }
         }

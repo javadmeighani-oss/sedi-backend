@@ -306,6 +306,12 @@ def test_ingest_endpoint_success(client: TestClient, db: Session, test_user, dev
     assert "event_id" in data["data"]
     assert data["data"]["event_id"] is not None
     assert "dedupe_key" in data["data"]
+    # V1 hardening: diagnostic fields (additive)
+    assert "trace_id" in data["data"]
+    assert "decision_outcome" in data["data"]
+    assert "device_event_dedupe_hit" in data["data"]
+    assert data["data"]["device_event_dedupe_hit"] is False
+    assert data["data"]["decision_outcome"] in ("no_rule", "actions_executed", "skipped_by_guard", "error")
 
 
 def test_ingest_endpoint_duplicate(client: TestClient, db: Session, test_user, device_token):
@@ -342,6 +348,8 @@ def test_ingest_endpoint_duplicate(client: TestClient, db: Session, test_user, d
     assert data2["ok"] is True
     assert data2["data"]["event_id"] is None  # Duplicate
     assert "duplicate" in data2["data"].get("message", "").lower()
+    assert data2["data"].get("device_event_dedupe_hit") is True
+    assert "trace_id" in data2["data"]
 
 
 def test_ingest_endpoint_invalid_user(client: TestClient, db: Session, device_token):
@@ -398,3 +406,21 @@ def test_ingest_endpoint_unsupported_event_type(client: TestClient, db: Session,
     if response.status_code == 200:
         data = response.json()
         assert data["ok"] is False
+
+
+def test_ingest_endpoint_x_trace_id_echoed(client: TestClient, db: Session, test_user, device_token):
+    """X-TRACE-ID header is echoed in response data when provided"""
+    custom_trace = "my-trace-abc123"
+    response = client.post(
+        "/device/ingest",
+        json={
+            "user_id": test_user.id,
+            "event_type": "heart_rate",
+            "payload": {"bpm": 80},
+        },
+        headers={"X-DEVICE-TOKEN": device_token, "X-TRACE-ID": custom_trace},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["data"].get("trace_id") == custom_trace
