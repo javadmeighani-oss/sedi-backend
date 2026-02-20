@@ -1519,3 +1519,32 @@ def enqueue_health_alert(
         priority=priority,
         scheduled_for=scheduled_for,
     )
+
+
+# -------------------- D1: Persist health_alert with explicit title/body/dedupe_key (caller does dedupe check) --------------------
+def persist_health_alert_d1(
+    db: Session,
+    user_id: int,
+    title: str,
+    body: str,
+    dedupe_key: str,
+    priority: Literal["low", "normal", "high", "critical"] = "high",
+) -> Optional[Notification]:
+    """
+    Create a health_alert notification row with given title, body, dedupe_key.
+    Caller must ensure no duplicate dedupe_key exists (app-level dedupe).
+    """
+    if not body or not body.strip():
+        body = "هشدار سلامت ثبت شد."
+    payload = NotificationPayload(
+        user_id=user_id,
+        type="health_alert",
+        title=(title or "هشدار سلامت").strip(),
+        body=body.strip(),
+        priority=priority,
+        scheduled_for=None,
+        dedupe_key=dedupe_key,
+        metadata={"language": "fa"},
+    )
+    builder = NotificationBuilder(db)
+    return builder.persist(payload, check_dedupe=False)

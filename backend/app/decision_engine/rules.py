@@ -1,7 +1,7 @@
 # Release D: deterministic rule evaluation
 from dataclasses import dataclass
 from typing import Any, Dict, List, Callable
-from .models import Decision
+from .models import Decision, EventDto, CreateHealthAlertAction, Action
 
 
 @dataclass(frozen=True)
@@ -48,3 +48,111 @@ def default_rules() -> List[Rule]:
     return [
         Rule(rule_id="HR_HIGH_REST", match=match_hr_high_rest, build=build_hr_high_rest)
     ]
+
+
+# ---------- D1: minimal HIGH-severity rules (device_events -> notifications) ----------
+# Thresholds: heart_rate >= 130 or <= 42; blood_pressure sys>=160 or dia>=110;
+# glucose >= 240 or <= 60; temperature >= 39.0
+# Titles/bodies: plain Persian (hardcoded), short and safe.
+
+def evaluate_high_rules(event: EventDto) -> List[Action]:
+    """
+    Evaluate event against minimal HIGH-severity rules; returns list of CreateHealthAlertAction.
+    No persistence; caller builds dedupe_key and persists notifications.
+    """
+    out: List[Action] = []
+    payload = event.payload or {}
+    user_id = event.user_id
+
+    if event.event_type == "heart_rate":
+        try:
+            bpm = float(payload.get("bpm"))
+        except (TypeError, ValueError):
+            return out
+        if bpm >= 130:
+            out.append(CreateHealthAlertAction(
+                user_id=user_id,
+                channel="health_alert",
+                title="هشدار ضربان قلب",
+                body="ضربان قلبت بالاست. اگر حالت بد است یا علائم داری، با پزشک تماس بگیر.",
+                severity="high",
+                rule_id="heart_rate_high",
+                meta={"bpm": bpm},
+                priority="high",
+            ))
+        elif bpm <= 42:
+            out.append(CreateHealthAlertAction(
+                user_id=user_id,
+                channel="health_alert",
+                title="هشدار ضربان قلب",
+                body="ضربان قلبت پایینه. اگر حالت بد است یا علائم داری، با پزشک تماس بگیر.",
+                severity="high",
+                rule_id="heart_rate_low",
+                meta={"bpm": bpm},
+                priority="high",
+            ))
+
+    elif event.event_type == "blood_pressure":
+        try:
+            sys_v = float(payload.get("sys"))
+            dia_v = float(payload.get("dia"))
+        except (TypeError, ValueError):
+            return out
+        if sys_v >= 160 or dia_v >= 110:
+            out.append(CreateHealthAlertAction(
+                user_id=user_id,
+                channel="health_alert",
+                title="هشدار فشار خون",
+                body="فشارخون بالاست. آرام باش و در صورت تداوم یا علائم، با پزشک تماس بگیر.",
+                severity="high",
+                rule_id="blood_pressure_high",
+                meta={"sys": sys_v, "dia": dia_v},
+                priority="high",
+            ))
+
+    elif event.event_type == "glucose":
+        try:
+            mg_dl = float(payload.get("glucose_mg_dl"))
+        except (TypeError, ValueError):
+            return out
+        if mg_dl >= 240:
+            out.append(CreateHealthAlertAction(
+                user_id=user_id,
+                channel="health_alert",
+                title="هشدار قند خون",
+                body="قند خون بالاست. در صورت تداوم یا علائم، با پزشک تماس بگیر.",
+                severity="high",
+                rule_id="glucose_high",
+                meta={"mg_dl": mg_dl},
+                priority="high",
+            ))
+        elif mg_dl <= 60:
+            out.append(CreateHealthAlertAction(
+                user_id=user_id,
+                channel="health_alert",
+                title="هشدار قند خون",
+                body="قند خون پایینه. اگر حالت بد است یا علائم داری، با پزشک تماس بگیر.",
+                severity="high",
+                rule_id="glucose_low",
+                meta={"mg_dl": mg_dl},
+                priority="high",
+            ))
+
+    elif event.event_type == "temperature":
+        try:
+            c = float(payload.get("temperature_c"))
+        except (TypeError, ValueError):
+            return out
+        if c >= 39.0:
+            out.append(CreateHealthAlertAction(
+                user_id=user_id,
+                channel="health_alert",
+                title="هشدار تب",
+                body="دمای بدنت بالاست. استراحت کن، آب بخور و در صورت تداوم با پزشک تماس بگیر.",
+                severity="high",
+                rule_id="temperature_high",
+                meta={"temperature_c": c},
+                priority="high",
+            ))
+
+    return out

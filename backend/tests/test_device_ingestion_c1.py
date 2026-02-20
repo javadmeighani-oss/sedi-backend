@@ -114,7 +114,7 @@ def test_build_dedupe_key_fallback_to_received_at():
 
 def test_ingest_event_creates_device_event(db: Session, test_user):
     """Test that ingest_event creates DeviceEvent"""
-    event, dedupe_key = ingest_event(
+    event, dedupe_key, _ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="heart_rate",
@@ -140,7 +140,7 @@ def test_ingest_event_creates_device_event(db: Session, test_user):
 def test_ingest_event_deduplication(db: Session, test_user):
     """Test that duplicate events are prevented using 5-minute buckets"""
     # First event at 06:44 -> bucket 06:40
-    event1, dedupe_key1 = ingest_event(
+    event1, dedupe_key1, _ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="heart_rate",
@@ -151,7 +151,7 @@ def test_ingest_event_deduplication(db: Session, test_user):
     assert dedupe_key1 == "heart_rate:1:2026-02-03T06:40"
     
     # Second event at 06:40 -> same bucket 06:40 (should be duplicate)
-    event2, dedupe_key2 = ingest_event(
+    event2, dedupe_key2, _ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="heart_rate",
@@ -162,7 +162,7 @@ def test_ingest_event_deduplication(db: Session, test_user):
     assert dedupe_key1 == dedupe_key2
     
     # Third event at 06:45 -> different bucket 06:45 (should create new event)
-    event3, dedupe_key3 = ingest_event(
+    event3, dedupe_key3, _ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="heart_rate",
@@ -182,7 +182,7 @@ def test_ingest_event_deduplication(db: Session, test_user):
 
 def test_ingest_event_maps_to_memory_fact(db: Session, test_user):
     """Test that device event maps to UserMemoryFact with source='device'"""
-    event, _ = ingest_event(
+    event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="heart_rate",
@@ -212,7 +212,7 @@ def test_ingest_event_maps_to_memory_fact(db: Session, test_user):
 
 
 def test_ingest_blood_pressure_creates_memory_facts(db: Session, test_user):
-    event, _ = ingest_event(
+    event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="blood_pressure",
@@ -230,7 +230,7 @@ def test_ingest_blood_pressure_creates_memory_facts(db: Session, test_user):
 
 
 def test_ingest_glucose_normalizes_and_creates_memory_fact(db: Session, test_user):
-    event, _ = ingest_event(
+    event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="glucose",
@@ -245,7 +245,7 @@ def test_ingest_glucose_normalizes_and_creates_memory_fact(db: Session, test_use
 
 
 def test_ingest_temperature_normalizes_and_creates_memory_fact(db: Session, test_user):
-    event, _ = ingest_event(
+    event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
         event_type="temperature",

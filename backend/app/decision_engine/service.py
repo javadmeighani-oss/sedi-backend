@@ -1,9 +1,8 @@
 # Release D: service wrapper for decision engine (single import path for isinstance)
 from typing import Dict, Any, List
 
-from backend.app.decision_engine.models import Decision, EventDto, CreateHealthAlertAction, Action
-from .rules import evaluate_rules, default_rules
-from backend.app.services.vitals.rule_alerts import compute_alert_actions
+from backend.app.decision_engine.models import Decision, EventDto, Action
+from .rules import evaluate_rules, default_rules, evaluate_high_rules
 
 
 def decide_from_event(event: Dict[str, Any]) -> Decision:
@@ -15,10 +14,7 @@ def decide_from_event(event: Dict[str, Any]) -> Decision:
 def evaluate_event(event: EventDto) -> List[Action]:
     """
     Single entry point for device events: compute actions (e.g. health alerts) from event.
+    Uses D1 minimal HIGH-severity rules (heart_rate, blood_pressure, glucose, temperature).
     No persistence; caller runs action executor to persist notifications.
     """
-    return compute_alert_actions(
-        user_id=event.user_id,
-        event_type=event.event_type,
-        normalized_payload=event.payload,
-    )
+    return evaluate_high_rules(event)

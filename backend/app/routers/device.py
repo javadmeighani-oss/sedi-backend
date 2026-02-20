@@ -218,7 +218,7 @@ def ingest_device_event(
             )
         
         # Ingest event
-        event, dedupe_key = ingest_event(
+        event, dedupe_key, decision_summary = ingest_event(
             db=db,
             user_id=request.user_id,
             event_type=request.event_type,
@@ -234,7 +234,8 @@ def ingest_device_event(
                 data={
                     "event_id": None,
                     "dedupe_key": dedupe_key,
-                    "message": "Event already exists (duplicate)"
+                    "message": "Event already exists (duplicate)",
+                    **decision_summary,
                 }
             )
         
@@ -242,7 +243,8 @@ def ingest_device_event(
             ok=True,
             data={
                 "event_id": event.id,
-                "dedupe_key": dedupe_key
+                "dedupe_key": dedupe_key,
+                **decision_summary,
             }
         )
     

@@ -23,15 +23,23 @@ class EventDto(BaseModel):
     event_type: str
     payload: Dict[str, Any]
     recorded_at: Optional[datetime] = None
-    received_at: Optional[datetime] = None
+    received_at: datetime  # Required: when the server received the event
     event_id: Optional[int] = None
 
 
 # Actions returned by evaluate_event; executor persists them (e.g. via notification_engine)
+# D1: supports ready title/body + rule_id for dedupe_key building; legacy alert_code/priority kept for backward compat
 @dataclass(frozen=True)
 class CreateHealthAlertAction:
     user_id: int
-    alert_code: str
+    channel: str = "health_alert"
+    title: str = ""
+    body: str = ""
+    severity: Literal["low", "medium", "high"] = "high"
+    rule_id: str = ""
+    meta: Optional[Dict[str, Any]] = None
+    # Legacy fields (used by notification_engine.create_health_alert when title/body empty)
+    alert_code: str = ""
     alert_reason: Optional[str] = None
     priority: Literal["low", "normal", "high", "critical"] = "high"
 

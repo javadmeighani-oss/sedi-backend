@@ -11,8 +11,8 @@ Handles ingestion of device events (vital signs) with:
 import os
 import json
 import logging
-from typing import Optional, Dict, Any
-from datetime import datetime
+from typing import Optional, Dict, Any, Tuple
+from datetime import datetime, timezone
 import time
 from collections import deque
 from sqlalchemy.orm import Session
@@ -21,7 +21,8 @@ from backend.app.models import DeviceEvent, User, UserMemoryFact
 from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
 from backend.app.decision_engine.service import evaluate_event
 from backend.app.services.memory.memory_repository import MemoryRepository
-from backend.app.services.notification_engine import DecisionEngine
+from backend.app.models import Notification
+from backend.app.services.notification_engine import DecisionEngine, persist_health_alert_d1
 from backend.app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,46 @@ _rate_buckets: Dict[str, "deque[float]"] = {}
 
 class DeviceRateLimitExceeded(Exception):
     pass
+
+
+def minute_bucket(dt: Optional[datetime]) -> str:
+    """
+    UTC minute bucket for dedupe_key: YYYYMMDDHHMM.
+    If dt is None, uses utcnow().
+    """
+    if dt is None:
+        dt = datetime.utcnow()
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.strftime("%Y%m%d%H%M")
+
+
+def parse_recorded_at_utc(payload: Dict[str, Any], fallback: Optional[datetime]) -> Optional[datetime]:
+    """
+    Parse recorded_at from payload['ts'] if present (ISO with 'Z' = UTC).
+    Returns timezone-aware UTC datetime or fallback.
+    """
+    ts = payload.get("ts")
+    if ts is None:
+        return fallback
+    if isinstance(ts, datetime):
+        d = ts
+    elif isinstance(ts, str):
+        try:
+            # Handle Z suffix as UTC (stdlib fromisoformat accepts +00:00)
+            s = (ts[:-1] + "+00:00") if ts.endswith("Z") else ts
+            d = datetime.fromisoformat(s)
+        except (ValueError, TypeError):
+            return fallback
+    else:
+        return fallback
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    else:
+        d = d.astimezone(timezone.utc)
+    return d
 
 
 def _check_rate_limit(device_id: str) -> None:
@@ -70,7 +111,7 @@ def ingest_event(
     payload: Dict[str, Any],
     device_id: Optional[str] = None,
     recorded_at: Optional[datetime] = None
-) -> tuple[Optional[DeviceEvent], Optional[str]]:
+) -> Tuple[Optional[DeviceEvent], Optional[str], Dict[str, Any]]:
     """
     Ingest a device event with deduplication and memory mapping.
     
@@ -83,7 +124,8 @@ def ingest_event(
         recorded_at: Optional timestamp from device
     
     Returns:
-        (DeviceEvent if created, dedupe_key) or (None, dedupe_key) if duplicate
+        (DeviceEvent if created, dedupe_key, decision_summary) or (None, dedupe_key, decision_summary) if duplicate.
+        decision_summary includes e.g. {"actions_created": n} for debugging.
     """
     # Validate + normalize payload via registry
     normalized = validate_event(event_type, payload)
@@ -121,7 +163,7 @@ def ingest_event(
             f"[DEVICE_INGEST] DUPLICATE user={user_id} type={event_type} "
             f"dedupe={dedupe_key} existing_id={existing.id}"
         )
-        return None, dedupe_key
+        return None, dedupe_key, {"actions_created": 0}
     
     event = DeviceEvent(
         user_id=user_id,
@@ -168,39 +210,66 @@ def ingest_event(
     except Exception as e:
         logger.exception("[DEVICE_INGEST] Failed to map to memory: %s", e)
 
+    # D1: recorded_at from payload['ts'] if present else device event
+    recorded_at_for_dto = parse_recorded_at_utc(payload, event.recorded_at)
+
     # Unified decision path: Decision Engine evaluates event -> actions -> executor persists
+    actions_created = 0
     try:
         event_dto = EventDto(
             user_id=user_id,
             device_id=device_id,
             event_type=event_type,
             payload=normalized,
-            recorded_at=recorded_at,
-            received_at=received_at,
+            recorded_at=recorded_at_for_dto,
+            received_at=event.received_at,
             event_id=event.id,
         )
         actions = evaluate_event(event_dto)
-        _execute_actions(db, actions)
+        actions_created = _execute_d1_actions(db, event_dto, actions)
     except Exception as e:
         logger.exception("[DEVICE_INGEST] Failed to evaluate/execute decision actions: %s", e)
 
-    return event, dedupe_key
+    decision_summary = {"actions_created": actions_created}
+    return event, dedupe_key, decision_summary
 
 
-def _execute_actions(db: Session, actions: list) -> None:
-    """Execute Decision Engine actions (e.g. create health_alert notifications). Best-effort per action."""
-    engine = DecisionEngine(db)
+def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> int:
+    """
+    Execute D1 CreateHealthAlertAction: build dedupe_key, skip if exists, else persist.
+    Returns count of notifications created.
+    """
+    created = 0
     for a in actions:
+        if not isinstance(a, CreateHealthAlertAction) or not a.rule_id:
+            continue
         try:
-            if isinstance(a, CreateHealthAlertAction):
-                engine.create_health_alert(
-                    user_id=a.user_id,
-                    alert_code=a.alert_code,
-                    alert_reason=a.alert_reason,
-                    priority=a.priority,
+            bucket = minute_bucket(event_dto.recorded_at)
+            dedupe_key = f"alert:{event_dto.event_type}:{event_dto.user_id}:{bucket}:{a.rule_id}"
+            existing = (
+                db.query(Notification)
+                .filter(
+                    Notification.user_id == a.user_id,
+                    Notification.channel == "health_alert",
+                    Notification.dedupe_key == dedupe_key,
                 )
+                .first()
+            )
+            if existing:
+                continue
+            notif = persist_health_alert_d1(
+                db=db,
+                user_id=a.user_id,
+                title=a.title or "هشدار سلامت",
+                body=a.body or "هشدار سلامت ثبت شد.",
+                dedupe_key=dedupe_key,
+                priority=a.priority,
+            )
+            if notif:
+                created += 1
         except Exception as e:
             logger.exception("[DEVICE_INGEST] Failed to execute action %s: %s", type(a).__name__, e)
+    return created
 
 
 ## Legacy C1 hardcoded mapping/alerts removed in Release C3 (now registry-driven)
