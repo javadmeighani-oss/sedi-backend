@@ -137,3 +137,52 @@ def test_d2_two_ingests_same_rule_within_cooldown_only_one_notification(
         .count()
     )
     assert count == 1, f"Expected exactly 1 health_alert notification, got {count}"
+
+
+def test_d2_quiet_hours_blocks_low_severity_ingest(
+    client: TestClient,
+    db: Session,
+    release_d2_user: User,
+    device_auth_legacy: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    When quiet hours helper returns True and guard sees severity=low,
+    ingest returns actions_created=0 and skipped_reason=quiet_hours.
+    """
+    from backend.app.services import device_ingestion
+    from backend.app.services.notifications import behavior_guard_d2
+
+    monkeypatch.setattr(
+        behavior_guard_d2,
+        "is_within_quiet_hours",
+        lambda *args, **kwargs: True,
+    )
+    real_evaluate = behavior_guard_d2.evaluate_health_alert_guard
+
+    def _wrap_guard(db, user_id, channel, rule_id, severity, event_type, now_utc):
+        return real_evaluate(db, user_id, channel, rule_id, "low", event_type, now_utc)
+
+    monkeypatch.setattr(
+        device_ingestion,
+        "evaluate_health_alert_guard",
+        _wrap_guard,
+    )
+
+    headers = _device_ingest_headers(device_auth_legacy)
+    response = client.post(
+        "/device/ingest",
+        json={
+            "user_id": release_d2_user.id,
+            "device_id": "Sedi002",
+            "event_type": "heart_rate",
+            "payload": {"bpm": 140, "ts": "2026-02-20T18:00:00Z"},
+            "recorded_at": "2026-02-20T18:00:00Z",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data.get("ok") is True
+    assert data["data"].get("actions_created", 0) == 0, data
+    assert data["data"].get("skipped_reason") == "quiet_hours", data

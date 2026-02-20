@@ -1,6 +1,6 @@
 # app/services/notifications/behavior_guard_d2.py
 """
-D2.0 Behavior Guard for health_alert notifications (cooldown + reason).
+D2.0 / D2.1 Behavior Guard for health_alert notifications (cooldown, quiet hours, reason).
 Additive guard: does not change D1 ingestion or dedupe locks.
 """
 from __future__ import annotations
@@ -14,8 +14,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend.app.models import NotificationGuardState
+from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sedi.behavior_guard")
+if not logging.root.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 HEALTH_ALERT_COOLDOWN_SECONDS = int(os.getenv("HEALTH_ALERT_COOLDOWN_SECONDS", "900"))
 
@@ -34,6 +37,23 @@ class GuardDecision:
     cooldown_until: Optional[datetime] = None
 
 
+def _log_decision(
+    user_id: int,
+    channel: str,
+    rule_id: str,
+    severity: str,
+    allow: bool,
+    reason: str,
+    cooldown_until: Optional[datetime],
+    in_quiet: bool,
+) -> None:
+    """One line per decision for journal/stdout."""
+    logger.info(
+        "[D2_GUARD] user_id=%s channel=%s rule_id=%s severity=%s allow=%s reason=%s cooldown_until=%s in_quiet=%s",
+        user_id, channel, rule_id, severity, allow, reason, cooldown_until, in_quiet,
+    )
+
+
 def evaluate_health_alert_guard(
     db: Session,
     user_id: int,
@@ -45,9 +65,17 @@ def evaluate_health_alert_guard(
 ) -> GuardDecision:
     """
     Evaluate whether to allow creating a health_alert for this (user, channel, rule_id).
-    Returns allow=True if no recent send within cooldown; else allow=False with reason.
-    When a guard row exists, locks it (FOR UPDATE) to reduce race on concurrent ingests.
+    D2.1: Quiet hours block when in_quiet and severity != "high"; high overrides quiet hours.
+    Cooldown still applies after quiet-hours check. Row-level lock (FOR UPDATE) when row exists.
     """
+    # Reuse existing quiet-hours helper (health_alert: suppress when priority != "critical")
+    qh_priority = "critical" if severity == "high" else "normal"
+    in_quiet = is_within_quiet_hours(db, user_id, "health_alert", qh_priority)
+
+    if in_quiet and severity != "high":
+        _log_decision(user_id, channel, rule_id, severity, False, "quiet_hours", None, True)
+        return GuardDecision(allow=False, reason="quiet_hours", cooldown_until=None)
+
     row = (
         db.query(NotificationGuardState)
         .filter(
@@ -59,26 +87,18 @@ def evaluate_health_alert_guard(
         .one_or_none()
     )
     if row is None:
-        logger.info(
-            "[D2_GUARD] user_id=%s channel=%s rule_id=%s allow=True reason=first_send cooldown_until=None",
-            user_id, channel, rule_id,
-        )
-        return GuardDecision(allow=True, reason="first_send", cooldown_until=None)
+        reason = "quiet_hours_override" if (in_quiet and severity == "high") else "first_send"
+        _log_decision(user_id, channel, rule_id, severity, True, reason, None, in_quiet)
+        return GuardDecision(allow=True, reason=reason, cooldown_until=None)
 
     cooldown_until = row.cooldown_until
     now_naive = _naive_utc(now_utc)
     if cooldown_until is None or cooldown_until <= now_naive:
-        logger.info(
-            "[D2_GUARD] user_id=%s channel=%s rule_id=%s allow=True reason=cooldown_expired cooldown_until=%s",
-            user_id, channel, rule_id, cooldown_until,
-        )
-        return GuardDecision(allow=True, reason="cooldown_expired", cooldown_until=None)
+        reason = "quiet_hours_override" if (in_quiet and severity == "high") else "cooldown_expired"
+        _log_decision(user_id, channel, rule_id, severity, True, reason, cooldown_until, in_quiet)
+        return GuardDecision(allow=True, reason=reason, cooldown_until=None)
 
-    # Still within cooldown
-    logger.info(
-        "[D2_GUARD] user_id=%s channel=%s rule_id=%s allow=False reason=cooldown cooldown_until=%s",
-        user_id, channel, rule_id, cooldown_until,
-    )
+    _log_decision(user_id, channel, rule_id, severity, False, "cooldown", cooldown_until, in_quiet)
     return GuardDecision(allow=False, reason="cooldown", cooldown_until=cooldown_until)
 
 
