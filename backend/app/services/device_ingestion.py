@@ -22,7 +22,11 @@ from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
 from backend.app.decision_engine.service import evaluate_event
 from backend.app.services.memory.memory_repository import MemoryRepository
 from backend.app.models import Notification
-from backend.app.services.notification_engine import DecisionEngine, persist_health_alert_d1
+from backend.app.services.notification_engine import persist_health_alert_d1
+from backend.app.services.notifications.behavior_guard_d2 import (
+    evaluate_health_alert_guard,
+    record_health_alert_sent,
+)
 from backend.app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
 
 logger = logging.getLogger(__name__)
@@ -226,24 +230,44 @@ def ingest_event(
             event_id=event.id,
         )
         actions = evaluate_event(event_dto)
-        actions_created = _execute_d1_actions(db, event_dto, actions)
+        actions_created, skipped_reason = _execute_d1_actions(db, event_dto, actions)
     except Exception as e:
         logger.exception("[DEVICE_INGEST] Failed to evaluate/execute decision actions: %s", e)
+        actions_created, skipped_reason = 0, None
 
     decision_summary = {"actions_created": actions_created}
+    if skipped_reason is not None:
+        decision_summary["skipped_reason"] = skipped_reason
     return event, dedupe_key, decision_summary
 
 
-def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> int:
+def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> Tuple[int, Optional[str]]:
     """
-    Execute D1 CreateHealthAlertAction: build dedupe_key, skip if exists, else persist.
-    Returns count of notifications created.
+    Execute D1 CreateHealthAlertAction: D2 guard, dedupe check, persist, then record guard state.
+    Returns (count of notifications created, first skipped_reason if any).
     """
     created = 0
+    skipped_reason: Optional[str] = None
+    now_utc = datetime.utcnow()
     for a in actions:
         if not isinstance(a, CreateHealthAlertAction) or not a.rule_id:
             continue
         try:
+            # D2.0: evaluate guard before creating notification
+            guard = evaluate_health_alert_guard(
+                db=db,
+                user_id=a.user_id,
+                channel="health_alert",
+                rule_id=a.rule_id,
+                severity=getattr(a, "severity", "high"),
+                event_type=event_dto.event_type,
+                now_utc=now_utc,
+            )
+            if not guard.allow:
+                if skipped_reason is None:
+                    skipped_reason = guard.reason
+                continue
+
             bucket = minute_bucket(event_dto.recorded_at)
             dedupe_key = f"alert:{event_dto.event_type}:{event_dto.user_id}:{bucket}:{a.rule_id}"
             existing = (
@@ -267,9 +291,16 @@ def _execute_d1_actions(db: Session, event_dto: EventDto, actions: list) -> int:
             )
             if notif:
                 created += 1
+                record_health_alert_sent(
+                    db=db,
+                    user_id=a.user_id,
+                    channel="health_alert",
+                    rule_id=a.rule_id,
+                    now_utc=now_utc,
+                )
         except Exception as e:
             logger.exception("[DEVICE_INGEST] Failed to execute action %s: %s", type(a).__name__, e)
-    return created
+    return created, skipped_reason
 
 
 ## Legacy C1 hardcoded mapping/alerts removed in Release C3 (now registry-driven)

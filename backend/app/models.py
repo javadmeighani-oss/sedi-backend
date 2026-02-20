@@ -96,6 +96,20 @@ class NotificationFeedback(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+# -------------------- NotificationGuardState (D2.0 Behavior Guard) --------------------
+class NotificationGuardState(Base):
+    __tablename__ = "notification_guard_state"
+    __table_args__ = (UniqueConstraint("user_id", "channel", "rule_id", name="uq_notification_guard_state_user_channel_rule"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    channel = Column(String(50), nullable=False)
+    rule_id = Column(String(100), nullable=False)
+    last_sent_at = Column(DateTime, nullable=False)
+    cooldown_until = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False, onupdate=datetime.utcnow)
+
+
 # -------------------- MedicalCondition --------------------
 class MedicalCondition(Base):
     __tablename__ = "medical_conditions"
