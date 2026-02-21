@@ -10,7 +10,7 @@ Supports:
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
 from typing import List, Optional, Literal
 from datetime import datetime, timedelta
 import hashlib
@@ -19,7 +19,7 @@ import logging
 import os
 
 from backend.app.database import get_db
-from backend.app.models import Notification, User, PushDevice, NotificationFeedback
+from backend.app.models import Notification, User, PushDevice, NotificationFeedback, DeviceEvent
 from backend.app.schemas import APIResponse, ErrorInfo, NotificationResponse
 from backend.app.schemas.notification import (
     NotificationCreate,
@@ -640,6 +640,171 @@ def admin_notification_health(
                 last_deliver_pending_run_at.isoformat()
                 if last_deliver_pending_run_at else None
             ),
+        },
+    )
+
+
+# ------------------ GET /notifications/admin/observability (V1 Pilot) ------------------
+@router.get("/admin/observability", response_model=APIResponse)
+def admin_observability(
+    request: Request,
+    db: Session = Depends(get_db),
+    minutes: int = Query(60, ge=5, le=10080, description="Time window in minutes"),
+):
+    """
+    Admin-only: Observability snapshot (notifications + device_events + delivery health).
+    Same protection as /admin/health: ADMIN_TOKEN env and X-Admin-Token header.
+    """
+    _require_admin_if_set(request)
+
+    now = datetime.utcnow()
+    since = now - timedelta(minutes=minutes)
+
+    # 1–4: notification totals in window
+    notifications_created_total = (
+        db.query(Notification).filter(Notification.created_at >= since).count()
+    )
+    notifications_sent_total = (
+        db.query(Notification)
+        .filter(Notification.is_sent == True, Notification.sent_at >= since)  # noqa: E712
+        .count()
+    )
+    notifications_failed_total = (
+        db.query(Notification)
+        .filter(
+            Notification.created_at >= since,
+            or_(
+                Notification.status == "failed",
+                and_(
+                    Notification.last_error.isnot(None),
+                    Notification.last_error != "",
+                ),
+            ),
+        )
+        .count()
+    )
+    pending_now = (
+        db.query(Notification)
+        .filter(Notification.is_sent == False)  # noqa: E712
+        .filter(
+            or_(Notification.scheduled_for.is_(None), Notification.scheduled_for <= now)
+        )
+        .count()
+    )
+
+    # 5: by_channel (created, sent, failed, pending_now per channel)
+    channels = [
+        r[0] for r in
+        db.query(Notification.channel).filter(Notification.created_at >= since).distinct().all()
+    ]
+    by_channel = {}
+    for ch in channels:
+        ch_key = ch if ch else "unknown"
+        created = (
+            db.query(Notification)
+            .filter(Notification.created_at >= since, Notification.channel == ch)
+            .count()
+        )
+        sent = (
+            db.query(Notification)
+            .filter(
+                Notification.is_sent == True,  # noqa: E712
+                Notification.sent_at >= since,
+                Notification.channel == ch,
+            )
+            .count()
+        )
+        failed = (
+            db.query(Notification)
+            .filter(
+                Notification.created_at >= since,
+                Notification.channel == ch,
+                or_(
+                    Notification.status == "failed",
+                    and_(
+                        Notification.last_error.isnot(None),
+                        Notification.last_error != "",
+                    ),
+                ),
+            )
+            .count()
+        )
+        pending = (
+            db.query(Notification)
+            .filter(
+                Notification.channel == ch,
+                Notification.is_sent == False,  # noqa: E712
+                or_(Notification.scheduled_for.is_(None), Notification.scheduled_for <= now),
+            )
+            .count()
+        )
+        by_channel[ch_key] = {
+            "created": created,
+            "sent": sent,
+            "failed": failed,
+            "pending_now": pending,
+        }
+
+    # 6: top_errors (by last_error, limit 5)
+    top_errors_q = (
+        db.query(Notification.last_error, func.count(Notification.id).label("cnt"))
+        .filter(
+            Notification.created_at >= since,
+            Notification.last_error.isnot(None),
+            Notification.last_error != "",
+        )
+        .group_by(Notification.last_error)
+        .order_by(func.count(Notification.id).desc())
+        .limit(5)
+        .all()
+    )
+    top_errors = [{"last_error": err, "count": c} for err, c in top_errors_q]
+
+    # 7: device_events_total (DeviceEvent.received_at in window)
+    device_events_total = (
+        db.query(DeviceEvent).filter(DeviceEvent.received_at >= since).count()
+    )
+
+    # 8: delivery_health (same three fields as /admin/health)
+    one_hour_ago = now - timedelta(hours=1)
+    delivery_pending_count = (
+        db.query(Notification)
+        .filter(Notification.is_sent == False)  # noqa: E712
+        .filter(
+            or_(Notification.scheduled_for.is_(None), Notification.scheduled_for <= now)
+        )
+        .count()
+    )
+    delivery_failed_last_1h = (
+        db.query(Notification)
+        .filter(Notification.status == "failed", Notification.created_at >= one_hour_ago)
+        .count()
+    )
+    from backend.app.services.notifications.delivery_service import (
+        last_deliver_pending_run_at,
+    )
+    delivery_health = {
+        "notifications_pending_count": delivery_pending_count,
+        "notifications_failed_last_1h": delivery_failed_last_1h,
+        "last_deliver_pending_run_at": (
+            last_deliver_pending_run_at.isoformat()
+            if last_deliver_pending_run_at else None
+        ),
+    }
+
+    return APIResponse(
+        ok=True,
+        data={
+            "window_minutes": minutes,
+            "now_utc": now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "notifications_created_total": notifications_created_total,
+            "notifications_sent_total": notifications_sent_total,
+            "notifications_failed_total": notifications_failed_total,
+            "pending_now": pending_now,
+            "by_channel": by_channel,
+            "top_errors": top_errors,
+            "device_events_total": device_events_total,
+            "delivery_health": delivery_health,
         },
     )
 

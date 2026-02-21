@@ -1,5 +1,5 @@
-# backend/tests/test_system_health.py – Freeze B1 GET /health
-"""Minimal test: GET /health returns 200 and ok=true with expected keys."""
+# backend/tests/test_system_health.py – Freeze B1 GET /health; V1 GET /healthz
+"""Minimal test: GET /health and GET /healthz return expected keys."""
 from fastapi.testclient import TestClient
 from backend.app.main import app
 
@@ -16,3 +16,17 @@ def test_health_returns_200_and_ok_true():
     assert data.get("env") in ("prod", "dev")
     assert data.get("db") in ("ok", "error")
     assert "timestamp" in data
+
+
+def test_healthz_returns_200_with_db_ok(client: TestClient):
+    """GET /healthz returns 200 and data contains db_ok (uses app db session from fixture)."""
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    data = r.json()
+    assert "data" in data
+    assert "db_ok" in data["data"]
+    assert data["data"]["db_ok"] is True
+    assert "server_time" in data["data"]
+    assert "version" in data["data"]
+    assert data.get("ok") is True
+    assert data.get("error") is None
