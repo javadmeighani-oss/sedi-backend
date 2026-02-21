@@ -14,7 +14,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend.app.models import NotificationGuardState
-from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_hours
+from backend.app.services.notification_runtime.quiet_hours import is_within_quiet_window
 
 logger = logging.getLogger("sedi.behavior_guard")
 if not logging.root.handlers:
@@ -70,8 +70,7 @@ def evaluate_health_alert_guard(
     D2.1: Quiet hours block when in_quiet and severity != "high"; high overrides quiet hours.
     Cooldown still applies after quiet-hours check. Row-level lock (FOR UPDATE) when row exists.
     """
-    qh_priority = "critical" if severity == "high" else "normal"
-    in_quiet = is_within_quiet_hours(db, user_id, "health_alert", qh_priority)
+    in_quiet = is_within_quiet_window(db, user_id)
 
     if in_quiet and severity != "high":
         _log_decision(user_id, channel, rule_id, severity, False, "quiet_hours", None, True, trace_id)

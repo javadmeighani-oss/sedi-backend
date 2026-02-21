@@ -95,7 +95,7 @@ def test_after_cooldown_allow_true(db: Session, guard_user) -> None:
     assert decision.reason == "cooldown_expired"
 
 
-@patch("backend.app.services.notifications.behavior_guard_d2.is_within_quiet_hours", return_value=True)
+@patch("backend.app.services.notifications.behavior_guard_d2.is_within_quiet_window", return_value=True)
 def test_quiet_hours_blocks_low_severity(
     _mock_qh,
     db: Session,
@@ -117,7 +117,7 @@ def test_quiet_hours_blocks_low_severity(
     assert decision.cooldown_until is None
 
 
-@patch("backend.app.services.notifications.behavior_guard_d2.is_within_quiet_hours", return_value=True)
+@patch("backend.app.services.notifications.behavior_guard_d2.is_within_quiet_window", return_value=True)
 @patch("backend.app.services.notifications.behavior_guard_d2.HEALTH_ALERT_COOLDOWN_SECONDS", 900)
 def test_quiet_hours_allows_high_but_cooldown_applies(
     _mock_qh,

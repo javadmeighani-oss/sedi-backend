@@ -155,7 +155,7 @@ def test_d2_quiet_hours_blocks_low_severity_ingest(
 
     monkeypatch.setattr(
         behavior_guard_d2,
-        "is_within_quiet_hours",
+        "is_within_quiet_window",
         lambda *args, **kwargs: True,
     )
     real_evaluate = behavior_guard_d2.evaluate_health_alert_guard
