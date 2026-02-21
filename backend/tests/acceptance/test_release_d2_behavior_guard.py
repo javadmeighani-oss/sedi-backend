@@ -160,8 +160,8 @@ def test_d2_quiet_hours_blocks_low_severity_ingest(
     )
     real_evaluate = behavior_guard_d2.evaluate_health_alert_guard
 
-    def _wrap_guard(db, user_id, channel, rule_id, severity, event_type, now_utc):
-        return real_evaluate(db, user_id, channel, rule_id, "low", event_type, now_utc)
+    def _wrap_guard(db, user_id, channel, rule_id, severity, event_type, now_utc, trace_id=None, **kwargs):
+        return real_evaluate(db, user_id, channel, rule_id, "low", event_type, now_utc, trace_id=trace_id)
 
     monkeypatch.setattr(
         device_ingestion,
