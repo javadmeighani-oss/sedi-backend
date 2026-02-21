@@ -51,7 +51,7 @@ def default_rules() -> List[Rule]:
 
 
 # ---------- D1: minimal HIGH-severity rules (device_events -> notifications) ----------
-# Thresholds: heart_rate >= 130 or <= 42; blood_pressure sys>=160 or dia>=110;
+# Thresholds: heart_rate >= 130 or <= 50; blood_pressure sys>=160 or dia>=110;
 # glucose >= 240 or <= 60; temperature >= 39.0
 # Titles/bodies: plain Persian (hardcoded), short and safe.
 
@@ -80,7 +80,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 meta={"bpm": bpm},
                 priority="high",
             ))
-        elif bpm <= 42:
+        elif bpm <= 50:
             out.append(CreateHealthAlertAction(
                 user_id=user_id,
                 channel="health_alert",
