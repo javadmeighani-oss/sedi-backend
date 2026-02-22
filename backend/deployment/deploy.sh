@@ -17,9 +17,18 @@ if [ ! -f ~/.ssh/id_ed25519 ]; then
     ssh-keygen -t ed25519 -C "sedi-backend" -f ~/.ssh/id_ed25519 -N ""
 fi
 
-# Copy SSH key to server (if not already done)
-echo "🔑 Setting up SSH key authentication..."
-ssh-copy-id -i ~/.ssh/id_ed25519.pub ${SERVER_USER}@${SERVER_IP} || echo "SSH key may already be configured"
+# Copy SSH key to server (if not already done); skip when on target server or DEPLOY_SKIP_SSH=1
+LOCAL_IPS="$(hostname -I 2>/dev/null || true)"
+ON_TARGET_SERVER=0
+if [ -n "$SERVER_IP" ] && case " $LOCAL_IPS " in *" $SERVER_IP "*) true;; *) false;; esac; then
+    ON_TARGET_SERVER=1
+fi
+if [ "${DEPLOY_SKIP_SSH:-0}" = "1" ] || [ "$ON_TARGET_SERVER" = "1" ]; then
+    echo "[DEPLOY] Skipping SSH key setup (already on target server or DEPLOY_SKIP_SSH=1)"
+else
+    echo "🔑 Setting up SSH key authentication..."
+    ssh-copy-id -i ~/.ssh/id_ed25519.pub ${SERVER_USER}@${SERVER_IP} || echo "SSH key may already be configured"
+fi
 
 # Copy systemd service file to server
 echo "📋 Copying systemd service file..."
