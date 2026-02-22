@@ -239,8 +239,13 @@ def apply_answer_endpoint(
     """
     _ensure_user(db, payload.user_id)
     try:
-        # For confirm_candidate: use answer if present, else value
+        # Prefer payload.value, but fall back to payload.answer (for profile/fact and confirm_candidate)
         raw_value = payload.value
+        if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
+            if payload.answer is not None and str(payload.answer).strip():
+                raw_value = payload.answer
+
+        # For confirm_candidate: explicitly prefer answer when present
         if payload.candidate_id is not None and (payload.question_type or "").strip().lower() == "confirm_candidate":
             a = payload.answer if (payload.answer is not None and str(payload.answer).strip()) else payload.value
             raw_value = a
