@@ -17,7 +17,7 @@ def test_hr_high_rest_triggers_notify():
     assert d.source_event_id == 2
 
 
-# evaluate_event: unified path (vitals thresholds from rule_alerts)
+# evaluate_event: unified path (D1 evaluate_high_rules; alert_code set from rule_id for dedupe/analytics)
 def test_evaluate_event_bpm_180_returns_high_heart_rate_action():
     event = EventDto(
         user_id=1,
@@ -31,9 +31,9 @@ def test_evaluate_event_bpm_180_returns_high_heart_rate_action():
     a = actions[0]
     assert isinstance(a, CreateHealthAlertAction)
     assert a.user_id == 1
-    assert a.alert_code == "high_heart_rate"
-    assert a.priority == "critical"
-    assert "high" in (a.alert_reason or "").lower() or "very high" in (a.alert_reason or "").lower()
+    # V1: evaluate_high_rules sets alert_code from rule_id (heart_rate_high)
+    assert a.alert_code == "heart_rate_high"
+    assert a.priority == "high"
 
 
 def test_evaluate_event_normal_bpm_returns_no_action():

@@ -77,6 +77,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 body="ضربان قلبت بالاست. اگر حالت بد است یا علائم داری، با پزشک تماس بگیر.",
                 severity="high",
                 rule_id="heart_rate_high",
+                alert_code="heart_rate_high",
                 meta={"bpm": bpm},
                 priority="high",
             ))
@@ -88,6 +89,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 body="ضربان قلبت پایینه. اگر حالت بد است یا علائم داری، با پزشک تماس بگیر.",
                 severity="high",
                 rule_id="heart_rate_low",
+                alert_code="heart_rate_low",
                 meta={"bpm": bpm},
                 priority="high",
             ))
@@ -106,6 +108,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 body="فشارخون بالاست. آرام باش و در صورت تداوم یا علائم، با پزشک تماس بگیر.",
                 severity="high",
                 rule_id="blood_pressure_high",
+                alert_code="blood_pressure_high",
                 meta={"sys": sys_v, "dia": dia_v},
                 priority="high",
             ))
@@ -123,6 +126,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 body="قند خون بالاست. در صورت تداوم یا علائم، با پزشک تماس بگیر.",
                 severity="high",
                 rule_id="glucose_high",
+                alert_code="glucose_high",
                 meta={"mg_dl": mg_dl},
                 priority="high",
             ))
@@ -134,6 +138,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 body="قند خون پایینه. اگر حالت بد است یا علائم داری، با پزشک تماس بگیر.",
                 severity="high",
                 rule_id="glucose_low",
+                alert_code="glucose_low",
                 meta={"mg_dl": mg_dl},
                 priority="high",
             ))
@@ -151,6 +156,7 @@ def evaluate_high_rules(event: EventDto) -> List[Action]:
                 body="دمای بدنت بالاست. استراحت کن، آب بخور و در صورت تداوم با پزشک تماس بگیر.",
                 severity="high",
                 rule_id="temperature_high",
+                alert_code="temperature_high",
                 meta={"temperature_c": c},
                 priority="high",
             ))
