@@ -233,4 +233,16 @@ git push origin main
 
 ---
 
+## Release C – Device Ingestion Contract + Idempotency (V1 Freeze)
+
+- **Endpoints:** `POST /devices/register` (register device, get token), `POST /device/ingest` (submit vital event).
+- **Header:** `X-DEVICE-TOKEN` is **required** for ingest; validated per `DEVICE_AUTH_MODE`.
+- **Auth modes:** `legacy_only` (shared token, tests only), `db_only` (per-device token from DB), `hybrid` (DB first then legacy). **V1 production decision:** use **`db_only`**.
+- **Dedupe (proven):**
+  - **device_events:** e.g. `heart_rate:1:2026-02-20T10:05` → at most one row per (event_type, user_id, time window); duplicate ingest returns `device_event_dedupe_hit=true`, `event_id=null`, `actions_created=0`.
+  - **notifications:** e.g. `alert:heart_rate:1:202602201005:heart_rate_low` → at most one notification per (alert, user, minute, rule); duplicate does not create a second notification.
+- **Duplicate ingest response:** HTTP 200, `ok: true`, `data.event_id=null`, `data.device_event_dedupe_hit=true`, `data.actions_created=0` (or omitted), plus existing `dedupe_key` and optional `message` ("Event already exists (duplicate)").
+
+---
+
 **پایان گزارش**

@@ -43,3 +43,12 @@ cd "D:\Rimiya Design Studio\Sedi\software\Demo\backend"
 ```
 
 توجه: این اسکریپت فقط remote را تنظیم و `git push` می‌زند؛ قبل از آن حتماً `git add` و `git commit` را از روت پروژه انجام دهید.
+
+---
+
+## V1 Freeze – Device Ingestion Auth Mode
+
+- **V1 production** should use **DB-token based** device auth: each device has a token stored in the DB (from `/devices/register`), and `POST /device/ingest` validates `X-DEVICE-TOKEN` against that store.
+- **Recommended for production V1:** set **`DEVICE_AUTH_MODE=db_only`**. This ensures only registered devices can ingest events; no shared legacy token.
+- **`legacy_only`** is for **legacy tests only** (e.g. shared `DEVICE_INGEST_TOKEN`). It must **not** be used in production.
+- **`hybrid`** was used temporarily for transition/testing (try DB token first, then legacy if configured). For a clean V1 freeze, use **`db_only`** in production.
