@@ -246,11 +246,10 @@ class DeliveryService:
         for notification in pending:
             success = False
             last_err = None
+            nid = notification.id
+            uid = notification.user_id
             for attempt in range(_FCM_MAX_RETRIES + 1):
                 try:
-                    # Cache ORM attrs before send/rollback so except can log without touching expired instance
-                    nid = notification.id
-                    uid = notification.user_id
                     if self.adapter.send(notification):
                         if not getattr(notification, "is_sent", None):
                             notification.is_sent = True
@@ -276,7 +275,8 @@ class DeliveryService:
                         if attempt < _FCM_MAX_RETRIES:
                             time.sleep(_FCM_BACKOFF_SECONDS)
                 except Exception as e:
-                    self.db.rollback()
+                    # Do not rollback: adapter failure is not a DB failure; rollback would expire
+                    # the notification instance and break the final-failure persist and test fixtures.
                     last_err = repr(e)
                     logger.warning(
                         "[NOTIF] failed notification_id=%s user_id=%s attempt=%s error=%s",
