@@ -285,6 +285,7 @@ class DeliveryService:
                 try:
                     notification.status = "failed"
                     notification.last_error = (last_err or "Send failed")[:500]
+                    notification.provider = getattr(self.adapter, "channel", None) or "db_only"
                     self.db.add(notification)
                     self.db.commit()
                 except Exception:
