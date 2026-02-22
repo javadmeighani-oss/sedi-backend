@@ -100,11 +100,12 @@
 
 ## 4. POST /notifications/push/register
 
-**Request body (example):**
+**Request body (example):**  
+FCM token must be at least 80 characters and must not be a placeholder (e.g. no "TOKEN", "FCM", "EXAMPLE" in value).
 ```json
 {
   "user_id": 1,
-  "fcm_token": "long-fcm-token-string",
+  "fcm_token": "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuv",
   "platform": "android",
   "device_id": "optional-device-id"
 }

@@ -82,5 +82,13 @@ def test_e2e_abnormal_hr_creates_health_alert(
     notif = notifications[0]
     assert notif.body is not None and len(notif.body.strip()) > 0
     assert notif.priority in ("high", "critical")
-    # high_heart_rate is the alert_code for bpm > 120 (rule_alerts)
-    assert "heart" in notif.body.lower() or "high_heart_rate" in (notif.dedupe_key or "")
+    # V1: body may be Persian (e.g. "ضربان قلبت بالاست"); dedupe_key may contain heart_rate_high or high_heart_rate
+    body_lower = notif.body.lower()
+    dedupe = notif.dedupe_key or ""
+    assert (
+        "heart" in body_lower
+        or "ضربان" in notif.body
+        or "قلب" in notif.body
+        or "heart_rate_high" in dedupe
+        or "high_heart_rate" in dedupe
+    ), f"Expected heart-related body or dedupe_key; got body={notif.body[:80]!r} dedupe_key={dedupe!r}"

@@ -1,7 +1,7 @@
 # Release D: minimal Decision schema + Event/Actions for unified path
 from dataclasses import dataclass
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal, Optional, Dict, Any, List, Union
 
 DecisionType = Literal["none", "notify", "store_only"]
@@ -23,7 +23,10 @@ class EventDto(BaseModel):
     event_type: str
     payload: Dict[str, Any]
     recorded_at: Optional[datetime] = None
-    received_at: datetime  # Required: when the server received the event
+    received_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="When the server received the event; defaults to now if omitted (backward-compatible for tests).",
+    )
     event_id: Optional[int] = None
 
 

@@ -30,12 +30,18 @@ def test_user(db: Session) -> User:
     return user
 
 
+# Realistic FCM token: >=80 chars, no placeholder words (passes _is_placeholder_or_invalid_fcm_token)
+_REGISTER_TEST_FCM_TOKEN = (
+    "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuv"
+)
+
+
 def test_push_register_upsert(client: TestClient, db: Session, test_user: User):
     """POST /notifications/push/register upserts by fcm_token; returns device_id."""
     body = {
         "user_id": test_user.id,
         "platform": "android",
-        "fcm_token": "test-fcm-token-12345",
+        "fcm_token": _REGISTER_TEST_FCM_TOKEN,
         "device_id": "device-abc",
     }
     r1 = client.post("/notifications/push/register", json=body)
@@ -58,11 +64,11 @@ def test_push_register_upsert(client: TestClient, db: Session, test_user: User):
 
 def test_queued_to_sent_with_mock_fcm(client: TestClient, db: Session, test_user: User):
     """With FCM_DISABLED=true, a queued notification with active PushDevice transitions to sent."""
-    # Register push device
+    # Register push device (token must pass validation: >=80 chars, no placeholder words)
     device = PushDevice(
         user_id=test_user.id,
         platform="android",
-        fcm_token="mock-fcm-token-xyz",
+        fcm_token=_REGISTER_TEST_FCM_TOKEN,
         is_active=True,
     )
     db.add(device)
