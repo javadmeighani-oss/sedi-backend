@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app import models
-from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
 from backend.app.schemas.knowledge import ExtractFromMessageRequest, ApplyAnswerRequest
 from backend.app.services.knowledge.question_engine import get_next_question
 from backend.app.services.knowledge.conversation_extraction_service import process_message
@@ -147,7 +147,7 @@ def _resolve_lang(lang_query: Optional[str], user: models.User) -> str:
     return "fa"
 
 
-@router.get("/next_question", response_model=APIResponse)
+@router.get("/next_question", response_model=ApiResponseV1)
 def get_next_question_endpoint(
     user_id: int = Query(..., description="User ID"),
     lang: Optional[str] = Query(None, description="Display language: fa | en"),
@@ -208,7 +208,7 @@ def get_next_question_endpoint(
     return APIResponse(ok=True, data=data, error=None)
 
 
-@router.post("/extract_from_message", response_model=APIResponse)
+@router.post("/extract_from_message", response_model=ApiResponseV1)
 def extract_from_message(
     payload: ExtractFromMessageRequest,
     db: Session = Depends(get_db),
@@ -228,7 +228,7 @@ def extract_from_message(
     return APIResponse(ok=True, data=result, error=None)
 
 
-@router.post("/apply_answer", response_model=APIResponse)
+@router.post("/apply_answer", response_model=ApiResponseV1)
 def apply_answer_endpoint(
     payload: ApplyAnswerRequest,
     db: Session = Depends(get_db),

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from backend.app.database import get_db
 from backend.app import models
-from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
 from backend.app.core.passkey_utils import hash_passkey, verify_passkey
 
 router = APIRouter()
@@ -42,7 +42,7 @@ def _is_locked(user_id: int) -> bool:
     return False
 
 
-@router.post("/set-passkey", response_model=APIResponse)
+@router.post("/set-passkey", response_model=ApiResponseV1)
 def set_passkey(user_id: int, passkey: str, db: Session = Depends(get_db)):
     if _passkey_disabled_for_v1():
         logger.info("[auth] Passkey endpoint disabled (prod/V1): set-passkey")
@@ -62,7 +62,7 @@ def set_passkey(user_id: int, passkey: str, db: Session = Depends(get_db)):
     return APIResponse(ok=True, data={"user_id": user.id, "passkey_set": True})
 
 
-@router.post("/verify-passkey", response_model=APIResponse)
+@router.post("/verify-passkey", response_model=ApiResponseV1)
 def verify_passkey_endpoint(user_id: int, passkey: str, db: Session = Depends(get_db)):
     if _passkey_disabled_for_v1():
         logger.info("[auth] Passkey endpoint disabled (prod/V1): verify-passkey")

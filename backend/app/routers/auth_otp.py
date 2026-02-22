@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app import models
-from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
 from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeOut
 from backend.app.core.security import verify_token
 from backend.app.services import auth_otp_service as svc
@@ -34,7 +34,7 @@ def get_current_user(
     return user
 
 
-@router.post("/request_otp", response_model=APIResponse)
+@router.post("/request_otp", response_model=ApiResponseV1)
 def request_otp(
     body: OtpRequestIn,
     request: Request,
@@ -48,7 +48,7 @@ def request_otp(
     return APIResponse(ok=True, data={"ok": True, "next": "verify_otp"})
 
 
-@router.post("/verify_otp", response_model=APIResponse)
+@router.post("/verify_otp", response_model=ApiResponseV1)
 def verify_otp(
     body: OtpVerifyIn,
     request: Request,
@@ -77,7 +77,7 @@ def verify_otp(
     )
 
 
-@router.get("/me", response_model=APIResponse)
+@router.get("/me", response_model=ApiResponseV1)
 def auth_me(user: models.User = Depends(get_current_user)):
     """Return current user info (requires access token)."""
     # display_name: prefer name from user_profile_knowledge or user.name
@@ -92,7 +92,7 @@ def auth_me(user: models.User = Depends(get_current_user)):
     )
 
 
-@router.post("/refresh", response_model=APIResponse)
+@router.post("/refresh", response_model=ApiResponseV1)
 def refresh_tokens(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
@@ -120,7 +120,7 @@ def refresh_tokens(
     )
 
 
-@router.post("/logout", response_model=APIResponse)
+@router.post("/logout", response_model=ApiResponseV1)
 def logout(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),

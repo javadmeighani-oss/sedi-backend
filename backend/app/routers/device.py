@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app import models
-from backend.app.schemas import APIResponse, ErrorInfo
+from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
 from backend.app.services.notification_engine import DecisionEngine
 from backend.app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
 from backend.app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 # 🔹 1. دریافت فرمان‌های صوتی جدید برای گجت
-@router.get("/pending-commands", response_model=APIResponse)
+@router.get("/pending-commands", response_model=ApiResponseV1)
 def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
     """
     گجت فرمان‌های صوتی جدید را از این مسیر می‌گیرد
@@ -63,7 +63,7 @@ def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
 
 
 # 🔹 2. ارسال وضعیت گجت به سرور (Heartbeat)
-@router.post("/heartbeat", response_model=APIResponse)
+@router.post("/heartbeat", response_model=ApiResponseV1)
 def device_heartbeat(payload: dict, db: Session = Depends(get_db)):
     """
     گجت هر چند ثانیه وضعیت خود را به سرور می‌فرستد.
@@ -137,7 +137,7 @@ def device_heartbeat(payload: dict, db: Session = Depends(get_db)):
 
 
 # 🔹 3. تأیید اجرای فرمان توسط گجت (Acknowledge)
-@router.post("/acknowledge", response_model=APIResponse)
+@router.post("/acknowledge", response_model=ApiResponseV1)
 def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
     """
     گجت پس از اجرای فرمان صوتی، نتیجه را اعلام می‌کند.

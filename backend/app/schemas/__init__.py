@@ -2,6 +2,7 @@
 # Export all schemas from package
 
 from .common import APIResponse, ErrorInfo
+from .api_envelope import ApiResponse as ApiResponseV1, ApiError
 from .chat import ChatRequest
 from .onboarding import OnboardingRequest
 from .user import UserCreate, UserResponse
@@ -60,6 +61,9 @@ __all__ = [
     # Common
     "APIResponse",
     "ErrorInfo",
+    # V1 contract envelope
+    "ApiResponseV1",
+    "ApiError",
     # Chat
     "ChatRequest",
     # Onboarding

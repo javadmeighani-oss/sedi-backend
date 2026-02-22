@@ -20,7 +20,7 @@ import os
 
 from backend.app.database import get_db
 from backend.app.models import Notification, User, PushDevice, NotificationFeedback, DeviceEvent
-from backend.app.schemas import APIResponse, ErrorInfo, NotificationResponse
+from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1, NotificationResponse
 from backend.app.schemas.notification import (
     NotificationCreate,
     NotificationFeedbackRequest,
@@ -68,7 +68,7 @@ def _require_admin_if_set(request: Request) -> None:
 
 
 # ------------------ GET /notifications/admin/push_devices (Stage 16.6.1) ------------------
-@router.get("/admin/push_devices", response_model=APIResponse)
+@router.get("/admin/push_devices", response_model=ApiResponseV1)
 def admin_list_push_devices(
     request: Request,
     user_id: int = Query(..., description="User ID"),
@@ -105,7 +105,7 @@ def admin_list_push_devices(
 
 
 # ------------------ POST /notifications/admin/test_push (Stage 16.6.1) ------------------
-@router.post("/admin/test_push", response_model=APIResponse)
+@router.post("/admin/test_push", response_model=ApiResponseV1)
 def admin_test_push(
     request: Request,
     body: TestPushRequest,
@@ -201,7 +201,7 @@ def _get_user_tz_for_log(db: Session, user_id: int) -> str:
         return "Asia/Tehran"
 
 
-@router.post("/admin/notif/send_now", response_model=APIResponse)
+@router.post("/admin/notif/send_now", response_model=ApiResponseV1)
 def admin_notif_send_now(
     request: Request,
     user_id: int = Query(..., description="User ID"),
@@ -422,7 +422,7 @@ def admin_notif_send_now(
 
 
 # ------------------ POST /notifications/admin/companion_ping/send_now (Behavior V1) ------------------
-@router.post("/admin/companion_ping/send_now", response_model=APIResponse)
+@router.post("/admin/companion_ping/send_now", response_model=ApiResponseV1)
 def admin_companion_ping_send_now(
     request: Request,
     user_id: int = Query(..., description="User ID"),
@@ -461,7 +461,7 @@ def admin_companion_ping_send_now(
 
 
 # ------------------ GET /notifications/admin/templates/list ------------------
-@router.get("/admin/templates/list", response_model=APIResponse)
+@router.get("/admin/templates/list", response_model=ApiResponseV1)
 def admin_templates_list(request: Request):
     """Admin-only: List V1 template keys and basic fields."""
     _require_admin_if_set(request)
@@ -471,7 +471,7 @@ def admin_templates_list(request: Request):
 
 
 # ------------------ GET /notifications/admin/templates/preview ------------------
-@router.get("/admin/templates/preview", response_model=APIResponse)
+@router.get("/admin/templates/preview", response_model=ApiResponseV1)
 def admin_templates_preview(
     request: Request,
     template_key: str = Query(..., description="Template key"),
@@ -526,7 +526,7 @@ def admin_templates_preview(
 
 
 # ------------------ GET /notifications/admin/feedback_stats ------------------
-@router.get("/admin/feedback_stats", response_model=APIResponse)
+@router.get("/admin/feedback_stats", response_model=ApiResponseV1)
 def admin_feedback_stats(
     request: Request,
     user_id: Optional[int] = Query(None, description="Filter by user ID (optional)"),
@@ -582,7 +582,7 @@ def admin_feedback_stats(
 
 
 # ------------------ GET /notifications/admin/adaptive_state ------------------
-@router.get("/admin/adaptive_state", response_model=APIResponse)
+@router.get("/admin/adaptive_state", response_model=ApiResponseV1)
 def admin_adaptive_state(
     request: Request,
     user_id: int = Query(..., description="User ID"),
@@ -601,7 +601,7 @@ def admin_adaptive_state(
 
 
 # ------------------ GET /notifications/admin/health (Stage 16.6.2) ------------------
-@router.get("/admin/health", response_model=APIResponse)
+@router.get("/admin/health", response_model=ApiResponseV1)
 def admin_notification_health(
     request: Request,
     db: Session = Depends(get_db),
@@ -646,7 +646,7 @@ def admin_notification_health(
 
 
 # ------------------ GET /notifications/admin/observability (V1 Pilot) ------------------
-@router.get("/admin/observability", response_model=APIResponse)
+@router.get("/admin/observability", response_model=ApiResponseV1)
 def admin_observability(
     request: Request,
     db: Session = Depends(get_db),
@@ -811,8 +811,8 @@ def admin_observability(
 
 
 # ------------------ GET /notifications?user_id={id} ------------------
-@router.get("", response_model=APIResponse)
-@router.get("/", response_model=APIResponse)
+@router.get("", response_model=ApiResponseV1)
+@router.get("/", response_model=ApiResponseV1)
 def get_notifications(
     user_id: int = Query(..., description="User ID to fetch notifications for"),
     db: Session = Depends(get_db)
@@ -870,7 +870,7 @@ def get_notifications(
 
 
 # ------------------ GET /notifications/unread (Release B2) ------------------
-@router.get("/unread", response_model=APIResponse)
+@router.get("/unread", response_model=ApiResponseV1)
 def get_unread_notifications(
     user_id: int = Query(..., description="User ID to fetch unread notifications for"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of notifications to return"),
@@ -942,8 +942,8 @@ def get_unread_notifications(
 
 
 # ------------------ POST /notifications/{notification_id}/mark-read (Release B2) ------------------
-@router.post("/{notification_id}/mark-read", response_model=APIResponse)
-@router.post("/{notification_id}/read", response_model=APIResponse)  # Backward compatibility alias
+@router.post("/{notification_id}/mark-read", response_model=ApiResponseV1)
+@router.post("/{notification_id}/read", response_model=ApiResponseV1)  # Backward compatibility alias
 def mark_notification_read(
     notification_id: int,
     user_id: int = Query(..., description="User ID (must own the notification)"),
@@ -988,7 +988,7 @@ def mark_notification_read(
 
 
 # ------------------ POST /notifications/push/register (Stage 16.6) ------------------
-@router.post("/push/register", response_model=APIResponse)
+@router.post("/push/register", response_model=ApiResponseV1)
 def push_register(
     body: PushRegisterRequest,
     db: Session = Depends(get_db),
@@ -1059,7 +1059,7 @@ def push_register(
 
 
 # ------------------ POST /notifications/push/unregister (Stage 16.6) ------------------
-@router.post("/push/unregister", response_model=APIResponse)
+@router.post("/push/unregister", response_model=ApiResponseV1)
 def push_unregister(
     fcm_token: str = Query(..., description="FCM token to deactivate"),
     user_id: int = Query(..., description="User ID (must own the token)"),
@@ -1124,7 +1124,7 @@ def _normalize_feedback_payload(payload: dict) -> tuple:
 
 
 # ------------------ POST /notifications/{notification_id}/feedback (Release B2 + Stage 16.6 + V1) ------------------
-@router.post("/{notification_id}/feedback", response_model=APIResponse)
+@router.post("/{notification_id}/feedback", response_model=ApiResponseV1)
 def submit_notification_feedback(
     notification_id: int,
     payload: dict,
@@ -1293,7 +1293,7 @@ def submit_notification_feedback(
 
 
 # ------------------ POST /notifications/deliver_pending (admin/dev) ------------------
-@router.post("/deliver_pending", response_model=APIResponse)
+@router.post("/deliver_pending", response_model=ApiResponseV1)
 def deliver_pending_notifications(
     request: Request,
     limit: int = Query(100, ge=1, le=500, description="Max number of unsent notifications to process"),
