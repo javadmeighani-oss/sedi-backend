@@ -52,3 +52,4 @@ cd "D:\Rimiya Design Studio\Sedi\software\Demo\backend"
 - **Recommended for production V1:** set **`DEVICE_AUTH_MODE=db_only`**. This ensures only registered devices can ingest events; no shared legacy token.
 - **`legacy_only`** is for **legacy tests only** (e.g. shared `DEVICE_INGEST_TOKEN`). It must **not** be used in production.
 - **`hybrid`** was used temporarily for transition/testing (try DB token first, then legacy if configured). For a clean V1 freeze, use **`db_only`** in production.
+- Deploy enforces **`DEVICE_AUTH_MODE=db_only`** in `/etc/sedi/sedi-backend.env` at deploy time (replaces or appends that key only; other secrets in the file are not overwritten).

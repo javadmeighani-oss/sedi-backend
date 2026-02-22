@@ -37,6 +37,19 @@ ssh ${SERVER_USER}@${SERVER_IP} << 'ENDSSH'
     # Enable service
     sudo systemctl enable sedi-backend
     
+    # Enforce V1 production: DEVICE_AUTH_MODE=db_only in env (does not overwrite other vars)
+    sudo mkdir -p /etc/sedi
+    if [ -f /etc/sedi/sedi-backend.env ]; then
+        if sudo grep -q '^DEVICE_AUTH_MODE=' /etc/sedi/sedi-backend.env; then
+            sudo sed -i 's/^DEVICE_AUTH_MODE=.*/DEVICE_AUTH_MODE=db_only/' /etc/sedi/sedi-backend.env
+        else
+            echo 'DEVICE_AUTH_MODE=db_only' | sudo tee -a /etc/sedi/sedi-backend.env > /dev/null
+        fi
+    else
+        echo 'DEVICE_AUTH_MODE=db_only' | sudo tee /etc/sedi/sedi-backend.env > /dev/null
+    fi
+    echo "[DEPLOY] Enforced DEVICE_AUTH_MODE=db_only"
+    
     # Start service
     sudo systemctl restart sedi-backend
     
