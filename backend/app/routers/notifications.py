@@ -37,17 +37,18 @@ DEFAULT_ACTIONS_JSON = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DIS
 
 def _is_placeholder_or_invalid_fcm_token(token: str) -> bool:
     """Reject placeholder or invalid FCM tokens (Stage 19 token hygiene)."""
-    if not token:
+    if not token or not token.strip():
         return True
     t = token.strip()
-    if not t:
-        return True
-    upper = t.upper()
-    if "PASTE_" in upper or "PASTE" in upper or "TOKEN" in upper:
-        return True
     if any(ch.isspace() for ch in t):
         return True
     if len(t) < 80:
+        return True
+    upper = t.upper()
+    placeholders = ("PASTE", "TOKEN", "REAL_FCM", "FROM_DEVICE", "PLACEHOLDER", "EXAMPLE")
+    if any(p in upper for p in placeholders):
+        return True
+    if "<<" in t or ">>" in t:
         return True
     return False
 
@@ -1003,6 +1004,11 @@ def push_register(
             status_code=400,
             detail="fcm_token required",
         )
+    if _is_placeholder_or_invalid_fcm_token(token):
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid FCM token (placeholder/too short).",
+        )
     user = db.query(User).filter(User.id == body.user_id).first()
     if not user:
         return APIResponse(
@@ -1022,7 +1028,13 @@ def push_register(
         db.refresh(existing)
         return APIResponse(
             ok=True,
-            data={"ok": True, "device_id": existing.id, "updated": True}
+            data={
+                "ok": True,
+                "device_id": existing.id,
+                "updated": True,
+                "token_len": len(token),
+                "token_hash": _token_hash(token),
+            },
         )
     device = PushDevice(
         user_id=body.user_id,
@@ -1037,7 +1049,12 @@ def push_register(
     db.refresh(device)
     return APIResponse(
         ok=True,
-        data={"ok": True, "device_id": device.id}
+        data={
+            "ok": True,
+            "device_id": device.id,
+            "token_len": len(token),
+            "token_hash": _token_hash(token),
+        },
     )
 
 
