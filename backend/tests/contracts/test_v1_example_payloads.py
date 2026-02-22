@@ -10,7 +10,7 @@ import pytest
 from backend.app.schemas.api_envelope import ApiResponse, ApiError
 from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeOut
 from backend.app.schemas.chat import ChatRequest
-from backend.app.schemas.device import DeviceIngestRequest
+from backend.app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
 from backend.app.schemas.knowledge import ExtractFromMessageRequest, ApplyAnswerRequest
 
 
@@ -42,6 +42,25 @@ DEVICE_INGEST_BODY = {
     "recorded_at": "2026-02-02T10:30:00Z",
 }
 DEVICE_INGEST_SUCCESS_KEYS = ["event_id", "dedupe_key"]
+# DeviceIngestResponse examples (raw schema for /device/ingest)
+DEVICE_INGEST_RESPONSE_SUCCESS = {
+    "ok": True,
+    "data": {
+        "event_id": 123,
+        "dedupe_key": "heart_rate:1:2026-02-02T10:30",
+        "device_event_dedupe_hit": False,
+        "decision_outcome": "actions_executed",
+        "actions_created": 1,
+        "skipped_reason": None,
+        "trace_id": "a1b2c3d4e5f6",
+    },
+    "error": None,
+}
+DEVICE_INGEST_RESPONSE_ERROR = {
+    "ok": False,
+    "data": None,
+    "error": {"code": "USER_NOT_FOUND", "message": "User not found"},
+}
 
 
 # ----- Knowledge (knowledge.md) -----
@@ -142,6 +161,20 @@ def test_device_ingest_success_data_has_required_keys():
     data = {"event_id": 123, "dedupe_key": "hr:1:2026-02-02T10:30", "device_event_dedupe_hit": False}
     for key in DEVICE_INGEST_SUCCESS_KEYS:
         assert key in data
+
+
+def test_device_ingest_response_success_matches_device_ingest_response():
+    """Device ingest 200 success body matches DeviceIngestResponse schema."""
+    r = DeviceIngestResponse(**DEVICE_INGEST_RESPONSE_SUCCESS)
+    assert r.ok is True and r.data is not None and r.error is None
+    assert "event_id" in r.data and "dedupe_key" in r.data
+
+
+def test_device_ingest_response_error_matches_device_ingest_response():
+    """Device ingest error body matches DeviceIngestResponse schema."""
+    r = DeviceIngestResponse(**DEVICE_INGEST_RESPONSE_ERROR)
+    assert r.ok is False and r.data is None and r.error is not None
+    assert r.error.get("code") == "USER_NOT_FOUND"
 
 
 # ---------- Tests: knowledge ----------

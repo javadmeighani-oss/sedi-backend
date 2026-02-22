@@ -48,6 +48,6 @@ OpenAPI schema now includes `ApiResponse` and `ApiError` from `api_envelope` for
 
 ## Notes
 
+- Most V1 endpoints use the `ApiResponse` (ok/data/error) envelope. **By design**, `POST /device/ingest` uses **raw `DeviceIngestResponse`** in OpenAPI and at runtime (same shape: ok, data, error with error as `{ code, message }`), not the shared ApiResponse schema.
 - Decision endpoint (`POST /decision/evaluate`) is **not** wrapped in ApiResponse; it returns `{ "ok": true, "decision": {...} }` as documented in decision.md.
 - Interact endpoints return `InteractionResponse` directly (no envelope).
-- Device `/ingest` uses `DeviceIngestResponse` (same envelope shape; error as object).

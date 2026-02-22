@@ -119,23 +119,65 @@ Codes: `INVALID_PAYLOAD`, `USER_NOT_FOUND`, `DEVICE_NOT_FOUND`.
 
 ## 4. POST /device/ingest
 
-**Headers:** `X-DEVICE-TOKEN: <token>` (required). Optional: `X-TRACE-ID`.
+**V1 contract:** This endpoint returns **raw `DeviceIngestResponse`** (not the `ApiResponse` envelope). OpenAPI documents `#/components/schemas/DeviceIngestResponse` for 200. Shape is `{ ok, data?, error? }` with `error` as `{ code, message }` when `ok` is false.
 
-**Request body:**
+**Headers:**
+
+| Header | Required | Notes |
+|--------|----------|------|
+| X-DEVICE-TOKEN | Yes | Per-device or legacy token (DEVICE_AUTH_MODE: legacy_only, db_only, hybrid) |
+| X-TRACE-ID | No | Request tracing |
+| Content-Type | Yes | application/json |
+
+**Request body:** `user_id`, `event_type`, `payload` (non-empty) required; `device_id`, `recorded_at` optional.
+
+**Event types:** `heart_rate` | `blood_pressure` | `glucose` | `temperature`. Payload keys must match backend normalization (see examples below).
+
+**Request examples by event_type:**
+
+- **heart_rate** – `payload.bpm` (number):
 ```json
 {
   "user_id": 1,
   "device_id": "Sedi001",
   "event_type": "heart_rate",
-  "payload": {
-    "bpm": 82,
-    "quality": "good"
-  },
+  "payload": { "bpm": 82, "quality": "good" },
   "recorded_at": "2026-02-02T10:30:00Z"
 }
 ```
 
-**Event types:** `heart_rate` | `blood_pressure` | `glucose` | `temperature`.
+- **blood_pressure** – `payload.sys`, `payload.dia` (mmHg):
+```json
+{
+  "user_id": 1,
+  "device_id": "Sedi001",
+  "event_type": "blood_pressure",
+  "payload": { "sys": 120, "dia": 80 },
+  "recorded_at": "2026-02-02T10:30:00Z"
+}
+```
+
+- **glucose** – `payload.glucose_mg_dl` (mg/dL):
+```json
+{
+  "user_id": 1,
+  "device_id": "Sedi001",
+  "event_type": "glucose",
+  "payload": { "glucose_mg_dl": 100 },
+  "recorded_at": "2026-02-02T10:30:00Z"
+}
+```
+
+- **temperature** – `payload.temperature_c` (°C):
+```json
+{
+  "user_id": 1,
+  "device_id": "Sedi001",
+  "event_type": "temperature",
+  "payload": { "temperature_c": 36.6 },
+  "recorded_at": "2026-02-02T10:30:00Z"
+}
+```
 
 **Success (200) – new event:**
 ```json
@@ -181,11 +223,15 @@ Codes: `INVALID_PAYLOAD`, `USER_NOT_FOUND`, `DEVICE_NOT_FOUND`.
 ```
 Codes: `USER_NOT_FOUND`, `INVALID_PAYLOAD`, `VALIDATION_ERROR`.
 
-**Error (422):** Validation (e.g. vital schema). Body is FastAPI validation format, not envelope.
+**Errors (by status):**
 
-**Error (429):** Rate limit. Body may be non-envelope.
-
-**Error (500):** `{"ok": false, "code": "INTERNAL_ERROR", "message": "Failed to ingest event"}` (ingest may return this shape).
+| Status | When | Body shape |
+|--------|------|------------|
+| 200 | Business error (user not found, invalid payload, validation error) | `DeviceIngestResponse`: `ok: false`, `error: { code, message }` |
+| 401 | Missing or invalid X-DEVICE-TOKEN | FastAPI detail (non-envelope) |
+| 422 | Request body / vital schema validation (e.g. invalid event_type or payload) | FastAPI validation format (non-envelope) |
+| 429 | Device rate limit exceeded | FastAPI detail (non-envelope) |
+| 500 | Internal error | May be `{ ok: false, code: "INTERNAL_ERROR", message: "..." }` or server error format |
 
 ---
 

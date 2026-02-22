@@ -111,3 +111,21 @@ def test_envelope_schemas_present(openapi_schema):
         if _schema_has_envelope_shape(schemas, name):
             return
     pytest.fail("OpenAPI schemas should include an envelope (ok, data, error)")
+
+
+def test_device_ingest_post_200_uses_device_ingest_response(openapi_schema):
+    """POST /device/ingest documents 200 response with DeviceIngestResponse schema (raw, not ApiResponse)."""
+    paths = openapi_schema.get("paths") or {}
+    path_key = "/device/ingest"
+    assert path_key in paths, f"{path_key} should exist in OpenAPI paths"
+    post_spec = (paths.get(path_key) or {}).get("post")
+    assert post_spec is not None, f"POST {path_key} should be documented"
+    responses = post_spec.get("responses") or {}
+    resp_200 = responses.get("200")
+    assert resp_200 is not None, f"POST {path_key} should document 200"
+    content = resp_200.get("content") or {}
+    json_content = content.get("application/json") or {}
+    schema_ref = (json_content.get("schema") or {}).get("$ref") or ""
+    assert schema_ref.endswith("DeviceIngestResponse"), (
+        f"POST {path_key} 200 should reference DeviceIngestResponse; got $ref={schema_ref!r}"
+    )
