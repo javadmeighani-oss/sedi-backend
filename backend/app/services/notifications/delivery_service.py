@@ -126,7 +126,6 @@ class FCMAdapter:
         )
         now = datetime.utcnow()
         notification.provider = "fcm"
-        notification.sent_at = now
         # Stage 19: deactivate tokens that FCM reports as UNREGISTERED/NOT_FOUND
         for fcm_token, _msg_id, err in results:
             if err:
@@ -150,6 +149,7 @@ class FCMAdapter:
             self.db.rollback()
 
         if success_count > 0:
+            notification.sent_at = now
             notification.is_sent = True
             notification.status = "sent"
             first_id = next((r[1] for r in results if r[1]), None)
@@ -227,6 +227,13 @@ class DeliveryService:
             self.db.query(Notification)
             .filter(Notification.is_sent == False)  # noqa: E712
             .filter(or_(Notification.scheduled_for.is_(None), Notification.scheduled_for <= now))
+            # Do NOT retry permanent failures forever; only process fresh/queued items
+            .filter(
+                or_(
+                    Notification.status.is_(None),
+                    Notification.status == "queued",
+                )
+            )
             .order_by(Notification.created_at.asc())
             .limit(batch_size)
             .all()
@@ -254,16 +261,17 @@ class DeliveryService:
                         success = True
                         break
                     else:
-                        self.db.rollback()
+                        # capture adapter-provided error BEFORE rollback (rollback may expire attrs)
                         last_err = notification.last_error
+                        self.db.rollback()
                         if attempt < _FCM_MAX_RETRIES:
                             time.sleep(_FCM_BACKOFF_SECONDS)
                 except Exception as e:
                     self.db.rollback()
-                    last_err = str(e)
+                    last_err = repr(e)
                     logger.warning(
                         "[NOTIF] failed notification_id=%s user_id=%s attempt=%s error=%s",
-                        notification.id, notification.user_id, attempt + 1, str(e),
+                        notification.id, notification.user_id, attempt + 1, repr(e),
                     )
                     if attempt < _FCM_MAX_RETRIES:
                         time.sleep(_FCM_BACKOFF_SECONDS)
