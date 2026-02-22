@@ -155,3 +155,53 @@ def test_apply_answer_with_value_still_works(client: TestClient, test_user_id: i
     )
     assert r.status_code == 200
     assert r.json().get("data", {}).get("applied") == "confirm_accepted"
+
+
+def test_apply_answer_with_answer_no_rejects_candidate(client: TestClient, test_user_id: int, db: Session):
+    """apply_answer with answer='نه' => confirm_rejected and candidate becomes rejected."""
+    candidate_id = _make_confirm_candidate(client, test_user_id)
+
+    r = client.post(
+        "/knowledge/apply_answer",
+        json={
+            "user_id": test_user_id,
+            "candidate_id": candidate_id,
+            "question_type": "confirm_candidate",
+            "answer": "نه",
+        },
+    )
+    assert r.status_code == 200, r.text
+    data = r.json().get("data", {})
+    assert data.get("applied") == "confirm_rejected"
+
+    row = db.execute(
+        text("SELECT status FROM kc_fact_candidates WHERE id = :id"),
+        {"id": candidate_id},
+    ).mappings().first()
+    assert row is not None
+    assert row["status"] == "rejected"
+
+
+def test_apply_answer_with_answer_later_skips_candidate(client: TestClient, test_user_id: int, db: Session):
+    """apply_answer with answer='بعدا' => confirm_skipped and candidate stays pending."""
+    candidate_id = _make_confirm_candidate(client, test_user_id)
+
+    r = client.post(
+        "/knowledge/apply_answer",
+        json={
+            "user_id": test_user_id,
+            "candidate_id": candidate_id,
+            "question_type": "confirm_candidate",
+            "answer": "بعدا",
+        },
+    )
+    assert r.status_code == 200, r.text
+    data = r.json().get("data", {})
+    assert data.get("applied") == "confirm_skipped"
+
+    row = db.execute(
+        text("SELECT status FROM kc_fact_candidates WHERE id = :id"),
+        {"id": candidate_id},
+    ).mappings().first()
+    assert row is not None
+    assert row["status"] == "pending"
