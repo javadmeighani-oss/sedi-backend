@@ -30,13 +30,39 @@ else
     ssh-copy-id -i ~/.ssh/id_ed25519.pub ${SERVER_USER}@${SERVER_IP} || echo "SSH key may already be configured"
 fi
 
-# Copy systemd service file to server
-echo "📋 Copying systemd service file..."
-scp deployment/sedi-backend.service ${SERVER_USER}@${SERVER_IP}:/tmp/sedi-backend.service
-
-# Execute commands on server
-echo "⚙️  Configuring service on server..."
-ssh ${SERVER_USER}@${SERVER_IP} << 'ENDSSH'
+if [ "${DEPLOY_LOCAL:-0}" = "1" ] || [ "$ON_TARGET_SERVER" = "1" ]; then
+    # Local mode: no scp/ssh
+    echo "[DEPLOY] Running in local mode (no scp/ssh)"
+    echo "📋 Copying systemd service file..."
+    sudo cp deployment/sedi-backend.service /etc/systemd/system/sedi-backend.service
+    echo "⚙️  Configuring service..."
+    sudo systemctl daemon-reload
+    sudo systemctl enable sedi-backend
+    # Enforce V1 production: DEVICE_AUTH_MODE=db_only in env (does not overwrite other vars)
+    sudo mkdir -p /etc/sedi
+    if [ -f /etc/sedi/sedi-backend.env ]; then
+        if sudo grep -q '^DEVICE_AUTH_MODE=' /etc/sedi/sedi-backend.env; then
+            sudo sed -i 's/^DEVICE_AUTH_MODE=.*/DEVICE_AUTH_MODE=db_only/' /etc/sedi/sedi-backend.env
+        else
+            echo 'DEVICE_AUTH_MODE=db_only' | sudo tee -a /etc/sedi/sedi-backend.env > /dev/null
+        fi
+    else
+        echo 'DEVICE_AUTH_MODE=db_only' | sudo tee /etc/sedi/sedi-backend.env > /dev/null
+    fi
+    echo "[DEPLOY] Enforced DEVICE_AUTH_MODE=db_only"
+    sudo systemctl restart sedi-backend
+    echo "📊 Service Status:"
+    sudo systemctl status sedi-backend --no-pager
+    echo "✅ Deployment completed!"
+    echo "🎉 Deployment finished successfully!"
+    echo "📝 To check logs: sudo journalctl -u sedi-backend -f"
+    echo "📝 To restart: sudo systemctl restart sedi-backend"
+else
+    # Remote mode: scp + ssh
+    echo "📋 Copying systemd service file to server..."
+    scp deployment/sedi-backend.service ${SERVER_USER}@${SERVER_IP}:/tmp/sedi-backend.service
+    echo "⚙️  Configuring service on server..."
+    ssh ${SERVER_USER}@${SERVER_IP} << 'ENDSSH'
     # Move service file to systemd directory
     sudo mv /tmp/sedi-backend.service /etc/systemd/system/sedi-backend.service
     
@@ -68,8 +94,8 @@ ssh ${SERVER_USER}@${SERVER_IP} << 'ENDSSH'
     
     echo "✅ Deployment completed!"
 ENDSSH
-
-echo "🎉 Deployment finished successfully!"
-echo "📝 To check logs: ssh ${SERVER_USER}@${SERVER_IP} 'sudo journalctl -u sedi-backend -f'"
-echo "📝 To restart: ssh ${SERVER_USER}@${SERVER_IP} 'sudo systemctl restart sedi-backend'"
+    echo "🎉 Deployment finished successfully!"
+    echo "📝 To check logs: ssh ${SERVER_USER}@${SERVER_IP} 'sudo journalctl -u sedi-backend -f'"
+    echo "📝 To restart: ssh ${SERVER_USER}@${SERVER_IP} 'sudo systemctl restart sedi-backend'"
+fi
 
