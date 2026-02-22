@@ -255,11 +255,14 @@ class DeliveryService:
                             notification.sent_at = now
                         if getattr(notification, "status", None) != "sent":
                             notification.status = "sent"
-                        if not getattr(notification, "provider", None):
-                            notification.provider = getattr(self.adapter, "channel", None) or "db_only"
+                        # Deterministic persistence: always set provider from adapter channel on success.
+                        # (Fixes cases where adapter mutates provider but ORM doesn't persist it reliably.)
+                        notification.provider = getattr(self.adapter, "channel", None) or "db_only"
                         self.db.add(notification)
+                        self.db.flush()
                         self.db.commit()
-                        self.db.refresh(notification)
+                        # refresh is optional; keep it only if you really need fresh DB state
+                        # self.db.refresh(notification)
                         sent_count += 1
                         success = True
                         break
