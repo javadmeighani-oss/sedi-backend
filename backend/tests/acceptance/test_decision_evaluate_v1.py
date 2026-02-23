@@ -83,6 +83,19 @@ def test_evaluate_heart_rate_high_rule_match(client: TestClient) -> None:
     assert "meta" in dec
 
 
+def test_evaluate_heart_rate_high_payload_bpm_context(client: TestClient) -> None:
+    """HR_HIGH_REST via payload.bpm and payload.context (normalized before rules)."""
+    event = {
+        "event_type": "heart_rate",
+        "payload": {"bpm": 140, "context": "rest"},
+    }
+    body = _post_evaluate(client, event)
+    assert body["ok"] is True
+    dec = body["decision"]
+    assert dec["decision"] == "notify"
+    assert dec["reason"] == "HR_HIGH_REST"
+
+
 def test_evaluate_heart_rate_low(client: TestClient) -> None:
     """Heart rate low scenario: payload.bpm low; assert 200 and decision structure."""
     event = {
