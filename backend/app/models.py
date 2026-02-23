@@ -365,6 +365,24 @@ class UserBehaviorProfile(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
+# -------------------- NotificationPrefs (V1 – Inbox preferences) --------------------
+class NotificationPrefs(Base):
+    """One row per user: notification channel toggles, quiet hours, engagement level."""
+    __tablename__ = "notification_prefs"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    companion_enabled = Column(Boolean, nullable=False, default=True)
+    health_alert_enabled = Column(Boolean, nullable=False, default=True)
+    reminder_medication_enabled = Column(Boolean, nullable=False, default=True)
+    reminder_appointment_enabled = Column(Boolean, nullable=False, default=True)
+    reminder_system_enabled = Column(Boolean, nullable=False, default=True)
+    quiet_hours_enabled = Column(Boolean, nullable=False, default=False)
+    quiet_start = Column(String(5), nullable=True)   # HH:MM
+    quiet_end = Column(String(5), nullable=True)   # HH:MM
+    engagement_level = Column(Integer, nullable=False, default=1)  # 0=low, 1=normal, 2=high
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False, onupdate=datetime.utcnow)
+
+
 # -------------------- RefreshToken (Stage 25 – Persistent refresh tokens) --------------------
 class RefreshToken(Base):
     """Refresh token stored hashed; revocable."""

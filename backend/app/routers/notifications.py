@@ -28,6 +28,8 @@ from backend.app.schemas.notification import (
     PushFeedbackActionRequest,
     TestPushRequest,
 )
+from backend.app.schemas.notification_prefs import NotificationPrefsRead, NotificationPrefsUpdate
+from backend.app.services.notifications.prefs_service import get_prefs, upsert_prefs
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
@@ -867,6 +869,41 @@ def get_notifications(
             "unread_count": unread_count,
         }
     )
+
+
+# ------------------ GET /notifications/prefs (V1) ------------------
+@router.get("/prefs", response_model=ApiResponseV1)
+def get_notification_prefs(
+    user_id: int = Query(..., description="User ID"),
+    db: Session = Depends(get_db),
+):
+    """Get notification preferences for a user. Returns defaults when no row exists."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."),
+        )
+    prefs = get_prefs(db, user_id)
+    return APIResponse(ok=True, data=prefs.model_dump(), error=None)
+
+
+# ------------------ PUT /notifications/prefs (V1) ------------------
+@router.put("/prefs", response_model=ApiResponseV1)
+def put_notification_prefs(
+    user_id: int = Query(..., description="User ID"),
+    body: NotificationPrefsUpdate = ...,
+    db: Session = Depends(get_db),
+):
+    """Create or update notification preferences (partial update). Returns current prefs."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."),
+        )
+    prefs = upsert_prefs(db, user_id, body)
+    return APIResponse(ok=True, data=prefs.model_dump(), error=None)
 
 
 # ------------------ GET /notifications/unread (Release B2) ------------------
