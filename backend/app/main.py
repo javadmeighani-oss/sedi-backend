@@ -21,6 +21,7 @@ from backend.app.routers import (
     knowledge_admin,
     system,
 )
+from backend.app.routers import ops
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
 # ------------------ Create FastAPI Application ------------------
@@ -64,6 +65,7 @@ app.include_router(memory.router, prefix="/memory", tags=["Memory"])
 app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
 app.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledge"])
 app.include_router(knowledge_admin.router, prefix="/knowledge/admin", tags=["Knowledge Admin"])
+app.include_router(ops.router)
 
 # ------------------ Activate Scheduler ------------------
 def _should_start_scheduler() -> bool:
