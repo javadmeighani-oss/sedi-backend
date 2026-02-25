@@ -36,6 +36,12 @@ def upgrade() -> None:
         server_default=sa.text("now()"),
         existing_nullable=False,
     )
+    # CI fix: some Alembic setups create alembic_version.version_num as VARCHAR(32),
+    # while our next revision id length exceeds 32 characters.
+    # Widen the column before moving to revision 009.
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64)")
 
 
 def downgrade() -> None:
