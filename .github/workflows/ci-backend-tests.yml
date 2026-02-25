@@ -29,6 +29,8 @@ jobs:
 
     env:
       TEST_DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_test
+      # Some tests/tools read DATABASE_URL directly; keep it aligned with TEST_DATABASE_URL in CI.
+      DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_test
       DEVICE_AUTH_MODE: db_only
       DEVICE_INGEST_TOKEN: release-d-ingest-token
       ENV: ci
@@ -73,6 +75,12 @@ jobs:
 
       - name: Run KC regression (answer fallback)
         run: python -m pytest -q backend/tests/acceptance/test_kc_apply_answer_profile_answer_fallback.py -v --tb=long
+
+      - name: Run Auth E2E V1
+        run: python -m pytest -q backend/tests/acceptance/test_auth_e2e_v1.py --tb=long
+
+      - name: Run Devices E2E V1
+        run: python -m pytest -q backend/tests/acceptance/test_devices_e2e_v1.py --tb=long
 
       - name: Run Device ingestion C1 (optional)
         run: |
