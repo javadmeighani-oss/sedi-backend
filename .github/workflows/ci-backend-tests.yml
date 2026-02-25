@@ -1,5 +1,5 @@
 # Run Release D acceptance tests on push/PR to main using ephemeral Postgres (no production).
-name: Backend acceptance tests
+name: Backend V1 freeze tests
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend-acceptance:
-    name: Release D acceptance
+    name: V1 freeze subset
     runs-on: ubuntu-latest
 
     services:
@@ -29,7 +29,7 @@ jobs:
 
     env:
       TEST_DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_test
-      DEVICE_AUTH_MODE: legacy_only
+      DEVICE_AUTH_MODE: db_only
       DEVICE_INGEST_TOKEN: release-d-ingest-token
       ENV: ci
       # Repo root on path so backend.app = outer backend (not nested backend/backend/)
@@ -50,11 +50,38 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -r backend/requirements.txt
-          python -m pip install pytest
+          python -m pip install pytest alembic
+
+      - name: Run migrations (test DB)
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          python -m alembic -c backend/alembic.ini upgrade head
 
       # Run from repo root so backend.app = outer backend (nested backend/backend/ would else be used)
       - name: Compile acceptance test
         run: python -m py_compile backend/tests/acceptance/test_release_d.py
 
-      - name: Run Release D acceptance tests
-        run: python -m pytest -q backend/tests/acceptance/test_release_d.py -v --tb=long
+      - name: Run V1 contract tests (mandatory)
+        run: python -m pytest -q backend/tests/contracts/ --tb=long
+
+      - name: Run V1 mandatory acceptance subset
+        run: |
+          python -m pytest -q backend/tests/acceptance/test_release_d.py --tb=long
+          python -m pytest -q backend/tests/acceptance/test_decision_engine_scenarios_v1.py --tb=long
+          python -m pytest -q backend/tests/acceptance/test_kc_apply_answer_profile_answer_fallback.py --tb=long
+
+      - name: Run optional V1 acceptance tests
+        run: |
+          if [ -f backend/tests/acceptance/test_device_ingestion_c1.py ]; then
+            python -m pytest -q backend/tests/acceptance/test_device_ingestion_c1.py --tb=long
+          else
+            echo "SKIP backend/tests/acceptance/test_device_ingestion_c1.py"
+          fi
+          if [ -f backend/tests/acceptance/test_notification_prefs_v1.py ]; then
+            python -m pytest -q backend/tests/acceptance/test_notification_prefs_v1.py --tb=long
+          elif [ -f backend/tests/acceptance/test_notifications_prefs_v1.py ]; then
+            python -m pytest -q backend/tests/acceptance/test_notifications_prefs_v1.py --tb=long
+          else
+            echo "SKIP backend/tests/acceptance/test_notification_prefs_v1.py"
+          fi
