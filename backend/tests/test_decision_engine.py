@@ -13,7 +13,10 @@ def test_hr_high_rest_triggers_notify():
     d = decide_from_event({"id": 2, "event_type": "heart_rate", "bpm": 130, "context": "rest"})
     assert d.decision == "notify"
     assert d.reason == "HR_HIGH_REST"
-    assert d.severity == "medium"
+    assert d.severity == "high"
+    assert d.alert_code == "heart_rate_high"
+    assert d.priority == 1
+    assert d.rule_id == "HR_HIGH_REST"
     assert d.source_event_id == 2
 
 

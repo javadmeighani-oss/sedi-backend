@@ -206,12 +206,15 @@ def _generate_health_alert(
             return f"{base}: {alert_reason} 🌿"
         elif alert_code:
             alert_messages = {
-                "high_heart_rate": "ضربان قلبت بالاست",
-                "low_heart_rate": "ضربان قلبت پایینه",
+                "heart_rate_high": "ضربان قلبت بالاست",
+                "heart_rate_low": "ضربان قلبت پایینه",
                 "low_spo2": "اکسیژن خونت پایینه",
-                "high_temperature": "دمای بدنت بالاست",
+                "temperature_high": "دمای بدنت بالاست",
                 "irregular": "یه تغییر در وضعیت سلامتت دیده شده"
             }
+            alert_messages["high_heart_rate"] = alert_messages["heart_rate_high"]
+            alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
+            alert_messages["high_temperature"] = alert_messages["temperature_high"]
             reason = alert_messages.get(alert_code, "یه تغییر در وضعیت سلامتت دیده شده")
             return f"{base}: {reason}. بهتره بررسی کنی 🌿"
         else:
@@ -224,12 +227,15 @@ def _generate_health_alert(
             return f"{base}: {alert_reason} 🌿"
         elif alert_code:
             alert_messages = {
-                "high_heart_rate": "نبضك مرتفع",
-                "low_heart_rate": "نبضك منخفض",
+                "heart_rate_high": "نبضك مرتفع",
+                "heart_rate_low": "نبضك منخفض",
                 "low_spo2": "الأكسجين في دمك منخفض",
-                "high_temperature": "درجة حرارتك مرتفعة",
+                "temperature_high": "درجة حرارتك مرتفعة",
                 "irregular": "تم ملاحظة تغيير في حالتك الصحية"
             }
+            alert_messages["high_heart_rate"] = alert_messages["heart_rate_high"]
+            alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
+            alert_messages["high_temperature"] = alert_messages["temperature_high"]
             reason = alert_messages.get(alert_code, "تم ملاحظة تغيير في حالتك الصحية")
             return f"{base}: {reason}. من الأفضل أن تتحقق 🌿"
         else:
@@ -242,12 +248,15 @@ def _generate_health_alert(
             return f"{base}: {alert_reason} 🌿"
         elif alert_code:
             alert_messages = {
-                "high_heart_rate": "your heart rate is elevated",
-                "low_heart_rate": "your heart rate is low",
+                "heart_rate_high": "your heart rate is elevated",
+                "heart_rate_low": "your heart rate is low",
                 "low_spo2": "your blood oxygen is low",
-                "high_temperature": "your temperature is elevated",
+                "temperature_high": "your temperature is elevated",
                 "irregular": "a change in your health status was detected"
             }
+            alert_messages["high_heart_rate"] = alert_messages["heart_rate_high"]
+            alert_messages["low_heart_rate"] = alert_messages["heart_rate_low"]
+            alert_messages["high_temperature"] = alert_messages["temperature_high"]
             reason = alert_messages.get(alert_code, "a change in your health status was detected")
             return f"{base}: {reason}. you should check 🌿"
         else:

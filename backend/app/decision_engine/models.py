@@ -12,6 +12,9 @@ class Decision(BaseModel):
     decision: DecisionType = "none"
     reason: str = "no_rule_matched"
     severity: Severity = "low"
+    alert_code: str = ""
+    priority: int = 0
+    rule_id: str = ""
     source_event_id: Optional[int] = None
     meta: Dict[str, Any] = {}
 

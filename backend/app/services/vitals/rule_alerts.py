@@ -59,28 +59,28 @@ def _hr_alert(user_id: int, bpm: float) -> CreateHealthAlertAction | None:
     if bpm < 40:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="low_heart_rate",
+            alert_code="heart_rate_low",
             alert_reason="Your heart rate looks very low right now. If you feel unwell, please check in with someone you trust.",
             priority="critical",
         )
     if bpm < 50:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="low_heart_rate",
+            alert_code="heart_rate_low",
             alert_reason="Your heart rate seems a bit low. Please take it easy and check how you feel.",
             priority="high",
         )
     if bpm > 160:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_heart_rate",
+            alert_code="heart_rate_high",
             alert_reason="Your heart rate looks very high right now. Please pause, sit down, and check how you feel.",
             priority="critical",
         )
     if bpm > 120:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_heart_rate",
+            alert_code="heart_rate_high",
             alert_reason="Your heart rate seems elevated. Please slow down, breathe, and see if it settles.",
             priority="high",
         )
@@ -91,14 +91,14 @@ def _bp_alert(user_id: int, sys: float, dia: float) -> CreateHealthAlertAction |
     if sys >= 180 or dia >= 120:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_blood_pressure",
+            alert_code="blood_pressure_high",
             alert_reason="Your blood pressure reading looks very high. Please pause, rest for a moment, and consider rechecking soon.",
             priority="critical",
         )
     if sys >= 140 or dia >= 90:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_blood_pressure",
+            alert_code="blood_pressure_high",
             alert_reason="Your blood pressure reading seems high. Please take it easy and consider rechecking when you're calm.",
             priority="high",
         )
@@ -109,28 +109,28 @@ def _glucose_alert(user_id: int, mg_dl: float) -> CreateHealthAlertAction | None
     if mg_dl < 54:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="low_glucose",
+            alert_code="glucose_low",
             alert_reason="Your glucose looks very low. If you feel shaky or unwell, please check in and consider rechecking soon.",
             priority="critical",
         )
     if mg_dl < 70:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="low_glucose",
+            alert_code="glucose_low",
             alert_reason="Your glucose seems low. Please pay attention to how you feel and consider rechecking soon.",
             priority="high",
         )
     if mg_dl > 250:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_glucose",
+            alert_code="glucose_high",
             alert_reason="Your glucose looks very high. Please take a calm moment and consider rechecking soon.",
             priority="critical",
         )
     if mg_dl > 180:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_glucose",
+            alert_code="glucose_high",
             alert_reason="Your glucose seems elevated. Please drink some water and consider rechecking soon.",
             priority="high",
         )
@@ -155,14 +155,14 @@ def _temp_alert(user_id: int, c: float) -> CreateHealthAlertAction | None:
     if c > 39.5:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_temperature",
+            alert_code="temperature_high",
             alert_reason="Your temperature looks very high. Please rest, sip water, and consider rechecking soon.",
             priority="critical",
         )
     if c > 38.0:
         return CreateHealthAlertAction(
             user_id=user_id,
-            alert_code="high_temperature",
+            alert_code="temperature_high",
             alert_reason="Your temperature seems elevated. Please rest and consider rechecking soon.",
             priority="high",
         )
