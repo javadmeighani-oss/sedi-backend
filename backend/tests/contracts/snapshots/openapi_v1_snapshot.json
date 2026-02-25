@@ -1,0 +1,5360 @@
+{
+  "components": {
+    "schemas": {
+      "APIResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "APIResponse",
+        "type": "object"
+      },
+      "ApiError": {
+        "description": "V1 error payload inside ApiResponse.error.",
+        "properties": {
+          "code": {
+            "description": "Machine-readable error code",
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional extra context (validation details, etc.)",
+            "title": "Details"
+          },
+          "message": {
+            "description": "Human-readable message",
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "ApiResponse": {
+        "description": "V1 success/error envelope. Use ApiResponse[Any] for OpenAPI when data shape varies.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Response payload when ok=True",
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Error payload when ok=False"
+          },
+          "ok": {
+            "description": "True if request succeeded",
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "ApiResponse",
+        "type": "object"
+      },
+      "ApplyAnswerRequest": {
+        "description": "POST /knowledge/admin/answers/apply or /knowledge/apply_answer body.",
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For confirm_candidate: raw answer (alias for value)",
+            "title": "Answer"
+          },
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For confirm_candidate: candidate to accept/reject",
+            "title": "Candidate Id"
+          },
+          "field_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "birth_year, sex, ... or fact_type",
+            "title": "Field Key"
+          },
+          "question_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "confirm_candidate when answering Yes/No",
+            "title": "Question Type"
+          },
+          "user_id": {
+            "description": "User ID",
+            "title": "User Id",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Scalar or JSON-serializable value",
+            "title": "Value"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "title": "ApplyAnswerRequest",
+        "type": "object"
+      },
+      "CandidateDecisionRequest": {
+        "properties": {
+          "status": {
+            "description": "accepted or rejected",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "CandidateDecisionRequest",
+        "type": "object"
+      },
+      "ChatRequest": {
+        "properties": {
+          "message": {
+            "description": "User chat message",
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "Unique ID of the user",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "message"
+        ],
+        "title": "ChatRequest",
+        "type": "object"
+      },
+      "DecisionTestRequest": {
+        "properties": {
+          "event": {
+            "additionalProperties": true,
+            "title": "Event",
+            "type": "object"
+          }
+        },
+        "required": [
+          "event"
+        ],
+        "title": "DecisionTestRequest",
+        "type": "object"
+      },
+      "DeviceIngestRequest": {
+        "description": "Request schema for device event ingestion",
+        "example": {
+          "device_id": "Sedi001",
+          "event_type": "heart_rate",
+          "payload": {
+            "bpm": 82,
+            "quality": "good"
+          },
+          "recorded_at": "2026-02-02T10:30:00Z",
+          "user_id": 1
+        },
+        "properties": {
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Device identifier (optional for v0)",
+            "title": "Device Id"
+          },
+          "event_type": {
+            "description": "Event type (multi-vital ready)",
+            "enum": [
+              "heart_rate",
+              "blood_pressure",
+              "glucose",
+              "temperature"
+            ],
+            "title": "Event Type",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "description": "Event payload (must not be empty)",
+            "title": "Payload",
+            "type": "object"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Timestamp from device (optional)",
+            "title": "Recorded At"
+          },
+          "user_id": {
+            "description": "User ID",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "event_type",
+          "payload"
+        ],
+        "title": "DeviceIngestRequest",
+        "type": "object"
+      },
+      "DeviceIngestResponse": {
+        "description": "Response schema for device event ingestion",
+        "example": {
+          "data": {
+            "actions_created": 1,
+            "decision_outcome": "actions_executed",
+            "dedupe_key": "heart_rate:1:2026-02-02T10:30",
+            "device_event_dedupe_hit": false,
+            "event_id": 123,
+            "trace_id": "a1b2c3d4e5f6"
+          },
+          "ok": true
+        },
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "DeviceIngestResponse",
+        "type": "object"
+      },
+      "DeviceRegisterRequest": {
+        "properties": {
+          "device_id": {
+            "description": "Logical device id (e.g., Sedi001)",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "heart_rate",
+            "description": "Device type (v1 default: heart_rate)",
+            "title": "Device Type"
+          }
+        },
+        "required": [
+          "device_id"
+        ],
+        "title": "DeviceRegisterRequest",
+        "type": "object"
+      },
+      "DeviceRegisterResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "DeviceRegisterResponse",
+        "type": "object"
+      },
+      "DevicesListResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "DevicesListResponse",
+        "type": "object"
+      },
+      "ErrorInfo": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ErrorInfo",
+        "type": "object"
+      },
+      "ExtractFromMessageRequest": {
+        "description": "POST /knowledge/extract_from_message body.",
+        "properties": {
+          "language": {
+            "default": "fa",
+            "description": "Language code: fa, en, ...",
+            "title": "Language",
+            "type": "string"
+          },
+          "source_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional message ID for tracing",
+            "title": "Source Message Id"
+          },
+          "text": {
+            "description": "Chat message text to extract from",
+            "title": "Text",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "User ID",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "text"
+        ],
+        "title": "ExtractFromMessageRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistoryGroupItem": {
+        "description": "One group (day/week/month/year) with its turns.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryTurnItem"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "turns"
+        ],
+        "title": "HistoryGroupItem",
+        "type": "object"
+      },
+      "HistoryResponse": {
+        "description": "GET /memory/history response.",
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryGroupItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "group",
+          "items"
+        ],
+        "title": "HistoryResponse",
+        "type": "object"
+      },
+      "HistoryTurnItem": {
+        "description": "Single conversation turn from memory table.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "en",
+            "title": "Language"
+          },
+          "sedi_response": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sedi Response"
+          },
+          "user_message": {
+            "title": "User Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "user_message"
+        ],
+        "title": "HistoryTurnItem",
+        "type": "object"
+      },
+      "InteractionResponse": {
+        "properties": {
+          "detected_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Name"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "requires_security_check": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": false,
+            "title": "Requires Security Check"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "message",
+          "language",
+          "timestamp"
+        ],
+        "title": "InteractionResponse",
+        "type": "object"
+      },
+      "KcCandidateCreate": {
+        "description": "POST /knowledge/admin/candidates/create body.",
+        "properties": {
+          "confidence": {
+            "default": 0.7,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "fact_type": {
+            "description": "e.g. sleep_window, medication, activity_level",
+            "title": "Fact Type",
+            "type": "string"
+          },
+          "source": {
+            "default": "chat",
+            "description": "chat | form | import",
+            "title": "Source",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "User ID",
+            "title": "User Id",
+            "type": "integer"
+          },
+          "value_json": {
+            "default": "{}",
+            "description": "JSON string payload",
+            "title": "Value Json",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "fact_type"
+        ],
+        "title": "KcCandidateCreate",
+        "type": "object"
+      },
+      "KcCandidateRead": {
+        "description": "Candidate response.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "fact_type": {
+            "title": "Fact Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "value_json": {
+            "title": "Value Json",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "source",
+          "fact_type",
+          "value_json",
+          "confidence",
+          "status",
+          "created_at"
+        ],
+        "title": "KcCandidateRead",
+        "type": "object"
+      },
+      "KcUserFactRead": {
+        "description": "Verified fact response.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fact_type": {
+            "title": "Fact Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "value_json": {
+            "title": "Value Json",
+            "type": "string"
+          },
+          "verified_by": {
+            "title": "Verified By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "fact_type",
+          "value_json",
+          "verified_by",
+          "valid_from",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "KcUserFactRead",
+        "type": "object"
+      },
+      "LifestyleEntry": {
+        "description": "Single lifestyle fact entry",
+        "properties": {
+          "confidence": {
+            "default": 0.7,
+            "description": "Confidence score",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "domain": {
+            "description": "Memory domain (e.g., 'lifestyle')",
+            "title": "Domain",
+            "type": "string"
+          },
+          "key": {
+            "description": "Fact key (e.g., 'sleep_duration_hours')",
+            "title": "Key",
+            "type": "string"
+          },
+          "source": {
+            "default": "manual",
+            "description": "Source: 'chat' | 'device' | 'manual'",
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "description": "Fact value (will be stored as JSON)",
+            "title": "Value"
+          }
+        },
+        "required": [
+          "domain",
+          "key",
+          "value"
+        ],
+        "title": "LifestyleEntry",
+        "type": "object"
+      },
+      "LifestyleUpdateRequest": {
+        "description": "Request model for lifestyle update",
+        "properties": {
+          "entries": {
+            "description": "List of lifestyle facts to update",
+            "items": {
+              "$ref": "#/components/schemas/LifestyleEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "user_id": {
+            "description": "User ID",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "entries"
+        ],
+        "title": "LifestyleUpdateRequest",
+        "type": "object"
+      },
+      "NotificationChannelsUpdate": {
+        "properties": {
+          "companion": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companion"
+          },
+          "health_alert": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Alert"
+          },
+          "reminder_appointment": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Appointment"
+          },
+          "reminder_medication": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Medication"
+          },
+          "reminder_system": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder System"
+          }
+        },
+        "title": "NotificationChannelsUpdate",
+        "type": "object"
+      },
+      "NotificationPrefsUpdate": {
+        "properties": {
+          "channels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NotificationChannelsUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engagement_level": {
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engagement Level"
+          },
+          "quiet_hours": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuietHoursUpdate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "NotificationPrefsUpdate",
+        "type": "object"
+      },
+      "OnboardingRequest": {
+        "description": "Onboarding request schema - name is REQUIRED, password removed",
+        "properties": {
+          "name": {
+            "description": "User name (REQUIRED, non-empty)",
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "OnboardingRequest",
+        "type": "object"
+      },
+      "OtpRequestIn": {
+        "properties": {
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ],
+        "title": "OtpRequestIn",
+        "type": "object"
+      },
+      "OtpVerifyIn": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "phone": {
+            "title": "Phone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "OtpVerifyIn",
+        "type": "object"
+      },
+      "PushRegisterRequest": {
+        "description": "Request body for POST /notifications/push/register",
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional app version",
+            "title": "App Version"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional device identifier",
+            "title": "Device Id"
+          },
+          "fcm_token": {
+            "description": "FCM device token",
+            "minLength": 1,
+            "title": "Fcm Token",
+            "type": "string"
+          },
+          "platform": {
+            "const": "android",
+            "description": "Platform",
+            "title": "Platform",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "User ID (same auth as existing endpoints)",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "platform",
+          "fcm_token"
+        ],
+        "title": "PushRegisterRequest",
+        "type": "object"
+      },
+      "QuietHoursUpdate": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "title": "QuietHoursUpdate",
+        "type": "object"
+      },
+      "TestPushRequest": {
+        "description": "Request body for POST /notifications/admin/test_push",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional body (default from channel)",
+            "title": "Body"
+          },
+          "channel": {
+            "default": "engagement",
+            "description": "Push channel",
+            "enum": [
+              "morning",
+              "engagement",
+              "health_alert"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "priority": {
+            "default": "normal",
+            "description": "Priority",
+            "enum": [
+              "normal",
+              "high"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional title (default from channel)",
+            "title": "Title"
+          },
+          "ttl_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 3600,
+            "description": "TTL in seconds",
+            "title": "Ttl Seconds"
+          },
+          "user_id": {
+            "description": "User ID to send test push to",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "title": "TestPushRequest",
+        "type": "object"
+      },
+      "UserConditionCreate": {
+        "description": "Schema for creating a user condition assignment",
+        "properties": {
+          "condition_id": {
+            "description": "Medical condition ID",
+            "title": "Condition Id",
+            "type": "integer"
+          },
+          "diagnosed_date": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When condition was diagnosed",
+            "title": "Diagnosed Date"
+          },
+          "embedding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "RAG embedding ID (optional, for future RAG integration)",
+            "title": "Embedding Id"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additional notes about user's condition",
+            "title": "Notes"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Severity level (e.g. 'mild', 'moderate', 'severe')",
+            "title": "Severity"
+          },
+          "user_id": {
+            "description": "User ID",
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "condition_id",
+          "user_id"
+        ],
+        "title": "UserConditionCreate",
+        "type": "object"
+      },
+      "UserFactRead": {
+        "description": "Single fact in GET /user/facts response.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "value_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Json"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "key",
+          "source",
+          "confidence",
+          "updated_at"
+        ],
+        "title": "UserFactRead",
+        "type": "object"
+      },
+      "UserFactUpsert": {
+        "description": "POST /user/facts body (upsert by user_id + key).",
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 0.7,
+            "title": "Confidence"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "manual",
+            "title": "Source"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "value_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Json"
+          }
+        },
+        "required": [
+          "user_id",
+          "key"
+        ],
+        "title": "UserFactUpsert",
+        "type": "object"
+      },
+      "UserProfileKnowledgeRead": {
+        "description": "GET /user/knowledge response.",
+        "properties": {
+          "baseline_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Summary"
+          },
+          "constraints_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Constraints Json"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "goals_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goals Json"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "preferences_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferences Json"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "updated_at"
+        ],
+        "title": "UserProfileKnowledgeRead",
+        "type": "object"
+      },
+      "UserProfileKnowledgeUpsert": {
+        "description": "PUT /user/knowledge body.",
+        "properties": {
+          "baseline_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Summary"
+          },
+          "constraints_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Constraints Json"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "goals_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goals Json"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "preferences_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferences Json"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "title": "UserProfileKnowledgeUpsert",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Sedi is an AI-based health assistant that provides continuous, personalized care. It supports multilingual interaction (English base + Persian + Arabic) and integrates GPT-powered intelligence, adaptive memory, and emotional engagement.",
+    "title": "Sedi Intelligent Health Assistant",
+    "version": "2.0.1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/ai_core/admin/index_daily_summaries": {
+      "post": {
+        "description": "Admin: Index daily summaries for a user into rag_embeddings.",
+        "operationId": "admin_index_daily_summaries_ai_core_admin_index_daily_summaries_post",
+        "parameters": [
+          {
+            "description": "User ID to index",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to index",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Days of summaries to index",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "description": "Days of summaries to index",
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Index Daily Summaries",
+        "tags": [
+          "AI Core"
+        ]
+      }
+    },
+    "/ai_core/admin/index_daily_summaries_all": {
+      "post": {
+        "description": "Admin: Index daily summaries for a batch of users (controlled rollout).",
+        "operationId": "admin_index_daily_summaries_all_ai_core_admin_index_daily_summaries_all_post",
+        "parameters": [
+          {
+            "description": "Days of summaries to index",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "description": "Days of summaries to index",
+              "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Max users per batch",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Max users per batch",
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Offset for batch",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Offset for batch",
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Index Daily Summaries All",
+        "tags": [
+          "AI Core"
+        ]
+      }
+    },
+    "/ai_core/admin/rag_breaker": {
+      "get": {
+        "description": "Admin: Circuit breaker state for vector RAG guardrails.",
+        "operationId": "admin_rag_breaker_ai_core_admin_rag_breaker_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Admin Rag Breaker",
+        "tags": [
+          "AI Core"
+        ]
+      }
+    },
+    "/ai_core/admin/rag_metrics": {
+      "get": {
+        "description": "Admin: RAG retrieval metrics snapshot. Requires X-Admin-Token if ADMIN_TOKEN set.",
+        "operationId": "admin_rag_metrics_ai_core_admin_rag_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Admin Rag Metrics",
+        "tags": [
+          "AI Core"
+        ]
+      }
+    },
+    "/ai_core/admin/reindex_embeddings": {
+      "post": {
+        "description": "Admin: Trigger embedding indexing for a user. Requires RAG_VECTOR_REBUILD=true. Best effort.",
+        "operationId": "admin_reindex_embeddings_ai_core_admin_reindex_embeddings_post",
+        "parameters": [
+          {
+            "description": "User ID to index",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to index",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Reindex Embeddings",
+        "tags": [
+          "AI Core"
+        ]
+      }
+    },
+    "/ai_core/analyze": {
+      "post": {
+        "description": "تحلیل داده‌های سلامت کاربر و ساخت نوتیف هوشمند چندزبانه",
+        "operationId": "analyze_health_data_ai_core_analyze_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze Health Data",
+        "tags": [
+          "AI Core"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "description": "Revoke refresh token (send as Bearer).",
+        "operationId": "logout_auth_logout_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Logout",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "description": "Return current user info (requires access token).",
+        "operationId": "auth_me_auth_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Auth Me",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "description": "Exchange refresh token for new access + new refresh; used token is revoked (rotation).",
+        "operationId": "refresh_tokens_auth_refresh_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refresh Tokens",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/request_otp": {
+      "post": {
+        "description": "Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text.",
+        "operationId": "request_otp_auth_request_otp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Otp",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/set-passkey": {
+      "post": {
+        "operationId": "set_passkey_auth_set_passkey_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "passkey",
+            "required": true,
+            "schema": {
+              "title": "Passkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Passkey",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/verify-passkey": {
+      "post": {
+        "operationId": "verify_passkey_endpoint_auth_verify_passkey_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "passkey",
+            "required": true,
+            "schema": {
+              "title": "Passkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Passkey Endpoint",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/verify_otp": {
+      "post": {
+        "description": "Verify OTP; create user if missing; return tokens. Optional X-Device-Info / X-Client-IP for audit.",
+        "operationId": "verify_otp_auth_verify_otp_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpVerifyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Otp",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/conditions": {
+      "get": {
+        "description": "Get all available medical conditions.\n\nReturns a list of all medical conditions in the system.",
+        "operationId": "get_all_conditions_conditions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get All Conditions",
+        "tags": [
+          "Medical Conditions"
+        ]
+      }
+    },
+    "/conditions/": {
+      "get": {
+        "description": "Get all available medical conditions.\n\nReturns a list of all medical conditions in the system.",
+        "operationId": "get_all_conditions_conditions__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get All Conditions",
+        "tags": [
+          "Medical Conditions"
+        ]
+      }
+    },
+    "/conditions/assign": {
+      "post": {
+        "description": "Assign a medical condition to a user.\n\nRequest body:\n{\n    \"user_id\": 1,\n    \"condition_id\": 2,\n    \"diagnosed_date\": \"2024-01-01T00:00:00\",  # optional\n    \"severity\": \"moderate\",  # optional\n    \"notes\": \"Diagnosed by Dr. Smith\"  # optional\n}",
+        "operationId": "assign_condition_conditions_assign_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserConditionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assign Condition",
+        "tags": [
+          "Medical Conditions"
+        ]
+      }
+    },
+    "/conditions/user/{user_id}": {
+      "get": {
+        "description": "Get all conditions assigned to a user.\n\nReturns a list of user's medical conditions with details.",
+        "operationId": "get_user_conditions_conditions_user__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get User Conditions",
+        "tags": [
+          "Medical Conditions"
+        ]
+      }
+    },
+    "/conditions/user/{user_id}/condition/{condition_id}": {
+      "delete": {
+        "description": "Remove a condition assignment from a user.\n\nRemoves the association between user and condition.",
+        "operationId": "remove_user_condition_conditions_user__user_id__condition__condition_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "condition_id",
+            "required": true,
+            "schema": {
+              "title": "Condition Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove User Condition",
+        "tags": [
+          "Medical Conditions"
+        ]
+      }
+    },
+    "/decision/evaluate": {
+      "post": {
+        "operationId": "evaluate_decision_decision_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate Decision",
+        "tags": [
+          "decision"
+        ]
+      }
+    },
+    "/device/acknowledge": {
+      "post": {
+        "description": "گجت پس از اجرای فرمان صوتی، نتیجه را اعلام می‌کند.\n{\n    \"user_id\": 1,\n    \"sound_id\": \"alert_temp\",\n    \"status\": \"played\"\n}",
+        "operationId": "acknowledge_command_device_acknowledge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge Command",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/device/heartbeat": {
+      "post": {
+        "description": "گجت هر چند ثانیه وضعیت خود را به سرور می‌فرستد.\nUpdates device.last_seen_at in database.\n{\n    \"device_id\": \"Sedi001\",\n    \"user_id\": 1,\n    \"battery\": 92,\n    \"temperature\": 41.3,\n    \"status\": \"active\"\n}",
+        "operationId": "device_heartbeat_device_heartbeat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Device Heartbeat",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/device/ingest": {
+      "post": {
+        "description": "Ingest device event (vital signs) with deduplication and memory mapping.\n\nRequires X-DEVICE-TOKEN header.\n\nAuth modes (Release C2):\n- DEVICE_AUTH_MODE=legacy_only: validate shared DEVICE_INGEST_TOKEN (C1 behavior)\n- DEVICE_AUTH_MODE=db_only: validate per-device token from DB (requires request.device_id)\n- DEVICE_AUTH_MODE=hybrid (default): try DB first, then legacy if enabled\n\nExample:\n{\n    \"user_id\": 1,\n    \"device_id\": \"Sedi001\",\n    \"event_type\": \"heart_rate\",\n    \"payload\": {\n        \"bpm\": 82,\n        \"quality\": \"good\"\n    },\n    \"recorded_at\": \"2026-02-02T10:30:00Z\"\n}",
+        "operationId": "ingest_device_event_device_ingest_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceIngestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceIngestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Device Event",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/device/pending-commands": {
+      "get": {
+        "description": "گجت فرمان‌های صوتی جدید را از این مسیر می‌گیرد",
+        "operationId": "get_pending_commands_device_pending_commands_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Pending Commands",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/devices": {
+      "get": {
+        "operationId": "list_devices_devices_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicesListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Devices",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/register": {
+      "post": {
+        "operationId": "register_device_devices_register_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Device",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{device_id}/revoke": {
+      "post": {
+        "operationId": "revoke_device_devices__device_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Device",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{device_id}/rotate-token": {
+      "post": {
+        "operationId": "rotate_device_token_devices__device_id__rotate_token_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rotate Device Token",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Lightweight health check for production monitoring.\nReturns 200 JSON: ok, version, env (prod/dev), db status, timestamp. No secrets.",
+        "operationId": "get_health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Health",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/health/add": {
+      "post": {
+        "description": "افزودن داده سلامت و تولید نوتیف هوشمند\n{\n    \"user_id\": 1,\n    \"heart_rate\": 98,\n    \"temperature\": 37.6,\n    \"spo2\": 95\n}",
+        "operationId": "add_health_data_health_add_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Health Data",
+        "tags": [
+          "Health Data"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Pilot-ready healthz: ok, data.db_ok, data.server_time, data.version.\nReturns 503 if DB check fails.",
+        "operationId": "get_healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Healthz",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/interact/chat": {
+      "post": {
+        "description": "Chat endpoint - Thin API layer.\nAll conversation logic handled by Conversation Brain.\n\nCRITICAL VALIDATION:\n- message: Required, non-empty (from JSON body)\n- user_id: Required (from JSON body)\n- Language: Detected ONLY from message content (no query params)\n- Name: Retrieved from memory/context (no query params)",
+        "operationId": "chat_interact_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
+    "/interact/greeting": {
+      "get": {
+        "description": "Get personalized greeting for user.",
+        "operationId": "get_greeting_interact_greeting_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Lang",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Greeting",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
+    "/interact/history": {
+      "get": {
+        "description": "Get conversation history for user.",
+        "operationId": "get_user_history_interact_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get User History",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
+    "/interact/introduce": {
+      "post": {
+        "description": "Introduce user with secret key.\nIf user_id provided, upgrade anonymous user to authenticated.",
+        "operationId": "introduce_user_interact_introduce_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "secret_key",
+            "required": true,
+            "schema": {
+              "title": "Secret Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "title": "Lang",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InteractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Introduce User",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
+    "/interact/onboarding": {
+      "post": {
+        "description": "SIMPLE ONBOARDING: Create user with username only.\nHandles ALL possible errors gracefully.\n\nCRITICAL:\n- name is REQUIRED (from JSON body)\n- password is REMOVED - no authentication\n- User.name is ALWAYS saved (non-empty, stripped)\n- Onboarding ALWAYS succeeds if name is provided and non-empty\n- Multiple users with same name are allowed",
+        "operationId": "setup_onboarding_interact_onboarding_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup Onboarding",
+        "tags": [
+          "Interaction"
+        ]
+      }
+    },
+    "/knowledge/admin/answers/apply": {
+      "post": {
+        "description": "Apply an answer for testing. If field_key is profile_core column -> update user_profile_core.\nElse -> create candidate + accept into kc_user_facts with verified_by=user.",
+        "operationId": "admin_apply_answer_knowledge_admin_answers_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Apply Answer",
+        "tags": [
+          "Knowledge Admin"
+        ]
+      }
+    },
+    "/knowledge/admin/candidates/create": {
+      "post": {
+        "description": "Create a fact candidate (for testing). Requires X-Admin-Token when ADMIN_TOKEN set.",
+        "operationId": "admin_create_candidate_knowledge_admin_candidates_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KcCandidateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KcCandidateRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Create Candidate",
+        "tags": [
+          "Knowledge Admin"
+        ]
+      }
+    },
+    "/knowledge/admin/candidates/{candidate_id}/accept": {
+      "post": {
+        "description": "Accept a pending candidate: upsert into kc_user_facts, close previous valid_to.",
+        "operationId": "admin_accept_candidate_knowledge_admin_candidates__candidate_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "title": "Candidate Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "user | system | clinician",
+            "in": "query",
+            "name": "verified_by",
+            "required": false,
+            "schema": {
+              "default": "system",
+              "description": "user | system | clinician",
+              "title": "Verified By",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KcUserFactRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Accept Candidate",
+        "tags": [
+          "Knowledge Admin"
+        ]
+      }
+    },
+    "/knowledge/admin/candidates/{candidate_id}/reject": {
+      "post": {
+        "description": "Reject a pending candidate.",
+        "operationId": "admin_reject_candidate_knowledge_admin_candidates__candidate_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "title": "Candidate Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Reject Candidate",
+        "tags": [
+          "Knowledge Admin"
+        ]
+      }
+    },
+    "/knowledge/admin/users/{user_id}/facts": {
+      "get": {
+        "description": "List verified facts for a user.",
+        "operationId": "admin_get_user_facts_knowledge_admin_users__user_id__facts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/KcUserFactRead"
+                  },
+                  "title": "Response Admin Get User Facts Knowledge Admin Users  User Id  Facts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Get User Facts",
+        "tags": [
+          "Knowledge Admin"
+        ]
+      }
+    },
+    "/knowledge/apply_answer": {
+      "post": {
+        "description": "Apply user answer. For confirm_candidate: pass candidate_id, question_type=\"confirm_candidate\", value=Yes/No.\nFor profile/fact: pass field_key and value (admin apply has full support).",
+        "operationId": "apply_answer_endpoint_knowledge_apply_answer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply Answer Endpoint",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/knowledge/extract_from_message": {
+      "post": {
+        "description": "Extract facts from chat message and create/auto-accept candidates.\nResponse: { ok, data: { extracted_count, created_candidates_count, auto_accepted_count, ignored_count }, error }",
+        "operationId": "extract_from_message_knowledge_extract_from_message_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractFromMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Extract From Message",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/knowledge/next_question": {
+      "get": {
+        "description": "Get the best next question to ask the user for proactive data collection.\nNever returns data=null: when no question is available, returns status=no_question, reason=no_available_question with policy.\nWhen blocked by fatigue control: status=no_question, reason=fatigue_control, next_eligible_at, policy.\nOptional display fields (display_title, display_body, display_choices, tone_version) when confirm_candidate.\nWhen notify=true and response is confirm_candidate, enqueues/sends a notification (optional data.notification).\nWhen in_app=true with notify=true, notification is created but deliver_pending is not called.\nExample: GET /knowledge/next_question?user_id=1&lang=fa&notify=true",
+        "operationId": "get_next_question_endpoint_knowledge_next_question_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Display language: fa | en",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Display language: fa | en",
+              "title": "Lang"
+            }
+          },
+          {
+            "description": "If true and response is confirm_candidate, send a notification",
+            "in": "query",
+            "name": "notify",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "If true and response is confirm_candidate, send a notification",
+              "title": "Notify",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "If true with notify=true: create inbox notification only, skip push delivery (user active in app)",
+            "in": "query",
+            "name": "in_app",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "If true with notify=true: create inbox notification only, skip push delivery (user active in app)",
+              "title": "In App",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Next Question Endpoint",
+        "tags": [
+          "Knowledge"
+        ]
+      }
+    },
+    "/lifestyle/admin/candidates": {
+      "get": {
+        "description": "Admin: List fact candidates for a user.",
+        "operationId": "admin_list_candidates_lifestyle_admin_candidates_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by status: pending, accepted, rejected",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "pending",
+              "description": "Filter by status: pending, accepted, rejected",
+              "title": "Status",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin List Candidates",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/admin/candidates/{candidate_id}/decision": {
+      "post": {
+        "description": "Admin: Accept or reject a fact candidate.",
+        "operationId": "admin_candidate_decision_lifestyle_admin_candidates__candidate_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "title": "Candidate Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Candidate Decision",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/admin/source_preview": {
+      "get": {
+        "description": "Admin: Safe preview of a source for debugging and RAG validation.",
+        "operationId": "admin_source_preview_lifestyle_admin_source_preview_get",
+        "parameters": [
+          {
+            "description": "Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "description": "Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Source record ID",
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Source record ID",
+              "title": "Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Source Preview",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/context": {
+      "get": {
+        "description": "Get compact memory context for a user.\n\nReturns a MemoryContext built from UserMemoryFact (sleep/hydration/activity/mood/preferences if available).",
+        "operationId": "get_lifestyle_context_lifestyle_context_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Lifestyle Context",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/summary": {
+      "get": {
+        "description": "Get lifestyle summary for frontend display.\nComposes: What I know, Recent patterns, Next suggested check-in.",
+        "operationId": "get_lifestyle_summary_lifestyle_summary_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Response language: en, fa, ar",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "en",
+              "description": "Response language: en, fa, ar",
+              "title": "Lang",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Lifestyle Summary",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/lifestyle/update": {
+      "post": {
+        "description": "Update lifestyle facts for a user.\n\nUpserts facts into UserMemoryFact (domain+key unique per user).\n\nExample payload:\n{\n    \"user_id\": 1,\n    \"entries\": [\n        {\n            \"domain\": \"lifestyle\",\n            \"key\": \"sleep_duration_hours\",\n            \"value\": 6.5,\n            \"confidence\": 0.8,\n            \"source\": \"manual\"\n        },\n        {\n            \"domain\": \"lifestyle\",\n            \"key\": \"hydration_ml\",\n            \"value\": 1200,\n            \"confidence\": 0.7,\n            \"source\": \"manual\"\n        }\n    ]\n}",
+        "operationId": "update_lifestyle_lifestyle_update_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifestyleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Lifestyle",
+        "tags": [
+          "Lifestyle Data"
+        ]
+      }
+    },
+    "/memory/history": {
+      "get": {
+        "description": "Fetch chat history from Memory table, grouped by day/week/month/year.\nGroups sorted newest first; turns within each group oldest first.\nSecurity: only returns data for the given user_id (user must exist).",
+        "operationId": "get_chat_history_memory_history_get",
+        "parameters": [
+          {
+            "description": "User ID (required)",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID (required)",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Group by: daily | weekly | monthly | yearly",
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "default": "daily",
+              "description": "Group by: daily | weekly | monthly | yearly",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly",
+                "yearly"
+              ],
+              "title": "Group",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Max number of groups to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "description": "Max number of groups to return",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Skip this many groups (pagination)",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Skip this many groups (pagination)",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Chat History",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/latest": {
+      "get": {
+        "description": "دریافت آخرین حافظه ثبت‌شده برای کاربر",
+        "operationId": "get_latest_memory_memory_latest_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Latest Memory",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/save": {
+      "post": {
+        "description": "ذخیره حافظه روزانه کاربر\n{\n    \"user_id\": 1,\n    \"summary\": \"User walked 5000 steps, slept 6 hours, HR avg 82 bpm.\",\n    \"mood\": \"neutral\",\n    \"context\": \"Slight fatigue reported\"\n}",
+        "operationId": "save_memory_memory_save_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Memory",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "description": "Get all notifications for a user, ordered by created_at descending.\n\nReturns a list of notifications for the specified user_id.",
+        "operationId": "get_notifications_notifications_get",
+        "parameters": [
+          {
+            "description": "User ID to fetch notifications for",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to fetch notifications for",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/": {
+      "get": {
+        "description": "Get all notifications for a user, ordered by created_at descending.\n\nReturns a list of notifications for the specified user_id.",
+        "operationId": "get_notifications_notifications__get",
+        "parameters": [
+          {
+            "description": "User ID to fetch notifications for",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to fetch notifications for",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/adaptive_state": {
+      "get": {
+        "description": "Admin-only: Adaptive policy state for companion channel (debug).\nReturns paused_until, companion_cap_override, counts, reasons_count, computed_at.",
+        "operationId": "admin_adaptive_state_notifications_admin_adaptive_state_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Feedback window in days",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "description": "Feedback window in days",
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Adaptive State",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/companion_ping/send_now": {
+      "post": {
+        "description": "Admin-only: Trigger Behavior V1 companion_ping for server tests.\nUses DecisionEngine.create_companion_ping; respects quiet hours and daily budget.\nReturns ok=true, created (bool), notification_id (nullable), deeplink (nullable).",
+        "operationId": "admin_companion_ping_send_now_notifications_admin_companion_ping_send_now_post",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Language (fa, en, ar); optional",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Language (fa, en, ar); optional",
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Companion Ping Send Now",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/feedback_stats": {
+      "get": {
+        "description": "Admin-only: Feedback stats for debugging and adaptive policy.\nReturns counts_by_event_type, counts_by_reason, last_events (max 20).",
+        "operationId": "admin_feedback_stats_notifications_admin_feedback_stats_get",
+        "parameters": [
+          {
+            "description": "Filter by user ID (optional)",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by user ID (optional)",
+              "title": "User Id"
+            }
+          },
+          {
+            "description": "Last N days",
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "description": "Last N days",
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Feedback Stats",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/health": {
+      "get": {
+        "description": "Admin-only: Lightweight notification subsystem health.\nReturns pending_count, failed_last_1h, last_deliver_pending_run_at.",
+        "operationId": "admin_notification_health_notifications_admin_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Admin Notification Health",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/notif/send_now": {
+      "post": {
+        "description": "Admin-only: Deterministic push debug path. Send one push to user's tokens for the given channel.\nIf template_key is provided, title/body are rendered from that V1 template (language from user).\nReturns attempted_tokens, sent_success, sent_fail, reasons, fcm_errors. On NO_TOKENS or policy\nskip returns 200 with reason; does not create a notification row.",
+        "operationId": "admin_notif_send_now_notifications_admin_notif_send_now_post",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Channel: morning | engagement | health_alert",
+            "in": "query",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "description": "Channel: morning | engagement | health_alert",
+              "enum": [
+                "morning",
+                "engagement",
+                "health_alert"
+              ],
+              "title": "Channel",
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, bypass quiet hours and anti-spam",
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "If true, bypass quiet hours and anti-spam",
+              "title": "Force",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "If set, use V1 template for title/body instead of ad-hoc",
+            "in": "query",
+            "name": "template_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "If set, use V1 template for title/body instead of ad-hoc",
+              "title": "Template Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Notif Send Now",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/observability": {
+      "get": {
+        "description": "Admin-only: Observability snapshot (notifications + device_events + delivery health).\nSame protection as /admin/health: ADMIN_TOKEN env and X-Admin-Token header.",
+        "operationId": "admin_observability_notifications_admin_observability_get",
+        "parameters": [
+          {
+            "description": "Time window in minutes",
+            "in": "query",
+            "name": "minutes",
+            "required": false,
+            "schema": {
+              "default": 60,
+              "description": "Time window in minutes",
+              "maximum": 10080,
+              "minimum": 5,
+              "title": "Minutes",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Observability",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/push_devices": {
+      "get": {
+        "description": "Admin-only: List push devices for a user. Returns masked tokens (first 6 + last 4).",
+        "operationId": "admin_list_push_devices_notifications_admin_push_devices_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin List Push Devices",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/templates/list": {
+      "get": {
+        "description": "Admin-only: List V1 template keys and basic fields.",
+        "operationId": "admin_templates_list_notifications_admin_templates_list_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Admin Templates List",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/templates/preview": {
+      "get": {
+        "description": "Admin-only: Preview template render without sending.",
+        "operationId": "admin_templates_preview_notifications_admin_templates_preview_get",
+        "parameters": [
+          {
+            "description": "Template key",
+            "in": "query",
+            "name": "template_key",
+            "required": true,
+            "schema": {
+              "description": "Template key",
+              "title": "Template Key",
+              "type": "string"
+            }
+          },
+          {
+            "description": "User ID (for language resolution; optional)",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "User ID (for language resolution; optional)",
+              "title": "User Id"
+            }
+          },
+          {
+            "description": "Language code (fa, en, ar)",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "fa",
+              "description": "Language code (fa, en, ar)",
+              "title": "Lang",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Templates Preview",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/admin/test_push": {
+      "post": {
+        "description": "Admin-only: Enqueue a test push for a user. Uses unique dedupe_key so it always sends.\nOptionally run delivery when deliver=true.",
+        "operationId": "admin_test_push_notifications_admin_test_push_post",
+        "parameters": [
+          {
+            "description": "If true, run deliver_pending after enqueue",
+            "in": "query",
+            "name": "deliver",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "If true, run deliver_pending after enqueue",
+              "title": "Deliver",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPushRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Test Push",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/deliver_pending": {
+      "post": {
+        "description": "Run the notification delivery pipeline: query unsent (is_sent=false),\nsend via configured adapter, mark is_sent=true. Safe to call repeatedly.\nIf ADMIN_TOKEN env is set, requires X-Admin-Token header (admin/dev pattern).",
+        "operationId": "deliver_pending_notifications_notifications_deliver_pending_post",
+        "parameters": [
+          {
+            "description": "Max number of unsent notifications to process",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Max number of unsent notifications to process",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deliver Pending Notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/prefs": {
+      "get": {
+        "description": "Get notification preferences for a user. Returns defaults when no row exists.",
+        "operationId": "get_notification_prefs_notifications_prefs_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Notification Prefs",
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "put": {
+        "description": "Create or update notification preferences (partial update). Returns current prefs.",
+        "operationId": "put_notification_prefs_notifications_prefs_put",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPrefsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Notification Prefs",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/push/register": {
+      "post": {
+        "description": "Register or update FCM token for push notifications (Stage 16.6).\nUpsert by fcm_token; set user_id, is_active=True, last_seen_at=now.\nFail-open for tests: accept any non-empty token (do not hard-validate format).",
+        "operationId": "push_register_notifications_push_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Push Register",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/push/unregister": {
+      "post": {
+        "description": "Deactivate a push device by FCM token (Stage 16.6).",
+        "operationId": "push_unregister_notifications_push_unregister_post",
+        "parameters": [
+          {
+            "description": "FCM token to deactivate",
+            "in": "query",
+            "name": "fcm_token",
+            "required": true,
+            "schema": {
+              "description": "FCM token to deactivate",
+              "title": "Fcm Token",
+              "type": "string"
+            }
+          },
+          {
+            "description": "User ID (must own the token)",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID (must own the token)",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Push Unregister",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/unread": {
+      "get": {
+        "description": "Get unread notifications for a user (Release B2).\n\nReturns list of notifications where is_read=false, ordered by created_at descending.\nSupports optional filtering by type and limit.",
+        "operationId": "get_unread_notifications_notifications_unread_get",
+        "parameters": [
+          {
+            "description": "User ID to fetch unread notifications for",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to fetch unread notifications for",
+              "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of notifications to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Maximum number of notifications to return",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Optional filter by notification type",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional filter by notification type",
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Unread Notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/{notification_id}/feedback": {
+      "post": {
+        "description": "Submit feedback for a notification. V1: normalized event_type (like/dislike/open/dismiss).\nContract: reaction (required), timestamp (required), action_id (required when reaction==interact), feedback_text?, reason?.\nLegacy: feedback/action/client_ts/meta accepted and mapped. reason enum: too_frequent | irrelevant | unclear.",
+        "operationId": "submit_notification_feedback_notifications__notification_id__feedback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "User ID (optional, validated from notification if not provided)",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "User ID (optional, validated from notification if not provided)",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Notification Feedback",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/{notification_id}/mark-read": {
+      "post": {
+        "description": "Mark a notification as read (Release B2).\n\nUpdates the is_read field to True for the specified notification.\nValidates ownership: notification.user_id must match provided user_id.\nIdempotent: can be called multiple times safely.\n\nEndpoints:\n- POST /notifications/{id}/mark-read (new)\n- POST /notifications/{id}/read (backward compatible)",
+        "operationId": "mark_notification_read_notifications__notification_id__mark_read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "User ID (must own the notification)",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID (must own the notification)",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Notification Read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/notifications/{notification_id}/read": {
+      "post": {
+        "description": "Mark a notification as read (Release B2).\n\nUpdates the is_read field to True for the specified notification.\nValidates ownership: notification.user_id must match provided user_id.\nIdempotent: can be called multiple times safely.\n\nEndpoints:\n- POST /notifications/{id}/mark-read (new)\n- POST /notifications/{id}/read (backward compatible)",
+        "operationId": "mark_notification_read_notifications__notification_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "User ID (must own the notification)",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID (must own the notification)",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Notification Read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/user/facts": {
+      "get": {
+        "description": "Get all facts for a user. Strictly filtered by user_id.",
+        "operationId": "get_facts_user_facts_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserFactRead"
+                  },
+                  "title": "Response Get Facts User Facts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Facts",
+        "tags": [
+          "User"
+        ]
+      },
+      "post": {
+        "description": "Upsert a fact by (user_id, key). value_json stored as-is (plain text). SAFE: query by (user_id, key) then update or insert to enforce uniqueness at application level.",
+        "operationId": "upsert_fact_user_facts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserFactUpsert"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserFactRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upsert Fact",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/facts/cleanup": {
+      "post": {
+        "description": "Admin-only. Find (user_id, key) duplicate groups; keep row with latest updated_at (tie: highest id), delete rest. Requires X-Admin-Token header.",
+        "operationId": "cleanup_duplicate_facts_user_facts_cleanup_post",
+        "parameters": [
+          {
+            "description": "If true, only report; if false, delete duplicates",
+            "in": "query",
+            "name": "dry_run",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "If true, only report; if false, delete duplicates",
+              "title": "Dry Run",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cleanup Duplicate Facts",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/knowledge": {
+      "get": {
+        "description": "Get user profile knowledge (baseline). Returns 404 if user or row missing.",
+        "operationId": "get_knowledge_user_knowledge_get",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileKnowledgeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Knowledge",
+        "tags": [
+          "User"
+        ]
+      },
+      "put": {
+        "description": "Upsert user profile knowledge (1 row per user).",
+        "operationId": "upsert_knowledge_user_knowledge_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileKnowledgeUpsert"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileKnowledgeRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upsert Knowledge",
+        "tags": [
+          "User"
+        ]
+      }
+    }
+  }
+}
