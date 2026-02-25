@@ -22,6 +22,7 @@ def canonical_openapi_string() -> str:
     """Return canonicalized OpenAPI JSON with only stable contract sections."""
     schema = app.openapi()
     reduced = {key: schema[key] for key in KEEP_TOP_LEVEL_KEYS if key in schema}
+    _drop_framework_validation_schemas(reduced)
     normalized = _normalize_json(reduced)
     return json.dumps(normalized, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
 
@@ -45,6 +46,26 @@ def _normalize_json(value: Any) -> Any:
         )
 
     return value
+
+
+def _drop_framework_validation_schemas(schema: dict[str, Any]) -> None:
+    """
+    Remove framework-generated validation schemas that vary by dependency version.
+
+    `ValidationError`/`HTTPValidationError` shapes can differ between FastAPI and
+    Pydantic versions (for example extra `ctx`/`input` keys), which creates CI
+    noise without reflecting business API contract changes.
+    """
+    components = schema.get("components")
+    if not isinstance(components, dict):
+        return
+
+    schemas = components.get("schemas")
+    if not isinstance(schemas, dict):
+        return
+
+    schemas.pop("ValidationError", None)
+    schemas.pop("HTTPValidationError", None)
 
 
 def write_snapshot(path: Path = SNAPSHOT_PATH) -> Path:
