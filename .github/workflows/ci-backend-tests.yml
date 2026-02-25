@@ -62,26 +62,30 @@ jobs:
       - name: Compile acceptance test
         run: python -m py_compile backend/tests/acceptance/test_release_d.py
 
-      - name: Run V1 contract tests (mandatory)
-        run: python -m pytest -q backend/tests/contracts/ --tb=long
+      - name: Run contracts
+        run: python -m pytest -q backend/tests/contracts/ -v --tb=long
 
-      - name: Run V1 mandatory acceptance subset
-        run: |
-          python -m pytest -q backend/tests/acceptance/test_release_d.py --tb=long
-          python -m pytest -q backend/tests/acceptance/test_decision_engine_scenarios_v1.py --tb=long
-          python -m pytest -q backend/tests/acceptance/test_kc_apply_answer_profile_answer_fallback.py --tb=long
+      - name: Run Release D acceptance
+        run: python -m pytest -q backend/tests/acceptance/test_release_d.py -v --tb=long
 
-      - name: Run optional V1 acceptance tests
+      - name: Run Decision Engine V1 scenarios
+        run: python -m pytest -q backend/tests/acceptance/test_decision_engine_scenarios_v1.py -v --tb=long
+
+      - name: Run KC regression (answer fallback)
+        run: python -m pytest -q backend/tests/acceptance/test_kc_apply_answer_profile_answer_fallback.py -v --tb=long
+
+      - name: Run Device ingestion C1 (optional)
         run: |
-          if [ -f backend/tests/acceptance/test_device_ingestion_c1.py ]; then
-            python -m pytest -q backend/tests/acceptance/test_device_ingestion_c1.py --tb=long
+          test -f backend/tests/acceptance/test_device_ingestion_c1.py && \
+          python -m pytest -q backend/tests/acceptance/test_device_ingestion_c1.py -v --tb=long || \
+          echo "SKIP: test_device_ingestion_c1.py not present"
+
+      - name: Run Notification prefs V1 (optional)
+        run: |
+          if test -f backend/tests/acceptance/test_notification_prefs_v1.py; then
+            python -m pytest -q backend/tests/acceptance/test_notification_prefs_v1.py -v --tb=long
+          elif test -f backend/tests/acceptance/test_notifications_prefs_v1.py; then
+            python -m pytest -q backend/tests/acceptance/test_notifications_prefs_v1.py -v --tb=long
           else
-            echo "SKIP backend/tests/acceptance/test_device_ingestion_c1.py"
-          fi
-          if [ -f backend/tests/acceptance/test_notification_prefs_v1.py ]; then
-            python -m pytest -q backend/tests/acceptance/test_notification_prefs_v1.py --tb=long
-          elif [ -f backend/tests/acceptance/test_notifications_prefs_v1.py ]; then
-            python -m pytest -q backend/tests/acceptance/test_notifications_prefs_v1.py --tb=long
-          else
-            echo "SKIP backend/tests/acceptance/test_notification_prefs_v1.py"
+            echo "SKIP: notification prefs test not present"
           fi
