@@ -5138,6 +5138,53 @@
         ]
       }
     },
+    "/ops/status": {
+      "get": {
+        "operationId": "ops_status_ops_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Status",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
     "/user/facts": {
       "get": {
         "description": "Get all facts for a user. Strictly filtered by user_id.",
