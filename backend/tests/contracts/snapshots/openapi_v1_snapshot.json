@@ -5,10 +5,10 @@
         "properties": {
           "data": {
             "anyOf": [
-              {},
               {
                 "type": "null"
-              }
+              },
+              {}
             ],
             "title": "Data"
           },
@@ -52,10 +52,10 @@
                 "type": "array"
               },
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Optional extra context (validation details, etc.)",
@@ -79,10 +79,10 @@
         "properties": {
           "data": {
             "anyOf": [
-              {},
               {
                 "type": "null"
-              }
+              },
+              {}
             ],
             "description": "Response payload when ok=True",
             "title": "Data"
@@ -116,10 +116,10 @@
           "answer": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "For confirm_candidate: raw answer (alias for value)",
@@ -140,10 +140,10 @@
           "field_key": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "birth_year, sex, ... or fact_type",
@@ -152,10 +152,10 @@
           "question_type": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "confirm_candidate when answering Yes/No",
@@ -168,10 +168,10 @@
           },
           "value": {
             "anyOf": [
-              {},
               {
                 "type": "null"
-              }
+              },
+              {}
             ],
             "description": "Scalar or JSON-serializable value",
             "title": "Value"
@@ -212,8 +212,8 @@
           }
         },
         "required": [
-          "user_id",
-          "message"
+          "message",
+          "user_id"
         ],
         "title": "ChatRequest",
         "type": "object"
@@ -248,10 +248,10 @@
           "device_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Device identifier (optional for v0)",
@@ -260,9 +260,9 @@
           "event_type": {
             "description": "Event type (multi-vital ready)",
             "enum": [
-              "heart_rate",
               "blood_pressure",
               "glucose",
+              "heart_rate",
               "temperature"
             ],
             "title": "Event Type",
@@ -294,9 +294,9 @@
           }
         },
         "required": [
-          "user_id",
           "event_type",
-          "payload"
+          "payload",
+          "user_id"
         ],
         "title": "DeviceIngestRequest",
         "type": "object"
@@ -360,10 +360,10 @@
           "device_type": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "default": "heart_rate",
@@ -456,10 +456,10 @@
           "code": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Code"
@@ -487,10 +487,10 @@
           "source_message_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Optional message ID for tracing",
@@ -508,8 +508,8 @@
           }
         },
         "required": [
-          "user_id",
-          "text"
+          "text",
+          "user_id"
         ],
         "title": "ExtractFromMessageRequest",
         "type": "object"
@@ -586,10 +586,10 @@
           "language": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "default": "en",
@@ -598,10 +598,10 @@
           "sedi_response": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Sedi Response"
@@ -612,8 +612,8 @@
           }
         },
         "required": [
-          "id",
           "created_at",
+          "id",
           "user_message"
         ],
         "title": "HistoryTurnItem",
@@ -624,10 +624,10 @@
           "detected_name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Detected Name"
@@ -670,8 +670,8 @@
           }
         },
         "required": [
-          "message",
           "language",
+          "message",
           "timestamp"
         ],
         "title": "InteractionResponse",
@@ -723,8 +723,8 @@
           }
         },
         "required": [
-          "user_id",
-          "fact_type"
+          "fact_type",
+          "user_id"
         ],
         "title": "KcCandidateCreate",
         "type": "object"
@@ -744,10 +744,10 @@
           "evidence": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Evidence"
@@ -778,14 +778,14 @@
           }
         },
         "required": [
-          "id",
-          "user_id",
-          "source",
-          "fact_type",
-          "value_json",
           "confidence",
+          "created_at",
+          "fact_type",
+          "id",
+          "source",
           "status",
-          "created_at"
+          "user_id",
+          "value_json"
         ],
         "title": "KcCandidateRead",
         "type": "object"
@@ -842,14 +842,14 @@
           }
         },
         "required": [
-          "id",
-          "user_id",
-          "fact_type",
-          "value_json",
-          "verified_by",
-          "valid_from",
           "created_at",
-          "updated_at"
+          "fact_type",
+          "id",
+          "updated_at",
+          "user_id",
+          "valid_from",
+          "value_json",
+          "verified_by"
         ],
         "title": "KcUserFactRead",
         "type": "object"
@@ -912,8 +912,8 @@
           }
         },
         "required": [
-          "user_id",
-          "entries"
+          "entries",
+          "user_id"
         ],
         "title": "LifestyleUpdateRequest",
         "type": "object"
@@ -1059,8 +1059,8 @@
           }
         },
         "required": [
-          "phone",
-          "code"
+          "code",
+          "phone"
         ],
         "title": "OtpVerifyIn",
         "type": "object"
@@ -1071,10 +1071,10 @@
           "app_version": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Optional app version",
@@ -1083,10 +1083,10 @@
           "device_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Optional device identifier",
@@ -1111,9 +1111,9 @@
           }
         },
         "required": [
-          "user_id",
+          "fcm_token",
           "platform",
-          "fcm_token"
+          "user_id"
         ],
         "title": "PushRegisterRequest",
         "type": "object"
@@ -1134,10 +1134,10 @@
           "end": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "End"
@@ -1145,10 +1145,10 @@
           "start": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Start"
@@ -1163,10 +1163,10 @@
           "body": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Optional body (default from channel)",
@@ -1176,9 +1176,9 @@
             "default": "engagement",
             "description": "Push channel",
             "enum": [
-              "morning",
               "engagement",
-              "health_alert"
+              "health_alert",
+              "morning"
             ],
             "title": "Channel",
             "type": "string"
@@ -1187,8 +1187,8 @@
             "default": "normal",
             "description": "Priority",
             "enum": [
-              "normal",
-              "high"
+              "high",
+              "normal"
             ],
             "title": "Priority",
             "type": "string"
@@ -1196,10 +1196,10 @@
           "title": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Optional title (default from channel)",
@@ -1254,10 +1254,10 @@
           "embedding_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "RAG embedding ID (optional, for future RAG integration)",
@@ -1266,10 +1266,10 @@
           "notes": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Additional notes about user's condition",
@@ -1278,10 +1278,10 @@
           "severity": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "description": "Severity level (e.g. 'mild', 'moderate', 'severe')",
@@ -1331,22 +1331,22 @@
           "value_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Value Json"
           }
         },
         "required": [
+          "confidence",
           "id",
-          "user_id",
           "key",
           "source",
-          "confidence",
-          "updated_at"
+          "updated_at",
+          "user_id"
         ],
         "title": "UserFactRead",
         "type": "object"
@@ -1357,10 +1357,10 @@
           "confidence": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "number"
               }
             ],
             "default": 0.7,
@@ -1373,10 +1373,10 @@
           "source": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "default": "manual",
@@ -1389,18 +1389,18 @@
           "value_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Value Json"
           }
         },
         "required": [
-          "user_id",
-          "key"
+          "key",
+          "user_id"
         ],
         "title": "UserFactUpsert",
         "type": "object"
@@ -1411,10 +1411,10 @@
           "baseline_summary": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Baseline Summary"
@@ -1422,10 +1422,10 @@
           "constraints_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Constraints Json"
@@ -1433,10 +1433,10 @@
           "display_name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Display Name"
@@ -1444,10 +1444,10 @@
           "goals_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Goals Json"
@@ -1455,10 +1455,10 @@
           "language": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Language"
@@ -1466,10 +1466,10 @@
           "preferences_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Preferences Json"
@@ -1485,8 +1485,8 @@
           }
         },
         "required": [
-          "user_id",
-          "updated_at"
+          "updated_at",
+          "user_id"
         ],
         "title": "UserProfileKnowledgeRead",
         "type": "object"
@@ -1497,10 +1497,10 @@
           "baseline_summary": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Baseline Summary"
@@ -1508,10 +1508,10 @@
           "constraints_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Constraints Json"
@@ -1519,10 +1519,10 @@
           "display_name": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Display Name"
@@ -1530,10 +1530,10 @@
           "goals_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Goals Json"
@@ -1541,10 +1541,10 @@
           "language": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Language"
@@ -1552,10 +1552,10 @@
           "preferences_json": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "null"
               },
               {
-                "type": "null"
+                "type": "string"
               }
             ],
             "title": "Preferences Json"
@@ -1577,10 +1577,10 @@
             "items": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "integer"
                 },
                 {
-                  "type": "integer"
+                  "type": "string"
                 }
               ]
             },
@@ -1641,17 +1641,6 @@
         "operationId": "admin_index_daily_summaries_ai_core_admin_index_daily_summaries_post",
         "parameters": [
           {
-            "description": "User ID to index",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID to index",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Days of summaries to index",
             "in": "query",
             "name": "days",
@@ -1660,6 +1649,17 @@
               "default": 30,
               "description": "Days of summaries to index",
               "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "User ID to index",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to index",
+              "title": "User Id",
               "type": "integer"
             }
           }
@@ -2023,20 +2023,20 @@
         "parameters": [
           {
             "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
             "name": "passkey",
             "required": true,
             "schema": {
               "title": "Passkey",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -2074,20 +2074,20 @@
         "parameters": [
           {
             "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
             "name": "passkey",
             "required": true,
             "schema": {
               "title": "Passkey",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -2297,19 +2297,19 @@
         "parameters": [
           {
             "in": "path",
-            "name": "user_id",
+            "name": "condition_id",
             "required": true,
             "schema": {
-              "title": "User Id",
+              "title": "Condition Id",
               "type": "integer"
             }
           },
           {
             "in": "path",
-            "name": "condition_id",
+            "name": "user_id",
             "required": true,
             "schema": {
-              "title": "Condition Id",
+              "title": "User Id",
               "type": "integer"
             }
           }
@@ -2894,15 +2894,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
             "name": "lang",
             "required": false,
             "schema": {
@@ -2918,13 +2909,22 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "null"
                 },
                 {
-                  "type": "null"
+                  "type": "string"
                 }
               ],
               "title": "Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -2961,15 +2961,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -2977,6 +2968,15 @@
               "maximum": 50,
               "minimum": 1,
               "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
               "type": "integer"
             }
           }
@@ -3014,20 +3014,20 @@
         "parameters": [
           {
             "in": "query",
-            "name": "secret_key",
-            "required": true,
-            "schema": {
-              "title": "Secret Key",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
             "name": "lang",
             "required": false,
             "schema": {
               "default": "en",
               "title": "Lang",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "secret_key",
+            "required": true,
+            "schema": {
+              "title": "Secret Key",
               "type": "string"
             }
           },
@@ -3204,15 +3204,6 @@
         "operationId": "admin_accept_candidate_knowledge_admin_candidates__candidate_id__accept_post",
         "parameters": [
           {
-            "in": "path",
-            "name": "candidate_id",
-            "required": true,
-            "schema": {
-              "title": "Candidate Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "user | system | clinician",
             "in": "query",
             "name": "verified_by",
@@ -3222,6 +3213,15 @@
               "description": "user | system | clinician",
               "title": "Verified By",
               "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "title": "Candidate Id",
+              "type": "integer"
             }
           }
         ],
@@ -3431,17 +3431,6 @@
         "operationId": "get_next_question_endpoint_knowledge_next_question_get",
         "parameters": [
           {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Display language: fa | en",
             "in": "query",
             "name": "lang",
@@ -3449,10 +3438,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "null"
                 },
                 {
-                  "type": "null"
+                  "type": "string"
                 }
               ],
               "description": "Display language: fa | en",
@@ -3481,6 +3470,17 @@
               "description": "If true with notify=true: create inbox notification only, skip push delivery (user active in app)",
               "title": "In App",
               "type": "boolean"
+            }
+          },
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -3518,17 +3518,6 @@
         "operationId": "admin_list_candidates_lifestyle_admin_candidates_get",
         "parameters": [
           {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Filter by status: pending, accepted, rejected",
             "in": "query",
             "name": "status",
@@ -3538,6 +3527,17 @@
               "description": "Filter by status: pending, accepted, rejected",
               "title": "Status",
               "type": "string"
+            }
+          },
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -3628,17 +3628,6 @@
         "operationId": "admin_source_preview_lifestyle_admin_source_preview_get",
         "parameters": [
           {
-            "description": "Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact",
-            "in": "query",
-            "name": "type",
-            "required": true,
-            "schema": {
-              "description": "Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact",
-              "title": "Type",
-              "type": "string"
-            }
-          },
-          {
             "description": "Source record ID",
             "in": "query",
             "name": "id",
@@ -3647,6 +3636,17 @@
               "description": "Source record ID",
               "title": "Id",
               "type": "integer"
+            }
+          },
+          {
+            "description": "Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "description": "Source type: daily_summary, user_fact, user_memory_fact, user_profile_knowledge, memory_turn, candidate_fact",
+              "title": "Type",
+              "type": "string"
             }
           }
         ],
@@ -3729,17 +3729,6 @@
         "operationId": "get_lifestyle_summary_lifestyle_summary_get",
         "parameters": [
           {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Response language: en, fa, ar",
             "in": "query",
             "name": "lang",
@@ -3749,6 +3738,17 @@
               "description": "Response language: en, fa, ar",
               "title": "Lang",
               "type": "string"
+            }
+          },
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -3828,17 +3828,6 @@
         "operationId": "get_chat_history_memory_history_get",
         "parameters": [
           {
-            "description": "User ID (required)",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID (required)",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Group by: daily | weekly | monthly | yearly",
             "in": "query",
             "name": "group",
@@ -3848,8 +3837,8 @@
               "description": "Group by: daily | weekly | monthly | yearly",
               "enum": [
                 "daily",
-                "weekly",
                 "monthly",
+                "weekly",
                 "yearly"
               ],
               "title": "Group",
@@ -3880,6 +3869,17 @@
               "description": "Skip this many groups (pagination)",
               "minimum": 0,
               "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "User ID (required)",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID (required)",
+              "title": "User Id",
               "type": "integer"
             }
           }
@@ -4095,17 +4095,6 @@
         "operationId": "admin_adaptive_state_notifications_admin_adaptive_state_get",
         "parameters": [
           {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Feedback window in days",
             "in": "query",
             "name": "days",
@@ -4116,6 +4105,17 @@
               "maximum": 90,
               "minimum": 1,
               "title": "Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "User ID",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "title": "User Id",
               "type": "integer"
             }
           }
@@ -4154,6 +4154,24 @@
         "operationId": "admin_companion_ping_send_now_notifications_admin_companion_ping_send_now_post",
         "parameters": [
           {
+            "description": "Language (fa, en, ar); optional",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Language (fa, en, ar); optional",
+              "title": "Language"
+            }
+          },
+          {
             "description": "User ID",
             "in": "query",
             "name": "user_id",
@@ -4162,24 +4180,6 @@
               "description": "User ID",
               "title": "User Id",
               "type": "integer"
-            }
-          },
-          {
-            "description": "Language (fa, en, ar); optional",
-            "in": "query",
-            "name": "language",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Language (fa, en, ar); optional",
-              "title": "Language"
             }
           }
         ],
@@ -4305,17 +4305,6 @@
         "operationId": "admin_notif_send_now_notifications_admin_notif_send_now_post",
         "parameters": [
           {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Channel: morning | engagement | health_alert",
             "in": "query",
             "name": "channel",
@@ -4323,12 +4312,30 @@
             "schema": {
               "description": "Channel: morning | engagement | health_alert",
               "enum": [
-                "morning",
                 "engagement",
-                "health_alert"
+                "health_alert",
+                "morning"
               ],
               "title": "Channel",
               "type": "string"
+            }
+          },
+          {
+            "description": "If set, use V1 template for title/body instead of ad-hoc",
+            "in": "query",
+            "name": "template_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "If set, use V1 template for title/body instead of ad-hoc",
+              "title": "Template Key"
             }
           },
           {
@@ -4344,21 +4351,14 @@
             }
           },
           {
-            "description": "If set, use V1 template for title/body instead of ad-hoc",
+            "description": "User ID",
             "in": "query",
-            "name": "template_key",
-            "required": false,
+            "name": "user_id",
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "If set, use V1 template for title/body instead of ad-hoc",
-              "title": "Template Key"
+              "description": "User ID",
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -4511,6 +4511,18 @@
         "operationId": "admin_templates_preview_notifications_admin_templates_preview_get",
         "parameters": [
           {
+            "description": "Language code (fa, en, ar)",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "fa",
+              "description": "Language code (fa, en, ar)",
+              "title": "Lang",
+              "type": "string"
+            }
+          },
+          {
             "description": "Template key",
             "in": "query",
             "name": "template_key",
@@ -4537,18 +4549,6 @@
               ],
               "description": "User ID (for language resolution; optional)",
               "title": "User Id"
-            }
-          },
-          {
-            "description": "Language code (fa, en, ar)",
-            "in": "query",
-            "name": "lang",
-            "required": false,
-            "schema": {
-              "default": "fa",
-              "description": "Language code (fa, en, ar)",
-              "title": "Lang",
-              "type": "string"
             }
           }
         ],
@@ -4886,17 +4886,6 @@
         "operationId": "get_unread_notifications_notifications_unread_get",
         "parameters": [
           {
-            "description": "User ID to fetch unread notifications for",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID to fetch unread notifications for",
-              "title": "User Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "Maximum number of notifications to return",
             "in": "query",
             "name": "limit",
@@ -4918,14 +4907,25 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "null"
                 },
                 {
-                  "type": "null"
+                  "type": "string"
                 }
               ],
               "description": "Optional filter by notification type",
               "title": "Type"
+            }
+          },
+          {
+            "description": "User ID to fetch unread notifications for",
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "User ID to fetch unread notifications for",
+              "title": "User Id",
+              "type": "integer"
             }
           }
         ],
@@ -4963,15 +4963,6 @@
         "operationId": "submit_notification_feedback_notifications__notification_id__feedback_post",
         "parameters": [
           {
-            "in": "path",
-            "name": "notification_id",
-            "required": true,
-            "schema": {
-              "title": "Notification Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "User ID (optional, validated from notification if not provided)",
             "in": "query",
             "name": "user_id",
@@ -4987,6 +4978,15 @@
               ],
               "description": "User ID (optional, validated from notification if not provided)",
               "title": "User Id"
+            }
+          },
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
+              "type": "integer"
             }
           }
         ],
@@ -5036,15 +5036,6 @@
         "operationId": "mark_notification_read_notifications__notification_id__mark_read_post",
         "parameters": [
           {
-            "in": "path",
-            "name": "notification_id",
-            "required": true,
-            "schema": {
-              "title": "Notification Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "User ID (must own the notification)",
             "in": "query",
             "name": "user_id",
@@ -5052,6 +5043,15 @@
             "schema": {
               "description": "User ID (must own the notification)",
               "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
               "type": "integer"
             }
           }
@@ -5090,15 +5090,6 @@
         "operationId": "mark_notification_read_notifications__notification_id__read_post",
         "parameters": [
           {
-            "in": "path",
-            "name": "notification_id",
-            "required": true,
-            "schema": {
-              "title": "Notification Id",
-              "type": "integer"
-            }
-          },
-          {
             "description": "User ID (must own the notification)",
             "in": "query",
             "name": "user_id",
@@ -5106,6 +5097,15 @@
             "schema": {
               "description": "User ID (must own the notification)",
               "title": "User Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
               "type": "integer"
             }
           }
@@ -5149,10 +5149,10 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "null"
                 },
                 {
-                  "type": "null"
+                  "type": "string"
                 }
               ],
               "title": "X-Admin-Token"

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 from backend.app.main import app
 
@@ -21,7 +22,29 @@ def canonical_openapi_string() -> str:
     """Return canonicalized OpenAPI JSON with only stable contract sections."""
     schema = app.openapi()
     reduced = {key: schema[key] for key in KEEP_TOP_LEVEL_KEYS if key in schema}
-    return json.dumps(reduced, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    normalized = _normalize_json(reduced)
+    return json.dumps(normalized, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+
+
+def _normalize_json(value: Any) -> Any:
+    """
+    Normalize nested JSON to reduce cross-environment ordering noise.
+
+    OpenAPI generators can emit some arrays (e.g. anyOf) in different orders
+    between Python/library versions. Sorting list items by canonical JSON keeps
+    snapshots stable while preserving the same schema semantics.
+    """
+    if isinstance(value, dict):
+        return {key: _normalize_json(item) for key, item in value.items()}
+
+    if isinstance(value, list):
+        normalized_items = [_normalize_json(item) for item in value]
+        return sorted(
+            normalized_items,
+            key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True),
+        )
+
+    return value
 
 
 def write_snapshot(path: Path = SNAPSHOT_PATH) -> Path:
