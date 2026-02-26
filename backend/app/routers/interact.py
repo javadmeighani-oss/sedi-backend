@@ -8,7 +8,7 @@ RESPONSIBILITY:
 - NO logic, NO decisions
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
@@ -67,6 +67,7 @@ def introduce_user(
 # ---------------- Chat with Sedi ----------------  
 @router.post("/chat", response_model=InteractionResponse)
 async def chat(
+    request: Request,
     payload: ChatRequest,
     db: Session = Depends(get_db)
 ):
