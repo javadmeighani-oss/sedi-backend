@@ -129,7 +129,7 @@ def test_resolve_lang():
     assert svc.resolve_lang("en-US,en;q=0.9") == "en"
     assert svc.resolve_lang("fa") == "fa"
     assert svc.resolve_lang("ar-EG") == "ar"
-    assert svc.resolve_lang("fr-FR") == "fa"  # unknown -> fa
+    assert svc.resolve_lang("fr-FR") == "en"  # unknown -> en (V1 policy)
 
 
 def test_otp_hmac_deterministic_and_compare_digest(monkeypatch):
