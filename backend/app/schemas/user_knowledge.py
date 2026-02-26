@@ -1,6 +1,6 @@
 # app/schemas/user_knowledge.py
 """Schemas for User Knowledge layer: profile baseline + facts."""
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -16,8 +16,7 @@ class UserProfileKnowledgeRead(BaseModel):
     preferences_json: Optional[str] = None
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserProfileKnowledgeUpsert(BaseModel):
@@ -41,8 +40,7 @@ class UserFactRead(BaseModel):
     confidence: float
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserFactUpsert(BaseModel):

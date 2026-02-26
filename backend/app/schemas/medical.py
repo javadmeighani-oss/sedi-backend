@@ -1,5 +1,5 @@
 # app/schemas/medical.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from datetime import datetime
 
@@ -23,8 +23,7 @@ class MedicalConditionResponse(MedicalConditionBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # -------------------- Medication Schemas --------------------
@@ -47,8 +46,7 @@ class MedicationResponse(MedicationBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # -------------------- UserCondition Schemas --------------------
@@ -73,5 +71,4 @@ class UserConditionResponse(UserConditionBase):
     created_at: datetime
     condition: Optional[MedicalConditionResponse] = Field(None, description="Associated medical condition details")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

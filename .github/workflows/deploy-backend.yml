@@ -40,8 +40,9 @@ jobs:
               root@91.107.168.130 \
               "echo 'SSH connection successful ✅'"
 
-      - name: Install systemd override (V1 legacy_only)
+      - name: Install systemd override (V1 envfile + uvicorn)
         run: |
+          # Production reads secrets/auth mode from /etc/sedi/sedi-backend.env (db_only freeze). Repo .env must not be used.
           OVERRIDE_PATH="backend/deployment/sedi-backend.service.d/override.conf"
           if [ ! -f "$OVERRIDE_PATH" ]; then
             OVERRIDE_PATH="deployment/sedi-backend.service.d/override.conf"

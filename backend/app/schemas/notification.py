@@ -1,5 +1,5 @@
 # app/schemas/notification.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Literal, Dict, Any
 from datetime import datetime
 
@@ -29,8 +29,7 @@ class NotificationResponse(NotificationBase):
     is_sent: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True  # Pydantic V2: renamed from orm_mode
+    model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode
 
 
 # -------------------- Release B: Notification Contract (B1) --------------------

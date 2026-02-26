@@ -3,7 +3,7 @@
 Device Ingestion Schemas (Release C1)
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Dict, Any, Literal
 from datetime import datetime
 
@@ -18,8 +18,8 @@ class DeviceIngestRequest(BaseModel):
     payload: Dict[str, Any] = Field(..., description="Event payload (must not be empty)")
     recorded_at: Optional[datetime] = Field(None, description="Timestamp from device (optional)")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "user_id": 1,
                 "device_id": "Sedi001",
@@ -31,6 +31,7 @@ class DeviceIngestRequest(BaseModel):
                 "recorded_at": "2026-02-02T10:30:00Z"
             }
         }
+    )
 
 
 class DeviceIngestResponse(BaseModel):
@@ -39,8 +40,8 @@ class DeviceIngestResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     error: Optional[Dict[str, Any]] = None
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "ok": True,
                 "data": {
@@ -54,6 +55,7 @@ class DeviceIngestResponse(BaseModel):
                 }
             }
         }
+    )
 
 
 class DeviceEventResponse(BaseModel):
@@ -67,5 +69,4 @@ class DeviceEventResponse(BaseModel):
     received_at: datetime
     dedupe_key: Optional[str]
     
-    class Config:
-        from_attributes = True  # Pydantic V2: renamed from orm_mode
+    model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode

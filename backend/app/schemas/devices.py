@@ -3,7 +3,7 @@
 Device Identity Schemas (Release C2)
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Literal
 from datetime import datetime
 
@@ -27,8 +27,7 @@ class DevicePublicInfo(BaseModel):
     created_at: datetime
     revoked_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DevicesListResponse(BaseModel):

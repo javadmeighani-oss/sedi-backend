@@ -1,5 +1,5 @@
 # app/schemas/health.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -18,5 +18,4 @@ class HealthDataResponse(BaseModel):
     spo2: Optional[float]
     created_at: datetime
 
-    class Config:
-        from_attributes = True  # Pydantic V2: renamed from orm_mode
+    model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode

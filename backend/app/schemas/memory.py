@@ -1,5 +1,5 @@
 # app/schemas/memory.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -46,5 +46,4 @@ class MemoryResponse(BaseModel):
     created_at: datetime
     last_interaction: datetime
 
-    class Config:
-        from_attributes = True  # Pydantic V2: renamed from orm_mode
+    model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode
