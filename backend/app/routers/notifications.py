@@ -864,7 +864,7 @@ def get_notifications(
     return APIResponse(
         ok=True,
         data={
-            "notifications": [n.dict() for n in notification_list],
+            "notifications": [n.model_dump() for n in notification_list],
             "total": total,
             "unread_count": unread_count,
         }
@@ -970,7 +970,7 @@ def get_unread_notifications(
     return APIResponse(
         ok=True,
         data={
-            "notifications": [n.dict() for n in notification_list],
+            "notifications": [n.model_dump() for n in notification_list],
             "count": len(notification_list),
             "total": unread_total,
             "unread_count": unread_total,
