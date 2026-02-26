@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from backend.app.models import User
-from backend.tests.conftest import TestingSessionLocal
+from backend.app.database import SessionLocal
 
 from backend.app.main import app
 
@@ -18,7 +18,7 @@ def test_chat_accept_language_en_drives_response_language_for_commands(monkeypat
     # IMPORTANT: Do not call /interact/onboarding in tests.
     # Onboarding may use a production-like DATABASE_URL in some environments.
     # Instead, create a user directly using the test DB session (same pattern as other tests).
-    db = TestingSessionLocal()
+    db = SessionLocal()
     try:
         u = User(name="John", secret_key="test", preferred_language="fa")
         db.add(u)
