@@ -482,17 +482,22 @@ def setup_onboarding(
             print(f"[ONBOARDING] User name from payload: '{name}'")
             # STEP 2: Use name from payload (always available, required)
             user_name_for_gpt = name.strip()
-            # CRITICAL: Initial greeting is ALWAYS in English (for context)
-            # User's preferred language will be used for subsequent responses
-            brain = ConversationBrain(db, language="en")  # Use English for initial greeting
-            initial_message = brain.get_initial_message(user_id, user_name_for_gpt, "en")  # Always English for initial message
+            # V1 language policy: default English, but fully support fa/ar via Accept-Language or user preference.
+            from fastapi import Request
+            from backend.app.services.i18n.request_lang import resolve_request_lang
+
+            greeting_lang = resolve_request_lang(request, db=db, user_id=user_id)
+            brain = ConversationBrain(db, language=greeting_lang)
+            initial_message = brain.get_initial_message(user_id, user_name_for_gpt, greeting_lang)
             print(f"[ONBOARDING] ✅ GPT greeting generated successfully")
         except Exception as gpt_error:
             print(f"[ONBOARDING] ⚠️ GPT failed (non-critical), using fallback: {gpt_error}")
             # GPT failure is NOT critical - use fallback
-            if language == "fa":
+            from backend.app.services.i18n.request_lang import resolve_request_lang
+            greeting_lang = resolve_request_lang(request, db=db, user_id=user_id)
+            if greeting_lang == "fa":
                 initial_message = "سلام! من صدی هستم، دستیار مراقبت سلامت شما. خوش آمدید!"
-            elif language == "ar":
+            elif greeting_lang == "ar":
                 initial_message = "مرحباً! أنا صدي، مساعد رعاية صحية الخاص بك. أهلاً بك!"
             else:
                 initial_message = "Hello! I'm Sedi, your health care assistant. Welcome!"
@@ -512,10 +517,12 @@ def setup_onboarding(
         )
     
     print(f"[ONBOARDING] ✅ SUCCESS - Returning response with user_id: {user_id}")
+    from backend.app.services.i18n.request_lang import resolve_request_lang
+    response_lang = resolve_request_lang(request, db=db, user_id=user_id)
     return {
         "user_id": user_id,
         "message": initial_message,
-        "language": user_language  # Use default language (en)
+        "language": response_lang
     }
 
 
