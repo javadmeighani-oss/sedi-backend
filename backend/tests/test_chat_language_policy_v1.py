@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from backend.app.models import User
-from backend.app.database import SessionLocal
+from backend.app.database import get_db
 
 from backend.app.main import app
 
@@ -18,7 +18,8 @@ def test_chat_accept_language_en_drives_response_language_for_commands(monkeypat
     # IMPORTANT: Do not call /interact/onboarding in tests.
     # Onboarding may use a production-like DATABASE_URL in some environments.
     # Instead, create a user directly using the test DB session (same pattern as other tests).
-    db = SessionLocal()
+    db_gen = get_db()
+    db = next(db_gen)
     try:
         u = User(name="John", secret_key="test", preferred_language="fa")
         db.add(u)
@@ -26,7 +27,8 @@ def test_chat_accept_language_en_drives_response_language_for_commands(monkeypat
         db.refresh(u)
         user_id = u.id
     finally:
-        db.close()
+        # Ensure get_db() generator finalizer runs (closes session properly)
+        db_gen.close()
 
     # Send a deterministic command that is handled before GPT:
     # timezone: <IANA>
