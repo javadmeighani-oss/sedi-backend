@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from backend.app.models import User
+from backend.tests.conftest import TestingSessionLocal
+
 from backend.app.main import app
 
 
@@ -12,16 +15,18 @@ def test_chat_accept_language_en_drives_response_language_for_commands(monkeypat
     """
     client = TestClient(app)
 
-    # Create a user (use existing onboarding/register endpoint used in other tests)
-    # We keep this minimal and follow the project's current interact contract.
-    payload = {
-        "name": "John",
-        "phone": "+10000000000",
-        "age": 30
-    }
-    r = client.post("/interact/onboarding", json=payload, headers={"Accept-Language": "en"})
-    assert r.status_code == 200
-    user_id = r.json()["user_id"]
+    # IMPORTANT: Do not call /interact/onboarding in tests.
+    # Onboarding may use a production-like DATABASE_URL in some environments.
+    # Instead, create a user directly using the test DB session (same pattern as other tests).
+    db = TestingSessionLocal()
+    try:
+        u = User(name="John", secret_key="test", preferred_language="fa")
+        db.add(u)
+        db.commit()
+        db.refresh(u)
+        user_id = u.id
+    finally:
+        db.close()
 
     # Send a deterministic command that is handled before GPT:
     # timezone: <IANA>
