@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.core.security import SECRET_KEY, create_access_token
+from backend.app.services.i18n.locale import parse_accept_language
 
 logger = logging.getLogger(__name__)
 
@@ -55,14 +56,11 @@ def _refresh_hmac(token: str) -> str:
 
 
 def resolve_lang(accept_language: Optional[str]) -> str:
-    """Parse Accept-Language header to fa|en|ar. Iran-focused default: fa."""
-    if not accept_language or not accept_language.strip():
-        return "fa"
-    # First preferred: "en-US,en;q=0.9,fa;q=0.8" -> take first segment, then language code
-    first = accept_language.split(",")[0].strip().split("-")[0].strip().lower()[:2]
-    if first in ("en", "fa", "ar"):
-        return first
-    return "fa"
+    """
+    V1 language policy: primary language is English (en) with full fa/ar support.
+    Fallback must be en.
+    """
+    return parse_accept_language(accept_language)
 
 
 def _hash_secret(secret: str) -> str:
