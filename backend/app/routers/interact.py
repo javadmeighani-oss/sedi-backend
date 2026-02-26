@@ -119,8 +119,13 @@ async def chat(
         else:
             response_language = "en"  # Default to English
         
-        print(f"[CHAT] Language detection: message='{message[:50]}...', detected={detected_lang}, using={response_language}")
-        print(f"[CHAT] ✅ Language determined ONLY from message content (no query params)")
+        # V1 language policy: UI language is driven by Accept-Language or user preference (preferred_language).
+        # Do not rely on message-language detection as the primary source.
+        from backend.app.services.i18n.request_lang import resolve_request_lang
+        response_language = resolve_request_lang(request, db=db, user_id=user.id)
+
+        print(f"[CHAT] Language detection: message='{message[:50]}...', detected={detected_lang}, resolved={response_language}")
+        print(f"[CHAT] ✅ Language determined by request/user preference (V1 policy)")
         
         # STEP 3: HARDEN CHAT FLOW - Validate message before GPT call
         # This validation is also done in prompts.py, but we validate here too for early failure
