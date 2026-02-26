@@ -49,7 +49,8 @@ def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
         priority_num = priority_to_numeric(a.priority)
         command = {
             "sound_id": "alert_default",  # sound_id removed from new model
-            "text": a.body or a.title or "هشدار سلامت",  # Updated: message -> body
+            # English-first fallback (V1 policy)
+            "text": a.body or a.title or "Health Alert",  # Updated: message -> body
             "volume": 90,
             "repeat": 2 if priority_num >= 3 else 1,
             "language": "fa",  # language removed from new model, using default
