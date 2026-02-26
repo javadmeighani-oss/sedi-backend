@@ -3,8 +3,8 @@
 Multi-language notification text resolution.
 
 Resolves a multilingual texts dict to a single {title, message, ...} dict
-using user language with prefix matching and fallback order:
-  user_language (exact/prefix) -> default -> "fa" -> "en" -> first available.
+using user language with prefix matching and fallback order (V1 policy):
+  user_language (exact/prefix) -> default ("en") -> "en" -> "fa" -> first available.
 """
 
 from typing import Any, Dict, Optional
@@ -35,7 +35,7 @@ def _pick_lang_key(
 ) -> Optional[str]:
     """
     Pick best language key from texts.
-    Order: exact match -> prefix match (user_lang) -> default -> 'fa' -> 'en' -> first key.
+    Order (V1): exact match -> prefix match (user_lang) -> default -> 'en' -> 'fa' -> first key.
     """
     if not texts or not isinstance(texts, dict):
         return None
@@ -61,8 +61,8 @@ def _pick_lang_key(
     # 3) Default
     if default and default in lang_keys:
         return default
-    # 4) "fa" then "en"
-    for preferred in ("fa", "en"):
+    # 4) "en" then "fa" (V1 English-first policy)
+    for preferred in ("en", "fa"):
         for k in lang_keys:
             if _lang_prefix(k) == preferred:
                 return k
@@ -73,7 +73,7 @@ def _pick_lang_key(
 def resolve_text_by_user_language(
     texts: Optional[Dict[str, Any]],
     user_language: Optional[str] = None,
-    default: str = "fa",
+    default: str = "en",
 ) -> Dict[str, str]:
     """
     Resolve multilingual notification texts to a single locale block.
@@ -85,7 +85,7 @@ def resolve_text_by_user_language(
             - Multilingual {"fa": {"title": "...", "message": "..."}, "en": {...}}
               Keys may be "fa", "fa-IR", "en-US"; matched by prefix (fa*, en*) then fallback.
         user_language: User locale, e.g. "fa", "fa-IR", "en", "en-US".
-        default: Default language when user_language is None or no match ("fa").
+        default: Default language when user_language is None or no match ("en").
 
     Returns:
         Dict with at least "title" and "message" (or "body") when possible.
