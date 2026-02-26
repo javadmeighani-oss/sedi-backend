@@ -19,14 +19,14 @@ def test_chat_accept_language_en_drives_response_language_for_commands(monkeypat
         "phone": "+10000000000",
         "age": 30
     }
-    r = client.post("/onboarding", json=payload, headers={"Accept-Language": "en"})
+    r = client.post("/interact/onboarding", json=payload, headers={"Accept-Language": "en"})
     assert r.status_code == 200
     user_id = r.json()["user_id"]
 
     # Send a deterministic command that is handled before GPT:
     # timezone: <IANA>
     msg = {"user_id": user_id, "message": "timezone: Asia/Tehran"}
-    r2 = client.post("/chat", json=msg, headers={"Accept-Language": "en"})
+    r2 = client.post("/interact/chat", json=msg, headers={"Accept-Language": "en"})
     assert r2.status_code == 200
     data = r2.json()
     assert data["language"] == "en"
