@@ -123,9 +123,9 @@ def test_request_otp_succeeds_with_dummy_provider(client: TestClient, db):
 
 
 def test_resolve_lang():
-    """resolve_lang parses Accept-Language; default fa (Stage 25 Step 2.2)."""
-    assert svc.resolve_lang(None) == "fa"
-    assert svc.resolve_lang("") == "fa"
+    """resolve_lang parses Accept-Language; V1 default is en (English primary)."""
+    assert svc.resolve_lang(None) == "en"
+    assert svc.resolve_lang("") == "en"
     assert svc.resolve_lang("en-US,en;q=0.9") == "en"
     assert svc.resolve_lang("fa") == "fa"
     assert svc.resolve_lang("ar-EG") == "ar"
