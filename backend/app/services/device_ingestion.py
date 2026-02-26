@@ -318,8 +318,9 @@ def _execute_d1_actions(
             notif = persist_health_alert_d1(
                 db=db,
                 user_id=a.user_id,
-                title=a.title or "هشدار سلامت",
-                body=a.body or "هشدار سلامت ثبت شد.",
+                # English-first fallback (V1 policy)
+                title=a.title or "Health Alert",
+                body=a.body or "Health alert detected.",
                 dedupe_key=dedupe_key,
                 priority=a.priority,
                 trace_id=trace_id or None,
