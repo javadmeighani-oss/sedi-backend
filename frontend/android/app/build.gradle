@@ -58,7 +58,8 @@ android {
 }
 
 flutter {
-    source "../.."
+    // Use rootProject so path works in CI/monorepo (android is under frontend/)
+    source "${rootProject.rootDir.parent}"
 }
 
 dependencies {
