@@ -381,6 +381,11 @@ def run_device_disconnected_check():
                         print(f"[Sedi Scheduler] device_disconnected created for user={dev.user_id} device_id={dev.device_id}")
                 except Exception as e:
                     print(f"[Sedi Scheduler] device_disconnected failed user={dev.user_id} device_id={dev.device_id}: {e}")
+        finally:
+            try:
+                db.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": _DEVICE_DISCONNECTED_LOCK_KEY})
+            except Exception as unlock_err:
+                print(f"[Sedi Scheduler] device_disconnected advisory unlock warning: {unlock_err}")
 
 
 # -------------------------------
