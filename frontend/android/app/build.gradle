@@ -44,7 +44,7 @@ android {
 
     defaultConfig {
         applicationId "com.sedi.app"
-        minSdk 21
+        minSdk 23  // record_android requires min 23
         targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
