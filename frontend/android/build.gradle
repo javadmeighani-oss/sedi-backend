@@ -1,10 +1,12 @@
-// Set flutter property before any plugin (e.g. record_android) evaluates
+// Set flutter compileSdkVersion only for plugins (record_android) - NOT for :app which uses FlutterExtension
 gradle.beforeProject { project ->
-    project.ext.set("flutter", [
-        compileSdkVersion: 34,
-        minSdkVersion: 21,
-        targetSdkVersion: 34,
-    ])
+    if (project.name != "app") {
+        project.ext.set("flutter", [
+            compileSdkVersion: 34,
+            minSdkVersion: 21,
+            targetSdkVersion: 34,
+        ])
+    }
 }
 
 buildscript {
@@ -28,15 +30,7 @@ buildscript {
     }
 }
 
-// Workaround for record_android and other plugins that expect 'flutter' property (deprecated in Flutter 3.16+)
 allprojects {
-    ext {
-        flutter = [
-            compileSdkVersion: 34,
-            minSdkVersion: 21,
-            targetSdkVersion: 34,
-        ]
-    }
     repositories {
         google()
         // Use repo1.maven.org instead of repo.maven.apache.org (which returns 403)

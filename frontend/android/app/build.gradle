@@ -57,9 +57,8 @@ android {
     }
 }
 
-def flutterProjectRoot = rootProject.file("..").canonicalPath
 flutter {
-    source = flutterProjectRoot
+    source "../.."
 }
 
 dependencies {
