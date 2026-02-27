@@ -22,6 +22,9 @@ dependencies:
   record: ^5.2.1
   path_provider: ^2.1.2
 
+dependency_overrides:
+  record_linux: ^1.0.0  # Fix compatibility with record_platform_interface (startStream, hasPermission)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

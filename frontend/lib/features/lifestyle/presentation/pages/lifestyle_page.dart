@@ -128,10 +128,10 @@ class _LifestylePageState extends State<LifestylePage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const ListView(
+      return ListView(
         children: [
-          SizedBox(height: 120),
-          AppLoadingState(label: 'Loading lifestyle...'),
+          const SizedBox(height: 120),
+          const AppLoadingState(label: 'Loading lifestyle...'),
         ],
       );
     }

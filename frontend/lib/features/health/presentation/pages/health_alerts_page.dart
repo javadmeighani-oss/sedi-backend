@@ -87,10 +87,10 @@ class _HealthAlertsPageState extends State<HealthAlertsPage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const ListView(
+      return ListView(
         children: [
-          SizedBox(height: 120),
-          AppLoadingState(label: 'Loading health alerts...'),
+          const SizedBox(height: 120),
+          const AppLoadingState(label: 'Loading health alerts...'),
         ],
       );
     }
@@ -103,10 +103,10 @@ class _HealthAlertsPageState extends State<HealthAlertsPage> {
       );
     }
     if (_items.isEmpty) {
-      return const ListView(
+      return ListView(
         children: [
-          SizedBox(height: 120),
-          AppEmptyState(
+          const SizedBox(height: 120),
+          const AppEmptyState(
             title: 'No health alerts yet',
             subtitle: 'You will see important alerts here.',
           ),
