@@ -1,36 +1,44 @@
 # فعال‌سازی ارسال SMS کاوا نیگار
 
-## مراحل
+## روش ۱: اسکریپت خودکار (پیشنهادی)
 
-### ۱. روی سرور: اضافه کردن API Key به فایل .env
+```powershell
+$env:KAVENEGAR_API_KEY="your-api-key-from-kavenegar-panel"
+.\deployment\setup_sms_on_server.ps1
+```
+
+نیاز به اتصال SSH به سرور دارد. در صورت استفاده از کلید SSH، احراز هویت خودکار انجام می‌شود.
+
+## روش ۲: دستی
+
+### ۱. اتصال به سرور
 
 ```bash
 ssh root@91.107.168.130
 nano /var/www/sedi/backend/.env
 ```
 
-این خط را اضافه یا ویرایش کنید (کلید را از پنل کاوا نیگار جایگزین کنید):
+### ۲. اضافه کردن خطوط
 
 ```
 KAVENEGAR_API_KEY=your-actual-api-key
+SMS_DISABLED=false
 ```
 
-اگر `SMS_DISABLED=true` وجود دارد، آن را حذف یا به `false` تغییر دهید.
+اگر `SMS_DISABLED=true` وجود دارد، حذف یا به `false` تغییر دهید.
 
-### ۲. ریستارت سرویس
+### ۳. ریستارت
 
 ```bash
 systemctl restart sedi-backend
 ```
 
-### ۳. بررسی لاگ
+### ۴. بررسی لاگ
 
 ```bash
 journalctl -u sedi-backend -f -n 50
 ```
 
-با درخواست OTP، اگر ارسال موفق باشد، خطای `SMS send failed` نباید ظاهر شود.
-
 ---
 
-**توجه:** API Key را هرگز در ریپوزیتوری یا کد قرار ندهید. فقط در فایل `.env` روی سرور که در .gitignore است.
+**توجه:** API Key را هرگز در ریپوزیتوری commit نکنید.
