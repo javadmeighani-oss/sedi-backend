@@ -1,3 +1,12 @@
+// Set flutter property before any plugin (e.g. record_android) evaluates
+gradle.beforeProject { project ->
+    project.ext.set("flutter", [
+        compileSdkVersion: 34,
+        minSdkVersion: 21,
+        targetSdkVersion: 34,
+    ])
+}
+
 buildscript {
     ext.kotlin_version = '1.9.23'
     repositories {
@@ -19,7 +28,15 @@ buildscript {
     }
 }
 
+// Workaround for record_android and other plugins that expect 'flutter' property (deprecated in Flutter 3.16+)
 allprojects {
+    ext {
+        flutter = [
+            compileSdkVersion: 34,
+            minSdkVersion: 21,
+            targetSdkVersion: 34,
+        ]
+    }
     repositories {
         google()
         // Use repo1.maven.org instead of repo.maven.apache.org (which returns 403)
@@ -37,7 +54,6 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
