@@ -8,7 +8,7 @@ class AuthOtpService {
   final ApiClient _apiClient;
 
   AuthOtpService({ApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient();
+      : _apiClient = apiClient ?? ApiClient(timeout: const Duration(seconds: 30));
 
   Future<ApiResponse<Map<String, dynamic>>> requestOtp({
     required String phone,

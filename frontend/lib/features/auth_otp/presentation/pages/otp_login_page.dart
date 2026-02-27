@@ -65,7 +65,15 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   String _normalizePhone(String input) {
-    return input.trim().replaceAll(' ', '').replaceAll('-', '');
+    String s = input.trim().replaceAll(' ', '').replaceAll('-', '');
+    if (s.startsWith('+')) return s;
+    if (s.startsWith('0') && s.length == 11) {
+      return '+98${s.substring(1)}';
+    }
+    if (s.startsWith('9') && s.length == 10) {
+      return '+98$s';
+    }
+    return s;
   }
 
   bool _isValidPhone(String phone) {
@@ -204,10 +212,17 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   void _showMessage(String message) {
+    String displayMessage = message;
+    if (message.toLowerCase().contains('timeout')) {
+      displayMessage = 'اتصال قطع شد. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.';
+    } else if (message.contains('Too many OTP')) {
+      displayMessage = 'درخواست‌های زیاد. لطفاً چند دقیقه صبر کنید و دوباره تلاش کنید.';
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(displayMessage),
         backgroundColor: AppTheme.primaryBlack,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -216,14 +231,24 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: _step == _OtpStep.request
-                  ? _buildRequestStep()
-                  : _buildVerifyStep(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight - 40),
+                    child: IntrinsicHeight(
+                      child: _step == _OtpStep.request
+                          ? _buildRequestStep()
+                          : _buildVerifyStep(),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           if (_isLoading)
@@ -240,6 +265,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     return Form(
       key: _formKey,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
@@ -279,7 +305,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
           ),
           const SizedBox(height: 16),
           _buildLanguageSelector(),
-          const Spacer(),
+          const SizedBox(height: 32),
           _buildPrimaryButton(
             title: 'Send code',
             isLoading: _isLoading,
@@ -293,6 +319,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   Widget _buildVerifyStep() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
@@ -339,7 +366,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
             ),
           ],
         ),
-        const Spacer(),
+        const SizedBox(height: 24),
         _buildPrimaryButton(
           title: 'Verify',
           isLoading: _isLoading,
@@ -398,11 +425,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         child: DropdownButton<String>(
           value: _languagePref,
           isExpanded: true,
-          items: const [
-            DropdownMenuItem(value: 'auto', child: Text('Auto')),
-            DropdownMenuItem(value: 'en', child: Text('English')),
-            DropdownMenuItem(value: 'fa', child: Text('فارسی')),
-            DropdownMenuItem(value: 'ar', child: Text('العربية')),
+          items: [
+            const DropdownMenuItem(value: 'auto', child: Text('Auto')),
+            const DropdownMenuItem(value: 'en', child: Text('English')),
+            const DropdownMenuItem(value: 'fa', child: Text('فارسی')),
+            const DropdownMenuItem(value: 'ar', child: Text('العربية')),
           ],
           onChanged: (value) {
             if (value != null) {
