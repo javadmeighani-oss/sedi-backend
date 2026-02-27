@@ -1902,6 +1902,90 @@
         ]
       }
     },
+    "/auth/otp/request": {
+      "post": {
+        "description": "Alias for /request_otp. Use POST /auth/otp/request for REST-style paths.",
+        "operationId": "otp_request_alias_auth_otp_request_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Otp Request Alias",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/auth/otp/verify": {
+      "post": {
+        "description": "Alias for /verify_otp. Use POST /auth/otp/verify for REST-style paths.",
+        "operationId": "otp_verify_alias_auth_otp_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpVerifyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Otp Verify Alias",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/auth/refresh": {
       "post": {
         "description": "Exchange refresh token for new access + new refresh; used token is revoked (rotation).",
