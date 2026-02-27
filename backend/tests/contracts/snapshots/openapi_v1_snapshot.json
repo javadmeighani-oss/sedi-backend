@@ -5176,6 +5176,54 @@
         ]
       }
     },
+    "/ops/config/sms": {
+      "get": {
+        "description": "Admin-only: SMS config status (no secrets). Use to verify production env.\nReturns set/unset for each var; KAVENEGAR_API_KEY value is never exposed.",
+        "operationId": "ops_config_sms_ops_config_sms_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Config Sms",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
     "/ops/status": {
       "get": {
         "operationId": "ops_status_ops_status_get",
