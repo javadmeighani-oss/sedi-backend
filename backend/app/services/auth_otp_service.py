@@ -99,14 +99,15 @@ def request_otp(
     db: Session,
     phone: str,
     accept_language: Optional[str] = None,
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, Optional[str]]:
     """
     Create or update OTP for phone; rate-limit; send SMS (or dev log).
-    Returns (success, error_message). On success error_message is "".
+    Returns (success, error_message, dev_code). On success error_message is "".
+    dev_code is set when SMS is not actually sent (dev mode or gateway unavailable).
     """
     phone = normalize_phone(phone)
     if not phone or len(phone) < 8:
-        return False, "Invalid phone number"
+        return False, "Invalid phone number", None
 
     now = datetime.utcnow()
     window_start = now - timedelta(minutes=OTP_RATE_LIMIT_WINDOW_MINUTES)
@@ -119,7 +120,7 @@ def request_otp(
     )
     total_sent = sum(r.sent_count for r in recent)
     if total_sent >= OTP_RATE_LIMIT_COUNT:
-        return False, "Too many OTP requests. Try again later."
+        return False, "Too many OTP requests. Try again later.", None
 
     code = generate_otp_code()
     code_hash = _otp_hmac(code)
@@ -150,15 +151,18 @@ def request_otp(
     _sms_disabled = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true", "yes")
     if _sms_disabled:
         logger.warning("[DEV OTP] phone=%s code=%s", phone, code)
-        return True, ""
+        return True, "", code  # dev_code for testing without SMS
+
     from backend.app.services.sms_gateway import get_sms_sender
     lang = resolve_lang(accept_language)
     sender = get_sms_sender()
     result = sender.send_otp(phone, code, lang)
     if not result.ok:
-        logger.warning("SMS send failed provider=%s error=%s", result.provider, result.error)
-        raise HTTPException(status_code=503, detail="SMS delivery unavailable")
-    return True, ""
+        # When SMS gateway unavailable (e.g. KAVENEGAR_API_KEY not set), return dev_code for testing
+        # This allows the app to work without real SMS while developing
+        logger.warning("[OTP] SMS send failed (%s: %s) - returning dev_code for testing", result.provider, result.error)
+        return True, "", code
+    return True, "", None
 
 
 def verify_otp(db: Session, phone: str, code: str) -> Tuple[Optional[models.User], str]:

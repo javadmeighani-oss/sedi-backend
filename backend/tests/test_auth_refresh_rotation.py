@@ -18,7 +18,7 @@ def test_refresh_rotates_token_and_reusing_old_returns_401(client: TestClient, d
     code_plain = "123456"
     phone = "+989121111111"
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
-        ok, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
     r1 = client.post("/auth/verify_otp", json={"phone": phone, "code": code_plain})
     assert r1.status_code == 200

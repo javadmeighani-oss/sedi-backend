@@ -14,12 +14,15 @@ from backend.app.services import auth_otp_service as svc
 
 
 def test_request_otp_returns_ok_with_sms_disabled(client: TestClient, db):
-    """request_otp returns ok and next=verify_otp when SMS_DISABLED=true."""
+    """request_otp returns ok, next=verify_otp, and dev_code when SMS_DISABLED=true."""
     r = client.post("/auth/request_otp", json={"phone": "+989121234567"})
     assert r.status_code == 200
     data = r.json()
     assert data.get("ok") is True
-    assert data.get("data", {}).get("next") == "verify_otp"
+    resp_data = data.get("data", {})
+    assert resp_data.get("next") == "verify_otp"
+    dev_code = resp_data.get("dev_code")
+    assert dev_code is not None and len(dev_code) == 6 and dev_code.isdigit()
 
 
 def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(client: TestClient, db, monkeypatch):
@@ -28,7 +31,7 @@ def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(client: Tes
     code_plain = "123456"
     phone = "+989123456789"
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
-        ok, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
     row = db.query(models.OtpCode).filter(models.OtpCode.phone == phone).first()
     assert row is not None
@@ -51,7 +54,7 @@ def test_verify_otp_stores_device_info_and_ip_when_headers_present(client: TestC
     code_plain = "111222"
     phone = "+989177777777"
     with patch.object(svc, "generate_otp_code", return_value=code_plain):
-        ok, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
     r = client.post(
         "/auth/verify_otp",
@@ -77,7 +80,7 @@ def test_verify_otp_wrong_code_increments_attempts_and_fails(client: TestClient,
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_456")
     phone = "+989199999999"
     with patch.object(svc, "generate_otp_code", return_value="123456"):
-        ok, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
     r = client.post("/auth/verify_otp", json={"phone": phone, "code": "000000"})
     assert r.status_code == 200  # API returns 200 with ok=False
@@ -92,7 +95,7 @@ def test_auth_me_works_with_access_token(client: TestClient, db, monkeypatch):
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_me")
     phone = "+989128888888"
     with patch.object(svc, "generate_otp_code", return_value="654321"):
-        ok, _ = svc.request_otp(db, phone)
+        ok, _, _ = svc.request_otp(db, phone)
     assert ok is True
     r = client.post("/auth/verify_otp", json={"phone": phone, "code": "654321"})
     assert r.status_code == 200 and r.json().get("ok") is True
@@ -107,7 +110,7 @@ def test_auth_me_works_with_access_token(client: TestClient, db, monkeypatch):
 def test_sms_disabled_does_not_call_provider(client: TestClient, db):
     """When SMS_DISABLED=true, request_otp does not call get_sms_sender (Stage 25 Step 2.2)."""
     with patch("backend.app.services.sms_gateway.get_sms_sender") as mock_get:
-        ok, err = svc.request_otp(db, "+989100000001")
+        ok, err, _ = svc.request_otp(db, "+989100000001")
         mock_get.assert_not_called()
         assert ok is True
         assert err == ""
@@ -117,7 +120,7 @@ def test_request_otp_succeeds_with_dummy_provider(client: TestClient, db):
     """When SMS_DISABLED=false and SMS_PROVIDER=dummy, request_otp succeeds without network (Stage 25 Step 2.2)."""
     with patch.object(svc, "SMS_DISABLED", False):
         with patch.dict(os.environ, {"SMS_PROVIDER": "dummy"}, clear=False):
-            ok, err = svc.request_otp(db, "+989100000002")
+            ok, err, _ = svc.request_otp(db, "+989100000002")
             assert ok is True
             assert err == ""
 

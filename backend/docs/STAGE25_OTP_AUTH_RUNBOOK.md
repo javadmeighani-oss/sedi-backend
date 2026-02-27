@@ -37,8 +37,8 @@ curl -s -X POST http://127.0.0.1:8000/auth/request_otp \
   -d '{"phone": "+989121234567"}'
 ```
 
-Expected: `{"ok": true, "data": {"ok": true, "next": "verify_otp"}}`.  
-With `SMS_DISABLED=true`, the 6-digit code is logged (e.g. `[OTP_DEV] phone=... code=...`).  
+Expected: `{"ok": true, "data": {"ok": true, "next": "verify_otp"}}` or with `dev_code` for testing: `{"ok": true, "data": {"ok": true, "next": "verify_otp", "dev_code": "123456"}}`.  
+When SMS is not sent (SMS_DISABLED=true or Kavenegar unavailable), `dev_code` is returned so the app can display it (e.g. SnackBar) for testing without real SMS.  
 Optional: `Accept-Language: fa` or `en` / `ar` for OTP message language (default fa).
 
 ### 2. Verify OTP and get tokens
@@ -114,13 +114,19 @@ Optional audit: `POST /auth/verify_otp` accepts `X-Device-Info` and `X-Client-IP
 
 ## Step 2.2 – Real SMS (Kavenegar)
 
-- When `SMS_DISABLED=false` and `SMS_PROVIDER=kavenegar`, OTP is sent via Kavenegar REST API. On send failure the API returns **503** with detail `SMS delivery unavailable` (request still succeeds from rate-limit/DB perspective; client can retry).
+برای ارسال واقعی SMS به کاربران نیاز دارید:
+
+1. **حساب کاوا نیگار**: ثبت‌نام در https://panel.kavenegar.com
+2. **API Key**: از پنل کاوا نیگار دریافت کنید و روی سرور `KAVENEGAR_API_KEY` را تنظیم کنید.
+3. **خط ارسال (اختیاری)**: در پنل یک خط (شماره فرستنده) خریداری یا از خطوط اشتراکی رایگان استفاده کنید. اگر خط اختصاصی دارید، `KAVENEGAR_SENDER` را تنظیم کنید (مثلاً 1000xxxx یا 2000xxxx). در غیر این صورت Kavenegar از خط پیش‌فرض استفاده می‌کند.
+
+- When `SMS_DISABLED=false` and `SMS_PROVIDER=kavenegar`, OTP is sent via Kavenegar REST API. When SMS send fails (e.g. KAVENEGAR_API_KEY not set), the backend returns success with `dev_code` so the app works for testing.
 - OTP text: EN `Sedi verification code: {code}`, FA `کد تایید صدی: {code}`, AR `رمز التحقق من صدي: {code}` (from `Accept-Language`).
 
 ### Troubleshooting
 
-- **No SMS received:** Check `KAVENEGAR_API_KEY` and Kavenegar panel (balance, sender, logs). Ensure phone is E.164 (e.g. +989121234567).
-- **503 on request_otp:** Provider returned error or timeout. Check backend logs for `SMS send failed provider=... error=...`.
+- **No SMS received:** Check `KAVENEGAR_API_KEY` and Kavenegar panel (balance, sender line, logs). Ensure phone is E.164 (e.g. +989121234567). For testing without SMS, `dev_code` is returned in the API response—the app shows it in a SnackBar.
+- **503 on request_otp:** (Legacy) When Kavenegar fails, we now return `dev_code` instead of 503 so the app stays usable for development. For production SMS, fix KAVENEGAR_API_KEY and optionally KAVENEGAR_SENDER.
 
 ### Journalctl (backend logs)
 

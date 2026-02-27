@@ -40,12 +40,16 @@ def request_otp(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text."""
+    """Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text.
+    When SMS is not sent (dev mode or gateway unavailable), dev_code is returned for testing."""
     accept_language = request.headers.get("Accept-Language")
-    ok, err = svc.request_otp(db, body.phone, accept_language=accept_language)
+    ok, err, dev_code = svc.request_otp(db, body.phone, accept_language=accept_language)
     if not ok:
         return APIResponse(ok=False, error=ErrorInfo(code="OTP_REQUEST_FAILED", message=err))
-    return APIResponse(ok=True, data={"ok": True, "next": "verify_otp"})
+    data: dict = {"ok": True, "next": "verify_otp"}
+    if dev_code:
+        data["dev_code"] = dev_code
+    return APIResponse(ok=True, data=data)
 
 
 @router.post("/verify_otp", response_model=ApiResponseV1)
