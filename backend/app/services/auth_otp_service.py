@@ -158,10 +158,9 @@ def request_otp(
     sender = get_sms_sender()
     result = sender.send_otp(phone, code, lang)
     if not result.ok:
-        # When SMS gateway unavailable (e.g. KAVENEGAR_API_KEY not set), return dev_code for testing
-        # This allows the app to work without real SMS while developing
-        logger.warning("[OTP] SMS send failed (%s: %s) - returning dev_code for testing", result.provider, result.error)
-        return True, "", code
+        err_msg = (result.error or "SMS delivery failed").strip()
+        logger.warning("[OTP] SMS send failed phone=%s provider=%s error=%s", phone, result.provider, err_msg)
+        return False, err_msg or "SMS delivery failed. Please try again later.", None
     return True, "", None
 
 

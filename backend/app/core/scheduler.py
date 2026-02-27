@@ -339,36 +339,48 @@ def run_engagement_nudge():
 # -------------------------------
 # Device disconnected: last_seen_at older than threshold -> create notification (dedupe per device)
 # -------------------------------
+# Advisory lock key for device_disconnected (prevents concurrent job overlap)
+_DEVICE_DISCONNECTED_LOCK_KEY = 0x73656469  # 'sedi' in hex
+
+
 def run_device_disconnected_check():
     """
     For each active device: if now - last_seen_at > THRESHOLD (e.g. 15 min),
     create device_disconnected notification. Dedupe: once per device per 6h (handled in notification_engine).
+    Uses pg_advisory_lock to prevent duplicate notifications from concurrent runs.
     """
+    from sqlalchemy import text
     with next(get_db()) as db:
-        now = datetime.utcnow()
-        cutoff = now - timedelta(minutes=DEVICE_DISCONNECTED_THRESHOLD_MIN)
-        decision_engine = DecisionEngine(db)
-        # Active devices that have been seen before but not within threshold
-        devices = (
-            db.query(Device)
-            .filter(
-                Device.status == "active",
-                Device.last_seen_at.isnot(None),
-                Device.last_seen_at < cutoff,
-            )
-            .all()
-        )
-        for dev in devices:
-            try:
-                notif = decision_engine.create_device_disconnected(
-                    user_id=dev.user_id,
-                    device_id=dev.device_id,
-                    scheduled_for=now,
+        # Advisory lock: skip if another instance is already running (prevents duplicates)
+        r = db.execute(text("SELECT pg_try_advisory_lock(:key)"), {"key": _DEVICE_DISCONNECTED_LOCK_KEY})
+        if not (r.scalar() if r else False):
+            print("[Sedi Scheduler] device_disconnected skipped: lock held by another run")
+            return
+        try:
+            now = datetime.utcnow()
+            cutoff = now - timedelta(minutes=DEVICE_DISCONNECTED_THRESHOLD_MIN)
+            decision_engine = DecisionEngine(db)
+            # Active devices that have been seen before but not within threshold
+            devices = (
+                db.query(Device)
+                .filter(
+                    Device.status == "active",
+                    Device.last_seen_at.isnot(None),
+                    Device.last_seen_at < cutoff,
                 )
-                if notif:
-                    print(f"[Sedi Scheduler] device_disconnected created for user={dev.user_id} device_id={dev.device_id}")
-            except Exception as e:
-                print(f"[Sedi Scheduler] device_disconnected failed user={dev.user_id} device_id={dev.device_id}: {e}")
+                .all()
+            )
+            for dev in devices:
+                try:
+                    notif = decision_engine.create_device_disconnected(
+                        user_id=dev.user_id,
+                        device_id=dev.device_id,
+                        scheduled_for=now,
+                    )
+                    if notif:
+                        print(f"[Sedi Scheduler] device_disconnected created for user={dev.user_id} device_id={dev.device_id}")
+                except Exception as e:
+                    print(f"[Sedi Scheduler] device_disconnected failed user={dev.user_id} device_id={dev.device_id}: {e}")
 
 
 # -------------------------------

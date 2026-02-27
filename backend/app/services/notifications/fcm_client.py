@@ -21,7 +21,8 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256((token or "").encode("utf-8")).hexdigest()[:12]
 
 # FCM error codes that indicate token should be deactivated (Stage 18)
-FCM_DEACTIVATE_ERROR_CODES = frozenset({"UNREGISTERED", "NOT_FOUND"})
+# INVALID_ARGUMENT: "The registration token is not a valid FCM registration token"
+FCM_DEACTIVATE_ERROR_CODES = frozenset({"UNREGISTERED", "NOT_FOUND", "INVALID_ARGUMENT"})
 
 
 def parse_fcm_error(error_text: Optional[str]) -> Optional[Dict[str, str]]:

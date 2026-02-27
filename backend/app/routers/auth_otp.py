@@ -34,14 +34,12 @@ def get_current_user(
     return user
 
 
-@router.post("/request_otp", response_model=ApiResponseV1)
-def request_otp(
+def _handle_request_otp(
     body: OtpRequestIn,
     request: Request,
-    db: Session = Depends(get_db),
-):
-    """Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text.
-    When SMS is not sent (dev mode or gateway unavailable), dev_code is returned for testing."""
+    db: Session,
+) -> ApiResponseV1:
+    """Internal: request OTP logic (shared by /request_otp and /otp/request)."""
     accept_language = request.headers.get("Accept-Language")
     ok, err, dev_code = svc.request_otp(db, body.phone, accept_language=accept_language)
     if not ok:
@@ -52,13 +50,33 @@ def request_otp(
     return APIResponse(ok=True, data=data)
 
 
-@router.post("/verify_otp", response_model=ApiResponseV1)
-def verify_otp(
-    body: OtpVerifyIn,
+@router.post("/request_otp", response_model=ApiResponseV1)
+def request_otp(
+    body: OtpRequestIn,
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Verify OTP; create user if missing; return tokens. Optional X-Device-Info / X-Client-IP for audit."""
+    """Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text.
+    When SMS is not sent (dev mode or gateway unavailable), dev_code is returned for testing."""
+    return _handle_request_otp(body, request, db)
+
+
+@router.post("/otp/request", response_model=ApiResponseV1)
+def otp_request_alias(
+    body: OtpRequestIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Alias for /request_otp. Use POST /auth/otp/request for REST-style paths."""
+    return _handle_request_otp(body, request, db)
+
+
+def _handle_verify_otp(
+    body: OtpVerifyIn,
+    request: Request,
+    db: Session,
+) -> ApiResponseV1:
+    """Internal: verify OTP logic (shared by /verify_otp and /otp/verify)."""
     user, err = svc.verify_otp(db, body.phone, body.code)
     if err:
         code = "OTP_INVALID"
@@ -70,15 +88,36 @@ def verify_otp(
     device_info = request.headers.get("X-Device-Info") if request else None
     ip = (request.headers.get("X-Client-IP") or (request.client.host if request.client else None)) if request else None
     access_token, refresh_token, expires_in = svc.issue_tokens(db, user, device_info=device_info, ip=ip)
-    return APIResponse(
-        ok=True,
-        data=TokenOut(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer",
-            expires_in=expires_in,
-        ).model_dump(),
-    )
+    payload = TokenOut(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=expires_in,
+    ).model_dump()
+    payload["user_id"] = user.id
+    payload["phone"] = user.phone
+    payload["language"] = user.preferred_language or "en"
+    return APIResponse(ok=True, data=payload)
+
+
+@router.post("/verify_otp", response_model=ApiResponseV1)
+def verify_otp(
+    body: OtpVerifyIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Verify OTP; create user if missing; return tokens. Optional X-Device-Info / X-Client-IP for audit."""
+    return _handle_verify_otp(body, request, db)
+
+
+@router.post("/otp/verify", response_model=ApiResponseV1)
+def otp_verify_alias(
+    body: OtpVerifyIn,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Alias for /verify_otp. Use POST /auth/otp/verify for REST-style paths."""
+    return _handle_verify_otp(body, request, db)
 
 
 @router.get("/me", response_model=ApiResponseV1)

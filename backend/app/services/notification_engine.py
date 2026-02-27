@@ -534,7 +534,19 @@ class NotificationBuilder:
         )
         
         self.db.add(notification)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            # Handle UNIQUE constraint on dedupe_key (concurrent job race)
+            from sqlalchemy.exc import IntegrityError
+            if isinstance(e, IntegrityError):
+                logger.info(
+                    "[NOTIFICATION] Dedupe race: suppressed duplicate dedupe_key=%s",
+                    (payload.dedupe_key or "")[:80],
+                )
+                return None
+            raise
         self.db.refresh(notification)
         
         # Stage 16.6: Set deeplink_url for app routing

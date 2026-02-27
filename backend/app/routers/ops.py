@@ -86,3 +86,20 @@ def ops_status(
         },
     }
     return {"ok": True, "data": data, "error": None}
+
+
+@router.get("/config/sms")
+def ops_config_sms(_admin: None = Depends(require_admin)):
+    """
+    Admin-only: SMS config status (no secrets). Use to verify production env.
+    Returns set/unset for each var; KAVENEGAR_API_KEY value is never exposed.
+    """
+    return {
+        "ok": True,
+        "data": {
+            "SMS_DISABLED": "set" if os.environ.get("SMS_DISABLED") else "unset",
+            "SMS_PROVIDER": "set" if os.environ.get("SMS_PROVIDER") else "unset",
+            "KAVENEGAR_API_KEY": "set" if os.environ.get("KAVENEGAR_API_KEY") else "unset",
+        },
+        "error": None,
+    }

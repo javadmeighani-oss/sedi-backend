@@ -10,7 +10,9 @@
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /auth/request_otp | Request OTP for phone (SMS or dev log) |
+| POST | /auth/otp/request | Alias for request_otp (REST-style) |
 | POST | /auth/verify_otp | Verify OTP; create user if missing; return tokens |
+| POST | /auth/otp/verify | Alias for verify_otp (REST-style) |
 | GET | /auth/me | Current user info (requires Bearer) |
 | POST | /auth/refresh | Exchange refresh token for new access + refresh |
 | POST | /auth/logout | Revoke refresh token (Bearer = refresh token) |

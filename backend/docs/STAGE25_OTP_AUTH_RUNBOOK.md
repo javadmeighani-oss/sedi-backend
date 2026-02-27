@@ -31,6 +31,8 @@ Base URL assumed: `http://127.0.0.1:8000`. Use `BASE_URL` or your host in produc
 
 ### 1. Request OTP
 
+Canonical path: `/auth/request_otp`. Alias (REST-style): `/auth/otp/request`.
+
 ```bash
 curl -s -X POST http://127.0.0.1:8000/auth/request_otp \
   -H "Content-Type: application/json" \
@@ -87,8 +89,10 @@ Expected: `{"ok": true, "data": {"revoked": true}}`.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | **Monitoring (Freeze B1):** 200 JSON with `ok`, `version`, `env` (prod/dev), `db` (ok/error), `timestamp`. No secrets. Use for production health checks. |
-| POST | `/auth/request_otp` | Body: `{ "phone": "+..." }`. Rate-limited (e.g. 3 per 10 min). |
+| POST | `/auth/request_otp` | Body: `{ "phone": "+..." }`. Rate-limited (e.g. 5 per 10 min). |
+| POST | `/auth/otp/request` | Alias for request_otp. |
 | POST | `/auth/verify_otp` | Body: `{ "phone": "+...", "code": "123456" }`. Returns tokens. |
+| POST | `/auth/otp/verify` | Alias for verify_otp. |
 | GET | `/auth/me` | Header: `Authorization: Bearer <access_token>`. |
 | POST | `/auth/refresh` | Header: `Authorization: Bearer <refresh_token>`. |
 | POST | `/auth/logout` | Header: `Authorization: Bearer <refresh_token>`. Revokes that token. |

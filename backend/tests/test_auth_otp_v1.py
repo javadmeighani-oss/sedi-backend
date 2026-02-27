@@ -25,6 +25,15 @@ def test_request_otp_returns_ok_with_sms_disabled(client: TestClient, db):
     assert dev_code is not None and len(dev_code) == 6 and dev_code.isdigit()
 
 
+def test_otp_request_alias_works_same_as_request_otp(client: TestClient, db):
+    """POST /auth/otp/request is alias for /auth/request_otp; both must work (not 404)."""
+    r = client.post("/auth/otp/request", json={"phone": "+989121234568"})
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+    data = r.json()
+    assert data.get("ok") is True
+    assert (data.get("data") or {}).get("next") == "verify_otp"
+
+
 def test_verify_otp_with_correct_code_issues_tokens_and_creates_user(client: TestClient, db, monkeypatch):
     """Request OTP with mocked code; verify with same code; tokens and user created (HMAC OTP)."""
     monkeypatch.setenv("OTP_SECRET", "test_otp_secret_123")
@@ -118,11 +127,20 @@ def test_sms_disabled_does_not_call_provider(client: TestClient, db):
 
 def test_request_otp_succeeds_with_dummy_provider(client: TestClient, db):
     """When SMS_DISABLED=false and SMS_PROVIDER=dummy, request_otp succeeds without network (Stage 25 Step 2.2)."""
-    with patch.object(svc, "SMS_DISABLED", False):
-        with patch.dict(os.environ, {"SMS_PROVIDER": "dummy"}, clear=False):
-            ok, err, _ = svc.request_otp(db, "+989100000002")
-            assert ok is True
-            assert err == ""
+    with patch.dict(os.environ, {"SMS_DISABLED": "false", "SMS_PROVIDER": "dummy"}, clear=False):
+        ok, err, dev_code = svc.request_otp(db, "+989100000002")
+        assert ok is True
+        assert err == ""
+        assert dev_code is None  # dummy succeeds, no dev_code
+
+
+def test_request_otp_returns_error_when_sms_send_fails(client: TestClient, db):
+    """When SMS is enabled but provider fails, request_otp returns (False, error_msg, None) - no dev_code."""
+    with patch.dict(os.environ, {"SMS_DISABLED": "false", "SMS_PROVIDER": "kavenegar", "KAVENEGAR_API_KEY": ""}, clear=False):
+        ok, err, dev_code = svc.request_otp(db, "+989100000003")
+        assert ok is False
+        assert "KAVENEGAR" in err or "not set" in err.lower() or "SMS" in err
+        assert dev_code is None
 
 
 def test_resolve_lang():
