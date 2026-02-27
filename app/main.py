@@ -238,7 +238,12 @@ def request_otp(payload: OtpRequest):
     # حالت توسعه: کد در لاگ چاپ می‌شود تا بتوانید تست کنید
     print(f"[OTP] کد تأیید برای {phone}: {code} (اعتبار: ۵ دقیقه)")
     # TODO: اگر KAVENEGAR_API_KEY در env تنظیم شد، ارسال واقعی SMS
-    return {"ok": True, "data": {"message": "کد ارسال شد"}}  # Frontend expects ok: true
+    data: dict = {"message": "کد ارسال شد"}
+    # حالت دیباگ: نمایش کد در پاسخ برای تست بدون SMS (اگر KAVENEGAR تنظیم نشده باشد)
+    show_code = os.environ.get("OTP_DEV_SHOW_CODE", "").lower() in ("1", "true", "yes")
+    if show_code or not os.environ.get("KAVENEGAR_API_KEY"):
+        data["dev_code"] = code
+    return {"ok": True, "data": data}
 
 
 @app.post("/auth/verify_otp")

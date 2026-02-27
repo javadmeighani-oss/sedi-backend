@@ -73,12 +73,12 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     return normalized.length >= 8;
   }
 
-  Future<void> _sendCode() async {
+  Future<void> _sendCode({bool fromResend = false}) async {
     if (_isLoading) return;
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!fromResend && !(_formKey.currentState?.validate() ?? false)) return;
 
     final name = _nameController.text.trim();
-    final phone = _normalizePhone(_phoneController.text);
+    final phone = fromResend ? _requestedPhone : _normalizePhone(_phoneController.text);
     final language = _resolvedLanguage();
 
     setState(() => _isLoading = true);
@@ -99,6 +99,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     _clearOtpInputs();
     setState(() => _step = _OtpStep.verify);
     _startResendCooldown();
+    // نمایش کد در حالت دیباگ (وقتی بک‌اند dev_code برمی‌گرداند)
+    final devCode = response.data?['dev_code']?.toString();
+    if (devCode != null && devCode.isNotEmpty) {
+      _showMessage('کد تأیید: $devCode');
+    }
   }
 
   Future<void> _verifyCode() async {
@@ -164,8 +169,9 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   Future<void> _resendCode() async {
     if (_resendSecondsLeft > 0 || _isLoading) return;
+    if (_requestedPhone.isEmpty) return;
     setState(() => _phoneController.text = _requestedPhone);
-    await _sendCode();
+    await _sendCode(fromResend: true);
   }
 
   void _editPhone() {
