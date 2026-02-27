@@ -57,9 +57,9 @@ android {
     }
 }
 
+def flutterProjectRoot = rootProject.file("..").canonicalPath
 flutter {
-    // Use rootProject so path works in CI/monorepo (android is under frontend/)
-    source "${rootProject.rootDir.parent}"
+    source = flutterProjectRoot
 }
 
 dependencies {

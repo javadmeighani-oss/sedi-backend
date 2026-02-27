@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -51,6 +53,15 @@ jobs:
 
       - name: Flutter pub get
         run: flutter pub get
+
+      - name: Provide google-services.json for CI (stub if missing)
+        run: |
+          GS=android/app/google-services.json
+          if [ ! -f "$GS" ]; then
+            echo "Creating minimal google-services.json stub for CI"
+            mkdir -p "$(dirname "$GS")"
+            echo '{"project_info":{"project_number":"000000000000","project_id":"sedi-ci"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.sedi.app"}}}]}' > "$GS"
+          fi
 
       - name: Flutter analyze
         run: flutter analyze
