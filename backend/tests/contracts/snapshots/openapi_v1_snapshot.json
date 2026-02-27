@@ -2015,7 +2015,7 @@
     },
     "/auth/request_otp": {
       "post": {
-        "description": "Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text.",
+        "description": "Request OTP for phone. Rate-limited; SMS via gateway or [OTP_DEV] log. Accept-Language for OTP text.\nWhen SMS is not sent (dev mode or gateway unavailable), dev_code is returned for testing.",
         "operationId": "request_otp_auth_request_otp_post",
         "requestBody": {
           "content": {
