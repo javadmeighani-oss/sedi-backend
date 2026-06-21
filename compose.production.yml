@@ -1,0 +1,65 @@
+services:
+  sedi-backend:
+    image: ghcr.io/javadmeighani-oss/sedi-backend:${SEDI_IMAGE_TAG:-latest}
+    container_name: sedi-backend
+    restart: unless-stopped
+    env_file:
+      - /etc/sedi/sedi-backend.env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      sedi-postgres:
+        condition: service_healthy
+      sedi-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sedi-net
+
+  sedi-postgres:
+    image: postgres:16-alpine
+    container_name: sedi-postgres
+    restart: unless-stopped
+    env_file:
+      - /etc/sedi/sedi-backend.env
+    volumes:
+      - sedi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sedi-net
+
+  sedi-redis:
+    image: redis:7-alpine
+    container_name: sedi-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - sedi_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sedi-net
+
+volumes:
+  sedi_postgres_data:
+    external: true
+    name: backend_sedi_postgres_data
+  sedi_redis_data:
+    external: true
+    name: backend_sedi_redis_data
+
+networks:
+  sedi-net:
+    external: true
+    name: sedi-net
