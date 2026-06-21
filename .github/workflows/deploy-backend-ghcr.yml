@@ -1,0 +1,129 @@
+name: Deploy Sedi Backend from GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy from GHCR (latest or commit SHA)"
+        required: true
+        default: "latest"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy backend container to Cloud.ir
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keygen -y -f ~/.ssh/sedi_deploy_key > /tmp/sedi_deploy_key.pub
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload production compose file
+        run: |
+          scp -i ~/.ssh/sedi_deploy_key \
+            -P "${{ secrets.SEDI_PORT }}" \
+            compose.production.yml \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml.tmp"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mv '${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml.tmp' '${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml'"
+
+      - name: Deploy backend safely
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -Eeuo pipefail
+
+             DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+             IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+             IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
+
+             echo "=== DEPLOY CONTEXT ==="
+             echo "Deploy path: ${DEPLOY_PATH}"
+             echo "Image: ${IMAGE}"
+
+             cd "${DEPLOY_PATH}"
+
+             echo "=== CURRENT BACKEND IMAGE ==="
+             CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
+             echo "${CURRENT_IMAGE:-none}"
+
+             echo "=== PRE-DEPLOY DB BACKUP ==="
+             mkdir -p "${DEPLOY_PATH}/backups/postgres"
+             TS="$(date +%Y%m%d_%H%M%S)"
+             BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
+             docker exec sedi-postgres sh -c '\''pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'\'' | gzip > "${BACKUP_FILE}"
+             ls -lh "${BACKUP_FILE}"
+
+             echo "=== PULL IMAGE ==="
+             docker pull "${IMAGE}"
+
+             echo "=== VALIDATE COMPOSE ==="
+             SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml config >/tmp/sedi_compose_config_checked.yml
+
+             echo "=== RECREATE BACKEND ONLY ==="
+             SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+
+             echo "=== HEALTH CHECK ==="
+             HEALTH_OK=0
+             for i in $(seq 1 30); do
+               if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json; then
+                 cat /tmp/sedi_healthz.json
+                 HEALTH_OK=1
+                 break
+               fi
+               echo "Waiting for backend health... attempt ${i}/30"
+               sleep 2
+             done
+
+             if [ "${HEALTH_OK}" != "1" ]; then
+               echo "=== DEPLOY FAILED: BACKEND LOGS ==="
+               docker logs --tail 120 sedi-backend || true
+
+               if [ -n "${CURRENT_IMAGE}" ]; then
+                 echo "=== ROLLBACK TO PREVIOUS IMAGE ==="
+                 cat > /tmp/sedi-rollback.yml <<ROLLBACK_COMPOSE
+             services:
+               sedi-backend:
+                 image: ${CURRENT_IMAGE}
+             ROLLBACK_COMPOSE
+                 docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
+                 sleep 5
+                 curl -fsS http://127.0.0.1:8000/healthz || true
+               fi
+
+               exit 1
+             fi
+
+             echo "=== DOCKER COMPOSE PS ==="
+             docker compose -f compose.production.yml ps
+
+             echo "=== PUBLIC HEALTHZ ==="
+             curl -fsS https://api.sedi-ai.com/healthz
+
+             echo "=== DEPLOY DONE ==="
+            '
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Sedi Backend GHCR Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image tag:** ${{ github.event.inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
