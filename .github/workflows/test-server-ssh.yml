@@ -1,0 +1,42 @@
+name: Test Server SSH
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-ssh:
+    name: Test SSH connection to Sedi server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY }}" > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Test SSH and server status
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -e
+             echo "=== WHOAMI ==="
+             whoami
+
+             echo "=== HOSTNAME ==="
+             hostname
+
+             echo "=== DEPLOY PATH ==="
+             cd "${HOME}" >/dev/null
+             cd /var/www/sedi/backend
+             pwd
+
+             echo "=== DOCKER COMPOSE PS ==="
+             docker compose ps
+
+             echo "=== HEALTHZ ==="
+             curl -s https://api.sedi-ai.com/healthz
+            '
