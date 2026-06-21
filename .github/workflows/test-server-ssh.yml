@@ -13,8 +13,9 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY }}" > ~/.ssh/sedi_deploy_key
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
           chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keygen -y -f ~/.ssh/sedi_deploy_key > /tmp/sedi_deploy_key.pub
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Test SSH and server status
