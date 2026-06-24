@@ -1,142 +1,20 @@
-name: Deploy Sedi Backend to Cloud Server
+name: Legacy Deploy Sedi Backend (DISABLED — nested copy)
+
+# GitHub Actions only runs workflows from the repository root `.github/workflows/`.
+# This nested file is intentionally disabled. Do not reactivate.
+# Production deploy: use root `.github/workflows/deploy-backend-ghcr.yml` (manual workflow_dispatch).
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'app/**'
-      - 'backend/**'
-      - 'requirements.txt'
-      - 'deployment/**'
-      - '.github/workflows/deploy-backend.yml'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to Production Server
+  disabled:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SEDI_DEPLOY_KEY }}
-
-      - name: Add server to known_hosts
+      - name: Disable notice
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H 91.107.168.130 >> ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Test SSH connection
-        run: |
-          ssh -o BatchMode=yes \
-              -o ConnectTimeout=10 \
-              root@91.107.168.130 \
-              "echo 'SSH connection successful ✅'"
-
-      - name: Deploy to Server
-        run: |
-          ssh -o BatchMode=yes \
-              -o ConnectTimeout=10 \
-              root@91.107.168.130 << 'EOF'
-            set -e
-            echo "🚀 Starting deployment..."
-            
-            # Navigate to backend directory
-            cd /var/www/sedi/backend
-            
-            # Force server to match remote (no merge; discard all local changes)
-            echo "📥 Syncing with Git (discarding local changes)..."
-            git reset --hard HEAD
-            git clean -fd
-            git fetch origin
-            git reset --hard origin/main || {
-              echo "❌ Git sync failed"
-              exit 1
-            }
-            
-            # If repo has backend/ subfolder (e.g. pushed from Demo), use it
-            if [ -d backend ] && [ -f backend/requirements.txt ]; then
-              echo "📁 Using backend/ subfolder"
-              cd backend
-            fi
-            
-            # Check if virtual environment exists
-            if [ ! -d ".venv" ]; then
-              echo "⚠️  Virtual environment not found, creating..."
-              python3 -m venv .venv
-            fi
-            
-            # Activate virtual environment and install/update dependencies
-            echo "📦 Checking dependencies..."
-            source .venv/bin/activate
-            pip install --quiet --upgrade pip
-            pip install --quiet -r requirements.txt || {
-              echo "⚠️  Some dependencies failed to install, continuing..."
-            }
-            
-            # Restart service
-            echo "🔄 Restarting service..."
-            systemctl restart sedi-backend || {
-              echo "❌ Service restart failed"
-              exit 1
-            }
-            
-            # Wait for service to start
-            sleep 5
-            
-            # Check service status
-            echo "📊 Checking service status..."
-            systemctl status sedi-backend --no-pager | head -15 || {
-              echo "❌ Service status check failed"
-              exit 1
-            }
-            
-            # Test API endpoint
-            echo "🧪 Testing API endpoint..."
-            if curl -f -s http://localhost:8000/ > /dev/null; then
-              echo "✅ API endpoint is responding"
-            else
-              echo "⚠️  API endpoint test failed (service may still be starting)"
-            fi
-            
-            echo "✅ Deployment completed successfully!"
-          EOF
-
-      - name: Verify deployment
-        run: |
-          echo "🔍 Verifying deployment..."
-          sleep 3
-          
-          # Test external API access
-          API_RESPONSE=$(curl -s -f http://91.107.168.130:8000/ || echo "FAILED")
-          
-          if [ "$API_RESPONSE" != "FAILED" ]; then
-            echo "✅ External API is accessible"
-            echo "$API_RESPONSE" | head -5
-          else
-            echo "⚠️  External API test failed (may be firewall issue)"
-          fi
-
-      - name: Deployment summary
-        if: always()
-        run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Server:** 91.107.168.130" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Deployment failed. Check logs above." >> $GITHUB_STEP_SUMMARY
-          fi
-
-# trigger deploy - 2024-12-27
+          echo "This nested workflow has been disabled for safety."
+          echo "Reason: It targeted the legacy server (91.107.168.130) via systemd/git pull."
+          echo "Use the repository root workflows instead:"
+          echo "  - .github/workflows/deploy-backend-ghcr.yml (production deploy from GHCR)"
+          echo "  - .github/workflows/test-server-ssh.yml (SSH connectivity test)"

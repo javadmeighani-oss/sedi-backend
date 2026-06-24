@@ -163,7 +163,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     await UserPreferences.saveUserLanguage(profile.preferredLanguage);
 
     if (verify.accessToken != null && verify.accessToken!.isNotEmpty) {
-      await AuthService.setToken(verify.accessToken!);
+      await AuthService.setTokens(
+        accessToken: verify.accessToken!,
+        refreshToken: verify.refreshToken,
+      );
     }
 
     await tryRegisterStoredTokenAfterLogin();

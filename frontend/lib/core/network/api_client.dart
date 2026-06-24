@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../auth/auth_refresh_service.dart';
 import '../auth/auth_service.dart';
+import '../auth/auth_session_manager.dart';
 import '../config/app_config.dart';
 import 'api_error.dart';
 import 'api_response.dart';
@@ -35,6 +37,39 @@ class ApiClient {
     return headers;
   }
 
+  bool _shouldAttemptRefresh(String path, int statusCode) {
+    if (statusCode != 401) return false;
+    if (path.startsWith('/auth/refresh') || path.startsWith('/auth/logout')) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<http.Response> _withAuthRetry(
+    String path,
+    Future<http.Response> Function(Map<String, String> headers) send, {
+    Map<String, String>? extraHeaders,
+  }) async {
+    var headers = await _headers(extraHeaders: extraHeaders);
+    var response = await send(headers);
+    if (!_shouldAttemptRefresh(path, response.statusCode)) {
+      return response;
+    }
+
+    final refreshed = await AuthRefreshService.tryRefresh();
+    if (!refreshed) {
+      await AuthSessionManager.forceLogoutAndNavigate();
+      return response;
+    }
+
+    headers = await _headers(extraHeaders: extraHeaders);
+    response = await send(headers);
+    if (response.statusCode == 401) {
+      await AuthSessionManager.forceLogoutAndNavigate();
+    }
+    return response;
+  }
+
   /// GET [path] with optional [queryParams]. Returns ApiResponse<T> using [parser] for body["data"].
   Future<ApiResponse<T>> get<T>(
     String path, {
@@ -45,11 +80,15 @@ class ApiClient {
     try {
       final uri =
           Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-      final response = await http
-          .get(uri, headers: await _headers(extraHeaders: extraHeaders))
-          .timeout(timeout, onTimeout: () {
-        throw Exception('Request timeout');
-      });
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http
+            .get(uri, headers: headers)
+            .timeout(timeout, onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+        extraHeaders: extraHeaders,
+      );
 
       return _handleResponse<T>(response, parser);
     } catch (e) {
@@ -71,15 +110,19 @@ class ApiClient {
         uri = uri.replace(queryParameters: queryParams);
       }
       debugPrint('[API] POST $uri');
-      final response = await http
-          .post(
-        uri,
-        headers: await _headers(extraHeaders: extraHeaders),
-        body: body != null ? jsonEncode(body) : null,
-      )
-          .timeout(timeout, onTimeout: () {
-        throw Exception('Request timeout');
-      });
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http
+            .post(
+          uri,
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        )
+            .timeout(timeout, onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+        extraHeaders: extraHeaders,
+      );
       debugPrint('[API] response status=${response.statusCode}');
 
       return _handleResponse<T>(response, parser);
@@ -123,15 +166,19 @@ class ApiClient {
         uri = uri.replace(queryParameters: queryParams);
       }
       debugPrint('[API] PUT $uri');
-      final response = await http
-          .put(
-        uri,
-        headers: await _headers(extraHeaders: extraHeaders),
-        body: body != null ? jsonEncode(body) : null,
-      )
-          .timeout(timeout, onTimeout: () {
-        throw Exception('Request timeout');
-      });
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http
+            .put(
+          uri,
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        )
+            .timeout(timeout, onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+        extraHeaders: extraHeaders,
+      );
       debugPrint('[API] response status=${response.statusCode}');
       return _handleResponse<T>(response, parser);
     } catch (e) {
@@ -145,15 +192,19 @@ class ApiClient {
     try {
       var uri = Uri.parse('$baseUrl$path');
       debugPrint('[API] PUT $uri');
-      final response = await http
-          .put(
-        uri,
-        headers: await _headers(extraHeaders: extraHeaders),
-        body: body != null ? jsonEncode(body) : null,
-      )
-          .timeout(timeout, onTimeout: () {
-        throw Exception('Request timeout');
-      });
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http
+            .put(
+          uri,
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        )
+            .timeout(timeout, onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+        extraHeaders: extraHeaders,
+      );
       debugPrint('[API] response status=${response.statusCode}');
       Map<String, dynamic> json;
       try {

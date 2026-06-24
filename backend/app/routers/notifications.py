@@ -30,11 +30,21 @@ from backend.app.schemas.notification import (
 )
 from backend.app.schemas.notification_prefs import NotificationPrefsRead, NotificationPrefsUpdate
 from backend.app.services.notifications.prefs_service import get_prefs, upsert_prefs
+from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
 
 DEFAULT_ACTIONS_JSON = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DISLIKE"},{"id":"open_chat","type":"OPEN_CHAT"}]'
+
+
+def _assert_user_id_matches(auth_user: User, user_id: int) -> None:
+    """JWT user is source of truth; legacy user_id query must match."""
+    if user_id != auth_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="user_id does not match authenticated user",
+        )
 
 
 def _is_placeholder_or_invalid_fcm_token(token: str) -> bool:
@@ -816,23 +826,16 @@ def admin_observability(
 @router.get("", response_model=ApiResponseV1)
 @router.get("/", response_model=ApiResponseV1)
 def get_notifications(
+    auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID to fetch notifications for"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get all notifications for a user, ordered by created_at descending.
-    
-    Returns a list of notifications for the specified user_id.
+    Requires Bearer JWT; user_id query must match authenticated user.
     """
-    # Validate user exists
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
-        )
-    
-    # Base query (no order/limit) for full counts
+    _assert_user_id_matches(auth_user, user_id)
+    user_id = auth_user.id
     base_query = db.query(Notification).filter(Notification.user_id == user_id)
     total = base_query.count()
     unread_count = base_query.filter(Notification.is_read == False).count()
@@ -874,61 +877,44 @@ def get_notifications(
 # ------------------ GET /notifications/prefs (V1) ------------------
 @router.get("/prefs", response_model=ApiResponseV1)
 def get_notification_prefs(
+    auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID"),
     db: Session = Depends(get_db),
 ):
-    """Get notification preferences for a user. Returns defaults when no row exists."""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."),
-        )
-    prefs = get_prefs(db, user_id)
+    """Get notification preferences for a user. Requires Bearer JWT."""
+    _assert_user_id_matches(auth_user, user_id)
+    prefs = get_prefs(db, auth_user.id)
     return APIResponse(ok=True, data=prefs.model_dump(), error=None)
 
 
 # ------------------ PUT /notifications/prefs (V1) ------------------
 @router.put("/prefs", response_model=ApiResponseV1)
 def put_notification_prefs(
+    body: NotificationPrefsUpdate,
+    auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID"),
-    body: NotificationPrefsUpdate = ...,
     db: Session = Depends(get_db),
 ):
-    """Create or update notification preferences (partial update). Returns current prefs."""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."),
-        )
-    prefs = upsert_prefs(db, user_id, body)
+    """Create or update notification preferences. Requires Bearer JWT."""
+    _assert_user_id_matches(auth_user, user_id)
+    prefs = upsert_prefs(db, auth_user.id, body)
     return APIResponse(ok=True, data=prefs.model_dump(), error=None)
 
 
 # ------------------ GET /notifications/unread (Release B2) ------------------
 @router.get("/unread", response_model=ApiResponseV1)
 def get_unread_notifications(
+    auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID to fetch unread notifications for"),
     limit: int = Query(20, ge=1, le=100, description="Maximum number of notifications to return"),
     type: Optional[str] = Query(None, description="Optional filter by notification type"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
-    Get unread notifications for a user (Release B2).
-    
-    Returns list of notifications where is_read=false, ordered by created_at descending.
-    Supports optional filtering by type and limit.
+    Get unread notifications for a user (Release B2). Requires Bearer JWT.
     """
-    # Validate user exists
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
-        )
-    
-    # Build query for unread notifications
+    _assert_user_id_matches(auth_user, user_id)
+    user_id = auth_user.id
     query = (
         db.query(Notification)
         .filter(Notification.user_id == user_id)
@@ -983,20 +969,15 @@ def get_unread_notifications(
 @router.post("/{notification_id}/read", response_model=ApiResponseV1)  # Backward compatibility alias
 def mark_notification_read(
     notification_id: int,
+    auth_user: User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID (must own the notification)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
-    Mark a notification as read (Release B2).
-    
-    Updates the is_read field to True for the specified notification.
-    Validates ownership: notification.user_id must match provided user_id.
-    Idempotent: can be called multiple times safely.
-    
-    Endpoints:
-    - POST /notifications/{id}/mark-read (new)
-    - POST /notifications/{id}/read (backward compatible)
+    Mark a notification as read (Release B2). Requires Bearer JWT.
     """
+    _assert_user_id_matches(auth_user, user_id)
+
     # Find notification
     notification = db.query(Notification).filter(Notification.id == notification_id).first()
     if not notification:
@@ -1004,12 +985,12 @@ def mark_notification_read(
             ok=False,
             error=ErrorInfo(code="NOTIFICATION_NOT_FOUND", message="Notification not found.")
         )
-    
+
     # Validate ownership
-    if notification.user_id != user_id:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="FORBIDDEN", message="You do not have permission to modify this notification.")
+    if notification.user_id != auth_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to modify this notification.",
         )
     
     # Mark as read (idempotent - safe to call multiple times)
@@ -1028,13 +1009,15 @@ def mark_notification_read(
 @router.post("/push/register", response_model=ApiResponseV1)
 def push_register(
     body: PushRegisterRequest,
+    auth_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Register or update FCM token for push notifications (Stage 16.6).
-    Upsert by fcm_token; set user_id, is_active=True, last_seen_at=now.
-    Fail-open for tests: accept any non-empty token (do not hard-validate format).
+    Requires Bearer JWT; body.user_id must match authenticated user.
     """
+    _assert_user_id_matches(auth_user, body.user_id)
+    user_id = auth_user.id
     token = (body.fcm_token or "").strip()
     if not token:
         raise HTTPException(
@@ -1046,7 +1029,7 @@ def push_register(
             status_code=422,
             detail="Invalid FCM token (placeholder/too short).",
         )
-    user = db.query(User).filter(User.id == body.user_id).first()
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return APIResponse(
             ok=False,
@@ -1055,7 +1038,7 @@ def push_register(
     now = datetime.utcnow()
     existing = db.query(PushDevice).filter(PushDevice.fcm_token == token).first()
     if existing:
-        existing.user_id = body.user_id
+        existing.user_id = user_id
         existing.platform = body.platform
         existing.device_id = body.device_id or existing.device_id
         existing.is_active = True
@@ -1074,7 +1057,7 @@ def push_register(
             },
         )
     device = PushDevice(
-        user_id=body.user_id,
+        user_id=user_id,
         platform=body.platform,
         fcm_token=token,
         device_id=body.device_id,
@@ -1098,11 +1081,14 @@ def push_register(
 # ------------------ POST /notifications/push/unregister (Stage 16.6) ------------------
 @router.post("/push/unregister", response_model=ApiResponseV1)
 def push_unregister(
+    auth_user: User = Depends(get_current_user),
     fcm_token: str = Query(..., description="FCM token to deactivate"),
     user_id: int = Query(..., description="User ID (must own the token)"),
     db: Session = Depends(get_db),
 ):
-    """Deactivate a push device by FCM token (Stage 16.6)."""
+    """Deactivate a push device by FCM token. Requires Bearer JWT."""
+    _assert_user_id_matches(auth_user, user_id)
+    user_id = auth_user.id
     device = db.query(PushDevice).filter(
         PushDevice.fcm_token == fcm_token,
         PushDevice.user_id == user_id,
@@ -1165,14 +1151,17 @@ def _normalize_feedback_payload(payload: dict) -> tuple:
 def submit_notification_feedback(
     notification_id: int,
     payload: dict,
-    user_id: Optional[int] = Query(None, description="User ID (optional, validated from notification if not provided)"),
-    db: Session = Depends(get_db)
+    auth_user: User = Depends(get_current_user),
+    user_id: Optional[int] = Query(None, description="User ID (optional, must match JWT if provided)"),
+    db: Session = Depends(get_db),
 ):
     """
-    Submit feedback for a notification. V1: normalized event_type (like/dislike/open/dismiss).
-    Contract: reaction (required), timestamp (required), action_id (required when reaction==interact), feedback_text?, reason?.
-    Legacy: feedback/action/client_ts/meta accepted and mapped. reason enum: too_frequent | irrelevant | unclear.
+    Submit feedback for a notification. Requires Bearer JWT.
     """
+    if user_id is not None:
+        _assert_user_id_matches(auth_user, user_id)
+    user_id = auth_user.id
+
     # Find notification
     notification = db.query(Notification).filter(Notification.id == notification_id).first()
     if not notification:
@@ -1180,12 +1169,10 @@ def submit_notification_feedback(
             ok=False,
             error=ErrorInfo(code="NOTIFICATION_NOT_FOUND", message="Notification not found.")
         )
-    if user_id is None:
-        user_id = notification.user_id
-    elif user_id != notification.user_id:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="FORBIDDEN", message="You do not have permission to provide feedback for this notification.")
+    if notification.user_id != auth_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to provide feedback for this notification.",
         )
     # V1: If reaction is interact, action_id is required (422)
     reaction_raw = payload.get("reaction")
