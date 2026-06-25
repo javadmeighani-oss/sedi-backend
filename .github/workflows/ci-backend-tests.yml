@@ -1,4 +1,4 @@
-# Run Release D acceptance tests on push/PR to main using ephemeral Postgres (no production).
+# Run Release D acceptance tests using ephemeral Postgres only (never production DATABASE_URL).
 name: Backend V1 freeze tests
 
 on:
@@ -8,12 +8,15 @@ on:
       - 'app/**'
       - 'backend/**'
       - 'requirements.txt'
+      - '.github/workflows/ci-backend-tests.yml'
   pull_request:
     branches: [main]
     paths:
       - 'app/**'
       - 'backend/**'
       - 'requirements.txt'
+      - '.github/workflows/ci-backend-tests.yml'
+  workflow_dispatch:
 
 jobs:
   backend-acceptance:
@@ -73,6 +76,17 @@ jobs:
 
       - name: Run contracts
         run: python -m pytest -q backend/tests/contracts/ -v --tb=long
+
+      - name: Run interact stabilization tests
+        run: |
+          python -m pytest -q \
+            backend/tests/test_interact_onboarding_v1.py \
+            backend/tests/test_interact_chat_auth_v1.py \
+            backend/tests/test_interact_history_auth_v1.py \
+            backend/tests/test_interact_greeting_auth_v1.py \
+            backend/tests/test_notifications_auth_v1.py \
+            backend/tests/test_chat_language_policy_v1.py \
+            --tb=short
 
       - name: Run V1 mandatory acceptance subset
         run: |

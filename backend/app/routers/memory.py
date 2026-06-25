@@ -18,6 +18,7 @@ from backend.app.schemas.memory import (
     HistoryGroupItem,
     HistoryTurnItem,
 )
+from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 
@@ -43,6 +44,7 @@ def _group_key(created_at: datetime, group: GroupKind) -> str:
 
 @router.get("/history", response_model=HistoryResponse)
 def get_chat_history(
+    user: models.User = Depends(get_current_user),
     user_id: int = Query(..., description="User ID (required)"),
     group: GroupKind = Query("daily", description="Group by: daily | weekly | monthly | yearly"),
     limit: int = Query(200, ge=1, le=500, description="Max number of groups to return"),
@@ -51,18 +53,18 @@ def get_chat_history(
 ):
     """
     Fetch chat history from Memory table, grouped by day/week/month/year.
-    Groups sorted newest first; turns within each group oldest first.
-    Security: only returns data for the given user_id (user must exist).
+    Requires Bearer JWT; user_id query must match authenticated user.
     """
-    # Validate user exists
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    if user_id != user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="user_id does not match authenticated user",
+        )
 
-    # Fetch memory rows for this user only (strict filter)
+    # Fetch memory rows for authenticated user only (strict filter)
     rows = (
         db.query(models.Memory)
-        .filter(models.Memory.user_id == user_id)
+        .filter(models.Memory.user_id == user.id)
         .order_by(models.Memory.created_at.desc())
         .limit(_HISTORY_FETCH_CAP)
         .all()

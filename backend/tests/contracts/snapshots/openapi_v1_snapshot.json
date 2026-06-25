@@ -2919,6 +2919,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Chat",
         "tags": [
           "Interaction"
@@ -2927,7 +2932,7 @@
     },
     "/interact/greeting": {
       "get": {
-        "description": "Get personalized greeting for user.",
+        "description": "Get personalized greeting for user. Requires Bearer JWT.",
         "operationId": "get_greeting_interact_greeting_get",
         "parameters": [
           {
@@ -2986,6 +2991,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Greeting",
         "tags": [
           "Interaction"
@@ -2994,7 +3004,7 @@
     },
     "/interact/history": {
       "get": {
-        "description": "Get conversation history for user.",
+        "description": "Get conversation history for user. Requires Bearer JWT; user_id query must match token.",
         "operationId": "get_user_history_interact_history_get",
         "parameters": [
           {
@@ -3039,6 +3049,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get User History",
         "tags": [
           "Interaction"
@@ -3862,7 +3877,7 @@
     },
     "/memory/history": {
       "get": {
-        "description": "Fetch chat history from Memory table, grouped by day/week/month/year.\nGroups sorted newest first; turns within each group oldest first.\nSecurity: only returns data for the given user_id (user must exist).",
+        "description": "Fetch chat history from Memory table, grouped by day/week/month/year.\nRequires Bearer JWT; user_id query must match authenticated user.",
         "operationId": "get_chat_history_memory_history_get",
         "parameters": [
           {
@@ -3944,6 +3959,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Chat History",
         "tags": [
           "Memory"
@@ -4039,7 +4059,7 @@
     },
     "/notifications": {
       "get": {
-        "description": "Get all notifications for a user, ordered by created_at descending.\n\nReturns a list of notifications for the specified user_id.",
+        "description": "Get all notifications for a user, ordered by created_at descending.\nRequires Bearer JWT; user_id query must match authenticated user.",
         "operationId": "get_notifications_notifications_get",
         "parameters": [
           {
@@ -4076,6 +4096,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Notifications",
         "tags": [
           "Notifications"
@@ -4084,7 +4109,7 @@
     },
     "/notifications/": {
       "get": {
-        "description": "Get all notifications for a user, ordered by created_at descending.\n\nReturns a list of notifications for the specified user_id.",
+        "description": "Get all notifications for a user, ordered by created_at descending.\nRequires Bearer JWT; user_id query must match authenticated user.",
         "operationId": "get_notifications_notifications__get",
         "parameters": [
           {
@@ -4121,6 +4146,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Notifications",
         "tags": [
           "Notifications"
@@ -4724,7 +4754,7 @@
     },
     "/notifications/prefs": {
       "get": {
-        "description": "Get notification preferences for a user. Returns defaults when no row exists.",
+        "description": "Get notification preferences for a user. Requires Bearer JWT.",
         "operationId": "get_notification_prefs_notifications_prefs_get",
         "parameters": [
           {
@@ -4761,13 +4791,18 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Notification Prefs",
         "tags": [
           "Notifications"
         ]
       },
       "put": {
-        "description": "Create or update notification preferences (partial update). Returns current prefs.",
+        "description": "Create or update notification preferences. Requires Bearer JWT.",
         "operationId": "put_notification_prefs_notifications_prefs_put",
         "parameters": [
           {
@@ -4814,6 +4849,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Put Notification Prefs",
         "tags": [
           "Notifications"
@@ -4822,7 +4862,7 @@
     },
     "/notifications/push/register": {
       "post": {
-        "description": "Register or update FCM token for push notifications (Stage 16.6).\nUpsert by fcm_token; set user_id, is_active=True, last_seen_at=now.\nFail-open for tests: accept any non-empty token (do not hard-validate format).",
+        "description": "Register or update FCM token for push notifications (Stage 16.6).\nRequires Bearer JWT; body.user_id must match authenticated user.",
         "operationId": "push_register_notifications_push_register_post",
         "requestBody": {
           "content": {
@@ -4856,6 +4896,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Push Register",
         "tags": [
           "Notifications"
@@ -4864,7 +4909,7 @@
     },
     "/notifications/push/unregister": {
       "post": {
-        "description": "Deactivate a push device by FCM token (Stage 16.6).",
+        "description": "Deactivate a push device by FCM token. Requires Bearer JWT.",
         "operationId": "push_unregister_notifications_push_unregister_post",
         "parameters": [
           {
@@ -4912,6 +4957,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Push Unregister",
         "tags": [
           "Notifications"
@@ -4920,7 +4970,7 @@
     },
     "/notifications/unread": {
       "get": {
-        "description": "Get unread notifications for a user (Release B2).\n\nReturns list of notifications where is_read=false, ordered by created_at descending.\nSupports optional filtering by type and limit.",
+        "description": "Get unread notifications for a user (Release B2). Requires Bearer JWT.",
         "operationId": "get_unread_notifications_notifications_unread_get",
         "parameters": [
           {
@@ -4989,6 +5039,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Unread Notifications",
         "tags": [
           "Notifications"
@@ -4997,11 +5052,11 @@
     },
     "/notifications/{notification_id}/feedback": {
       "post": {
-        "description": "Submit feedback for a notification. V1: normalized event_type (like/dislike/open/dismiss).\nContract: reaction (required), timestamp (required), action_id (required when reaction==interact), feedback_text?, reason?.\nLegacy: feedback/action/client_ts/meta accepted and mapped. reason enum: too_frequent | irrelevant | unclear.",
+        "description": "Submit feedback for a notification. Requires Bearer JWT.",
         "operationId": "submit_notification_feedback_notifications__notification_id__feedback_post",
         "parameters": [
           {
-            "description": "User ID (optional, validated from notification if not provided)",
+            "description": "User ID (optional, must match JWT if provided)",
             "in": "query",
             "name": "user_id",
             "required": false,
@@ -5014,7 +5069,7 @@
                   "type": "null"
                 }
               ],
-              "description": "User ID (optional, validated from notification if not provided)",
+              "description": "User ID (optional, must match JWT if provided)",
               "title": "User Id"
             }
           },
@@ -5062,6 +5117,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Submit Notification Feedback",
         "tags": [
           "Notifications"
@@ -5070,7 +5130,7 @@
     },
     "/notifications/{notification_id}/mark-read": {
       "post": {
-        "description": "Mark a notification as read (Release B2).\n\nUpdates the is_read field to True for the specified notification.\nValidates ownership: notification.user_id must match provided user_id.\nIdempotent: can be called multiple times safely.\n\nEndpoints:\n- POST /notifications/{id}/mark-read (new)\n- POST /notifications/{id}/read (backward compatible)",
+        "description": "Mark a notification as read (Release B2). Requires Bearer JWT.",
         "operationId": "mark_notification_read_notifications__notification_id__mark_read_post",
         "parameters": [
           {
@@ -5116,6 +5176,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Mark Notification Read",
         "tags": [
           "Notifications"
@@ -5124,7 +5189,7 @@
     },
     "/notifications/{notification_id}/read": {
       "post": {
-        "description": "Mark a notification as read (Release B2).\n\nUpdates the is_read field to True for the specified notification.\nValidates ownership: notification.user_id must match provided user_id.\nIdempotent: can be called multiple times safely.\n\nEndpoints:\n- POST /notifications/{id}/mark-read (new)\n- POST /notifications/{id}/read (backward compatible)",
+        "description": "Mark a notification as read (Release B2). Requires Bearer JWT.",
         "operationId": "mark_notification_read_notifications__notification_id__read_post",
         "parameters": [
           {
@@ -5170,6 +5235,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Mark Notification Read",
         "tags": [
           "Notifications"

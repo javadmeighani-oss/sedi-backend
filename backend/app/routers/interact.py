@@ -20,6 +20,7 @@ from backend.app.core.conversation.brain import ConversationBrain
 from backend.app.schemas import InteractionResponse
 from backend.app.schemas.chat import ChatRequest
 from backend.app.schemas.onboarding import OnboardingRequest
+from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 
@@ -69,7 +70,8 @@ def introduce_user(
 async def chat(
     request: Request,
     payload: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """
     Chat endpoint - Thin API layer.
@@ -88,24 +90,15 @@ async def chat(
             detail="Message cannot be empty"
         )
     
-    # Extract values from payload
-    user_id = payload.user_id
     message = payload.message.strip()
-    
-    # Validate user_id
-    if not user_id or user_id <= 0:
+
+    # JWT is source of truth; body user_id is kept for contract compatibility only.
+    if payload.user_id and payload.user_id != user.id:
         raise HTTPException(
-            status_code=400,
-            detail="Invalid user_id. Must be a positive integer."
+            status_code=403,
+            detail="user_id does not match authenticated user",
         )
-    
-    # Find user by user_id (required after onboarding)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail=f"User with id {user_id} not found. Please check your user_id or start a new conversation."
-        )
+    user_id = user.id
     
     try:
         # STEP 2: SINGLE SOURCE OF LANGUAGE TRUTH
@@ -254,8 +247,9 @@ async def chat(
 # ---------------- Onboarding - Setup User ---------------- 
 @router.post("/onboarding")
 def setup_onboarding(
+    request: Request,
     payload: OnboardingRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     SIMPLE ONBOARDING: Create user with username only.
@@ -489,7 +483,6 @@ def setup_onboarding(
             # STEP 2: Use name from payload (always available, required)
             user_name_for_gpt = name.strip()
             # V1 language policy: default English, but fully support fa/ar via Accept-Language or user preference.
-            from fastapi import Request
             from backend.app.services.i18n.request_lang import resolve_request_lang
 
             greeting_lang = resolve_request_lang(request, db=db, user_id=user_id)
@@ -535,23 +528,25 @@ def setup_onboarding(
 # ---------------- Get Greeting ----------------
 @router.get("/greeting")
 def get_greeting(
+    auth_user: User = Depends(get_current_user),
     user_id: int = Query(...),
     lang: str = Query("en"),
     name: Optional[str] = Query(None),  # Optional: name from frontend (for GPT personalization)
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
-    Get personalized greeting for user.
+    Get personalized greeting for user. Requires Bearer JWT.
     """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    print(f"[GREETING] Getting greeting for user_id: {user_id}, name: '{name}', lang: {lang}")
-    
+    if user_id != auth_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="user_id does not match authenticated user",
+        )
+
+    print(f"[GREETING] Getting greeting for user_id: {auth_user.id}, name: '{name}', lang: {lang}")
+
     brain = ConversationBrain(db, language=lang)
-    # Pass name to get_greeting if provided
-    greeting_result = brain.get_greeting(user_id, user_name=name)
+    greeting_result = brain.get_greeting(auth_user.id, user_name=name)
     
     # get_greeting returns dict with message
     greeting_message = greeting_result.get("message", "") if isinstance(greeting_result, dict) else str(greeting_result)
@@ -561,34 +556,37 @@ def get_greeting(
     return {
         "message": greeting_message,
         "language": lang,
-        "user_id": user_id
+        "user_id": auth_user.id
     }
 
 
 # ---------------- Get User History ----------------
 @router.get("/history")
 def get_user_history(
+    user: User = Depends(get_current_user),
     user_id: int = Query(...),
     limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
-    Get conversation history for user.
+    Get conversation history for user. Requires Bearer JWT; user_id query must match token.
     """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
+    if user_id != user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="user_id does not match authenticated user",
+        )
+
     memories = (
         db.query(Memory)
-        .filter(Memory.user_id == user_id)
+        .filter(Memory.user_id == user.id)
         .order_by(Memory.created_at.desc())
         .limit(limit)
         .all()
     )
     
     return {
-        "user_id": user_id,
+        "user_id": user.id,
         "messages": [
             {
                 "id": m.id,

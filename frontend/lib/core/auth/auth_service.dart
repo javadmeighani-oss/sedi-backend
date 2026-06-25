@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// توکن در SharedPreferences ذخیره می‌شود.
 class AuthService {
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'auth_refresh_token';
 
   /// دریافت توکن احراز هویت
   ///
@@ -33,6 +34,48 @@ class AuthService {
       return await prefs.setString(_tokenKey, token);
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Refresh token for POST /auth/refresh and /auth/logout.
+  static Future<String?> getRefreshToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_refreshTokenKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<bool> setRefreshToken(String token) async {
+    try {
+      if (token.isEmpty) {
+        return false;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_refreshTokenKey, token);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> clearRefreshToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.remove(_refreshTokenKey);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Store access + refresh tokens from OTP verify or refresh response.
+  static Future<void> setTokens({
+    required String accessToken,
+    String? refreshToken,
+  }) async {
+    await setToken(accessToken);
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await setRefreshToken(refreshToken);
     }
   }
 
@@ -111,6 +154,7 @@ class AuthService {
       await prefs.remove(_userNameKey);
       await prefs.remove(_secretKeyKey);
       await clearToken();
+      await clearRefreshToken();
       return true;
     } catch (e) {
       return false;

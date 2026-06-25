@@ -13,7 +13,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
 from backend.app.models import User
+
+
+def _auth_headers(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
@@ -32,7 +38,10 @@ def prefs_user(db: Session) -> User:
 
 def test_get_prefs_defaults_when_no_row(client: TestClient, prefs_user: User) -> None:
     """GET /notifications/prefs returns ok and defaults when no row exists."""
-    response = client.get(f"/notifications/prefs?user_id={prefs_user.id}")
+    response = client.get(
+        f"/notifications/prefs?user_id={prefs_user.id}",
+        headers=_auth_headers(prefs_user.id),
+    )
     assert response.status_code == 200, response.text
     data = response.json()
     assert data.get("ok") is True
@@ -72,6 +81,7 @@ def test_put_prefs_creates_and_returns(client: TestClient, prefs_user: User) -> 
     }
     response = client.put(
         f"/notifications/prefs?user_id={prefs_user.id}",
+        headers=_auth_headers(prefs_user.id),
         json=body,
     )
     assert response.status_code == 200, response.text
@@ -98,9 +108,16 @@ def test_get_prefs_after_put_persists(client: TestClient, prefs_user: User) -> N
         "quiet_hours": {"enabled": True, "start": "23:00", "end": "06:00"},
         "engagement_level": 0,
     }
-    put_resp = client.put(f"/notifications/prefs?user_id={prefs_user.id}", json=body)
+    put_resp = client.put(
+        f"/notifications/prefs?user_id={prefs_user.id}",
+        headers=_auth_headers(prefs_user.id),
+        json=body,
+    )
     assert put_resp.status_code == 200
-    get_resp = client.get(f"/notifications/prefs?user_id={prefs_user.id}")
+    get_resp = client.get(
+        f"/notifications/prefs?user_id={prefs_user.id}",
+        headers=_auth_headers(prefs_user.id),
+    )
     assert get_resp.status_code == 200
     get_data = get_resp.json()["data"]
     assert get_data["channels"]["companion"] is False
@@ -111,11 +128,7 @@ def test_get_prefs_after_put_persists(client: TestClient, prefs_user: User) -> N
     assert get_data["engagement_level"] == 0
 
 
-def test_get_prefs_user_not_found(client: TestClient) -> None:
-    """GET /notifications/prefs for non-existent user returns error."""
-    response = client.get("/notifications/prefs?user_id=999999")
-    assert response.status_code == 200
-    data = response.json()
-    assert data.get("ok") is False
-    assert data.get("error") is not None
-    assert data["error"].get("code") == "USER_NOT_FOUND"
+def test_get_prefs_requires_auth(client: TestClient) -> None:
+    """GET /notifications/prefs without JWT is rejected."""
+    response = client.get("/notifications/prefs?user_id=1")
+    assert response.status_code == 401
