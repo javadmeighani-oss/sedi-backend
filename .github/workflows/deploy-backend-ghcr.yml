@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag to deploy from GHCR (latest or commit SHA)"
+        description: "Use a commit SHA image tag. Do not use latest for production."
         required: true
-        default: "latest"
 
 permissions:
   contents: read
@@ -18,6 +17,18 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Validate image tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          if [ -z "${TAG}" ]; then
+            echo "image_tag is required."
+            exit 1
+          fi
+          if [ "${TAG}" = "latest" ]; then
+            echo "Refusing to deploy 'latest'. Use a commit SHA image tag."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -97,11 +108,7 @@ jobs:
 
                if [ -n "${CURRENT_IMAGE}" ]; then
                  echo "=== ROLLBACK TO PREVIOUS IMAGE ==="
-                 cat > /tmp/sedi-rollback.yml <<ROLLBACK_COMPOSE
-             services:
-               sedi-backend:
-                 image: ${CURRENT_IMAGE}
-             ROLLBACK_COMPOSE
+                 printf "%s\n" "services:" "  sedi-backend:" "    image: ${CURRENT_IMAGE}" > /tmp/sedi-rollback.yml
                  docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
                  sleep 5
                  curl -fsS http://127.0.0.1:8000/healthz || true
