@@ -18,10 +18,8 @@ import '../../../data/models/chat_message.dart';
 import '../../../data/models/user_profile.dart';
 import '../../../data/repositories/lifestyle_repository.dart';
 import '../../../services/chat/chat_service.dart' as v1chat;
-import '../logic/greeting_templates.dart';
 import 'package:flutter/foundation.dart';
 import '../../../services/audio/audio_recorder_service.dart';
-import '../chat_service.dart' as legacychat;
 
 enum ConversationState {
   initializing, // در حال دریافت greeting از backend
@@ -59,7 +57,6 @@ class ChatController extends ChangeNotifier {
 
   final List<ChatMessage> messages = [];
 
-  final legacychat.ChatService _legacyChatService = legacychat.ChatService();
   final v1chat.ChatService _chatService = v1chat.ChatService();
   final LifestyleRepository _lifestyleRepo = LifestyleRepository();
   final AudioRecorderService _audioRecorder = AudioRecorderService();
@@ -196,120 +193,56 @@ class ChatController extends ChangeNotifier {
       return;
     }
 
-    print(
-        '[ChatController] No initial message, using approved intro greeting (once per user, no duplicate on reopen).');
-    await _showIntroGreetingOnce();
+    print('[ChatController] No initial message, fetching greeting from backend.');
+    await _fetchStartupGreeting();
     print('[ChatController] ========== INITIALIZE END (GREETING) ==========');
   }
 
-  /// Show approved intro greeting once; do not reinsert on app reopen if already seen.
-  Future<void> _showIntroGreetingOnce() async {
-    final alreadySeen = await UserPreferences.hasSeenIntroGreeting();
-    if (alreadySeen) {
-      print(
-          '[ChatController] Intro greeting already seen, skipping (no duplicate on reopen).');
+  /// GET /interact/greeting via ApiClient (Bearer + single 401 refresh).
+  Future<void> _fetchStartupGreeting() async {
+    final userId = _userProfile.userId;
+    if (userId == null) {
       conversationState = ConversationState.chatting;
       notifyListeners();
       return;
     }
-    final profileLang = _userProfile.preferredLanguage;
-    final lang = profileLang.isNotEmpty
-        ? profileLang
-        : await UserPreferences.getUserLanguage();
-    final greeting = getIntroGreeting(lang);
-    _addSediMessage(greeting);
-    await UserPreferences.setHasSeenIntroGreeting(true);
-    conversationState = ConversationState.chatting;
-    notifyListeners();
-  }
-
-  /// Get greeting from backend - kept for reference; intro now uses greeting_templates.
-  Future<void> _getGreetingFromBackend() async {
-    // CRITICAL: Validate user_id before making any API call
-    if (_userProfile.userId == null) {
-      print(
-          '[ChatController] ❌ ERROR: Cannot fetch greeting - user_id is null');
-      print(
-          '[ChatController]   - This should not happen. User should have user_id after onboarding.');
-      conversationState = ConversationState.chatting;
-      notifyListeners();
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خطا در بارگذاری پروفایل کاربر. لطفاً دوباره تلاش کنید.'
-            : currentLanguage == 'ar'
-                ? 'خطأ في تحميل ملف تعريف المستخدم. يرجى المحاولة مرة أخرى.'
-                : 'Error loading user profile. Please try again.',
-      );
-      return;
-    }
-
-    // Wait a bit for UI to settle
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    print('[ChatController] ========== GET GREETING START ==========');
-    print('[ChatController] Requesting greeting from backend...');
-    print(
-        '[ChatController] User: name="${_userProfile.name}", userId=${_userProfile.userId}, lang=$currentLanguage');
-    print(
-        '[ChatController] Profile loaded: name="${_userProfile.name}", userId=${_userProfile.userId}');
 
     try {
-      // CRITICAL: Pass user name and user_id to backend so GPT can use it
-      final greeting = await _legacyChatService.getGreeting(
-        userName: _userProfile.name, // This will be passed to backend for GPT
-        userPassword: _userProfile.securityPassword,
+      final response = await _chatService.fetchGreeting(
+        userId: userId,
         language: currentLanguage,
-        userId: _userProfile
-            .userId, // CRITICAL: Pass user_id to prevent anonymous user creation
+        name: _userProfile.name,
       );
 
       conversationState = ConversationState.chatting;
       notifyListeners();
 
-      if (greeting != null && greeting.isNotEmpty) {
-        // Check if backend is unavailable
-        if (greeting == 'BACKEND_UNAVAILABLE') {
-          print('[ChatController] ERROR: Backend unavailable');
-          // Show error state - NO greeting, NO fallback
-          _addSediMessage(
-            currentLanguage == 'fa'
-                ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
-                : currentLanguage == 'ar'
-                    ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
-                    : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
-          );
-          return;
-        }
-
-        // Backend provided greeting - display it
-        final parsed = _parseResponse(greeting);
-        final messageToDisplay = parsed['message'] as String;
-        print(
-            '[ChatController] Displaying backend greeting (length: ${messageToDisplay.length})');
-        _addSediMessage(messageToDisplay);
-      } else {
-        // Backend didn't respond - show error only
-        print('[ChatController] ERROR: Backend greeting returned null');
-        _addSediMessage(
-          currentLanguage == 'fa'
-              ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
-              : currentLanguage == 'ar'
-                  ? 'عذراً، أنا غير متصل بالخادم حاليًا. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى. 😔'
-                  : 'I\'m sorry, I\'m not connected to the server right now. Please check your internet connection and try again. 😔',
-        );
+      if (response.ok &&
+          response.data != null &&
+          response.data!.trim().isNotEmpty) {
+        _addSediMessage(response.data!.trim());
+        return;
       }
+
+      _addGreetingFallbackMessage();
     } catch (e) {
-      print('[ChatController] ERROR getting greeting: $e');
+      if (kDebugMode) {
+        print('[ChatController] Greeting fetch error: $e');
+      }
       conversationState = ConversationState.chatting;
       notifyListeners();
-      _addSediMessage(
-        currentLanguage == 'fa'
-            ? 'خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.'
-            : currentLanguage == 'ar'
-                ? 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'
-                : 'Error connecting to server. Please try again.',
-      );
+      _addGreetingFallbackMessage();
     }
+  }
+
+  void _addGreetingFallbackMessage() {
+    _addSediMessage(
+      currentLanguage == 'fa'
+          ? 'سلام! من صدی هستم. لطفاً پیام خود را بنویسید.'
+          : currentLanguage == 'ar'
+              ? 'مرحباً! أنا Sedi. يرجى إرسال رسالتك.'
+              : 'Hi! I\'m Sedi. Please send your message when you\'re ready.',
+    );
   }
 
   /// Parse response to extract user_id, detected_name, and return clean message

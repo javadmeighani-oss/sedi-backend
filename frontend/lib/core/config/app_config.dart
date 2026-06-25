@@ -1,8 +1,11 @@
 class AppConfig {
-  /// آدرس بک‌اند (در صورت لزوم با IP لوکال جایگزین شود)
-  static const String baseUrl = "http://91.107.168.130:8000";
+  /// API base URL is controlled by compile-time define.
+  /// Default is production endpoint if no define is provided.
+  static const String baseUrl = String.fromEnvironment(
+    'SEDI_API_BASE_URL',
+    defaultValue: 'https://api.sedi-ai.com',
+  );
 
-  /// اجرای لوکال با پاسخ‌های Mock => true
-  /// اتصال به بک‌اند واقعی => false
-  static const bool useLocalMode = false;
+  /// Local mode can still be enabled through compile-time define if needed.
+  static const bool useLocalMode = bool.fromEnvironment('SEDI_USE_LOCAL_MODE', defaultValue: false);
 }

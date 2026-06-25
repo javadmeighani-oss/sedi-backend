@@ -74,6 +74,56 @@ class ChatService {
     return response;
   }
 
+  /// Fetches personalized greeting via GET /interact/greeting (JWT + refresh via ApiClient).
+  Future<ApiResponse<String>> fetchGreeting({
+    required int userId,
+    String? language,
+    String? name,
+  }) async {
+    final resolvedUserId = await _resolveUserId(userId);
+    if (resolvedUserId == null) {
+      return const ApiResponse<String>(
+        ok: false,
+        error: ApiError(
+          code: 'USER_ID_REQUIRED',
+          message: 'User identity is required before fetching greeting.',
+        ),
+      );
+    }
+
+    final lang = (language != null && language.trim().isNotEmpty)
+        ? language.trim()
+        : 'en';
+    final queryParams = <String, String>{
+      'user_id': resolvedUserId.toString(),
+      'lang': lang,
+    };
+    if (name != null && name.trim().isNotEmpty) {
+      queryParams['name'] = name.trim();
+    }
+
+    final headers = <String, String>{'Accept-Language': lang};
+
+    if (kDebugMode) {
+      debugPrint('[ChatService] GET /interact/greeting user_id=$resolvedUserId');
+    }
+
+    return _apiClient.get<String>(
+      '/interact/greeting',
+      queryParams: queryParams,
+      extraHeaders: headers,
+      parser: (json) {
+        if (json is Map) {
+          final message = json['message']?.toString();
+          if (message != null && message.trim().isNotEmpty) {
+            return message.trim();
+          }
+        }
+        return null;
+      },
+    );
+  }
+
   Future<int?> _resolveUserId(int? explicitUserId) async {
     if (explicitUserId != null && explicitUserId > 0) return explicitUserId;
     final resolved = await UserIdentityService.resolveUserId();
