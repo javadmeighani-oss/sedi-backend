@@ -194,6 +194,40 @@ def _build_user_context_block(pack) -> str:
     return "\n".join(lines[:9])
 
 
+def _redact_secrets(text: str) -> str:
+    """Mask likely API key fragments before logging."""
+    import re
+
+    redacted = re.sub(r"sk-[A-Za-z0-9_-]{8,}", "sk-***", text or "")
+    return re.sub(r"(api[_-]?key\s*[:=]\s*)\S+", r"\1***", redacted, flags=re.IGNORECASE)
+
+
+def _log_gpt_failure(exc: BaseException, *, where: str) -> None:
+    """Structured GPT failure log without leaking secrets."""
+    print(
+        f"[BRAIN GPT_FAILURE] where={where} "
+        f"error_type={type(exc).__name__} "
+        f"message={_redact_secrets(str(exc))[:300]}"
+    )
+
+
+def _is_gpt_related_error(exc: BaseException) -> bool:
+    """True when the failure should surface as gpt_failure (502) from interact router."""
+    error_str = str(exc).lower()
+    error_type_name = type(exc).__name__.lower()
+    return (
+        "openai" in error_str
+        or "api key" in error_str
+        or "authentication" in error_str
+        or "rate limit" in error_str
+        or "gpt" in error_str
+        or "completion" in error_str
+        or "openai" in error_type_name
+        or "authenticationerror" in error_type_name
+        or "apierror" in error_type_name
+    )
+
+
 class ConversationBrain:
     """Central decision engine for all conversation interactions"""
     
@@ -339,15 +373,8 @@ class ConversationBrain:
                 sedi_response = completion.output_text.strip()
                 print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
             except Exception as gpt_exception:
-                # CRITICAL: This exception is from GPT call - re-raise it
-                print(f"[BRAIN] ===== GPT EXCEPTION IN process_message =====")
-                print(f"[BRAIN] Exception type: {type(gpt_exception).__name__}")
-                print(f"[BRAIN] Exception message: {str(gpt_exception)}")
-                import traceback
-                print(f"[BRAIN] Full traceback:")
-                print(traceback.format_exc())
-                print(f"[BRAIN] ===== END GPT EXCEPTION =====")
-                # Re-raise to be handled by endpoint (will return 502 for GPT errors)
+                # CRITICAL: GPT failures must escape to interact router (502 gpt_failure).
+                _log_gpt_failure(gpt_exception, where="process_message.responses_create")
                 raise
             
             # If we get here, GPT call was successful
@@ -420,8 +447,12 @@ class ConversationBrain:
             print(f"[BRAIN ERROR] Exception type: {type(e).__name__}")
             import traceback
             print(f"[BRAIN ERROR] Traceback: {traceback.format_exc()}")
-            
-            # Return a user-friendly error message
+
+            if _is_gpt_related_error(e):
+                _log_gpt_failure(e, where="process_message.outer_re_raise")
+                raise
+
+            # Non-GPT failures: return a user-friendly error message (HTTP 200 legacy path)
             error_messages = {
                 "en": "I'm sorry, I encountered an error processing your message. Please try again.",
                 "fa": "متاسفم، در پردازش پیام شما خطایی رخ داد. لطفاً دوباره تلاش کنید.",

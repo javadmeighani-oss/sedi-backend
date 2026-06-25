@@ -16,7 +16,7 @@ import uuid
 
 from backend.app.database import get_db
 from backend.app.models import User, Memory
-from backend.app.core.conversation.brain import ConversationBrain
+from backend.app.core.conversation.brain import ConversationBrain, _is_gpt_related_error, _redact_secrets
 from backend.app.schemas import InteractionResponse
 from backend.app.schemas.chat import ChatRequest
 from backend.app.schemas.onboarding import OnboardingRequest
@@ -201,8 +201,8 @@ async def chat(
     except Exception as e:
         # STEP 4: ERROR TRANSPARENCY - Log and return real errors
         print(f"[CHAT ERROR] ===== ERROR PROCESSING MESSAGE =====")
-        print(f"[CHAT ERROR] Error: {e}")
         print(f"[CHAT ERROR] Error type: {type(e).__name__}")
+        print(f"[CHAT ERROR] Error message: {_redact_secrets(str(e))[:300]}")
         import traceback
         print(f"[CHAT ERROR] Traceback: {traceback.format_exc()}")
         print(f"[CHAT ERROR] Message: '{message[:100]}...'")
@@ -210,31 +210,18 @@ async def chat(
         print(f"[CHAT ERROR] User found: {user is not None}")
         print(f"[CHAT ERROR] ===== END ERROR =====")
         
-        # Check if this is a GPT-related error
-        error_str = str(e).lower()
-        error_type_name = type(e).__name__.lower()
-        is_gpt_error = (
-            "openai" in error_str or
-            "api key" in error_str or
-            "authentication" in error_str or
-            "rate limit" in error_str or
-            "gpt" in error_str or
-            "completion" in error_str or
-            "openai" in error_type_name or
-            "authenticationerror" in error_type_name or
-            "apierror" in error_type_name
-        )
-        
-        if is_gpt_error:
-            # STEP 4: Return 502 with real error message (not generic)
-            print(f"[CHAT ERROR] GPT-related error detected - returning 502")
+        if _is_gpt_related_error(e):
+            print(
+                f"[CHAT ERROR] GPT-related error detected - returning 502 gpt_failure "
+                f"(error_type={type(e).__name__})"
+            )
             from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=502,
                 content={
                     "error": "gpt_failure",
-                    "detail": str(e)[:500]  # Real error message, not generic
-                }
+                    "detail": "AI service is temporarily unavailable. Please try again.",
+                },
             )
         else:
             # Return 500 for other internal errors
