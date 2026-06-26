@@ -136,10 +136,19 @@ def test_request_otp_succeeds_with_dummy_provider(client: TestClient, db):
 
 def test_request_otp_returns_error_when_sms_send_fails(client: TestClient, db):
     """When SMS is enabled but provider fails, request_otp returns (False, error_msg, None) - no dev_code."""
-    with patch.dict(os.environ, {"SMS_DISABLED": "false", "SMS_PROVIDER": "kavenegar", "KAVENEGAR_API_KEY": ""}, clear=False):
+    with patch.dict(
+        os.environ,
+        {
+            "SMS_DISABLED": "false",
+            "SMS_PROVIDER": "mediana",
+            "MEDIANA_API_KEY": "",
+            "MEDIANA_OTP_PATTERN_CODE": "test-pattern",
+        },
+        clear=False,
+    ):
         ok, err, dev_code = svc.request_otp(db, "+989100000003")
         assert ok is False
-        assert "KAVENEGAR" in err or "not set" in err.lower() or "SMS" in err
+        assert "MEDIANA" in err or "not set" in err.lower() or "SMS" in err
         assert dev_code is None
 
 

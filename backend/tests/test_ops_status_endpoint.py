@@ -43,8 +43,9 @@ def test_ops_config_sms_returns_set_unset(client: TestClient, monkeypatch: pytes
     """GET /ops/config/sms returns set/unset for SMS vars (no secret values)."""
     monkeypatch.setenv("ADMIN_TOKEN", "ops-admin")
     monkeypatch.setenv("SMS_DISABLED", "false")
-    monkeypatch.setenv("SMS_PROVIDER", "kavenegar")
-    monkeypatch.setenv("KAVENEGAR_API_KEY", "secret-key-never-shown")
+    monkeypatch.setenv("SMS_PROVIDER", "mediana")
+    monkeypatch.setenv("MEDIANA_API_KEY", "secret-key-never-shown")
+    monkeypatch.setenv("MEDIANA_OTP_PATTERN_CODE", "test-pattern")
     res = client.get("/ops/config/sms", headers={"X-ADMIN-TOKEN": "ops-admin"})
     assert res.status_code == 200, res.text
     body = res.json()
@@ -52,5 +53,6 @@ def test_ops_config_sms_returns_set_unset(client: TestClient, monkeypatch: pytes
     data = body.get("data")
     assert data["SMS_DISABLED"] == "set"
     assert data["SMS_PROVIDER"] == "set"
-    assert data["KAVENEGAR_API_KEY"] == "set"
+    assert data["MEDIANA_API_KEY"] == "set"
+    assert data["MEDIANA_OTP_PATTERN_CODE"] == "set"
     assert "secret" not in str(body).lower()  # No raw key in response

@@ -92,14 +92,17 @@ def ops_status(
 def ops_config_sms(_admin: None = Depends(require_admin)):
     """
     Admin-only: SMS config status (no secrets). Use to verify production env.
-    Returns set/unset for each var; KAVENEGAR_API_KEY value is never exposed.
+    Returns set/unset for each var; API keys are never exposed.
     """
     return {
         "ok": True,
         "data": {
             "SMS_DISABLED": "set" if os.environ.get("SMS_DISABLED") else "unset",
             "SMS_PROVIDER": "set" if os.environ.get("SMS_PROVIDER") else "unset",
-            "KAVENEGAR_API_KEY": "set" if os.environ.get("KAVENEGAR_API_KEY") else "unset",
+            "MEDIANA_API_KEY": "set" if os.environ.get("MEDIANA_API_KEY") else "unset",
+            "MEDIANA_OTP_PATTERN_CODE": "set"
+            if os.environ.get("MEDIANA_OTP_PATTERN_CODE")
+            else "unset",
         },
         "error": None,
     }

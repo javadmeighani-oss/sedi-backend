@@ -38,6 +38,10 @@ frontend/.fvm/
 .DS_Store
 Thumbs.db
 
+# Local SMS API keys (never commit)
+API-KEY-SMS.txt
+**/API-KEY-SMS.txt
+
 # Environment
 .env
 .env.local

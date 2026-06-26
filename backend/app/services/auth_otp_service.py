@@ -85,6 +85,14 @@ def normalize_phone(phone: str) -> str:
     return s
 
 
+def _mask_phone(phone: str) -> str:
+    """Mask phone for logs (prefix only)."""
+    s = (phone or "").strip()
+    if len(s) <= 4:
+        return "***"
+    return s[:4] + "***"
+
+
 def generate_otp_code() -> str:
     """Generate 6-digit numeric OTP."""
     return "".join(secrets.choice("0123456789") for _ in range(6))
@@ -150,7 +158,7 @@ def request_otp(
     # Read at runtime so tests can set SMS_DISABLED before request_otp
     _sms_disabled = os.environ.get("SMS_DISABLED", "").strip().lower() in ("1", "true", "yes")
     if _sms_disabled:
-        logger.warning("[DEV OTP] phone=%s code=%s", phone, code)
+        logger.warning("[DEV OTP] phone=%s (SMS disabled)", _mask_phone(phone))
         return True, "", code  # dev_code for testing without SMS
 
     from backend.app.services.sms_gateway import get_sms_sender
@@ -159,7 +167,12 @@ def request_otp(
     result = sender.send_otp(phone, code, lang)
     if not result.ok:
         err_msg = (result.error or "SMS delivery failed").strip()
-        logger.warning("[OTP] SMS send failed phone=%s provider=%s error=%s", phone, result.provider, err_msg)
+        logger.warning(
+            "[OTP] SMS send failed phone=%s provider=%s error=%s",
+            _mask_phone(phone),
+            result.provider,
+            err_msg,
+        )
         return False, err_msg or "SMS delivery failed. Please try again later.", None
     return True, "", None
 

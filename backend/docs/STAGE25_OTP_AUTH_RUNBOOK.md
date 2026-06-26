@@ -8,10 +8,10 @@
 |----------|----------|-------------|
 | `SECRET_KEY` | Production | **Canonical** secret for JWT signing (access tokens). Must be **≥ 32 bytes**, recommended **64 bytes** random (e.g. `openssl rand -base64 48`). If missing when `DEBUG=false` or `ENV=prod`, the app fails at startup. Backward-compat: `JWT_SECRET` is read when `SECRET_KEY` is not set. **Rotating SECRET_KEY invalidates all existing access tokens** (expected; users must re-auth or use refresh token where applicable). |
 | `OTP_SECRET` | Optional | Used only for OTP HMAC hashing (server-side). If missing, `SECRET_KEY` is used. Changing it invalidates active OTP codes only (max 5 minutes), not refresh tokens. |
-| `SMS_DISABLED` | Optional | Set to `true` / `1` / `yes` to skip sending SMS and log OTP with `[OTP_DEV]` (dev mode). Preserved in Step 2.2. |
-| `SMS_PROVIDER` | Optional | `kavenegar` (default) or `dummy`. Provider-agnostic gateway (Step 2.2). |
-| `KAVENEGAR_API_KEY` | When SMS_PROVIDER=kavenegar | API key from Kavenegar panel. |
-| `KAVENEGAR_SENDER` | Optional | Sender line (e.g. short number). If empty, Kavenegar default is used. |
+| `SMS_DISABLED` | Optional | Set to `true` / `1` / `yes` to skip sending SMS (dev mode). Returns `dev_code` in API response. |
+| `SMS_PROVIDER` | Optional | `mediana` (default) or `dummy`. |
+| `MEDIANA_API_KEY` | When SMS_PROVIDER=mediana | API key from Mediana panel (`X-API-KEY`). Server env only. |
+| `MEDIANA_OTP_PATTERN_CODE` | When SMS_PROVIDER=mediana | Approved OTP pattern code from Mediana panel. |
 | `DATABASE_URL` | Yes | PostgreSQL connection string (existing). If it contains `%xx` URL-encoding (e.g. in the password), Alembic env disables configparser interpolation so no `ValueError` is raised. |
 
 ## Migrations
@@ -40,7 +40,7 @@ curl -s -X POST http://127.0.0.1:8000/auth/request_otp \
 ```
 
 Expected: `{"ok": true, "data": {"ok": true, "next": "verify_otp"}}` or with `dev_code` for testing: `{"ok": true, "data": {"ok": true, "next": "verify_otp", "dev_code": "123456"}}`.  
-When SMS is not sent (SMS_DISABLED=true or Kavenegar unavailable), `dev_code` is returned so the app can display it (e.g. SnackBar) for testing without real SMS.  
+When SMS is not sent (`SMS_DISABLED=true`), `dev_code` is returned so the app can display it (e.g. SnackBar) for testing without real SMS. When SMS is enabled and Mediana fails, the API returns `OTP_REQUEST_FAILED` (no `dev_code`).  
 Optional: `Accept-Language: fa` or `en` / `ar` for OTP message language (default fa).
 
 ### 2. Verify OTP and get tokens
@@ -116,27 +116,32 @@ Optional audit: `POST /auth/verify_otp` accepts `X-Device-Info` and `X-Client-IP
 
 ---
 
-## Step 2.2 – Real SMS (Kavenegar)
+## Step 2.2 – Real SMS (Mediana)
 
-برای ارسال واقعی SMS به کاربران نیاز دارید:
+برای ارسال واقعی SMS به کاربران:
 
-1. **حساب کاوا نیگار**: ثبت‌نام در https://panel.kavenegar.com
-2. **API Key**: از پنل کاوا نیگار دریافت کنید و روی سرور `KAVENEGAR_API_KEY` را تنظیم کنید.
-3. **خط ارسال (اختیاری)**: در پنل یک خط (شماره فرستنده) خریداری یا از خطوط اشتراکی رایگان استفاده کنید. اگر خط اختصاصی دارید، `KAVENEGAR_SENDER` را تنظیم کنید (مثلاً 1000xxxx یا 2000xxxx). در غیر این صورت Kavenegar از خط پیش‌فرض استفاده می‌کند.
+1. **حساب مدیانا**: ثبت‌نام در پنل Mediana و دریافت API key
+2. **پترن OTP**: کد پترن تأییدشده را از پنل بگیرید (`MEDIANA_OTP_PATTERN_CODE`)
+3. **سرور production** (`/etc/sedi/sedi-backend.env`):
+   - `SMS_DISABLED=false`
+   - `SMS_PROVIDER=mediana`
+   - `MEDIANA_API_KEY=<from panel>`
+   - `MEDIANA_OTP_PATTERN_CODE=<pattern code>`
+4. بعد از تغییر env، کانتینر `sedi-backend` را recreate کنید.
 
-- When `SMS_DISABLED=false` and `SMS_PROVIDER=kavenegar`, OTP is sent via Kavenegar REST API. When SMS send fails (e.g. KAVENEGAR_API_KEY not set), the backend returns success with `dev_code` so the app works for testing.
-- OTP text: EN `Sedi verification code: {code}`, FA `کد تایید صدی: {code}`, AR `رمز التحقق من صدي: {code}` (from `Accept-Language`).
+- OTP via `POST https://api.mediana.ir/sms/v1/send/otp` with `patternCode`, `recipient` (`09…`), `otpCode` (6-digit backend code).
+- Legacy `SMS_PROVIDER=kavenegar` is **not supported**.
 
 ### Troubleshooting
 
-- **No SMS received:** Check `KAVENEGAR_API_KEY` and Kavenegar panel (balance, sender line, logs). Ensure phone is E.164 (e.g. +989121234567). For testing without SMS, `dev_code` is returned in the API response—the app shows it in a SnackBar.
-- **503 on request_otp:** (Legacy) When Kavenegar fails, we now return `dev_code` instead of 503 so the app stays usable for development. For production SMS, fix KAVENEGAR_API_KEY and optionally KAVENEGAR_SENDER.
+- **No SMS received:** Check `MEDIANA_API_KEY`, pattern code, and Mediana panel (balance, logs). Phone is normalized to `09xxxxxxxxx`. For local testing without SMS, set `SMS_DISABLED=true` — `dev_code` is returned in the API response.
+- **OTP_REQUEST_FAILED:** SMS enabled but provider misconfigured or Mediana error. Check logs for `[OTP] SMS send failed`.
 
 ### Journalctl (backend logs)
 
 ```bash
 # SMS/OTP related
-journalctl -u sedi-backend.service -g "OTP_DEV|SMS send failed|SMS delivery" --no-pager -n 100
+journalctl -u sedi-backend.service -g "DEV OTP|SMS send failed" --no-pager -n 100
 
 # Last 50 lines
 journalctl -u sedi-backend.service -n 50 --no-pager
@@ -149,5 +154,5 @@ journalctl -u sedi-backend.service -n 50 --no-pager
 ```bash
 cd backend
 pytest tests/test_auth_otp_v1.py -v
-pytest tests/test_sms_gateway_kavenegar_dummy.py -v
+pytest tests/test_sms_gateway_mediana.py tests/test_sms_gateway_dummy.py tests/test_sms_gateway_basic.py -v
 ```

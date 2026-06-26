@@ -228,7 +228,7 @@ def login(payload: LoginRequest):
 
 @app.post("/auth/request_otp")
 def request_otp(payload: OtpRequest):
-    """درخواست کد تأیید - کد در لاگ سرور چاپ می‌شود (حالت توسعه). برای ارسال واقعی SMS، KAVENEGAR_API_KEY را تنظیم کنید."""
+    """درخواست کد تأیید - حالت توسعه. برای SMS واقعی Mediana را روی سرور تنظیم کنید."""
     phone = (payload.phone or "").strip().replace(" ", "").replace("-", "")
     if len(phone) < 8:
         return {"ok": False, "error": {"code": "INVALID_PHONE", "message": "شماره تلفن معتبر نیست"}}
@@ -237,11 +237,13 @@ def request_otp(payload: OtpRequest):
     _otp_store[phone] = (code, time.time() + OTP_EXPIRY_SECONDS)
     # حالت توسعه: کد در لاگ چاپ می‌شود تا بتوانید تست کنید
     print(f"[OTP] کد تأیید برای {phone}: {code} (اعتبار: ۵ دقیقه)")
-    # TODO: اگر KAVENEGAR_API_KEY در env تنظیم شد، ارسال واقعی SMS
+    # Legacy stub: real OTP is served by backend/app (Mediana). Dev code when Mediana env missing.
     data: dict = {"message": "کد ارسال شد"}
-    # حالت دیباگ: نمایش کد در پاسخ برای تست بدون SMS (اگر KAVENEGAR تنظیم نشده باشد)
     show_code = os.environ.get("OTP_DEV_SHOW_CODE", "").lower() in ("1", "true", "yes")
-    if show_code or not os.environ.get("KAVENEGAR_API_KEY"):
+    mediana_ready = bool(
+        os.environ.get("MEDIANA_API_KEY") and os.environ.get("MEDIANA_OTP_PATTERN_CODE")
+    )
+    if show_code or not mediana_ready:
         data["dev_code"] = code
     return {"ok": True, "data": data}
 

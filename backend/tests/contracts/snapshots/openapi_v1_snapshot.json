@@ -5248,7 +5248,7 @@
     },
     "/ops/config/sms": {
       "get": {
-        "description": "Admin-only: SMS config status (no secrets). Use to verify production env.\nReturns set/unset for each var; KAVENEGAR_API_KEY value is never exposed.",
+        "description": "Admin-only: SMS config status (no secrets). Use to verify production env.\nReturns set/unset for each var; API keys are never exposed.",
         "operationId": "ops_config_sms_ops_config_sms_get",
         "parameters": [
           {

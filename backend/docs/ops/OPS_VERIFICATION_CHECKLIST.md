@@ -44,11 +44,11 @@ ORDER BY created_at DESC
 LIMIT 20;
 ```
 
-**Note:** When SMS send fails (e.g. `KAVENEGAR_API_KEY` not set), the API now returns an error to the client instead of `dev_code`. Check application logs for `[OTP] SMS send failed` entries.
+**Note:** When SMS send fails (e.g. missing `MEDIANA_API_KEY`), the API returns an error to the client instead of `dev_code`. Check application logs for `[OTP] SMS send failed` entries.
 
 ## 4. Environment variables (manual check)
 
-- **SMS:** `KAVENEGAR_API_KEY`, `SMS_PROVIDER` (default: kavenegar), `SMS_DISABLED`
+- **SMS:** `MEDIANA_API_KEY`, `MEDIANA_OTP_PATTERN_CODE`, `SMS_PROVIDER` (default: mediana), `SMS_DISABLED`
 - **FCM:** `FCM_PROJECT_ID`, `FCM_SERVICE_ACCOUNT_JSON`, `FCM_DISABLED`
 
 ## 5. OTP request paths
