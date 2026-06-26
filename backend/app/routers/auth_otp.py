@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
-from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeOut
+from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeOut, MeUpdateIn
 from backend.app.core.security import verify_token
 from backend.app.services import auth_otp_service as svc
 
@@ -32,6 +32,16 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+
+def _me_out(user: models.User) -> dict:
+    """Build GET/PATCH /auth/me response payload (no user_id from client)."""
+    return MeOut(
+        user_id=user.id,
+        phone=user.phone,
+        display_name=user.name,
+        language=user.preferred_language or "en",
+    ).model_dump()
 
 
 def _handle_request_otp(
@@ -123,16 +133,23 @@ def otp_verify_alias(
 @router.get("/me", response_model=ApiResponseV1)
 def auth_me(user: models.User = Depends(get_current_user)):
     """Return current user info (requires access token)."""
-    # display_name: prefer name from user_profile_knowledge or user.name
-    return APIResponse(
-        ok=True,
-        data=MeOut(
-            user_id=user.id,
-            phone=user.phone,
-            display_name=user.name,
-            language=user.preferred_language or "en",
-        ).model_dump(),
-    )
+    return APIResponse(ok=True, data=_me_out(user))
+
+
+@router.patch("/me", response_model=ApiResponseV1)
+def patch_auth_me(
+    body: MeUpdateIn,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update authenticated user profile language and/or display name."""
+    if body.preferred_language is not None:
+        user.preferred_language = body.preferred_language
+    if body.display_name is not None:
+        user.name = body.display_name
+    db.commit()
+    db.refresh(user)
+    return APIResponse(ok=True, data=_me_out(user))
 
 
 @router.post("/refresh", response_model=ApiResponseV1)

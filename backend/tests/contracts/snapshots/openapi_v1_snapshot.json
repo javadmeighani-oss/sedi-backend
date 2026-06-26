@@ -905,6 +905,40 @@
         "title": "LifestyleUpdateRequest",
         "type": "object"
       },
+      "MeUpdateIn": {
+        "description": "PATCH /auth/me – at least one of preferred_language or display_name required.",
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "preferred_language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ar",
+                  "en",
+                  "fa"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Language"
+          }
+        },
+        "title": "MeUpdateIn",
+        "type": "object"
+      },
       "NotificationChannelsUpdate": {
         "properties": {
           "companion": {
@@ -1897,6 +1931,51 @@
           }
         ],
         "summary": "Auth Me",
+        "tags": [
+          "Authentication"
+        ]
+      },
+      "patch": {
+        "description": "Update authenticated user profile language and/or display name.",
+        "operationId": "patch_auth_me_auth_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Auth Me",
         "tags": [
           "Authentication"
         ]
