@@ -3,25 +3,27 @@ import os
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
 from backend.app.services.memory import MemoryRepository, build_memory_context
 from backend.app.services.lifestyle.summary_service import generate_summary
-from backend.app.services.lifestyle.fact_extractor import store_candidates_and_auto_commit
+from backend.app.routers.auth_otp import get_current_user
 
 
 router = APIRouter()
 
 
-def _require_admin_if_set(request: Request) -> None:
-    admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
-    if admin_token:
-        header_token = (request.headers.get("X-Admin-Token") or "").strip()
-        if header_token != admin_token:
-            raise HTTPException(status_code=401, detail="Admin token required")
+def _require_admin(request: Request) -> None:
+    """Fail-closed admin guard: ADMIN_TOKEN must be set; X-Admin-Token must match."""
+    expected = os.environ.get("ADMIN_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(status_code=403, detail="admin_disabled")
+    header_token = (request.headers.get("X-Admin-Token") or "").strip()
+    if header_token != expected:
+        raise HTTPException(status_code=403, detail="forbidden")
 
 
 # -------------------- Request/Response Models --------------------
@@ -36,8 +38,10 @@ class LifestyleEntry(BaseModel):
 
 
 class LifestyleUpdateRequest(BaseModel):
-    """Request model for lifestyle update"""
-    user_id: int = Field(..., description="User ID")
+    """Request model for lifestyle update (authenticated user only; no user_id)."""
+
+    model_config = ConfigDict(extra="forbid")
+
     entries: List[LifestyleEntry] = Field(..., description="List of lifestyle facts to update")
 
 
@@ -46,122 +50,87 @@ class LifestyleUpdateRequest(BaseModel):
 @router.post("/update", response_model=APIResponse)
 def update_lifestyle(
     request: LifestyleUpdateRequest,
-    db: Session = Depends(get_db)
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """
-    Update lifestyle facts for a user.
-    
+    Update lifestyle facts for the authenticated user.
+
     Upserts facts into UserMemoryFact (domain+key unique per user).
-    
-    Example payload:
-    {
-        "user_id": 1,
-        "entries": [
-            {
-                "domain": "lifestyle",
-                "key": "sleep_duration_hours",
-                "value": 6.5,
-                "confidence": 0.8,
-                "source": "manual"
-            },
-            {
-                "domain": "lifestyle",
-                "key": "hydration_ml",
-                "value": 1200,
-                "confidence": 0.7,
-                "source": "manual"
-            }
-        ]
-    }
+    Requires Bearer JWT. user_id is derived from the token only.
     """
-    # Verify user exists
-    user = db.query(models.User).filter(models.User.id == request.user_id).first()
-    if not user:
-        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
-    
-    # Upsert facts
+    user_id = auth_user.id
     repo = MemoryRepository(db)
     updated_facts = []
     errors = []
-    
+
     for entry in request.entries:
         try:
             fact = repo.upsert_fact(
-                user_id=request.user_id,
+                user_id=user_id,
                 domain=entry.domain,
                 key=entry.key,
                 value=entry.value,
                 confidence=entry.confidence,
-                source=entry.source
+                source=entry.source,
             )
             updated_facts.append({
                 "domain": fact.domain,
                 "key": fact.key,
-                "fact_id": fact.id
+                "fact_id": fact.id,
             })
         except ValueError as e:
             errors.append(f"Invalid entry ({entry.domain}/{entry.key}): {str(e)}")
         except Exception as e:
             errors.append(f"Error updating {entry.domain}/{entry.key}: {str(e)}")
-    
+
     if errors:
         return APIResponse(
             ok=False,
             error=ErrorInfo(
                 code="UPDATE_ERROR",
-                message=f"Some entries failed: {', '.join(errors)}"
+                message=f"Some entries failed: {', '.join(errors)}",
             ),
-            data={"updated": updated_facts, "errors": errors}
+            data={"updated": updated_facts, "errors": errors},
         )
-    
+
     return APIResponse(
         ok=True,
         data={
             "updated_count": len(updated_facts),
-            "facts": updated_facts
-        }
+            "facts": updated_facts,
+        },
     )
 
 
 @router.get("/context", response_model=APIResponse)
 def get_lifestyle_context(
-    user_id: int = Query(..., description="User ID"),
-    db: Session = Depends(get_db)
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """
-    Get compact memory context for a user.
-    
+    Get compact memory context for the authenticated user.
+
     Returns a MemoryContext built from UserMemoryFact (sleep/hydration/activity/mood/preferences if available).
+    Requires Bearer JWT.
     """
-    # Verify user exists
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
-    
-    # Build memory context
-    context = build_memory_context(db, user_id)
-    
-    return APIResponse(
-        ok=True,
-        data=context.to_dict()
-    )
+    context = build_memory_context(db, auth_user.id)
+    return APIResponse(ok=True, data=context.to_dict())
 
 
 # -------------------- GET /lifestyle/summary (Stage 17.1) --------------------
 @router.get("/summary", response_model=APIResponse)
 def get_lifestyle_summary(
-    user_id: int = Query(..., description="User ID"),
+    auth_user: models.User = Depends(get_current_user),
     lang: str = Query("en", description="Response language: en, fa, ar"),
     db: Session = Depends(get_db),
 ):
     """
     Get lifestyle summary for frontend display.
     Composes: What I know, Recent patterns, Next suggested check-in.
+    Requires Bearer JWT.
     """
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
-    data = generate_summary(db, user_id, language=lang)
+    data = generate_summary(db, auth_user.id, language=lang)
     return APIResponse(ok=True, data=data)
 
 
@@ -173,8 +142,8 @@ def admin_list_candidates(
     status: str = Query("pending", description="Filter by status: pending, accepted, rejected"),
     db: Session = Depends(get_db),
 ):
-    """Admin: List fact candidates for a user."""
-    _require_admin_if_set(request)
+    """Admin: List fact candidates for a user. Requires configured ADMIN_TOKEN and matching X-Admin-Token."""
+    _require_admin(request)
     rows = (
         db.query(models.UserFactCandidate)
         .filter(
@@ -213,8 +182,8 @@ def admin_candidate_decision(
     body: CandidateDecisionRequest,
     db: Session = Depends(get_db),
 ):
-    """Admin: Accept or reject a fact candidate."""
-    _require_admin_if_set(request)
+    """Admin: Accept or reject a fact candidate. Requires configured ADMIN_TOKEN and matching X-Admin-Token."""
+    _require_admin(request)
     if body.status not in ("accepted", "rejected"):
         return APIResponse(ok=False, error=ErrorInfo(code="INVALID_STATUS", message="status must be accepted or rejected"))
     cand = db.query(models.UserFactCandidate).filter(models.UserFactCandidate.id == candidate_id).first()
@@ -246,8 +215,8 @@ def admin_source_preview(
     id: int = Query(..., description="Source record ID"),
     db: Session = Depends(get_db),
 ):
-    """Admin: Safe preview of a source for debugging and RAG validation."""
-    _require_admin_if_set(request)
+    """Admin: Safe preview of a source for debugging and RAG validation. Requires configured ADMIN_TOKEN and matching X-Admin-Token."""
+    _require_admin(request)
     preview: Optional[Dict[str, Any]] = None
     if type == "daily_summary":
         row = db.query(models.DailyMemorySummary).filter(models.DailyMemorySummary.id == id).first()

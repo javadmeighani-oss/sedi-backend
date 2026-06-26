@@ -882,7 +882,8 @@
         "type": "object"
       },
       "LifestyleUpdateRequest": {
-        "description": "Request model for lifestyle update",
+        "additionalProperties": false,
+        "description": "Request model for lifestyle update (authenticated user only; no user_id).",
         "properties": {
           "entries": {
             "description": "List of lifestyle facts to update",
@@ -891,16 +892,10 @@
             },
             "title": "Entries",
             "type": "array"
-          },
-          "user_id": {
-            "description": "User ID",
-            "title": "User Id",
-            "type": "integer"
           }
         },
         "required": [
-          "entries",
-          "user_id"
+          "entries"
         ],
         "title": "LifestyleUpdateRequest",
         "type": "object"
@@ -3646,7 +3641,7 @@
     },
     "/lifestyle/admin/candidates": {
       "get": {
-        "description": "Admin: List fact candidates for a user.",
+        "description": "Admin: List fact candidates for a user. Requires configured ADMIN_TOKEN and matching X-Admin-Token.",
         "operationId": "admin_list_candidates_lifestyle_admin_candidates_get",
         "parameters": [
           {
@@ -3703,7 +3698,7 @@
     },
     "/lifestyle/admin/candidates/{candidate_id}/decision": {
       "post": {
-        "description": "Admin: Accept or reject a fact candidate.",
+        "description": "Admin: Accept or reject a fact candidate. Requires configured ADMIN_TOKEN and matching X-Admin-Token.",
         "operationId": "admin_candidate_decision_lifestyle_admin_candidates__candidate_id__decision_post",
         "parameters": [
           {
@@ -3756,7 +3751,7 @@
     },
     "/lifestyle/admin/source_preview": {
       "get": {
-        "description": "Admin: Safe preview of a source for debugging and RAG validation.",
+        "description": "Admin: Safe preview of a source for debugging and RAG validation. Requires configured ADMIN_TOKEN and matching X-Admin-Token.",
         "operationId": "admin_source_preview_lifestyle_admin_source_preview_get",
         "parameters": [
           {
@@ -3812,21 +3807,8 @@
     },
     "/lifestyle/context": {
       "get": {
-        "description": "Get compact memory context for a user.\n\nReturns a MemoryContext built from UserMemoryFact (sleep/hydration/activity/mood/preferences if available).",
+        "description": "Get compact memory context for the authenticated user.\n\nReturns a MemoryContext built from UserMemoryFact (sleep/hydration/activity/mood/preferences if available).\nRequires Bearer JWT.",
         "operationId": "get_lifestyle_context_lifestyle_context_get",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -3837,18 +3819,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Lifestyle Context",
         "tags": [
           "Lifestyle Data"
@@ -3857,7 +3834,7 @@
     },
     "/lifestyle/summary": {
       "get": {
-        "description": "Get lifestyle summary for frontend display.\nComposes: What I know, Recent patterns, Next suggested check-in.",
+        "description": "Get lifestyle summary for frontend display.\nComposes: What I know, Recent patterns, Next suggested check-in.\nRequires Bearer JWT.",
         "operationId": "get_lifestyle_summary_lifestyle_summary_get",
         "parameters": [
           {
@@ -3871,17 +3848,6 @@
               "title": "Lang",
               "type": "string"
             }
-          },
-          {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
           }
         ],
         "responses": {
@@ -3906,6 +3872,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Lifestyle Summary",
         "tags": [
           "Lifestyle Data"
@@ -3914,7 +3885,7 @@
     },
     "/lifestyle/update": {
       "post": {
-        "description": "Update lifestyle facts for a user.\n\nUpserts facts into UserMemoryFact (domain+key unique per user).\n\nExample payload:\n{\n    \"user_id\": 1,\n    \"entries\": [\n        {\n            \"domain\": \"lifestyle\",\n            \"key\": \"sleep_duration_hours\",\n            \"value\": 6.5,\n            \"confidence\": 0.8,\n            \"source\": \"manual\"\n        },\n        {\n            \"domain\": \"lifestyle\",\n            \"key\": \"hydration_ml\",\n            \"value\": 1200,\n            \"confidence\": 0.7,\n            \"source\": \"manual\"\n        }\n    ]\n}",
+        "description": "Update lifestyle facts for the authenticated user.\n\nUpserts facts into UserMemoryFact (domain+key unique per user).\nRequires Bearer JWT. user_id is derived from the token only.",
         "operationId": "update_lifestyle_lifestyle_update_post",
         "requestBody": {
           "content": {
@@ -3948,6 +3919,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Update Lifestyle",
         "tags": [
           "Lifestyle Data"
