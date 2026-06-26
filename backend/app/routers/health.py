@@ -8,7 +8,7 @@ from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
 from backend.app.schemas.health import HealthDataAddRequest, HealthDataResponse
-from backend.app.core.ai_text_engine import generate_notification_text
+from backend.app.core.ai_text_engine import generate_notification_text, NOTIF_TYPE_HEALTH_CHECK
 from backend.app.services.notification_engine import DecisionEngine
 from backend.app.routers.auth_otp import get_current_user
 
@@ -34,6 +34,16 @@ def _serialize_health(record: models.HealthData) -> dict:
         created_at=record.created_at,
     ).model_dump()
 
+
+def _build_health_summary(data: models.HealthData) -> str:
+    parts = []
+    if data.heart_rate is not None:
+        parts.append(f"heart_rate={data.heart_rate}")
+    if data.temperature is not None:
+        parts.append(f"temperature={data.temperature}")
+    if data.spo2 is not None:
+        parts.append(f"spo2={data.spo2}")
+    return ", ".join(parts) if parts else "No vitals provided."
 
 def _store_vital(value: Optional[float]) -> Optional[str]:
     if value is None:
@@ -66,13 +76,10 @@ def add_health_data(
     db.refresh(data)
 
     msg = generate_notification_text(
-        user_name=None,
         language=user.preferred_language or "en",
-        context={
-            "heart_rate": data.heart_rate,
-            "temperature": data.temperature,
-            "spo2": data.spo2,
-        },
+        notification_type=NOTIF_TYPE_HEALTH_CHECK,
+        user_name=user.name or "User",
+        health_summary=_build_health_summary(data),
     )
 
     decision_engine = DecisionEngine(db)
