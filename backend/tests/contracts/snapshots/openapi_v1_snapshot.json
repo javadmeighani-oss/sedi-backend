@@ -514,6 +514,52 @@
         "title": "ExtractFromMessageRequest",
         "type": "object"
       },
+      "HealthDataAddRequest": {
+        "additionalProperties": false,
+        "description": "Authenticated health vitals add (no user_id; identity from JWT).",
+        "properties": {
+          "heart_rate": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Heart rate (bpm)",
+            "title": "Heart Rate"
+          },
+          "spo2": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Blood oxygen saturation (%)",
+            "title": "Spo2"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Body temperature (°C)",
+            "title": "Temperature"
+          }
+        },
+        "title": "HealthDataAddRequest",
+        "type": "object"
+      },
       "HistoryGroupItem": {
         "description": "One group (day/week/month/year) with its turns.",
         "properties": {
@@ -2895,15 +2941,13 @@
     },
     "/health/add": {
       "post": {
-        "description": "افزودن داده سلامت و تولید نوتیف هوشمند\n{\n    \"user_id\": 1,\n    \"heart_rate\": 98,\n    \"temperature\": 37.6,\n    \"spo2\": 95\n}",
+        "description": "Add health vitals for the authenticated user and generate a smart notification.\n\nRequires Bearer JWT. user_id is derived from the token only.",
         "operationId": "add_health_data_health_add_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "$ref": "#/components/schemas/HealthDataAddRequest"
               }
             }
           },
@@ -2931,7 +2975,66 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Add Health Data",
+        "tags": [
+          "Health Data"
+        ]
+      }
+    },
+    "/health/context": {
+      "get": {
+        "description": "Return health context for the authenticated user (latest record + counts).",
+        "operationId": "get_health_context_health_context_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Health Context",
+        "tags": [
+          "Health Data"
+        ]
+      }
+    },
+    "/health/latest": {
+      "get": {
+        "description": "Return the latest HealthData row for the authenticated user.",
+        "operationId": "get_latest_health_data_health_latest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Latest Health Data",
         "tags": [
           "Health Data"
         ]

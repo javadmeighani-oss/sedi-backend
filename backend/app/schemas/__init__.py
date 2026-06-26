@@ -12,7 +12,7 @@ from .user_knowledge import (
     UserFactRead,
     UserFactUpsert,
 )
-from .health import HealthDataCreate, HealthDataResponse
+from .health import HealthDataCreate, HealthDataAddRequest, HealthDataResponse
 from .lifestyle import LifestyleDataCreate, LifestyleDataResponse
 from .notification import (
     NotificationBase,
@@ -78,6 +78,7 @@ __all__ = [
     "UserFactUpsert",
     # Health
     "HealthDataCreate",
+    "HealthDataAddRequest",
     "HealthDataResponse",
     # Lifestyle
     "LifestyleDataCreate",
