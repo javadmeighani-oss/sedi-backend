@@ -1072,6 +1072,48 @@
         "title": "MeUpdateIn",
         "type": "object"
       },
+      "MemorySaveRequest": {
+        "additionalProperties": false,
+        "description": "Authenticated daily memory save (no user_id; identity from JWT).",
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Context"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Mood"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "",
+            "title": "Summary"
+          }
+        },
+        "title": "MemorySaveRequest",
+        "type": "object"
+      },
       "NotificationChannelsUpdate": {
         "properties": {
           "companion": {
@@ -4130,7 +4172,7 @@
     },
     "/memory/history": {
       "get": {
-        "description": "Fetch chat history from Memory table, grouped by day/week/month/year.\nRequires Bearer JWT; user_id query must match authenticated user.",
+        "description": "Fetch chat history from Memory table, grouped by day/week/month/year.\nRequires Bearer JWT; user identity is derived from the token only.",
         "operationId": "get_chat_history_memory_history_get",
         "parameters": [
           {
@@ -4177,17 +4219,6 @@
               "title": "Offset",
               "type": "integer"
             }
-          },
-          {
-            "description": "User ID (required)",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID (required)",
-              "title": "User Id",
-              "type": "integer"
-            }
           }
         ],
         "responses": {
@@ -4225,19 +4256,8 @@
     },
     "/memory/latest": {
       "get": {
-        "description": "دریافت آخرین حافظه ثبت‌شده برای کاربر",
+        "description": "Return the latest daily memory summary for the authenticated user.\nRequires Bearer JWT. user_id is derived from the token only.",
         "operationId": "get_latest_memory_memory_latest_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -4248,18 +4268,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Latest Memory",
         "tags": [
           "Memory"
@@ -4268,15 +4283,13 @@
     },
     "/memory/save": {
       "post": {
-        "description": "ذخیره حافظه روزانه کاربر\n{\n    \"user_id\": 1,\n    \"summary\": \"User walked 5000 steps, slept 6 hours, HR avg 82 bpm.\",\n    \"mood\": \"neutral\",\n    \"context\": \"Slight fatigue reported\"\n}",
+        "description": "Save daily memory summary for the authenticated user.\nRequires Bearer JWT. user_id is derived from the token only.",
         "operationId": "save_memory_memory_save_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "$ref": "#/components/schemas/MemorySaveRequest"
               }
             }
           },
@@ -4304,6 +4317,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Save Memory",
         "tags": [
           "Memory"

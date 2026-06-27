@@ -63,11 +63,11 @@ def test_memory_history_requires_bearer_token(client, db):
     db.commit()
     db.refresh(u)
 
-    response = client.get(f"/memory/history?user_id={u.id}&group=daily&limit=10")
+    response = client.get("/memory/history?group=daily&limit=10")
     assert response.status_code == 401
 
 
-def test_memory_history_rejects_mismatched_user_id(client, db):
+def test_memory_history_rejects_legacy_user_id_query(client, db):
     u = User(name="MemAuth", secret_key="test", preferred_language="en")
     db.add(u)
     db.commit()
@@ -75,10 +75,10 @@ def test_memory_history_rejects_mismatched_user_id(client, db):
     token = create_access_token({"user_id": u.id})
 
     response = client.get(
-        f"/memory/history?user_id={u.id + 9999}&group=daily&limit=10",
+        f"/memory/history?user_id={u.id}&group=daily&limit=10",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 403
+    assert response.status_code == 422
 
 
 def test_memory_history_returns_own_groups(client, db):
@@ -98,7 +98,7 @@ def test_memory_history_returns_own_groups(client, db):
     token = create_access_token({"user_id": u.id})
 
     response = client.get(
-        f"/memory/history?user_id={u.id}&group=daily&limit=10",
+        "/memory/history?group=daily&limit=10",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200

@@ -30,6 +30,16 @@ class HistoryResponse(BaseModel):
 # --- DailyMemorySummary (existing) ---
 
 
+class MemorySaveRequest(BaseModel):
+    """Authenticated daily memory save (no user_id; identity from JWT)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary: Optional[str] = ""
+    mood: Optional[str] = None
+    context: Optional[str] = None
+
+
 class MemoryCreate(BaseModel):
     user_id: int
     summary: Optional[str] = None
