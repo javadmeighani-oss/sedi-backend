@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from backend.app import models
+from backend.app.core.security import create_access_token
 from backend.tests.test_db_config import get_test_database_url
 
 
@@ -57,6 +58,11 @@ def devices_e2e_user(db: Session) -> models.User:
         db.commit()
         db.refresh(user)
     return user
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _extract_token(response_json: dict) -> str | None:
@@ -105,13 +111,14 @@ def test_devices_e2e_register_rotate_revoke_ingest_behavior(
     db.query(models.Device).filter(models.Device.device_id == device_id).delete(synchronize_session=False)
     db.commit()
 
-    list_res = client.get(f"/devices?user_id={user_id}")
+    list_res = client.get("/devices", headers=_auth_header(user_id))
     assert list_res.status_code == 200, list_res.text
     assert list_res.json().get("ok") is True
 
     register_res = client.post(
-        f"/devices/register?user_id={user_id}",
+        "/devices/register",
         json={"device_id": device_id, "device_type": "heart_rate"},
+        headers=_auth_header(user_id),
     )
     assert register_res.status_code == 200, register_res.text
     register_json = register_res.json()
@@ -119,7 +126,7 @@ def test_devices_e2e_register_rotate_revoke_ingest_behavior(
 
     token_1 = _extract_token(register_json)
     if token_1 is None:
-        rotate_bootstrap = client.post(f"/devices/{device_id}/rotate-token?user_id={user_id}")
+        rotate_bootstrap = client.post(f"/devices/{device_id}/rotate-token", headers=_auth_header(user_id))
         assert rotate_bootstrap.status_code == 200, rotate_bootstrap.text
         token_1 = _extract_token(rotate_bootstrap.json())
     assert isinstance(token_1, str) and token_1
@@ -132,7 +139,7 @@ def test_devices_e2e_register_rotate_revoke_ingest_behavior(
     assert ingest_1.status_code == 200, ingest_1.text
     assert ingest_1.json().get("ok") is True, ingest_1.json()
 
-    rotate_res = client.post(f"/devices/{device_id}/rotate-token?user_id={user_id}")
+    rotate_res = client.post(f"/devices/{device_id}/rotate-token", headers=_auth_header(user_id))
     assert rotate_res.status_code == 200, rotate_res.text
     rotate_json = rotate_res.json()
     assert rotate_json.get("ok") is True, rotate_json
@@ -155,7 +162,7 @@ def test_devices_e2e_register_rotate_revoke_ingest_behavior(
     )
     _assert_ingest_rejected(ingest_old_token)
 
-    revoke_res = client.post(f"/devices/{device_id}/revoke?user_id={user_id}")
+    revoke_res = client.post(f"/devices/{device_id}/revoke", headers=_auth_header(user_id))
     assert revoke_res.status_code == 200, revoke_res.text
     assert revoke_res.json().get("ok") is True
 

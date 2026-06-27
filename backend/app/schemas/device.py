@@ -17,7 +17,7 @@ class DeviceIngestRequest(BaseModel):
     )
     payload: Dict[str, Any] = Field(..., description="Event payload (must not be empty)")
     recorded_at: Optional[datetime] = Field(None, description="Timestamp from device (optional)")
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -34,12 +34,33 @@ class DeviceIngestRequest(BaseModel):
     )
 
 
+class DeviceHeartbeatRequest(BaseModel):
+    """Firmware heartbeat payload (device identity from X-DEVICE-TOKEN)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str = Field(..., description="Logical device id")
+    status: Optional[str] = Field(None, description="Optional device status")
+    battery: Optional[float] = Field(None, description="Optional battery level")
+    temperature: Optional[float] = Field(None, description="Optional device temperature")
+
+
+class DeviceAcknowledgeRequest(BaseModel):
+    """Firmware command acknowledge payload (device identity from X-DEVICE-TOKEN)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str = Field(..., description="Logical device id")
+    sound_id: Optional[str] = Field(None, description="Sound/command identifier")
+    status: Optional[str] = Field(None, description="Playback status")
+
+
 class DeviceIngestResponse(BaseModel):
     """Response schema for device event ingestion"""
     ok: bool
     data: Optional[Dict[str, Any]] = None
     error: Optional[Dict[str, Any]] = None
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -68,5 +89,5 @@ class DeviceEventResponse(BaseModel):
     recorded_at: Optional[datetime]
     received_at: datetime
     dedupe_key: Optional[str]
-    
+
     model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode

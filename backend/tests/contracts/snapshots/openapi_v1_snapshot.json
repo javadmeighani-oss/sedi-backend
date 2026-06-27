@@ -232,6 +232,98 @@
         "title": "DecisionTestRequest",
         "type": "object"
       },
+      "DeviceAcknowledgeRequest": {
+        "additionalProperties": false,
+        "description": "Firmware command acknowledge payload (device identity from X-DEVICE-TOKEN).",
+        "properties": {
+          "device_id": {
+            "description": "Logical device id",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "sound_id": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Sound/command identifier",
+            "title": "Sound Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Playback status",
+            "title": "Status"
+          }
+        },
+        "required": [
+          "device_id"
+        ],
+        "title": "DeviceAcknowledgeRequest",
+        "type": "object"
+      },
+      "DeviceHeartbeatRequest": {
+        "additionalProperties": false,
+        "description": "Firmware heartbeat payload (device identity from X-DEVICE-TOKEN).",
+        "properties": {
+          "battery": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Optional battery level",
+            "title": "Battery"
+          },
+          "device_id": {
+            "description": "Logical device id",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Optional device status",
+            "title": "Status"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Optional device temperature",
+            "title": "Temperature"
+          }
+        },
+        "required": [
+          "device_id"
+        ],
+        "title": "DeviceHeartbeatRequest",
+        "type": "object"
+      },
       "DeviceIngestRequest": {
         "description": "Request schema for device event ingestion",
         "example": {
@@ -2541,15 +2633,24 @@
     },
     "/device/acknowledge": {
       "post": {
-        "description": "گجت پس از اجرای فرمان صوتی، نتیجه را اعلام می‌کند.\n{\n    \"user_id\": 1,\n    \"sound_id\": \"alert_temp\",\n    \"status\": \"played\"\n}",
+        "description": "Acknowledge audio command playback. Requires X-DEVICE-TOKEN; user_id from device row.",
         "operationId": "acknowledge_command_device_acknowledge_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "$ref": "#/components/schemas/DeviceAcknowledgeRequest"
               }
             }
           },
@@ -2585,15 +2686,24 @@
     },
     "/device/heartbeat": {
       "post": {
-        "description": "گجت هر چند ثانیه وضعیت خود را به سرور می‌فرستد.\nUpdates device.last_seen_at in database.\n{\n    \"device_id\": \"Sedi001\",\n    \"user_id\": 1,\n    \"battery\": 92,\n    \"temperature\": 41.3,\n    \"status\": \"active\"\n}",
+        "description": "Device heartbeat. Requires X-DEVICE-TOKEN; user_id is derived from the device row.",
         "operationId": "device_heartbeat_device_heartbeat_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
+                "$ref": "#/components/schemas/DeviceHeartbeatRequest"
               }
             }
           },
@@ -2629,7 +2739,7 @@
     },
     "/device/ingest": {
       "post": {
-        "description": "Ingest device event (vital signs) with deduplication and memory mapping.\n\nRequires X-DEVICE-TOKEN header.\n\nAuth modes (Release C2):\n- DEVICE_AUTH_MODE=legacy_only: validate shared DEVICE_INGEST_TOKEN (C1 behavior)\n- DEVICE_AUTH_MODE=db_only: validate per-device token from DB (requires request.device_id)\n- DEVICE_AUTH_MODE=hybrid (default): try DB first, then legacy if enabled\n\nExample:\n{\n    \"user_id\": 1,\n    \"device_id\": \"Sedi001\",\n    \"event_type\": \"heart_rate\",\n    \"payload\": {\n        \"bpm\": 82,\n        \"quality\": \"good\"\n    },\n    \"recorded_at\": \"2026-02-02T10:30:00Z\"\n}",
+        "description": "Ingest device event (vital signs) with deduplication and memory mapping.\n\nRequires X-DEVICE-TOKEN header.\n\nAuth modes (Release C2):\n- DEVICE_AUTH_MODE=legacy_only: validate shared DEVICE_INGEST_TOKEN (C1 behavior)\n- DEVICE_AUTH_MODE=db_only: validate per-device token from DB (requires request.device_id)\n- DEVICE_AUTH_MODE=hybrid (default): try DB first, then legacy if enabled",
         "operationId": "ingest_device_event_device_ingest_post",
         "parameters": [
           {
@@ -2682,16 +2792,27 @@
     },
     "/device/pending-commands": {
       "get": {
-        "description": "گجت فرمان‌های صوتی جدید را از این مسیر می‌گیرد",
+        "description": "Fetch pending audio commands for the device's owner.\n\nRequires X-DEVICE-TOKEN and device_id query. user_id is derived from the device row.",
         "operationId": "get_pending_commands_device_pending_commands_get",
         "parameters": [
           {
+            "description": "Logical device id",
             "in": "query",
-            "name": "user_id",
+            "name": "device_id",
             "required": true,
             "schema": {
-              "title": "User Id",
-              "type": "integer"
+              "description": "Logical device id",
+              "title": "Device Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
             }
           }
         ],
@@ -2725,18 +2846,8 @@
     },
     "/devices": {
       "get": {
+        "description": "List devices owned by the authenticated user.",
         "operationId": "list_devices_devices_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -2747,18 +2858,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Devices",
         "tags": [
           "Devices"
@@ -2767,18 +2873,8 @@
     },
     "/devices/register": {
       "post": {
+        "description": "Register a device for the authenticated user. Returns plaintext token once.",
         "operationId": "register_device_devices_register_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2811,6 +2907,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Register Device",
         "tags": [
           "Devices"
@@ -2819,6 +2920,7 @@
     },
     "/devices/{device_id}/revoke": {
       "post": {
+        "description": "Revoke a device owned by the authenticated user.",
         "operationId": "revoke_device_devices__device_id__revoke_post",
         "parameters": [
           {
@@ -2829,15 +2931,6 @@
               "title": "Device Id",
               "type": "string"
             }
-          },
-          {
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
           }
         ],
         "responses": {
@@ -2862,6 +2955,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Revoke Device",
         "tags": [
           "Devices"
@@ -2870,6 +2968,7 @@
     },
     "/devices/{device_id}/rotate-token": {
       "post": {
+        "description": "Rotate device token for a device owned by the authenticated user.",
         "operationId": "rotate_device_token_devices__device_id__rotate_token_post",
         "parameters": [
           {
@@ -2880,15 +2979,6 @@
               "title": "Device Id",
               "type": "string"
             }
-          },
-          {
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
           }
         ],
         "responses": {
@@ -2913,6 +3003,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Rotate Device Token",
         "tags": [
           "Devices"

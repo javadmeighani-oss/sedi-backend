@@ -17,7 +17,7 @@ from typing import Optional, Literal, Tuple
 from datetime import datetime
 import secrets
 
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.models import Device
@@ -183,6 +183,50 @@ def authorize_device_or_legacy(
     )
     logger.info(f"[DEVICE_AUTH] mode={mode} result=reject device_id={device_id} user={user_id}")
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid device token")
+
+
+def authorize_operational_device(
+    db: Session,
+    device_id: str,
+    token: str,
+) -> Device:
+    """
+    Authorize firmware-facing routes using registered per-device token only.
+
+    Derives user identity from the validated device row (db_only semantics).
+    """
+    device_id = (device_id or "").strip()
+    if not device_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="device_id is required",
+        )
+
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        logger.info("[DEVICE_AUTH] operational reject reason=device_not_found device_id=%s", device_id)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid device token")
+
+    validated = validate_device_token(db=db, user_id=device.user_id, device_id=device_id, token=token)
+    if not validated:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid device token")
+    return validated
+
+
+def reject_legacy_user_id_query(request: Request) -> None:
+    """Reject legacy user_id query param; identity comes from device token."""
+    if request.query_params.get("user_id") is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=[
+                {
+                    "type": "extra_forbidden",
+                    "loc": ["query", "user_id"],
+                    "msg": "Extra inputs are not permitted",
+                    "input": request.query_params.get("user_id"),
+                }
+            ],
+        )
 
 
 # Backward-compatible alias (Release C1)

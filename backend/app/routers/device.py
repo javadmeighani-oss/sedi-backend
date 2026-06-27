@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -11,27 +11,45 @@ from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
 from backend.app.services.notification_engine import DecisionEngine
-from backend.app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
+from backend.app.schemas.device import (
+    DeviceIngestRequest,
+    DeviceIngestResponse,
+    DeviceHeartbeatRequest,
+    DeviceAcknowledgeRequest,
+)
 from backend.app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
-from backend.app.core.device_auth import get_device_token, authorize_device_or_legacy
+from backend.app.core.device_auth import (
+    get_device_token,
+    authorize_device_or_legacy,
+    authorize_operational_device,
+    reject_legacy_user_id_query,
+)
 from backend.app.services.vitals.vital_registry import VitalValidationError
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# 🔹 1. دریافت فرمان‌های صوتی جدید برای گجت
 @router.get("/pending-commands", response_model=ApiResponseV1)
-def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
+def get_pending_commands(
+    device_id: str = Query(..., description="Logical device id"),
+    db: Session = Depends(get_db),
+    token: str = Depends(get_device_token),
+    _: None = Depends(reject_legacy_user_id_query),
+):
     """
-    گجت فرمان‌های صوتی جدید را از این مسیر می‌گیرد
+    Fetch pending audio commands for the device's owner.
+
+    Requires X-DEVICE-TOKEN and device_id query. user_id is derived from the device row.
     """
-    # Query high/critical priority notifications (priority is now a string)
+    device = authorize_operational_device(db=db, device_id=device_id, token=token)
+    user_id = device.user_id
+
     alerts = (
         db.query(models.Notification)
         .filter(models.Notification.user_id == user_id)
         .filter(models.Notification.is_read == False)
-        .filter(models.Notification.priority.in_(["high", "critical"]))  # Updated: priority is now string
+        .filter(models.Notification.priority.in_(["high", "critical"]))
         .order_by(models.Notification.created_at.desc())
         .all()
     )
@@ -39,21 +57,19 @@ def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
     if not alerts:
         return APIResponse(ok=True, data={"commands": []})
 
-    # Helper function to convert string priority to numeric for comparison
     def priority_to_numeric(priority_str: str) -> int:
         priority_map = {"low": 1, "normal": 2, "high": 3, "critical": 4}
         return priority_map.get(priority_str, 2)
-    
+
     commands = []
     for a in alerts:
         priority_num = priority_to_numeric(a.priority)
         command = {
-            "sound_id": "alert_default",  # sound_id removed from new model
-            # English-first fallback (V1 policy)
-            "text": a.body or a.title or "Health Alert",  # Updated: message -> body
+            "sound_id": "alert_default",
+            "text": a.body or a.title or "Health Alert",
             "volume": 90,
             "repeat": 2 if priority_num >= 3 else 1,
-            "language": "fa",  # language removed from new model, using default
+            "language": "fa",
             "priority": priority_num,
         }
         commands.append(command)
@@ -63,109 +79,58 @@ def get_pending_commands(user_id: int, db: Session = Depends(get_db)):
     return APIResponse(ok=True, data={"commands": commands})
 
 
-# 🔹 2. ارسال وضعیت گجت به سرور (Heartbeat)
 @router.post("/heartbeat", response_model=ApiResponseV1)
-def device_heartbeat(payload: dict, db: Session = Depends(get_db)):
+def device_heartbeat(
+    body: DeviceHeartbeatRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(get_device_token),
+):
     """
-    گجت هر چند ثانیه وضعیت خود را به سرور می‌فرستد.
-    Updates device.last_seen_at in database.
-    {
-        "device_id": "Sedi001",
-        "user_id": 1,
-        "battery": 92,
-        "temperature": 41.3,
-        "status": "active"
-    }
+    Device heartbeat. Requires X-DEVICE-TOKEN; user_id is derived from the device row.
     """
-    # Validate required fields
-    user_id = payload.get("user_id")
-    device_id = payload.get("device_id")
-    
-    if not user_id or not device_id:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(
-                code="INVALID_PAYLOAD",
-                message="Missing required fields: user_id and device_id are required."
-            )
-        )
-    
-    # Validate user exists
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        return APIResponse(
-            ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
-        )
-    
-    # Fetch device (must be active, not revoked)
-    device = (
-        db.query(models.Device)
-        .filter(
-            models.Device.device_id == device_id,
-            models.Device.user_id == user_id,
-            models.Device.revoked_at.is_(None)  # Only active devices
-        )
-        .first()
-    )
-    
-    if not device:
-        return APIResponse(
-            ok=False,
-            error=ErrorInfo(code="DEVICE_NOT_FOUND", message="Device not found or revoked.")
-        )
-    
-    # Update device record
+    device = authorize_operational_device(db=db, device_id=body.device_id, token=token)
+
     now = datetime.utcnow()
     device.last_seen_at = now
-    
-    # Optionally update status if provided
-    if payload.get("status") is not None:
-        device.status = str(payload["status"])
-    
+
+    if body.status is not None:
+        device.status = str(body.status)
+
     db.commit()
     db.refresh(device)
-    
+
     logger.info(
-        f"[DEVICE_HEARTBEAT] Updated device_id={device_id} user_id={user_id} "
-        f"last_seen_at={device.last_seen_at} status={device.status}"
+        "[DEVICE_HEARTBEAT] Updated device_id=%s user_id=%s last_seen_at=%s status=%s",
+        device.device_id,
+        device.user_id,
+        device.last_seen_at,
+        device.status,
     )
-    
-    # Note: Removed notification creation to avoid spam from frequent heartbeats.
-    # Notifications should only be created for critical events (low battery, errors, etc.)
-    # which can be handled by other endpoints or scheduled checks.
-    
+
     return APIResponse(ok=True, data={"message": "Heartbeat received successfully."})
 
 
-# 🔹 3. تأیید اجرای فرمان توسط گجت (Acknowledge)
 @router.post("/acknowledge", response_model=ApiResponseV1)
-def acknowledge_command(payload: dict, db: Session = Depends(get_db)):
+def acknowledge_command(
+    body: DeviceAcknowledgeRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(get_device_token),
+):
     """
-    گجت پس از اجرای فرمان صوتی، نتیجه را اعلام می‌کند.
-    {
-        "user_id": 1,
-        "sound_id": "alert_temp",
-        "status": "played"
-    }
+    Acknowledge audio command playback. Requires X-DEVICE-TOKEN; user_id from device row.
     """
-    user = db.query(models.User).filter(models.User.id == payload.get("user_id")).first()
-    if not user:
-        return APIResponse(
-            ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found.")
-        )
+    device = authorize_operational_device(db=db, device_id=body.device_id, token=token)
 
-    # Use DecisionEngine instead of direct Notification creation
     decision_engine = DecisionEngine(db)
-    notif = decision_engine.create_insight_notification(
-        user_id=user.id,
-        insight_text=f"Sound '{payload.get('sound_id')}' executed with status: {payload.get('status')}",
-        priority="low"
+    decision_engine.create_insight_notification(
+        user_id=device.user_id,
+        insight_text=f"Sound '{body.sound_id}' executed with status: {body.status}",
+        priority="low",
     )
 
     return APIResponse(ok=True, data={"acknowledged": True})
 
 
-# 🔹 4. Device Event Ingestion (Release C1)
 @router.post("/ingest", response_model=DeviceIngestResponse)
 def ingest_device_event(
     request: DeviceIngestRequest,
@@ -175,57 +140,49 @@ def ingest_device_event(
 ):
     """
     Ingest device event (vital signs) with deduplication and memory mapping.
-    
+
     Requires X-DEVICE-TOKEN header.
-    
+
     Auth modes (Release C2):
     - DEVICE_AUTH_MODE=legacy_only: validate shared DEVICE_INGEST_TOKEN (C1 behavior)
     - DEVICE_AUTH_MODE=db_only: validate per-device token from DB (requires request.device_id)
     - DEVICE_AUTH_MODE=hybrid (default): try DB first, then legacy if enabled
-    
-    Example:
-    {
-        "user_id": 1,
-        "device_id": "Sedi001",
-        "event_type": "heart_rate",
-        "payload": {
-            "bpm": 82,
-            "quality": "good"
-        },
-        "recorded_at": "2026-02-02T10:30:00Z"
-    }
     """
     try:
-        # Authorize device (hybrid / db_only / legacy_only)
         _auth_result, device = authorize_device_or_legacy(
             db=db,
             user_id=request.user_id,
             device_id=request.device_id,
-            token=token
+            token=token,
         )
-        # In DB-auth mode, trust registered device_id
-        if device is not None:
-            request.device_id = device.device_id
 
-        # Validate user exists
-        user = db.query(models.User).filter(models.User.id == request.user_id).first()
+        effective_user_id = request.user_id
+        if device is not None:
+            if request.user_id != device.user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="user_id does not match device owner",
+                )
+            request.device_id = device.device_id
+            effective_user_id = device.user_id
+
+        user = db.query(models.User).filter(models.User.id == effective_user_id).first()
         if not user:
             return DeviceIngestResponse(
                 ok=False,
-                error={"code": "USER_NOT_FOUND", "message": "User not found"}
+                error={"code": "USER_NOT_FOUND", "message": "User not found"},
             )
-        
-        # Validate payload is not empty
+
         if not request.payload:
             return DeviceIngestResponse(
                 ok=False,
-                error={"code": "INVALID_PAYLOAD", "message": "Payload must not be empty"}
+                error={"code": "INVALID_PAYLOAD", "message": "Payload must not be empty"},
             )
-        
+
         trace_id = http_request.headers.get("X-TRACE-ID") or uuid.uuid4().hex
         event, dedupe_key, result = ingest_event(
             db=db,
-            user_id=request.user_id,
+            user_id=effective_user_id,
             event_type=request.event_type,
             payload=request.payload,
             device_id=request.device_id,
@@ -241,7 +198,7 @@ def ingest_device_event(
                     "dedupe_key": dedupe_key,
                     "message": "Event already exists (duplicate)",
                     **result,
-                }
+                },
             )
 
         return DeviceIngestResponse(
@@ -250,29 +207,26 @@ def ingest_device_event(
                 "event_id": event.id,
                 "dedupe_key": dedupe_key,
                 **result,
-            }
+            },
         )
-    
+
     except ValueError as e:
         return DeviceIngestResponse(
             ok=False,
-            error={"code": "VALIDATION_ERROR", "message": str(e)}
+            error={"code": "VALIDATION_ERROR", "message": str(e)},
         )
 
     except VitalValidationError as e:
-        # Schema-driven validation errors -> 422
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     except DeviceRateLimitExceeded as e:
-        # Return 429 (do not write to DB)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
 
     except HTTPException as e:
-        # Preserve correct HTTP status codes (e.g., 401/429/422). Do not swallow auth/validation exceptions.
         logger.debug("[DEVICE_INGEST] Re-raising HTTPException status_code=%s", e.status_code)
         raise
 
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to ingest event")
         return JSONResponse(
             status_code=500,

@@ -1,5 +1,5 @@
 # app/routers/devices.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -11,22 +11,37 @@ from backend.app.schemas.devices import (
     DeviceRegisterResponse,
     DevicesListResponse,
 )
+from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 
 
+def _reject_legacy_user_id_query(request: Request) -> None:
+    """Reject legacy user_id query param; identity comes from JWT only."""
+    if request.query_params.get("user_id") is not None:
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "type": "extra_forbidden",
+                    "loc": ["query", "user_id"],
+                    "msg": "Extra inputs are not permitted",
+                    "input": request.query_params.get("user_id"),
+                }
+            ],
+        )
+
+
 @router.post("/register", response_model=DeviceRegisterResponse)
 def register_device(
-    user_id: int,
     body: DeviceRegisterRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
     db: Session = Depends(get_db),
 ):
-    # Ownership check by user_id param (no auth yet)
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return DeviceRegisterResponse(ok=False, error={"code": "USER_NOT_FOUND", "message": "User not found"})
+    """Register a device for the authenticated user. Returns plaintext token once."""
+    user_id = auth_user.id
 
-    # Ensure device_id not already registered to a different user
     existing = db.query(Device).filter(Device.device_id == body.device_id).first()
     if existing:
         if existing.user_id != user_id:
@@ -34,7 +49,6 @@ def register_device(
                 ok=False,
                 error={"code": "DEVICE_ID_TAKEN", "message": "device_id is already registered to another user"},
             )
-        # If same user, treat as rotate for simplicity (return new token once)
         token = generate_device_token()
         existing.token_hash = hash_device_token(token)
         existing.status = "active"
@@ -62,11 +76,13 @@ def register_device(
 
 
 @router.get("", response_model=DevicesListResponse)
-def list_devices(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return DevicesListResponse(ok=False, error={"code": "USER_NOT_FOUND", "message": "User not found"})
-
+def list_devices(
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """List devices owned by the authenticated user."""
+    user_id = auth_user.id
     devices = db.query(Device).filter(Device.user_id == user_id).order_by(Device.id.desc()).all()
     data = []
     for d in devices:
@@ -84,9 +100,16 @@ def list_devices(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{device_id}/revoke", response_model=DeviceRegisterResponse)
-def revoke_device(device_id: str, user_id: int, db: Session = Depends(get_db)):
-    device = db.query(Device).filter(Device.device_id == device_id).first()
-    if not device or device.user_id != user_id:
+def revoke_device(
+    device_id: str,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Revoke a device owned by the authenticated user."""
+    user_id = auth_user.id
+    device = db.query(Device).filter(Device.device_id == device_id, Device.user_id == user_id).first()
+    if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
 
     device.status = "revoked"
@@ -98,9 +121,16 @@ def revoke_device(device_id: str, user_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{device_id}/rotate-token", response_model=DeviceRegisterResponse)
-def rotate_device_token(device_id: str, user_id: int, db: Session = Depends(get_db)):
-    device = db.query(Device).filter(Device.device_id == device_id).first()
-    if not device or device.user_id != user_id:
+def rotate_device_token(
+    device_id: str,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Rotate device token for a device owned by the authenticated user."""
+    user_id = auth_user.id
+    device = db.query(Device).filter(Device.device_id == device_id, Device.user_id == user_id).first()
+    if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
 
     token = generate_device_token()
@@ -111,4 +141,3 @@ def rotate_device_token(device_id: str, user_id: int, db: Session = Depends(get_
     db.commit()
     db.refresh(device)
     return DeviceRegisterResponse(ok=True, data={"device_id": device.device_id, "token": token})
-

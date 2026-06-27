@@ -17,6 +17,12 @@ from fastapi.testclient import TestClient
 
 from backend.app.models import User, Device
 from backend.app.core.device_auth import hash_device_token
+from backend.app.core.security import create_access_token
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
@@ -33,7 +39,7 @@ def test_register_and_ingest_with_db_token_hybrid(client: TestClient, db, user, 
     monkeypatch.delenv("DEVICE_INGEST_TOKEN", raising=False)  # no legacy token
 
     # Register
-    r = client.post(f"/devices/register?user_id={user.id}", json={"device_id": "Sedi001", "device_type": "heart_rate"})
+    r = client.post("/devices/register", json={"device_id": "Sedi001", "device_type": "heart_rate"}, headers=_auth_header(user.id))
     assert r.status_code == 200
     j = r.json()
     assert j["ok"] is True
@@ -63,10 +69,10 @@ def test_revoke_blocks_ingest(client: TestClient, db, user, monkeypatch):
     monkeypatch.setenv("DEVICE_AUTH_MODE", "hybrid")
     monkeypatch.delenv("DEVICE_INGEST_TOKEN", raising=False)
 
-    r = client.post(f"/devices/register?user_id={user.id}", json={"device_id": "Sedi002", "device_type": "heart_rate"})
+    r = client.post("/devices/register", json={"device_id": "Sedi002", "device_type": "heart_rate"}, headers=_auth_header(user.id))
     token = r.json()["data"]["token"]
 
-    rev = client.post(f"/devices/Sedi002/revoke?user_id={user.id}")
+    rev = client.post("/devices/Sedi002/revoke", headers=_auth_header(user.id))
     assert rev.status_code == 200
     assert rev.json()["ok"] is True
 
@@ -82,10 +88,10 @@ def test_rotate_changes_token(client: TestClient, db, user, monkeypatch):
     monkeypatch.setenv("DEVICE_AUTH_MODE", "hybrid")
     monkeypatch.delenv("DEVICE_INGEST_TOKEN", raising=False)
 
-    r = client.post(f"/devices/register?user_id={user.id}", json={"device_id": "Sedi003", "device_type": "heart_rate"})
+    r = client.post("/devices/register", json={"device_id": "Sedi003", "device_type": "heart_rate"}, headers=_auth_header(user.id))
     token1 = r.json()["data"]["token"]
 
-    rot = client.post(f"/devices/Sedi003/rotate-token?user_id={user.id}")
+    rot = client.post("/devices/Sedi003/rotate-token", headers=_auth_header(user.id))
     assert rot.status_code == 200
     token2 = rot.json()["data"]["token"]
     assert token2 != token1
@@ -113,7 +119,7 @@ def test_hybrid_fallback_to_legacy_when_db_rejects(client: TestClient, db, user,
     monkeypatch.setenv("DEVICE_INGEST_TOKEN", "legacy-secret")
 
     # Register device (DB token exists)
-    r = client.post(f"/devices/register?user_id={user.id}", json={"device_id": "Sedi004", "device_type": "heart_rate"})
+    r = client.post("/devices/register", json={"device_id": "Sedi004", "device_type": "heart_rate"}, headers=_auth_header(user.id))
     assert r.status_code == 200
 
     # Use legacy token (should still pass in hybrid fallback)
