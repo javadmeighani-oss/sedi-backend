@@ -1,7 +1,5 @@
 """
 Unit tests: KC → Notification Bridge V1.2 (delivery limit=1, in_app skip).
-- notify=true & in_app=true: create notification, do NOT call deliver_pending; reason=in_app_skip_delivery.
-- notify=true & in_app=false: call deliver_pending(limit=1).
 """
 
 from __future__ import annotations
@@ -14,7 +12,14 @@ from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
+
 _UID = 91021
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture()
@@ -34,24 +39,26 @@ def _seed_candidate(client: TestClient, user_id: int) -> None:
     r = client.post(
         "/knowledge/extract_from_message",
         json={
-            "user_id": user_id,
             "text": "دارم متفورمین می‌خورم",
             "language": "fa",
             "source_message_id": f"pytest-notify2-{uuid.uuid4().hex[:12]}",
         },
+        headers=_auth_header(user_id),
     )
     assert r.status_code == 200, r.text
     assert r.json().get("data", {}).get("created_candidates_count", 0) >= 1
 
 
 def test_notify_true_in_app_skips_delivery_call(client: TestClient, test_user_id: int, monkeypatch):
-    """notify=true & in_app=true: deliver_pending NOT called; notification.ok=true, reason=in_app_skip_delivery."""
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     _seed_candidate(client, test_user_id)
 
     with patch("backend.app.services.notifications.delivery_service.DeliveryService.deliver_pending") as mock_deliver:
-        r = client.get(f"/knowledge/next_question?user_id={test_user_id}&lang=en&notify=true&in_app=true")
+        r = client.get(
+            "/knowledge/next_question?lang=en&notify=true&in_app=true",
+            headers=_auth_header(test_user_id),
+        )
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None
@@ -64,14 +71,16 @@ def test_notify_true_in_app_skips_delivery_call(client: TestClient, test_user_id
 
 
 def test_notify_true_not_in_app_calls_delivery_limit_1(client: TestClient, test_user_id: int, monkeypatch):
-    """notify=true & in_app=false: deliver_pending called with limit=1."""
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     _seed_candidate(client, test_user_id)
 
     with patch("backend.app.services.notifications.delivery_service.DeliveryService.deliver_pending") as mock_deliver:
         mock_deliver.return_value = 0
-        r = client.get(f"/knowledge/next_question?user_id={test_user_id}&lang=en&notify=true&in_app=false")
+        r = client.get(
+            "/knowledge/next_question?lang=en&notify=true&in_app=false",
+            headers=_auth_header(test_user_id),
+        )
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None

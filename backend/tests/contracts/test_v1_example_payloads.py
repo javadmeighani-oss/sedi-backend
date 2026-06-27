@@ -11,7 +11,12 @@ from backend.app.schemas.api_envelope import ApiResponse, ApiError
 from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeOut
 from backend.app.schemas.chat import ChatRequest
 from backend.app.schemas.device import DeviceIngestRequest, DeviceIngestResponse
-from backend.app.schemas.knowledge import ExtractFromMessageRequest, ApplyAnswerRequest
+from backend.app.schemas.knowledge import (
+    ExtractFromMessageRequest,
+    ExtractFromMessageUserRequest,
+    ApplyAnswerRequest,
+    ApplyAnswerUserRequest,
+)
 
 
 # ----- Auth (auth.md) -----
@@ -65,8 +70,8 @@ DEVICE_INGEST_RESPONSE_ERROR = {
 
 # ----- Knowledge (knowledge.md) -----
 KNOWLEDGE_NEXT_QUESTION_RESPONSE_KEYS = ["ok", "data", "error"]
-KNOWLEDGE_EXTRACT_BODY = {"user_id": 1, "text": "I sleep at 11pm.", "language": "fa", "source_message_id": None}
-KNOWLEDGE_APPLY_BODY = {"user_id": 1, "candidate_id": 5, "question_type": "confirm_candidate", "value": "Yes", "field_key": None, "answer": None}
+KNOWLEDGE_EXTRACT_BODY = {"text": "I sleep at 11pm.", "language": "fa", "source_message_id": None}
+KNOWLEDGE_APPLY_BODY = {"candidate_id": 5, "question_type": "confirm_candidate", "value": "Yes", "field_key": None, "answer": None}
 
 
 # ----- Decision (decision.md) -----
@@ -185,13 +190,13 @@ def test_knowledge_next_question_response_has_envelope_keys():
 
 
 def test_knowledge_extract_body_matches_extract_request():
-    """Knowledge extract_from_message body matches ExtractFromMessageRequest."""
-    ExtractFromMessageRequest(**KNOWLEDGE_EXTRACT_BODY)
+    """Knowledge extract_from_message body matches ExtractFromMessageUserRequest."""
+    ExtractFromMessageUserRequest(**KNOWLEDGE_EXTRACT_BODY)
 
 
 def test_knowledge_apply_body_matches_apply_request():
-    """Knowledge apply_answer body matches ApplyAnswerRequest."""
-    ApplyAnswerRequest(**KNOWLEDGE_APPLY_BODY)
+    """Knowledge apply_answer body matches ApplyAnswerUserRequest."""
+    ApplyAnswerUserRequest(**KNOWLEDGE_APPLY_BODY)
 
 
 # ---------- Tests: decision ----------

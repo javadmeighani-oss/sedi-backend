@@ -111,7 +111,7 @@
         "type": "object"
       },
       "ApplyAnswerRequest": {
-        "description": "POST /knowledge/admin/answers/apply or /knowledge/apply_answer body.",
+        "description": "POST /knowledge/admin/answers/apply body.",
         "properties": {
           "answer": {
             "anyOf": [
@@ -181,6 +181,72 @@
           "user_id"
         ],
         "title": "ApplyAnswerRequest",
+        "type": "object"
+      },
+      "ApplyAnswerUserRequest": {
+        "additionalProperties": false,
+        "description": "POST /knowledge/apply_answer body (authenticated user only; no user_id).",
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "For confirm_candidate: raw answer (alias for value)",
+            "title": "Answer"
+          },
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For confirm_candidate: candidate to accept/reject",
+            "title": "Candidate Id"
+          },
+          "field_key": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "birth_year, sex, ... or fact_type",
+            "title": "Field Key"
+          },
+          "question_type": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "confirm_candidate when answering Yes/No",
+            "title": "Question Type"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {}
+            ],
+            "description": "Scalar or JSON-serializable value",
+            "title": "Value"
+          }
+        },
+        "title": "ApplyAnswerUserRequest",
         "type": "object"
       },
       "CandidateDecisionRequest": {
@@ -567,8 +633,9 @@
         "title": "ErrorInfo",
         "type": "object"
       },
-      "ExtractFromMessageRequest": {
-        "description": "POST /knowledge/extract_from_message body.",
+      "ExtractFromMessageUserRequest": {
+        "additionalProperties": false,
+        "description": "POST /knowledge/extract_from_message body (authenticated user only; no user_id).",
         "properties": {
           "language": {
             "default": "fa",
@@ -592,18 +659,12 @@
             "description": "Chat message text to extract from",
             "title": "Text",
             "type": "string"
-          },
-          "user_id": {
-            "description": "User ID",
-            "title": "User Id",
-            "type": "integer"
           }
         },
         "required": [
-          "text",
-          "user_id"
+          "text"
         ],
-        "title": "ExtractFromMessageRequest",
+        "title": "ExtractFromMessageUserRequest",
         "type": "object"
       },
       "HealthDataAddRequest": {
@@ -1547,8 +1608,9 @@
         "title": "UserFactRead",
         "type": "object"
       },
-      "UserFactUpsert": {
-        "description": "POST /user/facts body (upsert by user_id + key).",
+      "UserFactUpsertRequest": {
+        "additionalProperties": false,
+        "description": "POST /user/facts body (authenticated user only; no user_id).",
         "properties": {
           "confidence": {
             "anyOf": [
@@ -1578,10 +1640,6 @@
             "default": "manual",
             "title": "Source"
           },
-          "user_id": {
-            "title": "User Id",
-            "type": "integer"
-          },
           "value_json": {
             "anyOf": [
               {
@@ -1595,10 +1653,9 @@
           }
         },
         "required": [
-          "key",
-          "user_id"
+          "key"
         ],
-        "title": "UserFactUpsert",
+        "title": "UserFactUpsertRequest",
         "type": "object"
       },
       "UserProfileKnowledgeRead": {
@@ -1687,8 +1744,9 @@
         "title": "UserProfileKnowledgeRead",
         "type": "object"
       },
-      "UserProfileKnowledgeUpsert": {
-        "description": "PUT /user/knowledge body.",
+      "UserProfileKnowledgeUpsertRequest": {
+        "additionalProperties": false,
+        "description": "PUT /user/knowledge body (authenticated user only; no user_id).",
         "properties": {
           "baseline_summary": {
             "anyOf": [
@@ -1755,16 +1813,9 @@
               }
             ],
             "title": "Preferences Json"
-          },
-          "user_id": {
-            "title": "User Id",
-            "type": "integer"
           }
         },
-        "required": [
-          "user_id"
-        ],
-        "title": "UserProfileKnowledgeUpsert",
+        "title": "UserProfileKnowledgeUpsertRequest",
         "type": "object"
       }
     },
@@ -3710,13 +3761,13 @@
     },
     "/knowledge/apply_answer": {
       "post": {
-        "description": "Apply user answer. For confirm_candidate: pass candidate_id, question_type=\"confirm_candidate\", value=Yes/No.\nFor profile/fact: pass field_key and value (admin apply has full support).",
+        "description": "Apply user answer for the authenticated user.\nRequires Bearer JWT; user identity is derived from the token only.",
         "operationId": "apply_answer_endpoint_knowledge_apply_answer_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApplyAnswerRequest"
+                "$ref": "#/components/schemas/ApplyAnswerUserRequest"
               }
             }
           },
@@ -3744,6 +3795,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Apply Answer Endpoint",
         "tags": [
           "Knowledge"
@@ -3752,13 +3808,13 @@
     },
     "/knowledge/extract_from_message": {
       "post": {
-        "description": "Extract facts from chat message and create/auto-accept candidates.\nResponse: { ok, data: { extracted_count, created_candidates_count, auto_accepted_count, ignored_count }, error }",
+        "description": "Extract facts from chat message and create/auto-accept candidates.\nRequires Bearer JWT; user identity is derived from the token only.",
         "operationId": "extract_from_message_knowledge_extract_from_message_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExtractFromMessageRequest"
+                "$ref": "#/components/schemas/ExtractFromMessageUserRequest"
               }
             }
           },
@@ -3786,6 +3842,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Extract From Message",
         "tags": [
           "Knowledge"
@@ -3794,7 +3855,7 @@
     },
     "/knowledge/next_question": {
       "get": {
-        "description": "Get the best next question to ask the user for proactive data collection.\nNever returns data=null: when no question is available, returns status=no_question, reason=no_available_question with policy.\nWhen blocked by fatigue control: status=no_question, reason=fatigue_control, next_eligible_at, policy.\nOptional display fields (display_title, display_body, display_choices, tone_version) when confirm_candidate.\nWhen notify=true and response is confirm_candidate, enqueues/sends a notification (optional data.notification).\nWhen in_app=true with notify=true, notification is created but deliver_pending is not called.\nExample: GET /knowledge/next_question?user_id=1&lang=fa&notify=true",
+        "description": "Get the best next question to ask the authenticated user for proactive data collection.\nRequires Bearer JWT; user identity is derived from the token only.",
         "operationId": "get_next_question_endpoint_knowledge_next_question_get",
         "parameters": [
           {
@@ -3838,17 +3899,6 @@
               "title": "In App",
               "type": "boolean"
             }
-          },
-          {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
           }
         ],
         "responses": {
@@ -3873,6 +3923,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Next Question Endpoint",
         "tags": [
           "Knowledge"
@@ -5614,21 +5669,8 @@
     },
     "/user/facts": {
       "get": {
-        "description": "Get all facts for a user. Strictly filtered by user_id.",
+        "description": "Get all facts for the authenticated user. Requires Bearer JWT.",
         "operationId": "get_facts_user_facts_get",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -5643,31 +5685,26 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Facts",
         "tags": [
           "User"
         ]
       },
       "post": {
-        "description": "Upsert a fact by (user_id, key). value_json stored as-is (plain text). SAFE: query by (user_id, key) then update or insert to enforce uniqueness at application level.",
+        "description": "Upsert a fact by key for the authenticated user. Requires Bearer JWT.",
         "operationId": "upsert_fact_user_facts_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserFactUpsert"
+                "$ref": "#/components/schemas/UserFactUpsertRequest"
               }
             }
           },
@@ -5695,6 +5732,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Upsert Fact",
         "tags": [
           "User"
@@ -5747,21 +5789,8 @@
     },
     "/user/knowledge": {
       "get": {
-        "description": "Get user profile knowledge (baseline). Returns 404 if user or row missing.",
+        "description": "Get user profile knowledge (baseline). Requires Bearer JWT.",
         "operationId": "get_knowledge_user_knowledge_get",
-        "parameters": [
-          {
-            "description": "User ID",
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "description": "User ID",
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -5772,31 +5801,26 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Knowledge",
         "tags": [
           "User"
         ]
       },
       "put": {
-        "description": "Upsert user profile knowledge (1 row per user).",
+        "description": "Upsert user profile knowledge (1 row per user). Requires Bearer JWT.",
         "operationId": "upsert_knowledge_user_knowledge_put",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserProfileKnowledgeUpsert"
+                "$ref": "#/components/schemas/UserProfileKnowledgeUpsertRequest"
               }
             }
           },
@@ -5824,6 +5848,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Upsert Knowledge",
         "tags": [
           "User"

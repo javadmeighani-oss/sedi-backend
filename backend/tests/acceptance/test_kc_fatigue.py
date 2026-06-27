@@ -1,9 +1,5 @@
 """
 Acceptance tests: KC Question Fatigue Control V1 (API-driven, no ORM imports).
-- Burst guard blocks second next_question when called twice quickly.
-- Daily cap blocks after N questions (cap=1 in test).
-- Reject streak blocks until next day 08:00 UTC after 2 consecutive reject/skip.
-- Accept resets consecutive_rejects.
 """
 
 from __future__ import annotations
@@ -15,7 +11,14 @@ from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
+
 _TEST_USER_ID = 91002
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture()
@@ -36,22 +39,21 @@ def _seed_candidate(client: TestClient, user_id: int) -> None:
     r = client.post(
         "/knowledge/extract_from_message",
         json={
-            "user_id": user_id,
             "text": "دارم متفورمین می‌خورم",
             "language": "fa",
             "source_message_id": source_id,
         },
+        headers=_auth_header(user_id),
     )
     assert r.status_code == 200, r.text
     assert r.json().get("data", {}).get("created_candidates_count", 0) >= 1
 
 
 def test_kc_next_question_blocked_by_burst_guard(client: TestClient, test_user_id: int):
-    """Call next_question twice quickly; second returns status=no_question reason=fatigue_control."""
     user_id = test_user_id
     _seed_candidate(client, user_id)
 
-    r1 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r1 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r1.status_code == 200, r1.text
     d1 = r1.json()
     assert d1.get("ok") is True
@@ -59,7 +61,7 @@ def test_kc_next_question_blocked_by_burst_guard(client: TestClient, test_user_i
     assert data1 is not None, "first call should return a question (confirm_candidate)"
     assert data1.get("question_type") == "confirm_candidate"
 
-    r2 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r2 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r2.status_code == 200, r2.text
     d2 = r2.json()
     assert d2.get("ok") is True
@@ -72,18 +74,17 @@ def test_kc_next_question_blocked_by_burst_guard(client: TestClient, test_user_i
 
 
 def test_kc_next_question_blocked_by_daily_cap(client: TestClient, test_user_id: int, monkeypatch):
-    """With cap=1, first question succeeds; second next_question is blocked by daily cap."""
     monkeypatch.setenv("KC_DAILY_QUESTION_CAP", "1")
     user_id = test_user_id
     _seed_candidate(client, user_id)
 
-    r1 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r1 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r1.status_code == 200, r1.text
     d1 = r1.json()
     assert d1.get("ok") is True
     assert d1.get("data") is not None
 
-    r2 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r2 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r2.status_code == 200, r2.text
     d2 = r2.json()
     assert d2.get("ok") is True
@@ -96,67 +97,65 @@ def test_kc_next_question_blocked_by_daily_cap(client: TestClient, test_user_id:
 
 
 def test_kc_reject_streak_blocks_until_tomorrow(client: TestClient, test_user_id: int, monkeypatch):
-    """Two consecutive rejections (e.g. 'نه') trigger block until next day 08:00 UTC."""
     monkeypatch.setenv("KC_REJECT_STREAK_LIMIT", "2")
     monkeypatch.setenv("KC_BLOCK_UNTIL_HOUR_UTC", "8")
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     user_id = test_user_id
 
-    # First candidate: get question, reject
     _seed_candidate(client, user_id)
-    r1 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r1 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r1.status_code == 200 and r1.json().get("data") is not None
     cand1 = r1.json()["data"]["candidate_id"]
     client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "question_type": "confirm_candidate", "candidate_id": cand1, "answer": "نه"},
+        json={"question_type": "confirm_candidate", "candidate_id": cand1, "answer": "نه"},
+        headers=_auth_header(user_id),
     )
 
-    # Second candidate: get question, reject
     _seed_candidate(client, user_id)
-    r2 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r2 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r2.status_code == 200 and r2.json().get("data") is not None
     cand2 = r2.json()["data"]["candidate_id"]
     client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "question_type": "confirm_candidate", "candidate_id": cand2, "answer": "no"},
+        json={"question_type": "confirm_candidate", "candidate_id": cand2, "answer": "no"},
+        headers=_auth_header(user_id),
     )
 
-    # Next question should be blocked; next_eligible_at should be next day 08:00 UTC
-    r3 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r3 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r3.status_code == 200, r3.text
     data3 = r3.json().get("data")
     assert data3.get("status") == "no_question"
     assert data3.get("reason") == "fatigue_control"
     next_at = data3.get("next_eligible_at")
     assert next_at is not None
-    # Assert hour is 08:00 UTC (format: ISO with time)
     assert "T08:00:00" in next_at or "T08:00:" in next_at
 
 
 def test_kc_accept_resets_reject_streak(client: TestClient, test_user_id: int, monkeypatch):
-    """Reject once then accept; policy should show consecutive_rejects=0."""
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     user_id = test_user_id
 
     _seed_candidate(client, user_id)
-    r1 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r1 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r1.status_code == 200 and r1.json().get("data") is not None
     cand1 = r1.json()["data"]["candidate_id"]
     client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "question_type": "confirm_candidate", "candidate_id": cand1, "answer": "نه"},
+        json={"question_type": "confirm_candidate", "candidate_id": cand1, "answer": "نه"},
+        headers=_auth_header(user_id),
     )
 
     _seed_candidate(client, user_id)
-    r2 = client.get(f"/knowledge/next_question?user_id={user_id}")
+    r2 = client.get("/knowledge/next_question", headers=_auth_header(user_id))
     assert r2.status_code == 200 and r2.json().get("data") is not None
     cand2 = r2.json()["data"]["candidate_id"]
     r_apply = client.post(
         "/knowledge/apply_answer",
-        json={"user_id": user_id, "question_type": "confirm_candidate", "candidate_id": cand2, "answer": "بله"},
+        json={"question_type": "confirm_candidate", "candidate_id": cand2, "answer": "بله"},
+        headers=_auth_header(user_id),
     )
     assert r_apply.status_code == 200
     data = r_apply.json().get("data", {})

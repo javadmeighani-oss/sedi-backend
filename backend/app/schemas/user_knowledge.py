@@ -19,8 +19,21 @@ class UserProfileKnowledgeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserProfileKnowledgeUpsertRequest(BaseModel):
+    """PUT /user/knowledge body (authenticated user only; no user_id)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Optional[str] = None
+    language: Optional[str] = None
+    baseline_summary: Optional[str] = None
+    goals_json: Optional[str] = None
+    constraints_json: Optional[str] = None
+    preferences_json: Optional[str] = None
+
+
 class UserProfileKnowledgeUpsert(BaseModel):
-    """PUT /user/knowledge body."""
+    """Legacy PUT /user/knowledge body (includes user_id)."""
     user_id: int
     display_name: Optional[str] = None
     language: Optional[str] = None
@@ -43,8 +56,19 @@ class UserFactRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserFactUpsertRequest(BaseModel):
+    """POST /user/facts body (authenticated user only; no user_id)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    value_json: Optional[str] = None
+    source: Optional[str] = "manual"  # "chat" | "manual" | "device"
+    confidence: Optional[float] = 0.7
+
+
 class UserFactUpsert(BaseModel):
-    """POST /user/facts body (upsert by user_id + key)."""
+    """Legacy POST /user/facts body (upsert by user_id + key)."""
     user_id: int
     key: str
     value_json: Optional[str] = None

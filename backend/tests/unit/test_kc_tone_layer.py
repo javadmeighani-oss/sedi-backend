@@ -11,6 +11,8 @@ import uuid
 
 import pytest
 
+from backend.app.core.security import create_access_token
+
 from backend.app.knowledge.tone.companion_v1 import apply_companion_tone
 from backend.app.services.knowledge.question_engine import _format_confirm_question, _value_to_display
 
@@ -137,6 +139,12 @@ def test_value_to_display_dict_value_key():
 
 # --- API-level: policy unchanged, display_* and lang param ---
 
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
+
+
 @pytest.fixture()
 def tone_test_user_id(db):
     from sqlalchemy import text
@@ -155,7 +163,7 @@ def tone_test_user_id(db):
 def test_next_question_fatigue_still_no_question(client, tone_test_user_id, monkeypatch):
     """Policy unchanged: when blocked by fatigue_control, response is still no_question."""
     monkeypatch.setenv("KC_DAILY_QUESTION_CAP", "0")
-    r = client.get(f"/knowledge/next_question?user_id={tone_test_user_id}")
+    r = client.get("/knowledge/next_question", headers=_auth_header(tone_test_user_id))
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None
@@ -171,13 +179,16 @@ def test_next_question_confirm_candidate_has_display_fields_and_lang(client, ton
     client.post(
         "/knowledge/extract_from_message",
         json={
-            "user_id": tone_test_user_id,
             "text": "دارم متفورمین می‌خورم",
             "language": "fa",
             "source_message_id": f"pytest-tone-{uuid.uuid4().hex[:12]}",
         },
+        headers=_auth_header(tone_test_user_id),
     )
-    r = client.get(f"/knowledge/next_question?user_id={tone_test_user_id}&lang=en")
+    r = client.get(
+        "/knowledge/next_question?lang=en",
+        headers=_auth_header(tone_test_user_id),
+    )
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None, "expected a question"

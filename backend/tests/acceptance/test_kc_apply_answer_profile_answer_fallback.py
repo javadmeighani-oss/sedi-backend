@@ -1,6 +1,5 @@
 """
 Acceptance test: KC apply_answer for profile fields should accept `answer` when `value` is missing.
-Regression: previously /knowledge/apply_answer ignored payload.answer for profile/fact and only used payload.value.
 """
 
 from __future__ import annotations
@@ -10,7 +9,14 @@ from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
+
 _TEST_USER_ID = 91002
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture()
@@ -30,11 +36,10 @@ def test_apply_answer_profile_birth_year_accepts_answer_field(client: TestClient
     r = client.post(
         "/knowledge/apply_answer",
         json={
-            "user_id": test_user_id,
-            "question_id": "kc_q_birth_year_v1",
             "field_key": "birth_year",
-            "answer": "1990",  # IMPORTANT: no `value`
+            "answer": "1990",
         },
+        headers=_auth_header(test_user_id),
     )
     assert r.status_code == 200, r.text
     body = r.json()
@@ -46,6 +51,5 @@ def test_apply_answer_profile_birth_year_accepts_answer_field(client: TestClient
         {"uid": test_user_id},
     ).mappings().first()
 
-    # ensure_profile_core should have created it and birth_year must be set
     assert row is not None
     assert row["birth_year"] == 1990

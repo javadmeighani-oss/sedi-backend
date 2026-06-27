@@ -13,8 +13,15 @@ from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
+
 _CONTRACT_TEST_USER_ID = 2
 _PRIORITY_TEST_USER_ID = 3
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 @pytest.fixture()
 def full_profile_user(db: Session) -> int:
@@ -65,7 +72,7 @@ def test_next_question_never_data_null_when_no_available_question(client: TestCl
     GET /knowledge/next_question must return data != null and data.status == "no_question".
     """
     user_id = full_profile_user
-    r = client.get(f"/knowledge/next_question?user_id={user_id}&lang=fa")
+    r = client.get("/knowledge/next_question?lang=fa", headers=_auth_header(user_id))
     assert r.status_code == 200, r.text
     body = r.json()
     assert body.get("ok") is True
@@ -134,7 +141,7 @@ def test_next_question_prefers_medications_over_sleep_when_both_eligible(
 ):
     """When two pending confirm candidates exist (sleep_quality and medications), next_question selects medications first (higher clinical priority)."""
     user_id = two_candidates_medications_and_sleep
-    r = client.get(f"/knowledge/next_question?user_id={user_id}&lang=fa")
+    r = client.get("/knowledge/next_question?lang=fa", headers=_auth_header(user_id))
     assert r.status_code == 200, r.text
     body = r.json()
     assert body.get("ok") is True

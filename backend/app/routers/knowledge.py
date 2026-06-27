@@ -1,16 +1,16 @@
 # app/routers/knowledge.py
-"""Knowledge Capture V1 public API. No admin token required."""
+"""Knowledge Capture V1 user-facing API (JWT required)."""
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
-from backend.app.schemas.knowledge import ExtractFromMessageRequest, ApplyAnswerRequest
+from backend.app.schemas.knowledge import ExtractFromMessageUserRequest, ApplyAnswerUserRequest
 from backend.app.services.knowledge.question_engine import get_next_question
 from backend.app.services.knowledge.conversation_extraction_service import process_message
 from backend.app.services.knowledge.service import apply_answer
@@ -20,19 +20,33 @@ from backend.app.services.knowledge.kc_fatigue_policy import (
     mark_answer,
 )
 from backend.app.knowledge.tone import apply_companion_tone
+from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# KC → Notification Bridge: best-effort idempotency window (no new migrations)
 _KC_NOTIFY_DEDUPE_MINUTES = 10
 _KC_NOTIFICATION_TYPE = "kc_confirm"
 _KC_CHANNEL = "engagement"
 _DEFAULT_KC_TITLE_FA = "یه سوال کوتاه"
 _DEFAULT_KC_TITLE_EN = "Quick question"
+_KC_DELIVER_PENDING_LIMIT = 1
 
 
-_KC_DELIVER_PENDING_LIMIT = 1  # Minimize latency; do not deliver up to 10 in same request
+def _reject_legacy_user_id_query(request: Request) -> None:
+    """Reject legacy user_id query param; identity comes from JWT only."""
+    if request.query_params.get("user_id") is not None:
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "type": "extra_forbidden",
+                    "loc": ["query", "user_id"],
+                    "msg": "Extra inputs are not permitted",
+                    "input": request.query_params.get("user_id"),
+                }
+            ],
+        )
 
 
 def _maybe_send_kc_notification(
@@ -46,9 +60,6 @@ def _maybe_send_kc_notification(
     """
     When data is confirm_candidate with display_* fields, create notification (and optionally deliver).
     Best-effort idempotency via dedupe_key; errors are non-fatal.
-    in_app=True: create inbox record only, do not call deliver_pending (user active in app).
-    Returns: { attempted: bool, ok: bool, reason?: str, notification_id?: int }.
-    Reasons: dedupe_skip | in_app_skip_delivery | created_and_delivered | created_pending | error.
     """
     result: Dict[str, Any] = {"attempted": False, "ok": False}
     if (data.get("question_type") or "").strip().lower() != "confirm_candidate":
@@ -131,13 +142,6 @@ def _maybe_send_kc_notification(
         return result
 
 
-def _ensure_user(db: Session, user_id: int) -> models.User:
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
 def _resolve_lang(lang_query: Optional[str], user: models.User) -> str:
     """Language: query param > user.preferred_language > default 'fa'."""
     if lang_query is not None and (str(lang_query).strip().lower() in ("fa", "en", "en-us", "en-gb")):
@@ -149,22 +153,19 @@ def _resolve_lang(lang_query: Optional[str], user: models.User) -> str:
 
 @router.get("/next_question", response_model=ApiResponseV1)
 def get_next_question_endpoint(
-    user_id: int = Query(..., description="User ID"),
+    auth_user: models.User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
     lang: Optional[str] = Query(None, description="Display language: fa | en"),
     notify: bool = Query(False, description="If true and response is confirm_candidate, send a notification"),
     in_app: bool = Query(False, description="If true with notify=true: create inbox notification only, skip push delivery (user active in app)"),
     db: Session = Depends(get_db),
 ):
     """
-    Get the best next question to ask the user for proactive data collection.
-    Never returns data=null: when no question is available, returns status=no_question, reason=no_available_question with policy.
-    When blocked by fatigue control: status=no_question, reason=fatigue_control, next_eligible_at, policy.
-    Optional display fields (display_title, display_body, display_choices, tone_version) when confirm_candidate.
-    When notify=true and response is confirm_candidate, enqueues/sends a notification (optional data.notification).
-    When in_app=true with notify=true, notification is created but deliver_pending is not called.
-    Example: GET /knowledge/next_question?user_id=1&lang=fa&notify=true
+    Get the best next question to ask the authenticated user for proactive data collection.
+    Requires Bearer JWT; user identity is derived from the token only.
     """
-    user = _ensure_user(db, user_id)
+    user_id = auth_user.id
+    user = auth_user
     now = datetime.utcnow()
     allowed, reason, next_eligible_at, policy_snapshot = check_can_ask(db, user_id, now)
     if not allowed:
@@ -210,17 +211,17 @@ def get_next_question_endpoint(
 
 @router.post("/extract_from_message", response_model=ApiResponseV1)
 def extract_from_message(
-    payload: ExtractFromMessageRequest,
+    payload: ExtractFromMessageUserRequest,
+    auth_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Extract facts from chat message and create/auto-accept candidates.
-    Response: { ok, data: { extracted_count, created_candidates_count, auto_accepted_count, ignored_count }, error }
+    Requires Bearer JWT; user identity is derived from the token only.
     """
-    _ensure_user(db, payload.user_id)
     result = process_message(
         db=db,
-        user_id=payload.user_id,
+        user_id=auth_user.id,
         text=payload.text,
         language=payload.language,
         source_message_id=payload.source_message_id,
@@ -230,28 +231,27 @@ def extract_from_message(
 
 @router.post("/apply_answer", response_model=ApiResponseV1)
 def apply_answer_endpoint(
-    payload: ApplyAnswerRequest,
+    payload: ApplyAnswerUserRequest,
+    auth_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Apply user answer. For confirm_candidate: pass candidate_id, question_type="confirm_candidate", value=Yes/No.
-    For profile/fact: pass field_key and value (admin apply has full support).
+    Apply user answer for the authenticated user.
+    Requires Bearer JWT; user identity is derived from the token only.
     """
-    _ensure_user(db, payload.user_id)
+    user_id = auth_user.id
     try:
-        # Prefer payload.value, but fall back to payload.answer (for profile/fact and confirm_candidate)
         raw_value = payload.value
         if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
             if payload.answer is not None and str(payload.answer).strip():
                 raw_value = payload.answer
 
-        # For confirm_candidate: explicitly prefer answer when present
         if payload.candidate_id is not None and (payload.question_type or "").strip().lower() == "confirm_candidate":
             a = payload.answer if (payload.answer is not None and str(payload.answer).strip()) else payload.value
             raw_value = a
         result = apply_answer(
             db=db,
-            user_id=payload.user_id,
+            user_id=user_id,
             field_key=payload.field_key,
             value=raw_value,
             candidate_id=payload.candidate_id,
@@ -260,8 +260,8 @@ def apply_answer_endpoint(
         outcome = result.get("outcome")
         if outcome is not None:
             now = datetime.utcnow()
-            mark_answer(db, payload.user_id, now, outcome)
-            _, _, _, policy_snapshot = check_can_ask(db, payload.user_id, now)
+            mark_answer(db, user_id, now, outcome)
+            _, _, _, policy_snapshot = check_can_ask(db, user_id, now)
             result = {**result, "policy": policy_snapshot}
         return APIResponse(ok=True, data=result, error=None)
     except (ValueError, TypeError) as e:

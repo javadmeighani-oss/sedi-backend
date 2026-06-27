@@ -1,9 +1,5 @@
 """
 Unit tests: KC → Notification Bridge V1.
-- notify=false: no send / no notification field or attempted=false.
-- notify=true + confirm_candidate: send with display_* and idempotency.
-- notify=true + no_question (fatigue): send NOT called.
-- Notify errors are non-fatal: response ok, notification.ok=false.
 """
 
 from __future__ import annotations
@@ -16,7 +12,14 @@ from starlette.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
+
 _UID = 91020
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture()
@@ -36,23 +39,25 @@ def _seed_candidate(client: TestClient, user_id: int) -> None:
     r = client.post(
         "/knowledge/extract_from_message",
         json={
-            "user_id": user_id,
             "text": "دارم متفورمین می‌خورم",
             "language": "fa",
             "source_message_id": f"pytest-notify-{uuid.uuid4().hex[:12]}",
         },
+        headers=_auth_header(user_id),
     )
     assert r.status_code == 200, r.text
     assert r.json().get("data", {}).get("created_candidates_count", 0) >= 1
 
 
 def test_next_question_notify_false_does_not_send(client: TestClient, test_user_id: int, monkeypatch):
-    """With seeded confirm_candidate, call next_question without notify or notify=false; no notification field or attempted=false."""
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     _seed_candidate(client, test_user_id)
 
-    r = client.get(f"/knowledge/next_question?user_id={test_user_id}&lang=en")
+    r = client.get(
+        "/knowledge/next_question?lang=en",
+        headers=_auth_header(test_user_id),
+    )
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None
@@ -61,7 +66,6 @@ def test_next_question_notify_false_does_not_send(client: TestClient, test_user_
 
 
 def test_next_question_notify_true_sends_for_confirm_candidate(client: TestClient, test_user_id: int, monkeypatch):
-    """notify=true + confirm_candidate: send attempted with title/body from display_*, metadata includes candidate_id + idempotency."""
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     _seed_candidate(client, test_user_id)
@@ -73,7 +77,10 @@ def test_next_question_notify_true_sends_for_confirm_candidate(client: TestClien
         return {"attempted": True, "ok": True, "notification_id": 999}
 
     with patch("backend.app.routers.knowledge._maybe_send_kc_notification", side_effect=_capture_send):
-        r = client.get(f"/knowledge/next_question?user_id={test_user_id}&lang=en&notify=true")
+        r = client.get(
+            "/knowledge/next_question?lang=en&notify=true",
+            headers=_auth_header(test_user_id),
+        )
     assert r.status_code == 200, r.text
     resp_data = r.json().get("data")
     assert resp_data is not None
@@ -91,7 +98,6 @@ def test_next_question_notify_true_sends_for_confirm_candidate(client: TestClien
 
 
 def test_next_question_notify_true_no_question_does_not_send(client: TestClient, test_user_id: int, monkeypatch):
-    """Fatigue blocks question; next_question?notify=true returns no_question; send NOT called."""
     monkeypatch.setenv("KC_DAILY_QUESTION_CAP", "0")
     send_calls: list = []
 
@@ -100,7 +106,10 @@ def test_next_question_notify_true_no_question_does_not_send(client: TestClient,
         return {"attempted": True, "ok": True}
 
     with patch("backend.app.routers.knowledge._maybe_send_kc_notification", side_effect=_capture_send):
-        r = client.get(f"/knowledge/next_question?user_id={test_user_id}&notify=true")
+        r = client.get(
+            "/knowledge/next_question?notify=true",
+            headers=_auth_header(test_user_id),
+        )
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data.get("status") == "no_question"
@@ -110,7 +119,6 @@ def test_next_question_notify_true_no_question_does_not_send(client: TestClient,
 
 
 def test_notify_errors_are_non_fatal(client: TestClient, test_user_id: int, monkeypatch):
-    """When _maybe_send_kc_notification raises, endpoint still returns 200 with notification.ok=false."""
     monkeypatch.setenv("KC_COOLDOWN_MINUTES", "0")
     monkeypatch.setenv("KC_BURST_GUARD_MINUTES", "0")
     _seed_candidate(client, test_user_id)
@@ -119,7 +127,10 @@ def test_notify_errors_are_non_fatal(client: TestClient, test_user_id: int, monk
         raise RuntimeError("fake send failure")
 
     with patch("backend.app.routers.knowledge._maybe_send_kc_notification", side_effect=_raise):
-        r = client.get(f"/knowledge/next_question?user_id={test_user_id}&lang=en&notify=true")
+        r = client.get(
+            "/knowledge/next_question?lang=en&notify=true",
+            headers=_auth_header(test_user_id),
+        )
     assert r.status_code == 200, r.text
     data = r.json().get("data")
     assert data is not None

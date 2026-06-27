@@ -17,16 +17,38 @@ class NextQuestionData(BaseModel):
     candidate_id: Optional[int] = None  # for confirm_candidate
 
 
+class ExtractFromMessageUserRequest(BaseModel):
+    """POST /knowledge/extract_from_message body (authenticated user only; no user_id)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(..., description="Chat message text to extract from")
+    language: str = Field("fa", description="Language code: fa, en, ...")
+    source_message_id: Optional[str] = Field(None, description="Optional message ID for tracing")
+
+
 class ExtractFromMessageRequest(BaseModel):
-    """POST /knowledge/extract_from_message body."""
+    """POST /knowledge/extract_from_message body (legacy/admin-style with user_id)."""
     user_id: int = Field(..., description="User ID")
     text: str = Field(..., description="Chat message text to extract from")
     language: str = Field("fa", description="Language code: fa, en, ...")
     source_message_id: Optional[str] = Field(None, description="Optional message ID for tracing")
 
 
+class ApplyAnswerUserRequest(BaseModel):
+    """POST /knowledge/apply_answer body (authenticated user only; no user_id)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_key: Optional[str] = Field(None, description="birth_year, sex, ... or fact_type")
+    value: Optional[Any] = Field(None, description="Scalar or JSON-serializable value")
+    answer: Optional[str] = Field(None, description="For confirm_candidate: raw answer (alias for value)")
+    candidate_id: Optional[int] = Field(None, description="For confirm_candidate: candidate to accept/reject")
+    question_type: Optional[str] = Field(None, description="confirm_candidate when answering Yes/No")
+
+
 class ApplyAnswerRequest(BaseModel):
-    """POST /knowledge/admin/answers/apply or /knowledge/apply_answer body."""
+    """POST /knowledge/admin/answers/apply body."""
     user_id: int = Field(..., description="User ID")
     field_key: Optional[str] = Field(None, description="birth_year, sex, ... or fact_type")
     value: Optional[Any] = Field(None, description="Scalar or JSON-serializable value")
