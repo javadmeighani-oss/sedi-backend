@@ -157,9 +157,25 @@ def authorize_device_or_legacy(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="device_id is required for device auth"
             )
-        device = validate_device_token(db=db, user_id=user_id, device_id=device_id, token=token)
+        # Validate token against the registered device row (not request user_id).
+        # Ingest rejects user_id mismatch separately after auth succeeds.
+        row = db.query(Device).filter(Device.device_id == device_id).first()
+        device = None
+        if row:
+            device = validate_device_token(
+                db=db,
+                user_id=row.user_id,
+                device_id=device_id,
+                token=token,
+            )
         if device:
-            logger.info(f"[DEVICE_AUTH] mode={mode} result=db_ok device_id={device_id} user={user_id}")
+            logger.info(
+                "[DEVICE_AUTH] mode=%s result=db_ok device_id=%s device_user=%s request_user=%s",
+                mode,
+                device_id,
+                device.user_id,
+                user_id,
+            )
             return "db", device
         logger.info(f"[DEVICE_AUTH] mode={mode} result=db_reject device_id={device_id} user={user_id}")
         if mode == "db_only":
