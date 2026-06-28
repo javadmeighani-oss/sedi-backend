@@ -97,9 +97,14 @@ def test_queued_to_sent_with_mock_fcm(client: TestClient, db: Session, test_user
 
     # Run delivery with FCM_DISABLED (mock mode)
     prev = os.environ.get("FCM_DISABLED")
+    prev_admin = os.environ.get("ADMIN_TOKEN")
     try:
         os.environ["FCM_DISABLED"] = "true"
-        r = client.post("/notifications/deliver_pending?limit=10")
+        os.environ["ADMIN_TOKEN"] = "test-stage16-6-admin"
+        r = client.post(
+            "/notifications/deliver_pending?limit=10",
+            headers={"X-Admin-Token": "test-stage16-6-admin"},
+        )
         assert r.status_code == 200
         data = r.json()
         assert data.get("ok") is True
@@ -109,6 +114,10 @@ def test_queued_to_sent_with_mock_fcm(client: TestClient, db: Session, test_user
             os.environ["FCM_DISABLED"] = prev
         else:
             os.environ.pop("FCM_DISABLED", None)
+        if prev_admin is not None:
+            os.environ["ADMIN_TOKEN"] = prev_admin
+        else:
+            os.environ.pop("ADMIN_TOKEN", None)
 
     db.refresh(notif)
     assert notif.is_sent is True

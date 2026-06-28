@@ -71,12 +71,13 @@ def _token_hash(token: str) -> str:
 
 
 def _require_admin_if_set(request: Request) -> None:
-    """If ADMIN_TOKEN env is set, require X-Admin-Token header. Same pattern as deliver_pending."""
+    """Require configured ADMIN_TOKEN and matching X-Admin-Token header (fail-closed)."""
     admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
-    if admin_token:
-        header_token = (request.headers.get("X-Admin-Token") or "").strip()
-        if header_token != admin_token:
-            raise HTTPException(status_code=401, detail="Admin token required")
+    if not admin_token:
+        raise HTTPException(status_code=403, detail="admin_disabled")
+    header_token = (request.headers.get("X-Admin-Token") or "").strip()
+    if header_token != admin_token:
+        raise HTTPException(status_code=401, detail="Admin token required")
 
 
 # ------------------ GET /notifications/admin/push_devices (Stage 16.6.1) ------------------
@@ -1326,17 +1327,14 @@ def deliver_pending_notifications(
     """
     Run the notification delivery pipeline: query unsent (is_sent=false),
     send via configured adapter, mark is_sent=true. Safe to call repeatedly.
-    If ADMIN_TOKEN env is set, requires X-Admin-Token header (admin/dev pattern).
+    Requires configured ADMIN_TOKEN and matching X-Admin-Token header.
     """
-    import os
     admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
-    if admin_token:
-        header_token = (request.headers.get("X-Admin-Token") or "").strip()
-        if header_token != admin_token:
-            return APIResponse(
-                ok=False,
-                error=ErrorInfo(code="UNAUTHORIZED", message="Admin token required.")
-            )
+    if not admin_token:
+        raise HTTPException(status_code=403, detail="admin_disabled")
+    header_token = (request.headers.get("X-Admin-Token") or "").strip()
+    if header_token != admin_token:
+        raise HTTPException(status_code=401, detail="Admin token required")
     from backend.app.services.notifications.delivery_service import DeliveryService
     service = DeliveryService(db=db)
     sent_count = service.deliver_pending(limit=limit)

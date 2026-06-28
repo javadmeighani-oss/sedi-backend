@@ -99,8 +99,9 @@ def test_logging_adapter_returns_success(db: Session, test_user: User):
     assert result is True
 
 
-def test_deliver_pending_endpoint(client: TestClient, db: Session, test_user: User):
+def test_deliver_pending_endpoint(client: TestClient, db: Session, test_user: User, monkeypatch):
     """POST /notifications/deliver_pending processes unsent and returns sent_count."""
+    monkeypatch.setenv("ADMIN_TOKEN", "test-deliver-pending-admin")
     notif = Notification(
         user_id=test_user.id,
         type="health_alert",
@@ -113,10 +114,23 @@ def test_deliver_pending_endpoint(client: TestClient, db: Session, test_user: Us
     db.add(notif)
     db.commit()
 
-    response = client.post("/notifications/deliver_pending?limit=10")
+    response = client.post(
+        "/notifications/deliver_pending?limit=10",
+        headers={"X-Admin-Token": "test-deliver-pending-admin"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["ok"] is True
     assert data["data"]["sent_count"] == 1
     db.refresh(notif)
     assert notif.is_sent is True
+
+
+def test_deliver_pending_endpoint_requires_admin_when_token_unset(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    response = client.post("/notifications/deliver_pending?limit=10")
+    assert response.status_code == 403
+    assert response.json().get("detail") == "admin_disabled"

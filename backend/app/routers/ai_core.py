@@ -1,36 +1,76 @@
 # app/routers/ai_core.py
 import os
+from typing import Any, Optional
+
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
-from backend.app.core.ai_text_engine import generate_notification_text
+from backend.app.core.ai_text_engine import generate_notification_text, NOTIF_TYPE_HEALTH_CHECK
 from backend.app.services.notification_engine import DecisionEngine
+from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
 
 
+def _reject_legacy_user_id_query(request: Request) -> None:
+    """Reject legacy user_id query param; identity comes from JWT only."""
+    if request.query_params.get("user_id") is not None:
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "type": "extra_forbidden",
+                    "loc": ["query", "user_id"],
+                    "msg": "Extra inputs are not permitted",
+                    "input": request.query_params.get("user_id"),
+                }
+            ],
+        )
+
+
 def _require_admin_if_set(request: Request) -> None:
     admin_token = os.environ.get("ADMIN_TOKEN", "").strip()
-    if admin_token:
-        header_token = (request.headers.get("X-Admin-Token") or "").strip()
-        if header_token != admin_token:
-            raise HTTPException(status_code=401, detail="Admin token required")
+    if not admin_token:
+        raise HTTPException(status_code=403, detail="admin_disabled")
+    header_token = (request.headers.get("X-Admin-Token") or "").strip()
+    if header_token != admin_token:
+        raise HTTPException(status_code=401, detail="Admin token required")
+
+
+def _parse_vital(value: Any) -> float:
+    if value is None:
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _build_analysis_summary(avg_hr: float, avg_temp: float, avg_spo2: float) -> str:
+    return (
+        f"heart_rate={round(avg_hr, 1)}, "
+        f"temperature={round(avg_temp, 1)}, "
+        f"spo2={round(avg_spo2, 1)}"
+    )
 
 
 @router.post("/analyze", response_model=APIResponse)
-def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
+def analyze_health_data(
+    auth_user: models.User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
     """
-    تحلیل داده‌های سلامت کاربر و ساخت نوتیف هوشمند چندزبانه
+    Analyze recent health data for the authenticated user and create a smart notification.
+
+    Requires Bearer JWT; user identity is derived from the token only.
     """
+    user = auth_user
+    user_id = user.id
 
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        return APIResponse(ok=False, error=ErrorInfo(code="USER_NOT_FOUND", message="User not found."))
-
-    # دریافت داده‌های اخیر سلامت
     health_data = (
         db.query(models.HealthData)
         .filter(models.HealthData.user_id == user_id)
@@ -42,47 +82,30 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
     if not health_data:
         return APIResponse(ok=False, error=ErrorInfo(code="NO_DATA", message="No health data found."))
 
-    # میانگین مقادیر اخیر
-    avg_hr = sum([d.heart_rate or 0 for d in health_data]) / len(health_data)
-    avg_temp = sum([d.temperature or 0 for d in health_data]) / len(health_data)
-    avg_spo2 = sum([d.spo2 or 0 for d in health_data]) / len(health_data)
+    avg_hr = sum(_parse_vital(d.heart_rate) for d in health_data) / len(health_data)
+    avg_temp = sum(_parse_vital(d.temperature) for d in health_data) / len(health_data)
+    avg_spo2 = sum(_parse_vital(d.spo2) for d in health_data) / len(health_data)
 
-    # خلق و خو از آخرین تعامل
-    mood = (
-        db.query(models.Memory)
-        .filter(models.Memory.user_id == user_id)
-        .order_by(models.Memory.created_at.desc())
-        .first()
-    )
-    mood_state = mood.mood if mood else "neutral"
-
-    # تولید نوتیف هوشمند از موتور زبانی
-    notif_data = generate_notification_text(
-        user_name=None,  # Name no longer stored in database
+    notif_message = generate_notification_text(
         language=user.preferred_language or "en",
-        context={
-            "heart_rate": avg_hr,
-            "temperature": avg_temp,
-            "spo2": avg_spo2,
-            "mood": mood_state,
-        },
+        notification_type=NOTIF_TYPE_HEALTH_CHECK,
+        user_name=user.name or "User",
+        health_summary=_build_analysis_summary(avg_hr, avg_temp, avg_spo2),
     )
 
-    # Extract message from notification data (handle both old and new formats)
-    notif_message = notif_data.get("message", "Health analysis completed")
-    
-    # Use DecisionEngine instead of direct Notification creation
     decision_engine = DecisionEngine(db)
     notif = decision_engine.create_insight_notification(
         user_id=user.id,
         insight_text=notif_message,
-        priority="normal"
+        priority="normal",
     )
 
-    # ثبت در حافظه‌ی صدی
     memory = models.Memory(
         user_id=user.id,
-        user_message=f"Health analyzed: HR={round(avg_hr,1)}, Temp={round(avg_temp,1)}, SpO2={round(avg_spo2,1)}",
+        user_message=(
+            f"Health analyzed: HR={round(avg_hr, 1)}, "
+            f"Temp={round(avg_temp, 1)}, SpO2={round(avg_spo2, 1)}"
+        ),
         sedi_response=notif_message,
         language=user.preferred_language or "en",
         created_at=datetime.utcnow(),
@@ -102,8 +125,8 @@ def analyze_health_data(user_id: int, db: Session = Depends(get_db)):
                 "type": notif.type,
                 "title": notif.title,
                 "body": notif.body,
-                "priority": notif.priority
-            }
+                "priority": notif.priority,
+            },
         },
     )
 

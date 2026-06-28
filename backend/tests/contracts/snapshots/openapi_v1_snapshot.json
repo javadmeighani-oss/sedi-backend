@@ -2062,19 +2062,8 @@
     },
     "/ai_core/analyze": {
       "post": {
-        "description": "تحلیل داده‌های سلامت کاربر و ساخت نوتیف هوشمند چندزبانه",
+        "description": "Analyze recent health data for the authenticated user and create a smart notification.\n\nRequires Bearer JWT; user identity is derived from the token only.",
         "operationId": "analyze_health_data_ai_core_analyze_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -2085,18 +2074,13 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Analyze Health Data",
         "tags": [
           "AI Core"
@@ -5012,7 +4996,7 @@
     },
     "/notifications/deliver_pending": {
       "post": {
-        "description": "Run the notification delivery pipeline: query unsent (is_sent=false),\nsend via configured adapter, mark is_sent=true. Safe to call repeatedly.\nIf ADMIN_TOKEN env is set, requires X-Admin-Token header (admin/dev pattern).",
+        "description": "Run the notification delivery pipeline: query unsent (is_sent=false),\nsend via configured adapter, mark is_sent=true. Safe to call repeatedly.\nRequires configured ADMIN_TOKEN and matching X-Admin-Token header.",
         "operationId": "deliver_pending_notifications_notifications_deliver_pending_post",
         "parameters": [
           {

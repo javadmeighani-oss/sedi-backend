@@ -6,11 +6,27 @@ Focus: deterministic decision payloads (no FCM dependency).
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
+
+_TEST_ADMIN_TOKEN = "test-decision-scenarios-v1"
+
+
+@pytest.fixture(autouse=True)
+def _decision_evaluate_admin_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ADMIN_TOKEN", _TEST_ADMIN_TOKEN)
+
+
+def _admin_headers() -> dict[str, str]:
+    return {"X-Admin-Token": _TEST_ADMIN_TOKEN}
 
 
 def _evaluate(client: TestClient, event: dict) -> dict:
-    response = client.post("/decision/evaluate", json={"event": event})
+    response = client.post(
+        "/decision/evaluate",
+        json={"event": event},
+        headers=_admin_headers(),
+    )
     assert response.status_code == 200, response.text
     body = response.json()
     assert body.get("ok") is True
