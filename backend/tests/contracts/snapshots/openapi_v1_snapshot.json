@@ -1487,8 +1487,9 @@
         "title": "TestPushRequest",
         "type": "object"
       },
-      "UserConditionCreate": {
-        "description": "Schema for creating a user condition assignment",
+      "UserConditionAssignRequest": {
+        "additionalProperties": false,
+        "description": "POST /conditions/assign body (authenticated user only; no user_id).",
         "properties": {
           "condition_id": {
             "description": "Medical condition ID",
@@ -1543,18 +1544,12 @@
             ],
             "description": "Severity level (e.g. 'mild', 'moderate', 'severe')",
             "title": "Severity"
-          },
-          "user_id": {
-            "description": "User ID",
-            "title": "User Id",
-            "type": "integer"
           }
         },
         "required": [
-          "condition_id",
-          "user_id"
+          "condition_id"
         ],
-        "title": "UserConditionCreate",
+        "title": "UserConditionAssignRequest",
         "type": "object"
       },
       "UserFactRead": {
@@ -2550,13 +2545,13 @@
     },
     "/conditions/assign": {
       "post": {
-        "description": "Assign a medical condition to a user.\n\nRequest body:\n{\n    \"user_id\": 1,\n    \"condition_id\": 2,\n    \"diagnosed_date\": \"2024-01-01T00:00:00\",  # optional\n    \"severity\": \"moderate\",  # optional\n    \"notes\": \"Diagnosed by Dr. Smith\"  # optional\n}",
+        "description": "Assign a medical condition to the authenticated user.\n\nRequires Bearer JWT; user identity is derived from the token only.",
         "operationId": "assign_condition_conditions_assign_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserConditionCreate"
+                "$ref": "#/components/schemas/UserConditionAssignRequest"
               }
             }
           },
@@ -2584,27 +2579,21 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Assign Condition",
         "tags": [
           "Medical Conditions"
         ]
       }
     },
-    "/conditions/user/{user_id}": {
+    "/conditions/user": {
       "get": {
-        "description": "Get all conditions assigned to a user.\n\nReturns a list of user's medical conditions with details.",
-        "operationId": "get_user_conditions_conditions_user__user_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
-          }
-        ],
+        "description": "Get all conditions assigned to the authenticated user.\n\nRequires Bearer JWT; user identity is derived from the token only.",
+        "operationId": "get_user_conditions_conditions_user_get",
         "responses": {
           "200": {
             "content": {
@@ -2615,28 +2604,23 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get User Conditions",
         "tags": [
           "Medical Conditions"
         ]
       }
     },
-    "/conditions/user/{user_id}/condition/{condition_id}": {
+    "/conditions/user/condition/{condition_id}": {
       "delete": {
-        "description": "Remove a condition assignment from a user.\n\nRemoves the association between user and condition.",
-        "operationId": "remove_user_condition_conditions_user__user_id__condition__condition_id__delete",
+        "description": "Remove a condition assignment from the authenticated user.\n\nRequires Bearer JWT; user identity is derived from the token only.",
+        "operationId": "remove_user_condition_conditions_user_condition__condition_id__delete",
         "parameters": [
           {
             "in": "path",
@@ -2646,15 +2630,6 @@
               "title": "Condition Id",
               "type": "integer"
             }
-          },
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "integer"
-            }
           }
         ],
         "responses": {
@@ -2679,6 +2654,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Remove User Condition",
         "tags": [
           "Medical Conditions"

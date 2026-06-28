@@ -35,6 +35,7 @@ from .medical import (
     MedicationCreate,
     MedicationResponse,
     UserConditionBase,
+    UserConditionAssignRequest,
     UserConditionCreate,
     UserConditionResponse
 )
@@ -103,6 +104,7 @@ __all__ = [
     "MedicationCreate",
     "MedicationResponse",
     "UserConditionBase",
+    "UserConditionAssignRequest",
     "UserConditionCreate",
     "UserConditionResponse",
     # Device

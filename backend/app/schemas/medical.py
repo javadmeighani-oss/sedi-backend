@@ -59,8 +59,14 @@ class UserConditionBase(BaseModel):
     embedding_id: Optional[str] = Field(None, description="RAG embedding ID (optional, for future RAG integration)")
 
 
+class UserConditionAssignRequest(UserConditionBase):
+    """POST /conditions/assign body (authenticated user only; no user_id)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class UserConditionCreate(UserConditionBase):
-    """Schema for creating a user condition assignment"""
+    """Legacy schema for creating a user condition assignment (includes user_id)."""
     user_id: int = Field(..., description="User ID")
 
 
