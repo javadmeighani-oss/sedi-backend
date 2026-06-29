@@ -41,6 +41,46 @@ def _get_medical_conditions_for_user(db: Session, user_id: int) -> List[str]:
         return []
 
 
+MEDICATIONS_CONTEXT_MAX = 10
+
+
+def _get_user_medications_for_context(db: Session, user_id: int) -> List[str]:
+    """Summarize user medications for RAG (name, dosage, times). Fail-open."""
+    try:
+        from backend.app import models
+        from backend.app.services.user_medication_service import format_time_of_day
+
+        UserMedication = getattr(models, "UserMedication", None)
+        Medication = getattr(models, "Medication", None)
+        if UserMedication is None or Medication is None:
+            return []
+        rows = (
+            db.query(models.UserMedication, models.Medication)
+            .join(models.Medication, models.UserMedication.medication_id == models.Medication.id)
+            .filter(models.UserMedication.user_id == user_id)
+            .limit(MEDICATIONS_CONTEXT_MAX)
+            .all()
+        )
+        out: List[str] = []
+        for um, med in rows:
+            parts = [med.name]
+            if um.user_dosage and str(um.user_dosage).strip():
+                parts.append(str(um.user_dosage).strip())
+            schedules = (
+                db.query(models.UserMedicationSchedule)
+                .filter(models.UserMedicationSchedule.user_medication_id == um.id)
+                .all()
+            )
+            if schedules:
+                times = sorted(format_time_of_day(s.time_of_day) for s in schedules)
+                parts.append("at " + ", ".join(times))
+            out.append(" ".join(parts))
+        return out
+    except Exception as e:
+        logger.debug("%s user_medications load failed: %s", _LOG_PREFIX, e)
+        return []
+
+
 def build_rag_context_pack(
     db: Session,
     user_id: int,
@@ -129,6 +169,15 @@ def build_rag_context_pack(
     except Exception as e:
         logger.debug("%s medical_conditions failed: %s", _LOG_PREFIX, e)
 
+    medications_summary: List[str] = []
+    try:
+        medications_summary = _get_user_medications_for_context(db, user_id)
+        if medications_summary:
+            stable_facts["medications"] = medications_summary
+            meta["sources"].append("user_medications")
+    except Exception as e:
+        logger.debug("%s user_medications failed: %s", _LOG_PREFIX, e)
+
     return RagContextPack(
         user_id=user_id,
         language=language,
@@ -168,6 +217,9 @@ def serialize_rag_pack_for_context(pack: RagContextPack, max_chars: int = RAG_CO
         lines.append("Recent: " + pack.daily_summary[:150])
     if pack.medical_conditions:
         lines.append("Known conditions (general info only): " + ", ".join(pack.medical_conditions[:10]))
+    meds = (pack.stable_facts or {}).get("medications") if pack.stable_facts else None
+    if isinstance(meds, list) and meds:
+        lines.append("Medications: " + "; ".join(str(m) for m in meds[:MEDICATIONS_CONTEXT_MAX]))
     text = "\n".join(lines)
     if len(text) > max_chars:
         text = text[: max_chars - 3] + "..."

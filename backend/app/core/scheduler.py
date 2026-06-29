@@ -392,30 +392,14 @@ def run_device_disconnected_check():
 # Medication reminders: for each UserMedication create reminder (dedupe per med per 8h)
 # -------------------------------
 def run_medication_reminders():
-    """
-    For each UserMedication (user + medication + interval), create a medication reminder
-    if not already sent in the last interval. Dedupe is handled in create_medication_reminder (8h per medication).
-    """
+    """Create medication reminders from saved schedules or legacy 8h fallback."""
     with next(get_db()) as db:
+        from backend.app.services.medication_scheduler import process_medication_reminders
+
         decision_engine = DecisionEngine(db)
-        # All user-medication rows with medication joined
-        rows = (
-            db.query(UserMedication, Medication)
-            .join(Medication, UserMedication.medication_id == Medication.id)
-            .all()
-        )
-        for um, med in rows:
-            try:
-                result = decision_engine.create_medication_reminder(
-                    user_id=um.user_id,
-                    medication_name=med.name,
-                    dosage=med.default_dosage,
-                    medication_id=med.id,
-                )
-                if result:
-                    print(f"[Sedi Scheduler] medication_reminder created user={um.user_id} medication={med.name}")
-            except Exception as e:
-                print(f"[Sedi Scheduler] medication_reminder failed user={um.user_id} medication_id={med.id}: {e}")
+        created = process_medication_reminders(db, decision_engine)
+        if created:
+            print(f"[Sedi Scheduler] medication_reminders created count={created}")
 
 
 # -------------------------------

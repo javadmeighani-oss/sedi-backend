@@ -1698,6 +1698,199 @@
         "title": "UserFactUpsertRequest",
         "type": "object"
       },
+      "UserMedicationCreateIn": {
+        "additionalProperties": false,
+        "description": "POST /user/medications — authenticated user only.",
+        "properties": {
+          "dosage_form": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dosage Form"
+          },
+          "generic_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generic Name"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "interval_hours": {
+            "anyOf": [
+              {
+                "maximum": 24.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Hours"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "reminder_enabled": {
+            "default": true,
+            "title": "Reminder Enabled",
+            "type": "boolean"
+          },
+          "reminder_times": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Times"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "user_dosage": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Dosage"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "UserMedicationCreateIn",
+        "type": "object"
+      },
+      "UserMedicationUpdateIn": {
+        "additionalProperties": false,
+        "description": "PATCH /user/medications/{id} — partial update.",
+        "properties": {
+          "instructions": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "interval_hours": {
+            "anyOf": [
+              {
+                "maximum": 24.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Hours"
+          },
+          "reminder_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Enabled"
+          },
+          "reminder_times": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Times"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "user_dosage": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Dosage"
+          }
+        },
+        "title": "UserMedicationUpdateIn",
+        "type": "object"
+      },
       "UserProfileKnowledgeRead": {
         "description": "GET /user/knowledge response.",
         "properties": {
@@ -5863,6 +6056,182 @@
           }
         ],
         "summary": "Upsert Knowledge",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/medications": {
+      "get": {
+        "description": "List medications for the authenticated user.",
+        "operationId": "get_user_medications_user_medications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get User Medications",
+        "tags": [
+          "User"
+        ]
+      },
+      "post": {
+        "description": "Add a medication assignment with optional daily reminder times.",
+        "operationId": "post_user_medication_user_medications_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserMedicationCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post User Medication",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/medications/{medication_assignment_id}": {
+      "delete": {
+        "description": "Remove a medication assignment (stops reminders).",
+        "operationId": "delete_user_medication_route_user_medications__medication_assignment_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "medication_assignment_id",
+            "required": true,
+            "schema": {
+              "title": "Medication Assignment Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete User Medication Route",
+        "tags": [
+          "User"
+        ]
+      },
+      "patch": {
+        "description": "Update user-specific medication fields and reminder schedule.",
+        "operationId": "patch_user_medication_user_medications__medication_assignment_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "medication_assignment_id",
+            "required": true,
+            "schema": {
+              "title": "Medication Assignment Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserMedicationUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch User Medication",
         "tags": [
           "User"
         ]

@@ -108,6 +108,7 @@ jobs:
             backend/tests/test_auth_otp_v1.py \
             backend/tests/test_auth_me_patch_v1.py \
             backend/tests/test_user_profile_core_v1.py \
+            backend/tests/test_user_medications_v1.py \
             backend/tests/test_ops_status_endpoint.py \
             --tb=short
 

@@ -1,5 +1,6 @@
 # app/models.py
 from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
 
@@ -153,14 +154,45 @@ class UserCondition(Base):
 
 # -------------------- UserMedication --------------------
 class UserMedication(Base):
-    """User's medications for scheduled reminder loop (e.g. every 8h)."""
+    """User medication assignment with personal dosage, reminders, and schedule."""
     __tablename__ = "user_medications"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     medication_id = Column(Integer, ForeignKey("medications.id", ondelete="CASCADE"), nullable=False)
-    interval_hours = Column(Integer, nullable=False, default=8)  # Reminder every N hours
+    interval_hours = Column(Integer, nullable=False, default=8)  # Legacy fallback when no schedule rows
+    user_dosage = Column(String(128), nullable=True)
+    instructions = Column(Text, nullable=True)
+    reminder_enabled = Column(Boolean, nullable=False, default=True)
+    timezone = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
+
+    schedules = relationship(
+        "UserMedicationSchedule",
+        back_populates="user_medication",
+        cascade="all, delete-orphan",
+    )
+    medication = relationship("Medication")
+
+
+class UserMedicationSchedule(Base):
+    """Daily intake time for a user medication assignment."""
+    __tablename__ = "user_medication_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_medication_id = Column(
+        Integer,
+        ForeignKey("user_medications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    time_of_day = Column(Time, nullable=False)
+    days_of_week = Column(String(32), nullable=True)  # e.g. "0,1,2,3,4,5,6" (Mon=0); null = daily
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user_medication = relationship("UserMedication", back_populates="schedules")
 
 
 # -------------------- DailyMemorySummary --------------------

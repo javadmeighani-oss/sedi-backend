@@ -78,3 +78,62 @@ class UserConditionResponse(UserConditionBase):
     condition: Optional[MedicalConditionResponse] = Field(None, description="Associated medical condition details")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# -------------------- UserMedication API (Phase V1.1B) --------------------
+USER_DOSAGE_MAX = 128
+INSTRUCTIONS_MAX = 2000
+MEDICATION_NAME_MAX = 255
+TIMEZONE_MAX = 64
+INTERVAL_HOURS_MIN = 1
+INTERVAL_HOURS_MAX = 24
+MAX_REMINDER_TIMES = 12
+
+
+class UserMedicationCreateIn(BaseModel):
+    """POST /user/medications — authenticated user only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(..., min_length=1, max_length=MEDICATION_NAME_MAX)
+    generic_name: Optional[str] = Field(None, max_length=MEDICATION_NAME_MAX)
+    dosage_form: Optional[str] = Field(None, max_length=64)
+    user_dosage: Optional[str] = Field(None, max_length=USER_DOSAGE_MAX)
+    instructions: Optional[str] = Field(None, max_length=INSTRUCTIONS_MAX)
+    reminder_enabled: bool = True
+    timezone: Optional[str] = Field(None, max_length=TIMEZONE_MAX)
+    reminder_times: Optional[list[str]] = Field(None, max_length=MAX_REMINDER_TIMES)
+    interval_hours: Optional[int] = Field(None, ge=INTERVAL_HOURS_MIN, le=INTERVAL_HOURS_MAX)
+
+
+class UserMedicationUpdateIn(BaseModel):
+    """PATCH /user/medications/{id} — partial update."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_dosage: Optional[str] = Field(None, max_length=USER_DOSAGE_MAX)
+    instructions: Optional[str] = Field(None, max_length=INSTRUCTIONS_MAX)
+    reminder_enabled: Optional[bool] = None
+    timezone: Optional[str] = Field(None, max_length=TIMEZONE_MAX)
+    reminder_times: Optional[list[str]] = Field(None, max_length=MAX_REMINDER_TIMES)
+    interval_hours: Optional[int] = Field(None, ge=INTERVAL_HOURS_MIN, le=INTERVAL_HOURS_MAX)
+
+
+class UserMedicationOut(BaseModel):
+    """User medication assignment with schedule times."""
+
+    id: int
+    medication_id: int
+    name: str
+    generic_name: Optional[str] = None
+    dosage_form: Optional[str] = None
+    user_dosage: Optional[str] = None
+    instructions: Optional[str] = None
+    reminder_enabled: bool
+    timezone: Optional[str] = None
+    reminder_times: list[str] = Field(default_factory=list)
+    interval_hours: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+

@@ -358,9 +358,11 @@ class NotificationBuilder:
         
         elif notification_type == "health_alert":
             alert_code = metadata.get("alert_code", "generic") if metadata else "generic"
-            # Medication reminders: one per medication per 8h bucket (no spam)
             if alert_code == "medication_reminder" and metadata and metadata.get("medication_id") is not None:
                 med_id = metadata.get("medication_id")
+                schedule_time = metadata.get("schedule_time")
+                if schedule_time:
+                    return f"health_alert:{user_id}:medication_reminder:{med_id}:{date_str}:{schedule_time}"
                 hour_bucket_8 = (now.hour // 8) * 8
                 return f"health_alert:{user_id}:medication_reminder:{med_id}:{date_str}:{hour_bucket_8:02d}"
             hour_str = now.strftime("%H")
@@ -1276,18 +1278,13 @@ class DecisionEngine:
         medication_name: str,
         dosage: Optional[str] = None,
         medication_id: Optional[int] = None,
+        schedule_time: Optional[str] = None,
+        user_medication_id: Optional[int] = None,
     ) -> Optional[Notification]:
         """
-        Create a medication reminder notification (Release B2.1).
-        Used by scheduler loop and optional API. Dedupe: once per medication per 8h when medication_id provided.
-        
-        Args:
-            user_id: User ID
-            medication_name: Name of medication
-            dosage: Dosage information (optional)
-            medication_id: Optional; when set, dedupe is per-medication per 8h (for scheduled loop).
-        
-        Returns Notification if created, None if duplicate/suppressed.
+        Create a medication reminder notification (Release B2.1 + V1.1B schedules).
+        Dedupe: per medication per schedule_time per day when schedule_time set;
+        else legacy 8h bucket per medication.
         """
         title = "Medication Reminder"
         body = f"Time to take {medication_name}"
@@ -1313,6 +1310,10 @@ class DecisionEngine:
         }
         if medication_id is not None:
             metadata["medication_id"] = medication_id
+        if schedule_time:
+            metadata["schedule_time"] = schedule_time
+        if user_medication_id is not None:
+            metadata["user_medication_id"] = user_medication_id
         
         payload = self.builder.build_payload(
             user_id=user_id,
@@ -1333,9 +1334,11 @@ class DecisionEngine:
             language=effective_language
         )
         
-        # Dedupe: when medication_id set, at most one per medication per 8h
         check_dedupe = medication_id is not None
-        time_window_hours = 8 if medication_id is not None else 24
+        if schedule_time:
+            time_window_hours = 24
+        else:
+            time_window_hours = 8 if medication_id is not None else 24
         result = self.builder.persist(payload, check_dedupe=check_dedupe, time_window_hours=time_window_hours)
         if result:
             logger.info(
