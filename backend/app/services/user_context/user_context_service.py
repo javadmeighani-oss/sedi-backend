@@ -132,29 +132,20 @@ def _get_lifestyle_summary(db: Session, user_id: int, language: Optional[str]) -
 
 
 def _get_verified_facts(db: Session, user_id: int) -> Dict[str, Any]:
-    """If UserFact has a 'verified' (or similar) field, return only verified; else empty dict."""
+    """Load Gate 1 profile facts for context (structured identity facts only)."""
     try:
-        models = _get_models()
-        UserFact = getattr(models, "UserFact", None)
-        if UserFact is None:
-            return {}
-        if not hasattr(UserFact, "verified") and "verified" not in dir(UserFact):
-            return {}
-        rows = (
-            db.query(UserFact)
-            .filter(UserFact.user_id == user_id)
-            .all()
-        )
+        from backend.app.services.user_profile_fact_service import list_profile_facts
+
+        items = list_profile_facts(db, user_id)
         out: Dict[str, Any] = {}
-        for r in rows:
-            if getattr(r, "verified", False):
-                key = getattr(r, "key", None)
-                if key:
-                    val = _safe_json(getattr(r, "value_json", None))
-                    out[str(key)] = val
+        for item in items[:10]:
+            ft = item.get("fact_type")
+            val = item.get("value")
+            if ft and val is not None:
+                out[str(ft)] = val
         return out
     except Exception as e:
-        logger.debug("%s Verified facts lookup failed: %s", _LOG_PREFIX, e)
+        logger.debug("%s profile facts lookup failed: %s", _LOG_PREFIX, e)
     return {}
 
 
@@ -270,6 +261,8 @@ class UserContextService:
                         sex = str(core.sex).strip()
                     if getattr(core, "addressing_preference", None) and str(core.addressing_preference).strip():
                         addressing_preference = str(core.addressing_preference).strip()
+                    if getattr(core, "timezone", None) and str(core.timezone).strip():
+                        timezone = str(core.timezone).strip()
                     source_meta["profile_core"] = True
         except Exception as e:
             logger.debug("%s UserProfileCore load failed: %s", _LOG_PREFIX, e)

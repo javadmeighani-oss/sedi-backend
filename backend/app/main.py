@@ -18,6 +18,9 @@ from backend.app.routers import (
     memory,
     user_knowledge,
     user_medications,
+    user_profile_facts,
+    user_caregivers,
+    user_dependents,
     knowledge,
     knowledge_admin,
     system,
@@ -65,6 +68,9 @@ app.include_router(decision.router)
 app.include_router(memory.router, prefix="/memory", tags=["Memory"])
 app.include_router(user_knowledge.router, prefix="/user", tags=["User"])
 app.include_router(user_medications.router, prefix="/user", tags=["User"])
+app.include_router(user_profile_facts.router, prefix="/user", tags=["User"])
+app.include_router(user_caregivers.router, prefix="/user", tags=["User"])
+app.include_router(user_dependents.router, prefix="/user", tags=["User"])
 app.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledge"])
 app.include_router(knowledge_admin.router, prefix="/knowledge/admin", tags=["Knowledge Admin"])
 app.include_router(ops.router)

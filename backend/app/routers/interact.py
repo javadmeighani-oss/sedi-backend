@@ -8,10 +8,11 @@ RESPONSIBILITY:
 - NO logic, NO decisions
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends, Request
+from fastapi import APIRouter, HTTPException, Query, Depends, Request, Response
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
+import os
 import uuid
 
 from backend.app.database import get_db
@@ -23,6 +24,12 @@ from backend.app.schemas.onboarding import OnboardingRequest
 from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
+
+
+def _legacy_onboarding_enabled() -> bool:
+    v = os.getenv("SEDI_LEGACY_ONBOARDING_ENABLED", "true").strip().lower()
+    return v not in ("0", "false", "no", "off")
+
 
 # ---------------- Introduce User ----------------
 @router.post("/introduce", response_model=InteractionResponse)
@@ -238,19 +245,20 @@ async def chat(
 def setup_onboarding(
     request: Request,
     payload: OnboardingRequest,
+    response: Response,
     db: Session = Depends(get_db),
 ):
     """
-    SIMPLE ONBOARDING: Create user with username only.
-    Handles ALL possible errors gracefully.
-    
-    CRITICAL:
-    - name is REQUIRED (from JSON body)
-    - password is REMOVED - no authentication
-    - User.name is ALWAYS saved (non-empty, stripped)
-    - Onboarding ALWAYS succeeds if name is provided and non-empty
-    - Multiple users with same name are allowed
+    DEPRECATED legacy onboarding (no JWT). Prefer OTP auth + PATCH /auth/me.
+    Disabled when SEDI_LEGACY_ONBOARDING_ENABLED=false (returns 410).
     """
+    if not _legacy_onboarding_enabled():
+        raise HTTPException(
+            status_code=410,
+            detail="Legacy onboarding is disabled. Use OTP authentication and PATCH /auth/me.",
+        )
+    response.headers["Deprecation"] = "true"
+    response.headers["Link"] = '</auth/me>; rel="successor-version"'
     # Step 1: Validate payload
     name = payload.name.strip()
     
@@ -518,15 +526,17 @@ def setup_onboarding(
 @router.get("/greeting")
 def get_greeting(
     auth_user: User = Depends(get_current_user),
-    user_id: int = Query(...),
+    user_id: Optional[int] = Query(None),
     lang: str = Query("en"),
-    name: Optional[str] = Query(None),  # Optional: name from frontend (for GPT personalization)
+    name: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     """
     Get personalized greeting for user. Requires Bearer JWT.
+    user_id query is optional (defaults to authenticated user); if provided must match JWT.
     """
-    if user_id != auth_user.id:
+    effective_user_id = user_id if user_id is not None else auth_user.id
+    if effective_user_id != auth_user.id:
         raise HTTPException(
             status_code=403,
             detail="user_id does not match authenticated user",
@@ -553,14 +563,16 @@ def get_greeting(
 @router.get("/history")
 def get_user_history(
     user: User = Depends(get_current_user),
-    user_id: int = Query(...),
+    user_id: Optional[int] = Query(None),
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
     """
-    Get conversation history for user. Requires Bearer JWT; user_id query must match token.
+    Get conversation history for user. Requires Bearer JWT.
+    user_id query is optional (defaults to authenticated user); if provided must match JWT.
     """
-    if user_id != user.id:
+    effective_user_id = user_id if user_id is not None else user.id
+    if effective_user_id != user.id:
         raise HTTPException(
             status_code=403,
             detail="user_id does not match authenticated user",

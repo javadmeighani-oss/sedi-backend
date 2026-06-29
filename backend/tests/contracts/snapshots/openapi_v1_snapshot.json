@@ -263,6 +263,213 @@
         "title": "CandidateDecisionRequest",
         "type": "object"
       },
+      "CaregiverCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "can_manage_profile": {
+            "default": false,
+            "title": "Can Manage Profile",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notify_care_summary": {
+            "default": false,
+            "title": "Notify Care Summary",
+            "type": "boolean"
+          },
+          "notify_daily_status": {
+            "default": false,
+            "title": "Notify Daily Status",
+            "type": "boolean"
+          },
+          "notify_emergency": {
+            "default": true,
+            "title": "Notify Emergency",
+            "type": "boolean"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "preferred_language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ar",
+                  "en",
+                  "fa"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Language"
+          },
+          "priority": {
+            "default": 0,
+            "title": "Priority",
+            "type": "integer"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CaregiverCreateIn",
+        "type": "object"
+      },
+      "CaregiverUpdateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "can_manage_profile": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can Manage Profile"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notify_care_summary": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Care Summary"
+          },
+          "notify_daily_status": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Daily Status"
+          },
+          "notify_emergency": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Emergency"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "preferred_language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ar",
+                  "en",
+                  "fa"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Language"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          }
+        },
+        "title": "CaregiverUpdateIn",
+        "type": "object"
+      },
       "ChatRequest": {
         "properties": {
           "message": {
@@ -296,6 +503,236 @@
           "event"
         ],
         "title": "DecisionTestRequest",
+        "type": "object"
+      },
+      "DependentCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "addressing_preference": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressing Preference"
+          },
+          "birth_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "preferred_language": {
+            "default": "fa",
+            "enum": [
+              "ar",
+              "en",
+              "fa"
+            ],
+            "title": "Preferred Language",
+            "type": "string"
+          },
+          "priority": {
+            "default": 0,
+            "title": "Priority",
+            "type": "integer"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "DependentCreateIn",
+        "type": "object"
+      },
+      "DependentUpdateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "addressing_preference": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addressing Preference"
+          },
+          "birth_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "preferred_language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ar",
+                  "en",
+                  "fa"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Language"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Relationship"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          }
+        },
+        "title": "DependentUpdateIn",
         "type": "object"
       },
       "DeviceAcknowledgeRequest": {
@@ -509,6 +946,7 @@
         "type": "object"
       },
       "DeviceRegisterRequest": {
+        "additionalProperties": false,
         "properties": {
           "device_id": {
             "description": "Logical device id (e.g., Sedi001)",
@@ -527,6 +965,18 @@
             "default": "heart_rate",
             "description": "Device type (v1 default: heart_rate)",
             "title": "Device Type"
+          },
+          "subject_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User whose health data this device represents; defaults to authenticated user",
+            "title": "Subject User Id"
           }
         },
         "required": [
@@ -1125,6 +1575,18 @@
             ],
             "title": "Birth Year"
           },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
           "display_name": {
             "anyOf": [
               {
@@ -1135,6 +1597,17 @@
               }
             ],
             "title": "Display Name"
+          },
+          "height_cm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Cm"
           },
           "name": {
             "anyOf": [
@@ -1173,6 +1646,28 @@
               }
             ],
             "title": "Sex"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Weight Kg"
           }
         },
         "title": "MeUpdateIn",
@@ -1365,6 +1860,88 @@
           "phone"
         ],
         "title": "OtpVerifyIn",
+        "type": "object"
+      },
+      "ProfileFactCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "fact_type": {
+            "title": "Fact Type",
+            "type": "string"
+          },
+          "source": {
+            "default": "manual",
+            "enum": [
+              "caregiver",
+              "conversation",
+              "manual",
+              "system"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "fact_type",
+          "value"
+        ],
+        "title": "ProfileFactCreateIn",
+        "type": "object"
+      },
+      "ProfileFactUpdateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {}
+            ],
+            "title": "Value"
+          },
+          "verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified"
+          }
+        },
+        "title": "ProfileFactUpdateIn",
         "type": "object"
       },
       "PushRegisterRequest": {
@@ -3499,7 +4076,7 @@
     },
     "/interact/greeting": {
       "get": {
-        "description": "Get personalized greeting for user. Requires Bearer JWT.",
+        "description": "Get personalized greeting for user. Requires Bearer JWT.\nuser_id query is optional (defaults to authenticated user); if provided must match JWT.",
         "operationId": "get_greeting_interact_greeting_get",
         "parameters": [
           {
@@ -3531,10 +4108,17 @@
           {
             "in": "query",
             "name": "user_id",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "User Id",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
             }
           }
         ],
@@ -3571,7 +4155,7 @@
     },
     "/interact/history": {
       "get": {
-        "description": "Get conversation history for user. Requires Bearer JWT; user_id query must match token.",
+        "description": "Get conversation history for user. Requires Bearer JWT.\nuser_id query is optional (defaults to authenticated user); if provided must match JWT.",
         "operationId": "get_user_history_interact_history_get",
         "parameters": [
           {
@@ -3589,10 +4173,17 @@
           {
             "in": "query",
             "name": "user_id",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "User Id",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
             }
           }
         ],
@@ -3698,7 +4289,7 @@
     },
     "/interact/onboarding": {
       "post": {
-        "description": "SIMPLE ONBOARDING: Create user with username only.\nHandles ALL possible errors gracefully.\n\nCRITICAL:\n- name is REQUIRED (from JSON body)\n- password is REMOVED - no authentication\n- User.name is ALWAYS saved (non-empty, stripped)\n- Onboarding ALWAYS succeeds if name is provided and non-empty\n- Multiple users with same name are allowed",
+        "description": "DEPRECATED legacy onboarding (no JWT). Prefer OTP auth + PATCH /auth/me.\nDisabled when SEDI_LEGACY_ONBOARDING_ENABLED=false (returns 410).",
         "operationId": "setup_onboarding_interact_onboarding_post",
         "requestBody": {
           "content": {
@@ -5869,6 +6460,397 @@
         ]
       }
     },
+    "/user/caregivers": {
+      "get": {
+        "operationId": "get_caregivers_user_caregivers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Caregivers",
+        "tags": [
+          "User"
+        ]
+      },
+      "post": {
+        "operationId": "post_caregiver_user_caregivers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaregiverCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Caregiver",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/caregivers/{caregiver_id}": {
+      "delete": {
+        "description": "Soft-deactivate caregiver contact (is_active=false).",
+        "operationId": "delete_caregiver_route_user_caregivers__caregiver_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Caregiver Route",
+        "tags": [
+          "User"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_caregiver_user_caregivers__caregiver_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaregiverUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Caregiver",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/dependents": {
+      "get": {
+        "operationId": "get_dependents_user_dependents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Dependents",
+        "tags": [
+          "User"
+        ]
+      },
+      "post": {
+        "operationId": "post_dependent_user_dependents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DependentCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Dependent",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/dependents/{dependent_user_id}": {
+      "delete": {
+        "description": "Deactivate caregiver↔dependent relationship (soft).",
+        "operationId": "delete_dependent_route_user_dependents__dependent_user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dependent_user_id",
+            "required": true,
+            "schema": {
+              "title": "Dependent User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Dependent Route",
+        "tags": [
+          "User"
+        ]
+      },
+      "get": {
+        "operationId": "get_dependent_route_user_dependents__dependent_user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dependent_user_id",
+            "required": true,
+            "schema": {
+              "title": "Dependent User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Dependent Route",
+        "tags": [
+          "User"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_dependent_user_dependents__dependent_user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dependent_user_id",
+            "required": true,
+            "schema": {
+              "title": "Dependent User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DependentUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Dependent",
+        "tags": [
+          "User"
+        ]
+      }
+    },
     "/user/facts": {
       "get": {
         "description": "Get all facts for the authenticated user. Requires Bearer JWT.",
@@ -6232,6 +7214,178 @@
           }
         ],
         "summary": "Patch User Medication",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/profile-facts": {
+      "get": {
+        "operationId": "get_profile_facts_user_profile_facts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Profile Facts",
+        "tags": [
+          "User"
+        ]
+      },
+      "post": {
+        "operationId": "post_profile_fact_user_profile_facts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileFactCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Profile Fact",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/profile-facts/{fact_id}": {
+      "delete": {
+        "operationId": "delete_profile_fact_route_user_profile_facts__fact_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fact_id",
+            "required": true,
+            "schema": {
+              "title": "Fact Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Profile Fact Route",
+        "tags": [
+          "User"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_profile_fact_user_profile_facts__fact_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fact_id",
+            "required": true,
+            "schema": {
+              "title": "Fact Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileFactUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Profile Fact",
         "tags": [
           "User"
         ]

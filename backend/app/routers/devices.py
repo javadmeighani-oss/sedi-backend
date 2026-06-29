@@ -12,6 +12,7 @@ from backend.app.schemas.devices import (
     DevicesListResponse,
 )
 from backend.app.routers.auth_otp import get_current_user
+from backend.app.services.gate1_access import caregiver_can_manage_dependent
 
 router = APIRouter()
 
@@ -41,6 +42,17 @@ def register_device(
 ):
     """Register a device for the authenticated user. Returns plaintext token once."""
     user_id = auth_user.id
+    subject_id = body.subject_user_id if body.subject_user_id is not None else user_id
+
+    if subject_id != user_id:
+        if not caregiver_can_manage_dependent(db, user_id, subject_id, require_device=True):
+            return DeviceRegisterResponse(
+                ok=False,
+                error={
+                    "code": "DEVICE_SUBJECT_FORBIDDEN",
+                    "message": "Not allowed to register a device for this user",
+                },
+            )
 
     existing = db.query(Device).filter(Device.device_id == body.device_id).first()
     if existing:
@@ -53,14 +65,24 @@ def register_device(
         existing.token_hash = hash_device_token(token)
         existing.status = "active"
         existing.revoked_at = None
+        existing.subject_user_id = subject_id
         db.add(existing)
         db.commit()
         db.refresh(existing)
-        return DeviceRegisterResponse(ok=True, data={"device_id": existing.device_id, "token": token, "rotated": True})
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": existing.device_id,
+                "token": token,
+                "rotated": True,
+                "subject_user_id": existing.subject_user_id,
+            },
+        )
 
     token = generate_device_token()
     device = Device(
         user_id=user_id,
+        subject_user_id=subject_id,
         device_id=body.device_id,
         device_type=body.device_type or "heart_rate",
         status="active",
@@ -72,7 +94,10 @@ def register_device(
     db.add(device)
     db.commit()
     db.refresh(device)
-    return DeviceRegisterResponse(ok=True, data={"device_id": device.device_id, "token": token})
+    return DeviceRegisterResponse(
+        ok=True,
+        data={"device_id": device.device_id, "token": token, "subject_user_id": device.subject_user_id},
+    )
 
 
 @router.get("", response_model=DevicesListResponse)
@@ -91,6 +116,7 @@ def list_devices(
                 "device_id": d.device_id,
                 "device_type": d.device_type,
                 "status": d.status,
+                "subject_user_id": d.subject_user_id or d.user_id,
                 "last_seen_at": d.last_seen_at,
                 "created_at": d.created_at,
                 "revoked_at": d.revoked_at,

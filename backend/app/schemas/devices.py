@@ -9,8 +9,14 @@ from datetime import datetime
 
 
 class DeviceRegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     device_id: str = Field(..., description="Logical device id (e.g., Sedi001)")
     device_type: Optional[str] = Field("heart_rate", description="Device type (v1 default: heart_rate)")
+    subject_user_id: Optional[int] = Field(
+        None,
+        description="User whose health data this device represents; defaults to authenticated user",
+    )
 
 
 class DeviceRegisterResponse(BaseModel):

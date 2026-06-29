@@ -1,8 +1,10 @@
-# app/schemas/auth_otp.py – Stage 25 Phone OTP + V1.1A unified profile
-from datetime import datetime
+# app/schemas/auth_otp.py – Stage 25 Phone OTP + V1.1A unified profile + Gate 1
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+from backend.app.services.gate1_access import validate_iana_timezone
 
 DISPLAY_NAME_MAX_LENGTH = 64
 SEX_MAX_LENGTH = 32
@@ -38,9 +40,14 @@ class MeOut(BaseModel):
     phone: Optional[str] = None
     name: Optional[str] = None
     preferred_language: Optional[str] = None
+    account_type: str = "normal"
     birth_year: Optional[int] = None
+    date_of_birth: Optional[date] = None
     sex: Optional[str] = None
     addressing_preference: Optional[str] = None
+    timezone: Optional[str] = None
+    height_cm: Optional[int] = None
+    weight_kg: Optional[float] = None
     # Backward-compatible aliases for existing clients
     display_name: Optional[str] = None
     language: Optional[str] = None
@@ -55,8 +62,12 @@ class MeUpdateIn(BaseModel):
     display_name: Optional[str] = None
     preferred_language: Optional[Literal["en", "fa", "ar"]] = None
     birth_year: Optional[int] = None
+    date_of_birth: Optional[date] = None
     sex: Optional[str] = None
     addressing_preference: Optional[str] = None
+    timezone: Optional[str] = None
+    height_cm: Optional[int] = None
+    weight_kg: Optional[float] = None
 
     def resolved_name(self) -> Optional[str]:
         """Prefer `name`; fall back to legacy `display_name`."""
@@ -110,6 +121,29 @@ class MeUpdateIn(BaseModel):
             raise ValueError(f"birth_year must be between {BIRTH_YEAR_MIN} and {current_year}")
         return value
 
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: Optional[str]) -> Optional[str]:
+        return validate_iana_timezone(value)
+
+    @field_validator("height_cm")
+    @classmethod
+    def validate_height(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 50 or value > 300:
+            raise ValueError("height_cm must be between 50 and 300")
+        return value
+
+    @field_validator("weight_kg")
+    @classmethod
+    def validate_weight(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return None
+        if value < 1 or value > 500:
+            raise ValueError("weight_kg must be between 1 and 500")
+        return value
+
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> "MeUpdateIn":
         if all(
@@ -119,8 +153,12 @@ class MeUpdateIn(BaseModel):
                 self.display_name,
                 self.preferred_language,
                 self.birth_year,
+                self.date_of_birth,
                 self.sex,
                 self.addressing_preference,
+                self.timezone,
+                self.height_cm,
+                self.weight_kg,
             )
         ):
             raise ValueError("At least one profile field is required")

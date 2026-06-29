@@ -16,6 +16,8 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # زمان ثبت‌نام (NOT nullable - always has default)
     # Stage 25: OTP auth – unique per user (nullable for legacy users)
     phone = Column(String(32), nullable=True, unique=True, index=True)
+    # Gate 1: normal app user vs dependent managed by caregivers
+    account_type = Column(String(16), nullable=False, default="normal", server_default="normal")
 
 
 # -------------------- Memory --------------------
@@ -246,6 +248,7 @@ class Device(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    subject_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     device_id = Column(String(255), nullable=False, unique=True)  # logical device id (e.g. "Sedi001")
     device_type = Column(String(50), nullable=False, default="heart_rate")
     status = Column(String(20), nullable=False, default="active")  # active | revoked
@@ -324,8 +327,10 @@ class UserProfileCore(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
     birth_year = Column(Integer, nullable=True)
+    date_of_birth = Column(Date, nullable=True)
     sex = Column(String(32), nullable=True)
     addressing_preference = Column(String(64), nullable=True)
+    timezone = Column(String(64), nullable=True)
     height_cm = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
     language = Column(String(32), nullable=True)
@@ -429,3 +434,65 @@ class RefreshToken(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     device_info = Column(String(512), nullable=True)
     ip = Column(String(64), nullable=True)
+
+
+# -------------------- UserProfileFact (Gate 1) --------------------
+class UserProfileFact(Base):
+    """Structured identity/profile facts (allergy, occupation, living situation, etc.)."""
+    __tablename__ = "user_profile_facts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    fact_type = Column(String(64), nullable=False, index=True)
+    value_json = Column(Text, nullable=False)
+    source = Column(String(32), nullable=False, default="manual")
+    confidence = Column(Float, nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    valid_from = Column(DateTime, nullable=True)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserCaregiver (Gate 1 contact registry) --------------------
+class UserCaregiver(Base):
+    """Caregiver/relative contact registered by the main user (not necessarily a Sedi account)."""
+    __tablename__ = "user_caregivers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(128), nullable=False)
+    phone = Column(String(32), nullable=True)
+    relationship = Column(String(64), nullable=True)
+    priority = Column(Integer, nullable=False, default=0)
+    notify_daily_status = Column(Boolean, nullable=False, default=False)
+    notify_emergency = Column(Boolean, nullable=False, default=True)
+    notify_care_summary = Column(Boolean, nullable=False, default=False)
+    can_manage_profile = Column(Boolean, nullable=False, default=False)
+    preferred_language = Column(String(16), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- UserCareRelationship (Gate 1 caregiver ↔ dependent) --------------------
+class UserCareRelationship(Base):
+    """Links a caregiver Sedi user to a dependent user they may manage."""
+    __tablename__ = "user_care_relationships"
+    __table_args__ = (
+        UniqueConstraint(
+            "caregiver_user_id",
+            "dependent_user_id",
+            name="uq_user_care_relationships_caregiver_dependent",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    caregiver_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    dependent_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    relationship = Column(String(64), nullable=True)
+    permissions_json = Column(Text, nullable=True)
+    priority = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

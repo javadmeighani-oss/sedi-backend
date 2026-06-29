@@ -1,4 +1,4 @@
-"""Unified user identity/profile read and update (Phase V1.1A)."""
+"""Unified user identity/profile read and update (Phase V1.1A + Gate 1)."""
 
 from __future__ import annotations
 
@@ -21,14 +21,20 @@ def build_me_response(db: Session, user: models.User) -> dict:
     )
     name = user.name
     preferred_language = user.preferred_language or "en"
+    account_type = getattr(user, "account_type", None) or "normal"
     return MeOut(
         user_id=user.id,
         phone=user.phone,
         name=name,
         preferred_language=preferred_language,
+        account_type=account_type,
         birth_year=profile.birth_year if profile else None,
+        date_of_birth=profile.date_of_birth if profile else None,
         sex=profile.sex if profile else None,
         addressing_preference=profile.addressing_preference if profile else None,
+        timezone=profile.timezone if profile else None,
+        height_cm=profile.height_cm if profile else None,
+        weight_kg=profile.weight_kg if profile else None,
         display_name=name,
         language=preferred_language,
     ).model_dump()
@@ -39,7 +45,15 @@ def apply_profile_update(db: Session, user: models.User, body: MeUpdateIn) -> mo
     profile: Optional[models.UserProfileCore] = None
     core_fields_set = any(
         v is not None
-        for v in (body.birth_year, body.sex, body.addressing_preference)
+        for v in (
+            body.birth_year,
+            body.date_of_birth,
+            body.sex,
+            body.addressing_preference,
+            body.timezone,
+            body.height_cm,
+            body.weight_kg,
+        )
     )
 
     name_value = body.resolved_name()
@@ -61,11 +75,20 @@ def apply_profile_update(db: Session, user: models.User, body: MeUpdateIn) -> mo
         profile = ensure_profile_core(db, user.id)
         if body.birth_year is not None:
             profile.birth_year = body.birth_year
+        if body.date_of_birth is not None:
+            profile.date_of_birth = body.date_of_birth
+            profile.birth_year = body.date_of_birth.year
         if body.sex is not None:
             profile.sex = body.sex.strip() if body.sex.strip() else None
         if body.addressing_preference is not None:
             ap = body.addressing_preference.strip()
             profile.addressing_preference = ap if ap else None
+        if body.timezone is not None:
+            profile.timezone = body.timezone.strip() if body.timezone.strip() else None
+        if body.height_cm is not None:
+            profile.height_cm = body.height_cm
+        if body.weight_kg is not None:
+            profile.weight_kg = body.weight_kg
         profile.updated_at = datetime.utcnow()
 
     db.commit()

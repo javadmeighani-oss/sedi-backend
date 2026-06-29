@@ -146,7 +146,7 @@ def build_rag_context_pack(
             stable_facts["addressing_preference"] = str(ap).strip()
         verified = getattr(pack, "verified_facts", None)
         if isinstance(verified, dict) and verified:
-            stable_facts["verified"] = verified
+            stable_facts["profile_facts"] = verified
         meta["sources"].append("user_context")
 
         lifestyle = getattr(pack, "lifestyle", None)
@@ -177,6 +177,25 @@ def build_rag_context_pack(
             meta["sources"].append("user_medications")
     except Exception as e:
         logger.debug("%s user_medications failed: %s", _LOG_PREFIX, e)
+
+    try:
+        from backend.app.services.user_profile_fact_service import get_profile_facts_for_context
+
+        pf = get_profile_facts_for_context(db, user_id, limit=10)
+        if pf:
+            stable_facts["identity_facts"] = pf
+            meta["sources"].append("user_profile_facts")
+    except Exception as e:
+        logger.debug("%s profile_facts context failed: %s", _LOG_PREFIX, e)
+
+    try:
+        from backend.app import models as _models
+
+        u = db.query(_models.User).filter(_models.User.id == user_id).first()
+        if u and getattr(u, "account_type", None) == "dependent":
+            stable_facts["account_type"] = "dependent"
+    except Exception as e:
+        logger.debug("%s account_type context failed: %s", _LOG_PREFIX, e)
 
     return RagContextPack(
         user_id=user_id,
@@ -217,6 +236,9 @@ def serialize_rag_pack_for_context(pack: RagContextPack, max_chars: int = RAG_CO
         lines.append("Recent: " + pack.daily_summary[:150])
     if pack.medical_conditions:
         lines.append("Known conditions (general info only): " + ", ".join(pack.medical_conditions[:10]))
+    identity = (pack.stable_facts or {}).get("identity_facts") if pack.stable_facts else None
+    if isinstance(identity, list) and identity:
+        lines.append("Profile facts: " + "; ".join(str(x) for x in identity[:10]))
     meds = (pack.stable_facts or {}).get("medications") if pack.stable_facts else None
     if isinstance(meds, list) and meds:
         lines.append("Medications: " + "; ".join(str(m) for m in meds[:MEDICATIONS_CONTEXT_MAX]))
