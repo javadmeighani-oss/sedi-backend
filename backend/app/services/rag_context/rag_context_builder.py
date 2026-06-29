@@ -95,6 +95,15 @@ def build_rag_context_pack(
         eng = getattr(pack, "engagement_level", None)
         if eng and str(eng).strip():
             stable_facts["engagement_level"] = str(eng).strip()
+        by = getattr(pack, "birth_year", None)
+        if by is not None:
+            stable_facts["birth_year"] = by
+        sx = getattr(pack, "sex", None)
+        if sx and str(sx).strip():
+            stable_facts["sex"] = str(sx).strip()
+        ap = getattr(pack, "addressing_preference", None)
+        if ap and str(ap).strip():
+            stable_facts["addressing_preference"] = str(ap).strip()
         verified = getattr(pack, "verified_facts", None)
         if isinstance(verified, dict) and verified:
             stable_facts["verified"] = verified

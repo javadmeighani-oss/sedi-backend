@@ -40,3 +40,6 @@ class UserContextPack(BaseModel):
     daily_memory_summary: Optional[str] = None
     verified_facts: Dict[str, Any] = Field(default_factory=dict)  # stable facts (only if verified available)
     source_meta: Dict[str, Any] = Field(default_factory=dict)  # e.g. facts_source, etc.
+    birth_year: Optional[int] = None
+    sex: Optional[str] = None
+    addressing_preference: Optional[str] = None

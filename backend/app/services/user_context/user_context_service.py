@@ -240,6 +240,40 @@ class UserContextService:
             except Exception as e:
                 logger.debug("%s User.preferred_language fallback failed: %s", _LOG_PREFIX, e)
 
+        if preferred_name is None:
+            try:
+                models = _get_models()
+                User = getattr(models, "User", None)
+                if User is not None:
+                    user = self.db.query(User).filter(User.id == user_id).first()
+                    if user and getattr(user, "name", None) and str(user.name).strip():
+                        preferred_name = str(user.name).strip()
+                        source_meta["user_name"] = True
+            except Exception as e:
+                logger.debug("%s User.name fallback failed: %s", _LOG_PREFIX, e)
+
+        birth_year: Optional[int] = None
+        sex: Optional[str] = None
+        addressing_preference: Optional[str] = None
+        try:
+            models = _get_models()
+            UserProfileCore = getattr(models, "UserProfileCore", None)
+            if UserProfileCore is not None:
+                core = (
+                    self.db.query(UserProfileCore)
+                    .filter(UserProfileCore.user_id == user_id)
+                    .first()
+                )
+                if core:
+                    birth_year = getattr(core, "birth_year", None)
+                    if getattr(core, "sex", None) and str(core.sex).strip():
+                        sex = str(core.sex).strip()
+                    if getattr(core, "addressing_preference", None) and str(core.addressing_preference).strip():
+                        addressing_preference = str(core.addressing_preference).strip()
+                    source_meta["profile_core"] = True
+        except Exception as e:
+            logger.debug("%s UserProfileCore load failed: %s", _LOG_PREFIX, e)
+
         if timezone is None:
             tz_val = _get_memory_fact_value(self.db, user_id, "preferences", "timezone")
             if isinstance(tz_val, dict) and tz_val.get("tz"):
@@ -280,4 +314,7 @@ class UserContextService:
             daily_memory_summary=daily_memory_summary,
             verified_facts=verified_facts,
             source_meta=source_meta,
+            birth_year=birth_year,
+            sex=sex,
+            addressing_preference=addressing_preference,
         )

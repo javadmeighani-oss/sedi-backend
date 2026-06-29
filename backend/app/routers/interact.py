@@ -231,7 +231,9 @@ async def chat(
             )
 
 
-# ---------------- Onboarding - Setup User ---------------- 
+# ---------------- Onboarding - Setup User ----------------
+# DEPRECATED (Phase V1.1A): Prefer JWT PATCH /auth/me for unified profile updates.
+# Kept for backward compatibility with legacy frontend onboarding flow.
 @router.post("/onboarding")
 def setup_onboarding(
     request: Request,

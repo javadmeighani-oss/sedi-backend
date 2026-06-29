@@ -13,7 +13,7 @@ from backend.app import models
 logger = logging.getLogger(__name__)
 
 SOURCES = ("chat", "form", "import", "chat_extraction_v1")
-PROFILE_COLUMNS = {"birth_year", "sex", "height_cm", "weight_kg", "language", "quiet_start", "quiet_end", "quiet_hours"}
+PROFILE_COLUMNS = {"birth_year", "sex", "height_cm", "weight_kg", "language", "quiet_start", "quiet_end", "quiet_hours", "addressing_preference"}
 STATUSES = ("pending", "accepted", "rejected")
 VERIFIED_BY = ("user", "system", "clinician")
 

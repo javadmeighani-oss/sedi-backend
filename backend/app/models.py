@@ -293,6 +293,7 @@ class UserProfileCore(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
     birth_year = Column(Integer, nullable=True)
     sex = Column(String(32), nullable=True)
+    addressing_preference = Column(String(64), nullable=True)
     height_cm = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
     language = Column(String(32), nullable=True)

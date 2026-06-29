@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1
-from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeOut, MeUpdateIn
+from backend.app.schemas.auth_otp import OtpRequestIn, OtpVerifyIn, TokenOut, MeUpdateIn
 from backend.app.core.security import verify_token
 from backend.app.services import auth_otp_service as svc
+from backend.app.services.user_profile_service import apply_profile_update, build_me_response
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -34,14 +35,9 @@ def get_current_user(
     return user
 
 
-def _me_out(user: models.User) -> dict:
+def _me_out(user: models.User, db: Session) -> dict:
     """Build GET/PATCH /auth/me response payload (no user_id from client)."""
-    return MeOut(
-        user_id=user.id,
-        phone=user.phone,
-        display_name=user.name,
-        language=user.preferred_language or "en",
-    ).model_dump()
+    return build_me_response(db, user)
 
 
 def _handle_request_otp(
@@ -131,9 +127,12 @@ def otp_verify_alias(
 
 
 @router.get("/me", response_model=ApiResponseV1)
-def auth_me(user: models.User = Depends(get_current_user)):
-    """Return current user info (requires access token)."""
-    return APIResponse(ok=True, data=_me_out(user))
+def auth_me(
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return current user unified profile (requires access token)."""
+    return APIResponse(ok=True, data=_me_out(user, db))
 
 
 @router.patch("/me", response_model=ApiResponseV1)
@@ -142,14 +141,9 @@ def patch_auth_me(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update authenticated user profile language and/or display name."""
-    if body.preferred_language is not None:
-        user.preferred_language = body.preferred_language
-    if body.display_name is not None:
-        user.name = body.display_name
-    db.commit()
-    db.refresh(user)
-    return APIResponse(ok=True, data=_me_out(user))
+    """Update authenticated user profile (JWT-only; never accepts user_id in body)."""
+    user = apply_profile_update(db, user, body)
+    return APIResponse(ok=True, data=_me_out(user, db))
 
 
 @router.post("/refresh", response_model=ApiResponseV1)

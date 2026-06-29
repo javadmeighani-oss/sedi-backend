@@ -165,6 +165,9 @@ def _pack_to_prompt_dict(pack) -> Dict:
         "goals_items": goals_items if isinstance(goals_items, list) else [],
         "lifestyle_text": lifestyle_text,
         "daily_memory_summary": getattr(pack, "daily_memory_summary", None),
+        "birth_year": getattr(pack, "birth_year", None),
+        "sex": getattr(pack, "sex", None),
+        "addressing_preference": getattr(pack, "addressing_preference", None),
     }
 
 
@@ -175,6 +178,12 @@ def _build_user_context_block(pack) -> str:
     lines = ["[USER_CONTEXT]"]
     if getattr(pack, "preferred_name", None) and str(pack.preferred_name).strip():
         lines.append("Preferred name: " + str(pack.preferred_name).strip())
+    if getattr(pack, "birth_year", None):
+        lines.append("Birth year: " + str(pack.birth_year))
+    if getattr(pack, "sex", None) and str(pack.sex).strip():
+        lines.append("Sex: " + str(pack.sex).strip())
+    if getattr(pack, "addressing_preference", None) and str(pack.addressing_preference).strip():
+        lines.append("Addressing preference: " + str(pack.addressing_preference).strip())
     goals = getattr(pack, "goals", None)
     if goals and getattr(goals, "items", None):
         items = [str(x) for x in goals.items if x][:5]

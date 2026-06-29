@@ -1100,8 +1100,31 @@
         "type": "object"
       },
       "MeUpdateIn": {
-        "description": "PATCH /auth/me – at least one of preferred_language or display_name required.",
+        "additionalProperties": false,
+        "description": "PATCH /auth/me – partial update; at least one field required.",
         "properties": {
+          "addressing_preference": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Addressing Preference"
+          },
+          "birth_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Year"
+          },
           "display_name": {
             "anyOf": [
               {
@@ -1112,6 +1135,17 @@
               }
             ],
             "title": "Display Name"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Name"
           },
           "preferred_language": {
             "anyOf": [
@@ -1128,6 +1162,17 @@
               }
             ],
             "title": "Preferred Language"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Sex"
           }
         },
         "title": "MeUpdateIn",
@@ -2116,7 +2161,7 @@
     },
     "/auth/me": {
       "get": {
-        "description": "Return current user info (requires access token).",
+        "description": "Return current user unified profile (requires access token).",
         "operationId": "auth_me_auth_me_get",
         "responses": {
           "200": {
@@ -2141,7 +2186,7 @@
         ]
       },
       "patch": {
-        "description": "Update authenticated user profile language and/or display name.",
+        "description": "Update authenticated user profile (JWT-only; never accepts user_id in body).",
         "operationId": "patch_auth_me_auth_me_patch",
         "requestBody": {
           "content": {
