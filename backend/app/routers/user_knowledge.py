@@ -20,6 +20,50 @@ from backend.app.routers.auth_otp import get_current_user
 router = APIRouter()
 
 
+def _parse_json_list(raw):
+    import json
+    if not raw or not str(raw).strip():
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return [str(raw).strip()] if str(raw).strip() else []
+    if isinstance(data, list):
+        return [str(x).strip() for x in data if x and str(x).strip()]
+    if isinstance(data, str) and data.strip():
+        return [data.strip()]
+    return []
+
+
+def _mirror_goals_json_to_user_goals(db: Session, user_id: int, goals_json: str) -> None:
+    from backend.app.schemas.gate2 import GoalCreateIn
+    from backend.app.services.gate2_data_service import create_goal, list_goals
+
+    existing_titles = {g["title"].strip().lower() for g in list_goals(db, user_id)}
+    for title in _parse_json_list(goals_json):
+        norm = title.strip().lower()
+        if not norm or norm in existing_titles:
+            continue
+        create_goal(db, user_id, GoalCreateIn(title=title[:256], source="system", category="lifestyle"))
+        existing_titles.add(norm)
+
+
+def _mirror_constraints_json_to_restrictions(db: Session, user_id: int, constraints_json: str) -> None:
+    from backend.app.schemas.gate2 import RestrictionCreateIn
+    from backend.app.services.gate2_data_service import create_restriction, list_restrictions
+
+    existing_titles = {r["title"].strip().lower() for r in list_restrictions(db, user_id)}
+    for title in _parse_json_list(constraints_json):
+        norm = title.strip().lower()
+        if not norm or norm in existing_titles:
+            continue
+        create_restriction(
+            db, user_id,
+            RestrictionCreateIn(restriction_type="other", title=title[:256], source="system"),
+        )
+        existing_titles.add(norm)
+
+
 def _reject_legacy_user_id_query(request: Request) -> None:
     """Reject legacy user_id query param; identity comes from JWT only."""
     if request.query_params.get("user_id") is not None:
@@ -80,8 +124,13 @@ def upsert_knowledge(
         row.display_name = payload.display_name if payload.display_name is not None else row.display_name
         row.language = payload.language if payload.language is not None else row.language
         row.baseline_summary = payload.baseline_summary if payload.baseline_summary is not None else row.baseline_summary
-        row.goals_json = payload.goals_json if payload.goals_json is not None else row.goals_json
-        row.constraints_json = payload.constraints_json if payload.constraints_json is not None else row.constraints_json
+        # Gate 2: goals_json/constraints_json read-compat; mirror into canonical tables when written
+        if payload.goals_json is not None:
+            row.goals_json = payload.goals_json
+            _mirror_goals_json_to_user_goals(db, user_id, payload.goals_json)
+        if payload.constraints_json is not None:
+            row.constraints_json = payload.constraints_json
+            _mirror_constraints_json_to_restrictions(db, user_id, payload.constraints_json)
         row.preferences_json = payload.preferences_json if payload.preferences_json is not None else row.preferences_json
         row.updated_at = datetime.utcnow()
     else:
@@ -95,6 +144,11 @@ def upsert_knowledge(
             preferences_json=payload.preferences_json,
         )
         db.add(row)
+        db.flush()
+        if payload.goals_json:
+            _mirror_goals_json_to_user_goals(db, user_id, payload.goals_json)
+        if payload.constraints_json:
+            _mirror_constraints_json_to_restrictions(db, user_id, payload.constraints_json)
     db.commit()
     db.refresh(row)
     return row

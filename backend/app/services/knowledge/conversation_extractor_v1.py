@@ -219,4 +219,70 @@ def extract_candidates(text: str, language: str) -> List[ExtractedCandidate]:
         c for c in candidates
         if not (isinstance(c.fact_value, str) and _is_noise_or_stopword(c.fact_value))
     ]
+
+    # 5) Gate 2: Persian time-bound events → user_events (via user_event candidate + promotion)
+    candidates.extend(_extract_persian_event_candidates(text))
+
     return _dedupe_and_cap(candidates, _get_max_extracted())
+
+
+def _relative_starts_at(day_hint: str) -> str:
+    """Approximate ISO datetime for promotion (UTC, date-only semantics)."""
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    hint = (day_hint or "").strip()
+    if hint in ("فردا", "tomorrow"):
+        return (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0).isoformat()
+    if hint in ("جمعه",):
+        return (now + timedelta(days=(4 - now.weekday()) % 7 or 7)).replace(hour=9, minute=0, second=0, microsecond=0).isoformat()
+    if "هفته" in hint and "بعد" in hint:
+        return (now + timedelta(days=7)).replace(hour=9, minute=0, second=0, microsecond=0).isoformat()
+    if "ماه" in hint and "بعد" in hint:
+        return (now + timedelta(days=30)).replace(hour=9, minute=0, second=0, microsecond=0).isoformat()
+    if "سه" in hint and "شنبه" in hint:
+        return (now + timedelta(days=3)).replace(hour=9, minute=0, second=0, microsecond=0).isoformat()
+    return (now + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0).isoformat()
+
+
+def _extract_persian_event_candidates(text: str) -> List[ExtractedCandidate]:
+    """Minimal Persian patterns for scheduled/important events (Gate 2)."""
+    out: List[ExtractedCandidate] = []
+    patterns = [
+        (r"فردا\s*ساعت\s*(\d{1,2})", "work", "work_meeting", "جلسه کاری", "فردا", 0.84, "event_work_meeting_fa"),
+        (r"جلسه\s*کاری", "work", "work_meeting", "جلسه کاری", "فردا", 0.80, "event_work_meeting_fa2"),
+        (r"امتحان\s*دارم", "education", "exam", "امتحان", "جمعه", 0.82, "event_exam_fa"),
+        (r"تولد\s*.+", "family", "birthday", "تولد", "هفته بعد", 0.78, "event_birthday_fa"),
+        (r"آزمایش\s*خون", "medical", "lab_test", "آزمایش خون", "سه‌شنبه", 0.86, "event_lab_test_fa"),
+        (r"جراحی\s*دارم", "medical", "surgery", "جراحی", "ماه بعد", 0.84, "event_surgery_fa"),
+        (r"نوبت\s*دکتر", "medical", "doctor_visit", "نوبت دکتر", "آینده", 0.85, "event_doctor_visit_fa"),
+    ]
+    for pat, domain, etype, title, day_hint, conf, pid in patterns:
+        if re.search(pat, text, re.I):
+            hour = None
+            hm = re.search(r"ساعت\s*(\d{1,2})", text)
+            if hm:
+                try:
+                    hour = int(hm.group(1))
+                except ValueError:
+                    hour = None
+            starts = _relative_starts_at(day_hint)
+            if hour is not None:
+                from datetime import datetime
+                try:
+                    dt = datetime.fromisoformat(starts)
+                    starts = dt.replace(hour=min(hour, 23)).isoformat()
+                except ValueError:
+                    pass
+            out.append(ExtractedCandidate(
+                fact_key="user_event",
+                fact_value={
+                    "title": title,
+                    "event_domain": domain,
+                    "event_type": etype,
+                    "starts_at": starts,
+                },
+                confidence=conf,
+                evidence=text[:200],
+                pattern_id=pid,
+            ))
+    return out

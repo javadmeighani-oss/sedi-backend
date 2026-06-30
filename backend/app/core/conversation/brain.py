@@ -406,25 +406,18 @@ class ConversationBrain:
                 print(f"[BRAIN WARNING] Memory error traceback: {traceback.format_exc()}")
                 # Continue - don't block chat response
 
-            # Stage 17.1: Lifestyle fact extraction (non-blocking best effort)
+            # Gate 2: KC extraction ingress (replaces legacy user_fact_candidates primary writes)
             try:
-                from backend.app.services.lifestyle.fact_extractor import (
-                    extract_candidates_from_turn,
-                    store_candidates_and_auto_commit,
-                )
-                candidates = extract_candidates_from_turn(
+                from backend.app.services.knowledge.conversation_extraction_service import process_message as kc_process_message
+                kc_process_message(
+                    db=self.db,
                     user_id=user_id,
-                    user_message=user_message,
-                    assistant_message=sedi_response,
-                    language=self.language,
+                    text=user_message,
+                    language=self.language or "fa",
+                    source_message_id=str(mem.id) if mem else None,
                 )
-                if candidates:
-                    source_id = mem.id if mem else None
-                    store_candidates_and_auto_commit(
-                        self.db, user_id, candidates, source_memory_id=source_id
-                    )
             except Exception as extract_err:
-                print(f"[BRAIN] Lifestyle extract (non-critical): {extract_err}")
+                print(f"[BRAIN] KC extract (non-critical): {extract_err}")
 
             # 6. TRANSITION: Check for stage transition (AFTER save - uses updated memory_count)
             new_stage = transition_stage(current_stage, user_id, self.db)

@@ -496,3 +496,129 @@ class UserCareRelationship(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- Gate 2: Lifestyle Memory & Unified User Data --------------------
+
+
+class UserHabit(Base):
+    __tablename__ = "user_habits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(128), nullable=False)
+    frequency = Column(String(64), nullable=True)
+    target_json = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    notes = Column(Text, nullable=True)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class UserGoal(Base):
+    __tablename__ = "user_goals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(32), nullable=False, default="lifestyle", server_default="lifestyle")
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    target_json = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    priority = Column(String(16), nullable=True)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class UserRestriction(Base):
+    __tablename__ = "user_restrictions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    restriction_type = Column(String(32), nullable=False)
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    severity = Column(String(16), nullable=True)
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    valid_from = Column(DateTime, nullable=True)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class UserDoctor(Base):
+    __tablename__ = "user_doctors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(128), nullable=False)
+    specialty = Column(String(128), nullable=True)
+    phone = Column(String(32), nullable=True)
+    clinic = Column(String(256), nullable=True)
+    notes = Column(Text, nullable=True)
+    is_primary = Column(Boolean, nullable=False, default=False, server_default="false")
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class UserEvent(Base):
+    __tablename__ = "user_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    doctor_id = Column(Integer, ForeignKey("user_doctors.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    event_domain = Column(String(32), nullable=False, default="other", server_default="other")
+    event_type = Column(String(64), nullable=False, default="other", server_default="other")
+    starts_at = Column(DateTime, nullable=False)
+    ends_at = Column(DateTime, nullable=True)
+    timezone = Column(String(64), nullable=True)
+    location = Column(String(256), nullable=True)
+    status = Column(String(32), nullable=False, default="scheduled", server_default="scheduled")
+    importance = Column(String(16), nullable=False, default="normal", server_default="normal")
+    reminder_enabled = Column(Boolean, nullable=False, default=False, server_default="false")
+    reminder_offsets_json = Column(Text, nullable=True)
+    recurrence_rule = Column(Text, nullable=True)
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    notes = Column(Text, nullable=True)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class UserLifestyleEvent(Base):
+    __tablename__ = "user_lifestyle_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type = Column(String(64), nullable=False)
+    value_json = Column(Text, nullable=True)
+    occurred_at = Column(DateTime, nullable=False)
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class UserCarePlanItem(Base):
+    __tablename__ = "user_care_plan_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(64), nullable=True)
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    scheduled_at = Column(DateTime, nullable=True)
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    notes = Column(Text, nullable=True)
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

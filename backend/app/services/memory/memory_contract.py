@@ -28,6 +28,8 @@ ALLOWED_KEYS: Dict[str, List[str]] = {
         "exercise_minutes",
         "mood",
         "stress_level",
+        "food_habits",
+        "diet_notes",
     ],
     "medical": [
         "conditions",

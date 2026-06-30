@@ -157,13 +157,14 @@ async def chat(
             except Exception as mem_err:
                 print(f"[CHAT WARNING] Could not save command response to memory (non-critical): {mem_err}")
             try:
-                from backend.app.services.lifestyle.fact_extractor import (
-                    extract_candidates_from_turn,
-                    store_candidates_and_auto_commit,
+                from backend.app.services.knowledge.conversation_extraction_service import process_message as kc_process_message
+                kc_process_message(
+                    db=db,
+                    user_id=user.id,
+                    text=message,
+                    language=response_language or "fa",
+                    source_message_id=str(mem_obj.id) if mem_obj else None,
                 )
-                candidates = extract_candidates_from_turn(user.id, message, override.assistant_message, response_language)
-                if candidates:
-                    store_candidates_and_auto_commit(db, user.id, candidates, source_memory_id=mem_obj.id if mem_obj else None)
             except Exception:
                 pass
             return InteractionResponse(

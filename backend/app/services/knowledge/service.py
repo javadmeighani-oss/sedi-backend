@@ -107,6 +107,11 @@ def accept_candidate(
         "kc_candidate_accepted id=%s user_id=%s fact_type=%s kc_user_fact_id=%s",
         candidate_id, cand.user_id, cand.fact_type, fact.id,
     )
+    try:
+        from backend.app.services.candidate_promotion_service import promote_after_accept
+        promote_after_accept(db, candidate_id)
+    except Exception as e:
+        logger.debug("kc promote_after_accept failed (non-critical): %s", e)
     return fact
 
 

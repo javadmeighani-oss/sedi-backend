@@ -13,8 +13,24 @@ from backend.app.services.knowledge.conversation_extractor_v1 import (
     extract_candidates,
 )
 from backend.app.services.knowledge.service import create_candidate, accept_candidate
+from backend.app.services.candidate_promotion_service import AUTO_PROMOTE_LOW_RISK
 
 logger = logging.getLogger(__name__)
+
+# Only these fact keys may bypass user confirmation when confidence >= auto threshold.
+_AUTO_ACCEPT_KEYS = AUTO_PROMOTE_LOW_RISK | frozenset(
+    {
+        "sleep_quality",
+        "stress_level",
+        "mood",
+        "activity_level",
+        "hydration_ml",
+        "food_habits",
+        "diet_notes",
+        "wake_time",
+        "bedtime",
+    }
+)
 
 # Extractor used by POST /knowledge/extract_from_message (for debug logs)
 _EXTRACTOR_NAME = "conversation_extractor_v1.extract_candidates"
@@ -68,7 +84,7 @@ def process_message(
         value_json = json.dumps(c.fact_value, ensure_ascii=False)
         ev = (c.evidence or "")[:500]
 
-        if c.confidence >= auto_threshold:
+        if c.confidence >= auto_threshold and c.fact_key in _AUTO_ACCEPT_KEYS:
             meta = {
                 "source_message_id": source_message_id,
                 "auto_accepted": True,
@@ -88,11 +104,18 @@ def process_message(
             fact = accept_candidate(db=db, candidate_id=cand.id, verified_by="system")
             if fact:
                 auto_accepted_count += 1
+                try:
+                    from backend.app.services.candidate_promotion_service import promote_after_accept
+                    promote_after_accept(db, cand.id)
+                except Exception as e:
+                    logger.debug("KC auto promote failed: %s", e)
             logger.info(
                 "[KC-EXTRACT] user_id=%s key=%s conf=%.2f action=accepted",
                 user_id, c.fact_key, c.confidence,
             )
-        elif c.confidence >= confirm_threshold:
+        elif c.confidence >= confirm_threshold or (
+            c.confidence >= auto_threshold and c.fact_key not in _AUTO_ACCEPT_KEYS
+        ):
             meta = {
                 "needs_confirmation": True,
                 "source_message_id": source_message_id,

@@ -18,6 +18,10 @@ _LOG_PREFIX = "[RagContext]"
 LIFESTYLE_MAX_CHARS = 300
 DAILY_SUMMARY_MAX_CHARS = 200
 GOALS_MAX_ITEMS = 5
+HABITS_CONTEXT_MAX = 5
+RESTRICTIONS_CONTEXT_MAX = 5
+EVENTS_CONTEXT_MAX = 5
+DOCTORS_CONTEXT_MAX = 3
 
 
 def _get_medical_conditions_for_user(db: Session, user_id: int) -> List[str]:
@@ -197,6 +201,55 @@ def build_rag_context_pack(
     except Exception as e:
         logger.debug("%s account_type context failed: %s", _LOG_PREFIX, e)
 
+    # Gate 2 structured data (canonical only)
+    try:
+        from backend.app.services.gate2_data_service import (
+            list_goals,
+            list_habits,
+            list_restrictions,
+            list_doctors,
+            list_events,
+            list_care_plan_items,
+        )
+
+        g2_goals = [g["title"] for g in list_goals(db, user_id)[:GOALS_MAX_ITEMS] if g.get("status") == "active"]
+        if g2_goals:
+            goals = g2_goals
+            stable_facts["goals_structured"] = g2_goals
+            meta["sources"].append("user_goals")
+        habits = [h["name"] for h in list_habits(db, user_id)[:HABITS_CONTEXT_MAX] if h.get("status") == "active"]
+        if habits:
+            stable_facts["habits"] = habits
+            meta["sources"].append("user_habits")
+        restrictions = [
+            f"{r['restriction_type']}: {r['title']}"
+            for r in list_restrictions(db, user_id)[:RESTRICTIONS_CONTEXT_MAX]
+            if r.get("status") == "active"
+        ]
+        if restrictions:
+            stable_facts["restrictions"] = restrictions
+            meta["sources"].append("user_restrictions")
+        doctors = [
+            d["name"] for d in list_doctors(db, user_id)[:DOCTORS_CONTEXT_MAX]
+        ]
+        if doctors:
+            stable_facts["doctors"] = doctors
+            meta["sources"].append("user_doctors")
+        upcoming = list_events(db, user_id, upcoming_only=True)[:EVENTS_CONTEXT_MAX]
+        if upcoming:
+            stable_facts["upcoming_events"] = [
+                f"{e['title']} ({e['event_domain']}/{e['event_type']})" for e in upcoming
+            ]
+            meta["sources"].append("user_events")
+        care_items = [
+            c["title"] for c in list_care_plan_items(db, user_id)[:5] if c.get("status") == "active"
+        ]
+        if care_items:
+            stable_facts["care_plan_items"] = care_items
+            meta["sources"].append("user_care_plan_items")
+    except Exception as e:
+        logger.debug("%s Gate2 RAG assembly failed: %s", _LOG_PREFIX, e)
+
     return RagContextPack(
         user_id=user_id,
         language=language,
@@ -236,6 +289,15 @@ def serialize_rag_pack_for_context(pack: RagContextPack, max_chars: int = RAG_CO
         lines.append("Recent: " + pack.daily_summary[:150])
     if pack.medical_conditions:
         lines.append("Known conditions (general info only): " + ", ".join(pack.medical_conditions[:10]))
+    upcoming = (pack.stable_facts or {}).get("upcoming_events") if pack.stable_facts else None
+    if isinstance(upcoming, list) and upcoming:
+        lines.append("Upcoming events: " + "; ".join(str(x) for x in upcoming[:EVENTS_CONTEXT_MAX]))
+    habits = (pack.stable_facts or {}).get("habits") if pack.stable_facts else None
+    if isinstance(habits, list) and habits:
+        lines.append("Habits: " + ", ".join(str(h) for h in habits[:HABITS_CONTEXT_MAX]))
+    restrictions = (pack.stable_facts or {}).get("restrictions") if pack.stable_facts else None
+    if isinstance(restrictions, list) and restrictions:
+        lines.append("Restrictions: " + "; ".join(str(r) for r in restrictions[:RESTRICTIONS_CONTEXT_MAX]))
     identity = (pack.stable_facts or {}).get("identity_facts") if pack.stable_facts else None
     if isinstance(identity, list) and identity:
         lines.append("Profile facts: " + "; ".join(str(x) for x in identity[:10]))

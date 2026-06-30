@@ -115,6 +115,16 @@ jobs:
             backend/tests/test_gate1_dependents_v1.py \
             backend/tests/test_gate1_device_subject_user.py \
             backend/tests/test_gate1_rag_context.py \
+            backend/tests/test_gate2_habits_v1.py \
+            backend/tests/test_gate2_goals_v1.py \
+            backend/tests/test_gate2_restrictions_v1.py \
+            backend/tests/test_gate2_doctors_events_v1.py \
+            backend/tests/test_gate2_lifestyle_events_v1.py \
+            backend/tests/test_gate2_care_plan_items_v1.py \
+            backend/tests/test_gate2_memory_context_v1.py \
+            backend/tests/test_gate2_candidate_promotion_v1.py \
+            backend/tests/test_gate2_rag_context_v1.py \
+            backend/tests/test_gate2_persian_event_extraction_v1.py \
             backend/tests/test_interact_onboarding_deprecated.py \
             backend/tests/test_ops_status_endpoint.py \
             --tb=short

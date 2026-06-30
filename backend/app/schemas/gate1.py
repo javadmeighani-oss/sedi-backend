@@ -13,7 +13,10 @@ GATE1_PROFILE_FACT_TYPES = frozenset({
     "independence_level",
     "care_need",
     "social_context",
+    # Ongoing / current chronic condition narrative (not full structured user_conditions row).
     "chronic_condition_note",
+    # Past major medical history: surgery, hospitalization, prior events (not active condition list).
+    "medical_history_note",
     "other_identity",
 })
 
