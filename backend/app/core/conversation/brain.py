@@ -145,6 +145,62 @@ def _maybe_append_rag_context_v1(
         print(f"[BRAIN WARNING] RAG context v1 failed (non-critical): {e}")
 
 
+def _gate3_check_emergency_short_circuit(user_message: str, language: str) -> Optional[str]:
+    """Gate 3: fixed emergency template — no creative LLM."""
+    try:
+        from backend.app.services.gate3.safety_core import RiskClassifier, SafetyPolicy
+        risk = RiskClassifier().classify(user_message or "", language or "fa")
+        if risk.risk_level == "emergency":
+            return SafetyPolicy().response_for_level("emergency", language or "fa")
+        if risk.risk_level == "high":
+            return SafetyPolicy().response_for_level("high", language or "fa")
+    except Exception as e:
+        print(f"[BRAIN WARNING] Gate3 emergency check failed (non-critical): {e}")
+    return None
+
+
+def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_message: str, language: str) -> None:
+    """Gate 3: canonical care context for medical/care intents only."""
+    try:
+        from backend.app.services.gate3.medical_intent import is_medical_care_intent
+        from backend.app.services.gate3.care_intelligence import build_care_context
+        if not is_medical_care_intent(user_message, language):
+            return
+        ctx = build_care_context(db, user_id, language, query_hint=user_message)
+        # Compact block — no raw chat, no caregiver phone
+        lines = ["[CARE_CONTEXT] Canonical user care data (educational use only):"]
+        if ctx.get("goals"):
+            lines.append("Goals: " + ", ".join(g["title"] for g in ctx["goals"][:3] if g.get("title")))
+        if ctx.get("restrictions"):
+            lines.append("Restrictions: " + ", ".join(r["title"] for r in ctx["restrictions"][:3] if r.get("title")))
+        if ctx.get("upcoming_events"):
+            lines.append("Upcoming: " + "; ".join(
+                f"{e.get('title')} ({e.get('event_type')})" for e in ctx["upcoming_events"][:3]
+            ))
+        snippets = ctx.get("knowledge_snippets") or []
+        if snippets:
+            lines.append("Curated knowledge (cite sources):")
+            for sn in snippets[:2]:
+                cit = sn.get("citation") or {}
+                lines.append(f"- [{cit.get('label', 'source')}] {sn.get('content', '')[:200]}")
+        block = "\n".join(lines)[:1200]
+        messages.append({"role": "system", "content": block})
+    except Exception as e:
+        print(f"[BRAIN WARNING] Gate3 care context failed (non-critical): {e}")
+
+
+def _gate3_validate_assistant_response(text: str, language: str) -> str:
+    try:
+        from backend.app.services.gate3.safety_validator import validate_response_text
+        from backend.app.services.gate3.emergency_templates import get_template
+        safe, _code = validate_response_text(text or "")
+        if not safe:
+            return get_template("safe_fallback", language or "fa")
+    except Exception:
+        pass
+    return text
+
+
 def _pack_to_prompt_dict(pack) -> Dict:
     """Convert UserContextPack (or None) to a small dict for prompt usage. Safe attributes only."""
     if pack is None:
@@ -330,6 +386,9 @@ class ConversationBrain:
             # Stage 23 Step 5: Facts-anchored RAG context (fail-open; medical risk gate)
             _maybe_append_rag_context_v1(messages, self.db, user_id, user_message, lang)
 
+            # Gate 3: care context for medical intents (canonical stores only)
+            _maybe_append_gate3_care_context(messages, self.db, user_id, user_message, lang)
+
             # Optionally append history if available (non-blocking)
             try:
                 recent_messages = self.memory.get_recent_messages(user_id, limit=10)
@@ -362,31 +421,33 @@ class ConversationBrain:
             except:
                 pass
             detected_name = self._extract_name_from_message(user_id, user_message, current_stage, minimal_context)
-            
-            # 4. GENERATE: Call GPT directly with messages
-            # CRITICAL: This is where GPT is called for chat
-            print(f"[BRAIN] ===== BEFORE GPT CALL =====")
-            print(f"[BRAIN] User ID: {user_id}")
-            print(f"[BRAIN] User message: '{user_message[:100]}...'")
-            print(f"[BRAIN] Language: {self.language}")
-            print(f"[BRAIN] Stage: {current_stage.value}")
-            print(f"[BRAIN] Messages count: {len(messages)}")
-            print(f"[BRAIN] ===== END BEFORE GPT =====")
-            
-            try:
-                # Call GPT using Responses API
-                completion = gpt_client.responses.create(
-                    model="gpt-4o-mini",
-                    input=messages
-                )
-                sedi_response = completion.output_text.strip()
-                print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
-            except Exception as gpt_exception:
-                # CRITICAL: GPT failures must escape to interact router (502 gpt_failure).
-                _log_gpt_failure(gpt_exception, where="process_message.responses_create")
-                raise
-            
-            # If we get here, GPT call was successful
+
+            # Gate 3: emergency/high-risk short-circuit before GPT
+            gate3_template = _gate3_check_emergency_short_circuit(user_message, lang)
+            if gate3_template:
+                sedi_response = gate3_template
+                print("[BRAIN] Gate3 safety short-circuit applied")
+            else:
+                # 4. GENERATE: Call GPT directly with messages
+                print(f"[BRAIN] ===== BEFORE GPT CALL =====")
+                print(f"[BRAIN] User ID: {user_id}")
+                print(f"[BRAIN] User message: '{user_message[:100]}...'")
+                print(f"[BRAIN] Language: {self.language}")
+                print(f"[BRAIN] Stage: {current_stage.value}")
+                print(f"[BRAIN] Messages count: {len(messages)}")
+                print(f"[BRAIN] ===== END BEFORE GPT =====")
+                try:
+                    completion = gpt_client.responses.create(
+                        model="gpt-4o-mini",
+                        input=messages
+                    )
+                    sedi_response = completion.output_text.strip()
+                    sedi_response = _gate3_validate_assistant_response(sedi_response, lang)
+                    print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
+                except Exception as gpt_exception:
+                    _log_gpt_failure(gpt_exception, where="process_message.responses_create")
+                    raise
+
             # STEP 4: SAVE: Save conversation to memory (updates memory_count)
             # CRITICAL: Memory is OPTIONAL - memory failure must NOT block chat
             mem = None

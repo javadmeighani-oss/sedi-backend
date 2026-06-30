@@ -622,3 +622,152 @@ class UserCarePlanItem(Base):
     valid_to = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- Gate 3: Health Care System / Intelligence --------------------
+
+
+class KnowledgeSource(Base):
+    __tablename__ = "knowledge_sources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(128), nullable=False, unique=True)
+    name = Column(String(256), nullable=False)
+    category = Column(String(64), nullable=False, default="other", server_default="other")
+    trust_level = Column(String(32), nullable=False, default="editorial", server_default="editorial")
+    source_url = Column(String(512), nullable=True)
+    locale = Column(String(16), nullable=False, default="fa", server_default="fa")
+    last_checked_at = Column(DateTime, nullable=True)
+    freshness_policy_days = Column(Integer, nullable=False, default=180, server_default="180")
+    ingestion_status = Column(String(32), nullable=False, default="draft", server_default="draft")
+    license_notes = Column(Text, nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_id = Column(Integer, ForeignKey("knowledge_sources.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(512), nullable=False)
+    summary = Column(Text, nullable=True)
+    category = Column(String(64), nullable=False, default="other", server_default="other")
+    locale = Column(String(16), nullable=False, default="fa", server_default="fa")
+    region = Column(String(128), nullable=True)
+    city = Column(String(128), nullable=True)
+    specialty = Column(String(128), nullable=True)
+    tags_json = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="draft", server_default="draft")
+    published_at = Column(DateTime, nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    chunk_index = Column(Integer, nullable=False, default=0, server_default="0")
+    content = Column(Text, nullable=False)
+    citation_label = Column(String(256), nullable=False)
+    embedding_ref = Column(String(128), nullable=True)
+    token_count = Column(Integer, nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class KnowledgeIngestionRun(Base):
+    __tablename__ = "knowledge_ingestion_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_id = Column(Integer, ForeignKey("knowledge_sources.id", ondelete="CASCADE"), nullable=False, index=True)
+    document_id = Column(Integer, ForeignKey("knowledge_documents.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(32), nullable=False, default="running", server_default="running")
+    chunks_created = Column(Integer, nullable=False, default=0, server_default="0")
+    chunks_updated = Column(Integer, nullable=False, default=0, server_default="0")
+    error_message = Column(Text, nullable=True)
+    run_by = Column(String(64), nullable=True)
+    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    finished_at = Column(DateTime, nullable=True)
+
+
+class CareRiskAssessment(Base):
+    __tablename__ = "care_risk_assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    risk_level = Column(String(16), nullable=False)
+    reasons_json = Column(Text, nullable=True)
+    message_hash = Column(String(64), nullable=True)
+    source = Column(String(32), nullable=False, default="api", server_default="api")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CareRecommendation(Base):
+    __tablename__ = "care_recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(64), nullable=False, default="general", server_default="general")
+    title = Column(String(256), nullable=False)
+    body = Column(Text, nullable=False)
+    safety_level = Column(String(16), nullable=False, default="low", server_default="low")
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    source_refs_json = Column(Text, nullable=True)
+    source = Column(String(32), nullable=False, default="system", server_default="system")
+    valid_to = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class CareFollowUpTask(Base):
+    __tablename__ = "care_follow_up_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="open", server_default="open")
+    due_at = Column(DateTime, nullable=True)
+    linked_recommendation_id = Column(Integer, ForeignKey("care_recommendations.id", ondelete="SET NULL"), nullable=True)
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class HealthQuestion(Base):
+    __tablename__ = "health_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    question_text = Column(Text, nullable=False)
+    answer_text = Column(Text, nullable=True)
+    safety_level = Column(String(16), nullable=False, default="low", server_default="low")
+    risk_level = Column(String(16), nullable=False, default="low", server_default="low")
+    citations_json = Column(Text, nullable=True)
+    source = Column(String(32), nullable=False, default="api", server_default="api")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class HealthSymptomReport(Base):
+    __tablename__ = "health_symptom_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    reported_at = Column(DateTime, nullable=False)
+    symptom_label = Column(String(256), nullable=False)
+    symptom_code = Column(String(64), nullable=True)
+    severity = Column(String(16), nullable=False, default="unknown", server_default="unknown")
+    body_area = Column(String(64), nullable=True)
+    duration = Column(String(128), nullable=True)
+    notes = Column(Text, nullable=True)
+    source = Column(String(32), nullable=False, default="manual", server_default="manual")
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    resolved_at = Column(DateTime, nullable=True)
+    linked_question_id = Column(Integer, ForeignKey("health_questions.id", ondelete="SET NULL"), nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -24,6 +24,9 @@ from backend.app.routers import (
     user_gate2,
     knowledge,
     knowledge_admin,
+    knowledge_base,
+    care_gate3,
+    health_care,
     system,
 )
 from backend.app.routers import ops
@@ -75,6 +78,9 @@ app.include_router(user_dependents.router, prefix="/user", tags=["User"])
 app.include_router(user_gate2.router, prefix="/user", tags=["User"])
 app.include_router(knowledge.router, prefix="/knowledge", tags=["Knowledge"])
 app.include_router(knowledge_admin.router, prefix="/knowledge/admin", tags=["Knowledge Admin"])
+app.include_router(knowledge_base.router, prefix="/knowledge-base", tags=["Knowledge Base"])
+app.include_router(care_gate3.router, prefix="/care", tags=["Care Intelligence"])
+app.include_router(health_care.router, prefix="/health", tags=["Health Care"])
 app.include_router(ops.router)
 
 # ------------------ Activate Scheduler ------------------
