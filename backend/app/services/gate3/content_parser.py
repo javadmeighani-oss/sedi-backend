@@ -47,8 +47,15 @@ def content_hash(text: str) -> str:
     return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
-def parse_content(raw: bytes, content_type: str, *, title_hint: Optional[str] = None) -> ParsedContent:
-    ctype = (content_type or "").split(";")[0].strip().lower()
+def parse_content(
+    raw: bytes,
+    content_type: str,
+    *,
+    title_hint: Optional[str] = None,
+    min_text_length: int = 80,
+) -> ParsedContent:
+    ctype_raw = content_type if isinstance(content_type, str) else str(content_type or "")
+    ctype = ctype_raw.split(";")[0].strip().lower()
     if ctype == "application/pdf":
         return ParsedContent(
             title=title_hint or "PDF document",
@@ -72,7 +79,7 @@ def parse_content(raw: bytes, content_type: str, *, title_hint: Optional[str] = 
             title = re.sub(r"\s+", " ", m.group(1)).strip()
 
     text_body = re.sub(r"\s+", " ", text_body).strip()
-    if len(text_body) < 80:
+    if len(text_body) < min_text_length:
         raise ValueError("parse_too_short")
     if _NOISE.search(text_body[:500]) and len(text_body) < 400:
         raise ValueError("parse_mostly_noise")

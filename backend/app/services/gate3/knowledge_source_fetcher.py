@@ -16,6 +16,27 @@ USER_AGENT = "SediKB/1.0 (+https://sedi.health; curated-knowledge-fetch)"
 DEFAULT_TIMEOUT = 15
 
 
+def _header_value(headers, key: str, default: str = "") -> str:
+    if headers is None:
+        return default
+    try:
+        raw = headers.get(key, default)
+    except AttributeError:
+        return default
+    if not isinstance(raw, str):
+        return default
+    return raw.strip() or default
+
+
+def _response_body(resp) -> bytes:
+    body = getattr(resp, "content", b"")
+    if isinstance(body, (bytes, bytearray)):
+        return bytes(body)
+    if isinstance(body, str):
+        return body.encode("utf-8", errors="replace")
+    return b""
+
+
 @dataclass
 class FetchResult:
     url: str
@@ -38,10 +59,13 @@ class KnowledgeSourceFetcher:
             allow_redirects=False,
         )
         if resp.status_code in (301, 302, 303, 307, 308):
-            loc = resp.headers.get("Location")
+            loc = _header_value(resp.headers, "Location")
             if not loc:
                 raise FetchSecurityError("redirect_missing_location")
-            redirect_url = validate_redirect_url(loc, source)
+            try:
+                redirect_url = validate_redirect_url(loc, source)
+            except TypeError as exc:
+                raise FetchSecurityError("redirect_invalid_location") from exc
             resp = requests.get(
                 redirect_url,
                 timeout=DEFAULT_TIMEOUT,
@@ -50,12 +74,13 @@ class KnowledgeSourceFetcher:
             )
             target = redirect_url
         resp.raise_for_status()
-        content = resp.content[:max_bytes]
-        if len(resp.content) > max_bytes:
+        body = _response_body(resp)
+        content = body[:max_bytes]
+        if len(body) > max_bytes:
             raise FetchSecurityError("max_fetch_bytes_exceeded")
         return FetchResult(
             url=target,
             content=content,
-            content_type=resp.headers.get("Content-Type", "text/plain"),
+            content_type=_header_value(resp.headers, "Content-Type", "text/plain"),
             final_url=target,
         )

@@ -71,6 +71,19 @@ def test_apply_ai_review_to_run_persists_booleans():
     assert run.recommended_action == review.recommended_action
 
 
+def _fake_http_response(status_code: int = 200, content: bytes = b"", headers: dict | None = None):
+    """Lightweight response stub (avoids MagicMock header/content quirks)."""
+    class _Resp:
+        pass
+
+    resp = _Resp()
+    resp.status_code = status_code
+    resp.content = content
+    resp.headers = headers or {}
+    resp.raise_for_status = lambda: None
+    return resp
+
+
 def _admin_headers(monkeypatch) -> dict:
     monkeypatch.setenv("ADMIN_TOKEN", "gate3g-admin")
     return {"X-Admin-Token": "gate3g-admin"}
@@ -164,7 +177,7 @@ def test_redirect_to_private_ip_blocked(client, db, monkeypatch):
     h = _admin_headers(monkeypatch)
     src = _seed_fetch_source(db, "redirect-ssrf")
     db.commit()
-    redirect_resp = MagicMock(status_code=302, headers={"Location": "http://127.0.0.1/secret"})
+    redirect_resp = _fake_http_response(302, b"", headers={"Location": "http://127.0.0.1/secret"})
     with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=redirect_resp):
         with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
             with patch("backend.app.services.gate3.robots_checker.requests.get") as robots_get:
@@ -178,8 +191,9 @@ def test_robots_disallowed_blocks_fetch(client, db, monkeypatch):
     h = _admin_headers(monkeypatch)
     src = _seed_fetch_source(db, "robots-block", trust_level="editorial", review_required=False)
     db.commit()
-    ok_page = MagicMock(status_code=200, content=b"<html><body>" + b"x" * 120 + b"</body></html>", headers={"Content-Type": "text/html"})
-    robots_resp = MagicMock(status_code=200, text="User-agent: *\nDisallow: /")
+    ok_page = _fake_http_response(200, b"<html><body>" + b"x" * 120 + b"</body></html>", headers={"Content-Type": "text/html"})
+    robots_resp = _fake_http_response(200, b"", headers={})
+    robots_resp.text = "User-agent: *\nDisallow: /"
     with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
         with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=robots_resp):
             with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
@@ -193,9 +207,9 @@ def test_max_fetch_bytes_enforced(client, db, monkeypatch):
     src = _seed_fetch_source(db, "max-bytes", max_fetch_bytes=100)
     db.commit()
     big = b"a" * 200
-    ok_page = MagicMock(status_code=200, content=big, headers={"Content-Type": "text/plain"}, raise_for_status=lambda: None)
+    ok_page = _fake_http_response(200, big, headers={"Content-Type": "text/plain"})
     with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
-        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=MagicMock(status_code=404)):
+        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=_fake_http_response(404)):
             with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
                 r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 400
@@ -213,9 +227,9 @@ def test_content_hash_unchanged_no_new_chunks(client, db, monkeypatch):
     parsed = parse_content(text.encode(), "text/plain")
     src = _seed_fetch_source(db, "no-change", content_hash=parsed.content_hash, category="lifestyle")
     db.commit()
-    ok_page = MagicMock(status_code=200, content=text.encode(), headers={"Content-Type": "text/plain"}, raise_for_status=lambda: None)
+    ok_page = _fake_http_response(200, text.encode(), headers={"Content-Type": "text/plain"})
     with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
-        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=MagicMock(status_code=404)):
+        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=_fake_http_response(404)):
             with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
                 r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 200
@@ -228,9 +242,11 @@ def test_changed_content_pending_review(client, db, monkeypatch):
     src = _seed_fetch_source(db, "pending-review", category="medical_condition", trust_level="clinical_guideline")
     db.commit()
     text = "Medical education content about hypertension monitoring and clinician follow-up for adults over forty."
-    ok_page = MagicMock(status_code=200, content=text.encode(), headers={"Content-Type": "text/plain"}, raise_for_status=lambda: None)
+    ok_page = _fake_http_response(200, text.encode(), headers={"Content-Type": "text/plain"})
+    robots_ok = _fake_http_response(200, b"", headers={})
+    robots_ok.text = "User-agent: *\nAllow: /"
     with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
-        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=MagicMock(status_code=200, text="User-agent: *\nAllow: /")):
+        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=robots_ok):
             with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
                 r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 200
@@ -374,15 +390,15 @@ def test_scheduler_disabled_by_default(db, monkeypatch):
 
 
 def test_no_runtime_fetch_during_chat(client, db, monkeypatch):
-    """Chat path must not invoke KnowledgeSourceFetcher."""
+    """Chat path must not invoke KnowledgeSourceFetcher; emergency bypasses GPT."""
     token = _token(client, db, monkeypatch, "+989143005003")
     with patch("backend.app.services.gate3.knowledge_source_fetcher.KnowledgeSourceFetcher.fetch") as mocked:
         r = client.post(
             "/interact/chat",
             headers={"Authorization": f"Bearer {token}"},
-            json={"message": "How can I manage stress?"},
+            json={"message": "I want to kill myself"},
         )
-        assert r.status_code in (200, 422, 503)
+        assert r.status_code == 200
         mocked.assert_not_called()
 
 

@@ -108,14 +108,16 @@ class KnowledgeUpdateService:
             return self._finalize_staged_content(
                 db, src, run, parsed.text, parsed.title, parsed.parser_type, parsed.content_hash,
             )
-        except (FetchSecurityError, RobotsBlockedError, ValueError) as exc:
+        except (FetchSecurityError, RobotsBlockedError, ValueError, TypeError) as exc:
             run.status = "failed"
-            run.error_message = str(exc)
+            run.error_message = str(exc) if not isinstance(exc, TypeError) else "invalid_fetch_response"
             run.review_status = "rejected"
             run.finished_at = datetime.utcnow()
             db.commit()
             db.refresh(run)
-            return _run_dict(run)
+            if isinstance(exc, TypeError):
+                raise FetchSecurityError("invalid_fetch_response") from exc
+            raise
 
     def stage_manual_content(
         self,
@@ -132,7 +134,7 @@ class KnowledgeUpdateService:
         if not src:
             raise Gate3NotFoundError()
         now = datetime.utcnow()
-        parsed = parse_content(content.encode("utf-8"), "text/plain", title_hint=title)
+        parsed = parse_content(content.encode("utf-8"), "text/plain", title_hint=title, min_text_length=1)
         run = models.KnowledgeIngestionRun(
             source_id=source_id,
             status="running",
