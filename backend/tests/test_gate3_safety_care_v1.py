@@ -43,10 +43,17 @@ def test_safety_policy_forbids_unsafe_llm_on_emergency():
 
 def test_safety_validator_blocks_diagnosis_and_medication_orders():
     assert validate_response_text("You have diabetes for sure")[0] is False
+    assert validate_response_text("You have depression disorder")[0] is False
     assert validate_response_text("Increase your dose to 20mg")[0] is False
     assert validate_response_text("Stop taking your medication now")[0] is False
     assert validate_response_text("the best doctor in town")[0] is False
     assert validate_response_text("General wellness tips are helpful.")[0] is True
+
+
+def test_risk_classifier_mental_wellbeing_medium():
+    rc = RiskClassifier()
+    assert rc.classify("I feel stressed at night and need sleep support", "en").risk_level == "medium"
+    assert rc.classify("احساس استرس دارم و خوابم بد شده", "fa").risk_level == "medium"
 
 
 def test_care_context_uses_canonical_gate2_data(client, db, monkeypatch):

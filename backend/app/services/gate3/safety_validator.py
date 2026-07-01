@@ -13,6 +13,9 @@ UNSAFE_PATTERNS = [
     (re.compile(r"دارو.{0,15}(قطع|حذف|شروع)\s*کن", re.I), "stop_start_medication"),
     (re.compile(r"\bbest doctor\b|\bبهترین دکتر\b", re.I), "unsupported_provider_ranking"),
     (re.compile(r"\btake\b.{0,20}\b(aspirin|nitroglycerin|epinephrine)\b", re.I), "emergency_treatment_instruction"),
+    (re.compile(r"\byou have\b.{0,40}\b(depression|adhd|bipolar|anxiety disorder|personality disorder)\b", re.I), "psychiatric_disorder_diagnosis"),
+    (re.compile(r"شما\s+.+\s+(افسردگی|اضطراب|دو قطبی|اختلال شخصیت)\s+دارید", re.I), "psychiatric_disorder_diagnosis"),
+    (re.compile(r"\b(i am your therapist|replace your psychiatrist|stop therapy)\b", re.I), "replace_therapist_or_psychiatrist"),
 ]
 
 

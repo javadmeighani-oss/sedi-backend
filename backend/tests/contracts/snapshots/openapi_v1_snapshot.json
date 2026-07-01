@@ -2487,6 +2487,22 @@
         "title": "HistoryTurnItem",
         "type": "object"
       },
+      "IngestionRejectIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "IngestionRejectIn",
+        "type": "object"
+      },
       "InteractionResponse": {
         "properties": {
           "detected_name": {
@@ -2728,19 +2744,36 @@
           "category": {
             "default": "other",
             "enum": [
+              "beauty_wellness",
+              "caregiving",
+              "chronic_care",
+              "clinical_guideline",
               "culture",
+              "daily_planning",
+              "diet_program",
+              "elderly_care",
+              "emergency_education",
+              "emotional_support",
               "exercise",
+              "exercise_program",
+              "habit_change",
+              "health_care",
               "lab_directory",
               "lifestyle",
               "local_services",
+              "longevity",
               "medical_condition",
               "medication_education",
               "mental_wellbeing",
               "nutrition",
               "other",
+              "prevention",
               "provider_directory",
+              "psychological_support",
               "science",
-              "sports"
+              "sleep",
+              "sports",
+              "stress_management"
             ],
             "title": "Category",
             "type": "string"
@@ -2871,19 +2904,36 @@
             "anyOf": [
               {
                 "enum": [
+                  "beauty_wellness",
+                  "caregiving",
+                  "chronic_care",
+                  "clinical_guideline",
                   "culture",
+                  "daily_planning",
+                  "diet_program",
+                  "elderly_care",
+                  "emergency_education",
+                  "emotional_support",
                   "exercise",
+                  "exercise_program",
+                  "habit_change",
+                  "health_care",
                   "lab_directory",
                   "lifestyle",
                   "local_services",
+                  "longevity",
                   "medical_condition",
                   "medication_education",
                   "mental_wellbeing",
                   "nutrition",
                   "other",
+                  "prevention",
                   "provider_directory",
+                  "psychological_support",
                   "science",
-                  "sports"
+                  "sleep",
+                  "sports",
+                  "stress_management"
                 ],
                 "type": "string"
               },
@@ -3029,19 +3079,36 @@
           "category": {
             "default": "other",
             "enum": [
+              "beauty_wellness",
+              "caregiving",
+              "chronic_care",
+              "clinical_guideline",
               "culture",
+              "daily_planning",
+              "diet_program",
+              "elderly_care",
+              "emergency_education",
+              "emotional_support",
               "exercise",
+              "exercise_program",
+              "habit_change",
+              "health_care",
               "lab_directory",
               "lifestyle",
               "local_services",
+              "longevity",
               "medical_condition",
               "medication_education",
               "mental_wellbeing",
               "nutrition",
               "other",
+              "prevention",
               "provider_directory",
+              "psychological_support",
               "science",
-              "sports"
+              "sleep",
+              "sports",
+              "stress_management"
             ],
             "title": "Category",
             "type": "string"
@@ -3138,24 +3205,98 @@
       "KnowledgeSourceCreateIn": {
         "additionalProperties": false,
         "properties": {
+          "allowed_domain": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Domain"
+          },
+          "allowed_url_patterns": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Url Patterns"
+          },
+          "auto_approve_low_risk": {
+            "default": false,
+            "title": "Auto Approve Low Risk",
+            "type": "boolean"
+          },
           "category": {
             "default": "other",
             "enum": [
+              "beauty_wellness",
+              "caregiving",
+              "chronic_care",
+              "clinical_guideline",
               "culture",
+              "daily_planning",
+              "diet_program",
+              "elderly_care",
+              "emergency_education",
+              "emotional_support",
               "exercise",
+              "exercise_program",
+              "habit_change",
+              "health_care",
               "lab_directory",
               "lifestyle",
               "local_services",
+              "longevity",
               "medical_condition",
               "medication_education",
               "mental_wellbeing",
               "nutrition",
               "other",
+              "prevention",
               "provider_directory",
+              "psychological_support",
               "science",
-              "sports"
+              "sleep",
+              "sports",
+              "stress_management"
             ],
             "title": "Category",
+            "type": "string"
+          },
+          "fetch_interval_hours": {
+            "anyOf": [
+              {
+                "maximum": 8760.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetch Interval Hours"
+          },
+          "fetch_method": {
+            "default": "manual_upload",
+            "enum": [
+              "api",
+              "html_page",
+              "manual_upload",
+              "pdf_url",
+              "rss",
+              "url_fetch"
+            ],
+            "title": "Fetch Method",
             "type": "string"
           },
           "freshness_policy_days": {
@@ -3204,6 +3345,20 @@
             "title": "Locale",
             "type": "string"
           },
+          "max_fetch_bytes": {
+            "anyOf": [
+              {
+                "maximum": 10485760.0,
+                "minimum": 1024.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 2097152,
+            "title": "Max Fetch Bytes"
+          },
           "metadata": {
             "anyOf": [
               {
@@ -3222,11 +3377,21 @@
             "title": "Name",
             "type": "string"
           },
+          "review_required": {
+            "default": true,
+            "title": "Review Required",
+            "type": "boolean"
+          },
           "slug": {
             "maxLength": 128,
             "minLength": 1,
             "title": "Slug",
             "type": "string"
+          },
+          "source_fetch_enabled": {
+            "default": false,
+            "title": "Source Fetch Enabled",
+            "type": "boolean"
           },
           "source_url": {
             "anyOf": [
@@ -3263,23 +3428,77 @@
       "KnowledgeSourceUpdateIn": {
         "additionalProperties": false,
         "properties": {
+          "allowed_domain": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Domain"
+          },
+          "allowed_url_patterns": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Url Patterns"
+          },
+          "auto_approve_low_risk": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Approve Low Risk"
+          },
           "category": {
             "anyOf": [
               {
                 "enum": [
+                  "beauty_wellness",
+                  "caregiving",
+                  "chronic_care",
+                  "clinical_guideline",
                   "culture",
+                  "daily_planning",
+                  "diet_program",
+                  "elderly_care",
+                  "emergency_education",
+                  "emotional_support",
                   "exercise",
+                  "exercise_program",
+                  "habit_change",
+                  "health_care",
                   "lab_directory",
                   "lifestyle",
                   "local_services",
+                  "longevity",
                   "medical_condition",
                   "medication_education",
                   "mental_wellbeing",
                   "nutrition",
                   "other",
+                  "prevention",
                   "provider_directory",
+                  "psychological_support",
                   "science",
-                  "sports"
+                  "sleep",
+                  "sports",
+                  "stress_management"
                 ],
                 "type": "string"
               },
@@ -3288,6 +3507,38 @@
               }
             ],
             "title": "Category"
+          },
+          "fetch_interval_hours": {
+            "anyOf": [
+              {
+                "maximum": 8760.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetch Interval Hours"
+          },
+          "fetch_method": {
+            "anyOf": [
+              {
+                "enum": [
+                  "api",
+                  "html_page",
+                  "manual_upload",
+                  "pdf_url",
+                  "rss",
+                  "url_fetch"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetch Method"
           },
           "freshness_policy_days": {
             "anyOf": [
@@ -3353,6 +3604,19 @@
             ],
             "title": "Locale"
           },
+          "max_fetch_bytes": {
+            "anyOf": [
+              {
+                "maximum": 10485760.0,
+                "minimum": 1024.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Fetch Bytes"
+          },
           "metadata": {
             "anyOf": [
               {
@@ -3377,6 +3641,28 @@
               }
             ],
             "title": "Name"
+          },
+          "review_required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Required"
+          },
+          "source_fetch_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Fetch Enabled"
           },
           "source_url": {
             "anyOf": [
@@ -7535,6 +7821,207 @@
         ]
       }
     },
+    "/knowledge-base/ingestion-runs": {
+      "get": {
+        "operationId": "get_ingestion_runs_knowledge_base_ingestion_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "review_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Review Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Ingestion Runs",
+        "tags": [
+          "Knowledge Base"
+        ]
+      }
+    },
+    "/knowledge-base/ingestion-runs/{run_id}": {
+      "get": {
+        "operationId": "get_ingestion_run_knowledge_base_ingestion_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Ingestion Run",
+        "tags": [
+          "Knowledge Base"
+        ]
+      }
+    },
+    "/knowledge-base/ingestion-runs/{run_id}/approve": {
+      "post": {
+        "operationId": "post_ingestion_approve_knowledge_base_ingestion_runs__run_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Ingestion Approve",
+        "tags": [
+          "Knowledge Base"
+        ]
+      }
+    },
+    "/knowledge-base/ingestion-runs/{run_id}/reject": {
+      "post": {
+        "operationId": "post_ingestion_reject_knowledge_base_ingestion_runs__run_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestionRejectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Ingestion Reject",
+        "tags": [
+          "Knowledge Base"
+        ]
+      }
+    },
     "/knowledge-base/search": {
       "get": {
         "description": "JWT user search with SafetyPolicy.",
@@ -7732,6 +8219,48 @@
           }
         },
         "summary": "Patch Source",
+        "tags": [
+          "Knowledge Base"
+        ]
+      }
+    },
+    "/knowledge-base/sources/{source_id}/fetch": {
+      "post": {
+        "operationId": "post_source_fetch_knowledge_base_sources__source_id__fetch_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Source Fetch",
         "tags": [
           "Knowledge Base"
         ]

@@ -9,10 +9,16 @@ from pydantic import BaseModel, ConfigDict, Field
 # --- Knowledge base ---
 
 KB_CATEGORIES = Literal[
-    "medical_condition", "medication_education", "lifestyle", "nutrition", "exercise",
-    "mental_wellbeing", "culture", "sports", "science", "provider_directory",
-    "lab_directory", "local_services", "other",
+    "medical_condition", "medication_education", "clinical_guideline", "health_care",
+    "caregiving", "chronic_care", "elderly_care", "emergency_education", "prevention",
+    "longevity", "nutrition", "diet_program", "exercise", "exercise_program", "lifestyle",
+    "sleep", "stress_management", "mental_wellbeing", "psychological_support",
+    "emotional_support", "habit_change", "beauty_wellness", "daily_planning",
+    "culture", "sports", "science", "provider_directory", "lab_directory", "local_services",
+    "other",
 ]
+
+FETCH_METHODS = Literal["manual_upload", "url_fetch", "rss", "api", "pdf_url", "html_page"]
 
 TRUST_LEVELS = Literal["official", "clinical_guideline", "vetted_partner", "editorial", "internal"]
 INGESTION_STATUS = Literal["draft", "active", "deprecated"]
@@ -35,6 +41,14 @@ class KnowledgeSourceCreateIn(BaseModel):
     ingestion_status: INGESTION_STATUS = "draft"
     license_notes: Optional[str] = None
     metadata: Optional[dict[str, Any]] = None
+    source_fetch_enabled: bool = False
+    allowed_domain: Optional[str] = Field(None, max_length=256)
+    allowed_url_patterns: Optional[List[str]] = None
+    fetch_method: FETCH_METHODS = "manual_upload"
+    review_required: bool = True
+    auto_approve_low_risk: bool = False
+    max_fetch_bytes: Optional[int] = Field(2_097_152, ge=1024, le=10_485_760)
+    fetch_interval_hours: Optional[int] = Field(None, ge=1, le=8760)
 
 
 class KnowledgeSourceUpdateIn(BaseModel):
@@ -49,6 +63,14 @@ class KnowledgeSourceUpdateIn(BaseModel):
     ingestion_status: Optional[INGESTION_STATUS] = None
     license_notes: Optional[str] = None
     metadata: Optional[dict[str, Any]] = None
+    source_fetch_enabled: Optional[bool] = None
+    allowed_domain: Optional[str] = Field(None, max_length=256)
+    allowed_url_patterns: Optional[List[str]] = None
+    fetch_method: Optional[FETCH_METHODS] = None
+    review_required: Optional[bool] = None
+    auto_approve_low_risk: Optional[bool] = None
+    max_fetch_bytes: Optional[int] = Field(None, ge=1024, le=10_485_760)
+    fetch_interval_hours: Optional[int] = Field(None, ge=1, le=8760)
 
 
 class KnowledgeDocumentCreateIn(BaseModel):
@@ -102,6 +124,11 @@ class KnowledgeSearchIn(BaseModel):
     category: Optional[KB_CATEGORIES] = None
     locale: Optional[str] = Field(None, max_length=16)
     limit: int = Field(5, ge=1, le=20)
+
+
+class IngestionRejectIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str = Field(..., min_length=1, max_length=2000)
 
 
 # --- Safety / care ---

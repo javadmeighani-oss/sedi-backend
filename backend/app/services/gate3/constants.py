@@ -4,6 +4,21 @@ PROVIDER_CATEGORIES = frozenset({
     "provider_directory", "lab_directory", "local_services", "culture", "sports", "science",
 })
 
+# Categories that must always require human review; auto-approve is never allowed.
+SENSITIVE_REVIEW_REQUIRED_CATEGORIES = frozenset({
+    "medical_condition", "medication_education", "clinical_guideline", "health_care",
+    "caregiving", "chronic_care", "elderly_care", "emergency_education", "prevention",
+    "diet_program", "exercise_program", "mental_wellbeing", "psychological_support",
+    "emotional_support", "stress_management", "provider_directory", "lab_directory",
+    "local_services",
+})
+
+# Low-risk categories that may allow auto_approve_low_risk when explicitly configured + high AI score.
+LOW_RISK_AUTO_APPROVE_ELIGIBLE_CATEGORIES = frozenset({
+    "culture", "sports", "science", "lifestyle", "beauty_wellness", "daily_planning",
+    "habit_change", "other",
+})
+
 TRUST_ORDER = {
     "official": 5,
     "clinical_guideline": 4,
@@ -35,4 +50,18 @@ MEDICAL_INTENT_KEYWORDS_FA = (
 MEDICAL_INTENT_KEYWORDS_EN = (
     "pain", "symptom", "medication", "dose", "diagnosis", "doctor", "allergy",
     "blood pressure", "surgery", "treatment", "lab test", "condition",
+)
+
+MENTAL_WELLBEING_KEYWORDS_FA = (
+    "استرس", "اضطراب", "افسردگی", "خواب", "تنهایی", "سوگ", "انگیزه", "عادت",
+    "فرسودگی", "روان", "احساس", "حمایت عاطفی", "فشار روانی",
+)
+MENTAL_WELLBEING_KEYWORDS_EN = (
+    "stress", "anxiety", "sleep", "lonely", "loneliness", "grief", "motivation",
+    "habit", "burnout", "emotional support", "mental wellbeing", "self-reflection",
+)
+
+PSYCHIATRIC_DISORDER_TERMS = (
+    "depression disorder", "adhd", "bipolar disorder", "personality disorder",
+    "anxiety disorder", "شما افسرده", "شما اضطراب", "بیماری دو قطبی",
 )

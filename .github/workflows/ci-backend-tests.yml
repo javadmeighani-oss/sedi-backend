@@ -126,6 +126,7 @@ jobs:
             backend/tests/test_gate2_rag_context_v1.py \
             backend/tests/test_gate2_persian_event_extraction_v1.py \
             backend/tests/test_gate3_knowledge_v1.py \
+            backend/tests/test_gate3g_kb_crawler_v1.py \
             backend/tests/test_gate3_safety_care_v1.py \
             backend/tests/test_gate3_health_brain_v1.py \
             backend/tests/test_interact_onboarding_deprecated.py \

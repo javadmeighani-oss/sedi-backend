@@ -22,6 +22,18 @@ def _admin_headers(monkeypatch) -> dict:
     return {"X-Admin-Token": "gate3-admin-test"}
 
 
+def _ingest_and_approve(client, h, **payload) -> dict:
+    ing = client.post("/knowledge-base/ingest", headers=h, json=payload)
+    assert ing.status_code == 200
+    data = ing.json()["data"]
+    if data.get("review_status") == "pending_review":
+        run_id = data["ingestion_run_id"]
+        appr = client.post(f"/knowledge-base/ingestion-runs/{run_id}/approve", headers=h)
+        assert appr.status_code == 200
+        return appr.json()["data"]
+    return data
+
+
 def _seed_source(db, slug: str, *, status="active", last_checked=None, trust="clinical_guideline"):
     now = datetime.utcnow()
     src = models.KnowledgeSource(
@@ -84,7 +96,11 @@ def test_kb_source_document_ingest_search(client, db, monkeypatch):
         },
     )
     assert ing.status_code == 200
-    assert ing.json()["data"]["chunks_created"] >= 1
+    run_id = ing.json()["data"]["ingestion_run_id"]
+    assert ing.json()["data"]["review_status"] == "pending_review"
+    appr = client.post(f"/knowledge-base/ingestion-runs/{run_id}/approve", headers=h)
+    assert appr.status_code == 200
+    assert appr.json()["data"]["chunks_created"] >= 1
 
     token = _token(client, db, monkeypatch, "+989143003001")
     search = client.get(
@@ -105,13 +121,12 @@ def test_kb_stale_and_deprecated_excluded(client, db, monkeypatch):
     db.commit()
 
     for src, title, text in [
-        (stale, "Stale doc", "stale unique term xyz123"),
-        (fresh, "Fresh doc", "fresh unique term xyz123"),
+        (stale, "Stale doc", "stale unique term xyz123 for knowledge freshness testing scenario"),
+        (fresh, "Fresh doc", "fresh unique term xyz123 for knowledge freshness testing scenario"),
     ]:
-        client.post(
-            "/knowledge-base/ingest",
-            headers=h,
-            json={"source_id": src.id, "title": title, "content": text, "category": "lifestyle"},
+        _ingest_and_approve(
+            client, h,
+            source_id=src.id, title=title, content=text, category="lifestyle",
         )
 
     token = _token(client, db, monkeypatch, "+989143003002")
@@ -142,17 +157,12 @@ def test_kb_provider_multi_option_and_no_best_doctor(client, db, monkeypatch):
     src = _seed_source(db, "providers-curated", trust="vetted_partner")
     db.commit()
     for city, name in [("Tehran", "Clinic Alpha"), ("Tehran", "Clinic Beta")]:
-        client.post(
-            "/knowledge-base/ingest",
-            headers=h,
-            json={
-                "source_id": src.id,
-                "title": name,
-                "category": "provider_directory",
-                "city": city,
-                "specialty": "cardiology",
-                "content": f"{name} cardiology provider directory curated listing Tehran",
-            },
+        _ingest_and_approve(
+            client, h,
+            source_id=src.id,
+            title=name,
+            category="provider_directory",
+            content=f"{name} cardiology provider directory curated listing Tehran with citation metadata",
         )
 
     token = _token(client, db, monkeypatch, "+989143003003")

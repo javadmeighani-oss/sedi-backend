@@ -14,6 +14,10 @@ from sqlalchemy.orm import Session
 from backend.app import models
 from backend.app.services.rag_context.medical_risk_gate_v1 import is_high_risk_medical
 from backend.app.services.gate3.emergency_templates import get_template
+from backend.app.services.gate3.constants import (
+    MENTAL_WELLBEING_KEYWORDS_EN,
+    MENTAL_WELLBEING_KEYWORDS_FA,
+)
 
 
 @dataclass
@@ -53,18 +57,24 @@ class RiskClassifier:
         if any(w in norm or w in text for w in medical_words):
             return RiskResult("medium", ["medical_topic"])
 
+        wb_words = MENTAL_WELLBEING_KEYWORDS_FA if lang.startswith("fa") else MENTAL_WELLBEING_KEYWORDS_EN
+        if any(w in norm or w in text for w in wb_words):
+            return RiskResult("medium", ["mental_wellbeing_topic"])
+
         return RiskResult("low", reasons or ["general"])
 
 
 class SafetyPolicy:
     FORBIDDEN_ACTIONS = frozenset({
         "definitive_diagnosis",
+        "psychiatric_disorder_diagnosis",
         "medication_dose_change",
         "stop_medication",
         "start_medication",
         "emergency_treatment_instruction",
         "unsupported_provider_ranking",
         "single_provider_endorsement",
+        "replace_therapist_or_psychiatrist",
     })
 
     def evaluate(self, risk_level: str, intent: str = "general") -> Dict[str, Any]:

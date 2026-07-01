@@ -17,6 +17,7 @@ from backend.app.schemas.gate3 import (
     KnowledgeSourceCreateIn,
     KnowledgeSourceUpdateIn,
 )
+from backend.app.services.gate3.source_review_policy import normalize_source_review_policy
 
 
 class Gate3NotFoundError(Exception):
@@ -52,6 +53,17 @@ def _source_dict(row: models.KnowledgeSource) -> dict:
         "ingestion_status": row.ingestion_status,
         "license_notes": row.license_notes,
         "metadata": _json_load(row.metadata_json),
+        "source_fetch_enabled": row.source_fetch_enabled,
+        "allowed_domain": row.allowed_domain,
+        "fetch_method": row.fetch_method,
+        "review_required": row.review_required,
+        "auto_approve_low_risk": row.auto_approve_low_risk,
+        "last_fetched_at": row.last_fetched_at.isoformat() + "Z" if row.last_fetched_at else None,
+        "last_approved_at": row.last_approved_at.isoformat() + "Z" if row.last_approved_at else None,
+        "content_hash": row.content_hash,
+        "max_fetch_bytes": row.max_fetch_bytes,
+        "fetch_interval_hours": row.fetch_interval_hours,
+        "robots_allowed": row.robots_allowed,
         "created_at": row.created_at.isoformat() + "Z",
         "updated_at": row.updated_at.isoformat() + "Z",
     }
@@ -84,6 +96,11 @@ def list_sources(db: Session) -> List[dict]:
 
 def create_source(db: Session, body: KnowledgeSourceCreateIn) -> dict:
     now = datetime.utcnow()
+    review_required, auto_approve_low_risk = normalize_source_review_policy(
+        body.category,
+        review_required=body.review_required,
+        auto_approve_low_risk=body.auto_approve_low_risk,
+    )
     row = models.KnowledgeSource(
         slug=body.slug.strip(),
         name=body.name.strip(),
@@ -96,6 +113,14 @@ def create_source(db: Session, body: KnowledgeSourceCreateIn) -> dict:
         ingestion_status=body.ingestion_status,
         license_notes=body.license_notes,
         metadata_json=_json_dump(body.metadata),
+        source_fetch_enabled=body.source_fetch_enabled,
+        allowed_domain=body.allowed_domain,
+        allowed_url_patterns_json=_json_dump(body.allowed_url_patterns),
+        fetch_method=body.fetch_method,
+        review_required=review_required,
+        auto_approve_low_risk=auto_approve_low_risk,
+        max_fetch_bytes=body.max_fetch_bytes,
+        fetch_interval_hours=body.fetch_interval_hours,
         created_at=now,
         updated_at=now,
     )
@@ -114,12 +139,26 @@ def update_source(db: Session, source_id: int, body: KnowledgeSourceUpdateIn) ->
         ("source_url", "source_url"), ("locale", "locale"), ("last_checked_at", "last_checked_at"),
         ("freshness_policy_days", "freshness_policy_days"), ("ingestion_status", "ingestion_status"),
         ("license_notes", "license_notes"),
+        ("source_fetch_enabled", "source_fetch_enabled"), ("allowed_domain", "allowed_domain"),
+        ("fetch_method", "fetch_method"), ("review_required", "review_required"),
+        ("auto_approve_low_risk", "auto_approve_low_risk"), ("max_fetch_bytes", "max_fetch_bytes"),
+        ("fetch_interval_hours", "fetch_interval_hours"),
     ]:
         val = getattr(body, field)
         if val is not None:
             setattr(row, attr, val)
     if body.metadata is not None:
         row.metadata_json = _json_dump(body.metadata)
+    if body.allowed_url_patterns is not None:
+        row.allowed_url_patterns_json = _json_dump(body.allowed_url_patterns)
+    category = body.category if body.category is not None else row.category
+    review_required, auto_approve_low_risk = normalize_source_review_policy(
+        category,
+        review_required=row.review_required,
+        auto_approve_low_risk=row.auto_approve_low_risk,
+    )
+    row.review_required = review_required
+    row.auto_approve_low_risk = auto_approve_low_risk
     row.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(row)
@@ -192,69 +231,27 @@ def _chunk_text(content: str, chunk_size: int) -> List[str]:
 
 
 def ingest_content(db: Session, body: KnowledgeIngestIn, run_by: str = "admin") -> dict:
+    from backend.app.services.gate3.knowledge_update_service import KnowledgeUpdateService
+
     src = db.query(models.KnowledgeSource).filter(models.KnowledgeSource.id == body.source_id).first()
     if not src:
         raise Gate3NotFoundError()
-    now = datetime.utcnow()
-    run = models.KnowledgeIngestionRun(
-        source_id=body.source_id,
-        status="running",
+    run_out = KnowledgeUpdateService().stage_manual_content(
+        db,
+        body.source_id,
+        body.content,
+        title=body.title or "Ingested document",
+        category=body.category,
         run_by=run_by,
-        started_at=now,
+        chunk_size=body.chunk_size,
     )
-    db.add(run)
-    db.flush()
-
-    doc = None
-    if body.document_id:
-        doc = db.query(models.KnowledgeDocument).filter(models.KnowledgeDocument.id == body.document_id).first()
-    if doc is None:
-        doc = models.KnowledgeDocument(
-            source_id=body.source_id,
-            title=(body.title or "Ingested document")[:512],
-            category=body.category,
-            locale=body.locale,
-            region=body.region,
-            city=body.city,
-            specialty=body.specialty,
-            status="active",
-            published_at=now,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(doc)
-        db.flush()
-    run.document_id = doc.id
-
-    parts = _chunk_text(body.content, body.chunk_size)
-    created = 0
-    for idx, part in enumerate(parts):
-        label = f"{src.name}: {doc.title}"[:256]
-        chunk = models.KnowledgeChunk(
-            document_id=doc.id,
-            chunk_index=idx,
-            content=part,
-            citation_label=label,
-            token_count=len(part.split()),
-            metadata_json=_json_dump({"source_slug": src.slug, "category": doc.category}),
-            created_at=now,
-        )
-        db.add(chunk)
-        created += 1
-
-    src.updated_at = now
-    # Freshness verification is explicit admin responsibility (PATCH source last_checked_at).
-    # Ingest must not refresh stale sources; only first draft->active promotion sets checked time.
-    if src.ingestion_status == "draft":
-        src.last_checked_at = now
-        src.ingestion_status = "active"
-    run.chunks_created = created
-    run.status = "success"
-    run.finished_at = datetime.utcnow()
-    db.commit()
     return {
-        "ingestion_run_id": run.id,
-        "document_id": doc.id,
-        "chunks_created": created,
-        "status": run.status,
+        "ingestion_run_id": run_out["id"],
+        "document_id": run_out.get("document_id"),
+        "chunks_created": run_out.get("chunks_created", 0),
+        "status": run_out.get("status"),
+        "review_status": run_out.get("review_status"),
+        "recommended_action": run_out.get("recommended_action"),
+        "requires_human_review": run_out.get("requires_human_review"),
+        "auto_approve_allowed": run_out.get("auto_approve_allowed"),
     }
