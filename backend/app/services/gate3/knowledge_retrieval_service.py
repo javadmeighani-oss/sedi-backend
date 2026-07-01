@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
@@ -24,13 +24,26 @@ def _reframe_provider_query(query: str) -> Tuple[str, bool]:
     return q, reframed
 
 
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _as_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def _is_fresh(source: models.KnowledgeSource) -> bool:
     if source.ingestion_status == "deprecated":
         return False
     if not source.last_checked_at:
         return False
     days = source.freshness_policy_days or 180
-    return datetime.utcnow() - source.last_checked_at <= timedelta(days=days)
+    checked = _as_utc(source.last_checked_at)
+    return (_utc_now() - checked) <= timedelta(days=days)
 
 
 def _trust_ok(source: models.KnowledgeSource, risk_level: str) -> bool:

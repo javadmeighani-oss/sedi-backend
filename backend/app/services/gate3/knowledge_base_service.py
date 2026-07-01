@@ -242,10 +242,12 @@ def ingest_content(db: Session, body: KnowledgeIngestIn, run_by: str = "admin") 
         db.add(chunk)
         created += 1
 
-    src.last_checked_at = now
-    if src.ingestion_status == "draft":
-        src.ingestion_status = "active"
     src.updated_at = now
+    # Freshness verification is explicit admin responsibility (PATCH source last_checked_at).
+    # Ingest must not refresh stale sources; only first draft->active promotion sets checked time.
+    if src.ingestion_status == "draft":
+        src.last_checked_at = now
+        src.ingestion_status = "active"
     run.chunks_created = created
     run.status = "success"
     run.finished_at = datetime.utcnow()

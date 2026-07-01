@@ -1,6 +1,9 @@
-from pydantic import BaseModel, Field
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 class ChatRequest(BaseModel):
-    user_id: int = Field(..., description="Unique ID of the user")
+    model_config = ConfigDict(extra="forbid")
+    user_id: Optional[int] = Field(None, description="Optional; JWT is source of truth when omitted")
     message: str = Field(..., min_length=1, description="User chat message")
 

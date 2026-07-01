@@ -86,7 +86,7 @@ async def chat(
     
     CRITICAL VALIDATION:
     - message: Required, non-empty (from JSON body)
-    - user_id: Required (from JSON body)
+    - user_id: Optional in body; JWT is source of truth when omitted
     - Language: Detected ONLY from message content (no query params)
     - Name: Retrieved from memory/context (no query params)
     """

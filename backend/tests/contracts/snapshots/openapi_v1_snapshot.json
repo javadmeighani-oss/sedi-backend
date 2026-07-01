@@ -666,6 +666,7 @@
         "type": "object"
       },
       "ChatRequest": {
+        "additionalProperties": false,
         "properties": {
           "message": {
             "description": "User chat message",
@@ -674,14 +675,20 @@
             "type": "string"
           },
           "user_id": {
-            "description": "Unique ID of the user",
-            "title": "User Id",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional; JWT is source of truth when omitted",
+            "title": "User Id"
           }
         },
         "required": [
-          "message",
-          "user_id"
+          "message"
         ],
         "title": "ChatRequest",
         "type": "object"
@@ -7049,7 +7056,7 @@
     },
     "/interact/chat": {
       "post": {
-        "description": "Chat endpoint - Thin API layer.\nAll conversation logic handled by Conversation Brain.\n\nCRITICAL VALIDATION:\n- message: Required, non-empty (from JSON body)\n- user_id: Required (from JSON body)\n- Language: Detected ONLY from message content (no query params)\n- Name: Retrieved from memory/context (no query params)",
+        "description": "Chat endpoint - Thin API layer.\nAll conversation logic handled by Conversation Brain.\n\nCRITICAL VALIDATION:\n- message: Required, non-empty (from JSON body)\n- user_id: Optional in body; JWT is source of truth when omitted\n- Language: Detected ONLY from message content (no query params)\n- Name: Retrieved from memory/context (no query params)",
         "operationId": "chat_interact_chat_post",
         "requestBody": {
           "content": {
