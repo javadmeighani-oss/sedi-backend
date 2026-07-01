@@ -62,6 +62,13 @@ def validate_fetch_url(url: str, source: models.KnowledgeSource) -> str:
     if host in ("localhost", "metadata.google.internal"):
         raise FetchSecurityError("localhost_blocked")
 
+    try:
+        literal_ip = ipaddress.ip_address(host)
+        if _is_blocked_ip(str(literal_ip)):
+            raise FetchSecurityError("private_ip_blocked")
+    except ValueError:
+        pass
+
     for ip in _resolve_host(host):
         if _is_blocked_ip(ip):
             raise FetchSecurityError("private_ip_blocked")

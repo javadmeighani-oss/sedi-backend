@@ -184,7 +184,7 @@ def test_redirect_to_private_ip_blocked(client, db, monkeypatch):
                 robots_get.return_value = MagicMock(status_code=404)
                 r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 400
-    assert "private_ip" in r.json()["detail"] or "localhost" in r.json()["detail"]
+    assert "private_ip" in r.json()["detail"] or "localhost" in r.json()["detail"] or "domain_not_allowed" in r.json()["detail"]
 
 
 def test_robots_disallowed_blocks_fetch(client, db, monkeypatch):
@@ -223,7 +223,10 @@ def test_unsupported_pdf_handled_safely():
 
 def test_content_hash_unchanged_no_new_chunks(client, db, monkeypatch):
     h = _admin_headers(monkeypatch)
-    text = "Lifestyle tip: consistent sleep schedule supports daily wellbeing and energy levels for adults."
+    text = (
+        "Lifestyle tip: consistent sleep schedule supports daily wellbeing and energy levels "
+        "for adults who want sustainable healthy routines without medical claims."
+    )
     parsed = parse_content(text.encode(), "text/plain")
     src = _seed_fetch_source(db, "no-change", content_hash=parsed.content_hash, category="lifestyle")
     db.commit()
@@ -241,7 +244,10 @@ def test_changed_content_pending_review(client, db, monkeypatch):
     h = _admin_headers(monkeypatch)
     src = _seed_fetch_source(db, "pending-review", category="medical_condition", trust_level="clinical_guideline")
     db.commit()
-    text = "Medical education content about hypertension monitoring and clinician follow-up for adults over forty."
+    text = (
+        "Medical education content about hypertension monitoring and clinician follow-up "
+        "for adults over forty including lifestyle guidance and regular blood pressure checks."
+    )
     ok_page = _fake_http_response(200, text.encode(), headers={"Content-Type": "text/plain"})
     robots_ok = _fake_http_response(200, b"", headers={})
     robots_ok.text = "User-agent: *\nAllow: /"

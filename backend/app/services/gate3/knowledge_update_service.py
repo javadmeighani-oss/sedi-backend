@@ -278,7 +278,9 @@ class KnowledgeUpdateService:
 
         if src.ingestion_status == "draft":
             src.ingestion_status = "active"
-        src.last_checked_at = now
+            src.last_checked_at = now
+        elif run.run_type in ("url_fetch", "scheduled_fetch"):
+            src.last_checked_at = now
         src.last_approved_at = now
         src.updated_at = now
 
