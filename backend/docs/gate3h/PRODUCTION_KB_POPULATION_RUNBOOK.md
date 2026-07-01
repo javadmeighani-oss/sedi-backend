@@ -32,6 +32,32 @@ Expected: counts = 0, scheduled fetch env unset.
 
 ---
 
+## First controlled fetch candidate
+
+**Do not execute until Javad explicitly approves.**
+
+| Field | Value |
+|-------|-------|
+| URL | https://www.nhs.uk/live-well/sleep-and-tiredness/ |
+| source_key | `nhs_uk_live_well` |
+| category | `sleep` |
+| catalog status | `recommended_first_controlled_fetch` |
+
+**Rules for cycle 1:**
+
+1. Do **not** enable `SEDI_KB_SCHEDULED_FETCH_ENABLED`
+2. Create source as `ingestion_status=draft`, `source_fetch_enabled=false`
+3. Enable `source_fetch_enabled=true` only for this NHS sleep source after Javad approval
+4. Run **exactly one** `POST /knowledge-base/sources/{id}/fetch`
+5. Inspect ingestion run and AI review fields
+6. Approve only after Javad reads `extracted_text_preview`
+7. Verify active chunks via `GET /knowledge-base/search` with a safe test JWT
+8. Do **not** fetch mental health, provider, or lab sources in the first cycle
+
+See `ROBOTS_TERMS_PRECHECK_BATCH1.md` for robots/terms rationale.
+
+---
+
 ## Phase 1 — Robots/terms check (manual, per domain)
 
 Before enabling fetch on a source:
@@ -68,10 +94,10 @@ curl -sS -X POST "$API/knowledge-base/sources" \
     "fetch_method": "html_page",
     "review_required": true,
     "auto_approve_low_risk": false,
-    "freshness_policy_days": 180,
+    "freshness_policy_days": 7,
     "fetch_interval_hours": 168,
-    "license_notes": "NHS Open Government Licence — verify per page",
-    "metadata": {"gate3h_source_key": "nhs_uk_live_well", "batch": "3h-v1-01"}
+    "license_notes": "OGL v3.0 — attribution required (Information from the NHS website). Refresh copy at least every 7 days per NHS terms.",
+    "metadata": {"gate3h_source_key": "nhs_uk_live_well", "batch": "3h-v1-01", "page_key": "nhs_sleep"}
   }'
 ```
 
@@ -189,3 +215,4 @@ Expected: `chunks` non-empty, `stale_excluded` documented, citations present.
 - Catalog: `backend/config/gate3h/trusted_source_catalog_v1.yaml`
 - Risk policy: `backend/docs/gate3h/RISK_AND_APPROVAL_POLICY_V1.md`
 - Seed batch: `backend/docs/gate3h/INITIAL_SEED_BATCH_V1.md`
+- Robots/terms pre-check: `backend/docs/gate3h/ROBOTS_TERMS_PRECHECK_BATCH1.md`
