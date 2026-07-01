@@ -1,0 +1,449 @@
+# Gate 3H — Trusted Knowledge Source Catalog (V1 proposal)
+# Status: PROPOSAL ONLY — do not import to production without Javad approval.
+# Schema version: 1
+# Maps to POST /knowledge-base/sources (KnowledgeSourceCreateIn) + metadata.topic_tags
+
+catalog_version: "3h-v1"
+approval_owner_default: Javad
+scheduled_fetch_default: false
+notes:
+  - "source_fetch_enabled defaults to false until robots/terms review per source."
+  - "ingestion_status should remain draft until first successful approve cycle."
+  - "No blind crawling — only allowed_domain + allowed_url_patterns."
+  - "Subcategories not in KB_CATEGORIES use metadata.topic_tags for planning."
+
+risk_tiers:
+  low_v1_batch_eligible:
+    - lifestyle
+    - daily_planning
+    - habit_change
+    - exercise
+    - sleep
+    - nutrition
+  sensitive_always_javad:
+    - mental_wellbeing
+    - psychological_support
+    - emotional_support
+    - stress_management
+    - health_care
+    - prevention
+    - provider_directory
+    - lab_directory
+    - local_services
+  never_auto_approve_v1:
+    - medical_condition
+    - medication_education
+    - clinical_guideline
+    - emergency_education
+    - chronic_care
+    - elderly_care
+    - caregiving
+    - diet_program
+    - exercise_program
+    - mental_wellbeing
+    - psychological_support
+    - emotional_support
+    - provider_directory
+    - lab_directory
+    - local_services
+
+sources:
+  # --- A. Global health / lifestyle (Group A) ---
+
+  - source_key: who_global_health_topics
+    display_name: WHO — Health Topics (curated pages)
+    base_url: https://www.who.int/health-topics
+    allowed_domain: who.int
+    allowed_url_patterns:
+      - "^https://www\\.who\\.int/health-topics/.*"
+      - "^https://www\\.who\\.int/news-room/.*"
+    category: lifestyle
+    locale: en
+    country_scope: global
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: medium
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags: [health_care, prevention, longevity]
+      gate3h_group: A
+    notes: "Official source. Start with low-risk lifestyle/activity pages only; avoid clinical treatment pages in batch 1."
+
+  - source_key: medlineplus_consumer_health
+    display_name: MedlinePlus — Consumer Health Information
+    base_url: https://medlineplus.gov
+    allowed_domain: medlineplus.gov
+    allowed_url_patterns:
+      - "^https://medlineplus\\.gov/.*"
+    category: lifestyle
+    locale: en
+    country_scope: global
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: medium
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags: [health_care, prevention, nutrition, exercise, sleep]
+      gate3h_group: A
+    notes: "NIH/NLM consumer education. Avoid medication dosing pages in first batch."
+
+  - source_key: nhs_uk_live_well
+    display_name: NHS — Live Well
+    base_url: https://www.nhs.uk/live-well
+    allowed_domain: nhs.uk
+    allowed_url_patterns:
+      - "^https://www\\.nhs\\.uk/live-well/.*"
+      - "^https://www\\.nhs\\.uk/mental-health/.*"
+    category: lifestyle
+    locale: en
+    country_scope: GB
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: medium
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags: [prevention, exercise, sleep, stress_management]
+      gate3h_group: A
+    notes: "Mental-health paths are sensitive; route to Group B review policy when used."
+
+  - source_key: cdc_health_lifestyle
+    display_name: CDC — Healthy Living
+    base_url: https://www.cdc.gov/healthyliving
+    allowed_domain: cdc.gov
+    allowed_url_patterns:
+      - "^https://www\\.cdc\\.gov/healthyliving/.*"
+      - "^https://www\\.cdc\\.gov/physicalactivity/.*"
+    category: prevention
+    locale: en
+    country_scope: US
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: medium
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags: [lifestyle, exercise, nutrition]
+      gate3h_group: A
+    notes: "prevention category is sensitive in Gate 3G — always Javad approval."
+
+  - source_key: nice_org_uk_public
+    display_name: NICE — Public / Patient Information
+    base_url: https://www.nice.org.uk
+    allowed_domain: nice.org.uk
+    allowed_url_patterns:
+      - "^https://www\\.nice\\.org\\.uk/guidance/.*"
+    category: clinical_guideline
+    locale: en
+    country_scope: GB
+    trust_level: clinical_guideline
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags: [health_care]
+      gate3h_group: A
+      v1_population: deferred
+    notes: "DEFER for V1 batch 1 — clinical guidelines excluded from initial crawl."
+
+  # --- B. Mental wellbeing / psychology (Group B) — high priority ---
+
+  - source_key: who_mental_health
+    display_name: WHO — Mental Health
+    base_url: https://www.who.int/health-topics/mental-health
+    allowed_domain: who.int
+    allowed_url_patterns:
+      - "^https://www\\.who\\.int/health-topics/mental-health.*"
+      - "^https://www\\.who\\.int/news-room/.*mental.*"
+    category: mental_wellbeing
+    locale: en
+    country_scope: global
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags:
+        - psychological_support
+        - emotional_support
+        - stress_management
+        - self_reflection
+      gate3h_group: B
+      non_diagnostic: true
+      crisis_routing: emergency_flow_only
+    notes: "Non-diagnostic self-help only. Crisis/self-harm content must not become KB answers."
+
+  - source_key: nimh_nih_mental_health
+    display_name: NIMH — Mental Health Information
+    base_url: https://www.nimh.nih.gov/health
+    allowed_domain: nimh.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nimh\\.nih\\.gov/health/.*"
+    category: mental_wellbeing
+    locale: en
+    country_scope: US
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags:
+        - psychological_support
+        - stress_management
+        - sleep_psychology
+        - burnout_prevention
+      gate3h_group: B
+      non_diagnostic: true
+    notes: "Avoid disorder-specific treatment pages in batch 1; prefer coping/stress/sleep self-help."
+
+  - source_key: apa_psychology_help
+    display_name: APA — Psychology Topics (public)
+    base_url: https://www.apa.org/topics
+    allowed_domain: apa.org
+    allowed_url_patterns:
+      - "^https://www\\.apa\\.org/topics/.*"
+    category: psychological_support
+    locale: en
+    country_scope: global
+    trust_level: editorial
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags:
+        - emotional_support
+        - habit_change
+        - motivation
+        - relationship_support_general
+      gate3h_group: B
+    notes: "Editorial trust; always human review. No therapy replacement language."
+
+  - source_key: nhs_mental_health
+    display_name: NHS — Mental Health (self-help)
+    base_url: https://www.nhs.uk/mental-health
+    allowed_domain: nhs.uk
+    allowed_url_patterns:
+      - "^https://www\\.nhs\\.uk/mental-health/.*"
+    category: mental_wellbeing
+    locale: en
+    country_scope: GB
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags:
+        - stress_management
+        - sleep_psychology
+        - grief_support
+        - loneliness_support
+      gate3h_group: B
+    notes: "High priority for Sedi mental wellbeing pillar."
+
+  - source_key: medlineplus_mental_health
+    display_name: MedlinePlus — Mental Health & Behavior
+    base_url: https://medlineplus.gov/mentalhealthandbehavior.html
+    allowed_domain: medlineplus.gov
+    allowed_url_patterns:
+      - "^https://medlineplus\\.gov/mentalhealth.*"
+      - "^https://medlineplus\\.gov/ency/article/.*"
+    category: mental_wellbeing
+    locale: en
+    country_scope: global
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: 168
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      topic_tags: [emotional_support, psychological_support]
+      gate3h_group: B
+    notes: "ency/article paths may include clinical content — strict page allowlist per batch."
+
+  # --- C. Iran provider / lab directory (Group C) — prepare only ---
+
+  - source_key: irimc_member_search
+    display_name: Iranian Medical Council — Member Search (official verification)
+    base_url: https://membersearch.irimc.org
+    allowed_domain: irimc.org
+    allowed_url_patterns:
+      - "^https://membersearch\\.irimc\\.org/.*"
+    category: provider_directory
+    locale: fa
+    country_scope: IR
+    trust_level: official
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      gate3h_group: C
+      source_role: official_verification
+      v1_population: deferred
+      cross_check_with: [paziresh24_com, doctoreto_com]
+    notes: "Legal/technical/robots review required before any fetch. Verification only — not appointment data."
+
+  - source_key: paziresh24_com
+    display_name: Paziresh24 — Provider Directory
+    base_url: https://www.paziresh24.com
+    allowed_domain: paziresh24.com
+    allowed_url_patterns: []
+    category: provider_directory
+    locale: fa
+    country_scope: IR
+    trust_level: vetted_partner
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      gate3h_group: C
+      source_role: operational_directory
+      v1_population: deferred
+      no_booking: true
+      no_ranking_claims: true
+    notes: "Operational directory — not license proof. robots.txt/terms must be checked; may require API partnership."
+
+  - source_key: doctoreto_com
+    display_name: Doctorito — Provider Directory
+    base_url: https://doctoreto.com
+    allowed_domain: doctoreto.com
+    allowed_url_patterns: []
+    category: provider_directory
+    locale: fa
+    country_scope: IR
+    trust_level: vetted_partner
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      gate3h_group: C
+      source_role: operational_directory
+      v1_population: deferred
+    notes: "Deferred — structure/legal/robots review before allowlist patterns defined."
+
+  - source_key: nobat_ir
+    display_name: Nobat.ir — Appointment Directory
+    base_url: https://nobat.ir
+    allowed_domain: nobat.ir
+    allowed_url_patterns: []
+    category: provider_directory
+    locale: fa
+    country_scope: IR
+    trust_level: vetted_partner
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      gate3h_group: C
+      v1_population: deferred
+    notes: "Deferred."
+
+  - source_key: doctor_yab_ir
+    display_name: Doctor-Yab — Provider Directory
+    base_url: https://doctor-yab.ir
+    allowed_domain: doctor-yab.ir
+    allowed_url_patterns: []
+    category: provider_directory
+    locale: fa
+    country_scope: IR
+    trust_level: vetted_partner
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      gate3h_group: C
+      v1_population: deferred
+    notes: "Deferred."
+
+  - source_key: drdr_ir
+    display_name: DrDr — Provider Directory
+    base_url: https://drdr.ir
+    allowed_domain: drdr.ir
+    allowed_url_patterns: []
+    category: lab_directory
+    locale: fa
+    country_scope: IR
+    trust_level: vetted_partner
+    fetch_method: html_page
+    source_fetch_enabled: false
+    review_required: true
+    auto_approve_low_risk: false
+    fetch_interval_hours: null
+    risk_level: high
+    robots_terms_status: pending_review
+    approval_owner: Javad
+    metadata:
+      gate3h_group: C
+      v1_population: deferred
+    notes: "Provider + lab listings possible — separate documents per category after legal review."
