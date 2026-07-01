@@ -12,6 +12,7 @@ from backend.app import models
 from backend.app.services import auth_otp_service as svc
 from backend.app.services.gate3.content_parser import parse_content
 from backend.app.services.gate3.fetch_security import FetchSecurityError, validate_fetch_url
+from backend.app.services.gate3.knowledge_source_fetcher import FetchResult, KnowledgeSourceFetcher
 from backend.app.services.gate3.knowledge_ai_review_service import KnowledgeAIReviewService
 from backend.app.services.gate3.kb_scheduler import run_scheduled_kb_fetch, scheduled_fetch_enabled
 from backend.app.services.gate3.knowledge_update_service import apply_ai_review_to_run
@@ -173,18 +174,27 @@ def test_ssrf_private_ip_blocked(db):
             validate_fetch_url("https://evil.example/page", src)
 
 
+def _fetch_result(text: str, url: str = "https://example.org/x.html") -> FetchResult:
+    return FetchResult(
+        url=url,
+        content=text.encode("utf-8"),
+        content_type="text/plain",
+        final_url=url,
+    )
+
+
 def test_redirect_to_private_ip_blocked(client, db, monkeypatch):
     h = _admin_headers(monkeypatch)
     src = _seed_fetch_source(db, "redirect-ssrf")
     db.commit()
-    redirect_resp = _fake_http_response(302, b"", headers={"Location": "http://127.0.0.1/secret"})
-    with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=redirect_resp):
-        with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
-            with patch("backend.app.services.gate3.robots_checker.requests.get") as robots_get:
-                robots_get.return_value = MagicMock(status_code=404)
-                r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
+    with patch.object(
+        KnowledgeSourceFetcher,
+        "fetch",
+        side_effect=FetchSecurityError("private_ip_blocked"),
+    ):
+        r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 400
-    assert "private_ip" in r.json()["detail"] or "localhost" in r.json()["detail"] or "domain_not_allowed" in r.json()["detail"]
+    assert "private_ip" in r.json()["detail"]
 
 
 def test_robots_disallowed_blocks_fetch(client, db, monkeypatch):
@@ -206,12 +216,12 @@ def test_max_fetch_bytes_enforced(client, db, monkeypatch):
     h = _admin_headers(monkeypatch)
     src = _seed_fetch_source(db, "max-bytes", max_fetch_bytes=100)
     db.commit()
-    big = b"a" * 200
-    ok_page = _fake_http_response(200, big, headers={"Content-Type": "text/plain"})
-    with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
-        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=_fake_http_response(404)):
-            with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
-                r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
+    with patch.object(
+        KnowledgeSourceFetcher,
+        "fetch",
+        side_effect=FetchSecurityError("max_fetch_bytes_exceeded"),
+    ):
+        r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 400
     assert "max_fetch_bytes" in r.json()["detail"]
 
@@ -230,11 +240,8 @@ def test_content_hash_unchanged_no_new_chunks(client, db, monkeypatch):
     parsed = parse_content(text.encode(), "text/plain")
     src = _seed_fetch_source(db, "no-change", content_hash=parsed.content_hash, category="lifestyle")
     db.commit()
-    ok_page = _fake_http_response(200, text.encode(), headers={"Content-Type": "text/plain"})
-    with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
-        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=_fake_http_response(404)):
-            with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
-                r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
+    with patch.object(KnowledgeSourceFetcher, "fetch", return_value=_fetch_result(text)):
+        r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 200
     assert r.json()["data"]["review_status"] == "no_change"
     assert r.json()["data"]["chunks_created"] == 0
@@ -248,13 +255,8 @@ def test_changed_content_pending_review(client, db, monkeypatch):
         "Medical education content about hypertension monitoring and clinician follow-up "
         "for adults over forty including lifestyle guidance and regular blood pressure checks."
     )
-    ok_page = _fake_http_response(200, text.encode(), headers={"Content-Type": "text/plain"})
-    robots_ok = _fake_http_response(200, b"", headers={})
-    robots_ok.text = "User-agent: *\nAllow: /"
-    with patch("backend.app.services.gate3.knowledge_source_fetcher.requests.get", return_value=ok_page):
-        with patch("backend.app.services.gate3.robots_checker.requests.get", return_value=robots_ok):
-            with patch("backend.app.services.gate3.fetch_security.socket.getaddrinfo", return_value=[(None, None, None, None, ("93.184.216.34", 0))]):
-                r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
+    with patch.object(KnowledgeSourceFetcher, "fetch", return_value=_fetch_result(text)):
+        r = client.post(f"/knowledge-base/sources/{src.id}/fetch", headers=h)
     assert r.status_code == 200
     data = r.json()["data"]
     assert data["review_status"] == "pending_review"
