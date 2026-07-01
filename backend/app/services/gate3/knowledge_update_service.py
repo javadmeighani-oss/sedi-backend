@@ -106,7 +106,14 @@ class KnowledgeUpdateService:
             run.fetched_at = now
             parsed = parse_content(result.content, result.content_type)
             return self._finalize_staged_content(
-                db, src, run, parsed.text, parsed.title, parsed.parser_type, parsed.content_hash,
+                db,
+                src,
+                run,
+                parsed.text,
+                parsed.title,
+                parsed.parser_type,
+                parsed.content_hash,
+                parser_findings=parsed.parse_findings,
             )
         except (FetchSecurityError, RobotsBlockedError, ValueError, TypeError) as exc:
             run.status = "failed"
@@ -147,9 +154,16 @@ class KnowledgeUpdateService:
         db.add(run)
         db.flush()
         outcome = self._finalize_staged_content(
-            db, src, run, parsed.text, title or parsed.title, parsed.parser_type, parsed.content_hash,
+            db,
+            src,
+            run,
+            parsed.text,
+            title or parsed.title,
+            parsed.parser_type,
+            parsed.content_hash,
             category=category,
             chunk_size=chunk_size,
+            parser_findings=parsed.parse_findings,
         )
         return outcome
 
@@ -165,6 +179,7 @@ class KnowledgeUpdateService:
         *,
         category: Optional[str] = None,
         chunk_size: int = 800,
+        parser_findings: Optional[list] = None,
     ) -> dict:
         now = datetime.utcnow()
         run.fetched_content_hash = content_hash
@@ -181,7 +196,13 @@ class KnowledgeUpdateService:
             db.refresh(run)
             return _run_dict(run)
 
-        review = self.reviewer.review(src, text, parser_type=parser_type, title=title)
+        review = self.reviewer.review(
+            src,
+            text,
+            parser_type=parser_type,
+            title=title,
+            parser_findings=parser_findings,
+        )
         apply_ai_review_to_run(run, review, findings_json=self.reviewer.findings_json(review))
 
         src.last_fetched_at = now

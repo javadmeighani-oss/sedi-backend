@@ -13,6 +13,11 @@ from backend.app.services.gate3.constants import (
     PROVIDER_CATEGORIES,
     SENSITIVE_REVIEW_REQUIRED_CATEGORIES,
 )
+from backend.app.services.gate3.content_parser import (
+    HTML_MIN_TEXT_LENGTH,
+    is_hub_page_thin,
+    is_nav_heavy,
+)
 
 
 CRISIS_TERMS = (
@@ -42,6 +47,14 @@ class AIReviewResult:
 class KnowledgeAIReviewService:
     PREVIEW_MAX = 50_000
 
+    _PARSER_QUALITY_FINDINGS = frozenset({
+        "parse_too_short",
+        "parse_nav_heavy",
+        "parse_hub_page_thin",
+        "parse_no_useful_main_content",
+        "parse_mostly_noise",
+    })
+
     def review(
         self,
         source: models.KnowledgeSource,
@@ -49,8 +62,9 @@ class KnowledgeAIReviewService:
         *,
         parser_type: str,
         title: str = "",
+        parser_findings: Optional[List[Dict[str, Any]]] = None,
     ) -> AIReviewResult:
-        findings: List[Dict[str, Any]] = []
+        findings: List[Dict[str, Any]] = list(parser_findings or [])
         text = (parsed_text or "").strip()
         norm = text.lower()
 
@@ -67,15 +81,35 @@ class KnowledgeAIReviewService:
         source_score = max(0.0, min(1.0, source_score))
 
         parse_score = 0.2
-        if len(text) >= 200:
-            parse_score = 0.7
-        if len(text) >= 800:
-            parse_score = 0.85
+        if parser_type == "html":
+            if len(text) >= HTML_MIN_TEXT_LENGTH:
+                parse_score = 0.55
+            if len(text) >= 800:
+                parse_score = 0.75
+            if len(text) >= 1500:
+                parse_score = 0.85
+            if is_nav_heavy(text):
+                parse_score = min(parse_score, 0.2)
+                findings.append({"code": "parse_nav_heavy", "severity": "high"})
+            if is_hub_page_thin(text):
+                parse_score = min(parse_score, 0.15)
+                findings.append({"code": "parse_hub_page_thin", "severity": "high"})
+        else:
+            if len(text) >= 200:
+                parse_score = 0.7
+            if len(text) >= 800:
+                parse_score = 0.85
         if parser_type == "unsupported_pdf":
             parse_score = 0.1
             findings.append({"code": "unsupported_pdf", "severity": "high"})
-        if parser_type in ("html", "text", "markdown"):
-            parse_score = min(1.0, parse_score + 0.1)
+        if parser_type in ("html", "text", "markdown") and parser_type != "unsupported_pdf":
+            parse_score = min(1.0, parse_score + 0.05)
+
+        for item in findings:
+            code = str(item.get("code") or "")
+            if code in self._PARSER_QUALITY_FINDINGS:
+                parse_score = min(parse_score, 0.2)
+                item.setdefault("severity", "high")
 
         evidence_score = parse_score * source_score
 
@@ -109,6 +143,13 @@ class KnowledgeAIReviewService:
         if ad_risk == "high":
             requires_human = True
 
+        parser_quality_blocked = any(
+            str(item.get("code") or "") in self._PARSER_QUALITY_FINDINGS
+            or item.get("severity") in ("high", "critical")
+            for item in findings
+            if str(item.get("code") or "").startswith("parse_")
+        )
+
         auto_ok = (
             source.category in LOW_RISK_AUTO_APPROVE_ELIGIBLE_CATEGORIES
             and not requires_human
@@ -119,6 +160,7 @@ class KnowledgeAIReviewService:
             and source_score >= 0.75
             and parse_score >= 0.75
             and parser_type != "unsupported_pdf"
+            and not parser_quality_blocked
         )
 
         if psych_risk == "critical":
