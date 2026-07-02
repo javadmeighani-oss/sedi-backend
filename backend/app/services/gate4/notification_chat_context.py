@@ -16,14 +16,15 @@ from backend.app.services.gate4.notification_context import (
     sanitize_notification_context,
 )
 
-_MAX_SUMMARY_CHARS = 200
+_MAX_TITLE_CHARS = 200
 
 
 def build_safe_chat_context(notification: Notification) -> dict[str, Any]:
     """
     Build sanitized notification context for internal GPT prompt injection.
 
-    Never includes raw context_json, PII, diagnosis, dosage, or medication-change data.
+    Never includes notification body, raw context_json, PII, diagnosis, dosage,
+    or medication-change data.
     """
     parsed_context: Optional[Mapping[str, Any]] = None
     if notification.context_json:
@@ -46,8 +47,7 @@ def build_safe_chat_context(notification: Notification) -> dict[str, Any]:
         priority=notification.priority or "normal",
     )
 
-    title = (notification.title or "").strip()[:_MAX_SUMMARY_CHARS]
-    body = (notification.body or "").strip()[:_MAX_SUMMARY_CHARS]
+    title = (notification.title or "").strip()[:_MAX_TITLE_CHARS]
 
     result: dict[str, Any] = {
         "category": category,
@@ -64,7 +64,5 @@ def build_safe_chat_context(notification: Notification) -> dict[str, Any]:
         result["context_hints"] = context_hints
     if title:
         result["notification_title"] = title
-    if body:
-        result["notification_summary"] = body
 
     return result
