@@ -668,11 +668,61 @@
       "ChatRequest": {
         "additionalProperties": false,
         "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "V2-compatible thread id",
+            "title": "Conversation Id"
+          },
+          "interaction_source": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Optional hint: chat, notification, device, or system",
+            "title": "Interaction Source"
+          },
           "message": {
             "description": "User chat message",
             "minLength": 1,
             "title": "Message",
             "type": "string"
+          },
+          "source_notification_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional; links chat to originating notification",
+            "title": "Source Notification Id"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "V2-compatible thread id",
+            "title": "Thread Id"
           },
           "user_id": {
             "anyOf": [
@@ -2505,6 +2555,28 @@
       },
       "InteractionResponse": {
         "properties": {
+          "continued_from_notification": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Continued From Notification"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Conversation Id"
+          },
           "detected_name": {
             "anyOf": [
               {
@@ -2535,6 +2607,17 @@
             ],
             "default": false,
             "title": "Requires Security Check"
+          },
+          "source_notification_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Notification Id"
           },
           "timestamp": {
             "format": "date-time",
