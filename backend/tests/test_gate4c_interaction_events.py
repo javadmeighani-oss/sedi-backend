@@ -190,6 +190,181 @@ def test_chat_accepts_source_notification_id(
 
 @patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
 @patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
+def test_duplicate_same_notification_and_conversation_dedupes(
+    mock_cmd, mock_process, db, user_a, notification_for_a, mock_request
+):
+    mock_process.return_value = {"message": "Continuing", "language": "en"}
+    payload = ChatRequest(
+        message="first",
+        source_notification_id=notification_for_a.id,
+        conversation_id="c-dedup",
+    )
+    asyncio.run(_call_chat(mock_request, payload, db, user_a))
+    payload2 = ChatRequest(
+        message="second",
+        source_notification_id=notification_for_a.id,
+        conversation_id="c-dedup",
+    )
+    asyncio.run(_call_chat(mock_request, payload2, db, user_a))
+    events = (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_a.id,
+            InteractionEvent.event_type == "chat_message",
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.conversation_id == "c-dedup",
+        )
+        .all()
+    )
+    assert len(events) == 1
+
+
+@patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
+@patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
+def test_same_notification_different_conversation_creates_second_event(
+    mock_cmd, mock_process, db, user_a, notification_for_a, mock_request
+):
+    mock_process.return_value = {"message": "Continuing", "language": "en"}
+    asyncio.run(
+        _call_chat(
+            mock_request,
+            ChatRequest(
+                message="first",
+                source_notification_id=notification_for_a.id,
+                conversation_id="c-one",
+            ),
+            db,
+            user_a,
+        )
+    )
+    asyncio.run(
+        _call_chat(
+            mock_request,
+            ChatRequest(
+                message="second",
+                source_notification_id=notification_for_a.id,
+                conversation_id="c-two",
+            ),
+            db,
+            user_a,
+        )
+    )
+    events = (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_a.id,
+            InteractionEvent.event_type == "chat_message",
+            InteractionEvent.source_notification_id == notification_for_a.id,
+        )
+        .order_by(InteractionEvent.id.asc())
+        .all()
+    )
+    assert len(events) == 2
+    assert events[0].conversation_id == "c-one"
+    assert events[1].conversation_id == "c-two"
+
+
+@patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
+@patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
+def test_duplicate_without_conversation_id_dedupes(
+    mock_cmd, mock_process, db, user_a, notification_for_a, mock_request
+):
+    mock_process.return_value = {"message": "Continuing", "language": "en"}
+    asyncio.run(
+        _call_chat(
+            mock_request,
+            ChatRequest(message="first", source_notification_id=notification_for_a.id),
+            db,
+            user_a,
+        )
+    )
+    asyncio.run(
+        _call_chat(
+            mock_request,
+            ChatRequest(message="second", source_notification_id=notification_for_a.id),
+            db,
+            user_a,
+        )
+    )
+    events = (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_a.id,
+            InteractionEvent.event_type == "chat_message",
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.conversation_id.is_(None),
+        )
+        .all()
+    )
+    assert len(events) == 1
+
+
+@patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
+@patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
+def test_deduped_second_request_still_passes_notification_context_to_brain(
+    mock_cmd, mock_process, db, user_a, notification_for_a, mock_request
+):
+    mock_process.return_value = {"message": "Continuing", "language": "en"}
+    payload = ChatRequest(
+        message="first",
+        source_notification_id=notification_for_a.id,
+        conversation_id="c-brain",
+    )
+    asyncio.run(_call_chat(mock_request, payload, db, user_a))
+    payload2 = ChatRequest(
+        message="second",
+        source_notification_id=notification_for_a.id,
+        conversation_id="c-brain",
+    )
+    resp = asyncio.run(_call_chat(mock_request, payload2, db, user_a))
+    assert resp.continued_from_notification is True
+    assert mock_process.call_count == 2
+    assert mock_process.call_args.kwargs.get("notification_context") is not None
+    assert (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_a.id,
+            InteractionEvent.event_type == "chat_message",
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.conversation_id == "c-brain",
+        )
+        .count()
+        == 1
+    )
+
+
+def test_create_chat_message_event_dedupes_at_service_level(db, user_a, notification_for_a):
+    first = create_chat_message_event(
+        db,
+        user_id=user_a.id,
+        source_notification_id=notification_for_a.id,
+        conversation_id="svc-dedup",
+        metadata={"message_length": 5},
+    )
+    second = create_chat_message_event(
+        db,
+        user_id=user_a.id,
+        source_notification_id=notification_for_a.id,
+        conversation_id="svc-dedup",
+        metadata={"message_length": 6},
+    )
+    db.commit()
+    assert first.id == second.id
+    assert (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_a.id,
+            InteractionEvent.event_type == "chat_message",
+            InteractionEvent.source_notification_id == notification_for_a.id,
+            InteractionEvent.conversation_id == "svc-dedup",
+        )
+        .count()
+        == 1
+    )
+
+
+@patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
+@patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
 def test_chat_rejects_foreign_notification(
     mock_cmd, mock_process, db, user_a, user_b, notification_for_a, mock_request
 ):
