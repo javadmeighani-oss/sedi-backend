@@ -186,6 +186,25 @@ def try_create_companion_ping_notification(
     )
     if existing:
         return None
+    from backend.app.services.gate4.notification_context import (
+        NotificationCategory,
+        NotificationRiskLevel,
+        NotificationSourceType,
+        build_scheduler_context,
+        resolve_traceability_fields,
+    )
+    trace = resolve_traceability_fields(
+        notification_type=_COMPANION_PING_TYPE,
+        priority="normal",
+        category=NotificationCategory.ENGAGEMENT_CHECKIN.value,
+        source_type=NotificationSourceType.SYSTEM_SCHEDULER.value,
+        template_key="companion_ping",
+        context=build_scheduler_context(
+            job_id="companion_ping",
+            template_key="companion_ping",
+            trigger_reason="engagement_checkin",
+        ),
+    )
     notif = models.Notification(
         user_id=user_id,
         type=_COMPANION_PING_TYPE,
@@ -202,6 +221,12 @@ def try_create_companion_ping_notification(
         actions_json='[{"id":"open_chat","type":"OPEN_CHAT"}]',
         deeplink_url=_DEEPLINK_TEMPLATE,
         provider=None,
+        category=trace["category"],
+        source_type=trace["source_type"],
+        source_id=trace["source_id"],
+        context_json=trace["context_json"],
+        risk_level=trace["risk_level"] or NotificationRiskLevel.NORMAL.value,
+        template_key=trace["template_key"],
     )
     db.add(notif)
     db.commit()

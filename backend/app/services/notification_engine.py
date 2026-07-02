@@ -510,11 +510,26 @@ class NotificationBuilder:
                 f"(window={time_window_hours}h)"
             )
             return None
-        
-        # Stage 16.6: channel + language + status for push pipeline
+
         channel = _channel_for_type(payload.type)
+
+        # Stage 16.6: channel + language + status for push pipeline
         language = (payload.metadata or {}).get("language") if payload.metadata else None
         default_actions = '[{"id":"like","type":"LIKE"},{"id":"dislike","type":"DISLIKE"},{"id":"open_chat","type":"OPEN_CHAT"}]'
+
+        from backend.app.services.gate4.notification_context import resolve_traceability_fields
+
+        trace = resolve_traceability_fields(
+            notification_type=payload.type,
+            priority=payload.priority,
+            category=payload.category,
+            source_type=payload.source_type,
+            source_id=payload.source_id,
+            context=payload.context,
+            risk_level=payload.risk_level,
+            template_key=payload.template_key,
+            metadata=payload.metadata,
+        )
 
         # Build notification object
         notification = Notification(
@@ -533,6 +548,12 @@ class NotificationBuilder:
             status="queued",
             actions_json=default_actions,
             provider=None,
+            category=trace["category"],
+            source_type=trace["source_type"],
+            source_id=trace["source_id"],
+            context_json=trace["context_json"],
+            risk_level=trace["risk_level"],
+            template_key=trace["template_key"],
         )
         
         self.db.add(notification)
@@ -715,6 +736,24 @@ class DecisionEngine:
         
         # Enhance with AI (safe wrapper)
         payload = enhance_with_ai(payload)
+
+        from backend.app.services.gate4.notification_context import (
+            NotificationCategory,
+            NotificationSourceType,
+            build_scheduler_context,
+        )
+        payload = payload.model_copy(
+            update={
+                "category": NotificationCategory.DAILY_STATUS.value,
+                "source_type": NotificationSourceType.DAILY_ROUTINE.value,
+                "template_key": "morning",
+                "context": build_scheduler_context(
+                    job_id="morning_notifications",
+                    template_key="morning",
+                    trigger_reason="daily_status",
+                ),
+            }
+        )
         
         # Persist with dedupe check (Rate limit: 1 per day per user)
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
@@ -776,6 +815,24 @@ class DecisionEngine:
         
         # Enhance with AI (safe wrapper)
         payload = enhance_with_ai(payload)
+
+        from backend.app.services.gate4.notification_context import (
+            NotificationCategory,
+            NotificationSourceType,
+            build_scheduler_context,
+        )
+        payload = payload.model_copy(
+            update={
+                "category": NotificationCategory.ENGAGEMENT_CHECKIN.value,
+                "source_type": NotificationSourceType.SYSTEM_SCHEDULER.value,
+                "template_key": "connection_ping",
+                "context": build_scheduler_context(
+                    job_id="inactivity_notifications",
+                    template_key="connection_ping",
+                    trigger_reason="engagement_checkin",
+                ),
+            }
+        )
         
         # Persist with dedupe check (Rate limit: 1 per user per 4-hour window)
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=4)
@@ -838,8 +895,23 @@ class DecisionEngine:
         now = scheduled_for or datetime.utcnow()
         date_str = now.strftime("%Y-%m-%d")
         bucket = (now.hour // 3) * 3
+        from backend.app.services.gate4.notification_context import (
+            NotificationCategory,
+            NotificationSourceType,
+            build_scheduler_context,
+        )
         payload = payload.model_copy(
-            update={"dedupe_key": f"engagement:{user_id}:{date_str}:{bucket:02d}"}
+            update={
+                "dedupe_key": f"engagement:{user_id}:{date_str}:{bucket:02d}",
+                "category": NotificationCategory.ENGAGEMENT_CHECKIN.value,
+                "source_type": NotificationSourceType.SYSTEM_SCHEDULER.value,
+                "template_key": "engagement_nudge",
+                "context": build_scheduler_context(
+                    job_id="engagement_nudge",
+                    template_key="engagement_nudge",
+                    trigger_reason="engagement_checkin",
+                ),
+            }
         )
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
         if result:
@@ -952,6 +1024,24 @@ class DecisionEngine:
             language=effective_language,
         )
         payload = enhance_with_ai(payload)
+        from backend.app.services.gate4.notification_context import (
+            NotificationCategory,
+            NotificationSourceType,
+            build_scheduler_context,
+        )
+        payload = payload.model_copy(
+            update={
+                "category": NotificationCategory.DEVICE_ALERT.value,
+                "source_type": NotificationSourceType.SYSTEM_SCHEDULER.value,
+                "source_id": str(device_id)[:255] if device_id else None,
+                "template_key": "device_disconnected",
+                "context": build_scheduler_context(
+                    job_id="device_disconnected_check",
+                    template_key="device_disconnected",
+                    trigger_reason="device_alert",
+                ),
+            }
+        )
         # Once per 6 hours per device (dedupe key includes 6h bucket)
         result = self.builder.persist(payload, check_dedupe=True, time_window_hours=6)
         if result is None:
@@ -1280,6 +1370,7 @@ class DecisionEngine:
         medication_id: Optional[int] = None,
         schedule_time: Optional[str] = None,
         user_medication_id: Optional[int] = None,
+        schedule_id: Optional[int] = None,
     ) -> Optional[Notification]:
         """
         Create a medication reminder notification (Release B2.1 + V1.1B schedules).
@@ -1332,6 +1423,28 @@ class DecisionEngine:
             user_name=user_name,
             memory_context=None,
             language=effective_language
+        )
+
+        from backend.app.services.gate4.notification_context import (
+            NotificationCategory,
+            NotificationRiskLevel,
+            NotificationSourceType,
+            sanitize_notification_context,
+        )
+        med_context: dict = {"template_key": "medication_reminder", "trigger_reason": "medication_reminder"}
+        if schedule_time:
+            med_context["schedule_time"] = str(schedule_time)[:32]
+        payload = payload.model_copy(
+            update={
+                "category": NotificationCategory.MEDICATION_REMINDER.value,
+                "source_type": NotificationSourceType.MEDICATION_SCHEDULE.value,
+                "source_id": str(schedule_id) if schedule_id is not None else (
+                    str(user_medication_id) if user_medication_id is not None else None
+                ),
+                "risk_level": NotificationRiskLevel.HIGH.value,
+                "template_key": "medication_reminder",
+                "context": sanitize_notification_context(med_context),
+            }
         )
         
         check_dedupe = medication_id is not None

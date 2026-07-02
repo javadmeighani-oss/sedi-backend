@@ -88,6 +88,7 @@ def process_medication_reminders(db: Session, decision_engine, now_utc: Optional
                     medication_id=med.id,
                     schedule_time=slot,
                     user_medication_id=um.id,
+                    schedule_id=sch.id,
                 )
                 if result:
                     created += 1

@@ -47,6 +47,38 @@ def _assert_user_id_matches(auth_user: User, user_id: int) -> None:
         )
 
 
+def _notification_to_response(notif: Notification) -> NotificationResponse:
+    """Map ORM notification to API response with Gate 4-B effective category/risk."""
+    from backend.app.services.gate4.notification_context import (
+        resolve_effective_category,
+        resolve_effective_risk_level,
+    )
+
+    return NotificationResponse(
+        id=notif.id,
+        user_id=notif.user_id,
+        type=notif.type,
+        title=notif.title,
+        body=notif.body,
+        priority=notif.priority,
+        is_read=notif.is_read,
+        is_sent=notif.is_sent,
+        scheduled_for=notif.scheduled_for,
+        created_at=notif.created_at,
+        category=resolve_effective_category(
+            category=notif.category,
+            notification_type=notif.type or "",
+            context_json=notif.context_json,
+        ),
+        source_type=notif.source_type,
+        risk_level=resolve_effective_risk_level(
+            risk_level=notif.risk_level,
+            priority=notif.priority or "normal",
+        ),
+        template_key=notif.template_key,
+    )
+
+
 def _is_placeholder_or_invalid_fcm_token(token: str) -> bool:
     """Reject placeholder or invalid FCM tokens (Stage 19 token hygiene)."""
     if not token or not token.strip():
@@ -144,6 +176,25 @@ def admin_test_push(
     dedupe_key = f"admin_test:{body.user_id}:{uuid.uuid4().hex}"
     deeplink_url = None  # Will be set after persist
 
+    from backend.app.services.gate4.notification_context import (
+        NotificationCategory,
+        NotificationSourceType,
+        build_scheduler_context,
+        resolve_traceability_fields,
+    )
+    trace = resolve_traceability_fields(
+        notification_type=body.channel,
+        priority=body.priority,
+        category=NotificationCategory.SYSTEM.value,
+        source_type=NotificationSourceType.SYSTEM_SCHEDULER.value,
+        template_key="admin_test_push",
+        context=build_scheduler_context(
+            job_id="admin_test_push",
+            template_key="admin_test_push",
+            trigger_reason="system",
+        ),
+    )
+
     notif = Notification(
         user_id=body.user_id,
         type=body.channel,
@@ -160,6 +211,12 @@ def admin_test_push(
         provider=None,
         status="queued",
         ttl_seconds=body.ttl_seconds,
+        category=trace["category"],
+        source_type=trace["source_type"],
+        source_id=trace["source_id"],
+        context_json=trace["context_json"],
+        risk_level=trace["risk_level"],
+        template_key=trace["template_key"],
     )
     db.add(notif)
     db.commit()
@@ -849,21 +906,7 @@ def get_notifications(
     )
     
     # Convert to response format
-    notification_list = [
-        NotificationResponse(
-            id=notif.id,
-            user_id=notif.user_id,
-            type=notif.type,
-            title=notif.title,
-            body=notif.body,
-            priority=notif.priority,
-            is_read=notif.is_read,
-            is_sent=notif.is_sent,
-            scheduled_for=notif.scheduled_for,
-            created_at=notif.created_at
-        )
-        for notif in notifications
-    ]
+    notification_list = [_notification_to_response(notif) for notif in notifications]
 
     return APIResponse(
         ok=True,
@@ -938,21 +981,7 @@ def get_unread_notifications(
     )
     
     # Convert to response format
-    notification_list = [
-        NotificationResponse(
-            id=notif.id,
-            user_id=notif.user_id,
-            type=notif.type,
-            title=notif.title,
-            body=notif.body,
-            priority=notif.priority,
-            is_read=notif.is_read,
-            is_sent=notif.is_sent,
-            scheduled_for=notif.scheduled_for,
-            created_at=notif.created_at
-        )
-        for notif in notifications
-    ]
+    notification_list = [_notification_to_response(notif) for notif in notifications]
     
     return APIResponse(
         ok=True,
@@ -1202,6 +1231,18 @@ def submit_notification_feedback(
         meta_json=meta_json,
     )
     db.add(feedback_row)
+    from backend.app.services.gate4.interaction_event_service import (
+        create_notification_action_event_from_feedback,
+    )
+
+    create_notification_action_event_from_feedback(
+        db,
+        user_id=user_id,
+        notification_id=notification_id,
+        payload=payload,
+        legacy_event_type=event_type,
+    )
+
     db.commit()
     # B2 morning_brief path: need feedback_request (positive/negative/neutral)
     feedback_type = "positive" if eff_reaction == "like" else ("negative" if eff_reaction == "dislike" else "neutral")
@@ -1309,11 +1350,10 @@ def submit_notification_feedback(
         ok=True,
         data={
             "feedback_received": True,
-            "message": "Feedback recorded",
+            "message": "Feedback recorded successfully",
             "notification_id": notification_id,
             "feedback": feedback_request.feedback,
-            "message": "Feedback recorded successfully"
-        }
+        },
     )
 
 

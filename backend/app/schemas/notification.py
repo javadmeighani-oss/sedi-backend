@@ -28,6 +28,11 @@ class NotificationResponse(NotificationBase):
     is_read: bool
     is_sent: bool
     created_at: datetime
+    # Gate 4-B: persisted traceability (effective category/risk resolved in router when null)
+    category: Optional[str] = Field(None, description="Gate 4-B notification category")
+    source_type: Optional[str] = Field(None, description="Gate 4-B soft source type")
+    risk_level: Optional[str] = Field(None, description="Gate 4-B risk level")
+    template_key: Optional[str] = Field(None, description="Gate 4-B template key")
 
     model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode
 
@@ -57,6 +62,13 @@ class NotificationPayload(BaseModel):
     scheduled_for: Optional[datetime] = Field(None, description="Scheduled datetime for notification")
     dedupe_key: str = Field(..., description="Deterministic deduplication key (format: type:user_id:time_window)")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Optional metadata (e.g. alert_code for health_alert)")
+    # Gate 4-B traceability (optional; persist() applies safe defaults when omitted)
+    category: Optional[str] = Field(None, description="Gate 4-B category")
+    source_type: Optional[str] = Field(None, description="Gate 4-B soft source type")
+    source_id: Optional[str] = Field(None, description="Gate 4-B soft source id")
+    context: Optional[Dict[str, Any]] = Field(None, description="Gate 4-B allowlisted context (sanitized at persist)")
+    risk_level: Optional[str] = Field(None, description="Gate 4-B risk level")
+    template_key: Optional[str] = Field(None, description="Gate 4-B template key")
 
 
 # -------------------- Release B2: Feedback Schema --------------------

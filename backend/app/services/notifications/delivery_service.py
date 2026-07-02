@@ -110,18 +110,64 @@ class FCMAdapter:
         if notification.actions_json:
             data["actions"] = notification.actions_json[:1024]
 
+        from backend.app.models import User
+        from backend.app.services.gate4.push_payload import (
+            enrich_notification_fcm_data,
+            normalize_push_language,
+        )
         from backend.app.services.notifications.fcm_client import (
             send_push_to_tokens,
             parse_fcm_error,
             FCM_DEACTIVATE_ERROR_CODES,
         )
 
+        push_language = normalize_push_language(notification.language)
+        if not notification.language:
+            user_lang = (
+                self.db.query(User.preferred_language)
+                .filter(User.id == notification.user_id)
+                .scalar()
+            )
+            push_language = normalize_push_language(user_lang)
+
+        from backend.app.services.gate4.notification_context import (
+            resolve_effective_category,
+            resolve_effective_risk_level,
+        )
+
+        resolved_category = resolve_effective_category(
+            category=notification.category,
+            notification_type=notification.type or "",
+            context_json=notification.context_json,
+        )
+        resolved_risk = resolve_effective_risk_level(
+            risk_level=notification.risk_level,
+            priority=notification.priority or "normal",
+        )
+
+        data, android_opts = enrich_notification_fcm_data(
+            legacy_data=data,
+            notification_id=notification.id,
+            user_id=notification.user_id,
+            title=title,
+            body=body,
+            notification_type=notification.type or "",
+            priority=notification.priority,
+            language=push_language,
+            deeplink_url=notification.deeplink_url,
+            actions_json=notification.actions_json,
+            category=resolved_category,
+            risk=resolved_risk,
+            template_key=notification.template_key,
+        )
+        android_priority = android_opts.get("android_priority") or notification.priority or "normal"
+
         success_count, results = send_push_to_tokens(
             tokens=tokens,
             title=title,
             body=body,
             data=data,
-            android_priority=notification.priority or "normal",
+            android_priority=android_priority,
             ttl_seconds=notification.ttl_seconds,
             timeout_sec=self.timeout_sec,
         )
