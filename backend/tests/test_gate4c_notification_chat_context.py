@@ -47,7 +47,8 @@ def test_build_safe_chat_context_includes_safe_metadata():
     assert ctx["context_hints"]["action_hint"] == "open_chat"
     assert "context_json" not in ctx
     assert "notification_title" in ctx
-    assert "notification_summary" in ctx
+    assert "notification_summary" not in ctx
+    assert "Check in" not in json.dumps(ctx)
 
 
 def test_build_safe_chat_context_strips_forbidden_keys():
@@ -72,13 +73,37 @@ def test_build_safe_chat_context_strips_forbidden_keys():
     assert "context_json" not in ctx
 
 
-def test_build_safe_chat_context_truncates_long_strings():
+def test_build_safe_chat_context_omits_body_with_dosage_text():
+    body = "Time to take Metformin (500mg)"
+    n = _notification(
+        type="health_alert",
+        category="medication_reminder",
+        template_key="medication_reminder",
+        risk_level="normal",
+        title="Medication reminder",
+        body=body,
+        context_json=json.dumps({"action_hint": "open_chat", "trigger_reason": "scheduled_dose"}),
+    )
+    ctx = build_safe_chat_context(n)
+    serialized = json.dumps(ctx)
+    assert "500mg" not in serialized
+    assert "Metformin" not in serialized
+    assert body not in serialized
+    assert "notification_summary" not in ctx
+    assert ctx["category"] == "medication_reminder"
+    assert ctx["template_key"] == "medication_reminder"
+    assert ctx["risk_level"] == "normal"
+    assert ctx["context_hints"]["action_hint"] == "open_chat"
+
+
+def test_build_safe_chat_context_truncates_long_title():
     long_title = "T" * 500
     long_body = "B" * 500
     n = _notification(title=long_title, body=long_body)
     ctx = build_safe_chat_context(n)
     assert len(ctx["notification_title"]) <= 200
-    assert len(ctx["notification_summary"]) <= 200
+    assert "notification_summary" not in ctx
+    assert "B" * 10 not in json.dumps(ctx)
 
 
 def test_build_safe_chat_context_resolves_effective_category_and_risk():
