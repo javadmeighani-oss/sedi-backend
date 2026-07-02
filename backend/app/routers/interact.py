@@ -106,6 +106,47 @@ async def chat(
             detail="user_id does not match authenticated user",
         )
     user_id = user.id
+
+    notification_context = None
+    continued_from_notification = False
+    response_source_notification_id = None
+    response_conversation_id = None
+
+    if payload.source_notification_id is not None:
+        from backend.app.services.gate4.interaction_event_service import (
+            create_chat_message_event,
+            verify_notification_belongs_to_user,
+        )
+        from backend.app.services.gate4.notification_chat_context import build_safe_chat_context
+
+        try:
+            notification = verify_notification_belongs_to_user(
+                db,
+                user_id=user_id,
+                notification_id=payload.source_notification_id,
+            )
+        except LookupError:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        except PermissionError:
+            raise HTTPException(
+                status_code=403,
+                detail="Notification does not belong to user",
+            )
+
+        notification_context = build_safe_chat_context(notification)
+        create_chat_message_event(
+            db,
+            user_id=user_id,
+            source_notification_id=payload.source_notification_id,
+            conversation_id=payload.conversation_id,
+            thread_id=payload.thread_id,
+            interaction_source=payload.interaction_source,
+            metadata={"message_length": len(message)},
+        )
+        db.flush()
+        continued_from_notification = True
+        response_source_notification_id = payload.source_notification_id
+        response_conversation_id = payload.conversation_id
     
     try:
         # STEP 2: SINGLE SOURCE OF LANGUAGE TRUTH
@@ -174,11 +215,19 @@ async def chat(
                 timestamp=datetime.utcnow(),
                 requires_security_check=False,
                 detected_name=None,
+                continued_from_notification=continued_from_notification or None,
+                source_notification_id=response_source_notification_id,
+                conversation_id=response_conversation_id,
             )
 
         # Name is retrieved from memory/context by ConversationBrain - not passed as parameter
         brain = ConversationBrain(db, language=response_language)
-        result = brain.process_message(user.id, message, None)  # name=None - will be retrieved from memory
+        result = brain.process_message(
+            user.id,
+            message,
+            None,
+            notification_context=notification_context,
+        )  # name=None - will be retrieved from memory
 
         print(f"[CHAT] ===== AFTER GPT CALL =====")
         print(f"[CHAT] Response received: {result.get('message', '')[:100]}...")
@@ -191,7 +240,10 @@ async def chat(
             user_id=user.id,
             timestamp=datetime.utcnow(),
             requires_security_check=False,  # Security check handled by brain if needed
-            detected_name=result.get("detected_name")
+            detected_name=result.get("detected_name"),
+            continued_from_notification=continued_from_notification or None,
+            source_notification_id=response_source_notification_id,
+            conversation_id=response_conversation_id,
         )
     except HTTPException:
         # Re-raise HTTP exceptions (validation errors, etc.)
