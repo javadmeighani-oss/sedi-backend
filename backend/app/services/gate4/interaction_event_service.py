@@ -227,6 +227,38 @@ def create_notification_open_chat_event(
     )
 
 
+def _normalized_conversation_id(conversation_id: Optional[str]) -> Optional[str]:
+    if conversation_id is None:
+        return None
+    stripped = conversation_id.strip()
+    return stripped if stripped else None
+
+
+def find_existing_notification_chat_message_event(
+    db: Session,
+    *,
+    user_id: int,
+    source_notification_id: int,
+    conversation_id: Optional[str] = None,
+) -> Optional[InteractionEvent]:
+    """Return earliest matching notification-linked chat_message event, if any."""
+    normalized_conversation_id = _normalized_conversation_id(conversation_id)
+    query = (
+        db.query(InteractionEvent)
+        .filter(
+            InteractionEvent.user_id == user_id,
+            InteractionEvent.source_notification_id == source_notification_id,
+            InteractionEvent.event_type == "chat_message",
+        )
+    )
+    if normalized_conversation_id:
+        query = query.filter(InteractionEvent.conversation_id == normalized_conversation_id)
+    else:
+        query = query.filter(InteractionEvent.conversation_id.is_(None))
+
+    return query.order_by(InteractionEvent.id.asc()).first()
+
+
 def create_chat_message_event(
     db: Session,
     *,
@@ -240,7 +272,8 @@ def create_chat_message_event(
     """
     Record a chat message continuation event.
 
-    When source_notification_id is set, verifies notification ownership.
+    When source_notification_id is set, verifies notification ownership and
+    returns an existing matching event instead of creating a duplicate.
     """
     source = "notification" if source_notification_id is not None else "chat"
     if interaction_source:
@@ -248,12 +281,22 @@ def create_chat_message_event(
         if candidate in ALLOWED_SOURCES:
             source = candidate
 
+    normalized_conversation_id = _normalized_conversation_id(conversation_id)
+
     if source_notification_id is not None:
         notification = verify_notification_belongs_to_user(
             db,
             user_id=user_id,
             notification_id=source_notification_id,
         )
+        existing = find_existing_notification_chat_message_event(
+            db,
+            user_id=user_id,
+            source_notification_id=source_notification_id,
+            conversation_id=normalized_conversation_id,
+        )
+        if existing is not None:
+            return existing
     else:
         notification = None
 
@@ -270,7 +313,7 @@ def create_chat_message_event(
         source_notification_id=source_notification_id,
         source_type=notification.source_type if notification else None,
         source_id=notification.source_id if notification else None,
-        conversation_id=conversation_id,
+        conversation_id=normalized_conversation_id,
         thread_id=thread_id,
         metadata=meta or None,
     )
