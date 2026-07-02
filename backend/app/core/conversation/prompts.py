@@ -31,14 +31,20 @@ load_dotenv()
 # CRITICAL: Check API key availability at module load
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
-    print("[PROMPTS CRITICAL] ❌ OPENAI_API_KEY is not set in environment!")
-    print("[PROMPTS CRITICAL] This will cause GPT calls to fail.")
-    raise RuntimeError("OPENAI_API_KEY is not set in .env file. GPT functionality will not work.")
+    # Tests import the full FastAPI app; they must not fail at import-time due to missing OpenAI creds.
+    # Production behavior remains fail-fast.
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        api_key = "test-openai-key"
+        print("[PROMPTS][tests] OPENAI_API_KEY missing; using dummy key for import-time initialization.")
+    else:
+        print("[PROMPTS CRITICAL] OPENAI_API_KEY is not set in environment!")
+        print("[PROMPTS CRITICAL] This will cause GPT calls to fail.")
+        raise RuntimeError("OPENAI_API_KEY is not set in .env file. GPT functionality will not work.")
 else:
-    print(f"[PROMPTS] ✅ OPENAI_API_KEY found (length: {len(api_key)}, starts with: {api_key[:7]}...)")
+    print(f"[PROMPTS] OPENAI_API_KEY found (length: {len(api_key)}, starts with: {api_key[:7]}...)")
 # VERIFY: Same client used in onboarding and chat
 client = OpenAI(api_key=api_key)
-print(f"[PROMPTS] ✅ OpenAI client initialized (model: gpt-4o-mini supported)")
+print("[PROMPTS] OpenAI client initialized")
 
 
 class ConversationPrompts:

@@ -1,4 +1,5 @@
 # backend/tests/conftest.py
+import os
 import sys
 from pathlib import Path
 
@@ -6,6 +7,9 @@ import backend.app as backend_app
 
 # Temporary namespace alias for transitional architecture
 sys.modules["app"] = backend_app
+
+# Tests import the full FastAPI app; ensure missing OpenAI creds do not fail at import time.
+os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 
 # Remove legacy app/ path from sys.path to avoid importing both app.* and backend.app.*
 _repo = Path(__file__).resolve().parents[2]

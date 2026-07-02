@@ -84,6 +84,7 @@ class KnowledgeUpdateService:
         *,
         run_by: str = "admin",
         fetch_url: Optional[str] = None,
+        run_type: str = "url_fetch",
     ) -> dict:
         src = db.query(models.KnowledgeSource).filter(models.KnowledgeSource.id == source_id).first()
         if not src:
@@ -92,7 +93,7 @@ class KnowledgeUpdateService:
         run = models.KnowledgeIngestionRun(
             source_id=source_id,
             status="running",
-            run_type="url_fetch",
+            run_type=run_type,
             run_by=run_by,
             review_status="pending_review",
             started_at=now,
@@ -217,7 +218,14 @@ class KnowledgeUpdateService:
             db.refresh(run)
             return _run_dict(run)
 
-        if review.recommended_action == "auto_approve":
+        # Hard safety: scheduled fetch must never auto-approve/publish in V1.
+        # Even if AI suggests auto-approve or the source is misconfigured, keep pending_review.
+        if run.run_type == "scheduled_fetch" or (run.run_by or "").strip().lower() == "scheduler":
+            run.auto_approve_allowed = False
+            run.requires_human_review = True
+            run.recommended_action = "pending_review"
+            run.ai_review_status = "needs_review"
+        elif review.recommended_action == "auto_approve":
             return self._activate_run(db, src, run, text, title, category or src.category, chunk_size, approved_by="auto")
 
         run.status = "success"

@@ -491,6 +491,34 @@ def start_scheduler():
             replace_existing=True,
         )
 
+        # Gate 3I-A: Optional KB scheduled fetch (disabled by default)
+        # Runs only when SEDI_KB_SCHEDULED_FETCH_ENABLED=true. Never auto-publishes.
+        try:
+            from backend.app.services.gate3.kb_scheduler import scheduled_fetch_enabled, run_scheduled_kb_fetch
+
+            if scheduled_fetch_enabled():
+                kb_interval_min = int(os.getenv("SEDI_KB_SCHEDULED_FETCH_INTERVAL_MIN", "60"))
+                kb_interval_min = max(5, min(24 * 60, kb_interval_min))
+
+                def _kb_tick():
+                    with next(get_db()) as db:
+                        run_scheduled_kb_fetch(db)
+
+                scheduler.add_job(
+                    _kb_tick,
+                    "interval",
+                    minutes=kb_interval_min,
+                    id="kb_scheduled_fetch",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                    misfire_grace_time=60,
+                )
+                print(f"[Sedi Scheduler] KB scheduled fetch job enabled interval_min={kb_interval_min}")
+        except Exception as e:
+            # Fail-safe: do not break existing notification scheduler if KB wiring fails.
+            print(f"[Sedi Scheduler] KB scheduled fetch wiring failed: {e}")
+
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:
