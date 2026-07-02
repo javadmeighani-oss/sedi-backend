@@ -1,0 +1,53 @@
+# One-shot production Alembic migration for Gate 4-B (workflow_dispatch only).
+name: Gate 4-B Production Migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  alembic-upgrade:
+    name: Alembic upgrade head on production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run Alembic upgrade and schema checks
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -Eeuo pipefail
+             cd "${{ secrets.SEDI_DEPLOY_PATH }}"
+             echo "=== ALEMBIC BEFORE ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini current || true
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads || true
+             echo "=== ALEMBIC UPGRADE ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini upgrade head
+             echo "=== ALEMBIC AFTER ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+             echo "=== SCHEMA CHECK ==="
+             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
+               "SELECT column_name FROM information_schema.columns
+                WHERE table_name='"'"'notifications'"'"'
+                AND column_name IN ('"'"'category'"'"','"'"'source_type'"'"','"'"'source_id'"'"','"'"'context_json'"'"','"'"'risk_level'"'"','"'"'template_key'"'"')
+                ORDER BY 1;"
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
+               "SELECT to_regclass('"'"'public.interaction_events'"'"') AS interaction_events_table;"
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
+               "SELECT COUNT(*) AS notifications FROM notifications;"
+             echo "=== MIGRATION DONE ==="
+            '
