@@ -70,6 +70,13 @@ class Notification(Base):
     status = Column(String(20), nullable=True)  # queued | sent | failed | delivered
     last_error = Column(Text, nullable=True)
     ttl_seconds = Column(Integer, nullable=True)
+    # Gate 4-B: traceability (nullable; soft source refs; no polymorphic FK)
+    category = Column(String(64), nullable=True)
+    source_type = Column(String(64), nullable=True)
+    source_id = Column(String(255), nullable=True)
+    context_json = Column(Text, nullable=True)
+    risk_level = Column(String(16), nullable=True)
+    template_key = Column(String(100), nullable=True)
 
 
 # -------------------- PushDevice (Stage 16.6) --------------------
@@ -97,6 +104,27 @@ class NotificationFeedback(Base):
     action = Column(String(50), nullable=False)  # like | dislike | open_chat | dismissed
     meta_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- InteractionEvent (Gate 4C) --------------------
+class InteractionEvent(Base):
+    """Unified interaction timeline: chat, notification actions, future voice/call/video."""
+    __tablename__ = "interaction_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type = Column(String(64), nullable=False)
+    source = Column(String(32), nullable=False)
+    interaction_channel = Column(String(20), nullable=False, default="text", server_default="text")
+    source_notification_id = Column(
+        Integer, ForeignKey("notifications.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    source_type = Column(String(64), nullable=True)
+    source_id = Column(String(255), nullable=True)
+    conversation_id = Column(String(128), nullable=True, index=True)
+    thread_id = Column(String(128), nullable=True, index=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 # -------------------- NotificationGuardState (D2.0 Behavior Guard) --------------------
@@ -417,6 +445,7 @@ class NotificationPrefs(Base):
     quiet_hours_enabled = Column(Boolean, nullable=False, default=False)
     quiet_start = Column(String(5), nullable=True)   # HH:MM
     quiet_end = Column(String(5), nullable=True)   # HH:MM
+    daily_notification_time = Column(String(5), nullable=True)  # HH:MM; Gate 4D canonical daily time
     engagement_level = Column(Integer, nullable=False, default=1)  # 0=low, 1=normal, 2=high
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False, onupdate=datetime.utcnow)
 

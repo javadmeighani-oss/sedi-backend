@@ -1,0 +1,120 @@
+# Ephemeral Postgres only — validates Gate 4-B migration 039 round-trip + DB tests.
+# Does NOT deploy, build images, or touch production.
+name: Gate 4-B DB QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'gate4b/**'
+      - 'feature/gate4b/**'
+    paths:
+      - 'backend/alembic/versions/037_gate4c_interaction_events.py'
+      - 'backend/alembic/versions/038_gate4d3_notification_prefs_daily_time.py'
+      - 'backend/alembic/versions/039_gate4b_notification_context_fields.py'
+      - 'backend/app/models.py'
+      - 'backend/app/services/gate4/**'
+      - 'backend/app/services/notification_engine.py'
+      - 'backend/app/services/notifications/delivery_service.py'
+      - 'backend/app/schemas/notification.py'
+      - 'backend/tests/test_gate4b_notification_context.py'
+      - 'backend/tests/test_notification_delivery.py'
+      - '.github/workflows/gate4b-db-qa.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/alembic/versions/037_gate4c_interaction_events.py'
+      - 'backend/alembic/versions/038_gate4d3_notification_prefs_daily_time.py'
+      - 'backend/alembic/versions/039_gate4b_notification_context_fields.py'
+      - 'backend/app/models.py'
+      - 'backend/app/services/gate4/**'
+      - 'backend/app/services/notification_engine.py'
+      - 'backend/app/services/notifications/delivery_service.py'
+      - 'backend/app/schemas/notification.py'
+      - 'backend/tests/test_gate4b_notification_context.py'
+      - 'backend/tests/test_notification_delivery.py'
+      - '.github/workflows/gate4b-db-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  gate4b-db-qa:
+    name: Gate 4-B migration + DB tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_user
+          POSTGRES_PASSWORD: sedi_pass
+          POSTGRES_DB: sedi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_user -d sedi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_test
+      DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_test
+      PYTHONPATH: ${{ github.workspace }}
+      OPENAI_API_KEY: "sk-ci-placeholder-not-used"
+      ENV: ci
+      DEVICE_AUTH_MODE: db_only
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Alembic upgrade head
+        run: python -m alembic -c backend/alembic.ini upgrade head
+
+      - name: Verify Gate 4-B columns and indexes
+        env:
+          PGPASSWORD: sedi_pass
+        run: |
+          set -euo pipefail
+          for col in category source_type source_id context_json risk_level template_key; do
+            n=$(psql -h 127.0.0.1 -U sedi_user -d sedi_test -tAc \
+              "SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema='public' AND table_name='notifications' AND column_name='${col}'")
+            [ "$n" = "1" ] || { echo "Missing column: ${col}"; exit 1; }
+          done
+          for idx in ix_notifications_user_category_created ix_notifications_source; do
+            n=$(psql -h 127.0.0.1 -U sedi_user -d sedi_test -tAc \
+              "SELECT COUNT(*) FROM pg_indexes
+               WHERE schemaname='public' AND tablename='notifications' AND indexname='${idx}'")
+            [ "$n" = "1" ] || { echo "Missing index: ${idx}"; exit 1; }
+          done
+          echo "Gate 4-B schema verification passed"
+
+      - name: Alembic downgrade one revision
+        run: python -m alembic -c backend/alembic.ini downgrade -1
+
+      - name: Alembic upgrade head again
+        run: python -m alembic -c backend/alembic.ini upgrade head
+
+      - name: Run Gate 4-B DB-dependent tests
+        run: |
+          python -m pytest -q \
+            backend/tests/test_gate4b_notification_context.py \
+            backend/tests/test_notification_delivery.py \
+            --tb=short
