@@ -1,0 +1,54 @@
+# Read-only Gate 4-B post-deploy safety checks (workflow_dispatch only).
+name: Gate 4-B Post-Deploy Readonly Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readonly-check:
+    name: Post-deploy read-only safety check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only production checks
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -Eeuo pipefail
+             cd "${{ secrets.SEDI_DEPLOY_PATH }}"
+             echo "=== IMAGE ==="
+             docker inspect sedi-backend --format "{{.Config.Image}}"
+             echo "=== ALEMBIC CURRENT ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+             echo "=== ALEMBIC HEADS ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+             echo "=== LOCAL HEALTH ==="
+             curl -fsS http://127.0.0.1:8000/health
+             echo ""
+             curl -fsS http://127.0.0.1:8000/healthz
+             echo ""
+             echo "=== COUNTS ==="
+             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS notifications FROM notifications;"
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS interaction_events FROM interaction_events;"
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c "SELECT COUNT(*) AS push_devices FROM push_devices;"
+             echo "=== LOG SUMMARY ==="
+             docker logs --since 30m sedi-backend 2>&1 \
+               | grep -E "\[Sedi Scheduler\]|\[NOTIF\]|\[GATE4|Traceback|ERROR|Exception" \
+               | tail -120 || true
+             echo "=== CHECK DONE ==="
+            '
