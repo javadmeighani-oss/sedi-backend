@@ -4679,6 +4679,121 @@
         "title": "RawSignalBatchResponse",
         "type": "object"
       },
+      "RawSignalBatchStatusData": {
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "feature_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Id"
+          },
+          "has_batch": {
+            "title": "Has Batch",
+            "type": "boolean"
+          },
+          "processed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processed At"
+          },
+          "processing_status": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Processing Status"
+          },
+          "processing_version": {
+            "title": "Processing Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch_id",
+          "has_batch",
+          "processing_version"
+        ],
+        "title": "RawSignalBatchStatusData",
+        "type": "object"
+      },
+      "RawSignalBatchStatusResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RawSignalBatchStatusData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "RawSignalBatchStatusResponse",
+        "type": "object"
+      },
       "RawSignalProcessBatchData": {
         "properties": {
           "batch_id": {
@@ -4696,6 +4811,11 @@
           "processing_version": {
             "title": "Processing Version",
             "type": "string"
+          },
+          "skipped": {
+            "default": false,
+            "title": "Skipped",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4710,6 +4830,11 @@
       "RawSignalProcessBatchRequest": {
         "additionalProperties": false,
         "properties": {
+          "allow_retry": {
+            "default": false,
+            "title": "Allow Retry",
+            "type": "boolean"
+          },
           "processing_version": {
             "default": "gate5c_v1",
             "maxLength": 32,
@@ -4757,8 +4882,27 @@
       },
       "RawSignalProcessPendingData": {
         "properties": {
+          "candidate_batch_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Candidate Batch Ids",
+            "type": "array"
+          },
           "completed": {
             "title": "Completed",
+            "type": "integer"
+          },
+          "dry_run": {
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "effective_limit": {
+            "title": "Effective Limit",
             "type": "integer"
           },
           "failed": {
@@ -4780,6 +4924,9 @@
         },
         "required": [
           "completed",
+          "dry_run",
+          "duration_ms",
+          "effective_limit",
           "failed",
           "processed",
           "processing_version",
@@ -4791,6 +4938,11 @@
       "RawSignalProcessPendingRequest": {
         "additionalProperties": false,
         "properties": {
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "limit": {
             "default": 10,
             "maximum": 100.0,
@@ -11323,6 +11475,76 @@
           }
         },
         "summary": "Ops Process Raw Signal Batch",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/raw-signals/status/{batch_id}": {
+      "get": {
+        "description": "Admin-only: processing metadata for one raw signal batch (no samples or feature payloads).",
+        "operationId": "ops_raw_signal_batch_status_ops_raw_signals_status__batch_id__get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "processing_version",
+            "required": false,
+            "schema": {
+              "default": "gate5c_v1",
+              "maxLength": 32,
+              "title": "Processing Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawSignalBatchStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Raw Signal Batch Status",
         "tags": [
           "Ops"
         ]

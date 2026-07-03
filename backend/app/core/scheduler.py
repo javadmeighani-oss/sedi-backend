@@ -34,6 +34,9 @@ DEVICE_DISCONNECTED_CHECK_INTERVAL_MIN = 15  # Run check every 15 minutes
 # Medication reminders: loop over UserMedication, create reminder (dedupe per med per 8h)
 MEDICATION_REMINDER_CHECK_INTERVAL_MIN = 15  # Run every 15 minutes
 
+# Gate 5-D: Raw signal processing (disabled by default via env flag)
+_RAW_SIGNAL_PROCESSING_LOCK_KEY = 0x73656472  # 'sedr' in hex
+
 scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Tehran"))
 
 # -------------------------------
@@ -371,6 +374,60 @@ def run_medication_reminders():
 
 
 # -------------------------------
+# Gate 5-D: Raw signal batch feature extraction (optional, env-gated)
+# -------------------------------
+def run_raw_signal_processing():
+    """
+    Process pending raw signal batches up to env max limit.
+    No notifications, DecisionEngine, or clinical side effects.
+    """
+    from sqlalchemy import text
+
+    from backend.app.services.gate5.raw_signal_feature_extraction import (
+        process_pending_raw_signal_batches,
+    )
+    from backend.app.services.gate5.raw_signal_processing_flags import (
+        raw_signal_processing_max_limit,
+    )
+
+    with next(get_db()) as db:
+        r = db.execute(
+            text("SELECT pg_try_advisory_lock(:key)"),
+            {"key": _RAW_SIGNAL_PROCESSING_LOCK_KEY},
+        )
+        if not (r.scalar() if r else False):
+            print("[Sedi Scheduler] raw_signal_processing skipped: lock held by another run")
+            return
+        try:
+            t0 = time.perf_counter()
+            limit = raw_signal_processing_max_limit()
+            summary = process_pending_raw_signal_batches(
+                db,
+                limit=limit,
+                source="scheduler",
+                dry_run=False,
+            )
+            duration_ms = int((time.perf_counter() - t0) * 1000)
+            print(
+                "[Sedi Scheduler] raw_signal_processing end "
+                f"processed={summary.processed} completed={summary.completed} "
+                f"failed={summary.failed} skipped={summary.skipped} "
+                f"limit={limit} duration_ms={duration_ms}"
+            )
+        finally:
+            try:
+                db.execute(
+                    text("SELECT pg_advisory_unlock(:key)"),
+                    {"key": _RAW_SIGNAL_PROCESSING_LOCK_KEY},
+                )
+            except Exception as unlock_err:
+                print(
+                    "[Sedi Scheduler] raw_signal_processing advisory unlock warning: "
+                    f"{unlock_err}"
+                )
+
+
+# -------------------------------
 # Run notification delivery outbox (mark is_sent)
 # -------------------------------
 def run_deliver_pending():
@@ -486,6 +543,34 @@ def start_scheduler():
         except Exception as e:
             # Fail-safe: do not break existing notification scheduler if KB wiring fails.
             print(f"[Sedi Scheduler] KB scheduled fetch wiring failed: {e}")
+
+        # Gate 5-D: Optional raw signal processing (disabled by default)
+        try:
+            from backend.app.services.gate5.raw_signal_processing_flags import (
+                raw_signal_processing_enabled,
+                raw_signal_processing_interval_minutes,
+            )
+
+            if raw_signal_processing_enabled():
+                rs_interval_min = raw_signal_processing_interval_minutes()
+                scheduler.add_job(
+                    run_raw_signal_processing,
+                    "interval",
+                    minutes=rs_interval_min,
+                    id="raw_signal_processing",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                    misfire_grace_time=60,
+                )
+                print(
+                    "[Sedi Scheduler] Raw signal processing job enabled "
+                    f"interval_min={rs_interval_min}"
+                )
+            else:
+                print("[Sedi Scheduler] Raw signal processing job disabled (default)")
+        except Exception as e:
+            print(f"[Sedi Scheduler] Raw signal processing wiring failed: {e}")
 
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")

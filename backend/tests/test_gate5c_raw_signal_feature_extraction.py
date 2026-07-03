@@ -287,7 +287,7 @@ def test_invalid_samples_handled_safely(client: TestClient, db, user, hub_with_e
         hub=hub,
         sensor=sensor,
         client_batch_id="batch-invalid",
-        samples=[1.0, float("nan"), 3.0],
+        samples=[1.0, "not_numeric", 3.0],
     )
     result = process_raw_signal_batch(db, batch.id)
     row = db.query(RawSignalBatchFeature).get(result.feature_id)
