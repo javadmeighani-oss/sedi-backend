@@ -88,7 +88,7 @@ def _resolve_effective_limit(request_limit: int, max_limit: Optional[int] = None
             f"requested limit {request_limit} exceeds effective max {effective}",
             status_code=400,
         )
-    return effective
+    return request_limit
 
 
 def _query_pending_batches(
