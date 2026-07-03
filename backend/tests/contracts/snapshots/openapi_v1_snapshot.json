@@ -4489,6 +4489,196 @@
         "title": "QuietHoursUpdate",
         "type": "object"
       },
+      "RawSignalBatchData": {
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "integer"
+          },
+          "dedupe_hit": {
+            "default": false,
+            "title": "Dedupe Hit",
+            "type": "boolean"
+          },
+          "dedupe_key": {
+            "title": "Dedupe Key",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Message"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "sample_count": {
+            "title": "Sample Count",
+            "type": "integer"
+          },
+          "storage_backend": {
+            "default": "postgres_json",
+            "title": "Storage Backend",
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch_id",
+          "dedupe_key",
+          "received_at",
+          "sample_count"
+        ],
+        "title": "RawSignalBatchData",
+        "type": "object"
+      },
+      "RawSignalBatchRequest": {
+        "additionalProperties": false,
+        "description": "Gadget Hub raw signal batch ingest payload (store-only).",
+        "properties": {
+          "client_batch_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Client Batch Id",
+            "type": "string"
+          },
+          "device_id": {
+            "description": "Logical Gadget Hub device id",
+            "minLength": 1,
+            "title": "Device Id",
+            "type": "string"
+          },
+          "ended_at": {
+            "description": "Batch window end (device/hub time)",
+            "format": "date-time",
+            "title": "Ended At",
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Non-clinical hub batch metadata",
+            "title": "Metadata"
+          },
+          "quality_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Non-clinical quality flags (SNR, lead-off, etc.)",
+            "title": "Quality Metadata"
+          },
+          "sample_count": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Sample Count",
+            "type": "integer"
+          },
+          "sample_rate_hz": {
+            "maximum": 2000.0,
+            "minimum": 1.0,
+            "title": "Sample Rate Hz",
+            "type": "number"
+          },
+          "samples": {
+            "description": "Numeric raw samples only",
+            "items": {
+              "type": "number"
+            },
+            "title": "Samples",
+            "type": "array"
+          },
+          "sensor_key": {
+            "description": "Registered sensor key on this hub",
+            "minLength": 1,
+            "title": "Sensor Key",
+            "type": "string"
+          },
+          "signal_type": {
+            "description": "Raw signal category (non-clinical)",
+            "enum": [
+              "ecg",
+              "heart_rate_raw",
+              "unknown"
+            ],
+            "title": "Signal Type",
+            "type": "string"
+          },
+          "started_at": {
+            "description": "Batch window start (device/hub time)",
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_batch_id",
+          "device_id",
+          "ended_at",
+          "sample_count",
+          "sample_rate_hz",
+          "samples",
+          "sensor_key",
+          "signal_type",
+          "started_at"
+        ],
+        "title": "RawSignalBatchRequest",
+        "type": "object"
+      },
+      "RawSignalBatchResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RawSignalBatchData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "RawSignalBatchResponse",
+        "type": "object"
+      },
       "RecommendationCreateIn": {
         "additionalProperties": false,
         "properties": {
@@ -7151,6 +7341,58 @@
           }
         },
         "summary": "Sync Device Sensors",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
+    "/device/signals/raw": {
+      "post": {
+        "description": "Store-only raw heart/ECG signal batch from Gadget Hub.\n\nRequires X-DEVICE-TOKEN. No interpretation, alerts, or clinical side effects.",
+        "operationId": "ingest_raw_signal_batch_endpoint_device_signals_raw_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawSignalBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Duplicate batch replay (idempotent)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawSignalBatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "Forbidden — non-hub or unregistered sensor"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "summary": "Ingest Raw Signal Batch Endpoint",
         "tags": [
           "Device"
         ]

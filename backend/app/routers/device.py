@@ -18,12 +18,19 @@ from backend.app.schemas.device import (
     DeviceAcknowledgeRequest,
     SensorSyncRequest,
     SensorSyncResponse,
+    RawSignalBatchRequest,
+    RawSignalBatchResponse,
+    RawSignalBatchData,
 )
 from backend.app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
 from backend.app.services.gate5.gadget_hub_status import (
     apply_heartbeat_metadata,
     is_gadget_hub,
     sync_hub_sensors,
+)
+from backend.app.services.gate5.raw_signal_ingestion import (
+    ingest_raw_signal_batch,
+    RawSignalIngestionError,
 )
 from backend.app.core.device_auth import (
     get_device_token,
@@ -175,6 +182,52 @@ def sync_device_sensors(
     sensors_payload = [s.model_dump() for s in body.sensors]
     result = sync_hub_sensors(db, device, sensors_payload)
     return SensorSyncResponse(ok=True, data=result)
+
+
+@router.post(
+    "/signals/raw",
+    response_model=RawSignalBatchResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        200: {"description": "Duplicate batch replay (idempotent)"},
+        403: {"description": "Forbidden — non-hub or unregistered sensor"},
+        422: {"description": "Validation error"},
+    },
+)
+def ingest_raw_signal_batch_endpoint(
+    body: RawSignalBatchRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(get_device_token),
+):
+    """
+    Store-only raw heart/ECG signal batch from Gadget Hub.
+
+    Requires X-DEVICE-TOKEN. No interpretation, alerts, or clinical side effects.
+    """
+    device = authorize_operational_device(db=db, device_id=body.device_id, token=token)
+
+    try:
+        result = ingest_raw_signal_batch(db, hub=device, body=body)
+    except RawSignalIngestionError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    data = RawSignalBatchData(
+        batch_id=result.batch_id,
+        dedupe_key=result.dedupe_key,
+        received_at=result.received_at,
+        sample_count=result.sample_count,
+        storage_backend=result.storage_backend,
+        dedupe_hit=result.dedupe_hit,
+        message=result.message,
+    )
+
+    if result.dedupe_hit:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=RawSignalBatchResponse(ok=True, data=data).model_dump(mode="json"),
+        )
+
+    return RawSignalBatchResponse(ok=True, data=data)
 
 
 @router.post("/ingest", response_model=DeviceIngestResponse)
