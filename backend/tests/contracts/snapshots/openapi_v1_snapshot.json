@@ -4679,6 +4679,170 @@
         "title": "RawSignalBatchResponse",
         "type": "object"
       },
+      "RawSignalProcessBatchData": {
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "integer"
+          },
+          "feature_id": {
+            "title": "Feature Id",
+            "type": "integer"
+          },
+          "processing_status": {
+            "title": "Processing Status",
+            "type": "string"
+          },
+          "processing_version": {
+            "title": "Processing Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "batch_id",
+          "feature_id",
+          "processing_status",
+          "processing_version"
+        ],
+        "title": "RawSignalProcessBatchData",
+        "type": "object"
+      },
+      "RawSignalProcessBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "processing_version": {
+            "default": "gate5c_v1",
+            "maxLength": 32,
+            "title": "Processing Version",
+            "type": "string"
+          }
+        },
+        "title": "RawSignalProcessBatchRequest",
+        "type": "object"
+      },
+      "RawSignalProcessBatchResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RawSignalProcessBatchData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "RawSignalProcessBatchResponse",
+        "type": "object"
+      },
+      "RawSignalProcessPendingData": {
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "processed": {
+            "title": "Processed",
+            "type": "integer"
+          },
+          "processing_version": {
+            "title": "Processing Version",
+            "type": "string"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "completed",
+          "failed",
+          "processed",
+          "processing_version",
+          "skipped"
+        ],
+        "title": "RawSignalProcessPendingData",
+        "type": "object"
+      },
+      "RawSignalProcessPendingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "default": 10,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "processing_version": {
+            "default": "gate5c_v1",
+            "maxLength": 32,
+            "title": "Processing Version",
+            "type": "string"
+          }
+        },
+        "title": "RawSignalProcessPendingRequest",
+        "type": "object"
+      },
+      "RawSignalProcessPendingResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RawSignalProcessPendingData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "RawSignalProcessPendingResponse",
+        "type": "object"
+      },
       "RecommendationCreateIn": {
         "additionalProperties": false,
         "properties": {
@@ -11030,6 +11194,135 @@
           }
         },
         "summary": "Ops Config Sms",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/raw-signals/process-pending": {
+      "post": {
+        "description": "Admin-only: process pending raw signal batches (technical features only).\nDoes not expose raw samples or create notifications.",
+        "operationId": "ops_process_pending_raw_signals_ops_raw_signals_process_pending_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawSignalProcessPendingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawSignalProcessPendingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Process Pending Raw Signals",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/raw-signals/process/{batch_id}": {
+      "post": {
+        "description": "Admin-only: extract technical features for one raw signal batch.\nDoes not expose raw samples or create clinical side effects.",
+        "operationId": "ops_process_raw_signal_batch_ops_raw_signals_process__batch_id__post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawSignalProcessBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawSignalProcessBatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Process Raw Signal Batch",
         "tags": [
           "Ops"
         ]

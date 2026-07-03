@@ -10,6 +10,19 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.database import get_db
+from backend.app.schemas.raw_signal_ops import (
+    RawSignalProcessBatchData,
+    RawSignalProcessBatchRequest,
+    RawSignalProcessBatchResponse,
+    RawSignalProcessPendingData,
+    RawSignalProcessPendingRequest,
+    RawSignalProcessPendingResponse,
+)
+from backend.app.services.gate5.raw_signal_feature_extraction import (
+    RawSignalFeatureExtractionError,
+    process_pending_raw_signal_batches,
+    process_raw_signal_batch,
+)
 
 router = APIRouter(prefix="/ops", tags=["Ops"])
 
@@ -106,3 +119,61 @@ def ops_config_sms(_admin: None = Depends(require_admin)):
         },
         "error": None,
     }
+
+
+@router.post("/raw-signals/process-pending", response_model=RawSignalProcessPendingResponse)
+def ops_process_pending_raw_signals(
+    body: RawSignalProcessPendingRequest,
+    _admin: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: process pending raw signal batches (technical features only).
+    Does not expose raw samples or create notifications.
+    """
+    summary = process_pending_raw_signal_batches(
+        db,
+        limit=body.limit,
+        processing_version=body.processing_version,
+    )
+    return RawSignalProcessPendingResponse(
+        ok=True,
+        data=RawSignalProcessPendingData(
+            processed=summary.processed,
+            completed=summary.completed,
+            failed=summary.failed,
+            skipped=summary.skipped,
+            processing_version=summary.processing_version,
+        ),
+    )
+
+
+@router.post("/raw-signals/process/{batch_id}", response_model=RawSignalProcessBatchResponse)
+def ops_process_raw_signal_batch(
+    batch_id: int,
+    body: RawSignalProcessBatchRequest,
+    _admin: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: extract technical features for one raw signal batch.
+    Does not expose raw samples or create clinical side effects.
+    """
+    try:
+        result = process_raw_signal_batch(
+            db,
+            batch_id,
+            processing_version=body.processing_version,
+        )
+    except RawSignalFeatureExtractionError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return RawSignalProcessBatchResponse(
+        ok=True,
+        data=RawSignalProcessBatchData(
+            batch_id=result.batch_id,
+            feature_id=result.feature_id,
+            processing_status=result.processing_status,
+            processing_version=result.processing_version,
+        ),
+    )

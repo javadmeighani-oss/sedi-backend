@@ -357,6 +357,40 @@ class RawSignalBatch(Base):
     object_storage_key = Column(String(512), nullable=True)
 
 
+# -------------------- RawSignalBatchFeature (Gate 5-C) --------------------
+class RawSignalBatchFeature(Base):
+    """Technical (non-diagnostic) features extracted from a raw signal batch."""
+
+    __tablename__ = "raw_signal_batch_features"
+    __table_args__ = (
+        UniqueConstraint(
+            "raw_signal_batch_id",
+            "processing_version",
+            name="uq_raw_signal_batch_features_batch_version",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    raw_signal_batch_id = Column(
+        Integer,
+        ForeignKey("raw_signal_batches.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    hub_device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    sensor_id = Column(Integer, ForeignKey("device_sensors.id", ondelete="RESTRICT"), nullable=False, index=True)
+    signal_type = Column(String(32), nullable=False)
+    processing_version = Column(String(32), nullable=False)
+    processing_status = Column(String(16), nullable=False)
+    features_json = Column(JSON, nullable=True)
+    quality_json = Column(JSON, nullable=True)
+    error_code = Column(String(64), nullable=True)
+    error_message = Column(Text, nullable=True)
+    processed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 # -------------------- UserProfileKnowledge --------------------
 class UserProfileKnowledge(Base):
     """Stable user baseline: 1 row per user. Used for GPT context."""
