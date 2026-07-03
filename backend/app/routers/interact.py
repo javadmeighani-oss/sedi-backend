@@ -107,6 +107,27 @@ async def chat(
         )
     user_id = user.id
 
+    chat_reminder_result = None
+    try:
+        from backend.app.services.gate4.user_chat_reminder import create_user_chat_reminder
+
+        chat_reminder_result = create_user_chat_reminder(
+            db,
+            user_id=user_id,
+            message=message,
+            conversation_id=payload.conversation_id,
+        )
+        if chat_reminder_result.get("reason") == "needs_clarification":
+            clarification = chat_reminder_result.get("clarification_message")
+            if clarification:
+                return InteractionResponse(
+                    reply=clarification,
+                    user_id=user_id,
+                    conversation_id=payload.conversation_id,
+                )
+    except Exception:
+        pass
+
     notification_context = None
     continued_from_notification = False
     response_source_notification_id = None

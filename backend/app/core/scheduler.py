@@ -152,55 +152,23 @@ def run_morning_notifications():
         
         users = db.query(User).all()
         
+        from backend.app.services.gate4.feature_flags import gate4_daily_0800_enabled
+        from backend.app.services.gate4.scheduler_timing import (
+            legacy_should_run_morning_notification,
+            should_run_daily_notification_gate4,
+        )
+
         for user in users:
-            # Get user's morning notification time preference
-            morning_time_fact = memory_repo.get_fact(
-                user_id=user.id,
-                domain="preferences",
-                key="morning_notification_time"
-            )
-            
-            # Default to 9 AM if no preference
-            morning_hour = MORNING_HOUR
-            morning_minute = 0
-            
-            if morning_time_fact:
-                try:
-                    time_data = json.loads(morning_time_fact.value_json)
-                    morning_hour = time_data.get("hour", MORNING_HOUR)
-                    morning_minute = time_data.get("minute", 0)
-                except (json.JSONDecodeError, KeyError, TypeError):
-                    pass  # Use defaults
-            
-            # Stage 16.6: Resolve user timezone for per-user scheduling
-            timezone_fact = memory_repo.get_fact(
-                user_id=user.id,
-                domain="preferences",
-                key="timezone"
-            )
-            tz_str = "Asia/Tehran"
-            if timezone_fact:
-                try:
-                    tz_data = json.loads(timezone_fact.value_json)
-                    tz_str = tz_data.get("tz", "Asia/Tehran") if isinstance(tz_data, dict) else str(tz_data)
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            try:
-                user_tz = pytz.timezone(tz_str)
-            except pytz.exceptions.UnknownTimeZoneError:
-                user_tz = pytz.timezone("Asia/Tehran")
-            now_local = now.replace(tzinfo=pytz.UTC).astimezone(user_tz)
-            
-            # Check if current time (in user's timezone) matches morning time (within 10 minute window)
-            current_hour = now_local.hour
-            current_minute = now_local.minute
-            
-            if current_hour != morning_hour:
-                continue  # Not the right hour
-            
-            if current_minute < morning_minute or current_minute >= morning_minute + MORNING_CHECK_INTERVAL_MIN:
-                continue  # Not within the 10-minute window
-            
+            now_utc = now.replace(tzinfo=pytz.UTC)
+            if gate4_daily_0800_enabled():
+                if not should_run_daily_notification_gate4(db, user, now_utc):
+                    continue
+            else:
+                if not legacy_should_run_morning_notification(
+                    memory_repo, user, now_utc, morning_hour_default=MORNING_HOUR
+                ):
+                    continue
+
             # Dedupe: Check if we already sent morning_summary today
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             # Release B2.1: Check for morning_brief type instead of legacy INSIGHT
@@ -232,7 +200,7 @@ def run_morning_notifications():
             )
             
             if notif:
-                print(f"[Sedi Scheduler] Morning brief created for user {user.id} at {morning_hour}:{morning_minute:02d}")
+                print(f"[Sedi Scheduler] Morning brief created for user {user.id}")
             else:
                 print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
     
