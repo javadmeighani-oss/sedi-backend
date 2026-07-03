@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
@@ -325,6 +325,36 @@ class DeviceSensor(Base):
     revoked_at = Column(DateTime, nullable=True)
 
     hub_device = relationship("Device", back_populates="sensors", foreign_keys=[hub_device_id])
+
+
+# -------------------- RawSignalBatch (Gate 5-B) --------------------
+class RawSignalBatch(Base):
+    """Append-only raw heart/ECG signal batches from Gadget Hub sensors. Store-only; no interpretation."""
+    __tablename__ = "raw_signal_batches"
+    __table_args__ = (
+        UniqueConstraint("dedupe_key", name="uq_raw_signal_batches_dedupe_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    hub_device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    hub_device_id_str = Column(String(255), nullable=False)
+    sensor_id = Column(Integer, ForeignKey("device_sensors.id", ondelete="RESTRICT"), nullable=False, index=True)
+    sensor_key = Column(String(255), nullable=False, index=True)
+    signal_type = Column(String(32), nullable=False)
+    sample_rate_hz = Column(Float, nullable=False)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=False)
+    sample_count = Column(Integer, nullable=False)
+    samples_json = Column(JSON, nullable=False)
+    metadata_json = Column(JSON, nullable=True)
+    quality_metadata_json = Column(JSON, nullable=True)
+    client_batch_id = Column(String(128), nullable=False)
+    dedupe_key = Column(String(255), nullable=False, unique=True)
+    received_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    storage_backend = Column(String(16), nullable=False, default="postgres_json", server_default="postgres_json")
+    object_storage_key = Column(String(512), nullable=True)
 
 
 # -------------------- UserProfileKnowledge --------------------

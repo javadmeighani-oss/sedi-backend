@@ -3,9 +3,35 @@
 Device Ingestion Schemas (Release C1)
 """
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Optional, Dict, Any, Literal, List
 from datetime import datetime
+
+
+RAW_SIGNAL_TYPES = frozenset({"ecg", "heart_rate_raw", "unknown"})
+
+FORBIDDEN_CLINICAL_FIELD_NAMES = frozenset(
+    {
+        "diagnosis",
+        "arrhythmia",
+        "afib",
+        "alert",
+        "severity",
+        "ml_score",
+        "interpretation",
+        "medication",
+        "treatment",
+        "dosage",
+    }
+)
+
+MAX_RAW_SAMPLE_COUNT = 10_000
+MIN_RAW_SAMPLE_COUNT = 1
+MIN_SAMPLE_RATE_HZ = 1.0
+MAX_SAMPLE_RATE_HZ = 2000.0
+MAX_CLIENT_BATCH_ID_LEN = 128
+MAX_METADATA_COMBINED_BYTES = 8 * 1024
+MAX_RAW_PAYLOAD_BYTES = 512 * 1024
 
 
 class DeviceIngestRequest(BaseModel):
@@ -79,6 +105,80 @@ class SensorSyncRequest(BaseModel):
 class SensorSyncResponse(BaseModel):
     ok: bool
     data: Optional[Dict[str, Any]] = None
+    error: Optional[Dict[str, Any]] = None
+
+
+class RawSignalBatchRequest(BaseModel):
+    """Gadget Hub raw signal batch ingest payload (store-only)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str = Field(..., min_length=1, description="Logical Gadget Hub device id")
+    sensor_key: str = Field(..., min_length=1, description="Registered sensor key on this hub")
+    client_batch_id: str = Field(..., min_length=1, max_length=MAX_CLIENT_BATCH_ID_LEN)
+    signal_type: Literal["ecg", "heart_rate_raw", "unknown"] = Field(
+        ..., description="Raw signal category (non-clinical)"
+    )
+    sample_rate_hz: float = Field(..., ge=MIN_SAMPLE_RATE_HZ, le=MAX_SAMPLE_RATE_HZ)
+    started_at: datetime = Field(..., description="Batch window start (device/hub time)")
+    ended_at: datetime = Field(..., description="Batch window end (device/hub time)")
+    sample_count: int = Field(..., ge=MIN_RAW_SAMPLE_COUNT, le=MAX_RAW_SAMPLE_COUNT)
+    samples: List[float] = Field(..., description="Numeric raw samples only")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Non-clinical hub batch metadata")
+    quality_metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Non-clinical quality flags (SNR, lead-off, etc.)"
+    )
+
+    @field_validator("samples")
+    @classmethod
+    def samples_must_be_numeric(cls, value: List[float]) -> List[float]:
+        for item in value:
+            if not isinstance(item, (int, float)):
+                raise ValueError("samples must contain numeric values only")
+        return [float(v) for v in value]
+
+    @model_validator(mode="after")
+    def validate_batch_consistency(self) -> "RawSignalBatchRequest":
+        if self.started_at >= self.ended_at:
+            raise ValueError("started_at must be before ended_at")
+        if len(self.samples) != self.sample_count:
+            raise ValueError("sample_count must match len(samples)")
+
+        for field_name, payload in (("metadata", self.metadata), ("quality_metadata", self.quality_metadata)):
+            if payload is None:
+                continue
+            for key in payload:
+                if key in FORBIDDEN_CLINICAL_FIELD_NAMES:
+                    raise ValueError(f"forbidden clinical field in {field_name}: {key}")
+
+        combined_meta_len = 0
+        if self.metadata is not None:
+            combined_meta_len += len(str(self.metadata).encode("utf-8"))
+        if self.quality_metadata is not None:
+            combined_meta_len += len(str(self.quality_metadata).encode("utf-8"))
+        if combined_meta_len > MAX_METADATA_COMBINED_BYTES:
+            raise ValueError("metadata and quality_metadata combined size exceeds limit")
+
+        samples_bytes = len(str(self.samples).encode("utf-8"))
+        if samples_bytes + combined_meta_len > MAX_RAW_PAYLOAD_BYTES:
+            raise ValueError("payload size exceeds limit")
+
+        return self
+
+
+class RawSignalBatchData(BaseModel):
+    batch_id: int
+    dedupe_key: str
+    received_at: datetime
+    sample_count: int
+    storage_backend: str = "postgres_json"
+    dedupe_hit: bool = False
+    message: Optional[str] = None
+
+
+class RawSignalBatchResponse(BaseModel):
+    ok: bool
+    data: Optional[RawSignalBatchData] = None
     error: Optional[Dict[str, Any]] = None
 
 
