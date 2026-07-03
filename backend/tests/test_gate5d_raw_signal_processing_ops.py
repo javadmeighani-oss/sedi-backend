@@ -119,6 +119,11 @@ def _ingest_batch(client: TestClient, token: str, client_batch_id: str = "batch-
     return r.json()["data"]["batch_id"]
 
 
+def _samples_transient_failure():
+    """Empty samples cause SAMPLES_EMPTY on process; valid JSON for Postgres."""
+    return []
+
+
 def _insert_batch_row(
     db,
     *,
@@ -293,7 +298,7 @@ def test_pending_runner_does_not_retry_failed_rows(client: TestClient, db, user,
         hub=hub,
         sensor=sensor,
         client_batch_id="batch-no-retry-pending",
-        samples=[float("nan")],
+        samples=_samples_transient_failure(),
     )
     first = process_raw_signal_batch(db, batch.id)
     assert first.processing_status == "failed"
@@ -317,7 +322,7 @@ def test_single_batch_failed_retry_default_false_returns_existing_failed(client:
         hub=hub,
         sensor=sensor,
         client_batch_id="batch-retry-default-false",
-        samples=[float("nan")],
+        samples=_samples_transient_failure(),
     )
     first = process_raw_signal_batch(db, batch.id, allow_retry=False)
     assert first.processing_status == "failed"
@@ -338,7 +343,7 @@ def test_single_batch_allow_retry_true_retries_transient_failed(client: TestClie
         hub=hub,
         sensor=sensor,
         client_batch_id="batch-retry-transient",
-        samples=[float("nan")],
+        samples=_samples_transient_failure(),
     )
     first = process_raw_signal_batch(db, batch.id, allow_retry=False)
     assert first.processing_status == "failed"
@@ -484,9 +489,7 @@ def test_scheduler_enabled_smoke_respects_limit_and_no_side_effects(
 
     with patch("backend.app.core.scheduler.get_db") as mock_get_db:
         mock_get_db.return_value = iter([db])
-        with patch.object(db, "execute") as mock_execute:
-            mock_execute.return_value.scalar.return_value = True
-            sched_mod.run_raw_signal_processing()
+        sched_mod.run_raw_signal_processing()
 
     features = db.query(RawSignalBatchFeature).count()
     assert features == 1
