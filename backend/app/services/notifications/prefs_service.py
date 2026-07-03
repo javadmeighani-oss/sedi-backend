@@ -28,6 +28,7 @@ def _defaults_read(user_id: int) -> NotificationPrefsRead:
         ),
         quiet_hours=QuietHoursRead(enabled=False, start=None, end=None),
         engagement_level=1,
+        daily_notification_time=None,
     )
 
 
@@ -47,6 +48,7 @@ def _row_to_read(row: NotificationPrefs) -> NotificationPrefsRead:
             end=row.quiet_end,
         ),
         engagement_level=row.engagement_level,
+        daily_notification_time=row.daily_notification_time,
     )
 
 
@@ -94,6 +96,9 @@ def upsert_prefs(db: Session, user_id: int, payload: NotificationPrefsUpdate) ->
 
     if "engagement_level" in update and update["engagement_level"] is not None:
         row.engagement_level = update["engagement_level"]
+
+    if "daily_notification_time" in update:
+        row.daily_notification_time = update["daily_notification_time"]
 
     db.add(row)
     db.commit()

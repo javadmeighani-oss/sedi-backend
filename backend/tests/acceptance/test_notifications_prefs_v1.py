@@ -60,6 +60,7 @@ def test_get_prefs_defaults_when_no_row(client: TestClient, prefs_user: User) ->
     qh = prefs["quiet_hours"]
     assert qh["enabled"] is False
     assert prefs["engagement_level"] == 1
+    assert prefs.get("daily_notification_time") is None
 
 
 def test_put_prefs_creates_and_returns(client: TestClient, prefs_user: User) -> None:

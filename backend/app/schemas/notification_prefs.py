@@ -50,14 +50,33 @@ class QuietHoursUpdate(BaseModel):
         return self
 
 
+def validate_hhmm_24h(value: str, *, field_name: str = "time") -> str:
+    """Validate strict 24-hour HH:MM (00:00–23:59)."""
+    text = (value or "").strip()
+    if not HHMM_REGEX.match(text):
+        raise ValueError(f"{field_name} must be HH:MM")
+    hour, minute = map(int, text.split(":"))
+    if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+        raise ValueError(f"{field_name} must be a valid 24-hour time")
+    return text
+
+
 class NotificationPrefsRead(BaseModel):
     user_id: int
     channels: NotificationChannelsRead = Field(default_factory=NotificationChannelsRead)
     quiet_hours: QuietHoursRead = Field(default_factory=QuietHoursRead)
     engagement_level: int = Field(ge=0, le=2, default=1)
+    daily_notification_time: Optional[str] = None
 
 
 class NotificationPrefsUpdate(BaseModel):
     channels: Optional[NotificationChannelsUpdate] = None
     quiet_hours: Optional[QuietHoursUpdate] = None
     engagement_level: Optional[int] = Field(None, ge=0, le=2)
+    daily_notification_time: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_daily_notification_time(self):
+        if self.daily_notification_time is not None:
+            validate_hhmm_24h(self.daily_notification_time, field_name="daily_notification_time")
+        return self

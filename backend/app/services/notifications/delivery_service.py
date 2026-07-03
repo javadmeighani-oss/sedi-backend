@@ -290,6 +290,27 @@ class DeliveryService:
 
         sent_count = 0
         for notification in pending:
+            from backend.app.services.gate4.policy_resolver import (
+                defer_notification_delivery,
+                evaluate_delivery_with_gate4_policy,
+            )
+
+            should_deliver, delivery_policy = evaluate_delivery_with_gate4_policy(
+                self.db,
+                notification=notification,
+                now_utc=now,
+            )
+            if not should_deliver:
+                defer_notification_delivery(notification, delivery_policy)
+                self.db.add(notification)
+                self.db.commit()
+                logger.info(
+                    "[NOTIF] delivery deferred notification_id=%s user_id=%s",
+                    notification.id,
+                    notification.user_id,
+                )
+                continue
+
             success = False
             last_err = None
             nid = notification.id

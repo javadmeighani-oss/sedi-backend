@@ -1243,6 +1243,38 @@ def submit_notification_feedback(
         legacy_event_type=event_type,
     )
 
+    gate4_feedback_summary = None
+    try:
+        from backend.app.services.gate4.feedback_policy import apply_feedback_policy
+        from backend.app.services.gate4.notification_contract import normalize_legacy_action
+
+        canonical_action = None
+        if action_id:
+            try:
+                canonical_action = normalize_legacy_action(str(action_id))
+            except ValueError:
+                canonical_action = None
+        elif eff_reaction:
+            try:
+                canonical_action = normalize_legacy_action(str(eff_reaction))
+            except ValueError:
+                canonical_action = None
+        if canonical_action:
+            gate4_feedback_summary = apply_feedback_policy(
+                db,
+                user_id=user_id,
+                notification=notification,
+                canonical_action=canonical_action,
+                template_key=getattr(notification, "template_key", None),
+                category=getattr(notification, "category", None),
+            )
+    except Exception:
+        _log.exception(
+            "[GATE4D6] feedback_policy_failed notification_id=%s user_id=%s",
+            notification_id,
+            user_id,
+        )
+
     db.commit()
     # B2 morning_brief path: need feedback_request (positive/negative/neutral)
     feedback_type = "positive" if eff_reaction == "like" else ("negative" if eff_reaction == "dislike" else "neutral")
@@ -1346,14 +1378,17 @@ def submit_notification_feedback(
                 except Exception as e:
                     print(f"[Feedback] Error adjusting morning time for user {user_id}: {e}")
     
-    return APIResponse(
-        ok=True,
-        data={
+    response_data = {
             "feedback_received": True,
             "message": "Feedback recorded successfully",
             "notification_id": notification_id,
             "feedback": feedback_request.feedback,
-        },
+        }
+    if gate4_feedback_summary is not None:
+        response_data["gate4_feedback_policy"] = gate4_feedback_summary
+    return APIResponse(
+        ok=True,
+        data=response_data,
     )
 
 

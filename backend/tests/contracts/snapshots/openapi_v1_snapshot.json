@@ -4132,6 +4132,17 @@
               }
             ]
           },
+          "daily_notification_time": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Daily Notification Time"
+          },
           "engagement_level": {
             "anyOf": [
               {
