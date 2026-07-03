@@ -120,8 +120,6 @@ async def chat(
         if chat_reminder_result.get("reason") == "needs_clarification":
             clarification = chat_reminder_result.get("clarification_message")
             if clarification:
-                from backend.app.schemas.interaction import InteractionResponse
-
                 return InteractionResponse(
                     reply=clarification,
                     user_id=user_id,
