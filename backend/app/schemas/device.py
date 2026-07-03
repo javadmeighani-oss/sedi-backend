@@ -4,7 +4,7 @@ Device Ingestion Schemas (Release C1)
 """
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, Dict, Any, Literal
+from typing import Optional, Dict, Any, Literal, List
 from datetime import datetime
 
 
@@ -40,9 +40,46 @@ class DeviceHeartbeatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     device_id: str = Field(..., description="Logical device id")
-    status: Optional[str] = Field(None, description="Optional device status")
-    battery: Optional[float] = Field(None, description="Optional battery level")
+    status: Optional[str] = Field(None, description="Optional device status (active/revoked)")
+    battery: Optional[float] = Field(None, description="Optional battery level (legacy field name)")
+    battery_level: Optional[float] = Field(None, description="Optional battery level (0-100)")
     temperature: Optional[float] = Field(None, description="Optional device temperature")
+    firmware_version: Optional[str] = Field(None, description="Gadget Hub firmware version")
+    hardware_version: Optional[str] = Field(None, description="Gadget Hub hardware version")
+    hub_status: Optional[str] = Field(None, description="Hub-reported operational status label")
+    last_sync_at: Optional[datetime] = Field(None, description="Last sensor sync time from hub")
+
+
+class SensorSyncItem(BaseModel):
+    """Single sensor reported by Gadget Hub during sync."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sensor_key: str = Field(..., min_length=1, description="Stable sensor id from hub")
+    sensor_type: str = Field(default="unknown", description="Sensor type (ecg, heart_rate, ...)")
+    display_name: Optional[str] = None
+    connection_status: str = Field(default="unknown")
+    battery_level: Optional[float] = None
+    firmware_version: Optional[str] = None
+    hardware_version: Optional[str] = None
+    capabilities: Optional[Dict[str, Any]] = None
+    last_seen_at: Optional[datetime] = None
+    last_signal_at: Optional[datetime] = None
+
+
+class SensorSyncRequest(BaseModel):
+    """Gadget Hub sensor registry sync payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str = Field(..., description="Logical Gadget Hub device id")
+    sensors: List[SensorSyncItem] = Field(default_factory=list, description="Sensors to upsert")
+
+
+class SensorSyncResponse(BaseModel):
+    ok: bool
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[Dict[str, Any]] = None
 
 
 class DeviceAcknowledgeRequest(BaseModel):

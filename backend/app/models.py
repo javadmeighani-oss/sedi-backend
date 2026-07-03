@@ -284,6 +284,47 @@ class Device(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     revoked_at = Column(DateTime, nullable=True)
     last_seen_at = Column(DateTime, nullable=True)
+    # Gate 5-A: Gadget Hub operational metadata (nullable for legacy devices)
+    battery_level = Column(Float, nullable=True)
+    firmware_version = Column(String(64), nullable=True)
+    hardware_version = Column(String(64), nullable=True)
+    hub_status = Column(String(32), nullable=True)
+    last_heartbeat_at = Column(DateTime, nullable=True)
+    last_sync_at = Column(DateTime, nullable=True)
+
+    sensors = relationship(
+        "DeviceSensor",
+        back_populates="hub_device",
+        cascade="all, delete-orphan",
+        foreign_keys="DeviceSensor.hub_device_id",
+    )
+
+
+# -------------------- DeviceSensor (Gate 5-A) --------------------
+class DeviceSensor(Base):
+    """Sensor registry reported by a Gadget Hub (Bluetooth peripherals)."""
+    __tablename__ = "device_sensors"
+    __table_args__ = (
+        UniqueConstraint("hub_device_id", "sensor_key", name="uq_device_sensors_hub_sensor_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    hub_device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    sensor_key = Column(String(255), nullable=False, index=True)
+    sensor_type = Column(String(64), nullable=False, default="unknown", server_default="unknown")
+    display_name = Column(String(255), nullable=True)
+    connection_status = Column(String(32), nullable=False, default="unknown", server_default="unknown")
+    capabilities_json = Column(Text, nullable=True)
+    battery_level = Column(Float, nullable=True)
+    firmware_version = Column(String(64), nullable=True)
+    hardware_version = Column(String(64), nullable=True)
+    last_seen_at = Column(DateTime, nullable=True)
+    last_signal_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+
+    hub_device = relationship("Device", back_populates="sensors", foreign_keys=[hub_device_id])
 
 
 # -------------------- UserProfileKnowledge --------------------

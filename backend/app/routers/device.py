@@ -16,8 +16,15 @@ from backend.app.schemas.device import (
     DeviceIngestResponse,
     DeviceHeartbeatRequest,
     DeviceAcknowledgeRequest,
+    SensorSyncRequest,
+    SensorSyncResponse,
 )
 from backend.app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
+from backend.app.services.gate5.gadget_hub_status import (
+    apply_heartbeat_metadata,
+    is_gadget_hub,
+    sync_hub_sensors,
+)
 from backend.app.core.device_auth import (
     get_device_token,
     authorize_device_or_legacy,
@@ -91,20 +98,31 @@ def device_heartbeat(
     device = authorize_operational_device(db=db, device_id=body.device_id, token=token)
 
     now = datetime.utcnow()
-    device.last_seen_at = now
+    battery_level = body.battery_level if body.battery_level is not None else body.battery
 
-    if body.status is not None:
-        device.status = str(body.status)
+    apply_heartbeat_metadata(
+        device,
+        now=now,
+        status=body.status,
+        battery_level=battery_level,
+        firmware_version=body.firmware_version,
+        hardware_version=body.hardware_version,
+        hub_status=body.hub_status,
+        last_sync_at=body.last_sync_at,
+    )
 
+    db.add(device)
     db.commit()
     db.refresh(device)
 
     logger.info(
-        "[DEVICE_HEARTBEAT] Updated device_id=%s user_id=%s last_seen_at=%s status=%s",
+        "[DEVICE_HEARTBEAT] Updated device_id=%s user_id=%s last_seen_at=%s status=%s battery=%s fw=%s",
         device.device_id,
         device.user_id,
         device.last_seen_at,
         device.status,
+        device.battery_level,
+        device.firmware_version,
     )
 
     return APIResponse(ok=True, data={"message": "Heartbeat received successfully."})
@@ -129,6 +147,34 @@ def acknowledge_command(
     )
 
     return APIResponse(ok=True, data={"acknowledged": True})
+
+
+@router.post("/sensors/sync", response_model=SensorSyncResponse)
+def sync_device_sensors(
+    body: SensorSyncRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(get_device_token),
+):
+    """
+    Sync sensor registry from Gadget Hub. Requires X-DEVICE-TOKEN.
+    Upserts sensors by sensor_key; no raw signal ingestion.
+    """
+    if not body.sensors:
+        return SensorSyncResponse(
+            ok=False,
+            error={"code": "EMPTY_SENSORS", "message": "At least one sensor is required"},
+        )
+
+    device = authorize_operational_device(db=db, device_id=body.device_id, token=token)
+    if not is_gadget_hub(device):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sensor sync is only allowed for Gadget Hub devices",
+        )
+
+    sensors_payload = [s.model_dump() for s in body.sensors]
+    result = sync_hub_sensors(db, device, sensors_payload)
+    return SensorSyncResponse(ok=True, data=result)
 
 
 @router.post("/ingest", response_model=DeviceIngestResponse)
