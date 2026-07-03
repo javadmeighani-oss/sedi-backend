@@ -10,9 +10,15 @@ from backend.app.schemas.devices import (
     DeviceRegisterRequest,
     DeviceRegisterResponse,
     DevicesListResponse,
+    HubStatusResponse,
 )
 from backend.app.routers.auth_otp import get_current_user
 from backend.app.services.gate1_access import caregiver_can_manage_dependent
+from backend.app.services.gate5.gadget_hub_status import (
+    GADGET_HUB_DEVICE_TYPE,
+    find_active_gadget_hub_for_user,
+    build_hub_status_payload,
+)
 
 router = APIRouter()
 
@@ -43,6 +49,19 @@ def register_device(
     """Register a device for the authenticated user. Returns plaintext token once."""
     user_id = auth_user.id
     subject_id = body.subject_user_id if body.subject_user_id is not None else user_id
+    requested_type = (body.device_type or "heart_rate").strip()
+
+    if requested_type == GADGET_HUB_DEVICE_TYPE:
+        active_hub = find_active_gadget_hub_for_user(db, user_id)
+        if active_hub is not None and active_hub.device_id != body.device_id:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "GADGET_HUB_ALREADY_REGISTERED",
+                    "message": "User already has an active Gadget Hub",
+                    "existing_device_id": active_hub.device_id,
+                },
+            )
 
     if subject_id != user_id:
         if not caregiver_can_manage_dependent(db, user_id, subject_id, require_device=True):
@@ -84,7 +103,7 @@ def register_device(
         user_id=user_id,
         subject_user_id=subject_id,
         device_id=body.device_id,
-        device_type=body.device_type or "heart_rate",
+        device_type=requested_type or "heart_rate",
         status="active",
         token_hash=hash_device_token(token),
         created_at=datetime.utcnow(),
@@ -123,6 +142,17 @@ def list_devices(
             }
         )
     return DevicesListResponse(ok=True, data={"devices": data, "count": len(data)})
+
+
+@router.get("/hub-status", response_model=HubStatusResponse)
+def get_gadget_hub_status(
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Return Gadget Hub operational status and registered sensors for the authenticated user."""
+    payload = build_hub_status_payload(db, auth_user.id)
+    return HubStatusResponse(ok=True, data=payload)
 
 
 @router.post("/{device_id}/revoke", response_model=DeviceRegisterResponse)

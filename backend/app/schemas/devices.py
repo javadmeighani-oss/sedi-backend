@@ -1,10 +1,10 @@
 # app/schemas/devices.py
 """
-Device Identity Schemas (Release C2)
+Device Identity Schemas (Release C2 + Gate 5-A Gadget Hub)
 """
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Any, Dict
 from datetime import datetime
 
 
@@ -12,7 +12,7 @@ class DeviceRegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     device_id: str = Field(..., description="Logical device id (e.g., Sedi001)")
-    device_type: Optional[str] = Field("heart_rate", description="Device type (v1 default: heart_rate)")
+    device_type: Optional[str] = Field("heart_rate", description="Device type (v1 default: heart_rate; use gadget_hub for Gadget Hub)")
     subject_user_id: Optional[int] = Field(
         None,
         description="User whose health data this device represents; defaults to authenticated user",
@@ -37,6 +37,42 @@ class DevicePublicInfo(BaseModel):
 
 
 class DevicesListResponse(BaseModel):
+    ok: bool
+    data: Optional[dict] = None
+    error: Optional[dict] = None
+
+
+HubOperationalStatus = Literal[
+    "not_registered", "connected", "recently_seen", "disconnected", "revoked", "unknown"
+]
+
+
+class GadgetHubStatusInfo(BaseModel):
+    device_id: str
+    device_type: str
+    status: HubOperationalStatus
+    last_seen_at: Optional[datetime] = None
+    last_heartbeat_at: Optional[datetime] = None
+    last_sync_at: Optional[datetime] = None
+    battery_level: Optional[float] = None
+    firmware_version: Optional[str] = None
+    hardware_version: Optional[str] = None
+
+
+class SensorStatusInfo(BaseModel):
+    sensor_key: str
+    sensor_type: str
+    display_name: Optional[str] = None
+    connection_status: str
+    battery_level: Optional[float] = None
+    firmware_version: Optional[str] = None
+    hardware_version: Optional[str] = None
+    last_seen_at: Optional[datetime] = None
+    last_signal_at: Optional[datetime] = None
+    capabilities: Optional[Dict[str, Any]] = None
+
+
+class HubStatusResponse(BaseModel):
     ok: bool
     data: Optional[dict] = None
     error: Optional[dict] = None

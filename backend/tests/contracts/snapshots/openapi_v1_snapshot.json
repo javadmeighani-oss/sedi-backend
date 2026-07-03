@@ -1040,13 +1040,74 @@
                 "type": "number"
               }
             ],
-            "description": "Optional battery level",
+            "description": "Optional battery level (legacy field name)",
             "title": "Battery"
+          },
+          "battery_level": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Optional battery level (0-100)",
+            "title": "Battery Level"
           },
           "device_id": {
             "description": "Logical device id",
             "title": "Device Id",
             "type": "string"
+          },
+          "firmware_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Gadget Hub firmware version",
+            "title": "Firmware Version"
+          },
+          "hardware_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Gadget Hub hardware version",
+            "title": "Hardware Version"
+          },
+          "hub_status": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Hub-reported operational status label",
+            "title": "Hub Status"
+          },
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last sensor sync time from hub",
+            "title": "Last Sync At"
           },
           "status": {
             "anyOf": [
@@ -1057,7 +1118,7 @@
                 "type": "string"
               }
             ],
-            "description": "Optional device status",
+            "description": "Optional device status (active/revoked)",
             "title": "Status"
           },
           "temperature": {
@@ -1215,7 +1276,7 @@
               }
             ],
             "default": "heart_rate",
-            "description": "Device type (v1 default: heart_rate)",
+            "description": "Device type (v1 default: heart_rate; use gadget_hub for Gadget Hub)",
             "title": "Device Type"
           },
           "subject_user_id": {
@@ -2535,6 +2596,43 @@
           "user_message"
         ],
         "title": "HistoryTurnItem",
+        "type": "object"
+      },
+      "HubStatusResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "HubStatusResponse",
         "type": "object"
       },
       "IngestionRejectIn": {
@@ -4616,6 +4714,175 @@
           "message"
         ],
         "title": "SafetyCheckIn",
+        "type": "object"
+      },
+      "SensorSyncItem": {
+        "additionalProperties": false,
+        "description": "Single sensor reported by Gadget Hub during sync.",
+        "properties": {
+          "battery_level": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Battery Level"
+          },
+          "capabilities": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capabilities"
+          },
+          "connection_status": {
+            "default": "unknown",
+            "title": "Connection Status",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "firmware_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Firmware Version"
+          },
+          "hardware_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Hardware Version"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "last_signal_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Signal At"
+          },
+          "sensor_key": {
+            "description": "Stable sensor id from hub",
+            "minLength": 1,
+            "title": "Sensor Key",
+            "type": "string"
+          },
+          "sensor_type": {
+            "default": "unknown",
+            "description": "Sensor type (ecg, heart_rate, ...)",
+            "title": "Sensor Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sensor_key"
+        ],
+        "title": "SensorSyncItem",
+        "type": "object"
+      },
+      "SensorSyncRequest": {
+        "additionalProperties": false,
+        "description": "Gadget Hub sensor registry sync payload.",
+        "properties": {
+          "device_id": {
+            "description": "Logical Gadget Hub device id",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "sensors": {
+            "description": "Sensors to upsert",
+            "items": {
+              "$ref": "#/components/schemas/SensorSyncItem"
+            },
+            "title": "Sensors",
+            "type": "array"
+          }
+        },
+        "required": [
+          "device_id"
+        ],
+        "title": "SensorSyncRequest",
+        "type": "object"
+      },
+      "SensorSyncResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "SensorSyncResponse",
         "type": "object"
       },
       "SymptomReportIn": {
@@ -6836,6 +7103,59 @@
         ]
       }
     },
+    "/device/sensors/sync": {
+      "post": {
+        "description": "Sync sensor registry from Gadget Hub. Requires X-DEVICE-TOKEN.\nUpserts sensors by sensor_key; no raw signal ingestion.",
+        "operationId": "sync_device_sensors_device_sensors_sync_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorSyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorSyncResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sync Device Sensors",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
     "/devices": {
       "get": {
         "description": "List devices owned by the authenticated user.",
@@ -6858,6 +7178,33 @@
           }
         ],
         "summary": "List Devices",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/hub-status": {
+      "get": {
+        "description": "Return Gadget Hub operational status and registered sensors for the authenticated user.",
+        "operationId": "get_gadget_hub_status_devices_hub_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HubStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Gadget Hub Status",
         "tags": [
           "Devices"
         ]
