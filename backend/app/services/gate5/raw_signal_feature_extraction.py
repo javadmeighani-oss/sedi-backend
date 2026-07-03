@@ -1,9 +1,10 @@
-"""Gate 5-C — Orchestration for raw signal batch technical feature extraction."""
+"""Gate 5-C/D — Orchestration for raw signal batch technical feature extraction."""
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional
 
@@ -15,10 +16,13 @@ from backend.app.services.gate5.raw_signal_feature_compute import (
     compute_raw_signal_features,
 )
 from backend.app.services.gate5.raw_signal_ingestion import STORAGE_BACKEND_POSTGRES_JSON
+from backend.app.services.gate5.raw_signal_processing_flags import raw_signal_processing_max_limit
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PROCESSING_VERSION = "gate5c_v1"
+PERMANENT_FAILURE_CODES = frozenset({"OBJECT_STORAGE_NOT_SUPPORTED"})
+CANDIDATE_IDS_LOG_LIMIT = 20
 
 STATUS_PROCESSING = "processing"
 STATUS_COMPLETED = "completed"
@@ -53,10 +57,58 @@ class ProcessPendingSummary:
     failed: int
     skipped: int
     processing_version: str
+    effective_limit: int
+    dry_run: bool = False
+    duration_ms: int = 0
+    candidate_batch_ids: List[int] = field(default_factory=list)
+    source: str = "manual_ops"
+
+
+@dataclass
+class RawSignalBatchStatus:
+    batch_id: int
+    has_batch: bool
+    processing_version: str
+    feature_id: Optional[int] = None
+    processing_status: Optional[str] = None
+    error_code: Optional[str] = None
+    processed_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
 
 
 def _now() -> datetime:
     return datetime.utcnow()
+
+
+def _resolve_effective_limit(request_limit: int, max_limit: Optional[int] = None) -> int:
+    effective = max_limit if max_limit is not None else raw_signal_processing_max_limit()
+    if request_limit > effective:
+        raise RawSignalFeatureExtractionError(
+            "LIMIT_EXCEEDS_MAX",
+            f"requested limit {request_limit} exceeds effective max {effective}",
+            status_code=400,
+        )
+    return effective
+
+
+def _query_pending_batches(
+    db: Session,
+    *,
+    processing_version: str,
+    limit: int,
+) -> List[RawSignalBatch]:
+    return (
+        db.query(RawSignalBatch)
+        .outerjoin(
+            RawSignalBatchFeature,
+            (RawSignalBatchFeature.raw_signal_batch_id == RawSignalBatch.id)
+            & (RawSignalBatchFeature.processing_version == processing_version),
+        )
+        .filter(RawSignalBatchFeature.id.is_(None))
+        .order_by(RawSignalBatch.id.asc())
+        .limit(limit)
+        .all()
+    )
 
 
 def _get_existing_feature(
@@ -141,16 +193,54 @@ def _to_result(row: RawSignalBatchFeature, *, skipped: bool = False) -> ProcessB
     )
 
 
+def get_raw_signal_batch_processing_status(
+    db: Session,
+    batch_id: int,
+    *,
+    processing_version: str = DEFAULT_PROCESSING_VERSION,
+) -> RawSignalBatchStatus:
+    """Metadata-only status for one batch; no samples or feature payloads."""
+    batch = db.query(RawSignalBatch).filter(RawSignalBatch.id == batch_id).first()
+    if batch is None:
+        return RawSignalBatchStatus(
+            batch_id=batch_id,
+            has_batch=False,
+            processing_version=processing_version,
+        )
+
+    feature = _get_existing_feature(db, batch_id=batch_id, processing_version=processing_version)
+    if feature is None:
+        return RawSignalBatchStatus(
+            batch_id=batch_id,
+            has_batch=True,
+            processing_version=processing_version,
+        )
+
+    return RawSignalBatchStatus(
+        batch_id=batch_id,
+        has_batch=True,
+        processing_version=processing_version,
+        feature_id=feature.id,
+        processing_status=feature.processing_status,
+        error_code=feature.error_code,
+        processed_at=feature.processed_at,
+        created_at=feature.created_at,
+    )
+
+
 def process_raw_signal_batch(
     db: Session,
     batch_id: int,
     *,
     processing_version: str = DEFAULT_PROCESSING_VERSION,
     force: bool = False,
+    allow_retry: bool = False,
+    source: str = "manual_ops",
 ) -> ProcessBatchResult:
     """
     Extract technical features for one raw signal batch.
     Idempotent for completed rows at the same processing_version.
+    Failed rows are skipped unless allow_retry=True (except permanent failures).
     """
     if force:
         raise RawSignalFeatureExtractionError(
@@ -171,16 +261,30 @@ def process_raw_signal_batch(
     existing = _get_existing_feature(db, batch_id=batch_id, processing_version=processing_version)
     if existing is not None and existing.processing_status == STATUS_COMPLETED:
         logger.info(
-            "[RAW_SIGNAL_FEATURE] SKIP batch_id=%s version=%s feature_id=%s",
+            "[RAW_SIGNAL_FEATURE] SKIP source=%s batch_id=%s version=%s feature_id=%s",
+            source,
             batch_id,
             processing_version,
             existing.id,
         )
         return _to_result(existing, skipped=True)
 
+    if existing is not None and existing.processing_status == STATUS_FAILED:
+        if existing.error_code in PERMANENT_FAILURE_CODES or not allow_retry:
+            logger.info(
+                "[RAW_SIGNAL_FEATURE] SKIP source=%s batch_id=%s version=%s status=failed "
+                "allow_retry=%s error=%s",
+                source,
+                batch_id,
+                processing_version,
+                allow_retry,
+                existing.error_code,
+            )
+            return _to_result(existing, skipped=True)
+
     if batch.storage_backend != STORAGE_BACKEND_POSTGRES_JSON:
         if existing is not None and existing.processing_status == STATUS_FAILED:
-            if existing.error_code == "OBJECT_STORAGE_NOT_SUPPORTED":
+            if existing.error_code in PERMANENT_FAILURE_CODES:
                 return _to_result(existing, skipped=True)
         row = existing
         if row is None:
@@ -199,7 +303,8 @@ def process_raw_signal_batch(
             now=now,
         )
         logger.info(
-            "[RAW_SIGNAL_FEATURE] FAILED batch_id=%s version=%s error=%s",
+            "[RAW_SIGNAL_FEATURE] FAILED source=%s batch_id=%s version=%s error=%s",
+            source,
             batch_id,
             processing_version,
             row.error_code,
@@ -248,7 +353,8 @@ def process_raw_signal_batch(
             now=_now(),
         )
         logger.info(
-            "[RAW_SIGNAL_FEATURE] FAILED batch_id=%s version=%s error=%s",
+            "[RAW_SIGNAL_FEATURE] FAILED source=%s batch_id=%s version=%s error=%s",
+            source,
             batch_id,
             processing_version,
             exc.code,
@@ -266,7 +372,8 @@ def process_raw_signal_batch(
     db.refresh(row)
 
     logger.info(
-        "[RAW_SIGNAL_FEATURE] COMPLETED batch_id=%s version=%s feature_id=%s",
+        "[RAW_SIGNAL_FEATURE] COMPLETED source=%s batch_id=%s version=%s feature_id=%s",
+        source,
         batch_id,
         processing_version,
         row.id,
@@ -277,35 +384,67 @@ def process_raw_signal_batch(
 def process_pending_raw_signal_batches(
     db: Session,
     *,
-    limit: int = 50,
+    limit: int = 10,
     processing_version: str = DEFAULT_PROCESSING_VERSION,
+    dry_run: bool = False,
+    source: str = "manual_ops",
+    max_limit: Optional[int] = None,
 ) -> ProcessPendingSummary:
-    """Process batches that do not yet have a feature row for the version."""
-    pending_batches: List[RawSignalBatch] = (
-        db.query(RawSignalBatch)
-        .outerjoin(
-            RawSignalBatchFeature,
-            (RawSignalBatchFeature.raw_signal_batch_id == RawSignalBatch.id)
-            & (RawSignalBatchFeature.processing_version == processing_version),
-        )
-        .filter(RawSignalBatchFeature.id.is_(None))
-        .order_by(RawSignalBatch.id.asc())
-        .limit(limit)
-        .all()
+    """
+    Process batches that do not yet have a feature row for the version.
+    Never retries failed batches (they already have a feature row).
+    """
+    t0 = time.perf_counter()
+    effective_limit = _resolve_effective_limit(limit, max_limit=max_limit)
+    pending_batches = _query_pending_batches(
+        db,
+        processing_version=processing_version,
+        limit=effective_limit,
     )
+    candidate_ids = [b.id for b in pending_batches]
+
+    if dry_run:
+        duration_ms = int((time.perf_counter() - t0) * 1000)
+        logger.info(
+            "[RAW_SIGNAL_FEATURE] DRY_RUN source=%s dry_run=True limit=%s effective_limit=%s "
+            "version=%s candidates=%s candidate_ids=%s duration_ms=%s",
+            source,
+            limit,
+            effective_limit,
+            processing_version,
+            len(candidate_ids),
+            candidate_ids[:CANDIDATE_IDS_LOG_LIMIT],
+            duration_ms,
+        )
+        return ProcessPendingSummary(
+            processed=0,
+            completed=0,
+            failed=0,
+            skipped=0,
+            processing_version=processing_version,
+            effective_limit=effective_limit,
+            dry_run=True,
+            duration_ms=duration_ms,
+            candidate_batch_ids=candidate_ids,
+            source=source,
+        )
 
     processed = 0
     completed = 0
     failed = 0
     skipped = 0
+    processed_ids: List[int] = []
 
     for batch in pending_batches:
         result = process_raw_signal_batch(
             db,
             batch.id,
             processing_version=processing_version,
+            allow_retry=False,
+            source=source,
         )
         processed += 1
+        processed_ids.append(batch.id)
         if result.skipped:
             skipped += 1
         elif result.processing_status == STATUS_COMPLETED:
@@ -313,10 +452,32 @@ def process_pending_raw_signal_batches(
         elif result.processing_status == STATUS_FAILED:
             failed += 1
 
+    duration_ms = int((time.perf_counter() - t0) * 1000)
+    logger.info(
+        "[RAW_SIGNAL_FEATURE] PENDING source=%s dry_run=False limit=%s effective_limit=%s "
+        "version=%s processed=%s completed=%s failed=%s skipped=%s "
+        "batch_ids=%s duration_ms=%s",
+        source,
+        limit,
+        effective_limit,
+        processing_version,
+        processed,
+        completed,
+        failed,
+        skipped,
+        processed_ids[:CANDIDATE_IDS_LOG_LIMIT],
+        duration_ms,
+    )
+
     return ProcessPendingSummary(
         processed=processed,
         completed=completed,
         failed=failed,
         skipped=skipped,
         processing_version=processing_version,
+        effective_limit=effective_limit,
+        dry_run=False,
+        duration_ms=duration_ms,
+        candidate_batch_ids=processed_ids,
+        source=source,
     )

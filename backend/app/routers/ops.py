@@ -4,13 +4,16 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Header, HTTPException, Depends
+from fastapi import APIRouter, Header, HTTPException, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.database import get_db
 from backend.app.schemas.raw_signal_ops import (
+    DEFAULT_PROCESSING_VERSION,
+    RawSignalBatchStatusData,
+    RawSignalBatchStatusResponse,
     RawSignalProcessBatchData,
     RawSignalProcessBatchRequest,
     RawSignalProcessBatchResponse,
@@ -20,6 +23,7 @@ from backend.app.schemas.raw_signal_ops import (
 )
 from backend.app.services.gate5.raw_signal_feature_extraction import (
     RawSignalFeatureExtractionError,
+    get_raw_signal_batch_processing_status,
     process_pending_raw_signal_batches,
     process_raw_signal_batch,
 )
@@ -65,6 +69,12 @@ def _device_events_24h(db: Session, since: datetime) -> int | None:
     if hasattr(event_model, "created_at"):
         return db.query(event_model).filter(event_model.created_at >= since).count()
     return None
+
+
+def _raise_extraction_error(exc: RawSignalFeatureExtractionError) -> None:
+    if exc.code == "LIMIT_EXCEEDS_MAX":
+        raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
+    raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
 
 @router.get("/status")
@@ -131,11 +141,17 @@ def ops_process_pending_raw_signals(
     Admin-only: process pending raw signal batches (technical features only).
     Does not expose raw samples or create notifications.
     """
-    summary = process_pending_raw_signal_batches(
-        db,
-        limit=body.limit,
-        processing_version=body.processing_version,
-    )
+    try:
+        summary = process_pending_raw_signal_batches(
+            db,
+            limit=body.limit,
+            processing_version=body.processing_version,
+            dry_run=body.dry_run,
+            source="manual_ops",
+        )
+    except RawSignalFeatureExtractionError as exc:
+        _raise_extraction_error(exc)
+
     return RawSignalProcessPendingResponse(
         ok=True,
         data=RawSignalProcessPendingData(
@@ -144,6 +160,10 @@ def ops_process_pending_raw_signals(
             failed=summary.failed,
             skipped=summary.skipped,
             processing_version=summary.processing_version,
+            effective_limit=summary.effective_limit,
+            dry_run=summary.dry_run,
+            duration_ms=summary.duration_ms,
+            candidate_batch_ids=summary.candidate_batch_ids,
         ),
     )
 
@@ -164,9 +184,11 @@ def ops_process_raw_signal_batch(
             db,
             batch_id,
             processing_version=body.processing_version,
+            allow_retry=body.allow_retry,
+            source="manual_ops",
         )
     except RawSignalFeatureExtractionError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        _raise_extraction_error(exc)
 
     return RawSignalProcessBatchResponse(
         ok=True,
@@ -175,5 +197,36 @@ def ops_process_raw_signal_batch(
             feature_id=result.feature_id,
             processing_status=result.processing_status,
             processing_version=result.processing_version,
+            skipped=result.skipped,
+        ),
+    )
+
+
+@router.get("/raw-signals/status/{batch_id}", response_model=RawSignalBatchStatusResponse)
+def ops_raw_signal_batch_status(
+    batch_id: int,
+    _admin: None = Depends(require_admin),
+    db: Session = Depends(get_db),
+    processing_version: str = Query(default=DEFAULT_PROCESSING_VERSION, max_length=32),
+):
+    """
+    Admin-only: processing metadata for one raw signal batch (no samples or feature payloads).
+    """
+    status = get_raw_signal_batch_processing_status(
+        db,
+        batch_id,
+        processing_version=processing_version,
+    )
+    return RawSignalBatchStatusResponse(
+        ok=True,
+        data=RawSignalBatchStatusData(
+            batch_id=status.batch_id,
+            has_batch=status.has_batch,
+            processing_version=status.processing_version,
+            feature_id=status.feature_id,
+            processing_status=status.processing_status,
+            error_code=status.error_code,
+            processed_at=status.processed_at,
+            created_at=status.created_at,
         ),
     )
