@@ -16,7 +16,13 @@ psql_exec() {
 }
 
 count_value() {
-  psql_exec -t -A -c "$1" | tr -d '[:space:]' | grep -Eo '[0-9]+' | tail -1
+  local raw
+  raw="$(psql_exec -t -A -c "$1" | tr -d '[:space:]')"
+  if [ -z "${raw}" ]; then
+    echo ""
+    return 0
+  fi
+  echo "${raw}" | grep -Eo '[0-9]+' | tail -1
 }
 
 load_admin_token() {
