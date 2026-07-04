@@ -1,0 +1,52 @@
+# Gate 5 — Controlled operational smoke (production, workflow_dispatch only).
+name: Gate 5 Operational Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate5-smoke:
+    name: Gate 5 controlled operational smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload smoke script
+        run: |
+          scp -i ~/.ssh/sedi_deploy_key \
+            -P "${{ secrets.SEDI_PORT }}" \
+            backend/scripts/gate5_operational_smoke_production.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:/tmp/gate5_operational_smoke_production.sh"
+
+      - name: Run Gate 5 operational smoke
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -Eeuo pipefail
+             chmod +x /tmp/gate5_operational_smoke_production.sh
+             /tmp/gate5_operational_smoke_production.sh all
+            '
+
+      - name: Smoke summary
+        if: always()
+        run: |
+          echo "## Gate 5 Operational Smoke" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Scope:** QA/synthetic controlled first-processing validation only" >> $GITHUB_STEP_SUMMARY
+          echo "**Scheduler:** remains OFF (no env changes)" >> $GITHUB_STEP_SUMMARY
