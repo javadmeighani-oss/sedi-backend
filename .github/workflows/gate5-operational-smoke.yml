@@ -25,22 +25,16 @@ jobs:
           chmod 600 ~/.ssh/sedi_deploy_key
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Upload smoke script
-        run: |
-          scp -i ~/.ssh/sedi_deploy_key \
-            -P "${{ secrets.SEDI_PORT }}" \
-            backend/scripts/gate5_operational_smoke_production.sh \
-            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:/tmp/gate5_operational_smoke_production.sh"
-
       - name: Run Gate 5 operational smoke
         run: |
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             'set -Eeuo pipefail
+             cat > /tmp/gate5_operational_smoke_production.sh
              chmod +x /tmp/gate5_operational_smoke_production.sh
              /tmp/gate5_operational_smoke_production.sh all
-            '
+            ' < backend/scripts/gate5_operational_smoke_production.sh
 
       - name: Smoke summary
         if: always()
