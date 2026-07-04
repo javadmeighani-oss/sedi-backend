@@ -27,14 +27,15 @@ jobs:
 
       - name: Run Gate 5 operational smoke
         run: |
+          SMOKE_B64="$(base64 -w 0 backend/scripts/gate5_operational_smoke_production.sh)"
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            'set -Eeuo pipefail
-             cat > /tmp/gate5_operational_smoke_production.sh
+            "set -Eeuo pipefail
+             echo '${SMOKE_B64}' | base64 -d > /tmp/gate5_operational_smoke_production.sh
              chmod +x /tmp/gate5_operational_smoke_production.sh
              /tmp/gate5_operational_smoke_production.sh all
-            ' < backend/scripts/gate5_operational_smoke_production.sh
+            "
 
       - name: Smoke summary
         if: always()
