@@ -80,6 +80,61 @@ phase_unauth() {
   assert_http_code "unauth_status" "403" "$code"
 }
 
+bootstrap_qa_gadget_context() {
+  echo "=== GATE5 SMOKE: QA GADGET BOOTSTRAP ==="
+  local qa_user_id hub_id sensor_id qa_token_hash
+  qa_user_id="$(count_value "SELECT id FROM users WHERE name = 'Gate5 QA Smoke' ORDER BY id ASC LIMIT 1;")"
+  if [ -z "${qa_user_id}" ]; then
+    qa_user_id="$(count_value "
+      INSERT INTO users (name, secret_key, preferred_language, account_type, created_at)
+      VALUES ('Gate5 QA Smoke', 'qa-no-login-gate5-smoke', 'en', 'normal', NOW())
+      RETURNING id;
+    ")"
+    echo "qa_user_created=${qa_user_id}"
+  else
+    echo "qa_user_existing=${qa_user_id}"
+  fi
+
+  qa_token_hash="$(python3 -c "import hashlib; print(hashlib.sha256(b'gate5-qa-smoke-device-token').hexdigest())")"
+  hub_id="$(count_value "SELECT id FROM devices WHERE device_id = 'gate5-qa-smoke-hub' LIMIT 1;")"
+  if [ -z "${hub_id}" ]; then
+    hub_id="$(count_value "
+      INSERT INTO devices (user_id, device_id, device_type, status, token_hash, created_at)
+      VALUES (${qa_user_id}, 'gate5-qa-smoke-hub', 'gadget_hub', 'active', '${qa_token_hash}', NOW())
+      RETURNING id;
+    ")"
+    echo "qa_hub_created=${hub_id}"
+  else
+    echo "qa_hub_existing=${hub_id}"
+  fi
+
+  sensor_id="$(count_value "
+    SELECT id FROM device_sensors
+    WHERE hub_device_id = ${hub_id} AND sensor_key = 'gate5-qa-ecg-001'
+    LIMIT 1;
+  ")"
+  if [ -z "${sensor_id}" ]; then
+    sensor_id="$(count_value "
+      INSERT INTO device_sensors (
+        hub_device_id, sensor_key, sensor_type, connection_status, created_at, updated_at
+      ) VALUES (
+        ${hub_id}, 'gate5-qa-ecg-001', 'ecg', 'connected', NOW(), NOW()
+      )
+      RETURNING id;
+    ")"
+    echo "qa_sensor_created=${sensor_id}"
+  else
+    echo "qa_sensor_existing=${sensor_id}"
+  fi
+
+  QA_HUB_ID="${hub_id}"
+  QA_HUB_DEVICE_ID="gate5-qa-smoke-hub"
+  QA_USER_ID="${qa_user_id}"
+  QA_SENSOR_ID="${sensor_id}"
+  QA_SENSOR_KEY="gate5-qa-ecg-001"
+  export QA_HUB_ID QA_HUB_DEVICE_ID QA_USER_ID QA_SENSOR_ID QA_SENSOR_KEY
+}
+
 find_or_create_qa_batch() {
   echo "=== GATE5 SMOKE: QA BATCH SELECTION ==="
   QA_BATCH_ID="$(count_value "
@@ -117,11 +172,15 @@ find_or_create_qa_batch() {
   ")"
 
   if [ -z "${hub_line}" ]; then
-    echo "ERROR: No active Gadget Hub with ECG sensor found for synthetic QA batch"
-    exit 2
+    bootstrap_qa_gadget_context
+    hub_id="${QA_HUB_ID}"
+    hub_device_id="${QA_HUB_DEVICE_ID}"
+    user_id="${QA_USER_ID}"
+    sensor_id="${QA_SENSOR_ID}"
+    sensor_key="${QA_SENSOR_KEY}"
+  else
+    IFS='|' read -r hub_id hub_device_id user_id sensor_id sensor_key <<< "${hub_line}"
   fi
-
-  IFS='|' read -r hub_id hub_device_id user_id sensor_id sensor_key <<< "${hub_line}"
   ts="$(date +%Y%m%d_%H%M%S)"
   client_batch_id="gate5-qa-smoke-${ts}"
   dedupe_key="raw_signal:${hub_id}:${sensor_key}:${client_batch_id}"
