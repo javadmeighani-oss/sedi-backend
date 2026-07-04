@@ -8,9 +8,10 @@ on:
       - "backend/app/core/scheduler.py"
       - "backend/app/routers/ops.py"
       - "backend/app/schemas/raw_signal_ops.py"
+      - "backend/app/schemas/ml_ops.py"
       - "backend/app/services/gate5/**"
-      - "backend/tests/test_gate5d_raw_signal_processing_ops.py"
-      - "backend/tests/test_gate5c_raw_signal_feature_extraction.py"
+      - "backend/ml_research/**"
+      - "backend/tests/test_gate5*_*.py"
       - "backend/tests/contracts/test_v1_openapi_snapshot.py"
       - "backend/tests/contracts/snapshots/openapi_v1_snapshot.json"
       - "backend/alembic/**"
@@ -23,7 +24,7 @@ jobs:
   gate5-db-tests:
     name: Gate 5 DB-backed tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -48,6 +49,8 @@ jobs:
       ADMIN_TOKEN: test-admin-token
       SEDI_DISABLE_SCHEDULER: "true"
       SEDI_RAW_SIGNAL_PROCESSING_ENABLED: "false"
+      SEDI_GATE5_ML_SHADOW_ENABLED: "true"
+      SEDI_GATE5_ML_PROCESSING_ENABLED: "true"
       DEVICE_AUTH_MODE: db_only
 
     steps:
@@ -95,13 +98,35 @@ jobs:
 
       - name: Compile
         run: |
-          python -m compileall -q backend/app backend/tests
+          python -m compileall -q backend/app backend/tests backend/ml_research
+
+      - name: Run Gate 5 ML tests
+        env:
+          ADMIN_TOKEN: test-gate5e-admin
+          SEDI_GATE5_ML_SHADOW_ENABLED: "true"
+          SEDI_GATE5_ML_PROCESSING_ENABLED: "true"
+        run: |
+          pytest backend/tests/test_gate5e_ml_registry.py -q
+          pytest backend/tests/test_gate5e_shadow_inference.py -q
+          pytest backend/tests/test_gate5f_baseline_anomaly.py -q
+
+      - name: Run Gate 5 care bridge tests
+        env:
+          ADMIN_TOKEN: test-gate5g-admin
+          SEDI_GATE5_ML_SHADOW_ENABLED: "true"
+          SEDI_GATE5_ML_PROCESSING_ENABLED: "true"
+        run: |
+          pytest backend/tests/test_gate5g_ml_care_bridge.py -q
 
       - name: Run Gate 5.4 DB tests
+        env:
+          ADMIN_TOKEN: test-gate5d-admin
         run: |
           pytest backend/tests/test_gate5d_raw_signal_processing_ops.py -q
 
       - name: Run Gate 5.3 regression tests
+        env:
+          ADMIN_TOKEN: test-gate5d-admin
         run: |
           pytest backend/tests/test_gate5c_raw_signal_feature_extraction.py -q
 

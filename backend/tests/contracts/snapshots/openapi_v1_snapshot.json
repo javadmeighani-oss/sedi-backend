@@ -4157,6 +4157,800 @@
         "title": "MemorySaveRequest",
         "type": "object"
       },
+      "MlBaselineRunData": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "feature_id": {
+            "title": "Feature Id",
+            "type": "integer"
+          },
+          "features_summary": {
+            "additionalProperties": true,
+            "title": "Features Summary",
+            "type": "object"
+          },
+          "inference_record_id": {
+            "title": "Inference Record Id",
+            "type": "integer"
+          },
+          "output_type": {
+            "title": "Output Type",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "confidence",
+          "feature_id",
+          "features_summary",
+          "inference_record_id",
+          "output_type",
+          "score"
+        ],
+        "title": "MlBaselineRunData",
+        "type": "object"
+      },
+      "MlBaselineRunResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MlBaselineRunData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "MlBaselineRunResponse",
+        "type": "object"
+      },
+      "MlCareBridgeData": {
+        "properties": {
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "bridge_enabled": {
+            "title": "Bridge Enabled",
+            "type": "boolean"
+          },
+          "care_suggestion_text": {
+            "title": "Care Suggestion Text",
+            "type": "string"
+          },
+          "chat_context_enabled": {
+            "title": "Chat Context Enabled",
+            "type": "boolean"
+          },
+          "device_event_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Event Id"
+          },
+          "dry_run": {
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "interaction_event_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interaction Event Id"
+          },
+          "notification_enabled": {
+            "title": "Notification Enabled",
+            "type": "boolean"
+          },
+          "notification_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notification Id"
+          },
+          "output_type": {
+            "title": "Output Type",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bridge_enabled",
+          "care_suggestion_text",
+          "chat_context_enabled",
+          "dry_run",
+          "notification_enabled",
+          "output_type",
+          "record_id"
+        ],
+        "title": "MlCareBridgeData",
+        "type": "object"
+      },
+      "MlCareBridgeResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MlCareBridgeData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "MlCareBridgeResponse",
+        "type": "object"
+      },
+      "MlInferenceCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "features_summary_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Features Summary Json"
+          },
+          "model_id": {
+            "minimum": 1.0,
+            "title": "Model Id",
+            "type": "integer"
+          },
+          "output_type": {
+            "maxLength": 64,
+            "title": "Output Type",
+            "type": "string"
+          },
+          "raw_output_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Output Json"
+          },
+          "raw_signal_batch_feature_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Signal Batch Feature Id"
+          },
+          "raw_signal_batch_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Signal Batch Id"
+          },
+          "safety_status": {
+            "default": "shadow_only",
+            "maxLength": 32,
+            "title": "Safety Status",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Score"
+          },
+          "sensor_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Id"
+          },
+          "user_id": {
+            "minimum": 1.0,
+            "title": "User Id",
+            "type": "integer"
+          },
+          "user_visible": {
+            "default": false,
+            "title": "User Visible",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "model_id",
+          "output_type",
+          "user_id"
+        ],
+        "title": "MlInferenceCreateRequest",
+        "type": "object"
+      },
+      "MlInferenceData": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "features_summary_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Features Summary Json"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "integer"
+          },
+          "output_type": {
+            "title": "Output Type",
+            "type": "string"
+          },
+          "raw_signal_batch_feature_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Signal Batch Feature Id"
+          },
+          "raw_signal_batch_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Signal Batch Id"
+          },
+          "safety_status": {
+            "title": "Safety Status",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Score"
+          },
+          "sensor_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Id"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "user_visible": {
+            "title": "User Visible",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "model_id",
+          "output_type",
+          "safety_status",
+          "user_id",
+          "user_visible"
+        ],
+        "title": "MlInferenceData",
+        "type": "object"
+      },
+      "MlInferenceListData": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/MlInferenceData"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "records"
+        ],
+        "title": "MlInferenceListData",
+        "type": "object"
+      },
+      "MlInferenceListResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MlInferenceListData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "MlInferenceListResponse",
+        "type": "object"
+      },
+      "MlInferenceResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MlInferenceData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "MlInferenceResponse",
+        "type": "object"
+      },
+      "MlModelCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "input_type": {
+            "maxLength": 64,
+            "title": "Input Type",
+            "type": "string"
+          },
+          "metrics_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics Json"
+          },
+          "model_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Model Version",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Notes"
+          },
+          "signal_family": {
+            "maxLength": 64,
+            "title": "Signal Family",
+            "type": "string"
+          },
+          "status": {
+            "default": "research",
+            "maxLength": 32,
+            "title": "Status",
+            "type": "string"
+          },
+          "training_dataset": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Dataset"
+          }
+        },
+        "required": [
+          "input_type",
+          "model_name",
+          "model_version",
+          "signal_family"
+        ],
+        "title": "MlModelCreateRequest",
+        "type": "object"
+      },
+      "MlModelData": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "input_type": {
+            "title": "Input Type",
+            "type": "string"
+          },
+          "metrics_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics Json"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Notes"
+          },
+          "signal_family": {
+            "title": "Signal Family",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "training_dataset": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Training Dataset"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "input_type",
+          "model_name",
+          "model_version",
+          "signal_family",
+          "status",
+          "updated_at"
+        ],
+        "title": "MlModelData",
+        "type": "object"
+      },
+      "MlModelListData": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/MlModelData"
+            },
+            "title": "Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "models"
+        ],
+        "title": "MlModelListData",
+        "type": "object"
+      },
+      "MlModelListResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MlModelListData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "MlModelListResponse",
+        "type": "object"
+      },
+      "MlModelResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MlModelData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "MlModelResponse",
+        "type": "object"
+      },
       "NotificationChannelsUpdate": {
         "properties": {
           "companion": {
@@ -11346,6 +12140,541 @@
           }
         },
         "summary": "Ops Config Sms",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/inference-records": {
+      "get": {
+        "description": "Admin-only: list shadow inference records (no raw_output_json).",
+        "operationId": "ops_list_inference_records_ops_ml_inference_records_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlInferenceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops List Inference Records",
+        "tags": [
+          "Ops"
+        ]
+      },
+      "post": {
+        "description": "Admin-only: store shadow inference record (requires SEDI_GATE5_ML_SHADOW_ENABLED).",
+        "operationId": "ops_create_inference_record_ops_ml_inference_records_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MlInferenceCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlInferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Create Inference Record",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/inference-records/{record_id}": {
+      "get": {
+        "description": "Admin-only: get one inference record (no raw_output_json).",
+        "operationId": "ops_get_inference_record_ops_ml_inference_records__record_id__get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlInferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Get Inference Record",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/inference-records/{record_id}/care-bridge": {
+      "post": {
+        "description": "Admin-only: ML care bridge (default OFF — requires SEDI_GATE5_ML_CARE_BRIDGE_ENABLED).",
+        "operationId": "ops_care_bridge_ops_ml_inference_records__record_id__care_bridge_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlCareBridgeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Care Bridge",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/inference-records/{record_id}/care-bridge/dry-run": {
+      "post": {
+        "description": "Admin-only: preview V1 care suggestion text without side effects.",
+        "operationId": "ops_care_bridge_dry_run_ops_ml_inference_records__record_id__care_bridge_dry_run_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlCareBridgeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Care Bridge Dry Run",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/models": {
+      "get": {
+        "description": "Admin-only: list ML models.",
+        "operationId": "ops_list_ml_models_ops_ml_models_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlModelListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops List Ml Models",
+        "tags": [
+          "Ops"
+        ]
+      },
+      "post": {
+        "description": "Admin-only: register an internal ML model (research/shadow).",
+        "operationId": "ops_create_ml_model_ops_ml_models_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MlModelCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlModelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Create Ml Model",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/models/{model_id}": {
+      "get": {
+        "description": "Admin-only: get one ML model.",
+        "operationId": "ops_get_ml_model_ops_ml_models__model_id__get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "model_id",
+            "required": true,
+            "schema": {
+              "title": "Model Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlModelResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Get Ml Model",
+        "tags": [
+          "Ops"
+        ]
+      }
+    },
+    "/ops/ml/run-baseline/{feature_id}": {
+      "post": {
+        "description": "Admin-only: run baseline anomaly on a feature row (requires SEDI_GATE5_ML_PROCESSING_ENABLED).",
+        "operationId": "ops_run_baseline_anomaly_ops_ml_run_baseline__feature_id__post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-ADMIN-TOKEN",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          },
+          {
+            "in": "path",
+            "name": "feature_id",
+            "required": true,
+            "schema": {
+              "title": "Feature Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlBaselineRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ops Run Baseline Anomaly",
         "tags": [
           "Ops"
         ]
