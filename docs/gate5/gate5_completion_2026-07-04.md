@@ -6,9 +6,7 @@
 
 ## 1. Closure verdict
 
-**Gate 5 backend foundation is implemented, deployed, and operationally validated.**
-
-Gate 5 (5a–5d) delivers the Gadget Hub foundation, raw signal store-only ingestion, technical feature extraction, and controlled admin operations with a disabled-by-default scheduler. Production runs Gate 5.4 code with Alembic at `042_gate5c_raw_signal_batch_features`. The first controlled operational processing smoke validates end-to-end behavior using QA/synthetic data only.
+**Gate 5 is complete.** Backend/device foundation for the Gadget Layer is implemented, deployed, tested, and operationally validated in production with QA/synthetic data only.
 
 ---
 
@@ -67,8 +65,8 @@ Gate 5 (5a–5d) delivers the Gadget Hub foundation, raw signal store-only inges
 | DB-backed CI for Gate 5 | **DONE** | `.github/workflows/gate5-db-tests.yml` |
 | Production deploy of Gate 5 code | **DONE** | `gate5d_closure_2026-07-03.md`; deploy `28679726126` |
 | Production unauthenticated smoke | **DONE** | 403 on all `/ops/raw-signals/*` without admin token |
-| First controlled operational processing | **DONE** | See §6 — `gate5_operational_smoke_production.sh` |
-| No unwanted side effects | **DONE** | Verified in CI tests + production smoke |
+| First controlled operational processing | **DONE** | Workflow `28696377571` — dry-run + single QA batch |
+| No unwanted side effects | **DONE** | Production smoke: notifications/device_events/user_memory_facts unchanged |
 | Sub-gate closure docs (5a–5d) | **DONE** | `docs/gate5/gate5a`–`gate5d_closure_2026-07-03.md` |
 | Master Gate 5 completion doc | **DONE** | This file |
 
@@ -129,22 +127,33 @@ Gate 5 (5a–5d) delivers the Gadget Hub foundation, raw signal store-only inges
 
 ### Results
 
-> Updated after workflow execution — see workflow run logs for authoritative output.
-
 | Check | Result |
 |-------|--------|
-| Workflow run | _See §6 workflow run ID after execution_ |
-| QA batch source | _existing pending batch or synthetic SQL_ |
-| QA batch ID processed | _from smoke logs_ |
-| Dry-run | _PASS/FAIL_ |
-| Single-batch process | _PASS/FAIL_ |
-| Feature row created | _exactly 1 for QA batch_ |
+| Workflow run | `28696377571` — **success** (2026-07-04T05:32Z) |
+| QA batch source | **Synthetic SQL bootstrap** (no pre-existing batches) |
+| QA user | Existing `Gate5 QA Smoke` user id **5** (from prior bootstrap attempt) |
+| QA hub | Created `gate5-qa-smoke-hub` (device id **5**) |
+| QA sensor | Created `gate5-qa-ecg-001` (sensor id **1**) |
+| QA batch ID processed | **1** (`client_batch_id=gate5-qa-smoke-20260704_090305`) |
+| Dry-run | **PASS** — HTTP 200, `processed=0`, `candidate_batch_ids=[1]`, no feature row created |
+| Single-batch process | **PASS** — HTTP 200, `feature_id=1`, `processing_status=completed` |
+| Feature row created | **Exactly 1** for QA batch id 1 |
 | Raw samples in ops response | **No** |
 | Clinical fields in ops response | **No** |
-| Notifications unchanged | _PASS/FAIL_ |
-| device_events unchanged | _PASS/FAIL_ |
-| user_memory_facts unchanged | _PASS/FAIL_ |
-| Scheduler after smoke | **OFF** |
+| Notifications unchanged | **PASS** (7 → 7) |
+| device_events unchanged | **PASS** (1 → 1) |
+| user_memory_facts unchanged | **PASS** (2 → 2) |
+| Scheduler after smoke | **OFF** (`SEDI_RAW_SIGNAL_PROCESSING_VARS=none`) |
+| Backlog processing | **Not run** (single QA batch only) |
+
+Prior smoke attempts and fixes (workflow transport + script bootstrap):
+
+| Run | Outcome |
+|-----|---------|
+| `28695647035` | Partial — unauth 403 OK; failed before QA bootstrap (no hub) |
+| `28696107906` | Failed — psql INSERT notice corrupted bootstrap IDs |
+| `28696248104` | Failed — empty SQL result tripped `set -e` via grep |
+| `28696377571` | **Success** — full end-to-end operational validation |
 
 ---
 
@@ -206,3 +215,4 @@ Gate 5 completes the Gadget Layer backend foundation. Future gates may address:
 | Version | Date | Notes |
 |---------|------|-------|
 | 1.0 | 2026-07-04 | Gate 5 master completion doc; operational smoke script/workflow added |
+| 1.1 | 2026-07-04 | Operational smoke run `28696377571` success recorded |
