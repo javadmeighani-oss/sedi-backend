@@ -391,6 +391,56 @@ class RawSignalBatchFeature(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+# -------------------- MlModelRegistry (Gate 5-E) --------------------
+class MlModelRegistry(Base):
+    """Internal ML model registry — research/shadow only by default."""
+
+    __tablename__ = "ml_model_registry"
+    __table_args__ = (
+        UniqueConstraint("model_name", "model_version", name="uq_ml_model_registry_name_version"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String(128), nullable=False)
+    model_version = Column(String(64), nullable=False)
+    signal_family = Column(String(64), nullable=False)
+    input_type = Column(String(64), nullable=False)
+    status = Column(String(32), nullable=False, default="research", server_default="research")
+    training_dataset = Column(String(255), nullable=True)
+    metrics_json = Column(JSON, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- MlInferenceRecord (Gate 5-E) --------------------
+class MlInferenceRecord(Base):
+    """Shadow/internal ML inference output — not user-facing by default."""
+
+    __tablename__ = "ml_inference_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id = Column(String(255), nullable=True)
+    sensor_id = Column(Integer, ForeignKey("device_sensors.id", ondelete="SET NULL"), nullable=True)
+    raw_signal_batch_id = Column(Integer, ForeignKey("raw_signal_batches.id", ondelete="SET NULL"), nullable=True)
+    raw_signal_batch_feature_id = Column(
+        Integer,
+        ForeignKey("raw_signal_batch_features.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    model_id = Column(Integer, ForeignKey("ml_model_registry.id", ondelete="RESTRICT"), nullable=False, index=True)
+    output_type = Column(String(64), nullable=False, index=True)
+    score = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+    features_summary_json = Column(JSON, nullable=True)
+    raw_output_json = Column(JSON, nullable=True)
+    safety_status = Column(String(32), nullable=False, default="shadow_only", server_default="shadow_only")
+    user_visible = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 # -------------------- UserProfileKnowledge --------------------
 class UserProfileKnowledge(Base):
     """Stable user baseline: 1 row per user. Used for GPT context."""
