@@ -12,11 +12,11 @@ psql_exec() {
   local PU PD
   PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
   PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
-  docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -v ON_ERROR_STOP=1 "$@"
+  docker exec sedi-postgres psql -q -U "$PU" -d "$PD" -P pager=off -v ON_ERROR_STOP=1 "$@"
 }
 
 count_value() {
-  psql_exec -t -A -c "$1" | tr -d '[:space:]'
+  psql_exec -t -A -c "$1" | tr -d '[:space:]' | grep -Eo '[0-9]+' | tail -1
 }
 
 load_admin_token() {
