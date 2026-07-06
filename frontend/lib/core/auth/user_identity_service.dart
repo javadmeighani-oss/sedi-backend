@@ -1,5 +1,5 @@
-import '../network/api_client.dart';
-import 'auth_service.dart';
+import '../auth/auth_service.dart';
+import '../auth/auth_profile_service.dart';
 import '../utils/user_profile_manager.dart';
 
 class UserIdentityService {
@@ -29,31 +29,20 @@ class UserIdentityService {
     final token = await AuthService.getToken();
     if (token == null || token.isEmpty) return null;
 
-    final api = ApiClient();
-    final me = await api.get<Map<String, dynamic>>(
-      '/auth/me',
-      extraHeaders: {'Authorization': 'Bearer $token'},
-      parser: (json) => json is Map ? Map<String, dynamic>.from(json) : null,
-    );
+    final profileService = AuthProfileService();
+    final me = await profileService.fetchAndCacheProfile();
     if (!me.ok || me.data == null) return null;
 
-    final rawUserId = me.data!['user_id'];
-    final userId = rawUserId is int
-        ? rawUserId
-        : int.tryParse(rawUserId?.toString() ?? '');
-    if (userId == null || userId <= 0) return null;
+    final userId = me.data!.userId;
+    if (userId <= 0) return null;
 
-    final profile = await UserProfileManager.loadProfile();
-    await UserProfileManager.saveProfile(
-      profile.copyWith(
-        userId: userId,
-        phoneNumber: me.data!['phone']?.toString() ?? profile.phoneNumber,
-        preferredLanguage:
-            me.data!['language']?.toString() ?? profile.preferredLanguage,
-        isVerified: true,
-      ),
-    );
     _cachedUserId = userId;
     return userId;
+  }
+
+  /// Clear in-memory cache (call on logout / forced session reset).
+  static void clearCache() {
+    _cachedUserId = null;
+    _inflightResolve = null;
   }
 }

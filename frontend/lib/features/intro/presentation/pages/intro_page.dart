@@ -1,27 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
-import '../../../chat/presentation/pages/chat_page.dart';
-import '../../../../core/utils/user_profile_manager.dart';
+import '../../../../core/navigation/app_gate.dart';
+import '../../../../core/navigation/app_gate_router.dart';
+import '../../../../core/navigation/session_gate_resolver.dart';
 import '../../../../services/push/push_service.dart';
 
-/// ============================================
-/// IntroPage - Pre-Welcome Screen
-/// ============================================
+/// Gate 1 — Sedi Welcome / Splash (`IntroPage`).
 ///
-/// RESPONSIBILITY:
-/// - Full screen intro with cosmic sunrise background image
-/// - Sedi logo in center with breathing animation
-/// - Auto-transition to ChatPage after ~2 seconds
-/// - Right-to-left 3D cube transition animation
-///
-/// TIMELINE:
-/// 0.0s  IntroPage appears, background visible
-/// 0.2s  Logo fades in + starts breathing
-/// 1.4s  Breathing animation finishes
-/// 2.0s  Automatic navigation to ChatPage starts
-/// ============================================
+/// Cold-start visual entry only. After [kGate1Duration] delegates routing to
+/// [SessionGateResolver] → [AppGateRouter] (Gate 2 or Gate 3).
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
 
@@ -29,285 +16,182 @@ class IntroPage extends StatefulWidget {
   State<IntroPage> createState() => _IntroPageState();
 }
 
-class _IntroPageState extends State<IntroPage> with TickerProviderStateMixin {
-  // Final logo size: 20% larger than before (92 * 1.2 = 110.4)
-  static const double _finalLogoSize = 110.4;
-  static const double _initialLogoSize = 84.0; // Start smaller (70 * 1.2)
+class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMixin {
+  static const Duration kGate1Duration = Duration(milliseconds: 3000);
 
-  late AnimationController _fadeInController;
-  late AnimationController _scaleUpController;
-  late AnimationController _breathingController;
+  /// Real Sedi logo asset (PNG with transparency). Tinted via [BlendMode.srcIn].
+  static const String _logoAsset = 'assets/images/sedi_logo_1024.png';
 
-  late Animation<double> _fadeInAnimation;
-  late Animation<double> _scaleUpAnimation;
-  late Animation<double> _breathingAnimation;
+  static const String _backgroundAsset =
+      'assets/images/cosmic_sunrise_background.png';
+
+  /// Final rendered logo width/height on screen.
+  static const double _finalLogoSize = 148.0;
+
+  /// Gate 1 olive-green palette (multi-step color transition).
+  static const Color _colorStart = Color(0xFFFFFFFF);
+  static const Color _colorWarmWhite = Color(0xFFEEF3DD);
+  static const Color _colorPalePistachio = Color(0xFFD6E9A8);
+  static const Color _colorSoftOlive = Color(0xFFB8D77A);
+  static const Color _colorFinalOlive = Color(0xFF9BC56B);
+
+  late AnimationController _masterController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
     super.initState();
-
-    // Fade in animation (starts at 0.2s, duration 300ms)
-    _fadeInController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+    _masterController = AnimationController(
       vsync: this,
+      duration: kGate1Duration,
     );
 
-    _fadeInAnimation = Tween<double>(
-      begin: 0.3, // 30% less transparent (30% more opacity from start)
-      end: 1.0,
-    ).animate(
+    // 0.0–0.8s: small subtle → 0.8–1.6s: growing → 1.6–2.4s: large → 2.4–3.0s: hold
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.28, end: 0.48)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 26.67,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.48, end: 0.72)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 26.67,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.72, end: 0.96)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 26.67,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.96, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 20,
+      ),
+    ]).animate(_masterController);
+
+    _fadeAnimation = Tween<double>(begin: 0.35, end: 1.0).animate(
       CurvedAnimation(
-        parent: _fadeInController,
-        curve: Curves.easeOut,
+        parent: _masterController,
+        curve: const Interval(0.0, 0.28, curve: Curves.easeOut),
       ),
     );
 
-    // Scale up animation (from initial to final size, starts at 0.2s)
-    _scaleUpController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _scaleUpAnimation = Tween<double>(
-      begin: _initialLogoSize / _finalLogoSize, // ~0.76
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _scaleUpController,
-        curve: Curves.easeOut,
+    // White → Warm White → Pale Pistachio → Soft Olive → Final Olive Green
+    _colorAnimation = TweenSequence<Color?>([
+      TweenSequenceItem(
+        tween: ColorTween(begin: _colorStart, end: _colorWarmWhite),
+        weight: 26.67,
       ),
-    );
-
-    // Breathing animation (0.96 → 1.00 → 0.96, one cycle only, 1200ms)
-    _breathingController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _breathingAnimation = Tween<double>(
-      begin: 0.96,
-      end: 1.00,
-    ).animate(
-      CurvedAnimation(
-        parent: _breathingController,
-        curve: Curves.easeInOut,
+      TweenSequenceItem(
+        tween: ColorTween(begin: _colorWarmWhite, end: _colorPalePistachio),
+        weight: 26.67,
       ),
-    );
+      TweenSequenceItem(
+        tween: ColorTween(begin: _colorPalePistachio, end: _colorSoftOlive),
+        weight: 26.67,
+      ),
+      TweenSequenceItem(
+        tween: ColorTween(begin: _colorSoftOlive, end: _colorFinalOlive),
+        weight: 20,
+      ),
+    ]).animate(_masterController);
 
-    // Start animations with delays
-    Future.delayed(const Duration(milliseconds: 200), () {
+    _masterController.forward();
+
+    Future.delayed(kGate1Duration, () {
       if (mounted) {
-        _fadeInController.forward();
-        _scaleUpController.forward();
-        // Breathing: one cycle (forward then reverse)
-        _breathingController.forward().then((_) {
-          if (mounted) {
-            _breathingController.reverse();
-          }
-        });
-      }
-    });
-
-    // Auto-transition to OnboardingPage or ChatPage after 2.0s
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (mounted) {
-        _navigateToNextPage();
+        _navigateToNextGate();
       }
     });
   }
 
   @override
   void dispose() {
-    _fadeInController.dispose();
-    _scaleUpController.dispose();
-    _breathingController.dispose();
+    _masterController.dispose();
     super.dispose();
   }
 
-  Future<void> _navigateToNextPage() async {
-    // OTP onboarding completion rule:
-    // completed iff user_id exists + verified + name + phone number.
-    final profile = await UserProfileManager.loadProfile();
+  Future<void> _navigateToNextGate() async {
+    final nextGate = await SessionGateResolver.resolveAfterSplash();
 
-    final hasName = profile.name != null && profile.name!.trim().isNotEmpty;
-    final hasPhone =
-        profile.phoneNumber != null && profile.phoneNumber!.trim().isNotEmpty;
-    final hasUserId = profile.userId != null;
-    final isVerified = profile.isVerified;
-    final hasCompletedOnboarding =
-        hasUserId && isVerified && hasName && hasPhone;
-
-    if (hasCompletedOnboarding) {
-      // User has completed onboarding, go directly to chat
-      // Stage 19.2: Ensure FCM register for existing users (who skip onboarding/verification).
+    if (nextGate == SediAppGate.heart) {
       await tryRegisterStoredTokenAfterLogin();
-      if (!context.mounted) return;
-      Navigator.of(context).pushReplacement(
-        _createCubeTransitionRouteToChat(),
-      );
-    } else {
-      // User needs to complete OTP flow first.
-      Navigator.of(context).pushReplacement(
-        _createCubeTransitionRouteToOnboarding(),
-      );
     }
-  }
 
-  PageRouteBuilder _createCubeTransitionRouteToOnboarding() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return const OtpLoginPage();
-      },
-      transitionDuration: const Duration(milliseconds: 600),
-      reverseTransitionDuration: const Duration(milliseconds: 600),
-      opaque: false,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        );
-        final exitAnimation = CurvedAnimation(
-          parent: secondaryAnimation,
-          curve: Curves.easeInOutCubic,
-        );
-        return Stack(
-          children: [
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: Offset.zero,
-                end: const Offset(-1.0, 0.0),
-              ).animate(exitAnimation),
-              child: FadeTransition(
-                opacity: exitAnimation,
-                child: build(context),
-              ),
-            ),
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(curvedAnimation),
-              child: FadeTransition(
-                opacity: curvedAnimation,
-                child: child,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  PageRouteBuilder _createCubeTransitionRouteToChat() {
-    final introPageState = this;
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return ChatPage();
-      },
-      transitionDuration: const Duration(milliseconds: 600),
-      reverseTransitionDuration: const Duration(milliseconds: 600),
-      opaque: false,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOutCubic,
-        );
-        final exitAnimation = CurvedAnimation(
-          parent: secondaryAnimation,
-          curve: Curves.easeInOutCubic,
-        );
-        return Stack(
-          children: [
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: Offset.zero,
-                end: const Offset(-1.0, 0.0),
-              ).animate(exitAnimation),
-              child: FadeTransition(
-                opacity: exitAnimation,
-                child: Builder(
-                  builder: (context) => introPageState.build(context),
-                ),
-              ),
-            ),
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(curvedAnimation),
-              child: FadeTransition(
-                opacity: curvedAnimation,
-                child: child,
-              ),
-            ),
-          ],
-        );
-      },
+    if (!mounted) return;
+    AppGateRouter.transitionFromSplash(
+      context,
+      nextGate,
+      splashPage: build(context),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0E14),
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Cosmic sunrise background image
-          // NOTE: Add 'cosmic_sunrise_background.png' to assets/images/
-          // Fallback gradient shown if image not found
           Positioned.fill(
             child: Image.asset(
-              'assets/images/cosmic_sunrise_background.png',
+              _backgroundAsset,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                // Fallback gradient (cosmic sunrise colors) if image not found
                 return Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        AppTheme.primary,
-                        AppTheme.background,
+                        Color(0xFF0A0E14),
+                        Color(0xFF1A2332),
+                        Color(0xFF3D5A40),
                       ],
-                      stops: [0.15, 1.0],
+                      stops: [0.0, 0.55, 1.0],
                     ),
                   ),
                 );
               },
             ),
           ),
-          // Logo with animations (positioned 30% higher)
           SafeArea(
             child: Center(
               child: Transform.translate(
-                offset: Offset(
-                    0,
-                    -MediaQuery.of(context).size.height *
-                        0.15), // 30% higher (15% up from center)
+                offset: Offset(0, -MediaQuery.of(context).size.height * 0.12),
                 child: AnimatedBuilder(
-                  animation: Listenable.merge([
-                    _fadeInAnimation,
-                    _scaleUpAnimation,
-                    _breathingAnimation,
-                  ]),
+                  animation: _masterController,
                   builder: (context, child) {
-                    // Combined scale: scale up + breathing
-                    final combinedScale =
-                        _scaleUpAnimation.value * _breathingAnimation.value;
-
                     return Opacity(
-                      opacity: _fadeInAnimation.value,
+                      opacity: _fadeAnimation.value,
                       child: Transform.scale(
-                        scale: combinedScale,
+                        scale: _scaleAnimation.value,
                         child: child,
                       ),
                     );
                   },
-                  child: Image.asset(
-                    'assets/images/sedi_logo_1024.png',
-                    width: _finalLogoSize,
-                    height: _finalLogoSize,
-                    fit: BoxFit.contain,
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      _colorAnimation.value ?? _colorStart,
+                      BlendMode.srcIn,
+                    ),
+                    child: Image.asset(
+                      _logoAsset,
+                      width: _finalLogoSize,
+                      height: _finalLogoSize,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/images/sedi_logo_white.png',
+                          width: _finalLogoSize,
+                          height: _finalLogoSize,
+                          fit: BoxFit.contain,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

@@ -9,6 +9,10 @@ import '../../../core/utils/user_preferences.dart';
 import '../../../data/dto/interact_request.dart';
 import '../../../data/repositories/chat_repository.dart';
 
+/// LEGACY ChatService — used by [ChatController] for greeting/onboarding paths.
+/// New chat sends go through `services/chat/chat_service.dart` (V1 `/interact/chat`).
+/// Not part of gate routing; do not use for new features.
+///
 /// ------------------------------------------------------------
 /// ChatService
 ///

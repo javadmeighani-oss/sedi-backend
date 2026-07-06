@@ -8,9 +8,9 @@ import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
 import '../../../../data/models/notification_item.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 
 enum InboxFilter { all, unread }
 
@@ -47,9 +47,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     final userId = await UserIdentityService.resolveUserId();
     if (!mounted) return;
     if (userId == null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-      );
+      AppGateRouter.goToLogin(context);
       return;
     }
     await _reload();

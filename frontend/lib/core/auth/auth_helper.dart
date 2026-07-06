@@ -2,11 +2,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/repositories/notification_repository.dart';
-import '../../features/auth_otp/presentation/pages/otp_login_page.dart';
+import '../navigation/app_gate_router.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/user_profile_manager.dart';
 import 'auth_service.dart';
 import 'auth_session_manager.dart';
+import 'user_identity_service.dart';
 
 /// راهنمای استفاده از سرویس احراز هویت
 ///
@@ -52,13 +53,11 @@ class AuthHelper {
 
     await AuthService.clearUserData();
     await UserProfileManager.clearProfile();
+    UserIdentityService.clearCache();
 
     final navContext = context ?? navigatorKey.currentContext;
     if (navContext != null && navContext.mounted) {
-      Navigator.of(navContext).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-        (_) => false,
-      );
+      AppGateRouter.goToLogin(navContext);
     }
     return true;
   }
