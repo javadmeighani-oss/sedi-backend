@@ -65,7 +65,7 @@ class _SediAppState extends State<SediApp> {
       ),
 
       // ===============================
-      // Entry Page
+      // Gate 1 entry (see AppGateRouter / SessionGateResolver)
       // ===============================
       home: const IntroPage(),
     );

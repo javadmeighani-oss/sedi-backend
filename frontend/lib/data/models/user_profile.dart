@@ -17,6 +17,12 @@ class UserProfile {
   final int? userId; // Backend user ID (for anonymous users and registration)
   final String?
       guessedGender; // Optional: 'male' | 'female' | 'unknown' (soft guess from name, not shown in UI)
+  final String? gender; // User-selected: 'male' | 'female' | 'other'
+  final String? dateOfBirth; // ISO date YYYY-MM-DD when converted
+  final String? calendarType; // jalali | gregorian | hijri
+  final int? birthDay;
+  final int? birthMonth;
+  final int? birthYear;
 
   // Preferences
   final String preferredLanguage; // 'en', 'fa', 'ar'
@@ -38,6 +44,12 @@ class UserProfile {
     this.securityPassword,
     this.userId,
     this.guessedGender,
+    this.gender,
+    this.dateOfBirth,
+    this.calendarType,
+    this.birthDay,
+    this.birthMonth,
+    this.birthYear,
     this.preferredLanguage = 'en',
     this.hasSecurityPassword = false,
     this.securityPasswordSetAt,
@@ -54,6 +66,12 @@ class UserProfile {
       securityPassword: json['security_password'] as String?,
       userId: json['user_id'] as int?,
       guessedGender: json['guessed_gender'] as String?,
+      gender: json['gender'] as String?,
+      dateOfBirth: json['date_of_birth'] as String?,
+      calendarType: json['calendar_type'] as String?,
+      birthDay: json['birth_day'] as int?,
+      birthMonth: json['birth_month'] as int?,
+      birthYear: json['birth_year'] as int?,
       preferredLanguage: json['preferred_language'] as String? ?? 'en',
       hasSecurityPassword: json['has_security_password'] as bool? ?? false,
       securityPasswordSetAt: json['security_password_set_at'] != null
@@ -73,6 +91,12 @@ class UserProfile {
       if (securityPassword != null) 'security_password': securityPassword,
       if (userId != null) 'user_id': userId,
       if (guessedGender != null) 'guessed_gender': guessedGender,
+      if (gender != null) 'gender': gender,
+      if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
+      if (calendarType != null) 'calendar_type': calendarType,
+      if (birthDay != null) 'birth_day': birthDay,
+      if (birthMonth != null) 'birth_month': birthMonth,
+      if (birthYear != null) 'birth_year': birthYear,
       'preferred_language': preferredLanguage,
       'has_security_password': hasSecurityPassword,
       if (securityPasswordSetAt != null)
@@ -90,6 +114,12 @@ class UserProfile {
     String? securityPassword,
     int? userId,
     String? guessedGender,
+    String? gender,
+    String? dateOfBirth,
+    String? calendarType,
+    int? birthDay,
+    int? birthMonth,
+    int? birthYear,
     String? preferredLanguage,
     bool? hasSecurityPassword,
     DateTime? securityPasswordSetAt,
@@ -103,6 +133,12 @@ class UserProfile {
       securityPassword: securityPassword ?? this.securityPassword,
       userId: userId ?? this.userId,
       guessedGender: guessedGender ?? this.guessedGender,
+      gender: gender ?? this.gender,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      calendarType: calendarType ?? this.calendarType,
+      birthDay: birthDay ?? this.birthDay,
+      birthMonth: birthMonth ?? this.birthMonth,
+      birthYear: birthYear ?? this.birthYear,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       hasSecurityPassword: hasSecurityPassword ?? this.hasSecurityPassword,
       securityPasswordSetAt:

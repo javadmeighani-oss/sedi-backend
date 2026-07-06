@@ -1,20 +1,37 @@
-import 'dart:async';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/auth/auth_otp_service.dart';
+import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/auth/auth_service.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
-import '../../../../core/utils/user_profile_manager.dart';
-import '../../../../core/widgets/app_states/app_loading_state.dart';
+import '../../../../data/dto/auth/me_profile.dart';
 import '../../../../services/push/push_service.dart';
-import '../../../chat/presentation/pages/chat_page.dart';
+import '../birth_calendar_helper.dart';
+import '../gate2_profile_rules.dart';
+import '../gate2_widgets.dart';
+import '../otp_login_localization.dart';
 
-enum _OtpStep { request, verify }
+/// Gate 2 — Login / Registration with internal multi-step flow.
+enum _Gate2Step {
+  language,
+  accountChoice,
+  returningLogin,
+  newUserRegistration,
+  profileCorrection,
+}
 
+enum _AccountChoice { returning, newUser }
+
+enum _CorrectionCase {
+  returningProfileIncomplete,
+  newUserAlreadyRegistered,
+}
+
+/// Shown after Gate 1 when session is invalid, or after logout.
+/// On success, navigates to Gate 3 via [AppGateRouter.goToHeart].
 class OtpLoginPage extends StatefulWidget {
   const OtpLoginPage({super.key});
 
@@ -23,493 +40,929 @@ class OtpLoginPage extends StatefulWidget {
 }
 
 class _OtpLoginPageState extends State<OtpLoginPage> {
-  final _formKey = GlobalKey<FormState>();
+  final _returningFormKey = GlobalKey<FormState>();
+  final _newUserFormKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _otpAutofillController = TextEditingController();
   final List<TextEditingController> _otpControllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
   final AuthOtpService _authOtpService = AuthOtpService();
+  final AuthProfileService _authProfileService = AuthProfileService();
 
-  _OtpStep _step = _OtpStep.request;
+  _Gate2Step _step = _Gate2Step.language;
+  String _language = 'en';
+  _AccountChoice? _accountChoice;
+  _CorrectionCase? _correctionCase;
+  MeProfileDto? _verifiedMeProfile;
+  String? _selectedGender;
+  int? _birthDay;
+  int? _birthMonth;
+  int? _birthYear;
+  bool _dobPickerOpen = false;
   bool _isLoading = false;
-  String _languagePref = 'auto';
+  bool _otpSent = false;
   String _requestedPhone = '';
-  int _resendSecondsLeft = 0;
-  Timer? _resendTimer;
+  bool _phoneVerifiedInSession = false;
+  bool _phoneFieldLocked = false;
   bool _navigatedAfterSuccess = false;
+
+  OtpLoginLocalization get _l10n => OtpLoginLocalization(_language);
+
+  String get _calendarType =>
+      BirthCalendarHelper.calendarTypeForLanguage(_language);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPersistedLanguage();
+    for (final c in _otpControllers) {
+      c.addListener(_refresh);
+    }
+    _otpAutofillController.addListener(_onAutofillOtpChanged);
+    _nameController.addListener(_refresh);
+    _phoneController.addListener(_refresh);
+  }
+
+  Future<void> _loadPersistedLanguage() async {
+    final saved = await UserPreferences.getUserLanguage();
+    if (!mounted) return;
+    if (saved == 'fa' || saved == 'ar' || saved == 'en') {
+      setState(() => _language = saved);
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _otpAutofillController.dispose();
     for (final c in _otpControllers) {
       c.dispose();
     }
     for (final n in _otpFocusNodes) {
       n.dispose();
     }
-    _resendTimer?.cancel();
     super.dispose();
   }
 
-  String _systemLanguage() {
-    final locale =
-        ui.PlatformDispatcher.instance.locale.languageCode.toLowerCase();
-    if (locale == 'fa' || locale == 'ar') return locale;
-    return 'en';
+  void _refresh() {
+    if (mounted) setState(() {});
   }
 
-  String _resolvedLanguage() {
-    return _languagePref == 'auto' ? _systemLanguage() : _languagePref;
+  void _onAutofillOtpChanged() {
+    final code = _otpAutofillController.text.replaceAll(RegExp(r'\D'), '');
+    if (code.length > 6) {
+      _otpAutofillController.text = code.substring(0, 6);
+      _otpAutofillController.selection =
+          TextSelection.collapsed(offset: _otpAutofillController.text.length);
+      return;
+    }
+    for (var i = 0; i < 6; i++) {
+      _otpControllers[i].text = i < code.length ? code[i] : '';
+    }
+    if (code.length == 6) _otpFocusNodes[5].unfocus();
+    _refresh();
   }
 
   String _normalizePhone(String input) {
     String s = input.trim().replaceAll(' ', '').replaceAll('-', '');
     if (s.startsWith('+')) return s;
-    if (s.startsWith('0') && s.length == 11) {
-      return '+98${s.substring(1)}';
-    }
-    if (s.startsWith('9') && s.length == 10) {
-      return '+98$s';
-    }
+    if (s.startsWith('0') && s.length == 11) return '+98${s.substring(1)}';
+    if (s.startsWith('9') && s.length == 10) return '+98$s';
     return s;
   }
 
-  bool _isValidPhone(String phone) {
-    final normalized = _normalizePhone(phone);
-    return normalized.length >= 8;
+  String _formatPhoneForDisplay(String phone) {
+    if (phone.startsWith('+98') && phone.length == 13) {
+      return '0${phone.substring(3)}';
+    }
+    return phone;
   }
 
-  Future<void> _sendCode({bool fromResend = false}) async {
-    if (_isLoading) return;
-    if (!fromResend && !(_formKey.currentState?.validate() ?? false)) return;
+  bool _isValidPhone(String phone) =>
+      _normalizePhone(phone).length >= 8;
 
-    final name = _nameController.text.trim();
-    final phone = fromResend ? _requestedPhone : _normalizePhone(_phoneController.text);
-    final language = _resolvedLanguage();
+  bool get _hasCompleteDob =>
+      _birthDay != null && _birthMonth != null && _birthYear != null;
 
-    setState(() => _isLoading = true);
-    final response = await _authOtpService.requestOtp(
-      phone: phone,
-      language: language,
-    );
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+  bool get _canSendReturning =>
+      !_isLoading &&
+      !_phoneVerifiedInSession &&
+      _isValidPhone(_phoneController.text);
 
-    if (!response.ok) {
-      _showMessage(response.errorMessage);
-      return;
-    }
+  bool get _canSendNewUser =>
+      !_isLoading &&
+      !_phoneVerifiedInSession &&
+      _nameController.text.trim().isNotEmpty &&
+      _selectedGender != null &&
+      _hasCompleteDob &&
+      _isValidPhone(_phoneController.text);
 
-    _nameController.text = name;
-    _requestedPhone = phone;
-    _clearOtpInputs();
-    setState(() => _step = _OtpStep.verify);
-    _startResendCooldown();
-    // نمایش کد در حالت دیباگ (وقتی بک‌اند dev_code برمی‌گرداند)
-    final devCode = response.data?['dev_code']?.toString();
-    if (devCode != null && devCode.isNotEmpty) {
-      _showMessage('کد تأیید: $devCode');
-    }
+  bool get _canConfirm =>
+      !_isLoading &&
+      _otpSent &&
+      _otpControllers.every((c) => c.text.length == 1);
+
+  bool get _canCompleteRegistration =>
+      !_isLoading &&
+      _phoneVerifiedInSession &&
+      _nameController.text.trim().isNotEmpty &&
+      _selectedGender != null &&
+      _hasCompleteDob &&
+      (_requestedPhone.isNotEmpty || _isValidPhone(_phoneController.text));
+
+  String _formattedDob() {
+    if (!_hasCompleteDob) return '';
+    return '${_l10n.formatDay(_birthDay!)} | ${_l10n.months[_birthMonth! - 1]} | ${_l10n.formatYear(_birthYear!)}';
   }
 
-  Future<void> _verifyCode() async {
-    if (_isLoading) return;
-    final code = _otpControllers.map((c) => c.text).join();
-    if (code.length != 6) {
-      _showMessage('Please enter the 6-digit code.');
-      return;
-    }
-
-    final name = _nameController.text.trim();
-    final language = _resolvedLanguage();
-
-    setState(() => _isLoading = true);
-    final response = await _authOtpService.verifyOtp(
-      phone: _requestedPhone,
-      code: code,
-      language: language,
-    );
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (!response.ok || response.data == null) {
-      _showMessage(response.errorMessage);
-      return;
-    }
-
-    final verify = response.data!;
-    final userId = verify.userId;
-    if (userId == null) {
-      _showMessage('User ID is missing in verification response.');
-      return;
-    }
-
-    final existing = await UserProfileManager.loadProfile();
-    final verifiedPhone = verify.phone ?? _requestedPhone;
-    final profile = existing.copyWith(
-      name: name.isEmpty ? existing.name : name,
-      phoneNumber: verifiedPhone,
-      preferredLanguage: verify.language ?? language,
-      userId: userId,
-      isVerified: true,
-      hasSecurityPassword: false,
-    );
-
-    await UserProfileManager.saveProfile(profile);
-    await UserPreferences.savePreferredName(profile.name ?? name);
-    await UserPreferences.saveLanguagePref(_languagePref);
-    await UserPreferences.saveUserLanguage(profile.preferredLanguage);
-
-    if (verify.accessToken != null && verify.accessToken!.isNotEmpty) {
-      await AuthService.setTokens(
-        accessToken: verify.accessToken!,
-        refreshToken: verify.refreshToken,
-      );
-    }
-
-    await tryRegisterStoredTokenAfterLogin();
-    if (!mounted) return;
-    if (_navigatedAfterSuccess) return;
-    _navigatedAfterSuccess = true;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const ChatPage()),
-    );
+  Future<void> _confirmLanguage() async {
+    await UserPreferences.saveUserLanguage(_language);
+    await UserPreferences.saveLanguagePref(_language);
+    setState(() => _step = _Gate2Step.accountChoice);
   }
 
-  Future<void> _resendCode() async {
-    if (_resendSecondsLeft > 0 || _isLoading) return;
-    if (_requestedPhone.isEmpty) return;
-    setState(() => _phoneController.text = _requestedPhone);
-    await _sendCode(fromResend: true);
-  }
-
-  void _editPhone() {
-    _resendTimer?.cancel();
+  void _confirmAccountChoice() {
+    if (_accountChoice == null) return;
+    _resetOtpInputsOnly();
     setState(() {
-      _step = _OtpStep.request;
-      _resendSecondsLeft = 0;
-      _phoneController.text = _requestedPhone;
+      _otpSent = false;
+      _phoneFieldLocked = false;
+      if (!_phoneVerifiedInSession) {
+        _phoneController.clear();
+        _requestedPhone = '';
+      }
+      _step = _accountChoice == _AccountChoice.returning
+          ? _Gate2Step.returningLogin
+          : _Gate2Step.newUserRegistration;
     });
   }
 
-  void _clearOtpInputs() {
+  void _resetOtpInputsOnly() {
+    _otpAutofillController.clear();
     for (final c in _otpControllers) {
       c.clear();
     }
   }
 
-  void _startResendCooldown() {
-    _resendTimer?.cancel();
-    setState(() => _resendSecondsLeft = 30);
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      if (_resendSecondsLeft <= 1) {
-        timer.cancel();
-        setState(() => _resendSecondsLeft = 0);
-      } else {
-        setState(() => _resendSecondsLeft -= 1);
+  void _resetOtpFlow() {
+    _otpSent = false;
+    _resetOtpInputsOnly();
+  }
+
+  Future<void> _clearVerifiedSession() async {
+    await AuthService.clearUserData();
+    _phoneVerifiedInSession = false;
+    _phoneFieldLocked = false;
+    _verifiedMeProfile = null;
+    _correctionCase = null;
+    _requestedPhone = '';
+  }
+
+  Future<void> _goToLanguage() async {
+    await _clearVerifiedSession();
+    setState(() {
+      _accountChoice = null;
+      _resetOtpFlow();
+      _phoneController.clear();
+      _step = _Gate2Step.language;
+    });
+  }
+
+  Future<void> _goToAccountChoice({bool clearVerifiedSession = true}) async {
+    if (clearVerifiedSession) {
+      await _clearVerifiedSession();
+    }
+    setState(() {
+      _correctionCase = null;
+      _verifiedMeProfile = null;
+      _resetOtpFlow();
+      _phoneFieldLocked = false;
+      _phoneController.clear();
+      _step = _Gate2Step.accountChoice;
+    });
+  }
+
+  void _handleSystemBack() {
+    switch (_step) {
+      case _Gate2Step.language:
+        break;
+      case _Gate2Step.accountChoice:
+        _goToLanguage();
+        break;
+      case _Gate2Step.returningLogin:
+      case _Gate2Step.newUserRegistration:
+        _goToAccountChoice();
+        break;
+      case _Gate2Step.profileCorrection:
+        _goToAccountChoice();
+        break;
+    }
+  }
+
+  void _changePhoneNumber() {
+    if (_phoneVerifiedInSession) return;
+    setState(() {
+      _resetOtpFlow();
+      _requestedPhone = '';
+      if (!_phoneFieldLocked) {
+        _phoneController.clear();
       }
     });
   }
 
-  void _showMessage(String message) {
-    String displayMessage = message;
-    if (message.toLowerCase().contains('timeout')) {
-      displayMessage = 'اتصال قطع شد. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.';
-    } else if (message.contains('Too many OTP')) {
-      displayMessage = 'درخواست‌های زیاد. لطفاً چند دقیقه صبر کنید و دوباره تلاش کنید.';
+  Future<void> _sendCode({required bool isNewUser}) async {
+    final canSend = isNewUser ? _canSendNewUser : _canSendReturning;
+    if (!canSend) return;
+
+    final formKey = isNewUser ? _newUserFormKey : _returningFormKey;
+    if (!(formKey.currentState?.validate() ?? false)) return;
+
+    final phone = _normalizePhone(_phoneController.text);
+    setState(() => _isLoading = true);
+    final response = await _authOtpService.requestOtp(
+      phone: phone,
+      language: _language,
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (!response.ok) {
+      _showMessage(_sanitizePreOtpError(response.errorMessage));
+      return;
     }
+
+    _requestedPhone = phone;
+    _resetOtpInputsOnly();
+    setState(() => _otpSent = true);
+    _showMessage(_l10n.codeSentGeneric);
+  }
+
+  Future<void> _verifyCode() async {
+    if (!_canConfirm) return;
+    final code = _otpControllers.map((c) => c.text).join();
+    if (code.length != 6) {
+      _showMessage(_l10n.otpIncomplete);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final response = await _authOtpService.verifyOtp(
+      phone: _requestedPhone,
+      code: code,
+      language: _language,
+    );
+    if (!mounted) return;
+
+    if (!response.ok || response.data == null) {
+      setState(() => _isLoading = false);
+      _showMessage(_sanitizePostOtpError(response.errorMessage));
+      return;
+    }
+
+    final verify = response.data!;
+    if (verify.accessToken == null || verify.accessToken!.isEmpty) {
+      setState(() => _isLoading = false);
+      _showMessage(_l10n.genericOtpVerifyFailed);
+      return;
+    }
+
+    await AuthService.setTokens(
+      accessToken: verify.accessToken!,
+      refreshToken: verify.refreshToken,
+    );
+
+    _phoneVerifiedInSession = true;
+    await _routeAfterVerifiedPhone();
+  }
+
+  Future<void> _routeAfterVerifiedPhone() async {
+    final meRes = await _authProfileService.fetchMe();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (!meRes.ok || meRes.data == null) {
+      _showMessage(_sanitizeProfileError(meRes.errorMessage));
+      return;
+    }
+
+    final me = meRes.data!;
+    final complete = Gate2ProfileRules.isProfileComplete(me);
+    final isNewUserPath = _accountChoice == _AccountChoice.newUser;
+
+    if (isNewUserPath) {
+      if (complete) {
+        setState(() {
+          _verifiedMeProfile = me;
+          _correctionCase = _CorrectionCase.newUserAlreadyRegistered;
+          _step = _Gate2Step.profileCorrection;
+        });
+        return;
+      }
+      if (!(_newUserFormKey.currentState?.validate() ?? false)) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      await _completeNewUserRegistration(skipOtp: true);
+      return;
+    }
+
+    if (complete) {
+      await _finishWithProfile(me);
+      return;
+    }
+
+    setState(() {
+      _verifiedMeProfile = me;
+      _correctionCase = _CorrectionCase.returningProfileIncomplete;
+      _step = _Gate2Step.profileCorrection;
+    });
+  }
+
+  Future<void> _completeNewUserRegistration({bool skipOtp = false}) async {
+    if (!skipOtp) {
+      if (!(_newUserFormKey.currentState?.validate() ?? false)) return;
+    } else if (!_canCompleteRegistration) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final iso = BirthCalendarHelper.toIsoDate(
+      calendarType: _calendarType,
+      day: _birthDay!,
+      month: _birthMonth!,
+      year: _birthYear!,
+    );
+    final patch = MeUpdateDto(
+      name: _nameController.text.trim(),
+      sex: _selectedGender,
+      preferredLanguage: _language,
+      calendarType: _calendarType,
+      birthDay: _birthDay,
+      birthMonth: _birthMonth,
+      birthYear: _birthYear,
+      dateOfBirth: iso,
+    );
+    final patchRes = await _authProfileService.patchMe(patch);
+    if (!mounted) return;
+    if (!patchRes.ok || patchRes.data == null) {
+      setState(() => _isLoading = false);
+      _showMessage(_sanitizeProfileError(patchRes.errorMessage));
+      return;
+    }
+
+    final meRes = await _authProfileService.fetchAndCacheProfile();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (!meRes.ok || meRes.data == null) {
+      _showMessage(_sanitizeProfileError(meRes.errorMessage));
+      return;
+    }
+
+    final me = meRes.data!;
+    if (!Gate2ProfileRules.isProfileComplete(me)) {
+      _showMessage(_l10n.profileIncomplete);
+      return;
+    }
+
+    await _finishWithProfile(me);
+  }
+
+  Future<void> _finishWithProfile(MeProfileDto me) async {
+    await _authProfileService.cacheProfileFromBackend(me);
+    await UserPreferences.savePreferredName(me.name ?? '');
+    await UserPreferences.saveUserLanguage(me.preferredLanguage ?? _language);
+    await UserPreferences.saveLanguagePref(_language);
+
+    await tryRegisterStoredTokenAfterLogin();
+    if (!mounted) return;
+    if (_navigatedAfterSuccess) return;
+    _navigatedAfterSuccess = true;
+    AppGateRouter.goToHeart(context);
+  }
+
+  void _startCompleteRegistrationFromCorrection() {
+    if (_requestedPhone.isNotEmpty) {
+      _phoneController.text = _formatPhoneForDisplay(_requestedPhone);
+    }
+    setState(() {
+      _accountChoice = _AccountChoice.newUser;
+      _phoneFieldLocked = true;
+      _phoneVerifiedInSession = true;
+      _correctionCase = null;
+      _verifiedMeProfile = null;
+      _resetOtpFlow();
+      _step = _Gate2Step.newUserRegistration;
+    });
+  }
+
+  Future<void> _continueWithExistingAccount() async {
+    final me = _verifiedMeProfile;
+    if (me == null) return;
+    setState(() => _isLoading = true);
+    await _finishWithProfile(me);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(displayMessage),
-        backgroundColor: AppTheme.primaryBlack,
+        content: Text(message),
+        backgroundColor: AppTheme.gate2ButtonActive,
         duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  String _sanitizePreOtpError(String message) {
+    if (message.toLowerCase().contains('timeout')) {
+      return _l10n.networkError;
+    }
+    if (message.contains('Too many OTP')) {
+      return _l10n.tooManyOtp;
+    }
+    return _l10n.genericOtpRequestFailed;
+  }
+
+  String _sanitizePostOtpError(String message) {
+    if (message.toLowerCase().contains('timeout')) {
+      return _l10n.networkError;
+    }
+    if (message.contains('Too many OTP')) {
+      return _l10n.tooManyOtp;
+    }
+    return _l10n.genericOtpVerifyFailed;
+  }
+
+  String _sanitizeProfileError(String message) {
+    if (message.toLowerCase().contains('timeout')) {
+      return _l10n.networkError;
+    }
+    return _l10n.profileSyncFailed;
+  }
+
+  void _openDobPicker() {
+    final defaults = BirthCalendarHelper.defaultSelection(_calendarType);
+    setState(() {
+      _dobPickerOpen = !_dobPickerOpen;
+      if (_dobPickerOpen) {
+        _birthDay ??= defaults[0];
+        _birthMonth ??= defaults[1];
+        _birthYear ??= defaults[2];
+      }
+    });
+  }
+
+  void _showGenderPicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.gate2CardWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.gate2RadiusCard),
+        ),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final value in ['male', 'female', 'other'])
+              ListTile(
+                title: Text(_l10n.genderLabel(value)),
+                onTap: () {
+                  setState(() => _selectedGender = value);
+                  Navigator.pop(ctx);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight - 40),
-                    child: IntrinsicHeight(
-                      child: _step == _OtpStep.request
-                          ? _buildRequestStep()
-                          : _buildVerifyStep(),
+    final direction =
+        _step == _Gate2Step.language ? TextDirection.ltr : _l10n.textDirection;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _handleSystemBack();
+      },
+      child: Directionality(
+        textDirection: direction,
+        child: Scaffold(
+          backgroundColor: AppTheme.gate2WarmBackground,
+          resizeToAvoidBottomInset: true,
+          body: Gate2Widgets.pageShell(
+            isLoading: _isLoading,
+            loadingLabel: _l10n.pleaseWait,
+            child: SafeArea(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.03, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: KeyedSubtree(
+                  key: ValueKey('$_step-${_correctionCase ?? ''}'),
+                  child: _buildStep(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep() {
+    switch (_step) {
+      case _Gate2Step.language:
+        return _buildLanguageStep();
+      case _Gate2Step.accountChoice:
+        return _buildAccountChoiceStep();
+      case _Gate2Step.returningLogin:
+        return _buildReturningLoginStep();
+      case _Gate2Step.newUserRegistration:
+        return _buildNewUserStep();
+      case _Gate2Step.profileCorrection:
+        return _buildCorrectionStep();
+    }
+  }
+
+  Widget _buildScrollShell(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight - 56),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageStep() {
+    return _buildScrollShell(
+      Gate2Widgets.centeredLuxuryCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Gate2Widgets.languageButton(
+              label: 'العربية',
+              selected: _language == 'ar',
+              onTap: () => setState(() => _language = 'ar'),
+            ),
+            Gate2Widgets.languageButton(
+              label: 'English',
+              selected: _language == 'en',
+              onTap: () => setState(() => _language = 'en'),
+            ),
+            Gate2Widgets.languageButton(
+              label: 'فارسی',
+              selected: _language == 'fa',
+              onTap: () => setState(() => _language = 'fa'),
+            ),
+            const SizedBox(height: 24),
+            Gate2Widgets.primaryButton(
+              label: OtpLoginLocalization(_language).confirm,
+              enabled: true,
+              onPressed: _confirmLanguage,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountChoiceStep() {
+    return _buildScrollShell(
+      Gate2Widgets.centeredLuxuryCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Gate2Widgets.backLink(
+              label: _l10n.back,
+              onPressed: _goToLanguage,
+            ),
+            Gate2Widgets.stepTitle(
+              _l10n.enterSediTitle,
+              subtitle: _l10n.enterSediSubtitle,
+            ),
+            const SizedBox(height: 24),
+            Gate2Widgets.accountOptionCard(
+              title: _l10n.haveAccountTitle,
+              description: _l10n.haveAccountDesc,
+              icon: Icons.login_rounded,
+              selected: _accountChoice == _AccountChoice.returning,
+              onTap: () =>
+                  setState(() => _accountChoice = _AccountChoice.returning),
+            ),
+            Gate2Widgets.accountOptionCard(
+              title: _l10n.noAccountTitle,
+              description: _l10n.noAccountDesc,
+              icon: Icons.person_add_alt_1_outlined,
+              selected: _accountChoice == _AccountChoice.newUser,
+              onTap: () =>
+                  setState(() => _accountChoice = _AccountChoice.newUser),
+            ),
+            const SizedBox(height: 12),
+            Gate2Widgets.primaryButton(
+              label: _l10n.confirm,
+              enabled: _accountChoice != null,
+              onPressed: _confirmAccountChoice,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReturningLoginStep() {
+    return _buildScrollShell(
+      Gate2Widgets.centeredLuxuryCard(
+        child: Form(
+          key: _returningFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Gate2Widgets.backLink(
+                label: _l10n.backToAccountChoice,
+                onPressed: _goToAccountChoice,
+              ),
+              Gate2Widgets.stepTitle(
+                _l10n.returningTitle,
+                subtitle: _l10n.returningSubtitle,
+              ),
+              const SizedBox(height: 24),
+              Gate2Widgets.textField(
+                controller: _phoneController,
+                hint: _l10n.mobileNumber,
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+                ],
+                validator: (v) =>
+                    _isValidPhone(v ?? '') ? null : _l10n.invalidPhone,
+                onChanged: (_) => _refresh(),
+              ),
+              const SizedBox(height: 16),
+              if (!_otpSent)
+                Center(
+                  child: Gate2Widgets.primaryButton(
+                    label: _l10n.send,
+                    enabled: _canSendReturning,
+                    fullWidth: false,
+                    onPressed: () => _sendCode(isNewUser: false),
+                  ),
+                ),
+              if (_otpSent) ...[
+                Gate2Widgets.textLinkButton(
+                  label: _l10n.changePhoneNumber,
+                  onPressed: _changePhoneNumber,
+                ),
+                const SizedBox(height: 12),
+                Gate2Widgets.otpSection(
+                  l10n: _l10n,
+                  controllers: _otpControllers,
+                  focusNodes: _otpFocusNodes,
+                  autofillController: _otpAutofillController,
+                ),
+                const SizedBox(height: 20),
+                Gate2Widgets.primaryButton(
+                  label: _l10n.confirm,
+                  enabled: _canConfirm,
+                  onPressed: _verifyCode,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewUserStep() {
+    final showOtpFlow = !_phoneVerifiedInSession;
+
+    return _buildScrollShell(
+      Gate2Widgets.centeredLuxuryCard(
+        child: Form(
+          key: _newUserFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Gate2Widgets.backLink(
+                label: _l10n.backToAccountChoice,
+                onPressed: _goToAccountChoice,
+              ),
+              Gate2Widgets.stepTitle(_l10n.newUserTitle),
+              const SizedBox(height: 24),
+              Gate2Widgets.textField(
+                controller: _nameController,
+                hint: _l10n.name,
+                icon: Icons.person_outline,
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? _l10n.nameRequired : null,
+                onChanged: (_) => _refresh(),
+              ),
+              const SizedBox(height: 12),
+              FormField<String>(
+                validator: (_) =>
+                    _selectedGender == null ? _l10n.genderRequired : null,
+                builder: (state) => Gate2Widgets.tapField(
+                  hint: _l10n.gender,
+                  value: _selectedGender != null
+                      ? _l10n.genderLabel(_selectedGender!)
+                      : '',
+                  icon: Icons.wc_outlined,
+                  onTap: _showGenderPicker,
+                  hasError: state.hasError,
+                  errorText: state.errorText,
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormField<void>(
+                validator: (_) =>
+                    !_hasCompleteDob ? _l10n.dobRequired : null,
+                builder: (state) => Column(
+                  children: [
+                    Gate2Widgets.tapField(
+                      hint: _l10n.selectDateOfBirth,
+                      value: _hasCompleteDob ? _formattedDob() : '',
+                      icon: Icons.calendar_today_outlined,
+                      onTap: _openDobPicker,
+                      hasError: state.hasError,
+                      errorText: state.errorText,
+                    ),
+                    if (_dobPickerOpen)
+                      Gate2Widgets.dobPicker(
+                        l10n: _l10n,
+                        calendarType: _calendarType,
+                        day: _birthDay ??
+                            BirthCalendarHelper.defaultSelection(
+                                _calendarType)[0],
+                        month: _birthMonth ??
+                            BirthCalendarHelper.defaultSelection(
+                                _calendarType)[1],
+                        year: _birthYear ??
+                            BirthCalendarHelper.defaultSelection(
+                                _calendarType)[2],
+                        onDay: (v) => setState(() => _birthDay = v),
+                        onMonth: (v) => setState(() {
+                          _birthMonth = v;
+                          final maxDay = BirthCalendarHelper.daysInMonth(
+                            calendarType: _calendarType,
+                            year: _birthYear!,
+                            month: v,
+                          );
+                          if (_birthDay! > maxDay) _birthDay = maxDay;
+                        }),
+                        onYear: (v) => setState(() {
+                          _birthYear = v;
+                          final maxDay = BirthCalendarHelper.daysInMonth(
+                            calendarType: _calendarType,
+                            year: v,
+                            month: _birthMonth!,
+                          );
+                          if (_birthDay! > maxDay) _birthDay = maxDay;
+                        }),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (_phoneVerifiedInSession && _phoneFieldLocked)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    _l10n.phoneVerifiedLabel,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppTheme.gate2TextMuted,
+                      fontSize: 13,
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          if (_isLoading)
-            Container(
-              color: AppTheme.background.withOpacity(0.4),
-              child: const AppLoadingState(label: 'Please wait...'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRequestStep() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          const Text(
-            'Welcome to Sedi',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 30,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Sign in with your phone number',
-            style: TextStyle(
-              color: AppTheme.textSecondary.withOpacity(0.9),
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 40),
-          _buildTextInput(
-            controller: _nameController,
-            hint: 'Your name',
-            validator: (v) =>
-                v == null || v.trim().isEmpty ? 'Name is required' : null,
-          ),
-          const SizedBox(height: 16),
-          _buildTextInput(
-            controller: _phoneController,
-            hint: 'Phone number',
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-            ],
-            validator: (v) =>
-                _isValidPhone(v ?? '') ? null : 'Enter a valid phone number',
-          ),
-          const SizedBox(height: 16),
-          _buildLanguageSelector(),
-          const SizedBox(height: 32),
-          _buildPrimaryButton(
-            title: 'Send code',
-            isLoading: _isLoading,
-            onPressed: _sendCode,
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVerifyStep() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'Enter verification code',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 30,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Code sent to $_requestedPhone',
-          style: TextStyle(
-            color: AppTheme.textSecondary.withOpacity(0.9),
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 28),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(6, (index) => _buildOtpBox(index)),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            TextButton(
-              onPressed: _resendSecondsLeft == 0 ? _resendCode : null,
-              child: Text(
-                _resendSecondsLeft == 0
-                    ? 'Resend'
-                    : 'Resend in ${_resendSecondsLeft}s',
-                style: const TextStyle(color: AppTheme.textPrimary),
-              ),
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: _editPhone,
-              child: const Text(
-                'Edit phone',
-                style: TextStyle(color: AppTheme.textSecondary),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _buildPrimaryButton(
-          title: 'Verify',
-          isLoading: _isLoading,
-          onPressed: _verifyCode,
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-
-  Widget _buildTextInput({
-    required TextEditingController controller,
-    required String hint,
-    String? Function(String?)? validator,
-    TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return TextFormField(
-      controller: controller,
-      validator: validator,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      style: const TextStyle(
-        color: AppTheme.textPrimary,
-        fontSize: 17,
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.8)),
-        filled: true,
-        fillColor: AppTheme.backgroundWhite,
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppTheme.borderInactive, width: 1),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppTheme.borderActive, width: 1.5),
-        ),
-        errorBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppTheme.borderActive, width: 1),
-        ),
-        focusedErrorBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppTheme.borderActive, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLanguageSelector() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppTheme.borderInactive, width: 1),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _languagePref,
-          isExpanded: true,
-          items: [
-            const DropdownMenuItem(value: 'auto', child: Text('Auto')),
-            const DropdownMenuItem(value: 'en', child: Text('English')),
-            const DropdownMenuItem(value: 'fa', child: Text('فارسی')),
-            const DropdownMenuItem(value: 'ar', child: Text('العربية')),
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() => _languagePref = value);
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOtpBox(int index) {
-    return SizedBox(
-      width: 44,
-      child: TextField(
-        controller: _otpControllers[index],
-        focusNode: _otpFocusNodes[index],
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(
-          counterText: '',
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: AppTheme.borderInactive, width: 1),
-          ),
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: AppTheme.borderActive, width: 1.5),
-          ),
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty && index < 5) {
-            _otpFocusNodes[index + 1].requestFocus();
-          }
-          if (value.isEmpty && index > 0) {
-            _otpFocusNodes[index - 1].requestFocus();
-          }
-        },
-      ),
-    );
-  }
-
-  Widget _buildPrimaryButton({
-    required String title,
-    required bool isLoading,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryBlack,
-          disabledBackgroundColor: AppTheme.metalGrey,
-          foregroundColor: AppTheme.backgroundWhite,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-          ),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppTheme.backgroundWhite),
                 ),
-              )
-            : Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              Gate2Widgets.textField(
+                controller: _phoneController,
+                hint: _l10n.mobileNumber,
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                readOnly: _phoneFieldLocked,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+                ],
+                validator: (v) {
+                  if (_phoneVerifiedInSession && _requestedPhone.isNotEmpty) {
+                    return null;
+                  }
+                  return _isValidPhone(v ?? '') ? null : _l10n.invalidPhone;
+                },
+                onChanged: (_) => _refresh(),
               ),
+              const SizedBox(height: 16),
+              if (showOtpFlow) ...[
+                if (!_otpSent)
+                  Center(
+                    child: Gate2Widgets.primaryButton(
+                      label: _l10n.send,
+                      enabled: _canSendNewUser,
+                      fullWidth: false,
+                      onPressed: () => _sendCode(isNewUser: true),
+                    ),
+                  ),
+                if (_otpSent) ...[
+                  Gate2Widgets.textLinkButton(
+                    label: _l10n.changePhoneNumber,
+                    onPressed: _changePhoneNumber,
+                  ),
+                  const SizedBox(height: 12),
+                  Gate2Widgets.otpSection(
+                    l10n: _l10n,
+                    controllers: _otpControllers,
+                    focusNodes: _otpFocusNodes,
+                    autofillController: _otpAutofillController,
+                  ),
+                  const SizedBox(height: 20),
+                  Gate2Widgets.primaryButton(
+                    label: _l10n.confirm,
+                    enabled: _canConfirm,
+                    onPressed: _verifyCode,
+                  ),
+                ],
+              ] else ...[
+                Gate2Widgets.primaryButton(
+                  label: _l10n.completeRegistration,
+                  enabled: _canCompleteRegistration,
+                  onPressed: _completeNewUserRegistration,
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
+
+  Widget _buildCorrectionStep() {
+    final correction = _correctionCase;
+    if (correction == null) {
+      return const SizedBox.shrink();
+    }
+
+    final message = correction == _CorrectionCase.returningProfileIncomplete
+        ? _l10n.returningProfileIncompleteMessage
+        : _l10n.newUserAlreadyRegisteredMessage;
+
+    final primaryLabel = correction == _CorrectionCase.returningProfileIncomplete
+        ? _l10n.completeRegistration
+        : _l10n.continueToAccount;
+
+    final onPrimary = correction == _CorrectionCase.returningProfileIncomplete
+        ? _startCompleteRegistrationFromCorrection
+        : _continueWithExistingAccount;
+
+    return _buildScrollShell(
+      Gate2Widgets.centeredLuxuryCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Gate2Widgets.stepTitle(_l10n.enterSediTitle),
+            const SizedBox(height: 24),
+            Gate2Widgets.correctionPanel(
+              message: message,
+              primaryLabel: primaryLabel,
+              onPrimary: onPrimary,
+              secondaryLabel: _l10n.backToAccountChoice,
+              onSecondary: _goToAccountChoice,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+extension on OtpLoginLocalization {
+  TextDirection get textDirection =>
+      isRtl ? TextDirection.rtl : TextDirection.ltr;
 }

@@ -510,6 +510,9 @@ class UserProfileCore(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
     birth_year = Column(Integer, nullable=True)
+    birth_day = Column(Integer, nullable=True)
+    birth_month = Column(Integer, nullable=True)
+    calendar_type = Column(String(16), nullable=True)
     date_of_birth = Column(Date, nullable=True)
     sex = Column(String(32), nullable=True)
     addressing_preference = Column(String(64), nullable=True)

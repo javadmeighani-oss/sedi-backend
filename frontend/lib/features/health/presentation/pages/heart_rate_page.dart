@@ -8,8 +8,8 @@ import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
 import '../../../../data/models/heart_rate_event.dart';
 import '../../logic/heart_rate_thresholds.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/health/heart_rate_service.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 
 class HeartRatePage extends StatefulWidget {
   const HeartRatePage({super.key});
@@ -43,9 +43,7 @@ class _HeartRatePageState extends State<HeartRatePage> {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-      );
+      AppGateRouter.goToLogin(context);
       return;
     }
 

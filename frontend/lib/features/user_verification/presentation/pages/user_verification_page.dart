@@ -7,6 +7,9 @@ import '../../../../services/push/push_service.dart';
 import '../../../chat/chat_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 
+/// LEGACY — not part of the 3-gate main route flow (Gate 1→2/3).
+/// Superseded by `OtpLoginPage`. Kept for reference; do not wire into [AppGateRouter].
+///
 /// UserVerificationPage – username and language only (no password).
 /// Saves guessed gender to profile (optional, not shown in UI).
 

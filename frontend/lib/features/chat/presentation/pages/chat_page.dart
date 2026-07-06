@@ -12,6 +12,7 @@ import '../widgets/sedi_header.dart';
 import '../../../../core/preferences/notification_prefs.dart';
 import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/brand_name.dart';
 import '../../../../core/utils/user_preferences.dart';
@@ -27,12 +28,16 @@ import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 import '../../../notification/data/notification_service.dart';
 import '../../../notification/logic/notification_sync.dart';
 import '../../../notification/presentation/pages/notifications_inbox_page.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 import '../../../../data/repositories/notification_prefs_repository.dart';
 
 /// ============================================
-/// ChatPage - صفحه اصلی چت
+/// Gate 3 — Sedi Heart / Main Interaction (`ChatPage`)
 /// ============================================
+///
+/// Official permanent home after login (Gate 3).
+/// Chat is the central experience; notifications, health, lifestyle,
+/// devices, history, and settings are sections under this gate (not separate gates).
+/// Back navigation must not return to Gate 1 or Gate 2 (`PopScope` + gate router on logout).
 ///
 /// CONTRACT:
 /// - پیام‌های صدی نباید زیر چت‌باکس بروند
@@ -196,9 +201,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     final userId = await UserIdentityService.resolveUserId();
     if (userId == null) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-      );
+      AppGateRouter.goToLogin(context);
       return;
     }
     final resp = await _notificationService.fetchUnreadList(userId: userId);
@@ -822,11 +825,8 @@ class _NotificationSettingsSheetState
   }
 
   Future<void> _handleLogout() async {
-    final navigator = Navigator.of(context);
+    // AppGateRouter.goToLogin inside performLogout replaces the full stack.
     await AuthHelper.performLogout(context: context);
-    if (navigator.mounted) {
-      navigator.pop();
-    }
   }
 
   String _l(String en, String fa, String ar) {

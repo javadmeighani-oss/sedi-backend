@@ -21,12 +21,13 @@ class AuthOtpService {
     }
 
     return _apiClient.postRaw(
-      '/auth/request_otp',
+      '/auth/otp/request',
       body: dto.toJson(),
       extraHeaders: headers.isEmpty ? null : headers,
     );
   }
 
+  /// Verify OTP and return tokens. Profile sync is handled separately via [AuthProfileService].
   Future<ApiResponse<OtpVerifyResponse>> verifyOtp({
     required String phone,
     required String code,
@@ -38,8 +39,8 @@ class AuthOtpService {
       headers['Accept-Language'] = language.trim();
     }
 
-    final verifyResponse = await _apiClient.post<OtpVerifyResponse>(
-      '/auth/verify_otp',
+    return _apiClient.post<OtpVerifyResponse>(
+      '/auth/otp/verify',
       body: dto.toJson(),
       extraHeaders: headers.isEmpty ? null : headers,
       parser: (json) {
@@ -48,44 +49,6 @@ class AuthOtpService {
         }
         return null;
       },
-    );
-
-    final payload = verifyResponse.data;
-    final token = payload?.accessToken;
-    final needsMeLookup = verifyResponse.ok &&
-        payload != null &&
-        token != null &&
-        token.isNotEmpty;
-    if (!needsMeLookup) {
-      return verifyResponse;
-    }
-
-    final meResponse = await _apiClient.get<Map<String, dynamic>>(
-      '/auth/me',
-      extraHeaders: {
-        'Authorization': 'Bearer $token',
-      },
-      parser: (json) => json is Map ? Map<String, dynamic>.from(json) : null,
-    );
-    if (!meResponse.ok || meResponse.data == null) {
-      return verifyResponse;
-    }
-
-    final meData = meResponse.data!;
-    final rawUserId = meData['user_id'];
-    final userId = rawUserId is int
-        ? rawUserId
-        : int.tryParse(rawUserId?.toString() ?? '');
-    final enriched = payload.copyWith(
-      userId: userId,
-      phone: meData['phone']?.toString(),
-      language: meData['language']?.toString() ?? payload.language,
-    );
-    return ApiResponse<OtpVerifyResponse>(
-      ok: verifyResponse.ok,
-      data: enriched,
-      error: verifyResponse.error,
-      statusCode: verifyResponse.statusCode,
     );
   }
 }

@@ -9,8 +9,8 @@ import '../../../../core/widgets/app_states/app_loading_state.dart';
 import '../../../../data/dto/lifestyle/lifestyle_entry_dto.dart';
 import '../../../../data/dto/lifestyle/lifestyle_update_request_dto.dart';
 import '../../../../data/models/lifestyle_state.dart';
+import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/lifestyle/lifestyle_service.dart';
-import '../../../auth_otp/presentation/pages/otp_login_page.dart';
 
 class LifestylePage extends StatefulWidget {
   const LifestylePage({super.key});
@@ -39,9 +39,7 @@ class _LifestylePageState extends State<LifestylePage> {
         profile.preferredLanguage.isNotEmpty ? profile.preferredLanguage : 'en';
     _userId = await UserIdentityService.resolveUserId();
     if (_userId == null && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-      );
+      AppGateRouter.goToLogin(context);
       return;
     }
     await _load();

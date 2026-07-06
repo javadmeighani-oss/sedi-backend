@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../../features/auth_otp/presentation/pages/otp_login_page.dart';
+import '../config/app_config.dart';
+import '../navigation/app_gate_router.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/user_profile_manager.dart';
 import 'auth_service.dart';
+import 'user_identity_service.dart';
 
 /// Clears session and navigates to OTP login (used after refresh failure).
 class AuthSessionManager {
@@ -16,12 +18,10 @@ class AuthSessionManager {
     try {
       await AuthService.clearUserData();
       await UserProfileManager.clearProfile();
+      UserIdentityService.clearCache();
       final ctx = navigatorKey.currentContext;
       if (ctx != null && ctx.mounted) {
-        Navigator.of(ctx).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const OtpLoginPage()),
-          (_) => false,
-        );
+        AppGateRouter.goToLogin(ctx);
       }
     } finally {
       _handling = false;

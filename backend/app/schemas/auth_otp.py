@@ -10,6 +10,8 @@ DISPLAY_NAME_MAX_LENGTH = 64
 SEX_MAX_LENGTH = 32
 ADDRESSING_PREFERENCE_MAX_LENGTH = 64
 BIRTH_YEAR_MIN = 1900
+CALENDAR_TYPES = frozenset({"jalali", "gregorian", "hijri"})
+SEX_VALUES = frozenset({"male", "female", "other"})
 
 
 class OtpRequestIn(BaseModel):
@@ -42,6 +44,9 @@ class MeOut(BaseModel):
     preferred_language: Optional[str] = None
     account_type: str = "normal"
     birth_year: Optional[int] = None
+    birth_day: Optional[int] = None
+    birth_month: Optional[int] = None
+    calendar_type: Optional[str] = None
     date_of_birth: Optional[date] = None
     sex: Optional[str] = None
     addressing_preference: Optional[str] = None
@@ -62,6 +67,9 @@ class MeUpdateIn(BaseModel):
     display_name: Optional[str] = None
     preferred_language: Optional[Literal["en", "fa", "ar"]] = None
     birth_year: Optional[int] = None
+    birth_day: Optional[int] = None
+    birth_month: Optional[int] = None
+    calendar_type: Optional[str] = None
     date_of_birth: Optional[date] = None
     sex: Optional[str] = None
     addressing_preference: Optional[str] = None
@@ -94,10 +102,38 @@ class MeUpdateIn(BaseModel):
     def validate_sex(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return None
-        trimmed = value.strip()
-        if len(trimmed) > SEX_MAX_LENGTH:
-            raise ValueError(f"sex must be at most {SEX_MAX_LENGTH} characters")
+        trimmed = value.strip().lower()
+        if trimmed not in SEX_VALUES:
+            raise ValueError("sex must be one of: male, female, other")
         return trimmed
+
+    @field_validator("calendar_type")
+    @classmethod
+    def validate_calendar_type(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip().lower()
+        if trimmed not in CALENDAR_TYPES:
+            raise ValueError("calendar_type must be one of: jalali, gregorian, hijri")
+        return trimmed
+
+    @field_validator("birth_day")
+    @classmethod
+    def validate_birth_day(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1 or value > 31:
+            raise ValueError("birth_day must be between 1 and 31")
+        return value
+
+    @field_validator("birth_month")
+    @classmethod
+    def validate_birth_month(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1 or value > 12:
+            raise ValueError("birth_month must be between 1 and 12")
+        return value
 
     @field_validator("addressing_preference")
     @classmethod
@@ -116,9 +152,9 @@ class MeUpdateIn(BaseModel):
     def validate_birth_year(cls, value: Optional[int]) -> Optional[int]:
         if value is None:
             return None
-        current_year = datetime.utcnow().year
-        if value < BIRTH_YEAR_MIN or value > current_year:
-            raise ValueError(f"birth_year must be between {BIRTH_YEAR_MIN} and {current_year}")
+        # Wide bounds; calendar-specific validation in model_validator.
+        if value < 1200 or value > 2100:
+            raise ValueError("birth_year is out of allowed range")
         return value
 
     @field_validator("timezone")
@@ -145,6 +181,25 @@ class MeUpdateIn(BaseModel):
         return value
 
     @model_validator(mode="after")
+    def validate_birth_calendar(self) -> "MeUpdateIn":
+        if self.birth_year is not None and self.calendar_type:
+            cal = self.calendar_type
+            year = self.birth_year
+            current_gregorian = datetime.utcnow().year
+            if cal == "gregorian":
+                if year < BIRTH_YEAR_MIN or year > current_gregorian:
+                    raise ValueError(
+                        f"birth_year for gregorian calendar must be between {BIRTH_YEAR_MIN} and {current_gregorian}"
+                    )
+            elif cal == "jalali":
+                if year < 1300 or year > 1450:
+                    raise ValueError("birth_year for jalali calendar must be between 1300 and 1450")
+            elif cal == "hijri":
+                if year < 1300 or year > 1500:
+                    raise ValueError("birth_year for hijri calendar must be between 1300 and 1500")
+        return self
+
+    @model_validator(mode="after")
     def require_at_least_one_field(self) -> "MeUpdateIn":
         if all(
             v is None
@@ -153,6 +208,9 @@ class MeUpdateIn(BaseModel):
                 self.display_name,
                 self.preferred_language,
                 self.birth_year,
+                self.birth_day,
+                self.birth_month,
+                self.calendar_type,
                 self.date_of_birth,
                 self.sex,
                 self.addressing_preference,

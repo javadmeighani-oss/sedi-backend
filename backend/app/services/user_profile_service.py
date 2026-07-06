@@ -29,6 +29,9 @@ def build_me_response(db: Session, user: models.User) -> dict:
         preferred_language=preferred_language,
         account_type=account_type,
         birth_year=profile.birth_year if profile else None,
+        birth_day=profile.birth_day if profile else None,
+        birth_month=profile.birth_month if profile else None,
+        calendar_type=profile.calendar_type if profile else None,
         date_of_birth=profile.date_of_birth if profile else None,
         sex=profile.sex if profile else None,
         addressing_preference=profile.addressing_preference if profile else None,
@@ -47,6 +50,9 @@ def apply_profile_update(db: Session, user: models.User, body: MeUpdateIn) -> mo
         v is not None
         for v in (
             body.birth_year,
+            body.birth_day,
+            body.birth_month,
+            body.calendar_type,
             body.date_of_birth,
             body.sex,
             body.addressing_preference,
@@ -75,9 +81,16 @@ def apply_profile_update(db: Session, user: models.User, body: MeUpdateIn) -> mo
         profile = ensure_profile_core(db, user.id)
         if body.birth_year is not None:
             profile.birth_year = body.birth_year
+        if body.birth_day is not None:
+            profile.birth_day = body.birth_day
+        if body.birth_month is not None:
+            profile.birth_month = body.birth_month
+        if body.calendar_type is not None:
+            profile.calendar_type = body.calendar_type
         if body.date_of_birth is not None:
             profile.date_of_birth = body.date_of_birth
-            profile.birth_year = body.date_of_birth.year
+            if body.birth_year is None:
+                profile.birth_year = body.date_of_birth.year
         if body.sex is not None:
             profile.sex = body.sex.strip() if body.sex.strip() else None
         if body.addressing_preference is not None:

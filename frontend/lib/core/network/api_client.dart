@@ -152,7 +152,7 @@ class ApiClient {
     );
   }
 
-  /// PUT [path] with optional [body]. Returns ApiResponse<T> using [parser] for body (or body["data"] if envelope).
+  /// PUT [path] with optional [body]. Returns ApiResponse<T> using [parser] for body["data"].
   Future<ApiResponse<T>> put<T>(
     String path, {
     Map<String, dynamic>? body,
@@ -170,6 +170,40 @@ class ApiClient {
         path,
         (headers) => http
             .put(
+          uri,
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        )
+            .timeout(timeout, onTimeout: () {
+          throw Exception('Request timeout');
+        }),
+        extraHeaders: extraHeaders,
+      );
+      debugPrint('[API] response status=${response.statusCode}');
+      return _handleResponse<T>(response, parser);
+    } catch (e) {
+      return _failureFromException(e);
+    }
+  }
+
+  /// PATCH [path] with optional [body]. Returns ApiResponse<T> using [parser] for body["data"].
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? queryParams,
+    Map<String, String>? extraHeaders,
+    required T? Function(Object? dataJson) parser,
+  }) async {
+    try {
+      var uri = Uri.parse('$baseUrl$path');
+      if (queryParams != null && queryParams.isNotEmpty) {
+        uri = uri.replace(queryParameters: queryParams);
+      }
+      debugPrint('[API] PATCH $uri');
+      final response = await _withAuthRetry(
+        path,
+        (headers) => http
+            .patch(
           uri,
           headers: headers,
           body: body != null ? jsonEncode(body) : null,
