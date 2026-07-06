@@ -25,7 +25,7 @@ class Gate2Widgets {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircularProgressIndicator(
-                    color: AppTheme.gate2ButtonActive,
+                    color: AppTheme.gate2ButtonOlive,
                     strokeWidth: 2,
                   ),
                   const SizedBox(height: 12),
@@ -146,7 +146,7 @@ class Gate2Widgets {
         borderRadius: BorderRadius.circular(AppTheme.gate2RadiusInput),
         border: Border.all(
           color: selected
-              ? AppTheme.gate2ButtonActive
+              ? AppTheme.gate2ButtonOlive
               : AppTheme.gate2BorderSubtle,
           width: selected ? 1.5 : 0.8,
         ),
@@ -164,7 +164,7 @@ class Gate2Widgets {
                 Icon(
                   icon,
                   color: selected
-                      ? AppTheme.gate2ButtonActive
+                      ? AppTheme.gate2ButtonOlive
                       : AppTheme.gate2TextMuted,
                   size: 22,
                 ),
@@ -335,7 +335,8 @@ class Gate2Widgets {
       child: ElevatedButton(
         onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.gate2ButtonActive,
+          backgroundColor:
+              enabled ? AppTheme.gate2ButtonOlive : AppTheme.gate2ButtonDisabled,
           disabledBackgroundColor: AppTheme.gate2ButtonDisabled,
           foregroundColor: AppTheme.gate2CardWhite,
           disabledForegroundColor: AppTheme.gate2TextDisabled,
@@ -615,16 +616,22 @@ class Gate2Widgets {
     required List<TextEditingController> controllers,
     required List<FocusNode> focusNodes,
     required TextEditingController autofillController,
+    required bool active,
+    String? helperText,
   }) {
+    final title = active ? l10n.sentCode : (helperText ?? l10n.otpEnterAfterSend);
     return Column(
       children: [
         Text(
-          l10n.sentCode,
+          title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppTheme.gate2TextPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+          style: TextStyle(
+            color: active
+                ? AppTheme.gate2TextPrimary
+                : AppTheme.gate2TextMuted,
+            fontSize: active ? 16 : 14,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+            height: 1.45,
           ),
         ),
         const SizedBox(height: 18),
@@ -632,34 +639,42 @@ class Gate2Widgets {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  6,
-                  (i) => _otpBox(
-                    controllers[i],
-                    focusNodes[i],
-                    i,
-                    controllers,
-                    focusNodes,
+              IgnorePointer(
+                ignoring: !active,
+                child: Opacity(
+                  opacity: active ? 1.0 : 0.45,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      6,
+                      (i) => _otpBox(
+                        controllers[i],
+                        focusNodes[i],
+                        i,
+                        controllers,
+                        focusNodes,
+                        enabled: active,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              Opacity(
-                opacity: 0.01,
-                child: SizedBox(
-                  height: 46,
-                  width: double.infinity,
-                  child: TextField(
-                    controller: autofillController,
-                    keyboardType: TextInputType.number,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    maxLength: 6,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      counterText: '',
-                      border: InputBorder.none,
-                    ),
+              // Off-screen field for Android/iOS one-time-code autofill.
+              Positioned(
+                left: -1000,
+                width: 1,
+                height: 1,
+                child: TextField(
+                  controller: autofillController,
+                  keyboardType: TextInputType.number,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  maxLength: 6,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    border: InputBorder.none,
                   ),
                 ),
               ),
@@ -675,8 +690,9 @@ class Gate2Widgets {
     FocusNode focusNode,
     int index,
     List<TextEditingController> allControllers,
-    List<FocusNode> allFocusNodes,
-  ) {
+    List<FocusNode> allFocusNodes, {
+    required bool enabled,
+  }) {
     return Container(
       width: 42,
       height: 46,
@@ -690,6 +706,8 @@ class Gate2Widgets {
       child: TextField(
         controller: controller,
         focusNode: focusNode,
+        enabled: enabled,
+        readOnly: !enabled,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
