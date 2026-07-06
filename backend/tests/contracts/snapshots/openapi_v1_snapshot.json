@@ -4006,6 +4006,28 @@
             ],
             "title": "Addressing Preference"
           },
+          "birth_day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Day"
+          },
+          "birth_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Month"
+          },
           "birth_year": {
             "anyOf": [
               {
@@ -4016,6 +4038,17 @@
               }
             ],
             "title": "Birth Year"
+          },
+          "calendar_type": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Calendar Type"
           },
           "date_of_birth": {
             "anyOf": [
