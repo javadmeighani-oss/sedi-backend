@@ -180,7 +180,7 @@ class BirthCalendarHelper {
   static List<int> _jdnToGregorian(int jdn) {
     var l = jdn + 68569;
     final n = (4 * l / 146097).floor();
-    l -= (146097 * n + 3) / 4;
+    l -= (146097 * n + 3) ~/ 4;
     final i = (4000 * (l + 1) / 1461001).floor();
     l = l - (1461 * i / 4).floor() + 31;
     final j = (80 * l / 2447).floor();
