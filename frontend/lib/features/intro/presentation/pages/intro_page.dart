@@ -25,8 +25,8 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
   static const String _backgroundAsset =
       'assets/images/cosmic_sunrise_background.png';
 
-  /// Final rendered logo width/height on screen.
-  static const double _finalLogoSize = 148.0;
+  /// Final rendered logo width/height on screen (20% larger than prior 148px).
+  static const double _finalLogoSize = 177.6;
 
   /// Gate 1 olive-green palette (multi-step color transition).
   static const Color _colorStart = Color(0xFFFFFFFF);
@@ -48,29 +48,13 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
       duration: kGate1Duration,
     );
 
-    // 0.0–0.8s: small subtle → 0.8–1.6s: growing → 1.6–2.4s: large → 2.4–3.0s: hold
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.28, end: 0.48)
-            .chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 26.67,
+    // Uniform linear growth — no pulse / heartbeat rhythm.
+    _scaleAnimation = Tween<double>(begin: 0.28, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _masterController,
+        curve: Curves.linear,
       ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.48, end: 0.72)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 26.67,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.72, end: 0.96)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 26.67,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.96, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 20,
-      ),
-    ]).animate(_masterController);
+    );
 
     _fadeAnimation = Tween<double>(begin: 0.35, end: 1.0).animate(
       CurvedAnimation(

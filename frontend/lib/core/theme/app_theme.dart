@@ -64,6 +64,8 @@ class AppTheme {
   static const Color gate2CardWhite = Color(0xFFFFFFFF);
   static const Color gate2InputFill = Color(0xFFF4F4F2);
   static const Color gate2ButtonActive = Color(0xFF050505);
+  /// Gate 2 primary CTA — calm olive green (not bright green).
+  static const Color gate2ButtonOlive = Color(0xFF6F7F3A);
   static const Color gate2ButtonDisabled = Color(0xFFE3E3E0);
   static const Color gate2TextDisabled = Color(0xFF8A8A86);
   static const Color gate2Placeholder = Color(0xFFC8C8C4);

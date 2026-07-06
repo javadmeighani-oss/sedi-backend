@@ -282,6 +282,12 @@ class OtpLoginLocalization {
         ar: 'تم إرسال رمز التحقق. يرجى التحقق من رسائلك.',
       );
 
+  String get otpEnterAfterSend => _t(
+        en: 'Enter the 6-digit code here after you tap Send.',
+        fa: 'پس از زدن «ارسال»، کد ۶ رقمی را اینجا وارد کنید.',
+        ar: 'بعد الضغط على «إرسال»، أدخل الرمز المكون من 6 أرقام هنا.',
+      );
+
   String get genericOtpRequestFailed => _t(
         en: 'Could not send the verification code. Please try again.',
         fa: 'ارسال کد تأیید انجام نشد. لطفاً دوباره تلاش کنید.',
