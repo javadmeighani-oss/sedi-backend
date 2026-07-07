@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/navigation/app_gate.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/navigation/session_gate_resolver.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../services/push/push_service.dart';
 
 /// Gate 1 — Sedi Welcome / Splash (`IntroPage`).
@@ -25,20 +26,12 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
   static const String _backgroundAsset =
       'assets/images/cosmic_sunrise_background.png';
 
-  /// Final rendered logo width/height on screen (20% larger than prior 148px).
-  static const double _finalLogoSize = 177.6;
-
-  /// Gate 1 olive-green palette (multi-step color transition).
-  static const Color _colorStart = Color(0xFFFFFFFF);
-  static const Color _colorWarmWhite = Color(0xFFEEF3DD);
-  static const Color _colorPalePistachio = Color(0xFFD6E9A8);
-  static const Color _colorSoftOlive = Color(0xFFB8D77A);
-  static const Color _colorFinalOlive = Color(0xFF9BC56B);
+  /// Final rendered logo size — 15% larger than prior 177.6px APK size.
+  static const double _finalLogoSize = 204.24;
 
   late AnimationController _masterController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
-  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
@@ -48,7 +41,7 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
       duration: kGate1Duration,
     );
 
-    // Uniform linear growth — no pulse / heartbeat rhythm.
+    // Uniform linear growth — no pulse, heartbeat, bounce, or breathing loop.
     _scaleAnimation = Tween<double>(begin: 0.28, end: 1.0).animate(
       CurvedAnimation(
         parent: _masterController,
@@ -62,26 +55,6 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
         curve: const Interval(0.0, 0.28, curve: Curves.easeOut),
       ),
     );
-
-    // White → Warm White → Pale Pistachio → Soft Olive → Final Olive Green
-    _colorAnimation = TweenSequence<Color?>([
-      TweenSequenceItem(
-        tween: ColorTween(begin: _colorStart, end: _colorWarmWhite),
-        weight: 26.67,
-      ),
-      TweenSequenceItem(
-        tween: ColorTween(begin: _colorWarmWhite, end: _colorPalePistachio),
-        weight: 26.67,
-      ),
-      TweenSequenceItem(
-        tween: ColorTween(begin: _colorPalePistachio, end: _colorSoftOlive),
-        weight: 26.67,
-      ),
-      TweenSequenceItem(
-        tween: ColorTween(begin: _colorSoftOlive, end: _colorFinalOlive),
-        weight: 20,
-      ),
-    ]).animate(_masterController);
 
     _masterController.forward();
 
@@ -158,8 +131,8 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
                     );
                   },
                   child: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      _colorAnimation.value ?? _colorStart,
+                    colorFilter: const ColorFilter.mode(
+                      AppTheme.gate2ButtonOlive,
                       BlendMode.srcIn,
                     ),
                     child: Image.asset(
