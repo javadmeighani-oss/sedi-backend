@@ -207,6 +207,13 @@ class OtpLoginLocalization {
         ar: 'انقطع الاتصال. يرجى التحقق من الإنترنت والمحاولة مرة أخرى.',
       );
 
+  String get serverUnavailable => _t(
+        en: 'Sedi server is currently unavailable. Please try again in a few minutes.',
+        fa:
+            'سرور صدی در حال حاضر در دسترس نیست. لطفاً چند دقیقه دیگر دوباره تلاش کنید.',
+        ar: 'خادم Sedi غير متاح حاليًا. يرجى المحاولة مرة أخرى بعد بضع دقائق.',
+      );
+
   String get tooManyOtp => _t(
         en: 'Too many requests. Please wait a few minutes and try again.',
         fa:
