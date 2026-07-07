@@ -10,7 +10,7 @@ on:
       phone_suffix:
         description: "Optional last 4 digits to narrow logs"
         required: false
-        default: "8034"
+        default: ""
 
 permissions:
   contents: read
@@ -43,6 +43,10 @@ jobs:
 
           SINCE_VAL="${SINCE:-2h}"
           SUFFIX_VAL="${PHONE_SUFFIX:-}"
+          # If caller passes 'all'/'none', treat as no filter.
+          if [ "${SUFFIX_VAL}" = "all" ] || [ "${SUFFIX_VAL}" = "none" ]; then
+            SUFFIX_VAL=""
+          fi
 
           log "OTP Production Log Grep (read-only)"
           log "since=${SINCE_VAL}"
@@ -88,6 +92,7 @@ jobs:
               fi
 
               if [ -z \"\${matches}\" ]; then
+                log \"matching_lines=0\"
                 log \"No OTP/SMS log lines found in selected window (or suffix filter removed all matches).\"
                 exit 0
               fi
@@ -101,7 +106,6 @@ jobs:
                 | sed -E \"s/(\\+98[0-9]{2})[0-9]{4}([0-9]{4})/\\1****\\2/g\" \
                 | sed -E \"s/(09[0-9]{2})[0-9]{4}([0-9]{4})/\\1****\\2/g\" \
                 | sed -E \"s/(dev_code\\\"?\\s*[:=]\\s*\\\"?)[0-9]{6}(\\\"?)/\\1[MASKED_OTP]\\2/gi\" \
-                | sed -E \"s/(Authorization: Bearer )[A-Za-z0-9._-]+/\\1[MASKED_TOKEN]/g\" \
               )
 
               log \"=== REDACTED MATCHES (tail 250) ===\"
