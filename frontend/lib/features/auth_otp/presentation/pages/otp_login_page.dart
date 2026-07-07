@@ -497,6 +497,9 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   String _sanitizePreOtpError(String message, {int? statusCode}) {
+    if (statusCode == 503) {
+      return _l10n.serverUnavailable;
+    }
     if (message.toLowerCase().contains('timeout') ||
         message.toLowerCase().contains('socket') ||
         message.toLowerCase().contains('failed host lookup') ||
@@ -507,7 +510,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       return _l10n.tooManyOtp;
     }
     if (statusCode != null && statusCode >= 500) {
-      return _l10n.genericOtpRequestFailed;
+      return _l10n.serverUnavailable;
     }
     return _l10n.genericOtpRequestFailed;
   }
