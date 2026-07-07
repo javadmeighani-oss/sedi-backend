@@ -287,20 +287,21 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
     final phone = _normalizePhone(_phoneController.text);
     setState(() => _isLoading = true);
-    final response = await _authOtpService.requestOtp(
+    final result = await _authOtpService.requestOtpResult(
       phone: phone,
       language: _language ?? 'en',
     );
     if (!mounted) return;
     setState(() {
       _isLoading = false;
-      _lastOtpRequestStatusCode = response.statusCode;
+      _lastOtpRequestStatusCode = result.statusCode;
     });
 
-    if (!response.ok) {
+    if (!result.isSuccess) {
       _showMessage(_sanitizePreOtpError(
-        response.errorMessage,
-        statusCode: response.statusCode,
+        result.errorMessage,
+        statusCode: result.statusCode,
+        errorCode: result.error?.code,
       ));
       return;
     }
@@ -496,7 +497,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     );
   }
 
-  String _sanitizePreOtpError(String message, {int? statusCode}) {
+  String _sanitizePreOtpError(
+    String message, {
+    int? statusCode,
+    String? errorCode,
+  }) {
     if (statusCode == 503) {
       return _l10n.serverUnavailable;
     }
@@ -505,6 +510,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         message.toLowerCase().contains('failed host lookup') ||
         message.toLowerCase().contains('connection')) {
       return _l10n.networkError;
+    }
+    if (errorCode == 'OTP_REQUEST_FAILED' &&
+        message.toLowerCase().contains('too many otp')) {
+      return _l10n.tooManyOtp;
     }
     if (message.contains('Too many OTP')) {
       return _l10n.tooManyOtp;

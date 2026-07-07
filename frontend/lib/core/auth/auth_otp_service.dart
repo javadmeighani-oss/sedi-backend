@@ -1,4 +1,5 @@
 import '../../data/dto/auth/otp_request.dart';
+import '../../data/dto/auth/otp_request_response.dart';
 import '../../data/dto/auth/otp_verify.dart';
 import '../../data/dto/auth/otp_verify_response.dart';
 import '../network/api_client.dart';
@@ -14,17 +15,27 @@ class AuthOtpService {
     required String phone,
     String? language,
   }) async {
+    final result = await requestOtpResult(phone: phone, language: language);
+    return result.response;
+  }
+
+  /// OTP request with explicit success evaluation for Gate 2 navigation.
+  Future<OtpRequestResult> requestOtpResult({
+    required String phone,
+    String? language,
+  }) async {
     final dto = OtpRequestDto(phone: phone);
     final headers = <String, String>{};
     if (language != null && language.trim().isNotEmpty) {
       headers['Accept-Language'] = language.trim();
     }
 
-    return _apiClient.postRaw(
+    final response = await _apiClient.postRaw(
       '/auth/otp/request',
       body: dto.toJson(),
       extraHeaders: headers.isEmpty ? null : headers,
     );
+    return OtpRequestResult.fromApiResponse(response);
   }
 
   /// Verify OTP and return tokens. Profile sync is handled separately via [AuthProfileService].
