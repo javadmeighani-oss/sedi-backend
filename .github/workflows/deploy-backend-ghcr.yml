@@ -14,7 +14,7 @@ jobs:
   deploy:
     name: Deploy backend container to Cloud.ir
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Validate image tag
@@ -59,55 +59,65 @@ jobs:
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             'set -Eeuo pipefail
+             log() { echo "[$(date -Is)] $*"; }
 
              DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
              IMAGE_TAG="${{ github.event.inputs.image_tag }}"
              IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
 
-             echo "=== DEPLOY CONTEXT ==="
-             echo "Deploy path: ${DEPLOY_PATH}"
-             echo "Image: ${IMAGE}"
+             log "=== DEPLOY CONTEXT ==="
+             log "Deploy path: ${DEPLOY_PATH}"
+             log "Target image: ${IMAGE}"
 
              cd "${DEPLOY_PATH}"
 
-             echo "=== CURRENT BACKEND IMAGE ==="
+             log "=== CURRENT BACKEND IMAGE ==="
              CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
-             echo "${CURRENT_IMAGE:-none}"
+             log "${CURRENT_IMAGE:-none}"
 
-             echo "=== PRE-DEPLOY DB BACKUP ==="
+             log "=== PRE-DEPLOY DB BACKUP (no migrations) ==="
              mkdir -p "${DEPLOY_PATH}/backups/postgres"
              TS="$(date +%Y%m%d_%H%M%S)"
              BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
+             log "Backup file: ${BACKUP_FILE}"
              docker exec sedi-postgres sh -c '\''pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'\'' | gzip > "${BACKUP_FILE}"
              ls -lh "${BACKUP_FILE}"
 
-             echo "=== PULL IMAGE ==="
+             log "=== PULL IMAGE ==="
              docker pull "${IMAGE}"
+             log "Pulled image. Inspecting digest/tag."
+             docker image inspect "${IMAGE}" --format "image={{.RepoTags}} id={{.Id}} created={{.Created}}" || true
 
-             echo "=== VALIDATE COMPOSE ==="
+             log "=== VALIDATE COMPOSE ==="
              SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml config >/tmp/sedi_compose_config_checked.yml
+             log "Compose config validated."
 
-             echo "=== RECREATE BACKEND ONLY ==="
+             log "=== RECREATE BACKEND ONLY ==="
              SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+             log "Recreate command finished. Current service state:"
+             docker compose -f compose.production.yml ps sedi-backend || true
+             log "Running container image:"
+             docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
 
-             echo "=== HEALTH CHECK ==="
+             log "=== HEALTH CHECK ==="
              HEALTH_OK=0
              for i in $(seq 1 30); do
                if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json; then
-                 cat /tmp/sedi_healthz.json
+                 log "Local /healthz OK."
+                 cat /tmp/sedi_healthz.json || true
                  HEALTH_OK=1
                  break
                fi
-               echo "Waiting for backend health... attempt ${i}/30"
+               log "Waiting for backend health... attempt ${i}/30"
                sleep 2
              done
 
              if [ "${HEALTH_OK}" != "1" ]; then
-               echo "=== DEPLOY FAILED: BACKEND LOGS ==="
+               log "=== DEPLOY FAILED: BACKEND LOGS ==="
                docker logs --tail 120 sedi-backend || true
 
                if [ -n "${CURRENT_IMAGE}" ]; then
-                 echo "=== ROLLBACK TO PREVIOUS IMAGE ==="
+                 log "=== ROLLBACK TO PREVIOUS IMAGE ==="
                  printf "%s\n" "services:" "  sedi-backend:" "    image: ${CURRENT_IMAGE}" > /tmp/sedi-rollback.yml
                  docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
                  sleep 5
@@ -117,13 +127,25 @@ jobs:
                exit 1
              fi
 
-             echo "=== DOCKER COMPOSE PS ==="
+             log "=== DOCKER COMPOSE PS ==="
              docker compose -f compose.production.yml ps
 
-             echo "=== PUBLIC HEALTHZ ==="
-             curl -fsS https://api.sedi-ai.com/healthz
+             log "=== LOCAL HEALTH ==="
+             curl -fsS http://127.0.0.1:8000/health || true
+             echo ""
 
-             echo "=== DEPLOY DONE ==="
+             log "=== PUBLIC HEALTH ==="
+             curl -fsS https://api.sedi-ai.com/health || true
+             echo ""
+
+             log "=== PUBLIC HEALTHZ ==="
+             curl -fsS https://api.sedi-ai.com/healthz
+             echo ""
+
+             log "=== FINAL IMAGE CONFIRMATION ==="
+             docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+
+             log "=== DEPLOY DONE ==="
             '
 
       - name: Deployment summary
