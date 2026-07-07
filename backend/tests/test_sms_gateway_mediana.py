@@ -75,3 +75,72 @@ def test_mediana_send_otp_http_error():
         result = sender.send_otp("+989121234567", "123456", "fa")
     assert result.ok is False
     assert "401" in (result.error or "")
+
+
+def test_mediana_send_otp_success_with_non_ok_message_text():
+    """Mediana may return bulk_id plus a human-readable message on success."""
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"bulk_id":"track-2","message":"OTP sent successfully"}'
+    mock_response.json.return_value = {
+        "bulk_id": "track-2",
+        "message": "OTP sent successfully",
+    }
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is True
+    assert result.message_id == "track-2"
+
+
+def test_mediana_send_otp_success_with_persian_success_message():
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"bulkId":"track-3","message":"\\u0639\\u0645\\u0644\\u06cc\\u0627\\u062a \\u0645\\u0648\\u0641\\u0642"}'
+    mock_response.json.return_value = {
+        "bulkId": "track-3",
+        "message": "عملیات موفق",
+    }
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is True
+    assert result.message_id == "track-3"
+
+
+def test_mediana_send_otp_success_with_nested_data_payload():
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"data":{"bulk_id":"track-4","message":"queued"}}'
+    mock_response.json.return_value = {
+        "data": {"bulk_id": "track-4", "message": "queued"},
+    }
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is True
+    assert result.message_id == "track-4"
+
+
+def test_mediana_send_otp_failure_when_message_without_success_indicators():
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"message":"invalid pattern code"}'
+    mock_response.json.return_value = {"message": "invalid pattern code"}
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is False
+    assert "invalid pattern code" in (result.error or "")
+
+
+def test_mediana_send_otp_failure_when_success_false():
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"success":false,"message":"provider rejected"}'
+    mock_response.json.return_value = {"success": False, "message": "provider rejected"}
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is False
+    assert "provider rejected" in (result.error or "")

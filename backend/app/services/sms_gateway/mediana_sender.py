@@ -105,25 +105,59 @@ class MedianaSmsSender:
             return SmsSendResult(ok=False, provider="mediana", error=str(e))
 
     @staticmethod
-    def _extract_error(data: dict[str, Any]) -> Optional[str]:
-        for key in ("error", "errors", "message"):
-            val = data.get(key)
-            if isinstance(val, str) and val.strip():
-                if val.strip().lower() not in ("ok", "success"):
-                    return val.strip()
-            if val and key == "errors":
-                return str(val)
+    def _has_success_indicators(data: dict[str, Any]) -> bool:
+        """True when Mediana response includes delivery identifiers or explicit success flags."""
+        if data.get("success") is True:
+            return True
+
+        status = data.get("status")
+        if isinstance(status, str):
+            normalized = status.strip().lower()
+            if normalized in ("success", "ok", "sent", "delivered", "queued"):
+                return True
+        if isinstance(status, int) and status in (1, 200):
+            return True
+
+        if MedianaSmsSender._extract_message_id(data) is not None:
+            return True
+
         nested = data.get("data")
-        if isinstance(nested, dict):
-            for key in ("error", "message"):
-                val = nested.get(key)
-                if isinstance(val, str) and val.strip():
-                    return val.strip()
+        if isinstance(nested, dict) and MedianaSmsSender._has_success_indicators(nested):
+            return True
+
+        return False
+
+    @staticmethod
+    def _extract_error(data: dict[str, Any]) -> Optional[str]:
+        if MedianaSmsSender._has_success_indicators(data):
+            return None
+
+        if data.get("success") is False:
+            return str(data.get("message") or data.get("error") or "Mediana request failed")
+
         status = data.get("status")
         if isinstance(status, str) and status.lower() in ("error", "failed", "fail"):
             return status
-        if data.get("success") is False:
-            return str(data.get("message") or "Mediana request failed")
+
+        for key in ("error", "errors"):
+            val = data.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+            if val and key == "errors":
+                return str(val)
+
+        message = data.get("message")
+        if isinstance(message, str) and message.strip():
+            normalized = message.strip().lower()
+            if normalized not in ("ok", "success"):
+                return message.strip()
+
+        nested = data.get("data")
+        if isinstance(nested, dict):
+            nested_error = MedianaSmsSender._extract_error(nested)
+            if nested_error:
+                return nested_error
+
         return None
 
     @staticmethod
