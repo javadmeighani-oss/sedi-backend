@@ -18,11 +18,22 @@ class ApiResponse<T> {
 
   /// Parse from JSON. [parser] converts the raw "data" object to T (or null).
   /// Use for responses where "data" is an object or list.
+  static bool _readOk(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return false;
+  }
+
   static ApiResponse<T> fromJson<T>(
     Map<String, dynamic> json,
     T? Function(Object? dataJson) parser,
   ) {
-    final ok = json['ok'] as bool? ?? false;
+    final ok = json.containsKey('ok') ? _readOk(json['ok']) : false;
     final errorJson = json['error'];
     final ApiError? error = errorJson == null
         ? null
