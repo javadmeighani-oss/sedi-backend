@@ -88,7 +88,8 @@ jobs:
               fi
 
               if [ -z \"\${matches}\" ]; then
-                log \"No OTP/SMS log lines found in selected window (or suffix filter removed all matches).\"\n+                exit 0
+                log \"No OTP/SMS log lines found in selected window (or suffix filter removed all matches).\"
+                exit 0
               fi
 
               count=\$(printf \"%s\\n\" \"\${matches}\" | wc -l | tr -d \" \")
