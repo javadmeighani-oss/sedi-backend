@@ -181,6 +181,32 @@ def test_otp_request_returns_success_when_mediana_accepts_with_message(client: T
     assert dev_code is None
 
 
+def test_request_otp_succeeds_when_mediana_returns_in_progress_message(client: TestClient, db):
+    """Regression: Mediana may respond with 'در حال ساخت' while SMS is delivered."""
+    from unittest.mock import MagicMock
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"message":"\\u062f\\u0631 \\u062d\\u0627\\u0644 \\u0633\\u0627\\u062e\\u062a"}'
+    mock_response.json.return_value = {"message": "در حال ساخت"}
+
+    with patch.dict(
+        os.environ,
+        {
+            "SMS_DISABLED": "false",
+            "SMS_PROVIDER": "mediana",
+            "MEDIANA_API_KEY": "test-key",
+            "MEDIANA_OTP_PATTERN_CODE": "test-pattern",
+        },
+        clear=False,
+    ), patch("requests.post", return_value=mock_response):
+        ok, err, dev_code = svc.request_otp(db, "+989121234567")
+
+    assert ok is True
+    assert err == ""
+    assert dev_code is None
+
+
 def test_resolve_lang():
     """resolve_lang parses Accept-Language; V1 default is en (English primary)."""
     assert svc.resolve_lang(None) == "en"
