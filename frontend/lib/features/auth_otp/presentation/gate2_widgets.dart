@@ -618,23 +618,26 @@ class Gate2Widgets {
     required TextEditingController autofillController,
     required bool active,
     String? helperText,
+    bool showTitle = true,
   }) {
     final title = active ? l10n.sentCode : (helperText ?? l10n.otpEnterAfterSend);
     return Column(
       children: [
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: active
-                ? AppTheme.gate2TextPrimary
-                : AppTheme.gate2TextMuted,
-            fontSize: active ? 16 : 14,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-            height: 1.45,
+        if (showTitle) ...[
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: active
+                  ? AppTheme.gate2TextPrimary
+                  : AppTheme.gate2TextMuted,
+              fontSize: active ? 16 : 14,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+              height: 1.45,
+            ),
           ),
-        ),
-        const SizedBox(height: 18),
+          const SizedBox(height: 18),
+        ],
         AutofillGroup(
           child: Stack(
             alignment: Alignment.center,

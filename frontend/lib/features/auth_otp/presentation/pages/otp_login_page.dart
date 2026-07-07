@@ -20,6 +20,7 @@ enum _Gate2Step {
   accountChoice,
   returningLogin,
   newUserRegistration,
+  otpVerification,
   profileCorrection,
 }
 
@@ -161,7 +162,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   bool get _canConfirm =>
       !_isLoading &&
-      _otpSent &&
+      _step == _Gate2Step.otpVerification &&
       _otpControllers.every((c) => c.text.length == 1);
 
   bool get _canCompleteRegistration =>
@@ -258,20 +259,22 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       case _Gate2Step.newUserRegistration:
         _goToAccountChoice();
         break;
+      case _Gate2Step.otpVerification:
+        _backFromOtpVerification();
+        break;
       case _Gate2Step.profileCorrection:
         _goToAccountChoice();
         break;
     }
   }
 
-  void _changePhoneNumber() {
+  void _backFromOtpVerification() {
     if (_phoneVerifiedInSession) return;
     setState(() {
       _resetOtpFlow();
-      _requestedPhone = '';
-      if (!_phoneFieldLocked) {
-        _phoneController.clear();
-      }
+      _step = _accountChoice == _AccountChoice.newUser
+          ? _Gate2Step.newUserRegistration
+          : _Gate2Step.returningLogin;
     });
   }
 
@@ -304,7 +307,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
     _requestedPhone = phone;
     _resetOtpInputsOnly();
-    setState(() => _otpSent = true);
+    setState(() {
+      _otpSent = true;
+      _step = _Gate2Step.otpVerification;
+    });
     _showMessage(_l10n.codeSentGeneric);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _otpFocusNodes[0].requestFocus();
@@ -484,7 +490,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppTheme.gate2ButtonActive,
+        backgroundColor: AppTheme.gate2ButtonOlive,
         duration: const Duration(seconds: 4),
       ),
     );
@@ -617,6 +623,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         return _buildReturningLoginStep();
       case _Gate2Step.newUserRegistration:
         return _buildNewUserStep();
+      case _Gate2Step.otpVerification:
+        return _buildOtpVerificationStep();
       case _Gate2Step.profileCorrection:
         return _buildCorrectionStep();
     }
@@ -744,39 +752,14 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                 onChanged: (_) => _refresh(),
               ),
               const SizedBox(height: 16),
-              if (!_otpSent)
-                Center(
-                  child: Gate2Widgets.primaryButton(
-                    label: _l10n.send,
-                    enabled: _canSendReturning,
-                    fullWidth: false,
-                    onPressed: () => _sendCode(isNewUser: false),
-                  ),
+              Center(
+                child: Gate2Widgets.primaryButton(
+                  label: _l10n.send,
+                  enabled: _canSendReturning,
+                  fullWidth: false,
+                  onPressed: () => _sendCode(isNewUser: false),
                 ),
-              if (_otpSent) ...[
-                Gate2Widgets.textLinkButton(
-                  label: _l10n.changePhoneNumber,
-                  onPressed: _changePhoneNumber,
-                ),
-                const SizedBox(height: 8),
-              ],
-              const SizedBox(height: 12),
-              Gate2Widgets.otpSection(
-                l10n: _l10n,
-                controllers: _otpControllers,
-                focusNodes: _otpFocusNodes,
-                autofillController: _otpAutofillController,
-                active: _otpSent,
-                helperText: _l10n.otpEnterAfterSend,
               ),
-              if (_otpSent) ...[
-                const SizedBox(height: 20),
-                Gate2Widgets.primaryButton(
-                  label: _l10n.confirm,
-                  enabled: _canConfirm,
-                  onPressed: _verifyCode,
-                ),
-              ],
               const SizedBox(height: 24),
             ],
           ),
@@ -906,50 +889,65 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
                 onChanged: (_) => _refresh(),
               ),
               const SizedBox(height: 16),
-              if (showOtpFlow) ...[
-                if (!_otpSent)
-                  Center(
-                    child: Gate2Widgets.primaryButton(
-                      label: _l10n.send,
-                      enabled: _canSendNewUser,
-                      fullWidth: false,
-                      onPressed: () => _sendCode(isNewUser: true),
-                    ),
+              if (showOtpFlow)
+                Center(
+                  child: Gate2Widgets.primaryButton(
+                    label: _l10n.send,
+                    enabled: _canSendNewUser,
+                    fullWidth: false,
+                    onPressed: () => _sendCode(isNewUser: true),
                   ),
-                if (_otpSent) ...[
-                  Gate2Widgets.textLinkButton(
-                    label: _l10n.changePhoneNumber,
-                    onPressed: _changePhoneNumber,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                const SizedBox(height: 12),
-                Gate2Widgets.otpSection(
-                  l10n: _l10n,
-                  controllers: _otpControllers,
-                  focusNodes: _otpFocusNodes,
-                  autofillController: _otpAutofillController,
-                  active: _otpSent,
-                  helperText: _l10n.otpEnterAfterSend,
-                ),
-                if (_otpSent) ...[
-                  const SizedBox(height: 20),
-                  Gate2Widgets.primaryButton(
-                    label: _l10n.confirm,
-                    enabled: _canConfirm,
-                    onPressed: _verifyCode,
-                  ),
-                ],
-                const SizedBox(height: 24),
-              ] else ...[
+                )
+              else
                 Gate2Widgets.primaryButton(
                   label: _l10n.completeRegistration,
                   enabled: _canCompleteRegistration,
                   onPressed: _completeNewUserRegistration,
                 ),
-              ],
+              const SizedBox(height: 24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOtpVerificationStep() {
+    final backLabel = _accountChoice == _AccountChoice.newUser
+        ? _l10n.backToRegistration
+        : _l10n.changePhoneNumber;
+
+    return _buildScrollShell(
+      Gate2Widgets.centeredLuxuryCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Gate2Widgets.backLink(
+              label: backLabel,
+              onPressed: _backFromOtpVerification,
+            ),
+            Gate2Widgets.stepTitle(
+              _l10n.sentCode,
+              subtitle: _l10n.otpVerificationInstruction,
+            ),
+            const SizedBox(height: 24),
+            Gate2Widgets.otpSection(
+              l10n: _l10n,
+              controllers: _otpControllers,
+              focusNodes: _otpFocusNodes,
+              autofillController: _otpAutofillController,
+              active: true,
+              showTitle: false,
+            ),
+            const SizedBox(height: 20),
+            Gate2Widgets.primaryButton(
+              label: _l10n.confirm,
+              enabled: _canConfirm,
+              onPressed: _verifyCode,
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );

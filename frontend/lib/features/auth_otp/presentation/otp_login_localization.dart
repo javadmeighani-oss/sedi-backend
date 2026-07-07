@@ -288,6 +288,18 @@ class OtpLoginLocalization {
         ar: 'بعد الضغط على «إرسال»، أدخل الرمز المكون من 6 أرقام هنا.',
       );
 
+  String get otpVerificationInstruction => _t(
+        en: 'Enter the 6-digit verification code sent to your phone.',
+        fa: 'کد تأیید ۶ رقمی ارسال‌شده به گوشی خود را وارد کنید.',
+        ar: 'أدخل رمز التحقق المكون من 6 أرقام المرسل إلى هاتفك.',
+      );
+
+  String get backToRegistration => _t(
+        en: 'Back to registration',
+        fa: 'بازگشت به ثبت‌نام',
+        ar: 'العودة إلى التسجيل',
+      );
+
   String get genericOtpRequestFailed => _t(
         en: 'Could not send the verification code. Please try again.',
         fa: 'ارسال کد تأیید انجام نشد. لطفاً دوباره تلاش کنید.',
