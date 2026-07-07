@@ -1,0 +1,111 @@
+name: OTP Production Log Grep
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Docker logs --since value"
+        required: false
+        default: "2h"
+      phone_suffix:
+        description: "Optional last 4 digits to narrow logs"
+        required: false
+        default: "8034"
+
+permissions:
+  contents: read
+
+jobs:
+  otp-log-grep:
+    name: Read-only OTP/SMS log grep (prod)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Grep OTP/SMS logs (redacted)
+        env:
+          SINCE: ${{ github.event.inputs.since }}
+          PHONE_SUFFIX: ${{ github.event.inputs.phone_suffix }}
+        run: |
+          set -euo pipefail
+
+          # No set -x (avoid leaking any sensitive values)
+          log() { echo "[$(date -Is)] $*"; }
+
+          SINCE_VAL="${SINCE:-2h}"
+          SUFFIX_VAL="${PHONE_SUFFIX:-}"
+
+          log "OTP Production Log Grep (read-only)"
+          log "since=${SINCE_VAL}"
+          if [ -n "${SUFFIX_VAL}" ]; then
+            log "phone_suffix=****${SUFFIX_VAL}"
+          else
+            log "phone_suffix=(none)"
+          fi
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "SINCE_VAL='${SINCE_VAL}' SUFFIX_VAL='${SUFFIX_VAL}' bash -lc 'set -Eeuo pipefail
+
+              log() { echo \"[\$(date -Is)] \$*\"; }
+
+              cd \"${{ secrets.SEDI_DEPLOY_PATH }}\"
+
+              log \"=== DOCKER COMPOSE PS (sedi-backend) ===\"
+              docker compose -f compose.production.yml ps sedi-backend || true
+
+              log \"=== RUNNING IMAGE (container) ===\"
+              docker inspect sedi-backend --format \"container_image={{.Config.Image}}\" || true
+
+              log \"=== LOG GREP (since=\${SINCE_VAL}) ===\"
+              PATTERN=\"/auth/otp/request|OTP_REQUEST_FAILED|Too many OTP|\\[OTP\\]|mediana|Mediana|SmsSendResult|sms_gateway|request_otp|send_otp\"
+
+              # Pull logs, filter for OTP/SMS-related lines, optionally narrow to suffix, then redact.
+              # Redaction rules:
+              # - 6-digit standalone numbers => [MASKED_OTP]
+              # - +98... or 09... Iranian phone shapes => masked
+              # - dev_code value => [MASKED_OTP]
+              # - bearer tokens => [MASKED_TOKEN]
+              raw=\$(docker logs --since \"\${SINCE_VAL}\" sedi-backend 2>&1 || true)
+              if [ -z \"\${raw}\" ]; then
+                log \"No logs returned from container for selected window.\"
+                exit 0
+              fi
+
+              matches=\$(printf \"%s\\n\" \"\${raw}\" | grep -E \"\${PATTERN}\" || true)
+              if [ -n \"\${SUFFIX_VAL}\" ]; then
+                matches=\$(printf \"%s\\n\" \"\${matches}\" | grep -F \"\${SUFFIX_VAL}\" || true)
+              fi
+
+              if [ -z \"\${matches}\" ]; then
+                log \"No OTP/SMS log lines found in selected window (or suffix filter removed all matches).\"
+                exit 0
+              fi
+
+              count=\$(printf \"%s\\n\" \"\${matches}\" | wc -l | tr -d \" \")
+              log \"matching_lines=\${count}\"
+
+              # Redact sensitive values
+              redacted=\$(printf \"%s\\n\" \"\${matches}\" \
+                | sed -E \"s/\\b[0-9]{6}\\b/[MASKED_OTP]/g\" \
+                | sed -E \"s/(\\+98[0-9]{2})[0-9]{4}([0-9]{4})/\\1****\\2/g\" \
+                | sed -E \"s/(09[0-9]{2})[0-9]{4}([0-9]{4})/\\1****\\2/g\" \
+                | sed -E \"s/(dev_code\\\"?\\s*[:=]\\s*\\\"?)[0-9]{6}(\\\"?)/\\1[MASKED_OTP]\\2/gi\" \
+                | sed -E \"s/(Authorization: Bearer )[A-Za-z0-9._-]+/\\1[MASKED_TOKEN]/g\" \
+              )
+
+              log \"=== REDACTED MATCHES (tail 250) ===\"
+              printf \"%s\\n\" \"\${redacted}\" | tail -250
+
+              log \"=== DONE ===\"
+            '"
