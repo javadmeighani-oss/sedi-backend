@@ -144,3 +144,31 @@ def test_mediana_send_otp_failure_when_success_false():
         result = sender.send_otp("+989121234567", "123456", "fa")
     assert result.ok is False
     assert "provider rejected" in (result.error or "")
+
+
+def test_mediana_send_otp_success_when_message_is_in_progress_without_bulk_id():
+    """
+    Regression: production logs show Mediana may return a message like "در حال ساخت"
+    while the OTP SMS is still delivered. Treat this as accepted/queued success
+    only when no explicit error fields exist.
+    """
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"message":"\\u062f\\u0631 \\u062d\\u0627\\u0644 \\u0633\\u0627\\u062e\\u062a"}'
+    mock_response.json.return_value = {"message": "در حال ساخت"}
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is True
+    assert result.provider == "mediana"
+
+
+def test_mediana_in_progress_message_still_fails_when_success_false():
+    sender = MedianaSmsSender(api_key="test-key", pattern_code="test-pattern")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"success":false,"message":"\\u062f\\u0631 \\u062d\\u0627\\u0644 \\u0633\\u0627\\u062e\\u062a"}'
+    mock_response.json.return_value = {"success": False, "message": "در حال ساخت"}
+    with patch("requests.post", return_value=mock_response):
+        result = sender.send_otp("+989121234567", "123456", "fa")
+    assert result.ok is False

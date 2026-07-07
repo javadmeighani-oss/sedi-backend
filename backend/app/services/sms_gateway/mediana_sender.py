@@ -105,9 +105,36 @@ class MedianaSmsSender:
             return SmsSendResult(ok=False, provider="mediana", error=str(e))
 
     @staticmethod
+    def _is_accepted_in_progress_message(message: str) -> bool:
+        """
+        Mediana may return a human-readable Persian message that indicates the request
+        was accepted / queued (e.g. "در حال ساخت") without returning a bulk_id.
+
+        This must be treated as success ONLY when there are no explicit failure indicators.
+        """
+        if not message:
+            return False
+        normalized = message.strip()
+        return normalized == "در حال ساخت"
+
+    @staticmethod
     def _has_success_indicators(data: dict[str, Any]) -> bool:
         """True when Mediana response includes delivery identifiers or explicit success flags."""
         if data.get("success") is True:
+            return True
+
+        # Accepted/queued signal via message text (no bulk_id). Only when no explicit error fields exist.
+        msg = data.get("message")
+        if isinstance(msg, str) and MedianaSmsSender._is_accepted_in_progress_message(msg):
+            if data.get("success") is False:
+                return False
+            status = data.get("status")
+            if isinstance(status, str) and status.strip().lower() in ("error", "failed", "fail"):
+                return False
+            if isinstance(data.get("error"), str) and str(data.get("error")).strip():
+                return False
+            if data.get("errors"):
+                return False
             return True
 
         status = data.get("status")
