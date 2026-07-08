@@ -100,15 +100,31 @@ class AuthProfileService {
   Future<ApiResponse<MeProfileDto>> patchMe(
     MeUpdateDto update, {
     String? accessToken,
+    String? knownPhoneE164,
     bool recoverSessionOn401 = true,
   }) async {
-    return _apiClient.patch<MeProfileDto>(
-      '/auth/me',
-      body: update.toJson(),
-      accessToken: accessToken,
-      recoverSessionOn401: recoverSessionOn401,
-      parser: parseMeProfileDto,
-    );
+    try {
+      final response = await _apiClient.patchHttpResponse(
+        '/auth/me',
+        body: update.toJson(),
+        accessToken: accessToken,
+        recoverSessionOn401: recoverSessionOn401,
+      );
+      return AuthMeResponseParser.parseHttpResponse(
+        statusCode: response.statusCode,
+        body: response.body,
+        knownPhoneE164: knownPhoneE164,
+      ).toApiResponse();
+    } catch (e) {
+      final msg = e.toString();
+      String code = 'NETWORK_ERROR';
+      if (msg.toLowerCase().contains('timeout')) code = 'TIMEOUT';
+      return ApiResponse<MeProfileDto>(
+        ok: false,
+        error: ApiError(code: code, message: msg),
+        statusCode: null,
+      );
+    }
   }
 
   /// GET /auth/me and persist confirmed backend profile locally.
