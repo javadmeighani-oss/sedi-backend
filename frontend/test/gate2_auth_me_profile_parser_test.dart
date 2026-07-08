@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/core/auth/auth_profile_service.dart';
 import 'package:sedi_app/core/network/api_response.dart';
+import 'package:sedi_app/data/dto/auth/auth_me_response_parser.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
 import 'package:sedi_app/data/dto/auth/me_profile_parser.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_router.dart';
@@ -191,17 +192,14 @@ void main() {
 
   group('Envelope edge cases', () {
     test('parses flat identity fields when data key is absent', () {
-      final response = ApiResponse.fromJson<MeProfileDto>(
-        {
-          'ok': true,
-          'error': null,
-          ...backendAuthMeIncompleteProfile,
-        },
-        parseMeProfileDto,
+      final result = AuthMeResponseParser.parseHttpResponse(
+        statusCode: 200,
+        body: '{"ok":true,"error":null,"user_id":42,"phone":"+989121234567","preferred_language":"fa"}',
+        knownPhoneE164: '+989121234567',
       );
 
-      expect(response.ok, isTrue);
-      expect(response.data?.userId, 42);
+      expect(result.ok, isTrue);
+      expect(result.profile?.userId, 42);
     });
 
     test('parses JSON string data payload', () {

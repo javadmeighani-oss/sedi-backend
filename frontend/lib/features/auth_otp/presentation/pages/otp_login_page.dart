@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/config/build_info.dart';
 import '../../../../core/auth/auth_otp_service.dart';
 import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/auth_profile_service.dart';
@@ -12,6 +13,7 @@ import '../../../../data/dto/auth/me_profile.dart';
 import '../../../../services/push/push_service.dart';
 import '../birth_calendar_helper.dart';
 import '../gate2_otp_input.dart';
+import '../gate2_post_otp_me_failure.dart';
 import '../gate2_post_otp_router.dart';
 import '../gate2_profile_rules.dart';
 import '../gate2_widgets.dart';
@@ -80,6 +82,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   @override
   void initState() {
     super.initState();
+    BuildInfo.logDebugLabel();
     _otpCodeController.addListener(_refresh);
     _nameController.addListener(_refresh);
     _phoneController.addListener(_refresh);
@@ -339,13 +342,19 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     }
 
     _phoneVerifiedInSession = true;
-    await _routeAfterVerifiedPhone(accessToken: verify.accessToken!);
+    await _routeAfterVerifiedPhone(
+      accessToken: verify.accessToken!,
+      knownPhoneE164: verify.phone ?? _requestedPhone,
+    );
   }
 
-  Future<void> _routeAfterVerifiedPhone({required String accessToken}) async {
-    final meRes = await _authProfileService.fetchMe(
+  Future<void> _routeAfterVerifiedPhone({
+    required String accessToken,
+    String? knownPhoneE164,
+  }) async {
+    final meRes = await _authProfileService.fetchMeAfterOtp(
       accessToken: accessToken,
-      recoverSessionOn401: false,
+      knownPhoneE164: knownPhoneE164,
     );
     if (!mounted) return;
 
@@ -392,22 +401,17 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
   void _handlePostOtpMeFailure(ApiResponse<MeProfileDto> meRes) {
     setState(() => _isLoading = false);
-    final status = meRes.statusCode;
-    if (status == 401 || status == 403) {
-      _showMessage(_l10n.sessionAuthFailed);
-      return;
+    switch (classifyPostOtpMeFailure(meRes)) {
+      case PostOtpMeFailureKind.auth:
+        _showMessage(_l10n.sessionAuthFailed);
+        return;
+      case PostOtpMeFailureKind.parse:
+        _showMessage(_l10n.profileParseFailed);
+        return;
+      case PostOtpMeFailureKind.fetch:
+        _showMessage(_sanitizeMeFetchError(meRes.errorMessage));
+        return;
     }
-    final isHttpSuccess =
-        status == null || (status >= 200 && status < 300);
-    final isParseFailure = meRes.data == null &&
-        (meRes.error?.code == 'PARSE_ERROR' ||
-            meRes.errorMessage.toLowerCase().contains('parse') ||
-            (meRes.ok && isHttpSuccess));
-    if (isParseFailure) {
-      _showMessage(_l10n.profileParseFailed);
-      return;
-    }
-    _showMessage(_sanitizeMeFetchError(meRes.errorMessage));
   }
 
   void _goToRegistrationCompletionAfterOtp() {

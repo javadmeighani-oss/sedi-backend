@@ -79,6 +79,29 @@ class ApiClient {
     return response;
   }
 
+  /// GET [path] returning the raw HTTP response (for endpoint-specific parsers).
+  Future<http.Response> getHttpResponse(
+    String path, {
+    Map<String, String>? queryParams,
+    Map<String, String>? extraHeaders,
+    String? accessToken,
+    bool recoverSessionOn401 = true,
+  }) async {
+    final uri =
+        Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+    return _withAuthRetry(
+      path,
+      (headers) => http
+          .get(uri, headers: headers)
+          .timeout(timeout, onTimeout: () {
+        throw Exception('Request timeout');
+      }),
+      extraHeaders: extraHeaders,
+      accessToken: accessToken,
+      recoverSessionOn401: recoverSessionOn401,
+    );
+  }
+
   /// GET [path] with optional [queryParams]. Returns ApiResponse<T> using [parser] for body["data"].
   Future<ApiResponse<T>> get<T>(
     String path, {

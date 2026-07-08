@@ -40,11 +40,6 @@ class ApiResponse<T> {
     return hasData;
   }
 
-  /// True when an envelope has profile identity fields at the top level.
-  static bool hasFlatPayloadIdentity(Map<String, dynamic> json) {
-    return json.containsKey('user_id') || json.containsKey('id');
-  }
-
   /// Parse from JSON. [parser] converts the raw "data" object to T (or null).
   /// Use for responses where "data" is an object or list.
   static ApiResponse<T> fromJson<T>(
@@ -60,10 +55,7 @@ class ApiResponse<T> {
             errorJson is Map ? Map<String, dynamic>.from(errorJson) : null,
           );
     T? data;
-    Object? rawPayload = json['data'];
-    if (rawPayload == null && hasFlatPayloadIdentity(json)) {
-      rawPayload = json;
-    }
+    final Object? rawPayload = json['data'];
     final payloadWasPresent = rawPayload != null;
     if (payloadWasPresent) {
       try {
