@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/config/build_info.dart';
+import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/auth_otp_service.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/auth_profile_service.dart';
-import '../../../../core/auth/auth_service.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
@@ -483,16 +484,33 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     final patchRes = await _authProfileService.patchMe(
       patch,
       recoverSessionOn401: false,
+      knownPhoneE164: _requestedPhone,
     );
     if (!mounted) return;
     if (!patchRes.ok || patchRes.data == null) {
       setState(() => _isLoading = false);
       _goToRegistrationCompletionAfterOtp();
-      _showMessage(_sanitizeProfileError(patchRes.errorMessage));
+      _showMessage(_sanitizeProfileError(
+        patchRes.errorMessage,
+        statusCode: patchRes.statusCode,
+        errorCode: patchRes.error?.code,
+      ));
       return;
     }
 
-    final meRes = await _authProfileService.fetchMe();
+    final accessToken = await AuthService.getToken();
+    final meRes = accessToken == null || accessToken.isEmpty
+        ? ApiResponse<MeProfileDto>(
+            ok: false,
+            error: const ApiError(
+              code: 'AUTH_ERROR',
+              message: 'Missing access token',
+            ),
+          )
+        : await _authProfileService.fetchMeAfterOtp(
+            accessToken: accessToken,
+            knownPhoneE164: _requestedPhone,
+          );
     if (!mounted) return;
     setState(() => _isLoading = false);
 
@@ -613,9 +631,24 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     return _l10n.genericOtpVerifyFailed;
   }
 
-  String _sanitizeProfileError(String message) {
+  String _sanitizeProfileError(
+    String message, {
+    int? statusCode,
+    String? errorCode,
+  }) {
     if (message.toLowerCase().contains('timeout')) {
       return _l10n.networkError;
+    }
+    if (statusCode == 401 || statusCode == 403 || errorCode == 'AUTH_ERROR') {
+      return _l10n.sessionAuthFailed;
+    }
+    if (errorCode == 'PARSE_ERROR' ||
+        message.toLowerCase().contains('parse') ||
+        message.toLowerCase().contains('profile data')) {
+      return _l10n.profileParseFailed;
+    }
+    if (statusCode == 422) {
+      return _l10n.profileIncomplete;
     }
     return _l10n.profileSyncFailed;
   }

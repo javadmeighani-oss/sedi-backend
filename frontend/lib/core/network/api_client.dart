@@ -79,6 +79,36 @@ class ApiClient {
     return response;
   }
 
+  /// PATCH [path] returning the raw HTTP response (for endpoint-specific parsers).
+  Future<http.Response> patchHttpResponse(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? queryParams,
+    Map<String, String>? extraHeaders,
+    String? accessToken,
+    bool recoverSessionOn401 = true,
+  }) async {
+    var uri = Uri.parse('$baseUrl$path');
+    if (queryParams != null && queryParams.isNotEmpty) {
+      uri = uri.replace(queryParameters: queryParams);
+    }
+    return _withAuthRetry(
+      path,
+      (headers) => http
+          .patch(
+        uri,
+        headers: headers,
+        body: body != null ? jsonEncode(body) : null,
+      )
+          .timeout(timeout, onTimeout: () {
+        throw Exception('Request timeout');
+      }),
+      extraHeaders: extraHeaders,
+      accessToken: accessToken,
+      recoverSessionOn401: recoverSessionOn401,
+    );
+  }
+
   /// GET [path] returning the raw HTTP response (for endpoint-specific parsers).
   Future<http.Response> getHttpResponse(
     String path, {
