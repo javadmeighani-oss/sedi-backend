@@ -41,6 +41,32 @@ class MeProfileDto {
     );
   }
 
+  MeProfileDto copyWith({
+    int? userId,
+    String? phone,
+    String? name,
+    String? preferredLanguage,
+    String? sex,
+    String? calendarType,
+    int? birthDay,
+    int? birthMonth,
+    int? birthYear,
+    String? dateOfBirth,
+  }) {
+    return MeProfileDto(
+      userId: userId ?? this.userId,
+      phone: phone ?? this.phone,
+      name: name ?? this.name,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      sex: sex ?? this.sex,
+      calendarType: calendarType ?? this.calendarType,
+      birthDay: birthDay ?? this.birthDay,
+      birthMonth: birthMonth ?? this.birthMonth,
+      birthYear: birthYear ?? this.birthYear,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+    );
+  }
+
   static String? _asString(dynamic value) {
     if (value == null) return null;
     final text = value.toString().trim();

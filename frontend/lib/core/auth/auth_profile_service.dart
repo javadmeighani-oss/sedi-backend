@@ -1,7 +1,9 @@
+import '../../data/dto/auth/auth_me_response_parser.dart';
 import '../../data/dto/auth/me_profile.dart';
 import '../../data/dto/auth/me_profile_parser.dart';
 import '../../data/models/user_profile.dart';
 import '../network/api_client.dart';
+import '../network/api_error.dart';
 import '../network/api_response.dart';
 import '../utils/user_profile_manager.dart';
 
@@ -12,6 +14,7 @@ class AuthProfileService {
   AuthProfileService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient(timeout: const Duration(seconds: 30));
 
+  /// Generic GET `/auth/me` via shared ApiResponse envelope parsing.
   Future<ApiResponse<MeProfileDto>> fetchMe({
     String? accessToken,
     bool recoverSessionOn401 = true,
@@ -22,6 +25,37 @@ class AuthProfileService {
       recoverSessionOn401: recoverSessionOn401,
       parser: parseMeProfileDto,
     );
+  }
+
+  /// Gate 2 post-OTP GET `/auth/me` using endpoint-specific parsing.
+  ///
+  /// [knownPhoneE164] is the OTP-confirmed phone and may be used only when the
+  /// backend profile omits `phone` after a successful OTP verify.
+  Future<ApiResponse<MeProfileDto>> fetchMeAfterOtp({
+    required String accessToken,
+    String? knownPhoneE164,
+  }) async {
+    try {
+      final response = await _apiClient.getHttpResponse(
+        '/auth/me',
+        accessToken: accessToken,
+        recoverSessionOn401: false,
+      );
+      return AuthMeResponseParser.parseHttpResponse(
+        statusCode: response.statusCode,
+        body: response.body,
+        knownPhoneE164: knownPhoneE164,
+      ).toApiResponse();
+    } catch (e) {
+      final msg = e.toString();
+      String code = 'NETWORK_ERROR';
+      if (msg.toLowerCase().contains('timeout')) code = 'TIMEOUT';
+      return ApiResponse<MeProfileDto>(
+        ok: false,
+        error: ApiError(code: code, message: msg),
+        statusCode: null,
+      );
+    }
   }
 
   Future<ApiResponse<MeProfileDto>> patchMe(
