@@ -40,6 +40,11 @@ class ApiResponse<T> {
     return hasData;
   }
 
+  /// True when an envelope has profile identity fields at the top level.
+  static bool hasFlatPayloadIdentity(Map<String, dynamic> json) {
+    return json.containsKey('user_id') || json.containsKey('id');
+  }
+
   /// Parse from JSON. [parser] converts the raw "data" object to T (or null).
   /// Use for responses where "data" is an object or list.
   static ApiResponse<T> fromJson<T>(
@@ -49,26 +54,46 @@ class ApiResponse<T> {
     final parsedOk =
         json.containsKey('ok') ? readEnvelopeOk(json['ok']) : false;
     final errorJson = json['error'];
-    final ApiError? error = errorJson == null
+    ApiError? error = errorJson == null
         ? null
         : ApiError.fromJson(
             errorJson is Map ? Map<String, dynamic>.from(errorJson) : null,
           );
     T? data;
-    final rawData = json['data'];
-    if (rawData != null) {
+    Object? rawPayload = json['data'];
+    if (rawPayload == null && hasFlatPayloadIdentity(json)) {
+      rawPayload = json;
+    }
+    final payloadWasPresent = rawPayload != null;
+    if (payloadWasPresent) {
       try {
-        data = parser(rawData);
+        data = parser(rawPayload);
       } catch (_) {
         data = null;
       }
     }
-    final ok = resolveEnvelopeSuccess(
+    var ok = resolveEnvelopeSuccess(
       json: json,
       parsedOk: parsedOk,
       hasData: data != null,
       hasError: error != null,
     );
+    if (json.containsKey('ok') && parsedOk && payloadWasPresent && data == null) {
+      ok = false;
+      error ??= const ApiError(
+        code: 'PARSE_ERROR',
+        message: 'Failed to parse success payload',
+      );
+    } else if (json.containsKey('ok') &&
+        parsedOk &&
+        !payloadWasPresent &&
+        data == null) {
+      ok = false;
+      error ??= const ApiError(
+        code: 'PARSE_ERROR',
+        message: 'Missing response data',
+      );
+    }
     return ApiResponse<T>(ok: ok, data: data, error: error, statusCode: null);
   }
 
