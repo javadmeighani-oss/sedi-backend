@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/network/api_error.dart';
-import '../../core/network/api_response.dart';
+import '../../../core/network/api_error.dart';
+import '../../../core/network/api_response.dart';
 import 'me_profile.dart';
 import 'me_profile_parser.dart';
 

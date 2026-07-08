@@ -1,5 +1,5 @@
-import '../../core/network/api_response.dart';
-import '../../data/dto/auth/me_profile.dart';
+import '../../../core/network/api_response.dart';
+import '../../../data/dto/auth/me_profile.dart';
 
 /// UI-facing failure kinds for post-OTP GET `/auth/me`.
 enum PostOtpMeFailureKind {
