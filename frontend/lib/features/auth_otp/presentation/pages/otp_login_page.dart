@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/auth/auth_otp_service.dart';
+import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/navigation/app_gate_router.dart';
@@ -338,16 +339,18 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     }
 
     _phoneVerifiedInSession = true;
-    await _routeAfterVerifiedPhone();
+    await _routeAfterVerifiedPhone(accessToken: verify.accessToken!);
   }
 
-  Future<void> _routeAfterVerifiedPhone() async {
-    final meRes = await _authProfileService.fetchMe();
+  Future<void> _routeAfterVerifiedPhone({required String accessToken}) async {
+    final meRes = await _authProfileService.fetchMe(
+      accessToken: accessToken,
+      recoverSessionOn401: false,
+    );
     if (!mounted) return;
 
     if (!meRes.ok || meRes.data == null) {
-      setState(() => _isLoading = false);
-      _showMessage(_sanitizeMeFetchError(meRes.errorMessage));
+      _handlePostOtpMeFailure(meRes);
       return;
     }
 
@@ -385,6 +388,22 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         _goToRegistrationCompletionAfterOtp();
         return;
     }
+  }
+
+  void _handlePostOtpMeFailure(ApiResponse<MeProfileDto> meRes) {
+    setState(() => _isLoading = false);
+    final status = meRes.statusCode;
+    if (status == 401 || status == 403) {
+      _showMessage(_l10n.sessionAuthFailed);
+      return;
+    }
+    if (meRes.data == null &&
+        (meRes.error?.code == 'PARSE_ERROR' ||
+            meRes.errorMessage.toLowerCase().contains('parse'))) {
+      _showMessage(_l10n.profileParseFailed);
+      return;
+    }
+    _showMessage(_sanitizeMeFetchError(meRes.errorMessage));
   }
 
   void _goToRegistrationCompletionAfterOtp() {
@@ -432,7 +451,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       birthYear: _birthYear,
       dateOfBirth: iso,
     );
-    final patchRes = await _authProfileService.patchMe(patch);
+    final patchRes = await _authProfileService.patchMe(
+      patch,
+      recoverSessionOn401: false,
+    );
     if (!mounted) return;
     if (!patchRes.ok || patchRes.data == null) {
       setState(() => _isLoading = false);

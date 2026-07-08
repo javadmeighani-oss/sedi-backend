@@ -1,4 +1,5 @@
 import '../../data/dto/auth/me_profile.dart';
+import '../../data/dto/auth/me_profile_parser.dart';
 import '../../data/models/user_profile.dart';
 import '../network/api_client.dart';
 import '../network/api_response.dart';
@@ -11,28 +12,29 @@ class AuthProfileService {
   AuthProfileService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient(timeout: const Duration(seconds: 30));
 
-  Future<ApiResponse<MeProfileDto>> fetchMe() async {
+  Future<ApiResponse<MeProfileDto>> fetchMe({
+    String? accessToken,
+    bool recoverSessionOn401 = true,
+  }) async {
     return _apiClient.get<MeProfileDto>(
       '/auth/me',
-      parser: (json) {
-        if (json is Map) {
-          return MeProfileDto.fromJson(Map<String, dynamic>.from(json));
-        }
-        return null;
-      },
+      accessToken: accessToken,
+      recoverSessionOn401: recoverSessionOn401,
+      parser: parseMeProfileDto,
     );
   }
 
-  Future<ApiResponse<MeProfileDto>> patchMe(MeUpdateDto update) async {
+  Future<ApiResponse<MeProfileDto>> patchMe(
+    MeUpdateDto update, {
+    String? accessToken,
+    bool recoverSessionOn401 = true,
+  }) async {
     return _apiClient.patch<MeProfileDto>(
       '/auth/me',
       body: update.toJson(),
-      parser: (json) {
-        if (json is Map) {
-          return MeProfileDto.fromJson(Map<String, dynamic>.from(json));
-        }
-        return null;
-      },
+      accessToken: accessToken,
+      recoverSessionOn401: recoverSessionOn401,
+      parser: parseMeProfileDto,
     );
   }
 

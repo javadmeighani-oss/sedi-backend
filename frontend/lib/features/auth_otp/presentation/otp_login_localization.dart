@@ -233,6 +233,18 @@ class OtpLoginLocalization {
         ar: 'تعذر تحميل ملفك الشخصي من الخادم. يرجى المحاولة مرة أخرى.',
       );
 
+  String get profileParseFailed => _t(
+        en: 'Profile data from the server could not be read. Please try again.',
+        fa: 'اطلاعات پروفایل از سرور قابل خواندن نبود. لطفاً دوباره تلاش کنید.',
+        ar: 'تعذر قراءة بيانات الملف الشخصي من الخادم. يرجى المحاولة مرة أخرى.',
+      );
+
+  String get sessionAuthFailed => _t(
+        en: 'Your session could not be confirmed. Please verify the code again.',
+        fa: 'نشست شما تأیید نشد. لطفاً دوباره کد را تأیید کنید.',
+        ar: 'تعذر تأكيد جلستك. يرجى التحقق من الرمز مرة أخرى.',
+      );
+
   String get profileIncomplete => _t(
         en: 'Profile data was not confirmed by the server.',
         fa: 'اطلاعات پروفایل از سمت سرور تأیید نشد.',

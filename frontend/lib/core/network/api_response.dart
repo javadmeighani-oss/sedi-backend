@@ -16,13 +16,38 @@ class ApiResponse<T> {
     this.statusCode,
   });
 
+  /// Tolerant parsing for backend `ok` values (bool, 0/1, "true"/"false").
+  static bool readEnvelopeOk(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return false;
+  }
+
+  /// Resolve success for HTTP 2xx envelope responses.
+  static bool resolveEnvelopeSuccess({
+    required Map<String, dynamic> json,
+    required bool parsedOk,
+    required bool hasData,
+    required bool hasError,
+  }) {
+    if (json.containsKey('ok')) return parsedOk;
+    if (hasError) return false;
+    return hasData;
+  }
+
   /// Parse from JSON. [parser] converts the raw "data" object to T (or null).
   /// Use for responses where "data" is an object or list.
   static ApiResponse<T> fromJson<T>(
     Map<String, dynamic> json,
     T? Function(Object? dataJson) parser,
   ) {
-    final ok = json['ok'] as bool? ?? false;
+    final parsedOk =
+        json.containsKey('ok') ? readEnvelopeOk(json['ok']) : false;
     final errorJson = json['error'];
     final ApiError? error = errorJson == null
         ? null
@@ -38,6 +63,12 @@ class ApiResponse<T> {
         data = null;
       }
     }
+    final ok = resolveEnvelopeSuccess(
+      json: json,
+      parsedOk: parsedOk,
+      hasData: data != null,
+      hasError: error != null,
+    );
     return ApiResponse<T>(ok: ok, data: data, error: error, statusCode: null);
   }
 

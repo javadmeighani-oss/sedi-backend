@@ -24,28 +24,40 @@ class MeProfileDto {
   });
 
   factory MeProfileDto.fromJson(Map<String, dynamic> json) {
-    final rawUserId = json['user_id'];
-    final userId = rawUserId is int
-        ? rawUserId
-        : int.tryParse(rawUserId?.toString() ?? '') ?? 0;
+    final rawUserId = json['user_id'] ?? json['id'];
+    final userId = _asInt(rawUserId) ?? 0;
     return MeProfileDto(
       userId: userId,
-      phone: json['phone']?.toString(),
-      name: json['name']?.toString() ?? json['display_name']?.toString(),
-      preferredLanguage: json['preferred_language']?.toString() ??
-          json['language']?.toString(),
-      sex: json['sex']?.toString(),
-      calendarType: json['calendar_type']?.toString(),
+      phone: _asString(json['phone']),
+      name: _asString(json['name']) ?? _asString(json['display_name']),
+      preferredLanguage: _asString(json['preferred_language']) ??
+          _asString(json['language']),
+      sex: _asString(json['sex']),
+      calendarType: _asString(json['calendar_type']),
       birthDay: _asInt(json['birth_day']),
       birthMonth: _asInt(json['birth_month']),
       birthYear: _asInt(json['birth_year']),
-      dateOfBirth: json['date_of_birth']?.toString(),
+      dateOfBirth: _asDateString(json['date_of_birth']),
     );
   }
 
+  static String? _asString(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  static String? _asDateString(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    return value.toString();
+  }
+
   static int? _asInt(dynamic value) {
+    if (value == null) return null;
     if (value is int) return value;
-    return int.tryParse(value?.toString() ?? '');
+    if (value is double) return value.round();
+    return int.tryParse(value.toString());
   }
 }
 

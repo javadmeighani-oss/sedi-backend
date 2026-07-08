@@ -22,12 +22,14 @@ class ApiClient {
     this.timeout = const Duration(seconds: 15),
   }) : baseUrl = baseUrl ?? AppConfig.baseUrl;
 
-  Future<Map<String, String>> _headers(
-      {Map<String, String>? extraHeaders}) async {
+  Future<Map<String, String>> _headers({
+    Map<String, String>? extraHeaders,
+    String? accessToken,
+  }) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
     };
-    final token = await AuthService.getToken();
+    final token = accessToken ?? await AuthService.getToken();
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -49,8 +51,13 @@ class ApiClient {
     String path,
     Future<http.Response> Function(Map<String, String> headers) send, {
     Map<String, String>? extraHeaders,
+    String? accessToken,
+    bool recoverSessionOn401 = true,
   }) async {
-    var headers = await _headers(extraHeaders: extraHeaders);
+    var headers = await _headers(
+      extraHeaders: extraHeaders,
+      accessToken: accessToken,
+    );
     var response = await send(headers);
     if (!_shouldAttemptRefresh(path, response.statusCode)) {
       return response;
@@ -58,13 +65,15 @@ class ApiClient {
 
     final refreshed = await AuthRefreshService.tryRefresh();
     if (!refreshed) {
-      await AuthSessionManager.forceLogoutAndNavigate();
+      if (recoverSessionOn401) {
+        await AuthSessionManager.forceLogoutAndNavigate();
+      }
       return response;
     }
 
-    headers = await _headers(extraHeaders: extraHeaders);
+    headers = await _headers(extraHeaders: extraHeaders, accessToken: accessToken);
     response = await send(headers);
-    if (response.statusCode == 401) {
+    if (response.statusCode == 401 && recoverSessionOn401) {
       await AuthSessionManager.forceLogoutAndNavigate();
     }
     return response;
@@ -75,6 +84,8 @@ class ApiClient {
     String path, {
     Map<String, String>? queryParams,
     Map<String, String>? extraHeaders,
+    String? accessToken,
+    bool recoverSessionOn401 = true,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
@@ -88,6 +99,8 @@ class ApiClient {
           throw Exception('Request timeout');
         }),
         extraHeaders: extraHeaders,
+        accessToken: accessToken,
+        recoverSessionOn401: recoverSessionOn401,
       );
 
       return _handleResponse<T>(response, parser);
@@ -192,6 +205,8 @@ class ApiClient {
     Map<String, dynamic>? body,
     Map<String, String>? queryParams,
     Map<String, String>? extraHeaders,
+    String? accessToken,
+    bool recoverSessionOn401 = true,
     required T? Function(Object? dataJson) parser,
   }) async {
     try {
@@ -212,6 +227,8 @@ class ApiClient {
           throw Exception('Request timeout');
         }),
         extraHeaders: extraHeaders,
+        accessToken: accessToken,
+        recoverSessionOn401: recoverSessionOn401,
       );
       debugPrint('[API] response status=${response.statusCode}');
       return _handleResponse<T>(response, parser);
