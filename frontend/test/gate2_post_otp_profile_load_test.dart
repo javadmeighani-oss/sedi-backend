@@ -38,6 +38,21 @@ void main() {
       expect(response.ok, isTrue);
       expect(response.data?.userId, 9);
     });
+
+    test('reports PARSE_ERROR when ok is true but profile data cannot be parsed', () {
+      final response = ApiResponse.fromJson<MeProfileDto>(
+        {
+          'ok': true,
+          'data': ['not', 'a', 'profile'],
+          'error': null,
+        },
+        parseMeProfileDto,
+      );
+
+      expect(response.ok, isFalse);
+      expect(response.data, isNull);
+      expect(response.error?.code, 'PARSE_ERROR');
+    });
   });
 
   group('MeProfileDto parsing', () {

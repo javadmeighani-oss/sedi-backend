@@ -397,9 +397,13 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       _showMessage(_l10n.sessionAuthFailed);
       return;
     }
-    if (meRes.data == null &&
+    final isHttpSuccess =
+        status == null || (status >= 200 && status < 300);
+    final isParseFailure = meRes.data == null &&
         (meRes.error?.code == 'PARSE_ERROR' ||
-            meRes.errorMessage.toLowerCase().contains('parse'))) {
+            meRes.errorMessage.toLowerCase().contains('parse') ||
+            (meRes.ok && isHttpSuccess));
+    if (isParseFailure) {
       _showMessage(_l10n.profileParseFailed);
       return;
     }
