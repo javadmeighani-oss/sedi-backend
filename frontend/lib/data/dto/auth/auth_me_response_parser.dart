@@ -182,6 +182,13 @@ class AuthMeResponseParser {
         return _profileOnlyMap(map);
       }
 
+      for (final key in const ['user', 'profile', 'me']) {
+        final nested = _coerceToMap(map[key]);
+        if (nested != null && _looksLikeProfileMap(nested)) {
+          return _profileOnlyMap(nested);
+        }
+      }
+
       if (map.containsKey('data')) {
         current = map['data'];
         continue;

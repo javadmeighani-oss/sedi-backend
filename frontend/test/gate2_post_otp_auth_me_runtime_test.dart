@@ -7,8 +7,11 @@ import 'package:sedi_app/core/network/api_response.dart';
 import 'package:sedi_app/data/dto/auth/auth_me_response_parser.dart';
 import 'package:sedi_app/data/dto/auth/me_profile.dart';
 import 'package:sedi_app/data/dto/auth/me_profile_parser.dart';
+import 'package:sedi_app/data/dto/auth/otp_verify_response.dart';
+import 'package:sedi_app/data/dto/auth/post_otp_profile_fallback.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_me_failure.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_router.dart';
+import 'package:sedi_app/features/auth_otp/presentation/gate2_post_otp_safe_router.dart';
 import 'package:sedi_app/features/auth_otp/presentation/gate2_profile_rules.dart';
 
 import 'fixtures/auth_me_backend_fixture.dart';
@@ -202,6 +205,35 @@ void main() {
       );
       expect(result.ok, isTrue);
       expect(result.profile?.phone, '+989121234567');
+    });
+
+    test('9. verify fallback continues when /auth/me fetch fails', () {
+      const verify = OtpVerifyResponse(
+        userId: 42,
+        phone: '+989121234567',
+        accessToken: 'token',
+        language: 'fa',
+      );
+      final fetchFailure = AuthMeResponseParser.parseHttpResponse(
+        statusCode: 503,
+        body: '{"ok":false,"error":{"code":"UNAVAILABLE","message":"Server busy"}}',
+      );
+
+      expect(classifyPostOtpMeFailure(fetchFailure.toApiResponse()),
+          PostOtpMeFailureKind.fetch);
+      expect(isTransientPostOtpMeFailure(fetchFailure.toApiResponse()), isTrue);
+
+      final fallback = postOtpProfileFromVerify(verify);
+      expect(fallback, isNotNull);
+
+      final action = Gate2PostOtpSafeRouter.resolve(
+        meSource: PostOtpMeSource.otpFallbackDraft,
+        isNewUserPath: true,
+        me: fallback!,
+        registrationDraftComplete: false,
+      );
+      expect(action, Gate2PostOtpAction.showRegistrationCompletion);
+      expect(action, isNot(Gate2PostOtpAction.enterGate3));
     });
   });
 }

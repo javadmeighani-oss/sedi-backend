@@ -18,13 +18,27 @@ PostOtpMeFailureKind classifyPostOtpMeFailure(ApiResponse<MeProfileDto> meRes) {
   }
 
   final code = meRes.error?.code;
+  final message = meRes.errorMessage.toLowerCase();
   if (code == 'PARSE_ERROR' ||
       code == 'MISSING_IDENTITY' ||
-      meRes.errorMessage.toLowerCase().contains('parse') ||
-      meRes.errorMessage.toLowerCase().contains('profile data') ||
-      meRes.errorMessage.toLowerCase().contains('missing profile')) {
+      code == 'ENVELOPE_ERROR' ||
+      message.contains('parse') ||
+      message.contains('profile data') ||
+      message.contains('missing profile') ||
+      message.contains('profile identity') ||
+      message.contains('unrecognized /auth/me')) {
     return PostOtpMeFailureKind.parse;
   }
 
   return PostOtpMeFailureKind.fetch;
+}
+
+/// True when GET `/auth/me` failed for a likely transient reason (retry/fallback).
+bool isTransientPostOtpMeFailure(ApiResponse<MeProfileDto> meRes) {
+  if (meRes.ok) return false;
+  final kind = classifyPostOtpMeFailure(meRes);
+  if (kind == PostOtpMeFailureKind.auth) return false;
+  final status = meRes.statusCode;
+  if (status == null) return true;
+  return status >= 500;
 }
