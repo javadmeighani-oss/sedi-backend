@@ -76,6 +76,12 @@ class AppTheme {
   static const double gate2RadiusCard = 22;
   static const double gate2RadiusInput = 14;
 
+  // ===============================
+  // Gate 3 Premium Palette
+  // ===============================
+  /// Gate 3 — soft pale olive-green background (premium, calm; avoid pure white).
+  static const Color gate3PaleOliveBackground = Color(0xFFF3F5EE);
+
   static const List<BoxShadow> gate2CardShadow = [
     BoxShadow(
       color: Color(0x0F000000),

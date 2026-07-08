@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/auth_otp/presentation/pages/otp_login_page.dart';
-import '../../features/chat/presentation/pages/chat_page.dart';
+import '../../features/gate3_interactive/presentation/pages/gate3_interactive_page.dart';
 import '../../features/intro/presentation/pages/intro_page.dart';
 import 'app_gate.dart';
 
@@ -24,7 +24,7 @@ class AppGateRouter {
       case SediAppGate.login:
         return const OtpLoginPage();
       case SediAppGate.heart:
-        return ChatPage(
+        return Gate3InteractivePage(
           initialMessage: initialMessage,
           fromNotification: fromNotification,
           notificationId: notificationId,
