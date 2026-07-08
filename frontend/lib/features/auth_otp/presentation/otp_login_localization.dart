@@ -227,6 +227,12 @@ class OtpLoginLocalization {
         ar: 'تعذر حفظ ملفك الشخصي على الخادم. يرجى المحاولة مرة أخرى.',
       );
 
+  String get profileFetchFailed => _t(
+        en: 'Could not load your profile from the server. Please try again.',
+        fa: 'بارگذاری پروفایل از سرور انجام نشد. لطفاً دوباره تلاش کنید.',
+        ar: 'تعذر تحميل ملفك الشخصي من الخادم. يرجى المحاولة مرة أخرى.',
+      );
+
   String get profileIncomplete => _t(
         en: 'Profile data was not confirmed by the server.',
         fa: 'اطلاعات پروفایل از سمت سرور تأیید نشد.',
