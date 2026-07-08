@@ -1,0 +1,52 @@
+# Read-only verification: migration 044 columns on user_profile_core.
+name: Gate 2 Verify 044 Readonly
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-044-readonly:
+    name: Read-only verify migration 044 columns
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Read-only image, alembic, and column checks
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -Eeuo pipefail
+             cd "${{ secrets.SEDI_DEPLOY_PATH }}"
+             echo "=== IMAGE ==="
+             docker inspect sedi-backend --format "{{.Config.Image}}"
+             echo "=== ALEMBIC CURRENT ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+             echo "=== ALEMBIC HEADS ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+             echo "=== SCHEMA COLUMNS (user_profile_core) ==="
+             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
+               "SELECT column_name FROM information_schema.columns
+                WHERE table_schema='"'"'public'"'"' AND table_name='"'"'user_profile_core'"'"'
+                AND column_name IN ('"'"'birth_day'"'"','"'"'birth_month'"'"','"'"'calendar_type'"'"','"'"'birth_year'"'"','"'"'sex'"'"','"'"'date_of_birth'"'"')
+                ORDER BY 1;"
+             echo "=== LOCAL HEALTH ==="
+             curl -fsS http://127.0.0.1:8000/health
+             echo ""
+             curl -fsS http://127.0.0.1:8000/healthz
+             echo ""
+             echo "=== VERIFY DONE ==="
+            '
