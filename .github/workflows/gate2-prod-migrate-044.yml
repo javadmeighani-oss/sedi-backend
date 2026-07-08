@@ -1,0 +1,115 @@
+# One-shot production Alembic migration 044 only (Gate 2 birth/calendar fields).
+name: Gate 2 Production Migration 044
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-044:
+    name: Migrate 044_gate2_birth_calendar_fields on production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Pre-check, backup, migrate 044, verify
+        run: |
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            'set -Eeuo pipefail
+             DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+             EXPECTED_IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:a59ccea5a4dfffad890ffae10b18454ad8e7959b"
+             EXPECTED_BEFORE="043_gate5e_ml_shadow_foundation"
+             TARGET_REV="044_gate2_birth_calendar_fields"
+
+             cd "${DEPLOY_PATH}"
+
+             echo "=== PRE: BACKEND IMAGE ==="
+             CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
+             echo "running_image=${CURRENT_IMAGE:-none}"
+             if [ "${CURRENT_IMAGE}" != "${EXPECTED_IMAGE}" ]; then
+               echo "PRECHECK_FAILED: unexpected backend image"
+               exit 2
+             fi
+
+             echo "=== PRE: ALEMBIC CURRENT ==="
+             ALEMBIC_BEFORE="$(docker exec sedi-backend python -m alembic -c backend/alembic.ini current 2>/dev/null | tail -1 | tr -d "[:space:]")"
+             echo "alembic_before=${ALEMBIC_BEFORE}"
+             if [ "${ALEMBIC_BEFORE}" != "${EXPECTED_BEFORE}" ]; then
+               echo "PRECHECK_FAILED: alembic current is not ${EXPECTED_BEFORE}"
+               exit 3
+             fi
+
+             echo "=== PRE: ALEMBIC HEADS ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini heads
+             HEADS_COUNT="$(docker exec sedi-backend python -m alembic -c backend/alembic.ini heads 2>/dev/null | grep -c "(head)" || true)"
+             if [ "${HEADS_COUNT}" != "1" ]; then
+               echo "PRECHECK_FAILED: expected exactly one alembic head"
+               exit 4
+             fi
+             if ! docker exec sedi-backend python -m alembic -c backend/alembic.ini heads 2>/dev/null | grep -q "${TARGET_REV}"; then
+               echo "PRECHECK_FAILED: head does not include ${TARGET_REV}"
+               exit 5
+             fi
+
+             echo "=== PRE: SCHEMA COLUMNS (user_profile_core) ==="
+             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
+               "SELECT column_name FROM information_schema.columns
+                WHERE table_schema='"'"'public'"'"' AND table_name='"'"'user_profile_core'"'"'
+                AND column_name IN ('"'"'birth_day'"'"','"'"'birth_month'"'"','"'"'calendar_type'"'"','"'"'birth_year'"'"','"'"'sex'"'"','"'"'date_of_birth'"'"')
+                ORDER BY 1;"
+
+             echo "=== BACKUP ==="
+             mkdir -p "${DEPLOY_PATH}/backups/postgres"
+             TS="$(date +%Y%m%d_%H%M%S)"
+             BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_pre_migrate044_${TS}.sql.gz"
+             echo "backup_file=${BACKUP_FILE}"
+             if ! docker exec sedi-postgres sh -c '"'"'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'"'"' | gzip > "${BACKUP_FILE}"; then
+               echo "BACKUP_FAILED"
+               exit 10
+             fi
+             if [ ! -s "${BACKUP_FILE}" ]; then
+               echo "BACKUP_FAILED: empty backup file"
+               exit 11
+             fi
+             ls -lh "${BACKUP_FILE}"
+
+             echo "=== MIGRATE TO ${TARGET_REV} ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini upgrade "${TARGET_REV}"
+
+             echo "=== POST: ALEMBIC CURRENT ==="
+             docker exec sedi-backend python -m alembic -c backend/alembic.ini current
+             ALEMBIC_AFTER="$(docker exec sedi-backend python -m alembic -c backend/alembic.ini current 2>/dev/null | tail -1 | tr -d "[:space:]")"
+             echo "alembic_after=${ALEMBIC_AFTER}"
+             if [ "${ALEMBIC_AFTER}" != "${TARGET_REV}" ]; then
+               echo "MIGRATION_FAILED: alembic after is not ${TARGET_REV}"
+               exit 20
+             fi
+
+             echo "=== POST: SCHEMA COLUMNS (user_profile_core) ==="
+             docker exec sedi-postgres psql -U "$PU" -d "$PD" -P pager=off -c \
+               "SELECT column_name FROM information_schema.columns
+                WHERE table_schema='"'"'public'"'"' AND table_name='"'"'user_profile_core'"'"'
+                AND column_name IN ('"'"'birth_day'"'"','"'"'birth_month'"'"','"'"'calendar_type'"'"','"'"'birth_year'"'"','"'"'sex'"'"','"'"'date_of_birth'"'"')
+                ORDER BY 1;"
+
+             echo "=== POST: LOCAL HEALTH ==="
+             curl -fsS http://127.0.0.1:8000/health
+             echo ""
+             curl -fsS http://127.0.0.1:8000/healthz
+             echo ""
+             echo "=== MIGRATION 044 DONE ==="
+            '
