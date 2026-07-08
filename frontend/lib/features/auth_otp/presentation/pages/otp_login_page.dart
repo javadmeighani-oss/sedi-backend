@@ -10,6 +10,8 @@ import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/auth/me_profile.dart';
 import '../../../../services/push/push_service.dart';
 import '../birth_calendar_helper.dart';
+import '../gate2_otp_input.dart';
+import '../gate2_post_otp_router.dart';
 import '../gate2_profile_rules.dart';
 import '../gate2_widgets.dart';
 import '../otp_login_localization.dart';
@@ -45,10 +47,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   final _newUserFormKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _otpAutofillController = TextEditingController();
-  final List<TextEditingController> _otpControllers =
-      List.generate(6, (_) => TextEditingController());
-  final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
+  final _otpCodeController = TextEditingController();
+  final _otpFocusNode = FocusNode();
   final AuthOtpService _authOtpService = AuthOtpService();
   final AuthProfileService _authProfileService = AuthProfileService();
 
@@ -79,10 +79,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   @override
   void initState() {
     super.initState();
-    for (final c in _otpControllers) {
-      c.addListener(_refresh);
-    }
-    _otpAutofillController.addListener(_onAutofillOtpChanged);
+    _otpCodeController.addListener(_refresh);
     _nameController.addListener(_refresh);
     _phoneController.addListener(_refresh);
   }
@@ -91,13 +88,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _otpAutofillController.dispose();
-    for (final c in _otpControllers) {
-      c.dispose();
-    }
-    for (final n in _otpFocusNodes) {
-      n.dispose();
-    }
+    _otpCodeController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -105,20 +97,15 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     if (mounted) setState(() {});
   }
 
-  void _onAutofillOtpChanged() {
-    final code = _otpAutofillController.text.replaceAll(RegExp(r'\D'), '');
-    if (code.length > 6) {
-      _otpAutofillController.text = code.substring(0, 6);
-      _otpAutofillController.selection =
-          TextSelection.collapsed(offset: _otpAutofillController.text.length);
-      return;
-    }
-    for (var i = 0; i < 6; i++) {
-      _otpControllers[i].text = i < code.length ? code[i] : '';
-    }
-    if (code.length == 6) _otpFocusNodes[5].unfocus();
-    _refresh();
-  }
+  Gate2RegistrationDraft get _registrationDraft => Gate2RegistrationDraft(
+        name: _nameController.text,
+        gender: _selectedGender,
+        birthDay: _birthDay,
+        birthMonth: _birthMonth,
+        birthYear: _birthYear,
+        requestedPhone: _requestedPhone,
+        phoneVerifiedInSession: _phoneVerifiedInSession,
+      );
 
   String _normalizePhone(String input) {
     String s = input.trim().replaceAll(' ', '').replaceAll('-', '');
@@ -163,15 +150,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   bool get _canConfirm =>
       !_isLoading &&
       _step == _Gate2Step.otpVerification &&
-      _otpControllers.every((c) => c.text.length == 1);
+      OtpInputHelper.isComplete(_otpCodeController.text);
 
-  bool get _canCompleteRegistration =>
-      !_isLoading &&
-      _phoneVerifiedInSession &&
-      _nameController.text.trim().isNotEmpty &&
-      _selectedGender != null &&
-      _hasCompleteDob &&
-      (_requestedPhone.isNotEmpty || _isValidPhone(_phoneController.text));
+  bool get _canCompleteRegistration => _registrationDraft.isComplete &&
+      (_isValidPhone(_phoneController.text) || _requestedPhone.isNotEmpty);
 
   String _formattedDob() {
     if (!_hasCompleteDob) return '';
@@ -203,10 +185,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   void _resetOtpInputsOnly() {
-    _otpAutofillController.clear();
-    for (final c in _otpControllers) {
-      c.clear();
-    }
+    _otpCodeController.clear();
   }
 
   void _resetOtpFlow() {
@@ -313,14 +292,16 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     });
     _showMessage(_l10n.codeSentGeneric);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _otpFocusNodes[0].requestFocus();
+      if (!mounted) return;
+      _otpFocusNode.requestFocus();
+      TextInput.finishAutofillContext(shouldSave: true);
     });
   }
 
   Future<void> _verifyCode() async {
     if (!_canConfirm) return;
-    final code = _otpControllers.map((c) => c.text).join();
-    if (code.length != 6) {
+    final code = OtpInputHelper.sanitize(_otpCodeController.text);
+    if (!OtpInputHelper.isComplete(code)) {
       _showMessage(_l10n.otpIncomplete);
       return;
     }
@@ -350,6 +331,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       accessToken: verify.accessToken!,
       refreshToken: verify.refreshToken,
     );
+    if (!await AuthService.hasToken()) {
+      setState(() => _isLoading = false);
+      _showMessage(_l10n.genericOtpVerifyFailed);
+      return;
+    }
 
     _phoneVerifiedInSession = true;
     await _routeAfterVerifiedPhone();
@@ -358,43 +344,58 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   Future<void> _routeAfterVerifiedPhone() async {
     final meRes = await _authProfileService.fetchMe();
     if (!mounted) return;
-    setState(() => _isLoading = false);
 
     if (!meRes.ok || meRes.data == null) {
-      _showMessage(_sanitizeProfileError(meRes.errorMessage));
+      setState(() => _isLoading = false);
+      _showMessage(_sanitizeMeFetchError(meRes.errorMessage));
       return;
     }
 
     final me = meRes.data!;
-    final complete = Gate2ProfileRules.isProfileComplete(me);
-    final isNewUserPath = _accountChoice == _AccountChoice.newUser;
+    final action = Gate2PostOtpRouter.decide(
+      isNewUserPath: _accountChoice == _AccountChoice.newUser,
+      me: me,
+      registrationDraftComplete: _registrationDraft.isComplete,
+    );
 
-    if (isNewUserPath) {
-      if (complete) {
+    switch (action) {
+      case Gate2PostOtpAction.enterGate3:
+        await _finishWithProfile(me);
+        return;
+      case Gate2PostOtpAction.showProfileCorrectionReturning:
         setState(() {
+          _isLoading = false;
+          _verifiedMeProfile = me;
+          _correctionCase = _CorrectionCase.returningProfileIncomplete;
+          _step = _Gate2Step.profileCorrection;
+        });
+        return;
+      case Gate2PostOtpAction.showProfileCorrectionAlreadyRegistered:
+        setState(() {
+          _isLoading = false;
           _verifiedMeProfile = me;
           _correctionCase = _CorrectionCase.newUserAlreadyRegistered;
           _step = _Gate2Step.profileCorrection;
         });
         return;
-      }
-      if (!(_newUserFormKey.currentState?.validate() ?? false)) {
-        setState(() => _isLoading = false);
+      case Gate2PostOtpAction.patchRegistrationThenEnterGate3:
+        await _completeNewUserRegistration(skipOtp: true);
         return;
-      }
-      await _completeNewUserRegistration(skipOtp: true);
-      return;
+      case Gate2PostOtpAction.showRegistrationCompletion:
+        _goToRegistrationCompletionAfterOtp();
+        return;
     }
+  }
 
-    if (complete) {
-      await _finishWithProfile(me);
-      return;
+  void _goToRegistrationCompletionAfterOtp() {
+    if (_requestedPhone.isNotEmpty) {
+      _phoneController.text = _formatPhoneForDisplay(_requestedPhone);
     }
-
     setState(() {
-      _verifiedMeProfile = me;
-      _correctionCase = _CorrectionCase.returningProfileIncomplete;
-      _step = _Gate2Step.profileCorrection;
+      _isLoading = false;
+      _phoneFieldLocked = true;
+      _phoneVerifiedInSession = true;
+      _step = _Gate2Step.newUserRegistration;
     });
   }
 
@@ -402,6 +403,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     if (!skipOtp) {
       if (!(_newUserFormKey.currentState?.validate() ?? false)) return;
     } else if (!_canCompleteRegistration) {
+      _goToRegistrationCompletionAfterOtp();
       return;
     }
 
@@ -413,10 +415,17 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       month: _birthMonth!,
       year: _birthYear!,
     );
+    if (iso == null) {
+      setState(() => _isLoading = false);
+      _goToRegistrationCompletionAfterOtp();
+      _showMessage(_l10n.dobRequired);
+      return;
+    }
+
     final patch = MeUpdateDto(
       name: _nameController.text.trim(),
       sex: _selectedGender,
-        preferredLanguage: _language ?? 'en',
+      preferredLanguage: _language ?? 'en',
       calendarType: _calendarType,
       birthDay: _birthDay,
       birthMonth: _birthMonth,
@@ -427,25 +436,29 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     if (!mounted) return;
     if (!patchRes.ok || patchRes.data == null) {
       setState(() => _isLoading = false);
+      _goToRegistrationCompletionAfterOtp();
       _showMessage(_sanitizeProfileError(patchRes.errorMessage));
       return;
     }
 
-    final meRes = await _authProfileService.fetchAndCacheProfile();
+    final meRes = await _authProfileService.fetchMe();
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (!meRes.ok || meRes.data == null) {
-      _showMessage(_sanitizeProfileError(meRes.errorMessage));
+      _goToRegistrationCompletionAfterOtp();
+      _showMessage(_sanitizeMeFetchError(meRes.errorMessage));
       return;
     }
 
     final me = meRes.data!;
     if (!Gate2ProfileRules.isProfileComplete(me)) {
+      _goToRegistrationCompletionAfterOtp();
       _showMessage(_l10n.profileIncomplete);
       return;
     }
 
+    await _authProfileService.cacheProfileFromBackend(me);
     await _finishWithProfile(me);
   }
 
@@ -530,6 +543,13 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       return _l10n.networkError;
     }
     return _l10n.profileSyncFailed;
+  }
+
+  String _sanitizeMeFetchError(String message) {
+    if (message.toLowerCase().contains('timeout')) {
+      return _l10n.networkError;
+    }
+    return _l10n.profileFetchFailed;
   }
 
   void _openDobPicker() {
@@ -930,18 +950,15 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               label: backLabel,
               onPressed: _backFromOtpVerification,
             ),
-            Gate2Widgets.stepTitle(
-              _l10n.sentCode,
-              subtitle: _l10n.otpVerificationInstruction,
-            ),
+            Gate2Widgets.stepTitle(_l10n.sentCode),
             const SizedBox(height: 24),
             Gate2Widgets.otpSection(
               l10n: _l10n,
-              controllers: _otpControllers,
-              focusNodes: _otpFocusNodes,
-              autofillController: _otpAutofillController,
+              controller: _otpCodeController,
+              focusNode: _otpFocusNode,
               active: true,
               showTitle: false,
+              onChanged: (_) => _refresh(),
             ),
             const SizedBox(height: 20),
             Gate2Widgets.primaryButton(

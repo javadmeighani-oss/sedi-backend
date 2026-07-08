@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
 import 'birth_calendar_helper.dart';
+import 'gate2_otp_input.dart';
 import 'otp_login_localization.dart';
 
 /// Shared luxury UI primitives for Gate 2 internal steps.
@@ -613,12 +614,12 @@ class Gate2Widgets {
 
   static Widget otpSection({
     required OtpLoginLocalization l10n,
-    required List<TextEditingController> controllers,
-    required List<FocusNode> focusNodes,
-    required TextEditingController autofillController,
+    required TextEditingController controller,
+    required FocusNode focusNode,
     required bool active,
     String? helperText,
     bool showTitle = true,
+    ValueChanged<String>? onChanged,
   }) {
     final title = active ? l10n.sentCode : (helperText ?? l10n.otpEnterAfterSend);
     return Column(
@@ -638,116 +639,19 @@ class Gate2Widgets {
           ),
           const SizedBox(height: 18),
         ],
-        AutofillGroup(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              IgnorePointer(
-                ignoring: !active,
-                child: Opacity(
-                  opacity: active ? 1.0 : 0.45,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      6,
-                      (i) => _otpBox(
-                        controllers[i],
-                        focusNodes[i],
-                        i,
-                        controllers,
-                        focusNodes,
-                        enabled: active,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Off-screen field for Android/iOS one-time-code autofill.
-              Positioned(
-                left: -1000,
-                width: 1,
-                height: 1,
-                child: TextField(
-                  controller: autofillController,
-                  keyboardType: TextInputType.number,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  maxLength: 6,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    counterText: '',
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-            ],
+        Opacity(
+          opacity: active ? 1.0 : 0.45,
+          child: IgnorePointer(
+            ignoring: !active,
+            child: Gate2OtpInput(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: active,
+              onChanged: onChanged,
+            ),
           ),
         ),
       ],
-    );
-  }
-
-  static Widget _otpBox(
-    TextEditingController controller,
-    FocusNode focusNode,
-    int index,
-    List<TextEditingController> allControllers,
-    List<FocusNode> allFocusNodes, {
-    required bool enabled,
-  }) {
-    return Container(
-      width: 42,
-      height: 46,
-      margin: const EdgeInsets.symmetric(horizontal: 3),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppTheme.gate2InputFill,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.gate2BorderSubtle, width: 0.8),
-      ),
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        enabled: enabled,
-        readOnly: !enabled,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        autofillHints:
-            index == 0 ? const [AutofillHints.oneTimeCode] : null,
-        style: const TextStyle(
-          color: AppTheme.gate2TextPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(
-          counterText: '',
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-        ),
-        onChanged: (value) {
-          if (value.length > 1) {
-            final digits = value.replaceAll(RegExp(r'\D'), '');
-            for (var i = 0; i < 6; i++) {
-              allControllers[i].text = i < digits.length ? digits[i] : '';
-            }
-            if (digits.length == 6) {
-              allFocusNodes[5].unfocus();
-            } else if (digits.isNotEmpty) {
-              allFocusNodes[digits.length.clamp(0, 5)].requestFocus();
-            }
-            return;
-          }
-          if (value.isNotEmpty && index < 5) {
-            allFocusNodes[index + 1].requestFocus();
-          }
-          if (value.isEmpty && index > 0) {
-            allFocusNodes[index - 1].requestFocus();
-          }
-        },
-      ),
     );
   }
 }
