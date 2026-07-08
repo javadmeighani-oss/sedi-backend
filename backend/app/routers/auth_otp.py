@@ -1,6 +1,9 @@
 # app/routers/auth_otp.py – Stage 25 Phone OTP endpoints
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
@@ -13,6 +16,7 @@ from backend.app.services.user_profile_service import apply_profile_update, buil
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
+logger = logging.getLogger(__name__)
 
 
 def get_current_user(
@@ -142,8 +146,30 @@ def patch_auth_me(
     db: Session = Depends(get_db),
 ):
     """Update authenticated user profile (JWT-only; never accepts user_id in body)."""
-    user = apply_profile_update(db, user, body)
-    return APIResponse(ok=True, data=_me_out(user, db))
+    try:
+        user = apply_profile_update(db, user, body)
+        return APIResponse(ok=True, data=_me_out(user, db))
+    except OperationalError as exc:
+        db.rollback()
+        err_text = str(exc).lower()
+        if "user_profile_core" in err_text or "birth_day" in err_text or "calendar_type" in err_text:
+            code = "PROFILE_SCHEMA_OUTDATED"
+            message = "Profile storage schema is not up to date on server"
+        else:
+            code = "PROFILE_UPDATE_FAILED"
+            message = "Profile update could not be saved"
+        logger.exception("PATCH /auth/me operational error user_id=%s", user.id)
+        return APIResponse(ok=False, error=ErrorInfo(code=code, message=message))
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception("PATCH /auth/me database error user_id=%s", user.id)
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(
+                code="PROFILE_UPDATE_FAILED",
+                message="Profile update could not be saved",
+            ),
+        )
 
 
 @router.post("/refresh", response_model=ApiResponseV1)

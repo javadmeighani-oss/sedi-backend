@@ -110,7 +110,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         birthDay: _birthDay,
         birthMonth: _birthMonth,
         birthYear: _birthYear,
-        requestedPhone: _requestedPhone,
+        requestedPhone: _confirmedPhoneE164 ?? _requestedPhone,
         phoneVerifiedInSession: _phoneVerifiedInSession,
       );
 
@@ -128,6 +128,13 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       return '0${phone.substring(3)}';
     }
     return phone;
+  }
+
+  /// OTP-confirmed E.164 phone for `/auth/me` identity fallback.
+  String? get _confirmedPhoneE164 {
+    if (_requestedPhone.isNotEmpty) return _requestedPhone;
+    final normalized = _normalizePhone(_phoneController.text);
+    return _isValidPhone(normalized) ? normalized : null;
   }
 
   bool _isValidPhone(String phone) {
@@ -348,7 +355,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     await _routeAfterVerifiedPhone(
       verify: verify,
       accessToken: verify.accessToken!,
-      knownPhoneE164: verify.phone ?? _requestedPhone,
+      knownPhoneE164: verify.phone ?? _confirmedPhoneE164,
     );
   }
 
@@ -372,7 +379,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       if (failureKind != PostOtpMeFailureKind.auth) {
         me = _authProfileService.profileFromOtpVerify(
           verify,
-          fallbackPhoneE164: knownPhoneE164 ?? _requestedPhone,
+          fallbackPhoneE164: knownPhoneE164 ?? _confirmedPhoneE164,
         );
         if (me != null) {
           meSource = PostOtpMeSource.otpFallbackDraft;
@@ -437,8 +444,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   void _goToRegistrationCompletionAfterOtp() {
-    if (_requestedPhone.isNotEmpty) {
-      _phoneController.text = _formatPhoneForDisplay(_requestedPhone);
+    final confirmed = _confirmedPhoneE164;
+    if (confirmed != null && confirmed.isNotEmpty) {
+      _requestedPhone = confirmed;
+      _phoneController.text = _formatPhoneForDisplay(confirmed);
     }
     setState(() {
       _isLoading = false;
@@ -484,7 +493,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     final patchRes = await _authProfileService.patchMe(
       patch,
       recoverSessionOn401: false,
-      knownPhoneE164: _requestedPhone,
+      knownPhoneE164: _confirmedPhoneE164,
     );
     if (!mounted) return;
     if (!patchRes.ok || patchRes.data == null) {
@@ -509,7 +518,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
           )
         : await _authProfileService.fetchMeAfterOtp(
             accessToken: accessToken,
-            knownPhoneE164: _requestedPhone,
+            knownPhoneE164: _confirmedPhoneE164,
           );
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -649,6 +658,14 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     }
     if (statusCode == 422) {
       return _l10n.profileIncomplete;
+    }
+    if (statusCode != null && statusCode >= 500) {
+      return _l10n.serverUnavailable;
+    }
+    if (errorCode == 'PROFILE_UPDATE_FAILED' ||
+        errorCode == 'PROFILE_SCHEMA_OUTDATED' ||
+        errorCode == 'ENVELOPE_ERROR') {
+      return _l10n.serverUnavailable;
     }
     return _l10n.profileSyncFailed;
   }

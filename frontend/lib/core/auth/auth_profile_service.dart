@@ -103,6 +103,31 @@ class AuthProfileService {
     String? knownPhoneE164,
     bool recoverSessionOn401 = true,
   }) async {
+    var result = await _patchMeOnce(
+      update,
+      accessToken: accessToken,
+      knownPhoneE164: knownPhoneE164,
+      recoverSessionOn401: recoverSessionOn401,
+    );
+    if (result.ok || !_isTransientMeFailure(result)) {
+      return result;
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+    return _patchMeOnce(
+      update,
+      accessToken: accessToken,
+      knownPhoneE164: knownPhoneE164,
+      recoverSessionOn401: recoverSessionOn401,
+    );
+  }
+
+  Future<ApiResponse<MeProfileDto>> _patchMeOnce(
+    MeUpdateDto update, {
+    String? accessToken,
+    String? knownPhoneE164,
+    bool recoverSessionOn401 = true,
+  }) async {
     try {
       final response = await _apiClient.patchHttpResponse(
         '/auth/me',

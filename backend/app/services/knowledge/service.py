@@ -176,8 +176,7 @@ def ensure_profile_core(db: Session, user_id: int) -> models.UserProfileCore:
         return row
     row = models.UserProfileCore(user_id=user_id)
     db.add(row)
-    db.commit()
-    db.refresh(row)
+    db.flush()
     logger.info("kc_profile_core_created user_id=%s", user_id)
     return row
 

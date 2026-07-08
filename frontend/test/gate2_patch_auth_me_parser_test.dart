@@ -59,5 +59,16 @@ void main() {
       expect(result.ok, isFalse);
       expect(result.profile, isNull);
     });
+
+    test('PATCH envelope ok:false with PROFILE_UPDATE_FAILED is not success', () {
+      final result = AuthMeResponseParser.parseHttpResponse(
+        statusCode: 200,
+        body: '{"ok":false,"data":null,"error":{"code":"PROFILE_UPDATE_FAILED","message":"Profile update could not be saved"}}',
+      );
+
+      expect(result.ok, isFalse);
+      expect(result.profile, isNull);
+      expect(result.error?.code, 'PROFILE_UPDATE_FAILED');
+    });
   });
 }
