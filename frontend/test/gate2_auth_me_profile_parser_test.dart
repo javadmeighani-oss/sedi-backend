@@ -232,5 +232,17 @@ void main() {
       expect(response.ok, isTrue);
       expect(response.data?.userId, 42);
     });
+
+    test('dedicated parser unwraps nested data.user shape', () {
+      final result = AuthMeResponseParser.parseHttpResponse(
+        statusCode: 200,
+        body: '{"ok":true,"data":{"user":{"user_id":42,"phone":"+989121234567"}},"error":null}',
+        knownPhoneE164: '+989121234567',
+      );
+
+      expect(result.ok, isTrue);
+      expect(result.profile?.userId, 42);
+      expect(result.profile?.phone, '+989121234567');
+    });
   });
 }

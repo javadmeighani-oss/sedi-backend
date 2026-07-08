@@ -10,11 +10,13 @@ import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/auth/me_profile.dart';
+import '../../../../data/dto/auth/otp_verify_response.dart';
 import '../../../../services/push/push_service.dart';
 import '../birth_calendar_helper.dart';
 import '../gate2_otp_input.dart';
 import '../gate2_post_otp_me_failure.dart';
 import '../gate2_post_otp_router.dart';
+import '../gate2_post_otp_safe_router.dart';
 import '../gate2_profile_rules.dart';
 import '../gate2_widgets.dart';
 import '../otp_login_localization.dart';
@@ -343,12 +345,14 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
     _phoneVerifiedInSession = true;
     await _routeAfterVerifiedPhone(
+      verify: verify,
       accessToken: verify.accessToken!,
       knownPhoneE164: verify.phone ?? _requestedPhone,
     );
   }
 
   Future<void> _routeAfterVerifiedPhone({
+    required OtpVerifyResponse verify,
     required String accessToken,
     String? knownPhoneE164,
   }) async {
@@ -358,13 +362,30 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     );
     if (!mounted) return;
 
-    if (!meRes.ok || meRes.data == null) {
+    final backendConfirmed = meRes.ok && meRes.data != null;
+    MeProfileDto? me = backendConfirmed ? meRes.data : null;
+    PostOtpMeSource meSource = PostOtpMeSource.backendConfirmed;
+
+    if (me == null) {
+      final failureKind = classifyPostOtpMeFailure(meRes);
+      if (failureKind != PostOtpMeFailureKind.auth) {
+        me = _authProfileService.profileFromOtpVerify(
+          verify,
+          fallbackPhoneE164: knownPhoneE164 ?? _requestedPhone,
+        );
+        if (me != null) {
+          meSource = PostOtpMeSource.otpFallbackDraft;
+        }
+      }
+    }
+
+    if (me == null) {
       _handlePostOtpMeFailure(meRes);
       return;
     }
 
-    final me = meRes.data!;
-    final action = Gate2PostOtpRouter.decide(
+    final action = Gate2PostOtpSafeRouter.resolve(
+      meSource: meSource,
       isNewUserPath: _accountChoice == _AccountChoice.newUser,
       me: me,
       registrationDraftComplete: _registrationDraft.isComplete,
@@ -372,7 +393,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
 
     switch (action) {
       case Gate2PostOtpAction.enterGate3:
-        await _finishWithProfile(me);
+        await _finishWithProfile(me, backendConfirmed: true);
         return;
       case Gate2PostOtpAction.showProfileCorrectionReturning:
         setState(() {
@@ -489,10 +510,16 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     }
 
     await _authProfileService.cacheProfileFromBackend(me);
-    await _finishWithProfile(me);
+    await _finishWithProfile(me, backendConfirmed: true);
   }
 
-  Future<void> _finishWithProfile(MeProfileDto me) async {
+  Future<void> _finishWithProfile(
+    MeProfileDto me, {
+    required bool backendConfirmed,
+  }) async {
+    if (!backendConfirmed) {
+      return;
+    }
     await _authProfileService.cacheProfileFromBackend(me);
     await UserPreferences.savePreferredName(me.name ?? '');
     await UserPreferences.saveUserLanguage(
@@ -522,10 +549,28 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   }
 
   Future<void> _continueWithExistingAccount() async {
-    final me = _verifiedMeProfile;
-    if (me == null) return;
     setState(() => _isLoading = true);
-    await _finishWithProfile(me);
+    final meRes = await _authProfileService.fetchMe(recoverSessionOn401: false);
+    if (!mounted) return;
+
+    if (!meRes.ok || meRes.data == null) {
+      setState(() => _isLoading = false);
+      _handlePostOtpMeFailure(meRes);
+      return;
+    }
+
+    final me = meRes.data!;
+    if (!Gate2ProfileRules.isProfileComplete(me)) {
+      setState(() {
+        _isLoading = false;
+        _verifiedMeProfile = me;
+        _correctionCase = _CorrectionCase.returningProfileIncomplete;
+        _step = _Gate2Step.profileCorrection;
+      });
+      return;
+    }
+
+    await _finishWithProfile(me, backendConfirmed: true);
     if (mounted) setState(() => _isLoading = false);
   }
 

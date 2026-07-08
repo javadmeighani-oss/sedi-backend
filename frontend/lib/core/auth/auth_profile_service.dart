@@ -1,6 +1,8 @@
 import '../../data/dto/auth/auth_me_response_parser.dart';
 import '../../data/dto/auth/me_profile.dart';
 import '../../data/dto/auth/me_profile_parser.dart';
+import '../../data/dto/auth/otp_verify_response.dart';
+import '../../data/dto/auth/post_otp_profile_fallback.dart';
 import '../../data/models/user_profile.dart';
 import '../network/api_client.dart';
 import '../network/api_error.dart';
@@ -35,6 +37,25 @@ class AuthProfileService {
     required String accessToken,
     String? knownPhoneE164,
   }) async {
+    var result = await _fetchMeAfterOtpOnce(
+      accessToken: accessToken,
+      knownPhoneE164: knownPhoneE164,
+    );
+    if (result.ok || !_isTransientMeFailure(result)) {
+      return result;
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+    return _fetchMeAfterOtpOnce(
+      accessToken: accessToken,
+      knownPhoneE164: knownPhoneE164,
+    );
+  }
+
+  Future<ApiResponse<MeProfileDto>> _fetchMeAfterOtpOnce({
+    required String accessToken,
+    String? knownPhoneE164,
+  }) async {
     try {
       final response = await _apiClient.getHttpResponse(
         '/auth/me',
@@ -56,6 +77,24 @@ class AuthProfileService {
         statusCode: null,
       );
     }
+  }
+
+  /// Fallback profile when GET `/auth/me` fails but OTP verify confirmed identity.
+  MeProfileDto? profileFromOtpVerify(
+    OtpVerifyResponse verify, {
+    String? fallbackPhoneE164,
+  }) {
+    return postOtpProfileFromVerify(
+      verify,
+      fallbackPhoneE164: fallbackPhoneE164,
+    );
+  }
+
+  static bool _isTransientMeFailure(ApiResponse<MeProfileDto> meRes) {
+    if (meRes.ok) return false;
+    final status = meRes.statusCode;
+    if (status == null) return true;
+    return status >= 500;
   }
 
   Future<ApiResponse<MeProfileDto>> patchMe(
