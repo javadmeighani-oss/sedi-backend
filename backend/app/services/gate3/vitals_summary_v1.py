@@ -161,17 +161,24 @@ def _parse_device_payload(payload_json: Optional[str]) -> Dict[str, Any]:
         return {}
 
 
+_REGISTERED_HUB_DISCONNECT_STATUSES = frozenset({"disconnected", "revoked"})
+
+
 def _compute_monitoring_state(
     hub_status: Dict[str, Any],
     latest_received_at: Optional[datetime],
     thresholds: Dict[str, int],
 ) -> str:
+    if latest_received_at is not None:
+        return _freshness_state(latest_received_at, thresholds)
+
     hub = hub_status.get("status")
-    if hub in {"disconnected", "revoked", "not_registered"}:
-        return "disconnected"
-    if latest_received_at is None:
+    has_hub = bool(hub_status.get("has_hub"))
+    if not has_hub or hub == "not_registered":
         return "no_data"
-    return _freshness_state(latest_received_at, thresholds)
+    if hub in _REGISTERED_HUB_DISCONNECT_STATUSES:
+        return "disconnected"
+    return "no_data"
 
 
 def build_vitals_summary_v1(db: Session, user_id: int) -> Dict[str, Any]:

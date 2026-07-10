@@ -89,6 +89,44 @@ def test_vitals_stale_data(db):
     db.commit()
     out = build_vitals_summary_v1(db, user.id)
     assert out["vitals_v1"]["vitals"]["heart_rate"]["freshness"] == "stale"
+    assert out["vitals_v1"]["monitoring_state"] == "stale"
+
+
+def test_vitals_legacy_health_recent_not_disconnected_without_hub(db):
+    user = models.User(name="v2b", secret_key="k")
+    db.add(user)
+    db.flush()
+    db.add(
+        models.HealthData(
+            user_id=user.id,
+            heart_rate="72",
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    out = build_vitals_summary_v1(db, user.id)
+    assert out["vitals_v1"]["monitoring_state"] != "disconnected"
+    assert out["vitals_v1"]["hub_status"] == "not_registered"
+
+
+def test_vitals_connected_hub_no_data(db):
+    user = models.User(name="v5b", secret_key="k")
+    db.add(user)
+    db.flush()
+    db.add(
+        models.Device(
+            user_id=user.id,
+            device_type="gadget_hub",
+            status="active",
+            device_id="hub-connected-empty",
+            token_hash="b" * 64,
+            last_heartbeat_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    out = build_vitals_summary_v1(db, user.id)
+    assert out["vitals_v1"]["monitoring_state"] == "no_data"
+    assert out["vitals_v1"]["hub_status"] in {"connected", "recently_seen"}
 
 
 def test_vitals_device_event_recent(db):
