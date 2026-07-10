@@ -13,6 +13,14 @@ from backend.app import models
 from backend.app.services.gate5.gadget_hub_status import build_hub_status_payload
 
 MONITORING_STATES = frozenset({"active", "recent", "stale", "disconnected", "no_data", "unknown"})
+CANONICAL_VITAL_KEYS = (
+    "heart_rate",
+    "spo2",
+    "temperature",
+    "blood_pressure",
+    "respiratory_rate",
+    "ecg",
+)
 
 
 def _freshness_thresholds() -> Dict[str, int]:
@@ -85,6 +93,61 @@ def _vital_object(
         obj["quality"] = quality
     if extra:
         obj.update(extra)
+    return obj
+
+
+def _blood_pressure_object(
+    bp: Any,
+    *,
+    recorded_at: Optional[str],
+    received_at: Optional[str],
+    source: str,
+    source_device_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    if not isinstance(bp, dict):
+        return None
+    systolic = bp.get("systolic")
+    diastolic = bp.get("diastolic")
+    if systolic is None and diastolic is None:
+        return None
+    thresholds = _freshness_thresholds()
+    rec_dt = _parse_dt(recorded_at) or _parse_dt(received_at)
+    obj: Dict[str, Any] = {
+        "systolic": systolic,
+        "diastolic": diastolic,
+        "unit": "mmHg",
+        "recorded_at": recorded_at,
+        "received_at": received_at,
+        "source": source,
+        "freshness": _freshness_state(rec_dt, thresholds),
+    }
+    if source_device_id:
+        obj["source_device_id"] = source_device_id
+    return obj
+
+
+def _ecg_object(
+    ecg: Any,
+    *,
+    recorded_at: Optional[str],
+    received_at: Optional[str],
+    source: str,
+    source_device_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    if ecg is None:
+        return None
+    thresholds = _freshness_thresholds()
+    rec_dt = _parse_dt(recorded_at) or _parse_dt(received_at)
+    obj: Dict[str, Any] = {
+        "monitoring_available": bool(ecg),
+        "signal_available": bool(ecg),
+        "recorded_at": recorded_at,
+        "received_at": received_at,
+        "source": source,
+        "freshness": _freshness_state(rec_dt, thresholds),
+    }
+    if source_device_id:
+        obj["source_device_id"] = source_device_id
     return obj
 
 
@@ -174,41 +237,36 @@ def build_vitals_summary_v1(db: Session, user_id: int) -> Dict[str, Any]:
     recv = device_recv_at or legacy_health.get("recorded_at")
     dev_id = latest_device.device_id if latest_device else None
 
-    vitals: Dict[str, Any] = {}
-    vitals["heart_rate"] = _vital_object(
-        hr, unit="bpm", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
-    )
-    vitals["spo2"] = _vital_object(
-        spo2, unit="percent", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
-    )
-    vitals["temperature"] = _vital_object(
-        temp, unit="celsius", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
-    )
-    if isinstance(bp, dict):
-        vitals["blood_pressure"] = _vital_object(
-            None,
-            unit="mmHg",
+    vitals: Dict[str, Any] = {
+        "heart_rate": _vital_object(
+            hr, unit="bpm", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
+        ),
+        "spo2": _vital_object(
+            spo2, unit="percent", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
+        ),
+        "temperature": _vital_object(
+            temp, unit="celsius", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
+        ),
+        "blood_pressure": _blood_pressure_object(
+            bp,
             recorded_at=rec,
             received_at=recv,
             source=src,
             source_device_id=dev_id,
-            extra={
-                "systolic": bp.get("systolic"),
-                "diastolic": bp.get("diastolic"),
-            },
-        )
-    vitals["respiratory_rate"] = _vital_object(
-        rr, unit="breaths_per_min", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
-    )
-    if ecg is not None:
-        vitals["ecg"] = {
-            "monitoring_available": bool(ecg),
-            "signal_available": bool(ecg),
-            "recorded_at": rec,
-            "received_at": recv,
-            "source": src,
-            "freshness": _freshness_state(_parse_dt(recv) or _parse_dt(rec), thresholds),
-        }
+        ),
+        "respiratory_rate": _vital_object(
+            rr, unit="breaths_per_min", recorded_at=rec, received_at=recv, source=src, source_device_id=dev_id
+        ),
+        "ecg": _ecg_object(
+            ecg,
+            recorded_at=rec,
+            received_at=recv,
+            source=src,
+            source_device_id=dev_id,
+        ),
+    }
+    for key in CANONICAL_VITAL_KEYS:
+        vitals.setdefault(key, None)
 
     out["vitals_v1"] = {
         "monitoring_state": monitoring_state,

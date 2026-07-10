@@ -172,6 +172,11 @@ def create_user_medication(db: Session, user_id: int, body: UserMedicationCreate
         instructions=body.instructions.strip() if body.instructions and body.instructions.strip() else None,
         reminder_enabled=body.reminder_enabled,
         timezone=tz,
+        remaining_quantity=body.remaining_quantity,
+        quantity_unit=body.quantity_unit.strip() if body.quantity_unit and body.quantity_unit.strip() else None,
+        refill_threshold=body.refill_threshold,
+        last_refill_at=body.last_refill_at,
+        estimated_end_at=body.estimated_end_at,
     )
     db.add(um)
     db.flush()
