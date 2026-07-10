@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../gate3_localization.dart';
 import 'gate3_main_icon_button.dart';
 
 class Gate3MainIconRow extends StatelessWidget {
@@ -9,6 +10,7 @@ class Gate3MainIconRow extends StatelessWidget {
   final VoidCallback onGadgets;
   final VoidCallback onHistory;
   final int? unreadCount;
+  final String lang;
 
   const Gate3MainIconRow({
     super.key,
@@ -17,8 +19,11 @@ class Gate3MainIconRow extends StatelessWidget {
     required this.onLifestyle,
     required this.onGadgets,
     required this.onHistory,
+    required this.lang,
     this.unreadCount,
   });
+
+  Gate3Localization get _l10n => Gate3Localization(lang);
 
   Widget? _badge() {
     final c = unreadCount;
@@ -45,40 +50,37 @@ class Gate3MainIconRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Gate3MainIconButton(
-            icon: Icons.notifications_outlined,
-            labelFa: 'اعلان‌ها',
-            onTap: onNotifications,
-            badge: _badge(),
-          ),
-          Gate3MainIconButton(
-            icon: Icons.favorite_border,
-            labelFa: 'مراقبت سلامت',
-            onTap: onHealthCare,
-          ),
-          Gate3MainIconButton(
-            icon: Icons.self_improvement_outlined,
-            labelFa: 'سبک زندگی',
-            onTap: onLifestyle,
-          ),
-          Gate3MainIconButton(
-            icon: Icons.devices_other_outlined,
-            labelFa: 'گجت‌ها',
-            onTap: onGadgets,
-          ),
-          Gate3MainIconButton(
-            icon: Icons.history,
-            labelFa: 'تاریخچه',
-            onTap: onHistory,
-          ),
-        ],
-      ),
+    final l10n = _l10n;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Gate3MainIconButton(
+          icon: Icons.notifications_outlined,
+          label: l10n.notifications,
+          onTap: onNotifications,
+          badge: _badge(),
+        ),
+        Gate3MainIconButton(
+          icon: Icons.favorite_border,
+          label: l10n.healthCare,
+          onTap: onHealthCare,
+        ),
+        Gate3MainIconButton(
+          icon: Icons.self_improvement_outlined,
+          label: l10n.lifestyle,
+          onTap: onLifestyle,
+        ),
+        Gate3MainIconButton(
+          icon: Icons.devices_other_outlined,
+          label: l10n.gadgets,
+          onTap: onGadgets,
+        ),
+        Gate3MainIconButton(
+          icon: Icons.history,
+          label: l10n.history,
+          onTap: onHistory,
+        ),
+      ],
     );
   }
 }
-

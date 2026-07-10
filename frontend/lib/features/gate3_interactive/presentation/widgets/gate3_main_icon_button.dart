@@ -4,14 +4,14 @@ import '../../../../core/theme/app_theme.dart';
 
 class Gate3MainIconButton extends StatelessWidget {
   final IconData icon;
-  final String labelFa;
+  final String label;
   final VoidCallback onTap;
   final Widget? badge;
 
   const Gate3MainIconButton({
     super.key,
     required this.icon,
-    required this.labelFa,
+    required this.label,
     required this.onTap,
     this.badge,
   });
@@ -63,10 +63,10 @@ class Gate3MainIconButton extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              labelFa,
-              textDirection: TextDirection.rtl,
+              label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
@@ -80,4 +80,3 @@ class Gate3MainIconButton extends StatelessWidget {
     );
   }
 }
-

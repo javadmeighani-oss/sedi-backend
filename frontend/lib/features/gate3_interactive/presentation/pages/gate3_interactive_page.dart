@@ -18,9 +18,12 @@ import '../../../notification/data/notification_service.dart';
 import '../../../gate4_notifications/presentation/pages/gate4_notifications_placeholder_page.dart';
 
 import '../../models/gate3_interaction_state.dart';
+import '../gate3_localization.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
+import '../widgets/gate3_return_to_latest_button.dart';
 import '../widgets/gate3_scroll_day_control.dart';
+import '../widgets/gate3_settings_menu.dart';
 import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -83,17 +86,23 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     if (mounted) setState(() {});
   }
 
+  Gate3Localization get _l10n => Gate3Localization(_controller.currentLanguage);
+
   void _scrollToBottomOnNewMessage() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-        );
-      }
+      _scrollToBottom();
     });
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   Future<void> _refreshUnreadCount() async {
@@ -120,10 +129,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       _backPressTimer?.cancel();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'برای خروج دوباره back بزنید',
-            textDirection: TextDirection.rtl,
-          ),
+          content: Text(_l10n.pressBackAgainToExit),
           duration: const Duration(seconds: 2),
           backgroundColor: AppTheme.primaryBlack.withOpacity(0.8),
           behavior: SnackBarBehavior.floating,
@@ -155,10 +161,28 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         );
   }
 
+  List<ChatMessage> _sampleMessages(Gate3Localization l10n) {
+    return [
+      ChatMessage(
+        text: l10n.sampleIntroAssistant1(),
+        role: ChatRole.assistant,
+      ),
+      ChatMessage.user(
+        text: l10n.sampleIntroUser1(),
+        localId: 'sample-1',
+        status: ChatMessageStatus.sent,
+      ),
+      ChatMessage(
+        text: l10n.sampleIntroAssistant2(),
+        role: ChatRole.assistant,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isRtl = _controller.currentLanguage == 'fa' ||
-        _controller.currentLanguage == 'ar';
+    final l10n = _l10n;
+    final isRtl = l10n.isRtl;
 
     final content = PopScope(
       canPop: false,
@@ -175,8 +199,16 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Gate3SettingsMenu(lang: _controller.currentLanguage),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
                   child: Gate3MainIconRow(
+                    lang: _controller.currentLanguage,
                     unreadCount: _unreadCount,
                     onNotifications: () =>
                         _goTo(const Gate4NotificationsPlaceholderPage()),
@@ -186,21 +218,24 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                     onHistory: () => _goTo(const ChatHistoryPage()),
                   ),
                 ),
-                const SizedBox(height: 6),
-                SediBrainOrb(state: _orbState()),
-                const SizedBox(height: 14),
+                const SizedBox(height: 2),
+                SediBrainOrb(
+                  state: _orbState(),
+                  lang: _controller.currentLanguage,
+                ),
+                const SizedBox(height: 8),
 
-                // Chat panel
+                // Chat panel — taller footprint via reduced orb spacing above.
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                     child: Container(
+                      width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.55),
                         borderRadius: BorderRadius.circular(26),
                         border: Border.all(
                           color: AppTheme.borderInactive.withOpacity(0.22),
-                          width: 1,
                         ),
                         boxShadow: const [
                           BoxShadow(
@@ -214,43 +249,47 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                         borderRadius: BorderRadius.circular(26),
                         child: Stack(
                           children: [
-                            // Messages
                             Positioned.fill(
                               child: Padding(
                                 padding:
-                                    const EdgeInsets.fromLTRB(10, 12, 10, 92),
-                                child: _buildMessages(),
+                                    const EdgeInsets.fromLTRB(10, 12, 42, 108),
+                                child: _buildMessages(l10n),
                               ),
                             ),
-
-                            // Day control on the physical right edge (concept)
-                            const Positioned(
+                            Positioned(
                               top: 12,
-                              right: 10,
-                              bottom: 92,
-                              child: Gate3ScrollDayControl(),
+                              right: 8,
+                              bottom: 108,
+                              child: Gate3ScrollDayControl(
+                                scrollController: _scrollController,
+                              ),
                             ),
-
-                            // Composer (inside panel, bottom)
+                            PositionedDirectional(
+                              start: 14,
+                              bottom: 104,
+                              child: Gate3ReturnToLatestButton(
+                                scrollController: _scrollController,
+                                onTap: _scrollToBottom,
+                                tooltip: l10n.returnToLatest,
+                              ),
+                            ),
                             PositionedDirectional(
                               start: 0,
                               end: 0,
                               bottom: 0,
                               child: Gate3Composer(
+                                placeholder: l10n.composerPlaceholder,
+                                isRtl: isRtl,
                                 onSendText: _handleSendText,
                                 onStartRecording: () {
                                   _controller.startVoiceRecording().then((ok) {
                                     if (!mounted) return;
                                     if (ok == false) {
-                                      final msg = _controller.currentLanguage ==
-                                              'fa'
-                                          ? 'دسترسی به میکروفون لازم است'
-                                          : _controller.currentLanguage == 'ar'
-                                              ? 'مطلوب إذن الميكروفون'
-                                              : 'Microphone permission required';
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text(msg),
+                                          content: Text(
+                                            l10n.microphonePermissionRequired,
+                                          ),
                                           behavior: SnackBarBehavior.floating,
                                           margin: const EdgeInsets.only(
                                             bottom: 100,
@@ -272,7 +311,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                   });
                                 },
                                 isRecording: _controller.isRecording,
-                                recordingTime: _controller.recordingTimeFormatted,
+                                recordingTime:
+                                    _controller.recordingTimeFormatted,
                               ),
                             ),
                           ],
@@ -291,24 +331,13 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     return content;
   }
 
-  Widget _buildMessages() {
+  Widget _buildMessages(Gate3Localization l10n) {
     if (_controller.messages.isEmpty) {
-      // V1: show sample messages only if chat has no data yet.
-      final sample = <ChatMessage>[
-        ChatMessage(text: 'سلام! من صدی هستم.', role: ChatRole.assistant),
-        ChatMessage.user(
-          text: 'سلام صدی. امروز حالم خوب نیست.',
-          localId: 'sample-1',
-          status: ChatMessageStatus.sent,
-        ),
-        ChatMessage(
-          text: 'می‌خوای از علائمت بگی تا بهتر کمک کنم؟',
-          role: ChatRole.assistant,
-        ),
-      ];
+      final sample = _sampleMessages(l10n);
       return ListView.builder(
         controller: _scrollController,
         reverse: true,
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(top: 6, bottom: 8),
         itemCount: sample.length,
         itemBuilder: (context, index) {
@@ -325,6 +354,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 6, bottom: 8),
       itemCount: _controller.messages.length + (_controller.isThinking ? 1 : 0),
       itemBuilder: (context, index) {
@@ -351,4 +381,3 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     );
   }
 }
-
