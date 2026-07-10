@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - name: Validate confirmation input
+        id: validate_confirmation
         run: |
           if [ "${{ github.event.inputs.confirmation }}" != "MIGRATE_044_TO_049" ]; then
             echo "Confirmation input must be exactly MIGRATE_044_TO_049."
@@ -41,6 +42,8 @@ jobs:
       - name: Run guarded production migration
         id: migrate
         run: |
+          set -Eeuo pipefail
+
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
@@ -291,7 +294,8 @@ jobs:
             echo "## Section 10 Production Migration 049"
             echo ""
             echo "**Status:** ${{ job.status }}"
-            echo "**Confirmation accepted:** MIGRATE_044_TO_049"
+            echo "**Confirmation validation:** ${{ steps.validate_confirmation.outcome }}"
+            echo "**Required confirmation:** MIGRATE_044_TO_049"
             echo "**Target revision:** 049_section10_kb_embeddings_memory_governance"
             echo "**Migration image digest:** sha256:1e2bca90bae86041c698ca556d5c36d99a2fc491d55acfc284854119e2c728b8"
             echo "**Production backend deployment performed:** NO"
