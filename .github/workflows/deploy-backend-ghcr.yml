@@ -94,6 +94,92 @@ jobs:
           log() { echo "[$(date -Is)] $*"; }
           ENV_FILE="/etc/sedi/sedi-backend.env"
 
+          check_database_target_alignment() {
+            log "=== DATABASE TARGET ALIGNMENT ==="
+            POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+            POSTGRES_CONTAINER_IP="$(
+              docker inspect sedi-postgres \
+                --format '{{with index .NetworkSettings.Networks "sedi-net"}}{{.IPAddress}}{{end}}'
+            )"
+            RUNNING_BACKEND_IMAGE_ID="$(
+              docker inspect sedi-backend --format '{{.Image}}'
+            )"
+
+            if [ -z "${POSTGRES_DB_NAME}" ] || [ -z "${POSTGRES_CONTAINER_IP}" ] || [ -z "${RUNNING_BACKEND_IMAGE_ID}" ]; then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: missing container metadata"
+              exit 9
+            fi
+
+            if ! docker run --rm \
+              --network sedi-net \
+              --env-file "${ENV_FILE}" \
+              --env TEST_DATABASE_URL= \
+              --env EXPECTED_DB_IP="${POSTGRES_CONTAINER_IP}" \
+              --env EXPECTED_DB_NAME="${POSTGRES_DB_NAME}" \
+              --entrypoint python \
+              "${RUNNING_BACKEND_IMAGE_ID}" - <<'PY'
+          import os
+          import socket
+          import sys
+
+          from sqlalchemy.engine import make_url
+
+          raw_url = os.environ.get("DATABASE_URL", "")
+          expected_ip = os.environ.get("EXPECTED_DB_IP", "")
+          expected_db = os.environ.get("EXPECTED_DB_NAME", "")
+
+          if not raw_url or not expected_ip or not expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing required value")
+
+          url = make_url(raw_url)
+          base_driver = url.drivername.split("+", 1)[0].lower()
+
+          if base_driver not in {"postgresql", "postgres"}:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: non-PostgreSQL driver")
+
+          host = url.host
+          port = url.port or 5432
+          database = url.database or ""
+
+          if not host:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing host")
+
+          try:
+              resolved_ips = {
+                  item[4][0]
+                  for item in socket.getaddrinfo(
+                      host,
+                      port,
+                      type=socket.SOCK_STREAM,
+                  )
+              }
+          except socket.gaierror:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: host resolution failed")
+
+          if expected_ip not in resolved_ips:
+              raise SystemExit(
+                  "DATABASE_TARGET_ALIGNMENT_FAILED: host does not resolve to sedi-postgres"
+              )
+
+          if port != 5432:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: unexpected port")
+
+          if database != expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: database name mismatch")
+
+          print("database_target_alignment=pass")
+          print(f"database_driver={base_driver}")
+          print("database_host_resolution=matched_sedi_postgres")
+          print(f"database_port={port}")
+          print("database_name_match=yes")
+          PY
+            then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: parser exit non-zero"
+              exit 9
+            fi
+            log "database_target_guard=pass"
+          }
+
           cd "${DEPLOY_PATH}"
 
           log "=== PREFLIGHT: POSTGRES HEALTH ==="
@@ -114,6 +200,8 @@ jobs:
             log "PREFLIGHT_FAILED: TEST_DATABASE_URL must not be set in production env file"
             exit 3
           fi
+
+          check_database_target_alignment
 
           log "=== PREFLIGHT: DIRECT ALEMBIC VERSION ==="
           ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
@@ -185,6 +273,93 @@ jobs:
             "IMAGE_TAG=${IMAGE_TAG_Q} EXPECTED_REV=${EXPECTED_REV_Q} EXPECTED_DIGEST=${EXPECTED_DIGEST_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" <<'REMOTE_SCRIPT'
           set -Eeuo pipefail
           log() { echo "[$(date -Is)] $*"; }
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+
+          check_database_target_alignment() {
+            log "=== DATABASE TARGET ALIGNMENT ==="
+            POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+            POSTGRES_CONTAINER_IP="$(
+              docker inspect sedi-postgres \
+                --format '{{with index .NetworkSettings.Networks "sedi-net"}}{{.IPAddress}}{{end}}'
+            )"
+            RUNNING_BACKEND_IMAGE_ID="$(
+              docker inspect sedi-backend --format '{{.Image}}'
+            )"
+
+            if [ -z "${POSTGRES_DB_NAME}" ] || [ -z "${POSTGRES_CONTAINER_IP}" ] || [ -z "${RUNNING_BACKEND_IMAGE_ID}" ]; then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: missing container metadata"
+              exit 9
+            fi
+
+            if ! docker run --rm \
+              --network sedi-net \
+              --env-file "${ENV_FILE}" \
+              --env TEST_DATABASE_URL= \
+              --env EXPECTED_DB_IP="${POSTGRES_CONTAINER_IP}" \
+              --env EXPECTED_DB_NAME="${POSTGRES_DB_NAME}" \
+              --entrypoint python \
+              "${RUNNING_BACKEND_IMAGE_ID}" - <<'PY'
+          import os
+          import socket
+          import sys
+
+          from sqlalchemy.engine import make_url
+
+          raw_url = os.environ.get("DATABASE_URL", "")
+          expected_ip = os.environ.get("EXPECTED_DB_IP", "")
+          expected_db = os.environ.get("EXPECTED_DB_NAME", "")
+
+          if not raw_url or not expected_ip or not expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing required value")
+
+          url = make_url(raw_url)
+          base_driver = url.drivername.split("+", 1)[0].lower()
+
+          if base_driver not in {"postgresql", "postgres"}:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: non-PostgreSQL driver")
+
+          host = url.host
+          port = url.port or 5432
+          database = url.database or ""
+
+          if not host:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing host")
+
+          try:
+              resolved_ips = {
+                  item[4][0]
+                  for item in socket.getaddrinfo(
+                      host,
+                      port,
+                      type=socket.SOCK_STREAM,
+                  )
+              }
+          except socket.gaierror:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: host resolution failed")
+
+          if expected_ip not in resolved_ips:
+              raise SystemExit(
+                  "DATABASE_TARGET_ALIGNMENT_FAILED: host does not resolve to sedi-postgres"
+              )
+
+          if port != 5432:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: unexpected port")
+
+          if database != expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: database name mismatch")
+
+          print("database_target_alignment=pass")
+          print(f"database_driver={base_driver}")
+          print("database_host_resolution=matched_sedi_postgres")
+          print(f"database_port={port}")
+          print("database_name_match=yes")
+          PY
+            then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: parser exit non-zero"
+              exit 9
+            fi
+            log "database_target_guard=pass"
+          }
 
           IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
 
@@ -202,6 +377,8 @@ jobs:
           log "=== CURRENT BACKEND IMAGE ==="
           CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
           log "${CURRENT_IMAGE:-none}"
+
+          check_database_target_alignment
 
           log "=== PRE-DEPLOY DB BACKUP (no migrations) ==="
           mkdir -p "${DEPLOY_PATH}/backups/postgres"
@@ -235,6 +412,8 @@ jobs:
           fi
           log "digest_verified=${EXPECTED_DIGEST}"
           docker image inspect "${IMAGE}" --format "image={{.RepoTags}} id={{.Id}} created={{.Created}}" || true
+
+          check_database_target_alignment
 
           log "=== REVISION RECHECK BEFORE RECREATE ==="
           ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
