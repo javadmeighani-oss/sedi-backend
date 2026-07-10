@@ -70,6 +70,24 @@ jobs:
         run: |
           python -m alembic -c backend/alembic.ini upgrade head
 
+      - name: Run Section 10 backend and contract tests
+        run: |
+          PYTHONPATH=. pytest \
+            backend/tests/test_section10_phone_normalization.py \
+            backend/tests/test_section10_medication_inventory.py \
+            backend/tests/test_section10_rag.py \
+            backend/tests/test_section10_interaction.py \
+            backend/tests/test_section10_caregivers.py \
+            backend/tests/test_section10_caregiver_notifications.py \
+            backend/tests/test_section10_vitals_summary.py \
+            backend/tests/test_section10_emergency.py \
+            backend/tests/test_gate1_caregivers_v1.py \
+            backend/tests/test_user_medications_v1.py \
+            backend/tests/test_gate3_safety_care_v1.py \
+            backend/tests/test_gate5a_hub_sensor_status.py \
+            backend/tests/contracts/test_v1_openapi_snapshot.py \
+            -q
+
       # Run from repo root so backend.app = outer backend (nested backend/backend/ would else be used)
       - name: Compile acceptance test
         run: python -m py_compile backend/tests/acceptance/test_release_d.py
