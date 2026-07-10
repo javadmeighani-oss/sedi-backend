@@ -27,12 +27,18 @@ jobs:
 
     steps:
       - name: Validate deployment inputs
+        id: validate_inputs
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          INPUT_EXPECTED_ALEMBIC_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+          INPUT_EXPECTED_IMAGE_DIGEST: ${{ github.event.inputs.expected_image_digest }}
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
         run: |
           set -Eeuo pipefail
-          TAG="${{ github.event.inputs.image_tag }}"
-          REV="${{ github.event.inputs.expected_alembic_revision }}"
-          DIGEST="${{ github.event.inputs.expected_image_digest }}"
-          CONF="${{ github.event.inputs.confirmation }}"
+          TAG="${INPUT_IMAGE_TAG}"
+          REV="${INPUT_EXPECTED_ALEMBIC_REVISION}"
+          DIGEST="${INPUT_EXPECTED_IMAGE_DIGEST}"
+          CONF="${INPUT_CONFIRMATION}"
 
           if [ "${CONF}" != "DEPLOY_BACKEND" ]; then
             echo "confirmation must be exactly DEPLOY_BACKEND"
@@ -50,8 +56,8 @@ jobs:
             echo "image_tag must be a 40-character lowercase Git commit SHA."
             exit 1
           fi
-          if [ -z "${REV}" ]; then
-            echo "expected_alembic_revision is required."
+          if ! echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'; then
+            echo "expected_alembic_revision must be a safe Alembic identifier."
             exit 1
           fi
           if ! echo "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
@@ -73,76 +79,81 @@ jobs:
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Production preflight (read-only)
+        env:
+          INPUT_EXPECTED_ALEMBIC_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
         run: |
+          set -Eeuo pipefail
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_EXPECTED_ALEMBIC_REVISION}")"
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            'set -Eeuo pipefail
-             log() { echo "[$(date -Is)] $*"; }
-             DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
-             ENV_FILE="/etc/sedi/sedi-backend.env"
-             EXPECTED_REV="${{ github.event.inputs.expected_alembic_revision }}"
+            "EXPECTED_REV=${EXPECTED_REV_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          ENV_FILE="/etc/sedi/sedi-backend.env"
 
-             cd "${DEPLOY_PATH}"
+          cd "${DEPLOY_PATH}"
 
-             log "=== PREFLIGHT: POSTGRES HEALTH ==="
-             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
-             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
-             docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          log "=== PREFLIGHT: POSTGRES HEALTH ==="
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
 
-             log "=== PREFLIGHT: ENV FILE ==="
-             if [ ! -f "${ENV_FILE}" ]; then
-               log "PREFLIGHT_FAILED: missing ${ENV_FILE}"
-               exit 1
-             fi
-             if ! grep -E "^DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
-               log "PREFLIGHT_FAILED: DATABASE_URL missing or empty"
-               exit 2
-             fi
-             if grep -E "^TEST_DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
-               log "PREFLIGHT_FAILED: TEST_DATABASE_URL must not be set in production env file"
-               exit 3
-             fi
+          log "=== PREFLIGHT: ENV FILE ==="
+          if [ ! -f "${ENV_FILE}" ]; then
+            log "PREFLIGHT_FAILED: missing ${ENV_FILE}"
+            exit 1
+          fi
+          if ! grep -E "^DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "PREFLIGHT_FAILED: DATABASE_URL missing or empty"
+            exit 2
+          fi
+          if grep -E "^TEST_DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "PREFLIGHT_FAILED: TEST_DATABASE_URL must not be set in production env file"
+            exit 3
+          fi
 
-             log "=== PREFLIGHT: DIRECT ALEMBIC VERSION ==="
-             ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
-             ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
-             log "alembic_count=${ALEMBIC_COUNT}"
-             log "alembic_current=${ALEMBIC_CURRENT}"
-             if [ "${ALEMBIC_COUNT}" != "1" ]; then
-               log "PREFLIGHT_FAILED: alembic_version row count is not 1"
-               exit 4
-             fi
-             if [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
-               log "PREFLIGHT_FAILED: alembic revision mismatch (expected ${EXPECTED_REV})"
-               exit 5
-             fi
+          log "=== PREFLIGHT: DIRECT ALEMBIC VERSION ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_current=${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ]; then
+            log "PREFLIGHT_FAILED: alembic_version row count is not 1"
+            exit 4
+          fi
+          if [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "PREFLIGHT_FAILED: alembic revision mismatch (expected ${EXPECTED_REV})"
+            exit 5
+          fi
 
-             log "=== PREFLIGHT: CURRENT BACKEND IMAGE ==="
-             docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true
+          log "=== PREFLIGHT: CURRENT BACKEND IMAGE ==="
+          docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true
 
-             log "=== PREFLIGHT: LOCAL HEALTHZ ==="
-             curl -fsS http://127.0.0.1:8000/healthz >/dev/null
+          log "=== PREFLIGHT: LOCAL HEALTHZ ==="
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null
 
-             log "=== PREFLIGHT: DISK CAPACITY ==="
-             DB_SIZE_BYTES="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT pg_database_size(current_database());")"
-             BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
-             mkdir -p "${BACKUP_DIR}"
-             AVAIL_BYTES="$(df -B1 "${BACKUP_DIR}" | awk "NR==2 {print \$4}")"
-             TWO_GIB=$((2 * 1024 * 1024 * 1024))
-             REQUIRED_BYTES=$((DB_SIZE_BYTES * 3))
-             if [ "${REQUIRED_BYTES}" -lt "${TWO_GIB}" ]; then
-               REQUIRED_BYTES="${TWO_GIB}"
-             fi
-             log "database_size_bytes=${DB_SIZE_BYTES}"
-             log "available_bytes=${AVAIL_BYTES}"
-             log "required_bytes=${REQUIRED_BYTES}"
-             if [ "${AVAIL_BYTES}" -lt "${REQUIRED_BYTES}" ]; then
-               log "PREFLIGHT_FAILED: insufficient disk space"
-               exit 6
-             fi
-             log "=== PREFLIGHT OK ==="
-            '
+          log "=== PREFLIGHT: DISK CAPACITY ==="
+          DB_SIZE_BYTES="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT pg_database_size(current_database());")"
+          BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
+          mkdir -p "${BACKUP_DIR}"
+          AVAIL_BYTES="$(df -B1 "${BACKUP_DIR}" | awk "NR==2 {print \$4}")"
+          TWO_GIB=$((2 * 1024 * 1024 * 1024))
+          REQUIRED_BYTES=$((DB_SIZE_BYTES * 3))
+          if [ "${REQUIRED_BYTES}" -lt "${TWO_GIB}" ]; then
+            REQUIRED_BYTES="${TWO_GIB}"
+          fi
+          log "database_size_bytes=${DB_SIZE_BYTES}"
+          log "available_bytes=${AVAIL_BYTES}"
+          log "required_bytes=${REQUIRED_BYTES}"
+          if [ "${AVAIL_BYTES}" -lt "${REQUIRED_BYTES}" ]; then
+            log "PREFLIGHT_FAILED: insufficient disk space"
+            exit 6
+          fi
+          log "=== PREFLIGHT OK ==="
+          REMOTE_SCRIPT
 
       - name: Upload production compose file
         run: |
@@ -157,143 +168,157 @@ jobs:
             "mv '${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml.tmp' '${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml'"
 
       - name: Deploy backend safely
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          INPUT_EXPECTED_ALEMBIC_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+          INPUT_EXPECTED_IMAGE_DIGEST: ${{ github.event.inputs.expected_image_digest }}
         run: |
+          set -Eeuo pipefail
+          IMAGE_TAG_Q="$(printf '%q' "${INPUT_IMAGE_TAG}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_EXPECTED_ALEMBIC_REVISION}")"
+          EXPECTED_DIGEST_Q="$(printf '%q' "${INPUT_EXPECTED_IMAGE_DIGEST}")"
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            'set -Eeuo pipefail
-             log() { echo "[$(date -Is)] $*"; }
+            "IMAGE_TAG=${IMAGE_TAG_Q} EXPECTED_REV=${EXPECTED_REV_Q} EXPECTED_DIGEST=${EXPECTED_DIGEST_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
 
-             DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
-             IMAGE_TAG="${{ github.event.inputs.image_tag }}"
-             IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
-             EXPECTED_REV="${{ github.event.inputs.expected_alembic_revision }}"
-             EXPECTED_DIGEST="${{ github.event.inputs.expected_image_digest }}"
+          IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
 
-             log "=== DEPLOY CONTEXT ==="
-             log "Deploy path: ${DEPLOY_PATH}"
-             log "Target image: ${IMAGE}"
-             log "Expected alembic revision: ${EXPECTED_REV}"
-             log "Expected image digest: ${EXPECTED_DIGEST}"
+          log "=== DEPLOY CONTEXT ==="
+          log "Deploy path: ${DEPLOY_PATH}"
+          log "Target image: ${IMAGE}"
+          log "Expected alembic revision: ${EXPECTED_REV}"
+          log "Expected image digest: ${EXPECTED_DIGEST}"
 
-             cd "${DEPLOY_PATH}"
+          cd "${DEPLOY_PATH}"
 
-             PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
-             PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
 
-             log "=== CURRENT BACKEND IMAGE ==="
-             CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
-             log "${CURRENT_IMAGE:-none}"
+          log "=== CURRENT BACKEND IMAGE ==="
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
+          log "${CURRENT_IMAGE:-none}"
 
-             log "=== PRE-DEPLOY DB BACKUP (no migrations) ==="
-             mkdir -p "${DEPLOY_PATH}/backups/postgres"
-             TS="$(date +%Y%m%d_%H%M%S)"
-             BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
-             log "Backup file: ${BACKUP_FILE}"
-             if ! docker exec sedi-postgres sh -c '"'"'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'"'"' | gzip > "${BACKUP_FILE}"; then
-               log "BACKUP_FAILED: pg_dump pipeline failed"
-               exit 10
-             fi
-             if [ ! -s "${BACKUP_FILE}" ]; then
-               log "BACKUP_FAILED: empty backup file"
-               exit 11
-             fi
-             if ! gzip -t "${BACKUP_FILE}"; then
-               log "BACKUP_FAILED: gzip integrity check failed"
-               exit 12
-             fi
-             BACKUP_SHA256="$(sha256sum "${BACKUP_FILE}" | awk "{print \$1}")"
-             log "backup_size_bytes=$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
-             log "backup_sha256=${BACKUP_SHA256}"
-             ls -lh "${BACKUP_FILE}"
+          log "=== PRE-DEPLOY DB BACKUP (no migrations) ==="
+          mkdir -p "${DEPLOY_PATH}/backups/postgres"
+          TS="$(date +%Y%m%d_%H%M%S)"
+          BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
+          log "Backup file: ${BACKUP_FILE}"
+          if ! docker exec sedi-postgres sh -c '"'"'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'"'"' | gzip > "${BACKUP_FILE}"; then
+            log "BACKUP_FAILED: pg_dump pipeline failed"
+            exit 10
+          fi
+          if [ ! -s "${BACKUP_FILE}" ]; then
+            log "BACKUP_FAILED: empty backup file"
+            exit 11
+          fi
+          if ! gzip -t "${BACKUP_FILE}"; then
+            log "BACKUP_FAILED: gzip integrity check failed"
+            exit 12
+          fi
+          BACKUP_SHA256="$(sha256sum "${BACKUP_FILE}" | awk "{print \$1}")"
+          log "backup_size_bytes=$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
+          log "backup_sha256=${BACKUP_SHA256}"
+          ls -lh "${BACKUP_FILE}"
 
-             log "=== PULL IMAGE ==="
-             docker pull "${IMAGE}"
-             PULLED_DIGEST="$(docker image inspect "${IMAGE}" --format "{{range .RepoDigests}}{{println .}}{{end}}" | grep -F "${EXPECTED_DIGEST}" || true)"
-             if [ -z "${PULLED_DIGEST}" ]; then
-               log "DEPLOY_FAILED: expected digest not found on pulled image"
-               docker image inspect "${IMAGE}" --format "{{json .RepoDigests}}" || true
-               exit 13
-             fi
-             log "digest_verified=${EXPECTED_DIGEST}"
-             docker image inspect "${IMAGE}" --format "image={{.RepoTags}} id={{.Id}} created={{.Created}}" || true
+          log "=== PULL IMAGE ==="
+          docker pull "${IMAGE}"
+          PULLED_DIGEST="$(docker image inspect "${IMAGE}" --format "{{range .RepoDigests}}{{println .}}{{end}}" | grep -F "${EXPECTED_DIGEST}" || true)"
+          if [ -z "${PULLED_DIGEST}" ]; then
+            log "DEPLOY_FAILED: expected digest not found on pulled image"
+            docker image inspect "${IMAGE}" --format "{{json .RepoDigests}}" || true
+            exit 13
+          fi
+          log "digest_verified=${EXPECTED_DIGEST}"
+          docker image inspect "${IMAGE}" --format "image={{.RepoTags}} id={{.Id}} created={{.Created}}" || true
 
-             log "=== REVISION RECHECK BEFORE RECREATE ==="
-             ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
-             ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
-             if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
-               log "DEPLOY_FAILED: alembic revision changed before recreate"
-               exit 14
-             fi
+          log "=== REVISION RECHECK BEFORE RECREATE ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "DEPLOY_FAILED: alembic revision changed before recreate"
+            exit 14
+          fi
 
-             log "=== VALIDATE COMPOSE ==="
-             SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml config >/tmp/sedi_compose_config_checked.yml
-             log "Compose config validated."
+          log "=== VALIDATE COMPOSE ==="
+          SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml config >/tmp/sedi_compose_config_checked.yml
+          log "Compose config validated."
 
-             log "=== RECREATE BACKEND ONLY ==="
-             SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
-             log "Recreate command finished. Current service state:"
-             docker compose -f compose.production.yml ps sedi-backend || true
-             log "Running container image:"
-             docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+          log "=== RECREATE BACKEND ONLY ==="
+          SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+          log "Recreate command finished. Current service state:"
+          docker compose -f compose.production.yml ps sedi-backend || true
+          log "Running container image:"
+          docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
 
-             log "=== HEALTH CHECK ==="
-             HEALTH_OK=0
-             for i in $(seq 1 30); do
-               if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json; then
-                 log "Local /healthz OK."
-                 cat /tmp/sedi_healthz.json || true
-                 HEALTH_OK=1
-                 break
-               fi
-               log "Waiting for backend health... attempt ${i}/30"
-               sleep 2
-             done
+          log "=== HEALTH CHECK ==="
+          HEALTH_OK=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json; then
+              log "Local /healthz OK."
+              cat /tmp/sedi_healthz.json || true
+              HEALTH_OK=1
+              break
+            fi
+            log "Waiting for backend health... attempt ${i}/30"
+            sleep 2
+          done
 
-             if [ "${HEALTH_OK}" != "1" ]; then
-               log "=== DEPLOY FAILED: BACKEND LOGS ==="
-               docker logs --tail 120 sedi-backend || true
+          if [ "${HEALTH_OK}" != "1" ]; then
+            log "=== DEPLOY FAILED: BACKEND LOGS ==="
+            docker logs --tail 120 sedi-backend || true
 
-               if [ -n "${CURRENT_IMAGE}" ]; then
-                 log "=== ROLLBACK TO PREVIOUS IMAGE ==="
-                 printf "%s\n" "services:" "  sedi-backend:" "    image: ${CURRENT_IMAGE}" > /tmp/sedi-rollback.yml
-                 docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
-                 sleep 5
-                 curl -fsS http://127.0.0.1:8000/healthz || true
-               fi
+            if [ -n "${CURRENT_IMAGE}" ]; then
+              log "=== ROLLBACK TO PREVIOUS IMAGE ==="
+              printf "%s\n" "services:" "  sedi-backend:" "    image: ${CURRENT_IMAGE}" > /tmp/sedi-rollback.yml
+              docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
+              sleep 5
+              curl -fsS http://127.0.0.1:8000/healthz || true
+            fi
 
-               exit 1
-             fi
+            exit 1
+          fi
 
-             log "=== DOCKER COMPOSE PS ==="
-             docker compose -f compose.production.yml ps
+          log "=== DOCKER COMPOSE PS ==="
+          docker compose -f compose.production.yml ps
 
-             log "=== LOCAL HEALTH ==="
-             curl -fsS http://127.0.0.1:8000/health || true
-             echo ""
+          log "=== LOCAL HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health || true
+          echo ""
 
-             log "=== PUBLIC HEALTH ==="
-             curl -fsS https://api.sedi-ai.com/health || true
-             echo ""
+          log "=== PUBLIC HEALTH ==="
+          curl -fsS https://api.sedi-ai.com/health || true
+          echo ""
 
-             log "=== PUBLIC HEALTHZ ==="
-             curl -fsS https://api.sedi-ai.com/healthz
-             echo ""
+          log "=== PUBLIC HEALTHZ ==="
+          curl -fsS https://api.sedi-ai.com/healthz
+          echo ""
 
-             log "=== FINAL IMAGE CONFIRMATION ==="
-             docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+          log "=== FINAL IMAGE CONFIRMATION ==="
+          docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
 
-             log "=== DEPLOY DONE ==="
-            '
+          log "=== DEPLOY DONE ==="
+          REMOTE_SCRIPT
 
       - name: Deployment summary
         if: always()
+        env:
+          SUMMARY_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          SUMMARY_EXPECTED_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+          SUMMARY_EXPECTED_DIGEST: ${{ github.event.inputs.expected_image_digest }}
         run: |
-          echo "## Sedi Backend GHCR Deploy" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Image tag:** ${{ github.event.inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Expected alembic revision:** ${{ github.event.inputs.expected_alembic_revision }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Expected image digest:** ${{ github.event.inputs.expected_image_digest }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest policy:** DIGEST_VERIFIED_BUT_TAG_DEPLOYED" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Sedi Backend GHCR Deploy"
+            echo ""
+            echo "**Status:** ${{ job.status }}"
+            echo "**Input validation:** ${{ steps.validate_inputs.outcome }}"
+            printf '%s\n' "**Image tag:** ${SUMMARY_IMAGE_TAG}"
+            printf '%s\n' "**Expected alembic revision:** ${SUMMARY_EXPECTED_REVISION}"
+            printf '%s\n' "**Expected image digest:** ${SUMMARY_EXPECTED_DIGEST}"
+            echo "**Digest policy:** DIGEST_VERIFIED_BUT_TAG_DEPLOYED"
+            echo "**Commit:** ${{ github.sha }}"
+          } >> "$GITHUB_STEP_SUMMARY"
