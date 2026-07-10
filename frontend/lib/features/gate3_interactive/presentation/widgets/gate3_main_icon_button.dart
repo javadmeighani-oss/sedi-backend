@@ -7,6 +7,7 @@ class Gate3MainIconButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Widget? badge;
+  final bool plainIcon;
 
   const Gate3MainIconButton({
     super.key,
@@ -14,6 +15,7 @@ class Gate3MainIconButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.badge,
+    this.plainIcon = false,
   });
 
   @override
@@ -22,37 +24,48 @@ class Gate3MainIconButton extends StatelessWidget {
       onTap: onTap,
       radius: 28,
       child: SizedBox(
-        width: 62,
+        width: plainIcon ? 56 : 72,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
               clipBehavior: Clip.none,
+              alignment: Alignment.center,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.55),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppTheme.borderInactive.withOpacity(0.25),
-                      width: 1,
+                if (plainIcon)
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      icon,
+                      size: 24,
+                      color: AppTheme.primaryBlack,
                     ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x12000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
+                  )
+                else
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppTheme.borderInactive.withOpacity(0.25),
                       ),
-                    ],
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x12000000),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 22,
+                      color: AppTheme.primaryBlack,
+                    ),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 22,
-                    color: AppTheme.primaryBlack,
-                  ),
-                ),
                 if (badge != null)
                   PositionedDirectional(
                     top: -4,
@@ -64,14 +77,15 @@ class Gate3MainIconButton extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              overflow: TextOverflow.visible,
+              softWrap: true,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11.5,
+              style: TextStyle(
+                fontSize: plainIcon ? 10.5 : 10.5,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF2B2F27),
-                height: 1.1,
+                color: const Color(0xFF2B2F27),
+                height: 1.15,
               ),
             ),
           ],

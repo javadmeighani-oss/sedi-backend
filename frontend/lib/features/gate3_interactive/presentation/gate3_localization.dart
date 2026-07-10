@@ -62,6 +62,18 @@ class Gate3Localization {
 
   String get close => _t(en: 'Close', fa: 'بستن', ar: 'إغلاق');
 
+  String get camera => _t(en: 'Camera', fa: 'دوربین', ar: 'الكاميرا');
+
+  String get photos => _t(en: 'Photos', fa: 'تصاویر', ar: 'الصور');
+
+  String get files => _t(en: 'Files', fa: 'فایل‌ها', ar: 'الملفات');
+
+  String get attachmentComingSoon => _t(
+        en: 'Attachments will be available here soon.',
+        fa: 'پیوست‌ها به‌زودی در این بخش در دسترس خواهند بود.',
+        ar: 'ستتوفر المرفقات هنا قريبًا.',
+      );
+
   String sampleIntroAssistant1() {
     final brand = sediBrandName(lang);
     return _t(

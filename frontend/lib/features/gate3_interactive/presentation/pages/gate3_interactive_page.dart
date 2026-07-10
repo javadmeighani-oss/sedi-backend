@@ -8,22 +8,17 @@ import '../../../../core/auth/user_identity_service.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/chat_message.dart';
-import '../../../chat/presentation/pages/chat_history_page.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 import '../../../devices/presentation/pages/devices_page.dart';
 import '../../../health/presentation/pages/vitals_page.dart';
 import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
-import '../../../notification/data/notification_service.dart';
-import '../../../gate4_notifications/presentation/pages/gate4_notifications_placeholder_page.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
-import '../widgets/gate3_scroll_day_control.dart';
-import '../widgets/gate3_settings_menu.dart';
 import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -46,9 +41,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     with WidgetsBindingObserver {
   late final ChatController _controller;
   final ScrollController _scrollController = ScrollController();
-  final NotificationService _notificationService = NotificationService();
 
-  int? _unreadCount;
+  bool _composerListening = false;
 
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
@@ -61,7 +55,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize(initialMessage: widget.initialMessage);
-    _refreshUnreadCount();
   }
 
   @override
@@ -73,13 +66,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _scrollController.dispose();
     _controller.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _refreshUnreadCount();
-    }
   }
 
   void _onControllerChanged() {
@@ -102,22 +88,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
-    }
-  }
-
-  Future<void> _refreshUnreadCount() async {
-    final userId = await UserIdentityService.resolveUserId();
-    if (userId == null) {
-      if (!mounted) return;
-      AppGateRouter.goToLogin(context);
-      return;
-    }
-    final resp = await _notificationService.fetchUnreadList(userId: userId);
-    if (!mounted) return;
-    if (resp['ok'] == true) {
-      setState(() => _unreadCount = NotificationService.parseUnreadCount(resp));
-    } else {
-      setState(() => _unreadCount = _unreadCount ?? 0);
     }
   }
 
@@ -152,13 +122,14 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
   Gate3InteractionState _orbState() {
     if (_controller.isThinking) return Gate3InteractionState.thinking;
+    if (_controller.isRecording || _composerListening) {
+      return Gate3InteractionState.listening;
+    }
     return Gate3InteractionState.idle;
   }
 
   void _goTo(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page)).then(
-          (_) => _refreshUnreadCount(),
-        );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
   List<ChatMessage> _sampleMessages(Gate3Localization l10n) {
@@ -199,33 +170,20 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Gate3SettingsMenu(lang: _controller.currentLanguage),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                   child: Gate3MainIconRow(
                     lang: _controller.currentLanguage,
-                    unreadCount: _unreadCount,
-                    onNotifications: () =>
-                        _goTo(const Gate4NotificationsPlaceholderPage()),
                     onHealthCare: () => _goTo(const VitalsPage()),
                     onLifestyle: () => _goTo(const LifestylePage()),
                     onGadgets: () => _goTo(const DevicesPage()),
-                    onHistory: () => _goTo(const ChatHistoryPage()),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 SediBrainOrb(
                   state: _orbState(),
                   lang: _controller.currentLanguage,
                 ),
                 const SizedBox(height: 8),
-
-                // Chat panel — taller footprint via reduced orb spacing above.
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -247,73 +205,80 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(26),
-                        child: Stack(
+                        child: Column(
                           children: [
-                            Positioned.fill(
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(10, 12, 42, 108),
-                                child: _buildMessages(l10n),
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        10,
+                                        12,
+                                        10,
+                                        8,
+                                      ),
+                                      child: _buildMessages(l10n),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 12,
+                                    bottom: 12,
+                                    child: Gate3ReturnToLatestButton(
+                                      scrollController: _scrollController,
+                                      onTap: _scrollToBottom,
+                                      tooltip: l10n.returnToLatest,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Positioned(
-                              top: 12,
-                              right: 8,
-                              bottom: 108,
-                              child: Gate3ScrollDayControl(
-                                scrollController: _scrollController,
-                              ),
-                            ),
-                            PositionedDirectional(
-                              start: 14,
-                              bottom: 104,
-                              child: Gate3ReturnToLatestButton(
-                                scrollController: _scrollController,
-                                onTap: _scrollToBottom,
-                                tooltip: l10n.returnToLatest,
-                              ),
-                            ),
-                            PositionedDirectional(
-                              start: 0,
-                              end: 0,
-                              bottom: 0,
-                              child: Gate3Composer(
-                                placeholder: l10n.composerPlaceholder,
-                                isRtl: isRtl,
-                                onSendText: _handleSendText,
-                                onStartRecording: () {
-                                  _controller.startVoiceRecording().then((ok) {
-                                    if (!mounted) return;
-                                    if (ok == false) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            l10n.microphonePermissionRequired,
-                                          ),
-                                          behavior: SnackBarBehavior.floating,
-                                          margin: const EdgeInsets.only(
-                                            bottom: 100,
-                                            left: 16,
-                                            right: 16,
-                                          ),
+                            Gate3Composer(
+                              placeholder: l10n.composerPlaceholder,
+                              lang: _controller.currentLanguage,
+                              isRtl: isRtl,
+                              onListeningChanged: (listening) {
+                                if (_composerListening != listening) {
+                                  setState(
+                                      () => _composerListening = listening);
+                                }
+                              },
+                              onSendText: _handleSendText,
+                              onStartRecording: () {
+                                _controller.startVoiceRecording().then((ok) {
+                                  if (!mounted) return;
+                                  if (ok == false) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          l10n.microphonePermissionRequired,
                                         ),
-                                      );
-                                    }
-                                  });
-                                },
-                                onStopRecordingAndSend: () {
-                                  _controller.stopVoiceRecording().then((path) {
-                                    if (!mounted) return;
-                                    if (path != null && kDebugMode) {
-                                      debugPrint(
-                                          '[Audio] recorded file: $path');
-                                    }
-                                  });
-                                },
-                                isRecording: _controller.isRecording,
-                                recordingTime:
-                                    _controller.recordingTimeFormatted,
-                              ),
+                                        behavior: SnackBarBehavior.floating,
+                                        margin: const EdgeInsets.only(
+                                          bottom: 100,
+                                          left: 16,
+                                          right: 16,
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    setState(() => _composerListening = true);
+                                  }
+                                });
+                              },
+                              onStopRecordingAndSend: () {
+                                _controller.stopVoiceRecording().then((path) {
+                                  if (!mounted) return;
+                                  if (path != null && kDebugMode) {
+                                    debugPrint(
+                                        '[Audio] recorded file: $path');
+                                  }
+                                  setState(() => _composerListening = false);
+                                });
+                              },
+                              isRecording: _controller.isRecording,
+                              recordingTime:
+                                  _controller.recordingTimeFormatted,
                             ),
                           ],
                         ),

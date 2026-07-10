@@ -4,19 +4,12 @@ import '../../../../core/auth/auth_helper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../gate3_localization.dart';
 
-/// Minimal settings entry for Gate 3 (profile placeholder + logout).
-class Gate3SettingsMenu extends StatelessWidget {
-  final String lang;
+/// Gate 3 settings sheet (profile placeholder + logout).
+class Gate3SettingsMenu {
+  Gate3SettingsMenu._();
 
-  const Gate3SettingsMenu({
-    super.key,
-    required this.lang,
-  });
-
-  Gate3Localization get _l10n => Gate3Localization(lang);
-
-  void _showMenu(BuildContext context) {
-    final l10n = _l10n;
+  static void show(BuildContext context, String lang) {
+    final l10n = Gate3Localization(lang);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -47,7 +40,7 @@ class Gate3SettingsMenu extends StatelessWidget {
                   title: Text(l10n.editProfile),
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    _showProfilePlaceholder(context);
+                    _showProfilePlaceholder(context, l10n);
                   },
                 ),
                 const Divider(height: 1),
@@ -68,45 +61,21 @@ class Gate3SettingsMenu extends StatelessWidget {
     );
   }
 
-  void _showProfilePlaceholder(BuildContext context) {
+  static void _showProfilePlaceholder(
+    BuildContext context,
+    Gate3Localization l10n,
+  ) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(_l10n.editProfile),
-        content: Text(_l10n.profileSettingsPlaceholder),
+        title: Text(l10n.editProfile),
+        content: Text(l10n.profileSettingsPlaceholder),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(_l10n.close),
+            child: Text(l10n.close),
           ),
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkResponse(
-        onTap: () => _showMenu(context),
-        radius: 22,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.55),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.borderInactive.withOpacity(0.25),
-            ),
-          ),
-          child: const Icon(
-            Icons.settings_outlined,
-            size: 20,
-            color: AppTheme.primaryBlack,
-          ),
-        ),
       ),
     );
   }

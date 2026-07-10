@@ -62,7 +62,9 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
           height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _pressed ? AppTheme.metalGrey : AppTheme.primaryBlack,
+            color: _pressed
+                ? AppTheme.metalGrey
+                : AppTheme.gate2ButtonOlive,
             boxShadow: const [
               BoxShadow(
                 color: Color(0x22000000),
