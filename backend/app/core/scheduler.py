@@ -572,6 +572,35 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] Raw signal processing wiring failed: {e}")
 
+        # Section 10: Event and lifestyle reminder schedulers (disabled by default)
+        try:
+            from backend.app.services.section10 import feature_flags as s10_flags
+            from backend.app.services.section10.event_reminder_scheduler import process_event_reminders
+            from backend.app.services.section10.lifestyle_reminder_scheduler import process_lifestyle_reminders
+
+            if s10_flags.event_reminder_scheduler_enabled() or s10_flags.lifestyle_reminder_scheduler_enabled():
+
+                def _section10_reminder_tick():
+                    with next(get_db()) as db:
+                        if s10_flags.event_reminder_scheduler_enabled():
+                            process_event_reminders(db)
+                        if s10_flags.lifestyle_reminder_scheduler_enabled():
+                            process_lifestyle_reminders(db)
+
+                scheduler.add_job(
+                    _section10_reminder_tick,
+                    "interval",
+                    minutes=15,
+                    id="section10_reminder_schedulers",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                    misfire_grace_time=60,
+                )
+                print("[Sedi Scheduler] Section 10 reminder schedulers wired (flags control execution)")
+        except Exception as e:
+            print(f"[Sedi Scheduler] Section 10 reminder scheduler wiring failed: {e}")
+
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:

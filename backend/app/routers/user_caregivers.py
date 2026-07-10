@@ -10,7 +10,9 @@ from backend.app.schemas.gate1 import CaregiverCreateIn, CaregiverUpdateIn
 from backend.app.routers.auth_otp import get_current_user
 from backend.app.routers.jwt_guards import reject_legacy_user_id_query
 from backend.app.services.user_caregiver_service import (
+    CaregiverDuplicateError,
     CaregiverNotFoundError,
+    CaregiverValidationError,
     create_caregiver,
     deactivate_caregiver,
     list_caregivers,
@@ -37,7 +39,12 @@ def post_caregiver(
     _: None = Depends(reject_legacy_user_id_query),
     db: Session = Depends(get_db),
 ):
-    item = create_caregiver(db, auth_user.id, body)
+    try:
+        item = create_caregiver(db, auth_user.id, body)
+    except CaregiverDuplicateError:
+        raise HTTPException(status_code=409, detail="A contact with this phone already exists") from None
+    except CaregiverValidationError:
+        raise HTTPException(status_code=422, detail="Invalid phone number") from None
     return APIResponse(ok=True, data=item)
 
 
@@ -53,6 +60,10 @@ def patch_caregiver(
         item = update_caregiver(db, auth_user.id, caregiver_id, body)
     except CaregiverNotFoundError:
         raise HTTPException(status_code=404, detail="Caregiver not found") from None
+    except CaregiverDuplicateError:
+        raise HTTPException(status_code=409, detail="A contact with this phone already exists") from None
+    except CaregiverValidationError:
+        raise HTTPException(status_code=422, detail="Invalid phone number") from None
     return APIResponse(ok=True, data=item)
 
 

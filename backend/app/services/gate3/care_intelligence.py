@@ -27,38 +27,12 @@ class Gate3NotFoundError(Exception):
     pass
 
 
-def get_vitals_summary(db: Session, user_id: int) -> Dict[str, Any]:
-    """Unified read from health_data + device_events — no third table."""
-    out: Dict[str, Any] = {"sources": []}
-    latest_health = (
-        db.query(models.HealthData)
-        .filter(models.HealthData.user_id == user_id)
-        .order_by(models.HealthData.created_at.desc())
-        .first()
-    )
-    if latest_health:
-        out["legacy_health"] = {
-            "heart_rate": latest_health.heart_rate,
-            "temperature": latest_health.temperature,
-            "spo2": latest_health.spo2,
-            "recorded_at": latest_health.created_at.isoformat() + "Z" if latest_health.created_at else None,
-        }
-        out["sources"].append("health_data")
+from backend.app.services.gate3.vitals_summary_v1 import build_vitals_summary_v1
 
-    latest_device = (
-        db.query(models.DeviceEvent)
-        .filter(models.DeviceEvent.user_id == user_id)
-        .order_by(models.DeviceEvent.received_at.desc())
-        .first()
-    )
-    if latest_device:
-        out["device_event"] = {
-            "event_type": latest_device.event_type,
-            "payload": latest_device.payload_json,
-            "received_at": latest_device.received_at.isoformat() + "Z" if latest_device.received_at else None,
-        }
-        out["sources"].append("device_events")
-    return out
+
+def get_vitals_summary(db: Session, user_id: int) -> Dict[str, Any]:
+    """Unified read from health_data + device_events with stable V1 contract."""
+    return build_vitals_summary_v1(db, user_id)
 
 
 def build_care_context(db: Session, user_id: int, language: str = "fa", query_hint: Optional[str] = None) -> Dict[str, Any]:

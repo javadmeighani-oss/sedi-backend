@@ -87,6 +87,8 @@ class CaregiverCreateIn(BaseModel):
     notify_daily_status: bool = False
     notify_emergency: bool = True
     notify_care_summary: bool = False
+    notify_vital_alerts: bool = False
+    emergency_priority: Optional[int] = Field(None, ge=1)
     can_manage_profile: bool = False
     preferred_language: Optional[Literal["en", "fa", "ar"]] = None
 
@@ -106,6 +108,8 @@ class CaregiverUpdateIn(BaseModel):
     notify_daily_status: Optional[bool] = None
     notify_emergency: Optional[bool] = None
     notify_care_summary: Optional[bool] = None
+    notify_vital_alerts: Optional[bool] = None
+    emergency_priority: Optional[int] = Field(None, ge=1)
     can_manage_profile: Optional[bool] = None
     preferred_language: Optional[Literal["en", "fa", "ar"]] = None
     is_active: Optional[bool] = None
@@ -121,6 +125,8 @@ class CaregiverOut(BaseModel):
     notify_daily_status: bool
     notify_emergency: bool
     notify_care_summary: bool
+    notify_vital_alerts: bool
+    emergency_priority: Optional[int] = None
     can_manage_profile: bool
     preferred_language: Optional[str] = None
     is_active: bool
