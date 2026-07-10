@@ -101,8 +101,12 @@ def _replace_schedules(db: Session, um: models.UserMedication, reminder_times: L
         )
 
 
+from backend.app.services.section10.medication_stock_service import stock_level_for_medication
+
+
 def build_user_medication_out(um: models.UserMedication, med: models.Medication) -> dict:
     times = sorted(format_time_of_day(s.time_of_day) for s in (um.schedules or []))
+    stock = stock_level_for_medication(um)
     return UserMedicationOut(
         id=um.id,
         medication_id=um.medication_id,
@@ -115,6 +119,12 @@ def build_user_medication_out(um: models.UserMedication, med: models.Medication)
         timezone=um.timezone,
         reminder_times=times,
         interval_hours=um.interval_hours,
+        remaining_quantity=um.remaining_quantity,
+        quantity_unit=um.quantity_unit,
+        refill_threshold=um.refill_threshold,
+        last_refill_at=um.last_refill_at,
+        estimated_end_at=um.estimated_end_at,
+        stock_level=stock["stock_level"],
         created_at=um.created_at,
     ).model_dump()
 
@@ -162,6 +172,11 @@ def create_user_medication(db: Session, user_id: int, body: UserMedicationCreate
         instructions=body.instructions.strip() if body.instructions and body.instructions.strip() else None,
         reminder_enabled=body.reminder_enabled,
         timezone=tz,
+        remaining_quantity=body.remaining_quantity,
+        quantity_unit=body.quantity_unit.strip() if body.quantity_unit and body.quantity_unit.strip() else None,
+        refill_threshold=body.refill_threshold,
+        last_refill_at=body.last_refill_at,
+        estimated_end_at=body.estimated_end_at,
     )
     db.add(um)
     db.flush()
@@ -204,6 +219,16 @@ def update_user_medication(db: Session, user_id: int, um_id: int, body: UserMedi
         um.interval_hours = body.interval_hours
     if body.reminder_times is not None:
         _replace_schedules(db, um, body.reminder_times)
+    if body.remaining_quantity is not None:
+        um.remaining_quantity = body.remaining_quantity
+    if body.quantity_unit is not None:
+        um.quantity_unit = body.quantity_unit.strip() if body.quantity_unit.strip() else None
+    if body.refill_threshold is not None:
+        um.refill_threshold = body.refill_threshold
+    if body.last_refill_at is not None:
+        um.last_refill_at = body.last_refill_at
+    if body.estimated_end_at is not None:
+        um.estimated_end_at = body.estimated_end_at
 
     um.updated_at = datetime.utcnow()
     db.commit()

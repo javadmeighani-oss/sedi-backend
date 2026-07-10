@@ -104,6 +104,11 @@ class UserMedicationCreateIn(BaseModel):
     timezone: Optional[str] = Field(None, max_length=TIMEZONE_MAX)
     reminder_times: Optional[list[str]] = Field(None, max_length=MAX_REMINDER_TIMES)
     interval_hours: Optional[int] = Field(None, ge=INTERVAL_HOURS_MIN, le=INTERVAL_HOURS_MAX)
+    remaining_quantity: Optional[float] = Field(None, ge=0)
+    quantity_unit: Optional[str] = Field(None, max_length=32)
+    refill_threshold: Optional[float] = Field(None, ge=0)
+    last_refill_at: Optional[datetime] = None
+    estimated_end_at: Optional[datetime] = None
 
 
 class UserMedicationUpdateIn(BaseModel):
@@ -117,6 +122,11 @@ class UserMedicationUpdateIn(BaseModel):
     timezone: Optional[str] = Field(None, max_length=TIMEZONE_MAX)
     reminder_times: Optional[list[str]] = Field(None, max_length=MAX_REMINDER_TIMES)
     interval_hours: Optional[int] = Field(None, ge=INTERVAL_HOURS_MIN, le=INTERVAL_HOURS_MAX)
+    remaining_quantity: Optional[float] = Field(None, ge=0)
+    quantity_unit: Optional[str] = Field(None, max_length=32)
+    refill_threshold: Optional[float] = Field(None, ge=0)
+    last_refill_at: Optional[datetime] = None
+    estimated_end_at: Optional[datetime] = None
 
 
 class UserMedicationOut(BaseModel):
@@ -133,6 +143,12 @@ class UserMedicationOut(BaseModel):
     timezone: Optional[str] = None
     reminder_times: list[str] = Field(default_factory=list)
     interval_hours: int
+    remaining_quantity: Optional[float] = None
+    quantity_unit: Optional[str] = None
+    refill_threshold: Optional[float] = None
+    last_refill_at: Optional[datetime] = None
+    estimated_end_at: Optional[datetime] = None
+    stock_level: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

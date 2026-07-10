@@ -466,6 +466,18 @@
             "title": "Can Manage Profile",
             "type": "boolean"
           },
+          "emergency_priority": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Priority"
+          },
           "name": {
             "maxLength": 128,
             "minLength": 1,
@@ -485,6 +497,11 @@
           "notify_emergency": {
             "default": true,
             "title": "Notify Emergency",
+            "type": "boolean"
+          },
+          "notify_vital_alerts": {
+            "default": false,
+            "title": "Notify Vital Alerts",
             "type": "boolean"
           },
           "phone": {
@@ -553,6 +570,18 @@
             ],
             "title": "Can Manage Profile"
           },
+          "emergency_priority": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Priority"
+          },
           "is_active": {
             "anyOf": [
               {
@@ -609,6 +638,17 @@
               }
             ],
             "title": "Notify Emergency"
+          },
+          "notify_vital_alerts": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Vital Alerts"
           },
           "phone": {
             "anyOf": [
@@ -6594,6 +6634,18 @@
             ],
             "title": "Dosage Form"
           },
+          "estimated_end_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated End At"
+          },
           "generic_name": {
             "anyOf": [
               {
@@ -6631,11 +6683,59 @@
             ],
             "title": "Interval Hours"
           },
+          "last_refill_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Refill At"
+          },
           "name": {
             "maxLength": 255,
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "quantity_unit": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Unit"
+          },
+          "refill_threshold": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refill Threshold"
+          },
+          "remaining_quantity": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Quantity"
           },
           "reminder_enabled": {
             "default": true,
@@ -6692,6 +6792,18 @@
         "additionalProperties": false,
         "description": "PATCH /user/medications/{id} — partial update.",
         "properties": {
+          "estimated_end_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated End At"
+          },
           "instructions": {
             "anyOf": [
               {
@@ -6716,6 +6828,54 @@
               }
             ],
             "title": "Interval Hours"
+          },
+          "last_refill_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Refill At"
+          },
+          "quantity_unit": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Unit"
+          },
+          "refill_threshold": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refill Threshold"
+          },
+          "remaining_quantity": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Quantity"
           },
           "reminder_enabled": {
             "anyOf": [

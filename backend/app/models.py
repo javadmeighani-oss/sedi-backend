@@ -195,6 +195,11 @@ class UserMedication(Base):
     instructions = Column(Text, nullable=True)
     reminder_enabled = Column(Boolean, nullable=False, default=True)
     timezone = Column(String(64), nullable=True)
+    remaining_quantity = Column(Float, nullable=True)
+    quantity_unit = Column(String(32), nullable=True)
+    refill_threshold = Column(Float, nullable=True)
+    last_refill_at = Column(DateTime, nullable=True)
+    estimated_end_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
@@ -251,6 +256,14 @@ class UserMemoryFact(Base):
     source = Column(String, nullable=False)  # Source: "chat" | "device" | "manual"
     last_seen_at = Column(DateTime, nullable=True)  # When this fact was last observed/updated
     embedding_id = Column(String, nullable=True)  # For RAG integration - vector embedding ID
+    provenance = Column(String(64), nullable=True)
+    source_interaction_id = Column(Integer, nullable=True)
+    extracted_at = Column(DateTime, nullable=True)
+    valid_from = Column(DateTime, nullable=True)
+    valid_until = Column(DateTime, nullable=True)
+    last_confirmed_at = Column(DateTime, nullable=True)
+    supersedes_fact_id = Column(Integer, nullable=True)
+    fact_status = Column(String(32), nullable=False, default="active", server_default="active")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -655,6 +668,8 @@ class UserCaregiver(Base):
     notify_daily_status = Column(Boolean, nullable=False, default=False)
     notify_emergency = Column(Boolean, nullable=False, default=True)
     notify_care_summary = Column(Boolean, nullable=False, default=False)
+    notify_vital_alerts = Column(Boolean, nullable=False, default=False)
+    emergency_priority = Column(Integer, nullable=True)
     can_manage_profile = Column(Boolean, nullable=False, default=False)
     preferred_language = Column(String(16), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
@@ -996,3 +1011,84 @@ class HealthSymptomReport(Base):
     linked_question_id = Column(Integer, ForeignKey("health_questions.id", ondelete="SET NULL"), nullable=True)
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- Section 10: Caregiver notification intents --------------------
+class CaregiverNotificationIntent(Base):
+    __tablename__ = "caregiver_notification_intents"
+    __table_args__ = (
+        UniqueConstraint("dedupe_key", name="uq_caregiver_notification_intents_dedupe_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    caregiver_id = Column(Integer, ForeignKey("user_caregivers.id", ondelete="CASCADE"), nullable=False, index=True)
+    notification_type = Column(String(64), nullable=False)
+    source_entity_type = Column(String(64), nullable=True)
+    source_entity_id = Column(Integer, nullable=True)
+    status = Column(String(32), nullable=False, default="pending", server_default="pending")
+    dedupe_key = Column(String(255), nullable=False)
+    payload_metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    scheduled_at = Column(DateTime, nullable=True)
+    processed_at = Column(DateTime, nullable=True)
+    failure_reason = Column(Text, nullable=True)
+
+
+# -------------------- Section 10: Emergency escalation --------------------
+class EmergencyEscalationRecord(Base):
+    __tablename__ = "emergency_escalation_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    reason_category = Column(String(64), nullable=False)
+    policy_version = Column(String(32), nullable=False, default="v1", server_default="v1")
+    current_state = Column(String(64), nullable=False, default="monitoring", server_default="monitoring")
+    attempt_count = Column(Integer, nullable=False, default=0, server_default="0")
+    last_user_interaction_at = Column(DateTime, nullable=True)
+    last_notification_attempt_at = Column(DateTime, nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    resolution_source = Column(String(64), nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- Section 10: Voice call requests (provider-neutral) --------------------
+class VoiceCallRequest(Base):
+    __tablename__ = "voice_call_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    caregiver_id = Column(Integer, ForeignKey("user_caregivers.id", ondelete="CASCADE"), nullable=False)
+    escalation_id = Column(Integer, ForeignKey("emergency_escalation_records.id", ondelete="SET NULL"), nullable=True)
+    template_key = Column(String(64), nullable=False)
+    language = Column(String(8), nullable=False, default="fa", server_default="fa")
+    status = Column(String(32), nullable=False, default="pending", server_default="pending")
+    provider = Column(String(64), nullable=True)
+    provider_reference = Column(String(128), nullable=True)
+    requested_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    failure_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# -------------------- Section 10: KB chunk embedding metadata (no pgvector required) --------------------
+class KnowledgeChunkEmbedding(Base):
+    __tablename__ = "knowledge_chunk_embeddings"
+    __table_args__ = (
+        UniqueConstraint("chunk_id", "model_identifier", name="uq_kb_chunk_embeddings_chunk_model"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    chunk_id = Column(Integer, ForeignKey("knowledge_chunks.id", ondelete="CASCADE"), nullable=False, index=True)
+    model_identifier = Column(String(128), nullable=False)
+    vector_dimension = Column(Integer, nullable=False)
+    content_hash = Column(String(64), nullable=False)
+    embedding_status = Column(String(32), nullable=False, default="pending", server_default="pending")
+    retry_count = Column(Integer, nullable=False, default=0, server_default="0")
+    embedding_json = Column(Text, nullable=True)
+    version = Column(Integer, nullable=False, default=1, server_default="1")
+    generated_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
