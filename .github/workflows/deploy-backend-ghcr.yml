@@ -16,6 +16,10 @@ on:
         description: "Type DEPLOY_BACKEND to authorize deployment."
         required: true
 
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

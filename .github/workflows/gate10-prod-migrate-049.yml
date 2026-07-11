@@ -9,7 +9,7 @@ on:
         required: true
 
 concurrency:
-  group: sedi-production-database-migration
+  group: sedi-production-backend-operation
   cancel-in-progress: false
 
 permissions:
@@ -368,11 +368,29 @@ jobs:
           summary "health" "pass"
 
           log "=== POST-MIGRATION: LOG SCAN ==="
-          LOG_ISSUES="$(docker logs --since "${MIGRATION_START_TS}" sedi-backend 2>&1 | grep -E "Traceback|ERROR|Exception|UndefinedColumn|UndefinedTable|ProgrammingError" || true)"
+
+          BACKEND_LOGS=""
+          if ! BACKEND_LOGS="$(
+            docker logs \
+              --since "${MIGRATION_START_TS}" \
+              sedi-backend \
+              2>&1
+          )"; then
+            log "LOG_SCAN_FAILED: docker logs command failed"
+            exit 41
+          fi
+
+          LOG_ISSUES="$(
+            printf '%s\n' "${BACKEND_LOGS}" |
+              grep -E \
+                "Traceback|ERROR|Exception|UndefinedColumn|UndefinedTable|ProgrammingError" \
+              || true
+          )"
+
           if [ -n "${LOG_ISSUES}" ]; then
             log "LOG_SCAN_FAILED: critical errors detected after migration"
-            echo "${LOG_ISSUES}" | tail -40
-            exit 41
+            printf '%s\n' "${LOG_ISSUES}" | tail -40
+            exit 42
           fi
           log "log_scan=pass"
 
