@@ -6,6 +6,19 @@ on:
       image_tag:
         description: "Use a commit SHA image tag. Do not use latest for production."
         required: true
+      expected_alembic_revision:
+        description: "Expected exact production alembic_version before deployment."
+        required: true
+      expected_image_digest:
+        description: "Expected image digest in sha256:<64 hex> format."
+        required: true
+      confirmation:
+        description: "Type DEPLOY_BACKEND to authorize deployment."
+        required: true
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -17,9 +30,24 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Validate image tag
+      - name: Validate deployment inputs
+        id: validate_inputs
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          INPUT_EXPECTED_ALEMBIC_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+          INPUT_EXPECTED_IMAGE_DIGEST: ${{ github.event.inputs.expected_image_digest }}
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
         run: |
-          TAG="${{ github.event.inputs.image_tag }}"
+          set -Eeuo pipefail
+          TAG="${INPUT_IMAGE_TAG}"
+          REV="${INPUT_EXPECTED_ALEMBIC_REVISION}"
+          DIGEST="${INPUT_EXPECTED_IMAGE_DIGEST}"
+          CONF="${INPUT_CONFIRMATION}"
+
+          if [ "${CONF}" != "DEPLOY_BACKEND" ]; then
+            echo "confirmation must be exactly DEPLOY_BACKEND"
+            exit 1
+          fi
           if [ -z "${TAG}" ]; then
             echo "image_tag is required."
             exit 1
@@ -28,6 +56,19 @@ jobs:
             echo "Refusing to deploy 'latest'. Use a commit SHA image tag."
             exit 1
           fi
+          if ! echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "image_tag must be a 40-character lowercase Git commit SHA."
+            exit 1
+          fi
+          if ! echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'; then
+            echo "expected_alembic_revision must be a safe Alembic identifier."
+            exit 1
+          fi
+          if ! echo "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "expected_image_digest must match sha256:<64 hex>."
+            exit 1
+          fi
+          echo "Deployment inputs validated."
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,6 +81,171 @@ jobs:
           chmod 600 ~/.ssh/sedi_deploy_key
           ssh-keygen -y -f ~/.ssh/sedi_deploy_key > /tmp/sedi_deploy_key.pub
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Production preflight (read-only)
+        env:
+          INPUT_EXPECTED_ALEMBIC_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_EXPECTED_ALEMBIC_REVISION}")"
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "EXPECTED_REV=${EXPECTED_REV_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+
+          check_database_target_alignment() {
+            log "=== DATABASE TARGET ALIGNMENT ==="
+            POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+            POSTGRES_CONTAINER_IP="$(
+              docker inspect sedi-postgres \
+                --format '{{with index .NetworkSettings.Networks "sedi-net"}}{{.IPAddress}}{{end}}'
+            )"
+            RUNNING_BACKEND_IMAGE_ID="$(
+              docker inspect sedi-backend --format '{{.Image}}'
+            )"
+
+            if [ -z "${POSTGRES_DB_NAME}" ] || [ -z "${POSTGRES_CONTAINER_IP}" ] || [ -z "${RUNNING_BACKEND_IMAGE_ID}" ]; then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: missing container metadata"
+              exit 9
+            fi
+
+            if ! docker run --rm \
+              --network sedi-net \
+              --env-file "${ENV_FILE}" \
+              --env TEST_DATABASE_URL= \
+              --env EXPECTED_DB_IP="${POSTGRES_CONTAINER_IP}" \
+              --env EXPECTED_DB_NAME="${POSTGRES_DB_NAME}" \
+              --entrypoint python \
+              "${RUNNING_BACKEND_IMAGE_ID}" - <<'PY'
+          import os
+          import socket
+          import sys
+
+          from sqlalchemy.engine import make_url
+
+          raw_url = os.environ.get("DATABASE_URL", "")
+          expected_ip = os.environ.get("EXPECTED_DB_IP", "")
+          expected_db = os.environ.get("EXPECTED_DB_NAME", "")
+
+          if not raw_url or not expected_ip or not expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing required value")
+
+          url = make_url(raw_url)
+          base_driver = url.drivername.split("+", 1)[0].lower()
+
+          if base_driver not in {"postgresql", "postgres"}:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: non-PostgreSQL driver")
+
+          host = url.host
+          port = url.port or 5432
+          database = url.database or ""
+
+          if not host:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing host")
+
+          try:
+              resolved_ips = {
+                  item[4][0]
+                  for item in socket.getaddrinfo(
+                      host,
+                      port,
+                      type=socket.SOCK_STREAM,
+                  )
+              }
+          except socket.gaierror:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: host resolution failed")
+
+          if expected_ip not in resolved_ips:
+              raise SystemExit(
+                  "DATABASE_TARGET_ALIGNMENT_FAILED: host does not resolve to sedi-postgres"
+              )
+
+          if port != 5432:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: unexpected port")
+
+          if database != expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: database name mismatch")
+
+          print("database_target_alignment=pass")
+          print(f"database_driver={base_driver}")
+          print("database_host_resolution=matched_sedi_postgres")
+          print(f"database_port={port}")
+          print("database_name_match=yes")
+          PY
+            then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: parser exit non-zero"
+              exit 9
+            fi
+            log "database_target_guard=pass"
+          }
+
+          cd "${DEPLOY_PATH}"
+
+          log "=== PREFLIGHT: POSTGRES HEALTH ==="
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+
+          log "=== PREFLIGHT: ENV FILE ==="
+          if [ ! -f "${ENV_FILE}" ]; then
+            log "PREFLIGHT_FAILED: missing ${ENV_FILE}"
+            exit 1
+          fi
+          if ! grep -E "^DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "PREFLIGHT_FAILED: DATABASE_URL missing or empty"
+            exit 2
+          fi
+          if grep -E "^TEST_DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "PREFLIGHT_FAILED: TEST_DATABASE_URL must not be set in production env file"
+            exit 3
+          fi
+
+          check_database_target_alignment
+
+          log "=== PREFLIGHT: DIRECT ALEMBIC VERSION ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_current=${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ]; then
+            log "PREFLIGHT_FAILED: alembic_version row count is not 1"
+            exit 4
+          fi
+          if [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "PREFLIGHT_FAILED: alembic revision mismatch (expected ${EXPECTED_REV})"
+            exit 5
+          fi
+
+          log "=== PREFLIGHT: CURRENT BACKEND IMAGE ==="
+          docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true
+
+          log "=== PREFLIGHT: LOCAL HEALTHZ ==="
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null
+
+          log "=== PREFLIGHT: DISK CAPACITY ==="
+          DB_SIZE_BYTES="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT pg_database_size(current_database());")"
+          BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
+          mkdir -p "${BACKUP_DIR}"
+          AVAIL_BYTES="$(df -B1 "${BACKUP_DIR}" | awk "NR==2 {print \$4}")"
+          TWO_GIB=$((2 * 1024 * 1024 * 1024))
+          REQUIRED_BYTES=$((DB_SIZE_BYTES * 3))
+          if [ "${REQUIRED_BYTES}" -lt "${TWO_GIB}" ]; then
+            REQUIRED_BYTES="${TWO_GIB}"
+          fi
+          log "database_size_bytes=${DB_SIZE_BYTES}"
+          log "available_bytes=${AVAIL_BYTES}"
+          log "required_bytes=${REQUIRED_BYTES}"
+          if [ "${AVAIL_BYTES}" -lt "${REQUIRED_BYTES}" ]; then
+            log "PREFLIGHT_FAILED: insufficient disk space"
+            exit 6
+          fi
+          log "=== PREFLIGHT OK ==="
+          REMOTE_SCRIPT
 
       - name: Upload production compose file
         run: |
@@ -54,105 +260,248 @@ jobs:
             "mv '${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml.tmp' '${{ secrets.SEDI_DEPLOY_PATH }}/compose.production.yml'"
 
       - name: Deploy backend safely
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          INPUT_EXPECTED_ALEMBIC_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+          INPUT_EXPECTED_IMAGE_DIGEST: ${{ github.event.inputs.expected_image_digest }}
         run: |
+          set -Eeuo pipefail
+          IMAGE_TAG_Q="$(printf '%q' "${INPUT_IMAGE_TAG}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_EXPECTED_ALEMBIC_REVISION}")"
+          EXPECTED_DIGEST_Q="$(printf '%q' "${INPUT_EXPECTED_IMAGE_DIGEST}")"
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            'set -Eeuo pipefail
-             log() { echo "[$(date -Is)] $*"; }
+            "IMAGE_TAG=${IMAGE_TAG_Q} EXPECTED_REV=${EXPECTED_REV_Q} EXPECTED_DIGEST=${EXPECTED_DIGEST_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          ENV_FILE="/etc/sedi/sedi-backend.env"
 
-             DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
-             IMAGE_TAG="${{ github.event.inputs.image_tag }}"
-             IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
+          check_database_target_alignment() {
+            log "=== DATABASE TARGET ALIGNMENT ==="
+            POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+            POSTGRES_CONTAINER_IP="$(
+              docker inspect sedi-postgres \
+                --format '{{with index .NetworkSettings.Networks "sedi-net"}}{{.IPAddress}}{{end}}'
+            )"
+            RUNNING_BACKEND_IMAGE_ID="$(
+              docker inspect sedi-backend --format '{{.Image}}'
+            )"
 
-             log "=== DEPLOY CONTEXT ==="
-             log "Deploy path: ${DEPLOY_PATH}"
-             log "Target image: ${IMAGE}"
+            if [ -z "${POSTGRES_DB_NAME}" ] || [ -z "${POSTGRES_CONTAINER_IP}" ] || [ -z "${RUNNING_BACKEND_IMAGE_ID}" ]; then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: missing container metadata"
+              exit 9
+            fi
 
-             cd "${DEPLOY_PATH}"
+            if ! docker run --rm \
+              --network sedi-net \
+              --env-file "${ENV_FILE}" \
+              --env TEST_DATABASE_URL= \
+              --env EXPECTED_DB_IP="${POSTGRES_CONTAINER_IP}" \
+              --env EXPECTED_DB_NAME="${POSTGRES_DB_NAME}" \
+              --entrypoint python \
+              "${RUNNING_BACKEND_IMAGE_ID}" - <<'PY'
+          import os
+          import socket
+          import sys
 
-             log "=== CURRENT BACKEND IMAGE ==="
-             CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
-             log "${CURRENT_IMAGE:-none}"
+          from sqlalchemy.engine import make_url
 
-             log "=== PRE-DEPLOY DB BACKUP (no migrations) ==="
-             mkdir -p "${DEPLOY_PATH}/backups/postgres"
-             TS="$(date +%Y%m%d_%H%M%S)"
-             BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
-             log "Backup file: ${BACKUP_FILE}"
-             docker exec sedi-postgres sh -c '\''pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'\'' | gzip > "${BACKUP_FILE}"
-             ls -lh "${BACKUP_FILE}"
+          raw_url = os.environ.get("DATABASE_URL", "")
+          expected_ip = os.environ.get("EXPECTED_DB_IP", "")
+          expected_db = os.environ.get("EXPECTED_DB_NAME", "")
 
-             log "=== PULL IMAGE ==="
-             docker pull "${IMAGE}"
-             log "Pulled image. Inspecting digest/tag."
-             docker image inspect "${IMAGE}" --format "image={{.RepoTags}} id={{.Id}} created={{.Created}}" || true
+          if not raw_url or not expected_ip or not expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing required value")
 
-             log "=== VALIDATE COMPOSE ==="
-             SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml config >/tmp/sedi_compose_config_checked.yml
-             log "Compose config validated."
+          url = make_url(raw_url)
+          base_driver = url.drivername.split("+", 1)[0].lower()
 
-             log "=== RECREATE BACKEND ONLY ==="
-             SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
-             log "Recreate command finished. Current service state:"
-             docker compose -f compose.production.yml ps sedi-backend || true
-             log "Running container image:"
-             docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+          if base_driver not in {"postgresql", "postgres"}:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: non-PostgreSQL driver")
 
-             log "=== HEALTH CHECK ==="
-             HEALTH_OK=0
-             for i in $(seq 1 30); do
-               if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json; then
-                 log "Local /healthz OK."
-                 cat /tmp/sedi_healthz.json || true
-                 HEALTH_OK=1
-                 break
-               fi
-               log "Waiting for backend health... attempt ${i}/30"
-               sleep 2
-             done
+          host = url.host
+          port = url.port or 5432
+          database = url.database or ""
 
-             if [ "${HEALTH_OK}" != "1" ]; then
-               log "=== DEPLOY FAILED: BACKEND LOGS ==="
-               docker logs --tail 120 sedi-backend || true
+          if not host:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing host")
 
-               if [ -n "${CURRENT_IMAGE}" ]; then
-                 log "=== ROLLBACK TO PREVIOUS IMAGE ==="
-                 printf "%s\n" "services:" "  sedi-backend:" "    image: ${CURRENT_IMAGE}" > /tmp/sedi-rollback.yml
-                 docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
-                 sleep 5
-                 curl -fsS http://127.0.0.1:8000/healthz || true
-               fi
+          try:
+              resolved_ips = {
+                  item[4][0]
+                  for item in socket.getaddrinfo(
+                      host,
+                      port,
+                      type=socket.SOCK_STREAM,
+                  )
+              }
+          except socket.gaierror:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: host resolution failed")
 
-               exit 1
-             fi
+          if expected_ip not in resolved_ips:
+              raise SystemExit(
+                  "DATABASE_TARGET_ALIGNMENT_FAILED: host does not resolve to sedi-postgres"
+              )
 
-             log "=== DOCKER COMPOSE PS ==="
-             docker compose -f compose.production.yml ps
+          if port != 5432:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: unexpected port")
 
-             log "=== LOCAL HEALTH ==="
-             curl -fsS http://127.0.0.1:8000/health || true
-             echo ""
+          if database != expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: database name mismatch")
 
-             log "=== PUBLIC HEALTH ==="
-             curl -fsS https://api.sedi-ai.com/health || true
-             echo ""
+          print("database_target_alignment=pass")
+          print(f"database_driver={base_driver}")
+          print("database_host_resolution=matched_sedi_postgres")
+          print(f"database_port={port}")
+          print("database_name_match=yes")
+          PY
+            then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: parser exit non-zero"
+              exit 9
+            fi
+            log "database_target_guard=pass"
+          }
 
-             log "=== PUBLIC HEALTHZ ==="
-             curl -fsS https://api.sedi-ai.com/healthz
-             echo ""
+          IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_TAG}"
 
-             log "=== FINAL IMAGE CONFIRMATION ==="
-             docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+          log "=== DEPLOY CONTEXT ==="
+          log "Deploy path: ${DEPLOY_PATH}"
+          log "Target image: ${IMAGE}"
+          log "Expected alembic revision: ${EXPECTED_REV}"
+          log "Expected image digest: ${EXPECTED_DIGEST}"
 
-             log "=== DEPLOY DONE ==="
-            '
+          cd "${DEPLOY_PATH}"
+
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+
+          log "=== CURRENT BACKEND IMAGE ==="
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format "{{.Config.Image}}" 2>/dev/null || true)"
+          log "${CURRENT_IMAGE:-none}"
+
+          check_database_target_alignment
+
+          log "=== PRE-DEPLOY DB BACKUP (no migrations) ==="
+          mkdir -p "${DEPLOY_PATH}/backups/postgres"
+          TS="$(date +%Y%m%d_%H%M%S)"
+          BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
+          log "Backup file: ${BACKUP_FILE}"
+          if ! docker exec sedi-postgres sh -c '"'"'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'"'"' | gzip > "${BACKUP_FILE}"; then
+            log "BACKUP_FAILED: pg_dump pipeline failed"
+            exit 10
+          fi
+          if [ ! -s "${BACKUP_FILE}" ]; then
+            log "BACKUP_FAILED: empty backup file"
+            exit 11
+          fi
+          if ! gzip -t "${BACKUP_FILE}"; then
+            log "BACKUP_FAILED: gzip integrity check failed"
+            exit 12
+          fi
+          BACKUP_SHA256="$(sha256sum "${BACKUP_FILE}" | awk "{print \$1}")"
+          log "backup_size_bytes=$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
+          log "backup_sha256=${BACKUP_SHA256}"
+          ls -lh "${BACKUP_FILE}"
+
+          log "=== PULL IMAGE ==="
+          docker pull "${IMAGE}"
+          PULLED_DIGEST="$(docker image inspect "${IMAGE}" --format "{{range .RepoDigests}}{{println .}}{{end}}" | grep -F "${EXPECTED_DIGEST}" || true)"
+          if [ -z "${PULLED_DIGEST}" ]; then
+            log "DEPLOY_FAILED: expected digest not found on pulled image"
+            docker image inspect "${IMAGE}" --format "{{json .RepoDigests}}" || true
+            exit 13
+          fi
+          log "digest_verified=${EXPECTED_DIGEST}"
+          docker image inspect "${IMAGE}" --format "image={{.RepoTags}} id={{.Id}} created={{.Created}}" || true
+
+          check_database_target_alignment
+
+          log "=== REVISION RECHECK BEFORE RECREATE ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "DEPLOY_FAILED: alembic revision changed before recreate"
+            exit 14
+          fi
+
+          log "=== VALIDATE COMPOSE ==="
+          SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml config >/tmp/sedi_compose_config_checked.yml
+          log "Compose config validated."
+
+          log "=== RECREATE BACKEND ONLY ==="
+          SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+          log "Recreate command finished. Current service state:"
+          docker compose -f compose.production.yml ps sedi-backend || true
+          log "Running container image:"
+          docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+
+          log "=== HEALTH CHECK ==="
+          HEALTH_OK=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/healthz >/tmp/sedi_healthz.json; then
+              log "Local /healthz OK."
+              cat /tmp/sedi_healthz.json || true
+              HEALTH_OK=1
+              break
+            fi
+            log "Waiting for backend health... attempt ${i}/30"
+            sleep 2
+          done
+
+          if [ "${HEALTH_OK}" != "1" ]; then
+            log "=== DEPLOY FAILED: BACKEND LOGS ==="
+            docker logs --tail 120 sedi-backend || true
+
+            if [ -n "${CURRENT_IMAGE}" ]; then
+              log "=== ROLLBACK TO PREVIOUS IMAGE ==="
+              printf "%s\n" "services:" "  sedi-backend:" "    image: ${CURRENT_IMAGE}" > /tmp/sedi-rollback.yml
+              docker compose -f compose.production.yml -f /tmp/sedi-rollback.yml up -d --no-deps --force-recreate sedi-backend
+              sleep 5
+              curl -fsS http://127.0.0.1:8000/healthz || true
+            fi
+
+            exit 1
+          fi
+
+          log "=== DOCKER COMPOSE PS ==="
+          docker compose -f compose.production.yml ps
+
+          log "=== LOCAL HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health || true
+          echo ""
+
+          log "=== PUBLIC HEALTH ==="
+          curl -fsS https://api.sedi-ai.com/health || true
+          echo ""
+
+          log "=== PUBLIC HEALTHZ ==="
+          curl -fsS https://api.sedi-ai.com/healthz
+          echo ""
+
+          log "=== FINAL IMAGE CONFIRMATION ==="
+          docker inspect sedi-backend --format "container_image={{.Config.Image}}" || true
+
+          log "=== DEPLOY DONE ==="
+          REMOTE_SCRIPT
 
       - name: Deployment summary
         if: always()
+        env:
+          SUMMARY_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          SUMMARY_EXPECTED_REVISION: ${{ github.event.inputs.expected_alembic_revision }}
+          SUMMARY_EXPECTED_DIGEST: ${{ github.event.inputs.expected_image_digest }}
         run: |
-          echo "## Sedi Backend GHCR Deploy" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Image tag:** ${{ github.event.inputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Sedi Backend GHCR Deploy"
+            echo ""
+            echo "**Status:** ${{ job.status }}"
+            echo "**Input validation:** ${{ steps.validate_inputs.outcome }}"
+            printf '%s\n' "**Image tag:** ${SUMMARY_IMAGE_TAG}"
+            printf '%s\n' "**Expected alembic revision:** ${SUMMARY_EXPECTED_REVISION}"
+            printf '%s\n' "**Expected image digest:** ${SUMMARY_EXPECTED_DIGEST}"
+            echo "**Digest policy:** DIGEST_VERIFIED_BUT_TAG_DEPLOYED"
+            echo "**Commit:** ${{ github.sha }}"
+          } >> "$GITHUB_STEP_SUMMARY"
