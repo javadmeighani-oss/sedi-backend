@@ -389,8 +389,14 @@ jobs:
           TS="$(date +%Y%m%d_%H%M%S)"
           BACKUP_FILE="${DEPLOY_PATH}/backups/postgres/sedi_db_predeploy_${TS}.sql.gz"
           log "Backup file: ${BACKUP_FILE}"
-          if ! docker exec sedi-postgres sh -c '"'"'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'"'"' | gzip > "${BACKUP_FILE}"; then
-            log "BACKUP_FAILED: pg_dump pipeline failed"
+          if ! docker exec sedi-postgres \
+            pg_dump \
+            -U "${PU}" \
+            -d "${PD}" |
+            gzip > "${BACKUP_FILE}"
+          then
+            rm -f "${BACKUP_FILE}"
+            log "BACKUP_FAILED: pg_dump or gzip pipeline failed"
             exit 10
           fi
           if [ ! -s "${BACKUP_FILE}" ]; then
