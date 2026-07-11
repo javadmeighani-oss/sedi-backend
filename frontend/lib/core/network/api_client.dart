@@ -175,7 +175,7 @@ class ApiClient {
       if (queryParams != null && queryParams.isNotEmpty) {
         uri = uri.replace(queryParameters: queryParams);
       }
-      debugPrint('[API] POST $uri');
+      debugPrint('[API] POST $path');
       final response = await _withAuthRetry(
         path,
         (headers) => http
@@ -231,7 +231,7 @@ class ApiClient {
       if (queryParams != null && queryParams.isNotEmpty) {
         uri = uri.replace(queryParameters: queryParams);
       }
-      debugPrint('[API] PUT $uri');
+      debugPrint('[API] PUT $path');
       final response = await _withAuthRetry(
         path,
         (headers) => http
@@ -267,7 +267,7 @@ class ApiClient {
       if (queryParams != null && queryParams.isNotEmpty) {
         uri = uri.replace(queryParameters: queryParams);
       }
-      debugPrint('[API] PATCH $uri');
+      debugPrint('[API] PATCH $path');
       final response = await _withAuthRetry(
         path,
         (headers) => http
@@ -295,7 +295,7 @@ class ApiClient {
       {Map<String, dynamic>? body, Map<String, String>? extraHeaders}) async {
     try {
       var uri = Uri.parse('$baseUrl$path');
-      debugPrint('[API] PUT $uri');
+      debugPrint('[API] PUT $path');
       final response = await _withAuthRetry(
         path,
         (headers) => http

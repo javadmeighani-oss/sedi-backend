@@ -19,7 +19,7 @@ class NotificationRepository {
     String? deviceId,
     String? appVersion,
   }) async {
-    debugPrint('[FCM] registerToken => POST /notifications/push/register');
+    debugPrint('[FCM] push register request started');
     return _client.post<Map<String, dynamic>?>(
       '/notifications/push/register',
       body: {

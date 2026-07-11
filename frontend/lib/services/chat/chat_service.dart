@@ -50,8 +50,7 @@ class ChatService {
 
     if (kDebugMode) {
       debugPrint('[ChatService] POST /interact/chat');
-      debugPrint(
-          '[ChatService] payload: user_id=$resolvedUserId message_len=${text.length}');
+      debugPrint('[ChatService] chat request started');
     }
 
     final response = await _apiClient.post<ChatSendResponse>(

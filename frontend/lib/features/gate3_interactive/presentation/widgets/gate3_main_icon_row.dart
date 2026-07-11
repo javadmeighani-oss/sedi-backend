@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../gate3_localization.dart';
 import 'gate3_main_icon_button.dart';
-import 'gate3_settings_menu.dart';
 
 /// Primary Gate 3 navigation row: Settings, Health Care, Lifestyle, Gadgets.
 ///
 /// Notifications (Gate 4) and History (Lifestyle sub-section) are intentionally
 /// not shown here.
 class Gate3MainIconRow extends StatelessWidget {
+  final VoidCallback onSettings;
   final VoidCallback onHealthCare;
   final VoidCallback onLifestyle;
   final VoidCallback onGadgets;
@@ -16,6 +16,7 @@ class Gate3MainIconRow extends StatelessWidget {
 
   const Gate3MainIconRow({
     super.key,
+    required this.onSettings,
     required this.onHealthCare,
     required this.onLifestyle,
     required this.onGadgets,
@@ -34,7 +35,7 @@ class Gate3MainIconRow extends StatelessWidget {
           icon: Icons.settings_outlined,
           label: l10n.settings,
           plainIcon: true,
-          onTap: () => Gate3SettingsMenu.show(context, lang),
+          onTap: onSettings,
         ),
         Gate3MainIconButton(
           icon: Icons.favorite_border,

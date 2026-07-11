@@ -8,42 +8,40 @@
 /// ============================================
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import '../../data/models/user_profile.dart';
 
 class UserProfileManager {
   static const String _profileKey = 'user_profile';
 
+  static void _log(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
+  }
+
   /// Load user profile from storage
   static Future<UserProfile> loadProfile() async {
     try {
-      print('[UserProfileManager] ========== LOAD PROFILE START ==========');
+      _log('[UserProfileManager] load profile start');
       final prefs = await SharedPreferences.getInstance();
       final profileJson = prefs.getString(_profileKey);
       
       if (profileJson == null) {
-        print('[UserProfileManager] No profile found, returning empty profile');
-        print('[UserProfileManager] ========== LOAD PROFILE END ==========');
+        _log('[UserProfileManager] no profile found');
         return UserProfile(); // Return empty profile
       }
 
-      print('[UserProfileManager] Profile JSON found: $profileJson');
       final json = jsonDecode(profileJson) as Map<String, dynamic>;
       final profile = UserProfile.fromJson(json);
       
-      print('[UserProfileManager] Loaded profile:');
-      print('[UserProfileManager]   - name: "${profile.name}"');
-      print('[UserProfileManager]   - userId: ${profile.userId}');
-      print('[UserProfileManager]   - language: ${profile.preferredLanguage}');
-      print('[UserProfileManager]   - hasSecurityPassword: ${profile.hasSecurityPassword}');
-      print('[UserProfileManager]   - isVerified: ${profile.isVerified}');
-      print('[UserProfileManager] ========== LOAD PROFILE END ==========');
+      _log('[UserProfileManager] profile loaded');
       
       return profile;
     } catch (e, stackTrace) {
-      print('[UserProfileManager] ❌ ERROR loading profile: $e');
-      print('[UserProfileManager] Stack trace: $stackTrace');
-      print('[UserProfileManager] Returning empty profile');
+      _log('[UserProfileManager] error loading profile: $e');
+      if (kDebugMode) debugPrint('$stackTrace');
       return UserProfile(); // Return empty profile on error
     }
   }
@@ -51,35 +49,17 @@ class UserProfileManager {
   /// Save user profile to storage
   static Future<bool> saveProfile(UserProfile profile) async {
     try {
-      print('[UserProfileManager] ========== SAVE PROFILE START ==========');
-      print('[UserProfileManager] Profile to save:');
-      print('[UserProfileManager]   - name: "${profile.name}"');
-      print('[UserProfileManager]   - userId: ${profile.userId}');
-      print('[UserProfileManager]   - language: ${profile.preferredLanguage}');
-      print('[UserProfileManager]   - hasSecurityPassword: ${profile.hasSecurityPassword}');
-      print('[UserProfileManager]   - isVerified: ${profile.isVerified}');
+      _log('[UserProfileManager] save profile start');
       
       final prefs = await SharedPreferences.getInstance();
       final json = jsonEncode(profile.toJson());
-      print('[UserProfileManager] JSON to save: $json');
       
       final result = await prefs.setString(_profileKey, json);
-      print('[UserProfileManager] Save result: $result');
-      
-      // Verify save
-      final savedJson = prefs.getString(_profileKey);
-      if (savedJson != null) {
-        print('[UserProfileManager] ✅ Profile saved successfully');
-        print('[UserProfileManager] Saved JSON: $savedJson');
-      } else {
-        print('[UserProfileManager] ❌ ERROR: Profile not found after save!');
-      }
-      
-      print('[UserProfileManager] ========== SAVE PROFILE END ==========');
+      _log('[UserProfileManager] save profile result: $result');
       return result;
     } catch (e, stackTrace) {
-      print('[UserProfileManager] ❌ ERROR saving profile: $e');
-      print('[UserProfileManager] Stack trace: $stackTrace');
+      _log('[UserProfileManager] error saving profile: $e');
+      if (kDebugMode) debugPrint('$stackTrace');
       return false;
     }
   }

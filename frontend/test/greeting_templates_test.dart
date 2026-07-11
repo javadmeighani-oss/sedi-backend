@@ -9,10 +9,10 @@ void main() {
       expect(text, isNot(contains('سدی')));
     });
 
-    test('FA mentions گجت and مراقبت پیوسته', () {
+    test('FA greeting is short and professional', () {
       final text = getIntroGreeting('fa');
-      expect(text, contains('گجت'));
-      expect(text, contains('مراقبت پیوسته'));
+      expect(text, contains('همراه هوشمند سلامت'));
+      expect(text.length, lessThan(120));
     });
 
     test('EN contains Sedi', () {
@@ -20,10 +20,10 @@ void main() {
       expect(text, contains('Sedi'));
     });
 
-    test('EN mentions specialized gadgets and continuous', () {
+    test('EN greeting is short and professional', () {
       final text = getIntroGreeting('en');
-      expect(text.toLowerCase(), contains('specialized gadgets'));
-      expect(text.toLowerCase(), contains('continuous'));
+      expect(text.toLowerCase(), contains('health companion'));
+      expect(text.length, lessThan(140));
     });
 
     test('AR contains صدی (never سدی)', () {

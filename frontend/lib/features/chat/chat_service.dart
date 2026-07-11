@@ -12,7 +12,10 @@ import '../../../data/repositories/chat_repository.dart';
 /// LEGACY ChatService — used by [ChatController] for greeting/onboarding paths.
 /// New chat sends go through `services/chat/chat_service.dart` (V1 `/interact/chat`).
 /// Not part of gate routing; do not use for new features.
-///
+void _chatDebugLog(String message) {
+  // Legacy chat service — keep silent to avoid logging tokens, OTP, or PII.
+}
+
 /// ------------------------------------------------------------
 /// ChatService
 ///
@@ -81,7 +84,7 @@ class ChatService {
       // CRITICAL: Add user_id if available (prevents anonymous user creation)
       if (userId != null) {
         queryParams['user_id'] = userId.toString();
-        print('[ChatService] Adding user_id to greeting request: $userId');
+  _chatDebugLog('[ChatService] Adding user_id to greeting request: $userId');
       }
 
       // Add credentials if available
@@ -103,9 +106,9 @@ class ChatService {
 
       final headers = await _buildHeaders();
 
-      print('[ChatService] Greeting request - URL: ${uri.toString()}');
-      print('[ChatService] Greeting request - Headers: $headers');
-      print('[ChatService] Greeting request - Query params: $queryParams');
+_chatDebugLog('[ChatService] Greeting request - URL: ${uri.toString()}');
+_chatDebugLog('[ChatService] Greeting request - Headers: $headers');
+_chatDebugLog('[ChatService] Greeting request - Query params: $queryParams');
 
       // Retry mechanism for greeting
       http.Response? response;
@@ -122,7 +125,7 @@ class ChatService {
               .timeout(
             const Duration(seconds: 15), // Increased timeout for greeting
             onTimeout: () {
-              print(
+        _chatDebugLog(
                   '[ChatService] Greeting request timeout after 15 seconds (attempt ${retryCount + 1})');
               throw Exception('Greeting timeout');
             },
@@ -131,10 +134,10 @@ class ChatService {
         } catch (e) {
           retryCount++;
           if (retryCount >= maxRetries) {
-            print('[ChatService] All greeting retry attempts failed');
+      _chatDebugLog('[ChatService] All greeting retry attempts failed');
             rethrow; // Re-throw the last error
           }
-          print(
+    _chatDebugLog(
               '[ChatService] Greeting retry attempt $retryCount/$maxRetries after error: $e');
           await Future.delayed(
               Duration(seconds: retryCount * 2)); // Exponential backoff
@@ -142,13 +145,13 @@ class ChatService {
       }
 
       if (response == null) {
-        print(
+  _chatDebugLog(
             '[ChatService] Failed to get greeting response after $maxRetries attempts');
         return 'BACKEND_UNAVAILABLE';
       }
 
-      print('[ChatService] Greeting response - Status: ${response.statusCode}');
-      print('[ChatService] Greeting response - Body: ${response.body}');
+_chatDebugLog('[ChatService] Greeting response - Status: ${response.statusCode}');
+_chatDebugLog('[ChatService] Greeting response - Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -157,10 +160,10 @@ class ChatService {
         final message = body['message'];
         final userId = body['user_id'] as int?;
 
-        print('[ChatService] Greeting success - message received from backend');
-        print(
+  _chatDebugLog('[ChatService] Greeting success - message received from backend');
+  _chatDebugLog(
             '[ChatService] Message length: ${message?.toString().length ?? 0}');
-        print('[ChatService] User ID: $userId');
+  _chatDebugLog('[ChatService] User ID: $userId');
 
         if (message != null && message.toString().isNotEmpty) {
           // Return message with user_id if available (for anonymous users)
@@ -169,17 +172,17 @@ class ChatService {
           }
           return message.toString();
         } else {
-          print(
+    _chatDebugLog(
               '[ChatService] Warning: Backend returned empty message in greeting');
         }
       } else {
         // Log error details for debugging
-        print('[ChatService] Greeting failed: Status ${response.statusCode}');
+  _chatDebugLog('[ChatService] Greeting failed: Status ${response.statusCode}');
         try {
           final errorBody = jsonDecode(response.body);
-          print('[ChatService] Error body: $errorBody');
+    _chatDebugLog('[ChatService] Error body: $errorBody');
         } catch (_) {
-          print('[ChatService] Error body (raw): ${response.body}');
+    _chatDebugLog('[ChatService] Error body (raw): ${response.body}');
         }
       }
 
@@ -188,8 +191,8 @@ class ChatService {
       return null;
     } catch (e) {
       // Any error - return BACKEND_UNAVAILABLE to show error message
-      print('[ChatService] Greeting error: $e');
-      print('[ChatService] Error type: ${e.runtimeType}');
+_chatDebugLog('[ChatService] Greeting error: $e');
+_chatDebugLog('[ChatService] Error type: ${e.runtimeType}');
 
       // Check for connection errors
       final errorString = e.toString().toLowerCase();
@@ -202,7 +205,7 @@ class ChatService {
           errorString.contains('no route to host')) {
         return 'BACKEND_UNAVAILABLE';
       }
-      print('[ChatService] Full error: ${e.toString()}');
+_chatDebugLog('[ChatService] Full error: ${e.toString()}');
       // Return special marker to indicate backend unavailable
       return 'BACKEND_UNAVAILABLE';
     }
@@ -215,14 +218,14 @@ class ChatService {
     String language, {
     required String name,
   }) async {
-    print('[ChatService] ========== SETUP ONBOARDING START ==========');
-    print('[ChatService] Name: "$name" (length: ${name.length})');
-    print('[ChatService] Language: $language');
-    print('[ChatService] Local mode: ${AppConfig.useLocalMode}');
+_chatDebugLog('[ChatService] ========== SETUP ONBOARDING START ==========');
+_chatDebugLog('[ChatService] Name: "$name" (length: ${name.length})');
+_chatDebugLog('[ChatService] Language: $language');
+_chatDebugLog('[ChatService] Local mode: ${AppConfig.useLocalMode}');
 
     // ---------------- LOCAL MODE ----------------
     if (AppConfig.useLocalMode) {
-      print('[ChatService] Using local mode - returning mock response');
+_chatDebugLog('[ChatService] Using local mode - returning mock response');
       return {
         'message': 'Welcome! This is local mode.',
         'user_id': null,
@@ -233,7 +236,7 @@ class ChatService {
     // ---------------- BACKEND MODE ----------------
     // STEP 2: Validate name (REQUIRED, non-empty)
     if (name.trim().isEmpty) {
-      print('[ChatService] ❌ ERROR: Name is required and cannot be empty');
+_chatDebugLog('[ChatService] ❌ ERROR: Name is required and cannot be empty');
       return {
         'message': 'Name is required and cannot be empty',
         'user_id': null,
@@ -251,9 +254,9 @@ class ChatService {
         'name': name.trim(),
       };
 
-      print('[ChatService] Request URL: ${uri.toString()}');
-      print('[ChatService] Request payload: $payload');
-      print('[ChatService] Request headers: $headers');
+_chatDebugLog('[ChatService] Request URL: ${uri.toString()}');
+_chatDebugLog('[ChatService] Request payload: $payload');
+_chatDebugLog('[ChatService] Request headers: $headers');
 
       final response = await http
           .post(
@@ -267,15 +270,15 @@ class ChatService {
           .timeout(
         const Duration(seconds: 30), // Increased timeout
         onTimeout: () {
-          print('[ChatService] ❌ Request timeout after 30 seconds');
+    _chatDebugLog('[ChatService] ❌ Request timeout after 30 seconds');
           throw Exception('Onboarding timeout');
         },
       );
 
-      print('[ChatService] ========== RESPONSE RECEIVED ==========');
-      print('[ChatService] Status code: ${response.statusCode}');
-      print('[ChatService] Response body: ${response.body}');
-      print('[ChatService] Response headers: ${response.headers}');
+_chatDebugLog('[ChatService] ========== RESPONSE RECEIVED ==========');
+_chatDebugLog('[ChatService] Status code: ${response.statusCode}');
+_chatDebugLog('[ChatService] Response body: ${response.body}');
+_chatDebugLog('[ChatService] Response headers: ${response.headers}');
 
       if (response.statusCode == 200) {
         try {
@@ -286,60 +289,60 @@ class ChatService {
           // - full response body
           // - extracted user_id
           // ============================================
-          print('[ChatService] ===== RAW RESPONSE (200) =====');
-          print('[ChatService] Response body (raw): ${response.body}');
-          print('[ChatService] Response body length: ${response.body.length}');
+    _chatDebugLog('[ChatService] ===== RAW RESPONSE (200) =====');
+    _chatDebugLog('[ChatService] Response body (raw): ${response.body}');
+    _chatDebugLog('[ChatService] Response body length: ${response.body.length}');
           
           final body = jsonDecode(response.body);
-          print('[ChatService] ===== PARSED RESPONSE =====');
-          print('[ChatService] Parsed response body: $body');
-          print('[ChatService] Response type: ${body.runtimeType}');
-          print('[ChatService] Response keys: ${body.keys.toList()}');
+    _chatDebugLog('[ChatService] ===== PARSED RESPONSE =====');
+    _chatDebugLog('[ChatService] Parsed response body: $body');
+    _chatDebugLog('[ChatService] Response type: ${body.runtimeType}');
+    _chatDebugLog('[ChatService] Response keys: ${body.keys.toList()}');
 
           // Check if user_id exists in response
           if (!body.containsKey('user_id')) {
-            print('[ChatService] ⚠️ WARNING: user_id not found in response body');
-            print('[ChatService] Response body keys: ${body.keys.toList()}');
-            print('[ChatService] This indicates backend response format issue');
+      _chatDebugLog('[ChatService] ⚠️ WARNING: user_id not found in response body');
+      _chatDebugLog('[ChatService] Response body keys: ${body.keys.toList()}');
+      _chatDebugLog('[ChatService] This indicates backend response format issue');
           }
 
           final userId = body['user_id'];
-          print('[ChatService] ===== USER_ID EXTRACTION =====');
-          print('[ChatService] user_id from body: $userId');
-          print('[ChatService] user_id type: ${userId?.runtimeType}');
-          print('[ChatService] user_id is null: ${userId == null}');
-          print('[ChatService] message: ${body['message']}');
-          print('[ChatService] language: ${body['language']}');
+    _chatDebugLog('[ChatService] ===== USER_ID EXTRACTION =====');
+    _chatDebugLog('[ChatService] user_id from body: $userId');
+    _chatDebugLog('[ChatService] user_id type: ${userId?.runtimeType}');
+    _chatDebugLog('[ChatService] user_id is null: ${userId == null}');
+    _chatDebugLog('[ChatService] message: ${body['message']}');
+    _chatDebugLog('[ChatService] language: ${body['language']}');
 
           // Handle both int and string user_id
           int? userIdInt;
           if (userId == null) {
-            print('[ChatService] ⚠️ WARNING: user_id is null in response');
-            print('[ChatService] This means registration FAILED on backend');
+      _chatDebugLog('[ChatService] ⚠️ WARNING: user_id is null in response');
+      _chatDebugLog('[ChatService] This means registration FAILED on backend');
             userIdInt = null;
           } else if (userId is int) {
             userIdInt = userId;
-            print('[ChatService] ✅ user_id is int: $userIdInt');
+      _chatDebugLog('[ChatService] ✅ user_id is int: $userIdInt');
           } else if (userId is String) {
             userIdInt = int.tryParse(userId);
             if (userIdInt == null) {
-              print('[ChatService] ⚠️ WARNING: Failed to parse user_id string: "$userId"');
+        _chatDebugLog('[ChatService] ⚠️ WARNING: Failed to parse user_id string: "$userId"');
             } else {
-              print('[ChatService] ✅ user_id is string, parsed: $userIdInt');
+        _chatDebugLog('[ChatService] ✅ user_id is string, parsed: $userIdInt');
             }
           } else {
             userIdInt = int.tryParse(userId.toString());
             if (userIdInt == null) {
-              print('[ChatService] ⚠️ WARNING: Failed to parse user_id from type ${userId.runtimeType}: $userId');
+        _chatDebugLog('[ChatService] ⚠️ WARNING: Failed to parse user_id from type ${userId.runtimeType}: $userId');
             } else {
-              print('[ChatService] ✅ user_id is other type, converted: $userIdInt');
+        _chatDebugLog('[ChatService] ✅ user_id is other type, converted: $userIdInt');
             }
           }
 
-          print('[ChatService] ===== FINAL USER_ID =====');
-          print('[ChatService] Final user_id: $userIdInt');
-          print('[ChatService] Final user_id is null: ${userIdInt == null}');
-          print('[ChatService] ===== END SUCCESS RESPONSE =====');
+    _chatDebugLog('[ChatService] ===== FINAL USER_ID =====');
+    _chatDebugLog('[ChatService] Final user_id: $userIdInt');
+    _chatDebugLog('[ChatService] Final user_id is null: ${userIdInt == null}');
+    _chatDebugLog('[ChatService] ===== END SUCCESS RESPONSE =====');
 
           // ============================================
           // STEP 1: FIX ONBOARDING SUCCESS CONDITION
@@ -350,9 +353,9 @@ class ChatService {
           // ============================================
           
           if (userIdInt == null) {
-            print('[ChatService] ❌ ERROR: user_id is null after parsing');
-            print('[ChatService] This indicates registration FAILED on backend');
-            print('[ChatService] Response body: $body');
+      _chatDebugLog('[ChatService] ❌ ERROR: user_id is null after parsing');
+      _chatDebugLog('[ChatService] This indicates registration FAILED on backend');
+      _chatDebugLog('[ChatService] Response body: $body');
             return {
               'message': body['message']?.toString() ??
                   'Server response missing user_id. Please try again.',
@@ -368,8 +371,8 @@ class ChatService {
           // Message content (even if it contains chat/GPT errors) does NOT affect registration success
           // ============================================
           
-          print('[ChatService] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
-          print('[ChatService] Returning success response (message may contain chat errors, but registration succeeded)');
+    _chatDebugLog('[ChatService] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
+    _chatDebugLog('[ChatService] Returning success response (message may contain chat errors, but registration succeeded)');
           
           return {
             'message': body['message']?.toString() ?? '',
@@ -377,12 +380,12 @@ class ChatService {
             'language': body['language']?.toString() ?? language,
           };
         } catch (e, stackTrace) {
-          print('[ChatService] ===== PARSE ERROR =====');
-          print('[ChatService] ERROR parsing response body: $e');
-          print('[ChatService] Stack trace: $stackTrace');
-          print('[ChatService] Response body (raw): ${response.body}');
-          print('[ChatService] Response status: ${response.statusCode}');
-          print('[ChatService] ===== END PARSE ERROR =====');
+    _chatDebugLog('[ChatService] ===== PARSE ERROR =====');
+    _chatDebugLog('[ChatService] ERROR parsing response body: $e');
+    _chatDebugLog('[ChatService] Stack trace: $stackTrace');
+    _chatDebugLog('[ChatService] Response body (raw): ${response.body}');
+    _chatDebugLog('[ChatService] Response status: ${response.statusCode}');
+    _chatDebugLog('[ChatService] ===== END PARSE ERROR =====');
           return {
             'message': 'Error parsing server response. Please try again.',
             'user_id': null,
@@ -392,16 +395,16 @@ class ChatService {
       }
 
       // Parse error message - provide user-friendly messages
-      print('[ChatService] ===== ERROR RESPONSE =====');
-      print('[ChatService] Status code: ${response.statusCode}');
-      print('[ChatService] Response body: ${response.body}');
-      print('[ChatService] Response headers: ${response.headers}');
+_chatDebugLog('[ChatService] ===== ERROR RESPONSE =====');
+_chatDebugLog('[ChatService] Status code: ${response.statusCode}');
+_chatDebugLog('[ChatService] Response body: ${response.body}');
+_chatDebugLog('[ChatService] Response headers: ${response.headers}');
 
       String errorMessage = 'Error creating account. Please try again.';
 
       try {
         final errorBody = jsonDecode(response.body);
-        print('[ChatService] Error body parsed: $errorBody');
+  _chatDebugLog('[ChatService] Error body parsed: $errorBody');
 
         // Try to get detail from error body
         final detail = errorBody['detail']?.toString() ??
@@ -409,12 +412,12 @@ class ChatService {
             errorBody['error']?.toString() ??
             '';
 
-        print('[ChatService] Error detail extracted: $detail');
+  _chatDebugLog('[ChatService] Error detail extracted: $detail');
 
         // Use backend error detail if available
         if (detail.isNotEmpty) {
           errorMessage = detail;
-          print('[ChatService] Using backend error detail: $errorMessage');
+    _chatDebugLog('[ChatService] Using backend error detail: $errorMessage');
         } else {
           // Map status codes to user-friendly messages
           switch (response.statusCode) {
@@ -441,12 +444,12 @@ class ChatService {
             default:
               errorMessage = 'Registration failed. Please try again.';
           }
-          print(
+    _chatDebugLog(
               '[ChatService] Using status code based error message: $errorMessage');
         }
       } catch (parseError) {
-        print('[ChatService] ⚠️ Could not parse error body: $parseError');
-        print('[ChatService] Raw response body: ${response.body}');
+  _chatDebugLog('[ChatService] ⚠️ Could not parse error body: $parseError');
+  _chatDebugLog('[ChatService] Raw response body: ${response.body}');
 
         // If can't parse error body, use status code
         switch (response.statusCode) {
@@ -464,19 +467,19 @@ class ChatService {
           default:
             errorMessage = 'Registration failed. Please try again.';
         }
-        print('[ChatService] Using fallback error message: $errorMessage');
+  _chatDebugLog('[ChatService] Using fallback error message: $errorMessage');
       }
 
-      print('[ChatService] Final error message: $errorMessage');
-      print('[ChatService] ===== END ERROR RESPONSE =====');
+_chatDebugLog('[ChatService] Final error message: $errorMessage');
+_chatDebugLog('[ChatService] ===== END ERROR RESPONSE =====');
       return {
         'message': errorMessage,
         'user_id': null,
         'language': null,
       };
     } catch (e) {
-      print('[ChatService] Onboarding exception: $e');
-      print('[ChatService] Exception type: ${e.runtimeType}');
+_chatDebugLog('[ChatService] Onboarding exception: $e');
+_chatDebugLog('[ChatService] Exception type: ${e.runtimeType}');
 
       // Provide user-friendly error messages based on exception type
       String errorMessage;
@@ -561,9 +564,9 @@ class ChatService {
       );
 
       // Safe debug log: no secrets
-      print('[ChatService] ===== SENDING TO BACKEND =====');
-      print('[ChatService] endpoint: ${uri.toString()}');
-      print('[ChatService] payload keys: ${bodyJson.keys.toList()}');
+_chatDebugLog('[ChatService] ===== SENDING TO BACKEND =====');
+_chatDebugLog('[ChatService] endpoint: ${uri.toString()}');
+_chatDebugLog('[ChatService] payload keys: ${bodyJson.keys.toList()}');
 
       ChatRepositoryResult? result;
       int retryCount = 0;
@@ -576,10 +579,10 @@ class ChatService {
         } catch (e) {
           retryCount++;
           if (retryCount >= maxRetries) {
-            print('[ChatService] All retry attempts failed');
+      _chatDebugLog('[ChatService] All retry attempts failed');
             rethrow;
           }
-          print(
+    _chatDebugLog(
               '[ChatService] Retry attempt $retryCount/$maxRetries after error: $e');
           await Future.delayed(
               Duration(seconds: retryCount * 2));
@@ -590,9 +593,9 @@ class ChatService {
         throw Exception('Failed to get response after $maxRetries attempts');
       }
 
-      print('[ChatService] ===== BACKEND RESPONSE =====');
-      print('[ChatService] Status: ${result.statusCode}');
-      print('[ChatService] Response body: ${result.body}');
+_chatDebugLog('[ChatService] ===== BACKEND RESPONSE =====');
+_chatDebugLog('[ChatService] Status: ${result.statusCode}');
+_chatDebugLog('[ChatService] Response body: ${result.body}');
 
       // Handle 422 (payload mismatch) with debug dump and user-friendly message
       if (result.statusCode == 422) {
@@ -611,7 +614,7 @@ class ChatService {
             }
           }
         } catch (_) {}
-        print('[ChatService] 422: endpoint=${uri.toString()} payload_keys=${bodyJson.keys.toList()} response=$detail');
+  _chatDebugLog('[ChatService] 422: endpoint=${uri.toString()} payload_keys=${bodyJson.keys.toList()} response=$detail');
         ChatLastErrorDump.set(
           endpoint: uri.toString(),
           payloadKeys: bodyJson.keys.map((e) => e.toString()).toList(),
@@ -623,24 +626,24 @@ class ChatService {
 
       // Handle 502 Bad Gateway (GPT failure) FIRST
       if (result.statusCode == 502) {
-        print('[ChatService] ❌ 502 Bad Gateway - GPT service error');
+  _chatDebugLog('[ChatService] ❌ 502 Bad Gateway - GPT service error');
         try {
           final errorBody = jsonDecode(result.body);
           final errorDetail =
               errorBody['detail'] ?? errorBody['error'] ?? 'GPT service error';
-          print('[ChatService] GPT error detail: $errorDetail');
+    _chatDebugLog('[ChatService] GPT error detail: $errorDetail');
           return 'GPT_ERROR: $errorDetail';
         } catch (parseError) {
-          print('[ChatService] Could not parse 502 error body: $parseError');
+    _chatDebugLog('[ChatService] Could not parse 502 error body: $parseError');
           return 'GPT_ERROR: GPT service is unavailable. Please try again.';
         }
       }
 
       if (result.statusCode == 200) {
-        print('[ChatService] ✅ SUCCESS - Backend responded');
+  _chatDebugLog('[ChatService] ✅ SUCCESS - Backend responded');
       } else {
-        print('[ChatService] ❌ ERROR - Status ${result.statusCode}');
-        print('[ChatService] Response body: ${result.body}');
+  _chatDebugLog('[ChatService] ❌ ERROR - Status ${result.statusCode}');
+  _chatDebugLog('[ChatService] Response body: ${result.body}');
 
         // Parse error response to get real backend error message
         try {
@@ -648,7 +651,7 @@ class ChatService {
           final errorDetail = errorBody.get('detail') ??
               errorBody.get('message') ??
               'Unknown error';
-          print('[ChatService] Backend error detail: $errorDetail');
+    _chatDebugLog('[ChatService] Backend error detail: $errorDetail');
 
           // Return structured error message from backend
           if (result.statusCode == 400) {
@@ -661,7 +664,7 @@ class ChatService {
             return 'ERROR_${result.statusCode}: $errorDetail';
           }
         } catch (parseError) {
-          print('[ChatService] Could not parse error body: $parseError');
+    _chatDebugLog('[ChatService] Could not parse error body: $parseError');
           if (result.statusCode == 400) {
             return 'VALIDATION_ERROR: Invalid request. Please check your input.';
           } else if (result.statusCode == 404) {
@@ -675,12 +678,12 @@ class ChatService {
       if (result.statusCode == 200) {
         final body = jsonDecode(result.body);
 
-        print('[ChatService] Response body keys: ${body.keys.toList()}');
-        print('[ChatService] Response body: $body');
+  _chatDebugLog('[ChatService] Response body keys: ${body.keys.toList()}');
+  _chatDebugLog('[ChatService] Response body: $body');
 
         // Check for security flag in response (backend AI detected suspicious behavior)
         if (body['requires_security_check'] == true) {
-          print('[ChatService] ⚠️ Security check required');
+    _chatDebugLog('[ChatService] ⚠️ Security check required');
           return 'SECURITY_CHECK_REQUIRED';
         }
 
@@ -689,13 +692,13 @@ class ChatService {
         final userId = body['user_id'] as int?;
         final detectedName = body['detected_name']?.toString();
 
-        print('[ChatService] Parsed message: "$message"');
-        print('[ChatService] Parsed user_id: $userId');
-        print('[ChatService] Parsed detected_name: $detectedName');
+  _chatDebugLog('[ChatService] Parsed message: "$message"');
+  _chatDebugLog('[ChatService] Parsed user_id: $userId');
+  _chatDebugLog('[ChatService] Parsed detected_name: $detectedName');
 
         if (message.isEmpty) {
-          print('[ChatService] ⚠️ WARNING: Backend returned empty message!');
-          print('[ChatService] Full response body: $body');
+    _chatDebugLog('[ChatService] ⚠️ WARNING: Backend returned empty message!');
+    _chatDebugLog('[ChatService] Full response body: $body');
         }
 
         // Build response string with all data
@@ -709,7 +712,7 @@ class ChatService {
         // Add detected_name if available (to update UserProfile)
         if (detectedName != null && detectedName.isNotEmpty) {
           responseString = 'DETECTED_NAME:$detectedName|$responseString';
-          print(
+    _chatDebugLog(
               '[ChatService] ✅ Name detected from conversation: $detectedName');
         }
 
@@ -717,7 +720,7 @@ class ChatService {
       }
 
       if (result.statusCode == 401 || result.statusCode == 404) {
-        print('[ChatService] Auth error: Status ${result.statusCode}');
+  _chatDebugLog('[ChatService] Auth error: Status ${result.statusCode}');
         // User not found - this is okay for new users, they can chat without registration
         // Backend will create user automatically or return error
         // But with anonymous users support, this shouldn't happen
@@ -727,52 +730,52 @@ class ChatService {
       if (result.statusCode != 200) {
         try {
           final errorBody = jsonDecode(result.body);
-          print('[ChatService] Error ${result.statusCode}: $errorBody');
+    _chatDebugLog('[ChatService] Error ${result.statusCode}: $errorBody');
         } catch (_) {
-          print('[ChatService] Error ${result.statusCode}: ${result.body}');
+    _chatDebugLog('[ChatService] Error ${result.statusCode}: ${result.body}');
         }
       }
 
       return 'SERVER_ERROR_${result.statusCode}';
     } catch (e) {
       // Better error handling for debugging
-      print('[ChatService] ===== EXCEPTION CAUGHT =====');
-      print('[ChatService] Exception type: ${e.runtimeType}');
-      print('[ChatService] Exception message: $e');
-      print('[ChatService] Stack trace: ${StackTrace.current}');
+_chatDebugLog('[ChatService] ===== EXCEPTION CAUGHT =====');
+_chatDebugLog('[ChatService] Exception type: ${e.runtimeType}');
+_chatDebugLog('[ChatService] Exception message: $e');
+_chatDebugLog('[ChatService] Stack trace: ${StackTrace.current}');
 
       final errorString = e.toString().toLowerCase();
 
       // Check for specific connection errors
       if (errorString.contains('timeout')) {
-        print(
+  _chatDebugLog(
             '[ChatService] ❌ Connection timeout - Server may be down or slow');
         return 'SERVER_CONNECTION_ERROR: Connection timeout. The server may be down or slow. Please try again.';
       } else if (errorString.contains('connection refused')) {
-        print(
+  _chatDebugLog(
             '[ChatService] ❌ Connection refused - Server is not accepting connections');
         return 'SERVER_CONNECTION_ERROR: Connection refused. The server may be down. Please check your internet connection and try again.';
       } else if (errorString.contains('failed host lookup') ||
           errorString.contains('name resolution')) {
-        print(
+  _chatDebugLog(
             '[ChatService] ❌ DNS resolution failed - Cannot resolve hostname');
         return 'SERVER_CONNECTION_ERROR: Cannot resolve server address. Please check your internet connection and try again.';
       } else if (errorString.contains('network is unreachable')) {
-        print('[ChatService] ❌ Network unreachable - No internet connection');
+  _chatDebugLog('[ChatService] ❌ Network unreachable - No internet connection');
         return 'SERVER_CONNECTION_ERROR: Network unreachable. Please check your internet connection and try again.';
       } else if (errorString.contains('socketexception') ||
           errorString.contains('socket')) {
-        print('[ChatService] ❌ Socket exception - Network error');
+  _chatDebugLog('[ChatService] ❌ Socket exception - Network error');
         return 'SERVER_CONNECTION_ERROR: Network error. Please check your internet connection and try again.';
       } else if (errorString.contains('connection reset')) {
-        print('[ChatService] ❌ Connection reset - Server closed connection');
+  _chatDebugLog('[ChatService] ❌ Connection reset - Server closed connection');
         return 'SERVER_CONNECTION_ERROR: Connection reset. The server closed the connection. Please try again.';
       } else if (errorString.contains('no route to host')) {
-        print('[ChatService] ❌ No route to host - Cannot reach server');
+  _chatDebugLog('[ChatService] ❌ No route to host - Cannot reach server');
         return 'SERVER_CONNECTION_ERROR: Cannot reach server. Please check your internet connection and try again.';
       }
 
-      print('[ChatService] ❌ Unknown network error: $e');
+_chatDebugLog('[ChatService] ❌ Unknown network error: $e');
       return 'NETWORK_ERROR: ${e.toString()}';
     }
   }
@@ -803,7 +806,7 @@ class ChatService {
           response.statusCode == 400 ||
           response.statusCode == 404;
     } catch (e) {
-      print('[ChatService] Connection test failed: $e');
+_chatDebugLog('[ChatService] Connection test failed: $e');
       return false;
     }
   }

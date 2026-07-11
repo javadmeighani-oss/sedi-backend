@@ -1,5 +1,3 @@
-import '../../../core/utils/brand_name.dart';
-
 /// Gate 3 localized strings (fa / ar / en).
 class Gate3Localization {
   final String lang;
@@ -20,6 +18,71 @@ class Gate3Localization {
   String get gadgets => _t(en: 'Gadgets', fa: 'گجت‌ها', ar: 'الأجهزة');
 
   String get history => _t(en: 'History', fa: 'تاریخچه', ar: 'السجل');
+
+  String get historyCardDescription => _t(
+        en: 'Browse your past conversations with Sedi.',
+        fa: 'گفت‌وگوهای قبلی خود با صدی را ببینید.',
+        ar: 'تصفّح محادثاتك السابقة مع صدي.',
+      );
+
+  String get historyEmptyTitle => _t(
+        en: 'No conversations yet',
+        fa: 'هنوز گفت‌وگویی ثبت نشده است',
+        ar: 'لا توجد محادثات مسجلة بعد',
+      );
+
+  String get historyEmptySubtitle => _t(
+        en: 'Your chats with Sedi will appear here.',
+        fa: 'گفت‌وگوهای شما با صدی اینجا نمایش داده می‌شود.',
+        ar: 'ستظهر محادثاتك مع صدي هنا.',
+      );
+
+  String get historySignInRequired => _t(
+        en: 'Please sign in to see your history',
+        fa: 'برای مشاهده تاریخچه وارد حساب خود شوید',
+        ar: 'يرجى تسجيل الدخول لعرض السجل',
+      );
+
+  String get historyRetry =>
+      _t(en: 'Try again', fa: 'تلاش مجدد', ar: 'إعادة المحاولة');
+
+  String get historyLoading =>
+      _t(en: 'Loading…', fa: 'در حال بارگذاری…', ar: 'جارٍ التحميل…');
+
+  String get historyDaily =>
+      _t(en: 'Daily', fa: 'روزانه', ar: 'يومي');
+
+  String get historyWeekly =>
+      _t(en: 'Weekly', fa: 'هفتگی', ar: 'أسبوعي');
+
+  String get historyMonthly =>
+      _t(en: 'Monthly', fa: 'ماهانه', ar: 'شهري');
+
+  String get historyYearly =>
+      _t(en: 'Yearly', fa: 'سالانه', ar: 'سنوي');
+
+  String get historyToday =>
+      _t(en: 'Today', fa: 'امروز', ar: 'اليوم');
+
+  String get historyYesterday =>
+      _t(en: 'Yesterday', fa: 'دیروز', ar: 'أمس');
+
+  String get historyYou => _t(en: 'You', fa: 'شما', ar: 'أنت');
+
+  /// Fixed brand label — never translated.
+  String get historySedi => 'Sedi.';
+
+  String get historyGenericError => _t(
+        en: 'Could not load history. Please try again.',
+        fa: 'بارگذاری تاریخچه ممکن نشد. لطفاً دوباره تلاش کنید.',
+        ar: 'تعذّر تحميل السجل. يرجى المحاولة مرة أخرى.',
+      );
+
+  String get historyBackToChat => _t(
+        en: 'Back to chat',
+        fa: 'بازگشت به گفتگو',
+        ar: 'العودة إلى المحادثة',
+      );
 
   String get settings => _t(en: 'Settings', fa: 'تنظیمات', ar: 'الإعدادات');
 
@@ -72,27 +135,6 @@ class Gate3Localization {
         en: 'Attachments will be available here soon.',
         fa: 'پیوست‌ها به‌زودی در این بخش در دسترس خواهند بود.',
         ar: 'ستتوفر المرفقات هنا قريبًا.',
-      );
-
-  String sampleIntroAssistant1() {
-    final brand = sediBrandName(lang);
-    return _t(
-      en: 'Hello, I\'m $brand — your trusted health companion.',
-      fa: 'سلام، من $brand‌ام — همراه هوشمند سلامت شما.',
-      ar: 'مرحبًا، أنا $brand — رفيقك الموثوق في الصحة.',
-    );
-  }
-
-  String sampleIntroUser1() => _t(
-        en: 'Hi Sedi. I\'m not feeling well today.',
-        fa: 'سلام صدی. امروز حالم خوب نیست.',
-        ar: 'مرحبًا صدي. لا أشعر بحالة جيدة اليوم.',
-      );
-
-  String sampleIntroAssistant2() => _t(
-        en: 'Share your symptoms and I\'ll guide you.',
-        fa: 'علائمت را بگو تا دقیق‌تر راهنماییت کنم.',
-        ar: 'شاركني أعراضك لأرشدك بدقة.',
       );
 
   String _t({required String en, required String fa, required String ar}) {

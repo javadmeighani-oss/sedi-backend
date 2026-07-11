@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/brand_name.dart';
 import '../../models/gate3_interaction_state.dart';
 import 'sedi_frequency_ring_painter.dart';
 import 'sedi_orb_texture_painter.dart';
@@ -8,14 +7,15 @@ import 'sedi_orb_texture_painter.dart';
 /// Living Sedi brain orb — cream/olive sphere with animated frequency ring.
 class SediBrainOrb extends StatefulWidget {
   final Gate3InteractionState state;
-  final String lang;
+
+  /// Fixed Latin brand mark inside the orb (never localized).
+  static const String brandLabel = 'Sedi.';
 
   static const double size = 136;
 
   const SediBrainOrb({
     super.key,
     required this.state,
-    required this.lang,
   });
 
   @override
@@ -74,7 +74,6 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   @override
   Widget build(BuildContext context) {
     final orbDiameter = SediBrainOrb.size * 0.72;
-    final brand = sediBrandName(widget.lang);
     final brandFontSize = orbDiameter * 0.34;
 
     return SizedBox(
@@ -132,7 +131,7 @@ class _SediBrainOrbState extends State<SediBrainOrb>
                 ),
               ),
               Text(
-                '$brand.',
+                SediBrainOrb.brandLabel,
                 style: TextStyle(
                   fontSize: brandFontSize,
                   fontWeight: FontWeight.w800,

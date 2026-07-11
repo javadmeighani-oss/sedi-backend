@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
@@ -26,6 +27,12 @@ const List<String> _goalKeys = [
   'weight_management',
   'healthy_habits',
 ];
+
+void _onboardingLog(String message) {
+  if (kDebugMode) {
+    debugPrint(message);
+  }
+}
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -107,22 +114,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
   ///     - Show registration error
   /// ============================================
   Future<void> _submitForm() async {
-    debugPrint('[OnboardingPage] ========== SUBMIT FORM START ==========');
+_onboardingLog('[OnboardingPage] ========== SUBMIT FORM START ==========');
 
     // Pre-flight checks
     if (_isSubmitting || !_isFormValid) {
-      debugPrint(
-          '[OnboardingPage] ⚠️ Submit blocked: _isSubmitting=$_isSubmitting, _isFormValid=$_isFormValid');
+      _onboardingLog('[OnboardingPage] submit blocked');
       return;
     }
 
     if (!(_formKey.currentState?.validate() ?? false)) {
-      debugPrint('[OnboardingPage] ⚠️ Form validation failed');
+  _onboardingLog('[OnboardingPage] ⚠️ Form validation failed');
       return;
     }
 
     if (!mounted) {
-      debugPrint('[OnboardingPage] ⚠️ Widget not mounted, aborting');
+  _onboardingLog('[OnboardingPage] ⚠️ Widget not mounted, aborting');
       return;
     }
 
@@ -133,31 +139,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final name = _nameController.text.trim();
     final systemLanguage = _getSystemLanguage();
 
-    debugPrint(
-        '[OnboardingPage] Form data: name="$name", language=$systemLanguage');
-
-    // ============================================
-    // STEP 4: FIX try/catch STRUCTURE
-    // ============================================
-    // try/catch ONLY around HTTP request
-    // NOT around navigation or profile saving
-    // ============================================
     Map<String, dynamic>? onboardingResponse;
     Exception? onboardingException;
 
     try {
-      debugPrint('[OnboardingPage] ===== CALLING ONBOARDING API =====');
+  _onboardingLog('[OnboardingPage] ===== CALLING ONBOARDING API =====');
       final chatService = ChatService();
       // STEP 2: name is REQUIRED (non-empty, validated in form)
       onboardingResponse = await chatService.setupOnboarding(
         systemLanguage,
         name: name,
       );
-      debugPrint('[OnboardingPage] ===== ONBOARDING API SUCCESS =====');
+  _onboardingLog('[OnboardingPage] ===== ONBOARDING API SUCCESS =====');
     } catch (e) {
-      debugPrint('[OnboardingPage] ===== ONBOARDING API EXCEPTION =====');
-      debugPrint('[OnboardingPage] Exception: $e');
-      debugPrint('[OnboardingPage] Exception type: ${e.runtimeType}');
+      _onboardingLog('[OnboardingPage] onboarding API failed');
       onboardingException = e is Exception ? e : Exception(e.toString());
     }
 
@@ -166,7 +161,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // ============================================
     // If HTTP request failed, show error
     if (onboardingException != null) {
-      debugPrint('[OnboardingPage] ❌ HTTP request failed');
+  _onboardingLog('[OnboardingPage] ❌ HTTP request failed');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -195,7 +190,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     // Response received - parse it
     if (onboardingResponse == null) {
-      debugPrint('[OnboardingPage] ❌ Response is null');
+  _onboardingLog('[OnboardingPage] ❌ Response is null');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -211,19 +206,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       return;
     }
 
-    // ============================================
-    // STEP 5: ADD TEMP DEBUG LOGS (MANDATORY)
-    // ============================================
-    debugPrint('[OnboardingPage] ===== ONBOARDING RESPONSE =====');
-    debugPrint('[OnboardingPage] Full response: $onboardingResponse');
-    debugPrint(
-        '[OnboardingPage] Response keys: ${onboardingResponse.keys.toList()}');
-
     // Extract user_id
     final userId = onboardingResponse['user_id'];
-    debugPrint('[OnboardingPage] USER_ID from response: $userId');
-    debugPrint('[OnboardingPage] USER_ID type: ${userId?.runtimeType}');
-    debugPrint('[OnboardingPage] USER_ID is null: ${userId == null}');
 
     // Parse user_id to int
     int? userIdInt;
@@ -237,19 +221,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
       userIdInt = int.tryParse(userId.toString());
     }
 
-    debugPrint('[OnboardingPage] USER_ID parsed: $userIdInt');
-    debugPrint(
-        '[OnboardingPage] USER_ID is null after parsing: ${userIdInt == null}');
-    debugPrint('[OnboardingPage] ===== END ONBOARDING RESPONSE =====');
-
     // ============================================
     // STEP 1: CHECK user_id EXISTENCE
     // ============================================
     // If user_id is null → registration FAILED
     if (!AppConfig.useLocalMode && userIdInt == null) {
-      debugPrint('[OnboardingPage] ❌ ERROR: user_id is null');
-      debugPrint(
-          '[OnboardingPage] Exact place where error banner is triggered: user_id check failed');
+      _onboardingLog('[OnboardingPage] registration response missing user id');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -272,9 +249,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // Registration is SUCCESSFUL
     // SAVE user_id, MARK as SUCCESS, NAVIGATE, RETURN IMMEDIATELY
     // ============================================
-    debugPrint(
-        '[OnboardingPage] ✅ Registration SUCCESSFUL - user_id: $userIdInt');
-    debugPrint('[OnboardingPage] Proceeding to save profile and navigate...');
+    _onboardingLog('[OnboardingPage] registration succeeded');
+    _onboardingLog('[OnboardingPage] proceeding to save profile and navigate');
 
     // ============================================
     // STEP 2: HARD SEPARATION: onboarding vs chat
@@ -304,9 +280,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         isVerified: true,
       );
 
-      debugPrint('[OnboardingPage] Saving profile with userId: $userIdInt');
+      _onboardingLog('[OnboardingPage] saving profile');
       await UserProfileManager.saveProfile(profile);
-      debugPrint('[OnboardingPage] Profile saved successfully');
+      _onboardingLog('[OnboardingPage] profile saved');
       await tryRegisterStoredTokenAfterLogin();
 
       // Stage 24 UX Pack 02: persist get-to-know-you locally
@@ -330,16 +306,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             goalsJson: goalsJson,
           );
           if (!resp.ok) {
-            debugPrint(
-                '[OnboardingPage] PUT /user/knowledge failed (best-effort): ${resp.errorMessage}');
+            _onboardingLog('[OnboardingPage] user knowledge sync failed');
           }
-        } catch (e) {
-          debugPrint(
-              '[OnboardingPage] PUT /user/knowledge exception (best-effort): $e');
+        } catch (_) {
+          _onboardingLog('[OnboardingPage] user knowledge sync failed');
         }
       }
     } catch (saveError) {
-      debugPrint('[OnboardingPage] ❌ Error saving profile: $saveError');
+      _onboardingLog('[OnboardingPage] profile save failed');
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -362,26 +336,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
     // If navigation fails, it's a different error (not registration failure)
     // ============================================
     if (!mounted) {
-      debugPrint('[OnboardingPage] ⚠️ Widget unmounted before navigation');
+  _onboardingLog('[OnboardingPage] ⚠️ Widget unmounted before navigation');
       return;
     }
 
     // Extract initial message (may be empty if chat failed - that's OK)
     final initialMessage = onboardingResponse['message']?.toString() ?? '';
-    debugPrint('[OnboardingPage] Initial message: "$initialMessage"');
-    debugPrint(
-        '[OnboardingPage] Note: Message may be empty if chat failed - that is OK, chat handles it separately');
 
-    // Navigate to chat (OUTSIDE try/catch)
-    debugPrint('[OnboardingPage] Navigating to ChatPage...');
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => ChatPage(initialMessage: initialMessage),
       ),
     );
 
-    debugPrint('[OnboardingPage] ✅ Navigation completed');
-    debugPrint('[OnboardingPage] ========== SUBMIT FORM SUCCESS ==========');
+    _onboardingLog('[OnboardingPage] navigation completed');
+    _onboardingLog('[OnboardingPage] submit form finished');
 
     // Registration is COMPLETE - no error banner should appear
   }

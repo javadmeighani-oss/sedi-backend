@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_brain_orb.dart';
 
 void main() {
   test('Gate3Localization fa keeps exact composer placeholder', () {
@@ -23,5 +24,37 @@ void main() {
     const l10n = Gate3Localization('ar');
     expect(l10n.isRtl, isTrue);
     expect(l10n.gadgets, 'الأجهزة');
+  });
+
+  test('Gate3Localization fa history labels', () {
+    const l10n = Gate3Localization('fa');
+    expect(l10n.history, 'تاریخچه');
+    expect(l10n.historyToday, 'امروز');
+    expect(l10n.historyYesterday, 'دیروز');
+    expect(l10n.historyDaily, 'روزانه');
+    expect(l10n.historyRetry, 'تلاش مجدد');
+    expect(l10n.historyEmptyTitle, 'هنوز گفت‌وگویی ثبت نشده است');
+    expect(l10n.historySedi, 'Sedi.');
+  });
+
+  test('Gate3Localization ar history labels', () {
+    const l10n = Gate3Localization('ar');
+    expect(l10n.history, 'السجل');
+    expect(l10n.historyToday, 'اليوم');
+    expect(l10n.historyYesterday, 'أمس');
+    expect(l10n.historyMonthly, 'شهري');
+    expect(l10n.historyRetry, 'إعادة المحاولة');
+    expect(l10n.historyEmptyTitle, 'لا توجد محادثات مسجلة بعد');
+  });
+
+  test('Gate3Localization en history labels', () {
+    const l10n = Gate3Localization('en');
+    expect(l10n.history, 'History');
+    expect(l10n.historyWeekly, 'Weekly');
+    expect(l10n.isRtl, isFalse);
+  });
+
+  test('SediBrainOrb brand label is fixed Latin', () {
+    expect(SediBrainOrb.brandLabel, 'Sedi.');
   });
 }

@@ -13,8 +13,9 @@ class SediFrequencyRingPainter extends CustomPainter {
   final Gate3InteractionState state;
 
   static const _barCount = 72;
-  static const _oliveStroke = Color(0xFFB8C88A);
+  static const _oliveStroke = Color(0xFF9AB06E);
   static const _creamGlow = Color(0xFFE8E4C8);
+  static const _visibilityBoost = 1.4;
 
   const SediFrequencyRingPainter({
     required this.phase,
@@ -26,26 +27,26 @@ class SediFrequencyRingPainter extends CustomPainter {
   static double targetAmplitude(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
-        return 0.14;
+        return 0.14 * _visibilityBoost;
       case Gate3InteractionState.listening:
-        return 0.22;
+        return 0.22 * _visibilityBoost;
       case Gate3InteractionState.thinking:
-        return 0.38;
+        return 0.38 * _visibilityBoost;
       case Gate3InteractionState.speaking:
-        return 0.34;
+        return 0.34 * _visibilityBoost;
     }
   }
 
   static double targetGlow(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
-        return 0.18;
+        return 0.18 * _visibilityBoost;
       case Gate3InteractionState.listening:
-        return 0.28;
+        return 0.28 * _visibilityBoost;
       case Gate3InteractionState.thinking:
-        return 0.42;
+        return 0.42 * _visibilityBoost;
       case Gate3InteractionState.speaking:
-        return 0.38;
+        return 0.38 * _visibilityBoost;
     }
   }
 
@@ -69,13 +70,12 @@ class SediFrequencyRingPainter extends CustomPainter {
     final baseRadius = outerRadius * 0.88;
     final animatedPhase = phase * phaseSpeed(state);
 
-    // Soft outer glow halo
     final glowPaint = Paint()
       ..shader = ui.Gradient.radial(
         center,
         outerRadius,
         [
-          _creamGlow.withOpacity(glowOpacity * 0.35),
+          _creamGlow.withOpacity(glowOpacity * 0.49),
           _creamGlow.withOpacity(0),
         ],
       );
@@ -88,7 +88,6 @@ class SediFrequencyRingPainter extends CustomPainter {
     for (var i = 0; i < _barCount; i++) {
       final angle = (i / _barCount) * math.pi * 2 + animatedPhase * math.pi * 2;
 
-      // Layered wave frequencies for organic motion
       final waveA = math.sin(angle * 5 + animatedPhase * math.pi * 8);
       final waveB = math.sin(angle * 11 - animatedPhase * math.pi * 6) * 0.55;
       final waveC = math.sin(angle * 3 + animatedPhase * math.pi * 4) * 0.35;
@@ -104,18 +103,19 @@ class SediFrequencyRingPainter extends CustomPainter {
             math.sin(angle) * (baseRadius + barLength),
           );
 
-      final opacity = 0.18 + normalized * 0.55;
+      final opacity = (0.18 + normalized * 0.55) * _visibilityBoost;
       barPaint
-        ..color = _oliveStroke.withOpacity(opacity * glowOpacity.clamp(0.2, 1.0))
-        ..strokeWidth = 1.4 + normalized * 0.8;
+        ..color = _oliveStroke.withOpacity(
+          opacity.clamp(0.15, 0.95) * glowOpacity.clamp(0.2, 1.0),
+        )
+        ..strokeWidth = (1.4 + normalized * 0.8) * _visibilityBoost;
       canvas.drawLine(inner, outer, barPaint);
     }
 
-    // Thin luminous ring trace
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = _oliveStroke.withOpacity(0.22 + glowOpacity * 0.3);
+      ..strokeWidth = 1.2 * _visibilityBoost
+      ..color = _oliveStroke.withOpacity((0.22 + glowOpacity * 0.3) * _visibilityBoost);
     canvas.drawCircle(center, baseRadius, ringPaint);
   }
 

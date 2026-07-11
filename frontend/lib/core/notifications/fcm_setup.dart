@@ -5,7 +5,15 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import 'package:flutter/foundation.dart';
+
 import 'local_notifications_service.dart';
+
+void _fcmBackgroundLog(String message) {
+  if (kDebugMode) {
+    debugPrint(message);
+  }
+}
 
 /// Top-level background handler. Must be top-level for Firebase isolate.
 @pragma('vm:entry-point')
@@ -14,8 +22,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp();
     await LocalNotificationsService.init();
     await LocalNotificationsService.showRemoteNotification(message);
-  } catch (e) {
-    print('[FCM] Background handler error: $e');
+  } catch (_) {
+    _fcmBackgroundLog('[FCM] background handler failed');
   }
 }
 

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_profile_manager.dart';
 import '../../../../data/dto/history_response.dart';
 import '../../../../data/repositories/chat_repository.dart';
+import '../../../gate3_interactive/presentation/gate3_localization.dart';
 
-/// ------------------------------------------------------------
-/// ChatHistoryPage
-///
-/// Displays real chat history from GET /memory/history.
-/// Group selector: Daily / Weekly / Monthly / Yearly.
-/// ------------------------------------------------------------
+/// Displays chat history from GET /memory/history (daily / weekly / monthly / yearly).
 class ChatHistoryPage extends StatefulWidget {
-  const ChatHistoryPage({super.key});
+  /// App language (`fa` / `ar` / `en`). When omitted, loaded from saved profile.
+  final String? lang;
+
+  const ChatHistoryPage({super.key, this.lang});
 
   @override
   State<ChatHistoryPage> createState() => _ChatHistoryPageState();
@@ -19,32 +19,42 @@ class ChatHistoryPage extends StatefulWidget {
 
 class _ChatHistoryPageState extends State<ChatHistoryPage> {
   static const List<String> _groups = ['daily', 'weekly', 'monthly', 'yearly'];
-  static const List<String> _groupLabels = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
 
+  String _lang = 'en';
   int? _userId;
   String _selectedGroup = 'daily';
   bool _loading = true;
+  bool _langReady = false;
   String? _error;
   HistoryResponse? _data;
+
+  Gate3Localization get l10n => Gate3Localization(_lang);
 
   @override
   void initState() {
     super.initState();
-    _loadUserIdAndFetch();
+    _bootstrap();
   }
 
-  Future<void> _loadUserIdAndFetch() async {
+  Future<void> _bootstrap() async {
+    var lang = widget.lang;
     final profile = await UserProfileManager.loadProfile();
+    lang ??= profile.preferredLanguage.isNotEmpty
+        ? profile.preferredLanguage
+        : 'en';
     if (!mounted) return;
     setState(() {
+      _lang = lang!;
+      _langReady = true;
       _userId = profile.userId;
       _loading = true;
       _error = null;
     });
     if (_userId == null) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Please sign in to see history';
+        _error = l10n.historySignInRequired;
       });
       return;
     }
@@ -70,11 +80,11 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
         _loading = false;
         _error = null;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = l10n.historyGenericError;
         _data = null;
       });
     }
@@ -86,7 +96,27 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     _fetch();
   }
 
-  /// Parse created_at (ISO) to HH:MM in local time. Safe: empty/fail -> "--:--".
+  String _groupLabel(String group) {
+    switch (group) {
+      case 'weekly':
+        return l10n.historyWeekly;
+      case 'monthly':
+        return l10n.historyMonthly;
+      case 'yearly':
+        return l10n.historyYearly;
+      case 'daily':
+      default:
+        return l10n.historyDaily;
+    }
+  }
+
+  String _localizeDateGroupKey(String key) {
+    final normalized = key.trim().toLowerCase();
+    if (normalized == 'today') return l10n.historyToday;
+    if (normalized == 'yesterday') return l10n.historyYesterday;
+    return key;
+  }
+
   String _timeFromCreatedAt(String createdAt) {
     if (createdAt.trim().isEmpty) return '--:--';
     final dt = DateTime.tryParse(createdAt);
@@ -104,88 +134,107 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ================= TOP BAR =================
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.history),
-                    color: AppTheme.primaryBlack,
-                    onPressed: () {},
+    if (!_langReady) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryBlack),
+        ),
+      );
+    }
+
+    final textDirection =
+        l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
+
+    return Directionality(
+      textDirection: textDirection,
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundWhite,
+        appBar: AppBar(
+          backgroundColor: AppTheme.backgroundWhite,
+          foregroundColor: AppTheme.primaryBlack,
+          elevation: 0,
+          title: Text(l10n.history),
+          centerTitle: false,
+        ),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _groups.map((g) {
+                      final selected = _selectedGroup == g;
+                      return FilterChip(
+                        label: Text(_groupLabel(g)),
+                        selected: selected,
+                        onSelected: (_) => _onGroupSelected(g),
+                        selectedColor:
+                            AppTheme.pistachioGreen.withOpacity(0.3),
+                        checkmarkColor: AppTheme.primaryBlack,
+                      );
+                    }).toList(),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.favorite_border),
-                    color: AppTheme.primaryBlack,
-                    onPressed: () {},
-                  ),
-                  const Spacer(),
-                ],
+                ),
               ),
-            ),
-
-            // ================= GROUP SELECTOR =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: List.generate(_groups.length, (i) {
-                  final g = _groups[i];
-                  final label = _groupLabels[i];
-                  final selected = _selectedGroup == g;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(label),
-                      selected: selected,
-                      onSelected: (_) => _onGroupSelected(g),
-                      selectedColor: AppTheme.pistachioGreen.withOpacity(0.3),
-                      checkmarkColor: AppTheme.primaryBlack,
-                    ),
-                  );
-                }),
+              Expanded(
+                child: _loading
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                              color: AppTheme.primaryBlack,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.historyLoading,
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _error != null
+                        ? _buildError()
+                        : _data == null || _data!.items.isEmpty
+                            ? _buildEmpty()
+                            : _buildList(),
               ),
-            ),
-
-            // ================= CONTENT =================
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlack))
-                  : _error != null
-                      ? _buildError()
-                      : _data == null || _data!.items.isEmpty
-                          ? _buildEmpty()
-                          : _buildList(),
-            ),
-
-            // ================= BACK TO CHAT =================
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primaryBlack,
-                    ),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: AppTheme.backgroundWhite,
-                      size: 24,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Tooltip(
+                    message: l10n.historyBackToChat,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryBlack,
+                        ),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppTheme.backgroundWhite,
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -201,14 +250,19 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+              ),
             ),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: _fetch,
               icon: const Icon(Icons.refresh, size: 20),
-              label: const Text('Retry'),
-              style: TextButton.styleFrom(foregroundColor: AppTheme.primaryBlack),
+              label: Text(l10n.historyRetry),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.primaryBlack,
+              ),
             ),
           ],
         ),
@@ -217,10 +271,32 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
   }
 
   Widget _buildEmpty() {
-    return const Center(
-      child: Text(
-        'No history yet',
-        style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.historyEmptyTitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.historyEmptySubtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -238,7 +314,7 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
             Padding(
               padding: const EdgeInsets.only(top: 12, bottom: 6),
               child: Text(
-                group.key,
+                _localizeDateGroupKey(group.key),
                 style: const TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 15,
@@ -246,12 +322,15 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
                 ),
               ),
             ),
-            ...group.turns.map((turn) => _TurnTile(
-                  turn: turn,
-                  timeStr: _timeFromCreatedAt(turn.createdAt),
-                  preview: _preview(turn.userMessage),
-                  onTap: () => _showTurnDialog(turn),
-                )),
+            ...group.turns.map(
+              (turn) => _TurnTile(
+                turn: turn,
+                timeStr: _timeFromCreatedAt(turn.createdAt),
+                preview: _preview(turn.userMessage),
+                isRtl: l10n.isRtl,
+                onTap: () => _showTurnDialog(turn),
+              ),
+            ),
           ],
         );
       },
@@ -259,24 +338,41 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
   }
 
   void _showTurnDialog(HistoryTurnItem turn) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(_timeFromCreatedAt(turn.createdAt)),
         content: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.5),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.5,
+          ),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('You', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                Text(
+                  l10n.historyYou,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(turn.userMessage, style: const TextStyle(fontSize: 14)),
-              const SizedBox(height: 12),
-              const Text('Sedi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-              const SizedBox(height: 4),
-              Text(turn.sediResponse ?? '—', style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.historySedi,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  turn.sediResponse ?? '—',
+                  style: const TextStyle(fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -284,7 +380,7 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -296,12 +392,14 @@ class _TurnTile extends StatelessWidget {
   final HistoryTurnItem turn;
   final String timeStr;
   final String preview;
+  final bool isRtl;
   final VoidCallback onTap;
 
   const _TurnTile({
     required this.turn,
     required this.timeStr,
     required this.preview,
+    required this.isRtl,
     required this.onTap,
   });
 
@@ -313,6 +411,7 @@ class _TurnTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
           children: [
             SizedBox(
               width: 44,
@@ -335,7 +434,11 @@ class _TurnTile extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.metalGrey, size: 20),
+            const Icon(
+              Icons.chevron_right,
+              color: AppTheme.metalGrey,
+              size: 20,
+            ),
           ],
         ),
       ),

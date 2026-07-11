@@ -4,18 +4,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/auth/user_identity_service.dart';
-import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
-import '../../../devices/presentation/pages/devices_page.dart';
-import '../../../health/presentation/pages/vitals_page.dart';
-import '../../../lifestyle/presentation/pages/lifestyle_page.dart';
 
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
+import '../sections/gadgets/gate3_gadgets_page.dart';
+import '../sections/health_care/gate3_health_care_page.dart';
+import '../sections/lifestyle/gate3_lifestyle_overview_page.dart';
+import '../sections/settings/gate3_settings_page.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
@@ -54,7 +53,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller = ChatController();
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
-    _controller.initialize(initialMessage: widget.initialMessage);
+    _controller.initialize(initialMessage: widget.initialMessage).then((_) {
+      if (mounted) _scrollToBottom();
+    });
   }
 
   @override
@@ -132,24 +133,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
-  List<ChatMessage> _sampleMessages(Gate3Localization l10n) {
-    return [
-      ChatMessage(
-        text: l10n.sampleIntroAssistant1(),
-        role: ChatRole.assistant,
-      ),
-      ChatMessage.user(
-        text: l10n.sampleIntroUser1(),
-        localId: 'sample-1',
-        status: ChatMessageStatus.sent,
-      ),
-      ChatMessage(
-        text: l10n.sampleIntroAssistant2(),
-        role: ChatRole.assistant,
-      ),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = _l10n;
@@ -173,15 +156,25 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                   child: Gate3MainIconRow(
                     lang: _controller.currentLanguage,
-                    onHealthCare: () => _goTo(const VitalsPage()),
-                    onLifestyle: () => _goTo(const LifestylePage()),
-                    onGadgets: () => _goTo(const DevicesPage()),
+                    onSettings: () => _goTo(
+                      Gate3SettingsPage(lang: _controller.currentLanguage),
+                    ),
+                    onHealthCare: () => _goTo(
+                      Gate3HealthCarePage(lang: _controller.currentLanguage),
+                    ),
+                    onLifestyle: () => _goTo(
+                      Gate3LifestyleOverviewPage(
+                        lang: _controller.currentLanguage,
+                      ),
+                    ),
+                    onGadgets: () => _goTo(
+                      Gate3GadgetsPage(lang: _controller.currentLanguage),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 SediBrainOrb(
                   state: _orbState(),
-                  lang: _controller.currentLanguage,
                 ),
                 const SizedBox(height: 8),
                 Expanded(
@@ -267,12 +260,8 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                 });
                               },
                               onStopRecordingAndSend: () {
-                                _controller.stopVoiceRecording().then((path) {
+                                _controller.stopVoiceRecording().then((_) {
                                   if (!mounted) return;
-                                  if (path != null && kDebugMode) {
-                                    debugPrint(
-                                        '[Audio] recorded file: $path');
-                                  }
                                   setState(() => _composerListening = false);
                                 });
                               },
@@ -297,23 +286,22 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   Widget _buildMessages(Gate3Localization l10n) {
-    if (_controller.messages.isEmpty) {
-      final sample = _sampleMessages(l10n);
-      return ListView.builder(
-        controller: _scrollController,
-        reverse: true,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 6, bottom: 8),
-        itemCount: sample.length,
-        itemBuilder: (context, index) {
-          final reverseIndex = sample.length - 1 - index;
-          final msg = sample[reverseIndex];
-          return MessageBubble(
-            message: msg.text,
-            isSedi: msg.isSedi,
-          );
-        },
+    if (_controller.conversationState == ConversationState.initializing &&
+        _controller.messages.isEmpty) {
+      return const Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.gate2ButtonOlive,
+          ),
+        ),
       );
+    }
+
+    if (_controller.messages.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     return ListView.builder(

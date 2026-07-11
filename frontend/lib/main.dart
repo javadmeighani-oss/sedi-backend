@@ -13,16 +13,21 @@ import 'data/repositories/notification_repository.dart';
 import 'services/notifications/inbox_refresh_bus.dart';
 import 'services/push/push_service.dart';
 
+void _fcmLog(String message) {
+  if (kDebugMode) {
+    debugPrint(message);
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase & FCM (graceful if google-services.json missing)
   try {
     await Firebase.initializeApp();
-    debugPrint('[FCM] Firebase initialized ok');
+    _fcmLog('[FCM] Firebase initialized');
     await _setupFcm();
-  } catch (e) {
-    print('[main] Firebase/FCM setup skipped: $e');
+  } catch (_) {
+    _fcmLog('[FCM] setup skipped');
   }
 
   runApp(const SediApp());
@@ -33,37 +38,31 @@ final _feedbackSentIds = <int>{};
 const int _maxFeedbackDedupSize = 50;
 
 Future<void> _setupFcm() async {
-  debugPrint('[FCM] setup start');
-  // Request notification permission (Android 13+)
-  final permission = await FirebaseMessaging.instance.requestPermission(
+  _fcmLog('[FCM] setup start');
+  await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
     sound: true,
     provisional: false,
   );
-  debugPrint('[FCM] permission status: ${permission.authorizationStatus}');
+  _fcmLog('[FCM] permission requested');
 
-  // Initialize local notifications with action handler
   await LocalNotificationsService.init(
     onResponse: _handleNotificationResponse,
   );
 
-  // Background handler
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  // Foreground: show via local notifications
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     LocalNotificationsService.showRemoteNotification(message);
     InboxRefreshBus.instance.triggerDebounced();
   });
 
-  // Opened from background/terminated
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     InboxRefreshBus.instance.triggerDebounced();
     _navigateToChatFromMessage(message);
   });
 
-  // Check if app was opened from terminated state via notification
   final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
   if (initialMessage != null) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,10 +71,9 @@ Future<void> _setupFcm() async {
     });
   }
 
-  // Register token with backend (when user is logged in)
   _registerTokenOnStart();
-  FirebaseMessaging.instance.onTokenRefresh.listen((String newToken) {
-    debugPrint('[FCM] onTokenRefresh fired: ${_maskToken(newToken)}');
+  FirebaseMessaging.instance.onTokenRefresh.listen((_) {
+    _fcmLog('[FCM] push registration refresh event');
     _registerTokenOnStart();
   });
 }
@@ -149,7 +147,6 @@ Future<void> _navigateToChat({int? notificationId}) async {
     return;
   }
 
-  // Gate 3 deep link: official heart route with notification context.
   AppGateRouter.goToHeart(
     context,
     fromNotification: true,
@@ -157,27 +154,18 @@ Future<void> _navigateToChat({int? notificationId}) async {
   );
 }
 
-/// Mask FCM token for logging only; never log raw token (Stage 19).
-String _maskToken(String t) {
-  if (t.length <= 10) return '***';
-  return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
-}
-
 Future<void> _registerTokenOnStart() async {
   try {
-    debugPrint('[FCM] getToken() called');
+    _fcmLog('[FCM] push registration started');
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
 
-    debugPrint('[FCM] token acquired (masked): ${_maskToken(token)}');
-    debugPrint('[FCM] saving token to prefs');
     await saveTokenToPreferences(token);
-    debugPrint('[FCM] saved token to prefs');
-    debugPrint('[FCM] registerFcmTokenToBackend() called');
     final res = await registerFcmTokenToBackend(token);
-    debugPrint(
-        '[FCM] register result: status=${res.statusCode ?? '?'} ok=${res.ok}');
-  } catch (e) {
-    print('[FCM] Token register error: $e');
+    _fcmLog(
+      '[FCM] push registration finished: ok=${res.ok} status=${res.statusCode ?? '?'}',
+    );
+  } catch (_) {
+    _fcmLog('[FCM] push registration failed');
   }
 }

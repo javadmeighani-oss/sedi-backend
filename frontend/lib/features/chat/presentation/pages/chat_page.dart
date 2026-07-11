@@ -617,7 +617,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                       if (!mounted) return;
                       if (path != null) {
                         if (kDebugMode)
-                          debugPrint('[Audio] recorded file: $path');
+                          debugPrint('[Audio] recording completed');
                         final msg = _controller.currentLanguage == 'fa'
                             ? 'صدایت ضبط شد'
                             : _controller.currentLanguage == 'ar'
