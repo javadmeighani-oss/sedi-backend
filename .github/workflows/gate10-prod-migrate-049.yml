@@ -51,7 +51,8 @@ jobs:
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            "DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" 2>&1 | tee /tmp/gate10_migration_run.log <<'REMOTE_SCRIPT'
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/gate10_migration_run.log
           set -Eeuo pipefail
           log() { echo "[$(date -Is)] $*"; }
           summary() { echo "MIGRATION_SUMMARY|$1|$2"; }
