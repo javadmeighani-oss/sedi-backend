@@ -32,6 +32,9 @@ class SediBrainOrb extends StatefulWidget {
 
   static double get orbBodyRadius => orbDiameter / 2;
 
+  /// Official wordmark height ratio inside the orb (20% smaller than 0.34).
+  static const double brandHeightRatio = 0.272;
+
   /// Previous coupled visualizer allocation (126.48).
   static const double legacyVisualizerCanvasHeight = legacyCoupledExtent;
 
@@ -57,13 +60,7 @@ class SediBrainOrb extends StatefulWidget {
 class _SediBrainOrbState extends State<SediBrainOrb>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  double _amplitude = SediAudioVisualizerPainter.targetAmplitude(
-    Gate3InteractionState.idle,
-  );
   double _horizontalEnergy = SediAudioVisualizerPainter.targetHorizontalEnergy(
-    Gate3InteractionState.idle,
-  );
-  double _glow = SediAudioVisualizerPainter.targetGlow(
     Gate3InteractionState.idle,
   );
 
@@ -73,7 +70,7 @@ class _SediBrainOrbState extends State<SediBrainOrb>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
-    )..addListener(_tickVisualState)
+    )..addListener(_tickHorizontalEnergy)
       ..repeat();
   }
 
@@ -81,33 +78,22 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   void didUpdateWidget(covariant SediBrainOrb oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != widget.state) {
-      _tickVisualState();
+      _tickHorizontalEnergy();
     }
   }
 
-  void _tickVisualState() {
-    final targetAmp = SediAudioVisualizerPainter.targetAmplitude(widget.state);
-    final targetHorizontal =
+  void _tickHorizontalEnergy() {
+    final target =
         SediAudioVisualizerPainter.targetHorizontalEnergy(widget.state);
-    final targetGlow = SediAudioVisualizerPainter.targetGlow(widget.state);
-    final nextAmp = _amplitude + (targetAmp - _amplitude) * 0.12;
-    final nextHorizontal =
-        _horizontalEnergy + (targetHorizontal - _horizontalEnergy) * 0.12;
-    final nextGlow = _glow + (targetGlow - _glow) * 0.12;
-    if ((nextAmp - _amplitude).abs() > 0.0005 ||
-        (nextHorizontal - _horizontalEnergy).abs() > 0.0005 ||
-        (nextGlow - _glow).abs() > 0.0005) {
-      setState(() {
-        _amplitude = nextAmp;
-        _horizontalEnergy = nextHorizontal;
-        _glow = nextGlow;
-      });
+    final next = _horizontalEnergy + (target - _horizontalEnergy) * 0.12;
+    if ((next - _horizontalEnergy).abs() > 0.0005) {
+      setState(() => _horizontalEnergy = next);
     }
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_tickVisualState);
+    _controller.removeListener(_tickHorizontalEnergy);
     _controller.dispose();
     super.dispose();
   }
@@ -116,7 +102,7 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   Widget build(BuildContext context) {
     final orbDiameter = SediBrainOrb.orbDiameter;
     final orbBodyRadius = SediBrainOrb.orbBodyRadius;
-    final brandHeight = orbDiameter * 0.34;
+    final brandHeight = orbDiameter * SediBrainOrb.brandHeightRatio;
     final visualizerCanvasHeight =
         widget.canvasHeight ?? SediBrainOrb.preferredVisualizerCanvasHeight;
 
@@ -130,7 +116,6 @@ class _SediBrainOrbState extends State<SediBrainOrb>
           width: width,
           containerHeight: visualizerCanvasHeight,
           orbBodyRadius: orbBodyRadius,
-          amplitude: _amplitude,
         );
 
         return SizedBox(
@@ -139,12 +124,15 @@ class _SediBrainOrbState extends State<SediBrainOrb>
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
+              final animatedPhases = SediAudioVisualizerPainter.derivePhases(
+                controllerValue: _controller.value,
+                state: widget.state,
+              );
               return CustomPaint(
                 painter: SediAudioVisualizerPainter(
-                  phase: _controller.value,
-                  amplitude: _amplitude,
+                  circularPhase: animatedPhases.circular,
+                  horizontalPhase: animatedPhases.horizontal,
                   horizontalEnergy: _horizontalEnergy,
-                  glowOpacity: _glow,
                   state: widget.state,
                   orbCenter: orbCenter,
                   orbBodyRadius: orbBodyRadius,

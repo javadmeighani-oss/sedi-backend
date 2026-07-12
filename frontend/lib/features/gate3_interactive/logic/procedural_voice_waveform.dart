@@ -1,23 +1,26 @@
 import 'dart:math' as math;
 
 import '../models/gate3_interaction_state.dart';
+import '../presentation/widgets/sedi_audio_visualizer_geometry.dart';
 
 /// Deterministic procedural waveform energy for Gate 3 audio visualization.
 ///
-/// This is **not** synchronized to real TTS or playback amplitude. When real
-/// audio level metering becomes available, replace calls to
-/// [radialBarEnergy] / [horizontalPeakAmplitude] with measured samples while
-/// keeping the painter API unchanged.
+/// Circular energy is state-independent (always restrained). Horizontal energy
+/// is driven by caller-supplied [energy] and [state] for thinking/speaking
+/// resonance. This is **not** synchronized to real TTS or playback amplitude.
 class ProceduralVoiceWaveform {
   ProceduralVoiceWaveform._();
 
+  static const int _horizontalClusterCount = 5;
+
   /// Radial bar length factor in `[0, 1]` for the circular spectrum.
+  ///
+  /// State-independent: restrained travelling clusters inside the idle envelope.
   static double radialBarEnergy({
     required double angle,
     required double time,
-    required Gate3InteractionState state,
   }) {
-    final speed = _circularSpeed(state);
+    final speed = SediCircularEqualizerProfile.radialMotionSpeed;
     final t = time * speed * math.pi * 2;
     final travel = angle - t * 0.85;
 
@@ -27,22 +30,10 @@ class ProceduralVoiceWaveform {
     final clusterC =
         math.pow(math.sin(travel * 8.2 + t * 0.2), 2).toDouble() * 0.28;
 
-    var energy = clusterA + clusterB + clusterC;
+    final energy = clusterA + clusterB + clusterC;
     final micro = (math.sin(angle * 28 + t * 4) + 1) * 0.035;
 
-    switch (state) {
-      case Gate3InteractionState.idle:
-        energy = energy * 0.42 + micro;
-      case Gate3InteractionState.listening:
-        energy = energy * 0.72 + micro * 1.4;
-      case Gate3InteractionState.thinking:
-        final pulse = math.pow(math.sin(travel * 2.2 - t * 1.6), 2).toDouble();
-        energy = energy * 0.95 + pulse * 0.55 + micro;
-      case Gate3InteractionState.speaking:
-        energy = energy * 0.58 + micro * 1.1;
-    }
-
-    return energy.clamp(0.0, 1.0);
+    return (energy * 0.42 + micro).clamp(0.0, 1.0);
   }
 
   /// Vertical peak amplitude for horizontal voice waveform samples.
@@ -57,64 +48,60 @@ class ProceduralVoiceWaveform {
   }) {
     if (energy <= 0.001) return 0;
 
-    final sideBias = isRightSide ? 0.17 : 0.0;
+    final sideSeed = isRightSide ? 2.71 : 0.0;
     final x = normalizedX.clamp(0.0, 1.0);
-    final t = time * _horizontalSpeed(state) * math.pi * 2;
+    final t = time * math.pi * 2;
 
-    final index = (x * 120 + sideBias).floor();
-    final hash = math.sin(index * 12.9898 + sideBias * 78.233) * 43758.5453;
-    final jitter = hash - hash.floorToDouble();
+    var peak = 0.0;
+    for (var c = 0; c < _horizontalClusterCount; c++) {
+      final clusterSeed = c * 1.93 + sideSeed * 1.37;
+      final drift = math.sin(t * (0.12 + c * 0.04) + clusterSeed) * 0.08;
+      final center =
+          0.12 + (math.sin(clusterSeed * 2.7 + t * 0.18) + 1) * 0.38 + drift;
+      final width = 0.035 + (c % 3) * 0.018;
+      final dist = (x - center).abs();
+      if (dist > width * 3.2) continue;
 
-    final carrier = math.sin(x * 38 + t * 5.5 + sideBias * 3);
-    final spike = math.pow(
-      math.max(0, math.sin(x * 92 - t * 11 + jitter * 6)),
-      3,
-    ).toDouble();
-    final burst = math.pow(
-      math.max(0, math.sin(x * 21 + t * 3.2 + jitter * 9 + 1.1)),
-      2,
-    ).toDouble();
+      final envelope =
+          math.pow(math.max(0, 1 - dist / (width * 3.2)), 2.2).toDouble();
+      final hash = _deterministicNoise(x * 140 + c * 23.7 + sideSeed, t);
+      final spike = math.pow(
+        math.max(
+          0,
+          math.sin(x * 210 - t * 16 + hash * 9 + c * 2.6 + sideSeed),
+        ),
+        4,
+      ).toDouble();
+      final burst = math.pow(
+        math.max(0, math.sin(x * 48 + t * 4.8 + hash * 11 + clusterSeed)),
+        3,
+      ).toDouble();
 
-    var combined = (carrier.abs() * 0.18 + spike * 0.62 + burst * 0.34);
-
-    switch (state) {
-      case Gate3InteractionState.idle:
-        combined *= 0.12 + jitter * 0.08;
-      case Gate3InteractionState.listening:
-        combined *= 0.42 + jitter * 0.12;
-      case Gate3InteractionState.thinking:
-        combined *= 0.16;
-      case Gate3InteractionState.speaking:
-        final cadence = 0.55 + math.sin(t * 2.4) * 0.25;
-        combined *= cadence + jitter * 0.2;
+      peak = math.max(peak, envelope * (spike * 0.72 + burst * 0.38));
     }
 
-    return (combined * energy).clamp(0.0, 1.0);
+    final density = switch (state) {
+      Gate3InteractionState.idle => 0.06,
+      Gate3InteractionState.listening => 0.1,
+      Gate3InteractionState.thinking => 0.48,
+      Gate3InteractionState.speaking => 1.0,
+    };
+
+    return (peak * density * energy).clamp(0.0, 1.0);
   }
 
-  static double _circularSpeed(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.75;
-      case Gate3InteractionState.listening:
-        return 1.05;
-      case Gate3InteractionState.thinking:
-        return 1.55;
-      case Gate3InteractionState.speaking:
-        return 0.95;
-    }
+  /// Asymmetric lower spike factor for speech-like resonance (not mirrored).
+  static double asymmetricLowerFactor({
+    required double normalizedX,
+    required bool isRightSide,
+  }) {
+    final sideSeed = isRightSide ? 1.9 : 0.4;
+    final hash = _deterministicNoise(normalizedX * 88 + sideSeed, sideSeed);
+    return (0.12 + hash * 0.22).clamp(0.08, 0.38);
   }
 
-  static double _horizontalSpeed(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.7;
-      case Gate3InteractionState.listening:
-        return 1.15;
-      case Gate3InteractionState.thinking:
-        return 0.85;
-      case Gate3InteractionState.speaking:
-        return 1.75;
-    }
+  static double _deterministicNoise(double seed, double time) {
+    final v = math.sin(seed * 12.9898 + time * 0.37) * 43758.5453;
+    return v - v.floorToDouble();
   }
 }

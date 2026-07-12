@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sedi_app/features/gate3_interactive/logic/procedural_voice_waveform.dart';
 import 'package:sedi_app/features/gate3_interactive/models/gate3_interaction_state.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_vertical_layout.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/sedi_audio_visualizer_geometry.dart';
@@ -54,6 +55,189 @@ void main() {
           SediBrainOrb.legacyVisualizerCanvasHeight,
       inInclusiveRange(24, 42),
     );
+    expect(
+      SediBrainOrb.preferredVisualizerCanvasHeight,
+      closeTo(164.83, 0.1),
+    );
+  });
+
+  test('wordmark is exactly 80% of previous rendered size', () {
+    const previousRatio = 0.34;
+    expect(SediBrainOrb.brandHeightRatio, closeTo(previousRatio * 0.8, 0.0001));
+    expect(SediBrainOrb.brandHeightRatio, 0.272);
+
+    final brandHeight = SediBrainOrb.orbDiameter * SediBrainOrb.brandHeightRatio;
+    final previousBrandHeight = SediBrainOrb.orbDiameter * previousRatio;
+    expect(brandHeight, closeTo(previousBrandHeight * 0.8, 0.0001));
+  });
+
+  test('circular profile is state-independent', () {
+    final idleLayout = SediAudioVisualizerPainter.resolveLayout(
+      width: 390,
+      containerHeight: SediBrainOrb.preferredVisualizerCanvasHeight,
+      orbBodyRadius: SediBrainOrb.orbBodyRadius,
+    );
+
+    for (final state in Gate3InteractionState.values) {
+      expect(
+        SediAudioVisualizerPainter.targetAmplitude(state),
+        SediCircularEqualizerProfile.amplitude,
+      );
+      expect(
+        SediAudioVisualizerPainter.targetGlow(state),
+        SediCircularEqualizerProfile.glow,
+      );
+      expect(
+        SediAudioVisualizerPainter.circularPhaseSpeed(state),
+        SediCircularEqualizerProfile.phaseSpeed,
+      );
+
+      final layout = SediAudioVisualizerPainter.resolveLayout(
+        width: 390,
+        containerHeight: SediBrainOrb.preferredVisualizerCanvasHeight,
+        orbBodyRadius: SediBrainOrb.orbBodyRadius,
+      );
+
+      expect(layout.spectrumRadius, idleLayout.spectrumRadius);
+      expect(layout.barExtensionFactor, idleLayout.barExtensionFactor);
+      expect(
+        layout.glowPaintRadiusBeyondSpectrum,
+        idleLayout.glowPaintRadiusBeyondSpectrum,
+      );
+      expect(
+        layout.glowShaderExtraBeyondBarExtension,
+        idleLayout.glowShaderExtraBeyondBarExtension,
+      );
+    }
+  });
+
+  test('horizontal energy ordering follows idle < listening < thinking << speaking',
+      () {
+    final idle = SediAudioVisualizerPainter.targetHorizontalEnergy(
+      Gate3InteractionState.idle,
+    );
+    final listening = SediAudioVisualizerPainter.targetHorizontalEnergy(
+      Gate3InteractionState.listening,
+    );
+    final thinking = SediAudioVisualizerPainter.targetHorizontalEnergy(
+      Gate3InteractionState.thinking,
+    );
+    final speaking = SediAudioVisualizerPainter.targetHorizontalEnergy(
+      Gate3InteractionState.speaking,
+    );
+
+    expect(idle, lessThan(0.1));
+    expect(listening, lessThan(thinking));
+    expect(listening - idle, lessThan(0.08));
+    expect(thinking, greaterThan(idle * 3));
+    expect(speaking, greaterThan(thinking * 2));
+    expect(speaking, greaterThan(0.7));
+  });
+
+  test('horizontal procedural waveform is deterministic and asymmetric', () {
+    const x = 0.42;
+    const time = 0.31;
+    const energy = 0.8;
+
+    final leftA = ProceduralVoiceWaveform.horizontalPeakAmplitude(
+      normalizedX: x,
+      time: time,
+      energy: energy,
+      state: Gate3InteractionState.speaking,
+      isRightSide: false,
+    );
+    final leftB = ProceduralVoiceWaveform.horizontalPeakAmplitude(
+      normalizedX: x,
+      time: time,
+      energy: energy,
+      state: Gate3InteractionState.speaking,
+      isRightSide: false,
+    );
+    final right = ProceduralVoiceWaveform.horizontalPeakAmplitude(
+      normalizedX: x,
+      time: time,
+      energy: energy,
+      state: Gate3InteractionState.speaking,
+      isRightSide: true,
+    );
+
+    expect(leftA.isFinite, isTrue);
+    expect(leftA, closeTo(leftB, 0.000001));
+    expect(right, isNot(closeTo(leftA, 0.000001)));
+
+    final lowerLeft = ProceduralVoiceWaveform.asymmetricLowerFactor(
+      normalizedX: x,
+      isRightSide: false,
+    );
+    final lowerRight = ProceduralVoiceWaveform.asymmetricLowerFactor(
+      normalizedX: x,
+      isRightSide: true,
+    );
+    expect(lowerLeft.isFinite, isTrue);
+    expect(lowerRight.isFinite, isTrue);
+    expect(lowerLeft, isNot(closeTo(lowerRight, 0.000001)));
+  });
+
+  test('radial bar energy is state-independent and finite', () {
+    const angle = 1.2;
+    const time = 0.55;
+
+    final sample = ProceduralVoiceWaveform.radialBarEnergy(
+      angle: angle,
+      time: time,
+    );
+    expect(sample.isFinite, isTrue);
+    expect(sample, inInclusiveRange(0.0, 1.0));
+
+    for (final state in Gate3InteractionState.values) {
+      expect(
+        ProceduralVoiceWaveform.radialBarEnergy(angle: angle, time: time),
+        sample,
+        reason: 'state=$state must not affect circular energy',
+      );
+    }
+  });
+
+  test('phase derivation keeps circular speed constant and horizontal state-responsive',
+      () {
+    const controllerValue = 0.37;
+
+    final idlePhases = SediAudioVisualizerPainter.derivePhases(
+      controllerValue: controllerValue,
+      state: Gate3InteractionState.idle,
+    );
+    final speakingPhases = SediAudioVisualizerPainter.derivePhases(
+      controllerValue: controllerValue,
+      state: Gate3InteractionState.speaking,
+    );
+
+    expect(idlePhases.circular, closeTo(controllerValue * 0.85, 0.0001));
+    expect(
+      speakingPhases.circular,
+      closeTo(controllerValue * 0.85, 0.0001),
+    );
+    expect(
+      speakingPhases.horizontal,
+      greaterThan(idlePhases.horizontal),
+    );
+    expect(
+      SediAudioVisualizerPainter.circularPhaseSpeed(
+        Gate3InteractionState.thinking,
+      ),
+      SediAudioVisualizerPainter.circularPhaseSpeed(
+        Gate3InteractionState.speaking,
+      ),
+    );
+    expect(
+      SediAudioVisualizerPainter.horizontalPhaseSpeed(
+        Gate3InteractionState.speaking,
+      ),
+      greaterThan(
+        SediAudioVisualizerPainter.horizontalPhaseSpeed(
+          Gate3InteractionState.thinking,
+        ),
+      ),
+    );
   });
 
   test('geometry includes full glow shader extent in painted outward budget', () {
@@ -78,12 +262,10 @@ void main() {
     final canvasHeight = SediBrainOrb.preferredVisualizerCanvasHeight;
 
     for (final state in Gate3InteractionState.values) {
-      final amplitude = SediAudioVisualizerPainter.targetAmplitude(state);
       final layout = SediAudioVisualizerPainter.resolveLayout(
         width: width,
         containerHeight: canvasHeight,
         orbBodyRadius: SediBrainOrb.orbBodyRadius,
-        amplitude: amplitude,
       );
 
       expect(layout.barExtensionFactor, 1.0);
@@ -100,7 +282,7 @@ void main() {
           width: width,
           containerHeight: canvasHeight,
           layout: layout,
-          amplitude: amplitude,
+          amplitude: SediCircularEqualizerProfile.amplitude,
         ),
         isTrue,
         reason: 'state=$state',
@@ -125,10 +307,9 @@ void main() {
       width: width,
       containerHeight: canvasHeight,
       orbBodyRadius: SediBrainOrb.orbBodyRadius,
-      amplitude: SediAudioVisualizerGeometry.peakAmplitude,
     );
 
-    expect(layout.spectrumRadius, isFinite);
+    expect(layout.spectrumRadius.isFinite, isTrue);
     expect(layout.spectrumRadius, greaterThan(0));
     expect(layout.barExtensionFactor, inInclusiveRange(0.0, 1.0));
     expect(layout.glowPaintRadiusBeyondSpectrum, inInclusiveRange(0.0, 6.0));
@@ -139,7 +320,7 @@ void main() {
         width: width,
         containerHeight: canvasHeight,
         layout: layout,
-        amplitude: SediAudioVisualizerGeometry.peakAmplitude,
+        amplitude: SediCircularEqualizerProfile.amplitude,
       ),
       isTrue,
     );
@@ -165,7 +346,7 @@ void main() {
       orbBodyRadius: SediBrainOrb.orbBodyRadius,
     );
 
-    expect(resolved, isFinite);
+    expect(resolved.isFinite, isTrue);
     expect(resolved, greaterThan(SediBrainOrb.orbDiameter));
     expect(resolved, lessThan(SediBrainOrb.preferredVisualizerCanvasHeight));
     expect(
@@ -212,6 +393,28 @@ void main() {
 
     final semantics = tester.getSemantics(find.byType(SediBrandLockup));
     expect(semantics.label, 'Sedi.');
+  });
+
+  testWidgets('SediBrainOrb renders wordmark at 80% ratio inside orb',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SediBrainOrb(
+            state: Gate3InteractionState.idle,
+            canvasHeight: SediBrainOrb.preferredVisualizerCanvasHeight,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 32));
+
+    final lockup = tester.widget<SediBrandLockup>(find.byType(SediBrandLockup));
+    final expectedHeight =
+        SediBrainOrb.orbDiameter * SediBrainOrb.brandHeightRatio;
+    expect(lockup.height, closeTo(expectedHeight, 0.0001));
+    expect(lockup.height, closeTo(SediBrainOrb.orbDiameter * 0.272, 0.0001));
   });
 
   testWidgets('Sedi brand lockup stays LTR isolated under RTL parent',

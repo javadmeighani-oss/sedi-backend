@@ -9,10 +9,9 @@ import 'sedi_audio_visualizer_geometry.dart';
 
 /// Fine radial spectrum and horizontal voice waveform around the Sedi orb.
 class SediAudioVisualizerPainter extends CustomPainter {
-  final double phase;
-  final double amplitude;
+  final double circularPhase;
+  final double horizontalPhase;
   final double horizontalEnergy;
-  final double glowOpacity;
   final Gate3InteractionState state;
   final Offset orbCenter;
   final double orbBodyRadius;
@@ -26,11 +25,61 @@ class SediAudioVisualizerPainter extends CustomPainter {
   static const _barCount = 144;
   static const _horizontalSamples = 72;
 
+  /// Fixed circular amplitude — identical in every interaction state.
+  static double targetAmplitude(Gate3InteractionState state) =>
+      SediCircularEqualizerProfile.amplitude;
+
+  /// Fixed circular glow — identical in every interaction state.
+  static double targetGlow(Gate3InteractionState state) =>
+      SediCircularEqualizerProfile.glow;
+
+  /// Constant circular rotation speed — identical in every interaction state.
+  static double circularPhaseSpeed(Gate3InteractionState state) =>
+      SediCircularEqualizerProfile.phaseSpeed;
+
+  /// Horizontal resonance targets: idle ≈ listening < thinking << speaking.
+  static double targetHorizontalEnergy(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.04;
+      case Gate3InteractionState.listening:
+        return 0.07;
+      case Gate3InteractionState.thinking:
+        return 0.32;
+      case Gate3InteractionState.speaking:
+        return 0.88;
+    }
+  }
+
+  /// State-responsive horizontal cadence (circular cadence stays constant).
+  static double horizontalPhaseSpeed(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.45;
+      case Gate3InteractionState.listening:
+        return 0.5;
+      case Gate3InteractionState.thinking:
+        return 0.95;
+      case Gate3InteractionState.speaking:
+        return 1.75;
+    }
+  }
+
+  /// Derives decoupled phases from one animation controller value `[0, 1]`.
+  static ({double circular, double horizontal}) derivePhases({
+    required double controllerValue,
+    required Gate3InteractionState state,
+  }) {
+    return (
+      circular: controllerValue * circularPhaseSpeed(state),
+      horizontal: controllerValue * horizontalPhaseSpeed(state),
+    );
+  }
+
   const SediAudioVisualizerPainter({
-    required this.phase,
-    required this.amplitude,
+    required this.circularPhase,
+    required this.horizontalPhase,
     required this.horizontalEnergy,
-    required this.glowOpacity,
     required this.state,
     required this.orbCenter,
     required this.orbBodyRadius,
@@ -42,64 +91,12 @@ class SediAudioVisualizerPainter extends CustomPainter {
         SediAudioVisualizerGeometry.glowShaderExtraBeyondBarExtension,
   });
 
-  static double targetAmplitude(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.55;
-      case Gate3InteractionState.listening:
-        return 0.78;
-      case Gate3InteractionState.thinking:
-        return 0.92;
-      case Gate3InteractionState.speaking:
-        return 0.68;
-    }
-  }
-
-  static double targetHorizontalEnergy(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.14;
-      case Gate3InteractionState.listening:
-        return 0.42;
-      case Gate3InteractionState.thinking:
-        return 0.12;
-      case Gate3InteractionState.speaking:
-        return 0.88;
-    }
-  }
-
-  static double targetGlow(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.16;
-      case Gate3InteractionState.listening:
-        return 0.24;
-      case Gate3InteractionState.thinking:
-        return 0.3;
-      case Gate3InteractionState.speaking:
-        return 0.22;
-    }
-  }
-
-  static double phaseSpeed(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.85;
-      case Gate3InteractionState.listening:
-        return 1.15;
-      case Gate3InteractionState.thinking:
-        return 1.65;
-      case Gate3InteractionState.speaking:
-        return 1.05;
-    }
-  }
-
   /// Computes spectrum radius and bar scaling that stay inside layout bounds.
   static SediVisualizerLayout resolveLayout({
     required double width,
     required double containerHeight,
     required double orbBodyRadius,
-    double amplitude = SediAudioVisualizerGeometry.peakAmplitude,
+    double amplitude = SediCircularEqualizerProfile.amplitude,
   }) {
     return SediAudioVisualizerGeometry.resolveLayout(
       width: width,
@@ -126,25 +123,32 @@ class SediAudioVisualizerPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final animatedPhase = phase * phaseSpeed(state);
+    final circularAmplitude = SediCircularEqualizerProfile.amplitude;
+    final circularGlow = SediCircularEqualizerProfile.glow;
 
-    _paintGlow(canvas, size);
-    _paintHorizontalWaveform(canvas, size, animatedPhase);
-    _paintRadialSpectrum(canvas, animatedPhase);
+    _paintGlow(canvas, size, circularAmplitude, circularGlow);
+    _paintHorizontalWaveform(canvas, size);
+    _paintRadialSpectrum(canvas, circularAmplitude, circularGlow);
   }
 
-  void _paintGlow(Canvas canvas, Size size) {
+  void _paintGlow(
+    Canvas canvas,
+    Size size,
+    double circularAmplitude,
+    double circularGlow,
+  ) {
     final barOutward = SediAudioVisualizerGeometry.radialBarOutwardExtent(
-      amplitude,
+      circularAmplitude,
       barExtensionFactor: barExtensionFactor,
     );
-    final shaderRadius = spectrumRadius + barOutward + glowShaderExtraBeyondBarExtension;
+    final shaderRadius =
+        spectrumRadius + barOutward + glowShaderExtraBeyondBarExtension;
     final glowPaint = Paint()
       ..shader = ui.Gradient.radial(
         orbCenter,
         shaderRadius,
         [
-          _creamGlow.withOpacity(glowOpacity * 0.28),
+          _creamGlow.withOpacity(circularGlow * 0.28),
           _creamGlow.withOpacity(0),
         ],
       );
@@ -157,19 +161,23 @@ class SediAudioVisualizerPainter extends CustomPainter {
     }
   }
 
-  void _paintRadialSpectrum(Canvas canvas, double animatedPhase) {
+  void _paintRadialSpectrum(
+    Canvas canvas,
+    double circularAmplitude,
+    double circularGlow,
+  ) {
     final baselinePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.9
-      ..color = _oliveStroke.withOpacity(0.24 + glowOpacity * 0.12);
+      ..color = _oliveStroke.withOpacity(0.24 + circularGlow * 0.12);
     canvas.drawCircle(orbCenter, spectrumRadius, baselinePaint);
 
     final minBar = SediAudioVisualizerGeometry.minBarLength(
-      amplitude,
+      circularAmplitude,
       barExtensionFactor: barExtensionFactor,
     );
     final maxBar = SediAudioVisualizerGeometry.maxBarLength(
-      amplitude,
+      circularAmplitude,
       barExtensionFactor: barExtensionFactor,
     );
 
@@ -181,8 +189,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
       final angle = (i / _barCount) * math.pi * 2;
       final energy = ProceduralVoiceWaveform.radialBarEnergy(
         angle: angle,
-        time: animatedPhase,
-        state: state,
+        time: circularPhase,
       );
       final barLength = minBar + energy * (maxBar - minBar);
       final inner = orbCenter +
@@ -196,7 +203,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
             math.sin(angle) * (spectrumRadius + barLength),
           );
 
-      final opacity = (0.16 + energy * 0.52) * (0.7 + glowOpacity * 0.3);
+      final opacity = (0.16 + energy * 0.52) * (0.7 + circularGlow * 0.3);
       barPaint
         ..color = _oliveStroke.withOpacity(opacity.clamp(0.12, 0.82))
         ..strokeWidth = 0.55 + energy * 0.45;
@@ -204,24 +211,19 @@ class SediAudioVisualizerPainter extends CustomPainter {
     }
   }
 
-  void _paintHorizontalWaveform(
-    Canvas canvas,
-    Size size,
-    double animatedPhase,
-  ) {
+  void _paintHorizontalWaveform(Canvas canvas, Size size) {
     final tangentX = spectrumRadius;
     final leftStart = orbCenter.dx - tangentX;
     final rightStart = orbCenter.dx + tangentX;
     final leftSpan = math.max(leftStart, 1.0);
     final rightSpan = math.max(size.width - rightStart, 1.0);
-    final peakHeight = 3.5 + horizontalEnergy * 16;
+    final peakHeight = 2.5 + horizontalEnergy * 18;
 
     _paintHorizontalSide(
       canvas: canvas,
       startX: leftStart,
       endX: 0,
       span: leftSpan,
-      animatedPhase: animatedPhase,
       peakHeight: peakHeight,
       isRightSide: false,
     );
@@ -230,7 +232,6 @@ class SediAudioVisualizerPainter extends CustomPainter {
       startX: rightStart,
       endX: size.width,
       span: rightSpan,
-      animatedPhase: animatedPhase,
       peakHeight: peakHeight,
       isRightSide: true,
     );
@@ -241,7 +242,6 @@ class SediAudioVisualizerPainter extends CustomPainter {
     required double startX,
     required double endX,
     required double span,
-    required double animatedPhase,
     required double peakHeight,
     required bool isRightSide,
   }) {
@@ -253,7 +253,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 0.75
       ..color = _oliveStroke.withOpacity(
-        (0.14 + horizontalEnergy * 0.22).clamp(0.1, 0.55),
+        (0.12 + horizontalEnergy * 0.2).clamp(0.08, 0.5),
       );
 
     final peakPaint = Paint()
@@ -270,7 +270,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
       final fade = math.pow(1 - t, 1.55).toDouble();
       final amp = ProceduralVoiceWaveform.horizontalPeakAmplitude(
             normalizedX: t,
-            time: animatedPhase,
+            time: horizontalPhase,
             energy: horizontalEnergy,
             state: state,
             isRightSide: isRightSide,
@@ -286,7 +286,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
         peakPath.lineTo(x, baselineY - amp);
       }
 
-      if (amp > 1.2) {
+      if (amp > 1.0) {
         peakPaint.color = _oliveStroke.withOpacity(
           (0.2 + (amp / peakHeight) * 0.55).clamp(0.14, 0.78),
         );
@@ -295,9 +295,13 @@ class SediAudioVisualizerPainter extends CustomPainter {
           Offset(x, baselineY - amp),
           peakPaint,
         );
+        final lowerSpike = amp * (0.18 + ProceduralVoiceWaveform.asymmetricLowerFactor(
+              normalizedX: t,
+              isRightSide: isRightSide,
+            ));
         canvas.drawLine(
           Offset(x, baselineY),
-          Offset(x, baselineY + amp * 0.28),
+          Offset(x, baselineY + lowerSpike),
           peakPaint,
         );
       }
@@ -307,17 +311,16 @@ class SediAudioVisualizerPainter extends CustomPainter {
     peakPaint
       ..strokeWidth = 0.95
       ..color = _oliveStroke.withOpacity(
-        (0.18 + horizontalEnergy * 0.35).clamp(0.12, 0.72),
+        (0.16 + horizontalEnergy * 0.32).clamp(0.1, 0.72),
       );
     canvas.drawPath(peakPath, peakPaint);
   }
 
   @override
   bool shouldRepaint(covariant SediAudioVisualizerPainter oldDelegate) =>
-      oldDelegate.phase != phase ||
-      oldDelegate.amplitude != amplitude ||
+      oldDelegate.circularPhase != circularPhase ||
+      oldDelegate.horizontalPhase != horizontalPhase ||
       oldDelegate.horizontalEnergy != horizontalEnergy ||
-      oldDelegate.glowOpacity != glowOpacity ||
       oldDelegate.state != state ||
       oldDelegate.orbCenter != orbCenter ||
       oldDelegate.orbBodyRadius != orbBodyRadius ||

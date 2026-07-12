@@ -1,5 +1,24 @@
 import 'dart:math' as math;
 
+/// Immutable circular equalizer profile — screenshot `11.jpg` / idle authority.
+///
+/// The circular spectrum uses this profile in every interaction state.
+class SediCircularEqualizerProfile {
+  SediCircularEqualizerProfile._();
+
+  /// Steady radial bar envelope (formerly idle amplitude target).
+  static const double amplitude = 0.55;
+
+  /// Restrained halo opacity (formerly idle glow target).
+  static const double glow = 0.16;
+
+  /// Constant controller phase multiplier for circular rotation.
+  static const double phaseSpeed = 0.85;
+
+  /// Travelling-cluster motion speed inside [ProceduralVoiceWaveform].
+  static const double radialMotionSpeed = 0.75;
+}
+
 /// Authoritative layout geometry for the Gate 3 radial spectrum visualizer.
 ///
 /// Layout resolution and [SediAudioVisualizerPainter] share the same resolved
@@ -19,8 +38,12 @@ class SediAudioVisualizerGeometry {
   static const double glowPaintRadiusBeyondSpectrum = 6.0;
   static const double glowShaderExtraBeyondBarExtension = 4.0;
 
-  /// Highest steady-state amplitude target (thinking).
-  static const double peakAmplitude = 0.92;
+  /// Fixed circular amplitude used for bar extent and containment (all states).
+  static const double peakAmplitude = SediCircularEqualizerProfile.amplitude;
+
+  /// Outward budget for preferred canvas height only — preserves the approved
+  /// ~164.83px allocation independent of the restrained circular envelope.
+  static const double preferredCanvasOutwardBudget = 20.88;
 
   static const double preferredSpectrumOffset = 10.0;
   static const double minSpectrumOffset = 7.0;
@@ -83,8 +106,7 @@ class SediAudioVisualizerGeometry {
   /// Geometry-derived preferred visualizer canvas height for the approved orb.
   static double preferredCanvasHeight(double orbBodyRadius) {
     final spectrumRadius = orbBodyRadius + preferredSpectrumOffset;
-    final outward = maximumPaintedOutwardExtentAtPeak();
-    return 2 * (verticalInset + spectrumRadius + outward);
+    return 2 * (verticalInset + spectrumRadius + preferredCanvasOutwardBudget);
   }
 
   /// Minimum canvas that keeps the orb outside the spectrum baseline.
@@ -136,7 +158,7 @@ class SediAudioVisualizerGeometry {
     required double width,
     required double containerHeight,
     required double orbBodyRadius,
-    double amplitude = peakAmplitude,
+    double amplitude = SediCircularEqualizerProfile.amplitude,
   }) {
     final canvasRadius = _availableCanvasRadius(
       width: width,
