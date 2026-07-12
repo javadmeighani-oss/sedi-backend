@@ -39,9 +39,11 @@ void main() {
     return tester.getTopLeft(finder).dx;
   }
 
-  test('Gate3 composer font size is 80 percent of prior value', () {
-    expect(Gate3Composer.fontSize, Gate3Composer.baseFontSize * 0.8);
-    expect(Gate3Composer.fontSize, 12.8);
+  test('Gate3 composer hint and input font sizes are distinct', () {
+    expect(Gate3Composer.hintFontSize, Gate3Composer.baseFontSize * 0.8);
+    expect(Gate3Composer.hintFontSize, 12.8);
+    expect(Gate3Composer.inputFontSize, closeTo(12.8 * 1.10, 0.001));
+    expect(Gate3Composer.inputFontSize, closeTo(14.08, 0.001));
   });
 
   testWidgets('plus stays on physical left and mic on physical right in RTL',
@@ -77,13 +79,15 @@ void main() {
     expect(leftX(add, tester) < leftX(send, tester), isTrue);
   });
 
-  testWidgets('composer applies reduced font size to field text and hint',
+  testWidgets('composer applies reduced hint and larger input font sizes',
       (tester) async {
     await pumpComposer(tester, isRtl: false, lang: 'en');
 
     final field = tester.widget<TextField>(find.byType(TextField));
-    expect(field.style?.fontSize, Gate3Composer.fontSize);
-    expect(field.decoration?.hintStyle?.fontSize, Gate3Composer.fontSize);
+    expect(field.style?.fontSize, Gate3Composer.inputFontSize);
+    expect(field.decoration?.hintStyle?.fontSize, Gate3Composer.hintFontSize);
+    expect(field.style?.fontSize, closeTo(14.08, 0.001));
+    expect(field.decoration?.hintStyle?.fontSize, 12.8);
   });
 
   testWidgets('attachment menu exposes camera photos and files via plus',

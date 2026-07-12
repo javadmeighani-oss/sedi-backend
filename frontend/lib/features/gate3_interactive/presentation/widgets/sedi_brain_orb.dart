@@ -1,22 +1,53 @@
 import 'package:flutter/material.dart';
 
 import '../../models/gate3_interaction_state.dart';
+import 'sedi_audio_visualizer_geometry.dart';
 import 'sedi_audio_visualizer_painter.dart';
 import 'sedi_brand_lockup.dart';
 import 'sedi_orb_texture_painter.dart';
 
-/// Living Sedi brain orb — cream/olive sphere with animated audio visualizer.
+/// Living Sedi brain orb — white eye surface with spectrum visualizer.
 class SediBrainOrb extends StatefulWidget {
   final Gate3InteractionState state;
+
+  /// Optional visualizer canvas height. Defaults to the geometry-derived
+  /// preferred height for full spectrum paint at the approved orb size.
+  final double? canvasHeight;
 
   /// Fixed Latin brand mark inside the orb (never localized).
   static const String brandLabel = SediBrandLockup.label;
 
-  static const double size = 136;
+  /// Pre-scale Gate 3 orb allocation from commit `5033433`.
+  static const double baselineSize = 136;
+
+  /// 7% reduction applied to the committed orb body system dimensions.
+  static const double scaleFactor = 0.93;
+
+  /// Legacy coupled canvas/orb extent retained for diameter math only.
+  static const double legacyCoupledExtent = baselineSize * scaleFactor;
+
+  static const double orbBodyRatio = 0.72;
+
+  static double get orbDiameter => legacyCoupledExtent * orbBodyRatio;
+
+  static double get orbBodyRadius => orbDiameter / 2;
+
+  /// Previous coupled visualizer allocation (126.48).
+  static const double legacyVisualizerCanvasHeight = legacyCoupledExtent;
+
+  static double get preferredVisualizerCanvasHeight =>
+      SediAudioVisualizerGeometry.preferredCanvasHeight(orbBodyRadius);
+
+  static double get minimumVisualizerCanvasHeight =>
+      SediAudioVisualizerGeometry.minimumCanvasHeight(orbBodyRadius);
+
+  /// Legacy coupled extent used only for approved orb diameter math.
+  static const double size = legacyCoupledExtent;
 
   const SediBrainOrb({
     super.key,
     required this.state,
+    this.canvasHeight,
   });
 
   @override
@@ -83,20 +114,28 @@ class _SediBrainOrbState extends State<SediBrainOrb>
 
   @override
   Widget build(BuildContext context) {
-    final orbDiameter = SediBrainOrb.size * 0.72;
-    final brandFontSize = orbDiameter * 0.34;
-    final orbOuterRadius = SediBrainOrb.size / 2;
+    final orbDiameter = SediBrainOrb.orbDiameter;
+    final orbBodyRadius = SediBrainOrb.orbBodyRadius;
+    final brandHeight = orbDiameter * 0.34;
+    final visualizerCanvasHeight =
+        widget.canvasHeight ?? SediBrainOrb.preferredVisualizerCanvasHeight;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth.isFinite
             ? constraints.maxWidth
-            : SediBrainOrb.size;
-        final orbCenter = Offset(width / 2, SediBrainOrb.size / 2);
+            : SediBrainOrb.preferredVisualizerCanvasHeight;
+        final orbCenter = Offset(width / 2, visualizerCanvasHeight / 2);
+        final layout = SediAudioVisualizerPainter.resolveLayout(
+          width: width,
+          containerHeight: visualizerCanvasHeight,
+          orbBodyRadius: orbBodyRadius,
+          amplitude: _amplitude,
+        );
 
         return SizedBox(
           width: width,
-          height: SediBrainOrb.size,
+          height: visualizerCanvasHeight,
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
@@ -108,7 +147,13 @@ class _SediBrainOrbState extends State<SediBrainOrb>
                   glowOpacity: _glow,
                   state: widget.state,
                   orbCenter: orbCenter,
-                  orbOuterRadius: orbOuterRadius,
+                  orbBodyRadius: orbBodyRadius,
+                  spectrumRadius: layout.spectrumRadius,
+                  barExtensionFactor: layout.barExtensionFactor,
+                  glowPaintRadiusBeyondSpectrum:
+                      layout.glowPaintRadiusBeyondSpectrum,
+                  glowShaderExtraBeyondBarExtension:
+                      layout.glowShaderExtraBeyondBarExtension,
                 ),
                 child: Center(child: child),
               );
@@ -118,28 +163,21 @@ class _SediBrainOrbState extends State<SediBrainOrb>
               height: orbDiameter,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  colors: [
-                    Color(0xFFFFFFFF),
-                    Color(0xFFF7F5EE),
-                    Color(0xFFEDEBE0),
-                  ],
-                  stops: [0.0, 0.55, 1.0],
-                ),
+                color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD8DFC8).withOpacity(0.55),
-                    blurRadius: 20,
-                    spreadRadius: 1,
+                    color: const Color(0xFFD8DFC8).withOpacity(0.45),
+                    blurRadius: 16,
+                    spreadRadius: 0.5,
                   ),
                   BoxShadow(
-                    color: const Color(0xFF8A9A6B).withOpacity(0.12),
-                    blurRadius: 28,
-                    offset: const Offset(0, 6),
+                    color: const Color(0xFF8A9A6B).withOpacity(0.1),
+                    blurRadius: 22,
+                    offset: const Offset(0, 5),
                   ),
                 ],
                 border: Border.all(
-                  color: const Color(0xFFE6E9DC).withOpacity(0.9),
+                  color: const Color(0xFFE6E9DC).withOpacity(0.85),
                 ),
               ),
               child: Stack(
@@ -148,10 +186,10 @@ class _SediBrainOrbState extends State<SediBrainOrb>
                   ClipOval(
                     child: CustomPaint(
                       size: Size(orbDiameter, orbDiameter),
-                      painter: SediOrbTexturePainter(phase: _controller.value),
+                      painter: const SediOrbTexturePainter(),
                     ),
                   ),
-                  SediBrandLockup(fontSize: brandFontSize),
+                  SediBrandLockup(height: brandHeight),
                 ],
               ),
             ),

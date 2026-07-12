@@ -18,6 +18,7 @@ import '../sections/settings/gate3_settings_page.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
+import '../widgets/gate3_vertical_layout.dart';
 import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -204,135 +205,149 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         backgroundColor: AppTheme.gate3PaleOliveBackground,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
-          child: Directionality(
-            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                  child: Gate3MainIconRow(
-                    lang: _controller.currentLanguage,
-                    onSettings: () => _goTo(
-                      Gate3SettingsPage(lang: _controller.currentLanguage),
-                    ),
-                    onHealthCare: () => _goTo(
-                      Gate3HealthCarePage(lang: _controller.currentLanguage),
-                    ),
-                    onLifestyle: () => _goTo(
-                      Gate3LifestyleOverviewPage(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final visualizerCanvasHeight =
+                  Gate3VerticalLayout.resolveVisualizerCanvasHeight(
+                availableSafeHeight: constraints.maxHeight,
+                orbBodyRadius: SediBrainOrb.orbBodyRadius,
+              );
+
+              return Directionality(
+                textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                      child: Gate3MainIconRow(
                         lang: _controller.currentLanguage,
-                      ),
-                    ),
-                    onGadgets: () => _goTo(
-                      Gate3GadgetsPage(lang: _controller.currentLanguage),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SediBrainOrb(
-                  state: _orbState(),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(
-                          color: AppTheme.borderInactive.withOpacity(0.22),
+                        onSettings: () => _goTo(
+                          Gate3SettingsPage(lang: _controller.currentLanguage),
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x12000000),
-                            blurRadius: 18,
-                            offset: Offset(0, 8),
+                        onHealthCare: () => _goTo(
+                          Gate3HealthCarePage(lang: _controller.currentLanguage),
+                        ),
+                        onLifestyle: () => _goTo(
+                          Gate3LifestyleOverviewPage(
+                            lang: _controller.currentLanguage,
                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(26),
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        10,
-                                        12,
-                                        10,
-                                        8,
-                                      ),
-                                      child: _buildMessages(l10n),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 12,
-                                    bottom: 12,
-                                    child: Gate3ReturnToLatestButton(
-                                      scrollController: _scrollController,
-                                      onTap: _scrollToBottom,
-                                      tooltip: l10n.returnToLatest,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Gate3Composer(
-                              placeholder: l10n.composerPlaceholder,
-                              lang: _controller.currentLanguage,
-                              isRtl: isRtl,
-                              onListeningChanged: (listening) {
-                                if (_composerListening != listening) {
-                                  setState(
-                                      () => _composerListening = listening);
-                                }
-                              },
-                              onSendText: _handleSendText,
-                              onStartRecording: () {
-                                _controller.startVoiceRecording().then((ok) {
-                                  if (!mounted) return;
-                                  if (ok == false) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          l10n.microphonePermissionRequired,
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 100,
-                                          left: 16,
-                                          right: 16,
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    setState(() => _composerListening = true);
-                                  }
-                                });
-                              },
-                              onStopRecordingAndSend: () {
-                                _controller.stopVoiceRecording().then((_) {
-                                  if (!mounted) return;
-                                  setState(() => _composerListening = false);
-                                });
-                              },
-                              isRecording: _controller.isRecording,
-                              recordingTime:
-                                  _controller.recordingTimeFormatted,
-                            ),
-                          ],
+                        ),
+                        onGadgets: () => _goTo(
+                          Gate3GadgetsPage(lang: _controller.currentLanguage),
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    SediBrainOrb(
+                      state: _orbState(),
+                      canvasHeight: visualizerCanvasHeight,
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.55),
+                            borderRadius: BorderRadius.circular(26),
+                            border: Border.all(
+                              color: AppTheme.borderInactive.withOpacity(0.22),
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x12000000),
+                                blurRadius: 18,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(26),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            10,
+                                            12,
+                                            10,
+                                            8,
+                                          ),
+                                          child: _buildMessages(l10n),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        right: 12,
+                                        bottom: 12,
+                                        child: Gate3ReturnToLatestButton(
+                                          scrollController: _scrollController,
+                                          onTap: _scrollToBottom,
+                                          tooltip: l10n.returnToLatest,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Gate3Composer(
+                                  placeholder: l10n.composerPlaceholder,
+                                  lang: _controller.currentLanguage,
+                                  isRtl: isRtl,
+                                  onListeningChanged: (listening) {
+                                    if (_composerListening != listening) {
+                                      setState(
+                                          () => _composerListening = listening);
+                                    }
+                                  },
+                                  onSendText: _handleSendText,
+                                  onStartRecording: () {
+                                    _controller.startVoiceRecording().then((ok) {
+                                      if (!mounted) return;
+                                      if (ok == false) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              l10n.microphonePermissionRequired,
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: const EdgeInsets.only(
+                                              bottom: 100,
+                                              left: 16,
+                                              right: 16,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        setState(
+                                            () => _composerListening = true);
+                                      }
+                                    });
+                                  },
+                                  onStopRecordingAndSend: () {
+                                    _controller.stopVoiceRecording().then((_) {
+                                      if (!mounted) return;
+                                      setState(
+                                          () => _composerListening = false);
+                                    });
+                                  },
+                                  isRecording: _controller.isRecording,
+                                  recordingTime:
+                                      _controller.recordingTimeFormatted,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

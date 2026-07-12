@@ -18,8 +18,14 @@ class Gate3Composer extends StatefulWidget {
   /// Prior Gate 3 composer body font size before the 20% reduction.
   static const double baseFontSize = 16;
 
-  /// Gate 3 composer body font size (exactly 80% of [baseFontSize]).
-  static const double fontSize = baseFontSize * 0.8;
+  /// Gate 3 composer hint font size (exactly 80% of [baseFontSize]).
+  static const double hintFontSize = baseFontSize * 0.8;
+
+  /// Gate 3 composer typed input font size (+10% over [hintFontSize]).
+  static const double inputFontSize = hintFontSize * 1.10;
+
+  /// Backward-compatible alias for the hint size.
+  static const double fontSize = hintFontSize;
 
   const Gate3Composer({
     super.key,
@@ -46,13 +52,13 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   static const TextStyle _composerTextStyle = TextStyle(
     color: AppTheme.textPrimary,
-    fontSize: Gate3Composer.fontSize,
+    fontSize: Gate3Composer.inputFontSize,
     height: 1.35,
   );
 
   static const TextStyle _composerHintStyle = TextStyle(
     color: AppTheme.textSecondary,
-    fontSize: Gate3Composer.fontSize,
+    fontSize: Gate3Composer.hintFontSize,
     height: 1.35,
   );
 
