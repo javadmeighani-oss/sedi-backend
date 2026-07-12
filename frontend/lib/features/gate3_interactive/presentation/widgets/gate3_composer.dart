@@ -15,6 +15,12 @@ class Gate3Composer extends StatefulWidget {
   final bool isRtl;
   final ValueChanged<bool>? onListeningChanged;
 
+  /// Prior Gate 3 composer body font size before the 20% reduction.
+  static const double baseFontSize = 16;
+
+  /// Gate 3 composer body font size (exactly 80% of [baseFontSize]).
+  static const double fontSize = baseFontSize * 0.8;
+
   const Gate3Composer({
     super.key,
     required this.onSendText,
@@ -37,6 +43,18 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   final FocusNode _focusNode = FocusNode();
 
   static const double _maxTextHeight = 168;
+
+  static const TextStyle _composerTextStyle = TextStyle(
+    color: AppTheme.textPrimary,
+    fontSize: Gate3Composer.fontSize,
+    height: 1.35,
+  );
+
+  static const TextStyle _composerHintStyle = TextStyle(
+    color: AppTheme.textSecondary,
+    fontSize: Gate3Composer.fontSize,
+    height: 1.35,
+  );
 
   @override
   void initState() {
@@ -123,18 +141,10 @@ class _Gate3ComposerState extends State<Gate3Composer> {
           contentPadding: const EdgeInsets.symmetric(vertical: 2),
           border: InputBorder.none,
           hintText: widget.placeholder,
-          hintStyle: const TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 16,
-            height: 1.35,
-          ),
+          hintStyle: _composerHintStyle,
           alignLabelWithHint: true,
         ),
-        style: const TextStyle(
-          color: AppTheme.textPrimary,
-          fontSize: 16,
-          height: 1.35,
-        ),
+        style: _composerTextStyle,
         onSubmitted: (_) => _send(),
       ),
     );
@@ -168,47 +178,44 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   }
 
   Widget _buildToolbar(bool hasText) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
-      child: Row(
-        children: [
-          Gate3ComposerActionButton(
-            icon: Icons.add_rounded,
-            onTap: widget.isRecording ? null : _openAttachmentMenu,
-          ),
-          const SizedBox(width: 6),
-          Gate3ComposerActionButton(
-            icon: Icons.image_outlined,
-            iconSize: 20,
-            onTap: widget.isRecording ? null : _openAttachmentMenu,
-          ),
-          const Spacer(),
-          if (widget.isRecording)
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
+        child: Row(
+          children: [
             Gate3ComposerActionButton(
-              icon: Icons.stop_rounded,
-              size: 40,
-              iconSize: 22,
-              backgroundColor: AppTheme.gate2ButtonOlive,
-              iconColor: Colors.white,
-              onTap: _handleMic,
-            )
-          else if (hasText)
-            Gate3ComposerActionButton(
-              icon: Icons.arrow_upward_rounded,
-              size: 40,
-              iconSize: 22,
-              backgroundColor: AppTheme.gate2ButtonOlive,
-              iconColor: Colors.white,
-              onTap: _send,
-            )
-          else
-            Gate3ComposerActionButton(
-              icon: Icons.mic_rounded,
-              size: 40,
-              iconSize: 24,
-              onTap: _handleMic,
+              icon: Icons.add_rounded,
+              onTap: widget.isRecording ? null : _openAttachmentMenu,
             ),
-        ],
+            const Spacer(),
+            if (widget.isRecording)
+              Gate3ComposerActionButton(
+                icon: Icons.stop_rounded,
+                size: 40,
+                iconSize: 22,
+                backgroundColor: AppTheme.gate2ButtonOlive,
+                iconColor: Colors.white,
+                onTap: _handleMic,
+              )
+            else if (hasText)
+              Gate3ComposerActionButton(
+                icon: Icons.arrow_upward_rounded,
+                size: 40,
+                iconSize: 22,
+                backgroundColor: AppTheme.gate2ButtonOlive,
+                iconColor: Colors.white,
+                onTap: _send,
+              )
+            else
+              Gate3ComposerActionButton(
+                icon: Icons.mic_rounded,
+                size: 40,
+                iconSize: 24,
+                onTap: _handleMic,
+              ),
+          ],
+        ),
       ),
     );
   }

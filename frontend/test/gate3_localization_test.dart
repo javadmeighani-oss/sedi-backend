@@ -24,6 +24,17 @@ void main() {
     const l10n = Gate3Localization('ar');
     expect(l10n.isRtl, isTrue);
     expect(l10n.gadgets, 'الأجهزة');
+    expect(l10n.readMore, 'قراءة المزيد');
+    expect(l10n.showLess, 'عرض أقل');
+  });
+
+  test('Gate3Localization expansion labels', () {
+    expect(const Gate3Localization('fa').readMore, 'ادامه متن');
+    expect(const Gate3Localization('fa').showLess, 'نمایش کمتر');
+    expect(const Gate3Localization('en').readMore, 'Read more');
+    expect(const Gate3Localization('en').showLess, 'Show less');
+    expect(const Gate3Localization('ar').readMore, 'قراءة المزيد');
+    expect(const Gate3Localization('ar').showLess, 'عرض أقل');
   });
 
   test('Gate3Localization fa history labels', () {

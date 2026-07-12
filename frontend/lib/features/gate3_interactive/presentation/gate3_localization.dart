@@ -137,6 +137,12 @@ class Gate3Localization {
         ar: 'ستتوفر المرفقات هنا قريبًا.',
       );
 
+  String get readMore =>
+      _t(en: 'Read more', fa: 'ادامه متن', ar: 'قراءة المزيد');
+
+  String get showLess =>
+      _t(en: 'Show less', fa: 'نمایش کمتر', ar: 'عرض أقل');
+
   String _t({required String en, required String fa, required String ar}) {
     switch (lang) {
       case 'fa':

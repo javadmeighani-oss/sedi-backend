@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import 'expandable_message_content.dart';
 
 class MessageBubble extends StatelessWidget {
   final String message;
@@ -7,6 +8,13 @@ class MessageBubble extends StatelessWidget {
   final bool isFailed;
   final VoidCallback? onRetry;
   final bool showTyping;
+  final String? messageKey;
+  final String? expandLabel;
+  final String? collapseLabel;
+
+  static const double bubbleMaxWidth = 300;
+  static const double horizontalPadding = 14;
+  static const double contentMaxWidth = bubbleMaxWidth - (horizontalPadding * 2);
 
   const MessageBubble({
     super.key,
@@ -15,6 +23,9 @@ class MessageBubble extends StatelessWidget {
     this.isFailed = false,
     this.onRetry,
     this.showTyping = false,
+    this.messageKey,
+    this.expandLabel,
+    this.collapseLabel,
   });
 
   @override
@@ -47,11 +58,11 @@ class MessageBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         padding: const EdgeInsets.symmetric(
-          horizontal: 14,
+          horizontal: horizontalPadding,
           vertical: 10,
         ),
         constraints: const BoxConstraints(
-          maxWidth: 300,
+          maxWidth: bubbleMaxWidth,
         ),
         decoration: BoxDecoration(
           color: backgroundColor,
@@ -67,15 +78,22 @@ class MessageBubble extends StatelessWidget {
           children: [
             if (showTyping)
               const _TypingDots()
+            else if (_useExpandableContent)
+              ExpandableMessageContent(
+                key: ValueKey('expand-$messageKey'),
+                messageKey: messageKey!,
+                text: message,
+                style: _messageStyle,
+                expandLabel: expandLabel!,
+                collapseLabel: collapseLabel!,
+                fadeBaseColor: backgroundColor,
+                maxContentWidth: contentMaxWidth,
+              )
             else
               Text(
                 message,
                 textAlign: TextAlign.start,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 15,
-                  height: 1.45,
-                ),
+                style: _messageStyle,
               ),
             if (isFailed && onRetry != null) ...[
               const SizedBox(height: 6),
@@ -96,6 +114,20 @@ class MessageBubble extends StatelessWidget {
       ),
     );
   }
+
+  bool get _useExpandableContent =>
+      messageKey != null &&
+      expandLabel != null &&
+      collapseLabel != null &&
+      message.isNotEmpty;
+
+  static const TextStyle messageTextStyle = TextStyle(
+    color: AppTheme.textPrimary,
+    fontSize: 15,
+    height: 1.45,
+  );
+
+  static const TextStyle _messageStyle = messageTextStyle;
 }
 
 class _TypingDots extends StatelessWidget {

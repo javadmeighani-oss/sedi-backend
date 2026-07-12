@@ -42,6 +42,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   final ScrollController _scrollController = ScrollController();
 
   bool _composerListening = false;
+  bool _speakingVisual = false;
+  bool _speakingSyncReady = false;
+  Timer? _speakingVisualTimer;
+  int _trackedMessageCount = 0;
 
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
@@ -54,7 +58,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize(initialMessage: widget.initialMessage).then((_) {
-      if (mounted) _scrollToBottom();
+      if (!mounted) return;
+      _trackedMessageCount = _controller.messages.length;
+      _speakingSyncReady = true;
+      _maybeStartGreetingSpeaking();
+      setState(() {});
+      _scrollToBottom();
     });
   }
 
@@ -62,6 +71,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _backPressTimer?.cancel();
+    _speakingVisualTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.removeListener(_scrollToBottomOnNewMessage);
     _scrollController.dispose();
@@ -70,7 +80,52 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _onControllerChanged() {
+    _syncSpeakingVisualFromMessages();
     if (mounted) setState(() {});
+  }
+
+  /// Starts speaking visual for a single live assistant response.
+  ///
+  /// Duration is bounded from response text length (1.8s–9s). This is a
+  /// procedural fallback and is not synchronized to real audio playback.
+  void _startSpeakingVisual(String responseText) {
+    final trimmed = responseText.trim();
+    if (trimmed.isEmpty) return;
+
+    _speakingVisualTimer?.cancel();
+    _speakingVisual = true;
+
+    final durationMs = (trimmed.length * 55 + 1400).clamp(1800, 9000);
+    _speakingVisualTimer = Timer(Duration(milliseconds: durationMs), () {
+      if (!mounted) return;
+      setState(() => _speakingVisual = false);
+    });
+  }
+
+  void _syncSpeakingVisualFromMessages() {
+    final messages = _controller.messages;
+    final previousCount = _trackedMessageCount;
+    final delta = messages.length - previousCount;
+    _trackedMessageCount = messages.length;
+
+    if (!_speakingSyncReady || delta != 1) return;
+
+    final latest = messages.last;
+    if (latest.isSedi && !_controller.isThinking) {
+      _startSpeakingVisual(latest.text);
+    }
+  }
+
+  /// Controlled greeting speak: only when init ends with a single assistant
+  /// message and no restored same-day history thread.
+  void _maybeStartGreetingSpeaking() {
+    final messages = _controller.messages;
+    if (messages.length != 1) return;
+
+    final only = messages.last;
+    if (only.isSedi && !_controller.isThinking) {
+      _startSpeakingVisual(only.text);
+    }
   }
 
   Gate3Localization get _l10n => Gate3Localization(_controller.currentLanguage);
@@ -123,6 +178,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
 
   Gate3InteractionState _orbState() {
     if (_controller.isThinking) return Gate3InteractionState.thinking;
+    if (_speakingVisual) return Gate3InteractionState.speaking;
     if (_controller.isRecording || _composerListening) {
       return Gate3InteractionState.listening;
     }
@@ -323,8 +379,12 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
             _controller.messages.length - 1 - effectiveIndex;
         final msg = _controller.messages[reverseIndex];
         return MessageBubble(
+          key: ValueKey(msg.localId),
           message: msg.text,
           isSedi: msg.isSedi,
+          messageKey: msg.localId,
+          expandLabel: l10n.readMore,
+          collapseLabel: l10n.showLess,
           isFailed: msg.isUser && msg.status == ChatMessageStatus.failed,
           onRetry: msg.isUser && msg.status == ChatMessageStatus.failed
               ? () => _controller.retryFailedMessage(msg.localId)
