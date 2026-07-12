@@ -37,18 +37,24 @@ class LifestyleSectionController extends ChangeNotifier {
     error = null;
     notifyListeners();
 
-    final results = await Future.wait([
-      _repo.fetchLifestyleSummary(lang: lang),
-      _repo.fetchLifestyleContext(),
-      _repo.fetchHabits(),
-      _repo.fetchGoals(),
-      _repo.fetchRestrictions(),
-      _repo.fetchEvents(),
-      _repo.fetchLifestyleEvents(),
-      _repo.fetchCarePlanItems(),
-    ]);
+    final summaryFuture = _repo.fetchLifestyleSummary(lang: lang);
+    final contextFuture = _repo.fetchLifestyleContext();
+    final habitsFuture = _repo.fetchHabits();
+    final goalsFuture = _repo.fetchGoals();
+    final restrictionsFuture = _repo.fetchRestrictions();
+    final eventsFuture = _repo.fetchEvents();
+    final lifestyleEventsFuture = _repo.fetchLifestyleEvents();
+    final carePlanFuture = _repo.fetchCarePlanItems();
 
-    final summaryRes = results[0];
+    final summaryRes = await summaryFuture;
+    final contextRes = await contextFuture;
+    final habitsRes = await habitsFuture;
+    final goalsRes = await goalsFuture;
+    final restrictionsRes = await restrictionsFuture;
+    final eventsRes = await eventsFuture;
+    final lifestyleEventsRes = await lifestyleEventsFuture;
+    final carePlanRes = await carePlanFuture;
+
     if (summaryRes.ok && summaryRes.data != null) {
       summarySections = summaryRes.data!.sections
           .map((s) => {
@@ -59,16 +65,18 @@ class LifestyleSectionController extends ChangeNotifier {
           .toList();
     }
 
-    if (results[1].ok && results[1].data != null) {
-      lifestyleContext = results[1].data;
+    if (contextRes.ok && contextRes.data != null) {
+      lifestyleContext = contextRes.data;
     }
 
-    if (results[2].ok) habits = results[2].data ?? habits;
-    if (results[3].ok) goals = results[3].data ?? goals;
-    if (results[4].ok) restrictions = results[4].data ?? restrictions;
-    if (results[5].ok) events = results[5].data ?? events;
-    if (results[6].ok) lifestyleEvents = results[6].data ?? lifestyleEvents;
-    if (results[7].ok) carePlanItems = results[7].data ?? carePlanItems;
+    if (habitsRes.ok) habits = habitsRes.data ?? habits;
+    if (goalsRes.ok) goals = goalsRes.data ?? goals;
+    if (restrictionsRes.ok) restrictions = restrictionsRes.data ?? restrictions;
+    if (eventsRes.ok) events = eventsRes.data ?? events;
+    if (lifestyleEventsRes.ok) {
+      lifestyleEvents = lifestyleEventsRes.data ?? lifestyleEvents;
+    }
+    if (carePlanRes.ok) carePlanItems = carePlanRes.data ?? carePlanItems;
 
     if (!summaryRes.ok &&
         lifestyleContext == null &&
