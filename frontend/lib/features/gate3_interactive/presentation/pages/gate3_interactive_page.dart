@@ -16,7 +16,7 @@ import '../sections/lifestyle/gate3_lifestyle_overview_page.dart';
 import '../sections/settings/gate3_settings_page.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
-import '../widgets/gate3_return_to_latest_button.dart';
+import '../widgets/gate3_message_viewport.dart';
 import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -257,29 +257,19 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                             child: Column(
                               children: [
                                 Expanded(
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            10,
-                                            12,
-                                            10,
-                                            8,
-                                          ),
-                                          child: _buildMessages(l10n),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        right: 12,
-                                        bottom: 12,
-                                        child: Gate3ReturnToLatestButton(
-                                          scrollController: _scrollController,
-                                          onTap: _scrollToBottom,
-                                          tooltip: l10n.returnToLatest,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      10,
+                                      12,
+                                      10,
+                                      8,
+                                    ),
+                                    child: Gate3MessageViewport(
+                                      scrollController: _scrollController,
+                                      onReturnToLatest: _scrollToBottom,
+                                      returnTooltip: l10n.returnToLatest,
+                                      child: _buildMessages(l10n),
+                                    ),
                                   ),
                                 ),
                                 Gate3Composer(

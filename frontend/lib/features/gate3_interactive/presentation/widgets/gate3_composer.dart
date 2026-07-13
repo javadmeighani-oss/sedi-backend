@@ -21,8 +21,8 @@ class Gate3Composer extends StatefulWidget {
   /// Gate 3 composer hint font size (exactly 80% of [baseFontSize]).
   static const double hintFontSize = baseFontSize * 0.8;
 
-  /// Gate 3 composer typed input font size (+10% over [hintFontSize]).
-  static const double inputFontSize = hintFontSize * 1.10;
+  /// Gate 3 composer typed input font size.
+  static const double inputFontSize = 16.2;
 
   /// Backward-compatible alias for the hint size.
   static const double fontSize = hintFontSize;

@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
-/// Shown when the chat list is scrolled away from the latest messages.
+/// Physical bottom-right return-to-latest control inside the reserved lane.
 class Gate3ReturnToLatestButton extends StatefulWidget {
-  final ScrollController scrollController;
   final VoidCallback onTap;
   final String tooltip;
 
+  static const double size = 40;
+
   const Gate3ReturnToLatestButton({
     super.key,
-    required this.scrollController,
     required this.onTap,
     required this.tooltip,
   });
@@ -24,28 +24,7 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
   bool _pressed = false;
 
   @override
-  void initState() {
-    super.initState();
-    widget.scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    widget.scrollController.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (mounted) setState(() {});
-  }
-
-  bool get _visible =>
-      widget.scrollController.hasClients && widget.scrollController.offset > 72;
-
-  @override
   Widget build(BuildContext context) {
-    if (!_visible) return const SizedBox.shrink();
-
     return Semantics(
       button: true,
       label: widget.tooltip,
@@ -58,13 +37,11 @@ class _Gate3ReturnToLatestButtonState extends State<Gate3ReturnToLatestButton> {
         onTapCancel: () => setState(() => _pressed = false),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          width: 40,
-          height: 40,
+          width: Gate3ReturnToLatestButton.size,
+          height: Gate3ReturnToLatestButton.size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _pressed
-                ? AppTheme.metalGrey
-                : AppTheme.gate2ButtonOlive,
+            color: _pressed ? AppTheme.metalGrey : AppTheme.gate2ButtonOlive,
             boxShadow: const [
               BoxShadow(
                 color: Color(0x22000000),

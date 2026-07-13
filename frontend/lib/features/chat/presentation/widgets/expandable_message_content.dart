@@ -14,7 +14,7 @@ class ExpandableMessageContent extends StatefulWidget {
   final int collapsedMaxLines;
   final double maxContentWidth;
 
-  static const int defaultCollapsedMaxLines = 6;
+  static const int defaultCollapsedMaxLines = 2;
 
   const ExpandableMessageContent({
     super.key,
@@ -105,40 +105,14 @@ class _ExpandableMessageContentState extends State<ExpandableMessageContent> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Text(
-                    widget.text,
-                    textAlign: TextAlign.start,
-                    style: widget.style,
-                    maxLines: _expanded ? null : widget.collapsedMaxLines,
-                    overflow: _expanded
-                        ? TextOverflow.visible
-                        : TextOverflow.fade,
-                  ),
-                  if (!_expanded && showToggle)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: 22,
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                widget.fadeBaseColor.withOpacity(0),
-                                widget.fadeBaseColor,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              Text(
+                widget.text,
+                textAlign: TextAlign.start,
+                style: widget.style,
+                maxLines: _expanded ? null : widget.collapsedMaxLines,
+                overflow: _expanded
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
               ),
               if (showToggle) ...[
                 const SizedBox(height: 4),

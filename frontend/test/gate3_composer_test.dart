@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localization.dart';
 import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer.dart';
+import 'package:sedi_app/features/gate3_interactive/presentation/widgets/gate3_composer_action_button.dart';
 
 void main() {
   Future<void> pumpComposer(
@@ -42,8 +43,7 @@ void main() {
   test('Gate3 composer hint and input font sizes are distinct', () {
     expect(Gate3Composer.hintFontSize, Gate3Composer.baseFontSize * 0.8);
     expect(Gate3Composer.hintFontSize, 12.8);
-    expect(Gate3Composer.inputFontSize, closeTo(12.8 * 1.10, 0.001));
-    expect(Gate3Composer.inputFontSize, closeTo(14.08, 0.001));
+    expect(Gate3Composer.inputFontSize, 16.2);
   });
 
   testWidgets('plus stays on physical left and mic on physical right in RTL',
@@ -79,15 +79,38 @@ void main() {
     expect(leftX(add, tester) < leftX(send, tester), isTrue);
   });
 
-  testWidgets('composer applies reduced hint and larger input font sizes',
+  testWidgets('composer applies typed 16.2 and hint 12.8 font sizes',
       (tester) async {
     await pumpComposer(tester, isRtl: false, lang: 'en');
 
     final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.style?.fontSize, 16.2);
+    expect(field.decoration?.hintStyle?.fontSize, 12.8);
     expect(field.style?.fontSize, Gate3Composer.inputFontSize);
     expect(field.decoration?.hintStyle?.fontSize, Gate3Composer.hintFontSize);
-    expect(field.style?.fontSize, closeTo(14.08, 0.001));
-    expect(field.decoration?.hintStyle?.fontSize, 12.8);
+  });
+
+  testWidgets('composer toolbar control geometry remains unchanged',
+      (tester) async {
+    await pumpComposer(tester, isRtl: true, lang: 'fa', text: 'سلام');
+
+    final addButton = tester.widget<Gate3ComposerActionButton>(
+      find.ancestor(
+        of: find.byIcon(Icons.add_rounded),
+        matching: find.byType(Gate3ComposerActionButton),
+      ),
+    );
+    final sendButton = tester.widget<Gate3ComposerActionButton>(
+      find.ancestor(
+        of: find.byIcon(Icons.arrow_upward_rounded),
+        matching: find.byType(Gate3ComposerActionButton),
+      ),
+    );
+
+    expect(addButton.size, 36);
+    expect(addButton.iconSize, 22);
+    expect(sendButton.size, 40);
+    expect(sendButton.iconSize, 22);
   });
 
   testWidgets('attachment menu exposes camera photos and files via plus',

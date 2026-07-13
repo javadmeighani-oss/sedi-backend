@@ -7,6 +7,8 @@ import 'package:sedi_app/features/gate3_interactive/presentation/gate3_localizat
 void main() {
   const shortText = 'Short message.';
   final longText = List.filled(40, 'word').join(' ');
+  final twoLineCandidate =
+      'Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda.';
 
   Widget wrap({
     required Widget child,
@@ -29,11 +31,24 @@ void main() {
     );
   }
 
-  testWidgets('short messages do not show Read more', (tester) async {
+  Future<Text> collapsedTextWidget(WidgetTester tester) async {
+    return tester.widget<Text>(
+      find.descendant(
+        of: find.byType(ExpandableMessageContent),
+        matching: find.byType(Text),
+      ),
+    );
+  }
+
+  test('default collapsed preview is two rendered lines', () {
+    expect(ExpandableMessageContent.defaultCollapsedMaxLines, 2);
+  });
+
+  testWidgets('one-line message has no expand control', (tester) async {
     await tester.pumpWidget(
       wrap(
         child: MessageBubble(
-          messageKey: 'short-1',
+          messageKey: 'one-line',
           message: shortText,
           isSedi: true,
           expandLabel: 'Read more',
@@ -47,7 +62,58 @@ void main() {
     expect(find.text(shortText), findsOneWidget);
   });
 
-  testWidgets('long user and Sedi messages expand and collapse', (tester) async {
+  testWidgets('two-line candidate without overflow has no expand control',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        child: SizedBox(
+          width: MessageBubble.contentMaxWidth,
+          child: ExpandableMessageContent(
+            messageKey: 'two-line',
+            text: twoLineCandidate,
+            style: MessageBubble.messageTextStyle,
+            expandLabel: 'Read more',
+            collapseLabel: 'Show less',
+            fadeBaseColor: Colors.white,
+            maxContentWidth: MessageBubble.contentMaxWidth,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 32));
+
+    final textWidget = await collapsedTextWidget(tester);
+    if (textWidget.maxLines == 2) {
+      expect(find.text('Read more'), findsNothing);
+    }
+  });
+
+  testWidgets('text exceeding two lines starts collapsed with ellipsis',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          messageKey: 'long-user',
+          message: longText,
+          isSedi: false,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 32));
+
+    final textWidget = await collapsedTextWidget(tester);
+    expect(textWidget.maxLines, 2);
+    expect(textWidget.overflow, TextOverflow.ellipsis);
+    expect(find.text('Read more'), findsOneWidget);
+    expect(find.text(longText), findsOneWidget);
+  });
+
+  testWidgets('long user and Sedi messages expand and collapse to two lines',
+      (tester) async {
     for (final isSedi in [false, true]) {
       await tester.pumpWidget(
         wrap(
@@ -69,6 +135,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));
 
+      final expandedText = await collapsedTextWidget(tester);
+      expect(expandedText.maxLines, isNull);
       expect(find.text('Show less'), findsOneWidget);
       expect(find.text(longText), findsOneWidget);
 
@@ -76,6 +144,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));
 
+      final collapsedText = await collapsedTextWidget(tester);
+      expect(collapsedText.maxLines, 2);
+      expect(collapsedText.overflow, TextOverflow.ellipsis);
       expect(find.text('Read more'), findsOneWidget);
     }
   });
@@ -151,7 +222,8 @@ void main() {
     expect(find.text('Read more'), findsOneWidget);
   });
 
-  testWidgets('restored history messages use stable keys', (tester) async {
+  testWidgets('restored history messages use stable keys and two-line collapse',
+      (tester) async {
     const historyKey = 'hist-asst-42';
     await tester.pumpWidget(
       wrap(
@@ -170,6 +242,27 @@ void main() {
 
     expect(find.byKey(const ValueKey(historyKey)), findsOneWidget);
     expect(find.byKey(const ValueKey('expand-$historyKey')), findsOneWidget);
+
+    final textWidget = await collapsedTextWidget(tester);
+    expect(textWidget.maxLines, 2);
+    expect(find.text('Read more'), findsOneWidget);
+  });
+
+  testWidgets('typing indicator remains outside expandable behavior',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        child: const MessageBubble(
+          message: '...',
+          isSedi: true,
+          showTyping: true,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 32));
+
+    expect(find.byType(ExpandableMessageContent), findsNothing);
+    expect(find.text('Read more'), findsNothing);
   });
 
   testWidgets('expandable content renders at narrow width without exceptions',
