@@ -31,10 +31,12 @@ void main() {
     );
   }
 
-  Future<Text> collapsedTextWidget(WidgetTester tester) async {
+  Future<Text?> collapsedTextWidget(WidgetTester tester) async {
+    final expandable = find.byType(ExpandableMessageContent);
+    if (expandable.evaluate().isEmpty) return null;
     return tester.widget<Text>(
       find.descendant(
-        of: find.byType(ExpandableMessageContent),
+        of: expandable,
         matching: find.byType(Text),
       ),
     );
@@ -44,11 +46,30 @@ void main() {
     expect(ExpandableMessageContent.defaultCollapsedMaxLines, 2);
   });
 
-  testWidgets('one-line message has no expand control', (tester) async {
+  testWidgets('short user message has no expand control', (tester) async {
     await tester.pumpWidget(
       wrap(
         child: MessageBubble(
-          messageKey: 'one-line',
+          messageKey: 'one-line-user',
+          message: shortText,
+          isSedi: false,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 32));
+
+    expect(find.text('Read more'), findsNothing);
+    expect(find.text(shortText), findsOneWidget);
+    expect(find.byType(ExpandableMessageContent), findsNothing);
+  });
+
+  testWidgets('short assistant message has no expand control', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          messageKey: 'one-line-assistant',
           message: shortText,
           isSedi: true,
           expandLabel: 'Read more',
@@ -60,36 +81,10 @@ void main() {
 
     expect(find.text('Read more'), findsNothing);
     expect(find.text(shortText), findsOneWidget);
+    expect(find.byType(ExpandableMessageContent), findsNothing);
   });
 
-  testWidgets('two-line candidate without overflow has no expand control',
-      (tester) async {
-    await tester.pumpWidget(
-      wrap(
-        child: SizedBox(
-          width: MessageBubble.contentMaxWidth,
-          child: ExpandableMessageContent(
-            messageKey: 'two-line',
-            text: twoLineCandidate,
-            style: MessageBubble.messageTextStyle,
-            expandLabel: 'Read more',
-            collapseLabel: 'Show less',
-            fadeBaseColor: Colors.white,
-            maxContentWidth: MessageBubble.contentMaxWidth,
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 32));
-
-    final textWidget = await collapsedTextWidget(tester);
-    if (textWidget.maxLines == 2) {
-      expect(find.text('Read more'), findsNothing);
-    }
-  });
-
-  testWidgets('text exceeding two lines starts collapsed with ellipsis',
+  testWidgets('long live user message starts collapsed at two lines',
       (tester) async {
     await tester.pumpWidget(
       wrap(
@@ -106,52 +101,140 @@ void main() {
     await tester.pump(const Duration(milliseconds: 32));
 
     final textWidget = await collapsedTextWidget(tester);
-    expect(textWidget.maxLines, 2);
+    expect(textWidget, isNotNull);
+    expect(textWidget!.maxLines, 2);
     expect(textWidget.overflow, TextOverflow.ellipsis);
     expect(find.text('Read more'), findsOneWidget);
     expect(find.text(longText), findsOneWidget);
   });
 
-  testWidgets('long user and Sedi messages expand and collapse to two lines',
-      (tester) async {
-    for (final isSedi in [false, true]) {
-      await tester.pumpWidget(
-        wrap(
-          child: MessageBubble(
-            messageKey: 'long-${isSedi ? 'sedi' : 'user'}',
-            message: longText,
-            isSedi: isSedi,
-            expandLabel: 'Read more',
-            collapseLabel: 'Show less',
-          ),
+  testWidgets('long user message expands and collapses', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          messageKey: 'long-user-expand',
+          message: longText,
+          isSedi: false,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
         ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 32));
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 32));
 
-      expect(find.text('Read more'), findsOneWidget);
+    await tester.tap(find.text('Read more'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
 
-      await tester.tap(find.text('Read more'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 240));
+    final expandedText = await collapsedTextWidget(tester);
+    expect(expandedText!.maxLines, isNull);
+    expect(find.text('Show less'), findsOneWidget);
+    expect(find.text(longText), findsOneWidget);
 
-      final expandedText = await collapsedTextWidget(tester);
-      expect(expandedText.maxLines, isNull);
-      expect(find.text('Show less'), findsOneWidget);
-      expect(find.text(longText), findsOneWidget);
+    await tester.tap(find.text('Show less'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 240));
 
-      await tester.tap(find.text('Show less'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 240));
-
-      final collapsedText = await collapsedTextWidget(tester);
-      expect(collapsedText.maxLines, 2);
-      expect(collapsedText.overflow, TextOverflow.ellipsis);
-      expect(find.text('Read more'), findsOneWidget);
-    }
+    final collapsedText = await collapsedTextWidget(tester);
+    expect(collapsedText!.maxLines, 2);
+    expect(collapsedText.overflow, TextOverflow.ellipsis);
+    expect(find.text('Read more'), findsOneWidget);
   });
 
-  testWidgets('fa ar en expansion labels are localized', (tester) async {
+  testWidgets('long assistant response is fully visible without collapse',
+      (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          messageKey: 'long-assistant',
+          message: longText,
+          isSedi: true,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 32));
+
+    expect(find.byType(ExpandableMessageContent), findsNothing);
+    expect(find.text('Read more'), findsNothing);
+    expect(find.text('Show less'), findsNothing);
+
+    final textWidget = tester.widget<Text>(find.text(longText));
+    expect(textWidget.maxLines, isNull);
+    expect(textWidget.overflow, TextOverflow.clip);
+  });
+
+  testWidgets('initial Sedi greeting is fully visible', (tester) async {
+    const greeting = 'Hello, I am Sedi. How can I help you today?';
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          messageKey: 'greeting',
+          message: greeting,
+          isSedi: true,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 32));
+
+    expect(find.text(greeting), findsOneWidget);
+    expect(find.byType(ExpandableMessageContent), findsNothing);
+    expect(find.text('Read more'), findsNothing);
+  });
+
+  testWidgets('restored user message follows two-line collapse', (tester) async {
+    const historyKey = 'hist-user-42';
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          key: const ValueKey(historyKey),
+          messageKey: historyKey,
+          message: longText,
+          isSedi: false,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 32));
+
+    expect(find.byKey(const ValueKey(historyKey)), findsOneWidget);
+    expect(find.byKey(const ValueKey('expand-$historyKey')), findsOneWidget);
+    final textWidget = await collapsedTextWidget(tester);
+    expect(textWidget!.maxLines, 2);
+    expect(find.text('Read more'), findsOneWidget);
+  });
+
+  testWidgets('restored assistant message remains fully visible', (tester) async {
+    const historyKey = 'hist-asst-42';
+    await tester.pumpWidget(
+      wrap(
+        child: MessageBubble(
+          key: const ValueKey(historyKey),
+          messageKey: historyKey,
+          message: longText,
+          isSedi: true,
+          expandLabel: 'Read more',
+          collapseLabel: 'Show less',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 32));
+
+    expect(find.byKey(const ValueKey(historyKey)), findsOneWidget);
+    expect(find.byType(ExpandableMessageContent), findsNothing);
+    expect(find.text('Read more'), findsNothing);
+    expect(find.text(longText), findsOneWidget);
+  });
+
+  testWidgets('fa ar en user expansion labels remain localized', (tester) async {
     const cases = <({String lang, String expand, String collapse})>[
       (lang: 'fa', expand: 'ادامه متن', collapse: 'نمایش کمتر'),
       (lang: 'en', expand: 'Read more', collapse: 'Show less'),
@@ -167,7 +250,7 @@ void main() {
           child: MessageBubble(
             messageKey: 'loc-${c.lang}',
             message: longText,
-            isSedi: true,
+            isSedi: false,
             expandLabel: l10n.readMore,
             collapseLabel: l10n.showLess,
           ),
@@ -182,7 +265,7 @@ void main() {
     }
   });
 
-  testWidgets('duplicate text messages keep independent expansion state',
+  testWidgets('duplicate user messages keep independent expansion state',
       (tester) async {
     await tester.pumpWidget(
       wrap(
@@ -200,7 +283,7 @@ void main() {
               key: const ValueKey('dup-b'),
               messageKey: 'dup-b',
               message: longText,
-              isSedi: true,
+              isSedi: false,
               expandLabel: 'Read more',
               collapseLabel: 'Show less',
             ),
@@ -222,32 +305,6 @@ void main() {
     expect(find.text('Read more'), findsOneWidget);
   });
 
-  testWidgets('restored history messages use stable keys and two-line collapse',
-      (tester) async {
-    const historyKey = 'hist-asst-42';
-    await tester.pumpWidget(
-      wrap(
-        child: MessageBubble(
-          key: const ValueKey(historyKey),
-          messageKey: historyKey,
-          message: longText,
-          isSedi: true,
-          expandLabel: 'Read more',
-          collapseLabel: 'Show less',
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 32));
-
-    expect(find.byKey(const ValueKey(historyKey)), findsOneWidget);
-    expect(find.byKey(const ValueKey('expand-$historyKey')), findsOneWidget);
-
-    final textWidget = await collapsedTextWidget(tester);
-    expect(textWidget.maxLines, 2);
-    expect(find.text('Read more'), findsOneWidget);
-  });
-
   testWidgets('typing indicator remains outside expandable behavior',
       (tester) async {
     await tester.pumpWidget(
@@ -265,7 +322,7 @@ void main() {
     expect(find.text('Read more'), findsNothing);
   });
 
-  testWidgets('expandable content renders at narrow width without exceptions',
+  testWidgets('expandable user content renders at narrow width without exceptions',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(

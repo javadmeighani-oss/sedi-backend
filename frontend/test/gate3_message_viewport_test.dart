@@ -41,16 +41,17 @@ void main() {
     );
   }
 
-  double laneHeight(WidgetTester tester) {
-    final lane = tester.widget<AnimatedContainer>(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is AnimatedContainer &&
-            widget.height != null &&
-            (widget.height == 0 || widget.height == 56),
-      ),
+  Finder laneFinder() {
+    return find.descendant(
+      of: find.byType(Gate3MessageViewport),
+      matching: find.byType(AnimatedContainer),
     );
-    return lane.height ?? 0;
+  }
+
+  double laneHeight(WidgetTester tester) {
+    final finder = laneFinder();
+    if (finder.evaluate().isEmpty) return 0;
+    return tester.getSize(finder).height;
   }
 
   test('shouldShowReturnButton requires an attached scroll controller', () {
@@ -97,15 +98,14 @@ void main() {
       (tester) async {
     final controller = ScrollController(initialScrollOffset: 120);
     addTearDown(controller.dispose);
-    var tapped = false;
 
     await tester.pumpWidget(
-      buildHarness(controller: controller, onReturn: () => tapped = true),
+      buildHarness(controller: controller, onReturn: () {}),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
-    expect(laneHeight(tester), Gate3MessageViewport.reservedLaneHeight);
+    expect(laneHeight(tester), closeTo(Gate3MessageViewport.reservedLaneHeight, 0.5));
     expect(find.byType(Gate3ReturnToLatestButton), findsOneWidget);
   });
 
@@ -116,19 +116,18 @@ void main() {
 
     await tester.pumpWidget(buildHarness(controller: controller, onReturn: () {}));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
     final listBottom = tester.getBottomLeft(find.byType(ListView));
-    final laneTop = tester.getTopLeft(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is AnimatedContainer && widget.height == 56,
-      ),
-    );
+    final laneTop = tester.getTopLeft(laneFinder());
+    final laneSize = tester.getSize(laneFinder());
     final buttonRect = tester.getRect(find.byType(Gate3ReturnToLatestButton));
 
+    expect(laneSize.height, closeTo(Gate3MessageViewport.reservedLaneHeight, 0.5));
     expect(listBottom.dy, lessThanOrEqualTo(laneTop.dy + 0.5));
-    expect(buttonRect.bottom, lessThanOrEqualTo(laneTop.dy + 56 + 0.5));
+    expect(buttonRect.width, closeTo(Gate3ReturnToLatestButton.size, 0.5));
+    expect(buttonRect.height, closeTo(Gate3ReturnToLatestButton.size, 0.5));
+    expect(buttonRect.bottom, lessThanOrEqualTo(laneTop.dy + laneSize.height + 0.5));
     expect(buttonRect.top, greaterThanOrEqualTo(laneTop.dy - 0.5));
   });
 
@@ -140,7 +139,7 @@ void main() {
       buildHarness(controller: controller, onReturn: () {}, isRtl: true),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
     final viewportRect = tester.getRect(find.byType(Gate3MessageViewport));
     final buttonRect = tester.getRect(find.byType(Gate3ReturnToLatestButton));
@@ -165,7 +164,7 @@ void main() {
       buildHarness(controller: controller, onReturn: () => tapped = true),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byType(Gate3ReturnToLatestButton));
     await tester.pump();
@@ -177,8 +176,7 @@ void main() {
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(laneHeight(tester), 0);
     expect(find.byType(Gate3ReturnToLatestButton), findsNothing);
@@ -198,7 +196,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
 
     final viewportRect = tester.getRect(find.byType(Gate3MessageViewport));
     final buttonRect = tester.getRect(find.byType(Gate3ReturnToLatestButton));
@@ -207,6 +205,6 @@ void main() {
       buttonRect.right,
       closeTo(viewportRect.right - Gate3MessageViewport.buttonInsetRight, 1.0),
     );
-    expect(laneHeight(tester), Gate3MessageViewport.reservedLaneHeight);
+    expect(laneHeight(tester), closeTo(Gate3MessageViewport.reservedLaneHeight, 0.5));
   });
 }

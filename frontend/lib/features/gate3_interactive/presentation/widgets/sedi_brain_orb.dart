@@ -71,6 +71,10 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   double _horizontalEnergy = SediAudioVisualizerPainter.targetHorizontalEnergy(
     Gate3InteractionState.idle,
   );
+  double _horizontalDensity =
+      SediAudioVisualizerPainter.targetHorizontalDensity(
+    Gate3InteractionState.idle,
+  );
   double _horizontalPhase = 0;
   double _horizontalPhaseSpeed =
       SediAudioVisualizerPainter.horizontalPhaseSpeed(
@@ -110,9 +114,23 @@ class _SediBrainOrbState extends State<SediBrainOrb>
 
     final target =
         SediAudioVisualizerPainter.targetHorizontalEnergy(widget.state);
-    final nextEnergy = _horizontalEnergy + (target - _horizontalEnergy) * 0.12;
-    if ((nextEnergy - _horizontalEnergy).abs() > 0.0005) {
-      setState(() => _horizontalEnergy = nextEnergy);
+    final nextEnergy = SediHorizontalResonanceProfile.interpolateToward(
+      _horizontalEnergy,
+      target,
+    );
+    final targetDensity =
+        SediAudioVisualizerPainter.targetHorizontalDensity(widget.state);
+    final nextDensity = SediHorizontalResonanceProfile.interpolateToward(
+      _horizontalDensity,
+      targetDensity,
+    );
+    final energyChanged = (nextEnergy - _horizontalEnergy).abs() > 0.0005;
+    final densityChanged = (nextDensity - _horizontalDensity).abs() > 0.0005;
+    if (energyChanged || densityChanged) {
+      setState(() {
+        _horizontalEnergy = nextEnergy;
+        _horizontalDensity = nextDensity;
+      });
     }
   }
 
@@ -157,6 +175,7 @@ class _SediBrainOrbState extends State<SediBrainOrb>
                   circularPhase: circularPhase,
                   horizontalPhase: _horizontalPhase,
                   horizontalEnergy: _horizontalEnergy,
+                  horizontalDensity: _horizontalDensity,
                   state: widget.state,
                   orbCenter: orbCenter,
                   orbBodyRadius: orbBodyRadius,

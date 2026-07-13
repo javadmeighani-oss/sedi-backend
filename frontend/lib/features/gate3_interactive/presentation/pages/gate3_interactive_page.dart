@@ -8,6 +8,8 @@ import '../../../../data/models/chat_message.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
 
+import '../../logic/gate3_orb_state_resolver.dart';
+import '../../logic/gate3_speaking_lifecycle.dart';
 import '../../models/gate3_interaction_state.dart';
 import '../gate3_localization.dart';
 import '../sections/gadgets/gate3_gadgets_page.dart';
@@ -43,8 +45,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   bool _composerListening = false;
   bool _speakingVisual = false;
   bool _speakingSyncReady = false;
+  bool _wasThinking = false;
   Timer? _speakingVisualTimer;
   int _trackedMessageCount = 0;
+  final Gate3SpeakingLifecycle _speakingLifecycle = Gate3SpeakingLifecycle();
 
   DateTime? _lastBackPressTime;
   Timer? _backPressTimer;
@@ -60,7 +64,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       if (!mounted) return;
       _trackedMessageCount = _controller.messages.length;
       _speakingSyncReady = true;
-      _maybeStartGreetingSpeaking();
       setState(() {});
       _scrollToBottom();
     });
@@ -79,7 +82,39 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _onControllerChanged() {
-    _syncSpeakingVisualFromMessages();
+    final messages = _controller.messages;
+    final previousCount = _trackedMessageCount;
+    final currentCount = messages.length;
+
+    if (_controller.isThinking && !_wasThinking) {
+      _speakingLifecycle.onThinkingBecameTrue();
+    }
+
+    String? responseText;
+    if (currentCount < previousCount) {
+      _trackedMessageCount = currentCount;
+    } else {
+      responseText = _speakingLifecycle.consumeSpeakingResponse(
+        syncReady: _speakingSyncReady,
+        previousMessageCount: previousCount,
+        currentMessageCount: currentCount,
+        messages: messages,
+        isThinking: _controller.isThinking,
+      );
+      _trackedMessageCount = currentCount;
+    }
+
+    if (_wasThinking &&
+        !_controller.isThinking &&
+        responseText == null &&
+        currentCount >= previousCount) {
+      _speakingLifecycle.onThinkingEndedWithoutAssistantResponse();
+    }
+    _wasThinking = _controller.isThinking;
+
+    if (responseText != null) {
+      _startSpeakingVisual(responseText);
+    }
     if (mounted) setState(() {});
   }
 
@@ -99,32 +134,6 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
       if (!mounted) return;
       setState(() => _speakingVisual = false);
     });
-  }
-
-  void _syncSpeakingVisualFromMessages() {
-    final messages = _controller.messages;
-    final previousCount = _trackedMessageCount;
-    final delta = messages.length - previousCount;
-    _trackedMessageCount = messages.length;
-
-    if (!_speakingSyncReady || delta != 1) return;
-
-    final latest = messages.last;
-    if (latest.isSedi && !_controller.isThinking) {
-      _startSpeakingVisual(latest.text);
-    }
-  }
-
-  /// Controlled greeting speak: only when init ends with a single assistant
-  /// message and no restored same-day history thread.
-  void _maybeStartGreetingSpeaking() {
-    final messages = _controller.messages;
-    if (messages.length != 1) return;
-
-    final only = messages.last;
-    if (only.isSedi && !_controller.isThinking) {
-      _startSpeakingVisual(only.text);
-    }
   }
 
   Gate3Localization get _l10n => Gate3Localization(_controller.currentLanguage);
@@ -172,16 +181,17 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   }
 
   void _handleSendText(String text) {
+    _speakingLifecycle.markUserSubmission();
     _controller.sendUserMessage(text);
   }
 
   Gate3InteractionState _orbState() {
-    if (_controller.isThinking) return Gate3InteractionState.thinking;
-    if (_speakingVisual) return Gate3InteractionState.speaking;
-    if (_controller.isRecording || _composerListening) {
-      return Gate3InteractionState.listening;
-    }
-    return Gate3InteractionState.idle;
+    return Gate3OrbStateResolver.resolve(
+      isThinking: _controller.isThinking,
+      speakingVisual: _speakingVisual,
+      isRecording: _controller.isRecording,
+      composerHasMeaningfulText: _composerListening,
+    );
   }
 
   void _goTo(Widget page) {
@@ -308,6 +318,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                                     });
                                   },
                                   onStopRecordingAndSend: () {
+                                    _speakingLifecycle.markUserSubmission();
                                     _controller.stopVoiceRecording().then((_) {
                                       if (!mounted) return;
                                       setState(
@@ -380,7 +391,10 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
           collapseLabel: l10n.showLess,
           isFailed: msg.isUser && msg.status == ChatMessageStatus.failed,
           onRetry: msg.isUser && msg.status == ChatMessageStatus.failed
-              ? () => _controller.retryFailedMessage(msg.localId)
+              ? () {
+                  _speakingLifecycle.markUserSubmission();
+                  _controller.retryFailedMessage(msg.localId);
+                }
               : null,
         );
       },

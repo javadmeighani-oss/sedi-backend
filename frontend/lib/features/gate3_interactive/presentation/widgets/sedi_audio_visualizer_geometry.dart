@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../../models/gate3_interaction_state.dart';
+
 /// Immutable circular equalizer profile — screenshot `11.jpg` / idle authority.
 ///
 /// The circular spectrum uses this profile in every interaction state.
@@ -17,6 +19,55 @@ class SediCircularEqualizerProfile {
 
   /// Travelling-cluster motion speed inside [ProceduralVoiceWaveform].
   static const double radialMotionSpeed = 0.75;
+}
+
+/// State-dependent horizontal resonance targets for Gate 3.
+///
+/// Amplitude and spatial density vary by interaction state. Temporal animation
+/// speed is fixed to [SediCircularEqualizerProfile.phaseSpeed] for every state.
+class SediHorizontalResonanceProfile {
+  SediHorizontalResonanceProfile._();
+
+  /// Shared calm temporal pace — identical to the circular equalizer.
+  static const double temporalSpeed = SediCircularEqualizerProfile.phaseSpeed;
+
+  /// Effective peak-amplitude hierarchy relative to speaking (= 1.00).
+  static double amplitudeTarget(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.0;
+      case Gate3InteractionState.listening:
+        return 0.25;
+      case Gate3InteractionState.thinking:
+        return 0.50;
+      case Gate3InteractionState.speaking:
+        return 1.0;
+    }
+  }
+
+  /// Spatial cluster richness hierarchy relative to speaking (= 1.00).
+  static double densityTarget(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.0;
+      case Gate3InteractionState.listening:
+        return 0.28;
+      case Gate3InteractionState.thinking:
+        return 0.575;
+      case Gate3InteractionState.speaking:
+        return 1.0;
+    }
+  }
+
+  /// Shared visual lerp factor for amplitude and density interpolation.
+  static const double visualLerp = 0.12;
+
+  static double interpolateToward(
+    double current,
+    double target, {
+    double lerp = visualLerp,
+  }) =>
+      current + (target - current) * lerp;
 }
 
 /// Authoritative layout geometry for the Gate 3 radial spectrum visualizer.

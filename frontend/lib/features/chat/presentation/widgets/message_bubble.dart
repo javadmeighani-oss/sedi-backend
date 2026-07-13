@@ -116,6 +116,7 @@ class MessageBubble extends StatelessWidget {
   }
 
   bool get _useExpandableContent =>
+      !isSedi &&
       messageKey != null &&
       expandLabel != null &&
       collapseLabel != null &&

@@ -12,6 +12,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
   final double circularPhase;
   final double horizontalPhase;
   final double horizontalEnergy;
+  final double horizontalDensity;
   final Gate3InteractionState state;
   final Offset orbCenter;
   final double orbBodyRadius;
@@ -37,42 +38,25 @@ class SediAudioVisualizerPainter extends CustomPainter {
   static double circularPhaseSpeed(Gate3InteractionState state) =>
       SediCircularEqualizerProfile.phaseSpeed;
 
-  /// Horizontal resonance targets: idle ≈ listening < thinking << speaking.
-  static double targetHorizontalEnergy(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.20;
-      case Gate3InteractionState.listening:
-        return 0.30;
-      case Gate3InteractionState.thinking:
-        return 0.58;
-      case Gate3InteractionState.speaking:
-        return 0.92;
-    }
-  }
+  /// Horizontal resonance amplitude targets relative to speaking (= 1.00).
+  static double targetHorizontalEnergy(Gate3InteractionState state) =>
+      SediHorizontalResonanceProfile.amplitudeTarget(state);
 
-  /// State-responsive horizontal cadence (circular cadence stays constant).
-  static double horizontalPhaseSpeed(Gate3InteractionState state) {
-    switch (state) {
-      case Gate3InteractionState.idle:
-        return 0.45;
-      case Gate3InteractionState.listening:
-        return 0.5;
-      case Gate3InteractionState.thinking:
-        return 0.95;
-      case Gate3InteractionState.speaking:
-        return 1.75;
-    }
-  }
+  /// Horizontal spatial-density targets relative to speaking (= 1.00).
+  static double targetHorizontalDensity(Gate3InteractionState state) =>
+      SediHorizontalResonanceProfile.densityTarget(state);
+
+  /// Fixed horizontal cadence — identical to the circular equalizer pace.
+  static double horizontalPhaseSpeed(Gate3InteractionState state) =>
+      SediHorizontalResonanceProfile.temporalSpeed;
 
   /// Constant circular phase from one animation controller value `[0, 1]`.
   static double deriveCircularPhase(double controllerValue) =>
       controllerValue * SediCircularEqualizerProfile.phaseSpeed;
 
-  /// Integrates horizontal phase with smoothly interpolated speed.
+  /// Integrates horizontal phase at the shared calm temporal speed.
   ///
-  /// Speed is lerped toward the state target before each delta step so phase
-  /// never jumps when [state] changes.
+  /// Speed is constant across states so phase never jumps when [state] changes.
   static ({
     double phase,
     double speed,
@@ -83,20 +67,18 @@ class SediAudioVisualizerPainter extends CustomPainter {
     required double lastControllerValue,
     required double controllerValue,
     required Gate3InteractionState state,
-    double speedLerp = 0.12,
   }) {
     var delta = controllerValue - lastControllerValue;
     if (delta < 0) {
       delta += 1.0;
     }
 
-    final targetSpeed = horizontalPhaseSpeed(state);
-    final nextSpeed = speed + (targetSpeed - speed) * speedLerp;
-    final nextPhase = phase + delta * nextSpeed;
+    final constantSpeed = horizontalPhaseSpeed(state);
+    final nextPhase = phase + delta * constantSpeed;
 
     return (
       phase: nextPhase,
-      speed: nextSpeed,
+      speed: constantSpeed,
       lastControllerValue: controllerValue,
     );
   }
@@ -105,6 +87,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
     required this.circularPhase,
     required this.horizontalPhase,
     required this.horizontalEnergy,
+    required this.horizontalDensity,
     required this.state,
     required this.orbCenter,
     required this.orbBodyRadius,
@@ -283,7 +266,9 @@ class SediAudioVisualizerPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = 0.8
       ..color = _oliveStroke.withOpacity(
-        (0.14 + horizontalEnergy * 0.28).clamp(0.1, 0.62),
+        horizontalEnergy <= 0.001
+            ? 0.14
+            : (0.14 + horizontalEnergy * 0.28).clamp(0.1, 0.62),
       );
 
     final fillPaint = Paint()
@@ -295,6 +280,8 @@ class SediAudioVisualizerPainter extends CustomPainter {
         (0.16 + horizontalEnergy * 0.34).clamp(0.12, 0.72),
       );
 
+    var hasWaveform = false;
+
     for (var i = 0; i <= _horizontalSamples; i++) {
       final t = i / _horizontalSamples;
       final x = ui.lerpDouble(startX, endX, t)!;
@@ -302,11 +289,14 @@ class SediAudioVisualizerPainter extends CustomPainter {
         normalizedX: t,
         time: horizontalPhase,
         energy: horizontalEnergy,
-        state: state,
+        density: horizontalDensity,
         isRightSide: isRightSide,
       );
       final upperY = baselineY - sample.upper * peakHeight;
       final lowerY = baselineY + sample.lower * peakHeight;
+      if (sample.upper > 0.0005 || sample.lower > 0.0005) {
+        hasWaveform = true;
+      }
 
       if (i == 0) {
         baselinePath.moveTo(x, baselineY);
@@ -320,15 +310,17 @@ class SediAudioVisualizerPainter extends CustomPainter {
     }
 
     canvas.drawPath(baselinePath, strokePaint);
-    canvas.drawPath(upperPath, fillPaint);
-    canvas.drawPath(
-      lowerPath,
-      fillPaint
-        ..strokeWidth = 0.66
-        ..color = _oliveStroke.withOpacity(
-          (0.12 + horizontalEnergy * 0.26).clamp(0.1, 0.58),
-        ),
-    );
+    if (hasWaveform) {
+      canvas.drawPath(upperPath, fillPaint);
+      canvas.drawPath(
+        lowerPath,
+        fillPaint
+          ..strokeWidth = 0.66
+          ..color = _oliveStroke.withOpacity(
+            (0.12 + horizontalEnergy * 0.26).clamp(0.1, 0.58),
+          ),
+      );
+    }
   }
 
   @override
@@ -336,6 +328,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
       oldDelegate.circularPhase != circularPhase ||
       oldDelegate.horizontalPhase != horizontalPhase ||
       oldDelegate.horizontalEnergy != horizontalEnergy ||
+      oldDelegate.horizontalDensity != horizontalDensity ||
       oldDelegate.state != state ||
       oldDelegate.orbCenter != orbCenter ||
       oldDelegate.orbBodyRadius != orbBodyRadius ||

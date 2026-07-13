@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../logic/gate3_orb_state_resolver.dart';
 import 'gate3_attachment_menu.dart';
 import 'gate3_composer_action_button.dart';
 
@@ -66,7 +67,6 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
-    _focusNode.addListener(_notifyListening);
     _onTextChanged();
   }
 
@@ -81,7 +81,6 @@ class _Gate3ComposerState extends State<Gate3Composer> {
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
-    _focusNode.removeListener(_notifyListening);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -94,8 +93,7 @@ class _Gate3ComposerState extends State<Gate3Composer> {
 
   void _notifyListening() {
     final listening = widget.isRecording ||
-        _focusNode.hasFocus ||
-        _controller.text.trim().isNotEmpty;
+        Gate3OrbStateResolver.composerActivatesListening(_controller.text);
     widget.onListeningChanged?.call(listening);
   }
 
