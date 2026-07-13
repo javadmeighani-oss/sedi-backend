@@ -26,32 +26,35 @@ class SediCircularEqualizerProfile {
 class SediAudioVisualizerGeometry {
   SediAudioVisualizerGeometry._();
 
-  static const double barExtensionScale = 14.0;
-  static const double barLengthFloor = 3.0;
-  static const double barLengthMinBase = 1.2;
+  /// Approved 10% reduction from commit `628b310` normal non-keyboard size.
+  static const double visualizerSizeScale = 0.90;
+
+  static double get barExtensionScale => 14.0 * visualizerSizeScale;
+  static double get barLengthFloor => 3.0 * visualizerSizeScale;
+  static double get barLengthMinBase => 1.2 * visualizerSizeScale;
   static const double barLengthMinAmplitudeScale = 0.8;
 
-  static const double maxBarStrokeWidth = 1.0;
-  static const double strokeSafetyMargin = maxBarStrokeWidth / 2;
-  static const double antiAliasSafetyMargin = 0.5;
+  static double get maxBarStrokeWidth => 1.0 * visualizerSizeScale;
+  static double get strokeSafetyMargin => maxBarStrokeWidth / 2;
+  static double get antiAliasSafetyMargin => 0.5 * visualizerSizeScale;
 
-  static const double glowPaintRadiusBeyondSpectrum = 6.0;
-  static const double glowShaderExtraBeyondBarExtension = 4.0;
+  static const double glowPaintRadiusBeyondSpectrum = 6.0 * visualizerSizeScale;
+  static const double glowShaderExtraBeyondBarExtension =
+      4.0 * visualizerSizeScale;
 
   /// Fixed circular amplitude used for bar extent and containment (all states).
   static const double peakAmplitude = SediCircularEqualizerProfile.amplitude;
 
-  /// Outward budget for preferred canvas height only — preserves the approved
-  /// ~164.83px allocation independent of the restrained circular envelope.
-  static const double preferredCanvasOutwardBudget = 20.88;
+  /// Outward budget for preferred canvas height only.
+  static double get preferredCanvasOutwardBudget => 20.88 * visualizerSizeScale;
 
-  static const double preferredSpectrumOffset = 10.0;
-  static const double minSpectrumOffset = 7.0;
-  static const double maxSpectrumOffset = 18.0;
-  static const double degradedMinSpectrumOffset = 3.0;
+  static double get preferredSpectrumOffset => 10.0 * visualizerSizeScale;
+  static double get minSpectrumOffset => 7.0 * visualizerSizeScale;
+  static double get maxSpectrumOffset => 18.0 * visualizerSizeScale;
+  static double get degradedMinSpectrumOffset => 3.0 * visualizerSizeScale;
 
-  static const double sideInset = 8.0;
-  static const double verticalInset = 6.0;
+  static const double sideInset = 8.0 * visualizerSizeScale;
+  static const double verticalInset = 6.0 * visualizerSizeScale;
 
   static double maxBarLength(double amplitude, {double barExtensionFactor = 1}) {
     final factor = barExtensionFactor.clamp(0.0, 1.0);

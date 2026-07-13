@@ -28,12 +28,20 @@ class SediBrainOrb extends StatefulWidget {
 
   static const double orbBodyRatio = 0.72;
 
-  static double get orbDiameter => legacyCoupledExtent * orbBodyRatio;
+  /// Approved 10% reduction from commit `628b310` normal non-keyboard size.
+  static const double visualizerSizeScale =
+      SediAudioVisualizerGeometry.visualizerSizeScale;
+
+  static double get orbDiameter =>
+      legacyCoupledExtent * orbBodyRatio * visualizerSizeScale;
 
   static double get orbBodyRadius => orbDiameter / 2;
 
-  /// Official wordmark height ratio inside the orb (20% smaller than 0.34).
-  static const double brandHeightRatio = 0.272;
+  /// Official wordmark height ratio inside the orb (5% smaller than 0.272).
+  static const double brandHeightRatio = 0.2584;
+
+  /// Fixed visualizer slot height — identical with keyboard open or closed.
+  static double get fixedVisualizerCanvasHeight => preferredVisualizerCanvasHeight;
 
   /// Previous coupled visualizer allocation (126.48).
   static const double legacyVisualizerCanvasHeight = legacyCoupledExtent;
@@ -63,6 +71,12 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   double _horizontalEnergy = SediAudioVisualizerPainter.targetHorizontalEnergy(
     Gate3InteractionState.idle,
   );
+  double _horizontalPhase = 0;
+  double _horizontalPhaseSpeed =
+      SediAudioVisualizerPainter.horizontalPhaseSpeed(
+    Gate3InteractionState.idle,
+  );
+  double _lastControllerValue = 0;
 
   @override
   void initState() {
@@ -70,7 +84,7 @@ class _SediBrainOrbState extends State<SediBrainOrb>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
-    )..addListener(_tickHorizontalEnergy)
+    )..addListener(_tickVisualState)
       ..repeat();
   }
 
@@ -78,22 +92,33 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   void didUpdateWidget(covariant SediBrainOrb oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.state != widget.state) {
-      _tickHorizontalEnergy();
+      _tickVisualState();
     }
   }
 
-  void _tickHorizontalEnergy() {
+  void _tickVisualState() {
+    final advanced = SediAudioVisualizerPainter.advanceHorizontalPhase(
+      phase: _horizontalPhase,
+      speed: _horizontalPhaseSpeed,
+      lastControllerValue: _lastControllerValue,
+      controllerValue: _controller.value,
+      state: widget.state,
+    );
+    _horizontalPhase = advanced.phase;
+    _horizontalPhaseSpeed = advanced.speed;
+    _lastControllerValue = advanced.lastControllerValue;
+
     final target =
         SediAudioVisualizerPainter.targetHorizontalEnergy(widget.state);
-    final next = _horizontalEnergy + (target - _horizontalEnergy) * 0.12;
-    if ((next - _horizontalEnergy).abs() > 0.0005) {
-      setState(() => _horizontalEnergy = next);
+    final nextEnergy = _horizontalEnergy + (target - _horizontalEnergy) * 0.12;
+    if ((nextEnergy - _horizontalEnergy).abs() > 0.0005) {
+      setState(() => _horizontalEnergy = nextEnergy);
     }
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_tickHorizontalEnergy);
+    _controller.removeListener(_tickVisualState);
     _controller.dispose();
     super.dispose();
   }
@@ -104,7 +129,7 @@ class _SediBrainOrbState extends State<SediBrainOrb>
     final orbBodyRadius = SediBrainOrb.orbBodyRadius;
     final brandHeight = orbDiameter * SediBrainOrb.brandHeightRatio;
     final visualizerCanvasHeight =
-        widget.canvasHeight ?? SediBrainOrb.preferredVisualizerCanvasHeight;
+        widget.canvasHeight ?? SediBrainOrb.fixedVisualizerCanvasHeight;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -124,14 +149,13 @@ class _SediBrainOrbState extends State<SediBrainOrb>
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
-              final animatedPhases = SediAudioVisualizerPainter.derivePhases(
-                controllerValue: _controller.value,
-                state: widget.state,
+              final circularPhase = SediAudioVisualizerPainter.deriveCircularPhase(
+                _controller.value,
               );
               return CustomPaint(
                 painter: SediAudioVisualizerPainter(
-                  circularPhase: animatedPhases.circular,
-                  horizontalPhase: animatedPhases.horizontal,
+                  circularPhase: circularPhase,
+                  horizontalPhase: _horizontalPhase,
                   horizontalEnergy: _horizontalEnergy,
                   state: widget.state,
                   orbCenter: orbCenter,

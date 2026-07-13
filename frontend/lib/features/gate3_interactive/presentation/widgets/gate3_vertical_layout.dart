@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'sedi_audio_visualizer_geometry.dart';
 
 /// Responsive vertical budget for the Gate 3 interactive page.
@@ -39,33 +37,11 @@ class Gate3VerticalLayout {
         reservedBelowVisualizerHeight(belowOrbSpacing: belowOrbSpacing);
   }
 
-  /// Chooses a visualizer canvas height without shrinking the composer.
+  /// Fixed visualizer canvas height — never shrinks with keyboard or viewport.
   static double resolveVisualizerCanvasHeight({
-    required double availableSafeHeight,
     required double orbBodyRadius,
     double belowOrbSpacing = Gate3VerticalLayout.belowOrbSpacing,
   }) {
-    if (!availableSafeHeight.isFinite || availableSafeHeight <= 0) {
-      return SediAudioVisualizerGeometry.minimumCanvasHeight(orbBodyRadius);
-    }
-
-    final preferred =
-        SediAudioVisualizerGeometry.preferredCanvasHeight(orbBodyRadius);
-    final minimum =
-        SediAudioVisualizerGeometry.minimumCanvasHeight(orbBodyRadius);
-
-    final maxCanvas = availableSafeHeight -
-        iconRowHeight -
-        topSectionSpacing -
-        reservedBelowVisualizerHeight(belowOrbSpacing: belowOrbSpacing);
-
-    final upper = math.max(minimum, maxCanvas);
-    return _safeClamp(preferred, minimum, upper);
-  }
-
-  static double _safeClamp(double value, double lower, double upper) {
-    if (!value.isFinite) return lower;
-    if (lower > upper) return upper;
-    return value.clamp(lower, upper);
+    return SediAudioVisualizerGeometry.preferredCanvasHeight(orbBodyRadius);
   }
 }

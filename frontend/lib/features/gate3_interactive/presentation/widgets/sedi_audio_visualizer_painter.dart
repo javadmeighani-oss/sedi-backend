@@ -23,7 +23,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
   static const _oliveStroke = Color(0xFF9AB06E);
   static const _creamGlow = Color(0xFFE8E4C8);
   static const _barCount = 144;
-  static const _horizontalSamples = 72;
+  static const _horizontalSamples = 128;
 
   /// Fixed circular amplitude — identical in every interaction state.
   static double targetAmplitude(Gate3InteractionState state) =>
@@ -41,13 +41,13 @@ class SediAudioVisualizerPainter extends CustomPainter {
   static double targetHorizontalEnergy(Gate3InteractionState state) {
     switch (state) {
       case Gate3InteractionState.idle:
-        return 0.04;
+        return 0.20;
       case Gate3InteractionState.listening:
-        return 0.07;
+        return 0.30;
       case Gate3InteractionState.thinking:
-        return 0.32;
+        return 0.58;
       case Gate3InteractionState.speaking:
-        return 0.88;
+        return 0.92;
     }
   }
 
@@ -65,14 +65,39 @@ class SediAudioVisualizerPainter extends CustomPainter {
     }
   }
 
-  /// Derives decoupled phases from one animation controller value `[0, 1]`.
-  static ({double circular, double horizontal}) derivePhases({
+  /// Constant circular phase from one animation controller value `[0, 1]`.
+  static double deriveCircularPhase(double controllerValue) =>
+      controllerValue * SediCircularEqualizerProfile.phaseSpeed;
+
+  /// Integrates horizontal phase with smoothly interpolated speed.
+  ///
+  /// Speed is lerped toward the state target before each delta step so phase
+  /// never jumps when [state] changes.
+  static ({
+    double phase,
+    double speed,
+    double lastControllerValue,
+  }) advanceHorizontalPhase({
+    required double phase,
+    required double speed,
+    required double lastControllerValue,
     required double controllerValue,
     required Gate3InteractionState state,
+    double speedLerp = 0.12,
   }) {
+    var delta = controllerValue - lastControllerValue;
+    if (delta < 0) {
+      delta += 1.0;
+    }
+
+    final targetSpeed = horizontalPhaseSpeed(state);
+    final nextSpeed = speed + (targetSpeed - speed) * speedLerp;
+    final nextPhase = phase + delta * nextSpeed;
+
     return (
-      circular: controllerValue * circularPhaseSpeed(state),
-      horizontal: controllerValue * horizontalPhaseSpeed(state),
+      phase: nextPhase,
+      speed: nextSpeed,
+      lastControllerValue: controllerValue,
     );
   }
 
@@ -217,7 +242,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
     final rightStart = orbCenter.dx + tangentX;
     final leftSpan = math.max(leftStart, 1.0);
     final rightSpan = math.max(size.width - rightStart, 1.0);
-    final peakHeight = 2.5 + horizontalEnergy * 18;
+    final peakHeight = 3.0 + horizontalEnergy * 16;
 
     _paintHorizontalSide(
       canvas: canvas,
@@ -248,72 +273,62 @@ class SediAudioVisualizerPainter extends CustomPainter {
     if (span <= 6) return;
 
     final baselineY = orbCenter.dy;
-    final baselinePaint = Paint()
+    final upperPath = Path();
+    final lowerPath = Path();
+    final baselinePath = Path();
+
+    final strokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 0.75
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 0.8
       ..color = _oliveStroke.withOpacity(
-        (0.12 + horizontalEnergy * 0.2).clamp(0.08, 0.5),
+        (0.14 + horizontalEnergy * 0.28).clamp(0.1, 0.62),
       );
 
-    final peakPaint = Paint()
+    final fillPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 0.85;
-
-    final baselinePath = Path();
-    final peakPath = Path();
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 0.72
+      ..color = _oliveStroke.withOpacity(
+        (0.16 + horizontalEnergy * 0.34).clamp(0.12, 0.72),
+      );
 
     for (var i = 0; i <= _horizontalSamples; i++) {
       final t = i / _horizontalSamples;
       final x = ui.lerpDouble(startX, endX, t)!;
-      final fade = math.pow(1 - t, 1.55).toDouble();
-      final amp = ProceduralVoiceWaveform.horizontalPeakAmplitude(
-            normalizedX: t,
-            time: horizontalPhase,
-            energy: horizontalEnergy,
-            state: state,
-            isRightSide: isRightSide,
-          ) *
-          peakHeight *
-          fade;
+      final sample = ProceduralVoiceWaveform.horizontalWaveformSample(
+        normalizedX: t,
+        time: horizontalPhase,
+        energy: horizontalEnergy,
+        state: state,
+        isRightSide: isRightSide,
+      );
+      final upperY = baselineY - sample.upper * peakHeight;
+      final lowerY = baselineY + sample.lower * peakHeight;
 
       if (i == 0) {
         baselinePath.moveTo(x, baselineY);
-        peakPath.moveTo(x, baselineY - amp);
+        upperPath.moveTo(x, upperY);
+        lowerPath.moveTo(x, lowerY);
       } else {
         baselinePath.lineTo(x, baselineY);
-        peakPath.lineTo(x, baselineY - amp);
-      }
-
-      if (amp > 1.0) {
-        peakPaint.color = _oliveStroke.withOpacity(
-          (0.2 + (amp / peakHeight) * 0.55).clamp(0.14, 0.78),
-        );
-        canvas.drawLine(
-          Offset(x, baselineY),
-          Offset(x, baselineY - amp),
-          peakPaint,
-        );
-        final lowerSpike = amp * (0.18 + ProceduralVoiceWaveform.asymmetricLowerFactor(
-              normalizedX: t,
-              isRightSide: isRightSide,
-            ));
-        canvas.drawLine(
-          Offset(x, baselineY),
-          Offset(x, baselineY + lowerSpike),
-          peakPaint,
-        );
+        upperPath.lineTo(x, upperY);
+        lowerPath.lineTo(x, lowerY);
       }
     }
 
-    canvas.drawPath(baselinePath, baselinePaint);
-    peakPaint
-      ..strokeWidth = 0.95
-      ..color = _oliveStroke.withOpacity(
-        (0.16 + horizontalEnergy * 0.32).clamp(0.1, 0.72),
-      );
-    canvas.drawPath(peakPath, peakPaint);
+    canvas.drawPath(baselinePath, strokePaint);
+    canvas.drawPath(upperPath, fillPaint);
+    canvas.drawPath(
+      lowerPath,
+      fillPaint
+        ..strokeWidth = 0.66
+        ..color = _oliveStroke.withOpacity(
+          (0.12 + horizontalEnergy * 0.26).clamp(0.1, 0.58),
+        ),
+    );
   }
 
   @override

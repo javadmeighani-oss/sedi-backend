@@ -17,7 +17,6 @@ import '../sections/settings/gate3_settings_page.dart';
 import '../widgets/gate3_composer.dart';
 import '../widgets/gate3_main_icon_row.dart';
 import '../widgets/gate3_return_to_latest_button.dart';
-import '../widgets/gate3_vertical_layout.dart';
 import '../widgets/sedi_brain_orb.dart';
 
 class Gate3InteractivePage extends StatefulWidget {
@@ -204,48 +203,40 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
         backgroundColor: AppTheme.gate3PaleOliveBackground,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final visualizerCanvasHeight =
-                  Gate3VerticalLayout.resolveVisualizerCanvasHeight(
-                availableSafeHeight: constraints.maxHeight,
-                orbBodyRadius: SediBrainOrb.orbBodyRadius,
-              );
-
-              return Directionality(
-                textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                      child: Gate3MainIconRow(
+          child: Directionality(
+            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: Gate3MainIconRow(
+                    lang: _controller.currentLanguage,
+                    onSettings: () => _goTo(
+                      Gate3SettingsPage(lang: _controller.currentLanguage),
+                    ),
+                    onHealthCare: () => _goTo(
+                      Gate3HealthCarePage(lang: _controller.currentLanguage),
+                    ),
+                    onLifestyle: () => _goTo(
+                      Gate3LifestyleOverviewPage(
                         lang: _controller.currentLanguage,
-                        onSettings: () => _goTo(
-                          Gate3SettingsPage(lang: _controller.currentLanguage),
-                        ),
-                        onHealthCare: () => _goTo(
-                          Gate3HealthCarePage(lang: _controller.currentLanguage),
-                        ),
-                        onLifestyle: () => _goTo(
-                          Gate3LifestyleOverviewPage(
-                            lang: _controller.currentLanguage,
-                          ),
-                        ),
-                        onGadgets: () => _goTo(
-                          Gate3GadgetsPage(lang: _controller.currentLanguage),
-                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    SediBrainOrb(
-                      state: _orbState(),
-                      canvasHeight: visualizerCanvasHeight,
+                    onGadgets: () => _goTo(
+                      Gate3GadgetsPage(lang: _controller.currentLanguage),
                     ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: Container(
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SediBrainOrb(
+                  state: _orbState(),
+                  canvasHeight: SediBrainOrb.fixedVisualizerCanvasHeight,
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    child: Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.55),
@@ -345,11 +336,9 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                     ),
                   ],
                 ),
-              );
-            },
+            ),
           ),
         ),
-      ),
     );
 
     return content;
