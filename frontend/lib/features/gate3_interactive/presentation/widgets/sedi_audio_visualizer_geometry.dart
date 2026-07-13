@@ -24,12 +24,30 @@ class SediCircularEqualizerProfile {
 /// State-dependent horizontal resonance targets for Gate 3.
 ///
 /// Amplitude and spatial density vary by interaction state. Temporal animation
-/// speed is fixed to [SediCircularEqualizerProfile.phaseSpeed] for every state.
+/// speed is fixed for every active state via [cycleDurationSeconds].
 class SediHorizontalResonanceProfile {
   SediHorizontalResonanceProfile._();
 
-  /// Shared calm temporal pace — identical to the circular equalizer.
-  static const double temporalSpeed = SediCircularEqualizerProfile.phaseSpeed;
+  /// One full horizontal perceptual cycle in seconds.
+  static const double cycleDurationSeconds = 2.6;
+
+  /// Exponential smoothing time constant (~95% settle in ~325 ms).
+  static const double transitionTauSeconds = 0.115;
+
+  /// Horizontal bar pitch in logical pixels.
+  static const double barPitch = 2.7;
+
+  /// Maximum accepted visual delta per frame (~30 Hz).
+  static const double maxVisualDeltaSeconds = 1 / 30;
+
+  /// Gaps above this threshold are treated as pause/resume and discarded once.
+  static const double resumeGapThresholdSeconds = 0.10;
+
+  /// Horizontal bar stroke width in logical pixels.
+  static const double barStrokeWidth = 1.4;
+
+  /// Optional horizontal glow opacity cap.
+  static const double horizontalGlowOpacity = 0.09;
 
   /// Effective peak-amplitude hierarchy relative to speaking (= 1.00).
   static double amplitudeTarget(Gate3InteractionState state) {
@@ -39,7 +57,7 @@ class SediHorizontalResonanceProfile {
       case Gate3InteractionState.listening:
         return 0.25;
       case Gate3InteractionState.thinking:
-        return 0.50;
+        return 0.52;
       case Gate3InteractionState.speaking:
         return 1.0;
     }
@@ -53,21 +71,114 @@ class SediHorizontalResonanceProfile {
       case Gate3InteractionState.listening:
         return 0.28;
       case Gate3InteractionState.thinking:
-        return 0.575;
+        return 0.60;
       case Gate3InteractionState.speaking:
         return 1.0;
     }
   }
 
-  /// Shared visual lerp factor for amplitude and density interpolation.
-  static const double visualLerp = 0.12;
+  /// Bar-core opacity for the committed interaction state.
+  static double barCoreOpacity(Gate3InteractionState state) {
+    switch (state) {
+      case Gate3InteractionState.idle:
+        return 0.20;
+      case Gate3InteractionState.listening:
+        return 0.40;
+      case Gate3InteractionState.thinking:
+        return 0.48;
+      case Gate3InteractionState.speaking:
+        return 0.55;
+    }
+  }
 
-  static double interpolateToward(
+  /// Idle baseline opacity.
+  static const double baselineOpacity = 0.20;
+
+  /// Frame-rate-independent exponential smoothing.
+  static double smoothToward(
     double current,
-    double target, {
-    double lerp = visualLerp,
-  }) =>
-      current + (target - current) * lerp;
+    double target,
+    double dtSeconds, {
+    double tauSeconds = transitionTauSeconds,
+  }) {
+    if (!current.isFinite || !target.isFinite || !dtSeconds.isFinite) {
+      return target.isFinite ? target : current;
+    }
+    if (dtSeconds <= 0) return current;
+    final alpha = 1 - math.exp(-dtSeconds / tauSeconds);
+    return current + (target - current) * alpha;
+  }
+
+  /// Advances horizontal phase in cycle units `[0, ∞)` from elapsed seconds.
+  static double advancePhase(double phase, double dtSeconds) {
+    if (!phase.isFinite || !dtSeconds.isFinite || dtSeconds <= 0) {
+      return phase;
+    }
+    return phase + dtSeconds / cycleDurationSeconds;
+  }
+
+  /// Approximate bar count for a horizontal span.
+  static int barCountForSpan(double span) {
+    if (!span.isFinite || span <= barPitch) return 0;
+    return (span / barPitch).floor().clamp(0, 160);
+  }
+
+  /// Sanitizes elapsed wall time into a safe visual delta for one tick.
+  ///
+  /// [lastElapsedSeconds] inside the result is always [elapsedSeconds] so a
+  /// discarded resume gap is not re-applied on the next frame.
+  static ({
+    double safeDt,
+    double lastElapsedSeconds,
+  }) sanitizeVisualDelta({
+    required double elapsedSeconds,
+    required double lastElapsedSeconds,
+  }) {
+    final rawDt = elapsedSeconds - lastElapsedSeconds;
+    final updatedLast = elapsedSeconds;
+
+    if (!rawDt.isFinite || rawDt <= 0) {
+      return (safeDt: 0.0, lastElapsedSeconds: updatedLast);
+    }
+    if (rawDt > resumeGapThresholdSeconds) {
+      return (safeDt: 0.0, lastElapsedSeconds: updatedLast);
+    }
+    return (
+      safeDt: math.min(rawDt, maxVisualDeltaSeconds),
+      lastElapsedSeconds: updatedLast,
+    );
+  }
+
+  /// Advances phase, energy and density using the same sanitized delta.
+  static ({
+    double phase,
+    double energy,
+    double density,
+    double lastElapsedSeconds,
+    double safeDt,
+  }) advanceVisualState({
+    required double phase,
+    required double energy,
+    required double density,
+    required double elapsedSeconds,
+    required double lastElapsedSeconds,
+    required double energyTarget,
+    required double densityTarget,
+  }) {
+    final sanitized = sanitizeVisualDelta(
+      elapsedSeconds: elapsedSeconds,
+      lastElapsedSeconds: lastElapsedSeconds,
+    );
+    final safeDt = sanitized.safeDt;
+
+    return (
+      phase: advancePhase(phase, safeDt),
+      energy: smoothToward(energy, energyTarget, safeDt),
+      density: smoothToward(density, densityTarget, safeDt),
+      lastElapsedSeconds: sanitized.lastElapsedSeconds,
+      safeDt: safeDt,
+    );
+  }
 }
 
 /// Authoritative layout geometry for the Gate 3 radial spectrum visualizer.
@@ -106,6 +217,48 @@ class SediAudioVisualizerGeometry {
 
   static const double sideInset = 8.0 * visualizerSizeScale;
   static const double verticalInset = 6.0 * visualizerSizeScale;
+
+  /// Vertical half-extent budget for horizontal bar tips from the baseline.
+  static double horizontalBarHalfHeightBudget() {
+    final horizontalStrokeInset =
+        SediHorizontalResonanceProfile.barStrokeWidth / 2;
+    return math.max(
+      0,
+      preferredCanvasOutwardBudget -
+          antiAliasSafetyMargin -
+          horizontalStrokeInset,
+    );
+  }
+
+  /// Clamps requested peak height to the geometry-derived outward budget.
+  static double clampHorizontalPeakHeight(double peakHeight) {
+    if (!peakHeight.isFinite) return 0;
+    return math.min(peakHeight, horizontalBarHalfHeightBudget());
+  }
+
+  /// Per-side and total horizontal bar counts for a canvas width.
+  static ({
+    int perSide,
+    int total,
+    double spanPerSide,
+  }) horizontalBarCountsForCanvasWidth({
+    required double width,
+    required double containerHeight,
+    required double orbBodyRadius,
+  }) {
+    final layout = resolveLayout(
+      width: width,
+      containerHeight: containerHeight,
+      orbBodyRadius: orbBodyRadius,
+    );
+    final spanPerSide = math.max(width / 2 - layout.spectrumRadius, 1.0);
+    final perSide = SediHorizontalResonanceProfile.barCountForSpan(spanPerSide);
+    return (
+      perSide: perSide,
+      total: perSide * 2,
+      spanPerSide: spanPerSide,
+    );
+  }
 
   static double maxBarLength(double amplitude, {double barExtensionFactor = 1}) {
     final factor = barExtensionFactor.clamp(0.0, 1.0);

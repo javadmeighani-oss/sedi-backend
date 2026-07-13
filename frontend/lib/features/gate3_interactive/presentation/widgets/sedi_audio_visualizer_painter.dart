@@ -7,7 +7,7 @@ import '../../logic/procedural_voice_waveform.dart';
 import '../../models/gate3_interaction_state.dart';
 import 'sedi_audio_visualizer_geometry.dart';
 
-/// Fine radial spectrum and horizontal voice waveform around the Sedi orb.
+/// Fine radial spectrum and horizontal bar equalizer around the Sedi orb.
 class SediAudioVisualizerPainter extends CustomPainter {
   final double circularPhase;
   final double horizontalPhase;
@@ -24,7 +24,6 @@ class SediAudioVisualizerPainter extends CustomPainter {
   static const _oliveStroke = Color(0xFF9AB06E);
   static const _creamGlow = Color(0xFFE8E4C8);
   static const _barCount = 144;
-  static const _horizontalSamples = 128;
 
   /// Fixed circular amplitude — identical in every interaction state.
   static double targetAmplitude(Gate3InteractionState state) =>
@@ -46,42 +45,20 @@ class SediAudioVisualizerPainter extends CustomPainter {
   static double targetHorizontalDensity(Gate3InteractionState state) =>
       SediHorizontalResonanceProfile.densityTarget(state);
 
-  /// Fixed horizontal cadence — identical to the circular equalizer pace.
+  /// Shared horizontal cadence — identical for every active state.
   static double horizontalPhaseSpeed(Gate3InteractionState state) =>
-      SediHorizontalResonanceProfile.temporalSpeed;
+      1.0 / SediHorizontalResonanceProfile.cycleDurationSeconds;
 
   /// Constant circular phase from one animation controller value `[0, 1]`.
   static double deriveCircularPhase(double controllerValue) =>
       controllerValue * SediCircularEqualizerProfile.phaseSpeed;
 
-  /// Integrates horizontal phase at the shared calm temporal speed.
-  ///
-  /// Speed is constant across states so phase never jumps when [state] changes.
-  static ({
-    double phase,
-    double speed,
-    double lastControllerValue,
-  }) advanceHorizontalPhase({
+  /// Integrates horizontal phase from elapsed real time in seconds.
+  static double advanceHorizontalPhase({
     required double phase,
-    required double speed,
-    required double lastControllerValue,
-    required double controllerValue,
-    required Gate3InteractionState state,
-  }) {
-    var delta = controllerValue - lastControllerValue;
-    if (delta < 0) {
-      delta += 1.0;
-    }
-
-    final constantSpeed = horizontalPhaseSpeed(state);
-    final nextPhase = phase + delta * constantSpeed;
-
-    return (
-      phase: nextPhase,
-      speed: constantSpeed,
-      lastControllerValue: controllerValue,
-    );
-  }
+    required double dtSeconds,
+  }) =>
+      SediHorizontalResonanceProfile.advancePhase(phase, dtSeconds);
 
   const SediAudioVisualizerPainter({
     required this.circularPhase,
@@ -135,7 +112,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
     final circularGlow = SediCircularEqualizerProfile.glow;
 
     _paintGlow(canvas, size, circularAmplitude, circularGlow);
-    _paintHorizontalWaveform(canvas, size);
+    _paintHorizontalEqualizer(canvas, size);
     _paintRadialSpectrum(canvas, circularAmplitude, circularGlow);
   }
 
@@ -219,13 +196,16 @@ class SediAudioVisualizerPainter extends CustomPainter {
     }
   }
 
-  void _paintHorizontalWaveform(Canvas canvas, Size size) {
+  void _paintHorizontalEqualizer(Canvas canvas, Size size) {
     final tangentX = spectrumRadius;
     final leftStart = orbCenter.dx - tangentX;
     final rightStart = orbCenter.dx + tangentX;
     final leftSpan = math.max(leftStart, 1.0);
     final rightSpan = math.max(size.width - rightStart, 1.0);
-    final peakHeight = 3.0 + horizontalEnergy * 16;
+    final peakHeight = SediAudioVisualizerGeometry.clampHorizontalPeakHeight(
+      3.0 + horizontalEnergy * 16,
+    );
+    final maxHalfHeight = SediAudioVisualizerGeometry.horizontalBarHalfHeightBudget();
 
     _paintHorizontalSide(
       canvas: canvas,
@@ -233,6 +213,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
       endX: 0,
       span: leftSpan,
       peakHeight: peakHeight,
+      maxHalfHeight: maxHalfHeight,
       isRightSide: false,
     );
     _paintHorizontalSide(
@@ -241,6 +222,7 @@ class SediAudioVisualizerPainter extends CustomPainter {
       endX: size.width,
       span: rightSpan,
       peakHeight: peakHeight,
+      maxHalfHeight: maxHalfHeight,
       isRightSide: true,
     );
   }
@@ -251,39 +233,55 @@ class SediAudioVisualizerPainter extends CustomPainter {
     required double endX,
     required double span,
     required double peakHeight,
+    required double maxHalfHeight,
     required bool isRightSide,
   }) {
-    if (span <= 6) return;
+    if (span <= SediHorizontalResonanceProfile.barPitch) return;
 
     final baselineY = orbCenter.dy;
-    final upperPath = Path();
-    final lowerPath = Path();
-    final baselinePath = Path();
+    final barCount = SediHorizontalResonanceProfile.barCountForSpan(span);
+    if (barCount <= 0) return;
 
-    final strokePaint = Paint()
+    final pitch = span / barCount;
+    final strokeWidth = SediHorizontalResonanceProfile.barStrokeWidth;
+    final isIdle = horizontalEnergy <= 0.001 && horizontalDensity <= 0.001;
+
+    final baselinePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 0.8
+      ..isAntiAlias = true
+      ..strokeWidth = strokeWidth * 0.72
       ..color = _oliveStroke.withOpacity(
-        horizontalEnergy <= 0.001
-            ? 0.14
-            : (0.14 + horizontalEnergy * 0.28).clamp(0.1, 0.62),
+        SediHorizontalResonanceProfile.baselineOpacity,
       );
 
-    final fillPaint = Paint()
+    canvas.drawLine(
+      Offset(startX, baselineY),
+      Offset(endX, baselineY),
+      baselinePaint,
+    );
+
+    if (isIdle) return;
+
+    final coreOpacity = _interpolatedBarOpacity();
+    final barPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 0.72
+      ..isAntiAlias = true
+      ..strokeWidth = strokeWidth
+      ..color = _oliveStroke.withOpacity(coreOpacity);
+
+    final glowPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true
+      ..strokeWidth = strokeWidth + 0.8
       ..color = _oliveStroke.withOpacity(
-        (0.16 + horizontalEnergy * 0.34).clamp(0.12, 0.72),
+        SediHorizontalResonanceProfile.horizontalGlowOpacity * coreOpacity,
       );
 
-    var hasWaveform = false;
-
-    for (var i = 0; i <= _horizontalSamples; i++) {
-      final t = i / _horizontalSamples;
+    for (var i = 0; i < barCount; i++) {
+      final t = (i + 0.5) / barCount;
       final x = ui.lerpDouble(startX, endX, t)!;
       final sample = ProceduralVoiceWaveform.horizontalWaveformSample(
         normalizedX: t,
@@ -292,35 +290,58 @@ class SediAudioVisualizerPainter extends CustomPainter {
         density: horizontalDensity,
         isRightSide: isRightSide,
       );
-      final upperY = baselineY - sample.upper * peakHeight;
-      final lowerY = baselineY + sample.lower * peakHeight;
-      if (sample.upper > 0.0005 || sample.lower > 0.0005) {
-        hasWaveform = true;
-      }
 
-      if (i == 0) {
-        baselinePath.moveTo(x, baselineY);
-        upperPath.moveTo(x, upperY);
-        lowerPath.moveTo(x, lowerY);
-      } else {
-        baselinePath.lineTo(x, baselineY);
-        upperPath.lineTo(x, upperY);
-        lowerPath.lineTo(x, lowerY);
-      }
-    }
+      if (sample.upper <= 0.0005 && sample.lower <= 0.0005) continue;
 
-    canvas.drawPath(baselinePath, strokePaint);
-    if (hasWaveform) {
-      canvas.drawPath(upperPath, fillPaint);
-      canvas.drawPath(
-        lowerPath,
-        fillPaint
-          ..strokeWidth = 0.66
-          ..color = _oliveStroke.withOpacity(
-            (0.12 + horizontalEnergy * 0.26).clamp(0.1, 0.58),
-          ),
-      );
+      final upperExtent = math.min(sample.upper * peakHeight, maxHalfHeight);
+      final lowerExtent = math.min(sample.lower * peakHeight, maxHalfHeight);
+      final upperY = baselineY - upperExtent;
+      final lowerY = baselineY + lowerExtent;
+
+      canvas.drawLine(Offset(x, baselineY), Offset(x, upperY), glowPaint);
+      canvas.drawLine(Offset(x, baselineY), Offset(x, lowerY), glowPaint);
+      canvas.drawLine(Offset(x, baselineY), Offset(x, upperY), barPaint);
+      canvas.drawLine(Offset(x, baselineY), Offset(x, lowerY), barPaint);
     }
+  }
+
+  double _interpolatedBarOpacity() {
+    final listening = SediHorizontalResonanceProfile.barCoreOpacity(
+      Gate3InteractionState.listening,
+    );
+    final thinking = SediHorizontalResonanceProfile.barCoreOpacity(
+      Gate3InteractionState.thinking,
+    );
+    final speaking = SediHorizontalResonanceProfile.barCoreOpacity(
+      Gate3InteractionState.speaking,
+    );
+
+    final energy = horizontalEnergy.clamp(0.0, 1.0);
+    if (energy <= 0.001) {
+      return SediHorizontalResonanceProfile.baselineOpacity;
+    }
+    if (energy <= 0.25) {
+      return ui.lerpDouble(
+            SediHorizontalResonanceProfile.baselineOpacity,
+            listening,
+            energy / 0.25,
+          ) ??
+          listening;
+    }
+    if (energy <= 0.52) {
+      return ui.lerpDouble(
+            listening,
+            thinking,
+            (energy - 0.25) / 0.27,
+          ) ??
+          thinking;
+    }
+    return ui.lerpDouble(
+          thinking,
+          speaking,
+          (energy - 0.52) / 0.48,
+        ) ??
+        speaking;
   }
 
   @override

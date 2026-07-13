@@ -68,6 +68,7 @@ class SediBrainOrb extends StatefulWidget {
 class _SediBrainOrbState extends State<SediBrainOrb>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final Stopwatch _elapsed;
   double _horizontalEnergy = SediAudioVisualizerPainter.targetHorizontalEnergy(
     Gate3InteractionState.idle,
   );
@@ -76,15 +77,12 @@ class _SediBrainOrbState extends State<SediBrainOrb>
     Gate3InteractionState.idle,
   );
   double _horizontalPhase = 0;
-  double _horizontalPhaseSpeed =
-      SediAudioVisualizerPainter.horizontalPhaseSpeed(
-    Gate3InteractionState.idle,
-  );
-  double _lastControllerValue = 0;
+  double _lastElapsedSeconds = 0;
 
   @override
   void initState() {
     super.initState();
+    _elapsed = Stopwatch()..start();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
@@ -101,29 +99,26 @@ class _SediBrainOrbState extends State<SediBrainOrb>
   }
 
   void _tickVisualState() {
-    final advanced = SediAudioVisualizerPainter.advanceHorizontalPhase(
+    final elapsedSeconds = _elapsed.elapsedMicroseconds / 1000000.0;
+    final advanced = SediHorizontalResonanceProfile.advanceVisualState(
       phase: _horizontalPhase,
-      speed: _horizontalPhaseSpeed,
-      lastControllerValue: _lastControllerValue,
-      controllerValue: _controller.value,
-      state: widget.state,
+      energy: _horizontalEnergy,
+      density: _horizontalDensity,
+      elapsedSeconds: elapsedSeconds,
+      lastElapsedSeconds: _lastElapsedSeconds,
+      energyTarget: SediAudioVisualizerPainter.targetHorizontalEnergy(
+        widget.state,
+      ),
+      densityTarget: SediAudioVisualizerPainter.targetHorizontalDensity(
+        widget.state,
+      ),
     );
-    _horizontalPhase = advanced.phase;
-    _horizontalPhaseSpeed = advanced.speed;
-    _lastControllerValue = advanced.lastControllerValue;
+    _lastElapsedSeconds = advanced.lastElapsedSeconds;
+    if (advanced.safeDt <= 0) return;
 
-    final target =
-        SediAudioVisualizerPainter.targetHorizontalEnergy(widget.state);
-    final nextEnergy = SediHorizontalResonanceProfile.interpolateToward(
-      _horizontalEnergy,
-      target,
-    );
-    final targetDensity =
-        SediAudioVisualizerPainter.targetHorizontalDensity(widget.state);
-    final nextDensity = SediHorizontalResonanceProfile.interpolateToward(
-      _horizontalDensity,
-      targetDensity,
-    );
+    _horizontalPhase = advanced.phase;
+    final nextEnergy = advanced.energy;
+    final nextDensity = advanced.density;
     final energyChanged = (nextEnergy - _horizontalEnergy).abs() > 0.0005;
     final densityChanged = (nextDensity - _horizontalDensity).abs() > 0.0005;
     if (energyChanged || densityChanged) {

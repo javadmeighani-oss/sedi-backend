@@ -131,7 +131,7 @@ void main() {
 
     expect(idle, 0.0);
     expect(listening, closeTo(0.25, 0.001));
-    expect(thinking, closeTo(0.50, 0.001));
+    expect(thinking, closeTo(0.52, 0.001));
     expect(speaking, 1.0);
     expect(listening, greaterThan(idle));
     expect(thinking, greaterThan(listening));
@@ -216,8 +216,8 @@ void main() {
 
     expect(listeningDensity, greaterThan(0.24));
     expect(listeningDensity, lessThan(0.31));
-    expect(thinkingDensity, greaterThan(0.54));
-    expect(thinkingDensity, lessThan(0.61));
+    expect(thinkingDensity, greaterThan(0.57));
+    expect(thinkingDensity, lessThan(0.63));
     expect(speakingDensity, 1.0);
     expect(listeningDensity, lessThan(thinkingDensity));
     expect(thinkingDensity, lessThan(speakingDensity));
@@ -247,19 +247,29 @@ void main() {
     expect(speakingRichness, closeTo(7.0, 0.6));
   });
 
-  test('current density interpolates toward target rather than snapping', () {
-    const current = 0.575;
+  test('current density interpolates toward target with elapsed-time smoothing',
+      () {
+    const current = 0.60;
     const target = 1.0;
-    final next = SediHorizontalResonanceProfile.interpolateToward(current, target);
+    const dt = 1 / 120.0;
+    final next = SediHorizontalResonanceProfile.smoothToward(
+      current,
+      target,
+      dt,
+    );
     expect(next, greaterThan(current));
     expect(next, lessThan(target));
-    expect(next, closeTo(0.626, 0.001));
   });
 
-  test('thinking to speaking first-frame density change is bounded', () {
-    const current = 0.575;
+  test('thinking to speaking first-step density change is bounded', () {
+    const current = 0.60;
     const target = 1.0;
-    final next = SediHorizontalResonanceProfile.interpolateToward(current, target);
+    const dt = 1 / 120.0;
+    final next = SediHorizontalResonanceProfile.smoothToward(
+      current,
+      target,
+      dt,
+    );
     expect((next - current).abs(), lessThan(0.08));
   });
 
@@ -296,18 +306,21 @@ void main() {
     expect(a, closeTo(b, 0.000001));
   });
 
-  test('all active states use shared temporal speed 0.85', () {
+  test('all active states use shared horizontal cycle duration 2.6s', () {
     for (final state in Gate3InteractionState.values) {
       expect(
         SediAudioVisualizerPainter.horizontalPhaseSpeed(state),
-        SediCircularEqualizerProfile.phaseSpeed,
+        closeTo(1 / 2.6, 0.0001),
       );
-      expect(
-        SediHorizontalResonanceProfile.temporalSpeed,
-        SediCircularEqualizerProfile.phaseSpeed,
-      );
-      expect(SediHorizontalResonanceProfile.temporalSpeed, 0.85);
     }
+    expect(SediHorizontalResonanceProfile.cycleDurationSeconds, 2.6);
+    expect(
+      SediAudioVisualizerPainter.circularPhaseSpeed(
+        Gate3InteractionState.speaking,
+      ),
+      SediCircularEqualizerProfile.phaseSpeed,
+    );
+    expect(SediCircularEqualizerProfile.phaseSpeed, 0.85);
   });
 
   test('horizontal procedural waveform is deterministic and asymmetric', () {
@@ -375,47 +388,27 @@ void main() {
   });
 
   test('horizontal phase integration stays continuous across state changes', () {
-    const controllerValue = 0.42;
-    const previousValue = 0.41;
+    const dt = 1 / 120.0;
+    const phase = 1.15;
 
     final before = SediAudioVisualizerPainter.advanceHorizontalPhase(
-      phase: 1.15,
-      speed: SediAudioVisualizerPainter.horizontalPhaseSpeed(
-        Gate3InteractionState.thinking,
-      ),
-      lastControllerValue: previousValue,
-      controllerValue: controllerValue,
-      state: Gate3InteractionState.thinking,
+      phase: phase,
+      dtSeconds: dt,
     );
     final after = SediAudioVisualizerPainter.advanceHorizontalPhase(
-      phase: before.phase,
-      speed: before.speed,
-      lastControllerValue: before.lastControllerValue,
-      controllerValue: controllerValue + 0.01,
-      state: Gate3InteractionState.speaking,
+      phase: before,
+      dtSeconds: dt,
     );
 
-    final integratedDelta = (after.phase - before.phase).abs();
-
-    expect(before.phase.isFinite, isTrue);
-    expect(after.phase.isFinite, isTrue);
-    expect(after.phase, greaterThan(before.phase));
-    expect(integratedDelta, closeTo(0.01 * 0.85, 0.0001));
-    expect(after.speed, before.speed);
-    expect(after.speed, SediCircularEqualizerProfile.phaseSpeed);
-
-    final repeated = SediAudioVisualizerPainter.advanceHorizontalPhase(
-      phase: before.phase,
-      speed: before.speed,
-      lastControllerValue: before.lastControllerValue,
-      controllerValue: controllerValue + 0.01,
-      state: Gate3InteractionState.speaking,
-    );
-    expect(repeated.phase, closeTo(after.phase, 0.000001));
-    expect(repeated.speed, closeTo(after.speed, 0.000001));
+    expect(before.isFinite, isTrue);
+    expect(after.isFinite, isTrue);
+    expect(after, greaterThan(before));
+    expect(before - phase, closeTo(dt / 2.6, 1e-9));
+    expect(after - before, closeTo(dt / 2.6, 1e-9));
   });
 
-  test('thinking to speaking changes amplitude and density without speed', () {
+  test('thinking to speaking changes amplitude and density without speed change',
+      () {
     final thinkingEnergy = SediAudioVisualizerPainter.targetHorizontalEnergy(
       Gate3InteractionState.thinking,
     );
@@ -434,10 +427,95 @@ void main() {
       SediAudioVisualizerPainter.horizontalPhaseSpeed(
         Gate3InteractionState.thinking,
       ),
-      SediAudioVisualizerPainter.horizontalPhaseSpeed(
-        Gate3InteractionState.speaking,
+      closeTo(
+        SediAudioVisualizerPainter.horizontalPhaseSpeed(
+          Gate3InteractionState.speaking,
+        ),
+        0.0001,
       ),
     );
+  });
+
+  test('horizontal peak amplitude ordering across multiple phases', () {
+    for (final phase in const [0.00, 0.13, 0.37, 0.71]) {
+      final listeningPeak = ProceduralVoiceWaveform.horizontalPeakAmplitude(
+        time: phase,
+        energy: SediAudioVisualizerPainter.targetHorizontalEnergy(
+          Gate3InteractionState.listening,
+        ),
+        density: SediAudioVisualizerPainter.targetHorizontalDensity(
+          Gate3InteractionState.listening,
+        ),
+      );
+      final thinkingPeak = ProceduralVoiceWaveform.horizontalPeakAmplitude(
+        time: phase,
+        energy: SediAudioVisualizerPainter.targetHorizontalEnergy(
+          Gate3InteractionState.thinking,
+        ),
+        density: SediAudioVisualizerPainter.targetHorizontalDensity(
+          Gate3InteractionState.thinking,
+        ),
+      );
+      final speakingPeak = ProceduralVoiceWaveform.horizontalPeakAmplitude(
+        time: phase,
+        energy: SediAudioVisualizerPainter.targetHorizontalEnergy(
+          Gate3InteractionState.speaking,
+        ),
+        density: SediAudioVisualizerPainter.targetHorizontalDensity(
+          Gate3InteractionState.speaking,
+        ),
+      );
+
+      expect(thinkingPeak, greaterThan(listeningPeak), reason: 'phase=$phase');
+      expect(speakingPeak, greaterThan(thinkingPeak), reason: 'phase=$phase');
+    }
+  });
+
+  test('horizontal bar totals per width distinguish per-side from total', () {
+    final canvasHeight = SediBrainOrb.fixedVisualizerCanvasHeight;
+    final orbBodyRadius = SediBrainOrb.orbBodyRadius;
+
+    final w280 = SediAudioVisualizerGeometry.horizontalBarCountsForCanvasWidth(
+      width: 280,
+      containerHeight: canvasHeight,
+      orbBodyRadius: orbBodyRadius,
+    );
+    final w360 = SediAudioVisualizerGeometry.horizontalBarCountsForCanvasWidth(
+      width: 360,
+      containerHeight: canvasHeight,
+      orbBodyRadius: orbBodyRadius,
+    );
+    final w390 = SediAudioVisualizerGeometry.horizontalBarCountsForCanvasWidth(
+      width: 390,
+      containerHeight: canvasHeight,
+      orbBodyRadius: orbBodyRadius,
+    );
+    final w411 = SediAudioVisualizerGeometry.horizontalBarCountsForCanvasWidth(
+      width: 411,
+      containerHeight: canvasHeight,
+      orbBodyRadius: orbBodyRadius,
+    );
+
+    expect(w280.total, w280.perSide * 2);
+    expect(w360.total, w360.perSide * 2);
+    expect(w390.total, w390.perSide * 2);
+    expect(w411.total, w411.perSide * 2);
+
+    expect(w280.total, closeTo(66, 2));
+    expect(w360.total, closeTo(96, 2));
+    expect(w390.total, closeTo(106, 2));
+    expect(w411.total, closeTo(114, 2));
+
+    expect(w360.total, inInclusiveRange(96, 120));
+    expect(w390.total, inInclusiveRange(96, 120));
+    expect(w411.total, inInclusiveRange(96, 120));
+
+    expect(w280.perSide, greaterThan(0));
+    expect(w280.total, greaterThan(0));
+  });
+
+  test('horizontal bar pitch is 2.7 logical pixels', () {
+    expect(SediHorizontalResonanceProfile.barPitch, 2.7);
   });
 
   test('geometry includes full glow shader extent in painted outward budget', () {
