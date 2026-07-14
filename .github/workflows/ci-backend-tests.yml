@@ -174,3 +174,15 @@ jobs:
           else
             echo "SKIP: notification prefs test not present"
           fi
+
+      - name: Section 15 backend foundation tests
+        run: |
+          python -m pytest -v \
+            backend/tests/test_memory_history_timezone_v1.py \
+            backend/tests/test_notification_inbox_gate4_v1.py \
+            backend/tests/test_gate4_push_channel_routing_v1.py \
+            backend/tests/test_notification_api_b2.py \
+            backend/tests/test_section15_i0_interaction_response.py \
+            backend/tests/test_section15_b8_interaction_idempotency.py \
+            backend/tests/test_gate4c_interaction_events.py \
+            --tb=short

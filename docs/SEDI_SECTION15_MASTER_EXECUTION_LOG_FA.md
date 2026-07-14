@@ -1,6 +1,6 @@
 # گزارش اصلی اجرای سکشن ۱۵ صدی (Gate 4 — بازرسی، صحت‌سنجی توپولوژی، ممیزی، و ثبت باگ‌ها)
 
-**تاریخ:** ۲۰۲۶-۰۷-۱۳ (به‌روزشده: Package 15-I0-B8 Pre-Commit Audit)
+**تاریخ:** ۲۰۲۶-۰۷-۱۴ (به‌روزشده: Package 15-CI-Extend)
 **هدف:** این سند منبع حقیقت دائمی سکشن ۱۵ است. شامل P1، P2A، و Package 15-I0-B8 (اصلاح schema `reply`، idempotency تعاملی B8، migration بدون اجرا، ثبت الزامات حافظه و موتور دانش هفتگی) — بدون commit/push/اجرای migration/تست محلی.
 
 **قانون به‌روزرسانی:** هر وظیفهٔ آیندهٔ Cursor در سکشن ۱۵ باید پیش از اعلام اتمام، همین فایل را به‌روز کند.
@@ -1000,4 +1000,131 @@ docs: record section15 backend foundation commit
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — ledger backend foundation + reconciliation doc commit — ۲۰۲۶-۰۷-۱۴*
+## ۲۵) Push + GitHub Actions CI — Section 15 Backend Foundation
+
+### ۲۵.۱ مجوز و SHAها
+- جواد push و CI validation را تأیید کرد.
+- **Documentation commit SHA:** `4aea9746d45b926942b94ea474359169e104f910`
+- **Backend foundation commit:** `2a7dede9b07214f0a8ccb87100fe7b020adb1ac4`
+- **Base:** `89b79ad3fc20236a23ffae65fd868aafb60843e8` (`origin/main` بدون تغییر)
+- **Co-authored-by Cursor:** به‌عنوان provenance غیرعملکردی ابزار پذیرفته شد؛ تأثیری بر محتوای commit ندارد.
+
+### ۲۵.۲ Push
+| مورد | مقدار |
+|------|--------|
+| Remote | `origin` → `git@github.com:javadmeighani-oss/sedi-backend.git` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Remote SHA (verified) | `4aea9746d45b926942b94ea474359169e104f910` |
+| Upstream | `origin/feature/section15/backend-continuity-foundation` |
+| Timestamp (UTC) | ۲۰۲۶-۰۷-۱۴T07:38Z تقریبی |
+| Force-push | **خیر** |
+
+### ۲۵.۳ بازبینی امنیت workflow (قبل از push)
+هیچ workflow خودکار برای push به `feature/section15/**` فعال نیست. workflowهای deploy/prod-migrate/SSH/image-publish فقط `workflow_dispatch` یا `main` هستند — **push ایمن**.
+
+### ۲۵.۴ اجراهای GitHub Actions (SHA دقیق `4aea974…`)
+
+| Workflow | Run ID | Event | Conclusion | Duration | URL |
+|----------|--------|-------|------------|----------|-----|
+| Backend V1 freeze tests | 29315223037 | workflow_dispatch | **success** | ~1m36s | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29315223037 |
+| Gate 5 DB tests | 29315225102 | workflow_dispatch | **success** | ~59s | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29315225102 |
+
+**Push event:** هیچ run خودکاری برای SHA `4aea974` ثبت نشد — dispatch دستی انجام شد.
+
+### ۲۵.۵ جمع تست‌ها (pytest logs)
+**Backend V1 freeze tests:** 91 + 27 + 147 + 171 + 12 + 4 = **452 passed** (0 failed)
+- شامل: Section 10 subset، contracts، interact/auth stabilization، OTP/Gate1–3، acceptance subset
+- **Alembic upgrade head** در ephemeral Postgres: **موفق** (شامل revision `050_gate4_event_idem`)
+
+**Gate 5 DB tests:** 6+5+8+5+23+22+1 = **70 passed** (0 failed)
+- **Alembic upgrade head:** **موفق**
+- **OpenAPI snapshot:** 1 passed
+
+**جمع کل collected:** **522 passed**, **0 failed**
+
+### ۲۵.۶ ماتریس پوشش Section 15
+
+| حوزه | وضعیت CI |
+|------|-----------|
+| **A1** JWT memory history / timezone / grouping / gate4_metadata | **workflow gap** — `test_memory_history_timezone_v1.py` و `test_notification_inbox_gate4_v1.py` در هیچ workflow نیستند |
+| **A1** partial: memory auth JWT | interact stabilization (`test_memory_auth_v1.py`) **passed** |
+| **B4/B6/B7** notification API/channel/language | **workflow gap** — `test_notification_api_b2.py`, `test_gate4_push_channel_routing_v1.py` جمع‌آوری نشد |
+| **I0** reminder `message` / LLM bypass | **workflow gap** — `test_section15_i0_interaction_response.py` جمع‌آوری نشد |
+| **B8** idempotency/concurrency/migration tests | **workflow gap** — `test_section15_b8_interaction_idempotency.py` جمع‌آوری نشد |
+| **B8** partial: gate4c interaction events | **workflow gap** — `test_gate4c_interaction_events.py` جمع‌آوری نشد |
+| **OpenAPI snapshot** | **verified passed** (Gate 5 + Backend contracts) |
+| **Migration chain 049→050 ephemeral upgrade** | **verified passed** (هر دو workflow، upgrade head) |
+| **Migration 050 production** | **blocked** — preflight SQL §۲۱.۷ + backup + تأیید جدا |
+| **Production/staging DB** | **not touched** |
+
+### ۲۵.۷ شکست‌ها
+**هیچ شکست CI** — هر دو run **success**.
+
+### ۲۵.۸ ممنوعیت‌ها
+deploy، image publication، feature-flag، frontend build، prod migration، SSH، workflow modification — **انجام نشد**.
+
+### ۲۵.۹ گام بعد
+- **Package 15-CI-Extend (یا معادل):** افزودن Section 15 tests (`i0`, `b8`, `b4/b6/b7`, `memory_history_timezone`, `gate4c`) به workflow CI امن — **پیش از ادعای verified برای I0/B8/A1 کامل**
+- اگر CI extension تأیید شد و سبز شد: **15-I1** Context/Orchestrator
+- Production migration 050: همچنان جدا و مسدود
+
+---
+
+## ۲۶) Package 15-CI-Extend — جمع‌آوری تست‌های Section 15 در CI
+
+### ۲۶.۱ دلیل
+Runهای موفق قبلی (`29315223037`: 452 passed؛ `29315225102`: 70 passed) تست‌های جدید A1/B4/B6/B7/I0/B8 را **جمع‌آوری نکردند** — workflow gap.
+
+### ۲۶.۲ فایل workflow تغییر یافته
+- `.github/workflows/ci-backend-tests.yml`
+- نام workflow (بدون تغییر): **`Backend V1 freeze tests`**
+
+### ۲۶.۳ مرزهای ایمنی حفظ‌شده
+| مورد | وضعیت |
+|------|--------|
+| Triggers (`push`/`pull_request`/`workflow_dispatch`) | **بدون تغییر** |
+| Permissions / secrets / runner | **بدون تغییر** |
+| PostgreSQL service ephemeral | **بدون تغییر** |
+| `alembic upgrade head` | **بدون تغییر** |
+| 452-test freeze selection | **بدون تغییر** |
+| Deploy / SSH / image / prod migration | **اضافه نشد** |
+
+### ۲۶.۴ شکل انتخاب‌شده
+**یک step اجباری** با نام دقیق `Section 15 backend foundation tests` در انتهای job موجود `backend-acceptance` / `V1 freeze subset`.
+
+**دلیل:** fixture `db` در `conftest.py` با rollback تراکنش کار می‌کند؛ تست‌های B8 که index سراسری را DROP/CREATE می‌کنند فقط **پس از** اتمام suite موجود 452 تستی اجرا می‌شوند تا state آلوده به freeze tests نرسد. job جدا لازم نبود.
+
+### ۲۶.۵ هفت مسیر pytest صریح (repo root)
+1. `backend/tests/test_memory_history_timezone_v1.py`
+2. `backend/tests/test_notification_inbox_gate4_v1.py`
+3. `backend/tests/test_gate4_push_channel_routing_v1.py`
+4. `backend/tests/test_notification_api_b2.py`
+5. `backend/tests/test_section15_i0_interaction_response.py`
+6. `backend/tests/test_section15_b8_interaction_idempotency.py`
+7. `backend/tests/test_gate4c_interaction_events.py`
+
+### ۲۶.۶ پوشش مورد انتظار (پس از dispatch)
+| حوزه | فایل(ها) |
+|------|-----------|
+| A1 timezone/grouping/inbox | memory_history_timezone، notification_inbox_gate4 |
+| B4/B6/B7 | notification_api_b2، gate4_push_channel_routing |
+| I0 | section15_i0_interaction_response |
+| B8 | section15_b8_interaction_idempotency |
+| Gate4C | test_gate4c_interaction_events |
+
+PostgreSQL-marked B8 tests در CI ephemeral Postgres باید **skip نشوند**.
+
+### ۲۶.۷ وضعیت
+**implemented but unverified pending GitHub Actions**
+
+- تست محلی: **اجرا نشد**
+- commit/push/dispatch: **انجام نشد**
+
+### ۲۶.۸ گام‌های تأیید بعدی
+1. commit (پیشنهاد: `ci: collect section15 backend foundation tests in freeze workflow`)
+2. push
+3. `workflow_dispatch` روی `feature/section15/backend-continuity-foundation` و بازبینی log برای collected/passed/skipped دقیق
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-CI-Extend implemented — ۲۰۲۶-۰۷-۱۴*
