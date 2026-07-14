@@ -63,9 +63,14 @@ jobs:
             cp android/app/google-services.json.ci "$GS"
           fi
 
+      - name: Dart format verification
+        run: dart format --output=none --set-exit-if-changed lib test
+
       - name: Flutter analyze
-        run: flutter analyze
-        continue-on-error: true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Flutter test
+        run: flutter test
 
       - name: Build debug APK
         run: flutter build apk --debug --dart-define=SEDI_GATE_BUILD_LABEL=${{ github.sha }}
