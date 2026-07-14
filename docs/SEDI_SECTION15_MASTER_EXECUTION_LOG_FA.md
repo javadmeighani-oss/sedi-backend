@@ -1,6 +1,6 @@
 # گزارش اصلی اجرای سکشن ۱۵ صدی (Gate 4 — بازرسی، صحت‌سنجی توپولوژی، ممیزی، و ثبت باگ‌ها)
 
-**تاریخ:** ۲۰۲۶-۰۷-۱۳ (به‌روزشده: Package 15-I0-B8 Pre-Commit Audit)  
+**تاریخ:** ۲۰۲۶-۰۷-۱۳ (به‌روزشده: Package 15-I0-B8 Pre-Commit Audit)
 **هدف:** این سند منبع حقیقت دائمی سکشن ۱۵ است. شامل P1، P2A، و Package 15-I0-B8 (اصلاح schema `reply`، idempotency تعاملی B8، migration بدون اجرا، ثبت الزامات حافظه و موتور دانش هفتگی) — بدون commit/push/اجرای migration/تست محلی.
 
 **قانون به‌روزرسانی:** هر وظیفهٔ آیندهٔ Cursor در سکشن ۱۵ باید پیش از اعلام اتمام، همین فایل را به‌روز کند.
@@ -73,13 +73,13 @@
 | channel routing بدون دادهٔ حساس در metadata | پیاده |
 
 ### فایل‌های تغییر/جدید در P1 (uncommitted)
-**از patch A1 (modified):**  
+**از patch A1 (modified):**
 `memory.py`, `notifications.py`, `schemas/memory.py`, `schemas/notification.py`, `policy_prefs_bridge.py`, `push_payload.py`, `openapi_v1_snapshot.json`, `test_gate4c_interaction_events.py`
 
-**از patch A1 (new):**  
+**از patch A1 (new):**
 `inbox_metadata.py`, `test_gate4_push_channel_routing_v1.py`, `test_memory_history_timezone_v1.py`, `test_notification_inbox_gate4_v1.py`
 
-**اصلاحات اضافی P1:**  
+**اصلاحات اضافی P1:**
 `test_notification_api_b2.py` (B4), گسترش `test_gate4_push_channel_routing_v1.py` (B6/B7), همین لاگ
 
 ### B4 — اصلاح تست‌های legacy بدون JWT
@@ -92,10 +92,10 @@
 ### B6 — پوشش precedence کانال
 رفتار مصوب از پیاده‌سازی فعلی `build_gate4_android_notification_options` (بدون تغییر سیاست خاموش):
 1. `risk=critical` → `sedi_critical` (حتی با `health_status`)
-2. category سلامت **یا** `risk=high` **یا** `priority`∈{high,critical} → `sedi_health`  
+2. category سلامت **یا** `risk=high` **یا** `priority`∈{high,critical} → `sedi_health`
    ⇒ reminder با priority/risk بالا → **`sedi_health` نه sedi_reminder** (مستند در تست)
 3. reminder عادی → `sedi_reminder`
-4. engagement عادی → `sedi_default`  
+4. engagement عادی → `sedi_default`
 وضعیت: **implemented but unverified pending GitHub Actions**
 
 ### B7 — fallback زبان نامعتبر → `en`
@@ -106,7 +106,7 @@
 ### B8 — تحقیق race dedupe + طرح بستن (بدون migration در این پکیج)
 **یافته:** `create_chat_message_event` با الگوی select-then-insert؛ جدول `interaction_events` فقط index دارد؛ migration head فعلی: `049_section10_kb_embeddings_memory_governance`؛ migration مبدأ جدول: `037_gate4c_interaction_events`.
 
-**هویت یکتایی صحیح (از منطق سرویس، حدس نیست):** برای `event_type='chat_message'` با `source_notification_id IS NOT NULL`، یکتایی معنایی =  
+**هویت یکتایی صحیح (از منطق سرویس، حدس نیست):** برای `event_type='chat_message'` با `source_notification_id IS NOT NULL`، یکتایی معنایی =
 `(user_id, source_notification_id, conversation_id)` که `conversation_id` می‌تواند NULL باشد (PostgreSQL UNIQUE ساده برای NULL کافی نیست).
 
 **وضعیت B8:** `blocked with evidence — separate migration authorization required`
@@ -116,8 +116,8 @@
 2. **ایندکس‌های پیشنهادی (دو partial unique):**
    - `uq_interaction_events_chat_msg_with_conv` UNIQUE (`user_id`, `source_notification_id`, `conversation_id`) WHERE `event_type='chat_message' AND source_notification_id IS NOT NULL AND conversation_id IS NOT NULL`
    - `uq_interaction_events_chat_msg_null_conv` UNIQUE (`user_id`, `source_notification_id`) WHERE `event_type='chat_message' AND source_notification_id IS NOT NULL AND conversation_id IS NULL`
-3. **Preflight duplicates:**  
-   `SELECT user_id, source_notification_id, conversation_id, COUNT(*) … WHERE event_type='chat_message' AND source_notification_id IS NOT NULL GROUP BY 1,2,3 HAVING COUNT(*)>1`  
+3. **Preflight duplicates:**
+   `SELECT user_id, source_notification_id, conversation_id, COUNT(*) … WHERE event_type='chat_message' AND source_notification_id IS NOT NULL GROUP BY 1,2,3 HAVING COUNT(*)>1`
    و معادل برای NULL conversation.
 4. **پاکسازی:** نگه‌داشتن `MIN(id)` در هر گروه تکراری؛ حذف/آرشیو بقیه پس از تأیید جواد.
 5. **Upgrade:** ایجاد دو ایندکس concurrent-safe طبق استاندارد repo پس از cleanup.
@@ -162,7 +162,7 @@
 ## ۲) SHAها و commitهای مصوب مرجع
 
 ### Backend A1
-- **Base SHA مصوب:** `89b79ad3fc20236a23ffae65fd868aafb60843e8`  
+- **Base SHA مصوب:** `89b79ad3fc20236a23ffae65fd868aafb60843e8`
   پیام: `fix(ci): correct production pg_dump backup invocation (#51)`
 - **Worktree پاک قبلی:** `D:\Rimiya Design Studio\Sedi\software\Demo-section14a1-clean`
 - **Patch:** `section14a1-review.patch` (در همان worktree)
@@ -170,7 +170,7 @@
 - **SHA-256 اندازه‌گیری‌شده:** `b11abaa21a83f0c5d2663561886993077a6ac2c936e6132e2f5744522e0b51c6` — **مطابق**
 
 ### Frontend پایه و A2
-- **Frontend approved base:** `452b3e4e160922468ecb843187e300fcc03f2436`  
+- **Frontend approved base:** `452b3e4e160922468ecb843187e300fcc03f2436`
   پیام: `fix(frontend): redesign gate3 horizontal equalizer`
 - **شاخه validation A2 (نباید مستقیم merge شود):** `feature/frontend/section14a2-validation`
 - **سه commit منبع یکپارچه‌سازی (به این ترتیب):**
@@ -647,7 +647,7 @@ LLM فقط زبان تولید می‌کند؛ حق invent برای دادهٔ �
 ### ۲۰.۱۱ قرارداد context نسخه‌دار (پیشنهادی)
 بخش‌ها: `request`, `auth_user`, `conversation`, `intent`, `risk`, `profile`, `lifestyle`, `health`, `memory`, `kb`, `missing`, `consent`, `locale_tz`, `notification_origin`, `freshness`, `provenance`, `contradictions`, `safety_constraints`.
 
-برای هر فیلد در پیاده‌سازی بعدی باید تعریف شود: source، type، required، sensitivity، max size، freshness rule، precedence، logging rule، `may_send_to_llm`، `may_store`.  
+برای هر فیلد در پیاده‌سازی بعدی باید تعریف شود: source، type، required، sensitivity، max size، freshness rule، precedence، logging rule، `may_send_to_llm`، `may_store`.
 ممنوع: دادهٔ خام حساس در URL/log/push/prompt بی‌کران.
 
 ### ۲۰.۱۲ موتور کمبود اطلاعات (پیشنهادی) — پروفایل intents
@@ -658,18 +658,18 @@ Intentهای حداقلی: general health، symptom، nutrition، meal plan، sl
 **Meal plan / nutrition** باید صریحاً ارزیابی کند: goal، age، height، weight، gender در صورت لازم، activity، sleep، stress، allergies، conditions، pregnancy، meds/supplements، مذهبی/فرهنگی، بودجه/دسترسی غذا، preferences، وعده‌ها، هشدارهای سلامت مرتبط — و اگر پاسخ معتبر موجود است سؤال را تکرار نکند.
 
 ### ۲۰.۱۳ سیاست نوشتن حافظه (پیشنهادی)
-1. خودکار فقط کلاس‌های کم‌ریسک/صریح کاربر  
-2. حساس نیاز consent صریح  
-3. موقت vs پایدار + انقضا  
-4. correction جایگزین با provenance  
-5. contradiction ثبت می‌شود نه silent overwrite  
-6. UI مشاهده/ویرایش/حذف  
-7. جلوگیری نشت بین کاربران  
-8. summaries مشتق از raw با job جدا  
-9. dedupe retry هماهنگی با B8  
+1. خودکار فقط کلاس‌های کم‌ریسک/صریح کاربر
+2. حساس نیاز consent صریح
+3. موقت vs پایدار + انقضا
+4. correction جایگزین با provenance
+5. contradiction ثبت می‌شود نه silent overwrite
+6. UI مشاهده/ویرایش/حذف
+7. جلوگیری نشت بین کاربران
+8. summaries مشتق از raw با job جدا
+9. dedupe retry هماهنگی با B8
 
 ### ۲۰.۱۴ کاندید نوتیف هوشمندی (بدون UI Gate4)
-لایه‌های جدا: (1) candidate از intelligence (2) policy (quiet hours/volume/feedback) (3) schedule (4) push provider (5) Gate4 presentation (6) Gate3 continuation.  
+لایه‌های جدا: (1) candidate از intelligence (2) policy (quiet hours/volume/feedback) (3) schedule (4) push provider (5) Gate4 presentation (6) Gate3 continuation.
 metadata push فقط شناسه‌های امن + deeplink `sedi://`؛ بدون diagnosis/dosage/body.
 
 ### ۲۰.۱۵ بازسنجی B8
@@ -706,7 +706,7 @@ metadata push فقط شناسه‌های امن + deeplink `sedi://`؛ بدون 
 | **15-G4 Visual** | UI Gate4 پس از intelligence | I9 + تصمیمات بصری | بله |
 | **15-T Legacy cleanup** | B5 ۲۶ شکست FE + باقی تست‌های JWT | CI | بله |
 
-**تخصیص باگ‌های شناخته‌شده:**  
+**تخصیص باگ‌های شناخته‌شده:**
 B1/B2→15-P2B؛ B3→15-G4/15-P2B؛ B4/B6/B7→P1 (انجام، unverified CI)؛ B5→15-T؛ B8→15-B8؛ B9→15-I9+G4 settings؛ B10→15-FCM+device؛ B11/B12→15-G4؛ reminder `reply=`→15-I0؛ FCM user_id→15-FCM Harden؛ disconnected hybrid/unified→15-I1؛ missing-info→15-I3.
 
 ### ۲۰.۱۸ تصمیم‌های محصولی لازم از جواد (قبل از کد)
@@ -919,6 +919,85 @@ P1/A1 + اصلاحات B4/B6/B7 + I0 (`InteractionResponse.message`) + B8 (idemp
 - push/deploy: **مجاز نیست**
 - SHA نهایی commit در همین commit قابل درج نیست؛ بلافاصله پس از commit در §۲۳.۶ (ledger پس از commit، unstaged) ثبت می‌شود.
 
+### ۲۳.۶ Ledger پس از commit backend foundation (`2a7dede`)
+| مورد | مقدار |
+|------|--------|
+| Commit SHA | `2a7dede9b07214f0a8ccb87100fe7b020adb1ac4` |
+| Subject | `feat(backend): harden conversation continuity and notification idempotency` |
+| Parent SHA | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Timestamp (UTC-7) | ۲۰۲۶-۰۷-۱۴ |
+| فایل‌های commit‌شده | ۲۰ کل — **۸ added** + **۱۲ modified** (جزئیات §۲۳.۷–§۲۳.۸) |
+| Push | **انجام نشد** |
+| تست محلی | **اجرا نشد** |
+| migration 050 | **commit شد؛ اجرا نشد** |
+| Deploy / feature-flag | **مجاز نبود** |
+
+### ۲۳.۷ Allowlist commit‌شده (۲۰ فایل)
+1. `backend/alembic/versions/050_gate4_interaction_event_idempotency.py`
+2. `backend/app/models.py`
+3. `backend/app/routers/interact.py`
+4. `backend/app/routers/memory.py`
+5. `backend/app/routers/notifications.py`
+6. `backend/app/schemas/memory.py`
+7. `backend/app/schemas/notification.py`
+8. `backend/app/services/gate4/inbox_metadata.py`
+9. `backend/app/services/gate4/interaction_event_service.py`
+10. `backend/app/services/gate4/policy_prefs_bridge.py`
+11. `backend/app/services/gate4/push_payload.py`
+12. `backend/tests/contracts/snapshots/openapi_v1_snapshot.json`
+13. `backend/tests/test_gate4_push_channel_routing_v1.py`
+14. `backend/tests/test_gate4c_interaction_events.py`
+15. `backend/tests/test_memory_history_timezone_v1.py`
+16. `backend/tests/test_notification_api_b2.py`
+17. `backend/tests/test_notification_inbox_gate4_v1.py`
+18. `backend/tests/test_section15_b8_interaction_idempotency.py`
+19. `backend/tests/test_section15_i0_interaction_response.py`
+20. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md`
+
+### ۲۳.۸ تفکیک added / modified در commit `2a7dede`
+| نوع | تعداد | جزئیات |
+|-----|--------|--------|
+| **Added (A)** | **۸** | ۱ migration + ۱ service + ۵ test + ۱ master log |
+| **Modified (M)** | **۱۲** | models، routers، schemas، services، openapi snapshot، ۲ test موجود |
+| **جمع** | **۲۰** | allowlist کامل §۲۳.۷ |
+
+**۸ فایل added:**
+1. `backend/alembic/versions/050_gate4_interaction_event_idempotency.py` (migration)
+2. `backend/app/services/gate4/inbox_metadata.py` (service)
+3. `backend/tests/test_gate4_push_channel_routing_v1.py` (test)
+4. `backend/tests/test_memory_history_timezone_v1.py` (test)
+5. `backend/tests/test_notification_inbox_gate4_v1.py` (test)
+6. `backend/tests/test_section15_b8_interaction_idempotency.py` (test)
+7. `backend/tests/test_section15_i0_interaction_response.py` (test)
+8. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (master log)
+
+**۱۲ فایل modified:** models، interact، memory، notifications routers؛ memory/notification schemas؛ interaction_event_service، policy_prefs_bridge، push_payload؛ openapi snapshot؛ test_gate4c_interaction_events، test_notification_api_b2.
+
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — در حال commit Package 15 Backend Foundation — ۲۰۲۶-۰۷-۱۴*
+## ۲۴) commit مستندسازی — reconciliation ledger §۲۳
+
+### ۲۴.۱ مجوز (جواد)
+جواد به‌صریح **یک commit مستندسازی جدا** تأیید کرد — فقط `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md`.
+
+### ۲۴.۲ پیام commit مصوب
+```
+docs: record section15 backend foundation commit
+```
+
+### ۲۴.۳ دلیل
+- ثبت/persist ledger §۲۳.۶ برای commit کد `2a7dede9b07214f0a8ccb87100fe7b020adb1ac4`
+- اصلاح accounting: **۸ added + ۱۲ modified = ۲۰** (§۲۳.۸)
+- حذف trailing whitespace در همین فایل markdown
+
+### ۲۴.۴ وضعیت اجرا
+- تغییر کد محصول: **خیر**
+- تست محلی: **اجرا نشد**
+- migration: **اجرا نشد**
+- push/deploy: **مجاز نیست**
+- SHA نهایی این commit مستندسازی در همین commit قابل درج نیست (چرخه self-reference)؛ در به‌روزرسانی عادی بعدی master log ثبت می‌شود.
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — ledger backend foundation + reconciliation doc commit — ۲۰۲۶-۰۷-۱۴*
