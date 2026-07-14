@@ -1,7 +1,7 @@
 /// Pure same-day history mapping for Gate 3 restore (no UI / audio side effects).
 library;
 
-import '../../data/dto/history_response.dart';
+import '../../../data/dto/history_response.dart';
 
 class RestoredChatTurn {
   final String localId;
