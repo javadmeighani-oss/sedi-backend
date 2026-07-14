@@ -39,9 +39,8 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
   Future<void> _bootstrap() async {
     var lang = widget.lang;
     final profile = await UserProfileManager.loadProfile();
-    lang ??= profile.preferredLanguage.isNotEmpty
-        ? profile.preferredLanguage
-        : 'en';
+    lang ??=
+        profile.preferredLanguage.isNotEmpty ? profile.preferredLanguage : 'en';
     if (!mounted) return;
     setState(() {
       _lang = lang!;
@@ -132,8 +131,7 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
       );
     }
 
-    final textDirection =
-        l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
+    final textDirection = l10n.isRtl ? TextDirection.rtl : TextDirection.ltr;
 
     return Directionality(
       textDirection: textDirection,
@@ -164,8 +162,7 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
                         label: Text(_groupLabel(g)),
                         selected: selected,
                         onSelected: (_) => _onGroupSelected(g),
-                        selectedColor:
-                            AppTheme.pistachioGreen.withOpacity(0.3),
+                        selectedColor: AppTheme.pistachioGreen.withOpacity(0.3),
                         checkmarkColor: AppTheme.primaryBlack,
                       );
                     }).toList(),

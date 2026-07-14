@@ -41,7 +41,8 @@ Future<ChatRepositoryResult> sendChat(InteractRequest request) async {
       .timeout(const Duration(seconds: 15), onTimeout: () {
     throw Exception('Connection timeout');
   });
-  return ChatRepositoryResult(statusCode: response.statusCode, body: response.body);
+  return ChatRepositoryResult(
+      statusCode: response.statusCode, body: response.body);
 }
 
 /// Fetches chat history from GET /memory/history via authenticated [ApiClient].
@@ -66,7 +67,8 @@ Future<HistoryResponse> fetchHistory({
 
   if (response.statusCode != 200) {
     if (kDebugMode) {
-      debugPrint('[ChatRepository] history failed status=${response.statusCode}');
+      debugPrint(
+          '[ChatRepository] history failed status=${response.statusCode}');
     }
     throw Exception('History failed: ${response.statusCode}');
   }

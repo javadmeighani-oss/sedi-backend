@@ -40,9 +40,8 @@ List<RestoredChatTurn> mapSameDayHistoryTurns(
   }
 
   final dated = <({DateTime at, RestoredChatTurn turn})>[];
-  final Iterable<HistoryGroupItem> groups = sameDayGroup != null
-      ? <HistoryGroupItem>[sameDayGroup]
-      : response.items;
+  final Iterable<HistoryGroupItem> groups =
+      sameDayGroup != null ? <HistoryGroupItem>[sameDayGroup] : response.items;
 
   final effectiveNow = now ?? DateTime.now();
   final todayStart =

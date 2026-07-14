@@ -27,10 +27,10 @@ class NotificationRepository {
         'platform': 'android',
         'fcm_token': fcmToken,
         if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
-        if (appVersion != null && appVersion.isNotEmpty) 'app_version': appVersion,
+        if (appVersion != null && appVersion.isNotEmpty)
+          'app_version': appVersion,
       },
-      parser: (v) =>
-          v == null ? null : Map<String, dynamic>.from(v as Map),
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
 
@@ -45,8 +45,7 @@ class NotificationRepository {
         'user_id': userId.toString(),
         'fcm_token': fcmToken,
       },
-      parser: (v) =>
-          v == null ? null : Map<String, dynamic>.from(v as Map),
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
 
@@ -66,8 +65,7 @@ class NotificationRepository {
     return _client.post<Map<String, dynamic>?>(
       '/notifications/$notificationId/feedback',
       body: body,
-      parser: (v) =>
-          v == null ? null : Map<String, dynamic>.from(v as Map),
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
 
@@ -85,8 +83,7 @@ class NotificationRepository {
         'action_id': actionId,
         'timestamp': ts,
       },
-      parser: (v) =>
-          v == null ? null : Map<String, dynamic>.from(v as Map),
+      parser: (v) => v == null ? null : Map<String, dynamic>.from(v as Map),
     );
   }
 }

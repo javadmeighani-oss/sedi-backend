@@ -197,7 +197,8 @@ class LocalNotificationsService {
       // Require a positive notification id for local display + routing.
       return;
     }
-    final sourceId = parsePositiveNotificationId(data['source_notification_id']);
+    final sourceId =
+        parsePositiveNotificationId(data['source_notification_id']);
     final conversationId = sanitizeConversationId(data['conversation_id']);
     final deeplinkUrl = data['deeplink_url']?.toString();
     final rawChannel = data['channel_id']?.toString() ??

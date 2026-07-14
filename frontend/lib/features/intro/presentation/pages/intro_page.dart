@@ -18,7 +18,8 @@ class IntroPage extends StatefulWidget {
   State<IntroPage> createState() => _IntroPageState();
 }
 
-class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMixin {
+class _IntroPageState extends State<IntroPage>
+    with SingleTickerProviderStateMixin {
   static const Duration kGate1Duration = Duration(milliseconds: 3000);
 
   /// Real Sedi logo asset (PNG with transparency). Tinted via [BlendMode.srcIn].

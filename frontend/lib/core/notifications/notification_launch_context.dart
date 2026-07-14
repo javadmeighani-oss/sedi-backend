@@ -29,12 +29,12 @@ class NotificationLaunchContext {
       };
 
   factory NotificationLaunchContext.fromJson(Map<String, dynamic> json) {
-    final rawId = json['source_notification_id'] ?? json['sourceNotificationId'];
-    final id = rawId is int
-        ? rawId
-        : int.tryParse(rawId?.toString() ?? '') ?? 0;
-    final conversationRaw =
-        json['conversation_id']?.toString() ?? json['conversationId']?.toString();
+    final rawId =
+        json['source_notification_id'] ?? json['sourceNotificationId'];
+    final id =
+        rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
+    final conversationRaw = json['conversation_id']?.toString() ??
+        json['conversationId']?.toString();
     String? conversation;
     if (conversationRaw != null &&
         conversationRaw.isNotEmpty &&

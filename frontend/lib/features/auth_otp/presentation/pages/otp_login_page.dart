@@ -77,8 +77,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
   bool _navigatedAfterSuccess = false;
   int? _lastOtpRequestStatusCode;
 
-  OtpLoginLocalization get _l10n =>
-      OtpLoginLocalization(_language ?? 'en');
+  OtpLoginLocalization get _l10n => OtpLoginLocalization(_language ?? 'en');
 
   String get _calendarType =>
       BirthCalendarHelper.calendarTypeForLanguage(_language ?? 'en');
@@ -160,7 +159,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
       _step == _Gate2Step.otpVerification &&
       OtpInputHelper.isComplete(_otpCodeController.text);
 
-  bool get _canCompleteRegistration => _registrationDraft.isComplete &&
+  bool get _canCompleteRegistration =>
+      _registrationDraft.isComplete &&
       (_isValidPhone(_phoneController.text) || _requestedPhone.isNotEmpty);
 
   String _formattedDob() {
@@ -947,8 +947,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
               ),
               const SizedBox(height: 12),
               FormField<void>(
-                validator: (_) =>
-                    !_hasCompleteDob ? _l10n.dobRequired : null,
+                validator: (_) => !_hasCompleteDob ? _l10n.dobRequired : null,
                 builder: (state) => Column(
                   children: [
                     Gate2Widgets.tapField(
@@ -1097,9 +1096,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
         ? _l10n.returningProfileIncompleteMessage
         : _l10n.newUserAlreadyRegisteredMessage;
 
-    final primaryLabel = correction == _CorrectionCase.returningProfileIncomplete
-        ? _l10n.completeRegistration
-        : _l10n.continueToAccount;
+    final primaryLabel =
+        correction == _CorrectionCase.returningProfileIncomplete
+            ? _l10n.completeRegistration
+            : _l10n.continueToAccount;
 
     final onPrimary = correction == _CorrectionCase.returningProfileIncomplete
         ? _startCompleteRegistrationFromCorrection

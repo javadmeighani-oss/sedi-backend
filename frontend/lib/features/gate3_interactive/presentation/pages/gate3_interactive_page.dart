@@ -257,99 +257,95 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                     child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.55),
-                            borderRadius: BorderRadius.circular(26),
-                            border: Border.all(
-                              color: AppTheme.borderInactive.withOpacity(0.22),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x12000000),
-                                blurRadius: 18,
-                                offset: Offset(0, 8),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                          color: AppTheme.borderInactive.withOpacity(0.22),
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x12000000),
+                            blurRadius: 18,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(26),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  12,
+                                  10,
+                                  8,
+                                ),
+                                child: Gate3MessageViewport(
+                                  scrollController: _scrollController,
+                                  onReturnToLatest: _scrollToBottom,
+                                  returnTooltip: l10n.returnToLatest,
+                                  child: _buildMessages(l10n),
+                                ),
                               ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(26),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      10,
-                                      12,
-                                      10,
-                                      8,
-                                    ),
-                                    child: Gate3MessageViewport(
-                                      scrollController: _scrollController,
-                                      onReturnToLatest: _scrollToBottom,
-                                      returnTooltip: l10n.returnToLatest,
-                                      child: _buildMessages(l10n),
-                                    ),
-                                  ),
-                                ),
-                                Gate3Composer(
-                                  placeholder: l10n.composerPlaceholder,
-                                  lang: _controller.currentLanguage,
-                                  isRtl: isRtl,
-                                  onListeningChanged: (listening) {
-                                    if (_composerListening != listening) {
-                                      setState(
-                                          () => _composerListening = listening);
-                                    }
-                                  },
-                                  onSendText: _handleSendText,
-                                  onStartRecording: () {
-                                    _controller.startVoiceRecording().then((ok) {
-                                      if (!mounted) return;
-                                      if (ok == false) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              l10n.microphonePermissionRequired,
-                                            ),
-                                            behavior: SnackBarBehavior.floating,
-                                            margin: const EdgeInsets.only(
-                                              bottom: 100,
-                                              left: 16,
-                                              right: 16,
-                                            ),
-                                          ),
-                                        );
-                                      } else {
-                                        setState(
-                                            () => _composerListening = true);
-                                      }
-                                    });
-                                  },
-                                  onStopRecordingAndSend: () {
-                                    _speakingLifecycle.markUserSubmission();
-                                    _controller.stopVoiceRecording().then((_) {
-                                      if (!mounted) return;
-                                      setState(
-                                          () => _composerListening = false);
-                                    });
-                                  },
-                                  isRecording: _controller.isRecording,
-                                  recordingTime:
-                                      _controller.recordingTimeFormatted,
-                                ),
-                              ],
                             ),
-                          ),
+                            Gate3Composer(
+                              placeholder: l10n.composerPlaceholder,
+                              lang: _controller.currentLanguage,
+                              isRtl: isRtl,
+                              onListeningChanged: (listening) {
+                                if (_composerListening != listening) {
+                                  setState(
+                                      () => _composerListening = listening);
+                                }
+                              },
+                              onSendText: _handleSendText,
+                              onStartRecording: () {
+                                _controller.startVoiceRecording().then((ok) {
+                                  if (!mounted) return;
+                                  if (ok == false) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          l10n.microphonePermissionRequired,
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                        margin: const EdgeInsets.only(
+                                          bottom: 100,
+                                          left: 16,
+                                          right: 16,
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    setState(() => _composerListening = true);
+                                  }
+                                });
+                              },
+                              onStopRecordingAndSend: () {
+                                _speakingLifecycle.markUserSubmission();
+                                _controller.stopVoiceRecording().then((_) {
+                                  if (!mounted) return;
+                                  setState(() => _composerListening = false);
+                                });
+                              },
+                              isRecording: _controller.isRecording,
+                              recordingTime: _controller.recordingTimeFormatted,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
+              ],
             ),
           ),
         ),
+      ),
     );
 
     return content;
@@ -389,8 +385,7 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
           );
         }
         final effectiveIndex = _controller.isThinking ? index - 1 : index;
-        final reverseIndex =
-            _controller.messages.length - 1 - effectiveIndex;
+        final reverseIndex = _controller.messages.length - 1 - effectiveIndex;
         final msg = _controller.messages[reverseIndex];
         return MessageBubble(
           key: ValueKey(msg.localId),

@@ -52,8 +52,8 @@ String? sanitizeConversationId(Object? raw) {
   final from = uri.queryParameters['from']?.toLowerCase();
   if (from != null && from != 'notif') return null;
 
-  final sourceId =
-      parsePositiveNotificationId(uri.queryParameters['source_notification_id']);
+  final sourceId = parsePositiveNotificationId(
+      uri.queryParameters['source_notification_id']);
   final legacyId = parsePositiveNotificationId(uri.queryParameters['id']);
   final conversationId =
       sanitizeConversationId(uri.queryParameters['conversation_id']);
@@ -124,8 +124,7 @@ NotificationLaunchContext? parseNotificationLaunchContext({
 
   if (resolvedId == null) return null;
 
-  final conversationId =
-      conversationFromData ?? link?.conversationId;
+  final conversationId = conversationFromData ?? link?.conversationId;
 
   return NotificationLaunchContext(
     sourceNotificationId: resolvedId,

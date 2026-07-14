@@ -138,12 +138,13 @@ class ChatController extends ChangeNotifier {
 
   Future<void> initialize({String? initialMessage}) async {
     if (_initialized) {
-_chatControllerLog('[ChatController] ⚠️ Already initialized, skipping');
+      _chatControllerLog('[ChatController] ⚠️ Already initialized, skipping');
       return;
     }
     _initialized = true;
 
-    _chatControllerLog('[ChatController] ========== INITIALIZE START ==========');
+    _chatControllerLog(
+        '[ChatController] ========== INITIALIZE START ==========');
 
     // Load user profile
     _userProfile = await UserProfileManager.loadProfile();
@@ -151,7 +152,8 @@ _chatControllerLog('[ChatController] ⚠️ Already initialized, skipping');
         ? _userProfile.preferredLanguage
         : 'en';
 
-    _chatControllerLog('[ChatController] Profile loaded (language=$currentLanguage, verified=${_userProfile.isVerified})');
+    _chatControllerLog(
+        '[ChatController] Profile loaded (language=$currentLanguage, verified=${_userProfile.isVerified})');
 
     conversationState = ConversationState.initializing;
     notifyListeners();
@@ -169,8 +171,10 @@ _chatControllerLog('[ChatController] ⚠️ Already initialized, skipping');
     // Do NOT make any additional API calls
     // Even if initial message is empty or contains errors, onboarding was successful
     if (initialMessage != null) {
-_chatControllerLog('[ChatController] initial message provided from onboarding');
-_chatControllerLog('[ChatController] initial message length bucket received');
+      _chatControllerLog(
+          '[ChatController] initial message provided from onboarding');
+      _chatControllerLog(
+          '[ChatController] initial message length bucket received');
 
       conversationState = ConversationState.chatting;
       notifyListeners();
@@ -181,7 +185,7 @@ _chatControllerLog('[ChatController] initial message length bucket received');
         _addSediMessage(initialMessage);
       } else {
         // Chat failed but onboarding succeeded - show chat-specific error
-  _chatControllerLog(
+        _chatControllerLog(
             '[ChatController] ⚠️ Initial message is empty (chat may have failed, but onboarding succeeded)');
         _addSediMessage(
           currentLanguage == 'fa'
@@ -192,9 +196,9 @@ _chatControllerLog('[ChatController] initial message length bucket received');
         );
       }
 
-_chatControllerLog(
+      _chatControllerLog(
           '[ChatController] ✅ Initialization complete (onboarding successful, chat handled separately)');
-_chatControllerLog(
+      _chatControllerLog(
           '[ChatController] ========== INITIALIZE END (ONBOARDING) ==========');
       return;
     }
@@ -202,13 +206,14 @@ _chatControllerLog(
     // CRITICAL: Only get greeting if NO initial message AND user_id exists
     // This prevents failed requests after onboarding
     if (_userProfile.userId == null) {
-_chatControllerLog(
+      _chatControllerLog(
           '[ChatController] ⚠️ WARNING: user_id is null, cannot fetch greeting');
-_chatControllerLog('[ChatController]   - This should not happen after onboarding');
-_chatControllerLog('[ChatController]   - Skipping greeting fetch');
+      _chatControllerLog(
+          '[ChatController]   - This should not happen after onboarding');
+      _chatControllerLog('[ChatController]   - Skipping greeting fetch');
       conversationState = ConversationState.chatting;
       notifyListeners();
-_chatControllerLog(
+      _chatControllerLog(
           '[ChatController] ========== INITIALIZE END (NO USER_ID) ==========');
       return;
     }
@@ -222,13 +227,14 @@ _chatControllerLog(
       isThinking = false;
       conversationState = ConversationState.chatting;
       notifyListeners();
-_chatControllerLog(
-          '[ChatController] same-day history restored');
-_chatControllerLog('[ChatController] ========== INITIALIZE END (HISTORY) ==========');
+      _chatControllerLog('[ChatController] same-day history restored');
+      _chatControllerLog(
+          '[ChatController] ========== INITIALIZE END (HISTORY) ==========');
       return;
     }
     await _showShortIntroIfEmpty();
-    _chatControllerLog('[ChatController] ========== INITIALIZE END (GREETING) ==========');
+    _chatControllerLog(
+        '[ChatController] ========== INITIALIZE END (GREETING) ==========');
   }
 
   Future<void> _hydratePendingNotificationLaunch() async {
@@ -297,9 +303,9 @@ _chatControllerLog('[ChatController] ========== INITIALIZE END (HISTORY) =======
   Future<void> _getGreetingFromBackend() async {
     // CRITICAL: Validate user_id before making any API call
     if (_userProfile.userId == null) {
-_chatControllerLog(
+      _chatControllerLog(
           '[ChatController] ❌ ERROR: Cannot fetch greeting - user_id is null');
-_chatControllerLog(
+      _chatControllerLog(
           '[ChatController]   - This should not happen. User should have user_id after onboarding.');
       conversationState = ConversationState.chatting;
       notifyListeners();
@@ -316,7 +322,8 @@ _chatControllerLog(
     // Wait a bit for UI to settle
     await Future.delayed(const Duration(milliseconds: 800));
 
-    _chatControllerLog('[ChatController] ========== GET GREETING START ==========');
+    _chatControllerLog(
+        '[ChatController] ========== GET GREETING START ==========');
     _chatControllerLog('[ChatController] Requesting greeting from backend...');
 
     try {
@@ -335,7 +342,7 @@ _chatControllerLog(
       if (greeting != null && greeting.isNotEmpty) {
         // Check if backend is unavailable
         if (greeting == 'BACKEND_UNAVAILABLE') {
-    _chatControllerLog('[ChatController] ERROR: Backend unavailable');
+          _chatControllerLog('[ChatController] ERROR: Backend unavailable');
           // Show error state - NO greeting, NO fallback
           _addSediMessage(
             currentLanguage == 'fa'
@@ -350,12 +357,12 @@ _chatControllerLog(
         // Backend provided greeting - display it
         final parsed = _parseResponse(greeting);
         final messageToDisplay = parsed['message'] as String;
-  _chatControllerLog(
-            '[ChatController] displaying backend greeting');
+        _chatControllerLog('[ChatController] displaying backend greeting');
         _addSediMessage(messageToDisplay);
       } else {
         // Backend didn't respond - show error only
-  _chatControllerLog('[ChatController] ERROR: Backend greeting returned null');
+        _chatControllerLog(
+            '[ChatController] ERROR: Backend greeting returned null');
         _addSediMessage(
           currentLanguage == 'fa'
               ? 'متأسفانه در حال حاضر به سرور متصل نیستم. لطفاً اتصال اینترنت را بررسی کنید و دوباره تلاش کنید. 😔'
@@ -365,7 +372,7 @@ _chatControllerLog(
         );
       }
     } catch (e) {
-_chatControllerLog('[ChatController] greeting request failed');
+      _chatControllerLog('[ChatController] greeting request failed');
       conversationState = ConversationState.chatting;
       notifyListeners();
       _addSediMessage(
@@ -586,8 +593,7 @@ _chatControllerLog('[ChatController] greeting request failed');
       _tickRecordingTimer();
       return true;
     } catch (e) {
-      if (kDebugMode)
-        debugPrint('[ChatController] startVoiceRecording failed');
+      if (kDebugMode) debugPrint('[ChatController] startVoiceRecording failed');
       return false;
     }
   }
@@ -600,8 +606,7 @@ _chatControllerLog('[ChatController] greeting request failed');
       notifyListeners();
       return path;
     } catch (e) {
-      if (kDebugMode)
-        debugPrint('[ChatController] stopVoiceRecording failed');
+      if (kDebugMode) debugPrint('[ChatController] stopVoiceRecording failed');
       isRecording = false;
       notifyListeners();
       return null;

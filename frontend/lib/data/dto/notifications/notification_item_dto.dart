@@ -33,9 +33,8 @@ class NotificationItemDto {
         rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
     final type = json['type']?.toString() ?? '';
     final topChannel = json['channel']?.toString();
-    final channel = (topChannel != null && topChannel.isNotEmpty)
-        ? topChannel
-        : type;
+    final channel =
+        (topChannel != null && topChannel.isNotEmpty) ? topChannel : type;
     final createdRaw = json['created_at']?.toString();
     final createdAt = DateTime.tryParse(createdRaw ?? '') ??
         DateTime.fromMillisecondsSinceEpoch(0);

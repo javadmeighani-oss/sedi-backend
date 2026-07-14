@@ -222,8 +222,7 @@ void main() {
     test('conflict between explicit and deeplink fails closed', () {
       final ctx = parseNotificationLaunchContext(data: {
         'source_notification_id': 5,
-        'deeplink_url':
-            'sedi://chat?from=notif&source_notification_id=6',
+        'deeplink_url': 'sedi://chat?from=notif&source_notification_id=6',
       });
       expect(ctx, isNull);
     });

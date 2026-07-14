@@ -33,8 +33,7 @@ class ChatSendResponse {
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? ''),
       requiresSecurityCheck: json['requires_security_check'] as bool? ?? false,
       detectedName: json['detected_name']?.toString(),
-      continuedFromNotification:
-          json['continued_from_notification'] as bool?,
+      continuedFromNotification: json['continued_from_notification'] as bool?,
       sourceNotificationId: rawSource is int
           ? rawSource
           : int.tryParse(rawSource?.toString() ?? ''),
