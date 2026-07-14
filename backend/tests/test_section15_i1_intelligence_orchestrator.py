@@ -169,11 +169,23 @@ def test_flag_on_uses_structured_mode_without_claiming_future_capabilities(monke
     assert ReasonCode.STRUCTURED_MODE_ACTIVE.value in result.reason_codes
     assert ReasonCode.COMPATIBILITY_GENERATOR_SELECTED.value in result.reason_codes
     assert ReasonCode.CONTEXT_ASSEMBLED.value in result.reason_codes
+    # Explicit readiness markers: engines are NOT connected (not capability claims).
+    assert ReasonCode.MISSING_INFORMATION_ENGINE_NOT_CONNECTED.value in result.reason_codes
+    assert ReasonCode.STRUCTURED_MODE_NOT_PRODUCTION_READY.value in result.reason_codes
+    assert ReasonCode.GOVERNED_KB_NOT_CONNECTED.value in result.reason_codes
+    # No active missing-information / I3 stage exists in STAGE_ORDER.
+    assert "missing_information" not in result.stage_names
+    assert "resolve_missing_information" not in result.stage_names
+    assert list(result.stage_names) == [s.value for s in STAGE_ORDER]
     joined = " ".join(result.reason_codes).lower()
     assert "nutrition" not in joined
     assert "weekly_kb" not in joined
     assert "durable_memory" not in joined
-    assert "missing_info" not in joined
+    # Must not claim an active/connected missing-info engine.
+    assert "MISSING_INFORMATION_ENGINE_CONNECTED" not in result.reason_codes
+    assert ReasonCode.MISSING_INFORMATION_ENGINE_NOT_CONNECTED.value != (
+        "MISSING_INFORMATION_ENGINE_CONNECTED"
+    )
 
 
 # ---------------------------------------------------------------------------

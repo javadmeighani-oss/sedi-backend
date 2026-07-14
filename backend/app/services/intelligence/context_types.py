@@ -80,6 +80,9 @@ class ContextBudgets:
 
 DEFAULT_CONTEXT_BUDGETS = ContextBudgets()
 
+# Sentinel: distinguishes "adapter should load UCS itself" from "assembler loaded UCS and got None".
+USER_CONTEXT_PACK_UNSET: object = object()
+
 # Module-level mirrors of defaults for adapters that only need memory turns.
 MAX_ITEMS_PER_SECTION = DEFAULT_CONTEXT_BUDGETS.max_items_per_section
 MAX_TOTAL_CONTEXT_ITEMS = DEFAULT_CONTEXT_BUDGETS.max_total_context_items
@@ -171,3 +174,37 @@ def assert_no_sensitive_in_reason_codes(codes: Sequence[str]) -> None:
     for code in codes:
         if not code or not code.replace("_", "").isalnum():
             raise AssertionError("unsafe_reason_code")
+
+
+def is_llm_projection_eligible(item: ContextItem) -> bool:
+    """
+    Single policy for LLM compatibility projection lines and preferred-name selection.
+
+    Cross-user ownership must already have been rejected by the assembler.
+    """
+    if not item.active or item.conflicted:
+        return False
+    if not item.may_send_to_llm:
+        return False
+    if item.consent == "denied":
+        return False
+    # Newly expanded sensitive unknown-consent items stay out of LLM projection.
+    if item.consent == "unknown" and item.sensitivity in ("high", "critical"):
+        return False
+    return True
+
+
+PREFERRED_NAME_CANONICAL_KEY = "profile.preferred_name"
+
+
+def preferred_name_from_included_items(items: Sequence[ContextItem]) -> Optional[str]:
+    """Extract preferred name only from final projection-included eligible items."""
+    for item in items:
+        if item.canonical_key != PREFERRED_NAME_CANONICAL_KEY:
+            continue
+        if not is_llm_projection_eligible(item):
+            continue
+        value = str(item.structured_value).strip() if item.structured_value is not None else ""
+        if value:
+            return value
+    return None

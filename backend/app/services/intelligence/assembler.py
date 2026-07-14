@@ -12,7 +12,6 @@ from backend.app.services.intelligence.adapters import (
     LifestyleContextAdapter,
     ProfileContextAdapter,
     SafeNotificationContextAdapter,
-    preferred_name_from_items,
 )
 from backend.app.services.intelligence.context_types import (
     ADAPTER_ORDER,
@@ -23,6 +22,8 @@ from backend.app.services.intelligence.context_types import (
     ContextSection,
     ContextSnapshot,
     ContextSource,
+    is_llm_projection_eligible,
+    preferred_name_from_included_items,
     safe_item_sort_key,
 )
 from backend.app.services.intelligence.contracts import ReasonCode
@@ -74,8 +75,8 @@ class AuthorizedContextAssembler:
         raw_items: list[ContextItem] = []
         budgets = self._budgets
 
-        # Single UserContextService load shared by profile/lifestyle/memory.
-        user_context_pack = None
+        # Single request-scoped UserContextService load shared by profile/lifestyle/memory.
+        # Distinguish loaded-None from not-loaded: always pass the result (object or None).
         try:
             from backend.app.services.user_context import UserContextService
 
@@ -144,7 +145,8 @@ class AuthorizedContextAssembler:
             owner_user_id=authenticated_user_id,
             sections=sections,
             items=truncated,
-            preferred_name=preferred_name_from_items(truncated),
+            # Preferred name is bound only after final projection inclusion.
+            preferred_name=None,
             conflict_count=conflict_count,
             truncated_count=truncated_count,
             reason_codes=tuple(dict.fromkeys(reason_codes)),
@@ -156,43 +158,39 @@ class AuthorizedContextAssembler:
         self, snapshot: ContextSnapshot
     ) -> CompatibilityProjection:
         budgets = self._budgets
-        eligible_lines: list[str] = []
+        eligible_pairs: list[tuple[ContextItem, str]] = []
         excluded_conflicts = 0
         for item in sorted(snapshot.items, key=safe_item_sort_key):
             if item.conflicted:
                 excluded_conflicts += 1
                 continue
-            if not item.active:
-                continue
-            if not item.may_send_to_llm:
-                continue
-            if item.consent == "denied":
-                continue
-            # Newly expanded sensitive unknown-consent items are not LLM-eligible.
-            if item.consent == "unknown" and item.sensitivity in ("high", "critical"):
+            if not is_llm_projection_eligible(item):
                 continue
             # Never project consent/provenance internals or owner IDs.
-            eligible_lines.append(f"- [{item.section}] {item.display_text}")
+            line = f"- [{item.section}] {item.display_text}"
+            eligible_pairs.append((item, line))
 
         header = "[STRUCTURED_CONTEXT]"
         truncated = False
-        kept: list[str] = []
-        # Deterministic selection: walk sort order; drop whole trailing lines if over budget.
-        for line in eligible_lines:
-            candidate = "\n".join([header, *kept, line])
+        included_items: list[ContextItem] = []
+        kept_lines: list[str] = []
+        # Deterministic whole-line char budget; retain included item refs.
+        for item, line in eligible_pairs:
+            candidate = "\n".join([header, *kept_lines, line])
             if len(candidate) > budgets.max_compatibility_projection_chars:
                 truncated = True
                 break
-            kept.append(line)
+            kept_lines.append(line)
+            included_items.append(item)
 
-        text = "\n".join([header, *kept]) if kept else header
+        text = "\n".join([header, *kept_lines]) if kept_lines else header
         return CompatibilityProjection(
             text=text,
-            item_count=len(kept),
+            item_count=len(included_items),
             char_count=len(text),
             truncated=truncated,
             excluded_conflict_count=excluded_conflicts,
-            preferred_name=snapshot.preferred_name,
+            preferred_name=preferred_name_from_included_items(included_items),
         )
 
 

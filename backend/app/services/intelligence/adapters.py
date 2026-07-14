@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from backend.app.services.intelligence.context_types import (
     DEFAULT_CONTEXT_BUDGETS,
     SOURCE_SORT_RANK,
+    USER_CONTEXT_PACK_UNSET,
     ConsentState,
     ContextBudgets,
     ContextItem,
@@ -98,13 +99,14 @@ class ProfileContextAdapter:
         db: Session,
         *,
         authenticated_user_id: int,
-        user_context_pack: Any = None,
+        user_context_pack: Any = USER_CONTEXT_PACK_UNSET,
     ) -> list[ContextItem]:
-        pack = user_context_pack
-        if pack is None:
+        if user_context_pack is USER_CONTEXT_PACK_UNSET:
             from backend.app.services.user_context import UserContextService
 
             pack = UserContextService(db).get_user_context(authenticated_user_id)
+        else:
+            pack = user_context_pack
 
         items: list[ContextItem] = []
         if pack is not None:
@@ -319,13 +321,14 @@ class LifestyleContextAdapter:
         db: Session,
         *,
         authenticated_user_id: int,
-        user_context_pack: Any = None,
+        user_context_pack: Any = USER_CONTEXT_PACK_UNSET,
     ) -> list[ContextItem]:
-        pack = user_context_pack
-        if pack is None:
+        if user_context_pack is USER_CONTEXT_PACK_UNSET:
             from backend.app.services.user_context import UserContextService
 
             pack = UserContextService(db).get_user_context(authenticated_user_id)
+        else:
+            pack = user_context_pack
 
         items: list[ContextItem] = []
         if pack is not None:
@@ -547,16 +550,24 @@ class CurrentMemoryContextAdapter:
         db: Session,
         *,
         authenticated_user_id: int,
-        user_context_pack: Any = None,
+        user_context_pack: Any = USER_CONTEXT_PACK_UNSET,
         budgets: Optional[ContextBudgets] = None,
     ) -> list[ContextItem]:
         budgets = budgets or DEFAULT_CONTEXT_BUDGETS
         items: list[ContextItem] = []
 
+        # Assembler always passes pack (object or None). Only standalone adapter
+        # calls omit it (UNSET) and may load UCS once themselves.
+        pack = user_context_pack
+        if pack is USER_CONTEXT_PACK_UNSET:
+            from backend.app.services.user_context import UserContextService
+
+            pack = UserContextService(db).get_user_context(authenticated_user_id)
+
         daily_text = None
         daily_observed = None
-        if user_context_pack is not None:
-            daily_text = getattr(user_context_pack, "daily_memory_summary", None)
+        if pack is not None:
+            daily_text = getattr(pack, "daily_memory_summary", None)
         if daily_text and str(daily_text).strip():
             summary = str(daily_text).strip()[:150]
             items.append(
@@ -725,10 +736,3 @@ class SafeNotificationContextAdapter:
                     )
                 )
         return items
-
-
-def preferred_name_from_items(items: Sequence[ContextItem]) -> Optional[str]:
-    for item in items:
-        if item.canonical_key == "profile.preferred_name" and item.active and not item.conflicted:
-            return str(item.structured_value)
-    return None

@@ -452,22 +452,28 @@ class ConversationBrain:
             
             print(f"[BRAIN DEBUG] Messages built - count: {len(messages)}")
             
-            # Check if we need to extract user name from conversation
-            # Build minimal context_data for helper methods only
+            # Check if we need to extract user name from conversation.
+            # Structured mode: never reload Memory turns — name comes only from
+            # assembled ProfileContextAdapter via structured_preferred_name (or none).
             minimal_context = {
                 "user_id": user_id,
                 "stage": current_stage.value,
                 "conversation_count": current_memory_count,
                 "recent_messages": []
             }
-            try:
-                recent_messages_list = self.memory.get_recent_messages(user_id, limit=5)
-                minimal_context["recent_messages"] = [
-                    {"sedi": msg.sedi_response or ""} for msg in recent_messages_list
-                ]
-            except:
-                pass
-            detected_name = self._extract_name_from_message(user_id, user_message, current_stage, minimal_context)
+            if structured_mode:
+                detected_name = None
+            else:
+                try:
+                    recent_messages_list = self.memory.get_recent_messages(user_id, limit=5)
+                    minimal_context["recent_messages"] = [
+                        {"sedi": msg.sedi_response or ""} for msg in recent_messages_list
+                    ]
+                except Exception:
+                    pass
+                detected_name = self._extract_name_from_message(
+                    user_id, user_message, current_stage, minimal_context
+                )
 
             # Gate 3: emergency/high-risk short-circuit before GPT
             gate3_template = _gate3_check_emergency_short_circuit(user_message, lang)

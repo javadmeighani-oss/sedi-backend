@@ -602,7 +602,11 @@ def test_brain_skips_covered_loaders_when_structured_projection_supplied(db, use
     ), patch(
         "backend.app.core.conversation.prompts.build_system_prompt_with_context",
         return_value="PERSONA_ACTIVE",
-    ) as mock_persona:
+    ) as mock_persona, patch.object(
+        ConversationBrain,
+        "_extract_name_from_message",
+        return_value="SHOULD_NOT_USE",
+    ) as mock_extract:
         brain = ConversationBrain(db, language="en")
         mock_mem = MagicMock()
         brain.memory = mock_mem
@@ -614,24 +618,158 @@ def test_brain_skips_covered_loaders_when_structured_projection_supplied(db, use
             use_structured_context=True,
         )
         assert result["message"] == "ok"
+        assert result.get("detected_name") is None
         mock_ucs.assert_not_called()
         mock_knowledge.assert_not_called()
         mock_rag.assert_not_called()
         mock_local_rag.assert_not_called()
         mock_gate3.assert_not_called()
         mock_mem.get_recent_messages.assert_not_called()
+        mock_extract.assert_not_called()
         mock_persona.assert_called_once()
+        # Persona receives assembled preferred_name; never conversation-inferred.
+        assert mock_persona.call_args.args[1] == "Test"
 
 
-def test_ucs_loaded_once_during_assemble(db, user_a):
+def test_structured_without_preferred_name_does_not_invent_or_reload(db, user_a):
+    from backend.app.core.conversation.brain import ConversationBrain
+
+    with patch(
+        "backend.app.core.conversation.brain._gate3_check_emergency_short_circuit",
+        return_value="ok",
+    ), patch(
+        "backend.app.core.conversation.prompts.build_system_prompt_with_context",
+        return_value="PERSONA_ACTIVE",
+    ) as mock_persona, patch.object(
+        ConversationBrain, "_extract_name_from_message", return_value="HACK"
+    ) as mock_extract:
+        brain = ConversationBrain(db, language="en")
+        mock_mem = MagicMock()
+        brain.memory = mock_mem
+        result = brain.process_message(
+            user_a.id,
+            "my name is Alice from history",
+            structured_context_projection="[STRUCTURED_CONTEXT]\n- [lifestyle] goal=walk",
+            structured_preferred_name=None,
+            use_structured_context=True,
+        )
+        assert result["message"] == "ok"
+        assert result.get("detected_name") is None
+        mock_mem.get_recent_messages.assert_not_called()
+        mock_extract.assert_not_called()
+        assert mock_persona.call_args.args[1] is None
+
+
+def test_compatibility_mode_still_loads_recent_messages_for_name(db, user_a):
+    from backend.app.core.conversation.brain import ConversationBrain
+
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ), patch(
+        "backend.app.core.conversation.brain._build_user_knowledge_context",
+        return_value="",
+    ), patch(
+        "backend.app.core.conversation.brain._maybe_append_rag_context_v1",
+    ), patch(
+        "backend.app.core.conversation.brain._maybe_append_local_rag_context",
+    ), patch(
+        "backend.app.core.conversation.brain._maybe_append_gate3_care_context",
+    ), patch(
+        "backend.app.core.conversation.brain._gate3_check_emergency_short_circuit",
+        return_value="ok",
+    ), patch(
+        "backend.app.core.conversation.prompts.build_system_prompt_with_context",
+        return_value="PERSONA_ACTIVE",
+    ):
+        brain = ConversationBrain(db, language="en")
+        mock_mem = MagicMock()
+        mock_mem.get_recent_messages.return_value = []
+        mock_mem.get_conversation_count.return_value = 0
+        brain.memory = mock_mem
+        result = brain.process_message(user_a.id, "hello", use_structured_context=False)
+        assert result["message"] == "ok"
+        assert mock_mem.get_recent_messages.call_count >= 1
+
+
+def test_ucs_loaded_once_when_pack_is_none(db, user_a):
     with patch(
         "backend.app.services.user_context.UserContextService.get_user_context",
         return_value=None,
     ) as mock_ucs:
         AuthorizedContextAssembler().assemble(
-            db, authenticated_user_id=user_a.id, request_id="once"
+            db, authenticated_user_id=user_a.id, request_id="once-none"
         )
         assert mock_ucs.call_count == 1
+
+
+def test_ucs_loaded_once_when_pack_is_object(db, user_a):
+    pack = MagicMock()
+    pack.preferred_name = "Pat"
+    pack.birth_year = None
+    pack.sex = None
+    pack.addressing_preference = None
+    pack.goals = MagicMock(items=[])
+    pack.lifestyle = None
+    pack.daily_memory_summary = None
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=pack,
+    ) as mock_ucs:
+        assembler = AuthorizedContextAssembler()
+        snap = assembler.assemble(
+            db, authenticated_user_id=user_a.id, request_id="once-obj"
+        )
+        assert mock_ucs.call_count == 1
+        # Snapshot must not publish preferred_name before final projection.
+        assert snap.preferred_name is None
+        proj = assembler.build_compatibility_projection(snap)
+        assert proj.preferred_name == "Pat"
+
+
+def test_ucs_exception_fails_closed_single_attempt_no_generator(db, user_a, monkeypatch):
+    monkeypatch.setenv("SEDI_INTELLIGENCE_ORCHESTRATOR_V1", "true")
+    calls = {"gen": 0, "ucs": 0}
+
+    def boom(*_a, **_k):
+        calls["ucs"] += 1
+        raise RuntimeError("ucs_boom")
+
+    def gen(*_a, **_k):
+        calls["gen"] += 1
+        return {"message": "nope", "language": "en"}
+
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        side_effect=boom,
+    ):
+        from backend.app.services.intelligence.contracts import OrchestrationError
+
+        orch = IntelligenceOrchestrator(db=db, legacy_generator=gen)
+        with pytest.raises(OrchestrationError):
+            orch.process(authenticated_user_id=user_a.id, message="hi", language="en")
+    assert calls["ucs"] == 1
+    assert calls["gen"] == 0
+
+
+def test_ucs_two_users_do_not_share_pack_cache(db, user_a, user_b):
+    seen = []
+
+    def fake_get(uid):
+        seen.append(uid)
+        return None
+
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        side_effect=lambda self, uid: fake_get(uid),
+    ):
+        AuthorizedContextAssembler().assemble(
+            db, authenticated_user_id=user_a.id, request_id="a"
+        )
+        AuthorizedContextAssembler().assemble(
+            db, authenticated_user_id=user_b.id, request_id="b"
+        )
+    assert seen == [user_a.id, user_b.id]
 
 
 def test_concurrent_users_isolated_snapshots(db, user_a, user_b):
@@ -799,3 +937,307 @@ def test_provenance_query_label_preserved(db, user_a):
         assert item.provenance.query_label
         assert item.provenance.owner_user_id == user_a.id
         assert item.provenance.record_hint is None
+
+
+def _prefer_assembler_with_profile_items(items):
+    class Prof:
+        def load(self, *a, **k):
+            return items
+
+    return AuthorizedContextAssembler(
+        profile_adapter=Prof(),
+        lifestyle_adapter=_empty_adapter(),
+        health_adapter=_empty_adapter(),
+        memory_adapter=_empty_adapter(),
+        notification_adapter=SafeNotificationContextAdapter(),
+    )
+
+
+def test_preferred_name_included_eligible_reaches_projection():
+    assembler = _prefer_assembler_with_profile_items(
+        [
+            _item(
+                key="profile.preferred_name",
+                section="profile",
+                source=ContextSource.PROFILE,
+                value="Pat",
+                owner=7,
+                display="preferred_name=Pat",
+            )
+        ]
+    )
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn1")
+    assert snap.preferred_name is None
+    proj = assembler.build_compatibility_projection(snap)
+    assert proj.preferred_name == "Pat"
+    assert "preferred_name=Pat" in proj.text
+
+
+def test_preferred_name_none_when_may_send_false():
+    assembler = _prefer_assembler_with_profile_items(
+        [
+            _item(
+                key="profile.preferred_name",
+                section="profile",
+                source=ContextSource.PROFILE,
+                value="Hidden",
+                owner=7,
+                display="preferred_name=Hidden",
+                may_send=False,
+            )
+        ]
+    )
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn2")
+    proj = assembler.build_compatibility_projection(snap)
+    assert proj.preferred_name is None
+    assert "Hidden" not in proj.text
+
+
+def test_preferred_name_none_when_consent_denied():
+    assembler = _prefer_assembler_with_profile_items(
+        [
+            _item(
+                key="profile.preferred_name",
+                section="profile",
+                source=ContextSource.PROFILE,
+                value="Denied",
+                owner=7,
+                display="preferred_name=Denied",
+                consent="denied",
+                sensitivity="critical",
+            )
+        ]
+    )
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn3")
+    proj = assembler.build_compatibility_projection(snap)
+    assert proj.preferred_name is None
+
+
+def test_preferred_name_none_when_inactive_via_item_budget():
+    tiny = ContextBudgets(
+        max_items_per_section=1,
+        max_total_context_items=1,
+        max_compatibility_projection_chars=5000,
+        max_memory_turns=10,
+    )
+    # Sort key puts addressing before preferred_name? section profile, keys:
+    # addressing_preference sorts before preferred_name alphabetically.
+    items = [
+        _item(
+            key="profile.addressing_preference",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="formal",
+            owner=7,
+            display="addressing=formal",
+        ),
+        _item(
+            key="profile.preferred_name",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="Late",
+            owner=7,
+            display="preferred_name=Late",
+        ),
+    ]
+    assembler = AuthorizedContextAssembler(
+        profile_adapter=type("P", (), {"load": lambda self, *a, **k: items})(),
+        lifestyle_adapter=_empty_adapter(),
+        health_adapter=_empty_adapter(),
+        memory_adapter=_empty_adapter(),
+        notification_adapter=SafeNotificationContextAdapter(),
+        budgets=tiny,
+    )
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn4")
+    name_items = [i for i in snap.items if i.canonical_key == "profile.preferred_name"]
+    assert name_items
+    assert name_items[0].truncated is True or name_items[0].active is False
+    proj = assembler.build_compatibility_projection(snap)
+    assert proj.preferred_name is None
+
+
+def test_preferred_name_none_when_dropped_by_char_budget():
+    # One short lifestyle line first (sort_rank lifestyle after profile actually).
+    # PROFILE sort_rank is 10, so preferred_name comes first unless we make display huge.
+    # Force char budget to exclude the preferred_name line by making it the only bulky
+    # eligible line after a tiny reserved line that fills budget.
+    tiny = ContextBudgets(
+        max_items_per_section=10,
+        max_total_context_items=40,
+        max_compatibility_projection_chars=40,
+        max_memory_turns=10,
+    )
+    items = [
+        _item(
+            key="profile.preferred_name",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="VeryLongNameThatWillNotFit",
+            owner=7,
+            display="preferred_name=" + ("X" * 80),
+        )
+    ]
+    assembler = AuthorizedContextAssembler(
+        profile_adapter=type("P", (), {"load": lambda self, *a, **k: items})(),
+        lifestyle_adapter=_empty_adapter(),
+        health_adapter=_empty_adapter(),
+        memory_adapter=_empty_adapter(),
+        notification_adapter=SafeNotificationContextAdapter(),
+        budgets=tiny,
+    )
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn5")
+    proj = assembler.build_compatibility_projection(snap)
+    assert proj.truncated is True
+    assert proj.preferred_name is None
+    assert proj.item_count == 0
+
+
+def test_preferred_name_none_when_conflicted():
+    items = [
+        _item(
+            key="profile.preferred_name",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="A",
+            owner=7,
+            display="preferred_name=A",
+        ),
+        _item(
+            key="profile.preferred_name",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="B",
+            owner=7,
+            display="preferred_name=B",
+        ),
+    ]
+    assembler = _prefer_assembler_with_profile_items(items)
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn6")
+    proj = assembler.build_compatibility_projection(snap)
+    assert snap.conflict_count >= 1
+    assert proj.preferred_name is None
+
+
+def test_preferred_name_none_when_whitespace_value():
+    assembler = _prefer_assembler_with_profile_items(
+        [
+            _item(
+                key="profile.preferred_name",
+                section="profile",
+                source=ContextSource.PROFILE,
+                value="   ",
+                owner=7,
+                display="preferred_name=   ",
+            )
+        ]
+    )
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn7")
+    proj = assembler.build_compatibility_projection(snap)
+    assert proj.preferred_name is None
+
+
+def test_preferred_name_coalesced_identical_values_allowed():
+    items = [
+        _item(
+            key="profile.preferred_name",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="Same",
+            owner=7,
+            display="preferred_name=Same",
+        ),
+        _item(
+            key="profile.preferred_name",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="Same",
+            owner=7,
+            display="preferred_name=Same",
+        ),
+    ]
+    assembler = _prefer_assembler_with_profile_items(items)
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=None,
+    ):
+        snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn8")
+    proj = assembler.build_compatibility_projection(snap)
+    assert snap.conflict_count == 0
+    assert proj.preferred_name == "Same"
+
+
+def test_preferred_name_not_in_reason_codes_or_stages(db, user_a, monkeypatch):
+    monkeypatch.setenv("SEDI_INTELLIGENCE_ORCHESTRATOR_V1", "true")
+    pack = MagicMock()
+    pack.preferred_name = "SecretNameXYZ"
+    pack.birth_year = None
+    pack.sex = None
+    pack.addressing_preference = None
+    pack.goals = MagicMock(items=[])
+    pack.lifestyle = None
+    pack.daily_memory_summary = None
+    seen = {}
+
+    def gen(*_a, **k):
+        seen["preferred"] = k.get("structured_preferred_name")
+        return {"message": "ok", "language": "en"}
+
+    with patch(
+        "backend.app.services.user_context.UserContextService.get_user_context",
+        return_value=pack,
+    ):
+        orch = IntelligenceOrchestrator(db=db, legacy_generator=gen)
+        result = orch.process(authenticated_user_id=user_a.id, message="hi", language="en")
+    assert seen.get("preferred") == "SecretNameXYZ"
+    assert "SecretNameXYZ" not in " ".join(result.reason_codes)
+    assert "SecretNameXYZ" not in " ".join(result.stage_names)
+
+
+def test_preferred_name_shared_eligibility_policy():
+    from backend.app.services.intelligence.context_types import is_llm_projection_eligible
+
+    good = _item(
+        key="profile.preferred_name",
+        section="profile",
+        source=ContextSource.PROFILE,
+        value="Pat",
+        owner=1,
+    )
+    bad = _item(
+        key="profile.preferred_name",
+        section="profile",
+        source=ContextSource.PROFILE,
+        value="Nope",
+        owner=1,
+        may_send=False,
+    )
+    assert is_llm_projection_eligible(good) is True
+    assert is_llm_projection_eligible(bad) is False

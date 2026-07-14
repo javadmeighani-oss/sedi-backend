@@ -1924,4 +1924,164 @@ review → commit approval → push/CI approval.
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-I2-PreCommitAudit — ۲۰۲۶-۰۷-۱۴*
+## ۳۶) Package 15-I2 — Push + GitHub CI Validation @ `7fabc0f` — **blocked**
+
+### ۳۶.۱ Commit / push
+| مورد | مقدار |
+|------|--------|
+| Commit | `7fabc0f0eb2cc16fb3c160e55a45d927d3272648` |
+| Parent | `a704b15d7dcbda8c00b4ca081f6bd974a3a9e345` |
+| Subject | `feat(intelligence): connect authorized context adapters` |
+| Push | `a704b15..7fabc0f` → `origin/feature/section15/backend-continuity-foundation` |
+| Remote feature | `7fabc0f0eb2cc16fb3c160e55a45d927d3272648` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+
+### ۳۶.۲ CI run
+| مورد | مقدار |
+|------|--------|
+| Run ID | **29350819292** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29350819292 |
+| Workflow | Backend V1 freeze tests |
+| Event | workflow_dispatch |
+| Branch | feature/section15/backend-continuity-foundation |
+| Head SHA | `7fabc0f0eb2cc16fb3c160e55a45d927d3272648` |
+| Conclusion | **failure** |
+
+### ۳۶.۳ Freeze totals (غیر Section 15)
+مجموع steps غیر Section 15 از log واقعی:
+`91 + 27 + 147 + 171 + 3 + 6 + 1 + 1 + 1 + 4` = **452 passed** (مطابق baseline قبلی).
+همهٔ freeze steps قبل از Section 15: success.
+OpenAPI/contracts: success (درون freeze).
+failed/skipped در freeze: **۰**.
+
+### ۳۶.۴ Section 15 totals
+| متریک | مقدار |
+|--------|--------|
+| collected | **146** |
+| passed | **143** |
+| failed | **3** |
+| skipped | **0** |
+| deselected | **0** |
+
+### ۳۶.۵ Collection نه فایل (از log)
+| فایل | تعداد اجراشده (از خطوط `::`) |
+|------|------------------------------|
+| test_memory_history_timezone_v1.py | 12 |
+| test_notification_inbox_gate4_v1.py | 9 |
+| test_gate4_push_channel_routing_v1.py | 10 |
+| test_notification_api_b2.py | 12 |
+| test_section15_i0_interaction_response.py | 3 |
+| test_section15_b8_interaction_idempotency.py | 14 |
+| test_gate4c_interaction_events.py | 22 |
+| test_section15_i1_intelligence_orchestrator.py | 33 collected / **1 failed** |
+| test_section15_i2_context_adapters.py | **31 collected** / **2 failed** / 29 passed |
+
+جمع: 12+9+10+12+3+14+22+33+31 = **146**. هر ۹ فایل collect شدند؛ skip/deselect نداریم.
+
+### ۳۶.۶ Failures (بدون اصلاح کد)
+1) `test_section15_i1_intelligence_orchestrator.py::test_flag_on_uses_structured_mode_without_claiming_future_capabilities` (line ~176)
+   - Assertion: `assert "missing_info" not in joined`
+   - علت: reason code داخلی `MISSING_INFORMATION_ENGINE_NOT_CONNECTED` شامل substring `missing_info` است.
+   - طبقه: **test assertion stale vs intentional I2 readiness marker** (نه ادعای قابلیت آینده).
+
+2) `test_section15_i2_context_adapters.py::test_brain_skips_covered_loaders_when_structured_projection_supplied` (line ~622)
+   - `mock_mem.get_recent_messages.assert_not_called()` → Called 1 times.
+   - شواهد کد: پس از skip تاریخچهٔ prompt، `brain.py` هنوز برای `_extract_name_from_message` مسیر `get_recent_messages(..., limit=5)` را همیشه اجرا می‌کند (~خط 464).
+   - طبقه: **product residual double-load** روی memory turns برای name-extract (نه loader تاریخچهٔ ۱۰-turn برای prompt)؛ TestFix باید یا call را در structured mode حذف/جایگزین کند یا assertion را به «history pack loader» محدود کند.
+3) `test_section15_i2_context_adapters.py::test_ucs_loaded_once_during_assemble` (line ~634)
+   - `mock_ucs.call_count == 1` اما واقعی **3**.
+   - طبقه: **product defect / incomplete single-load** — وقتی `get_user_context` مقدار `None` برمی‌گرداند، Profile/Lifestyle adapters دوباره UCS را صدا می‌زنند (`if pack is None: reload`).
+
+### ۳۶.۷ Coverage matrix (نتیجه واقعی از PASSEDها)
+| مورد | نتیجه |
+|------|--------|
+| compatibility assembly skip | passed |
+| structured AuthorizedContextAssembler + readiness | passed |
+| پنج adapter isolation/empty | passed |
+| assembly failure → zero generator | passed |
+| identical coalesce | passed |
+| conflict exclusion | passed |
+| technical budgets / no false truncate / whole-line truncate | passed |
+| legacy_scope / no explicit consent | passed |
+| notification allowlist / no body | passed |
+| cross-user reject / concurrent isolation | passed |
+| flag default OFF | passed (I1) |
+| I1 regression کلی | **۱ failure** در ادعاهای readiness |
+| brain no double-load covered packs | **failed** (get_recent_messages روی mock) |
+| UCS once | **failed** (3 calls when pack None) |
+
+### ۳۶.۸ Migration موقت CI
+`alembic upgrade head` روی PostgreSQL سرویس Actions موفق؛ chain تا `050_gate4_event_idem` روی DB موقت. هیچ تماس production/staging ندارد.
+
+### ۳۶.۹ ممنوعیت‌ها
+local tests / commit پس از push / rerun / production migration / deploy / flag activation — **انجام نشد**.
+Flag `SEDI_INTELLIGENCE_ORCHESTRATOR_V1` همچنان default OFF.
+
+### ۳۶.۱۰ وضعیت
+**blocked** — Package **15-I2-TestFix** گام بعدی پیشنهادی.
+**I3 unblocked نیست.**
+
+§۳۳–§۳۵ حفظ شدند؛ این §۳۶ uncommitted باقی می‌ماند.
+
+---
+
+## ۳۷) Package 15-I2-TestFix — اصلاح سه failure CI بدون تأیید مجدد
+
+### ۳۷.۱ شواهد پایه
+| مورد | مقدار |
+|------|--------|
+| Base SHA | `7fabc0f0eb2cc16fb3c160e55a45d927d3272648` |
+| Failed run | **29350819292** |
+| Section 15 | 146 collected / 143 passed / **3 failed** / 0 skipped |
+| I2 | 31 / 29 / **2** |
+| I1 | 33 / 32 / **1** |
+
+### ۳۷.۲ Root causes و اصلاحات
+1) **I1 ready assertion stale** — substring `missing_info` با `MISSING_INFORMATION_ENGINE_NOT_CONNECTED` تداخل داشت → assertionهای exact reason-code + عدم وجود stage موتور missing-info + تأیید `STRUCTURED_MODE_NOT_PRODUCTION_READY`.
+2) **Hidden memory reload** — `get_recent_messages(limit=5)` برای name extract حتی در structured → در structured mode: بدون فراخوانی memory، بدون `_extract_name_from_message`؛ نام فقط از `structured_preferred_name` (Profile adapter)؛ بدون نام اختراع.
+3) **None-as-cache-miss** — adapters با `if pack is None` دوباره UCS می‌زدند → sentinel `USER_CONTEXT_PACK_UNSET`؛ pack=None یعنی loaded-empty؛ UCS دقیقاً یک‌بار در assembler.
+
+### ۳۷.۳ Invariants
+compatibility legacy حفظ؛ generator یک‌بار؛ fail-closed روی UCS exception؛ API/migration/workflow/frontend/flag بدون تغییر؛ flag default OFF.
+
+### ۳۷.۴ فایل‌های تغییر یافته
+`brain.py`، `adapters.py`، `assembler.py`، `context_types.py` (sentinel)، `test_section15_i1_...`، `test_section15_i2_...`، master log (§۳۷).
+
+### ۳۷.۵ وضعیت
+**implemented but unverified pending GitHub Actions rerun**
+
+I2 و I3 همچنان **blocked** تا CI سبز. بدون ادعای تست موفق محلی.
+
+### ۳۷.۶ گام بعد
+review → commit approval → push → one CI dispatch.
+
+---
+
+## ۳۸) Package 15-I2-PreferredName-Hardening — بستن کانال جانبی نام
+
+### ۳۸.۱ دلیل توقف commit قبلی
+Audit commit-only نشان داد `preferred_name_from_items` روی snapshot پیش از char-budget انتخاب می‌شد و `may_send_to_llm` / consent denied را چک نمی‌کرد → PII side-channel جدا از projection.
+
+### ۳۸.۲ اصلاح
+- `is_llm_projection_eligible` یک policy مرکزی (active، not conflicted، may_send_to_llm، consent نه denied، unknown+high خارج).
+- `build_compatibility_projection` خطوط را با همان policy می‌سازد، itemهای final-included را نگه می‌دارد، سپس `preferred_name_from_included_items`.
+- `ContextSnapshot.preferred_name = None` (پیش‌از-projectionمصرف‌نشدنی).
+- حذف helper ناامن روی snapshot خام از adapters.
+- conflict/empty/whitespace/item-budget/char-budget → None.
+- نام در reason codes / stages نیست؛ cross-user همچنان در assembler fail-closed است.
+
+### ۳۸.۳ فایل‌های این hardening
+`context_types.py`، `assembler.py`، `adapters.py` (حذف helper)، `test_section15_i2_...`، master log (§۳۸).
+brain/I1 در این package لمس نشدند.
+
+### ۳۸.۴ وضعیت
+**implemented but unverified pending GitHub Actions rerun**
+
+I2 و I3 همچنان **blocked**. بدون API/workflow/migration/frontend/flag change. بدون ادعای pass محلی.
+
+### ۳۸.۵ گام بعد
+review → commit (TestFix+Hardening با هم) → push → CI.
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-I2-PreferredName-Hardening — ۲۰۲۶-۰۷-۱۴*
