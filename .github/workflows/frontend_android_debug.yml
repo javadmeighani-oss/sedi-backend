@@ -66,6 +66,8 @@ jobs:
           fi
 
       - name: Dart format verification (scoped to section changes)
+        id: scoped_format
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
@@ -88,10 +90,80 @@ jobs:
             --set-exit-if-changed \
             "${DART_FILES[@]}"
 
+      - name: Generate scoped formatting patch
+        if: steps.scoped_format.outcome == 'failure'
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          BASE_SHA="452b3e4e160922468ecb843187e300fcc03f2436"
+          git cat-file -e "${BASE_SHA}^{commit}"
+          mapfile -t DART_FILES < <(
+            git diff --name-only --diff-filter=ACMRT \
+              "${BASE_SHA}...HEAD" -- \
+              frontend/lib frontend/test \
+            | grep -E '\.dart$' || true
+          )
+          if [ "${#DART_FILES[@]}" -eq 0 ]; then
+            echo "No scoped Dart files available for formatting patch."
+            exit 1
+          fi
+          printf 'Formatting scoped Dart files with Flutter 3.24.0 dart format:\n'
+          printf ' - %s\n' "${DART_FILES[@]}"
+          dart format "${DART_FILES[@]}"
+          git diff --binary -- "${DART_FILES[@]}" > section14a2-format.patch
+          if [ ! -s section14a2-format.patch ]; then
+            echo "Expected non-empty section14a2-format.patch after format."
+            exit 1
+          fi
+          git diff --check
+          echo "Paths in formatting patch:"
+          mapfile -t PATCH_PATHS < <(
+            git diff --name-only -- "${DART_FILES[@]}"
+          )
+          printf ' - %s\n' "${PATCH_PATHS[@]}"
+          declare -A ALLOWED=()
+          for f in "${DART_FILES[@]}"; do
+            ALLOWED["$f"]=1
+          done
+          for p in "${PATCH_PATHS[@]}"; do
+            case "$p" in
+              frontend/lib/*|frontend/test/*) ;;
+              *)
+                echo "Rejecting patch path outside frontend/lib or frontend/test: $p"
+                exit 1
+                ;;
+            esac
+            if [[ "$p" != *.dart ]]; then
+              echo "Rejecting non-Dart patch path: $p"
+              exit 1
+            fi
+            if [[ -z "${ALLOWED[$p]+x}" ]]; then
+              echo "Rejecting patch path not in approved base-to-HEAD Dart diff: $p"
+              exit 1
+            fi
+          done
+          echo "section14a2-format.patch ready ($(wc -c < section14a2-format.patch) bytes)"
+
+      - name: Upload scoped formatting patch
+        if: steps.scoped_format.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: section14a2-format-patch-${{ github.sha }}
+          path: section14a2-format.patch
+          if-no-files-found: error
+
+      - name: Fail job after exporting formatting patch
+        if: steps.scoped_format.outcome == 'failure'
+        run: |
+          echo "Scoped Dart format check failed; formatting patch artifact was uploaded."
+          echo "Stopping before analyze/test/build."
+          exit 1
+
       - name: Flutter analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Full Flutter test suite (observation + evidence)
+        id: full_suite
         working-directory: ${{ github.workspace }}
         run: |
           set -uo pipefail
@@ -275,7 +347,7 @@ jobs:
           PY
 
       - name: Upload full-suite test evidence
-        if: always()
+        if: always() && steps.full_suite.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: section14a2-full-test-evidence
