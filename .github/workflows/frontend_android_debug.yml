@@ -152,25 +152,25 @@ jobs:
                           event = json.loads(line)
                       except json.JSONDecodeError as exc:
                           raise RuntimeError(f"invalid_json_at_line_{line_no}: {exc}") from exc
+                      # Flutter may emit non-protocol JSON arrays/objects; only parse dict events.
+                      if not isinstance(event, dict):
+                          continue
                       et = event.get("type")
                       if et == "suite":
-                          suite = event["suite"]
+                          suite = event.get("suite")
+                          if not isinstance(suite, dict):
+                              continue
                           suites[suite["id"]] = suite.get("path") or ""
                       elif et == "testStart":
-                          test = event["test"]
+                          test = event.get("test")
+                          if not isinstance(test, dict):
+                              continue
                           tests[test["id"]] = {
                               "id": test["id"],
                               "name": test.get("name") or "",
                               "suiteID": test.get("suiteID"),
                               "url": test.get("url") or "",
-                              "hidden": bool(test.get("metadata", {}).get("skip") is True and test.get("name") == ""),
                           }
-                          # Prefer explicit metadata hidden when present
-                          if "metadata" in test and isinstance(test["metadata"], dict):
-                              pass
-                          if test.get("metadata", {}).get("skip") is not None:
-                              pass
-                          # flutter emits hidden loading tests; track with 'hidden' field if present on later events
                       elif et == "testDone":
                           tid = event.get("testID")
                           results[tid] = {
