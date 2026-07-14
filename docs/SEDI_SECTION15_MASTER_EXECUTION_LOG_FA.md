@@ -1,6 +1,6 @@
 # گزارش اصلی اجرای سکشن ۱۵ صدی (Gate 4 — بازرسی، صحت‌سنجی توپولوژی، ممیزی، و ثبت باگ‌ها)
 
-**تاریخ:** ۲۰۲۶-۰۷-۱۴ (به‌روزشده: Package 15-CI-Extend)
+**تاریخ:** ۲۰۲۶-۰۷-۱۴ (به‌روزشده: CI-Extend validation @ `eaf6634`)
 **هدف:** این سند منبع حقیقت دائمی سکشن ۱۵ است. شامل P1، P2A، و Package 15-I0-B8 (اصلاح schema `reply`، idempotency تعاملی B8، migration بدون اجرا، ثبت الزامات حافظه و موتور دانش هفتگی) — بدون commit/push/اجرای migration/تست محلی.
 
 **قانون به‌روزرسانی:** هر وظیفهٔ آیندهٔ Cursor در سکشن ۱۵ باید پیش از اعلام اتمام، همین فایل را به‌روز کند.
@@ -1127,4 +1127,166 @@ PostgreSQL-marked B8 tests در CI ephemeral Postgres باید **skip نشوند
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-CI-Extend implemented — ۲۰۲۶-۰۷-۱۴*
+## ۲۷) CI-Extend validation — push + dispatch @ `eaf6634`
+
+### ۲۷.۱ commit و push
+| مورد | مقدار |
+|------|--------|
+| CI-Extend commit | `eaf6634346d3e8b84fb196d3f7b9946052af0d5a` |
+| Push timestamp (UTC) | ۲۰۲۶-۰۷-۱۴ ~08:11Z |
+| Remote SHA verified | `eaf6634346d3e8b84fb196d3f7b9946052af0d5a` |
+| `origin/main` | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+
+### ۲۷.۲ GitHub Actions run
+| مورد | مقدار |
+|------|--------|
+| Workflow | Backend V1 freeze tests |
+| Run ID | **29317145557** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29317145557 |
+| Event | workflow_dispatch |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Head SHA | `eaf6634346d3e8b84fb196d3f7b9946052af0d5a` |
+| Duration | ~1m44s |
+| **Conclusion** | **failure** |
+
+### ۲۷.۳ Existing freeze suite (همان run)
+| Step | Passed |
+|------|--------|
+| Section 10 + contract subset | 91 |
+| contracts | 27 |
+| interact stabilization | 147 |
+| OTP/SMS gateway | 171 |
+| acceptance subset | 12 |
+| notification prefs | 4 |
+| **جمع freeze** | **452** (0 failed) |
+
+Ephemeral `alembic upgrade head` موفق — revision `050_gate4_event_idem` فقط در DB ephemeral CI اعمال شد. production/staging تماس نگرفته.
+
+### ۲۷.۴ Section 15 step — `Section 15 backend foundation tests`
+| مورد | مقدار |
+|------|--------|
+| Collected | **82** |
+| Passed | **81** |
+| Failed | **1** |
+| Skipped | **0** |
+| Deselected | **0** |
+| Warnings | 1 |
+| Duration | ~2.24s |
+
+**هفت فایل جمع‌آوری شد** (همه explicit):
+1. `test_memory_history_timezone_v1.py` ✓
+2. `test_notification_inbox_gate4_v1.py` ✓
+3. `test_gate4_push_channel_routing_v1.py` ✓
+4. `test_notification_api_b2.py` ✓
+5. `test_section15_i0_interaction_response.py` ✓
+6. `test_section15_b8_interaction_idempotency.py` ✗ (۱ failure)
+7. `test_gate4c_interaction_events.py` ✓
+
+**B8 PostgreSQL tests:** `_require_postgres` tests **اجرا شدند** (skip نشد): concurrency، migration upgrade، fail-closed preflight — همه passed جز static migration-source test.
+
+### ۲۷.۵ شکست واحد
+| فیلد | مقدار |
+|------|--------|
+| File | `backend/tests/test_section15_b8_interaction_idempotency.py` |
+| Test | `test_migration_source_defines_index_and_fail_closed_preflight` |
+| Line | 362 |
+| Assertion | `assert f"DROP INDEX IF EXISTS {UQ_NOTIF_CHAT_ONCE}" in text_src` |
+| Root cause | migration downgrade uses `f"DROP INDEX IF EXISTS {INDEX_NAME}"` (متغیر `INDEX_NAME`)؛ تست literal string کامل `uq_interaction_events_notif_chat_once` را در source می‌خواهد |
+| Likely fix | اصلاح assertion تست برای پذیرش `INDEX_NAME` / `UQ_NOTIF_CHAT_ONCE` constant pattern — **نه** تغییر migration |
+
+### ۲۷.۶ ماتریس پوشش Section 15
+
+| حوزه | وضعیت |
+|------|--------|
+| A1 timezone/grouping/ISO week/current_group_key | **verified passed** (9 tests) |
+| A1 inbox metadata/ownership/safe context | **verified passed** |
+| B4 auth 401/ownership 403/JWT | **verified passed** |
+| B6 channel precedence | **verified passed** |
+| B7 invalid language → en | **verified passed** |
+| I0 `message`/LLM bypass/auth | **verified passed** (3 tests) |
+| B8 sequential/null-conversation/dedupe/isolation | **verified passed** |
+| B8 PG concurrency/index/preflight runtime | **verified passed** |
+| B8 migration static source assertions | **executed failed** (۱ assertion) |
+| Gate4C interaction events | **verified passed** (22 tests) |
+
+### ۲۷.۷ وضعیت بسته
+**blocked pending correction** — workflow failure به‌خاطر ۱ assertion static در B8 test؛ 81/82 Section 15 tests passed؛ PG B8 tests skip نشدند.
+
+### ۲۷.۸ ممنوعیت‌ها
+deploy، image publication، SSH، prod migration، frontend، commit، rerun — **انجام نشد**.
+
+### ۲۷.۹ گام بعد
+**Package 15-B8-TestFix (یا معادل):** اصلاح `test_migration_source_defines_index_and_fail_closed_preflight` assertion → commit → push → dispatch مجدد. **15-I1** فقط پس از run سبز با 82/82 passed.
+
+---
+
+## ۲۸) Package 15-B8-TestFix — اصلاح assertion static migration source
+
+### ۲۸.۱ Run مرجع
+| مورد | مقدار |
+|------|--------|
+| Run ID | **29317145557** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29317145557 |
+| Test شکست‌خورده | `test_migration_source_defines_index_and_fail_closed_preflight` |
+| خط | `backend/tests/test_section15_b8_interaction_idempotency.py:362` |
+
+### ۲۸.۲ علت ریشه‌ای
+Assertion static بیش‌ازحد سخت: تست literal گسترش‌یافته `DROP INDEX IF EXISTS uq_interaction_events_notif_chat_once` را در source می‌خواست، در حالی که migration downgrade از `f"DROP INDEX IF EXISTS {INDEX_NAME}"` با ثابت `INDEX_NAME = "uq_interaction_events_notif_chat_once"` استفاده می‌کند.
+
+### ۲۸.۳ شواهد runtime PostgreSQL (همان run — passed)
+| تست runtime | وضعیت |
+|-------------|--------|
+| migration upgrade creates index | **passed** |
+| duplicate preflight fail-closed | **passed** |
+| concurrency creates one event | **passed** |
+| B8 PostgreSQL tests skipped | **0** (همه اجرا شدند) |
+
+Section 15 step: **81/82 passed**؛ تنها شکست assertion static migration source بود.
+
+### ۲۸.۴ اصلاح minimal (فقط تست)
+**قبل:**
+```python
+assert f"DROP INDEX IF EXISTS {UQ_NOTIF_CHAT_ONCE}" in text_src
+```
+
+**بعد:**
+```python
+assert f'INDEX_NAME = "{UQ_NOTIF_CHAT_ONCE}"' in text_src
+assert "DROP INDEX IF EXISTS {INDEX_NAME}" in text_src
+```
+
+- ثابت `INDEX_NAME` به مقدار دقیق `uq_interaction_events_notif_chat_once` (از طریق `UQ_NOTIF_CHAT_ONCE`) bind می‌شود.
+- downgrade ثابت نام‌دار `INDEX_NAME` را از طریق placeholder دقیق f-string `{INDEX_NAME}` reference می‌کند.
+- سایر assertionها (revision، down_revision، partial index، preflight، fail-closed، عدم DELETE، conversation_id) **بدون تغییر**.
+
+### ۲۸.۵ فایل‌های تغییر یافته
+| فایل | تغییر |
+|------|--------|
+| `backend/tests/test_section15_b8_interaction_idempotency.py` | اصلاح assertion static |
+| `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` | این §۲۸ |
+
+**تغییر نداده شد:** migration `050_gate4_interaction_event_idempotency.py`، service/model/router/schema، workflow، frontend.
+
+### ۲۸.۶ وضعیت
+**implemented but unverified pending GitHub Actions rerun**
+
+### ۲۸.۷ ممنوعیت‌ها (رعایت شد)
+| عمل | وضعیت |
+|-----|--------|
+| تست محلی / pytest | **اجرا نشد** |
+| commit | **انجام نشد** |
+| push | **انجام نشد** |
+| workflow dispatch / rerun | **انجام نشد** |
+| migration execution / DB | **انجام نشد** |
+| deploy / image / SSH | **انجام نشد** |
+
+### ۲۸.۸ گام‌های تأیید بعدی
+1. commit (پیشنهاد: `test(section15-b8): bind INDEX_NAME constant in migration source assertion`)
+2. push به `feature/section15/backend-continuity-foundation`
+3. یک `workflow_dispatch` دقیق روی Backend V1 freeze @ SHA جدید — انتظار **82/82** Section 15 passed
+
+**15-I1** فقط پس از run سبز.
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-B8-TestFix implemented (unverified CI) — ۲۰۲۶-۰۷-۱۴*

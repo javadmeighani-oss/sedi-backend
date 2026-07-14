@@ -359,7 +359,8 @@ def test_migration_source_defines_index_and_fail_closed_preflight():
     assert "HAVING COUNT(*) > 1" in text_src
     assert "Refusing to create" in text_src
     assert "No audit rows were deleted" in text_src
-    assert f"DROP INDEX IF EXISTS {UQ_NOTIF_CHAT_ONCE}" in text_src
+    assert f'INDEX_NAME = "{UQ_NOTIF_CHAT_ONCE}"' in text_src
+    assert "DROP INDEX IF EXISTS {INDEX_NAME}" in text_src
     assert "conversation_id" in text_src  # documented exclusion
     assert "DELETE FROM interaction_events" not in text_src
 
