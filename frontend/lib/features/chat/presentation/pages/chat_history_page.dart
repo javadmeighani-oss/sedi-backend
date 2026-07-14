@@ -50,26 +50,16 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
       _loading = true;
       _error = null;
     });
-    if (_userId == null) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = l10n.historySignInRequired;
-      });
-      return;
-    }
     await _fetch();
   }
 
   Future<void> _fetch() async {
-    if (_userId == null) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final res = await fetchHistory(
-        userId: _userId!,
         group: _selectedGroup,
         limit: 50,
         offset: 0,

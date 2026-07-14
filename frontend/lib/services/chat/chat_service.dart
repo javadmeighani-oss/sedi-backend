@@ -17,6 +17,9 @@ class ChatService {
     required String message,
     String? language,
     int? userId,
+    int? sourceNotificationId,
+    String? conversationId,
+    String? interactionSource,
   }) async {
     final text = message.trim();
     if (text.isEmpty) {
@@ -41,6 +44,9 @@ class ChatService {
     final request = ChatSendRequest(
       userId: resolvedUserId,
       message: text,
+      sourceNotificationId: sourceNotificationId,
+      conversationId: conversationId,
+      interactionSource: interactionSource,
     );
 
     final headers = <String, String>{};

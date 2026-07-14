@@ -3,12 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/auth/user_identity_service.dart';
+import '../../../../core/navigation/app_gate_router.dart';
+import '../../../../core/notifications/gate4_notification_contract.dart';
+import '../../../../core/notifications/notification_launch_parser.dart';
+import '../../../../core/notifications/pending_notification_launch_store.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_states/app_empty_state.dart';
 import '../../../../core/widgets/app_states/app_error_state.dart';
 import '../../../../core/widgets/app_states/app_loading_state.dart';
+import '../../../../data/dto/notifications/gate4_notification_metadata.dart';
 import '../../../../data/models/notification_item.dart';
-import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../services/notifications/inbox_refresh_bus.dart';
 import '../../../../services/notifications/notifications_service.dart';
 
@@ -23,9 +27,9 @@ class NotificationInboxPage extends StatefulWidget {
 
 class _NotificationInboxPageState extends State<NotificationInboxPage> {
   final NotificationsService _service = NotificationsService();
+  final PendingNotificationLaunchStore _pendingStore =
+      PendingNotificationLaunchStore();
   final Set<int> _pendingReadIds = <int>{};
-  final Set<int> _likedIds = <int>{};
-  final Set<int> _dislikedIds = <int>{};
 
   List<NotificationItem> _items = const <NotificationItem>[];
   bool _loading = false;
@@ -96,6 +100,31 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     return deduped;
   }
 
+  List<Gate4NotificationAction> _actionsFor(NotificationItem item) {
+    final meta = item.gate4Metadata;
+    if (meta != null && meta.actions.isNotEmpty) {
+      return meta.actions
+          .where((a) => kGate4V1ActionIds.contains(a.actionId))
+          .toList(growable: false);
+    }
+    final lang = meta?.language ?? 'en';
+    return kGate4V1ActionIds
+        .map(
+          (id) => Gate4NotificationAction(
+            actionId: id,
+            label: fallbackGate4ActionLabel(id, lang),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  int? _sourceIdFor(NotificationItem item) {
+    final fromMeta = item.gate4Metadata?.sourceNotificationId;
+    if (fromMeta != null && fromMeta > 0) return fromMeta;
+    if (item.id > 0) return item.id;
+    return null;
+  }
+
   Future<void> _markReadOptimistic(NotificationItem item) async {
     if (item.isRead || _pendingReadIds.contains(item.id)) return;
 
@@ -124,31 +153,71 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
     });
   }
 
-  Future<void> _sendFeedback(NotificationItem item,
-      {required bool liked}) async {
-    if (liked && _likedIds.contains(item.id)) return;
-    if (!liked && _dislikedIds.contains(item.id)) return;
+  Future<void> _handleAction(
+    NotificationItem item,
+    Gate4NotificationAction action,
+  ) async {
+    final actionId = normalizeCanonicalActionId(action.actionId);
+    if (actionId == null) return;
 
-    if (liked) {
-      setState(() {
-        _likedIds.add(item.id);
-        _dislikedIds.remove(item.id);
-      });
-    } else {
-      setState(() {
-        _dislikedIds.add(item.id);
-        _likedIds.remove(item.id);
-      });
+    await _markReadOptimistic(item);
+    final feedback = await _service.sendCanonicalFeedback(
+      item.id,
+      actionId: actionId,
+    );
+    if (!mounted) return;
+    if (!feedback.ok) {
+      _showMessage(feedback.errorMessage);
+      return;
     }
 
-    final resp = await _service.sendFeedback(item.id, liked: liked);
-    if (!mounted) return;
-    if (!resp.ok) {
-      _showMessage(resp.errorMessage);
+    if (actionId == 'OPEN_CHAT') {
+      await _openChat(item);
     }
   }
 
+  Future<void> _openChat(NotificationItem item) async {
+    final sourceId = _sourceIdFor(item);
+    if (sourceId == null) return;
+
+    final launch = parseNotificationLaunchContext(
+      data: {
+        'source_notification_id': sourceId,
+        'notification_id': item.id,
+        if (item.gate4Metadata?.deeplinkUrl.isNotEmpty == true)
+          'deeplink_url': item.gate4Metadata!.deeplinkUrl,
+      },
+    );
+    if (launch == null || !launch.isValid) return;
+
+    await _pendingStore.save(launch);
+    if (!mounted) return;
+    AppGateRouter.goToHeart(
+      context,
+      fromNotification: true,
+      notificationLaunch: launch,
+    );
+  }
+
+  Future<void> _onBodyTap(NotificationItem item) async {
+    await _markReadOptimistic(item);
+    final sourceId = _sourceIdFor(item);
+    if (sourceId == null) {
+      await _openDetails(item);
+      return;
+    }
+    final openChat = _actionsFor(item).firstWhere(
+      (a) => a.actionId == 'OPEN_CHAT',
+      orElse: () => Gate4NotificationAction(
+        actionId: 'OPEN_CHAT',
+        label: fallbackGate4ActionLabel('OPEN_CHAT', 'en'),
+      ),
+    );
+    await _handleAction(item, openChat);
+  }
+
   Future<void> _openDetails(NotificationItem item) async {
+    final actions = _actionsFor(item);
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppTheme.backgroundWhite,
@@ -162,7 +231,7 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _channelPill(item.channel),
                 const SizedBox(height: 12),
@@ -184,67 +253,27 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: item.isRead
-                            ? null
-                            : () async {
-                                Navigator.of(context).pop();
-                                await _markReadOptimistic(item);
-                              },
-                        style: OutlinedButton.styleFrom(
-                          side:
-                              const BorderSide(color: AppTheme.borderInactive),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMedium),
-                          ),
-                        ),
-                        child: const Text(
-                          'Mark as read',
-                          style: TextStyle(color: AppTheme.textPrimary),
+                ...actions.map(
+                  (action) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _handleAction(item, action);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.borderInactive),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMedium),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _sendFeedback(item, liked: true);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlack,
-                          foregroundColor: AppTheme.backgroundWhite,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMedium),
-                          ),
-                        ),
-                        child: const Text('Like'),
+                      child: Text(
+                        action.label,
+                        style: const TextStyle(color: AppTheme.textPrimary),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _sendFeedback(item, liked: false);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.metalGrey,
-                          foregroundColor: AppTheme.backgroundWhite,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusMedium),
-                          ),
-                        ),
-                        child: const Text('Dislike'),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -283,6 +312,35 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
           fontWeight: FontWeight.w600,
         ),
       ),
+    );
+  }
+
+  Widget _actionChips(NotificationItem item) {
+    final actions = _actionsFor(item);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: actions
+          .map(
+            (action) => TextButton(
+              onPressed: () => _handleAction(item, action),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.textPrimary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                action.label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -400,64 +458,63 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
           final item = _items[index];
           final displayUnread =
               !item.isRead && !_pendingReadIds.contains(item.id);
-          return GestureDetector(
-            onTap: () async {
-              await _markReadOptimistic(item);
-              await _openDetails(item);
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              decoration: BoxDecoration(
-                color: AppTheme.backgroundWhite,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border:
-                    Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundWhite,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              border:
+                  Border.all(color: AppTheme.borderInactive.withOpacity(0.5)),
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () => _onBodyTap(item),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _channelPill(item.channel),
-                      const Spacer(),
-                      if (displayUnread)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.pistachioGreen,
-                            shape: BoxShape.circle,
-                          ),
+                      Row(
+                        children: [
+                          _channelPill(item.channel),
+                          const Spacer(),
+                          if (displayUnread)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.pistachioGreen,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        item.title.isEmpty ? 'Notification' : item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    item.title.isEmpty ? 'Notification' : item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _displayBody(item),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _displayBody(item),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       Text(
                         _relativeTime(item.createdAt),
                         style: TextStyle(
@@ -465,26 +522,12 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
                           fontSize: 12,
                         ),
                       ),
-                      const Spacer(),
-                      Icon(
-                        Icons.thumb_up_alt_outlined,
-                        size: 18,
-                        color: _likedIds.contains(item.id)
-                            ? AppTheme.primaryBlack
-                            : AppTheme.iconInactive,
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.thumb_down_alt_outlined,
-                        size: 18,
-                        color: _dislikedIds.contains(item.id)
-                            ? AppTheme.primaryBlack
-                            : AppTheme.iconInactive,
-                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                _actionChips(item),
+              ],
             ),
           );
         },

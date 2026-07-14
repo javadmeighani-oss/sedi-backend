@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/navigation/app_gate.dart';
 import '../../../../core/navigation/app_gate_router.dart';
 import '../../../../core/navigation/session_gate_resolver.dart';
+import '../../../../core/notifications/pending_notification_launch_store.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/push/push_service.dart';
 
@@ -79,10 +80,15 @@ class _IntroPageState extends State<IntroPage> with SingleTickerProviderStateMix
     }
 
     if (!mounted) return;
+    final pending = nextGate == SediAppGate.heart
+        ? await PendingNotificationLaunchStore().load()
+        : null;
+    if (!mounted) return;
     AppGateRouter.transitionFromSplash(
       context,
       nextGate,
       splashPage: build(context),
+      notificationLaunch: pending,
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/notifications/notification_launch_context.dart';
 import '../../../../data/models/chat_message.dart';
 import '../../../chat/presentation/widgets/message_bubble.dart';
 import '../../../chat/state/chat_controller.dart';
@@ -25,12 +26,14 @@ class Gate3InteractivePage extends StatefulWidget {
   final String? initialMessage;
   final bool fromNotification;
   final int? notificationId;
+  final NotificationLaunchContext? notificationLaunch;
 
   const Gate3InteractivePage({
     super.key,
     this.initialMessage,
     this.fromNotification = false,
     this.notificationId,
+    this.notificationLaunch,
   });
 
   @override
@@ -57,7 +60,14 @@ class _Gate3InteractivePageState extends State<Gate3InteractivePage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _controller = ChatController();
+    final launch = widget.notificationLaunch ??
+        (widget.notificationId != null && widget.notificationId! > 0
+            ? NotificationLaunchContext(
+                sourceNotificationId: widget.notificationId!,
+                receivedAt: DateTime.now().toUtc(),
+              )
+            : null);
+    _controller = ChatController(initialLaunchContext: launch);
     _controller.addListener(_onControllerChanged);
     _controller.addListener(_scrollToBottomOnNewMessage);
     _controller.initialize(initialMessage: widget.initialMessage).then((_) {

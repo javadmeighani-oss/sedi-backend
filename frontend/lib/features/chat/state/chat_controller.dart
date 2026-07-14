@@ -9,6 +9,8 @@
 /// - همه متن‌ها از backend می‌آیند
 /// ============================================
 
+import '../../../core/notifications/notification_launch_context.dart';
+import '../../../core/notifications/pending_notification_launch_store.dart';
 import '../../../core/utils/language_detector.dart';
 import '../../../core/utils/user_preferences.dart';
 import '../../../core/utils/user_profile_manager.dart';
@@ -24,6 +26,7 @@ import '../logic/greeting_templates.dart';
 import 'package:flutter/foundation.dart';
 import '../../../services/audio/audio_recorder_service.dart';
 import '../chat_service.dart' as legacychat;
+import 'same_day_history_mapper.dart';
 
 void _chatControllerLog(String message) {
   if (kDebugMode) {
@@ -71,7 +74,19 @@ class ChatController extends ChangeNotifier {
   final v1chat.ChatService _chatService = v1chat.ChatService();
   final LifestyleRepository _lifestyleRepo = LifestyleRepository();
   final AudioRecorderService _audioRecorder = AudioRecorderService();
+  final PendingNotificationLaunchStore _pendingLaunchStore;
   bool _initialized = false;
+
+  /// Pending Gate 4 → Gate 3 notification continuity (first user turn only).
+  NotificationLaunchContext? _pendingNotificationLaunch;
+
+  ChatController({
+    PendingNotificationLaunchStore? pendingLaunchStore,
+    NotificationLaunchContext? initialLaunchContext,
+  }) : _pendingLaunchStore =
+            pendingLaunchStore ?? PendingNotificationLaunchStore() {
+    _pendingNotificationLaunch = initialLaunchContext;
+  }
 
   /// Stage 17.2: Cached lifestyle summary (in-memory, session only)
   LifestyleSummaryResponse? _cachedLifestyleSummary;
@@ -200,8 +215,11 @@ _chatControllerLog(
 
     _chatControllerLog(
         '[ChatController] No initial message, restoring same-day chat then intro if empty.');
+    await _hydratePendingNotificationLaunch();
     await _restoreSameDayHistory();
     if (messages.isNotEmpty) {
+      // Restoration must not trigger thinking / speaking animation.
+      isThinking = false;
       conversationState = ConversationState.chatting;
       notifyListeners();
 _chatControllerLog(
@@ -213,18 +231,27 @@ _chatControllerLog('[ChatController] ========== INITIALIZE END (HISTORY) =======
     _chatControllerLog('[ChatController] ========== INITIALIZE END (GREETING) ==========');
   }
 
+  Future<void> _hydratePendingNotificationLaunch() async {
+    if (_pendingNotificationLaunch != null &&
+        _pendingNotificationLaunch!.isValid) {
+      return;
+    }
+    final stored = await _pendingLaunchStore.load();
+    if (stored != null && stored.isValid) {
+      _pendingNotificationLaunch = stored;
+    }
+  }
+
   /// Load today's chat turns from existing GET /memory/history (group: daily).
   Future<void> _restoreSameDayHistory() async {
-    final userId = _userProfile.userId;
-    if (userId == null) return;
-
     try {
-      final res = await fetchHistory(userId: userId, group: 'daily', limit: 50);
+      final res = await fetchHistory(group: 'daily', limit: 50);
       final restored = _mapSameDayHistory(res);
       if (restored.isEmpty) return;
       messages
         ..clear()
         ..addAll(restored);
+      isThinking = false;
       conversationState = ConversationState.chatting;
       notifyListeners();
     } catch (e) {
@@ -235,52 +262,18 @@ _chatControllerLog('[ChatController] ========== INITIALIZE END (HISTORY) =======
   }
 
   List<ChatMessage> _mapSameDayHistory(HistoryResponse response) {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final tomorrowStart = todayStart.add(const Duration(days: 1));
-
-    final dated = <({DateTime at, ChatMessage msg})>[];
-
-    for (final group in response.items) {
-      for (final turn in group.turns) {
-        final created = DateTime.tryParse(turn.createdAt)?.toLocal();
-        if (created == null) continue;
-        if (created.isBefore(todayStart) || !created.isBefore(tomorrowStart)) {
-          continue;
-        }
-
-        final userText = turn.userMessage.trim();
-        if (userText.isNotEmpty) {
-          dated.add((
-            at: created,
-            msg: ChatMessage(
-              localId: 'hist-user-${turn.id}',
-              text: userText,
-              role: ChatRole.user,
-              createdAt: created,
-              status: ChatMessageStatus.sent,
-            ),
-          ));
-        }
-
-        final sediText = turn.sediResponse?.trim() ?? '';
-        if (sediText.isNotEmpty) {
-          dated.add((
-            at: created.add(const Duration(milliseconds: 1)),
-            msg: ChatMessage(
-              localId: 'hist-asst-${turn.id}',
-              text: sediText,
-              role: ChatRole.assistant,
-              createdAt: created,
-              status: ChatMessageStatus.sent,
-            ),
-          ));
-        }
-      }
-    }
-
-    dated.sort((a, b) => a.at.compareTo(b.at));
-    return dated.map((e) => e.msg).toList();
+    final restored = mapSameDayHistoryTurns(response);
+    return restored
+        .map(
+          (t) => ChatMessage(
+            localId: t.localId,
+            text: t.text,
+            role: t.isUser ? ChatRole.user : ChatRole.assistant,
+            createdAt: t.createdAt,
+            status: ChatMessageStatus.sent,
+          ),
+        )
+        .toList(growable: false);
   }
 
   /// Show approved short intro only when there is no same-day chat to restore.
@@ -462,19 +455,22 @@ _chatControllerLog('[ChatController] greeting request failed');
     isThinking = true;
     notifyListeners();
 
+    final pending = _pendingNotificationLaunch;
     final response = await _chatService.sendMessage(
       message: trimmed,
       language: currentLanguage,
       userId: _userProfile.userId,
+      sourceNotificationId: pending?.sourceNotificationId,
+      conversationId: pending?.conversationId,
+      interactionSource: pending != null ? 'notification' : null,
     );
 
     if (!response.ok || response.data == null) {
-      _setMessageStatus(localId, ChatMessageStatus.failed);
-      isThinking = false;
-      notifyListeners();
+      await _handleChatFailure(localId, response.statusCode);
       return;
     }
 
+    await _clearPendingNotificationAfterSuccess();
     _setMessageStatus(localId, ChatMessageStatus.sent);
     await _appendAssistantResponse(response.data!);
   }
@@ -489,20 +485,41 @@ _chatControllerLog('[ChatController] greeting request failed');
     isThinking = true;
     notifyListeners();
 
+    final pending = _pendingNotificationLaunch;
     final response = await _chatService.sendMessage(
       message: failed.text,
       language: currentLanguage,
       userId: _userProfile.userId,
+      sourceNotificationId: pending?.sourceNotificationId,
+      conversationId: pending?.conversationId,
+      interactionSource: pending != null ? 'notification' : null,
     );
     if (!response.ok || response.data == null) {
-      _setMessageStatus(localId, ChatMessageStatus.failed);
-      isThinking = false;
-      notifyListeners();
+      await _handleChatFailure(localId, response.statusCode);
       return;
     }
 
+    await _clearPendingNotificationAfterSuccess();
     _setMessageStatus(localId, ChatMessageStatus.sent);
     await _appendAssistantResponse(response.data!);
+  }
+
+  Future<void> _handleChatFailure(String localId, int? statusCode) async {
+    _setMessageStatus(localId, ChatMessageStatus.failed);
+    isThinking = false;
+    notifyListeners();
+    // Definitive ownership errors clear invalid pending context.
+    if (statusCode == 403 || statusCode == 404) {
+      _pendingNotificationLaunch = null;
+      await _pendingLaunchStore.clear();
+    }
+    // Timeout / network / 5xx retain pending context for retry.
+  }
+
+  Future<void> _clearPendingNotificationAfterSuccess() async {
+    if (_pendingNotificationLaunch == null) return;
+    _pendingNotificationLaunch = null;
+    await _pendingLaunchStore.clear();
   }
 
   Future<void> _appendAssistantResponse(ChatSendResponse data) async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../features/auth_otp/presentation/pages/otp_login_page.dart';
 import '../../features/gate3_interactive/presentation/pages/gate3_interactive_page.dart';
 import '../../features/intro/presentation/pages/intro_page.dart';
+import '../notifications/notification_launch_context.dart';
 import 'app_gate.dart';
 
 /// Central navigation for the 3-gate frontend architecture.
@@ -17,6 +18,7 @@ class AppGateRouter {
     String? initialMessage,
     bool fromNotification = false,
     int? notificationId,
+    NotificationLaunchContext? notificationLaunch,
   }) {
     switch (gate) {
       case SediAppGate.splash:
@@ -26,8 +28,10 @@ class AppGateRouter {
       case SediAppGate.heart:
         return Gate3InteractivePage(
           initialMessage: initialMessage,
-          fromNotification: fromNotification,
-          notificationId: notificationId,
+          fromNotification: fromNotification || notificationLaunch != null,
+          notificationId:
+              notificationId ?? notificationLaunch?.sourceNotificationId,
+          notificationLaunch: notificationLaunch,
         );
     }
   }
@@ -39,6 +43,7 @@ class AppGateRouter {
     String? initialMessage,
     bool fromNotification = false,
     int? notificationId,
+    NotificationLaunchContext? notificationLaunch,
   }) {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
@@ -47,6 +52,7 @@ class AppGateRouter {
           initialMessage: initialMessage,
           fromNotification: fromNotification,
           notificationId: notificationId,
+          notificationLaunch: notificationLaunch,
         ),
       ),
       (_) => false,
@@ -62,6 +68,7 @@ class AppGateRouter {
     String? initialMessage,
     bool fromNotification = false,
     int? notificationId,
+    NotificationLaunchContext? notificationLaunch,
   }) {
     replaceWithGate(
       context,
@@ -69,6 +76,7 @@ class AppGateRouter {
       initialMessage: initialMessage,
       fromNotification: fromNotification,
       notificationId: notificationId,
+      notificationLaunch: notificationLaunch,
     );
   }
 
@@ -78,6 +86,7 @@ class AppGateRouter {
     SediAppGate gate, {
     required Widget splashPage,
     String? initialMessage,
+    NotificationLaunchContext? notificationLaunch,
   }) {
     assert(gate != SediAppGate.splash);
     Navigator.of(context).pushReplacement(
@@ -85,6 +94,9 @@ class AppGateRouter {
         pageBuilder: (context, animation, secondaryAnimation) => buildGatePage(
           gate,
           initialMessage: initialMessage,
+          fromNotification: notificationLaunch != null,
+          notificationId: notificationLaunch?.sourceNotificationId,
+          notificationLaunch: notificationLaunch,
         ),
         transitionDuration: const Duration(milliseconds: 600),
         reverseTransitionDuration: const Duration(milliseconds: 600),

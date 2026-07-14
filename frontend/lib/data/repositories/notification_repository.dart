@@ -51,7 +51,7 @@ class NotificationRepository {
   }
 
   /// POST /notifications/{id}/feedback — Stage 16.6 action-based feedback
-  /// action: like | dislike | open_chat | dismissed
+  /// Legacy: action like | dislike | open_chat | dismissed
   Future<ApiResponse<Map<String, dynamic>?>> sendFeedback({
     required int notificationId,
     required String action,
@@ -66,6 +66,25 @@ class NotificationRepository {
     return _client.post<Map<String, dynamic>?>(
       '/notifications/$notificationId/feedback',
       body: body,
+      parser: (v) =>
+          v == null ? null : Map<String, dynamic>.from(v as Map),
+    );
+  }
+
+  /// Canonical Gate 4 V1 feedback: reaction=interact + action_id.
+  Future<ApiResponse<Map<String, dynamic>?>> sendCanonicalFeedback({
+    required int notificationId,
+    required String actionId,
+    DateTime? timestamp,
+  }) async {
+    final ts = (timestamp ?? DateTime.now()).toUtc().toIso8601String();
+    return _client.post<Map<String, dynamic>?>(
+      '/notifications/$notificationId/feedback',
+      body: {
+        'reaction': 'interact',
+        'action_id': actionId,
+        'timestamp': ts,
+      },
       parser: (v) =>
           v == null ? null : Map<String, dynamic>.from(v as Map),
     );

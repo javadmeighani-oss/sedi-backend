@@ -1,5 +1,5 @@
 /// DTO for GET /memory/history response.
-/// Backend: { "group": "...", "items": [ { "key": "...", "turns": [ ... ] } ] }
+/// Backend (14-A1): { group, timezone?, current_group_key?, items: [...] }
 
 class HistoryTurnItem {
   final int id;
@@ -18,7 +18,9 @@ class HistoryTurnItem {
 
   factory HistoryTurnItem.fromJson(Map<String, dynamic> json) {
     return HistoryTurnItem(
-      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       createdAt: json['created_at']?.toString() ?? '',
       userMessage: json['user_message']?.toString() ?? '',
       sediResponse: json['sedi_response']?.toString(),
@@ -40,7 +42,8 @@ class HistoryGroupItem {
     final turnsList = json['turns'];
     final list = turnsList is List
         ? (turnsList)
-            .map((e) => HistoryTurnItem.fromJson(e is Map<String, dynamic> ? e : <String, dynamic>{}))
+            .map((e) => HistoryTurnItem.fromJson(
+                e is Map<String, dynamic> ? e : <String, dynamic>{}))
             .toList()
         : <HistoryTurnItem>[];
     return HistoryGroupItem(
@@ -52,22 +55,34 @@ class HistoryGroupItem {
 
 class HistoryResponse {
   final String group;
+  final String? timezone;
+  final String? currentGroupKey;
   final List<HistoryGroupItem> items;
 
   const HistoryResponse({
     required this.group,
     required this.items,
+    this.timezone,
+    this.currentGroupKey,
   });
 
   factory HistoryResponse.fromJson(Map<String, dynamic> json) {
     final itemsList = json['items'];
     final list = itemsList is List
         ? (itemsList)
-            .map((e) => HistoryGroupItem.fromJson(e is Map<String, dynamic> ? e : <String, dynamic>{}))
+            .map((e) => HistoryGroupItem.fromJson(
+                e is Map<String, dynamic> ? e : <String, dynamic>{}))
             .toList()
         : <HistoryGroupItem>[];
+    final timezone = json['timezone']?.toString();
+    final currentGroupKey = json['current_group_key']?.toString() ??
+        json['currentGroupKey']?.toString();
     return HistoryResponse(
       group: json['group']?.toString() ?? 'daily',
+      timezone: (timezone == null || timezone.isEmpty) ? null : timezone,
+      currentGroupKey: (currentGroupKey == null || currentGroupKey.isEmpty)
+          ? null
+          : currentGroupKey,
       items: list,
     );
   }

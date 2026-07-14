@@ -1,3 +1,4 @@
+import '../dto/notifications/gate4_notification_metadata.dart';
 import '../dto/notifications/notification_item_dto.dart';
 
 class NotificationItem {
@@ -10,7 +11,7 @@ class NotificationItem {
   final String? priority;
   final String? status;
   final String? dedupeKey;
-  final Map<String, dynamic>? metadata;
+  final Gate4NotificationMetadata? gate4Metadata;
 
   const NotificationItem({
     required this.id,
@@ -22,7 +23,7 @@ class NotificationItem {
     this.priority,
     this.status,
     this.dedupeKey,
-    this.metadata,
+    this.gate4Metadata,
   });
 
   factory NotificationItem.fromDto(NotificationItemDto dto) {
@@ -36,7 +37,7 @@ class NotificationItem {
       priority: dto.priority,
       status: dto.status,
       dedupeKey: dto.dedupeKey,
-      metadata: dto.metadata,
+      gate4Metadata: dto.gate4Metadata,
     );
   }
 
@@ -53,7 +54,7 @@ class NotificationItem {
       priority: priority,
       status: status,
       dedupeKey: dedupeKey,
-      metadata: metadata,
+      gate4Metadata: gate4Metadata,
     );
   }
 }

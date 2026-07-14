@@ -8,6 +8,7 @@ import '../../../../core/network/api_error.dart';
 import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/auth_profile_service.dart';
 import '../../../../core/navigation/app_gate_router.dart';
+import '../../../../core/notifications/pending_notification_launch_store.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/user_preferences.dart';
 import '../../../../data/dto/auth/me_profile.dart';
@@ -548,7 +549,12 @@ class _OtpLoginPageState extends State<OtpLoginPage> {
     if (!mounted) return;
     if (_navigatedAfterSuccess) return;
     _navigatedAfterSuccess = true;
-    AppGateRouter.goToHeart(context);
+    final pending = await PendingNotificationLaunchStore().load();
+    if (!mounted) return;
+    AppGateRouter.goToHeart(
+      context,
+      notificationLaunch: pending,
+    );
   }
 
   void _startCompleteRegistrationFromCorrection() {
