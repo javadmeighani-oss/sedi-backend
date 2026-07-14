@@ -162,7 +162,11 @@ def test_trace_excludes_raw_user_message_and_user_id():
         message=secret,
         language="en",
     )
-    blob = " ".join(result.reason_codes + list(result.stage_names) + [result.request_id])
+    # Inspect only safe trace fields (reason codes, stage names, request_id).
+    safe_trace_parts = list(result.reason_codes) + list(result.stage_names) + [
+        result.request_id
+    ]
+    blob = " ".join(safe_trace_parts)
     assert secret not in blob
     assert "777001" not in blob
     assert "UNIQUE_PII" not in blob
@@ -192,6 +196,7 @@ def test_request_id_server_generated_and_unique():
     ],
 )
 def test_language_normalization(raw, expected):
+    # Generator always reports en; final language must follow normalized request locale.
     orch = IntelligenceOrchestrator(
         legacy_generator=_legacy_ok(),
         structured_mode=False,
@@ -203,6 +208,25 @@ def test_language_normalization(raw, expected):
     )
     assert result.language == expected
     assert ReasonCode.LANGUAGE_NORMALIZED.value in result.reason_codes
+
+
+def test_result_language_ignores_legacy_generator_language_in_both_modes():
+    def gen_always_en(user_id, user_message, user_name=None, *, notification_context=None):
+        return {"message": f"echo:{user_message}", "language": "en"}
+
+    for structured in (False, True):
+        orch = IntelligenceOrchestrator(
+            legacy_generator=gen_always_en,
+            structured_mode=structured,
+        )
+        fa = orch.process(authenticated_user_id=1, message="سلام", language="fa")
+        ar = orch.process(authenticated_user_id=1, message="مرحبا", language="ar")
+        en = orch.process(authenticated_user_id=1, message="hi", language="en")
+        assert fa.language == "fa"
+        assert ar.language == "ar"
+        assert en.language == "en"
+        assert fa.message == "echo:سلام"
+        assert ar.message == "echo:مرحبا"
 
 
 def test_timezone_unavailable_safe_reason():
@@ -259,7 +283,9 @@ def test_notification_origin_uses_safe_ids_only():
     assert captured["notification_context"] is not None
     assert "body" not in captured["notification_context"]
     assert "context_json" not in captured["notification_context"]
-    blob = " ".join(result.reason_codes + list(result.stage_names))
+    # Inspect only safe trace fields; do not stringify the full context object.
+    safe_trace_parts = list(result.reason_codes) + list(result.stage_names)
+    blob = " ".join(safe_trace_parts)
     assert "RAW BODY" not in blob
     assert "hr" not in blob
 
@@ -322,6 +348,7 @@ def test_legacy_generator_invoked_exactly_once():
 
 
 def test_two_users_do_not_share_state():
+    # Generator returns language=en for both; each result keeps its request locale.
     orch = IntelligenceOrchestrator(
         legacy_generator=_legacy_ok(),
         structured_mode=False,

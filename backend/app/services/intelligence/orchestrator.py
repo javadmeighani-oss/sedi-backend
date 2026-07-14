@@ -314,9 +314,10 @@ class IntelligenceOrchestrator:
                 "empty_generation",
                 reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
             )
-        out_language = _normalize_language_code(
-            raw.get("language") if isinstance(raw.get("language"), str) else lang
-        )
+        # I1: OrchestrationResult.language is owned by the normalized request locale
+        # (ctx.locale.language). Any language field on the legacy generator result is
+        # ignored for final deterministic locale so stubs/LLM defaults cannot override.
+        out_language = ctx.locale.language
         detected_name = raw.get("detected_name")
         if detected_name is not None and not isinstance(detected_name, str):
             detected_name = None

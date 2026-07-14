@@ -1480,4 +1480,182 @@ review → commit approval → push/CI approval (انتظار: Section 15 شام
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-I1 implemented (unverified CI) — ۲۰۲۶-۰۷-۱۴*
+## ۳۱) Package 15-I1 — push + CI validation @ `e9da0c2` — **blocked**
+
+### ۳۱.۱ commit و push
+| مورد | مقدار |
+|------|--------|
+| Commit | `e9da0c2f540401e70c74a5cab6d7eec3af7ab0f0` |
+| Subject | `feat(intelligence): connect deterministic chat orchestrator` |
+| Parent | `a17668071e580e456c82dad0d876b28c549825d3` |
+| Push timestamp (UTC) | ۲۰۲۶-۰۷-۱۴ ~15:38Z |
+| Remote SHA verified | `e9da0c2f540401e70c74a5cab6d7eec3af7ab0f0` |
+| `origin/main` | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+| Flag `SEDI_INTELLIGENCE_ORCHESTRATOR_V1` | **inactive** (default false؛ در CI فعال نشد) |
+
+### ۳۱.۲ GitHub Actions run
+| مورد | مقدار |
+|------|--------|
+| Workflow | Backend V1 freeze tests |
+| Path | `.github/workflows/ci-backend-tests.yml` |
+| Run ID | **29346252298** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29346252298 |
+| Event | workflow_dispatch |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Head SHA | `e9da0c2f540401e70c74a5cab6d7eec3af7ab0f0` |
+| Created (UTC) | ۲۰۲۶-۰۷-۱۴ 15:38:56Z |
+| Duration | ~1m43s |
+| **Conclusion** | **failure** |
+
+### ۳۱.۳ Existing freeze suite (actual)
+| Step | Passed |
+|------|--------|
+| Section 10 + contract subset | **91** |
+| contracts (incl. OpenAPI snapshot) | **27** |
+| interact stabilization | **147** |
+| OTP/SMS gateway | **171** |
+| acceptance subset | **12** (3+6+1+1+1) |
+| notification prefs | **4** |
+| **جمع freeze** | **452** (0 failed) |
+
+`alembic upgrade head` موفق روی ephemeral PostgreSQL (`127.0.0.1:5432/sedi_test`)؛ revision `050_gate4_event_idem` فقط ephemeral. production/staging تماس نگرفته.
+
+### ۳۱.۴ Section 15 step — totals
+| مورد | مقدار |
+|------|--------|
+| Collected | **114** |
+| Passed | **108** |
+| Failed | **6** |
+| Skipped | **0** |
+| Deselected | **0** |
+| Warnings | 1 |
+| Duration | ~2.59s |
+
+**هشت فایل explicit جمع‌آوری شد:**
+1. `test_memory_history_timezone_v1.py` ✓
+2. `test_notification_inbox_gate4_v1.py` ✓
+3. `test_gate4_push_channel_routing_v1.py` ✓
+4. `test_notification_api_b2.py` ✓
+5. `test_section15_i0_interaction_response.py` ✓
+6. `test_section15_b8_interaction_idempotency.py` ✓
+7. `test_gate4c_interaction_events.py` ✓
+8. `test_section15_i1_intelligence_orchestrator.py` ✗ (۶ failure)
+
+Baseline قبلی **۸۲/۸۲** همچنان passed (رگرسیون A1/I0/B8/Gate4C دیده نشد). I1 collected ≈ **۳۲** تست؛ **۲۶ passed / ۶ failed**.
+
+### ۳۱.۵ شکست‌های دقیق I1
+| Test | Error | Classification |
+|------|-------|----------------|
+| `test_trace_excludes_raw_user_message_and_user_id` | `TypeError: can only concatenate tuple (not "list") to tuple` (line 165) | **test bug** — `reason_codes` (tuple) + `list(stage_names)` |
+| `test_notification_origin_uses_safe_ids_only` | همان `TypeError` (line 262) | **test bug** — همان الگوی join |
+| `test_language_normalization[fa-fa]` | `assert 'en' == 'fa'` (line 204) | **code** — `OrchestrationResult.language` از خروجی generator/`_legacy_ok` (`language=en`) می‌آید، نه از locale نرمال‌شده ورودی |
+| `test_language_normalization[FA-fa]` | `assert 'en' == 'fa'` | **code** (همان) |
+| `test_language_normalization[ar-ar]` | `assert 'en' == 'ar'` | **code** (همان) |
+| `test_two_users_do_not_share_state` | `assert 'en' == 'fa'` برای user B | **code** (همان منبع language) |
+
+`LANGUAGE_NORMALIZED` در reason codes برای locale stage ثبت می‌شود، اما `result.language` نهایی با brain stub overwrite می‌شود.
+
+کد/تست در این بسته **تغییر داده نشد**. Rerun انجام نشد.
+
+### ۳۱.۶ ماتریس پوشش I1 (evidence از logs)
+
+| # | رفتار | وضعیت |
+|---|--------|--------|
+| 1 | Router always enters orchestrator | **verified passed** |
+| 2 | No direct normal-path brain call outside orchestrator | **verified passed** |
+| 3 | Compatibility mode flag OFF | **verified passed** |
+| 4 | Structured mode flag ON | **verified passed** |
+| 5 | Flag default false | **verified passed** |
+| 6 | Legacy generator exactly once | **verified passed** |
+| 7 | Existing response message preserved | **verified passed** |
+| 8 | JWT/server identity source | **verified passed** |
+| 9 | Caller `user_id` cannot replace identity | **verified passed** |
+| 10 | Request-scoped state | **verified passed** (request_id unique + concurrent traces) |
+| 11 | User/concurrent isolation | **executed failed** (language assert for user B); concurrency traces **verified passed** |
+| 12 | Unique server request IDs | **verified passed** |
+| 13 | fa/ar/en normalization on result.language | **executed failed** (fa/ar) |
+| 14 | Invalid-language fallback | **verified passed** (xx/empty/invalid → en) |
+| 15 | Safe timezone reason codes | **verified passed** |
+| 16 | Safe notification identifiers only | **executed failed** (test TypeError before full assert) |
+| 17 | No raw message/user ID/health in trace | **executed failed** (test TypeError) |
+| 18 | Deterministic stage order | **verified passed** |
+| 19 | Safe reason codes | **verified passed** |
+| 20 | Empty output failure | **verified passed** |
+| 21 | Generator exception no bypass/second call | **verified passed** |
+| 22 | No duplicate persistence/InteractionEvent | **verified passed** |
+| 23 | Reminder/settings short-circuit compatibility | **verified passed** |
+| 24 | Public InteractionResponse.message compatibility | **verified passed** |
+| 25 | No external LLM/network in tests | **verified passed** |
+
+### ۳۱.۷ وضعیت نهایی I1
+**blocked** — workflow failure به‌خاطر ۶ تست I1؛ freeze 452 سبز؛ ۸۲ baseline Section 15 سبز؛ I1 کامل verified نیست.
+
+### ۳۱.۸ ممنوعیت‌ها
+production migration، deploy، SSH، image، flag activation، commit، rerun، اصلاح کد — **انجام نشد**. تست محلی — **اجرا نشد**.
+
+### ۳۱.۹ گام بعد
+**Package 15-I1-TestFix** (یا معادل): اصلاح (۱) TypeError در join tuple/list تست‌ها؛ (۲) منبع `result.language` در orchestrator تا locale نرمال‌شده حفظ شود یا stub generator زبان را پاس دهد — سپس commit → push → یک dispatch. **15-I2 فقط پس از I1 verified.**
+
+---
+
+## ۳۲) Package 15-I1-TestFix — اصلاح language ownership + TypeError تست
+
+### ۳۲.۱ Run مرجع
+| مورد | مقدار |
+|------|--------|
+| Run ID | **29346252298** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29346252298 |
+| Head SHA | `e9da0c2f540401e70c74a5cab6d7eec3af7ab0f0` |
+| Section 15 | **114** collected / **108** passed / **6** failed / **0** skipped |
+| Baseline هفت فایل قبلی | **82/82** passed (بدون رگرسیون) |
+
+### ۳۲.۲ شش failure
+| Test | Root cause class |
+|------|------------------|
+| `test_language_normalization[fa-fa]` | language ownership (code) |
+| `test_language_normalization[FA-fa]` | language ownership (code) |
+| `test_language_normalization[ar-ar]` | language ownership (code) |
+| `test_two_users_do_not_share_state` | language ownership (code) |
+| `test_trace_excludes_raw_user_message_and_user_id` | tuple+list TypeError (test) |
+| `test_notification_origin_uses_safe_ids_only` | tuple+list TypeError (test) |
+
+فقط **دو** علت ریشه؛ علت سوم نیست.
+
+### ۳۲.۳ اصلاح language ownership (product)
+فایل: `backend/app/services/intelligence/orchestrator.py`
+
+**قبل:** `out_language` از `raw["language"]` generator گرفته می‌شد (stub همیشه `en`).
+
+**بعد:** `out_language = ctx.locale.language` — locale نرمال‌شدهٔ request مالک deterministic است. فیلد language خروجی legacy generator در I1 برای نتیجهٔ نهایی **نادیده** گرفته می‌شود؛ generator فقط مالک متن `message` می‌ماند.
+
+### ۳۲.۴ اصلاح TypeError تست
+فایل: `backend/tests/test_section15_i1_intelligence_orchestrator.py`
+
+ساخت sequence یکنواخت با `list(result.reason_codes) + list(result.stage_names) [...]` قبل از join. assertionهای privacy (user id، raw message، RAW BODY، health) **حفظ و اجراپذیر** شدند؛ بدون suppress/xfail.
+
+افزوده: `test_result_language_ignores_legacy_generator_language_in_both_modes` برای fa/ar/en در modeهای OFF و ON.
+
+### ۳۲.۵ فایل‌های تغییر یافته
+1. `backend/app/services/intelligence/orchestrator.py`
+2. `backend/tests/test_section15_i1_intelligence_orchestrator.py`
+3. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (این §۳۲)
+
+**تغییر نداده:** workflow، contracts، router، migration، frontend، feature-flag semantics، schema عمومی.
+
+### ۳۲.۶ وضعیت
+**implemented but unverified pending GitHub Actions**
+
+| عمل | وضعیت |
+|-----|--------|
+| تست محلی | **اجرا نشد** |
+| commit / push / dispatch | **انجام نشد** |
+| migration / deploy / flag activation | **انجام نشد** |
+
+### ۳۲.۷ گام‌های بعد
+1. review
+2. commit approval
+3. push + یک `workflow_dispatch` دقیق @ SHA جدید
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-I1-TestFix implemented (unverified CI) — ۲۰۲۶-۰۷-۱۴*
