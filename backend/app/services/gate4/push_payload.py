@@ -123,7 +123,7 @@ def build_gate4_android_notification_options(
         critical = True
         alarm_like = True
         visibility = "public"
-    elif category_key == "health_alert" or risk_key == "high" or priority_key in ("high", "critical"):
+    elif category_key in ("health_alert", "health_status") or risk_key == "high" or priority_key in ("high", "critical"):
         channel_id = "sedi_health"
         sound = "sedi_notification" if sound_enabled else ""
         android_priority = "high"

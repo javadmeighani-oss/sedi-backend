@@ -8,7 +8,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.app.database import get_db
 from backend.app import models
@@ -20,6 +20,10 @@ from backend.app.schemas.memory import (
     MemorySaveRequest,
 )
 from backend.app.routers.auth_otp import get_current_user
+from backend.app.services.gate4.policy_prefs_bridge import (
+    get_local_now,
+    resolve_validated_user_timezone,
+)
 
 router = APIRouter()
 
@@ -45,18 +49,40 @@ def _reject_legacy_user_id_query(request: Request) -> None:
         )
 
 
-def _group_key(created_at: datetime, group: GroupKind) -> str:
-    """Return grouping key for a memory row."""
+def _as_utc_aware(created_at: datetime | None) -> datetime:
+    """Treat naive DB timestamps as UTC; return timezone-aware UTC."""
+    if created_at is None:
+        return datetime.now(timezone.utc)
+    if created_at.tzinfo is None:
+        return created_at.replace(tzinfo=timezone.utc)
+    return created_at.astimezone(timezone.utc)
+
+
+def _group_key_local(local_dt: datetime, group: GroupKind) -> str:
+    """Return grouping key for a user-local datetime."""
     if group == "daily":
-        return created_at.strftime("%Y-%m-%d")
+        return local_dt.strftime("%Y-%m-%d")
     if group == "weekly":
-        year, week, _ = created_at.isocalendar()
+        year, week, _ = local_dt.isocalendar()
         return f"{year}-W{week:02d}"
     if group == "monthly":
-        return created_at.strftime("%Y-%m")
+        return local_dt.strftime("%Y-%m")
     if group == "yearly":
-        return created_at.strftime("%Y")
-    return created_at.strftime("%Y-%m-%d")
+        return local_dt.strftime("%Y")
+    return local_dt.strftime("%Y-%m-%d")
+
+
+def _group_key_from_utc(created_at: datetime, group: GroupKind, tz_name: str) -> str:
+    """Group a UTC (or naive-as-UTC) timestamp in the user's resolved timezone."""
+    utc_dt = _as_utc_aware(created_at)
+    local_dt = get_local_now(utc_dt, tz_name)
+    return _group_key_local(local_dt, group)
+
+
+def _current_group_key(now_utc: datetime, group: GroupKind, tz_name: str) -> str:
+    """Current grouping bucket key from UTC now converted to user timezone."""
+    local_now = get_local_now(now_utc, tz_name)
+    return _group_key_local(local_now, group)
 
 
 @router.get("/history", response_model=HistoryResponse)
@@ -72,6 +98,9 @@ def get_chat_history(
     Fetch chat history from Memory table, grouped by day/week/month/year.
     Requires Bearer JWT; user identity is derived from the token only.
     """
+    tz_name = resolve_validated_user_timezone(db, auth_user.id)
+    now_utc = datetime.now(timezone.utc)
+
     rows = (
         db.query(models.Memory)
         .filter(models.Memory.user_id == auth_user.id)
@@ -83,7 +112,7 @@ def get_chat_history(
     rows_asc = list(reversed(rows))
     buckets = defaultdict(list)
     for m in rows_asc:
-        key = _group_key(m.created_at, group)
+        key = _group_key_from_utc(m.created_at, group, tz_name)
         buckets[key].append(m)
 
     sorted_keys = sorted(buckets.keys(), reverse=True)
@@ -94,7 +123,7 @@ def get_chat_history(
         turns = [
             HistoryTurnItem(
                 id=m.id,
-                created_at=m.created_at or datetime.utcnow(),
+                created_at=_as_utc_aware(m.created_at),
                 user_message=m.user_message or "",
                 sedi_response=m.sedi_response,
                 language=m.language or "en",
@@ -103,7 +132,12 @@ def get_chat_history(
         ]
         items.append(HistoryGroupItem(key=key, turns=turns))
 
-    return HistoryResponse(group=group, items=items)
+    return HistoryResponse(
+        group=group,
+        timezone=tz_name,
+        current_group_key=_current_group_key(now_utc, group, tz_name),
+        items=items,
+    )
 
 
 @router.post("/save", response_model=APIResponse)

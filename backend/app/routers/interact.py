@@ -120,9 +120,15 @@ async def chat(
         if chat_reminder_result.get("reason") == "needs_clarification":
             clarification = chat_reminder_result.get("clarification_message")
             if clarification:
+                from backend.app.services.i18n.request_lang import resolve_request_lang
+
+                # Canonical InteractionResponse field is `message` (not `reply`).
                 return InteractionResponse(
-                    reply=clarification,
+                    message=clarification,
+                    language=resolve_request_lang(request, db=db, user_id=user.id),
                     user_id=user_id,
+                    timestamp=datetime.utcnow(),
+                    requires_security_check=False,
                     conversation_id=payload.conversation_id,
                 )
     except Exception:

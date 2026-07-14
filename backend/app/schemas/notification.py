@@ -20,6 +20,24 @@ class NotificationCreate(NotificationBase):
     user_id: int = Field(..., description="User ID who will receive the notification")
 
 
+class NotificationGate4ActionItem(BaseModel):
+    """Canonical Gate 4 V1 action with localized label (inbox-safe)."""
+    action_id: str
+    label: str
+
+
+class NotificationGate4InboxMetadata(BaseModel):
+    """Safe Gate 4 metadata for inbox consumption (no body, context_json, or PII)."""
+    contract_version: str
+    notification_id: int
+    source_notification_id: int
+    category: str
+    risk: str
+    language: str
+    deeplink_url: str
+    actions: list[NotificationGate4ActionItem]
+
+
 # Schema for notification responses
 class NotificationResponse(NotificationBase):
     """Schema for notification API responses"""
@@ -33,6 +51,11 @@ class NotificationResponse(NotificationBase):
     source_type: Optional[str] = Field(None, description="Gate 4-B soft source type")
     risk_level: Optional[str] = Field(None, description="Gate 4-B risk level")
     template_key: Optional[str] = Field(None, description="Gate 4-B template key")
+    channel: Optional[str] = Field(None, description="Persisted delivery channel when set")
+    gate4_metadata: Optional[NotificationGate4InboxMetadata] = Field(
+        None,
+        description="Safe Gate 4 inbox metadata (actions, deeplink, continuity ids)",
+    )
 
     model_config = ConfigDict(from_attributes=True)  # Pydantic V2: renamed from orm_mode
 

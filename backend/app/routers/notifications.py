@@ -49,10 +49,14 @@ def _assert_user_id_matches(auth_user: User, user_id: int) -> None:
 
 def _notification_to_response(notif: Notification) -> NotificationResponse:
     """Map ORM notification to API response with Gate 4-B effective category/risk."""
+    from backend.app.services.gate4.inbox_metadata import build_safe_inbox_metadata
     from backend.app.services.gate4.notification_context import (
         resolve_effective_category,
         resolve_effective_risk_level,
     )
+    from backend.app.schemas.notification import NotificationGate4InboxMetadata
+
+    gate4_meta = build_safe_inbox_metadata(notif)
 
     return NotificationResponse(
         id=notif.id,
@@ -76,6 +80,8 @@ def _notification_to_response(notif: Notification) -> NotificationResponse:
             priority=notif.priority or "normal",
         ),
         template_key=notif.template_key,
+        channel=notif.channel,
+        gate4_metadata=NotificationGate4InboxMetadata(**gate4_meta),
     )
 
 

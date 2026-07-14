@@ -7,8 +7,10 @@ Records unified interaction timeline entries. No notifications, GPT, or FCM.
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Mapping, Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.app.models import InteractionEvent, Notification
@@ -17,6 +19,8 @@ from backend.app.services.gate4.notification_contract import (
     V1_INTERACTION_CHANNEL,
     normalize_legacy_action,
 )
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_INTERACTION_CHANNELS = frozenset({"text", "voice", "call", "video"})
 ALLOWED_SOURCES = frozenset({"chat", "notification", "device", "system"})
@@ -35,6 +39,9 @@ LEGACY_EVENT_TYPE_TO_CANONICAL_INPUT: Mapping[str, str] = {
     "dismiss": "dismiss",
     "open_chat": "open_chat",
 }
+
+# Partial unique index name (must match migration 050 + model metadata).
+UQ_NOTIF_CHAT_ONCE = "uq_interaction_events_notif_chat_once"
 
 
 def _serialize_metadata(metadata: Optional[dict[str, Any]]) -> Optional[str]:
@@ -241,22 +248,43 @@ def find_existing_notification_chat_message_event(
     source_notification_id: int,
     conversation_id: Optional[str] = None,
 ) -> Optional[InteractionEvent]:
-    """Return earliest matching notification-linked chat_message event, if any."""
-    normalized_conversation_id = _normalized_conversation_id(conversation_id)
-    query = (
+    """
+    Return earliest notification-linked chat_message event for this owner+source.
+
+    ``conversation_id`` is accepted for call-site compatibility but is NOT part of
+    the consumption identity (Section 15 B8 invariant).
+    """
+    _ = conversation_id  # intentionally unused for matching
+    return (
         db.query(InteractionEvent)
         .filter(
             InteractionEvent.user_id == user_id,
             InteractionEvent.source_notification_id == source_notification_id,
             InteractionEvent.event_type == "chat_message",
         )
+        .order_by(InteractionEvent.id.asc())
+        .first()
     )
-    if normalized_conversation_id:
-        query = query.filter(InteractionEvent.conversation_id == normalized_conversation_id)
-    else:
-        query = query.filter(InteractionEvent.conversation_id.is_(None))
 
-    return query.order_by(InteractionEvent.id.asc()).first()
+
+def _is_notif_chat_once_integrity_error(exc: IntegrityError) -> bool:
+    """True only for the B8 partial unique index (not unrelated constraints)."""
+    orig = getattr(exc, "orig", None)
+    diag = getattr(orig, "diag", None)
+    constraint_name = getattr(diag, "constraint_name", None)
+    if constraint_name == UQ_NOTIF_CHAT_ONCE:
+        return True
+    # SQLite / drivers without diag.constraint_name: safe fallback string match.
+    text_blob = " ".join(
+        str(part)
+        for part in (exc, orig, diag, constraint_name)
+        if part is not None
+    ).lower()
+    return UQ_NOTIF_CHAT_ONCE.lower() in text_blob or (
+        "interaction_events" in text_blob
+        and "source_notification_id" in text_blob
+        and ("unique" in text_blob or "duplicate" in text_blob)
+    )
 
 
 def create_chat_message_event(
@@ -273,7 +301,8 @@ def create_chat_message_event(
     Record a chat message continuation event.
 
     When source_notification_id is set, verifies notification ownership and
-    returns an existing matching event instead of creating a duplicate.
+    enforces one-consumption-per-(user, source_notification) via select-before-insert
+    plus DB partial unique index conflict recovery (savepoint).
     """
     source = "notification" if source_notification_id is not None else "chat"
     if interaction_source:
@@ -293,7 +322,6 @@ def create_chat_message_event(
             db,
             user_id=user_id,
             source_notification_id=source_notification_id,
-            conversation_id=normalized_conversation_id,
         )
         if existing is not None:
             return existing
@@ -304,16 +332,41 @@ def create_chat_message_event(
     if source_notification_id is not None:
         meta["continued_from_notification"] = True
 
-    return create_interaction_event(
-        db,
-        user_id=user_id,
-        event_type="chat_message",
-        source=source,
-        interaction_channel=V1_INTERACTION_CHANNEL,
-        source_notification_id=source_notification_id,
-        source_type=notification.source_type if notification else None,
-        source_id=notification.source_id if notification else None,
-        conversation_id=normalized_conversation_id,
-        thread_id=thread_id,
-        metadata=meta or None,
-    )
+    def _insert() -> InteractionEvent:
+        return create_interaction_event(
+            db,
+            user_id=user_id,
+            event_type="chat_message",
+            source=source,
+            interaction_channel=V1_INTERACTION_CHANNEL,
+            source_notification_id=source_notification_id,
+            source_type=notification.source_type if notification else None,
+            source_id=notification.source_id if notification else None,
+            conversation_id=normalized_conversation_id,
+            thread_id=thread_id,
+            metadata=meta or None,
+        )
+
+    if source_notification_id is None:
+        return _insert()
+
+    try:
+        with db.begin_nested():
+            return _insert()
+    except IntegrityError as exc:
+        if not _is_notif_chat_once_integrity_error(exc):
+            raise
+        recovered = find_existing_notification_chat_message_event(
+            db,
+            user_id=user_id,
+            source_notification_id=source_notification_id,
+        )
+        if recovered is None:
+            raise
+        logger.info(
+            "[GATE4C] notif chat_message idempotent collision user_id=%s source_notification_id=%s existing_id=%s",
+            user_id,
+            source_notification_id,
+            recovered.id,
+        )
+        return recovered

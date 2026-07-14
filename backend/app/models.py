@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, JSON, Index, text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
@@ -106,10 +106,34 @@ class NotificationFeedback(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+# Partial unique predicate for notification chat_message idempotency (B8).
+# Shared by PostgreSQL production index and SQLite test metadata (create_all).
+_NOTIF_CHAT_ONCE_PARTIAL_IDX_WHERE = text(
+    "event_type = 'chat_message' AND source_notification_id IS NOT NULL"
+)
+
+
 # -------------------- InteractionEvent (Gate 4C) --------------------
 class InteractionEvent(Base):
     """Unified interaction timeline: chat, notification actions, future voice/call/video."""
+
     __tablename__ = "interaction_events"
+    # One notification may seed only one chat_message consumption event for a user.
+    # conversation_id is intentionally excluded: NULLs are distinct in PostgreSQL UNIQUE
+    # and a changed/null→non-null conversation_id must not reopen consumption.
+    __table_args__ = (
+        Index(
+            "uq_interaction_events_notif_chat_once",
+            "user_id",
+            "source_notification_id",
+            unique=True,
+            postgresql_where=_NOTIF_CHAT_ONCE_PARTIAL_IDX_WHERE,
+            # Tests use Base.metadata.create_all; without sqlite_where SQLAlchemy would
+            # compile an unconditional UNIQUE and block notification_ack/open_chat rows
+            # that share the same source_notification_id.
+            sqlite_where=_NOTIF_CHAT_ONCE_PARTIAL_IDX_WHERE,
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

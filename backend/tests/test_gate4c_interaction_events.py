@@ -221,9 +221,14 @@ def test_duplicate_same_notification_and_conversation_dedupes(
 
 @patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
 @patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
-def test_same_notification_different_conversation_creates_second_event(
+def test_same_notification_different_conversation_reuses_single_consumption(
     mock_cmd, mock_process, db, user_a, notification_for_a, mock_request
 ):
+    """
+    B8 product invariant: conversation_id is NOT part of consumption identity.
+    A second request with the same source_notification_id must not create another row
+    even when conversation_id changes (null→value or value→other).
+    """
     mock_process.return_value = {"message": "Continuing", "language": "en"}
     asyncio.run(
         _call_chat(
@@ -259,9 +264,8 @@ def test_same_notification_different_conversation_creates_second_event(
         .order_by(InteractionEvent.id.asc())
         .all()
     )
-    assert len(events) == 2
+    assert len(events) == 1
     assert events[0].conversation_id == "c-one"
-    assert events[1].conversation_id == "c-two"
 
 
 @patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
@@ -380,6 +384,54 @@ def test_chat_rejects_missing_notification(db, user_a, mock_request):
     with pytest.raises(HTTPException) as exc:
         asyncio.run(_call_chat(mock_request, payload, db, user_a))
     assert exc.value.status_code == 404
+    assert exc.value.detail == "Notification not found"
+
+
+@patch("backend.app.core.conversation.brain.ConversationBrain.process_message")
+@patch("backend.app.services.chat_commands.detect_and_handle_user_settings_command", return_value=None)
+def test_chat_brain_receives_safe_notification_context_only(
+    mock_cmd, mock_process, db, user_a, mock_request
+):
+    sensitive_body = "Take Metformin 500mg for diabetes"
+    n = Notification(
+        user_id=user_a.id,
+        type="health_alert",
+        title="Medication",
+        body=sensitive_body,
+        priority="high",
+        is_read=False,
+        is_sent=True,
+        created_at=datetime.utcnow(),
+        category="medication_reminder",
+        context_json=json.dumps(
+            {
+                "action_hint": "open_chat",
+                "diagnosis": "type 2 diabetes",
+                "dosage_instructions": "500mg twice daily",
+            }
+        ),
+    )
+    db.add(n)
+    db.commit()
+    db.refresh(n)
+
+    mock_process.return_value = {"message": "Continuing", "language": "en"}
+    payload = ChatRequest(
+        message="let's talk",
+        source_notification_id=n.id,
+    )
+    asyncio.run(_call_chat(mock_request, payload, db, user_a))
+
+    ctx = mock_process.call_args.kwargs.get("notification_context")
+    assert ctx is not None
+    serialized = json.dumps(ctx)
+    assert sensitive_body not in serialized
+    assert "500mg" not in serialized
+    assert "diabetes" not in serialized
+    assert "diagnosis" not in serialized
+    assert "dosage" not in serialized
+    assert "context_json" not in ctx
+    assert ctx.get("context_hints", {}).get("action_hint") == "open_chat"
 
 
 def test_feedback_creates_interaction_event(db, user_a, notification_for_a):

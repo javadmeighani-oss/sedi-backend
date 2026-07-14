@@ -69,6 +69,32 @@ def resolve_daily_notification_time(
     return DEFAULT_DAILY_NOTIFICATION_TIME
 
 
+def resolve_validated_user_timezone(
+    db: Session,
+    user_id: int,
+) -> str:
+    """
+    Resolve IANA timezone for a user (profile → memory → default).
+
+    Invalid IANA values fall back to ``DEFAULT_TIMEZONE`` (same policy as scheduler/quiet hours).
+    """
+    profile_core = (
+        db.query(UserProfileCore).filter(UserProfileCore.user_id == user_id).first()
+    )
+    user = db.query(User).filter(User.id == user_id).first()
+    memory_tz = _load_memory_json_fact(db, user_id, "timezone")
+    tz_candidate = resolve_user_timezone(
+        user=user,
+        profile_core=profile_core,
+        memory_timezone=memory_tz,
+    )
+    try:
+        pytz.timezone(tz_candidate)
+        return tz_candidate
+    except pytz.exceptions.UnknownTimeZoneError:
+        return DEFAULT_TIMEZONE
+
+
 def resolve_user_timezone(
     *,
     user: User | None = None,

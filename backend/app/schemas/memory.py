@@ -24,6 +24,8 @@ class HistoryGroupItem(BaseModel):
 class HistoryResponse(BaseModel):
     """GET /memory/history response."""
     group: str  # "daily" | "weekly" | "monthly" | "yearly"
+    timezone: str  # resolved IANA timezone used for grouping
+    current_group_key: str  # current bucket key in the user's timezone
     items: List[HistoryGroupItem]
 
 

@@ -2571,6 +2571,10 @@
       "HistoryResponse": {
         "description": "GET /memory/history response.",
         "properties": {
+          "current_group_key": {
+            "title": "Current Group Key",
+            "type": "string"
+          },
           "group": {
             "title": "Group",
             "type": "string"
@@ -2581,11 +2585,17 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
           }
         },
         "required": [
+          "current_group_key",
           "group",
-          "items"
+          "items",
+          "timezone"
         ],
         "title": "HistoryResponse",
         "type": "object"

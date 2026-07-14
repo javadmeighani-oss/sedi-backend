@@ -6,6 +6,9 @@ Tests:
 - GET /notifications/unread returns unread notifications
 - POST /notifications/{id}/mark-read marks notification as read
 - POST /notifications/{id}/feedback accepts standardized payload
+
+Section 15-P1 (B4): protected endpoints require Bearer JWT matching owner.
+Unauthenticated calls must receive 401 (auth is not weakened).
 """
 
 import pytest
@@ -13,7 +16,13 @@ from fastapi.testclient import TestClient
 from datetime import datetime
 from sqlalchemy.orm import Session
 
+from backend.app.core.security import create_access_token
 from backend.app.models import Notification, User
+
+
+def _auth_header(user_id: int) -> dict[str, str]:
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
@@ -49,11 +58,23 @@ def test_notification(db: Session, test_user: User):
     return notification
 
 
+def test_get_unread_notifications_requires_auth(
+    client: TestClient, db: Session, test_user: User, test_notification: Notification
+):
+    """Unauthenticated unread list must remain rejected (401)."""
+    response = client.get(
+        "/notifications/unread",
+        params={"user_id": test_user.id, "limit": 20},
+    )
+    assert response.status_code == 401
+
+
 def test_get_unread_notifications(client: TestClient, db: Session, test_user: User, test_notification: Notification):
     """Test GET /notifications/unread returns unread notifications"""
     response = client.get(
         "/notifications/unread",
-        params={"user_id": test_user.id, "limit": 20}
+        params={"user_id": test_user.id, "limit": 20},
+        headers=_auth_header(test_user.id),
     )
     
     assert response.status_code == 200
@@ -72,7 +93,8 @@ def test_get_unread_notifications_with_type_filter(client: TestClient, db: Sessi
     """Test GET /notifications/unread with type filter"""
     response = client.get(
         "/notifications/unread",
-        params={"user_id": test_user.id, "type": "morning_brief", "limit": 20}
+        params={"user_id": test_user.id, "type": "morning_brief", "limit": 20},
+        headers=_auth_header(test_user.id),
     )
     
     assert response.status_code == 200
@@ -103,7 +125,8 @@ def test_get_unread_notifications_limit(client: TestClient, db: Session, test_us
     
     response = client.get(
         "/notifications/unread",
-        params={"user_id": test_user.id, "limit": 3}
+        params={"user_id": test_user.id, "limit": 3},
+        headers=_auth_header(test_user.id),
     )
     
     assert response.status_code == 200
@@ -119,7 +142,8 @@ def test_mark_notification_read(client: TestClient, db: Session, test_user: User
     
     response = client.post(
         f"/notifications/{test_notification.id}/mark-read",
-        params={"user_id": test_user.id}
+        params={"user_id": test_user.id},
+        headers=_auth_header(test_user.id),
     )
     
     assert response.status_code == 200
@@ -137,22 +161,23 @@ def test_mark_notification_read_idempotent(client: TestClient, db: Session, test
     # Mark as read first time
     response1 = client.post(
         f"/notifications/{test_notification.id}/mark-read",
-        params={"user_id": test_user.id}
+        params={"user_id": test_user.id},
+        headers=_auth_header(test_user.id),
     )
     assert response1.status_code == 200
     
     # Mark as read second time (should still succeed)
     response2 = client.post(
         f"/notifications/{test_notification.id}/mark-read",
-        params={"user_id": test_user.id}
+        params={"user_id": test_user.id},
+        headers=_auth_header(test_user.id),
     )
     assert response2.status_code == 200
     assert response2.json()["ok"] is True
 
 
 def test_mark_notification_read_ownership_validation(client: TestClient, db: Session, test_user: User, test_notification: Notification):
-    """Test POST /notifications/{id}/mark-read validates ownership"""
-    # Create another user
+    """Non-owner JWT must not mark another user's notification read (HTTP 403)."""
     other_user = User(
         name="Other User",
         secret_key="other123",
@@ -160,17 +185,38 @@ def test_mark_notification_read_ownership_validation(client: TestClient, db: Ses
     )
     db.add(other_user)
     db.commit()
+    db.refresh(other_user)
     
-    # Try to mark notification as read with wrong user_id
     response = client.post(
         f"/notifications/{test_notification.id}/mark-read",
-        params={"user_id": other_user.id}
+        params={"user_id": other_user.id},
+        headers=_auth_header(other_user.id),
     )
     
-    assert response.status_code == 200  # API returns 200 with error in body
-    data = response.json()
-    assert data["ok"] is False
-    assert data["error"]["code"] == "FORBIDDEN"
+    assert response.status_code == 403
+    db.refresh(test_notification)
+    assert test_notification.is_read is False
+
+
+def test_mark_notification_read_user_id_mismatch_rejected(
+    client: TestClient, db: Session, test_user: User, test_notification: Notification
+):
+    """JWT owner cannot spoof a different user_id query (HTTP 403)."""
+    other_user = User(
+        name="Mismatch User",
+        secret_key="mismatch123",
+        preferred_language="en",
+    )
+    db.add(other_user)
+    db.commit()
+    db.refresh(other_user)
+
+    response = client.post(
+        f"/notifications/{test_notification.id}/mark-read",
+        params={"user_id": other_user.id},
+        headers=_auth_header(test_user.id),
+    )
+    assert response.status_code == 403
 
 
 def test_submit_feedback_standardized(client: TestClient, db: Session, test_user: User, test_notification: Notification):
@@ -184,7 +230,8 @@ def test_submit_feedback_standardized(client: TestClient, db: Session, test_user
     response = client.post(
         f"/notifications/{test_notification.id}/feedback",
         json=feedback_payload,
-        params={"user_id": test_user.id}
+        params={"user_id": test_user.id},
+        headers=_auth_header(test_user.id),
     )
     
     assert response.status_code == 200
@@ -205,7 +252,8 @@ def test_submit_feedback_all_types(client: TestClient, db: Session, test_user: U
         response = client.post(
             f"/notifications/{test_notification.id}/feedback",
             json=feedback_payload,
-            params={"user_id": test_user.id}
+            params={"user_id": test_user.id},
+            headers=_auth_header(test_user.id),
         )
         
         assert response.status_code == 200
@@ -215,8 +263,7 @@ def test_submit_feedback_all_types(client: TestClient, db: Session, test_user: U
 
 
 def test_submit_feedback_ownership_validation(client: TestClient, db: Session, test_user: User, test_notification: Notification):
-    """Test POST /notifications/{id}/feedback validates ownership"""
-    # Create another user
+    """Non-owner JWT must not submit feedback on another user's notification (HTTP 403)."""
     other_user = User(
         name="Other User",
         secret_key="other123",
@@ -224,23 +271,21 @@ def test_submit_feedback_ownership_validation(client: TestClient, db: Session, t
     )
     db.add(other_user)
     db.commit()
+    db.refresh(other_user)
     
     feedback_payload = {
         "feedback": "positive",
         "reason": "Test"
     }
     
-    # Try to submit feedback with wrong user_id
     response = client.post(
         f"/notifications/{test_notification.id}/feedback",
         json=feedback_payload,
-        params={"user_id": other_user.id}
+        params={"user_id": other_user.id},
+        headers=_auth_header(other_user.id),
     )
     
-    assert response.status_code == 200  # API returns 200 with error in body
-    data = response.json()
-    assert data["ok"] is False
-    assert data["error"]["code"] == "FORBIDDEN"
+    assert response.status_code == 403
 
 
 def test_get_unread_excludes_read_notifications(client: TestClient, db: Session, test_user: User, test_notification: Notification):
@@ -251,7 +296,8 @@ def test_get_unread_excludes_read_notifications(client: TestClient, db: Session,
     
     response = client.get(
         "/notifications/unread",
-        params={"user_id": test_user.id, "limit": 20}
+        params={"user_id": test_user.id, "limit": 20},
+        headers=_auth_header(test_user.id),
     )
     
     assert response.status_code == 200
