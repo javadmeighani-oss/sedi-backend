@@ -186,4 +186,5 @@ jobs:
             backend/tests/test_section15_b8_interaction_idempotency.py \
             backend/tests/test_gate4c_interaction_events.py \
             backend/tests/test_section15_i1_intelligence_orchestrator.py \
+            backend/tests/test_section15_i2_context_adapters.py \
             --tb=short

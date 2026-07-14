@@ -347,28 +347,17 @@ class ConversationBrain:
         user_name: Optional[str] = None,
         *,
         notification_context: Optional[dict] = None,
+        structured_context_projection: Optional[str] = None,
+        structured_preferred_name: Optional[str] = None,
+        use_structured_context: bool = False,
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
-        
-        Flow:
-        1. Get current conversation stage
-        2. Build conversation context
-        3. Generate response using prompts
-        4. Save conversation to memory
-        5. Check for stage transition
-        6. Return response with metadata
-        
-        Args:
-            user_id: User ID
-            user_message: User's message
-        
-        Returns:
-            Dict with:
-            - message: Sedi's response text
-            - language: Language code
-            - stage: Current conversation stage
-            - metadata: Optional metadata (tone, intent, etc.)
+
+        When use_structured_context=True and a projection is supplied (Section 15-I2
+        structured mode), covered bolted-on packs (USER_CONTEXT, USER_PROFILE,
+        RAG_CONTEXT, notification block, recent history) are not reloaded —
+        the prebuilt projection is injected once instead.
         """
         # TEMP DEBUG: Log entry
         print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
@@ -397,52 +386,66 @@ class ConversationBrain:
             from backend.app.core.conversation.prompts import client as gpt_client, build_system_prompt_with_context
             from backend.app.core.conversation.persona_policy_v1 import PersonaPolicyV1
 
-            # Stage 23 Step 3: User-aware system prompt (Persona v1 + context block). Fail-open if context fetch fails.
+            structured_mode = bool(
+                use_structured_context and structured_context_projection
+            )
+
             pack = None
-            try:
-                from backend.app.services.user_context import UserContextService
-                pack = UserContextService(self.db).get_user_context(user_id)
-            except Exception as ctx_err:
-                print(f"[BRAIN WARNING] UserContext fetch failed (non-critical, proceeding): {ctx_err}")
+            preferred_name = structured_preferred_name
+            context_block = None
+            if not structured_mode:
+                # Compatibility / legacy path: load UserContext as today.
+                try:
+                    from backend.app.services.user_context import UserContextService
+                    pack = UserContextService(self.db).get_user_context(user_id)
+                except Exception as ctx_err:
+                    print(f"[BRAIN WARNING] UserContext fetch failed (non-critical, proceeding): {ctx_err}")
+                preferred_name = getattr(pack, "preferred_name", None) if pack else None
+                context_block = _build_user_context_block(pack)
 
             lang = PersonaPolicyV1.resolve_language(
                 (getattr(pack, "language", None) if pack else None) or self.language
             )
-            preferred_name = getattr(pack, "preferred_name", None) if pack else None
-            context_block = _build_user_context_block(pack)
-            system_prompt_content = build_system_prompt_with_context(lang, preferred_name, context_block)
+            system_prompt_content = build_system_prompt_with_context(
+                lang, preferred_name, context_block
+            )
 
             messages = [
                 {"role": "system", "content": system_prompt_content}
             ]
-            # User Knowledge: stable baseline + facts (compact, after main system, before history)
-            user_knowledge_str = _build_user_knowledge_context(self.db, user_id)
-            if user_knowledge_str:
-                messages.append({"role": "system", "content": user_knowledge_str})
 
-            # Stage 17.5: Optional Local RAG context (gated; no behavior change when disabled)
-            _maybe_append_local_rag_context(messages, self.db, user_id, user_message, self.language)
+            if structured_mode:
+                # Connected I2 path: single prebuilt projection replaces covered packs.
+                messages.append(
+                    {"role": "system", "content": structured_context_projection}
+                )
+            else:
+                # User Knowledge: stable baseline + facts (compact, after main system, before history)
+                user_knowledge_str = _build_user_knowledge_context(self.db, user_id)
+                if user_knowledge_str:
+                    messages.append({"role": "system", "content": user_knowledge_str})
 
-            # Stage 23 Step 5: Facts-anchored RAG context (fail-open; medical risk gate)
-            _maybe_append_rag_context_v1(messages, self.db, user_id, user_message, lang)
-
-            # Gate 3: care context for medical intents (canonical stores only)
-            _maybe_append_gate3_care_context(messages, self.db, user_id, user_message, lang)
-
-            notification_block = _format_notification_context_block(notification_context)
-            if notification_block:
-                messages.append({"role": "system", "content": notification_block})
-
-            # Optionally append history if available (non-blocking)
-            try:
-                recent_messages = self.memory.get_recent_messages(user_id, limit=10)
-                for msg in reversed(recent_messages):  # Oldest first
-                    if msg.user_message and msg.sedi_response:
-                        messages.append({"role": "user", "content": msg.user_message})
-                        messages.append({"role": "assistant", "content": msg.sedi_response})
-            except Exception as history_error:
-                # Memory failure is non-critical - continue without history
-                print(f"[BRAIN WARNING] Could not load history (non-critical): {history_error}")
+            if not structured_mode:
+                # Stage 17.5: Optional Local RAG context (gated)
+                _maybe_append_local_rag_context(messages, self.db, user_id, user_message, self.language)
+                # Stage 23 Step 5: Facts-anchored RAG context (fail-open; medical risk gate)
+                _maybe_append_rag_context_v1(messages, self.db, user_id, user_message, lang)
+                # Gate 3: care context for medical intents (canonical stores only)
+                # Covered health/lifestyle facts are supplied by I2 in structured mode — do not reload.
+                _maybe_append_gate3_care_context(messages, self.db, user_id, user_message, lang)
+                notification_block = _format_notification_context_block(notification_context)
+                if notification_block:
+                    messages.append({"role": "system", "content": notification_block})
+                # Optionally append history if available (non-blocking)
+                try:
+                    recent_messages = self.memory.get_recent_messages(user_id, limit=10)
+                    for msg in reversed(recent_messages):  # Oldest first
+                        if msg.user_message and msg.sedi_response:
+                            messages.append({"role": "user", "content": msg.user_message})
+                            messages.append({"role": "assistant", "content": msg.sedi_response})
+                except Exception as history_error:
+                    # Memory failure is non-critical - continue without history
+                    print(f"[BRAIN WARNING] Could not load history (non-critical): {history_error}")
             
             # Always append current user message
             messages.append({"role": "user", "content": user_message})

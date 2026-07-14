@@ -18,6 +18,7 @@ from backend.app.services.i18n.locale import DEFAULT_LANG, normalize_lang
 from backend.app.services.intelligence.contracts import (
     CONTRACT_VERSION,
     STAGE_ORDER,
+    STRUCTURED_READINESS_REASON_CODES,
     ConversationOrigin,
     LanguageCode,
     NotificationOrigin,
@@ -43,6 +44,9 @@ class LegacyGeneratorProtocol(Protocol):
         user_name: Optional[str] = None,
         *,
         notification_context: Optional[dict] = None,
+        structured_context_projection: Optional[str] = None,
+        structured_preferred_name: Optional[str] = None,
+        use_structured_context: bool = False,
     ) -> Dict[str, Any]:
         ...
 
@@ -54,6 +58,9 @@ def _default_legacy_generator(db: Session, language: str) -> LegacyGenerator:
         user_name: Optional[str] = None,
         *,
         notification_context: Optional[dict] = None,
+        structured_context_projection: Optional[str] = None,
+        structured_preferred_name: Optional[str] = None,
+        use_structured_context: bool = False,
     ) -> Dict[str, Any]:
         brain = ConversationBrain(db, language=language)
         return brain.process_message(
@@ -61,6 +68,9 @@ def _default_legacy_generator(db: Session, language: str) -> LegacyGenerator:
             user_message,
             user_name,
             notification_context=notification_context,
+            structured_context_projection=structured_context_projection,
+            structured_preferred_name=structured_preferred_name,
+            use_structured_context=use_structured_context,
         )
 
     return _generate
@@ -128,10 +138,12 @@ class IntelligenceOrchestrator:
         db: Optional[Session] = None,
         legacy_generator: Optional[LegacyGenerator] = None,
         structured_mode: Optional[bool] = None,
+        context_assembler: Optional[Any] = None,
     ) -> None:
         self._db = db
         self._legacy_generator = legacy_generator
         self._structured_mode_override = structured_mode
+        self._context_assembler = context_assembler
 
     def _rollout_mode(self) -> RolloutMode:
         if self._structured_mode_override is not None:
@@ -246,8 +258,82 @@ class IntelligenceOrchestrator:
             duration_ms=(time.perf_counter() - t0) * 1000.0,
         )
 
-        # 5) prepare_compatibility_generation
-        # I1 always selects the legacy brain, including structured mode.
+        # 5) assemble_authorized_context (structured mode only — connected I2 path)
+        structured_projection: Optional[str] = None
+        structured_preferred_name: Optional[str] = None
+        use_structured_context = False
+        t0 = time.perf_counter()
+        if rollout_mode == "structured":
+            if self._db is None and self._context_assembler is None:
+                ctx.append_stage(
+                    StageName.ASSEMBLE_AUTHORIZED_CONTEXT,
+                    "failed",
+                    ReasonCode.CONTEXT_ASSEMBLY_FAILED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise OrchestrationError(
+                    "context_assembly_failed",
+                    reason_code=ReasonCode.CONTEXT_ASSEMBLY_FAILED,
+                )
+            try:
+                from backend.app.services.intelligence.assembler import (
+                    AuthorizedContextAssembler,
+                )
+
+                assembler = self._context_assembler or AuthorizedContextAssembler()
+                snapshot = assembler.assemble(
+                    self._db,
+                    authenticated_user_id=authenticated_user_id,
+                    request_id=ctx.request_id,
+                    notification_context=generation_notification_context,
+                    source_notification_id=source_notification_id,
+                )
+                projection = assembler.build_compatibility_projection(snapshot)
+                structured_projection = projection.text
+                structured_preferred_name = projection.preferred_name
+                use_structured_context = True
+                for code in snapshot.reason_codes:
+                    if code not in extra_reason_codes:
+                        extra_reason_codes.append(code)
+                if (
+                    projection.truncated
+                    and ReasonCode.CONTEXT_BUDGET_TRUNCATED.value
+                    not in extra_reason_codes
+                ):
+                    extra_reason_codes.append(ReasonCode.CONTEXT_BUDGET_TRUNCATED.value)
+                for readiness in STRUCTURED_READINESS_REASON_CODES:
+                    if readiness.value not in extra_reason_codes:
+                        extra_reason_codes.append(readiness.value)
+                ctx.append_stage(
+                    StageName.ASSEMBLE_AUTHORIZED_CONTEXT,
+                    "ok",
+                    ReasonCode.CONTEXT_ASSEMBLED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except OrchestrationError:
+                raise
+            except Exception:
+                ctx.append_stage(
+                    StageName.ASSEMBLE_AUTHORIZED_CONTEXT,
+                    "failed",
+                    ReasonCode.CONTEXT_ASSEMBLY_FAILED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                # Fail closed: no silent bypass to unstructured generation after I2 failure.
+                raise OrchestrationError(
+                    "context_assembly_failed",
+                    reason_code=ReasonCode.CONTEXT_ASSEMBLY_FAILED,
+                )
+        else:
+            ctx.append_stage(
+                StageName.ASSEMBLE_AUTHORIZED_CONTEXT,
+                "skipped",
+                ReasonCode.CONTEXT_ASSEMBLY_SKIPPED_COMPATIBILITY,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+
+        # 6) prepare_compatibility_generation
+        # Legacy brain remains the generator; structured mode supplies prebuilt context.
         t0 = time.perf_counter()
         if rollout_mode == "structured":
             extra_reason_codes.append(ReasonCode.STRUCTURED_MODE_ACTIVE.value)
@@ -264,14 +350,19 @@ class IntelligenceOrchestrator:
                 raise OrchestrationError("missing_db_for_legacy_generator")
             generator = _default_legacy_generator(self._db, lang)
 
-        # 6) generate_with_legacy_brain — exactly once; no out-of-band retry
+        # 7) generate_with_legacy_brain — exactly once; no out-of-band retry
         t0 = time.perf_counter()
         try:
             raw = generator(
                 authenticated_user_id,
                 message,
                 None,
-                notification_context=generation_notification_context,
+                notification_context=(
+                    None if use_structured_context else generation_notification_context
+                ),
+                structured_context_projection=structured_projection,
+                structured_preferred_name=structured_preferred_name,
+                use_structured_context=use_structured_context,
             )
         except Exception:
             ctx.append_stage(
@@ -289,7 +380,7 @@ class IntelligenceOrchestrator:
             duration_ms=(time.perf_counter() - t0) * 1000.0,
         )
 
-        # 7) validate_generation_result
+        # 8) validate_generation_result
         t0 = time.perf_counter()
         if not isinstance(raw, dict):
             ctx.append_stage(
@@ -328,7 +419,7 @@ class IntelligenceOrchestrator:
             duration_ms=(time.perf_counter() - t0) * 1000.0,
         )
 
-        # 8) complete
+        # 9) complete
         t0 = time.perf_counter()
         ctx.append_stage(
             StageName.COMPLETE,

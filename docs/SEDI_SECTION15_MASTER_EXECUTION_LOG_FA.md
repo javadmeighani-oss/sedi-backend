@@ -1658,4 +1658,270 @@ production migration، deploy، SSH، image، flag activation، commit، rerun،
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-I1-TestFix implemented (unverified CI) — ۲۰۲۶-۰۷-۱۴*
+## ۳۳) Package 15-I1-TestFix — push + CI validation @ `a704b15` — **verified**
+
+### ۳۳.۱ commit و push
+| مورد | مقدار |
+|------|--------|
+| Commit | `a704b15d7dcbda8c00b4ca081f6bd974a3a9e345` |
+| Subject | `fix(intelligence): own result language from normalized request locale` |
+| Parent | `e9da0c2f540401e70c74a5cab6d7eec3af7ab0f0` |
+| Push timestamp (UTC) | ۲۰۲۶-۰۷-۱۴ ~15:55Z |
+| Remote SHA verified | `a704b15d7dcbda8c00b4ca081f6bd974a3a9e345` |
+| `origin/main` | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+| Flag `SEDI_INTELLIGENCE_ORCHESTRATOR_V1` | **inactive** (default false) |
+
+### ۳۳.۲ GitHub Actions run
+| مورد | مقدار |
+|------|--------|
+| Workflow | Backend V1 freeze tests |
+| Run ID | **29347442538** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29347442538 |
+| Event | workflow_dispatch |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Head SHA | `a704b15d7dcbda8c00b4ca081f6bd974a3a9e345` |
+| Created (UTC) | ۲۰۲۶-۰۷-۱۴ 15:55:13Z |
+| Duration | ~1m47s |
+| **Conclusion** | **success** |
+
+### ۳۳.۳ Existing freeze suite (actual)
+| Step | Passed |
+|------|--------|
+| Section 10 + contract | **91** |
+| contracts / OpenAPI | **27** |
+| interact stabilization | **147** |
+| OTP/SMS gateway | **171** |
+| acceptance subset | **12** (3+6+1+1+1) |
+| notification prefs | **4** |
+| **جمع freeze** | **452** (0 failed) |
+
+`alembic upgrade head` موفق روی ephemeral PostgreSQL؛ `050_gate4_event_idem` فقط ephemeral. production/staging تماس نگرفته.
+
+### ۳۳.۴ Section 15 step
+| مورد | مقدار |
+|------|--------|
+| Collected | **115** |
+| Passed | **115** |
+| Failed | **0** |
+| Skipped | **0** |
+| Deselected | **0** |
+| Warnings | 1 |
+| Duration | ~2.56s |
+
+**هشت فایل explicit — همه passed:**
+1. `test_memory_history_timezone_v1.py`
+2. `test_notification_inbox_gate4_v1.py`
+3. `test_gate4_push_channel_routing_v1.py`
+4. `test_notification_api_b2.py`
+5. `test_section15_i0_interaction_response.py`
+6. `test_section15_b8_interaction_idempotency.py`
+7. `test_gate4c_interaction_events.py`
+8. `test_section15_i1_intelligence_orchestrator.py`
+
+Baseline غیر-I1 = **۸۲/۸۲** passed. I1 = **۳۳** tests (**۳۳/۳۳** passed). جمع 115 (= 82 + 33؛ +۱ نسبت به run شکست‌خورده به‌خاطر regression جدید).
+
+### ۳۳.۵ شش failure قبلی → این run
+| Test | Result |
+|------|--------|
+| `test_language_normalization[fa-fa]` | **PASSED** |
+| `test_language_normalization[FA-fa]` | **PASSED** |
+| `test_language_normalization[ar-ar]` | **PASSED** |
+| `test_two_users_do_not_share_state` | **PASSED** |
+| `test_trace_excludes_raw_user_message_and_user_id` | **PASSED** |
+| `test_notification_origin_uses_safe_ids_only` | **PASSED** |
+
+### ۳۳.۶ regression جدید
+| Test | Result |
+|------|--------|
+| `test_result_language_ignores_legacy_generator_language_in_both_modes` | **PASSED** |
+
+(همچنین تمام cases پارامتری زبان: en-US/xx/empty/invalid → en — **PASSED**)
+
+### ۳۳.۷ ماتریس پوشش I1 (verified)
+| رفتار | وضعیت |
+|--------|--------|
+| Router → orchestrator connected | **verified passed** |
+| Compatibility mode (flag OFF) | **verified passed** |
+| Structured mode (flag ON) | **verified passed** |
+| Flag default false | **verified passed** |
+| Single generator call | **verified passed** |
+| Normalized language ownership | **verified passed** |
+| fa/ar/en/invalid behavior | **verified passed** |
+| Two-user language isolation | **verified passed** |
+| Request/concurrency isolation | **verified passed** |
+| Server request IDs | **verified passed** |
+| JWT identity | **verified passed** |
+| Caller user_id rejection | **verified passed** |
+| Deterministic stage order | **verified passed** |
+| Safe reason codes | **verified passed** |
+| No raw message/user ID/health in trace | **verified passed** |
+| Safe notification origin | **verified passed** |
+| Empty output failure | **verified passed** |
+| Generator exception without bypass | **verified passed** |
+| No duplicate persistence/event | **verified passed** |
+| Reminder/settings compatibility | **verified passed** |
+| Public response compatibility | **verified passed** |
+| No external LLM/network | **verified passed** |
+
+### ۳۳.۸ وضعیت نهایی I1
+**verified** — 115/115 Section 15؛ freeze 452/452؛ شش failure قبلی سبز؛ regression زبان سبز؛ flag inactive.
+
+### ۳۳.۹ ممنوعیت‌ها
+production migration، deploy، SSH، image، flag activation، commit، rerun — **انجام نشد**. تست محلی — **اجرا نشد**.
+
+### ۳۳.۱۰ گام بعد
+**15-I2** — **unblocked** برای اجرای package بعدی پس از تأیید صریح.
+
+---
+
+## ۳۴) Package 15-I2 — Connected Authorized Context Adapters
+
+### ۳۴.۱ مجوز و محدودیت‌ها
+| مورد | مقدار |
+|------|--------|
+| Package | **15-I2** |
+| Base HEAD | `a704b15d7dcbda8c00b4ca081f6bd974a3a9e345` |
+| CI پایه | Run **29347442538** — 452 freeze + 115 Section 15 (I1 verified) |
+
+**ممنوع حفظ شد:** commit/push/dispatch، تست محلی، migration، durable memory write، KB hybrid، nutrition، FCM، frontend، flag activation، deploy.
+
+### ۳۴.۲ مصرف فعلی (inventory خلاصه)
+| کلاس | منابع |
+|------|--------|
+| A — مصرف chat امروز | Persona+`[USER_CONTEXT]`، `[USER_PROFILE]`، optional Local/RAG، CARE (پزشکی)، notification امن، ۱۰ turn حافظه |
+| B — ذخیره بدون مصرف chat | Vitals خام، caregiver phone، full care dict، quiet_hours در UCS، KcUserFact |
+| C — scaffold جدا | `unified_context_builder`، `prompt_assembler` (روی مسیر chat نیستند) |
+| D — خارج از گسترش I2 | body اعلان، raw health/dose، caregiver phones، device signals، cross-user |
+
+### ۳۴.۳ دامنه included / excluded I2
+**Included (فقط منابع قبلاً مصرف‌شده):** profile پایه، lifestyle/goals summary، conditions+medications (همان RAG helpers)، DailyMemorySummary + turns محدود، notification امن.
+
+**Excluded (query/projection نشد):** caregivers، emergency contacts، raw device/vitals/signals، notification prefs، InteractionEvent timeline، KcUserFact، KB جدید، شناسه‌های داخلی مخفی، داده کاربر دیگر.
+
+### ۳۴.۴ Adapterها
+`ProfileContextAdapter`، `LifestyleContextAdapter`، `HealthContextAdapter`، `CurrentMemoryContextAdapter`، `SafeNotificationContextAdapter` — همه با `authenticated_user_id` سرورساخت، session درخواست، بدون state سراسری.
+
+### ۳۴.۵ قرارداد / consent / freshness
+`context_types.py`: provenance، sensitivity، consent (`explicit|legacy_scope|unknown|denied`)، freshness (`fresh|stale|unknown|not_applicable`). Consent صریح ساخته نمی‌شود؛ داده مسیر فعلی = `legacy_scope`. بدون timestamp جعلی → freshness `unknown`.
+
+### ۳۴.۶ Precedence / conflict / budgets
+ترتیب adapter قطعی؛ precedence منبع؛ conflict هم‌سطح → mark + حذف از projection. Budgets: 10/section، 40 total، 3500 chars projection، 10 memory turns؛ truncation با reason امن.
+
+### ۳۴.۷ اتصال generation
+- Flag OFF: assembly **skipped**؛ brain legacy بدون تغییر.
+- Flag ON: assembler اجرا → projection به `ConversationBrain.process_message(..., use_structured_context=True)`؛ USER_CONTEXT/USER_PROFILE/Local RAG/RAG_CONTEXT/Gate3 care/notification/history **دوباره‌بارگیری نمی‌شوند**؛ یک generator call؛ failure assembly → fail-closed بدون bypass.
+
+### ۳۴.۸ فایل‌ها
+| مسیر | نقش |
+|------|-----|
+| `intelligence/context_types.py` | types/budgets |
+| `intelligence/adapters.py` | ۵ adapter |
+| `intelligence/assembler.py` | assembler + projection |
+| `intelligence/contracts.py` | stage assemble + reason codes |
+| `intelligence/orchestrator.py` | wire structured assembly |
+| `intelligence/__init__.py` | exports |
+| `core/conversation/brain.py` | optional prebuilt context path |
+| `tests/test_section15_i2_context_adapters.py` | I2 tests |
+| `tests/test_section15_i1_...` | سازگاری stage/kwargs |
+| `.github/workflows/ci-backend-tests.yml` | مسیر نهم |
+| master log | این §۳۴ |
+
+### ۳۴.۹ CI
+گام Section 15 اکنون **۹** path صریح دارد (I2 آخرین).
+
+### ۳۴.۱۰ وضعیت
+**implemented but unverified pending GitHub Actions**
+
+بدون تست محلی / commit / push / dispatch / migration / deploy / flag activation.
+
+### ۳۴.۱۱ بسته‌های نام‌دار باقی‌مانده
+I3 missing-info/intent؛ I4 safety/risk؛ I5 governed KB؛ I6 memory writes/consent؛ I7 semantic summaries؛ I8 nutrition؛ notification intelligence؛ weekly Knowledge Engine؛ FCM hardening؛ frontend intelligence UX؛ Gate 4 visuals.
+
+### ۳۴.۱۲ گام بعد
+review → commit approval → push/CI approval.
+
+---
+
+## ۳۵) Package 15-I2-PreCommitAudit — سیاست precedence / budget / parity / حریم سلامت
+
+### ۳۵.۱ وضعیت پایه
+| مورد | مقدار |
+|------|--------|
+| Package | **15-I2-PreCommitAudit** |
+| HEAD | `a704b15d7dcbda8c00b4ca081f6bd974a3a9e345` |
+| Scope dirty | فقط مسیرهای I2 (+ CI + master log) |
+
+### ۳۵.۲ Precedence قبل از audit
+`SOURCE_PRECEDENCE`: PROFILE=50، HEALTH=45، LIFESTYLE=40، MEMORY=30، NOTIFICATION=20 — **ادعای authority بدون evidence مخزن**.
+Assembler نابرابر precedence را **خاموش supersede** می‌کرد.
+
+### ۳۵.۳ شواهد authority در مخزن
+هیچ canonical source-of-truth برای supersession بین adapter sectionها یافت نشد.
+ترتیب قطعی projection مجاز است؛ authority برای حل تناقض فعال نیازمند evidence است — evidence غایب بود.
+
+### ۳۵.۴ اصلاح supersession
+سیاست نهایی:
+1. مقدار یکسان روی یک canonical key → coalesce + حفظ provenance ترکیبی.
+2. مقادیر متفاوت → conflicted + حذف از projection + `CONTEXT_CONFLICT_DETECTED`.
+3. `SOURCE_SORT_RANK` / `ADAPTER_ORDER` فقط ordering (نه authority).
+4. تازگی به‌تنهایی truth نیست.
+
+### ۳۵.۵ Budgets و provenance
+| مقدار | provenance | طبقه |
+|------|------------|------|
+| memory turns=10 | evidence: `get_recent_messages(..., limit=10)` | evidence-backed |
+| 10/section | — | `I2 conservative technical safety defaults pending evaluation` |
+| 40 total | — | همان technical default |
+| 3500 projection chars | — | technical default (نه token؛ نه سیاست پزشکی) |
+
+تمرکز در `ContextBudgets`؛ override تستی بدون state سراسری؛ truncation فقط روی whole lines/items؛ `CONTEXT_BUDGET_TRUNCATED` فقط هنگام truncation واقعی.
+
+### ۳۵.۶ ماتریس parity legacy→structured
+| Legacy | Structured | طبقه |
+|--------|------------|------|
+| Persona/system | `build_system_prompt_with_context` همچنان | parity preserved |
+| USER_CONTEXT | Profile+Lifestyle+Memory daily | parity preserved |
+| USER_PROFILE | Profile knowledge + UserFact | parity corrected |
+| RAG_CONTEXT (goals/habits/restrictions/events/conditions/meds/identity) | Lifestyle Gate2 + Health RAG helpers + identity facts | parity preserved (subset LLM-serialized) |
+| Gate3 CARE curated KB snippets | deferred | `GATE3_CARE_SNIPPETS_NOT_CONNECTED` → I5 |
+| Local/hybrid KB | deferred | `GOVERNED_KB_NOT_CONNECTED` → I5 |
+| notification safe block | SafeNotificationContextAdapter allowlist | parity preserved |
+| last 10 Memory turns | CurrentMemoryContextAdapter | parity preserved |
+| doctors/care_plan dump / quiet_hours UCS | intentionally excluded | privacy / not dedicated LLM lines |
+| Flag | default OFF | inactive؛ structured **not production-ready** |
+
+### ۳۵.۷ Structured readiness (داخلی فقط)
+Reason codes: `CONTEXT_ADAPTERS_CONNECTED`، `GOVERNED_KB_NOT_CONNECTED`، `GATE3_CARE_SNIPPETS_NOT_CONNECTED`، `MISSING_INFORMATION_ENGINE_NOT_CONNECTED`، `ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED`، `CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED`، `SEMANTIC_SUMMARIES_NOT_CONNECTED`، `STRUCTURED_MODE_NOT_PRODUCTION_READY`.
+
+### ۳۵.۸ ماتریس health/medication
+| فیلد | legacy brain | حساسیت | consent | LLM | دلیل |
+|------|--------------|--------|--------|-----|------|
+| medical condition name | yes (RAG) | high | legacy_scope | yes | parity |
+| medication name+dosage+times string | yes (`_get_user_medications_for_context`) | high | legacy_scope | yes | evidence-backed preservation |
+| raw vitals/signals/clinician notes | no | — | — | no | excluded |
+| DB IDs / caregivers | no | — | — | no | excluded |
+
+### ۳۵.۹ Notification privacy
+Allowlist هم‌تراز brain/A1: category/template_key/risk_level/source_type/source_id/title/summary/conversation_id/interaction_source + sanitized hints. body/dose/health/FCM dump رد می‌شوند.
+
+### ۳۵.۱۰ No double-load
+Assembler یک‌بار `UserContextService.get_user_context`؛ structured brain reload نمی‌کند UCS/USER_PROFILE/RAG/Local/Gate3/notification/history؛ generator یک‌بار؛ failure assembly → صفر generator.
+
+### ۳۵.۱۱ تست‌ها
+`test_section15_i2_context_adapters.py` تقویت شد (coalesce، cross-source conflict، budget override، readiness، persona، allowlist، UCS once، …). CI مسیر نهم بدون تغییر نام فایل.
+
+### ۳۵.۱۲ فایل‌های تغییر یافته در این audit
+`context_types.py`، `adapters.py`، `assembler.py`، `contracts.py`، `orchestrator.py`، `__init__.py`، `test_section15_i2_context_adapters.py`، master log (§۳۵). brain/CI در صورت نیاز parity از I2 حفظ.
+
+### ۳۵.۱۳ ممنوعیت‌ها
+تست محلی / commit / push / dispatch / migration / deploy / flag activation — **انجام نشد**.
+
+### ۳۵.۱۴ وضعیت
+**implemented but unverified pending GitHub Actions**
+
+### ۳۵.۱۵ گام بعد
+review → commit approval → push/CI approval.
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-I2-PreCommitAudit — ۲۰۲۶-۰۷-۱۴*

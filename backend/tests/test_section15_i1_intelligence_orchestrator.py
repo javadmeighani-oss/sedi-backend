@@ -71,10 +71,59 @@ def notification_for_user(db, user):
 
 
 def _legacy_ok(**_kwargs):
-    def _gen(user_id, user_message, user_name=None, *, notification_context=None):
+    def _gen(
+        user_id,
+        user_message,
+        user_name=None,
+        *,
+        notification_context=None,
+        structured_context_projection=None,
+        structured_preferred_name=None,
+        use_structured_context=False,
+        **__kwargs,
+    ):
         return {"message": f"echo:{user_message}", "language": "en"}
 
     return _gen
+
+
+def _stub_assembler():
+    """Minimal assembler for I1 structured-mode unit tests without a DB."""
+    from backend.app.services.intelligence.context_types import (
+        CompatibilityProjection,
+        ContextSnapshot,
+        ContextSection,
+    )
+    from backend.app.services.intelligence.contracts import ReasonCode
+
+    class _Stub:
+        def assemble(self, db, *, authenticated_user_id, request_id, notification_context=None, source_notification_id=None):
+            return ContextSnapshot(
+                request_id=request_id,
+                owner_user_id=authenticated_user_id,
+                sections={
+                    n: ContextSection(name=n, empty_reason="no_data")  # type: ignore[arg-type]
+                    for n in ("profile", "lifestyle", "health", "memory", "notification")
+                },
+                items=[],
+                preferred_name=None,
+                conflict_count=0,
+                truncated_count=0,
+                reason_codes=(ReasonCode.CONTEXT_ASSEMBLED.value,),
+                adapter_order=("profile", "lifestyle", "health", "memory", "notification"),
+            )
+
+        def build_compatibility_projection(self, snapshot):
+            return CompatibilityProjection(
+                text="[STRUCTURED_CONTEXT]",
+                item_count=0,
+                char_count=len("[STRUCTURED_CONTEXT]"),
+                truncated=False,
+                excluded_conflict_count=0,
+                preferred_name=None,
+            )
+
+    return _Stub()
 
 
 # ---------------------------------------------------------------------------
@@ -102,11 +151,15 @@ def test_flag_off_uses_compatibility_mode(monkeypatch):
     assert result.rollout_mode == "compatibility"
     assert ReasonCode.COMPATIBILITY_GENERATOR_SELECTED.value in result.reason_codes
     assert ReasonCode.STRUCTURED_MODE_ACTIVE.value not in result.reason_codes
+    assert ReasonCode.CONTEXT_ASSEMBLY_SKIPPED_COMPATIBILITY.value in result.reason_codes
 
 
 def test_flag_on_uses_structured_mode_without_claiming_future_capabilities(monkeypatch):
     monkeypatch.setenv("SEDI_INTELLIGENCE_ORCHESTRATOR_V1", "true")
-    orch = IntelligenceOrchestrator(legacy_generator=_legacy_ok())
+    orch = IntelligenceOrchestrator(
+        legacy_generator=_legacy_ok(),
+        context_assembler=_stub_assembler(),
+    )
     result = orch.process(
         authenticated_user_id=1,
         message="hello",
@@ -115,6 +168,7 @@ def test_flag_on_uses_structured_mode_without_claiming_future_capabilities(monke
     assert result.rollout_mode == "structured"
     assert ReasonCode.STRUCTURED_MODE_ACTIVE.value in result.reason_codes
     assert ReasonCode.COMPATIBILITY_GENERATOR_SELECTED.value in result.reason_codes
+    assert ReasonCode.CONTEXT_ASSEMBLED.value in result.reason_codes
     joined = " ".join(result.reason_codes).lower()
     assert "nutrition" not in joined
     assert "weekly_kb" not in joined
@@ -211,13 +265,24 @@ def test_language_normalization(raw, expected):
 
 
 def test_result_language_ignores_legacy_generator_language_in_both_modes():
-    def gen_always_en(user_id, user_message, user_name=None, *, notification_context=None):
+    def gen_always_en(
+        user_id,
+        user_message,
+        user_name=None,
+        *,
+        notification_context=None,
+        structured_context_projection=None,
+        structured_preferred_name=None,
+        use_structured_context=False,
+        **_kwargs,
+    ):
         return {"message": f"echo:{user_message}", "language": "en"}
 
     for structured in (False, True):
         orch = IntelligenceOrchestrator(
             legacy_generator=gen_always_en,
             structured_mode=structured,
+            context_assembler=_stub_assembler() if structured else None,
         )
         fa = orch.process(authenticated_user_id=1, message="سلام", language="fa")
         ar = orch.process(authenticated_user_id=1, message="مرحبا", language="ar")
@@ -260,7 +325,7 @@ def test_timezone_available_safe_reason():
 def test_notification_origin_uses_safe_ids_only():
     captured = {}
 
-    def gen(user_id, user_message, user_name=None, *, notification_context=None):
+    def gen(user_id, user_message, user_name=None, *, notification_context=None, **_kwargs):
         captured["notification_context"] = notification_context
         return {"message": "ok", "language": "en"}
 
@@ -367,7 +432,7 @@ def test_concurrent_requests_do_not_share_stage_traces():
     results = {}
 
     def worker(uid: int, msg: str):
-        def gen(user_id, user_message, user_name=None, *, notification_context=None):
+        def gen(user_id, user_message, user_name=None, *, notification_context=None, **_kwargs):
             barrier.wait(timeout=5)
             return {"message": f"u{user_id}:{user_message}", "language": "en"}
 
