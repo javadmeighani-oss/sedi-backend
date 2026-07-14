@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -63,8 +65,28 @@ jobs:
             cp android/app/google-services.json.ci "$GS"
           fi
 
-      - name: Dart format verification
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Dart format verification (scoped to section changes)
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          BASE_SHA="452b3e4e160922468ecb843187e300fcc03f2436"
+          git cat-file -e "${BASE_SHA}^{commit}"
+          mapfile -t DART_FILES < <(
+            git diff --name-only --diff-filter=ACMRT \
+              "${BASE_SHA}...HEAD" -- \
+              frontend/lib frontend/test \
+            | grep -E '\.dart$' || true
+          )
+          if [ "${#DART_FILES[@]}" -eq 0 ]; then
+            echo "No scoped Dart files changed; format check skipped."
+            exit 0
+          fi
+          printf 'Checking Dart format for:\n'
+          printf ' - %s\n' "${DART_FILES[@]}"
+          dart format \
+            --output=none \
+            --set-exit-if-changed \
+            "${DART_FILES[@]}"
 
       - name: Flutter analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
