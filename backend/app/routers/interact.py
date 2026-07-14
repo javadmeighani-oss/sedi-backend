@@ -247,20 +247,40 @@ async def chat(
                 conversation_id=response_conversation_id,
             )
 
-        # Name is retrieved from memory/context by ConversationBrain - not passed as parameter
-        brain = ConversationBrain(db, language=response_language)
-        result = brain.process_message(
-            user.id,
-            message,
-            None,
-            notification_context=notification_context,
-        )  # name=None - will be retrieved from memory
+        # Section 15-I1: connected orchestration gateway (always invoked).
+        # Flag OFF = compatibility mode; flag ON = structured mode.
+        # Both modes use ConversationBrain as the explicit generation stage.
+        # Reminder/settings short-circuits above remain outside the orchestrator.
+        from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+        from backend.app.services.intelligence.contracts import OrchestrationError
+
+        orchestrator = IntelligenceOrchestrator(db=db)
+        try:
+            orch_result = orchestrator.process(
+                authenticated_user_id=user.id,
+                message=message,
+                language=response_language,
+                conversation_id=payload.conversation_id,
+                interaction_source=payload.interaction_source,
+                source_notification_id=response_source_notification_id,
+                notification_context=notification_context,
+            )
+        except OrchestrationError as orch_err:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "orchestration_error",
+                    "detail": orch_err.error_code,
+                },
+            ) from orch_err
+
+        result = orch_result.public_brain_dict()
 
         print(f"[CHAT] ===== AFTER GPT CALL =====")
         print(f"[CHAT] Response received: {result.get('message', '')[:100]}...")
         print(f"[CHAT] Response language: {result.get('language', 'unknown')}")
         print(f"[CHAT] ===== END AFTER GPT =====")
-        
+
         return InteractionResponse(
             message=result["message"],
             language=result["language"],

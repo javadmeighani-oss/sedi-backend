@@ -1289,4 +1289,195 @@ assert "DROP INDEX IF EXISTS {INDEX_NAME}" in text_src
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-B8-TestFix implemented (unverified CI) — ۲۰۲۶-۰۷-۱۴*
+## ۲۹) Package 15-B8-TestFix — push + CI validation @ `a176680`
+
+### ۲۹.۱ commit و push
+| مورد | مقدار |
+|------|--------|
+| Commit | `a17668071e580e456c82dad0d876b28c549825d3` |
+| Subject | `test(section15-b8): bind INDEX_NAME constant in migration source assertion` |
+| Parent | `eaf6634346d3e8b84fb196d3f7b9946052af0d5a` |
+| Push timestamp (UTC) | ۲۰۲۶-۰۷-۱۴ ~08:34Z |
+| Remote SHA verified | `a17668071e580e456c82dad0d876b28c549825d3` |
+| `origin/main` | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+
+### ۲۹.۲ GitHub Actions run
+| مورد | مقدار |
+|------|--------|
+| Workflow | Backend V1 freeze tests |
+| Path | `.github/workflows/ci-backend-tests.yml` |
+| Run ID | **29318539239** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29318539239 |
+| Event | workflow_dispatch |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Head SHA | `a17668071e580e456c82dad0d876b28c549825d3` |
+| Created (UTC) | ۲۰۲۶-۰۷-۱۴ 08:34:57Z |
+| Duration | ~1m38s |
+| **Conclusion** | **success** |
+
+### ۲۹.۳ Existing freeze suite (همان run — actual)
+| Step | Passed |
+|------|--------|
+| Section 10 + contract subset | **91** |
+| contracts | **27** |
+| interact stabilization | **147** |
+| OTP/SMS gateway | **171** |
+| acceptance subset | **12** (3+6+1+1+1) |
+| notification prefs | **4** |
+| **جمع freeze** | **452** (0 failed) |
+
+OpenAPI snapshot/contract validation passed. `alembic upgrade head` موفق روی ephemeral PostgreSQL CI (`127.0.0.1:5432/sedi_test`). revision `050_gate4_event_idem` اعمال شد — **فقط ephemeral CI**؛ production/staging تماس نگرفته.
+
+### ۲۹.۴ Section 15 step — `Section 15 backend foundation tests`
+| مورد | مقدار |
+|------|--------|
+| Collected | **82** |
+| Passed | **82** |
+| Failed | **0** |
+| Skipped | **0** |
+| Deselected | **0** |
+| Warnings | 1 |
+| Duration | ~2.16s |
+
+**هفت فایل explicit جمع‌آوری شد:**
+1. `test_memory_history_timezone_v1.py` ✓
+2. `test_notification_inbox_gate4_v1.py` ✓
+3. `test_gate4_push_channel_routing_v1.py` ✓
+4. `test_notification_api_b2.py` ✓
+5. `test_section15_i0_interaction_response.py` ✓
+6. `test_section15_b8_interaction_idempotency.py` ✓
+7. `test_gate4c_interaction_events.py` ✓
+
+### ۲۹.۵ B8 corrected assertion + PostgreSQL runtime
+| Test | Result |
+|------|--------|
+| `test_migration_source_defines_index_and_fail_closed_preflight` | **PASSED** |
+| `test_concurrent_duplicates_produce_one_row` | **PASSED** |
+| `test_migration_upgrade_creates_index_on_postgres` | **PASSED** |
+| `test_migration_preflight_fails_closed_on_duplicates` | **PASSED** |
+
+B8 `_require_postgres` tests **skip نشدند** — همه اجرا و passed.
+
+### ۲۹.۶ ماتریس پوشش Section 15 (verified)
+| حوزه | وضعیت |
+|------|--------|
+| A1 timezone/grouping/ISO week/current_group_key | **verified passed** |
+| A1 inbox metadata/ownership/safe context | **verified passed** |
+| B4 auth 401/ownership 403/JWT | **verified passed** |
+| B6 channel precedence | **verified passed** |
+| B7 invalid language → en | **verified passed** |
+| I0 `message`/LLM bypass/auth | **verified passed** (3 tests) |
+| B8 sequential/null-conversation/dedupe/isolation | **verified passed** |
+| B8 PG concurrency/index/preflight runtime | **verified passed** |
+| B8 migration static source assertions | **verified passed** |
+| Gate4C interaction events | **verified passed** |
+
+### ۲۹.۷ وضعیت نهایی B8
+**verified** — 82/82 Section 15 passed؛ freeze 452/452 passed؛ assertion اصلاح‌شده و runtime PostgreSQL B8 تأیید شد.
+
+### ۲۹.۸ ممنوعیت‌ها
+production migration، deploy، image publication، SSH، commit مجدد، rerun اضافی — **انجام نشد**. تست محلی — **اجرا نشد**.
+
+### ۲۹.۹ گام بعد
+**15-I1** — **unblocked** برای اجرای package بعدی پس از تأیید صریح.
+
+---
+
+## ۳۰) Package 15-I1 — Connected Intelligence Orchestrator Foundation
+
+### ۳۰.۱ مجوز و محدودیت‌ها
+| مورد | مقدار |
+|------|--------|
+| Package | **15-I1** |
+| Worktree | `Demo-wt-section15-backend` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Base HEAD | `a17668071e580e456c82dad0d876b28c549825d3` |
+| CI پایه | Run **29318539239** success / 82+452 |
+
+**مجاز:** intelligence modules، اتصال `/interact/chat`، تست I1، append به CI step Section 15، flag پیش‌فرض OFF، به‌روزرسانی master log.
+
+**ممنوع:** commit/push/dispatch، تست محلی، migration، deploy، فعال‌سازی flag، frontend، weekly KB، durable memory، nutrition، FCM، Gate 4 visual.
+
+### ۳۰.۲ مسیر تولید قبل از I1
+```
+POST /interact/chat
+  → JWT + ownership + reminder/settings short-circuits
+  → (notification verify + InteractionEvent)
+  → ConversationBrain(db).process_message(...)   # مستقیم از router
+  → InteractionResponse.message
+```
+
+### ۳۰.۳ مسیر متصل پس از I1
+```
+POST /interact/chat
+  → JWT + ownership + reminder/settings short-circuits (بدون تغییر مالکیت)
+  → (notification verify + InteractionEvent — قبل از orchestrator)
+  → IntelligenceOrchestrator.process(...)         # همیشه
+       → stages I1 deterministic
+       → legacy ConversationBrain via injected/default generator (یک‌بار)
+       → validate non-empty message
+  → InteractionResponse.message                   # قرارداد عمومی بدون تغییر
+```
+
+Orchestrator **disconnected scaffold نیست**: router مسیر generation دیگر `process_message` را مستقیم صدا نمی‌زند؛ همیشه از gateway عبور می‌کند (flag OFF = compatibility، flag ON = structured؛ هر دو از brain استفاده می‌کنند).
+
+### ۳۰.۴ فایل‌های افزوده‌/تغییریافته
+| فایل | نقش |
+|------|-----|
+| `backend/app/services/intelligence/__init__.py` | package export |
+| `backend/app/services/intelligence/contracts.py` | context/result/reason codes |
+| `backend/app/services/intelligence/feature_flags.py` | `SEDI_INTELLIGENCE_ORCHESTRATOR_V1` default OFF |
+| `backend/app/services/intelligence/orchestrator.py` | `IntelligenceOrchestrator` |
+| `backend/app/routers/interact.py` | wire generation path |
+| `backend/tests/test_section15_i1_intelligence_orchestrator.py` | I1 tests |
+| `.github/workflows/ci-backend-tests.yml` | append I1 test path (۸مین فایل) |
+| `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` | این §۳۰ |
+
+### ۳۰.۵ قرارداد داخلی context
+`sedi.intelligence.context.v1` — request-scoped؛ شامل metadata (`request_id` سرورساخت، UTC)، identity از JWT، conversation، locale (`fa|ar|en` + timezone reason)، notification origin فقط شناسه‌های امن، safety constraints، stage trace با reason code، rollout mode. پیام خام و health/body در trace ذخیره نمی‌شوند و به LLM به‌عنوان identity metadata ارسال نمی‌شوند.
+
+### ۳۰.۶ Flag
+`SEDI_INTELLIGENCE_ORCHESTRATOR_V1` — پیش‌فرض **false**. Router **همیشه** orchestrator را صدا می‌زند. OFF → `compatibility`؛ ON → `structured` بدون ادعای قابلیت‌های I2–I10. در هیچ محیطی فعال نشده.
+
+### ۳۰.۷ مراحل deterministic
+1. `initialize_request` → `CTX_INITIALIZED`
+2. `resolve_safe_identity` → `IDENTITY_FROM_JWT`
+3. `resolve_locale_context` → `LANGUAGE_NORMALIZED` (+ `TIMEZONE_AVAILABLE`/`TIMEZONE_UNAVAILABLE`)
+4. `resolve_conversation_origin` → `NOTIFICATION_CONTEXT_VERIFIED`/`ABSENT`
+5. `prepare_compatibility_generation` → `COMPATIBILITY_GENERATOR_SELECTED` (+ `STRUCTURED_MODE_ACTIVE` اگر ON)
+6. `generate_with_legacy_brain` → `LEGACY_GENERATION_COMPLETED` / `GENERATION_FAILED`
+7. `validate_generation_result` → `RESPONSE_VALIDATED` / `EMPTY_GENERATION_REJECTED`
+8. `complete` → `ORCHESTRATION_COMPLETED`
+
+### ۳۰.۸ شکست / no-bypass
+خروجی خالی brain → خطا (نه response خالی موفق). استثنای generator → بدون فراخوانی دوم/مستقیم brain از router. بدون double LLM، double persistence، یا double InteractionEvent. short-circuitهای reminder/settings بیرون از orchestrator می‌مانند.
+
+### ۳۰.۹ سازگاری legacy
+ConversationBrain همچنان generator است؛ persistence مالکیت قبلی حفظ شده (brain برای path عادی؛ router برای settings). قرارداد عمومی `InteractionResponse` و OpenAPI بدون تغییر مورد انتظار.
+
+### ۳۰.۱۰ تست‌ها
+`backend/tests/test_section15_i1_intelligence_orchestrator.py` — پوشش orchestrator invocation، یک‌بار بودن generator، JWT identity، flag OFF/ON، stage order، reason codes ایمن، locale/timezone، notification safe IDs، concurrency، empty/exception fail-closed، reminder/settings short-circuits، بدون LLM خارجی.
+
+تست‌های موجود که `ConversationBrain.process_message` را patch می‌کنند (I0/Gate4C) بدون بازنویسی مکانیکی حفظ شدند — مرز call هنوز به همان method می‌رسد.
+
+### ۳۰.۱۱ CI
+گام `Section 15 backend foundation tests` اکنون ۸ path صریح دارد؛ I1 آخرین آیتم است. بدون تغییر trigger/secret/runner/DB/deploy.
+
+### ۳۰.۱۲ بسته‌های نام‌دار باقی‌مانده (unowned نیست)
+weekly Knowledge Engine، durable/consent memory، semantic summary، nutrition intelligence، missing-info، FCM `user_id`، Gate 4 visuals — متعلق به packages بعدی Section 15 هستند.
+
+### ۳۰.۱۳ وضعیت
+**implemented but unverified pending GitHub Actions**
+
+| عمل | وضعیت |
+|-----|--------|
+| تست محلی / pytest | **اجرا نشد** |
+| commit / push / dispatch | **انجام نشد** |
+| migration / deploy / flag activation | **انجام نشد** |
+
+### ۳۰.۱۴ گام بعد
+review → commit approval → push/CI approval (انتظار: Section 15 شامل I1 سبز).
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-I1 implemented (unverified CI) — ۲۰۲۶-۰۷-۱۴*
