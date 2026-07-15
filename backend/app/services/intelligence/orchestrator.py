@@ -1,8 +1,8 @@
-"""Section 15-I1 — Connected Intelligence Orchestrator foundation.
+"""Section 15-I1/I3 — Connected Intelligence Orchestrator.
 
 Always invoked by POST /interact/chat for the normal generation path.
 Flag OFF = compatibility mode; flag ON = structured mode.
-Both modes still run deterministic I1 stages and legacy ConversationBrain generation.
+I3 intent/readiness runs only in structured mode after successful I2 assembly.
 """
 
 from __future__ import annotations
@@ -20,10 +20,13 @@ from backend.app.services.intelligence.contracts import (
     STAGE_ORDER,
     STRUCTURED_READINESS_REASON_CODES,
     ConversationOrigin,
+    IntentResult,
     LanguageCode,
     NotificationOrigin,
     OrchestrationError,
     OrchestrationResult,
+    ReadinessResult,
+    ReadinessStatus,
     ReasonCode,
     RolloutMode,
     StageName,
@@ -31,6 +34,13 @@ from backend.app.services.intelligence.contracts import (
 )
 from backend.app.services.intelligence.feature_flags import (
     intelligence_orchestrator_v1_enabled,
+)
+from backend.app.services.intelligence.intent_registry import (
+    resolve_intent_safe,
+)
+from backend.app.services.intelligence.missing_information import (
+    MissingInformationError,
+    evaluate_readiness,
 )
 
 LegacyGenerator = Callable[..., Dict[str, Any]]
@@ -124,6 +134,17 @@ def _continuity_source(
     return "unknown"
 
 
+_READINESS_REASON = {
+    ReadinessStatus.READY: ReasonCode.READINESS_READY,
+    ReadinessStatus.NEEDS_CLARIFICATION: ReasonCode.READINESS_NEEDS_CLARIFICATION,
+    ReadinessStatus.NEEDS_CONFIRMATION: ReasonCode.READINESS_NEEDS_CONFIRMATION,
+    ReadinessStatus.BLOCKED_CONFLICT: ReasonCode.READINESS_BLOCKED_CONFLICT,
+    ReadinessStatus.BLOCKED_DENIED: ReasonCode.READINESS_BLOCKED_DENIED,
+    ReadinessStatus.BLOCKED_STALE: ReasonCode.READINESS_BLOCKED_STALE,
+    ReadinessStatus.UNAVAILABLE: ReasonCode.READINESS_UNAVAILABLE,
+}
+
+
 _BANNED_NOTIF_KEYS = frozenset(
     {"body", "raw_body", "context_json", "health", "dose", "dosage", "notification_body"}
 )
@@ -139,11 +160,17 @@ class IntelligenceOrchestrator:
         legacy_generator: Optional[LegacyGenerator] = None,
         structured_mode: Optional[bool] = None,
         context_assembler: Optional[Any] = None,
+        intent_resolver: Optional[Callable[..., IntentResult]] = None,
+        missing_information_engine: Optional[Callable[..., ReadinessResult]] = None,
     ) -> None:
         self._db = db
         self._legacy_generator = legacy_generator
         self._structured_mode_override = structured_mode
         self._context_assembler = context_assembler
+        self._intent_resolver = intent_resolver or resolve_intent_safe
+        self._missing_information_engine = (
+            missing_information_engine or evaluate_readiness
+        )
 
     def _rollout_mode(self) -> RolloutMode:
         if self._structured_mode_override is not None:
@@ -167,11 +194,15 @@ class IntelligenceOrchestrator:
         timezone: Optional[str] = None,
     ) -> OrchestrationResult:
         """
-        Run deterministic I1 stages then legacy generation exactly once.
+        Run deterministic I1/I3 stages then legacy generation at most once.
 
         ``message`` and ``notification_context`` are generation-only inputs and
         never enter stage traces. Authenticated identity must come from the
         JWT/server caller — never from a caller-controlled user_id field.
+
+        Failure-trace invariant: completed responses traverse all of
+        ``STAGE_ORDER``; fail-closed paths stop at the failed stage and record
+        only a strict prefix of ``STAGE_ORDER`` (no post-failure stages).
         """
         if not isinstance(authenticated_user_id, int) or authenticated_user_id <= 0:
             raise OrchestrationError("invalid_authenticated_identity")
@@ -232,7 +263,6 @@ class IntelligenceOrchestrator:
             continuity_source=_continuity_source(interaction_source),  # type: ignore[arg-type]
         )
         if source_notification_id is not None:
-            # Ownership already verified by router before orchestration entry.
             ctx.notification = NotificationOrigin(
                 source_notification_id=source_notification_id,
                 conversation_id=conversation_id,
@@ -262,6 +292,7 @@ class IntelligenceOrchestrator:
         structured_projection: Optional[str] = None
         structured_preferred_name: Optional[str] = None
         use_structured_context = False
+        snapshot = None  # safe sentinel before / outside structured assembly
         t0 = time.perf_counter()
         if rollout_mode == "structured":
             if self._db is None and self._context_assembler is None:
@@ -319,7 +350,6 @@ class IntelligenceOrchestrator:
                     ReasonCode.CONTEXT_ASSEMBLY_FAILED,
                     duration_ms=(time.perf_counter() - t0) * 1000.0,
                 )
-                # Fail closed: no silent bypass to unstructured generation after I2 failure.
                 raise OrchestrationError(
                     "context_assembly_failed",
                     reason_code=ReasonCode.CONTEXT_ASSEMBLY_FAILED,
@@ -332,94 +362,260 @@ class IntelligenceOrchestrator:
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
 
-        # 6) prepare_compatibility_generation
-        # Legacy brain remains the generator; structured mode supplies prebuilt context.
-        t0 = time.perf_counter()
-        if rollout_mode == "structured":
-            extra_reason_codes.append(ReasonCode.STRUCTURED_MODE_ACTIVE.value)
-        ctx.append_stage(
-            StageName.PREPARE_COMPATIBILITY_GENERATION,
-            "ok",
-            ReasonCode.COMPATIBILITY_GENERATOR_SELECTED,
-            duration_ms=(time.perf_counter() - t0) * 1000.0,
-        )
+        # 6–8) I3 stages
+        intent_meta: Optional[IntentResult] = None
+        readiness_meta: Optional[ReadinessResult] = None
+        clarification_message: Optional[str] = None
+        skip_generator = False
 
-        generator = self._legacy_generator
-        if generator is None:
-            if self._db is None:
-                raise OrchestrationError("missing_db_for_legacy_generator")
-            generator = _default_legacy_generator(self._db, lang)
-
-        # 7) generate_with_legacy_brain — exactly once; no out-of-band retry
-        t0 = time.perf_counter()
-        try:
-            raw = generator(
-                authenticated_user_id,
-                message,
-                None,
-                notification_context=(
-                    None if use_structured_context else generation_notification_context
-                ),
-                structured_context_projection=structured_projection,
-                structured_preferred_name=structured_preferred_name,
-                use_structured_context=use_structured_context,
+        if rollout_mode != "structured":
+            t0 = time.perf_counter()
+            ctx.append_stage(
+                StageName.RESOLVE_INTENT,
+                "skipped",
+                ReasonCode.INTENT_RESOLUTION_SKIPPED_COMPATIBILITY,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-        except Exception:
+            t0 = time.perf_counter()
+            ctx.append_stage(
+                StageName.EVALUATE_INFORMATION_READINESS,
+                "skipped",
+                ReasonCode.READINESS_EVALUATION_SKIPPED_COMPATIBILITY,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+            t0 = time.perf_counter()
+            ctx.append_stage(
+                StageName.BUILD_CLARIFICATION_RESPONSE,
+                "skipped",
+                ReasonCode.CLARIFICATION_SKIPPED_COMPATIBILITY,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+        else:
+            # RESOLVE_INTENT
+            t0 = time.perf_counter()
+            try:
+                intent_meta = self._intent_resolver(
+                    message=message,
+                    language=lang,
+                    has_verified_notification_origin=ctx.notification is not None,
+                )
+                ctx.append_stage(
+                    StageName.RESOLVE_INTENT,
+                    "ok",
+                    ReasonCode.INTENT_RESOLVED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except Exception:
+                ctx.append_stage(
+                    StageName.RESOLVE_INTENT,
+                    "failed",
+                    ReasonCode.INTENT_RESOLUTION_FAILED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise OrchestrationError(
+                    "intent_resolution_failed",
+                    reason_code=ReasonCode.INTENT_RESOLUTION_FAILED,
+                )
+
+            # EVALUATE_INFORMATION_READINESS
+            t0 = time.perf_counter()
+            try:
+                if snapshot is None:
+                    raise MissingInformationError("missing_snapshot")
+                readiness_meta = self._missing_information_engine(
+                    snapshot=snapshot,
+                    intent=intent_meta,
+                    authenticated_user_id=authenticated_user_id,
+                    language=lang,
+                )
+                ctx.append_stage(
+                    StageName.EVALUATE_INFORMATION_READINESS,
+                    "ok",
+                    _READINESS_REASON[readiness_meta.status],
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except OrchestrationError:
+                raise
+            except Exception:
+                ctx.append_stage(
+                    StageName.EVALUATE_INFORMATION_READINESS,
+                    "failed",
+                    ReasonCode.READINESS_EVALUATION_FAILED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise OrchestrationError(
+                    "readiness_evaluation_failed",
+                    reason_code=ReasonCode.READINESS_EVALUATION_FAILED,
+                )
+
+            # BUILD_CLARIFICATION_RESPONSE
+            t0 = time.perf_counter()
+            if readiness_meta.status is ReadinessStatus.READY:
+                ctx.append_stage(
+                    StageName.BUILD_CLARIFICATION_RESPONSE,
+                    "skipped",
+                    ReasonCode.CLARIFICATION_NOT_REQUIRED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            else:
+                try:
+                    if readiness_meta.clarification is None:
+                        raise MissingInformationError("missing_clarification")
+                    clarification_message = (
+                        readiness_meta.clarification.localized_message
+                    )
+                    if (
+                        not isinstance(clarification_message, str)
+                        or not clarification_message.strip()
+                    ):
+                        raise MissingInformationError("empty_clarification")
+                    skip_generator = True
+                    ctx.append_stage(
+                        StageName.BUILD_CLARIFICATION_RESPONSE,
+                        "ok",
+                        ReasonCode.CLARIFICATION_PREPARED,
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                except Exception:
+                    ctx.append_stage(
+                        StageName.BUILD_CLARIFICATION_RESPONSE,
+                        "failed",
+                        ReasonCode.CLARIFICATION_FAILED,
+                        duration_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                    raise OrchestrationError(
+                        "clarification_failed",
+                        reason_code=ReasonCode.CLARIFICATION_FAILED,
+                    )
+
+        # 9) prepare_compatibility_generation
+        t0 = time.perf_counter()
+        if skip_generator:
+            ctx.append_stage(
+                StageName.PREPARE_COMPATIBILITY_GENERATION,
+                "skipped",
+                ReasonCode.PREPARE_GENERATION_SKIPPED_CLARIFICATION,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+        else:
+            if rollout_mode == "structured":
+                extra_reason_codes.append(ReasonCode.STRUCTURED_MODE_ACTIVE.value)
+            ctx.append_stage(
+                StageName.PREPARE_COMPATIBILITY_GENERATION,
+                "ok",
+                ReasonCode.COMPATIBILITY_GENERATOR_SELECTED,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+
+        out_message: str
+        detected_name: Optional[str] = None
+        out_language = ctx.locale.language
+
+        if skip_generator:
+            # 10) generate skipped
+            t0 = time.perf_counter()
             ctx.append_stage(
                 StageName.GENERATE_WITH_LEGACY_BRAIN,
-                "failed",
-                ReasonCode.GENERATION_FAILED,
+                "skipped",
+                ReasonCode.GENERATOR_SKIPPED_FOR_CLARIFICATION,
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-            raise
-
-        ctx.append_stage(
-            StageName.GENERATE_WITH_LEGACY_BRAIN,
-            "ok",
-            ReasonCode.LEGACY_GENERATION_COMPLETED,
-            duration_ms=(time.perf_counter() - t0) * 1000.0,
-        )
-
-        # 8) validate_generation_result
-        t0 = time.perf_counter()
-        if not isinstance(raw, dict):
+            out_message = clarification_message or ""
+            # 11) validate clarification response
+            t0 = time.perf_counter()
+            if not out_message.strip():
+                ctx.append_stage(
+                    StageName.VALIDATE_GENERATION_RESULT,
+                    "failed",
+                    ReasonCode.EMPTY_GENERATION_REJECTED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise OrchestrationError(
+                    "empty_generation",
+                    reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
+                )
             ctx.append_stage(
                 StageName.VALIDATE_GENERATION_RESULT,
-                "failed",
-                ReasonCode.EMPTY_GENERATION_REJECTED,
+                "ok",
+                ReasonCode.CLARIFICATION_RESPONSE_VALIDATED,
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-            raise OrchestrationError(
-                "empty_generation",
-                reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
+        else:
+            generator = self._legacy_generator
+            if generator is None:
+                if self._db is None:
+                    raise OrchestrationError("missing_db_for_legacy_generator")
+                generator = _default_legacy_generator(self._db, lang)
+
+            # 10) generate_with_legacy_brain — exactly once
+            t0 = time.perf_counter()
+            try:
+                raw = generator(
+                    authenticated_user_id,
+                    message,
+                    None,
+                    notification_context=(
+                        None
+                        if use_structured_context
+                        else generation_notification_context
+                    ),
+                    structured_context_projection=structured_projection,
+                    structured_preferred_name=structured_preferred_name,
+                    use_structured_context=use_structured_context,
+                )
+            except Exception:
+                ctx.append_stage(
+                    StageName.GENERATE_WITH_LEGACY_BRAIN,
+                    "failed",
+                    ReasonCode.GENERATION_FAILED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise
+
+            ctx.append_stage(
+                StageName.GENERATE_WITH_LEGACY_BRAIN,
+                "ok",
+                ReasonCode.LEGACY_GENERATION_COMPLETED,
+                duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-        out_message = raw.get("message")
-        if not isinstance(out_message, str) or not out_message.strip():
+
+            # 11) validate_generation_result
+            t0 = time.perf_counter()
+            if not isinstance(raw, dict):
+                ctx.append_stage(
+                    StageName.VALIDATE_GENERATION_RESULT,
+                    "failed",
+                    ReasonCode.EMPTY_GENERATION_REJECTED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise OrchestrationError(
+                    "empty_generation",
+                    reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
+                )
+            gen_message = raw.get("message")
+            if not isinstance(gen_message, str) or not gen_message.strip():
+                ctx.append_stage(
+                    StageName.VALIDATE_GENERATION_RESULT,
+                    "failed",
+                    ReasonCode.EMPTY_GENERATION_REJECTED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+                raise OrchestrationError(
+                    "empty_generation",
+                    reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
+                )
+            out_message = gen_message
+            detected_name = raw.get("detected_name")
+            if detected_name is not None and not isinstance(detected_name, str):
+                detected_name = None
             ctx.append_stage(
                 StageName.VALIDATE_GENERATION_RESULT,
-                "failed",
-                ReasonCode.EMPTY_GENERATION_REJECTED,
+                "ok",
+                ReasonCode.RESPONSE_VALIDATED,
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-            raise OrchestrationError(
-                "empty_generation",
-                reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
-            )
-        # I1: OrchestrationResult.language is owned by the normalized request locale
-        # (ctx.locale.language). Any language field on the legacy generator result is
-        # ignored for final deterministic locale so stubs/LLM defaults cannot override.
-        out_language = ctx.locale.language
-        detected_name = raw.get("detected_name")
-        if detected_name is not None and not isinstance(detected_name, str):
-            detected_name = None
-        ctx.append_stage(
-            StageName.VALIDATE_GENERATION_RESULT,
-            "ok",
-            ReasonCode.RESPONSE_VALIDATED,
-            duration_ms=(time.perf_counter() - t0) * 1000.0,
-        )
 
-        # 9) complete
+        # 12) complete
         t0 = time.perf_counter()
         ctx.append_stage(
             StageName.COMPLETE,
@@ -429,13 +625,11 @@ class IntelligenceOrchestrator:
         )
 
         stage_reasons = ctx.reason_codes()
-        # Insert timezone (+ optional structured) codes after LANGUAGE_NORMALIZED.
         reason_codes: list[str] = []
         extras_to_place = list(extra_reason_codes)
         for code in stage_reasons:
             reason_codes.append(code)
             if code == ReasonCode.LANGUAGE_NORMALIZED.value and extras_to_place:
-                # Prefer placing timezone codes immediately after language normalization.
                 tz_extras = [
                     c
                     for c in extras_to_place
@@ -464,4 +658,15 @@ class IntelligenceOrchestrator:
             reason_codes=tuple(reason_codes),
             stage_names=tuple(names),
             detected_name=detected_name,
+            intent_id=intent_meta.intent_id.value if intent_meta else None,
+            request_kind=intent_meta.request_kind.value if intent_meta else None,
+            readiness_status=readiness_meta.status.value if readiness_meta else None,
+            missing_fact_keys=(
+                readiness_meta.missing_fact_keys if readiness_meta else ()
+            ),
+            clarification_question_id=(
+                readiness_meta.clarification.question_id
+                if readiness_meta and readiness_meta.clarification
+                else None
+            ),
         )

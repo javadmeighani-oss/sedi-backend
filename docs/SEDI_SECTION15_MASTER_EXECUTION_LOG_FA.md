@@ -2207,8 +2207,297 @@ local tests / code fix / commit / rerun / production migration / deploy / flag a
 ### ۴۰.۷ پیشنهاد commit (هنوز انجام نشود)
 `test(intelligence): correct I2 isolation and budget harnesses`
 
-§۳۳–§۳۹ حفظ شدند؛ این §۴۰ uncommitted است.
+§۳۳–§۳۹ حفظ شدند؛ این §۴۰ در commit `5c8bd8c` ثبت شد.
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-I2-TestFix2 implemented unverified — ۲۰۲۶-۰۷-۱۴*
+## ۴۱) Package 15-I2-TestFix2 — Final Push + CI @ `5c8bd8c` — **verified**
+
+### ۴۱.۱ Commit / push
+| مورد | مقدار |
+|------|--------|
+| Commit | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| Parent | `4f1633b01243c4f5a83bd305bac96ad47dcdf1e3` |
+| Subject | `test(intelligence): correct I2 isolation and budget harnesses` |
+| Files | فقط test harness + master log (§۴۰) |
+| Remote feature پس از push | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+
+### ۴۱.۲ CI run
+| مورد | مقدار |
+|------|--------|
+| Run ID | **29388660390** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29388660390 |
+| Event | workflow_dispatch |
+| Branch | feature/section15/backend-continuity-foundation |
+| Head SHA | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| Conclusion | **success** |
+
+### ۴۱.۳ Freeze
+`91 + 27 + 147 + 171 + (3+6+1+1+1) + 4` = **452 passed** (Device C1 file absent → SKIP message؛ خارج از baseline شمارش‌شده).
+contracts/OpenAPI سبز (`test_v1_openapi_contracts` + `test_v1_openapi_snapshot`). failed/skipped freeze = 0.
+
+### ۴۱.۴ Section 15
+| متریک | مقدار |
+|--------|--------|
+| collected | **161** |
+| passed | **161** |
+| failed | **0** |
+| skipped | **0** |
+| deselected | **0** |
+| duration | **2.86s** |
+
+جمع‌آوری ۹ فایل (از log): timezone12 / inbox9 / gate4push10 / notif_api12 / i03 / b814 / gate4c22 / i133 / i246 = 161.
+
+### ۴۱.۵ دو failure اخیر run 29353839958 — در این run
+| تست | نتیجه | شواهد log/طراحی |
+|------|--------|------------------|
+| `test_ucs_two_users_do_not_share_pack_cache` | **PASSED** | `side_effect=[pack_a,pack_b]` · call_count==2 · UID A→B · preferred_name جدا · بدون cross-user leakage |
+| `test_preferred_name_none_when_dropped_by_char_budget` | **PASSED** | budget chars=64 (≥min تولیدی) · item پیش از char-budget eligible/active · whole-line truncate · `proj.truncated` · `preferred_name is None` · min ۶۴ unchanged |
+
+### ۴۱.۶ سه failure قدیمی‌تر
+| تست | نتیجه |
+|------|--------|
+| `test_flag_on_uses_structured_mode_without_claiming_future_capabilities` | **PASSED** |
+| `test_brain_skips_covered_loaders_when_structured_projection_supplied` | **PASSED** |
+| `test_ucs_loaded_once_when_pack_is_none` | **PASSED** |
+
+### ۴۱.۷ Preferred-name hardening matrix
+eligible / may_send=false / denied / item-budget / char-budget / conflict / whitespace / coalesce / not-in-trace / cross-user reject / concurrent isolation — همگی **PASSED**.
+
+### ۴۱.۸ Regression matrix
+A1 timezone · B4/B6/B7 inbox/push/notif · I0 · B8 PostgreSQL · Gate4C · I1 · I2 — سبز در همین run (Section 15 کامل + freeze baseline).
+
+### ۴۱.۹ Migration موقت
+`alembic upgrade head` روی Postgres Actions موفق؛ آخرین: `049_… -> 050_gate4_event_idem`.
+DATABASE_URL/TEST_DATABASE_URL فقط `127.0.0.1:5432/sedi_test`. بدون production/staging. migration تولیدی اجرا نشد.
+
+### ۴۱.۱۰ ممنوعیت‌ها
+local tests / code-test edit / commit پس از push / rerun / production migration / deploy / flag activation — **انجام نشد**.
+`SEDI_INTELLIGENCE_ORCHESTRATOR_V1` همچنان default OFF (`environ` خالی → False).
+
+### ۴۱.۱۱ وضعیت نهایی
+**I2 = verified** · **I3 = unblocked**
+
+§۳۳–§۴۰ حفظ شدند؛ این §۴۱ uncommitted است.
+
+---
+
+## ۴۲) Package 15-I3 — Intent Resolution + Missing-Information Engine — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۲.۱ تصویب و پایه
+Javad صریحاً پیاده‌سازی Package 15-I3 را در حالت **IMPLEMENTED_UNCOMMITTED** (بدون commit/push/CI) تأیید کرد.
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| §۴۱ (I2 verified CI) | **بدون بازنویسی حفظ شد** |
+
+### ۴۲.۲ فایل‌های اضافه‌شده
+- `backend/app/services/intelligence/intent_registry.py`
+- `backend/app/services/intelligence/missing_information.py`
+- `backend/tests/test_section15_i3_intent_missing_info.py`
+
+### ۴۲.۳ فایل‌های تغییر یافته
+- `contracts.py` — Intent/RequestKind/Readiness/Clarification + stages RESOLVE_INTENT / EVALUATE_INFORMATION_READINESS / BUILD_CLARIFICATION_RESPONSE + reason codes؛ `MISSING_INFORMATION_ENGINE_CONNECTED`؛ OrchestrationResult فیلدهای داخلی
+- `orchestrator.py` — یکپارچه‌سازی I3؛ compat skip؛ structured ready/clarification/fail-closed
+- `context_models.py` / `user_context_service.py` — `height_cm` / `weight_kg` از همان UserProfileCore
+- `adapters.py` — `profile.height_cm` / `profile.weight_kg`
+- `.github/workflows/ci-backend-tests.yml` — مسیر دهم Section 15
+- `test_section15_i1_intelligence_orchestrator.py` — انتظار CONNECTED + stages جدید
+- `__init__.py` — توضیح I1–I3
+- master log (§۴۲)
+
+### ۴۲.۴ رفتار
+- Intent registry نسخه `sedi.intent.registry.v1`؛ ۱۰ intent؛ request kinds: informational / personalized_plan / action / follow_up
+- ارزیابی readiness فقط روی ContextSnapshot؛ بدون DB/UCS/RAG/QuestionEngine/LLM دوم
+- حداکثر یک clarification محلی‌شده؛ personalized nutrition برخلاف informational پروفایل می‌خواهد
+- height/weight از همان query پروفایل؛ بدون query اضافه
+- compatibility بدون تغییر رفتار عمومی؛ flag پیش‌فرض OFF؛ `STRUCTURED_MODE_NOT_PRODUCTION_READY` باقی است
+- بدون migration / deploy / frontend / meal-plan / I8 / API عمومی
+
+### ۴۲.۵ تست و CI
+تست‌های I3 نوشته شدند ولی **اجرا نشدند**. workflow مسیر دهم اضافه شد ولی **dispatch نشد**.
+
+### ۴۲.۶ وضعیت
+**IMPLEMENTED_UNCOMMITTED_PENDING_REVIEW**
+
+I2 verified باقی است. I3 implemented اما unverified تا review → commit → push → CI.
+
+بدون ادعای pass محلی یا CI.
+
+§۳۳–§۴۱ حفظ شدند؛ این §۴۲ uncommitted است.
+
+---
+
+
+## ۴۳) Package 15-I3-Fix1 — Audit Remediation (Limited) — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۳.۱ تصویب
+Javad Package 15-I3-Fix1 را با Authorization **APPROVED_FOR_IMPLEMENTATION_UNCOMMITTED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| §۴۱ / §۴۲ | **بدون بازنویسی حفظ شدند** |
+
+### ۴۳.۲ فایل‌های لمس‌شده (Fix1 scope)
+- `backend/app/services/intelligence/intent_registry.py`
+- `backend/app/services/intelligence/missing_information.py`
+- `backend/tests/test_section15_i3_intent_missing_info.py`
+- `backend/app/services/intelligence/contracts.py` — docstring/comment invariant failure-trace
+- `backend/app/services/intelligence/orchestrator.py` — docstring failure-trace invariant
+- docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md — حذف trailing WS §۴۱ + §۴۳
+
+### ۴۳.۳ اصلاحات Intent Registry
+- FA: «برنامه غذایی» تنها دیگر personalized_plan نمی‌سازد؛ nutrition context + action signal (برایم/بساز/طراحی کن/…) لازم است
+- FA informational: عبارات informational برای meal-plan bare queries
+- AR: پوشش informational تغذیه (پروتئین، غذای سالم، توضیح تغذیه) — deterministic
+- Broad-token safety: pill/خوابم/اعراض محدود به phrase/boundary دقیق‌تر
+- precedence notification → reminder → symptom حفظ شد؛ بدون raw message/fragment در IntentResult
+
+### ۴۳.۴ اصلاحات Readiness / Confirmation
+- nut.conditions و nut.medications: requires_confirmation=True
+- explicit/confirmed → present؛ legacy_scope/unknown consent → NEEDS_CONFIRMATION؛ stale/denied/conflict بدون تغییر معنایی
+- height/weight legacy_scope همچنان present؛ freshness=unknown ≠ stale
+- allergy: explicit confirmed-none قبل از unsupported بررسی و satisfy؛ absence → UNAVAILABLE (نه confirmed-none)
+
+### ۴۳.۵ Failure-Trace Invariant
+- docstring در STAGE_ORDER و orchestrator.process: success = full order؛ fail-closed = strict prefix؛ generator=0
+- runtime fail-closed بدون padding stage مصنوعی
+
+### ۴۳.۶ تست‌های نوشته‌شده (اجرا نشد)
+Persian personalized +/- · AR nutrition strict · broad-token boundaries · NEEDS_CONFIRMATION condition/medication · stale blocked · allergy confirmed-none/unavailable · full STAGE_ORDER success · failure strict prefix + gen=0 · height/weight no re-ask · trace privacy
+
+### ۴۳.۷ عملیات انجام‌نشده
+local pytest · commit · push · fetch · CI dispatch · migration · deploy · frontend · flag activation · brain/interact · API change
+
+### ۴۳.۸ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+§۳۳–§۴۲ حفظ شدند؛ trailing whitespace سه خط §۴۱ حذف شد؛ این §۴۳ uncommitted است.
+
+---
+
+## ۴۴) Package 15-I3-Fix2 — Intent/Readiness Audit Closure — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۴.۱ تصویب
+Javad Package 15-I3-Fix2 را با Authorization **APPROVED_FOR_IMPLEMENTATION_UNCOMMITTED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| §۴۱–§۴۳ | **بدون بازنویسی حفظ شدند** |
+
+### ۴۴.۲ فایل‌های لمس‌شده (Fix2 scope — فقط چهار فایل)
+- `backend/app/services/intelligence/intent_registry.py`
+- `backend/app/services/intelligence/missing_information.py`
+- `backend/tests/test_section15_i3_intent_missing_info.py`
+- `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۴۴ append)
+
+### ۴۴.۳ اصلاحات Intent Registry
+- bare FA «برنامه غذایی» / «برنامه تغذیه» → nutrition/informational (bare «رژیم» عمداً unresolved)
+- حذف shortcutهای over-broad: «برنامه تغذیه برای»، «رژیم طراحی»
+- حذف action مستقل «شخصی»؛ حذف phraseهای مبهم «برنامه غذایی شخصی»/«رژیم شخصی» از personalized explicit/rule phrases
+- حفظ personalized واقعی: «رژیم بساز»، «برایم برنامه غذایی طراحی کن»، «برنامه غذایی شخصی می‌خواهم» (از طریق action معتبر)
+- normalize: حذف ZWNJ/ZWJ تا «می‌خواهم» با action «میخواهم» match شود
+- precedence notification → reminder → symptom حفظ شد
+
+### ۴۴.۴ اصلاحات Readiness Precedence
+- پس از عدم وجود satisfier معتبر: conflicted → denied → stale → needs_confirmation → missing
+- confirmed/valid satisfier همچنان PRESENT؛ height/weight legacy؛ allergy confirmed-none؛ snapshot-only بدون تغییر
+
+### ۴۴.۵ تست‌های نوشته‌شده (اجرا نشد)
+bare FA informational · «برنامه تغذیه برای کودکان چیست؟» · «درباره برنامه غذایی شخصی توضیح بده» · personalized positives · mixed conflicted+unconfirmed → CONFLICTED · confirmed satisfier با sibling conflict همچنان PRESENT
+
+### ۴۴.۶ عملیات انجام‌نشده
+local pytest · commit · push · fetch · CI dispatch · migration · deploy · frontend · flag activation · brain/interact · API change
+
+### ۴۴.۷ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready، بدون ادعای test pass یا CI.
+
+§۳۳–§۴۳ حفظ شدند؛ این §۴۴ uncommitted است.
+
+---
+
+## ۴۵) Package 15-I3-Fix3 — FA Nutrition Request-Kind Collision Closure — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۵.۱ تصویب
+Javad Package 15-I3-Fix3 را با Authorization **APPROVED_FOR_IMPLEMENTATION_UNCOMMITTED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `5c8bd8c9dc2d9ee8f0aa405bc28773916ba1b25e` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| §۴۱–§۴۴ | **بدون بازنویسی حفظ شدند** |
+
+### ۴۵.۲ فایل‌های لمس‌شده (Fix3 — فقط سه فایل)
+- `backend/app/services/intelligence/intent_registry.py`
+- `backend/tests/test_section15_i3_intent_missing_info.py`
+- `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۴۵ append)
+
+### ۴۵.۳ FA Personalized Authority
+- برای language=fa و nutrition/personalized_plan فقط `_fa_nutrition_personalized` تصمیم می‌گیرد
+- `phrases_fa` خالی؛ phrase/EN fallback دیگر این rule را دور نمی‌زند
+- EN/AR بدون تغییر رفتار
+
+### ۴۵.۴ Policy
+پس از nutrition context: negation → strong construction → strong informational → want/need → False
+- Negation: نمی‌خواهم/نمیخوام/نساز/طراحی نکن/تنظیم نکن
+- Construction: بساز/طراحی کن/تنظیم کن
+- Informational: چیست/چیه/توضیح بده/بدانم/چطور/چگونه
+- Want: میخواهم/میخوام
+- Pronoun-only (برایم/برام) به‌تنهایی personalized نمی‌سازد
+- Boundary-safe؛ ZWNJ حفظ شد؛ raw message در result/trace نیست
+
+### ۴۵.۵ تست‌های نوشته‌شده (اجرا نشد)
+هشت informational/negative collision · پنج personalized positive · طراحی کنم boundary · ZWNJ/non-ZWNJ · denied+unconfirmed → BLOCKED_DENIED · privacy قبلی حفظ شد
+
+### ۴۵.۶ عملیات انجام‌نشده
+local pytest · commit · push · fetch · CI · migration · deploy · frontend · flag · brain/interact · readiness production change
+
+### ۴۵.۷ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready، بدون ادعای test pass یا CI.
+
+§۳۳–§۴۴ حفظ شدند؛ این §۴۵ uncommitted است.
+
+---
+
+## ۴۶) Package 15-I3 — Final Acceptance Audit + Local Commit Authorization — **COMMIT_PENDING**
+
+### ۴۶.۱ Final Acceptance Audit
+Final Fix3 read-only acceptance audit = **PASS**.
+
+| مورد | مقدار |
+|------|--------|
+| Final marker | `READY_FOR_I3_TEST_APPROVAL` |
+| BLOCKER / MAJOR / MINOR | **هیچ‌کدام** |
+| Remaining note | **BD-1 NOTE-only**: multi-word matching از space-padded containment استفاده می‌کند و برای موارد مصوب boundary-safe است |
+| ۱۳ Persian outcome case | به‌صورت static verified |
+| readiness / stage / generator / privacy / public-response invariants | verified در audit |
+| Tests | **اجرا نشده‌اند** |
+
+### ۴۶.۲ تصویب یک commit محلی
+Javad با Authorization **APPROVED_FOR_ONE_LOCAL_COMMIT_ONLY** تصویب کرد.
+
+| مورد | مقدار |
+|------|--------|
+| Commit subject | `feat(intelligence): add I3 intent and readiness engine` |
+| Commit SHA | پس از ایجاد commit گزارش می‌شود |
+| Push | **مجاز نیست** |
+| CI | **مجاز نیست** |
+| Production readiness claim | **هیچ** |
+
+### ۴۶.۳ وضعیت
+این §۴۶ قبل از commit append شد؛ SHA پس از ایجاد commit در گزارش نهایی قید می‌شود.
+
+§۳۳–§۴۵ حفظ شدند.
+
+---
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-I3 local commit authorization — ۲۰۲۶-۰۷-۱۵*

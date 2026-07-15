@@ -43,3 +43,5 @@ class UserContextPack(BaseModel):
     birth_year: Optional[int] = None
     sex: Optional[str] = None
     addressing_preference: Optional[str] = None
+    height_cm: Optional[int] = None
+    weight_kg: Optional[float] = None

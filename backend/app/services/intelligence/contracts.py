@@ -1,4 +1,4 @@
-"""Section 15-I1 — versioned internal intelligence context and result contracts.
+"""Section 15-I1/I3 — versioned internal intelligence context and result contracts.
 
 Internal-only. Not a public API response. No chain-of-thought. No PII in traces.
 """
@@ -25,6 +25,9 @@ class StageName(str, Enum):
     RESOLVE_LOCALE_CONTEXT = "resolve_locale_context"
     RESOLVE_CONVERSATION_ORIGIN = "resolve_conversation_origin"
     ASSEMBLE_AUTHORIZED_CONTEXT = "assemble_authorized_context"
+    RESOLVE_INTENT = "resolve_intent"
+    EVALUATE_INFORMATION_READINESS = "evaluate_information_readiness"
+    BUILD_CLARIFICATION_RESPONSE = "build_clarification_response"
     PREPARE_COMPATIBILITY_GENERATION = "prepare_compatibility_generation"
     GENERATE_WITH_LEGACY_BRAIN = "generate_with_legacy_brain"
     VALIDATE_GENERATION_RESULT = "validate_generation_result"
@@ -45,12 +48,39 @@ class ReasonCode(str, Enum):
     CONTEXT_CONFLICT_DETECTED = "CONTEXT_CONFLICT_DETECTED"
     CONTEXT_BUDGET_TRUNCATED = "CONTEXT_BUDGET_TRUNCATED"
     CONTEXT_ASSEMBLY_FAILED = "CONTEXT_ASSEMBLY_FAILED"
+    # I3 compatibility skips
+    INTENT_RESOLUTION_SKIPPED_COMPATIBILITY = "INTENT_RESOLUTION_SKIPPED_COMPATIBILITY"
+    READINESS_EVALUATION_SKIPPED_COMPATIBILITY = (
+        "READINESS_EVALUATION_SKIPPED_COMPATIBILITY"
+    )
+    CLARIFICATION_SKIPPED_COMPATIBILITY = "CLARIFICATION_SKIPPED_COMPATIBILITY"
+    # I3 resolve / readiness / clarification
+    INTENT_RESOLVED = "INTENT_RESOLVED"
+    INTENT_RESOLUTION_FAILED = "INTENT_RESOLUTION_FAILED"
+    READINESS_READY = "READINESS_READY"
+    READINESS_NEEDS_CLARIFICATION = "READINESS_NEEDS_CLARIFICATION"
+    READINESS_NEEDS_CONFIRMATION = "READINESS_NEEDS_CONFIRMATION"
+    READINESS_BLOCKED_CONFLICT = "READINESS_BLOCKED_CONFLICT"
+    READINESS_BLOCKED_DENIED = "READINESS_BLOCKED_DENIED"
+    READINESS_BLOCKED_STALE = "READINESS_BLOCKED_STALE"
+    READINESS_UNAVAILABLE = "READINESS_UNAVAILABLE"
+    READINESS_EVALUATION_FAILED = "READINESS_EVALUATION_FAILED"
+    CLARIFICATION_PREPARED = "CLARIFICATION_PREPARED"
+    CLARIFICATION_NOT_REQUIRED = "CLARIFICATION_NOT_REQUIRED"
+    CLARIFICATION_FAILED = "CLARIFICATION_FAILED"
+    GENERATOR_SKIPPED_FOR_CLARIFICATION = "GENERATOR_SKIPPED_FOR_CLARIFICATION"
+    CLARIFICATION_RESPONSE_VALIDATED = "CLARIFICATION_RESPONSE_VALIDATED"
+    PREPARE_GENERATION_SKIPPED_CLARIFICATION = (
+        "PREPARE_GENERATION_SKIPPED_CLARIFICATION"
+    )
     COMPATIBILITY_GENERATOR_SELECTED = "COMPATIBILITY_GENERATOR_SELECTED"
     STRUCTURED_MODE_ACTIVE = "STRUCTURED_MODE_ACTIVE"
     CONTEXT_ADAPTERS_CONNECTED = "CONTEXT_ADAPTERS_CONNECTED"
     GOVERNED_KB_NOT_CONNECTED = "GOVERNED_KB_NOT_CONNECTED"
     GATE3_CARE_SNIPPETS_NOT_CONNECTED = "GATE3_CARE_SNIPPETS_NOT_CONNECTED"
+    # Retained for enum history / negative assertions; no longer a structured readiness claim.
     MISSING_INFORMATION_ENGINE_NOT_CONNECTED = "MISSING_INFORMATION_ENGINE_NOT_CONNECTED"
+    MISSING_INFORMATION_ENGINE_CONNECTED = "MISSING_INFORMATION_ENGINE_CONNECTED"
     ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED = "ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED"
     CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED = "CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED"
     SEMANTIC_SUMMARIES_NOT_CONNECTED = "SEMANTIC_SUMMARIES_NOT_CONNECTED"
@@ -66,7 +96,7 @@ STRUCTURED_READINESS_REASON_CODES: tuple[ReasonCode, ...] = (
     ReasonCode.CONTEXT_ADAPTERS_CONNECTED,
     ReasonCode.GOVERNED_KB_NOT_CONNECTED,
     ReasonCode.GATE3_CARE_SNIPPETS_NOT_CONNECTED,
-    ReasonCode.MISSING_INFORMATION_ENGINE_NOT_CONNECTED,
+    ReasonCode.MISSING_INFORMATION_ENGINE_CONNECTED,
     ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED,
     ReasonCode.CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED,
     ReasonCode.SEMANTIC_SUMMARIES_NOT_CONNECTED,
@@ -75,16 +105,112 @@ STRUCTURED_READINESS_REASON_CODES: tuple[ReasonCode, ...] = (
 
 
 STAGE_ORDER: tuple[StageName, ...] = (
+    # Failure-trace invariant (I3 Fix1):
+    # - Successful completions record every stage in STAGE_ORDER exactly once.
+    # - Fail-closed paths record a strict prefix ending at the failed stage;
+    #   no synthetic stages are appended after failure.
+    # - The legacy generator must not run on fail-closed paths.
     StageName.INITIALIZE_REQUEST,
     StageName.RESOLVE_SAFE_IDENTITY,
     StageName.RESOLVE_LOCALE_CONTEXT,
     StageName.RESOLVE_CONVERSATION_ORIGIN,
     StageName.ASSEMBLE_AUTHORIZED_CONTEXT,
+    StageName.RESOLVE_INTENT,
+    StageName.EVALUATE_INFORMATION_READINESS,
+    StageName.BUILD_CLARIFICATION_RESPONSE,
     StageName.PREPARE_COMPATIBILITY_GENERATION,
     StageName.GENERATE_WITH_LEGACY_BRAIN,
     StageName.VALIDATE_GENERATION_RESULT,
     StageName.COMPLETE,
 )
+
+
+class IntentId(str, Enum):
+    GENERAL = "general"
+    HEALTH = "health"
+    SYMPTOM = "symptom"
+    MEDICATION = "medication"
+    VITALS = "vitals"
+    NUTRITION = "nutrition"
+    SLEEP = "sleep"
+    ACTIVITY = "activity"
+    REMINDER = "reminder"
+    NOTIFICATION_FOLLOW_UP = "notification_follow_up"
+
+
+class RequestKind(str, Enum):
+    INFORMATIONAL = "informational"
+    PERSONALIZED_PLAN = "personalized_plan"
+    ACTION = "action"
+    FOLLOW_UP = "follow_up"
+
+
+class IntentConfidenceBand(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    FALLBACK = "fallback"
+
+
+class FactRequirementStatus(str, Enum):
+    PRESENT = "present"
+    MISSING = "missing"
+    NEEDS_CONFIRMATION = "needs_confirmation"
+    CONFLICTED = "conflicted"
+    DENIED = "denied"
+    STALE = "stale"
+    UNAVAILABLE = "unavailable"
+
+
+class ReadinessStatus(str, Enum):
+    READY = "ready"
+    NEEDS_CLARIFICATION = "needs_clarification"
+    NEEDS_CONFIRMATION = "needs_confirmation"
+    BLOCKED_CONFLICT = "blocked_conflict"
+    BLOCKED_DENIED = "blocked_denied"
+    BLOCKED_STALE = "blocked_stale"
+    UNAVAILABLE = "unavailable"
+
+
+@dataclass(frozen=True)
+class IntentResult:
+    """Safe intent classification metadata — never raw messages or fact values."""
+
+    registry_version: str
+    intent_id: IntentId
+    request_kind: RequestKind
+    confidence_band: IntentConfidenceBand
+    rule_id: str
+
+
+@dataclass(frozen=True)
+class FactRequirementOutcome:
+    """Per-requirement status using stable keys only (no values)."""
+
+    requirement_id: str
+    canonical_key: str
+    status: FactRequirementStatus
+    priority: int
+
+
+@dataclass(frozen=True)
+class ClarificationResult:
+    """Localized clarifier identifiers + user-facing question (no stored values)."""
+
+    question_id: str
+    target_key: str
+    template_id: str
+    localized_message: str
+
+
+@dataclass(frozen=True)
+class ReadinessResult:
+    status: ReadinessStatus
+    intent_id: IntentId
+    request_kind: RequestKind
+    outcomes: tuple[FactRequirementOutcome, ...]
+    missing_fact_keys: tuple[str, ...]
+    clarification: Optional[ClarificationResult] = None
 
 
 @dataclass(frozen=True)
@@ -186,6 +312,12 @@ class OrchestrationResult:
     stage_names: tuple[str, ...]
     detected_name: Optional[str] = None
     error_code: Optional[str] = None
+    # Internal I3 metadata (not exposed by public_brain_dict)
+    intent_id: Optional[str] = None
+    request_kind: Optional[str] = None
+    readiness_status: Optional[str] = None
+    missing_fact_keys: tuple[str, ...] = ()
+    clarification_question_id: Optional[str] = None
 
     def public_brain_dict(self) -> dict[str, Any]:
         """Map to the legacy router-compatible generation dict."""

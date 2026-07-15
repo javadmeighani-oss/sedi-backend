@@ -246,6 +246,8 @@ class UserContextService:
         birth_year: Optional[int] = None
         sex: Optional[str] = None
         addressing_preference: Optional[str] = None
+        height_cm: Optional[int] = None
+        weight_kg: Optional[float] = None
         try:
             models = _get_models()
             UserProfileCore = getattr(models, "UserProfileCore", None)
@@ -263,6 +265,19 @@ class UserContextService:
                         addressing_preference = str(core.addressing_preference).strip()
                     if getattr(core, "timezone", None) and str(core.timezone).strip():
                         timezone = str(core.timezone).strip()
+                    # Same loaded UserProfileCore row — no extra query (Section 15-I3).
+                    raw_height = getattr(core, "height_cm", None)
+                    if raw_height is not None:
+                        try:
+                            height_cm = int(raw_height)
+                        except (TypeError, ValueError):
+                            height_cm = None
+                    raw_weight = getattr(core, "weight_kg", None)
+                    if raw_weight is not None:
+                        try:
+                            weight_kg = float(raw_weight)
+                        except (TypeError, ValueError):
+                            weight_kg = None
                     source_meta["profile_core"] = True
         except Exception as e:
             logger.debug("%s UserProfileCore load failed: %s", _LOG_PREFIX, e)
@@ -310,4 +325,6 @@ class UserContextService:
             birth_year=birth_year,
             sex=sex,
             addressing_preference=addressing_preference,
+            height_cm=height_cm,
+            weight_kg=weight_kg,
         )

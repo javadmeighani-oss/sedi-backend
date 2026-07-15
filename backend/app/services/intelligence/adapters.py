@@ -166,6 +166,34 @@ class ProfileContextAdapter:
                         sensitivity="low",
                     )
                 )
+            if getattr(pack, "height_cm", None) is not None:
+                items.append(
+                    _item(
+                        canonical_key="profile.height_cm",
+                        section="profile",
+                        source=ContextSource.PROFILE,
+                        value=pack.height_cm,
+                        display_text=f"height_cm={pack.height_cm}",
+                        owner_user_id=authenticated_user_id,
+                        query_label="UserContextService.get_user_context",
+                        observed_at=None,
+                        sensitivity="medium",
+                    )
+                )
+            if getattr(pack, "weight_kg", None) is not None:
+                items.append(
+                    _item(
+                        canonical_key="profile.weight_kg",
+                        section="profile",
+                        source=ContextSource.PROFILE,
+                        value=pack.weight_kg,
+                        display_text=f"weight_kg={pack.weight_kg}",
+                        owner_user_id=authenticated_user_id,
+                        query_label="UserContextService.get_user_context",
+                        observed_at=None,
+                        sensitivity="medium",
+                    )
+                )
 
         items.extend(
             self._load_user_profile_knowledge(db, authenticated_user_id=authenticated_user_id)

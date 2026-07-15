@@ -1,4 +1,4 @@
-"""Section 15 connected intelligence package (I1 orchestrator + I2 context adapters)."""
+"""Section 15 connected intelligence package (I1–I3)."""
 
 from backend.app.services.intelligence.contracts import (
     CONTRACT_VERSION,
