@@ -2084,4 +2084,131 @@ review → commit (TestFix+Hardening با هم) → push → CI.
 
 ---
 
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-I2-PreferredName-Hardening — ۲۰۲۶-۰۷-۱۴*
+## ۳۹) Package 15-I2-TestFix+Hardening — Final Push + CI @ `4f1633b` — **blocked**
+
+### ۳۹.۱ Commit / push
+| مورد | مقدار |
+|------|--------|
+| Commit | `4f1633b01243c4f5a83bd305bac96ad47dcdf1e3` |
+| Parent | `7fabc0f0eb2cc16fb3c160e55a45d927d3272648` |
+| Subject | `fix(intelligence): enforce single-load structured context` |
+| Remote feature | `4f1633b01243c4f5a83bd305bac96ad47dcdf1e3` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+
+### ۳۹.۲ CI run
+| مورد | مقدار |
+|------|--------|
+| Run ID | **29353839958** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29353839958 |
+| Event | workflow_dispatch |
+| Head SHA | `4f1633b01243c4f5a83bd305bac96ad47dcdf1e3` |
+| Conclusion | **failure** |
+
+### ۳۹.۳ Freeze
+`91+27+147+171+3+6+1+1+1+4` = **452 passed**. contracts/OpenAPI سبز. failed/skipped freeze = 0.
+
+### ۳۹.۴ Section 15
+| متریک | مقدار |
+|--------|--------|
+| collected | **161** |
+| passed | **159** |
+| failed | **2** |
+| skipped | **0** |
+| deselected | **0** |
+| duration | **3.58s** |
+
+۹ فایل collect شدند (از log `::` counts تقریبی): timezone12 / inbox9 / gate4push10 / notif_api12 / i03 / b814 / gate4c22 / i133 / i248.
+
+### ۳۹.۵ سه failure قبلی (run 29350819292) — در این run
+| تست | نتیجه |
+|------|--------|
+| `test_flag_on_uses_structured_mode_without_claiming_future_capabilities` | **PASSED** |
+| `test_brain_skips_covered_loaders_when_structured_projection_supplied` | **PASSED** |
+| `test_ucs_loaded_once_when_pack_is_none` (+ object) | **PASSED** |
+
+### ۳۹.۶ Failures جدید (۲)
+1) `test_ucs_two_users_do_not_share_pack_cache` (~L766)
+   - `TypeError: lambda() missing 1 required positional argument: 'uid'` هنگام patch `get_user_context`
+   - طبقه: **test harness defect** (side_effect signature اشتباه برای instance method)؛ product path isolation جدا با concurrent test پاس شد.
+
+2) `test_preferred_name_none_when_dropped_by_char_budget` (~L1080)
+   - `ValueError: invalid_projection_budget` چون `ContextBudgets` حداقل projection chars را ۶۴ می‌خواهد و تست ۴۰ گذاشت.
+   - طبقه: **test budget fixture invalid در برابر validation محصول**؛ behavior char-budget هنوز نیاز به fixture ≥۶۴ با محتوای بزرگ‌تر دارد.
+
+### ۳۹.۷ Preferred-name / hardening coverage (از log)
+eligible / may_send=false / denied / item-budget / conflict / whitespace / coalesce / not-in-trace / shared policy / no-invent / structured zero reload / UCS none+object+exception→zero gen / compatibility recent-messages — **PASSED**.
+char-budget preferred-name و ucs_two_users — **FAILED** (بالا).
+
+### ۳۹.۸ Regression matrix
+A1/B4/B6/B7/I0/B8/Gate4C/I1: سبز در همین session؛ I2: ۲ failure تست جدید.
+
+### ۳۹.۹ Migration موقت
+`alembic upgrade head` تا `050_gate4_event_idem` روی Postgres Actions موفق. بدون production/staging.
+
+### ۳۹.۱۰ ممنوعیت‌ها
+local tests / code fix / commit / rerun / production migration / deploy / flag activation — **انجام نشد**. Flag default OFF.
+
+### ۳۹.۱۱ وضعیت
+**I2 = blocked** · **I3 = blocked**
+گام بعدی پیشنهادی: **15-I2-TestFix2** (فقط دو harness defect بالا).
+
+§۳۳–§۳۸ حفظ شدند؛ این §۳۹ uncommitted است.
+
+---
+
+## ۴۰) Package 15-I2-TestFix2 — اصلاح فقط دو harness (implementation only)
+
+### ۴۰.۱ مرجع
+| مورد | مقدار |
+|------|--------|
+| HEAD (unverifiable until CI) | `4f1633b01243c4f5a83bd305bac96ad47dcdf1e3` |
+| Run مرجع failure | **29353839958** |
+| URL | https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29353839958 |
+| Section 15 آن run | **161 collected / 159 passed / 2 failed / 0 skipped / 0 deselected** |
+| Freeze | **452 passed** |
+
+### ۴۰.۲ دو failure و root cause
+1) `test_ucs_two_users_do_not_share_pack_cache`
+   - `TypeError: lambda() missing 1 required positional argument: 'uid'`
+   - root cause: `side_effect=lambda self, uid: …` با فراخوانی واقعی MagicMock روی class method (۱ آرگومان یا binding متفاوت از فرض test) سازگار نبود → داخل assembler به `ContextAssemblyError` wrap شد.
+
+2) `test_preferred_name_none_when_dropped_by_char_budget`
+   - `ValueError: invalid_projection_budget`
+   - root cause: harness با `max_compatibility_projection_chars=40` در برابر حداقل تولیدی ۶۴.
+
+سه failure قبلی run 29350819292 در همان run همچنان **PASSED** بودند (بدون دست‌کاری مجدد).
+
+### ۴۰.۳ اصلاح mock / isolation
+- Production loader: `UserContextService.get_user_context(self, user_id: int)` — یک‌بار per assemble در assembler.
+- Harness: `side_effect=[pack_a, pack_b]` ترتیبی صریح برای دو assembly، بدون `*args/**kwargs` برای پنهان‌کردن mismatch.
+- استخراج `user_id` از آخرین positional arg هر call.
+- assertions: call_count==2، uid جدا، preferred_name/projection بدون cross-user leakage، دو request جدا.
+
+### ۴۰.۴ اصلاح char-budget harness
+- `ContextBudgets(..., max_compatibility_projection_chars=64)` — حداقل معتبر؛ validation محصول **بدون تغییر**.
+- خط filler `profile.addressing_preference` (sort قبل از preferred_name) با display طول ۳۰ → line ۴۲؛ با header دقیقاً ۶۴ char پر می‌شود.
+- preferred-name eligible و active می‌ماند؛ فقط در final whole-line char budget حذف می‌شود → `proj.preferred_name is None`، `proj.truncated is True`.
+- item budgets باز؛ `CONTEXT_BUDGET_TRUNCATED` در snapshot از item-budget جعلی ثبت نمی‌شود.
+
+### ۴۰.۵ محدوده فایل
+فقط:
+- `backend/tests/test_section15_i2_context_adapters.py`
+- `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۴۰)
+
+`backend/app/**`، workflow، budget validation، assembler/adapters/brain، migration/schema، frontend، feature flag — **unchanged**.
+
+### ۴۰.۶ وضعیت
+**implemented but unverified pending GitHub Actions rerun**
+
+**I2 = blocked** · **I3 = blocked**
+
+بدون ادعای pass برای این دو اصلاح. بدون local pytest/Python، بدون stage/commit/push/rerun، بدون production migration/deploy، بدون flag activation.
+
+### ۴۰.۷ پیشنهاد commit (هنوز انجام نشود)
+`test(intelligence): correct I2 isolation and budget harnesses`
+
+§۳۳–§۳۹ حفظ شدند؛ این §۴۰ uncommitted است.
+
+---
+
+*پایان گزارش اصلی سکشن ۱۵ — Package 15-I2-TestFix2 implemented unverified — ۲۰۲۶-۰۷-۱۴*

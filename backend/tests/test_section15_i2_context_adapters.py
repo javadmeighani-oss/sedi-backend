@@ -752,24 +752,72 @@ def test_ucs_exception_fails_closed_single_attempt_no_generator(db, user_a, monk
     assert calls["gen"] == 0
 
 
-def test_ucs_two_users_do_not_share_pack_cache(db, user_a, user_b):
-    seen = []
+def _minimal_ucs_pack(*, preferred_name: str, sentinel: str):
+    """Request-scoped pack stub; adapters only read declared attributes."""
+    pack = MagicMock(name=f"ucs_pack_{sentinel}")
+    pack.preferred_name = preferred_name
+    pack.birth_year = None
+    pack.sex = None
+    pack.addressing_preference = None
+    pack.goals = MagicMock(items=[])
+    pack.lifestyle = None
+    pack.daily_memory_summary = None
+    pack._isolation_sentinel = sentinel
+    return pack
 
-    def fake_get(uid):
-        seen.append(uid)
-        return None
+
+def _user_id_from_ucs_call(call) -> int:
+    """
+    Production loader: UserContextService.get_user_context(self, user_id).
+    Class-attribute MagicMock may invoke as (self, user_id) or bound (user_id,).
+    Always take the final positional arg as the authenticated user_id.
+    """
+    assert call.args, "expected get_user_context positional args"
+    assert len(call.args) in (1, 2)
+    uid = call.args[-1]
+    assert isinstance(uid, int) and uid > 0
+    return uid
+
+
+def test_ucs_two_users_do_not_share_pack_cache(db, user_a, user_b):
+    # Explicit sequential packs — no shared cache and no signature-hiding *args.
+    # Production call: UserContextService(db).get_user_context(authenticated_user_id)
+    pack_a = _minimal_ucs_pack(preferred_name="AliceOnly", sentinel="PACK_A_ONLY")
+    pack_b = _minimal_ucs_pack(preferred_name="BobOnly", sentinel="PACK_B_ONLY")
+    assembler_a = AuthorizedContextAssembler()
+    assembler_b = AuthorizedContextAssembler()
 
     with patch(
         "backend.app.services.user_context.UserContextService.get_user_context",
-        side_effect=lambda self, uid: fake_get(uid),
-    ):
-        AuthorizedContextAssembler().assemble(
-            db, authenticated_user_id=user_a.id, request_id="a"
+        side_effect=[pack_a, pack_b],
+    ) as mock_ucs:
+        snap_a = assembler_a.assemble(
+            db, authenticated_user_id=user_a.id, request_id="ucs-a"
         )
-        AuthorizedContextAssembler().assemble(
-            db, authenticated_user_id=user_b.id, request_id="b"
+        snap_b = assembler_b.assemble(
+            db, authenticated_user_id=user_b.id, request_id="ucs-b"
         )
-    assert seen == [user_a.id, user_b.id]
+
+    assert mock_ucs.call_count == 2
+    assert _user_id_from_ucs_call(mock_ucs.call_args_list[0]) == user_a.id
+    assert _user_id_from_ucs_call(mock_ucs.call_args_list[1]) == user_b.id
+
+    assert snap_a.owner_user_id == user_a.id
+    assert snap_b.owner_user_id == user_b.id
+    assert snap_a.request_id != snap_b.request_id
+
+    proj_a = assembler_a.build_compatibility_projection(snap_a)
+    proj_b = assembler_b.build_compatibility_projection(snap_b)
+    assert proj_a.preferred_name == "AliceOnly"
+    assert proj_b.preferred_name == "BobOnly"
+    assert "AliceOnly" in proj_a.text
+    assert "BobOnly" in proj_b.text
+    assert "BobOnly" not in proj_a.text
+    assert "AliceOnly" not in proj_b.text
+    assert "PACK_B_ONLY" not in proj_a.text
+    assert "PACK_A_ONLY" not in proj_b.text
+    assert "BobOnly" not in "".join(snap_a.reason_codes)
+    assert "AliceOnly" not in "".join(snap_b.reason_codes)
 
 
 def test_concurrent_users_isolated_snapshots(db, user_a, user_b):
@@ -1073,25 +1121,47 @@ def test_preferred_name_none_when_inactive_via_item_budget():
 
 
 def test_preferred_name_none_when_dropped_by_char_budget():
-    # One short lifestyle line first (sort_rank lifestyle after profile actually).
-    # PROFILE sort_rank is 10, so preferred_name comes first unless we make display huge.
-    # Force char budget to exclude the preferred_name line by making it the only bulky
-    # eligible line after a tiny reserved line that fills budget.
-    tiny = ContextBudgets(
+    """
+    Preferred-name must be dropped only by final whole-line char budget.
+
+    Production minimum max_compatibility_projection_chars is 64 (unchanged).
+    Sort key places profile.addressing_preference before profile.preferred_name.
+    With chars=64:
+      header "[STRUCTURED_CONTEXT]" (21) + "\\n" + filler line (42) == 64 → filler kept
+      adding any preferred_name line exceeds 64 → whole-line truncate, preferred_name None
+    Item budgets stay open so preferred name is not item-budget truncated.
+    """
+    from backend.app.services.intelligence.context_types import (
+        is_llm_projection_eligible,
+    )
+
+    # Valid production budget (>= 64); do not weaken ContextBudgets validation.
+    budgets = ContextBudgets(
         max_items_per_section=10,
         max_total_context_items=40,
-        max_compatibility_projection_chars=40,
+        max_compatibility_projection_chars=64,
         max_memory_turns=10,
     )
+    # Line form: "- [profile] {display}" → 12 + len(display). Display len 30 → line 42.
+    filler_display = "A" * 30
+    name_value = "BudgetDropName"
     items = [
+        _item(
+            key="profile.addressing_preference",
+            section="profile",
+            source=ContextSource.PROFILE,
+            value="formal",
+            owner=7,
+            display=filler_display,
+        ),
         _item(
             key="profile.preferred_name",
             section="profile",
             source=ContextSource.PROFILE,
-            value="VeryLongNameThatWillNotFit",
+            value=name_value,
             owner=7,
-            display="preferred_name=" + ("X" * 80),
-        )
+            display=f"preferred_name={name_value}",
+        ),
     ]
     assembler = AuthorizedContextAssembler(
         profile_adapter=type("P", (), {"load": lambda self, *a, **k: items})(),
@@ -1099,17 +1169,32 @@ def test_preferred_name_none_when_dropped_by_char_budget():
         health_adapter=_empty_adapter(),
         memory_adapter=_empty_adapter(),
         notification_adapter=SafeNotificationContextAdapter(),
-        budgets=tiny,
+        budgets=budgets,
     )
     with patch(
         "backend.app.services.user_context.UserContextService.get_user_context",
         return_value=None,
     ):
         snap = assembler.assemble(MagicMock(), authenticated_user_id=7, request_id="pn5")
+
+    # Item budgets open: both remain active; no assemble-level item truncation.
+    assert snap.truncated_count == 0
+    assert ReasonCode.CONTEXT_BUDGET_TRUNCATED.value not in snap.reason_codes
+    name_items = [i for i in snap.items if i.canonical_key == "profile.preferred_name"]
+    assert len(name_items) == 1
+    assert name_items[0].active is True
+    assert name_items[0].conflicted is False
+    assert is_llm_projection_eligible(name_items[0]) is True
+
     proj = assembler.build_compatibility_projection(snap)
     assert proj.truncated is True
     assert proj.preferred_name is None
-    assert proj.item_count == 0
+    assert proj.item_count == 1
+    assert filler_display in proj.text
+    assert name_value not in proj.text
+    assert "preferred_name=" not in proj.text
+    assert name_value not in "".join(snap.reason_codes)
+    assert name_value not in "".join(STAGE_ORDER)
 
 
 def test_preferred_name_none_when_conflicted():
