@@ -7,6 +7,48 @@
 
 ---
 
+## آخرین وضعیت قطعی و تأییدشده
+
+> **مرجع جاری داخل این سند:** این بلوک مرجع وضعیت جاری داخل همین فایل است. کاربردهای قدیمی‌تر واژه‌های «فعلی»، «آخرین»، «نهایی»، یا «بعدی» در بخش‌های پایین، **snapshot تاریخی** هستند مگر اینکه همین بلوک صریحاً به آن‌ها ارجاع دهد. واقعیت‌های Git/remote همچنان نیازمند preflight فقط‌خواندنی در آغاز هر مرحلهٔ عملیاتی هستند.
+
+| فیلد | مقدار جاری |
+|------|------------|
+| Worktree | `D:\Rimiya Design Studio\Sedi\software\Demo-wt-section15-backend` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| HEAD و remote feature | `15d6646a501e78a45b0b0acfbc6d007c268fa755` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| Subject HEAD | `fix(intelligence): correct I4 mixed-signal safety` |
+| وضعیت worktree در S17-G0 | clean؛ ahead/behind = 0/0 |
+| Latest verified CI | Run `29493168244`، `workflow_dispatch`، success، SHA `15d6646a501e78a45b0b0acfbc6d007c268fa755` |
+| Backend freeze | **452 passed** |
+| Section 15 | **371 collected / 371 passed** / صفر failure یا error |
+| I4 | **173 passed** |
+| I1 | **CI_VERIFIED** |
+| I2 | **CI_VERIFIED** |
+| I3 | **CI_VERIFIED** |
+| I4 | **CI_VERIFIED** |
+| I5 | Governed Knowledge Platform + Verified Care Directory؛ Iran-first؛ roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
+| I6 | Roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
+| I7 | Roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
+| I8 | Roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
+| Intelligence flag | **OFF** |
+| Migration 050 production | **اجرا نشده** |
+| Merge به main | **اجرا نشده** |
+| Feature deployment | **اجرا نشده** |
+| Frontend A2 integration | **تکمیل نشده** |
+| S17-G0 | **COMPLETED_AND_REVIEWED** |
+| اقدام مصوب جاری | `S17-G0-DOC-RECONCILIATION` — اصلاح uncommitted تک‌فایلی مستندسازی |
+| اقدام فنی بعدی ممکن | I5 read-only preflight — **فقط پس از تأیید جداگانهٔ جواد** (اکنون مجاز نیست) |
+
+**قاعدهٔ تقدم (precedence):**
+1. واقعیت Git HEAD/branch/remote که در preflight همان مرحله تأیید شود
+2. همین بلوک Current State
+3. آخرین closure با وضعیت CI_VERIFIED که به همان SHA گره خورده باشد
+4. بخش‌های تاریخی append-only
+5. اسناد وضعیت قدیمی و snapshotهای خارج از این لاگ
+
+---
+
 ## ۰) Package 15-P1 — foundation تداوم backend (اجرا شده، بدون commit)
 
 ### مجوز این پکیج
@@ -686,6 +728,9 @@ metadata push فقط شناسه‌های امن + deeplink `sedi://`؛ بدون 
 - **وضعیت:** approval blocker؛ در این وظیفه پیاده نشد.
 
 ### ۲۰.۱۷ پکیج‌های پیاده‌سازی دقیق (هر باگ به یک پکیج)
+
+> **توضیح نام‌گذاری I5 (roadmap فقط):** برچسب قدیمی **15-I5 Response plan** در این جدول **تاریخی و برای برنامه‌ریزی جاری منسوخ** است. I5 جاری = **Governed Knowledge Platform + Verified Care Directory** و به زیربخش‌های **I5-A تا I5-F** تقسیم می‌شود. قابلیت Personalized Response/Meal Plan اکنون در **I8** نمایندگی می‌شود، نه I5 جاری. این توضیح فقط نام‌گذاری roadmap را شفاف می‌کند و ادعای پیاده‌سازی ندارد.
+
 | پکیج | هدف | وابستگی | نیازمند تأیید جواد |
 |------|-----|---------|-------------------|
 | **15-P1 Commit** | commit/push A1+B4/B6/B7 روی branch فعلی | review | بله |
@@ -803,6 +848,8 @@ ORDER BY duplicate_count DESC, user_id ASC, source_notification_id ASC;
 Trust: A رسمی، B peer-reviewed، C خبر/وبلاگ — **C هرگز auto-authoritative نیست**. فقط دانش published/approved به‌عنوان evidence صدی. LLM عمومی منبع approved نیست. پرچم‌های KB موجود تا ارزیابی Actions و تأیید جواد خاموش می‌مانند.
 
 **تخصیص پکیج:** `15-I10 Weekly Knowledge Engine` (پس از I1 orchestrator؛ وابسته به KB flags/approval).
+
+> **مالکیت جاری ingestion هفتگی (clarification):** حداقل **governed weekly ingestion** متعلق به **I5-B Automated Ingestion** است. I5-B مالک allowlisted fetch/diff/version/storage، زمان‌بندی هفتگی، بررسی روزانهٔ revocation، snapshot/rollback، quarantine و رفتار audit است. موتور broad open-web discovery در آینده فقط در صورت تصویب جداگانه ممکن است پکیج جدا بماند و **نباید** registry منابع، trust، license، freshness، safety، quarantine یا سیاست انتشار را دور بزند. تخصیص قدیمی حداقل weekly governed ingestion به **I10** برای برنامه‌ریزی جاری **منسوخ** است. هیچ ingestion یا پیاده‌سازی I5 شروع نشده است.
 
 ### ۲۱.۱۰ الزام مصوب: Reliable Working and Short-Term Memory
 شامل: کاربر، conversation، نوبت‌های مرتبط، intent، risk، pending clarifications، پاسخ‌های موقت، notification origin، tool state، retry/idempotency، locale/tz، محدودیت اندازه، TTL، transitions، بازیابی پس از restart.
@@ -1837,6 +1884,8 @@ production migration، deploy، SSH، image، flag activation، commit، rerun �
 ### ۳۴.۱۱ بسته‌های نام‌دار باقی‌مانده
 I3 missing-info/intent؛ I4 safety/risk؛ I5 governed KB؛ I6 memory writes/consent؛ I7 semantic summaries؛ I8 nutrition؛ notification intelligence؛ weekly Knowledge Engine؛ FCM hardening؛ frontend intelligence UX؛ Gate 4 visuals.
 
+> **سازگاری با I5 جاری:** «I5 governed KB» در این فهرست با تعریف جاری **Governed Knowledge Platform + Verified Care Directory** هم‌خوان است. حداقل weekly governed ingestion در **I5-B** است (نه I10). «weekly Knowledge Engine» در این خط به‌عنوان discovery باز گستردهٔ آینده خوانده می‌شود و جایگزین مالکیت حداقل ingestion هفتگی I5-B نیست. پیاده‌سازی I5 شروع نشده است.
+
 ### ۳۴.۱۲ گام بعد
 review → commit approval → push/CI approval.
 
@@ -2504,6 +2553,9 @@ Javad با Authorization **APPROVED_FOR_ONE_LOCAL_COMMIT_ONLY** تصویب کر�
 ## ۴۷) Package 15-I4 — Safety/Risk Engine + Bypass Closure — **IMPLEMENTED_UNCOMMITTED**
 
 ### ۴۷.۱ تصویب
+
+> **HISTORICAL SNAPSHOT — I3 baseline at the start of I4.** به‌عنوان مرجع CI جاری با بلوک Current State و §۵۶ جایگزین شده است. Run `29396471772` همچنان شواهد معتبر تاریخی I3 است؛ پس از I4 دیگر «آخرین CI جاری» نیست. مرجع CI جاری: Run `29493168244`.
+
 Javad Package 15-I4 را با Authorization **APPROVED_FOR_IMPLEMENTATION_UNCOMMITTED** تأیید کرد (بدون pytest/commit/push/CI).
 
 | مورد | مقدار |
@@ -2810,6 +2862,8 @@ Javad Package 15-I4-Fix6 را با Authorization **APPROVED** تأیید کرد 
 
 ## ۵۵) Package 15-I4-Fix4–Fix6 — Final Audit PASS + Local Commit Approval — **COMMIT_PENDING**
 
+> **HISTORICAL PRE-PUSH/PRE-CI SNAPSHOT — superseded as current status by §۵۶.** شواهد پیاده‌سازی محلی معتبر می‌مانند، اما گزاره‌هایی که I4 را «بدون push» یا «نه CI-verified» معرفی می‌کنند دیگر وضعیت جاری نیستند.
+
 ### ۵۵.۱ audit نهایی Fix6
 | مورد | مقدار |
 |------|--------|
@@ -2851,3 +2905,115 @@ Javad ایجاد **دقیقاً یک commit محلی** برای مجموع تغ�
 
 ---
 *پایان گزارش Package 15-I4-Fix4–Fix6 local commit approval — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۶) Section 17 S17-G0 baseline closure and final I4 push/CI reconciliation
+
+### ۵۶.۱ Final I4 commit and remote state
+| مورد | مقدار |
+|------|--------|
+| Final SHA | `15d6646a501e78a45b0b0acfbc6d007c268fa755` |
+| Parent | `9badfc99d5ca605af2d8b41050231af508a1aaf3` |
+| Subject | `fix(intelligence): correct I4 mixed-signal safety` |
+| Files in final commit (exactly 3) | `backend/app/services/intelligence/safety_risk.py`؛ `backend/tests/test_section15_i4_safety_risk.py`؛ `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` |
+| Push | non-force موفق |
+| Remote feature پس از push | برابر Final SHA |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (بدون تغییر) |
+| Worktree پس از push | clean؛ ahead/behind = 0/0 |
+
+### ۵۶.۲ Final verified CI evidence
+| مورد | مقدار |
+|------|--------|
+| Primary Run ID | `29493168244` |
+| Run number | `#284` |
+| Event | `workflow_dispatch` |
+| Attempt | 1 |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Head SHA | `15d6646a501e78a45b0b0acfbc6d007c268fa755` |
+| Conclusion | **success** |
+| Backend freeze | **452 passed** |
+| Section 15 | **371 collected / 371 passed** |
+| I4 | **173 passed** |
+| Failure / error | **صفر** |
+| Import / syntax / collection error | **هیچ** |
+| Migration chain در CI (test DB فقط) | تا `050_gate4_event_idem` |
+
+**Sibling run (operational note):** Run ID `29493138111` (#283)، همان head SHA، conclusion **success**. توسط agent گزارش‌دهنده dispatch نشد؛ یادداشت duplicate-visibility عملیاتی است، نه نقص محصول.
+
+**حدود ادعا:** I4 در سطح پکیج feature-branch بک‌اند **CI_VERIFIED** است. این به‌معنای production-ready نیست. Intelligence flag همچنان **OFF** است. Migration 050 در production اجرا نشده. Merge به main و deployment رخ نداده است.
+
+### ۵۶.۳ S17-G0 read-only audit closure
+| مورد | مقدار |
+|------|--------|
+| Prompt ID | `S17-G0-READONLY-BASELINE-AND-REFERENCE-AUDIT-v1` |
+| Cursor verdict | `PASS_WITH_DOCUMENTATION_FINDINGS` |
+| Independent review verdict | `S17_G0_ACCEPTED_WITH_NON_BLOCKING_REPORT_GAPS` |
+| Worktree / branch / HEAD / upstream / remote feature+main | منطبق با baseline |
+| Initial و final worktree | clean |
+| `git ls-remote` مجاز | دقیقاً یک‌بار |
+| Edit / test / CI / fetch / push / migration / merge / deploy / flag در S17-G0 | **هیچ** |
+| یافتهٔ اصلی اسنادی | این execution log نسبت به closure نهایی I4 کهنه بود |
+| Gaps گزارش (hashes جزئی اسناد تاریخی) | غیرمسدودکننده؛ تکرار S17-G0 لازم نبود |
+| External cross-chat handoff | در مخزن غایب بود و import نشد |
+
+### ۵۶.۴ Current documentation reconciliation approval
+تصویب دقیق جواد:
+
+«مرحله S17-G0-DOC-RECONCILIATION را تأیید می‌کنم؛ فقط اصلاح uncommitted فایل docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md در محدوده مصوب مجاز است. هیچ test، commit، push، CI، migration، merge، deploy، flag activation، تغییر فایل دیگر یا شروع I5 مجاز نیست.»
+
+| مورد | مقدار |
+|------|--------|
+| وضعیت حاصل | **S17_G0_DOC_RECONCILIATION_IMPLEMENTED_UNCOMMITTED** |
+| فایل ویرایش‌شده | فقط `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` |
+| تست / commit / push / CI / migration / merge / deploy / flag / I5 | **انجام نشد** |
+| مرحلهٔ بعد | نیازمند review و تصویب جداگانه |
+| I5 read-only preflight | **غیرمجاز** تا تأیید صریح جداگانهٔ جواد |
+
+---
+*پایان گزارش S17-G0-DOC-RECONCILIATION (uncommitted) — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۷) Section 17 documentation reconciliation diff audit + local commit approval
+
+### ۵۷.۱ Exact diff audit and independent review
+
+| مورد | مقدار |
+|------|--------|
+| Diff-audit Prompt ID | `S17-G0-DOC-RECONCILIATION-DIFF-AUDIT-v1` |
+| Cursor verdict | `DIFF_AUDIT_PASS_READY_FOR_CHATGPT_REVIEW` |
+| Independent review verdict | `S17_G0_DOC_RECONCILIATION_REVIEWED_PASS` |
+| Reviewed target | `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` |
+| Reviewed working SHA-256 | `A25D3006F8D07775FF70317F38F8BC18E68D7317F7375F37892A4AC72150DCC9` |
+| Reviewed diff | 121 insertion؛ صفر deletion؛ فقط یک فایل |
+| Content result | تمام blockها و evidenceهای S17-G0/I4 برابر PASS |
+| Contradiction / overclaim | `NONE` |
+| Scope result | بدون existing-line modification، تغییر فایل دیگر یا دسته تغییر خارج از approval |
+| Non-blocking notes | هشدار معمول `autocrlf` بدون whole-file rewrite؛ metadata تاریخی قدیمی با Current State override شده است |
+
+**نتیجه قطعی review:** تغییر مستنداتی `REVIEWED_PASS` است و برای ورود به گیت local commit آماده شد. این نتیجه به‌تنهایی مجوز push، CI یا I5 ایجاد نمی‌کند.
+
+### ۵۷.۲ مجوز دقیق local commit
+
+تصویب دقیق جواد:
+
+«مرحله S17-G0-DOC-RECONCILIATION-LOCAL-COMMIT را تأیید می‌کنم؛ Cursor مجاز است فقط در فایل docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md نتیجه REVIEWED_PASS و مجوز همین مرحله را به‌صورت append-only ثبت کند، سپس دقیقاً همان یک فایل را stage کرده و دقیقاً یک local commit با subject docs: reconcile section15 execution log ایجاد کند. هیچ test، push، CI، migration، merge، deploy، flag activation، تغییر فایل دیگر یا اقدام I5 مجاز نیست.»
+
+| مورد | وضعیت مصوب |
+|------|------------|
+| فایل مجاز | فقط `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` |
+| روش ثبت | append-only |
+| Stage | فقط همان یک فایل |
+| Commit count | دقیقاً یک local commit |
+| Commit subject | `docs: reconcile section15 execution log` |
+| Test | غیرمجاز و اجرا نمی‌شود |
+| Push / CI | غیرمجاز |
+| Migration / merge / deploy / flag | غیرمجاز |
+| I5 | preflight و implementation هر دو غیرمجاز |
+| وضعیت پیش از commit | `REVIEWED_PASS — ONE_LOCAL_COMMIT_APPROVED` |
+
+> **Lifecycle precedence note:** برای lifecycle همین reconciliation، §۵۷ بر ردیف «اقدام مصوب جاری» در Current State block و وضعیت `IMPLEMENTED_UNCOMMITTED` در §۵۶ تقدم دارد. این بخش ایجاد commit را پیشاپیش ادعا نمی‌کند؛ نتیجه واقعی commit فقط از Git پس از عملیات خوانده و در گزارش Cursor ثبت می‌شود.
+
+---
+*پایان ثبت review و local commit approval — ۲۰۲۶-۰۷-۱۶*
