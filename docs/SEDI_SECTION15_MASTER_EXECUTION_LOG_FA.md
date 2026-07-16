@@ -2500,4 +2500,199 @@ Javad با Authorization **APPROVED_FOR_ONE_LOCAL_COMMIT_ONLY** تصویب کر�
 §۳۳–§۴۵ حفظ شدند.
 
 ---
-*پایان گزارش اصلی سکشن ۱۵ — Package 15-I3 local commit authorization — ۲۰۲۶-۰۷-۱۵*
+
+## ۴۷) Package 15-I4 — Safety/Risk Engine + Bypass Closure — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۷.۱ تصویب
+Javad Package 15-I4 را با Authorization **APPROVED_FOR_IMPLEMENTATION_UNCOMMITTED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `33d99865cad76d6698a2e41f88e97f6e63d29f99` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| Latest verified CI | run `29396471772` success |
+| §۴۱–§۴۶ | **بدون بازنویسی حفظ شدند** |
+
+### ۴۷.۲ فایل‌های لمس‌شده (دقیقاً ۱۱ مسیر)
+**افزوده:**
+1. `backend/app/services/intelligence/safety_risk.py`
+2. `backend/tests/test_section15_i4_safety_risk.py`
+
+**تغییر:**
+3. `backend/app/services/intelligence/__init__.py`
+4. `backend/app/services/intelligence/contracts.py`
+5. `backend/app/services/intelligence/orchestrator.py`
+6. `backend/app/routers/interact.py`
+7. `backend/app/core/conversation/brain.py`
+8. `backend/app/services/gate3/emergency_templates.py` (مسیر واقعی Gate3؛ allowlist typo `app/gate3/` نداشت)
+9. `backend/tests/test_section15_i1_intelligence_orchestrator.py`
+10. `.github/workflows/ci-backend-tests.yml` — مسیر یازدهم Section 15
+11. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۴۷)
+
+### ۴۷.۳ قراردادها / stage
+- `RiskLevel` / `SafetyAction` / `RiskDomain` / `RiskAssessment` / `SafetyResponse` / `PostGenerationSafetyResult`
+- STAGE_ORDER چهارده‌مرحله‌ای شامل `assess_safety_risk` و `build_safety_response`
+- reason code‌های enum-only ایمنی؛ `ADVANCED_SAFETY_RISK_ENGINE_CONNECTED` جایگزین NOT_CONNECTED در readiness
+- classifier failure ≠ RiskLevel؛ action=`FAIL_CLOSED_RESPONSE`؛ generator=0
+- `STRUCTURED_MODE_NOT_PRODUCTION_READY` و flag پیش‌فرض OFF حفظ شد
+
+### ۴۷.۴ Bypass closure / generator budgets
+- `interact.py`: locale یک‌بار بعد از JWT؛ orchestrator یک‌بار؛ I4 precheck قبل از reminder/settings/notification writes
+- HIGH/EMERGENCY/FAIL_CLOSED → `InteractionResponse` ثابت؛ بدون side effect؛ بدون gen
+- assessment پیش‌محاسبه به `process()` پاس می‌شود (بدون دوباره‌classify)
+- Brain: `use_intelligence_safety=True` مسیر محصول؛ legacy پیش‌فرض حفظ
+- budgets: pre-router/orch emergency/high/fail-closed=0؛ clarification=0؛ NONE/CAUTION ready≤1؛ validator replace بدون regen
+
+### ۴۷.۵ Templates
+- فا/ع/ان HIGH، EMERGENCY، self-harm، fail-closed، post-validation
+- Gate3 emergency templates: حذف `۱۱۵` / شماره‌های سخت‌کد؛ wording خدمات اورژانس محلی
+
+### ۴۷.۶ تست و CI
+تست‌های I4 **نوشته شدند ولی اجرا نشدند**. workflow مسیر یازدهم اضافه شد ولی **dispatch نشد**.
+
+### ۴۷.۷ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready، بدون ادعای test pass، CI، deploy، یا flag activation.
+
+§۴۱–§۴۶ حفظ شدند؛ این §۴۷ uncommitted است.
+
+---
+
+## ۴۸) Package 15-I4-Fix1 — Mixed-signal / Legacy Parity / CAUTION / Fail-closed — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۸.۱ تصویب
+Javad Package 15-I4-Fix1 را با Authorization **APPROVED_FOR_IMPLEMENTATION_UNCOMMITTED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `33d99865cad76d6698a2e41f88e97f6e63d29f99` |
+| Findings addressed | I4-A01 … I4-A09 |
+| §۴۱–§۴۷ | **بدون بازنویسی حفظ شدند** |
+
+### ۴۸.۲ فایل‌های Fix1 (حداکثر ۸ — واقعاً لمس‌شده)
+1. `backend/app/services/intelligence/safety_risk.py`
+2. `backend/app/services/intelligence/contracts.py` — `SAFETY_RESPONSE_BUILD_FAILED_CLOSED`
+3. `backend/app/services/intelligence/orchestrator.py`
+4. `backend/app/routers/interact.py`
+5. `backend/app/core/conversation/brain.py`
+6. `backend/tests/test_section15_i4_safety_risk.py`
+7. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۴۸)
+
+`__init__.py` / workflow / emergency_templates — تغییرات I4 قبلی حفظ؛ **Fix1 لمس نشد**.
+
+### ۴۸.۳ سیاست‌ها
+- **Mixed-signal:** exclusion فقط روی span همان match (informational containment؛ denial overlap / local negation) — نه global flag
+- **Legacy parity:** گسترش registry I4 برای سیگنال‌های اضطراری/بالای legacy؛ Gate3 classifier دوباره فعال نشد؛ pregnant/child/elderly alone غیرterminal
+- **CAUTION:** constraint ثابت در structured **و** compatibility؛ gen≤1؛ legacy Gate3 skip روی مسیر محصول
+- **Fail-closed:** assessor/builder/validator Exception → پاسخ ثابت؛ gen=0؛ بدون HTTP 500 از seam ایمنی؛ reason اختصاصی builder
+
+### ۴۸.۴ تست و CI
+تست‌های Fix1 **نوشته شدند ولی اجرا نشدند**. بدون commit/push/CI dispatch.
+
+### ۴۸.۵ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+---
+
+## ۴۹) Package 15-I4-Fix2 — Apostrophe / Conceptual / FA Intent — **IMPLEMENTED_UNCOMMITTED**
+
+### ۴۹.۱ تصویب
+Javad Package 15-I4-Fix2 را با Authorization **APPROVED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `33d99865cad76d6698a2e41f88e97f6e63d29f99` |
+| Findings addressed | I4F1-A01 … I4F1-A05 |
+| Scope | **فقط سه فایل** |
+| §۴۱–§۴۸ | **بدون بازنویسی حفظ شدند** |
+
+### ۴۹.۲ فایل‌های Fix2
+1. `backend/app/services/intelligence/safety_risk.py`
+2. `backend/tests/test_section15_i4_safety_risk.py`
+3. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۴۹)
+
+### ۴۹.۳ سیاست‌ها
+- **Apostrophe:** حذف deterministic apostropheهای درون‌کلمه‌ای (ASCII/`’`/`‘`/`ʼ`/…) قبل از punctuation→space؛ quote مرزی separator می‌ماند؛ `can't`→`cant`، `don't`→`dont`
+- **Conceptual:** exclusionهای definition برای want-to-die / suicidal / suicide — فقط span هم‌پوشان/contained؛ occurrence جاری بعداً زنده می‌ماند
+- **FA intent:** `خودکشی کنم` / `میخواهم خودکشی کنم` / `میخوام خودکشی کنم` (+ ZWNJ) → SELF_HARM EMERGENCY؛ منفی/مفهومی → NONE
+
+### ۴۹.۴ تست و CI
+تست‌های Fix2 **نوشته شدند ولی اجرا نشدند**. بدون commit/push/CI.
+
+### ۴۹.۵ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+---
+*پایان گزارش Package 15-I4-Fix2 (uncommitted) — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۰) Package 15-I4-Fix3 — FA Past-Denial / Exact Regression — **IMPLEMENTED_UNCOMMITTED**
+
+### ۵۰.۱ تصویب
+Javad Package 15-I4-Fix3 را با Authorization **APPROVED** تأیید کرد (بدون pytest/commit/push/CI).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `33d99865cad76d6698a2e41f88e97f6e63d29f99` |
+| Findings addressed | I4F2-T01 … I4F2-T04, I4F2-N01 |
+| Scope | **فقط سه فایل** |
+| §۴۱–§۴۹ | **بدون بازنویسی حفظ شدند** |
+
+### ۵۰.۲ فایل‌های Fix3
+1. `backend/app/services/intelligence/safety_risk.py`
+2. `backend/tests/test_section15_i4_safety_risk.py`
+3. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۵۰)
+
+### ۵۰.۳ سیاست‌ها
+- **FA past-denial:** `نمیخواستم خودکشی کنم` / `قصد نداشتم خودکشی کنم` / `قصد خودکشی نداشتم` (+ ZWNJ) در `_SELF_HARM_DENIAL` — فقط overlap با match همان clause؛ intent جاری بعدی EMERGENCY می‌ماند
+- **Exact regression:** `#12` don't-want-to-kill-myself؛ apostrophe U+2018/U+02BC denial؛ `I can't move`؛ single-quote definition؛ curly `I'm suicidal now`
+- **Strictness:** soft `or` assertion در quote-normalization test حذف شد
+
+### ۵۰.۴ تست و CI
+تست‌های Fix3 **نوشته شدند ولی اجرا نشدند**. بدون commit/push/CI.
+
+### ۵۰.۵ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+---
+*پایان گزارش Package 15-I4-Fix3 (uncommitted) — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۱) Package 15-I4 — Local Section 15 Test Run / Commit Approval — **ENVIRONMENT_BLOCKED**
+
+### ۵۱.۱ جمع‌بندی نهایی I4/Fix3
+- audit نهایی I4/Fix3 = **PASS**
+- هیچ **BLOCKER / MAJOR / MINOR** باقی نماند
+- وضعیت پیش از commit: **READY_FOR_LOCAL_COMMIT**
+
+### ۵۱.۲ اجرای محلی pytest
+- local pytest دقیقاً **یک بار** برای همان **۱۱ path** Section 15 اجرا شد
+- **334** test collected
+- `backend/tests/test_section15_i4_safety_risk.py` = **136** collected
+- import / syntax / collection error = **none**
+- test bodyها اجرا نشدند
+- summary:
+  - passed = **0**
+  - failed = **0**
+  - errors = **334**
+
+### ۵۱.۳ علت مشترک توقف محیط
+- PostgreSQL تستی روی `127.0.0.1:5432` در دسترس نبود
+- fixture failure: `Base.metadata.create_all`
+- این نتیجه **ENVIRONMENT_BLOCKED** بود، نه product failure و نه test assertion failure
+- **no rerun**
+- **no dependency install**
+- **no local DB setup**
+
+### ۵۱.۴ مجوز commit
+- commit approval دریافت شد
+- exact subject: `feat(intelligence): add I4 safety risk engine`
+- push / CI هنوز مجاز نیست
+
+### ۵۱.۵ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه tests passed، نه production-ready.
+
+---
+*پایان گزارش Package 15-I4 local test run / commit approval — ۲۰۲۶-۰۷-۱۶*

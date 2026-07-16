@@ -3,15 +3,15 @@
 TEMPLATES = {
     "emergency": {
         "fa": (
-            "این وضعیت ممکن است اورژانسی باشد. لطفاً فوراً با اورژانس (۱۱۵) یا پزشک تماس بگیرید. "
+            "این وضعیت ممکن است اورژانسی باشد. لطفاً فوراً با خدمات اورژانس محلی یا پزشک تماس بگیرید. "
             "من نمی‌توانم تشخیص بدهم یا درمان اورژانسی ارائه کنم."
         ),
         "en": (
-            "This may be a medical emergency. Please contact emergency services or a clinician immediately. "
+            "This may be a medical emergency. Please contact local emergency services or a clinician immediately. "
             "I cannot provide a diagnosis or emergency treatment instructions."
         ),
         "ar": (
-            "قد تكون هذه حالة طارئة. يرجى الاتصال بخدمات الطوارئ أو طبيب فوراً. "
+            "قد تكون هذه حالة طارئة. يرجى الاتصال فوراً بخدمات الطوارئ المحلية أو بطبيب. "
             "لا يمكنني تقديم تشخيص أو تعليمات علاج طارئة."
         ),
     },

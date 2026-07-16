@@ -24,10 +24,12 @@ class StageName(str, Enum):
     RESOLVE_SAFE_IDENTITY = "resolve_safe_identity"
     RESOLVE_LOCALE_CONTEXT = "resolve_locale_context"
     RESOLVE_CONVERSATION_ORIGIN = "resolve_conversation_origin"
+    ASSESS_SAFETY_RISK = "assess_safety_risk"
     ASSEMBLE_AUTHORIZED_CONTEXT = "assemble_authorized_context"
     RESOLVE_INTENT = "resolve_intent"
     EVALUATE_INFORMATION_READINESS = "evaluate_information_readiness"
     BUILD_CLARIFICATION_RESPONSE = "build_clarification_response"
+    BUILD_SAFETY_RESPONSE = "build_safety_response"
     PREPARE_COMPATIBILITY_GENERATION = "prepare_compatibility_generation"
     GENERATE_WITH_LEGACY_BRAIN = "generate_with_legacy_brain"
     VALIDATE_GENERATION_RESULT = "validate_generation_result"
@@ -81,7 +83,11 @@ class ReasonCode(str, Enum):
     # Retained for enum history / negative assertions; no longer a structured readiness claim.
     MISSING_INFORMATION_ENGINE_NOT_CONNECTED = "MISSING_INFORMATION_ENGINE_NOT_CONNECTED"
     MISSING_INFORMATION_ENGINE_CONNECTED = "MISSING_INFORMATION_ENGINE_CONNECTED"
-    ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED = "ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED"
+    # Retained for enum history / negative assertions; I4 wires CONNECTED.
+    ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED = (
+        "ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED"
+    )
+    ADVANCED_SAFETY_RISK_ENGINE_CONNECTED = "ADVANCED_SAFETY_RISK_ENGINE_CONNECTED"
     CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED = "CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED"
     SEMANTIC_SUMMARIES_NOT_CONNECTED = "SEMANTIC_SUMMARIES_NOT_CONNECTED"
     STRUCTURED_MODE_NOT_PRODUCTION_READY = "STRUCTURED_MODE_NOT_PRODUCTION_READY"
@@ -90,6 +96,25 @@ class ReasonCode(str, Enum):
     ORCHESTRATION_COMPLETED = "ORCHESTRATION_COMPLETED"
     EMPTY_GENERATION_REJECTED = "EMPTY_GENERATION_REJECTED"
     GENERATION_FAILED = "GENERATION_FAILED"
+    # I4 safety
+    SAFETY_RISK_NONE = "SAFETY_RISK_NONE"
+    SAFETY_RISK_CAUTION = "SAFETY_RISK_CAUTION"
+    SAFETY_RISK_HIGH = "SAFETY_RISK_HIGH"
+    SAFETY_RISK_EMERGENCY = "SAFETY_RISK_EMERGENCY"
+    SAFETY_CLASSIFIER_FAILED_CLOSED = "SAFETY_CLASSIFIER_FAILED_CLOSED"
+    SAFETY_RESPONSE_PREPARED = "SAFETY_RESPONSE_PREPARED"
+    SAFETY_RESPONSE_BUILD_FAILED_CLOSED = "SAFETY_RESPONSE_BUILD_FAILED_CLOSED"
+    SAFETY_RESPONSE_NOT_REQUIRED = "SAFETY_RESPONSE_NOT_REQUIRED"
+    GENERATOR_SKIPPED_FOR_SAFETY = "GENERATOR_SKIPPED_FOR_SAFETY"
+    PREPARE_GENERATION_SKIPPED_SAFETY = "PREPARE_GENERATION_SKIPPED_SAFETY"
+    SAFETY_POST_VALIDATION_OK = "SAFETY_POST_VALIDATION_OK"
+    SAFETY_POST_VALIDATION_REPLACED = "SAFETY_POST_VALIDATION_REPLACED"
+    SAFETY_POST_VALIDATION_FAILED_CLOSED = "SAFETY_POST_VALIDATION_FAILED_CLOSED"
+    # Skips when safety short-circuits remaining I2/I3 stages
+    CONTEXT_ASSEMBLY_SKIPPED_SAFETY = "CONTEXT_ASSEMBLY_SKIPPED_SAFETY"
+    INTENT_RESOLUTION_SKIPPED_SAFETY = "INTENT_RESOLUTION_SKIPPED_SAFETY"
+    READINESS_EVALUATION_SKIPPED_SAFETY = "READINESS_EVALUATION_SKIPPED_SAFETY"
+    CLARIFICATION_SKIPPED_SAFETY = "CLARIFICATION_SKIPPED_SAFETY"
 
 
 STRUCTURED_READINESS_REASON_CODES: tuple[ReasonCode, ...] = (
@@ -97,7 +122,7 @@ STRUCTURED_READINESS_REASON_CODES: tuple[ReasonCode, ...] = (
     ReasonCode.GOVERNED_KB_NOT_CONNECTED,
     ReasonCode.GATE3_CARE_SNIPPETS_NOT_CONNECTED,
     ReasonCode.MISSING_INFORMATION_ENGINE_CONNECTED,
-    ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED,
+    ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_CONNECTED,
     ReasonCode.CONSENT_AWARE_MEMORY_WRITES_NOT_CONNECTED,
     ReasonCode.SEMANTIC_SUMMARIES_NOT_CONNECTED,
     ReasonCode.STRUCTURED_MODE_NOT_PRODUCTION_READY,
@@ -105,24 +130,55 @@ STRUCTURED_READINESS_REASON_CODES: tuple[ReasonCode, ...] = (
 
 
 STAGE_ORDER: tuple[StageName, ...] = (
-    # Failure-trace invariant (I3 Fix1):
+    # Failure-trace invariant:
     # - Successful completions record every stage in STAGE_ORDER exactly once.
-    # - Fail-closed paths record a strict prefix ending at the failed stage;
-    #   no synthetic stages are appended after failure.
-    # - The legacy generator must not run on fail-closed paths.
+    # - Fail-closed exceptions remain a strict prefix ending at the failed stage.
+    # - High/emergency completed paths skip middle stages but still finish validate/complete.
     StageName.INITIALIZE_REQUEST,
     StageName.RESOLVE_SAFE_IDENTITY,
     StageName.RESOLVE_LOCALE_CONTEXT,
     StageName.RESOLVE_CONVERSATION_ORIGIN,
+    StageName.ASSESS_SAFETY_RISK,
     StageName.ASSEMBLE_AUTHORIZED_CONTEXT,
     StageName.RESOLVE_INTENT,
     StageName.EVALUATE_INFORMATION_READINESS,
     StageName.BUILD_CLARIFICATION_RESPONSE,
+    StageName.BUILD_SAFETY_RESPONSE,
     StageName.PREPARE_COMPATIBILITY_GENERATION,
     StageName.GENERATE_WITH_LEGACY_BRAIN,
     StageName.VALIDATE_GENERATION_RESULT,
     StageName.COMPLETE,
 )
+
+
+class RiskLevel(str, Enum):
+    NONE = "none"
+    CAUTION = "caution"
+    HIGH = "high"
+    EMERGENCY = "emergency"
+
+
+class SafetyAction(str, Enum):
+    CONTINUE = "continue"
+    CONTINUE_WITH_CONSTRAINTS = "continue_with_constraints"
+    RETURN_HIGH_RESPONSE = "return_high_response"
+    RETURN_EMERGENCY_RESPONSE = "return_emergency_response"
+    FAIL_CLOSED_RESPONSE = "fail_closed_response"
+
+
+class RiskDomain(str, Enum):
+    NONE = "none"
+    MEDICAL_EMERGENCY = "medical_emergency"
+    SELF_HARM_CRISIS = "self_harm_crisis"
+    OVERDOSE_MEDICATION = "overdose_medication"
+    SEVERE_ALLERGY = "severe_allergy"
+    GENERAL = "general"
+
+
+class PostGenerationSafetyStatus(str, Enum):
+    SAFE = "safe"
+    REPLACED = "replaced"
+    FAILED_CLOSED = "failed_closed"
 
 
 class IntentId(str, Enum):
@@ -214,6 +270,35 @@ class ReadinessResult:
 
 
 @dataclass(frozen=True)
+class RiskAssessment:
+    """Safe risk metadata — never raw message, fragments, or health values."""
+
+    registry_version: str
+    level: RiskLevel
+    action: SafetyAction
+    domain: RiskDomain
+    rule_id: str
+    language: LanguageCode
+
+
+@dataclass(frozen=True)
+class SafetyResponse:
+    """Fixed localized safety wording (no fact interpolation)."""
+
+    template_id: str
+    localized_message: str
+
+
+@dataclass(frozen=True)
+class PostGenerationSafetyResult:
+    """Internal-only post-generation safety outcome (message not for traces)."""
+
+    status: PostGenerationSafetyStatus
+    violation_code: Optional[str]
+    message: str
+
+
+@dataclass(frozen=True)
 class StageRecord:
     stage: StageName
     status: StageStatus
@@ -256,10 +341,14 @@ class NotificationOrigin:
 
 @dataclass
 class SafetyConstraints:
-    policy_mode: Literal["compatibility_generation"] = "compatibility_generation"
+    policy_mode: Literal["compatibility_generation", "structured_caution"] = (
+        "compatibility_generation"
+    )
     no_diagnosis_or_dose_invention: bool = True
     no_unsupported_user_fact_invention: bool = True
     no_unsafe_logging: bool = True
+    disclaimer_required: bool = False
+    no_medication_start_stop: bool = True
 
 
 @dataclass
@@ -318,6 +407,11 @@ class OrchestrationResult:
     readiness_status: Optional[str] = None
     missing_fact_keys: tuple[str, ...] = ()
     clarification_question_id: Optional[str] = None
+    # Internal I4 metadata (not exposed by public_brain_dict)
+    risk_level: Optional[str] = None
+    safety_action: Optional[str] = None
+    risk_domain: Optional[str] = None
+    safety_rule_id: Optional[str] = None
 
     def public_brain_dict(self) -> dict[str, Any]:
         """Map to the legacy router-compatible generation dict."""

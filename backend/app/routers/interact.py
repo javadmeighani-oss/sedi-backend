@@ -107,6 +107,49 @@ async def chat(
         )
     user_id = user.id
 
+    # Locale exactly once immediately after JWT ownership (I4 bypass closure).
+    from backend.app.services.i18n.request_lang import resolve_request_lang
+
+    response_language = resolve_request_lang(request, db=db, user_id=user.id)
+
+    from backend.app.services.intelligence.contracts import OrchestrationError
+    from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+    from backend.app.services.intelligence.safety_risk import (
+        build_fail_closed_response,
+        build_safety_response_safe,
+        fail_closed_assessment,
+        requires_terminal_safety_response,
+    )
+
+    orchestrator = IntelligenceOrchestrator(db=db)
+    try:
+        safety_assessment = orchestrator.precheck_safety_risk(
+            message=message,
+            language=response_language,
+        )
+    except Exception:
+        safety_assessment = fail_closed_assessment(
+            language=response_language  # type: ignore[arg-type]
+        )
+    if requires_terminal_safety_response(safety_assessment):
+        try:
+            safety_resp = build_safety_response_safe(safety_assessment)
+        except Exception:
+            safety_resp = build_fail_closed_response(
+                language=response_language  # type: ignore[arg-type]
+            )
+        return InteractionResponse(
+            message=safety_resp.localized_message,
+            language=response_language,
+            user_id=user_id,
+            timestamp=datetime.utcnow(),
+            requires_security_check=False,
+            detected_name=None,
+            continued_from_notification=None,
+            source_notification_id=None,
+            conversation_id=payload.conversation_id,
+        )
+
     chat_reminder_result = None
     try:
         from backend.app.services.gate4.user_chat_reminder import create_user_chat_reminder
@@ -120,12 +163,10 @@ async def chat(
         if chat_reminder_result.get("reason") == "needs_clarification":
             clarification = chat_reminder_result.get("clarification_message")
             if clarification:
-                from backend.app.services.i18n.request_lang import resolve_request_lang
-
                 # Canonical InteractionResponse field is `message` (not `reply`).
                 return InteractionResponse(
                     message=clarification,
-                    language=resolve_request_lang(request, db=db, user_id=user.id),
+                    language=response_language,
                     user_id=user_id,
                     timestamp=datetime.utcnow(),
                     requires_security_check=False,
@@ -174,44 +215,21 @@ async def chat(
         continued_from_notification = True
         response_source_notification_id = payload.source_notification_id
         response_conversation_id = payload.conversation_id
-    
-    try:
-        # STEP 2: SINGLE SOURCE OF LANGUAGE TRUTH
-        # Detect language from user message text ONLY (not IP/locale/query params)
-        from backend.app.core.conversation.name_database import detect_language
-        detected_lang = detect_language(message)
-        
-        # Use detected language if valid, otherwise default to "en"
-        # NO query parameter fallback - message content is the ONLY source
-        if detected_lang in ["en", "fa", "ar"]:
-            response_language = detected_lang
-        else:
-            response_language = "en"  # Default to English
-        
-        # V1 language policy: UI language is driven by Accept-Language or user preference (preferred_language).
-        # Do not rely on message-language detection as the primary source.
-        from backend.app.services.i18n.request_lang import resolve_request_lang
-        response_language = resolve_request_lang(request, db=db, user_id=user.id)
 
-        print(f"[CHAT] Language detection: message='{message[:50]}...', detected={detected_lang}, resolved={response_language}")
-        print(f"[CHAT] ✅ Language determined by request/user preference (V1 policy)")
-        
+    try:
         # STEP 3: HARDEN CHAT FLOW - Validate message before GPT call
-        # This validation is also done in prompts.py, but we validate here too for early failure
         if not isinstance(message, str) or not message.strip():
             raise HTTPException(
                 status_code=400,
                 detail="Message must be a non-empty string"
             )
-        
-        # Initialize brain with detected language for response
-        # Sedi's internal thinking is ALWAYS English (enforced in prompts)
+
         print(f"[CHAT] ===== BEFORE GPT CALL =====")
         print(f"[CHAT] User ID: {user.id}")
         print(f"[CHAT] Message: '{message[:100]}...'")
         print(f"[CHAT] Response language: {response_language}")
         print(f"[CHAT] ===== END BEFORE GPT =====")
-        
+
         # Stage 16.6.5: Try notification settings commands first (no GPT)
         from backend.app.services.chat_commands import detect_and_handle_user_settings_command
         from backend.app.core.conversation.memory import ConversationMemory
@@ -247,14 +265,8 @@ async def chat(
                 conversation_id=response_conversation_id,
             )
 
-        # Section 15-I1: connected orchestration gateway (always invoked).
-        # Flag OFF = compatibility mode; flag ON = structured mode.
-        # Both modes use ConversationBrain as the explicit generation stage.
-        # Reminder/settings short-circuits above remain outside the orchestrator.
-        from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
-        from backend.app.services.intelligence.contracts import OrchestrationError
-
-        orchestrator = IntelligenceOrchestrator(db=db)
+        # Section 15-I1/I4: connected orchestration gateway (always invoked).
+        # Reuse precomputed I4 assessment — do not classify twice on the product path.
         try:
             orch_result = orchestrator.process(
                 authenticated_user_id=user.id,
@@ -264,6 +276,7 @@ async def chat(
                 interaction_source=payload.interaction_source,
                 source_notification_id=response_source_notification_id,
                 notification_context=notification_context,
+                precomputed_assessment=safety_assessment,
             )
         except OrchestrationError as orch_err:
             raise HTTPException(
@@ -286,7 +299,7 @@ async def chat(
             language=result["language"],
             user_id=user.id,
             timestamp=datetime.utcnow(),
-            requires_security_check=False,  # Security check handled by brain if needed
+            requires_security_check=False,
             detected_name=result.get("detected_name"),
             continued_from_notification=continued_from_notification or None,
             source_notification_id=response_source_notification_id,

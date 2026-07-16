@@ -188,4 +188,5 @@ jobs:
             backend/tests/test_section15_i1_intelligence_orchestrator.py \
             backend/tests/test_section15_i2_context_adapters.py \
             backend/tests/test_section15_i3_intent_missing_info.py \
+            backend/tests/test_section15_i4_safety_risk.py \
             --tb=short

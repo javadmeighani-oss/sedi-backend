@@ -170,15 +170,19 @@ def test_flag_on_uses_structured_mode_without_claiming_future_capabilities(monke
     assert ReasonCode.STRUCTURED_MODE_ACTIVE.value in result.reason_codes
     assert ReasonCode.COMPATIBILITY_GENERATOR_SELECTED.value in result.reason_codes
     assert ReasonCode.CONTEXT_ASSEMBLED.value in result.reason_codes
-    # Explicit readiness markers after I3: missing-info engine is connected;
-    # structured mode remains production-not-ready; other engines stay NOT_CONNECTED.
+    # Explicit readiness markers after I4: missing-info + safety engines connected;
+    # structured mode remains production-not-ready; KB/care/memory stay NOT_CONNECTED.
     assert ReasonCode.MISSING_INFORMATION_ENGINE_CONNECTED.value in result.reason_codes
     assert ReasonCode.MISSING_INFORMATION_ENGINE_NOT_CONNECTED.value not in result.reason_codes
+    assert ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_CONNECTED.value in result.reason_codes
+    assert ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_NOT_CONNECTED.value not in result.reason_codes
     assert ReasonCode.STRUCTURED_MODE_NOT_PRODUCTION_READY.value in result.reason_codes
     assert ReasonCode.GOVERNED_KB_NOT_CONNECTED.value in result.reason_codes
-    # No obsolete missing-information stage name; I3 stages use resolve_intent / readiness.
+    # No obsolete missing-information stage name; I3/I4 stages present.
     assert "missing_information" not in result.stage_names
     assert "resolve_missing_information" not in result.stage_names
+    assert StageName.ASSESS_SAFETY_RISK.value in result.stage_names
+    assert StageName.BUILD_SAFETY_RESPONSE.value in result.stage_names
     assert StageName.RESOLVE_INTENT.value in result.stage_names
     assert StageName.EVALUATE_INFORMATION_READINESS.value in result.stage_names
     assert StageName.BUILD_CLARIFICATION_RESPONSE.value in result.stage_names

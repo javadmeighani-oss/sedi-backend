@@ -350,6 +350,8 @@ class ConversationBrain:
         structured_context_projection: Optional[str] = None,
         structured_preferred_name: Optional[str] = None,
         use_structured_context: bool = False,
+        use_intelligence_safety: bool = False,
+        safety_constraints=None,
     ) -> Dict[str, any]:
         """
         Process user message and generate Sedi's response.
@@ -358,6 +360,10 @@ class ConversationBrain:
         structured mode), covered bolted-on packs (USER_CONTEXT, USER_PROFILE,
         RAG_CONTEXT, notification block, recent history) are not reloaded —
         the prebuilt projection is injected once instead.
+
+        When use_intelligence_safety=True (product orchestrator path), legacy Gate3
+        pre-generation RiskClassifier/templates and post-generation validator are
+        skipped — Section 15-I4 owns those operations.
         """
         # TEMP DEBUG: Log entry
         print(f"[BRAIN DEBUG] ===== PROCESSING MESSAGE =====")
@@ -475,13 +481,33 @@ class ConversationBrain:
                     user_id, user_message, current_stage, minimal_context
                 )
 
-            # Gate 3: emergency/high-risk short-circuit before GPT
-            gate3_template = _gate3_check_emergency_short_circuit(user_message, lang)
+            # Structured caution: fixed I4 constraints once (no raw user values).
+            # Applies for structured and compatibility when I4 owns safety (Fix1 A04).
+            caution_applied = False
+            if (
+                use_intelligence_safety
+                and safety_constraints is not None
+                and getattr(safety_constraints, "policy_mode", None) == "structured_caution"
+                and not caution_applied
+            ):
+                caution_lines = [
+                    "[SAFETY_CONSTRAINTS]",
+                    "No diagnosis or invented disease labels.",
+                    "No medication start, stop, or dose-change instructions.",
+                    "Include an educational limitation disclaimer when giving health-related general information.",
+                ]
+                messages.append({"role": "system", "content": "\n".join(caution_lines)})
+                caution_applied = True
+
+            # Gate 3 legacy safety — skipped when I4/orchestrator owns safety.
+            gate3_template = None
+            if not use_intelligence_safety:
+                gate3_template = _gate3_check_emergency_short_circuit(user_message, lang)
             if gate3_template:
                 sedi_response = gate3_template
                 print("[BRAIN] Gate3 safety short-circuit applied")
             else:
-                # 4. GENERATE: Call GPT directly with messages
+                # 4. GENERATE: Call GPT directly with messages — exactly once when allowed
                 print(f"[BRAIN] ===== BEFORE GPT CALL =====")
                 print(f"[BRAIN] User ID: {user_id}")
                 print(f"[BRAIN] User message: '{user_message[:100]}...'")
@@ -495,7 +521,10 @@ class ConversationBrain:
                         input=messages
                     )
                     sedi_response = completion.output_text.strip()
-                    sedi_response = _gate3_validate_assistant_response(sedi_response, lang)
+                    if not use_intelligence_safety:
+                        sedi_response = _gate3_validate_assistant_response(
+                            sedi_response, lang
+                        )
                     print(f"[BRAIN DEBUG] Response generated (length={len(sedi_response)})")
                 except Exception as gpt_exception:
                     _log_gpt_failure(gpt_exception, where="process_message.responses_create")
