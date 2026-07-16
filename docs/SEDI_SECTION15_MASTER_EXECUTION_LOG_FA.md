@@ -2696,3 +2696,158 @@ Javad Package 15-I4-Fix3 را با Authorization **APPROVED** تأیید کرد 
 
 ---
 *پایان گزارش Package 15-I4 local test run / commit approval — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۲) Package 15-I4-Fix4 — Immediate Local Negation / CI Mixed-Signal — **IMPLEMENTED_UNCOMMITTED**
+
+### ۵۲.۱ تصویب
+Javad Package 15-I4-Fix4 را با Authorization **APPROVED** تأیید کرد (بدون pytest/commit/push/CI rerun).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `9badfc99d5ca605af2d8b41050231af508a1aaf3` |
+| CI run | `29487750734` |
+| Freeze before Section 15 | **452 passed** |
+| Section 15 | **332 passed / 2 failed / 334 collected** |
+| I4 file | **134 passed / 2 failed / 136 collected** |
+| Failed cases | EN `I am not suicidal, but now I want to die.`؛ AR `قلت لست انتحاريا لكن الان اريد ان اموت` |
+| §۴۱–§۵۱ | **بدون بازنویسی حفظ شدند** |
+
+### ۵۲.۲ root cause
+Broad `_LOCAL_NEGATION_RE` tail `(?:\w+\s+){0,4}$` allowed generic cues (`not`, `لست`) to bridge clause connectors and suppress current-clause EMERGENCY candidates.
+
+### ۵۲.۳ سیاست Fix4
+- **Immediate/cue-specific:** `_locally_negated(normalized, start, phrase)` با suffixهای anchorشده per phrase
+- **Clause trim:** boundaryهای `but/however/yet/though/;` و `لكن/ولكن/اما/ولی`
+- **Denial overlap:** unchanged (Fix1–Fix3 phrases preserved + exact `not really/currently suicidal` additions)
+- **No arbitrary-word tail**
+
+### ۵۲.۴ فایل‌های Fix4
+1. `backend/app/services/intelligence/safety_risk.py`
+2. `backend/tests/test_section15_i4_safety_risk.py`
+3. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۵۲)
+
+### ۵۲.۵ تست و CI
+تست‌های Fix4 **نوشته شدند ولی اجرا نشدند**. بدون commit/push/CI rerun.
+
+### ۵۲.۶ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+---
+*پایان گزارش Package 15-I4-Fix4 (uncommitted) — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۳) Package 15-I4-Fix5 — never/no longer Prefix + Dead Boundary — **IMPLEMENTED_UNCOMMITTED**
+
+### ۵۳.۱ تصویب
+Javad Package 15-I4-Fix5 را با Authorization **APPROVED** تأیید کرد (بدون pytest/commit/push/CI rerun).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `9badfc99d5ca605af2d8b41050231af508a1aaf3` |
+| Dirty base | سه path Fix4 (uncommitted) |
+| §۴۱–§۵۲ | **بدون بازنویسی حفظ شدند** |
+
+### ۵۳.۲ یافته‌های Fix4 audit که رفع شدند
+- **F001:** `want to die` immediate suffix با prefix واقعی هم‌تراز شد (`never$` / `no longer$`)؛ alternativeهای unreachable (`never want to` / `no longer want to`) حذف شدند.
+- **F004:** boundary مرده `"; "` از `_CLAUSE_BOUNDARIES` حذف شد (پس از normalization غیرقابل مشاهده).
+- **F002/F003:** regression tests برای gapهای matrix و کنترل‌های denial phrase اضافه شدند.
+
+### ۵۳.۳ فایل‌های Fix5
+1. `backend/app/services/intelligence/safety_risk.py`
+2. `backend/tests/test_section15_i4_safety_risk.py`
+3. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۵۳)
+
+### ۵۳.۴ تست و CI
+تست‌های Fix5 **نوشته شدند ولی اجرا نشدند**. بدون commit/push/CI rerun. دو failure قبلی CI (EN/AR) در regression حفظ شدند.
+
+### ۵۳.۵ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+---
+*پایان گزارش Package 15-I4-Fix5 (uncommitted) — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۴) Package 15-I4-Fix6 — Apostrophe NONE Coverage + Corrected Punctuation Trace — **IMPLEMENTED_UNCOMMITTED**
+
+### ۵۴.۱ تصویب
+Javad Package 15-I4-Fix6 را با Authorization **APPROVED** تأیید کرد (بدون pytest/commit/push/CI rerun؛ بدون تغییر `safety_risk.py`).
+
+| مورد | مقدار |
+|------|--------|
+| Baseline HEAD/upstream | `9badfc99d5ca605af2d8b41050231af508a1aaf3` |
+| Preflight `safety_risk.py` SHA256 | `64462A878811E9A1A497CC53E36A190AC61433E7F639B264D1162D19B1FF7D2F` |
+| Preflight `safety_risk.py` git hash-object | `72a976ea7125ac280a873c37cf6d072775150cb7` |
+| §۴۱–§۵۳ | **بدون بازنویسی حفظ شدند** |
+
+### ۵۴.۲ corrected punctuation / clause-prefix trace
+- در `normalize_safety_text`، punctuationهایی مانند `;` و `.` به **space** تبدیل می‌شوند و **clause boundary قابل بازیابی نمی‌سازند**.
+- در mixed-currentهای punctuation-only، `_current_clause_prefix` کل prefix قبل از candidate جاری را نگه می‌دارد (بدون trim روی `;`/`.`).
+- candidate جاری زنده می‌ماند چون: (1) denial span قبلی با span جاری **overlap ندارد**؛ (2) immediate suffix روی **انتهای** همان prefix کامل match نمی‌کند (مثلاً prefix به `now i` ختم می‌شود، نه به cue نفی).
+
+### ۵۴.۳ تغییرات Fix6 (tests-only)
+- case دقیق ASCII-apostrophe: `I'm not really suicidal.` → NONE / CONTINUE / `RiskDomain.NONE` / non-terminal
+- negative cases Fix5 (`did not` / `never` / `no longer`) به همان assertهای کامل level/action/domain/non-terminal ارتقا یافتند
+- `safety_risk.py` **صفر بایت** تغییر
+
+### ۵۴.۴ فایل‌های Fix6 touch
+1. `backend/tests/test_section15_i4_safety_risk.py`
+2. `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (§۵۴)
+
+### ۵۴.۵ تست و CI
+تست‌های Fix6 **نوشته/تقویت شدند ولی اجرا نشدند**. بدون commit/push/CI rerun.
+
+### ۵۴.۶ وضعیت
+**IMPLEMENTED_UNCOMMITTED** — نه verified، نه production-ready.
+
+---
+*پایان گزارش Package 15-I4-Fix6 (uncommitted) — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۵) Package 15-I4-Fix4–Fix6 — Final Audit PASS + Local Commit Approval — **COMMIT_PENDING**
+
+### ۵۵.۱ audit نهایی Fix6
+| مورد | مقدار |
+|------|--------|
+| Audit result | **PASS** |
+| Marker | `READY_FOR_I4_TEST_APPROVAL` |
+| `safety_risk.py` SHA256 (ثابت از Fix5) | `64462A878811E9A1A497CC53E36A190AC61433E7F639B264D1162D19B1FF7D2F` |
+| `safety_risk.py` git hash-object | `72a976ea7125ac280a873c37cf6d072775150cb7` |
+| Size | 28588 bytes |
+| §۴۱–§۵۴ | **بدون بازنویسی حفظ شدند** |
+
+### ۵۵.۲ negative cases + assertions (Fix6)
+چهار case با `assess_safety_risk()` و assertهای strict:
+- `I did not want to die.`
+- `I never want to die.`
+- `I no longer want to die.`
+- `I'm not really suicidal.`
+
+Assertها: `level is NONE` / `action is CONTINUE` / `domain is RiskDomain.NONE` / `requires_terminal_safety_response(a) is False`
+
+### ۵۵.۳ corrected punctuation trace (ثبت‌شده در §۵۴)
+`;` و `.` هنگام normalization به space تبدیل می‌شوند و clause boundary قابل بازیابی نمی‌سازند؛ در punctuation-only mixed-current، prefix کامل باقی می‌ماند و candidate جاری به‌دلیل نبود denial overlap و عدم match immediate suffix زنده می‌ماند.
+
+### ۵۵.۴ tests / environment
+- تست‌های Fix4–Fix6 **اجرا نشدند** (ممنوع در این package).
+- Local PostgreSQL environment blocker: اجرای pytest محلی برای این worktree در وضعیت فعلی **ENVIRONMENT_BLOCKED** فرض می‌شود / تأیید می‌شود که هیچ DB/Docker setup در این مرحله انجام نشد.
+
+### ۵۵.۵ approval commit
+Javad ایجاد **دقیقاً یک commit محلی** برای مجموع تغییرات I4-Fix4–Fix6 را با Authorization **APPROVED** تأیید کرد.
+
+| مورد | مقدار |
+|------|--------|
+| Parent (قبل از commit) | `9badfc99d5ca605af2d8b41050231af508a1aaf3` |
+| Subject | `fix(intelligence): correct I4 mixed-signal safety` |
+| Paths | `safety_risk.py` + `test_section15_i4_safety_risk.py` + master log (§۵۲–§۵۵) |
+| Push / CI / pytest | **ممنوع / انجام نشد** |
+
+### ۵۵.۶ وضعیت قبل از commit
+**COMMIT_PENDING** → تبدیل به committed در همان عملیات محلی؛ نه production-ready، نه CI-verified.
+
+---
+*پایان گزارش Package 15-I4-Fix4–Fix6 local commit approval — ۲۰۲۶-۰۷-۱۶*

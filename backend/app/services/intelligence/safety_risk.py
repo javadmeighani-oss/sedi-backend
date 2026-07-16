@@ -5,6 +5,8 @@ legacy emergency/high parity under single I4 authority, fail-closed seams.
 Fix2: intra-word apostrophe fold; conceptual self-harm definition exclusions;
 Persian current-intent self-harm phrases.
 Fix3: Persian past-tense self-harm denial phrases (overlap-only suppression).
+Fix4: immediate/cue-specific local negation (no arbitrary-word tail).
+Fix5: want-to-die immediate cues aligned to real clause prefix; dead semicolon boundary removed.
 Message text is request-local only. Results expose enums/rule IDs only.
 """
 
@@ -146,17 +148,60 @@ class _Match:
     end: int
 
 
-# Local negation immediately before an affirmative crisis span (Fix1 A02).
-# After Fix2 apostrophe fold, don't→dont; I'm→im (patterns use folded forms).
-_LOCAL_NEGATION_RE = re.compile(
-    r"(?:^|\s)(?:"
-    r"do\s+not|dont|does\s+not|did\s+not|"
-    r"not|never|no\s+longer|"
-    r"نمیخوام|نمیخواهم|"
-    r"لا\s+اريد|لست|ليس"
-    r")\s+(?:\w+\s+){0,4}$",
-    re.IGNORECASE,
+# Fix4/Fix5: clause boundaries — local negation applies only within the current clause.
+# Fix5: dead "; " removed — punctuation normalizes to space before boundary search.
+_CLAUSE_BOUNDARIES: tuple[str, ...] = (
+    " but ",
+    " however ",
+    " yet ",
+    " though ",
+    " لكن ",
+    " ولكن ",
+    " اما ",
+    " ولی ",
 )
+
+# Fix4/Fix5: immediate suffix patterns anchored at end of current-clause prefix (no arbitrary tail).
+# Fix5: want-to-die cues use real prefix tokens (never$ / no longer$), not unreachable phrase tails.
+_IMMEDIATE_NEGATION_SUFFIX: dict[str, re.Pattern[str]] = {
+    "suicidal": re.compile(
+        r"(?:"
+        r"not really|not currently|"
+        r"i am not|im not|am not|not|"
+        r"لست|ليس"
+        r")$",
+        re.IGNORECASE,
+    ),
+    "want to die": re.compile(
+        r"(?:"
+        r"i do not|do not|"
+        r"does not|did not|"
+        r"i dont|dont|"
+        r"never|no longer|"
+        r"not"
+        r")$",
+        re.IGNORECASE,
+    ),
+    "kill myself": re.compile(
+        r"(?:"
+        r"i do not want to|do not want to|"
+        r"does not want to|did not want to|"
+        r"i dont want to|dont want to|"
+        r"i do not|do not|"
+        r"does not|did not|"
+        r"i dont|dont"
+        r")$",
+        re.IGNORECASE,
+    ),
+    "going to kill myself": re.compile(
+        r"(?:i am not going to kill|im not going to kill|not going to kill)$",
+        re.IGNORECASE,
+    ),
+    "اريد ان اموت": re.compile(r"(?:لا اريد ان|لا)$", re.IGNORECASE),
+    "خودکشی کنم": re.compile(r"(?:نمیخواهم|نمیخوام)$", re.IGNORECASE),
+    "میخواهم خودکشی کنم": re.compile(r"(?:نمیخواهم|نمیخوام)$", re.IGNORECASE),
+    "میخوام خودکشی کنم": re.compile(r"(?:نمیخواهم|نمیخوام)$", re.IGNORECASE),
+}
 
 # Informational exclusions — suppress only danger spans *contained* by these cues.
 _INFORMATIONAL_EXCLUSIONS: tuple[str, ...] = (
@@ -205,6 +250,12 @@ _SELF_HARM_DENIAL: tuple[str, ...] = (
     "im not suicidal",
     "i am not going to hurt myself",
     "not suicidal",
+    "not really suicidal",
+    "not currently suicidal",
+    "i am not really suicidal",
+    "im not really suicidal",
+    "i am not currently suicidal",
+    "im not currently suicidal",
     "dont want to die",
     "do not want to die",
     "i do not want to die",
@@ -605,12 +656,30 @@ def _spans_overlap(a: tuple[int, int], b: tuple[int, int]) -> bool:
     return a[0] < b[1] and b[0] < a[1]
 
 
-def _locally_negated(normalized: str, start: int) -> bool:
-    prefix = normalized[:start]
-    window = prefix[-48:] if len(prefix) > 48 else prefix
-    if not window.strip():
+def _current_clause_prefix(normalized: str, start: int) -> str:
+    """Prefix immediately before match start, trimmed to current clause only."""
+    prefix = normalized[:start].rstrip()
+    if not prefix:
+        return ""
+    boundary_end = 0
+    for boundary in _CLAUSE_BOUNDARIES:
+        idx = prefix.rfind(boundary)
+        if idx >= 0:
+            end = idx + len(boundary)
+            if end > boundary_end:
+                boundary_end = end
+    return prefix[boundary_end:].strip()
+
+
+def _locally_negated(normalized: str, start: int, phrase: str) -> bool:
+    """Fix4: immediate/cue-specific negation only — no cross-clause arbitrary tail."""
+    clause_prefix = _current_clause_prefix(normalized, start)
+    if not clause_prefix:
         return False
-    return bool(_LOCAL_NEGATION_RE.search(window + " "))
+    pattern = _IMMEDIATE_NEGATION_SUFFIX.get(phrase)
+    if pattern is None:
+        return False
+    return bool(pattern.search(clause_prefix))
 
 
 def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessment:
@@ -643,7 +712,7 @@ def assess_safety_risk(*, message: str, language: LanguageCode) -> RiskAssessmen
             m.rule.domain is RiskDomain.SELF_HARM_CRISIS
             and m.rule.level in (RiskLevel.EMERGENCY, RiskLevel.HIGH)
         ):
-            if _locally_negated(normalized, m.start):
+            if _locally_negated(normalized, m.start, m.phrase):
                 continue
             if any(_spans_overlap(span, den) for den in denial_spans):
                 continue

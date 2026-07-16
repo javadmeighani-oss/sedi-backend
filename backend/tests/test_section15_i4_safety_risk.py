@@ -1391,3 +1391,127 @@ def test_fix3_persian_current_intent_alone_emergency():
     assert a.domain is RiskDomain.SELF_HARM_CRISIS
     assert a.rule_id == "i4.rule.emergency.self_harm.v1"
     assert requires_terminal_safety_response(a)
+
+
+# ---------------------------------------------------------------------------
+# Fix4 — immediate/cue-specific local negation (CI mixed-signal)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "msg,lang",
+    [
+        ("I am not suicidal, but now I want to die.", "en"),
+        ("I am not suicidal. Now I want to die.", "en"),
+        ("I am not suicidal; however, now I want to die.", "en"),
+        ("I am not suicidal, yet now I want to die.", "en"),
+        ("قلت لست انتحاريا لكن الان اريد ان اموت", "ar"),
+        ("قلت لست انتحاريا ولكن الان اريد ان اموت", "ar"),
+        ("لست انتحاريا. الان اريد ان اموت", "ar"),
+        ("قبلاً نمی‌خواستم خودکشی کنم، اما الان می‌خواهم خودکشی کنم", "fa"),
+        ("گفتم قصد خودکشی ندارم ولی الان می‌خواهم خودکشی کنم", "fa"),
+    ],
+)
+def test_fix4_mixed_denial_then_current_self_harm_emergency(msg, lang):
+    a = assess_safety_risk(message=msg, language=lang)
+    assert a.level is RiskLevel.EMERGENCY
+    assert a.domain is RiskDomain.SELF_HARM_CRISIS
+    assert a.action is SafetyAction.RETURN_EMERGENCY_RESPONSE
+    assert requires_terminal_safety_response(a)
+
+
+@pytest.mark.parametrize(
+    "msg,lang",
+    [
+        ("I am not suicidal.", "en"),
+        ("I do not want to die.", "en"),
+        ("I don't want to die.", "en"),
+        ("I am not suicidal, but I don't want to die.", "en"),
+        ("I do not want to kill myself.", "en"),
+        ("I don't want to kill myself.", "en"),
+        ("I am not really suicidal.", "en"),
+        ("I am not currently suicidal.", "en"),
+        ("لست انتحاريا", "ar"),
+        ("لا اريد ان اموت", "ar"),
+        ("قلت لست انتحاريا لكن لا اريد ان اموت", "ar"),
+        ("نمی‌خواهم خودکشی کنم", "fa"),
+    ],
+)
+def test_fix4_same_clause_denial_or_negative_none(msg, lang):
+    a = assess_safety_risk(message=msg, language=lang)
+    assert a.level is RiskLevel.NONE
+    assert a.action is SafetyAction.CONTINUE
+
+
+def test_fix4_fa_current_intent_alone_emergency():
+    a = assess_safety_risk(message="می‌خواهم خودکشی کنم", language="fa")
+    assert a.level is RiskLevel.EMERGENCY
+    assert a.domain is RiskDomain.SELF_HARM_CRISIS
+    assert a.action is SafetyAction.RETURN_EMERGENCY_RESPONSE
+    assert requires_terminal_safety_response(a)
+
+
+def test_fix4_en_want_to_die_alone_emergency():
+    a = assess_safety_risk(message="I want to die.", language="en")
+    assert a.level is RiskLevel.EMERGENCY
+    assert a.domain is RiskDomain.SELF_HARM_CRISIS
+    assert a.action is SafetyAction.RETURN_EMERGENCY_RESPONSE
+    assert requires_terminal_safety_response(a)
+
+
+def test_fix4_ar_want_to_die_alone_emergency():
+    a = assess_safety_risk(message="اريد ان اموت", language="ar")
+    assert a.level is RiskLevel.EMERGENCY
+    assert a.domain is RiskDomain.SELF_HARM_CRISIS
+    assert a.action is SafetyAction.RETURN_EMERGENCY_RESPONSE
+    assert requires_terminal_safety_response(a)
+
+
+# ---------------------------------------------------------------------------
+# Fix5 — never/no longer prefix cues + matrix gaps (tests written, NOT RUN)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "msg",
+    [
+        "I did not want to die.",
+        "I never want to die.",
+        "I no longer want to die.",
+        "I'm not really suicidal.",
+    ],
+)
+def test_fix5_en_want_to_die_denial_none(msg):
+    a = assess_safety_risk(message=msg, language="en")
+    assert a.level is RiskLevel.NONE
+    assert a.action is SafetyAction.CONTINUE
+    assert a.domain is RiskDomain.NONE
+    assert requires_terminal_safety_response(a) is False
+
+
+@pytest.mark.parametrize(
+    "msg,lang",
+    [
+        ("I am not suicidal though now I want to die.", "en"),
+        ("I did not want to die, but now I want to die.", "en"),
+        ("I am not suicidal but I want to die.", "en"),
+        ("I am not currently suicidal, but now I want to die.", "en"),
+        ("I'm not really suicidal; now I want to die.", "en"),
+        ("I am not suicidal, but now I want to die.", "en"),
+        ("قلت لست انتحاريا لكن الان اريد ان اموت", "ar"),
+        (
+            "قبلاً نمی‌خواستم خودکشی کنم. الان می‌خواهم خودکشی کنم",
+            "fa",
+        ),
+        (
+            "نمی‌خواهم خودکشی کنم ولی الان می‌خواهم خودکشی کنم",
+            "fa",
+        ),
+    ],
+)
+def test_fix5_mixed_denial_then_current_self_harm_emergency(msg, lang):
+    a = assess_safety_risk(message=msg, language=lang)
+    assert a.level is RiskLevel.EMERGENCY
+    assert a.domain is RiskDomain.SELF_HARM_CRISIS
+    assert a.action is SafetyAction.RETURN_EMERGENCY_RESPONSE
+    assert requires_terminal_safety_response(a)
