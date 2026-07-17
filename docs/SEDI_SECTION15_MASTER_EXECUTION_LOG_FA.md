@@ -3813,3 +3813,567 @@ Intended commit subject:
 
 ---
 *پایان §63 — I5-A1-R1 targeted contract test verification and local commit readiness — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §64 — I5-A2-R1 Focused Sensitivity and Freshness Safety Fix
+
+**Status marker:**
+
+`I5_A2_R1_FOCUSED_FIX_IMPLEMENTED_UNCOMMITTED — TESTS_NOT_RUN — STATIC_AUDIT_PENDING — NO_ADAPTER_OR_RUNTIME_WIRING`
+
+### ۶۴.۱ Baseline HEAD / upstream
+
+| Item | Value |
+|------|-------|
+| Branch | `feature/section15/backend-continuity-foundation` |
+| HEAD / upstream SHA | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| HEAD subject | `ci: include I5 A1-R1 governance tests` |
+| HEAD parent | `71159de4ceb11b1cb297c905c45ff55b7fddc8d0` |
+| origin/main local ref | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| Ahead / behind upstream | `0 / 0` |
+
+### ۶۴.۲ A1-R1 status
+
+**IMPLEMENTED — COMMITTED — PUSHED — CI_VERIFIED**
+
+### ۶۴.۳ A1-R1 CI evidence
+
+| Field | Value |
+|-------|-------|
+| Workflow | Backend V1 freeze tests |
+| Run | `29571384240` |
+| Exact SHA | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| Section 15 | 489 collected / 489 passed / 0 failed / 0 errors / 0 skipped / 1 warning |
+
+### ۶۴.۴ Accepted A2 re-audit verdict
+
+`A2_R1_FOCUSED_FIX_REQUIRED_BEFORE_TESTS`
+
+### ۶۴.۵ Accepted findings
+
+| ID | Finding |
+|----|---------|
+| F-A2-01 | `data_sensitivity` missing from grant matching |
+| F-A2-02 | `SOFT_STALE` unrestricted generic ALLOW path |
+| F-A2-03 | `UNKNOWN_AGE` unrestricted generic ALLOW path |
+| F-A2-04 | Generic `PolicyOutcome.ALLOW` versus clinical evidence-use ALLOW composition risk |
+
+### ۶۴.۶ A2 scope decision
+
+A2 remains a narrow generic action-permission evaluator. No clinical evidence, prediction, provider, facility or final-answer authorization authority was added.
+
+### ۶۴.۷ Exact sensitivity semantics (V1)
+
+- Exact enum-to-enum matching only; no hierarchy.
+- `UNKNOWN_RESTRICTED` request fails closed before grant allow paths.
+- `UNKNOWN_RESTRICTED` grant never authorizes any sensitivity, including exact match.
+- New reason codes: `DATA_SENSITIVITY_MISMATCH`, `UNKNOWN_DATA_SENSITIVITY`.
+- Sensitivity enforced on every grant path including DISPLAY, VERIFY_ONLY, storage and connector actions.
+- Explicit deny precedence preserved; sensitivity mismatch surfaced before generic `NO_MATCHING_GRANT`.
+- Deterministic grant-order-independent matching via structural then sensitivity filtering.
+
+### ۶۴.۸ Exact freshness semantics (V1)
+
+- Only `FreshnessStatus.FRESH` may reach generic `PolicyOutcome.ALLOW`.
+- `SOFT_STALE`, `HARD_STALE`, `UNKNOWN_AGE` never produce ALLOW.
+- `STAGE_FOR_REVIEW` quarantine path preserved for all non-fresh states (non-ALLOW).
+- Explicit `POINT_LOOKUP` + `VERIFY_ONLY` remains VERIFY_ONLY for `SOFT_STALE` / `UNKNOWN_AGE`; HARD_STALE denies verify-only.
+- New / tightened reason codes: `SOFT_STALE_REQUIRES_REVIEW`, `UNKNOWN_AGE_DENIED`, existing `HARD_STALE`.
+- Freshness gate applied inside `allow()` and verify-only freshness helper before final ALLOW.
+
+### ۶۴.۹ Composition boundary
+
+- `PolicyOutcome.ALLOW` is documented as generic action permission only; not `EvidenceUseDecision.ALLOW_WITH_CITATION`, not `KnowledgePolicyDecision.REQUIRED_FOUND`, not provider/facility verification, not prediction authorization.
+- No A1-R1/A2 composition adapter created.
+- No runtime wiring created.
+- Future composition adapter remains a separate package after A2 stabilization.
+
+### ۶۴.۱۰ Modified files
+
+| File | Status |
+|------|--------|
+| `backend/app/services/governance/policy_evaluator.py` | untracked — rewritten |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | untracked — extended |
+| `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` | append-only §64 |
+
+### ۶۴.۱۱ New or changed symbols
+
+**New `PolicyReasonCode` members:**
+
+- `DATA_SENSITIVITY_MISMATCH`
+- `UNKNOWN_DATA_SENSITIVITY`
+- `SOFT_STALE_REQUIRES_REVIEW`
+- `UNKNOWN_AGE_DENIED`
+
+**New helpers:**
+
+- `_data_sensitivity_matches_request`
+- `_has_unknown_restricted_grant`
+- `_structurally_matching_grants`
+- `_sensitivity_matching_grants`
+- `_freshness_blocks_allow`
+- `_freshness_blocks_verify_only`
+
+**Changed behavior:**
+
+- `_grant_structurally_matches_request` — sensitivity removed from structural match; handled separately.
+- `_decision_fingerprint` — includes grant `data_sensitivity`.
+- Module and `PolicyEvaluationResult` docstrings — composition boundary documented.
+
+### ۶۴.۱۲ Static test-function count
+
+| Phase | Count |
+|-------|-------|
+| Pre-implementation | 73 |
+| Post-implementation | 105 |
+
+Parametrized expansions additionally cover all 15 `GovernanceAction` values for freshness matrix cases.
+
+### ۶۴.۱۳ Regression-test inventory summary
+
+| Area | Coverage |
+|------|----------|
+| A. Data sensitivity | 22 focused cases (exact match, cross-sensitivity denies, UNKNOWN_RESTRICTED fail-closed, DISPLAY/POINT_LOOKUP/storage/connector paths, grant-order invariance, explicit deny precedence, fingerprint) |
+| B. Freshness | 14+ matrix cases across all actions (FRESH allow path, SOFT_STALE/UNKNOWN_AGE/HARD_STALE never ALLOW, STAGE quarantine, VERIFY_ONLY non-ALLOW, grant-order invariance) |
+| C. Composition boundary | 5 cases (enum separation, result type, import hygiene, docstrings) |
+| D. Regression preservation | Prior DISPLAY, credential, license, source, grant-expiry, obligation and fingerprint tests retained |
+
+### ۶۴.۱۴ Explicit non-operations
+
+- Tests were **not** run.
+- No stage, commit, push or CI occurred.
+- No build, deploy or production migration occurred.
+- DISPLAY semantics preserved except mandatory sensitivity/freshness gates.
+
+### ۶۴.۱۵ A2 file hashes
+
+| File | Pre-implementation SHA-256 | Post-implementation SHA-256 |
+|------|---------------------------|----------------------------|
+| `backend/app/services/governance/policy_evaluator.py` | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` | `8181039fe517310e498d9bb99ba004199ca9447fca9bb6cd9306ca354f0e8470` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` | `e777d2041b027282dfba2596f1e5747bb4bf528263642fe1a5d301675a41e16b` |
+
+### ۶۴.۱۶ Next package
+
+**`PACKAGE-15-I5-A2-R1-STRICT-STATIC-AUDIT-READONLY-v1`**
+
+---
+*پایان §64 — I5-A2-R1 focused sensitivity and freshness safety fix — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §65 — I5-A2-R1 Test Helper and Expectation Fix
+
+**Status marker:**
+
+`I5_A2_R1_TEST_HELPER_FIX_IMPLEMENTED_UNCOMMITTED — TESTS_NOT_RERUN — PRODUCTION_A2_BYTE_IDENTICAL — NO_ENRICHMENT`
+
+### ۶۵.۱ Baseline HEAD / upstream
+
+| Item | Value |
+|------|-------|
+| HEAD / upstream SHA | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| Ahead / behind upstream | `0 / 0` |
+
+### ۶۵.۲ Reference first isolated runtime run
+
+| Field | Value |
+|-------|-------|
+| Classification | `A2_R1_TARGETED_RUNTIME_TEST_FAILED` |
+| Python / pytest | `3.12.10` / `9.1.1` |
+| Collected / passed / failed | `163 / 152 / 11` |
+| Errors / skipped / warnings | `0 / 0 / 0` |
+| Duration | `4.84s` |
+| Exit code | `1` |
+
+### ۶۵.۳ Corrected test-side root causes only
+
+| ID | Failure | Correction |
+|----|---------|------------|
+| A | `test_contact_pii_requires_field_allow` stale PUBLIC grant vs CONTACT_PII request | Grant scope now uses matching `CONTACT_PII` sensitivity so assertion targets `FIELD_SCOPE_NOT_COVERED` |
+| B | `_grant_for_sensitivity` duplicate `scope=` / `obligations=` | Single merged parameter mapping before `_grant(**params)` |
+| C | `_action_ready_req` eager invalid STORE grant without retention | STORE grants built only in STORE branch; default grant deferred to `else` |
+
+### ۶۵.۴ Production preservation
+
+| File | SHA-256 | Status |
+|------|---------|--------|
+| `backend/app/services/governance/policy_evaluator.py` | `8181039fe517310e498d9bb99ba004199ca9447fca9bb6cd9306ca354f0e8470` | unchanged — not modified |
+
+### ۶۵.۵ Modified files
+
+| File | Change |
+|------|--------|
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | test helper + one expectation fix |
+| `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` | append-only §65 |
+
+### ۶۵.۶ Test inventory unchanged
+
+| Metric | Value |
+|--------|-------|
+| Static `def test_` count | `105` |
+| Expected runtime collection | `163` |
+
+### ۶۵.۷ Explicit non-operations
+
+- Tests were **not** rerun in this package.
+- No stage, commit, push or CI occurred.
+- No build, deploy or migration occurred.
+- No low-risk enrichment tests added.
+- No EOF cleanup performed.
+
+### ۶۵.۸ Next package
+
+**`PACKAGE-15-I5-A2-R1-TARGETED-ISOLATED-RUNTIME-TEST-RETRY-v1`**
+
+---
+*پایان §65 — I5-A2-R1 test helper and expectation fix — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §66 — I5-A2-R1 Successful Isolated Retest and Low-Risk Regression Enrichment
+
+**Status marker:**
+
+`I5_A2_R1_LOW_RISK_REGRESSION_ENRICHMENT_IMPLEMENTED_UNCOMMITTED — FIVE_TESTS_ADDED — EOF_HYGIENE_FIXED — TESTS_NOT_RERUN — PRODUCTION_A2_UNCHANGED`
+
+### ۶۶.۱ Baseline and preceding section
+
+| Item | Value |
+|------|-------|
+| HEAD / upstream SHA | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| Ahead / behind upstream | `0 / 0` |
+| Previous heading | `§65 — I5-A2-R1 Test Helper and Expectation Fix` |
+
+Section §65 was preserved unchanged; this section is append-only.
+
+### ۶۶.۲ Successful isolated retest evidence
+
+| Field | Value |
+|-------|-------|
+| Package | `PACKAGE-15-I5-A2-R1-TARGETED-ISOLATED-RUNTIME-TEST-RETRY-v1` |
+| Python / pytest | `3.12.10` / `9.1.1` |
+| Selected scope | one A2 test file only |
+| Isolation | `--noconftest`; plugin autoload disabled; cache provider disabled; external basetemp |
+| External dependencies | no DB, Alembic, Docker, network or CI |
+| Collected / passed | `163 / 163` |
+| Failed / errors / skipped | `0 / 0 / 0` |
+| xfailed / xpassed / warnings | `0 / 0 / 0` |
+| Duration / exit code | `3.27s / 0` |
+
+The prior 163-case suite passed before the enrichment below. The five new tests were not executed in this package.
+
+### ۶۶.۳ Production A2 preservation
+
+| File | Pre-enrichment SHA-256 | Post-enrichment SHA-256 | Status |
+|------|---------------------------|----------------------------|--------|
+| `backend/app/services/governance/policy_evaluator.py` | `8181039fe517310e498d9bb99ba004199ca9447fca9bb6cd9306ca354f0e8470` | `8181039fe517310e498d9bb99ba004199ca9447fca9bb6cd9306ca354f0e8470` | byte-identical; not modified |
+
+### ۶۶.۴ Test-file hashes
+
+| File | Pre-enrichment SHA-256 | Post-enrichment SHA-256 |
+|------|---------------------------|----------------------------|
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `3f2a603bec95aedbb11c5f73ed2c4c1186ea0dbd4854a70cbcbfa68e7c9b6943` | `a8149ed1332a66173d6385607d2de164c50aa08e1dd7e5146686ecd7cecc82a1` |
+
+### ۶۶.۵ Exactly five new regression functions
+
+1. `test_unrelated_unknown_restricted_allow_does_not_poison_valid_exact_allow`
+   - Evaluates both grant orders.
+   - Requires exact generic `ALLOW`, canonical `ALLOW_EXPLICIT` reason sequence and identical deterministic fingerprints.
+   - Proves an `UNKNOWN_RESTRICTED` allow grant cannot authorize and does not globally poison an unrelated exact PUBLIC allow.
+
+2. `test_unrelated_unknown_restricted_deny_does_not_block_valid_exact_allow`
+   - Evaluates both grant orders.
+   - Requires exact generic `ALLOW`, canonical `ALLOW_EXPLICIT`, no `EXPLICIT_DENY`, and identical deterministic fingerprints.
+   - Proves an `UNKNOWN_RESTRICTED` deny is not a cross-sensitivity global deny.
+
+3. `test_cross_sensitivity_explicit_deny_does_not_override_matching_allow`
+   - Covers PUBLIC allow plus HEALTH_ADVICE deny and HEALTH_ADVICE allow plus PUBLIC deny.
+   - Requires exact generic `ALLOW`, canonical `ALLOW_EXPLICIT`, no `EXPLICIT_DENY`, and no terminal `DATA_SENSITIVITY_MISMATCH`.
+   - Proves explicit deny requires applicable matching sensitivity.
+
+4. `test_verify_only_point_lookup_hard_stale_is_denied`
+   - Requires exact `DENY` with canonical `HARD_STALE`.
+   - Explicitly excludes `VERIFY_ONLY` and `ALLOW`.
+
+5. `test_malformed_freshness_fails_closed_and_never_allows`
+   - Uses a constructible plain-string freshness value on an otherwise valid request.
+   - Requires exact `DENY` with canonical `INVALID_REQUEST`.
+   - Explicitly excludes `VERIFY_ONLY` and `ALLOW`.
+
+All five regressions exercise the public `evaluate_policy` entry point.
+
+### ۶۶.۶ Test inventory
+
+| Metric | Before enrichment | After enrichment |
+|--------|-------------------|------------------|
+| Static `def test_` functions | `105` | `110` |
+| Parametrized definitions | `6` | `6` |
+| Parametrized expansion total | `64` | `64` |
+| Expected runtime collection | `163` | `168` |
+
+The expected 168-case collection is unexecuted. This section does not claim 168 tests passed.
+
+### ۶۶.۷ EOF hygiene
+
+The single pre-existing extra blank line at the end of the A2 test file was removed. The file now has exactly one final newline, zero extra EOF blank lines and zero trailing whitespace.
+
+### ۶۶.۸ Authorized modified files
+
+- `backend/tests/test_section15_i5a2_policy_evaluator.py`
+- `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (append-only §66)
+
+No production file, adapter or runtime wiring was created or modified.
+
+### ۶۶.۹ Explicit non-operations
+
+- Enrichment tests were **not** run.
+- No stage, commit, push or CI occurred.
+- No build, deploy or migration occurred.
+- No adapter or runtime wiring was created.
+- A2 is not claimed commit-ready, CI-verified or production-ready.
+
+### ۶۶.۱۰ Next package
+
+**`PACKAGE-15-I5-A2-R1-FINAL-TARGETED-ISOLATED-RUNTIME-TEST-v1`**
+
+---
+*پایان §66 — I5-A2-R1 successful isolated retest and low-risk regression enrichment — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §67 — I5-A2-R1 Malformed Freshness Fail-Closed Production Fix
+
+**Status marker:**
+
+`I5_A2_R1_MALFORMED_FRESHNESS_FIX_IMPLEMENTED_UNCOMMITTED — TEST_FILE_UNCHANGED — TESTS_NOT_RERUN — STATIC_AUDIT_PENDING — NO_COMMIT_PUSH_CI_BUILD_OR_DEPLOY`
+
+### ۶۷.۱ Baseline HEAD / upstream
+
+| Item | Value |
+|------|-------|
+| HEAD / upstream SHA | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| Ahead / behind upstream | `0 / 0` |
+
+### ۶۷.۲ Prior §66 context
+
+§66 recorded five low-risk regression tests, EOF cleanup and the prior 163-test green run. The expected 168-case collection was unexecuted at §66 time.
+
+### ۶۷.۳ Final isolated run evidence
+
+| Field | Value |
+|-------|-------|
+| Package | `PACKAGE-15-I5-A2-R1-FINAL-TARGETED-ISOLATED-RUNTIME-TEST-v1` |
+| Python / pytest | `3.12.10` / `9.1.1` |
+| Isolation | one A2 test file; `--noconftest`; plugin autoload disabled; cache provider disabled; external basetemp |
+| External dependencies | no DB, Alembic, Docker, network or CI |
+| Collected / passed / failed | `168 / 167 / 1` |
+| Errors / skipped / xfailed / xpassed / warnings | `0 / 0 / 0 / 0 / 0` |
+| Duration / exit code | `2.82s / 1` |
+
+### ۶۷.۴ Exact single failing test
+
+`test_malformed_freshness_fails_closed_and_never_allows`
+
+### ۶۷.۵ Exact defect
+
+- Policy reached the intended invalid denial path via freshness gating.
+- `_decision_fingerprint` accessed `request.freshness_status.value` on a plain string.
+- `AttributeError` escaped instead of returning a clean result.
+- No ALLOW or VERIFY_ONLY occurred.
+- Clean `DENY` / `INVALID_REQUEST` `PolicyEvaluationResult` was not returned.
+
+### ۶۷.۶ Accepted correction
+
+- Explicit runtime `FreshnessStatus` validation in `evaluate_policy`.
+- Malformed freshness returns terminal `DENY` / `INVALID_REQUEST` before authorization semantics.
+- Deterministic invalid-freshness fingerprint sentinel: `__INVALID_FRESHNESS_STATUS__`.
+- No string coercion, no fallback to `UNKNOWN_AGE`, no broad exception wrapper.
+
+### ۶۷.۷ Changed / new production symbols
+
+| Symbol | Change |
+|--------|--------|
+| `_INVALID_FRESHNESS_STATUS_SENTINEL` | new constant |
+| `_is_valid_freshness_status` | new helper |
+| `_serialize_freshness_status` | new helper |
+| `evaluate_policy` | early invalid-freshness terminal deny |
+| `_decision_fingerprint` | safe freshness serialization |
+
+Valid `FreshnessStatus` semantics remain unchanged.
+
+### ۶۷.۸ File hashes
+
+| File | Pre-fix SHA-256 | Post-fix SHA-256 |
+|------|-----------------|------------------|
+| `backend/app/services/governance/policy_evaluator.py` | `8181039fe517310e498d9bb99ba004199ca9447fca9bb6cd9306ca354f0e8470` | `a4e209a30dbbee38b78db079570da94df860ea1745bfd0b36d2dddbdefb1ee85` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `a8149ed1332a66173d6385607d2de164c50aa08e1dd7e5146686ecd7cecc82a1` | `a8149ed1332a66173d6385607d2de164c50aa08e1dd7e5146686ecd7cecc82a1` (unchanged) |
+
+### ۶۷.۹ Test inventory unchanged
+
+| Metric | Value |
+|--------|-------|
+| Static `def test_` functions | `110` |
+| Parametrized definitions | `6` |
+| Parametrized expansion total | `64` |
+| Expected runtime collection | `168` |
+
+This section does not claim 168 tests passed.
+
+### ۶۷.۱۰ Explicit non-operations
+
+- Tests were **not** rerun after this production fix.
+- No test file was modified.
+- No stage, commit, push or CI occurred.
+- No build, deploy or migration occurred.
+- No adapter or runtime wiring was created.
+- A2 is not claimed commit-ready, CI-verified or production-ready.
+
+### ۶۷.۱۱ Next package
+
+**`PACKAGE-15-I5-A2-R1-MALFORMED-FRESHNESS-FIX-STRICT-STATIC-AUDIT-READONLY-v1`**
+
+---
+*پایان §67 — I5-A2-R1 malformed freshness fail-closed production fix — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §68 — ممیزی تازگی نامعتبر I5-A2، شواهد آزمون ایزوله 168/168 و آمادگی کامیت محلی
+
+**Status marker:**
+
+`I5_A2_PRODUCT_EVIDENCE_READY_FOR_APPROVED_LOCAL_COMMIT — PUSH_NOT_AUTHORIZED — CI_WORKFLOW_UNCHANGED — NO_RUNTIME_WIRING`
+
+### ۶۸.۱ هویت بسته و مرورهای تکمیل‌شده
+
+**بسته جاری:**
+
+`PACKAGE-15-I5-A2-PRODUCT-EVIDENCE-LOCAL-COMMIT-v1`
+
+**بسته‌های مرور تکمیل‌شده:**
+
+- `PACKAGE-15-I5-A2-R1-MALFORMED-FRESHNESS-FIX-STRICT-STATIC-AUDIT-READONLY-v1`
+- `PACKAGE-15-I5-A2-ISOLATED-168-TEST-RUN-ONCE-v1`
+- `PACKAGE-15-I5-A2-EVIDENCE-AND-COMMIT-READINESS-REVIEW-READONLY-v1`
+
+### ۶۸.۲ خط مبنا پیش از کامیت
+
+| Item | Value |
+|------|-------|
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Parent HEAD | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| Upstream | `df50309a0ffc269215f4da0ac1a3377953408a16` |
+| Ahead / behind | `0 / 0` |
+| origin/main local ref | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+
+### ۶۸.۳ فایل‌های محصول تأییدشده و هش‌ها
+
+| File | Approved SHA-256 |
+|------|-----------------|
+| `backend/app/services/governance/policy_evaluator.py` | `a4e209a30dbbee38b78db079570da94df860ea1745bfd0b36d2dddbdefb1ee85` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `a8149ed1332a66173d6385607d2de164c50aa08e1dd7e5146686ecd7cecc82a1` |
+
+### ۶۸.۴ نتیجه ممیزی ایستای malformed freshness
+
+ممیزی ایستا با موفقیت گذشت و موارد زیر را تأیید کرد:
+
+- اعتبارسنجی صریح با `isinstance(value, FreshnessStatus)`.
+- مقدار malformed به `DENY / INVALID_REQUEST` منتهی می‌شود.
+- هیچ fallback به `UNKNOWN_AGE` وجود ندارد.
+- هیچ coercion از string انجام نمی‌شود.
+- sentinel دقیق fingerprint برابر `__INVALID_FRESHNESS_STATUS__` است.
+- دلیل `INVALID_REQUEST` دقیقاً یک بار افزوده می‌شود.
+- رفتار مقادیر معتبر `FreshnessStatus` بدون تغییر مانده است.
+- نسخه الگوریتم fingerprint بدون تغییر و برابر `sedi.governance.policy_evaluator.v1` است.
+- هیچ broad exception wrapper اضافه نشده است.
+- خلوص evaluator حفظ شده است.
+
+### ۶۸.۵ شواهد آزمون ایزوله 168/168
+
+**Command category:**
+
+`python -m pytest --noconftest -p no:cacheprovider --basetemp <EXTERNAL_TEMP> -q backend/tests/test_section15_i5a2_policy_evaluator.py`
+
+| Result | Value |
+|--------|-------|
+| Passed | `168` |
+| Failed | `0` |
+| Errors | `0` |
+| Skipped | `0` |
+| Warnings | `0` |
+| Duration | `3.59s` |
+| Exit code | `0` |
+
+- pytest دقیقاً یک بار اجرا شد.
+- هیچ rerun یا fix پس از اجرا انجام نشد.
+- basetemp خارج از repository بود.
+- هیچ artifact در repository ایجاد نشد.
+- پس از اجرا، HEAD، هش‌ها، staged scope و dirty scope بدون تغییر ماندند.
+- `git diff --check` همچنان با exit code `0` پایان یافت.
+
+### ۶۸.۶ نتیجه مرور آمادگی کامیت
+
+`PASS — READY_FOR_I5_A2_COMMIT_PREPARATION_SCOPE_APPROVAL`
+
+Evaluator تأیید شد که:
+
+- pure، deterministic، synchronous و side-effect free است؛
+- با قراردادهای I5-A1 و I5-A1-R1 سازگار است؛
+- هیچ وابستگی به database، ORM، FastAPI، network، filesystem، environment، scheduler، current-time، random، UUID، LLM، Gate، notification، device یا memory write ندارد.
+
+### ۶۸.۷ مرز صادقانه دامنه
+
+I5-A2 فقط قابلیت زیر را تکمیل می‌کند:
+
+`deterministic governance policy evaluation`
+
+I5-A2 موارد زیر را تکمیل نمی‌کند:
+
+- تمام I5؛
+- persistence؛
+- source registry؛
+- source onboarding؛
+- ingestion؛
+- weekly knowledge updates؛
+- publication؛
+- knowledge release؛
+- verified care directory؛
+- retrieval؛
+- citation validation؛
+- runtime integration؛
+- I6؛
+- I7؛
+- I8؛
+- smart notifications؛
+- Gate 5 integration؛
+- migration؛
+- deployment؛
+- production rollout.
+
+### ۶۸.۸ راهبرد CI
+
+**Strategy B انتخاب شد:**
+
+1. ابتدا یک کامیت محلی product/evidence شامل سه فایل تأییدشده این بسته ایجاد می‌شود.
+2. افزودن `.github/workflows/ci-backend-tests.yml` در یک کامیت مستقل CI-only و در بسته‌ای آینده انجام می‌شود.
+3. کامیت محصول نباید به‌تنهایی push شود.
+4. در این بسته هیچ تغییر CI workflow انجام نمی‌شود.
+
+### ۶۸.۹ وضعیت جاری پیش از کامیت
+
+| Item | Status |
+|------|--------|
+| Local commit | pending within this approved package |
+| Push | not authorized |
+| CI workflow update | not authorized in this package |
+| CI dispatch | not authorized |
+| Runtime wiring | not done |
+| Feature flags | unchanged and OFF |
+| Migration | none |
+| Deployment | none |
+| Production status | not ready |
+
+SHA کامیت محلی در این بخش اختراع یا پیش‌بینی نشده و پس از ایجاد کامیت فقط در گزارش Cursor ثبت خواهد شد. افزودن آن به repository log نیازمند یک بخش append-only در بسته مجاز آینده است.
+
+---
+*پایان §68 — ممیزی تازگی نامعتبر I5-A2، شواهد آزمون ایزوله 168/168 و آمادگی کامیت محلی — ۲۰۲۶-۰۷-۱۷*
