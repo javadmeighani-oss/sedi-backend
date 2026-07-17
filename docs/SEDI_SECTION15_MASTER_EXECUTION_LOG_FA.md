@@ -3336,3 +3336,480 @@ A1-R1 صراحتاً **نباید**:
 
 ---
 *پایان §59 — I5 A1 expanded-scope و A2 strict-gap audit acceptance — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §60 — I5-A1-R1 Expanded Governance Contract Types Implementation
+
+**Status marker:**
+
+`I5_A1_R1_IMPLEMENTED_UNCOMMITTED — A2_PRESERVED_BYTE_IDENTICAL — TESTS_NOT_RUN — STRICT_STATIC_AUDIT_PENDING`
+
+> این بخش ثبت implementation-uncommitted A1-R1 است. هیچ commit، push، CI dispatch، A2 modification، ingestion، retrieval، runtime wiring یا production activation در این package انجام نشده است.
+
+### ۶۰.۱ Baseline
+
+| مورد | مقدار |
+|------|--------|
+| HEAD / upstream | `e18982ccc1cf792be3e62e037d9d8c9a28e7f92f` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+
+### ۶۰.۲ Files modified or created
+
+| Action | Path |
+|--------|------|
+| Modified | `backend/app/services/governance/contracts.py` |
+| Unchanged | `backend/app/services/governance/__init__.py` |
+| Created | `backend/tests/test_section15_i5a1r1_expanded_contracts.py` |
+| Append-only | `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` |
+
+### ۶۰.۳ New contract symbols (additive)
+
+**Version constant:**
+
+- `EXPANDED_CONTRACT_VERSION = "sedi.governance.expanded-contracts.v1"`
+- `CONTRACT_VERSION` unchanged: `"sedi.governance.contracts.v1"`
+
+**Enums:**
+
+- `GovernedAuthorityKind`, `AuthorityUseCase`, `AuthoritySeparationOutcome`
+- `KnowledgeDomain`, `DiseaseSystem`, `ClinicalDomain`, `ClinicalJurisdictionScope`
+- `TaxonomyMappingRelation`, `EvidenceFacet`
+- `PreventionScope`, `CareScope`, `LongevityEvidenceScope`
+- `KnowledgePolicyDecision`, `EvidenceUseDecision`
+- `ContradictionStatus`, `RevocationDecision`, `RollbackDecision`
+- `EvidenceCriticality`, `FreshnessUseDecision`
+- `PredictionUseCase`, `PredictionUseDecision`
+
+**Constants / frozensets:**
+
+- `PROHIBITED_PREDICTION_USE_CASES`
+- `ALLOWING_EVIDENCE_USE_DECISIONS`
+
+**Immutable dataclasses:**
+
+- `ClinicalJurisdiction`, `ConditionIdentifier`, `ExternalTaxonomyMapping`
+- `LocalizedClinicalTerm`, `ConditionTerminology`, `DiseasePackIdentity`
+- `KnowledgeRequirement`, `EvidenceUseAssessment`
+- `RollbackTarget`, `RollbackRequirement`, `PredictionUseBoundary`
+- `KnowledgePackGovernanceState`
+
+**Pure functions:**
+
+- `evaluate_authority_separation`
+- `evaluate_freshness_criticality_use`
+- `is_prohibited_prediction_use_case`
+- `evaluate_prediction_use`
+- `jurisdictions_compatible`
+- `knowledge_policy_decision_permits_definitive_use`
+- `policy_outcome_equivalent_to_required_found`
+
+### ۶۰.۴ Compatibility decisions
+
+- هیچ enum، dataclass، constant یا function موجود A1 حذف یا rename نشده است.
+- مقادیر enumهای موجود (`ReviewStatus`, `PublicationState`, `FreshnessStatus`, `LicenseStatus`, `PermissionDecision`, `PolicyOutcome`, `GovernanceAction`) تغییر نکرده‌اند.
+- `CONTRACT_VERSION` بدون تغییر باقی مانده است؛ version additive جداگانه `EXPANDED_CONTRACT_VERSION` اضافه شده است.
+- `__init__.py` minimal export (`CONTRACT_VERSION` only) حفظ شده است.
+
+### ۶۰.۵ Disease architecture
+
+diseases به‌عنوان governed data و Disease Pack onboard می‌شوند؛ هیچ enum member یا class per-disease (ALS، MS، hepatitis، …) اضافه نشده است.
+
+### ۶۰.۶ Authority separation
+
+- `CLINICAL_EVIDENCE` → فقط `CLINICAL_ANSWER`
+- `PROVIDER_IDENTITY` → فقط `PROVIDER_VERIFICATION`
+- `FACILITY_IDENTITY` → فقط `FACILITY_VERIFICATION`
+- `PROVIDER_RANKING` → denied
+- unknown combinations → fail closed
+
+### ۶۰.۷ Knowledge-policy and evidence-use semantics
+
+- `KnowledgePolicyDecision`: `NOT_REQUIRED`, `REQUIRED_FOUND`, `REQUIRED_INSUFFICIENT`, `REQUIRED_STALE`, `BLOCKED`
+- `PolicyOutcome.ALLOW` معادل `REQUIRED_FOUND` **نیست**
+- `EvidenceUseDecision` شامل allow/restrict/review/deny paths با citation، license، jurisdiction، contradiction و revocation gates
+
+### ۶۰.۸ Prediction prohibitions and prerequisites
+
+- prohibited use cases (diagnosis، deterministic prognosis، precise remaining lifetime، medication changes، …) همیشه `BLOCKED`
+- personalized ALLOW نیازمند authorized data، provenance، consent، sufficient data، I4 clearance، governed evidence، uncertainty representation، jurisdiction match، freshness و reason codes
+
+### ۶۰.۹ Freshness, contradiction, revocation, rollback
+
+- `FreshnessStatus` موجود reuse شده است
+- `EvidenceCriticality` + `evaluate_freshness_criticality_use` fail-closed
+- `ContradictionStatus` unresolved/blocked → deny unrestricted use
+- `RevocationDecision` revoked/suspended → deny allow
+- `RollbackDecision` COMPLETED/REQUIRED → target identity required
+
+### ۶۰.۱۰ Tests
+
+| Item | Value |
+|------|-------|
+| Test file | `backend/tests/test_section15_i5a1r1_expanded_contracts.py` |
+| Static test function count | 77 |
+| Tests run | **NOT RUN** |
+
+### ۶۰.۱۱ Commit / push / CI status
+
+- **No code committed**
+- **No push**
+- **No CI verification**
+
+### ۶۰.۱۲ A2 preservation
+
+| فایل untracked | SHA-256 |
+|----------------|---------|
+| `backend/app/services/governance/policy_evaluator.py` | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` |
+
+Status: `PRESERVED_BYTE_IDENTICAL — UNTOUCHED`
+
+### ۶۰.۱۳ Forbidden operations not performed
+
+ingest medical content؛ connect retrieval؛ modify A2؛ wire runtime answer generation؛ DB models/migrations؛ schedulers؛ provider/facility population؛ flag activation؛ public API changes؛ deploy؛ stage؛ commit؛ push؛ CI dispatch؛ pytest.
+
+### ۶۰.۱۴ Next action
+
+**`PACKAGE-15-I5-A1-R1-STRICT-STATIC-AUDIT-READONLY-v1`**
+
+A1-R1 completed یا verified علامت‌گذاری **نشده** است.
+
+---
+*پایان §60 — I5-A1-R1 expanded governance contract types implementation — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §61 — I5-A1-R1 Focused Contract Safety Fix
+
+**Status marker:**
+
+`I5_A1_R1_FOCUSED_FIX_IMPLEMENTED_UNCOMMITTED — A2_PRESERVED_BYTE_IDENTICAL — TESTS_NOT_RUN — POST_FIX_STATIC_AUDIT_PENDING`
+
+> این بخش ثبت focused fix uncommitted A1-R1 است. هیچ commit، push، CI dispatch، A2 modification یا pytest در این package انجام نشده است.
+
+### ۶۱.۱ Baseline
+
+| مورد | مقدار |
+|------|--------|
+| HEAD / upstream | `e18982ccc1cf792be3e62e037d9d8c9a28e7f92f` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+
+### ۶۱.۲ Accepted static-audit verdict
+
+`A1_R1_FIX_REQUIRED_BEFORE_TESTS`
+
+### ۶۱.۳ Findings F01–F12
+
+| ID | Correction |
+|----|------------|
+| F01 | `EvidenceUseAssessment` structurally bound to `KnowledgePackGovernanceState`, `DiseasePackIdentity`, request context and `KnowledgeRequirement` |
+| F02 | `jurisdiction_applies_to` directional semantics; `jurisdictions_compatible` strict mutual check |
+| F03 | `eligible_for_unrestricted_use` removed; replaced by `passes_pack_state_prefilter` |
+| F04 | `EvidenceCriticality` bound; safety-critical SOFT_STALE blocks unrestricted allow |
+| F05 | unresolved/blocked contradiction blocks all allowing decisions |
+| F06 | UNVERIFIED mapping rejects all permission flags |
+| F07 | mapping jurisdiction must apply within local condition jurisdiction |
+| F08 | prefilter rejects SUPERSEDED, ACCEPTED_DIVERGENCE, RESTRICTED, rollback REQUIRED/BLOCKED |
+| F09 | UNKNOWN domain/system blocked on allowing paths only |
+| F10 | `INSUFFICIENT_DATA` removed from `PredictionUseCase`; added `PredictionReasonCode` |
+| F11 | prediction SOFT_STALE → `REQUIRE_HUMAN_REVIEW`, never ALLOW |
+| F12 | `RollbackRequirement.source_artifact_identity`; target cannot equal source |
+
+### ۶۱.۴ Contract corrections
+
+- Added `jurisdiction_applies_to`, tightened `jurisdictions_compatible`
+- Added `PredictionReasonCode`, `_freeze_prediction_reason_tuple`
+- Added `_BLOCKED_LICENSE_STATUSES`
+- `ExternalTaxonomyMapping` license/jurisdiction invariants strengthened
+- `RollbackRequirement` now carries `source_artifact_identity`
+- `KnowledgePackGovernanceState.passes_pack_state_prefilter` + `blocks_any_allowing_decision`
+- `EvidenceUseAssessment` redesigned with lifecycle binding and `_validate_allowing_decision`
+- `evaluate_prediction_use` updated for reason codes and SOFT_STALE handling
+
+### ۶۱.۵ Changed / added symbols
+
+**Added:** `PredictionReasonCode`, `jurisdiction_applies_to`, `passes_pack_state_prefilter`, `blocks_any_allowing_decision`, `_BLOCKED_LICENSE_STATUSES`, `_freeze_prediction_reason_tuple`
+
+**Removed:** `eligible_for_unrestricted_use`, `PredictionUseCase.INSUFFICIENT_DATA`
+
+**Changed:** `EvidenceUseAssessment` fields; `RollbackRequirement`; `KnowledgePackGovernanceState`; `ExternalTaxonomyMapping.__post_init__`; `DiseasePackIdentity` jurisdiction check; `evaluate_prediction_use`; `PredictionUseBoundary.reason_codes` type
+
+**Unchanged:** `CONTRACT_VERSION`, `EXPANDED_CONTRACT_VERSION`, committed A1 symbols
+
+### ۶۱.۶ Evidence lifecycle binding
+
+Allowing decisions require pack state, pack identity, requested use/jurisdiction, knowledge requirement, evidence criticality, facet coverage, evidence reference completeness, citation, license, freshness-criticality compatibility, authority separation, and lifecycle prefilter.
+
+### ۶۱.۷ Directional jurisdiction semantics
+
+GLOBAL → broader requests; COUNTRY/SUBDIVISION/ORGANIZATION narrow applicability; organization_id exact match required; mutual compatibility is bidirectional `jurisdiction_applies_to`.
+
+### ۶۱.۸ Taxonomy license and mapping restrictions
+
+UNVERIFIED and blocked licenses → all permissions False; RESTRICTED cannot permit every right; mapping jurisdiction constrained to condition applicability.
+
+### ۶۱.۹ Pack-state prefilter rename
+
+`passes_pack_state_prefilter` is pack-state only — not final answer permission. Docstring documents excluded checks.
+
+### ۶۱.۱۰ Rollback correction
+
+`source_artifact_identity` required; target ≠ source; BLOCKED/NOT_REQUIRED cannot carry target; prefilter rejects REQUIRED/BLOCKED_NO_APPROVED_BASELINE.
+
+### ۶۱.۱۱ UNKNOWN domain/system boundary
+
+UNKNOWN may be stored on `DiseasePackIdentity`; allowing evidence paths reject UNKNOWN domain/system.
+
+### ۶۱.۱۲ Prediction insufficient-data correction
+
+`PredictionReasonCode.INSUFFICIENT_DATA` as reason; `has_sufficient_data=False` or reason presence → `REQUIRE_MORE_DATA`; SOFT_STALE → `REQUIRE_HUMAN_REVIEW`.
+
+### ۶۱.۱۳ Tests
+
+| Item | Value |
+|------|-------|
+| Test file | `backend/tests/test_section15_i5a1r1_expanded_contracts.py` |
+| Static `def test_` count | 64 |
+| Parametrized expansions | pack prefilter (19 cases), prohibited prediction (7 cases) |
+| Tests run | **NOT RUN** |
+
+### ۶۱.۱۴ Commit / push / CI
+
+- No stage
+- No commit
+- No push
+- No CI dispatch
+
+### ۶۱.۱۵ A2 preservation
+
+| فایل | SHA-256 |
+|------|---------|
+| `backend/app/services/governance/policy_evaluator.py` | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` |
+
+### ۶۱.۱۶ Next action
+
+**`PACKAGE-15-I5-A1-R1-POST-FIX-STRICT-STATIC-AUDIT-READONLY-v1`**
+
+Fix verified یا complete علامت‌گذاری **نشده** است.
+
+---
+*پایان §61 — I5-A1-R1 focused contract safety fix — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §62 — I5-A1-R1 Restricted-Allow Lifecycle Final Fix
+
+**Status marker:**
+
+`I5_A1_R1_RESTRICTED_ALLOW_FIX_IMPLEMENTED_UNCOMMITTED — A2_PRESERVED_BYTE_IDENTICAL — TESTS_NOT_RUN — FINAL_STATIC_REAUDIT_PENDING`
+
+> این بخش ثبت focused lifecycle fix uncommitted است. هیچ commit، push، CI dispatch، A2 modification یا pytest انجام نشده است.
+
+### ۶۲.۱ Baseline
+
+| مورد | مقدار |
+|------|--------|
+| HEAD / upstream | `e18982ccc1cf792be3e62e037d9d8c9a28e7f92f` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+
+### ۶۲.۲ Accepted verdict
+
+`A1_R1_ADDITIONAL_FIX_REQUIRED_BEFORE_TESTS`
+
+### ۶۲.۳ Findings PF01–PF03
+
+| ID | Correction |
+|----|------------|
+| PF01 | Shared `_validate_common_allowing_lifecycle` for both allowing decisions; `blocks_any_allowing_decision` now rejects non-APPROVED (incl. PENDING_HUMAN) and `high_risk_change` |
+| PF02 | Removed trailing blank line at EOF in `contracts.py`; `git diff --check` exit 0 |
+| PF03 | Replaced permissive OR exception regexes with exact single-message assertions |
+
+### ۶۲.۴ Shared allowing lifecycle gate
+
+Both `ALLOW_WITH_CITATION` and `ALLOW_WITH_RESTRICTIONS` require:
+
+- `ReviewStatus.APPROVED`
+- `PublicationState.PUBLISHED`
+- `high_risk_change=False`
+- authority/use separation permitted
+- evidence jurisdiction applies to request
+- `RevocationDecision.NOT_REVOKED`
+- rollback not REQUIRED / BLOCKED_NO_APPROVED_BASELINE
+- blocked/unknown/RESTRICTED license denied
+- `REQUIRED_FOUND` knowledge
+- required facets and evidence references
+- known ClinicalDomain / DiseaseSystem
+- clinical citation requirements
+
+Helpers:
+
+- `_validate_common_allowing_lifecycle`
+- `_validate_unrestricted_allowing_decision`
+- `_validate_restricted_allowing_decision`
+
+### ۶۲.۵ Unrestricted vs restricted semantics
+
+**Unrestricted (`ALLOW_WITH_CITATION`):** shared gate + `passes_pack_state_prefilter` + EXPLICIT_GRANT + FRESH + resolved/NONE contradiction + freshness ELIGIBLE.
+
+**Restricted (`ALLOW_WITH_RESTRICTIONS`):** shared gate + EXPLICIT_GRANT + ACCEPTED_DIVERGENCE allowed + SOFT_STALE only when freshness outcome is RESTRICTED + HARD_STALE/UNKNOWN_AGE denied + unresolved/BLOCKED contradiction denied.
+
+PENDING_HUMAN and high-risk cannot receive either allowing decision.
+
+### ۶۲.۶ Tests
+
+| Item | Value |
+|------|-------|
+| Test file | `backend/tests/test_section15_i5a1r1_expanded_contracts.py` |
+| Static `def test_` count | 70 |
+| Tests run | **NOT RUN** |
+
+Added/changed regressions: PENDING_HUMAN restricted deny; high-risk restricted deny; quarantine/unpublished/superseded/restricted-license/rollback for both allow paths; soft-stale restricted-only; hard/unknown age exact messages; unrestricted safe path; restricted state cannot unrestricted-allow.
+
+### ۶۲.۷ Hygiene
+
+`git diff --check` on `contracts.py`: **exit 0** (EOF blank line removed).
+
+### ۶۲.۸ Commit / push / CI
+
+- No stage
+- No commit
+- No push
+- No CI dispatch
+
+### ۶۲.۹ A2 preservation
+
+| فایل | SHA-256 |
+|------|---------|
+| `backend/app/services/governance/policy_evaluator.py` | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` |
+
+### ۶۲.۱۰ Next action
+
+**`PACKAGE-15-I5-A1-R1-FINAL-STATIC-REAUDIT-READONLY-v1`**
+
+A1-R1 verified علامت‌گذاری **نشده** است.
+
+---
+*پایان §62 — I5-A1-R1 restricted-allow lifecycle final fix — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §63 — I5-A1-R1 Targeted Contract Test Verification and Local Commit Readiness
+
+**Status marker:**
+
+`I5_A1_R1_TARGETED_TESTS_VERIFIED — 118_COLLECTED_118_PASSED — A2_PRESERVED_BYTE_IDENTICAL — READY_FOR_LOCAL_COMMIT`
+
+### ۶۳.۱ Baseline and accepted static verdict
+
+| Item | Value |
+|------|-------|
+| Baseline HEAD / upstream | `e18982ccc1cf792be3e62e037d9d8c9a28e7f92f` |
+| Static audit verdict | `A1_R1_FINAL_STATIC_AUDIT_PASS — READY_FOR_TARGETED_TEST_APPROVAL` |
+
+### ۶۳.۲ First targeted run
+
+- 118 tests collected.
+- 118 setup errors occurred before any assertion executed.
+- The cause was the unrelated session-scoped autouse PostgreSQL fixture in `backend/tests/conftest.py`.
+- This run did not establish a code or contract failure.
+- No code or test changes resulted from this attempt.
+
+### ۶۳.۳ Fixture-independence audit
+
+- Both authorized A1 and A1-R1 files are pure governance contract tests.
+- They have no fixture parameters and no DB, client, engine or session dependency.
+- The PostgreSQL fixture is irrelevant to these tests.
+- An isolated retry using `--noconftest` was therefore justified.
+
+### ۶۳.۴ Successful isolated targeted test run
+
+Authorized files:
+
+- `backend/tests/test_section15_i5a1_governance_contracts.py`
+- `backend/tests/test_section15_i5a1r1_expanded_contracts.py`
+
+| Item | Result |
+|------|--------|
+| Python | `3.12.10` |
+| pytest | `9.1.1` |
+| Collected | 118 |
+| Passed | 118 |
+| Failed | 0 |
+| Errors | 0 |
+| Skipped | 0 |
+| Warnings | 0 |
+| Exit code | 0 |
+| Duration | 2.12 seconds |
+| Committed A1 tests | 22/22 passed |
+| Expanded A1-R1 cases | 96/96 passed |
+
+### ۶۳.۵ Isolated execution controls
+
+- `PYTHONDONTWRITEBYTECODE=1`
+- `PYTHONHASHSEED=0`
+- `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`
+- `--noconftest`
+- `-p no:cacheprovider`
+- unique external `--basetemp`
+- no PostgreSQL connection attempted
+- no I5-A2 test executed
+
+### ۶۳.۶ Repository preservation
+
+- Test execution changed no source, test or documentation file.
+- No dependency was installed.
+- No stage, commit, push or CI occurred during the test packages.
+- `git diff --check` remained exit 0.
+- Ignored caches were pre-existing and unchanged.
+- No cache cleanup was performed.
+
+### ۶۳.۷ A2 preservation
+
+| File | SHA-256 |
+|------|---------|
+| `backend/app/services/governance/policy_evaluator.py` | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` |
+
+### ۶۳.۸ A1-R1 test-file hash
+
+| File | SHA-256 |
+|------|---------|
+| `backend/tests/test_section15_i5a1r1_expanded_contracts.py` | `25b43a8dd95d84b874b0366312ff466634f8166bc474f80fcd33a303e4a3438e` |
+
+### ۶۳.۹ Accepted low-severity technical debt
+
+Prediction reason codes are not fully cross-validated against the returned prediction decision, but no unsafe allow path exists and this does not block A1-R1 V1 contract completion.
+
+### ۶۳.۱۰ Exact local commit scope
+
+Authorized:
+
+- `backend/app/services/governance/contracts.py`
+- `backend/tests/test_section15_i5a1r1_expanded_contracts.py`
+- `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md`
+
+Forbidden A2 scope:
+
+- `backend/app/services/governance/policy_evaluator.py`
+- `backend/tests/test_section15_i5a2_policy_evaluator.py`
+
+Intended commit subject:
+
+`feat(governance): add I5 expanded contract types`
+
+### ۶۳.۱۱ Readiness and authorization boundary
+
+- A1-R1 is locally test-verified for its contract scope.
+- A2 remains untracked, uncommitted and byte-identical.
+- No push or CI is authorized in this package.
+- The resulting local commit SHA will be reported in the final package report and reconciled into this execution log during a later authorized push/result package.
+
+### ۶۳.۱۲ Next action
+
+**`PACKAGE-15-I5-A1-R1-EXACT-NONFORCE-PUSH-AND-CI-APPROVAL-v1`**
+
+---
+*پایان §63 — I5-A1-R1 targeted contract test verification and local commit readiness — ۲۰۲۶-۰۷-۱۷*
