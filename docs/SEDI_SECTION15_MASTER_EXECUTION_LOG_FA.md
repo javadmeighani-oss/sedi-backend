@@ -4377,3 +4377,290 @@ SHA کامیت محلی در این بخش اختراع یا پیش‌بینی �
 
 ---
 *پایان §68 — ممیزی تازگی نامعتبر I5-A2، شواهد آزمون ایزوله 168/168 و آمادگی کامیت محلی — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §69 — تأیید نهایی CI بسته I5-A2 و تثبیت وضعیت CI_VERIFIED
+
+**Status marker:**
+
+`I5_A2_IMPLEMENTED_COMMITTED_PUSHED_AND_CI_VERIFIED — NO_RUNTIME_WIRING — FEATURE_FLAGS_OFF — NOT_PRODUCTION_READY`
+
+### ۶۹.۱ هویت بسته‌ها و نتیجه
+
+**بسته تأیید CI:**
+
+`PACKAGE-15-I5-A2-CI-DISPATCH-AND-VERIFICATION-v1`
+
+**نتیجه:**
+
+`PASS — I5_A2_CI_VERIFIED_READY_FOR_EXECUTION_LOG_EVIDENCE_APPROVAL`
+
+**بسته مستندسازی جاری:**
+
+`PACKAGE-15-I5-A2-FINAL-CI-EVIDENCE-LOG-LOCAL-COMMIT-v1`
+
+### ۶۹.۲ مخزن و خط مبنای هدف
+
+| Item | Value |
+|------|-------|
+| Repository | `javadmeighani-oss/sedi-backend` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Target SHA | `39f9816485a9c68dbcca2fea55b083efd75aed4a` |
+| Product commit | `42d17431a4eeb26704632a60740f1b2bee678004` — `feat(governance): add deterministic I5 A2 policy evaluator` |
+| CI-only commit | `39f9816485a9c68dbcca2fea55b083efd75aed4a` — `ci: include I5 A2 policy evaluator tests` |
+
+پیش از dispatch و پس از verification، local HEAD، upstream و actual remote SHA همگی برابر target SHA بودند و ahead/behind برابر `0/0` بود.
+
+### ۶۹.۳ شناسایی workflow
+
+| Item | Value |
+|------|-------|
+| Workflow display name | `Backend V1 freeze tests` |
+| Workflow ID | `231820481` |
+| Workflow path | `.github/workflows/ci-backend-tests.yml` |
+| Workflow state | `active` |
+| Trigger | `workflow_dispatch` |
+
+بازبینی duplicate-run هیچ run معتبر قبلی برای target SHA پیدا نکرد.
+
+### ۶۹.۴ شواهد dispatch
+
+| Item | Value |
+|------|-------|
+| Dispatch count | exactly one |
+| Run ID | `29598851209` |
+| Run URL | `https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29598851209` |
+| Event | `workflow_dispatch` |
+| Created | `2026-07-17T17:07:52Z` |
+| Target branch | `feature/section15/backend-continuity-foundation` |
+| Target SHA | `39f9816485a9c68dbcca2fea55b083efd75aed4a` |
+| Status | `completed` |
+| Conclusion | `success` |
+
+هیچ dispatch دوم، rerun یا cancellation انجام نشد.
+
+### ۶۹.۵ شواهد job
+
+| Item | Value |
+|------|-------|
+| Job | `V1 freeze subset` |
+| Job ID | `87945815956` |
+| Runner | `ubuntu-24.04` |
+| Started | `2026-07-17T17:08:00Z` |
+| Completed | `2026-07-17T17:09:43Z` |
+| Job conclusion | `success` |
+
+موارد مرتبط زیر با موفقیت پایان یافتند:
+
+- checkout؛
+- Python setup؛
+- backend dependency installation؛
+- PostgreSQL و test DB readiness؛
+- test migrations؛
+- Section 10 tests؛
+- contracts tests؛
+- interact stabilization tests؛
+- OTP/SMS gateway tests؛
+- V1 mandatory acceptance subsets؛
+- notification preferences optional tests؛
+- Section 15 backend foundation tests.
+
+فایل optional device-ingestion وجود نداشت و گام optional با پیام مستند `SKIP: test_device_ingestion_c1.py not present` و conclusion موفق پایان یافت.
+
+### ۶۹.۶ دامنه دقیق فرمان Section 15
+
+فرمان واقعی pytest در گام Section 15 هر سه فایل I5 زیر را شامل می‌شد:
+
+```text
+backend/tests/test_section15_i5a1_governance_contracts.py
+backend/tests/test_section15_i5a1r1_expanded_contracts.py
+backend/tests/test_section15_i5a2_policy_evaluator.py
+```
+
+مسیر A2 در command اجراشده CI مشاهده شد و صرفاً از وجود فایل در repository استنباط نشد.
+
+### ۶۹.۷ نتیجه دقیق آزمون Section 15
+
+| Metric | Value |
+|--------|-------|
+| Collected | `657` |
+| Passed | `657` |
+| Failed | `0` |
+| Errors | `0` |
+| Skipped / xfailed | `0` |
+| Warnings | `1` |
+| Duration | `5.08s` |
+| Step conclusion | `success` |
+
+**Exact summary:**
+
+`657 passed, 1 warning in 5.08s`
+
+**I5 breakdown:**
+
+| Metric | Value |
+|--------|-------|
+| I5-A1 passed lines | `22` |
+| I5-A1-R1 passed lines | `96` |
+| I5-A2 passed lines | `168` |
+| I5-A2 failed / error lines | `0` |
+
+### ۶۹.۸ نتایج گسترده‌تر workflow
+
+| Area | Result |
+|------|--------|
+| Section 10 | `91 passed, 1 warning` |
+| Contracts | `27 passed, 1 warning` |
+| Interact stabilization | `147 passed, 6 warnings` |
+| OTP/SMS | `171 passed, 1 warning` |
+| Notification preferences optional | `4 passed, 1 warning` |
+| Section 15 | `657 passed, 1 warning` |
+| Final workflow conclusion | `success` |
+
+هیچ aggregate total ساختگی میان گام‌های مستقل محاسبه نشده است.
+
+### ۶۹.۹ هشدارها و annotationها
+
+1. گام Section 15 یک `StarletteDeprecationWarning` از `backend/tests/conftest.py` ثبت کرد.
+2. GitHub Actions یک annotation درباره deprecation مربوط به Node.js 20 برای `actions/checkout@v4` و `actions/setup-python@v5` ثبت کرد.
+3. این هشدارها non-blocking بودند.
+4. گام Section 15 از `continue-on-error: true` استفاده نکرد.
+5. هیچ blocking annotation یا hidden ignored Section 15 failure وجود نداشت.
+
+### ۶۹.۱۰ invariantهای پس از CI
+
+| Item | Value |
+|------|-------|
+| HEAD | `39f9816485a9c68dbcca2fea55b083efd75aed4a` |
+| Upstream | `39f9816485a9c68dbcca2fea55b083efd75aed4a` |
+| Remote | `39f9816485a9c68dbcca2fea55b083efd75aed4a` |
+| Ahead / behind | `0 / 0` |
+| Worktree | `clean` |
+| Staged | `empty` |
+
+- هیچ repository artifact ایجاد نشد.
+- هنگام CI verification هیچ repository edit، commit، push یا fetch انجام نشد.
+- هیچ Python یا pytest محلی اجرا نشد.
+- هیچ dispatch دوم یا rerun انجام نشد.
+- هیچ migration، runtime wiring، build، deploy یا flag activation انجام نشد.
+- I5-B شروع نشد.
+
+### ۶۹.۱۱ وضعیت رسمی I5-A2
+
+```text
+Implementation:
+COMMITTED
+
+Product commit:
+42d17431a4eeb26704632a60740f1b2bee678004
+
+CI-only commit:
+39f9816485a9c68dbcca2fea55b083efd75aed4a
+
+Push:
+COMPLETE
+
+Static audit:
+PASS
+
+Isolated tests:
+168/168 PASS
+
+Workflow path:
+INCLUDED
+
+CI run:
+29598851209
+
+Section 15 CI:
+657/657 PASS
+
+I5-A2 CI:
+168/168 PASS
+
+CI conclusion:
+SUCCESS
+
+Formal package state:
+CI_VERIFIED
+```
+
+مرزهای وضعیت:
+
+```text
+Runtime wiring:
+NOT DONE
+
+Migration:
+NONE
+
+Deployment:
+NONE
+
+Feature flags:
+UNCHANGED AND OFF
+
+Production-ready:
+NO
+```
+
+### ۶۹.۱۲ مرز no-rework
+
+I5-A2 فقط قابلیت زیر را تکمیل می‌کند:
+
+`deterministic governance policy evaluation`
+
+I5-A2 موارد زیر را تکمیل نمی‌کند:
+
+- تمام I5؛
+- governance persistence؛
+- source registry؛
+- source onboarding؛
+- ingestion؛
+- weekly knowledge discovery؛
+- publication and release؛
+- verified care directory؛
+- governed retrieval؛
+- citation validation؛
+- runtime integration؛
+- I6؛
+- I7؛
+- I8؛
+- smart-notification intelligence؛
+- Gate 5 device integration؛
+- production rollout.
+
+تمام بسته‌های I1 تا I8 همچنان development packageهای زیرمجموعه Backend Gate 3 هستند.
+
+### ۶۹.۱۳ مرز بسته بعدی
+
+اقدام بعدی هنوز implementation نیست. بسته بعدی باید یک بسته read-only planning و baseline-reconciliation برای قابلیت باقی‌مانده زیر باشد:
+
+`I5-B Governed Source Registry, Persistence and Automated Ingestion Foundation`
+
+وابستگی‌های آن:
+
+- قراردادهای I5-A1 و I5-A1-R1؛
+- policy evaluator مربوط به I5-A2؛
+- Gate 3 KB foundation موجود؛
+- migration head جاری؛
+- الزامات تأییدشده disease، care، lifestyle، psychology و verified-directory؛
+- feature flagها با default برابر OFF؛
+- بدون production activation.
+
+I5-B شروع نشده است.
+
+### ۶۹.۱۴ وضعیت پیش از کامیت docs-only
+
+| Item | Status |
+|------|--------|
+| Final CI evidence documentation | pending local docs-only commit in this approved package |
+| Push of documentation commit | not authorized |
+| Additional CI | not authorized |
+| I5-B | not started |
+
+SHA کامیت docs-only آینده در این بخش اختراع نشده است. نتیجه کامیت فقط در گزارش Cursor ثبت می‌شود و ثبت repository آن، در صورت نیاز، به بخش append-only مجاز آینده نیاز دارد.
+
+---
+*پایان §69 — تأیید نهایی CI بسته I5-A2 و تثبیت وضعیت CI_VERIFIED — ۲۰۲۶-۰۷-۱۷*
