@@ -3017,3 +3017,322 @@ Javad ایجاد **دقیقاً یک commit محلی** برای مجموع تغ�
 
 ---
 *پایان ثبت review و local commit approval — ۲۰۲۶-۰۷-۱۶*
+
+---
+
+## ۵۸) I5 baseline / A1 CI / A2 preserved state / expanded clinical scope reconciliation
+
+**Status marker:**
+
+`I5_BASELINE_RECONCILED — A1_CI_VERIFIED — A2_IMPLEMENTED_UNCOMMITTED_PENDING_STRICT_AUDIT — EXPANDED_DISEASE_PREVENTION_LONGEVITY_SCOPE_APPROVED`
+
+> **تقدم وضعیت:** واقعیت‌های ثبت‌شده در این بخش دربارهٔ I5، baseline جاری و اقدام بعدی، بر snapshotهای قدیمی‌تر همین سند که I5 را «شروع‌نشده» یا HEAD را `15d6646…` معرفی می‌کنند تقدم دارند. این ثبت فقط reconciliation مستندات است و هیچ production code، test، stage، commit، push، CI dispatch، migration، deploy، flag activation یا runtime wiring انجام نمی‌دهد.
+
+### ۵۸.۱ Reconciled Git baseline
+
+| مورد | وضعیت reconciled |
+|------|------------------|
+| Worktree | `D:\Rimiya Design Studio\Sedi\software\Demo-wt-section15-backend` |
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Local HEAD | `455f9dbcc716ccdc26718d99eae8747b765e70e8` |
+| Upstream HEAD | `455f9dbcc716ccdc26718d99eae8747b765e70e8` |
+| `origin/main` local ref | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| Ahead / behind | `0/0` |
+| Tracked changes before this documentation task | none |
+| Preserved untracked A2 production file | `backend/app/services/governance/policy_evaluator.py` |
+| Preserved untracked A2 test file | `backend/tests/test_section15_i5a2_policy_evaluator.py` |
+
+### ۵۸.۲ I5-A1 commit ledger
+
+**I5-A1 implementation commit**
+
+| فیلد | مقدار |
+|------|-------|
+| SHA | `2156296a652141006192d6ecbc1d70204df2cbf6` |
+| Parent | `96a681f032afc7097d09590bf37baedda55bbf54` |
+| Subject | `feat(governance): add I5 contract types` |
+| Path 1 | `backend/app/services/governance/__init__.py` |
+| Path 2 | `backend/app/services/governance/contracts.py` |
+| Path 3 | `backend/tests/test_section15_i5a1_governance_contracts.py` |
+
+**I5-A1 CI collection commit**
+
+| فیلد | مقدار |
+|------|-------|
+| SHA | `455f9dbcc716ccdc26718d99eae8747b765e70e8` |
+| Parent | `2156296a652141006192d6ecbc1d70204df2cbf6` |
+| Subject | `ci: include I5 A1 governance tests` |
+| Path | `.github/workflows/ci-backend-tests.yml` |
+
+هر دو commit روی upstream branch حاضرند.
+
+### ۵۸.۳ I5-A1 CI evidence
+
+| فیلد | شواهد externally verified |
+|------|----------------------------|
+| GitHub Actions workflow run ID | `29515805073` |
+| Job ID | `87680419242` |
+| Job | `V1 freeze subset` |
+| Checked-out SHA | `455f9dbcc716ccdc26718d99eae8747b765e70e8` |
+| Job conclusion | `success` |
+| Section 15 collection | `393 collected` |
+| Section 15 result | `393 passed`، `0 failed`، `0 errors`، `1 warning` |
+| I5-A1 test file | `backend/tests/test_section15_i5a1_governance_contracts.py` |
+| I5-A1 result | `22 tests passed` |
+
+**نتیجهٔ دقیق:** I5-A1 برای scope جاری governance-contract خود **IMPLEMENTED, COMMITTED, PUSHED and CI_VERIFIED** است.
+
+**محدودیت:** CI فعلی ثابت نمی‌کند که contractهای A1 تمام scope تازه‌تصویب‌شدهٔ all-disease، prevention و longevity را پوشش می‌دهند. تعیین این gap نیازمند audit فقط‌خواندنی مستقل است.
+
+### ۵۸.۴ I5-A2 preserved state
+
+| مورد | مقدار |
+|------|-------|
+| Production file | `backend/app/services/governance/policy_evaluator.py` |
+| Production SHA-256 | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` |
+| Test file | `backend/tests/test_section15_i5a2_policy_evaluator.py` |
+| Test SHA-256 | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` |
+| Status | `I5-A2 IMPLEMENTED_UNCOMMITTED_PENDING_STRICT_READ_ONLY_AUDIT` |
+
+Static inventory:
+
+- pure deterministic policy evaluator؛
+- وابسته فقط به tracked I5-A1 contracts و Python standard library؛
+- بدون DB، API، FastAPI، Pydantic runtime model، scheduler، LLM یا network I/O؛
+- بدون retrieval activation یا production wiring؛
+- دارای ۷۳ تابع تست که به‌صورت static شناسایی شده‌اند؛
+- بدون evaluator authority تکراری شناخته‌شده.
+
+این ثبت، A2 را approved، tested، committed، pushed یا CI-verified اعلام نمی‌کند. هر دو فایل باید تا strict read-only audit و تأیید مستقل بعدی جواد byte-for-byte دست‌نخورده بمانند.
+
+### ۵۸.۵ Expanded I5 product scope
+
+I5 باید معماری governed برای تمام خانواده‌های بیماری، preventive healthcare، lifestyle correction، rehabilitation، healthy ageing و evidence-based longevity support فراهم کند. onboarding محتوا می‌تواند phased باشد، اما معماری نباید به بیماری‌های pilot محدود شود.
+
+**اولویت‌های بالینی اولیه:**
+
+1. **Neurology and nervous-system conditions:** ALS؛ MS؛ Parkinson disease؛ dementia and Alzheimer disease؛ epilepsy؛ stroke؛ motor-neuron diseases؛ peripheral neuropathies؛ spinal-cord disorders؛ myasthenia gravis؛ Guillain-Barre syndrome؛ migraine و serious headache conditions.
+2. **Cardiovascular:** coronary artery disease؛ myocardial infarction؛ heart failure؛ hypertension؛ arrhythmias؛ valvular disease؛ cardiomyopathy؛ peripheral vascular disease.
+3. **Hepatitis and liver:** hepatitis A, B, C, D and E؛ acute and chronic hepatitis؛ metabolic fatty liver disease؛ cirrhosis؛ liver cancer.
+
+معماری آینده همچنین باید endocrine and metabolic، renal، respiratory، gastrointestinal، infectious disease، cancer، autoimmune and rheumatology، hematology، mental and behavioral health، women and pregnancy، pediatrics، geriatrics، rehabilitation و long-term care را پشتیبانی کند.
+
+### ۵۸.۶ Prevention, care and longevity requirements
+
+هر governed disease pack باید در آینده قابلیت نمایش ساختاری موارد زیر را داشته باشد:
+
+- definition and patient education؛
+- causes and risk factors؛ common symptoms؛ red flags؛
+- screening؛ prevention؛ non-diagnostic evaluation education؛
+- treatment education و medication-safety boundaries؛
+- nutrition؛ physical activity؛ sleep؛ stress and behavioral support؛
+- rehabilitation؛ caregiver and family support؛
+- follow-up and monitoring؛ complications؛
+- natural-history and prognosis evidence؛
+- appropriate specialty and care pathway؛
+- jurisdiction؛ provenance؛ citation؛ freshness؛
+- contradiction؛ supersession؛ quarantine؛ revocation؛ rollback؛
+- explicit Sedi response limitations.
+
+یک scope مستقل **Preventive Care and Longevity Evidence** باید tobacco avoidance، nutrition، physical activity، sleep، mental wellbeing، healthy body weight، blood pressure، glucose، lipids، vaccination، risk-based screening، adherence education، social connection، fall prevention، healthy ageing و care-gap detection را پوشش دهد.
+
+Longevity به‌معنای ادعای lifespan تضمین‌شده نیست.
+
+### ۵۸.۷ Prediction boundary
+
+I5 governed evidence و policy contracts فراهم می‌کند؛ بیماری را diagnose نمی‌کند و به‌تنهایی personalized clinical prediction تولید نمی‌کند.
+
+مرحله‌های مجاز آینده می‌توانند با تکیه بر شواهد I5 موارد زیر را بررسی کنند: risk-factor identification؛ risk trend؛ screening due؛ monitoring due؛ care gap؛ red-flag detection؛ lifestyle opportunity؛ complication-monitoring need؛ insufficient data؛ specialist or facility referral need.
+
+هر personalized prediction آینده نیازمند authorized user data، provenance، consent، sufficient data، I4 safety، governed evidence، uncertainty، jurisdiction، freshness و explainable reason codes است. Personalized longitudinal prediction همچنان به I6 memory/consent و I7 longitudinal summaries وابسته است.
+
+موارد ممنوع باقی می‌مانند: diagnosis by Sedi؛ deterministic prognosis؛ guaranteed disease outcome؛ precise remaining-lifetime prediction؛ medication dose change؛ prescription substitution؛ treatment replacement.
+
+### ۵۸.۸ Two separate governed authorities
+
+I5 شامل دو authority مستقل است:
+
+1. **Clinical, Disease, Prevention and Lifestyle Knowledge Base**
+2. **Verified Care Directory**
+
+Clinical knowledge نباید provider identity را verify کند و directory records نباید به‌عنوان clinical evidence استفاده شوند.
+
+### ۵۸.۹ Exact next authorized action
+
+اقدام بعدی فقط read-only است:
+
+`PACKAGE-15-I5-A1-EXPANDED-SCOPE-AND-A2-STRICT-GAP-AUDIT-READONLY-v1`
+
+هدف:
+
+- mapping contractهای A1 موجود به نیازهای expanded disease، prevention و longevity؛
+- شناسایی contract typeها یا invariantهای مفقود؛
+- strict audit دو فایل untracked A2؛
+- تعیین اینکه آیا پیش از نهایی‌شدن A2، اصلاح `A1-R1` لازم است؛
+- توصیهٔ scope دقیق implementation بعدی.
+
+هیچ A3، ingestion، retrieval، directory population، runtime wiring یا production activation مجاز نیست.
+
+---
+*پایان I5 documentation reconciliation — ۲۰۲۶-۰۷-۱۷*
+
+---
+
+## §59 — I5 A1 Expanded-Scope and A2 Strict-Gap Audit Acceptance
+
+**Status marker:**
+
+`I5_A1_EXPANDED_SCOPE_AUDIT_ACCEPTED — A1_R1_REQUIRED_BEFORE_A2 — A2_MUST_REMAIN_UNTOUCHED — A1_R1_PENDING_IMPLEMENTATION_APPROVAL`
+
+> این بخش صرفاً reconciliation مستندات است. هیچ production code، test، A2 file، workflow، migration، runtime wiring، push یا CI dispatch در این ثبت انجام نمی‌شود. واقعیت‌های این بخش نتیجهٔ audit خواندنی-فقط `PACKAGE-15-I5-A1-EXPANDED-SCOPE-AND-A2-STRICT-GAP-AUDIT-READONLY-v1` است و بر snapshotهای قدیمی‌تر تقدم دارد.
+
+### ۵۹.۱ A. Audit baseline
+
+| مورد | مقدار ثبت‌شده |
+|------|----------------|
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Audited HEAD / upstream | `455f9dbcc716ccdc26718d99eae8747b765e70e8` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
+| A1 status | IMPLEMENTED, COMMITTED, PUSHED و CI_VERIFIED برای scope جاری governance-contract |
+
+**CI evidence:**
+
+- run `29515805073`
+- job `87680419242`
+- checked-out SHA `455f9dbcc716ccdc26718d99eae8747b765e70e8`
+- Section 15: 393 collected / 393 passed
+- I5-A1: 22 / 22 passed
+
+### ۵۹.۲ B. Primary audit verdict
+
+```
+A1_R1_REQUIRED_BEFORE_A2 —
+A2_MUST_REMAIN_UNTOUCHED
+```
+
+- A1 جاری برای pure A2 action-policy evaluator جاری **کافی** است؛
+- A1 جاری برای scope تأییدشدهٔ all-disease، prevention و longevity **کافی نیست**؛
+- A2 در scope محدود جاری خود هیچ blocking defect تأییدشده‌ای ندارد؛
+- A2 باید uncommitted و byte-identical بماند تا A1-R1 پیاده‌سازی، audit، commit، push و CI-verify شود؛
+- سپس A2 باید یک strict compatibility audit جدید دریافت کند.
+
+### ۵۹.۳ C. Major A1-R1 gaps
+
+A1 در حال حاضر فاقد contractها یا invariantهای قابل‌اجرای صریح برای موارد زیر است:
+
+- clinical disease domains
+- condition identifiers
+- external taxonomy mappings
+- disease systems و disease groups
+- multilingual disease-pack identity
+- evidence facets
+- prevention
+- screening
+- rehabilitation
+- medication-safety education
+- mental و behavioral health
+- longevity evidence
+- knowledge-use decisions
+- evidence-use decisions
+- specialist-answer blocking
+- prediction-use boundaries
+- منع صریح diagnosis و prognosis
+- contradiction status و unresolved-guideline conflict
+- content revocation decision
+- rollback decision
+- typed clinical jurisdiction
+- جداسازی ساختاری clinical evidence authority از provider و facility verification authority
+
+نتایج عمومی ALLOW/DENY از نظر semantic معادل موارد زیر **نیستند**:
+
+- `NOT_REQUIRED`
+- `REQUIRED_FOUND`
+- `REQUIRED_INSUFFICIENT`
+- `REQUIRED_STALE`
+- `BLOCKED`
+
+### ۵۹.۴ D. A2 preservation
+
+| فایل untracked | SHA-256 |
+|----------------|---------|
+| `backend/app/services/governance/policy_evaluator.py` | `7ad928acef4f6ab7dcf330de48e8231e05de28824269c9db90db32da8bf8d352` |
+| `backend/tests/test_section15_i5a2_policy_evaluator.py` | `197969342499a134fc8a016cbb0d40035c0af0da876af46a67801758c8e63eda` |
+
+**Status:**
+
+```
+I5-A2 IMPLEMENTED_UNCOMMITTED —
+PRESERVED_BYTE_IDENTICAL —
+PENDING_POST_A1_R1_STRICT_AUDIT
+```
+
+Residual A2 findings برای بررسی بعدی (این‌ها fixed علامت‌گذاری **نمی‌شوند**):
+
+- grant matching در حال حاضر `data_sensitivity` را شامل نمی‌شود؛
+- `SOFT_STALE` و `UNKNOWN_AGE` در حال حاضر یک قانون universal fail-closed را اعمال نمی‌کنند؛
+- gateهای گسترش‌یافتهٔ prediction، contradiction، clinical-answer و authority-separation به contractهای A1-R1 وابسته‌اند.
+
+### ۵۹.۵ E. Architecture decision
+
+diseases داده‌های governed هستند، نه یک Python enum member یا یک class به‌ازای هر disease.
+
+معماری باید از contractهای generic استفاده کند:
+
+- `ConditionIdentifier`
+- taxonomy authority
+- namespace
+- code
+- taxonomy version
+- jurisdiction
+- governed multilingual labels و synonyms
+- disease system و clinical domain
+
+ALS، MS، Parkinson disease، cardiovascular diseases، hepatitis و سایر conditionها بعداً به‌عنوان governed Disease Packs onboard می‌شوند، نه به‌عنوان hardcoded contract classes.
+
+### ۵۹.۶ F. Next package
+
+**`PACKAGE-15-I5-A1-R1-EXPANDED-CONTRACT-TYPES-v1`**
+
+Purpose: افزودن contract typeها و invariantهای pure، immutable و fail-closed برای:
+
+- disease knowledge
+- prevention
+- rehabilitation
+- longevity evidence
+- evidence facets
+- clinical jurisdiction
+- taxonomy mapping
+- knowledge-use decisions
+- prediction-use restrictions
+- contradiction
+- revocation
+- rollback
+- authority separation
+
+A1-R1 صراحتاً **نباید**:
+
+- medical content را ingest کند
+- retrieval را connect کند
+- A2 را modify کند
+- runtime answer generation را wire کند
+- DB models یا migrations بسازد
+- schedulerها را connect کند
+- providers یا facilities را populate کند
+- flags را activate کند
+- public API را modify کند
+- هیچ چیزی را deploy کند
+
+### ۵۹.۷ G. Required sequencing
+
+1. این documentation-only local commit؛
+2. approval جداگانه برای non-force push و CI فقط در صورت نیاز برای docs؛
+3. A1-R1 implementation به‌صورت uncommitted؛
+4. strict static audit؛
+5. commit approval جداگانه؛
+6. push و CI approval جداگانه؛
+7. A2 strict re-audit در برابر A1-R1؛
+8. A2-R1 correction یا A2 finalization؛
+9. تنها بعداً A3، ingestion، retrieval و directory onboarding.
+
+---
+*پایان §59 — I5 A1 expanded-scope و A2 strict-gap audit acceptance — ۲۰۲۶-۰۷-۱۷*
