@@ -5030,3 +5030,259 @@ Run قبلی `29632892599` همچنان صرفاً شواهد regression است�
 
 ---
 *پایان §71 — Package 15-I5-B1-CI-Coverage-Fix1 — ۲۰۲۶-۰۷-۱۸*
+
+## ۷۲) بسته 15-I5-B1-Final-Closure-Log — بستن نهایی I5-B1 پس از تأیید CI
+
+### ۷۲.۱ Baseline و branch
+
+```text
+Branch:
+feature/section15/backend-continuity-foundation
+
+Final branch HEAD:
+2fd4b386594dffc996da8d49a9d40a5e892bf699
+
+Upstream:
+2fd4b386594dffc996da8d49a9d40a5e892bf699
+
+Ahead/behind:
+0 / 0
+```
+
+### ۷۲.۲ کامیت پیاده‌سازی I5-B1
+
+```text
+I5-B1 implementation commit:
+82a8da5f3d1c67b404c90cce9f519f894e51e874
+
+Subject:
+feat(governance): add I5-B1 lifecycle mapping
+```
+
+دامنه تأییدشدهٔ این کامیت:
+
+```text
+backend/app/services/governance/kb_lifecycle_mapping.py
+backend/tests/test_section15_i5b1_lifecycle_mapping.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+### ۷۲.۳ کامیت پوشش CI برای I5-B1
+
+```text
+I5-B1 CI coverage commit:
+2fd4b386594dffc996da8d49a9d40a5e892bf699
+
+Subject:
+ci: include I5-B1 lifecycle mapping tests
+```
+
+دامنهٔ این کامیت:
+
+```text
+.github/workflows/ci-backend-tests.yml
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+اکنون workflow صریحاً مسیر زیر را داخل گام `Section 15 backend foundation tests` شامل می‌کند:
+
+```text
+backend/tests/test_section15_i5b1_lifecycle_mapping.py
+```
+
+### ۷۲.۴ هویت اجرای CI
+
+```text
+Workflow:
+Backend V1 freeze tests
+
+Workflow file:
+.github/workflows/ci-backend-tests.yml
+
+Run ID:
+29633742691
+
+Run number:
+290
+
+Event:
+workflow_dispatch
+
+Attempt:
+1
+
+Head branch:
+feature/section15/backend-continuity-foundation
+
+Head SHA:
+2fd4b386594dffc996da8d49a9d40a5e892bf699
+
+Conclusion:
+SUCCESS
+```
+
+### ۷۲.۵ نتیجه Section 15
+
+```text
+Section 15:
+757 collected
+757 passed
+0 failed
+0 errors
+1 warning
+```
+
+توضیح:
+
+- گام Section 15 موفق بوده است؛
+- کل workflow موفق بوده است؛
+- راه‌اندازی PostgreSQL موقت موفق بوده است؛
+- Alembic upgrade روی دیتابیس موقت CI موفق بوده است؛
+- هیچ migration روی دیتابیس production انجام نشده است.
+
+عدد `757` از خروجی واقعی CI خوانده شده است و صرفاً به‌صورت فرضی `657 + 100` محاسبه نشده است.
+
+### ۷۲.۶ نتیجه اختصاصی I5-B1
+
+```text
+I5-B1:
+100 collected
+100 executed
+100 passed
+0 failed
+0 errors
+```
+
+تأیید بر اساس همهٔ موارد زیر بوده است:
+
+- checkout SHA دقیق؛
+- حضور مسیر در دستور فعال pytest؛
+- جمع‌آوری واقعی فایل تست I5-B1؛
+- عبور هر ۱۰۰ مورد I5-B1؛
+- موفقیت گام Section 15؛
+- موفقیت کل workflow.
+
+```text
+I5-B1 CI verification:
+VERIFIED
+```
+
+### ۷۲.۷ تطبیق شواهد قبلی
+
+اجرای قبلی:
+
+```text
+29632892599
+```
+
+شواهد regression موفق با:
+
+```text
+657 passed, 1 warning
+```
+
+بود، اما I5-B1 را جمع‌آوری نکرده بود.
+
+اجرای `29633742691` این شکاف پوشش را با جمع‌آوری و عبور ۱۰۰ مورد اضافی I5-B1 بست.
+
+### ۷۲.۸ هشدارهای غیرمسدودکننده
+
+```text
+Starlette/httpx deprecation warning:
+NON_BLOCKING
+
+GitHub Actions Node.js 20 deprecation annotation:
+NON_BLOCKING
+```
+
+این موارد به‌عنوان شکست محصول طبقه‌بندی نشده‌اند و ادعای حل دائمی نیز ثبت نشده است.
+
+### ۷۲.۹ وضعیت نهایی بستن I5-B1
+
+```text
+I5-B1 implementation:
+COMPLETE
+
+I5-B1 focused tests:
+100 / 100 PASS
+
+I5-B1 workflow coverage:
+COMPLETE
+
+I5-B1 CI verification:
+VERIFIED
+
+I5-B1 final status:
+CLOSED
+```
+
+### ۷۲.۱۰ استثناها و مرز بعدی
+
+```text
+Merge:
+NOT_AUTHORIZED
+
+Migration outside temporary CI test DB:
+NOT_STARTED
+
+Runtime integration:
+NOT_STARTED
+
+Deployment:
+NOT_STARTED
+
+Feature-flag activation:
+NOT_STARTED
+
+Production operation:
+NOT_STARTED
+
+I5-B2:
+NOT_STARTED
+```
+
+بستن I5-B1 مجوز آغاز I5-B2 نیست.
+
+### ۷۲.۱۱ وضعیت این بستهٔ مستندات
+
+```text
+15-I5-B1-Final-Closure-Log:
+IMPLEMENTED_UNCOMMITTED
+
+Tests in this documentation step:
+NOT_RUN
+
+Stage:
+NOT_AUTHORIZED
+
+Commit:
+NOT_AUTHORIZED
+
+Push:
+NOT_AUTHORIZED
+
+CI:
+NOT_RUN_IN_THIS DOCUMENTATION STEP
+
+I5-B2:
+NOT_STARTED
+```
+
+SHA کامیت آینده برای این بسته اختراع نشده است. ادعا نشده که §72 خود کامیت یا push شده باشد.
+
+### ۷۲.۱۲ نشانگرهای بستن
+
+```text
+I5_B1_IMPLEMENTATION_COMPLETE
+I5_B1_FOCUSED_100_OF_100_PASS
+I5_B1_WORKFLOW_COVERAGE_COMPLETE
+I5_B1_CI_VERIFIED
+I5_B1_FINAL_STATUS_CLOSED
+MERGE_NOT_AUTHORIZED
+MIGRATION_RUNTIME_DEPLOY_NOT_STARTED
+I5_B2_NOT_STARTED
+FINAL_CLOSURE_LOG_IMPLEMENTED_UNCOMMITTED
+```
+
+---
+*پایان §72 — Package 15-I5-B1-Final-Closure-Log — ۲۰۲۶-۰۷-۱۸*
