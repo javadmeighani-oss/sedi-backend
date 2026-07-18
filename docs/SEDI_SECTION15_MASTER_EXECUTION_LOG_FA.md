@@ -4874,3 +4874,159 @@ NOT_STARTED
 
 ---
 *پایان §70 — Package 15-I5-B1 final acceptance و تأیید کامیت محلی — ۲۰۲۶-۰۷-۱۸*
+
+## ۷۱) Package 15-I5-B1-CI-Coverage-Fix1 — پوشش CI برای I5-B1 — **IMPLEMENTED_UNCOMMITTED**
+
+### ۷۱.۱ هویت بسته
+
+```text
+Package 15-I5-B1-CI-Coverage-Fix1
+```
+
+### ۷۱.۲ Baseline
+
+| Item | Value |
+|------|--------|
+| Branch | `feature/section15/backend-continuity-foundation` |
+| HEAD/upstream | `82a8da5f3d1c67b404c90cce9f519f894e51e874` |
+
+### ۷۱.۳ نتیجه push و CI قبلی
+
+```text
+Commit:
+82a8da5f3d1c67b404c90cce9f519f894e51e874
+
+Push:
+SUCCESS — non-force
+
+CI run:
+29632892599
+
+Workflow result:
+SUCCESS
+
+Section 15:
+657 passed, 1 warning
+```
+
+### ۷۱.۴ محدودیت پوشش
+
+مسیر زیر در دستور Section 15 workflow کامیت‌شده حضور نداشت:
+
+```text
+backend/tests/test_section15_i5b1_lifecycle_mapping.py
+```
+
+بنابراین نتیجه run موفق قبلی چنین طبقه‌بندی می‌شود:
+
+```text
+I5-B1 regression evidence:
+PASS
+
+I5-B1 CI verification:
+INCOMPLETE
+```
+
+این run به‌عنوان تأیید CI برای I5-B1 ادعا نشده است.
+
+### ۷۱.۵ شواهد focused قبلی
+
+```text
+Focused pure I5-B1 test:
+100 collected
+100 passed
+0 failed
+0 errors
+```
+
+توضیح:
+
+- این شواهد پیش از کامیت I5-B1 تولید شده است؛
+- با `--noconftest` اجرا شده است؛
+- CI نبوده است؛
+- در این بسته دوباره اجرا نشده است.
+
+### ۷۱.۶ پیاده‌سازی Fix1
+
+فایل workflow به‌روزرسانی شد تا مسیر زیر صریحاً به دستور موجود Section 15 اضافه شود:
+
+```text
+backend/tests/test_section15_i5b1_lifecycle_mapping.py
+```
+
+و ثبت شد که:
+
+- هیچ مسیر تست موجود حذف نشده است؛
+- پرچم‌های pytest تغییر نکرده‌اند؛
+- راه‌اندازی PostgreSQL و migration در workflow تغییر نکرده است؛
+- هیچ کد governance یا runtime تغییر نکرده است.
+
+### ۷۱.۷ وضعیت بسته
+
+```text
+I5-B1-CI-Coverage-Fix1:
+IMPLEMENTED_UNCOMMITTED
+
+Tests:
+NOT_RUN_IN_THIS_STEP
+
+Commit:
+NOT_AUTHORIZED
+
+Push:
+NOT_AUTHORIZED
+
+CI:
+NOT_AUTHORIZED
+
+Migration/runtime integration:
+NOT_AUTHORIZED
+
+I5-B2:
+NOT_STARTED
+```
+
+SHA کامیت آینده در این بخش اختراع نشده است. پس از صرفاً ویرایش workflow، تأیید CI ادعا نشده است.
+
+### ۷۱.۸ ممیزی نهایی فقط‌خواندنی و مجوز کامیت محلی
+
+```text
+Final read-only audit:
+PASS
+
+I5-B1-CI-Coverage-Fix1:
+READONLY_AUDIT_PASS
+
+Workflow path:
+backend/tests/test_section15_i5b1_lifecycle_mapping.py
+ACTIVE_AND_VERIFIED
+
+Commit authorization:
+APPROVED_IN_THIS_STEP
+
+Planned commit subject:
+ci: include I5-B1 lifecycle mapping tests
+
+Tests:
+NOT_RUN_IN_THIS_STEP
+
+Push:
+NOT_AUTHORIZED
+
+CI:
+NOT_AUTHORIZED
+
+Migration/runtime integration:
+NOT_AUTHORIZED
+
+Feature-flag activation:
+NOT_AUTHORIZED
+
+I5-B2:
+NOT_STARTED
+```
+
+Run قبلی `29632892599` همچنان صرفاً شواهد regression است؛ مسیر I5-B1 در آن run جمع‌آوری نشده بود. شواهد focused همچنان `100/100 PASS` است. اصلاح workflow هنوز توسط CI تأیید نشده است و این گام کامیت محلی به‌معنای تأیید CI نیست. SHA کامیت آینده در این بخش نوشته نشده است.
+
+---
+*پایان §71 — Package 15-I5-B1-CI-Coverage-Fix1 — ۲۰۲۶-۰۷-۱۸*

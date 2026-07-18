@@ -192,4 +192,5 @@ jobs:
             backend/tests/test_section15_i5a1_governance_contracts.py \
             backend/tests/test_section15_i5a1r1_expanded_contracts.py \
             backend/tests/test_section15_i5a2_policy_evaluator.py \
+            backend/tests/test_section15_i5b1_lifecycle_mapping.py \
             --tb=short
