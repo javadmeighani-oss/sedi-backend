@@ -4664,3 +4664,213 @@ SHA کامیت docs-only آینده در این بخش اختراع نشده ا�
 
 ---
 *پایان §69 — تأیید نهایی CI بسته I5-A2 و تثبیت وضعیت CI_VERIFIED — ۲۰۲۶-۰۷-۱۷*
+
+## ۷۰) Package 15-I5-B1 — Composition Mapping and Lifecycle Invariants — **FINAL_ACCEPTANCE_PASS / LOCAL_COMMIT_APPROVED**
+
+### ۷۰.۱ هویت بسته
+
+```text
+Package 15-I5-B1 — Composition Mapping and Lifecycle Invariants
+```
+
+### ۷۰.۲ Baseline
+
+| Item | Value |
+|------|--------|
+| Branch | `feature/section15/backend-continuity-foundation` |
+| Parent HEAD | `8e39d5cc84ae71d95e0b472d559782c2335872d2` |
+
+SHA کامیت آینده در این بخش اختراع نشده است.
+
+### ۷۰.۳ فایل‌های مشمول
+
+```text
+backend/app/services/governance/kb_lifecycle_mapping.py
+backend/tests/test_section15_i5b1_lifecycle_mapping.py
+```
+
+همراه با این بخش append-only در:
+
+```text
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+### ۷۰.۴ وضعیت پذیرش نهایی
+
+```text
+Final read-only acceptance audit:
+PASS
+
+F-01 PRE_FETCH:
+PASS
+
+F-02 PRE_PUBLISH:
+PASS
+
+F-03 field authority:
+PASS
+
+F-04 scheduled AND-gate:
+PASS
+```
+
+### ۷۰.۵ قرارداد نهایی F-01 — PRE_FETCH
+
+شواهد الزامی و مستقل:
+
+```text
+source_profile_version
+license_policy
+jurisdiction_policy
+fetch_policy
+```
+
+هر شناسه به‌صورت مستقل الزامی است و حذف هر یک fail-closed است.
+
+### ۷۰.۶ قرارداد نهایی F-02 — PRE_PUBLISH
+
+شواهد الزامی و مستقل:
+
+```text
+human_approved_review_state
+exact_immutable_version_evidence
+fresh_policy_evaluation_at_approval
+publication_release_evidence
+```
+
+شواهد publication-release از approval، immutable version evidence و تصمیم سیاست PUBLISH متمایز است.
+
+### ۷۰.۷ اختیار نهایی F-03 — field authority
+
+```text
+governed_source_version:
+  - source_profile_version_reference
+  - raw_object_reference
+
+governed_document_version:
+  - document_reference
+  - supersedes_reference
+  - publication_state
+  - immutable_provenance_reference
+  - parser_version
+  - normalizer_version
+  - chunker_version
+
+governed_source_document_version:
+ABSENT
+```
+
+قفل معنایی:
+
+- نسخه‌های pipeline (parser / normalizer / chunker) در I5-B1 در محدوده document-version هستند؛
+- supersession عمومی و immutable provenance عمومی در محدوده document-version هستند؛
+- معادل‌های آینده برای source باید در I5-B2 با نام‌های جداگانه تعریف شوند؛
+- مالکیت دوگانه وجود ندارد.
+
+### ۷۰.۸ قرارداد نهایی F-04 — scheduled AND-gate
+
+مجوز scheduled acquisition فقط با AND شش‌گانه:
+
+```text
+I5 schedule enabled
+AND legacy KB schedule enabled
+AND global scheduler enabled
+AND source fetch enabled
+AND governed automation permission
+AND source operational status allows fetch
+```
+
+- فقط وضعیت عملیاتی مجاز canonical برای fetch می‌تواند authorize کند؛
+- ورودی malformed غیر enum پیش از authorization با `TypeError` typed رد می‌شود؛
+- این رفتار برای مرز typed خالص I5-B1 پذیرفته شده است؛
+- ورودی‌های خارجی/stringly باید در مرز wiring آینده I5-B2 تبدیل یا رد شوند.
+
+### ۷۰.۹ شواهد تست متمرکز
+
+دستور دقیق:
+
+```powershell
+$env:PYTHONPATH='.'
+$env:PYTHONDONTWRITEBYTECODE='1'
+python -m pytest -q --noconftest -p no:cacheprovider backend/tests/test_section15_i5b1_lifecycle_mapping.py
+```
+
+نتیجه:
+
+```text
+100 collected
+100 passed
+0 failed
+0 errors
+no rerun
+```
+
+توضیح مرز:
+
+- این یک focused pure test بود؛
+- CI نبود؛
+- suite کامل Section 15 نبود؛
+- PostgreSQL یا runtime integration استفاده نشد؛
+- در گام کامیت هیچ تستی دوباره اجرا نمی‌شود.
+
+### ۷۰.۱۰ هش نهایی فایل‌ها
+
+```text
+kb_lifecycle_mapping.py:
+71e265f960c0dd1ed08fb134da57c1534e0530a820c822e9c81b4972fb0c40d5
+
+test_section15_i5b1_lifecycle_mapping.py:
+e2a20f947b869ff6682f57bf2731cb32e2f8661da216439f2a51167a090e4414
+```
+
+### ۷۰.۱۱ خلوص و استثناها
+
+I5-B1 شامل موارد زیر نیست:
+
+- migration؛
+- ORM یا تغییر DB؛
+- database write؛
+- اصلاح fetcher؛
+- اصلاح scheduler runtime؛
+- اصلاح router یا public API؛
+- runtime integration؛
+- فعال‌سازی flag؛
+- پیاده‌سازی I5-B2.
+
+### ۷۰.۱۲ یادداشت‌های غیرمسدودکننده
+
+```text
+N-01:
+Malformed operational status uses typed TypeError.
+Future B2 wiring must convert or reject external/string input at its boundary.
+
+N-02:
+Ignored cache directories may exist locally but are not part of the package or Git scope.
+```
+
+### ۷۰.۱۳ مرز وضعیت
+
+```text
+I5-B1:
+FINAL_ACCEPTANCE_PASS
+
+Commit:
+APPROVED_IN_THIS_STEP
+
+Push:
+NOT_AUTHORIZED
+
+CI:
+NOT_AUTHORIZED
+
+Migration/runtime integration:
+NOT_AUTHORIZED
+
+I5-B2:
+NOT_STARTED
+```
+
+ادعاهای زیر ثبت نشده‌اند: تأیید CI، push، merge، آمادگی production، deployment، runtime integration، یا تکمیل I5-B2.
+
+---
+*پایان §70 — Package 15-I5-B1 final acceptance و تأیید کامیت محلی — ۲۰۲۶-۰۷-۱۸*
