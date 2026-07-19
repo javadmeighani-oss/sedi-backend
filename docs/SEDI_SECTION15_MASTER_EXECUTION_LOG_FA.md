@@ -5286,3 +5286,668 @@ FINAL_CLOSURE_LOG_IMPLEMENTED_UNCOMMITTED
 
 ---
 *پایان §72 — Package 15-I5-B1-Final-Closure-Log — ۲۰۲۶-۰۷-۱۸*
+
+## ۷۳) بسته 15-I5-B2-A1 — پیاده‌سازی uncommitted آداپترهای pure و هویت‌های قطعی
+
+### ۷۳.۱ دامنهٔ مجوز و baseline
+
+```text
+Package:
+15-I5-B2-A1
+
+Architecture:
+Fix4 accepted
+
+Baseline HEAD:
+83f71a2801a851261410e166b09d3d433823ab4b
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Authorization scope:
+exact four-file allowlist only
+
+Exact allowlist:
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+.github/workflows/ci-backend-tests.yml
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+### ۷۳.۲ ماژول آداپتر و مرز تبدیل
+
+ماژول جدید pure:
+
+```text
+backend/app/services/governance/kb_b2_adapters.py
+```
+
+مرزهای تبدیل legacy → typed:
+
+* `convert_source_operational_status`
+* `convert_review_status`
+* `convert_publication_state`
+* `convert_automation_inputs` (شش عملوند جدا؛ bool واقعی؛ بدون env)
+
+شواهد PRE_FETCH (مستقل):
+
+```text
+source_profile_version
+license_policy
+jurisdiction_policy
+fetch_policy
+```
+
+شواهد PRE_PUBLISH (مستقل):
+
+```text
+human_approved_review_state
+exact_immutable_version_evidence
+fresh_policy_evaluation_at_approval
+publication_release_evidence
+```
+
+ورودی شش‌گانهٔ scheduled authorization حفظ می‌شود؛ ارزیابی مجوز به B1 واگذار می‌شود. assertion چک‌پوینت به API موجود B1 تفویض می‌شود.
+
+### ۷۳.۳ هویت‌های canonical
+
+قواعد سریال‌سازی canonical: ترتیب ثابت فیلدها، UTF-8، NFC، enum via `.value`، bool جدا از int، datetime فقط timezone-aware به UTC ISO-8601، SHA-256 lowercase hex.
+
+* policy decision key: `(ingestion_run_id, action, request_fingerprint, policy_version)`
+* fetch-run key: `(source_profile_id, source_profile_version_id, trigger_type, trigger_identity, canonical_url, policy_version)` — بدون `attempt_number`
+* source-version composition key: `(source_profile_version_reference, raw_object_reference)`
+* provenance fingerprint: acquisition-specific (شامل acquisition / source-version / raw)
+* document-version semantic dedup key: acquisition-insensitive → سیگنال بعدی `NO_CHANGE`
+* publication-release evidence fingerprint: شواهد pre-policy؛ بدون final release ID / policy-decision ID
+
+### ۷۳.۴ تست‌ها و workflow
+
+فایل تست pure جدید (فقط تألیف؛ اجرا نشده):
+
+```text
+backend/tests/test_section15_i5b2_a1_adapters.py
+```
+
+مسیر صریح اضافه‌شده به گام `Section 15 backend foundation tests` (پس از I5-B1):
+
+```text
+backend/tests/test_section15_i5b2_a1_adapters.py
+```
+
+### ۷۳.۵ خارج از دامنه
+
+```text
+ORM / models:
+NOT_IN_SCOPE
+
+Alembic / migration:
+NOT_IN_SCOPE
+
+Runtime wiring / scheduler / router:
+NOT_IN_SCOPE
+
+Feature activation / deploy / production:
+NOT_IN_SCOPE
+
+I5-B2-P1:
+NOT_STARTED
+```
+
+### ۷۳.۶ وضعیت این بسته
+
+```text
+15-I5-B2-A1:
+IMPLEMENTED_UNCOMMITTED
+
+TESTS_NOT_RUN
+CI_NOT_RUN
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+I5_B2_P1_NOT_STARTED
+```
+
+ادعا نشده که تست‌ها pass شده‌اند، CI اجرا شده، یا runtime verification انجام شده است.
+
+### ۷۳.۷ نشانگرها
+
+```text
+I5_B2_A1_UNCOMMITTED_IMPLEMENTATION_COMPLETE
+PURE_BOUNDARY_ADAPTERS_IMPLEMENTED
+PRE_FETCH_AND_PRE_PUBLISH_EVIDENCE_BUILDERS_IMPLEMENTED
+CANONICAL_IDENTITY_FUNCTIONS_IMPLEMENTED
+SEMANTIC_DOCUMENT_DEDUP_IS_ACQUISITION_INSENSITIVE
+PURE_TESTS_AUTHORED_NOT_RUN
+CI_TEST_PATH_ADDED_NOT_EXECUTED
+MASTER_LOG_SECTION_73_APPENDED
+EXACT_FOUR_FILE_SCOPE
+NO_TEST_OR_GIT_MUTATION_IN_THIS_PACKAGE
+I5_B2_P1_NOT_STARTED
+READY_FOR_I5_B2_A1_READONLY_AUDIT_APPROVAL
+```
+
+---
+*پایان §73 — Package 15-I5-B2-A1 — ۲۰۲۶-۰۷-۱۸*
+
+## ۷۴) بسته 15-I5-B2-A1-Fix1 — اصلاح uncommitted تفویض به B1 و سخت‌سازی شواهد
+
+### ۷۴.۱ مجوز و دامنه
+
+```text
+Package:
+15-I5-B2-A1-Fix1
+
+Approved by:
+Javad
+
+Backend ownership:
+Backend Gate 3 — Health Care System
+
+Baseline HEAD (unchanged):
+83f71a2801a851261410e166b09d3d433823ab4b
+
+Editable scope (exactly three):
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Full dirty scope (exactly four A1 paths):
+.github/workflows/ci-backend-tests.yml
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Workflow during Fix1:
+READ_ONLY / UNCHANGED
+```
+
+### ۷۴.۲ تفویض mapperهای I5-B1
+
+* `convert_source_operational_status` → `map_legacy_source_operational_status` با عملوندهای اجباری `source_fetch_enabled`, `governed_profile_present`, `governed_profile_verified`؛ نتیجهٔ کامل B1 حفظ می‌شود؛ `"active"` به‌تنهایی fetch-eligible نیست.
+* `convert_publication_state` → `map_legacy_publication_state` با `published_at_present` اجباری؛ بدون پیش‌فرض True؛ `"active"` بدون شواهد انتشار → PUBLISHED نمی‌شود.
+* `convert_review_status` → `map_legacy_review_status`؛ متادیتای `auto_approved` حفظ می‌شود؛ `quarantined` طبق B1 (unknown → PENDING_HUMAN).
+* جداول alias موازی `_SOURCE_OPERATIONAL_ALIASES` / `_REVIEW_STATUS_ALIASES` / `_PUBLICATION_STATE_ALIASES` حذف شدند.
+
+### ۷۴.۳ قرارداد شواهد (Evidence)
+
+```text
+Evidence-contract decision:
+ESTABLISHED_STRING_REFERENCE_CONTRACT_REUSED
+
+Authoritative pattern:
+contracts.evidence_ids / evidence_references
+(non-empty trimmed str references)
+
+Accepted positive evidence:
+str (NFC + trim + non-empty)
+
+Rejected:
+None, blank, bool, int, float, list, mapping, object, truthy generics
+```
+
+دسته‌های PRE_FETCH / PRE_PUBLISH همچنان از `policy_checkpoint_spec` می‌آیند؛ ارزیابی سیاست در A1 انجام نمی‌شود.
+
+### ۷۴.۴ سطح عمومی و هویت canonical
+
+* `ScheduledAuthorizationInputs` از `__all__` حذف شد؛ DTO داخلی باقی ماند.
+* شش عملوند scheduled بدون default توانمندساز حفظ شد؛ عملوندهای profile برای تبدیل وضعیت اضافه شدند.
+* توابع `derive_*` هویت canonical از نظر رفتار/ترتیب/hash تغییر نکردند.
+
+### ۷۴.۵ تست‌ها و workflow
+
+* تست‌های parity با فراخوانی مستقیم mapperهای B1 نوشته/به‌روز شدند؛ اجرا نشده‌اند.
+* مسیر workflow همان افزودن A1 است؛ Fix1 آن را تغییر نداده است.
+
+### ۷۴.۶ وضعیت
+
+```text
+15-I5-B2-A1-Fix1:
+IMPLEMENTED_UNCOMMITTED
+
+TESTS_NOT_RUN
+CI_NOT_RUN
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+I5_B2_P1_NOT_STARTED
+```
+
+گام بعدی دقیق: ممیزی read-only سختگیرانهٔ فقط Fix1. اجرای تست یا آغاز P1 پیشنهاد/مجاز نشده است.
+
+### ۷۴.۷ نشانگرها
+
+```text
+I5_B2_A1_FIX1_IMPLEMENTED_UNCOMMITTED
+B1_MAPPER_DELEGATION_APPLIED
+PARALLEL_ALIAS_AUTHORITY_REMOVED
+STRING_EVIDENCE_REFERENCE_CONTRACT_APPLIED
+CANONICAL_IDENTITY_UNCHANGED
+WORKFLOW_UNCHANGED
+TESTS_AUTHORED_NOT_RUN
+READY_FOR_I5_B2_A1_FIX1_STRICT_READONLY_AUDIT
+```
+
+---
+*پایان §74 — Package 15-I5-B2-A1-Fix1 — ۲۰۲۶-۰۷-۱۸*
+
+## ۷۵) بسته 15-I5-B2-A1-Fix2 — حذف typed passthrough و قرارداد category-name-only
+
+### ۷۵.۱ مجوز و دامنه
+
+```text
+Package:
+15-I5-B2-A1-Fix2
+
+Approved by:
+Javad
+
+Backend ownership:
+Backend Gate 3 — Health Care System
+
+Baseline HEAD (unchanged):
+83f71a2801a851261410e166b09d3d433823ab4b
+
+Editable scope (exactly three):
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Full dirty scope (exactly four A1 paths):
+.github/workflows/ci-backend-tests.yml
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Workflow during Fix2:
+READ_ONLY / UNCHANGED
+hash: 3c7db7ea779babd8ef7def1afcfb55c884cfde57
+```
+
+### ۷۵.۲ Typed passthrough حذف شد
+
+* `convert_source_operational_status` / `convert_review_status` / `convert_publication_state` فقط ورودی raw می‌پذیرند.
+* ورودی typed enum با `LegacyToTypedConversionError` و reasonهای پایدار رد می‌شود:
+  `typed_source_operational_status_not_accepted`,
+  `typed_review_status_not_accepted`,
+  `typed_publication_state_not_accepted`.
+* tupleهای ساختگی `(status, (), False, False…)` حذف شدند.
+
+### ۷۵.۳ تفویض raw به B1 حفظ شد
+
+* source → `map_legacy_source_operational_status` با عملوندهای اجباری (بدون default توانمندساز).
+* publication → `map_legacy_publication_state` با `published_at_present` اجباری.
+* review → `map_legacy_review_status` با حفظ متادیتای کامل شامل `auto_approved`.
+* عملوندهای غایب با `LegacyToTypedConversionError` سطح بسته (نه فقط `TypeError`).
+
+### ۷۵.۴ Checkpoint evidence: فقط نام دسته
+
+```text
+Evidence-contract decision:
+CATEGORY_NAME_ONLY_FROM_I5_B1
+
+Removed:
+ESTABLISHED_STRING_REFERENCE_CONTRACT_REUSED
+per-category evidence-value kwargs
+_require_evidence_reference / evidence-value presence checks
+
+Builder API:
+build_prefetch_evidence_categories(provided_evidence_categories)
+build_prepublish_evidence_categories(provided_evidence_categories)
+
+Authority / order:
+policy_checkpoint_spec(...).required_evidence_categories
+
+Unknown category:
+unknown_checkpoint_evidence_category (no raw name in message)
+
+Completeness:
+checkpoint_evidence_requirements_satisfied
+```
+
+### ۷۵.۵ Scheduled authorization و هویت canonical
+
+* `ScheduledAuthorizationInputs` داخلی ماند؛ typed status مستقیماً وارد DTO می‌شود؛ raw status از converter.
+* شش عملوند بدون default توانمندساز؛ بدون تصمیم نهایی scheduler.
+* توابع `derive_*` از نظر رفتار production تغییر نکردند.
+
+### ۷۵.۶ وضعیت
+
+```text
+15-I5-B2-A1-Fix2:
+IMPLEMENTED_UNCOMMITTED
+
+TESTS_NOT_RUN
+CI_NOT_RUN
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+I5_B2_P1_NOT_STARTED
+```
+
+گام بعدی دقیق: ممیزی read-only سختگیرانهٔ فقط Fix2. اجرای تست یا آغاز P1 پیشنهاد/مجاز نشده است.
+
+### ۷۵.۷ نشانگرها
+
+```text
+I5_B2_A1_FIX2_IMPLEMENTED_UNCOMMITTED
+TYPED_PASSTHROUGH_REMOVED
+RAW_B1_DELEGATION_PRESERVED
+CATEGORY_NAME_ONLY_CHECKPOINT_CONTRACT
+MISSING_OPERAND_PACKAGE_ERRORS
+CANONICAL_IDENTITY_UNCHANGED
+WORKFLOW_UNCHANGED
+TESTS_AUTHORED_NOT_RUN
+READY_FOR_I5_B2_A1_FIX2_STRICT_READONLY_AUDIT
+```
+
+---
+*پایان §75 — Package 15-I5-B2-A1-Fix2 — ۲۰۲۶-۰۷-۱۹*
+
+## ۷۶) بسته 15-I5-B2-A1-Fix3 — سخت‌سازی رد Mapping به‌عنوان ظرف دسته
+
+### ۷۶.۱ مجوز و دامنه
+
+```text
+Package:
+15-I5-B2-A1-Fix3
+
+Approved by:
+Javad
+
+Backend ownership:
+Backend Gate 3 — Health Care System
+
+Baseline HEAD (unchanged):
+83f71a2801a851261410e166b09d3d433823ab4b
+
+Editable scope (exactly three):
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Full dirty scope (exactly four A1 paths):
+.github/workflows/ci-backend-tests.yml
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Workflow during Fix3:
+READ_ONLY / UNCHANGED
+hash: 3c7db7ea779babd8ef7def1afcfb55c884cfde57
+```
+
+### ۷۶.۲ یافتهٔ N1 و اصلاح
+
+```text
+Finding addressed:
+N1 MINOR — dict-only Mapping rejection
+
+Production change:
+isinstance(..., collections.abc.Mapping)
+
+Rejected containers include:
+dict
+dict subclass
+custom Mapping
+MappingProxyType
+other Mapping implementations
+
+Error reason:
+invalid_checkpoint_evidence_categories_container
+
+Privacy:
+no keys/values/repr/content in message
+```
+
+list / tuple / generator با مجموعهٔ کامل رسمی B1 همچنان موفق می‌مانند؛ ترتیب خروجی = `policy_checkpoint_spec(...).required_evidence_categories`.
+
+### ۷۶.۳ رفتارهای حفظ‌شده
+
+* raw-only converters و تفویض B1
+* category-name-only checkpoint contract
+* six-way scheduled authorization
+* canonical identity production functions
+* public `__all__` (بدون export کردن Mapping)
+* سایر اعتبارسنجی‌های دسته (NFC، blank، unknown، duplicate، missing)
+
+### ۷۶.۴ وضعیت
+
+```text
+15-I5-B2-A1-Fix3:
+IMPLEMENTED_UNCOMMITTED
+
+TESTS_NOT_RUN
+CI_NOT_RUN
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+I5_B2_P1_NOT_STARTED
+```
+
+گام بعدی دقیق: ممیزی read-only سختگیرانهٔ فقط Fix3.
+
+### ۷۶.۵ نشانگرها
+
+```text
+I5_B2_A1_FIX3_IMPLEMENTED_UNCOMMITTED
+MAPPING_CONTAINER_HARDENING_APPLIED
+VALID_ITERABLES_PRESERVED
+CANONICAL_IDENTITY_UNCHANGED
+WORKFLOW_UNCHANGED
+TESTS_AUTHORED_NOT_RUN
+READY_FOR_I5_B2_A1_FIX3_STRICT_READONLY_AUDIT
+```
+
+---
+*پایان §76 — Package 15-I5-B2-A1-Fix3 — ۲۰۲۶-۰۷-۱۹*
+
+## ۷۷) بسته 15-I5-B2-A1-PreCommit-Closure — بستن شواهد پیش از کامیت
+
+```text
+Package:
+15-I5-B2-A1-PreCommit-Closure
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Status:
+PRECOMMIT_CLOSURE_IMPLEMENTED_UNCOMMITTED
+```
+
+### ۷۷.۱ ممیزی ایستای Fix3
+
+```text
+I5_B2_A1_FIX3_STATIC_AUDIT_PASS
+A1_OPEN_FINDINGS = NONE
+```
+
+یافتهٔ Mapping-container بسته شد. در دامنهٔ تأییدشدهٔ Fix3 هیچ یافتهٔ `BLOCKER`، `MAJOR` یا `MINOR` باقی نماند. این بخش ادعای runtime test PASS ندارد.
+
+### ۷۷.۲ تلاش متمرکز آزمون محلی (یک‌بار)
+
+دستور مجاز دقیق:
+
+```text
+python -m pytest backend/tests/test_section15_i5b2_a1_adapters.py -q --tb=short
+```
+
+این دستور دقیقاً یک‌بار اجرا شد و دوباره اجرا نشد.
+
+نتیجهٔ مشاهده‌شده:
+
+```text
+Collected = 78
+Passed = 0
+Failed = 0
+Errors = 78
+Skipped = 0
+Xfailed = 0
+Xpassed = 0
+Warnings = 1
+Duration = 65.09s
+Exit code = 1
+
+A1_ASSERTIONS_EXECUTED = 0
+```
+
+این نتیجه شکست assertionهای A1 نیست و PASS محلی A1 نیز نیست.
+
+### ۷۷.۳ علت ریشهٔ شکست setup محلی
+
+```text
+backend/tests/conftest.py
+session-scoped autouse PostgreSQL fixture
+Base.metadata.create_all(bind=_TEST_ENGINE)
+127.0.0.1:5432 connection refused
+
+EXPECTED_LOCAL_ENVIRONMENT_FAILURE
+
+NO_A1_PRODUCT_FAILURE_ESTABLISHED
+NO_A1_ASSERTION_FAILURE_ESTABLISHED
+NO_A1_TEST_PASS_ESTABLISHED
+```
+
+### ۷۷.۴ ممیزی fixture PostgreSQL و مسیر CI
+
+```text
+I5_B2_A1_POSTGRES_CI_ROUTING_AUDIT_PASS
+```
+
+نتیجه‌های تأییدشده:
+
+* تست‌های A1 مستقیماً fixture دیتابیس درخواست نمی‌کنند؛
+* وابستگی PostgreSQL از fixture سراسری session با `autouse=True` می‌آید؛
+* GitHub Actions سرویس `postgres:15` فراهم می‌کند؛
+* CI متغیر `TEST_DATABASE_URL` را پیش از import شدن `conftest.py` export می‌کند؛
+* host، port، database، user، منبع password و driver با قرارداد fixture هم‌راستا هستند؛
+* فایل A1 صریحاً در دستور pytest گام Section 15 آمده است؛
+* شکست pytest برای A1 سرکوب نمی‌شود؛
+* اعتبارسنجی شاخهٔ feature از مسیر تثبیت‌شدهٔ `workflow_dispatch` استفاده می‌کند؛
+* انتظار می‌رود محیط CI شکست setup محلی PostgreSQL را برطرف کند.
+
+```text
+CI_ENVIRONMENT_EXPECTED_TO_EXECUTE_A1
+```
+
+ادعای CI PASS نشده است؛ CI برای A1 هنوز اجرا نشده است.
+
+### ۷۷.۵ نتیجهٔ معماری تست
+
+```text
+TEST_ISOLATION = OPTIONAL_FUTURE_IMPROVEMENT
+TEST_ISOLATION_NOT_REQUIRED_BEFORE_A1_CI_VALIDATION
+```
+
+تغییر ایزولاسیون تست داخل دامنهٔ A1 اضافه نمی‌شود.
+
+### ۷۷.۶ وضعیت cache
+
+```text
+CACHE_CLEANUP_OPTIONAL_BECAUSE_FULLY_IGNORED
+```
+
+آرتیفکت‌های شناخته‌شده:
+
+```text
+.pytest_cache/
+backend/**/__pycache__/
+```
+
+این موارد ignored هستند، staged نیستند، خارج از دامنهٔ چهارمسیرهٔ کامیت‌اند، برای staging با مسیر صریح نیاز به پاک‌سازی ندارند، و نباید وارد کامیت آینده شوند. در این بسته پاک نشدند.
+
+### ۷۷.۷ نتیجهٔ بازبینی دامنهٔ کامیت
+
+```text
+I5_B2_A1_COMMIT_SCOPE_REVIEW_NEEDS_FIX
+
+PRODUCTION_TEST_WORKFLOW_COMMIT_READY
+MASTER_LOG_TIP_CLOSURE_REQUIRED
+```
+
+توضیح: ماژول production، فایل تست و ثبت workflow آمادهٔ کامیت بودند؛ sensitive-data scan قبول شد؛ آرتیفکت‌های ignored برای حذف از کامیت ایمن بودند. تنها شکست آمادگی، tip کهنهٔ لاگ repository بود (`READY_FOR_I5_B2_A1_FIX3_STRICT_READONLY_AUDIT`). نقص فنی محصول A1 علت این verdict نبود.
+
+### ۷۷.۸ دامنهٔ کثیف کامل و staged
+
+```text
+ M .github/workflows/ci-backend-tests.yml
+ M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+?? backend/app/services/governance/kb_b2_adapters.py
+?? backend/tests/test_section15_i5b2_a1_adapters.py
+
+STAGED = EMPTY
+```
+
+### ۷۷.۹ عملیات انجام‌نشده
+
+```text
+NO_TEST_RERUN
+NO PRODUCTION EDIT
+NO TEST FILE EDIT
+NO WORKFLOW EDIT
+NO CACHE CLEANUP
+NO STAGE
+NO COMMIT
+NO PUSH
+NO CI DISPATCH
+NO MIGRATION
+NO DEPLOY
+NO FLAG ACTIVATION
+NO P1
+```
+
+### ۷۷.۱۰ وضعیت مجوز جاری
+
+```text
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+CI_NOT_AUTHORIZED
+I5_B2_P1_NOT_STARTED
+```
+
+### ۷۷.۱۱ پیشنهاد مرزی کامیت آینده (فقط اطلاعاتی)
+
+```text
+ONE_ATOMIC_FOUR_FILE_COMMIT
+```
+
+Allowlist پیشنهادی آینده:
+
+```text
+.github/workflows/ci-backend-tests.yml
+backend/app/services/governance/kb_b2_adapters.py
+backend/tests/test_section15_i5b2_a1_adapters.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+Subject پیشنهادی:
+
+```text
+feat(governance): add I5-B2 A1 boundary adapters
+```
+
+این فقط پیشنهاد است و مجوز stage/commit نیست.
+
+### ۷۷.۱۲ گام بعدی دقیق
+
+```text
+STRICT_READONLY_COMMIT_SCOPE_REVIEW_REPEAT
+```
+
+مستقیماً به stage یا commit نروید. پس از الحاق §77، بازبینی دامنهٔ کامیت را تکرار کنید. تأیید کامیت نیازمند تأیید صریح جداگانهٔ جواد است. push و CI نیازمند مجوزهای جداگانهٔ بعدی‌اند. P1 گام بعدی نیست.
+
+### ۷۷.۱۳ نشانگرها
+
+```text
+I5_B2_A1_PRECOMMIT_CLOSURE_IMPLEMENTED_UNCOMMITTED
+I5_B2_A1_FIX3_STATIC_AUDIT_PASS
+EXPECTED_LOCAL_ENVIRONMENT_FAILURE
+A1_ASSERTIONS_EXECUTED_0
+I5_B2_A1_POSTGRES_CI_ROUTING_AUDIT_PASS
+CI_ENVIRONMENT_EXPECTED_TO_EXECUTE_A1
+PRODUCTION_TEST_WORKFLOW_COMMIT_READY
+MASTER_LOG_TIP_CLOSURE_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+CI_NOT_AUTHORIZED
+I5_B2_P1_NOT_STARTED
+READY_FOR_I5_B2_A1_COMMIT_SCOPE_REREVIEW
+```
+
+---
+*پایان §77 — Package 15-I5-B2-A1-PreCommit-Closure — ۲۰۲۶-۰۷-۱۹*
