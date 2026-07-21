@@ -31,6 +31,7 @@ from backend.app.services.governance.kb_b2_legacy_companion_seed import (
     LegacyCompanionSeedError,
     OPERATOR_CONFIRM_TOKEN,
     SeedDecision,
+    _find_forbidden_imports,
     apply_plan,
     assert_module_security_boundaries,
     build_plan,
@@ -493,11 +494,82 @@ def test_postgres_transaction_rollback_leaves_clean(db) -> None:
 
 
 def test_module_security_boundaries() -> None:
+    """Real P1-L1 module must pass AST security scan despite forbidden-policy string constants."""
     source = Path(inspect.getsourcefile(p1l1) or "").read_text(encoding="utf-8")
     assert_module_security_boundaries(source)
-    assert "apscheduler" not in source.casefold()
-    assert "urllib.request" not in source
-    assert "PublicationRelease" not in source
+    assert _find_forbidden_imports(source) == ()
+    # Policy constants may contain marker strings; they are not real imports.
+    assert '"urllib.request"' in source or "'urllib.request'" in source
+    assert "import urllib.request" not in source
+    assert "PublicationRelease" not in {
+        n.id for n in ast.walk(ast.parse(source)) if isinstance(n, ast.Name)
+    }
+
+
+@pytest.mark.parametrize(
+    ("snippet", "expected_fragment"),
+    [
+        ("import urllib.request\n", "urllib.request"),
+        ("import urllib.request as request_client\n", "urllib.request"),
+        ("from urllib import request\n", "urllib.request"),
+        ("from urllib.request import urlopen\n", "urllib.request"),
+        ("import urllib.request.helpers\n", "urllib.request.helpers"),
+        ("import httpx\n", "httpx"),
+        ("import apscheduler\n", "apscheduler"),
+        (
+            "from apscheduler.schedulers.background import BackgroundScheduler\n",
+            "BackgroundScheduler",
+        ),
+    ],
+)
+def test_security_rejects_forbidden_imports(snippet: str, expected_fragment: str) -> None:
+    with pytest.raises(LegacyCompanionSeedError) as excinfo:
+        assert_module_security_boundaries(snippet)
+    assert excinfo.value.reason.startswith("forbidden_import_present:")
+    assert expected_fragment in excinfo.value.reason
+
+
+def test_security_safe_literal_is_not_treated_as_import() -> None:
+    source = '''
+POLICY = ("urllib.request", "httpx", "requests")
+# comment mentions urllib.request and apscheduler
+msg = "forbidden_import_present:urllib.request"
+def describe() -> str:
+    """Docstring may cite urllib.request without importing it."""
+    return msg
+'''
+    assert_module_security_boundaries(source)
+    assert _find_forbidden_imports(source) == ()
+
+
+def test_security_parse_failure_fail_closed() -> None:
+    with pytest.raises(LegacyCompanionSeedError) as excinfo:
+        assert_module_security_boundaries("def broken(:\n  pass\n")
+    assert excinfo.value.reason == "security_boundary_parse_failed"
+
+
+@pytest.mark.parametrize(
+    "snippet",
+    [
+        '__import__("urllib.request")\n',
+        'import importlib\nimportlib.import_module("urllib.request")\n',
+        'from importlib import import_module\nimport_module("httpx")\n',
+        'name = "urllib.request"\n__import__(name)\n',
+    ],
+)
+def test_security_rejects_dynamic_imports(snippet: str) -> None:
+    with pytest.raises(LegacyCompanionSeedError) as excinfo:
+        assert_module_security_boundaries(snippet)
+    assert excinfo.value.reason.startswith("forbidden_import_present:")
+
+
+def test_security_rejects_side_effect_symbols() -> None:
+    with pytest.raises(LegacyCompanionSeedError) as excinfo:
+        assert_module_security_boundaries("x = PublicationRelease\n")
+    assert excinfo.value.reason == "forbidden_side_effect:PublicationRelease"
+    with pytest.raises(LegacyCompanionSeedError) as excinfo2:
+        assert_module_security_boundaries("fetch_source(1)\n")
+    assert excinfo2.value.reason == "forbidden_side_effect:fetch_source"
 
 
 def test_no_startup_or_scheduler_registration() -> None:

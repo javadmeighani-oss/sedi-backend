@@ -7837,3 +7837,293 @@ READY_FOR_P1_L1_CONTROLLED_CI_APPROVAL
 
 ---
 *پایان §89 — Package 15-I5-B2-P1-L1 Manifest-Locked Commit Push — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۰) بسته 15-I5-B2-P1-L1-CI-FIX1 — اصلاح self-match امنیت import (Uncommitted)
+
+```text
+Package:
+15-I5-B2-P1-L1-CI-FIX1-SECURITY-MARKER-SELF-MATCH
+
+Gate:
+P1_L1_CI_FIX1_SECURITY_MARKER_SELF_MATCH
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Status:
+P1_L1_CI_FIX1_IMPLEMENTED_UNCOMMITTED_STATICALLY_CLOSED
+```
+
+### ۹۰.۱ شواهد CI شکست (Gate C)
+
+```text
+Workflow run: 29806442004
+Job: 88557863435
+Head SHA: 910782fd0a44ed82a8f76506fcc23caff873a8f5
+Conclusion: failure
+
+PostgreSQL: healthy
+Migration: 050_gate4_event_idem → 051_i5b2_governed_source_profile success
+P1: 66/66
+P1-L1: 30/31
+Section 15: 931/932 collected; exit 1
+
+Failed test:
+test_module_security_boundaries
+
+Exception:
+LegacyCompanionSeedError: forbidden_marker_present:urllib.request
+
+Root cause:
+substring scan of module source matched _FORBIDDEN_IMPORT_MARKERS self-declaration
+Not proof of real urllib.request import / network / fetch / publication / scheduler
+```
+
+### ۹۰.۲ دامنهٔ Fix1 (سه مسیر)
+
+```text
+P1_L1_CI_FIX1_COMMIT_MANIFEST_BEGIN
+backend/app/services/governance/kb_b2_legacy_companion_seed.py
+backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+P1_L1_CI_FIX1_COMMIT_MANIFEST_END
+```
+
+```text
+NO workflow / model / migration / conftest / script entry-point change
+```
+
+### ۹۰.۳ طراحی ساختاری
+
+```text
+ast.parse (fail-closed: security_boundary_parse_failed)
+walk Import / ImportFrom
+normalize module names; prefix match against forbidden module policy
+detect BackgroundScheduler import names
+AST Call inspection for __import__ / import_module (literal + non-literal fail-closed)
+side-effect symbols via Name/Attribute/Call AST (not substring)
+helper: _find_forbidden_imports / _collect_forbidden_imports (no exec)
+
+Intentional error-code change:
+forbidden_marker_present:<marker>
+  → forbidden_import_present:<normalized_module>
+side-effect form retained: forbidden_side_effect:<symbol>
+```
+
+### ۹۰.۴ تست‌ها (نوشته‌شده؛ اجرا نشده)
+
+```text
+Strengthened:
+test_module_security_boundaries (real module passes with policy string constants)
+
+Added:
+test_security_rejects_forbidden_imports (8 rows)
+test_security_safe_literal_is_not_treated_as_import
+test_security_parse_failure_fail_closed
+test_security_rejects_dynamic_imports (4 rows)
+test_security_rejects_side_effect_symbols
+
+Test functions: 33
+Parametrized functions: 3
+Parameter rows: 4 + 8 + 4 = 16
+Expected collected: (33 - 3) + 16 = 46
+Status: TESTS_MODIFIED_BUT_NOT_RUN
+```
+
+### ۹۰.۵ ممیزی داخلی
+
+```text
+Iterations: 2
+
+FIX1-A1 self-match substring import markers → CLOSED_BY_VERIFIED_FIX (AST imports)
+FIX1-A2 side-effect substring would self-match after A1 → CLOSED_BY_VERIFIED_FIX (AST symbols)
+FIX1-A3 dynamic import non-literal gap → CLOSED_BY_VERIFIED_FIX (fail-closed)
+FIX1-A4 brittle "marker not in source" asserts → CLOSED_BY_VERIFIED_FIX
+FIX1-A5 apscheduler expected_fragment vs sorted hit order → CLOSED_BY_VERIFIED_FIX
+FIX1-A6 error contract documentation → CLOSED_BY_VERIFIED_FIX (§90)
+
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+### ۹۰.۶ سیاست عملیات
+
+```text
+Future commit subject:
+fix(governance): harden P1-L1 security import detection
+
+No commit / push / CI in this Gate
+HEAD remains 910782fd0a44ed82a8f76506fcc23caff873a8f5
+```
+
+گام بعدی دقیق: P1_L1_CI_FIX1_COMMIT_PUSH_APPROVAL
+
+### ۹۰.۷ نشانگرها
+
+```text
+P1_L1_CI_FIX1_IMPLEMENTED_UNCOMMITTED
+SECURITY_MARKER_SELF_MATCH_ELIMINATED
+REAL_FORBIDDEN_IMPORTS_STILL_DETECTED
+SECURITY_BOUNDARY_NOT_WEAKENED
+ALL_IN_SCOPE_FINDINGS_FIXED
+TESTS_MODIFIED_NOT_RUN
+MASTER_LOG_90_APPENDED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_FIX1_COMMIT_PUSH_APPROVAL
+```
+
+---
+*پایان §90 — Package 15-I5-B2-P1-L1-CI-FIX1 Security Marker Self-Match — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۱) بسته 15-I5-B2-P1-L1-CI-FIX1 — کامیت و non-force push (Gate R2)
+
+```text
+Package:
+15-I5-B2-P1-L1-CI-FIX1-SECURITY-MARKER-SELF-MATCH
+
+Gate:
+P1_L1_CI_FIX1_COMMIT_PUSH
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Explicit approval:
+Fix1 commit + one normal non-force push of statically closed security-marker repair
+```
+
+### ۹۱.۱ Baseline پیش از کامیت
+
+```text
+Baseline HEAD (parent):
+910782fd0a44ed82a8f76506fcc23caff873a8f5
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Ahead/behind before commit:
+0 / 0
+
+Staged before §91:
+EMPTY
+
+Latest master-log section before append:
+§90
+
+Fix1 static-closure verdict:
+P1_L1_CI_FIX1_IMPLEMENTED_UNCOMMITTED_STATICALLY_CLOSED
+```
+
+### ۹۱.۲ شواهد CI و ریشهٔ شکست
+
+```text
+Failed CI run: 29806442004
+Job: 88557863435
+Failed test: test_module_security_boundaries
+Original exception: forbidden_marker_present:urllib.request
+
+Root cause:
+substring security scan matched its own marker declaration
+No real urllib.request import proven
+No network call proven
+```
+
+### ۹۱.۳ طراحی Fix1 و مرز امنیتی
+
+```text
+AST-based structural security design:
+ast.parse, Import/ImportFrom detection, module-prefix policy,
+aliased import detection, dynamic __import__/import_module detection,
+non-literal dynamic import fails closed,
+side-effect Name/Attribute/Call inspection, no source execution
+
+Policy still rejects:
+urllib.request, httpx, requests, aiohttp, apscheduler, BackgroundScheduler
+
+Self-match eliminated; real forbidden imports still detected;
+parse failure fails closed; security boundary not weakened
+
+Intentional error contract change:
+forbidden_marker_present: → forbidden_import_present:
+```
+
+### ۹۱.۴ دامنهٔ دقیق سه مسیر (manifest §90)
+
+```text
+backend/app/services/governance/kb_b2_legacy_companion_seed.py
+backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+### ۹۱.۵ تست‌ها (نوشته‌شده؛ اجرا نشده)
+
+```text
+Test functions: 33
+Parametrized functions: 3
+Parameter rows: 16
+Expected collected: 46
+Tests executed: NO
+
+Audit iterations: 2
+FIX1-A1..FIX1-A6 = CLOSED_BY_VERIFIED_FIX
+Remaining actionable in-scope findings: 0
+```
+
+### ۹۱.۶ سیاست عملیات
+
+```text
+Commit subject:
+fix(governance): harden P1-L1 security import detection
+
+Exactly one commit
+No amend / squash / merge commit / tag
+No hooks bypass
+No Python / pytest / Alembic / database
+No seed apply / evidence overlay / CI dispatch
+Non-force push only
+Permanent in-scope auto-fix rule: ACTIVE
+```
+
+### ۹۱.۷ مرزهای باقی‌مانده
+
+```text
+Fix1 controlled CI retry: Javad
+Evidence overlays and Iran/NICE holds: Javad + legal/governance review
+Target-environment dry-run/apply: separate approval Gates
+```
+
+### ۹۱.۸ وضعیت پس از این بسته
+
+```text
+P1_L1_CI_FIX1_COMMITTED_AND_PUSHED (after commit+push)
+FIX1_TESTS_MODIFIED_NOT_RUN
+NO_SEED_EXECUTION
+NO_CI_DISPATCH_PERFORMED
+```
+
+گام بعدی دقیق: P1_L1_CI_FIX1_CONTROLLED_RETRY_APPROVAL
+
+### ۹۱.۹ نشانگرها
+
+```text
+P1_L1_CI_FIX1_COMMITTED_AND_PUSHED
+SECURITY_IMPORT_DETECTION_HARDENED
+SECURITY_BOUNDARY_NOT_WEAKENED
+FIX1_TESTS_MODIFIED_NOT_RUN
+NO_SEED_EXECUTION
+NO_CI_DISPATCH_PERFORMED
+REFERENCE_LEDGER_UPDATED
+READY_FOR_FIX1_CONTROLLED_CI_RETRY_APPROVAL
+```
+
+---
+*پایان §91 — Package 15-I5-B2-P1-L1-CI-FIX1 Commit Push — ۲۰۲۶-۰۷-۲۱*

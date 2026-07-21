@@ -8,6 +8,7 @@ No network, fetch, publication, scheduler, or startup side effects.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -55,13 +56,42 @@ GATE3H_CATALOG_SOURCE_KEYS: tuple[str, ...] = (
     "drdr_ir",
 )
 
-_FORBIDDEN_IMPORT_MARKERS: tuple[str, ...] = (
+# Forbidden import *modules* (prefix match: module == name or module.startswith(name + ".")).
+_FORBIDDEN_IMPORT_MODULES: tuple[str, ...] = (
     "urllib.request",
     "httpx",
     "requests",
     "aiohttp",
     "apscheduler",
+)
+
+# Forbidden imported *names* (e.g. `from apscheduler... import BackgroundScheduler`).
+_FORBIDDEN_IMPORT_NAMES: tuple[str, ...] = (
     "BackgroundScheduler",
+)
+
+_FORBIDDEN_CALL_NAMES: frozenset[str] = frozenset(
+    {
+        "create_publication",
+        "run_scheduled",
+        "fetch_source",
+    }
+)
+
+_FORBIDDEN_NAME_REFS: frozenset[str] = frozenset(
+    {
+        "PublicationRelease",
+        "KnowledgeSourceFetcher",
+    }
+)
+
+_DYNAMIC_IMPORT_FUNCS: frozenset[str] = frozenset(
+    {
+        "__import__",
+        "import_module",
+        "importlib.import_module",
+        "importlib.__import__",
+    }
 )
 
 
@@ -754,17 +784,126 @@ def apply_plan(
     )
 
 
+def _parse_security_source(source_text: str) -> ast.AST:
+    try:
+        return ast.parse(source_text)
+    except SyntaxError as exc:
+        raise LegacyCompanionSeedError("security_boundary_parse_failed") from exc
+
+
+def _module_matches_forbidden_policy(module_name: str) -> Optional[str]:
+    normalized = module_name.strip()
+    if not normalized:
+        return None
+    for forbidden in _FORBIDDEN_IMPORT_MODULES:
+        if normalized == forbidden or normalized.startswith(forbidden + "."):
+            return normalized
+    return None
+
+
+def _call_qualname(node: ast.Call) -> Optional[str]:
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        parts: list[str] = []
+        cur: ast.AST = func
+        while isinstance(cur, ast.Attribute):
+            parts.append(cur.attr)
+            cur = cur.value
+        if isinstance(cur, ast.Name):
+            parts.append(cur.id)
+            return ".".join(reversed(parts))
+    return None
+
+
+def _first_string_arg(node: ast.Call) -> Optional[str]:
+    if not node.args:
+        return None
+    arg0 = node.args[0]
+    if isinstance(arg0, ast.Constant) and isinstance(arg0.value, str):
+        return arg0.value
+    return None
+
+
+def _is_dynamic_import_call(node: ast.Call) -> bool:
+    qual = _call_qualname(node)
+    if qual is not None and qual in _DYNAMIC_IMPORT_FUNCS:
+        return True
+    if isinstance(node.func, ast.Name) and node.func.id in {"__import__", "import_module"}:
+        return True
+    if isinstance(node.func, ast.Attribute) and node.func.attr in {
+        "import_module",
+        "__import__",
+    }:
+        return True
+    return False
+
+
+def _collect_forbidden_imports(tree: ast.AST) -> tuple[str, ...]:
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                hit = _module_matches_forbidden_policy(alias.name)
+                if hit is not None:
+                    found.add(hit)
+                leaf = alias.name.split(".")[-1]
+                if leaf in _FORBIDDEN_IMPORT_NAMES:
+                    found.add(leaf)
+        elif isinstance(node, ast.ImportFrom):
+            base = node.module or ""
+            if base:
+                hit_base = _module_matches_forbidden_policy(base)
+                if hit_base is not None:
+                    found.add(hit_base)
+            for alias in node.names:
+                if alias.name in _FORBIDDEN_IMPORT_NAMES:
+                    found.add(alias.name)
+                if alias.name == "*":
+                    continue
+                composed = f"{base}.{alias.name}" if base else alias.name
+                hit = _module_matches_forbidden_policy(composed)
+                if hit is not None:
+                    found.add(hit)
+        elif isinstance(node, ast.Call) and _is_dynamic_import_call(node):
+            target = _first_string_arg(node)
+            if target is None:
+                # Non-literal dynamic import target — fail closed (cannot prove safety).
+                found.add("dynamic_import_non_literal")
+                continue
+            hit = _module_matches_forbidden_policy(target)
+            if hit is not None:
+                found.add(hit)
+    return tuple(sorted(found))
+
+
+def _find_forbidden_imports(source_text: str) -> tuple[str, ...]:
+    """Structurally detect forbidden imports (AST only; never executes source)."""
+    return _collect_forbidden_imports(_parse_security_source(source_text))
+
+
+def _find_forbidden_side_effects(tree: ast.AST) -> tuple[str, ...]:
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in _FORBIDDEN_CALL_NAMES:
+                found.add(node.func.id)
+            elif isinstance(node.func, ast.Attribute) and node.func.attr in _FORBIDDEN_CALL_NAMES:
+                found.add(node.func.attr)
+        if isinstance(node, ast.Name) and node.id in _FORBIDDEN_NAME_REFS:
+            found.add(node.id)
+        if isinstance(node, ast.Attribute) and node.attr in _FORBIDDEN_NAME_REFS:
+            found.add(node.attr)
+    return tuple(sorted(found))
+
+
 def assert_module_security_boundaries(source_text: str) -> None:
-    """Static helper for tests: reject network/scheduler markers in this module."""
-    for marker in _FORBIDDEN_IMPORT_MARKERS:
-        if marker in source_text:
-            raise LegacyCompanionSeedError(f"forbidden_marker_present:{marker}")
-    for forbidden in (
-        "create_publication",
-        "PublicationRelease",
-        "run_scheduled",
-        "KnowledgeSourceFetcher",
-        "fetch_source(",
-    ):
-        if forbidden in source_text:
-            raise LegacyCompanionSeedError(f"forbidden_side_effect:{forbidden}")
+    """Static helper for tests: reject forbidden imports and side-effect symbols via AST."""
+    tree = _parse_security_source(source_text)
+    forbidden_imports = _collect_forbidden_imports(tree)
+    if forbidden_imports:
+        raise LegacyCompanionSeedError(f"forbidden_import_present:{forbidden_imports[0]}")
+    forbidden_effects = _find_forbidden_side_effects(tree)
+    if forbidden_effects:
+        raise LegacyCompanionSeedError(f"forbidden_side_effect:{forbidden_effects[0]}")
