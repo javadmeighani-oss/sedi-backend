@@ -181,11 +181,21 @@ def test_normalize_locator_pair_rules() -> None:
         normalize_locator("url", None)
     with pytest.raises(SourceProfilePersistenceError, match="locator_empty"):
         normalize_locator("url", "   ")
-    with pytest.raises(
-        SourceProfilePersistenceError, match="locator_required_when_locator_kind_present"
-    ):
+    with pytest.raises(SourceProfilePersistenceError, match="locator_empty"):
         normalize_locator("url", "")
 
+
+def test_locator_blank_string_reason_distinct_from_none() -> None:
+    """CI Fix3: blank string must be locator_empty, not kind-required pair reason."""
+    with pytest.raises(SourceProfilePersistenceError) as none_exc:
+        normalize_locator("url", None)
+    assert none_exc.value.reason == "locator_required_when_locator_kind_present"
+    with pytest.raises(SourceProfilePersistenceError) as blank_exc:
+        normalize_locator("url", "   ")
+    assert blank_exc.value.reason == "locator_empty"
+    with pytest.raises(SourceProfilePersistenceError) as kind_exc:
+        normalize_locator(None, "https://example.com")
+    assert kind_exc.value.reason == "locator_kind_required_when_locator_present"
 
 # ---------------------------------------------------------------------------
 # Fingerprint / timezone / microsecond precision (FIX1-A1/A2)
@@ -1038,6 +1048,21 @@ def test_migration_051_source_static() -> None:
     assert "op.alter_table(\"knowledge_sources\"" not in source
     assert "def downgrade" in source
     assert "CREATE TRIGGER" not in source.upper()
+    # CI Fix3: explicit Identity for both P1 PKs (no plain Integer-only PK).
+    assert source.count("sa.Identity(start=1)") == 2
+    assert 'sa.Column("id", sa.Integer(), autoincrement=True' not in source
+
+
+def test_orm_pk_identity_metadata() -> None:
+    """ORM exposes DB-side Identity; profile PK uses FK-safe autoincrement."""
+    from sqlalchemy import Identity as SAIdentity
+
+    profile_id = GovernedSourceProfile.__table__.c.id
+    version_id = GovernedSourceProfileVersion.__table__.c.id
+    assert isinstance(profile_id.server_default.arg, SAIdentity)
+    assert isinstance(version_id.server_default.arg, SAIdentity)
+    assert profile_id.autoincrement == "ignore_fk"
+    assert version_id.autoincrement is True
 
 
 def test_orm_migration_timestamp_server_default_parity() -> None:
@@ -1058,6 +1083,59 @@ def test_orm_migration_timestamp_server_default_parity() -> None:
         / "051_i5b2_governed_source_profile.py"
     ).read_text(encoding="utf-8")
     assert mig.count('server_default=sa.text("now()")') == 3
+
+
+def test_postgres_profile_id_database_generated_ci_29800176291_regression(db) -> None:
+    """Run 29800176291 regression: profile ID must be database-generated."""
+    _require_postgres(db)
+    p1 = create_or_get_profile(db, canonical_key="ci-fix3-id-a")
+    db.flush()
+    assert isinstance(p1.id, int)
+    assert p1.id > 0
+    p2 = create_or_get_profile(db, canonical_key="ci-fix3-id-b")
+    db.flush()
+    assert isinstance(p2.id, int)
+    assert p2.id > 0
+    assert p1.id != p2.id
+    db.commit()
+    v1 = append_profile_version(db, profile_id=p1.id, governance_evidence=_base_evidence())
+    db.flush()
+    assert isinstance(v1.id, int)
+    assert v1.id > 0
+    v2 = append_profile_version(
+        db,
+        profile_id=p1.id,
+        governance_evidence=_base_evidence(specialty_domain="ci-fix3-b"),
+        supersedes_version_id=v1.id,
+    )
+    db.flush()
+    assert isinstance(v2.id, int)
+    assert v2.id != v1.id
+    db.commit()
+    profile = get_profile(db, p1.id)
+    assert profile.current_profile_version_id == v2.id
+
+
+def test_postgres_identity_survives_rollback_then_insert(db) -> None:
+    _require_postgres(db)
+    doomed = create_or_get_profile(db, canonical_key="ci-fix3-rollback")
+    db.flush()
+    assert doomed.id > 0
+    db.rollback()
+    again = create_or_get_profile(db, canonical_key="ci-fix3-after-rollback")
+    db.commit()
+    assert again.id > 0
+    assert again.canonical_key == "ci-fix3-after-rollback"
+
+
+def test_service_does_not_assign_manual_primary_keys() -> None:
+    source = Path(inspect.getsourcefile(p1) or "").read_text(encoding="utf-8")
+    assert "GovernedSourceProfile(" in source
+    # No manual id= in profile/version constructors inside the service module.
+    assert "GovernedSourceProfile(\n        id=" not in source
+    assert "GovernedSourceProfileVersion(\n        id=" not in source
+    assert "id=max(" not in source.casefold()
+    assert "nextval" not in source.casefold()
 
 
 def test_p1_module_purity_and_scope_regression() -> None:

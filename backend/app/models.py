@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func
+from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
@@ -1158,7 +1158,13 @@ class GovernedSourceProfile(Base):
         ),
     )
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        Identity(start=1),
+        primary_key=True,
+        autoincrement="ignore_fk",
+        index=True,
+    )
     canonical_key = Column(String(256), nullable=False)
     locator_kind = Column(String(64), nullable=True)
     normalized_locator = Column(String(1024), nullable=True)
@@ -1228,7 +1234,13 @@ class GovernedSourceProfileVersion(Base):
         ),
     )
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        Identity(start=1),
+        primary_key=True,
+        autoincrement=True,
+        index=True,
+    )
     profile_id = Column(
         Integer,
         ForeignKey("governed_source_profiles.id", ondelete="CASCADE"),

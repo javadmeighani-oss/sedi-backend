@@ -197,21 +197,31 @@ def normalize_locator(
     locator_kind: Any,
     locator: Any,
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Normalize optional locator pair. Both absent or both present."""
-    kind_missing = locator_kind is None or (
+    """Normalize optional locator pair. Both absent or both present.
+
+    Reason contract:
+    - kind present + locator is None → locator_required_when_locator_kind_present
+    - kind present + locator is blank string → locator_empty
+    - locator present + kind missing → locator_kind_required_when_locator_present
+    """
+    kind_absent = locator_kind is None or (
         isinstance(locator_kind, str) and not locator_kind.strip()
     )
-    loc_missing = locator is None or (isinstance(locator, str) and not locator.strip())
-    if kind_missing and loc_missing:
+    loc_is_none = locator is None
+    loc_is_blank_str = isinstance(locator, str) and not locator.strip()
+
+    if kind_absent and (loc_is_none or loc_is_blank_str):
         return None, None
-    if kind_missing:
+    if kind_absent:
         raise SourceProfilePersistenceError("locator_kind_required_when_locator_present")
-    if loc_missing:
+    if loc_is_none:
         raise SourceProfilePersistenceError("locator_required_when_locator_kind_present")
     if not isinstance(locator_kind, str):
         raise SourceProfilePersistenceError("locator_kind_invalid_type")
     if not isinstance(locator, str):
         raise SourceProfilePersistenceError("locator_invalid_type")
+    if loc_is_blank_str:
+        raise SourceProfilePersistenceError("locator_empty")
     kind = _nfc_strip(locator_kind).casefold()
     loc = _nfc_strip(locator)
     if not kind:

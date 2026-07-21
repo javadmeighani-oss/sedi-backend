@@ -6885,3 +6885,245 @@ READY_FOR_CONTROLLED_P1_CI_APPROVAL
 
 ---
 *پایان §82 — Package 15-I5-B2-P1 Commit Non-Force Push — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۳) بسته 15-I5-B2-P1-CI-Fix3 — هویت PostgreSQL و قرارداد locator (uncommitted)
+
+```text
+Package:
+15-I5-B2-P1-CI-Fix3
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Prior CI Gate:
+FAIL — P1_CI_REQUIRES_REVIEW
+Run: 29800176291
+Branch: feature/section15/backend-continuity-foundation
+Head SHA: 1051e654766e2113827720b7200e5fbaeee68e13
+
+Status:
+P1_CI_FIX3_IMPLEMENTED_UNCOMMITTED
+TESTS_UPDATED_NOT_RUN
+MIGRATION_051_UPDATED_NOT_EXECUTED
+```
+
+### ۸۳.۱ شواهد CI
+
+```text
+PostgreSQL initialization: PASS (healthy)
+Migration 051 execution: PASS (050 → 051_i5b2_governed_source_profile)
+P1: 31 passed / 30 failed
+Section 15: 866 passed / 30 failed / 32 warnings in 22.74s
+
+Primary root cause:
+psycopg2.errors.NotNullViolation — null id on governed_source_profiles
+SQLAlchemy SAWarning: PK id lacked server/Python generator (composite FK disabled autoincrement)
+
+Secondary:
+test_normalize_locator_pair_rules expected locator_empty for blank string;
+service returned locator_required_when_locator_kind_present
+
+Javad: no-deferral — close both CI findings in Fix3
+```
+
+### ۸۳.۲ دامنهٔ پنج مسیر
+
+```text
+backend/app/models.py
+backend/alembic/versions/051_i5b2_governed_source_profile.py
+backend/app/services/governance/kb_b2_source_profile_persistence.py
+backend/tests/test_section15_i5b2_p1_source_profile.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+NO workflow change
+NO migration 052
+revision/down_revision unchanged (051 ← 050)
+```
+
+### ۸۳.۳ اصلاحات
+
+```text
+Explicit PostgreSQL Identity(start=1) on:
+  GovernedSourceProfile.id (autoincrement="ignore_fk" for composite current-pointer FK)
+  GovernedSourceProfileVersion.id (autoincrement=True)
+Migration 051: sa.Identity(start=1) on both table id columns
+No manual MAX(id)/sequence/service-assigned PK
+
+Locator reason contract:
+  kind present + locator None → locator_required_when_locator_kind_present
+  kind present + blank string → locator_empty
+  locator present + kind missing → locator_kind_required_when_locator_present
+```
+
+### ۸۳.۴ تست‌ها (نوشته — اجرا نشده)
+
+```text
+Test functions: 62
+Parametrized functions: 1
+Parameter rows: 5
+Expected collection: 66
+
+Added/strengthened:
+  PostgreSQL DB-generated profile/version ID regression (Run 29800176291)
+  identity survives rollback then insert
+  migration Identity static parity
+  ORM Identity metadata + ignore_fk
+  service no manual PK assignment
+  blank-locator reason distinction
+
+Executed: NO
+Migration executed locally: NO
+```
+
+### ۸۳.۵ وضعیت
+
+```text
+P1_CI_FIX3_IMPLEMENTED_UNCOMMITTED
+STAGED = EMPTY
+HEAD unchanged = 1051e654766e2113827720b7200e5fbaeee68e13
+WORKFLOW_UNCHANGED
+```
+
+گام بعدی دقیق: STRICT READ-ONLY P1-CI-FIX3 AUDIT
+
+### ۸۳.۶ نشانگرها
+
+```text
+I5_B2_P1_CI_FIX3_IMPLEMENTED_UNCOMMITTED
+EXPLICIT_POSTGRESQL_IDENTITY_ADDED
+LOCATOR_REASON_CONTRACT_ALIGNED
+MIGRATION_051_UPDATED_NOT_EXECUTED
+TESTS_UPDATED_NOT_RUN
+MASTER_LOG_83_APPENDED
+WORKFLOW_UNCHANGED
+READY_FOR_P1_CI_FIX3_STRICT_AUDIT
+```
+
+---
+*پایان §83 — Package 15-I5-B2-P1-CI-Fix3 — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۴) بسته 15-I5-B2-P1-CI-Fix3 — کامیت و non-force push کنترل‌شده (پس از ممیزی سختگیرانه)
+
+```text
+Package:
+15-I5-B2-P1-CI-FIX3-COMMIT-NONFORCE-PUSH
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Explicit approval:
+controlled Fix3 commit + one normal non-force push of statically accepted CI-Fix3
+```
+
+### ۸۴.۱ Baseline پیش از کامیت
+
+```text
+Baseline HEAD (parent):
+1051e654766e2113827720b7200e5fbaeee68e13
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Ahead/behind before commit:
+0 / 0
+
+Staged before §84:
+EMPTY
+
+Latest master-log section before append:
+§83
+```
+
+### ۸۴.۲ شواهد ممیزی Fix3 (بدون تکرار ممیزی / بدون اجرای تست)
+
+```text
+Fix3 strict audit verdict:
+PASS — READY_FOR_P1_CI_FIX3_COMMIT_PUSH_APPROVAL
+
+CI-F1 null profile PK = CLOSED_BY_VERIFIED_FIX
+CI-F2 blank locator reason = CLOSED_BY_VERIFIED_FIX
+IntegrityError typed mapping = NON_ACTIONABLE_BOUNDARY_CONFIRMED
+
+Original failed CI run:
+29800176291
+
+Explicit Identity strategy:
+  GovernedSourceProfile.id = Identity(start=1) + autoincrement="ignore_fk"
+  GovernedSourceProfileVersion.id = Identity(start=1) + autoincrement=True
+  Migration 051 = sa.Identity(start=1) for both ID columns
+  No migration 052
+
+Locator reason-code contract aligned
+
+Test functions: 62
+Parametrized functions: 1
+Parameter rows: 5
+Expected collection: 66
+Tests executed: NO
+Migration 051 after Fix3 executed: NO
+```
+
+### ۸۴.۳ دامنهٔ دقیق پنج مسیر کامیت
+
+```text
+backend/app/models.py
+backend/alembic/versions/051_i5b2_governed_source_profile.py
+backend/app/services/governance/kb_b2_source_profile_persistence.py
+backend/tests/test_section15_i5b2_p1_source_profile.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+NO workflow change
+NO migration 052
+```
+
+### ۸۴.۴ سیاست عملیات
+
+```text
+Commit subject:
+fix(governance): repair I5-B2 P1 PostgreSQL identity
+
+Exactly one commit
+No amend / squash / merge commit / tag
+No hooks bypass
+No local Python / pytest / Alembic / database
+No migration upgrade in this Gate
+No runtime / scheduler / deploy / feature flag
+Non-force push only (no --force / no --force-with-lease)
+CI retry / dispatch NOT authorized in this Gate
+PostgreSQL Identity re-proof deferred only to the explicitly owned controlled CI retry Gate
+```
+
+### ۸۴.۵ وضعیت پس از این بسته
+
+```text
+P1_CI_FIX3_COMMITTED_AND_PUSHED (after commit+push)
+P1_TESTS_NOT_YET_REVERIFIED
+MIGRATION_051_FIX_NOT_YET_CI_EXECUTED
+NO_CI_DISPATCH_PERFORMED
+```
+
+گام بعدی دقیق: CONTROLLED P1 CI RETRY APPROVAL ON FIX3 COMMIT
+
+### ۸۴.۶ نشانگرها
+
+```text
+I5_B2_P1_CI_FIX3_COMMITTED_AND_PUSHED
+ORIGINAL_CI_FIX_COMMITTED
+P1_TESTS_NOT_YET_REVERIFIED
+MIGRATION_051_FIX_NOT_YET_CI_EXECUTED
+NO_CI_DISPATCH_PERFORMED
+READY_FOR_CONTROLLED_P1_CI_RETRY_APPROVAL
+```
+
+---
+*پایان §84 — Package 15-I5-B2-P1-CI-Fix3 Commit Non-Force Push — ۲۰۲۶-۰۷-۲۱*

@@ -23,7 +23,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "governed_source_profiles",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column(
+            "id",
+            sa.Integer(),
+            sa.Identity(start=1),
+            nullable=False,
+        ),
         sa.Column("canonical_key", sa.String(length=256), nullable=False),
         sa.Column("locator_kind", sa.String(length=64), nullable=True),
         sa.Column("normalized_locator", sa.String(length=1024), nullable=True),
@@ -86,7 +91,12 @@ def upgrade() -> None:
 
     op.create_table(
         "governed_source_profile_versions",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column(
+            "id",
+            sa.Integer(),
+            sa.Identity(start=1),
+            nullable=False,
+        ),
         sa.Column("profile_id", sa.Integer(), nullable=False),
         sa.Column("version_seq", sa.Integer(), nullable=False),
         sa.Column("supersedes_version_id", sa.Integer(), nullable=True),
