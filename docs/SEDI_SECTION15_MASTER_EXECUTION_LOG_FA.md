@@ -8127,3 +8127,213 @@ READY_FOR_FIX1_CONTROLLED_CI_RETRY_APPROVAL
 
 ---
 *پایان §91 — Package 15-I5-B2-P1-L1-CI-FIX1 Commit Push — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۲) بسته 15-I5-B2-P1-L1 — بستن کامل پس از تأیید CI (Closure Documentation)
+
+```text
+Package:
+15-I5-B2-P1-L1-CONTROLLED-LEGACY-COMPANION-SEED
+
+Gate:
+P1-L1-CLOSURE-DOCUMENTATION
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Status:
+I5-B2-P1-L1 = CI_VERIFIED_AND_CLOSED
+```
+
+### ۹۲.۱ کامیت پیاده‌سازی
+
+```text
+SHA:
+910782fd0a44ed82a8f76506fcc23caff873a8f5
+
+Subject:
+feat(governance): add controlled P1-L1 legacy companion seed
+```
+
+### ۹۲.۲ شکست CI اولیه
+
+```text
+Workflow: Backend V1 freeze tests (231820481)
+Run: 29806442004
+Job: 88557863435
+Head SHA: 910782fd0a44ed82a8f76506fcc23caff873a8f5
+Conclusion: failure
+
+P1: 66/66
+P1-L1: 30/31
+Section 15: 931/932
+
+Failed test:
+test_module_security_boundaries
+
+Exception:
+LegacyCompanionSeedError: forbidden_marker_present:urllib.request
+
+Root cause:
+security marker source self-match (substring scan matched its own declaration)
+Not a real network import
+```
+
+### ۹۲.۳ Fix1 — اصلاح امنیت import
+
+```text
+AST-based Import and ImportFrom detection
+dynamic __import__ / import_module detection
+non-literal dynamic import fail-closed
+safe marker literals do not self-match
+real forbidden imports remain blocked
+
+Fix1 commit:
+SHA: 20b58a85ae9f449b77e3944fce815c022f2f380f
+Parent: 910782fd0a44ed82a8f76506fcc23caff873a8f5
+Subject: fix(governance): harden P1-L1 security import detection
+
+Intentional error contract:
+forbidden_marker_present: → forbidden_import_present:
+```
+
+### ۹۲.۴ CI نهایی موفق
+
+```text
+Workflow: Backend V1 freeze tests (231820481)
+Run: 29807804515
+Job: 88561918555
+Branch: feature/section15/backend-continuity-foundation
+Head SHA: 20b58a85ae9f449b77e3944fce815c022f2f380f
+Conclusion: success
+
+PostgreSQL: healthy
+Migration: 050_gate4_event_idem → 051_i5b2_governed_source_profile verified
+alembic upgrade head: SUCCESS
+
+P1: 66 collected / 66 passed / 0 failed / 0 errors / 0 skipped
+P1-L1: 46 collected / 46 passed / 0 failed / 0 errors / 0 skipped
+Section 15: 947 collected / 947 passed / 0 failed / 0 errors / 0 skipped
+Warnings: 3
+Duration: 6.43s
+Exit code: 0
+
+test_module_security_boundaries: PASS
+security self-match false positive: CLOSED
+real forbidden import detection: VERIFIED
+forbidden_import_present: contract: VERIFIED
+No failure suppression
+No duplicate dispatch
+```
+
+### ۹۲.۵ بستن امنیتی
+
+```text
+SECURITY_MARKER_SELF_MATCH = CLOSED
+REAL_FORBIDDEN_IMPORT_DETECTION = VERIFIED
+SECURITY_BOUNDARY = NOT WEAKENED
+```
+
+### ۹۲.۶ هشدارها (غیرمسدودکننده)
+
+```text
+Starlette/httpx TestClient deprecation
+  Owner: test harness / conftest maintenance
+  Related tests passed; no correctness invariant weakened
+
+transaction-deassociation SAWarning
+  Owner: test harness
+  Closure: prior accepted non-actionable boundary (NOTE-1)
+
+GitHub Actions Node.js runtime deprecation
+  Owner: workflow dependency / platform maintenance
+  Related step passed; no P1-L1 functional failure
+```
+
+### ۹۲.۷ مرزهای عملیاتی
+
+```text
+Seed execution = NOT PERFORMED
+Dry-run execution = NOT PERFORMED
+Apply execution = NOT PERFORMED
+Production database write = NOT PERFORMED
+Deploy = NOT PERFORMED
+Runtime activation = NOT PERFORMED
+Feature flag change = NOT PERFORMED
+```
+
+### ۹۲.۸ تصمیمات باقی‌مانده مسدود
+
+```text
+Evidence overlays:
+Owner = Javad + legal/governance
+Closure = approved explicit evidence mapping
+
+NICE hold:
+Owner = Javad + legal/governance
+Closure = source-specific eligibility decision
+
+Iran provider/lab hold:
+Owner = Javad + legal/governance
+Closure = source-specific eligibility decision
+
+First dry-run:
+Owner = Javad
+Dependency = approved candidate allowlist + environment
+Closure = separate controlled dry-run Gate
+
+Apply:
+Owner = Javad
+Dependency = successful dry-run evidence audit
+Closure = separate apply approval Gate
+```
+
+### ۹۲.۹ بسته بعدی
+
+```text
+Next package:
+15-I5-B2-P1-L1-EVIDENCE-OVERLAY-SCOPE-REVIEW
+
+Authorized phase after closure:
+READ-ONLY INVENTORY
+EVIDENCE MAPPING
+ELIGIBILITY DECISION FRAMEWORK
+
+No implementation or seed execution authorized
+```
+
+### ۹۲.۱۰ قاعده اجرای دائمی
+
+```text
+All future Cursor prompts remain:
+multi-stage
+approval-gated
+in-scope auto-fix required
+repeat-audit required
+reference-ledger update required
+scope expansion requires separate approval
+```
+
+### ۹۲.۱۱ نشانگرها
+
+```text
+I5_B2_P1_L1_CI_VERIFIED_AND_CLOSED
+P1_L1_FAILURE_RECOVERY_CHAIN_RECORDED
+SECURITY_MARKER_SELF_MATCH_CLOSED
+REAL_FORBIDDEN_IMPORT_DETECTION_VERIFIED
+P1_66_CASES_VERIFIED
+P1_L1_46_CASES_VERIFIED
+SECTION15_947_CASES_VERIFIED
+NO_SEED_EXECUTION
+REFERENCE_LEDGER_RECONCILED
+NO_CI_DISPATCH_PERFORMED
+READY_FOR_EVIDENCE_OVERLAY_READONLY_SCOPE_REVIEW
+PERMANENT_MULTISTAGE_AUTOFIX_RULE_ACTIVE
+```
+
+---
+*پایان §92 — Package 15-I5-B2-P1-L1 Closure Documentation — ۲۰۲۶-۰۷-۲۱*
