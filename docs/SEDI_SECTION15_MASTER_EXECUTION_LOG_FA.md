@@ -7543,3 +7543,297 @@ ACCELERATED_EXECUTION_ACTIVE
 
 ---
 *پایان §87 — Package 15-I5-B2-P1 CI Closure Documentation — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۸) بسته 15-I5-B2-P1-L1 — بذر companion کنترل‌شده (uncommitted / statically closed)
+
+```text
+Package:
+15-I5-B2-P1-L1-CONTROLLED-LEGACY-COMPANION-SEED
+
+Gate:
+P1-L1-A — ACCELERATED MULTISTAGE UNCOMMITTED IMPLEMENTATION
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Status:
+P1_L1_IMPLEMENTED_UNCOMMITTED_STATICALLY_CLOSED
+TESTS_WRITTEN_NOT_RUN
+DATABASE_NOT_ACCESSED
+SEED_NOT_EXECUTED
+HEAD_UNCHANGED
+STAGED_EMPTY
+```
+
+### ۸۸.۱ Baseline و موجودی
+
+```text
+P1 closure baseline HEAD:
+fb7d45d5a177704a41d96bf9e4d34c21a0721c0c
+Tip before append: §87
+
+Legacy inventory:
+  KnowledgeSource model (knowledge_sources) — Gate3 registry
+  Gate3h trusted_source_catalog_v1.yaml — 16 source_key entries (proposal)
+  GovernedSourceProfile.legacy_knowledge_source_id — P1 linkage
+  No prior governed companion seed code
+
+Candidate classes:
+  ELIGIBLE_WITH_EXISTING_EVIDENCE — only with complete explicit governance_evidence
+  ELIGIBLE_ONLY_WITH_EXPLICIT_MAPPING — catalog row without evidence overlay
+  INELIGIBLE_MISSING_EVIDENCE — partial/invalid evidence
+  BLOCKED_REQUIRES_PRODUCT_OR_LEGAL_DECISION — NICE + Iran provider/lab directories
+  OUT_OF_SCOPE_NON_SOURCE_OBJECT — medical seed scripts / non-KB objects
+
+Catalog without evidence overlay: all fail-closed (ineligible or blocked)
+No invented license/jurisdiction/authority/trust/language/category
+```
+
+### ۸۸.۲ معماری قفل‌شده
+
+```text
+deterministic / idempotent / dry-run-first / fail-closed
+transaction-controlled / structured-report / default DISABLED
+environment-explicit apply authorization
+
+dry-run default = True
+apply requires: dry_run=False + environment + allowlist + plan digest + CONFIRM_P1_L1_APPLY
+seeded operational_status = DISABLED
+no fetch / publication / scheduler / content ingestion / startup / migration seed
+reuses create_or_get_profile + append_profile_version
+changed evidence → BLOCK_REQUIRES_SEPARATE_APPROVAL (no silent append)
+```
+
+### ۸۸.۳ کلیدهای قطعی
+
+```text
+canonical_key = normalize(i5b2_p1_l1:{source_key})
+seed_operation_key = sha256(package, canonical_key, legacy_id, fingerprint, schema)
+version fingerprint = P1 compute_snapshot_fingerprint
+plan_digest = sha256(sorted decision rows) — input order independent
+```
+
+### ۸۸.۴ مسیرهای پیاده‌سازی
+
+```text
+P1_L1_COMMIT_MANIFEST_BEGIN
+backend/app/services/governance/kb_b2_legacy_companion_seed.py
+backend/scripts/seed_i5b2_p1_l1_legacy_companions.py
+backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py
+.github/workflows/ci-backend-tests.yml
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+P1_L1_COMMIT_MANIFEST_END
+
+Future commit subject:
+feat(governance): add controlled P1-L1 legacy companion seed
+```
+
+### ۸۸.۵ تست‌ها (نوشته — اجرا نشده)
+
+```text
+Test functions: 28
+Parametrized functions: 1
+Parameter rows: 4
+Expected collection: (28 - 1) + 4 = 31
+
+Executed: NO
+Network/fetch/publication/scheduler: NOT USED
+Workflow updated (P1-L1 path exactly once); workflow NOT executed
+```
+
+### ۸۸.۶ ممیزی داخلی
+
+```text
+Audit iterations: 2
+Findings fixed in-loop:
+  L1-A1 apply allowlist logic clarified
+  L1-A2 dry-run apply test must not pass None session into write path incorrectly
+  L1-A3 CLI must not default operator confirmation token
+  L1-A4 workflow P1-L1 path + suppression audit
+  L1-A5 remove unused ORM import
+  L1-A6 Python 3.10 Optional typing in tests
+All in-scope actionable findings: CLOSED_BY_VERIFIED_FIX
+```
+
+### ۸۸.۷ تصمیم‌های مسدود باقی‌مانده
+
+```text
+R1 Explicit governance evidence overlays for Gate3h sources
+  Owner: Javad + legal/governance
+  Dependency: complete P1 evidence fields per source
+  Closure: approved evidence registry JSON / product decision package
+  Future package: 15-I5-B2-P1-L1-EVIDENCE-MAPPING-APPROVAL
+
+R2 Iran provider/lab + NICE clinical guideline product/legal hold
+  Owner: Javad + legal
+  Closure: release hold or permanent exclude
+  Future package: same evidence/legal decision track
+
+R3 First controlled apply against a named environment
+  Owner: Javad
+  Closure: separate target-environment + execution approval Gates
+  Future package: P1-L1 controlled apply (not this Gate)
+```
+
+### ۸۸.۸ وضعیت
+
+```text
+Accelerated execution rule: ACTIVE
+This Gate did not invoke apply
+Migration 051 production execution: NOT PERFORMED
+```
+
+گام بعدی دقیق: P1_L1_COMMIT_PUSH_APPROVAL
+
+### ۸۸.۹ نشانگرها
+
+```text
+I5_B2_P1_L1_IMPLEMENTED_UNCOMMITTED
+LEGACY_COMPANION_SEED_FAIL_CLOSED
+DRY_RUN_DEFAULT
+DETERMINISTIC_AND_IDEMPOTENT
+NO_NETWORK_FETCH_PUBLICATION_SCHEDULER
+ALL_IN_SCOPE_FINDINGS_FIXED
+TESTS_WRITTEN_NOT_RUN
+MASTER_LOG_88_APPENDED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_P1_L1_COMMIT_PUSH_APPROVAL
+```
+
+---
+*پایان §88 — Package 15-I5-B2-P1-L1 Accelerated Multistage Uncommitted — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۹) بسته 15-I5-B2-P1-L1 — کامیت و non-force push کنترل‌شده (Gate P1-L1-B)
+
+```text
+Package:
+15-I5-B2-P1-L1-CONTROLLED-LEGACY-COMPANION-SEED
+
+Gate:
+P1-L1-B — MANIFEST-LOCKED COMMIT AND NON-FORCE PUSH
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Explicit approval:
+controlled commit + one normal non-force push of Gate A statically closed P1-L1
+```
+
+### ۸۹.۱ Baseline پیش از کامیت
+
+```text
+Baseline HEAD (parent):
+fb7d45d5a177704a41d96bf9e4d34c21a0721c0c
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Ahead/behind before commit:
+0 / 0
+
+Staged before §89:
+EMPTY
+
+Latest master-log section before append:
+§88
+
+Gate A verdict:
+PASS — P1_L1_IMPLEMENTED_UNCOMMITTED_STATICALLY_CLOSED_READY_FOR_COMMIT_APPROVAL
+Status recorded: P1_L1_IMPLEMENTED_UNCOMMITTED_STATICALLY_CLOSED
+```
+
+### ۸۹.۲ شواهد Gate A (بدون تکرار Audit / بدون اجرای تست)
+
+```text
+Test functions: 28
+Parametrized functions: 1
+Parameter rows: 4
+Expected collection: 31
+Tests executed: NO
+
+Internal audit iterations: 2
+L1-A1 CLOSED_BY_VERIFIED_FIX
+L1-A2 CLOSED_BY_VERIFIED_FIX
+L1-A3 CLOSED_BY_VERIFIED_FIX
+L1-A4 CLOSED_BY_VERIFIED_FIX
+L1-A5 CLOSED_BY_VERIFIED_FIX
+L1-A6 CLOSED_BY_VERIFIED_FIX
+No actionable in-scope finding remains
+
+Dry-run default: True
+Apply authorization: environment + allowlist + plan digest + CONFIRM_P1_L1_APPLY
+Fail-closed candidate policy: active
+Operational status default: DISABLED
+Model/migration/conftest: unchanged
+Database/seed/network/fetch/publication/scheduler: not used
+```
+
+### ۸۹.۳ دامنهٔ دقیق پنج مسیر (manifest §88)
+
+```text
+backend/app/services/governance/kb_b2_legacy_companion_seed.py
+backend/scripts/seed_i5b2_p1_l1_legacy_companions.py
+backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py
+.github/workflows/ci-backend-tests.yml
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+### ۸۹.۴ سیاست عملیات
+
+```text
+Commit subject:
+feat(governance): add controlled P1-L1 legacy companion seed
+
+Exactly one commit
+No amend / squash / merge commit / tag
+No hooks bypass
+No Python / pytest / Alembic / database
+No seed apply / evidence overlay / P1-L1 apply
+Non-force push only
+CI dispatch NOT authorized in this Gate
+Accelerated execution rule: ACTIVE
+```
+
+### ۸۹.۵ مرزهای باقی‌مانده
+
+```text
+Evidence overlays: Javad + legal/governance review
+Iran/NICE holds: Javad + legal/governance review
+First controlled dry-run/apply: separate environment and execution Gates
+```
+
+### ۸۹.۶ وضعیت پس از این بسته
+
+```text
+P1_L1_COMMITTED_AND_PUSHED (after commit+push)
+P1_L1_TESTS_WRITTEN_NOT_RUN
+NO_SEED_EXECUTION
+NO_CI_DISPATCH_PERFORMED
+```
+
+گام بعدی دقیق: P1_L1_CONTROLLED_CI_APPROVAL
+
+### ۸۹.۷ نشانگرها
+
+```text
+I5_B2_P1_L1_COMMITTED_AND_PUSHED
+P1_L1_MANIFEST_LOCKED
+P1_L1_TESTS_WRITTEN_NOT_RUN
+NO_SEED_EXECUTION
+NO_CI_DISPATCH_PERFORMED
+READY_FOR_P1_L1_CONTROLLED_CI_APPROVAL
+```
+
+---
+*پایان §89 — Package 15-I5-B2-P1-L1 Manifest-Locked Commit Push — ۲۰۲۶-۰۷-۲۱*
