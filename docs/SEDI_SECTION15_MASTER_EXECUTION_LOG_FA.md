@@ -9118,3 +9118,847 @@ READY_FOR_COMMIT_READ_ONLY_VERIFICATION
 
 ---
 *پایان §94 — Package 15-I5-B2-P1-L1 Evidence Review Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۵) بسته E2 — بازبینی دامنه External Evidence Collection (Repository-Only)
+
+```text
+Package:
+P1_L1_EVIDENCE_OVERLAY_EXTERNAL_EVIDENCE_GATE_E2_SCOPE_REVIEW
+
+Gate:
+P1_L1_EVIDENCE_OVERLAY_EXTERNAL_EVIDENCE_GATE_E2_SCOPE_REVIEW
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Authorization:
+repository-only E2 planning and documentation
+NO external collection / network / implementation / stage / commit / push / CI
+
+Status:
+E2_EXTERNAL_EVIDENCE_SCOPE_REVIEW_COMPLETE
+
+Baseline SHA:
+226a6fbc0dbe71d476cf4e1bea9388b85d84e028
+
+Prior authority:
+§93 Evidence Overlay Scope Review
+§94 Local docs commit record
+```
+
+### ۹۵.۱ تطبیق مرجع §۹۳ / §۹۴
+
+```text
+repository candidates = 16
+eligible with existing evidence = 0
+eligible after explicit overlay = 9
+legal/governance blocked = 1
+Javad-product blocked = 6
+NICE-related candidates = 1
+Iran candidate rows = 6
+Iran candidate classes = 2
+provider_directory rows = 5
+lab_directory rows = 1
+owner decisions (§93) = 10
+risks (§93) = 20
+findings fixed (§93 chain) = 9
+remaining findings (§93) = 0
+EOR-A1..EOR-A6 = CLOSED
+EOR-R1..EOR-R3 = CLOSED
+AUTHORITY_RECONCILED = YES
+```
+
+### ۹۵.۲ بازسازی فهرست ۱۶ کاندید
+
+Identity rule unchanged: one `source_key` in `GATE3H_CATALOG_SOURCE_KEYS`
+matching `trusted_source_catalog_v1.yaml` sources[] = one candidate.
+Repo paths: `kb_b2_legacy_companion_seed.py:40-57`, YAML `sources` block.
+
+| # | source_key | Display (YAML) | Category | Locale | Country | Iran | NICE | Classification | E2 sub-Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | who_global_health_topics | WHO — Health Topics | lifestyle | en | global | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 2 | medlineplus_consumer_health | MedlinePlus Consumer | lifestyle | en | global | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 3 | nhs_uk_live_well | NHS — Live Well | lifestyle | en | GB | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 4 | cdc_health_lifestyle | CDC — Healthy Living | prevention | en | US | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 5 | nice_org_uk_public | NICE Public/Patient | clinical_guideline | en | GB | N | Y | BLOCKED_REQUIRES_LEGAL_OR_GOVERNANCE_REVIEW | E2-C2 |
+| 6 | who_mental_health | WHO — Mental Health | mental_wellbeing | en | global | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 7 | nimh_nih_mental_health | NIMH Mental Health | mental_wellbeing | en | US | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 8 | apa_psychology_help | APA Psychology Topics | psychological_support | en | global | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 9 | nhs_mental_health | NHS Mental Health | mental_wellbeing | en | GB | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 10 | medlineplus_mental_health | MedlinePlus MH | mental_wellbeing | en | global | N | N | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | E2-C1 |
+| 11 | irimc_member_search | IRIMC Member Search | provider_directory | fa | IR | Y | N | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | E2-C3→E2-C4 |
+| 12 | paziresh24_com | Paziresh24 Directory | provider_directory | fa | IR | Y | N | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | E2-C3→E2-C4 |
+| 13 | doctoreto_com | Doctorito Directory | provider_directory | fa | IR | Y | N | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | E2-C3→E2-C4 |
+| 14 | nobat_ir | Nobat.ir Directory | provider_directory | fa | IR | Y | N | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | E2-C3→E2-C4 |
+| 15 | doctor_yab_ir | Doctor-Yab Directory | provider_directory | fa | IR | Y | N | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | E2-C3→E2-C4 |
+| 16 | drdr_ir | DrDr Directory | lab_directory | fa | IR | Y | N | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | E2-C3→E2-C4 |
+
+```text
+Candidate count check: 16
+Catalog YAML base_url values are candidate locators only — NOT verified external evidence
+```
+
+### ۹۵.۳ قرارداد شواهد خارجی — دسته‌های A..T (۲۰ دسته)
+
+برای هر کاندید، هر دسته با وضعیت required / optional / N/A؛
+issuer قابل‌قبول؛ نوع artifact؛ فیلدهای حداقل؛ روش verification؛
+review owner؛ approval owner؛ expiry/revalidation؛ closure؛ sub-Gate.
+
+| Code | Evidence category | Default for overlay-9 | Default NICE | Default Iran-6 (directory) |
+|---|---|---|---|---|
+| A | Identity | REQUIRED | REQUIRED | REQUIRED |
+| B | Official-domain | REQUIRED | REQUIRED | REQUIRED |
+| C | Publisher | REQUIRED | REQUIRED | REQUIRED |
+| D | Authority | REQUIRED | REQUIRED | REQUIRED |
+| E | Source-category | REQUIRED | REQUIRED | REQUIRED |
+| F | License | REQUIRED | REQUIRED | NOT_APPLICABLE |
+| G | Terms-of-use | REQUIRED | REQUIRED | REQUIRED |
+| H | Reuse/redistribution | REQUIRED | REQUIRED | NOT_APPLICABLE |
+| I | Automated-access | REQUIRED | REQUIRED | REQUIRED |
+| J | Jurisdiction | REQUIRED | REQUIRED | REQUIRED |
+| K | Language | REQUIRED | REQUIRED | REQUIRED |
+| L | Trust-tier | REQUIRED | REQUIRED | REQUIRED |
+| M | Publication/version | REQUIRED | REQUIRED | OPTIONAL |
+| N | Freshness | REQUIRED | REQUIRED | REQUIRED |
+| O | Revocation | REQUIRED | REQUIRED | REQUIRED |
+| P | Review-owner | REQUIRED | REQUIRED | REQUIRED |
+| Q | Approval-owner | REQUIRED | REQUIRED | REQUIRED |
+| R | Acquisition-method | REQUIRED | REQUIRED | REQUIRED |
+| S | Security | REQUIRED | REQUIRED | REQUIRED |
+| T | Provenance | REQUIRED | REQUIRED | REQUIRED |
+
+Iran-6 cell rules (locked for this matrix):
+
+```text
+F = NOT_APPLICABLE because current Iran rows are directory-only
+    (no content-license evidence required until product authorizes content storage)
+H = NOT_APPLICABLE because content storage/redistribution is not in scope
+    until E2-C3 product decisions authorize it
+M = OPTIONAL for directory identity rows (publication/version when available)
+If E2-C3 later authorizes content storage for any Iran row, F and H become
+REQUIRED for that row via a new matrix revision (new Gate), not silent rewrite.
+```
+
+```text
+Evidence category count: 20
+Candidate count: 16
+Candidate-evidence matrix cell count: 16 × 20 = 320
+
+Exact status counts (reconciled from defaults above):
+  overlay-9: 9 × 20 REQUIRED = 180 REQUIRED
+  NICE-1:    1 × 20 REQUIRED = 20 REQUIRED
+  Iran-6:    6 × 17 REQUIRED = 102 REQUIRED
+             6 × 1 OPTIONAL  = 6 OPTIONAL
+             6 × 2 NOT_APPLICABLE (F,H) = 12 NOT_APPLICABLE
+
+REQUIRED = 180 + 20 + 102 = 302
+OPTIONAL = 6
+NOT_APPLICABLE = 12
+302 + 6 + 12 = 320
+
+Compound/extra requirements outside A–T matrix:
+  D-IR-01..11 checklist items under D07 = 11 checklist items
+  (NOT matrix cells; counted separately; not included in 320)
+  NICE permission axes (view/download/store/...) = 11 axes under NICE plan
+  (NOT matrix cells; counted separately; not included in 320)
+
+Vague placeholders (verify later / trusted enough) = FORBIDDEN
+Missing REQUIRED evidence → UNKNOWN_FAIL_CLOSED (never permission)
+```
+
+Minimum fields per artifact (all required when category=required):
+
+```text
+evidence_artifact_id, candidate_source_key, evidence_type,
+issuer, official_locator, retrieval_method, retrieval_timestamp,
+checksum, review_status, review_owner, approval_status, approval_owner,
+provenance_chain, revocation_state, security_state
+```
+
+### ۹۵.۴ برنامه ۹ کاندید overlay-eligible (E2-C1)
+
+وضعیت فعلی همه ۹: `ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY` (نه final eligible).
+
+| source_key | Catalog locator (candidate only) | Missing external evidence (plan) | Collection owner | Review | Approval | Sub-Gate |
+|---|---|---|---|---|---|---|
+| who_global_health_topics | who.int/health-topics | official identity; terms for commercial; CC/IGO reuse; automated-access; jurisdiction global | Data/Knowledge | Legal + Governance | Javad | E2-C1 |
+| medlineplus_consumer_health | medlineplus.gov | NLM terms; attribution; A.D.A.M. exclusion proof; automated-access | Data/Knowledge | Legal | Javad | E2-C1 |
+| nhs_uk_live_well | nhs.uk/live-well | OGL statement capture; attribution; 7d freshness rule; GB jurisdiction | Data/Knowledge | Legal + Governance | Javad | E2-C1 |
+| cdc_health_lifestyle | cdc.gov/healthyliving | public-domain/attribution; non-endorsement; prevention product boundary | Data/Knowledge | Legal + Medical/Safety | Javad | E2-C1 |
+| who_mental_health | who.int/.../mental-health | terms; non-diagnostic use boundary; crisis content exclusion | Data/Knowledge | Medical/Safety + Legal | Javad | E2-C1 |
+| nimh_nih_mental_health | nimh.nih.gov/health | public-domain cite rules; MH safety boundary; automated-access | Data/Knowledge | Medical/Safety + Legal | Javad | E2-C1 |
+| apa_psychology_help | apa.org/topics | copyright/terms; editorial authority proof; no-therapy-replacement | Data/Knowledge | Legal + Governance | Javad | E2-C1 |
+| nhs_mental_health | nhs.uk/mental-health | OGL; MH safety; freshness 7d | Data/Knowledge | Medical/Safety + Legal | Javad | E2-C1 |
+| medlineplus_mental_health | medlineplus.gov/mentalhealth... | terms; page allowlist; clinical-ency exclusion | Data/Knowledge | Medical/Safety + Legal | Javad | E2-C1 |
+
+Allowed planned method class for these nine (execution later):
+
+```text
+official HTML page retrieval of terms/about/copyright pages
+official PDF if publisher provides
+manual legal-document capture when HTML insufficient
+NOT: scraping mirrors, SEO snippets, LLM summaries
+```
+
+### ۹۵.۵ برنامه NICE (E2-C2)
+
+```text
+Candidate: nice_org_uk_public
+Class remains: BLOCKED_REQUIRES_LEGAL_OR_GOVERNANCE_REVIEW
+Primary owner: Legal
+Product decision: Javad
+Supporting: Governance, Data/Knowledge, Medical/Safety
+```
+
+Evidence plan (collect later; not decided here):
+
+```text
+official identity + nice.org.uk domain proof
+publisher/authority as guideline body
+content-type (guidance vs patient info)
+terms-of-use / copyright
+reuse, quotation, citation limits
+automated-access / robots / API availability
+jurisdiction GB implications
+commercial-use implications
+storage / redistribution / model-input / runtime citation
+review + revocation cadence
+```
+
+Permission axes (must be evidenced separately):
+
+```text
+viewing | downloading | storing | parsing | chunking | embedding |
+internal retrieval | runtime citation | commercial use |
+redistribution | automated periodic fetching
+```
+
+```text
+Public accessibility ≠ reuse permission
+Default until Legal decision: UNKNOWN_FAIL_CLOSED
+```
+
+### ۹۵.۶ برنامه Iran — ۶ ردیف / ۲ کلاس (E2-C3 سپس E2-C4)
+
+```text
+Iran candidate rows = 6
+Iran candidate classes = 2
+provider_directory rows = 5
+  irimc_member_search, paziresh24_com, doctoreto_com, nobat_ir, doctor_yab_ir
+lab_directory rows = 1
+  drdr_ir
+Class remains: BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION
+```
+
+Per-row evidence buckets (collect only after E2-C3 product decisions):
+
+```text
+directory identity | official domain | organization identity |
+professional-license status | physician identity | specialty |
+facility identity | facility accreditation | laboratory authorization |
+contact/location | review date | expiry/revalidation |
+suspension | revocation | complaint/conflict handling
+```
+
+Locked separations:
+
+```text
+directory listing ≠ professional license
+directory listing ≠ facility accreditation
+directory listing ≠ medical-content authority
+directory listing ≠ quality ranking
+directory listing ≠ recommendation eligibility
+lab_directory ≠ medical-content authority
+```
+
+Javad product decisions required before collection/publication (E2-C3):
+
+```text
+Canonical decision row: D07 (Iran product scope)
+D-IR-01..11 are CHECKLIST ALIASES under D07 — not additional decision rows.
+
+D-IR-01 → D07  directory-only vs recommendation scope
+D-IR-02 → D07  physicians vs facilities in scope
+D-IR-03 → D07  public contact data allowed
+D-IR-04 → D07  ranking allowed or forbidden
+D-IR-05 → D07  paid providers allowed or forbidden
+D-IR-06 → D07  user reviews allowed or forbidden
+D-IR-07 → D07  geographic coverage
+D-IR-08 → D07  Iran-first scope
+D-IR-09 → D07  verification freshness threshold
+D-IR-10 → D07  suspension behavior
+D-IR-11 → D07  appeal/correction process
+
+Checklist item count under D07: 11
+Additional decision rows created by D-IR IDs: 0
+```
+
+This Gate does **not** resolve these decisions.
+
+### ۹۵.۷ قرارداد Artifact شواهد خارجی
+
+```text
+Required fields:
+evidence_artifact_id, candidate_source_key, evidence_type, evidence_subtype,
+issuer, official_locator, retrieved_locator, retrieval_method,
+retrieval_timestamp, content_type, HTTP metadata when applicable,
+checksum, raw_storage_reference, language, jurisdiction,
+publication_date, effective_date, expiry_or_revalidation_date,
+license_terms_locator, quoted_excerpt_or_structured_value,
+review_status, review_owner, approval_status, approval_owner,
+decision_reason, provenance_chain, supersedes, superseded_by,
+revocation_state, security_state, notes
+```
+
+Locked invariants:
+
+```text
+artifacts are immutable
+corrections create new versions
+raw evidence is retained
+review and approval are separate
+source identity is not mutated
+evidence does not automatically publish a source
+revocation is explicit
+```
+
+### ۹۵.۸ ماتریس روش‌های جمع‌آوری مجاز (طراحی؛ اجرا نشده)
+
+| Method | Allowed classes | Auth | Terms | Robots | Human review | Notes |
+|---|---|---|---|---|---|---|
+| official HTML retrieval | overlay-9, NICE after Legal | none/public | required evidence | required | yes | primary for terms pages |
+| official PDF retrieval | overlay-9, NICE | none/public | required | N/A file | yes | checksum required |
+| official JSON/XML feed | if catalog later allows | per feed | required | required | yes | |
+| official API | IRIMC/NICE if offered | may require | required | N/A | yes | partnership may be needed |
+| official downloadable dataset | if offered | per terms | required | N/A | yes | |
+| official registry search | Iran after E2-C3 | may require | required | required | yes | Provider Verification |
+| manual legal-document capture | all | N/A | required | N/A | yes | Legal owner |
+| manual provider-verification capture | Iran | N/A | required | N/A | yes | after product decisions |
+| manual screenshot/signed record | all | N/A | required | N/A | yes | provenance notes |
+| official email confirmation | Legal/Provider | N/A | required | N/A | yes | |
+
+NOT ACCEPTABLE AS PRIMARY EVIDENCE:
+
+```text
+anonymous scraping | search-engine snippets | third-party mirrors |
+social-media posts | SEO summaries | LLM-generated summaries |
+copied articles | cached unofficial pages
+```
+
+### ۹۵.۹ سیاست Authority / Trust
+
+```text
+TIER_1: official government / ministry / statutory regulator
+TIER_2: recognized guideline authority / official public-health body
+TIER_3: peer-reviewed journal / recognized professional association
+TIER_4: licensed health org / verified official provider registry
+TIER_5: other explicitly approved authoritative source
+UNAPPROVED: anonymous, unverifiable, copied, promotional, LLM-generated
+```
+
+Per tier (future E2-C6 validation): required proof; allowed categories;
+medical-content eligibility; directory eligibility; publication eligibility;
+review owner; revalidation cadence.
+
+Do not equate catalog `trust_level` text, brand familiarity, or search ranking with verified authority.
+
+### ۹۵.۱۰ سیاست License / Terms / Automated-access
+
+Separate axes; each candidate must receive one of:
+
+```text
+ALLOWED_WITH_EVIDENCE
+REQUIRES_LEGAL_REVIEW
+REQUIRES_SOURCE_PERMISSION
+PROHIBITED
+UNKNOWN_FAIL_CLOSED
+```
+
+Axes: viewing, downloading, storing, parsing, chunking, embedding,
+internal retrieval, runtime citation, commercial use, redistribution,
+automated periodic fetching.
+
+```text
+Missing evidence ⇒ UNKNOWN_FAIL_CLOSED
+Uncertainty must not become permission
+```
+
+### ۹۵.۱۱ Freshness / Versioning / Revocation
+
+Default planning cadences (final per-source after evidence):
+
+```text
+discovery cadence: weekly target architecture (may differ per source)
+fetch cadence: only after PRE_FETCH authorization
+license recheck: on every major terms change or ≤ 90 days
+authority recheck: ≤ 180 days (Tier-dependent)
+provider-license recheck: ≤ 30 days proposed (Javad may set in E2-C3)
+facility-accreditation recheck: ≤ 90 days proposed
+staleness warning: freshness_policy_days from overlay
+hard-expiry: explicit expiry or revocation
+```
+
+Runtime eligibility ends on: hard expiry, revocation, authority loss,
+license failure, provenance loss, security compromise.
+
+### ۹۵.۱۲ Conflict / Deduplication
+
+```text
+official primary evidence outranks third-party
+conflict does not silently resolve
+high-stakes conflicts require human review
+old evidence is not deleted
+supersession is explicit
+publication remains blocked until conflict closure
+```
+
+### ۹۵.۱۳ امنیت محتوای خارجی
+
+Required future controls:
+
+```text
+domain allowlist | content-type allowlist | size limits | timeout |
+redirect limits | checksum | raw quarantine | parser isolation |
+prompt-injection labeling | no direct execution |
+security review for anomalies
+```
+
+Treat all external content as untrusted input. Cover: malicious HTML/PDF,
+prompt injection, scripts, oversized content, content-type spoofing,
+redirect abuse, credential leakage, malware, parser exploitation,
+archive bombs, tracking URLs, unexpected binaries.
+
+### ۹۵.۱۴ نگاشت به Automated Governed Ingestion
+
+```text
+SOURCE REGISTRY
+→ EXTERNAL EVIDENCE ARTIFACTS (E2)
+→ SOURCE ELIGIBILITY DECISION
+→ AUTOMATIC DISCOVERY
+→ AUTOMATIC FETCH
+→ RAW IMMUTABLE STORAGE
+→ NORMALIZATION → DEDUPLICATION → VERSIONING → PROVENANCE
+→ REVIEW → APPROVAL → PUBLICATION RELEASE → RUNTIME ELIGIBILITY
+```
+
+```text
+AUTO_DOWNLOAD_REQUIRED (architecture)
+AUTO_PUBLISH_WITHOUT_GOVERNANCE_FORBIDDEN
+```
+
+E2 evidence required before: PRE_FETCH, PRE_PUBLISH, scheduler auth, runtime retrieval.
+No component implemented in this Gate.
+
+### ۹۵.۱۵ نگاشت Continuous Intelligence
+
+Evidence improves: knowledge freshness, authority coverage, citation completeness,
+grounding accuracy, safety, personalization, multilingual coverage,
+healthy-longevity support.
+
+```text
+CONTINUOUS_IMPROVEMENT_MANDATORY
+UNCONTROLLED_SELF_MODIFICATION_FORBIDDEN
+```
+
+Future metrics: candidate evidence completion rate; authority verification rate;
+license verification rate; freshness coverage; revocation coverage;
+provenance completeness; collection failure rate; security quarantine rate;
+review/approval turnaround; citation readiness.
+
+### ۹۵.۱۶ ماتریس مالک / تصمیم (دقیق)
+
+```text
+Canonical decision-ID namespace: D01–D18 only
+Exact E2 decision-row count: 18
+
+Category reconciliation:
+  general/process rows (D11–D18): 8
+  overlay-source rows (D01–D03): 3
+  NICE rows (D04–D06): 3
+  Iran rows (D07–D10): 4
+  8 + 3 + 3 + 4 = 18
+
+D-IR-01..11 = checklist aliases of D07 (not extra rows)
+Iran checklist items under D07: 11
+Duplicate decision IDs: 0
+Primary owner per row: 1
+```
+
+| ID | Decision | Candidate/class | Primary | Supporting | Evidence required | Closure | Blocking | Gate |
+|---|---|---|---|---|---|---|---|---|
+| D01 | Collect official identity/terms for 9 overlay sources | overlay-9 | Data/Knowledge | Legal, Governance | A–T artifacts | E2-C1 artifacts approved for review | Blocking | E2-C1 |
+| D02 | Validate 9-source artifact set | overlay-9 | Governance | Legal, Medical/Safety | checksum+provenance complete | E2-C6 pass | Blocking | E2-C6 |
+| D03 | Approve overlays for 9 after Legal | overlay-9 | Javad | Legal, Governance | Legal memo + Governance review | written approvals | Blocking | E2-C7 |
+| D04 | Collect NICE terms/copyright/reuse | nice_org_uk_public | Legal | Data/Knowledge | NICE permission axes evidence | artifacts ready for Legal | Blocking | E2-C2 |
+| D05 | NICE legal eligibility decision | nice_org_uk_public | Legal | Javad, Governance | complete NICE evidence pack | written Legal decision | Blocking | E2-C7 |
+| D06 | NICE product clinical-guideline use | nice_org_uk_public | Javad | Legal, Medical/Safety | Legal decision present | written product decision | Blocking | E2-C7 |
+| D07 | Iran product scope D-IR-01..11 | Iran-6 | Javad | Legal, Provider Verification | decision worksheet | all 11 recorded | Blocking | E2-C3 |
+| D08 | Collect IRIMC registry evidence | irimc_member_search | Provider Verification | Legal, Javad | registry artifacts after D07 | E2-C4 pack | Blocking | E2-C4 |
+| D09 | Collect Iran directory partner terms | provider_directory×4 | Legal | Javad | terms+automated-access | artifacts reviewed | Blocking | E2-C4 |
+| D10 | Collect lab_directory evidence | drdr_ir | Provider Verification | Legal, Javad | lab authorization vs directory | class-correct pack | Blocking | E2-C4 |
+| D11 | Normalize/immutable-capture artifacts | all | Backend | Data/Knowledge | artifact contract fields | E2-C5 closed | Blocking | E2-C5 |
+| D12 | Security review of collected content | all | Security | Backend | quarantine/checksum reports | no open S anomalies | Blocking | E2-C6 |
+| D13 | Medical/Safety review MH sources | MH overlay subset | Medical/Safety | Governance | non-diagnostic boundaries | written review | Blocking | E2-C7 |
+| D14 | Conflict resolution on evidence | as needed | Governance | Legal | conflict log | explicit resolve or block | Blocking | E2-C6 |
+| D15 | E2 strict audit closure | package | Backend | Governance | audit table zero remaining | E2-C8 closed | Blocking | E2-C8 |
+| D16 | E2 closure documentation | package | Backend | Javad | § closure section | E2-C9 closed | Blocking | E2-C9 |
+| D17 | E2 docs local commit | package | Javad | Backend | one-file manifest | E2-C10 local commit | Blocking | E2-C10 |
+| D18 | E2 docs push after verify | package | Javad | Backend | read-only SHA verify | E2-C10 push | Blocking | E2-C10 |
+
+### ۹۵.۱۷ تجزیه زیر-Gateهای اجرایی E2
+
+```text
+E2-C1  nine-candidate official identity/authority/terms collection
+       Separate approval required: E2_C1_NINE_SOURCE_COLLECTION_APPROVAL
+
+E2-C2  NICE official terms/copyright/reuse collection
+       Separate approval required: E2_C2_NICE_EVIDENCE_COLLECTION_APPROVAL
+
+E2-C3  Javad Iran product-scope decision preparation (no collection)
+       Separate approval required:
+       E2_C3_IRAN_PRODUCT_SCOPE_DECISION_PREPARATION_APPROVAL
+
+E2-C4  Iran registry/provider/facility/lab evidence collection
+       Separate approval required: E2_C4_IRAN_EVIDENCE_COLLECTION_APPROVAL
+       HARD BLOCK until all D-IR-01..11 checklist items under D07 are
+       explicitly resolved by Javad (E2-C3 complete)
+
+E2-C5  evidence artifact normalization + immutable capture
+       Separate approval: E2_C5_ARTIFACT_NORMALIZATION_APPROVAL
+
+E2-C6  candidate-by-candidate evidence validation + security
+       Separate approval: E2_C6_EVIDENCE_VALIDATION_APPROVAL
+
+E2-C7  legal/governance/medical review + decisions
+       Separate approval: E2_C7_REVIEW_DECISION_APPROVAL
+
+E2-C8  E2 strict audit + in-scope repair closure
+       Separate approval: E2_C8_STRICT_AUDIT_APPROVAL
+
+E2-C9  E2 collection-result closure documentation
+       Separate approval: E2_C9_CLOSURE_DOCUMENTATION_APPROVAL
+
+E2-C10 collection-result docs local-commit → verify → push
+       Separate approval sequence under E2-C10 only
+       (distinct from §95 scope-review docs sequence below)
+```
+
+```text
+E2 sub-Gate count: 10
+BROAD_COLLECTION_APPROVAL = REMOVED
+Every E2-C1..C10 requires its own explicit Javad approval
+None of E2-C1..C10 authorized by this Scope Review
+
+§95 scope-review documentation sequence (before any operational sub-Gate):
+1. E2_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+2. E2_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+3. E2_SCOPE_REVIEW_DOCS_PUSH_APPROVAL
+4. First operational sub-Gate (Iran-first):
+   E2_C3_IRAN_PRODUCT_SCOPE_DECISION_PREPARATION_APPROVAL
+
+Rules:
+local commit does not authorize push
+push does not authorize collection
+collection does not authorize implementation
+CI requires separate approval
+E3 remains unauthorized
+E2-C1 and E2-C2 remain later separate approval Gates
+E2-C4 blocked until E2-C3 / D07 checklist complete
+```
+
+Per sub-Gate: purpose as named; entry = prior approved exit where applicable;
+allowlist = evidence artifacts + master-log only unless collection Gate;
+network permission = only for explicitly approved collection Gates (C1/C2/C4);
+prohibited = seed/apply/publish/P2/E3 implementation; owner per matrix;
+approval boundary = separate package per sub-Gate.
+
+### ۹۵.۱۸ معیارهای بستن E2 قبل از E3
+
+قبل از شروع E3 همه باید برقرار باشند (یا کاندید صریحاً excluded/held):
+
+```text
+candidate inventory frozen at 16
+required evidence artifacts collected
+artifact checksums recorded
+official locators verified
+authority evidence reviewed
+license/terms evidence reviewed
+jurisdiction evidence reviewed
+Iran product decisions recorded (D-IR-01..11)
+NICE legal decision recorded
+conflicts resolved or explicitly blocked
+provenance complete
+security review complete
+freshness/revalidation policy complete
+overlay field mapping complete
+owner approvals complete
+E2 audit closed
+E2 docs committed and pushed
+```
+
+### ۹۵.۱۹ ماتریس ریسک E2
+
+```text
+Exact E2 risk count: 24
+```
+
+| Risk | Sev | Likelihood | Preventive | Detective | Owner | Sub-Gate |
+|---|---|---|---|---|---|---|
+| evidence fabrication | BLOCKER | med | fail-closed; no invent | provenance audit | Governance | E2-C6 |
+| wrong official domain | BLOCKER | med | domain allowlist | locator verify | Data/Knowledge | E2-C1 |
+| third-party mirror as source | BLOCKER | med | primary-only rule | conflict policy | Governance | E2-C6 |
+| license misinterpretation | BLOCKER | med | Legal review required | dual review | Legal | E2-C7 |
+| terms changes | MAJOR | high | revalidation cadence | terms checksum | Legal | E2-C1 |
+| automated-access prohibition | BLOCKER | med | robots/terms evidence | deny fetch | Security | E2-C1 |
+| provider identity mismatch | BLOCKER | med | IRIMC verify | cross-check | Provider Verification | E2-C4 |
+| expired physician license | BLOCKER | med | recheck cadence | suspension | Provider Verification | E2-C4 |
+| expired facility accreditation | BLOCKER | med | recheck cadence | suspension | Provider Verification | E2-C4 |
+| incorrect lab classification | MAJOR | med | lab vs provider class lock | audit | Governance | E2-C4 |
+| NICE reuse violation | BLOCKER | med | Legal pack | Legal decision | Legal | E2-C2 |
+| Iran product-scope ambiguity | BLOCKER | high | E2-C3 before C4 | decision checklist | Javad | E2-C3 |
+| stale guideline | MAJOR | high | freshness policy | freshness status | Medical/Safety | E2-C6 |
+| revoked source | BLOCKER | low | revocation state | release deny | Governance | E2-C6 |
+| conflicting evidence | MAJOR | med | no silent resolve | conflict log | Governance | E2-C6 |
+| prompt injection | BLOCKER | med | quarantine+label | security review | Security | E2-C6 |
+| malicious PDF/HTML | BLOCKER | med | type/size limits | quarantine | Security | E2-C5 |
+| checksum mismatch | MAJOR | med | store checksum | validate | Backend | E2-C5 |
+| provenance gap | BLOCKER | med | required fields | E2-C6 fail | Governance | E2-C5 |
+| evidence overwrite | BLOCKER | low | immutable artifacts | version audit | Backend | E2-C5 |
+| cross-candidate leakage | MAJOR | low | key-bound artifacts | audit | Backend | E2-C5 |
+| automatic publication bypass | BLOCKER | med | AUTO_PUBLISH forbidden | R2/P6 | Governance | E2→E3 |
+| scheduler before authorization | BLOCKER | med | S1 gate | deny | Backend | post-E2 |
+| uncontrolled self-learning | BLOCKER | low | no self-mod | monitoring | Product | continuous |
+
+### ۹۵.۲۰ ممیزی داخلی
+
+```text
+Audit iterations: 3
+
+E2-A1 §93/§94 count drift risk → CLOSED (reconciled exact integers)
+E2-A2 page_key as 17th candidate risk → CLOSED (identity rule restated)
+E2-A3 vague evidence language → CLOSED (A–T operational fields)
+E2-A4 NICE public≠reuse → CLOSED (permission axes separated)
+E2-A5 Iran class count ambiguity → CLOSED (6 rows / 2 classes explicit)
+E2-A6 combined commit/push for E2 docs → CLOSED (E2-C10 sequenced)
+E2-A7 decision matrix missing primary → CLOSED (18 rows, one primary each)
+E2-A8 risk count not exact → CLOSED (24 risks enumerated)
+
+Continuation Fix1 findings:
+E2-R1 exact matrix-cell and status counts reconciled
+     status = CLOSED_BY_VERIFIED_FIX
+E2-R2 canonical decision namespace and exact totals reconciled
+     status = CLOSED_BY_VERIFIED_FIX
+E2-R3 scope-review docs commit, verification and push Gates separated
+     status = CLOSED_BY_VERIFIED_FIX
+E2-R4 broad collection approval removed and exact first sub-Gate locked
+     status = CLOSED_BY_VERIFIED_FIX
+
+Findings fixed this Gate (original): 8
+Continuation Fix1 findings closed: 4
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+### ۹۵.۲۱ ممنوعیت‌های تأییدشده
+
+```text
+NO external collection / network / web search / HTTP / API
+NO implementation / DB / seed / dry-run / apply / publication
+NO stage / commit / push / CI
+NO E3 / P2
+NO legal conclusion / product decision issued
+```
+
+### ۹۵.۲۲ Manifest و گام بعدی
+
+```text
+E2_SCOPE_REVIEW_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_SCOPE_REVIEW_COMMIT_MANIFEST_END
+
+Future commit subject:
+docs(governance): scope E2 external evidence collection
+
+Exact next Gate:
+E2_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+
+Locked documentation sequence after local commit approval:
+1. E2_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+2. E2_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+3. E2_SCOPE_REVIEW_DOCS_PUSH_APPROVAL
+4. E2_C3_IRAN_PRODUCT_SCOPE_DECISION_PREPARATION_APPROVAL
+
+Rules:
+local commit does not authorize push
+push does not authorize collection
+collection does not authorize implementation
+CI requires separate approval
+E3 remains unauthorized
+```
+
+### ۹۵.۲۳ نشانگرها
+
+```text
+E2_SCOPE_REVIEW_COMPLETE
+ALL_16_CANDIDATES_MAPPED
+NINE_STANDARD_SOURCE_PLANS_COMPLETE
+NICE_PLAN_COMPLETE
+IRAN_SIX_ROWS_TWO_CLASSES_MAPPED
+EVIDENCE_ARTIFACT_CONTRACT_LOCKED
+COLLECTION_METHOD_ALLOWLIST_PROPOSED
+AUTHORITY_POLICY_LOCKED
+LICENSE_TERMS_POLICY_LOCKED
+SECURITY_POLICY_LOCKED
+FRESHNESS_REVOCATION_POLICY_LOCKED
+AUTOMATED_GOVERNED_INGESTION_MAPPED
+CONTINUOUS_INTELLIGENCE_MAPPED
+OWNER_CLOSURE_MATRIX_COMPLETE
+E2_SUB_GATES_DEFINED
+E2_TO_E3_BOUNDARY_LOCKED
+NO_EXTERNAL_COLLECTION_PERFORMED
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+MASTER_LOG_95_CORRECTED
+MASTER_LOG_96_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+E2_R1_CLOSED
+E2_R2_CLOSED
+E2_R3_CLOSED
+E2_R4_CLOSED
+EVIDENCE_MATRIX_320_CELLS_RECONCILED
+REQUIRED_OPTIONAL_NA_COUNTS_EXACT
+DECISION_NAMESPACE_CANONICAL
+ALL_DECISION_COUNTS_RECONCILED
+SCOPE_REVIEW_DOCS_COMMIT_GATE_LOCKED
+COMMIT_AND_PUSH_APPROVALS_SEPARATED
+BROAD_COLLECTION_APPROVAL_REMOVED
+IRAN_PRODUCT_DECISION_GATE_FIRST
+READY_FOR_E2_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+### ۹۵.۲۴ شمارش‌های دقیق نهایی
+
+```text
+repository candidates: 16
+standard overlay candidates: 9
+NICE candidates: 1
+Iran rows: 6
+Iran classes: 2
+provider-directory rows: 5
+lab-directory rows: 1
+evidence categories (A–T): 20
+candidate-evidence matrix cells: 320
+REQUIRED cells: 302
+OPTIONAL cells: 6
+NOT_APPLICABLE cells: 12
+302 + 6 + 12 = 320
+outside-matrix D-IR checklist items: 11
+outside-matrix NICE permission axes: 11
+canonical decision rows: 18
+general/process decision rows: 8
+overlay-source decision rows: 3
+NICE decision rows: 3
+Iran decision rows: 4
+8 + 3 + 3 + 4 = 18
+D-IR checklist aliases (not extra rows): 11
+duplicate decision IDs: 0
+risks: 24
+E2 sub-Gates: 10
+audit iterations: 3
+findings fixed (original): 8
+continuation Fix1 findings closed: 4
+remaining findings: 0
+```
+
+---
+*پایان §95 — Package E2 External Evidence Scope Review — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۶) بسته E2 — کامیت محلی مستندات Scope Review
+
+```text
+Package:
+E2_SCOPE_REVIEW_DOCS_LOCAL_COMMIT
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+
+Scope Review baseline:
+226a6fbc0dbe71d476cf4e1bea9388b85d84e028
+
+E2 Scope Review status:
+E2_EXTERNAL_EVIDENCE_SCOPE_REVIEW_COMPLETE
+
+Evidence matrix:
+candidates = 16
+categories = 20
+matrix cells = 320
+REQUIRED = 302
+OPTIONAL = 6
+NOT_APPLICABLE = 12
+reconciliation = 302 + 6 + 12 = 320
+
+Decision model:
+canonical namespace = D01–D18
+total decision rows = 18
+general/process decisions = 8
+overlay decisions = 3
+NICE decisions = 3
+Iran decisions = 4
+D-IR-01..11 = aliases/checklist entries under D07
+
+Other exact counts:
+risks = 24
+E2 sub-Gates = 10
+audit iterations = 3
+remaining findings = 0
+
+Finding closure:
+E2-R1 through E2-R4 = CLOSED_BY_VERIFIED_FIX
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Approval boundaries:
+local commit authorized
+push not authorized
+CI not authorized
+network not authorized
+external evidence collection not authorized
+E2-C1 through E2-C10 not authorized
+Iran product decision not authorized
+E3 not authorized
+P2 not authorized
+
+Approved commit subject:
+docs(governance): scope E2 external evidence collection
+
+Approved commit manifest:
+E2_SCOPE_REVIEW_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_SCOPE_REVIEW_COMMIT_MANIFEST_END
+
+Expected next Gate after successful commit:
+E2_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+```
+
+### ۹۶.۱ نشانگرها
+
+```text
+MASTER_LOG_96_APPENDED
+ONE_FILE_LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+CI_NOT_AUTHORIZED
+NETWORK_NOT_AUTHORIZED
+E2_SUB_GATES_NOT_AUTHORIZED
+E3_NOT_AUTHORIZED
+P2_NOT_AUTHORIZED
+READY_FOR_E2_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+```
+
+---
+*پایان §96 — Package E2 Scope Review Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
