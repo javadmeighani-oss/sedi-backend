@@ -9962,3 +9962,1347 @@ READY_FOR_E2_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
 
 ---
 *پایان §96 — Package E2 Scope Review Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۷) بسته E2-C3 — آماده‌سازی + بستن تصمیم‌های محصول Iran (C3A/C3B)
+
+```text
+Package (combined):
+E2_C3A_JAVAD_PRODUCT_DECISION_CLOSURE
+E2_C3B_FINAL_IRAN_PRODUCT_SCOPE_DOCUMENTATION
+
+Prior preparation package:
+E2_C3_IRAN_PRODUCT_SCOPE_DECISION_PREPARATION
+
+Owner:
+Javad (product decisions)
+Documentation:
+Backend Gate 3 — Health Care System
+
+Authorization:
+docs-only finalization of uncommitted §97
+NO web search / network / external collection / provider verification
+NO source eligibility promotion
+NO E2-C1 / E2-C2 / E2-C4 / E3 / P2
+NO code / test / stage / commit / push / CI
+
+Baseline SHA:
+170de8a3b99c054e17480938ec2b90e737491e8a
+
+Status:
+E2_C3_IRAN_PRODUCT_SCOPE_DECISION_PACKAGE_PREPARED
+E2_C3_JAVAD_PRODUCT_DECISIONS_CLOSED
+E2_C3_FINAL_IRAN_PRODUCT_SCOPE_DOCUMENTED
+ALL_ELEVEN_D_IR_DECISIONS_APPROVED
+
+Authority reconciliation (§95 / §96):
+candidates = 16
+Iran candidate rows = 6
+Iran candidate classes = 2
+provider_directory rows = 5
+lab_directory rows = 1
+canonical decisions = D01–D18
+Iran parent decision = D07
+Iran checklist aliases = D-IR-01..11
+E2 sub-Gates = 10
+E2-C3A = CLOSED
+E2-C3B = CLOSED
+E2-C4 = still blocked until docs commit/push sequence completes,
+        then E2-C4A requires separate approval
+AUTHORITY_RECONCILED = YES
+```
+
+### ۹۷.۱ قانون محصول Free-Sources-Only
+
+```text
+PAID_SOURCE = EXCLUDED
+PAID_API = EXCLUDED
+PAID_DATASET = EXCLUDED
+PAYWALLED_CONTENT = EXCLUDED
+MANDATORY_PAID_PARTNERSHIP = EXCLUDED
+PAID_COMMERCIAL_LICENSE = EXCLUDED
+
+ONLY FREE-OF-CHARGE SOURCES MAY BE STORED.
+
+A source is NOT free when it requires any of:
+subscription fee | purchase fee | per-request fee | per-document fee |
+paid API | paid dataset | paid commercial license | paywall |
+paid credential | mandatory paid partnership | paid data-enrichment agreement
+
+Classifications:
+PAID_EXCLUDED
+PARTNERSHIP_REQUIRED_EXCLUDED
+
+Free access alone is NOT sufficient. Stored source must satisfy ALL of:
+FREE_OF_CHARGE
+AND LEGALLY_PERMITTED_FOR_STORAGE
+AND LEGALLY_PERMITTED_FOR_PROCESSING
+AND LEGALLY_PERMITTED_FOR_PRODUCT_USE
+AND AUTOMATED_ACCESS_PERMITTED
+AND ATTRIBUTION_REQUIREMENTS_SATISFIED
+AND GOVERNANCE_APPROVED
+
+Locked distinctions:
+FREE_TO_VIEW_IS_NOT_FREE_TO_STORE
+FREE_TO_ACCESS_IS_NOT_FREE_TO_REUSE
+FREE_TIER_IS_NOT_PRODUCTION_PERMISSION
+PUBLIC_PAGE_IS_NOT_AUTOMATED_FETCH_PERMISSION
+
+If cost, reuse or storage rights are unclear:
+UNKNOWN_FAIL_CLOSED
+DO_NOT_STORE_CONTENT
+(metadata / evidence-review records may be retained; source content must not
+ be stored or published)
+```
+
+### ۹۷.۲ مدل نقش منابع Iran
+
+```text
+A. Official verification authorities
+   physician-license / specialty / hospital identity / hospital accreditation /
+   laboratory identity / laboratory accreditation / regulatory safety information
+
+B. Operational directories
+   discover physicians / hospitals / laboratories /
+   public contact / geographic lookup / appointment links
+
+C. Medical knowledge authorities
+   provider directory must NEVER automatically become medical-content authority
+
+D. Recommendation sources
+   recommendation eligibility requires separate approval;
+   never follows automatically from directory presence
+
+Locked:
+DIRECTORY_LISTING_IS_NOT_LICENSE_PROOF
+DIRECTORY_LISTING_IS_NOT_QUALITY_PROOF
+DIRECTORY_LISTING_IS_NOT_MEDICAL_AUTHORITY
+DIRECTORY_LISTING_IS_NOT_RECOMMENDATION_ELIGIBILITY
+```
+
+### ۹۷.۳ فهرست دقیق ۶ کاندید Iran (شواهد مخزن)
+
+منبع کاتالوگ (PROPOSAL ONLY):
+`backend/config/gate3h/trusted_source_catalog_v1.yaml`
+کلیدهای ثابت seed:
+`backend/app/services/governance/kb_b2_legacy_companion_seed.py` (GATE3H_CATALOG_SOURCE_KEYS)
+
+| # | source_key | display_name (YAML) | path:lines | category (YAML) | proposed actual role | official vs commercial | cost evidence | API cost | partnership req | storage-rights | automated-access | authority role | verification role | directory role | recommendation role | current classification | unresolved | owner | dependency | closure | Gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | irimc_member_search | Iranian Medical Council — Member Search (official verification) | trusted_source_catalog_v1.yaml:340-363 | provider_directory | official physician/member verification registry | official (trust_level=official; metadata.source_role=official_verification) | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN_NOT_EXTERNALLY_VERIFIED | deferred_restricted notes cite partnership/API/robots | UNKNOWN_NOT_EXTERNALLY_VERIFIED | source_fetch_enabled=false; robots_terms_status=deferred_restricted | official_verification candidate | primary Iran physician verification candidate | directory listing secondary | NOT recommendation | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | D-IR-01..11; free/reuse evidence | Javad | D07 closed | D07 worksheet + Legal | E2-C3→E2-C4A/B |
+| 2 | paziresh24_com | Paziresh24 — Provider Directory | :365-388 | provider_directory | operational provider directory | commercial/partner (trust_level=vetted_partner; source_role=operational_directory) | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN_NOT_EXTERNALLY_VERIFIED | deferred partnership/terms | UNKNOWN_NOT_EXTERNALLY_VERIFIED | fetch disabled; deferred_restricted | NOT medical authority | cross-check only (YAML cross_check target) | operational directory | NOT recommendation | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | D-IR + terms | Javad | D07 | terms+free evidence | E2-C3→E2-C4 |
+| 3 | doctoreto_com | Doctorito — Provider Directory | :390-411 | provider_directory | operational provider directory | commercial/partner (vetted_partner) | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN_NOT_EXTERNALLY_VERIFIED | deferred | UNKNOWN_NOT_EXTERNALLY_VERIFIED | fetch disabled | NOT medical authority | cross-check only | operational directory | NOT recommendation | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | naming + D-IR + terms | Javad | D07 | naming+terms | E2-C3→E2-C4 |
+| 4 | nobat_ir | Nobat.ir — Appointment Directory | :413-433 | provider_directory | appointment / provider operational directory | commercial/partner | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN_NOT_EXTERNALLY_VERIFIED | deferred | UNKNOWN_NOT_EXTERNALLY_VERIFIED | fetch disabled | NOT medical authority | none proven | operational + booking-boundary | NOT recommendation | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | booking boundary + D-IR | Javad | D07 | booking policy | E2-C3→E2-C4 |
+| 5 | doctor_yab_ir | Doctor-Yab — Provider Directory | :435-455 | provider_directory | operational provider directory | commercial/partner | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN_NOT_EXTERNALLY_VERIFIED | deferred | UNKNOWN_NOT_EXTERNALLY_VERIFIED | fetch disabled | NOT medical authority | none proven | operational directory | NOT recommendation | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | D-IR + terms | Javad | D07 | terms+free evidence | E2-C3→E2-C4 |
+| 6 | drdr_ir | DrDr — Provider Directory | :457-477 | lab_directory | UNRESOLVED — YAML category=lab_directory but display_name says Provider Directory | commercial/partner | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN_NOT_EXTERNALLY_VERIFIED | deferred | UNKNOWN_NOT_EXTERNALLY_VERIFIED | fetch disabled | NOT medical authority; lab accreditation ≠ directory identity | unresolved class | unresolved lab vs provider directory | NOT recommendation | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | CLASSIFICATION_DECISION + D-IR-04 | Javad | D07 | class decision recorded | E2-C3→E2-C4 |
+
+```text
+Iran candidate count: 6
+Iran classes (current catalog): 2 = provider_directory (5) + lab_directory (1)
+Catalog not modified in this Gate
+```
+
+### ۹۷.۴ یافته‌های طبقه‌بندی کاتالوگ (بدون تغییر کاتالوگ)
+
+```text
+C3-F1 drdr_ir category mismatch
+  Evidence: category=lab_directory (YAML:462) AND display_name="DrDr — Provider Directory" (YAML:458)
+  Classification from repository-only evidence: UNRESOLVED_MIXED_OR_MISLABELED
+  Options for Javad:
+    A) keep lab_directory and require lab-scope evidence only
+    B) reclassify to provider_directory (future catalog Gate)
+    C) split into two future keys if mixed scope proven later
+  Catalog change: NOT authorized in E2-C3
+  Product-decision item: YES (see OD-C3-12)
+
+C3-F2 doctoreto_com naming consistency
+  Evidence: source_key=doctoreto_com; display_name="Doctorito — Provider Directory";
+            domain=doctoreto.com; §95 display "Doctorito Directory"
+  Options: keep as-is | normalize display to Doctoreto | normalize to Doctorito with evidence
+  Silent rename: FORBIDDEN without evidence
+  Product-decision item: YES (see OD-C3-13)
+
+C3-F3 §95 D-IR label map vs E2-C3 expanded checklist
+  §95 recorded compact aliases under D07; E2-C3 prepares expanded cards D-IR-01..11
+  per current package (physician/hospital/lab split; public fields; commercial influence).
+  Authority: E2-C3 cards are the preparation worksheet Javad must review;
+             canonical parent remains D07; no extra decision-row IDs created.
+  Status: documented (see §97.۵)
+```
+
+### ۹۷.۵ کارت‌های تصمیم D-IR-01..11 (والد: D07)
+
+```text
+Preparation cards retained above historically in this section's prior draft.
+Final binding status for all eleven cards:
+APPROVED_BY_JAVAD
+
+OPEN_AWAITING_JAVAD = 0
+REJECTED = 0
+PARTIALLY_APPROVED = 0
+APPROVED_BY_JAVAD = 11
+
+See §97.۲۲ for the authoritative approved decision text.
+Preparation option analysis below remains historical context only and does not
+override APPROVED_BY_JAVAD finals.
+```
+
+همه کارت‌های آماده‌سازی زیرین: وضعیت نهایی = APPROVED_BY_JAVAD (جزئیات در §۹۷.۲۲)
+
+#### D-IR-01 — directory-only versus recommendation product scope
+
+```text
+ID: D-IR-01 (alias of D07)
+Question: Is Iran provider product limited to verified directory discovery,
+          or does it include recommendation?
+Why: determines evidence burden, safety claims, ranking and liability.
+Options:
+  A) verified directory only
+  B) verified directory + neutral filtering
+  C) personalized recommendation (requires separate safety/legal/product Gate;
+     NOT default)
+Recommended option (preparation only): A for V1 Iran-first; B optional later;
+  C blocked until separate Gate
+Benefits A: lowest safety/legal risk; clear non-endorsement
+Risks A: lower UX convenience
+Privacy: A/B minimize profiling; C increases profiling
+Safety: A safest; C highest misinterpretation risk
+Cost-policy: all options still forbid paid data sources
+Implementation: A = directory UX; C = ranking+matching engines
+Affected candidates: all Iran-6
+Required external evidence: none for choosing A; C needs safety/legal pack
+Primary owner: Javad
+Supporting: Product, Medical/Safety, Legal, Governance
+Blocking dependency: none (first decision)
+Closure: written Javad choice of A/B/C recorded
+Downstream Gate: E2-C3A / blocks recommendation features until C approved
+```
+
+#### D-IR-02 — physician scope
+
+```text
+ID: D-IR-02 (alias of D07)
+Question: Which physician populations are in scope for Iran V1?
+Why: drives IRIMC evidence and specialty coverage.
+Options: all licensed physicians | selected specialties | specialists only |
+         physicians with public contact only | out of scope
+Recommended (prep): start with licensed physicians via official verification first
+Benefits: clear authority path via IRIMC candidate
+Risks: incomplete specialty coverage; identity mismatch
+Privacy: registration numbers sensitive if mishandled
+Safety: expired/invalid license risk if freshness weak
+Cost-policy: free official registry preferred
+Implementation: verification workflow + field matrix
+Affected: irimc_member_search primary; commercial directories secondary
+Evidence required: official registry free/reuse/automation evidence (future E2-C4A/B)
+Primary: Javad | Supporting: Provider Verification, Legal, Medical/Safety
+Dependency: D-IR-01
+Closure: physician-in-scope rule written
+Gate: E2-C3A → E2-C4A
+```
+
+#### D-IR-03 — hospital and clinic scope
+
+```text
+ID: D-IR-03 (alias of D07)
+Question: Are hospitals/clinics in Iran V1 scope?
+Why: facility identity/accreditation differs from physician license.
+Options: out of scope | identity listing only | identity+accreditation |
+         include clinics/offices | defer
+Recommended (prep): defer hospitals until official facility registry class assessed;
+  or identity-only if free official source found later
+Benefits of defer: lower complexity
+Risks of early include: unaccredited facility presentation
+Privacy: facility addresses often public; still minimize
+Safety: accreditation gaps
+Cost-policy: free official facility sources only
+Implementation: separate facility entity model
+Affected: commercial directories may list facilities; no dedicated official facility key yet
+Evidence: future official hospital registry class (not active candidate now)
+Primary: Javad | Supporting: Provider Verification, Legal, Medical/Safety
+Dependency: D-IR-01
+Closure: hospital/clinic in-scope rule written
+Gate: E2-C3A → E2-C4A
+```
+
+#### D-IR-04 — laboratory and diagnostic-center scope
+
+```text
+ID: D-IR-04 (alias of D07)
+Question: Are laboratories/diagnostic centers in Iran V1 scope, and is drdr_ir
+          a lab_directory, provider_directory, mixed, or excluded?
+Why: lab accreditation ≠ physician license; catalog class may be wrong.
+Options: out of scope | lab identity only | lab+accreditation |
+         keep drdr_ir lab_directory | reclassify | exclude until official lab registry
+Recommended (prep): do not treat drdr_ir as lab accreditation authority;
+  resolve class before collection; prefer future official lab registry class
+Benefits: avoids false accreditation claims
+Risks: category mismatch; user confuses directory with quality
+Privacy: lab contact data
+Safety: unaccredited lab presentation
+Cost-policy: free sources only
+Implementation: class decision before E2-C4 collection for drdr_ir
+Affected: drdr_ir; future official lab registry class
+Evidence: terms + scope pages (future); official lab registry discovery (E2-C4A)
+Primary: Javad | Supporting: Provider Verification, Legal
+Dependency: D-IR-01; C3-F1
+Closure: lab scope + drdr_ir class decision written
+Gate: E2-C3A → E2-C4A/B
+```
+
+#### D-IR-05 — public data fields allowed for storage and display
+
+```text
+ID: D-IR-05 (alias of D07)
+Question: Which provider/facility fields may be stored and displayed?
+Why: privacy, minimization, defamation and over-collection risk.
+Options: see §97.۸ field matrix — per-field allow/deny/defer
+Recommended (prep): allow only low-sensitivity public identity fields from
+  free legally reusable official sources; deny ratings/reviews/photos/prices
+  until separate decisions
+Benefits: minimization
+Risks: over-collection from commercial directories
+Privacy: HIGH impact decision
+Safety: wrong specialty/status harms users
+Cost-policy: field presence on a paid/partner site ≠ storage right
+Implementation: field allowlist enforcement
+Affected: all Iran-6
+Evidence: per-source terms + legal opinion for sensitive fields
+Primary: Javad | Supporting: Legal, Privacy (Legal), Product, Security
+Dependency: D-IR-02..04
+Closure: field allowlist approved
+Gate: E2-C3A → E2-C4B
+```
+
+#### D-IR-06 — ranking and ordering policy
+
+```text
+ID: D-IR-06 (alias of D07)
+Question: How may Iran providers be ordered in product UX?
+Options:
+  A) no ranking; alphabetical or location-based display
+  B) transparent deterministic ranking using verified attributes only
+  C) user-rating ranking
+  D) commercial ranking (HIGH RISK; incompatible with neutral guidance
+     unless separately disclosed and governed)
+Recommended (prep): A for V1; B only with transparent rules; C/D forbidden unless
+  separate Gate + disclosure
+Benefits A: neutrality
+Risks D: commercial bias; safety misinterpretation
+Privacy: C may require user data
+Safety: ranking ≠ clinical quality
+Cost-policy: commercial ranking distinct from paid data source ban but still high-risk
+Implementation: sort policy flags
+Affected: all directory UIs
+Evidence: none for A; B needs attribute validation rules
+Primary: Javad | Supporting: Product, Medical/Safety, Governance, Legal
+Dependency: D-IR-01 (if C recommendation chosen, ranking Gate mandatory)
+Closure: ranking option recorded
+Gate: E2-C3A
+```
+
+#### D-IR-07 — paid placement, sponsorship and commercial influence
+
+```text
+ID: D-IR-07 (alias of D07)
+Question: Which commercial influence forms are allowed, if any?
+Distinctions (must not be conflated):
+  1) paying for source DATA → FORBIDDEN (PAID_EXCLUDED)
+  2) mandatory paid data partnership → FORBIDDEN
+  3) provider charges patients for medical services → NOT automatically a paid source
+  4) advertising / sponsored placement
+  5) referral commission / affiliate
+  6) free technical partnership / free public API partnership
+  7) provider self-service profiles
+Options for (4)–(7): forbid all | allow with visible disclosure + no hidden rank
+  influence + COI audit | defer
+Recommended (prep): forbid 1–2 always; defer 4–5; allow 6 only if free and governed;
+  7 only with verification
+Benefits: trust preservation
+Risks: undisclosed sponsorship; ranking bias
+Privacy: affiliate tracking
+Safety: commercial influence mistaken for medical endorsement
+Cost-policy: reinforces PAID SOURCES EXCLUDED
+Implementation: disclosure + separation from medical judgment
+Affected: commercial directories; future partnerships
+Evidence: partnership contracts (future); none collected now
+Primary: Javad | Supporting: Legal, Governance, Product
+Dependency: D-IR-01, D-IR-06
+Closure: commercial-influence policy written
+Gate: E2-C3A
+```
+
+#### D-IR-08 — user reviews and ratings
+
+```text
+ID: D-IR-08 (alias of D07)
+Question: Are user reviews/ratings in scope?
+Options:
+  A) no user reviews
+  B) display third-party reviews
+  C) collect Sedi reviews
+  D) verified-patient reviews only
+Recommended (prep): A for V1 Iran-first
+Benefits A: avoids defamation/manipulation
+Risks B–D: fake reviews, fairness, privacy, moderation cost
+Privacy: review text may expose health info
+Safety: ratings ≠ clinical quality
+Cost-policy: third-party review feeds may be paid/restricted
+Implementation: moderation stack if not A
+Affected: all directories; UX surfaces
+Evidence: legal defamation/privacy analysis if not A
+Primary: Javad | Supporting: Legal, Medical/Safety, Product, Security
+Dependency: D-IR-01, D-IR-05
+Closure: review policy written
+Gate: E2-C3A
+```
+
+#### D-IR-09 — verification freshness and expiry
+
+```text
+ID: D-IR-09 (alias of D07)
+Question: What verification validity, revalidation, warning and hard expiry apply?
+Options (prep ranges for Javad choice):
+  validity: 7 / 30 / 90 days (physician license recheck)
+  warning threshold: before expiry
+  hard expiry: remove verified badge / remove from active display
+  stale display: show stale marker | hide | quarantine
+Recommended (prep): short validity for licenses; fail-closed on expiry
+Fail-closed locks:
+  EXPIRED_VERIFICATION → do not present as verified
+  OFFICIAL_REVOCATION → suspend immediately
+  CONFLICTING_STATUS → hold recommendation eligibility
+  MISSING_REVALIDATION → mark stale or remove from active display
+  PAID_SOURCE_TRANSITION → stop new storage and fetching
+Primary: Javad | Supporting: Provider Verification, Medical/Safety, Backend
+Dependency: D-IR-02..04
+Closure: freshness numbers + fail-closed rules written
+Gate: E2-C3A → E2-C4C
+```
+
+#### D-IR-10 — suspension, revocation, correction and appeal
+
+```text
+ID: D-IR-10 (alias of D07)
+Question: How are suspension, official revocation, correction requests and appeals handled?
+Why: wrong suspension harms providers; missed revocation harms users.
+Options: define SLA owners for correction/appeal; require requester identity proof;
+  retain audit trail; historical evidence retention vs deletion when legally required
+Recommended (prep): official revocation immediate suspend; correction via verified
+  requester + audit; appeal owner = Provider Verification + Javad escalation
+Privacy: correction may involve personal data
+Safety: critical for license status
+Cost-policy: N/A beyond free-source refresh
+Implementation: workflow design only (no code in this Gate)
+Affected: all Iran entities displayed
+Evidence: legal retention/deletion requirements (future Legal)
+Primary: Javad | Supporting: Provider Verification, Legal, Security, Governance
+Dependency: D-IR-09
+Closure: suspension/correction/appeal policy written
+Gate: E2-C3A
+```
+
+#### D-IR-11 — Iran-first geographic rollout and expansion criteria
+
+```text
+ID: D-IR-11 (alias of D07)
+Question: What geographic/specialty rollout applies first?
+Options:
+  A) one pilot city
+  B) major cities
+  C) one provider specialty
+  D) physician verification only
+  E) physicians + hospitals
+  F) physicians + hospitals + laboratories
+Recommended (prep): D first (physician verification only) then A/B geography;
+  E/F only after official facility/lab free sources assessed
+Constraints: free-sources-only; official verification first; fail-closed missing
+  evidence; no paid source dependency
+Primary: Javad | Supporting: Product, Provider Verification, Governance
+Dependency: D-IR-01..04
+Closure: rollout option + expansion criteria written
+Gate: E2-C3A → E2-C4A
+```
+
+```text
+D-IR decision cards: 11
+APPROVED_BY_JAVAD: 11
+OPEN_AWAITING_JAVAD: 0
+REJECTED: 0
+PARTIALLY_APPROVED: 0
+Canonical parent rows: D07 only (no extra decision-row IDs)
+Decisions invented by Cursor: 0
+```
+
+### ۹۷.۶ ماتریس واجدشرایطی Free-Source (۶ کاندید)
+
+همه سلول‌های هزینه/مجوز: بدون جمع‌آوری خارجی → UNKNOWN مگر آنچه YAML صریحاً می‌گوید.
+
+| source_key | public access cost | subscription | API cost | data license cost | partnership required | free-tier restrictions | paywall | storage permission | processing permission | commercial-use permission | automated-access permission | attribution | official authority | operational directory | result | owner | closure | E2 collection Gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| irimc_member_search | UNKNOWN_NOT_EXTERNALLY_VERIFIED | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN (notes mention partnership/API review) | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT permitted now (fetch=false; deferred_restricted) | UNKNOWN | YES (YAML official_verification) | secondary | UNKNOWN_FAIL_CLOSED | Javad+Legal | free+reuse+automation evidence pack | E2-C4B (after D07) |
+| paziresh24_com | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT permitted now | UNKNOWN | NO | YES (YAML) | UNKNOWN_FAIL_CLOSED | Javad+Legal | terms pack | E2-C4B |
+| doctoreto_com | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT permitted now | UNKNOWN | NO | YES | UNKNOWN_FAIL_CLOSED | Javad+Legal | terms pack | E2-C4B |
+| nobat_ir | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT permitted now | UNKNOWN | NO | YES | UNKNOWN_FAIL_CLOSED | Javad+Legal | terms+booking boundary | E2-C4B |
+| doctor_yab_ir | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT permitted now | UNKNOWN | NO | YES | UNKNOWN_FAIL_CLOSED | Javad+Legal | terms pack | E2-C4B |
+| drdr_ir | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT permitted now | UNKNOWN | NO | UNRESOLVED class | UNKNOWN_FAIL_CLOSED | Javad+Legal | class+terms pack | E2-C4B |
+
+```text
+Eligibility result counts:
+FREE_AND_ELIGIBLE_FOR_EVIDENCE_COLLECTION = 0
+FREE_BUT_REUSE_REVIEW_REQUIRED = 0
+FREE_BUT_AUTOMATION_RESTRICTED = 0
+FREE_METADATA_ONLY = 0
+PAID_EXCLUDED = 0 (not proven; not assumed)
+PARTNERSHIP_REQUIRED_EXCLUDED = 0 (not proven; not assumed)
+UNKNOWN_FAIL_CLOSED = 6
+Sum = 6
+No candidate classified fully eligible by assumption
+```
+
+### ۹۷.۷ برنامه اولویت منابع رسمی رایگان (کلاس‌ها — کاندید فعال نیستند)
+
+این کلاس‌ها فقط برای ارزیابی آینده تعریف می‌شوند؛ به کاتالوگ فعال اضافه نشده‌اند.
+
+| class_id | purpose | official owner expected | free-access req | storage-rights req | automated-access req | minimum evidence | freshness | revocation | future Gate |
+|---|---|---|---|---|---|---|---|---|---|---|
+| OFS-01 | official physician registry | medical council / regulator | FREE_OF_CHARGE | LEGAL storage+processing+product use | explicit automation permit | identity, terms, robots/API, attribution | ≤ Javad threshold | immediate on revoke | E2-C4A |
+| OFS-02 | official hospital registry | MoH / facility regulator | same | same | same | facility identity pack | same | same | E2-C4A |
+| OFS-03 | official hospital accreditation | accreditation body | same | same | same | accreditation status+date | same | same | E2-C4A |
+| OFS-04 | official laboratory registry | lab regulator | same | same | same | lab identity pack | same | same | E2-C4A |
+| OFS-05 | official laboratory accreditation | accreditation body | same | same | same | accreditation status+date | same | same | E2-C4A |
+| OFS-06 | MoH public data | Ministry of Health | same | same | same | dataset terms+scope | same | same | E2-C4A |
+| OFS-07 | Iran FDA public safety info | food/drug regulator | same | same | same | safety bulletin terms | same | same | E2-C4A |
+| OFS-08 | TTAC / official product verification | TTAC or successor | same | same | same | verification API/page terms | same | same | E2-C4A |
+| OFS-09 | public regulatory datasets | government open-data portals | same | same | same | license+machine-readable terms | same | same | E2-C4A |
+
+```text
+Official free-source priority classes prepared: 9
+Active catalog candidates added: 0
+```
+
+### ۹۷.۸ ماتریس فیلدهای داده عمومی ارائه‌دهنده
+
+| field | physician | hospital | lab | public-data status | sensitivity | source authority required | storage option | display option | correction req | retention | recommended (prep only) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| full name | Y | Y | Y | often public | medium | official or verified directory | defer | defer | Y | while active+audit | allow if free legal official/verified |
+| professional registration number | Y | N | maybe | conditional | high | official registry | defer | defer | Y | strict | allow only from official free source |
+| specialty | Y | N | N | often public | medium | official preferred | defer | defer | Y | while active | allow if verified |
+| subspecialty | Y | N | N | often public | medium | official preferred | defer | defer | Y | while active | defer unless verified |
+| professional status | Y | N | N | conditional | high | official | defer | defer | Y | audit | allow verified only |
+| facility name | Y | Y | Y | often public | low-medium | directory or official | defer | defer | Y | while active | allow if free legal |
+| city | Y | Y | Y | public | low | directory/official | defer | defer | Y | while active | allow |
+| address | Y | Y | Y | often public | medium | directory/official | defer | defer | Y | minimize | optional; minimize |
+| public phone number | Y | Y | Y | often public | medium | directory | defer | defer | Y | minimize | optional |
+| official website | Y | Y | Y | public | low | directory | defer | defer | Y | while active | allow if free legal |
+| appointment URL | Y | Y | Y | public link | low-medium | directory | defer | defer | Y | while active | allow link-out only if D-IR permits |
+| working hours | Y | Y | Y | often public | low | directory | defer | defer | Y | short TTL | optional |
+| accessibility data | Y | Y | Y | sometimes public | low | directory/self | defer | defer | Y | while active | optional |
+| languages | Y | maybe | maybe | sometimes public | low | directory/self | defer | defer | Y | while active | optional |
+| gender | Y | N | N | sensitive | high | careful | deny/defer | deny/defer | Y | minimize | deny unless justified |
+| photograph | Y | maybe | maybe | biometric-adjacent | high | consent/terms | deny | deny | Y | minimize | deny V1 |
+| consultation price | Y | maybe | Y | commercial | medium | provider/self | deny/defer | deny/defer | Y | short | deny V1 |
+| insurance coverage | Y | Y | Y | conditional | medium | insurer/official | defer | defer | Y | short | defer |
+| user rating | Y | Y | Y | UGC | high | review policy | deny | deny | Y | N/A | deny until D-IR-08≠A |
+| review text | Y | Y | Y | UGC | high | review policy | deny | deny | Y | legal hold rules | deny V1 |
+| disciplinary status | Y | maybe | maybe | sensitive | very high | official only | defer | defer | Y | audit | official only; careful display |
+| license expiry | Y | N | maybe | sensitive | high | official | defer | defer | Y | audit | official only |
+| accreditation status | N | Y | Y | sensitive | high | official accreditor | defer | defer | Y | audit | official only |
+| verification date | Y | Y | Y | metadata | low | Sedi verification | allow meta | allow | Y | audit | allow metadata |
+
+```text
+Public-data fields mapped: 24
+Fields marked allowed solely because a directory displays them: 0
+Recommended decisions are preparation-only; Javad must approve
+```
+
+### ۹۷.۹ مدل Verification / Freshness / Revocation
+
+```text
+Product options to choose (Javad):
+verification validity period
+revalidation cadence
+warning threshold
+hard expiry
+stale-data display policy
+provider suspension rules
+official revocation handling
+unresolved conflict handling
+source outage handling
+correction request handling
+appeal process
+
+Fail-closed (locked recommendations for review):
+EXPIRED_VERIFICATION → do not present as verified
+OFFICIAL_REVOCATION → suspend immediately
+CONFLICTING_STATUS → hold recommendation eligibility
+MISSING_REVALIDATION → mark stale or remove from active display
+PAID_SOURCE_TRANSITION → stop new storage and fetching
+```
+
+### ۹۷.۱۰ مرز Directory / Filtering / Recommendation / Referral
+
+```text
+Levels (separate approvals):
+1. provider discovery
+2. neutral search
+3. filtering
+4. matching
+5. recommendation
+6. clinical referral
+7. emergency referral
+
+Locks:
+Sedi must not claim a provider is "the best" without transparent, validated,
+separately approved ranking policy.
+Emergency referrals must not depend on commercial directories alone.
+Provider suggestions must not imply medical outcome guarantees.
+
+Owner/approval by level:
+1–3: Product + Javad
+4: Product + Medical/Safety + Javad
+5: Medical/Safety + Legal + Governance + Javad (separate Gate)
+6–7: Medical/Safety + Legal + Javad; emergency must prefer official/on-call pathways
+```
+
+### ۹۷.۱۱ Ranking و Commercial Influence
+
+```text
+Ranking options: A none/alpha/location | B deterministic verified attributes |
+  C user-rating | D commercial (high-risk)
+Commercial framework:
+PAID DATA SOURCES = EXCLUDED
+PAID SOURCE ACCESS = EXCLUDED
+MANDATORY PAID PARTNERSHIP FOR KNOWLEDGE = EXCLUDED
+If commercial relationships ever allowed for discovery:
+  visible disclosure
+  no hidden ranking influence
+  separation from medical judgment
+  separate governance
+  conflict-of-interest audit
+  separate Javad approval
+```
+
+### ۹۷.۱۲ Privacy / Correction / Appeal
+
+```text
+Requirements (policy preparation only; no implementation code):
+public vs private data classification
+personal-data minimization
+provider correction request channel
+identity verification of correction requester
+audit trail
+source conflict resolution
+deletion when legally required
+historical evidence retention rules
+correction SLA
+appeal owner (Provider Verification; escalate to Javad)
+abuse prevention
+```
+
+### ۹۷.۱۳ گزینه‌های Iran-First Rollout
+
+| option | evidence burden | safety risk | verification cost | operational complexity | freshness burden | user value | recommended sequence note |
+|---|---|---|---|---|---|---|---|
+| A one pilot city | medium | lower | medium | lower | medium | medium | after D physicians |
+| B major cities | high | medium | high | high | high | high | after A success |
+| C one specialty | medium | medium | medium | medium | medium | medium | optional parallel to A |
+| D physician verification only | medium | lower | medium | lower | medium | foundational | FIRST recommended (prep) |
+| E physicians + hospitals | high | higher | high | high | high | high | after OFS hospital classes |
+| F physicians + hospitals + labs | very high | higher | very high | very high | very high | highest | last; after OFS lab classes |
+
+```text
+Rollout constraints: free-sources-only; official verification first;
+fail-closed missing evidence; no paid source dependency
+```
+
+### ۹۷.۱۴ ماتریس مالک / تصمیم (پس از تأیید جواد)
+
+| ID | decision | final state | primary | supporting | dependency | evidence required | closure | blocking | next Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| OD-C3-01 | D-IR-01 directory vs recommendation | APPROVED_BY_JAVAD (B: directory+filter) | Javad | Product, Medical/Safety, Legal, Governance | — | recorded in §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-02 | D-IR-02 physician scope | APPROVED_BY_JAVAD | Javad | Provider Verification, Legal, Medical/Safety | OD-C3-01 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-03 | D-IR-03 hospital/clinic scope | APPROVED_BY_JAVAD (deferred) | Javad | Provider Verification, Legal, Medical/Safety | OD-C3-01 | §97.۲۲ | CLOSED | Was Blocking | E2-C4A later |
+| OD-C3-04 | D-IR-04 lab scope + drdr class | APPROVED_BY_JAVAD (labs deferred; drdr not authority) | Javad | Provider Verification, Legal | OD-C3-01 | §97.۲۲; class hold | CLOSED_WITH_HOLD | Was Blocking | E2-C4A later |
+| OD-C3-05 | D-IR-05 public fields allowlist | APPROVED_BY_JAVAD (11 allow / 9 hold) | Javad | Legal, Product, Security | OD-C3-02..04 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-06 | D-IR-06 ranking | APPROVED_BY_JAVAD (no quality ranking) | Javad | Product, Medical/Safety, Governance, Legal | OD-C3-01 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-07 | D-IR-07 commercial influence | APPROVED_BY_JAVAD (none in V1) | Javad | Legal, Governance, Product | OD-C3-01,06 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-08 | D-IR-08 reviews | APPROVED_BY_JAVAD (no public reviews) | Javad | Legal, Medical/Safety, Product, Security | OD-C3-01,05 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-09 | D-IR-09 freshness/expiry | APPROVED_BY_JAVAD (30-day hard expiry) | Javad | Provider Verification, Medical/Safety, Backend | OD-C3-02..04 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-10 | D-IR-10 suspension/correction/appeal | APPROVED_BY_JAVAD | Javad | Provider Verification, Legal, Security, Governance | OD-C3-09 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-11 | D-IR-11 Iran-first rollout | APPROVED_BY_JAVAD (Phases 1–5) | Javad | Product, Provider Verification, Governance | OD-C3-01..04 | §97.۲۲ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-12 | drdr_ir catalog classification | HOLD — unresolved pending external evidence | Javad | Provider Verification, Data/Knowledge, Legal | OD-C3-04 | future external evidence | OPEN_EXTERNAL | Blocking for lab claims | E2-C4A |
+| OD-C3-13 | doctoreto naming display | HOLD — unresolved pending external evidence | Javad | Product, Data/Knowledge | — | future external evidence | OPEN_EXTERNAL | Non-blocking for V1 physicians | E2-C4A |
+| OD-C3-14 | free-sources-only confirmation | APPROVED_BY_JAVAD / locked | Javad | Legal, Governance, Data/Knowledge | — | §97.۲۶ | CLOSED | Was Blocking | E2-C3C |
+| OD-C3-15 | E2-C4 start authorization | blocked until docs commit/push then separate E2-C4A | Javad | Governance, Legal | OD-C3-01..14 | D07 closed + docs pushed | PENDING_DOCS_SEQUENCE | Blocking | E2-C3C→E2-C4A |
+
+```text
+Owner decision rows: 15
+APPROVED_BY_JAVAD / CLOSED product rows: 12 (OD-C3-01..11,14)
+OPEN_EXTERNAL holds: 2 (OD-C3-12,13) — require external evidence; not in-scope docs defects
+PENDING_DOCS_SEQUENCE: 1 (OD-C3-15)
+Unknown/TBD owners: 0
+```
+
+### ۹۷.۱۵ ماتریس ریسک
+
+| # | risk | severity | likelihood | affected | preventive | detective | owner | closure | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | paid source accidentally stored | BLOCKER | med | all | free-sources-only gate | cost audit | Legal | policy+audit | E2-C3A/E2-C4 |
+| 2 | free tier used illegally in production | BLOCKER | med | commercial dirs | FREE_TIER≠PROD lock | terms review | Legal | terms pack | E2-C4B |
+| 3 | free-to-view mistaken for reusable | BLOCKER | high | all | FREE_TO_VIEW≠STORE | Legal review | Legal | reuse evidence | E2-C4B |
+| 4 | mandatory partnership dependency | BLOCKER | med | Iran dirs | PARTNERSHIP_REQUIRED_EXCLUDED | contract review | Legal | exclusion or free alt | E2-C4A |
+| 5 | provider identity mismatch | MAJOR | med | physicians | official registry first | cross-check | Provider Verification | match rules | E2-C4C |
+| 6 | expired physician license | BLOCKER | med | physicians | freshness fail-closed | revalidation job | Provider Verification | D-IR-09 | E2-C4C |
+| 7 | invalid specialty | MAJOR | med | physicians | official specialty source | audit sample | Provider Verification | specialty rules | E2-C4C |
+| 8 | unaccredited hospital | BLOCKER | med | hospitals | official accreditation | status checks | Provider Verification | D-IR-03 | E2-C4A |
+| 9 | unaccredited laboratory | BLOCKER | med | labs | official accreditation | status checks | Provider Verification | D-IR-04 | E2-C4A |
+| 10 | commercial ranking bias | BLOCKER | med | UX | ranking option A/B only | ranking audit | Governance | D-IR-06 | E2-C3A |
+| 11 | sponsored placement not disclosed | BLOCKER | med | UX | disclosure mandate | COI audit | Governance | D-IR-07 | E2-C3A |
+| 12 | fake reviews | MAJOR | high | if reviews on | deny reviews V1 | moderation | Security | D-IR-08 | E2-C3A |
+| 13 | manipulated ratings | MAJOR | high | if ratings on | deny ratings V1 | anomaly detect | Security | D-IR-08 | E2-C3A |
+| 14 | outdated contact details | MAJOR | high | directories | short TTL | user reports | Data/Knowledge | freshness | E2-C4C |
+| 15 | privacy violation | BLOCKER | med | fields | minimization matrix | Privacy review | Legal | D-IR-05 | E2-C3A |
+| 16 | incorrect suspension | MAJOR | low | providers | appeal process | audit trail | Provider Verification | D-IR-10 | E2-C3A |
+| 17 | missed official revocation | BLOCKER | med | licensed entities | immediate suspend rule | revocation feed | Provider Verification | D-IR-09/10 | E2-C4C |
+| 18 | recommendation as medical endorsement | BLOCKER | med | UX copy | non-endorsement language | Medical/Safety review | Medical/Safety | D-IR-01 | E2-C3A |
+| 19 | commercial directory treated as authority | BLOCKER | high | commercial dirs | role model lock | Governance review | Governance | §97.۲ | E2-C3A |
+| 20 | drdr_ir category mismatch | MAJOR | high | drdr_ir | class decision before collect | catalog audit | Data/Knowledge | OD-C3-12 | E2-C3A |
+| 21 | duplicate provider identity | MAJOR | med | all | identity keys | dedupe audit | Backend | E2-C4C | E2-C4C |
+| 22 | cross-source conflict | MAJOR | med | Iran-6 | conflict hold | conflict log | Governance | D-IR-10 | E2-C4C |
+| 23 | source later becomes paid | BLOCKER | med | all | PAID_SOURCE_TRANSITION stop | terms monitoring | Legal | fail-closed | continuous |
+| 24 | source terms change | BLOCKER | med | all | revalidation of terms | terms diff | Legal | E2-C4D | continuous |
+| 25 | incomplete correction process | MAJOR | med | providers | D-IR-10 policy | SLA monitor | Provider Verification | D-IR-10 | E2-C3A |
+
+```text
+Risk count: 25
+```
+
+### ۹۷.۱۶ تجزیه Gateهای آینده
+
+```text
+E2-C3A  Javad decision review and approval → CLOSED (this finalization)
+E2-C3B  final Iran product-scope documentation → CLOSED (this finalization)
+E2-C3C  docs-only local commit → pending separate approval
+E2-C3D  read-only commit verification → after local commit
+E2-C3E  separate non-force push → after verification
+E2-C4A  free official Iran source discovery scope review → NOT authorized now
+E2-C4B  approved external evidence collection → blocked
+E2-C4C  provider/facility evidence validation → blocked
+E2-C4D  strict audit and closure → blocked
+
+Future sub-Gate count remaining after C3A/C3B close: 7
+  (E2-C3C..E = 3 docs Gates + E2-C4A..D = 4)
+
+Exact next Gate:
+E2_C3_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+
+After local commit:
+E2_C3_DECISION_COMMIT_READ_ONLY_VERIFICATION
+
+After verification:
+E2_C3_DECISION_DOCS_PUSH_APPROVAL
+
+After push and remote verification:
+E2_C4A_FREE_OFFICIAL_IRAN_SOURCE_DISCOVERY_SCOPE_REVIEW
+
+E2-C4A is NOT authorized by this execution.
+```
+
+### ۹۷.۱۷ ممیزی داخلی
+
+```text
+Audit iterations: 4
+  (2 preparation + 2 C3A/C3B closure)
+
+Preparation findings C3-A1..C3-A16 → remain CLOSED
+
+C3A/C3B closure findings:
+C3B-A1 all 11 D-IR marked APPROVED_BY_JAVAD → CLOSED
+C3B-A2 OPEN_AWAITING_JAVAD = 0 → CLOSED
+C3B-A3 free-sources-only preserved + paid exclusions restated → CLOSED
+C3B-A4 Iranian medical websites CONDITIONALLY_ALLOWED with fail-closed → CLOSED
+C3B-A5 authority / directory / medical-guidance roles separated → CLOSED
+C3B-A6 commercial sources remain UNKNOWN_FAIL_CLOSED → CLOSED
+C3B-A7 individual physician sites NOT primary medical authority → CLOSED
+C3B-A8 Persian content requirements recorded → CLOSED
+C3B-A9 all six candidates remain fail-closed; eligibility not promoted → CLOSED
+C3B-A10 V1 physician-verification-first + directory/filter scope locked → CLOSED
+C3B-A11 no ranking / no recommendation / no public reviews / no paid influence → CLOSED
+C3B-A12 30-day verification hard expiry locked → CLOSED
+C3B-A13 future Gate sequence to local-commit approval locked → CLOSED
+C3B-A14 exact counts reconciled → CLOSED
+C3B-A15 §97 finalized; §98 absent → CLOSED
+C3B-A16 prohibited-operation compliance → CLOSED
+C3B-A17 drdr_ir class + doctoreto naming remain unresolved (external evidence) → CLOSED_AS_DOCUMENTED_HOLD
+
+Findings fixed this finalization: 17
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+### ۹۷.۱۸ ممنوعیت‌های تأییدشده
+
+```text
+NO web search / network / download / API / provider verification / external collection
+NO source eligibility promotion
+NO code / test / workflow / model / migration / script edit
+NO Python / pytest / database / seed / dry-run / apply
+NO stage / commit / push / CI
+NO E2-C1 / E2-C2 / E2-C4 / E3 / P2 / deploy / flag activation
+```
+
+### ۹۷.۱۹ Manifest و گام بعدی
+
+```text
+Future commit subject:
+docs(governance): finalize Iran provider scope decisions
+
+Future manifest:
+E2_C3_DECISION_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C3_DECISION_COMMIT_MANIFEST_END
+
+Exact next Gate:
+E2_C3_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+
+Local commit / push: NOT authorized by this Gate
+E2-C4A: NOT authorized by this Gate
+```
+
+### ۹۷.۲۰ نشانگرها
+
+```text
+E2_C3_DECISION_PACKAGE_COMPLETE
+E2_C3_IRAN_PRODUCT_SCOPE_DECISION_PACKAGE_PREPARED
+E2_C3_JAVAD_PRODUCT_DECISIONS_CLOSED
+E2_C3_FINAL_IRAN_PRODUCT_SCOPE_DOCUMENTED
+ALL_ELEVEN_D_IR_DECISIONS_APPROVED
+ZERO_D_IR_DECISIONS_OPEN
+IRANIAN_MEDICAL_WEBSITES_CONDITIONALLY_ALLOWED
+FREE_SOURCES_ONLY_POLICY_PRESERVED
+FREE_TO_VIEW_NOT_EQUAL_FREE_TO_STORE
+IRANIAN_SOURCE_ROLES_SEPARATED
+PERSIAN_CONTENT_REVIEW_REQUIRED
+ALL_SIX_CANDIDATES_REMAIN_FAIL_CLOSED
+PHYSICIAN_VERIFICATION_FIRST_LOCKED
+NO_RANKING_V1_LOCKED
+NO_RECOMMENDATION_V1_LOCKED
+NO_PUBLIC_REVIEWS_V1_LOCKED
+NO_PAID_INFLUENCE_V1_LOCKED
+THIRTY_DAY_VERIFICATION_EXPIRY_LOCKED
+NO_EXTERNAL_COLLECTION_PERFORMED
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+MASTER_LOG_97_FINALIZED
+MASTER_LOG_98_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_E2_C3_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+### ۹۷.۲۱ شمارش‌های دقیق نهایی
+
+```text
+D-IR decision cards: 11
+APPROVED_BY_JAVAD: 11
+OPEN_AWAITING_JAVAD: 0
+REJECTED: 0
+PARTIALLY_APPROVED: 0
+Iran candidates: 6
+current eligible candidates: 0
+UNKNOWN_FAIL_CLOSED: 6
+current active collection: 0
+current active runtime sources: 0
+Iranian source-role classes: 9
+official free-source priority classes: 9
+public-data fields mapped: 24
+approved minimal public fields (V1): 11
+held fields (V1): 9
+owner decision rows: 15
+risks: 25
+audit iterations: 4
+findings fixed (preparation): 16
+findings fixed (C3A/C3B closure): 17
+remaining findings: 0
+```
+
+### ۹۷.۲۲ رکورد تأیید جواد — D-IR-01..11 = APPROVED_BY_JAVAD
+
+```text
+Javad approval:
+All D-IR-01 through D-IR-11 product decisions are APPROVED_BY_JAVAD.
+Conditional use of Iranian medical websites as Sedi knowledge-source
+candidates is APPROVED_BY_JAVAD under the policy in §97.۲۳.
+```
+
+#### D-IR-01 — APPROVED_BY_JAVAD
+
+```text
+Approved product scope:
+verified directory + neutral filtering
+
+Allowed:
+search
+city filtering
+verified-specialty filtering
+facility-type filtering
+verified-status filtering
+
+Not allowed in V1:
+personalized provider recommendation
+best-provider claims
+clinical referral ranking
+provider outcome prediction
+```
+
+#### D-IR-02 — APPROVED_BY_JAVAD
+
+```text
+Approved:
+physician verification first
+
+A physician may receive verified status only when ALL are true:
+official identity evidence exists
+professional registration is verified
+specialty evidence exists
+verification is not expired
+source access is free
+storage and product-use rights pass
+```
+
+#### D-IR-03 — APPROVED_BY_JAVAD
+
+```text
+hospitals and clinics remain deferred until a free official identity and
+accreditation source is verified.
+```
+
+#### D-IR-04 — APPROVED_BY_JAVAD
+
+```text
+laboratories and diagnostic centers remain deferred until a free official
+identity and accreditation source is verified.
+
+drdr_ir must NOT be treated as a laboratory authority based only on its
+current catalog classification.
+drdr_ir classification remains unresolved pending future external evidence.
+```
+
+#### D-IR-05 — APPROVED_BY_JAVAD
+
+```text
+Approved minimal public fields (V1):
+full name
+professional registration number
+verified specialty
+verified professional status
+city
+public facility name
+official public phone
+official website when available
+verification source
+verification timestamp
+verification expiry
+
+Hold in V1 unless separately approved:
+photograph
+consultation price
+insurance claims
+user rating
+review text
+disciplinary details
+personal mobile number
+non-public address
+unverified working hours
+```
+
+#### D-IR-06 — APPROVED_BY_JAVAD
+
+```text
+no provider quality ranking in V1
+
+Allowed neutral ordering:
+alphabetical
+user-requested geographic distance
+verified status
+specialty match
+legally verified availability
+
+Forbidden:
+paid ranking
+popularity ranking
+opaque ranking
+best-provider ranking
+```
+
+#### D-IR-07 — APPROVED_BY_JAVAD
+
+```text
+V1:
+no sponsored placement
+no paid ranking
+no referral commission
+no affiliate links
+no hidden commercial influence
+
+A future free technical partnership requires a separate Gate and must not
+influence ranking or medical judgment.
+```
+
+#### D-IR-08 — APPROVED_BY_JAVAD
+
+```text
+no public provider reviews or ratings in V1
+
+User feedback may be retained for internal Sedi product-quality purposes only
+when consented and governed, but it must not become a public provider rating.
+```
+
+#### D-IR-09 — APPROVED_BY_JAVAD
+
+```text
+weekly revalidation when lawful free automation is available
+
+verified badge hard expiry: 30 days
+
+If automation is unavailable:
+on-demand verification before displaying VERIFIED status
+
+After expiry:
+do not present the provider as VERIFIED
+do not treat the provider as recommendation-eligible
+```
+
+#### D-IR-10 — APPROVED_BY_JAVAD
+
+```text
+official revocation → immediate suspension
+conflicting evidence → hold verified status
+provider correction → identity verification required
+appeal may correct Sedi metadata but may not silently override official
+regulator evidence
+all changes → append-only, provenance-linked and auditable
+```
+
+#### D-IR-11 — APPROVED_BY_JAVAD
+
+```text
+Iran-first rollout:
+Phase 1: physician verification only
+Phase 2: verified directory + neutral filtering
+Phase 3: hospitals and clinics after free official accreditation evidence
+Phase 4: laboratories after free official accreditation evidence
+Phase 5: personalized provider matching only after separate safety, legal
+         and product approval Gates
+
+Initial pilot:
+one controlled city or one controlled specialty, selected later based on
+actual evidence availability.
+```
+
+### ۹۷.۲۳ سیاست وب‌سایت‌های پزشکی ایرانی (مشروط)
+
+```text
+IRANIAN_MEDICAL_WEBSITES = CONDITIONALLY_ALLOWED
+
+A candidate Iranian medical website may be used only when ALL are true:
+FREE_OF_CHARGE
+AND IDENTIFIABLE_PUBLISHER
+AND OFFICIAL_OR_MEDICALLY_CREDIBLE_AUTHORITY
+AND LEGALLY_PERMITTED_FOR_STORAGE
+AND LEGALLY_PERMITTED_FOR_PROCESSING
+AND LEGALLY_PERMITTED_FOR_PRODUCT_USE
+AND AUTOMATED_ACCESS_PERMITTED
+AND ATTRIBUTION_REQUIREMENTS_SATISFIED
+AND MEDICAL_REVIEW_PASSED
+AND PROVENANCE_COMPLETE
+AND FRESHNESS_POLICY_DEFINED
+AND GOVERNANCE_APPROVED
+
+Locked:
+FREE_TO_VIEW_IS_NOT_FREE_TO_STORE
+FREE_TO_ACCESS_IS_NOT_FREE_TO_REUSE
+FREE_TIER_IS_NOT_PRODUCTION_PERMISSION
+MEDICAL_WEBSITE_IS_NOT_AUTOMATICALLY_MEDICAL_AUTHORITY
+
+If any required evidence is missing:
+UNKNOWN_FAIL_CLOSED
+DO_NOT_STORE_CONTENT
+DO_NOT_PUBLISH
+DO_NOT_USE_AT_RUNTIME
+
+Metadata and evidence-review records may be retained.
+```
+
+### ۹۷.۲۴ طبقه‌بندی نقش منابع ایرانی
+
+```text
+OFFICIAL_GUIDANCE_SOURCE
+  MoH / official public-health / official regulators
+  guidance only after authority, rights, freshness, medical review pass
+
+SCIENTIFIC_EDUCATION_SOURCE
+  medical universities / research centers / official journals /
+  recognized professional associations
+  requires publisher, author/reviewer, dates, scientific responsibility,
+  license/terms, provenance
+
+PATIENT_EDUCATION_SOURCE
+  official university / teaching-hospital / reviewed health education
+  NOT automatically a clinical guideline
+
+PROVIDER_IDENTITY_SOURCE
+  identity / registration / public profile / verification metadata
+  NOT medical knowledge authority
+
+FACILITY_IDENTITY_SOURCE
+  hospital/clinic/lab identity / public contact / official accreditation
+  NOT automatic quality ranking proof
+
+REGULATORY_SOURCE
+  licenses / revocations / safety alerts / regulatory status / official data
+
+DIRECTORY_SOURCE
+  discovery / search / neutral filtering / public operational metadata
+  NOT authority, license proof, recommendation proof, or medical knowledge
+
+SECONDARY_DISCOVERY_SOURCE
+  discover possible primary evidence only
+
+REJECTED_SOURCE
+  fails authority, rights, safety, or provenance
+
+Iranian source-role classes: 9
+```
+
+### ۹۷.۲۵ اولویت منابع ایرانی
+
+```text
+1. official government and regulatory sources
+2. official medical universities and research centers
+3. recognized scientific and professional associations
+4. official teaching hospitals and accredited facilities
+5. medically reviewed patient-education sources
+6. commercial medical platforms after strict review
+7. individual physician websites only as secondary evidence
+
+Individual physician websites default:
+NOT_ACCEPTABLE_AS_PRIMARY_MEDICAL_AUTHORITY
+
+Commercial medical platforms default:
+UNKNOWN_FAIL_CLOSED
+until full external evidence passes.
+```
+
+### ۹۷.۲۶ Free-Sources و مرز reuse (نهایی)
+
+```text
+PAID_SOURCE = EXCLUDED
+PAID_API = EXCLUDED
+PAID_DATASET = EXCLUDED
+PAYWALLED_CONTENT = EXCLUDED
+MANDATORY_PAID_PARTNERSHIP = EXCLUDED
+PAID_COMMERCIAL_LICENSE = EXCLUDED
+
+A provider may charge patients for medical services.
+That alone does NOT make an official free provider-verification record
+a paid source.
+
+Keep separate (do not merge):
+source-data cost
+provider service price
+advertising
+sponsorship
+referral commission
+technical partnership
+```
+
+### ۹۷.۲۷ الزامات محتوای پزشکی فارسی
+
+```text
+Required for Persian-language content:
+language quality
+medical terminology accuracy
+author identity
+medical reviewer identity
+publication date
+review date
+original-source linkage when translated
+Iran jurisdiction relevance
+cultural/contextual suitability
+license and reuse evidence
+provenance
+
+Persian translation of a foreign source must retain linkage to:
+original source
+original version
+translation version
+translator/reviewer
+publication date
+supersession state
+```
+
+### ۹۷.۲۸ وضعیت شش کاندید فعلی (بدون ارتقای واجدشرایطی)
+
+```text
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+doctoreto_com = UNKNOWN_FAIL_CLOSED
+nobat_ir = UNKNOWN_FAIL_CLOSED
+doctor_yab_ir = UNKNOWN_FAIL_CLOSED
+drdr_ir = UNKNOWN_FAIL_CLOSED
+
+eligible candidates = 0
+active collection = 0
+active runtime sources = 0
+
+Holds requiring future external evidence:
+drdr_ir classification remains unresolved
+doctoreto_com official naming remains unresolved
+```
+
+### ۹۷.۲۹ دامنه نهایی محصول Iran V1
+
+```text
+V1 scope locked:
+physician verification first
+verified directory + neutral filtering (search + approved filters)
+no personalized recommendation
+no best-provider claims
+no quality ranking
+no public reviews/ratings
+no paid/sponsored/affiliate influence
+hospitals/clinics deferred
+laboratories deferred
+30-day verified-badge hard expiry
+weekly revalidation when lawful free automation available;
+  else on-demand verification before VERIFIED display
+Iranian medical websites conditionally allowed under §97.۲۳
+free-sources-only preserved
+all six current candidates remain UNKNOWN_FAIL_CLOSED
+
+Rollout phases: D-IR-11 Phases 1–5
+Initial pilot: one controlled city OR one controlled specialty
+  (selection deferred to evidence availability)
+```
+
+### ۹۷.۳۰ بستن C3A / C3B
+
+```text
+E2_C3A_JAVAD_PRODUCT_DECISION_CLOSURE = CLOSED
+E2_C3B_FINAL_IRAN_PRODUCT_SCOPE_DOCUMENTATION = CLOSED
+
+Exact next Gate:
+E2_C3_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+---
+*پایان §97 — Package E2-C3A/C3B Iran Product Decision Closure + Final Scope Documentation — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۸) بسته E2-C3 — کامیت محلی مستندات تصمیم‌های محصول Iran
+
+```text
+Package:
+E2_C3_DECISION_DOCS_LOCAL_COMMIT
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+
+Repository baseline:
+170de8a3b99c054e17480938ec2b90e737491e8a
+
+E2-C3 state:
+E2_C3_JAVAD_PRODUCT_DECISIONS_CLOSED
+E2_C3_FINAL_IRAN_PRODUCT_SCOPE_DOCUMENTED
+
+Decision counts:
+D-IR decisions = 11
+APPROVED_BY_JAVAD = 11
+OPEN_AWAITING_JAVAD = 0
+REJECTED = 0
+PARTIALLY_APPROVED = 0
+
+Iran candidate counts:
+candidates = 6
+eligible = 0
+UNKNOWN_FAIL_CLOSED = 6
+active collection = 0
+active runtime = 0
+
+Iranian source roles:
+9
+
+Locked product decisions:
+physician verification first
+verified directory + neutral filtering
+no personalized recommendation in V1
+no quality ranking in V1
+no public provider reviews in V1
+no sponsored or paid influence in V1
+minimal verified public fields only
+verified badge hard expiry = 30 days
+weekly revalidation when lawful free automation is available
+hospitals deferred pending free official accreditation evidence
+laboratories deferred pending free official accreditation evidence
+
+Iranian medical websites:
+CONDITIONALLY_ALLOWED
+
+Free-source law:
+paid source excluded
+paid API excluded
+paywalled content excluded
+mandatory paid partnership excluded
+free to view is not free to store
+unknown rights remain fail-closed
+
+Audit:
+iterations = 4
+remaining actionable findings = 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Approval boundaries:
+local commit authorized
+push not authorized
+CI not authorized
+network not authorized
+provider verification not authorized
+external evidence collection not authorized
+source eligibility promotion not authorized
+E2-C4 not authorized
+E3 not authorized
+P2 not authorized
+
+Approved commit subject:
+docs(governance): finalize Iran provider scope decisions
+
+Approved commit manifest:
+E2_C3_DECISION_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C3_DECISION_COMMIT_MANIFEST_END
+
+Expected next Gate after successful commit:
+E2_C3_DECISION_COMMIT_READ_ONLY_VERIFICATION
+```
+
+### ۹۸.۱ نشانگرها
+
+```text
+MASTER_LOG_98_APPENDED
+ONE_FILE_LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+CI_NOT_AUTHORIZED
+NETWORK_NOT_AUTHORIZED
+EXTERNAL_COLLECTION_NOT_AUTHORIZED
+SOURCE_ELIGIBILITY_NOT_PROMOTED
+E2_C4_NOT_AUTHORIZED
+E3_NOT_AUTHORIZED
+P2_NOT_AUTHORIZED
+READY_FOR_E2_C3_DECISION_COMMIT_READ_ONLY_VERIFICATION
+```
+
+---
+*پایان §98 — Package E2-C3 Decision Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
