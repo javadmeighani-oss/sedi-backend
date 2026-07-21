@@ -7364,3 +7364,182 @@ READY_FOR_CONTROLLED_P1_CI_FINAL_RETRY_APPROVAL
 
 ---
 *پایان §86 — Package 15-I5-B2-P1-CI-Fix4 Commit Non-Force Push — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۷) بسته 15-I5-B2-P1 — بستن مستند پس از تأیید نهایی CI PostgreSQL
+
+```text
+Package:
+15-I5-B2-P1-CI-CLOSURE-DOCUMENTATION
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Explicit approval:
+docs-only master-log §87 + one docs commit + one non-force push
+```
+
+### ۸۷.۱ زنجیرهٔ پیاده‌سازی و بازیابی
+
+```text
+Original P1 commit:
+1051e654766e2113827720b7200e5fbaeee68e13
+Subject: feat(governance): add I5-B2 P1 governed source profiles
+
+Original failed CI:
+Run 29800176291
+P1: 31 passed / 30 failed
+Root causes:
+  missing effective PostgreSQL PK generation
+  blank-locator reason mismatch
+
+Fix3 commit:
+75d479979c63ab6f1d1c0eb8f76e9ccb342942f7
+Subject: fix(governance): repair I5-B2 P1 PostgreSQL identity
+Closed:
+  DB-generated profile/version IDs
+  missing-autoincrement warning
+  blank versus None locator reason contract
+
+Fix3 retry (still failing on test-proof harness):
+Run 29802062343
+P1: 59 passed / 7 failed
+Section 15: 894 passed / 7 failed
+Seven failures classified as test-proof transaction/metadata issues;
+no newly proven production/schema defect.
+
+Fix4 commit:
+3722fd0edfe3f5573e17ec8e7a5815062fb72810
+Subject: test(governance): harden I5-B2 P1 PostgreSQL proofs
+Closed:
+  four ObjectDeletedError test patterns
+  two deferred composite FK test proofs
+  one Identity metadata assertion
+```
+
+### ۸۷.۲ تأیید نهایی CI
+
+```text
+Workflow: Backend V1 freeze tests
+Run: 29803509040
+Job: 88549124290
+Branch: feature/section15/backend-continuity-foundation
+Head SHA: 3722fd0edfe3f5573e17ec8e7a5815062fb72810
+Event: workflow_dispatch
+Conclusion: success
+
+PostgreSQL initialization: SUCCESS (healthy)
+alembic upgrade head: SUCCESS
+Migration 050_gate4_event_idem → 051_i5b2_governed_source_profile: SUCCESS
+
+P1:
+  66 collected / 66 passed / 0 failed / 0 errors / 0 skipped
+
+Section 15:
+  901 collected / 901 passed / 0 failed / 0 errors
+  2 warnings / 5.93s / exit code 0
+
+Fix3 core regressions: PASS
+Four ObjectDeletedError regressions: PASS
+Two deferred FK regressions: PASS
+Identity metadata regression: PASS
+Missing-autoincrement warning: ABSENT
+NotNullViolation: ABSENT
+ObjectDeletedError: ABSENT
+No failure suppression
+No duplicate dispatch
+```
+
+### ۸۷.۳ مرز هشدارها
+
+```text
+NOTE-1:
+  SAWarning: transaction already deassociated from connection
+  Only in: test_postgres_identity_survives_rollback_then_insert
+  Test PASSED; session recovery proven
+  Closure: NON_ACTIONABLE_BOUNDARY_CONFIRMED
+
+Starlette/httpx TestClient deprecation = maintenance owner
+GitHub Actions Node.js 20 deprecation = workflow dependency upgrade owner
+These warnings do not block P1 closure.
+```
+
+### ۸۷.۴ وضعیت نهایی P1
+
+```text
+I5-B2-P1 = CI_VERIFIED_AND_CLOSED
+
+Migration 051 production execution = NOT PERFORMED
+Deploy = NOT PERFORMED
+Runtime activation = NOT PERFORMED
+Feature flags = NOT CHANGED
+P1-L1 implementation = NOT STARTED
+P2 implementation = NOT STARTED
+```
+
+### ۸۷.۵ مالک بستهٔ بعدی و مرزها
+
+```text
+Next package owner:
+15-I5-B2-P1-L1-CONTROLLED-LEGACY-COMPANION-SEED
+
+Next authorized phase only:
+READ-ONLY BASELINE AND SCOPE REVIEW
+
+P1-L1 closure requirements:
+  dry-run and evidence report
+  idempotent deterministic seed key
+  controlled transaction batches
+  no network
+  no fetch
+  no publication
+  no scheduler
+  default state not fetch-enabled
+  missing governance evidence fails closed
+  no fabricated defaults
+  separate target-environment approval
+  separate execution approval
+
+After P1-L1, retain primary I5-B2 sequence:
+P2 → P3 → P4 → P5 → P6 → R1 → R2 → S1
+
+Accelerated execution rule: ACTIVE
+```
+
+### ۸۷.۶ سیاست این بسته
+
+```text
+Commit subject:
+docs(governance): close I5-B2 P1 after PostgreSQL verification
+
+Exactly one docs-only file:
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+No production / model / service / migration / test / workflow / conftest edit
+No Python / pytest / Alembic / database
+No CI dispatch
+Non-force push only
+```
+
+گام بعدی دقیق: READ-ONLY BASELINE AND SCOPE REVIEW — 15-I5-B2-P1-L1-CONTROLLED-LEGACY-COMPANION-SEED
+
+### ۸۷.۷ نشانگرها
+
+```text
+I5_B2_P1_CI_VERIFIED_AND_CLOSED
+P1_FAILURE_RECOVERY_CHAIN_RECORDED
+MIGRATION_051_POSTGRESQL_VERIFIED
+ALL_66_P1_CASES_VERIFIED
+SECTION15_901_CASES_VERIFIED
+REFERENCE_LEDGER_RECONCILED
+NO_CI_DISPATCH_PERFORMED
+READY_FOR_P1_L1_READONLY_SCOPE_REVIEW
+ACCELERATED_EXECUTION_ACTIVE
+```
+
+---
+*پایان §87 — Package 15-I5-B2-P1 CI Closure Documentation — ۲۰۲۶-۰۷-۲۱*
