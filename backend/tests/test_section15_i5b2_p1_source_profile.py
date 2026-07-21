@@ -1,4 +1,4 @@
-"""Section 15-I5-B2-P1 / Fix1 — governed source profile persistence tests (authored; not executed)."""
+"""Section 15-I5-B2-P1 / Fix4 — governed source profile persistence tests (authored; not executed)."""
 
 from __future__ import annotations
 
@@ -54,6 +54,16 @@ def _pg_only(db) -> bool:
 def _require_postgres(db) -> None:
     if not _pg_only(db):
         pytest.skip("PostgreSQL required for this invariant (CI-gated)")
+
+
+def _assert_profile_session_usable(
+    db, *, profile_id: int, canonical_key: str
+) -> GovernedSourceProfile:
+    """Prove fixture-owned transaction survived; reload by scalar IDs only."""
+    loaded = get_profile(db, profile_id)
+    assert loaded.id == profile_id
+    assert get_profile_by_canonical_key(db, canonical_key).id == profile_id
+    return loaded
 
 
 def _base_evidence(**overrides):
@@ -366,18 +376,30 @@ def test_case_b_old_fingerprint_cannot_move_pointer_backward(db) -> None:
     db.commit()
     v2 = append_profile_version(db, profile_id=profile.id, governance_evidence=e2)
     db.commit()
-    profile = get_profile(db, profile.id)
-    assert profile.current_profile_version_id == v2.id
+    profile_id = profile.id
+    v1_id = v1.id
+    v2_id = v2.id
+    profile = get_profile(db, profile_id)
+    assert profile.current_profile_version_id == v2_id
     row_before = profile.row_version
     with pytest.raises(
         SourceProfilePersistenceError, match=REASON_EXISTING_FINGERPRINT_IS_NOT_CURRENT
     ):
-        append_profile_version(db, profile_id=profile.id, governance_evidence=e1)
-    db.rollback()
-    profile = get_profile(db, profile.id)
-    assert profile.current_profile_version_id == v2.id
+        append_profile_version(db, profile_id=profile_id, governance_evidence=e1)
+    # Typed service error before DB mutation — do not rollback fixture setup.
+    profile = _assert_profile_session_usable(
+        db, profile_id=profile_id, canonical_key="case-b"
+    )
+    assert profile.current_profile_version_id == v2_id
     assert profile.row_version == row_before
-    assert v1.id != v2.id
+    assert v1_id != v2_id
+    assert get_exact_profile_version(db, profile_id=profile_id, version_id=v2_id).id == v2_id
+    assert (
+        db.query(GovernedSourceProfileVersion)
+        .filter(GovernedSourceProfileVersion.profile_id == profile_id)
+        .count()
+        == 2
+    )
 
 
 def test_case_c_null_pointer_initializes_only_if_latest(db) -> None:
@@ -413,20 +435,26 @@ def test_case_c_null_pointer_rejects_non_latest_fingerprint(db) -> None:
     db.commit()
     v2 = append_profile_version(db, profile_id=profile.id, governance_evidence=e2)
     db.commit()
-    profile = get_profile(db, profile.id)
+    profile_id = profile.id
+    v1_id = v1.id
+    v2_id = v2.id
+    profile = get_profile(db, profile_id)
     profile.current_profile_version_id = None
     db.flush()
     db.commit()
-    row_before = get_profile(db, profile.id).row_version
+    row_before = get_profile(db, profile_id).row_version
     with pytest.raises(
         SourceProfilePersistenceError, match=REASON_EXISTING_FINGERPRINT_IS_NOT_CURRENT
     ):
-        append_profile_version(db, profile_id=profile.id, governance_evidence=e1)
-    db.rollback()
-    profile = get_profile(db, profile.id)
+        append_profile_version(db, profile_id=profile_id, governance_evidence=e1)
+    # Typed service error — preserve fixture setup; reload by scalar IDs.
+    profile = _assert_profile_session_usable(
+        db, profile_id=profile_id, canonical_key="case-c-old"
+    )
     assert profile.current_profile_version_id is None
     assert profile.row_version == row_before
-    assert v1.id != v2.id
+    assert v1_id != v2_id
+    assert get_exact_profile_version(db, profile_id=profile_id, version_id=v2_id).id == v2_id
 
 
 def test_case_d_normal_append_advances(db) -> None:
@@ -483,18 +511,23 @@ def test_supersedes_self_rejected_after_flush_path(db) -> None:
     db.commit()
     v1 = append_profile_version(db, profile_id=profile.id, governance_evidence=_base_evidence())
     db.commit()
+    profile_id = profile.id
+    v1_id = v1.id
     # Force corrupt self-supersede via SQL when PG CHECK allows detection path.
     _require_postgres(db)
     with pytest.raises(IntegrityError):
-        db.execute(
-            text(
-                "UPDATE governed_source_profile_versions "
-                "SET supersedes_version_id = id WHERE id = :id"
-            ),
-            {"id": v1.id},
-        )
-        db.flush()
-    db.rollback()
+        with db.begin_nested():
+            db.execute(
+                text(
+                    "UPDATE governed_source_profile_versions "
+                    "SET supersedes_version_id = id WHERE id = :id"
+                ),
+                {"id": v1_id},
+            )
+            db.flush()
+    row = get_exact_profile_version(db, profile_id=profile_id, version_id=v1_id)
+    assert row.supersedes_version_id is None
+    _assert_profile_session_usable(db, profile_id=profile_id, canonical_key="sup-self")
 
 
 def test_supersedes_linear_chain_accepted(db) -> None:
@@ -597,16 +630,30 @@ def test_postgres_cross_profile_supersedes_fk(db) -> None:
         db, profile_id=b.id, governance_evidence=_base_evidence(specialty_domain="z")
     )
     db.commit()
-    db.execute(
-        text(
-            "UPDATE governed_source_profile_versions "
-            "SET supersedes_version_id = :other WHERE id = :id"
-        ),
-        {"other": va.id, "id": vb.id},
-    )
+    a_id = a.id
+    b_id = b.id
+    va_id = va.id
+    vb_id = vb.id
     with pytest.raises(IntegrityError):
-        db.commit()
-    db.rollback()
+        with db.begin_nested():
+            db.execute(
+                text(
+                    "UPDATE governed_source_profile_versions "
+                    "SET supersedes_version_id = :other WHERE id = :id"
+                ),
+                {"other": va_id, "id": vb_id},
+            )
+            db.flush()
+            db.execute(
+                text(
+                    "SET CONSTRAINTS "
+                    "fk_gspv_supersedes_same_profile IMMEDIATE"
+                )
+            )
+    vb_row = get_exact_profile_version(db, profile_id=b_id, version_id=vb_id)
+    assert vb_row.supersedes_version_id is None
+    assert get_exact_profile_version(db, profile_id=a_id, version_id=va_id).id == va_id
+    _assert_profile_session_usable(db, profile_id=b_id, canonical_key="fk-sup-b")
 
 
 # ---------------------------------------------------------------------------
@@ -617,25 +664,27 @@ def test_postgres_cross_profile_supersedes_fk(db) -> None:
 def test_postgres_locator_pair_check_constraint(db) -> None:
     _require_postgres(db)
     with pytest.raises(IntegrityError):
-        db.execute(
-            text(
-                "INSERT INTO governed_source_profiles "
-                "(canonical_key, locator_kind, normalized_locator, operational_status, row_version) "
-                "VALUES ('bad-loc', 'url', NULL, 'disabled', 1)"
+        with db.begin_nested():
+            db.execute(
+                text(
+                    "INSERT INTO governed_source_profiles "
+                    "(canonical_key, locator_kind, normalized_locator, operational_status, row_version) "
+                    "VALUES ('bad-loc', 'url', NULL, 'disabled', 1)"
+                )
             )
-        )
-        db.flush()
-    db.rollback()
+            db.flush()
     with pytest.raises(IntegrityError):
-        db.execute(
-            text(
-                "INSERT INTO governed_source_profiles "
-                "(canonical_key, locator_kind, normalized_locator, operational_status, row_version) "
-                "VALUES ('bad-loc2', NULL, 'https://x.example', 'disabled', 1)"
+        with db.begin_nested():
+            db.execute(
+                text(
+                    "INSERT INTO governed_source_profiles "
+                    "(canonical_key, locator_kind, normalized_locator, operational_status, row_version) "
+                    "VALUES ('bad-loc2', NULL, 'https://x.example', 'disabled', 1)"
+                )
             )
-        )
-        db.flush()
-    db.rollback()
+            db.flush()
+    # Outer fixture transaction remains usable after nested IntegrityError.
+    assert create_or_get_profile(db, canonical_key="loc-check-ok").canonical_key == "loc-check-ok"
 
 
 def test_both_null_locator_accepted(db) -> None:
@@ -648,26 +697,34 @@ def test_both_null_locator_accepted(db) -> None:
 def test_postgres_current_pointer_rejects_cross_profile_version(db) -> None:
     """Runtime PG proof: current pointer cannot reference another profile's version.
 
-    Composite FK is DEFERRABLE INITIALLY DEFERRED — violation surfaces at commit.
+    Composite FK is DEFERRABLE INITIALLY DEFERRED. Fixture-level commit releases a
+    savepoint — force the named constraint IMMEDIATE inside a test-owned nested
+    savepoint so the violation surfaces without destroying outer setup.
     """
     _require_postgres(db)
     a = create_or_get_profile(db, canonical_key="ptr-fk-a")
     b = create_or_get_profile(db, canonical_key="ptr-fk-b")
     db.commit()
+    a_id = a.id
     vb = append_profile_version(
         db, profile_id=b.id, governance_evidence=_base_evidence(specialty_domain="b-only")
     )
     db.commit()
-    a = get_profile(db, a.id)
+    vb_id = vb.id
+    a = get_profile(db, a_id)
     assert a.current_profile_version_id is None
-    a.current_profile_version_id = vb.id
     with pytest.raises(IntegrityError):
-        db.commit()
-    db.rollback()
-    a = get_profile(db, a.id)
+        with db.begin_nested():
+            a.current_profile_version_id = vb_id
+            db.flush()
+            db.execute(
+                text(
+                    "SET CONSTRAINTS "
+                    "fk_gsp_current_version_same_profile IMMEDIATE"
+                )
+            )
+    a = _assert_profile_session_usable(db, profile_id=a_id, canonical_key="ptr-fk-a")
     assert a.current_profile_version_id is None
-    # Outer session usable after rollback.
-    assert get_profile_by_canonical_key(db, "ptr-fk-a").id == a.id
 
 
 def test_postgres_same_profile_current_pointer_accepted(db) -> None:
@@ -719,49 +776,69 @@ def test_stale_row_version_and_current_rejected(db) -> None:
 def test_failed_append_rolls_back_pointer(db) -> None:
     profile = create_or_get_profile(db, canonical_key="rollback-profile")
     db.commit()
-    before = get_profile(db, profile.id)
+    profile_id = profile.id
+    before = get_profile(db, profile_id)
+    row_before = before.row_version
+    pointer_before = before.current_profile_version_id
     with pytest.raises(SourceProfilePersistenceError):
         append_profile_version(
             db,
-            profile_id=profile.id,
+            profile_id=profile_id,
             governance_evidence=_base_evidence(source_class="not_a_real_class"),
         )
-    db.rollback()
-    after = get_profile(db, profile.id)
+    # Coercion fails before mutation — no fixture-destroying rollback.
+    after = _assert_profile_session_usable(
+        db, profile_id=profile_id, canonical_key="rollback-profile"
+    )
     assert after.current_profile_version_id is None
-    assert after.row_version == before.row_version
+    assert after.current_profile_version_id == pointer_before
+    assert after.row_version == row_before
+    assert (
+        db.query(GovernedSourceProfileVersion)
+        .filter(GovernedSourceProfileVersion.profile_id == profile_id)
+        .count()
+        == 0
+    )
 
 
 def test_postgres_duplicate_sequence_integrity(db) -> None:
     _require_postgres(db)
     profile = create_or_get_profile(db, canonical_key="pg-seq")
     db.commit()
-    append_profile_version(db, profile_id=profile.id, governance_evidence=_base_evidence())
+    profile_id = profile.id
+    append_profile_version(db, profile_id=profile_id, governance_evidence=_base_evidence())
     db.commit()
     with pytest.raises(IntegrityError):
-        db.execute(
-            text(
-                "INSERT INTO governed_source_profile_versions ("
-                "profile_id, version_seq, snapshot_schema_version, snapshot_fingerprint, "
-                "effective_at, publisher_authority_identity, source_class, "
-                "authority_evidence_tier, jurisdiction_scope, primary_language, "
-                "specialty_domain, license_status, permitted_use_restriction, "
-                "storage_permission, transformation_permission, "
-                "display_redistribution_permission, automation_status, "
-                "verification_method, freshness_policy_days, freshness_status, "
-                "fetch_policy, iran_first_applicable, policy_version_reference, "
-                "configuration_version_reference"
-                ") VALUES ("
-                ":pid, 1, 'i5b2_p1_v1', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', "
-                "now(), 'x', 'knowledge_document', "
-                "'editorial', 'global', 'fa', 'd', 'unknown', 'r', "
-                "'unknown_deny', 'unknown_deny', 'unknown_deny', 'disabled', "
-                "'human_reviewed_document', 1, 'unknown_age', 'manual', false, 'p', 'c')"
-            ),
-            {"pid": profile.id},
-        )
-        db.commit()
-    db.rollback()
+        with db.begin_nested():
+            db.execute(
+                text(
+                    "INSERT INTO governed_source_profile_versions ("
+                    "profile_id, version_seq, snapshot_schema_version, snapshot_fingerprint, "
+                    "effective_at, publisher_authority_identity, source_class, "
+                    "authority_evidence_tier, jurisdiction_scope, primary_language, "
+                    "specialty_domain, license_status, permitted_use_restriction, "
+                    "storage_permission, transformation_permission, "
+                    "display_redistribution_permission, automation_status, "
+                    "verification_method, freshness_policy_days, freshness_status, "
+                    "fetch_policy, iran_first_applicable, policy_version_reference, "
+                    "configuration_version_reference"
+                    ") VALUES ("
+                    ":pid, 1, 'i5b2_p1_v1', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', "
+                    "now(), 'x', 'knowledge_document', "
+                    "'editorial', 'global', 'fa', 'd', 'unknown', 'r', "
+                    "'unknown_deny', 'unknown_deny', 'unknown_deny', 'disabled', "
+                    "'human_reviewed_document', 1, 'unknown_age', 'manual', false, 'p', 'c')"
+                ),
+                {"pid": profile_id},
+            )
+            db.flush()
+    assert (
+        db.query(GovernedSourceProfileVersion)
+        .filter(GovernedSourceProfileVersion.profile_id == profile_id)
+        .count()
+        == 1
+    )
+    _assert_profile_session_usable(db, profile_id=profile_id, canonical_key="pg-seq")
 
 
 def test_postgres_same_fingerprint_race_resolves_via_savepoint(db) -> None:
@@ -848,22 +925,21 @@ def test_postgres_same_fingerprint_race_resolves_via_savepoint(db) -> None:
     finally:
         other.close()
 
-    # Service append: sees committed competitor on pre-check (Case C init or Case A).
-    # Also prove nested-savepoint recovery path remains healthy by forcing a duplicate
-    # insert under begin_nested after unlock, then continuing with append.
-    db.rollback()  # release FOR UPDATE; outer usability restored for service call
-    profile = get_profile(db, profile.id)
+    # Competitor commit is visible under READ COMMITTED while this session still
+    # holds FOR UPDATE. Do not full-rollback fixture setup (ObjectDeletedError).
+    profile_id = locked.id
+    assert get_profile(db, profile_id).current_profile_version_id is None
     # Pointer still null; competitor row exists → Case C initializes to latest.
-    v = append_profile_version(db, profile_id=profile.id, governance_evidence=evidence)
+    v = append_profile_version(db, profile_id=profile_id, governance_evidence=evidence)
     db.commit()
     assert v.snapshot_fingerprint == fingerprint
     assert (
         db.query(GovernedSourceProfileVersion)
-        .filter(GovernedSourceProfileVersion.profile_id == profile.id)
+        .filter(GovernedSourceProfileVersion.profile_id == profile_id)
         .count()
         == 1
     )
-    row_before = get_profile(db, profile.id).row_version
+    row_before = get_profile(db, profile_id).row_version
     # Nested savepoint: duplicate insert IntegrityError must not poison outer session.
     with pytest.raises(IntegrityError):
         with db.begin_nested():
@@ -886,17 +962,17 @@ def test_postgres_same_fingerprint_race_resolves_via_savepoint(db) -> None:
                     "'human_reviewed_document', 1, 'unknown_age', 'manual', false, 'p', 'c')"
                 ),
                 {
-                    "pid": profile.id,
+                    "pid": profile_id,
                     "schema": SNAPSHOT_SCHEMA_VERSION,
                     "fp": fingerprint,
                 },
             )
             db.flush()
-    v2 = append_profile_version(db, profile_id=profile.id, governance_evidence=evidence)
+    v2 = append_profile_version(db, profile_id=profile_id, governance_evidence=evidence)
     db.commit()
     assert v2.id == v.id
-    assert get_profile(db, profile.id).row_version == row_before
-    assert get_profile_by_canonical_key(db, "race-fp").id == profile.id
+    assert get_profile(db, profile_id).row_version == row_before
+    _assert_profile_session_usable(db, profile_id=profile_id, canonical_key="race-fp")
 
 
 def test_postgres_append_integrityerror_same_fingerprint_savepoint_recovery(db, monkeypatch) -> None:
@@ -1059,8 +1135,12 @@ def test_orm_pk_identity_metadata() -> None:
 
     profile_id = GovernedSourceProfile.__table__.c.id
     version_id = GovernedSourceProfileVersion.__table__.c.id
-    assert isinstance(profile_id.server_default.arg, SAIdentity)
-    assert isinstance(version_id.server_default.arg, SAIdentity)
+    assert isinstance(profile_id.identity, SAIdentity)
+    assert isinstance(version_id.identity, SAIdentity)
+    assert profile_id.identity.start == 1
+    assert version_id.identity.start == 1
+    assert isinstance(profile_id.server_default, SAIdentity)
+    assert isinstance(version_id.server_default, SAIdentity)
     assert profile_id.autoincrement == "ignore_fk"
     assert version_id.autoincrement is True
 

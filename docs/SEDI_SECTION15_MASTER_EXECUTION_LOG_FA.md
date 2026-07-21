@@ -7127,3 +7127,240 @@ READY_FOR_CONTROLLED_P1_CI_RETRY_APPROVAL
 
 ---
 *پایان §84 — Package 15-I5-B2-P1-CI-Fix3 Commit Non-Force Push — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۵) بسته 15-I5-B2-P1-CI-Fix4 — اصلاح harness اثبات تست (uncommitted)
+
+```text
+Package:
+15-I5-B2-P1-CI-Fix4
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Status:
+P1_CI_FIX4_IMPLEMENTED_UNCOMMITTED
+TESTS_UPDATED_NOT_RUN
+PRODUCTION_CODE_UNCHANGED
+MIGRATION_051_UNCHANGED
+WORKFLOW_UNCHANGED
+STAGED_EMPTY
+HEAD_UNCHANGED
+```
+
+### ۸۵.۱ مرجع CI Fix3 retry
+
+```text
+Run: 29802062343
+Head SHA: 75d479979c63ab6f1d1c0eb8f76e9ccb342942f7
+Branch: feature/section15/backend-continuity-foundation
+
+PostgreSQL init: PASS
+Migration 051 (050 → 051_i5b2_governed_source_profile): PASS
+Identity / null-ID regression: PASS
+Identity survives rollback: PASS
+Locator reason contract: PASS
+Missing-autoincrement P1 SAWarning: ABSENT
+
+P1: 66 collected / 59 passed / 7 failed
+Section 15: 901 collected / 894 passed / 7 failed / 9 warnings / exit 1
+```
+
+### ۸۵.۲ هفت شکست باقی‌مانده (بدون اثبات نقص production/schema)
+
+```text
+F4-A1..A4 ObjectDeletedError after fixture-destroying session.rollback():
+  test_case_b_old_fingerprint_cannot_move_pointer_backward
+  test_case_c_null_pointer_rejects_non_latest_fingerprint
+  test_failed_append_rolls_back_pointer
+  test_postgres_same_fingerprint_race_resolves_via_savepoint
+
+F4-B1..B2 Deferred FK timing under fixture savepoint commit:
+  test_postgres_current_pointer_rejects_cross_profile_version
+    → SET CONSTRAINTS fk_gsp_current_version_same_profile IMMEDIATE
+  test_postgres_cross_profile_supersedes_fk
+    → SET CONSTRAINTS fk_gspv_supersedes_same_profile IMMEDIATE
+
+F4-C1 Identity metadata API (SQLAlchemy 2.0.51):
+  test_orm_pk_identity_metadata used server_default.arg; Identity is column.identity
+
+No production / migration / schema defect currently proven.
+Accelerated execution: test-proof harness only.
+```
+
+### ۸۵.۳ دامنهٔ دقیق دو مسیر
+
+```text
+backend/tests/test_section15_i5b2_p1_source_profile.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+NO models.py
+NO kb_b2_source_profile_persistence.py
+NO migration 051 / 052
+NO workflow
+NO conftest.py
+```
+
+### ۸۵.۴ استراتژی اصلاح
+
+```text
+Typed service errors: capture scalar IDs; no full session.rollback of setup
+DB violations: test-owned begin_nested + named SET CONSTRAINTS … IMMEDIATE
+Identity metadata: column.identity (start==1) + autoincrement checks
+Nested savepoints for locator/self-supersedes/duplicate-seq IntegrityError proofs
+Retained intentional rollback only in identity-survives-rollback regression
+```
+
+### ۸۵.۵ تست‌ها پس از ویرایش (اجرا نشده)
+
+```text
+Test functions: 62
+Parametrized functions: 1
+Parameter rows: 5
+Expected collection: 66 (unchanged)
+Executed: NO
+```
+
+### ۸۵.۶ وضعیت
+
+```text
+P1_CI_FIX4_IMPLEMENTED_UNCOMMITTED
+HEAD unchanged = 75d479979c63ab6f1d1c0eb8f76e9ccb342942f7
+STAGED = EMPTY
+```
+
+گام بعدی دقیق: STRICT READ-ONLY P1-CI-FIX4 AUDIT
+
+### ۸۵.۷ نشانگرها
+
+```text
+I5_B2_P1_CI_FIX4_IMPLEMENTED_UNCOMMITTED
+TEST_TRANSACTION_PROOFS_CORRECTED
+DEFERRED_FKS_FORCED_IMMEDIATE_IN_TESTS
+IDENTITY_METADATA_ASSERTION_ALIGNED
+PRODUCTION_AND_MIGRATION_UNCHANGED
+TESTS_UPDATED_NOT_RUN
+MASTER_LOG_85_APPENDED
+READY_FOR_P1_CI_FIX4_STRICT_AUDIT
+```
+
+---
+*پایان §85 — Package 15-I5-B2-P1-CI-Fix4 Test Proof Harness — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۶) بسته 15-I5-B2-P1-CI-Fix4 — کامیت و non-force push کنترل‌شده (پس از ممیزی سختگیرانه)
+
+```text
+Package:
+15-I5-B2-P1-CI-FIX4-COMMIT-NONFORCE-PUSH
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Explicit approval:
+controlled Fix4 commit + one normal non-force push of statically accepted CI-Fix4
+```
+
+### ۸۶.۱ Baseline پیش از کامیت
+
+```text
+Baseline HEAD (parent):
+75d479979c63ab6f1d1c0eb8f76e9ccb342942f7
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Ahead/behind before commit:
+0 / 0
+
+Staged before §86:
+EMPTY
+
+Latest master-log section before append:
+§85
+```
+
+### ۸۶.۲ شواهد ممیزی Fix4 (بدون تکرار ممیزی / بدون اجرای تست)
+
+```text
+Fix4 strict audit verdict:
+PASS — READY_FOR_P1_CI_FIX4_COMMIT_PUSH_APPROVAL
+
+F4-A1 CLOSED_BY_VERIFIED_FIX
+F4-A2 CLOSED_BY_VERIFIED_FIX
+F4-A3 CLOSED_BY_VERIFIED_FIX
+F4-A4 CLOSED_BY_VERIFIED_FIX
+F4-B1 CLOSED_BY_VERIFIED_FIX
+F4-B2 CLOSED_BY_VERIFIED_FIX
+F4-C1 CLOSED_BY_VERIFIED_FIX
+
+NOTE-1 = NON_ACTIONABLE_BOUNDARY_CONFIRMED
+(intentional Identity-rollback regression may still emit one SAWarning)
+
+Test functions: 62
+Parametrized functions: 1
+Parameter rows: 5
+Expected collection: 66
+Tests executed: NO
+
+Production/model/service changed: NO
+Migration 051 changed: NO
+Workflow changed: NO
+Conftest changed: NO
+```
+
+### ۸۶.۳ دامنهٔ دقیق دو مسیر کامیت
+
+```text
+backend/tests/test_section15_i5b2_p1_source_profile.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+```
+
+### ۸۶.۴ سیاست عملیات
+
+```text
+Commit subject:
+test(governance): harden I5-B2 P1 PostgreSQL proofs
+
+Exactly one commit
+No amend / squash / merge commit / tag
+No hooks bypass
+No local Python / pytest / Alembic / database
+No migration upgrade in this Gate
+No runtime / scheduler / deploy / feature flag
+Non-force push only (no --force / no --force-with-lease)
+CI dispatch / retry NOT authorized in this Gate
+Accelerated execution rule: active (test-proof harness only)
+PostgreSQL proof re-verification deferred to controlled final CI retry Gate
+```
+
+### ۸۶.۵ وضعیت پس از این بسته
+
+```text
+P1_CI_FIX4_COMMITTED_AND_PUSHED (after commit+push)
+P1_TESTS_NOT_YET_REVERIFIED
+NO_CI_DISPATCH_PERFORMED
+```
+
+گام بعدی دقیق: CONTROLLED P1 CI FINAL RETRY APPROVAL ON FIX4 COMMIT
+
+### ۸۶.۶ نشانگرها
+
+```text
+I5_B2_P1_CI_FIX4_COMMITTED_AND_PUSHED
+ALL_SEVEN_TEST_PROOF_FIXES_COMMITTED
+P1_TESTS_NOT_YET_REVERIFIED
+NO_CI_DISPATCH_PERFORMED
+READY_FOR_CONTROLLED_P1_CI_FINAL_RETRY_APPROVAL
+```
+
+---
+*پایان §86 — Package 15-I5-B2-P1-CI-Fix4 Commit Non-Force Push — ۲۰۲۶-۰۷-۲۱*
