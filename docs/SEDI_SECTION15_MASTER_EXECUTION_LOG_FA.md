@@ -11306,3 +11306,828 @@ READY_FOR_E2_C3_DECISION_COMMIT_READ_ONLY_VERIFICATION
 
 ---
 *پایان §98 — Package E2-C3 Decision Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۹) بسته E2-C4A — بازبینی دامنه کشف منابع رسمی رایگان Iran (Repository-Only)
+
+```text
+Package:
+E2_C4A_FREE_OFFICIAL_IRAN_SOURCE_DISCOVERY_SCOPE_REVIEW
+
+Gate:
+E2_C4A_FREE_OFFICIAL_IRAN_SOURCE_DISCOVERY_SCOPE_REVIEW
+
+Owner:
+Data/Knowledge + Provider Verification (scope design)
+Primary product owner:
+Javad
+
+Authorization:
+repository-only / documentation-only future discovery SCOPE DESIGN
+NO web search / network / website opening / URL request / download / API
+NO provider or facility verification
+NO external evidence collection / source discovery execution
+NO source registration / eligibility promotion / catalog edit
+NO E2-C4B / E3 / P2
+NO code / test / stage / commit / push / CI
+
+Baseline SHA:
+1b210eb49763510ae2adf0e201ff8977e476ddb9
+
+Status:
+E2_C4A_FREE_OFFICIAL_IRAN_SOURCE_DISCOVERY_SCOPE_REVIEW_COMPLETE
+NO_EXTERNAL_SOURCE_DISCOVERY_PERFORMED
+NO_SOURCE_ELIGIBILITY_PROMOTED
+```
+
+### ۹۹.۱ تطبیق مرجع E2-C3 (§97 / §98)
+
+```text
+D-IR decisions = 11
+APPROVED_BY_JAVAD = 11
+OPEN_AWAITING_JAVAD = 0
+Iran candidates = 6
+Eligible candidates = 0
+UNKNOWN_FAIL_CLOSED = 6
+Current source-role classes = 9
+
+Locked V1 product scope (preserved):
+physician verification first
+verified directory + neutral filtering
+no personalized provider recommendation
+no provider quality ranking
+no public provider reviews
+no sponsored or paid influence
+minimal verified public fields only
+verified badge hard expiry = 30 days
+weekly revalidation when lawful free automation is available
+hospitals deferred pending free official accreditation evidence
+laboratories deferred pending free official accreditation evidence
+Iranian medical websites = CONDITIONALLY_ALLOWED
+Free-sources-only = LOCKED
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۹۹.۲ وضعیت شش کاندید فعلی (بدون تغییر)
+
+```text
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+doctoreto_com = UNKNOWN_FAIL_CLOSED
+nobat_ir = UNKNOWN_FAIL_CLOSED
+doctor_yab_ir = UNKNOWN_FAIL_CLOSED
+drdr_ir = UNKNOWN_FAIL_CLOSED
+
+eligible = 0
+active collection = 0
+active runtime use = 0
+
+Preserved unresolved (require future external evidence):
+drdr_ir role/classification
+doctoreto official naming
+cost and access terms
+storage and reuse rights
+automated-access rights
+authority evidence
+
+NO catalog edit / rename / fetch enablement / publication change in this Gate
+```
+
+### ۹۹.۳ فهرست کاننیکال کلاس‌های منبع Iran (آینده)
+
+| class ID | class name | purpose | allowed role | prohibited roles | expected authority owner | evidence type | medical risk | provider-ver | facility-ver | knowledge | free | storage | product-use | automation | attribution | freshness | medical review | default | future Gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| IR-SC-01 | official physician professional registry | license/identity verification | PROVIDER_IDENTITY + REGULATORY | medical guidance; ranking | statutory medical council/regulator | registry identity+status | MR-0 | HIGH | low | none | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | weekly/30d badge | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-01 |
+| IR-SC-02 | physician specialty/status evidence | specialty + professional status | SPECIALTY + PROFESSIONAL_LICENSE | clinical guidance | official specialty authority | specialty/status records | MR-0 | HIGH | none | none | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | weekly/30d | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-01 |
+| IR-SC-03 | hospital/clinic identity registry | facility identity | FACILITY_IDENTITY | accreditation proof alone; ranking | MoH/facility regulator | facility identity | MR-0 | med | HIGH | none | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-02 |
+| IR-SC-04 | hospital/clinic accreditation | accreditation status | ACCREDITATION | quality ranking; clinical advice | official accreditor | accreditation certificate/status | MR-0/1 | low | HIGH | none | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-02 |
+| IR-SC-05 | lab/diagnostic identity registry | lab identity | FACILITY_IDENTITY | accreditation alone; medical content | lab regulator | lab identity | MR-0 | low | HIGH | none | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-03 |
+| IR-SC-06 | lab/diagnostic accreditation | lab accreditation | ACCREDITATION | quality ranking | official accreditor | accreditation status | MR-0 | low | HIGH | none | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-03 |
+| IR-SC-07 | MoH guidance / public-health | official guidance | PUBLIC_HEALTH_GUIDANCE / OFFICIAL_GUIDANCE | provider ranking; ads | Ministry of Health | guidance pages/datasets | MR-2+ | low | low | HIGH | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-2+ | UNKNOWN_FAIL_CLOSED | E2-C4B-04 |
+| IR-SC-08 | official medical-university sources | scientific/patient education | SCIENTIFIC_EDUCATION / PATIENT_EDUCATION | automatic guideline | university | faculty/page packs | MR-1–3 | low | low | HIGH | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | by risk | UNKNOWN_FAIL_CLOSED | E2-C4B-05 |
+| IR-SC-09 | medical research centers/institutes | scientific education | SCIENTIFIC_EDUCATION | clinical referral | public research center | publications/pages | MR-2–4 | low | low | HIGH | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | by risk | UNKNOWN_FAIL_CLOSED | E2-C4B-05 |
+| IR-SC-10 | scientific/medical associations | professional education | SCIENTIFIC_EDUCATION | license proof | recognized association | guidelines/education | MR-2–4 | med | low | HIGH | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | by risk | UNKNOWN_FAIL_CLOSED | E2-C4B-06 |
+| IR-SC-11 | regulatory/licensing/safety alerts | regulatory status/alerts | REGULATORY | directory ranking | official regulator | alerts/licenses | MR-0–4 | HIGH | HIGH | med | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | high | by risk | UNKNOWN_FAIL_CLOSED | E2-C4B-04 |
+| IR-SC-12 | official Persian patient education | patient education | PATIENT_EDUCATION | clinical guideline auto | university/teaching hospital/MoH | education pages | MR-1–2 | none | none | HIGH | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-1+ | UNKNOWN_FAIL_CLOSED | E2-C4B-07 |
+| IR-SC-13 | official journals/publication portals | scientific evidence | SCIENTIFIC_EVIDENCE | provider identity | journal/portal publisher | article metadata+terms | MR-2–4 | none | none | HIGH | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-2+ | UNKNOWN_FAIL_CLOSED | E2-C4B-08 |
+| IR-SC-14 | teaching hospitals / academic centers | limited facility + education | FACILITY_IDENTITY / PATIENT_EDUCATION (scoped) | independent accreditation; ranking | teaching hospital | scoped pages | MR-1–3 | low | med | med | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | by risk | UNKNOWN_FAIL_CLOSED | E2-C4B-02/05 |
+| IR-SC-15 | official public/open-data health portals | datasets | REGULATORY / PUBLIC_HEALTH (scoped) | medical advice without review | government open-data | dataset+license | MR-0–2 | med | med | med | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | by risk | UNKNOWN_FAIL_CLOSED | E2-C4B-04 |
+| IR-SC-16 | commercial medical directories | secondary discovery only | DIRECTORY / SECONDARY_DISCOVERY | primary license/accreditation/medical authority | commercial publisher | terms+identity pages | MR-0 | med | med | low | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | MR-0 | UNKNOWN_FAIL_CLOSED | E2-C4B-09 |
+| IR-SC-17 | individual physician websites | secondary author/profile only | SECONDARY_DISCOVERY | PRIMARY medical authority; official guidance | individual physician | profile page evidence | MR-0–4 | low | none | low | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | proposed | if content | UNKNOWN_FAIL_CLOSED | later secondary Gate |
+| IR-SC-18 | rejected/non-authoritative Persian content | explicit reject class | REJECTED | any authority/runtime use | N/A | rejection record | any | none | none | none | N/A | N/A | N/A | N/A | N/A | N/A | N/A | REJECTED | E2-C4C/D |
+
+```text
+Iran source-class count: 18
+Active catalog candidates added: 0
+External orgs/URLs registered as verified: 0
+```
+
+### ۹۹.۴ مدل چندبُعدی Authority
+
+```text
+Authority dimensions (11):
+IDENTITY_AUTHORITY
+PROFESSIONAL_LICENSE_AUTHORITY
+SPECIALTY_AUTHORITY
+FACILITY_IDENTITY_AUTHORITY
+ACCREDITATION_AUTHORITY
+REGULATORY_AUTHORITY
+PUBLIC_HEALTH_GUIDANCE_AUTHORITY
+SCIENTIFIC_EVIDENCE_AUTHORITY
+PATIENT_EDUCATION_AUTHORITY
+OPERATIONAL_DIRECTORY_AUTHORITY
+TRANSLATION_AUTHORITY
+
+Locks:
+directory authority ≠ professional license
+facility website ≠ independent accreditation
+commercial popularity ≠ medical quality
+individual physician content ≠ official guidance
+one generic “trusted source” score = FORBIDDEN
+```
+
+### ۹۹.۵ سطوح Authority (Tiers)
+
+| Tier | May prove | May NOT prove | Primary? | Corroboration | Medical review | Runtime use | Default |
+|---|---|---|---|---|---|---|---|
+| TIER A official government/regulator/statutory | identity, license, regulatory status, official guidance (scoped) | commercial quality ranking | YES when evidence passes | case-by-case for clinical content | by MR level | after governance | UNKNOWN_FAIL_CLOSED |
+| TIER B university / public research / recognized association | scientific/patient education within scope | statutory license alone | YES for education when pass | preferred for high-risk | by MR level | after governance | UNKNOWN_FAIL_CLOSED |
+| TIER C accredited/teaching facility (limited) | own facility identity/education scoped | independent national accreditation of peers; ranking | LIMITED | YES for accreditation claims | by MR level | after governance | UNKNOWN_FAIL_CLOSED |
+| TIER D commercial directory/platform | secondary discovery / operational metadata | primary license/accreditation/medical authority | NO | REQUIRED | MR-0 unless content | discovery-only until approved | UNKNOWN_FAIL_CLOSED |
+| TIER E individual physician site | secondary author/profile | official guidance; primary medical authority | NO | REQUIRED | if content claimed | secondary only | UNKNOWN_FAIL_CLOSED |
+| TIER R rejected/anonymous/copied/promotional/unverifiable | nothing | everything | NO | N/A | N/A | NEVER | REJECTED |
+
+```text
+Authority tier count: 6
+```
+
+### ۹۹.۶ مدل واجدشرایطی Free-Source
+
+```text
+PAID_SOURCE = EXCLUDED
+PAID_API = EXCLUDED
+PAID_DATASET = EXCLUDED
+PAYWALLED_CONTENT = EXCLUDED
+MANDATORY_PAID_PARTNERSHIP = EXCLUDED
+PAID_COMMERCIAL_LICENSE = EXCLUDED
+
+Future candidate evidence matrix fields (minimum):
+public access cost | subscription | per-request cost | API cost | dataset cost |
+license cost | partnership requirement | paywall state | free-tier restrictions |
+production-use restrictions | commercial-use restrictions | storage permission |
+processing permission | indexing permission | translation permission |
+derivative-work permission | quotation permission | redistribution permission |
+automated-access permission | retention permission | permission after terms change |
+attribution requirement | source disclaimer | non-endorsement | evidence artifact |
+terms version | terms capture date | review owner | decision
+
+Allowed future decisions (9):
+FREE_AND_DISCOVERY_ELIGIBLE
+FREE_BUT_REUSE_REVIEW_REQUIRED
+FREE_BUT_AUTOMATION_RESTRICTED
+FREE_METADATA_ONLY
+MANUAL_EVIDENCE_ONLY
+PAID_EXCLUDED
+PARTNERSHIP_REQUIRED_EXCLUDED
+RIGHTS_CONFLICT_REJECTED
+UNKNOWN_FAIL_CLOSED
+
+In E2-C4A: FREE_AND_DISCOVERY_ELIGIBLE recipients = 0
+(all real candidates remain UNKNOWN_FAIL_CLOSED; no external evidence collected)
+```
+
+### ۹۹.۷ استراتژی کشف آینده (اجرا نشده)
+
+| ID | method | purpose | permitted future search | query templates (prep only) | ownership signals | false-positive risks | min evidence before registration | owner | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| A | Official registry discovery | physician/facility registries | approved search Gate only | FA: «سامانه عضویت نظام پزشکی» «رجیستری پزشک»; EN: Iran medical council member search | .gov/.ir official + legal publisher | lookalike domains | authority+cost+terms+automation pack | Provider Verification | E2-C4B-01 |
+| B | Official government-domain discovery | MoH/regulator domains | approved search Gate | FA: «وزارت بهداشت» «راهنمای سلامت»; EN: Iran MoH public health | official MoH ownership | mirror sites | same | Data/Knowledge+Legal | E2-C4B-04 |
+| C | Medical-university discovery | universities | approved search Gate | FA: «دانشگاه علوم پزشکی» + topic; EN: medical university patient education Iran | university official domain | faculty blogs | publisher+reviewer+terms | Data/Knowledge | E2-C4B-05 |
+| D | Scientific-association discovery | associations | approved search Gate | FA: «انجمن علمی» + specialty; EN: Iran medical association | association legal identity | commercial SEO orgs | recognition+terms | Medical/Safety+Legal | E2-C4B-06 |
+| E | Official journal discovery | journals/portals | approved search Gate | FA: «نشریه علمی پزشکی»; EN: Iran medical journal open access | publisher+ISSN/portal | predatory journals | license+authority | Data/Knowledge | E2-C4B-08 |
+| F | Patient-education discovery | official education | approved search Gate | FA: «آموزش به بیمار» «دانشگاه علوم پزشکی»; EN: patient education Iran hospital | teaching hospital/uni/MoH | commercial clinics | MR-1+ evidence | Medical/Safety | E2-C4B-07 |
+| G | Regulatory/safety-alert discovery | alerts/licenses | approved search Gate | FA: «هشدار ایمنی دارو» «ابطال پروانه»; EN: Iran drug safety alert | regulator ownership | unofficial news | alert provenance | Provider Verification+Legal | E2-C4B-04 |
+| H | Facility/accreditation discovery | accreditation | approved search Gate | FA: «اعتباربخشی بیمارستان» «آزمایشگاه تشخیصی»; EN: Iran hospital accreditation | accreditor ownership | self-claims | accreditation evidence | Facility Verification | E2-C4B-02/03 |
+| I | Provider/facility identity discovery | identity metadata | approved search Gate | FA: «شماره نظام پزشکی» «شناسه مرکز»; EN: physician registration number Iran | official registry preferred | directory scrapes | identity corroboration | Provider Verification | E2-C4B-01..03 |
+| J | Secondary commercial-directory discovery | secondary only | approved search Gate | FA: directory brand + «شرایط استفاده»; EN: terms of use | commercial publisher | treating as authority | terms+role lock | Legal+Data/Knowledge | E2-C4B-09 |
+
+```text
+Future discovery strategy count: 10
+Queries executed: 0
+URLs approved as sources: 0
+```
+
+### ۹۹.۸ کلاس‌های روش جمع‌آوری آینده
+
+| method | content storage? | metadata-only? | automation evidence | robots | terms | rate-limit | auth | cost | retention | security | Gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| OFFICIAL_FREE_API | if rights pass | yes | required | if applicable | required | required | document; no paid cred | free only | policy | quarantine/hash | E2-C4B-* |
+| OFFICIAL_DOWNLOADABLE_DATASET | if rights pass | yes | required | N/A/low | required | N/A | none/paid forbidden | free only | policy | type/size allowlist | E2-C4B-* |
+| OFFICIAL_STRUCTURED_EXPORT | if rights pass | yes | required | N/A | required | document | none/paid forbidden | free only | policy | integrity hash | E2-C4B-* |
+| OFFICIAL_PUBLIC_WEB_PAGE | if rights pass | yes | required | required | required | required | none behind login | free only | policy | sanitize | E2-C4B-* |
+| OFFICIAL_RSS_OR_FEED | if rights pass | yes | required | review | required | document | none/paid forbidden | free only | policy | sanitize | E2-C4B-* |
+| OFFICIAL_SITEMAP | metadata/discovery | yes | required | review | required | document | none | free only | short | redirect review | E2-C4B-* |
+| MANUAL_TERMS_EVIDENCE_CAPTURE | metadata/screenshots governed | yes | N/A manual | N/A | core purpose | N/A | N/A | free | audit | hash | E2-C4B-* |
+| MANUAL_AUTHORITY_EVIDENCE_CAPTURE | metadata | yes | N/A manual | N/A | as needed | N/A | N/A | free | audit | hash | E2-C4B-* |
+| SECONDARY_DISCOVERY_ONLY | no content promote | yes | restricted | review | required | document | none | free | short | sanitize | E2-C4B-09 |
+| PROHIBITED_AUTOMATION | never | never as auto | N/A | N/A | N/A | N/A | N/A | N/A | N/A | reject | any |
+
+```text
+Collection-method class count: 10
+Active collection methods: 0
+```
+
+### ۹۹.۹ سیاست Automated-Access
+
+```text
+Evidence required before automation approval:
+terms permit automation OR do not prohibit intended method
+robots reviewed where relevant
+official API/export preferred when available
+rate limits documented
+user-agent policy documented
+authentication requirements documented
+no paid credential
+no circumvention / CAPTCHA bypass / anti-bot bypass
+no credential sharing
+no scraping behind login
+no hidden endpoint use
+no unnecessary personal data
+no uncontrolled recursive crawling
+no cross-domain redirect acceptance without review
+
+Future automation states:
+AUTOMATION_ALLOWED
+AUTOMATION_ALLOWED_WITH_LIMITS
+MANUAL_ONLY
+METADATA_ONLY
+AUTOMATION_PROHIBITED
+UNKNOWN_FAIL_CLOSED
+
+Current real candidates: all UNKNOWN_FAIL_CLOSED
+```
+
+### ۹۹.۱۰ قرارداد Artifact شواهد (منطقی؛ بدون پیاده‌سازی)
+
+نگاشت به معماری موجود I5-B2 (kb_lifecycle_mapping / GovernedSourceProfile):
+
+```text
+Discovery evidence → maps toward:
+raw_acquisition_object / SourceAcquisition concepts
+immutable_provenance_reference / ImmutableProvenanceRecord concepts
+HumanReviewApprovalRecord / review axes
+PublicationRelease (DEDICATED_GOVERNED_PUBLICATION_RELEASE) — never auto
+GovernedFetchRun / ingestion_run_id policy decisions
+lifecycle_event
+GovernedSourceProfile + immutable profile version
+
+Logical discovery-review artifacts (documentation-level only):
+1 DiscoveryCandidateRecord
+2 AuthorityEvidenceRecord
+3 CostEvidenceRecord
+4 TermsAndLicenseEvidenceRecord
+5 AutomatedAccessEvidenceRecord
+6 AttributionRequirementRecord
+7 MedicalReviewRequirementRecord
+8 FreshnessRequirementRecord
+9 SecurityAssessmentRecord
+10 CandidateDecisionRecord
+
+Per-artifact minimum fields:
+purpose | stable ID | candidate/source key | source class | authority dimension |
+captured evidence | capture method | capture timestamp | evidence version |
+content hash when applicable | review owner | decision state |
+supersession | revocation | retention | link to lifecycle contracts
+
+Schemas/models implemented in this Gate: 0
+```
+
+### ۹۹.۱۱ قرارداد Provenance
+
+```text
+Mandatory provenance fields (31):
+candidate ID | source key | source-class ID | publisher legal/official identity |
+authority owner | canonical URL | resolved URL | domain | jurisdiction | language |
+content type | page/artifact title | author | medical reviewer | publisher |
+publication date | last-reviewed date | retrieved date | terms version |
+license version | content version | hash | capture method | collector identity |
+reviewer identity | decision ID | supersedes | superseded by | revocation state |
+storage scope | runtime eligibility state
+
+Promotion without provenance: FORBIDDEN
+```
+
+### ۹۹.۱۲ قرارداد Attribution و Disclosure
+
+```text
+Attribution fields (12):
+publisher name | source title | original URL | retrieval date | license notice |
+copyright notice | modification notice | translation notice |
+non-endorsement disclaimer | government-source disclaimer |
+medical-information disclaimer | source version
+
+Storage: artifact + governed profile metadata
+Display: response-level citation when medical/regulatory content; document-level
+  may suffice for identity metadata
+Unusable if attribution cannot be satisfied → fail-closed
+Unclear attribution → UNKNOWN_FAIL_CLOSED
+```
+
+### ۹۹.۱۳ مدل Freshness / Revalidation
+
+```text
+Preserved approved provider rules:
+weekly revalidation when lawful free automation available
+verified badge hard expiry = 30 days
+on-demand verification when automation unavailable
+
+Proposed freshness classes (PROPOSED_NOT_ACTIVATED) — 11:
+provider identity | professional license | specialty | hospital accreditation |
+laboratory accreditation | regulatory alerts | public-health guidance |
+patient-education content | scientific articles | terms/licensing evidence |
+authority-owner evidence
+
+Per class: freshness basis | proposed cadence | warning | hard expiry |
+stale behavior | revocation trigger | outage behavior | terms-change behavior |
+owner | future Gate
+
+Scheduler created: NO
+```
+
+### ۹۹.۱۴ مدل Medical Review
+
+| Level | Scope | Reviewer | Depth | Independent review | Citation | Translation review | Safety engine | Publish | Re-review | Revocation |
+|---|---|---|---|---|---|---|---|---|---|---|
+| MR-0 | identity/admin metadata | Provider Verification / Governance | light | no | as needed | N/A | minimal | after governance | with freshness | conflict/revoke |
+| MR-1 | low-risk patient education | Medical/Safety | standard | preferred | required | if translated | standard | after MR+Legal | proposed | outdated/unsafe |
+| MR-2 | disease/prevention/nutrition/exercise/treatment education | Medical/Safety | deep | yes | required | required if tr. | elevated | restricted | proposed | same |
+| MR-3 | mental health / psychology / behavioral | Medical/Safety + Javad | deep | yes | required | required | elevated | highly restricted | proposed | same |
+| MR-4 | medication/diagnosis/contraindication/emergency/crisis | Medical/Safety + Javad + Legal | maximal | yes | required | required | maximal | blocked unless explicit Gate | proposed | immediate |
+
+```text
+Medical-review levels: 5
+Medical content approved in this Gate: 0
+```
+
+### ۹۹.۱۵ مدل کیفیت محتوای فارسی
+
+```text
+Mandatory checks (25):
+publisher identity | author identity | medical reviewer identity |
+publication date | review date | Persian language quality |
+medical terminology accuracy | Persian/Arabic char normalization |
+numeral normalization | unit normalization | drug-name normalization |
+disease-name normalization | Iran jurisdiction relevance | cultural suitability |
+original-source linkage | translation version | translator identity |
+translation reviewer | omission detection | meaning-change detection |
+machine-translation disclosure | supersession linkage | outdated-content detection |
+promotional-content detection | advertorial disclosure
+
+Rejection conditions include:
+anonymous articles | copied articles | SEO content farms |
+missing author/reviewer | unverifiable translation | promotional medical claims |
+supplement marketing | product advertising | unsupported treatment claims |
+LLM-generated content without accountable review
+```
+
+### ۹۹.۱۶ مدل Rejection و Fail-Closed
+
+```text
+Rejection reasons (20):
+REJECT_ANONYMOUS_PUBLISHER
+REJECT_UNVERIFIABLE_AUTHORITY
+REJECT_PAID_SOURCE
+REJECT_PAID_API
+REJECT_PAYWALL
+REJECT_MANDATORY_PAID_PARTNERSHIP
+REJECT_STORAGE_NOT_PERMITTED
+REJECT_PRODUCT_USE_NOT_PERMITTED
+REJECT_AUTOMATION_PROHIBITED
+REJECT_COPYRIGHT_CONFLICT
+REJECT_ATTRIBUTION_IMPOSSIBLE
+REJECT_PROMOTIONAL_MEDICAL_CONTENT
+REJECT_UNSUPPORTED_MEDICAL_CLAIMS
+REJECT_OUTDATED_HIGH_RISK_CONTENT
+REJECT_MISSING_MEDICAL_REVIEW
+REJECT_UNTRACEABLE_TRANSLATION
+REJECT_SECURITY_RISK
+REJECT_PROVIDER_IDENTITY_CONFLICT
+REJECT_REGULATORY_CONFLICT
+REJECT_DUPLICATE_OR_IMPERSONATED_SOURCE
+
+State distinctions:
+rejected | held | metadata-only | manual-only | secondary-discovery-only |
+revoked | superseded | unknown fail-closed
+```
+
+### ۹۹.۱۷ مدل Security و Hostile Content
+
+```text
+All future external content = UNTRUSTED
+
+Controls (22):
+prompt injection | hidden instructions | malicious HTML | JavaScript |
+embedded forms | tracking parameters | cross-domain redirects |
+downloaded executables | archive files | oversized files | unexpected MIME |
+malware | phishing | credential requests | personal-data harvesting |
+hidden personal data | provider impersonation | domain spoofing |
+Unicode lookalikes | certificate/domain mismatch | content tampering |
+supply-chain compromise
+
+Boundaries:
+content sanitization | metadata-only first inspection | allowlisted types |
+maximum-size policy | hashing | quarantine state | review owner | rejection state
+
+External content processed in this Gate: 0
+```
+
+### ۹۹.۱۸ مدل Duplication و Conflict
+
+```text
+Controls for:
+same source multi-URL | mirrored university content | copied commercial articles |
+official-vs-commercial conflicts | provider-name variants | professional-number conflicts |
+specialty conflicts | facility identity conflicts | Persian spelling variants |
+Arabic/Persian char variants | redirected domains | renamed organizations | superseded pages
+
+Separate keys:
+candidate identity | publisher identity | document identity | content hash |
+provider identity | facility identity | provenance fingerprint
+
+Merge by title/display name alone: FORBIDDEN
+```
+
+### ۹۹.۱۹ ماتریس مالک / بستن
+
+| ID | scope item | primary | supporting | dependency | evidence | closure | blocking | Gate |
+|---|---|---|---|---|---|---|---|---|
+| OD-C4A-01 | IR-SC-01 physician registry discovery | Provider Verification | Legal, Javad | E2-C3 | authority+cost+terms+auto | candidate decision pack | Blocking | E2-C4B-01 |
+| OD-C4A-02 | IR-SC-02 specialty/status | Provider Verification | Medical/Safety, Legal | OD-C4A-01 | specialty evidence | pack | Blocking | E2-C4B-01 |
+| OD-C4A-03 | IR-SC-03 hospital identity | Facility Verification | Legal, Javad | E2-C3 D-IR-03 | facility identity | pack | Blocking | E2-C4B-02 |
+| OD-C4A-04 | IR-SC-04 hospital accreditation | Facility Verification | Legal, Medical/Safety | OD-C4A-03 | accreditation | pack | Blocking | E2-C4B-02 |
+| OD-C4A-05 | IR-SC-05 lab identity | Facility Verification | Legal | E2-C3 D-IR-04 | lab identity | pack | Blocking | E2-C4B-03 |
+| OD-C4A-06 | IR-SC-06 lab accreditation | Facility Verification | Legal, Medical/Safety | OD-C4A-05 | accreditation | pack | Blocking | E2-C4B-03 |
+| OD-C4A-07 | IR-SC-07 MoH guidance | Data/Knowledge | Medical/Safety, Legal | E2-C3 websites policy | guidance rights | pack | Blocking | E2-C4B-04 |
+| OD-C4A-08 | IR-SC-08 universities | Data/Knowledge | Medical/Safety, Legal | — | publisher+terms | pack | Blocking | E2-C4B-05 |
+| OD-C4A-09 | IR-SC-09 research centers | Data/Knowledge | Medical/Safety | OD-C4A-08 | authority+terms | pack | Blocking | E2-C4B-05 |
+| OD-C4A-10 | IR-SC-10 associations | Medical/Safety | Legal, Governance | — | recognition+terms | pack | Blocking | E2-C4B-06 |
+| OD-C4A-11 | IR-SC-11 regulatory alerts | Provider Verification | Legal, Medical/Safety | — | alert provenance | pack | Blocking | E2-C4B-04 |
+| OD-C4A-12 | IR-SC-12 patient education | Medical/Safety | Legal, Data/Knowledge | MR model | MR-1+ pack | pack | Blocking | E2-C4B-07 |
+| OD-C4A-13 | IR-SC-13 journals | Data/Knowledge | Legal, Medical/Safety | — | license+authority | pack | Blocking | E2-C4B-08 |
+| OD-C4A-14 | IR-SC-14 teaching hospitals | Facility Verification | Medical/Safety, Legal | OD-C4A-03 | scoped evidence | pack | Blocking | E2-C4B-02/05 |
+| OD-C4A-15 | IR-SC-15 open data | Data/Knowledge | Legal, Governance | — | dataset license | pack | Blocking | E2-C4B-04 |
+| OD-C4A-16 | IR-SC-16 commercial directories secondary | Legal | Data/Knowledge, Javad | role lock | terms+role | pack | Blocking | E2-C4B-09 |
+| OD-C4A-17 | IR-SC-17 physician sites secondary | Governance | Legal, Medical/Safety | primary-authority ban | secondary-only evidence | pack | Blocking | later |
+| OD-C4A-18 | IR-SC-18 reject class operations | Governance | Legal, Security | rejection model | reject records | process live | Blocking | E2-C4C/D |
+| OD-C4A-19 | free-source eligibility model enforcement | Legal | Governance, Data/Knowledge | E2-C3 | matrix decisions | zero paid adopted | Blocking | all E2-C4B |
+| OD-C4A-20 | automated-access policy enforcement | Security | Legal, Backend | robots/terms | automation state | state recorded | Blocking | E2-C4B |
+| OD-C4A-21 | provenance+attribution completeness | Data/Knowledge | Governance, Legal | artifact contract | field completeness | no promote w/o | Blocking | E2-C4C |
+| OD-C4A-22 | medical-review gatekeeping | Medical/Safety | Javad, Legal | MR levels | review records | level satisfied | Blocking | E2-C4D |
+| OD-C4A-23 | security quarantine controls | Security | Backend, Governance | hostile model | quarantine logs | no unsafe publish | Blocking | E2-C4D |
+| OD-C4A-24 | existing six candidates remain fail-closed | Governance | Legal, Provider Verification | E2-C3 | no promotion | still 6 fail-closed | Blocking | until E2-C4B packs |
+| OD-C4A-25 | scope-review docs commit/push sequence | Javad | Backend | this §99 | one-file manifest | commit+push verified | Blocking | E2-C4A-DOCS-* |
+
+```text
+Owner/closure rows: 25
+TBD owners: 0
+```
+
+### ۹۹.۲۰ ماتریس ریسک
+
+| ID | risk | severity | likelihood | class | preventive | detective | owner | closure | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| R01 | free-to-view mistaken for reusable | BLOCKER | high | all | FREE_TO_VIEW≠STORE | Legal review | Legal | reuse evidence | E2-C4B |
+| R02 | free tier used illegally in production | BLOCKER | med | all | FREE_TIER≠PROD | terms audit | Legal | terms pack | E2-C4B |
+| R03 | paid API accidentally adopted | BLOCKER | med | all | PAID_API EXCLUDED | cost matrix | Legal | PAID_EXCLUDED | E2-C4B |
+| R04 | mandatory paid partnership dependency | BLOCKER | med | dirs | partnership excluded | contract review | Legal | exclusion | E2-C4B-09 |
+| R05 | official-looking non-official domain | BLOCKER | high | A–C | ownership confirmation | domain audit | Security | reject/hold | E2-C4B |
+| R06 | university subdomain impersonation | MAJOR | med | IR-SC-08 | official domain list | DNS/TLS review | Security | reject | E2-C4B-05 |
+| R07 | outdated physician status | BLOCKER | med | IR-SC-01 | 30-day expiry | revalidation | Provider Verification | freshness | continuous |
+| R08 | outdated specialty | MAJOR | med | IR-SC-02 | specialty freshness | audit | Provider Verification | refresh | continuous |
+| R09 | outdated hospital accreditation | BLOCKER | med | IR-SC-04 | accreditation cadence | status check | Facility Verification | refresh | E2-C4B-02 |
+| R10 | outdated laboratory accreditation | BLOCKER | med | IR-SC-06 | accreditation cadence | status check | Facility Verification | refresh | E2-C4B-03 |
+| R11 | commercial directory as authority | BLOCKER | high | IR-SC-16 | TIER D secondary-only | role audit | Governance | role lock | E2-C4B-09 |
+| R12 | patient-education as guideline | BLOCKER | med | IR-SC-12 | PATIENT≠GUIDELINE | MR review | Medical/Safety | reject misuse | E2-C4D |
+| R13 | facility website as independent quality proof | BLOCKER | med | IR-SC-14 | TIER C limits | accreditation check | Facility Verification | corroboration | E2-C4B-02 |
+| R14 | individual physician site as primary authority | BLOCKER | med | IR-SC-17 | TIER E secondary | authority audit | Governance | reject primary | later |
+| R15 | anonymous Persian medical article | BLOCKER | high | IR-SC-18 | reject anonymous | publisher check | Medical/Safety | REJECT_* | E2-C4C |
+| R16 | copied Persian content | MAJOR | high | IR-SC-18 | hash/provenance | plagiarism detect | Data/Knowledge | reject | E2-C4C |
+| R17 | machine translation changes meaning | BLOCKER | med | Persian | translation linkage | meaning-change detect | Medical/Safety | reject/hold | E2-C4D |
+| R18 | missing author or reviewer | BLOCKER | high | education/journals | mandatory fields | MR gate | Medical/Safety | reject | E2-C4D |
+| R19 | promotional article accepted | BLOCKER | med | many | promo detection | MR+Legal | Legal | reject | E2-C4D |
+| R20 | supplement ad as evidence | BLOCKER | med | IR-SC-18 | advertorial reject | content audit | Medical/Safety | reject | E2-C4C |
+| R21 | prompt injection in source content | BLOCKER | med | all fetched | sanitize; untrusted | security scan | Security | quarantine | E2-C4D |
+| R22 | malicious HTML or download | BLOCKER | med | web/files | type/size allowlist | malware scan | Security | reject | E2-C4D |
+| R23 | domain redirect takeover | BLOCKER | low | all | redirect policy | TLS/domain monitor | Security | hold | continuous |
+| R24 | cross-source identity conflict | MAJOR | med | providers/facilities | conflict hold | conflict log | Provider Verification | resolve/hold | E2-C4C |
+| R25 | duplicate provider | MAJOR | med | IR-SC-01/16 | identity keys | dedupe | Backend | merge rules | E2-C4C |
+| R26 | duplicate facility | MAJOR | med | IR-SC-03/05 | facility keys | dedupe | Backend | merge rules | E2-C4C |
+| R27 | terms change after approval | BLOCKER | med | all | terms revalidation | terms diff | Legal | re-decide | continuous |
+| R28 | source becomes paid | BLOCKER | med | all | PAID_SOURCE_TRANSITION stop | cost monitor | Legal | stop fetch/store | continuous |
+| R29 | automation later prohibited | BLOCKER | med | automated | automation state machine | robots/terms watch | Security | MANUAL_ONLY | continuous |
+| R30 | attribution requirement violated | BLOCKER | med | published | attribution contract | citation audit | Governance | unpublish | E2-C4D |
+| R31 | stale regulatory alert | BLOCKER | med | IR-SC-11 | alert freshness | alert feed | Provider Verification | refresh | continuous |
+| R32 | missed official revocation | BLOCKER | med | IR-SC-01/11 | immediate suspend | revocation feed | Provider Verification | D-IR-10 | continuous |
+| R33 | unsupported medical recommendation | BLOCKER | med | guidance | MR-2+ gates | Medical/Safety | reject | E2-C4D |
+| R34 | incorrect source-role classification | MAJOR | med | all | class inventory | role audit | Data/Knowledge | reclass Gate | E2-C4C |
+| R35 | privacy leak from provider data | BLOCKER | med | identity | field allowlist D-IR-05 | Privacy/Legal | minimize | continuous |
+| R36 | provenance gap | BLOCKER | med | all | mandatory provenance | promote gate | Data/Knowledge | block promote | E2-C4C |
+
+```text
+Risk count: 36
+```
+
+### ۹۹.۲۱ تجزیه Gateهای آینده (اجرا/تأیید نشده)
+
+```text
+E2-C4A-DOCS-COMMIT   scope-review local docs commit
+E2-C4A-DOCS-VERIFY   read-only commit verification
+E2-C4A-DOCS-PUSH     separate non-force push
+E2-C4B-01            official physician-registry discovery approval
+E2-C4B-02            hospital and accreditation discovery approval
+E2-C4B-03            laboratory and accreditation discovery approval
+E2-C4B-04            Ministry, regulatory and public-health discovery approval
+E2-C4B-05            medical-university and research-center discovery approval
+E2-C4B-06            scientific-association discovery approval
+E2-C4B-07            Persian patient-education discovery approval
+E2-C4B-08            journal and publication-portal discovery approval
+E2-C4B-09            commercial-directory evidence collection approval
+E2-C4C               evidence normalization and candidate decision review
+E2-C4D               medical, legal, security and governance review
+E2-C4E               strict audit and closure
+E2-C4F               approved source-registry implementation planning
+
+Future sub-Gate count: 16
+Collection Gates approved by this scope review: 0
+Approval boundaries not merged
+
+Exact next Gate:
+E2_C4A_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+### ۹۹.۲۲ ممیزی داخلی
+
+```text
+Audit iterations: 3
+
+C4A-A01 baseline + §98 sequence → CLOSED
+C4A-A02 E2-C3 authority preserved → CLOSED
+C4A-A03 six candidates remain UNKNOWN_FAIL_CLOSED; eligibility 0 → CLOSED
+C4A-A04 no eligibility promotion / catalog change → CLOSED
+C4A-A05 source classes 18 complete → CLOSED
+C4A-A06 authority dimensions 11 + tiers 6 complete → CLOSED
+C4A-A07 free-cost / storage / reuse matrix complete; ZERO FREE_AND_DISCOVERY_ELIGIBLE → CLOSED
+C4A-A08 discovery strategies 10 + collection methods 10 complete; none executed → CLOSED
+C4A-A09 automated-access policy complete → CLOSED
+C4A-A10 artifact contract mapped to I5-B2 lifecycle fields → CLOSED
+C4A-A11 provenance 31 + attribution 12 complete → CLOSED
+C4A-A12 freshness proposed-not-activated; 30-day provider rule preserved → CLOSED
+C4A-A13 medical-review levels 5; Persian checks 25; rejections 20 → CLOSED
+C4A-A14 security 22 + duplication/conflict model complete → CLOSED
+C4A-A15 owner rows 25; TBD=0; risks 36; future Gates 16 → CLOSED
+C4A-A16 exact-count consistency → CLOSED
+C4A-A17 §99 append-only; §100 absent → CLOSED
+C4A-A18 prohibited-operation compliance → CLOSED
+C4A-A19 provenance/Persian count drift self-corrected → CLOSED_BY_VERIFIED_FIX
+
+Findings fixed: 19
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+### ۹۹.۲۳ ممنوعیت‌های تأییدشده
+
+```text
+NO web search / network / website opening / URL request / download / API
+NO provider/facility verification / external collection / discovery execution
+NO source registration / eligibility promotion / catalog edit
+NO code / test / workflow / model / migration / script edit
+NO Python / pytest / database / seed / dry-run / apply
+NO stage / commit / push / CI
+NO E2-C4B / E3 / P2 / deploy / flag activation
+```
+
+### ۹۹.۲۴ Manifest و گام بعدی
+
+```text
+Future commit subject:
+docs(governance): scope free Iran source discovery
+
+Future manifest:
+E2_C4A_SCOPE_REVIEW_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C4A_SCOPE_REVIEW_COMMIT_MANIFEST_END
+
+Exact next Gate:
+E2_C4A_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+
+Local commit / push / E2-C4B: NOT authorized by this Gate
+Future commit SHA: NOT GUESSED
+```
+
+### ۹۹.۲۵ نشانگرها
+
+```text
+E2_C4A_SCOPE_REVIEW_COMPLETE
+E2_C4A_FREE_OFFICIAL_IRAN_SOURCE_DISCOVERY_SCOPE_REVIEW_COMPLETE
+REPOSITORY_ONLY_REVIEW_COMPLETE
+ALL_SIX_CURRENT_CANDIDATES_REMAIN_FAIL_CLOSED
+ZERO_SOURCE_ELIGIBILITY_PROMOTIONS
+IRAN_SOURCE_CLASSES_DEFINED
+AUTHORITY_DIMENSIONS_DEFINED
+AUTHORITY_TIERS_DEFINED
+FREE_SOURCE_ELIGIBILITY_MODEL_DEFINED
+FUTURE_DISCOVERY_STRATEGY_DEFINED
+COLLECTION_METHOD_CLASSES_DEFINED
+AUTOMATED_ACCESS_POLICY_DEFINED
+EVIDENCE_ARTIFACT_CONTRACT_DEFINED
+PROVENANCE_CONTRACT_DEFINED
+ATTRIBUTION_CONTRACT_DEFINED
+FRESHNESS_MODEL_DEFINED
+MEDICAL_REVIEW_MODEL_DEFINED
+PERSIAN_CONTENT_QUALITY_MODEL_DEFINED
+REJECTION_MODEL_DEFINED
+SECURITY_MODEL_DEFINED
+DUPLICATION_CONFLICT_MODEL_DEFINED
+OWNER_CLOSURE_MATRIX_COMPLETE
+RISK_MATRIX_COMPLETE
+FUTURE_E2_C4_GATES_DEFINED
+NO_EXTERNAL_SOURCE_DISCOVERY_PERFORMED
+NO_WEBSITE_OPENED
+NO_NETWORK_USED
+NO_SOURCE_ELIGIBILITY_PROMOTED
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+MASTER_LOG_99_APPENDED
+MASTER_LOG_100_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_E2_C4A_SCOPE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+### ۹۹.۲۶ شمارش‌های دقیق نهایی
+
+```text
+current Iran candidates: 6
+eligible candidates: 0
+UNKNOWN_FAIL_CLOSED candidates: 6
+source classes: 18
+authority dimensions: 11
+authority tiers: 6
+eligibility decision classes: 9
+future discovery strategies: 10
+future collection-method classes: 10
+evidence artifact classes: 10
+provenance fields: 31
+attribution fields: 12
+freshness classes (proposed): 11
+medical-review levels: 5
+Persian-content checks: 25
+rejection reasons: 20
+security controls: 22
+owner/closure rows: 25
+risks: 36
+future sub-Gates: 16
+audit iterations: 3
+findings fixed: 19
+remaining findings: 0
+FREE_AND_DISCOVERY_ELIGIBLE awarded: 0
+```
+
+---
+*پایان §99 — Package E2-C4A Free Official Iran Source Discovery Scope Review — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۱۰۰) بسته E2-C4A — کامیت محلی مستندات Scope Review
+
+```text
+Package:
+E2_C4A_SCOPE_REVIEW_DOCS_LOCAL_COMMIT
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+
+Repository baseline:
+1b210eb49763510ae2adf0e201ff8977e476ddb9
+
+E2-C4A state:
+E2_C4A_FREE_OFFICIAL_IRAN_SOURCE_DISCOVERY_SCOPE_REVIEW_COMPLETE
+
+Repository-only review:
+COMPLETE
+
+External discovery:
+NOT PERFORMED
+
+Website opening:
+NOT PERFORMED
+
+Network:
+NOT USED
+
+Source eligibility promotions:
+0
+
+Current Iran candidate counts:
+candidates = 6
+eligible = 0
+UNKNOWN_FAIL_CLOSED = 6
+active collection = 0
+active runtime = 0
+
+Scope counts:
+source classes = 18
+authority dimensions = 11
+authority tiers = 6
+eligibility decision classes = 9
+discovery strategies = 10
+collection-method classes = 10
+evidence artifact classes = 10
+provenance fields = 31
+attribution fields = 12
+freshness classes = 11
+medical-review levels = 5
+Persian-content checks = 25
+rejection reasons = 20
+security controls = 22
+owner/closure rows = 25
+risks = 36
+future E2-C4 sub-Gates = 16
+audit iterations = 3
+findings fixed = 19
+remaining actionable findings = 0
+
+Permanent boundaries:
+FREE_TO_VIEW_IS_NOT_FREE_TO_STORE
+FREE_TO_ACCESS_IS_NOT_FREE_TO_REUSE
+FREE_TIER_IS_NOT_PRODUCTION_PERMISSION
+MEDICAL_WEBSITE_IS_NOT_AUTOMATICALLY_MEDICAL_AUTHORITY
+UNKNOWN_COST_OR_RIGHTS_IS_FAIL_CLOSED
+NO_SOURCE_BECOMES_ELIGIBLE_IN_E2_C4A
+
+Architecture boundary:
+No parallel ingestion or evidence architecture may be created.
+Documentation-level logical artifacts must map to canonical repository
+contracts such as:
+SourceAcquisition
+RawContentObject
+ImmutableProvenanceRecord
+HumanReviewApprovalRecord
+PublicationRelease
+GovernedFetchRun
+LifecycleEvent
+
+Approval boundaries:
+local commit authorized
+push not authorized
+CI not authorized
+network not authorized
+web search not authorized
+website opening not authorized
+source discovery not authorized
+external evidence collection not authorized
+provider or facility verification not authorized
+source registration not authorized
+source eligibility promotion not authorized
+catalog edit not authorized
+E2-C4B not authorized
+E3 not authorized
+P2 not authorized
+
+Approved commit subject:
+docs(governance): scope free Iran source discovery
+
+Approved commit manifest:
+E2_C4A_SCOPE_REVIEW_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C4A_SCOPE_REVIEW_COMMIT_MANIFEST_END
+
+Expected next Gate after successful commit and complete read-only verification:
+E2_C4A_SCOPE_REVIEW_DOCS_PUSH_APPROVAL
+```
+
+### ۱۰۰.۱ نشانگرها
+
+```text
+MASTER_LOG_100_APPENDED
+ONE_FILE_LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+CI_NOT_AUTHORIZED
+NETWORK_NOT_AUTHORIZED
+NO_WEB_SEARCH
+NO_WEBSITE_OPENED
+NO_EXTERNAL_SOURCE_DISCOVERY
+NO_EXTERNAL_COLLECTION
+NO_SOURCE_REGISTRATION
+NO_SOURCE_ELIGIBILITY_PROMOTION
+NO_CATALOG_EDIT
+E2_C4B_NOT_AUTHORIZED
+E3_NOT_AUTHORIZED
+P2_NOT_AUTHORIZED
+READY_FOR_E2_C4A_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+```
+
+---
+*پایان §100 — Package E2-C4A Scope Review Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
