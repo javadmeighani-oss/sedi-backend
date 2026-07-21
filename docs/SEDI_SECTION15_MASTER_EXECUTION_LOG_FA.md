@@ -8337,3 +8337,784 @@ PERMANENT_MULTISTAGE_AUTOFIX_RULE_ACTIVE
 
 ---
 *پایان §92 — Package 15-I5-B2-P1-L1 Closure Documentation — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۳) بسته 15-I5-B2-P1-L1 — بازبینی دامنه Evidence Overlay (Repository-Only)
+
+```text
+Package:
+15-I5-B2-P1-L1-EVIDENCE-OVERLAY-SCOPE-REVIEW
+
+Gate:
+P1_L1_EVIDENCE_OVERLAY_SCOPE_REVIEW
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Authorization:
+repository-only inventory, classification, architecture and scope-lock
+NO external evidence collection
+NO implementation / DB / seed / dry-run / apply / network / stage / commit / push / CI
+
+Status:
+P1_L1_EVIDENCE_OVERLAY_SCOPE_REVIEW_COMPLETE
+```
+
+### ۹۳.۱ Baseline و وضعیت P1-L1
+
+```text
+P1-L1 closure commit:
+b894806ada6e170fefd865a2e86af4e5793e42a8
+
+Subject:
+docs(governance): close I5-B2 P1-L1 after CI verification
+
+Parent (Fix1):
+20b58a85ae9f449b77e3944fce815c022f2f380f
+
+P1-L1 status:
+CI_VERIFIED_AND_CLOSED
+
+HEAD during this Gate:
+b894806ada6e170fefd865a2e86af4e5793e42a8
+
+Latest prior master-log section:
+§92
+```
+
+### ۹۳.۲ منابع مرجع مخزن (فقط استاتیک)
+
+```text
+backend/app/services/governance/kb_b2_legacy_companion_seed.py
+  GATE3H_CATALOG_SOURCE_KEYS (16)
+  product_legal_hold set (NICE + 6 Iran)
+  _GOVERNANCE_REQUIRED_FIELDS (20)
+  EligibilityClass / catalog_inventory_candidates
+
+backend/config/gate3h/trusted_source_catalog_v1.yaml
+  catalog_version 3h-v1.1 — PROPOSAL ONLY
+  16 sources + batch1_pages (page plans, not separate identities)
+
+backend/app/models.py
+  KnowledgeSource (legacy)
+  GovernedSourceProfile / GovernedSourceProfileVersion (P1)
+
+backend/app/services/governance/kb_b2_source_profile_persistence.py
+  coerce_governance_evidence
+
+backend/docs/gate3h/*
+  ROBOTS_TERMS_PRECHECK_BATCH1.md
+  INITIAL_SEED_BATCH_V1.md
+  PRODUCTION_KB_POPULATION_RUNBOOK.md
+
+backend/scripts/seed_i5b2_p1_l1_legacy_companions.py
+  --evidence-json overlay input shape (not executed)
+
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  §§88–92 P1-L1 closure chain
+```
+
+### ۹۳.۳ قاعده هویت و شمارش کاندید
+
+```text
+Identity rule:
+ONE candidate = ONE distinct source_key appearing in GATE3H_CATALOG_SOURCE_KEYS
+and matching sources[].source_key in trusted_source_catalog_v1.yaml.
+
+Deduplication:
+Same source_key across seed module, YAML catalog, Gate3h docs, and tests
+= ONE candidate (not merged by display-name similarity; not split by file).
+
+Non-candidates (OUT_OF_SCOPE_NON_SOURCE_OBJECT for this inventory):
+- KnowledgeSource / GovernedSourceProfile ORM classes
+- batch1_pages[].page_key rows (page acquisition plans under a source_key)
+- test fixture synthetic keys (e.g. nhs_repeat, conflict_key)
+
+Repository candidate count: 16
+```
+
+### ۹۳.۴ قرارداد شواهد الزامی (از کد P1/P1-L1)
+
+هر کاندید باید برای eligibility واقعی، شواهد حاکمیتی صریح داشته باشد
+(نه فقط metadata کاتالوگ):
+
+```text
+publisher_authority_identity
+source_class
+authority_evidence_tier
+jurisdiction_scope
+primary_language
+specialty_domain
+license_status
+permitted_use_restriction
+storage_permission
+transformation_permission
+display_redistribution_permission
+automation_status
+verification_method
+freshness_policy_days
+freshness_status
+fetch_policy
+iran_first_applicable
+policy_version_reference
+configuration_version_reference
+effective_at
+```
+
+Plus identity/uniqueness invariants from P1:
+
+```text
+stable source_key / canonical_key
+canonical or normalized locator (when locator present)
+legacy_knowledge_source_id uniqueness (when linked)
+canonical-key uniqueness
+normalized-locator uniqueness
+review owner + approval owner (overlay layer)
+```
+
+Fail-closed reinterpretation rules (locked):
+
+```text
+license_notes ≠ approved license_status
+trust_level ≠ authority_evidence_tier
+category text ≠ authority evidence
+publisher/display_name alone ≠ legal eligibility
+country_scope alone ≠ jurisdiction approval
+robots/terms precheck ≠ publication eligibility
+successful fetch ≠ runtime-eligible knowledge
+catalog PROPOSAL ONLY ≠ existing repository evidence for eligibility
+```
+
+### ۹۳.۵ ماتریس کاندید به کاندید (۱۶)
+
+طبقه‌بندی Gate (نگاشت به EligibilityClass کد):
+
+```text
+ELIGIBLE_WITH_EXISTING_REPOSITORY_EVIDENCE
+  ↔ ELIGIBLE_WITH_EXISTING_EVIDENCE
+ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY
+  ↔ ELIGIBLE_ONLY_WITH_EXPLICIT_MAPPING
+BLOCKED_REQUIRES_LEGAL_OR_GOVERNANCE_REVIEW
+  ↔ subset of BLOCKED_REQUIRES_PRODUCT_OR_LEGAL_DECISION
+BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION
+  ↔ subset of BLOCKED_REQUIRES_PRODUCT_OR_LEGAL_DECISION
+INELIGIBLE_INCOMPLETE_OR_CONTRADICTORY_EVIDENCE
+  ↔ INELIGIBLE_MISSING_EVIDENCE (partial/contradictory overlay)
+OUT_OF_SCOPE_NON_SOURCE_OBJECT
+  ↔ OUT_OF_SCOPE_NON_SOURCE_OBJECT
+```
+
+#### Group A — Global lifestyle / health education
+
+| source_key | Class | Repo evidence | Missing | Owner | Next Gate |
+|---|---|---|---|---|---|
+| who_global_health_topics | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML base_url who.int; robots allowed; terms unclear; CC BY-NC-SA note in metadata | full 20-field overlay; commercial-license decision | Legal → overlay; Javad approve | E2 then E3 |
+| medlineplus_consumer_health | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML medlineplus.gov; license_notes attribution; mixed_copyright_caution | overlay excluding A.D.A.M./drug sections; attribution terms | Legal + Governance | E2 then E3 |
+| nhs_uk_live_well | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML nhs.uk/live-well; OGL v3.0 notes; freshness 7d; batch1 recommended sleep page | explicit OGL overlay; jurisdiction GB; permitted_use | Legal + Governance | E2 then E3 |
+| cdc_health_lifestyle | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML cdc.gov; public-domain notes; prevention category sensitive | overlay + non-endorsement + prevention product policy | Legal + Javad (product) | E2 then E3 |
+
+#### Group B — Mental wellbeing (high risk; never auto-approve)
+
+| source_key | Class | Repo evidence | Missing | Owner | Next Gate |
+|---|---|---|---|---|---|
+| who_mental_health | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML mental-health paths; non_diagnostic; crisis_routing note | overlay; Medical/Safety non-diagnostic policy | Medical/Safety + Legal | E2 then E3 |
+| nimh_nih_mental_health | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML; public-domain notes; deferred until lifestyle cycle | overlay; safety review | Medical/Safety + Legal | E2 then E3 |
+| apa_psychology_help | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML apa.org/topics; trust editorial; pending_review | license/terms overlay; editorial authority tier | Legal + Governance | E2 then E3 |
+| nhs_mental_health | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML; OGL notes; high risk deferred | OGL overlay; MH safety boundary | Medical/Safety + Legal | E2 then E3 |
+| medlineplus_mental_health | ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | YAML; ency/article caution | page allowlist + overlay | Legal + Medical/Safety | E2 then E3 |
+
+#### Group C / NICE — Holds (product_legal_hold in seed)
+
+| source_key | Class | Repo evidence | Missing | Owner | Next Gate |
+|---|---|---|---|---|---|
+| nice_org_uk_public | BLOCKED_REQUIRES_LEGAL_OR_GOVERNANCE_REVIEW | YAML nice.org.uk; clinical_guideline; pending_review; v1 deferred; product_legal_hold | reuse/license rights; clinical eligibility product decision | Legal (primary) + Javad | E2 (NICE) |
+| irimc_member_search | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | YAML membersearch.irimc.org; provider_directory; official_verification; deferred_restricted | IRIMC partnership/API/robots; license verification policy | Javad + Legal + Provider Verification | E2 (Iran) |
+| paziresh24_com | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | YAML; operational_directory; no_booking; deferred | partnership/terms; directory≠medical authority | Javad + Legal | E2 (Iran) |
+| doctoreto_com | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | YAML; provider_directory deferred | same as peer directories | Javad + Legal | E2 (Iran) |
+| nobat_ir | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | YAML; appointment directory deferred | booking-boundary policy + terms | Javad + Legal | E2 (Iran) |
+| doctor_yab_ir | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | YAML; provider_directory deferred | same | Javad + Legal | E2 (Iran) |
+| drdr_ir | BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION | YAML; **lab_directory**; deferred | lab accreditation vs directory identity | Javad + Legal + Provider Verification | E2 (Iran) |
+
+### ۹۳.۶ شمارش طبقه‌بندی
+
+```text
+Total repository candidates: 16
+ELIGIBLE_WITH_EXISTING_REPOSITORY_EVIDENCE: 0
+ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY: 9
+BLOCKED_REQUIRES_LEGAL_OR_GOVERNANCE_REVIEW: 1 (NICE)
+BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION: 6 (Iran provider/lab)
+INELIGIBLE_INCOMPLETE_OR_CONTRADICTORY_EVIDENCE: 0
+OUT_OF_SCOPE_NON_SOURCE_OBJECT (within the 16-candidate set): 0
+
+NICE-related candidates: 1
+
+Iran candidate rows: 6
+Iran candidate classes: 2
+Iran candidate classes:
+  1. provider_directory
+  2. lab_directory
+provider_directory rows: 5
+  (irimc_member_search, paziresh24_com, doctoreto_com, nobat_ir, doctor_yab_ir)
+lab_directory rows: 1
+  (drdr_ir)
+Iran row-count check: 5 + 1 = 6
+No separate hospital/physician ORM candidate rows in catalog
+```
+
+### ۹۳.۷ بازبینی NICE hold
+
+```text
+Candidate: nice_org_uk_public
+Repository representation:
+  seed product_legal_hold=true
+  YAML category=clinical_guideline; risk_level=high; robots_terms_status=pending_review
+  docs INITIAL_SEED_BATCH_V1: clinical guidelines deferred
+
+Existing repo evidence: identity + domain allow patterns only
+Missing: license/reuse terms for Sedi commercial use; authority for patient-facing excerpts;
+  jurisdiction GB clinical-guideline product decision; trust tier explicit overlay
+
+Repository-only eligibility: NOT permitted
+Class: BLOCKED_REQUIRES_LEGAL_OR_GOVERNANCE_REVIEW
+Owner: Legal (primary) + Javad (product for clinical_guideline)
+Required external evidence: NICE terms of use / reuse permission for intended use-case
+Closure: written legal memo + product decision + approved evidence overlay
+Future Gate: E2 (NICE) → E3 overlay only if approved
+```
+
+### ۹۳.۸ بازبینی Iran provider / physician / hospital / lab holds
+
+```text
+Iran candidate rows: 6
+Iran candidate classes: 2
+
+Class 1 — provider_directory (5 rows):
+  irimc_member_search — official verification registry (physician/member search)
+  paziresh24_com — provider directory
+  doctoreto_com — provider directory
+  nobat_ir — appointment/provider directory
+  doctor_yab_ir — provider directory
+
+Class 2 — lab_directory (1 row):
+  drdr_ir — lab directory
+
+Row/class reconciliation: 5 + 1 = 6 rows; class count = 2; no duplicate classes
+Every Iran row has exactly one catalog class and remains
+BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION
+
+Evidence separation (locked):
+  directory identity ≠ professional-license proof
+  directory identity ≠ facility accreditation
+  contact/location ≠ medical-content authority
+  quality/trust marketing ≠ AuthorityTier
+  laboratory directory ≠ medical-content authority
+  provider listings remain fail-closed
+
+Required (future, not collected here):
+  Iranian authority/registry evidence (IRIMC or equivalent)
+  verification-date + refresh cadence
+  review owner + conflict/suspension/revocation policy
+  explicit product decision: directory UI vs knowledge content
+
+Eligibility: BLOCKED_REQUIRES_JAVAD_PRODUCT_DECISION
+  Dependency: Legal/governance + Provider Verification
+Future package: E2 (Iran) — external collection only after product scope lock
+NO external Iranian source search in this Gate
+```
+
+### ۹۳.۹ قرارداد Evidence Overlay (طراحی؛ بدون پیاده‌سازی)
+
+```text
+Proposed fields:
+  overlay_id
+  bound_source_key / profile_id (binding only; does not mutate identity)
+  evidence_type
+  evidence_value_or_reference
+  authority / issuer
+  jurisdiction
+  language
+  effective_at
+  expiry_or_revalidation_at
+  license_or_terms_evidence
+  trust_evidence
+  review_status
+  reviewer_owner
+  approval_state
+  decision_reason
+  provenance
+  created_at
+  version
+  supersedes_overlay_id
+  revocation_state
+```
+
+Locked invariants:
+
+```text
+source identity is immutable
+evidence overlays are versioned
+new evidence does not overwrite old evidence
+review decisions are auditable
+approval does not mutate source identity
+revocation is explicit
+publication uses an immutable release (P6)
+missing evidence fails closed
+AUTO_PUBLISH_WITHOUT_GOVERNANCE_FORBIDDEN
+```
+
+### ۹۳.۱۰ Automated Governed Knowledge Ingestion (الزام معماری)
+
+```text
+Lifecycle lock:
+AUTOMATIC DISCOVERY
+→ AUTHORIZED SOURCE REGISTRY
+→ AUTOMATIC FETCH
+→ INTEGRITY CHECK
+→ SECURITY CHECK
+→ LICENSE / TERMS CHECK
+→ IMMUTABLE RAW STORAGE
+→ NORMALIZATION
+→ PARSING
+→ DEDUPLICATION
+→ SOURCE VERSIONING
+→ DOCUMENT VERSIONING
+→ PROVENANCE
+→ QUALITY / FRESHNESS / REVOCATION POLICY
+→ QUARANTINE OR HOLD
+→ GOVERNED PUBLICATION RELEASE
+→ RUNTIME-ELIGIBLE KNOWLEDGE
+
+Invariants:
+AUTO_DOWNLOAD_REQUIRED (target architecture)
+AUTO_PUBLISH_WITHOUT_GOVERNANCE_FORBIDDEN
+
+Three knowledge states:
+RAW_OR_QUARANTINED
+NORMALIZED_REVIEWABLE
+PUBLISHED_RUNTIME_ELIGIBLE  ← only state consumable by orchestrator/LLM
+
+Fail closed for:
+unknown publisher, domain mismatch, unclear license/terms,
+unapproved acquisition method, security anomaly, content-type mismatch,
+checksum anomaly, parser uncertainty, conflicting medical content,
+stale/revoked guidance, missing provenance, unknown jurisdiction,
+provider identity ambiguity, legal hold, governance hold
+```
+
+Per-candidate feasibility (repository-only):
+
+```text
+Group A/B HTML sources: automatic-fetch feasible only after overlay+approval;
+  method=html_page; cadence from fetch_interval_hours (typically 168);
+  source_fetch_enabled remains false until separate Gates.
+
+NICE / Iran Group C: automatic discovery/fetch NOT authorized until E2+product/legal;
+  fetch_interval_hours=null; robots_terms_status deferred_restricted or pending_review.
+```
+
+This Gate designs only — no discovery/fetch/storage/parse/schedule/publication executed.
+
+### ۹۳.۱۱ Continuous Intelligence و هویت مراقبتی
+
+```text
+Law: CONTINUOUS_IMPROVEMENT_MANDATORY
+Forbidden: UNCONTROLLED_SELF_MODIFICATION
+
+Lifecycle:
+OBSERVE → COLLECT AUTHORIZED FEEDBACK → DISCOVER GOVERNED KNOWLEDGE
+→ VALIDATE → VERSION → EVALUATE AGAINST BASELINE → SAFETY REVIEW
+→ APPROVE → CONTROLLED ROLLOUT → MONITOR → ACCEPT OR ROLLBACK → REPEAT
+
+Boundaries:
+USER_MEMORY_NOT_GLOBAL_MODEL_TRUTH
+NO_CROSS_USER_LEARNING
+NO_SILENT_MEDICAL_POLICY_MUTATION
+NO_DIRECT_RUNTIME_USE_OF_NEWLY_FETCHED_CONTENT
+NO_FALSE_HUMAN_OR_CLINICIAN_CLAIM
+
+Version/audit surfaces:
+capability, knowledge release, source-policy, prompt/policy,
+model (when applicable), evaluation-suite, safety result,
+rollout, rollback target, monitoring state
+
+Minimum future metrics:
+knowledge freshness coverage; authoritative-source coverage;
+citation completeness; grounding success; unsupported-claim rate;
+hallucination rate; missing-info detection; repeated-question rate;
+personalization correctness; safety FN/FP; memory contradiction;
+user correction; multilingual parity; rollback readiness
+
+Product identity preserved:
+human-centered, caring, calm, empathetic, trustworthy, responsible,
+proactive, non-judgmental, long-term oriented
+
+Truth boundary:
+Sedi is an intelligent health-care agent.
+Sedi must not claim to be a human, physician or licensed clinician.
+Healthy longevity is a mission, not a guaranteed outcome.
+```
+
+### ۹۳.۱۲ پیش‌نیازهای Dry-Run Allowlist
+
+قبل از افزودن هر کاندید به allowlist dry-run آینده، همه باید برقرار باشند:
+
+```text
+source profile exists
+source identity immutable
+required evidence overlay exists AND approved
+license/terms pass
+authority pass
+jurisdiction pass
+language pass
+trust tier pass
+provenance complete
+not stale / not revoked / not quarantined
+required legal/product approvals exist
+target environment separately approved
+dry-run package separately approved
+```
+
+```text
+Seed-script support alone ≠ allowlist eligibility
+```
+
+### ۹۳.۱۳ ماتریس مالک/تصمیم (خلاصه)
+
+```text
+Exact owner-decision count: 10
+(reconciled against the 10 distinct decision rows below; no merge/split)
+```
+
+| # | Decision | Primary owner | Dependencies | Evidence required | Closure criterion | Exact future Gate | Blocking |
+|---|---|---|---|---|---|---|---|
+| 1 | Explicit overlays for 9 non-hold sources | Governance | Legal; E2 external evidence | approved license/authority/jurisdiction overlays | approved overlay rows for all 9 | E2 then E3 | Blocking |
+| 2 | NICE reuse/clinical eligibility | Legal | Javad (product); external NICE terms | written reuse/terms memo | memo + product decision recorded | E2 NICE | Blocking |
+| 3 | Iran directory product scope | Javad | Legal; Provider Verification | written product scope (UI vs knowledge) | written product decision | E2 Iran | Blocking |
+| 4 | IRIMC verification partnership | Javad | Legal; external IRIMC | partnership/API/robots terms | partnership/API terms accepted | E2 Iran | Blocking |
+| 5 | Lab accreditation policy (drdr_ir) | Javad | Provider Verification; Legal | accreditation vs directory rule | accreditation rule recorded | E2 Iran | Blocking |
+| 6 | Overlay schema implementation | Backend | E1-B1 local docs commit | implemented overlay design + tests | E3–E7 CI closed | E3 | Blocking |
+| 7 | Target environment selection | Javad | DevOps; E7 closure | named approved environment | E8 approval recorded | E8 | Blocking |
+| 8 | First dry-run | Javad | E8; approved allowlist | dry-run package + allowlist | E9–E10 completed | E9 | Blocking |
+| 9 | Apply | Javad | E10 dry-run evidence audit | apply approval package | E11–E13 completed | E11 | Blocking |
+| 10 | Continuous metrics baseline | Data/Knowledge | Medical/Safety; P6/R1 | metric owner assignments | metric owners assigned | post-S1 | Non-blocking |
+
+```text
+Owner-decision count check: rows 1..10 = 10
+Every row has primary owner, dependencies, evidence required,
+closure criterion, exact future Gate, blocking status
+No unknown owner; no multi-owner row without one primary owner
+```
+
+### ۹۳.۱۴ ماتریس ریسک (حداقلی)
+
+| Risk | Sev | Likelihood | Preventive | Detective | Owner | Future |
+|---|---|---|---|---|---|---|
+| evidence fabrication | BLOCKER | med | fail-closed; no invent | audit overlay provenance | Governance | E3–E4 |
+| incorrect dedup | MAJOR | med | source_key identity rule | conflict tests P1 | Backend | E3 |
+| license/terms violation | BLOCKER | med | Legal overlay required | policy_evaluator | Legal | E2 |
+| jurisdiction mismatch | MAJOR | med | jurisdiction_scope overlay | P1 coerce | Governance | E3 |
+| stale medical guidance | MAJOR | high | freshness_policy | freshness_status | Medical/Safety | P4–P6 |
+| revoked guidance | BLOCKER | low | revocation state | release checks | Governance | P6 |
+| provider identity mismatch | BLOCKER | med | IRIMC verification | cross-check policy | Provider Verification | E2 Iran |
+| unverified physician/facility | BLOCKER | med | no publish without verify | quarantine | Provider Verification | E2 |
+| incorrect authority tier | MAJOR | med | AuthorityTier enum | coerce tests | Governance | E3 |
+| parser corruption | MAJOR | med | P2 integrity | checksum | Backend | P2 |
+| prompt injection in content | BLOCKER | med | security check stage | quarantine | Security | P2–P4 |
+| malicious document | BLOCKER | low | content-type + size limits | quarantine | Security | P2 |
+| raw→published bypass | BLOCKER | med | three-state isolation | R2 PRE_PUBLISH | Governance | R2/P6 |
+| publication without approval | BLOCKER | med | P5/P6 gates | policy deny | Governance | P5–P6 |
+| cross-user learning | BLOCKER | low | NO_CROSS_USER_LEARNING | privacy review | Security | continuous |
+| silent policy mutation | BLOCKER | low | versioned policies | audit trail | Governance | continuous |
+| uncontrolled self-mod | BLOCKER | low | approval+rollout | monitoring | Product | continuous |
+| missing rollback | MAJOR | med | rollback target required | drill | DevOps | continuous |
+| citation lineage loss | MAJOR | med | provenance P4 | citation metrics | Data/Knowledge | P4 |
+| scheduler unauthorized publish | BLOCKER | med | S1 auth adapter | deny-by-default | Backend | S1 |
+
+### ۹۳.۱۵ تجزیه Gateهای آینده E1-B … E13
+
+```text
+E1-B1 Docs-only local commit of §93 after separate explicit Javad approval
+      Allowlist: master-log only | No code | Owner: Javad
+      Does NOT authorize push, CI, or network
+
+E1-B2 Read-only verification of the created commit SHA, parent, subject,
+      tree and exact file list; later separate Javad approval for
+      normal non-force push
+      Does NOT authorize CI unless separately approved
+
+E2    External evidence collection + source validation
+      Network/legal collection authorized only here | No seed apply
+
+E3    Evidence-overlay architecture + uncommitted implementation
+E4    Strict implementation audit + in-scope repair
+E5    Overlay commit + non-force push
+E6    Controlled CI
+E7    Closure documentation
+
+E8    Target-environment selection approval
+E9    Controlled P1-L1 dry-run (approved allowlist only)
+E10   Dry-run evidence audit
+E11   Separate apply approval
+E12   Controlled apply in explicitly approved environment
+E13   Post-apply verification and closure
+```
+
+E1-B approval invariants (locked):
+
+```text
+LOCAL COMMIT APPROVAL DOES NOT AUTHORIZE PUSH
+COMMIT VERIFICATION IS READ-ONLY
+PUSH REQUIRES A LATER EXPLICIT JAVAD APPROVAL
+NO CI IS AUTHORIZED BY THE LOCAL COMMIT GATE
+NO CI IS AUTHORIZED BY THE PUSH GATE UNLESS SEPARATELY APPROVED
+
+Mandatory sequence:
+1. P1_L1_EVIDENCE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+2. P1_L1_EVIDENCE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+3. P1_L1_EVIDENCE_REVIEW_DOCS_PUSH_APPROVAL
+```
+
+E2–E13 ordering preserved; no renumbering of E2–E13.
+
+Each Gate retains: purpose, entry criteria, allowlist, prohibited ops, required evidence, exit criteria, owner, approval boundary.
+
+### ۹۳.۱۶ حفظ roadmap I5-B2 (بدون بازترتیب)
+
+```text
+P2: raw content, acquisitions, fetch runs, attempts, filesystem storage
+P3: governed source versions
+P4: documents, provenance, document versions, lifecycle events/projections
+P5: human approval records, events, projections
+P6: policy decisions, release evidence, immutable releases, projections
+R1: shadow PRE_FETCH orchestration
+R2: shadow PRE_PUBLISH orchestration
+S1: scheduler authorization adapter
+
+Weekly automated discovery/fetch only after governance + release + scheduler
+boundaries are implemented and accepted.
+```
+
+### ۹۳.۱۷ ممیزی داخلی
+
+```text
+Prior review iterations: 2 (EOR-A1..EOR-A6)
+Continuation Fix1 iteration: 1 (EOR-R1..EOR-R3)
+Total audit iterations: 3
+
+EOR-A1 Catalog PROPOSAL must not imply ELIGIBLE_WITH_EXISTING
+  → CLOSED_BY_VERIFIED_FIX (0 eligible-with-existing; 9 after-overlay)
+
+EOR-A2 page_key vs source_key identity confusion
+  → CLOSED_BY_VERIFIED_FIX (identity rule; pages out-of-scope as candidates)
+
+EOR-A3 Gate taxonomy vs code EligibilityClass mapping undocumented
+  → CLOSED_BY_VERIFIED_FIX (§93.۵ mapping table)
+
+EOR-A4 drdr_ir lab_directory vs provider_directory
+  → CLOSED_BY_VERIFIED_FIX (lab class called out; Iran hold matrix)
+
+EOR-A5 Incomplete owner/closure on NICE vs Iran split
+  → CLOSED_BY_VERIFIED_FIX (Legal primary NICE; Javad primary Iran)
+
+EOR-A6 Risk of fabricating license from license_notes
+  → CLOSED_BY_VERIFIED_FIX (reinterpretation rules locked)
+
+EOR-R1 Exact owner-decision count missing (MAJOR)
+  Root cause: report used non-exact "10+" wording
+  Correction: counted 10 distinct decision rows; recorded exact integer 10
+  Regression proof: matrix summary + exact-count summary reconcile to 10
+  Status: CLOSED_BY_VERIFIED_FIX
+
+EOR-R2 Exact Iran candidate-class count missing (MINOR)
+  Root cause: Iran rows=6 existed but class count/names omitted
+  Correction: Iran classes=2 (provider_directory, lab_directory);
+              provider_directory rows=5; lab_directory rows=1; 5+1=6
+  Regression proof: reconciled against Group C matrix in §93.۵ / §93.۸
+  Status: CLOSED_BY_VERIFIED_FIX
+
+EOR-R3 Local commit and push approvals combined (MAJOR)
+  Root cause: single COMMIT_PUSH next-Gate marker
+  Correction: E1-B split into E1-B1 local commit and E1-B2 verify+later push;
+              exact next Gate = LOCAL_COMMIT_APPROVAL only
+  Regression proof: three distinct approval states locked in §93.۱۵ / §93.۱۹
+  Status: CLOSED_BY_VERIFIED_FIX
+
+Prior findings fixed: 6
+Continuation findings fixed: 3
+Total findings fixed: 9
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+### ۹۳.۱۷ب خلاصه شمارش‌های دقیق (Reconciled)
+
+```text
+repository candidates: 16
+eligible with existing repository evidence: 0
+eligible after explicit evidence overlay: 9
+legal/governance blocked: 1
+Javad-product-decision blocked: 6
+ineligible: 0
+out-of-scope non-source objects (within 16): 0
+NICE-related candidates: 1
+Iran candidate rows: 6
+Iran candidate classes: 2
+provider_directory rows: 5
+lab_directory rows: 1
+risks: 20
+owner decisions: 10
+audit iterations: 3
+findings fixed: 9
+remaining findings: 0
+```
+
+### ۹۳.۱۸ ممنوعیت‌های تأییدشده این Gate
+
+```text
+NO external evidence collection
+NO network / web search / HTTP fetch
+NO implementation / DB / seed / dry-run / apply
+NO stage / commit / push / CI
+NO P2 implementation
+```
+
+### ۹۳.۱۹ Manifest و گام بعدی
+
+```text
+P1_L1_EVIDENCE_REVIEW_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+P1_L1_EVIDENCE_REVIEW_COMMIT_MANIFEST_END
+
+Future commit subject:
+docs(governance): scope P1-L1 evidence overlay review
+
+Exact next Gate:
+P1_L1_EVIDENCE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+
+Later separate Gates (not authorized now):
+P1_L1_EVIDENCE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+P1_L1_EVIDENCE_REVIEW_DOCS_PUSH_APPROVAL
+```
+
+### ۹۳.۲۰ نشانگرها
+
+```text
+P1_L1_EVIDENCE_OVERLAY_SCOPE_REVIEW_COMPLETE
+REPOSITORY_CANDIDATES_INVENTORIED
+NO_EVIDENCE_FABRICATED
+NICE_HOLD_MAPPED
+IRAN_PROVIDER_LAB_HOLDS_MAPPED
+OVERLAY_CONTRACT_PROPOSED
+AUTOMATED_GOVERNED_INGESTION_REQUIREMENTS_LOCKED
+BLIND_AUTO_PUBLICATION_FORBIDDEN
+CONTINUOUS_INTELLIGENCE_REQUIREMENTS_LOCKED
+MEASURABLE_IMPROVEMENT_BASELINE_DEFINED
+VERSIONING_MONITORING_ROLLBACK_REQUIRED
+HUMAN_CENTERED_CARE_IDENTITY_PRESERVED
+OWNER_CLOSURE_MATRIX_COMPLETE
+DRY_RUN_ALLOWLIST_PREREQUISITES_LOCKED
+P2_TO_S1_ROADMAP_PRESERVED
+EOR_R1_CLOSED
+EOR_R2_CLOSED
+EOR_R3_CLOSED
+EXACT_OWNER_DECISION_COUNT_RECORDED
+EXACT_IRAN_ROW_COUNT_RECORDED
+EXACT_IRAN_CLASS_COUNT_RECORDED
+COMMIT_AND_PUSH_APPROVALS_SEPARATED
+E1_B1_LOCAL_COMMIT_GATE_LOCKED
+E1_B2_VERIFICATION_AND_PUSH_GATE_LOCKED
+ALL_EXACT_COUNTS_RECONCILED
+ALL_IN_SCOPE_FINDINGS_FIXED
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+MASTER_LOG_93_CORRECTED
+MASTER_LOG_94_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_EVIDENCE_REVIEW_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+---
+*پایان §93 — Package 15-I5-B2-P1-L1 Evidence Overlay Scope Review — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۹۴) بسته 15-I5-B2-P1-L1 — کامیت محلی مستندات Evidence Review
+
+```text
+Package:
+15-I5-B2-P1-L1-EVIDENCE-REVIEW-DOCS-LOCAL-COMMIT
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+
+Evidence Overlay Scope Review status:
+P1_L1_EVIDENCE_OVERLAY_SCOPE_REVIEW_COMPLETE
+
+Review baseline:
+b894806ada6e170fefd865a2e86af4e5793e42a8
+
+Scope Review counts:
+repository candidates = 16
+eligible with existing evidence = 0
+eligible after explicit overlay = 9
+legal/governance blocked = 1
+Javad-product blocked = 6
+NICE-related candidates = 1
+Iran candidate rows = 6
+Iran candidate classes = 2
+provider_directory rows = 5
+lab_directory rows = 1
+risks = 20
+owner decisions = 10
+audit iterations = 3
+findings fixed = 9
+remaining findings = 0
+
+Finding status:
+EOR-A1 through EOR-A6 closed
+EOR-R1 through EOR-R3 closed
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Approved commit subject:
+docs(governance): scope P1-L1 evidence overlay review
+
+Approved commit manifest:
+P1_L1_EVIDENCE_REVIEW_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+P1_L1_EVIDENCE_REVIEW_COMMIT_MANIFEST_END
+
+Approval boundaries:
+local commit authorized
+push not authorized
+CI not authorized
+external evidence collection not authorized
+E2 not authorized
+P2 not authorized
+seed/dry-run/apply not authorized
+migration/deploy/flag activation not authorized
+
+Current state before commit:
+tests not run
+network not used
+external evidence not collected
+
+Expected next Gate after successful commit:
+P1_L1_EVIDENCE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
+```
+
+### ۹۴.۱ نشانگرها
+
+```text
+MASTER_LOG_94_APPENDED
+ONE_FILE_LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+CI_NOT_AUTHORIZED
+READY_FOR_COMMIT_READ_ONLY_VERIFICATION
+```
+
+---
+*پایان §94 — Package 15-I5-B2-P1-L1 Evidence Review Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
