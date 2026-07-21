@@ -5951,3 +5951,937 @@ READY_FOR_I5_B2_A1_COMMIT_SCOPE_REREVIEW
 
 ---
 *پایان §77 — Package 15-I5-B2-A1-PreCommit-Closure — ۲۰۲۶-۰۷-۱۹*
+
+## ۷۸) بسته 15-I5-B2-A1 CI Closure و پیش‌پرواز P1 (Source Identity / Immutable Profile)
+
+```text
+Package:
+15-I5-B2-P1-Source-Identity-Immutable-Profile-Preflight
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Status:
+A1_CI_CLOSURE_RECORDED_UNCOMMITTED
+P1_PREFLIGHT_COMPLETE_UNCOMMITTED
+P1_IMPLEMENTATION_NOT_STARTED
+```
+
+### ۷۸.۱ بستن شواهد CI بسته A1
+
+```text
+Commit SHA:
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Subject:
+feat(governance): add I5-B2 A1 boundary adapters
+
+Workflow:
+Backend V1 freeze tests
+
+Workflow ID:
+231820481
+
+Run ID:
+29696570772
+
+Run URL:
+https://github.com/javadmeighani-oss/sedi-backend/actions/runs/29696570772
+
+Event:
+workflow_dispatch
+
+Head branch:
+feature/section15/backend-continuity-foundation
+
+Head SHA:
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Conclusion:
+success
+```
+
+نتیجهٔ A1 (از لاگ verbose):
+
+```text
+A1 path:
+backend/tests/test_section15_i5b2_a1_adapters.py
+
+A1:
+78 passed
+0 failed
+0 errors
+```
+
+نتیجهٔ کامل گام Section 15:
+
+```text
+835 passed
+0 failed
+0 errors
+1 warning
+5.24 seconds
+```
+
+تأییدهای اجرایی:
+
+* سرویس PostgreSQL (`postgres:15`) در Initialize containers موفق بود؛
+* `Run migrations (test DB)` موفق بود؛
+* گام `Section 15 backend foundation tests` اجرا شد و skip نشد؛
+* مسیر A1 در دستور واقعی pytest ظاهر شد؛
+* خطوط verbose PASS برای A1 وجود دارد (۷۸ مورد)؛
+* شکست pytest سرکوب نشد؛
+* dispatch دوم یا rerun انجام نشد.
+
+هشدار غیرمسدودکننده:
+
+```text
+StarletteDeprecationWarning (conftest TestClient / httpx)
+NON_BLOCKING
+```
+
+```text
+A1 status:
+CI_VERIFIED_AND_CLOSED
+```
+
+### ۷۸.۲ Baseline پیش‌پرواز P1
+
+```text
+Worktree:
+D:\Rimiya Design Studio\Sedi\software\Demo-wt-section15-backend
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+HEAD / upstream / remote feature:
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Ahead/behind:
+0 / 0
+
+Working tree at preflight start:
+CLEAN
+
+origin/main recorded:
+89b79ad3fc20236a23ffae65fd868aafb60843e8
+
+Alembic head (no 051 yet):
+050_gate4_event_idem
+```
+
+### ۷۸.۳ موجودی governance / persistence جاری
+
+معماری قفل‌شده (I5-B1):
+
+```text
+SOURCE_PROFILE_VERSION_STRATEGY =
+CURRENT_PROFILE_PLUS_IMMUTABLE_PROFILE_VERSION
+
+LEGACY_COMPATIBILITY_STRATEGY =
+CONTROLLED_SEED_WITH_FAIL_CLOSED_LEGACY_READ_MAPPING
+
+automatic_publication_allowed = False
+```
+
+موجودی:
+
+* A1 pure adapters (`kb_b2_adapters.py`) — بدون ORM؛
+* B1 contracts + lifecycle mapping — enumها و field-lock برنامه‌ریزی؛ بدون جداول P1؛
+* تنها registry پایدار KB: `knowledge_sources` (+ documents/chunks/ingestion_runs) تحت Gate 3؛
+* هیچ جدول/مدل `GovernedSourceProfile*` وجود ندارد؛
+* هیچ trigger دیتابیسی در migrations یافت نشد؛
+* PK/FK متداول: Integer؛ timestamps: DateTime + now()؛ وضعیت‌ها: String نه Postgres ENUM؛
+* Gate 3 `ingestion_status` / `source_fetch_enabled` مرجع legacy است و با `SourceOperationalStatus` یکی نیست — نگاشت فقط از طریق B1/A1.
+
+تعارض موازی حاکمیتی مسدودکننده یافت نشد: legacy Gate 3 باقی می‌ماند؛ P1 companion حکومتی fail-closed اضافه می‌کند.
+
+### ۷۸.۴ مرز پیشنهادی موجودیت‌ها و migration 051
+
+```text
+GovernedSourceProfile
+= هویت پایدار منبع + اشاره‌گر نسخهٔ جاری + وضعیت عملیاتی جاری
+  (+ مرجع legacy کنترل‌شده + شمارندهٔ هم‌زمانی در صورت نیاز)
+
+GovernedSourceProfileVersion
+= اسنپ‌شات immutable شواهد حاکمیتی
+
+Migration planned (NOT created in this package):
+051_i5b2_governed_source_profile.py
+down_revision = 050_gate4_event_idem
+```
+
+توصیهٔ migration 051:
+
+1. فقط ایجاد جداول/قیدها/ایندکس‌ها (additive، بدون شبکه/fetch/انتشار/scheduler)؛
+2. مرجع nullable سازگاری به `knowledge_sources.id` مجاز است؛
+3. seed کنترل‌شده در 051 انجام نشود — عملیات جداگانهٔ تأییدشدهٔ بعدی ترجیح دارد.
+
+توصیهٔ عملیاتی:
+
+```text
+Canonical fetch-eligible state remains:
+ENABLED_IDLE
+
+No independent alias table (e.g. active -> ENABLED_IDLE).
+Current operational status lives on GovernedSourceProfile.
+Historical eligibility reconstructable via immutable version snapshot
++ B1 mapping authority (not a second alias registry).
+```
+
+باز بودن تصمیم (برای تأیید جواد قبل از پیاده‌سازی):
+
+* توزیع دقیق فیلدهای `I5_B2_REQUIRED_PERSISTENCE_FIELDS.governed_source_profile`
+  (source_class / license / jurisdiction / …) بین ردیف current در برابر اسنپ‌شات immutable؛
+* محل seed کنترل‌شده (بستهٔ جدا vs بخشی از P1 پیاده‌سازی)؛
+* نوع ذخیره‌سازی اسنپ‌شات (Text JSON مطابق KB legacy در برابر dialect JSONB مطابق Gate 5).
+
+### ۷۸.۵ دامنهٔ پیشنهادی پیاده‌سازی بعدی (فقط طرح)
+
+```text
+ADD (proposed later):
+- ORM: GovernedSourceProfile + GovernedSourceProfileVersion (models.py)
+- service/repository boundary for create / append-version / set-current / get
+- optional controlled-seed module if separately approved into P1
+
+MIGRATION (proposed later):
+- 051_i5b2_governed_source_profile.py
+
+TEST (proposed later):
+- backend/tests/test_section15_i5b2_p1_source_profile.py
+  (identity, uniqueness, immutability, concurrency, fail-closed,
+   migration upgrade/downgrade on PostgreSQL CI)
+
+DOCUMENTATION:
+- master log updates after approved implementation packages
+
+WORKFLOW:
+- append P1 test path to Section 15 step when tests exist
+
+DEFER to P3+:
+- acquisition/raw object, fetch-run orchestration, scheduler wiring,
+  publication/release, broad ingestion repositories
+```
+
+### ۷۸.۶ وضعیت و عملیات انجام‌نشده
+
+```text
+P1_IMPLEMENTATION_NOT_STARTED
+
+NO_TEST
+NO_MODEL_OR_ORM_EDIT
+NO_MIGRATION_FILE
+NO_STAGE
+NO_COMMIT
+NO_PUSH
+NO_CI_DISPATCH
+NO_RUNTIME_WIRING
+NO_SCHEDULER_ACTIVATION
+NO_DEPLOY
+NO_FLAG_ACTIVATION
+```
+
+### ۷۸.۷ گام بعدی دقیق
+
+```text
+REVIEW_P1_PREFLIGHT_AND_SCOPE_PROPOSAL
+```
+
+P1 را بدون تأیید صریح جداگانهٔ جواد پیاده‌سازی نکنید.
+
+### ۷۸.۸ نشانگرها
+
+```text
+I5_B2_A1_CI_CLOSURE_RECORDED_UNCOMMITTED
+I5_B2_A1_CI_VERIFIED_AND_CLOSED
+I5_B2_P1_PREFLIGHT_COMPLETE
+P1_IMPLEMENTATION_NOT_STARTED
+READY_FOR_I5_B2_P1_SCOPE_REVIEW
+```
+
+---
+*پایان §78 — Package 15-I5-B2-A1 CI Closure و پیش‌پرواز P1 — ۲۰۲۶-۰۷-۱۹*
+
+## ۷۹) بسته 15-I5-B2-P1 — پیاده‌سازی uncommitted هویت منبع و نسخهٔ immutable
+
+```text
+Package:
+15-I5-B2-P1
+Source Identity and Immutable Governed Source Profile Versions
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Status:
+IMPLEMENTED_UNCOMMITTED
+TESTS_WRITTEN_NOT_RUN
+MIGRATION_CREATED_NOT_EXECUTED
+```
+
+### ۷۹.۱ Baseline و دامنه
+
+```text
+Baseline HEAD (unchanged):
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Dirty scope before this package:
+M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+(§78 preserved)
+
+Exact six-path allowlist:
+MODIFY:
+  backend/app/models.py
+  .github/workflows/ci-backend-tests.yml
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+ADD:
+  backend/app/services/governance/kb_b2_source_profile_persistence.py
+  backend/alembic/versions/051_i5b2_governed_source_profile.py
+  backend/tests/test_section15_i5b2_p1_source_profile.py
+```
+
+### ۷۹.۲ تصمیم‌های D1–D4 (مصوب در پیاده‌سازی)
+
+```text
+D1 Field authority:
+GovernedSourceProfile = stable identity + current pointer + operational projection
+  + optional legacy FK + row_version + timestamps
+GovernedSourceProfileVersion = explicit typed governance-evidence columns
+  (no generic Text/JSON/JSONB authority blob)
+B1 planning field-lock values that are versioned evidence live on the version row;
+current operational_status projection remains on the profile.
+
+D2 Legacy seed:
+NOT in P1. Deferred to 15-I5-B2-P1-L1-CONTROLLED-LEGACY-COMPANION-SEED.
+Migration 051 performs no seed/backfill/activation.
+
+D3 Snapshot storage:
+Explicit typed columns only; fingerprint = SHA-256 of canonical serialization
+of those columns + snapshot_schema_version (i5b2_p1_v1). No authority blob.
+
+D4 Locator uniqueness:
+UNIQUE(locator_kind, normalized_locator); both null for no-locator rows.
+No alias/redirect table.
+```
+
+### ۷۹.۳ مدل‌ها و قیدها
+
+```text
+Tables:
+governed_source_profiles
+governed_source_profile_versions
+
+Default operational_status:
+disabled (SourceOperationalStatus.DISABLED / FailClosedDefaults)
+NOT enabled_idle
+
+Constraints:
+UNIQUE(canonical_key)
+UNIQUE(legacy_knowledge_source_id)
+UNIQUE(locator_kind, normalized_locator)
+UNIQUE(profile_id, version_seq)
+UNIQUE(profile_id, snapshot_fingerprint)
+UNIQUE(profile_id, id)  -- composite target for same-profile current pointer
+FK legacy -> knowledge_sources.id ON DELETE SET NULL
+Deferred composite FK:
+  (profile.id, profile.current_profile_version_id)
+  -> (version.profile_id, version.id)
+No database triggers.
+```
+
+### ۷۹.۴ سرویس persistence
+
+```text
+Module:
+backend/app/services/governance/kb_b2_source_profile_persistence.py
+
+Operations:
+create_or_get_profile
+get_profile / get_profile_by_canonical_key
+get_current_profile_version / get_exact_profile_version
+append_profile_version (row lock + optional CAS on row_version/current)
+reject_immutable_version_mutation
+assert_no_legacy_seed_in_p1
+
+Concurrency:
+SELECT ... FOR UPDATE on profile; expected_row_version / expected_current_version_id;
+fail-closed; no automatic retry loop.
+
+Fingerprint scope:
+explicit governance fields + snapshot_schema_version + effective_at;
+excludes DB ids, version_seq, created_at.
+```
+
+### ۷۹.۵ Migration 051
+
+```text
+File:
+backend/alembic/versions/051_i5b2_governed_source_profile.py
+
+revision:
+051_i5b2_governed_source_profile
+
+down_revision:
+050_gate4_event_idem
+
+Executed in this package:
+NO
+```
+
+### ۷۹.۶ تست‌ها و workflow
+
+```text
+Test file:
+backend/tests/test_section15_i5b2_p1_source_profile.py
+
+Test functions written:
+27
+
+Parametrized extra cases:
+5 (governance evidence validation)
+
+Approximate authored cases:
+31
+
+Executed in this package:
+NO
+
+Workflow path added:
+backend/tests/test_section15_i5b2_p1_source_profile.py
+(after A1 path; existing paths preserved)
+
+Workflow executed:
+NO
+```
+
+### ۷۹.۷ خارج از دامنه
+
+```text
+NO legacy seed
+NO P2 / P3 (raw acquisition, fetch-run, publication, provenance, approvals)
+NO runtime wiring / router / OpenAPI
+NO scheduler / feature-flag / deploy
+NO __init__.py change
+```
+
+### ۷۹.۸ وضعیت
+
+```text
+IMPLEMENTED_UNCOMMITTED
+TESTS_WRITTEN_NOT_RUN
+MIGRATION_CREATED_NOT_EXECUTED
+STAGED = EMPTY
+HEAD unchanged = d92cd4292b9d47855c63dd6a341e46a26b033fd1
+```
+
+گام بعدی دقیق: ممیزی سختگیرانهٔ فقط-خواندنی diff پکیج P1.
+
+### ۷۹.۹ نشانگرها
+
+```text
+I5_B2_P1_IMPLEMENTED_UNCOMMITTED
+MIGRATION_051_CREATED_NOT_EXECUTED
+P1_TESTS_WRITTEN_NOT_RUN
+P1_WORKFLOW_PATH_ADDED_NOT_RUN
+MASTER_LOG_79_APPENDED
+READY_FOR_I5_B2_P1_STRICT_DIFF_AUDIT
+```
+
+---
+*پایان §79 — Package 15-I5-B2-P1 Implementation — ۲۰۲۶-۰۷-۱۹*
+
+---
+
+## ۸۰) بسته 15-I5-B2-P1-Fix1 — بستن کامل یافته‌های ممیزی سختگیرانه P1 (uncommitted)
+
+```text
+Package:
+15-I5-B2-P1-Fix1
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Prior strict P1 audit verdict:
+NEEDS_FIX
+
+Javad instruction:
+No BLOCKER / MAJOR / MINOR / actionable NOTE may be deferred silently.
+All current audit findings close in Fix1.
+
+Status:
+P1_FIX1_IMPLEMENTED_UNCOMMITTED
+TESTS_UPDATED_NOT_RUN
+MIGRATION_051_UPDATED_NOT_EXECUTED
+```
+
+### ۸۰.۱ Baseline و دامنهٔ دقیق پنج مسیر
+
+```text
+Baseline HEAD (unchanged):
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Upstream / remote feature:
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+ahead/behind: 0 / 0
+
+origin/main:
+89b79ad3fc20236a23ffae65fd868aafb60843e8
+
+Exact Fix1 allowlist (five paths only):
+MODIFY:
+  backend/app/services/governance/kb_b2_source_profile_persistence.py
+  backend/app/models.py
+  backend/alembic/versions/051_i5b2_governed_source_profile.py
+  backend/tests/test_section15_i5b2_p1_source_profile.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+FORBIDDEN in Fix1:
+  .github/workflows/ci-backend-tests.yml
+  (remains dirty from original P1; byte/diff-equivalent; no Fix1 change)
+
+Preserved:
+§§78–79 P1 implementation record
+six-path full dirty scope (workflow + five Fix1 paths)
+STAGED = EMPTY
+```
+
+### ۸۰.۲ یافته‌های ممیزی F1–F9 (همه بسته شده)
+
+```text
+F1 BLOCKER  Silent current-pointer rollback     → ADDRESSED_IN_FIX1
+F2 MAJOR    Missing high-risk tests             → ADDRESSED_IN_FIX1
+F3 MAJOR    URL locator over-normalization      → ADDRESSED_IN_FIX1
+F4 MAJOR    Missing locator-pair DB constraint  → ADDRESSED_IN_FIX1
+F5 MAJOR    Cross-profile supersedes integrity  → ADDRESSED_IN_FIX1
+F6 MAJOR    Master-log risk omission            → ADDRESSED_IN_FIX1
+F7 MINOR    Unused timedelta import             → ADDRESSED_IN_FIX1
+F8 NOTE     Service-level immutability honesty  → NON_ACTIONABLE_NOTE_WITH_EXPLICIT_BOUNDARY
+F9 NOTE     PostgreSQL-only integrity CI-gated  → NON_ACTIONABLE_NOTE_WITH_EXPLICIT_BOUNDARY
+```
+
+### ۸۰.۳ اصلاحات پیاده‌سازی‌شده
+
+```text
+Silent rollback removal (F1):
+  Case A — already current: return matched; no pointer mutation; no row_version bump
+  Case B — other current exists: raise existing_fingerprint_is_not_current; no mutation
+  Case C — null pointer: initialize only if matched is latest version_seq; else fail closed
+  Case D — normal append preserved
+  Reason constant: existing_fingerprint_is_not_current
+
+Race-aware savepoint (concurrent same-fingerprint):
+  Nested session.begin_nested() around immutable version insert/flush
+  On IntegrityError: savepoint only; outer session remains usable
+  Resolve only when same profile_id + snapshot_fingerprint row exists
+  Else typed version_integrity_conflict
+  No internal commit; no full session.rollback() inside service; no retry loop
+
+URL locator normalization (F3):
+  urlsplit/urlunsplit; casefold scheme + IDNA host only
+  Preserve path/query/fragment/port; no DNS/redirect/slash/query-sort
+  Credential-bearing URLs fail closed (locator_credentials_forbidden)
+  Non-URL kinds: NFC + trim only
+
+Locator DB check (F4):
+  ck_governed_source_profiles_locator_pair
+  (both NULL) OR (both NOT NULL)
+  ORM + migration 051 parity
+
+Supersedes integrity (F5 — complete now, not deferred):
+  Composite FK fk_gspv_supersedes_same_profile
+    (profile_id, supersedes_version_id) → (profile_id, id)
+  Self-check ck_gspv_supersedes_not_self
+  Service multi-hop cycle walk with visited set + bound = version_count+1
+  Fail closed on corrupted cycles; no silent repair; no DB trigger
+
+Fingerprint / time:
+  Aware datetime required; naive rejected
+  Canonical UTC via strftime("%Y-%m-%dT%H:%M:%SZ")
+  Equivalent offsets → identical fingerprint
+  effective_at retained as governance evidence column (explicit)
+  schema version included; DB ids / created_at / version_seq excluded
+  SHA-256 UTF-8 deterministic field order; no repr()/locale
+
+IntegrityError / session contract:
+  Caller owns outer commit/rollback
+  Recoverable same-fingerprint race uses nested savepoint only
+  Unrelated integrity remains fail closed
+  Docstrings state responsibility truthfully
+
+Immutability boundary (F8 honesty):
+  Immutable through approved persistence service boundary.
+  No DB trigger.
+  Direct ORM/SQL mutation remains outside supported contract.
+```
+
+### ۸۰.۴ تست‌ها (نوشته شده — اجرا نشده)
+
+```text
+File:
+backend/tests/test_section15_i5b2_p1_source_profile.py
+
+Test functions:
+45
+
+Parametrized functions:
+1 (test_governance_evidence_validation_fail_closed)
+
+Parametrized runtime expansions:
+5
+
+Expected total collection count:
+49
+
+Coverage includes:
+  Cases A/B/C/D pointer policy (incl. Case C non-latest reject)
+  URL scheme/host casefold; path/query/trailing-slash inequality; credentials reject
+  Locator pair service + PG CHECK
+  Timezone-equivalent fingerprint; naive reject; order/schema
+  Supersedes cross-profile / self CHECK / linear / two-node cycle / multi-node cycle
+  PG race savepoint recovery; unrelated integrity not idempotent
+  Failed-session outer usability; sequence conflict fail closed
+  Immutability helper; no update API; no false DB-trigger expectation
+  Migration static parity markers; module purity; no P2/P3
+
+Executed in this package:
+NO
+
+PostgreSQL-only tests:
+Clearly gated via _require_postgres / CI; SQLite does not claim concurrency semantics.
+```
+
+### ۸۰.۵ Migration 051
+
+```text
+Updated (not executed):
+backend/alembic/versions/051_i5b2_governed_source_profile.py
+
+Still creates exactly two P1 tables
+Adds locator pair CHECK, self-supersedes CHECK, composite supersedes FK
+No seed / network / backfill / activation / P2 / P3
+```
+
+### ۸۰.۶ Workflow
+
+```text
+.github/workflows/ci-backend-tests.yml
+UNCHANGED by Fix1 (pre-Fix1 blob hash preserved)
+Remains dirty solely from original P1 path addition
+```
+
+### ۸۰.۷ وضعیت
+
+```text
+P1_FIX1_IMPLEMENTED_UNCOMMITTED
+TESTS_UPDATED_NOT_RUN
+MIGRATION_051_UPDATED_NOT_EXECUTED
+STAGED = EMPTY
+HEAD unchanged = d92cd4292b9d47855c63dd6a341e46a26b033fd1
+```
+
+گام بعدی دقیق: STRICT READ-ONLY P1-FIX1 AUDIT
+
+### ۸۰.۸ نشانگرها
+
+```text
+I5_B2_P1_FIX1_IMPLEMENTED_UNCOMMITTED
+ALL_CURRENT_AUDIT_FINDINGS_ADDRESSED
+MIGRATION_051_UPDATED_NOT_EXECUTED
+P1_TESTS_UPDATED_NOT_RUN
+MASTER_LOG_80_APPENDED
+WORKFLOW_UNCHANGED
+READY_FOR_P1_FIX1_STRICT_AUDIT
+```
+
+---
+*پایان §80 — Package 15-I5-B2-P1-Fix1 — ۲۰۲۶-۰۷-۱۹*
+
+---
+
+## ۸۱) بسته 15-I5-B2-P1-Fix2 — بستن کامل FIX1-A1 تا FIX1-A8 (uncommitted)
+
+```text
+Package:
+15-I5-B2-P1-Fix2
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Prior Fix1 strict audit verdict:
+NEEDS_FIX — READY_FOR_P1_FIX2_SCOPE_REVIEW
+
+Javad instruction:
+No FIX1-A1..A8 deferral. Close completely before test approval.
+
+Status:
+P1_FIX2_IMPLEMENTED_UNCOMMITTED
+TESTS_UPDATED_NOT_RUN
+MIGRATION_051_UPDATED_NOT_EXECUTED
+```
+
+### ۸۱.۱ Baseline و دامنهٔ پنج مسیر
+
+```text
+Baseline HEAD (unchanged):
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Upstream / remote feature:
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+ahead/behind: 0 / 0
+
+Exact Fix2 allowlist (five paths only):
+  backend/app/services/governance/kb_b2_source_profile_persistence.py
+  backend/app/models.py
+  backend/alembic/versions/051_i5b2_governed_source_profile.py
+  backend/tests/test_section15_i5b2_p1_source_profile.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+FORBIDDEN in Fix2:
+  .github/workflows/ci-backend-tests.yml
+  (dirty from original P1; Fix2 produces no workflow diff)
+
+Preserved:
+§§78–80
+six-path full dirty scope
+STAGED = EMPTY
+```
+
+### ۸۱.۲ یافته‌های Fix1 audit (همه بسته در Fix2)
+
+```text
+FIX1-A1 MAJOR  Silent microsecond fingerprint loss     → ADDRESSED_IN_FIX2
+FIX1-A2 MAJOR  Missing microsecond policy tests        → ADDRESSED_IN_FIX2
+FIX1-A3 MAJOR  IPv6 IDNA rejection / dead bracket path → ADDRESSED_IN_FIX2
+FIX1-A4 MAJOR  Missing IPv4/IPv6/IDNA URL tests        → ADDRESSED_IN_FIX2
+FIX1-A5 MINOR  Untyped URL parser ValueError           → ADDRESSED_IN_FIX2
+FIX1-A6 MAJOR  Missing PG current-pointer FK runtime   → ADDRESSED_IN_FIX2
+FIX1-A7 NOTE   Lock vs IntegrityError race docs        → ADDRESSED_IN_FIX2
+FIX1-A8 MINOR  ORM timestamp server_default parity     → ADDRESSED_IN_FIX2
+```
+
+### ۸۱.۳ اصلاحات پیاده‌سازی‌شده
+
+```text
+Microsecond-preserving fingerprint (A1/A2):
+  aware → UTC
+  isoformat(timespec="microseconds") then +00:00 → Z
+  always six digits (including .000000Z)
+  no silent truncate/round
+  offset-equivalent instants still collide correctly on identical UTC instant
+
+IPv4/IPv6/IDNA locator (A3/A4):
+  DNS host: IDNA + casefold; preserve port
+  IPv4/IPv6: ipaddress.ip_address canonical; no IDNA; IPv6 bracketed
+  path/query/fragment/slash/percent preserved
+  credentials / malformed IP / malformed port rejected
+  no DNS / redirect / query-sort / HTTP≈HTTPS
+
+Typed URL errors (A5):
+  urlsplit / .port / IDNA / reconstruction ValueError|UnicodeError
+  → locator_url_invalid (REASON_LOCATOR_URL_INVALID)
+  missing host remains locator_url_host_required
+  not misclassified as identity conflict
+
+PostgreSQL composite-FK runtime tests (A6):
+  cross-profile current pointer rejected at commit (deferred FK)
+  same-profile pointer accepted
+  supersedes cross-profile FK rejected at commit
+  locator-pair CHECK + self-supersedes CHECK retained
+  no SQLite claim for PG FK semantics
+
+Lock/savepoint boundary (A7):
+  Normal approved writers serialize on profile FOR UPDATE;
+  second compliant caller usually resolves in pre-check.
+  Savepoint/IntegrityError is final defense for lock-bypass /
+  external writers; uniqueness remains final invariant.
+  No internal commit / full outer rollback / retry loop.
+
+Timestamp ORM/migration parity (A8):
+  GovernedSourceProfile.created_at / updated_at
+  GovernedSourceProfileVersion.created_at
+  ORM server_default=func.now() aligns with migration sa.text("now()")
+  App-side default=datetime.utcnow retained
+  ORM onupdate=datetime.utcnow retained (app-level; no DB ON UPDATE trigger)
+  Migration 051 already had now(); no seed/backfill/network/P2/P3 added
+```
+
+### ۸۱.۴ تست‌ها (نوشته شده — اجرا نشده)
+
+```text
+File:
+backend/tests/test_section15_i5b2_p1_source_profile.py
+
+Test functions:
+57
+
+Parametrized functions:
+1
+
+Parametrized runtime expansions:
+5
+
+Expected total collection count:
+61
+
+Executed in this package:
+NO
+```
+
+### ۸۱.۵ Migration / workflow
+
+```text
+Migration 051:
+  timestamp server_default already now() — parity via ORM Fix2
+  NOT EXECUTED
+
+Workflow:
+  UNCHANGED by Fix2 (blob hash preserved from P1)
+```
+
+### ۸۱.۶ وضعیت
+
+```text
+P1_FIX2_IMPLEMENTED_UNCOMMITTED
+TESTS_UPDATED_NOT_RUN
+MIGRATION_051_UPDATED_NOT_EXECUTED
+STAGED = EMPTY
+HEAD unchanged = d92cd4292b9d47855c63dd6a341e46a26b033fd1
+```
+
+گام بعدی دقیق: STRICT READ-ONLY P1-FIX2 AUDIT
+
+### ۸۱.۷ نشانگرها
+
+```text
+I5_B2_P1_FIX2_IMPLEMENTED_UNCOMMITTED
+ALL_FIX1_A1_TO_A8_ADDRESSED
+MIGRATION_051_UPDATED_NOT_EXECUTED
+P1_TESTS_UPDATED_NOT_RUN
+MASTER_LOG_81_APPENDED
+WORKFLOW_UNCHANGED
+READY_FOR_P1_FIX2_STRICT_AUDIT
+```
+
+---
+*پایان §81 — Package 15-I5-B2-P1-Fix2 — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۸۲) بسته 15-I5-B2-P1 — کامیت و non-force push کنترل‌شده (پس از ممیزی Fix2)
+
+```text
+Package:
+15-I5-B2-P1-COMMIT-NONFORCE-PUSH
+
+Owner:
+Backend Gate 3 — Health Care System
+
+Approved by:
+Javad
+
+Explicit approval:
+controlled commit + one normal non-force push of statically accepted P1
+```
+
+### ۸۲.۱ Baseline پیش از کامیت
+
+```text
+Baseline HEAD (parent):
+d92cd4292b9d47855c63dd6a341e46a26b033fd1
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Ahead/behind before commit:
+0 / 0
+
+Staged before §82:
+EMPTY
+```
+
+### ۸۲.۲ شواهد ممیزی Fix2 (بدون تکرار ممیزی / بدون اجرای تست)
+
+```text
+Fix2 strict audit verdict:
+PASS — READY_FOR_P1_COMMIT_PUSH_APPROVAL
+
+FIX1-A1 CLOSED_BY_VERIFIED_FIX
+FIX1-A2 CLOSED_BY_VERIFIED_FIX
+FIX1-A3 CLOSED_BY_VERIFIED_FIX
+FIX1-A4 CLOSED_BY_VERIFIED_FIX
+FIX1-A5 CLOSED_BY_VERIFIED_FIX
+FIX1-A6 CLOSED_BY_VERIFIED_FIX
+FIX1-A7 CLOSED_BY_VERIFIED_FIX
+FIX1-A8 CLOSED_BY_VERIFIED_FIX
+
+All original P1 and Fix2 actionable findings: closed
+
+Test functions: 57
+Parametrized functions: 1
+Parameter rows: 5
+Expected collection: 61
+Tests executed: NO
+Migration 051 executed: NO
+```
+
+### ۸۲.۳ دامنهٔ دقیق شش مسیر کامیت
+
+```text
+.github/workflows/ci-backend-tests.yml
+backend/app/models.py
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+backend/alembic/versions/051_i5b2_governed_source_profile.py
+backend/app/services/governance/kb_b2_source_profile_persistence.py
+backend/tests/test_section15_i5b2_p1_source_profile.py
+```
+
+### ۸۲.۴ سیاست عملیات
+
+```text
+Commit subject:
+feat(governance): add I5-B2 P1 governed source profiles
+
+Exactly one commit
+No amend / squash / merge commit / tag
+No hooks bypass
+No local Python / pytest / Alembic
+No migration upgrade in this Gate
+No runtime / scheduler / deploy / feature flag
+Non-force push only (no --force / no --force-with-lease)
+CI dispatch NOT authorized in this Gate
+PostgreSQL proof deferred only to the explicitly owned controlled CI Gate
+```
+
+### ۸۲.۵ وضعیت پس از این بسته
+
+```text
+P1_COMMITTED_AND_PUSHED (after commit+push)
+P1_TESTS_NOT_YET_CI_VERIFIED
+MIGRATION_051_NOT_YET_CI_EXECUTED
+NO_CI_DISPATCH_PERFORMED
+```
+
+گام بعدی دقیق: CONTROLLED P1 GITHUB ACTIONS CI APPROVAL
+
+### ۸۲.۶ نشانگرها
+
+```text
+I5_B2_P1_COMMITTED_AND_PUSHED
+P1_TESTS_NOT_YET_CI_VERIFIED
+MIGRATION_051_NOT_YET_CI_EXECUTED
+NO_CI_DISPATCH_PERFORMED
+READY_FOR_CONTROLLED_P1_CI_APPROVAL
+```
+
+---
+*پایان §82 — Package 15-I5-B2-P1 Commit Non-Force Push — ۲۰۲۶-۰۷-۲۱*

@@ -194,4 +194,5 @@ jobs:
             backend/tests/test_section15_i5a2_policy_evaluator.py \
             backend/tests/test_section15_i5b1_lifecycle_mapping.py \
             backend/tests/test_section15_i5b2_a1_adapters.py \
+            backend/tests/test_section15_i5b2_p1_source_profile.py \
             --tb=short

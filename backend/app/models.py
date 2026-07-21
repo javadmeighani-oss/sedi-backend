@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, JSON, Index, text
+from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
@@ -1116,3 +1116,154 @@ class KnowledgeChunkEmbedding(Base):
     generated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# -------------------- Section 15 I5-B2-P1: Governed source identity + immutable versions --------------------
+
+
+class GovernedSourceProfile(Base):
+    """Current governed source identity and current-version pointer (I5-B2-P1)."""
+
+    __tablename__ = "governed_source_profiles"
+    __table_args__ = (
+        UniqueConstraint("canonical_key", name="uq_governed_source_profiles_canonical_key"),
+        UniqueConstraint(
+            "legacy_knowledge_source_id",
+            name="uq_governed_source_profiles_legacy_knowledge_source_id",
+        ),
+        UniqueConstraint(
+            "locator_kind",
+            "normalized_locator",
+            name="uq_governed_source_profiles_locator",
+        ),
+        CheckConstraint(
+            "(locator_kind IS NULL AND normalized_locator IS NULL) OR "
+            "(locator_kind IS NOT NULL AND normalized_locator IS NOT NULL)",
+            name="ck_governed_source_profiles_locator_pair",
+        ),
+        ForeignKeyConstraint(
+            ["id", "current_profile_version_id"],
+            [
+                "governed_source_profile_versions.profile_id",
+                "governed_source_profile_versions.id",
+            ],
+            name="fk_gsp_current_version_same_profile",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+        Index(
+            "ix_governed_source_profiles_operational_status",
+            "operational_status",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    canonical_key = Column(String(256), nullable=False)
+    locator_kind = Column(String(64), nullable=True)
+    normalized_locator = Column(String(1024), nullable=True)
+    legacy_knowledge_source_id = Column(
+        Integer,
+        ForeignKey("knowledge_sources.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    current_profile_version_id = Column(Integer, nullable=True)
+    operational_status = Column(
+        String(32),
+        nullable=False,
+        default="disabled",
+        server_default="disabled",
+    )
+    row_version = Column(Integer, nullable=False, default=1, server_default="1")
+    created_at = Column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class GovernedSourceProfileVersion(Base):
+    """Immutable governed source profile version snapshot (I5-B2-P1).
+
+    Immutable through approved persistence service boundary.
+    No DB trigger. Direct ORM/SQL mutation remains outside supported contract.
+    """
+
+    __tablename__ = "governed_source_profile_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "version_seq",
+            name="uq_gspv_profile_version_seq",
+        ),
+        UniqueConstraint(
+            "profile_id",
+            "snapshot_fingerprint",
+            name="uq_gspv_profile_snapshot_fingerprint",
+        ),
+        UniqueConstraint(
+            "profile_id",
+            "id",
+            name="uq_gspv_profile_id_id",
+        ),
+        CheckConstraint(
+            "supersedes_version_id IS NULL OR supersedes_version_id <> id",
+            name="ck_gspv_supersedes_not_self",
+        ),
+        ForeignKeyConstraint(
+            ["profile_id", "supersedes_version_id"],
+            [
+                "governed_source_profile_versions.profile_id",
+                "governed_source_profile_versions.id",
+            ],
+            name="fk_gspv_supersedes_same_profile",
+            use_alter=True,
+            deferrable=True,
+            initially="DEFERRED",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    version_seq = Column(Integer, nullable=False)
+    supersedes_version_id = Column(Integer, nullable=True)
+    snapshot_schema_version = Column(String(64), nullable=False)
+    snapshot_fingerprint = Column(String(64), nullable=False)
+    effective_at = Column(DateTime, nullable=False)
+    created_at = Column(
+        DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False
+    )
+
+    # Explicit governance-evidence columns (no authority JSON blob)
+    publisher_authority_identity = Column(String(512), nullable=False)
+    source_class = Column(String(64), nullable=False)
+    authority_evidence_tier = Column(String(64), nullable=False)
+    jurisdiction_scope = Column(String(32), nullable=False)
+    jurisdiction_country_code = Column(String(16), nullable=True)
+    jurisdiction_subdivision_code = Column(String(64), nullable=True)
+    jurisdiction_organization_id = Column(String(128), nullable=True)
+    primary_language = Column(String(16), nullable=False)
+    specialty_domain = Column(String(128), nullable=False)
+    license_status = Column(String(32), nullable=False)
+    permitted_use_restriction = Column(String(512), nullable=False)
+    storage_permission = Column(String(32), nullable=False)
+    transformation_permission = Column(String(32), nullable=False)
+    display_redistribution_permission = Column(String(32), nullable=False)
+    automation_status = Column(String(32), nullable=False)
+    verification_method = Column(String(64), nullable=False)
+    freshness_policy_days = Column(Integer, nullable=False)
+    freshness_status = Column(String(32), nullable=False)
+    fetch_policy = Column(String(128), nullable=False)
+    iran_first_applicable = Column(Boolean, nullable=False, default=False, server_default="false")
+    policy_version_reference = Column(String(128), nullable=False)
+    configuration_version_reference = Column(String(128), nullable=False)
