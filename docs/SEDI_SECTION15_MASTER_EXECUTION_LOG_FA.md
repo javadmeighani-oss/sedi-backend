@@ -13289,3 +13289,1830 @@ E2_C4B_01_DECISION_DOCS_PUSH_APPROVAL
 
 ---
 *پایان §103 — Package E2-C4B-01 Decision Docs Local Commit — ۲۰۲۶-۰۷-۲۲*
+
+---
+
+## ۱۰۴) بسته E2-C4B-01 — بازبینی دامنه شواهد حقوق و خودکارسازی (Follow-up Scope Review)
+
+```text
+Package:
+E2_C4B_01_RIGHTS_AND_AUTOMATION_EVIDENCE_FOLLOWUP_SCOPE_REVIEW
+
+Title:
+E2-C4B-01 Rights and Automation Evidence Follow-up Scope Review
+
+Authorization:
+repository-only design of future evidence requirements for G01–G05 and G08
+across six physician-source candidates
+NO network / web / HTTP / robots / API / contact / evidence collection
+NO provider search / verification / data storage
+NO source registration / catalog edit / eligibility / fetch / publication / runtime
+NO stage / commit / push / CI
+NO E2-C4B-01A/01B or E2-C4B-09A..I execution
+NO E2-C4B-02..F / E3 / P2
+
+Baseline SHA (unchanged):
+27a144e3d91310045aa6ec388bf5bbc3afa44ede
+
+Status:
+E2_C4B_01_RIGHTS_AND_AUTOMATION_SCOPE_REVIEW_COMPLETE
+ALL_SIX_SOURCES_REMAIN_FAIL_CLOSED
+NO_EXTERNAL_EVIDENCE_COLLECTED
+MASTER_LOG_104_APPENDED
+```
+
+### ۱۰۴.۱ تطبیق مرجع §۱۰۱ / §۱۰۲ / §۱۰۳
+
+```text
+§101 discovery:
+PARTIAL — E2_C4B_01_DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+queries=7 engines=1 pages=15 physician_searches=0 form_submits=0
+records=0 registrations=0 eligibility_promotions=0 catalog_edits=0
+Blocking gaps carried: G01 G02 G03 G04 G05 G08
+
+§102 decisions:
+D-PHY-01..11 APPROVED
+irimc_member_search / paziresh24_com / doctoreto_com / nobat_ir /
+doctor_yab_ir / drdr_ir = UNKNOWN_FAIL_CLOSED
+IRIMC = potential official authority candidate (not eligibility)
+Appointment platforms = secondary operational/discovery only
+PLATFORM_DECLARED ≠ OFFICIALLY_VERIFIED
+COMMERCIAL PLATFORM DATA MUST NOT OVERRIDE OFFICIAL EVIDENCE
+
+§103 commit authority:
+one-file local-commit approval + manifest recorded
+NO network / provider-data / registration / catalog / eligibility authorization
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۰۴.۲ وضعیت فعلی حفظ‌شده (غیرقابل ارتقا در این Gate)
+
+```text
+Candidate sources: 6
+Eligible: 0
+Fetch-enabled: 0
+New registrations: 0
+Stored provider records: 0
+Published: 0
+Runtime-active: 0
+Catalog edits: 0
+
+UNKNOWN_FAIL_CLOSED must NOT convert to ELIGIBLE / APPROVED /
+FETCH_ENABLED / PUBLISHED / RUNTIME_ACTIVE in this package.
+Catalog YAML remains PROPOSAL/GOVERNANCE STATE only — not legal permission.
+```
+
+### ۱۰۴.۳ منابع در دامنه
+
+| source ID | source key | class (planned) | current state | catalog fetch | notes (repo only) |
+|---|---|---|---|---|---|
+| SRC-PHY-01 | irimc_member_search | official registry candidate | UNKNOWN_FAIL_CLOSED | false | YAML role official_verification; deferred_restricted |
+| SRC-PHY-02 | paziresh24_com | online appointment / secondary | UNKNOWN_FAIL_CLOSED | false | YAML operational_directory; no_booking/no_ranking flags |
+| SRC-PHY-03 | doctoreto_com | online appointment / secondary | UNKNOWN_FAIL_CLOSED | false | naming hold from prior Iran decisions |
+| SRC-PHY-04 | nobat_ir | online appointment / secondary | UNKNOWN_FAIL_CLOSED | false | appointment directory |
+| SRC-PHY-05 | doctor_yab_ir | online appointment / secondary | UNKNOWN_FAIL_CLOSED | false | provider directory |
+| SRC-PHY-06 | drdr_ir | online appointment / secondary | UNKNOWN_FAIL_CLOSED | false | class unresolved historically; YAML lab_directory |
+
+```text
+Official registry candidates: 1
+Online appointment platforms: 5
+```
+
+### ۱۰۴.۴ شکاف‌های هدف (G01–G05, G08)
+
+| gap | meaning | product laws |
+|---|---|---|
+| G01 | storage/reuse terms | FREE_TO_VIEW ≠ FREE_TO_STORE; PUBLIC PROFILE ≠ REUSABLE PRODUCT DATA; ROBOTS ALLOW ≠ STORAGE PERMISSION |
+| G02 | commercial product-use | free access ≠ commercial permission; official ownership ≠ commercial permission |
+| G03 | automated-access | NO undocumented endpoint; NO CAPTCHA/anti-bot bypass; NO scraping by default |
+| G04 | attribution/disclosure | silence ≠ “no attribution required” |
+| G05 | freshness/correction/revocation | verified badge hard expiry = 30d; weekly revalidation only if lawful free automation; profile presence ≠ active status |
+| G08 | catalog-key / source-role governance | all six remain fail-closed until separate Gate; CATALOG_ELIGIBLE forbidden here |
+
+### ۱۰۴.۵ واژگان وضعیت برنامه‌ریزی سلول (غیر از CLOSED)
+
+```text
+PUBLIC_EVIDENCE_REQUIRED
+FORMAL_CONTACT_MAY_BE_REQUIRED
+LEGAL_INTERPRETATION_REQUIRED
+SECURITY_TECHNICAL_REVIEW_REQUIRED
+PAID_DEPENDENCY_CHECK_REQUIRED
+NOT_APPLICABLE_WITH_REASON
+ALREADY_PARTIALLY_EVIDENCED_BUT_NOT_CLOSED
+UNKNOWN_FAIL_CLOSED
+
+CLOSED is forbidden unless repository already has explicit closing evidence.
+Current external gaps remain OPEN.
+```
+
+### ۱۰۴.۶ ماتریس ۶×۱۸ شواهد (۱۰۸ سلول)
+
+Legend: PER=PUBLIC_EVIDENCE_REQUIRED; FCR=FORMAL_CONTACT_MAY_BE_REQUIRED; LIR=LEGAL_INTERPRETATION_REQUIRED; STR=SECURITY_TECHNICAL_REVIEW_REQUIRED; PDC=PAID_DEPENDENCY_CHECK_REQUIRED; APE=ALREADY_PARTIALLY_EVIDENCED_BUT_NOT_CLOSED; UFC=UNKNOWN_FAIL_CLOSED; NAR=NOT_APPLICABLE_WITH_REASON
+
+| source | E01 identity | E02 domain | E03 role/limits | E04 free access | E05 paid API | E06 paid partnership | E07 storage | E08 processing | E09 indexing | E10 cache/retain | E11 commercial | E12 redistribute/display | E13 automation | E14 robots/limits | E15 attribution | E16 correction/delete | E17 freshness/revocation | E18 terms-change/provenance |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SRC-PHY-01 | APE | APE | APE | APE | PDC | PDC | LIR | LIR | LIR | LIR | LIR | LIR | STR | APE | LIR | FCR | PER | PER |
+| SRC-PHY-02 | PER | PER | APE | PER | PDC | PDC | LIR | LIR | LIR | LIR | LIR | LIR | STR | STR | LIR | FCR | PER | PER |
+| SRC-PHY-03 | PER | PER | APE | PER | PDC | PDC | LIR | LIR | LIR | LIR | LIR | LIR | STR | STR | LIR | FCR | PER | PER |
+| SRC-PHY-04 | PER | PER | APE | PER | PDC | PDC | LIR | LIR | LIR | LIR | LIR | LIR | STR | STR | LIR | FCR | PER | PER |
+| SRC-PHY-05 | PER | PER | APE | PER | PDC | PDC | LIR | LIR | LIR | LIR | LIR | LIR | STR | STR | LIR | FCR | PER | PER |
+| SRC-PHY-06 | PER | PER | APE | PER | PDC | PDC | LIR | LIR | LIR | LIR | LIR | LIR | STR | STR | LIR | FCR | PER | PER |
+
+```text
+Cell count: 6 × 18 = 108
+CLOSED cells: 0
+Each cell uses exactly one allowed planning state (legend above).
+Supporting dual-workstream notes: LIR cells also imply future public-terms
+capture; STR cells also imply public robots/API page capture when Gate opens;
+FCR cells also imply prior public-page attempt before contact.
+APE = partial repo evidence only; NOT closed.
+```
+
+#### ۱۰۴.۶.۱ ابعاد شواهد E01–E18
+
+| dim | name | future evidence target (design only) |
+|---|---|---|
+| E01 | official operator identity | about/contact/statutory/cross-link pages |
+| E02 | canonical domain / controlled subdomains | official domain statements; subdomain map |
+| E03 | source role and authority limitations | D-PHY locks + future role decision artifact |
+| E04 | free public access | pricing/terms/FAQ stating free view/query |
+| E05 | paid API / paid access dependency | API pricing/docs; exclude if paid required |
+| E06 | mandatory paid partnership | partnership pages/terms |
+| E07 | storage permission | explicit store/database/ingestion grant |
+| E08 | processing permission | explicit processing/normalization grant |
+| E09 | indexing permission | explicit index/search-index grant |
+| E10 | caching and retention | cache/TTL/retention/deletion rules |
+| E11 | commercial product-use | commercial/business/Sedi-integration grant |
+| E12 | redistribution / public display | display/redistribution/quotation rules |
+| E13 | automated-access permission | API/dataset/automation clause |
+| E14 | robots, rate limits, technical restrictions | robots.txt + rate-limit docs + anti-bot policy |
+| E15 | attribution and disclosure | required notices/disclaimers |
+| E16 | correction, deletion, dispute | contact/process for correction/deletion |
+| E17 | freshness / suspension / revocation | update cadence; status signals; outage rules |
+| E18 | terms-change monitoring / provenance | change notice + provenance fields required |
+
+### ۱۰۴.۷ نگاشت ۳۶ ردیف منبع×شکاف
+
+Abbreviations for escalation: P=PUBLIC; C=CONTACT_MAY; L=LEGAL; S=SECURITY
+
+| mapping ID | source | key | gap | current | required evidence (min) | insufficient examples | primary | supporting | dependency | blocking | closure criterion | rejection criterion | continued fail-closed | future Gate | contact | legal | security | decision artifact |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| M-01-G01 | SRC-PHY-01 | irimc_member_search | G01 | open UFC | explicit storage/reuse terms for public registry UI data | public page alone; robots allow | Legal | Governance, Data/Knowledge | E07–E10,E12 | Blocking | G01_EXPLICITLY_PERMITTED or G01_CONDITIONAL_WITH_CONTROLS with written controls | G01_EXPLICITLY_PROHIBITED | G01_NOT_ADDRESSED_FAIL_CLOSED / G01_FORMAL_PERMISSION_REQUIRED | E2_C4B_01A then 01B if needed | C | L | — | IRIMC_G01_rights_pack |
+| M-01-G02 | SRC-PHY-01 | irimc_member_search | G02 | open UFC | explicit commercial product-use for Sedi | free view; official org | Legal | Product, Javad | G01 | Blocking | G02_COMMERCIAL_USE_EXPLICITLY_PERMITTED or CONDITIONAL | G02_COMMERCIAL_USE_PROHIBITED / PAID_LICENSE_REQUIRED_EXCLUDED | G02_NOT_ADDRESSED_FAIL_CLOSED | E2_C4B_01A/01B | C | L | — | IRIMC_G02_commercial_pack |
+| M-01-G03 | SRC-PHY-01 | irimc_member_search | G03 | open UFC | explicit automation method + rate limits; free API or manual-only | undocumented endpoints; scraping | Security | Legal, Backend | E13–E14; ApiLand paid excluded | Blocking | G03_AUTOMATION_* permitted states or MANUAL_ONLY | G03_OFFICIAL_API_AVAILABLE_PAID_EXCLUDED / PROHIBITED | G03_AUTOMATION_NOT_ADDRESSED_FAIL_CLOSED | E2_C4B_01A | — | L | S | IRIMC_G03_automation_pack |
+| M-01-G04 | SRC-PHY-01 | irimc_member_search | G04 | open UFC | explicit attribution/disclosure requirements | silence treated as none | Governance | Legal | E15 | Blocking | G04_ATTRIBUTION_EXPLICITLY_DEFINED or CONDITIONAL or NOT_REQUIRED_BY_EXPLICIT_EVIDENCE | conflicting notices unresolved | G04_ATTRIBUTION_UNKNOWN_FAIL_CLOSED | E2_C4B_01A | C | L | — | IRIMC_G04_attribution_pack |
+| M-01-G05 | SRC-PHY-01 | irimc_member_search | G05 | open UFC | freshness/suspension/revocation/update docs + 30d badge feasibility | directory presence as status | Provider Verification | Legal, Data/Knowledge | E16–E17; D-PHY-07 | Blocking | G05_FRESHNESS_EXPLICITLY_DOCUMENTED or PARTIALLY_DOCUMENTED_WITH_HARD_EXPIRY or MANUAL_REVALIDATION_REQUIRED | G05_REVOCATION_SIGNAL_UNAVAILABLE when status claims required | G05_FRESHNESS_UNKNOWN_FAIL_CLOSED | E2_C4B_01A | C | L | — | IRIMC_G05_freshness_pack |
+| M-01-G08 | SRC-PHY-01 | irimc_member_search | G08 | open UFC | final key/role/authority/field/precedence decision | partial discovery alone | Governance | Javad, Provider Verification, Legal | G01–G05 closed or fail-closed decided | Blocking | one of CATALOG_* future states except CATALOG_ELIGIBLE | CATALOG_REJECTED / PAID_EXCLUDED | CATALOG_KEEP_FAIL_CLOSED | E2_C4B_09H | — | L | — | IRIMC_G08_catalog_decision |
+| M-02-G01 | SRC-PHY-02 | paziresh24_com | G01 | open UFC | platform terms for storage/DB/index/cache | public profiles | Legal | Data/Knowledge | E07–E10 | Blocking | G01 permitted/conditional | G01 prohibited | G01 not addressed / formal permission | E2_C4B_09A | C | L | — | P24_G01_pack |
+| M-02-G02 | SRC-PHY-02 | paziresh24_com | G02 | open UFC | commercial/Sedi integration permission | free browsing | Legal | Product, Javad | G01 | Blocking | G02 permitted/conditional | G02 prohibited / paid license excluded | G02 silent fail-closed | E2_C4B_09A | C | L | — | P24_G02_pack |
+| M-02-G03 | SRC-PHY-02 | paziresh24_com | G03 | open UFC | automation/API/robots/rate-limit evidence | scrape default | Security | Legal, Backend | E13–E14 | Blocking | G03 allowed/limits/manual/API-free | paid API / prohibited / bypass needed | G03 silent fail-closed | E2_C4B_09A | — | L | S | P24_G03_pack |
+| M-02-G04 | SRC-PHY-02 | paziresh24_com | G04 | open UFC | attribution + platform-declared disclaimer rules | silence | Governance | Legal, Product | E15; D-PHY-11 | Blocking | G04 defined/conditional/explicit not-required | unresolved conflict | G04 unknown fail-closed | E2_C4B_09A | C | L | — | P24_G04_pack |
+| M-02-G05 | SRC-PHY-02 | paziresh24_com | G05 | open UFC | availability freshness + no status authority claim | treat booking as license | Provider Verification | Data/Knowledge, Product | E17; D-PHY-07 | Blocking | G05 documented/partial+30d/manual | revocation unavailable if status claimed | G05 unknown fail-closed | E2_C4B_09A | C | L | — | P24_G05_pack |
+| M-02-G08 | SRC-PHY-02 | paziresh24_com | G08 | open UFC | secondary role + field allow/deny + precedence | promote to official authority | Governance | Javad, Product, Legal | G01–G05; D-PHY-11 | Blocking | CATALOG_SECONDARY_* or KEEP_FAIL_CLOSED / REJECTED | CATALOG_ELIGIBLE forbidden here | KEEP_FAIL_CLOSED | E2_C4B_09H | — | L | — | P24_G08_decision |
+| M-03-G01 | SRC-PHY-03 | doctoreto_com | G01 | open UFC | storage/reuse terms | public pages | Legal | Data/Knowledge | E07–E10 | Blocking | G01 permitted/conditional | prohibited | silent/formal | E2_C4B_09B | C | L | — | DOC_G01_pack |
+| M-03-G02 | SRC-PHY-03 | doctoreto_com | G02 | open UFC | commercial-use terms | free access | Legal | Product, Javad | G01 | Blocking | G02 permitted/conditional | prohibited/paid excluded | silent | E2_C4B_09B | C | L | — | DOC_G02_pack |
+| M-03-G03 | SRC-PHY-03 | doctoreto_com | G03 | open UFC | automation evidence | undocumented scrape | Security | Legal, Backend | E13–E14 | Blocking | G03 allowed states / manual | paid/prohibited/bypass | silent | E2_C4B_09B | — | L | S | DOC_G03_pack |
+| M-03-G04 | SRC-PHY-03 | doctoreto_com | G04 | open UFC | attribution + naming disclosure | silence | Governance | Legal, Product | naming hold | Blocking | G04 defined states | conflict | unknown | E2_C4B_09B | C | L | — | DOC_G04_pack |
+| M-03-G05 | SRC-PHY-03 | doctoreto_com | G05 | open UFC | freshness without status authority | profile=active | Provider Verification | Data/Knowledge | D-PHY-07 | Blocking | G05 documented/partial/manual | revocation gap if claimed | unknown | E2_C4B_09B | C | L | — | DOC_G05_pack |
+| M-03-G08 | SRC-PHY-03 | doctoreto_com | G08 | open UFC | key/role/naming resolution | eligibility without rights | Governance | Javad, Product | G01–G05; naming | Blocking | SECONDARY_* / RENAME / KEEP_FAIL_CLOSED / REJECTED | ELIGIBLE here | KEEP_FAIL_CLOSED | E2_C4B_09H | — | L | — | DOC_G08_decision |
+| M-04-G01 | SRC-PHY-04 | nobat_ir | G01 | open UFC | storage/reuse + booking-metadata scope | public booking UI | Legal | Data/Knowledge | E07–E10 | Blocking | G01 permitted/conditional | prohibited | silent/formal | E2_C4B_09C | C | L | — | NOB_G01_pack |
+| M-04-G02 | SRC-PHY-04 | nobat_ir | G02 | open UFC | commercial-use for directory metadata | free slots view | Legal | Product, Javad | G01 | Blocking | G02 permitted/conditional | prohibited/paid | silent | E2_C4B_09C | C | L | — | NOB_G02_pack |
+| M-04-G03 | SRC-PHY-04 | nobat_ir | G03 | open UFC | automation/robots/API | scrape calendar | Security | Legal, Backend | E13–E14 | Blocking | G03 allowed/manual | paid/prohibited/bypass | silent | E2_C4B_09C | — | L | S | NOB_G03_pack |
+| M-04-G04 | SRC-PHY-04 | nobat_ir | G04 | open UFC | attribution + booking-channel disclosure | silence | Governance | Legal, Product | E15 | Blocking | G04 defined states | conflict | unknown | E2_C4B_09C | C | L | — | NOB_G04_pack |
+| M-04-G05 | SRC-PHY-04 | nobat_ir | G05 | open UFC | availability freshness ≠ license status | stale slots as truth | Provider Verification | Data/Knowledge, Product | E17 | Blocking | G05 documented/partial/manual | status claims without signal | unknown | E2_C4B_09C | C | L | — | NOB_G05_pack |
+| M-04-G08 | SRC-PHY-04 | nobat_ir | G08 | open UFC | secondary operational role decision | authority promotion | Governance | Javad, Product | G01–G05 | Blocking | SECONDARY_OPERATIONAL_ONLY / KEEP_FAIL_CLOSED / REJECTED | ELIGIBLE here | KEEP_FAIL_CLOSED | E2_C4B_09H | — | L | — | NOB_G08_decision |
+| M-05-G01 | SRC-PHY-05 | doctor_yab_ir | G01 | open UFC | storage/reuse terms | public directory | Legal | Data/Knowledge | E07–E10 | Blocking | G01 permitted/conditional | prohibited | silent/formal | E2_C4B_09D | C | L | — | DY_G01_pack |
+| M-05-G02 | SRC-PHY-05 | doctor_yab_ir | G02 | open UFC | commercial-use terms | free browse | Legal | Product, Javad | G01 | Blocking | G02 permitted/conditional | prohibited/paid | silent | E2_C4B_09D | C | L | — | DY_G02_pack |
+| M-05-G03 | SRC-PHY-05 | doctor_yab_ir | G03 | open UFC | automation evidence | scrape | Security | Legal, Backend | E13–E14 | Blocking | G03 allowed/manual | paid/prohibited/bypass | silent | E2_C4B_09D | — | L | S | DY_G03_pack |
+| M-05-G04 | SRC-PHY-05 | doctor_yab_ir | G04 | open UFC | attribution rules | silence | Governance | Legal | E15 | Blocking | G04 defined states | conflict | unknown | E2_C4B_09D | C | L | — | DY_G04_pack |
+| M-05-G05 | SRC-PHY-05 | doctor_yab_ir | G05 | open UFC | freshness without status authority | profile freshness as license | Provider Verification | Data/Knowledge | D-PHY-07 | Blocking | G05 documented/partial/manual | revocation gap if claimed | unknown | E2_C4B_09D | C | L | — | DY_G05_pack |
+| M-05-G08 | SRC-PHY-05 | doctor_yab_ir | G08 | open UFC | secondary discovery/operational decision | official authority | Governance | Javad, Product | G01–G05 | Blocking | SECONDARY_* / KEEP_FAIL_CLOSED / REJECTED | ELIGIBLE here | KEEP_FAIL_CLOSED | E2_C4B_09H | — | L | — | DY_G08_decision |
+| M-06-G01 | SRC-PHY-06 | drdr_ir | G01 | open UFC | storage/reuse + class clarity | public pages | Legal | Data/Knowledge | E07–E10; class hold | Blocking | G01 permitted/conditional | prohibited | silent/formal | E2_C4B_09E | C | L | — | DRDR_G01_pack |
+| M-06-G02 | SRC-PHY-06 | drdr_ir | G02 | open UFC | commercial-use terms | free access | Legal | Product, Javad | G01 | Blocking | G02 permitted/conditional | prohibited/paid | silent | E2_C4B_09E | C | L | — | DRDR_G02_pack |
+| M-06-G03 | SRC-PHY-06 | drdr_ir | G03 | open UFC | automation evidence | scrape | Security | Legal, Backend | E13–E14 | Blocking | G03 allowed/manual | paid/prohibited/bypass | silent | E2_C4B_09E | — | L | S | DRDR_G03_pack |
+| M-06-G04 | SRC-PHY-06 | drdr_ir | G04 | open UFC | attribution + class disclosure | silence | Governance | Legal | class unresolved | Blocking | G04 defined states | conflict | unknown | E2_C4B_09E | C | L | — | DRDR_G04_pack |
+| M-06-G05 | SRC-PHY-06 | drdr_ir | G05 | open UFC | freshness; no license proof from listing | listing=status | Provider Verification | Data/Knowledge | D-PHY-07 | Blocking | G05 documented/partial/manual | revocation gap if claimed | unknown | E2_C4B_09E | C | L | — | DRDR_G05_pack |
+| M-06-G08 | SRC-PHY-06 | drdr_ir | G08 | open UFC | class+role+key governance | lab_directory vs appointment | Governance | Javad, Product, Provider Verification | G01–G05; class hold | Blocking | RENAME / ROLE_CHANGE / SECONDARY_* / KEEP_FAIL_CLOSED / REJECTED | ELIGIBLE here | KEEP_FAIL_CLOSED | E2_C4B_09H | — | L | — | DRDR_G08_decision |
+
+```text
+Source-gap rows: 36
+TBD owners: 0
+```
+
+### ۱۰۴.۸ طراحی G01 — ذخیره و استفاده مجدد
+
+```text
+Evidence must separately address: copying; storage; DB ingestion; processing;
+normalization; indexing; caching; retention; quotation; translation;
+derived metadata; redistribution; public display; backup/recovery;
+deletion after terms change.
+
+Closure states:
+G01_EXPLICITLY_PERMITTED
+G01_CONDITIONAL_WITH_CONTROLS
+G01_EXPLICITLY_PROHIBITED
+G01_NOT_ADDRESSED_FAIL_CLOSED
+G01_FORMAL_PERMISSION_REQUIRED
+
+Laws: FREE_TO_VIEW ≠ FREE_TO_STORE; PUBLIC PROFILE ≠ REUSABLE PRODUCT DATA;
+ROBOTS ALLOW ≠ STORAGE PERMISSION.
+Generic website availability cannot close G01.
+```
+
+### ۱۰۴.۹ طراحی G02 — استفاده تجاری محصول
+
+```text
+Evidence must separately address: commercial app use; business use; Sedi
+integration; monetized product use; derived metadata; provider-directory
+display; internal analytics; user-facing display; service recommendations;
+cross-source reconciliation.
+
+Closure states:
+G02_COMMERCIAL_USE_EXPLICITLY_PERMITTED
+G02_COMMERCIAL_USE_CONDITIONAL
+G02_COMMERCIAL_USE_PROHIBITED
+G02_PAID_LICENSE_REQUIRED_EXCLUDED
+G02_NOT_ADDRESSED_FAIL_CLOSED
+
+Free access does not close G02. Official ownership does not close G02.
+```
+
+### ۱۰۴.۱۰ طراحی G03 — دسترسی خودکار
+
+```text
+Evidence must separately address: official public API; downloadable dataset;
+structured export; documented automation permission; manual-only restriction;
+rate limits; authentication; API keys; paid credentials; robots; anti-bot;
+request frequency; bulk-access restrictions.
+
+Closure states:
+G03_AUTOMATION_EXPLICITLY_PERMITTED
+G03_AUTOMATION_PERMITTED_WITH_LIMITS
+G03_OFFICIAL_API_AVAILABLE_FREE
+G03_OFFICIAL_API_AVAILABLE_PAID_EXCLUDED
+G03_MANUAL_ONLY
+G03_AUTOMATION_PROHIBITED
+G03_AUTOMATION_NOT_ADDRESSED_FAIL_CLOSED
+
+Laws: NO UNDOCUMENTED ENDPOINT USE; NO CAPTCHA/ANTI-BOT BYPASS;
+NO SCRAPING BY DEFAULT.
+```
+
+### ۱۰۴.۱۱ طراحی G04 — انتساب و افشا
+
+```text
+Evidence must separately address: publisher attribution; source title;
+canonical URL; retrieval date; copyright/license notices; translation/
+modification notices; freshness notice; platform-declared disclaimer;
+officially-verified disclaimer; non-endorsement; commercial-source
+disclosure; conflict-source disclosure.
+
+Closure states:
+G04_ATTRIBUTION_EXPLICITLY_DEFINED
+G04_ATTRIBUTION_CONDITIONAL
+G04_ATTRIBUTION_NOT_REQUIRED_BY_EXPLICIT_EVIDENCE
+G04_ATTRIBUTION_UNKNOWN_FAIL_CLOSED
+
+Do not infer attribution unnecessary from silence.
+```
+
+### ۱۰۴.۱۲ طراحی G05 — تازگی، اصلاح و لغو
+
+```text
+Evidence must separately address: update frequency; source timestamp;
+correction/deletion processes; suspension/revocation/expiry/specialty/
+facility signals; appointment-availability freshness; terms-update
+monitoring; outage/stale handling; hard expiry; weekly revalidation
+feasibility.
+
+Product constraints:
+verified badge hard expiry = 30 days
+weekly revalidation only when lawful free automation available
+
+Closure states:
+G05_FRESHNESS_EXPLICITLY_DOCUMENTED
+G05_PARTIALLY_DOCUMENTED_WITH_HARD_EXPIRY
+G05_MANUAL_REVALIDATION_REQUIRED
+G05_REVOCATION_SIGNAL_UNAVAILABLE
+G05_FRESHNESS_UNKNOWN_FAIL_CLOSED
+
+Platform profile presence must not prove active professional status.
+```
+
+### ۱۰۴.۱۳ طراحی G08 — کلید کاتالوگ و نقش منبع
+
+```text
+Future decision must cover: canonical key; class; role; authority dimensions;
+allowed/forbidden fields; verification-status labels; precedence; conflict
+behavior; publication/runtime/fetch eligibility; review; rollback; rejection.
+
+Current: all six unchanged UNKNOWN_FAIL_CLOSED; fetch=false.
+
+Future decision states (no CATALOG_ELIGIBLE in this package):
+CATALOG_KEEP_FAIL_CLOSED
+CATALOG_RENAME_REQUIRED
+CATALOG_ROLE_CHANGE_REQUIRED
+CATALOG_METADATA_ONLY
+CATALOG_SECONDARY_DISCOVERY_ONLY
+CATALOG_SECONDARY_OPERATIONAL_ONLY
+CATALOG_PAID_EXCLUDED
+CATALOG_REJECTED
+CATALOG_ELIGIBILITY_REVIEW_ALLOWED
+```
+
+### ۱۰۴.۱۴ آرایه‌شناسی تصمیم حقوق (جدا از Authority)
+
+```text
+RIGHT_EXPLICITLY_PERMITTED
+RIGHT_PERMITTED_WITH_CONDITIONS
+RIGHT_EXPLICITLY_PROHIBITED
+RIGHT_REQUIRES_PAID_LICENSE
+RIGHT_REQUIRES_MANDATORY_PARTNERSHIP
+RIGHT_REQUIRES_FORMAL_PERMISSION
+RIGHT_NOT_ADDRESSED_FAIL_CLOSED
+RIGHTS_EVIDENCE_CONFLICTING_FAIL_CLOSED
+RIGHTS_SOURCE_NOT_AUTHORITATIVE
+
+Count of rights decision states: 9
+
+Laws:
+AUTHORITY_CONFIRMED ≠ RIGHTS_CONFIRMED
+ONE PERMITTED RIGHT DOES NOT IMPLY ANOTHER RIGHT
+```
+
+### ۱۰۴.۱۵ آرایه‌شناسی تصمیم خودکارسازی
+
+```text
+AUTOMATION_EXPLICITLY_ALLOWED
+AUTOMATION_ALLOWED_WITH_RATE_LIMITS
+OFFICIAL_FREE_API_AVAILABLE
+OFFICIAL_PAID_API_EXCLUDED
+OFFICIAL_DATASET_AVAILABLE_NOT_DOWNLOADED
+MANUAL_ACCESS_ONLY
+METADATA_ONLY
+AUTOMATION_EXPLICITLY_PROHIBITED
+AUTOMATION_UNKNOWN_FAIL_CLOSED
+ANTI_BOT_OR_CAPTCHA_NO_BYPASS
+UNSUPPORTED_UNDOCUMENTED_ENDPOINT_PROHIBITED
+
+Count of automation decision states: 11
+
+Automation approval remains separate from storage and commercial-use approval.
+```
+
+### ۱۰۴.۱۶ قواعد رایگان در برابر پولی
+
+```text
+Exclude: PAID_SOURCE; PAID_API; PAID_DATASET; PAYWALLED_CONTENT;
+MANDATORY_PAID_PARTNERSHIP; PAID_COMMERCIAL_LICENSE; PAID_BULK_EXPORT;
+PAID_PRODUCTION_CREDENTIAL.
+
+Free trial insufficient. Limited free tier insufficient unless production use,
+storage, automation and commercial use are explicitly supported in that tier.
+
+Independent free decisions:
+FREE_PUBLIC_VIEWING
+FREE_MANUAL_QUERYING
+FREE_AUTOMATED_ACCESS
+FREE_STORAGE_AND_PROCESSING
+FREE_COMMERCIAL_PRODUCT_USE
+
+Repo note: ApiLand already classified PAID_EXCLUDED under D-PHY-04 (not a
+catalog candidate promotion path).
+```
+
+### ۱۰۴.۱۷ طبقات تماس رسمی و تشدید حقوقی
+
+```text
+NO_CONTACT_REQUIRED_PUBLIC_EVIDENCE_SUFFICIENT
+PUBLIC_EVIDENCE_INCOMPLETE_FORMAL_CONTACT_RECOMMENDED
+FORMAL_WRITTEN_PERMISSION_REQUIRED
+LEGAL_REVIEW_REQUIRED_BEFORE_CONTACT
+COMMERCIAL_PARTNERSHIP_REQUIRED_EXCLUDED
+PAID_LICENSE_REQUIRED_EXCLUDED
+CONTACT_NOT_APPROVED
+
+Count of contact/escalation classes: 7
+
+Future contact types (NOT performed here): official email; formal letter;
+legal notice request; terms clarification; data-use permission; API-access
+clarification; commercial-use clarification; retention/deletion clarification;
+attribution clarification.
+```
+
+### ۱۰۴.۱۸ مدل مالک
+
+```text
+Allowed primaries: Javad, Product, Legal, Governance, Medical/Safety,
+Security, Provider Verification, Data/Knowledge, Backend, DevOps
+
+Rules applied in §104.7:
+Legal → rights/commercial/licensing/terms
+Security → automation/robots/anti-bot/rate limits/credentials
+Governance → eligibility/role/catalog/publication
+Provider Verification → identity/status/specialty boundaries
+Data/Knowledge → fields/provenance/freshness/reconciliation
+Backend → future adapter feasibility only
+Product → user-visible fields/behavior
+Javad → final product/business decision
+```
+
+### ۱۰۴.۱۹ نگاشت معماری متعارف (بدون قرارداد موازی)
+
+| logical artifact | canonical mapping | existing sufficient? | future extension maybe? | model change maybe? | migration maybe? | implementation in this Gate |
+|---|---|---|---|---|---|---|
+| Source rights evidence pack | ImmutableProvenanceRecord + HumanReviewApprovalRecord | partial | YES (rights axes) | maybe later | no now | PROHIBITED |
+| Automation evidence pack | ImmutableProvenanceRecord + GovernedFetchRun policy inputs | partial | YES | maybe later | no now | PROHIBITED |
+| Formal permission record | HumanReviewApprovalRecord | YES concept | maybe attachment type | maybe later | no now | PROHIBITED |
+| Catalog role decision | trusted_source_catalog_v1.yaml governance + LifecycleEvent | YES as proposal store | YES role enums | maybe later | no now | PROHIBITED |
+| Acquisition plan (future) | SourceAcquisition / RawContentObject | YES concepts | maybe | maybe later | no now | PROHIBITED |
+| Publication gate (future) | PublicationRelease | YES | no silent auto | maybe later | no now | PROHIBITED |
+| Fetch enablement (future) | GovernedFetchRun + source_fetch_enabled | YES | no | no now | no now | PROHIBITED |
+| Cross-source conflict hold | LifecycleEvent + provenance conflict flags | partial | YES | maybe later | no now | PROHIBITED |
+
+```text
+Canonical architecture mappings: 8
+ARCHITECTURE_MAPPING_GAP rows: 0 (concepts exist; extensions deferred)
+Law: documentation terminology must not silently create a second architecture.
+```
+
+### ۱۰۴.۲۰ تجزیه دروازه‌های آینده (مستند؛ غیرمجاز)
+
+| Gate ID | source/group | purpose | allowed ops (future) | prohibited ops | entry criteria | required evidence | primary | dependencies | closure criteria | stop conditions | expected artifact | next Gate | approval required |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| E2_C4B_01A | IRIMC | public rights/automation evidence | controlled public page review only when separately approved | form submit; physician lookup; store; register | D-PHY + §104 approved | G01–G05 public packs | Provider Verification | §101 partial | packs complete or fail-closed owned | CAPTCHA/paid/login needed | IRIMC_public_rights_pack | 01B or 09G | YES separate |
+| E2_C4B_01B | IRIMC | formal permission decision | formal contact only if approved | unauthorized contact; eligibility | 01A incomplete rights | written permission/refusal | Legal | 01A | G01/G02 closed states | partnership/paid only path | IRIMC_formal_permission | 09G/09H | YES |
+| E2_C4B_09A | paziresh24 | rights/access evidence | public docs review when approved | scrape; store; register | D-PHY-11 + §104 | G01–G05 packs | Legal | §104 | source pack complete/fail-closed | paid partnership required | P24_rights_pack | 09F | YES |
+| E2_C4B_09B | doctoreto | rights/access evidence | same pattern | same | D-PHY-11 + naming hold | G01–G05 + naming | Legal | §104 | pack complete/fail-closed | paid/prohibited | DOC_rights_pack | 09F | YES |
+| E2_C4B_09C | nobat_ir | rights/access evidence | same | same | D-PHY-11 | G01–G05 | Legal | §104 | pack complete/fail-closed | paid/prohibited | NOB_rights_pack | 09F | YES |
+| E2_C4B_09D | doctor_yab | rights/access evidence | same | same | D-PHY-11 | G01–G05 | Legal | §104 | pack complete/fail-closed | paid/prohibited | DY_rights_pack | 09F | YES |
+| E2_C4B_09E | drdr_ir | rights/access + class | same | same | D-PHY-11 + class hold | G01–G05 + class | Legal | §104 | pack+class complete/fail-closed | paid/prohibited | DRDR_rights_pack | 09F | YES |
+| E2_C4B_09F | all five platforms | cross-source rights consolidation | compare packs only | collective approval shortcut | 09A–09E done or fail-closed | consolidated matrix | Governance | 09A–09E | per-source decisions preserved | any source missing pack | cross_source_rights_matrix | 09G | YES |
+| E2_C4B_09G | all six | Legal/Security/Governance review | decision review | implementation | packs + risks | review minutes | Legal | 01A/01B/09F | signed decision states | unresolved conflict | rights_security_governance_review | 09H | YES |
+| E2_C4B_09H | all six | catalog and eligibility decision | catalog decision docs only | silent eligibility | 09G | CATALOG_* states | Governance | 09G | explicit catalog decisions | ELIGIBLE without rights | catalog_eligibility_decision | 09I if any review-allowed | YES |
+| E2_C4B_09I | approved subset only | source integration planning | planning docs only | fetch enable; code without Gate | 09H review-allowed | integration plan | Backend | 09H | plan approved; fetch still false until later Gate | any unpaid rights gap | integration_plan | later fetch Gate | YES |
+
+```text
+Future Gates documented: 11
+Authorized by this package: 0
+No collective evidence approval may replace source-specific review.
+```
+
+### ۱۰۴.۲۱ قواعد رد فوری و ادامه fail-closed
+
+```text
+Immediate rejection when:
+paid API/license/mandatory partnership required;
+commercial use prohibited;
+storage prohibited;
+automation prohibited when automation essential;
+operator identity conflicting;
+lookalike/non-official impersonation;
+terms conflict;
+security requires bypass;
+provider data cannot be lawfully retained;
+correction/deletion rights cannot be supported.
+
+Continued fail-closed when:
+terms/rights/commercial/automation/attribution silent;
+freshness/revocation undocumented;
+operator identity only partially supported;
+formal permission pending;
+legal interpretation pending;
+security review pending.
+
+Law: ambiguity never promotes eligibility.
+```
+
+### ۱۰۴.۲۲ دفتر ریسک
+
+| risk ID | description | sources | trigger | impact | current control | future evidence | primary | closure criterion | residual | future Gate |
+|---|---|---|---|---|---|---|---|---|---|---|
+| R01 | illegal reuse/storage | all | store without G01 | legal | fail-closed; no store | G01 pack | Legal | G01 closed state | med | 01A/09A–E |
+| R02 | commercial-use violation | all | product use without G02 | legal/business | fail-closed | G02 pack | Legal | G02 closed state | med | same |
+| R03 | copyright/database-right | all | DB ingestion | legal | no ingestion | G01/G02 | Legal | explicit grant or reject | med | same |
+| R04 | terms-change drift | all | silent terms update | compliance | no runtime | E18 monitoring design | Governance | monitoring plan approved | med | 09G |
+| R05 | anti-bot confrontation | all | scrape/bypass | security/legal | no automation | G03; no-bypass | Security | G03 closed; no bypass | high | 01A/09A–E |
+| R06 | rate-limit breach | all | excess requests | ops/legal | no fetch | documented limits | Security | limits known+enforced plan | med | same |
+| R07 | paid-dependency creep | all | ApiLand-like path | policy | PAID_EXCLUDED law | E05/E06 | Legal | paid excluded or free proven | med | same |
+| R08 | operator-identity error | all | wrong operator | trust | D-PHY / partial APE | E01 | Provider Verification | E01 closed | med | same |
+| R09 | lookalike domain | IRIMC path | irimc.info class | trust | D-PHY-05 reject | ongoing identity | Security | reject maintained | low | 01A |
+| R10 | provider-status accuracy | all | profile≠status | safety | D-PHY-07 | G05; no status claim | Provider Verification | status labels correct | high | 09G |
+| R11 | specialty accuracy | all | platform specialty as official | safety | D-PHY-11 limits | authority labels | Medical/Safety | specialty not official without IRIMC | high | 09G |
+| R12 | freshness risk | all | stale data | safety | 30d badge law | G05 | Data/Knowledge | 30d+revalidation plan | med | 09G |
+| R13 | revocation-delay | SRC-PHY-01+ | delayed suspend signal | safety | fail-closed status | G05 revocation | Provider Verification | signal documented or no status claim | high | 01A |
+| R14 | cross-source conflict | all | platform vs IRIMC | trust | precedence lock | conflict hold design | Governance | conflict rules tested in review | med | 09F/09H |
+| R15 | false official-verified label | platforms | UI badge misuse | safety | PLATFORM_DECLARED≠VERIFIED | G04 disclaimers | Product | labels enforced in design | high | 09G |
+| R16 | sponsored influence | platforms | paid placement | product integrity | V1 no sponsored | field forbid list | Product | no sponsored fields stored | med | 09H |
+| R17 | review/rating contamination | platforms | store ratings | product | V1 no reviews | prohibit list | Product | ratings not in scope | med | 09H |
+| R18 | personal-data overcollection | all | phones/photos/PHI | privacy | prohibit list §102 | field allowlist | Legal | allowlist-only storage plan | high | 09G |
+| R19 | retention/deletion gap | all | cannot delete | legal | no store | E16 | Legal | deletion mechanism evidenced | med | 01B/09A–E |
+| R20 | provenance loss | all | store without provenance | trust | no store | E18 + canonical provenance | Data/Knowledge | provenance required in plan | med | 09I |
+| R21 | source outage | all | registry down | ops | no runtime | outage handling | DevOps | outage policy in plan | low | 09I |
+| R22 | silent schema drift | all | HTML/API change | ops | no adapter | contract tests later | Backend | drift detection plan | med | 09I |
+| R23 | uncontrolled runtime publication | all | auto publish | safety | PublicationRelease required | no auto publish | Governance | publication Gate separate | high | 09H |
+| R24 | parallel-architecture | all | new lifecycle names | architecture | map to canonical | §104.19 | Backend | no second architecture | med | arch review if gap |
+
+```text
+Risk rows: 24
+```
+
+### ۱۰۴.۲۳ ماتریس مالک / وابستگی / بستن (خلاصه اجرایی)
+
+Open items covered by M-01..M-06 × G01..G05/G08 (36) + R01..R24 (24) = 60 owned rows.
+
+| row class | count | primary owners used | TBD |
+|---|---|---|---|
+| source-gap mappings | 36 | Legal, Security, Governance, Provider Verification | 0 |
+| risks | 24 | Legal, Security, Governance, Provider Verification, Medical/Safety, Product, Data/Knowledge, Backend, DevOps | 0 |
+| architecture mappings | 8 | Backend/Governance (extension owners) | 0 |
+| future Gates | 11 | Legal/Governance/Provider Verification/Backend | 0 |
+
+```text
+Owner/closure rows (source-gap + risk): 60
+TBD owners: 0
+Every closure criterion is observable (named closure state, pack complete,
+or explicit reject/fail-closed state). No “review later” closures.
+```
+
+### ۱۰۴.۲۴ شمارش‌های دقیق
+
+```text
+sources: 6
+official registry candidates: 1
+online appointment platforms: 5
+gaps: 6
+source-gap rows: 36
+evidence dimensions: 18
+source/evidence cells: 108
+rights decision states: 9
+automation decision states: 11
+contact/escalation classes: 7
+canonical architecture mappings: 8
+future Gates: 11
+risk rows: 24
+owner/closure rows: 60
+TBD owners: 0
+currently eligible sources: 0
+currently fetch-enabled sources: 0
+stored provider records: 0
+catalog edits: 0
+source registrations: 0
+publications: 0
+runtime activations: 0
+```
+
+### ۱۰۴.۲۵ ممیزی داخلی و بستن یافته‌ها
+
+```text
+Audit iterations: 3
+
+C4B01S-A1 baseline/§101–§103 OK → CLOSED
+C4B01S-A2 repository-only; no network → CLOSED
+C4B01S-A3 six sources + six gaps + 36 mappings → CLOSED
+C4B01S-A4 108 cells; single planning state each; no CLOSED without evidence → CLOSED
+C4B01S-A5 G01–G05/G08 designs + taxonomies → CLOSED
+C4B01S-A6 free-vs-paid + contact classes → CLOSED
+C4B01S-A7 canonical architecture mapping; no parallel lifecycle → CLOSED
+C4B01S-A8 11 future Gates defined NOT authorized → CLOSED
+C4B01S-A9 rejection/fail-closed + 24 risks + owners complete → CLOSED
+C4B01S-A10 all six remain fail-closed; §104 append-only; §105 absent → CLOSED
+C4B01S-A11 compound cell states removed; single-state matrix enforced → CLOSED
+
+Findings fixed: 11
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+External evidence gaps remain OPEN, owned, fail-closed.
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B01S-F1 | need authority reconcile | §104.1 | CLOSED |
+| C4B01S-F2 | need 108-cell matrix | §104.6 | CLOSED |
+| C4B01S-F3 | need 36 mappings | §104.7 | CLOSED |
+| C4B01S-F4 | gap designs G01–G08 | §104.8–.13 | CLOSED |
+| C4B01S-F5 | rights/automation taxonomies | §104.14–.15 | CLOSED |
+| C4B01S-F6 | free/paid + contact classes | §104.16–.17 | CLOSED |
+| C4B01S-F7 | architecture mapping | §104.19 | CLOSED |
+| C4B01S-F8 | future Gate decomposition | §104.20 | CLOSED |
+| C4B01S-F9 | risks + owner matrix | §104.22–.23 | CLOSED |
+| C4B01S-F10 | counts/markers/audit | §104.24–.26 | CLOSED |
+| C4B01S-F11 | compound cell states | single-state matrix repair | CLOSED |
+
+### ۱۰۴.۲۶ نشانگرها و گام بعدی
+
+```text
+E2_C4B_01_RIGHTS_AND_AUTOMATION_SCOPE_REVIEW_COMPLETE
+REPOSITORY_ONLY_CONFIRMED
+SIX_SOURCES_SCOPED
+SIX_GAPS_SCOPED
+THIRTY_SIX_SOURCE_GAP_ROWS_COMPLETE
+ONE_HUNDRED_EIGHT_SOURCE_EVIDENCE_CELLS_COMPLETE
+RIGHTS_AND_AUTHORITY_SEPARATED
+STORAGE_AND_COMMERCIAL_USE_SEPARATED
+AUTOMATION_SEPARATED
+FREE_AND_PAID_PATHS_SEPARATED
+CONTACT_AND_LEGAL_ESCALATION_DEFINED
+CANONICAL_ARCHITECTURE_MAPPING_COMPLETE
+FUTURE_GATES_DEFINED_NOT_AUTHORIZED
+ALL_SIX_SOURCES_REMAIN_FAIL_CLOSED
+NO_EXTERNAL_EVIDENCE_COLLECTED
+NO_PROVIDER_SEARCH
+NO_PROVIDER_VERIFICATION
+NO_PROVIDER_DATA_COLLECTED
+NO_PROVIDER_DATA_STORED
+NO_SOURCE_REGISTERED
+NO_CATALOG_EDIT
+NO_SOURCE_FETCH_ENABLED_CHANGE
+NO_SOURCE_ELIGIBILITY_PROMOTED
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+NO stage / commit / push / CI
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+MASTER_LOG_104_APPENDED
+MASTER_LOG_105_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_E2_C4B_01_RIGHTS_AND_AUTOMATION_SCOPE_REVIEW_BY_JAVAD
+
+Exact next Gate:
+E2_C4B_01_RIGHTS_AND_AUTOMATION_SCOPE_REVIEW_BY_JAVAD
+
+No future evidence Gate authorized by this package.
+No future commit SHA guessed.
+```
+
+---
+*پایان §104 — Package E2-C4B-01 Rights and Automation Evidence Follow-up Scope Review — ۲۰۲۶-۰۷-۲۲*
+
+---
+
+## ۱۰۵) بسته E2-C4B-01 — تصمیم‌های بازبینی دامنه حقوق/خودکارسازی و سیاست فقط-منابع-رایگان
+
+```text
+Package:
+E2_C4B_01_RIGHTS_AUTOMATION_DECISIONS_DOCUMENTATION
+
+Title:
+E2-C4B-01 Rights and Automation Scope Review Decisions and Free-Sources-Only Policy
+
+Authorization:
+document Javad-approved RA-PHY-01 through RA-PHY-14 by appending §105 ONLY
+NO network / web / contact / external evidence
+NO provider search / verification / data collection / storage
+NO source registration / catalog edit / catalog deletion / code removal
+NO eligibility / fetch / publication / runtime
+NO stage / commit / push / CI
+NO E2-C4B-01A/01B or E2-C4B-09A..I execution
+
+Baseline SHA (unchanged):
+27a144e3d91310045aa6ec388bf5bbc3afa44ede
+
+Status:
+RA_PHY_01_TO_14_DOCUMENTED
+FREE_SOURCES_ONLY_POLICY_LOCKED
+ALL_PAID_PATHS_EXCLUDED
+MASTER_LOG_105_APPENDED
+```
+
+### ۱۰۵.۱ تطبیق مرجع §۱۰۴
+
+```text
+§104 reconciled counts:
+sources=6; official registry=1; appointment platforms=5; gaps=6
+source-gap rows=36; evidence dimensions=18; cells=108
+rights states=9; automation states=11; contact classes=7
+canonical mappings=8; future Gates=11; risk rows=24
+owner/closure rows=60; TBD owners=0
+audit iterations=3; findings fixed=11; remaining actionable=0
+eligible=0; fetch-enabled=0; stored records=0; registrations=0
+catalog edits=0; publications=0; runtime activations=0
+
+Required source states preserved:
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+doctoreto_com = UNKNOWN_FAIL_CLOSED
+nobat_ir = UNKNOWN_FAIL_CLOSED
+doctor_yab_ir = UNKNOWN_FAIL_CLOSED
+drdr_ir = UNKNOWN_FAIL_CLOSED
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۰۵.۲ تصمیم‌های RA-PHY-01 تا RA-PHY-12 (تأیید Javad)
+
+#### RA-PHY-01
+```text
+APPROVED_BY_JAVAD
+The completed scope review, matrices, risk register, owners, dependencies and
+closure criteria are accepted.
+```
+
+#### RA-PHY-02
+```text
+APPROVED_BY_JAVAD
+All six current sources remain UNKNOWN_FAIL_CLOSED.
+No current source is eligible, fetch-enabled, published or runtime-active.
+```
+
+#### RA-PHY-03
+```text
+APPROVED_BY_JAVAD
+Authority confirmation does not prove: storage, processing, commercial-use,
+automation, redistribution, or public-display rights.
+Lock: AUTHORITY_CONFIRMED ≠ RIGHTS_CONFIRMED
+```
+
+#### RA-PHY-04
+```text
+APPROVED_BY_JAVAD
+Every permission must be evaluated independently.
+Lock: ONE PERMITTED RIGHT DOES NOT IMPLY ANOTHER RIGHT
+```
+
+#### RA-PHY-05
+```text
+APPROVED_BY_JAVAD
+Any source requiring paid access, paid API, paid dataset, paid license,
+paid production credential or mandatory paid partnership is excluded from
+Sedi's current governed free-source pipeline.
+```
+
+#### RA-PHY-06
+```text
+APPROVED_BY_JAVAD
+Silence or ambiguity regarding rights, automation, attribution, freshness,
+revocation or commercial use preserves UNKNOWN_FAIL_CLOSED.
+```
+
+#### RA-PHY-07
+```text
+APPROVED_BY_JAVAD
+IRIMC public rights and automation evidence must be reviewed before any
+formal contact, catalog decision or eligibility decision.
+```
+
+#### RA-PHY-08
+```text
+APPROVED_BY_JAVAD
+Formal organization contact, permission requests, legal correspondence,
+terms clarification or business outreach require a separate explicit
+approval from Javad.
+```
+
+#### RA-PHY-09
+```text
+APPROVED_BY_JAVAD
+Each online appointment platform requires its own independent rights and
+access evidence Gate. No collective approval is permitted.
+```
+
+#### RA-PHY-10
+```text
+APPROVED_BY_JAVAD
+After source-specific evidence, cross-source consolidation must occur before
+legal, security and governance review.
+```
+
+#### RA-PHY-11
+```text
+APPROVED_BY_JAVAD
+Catalog and eligibility decisions must occur before integration planning.
+Integration planning must not itself enable collection, storage, fetching,
+publication or runtime use.
+```
+
+#### RA-PHY-12
+```text
+APPROVED_BY_JAVAD
+"catalog proposal store" is documentation-level logical artifact only.
+It does NOT authorize a new contract, model, table, persistence layer,
+migration or parallel architecture.
+Canonical architecture remains:
+SourceAcquisition
+RawContentObject
+ImmutableProvenanceRecord
+HumanReviewApprovalRecord
+PublicationRelease
+GovernedFetchRun
+LifecycleEvent
+Marker: CATALOG_PROPOSAL_STORE_DOCUMENTATION_ONLY
+Marker: NO_PARALLEL_ARCHITECTURE_APPROVED
+```
+
+### ۱۰۵.۳ تصمیم RA-PHY-13 — حذف مسیرهای پولی
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-13:
+All paid sources and paid access paths are excluded from Sedi's governed
+knowledge and provider-source pipeline.
+
+Explicit exclusion classes (count = 12):
+PAID_SOURCE
+PAID_WEBSITE_ACCESS
+PAID_API
+PAID_DATASET
+PAID_BULK_EXPORT
+PAID_COMMERCIAL_LICENSE
+PAID_PRODUCTION_CREDENTIAL
+MANDATORY_PAID_PARTNERSHIP
+PAYWALLED_CONTENT
+PAID_ONLY_LEGAL_PERMISSION
+PAID_ONLY_AUTOMATION_ACCESS
+PAID_ONLY_STORAGE_PERMISSION
+
+Required decision state: PAID_EXCLUDED
+
+A source that requires payment for any essential intended Sedi operation
+must not proceed to eligibility review.
+
+Markers:
+ALL_PAID_PATHS_EXCLUDED
+PAID_APIS_EXCLUDED
+PAID_DATASETS_EXCLUDED
+PAID_LICENSES_EXCLUDED
+MANDATORY_PAID_PARTNERSHIPS_EXCLUDED
+```
+
+### ۱۰۵.۴ تصمیم RA-PHY-14 — فقط رایگان و قانوناً قابل‌استفاده
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-14:
+Only sources that are both free of charge and legally usable for the intended
+Sedi operation may proceed to eligibility review.
+
+Independent free-and-permitted requirements:
+FREE_PUBLIC_ACCESS
+FREE_STORAGE
+FREE_PROCESSING
+FREE_INDEXING
+FREE_CACHING
+FREE_COMMERCIAL_PRODUCT_USE
+FREE_AUTOMATED_ACCESS
+FREE_REDISTRIBUTION_OR_PUBLIC_DISPLAY_WHEN_REQUIRED
+FREE_ATTRIBUTION_COMPLIANT_USE
+
+Laws:
+FREE_TO_VIEW ≠ FREE_TO_STORE
+FREE_TO_QUERY ≠ FREE_TO_AUTOMATE
+PUBLICLY_ACCESSIBLE ≠ FREE_FOR_COMMERCIAL_PRODUCT_USE
+FREE_TRIAL ≠ FREE_PRODUCTION_USE
+LIMITED_FREE_TIER ≠ APPROVED_FREE_SOURCE
+OFFICIAL SOURCE ≠ FREE REUSE RIGHTS
+
+If any required permission is paid, conditional on paid partnership,
+available only through paid credential, unclear, silent, or conflicting:
+enforce PAID_EXCLUDED or UNKNOWN_FAIL_CLOSED per evidence state.
+
+Markers:
+FREE_SOURCES_ONLY_POLICY_LOCKED
+FREE_TO_VIEW_NOT_FREE_TO_STORE
+FREE_TO_QUERY_NOT_FREE_TO_AUTOMATE
+FREE_TRIAL_NOT_ACCEPTABLE
+LIMITED_FREE_TIER_NOT_AUTOMATICALLY_ACCEPTABLE
+OFFICIAL_SOURCE_NOT_EQUAL_FREE_REUSE_RIGHTS
+```
+
+### ۱۰۵.۵ اعمال سیاست بر منابع فعلی
+
+| entity | state |
+|---|---|
+| ApiLand | PAID_EXCLUDED |
+| any future paid IRIMC API | PAID_EXCLUDED |
+| any paid appointment-platform API | PAID_EXCLUDED |
+| any paid dataset | PAID_EXCLUDED |
+| any paid bulk export | PAID_EXCLUDED |
+| any mandatory paid partnership | PAID_EXCLUDED |
+| any paid commercial license | PAID_EXCLUDED |
+| irimc_member_search | UNKNOWN_FAIL_CLOSED |
+| paziresh24_com | UNKNOWN_FAIL_CLOSED |
+| doctoreto_com | UNKNOWN_FAIL_CLOSED |
+| nobat_ir | UNKNOWN_FAIL_CLOSED |
+| doctor_yab_ir | UNKNOWN_FAIL_CLOSED |
+| drdr_ir | UNKNOWN_FAIL_CLOSED |
+
+```text
+Public webpages of appointment platforms must NOT be treated as free lawful
+data sources until source-specific evidence proves every necessary right.
+Marker: ALL_SIX_SOURCES_REMAIN_FAIL_CLOSED_OR_PAID_EXCLUDED
+Paid API exclusions currently identified: at least 1 — ApiLand
+```
+
+### ۱۰۵.۶ حذف سیاستی در برابر حذف فیزیکی
+
+```text
+Policy exclusion: APPROVED
+Eligibility exclusion: APPROVED
+Catalog physical deletion: NOT AUTHORIZED
+Code removal: NOT AUTHORIZED
+Configuration edit: NOT AUTHORIZED
+Migration: NOT AUTHORIZED
+
+Physical deletion or modification of an existing catalog entry requires a
+separate Gate examining: dependencies; references; backward compatibility;
+audit history; provenance continuity; rollback; tests; migration requirements.
+
+Marker: NO_CATALOG_PHYSICAL_DELETION_PERFORMED
+No catalog entry edited or deleted in this package.
+```
+
+### ۱۰۵.۷ شرایط آتی صلاحیت منبع رایگان
+
+A future free source may reach eligibility review only when source-specific
+evidence closes all required dimensions:
+
+```text
+operator identity
+canonical domain
+source authority and role
+free production access
+storage permission
+processing permission
+indexing permission
+caching and retention permission
+commercial product-use permission
+automated-access permission
+robots compliance
+rate-limit compliance
+attribution requirements
+redistribution or public-display permission when needed
+correction and deletion mechanisms
+provenance requirements
+freshness policy
+suspension and revocation behavior
+terms-change monitoring
+security review
+legal review
+governance approval
+```
+
+Missing any required dimension preserves:
+
+```text
+DO_NOT_STORE
+DO_NOT_AUTOMATE
+DO_NOT_REGISTER
+DO_NOT_PROMOTE
+DO_NOT_PUBLISH
+DO_NOT_USE_AT_RUNTIME
+```
+
+### ۱۰۵.۸ ترتیب دروازه‌های آینده (مستند؛ غیرمجاز)
+
+```text
+Documented, NOT authorized:
+
+E2_C4B_01A_IRIMC_PUBLIC_RIGHTS_AND_AUTOMATION_EVIDENCE
+E2_C4B_01B_IRIMC_FORMAL_PERMISSION_DECISION
+E2_C4B_09A_PAZIRESH24_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09B_DOCTORETO_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09C_NOBAT_IR_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09D_DOCTOR_YAB_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09E_DRDR_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09F_CROSS_SOURCE_RIGHTS_CONSOLIDATION
+E2_C4B_09G_LEGAL_SECURITY_GOVERNANCE_REVIEW
+E2_C4B_09H_CATALOG_AND_ELIGIBILITY_DECISION
+E2_C4B_09I_SOURCE_INTEGRATION_PLANNING
+
+Locks:
+No paid path may be approved by any future Gate.
+No formal contact is authorized by documenting a Gate.
+No platform-specific Gate is authorized in this package.
+```
+
+### ۱۰۵.۹ خلاصه تصمیم و شمارش‌ها
+
+```text
+RA-PHY decisions approved: 14
+Current source candidates: 6
+Official registry candidates: 1
+Online appointment candidates: 5
+Eligible sources: 0
+Fetch-enabled sources: 0
+Stored provider records: 0
+Source registrations: 0
+Catalog edits: 0
+Publications: 0
+Runtime activations: 0
+Paid exclusion classes documented in §105: 12
+Paid API exclusions currently identified: at least 1 (ApiLand)
+TBD owners: 0
+```
+
+### ۱۰۵.۱۰ مرزهای تأیید
+
+```text
+Javad decisions: APPROVED
+Decision documentation: AUTHORIZED
+
+Web search / Network / Website opening / Organization contact: NOT AUTHORIZED
+Provider search / verification / External evidence: NOT AUTHORIZED
+Provider-data collection / storage / API / dataset: NOT AUTHORIZED
+Source registration / Catalog edit / Catalog deletion / Code removal: NOT AUTHORIZED
+source_fetch_enabled change / Eligibility promotion: NOT AUTHORIZED
+Publication / Runtime activation: NOT AUTHORIZED
+Stage / Commit / Push / CI: NOT AUTHORIZED
+E2-C4B-01A or 01B execution: NOT AUTHORIZED
+E2-C4B-09A through E2-C4B-09I execution: NOT AUTHORIZED
+E2-C4B-02 through E2-C4F / E3 / P2: NOT AUTHORIZED
+```
+
+### ۱۰۵.۱۱ ممیزی داخلی و بستن یافته‌ها
+
+```text
+Audit iterations: 2
+
+C4B01R-A1 §104 authority reconciliation → CLOSED
+C4B01R-A2 RA-PHY-01..12 documented exactly → CLOSED
+C4B01R-A3 RA-PHY-13 paid exclusion classes (12) → CLOSED
+C4B01R-A4 RA-PHY-14 free-and-lawful independent rights → CLOSED
+C4B01R-A5 six sources fail-closed; ApiLand PAID_EXCLUDED → CLOSED
+C4B01R-A6 policy vs physical deletion; no catalog mutation → CLOSED
+C4B01R-A7 canonical architecture lock; no parallel architecture → CLOSED
+C4B01R-A8 future Gates documented not authorized → CLOSED
+C4B01R-A9 exact counts + approval boundaries → CLOSED
+C4B01R-A10 §105 append-only; §106 absent; no network/storage/eligibility → CLOSED
+
+Findings fixed: 10
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B01R-F1 | need §104 reconcile | §105.1 | CLOSED |
+| C4B01R-F2 | RA-PHY-01..12 | §105.2 | CLOSED |
+| C4B01R-F3 | RA-PHY-13 paid classes | §105.3 | CLOSED |
+| C4B01R-F4 | RA-PHY-14 free policy | §105.4 | CLOSED |
+| C4B01R-F5 | apply to current sources | §105.5 | CLOSED |
+| C4B01R-F6 | policy vs physical removal | §105.6 | CLOSED |
+| C4B01R-F7 | eligibility conditions | §105.7 | CLOSED |
+| C4B01R-F8 | future Gate order locks | §105.8 | CLOSED |
+| C4B01R-F9 | counts/boundaries | §105.9–.10 | CLOSED |
+| C4B01R-F10 | audit completeness | §105.11 | CLOSED |
+
+### ۱۰۵.۱۲ نشانگرها و گام بعدی
+
+```text
+RA_PHY_01_TO_14_DOCUMENTED
+FREE_SOURCES_ONLY_POLICY_DOCUMENTED
+FREE_SOURCES_ONLY_POLICY_LOCKED
+ALL_PAID_PATHS_EXCLUDED
+PAID_APIS_EXCLUDED
+PAID_DATASETS_EXCLUDED
+PAID_LICENSES_EXCLUDED
+MANDATORY_PAID_PARTNERSHIPS_EXCLUDED
+FREE_TO_VIEW_NOT_FREE_TO_STORE
+FREE_TO_QUERY_NOT_FREE_TO_AUTOMATE
+FREE_TRIAL_NOT_ACCEPTABLE
+LIMITED_FREE_TIER_NOT_AUTOMATICALLY_ACCEPTABLE
+OFFICIAL_SOURCE_NOT_EQUAL_FREE_REUSE_RIGHTS
+ALL_SIX_SOURCES_REMAIN_FAIL_CLOSED_OR_PAID_EXCLUDED
+CATALOG_PROPOSAL_STORE_DOCUMENTATION_ONLY
+NO_PARALLEL_ARCHITECTURE_APPROVED
+NO_CATALOG_PHYSICAL_DELETION_PERFORMED
+NO_DATA_COLLECTION
+NO_DATA_STORAGE
+NO_SOURCE_REGISTERED
+NO_CATALOG_EDIT
+NO_ELIGIBILITY_PROMOTION
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+MASTER_LOG_105_APPENDED
+MASTER_LOG_106_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+READY_FOR_E2_C4B_01_SCOPE_REVIEW_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+
+Exact next Gate:
+E2_C4B_01_SCOPE_REVIEW_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+
+No future commit SHA guessed.
+No future evidence Gate authorized by this package.
+```
+
+---
+*پایان §105 — Package E2-C4B-01 Rights and Automation Scope Review Decisions and Free-Sources-Only Policy — ۲۰۲۶-۰۷-۲۲*
+
+---
+
+## ۱۰۶) بسته E2-C4B-01 — سیاست دسترسی به همه منابع عمومی مفید، مبانی استفاده قانونی و انتساب اجباری
+
+```text
+Package:
+E2_C4B_01_ALL_USEFUL_SOURCES_LAWFUL_USE_AND_ATTRIBUTION_DOCUMENTATION
+
+Title:
+E2-C4B-01 All Useful Public Sources, Lawful Use Modes and Mandatory Attribution Policy
+
+Authorization:
+document Javad-approved RA-PHY-15 through RA-PHY-19 by appending §106 ONLY
+reconcile free-sources-only + all-useful-public access + lawful-use modes +
+mandatory attribution/provenance + attribution≠license
+hold previous local-commit approval pending policy reconciliation
+NO network / external evidence / catalog mutation
+NO provider-data collection or storage
+NO stage / commit / push / CI
+
+Baseline SHA (unchanged):
+27a144e3d91310045aa6ec388bf5bbc3afa44ede
+
+Status:
+RA_PHY_15_TO_19_DOCUMENTED
+ALL_USEFUL_PUBLIC_SOURCE_ACCESS_DOCUMENTED
+FREE_SOURCES_ONLY_POLICY_PRESERVED
+PREVIOUS_COMMIT_APPROVAL_HELD
+MASTER_LOG_106_APPENDED
+```
+
+### ۱۰۶.۱ تطبیق مرجع §۱۰۴ و §۱۰۵
+
+```text
+§104 preserved:
+sources=6; official=1; appointment=5; gaps=6; source-gap rows=36
+evidence cells=108; risk rows=24; owner/closure rows=60; TBD=0
+eligible=0; fetch-enabled=0; stored=0; registrations=0
+catalog edits=0; publications=0; runtime=0
+
+§105 preserved:
+RA-PHY decisions=14; paid exclusion classes=12
+FREE_SOURCES_ONLY_POLICY_LOCKED
+irimc_member_search / paziresh24_com / doctoreto_com / nobat_ir /
+doctor_yab_ir / drdr_ir = UNKNOWN_FAIL_CLOSED
+ApiLand = PAID_EXCLUDED
+
+Laws preserved:
+FREE_TO_VIEW ≠ FREE_TO_STORE
+FREE_TO_QUERY ≠ FREE_TO_AUTOMATE
+PUBLICLY_ACCESSIBLE ≠ FREE_FOR_COMMERCIAL_PRODUCT_USE
+FREE_TRIAL ≠ FREE_PRODUCTION_USE
+LIMITED_FREE_TIER ≠ APPROVED_FREE_SOURCE
+OFFICIAL SOURCE ≠ FREE REUSE RIGHTS
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۰۶.۲ تصمیم RA-PHY-15 — دسترسی/بازبینی عمومی بدون تماس موردی پیش‌فرض
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-15:
+Sedi may discover, open, review, evaluate, cite and link to useful publicly
+accessible medical and health sources without obtaining case-by-case prior
+permission from each publisher, provided that:
+- no login is bypassed;
+- no paywall is bypassed;
+- no CAPTCHA is bypassed;
+- no anti-bot mechanism is bypassed;
+- no credential is misused;
+- no private or restricted source is accessed;
+- no prohibited automated collection occurs.
+
+Locks:
+PUBLIC REVIEW DOES NOT REQUIRE CASE-BY-CASE PRIOR CONTACT BY DEFAULT
+PUBLIC REVIEW DOES NOT AUTHORIZE UNRESTRICTED INGESTION
+
+Markers:
+ALL_USEFUL_PUBLIC_SOURCE_ACCESS_DOCUMENTED
+CASE_BY_CASE_PRIOR_CONTACT_NOT_REQUIRED_FOR_PUBLIC_REVIEW
+```
+
+### ۱۰۶.۳ تصمیم RA-PHY-16 — مبانی استفاده قانونی (غیر از فقط مجوز ناشر)
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-16:
+Direct publisher permission is not the only possible lawful-use basis.
+
+Lawful-use basis classes (count = 8):
+EXPLICIT_OPEN_LICENSE
+EXPLICIT_FREE_PRODUCT_USE_TERMS
+OFFICIAL_OPEN_DATA_OR_PUBLIC_DOMAIN_BASIS
+REFERENCE_ONLY_RETRIEVAL_WITHOUT_PERMANENT_CONTENT_STORAGE
+METADATA_ONLY_INDEXING
+FACTS_ONLY_MINIMAL_EXTRACTION_WITH_LEGAL_AND_GOVERNANCE_REVIEW
+SHORT_QUOTATION_WITH_ATTRIBUTION_AND_CUSTOMARY_LIMITS
+FORMAL_WRITTEN_PERMISSION
+
+Every source must identify its applicable basis.
+UNDEFINED_LAWFUL_BASIS is forbidden as eligibility basis.
+Unknown basis → UNKNOWN_FAIL_CLOSED
+
+Marker: DIRECT_PERMISSION_NOT_ONLY_LAWFUL_BASIS
+```
+
+### ۱۰۶.۴ تصمیم RA-PHY-17 — حقوق مستقل
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-17:
+Public accessibility alone does not authorize unrestricted copying, permanent
+storage, commercial reuse, redistribution, full-text ingestion or automated
+collection.
+
+Independent rights (count = 10):
+ACCESS_RIGHT
+COPY_RIGHT
+STORAGE_RIGHT
+PROCESSING_RIGHT
+INDEXING_RIGHT
+CACHING_RIGHT
+COMMERCIAL_USE_RIGHT
+AUTOMATION_RIGHT
+REDISTRIBUTION_RIGHT
+PUBLIC_DISPLAY_RIGHT
+
+Locks:
+ONE RIGHT DOES NOT IMPLY ANOTHER RIGHT
+PUBLIC ACCESS ≠ UNRESTRICTED REUSE
+
+Marker: PUBLIC_ACCESS_NOT_UNRESTRICTED_REUSE
+```
+
+### ۱۰۶.۵ تصمیم RA-PHY-18 — انتساب و provenance اجباری
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-18:
+Every source-derived fact, metadata record, quotation, provider field,
+knowledge artifact, recommendation evidence and runtime citation must retain
+mandatory source attribution and immutable provenance.
+
+Minimum attribution/provenance fields (count = 18):
+source key
+publisher or operator name
+source title or page title
+canonical URL
+retrieval timestamp in UTC
+publication date when available
+update or review date when available
+source role
+authority level
+source-use mode
+lawful-use basis
+rights state
+verification state
+freshness state
+language
+record or content hash when lawful and applicable
+reviewer or ingestion actor
+conflict state when sources disagree
+
+Provider-related additional requirements:
+platform-declared versus officially verified status
+source-specific retrieval timestamp
+official-source precedence state
+
+No provider field may exist without provenance.
+
+Markers:
+MANDATORY_SOURCE_ATTRIBUTION_DOCUMENTED
+MANDATORY_PROVENANCE_DOCUMENTED
+```
+
+### ۱۰۶.۶ تصمیم RA-PHY-19 — انتساب ≠ مجوز
+
+```text
+APPROVED_BY_JAVAD
+RA-PHY-19:
+Naming, citing or attributing a source is mandatory but does not by itself
+create permission for storage, copying, automation, commercial use,
+redistribution, publication or runtime ingestion.
+
+Locks:
+ATTRIBUTION ≠ LICENSE
+ATTRIBUTION ≠ STORAGE PERMISSION
+ATTRIBUTION ≠ PROCESSING PERMISSION
+ATTRIBUTION ≠ AUTOMATION PERMISSION
+ATTRIBUTION ≠ COMMERCIAL-USE PERMISSION
+ATTRIBUTION ≠ REDISTRIBUTION PERMISSION
+ATTRIBUTION ≠ PUBLICATION PERMISSION
+
+A source must satisfy both:
+MANDATORY ATTRIBUTION
+and
+APPLICABLE LAWFUL-USE BASIS
+
+Marker: ATTRIBUTION_NOT_LICENSE_LOCKED
+```
+
+### ۱۰۶.۷ پنج حالت استفاده از منبع (Source-Use Modes)
+
+```text
+Exactly five modes (count = 5). Each source must have exactly one active mode.
+Silent mode switching prohibited. Mode changes require governance approval
+and append-only evidence. Operational mode assignment NOT authorized in this Gate.
+```
+
+#### MODE 1 — REFERENCE_ONLY
+```text
+Allowed: search; open public source; read; evaluate; cite; link;
+retrieve during a user request when lawful.
+Persistent full-content storage: PROHIBITED
+Allowed persistent record: minimal attribution and provenance metadata
+Marker: REFERENCE_ONLY_MODE_DOCUMENTED
+```
+
+#### MODE 2 — METADATA_ONLY
+```text
+Allowed storage: source key; publisher; title; canonical URL; language;
+source class; publication/update date; retrieval timestamp; authority level;
+rights state; freshness state; provenance; lawful hash when appropriate.
+Full source content: PROHIBITED
+Marker: METADATA_ONLY_MODE_DOCUMENTED
+```
+
+#### MODE 3 — FACTS_ONLY
+```text
+Allowed only after legal and governance review:
+minimal public factual fields; normalized facts; non-expressive structured
+facts; verification state; source attribution; retrieval timestamp;
+freshness state; provenance.
+Not allowed by default: article wording; editorial description; photographs;
+reviews; ratings; page layout; creative presentation; proprietary database
+structure; large-scale extraction.
+Marker: FACTS_ONLY_MODE_DOCUMENTED
+```
+
+#### MODE 4 — OPEN_OR_LAWFUL_INGESTION
+```text
+Allowed only when a documented lawful-use basis permits every required
+operation: storage; processing; indexing; caching; commercial product use;
+automation; retention; translation; derived use; redistribution or public
+display when needed.
+Marker: OPEN_OR_LAWFUL_INGESTION_MODE_DOCUMENTED
+```
+
+#### MODE 5 — REJECTED
+```text
+Use when essential condition includes: paid-only access; paid API; paid
+dataset; paid license; mandatory paid partnership; paywall; explicit
+prohibition; private/sensitive data; login-only without approval; CAPTCHA or
+anti-bot bypass requirement; unknown operator identity; unacceptable security
+risk; conflicting rights evidence.
+Marker: REJECTED_MODE_DOCUMENTED
+```
+
+### ۱۰۶.۸ سیاست وب‌سایت‌های پزشکی
+
+```text
+Medical websites may be used as:
+REFERENCE_ONLY_MEDICAL_SOURCE
+METADATA_ONLY_MEDICAL_SOURCE
+FACTS_ONLY_MEDICAL_SOURCE
+OPEN_OR_LAWFUL_MEDICAL_INGEST_SOURCE
+SECONDARY_MEDICAL_DISCOVERY_SOURCE
+
+Must NOT automatically be classified as:
+OFFICIAL_MEDICAL_AUTHORITY
+PROFESSIONAL_LICENSE_AUTHORITY
+FREE_FULL_CONTENT_INGESTION
+FREE_AUTOMATED_COLLECTION
+FREE_COMMERCIAL_REUSE
+
+Every medical source must retain:
+publisher identity; medical source role; evidence level; review/update date;
+medical-review state; attribution; provenance; freshness; conflict disclosure.
+
+Marker: MEDICAL_WEBSITES_CONDITIONALLY_USABLE
+Marker: MEDICAL_WEBSITE_POLICY_DOCUMENTED
+```
+
+### ۱۰۶.۹ مرز واقعیت در برابر بیان (Fact vs Expression)
+
+```text
+Public factual information may be evaluated for normalized FACTS_ONLY use,
+subject to: verification; minimality; provenance; freshness; medical safety
+review; privacy review; legal review; governance approval.
+
+Do not copy or store by default:
+original article wording; long passages; creative medical explanations;
+photographs; videos; illustrations; reviews; ratings; proprietary descriptions;
+page layout; database presentation; provider biographies written by the platform.
+
+Lock: FACT EXTRACTION MUST NOT BECOME DISGUISED FULL-CONTENT COPYING
+Marker: FACT_VERSUS_EXPRESSION_BOUNDARY_DOCUMENTED
+```
+
+### ۱۰۶.۱۰ انتساب در خروجی‌های Sedi
+
+For source-derived user-visible answers, require when applicable:
+
+```text
+publisher or source name
+source title
+publication or review date
+retrieval date
+canonical source reference
+official versus secondary classification
+verification status
+freshness warning
+conflict disclosure
+```
+
+For medical responses also require when relevant:
+
+```text
+medical evidence level
+medical review status
+clinical uncertainty
+professional-care boundary
+emergency or safety escalation boundary
+```
+
+```text
+Do not overstate a secondary source as official.
+Do not attribute one source's statement to another source.
+```
+
+### ۱۰۶.۱۱ انتساب فیلدهای ارائه‌دهنده (آینده)
+
+For every future provider field require (count = 12):
+
+```text
+field value
+field type
+source key
+source platform
+canonical source URL
+retrieval timestamp
+source-use mode
+lawful-use basis
+platform-declared versus officially verified state
+freshness state
+conflict state
+official-source precedence result
+```
+
+```text
+Locks:
+NO PROVIDER FIELD WITHOUT SOURCE PROVENANCE
+PLATFORM_DECLARED ≠ OFFICIALLY_VERIFIED
+COMMERCIAL PLATFORM DATA MUST NOT OVERRIDE OFFICIAL EVIDENCE
+
+This package does NOT authorize provider-data collection or storage.
+```
+
+### ۱۰۶.۱۲ حفظ سیاست فقط-منابع-رایگان
+
+```text
+New access/attribution decisions do NOT cancel free-sources-only policy.
+
+Preserve:
+PAID_SOURCE = PAID_EXCLUDED
+PAID_API = PAID_EXCLUDED
+PAID_DATASET = PAID_EXCLUDED
+PAID_LICENSE = PAID_EXCLUDED
+MANDATORY_PAID_PARTNERSHIP = PAID_EXCLUDED
+PAYWALLED_CONTENT = PAID_EXCLUDED
+
+FREE_PUBLIC_DISCOVERY: POSSIBLE
+FREE_REFERENCE_ONLY_USE: POSSIBLE
+FREE_METADATA_ONLY_USE: POSSIBLE
+FREE_FACTS_ONLY_USE: POSSIBLE AFTER REVIEW
+FREE_FULL_INGESTION: REQUIRES DOCUMENTED LAWFUL BASIS
+
+Markers:
+FREE_SOURCES_ONLY_POLICY_PRESERVED
+PAID_PATHS_EXCLUDED
+```
+
+### ۱۰۶.۱۳ وضعیت فعلی کاندیدها
+
+```text
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+doctoreto_com = UNKNOWN_FAIL_CLOSED
+nobat_ir = UNKNOWN_FAIL_CLOSED
+doctor_yab_ir = UNKNOWN_FAIL_CLOSED
+drdr_ir = UNKNOWN_FAIL_CLOSED
+ApiLand = PAID_EXCLUDED
+
+Eligible=0; Fetch-enabled=0; Stored provider records=0
+Source registrations=0; Catalog edits=0; Publications=0; Runtime activations=0
+
+No source-use mode assigned operationally in this Gate (taxonomy/policy only).
+Marker: ALL_CURRENT_CANDIDATES_REMAIN_FAIL_CLOSED_OR_PAID_EXCLUDED
+```
+
+### ۱۰۶.۱۴ وضعیت تأیید commit قبلی
+
+```text
+Previous approval for commit subject:
+docs(governance): enforce free sources only
+
+Status:
+HELD_PENDING_POLICY_RECONCILIATION
+
+Reason:
+Policy evolved before commit to include RA-PHY-15..19; all-useful-public-source
+access; five source-use modes; mandatory attribution; mandatory provenance;
+attribution-not-license distinction.
+
+No commit may be created under the previous subject or approval.
+
+Proposed future subject (NOT a commit authorization):
+docs(governance): reconcile source access and attribution
+
+Marker: PREVIOUS_COMMIT_APPROVAL_HELD
+No future commit SHA guessed.
+```
+
+### ۱۰۶.۱۵ نگاشت معماری متعارف
+
+| logical requirement | canonical mapping | existing sufficient? | future extension maybe? | architecture gap? | owner | future Gate |
+|---|---|---|---|---|---|---|
+| SourceUseMode | LifecycleEvent + HumanReviewApprovalRecord (decision axis) | partial | YES mode enum | no hard gap | Governance | architecture-review if enum needed |
+| LawfulUseBasis | ImmutableProvenanceRecord + HumanReviewApprovalRecord | partial | YES basis enum | no hard gap | Legal | same |
+| SourceAttributionRecord | ImmutableProvenanceRecord | YES concept | maybe fields | no | Data/Knowledge | — |
+| RightsDecision | HumanReviewApprovalRecord | YES concept | rights axes | no | Legal | — |
+| FreshnessState | ImmutableProvenanceRecord / LifecycleEvent | YES concept | maybe | no | Data/Knowledge | — |
+| VerificationState | HumanReviewApprovalRecord | YES concept | maybe | no | Provider Verification | — |
+| ConflictState | LifecycleEvent + provenance conflict flags | partial | YES | no | Governance | — |
+| Mode-gated acquisition | SourceAcquisition / RawContentObject / GovernedFetchRun | YES | mode guards | no | Backend | later fetch Gate |
+| Publication of citations | PublicationRelease | YES | citation pack | no | Governance | — |
+
+```text
+Canonical mappings documented: 9
+ARCHITECTURE_MAPPING_GAP hard gaps: 0
+Partial mappings owned; no TBD owners.
+Lock: DOCUMENTATION TERMINOLOGY MUST NOT CREATE PARALLEL ARCHITECTURE
+Implementation / new contracts / models / migrations: PROHIBITED in this Gate.
+```
+
+### ۱۰۶.۱۶ مرزهای تأیید
+
+```text
+RA-PHY-15 through RA-PHY-19: APPROVED
+§106 documentation: AUTHORIZED
+
+Network / Web search / Website opening / Organization contact: NOT AUTHORIZED
+Provider search / verification / External evidence: NOT AUTHORIZED
+Provider-data collection / storage / Source-content storage: NOT AUTHORIZED
+Scraping / API / Dataset: NOT AUTHORIZED
+Source registration / Catalog edit / Catalog deletion: NOT AUTHORIZED
+source_fetch_enabled / Eligibility / Publication / Runtime: NOT AUTHORIZED
+Code/model/migration: NOT AUTHORIZED
+Stage / Commit / Push / CI: NOT AUTHORIZED
+Future evidence Gates: NOT AUTHORIZED
+```
+
+### ۱۰۶.۱۷ خلاصه شمارش‌ها
+
+```text
+RA-PHY decisions documented in §106: 5 (RA-PHY-15..19)
+Cumulative RA-PHY decisions (01..19): 19
+Lawful-use basis classes: 8
+Independent rights: 10
+Source-use modes: 5
+Mandatory attribution/provenance fields: 18
+Provider-field provenance fields: 12
+Canonical mappings: 9
+Architecture hard gaps: 0
+Owner rows (mapping table): 9
+TBD owners: 0
+Eligible / fetch / stored / registered / catalog / pub / runtime: 0
+```
+
+### ۱۰۶.۱۸ ممیزی داخلی و بستن یافته‌ها
+
+```text
+Audit iterations: 2
+
+C4B01U-A1 §104/§105 authority reconcile → CLOSED
+C4B01U-A2 RA-PHY-15..19 documented → CLOSED
+C4B01U-A3 lawful bases (8) + independent rights (10) → CLOSED
+C4B01U-A4 five modes + single-active-mode law → CLOSED
+C4B01U-A5 attribution/provenance + provider fields → CLOSED
+C4B01U-A6 fact-vs-expression + medical website policy → CLOSED
+C4B01U-A7 free-sources-only preserved; paid paths excluded → CLOSED
+C4B01U-A8 previous commit approval HELD; proposed subject not authorized → CLOSED
+C4B01U-A9 canonical mapping; no parallel architecture → CLOSED
+C4B01U-A10 §106 append-only; §107 absent; no network/storage/eligibility → CLOSED
+
+Findings fixed: 10
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B01U-F1 | need §104/§105 reconcile | §106.1 | CLOSED |
+| C4B01U-F2 | RA-PHY-15..19 | §106.2–.6 | CLOSED |
+| C4B01U-F3 | five modes | §106.7 | CLOSED |
+| C4B01U-F4 | medical + fact/expression | §106.8–.9 | CLOSED |
+| C4B01U-F5 | output + provider attribution | §106.10–.11 | CLOSED |
+| C4B01U-F6 | free-sources reconcile | §106.12–.13 | CLOSED |
+| C4B01U-F7 | prior commit held | §106.14 | CLOSED |
+| C4B01U-F8 | architecture mapping | §106.15 | CLOSED |
+| C4B01U-F9 | boundaries/counts | §106.16–.17 | CLOSED |
+| C4B01U-F10 | audit completeness | §106.18 | CLOSED |
+
+### ۱۰۶.۱۹ نشانگرها و گام بعدی
+
+```text
+RA_PHY_15_TO_19_DOCUMENTED
+ALL_USEFUL_PUBLIC_SOURCE_ACCESS_DOCUMENTED
+CASE_BY_CASE_PRIOR_CONTACT_NOT_REQUIRED_FOR_PUBLIC_REVIEW
+DIRECT_PERMISSION_NOT_ONLY_LAWFUL_BASIS
+PUBLIC_ACCESS_NOT_UNRESTRICTED_REUSE
+REFERENCE_ONLY_MODE_DOCUMENTED
+METADATA_ONLY_MODE_DOCUMENTED
+FACTS_ONLY_MODE_DOCUMENTED
+OPEN_OR_LAWFUL_INGESTION_MODE_DOCUMENTED
+REJECTED_MODE_DOCUMENTED
+FIVE_SOURCE_USE_MODES_DOCUMENTED
+MANDATORY_SOURCE_ATTRIBUTION_DOCUMENTED
+MANDATORY_PROVENANCE_DOCUMENTED
+ATTRIBUTION_NOT_LICENSE_LOCKED
+FACT_VERSUS_EXPRESSION_BOUNDARY_DOCUMENTED
+MEDICAL_WEBSITES_CONDITIONALLY_USABLE
+MEDICAL_WEBSITE_POLICY_DOCUMENTED
+FREE_SOURCES_ONLY_POLICY_PRESERVED
+PAID_PATHS_EXCLUDED
+ALL_CURRENT_CANDIDATES_REMAIN_FAIL_CLOSED_OR_PAID_EXCLUDED
+PREVIOUS_COMMIT_APPROVAL_HELD
+NO_DATA_COLLECTION
+NO_DATA_STORAGE
+NO_SOURCE_REGISTERED
+NO_CATALOG_EDIT
+NO_ELIGIBILITY_PROMOTION
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+MASTER_LOG_106_APPENDED
+MASTER_LOG_107_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+READY_FOR_E2_C4B_01_RECONCILED_SOURCE_POLICY_REVIEW_BY_JAVAD
+
+Exact next Gate:
+E2_C4B_01_RECONCILED_SOURCE_POLICY_REVIEW_BY_JAVAD
+
+No future commit SHA guessed.
+No commit authorized by this package.
+```
+
+---
+*پایان §106 — Package E2-C4B-01 All Useful Public Sources, Lawful Use Modes and Mandatory Attribution Policy — ۲۰۲۶-۰۷-۲۲*
+
+---
+
+## ۱۰۷) بسته E2-C4B-01 — تأیید commit محلی سیاست منبع بازتطبیق‌شده
+
+```text
+Package:
+E2_C4B_01_RECONCILED_SOURCE_POLICY_LOCAL_COMMIT
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+
+Repository baseline:
+27a144e3d91310045aa6ec388bf5bbc3afa44ede
+
+Expected parent for new commit:
+27a144e3d91310045aa6ec388bf5bbc3afa44ede
+
+Status:
+MASTER_LOG_107_APPENDED
+LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+PREVIOUS_COMMIT_APPROVAL_SUPERSEDED
+```
+
+### ۱۰۷.۱ سیاست‌های گنجانده‌شده
+
+```text
+RA-PHY-01 through RA-PHY-19
+free-sources-only
+all-useful-public-source access
+five source-use modes
+mandatory attribution
+mandatory immutable provenance
+attribution-not-license
+fact-versus-expression boundary
+medical-website conditional use
+paid paths excluded
+all candidates fail-closed or paid-excluded
+```
+
+### ۱۰۷.۲ ابطال تأیید commit قبلی
+
+```text
+Previous commit approval subject:
+docs(governance): enforce free sources only
+
+Previous approval state recorded in §106:
+HELD_PENDING_POLICY_RECONCILIATION
+
+Current state for previous approval:
+SUPERSEDED
+DO_NOT_EXECUTE
+
+Previous commit must not be created.
+Only the current authorized subject may be used.
+Marker: PREVIOUS_COMMIT_APPROVAL_SUPERSEDED
+```
+
+### ۱۰۷.۳ موضوع و مانیفست commit تأییدشده
+
+```text
+Approved commit subject:
+docs(governance): reconcile source access and attribution
+
+E2_C4B_01_RECONCILED_SOURCE_POLICY_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C4B_01_RECONCILED_SOURCE_POLICY_COMMIT_MANIFEST_END
+
+Expected committed file count: 1
+No future commit SHA guessed in this section.
+Actual commit SHA appears only in the final Cursor report after creation.
+```
+
+### ۱۰۷.۴ شمارش‌های الزامی جاری
+
+```text
+RA-PHY decisions = 19
+lawful-use bases = 8
+independent rights = 10
+source-use modes = 5
+minimum attribution fields = 18
+provider provenance fields = 12
+eligible = 0
+fetch-enabled = 0
+stored provider records = 0
+source registrations = 0
+catalog edits = 0
+publications = 0
+runtime activations = 0
+```
+
+### ۱۰۷.۵ مرزهای مجوز
+
+```text
+local commit: AUTHORIZED
+push: NOT AUTHORIZED
+CI: NOT AUTHORIZED
+tests: NOT AUTHORIZED
+network: NOT AUTHORIZED
+web search: NOT AUTHORIZED
+website opening: NOT AUTHORIZED
+organization contact: NOT AUTHORIZED
+provider search: NOT AUTHORIZED
+provider verification: NOT AUTHORIZED
+external evidence collection: NOT AUTHORIZED
+provider-data collection: NOT AUTHORIZED
+provider-data storage: NOT AUTHORIZED
+source-content storage: NOT AUTHORIZED
+scraping: NOT AUTHORIZED
+API: NOT AUTHORIZED
+dataset: NOT AUTHORIZED
+source registration: NOT AUTHORIZED
+catalog edit: NOT AUTHORIZED
+catalog deletion: NOT AUTHORIZED
+source_fetch_enabled change: NOT AUTHORIZED
+eligibility promotion: NOT AUTHORIZED
+publication: NOT AUTHORIZED
+runtime activation: NOT AUTHORIZED
+future evidence Gates: NOT AUTHORIZED
+```
+
+### ۱۰۷.۶ ممیزی hook و صحت‌سنجی پیش از stage
+
+```text
+core.hooksPath: (unset)
+resolved hooks directory: <git-common-dir>/hooks
+active non-sample hook count: 0
+active hook names: NONE
+risk classification: SAFE_FOR_COMMIT (samples only)
+
+§104–§106 unchanged during this Gate (append §107 only)
+§108: ABSENT
+```
+
+### ۱۰۷.۷ نشانگرها و گام بعدی
+
+```text
+MASTER_LOG_107_APPENDED
+PREVIOUS_COMMIT_APPROVAL_SUPERSEDED
+ONE_FILE_MANIFEST_LOCKED
+NO_FUTURE_SHA_GUESSED
+NO_PUSH_AUTHORIZATION
+NO_CI_AUTHORIZATION
+NO_DATA_COLLECTION_AUTHORIZATION
+NO_DATA_STORAGE_AUTHORIZATION
+NO_SOURCE_REGISTRATION_AUTHORIZATION
+NO_ELIGIBILITY_PROMOTION_AUTHORIZATION
+NO_FUTURE_EVIDENCE_GATE_AUTHORIZED
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Exact next Gate after successful commit and complete read-only verification:
+E2_C4B_01_RECONCILED_SOURCE_POLICY_PUSH_APPROVAL
+```
+
+---
+*پایان §107 — Package E2-C4B-01 Reconciled Source Policy Local Commit — ۲۰۲۶-۰۷-۲۲*
