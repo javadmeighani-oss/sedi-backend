@@ -12131,3 +12131,1161 @@ READY_FOR_E2_C4A_SCOPE_REVIEW_COMMIT_READ_ONLY_VERIFICATION
 
 ---
 *پایان §100 — Package E2-C4A Scope Review Docs Local Commit — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۱۰۱) بسته E2-C4B-01 — کشف شواهد منبع رجیستری رسمی پزشکان Iran
+
+```text
+Package:
+E2_C4B_01_OFFICIAL_PHYSICIAN_REGISTRY_DISCOVERY
+
+Gate:
+E2_C4B_01_OFFICIAL_PHYSICIAN_REGISTRY_DISCOVERY
+
+Owner:
+Provider Verification + Legal (evidence review)
+Primary product owner:
+Javad
+
+Authorization:
+controlled external discovery of free official Iranian physician-registry
+authority candidates and legal/operational boundaries ONLY
+NO individual physician search / form submission / provider verification
+NO provider record collection / content storage / source registration
+NO catalog edit / eligibility promotion / fetch enablement / publication
+NO E2-C4B-02..F / E3 / P2
+NO stage / commit / push / CI
+
+Baseline SHA:
+fe2292891de70b4b09aaf2f1b5019109dc205e99
+
+Status:
+E2_C4B_01_OFFICIAL_PHYSICIAN_REGISTRY_DISCOVERY_COMPLETE
+NO_INDIVIDUAL_PHYSICIAN_DATA_COLLECTED
+NO_SOURCE_REGISTERED
+NO_SOURCE_ELIGIBILITY_PROMOTED
+ALL_CANDIDATES_REMAIN_GOVERNANCE_PENDING_OR_FAIL_CLOSED
+
+Network limits used:
+search queries ≤ 15
+pages opened ≤ 40
+search engines ≤ 2
+redirects/page ≤ 3
+```
+
+### ۱۰۱.۱ تطبیق مرجع §۹۹ / §۱۰۰
+
+```text
+Iran candidates = 6
+eligible = 0
+UNKNOWN_FAIL_CLOSED = 6
+active collection = 0
+active runtime = 0
+source_fetch_enabled remains false (catalog not edited)
+irimc_member_search = existing unverified candidate key only
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۰۱.۲ مرز شبکه و ایمنی
+
+```text
+Permitted: search-engine queries; official public GET/HEAD; about/contact/
+legal/terms/privacy/robots/API-docs/dataset-docs/registry landing;
+form labels without submission.
+
+Prohibited executed: form POST; physician name/number/specialty query submit;
+provider record capture; crawl/mirror; CAPTCHA/anti-bot bypass; login;
+API call; dataset download; credential use; raw HTML/PDF storage.
+
+Hostile-content rule: page instructions ignored for repo/task changes.
+```
+
+### ۱۰۱.۳ دفترچه جستجو (Search Query Log)
+
+| query ID | exact query | engine | UTC (approx) | purpose | results reviewed | official candidates | ignored non-official |
+|---|---|---|---|---|---|---|---|
+| Q01 | سامانه رسمی جست‌وجوی اعضای نظام پزشکی ایران | WebSearch-1 | 2026-07-21T17:35Z | FA official registry discovery | top results | membersearch.irimc.org; irimc.org; stats.irimc.org | irimc.info (Azad branding) |
+| Q02 | Iranian Medical Council official physician member search registry | WebSearch-1 | 2026-07-21T17:35Z | EN official discovery | top results | membersearch.irimc.org | samanehha.com; heyvalaw.com (third-party how-to) |
+| Q03 | سایت irimc.org شرایط استفاده حریم خصوصی قوانین | WebSearch-1 | 2026-07-21T17:40Z | terms/privacy discovery | top results | irimc.org regulations menus; digitalsign | none primary |
+| Q04 | site:irimc.org تماس با ما درباره ما جستجوی اعضا | WebSearch-1 | 2026-07-21T17:42Z | about/contact/search links | top results | membersearch; contactus; about | incidental profile URL in SERP — NOT opened |
+| Q05 | membersearch.irimc.org API OR robots OR شرایط OR terms | WebSearch-1 | 2026-07-21T17:43Z | automation/API/terms | top results | apiland.irimc.org (paid services); membersearch landing | bimekhaneh.com third-party |
+| Q06 | "نظام پزشکی" حق تکثیر OR copyright OR شرایط استفاده OR استفاده تجاری site:irimc.org | WebSearch-1 | 2026-07-21T17:45Z | commercial reuse terms | limited | apiland pricing language; about org | no explicit public reuse license found |
+| Q07 | قانون سازمان نظام پزشکی جمهوری اسلامی ایران مرجع رسمی | WebSearch-1 | 2026-07-21T17:46Z | statutory authority corroboration | top results | irimc.org history; nezamat.ir / ad.gov.ir law texts | psychology council law (out of scope) |
+
+```text
+Search query count: 7
+Search engines used: 1 (Cursor WebSearch)
+Physician-name / registration-number queries: 0
+```
+
+### ۱۰۱.۴ دفترچه دسترسی صفحه (Page Access Log)
+
+| op# | UTC | type | URL / target | purpose | result | redirects | final domain | class | evidence IDs | notes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| N01 | 17:36Z | HEAD | https://www.irimc.org/ | org portal reachability | 200 | ≤3 | irimc.org | official | E-OWN-01 | |
+| N02 | 17:36Z | HEAD | https://irimc.org/ | org portal | 200 | ≤3 | irimc.org | official | E-OWN-01 | |
+| N03 | 17:36Z | GET | https://membersearch.irimc.org/ | registry landing / form labels | 200 | ≤3 | membersearch.irimc.org | official | E-CAP-01,E-COST-01,E-AUTO-01 | NO form submit |
+| N04 | 17:36Z | HEAD/GET | https://membersearch.irimc.org/robots.txt | robots signal | 200 | ≤3 | membersearch.irimc.org | official | E-AUTO-02 | |
+| N05 | 17:36Z | HEAD/GET | https://irimc.org/robots.txt | robots signal | 200 | ≤3 | irimc.org | official | E-AUTO-03 | |
+| N06 | 17:36Z | HEAD | https://www.irimc.org/robots.txt | robots | 200 | ≤3 | irimc.org | official | E-AUTO-03 | |
+| N07 | 17:36Z | GET | https://cdn.irimc.org/robots.txt | cdn robots | 404 | 0 | cdn.irimc.org | official-cdn | — | failure recorded |
+| N08 | 17:37Z | GET | https://irimc.org/ (homepage content) | branding / search links / history | 200 | ≤3 | irimc.org | official | E-OWN-01,E-FRESH-01 | link to جستجوی پزشک |
+| N09 | 17:44Z | GET | https://irimc.org/درباره-ما/درباره-سازمان | about ownership | 200 | ≤3 | irimc.org | official | E-OWN-02 | |
+| N10 | 17:44Z | GET | https://irimc.org/contactus | contact identity | 200 | ≤3 | irimc.org | official | E-OWN-03 | |
+| N11 | 17:44Z | GET | https://apiland.irimc.org/ | official API commercial portal | 200 | ≤3 | apiland.irimc.org | official-paid | E-COST-02,E-AUTO-04,E-COMM-01 | paid service language |
+| N12 | 17:44Z | GET | https://searchdoctor.irimc.org/ | alternate search host | 200 | ≤3 | searchdoctor.irimc.org | official | E-CAP-02 | content matches membersearch landing |
+| N13 | 17:44Z | GET | https://membersearch.irimc.org/directory | aggregate directory stats page | 200 | ≤3 | membersearch.irimc.org | official | E-CAP-03 | province aggregates only; no individual lookup |
+| N14 | 17:47Z | GET | https://nezamat.ir/post-34879/ | IRIMC statute text (third-party law host) | 200 | ≤3 | nezamat.ir | secondary-law-host | E-OWN-04 | corroborates 1383 law; not IRIMC domain |
+| N15 | 17:47Z | GET | http://www.ad.gov.ir/staticPages/23 | MoC/archives law excerpt | 200 | ≤3 | ad.gov.ir | secondary-gov | E-OWN-04 | statute corroboration |
+
+```text
+Page operations counted toward limit: 15 (incl. robots/HEAD/GET)
+Official pages: 13
+Non-official / secondary hosts: 2 (nezamat.ir, ad.gov.ir)
+Robots files opened: 3 successful + 1 fail (cdn 404)
+Terms/legal dedicated reuse pages: 0 found
+Privacy pages specific to membersearch: 0 found
+API documentation pages: 1 (apiland)
+Dataset documentation pages: 0
+Registry landing pages: 2 (membersearch, searchdoctor)
+Network failures: 1 (cdn robots 404)
+Blocked pages: 0
+Physician profile pages opened: 0
+```
+
+### ۱۰۱.۵ فهرست کاندیدهای کشف‌شده
+
+| candidate ID | domain(s) | observed org | class | notes |
+|---|---|---|---|---|
+| C-IR-PHY-01 | membersearch.irimc.org ; searchdoctor.irimc.org | سازمان نظام پزشکی (branding) | official registry UI | primary discovery target |
+| C-IR-PHY-02 | irimc.org / www.irimc.org | سازمان نظام پزشکی کشور | official org portal | ownership + links |
+| C-IR-PHY-03 | apiland.irimc.org | سازمان نظام پزشکی (API services) | official paid API portal | PAID path |
+| C-IR-PHY-04 | irimc.info | branded “دانشگاه آزاد اسلامی” on page | non-official-as-IRIMC-primary | reject as primary IRIMC |
+| C-IR-PHY-05 | stats.irimc.org | IRIMC stats (from SERP) | official-related | aggregate stats; not deeply audited |
+
+```text
+Candidate domains assessed: 5
+Official candidates: 4 (01–03,05)
+Non-official-as-primary: 1 (04)
+```
+
+### ۱۰۱.۶ شواهد مالکیت رسمی
+
+| evidence ID | candidate | org name | operator claim | jurisdiction | canonical domain | ownership evidence | cross-link | tier | confidence | contradictions | gaps | state |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| E-OWN-01 | C-IR-PHY-01/02 | سازمان نظام پزشکی کشور | IRIMC portal branding; logo; footer contact | IR | irimc.org | homepage titles + membersearch title “سازمان نظام پزشکی \| سامانه جستجوی…” | homepage links to physician search hosts | TIER A candidate | high for org identity | none material | reuse terms missing | OFFICIAL_OWNERSHIP_CONFIRMED_BY_PRIMARY_EVIDENCE (org/portal) |
+| E-OWN-02 | C-IR-PHY-02 | same | About: independent professional org of medical practitioners | IR | irimc.org/درباره-ما/درباره-سازمان | about definition/goals | internal nav | TIER A | high | none | English about not required | OFFICIAL_OWNERSHIP_CONFIRMED_BY_PRIMARY_EVIDENCE |
+| E-OWN-03 | C-IR-PHY-02 | same | contact: address, 021-84130000, info@irimc.org | IR | irimc.org/contactus | contact page | — | TIER A | high | none | — | OFFICIAL_OWNERSHIP_CONFIRMED_BY_PRIMARY_EVIDENCE |
+| E-OWN-04 | C-IR-PHY-02 | statutory IRIMC | Law of IRIMC (1383) | IR | nezamat.ir / ad.gov.ir excerpts | statute names سازمان نظام پزشکی جمهوری اسلامی ایران | corroborates authority existence | TIER A support | med (secondary hosts) | not hosted on irimc.org | need IRIMC-hosted law PDF optional | OFFICIAL_OWNERSHIP_PARTIALLY_SUPPORTED (statute via secondary hosts) |
+| E-OWN-05 | C-IR-PHY-04 | Azad University search UI | page title states دانشگاه آزاد اسلامی | IR | irimc.info | self-label | none to irimc.org about | TIER R/D | high non-official-as-IRIMC | domain similarity risk | — | NONOFFICIAL_COMMERCIAL_OR_ALT_OPERATOR |
+
+```text
+Ownership evidence records: 5
+```
+
+### ۱۰۱.۷ ماتریس ابعاد Authority
+
+| candidate | IDENTITY | PROFESSIONAL_LICENSE | SPECIALTY | REGULATORY | OPERATIONAL_DIRECTORY |
+|---|---|---|---|---|---|
+| C-IR-PHY-01 membersearch | PRIMARY_AUTHORITY_SUPPORTED (official registry UI) | LIMITED_AUTHORITY_SUPPORTED (public verification UI; no content stored) | LIMITED_AUTHORITY_SUPPORTED (specialty field labels) | LIMITED_AUTHORITY_SUPPORTED (regulator-operated search) | PRIMARY_AUTHORITY_SUPPORTED (search/directory) |
+| C-IR-PHY-02 irimc.org | PRIMARY_AUTHORITY_SUPPORTED | SECONDARY_EVIDENCE_ONLY | NOT_SUPPORTED as registry | PRIMARY_AUTHORITY_SUPPORTED (org) | SECONDARY_EVIDENCE_ONLY |
+| C-IR-PHY-03 apiland | SECONDARY (API about members) | LIMITED if paid licensed | UNKNOWN | PRIMARY org | NOT public directory |
+| C-IR-PHY-04 irimc.info | NOT_SUPPORTED as IRIMC | NOT_SUPPORTED | NOT_SUPPORTED | NOT_SUPPORTED | SECONDARY_EVIDENCE_ONLY / reject primary |
+
+Locks restated: directory presence ≠ license proof for product storage; profile presence ≠ active status without freshness; self-report ≠ specialty authority; popularity ≠ regulatory authority.
+
+### ۱۰۱.۸ ماتریس قابلیت رجیستری (بدون submit)
+
+From membersearch landing help text / form labels (paraphrase):
+
+| field | classification | evidence |
+|---|---|---|
+| physician full name | VISIBLE_FORM_INPUT_OR_OUTPUT_LABEL | search form present; SERP/help describe name search — form NOT submitted |
+| professional registration number | MENTIONED_IN_HELP_OR_POLICY / VISIBLE_FORM_INPUT_OR_OUTPUT_LABEL | third-party + common UI claims; landing emphasizes professional member search |
+| professional category / gender filter | VISIBLE_FORM_INPUT_OR_OUTPUT_LABEL | “همه / خانم / آقا” labels observed |
+| specialty | VISIBLE_FORM_INPUT_OR_OUTPUT_LABEL | “رشته تخصصی” field guidance |
+| subspecialty | UNKNOWN | not clearly labeled on landing excerpt |
+| active professional status | MENTIONED_IN_HELP_OR_POLICY | public purpose = professional info view; status fields not proven without lookup |
+| suspension / revocation | UNKNOWN | not documented on landing |
+| expiry | UNKNOWN on public landing | ApiLand/proaneh imply licenses elsewhere |
+| province/city | VISIBLE_FORM_INPUT_OR_OUTPUT_LABEL | city field; directory by province aggregates |
+| public facility affiliation | UNKNOWN | not confirmed without profile open |
+| update/verification date | UNKNOWN | not on landing |
+
+```text
+NO form submission performed.
+NO physician record retrieved.
+```
+
+### ۱۰۱.۹ شواهد رایگان‌بودن (Cost)
+
+| evidence ID | candidate | observation | state |
+|---|---|---|---|
+| E-COST-01 | C-IR-PHY-01 | public landing HTTP 200; no price shown on search UI; rate limit text (10 searches / 10 minutes; max 100 results) | PUBLIC_ACCESS_OBSERVED_BUT_COST_TERMS_NOT_EXPLICIT |
+| E-COST-02 | C-IR-PHY-03 | ApiLand markets services to companies/orgs; “درخواست قیمت” / purchase language; “هزینه دستیابی… بسیار پایین” still = paid path | PAID_ACCESS_CONFIRMED (API/service channel) |
+
+```text
+Absence of visible price on public search ≠ proof of unrestricted free reuse.
+Paid API path = EXCLUDED for Sedi free-sources-only storage/API purchase.
+```
+
+### ۱۰۱.۱۰ شواهد Terms / Storage / Reuse
+
+| right | state | evidence |
+|---|---|---|
+| viewing public search UI | RIGHT_LIMITED_OR_CONDITIONAL (rate limits) | landing notes |
+| querying | RIGHT_LIMITED_OR_CONDITIONAL | rate limits; form exists — not used |
+| copying/storage/processing/indexing/caching | RIGHT_NOT_ADDRESSED_UNKNOWN_FAIL_CLOSED | no dedicated public reuse license found on audited pages |
+| quotation/translation/derivatives/redistribution | RIGHT_NOT_ADDRESSED_UNKNOWN_FAIL_CLOSED | not found |
+| retention / commercial product DB use | RIGHT_NOT_ADDRESSED_UNKNOWN_FAIL_CLOSED / see commercial | ApiLand implies controlled paid access for org services |
+| use after terms change | RIGHT_NOT_ADDRESSED_UNKNOWN_FAIL_CLOSED | terms page for membersearch not found |
+
+```text
+Terms/legal dedicated pages opened for reuse grant: 0
+TERMS_NOT_FOUND_UNKNOWN_FAIL_CLOSED for storage/reuse of registry content
+```
+
+### ۱۰۱.۱۱ شواهد استفاده تجاری محصول
+
+| state | rationale |
+|---|---|
+| COMMERCIAL_PRODUCT_USE_NOT_ADDRESSED_FAIL_CLOSED (public UI data) | no explicit grant to build commercial product DB from public search |
+| COMMERCIAL_PRODUCT_USE_CONDITIONAL / paid (ApiLand) | org API purchase path exists → conflicts with PAID_EXCLUDED for free-sources-only |
+
+Free official public page ≠ commercial product reuse permission.
+
+### ۱۰۱.۱۲ شواهد Automation / Robots
+
+| evidence ID | observation | state |
+|---|---|---|
+| E-AUTO-01 | public UI rate limits 10/10 min | MANUAL_ONLY preferred; automation not evidenced |
+| E-AUTO-02/03 | robots.txt User-agent * Disallow admin/App_* etc.; no explicit Allow for bulk registry harvest; Sitemap commented placeholder | AUTOMATION_UNKNOWN_FAIL_CLOSED (robots ≠ license) |
+| E-AUTO-04 | ApiLand documents paid org APIs — not called | OFFICIAL_API_DOCUMENTED_BUT_NOT_CALLED ; paid → excluded |
+
+```text
+API calls executed: 0
+Dataset downloads: 0
+API keys requested: 0
+```
+
+### ۱۰۱.۱۳ شواهد Attribution
+
+| requirement | state | notes |
+|---|---|---|
+| publisher attribution | ATTRIBUTION_UNKNOWN_FAIL_CLOSED | no membersearch-specific attribution policy found |
+| URL / retrieval date / license / non-endorsement | ATTRIBUTION_UNKNOWN_FAIL_CLOSED | not documented on audited pages |
+
+### ۱۰۱.۱۴ Freshness / Revocation
+
+| item | state |
+|---|---|
+| update frequency of registry | NOT_DOCUMENTED on landing |
+| suspension/revocation publication process | NOT_DOCUMENTED on landing |
+| correction/appeal contacts | PARTIALLY_DOCUMENTED (org contact/complaints exist; not registry-specific SLA) |
+| Sedi 30-day badge / weekly revalidation | preserved product rule; feasibility = unknown without rights+automation |
+
+### ۱۰۱.۱۵ Provenance خلاصه صفحات
+
+| evidence record | page type | URL | lang | category | observed fact (≤25 words) | uncertainty | dimension | decision impact |
+|---|---|---|---|---|---|---|---|---|
+| P01 | org home | https://irimc.org/ | fa | ownership | IRIMC national portal; links physician search; cites medical council law history. | none material | IDENTITY/REGULATORY | supports official org |
+| P02 | about | https://irimc.org/درباره-ما/درباره-سازمان | fa | ownership | Defines IRIMC as independent professional organization of medical practitioners. | excerpt encoding loss | IDENTITY | ownership confirmed |
+| P03 | contact | https://irimc.org/contactus | fa | ownership | Publishes org address, phones, info@irimc.org. | — | IDENTITY | ownership confirmed |
+| P04 | registry landing | https://membersearch.irimc.org/ | fa | capability/cost | Official member search UI; specialty/city guidance; max 100 results; 10 searches/10 minutes. | form fields not submitted | IDENTITY/DIRECTORY | capability + rate limit |
+| P05 | robots | membersearch + irimc robots.txt | en | automation | Disallows admin/App paths; no reuse license; sitemap placeholder commented. | path allow unclear | automation | fail-closed automation |
+| P06 | ApiLand | https://apiland.irimc.org/ | fa | cost/API | Offers member/license services to companies via price-request/purchase. | pricing amounts not captured | commercial/API | PAID_EXCLUDED |
+| P07 | directory | https://membersearch.irimc.org/directory | fa | capability | Province-level aggregate member counts; not an individual lookup. | large page | DIRECTORY | aggregate only |
+| P08 | searchdoctor | https://searchdoctor.irimc.org/ | fa | capability | Same landing content pattern as membersearch. | alias/host relation | DIRECTORY | treat as same system family |
+| P09 | statute secondary | nezamat.ir / ad.gov.ir | fa | authority | 1383 IRIMC law names the Organization as legal entity. | secondary host | REGULATORY | corroboration only |
+
+Excerpts ≤2/page; no full terms copied; no HTML/PDF stored in repo.
+
+```text
+Provenance evidence records: 9
+```
+
+### ۱۰۱.۱۶ مشاهدات امنیتی
+
+```text
+All pages treated untrusted.
+No JS execution beyond fetch tool defaults.
+No TLS bypass / CAPTCHA bypass / credential use.
+SERP contained an individual profile URL; NOT opened; no PII recorded.
+Domain lookalike risk: irimc.info ≠ irimc.org — rejected as primary.
+cdn.irimc.org/robots.txt → 404 (non-blocking).
+```
+
+### ۱۰۱.۱۷ تطبیق کاندید مخزن irimc_member_search
+
+```text
+Repository key: irimc_member_search
+Discovered corresponding official UI: YES — membersearch.irimc.org / searchdoctor.irimc.org
+Observed organization: سازمان نظام پزشکی کشور
+Canonical domains observed: membersearch.irimc.org ; irimc.org
+Conceptual alignment with repository key: YES (member search)
+Naming appropriateness: likely OK; final rename needs Governance if desired
+Authority support: partially supported for identity/directory dimensions
+Cost support: public UI free-to-view not proven free-to-store; API paid
+Rights support: incomplete — fail-closed
+Automation support: unknown/manual-only — fail-closed
+Freshness/revocation support: not documented on landing
+Open gaps: G01–G08
+Future decision owner: Legal + Provider Verification + Javad
+Closure criteria: written rights/automation decision after Javad review
+Final repository candidate state: UNKNOWN_FAIL_CLOSED (unchanged)
+Catalog edited: NO
+source_fetch_enabled changed: NO
+```
+
+### ۱۰۱.۱۸ ماتریس تصمیم کاندیدها
+
+| candidate | discovery state |
+|---|---|
+| C-IR-PHY-01 membersearch/searchdoctor | DISCOVERED_OFFICIAL_CANDIDATE_RIGHTS_INCOMPLETE |
+| C-IR-PHY-02 irimc.org | DISCOVERED_OFFICIAL_CANDIDATE_PENDING_GOVERNANCE (org context) |
+| C-IR-PHY-03 apiland | PAID_EXCLUDED |
+| C-IR-PHY-04 irimc.info | NONOFFICIAL_REJECTED_AS_PRIMARY_AUTHORITY |
+| C-IR-PHY-05 stats.irimc.org | DISCOVERED_OFFICIAL_CANDIDATE_METADATA_ONLY (aggregates; shallow) |
+| repository irimc_member_search | UNKNOWN_FAIL_CLOSED |
+
+Forbidden states used: none (no ELIGIBLE / APPROVED_FOR_FETCH / STORAGE / PUBLICATION / RUNTIME_ACTIVE).
+
+### ۱۰۱.۱۹ ماتریس مالک / بستن شکاف‌ها
+
+| gap ID | candidate | category | observed | primary | supporting | dependency | closure | blocking | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| G01 | C-IR-PHY-01 | storage/reuse terms | not found | Legal | Governance | E-OWN | locate or obtain written reuse grant | Blocking | Javad review → Legal |
+| G02 | C-IR-PHY-01 | commercial product use | not addressed | Legal | Product, Javad | G01 | explicit commercial-use decision | Blocking | same |
+| G03 | C-IR-PHY-01 | automation | robots unclear; rate limits | Security | Legal, Backend | G01 | automation state decision | Blocking | same |
+| G04 | C-IR-PHY-01 | attribution | unknown | Governance | Legal | G01 | attribution policy | Blocking | same |
+| G05 | C-IR-PHY-01 | freshness/revocation docs | not on landing | Provider Verification | Legal | — | document status fields/SLA | Blocking | later collection Gate if approved |
+| G06 | C-IR-PHY-03 | paid API | paid confirmed | Legal | Data/Knowledge | free-sources-only | keep PAID_EXCLUDED | Blocking | none (closed as excluded) |
+| G07 | C-IR-PHY-04 | lookalike | Azad branding | Security | Governance | — | keep rejected-as-primary | Closed | — |
+| G08 | irimc_member_search | catalog reconciliation | aligned but fail-closed | Javad | Provider Verification, Legal | G01–G05 | keep UNKNOWN_FAIL_CLOSED until governance | Blocking | E2_C4B_01 review |
+
+```text
+Owner rows: 8
+TBD owners: 0
+Open evidence gaps: 6 blocking (G01–G05,G08) + 2 closed/classified (G06,G07)
+```
+
+### ۱۰۱.۲۰ ممیزی داخلی
+
+```text
+Audit iterations: 2
+
+C4B01-A1 baseline/§100 OK → CLOSED
+C4B01-A2 network ledger complete; queries 7≤15; pages ≤40 → CLOSED
+C4B01-A3 official-first / Iran-first → CLOSED
+C4B01-A4 no physician search / no form submit / no PII stored → CLOSED
+C4B01-A5 ownership/authority/capability/cost/rights/automation/attribution/freshness recorded → CLOSED
+C4B01-A6 ApiLand paid excluded; irimc.info rejected primary → CLOSED
+C4B01-A7 irimc_member_search remains UNKNOWN_FAIL_CLOSED; catalog untouched → CLOSED
+C4B01-A8 excerpt limits; no raw content stored → CLOSED
+C4B01-A9 owners complete; §101 append-only; §102 absent → CLOSED
+C4B01-A10 prohibited ops compliance → CLOSED
+
+Findings fixed: 10
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+External evidence gaps remain only as owned fail-closed G01–G05,G08
+```
+
+### ۱۰۱.۲۱ ممنوعیت‌ها و نشانگرها
+
+```text
+NO_INDIVIDUAL_PHYSICIAN_SEARCH
+NO_PROVIDER_VERIFICATION_TRANSACTION
+NO_REGISTRY_FORM_SUBMISSION
+NO_PROVIDER_DATA_COLLECTED
+NO_RAW_SOURCE_CONTENT_STORED
+NO_SOURCE_REGISTERED
+CATALOG_NOT_EDITED
+NO_SOURCE_FETCH_ENABLED_CHANGE
+NO_SOURCE_ELIGIBILITY_PROMOTED
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+NO stage / commit / push / CI
+
+E2_C4B_01_DISCOVERY_COMPLETE
+OFFICIAL_FIRST_IRAN_FIRST_CONFIRMED
+NETWORK_LEDGER_COMPLETE
+OFFICIAL_OWNERSHIP_EVIDENCE_RECORDED
+AUTHORITY_DIMENSIONS_ASSESSED
+COST_EVIDENCE_RECORDED
+RIGHTS_EVIDENCE_RECORDED
+COMMERCIAL_USE_EVIDENCE_RECORDED
+AUTOMATION_AND_ROBOTS_EVIDENCE_RECORDED
+ATTRIBUTION_EVIDENCE_RECORDED
+FRESHNESS_AND_REVOCATION_EVIDENCE_RECORDED
+PROVENANCE_RECORDS_COMPLETE
+EXISTING_IRIMC_CANDIDATE_RECONCILED
+MASTER_LOG_101_APPENDED
+MASTER_LOG_102_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+READY_FOR_E2_C4B_01_DISCOVERY_EVIDENCE_REVIEW_BY_JAVAD
+```
+
+### ۱۰۱.۲۲ شمارش‌های دقیق نهایی
+
+```text
+search queries: 7
+search engines: 1
+pages opened (ops): 15
+official pages: 13
+non-official/secondary pages: 2
+candidate domains: 5
+official candidates: 4
+non-official candidates: 1
+robots files: 3 ok + 1 fail
+terms/legal reuse pages: 0
+privacy pages (membersearch-specific): 0
+API documentation pages: 1
+dataset documentation pages: 0
+registry landing pages: 2
+evidence/provenance records: 9+
+ownership evidence records: 5
+rights evidence records: matrix (fail-closed)
+automation evidence records: 4
+attribution evidence records: fail-closed set
+freshness/revocation records: matrix
+candidate decisions by state:
+  RIGHTS_INCOMPLETE: 1
+  PENDING_GOVERNANCE: 1
+  PAID_EXCLUDED: 1
+  NONOFFICIAL_REJECTED_AS_PRIMARY: 1
+  METADATA_ONLY: 1
+  repository UNKNOWN_FAIL_CLOSED: 1
+open evidence gaps: 6 blocking
+owner rows: 8
+network failures: 1
+blocked pages: 0
+redirects: within limit (≤3 each)
+audit iterations: 2
+findings fixed: 10
+remaining actionable findings: 0
+```
+
+### ۱۰۱.۲۳ گام بعدی
+
+```text
+Exact next Gate:
+E2_C4B_01_DISCOVERY_EVIDENCE_REVIEW_BY_JAVAD
+
+No future commit authorized by this Gate.
+No future commit SHA guessed.
+```
+
+---
+*پایان §101 — Package E2-C4B-01 Official Physician Registry Discovery — ۲۰۲۶-۰۷-۲۱*
+
+---
+
+## ۱۰۲) بسته E2-C4B-01 — تصمیم‌های Javad و سیاست پلتفرم نوبت‌دهی آنلاین
+
+```text
+Package:
+E2_C4B_01_JAVAD_DECISIONS_DOCUMENTATION
+
+Title:
+E2-C4B-01 Javad Decisions and Online Appointment Platform Policy
+
+Gate:
+E2_C4B_01_JAVAD_DECISIONS_AND_ONLINE_APPOINTMENT_POLICY_DOCUMENTATION
+
+Authorization:
+document Javad-approved D-PHY-01 through D-PHY-11 by appending §102 ONLY
+NO web search / network / external evidence
+NO provider search / verification / data storage
+NO source registration / catalog edit / eligibility promotion
+NO fetch / publication / runtime activation
+NO stage / commit / push / CI
+NO E2-C4B-02..F / E3 / P2
+
+Baseline SHA (unchanged):
+fe2292891de70b4b09aaf2f1b5019109dc205e99
+
+Status:
+D_PHY_01_TO_10_APPROVED_BY_JAVAD
+D_PHY_11_APPROVED_BY_JAVAD
+MASTER_LOG_102_APPENDED
+```
+
+### ۱۰۲.۱ تطبیق شواهد §۱۰۱
+
+```text
+§101 verdict (report / substance):
+PARTIAL — E2_C4B_01_DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+
+§101 recorded facts reconciled:
+search queries = 7
+search engines = 1
+page operations = 15
+individual physician searches = 0
+registry form submissions = 0
+provider records collected = 0
+source registrations = 0
+eligibility promotions = 0
+catalog edits = 0
+repository key irimc_member_search = UNKNOWN_FAIL_CLOSED
+
+Blocking gaps carried forward (unchanged as open evidence):
+G01 storage/reuse terms
+G02 commercial product-use permission
+G03 automated-access permission
+G04 attribution requirements
+G05 freshness/revocation documentation
+G08 final catalog-key and source-role governance decision
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۰۲.۲ تصمیم‌های D-PHY-01 تا D-PHY-10 (تأیید Javad)
+
+#### D-PHY-01
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+IRIMC organization and portal are recognized as the leading official
+physician-registry authority candidate for Iran.
+
+This recognition is an authority decision, not an eligibility promotion.
+No catalog edit. No fetch enablement. No publication. No runtime activation.
+
+Marker: IRIMC_OFFICIAL_AUTHORITY_CANDIDATE_RECOGNIZED
+```
+
+#### D-PHY-02
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+membersearch and searchdoctor are official registry-interface candidates only.
+
+Unproven rights remain (fail-closed):
+storage
+processing
+indexing
+caching
+commercial product use
+automation
+redistribution
+public display
+
+Marker: MEMBERSEARCH_RIGHTS_REMAIN_INCOMPLETE
+```
+
+#### D-PHY-03
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+Repository key irimc_member_search MUST remain:
+UNKNOWN_FAIL_CLOSED
+
+Preserve:
+source_fetch_enabled = false
+eligible = false
+publication = false
+runtime_active = false
+
+Marker: IRIMC_MEMBER_SEARCH_REMAINS_UNKNOWN_FAIL_CLOSED
+```
+
+#### D-PHY-04
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+ApiLand classification:
+PAID_EXCLUDED
+
+Reason: paid API or paid commercial access is incompatible with Sedi's
+current free-sources-only policy.
+
+Marker: PAID_API_EXCLUDED
+```
+
+#### D-PHY-05
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+irimc.info classification:
+NONOFFICIAL_REJECTED_AS_PRIMARY_AUTHORITY
+
+Must not prove official physician identity, professional license,
+specialty, or professional status.
+
+Marker: IRIMC_INFO_REJECTED_AS_PRIMARY_AUTHORITY
+```
+
+#### D-PHY-06
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+stats.irimc.org limited to:
+DISCOVERED_OFFICIAL_CANDIDATE_METADATA_ONLY
+
+Must not be used for individual provider verification.
+
+Marker: STATS_IRIMC_METADATA_ONLY
+```
+
+#### D-PHY-07
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+Directory or profile presence must NEVER prove:
+active professional license
+verified specialty
+professional good standing
+absence of suspension
+absence of revocation
+expiry status
+record freshness
+
+Lock: PLATFORM_DECLARED_NOT_OFFICIALLY_VERIFIED (applies also to directory presence)
+```
+
+#### D-PHY-08
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+Automation remains prohibited until explicit source-specific evidence proves:
+automated access is permitted
+the intended access method is permitted
+rate limits are known
+robots and terms are satisfied
+commercial product use is permitted
+```
+
+#### D-PHY-09
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+Until explicit source-specific evidence exists, PROHIBIT:
+storage
+processing
+indexing
+caching
+commercial product use
+redistribution
+public display
+automated querying
+runtime integration
+```
+
+#### D-PHY-10
+
+```text
+Decision: APPROVED_BY_JAVAD
+
+Before any catalog edit, source registration, or eligibility promotion, require
+a separate Gate:
+
+E2_C4B_01_RIGHTS_AND_AUTOMATION_EVIDENCE_FOLLOWUP_SCOPE_REVIEW
+
+That Gate is DOCUMENTED ONLY — not authorized and not executed by this package.
+```
+
+### ۱۰۲.۳ تصمیم جدید D-PHY-11 — پلتفرم‌های نوبت‌دهی آنلاین
+
+```text
+Decision: APPROVED_BY_JAVAD
+Marker: D_PHY_11_APPROVED_BY_JAVAD
+Marker: ONLINE_APPOINTMENT_PLATFORMS_CONDITIONALLY_APPROVED_AS_SECONDARY_SOURCES
+
+D-PHY-11:
+Commercial online physician-appointment platforms may become governed
+secondary operational data sources for Sedi only after source-specific
+evidence proves lawful free access, storage, processing, commercial product
+use, automated access, attribution, provenance and freshness requirements.
+
+Applies to current candidates:
+paziresh24_com
+doctoreto_com
+nobat_ir
+doctor_yab_ir
+drdr_ir
+
+All five MUST remain:
+UNKNOWN_FAIL_CLOSED
+
+Current state for all five:
+eligible = false
+source_fetch_enabled = false
+registered for new collection = false
+publication = false
+runtime_active = false
+stored provider records = 0
+
+Marker: ALL_FIVE_APPOINTMENT_CANDIDATES_REMAIN_FAIL_CLOSED
+```
+
+### ۱۰۲.۴ نقش‌های مجاز و ممنوع برای پلتفرم نوبت‌دهی
+
+```text
+Allowed future roles (after source-specific approval only):
+SECONDARY_OPERATIONAL_DIRECTORY_SOURCE
+SECONDARY_DISCOVERY_SOURCE
+
+Prohibited authority roles:
+PROFESSIONAL_LICENSE_AUTHORITY
+SPECIALTY_AUTHORITY
+PROFESSIONAL_STATUS_AUTHORITY
+ACCREDITATION_AUTHORITY
+REGULATORY_AUTHORITY
+MEDICAL_GUIDANCE_AUTHORITY
+PROVIDER_QUALITY_AUTHORITY
+
+Locks:
+ONLINE APPOINTMENT PLATFORM ≠ OFFICIAL PROFESSIONAL AUTHORITY
+PLATFORM_DECLARED ≠ OFFICIALLY_VERIFIED
+```
+
+### ۱۰۲.۵ محدوده داده مجاز آینده (پس از تأیید حقوقی/حاکمیتی/فنی)
+
+```text
+After source-specific legal, governance and technical approval, these public
+operational fields may be considered for storage.
+```
+
+| field class | note |
+|---|---|
+| public provider display name | platform-declared unless independently verified |
+| public professional registration number when displayed | not official proof alone |
+| platform-declared specialty | NOT officially verified without independent official evidence |
+| city | operational |
+| public clinic or facility name | operational |
+| public office or facility contact channel | operational; no personal mobile without separate approval |
+| public canonical profile URL | provenance |
+| public appointment-availability metadata | operational |
+| public booking-channel metadata | operational |
+| source platform | required |
+| source retrieval timestamp | required |
+| source version or hash | required when available |
+| provenance | required |
+| freshness state | required |
+| verification state | required |
+
+```text
+Every stored field MUST include:
+source attribution
+authority level
+verification status
+retrieval timestamp
+freshness state
+
+Do not mark platform-declared fields as officially verified without
+independent official evidence.
+```
+
+### ۱۰۲.۶ داده ممنوع یا نگه‌داشته‌شده
+
+```text
+Without separate explicit approval, PROHIBIT storage of:
+user ratings
+review text
+sponsored rankings
+paid placement
+consultation prices
+insurance claims
+profile photographs
+personal mobile numbers
+non-public addresses
+disciplinary information
+unverified working hours
+private appointment history
+patient identity
+patient messages
+health information
+behavioral tracking
+
+V1 product locks preserved:
+NO_PUBLIC_PROVIDER_REVIEWS
+NO_PROVIDER_QUALITY_RANKING
+NO_SPONSORED_INFLUENCE
+no affiliate or referral influence in V1
+```
+
+### ۱۰۲.۷ تقدم منابع رسمی
+
+```text
+Precedence (locked):
+OFFICIAL REGULATOR
+>
+OFFICIAL PROFESSIONAL REGISTRY
+>
+OFFICIAL FACILITY
+>
+COMMERCIAL APPOINTMENT PLATFORM
+>
+INDIVIDUAL PROVIDER WEBSITE
+
+Conflict rules:
+official professional status wins
+official specialty evidence wins
+official suspension or revocation wins
+commercial platform data must be held or marked conflicting
+commercial platform data must NEVER silently override official evidence
+
+Marker: OFFICIAL_SOURCE_PRECEDENCE_LOCKED
+```
+
+### ۱۰۲.۸ الزامات حقوق منبع‌به‌منبع (پلتفرم نوبت‌دهی)
+
+Before storing data from any online appointment platform, require separate
+evidence for:
+
+| requirement | missing → enforce |
+|---|---|
+| free access | UNKNOWN_FAIL_CLOSED |
+| no paid API requirement | DO_NOT_REGISTER |
+| no mandatory paid partnership | DO_NOT_PROMOTE |
+| storage permission | DO_NOT_STORE |
+| processing permission | DO_NOT_STORE |
+| indexing permission | DO_NOT_STORE |
+| caching permission | DO_NOT_STORE |
+| commercial product-use permission | DO_NOT_PUBLISH / DO_NOT_USE_AT_RUNTIME |
+| automated-access permission | DO_NOT_AUTOMATE |
+| robots compliance | DO_NOT_AUTOMATE |
+| rate-limit compliance | DO_NOT_AUTOMATE |
+| attribution requirements | DO_NOT_PUBLISH |
+| retention requirements | DO_NOT_STORE |
+| correction and deletion mechanism | DO_NOT_STORE |
+| provenance requirements | DO_NOT_STORE |
+| freshness policy | DO_NOT_USE_AT_RUNTIME |
+| terms-change monitoring | DO_NOT_REGISTER |
+
+```text
+Marker: SOURCE_SPECIFIC_RIGHTS_EVIDENCE_REQUIRED
+Free public viewing alone is NOT sufficient.
+```
+
+### ۱۰۲.۹ دروازه‌های آینده منبع‌به‌منبع (فقط مستند؛ غیرمجاز در این بسته)
+
+```text
+Documented but NOT authorized by this package:
+
+E2_C4B_09A_PAZIRESH24_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09B_DOCTORETO_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09C_NOBAT_IR_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09D_DOCTOR_YAB_RIGHTS_AND_ACCESS_EVIDENCE
+E2_C4B_09E_DRDR_RIGHTS_AND_ACCESS_EVIDENCE
+
+Each future Gate must independently assess:
+official operator identity
+cost
+terms
+storage rights
+processing rights
+commercial-use rights
+automation rights
+robots
+attribution
+freshness
+security
+provenance
+
+No collective approval across all platforms is permitted.
+Future source-specific Gates documented: 5
+```
+
+### ۱۰۲.۱۰ وضعیت فعلی کاندیدها
+
+| candidate | class | state | eligible | fetch | publication | runtime | stored records |
+|---|---|---|---|---|---|---|---|
+| irimc_member_search | official registry key | UNKNOWN_FAIL_CLOSED | false | false | false | false | 0 |
+| paziresh24_com | online appointment | UNKNOWN_FAIL_CLOSED | false | false | false | false | 0 |
+| doctoreto_com | online appointment | UNKNOWN_FAIL_CLOSED | false | false | false | false | 0 |
+| nobat_ir | online appointment | UNKNOWN_FAIL_CLOSED | false | false | false | false | 0 |
+| doctor_yab_ir | online appointment | UNKNOWN_FAIL_CLOSED | false | false | false | false | 0 |
+| drdr_ir | online appointment | UNKNOWN_FAIL_CLOSED | false | false | false | false | 0 |
+| ApiLand (C-IR-PHY-03) | paid API | PAID_EXCLUDED | — | — | — | — | 0 |
+| irimc.info (C-IR-PHY-04) | lookalike | NONOFFICIAL_REJECTED_AS_PRIMARY_AUTHORITY | — | — | — | — | 0 |
+| stats.irimc.org (C-IR-PHY-05) | aggregates | DISCOVERED_OFFICIAL_CANDIDATE_METADATA_ONLY | — | — | — | — | 0 |
+
+### ۱۰۲.۱۱ خلاصه تصمیم و شمارش‌ها
+
+```text
+D-PHY decisions approved: 11
+Existing official-registry candidate retained fail-closed: 1
+Online appointment platform candidates: 5
+Online appointment candidates eligible: 0
+Online appointment candidates fail-closed: 5
+Paid API exclusions: 1
+Non-official primary-authority rejections: 1
+Metadata-only candidates: 1
+Future source-specific Gates documented (not authorized): 5
+Stored provider records: 0
+Source registrations: 0
+Catalog edits: 0
+Eligibility promotions: 0
+Fetch activations: 0
+Publications: 0
+Runtime activations: 0
+```
+
+### ۱۰۲.۱۲ مرزهای تأیید
+
+```text
+Javad decisions: APPROVED
+Decision documentation: AUTHORIZED
+
+Web search: NOT AUTHORIZED
+Network: NOT AUTHORIZED
+Provider search: NOT AUTHORIZED
+Provider verification: NOT AUTHORIZED
+External evidence collection: NOT AUTHORIZED
+Appointment-site data collection: NOT AUTHORIZED
+Data storage: NOT AUTHORIZED
+Source registration: NOT AUTHORIZED
+Catalog edit: NOT AUTHORIZED
+Eligibility promotion: NOT AUTHORIZED
+Fetch activation: NOT AUTHORIZED
+Code/test/workflow/model/migration edits: NOT AUTHORIZED
+Stage: NOT AUTHORIZED
+Commit: NOT AUTHORIZED
+Push: NOT AUTHORIZED
+CI: NOT AUTHORIZED
+E2-C4B-02 through E2-C4F: NOT AUTHORIZED
+E3: NOT AUTHORIZED
+P2: NOT AUTHORIZED
+```
+
+### ۱۰۲.۱۳ نشانگرهای الزامی
+
+```text
+D_PHY_01_TO_10_APPROVED_BY_JAVAD
+D_PHY_11_APPROVED_BY_JAVAD
+D_PHY_01_TO_11_DOCUMENTED
+IRIMC_OFFICIAL_AUTHORITY_CANDIDATE_RECOGNIZED
+MEMBERSEARCH_RIGHTS_REMAIN_INCOMPLETE
+IRIMC_MEMBER_SEARCH_REMAINS_UNKNOWN_FAIL_CLOSED
+PAID_API_EXCLUDED
+IRIMC_INFO_REJECTED_AS_PRIMARY_AUTHORITY
+STATS_IRIMC_METADATA_ONLY
+ONLINE_APPOINTMENT_PLATFORMS_CONDITIONALLY_APPROVED_AS_SECONDARY_SOURCES
+ONLINE_APPOINTMENT_PLATFORM_POLICY_DOCUMENTED
+ALL_FIVE_APPOINTMENT_CANDIDATES_REMAIN_FAIL_CLOSED
+ALL_APPOINTMENT_CANDIDATES_REMAIN_FAIL_CLOSED
+PLATFORM_DECLARED_NOT_OFFICIALLY_VERIFIED
+OFFICIAL_SOURCE_PRECEDENCE_LOCKED
+NO_PROVIDER_QUALITY_RANKING
+NO_PUBLIC_PROVIDER_REVIEWS
+NO_SPONSORED_INFLUENCE
+SOURCE_SPECIFIC_RIGHTS_EVIDENCE_REQUIRED
+NO_DATA_STORAGE_PERFORMED
+NO_SOURCE_REGISTERED
+NO_CATALOG_EDIT
+NO_SOURCE_ELIGIBILITY_PROMOTED
+NO_FETCH_ACTIVATION
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+MASTER_LOG_102_APPENDED
+MASTER_LOG_103_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+READY_FOR_E2_C4B_01_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+```
+
+### ۱۰۲.۱۴ ممیزی داخلی و بستن یافته‌ها
+
+```text
+Audit iterations: 3
+
+C4B01D-A1 §101 evidence reconciliation (counts, gaps G01–G05/G08, fail-closed) → CLOSED
+C4B01D-A2 D-PHY-01..10 documented exactly as approved → CLOSED
+C4B01D-A3 D-PHY-11 appointment-platform policy + five candidates fail-closed → CLOSED
+C4B01D-A4 allowed/prohibited roles + precedence locks → CLOSED
+C4B01D-A5 future permitted vs prohibited data scopes → CLOSED
+C4B01D-A6 source-specific rights requirements + fail-closed enforcements → CLOSED
+C4B01D-A7 five future Gates documented, not authorized; no collective approval → CLOSED
+C4B01D-A8 exact counts + approval boundaries → CLOSED
+C4B01D-A9 §102 append-only; §§1–101 untouched; §103 absent → CLOSED
+C4B01D-A10 no network/storage/registration/catalog/eligibility/fetch/publish/runtime → CLOSED
+C4B01D-A11 §102.5 markdown fence integrity after append → CLOSED
+
+Findings fixed: 11
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B01D-F1 | need §101↔decision link | §102.1 reconciliation block | CLOSED |
+| C4B01D-F2 | D-PHY-01..10 must be explicit | §102.2 decision cards | CLOSED |
+| C4B01D-F3 | D-PHY-11 new policy | §102.3 + candidate table | CLOSED |
+| C4B01D-F4 | role/precedence locks | §102.4 + §102.7 | CLOSED |
+| C4B01D-F5 | field allow/deny lists | §102.5 + §102.6 | CLOSED |
+| C4B01D-F6 | rights checklist | §102.8 | CLOSED |
+| C4B01D-F7 | per-platform future Gates | §102.9 (documented only) | CLOSED |
+| C4B01D-F8 | counts/markers | §102.11 + §102.13 | CLOSED |
+| C4B01D-F9 | approval boundaries | §102.12 | CLOSED |
+| C4B01D-F10 | audit completeness | §102.14 | CLOSED |
+| C4B01D-F11 | stray fence in §102.5 | minimum fence repair | CLOSED |
+
+### ۱۰۲.۱۵ گام بعدی
+
+```text
+Exact next Gate:
+E2_C4B_01_DECISION_DOCS_LOCAL_COMMIT_APPROVAL
+
+No commit authorized by this documentation Gate.
+No future commit SHA guessed.
+No E2_C4B_01_RIGHTS_AND_AUTOMATION_EVIDENCE_FOLLOWUP_SCOPE_REVIEW authorized here.
+No E2-C4B-09A..E authorized here.
+```
+
+---
+*پایان §102 — Package E2-C4B-01 Javad Decisions and Online Appointment Platform Policy — ۲۰۲۶-۰۷-۲۲*
+
+---
+
+## ۱۰۳) بسته E2-C4B-01 — تأیید commit محلی اسناد تصمیم‌ها
+
+```text
+Package:
+E2_C4B_01_DECISION_DOCS_LOCAL_COMMIT
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+
+Repository baseline:
+fe2292891de70b4b09aaf2f1b5019109dc205e99
+
+Expected parent for new commit:
+fe2292891de70b4b09aaf2f1b5019109dc205e99
+
+Discovery evidence state:
+E2_C4B_01_DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+
+Decision-documentation state:
+E2_C4B_01_JAVAD_DECISIONS_AND_ONLINE_APPOINTMENT_POLICY_DOCUMENTED
+
+Status:
+MASTER_LOG_103_APPENDED
+LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+```
+
+### ۱۰۳.۱ شمارش‌ها و وضعیت‌های حفظ‌شده
+
+```text
+D-PHY decisions: 11
+Online appointment candidates: 5
+Eligible appointment candidates: 0
+Fail-closed appointment candidates: 5
+Stored provider records: 0
+Source registrations: 0
+Catalog edits: 0
+Eligibility promotions: 0
+Fetch activations: 0
+Publications: 0
+Runtime activations: 0
+
+Preserved candidate states:
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+doctoreto_com = UNKNOWN_FAIL_CLOSED
+nobat_ir = UNKNOWN_FAIL_CLOSED
+doctor_yab_ir = UNKNOWN_FAIL_CLOSED
+drdr_ir = UNKNOWN_FAIL_CLOSED
+
+Preserved exclusions and restrictions:
+ApiLand = PAID_EXCLUDED
+irimc.info = NONOFFICIAL_REJECTED_AS_PRIMARY_AUTHORITY
+stats.irimc.org = METADATA_ONLY
+platform-declared data is not officially verified
+official-source precedence remains locked
+no reviews, rankings or sponsored influence in V1
+```
+
+### ۱۰۳.۲ موضوع و مانیفست commit تأییدشده
+
+```text
+Approved commit subject:
+docs(governance): record physician source decisions
+
+E2_C4B_01_DECISION_DOCS_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C4B_01_DECISION_DOCS_COMMIT_MANIFEST_END
+
+Expected committed file count: 1
+No future commit SHA guessed in this section.
+Actual commit SHA appears only in the final Cursor report after creation.
+```
+
+### ۱۰۳.۳ مرزهای مجوز
+
+```text
+local commit: AUTHORIZED
+push: NOT AUTHORIZED
+CI: NOT AUTHORIZED
+tests: NOT AUTHORIZED
+network: NOT AUTHORIZED
+web search: NOT AUTHORIZED
+website opening: NOT AUTHORIZED
+provider search: NOT AUTHORIZED
+provider verification: NOT AUTHORIZED
+physician-data collection: NOT AUTHORIZED
+physician-data storage: NOT AUTHORIZED
+scraping: NOT AUTHORIZED
+API: NOT AUTHORIZED
+external evidence collection: NOT AUTHORIZED
+source registration: NOT AUTHORIZED
+catalog edit: NOT AUTHORIZED
+source_fetch_enabled change: NOT AUTHORIZED
+source eligibility promotion: NOT AUTHORIZED
+publication: NOT AUTHORIZED
+runtime activation: NOT AUTHORIZED
+E2-C4B-02 through E2-C4F: NOT AUTHORIZED
+E2-C4B-09A through E2-C4B-09E: NOT AUTHORIZED
+E3: NOT AUTHORIZED
+P2: NOT AUTHORIZED
+```
+
+### ۱۰۳.۴ ممیزی hook و صحت‌سنجی پیش از stage
+
+```text
+core.hooksPath: (unset)
+resolved hooks directory: <git-common-dir>/hooks
+active non-sample hook count: 0
+active hook names: NONE
+risk classification: SAFE_FOR_COMMIT (samples only)
+
+§101 unchanged during this Gate (append §103 only after §102)
+§102 unchanged during this Gate
+§104: ABSENT
+```
+
+### ۱۰۳.۵ نشانگرها و گام بعدی
+
+```text
+MASTER_LOG_103_APPENDED
+ONE_FILE_MANIFEST_LOCKED
+NO_FUTURE_SHA_GUESSED
+NO_PUSH_AUTHORIZATION
+NO_CI_AUTHORIZATION
+NO_DATA_COLLECTION_AUTHORIZATION
+NO_DATA_STORAGE_AUTHORIZATION
+NO_SOURCE_REGISTRATION_AUTHORIZATION
+NO_ELIGIBILITY_PROMOTION_AUTHORIZATION
+NO_PLATFORM_SPECIFIC_EVIDENCE_GATE_AUTHORIZED
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Exact next Gate after successful commit and complete read-only verification:
+E2_C4B_01_DECISION_DOCS_PUSH_APPROVAL
+```
+
+---
+*پایان §103 — Package E2-C4B-01 Decision Docs Local Commit — ۲۰۲۶-۰۷-۲۲*
