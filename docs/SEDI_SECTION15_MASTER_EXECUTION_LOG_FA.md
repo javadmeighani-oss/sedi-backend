@@ -16209,3 +16209,1511 @@ E2_C4B_01A_IRIMC_PUBLIC_EVIDENCE_DECISION_DOCS_PUSH_APPROVAL
 
 ---
 *پایان §110 — Package E2-C4B-01A IRIMC Public Evidence Decision Docs Local Commit — ۲۰۲۶-۰۷-۲۲*
+---
+
+## ۱۱۱) بسته E2-C4B-09A — شواهد عمومی حقوق، دسترسی و قابلیت‌اطمینان پذیرش۲۴
+
+```text
+Package:
+E2_C4B_09A_PAZIRESH24_RIGHTS_AND_ACCESS_EVIDENCE
+
+Title:
+E2-C4B-09A Paziresh24 Public Rights, Access and Reliability Evidence
+
+Authorization:
+controlled public network research ONLY for Paziresh24 / paziresh24_com
+and official Paziresh24-controlled domains
+NO physician/profile/license/specialty/appointment/hospital/lab/clinic searches
+NO profile-page opens / form submissions / booking / login / OTP / contact
+NO provider verification / data collection / storage / ranking / reviews
+NO scraping / crawl / bulk extraction / undocumented endpoint probing
+NO API execution / dataset download / CAPTCHA or anti-bot bypass / rate-limit testing
+NO paid API/dataset/license/partnership activation
+NO source registration / catalog edit / eligibility / fetch / publication / runtime
+NO stage / commit / push / CI
+NO E2-C4B-09B..I / 02–F / E3 / P2
+
+Baseline SHA (unchanged):
+c940ef68b2c227c77f8846cb324d6e585b3f09a6
+
+Status:
+E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_COMPLETE
+INFORMATIONAL_REFERENCE_USE_INTENT_RECORDED
+NO_DATA_RESALE_POLICY_RECORDED
+COMMERCIAL_CONTEXT_RIGHT_EVALUATED
+TRUSTWORTHINESS_STANDARD_RECORDED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+MASTER_LOG_111_APPENDED
+```
+
+### ۱۱۱.۱ تطبیق مرجع §§۱۰۴–۱۱۰ و سیاست استفاده اطلاعاتی
+
+```text
+RA-PHY-01 through RA-PHY-19 preserved
+Modes: REFERENCE_ONLY / METADATA_ONLY / FACTS_ONLY /
+       OPEN_OR_LAWFUL_INGESTION / REJECTED
+Laws preserved:
+FREE_SOURCES_ONLY
+ATTRIBUTION IS MANDATORY; PROVENANCE IS MANDATORY
+ATTRIBUTION ≠ LICENSE
+PUBLIC ACCESS ≠ UNRESTRICTED REUSE
+ONE RIGHT DOES NOT IMPLY ANOTHER RIGHT
+FREE_TO_VIEW ≠ FREE_TO_STORE
+FREE_TO_QUERY ≠ FREE_TO_AUTOMATE
+OFFICIAL SOURCE ≠ FREE REUSE RIGHTS
+NO_DATA_RESALE ≠ COMMERCIAL_CONTEXT_PERMISSION
+NO_DIRECT_DATA_SALE ≠ NONCOMMERCIAL_CONTEXT
+
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+Eligible=0; Fetch-enabled=0; Stored=0; Registrations=0
+Catalog edits=0; Publications=0; Runtime=0
+
+P24-EV-00 (use intent; NOT a rights grant):
+Sedi intends USER-FACING INFORMATIONAL AND REFERENCE USE with
+explicit source naming, mandatory attribution, provenance, freshness,
+verification state, conflict disclosure, confidence state.
+Sedi does NOT intend: sale/resale/licensing of Paziresh24 data;
+bulk redistribution; silent copying; permanent full-content ingestion.
+Policies: NO_DATA_RESALE; NO_SOURCE_CONTENT_RESALE;
+NO_UNATTRIBUTED_INFORMATION; NO_UNSUPPORTED_CERTAINTY;
+FAIL_CLOSED_WHEN_UNVERIFIED.
+Laws: INFORMATIONAL_USE_INTENT ≠ RIGHTS_PERMISSION;
+SOURCE_NAMING ≠ FULL_CONTENT_REUSE_PERMISSION;
+NO_RESALE ≠ AUTOMATION/STORAGE/COMMERCIAL_CONTEXT_PERMISSION.
+
+Trustworthiness standard recorded:
+OFFICIAL_OR_HIGH_QUALITY_SOURCE_REQUIRED; PRIMARY_SOURCE_PREFERRED;
+SOURCE_ROLE_MUST_BE_EXPLICIT; MANDATORY_ATTRIBUTION/PROVENANCE;
+FRESHNESS/VERIFICATION/CONFIDENCE/CONFLICT_DISCLOSURE_REQUIRED;
+NO_UNSUPPORTED_CERTAINTY; FAIL_CLOSED_WHEN_UNVERIFIED;
+HIGH CONFIDENCE ≠ ABSOLUTE GUARANTEE.
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۱۱.۲ بودجه شبکه و شمارش واقعی
+
+| budget item | max | actual |
+|---|---|---|
+| search queries | 12 | 10 |
+| search engines | 2 | 1 (Cursor WebSearch) |
+| page-open operations | 35 | 12 (incl. 1 timeout) |
+| official domain families | 8 | 7 |
+| secondary-source pages | 4 | 2 |
+| robots.txt requests | 8 | 5 |
+| terms/privacy/copyright pages | 12 | 4 (privacy primary; FAQ/contact/support reviewed; dedicated TOU=0) |
+| API/dataset documentation pages | 8 | 4 |
+| physician searches | 0 | 0 |
+| profile-page opens | 0 | 0 |
+| provider-search form submissions | 0 | 0 |
+| appointment form submissions | 0 | 0 |
+| provider records collected | 0 | 0 |
+| API calls | 0 | 0 |
+| dataset downloads | 0 | 0 |
+
+```text
+Markers:
+PUBLIC_EVIDENCE_ONLY_CONFIRMED
+OFFICIAL_FIRST_EVIDENCE_CONFIRMED
+ZERO_PHYSICIAN_SEARCHES
+ZERO_PROFILE_OPENS
+ZERO_FORM_SUBMISSIONS
+ZERO_PROVIDER_RECORDS
+```
+
+### ۱۱۱.۳ دفترچه جستجو (Q01–Q10)
+
+| ID | topic (no provider identifiers) | engine | timestamp UTC | purpose | result class |
+|---|---|---|---|---|---|
+| Q01 | Paziresh24 official website paziresh24.com | WebSearch-1 | 2026-07-22T06:58Z | primary domain | official homepage; developers.paziresh24.com |
+| Q02 | پذیرش24 شرایط/قوانین/حریم خصوصی site:paziresh24.com | WebSearch-1 | 2026-07-22T06:58Z | terms/privacy | privacy-policy; FAQ; providers |
+| Q03 | paziresh24 API OR developer OR open data OR robots | WebSearch-1 | 2026-07-22T06:58Z | API/tech | developers; hamdast; github/paziresh24/apis |
+| Q04 | پذیرش24 شرکت/درباره/copyright/شکایت/حذف | WebSearch-1 | 2026-07-22T06:58Z | operator/IP/complaint | privacy IP clause; ecosystem.ir secondary |
+| Q05 | قوانین و مقررات / شرایط استفاده / توافقنامه site:paziresh24.com | WebSearch-1 | 2026-07-22T07:00Z | dedicated TOU | no dedicated TOU hit; privacy reused |
+| Q06 | پذیرش24 شرکت سهامی / نام حقوقی / درباره ما | WebSearch-1 | 2026-07-22T07:00Z | legal entity | secondary claims only; not on official privacy/contact body |
+| Q07 | site:paziresh24.com terms OR قوانین و مقررات OR شرایط استفاده | WebSearch-1 | 2026-07-22T07:02Z | TOU URL hunt | NO RESULTS |
+| Q08 | پذیرش24 API رایگان/قیمت/داده باز/همدست | WebSearch-1 | 2026-07-22T07:05Z | free vs paid | pricing.paziresh24.com clinic paid; API key gate |
+| Q09 | پذیرش۲۴ مجوز کتبی / حق استفاده و نشر / حریم خصوصی | WebSearch-1 | 2026-07-22T07:05Z | exclusive-rights corroboration | privacy exclusive clause confirmed |
+| Q10 | site:www.paziresh24.com/home privacy-policy OR terms OR قوانین | WebSearch-1 | 2026-07-22T07:06Z | home-path variants | NO RESULTS |
+
+### ۱۱۱.۴ دفترچه دسترسی صفحه (N-ops)
+
+| N | URL | class | HTTP/result | evidence use | notes |
+|---|---|---|---|---|---|
+| N01 | https://paziresh24.com/ | official primary | 200 | domain map | appointment platform landing; no TOU link in fetched body |
+| N02 | https://www.paziresh24.com/privacy-policy/ | official privacy/IP | 200 | rights/copyright/commercial | exclusive ownership of content+data; written permission required |
+| N03 | https://developers.paziresh24.com/ | official API docs | 200 | API map | developer portal; contact email listed (NOT contacted) |
+| N04 | https://developers.paziresh24.com/apis | official API docs | 200 | API services | API key/OAuth required; doctor search API documented (NOT called) |
+| N05 | https://www.paziresh24.com/home/contact-us/ | official contact | 200 | operator address | Tehran/Yazd addresses; info@; phone (NOT called) |
+| N06 | https://www.paziresh24.com/faq/ | official FAQ | 200 | correction/process | cancel/edit via user/doctor panels; support path |
+| N07 | https://providers.paziresh24.com/ | official provider portal | 200 | free-for-providers | “completely free” for doctor panel ≠ Sedi reuse rights |
+| N08 | https://hamdast.paziresh24.com/ | official hamdast | 200 | integration platform | monetization + data-via-API claims |
+| N09 | https://developers.paziresh24.com/authorization/scopes | official API docs | 200 | scopes | provider.profile.read etc.; credentialed |
+| N10 | https://ecosystem.ir/legal/6860/ | secondary | 200 | discovery only | self-editable directory; NOT rights-closing |
+| N11 | https://support.paziresh24.com/ | official support | 200 thin | support domain | minimal body; no TOU extracted |
+| N12 | https://pricing.paziresh24.com/calculator/ | official pricing | TIMEOUT | paid clinic path | SERP/snippet: monthly appointment pricing; API modules for clinics |
+
+### ۱۱۱.۵ نقشه دامنه و اپراتور
+
+| domain ID | domain | role decision | operator evidence | lookalike risk | confidence |
+|---|---|---|---|---|---|
+| D-P24-01 | paziresh24.com / www | OFFICIAL_PRIMARY_DOMAIN | self-branded appointment platform | low | high |
+| D-P24-02 | developers.paziresh24.com | OFFICIAL_API_DOMAIN | branded developer docs | low | high |
+| D-P24-03 | providers.paziresh24.com | OFFICIAL_CONTROLLED_SUBDOMAIN | provider onboarding portal | low | high |
+| D-P24-04 | hamdast.paziresh24.com | OFFICIAL_CONTROLLED_SUBDOMAIN | integration/monetization platform | low | high |
+| D-P24-05 | support.paziresh24.com | OFFICIAL_SUPPORT_DOMAIN | support brand | low | medium |
+| D-P24-06 | pricing.paziresh24.com | OFFICIAL_METADATA_DOMAIN (pricing) | clinic pricing calculator | low | medium (timeout) |
+| D-P24-07 | fonts.paziresh24.com | OFFICIAL_CONTROLLED_SUBDOMAIN (asset) | referenced from providers HTML | low | medium |
+| D-P24-S1 | ecosystem.ir | SECONDARY_DISCOVERY_ONLY | third-party directory | n/a | low for rights |
+| D-P24-S2 | Play listing developer “DIGITAL ADVERT WALLIS LTD” | SECONDARY_DISCOVERY_ONLY | conflicts with IR brand/address | identity conflict | medium conflict |
+
+```text
+Operator identity:
+Brand “پذیرش۲۴ / Paziresh24” — EVIDENCED_PUBLICLY on official domains.
+Published contact addresses/email — EVIDENCED_PUBLICLY (contact-us); NOT contacted.
+Legal entity name on official privacy/contact bodies fetched — NOT_FOUND_PUBLICLY.
+Secondary claim “شرکت سپهر سلامت کویر ایساتیس” — SECONDARY only; NOT rights-closing.
+Play Store developer name differs — CONFLICTING_EVIDENCE (secondary).
+Decision: PARTIALLY_EVIDENCED brand/operator presence; legal-entity OPEN_FAIL_CLOSED.
+Relationship website↔app↔API: same brand family evidenced; formal corporate chain not proven on official pages.
+```
+
+### ۱۱۱.۶ شواهد Terms / Privacy / Copyright / Reuse
+
+| dimension | state | evidence |
+|---|---|---|
+| dedicated terms of use / user agreement | NOT_FOUND_PUBLICLY | Q05/Q07/Q10 no dedicated TOU URL |
+| privacy policy | EVIDENCED_PUBLICLY | N02 |
+| copyright / IP exclusive ownership | EXPLICITLY_PROHIBITED without written permission | N02: content+data exclusive; any use needs مجوز کتبی |
+| commercial trademark use | EXPLICITLY_PROHIBITED | N02: commercial use of marks → legal pursuit |
+| linking / citation | NOT_ADDRESSED_FAIL_CLOSED as explicit grant | silence + exclusive language → LEGAL_REVIEW_REQUIRED |
+| storage / processing / indexing / caching / retention | EXPLICITLY_PROHIBITED without written permission (content/data) | N02 |
+| commercial-context product use | EXPLICITLY_PROHIBITED / LEGAL_REVIEW_REQUIRED | N02 + COMMERCIAL_CONTEXT_USE_RIGHT |
+| redistribution / public display of platform content | EXPLICITLY_PROHIBITED without written permission | N02 |
+| automated / bulk access | NOT_DOCUMENTED as free grant; API credential-gated | N03–N04, N08–N09 |
+| reviews/ratings reuse | NOT_FOUND_PUBLICLY as reuse grant | API reviews exist for credentialed apps only |
+| database rights | UNKNOWN_FAIL_CLOSED / LEGAL_REVIEW_REQUIRED | exclusive “داده‌ها” language leans restrictive |
+
+```text
+Short paraphrase (N02): All materials available via Paziresh24 services,
+including text, graphics, downloadable items, data, and Paziresh24-generated
+content, are Paziresh24 property; use/publication rights are exclusive;
+any use without written permission reserved for legal action; commercial use
+of scripts/service names/trademarks likewise reserved.
+Do not paste full policy. Search snippets are not final evidence.
+```
+
+### ۱۱۱.۷ ماتریس ۱۰ حق مستقل
+
+| right | evidence | decision | conditions / prohibited | owner | mode impact |
+|---|---|---|---|---|---|
+| ACCESS_RIGHT | public landing/FAQ/privacy viewable | SUPPORTED | viewing ≠ reuse | Legal | REFERENCE_ONLY view |
+| COPY_RIGHT | N02 exclusive + written permission | EXPLICITLY_PROHIBITED without permission | no silent copy | Legal | blocks ingestion |
+| STORAGE_RIGHT | N02 data exclusive | EXPLICITLY_PROHIBITED / FORMAL_PERMISSION_MAY_BE_REQUIRED | no product DB store | Legal | fail-closed store |
+| PROCESSING_RIGHT | N02 + silence on third-party normalize | UNKNOWN_FAIL_CLOSED / LEGAL_REVIEW_REQUIRED | no normalize/derive store | Legal | fail-closed |
+| INDEXING_RIGHT | not granted; exclusive data | UNKNOWN_FAIL_CLOSED / EXPLICITLY_PROHIBITED lean | no search index of profiles | Legal | fail-closed |
+| CACHING_RIGHT | not granted | UNKNOWN_FAIL_CLOSED | no persistent cache of content | Legal/Security | fail-closed |
+| COMMERCIAL_CONTEXT_USE_RIGHT | N02 commercial mark ban + product use | EXPLICITLY_PROHIBITED / LEGAL_REVIEW_REQUIRED | NO_DATA_RESALE ≠ permission | Legal/Product | blocks product display of content |
+| AUTOMATION_RIGHT | API key/OAuth; no scrape grant | NOT_SUPPORTED / SECURITY_REVIEW_REQUIRED | no scrape/API call here | Security | fail-closed auto |
+| REDISTRIBUTION_RIGHT | N02 exclusive publish rights | EXPLICITLY_PROHIBITED without permission | no bulk redistribute | Legal | fail-closed |
+| PUBLIC_DISPLAY_RIGHT | N02 exclusive use/publish | EXPLICITLY_PROHIBITED without permission / LEGAL_REVIEW for cite-link only | URL cite may need review | Legal/Governance | fail-closed content display |
+
+```text
+Law: ONE RIGHT DOES NOT IMPLY ANOTHER RIGHT
+ACCESS_RIGHT DOES NOT IMPLY ANY OTHER RIGHT
+```
+
+### ۱۱۱.۸ ارزیابی حالت‌های استفاده و نقش منبع
+
+| mode | evidence found | missing | storage | automation | commercial-context | decision |
+|---|---|---|---|---|---|---|
+| REFERENCE_ONLY | public pages openable; RA-PHY-15 | exclusive-use language may cover even reference | none | none | product context review | PARTIALLY_SUPPORTED as planning candidate only |
+| METADATA_ONLY | no free metadata license | exclusive data language | none/minimal | none | review | NOT_SUPPORTED now |
+| FACTS_ONLY | no facts-extraction grant | written permission | none | none | review | NOT_SUPPORTED now |
+| OPEN_OR_LAWFUL_INGESTION | contradicted by exclusive IP | open license absent | would store | may automate | would be commercial product | REJECTED now |
+| REJECTED | — | — | — | — | — | not selected as sole planning state |
+
+```text
+Planning recommendation (NON-OPERATIONAL):
+REFERENCE_ONLY_CANDIDATE
+Scope lean: discovery / opening / reading / citation / linking of public
+URLs without permanent full-content storage — subject to Legal review
+because N02 asserts exclusive use/publish rights over content and data.
+Does NOT enable: fetching; storage; processing; indexing; caching;
+automation; registration; publication; runtime; provider-field display
+as product facts without separate Gate + legal clearance.
+
+Operational state remains:
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+
+Source-role recommendation (NON-OPERATIONAL):
+SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE
+Also evaluated: SECONDARY_OPERATIONAL_INFORMATION_SOURCE_CANDIDATE (appointment availability) — secondary only.
+NOT: OFFICIAL_MEDICAL_AUTHORITY; OFFICIAL_PROFESSIONAL_LICENSE_AUTHORITY;
+OFFICIAL_PROVIDER_GOOD_STANDING_AUTHORITY; PRIMARY_CLINICAL_GUIDANCE;
+OFFICIAL_HOSPITAL/LAB AUTHORITY; FREE_FULL_CONTENT_INGESTION_SOURCE.
+Laws: APPOINTMENT PLATFORM ≠ MEDICAL/LICENSE AUTHORITY;
+PROFILE PRESENCE ≠ ACTIVE LICENSE; PLATFORM CLAIM ≠ OFFICIAL VERIFICATION;
+PLATFORM REVIEW ≠ CLINICAL QUALITY EVIDENCE.
+Precedence: OFFICIAL LICENSE AUTHORITY over PLATFORM-DECLARED information.
+```
+
+### ۱۱۱.۹ مبانی استفاده قانونی (۸)
+
+| basis | status | notes |
+|---|---|---|
+| EXPLICIT_OPEN_LICENSE | NOT_SUPPORTED | exclusive IP opposite of open license |
+| EXPLICIT_FREE_PRODUCT_USE_TERMS | NOT_SUPPORTED | dedicated TOU absent; privacy restrictive |
+| OFFICIAL_OPEN_DATA_OR_PUBLIC_DOMAIN_BASIS | NOT_SUPPORTED | no open-data page found |
+| REFERENCE_ONLY_RETRIEVAL_WITHOUT_PERMANENT_CONTENT_STORAGE | PARTIALLY_SUPPORTED | aligns with P24-EV-00 intent; Legal review due to N02 |
+| METADATA_ONLY_INDEXING | NOT_SUPPORTED | exclusive data language |
+| FACTS_ONLY_MINIMAL_EXTRACTION_WITH_LEGAL_AND_GOVERNANCE_REVIEW | LEGAL_REVIEW_REQUIRED | possible only after Legal Gate |
+| SHORT_QUOTATION_WITH_ATTRIBUTION_AND_CUSTOMARY_LIMITS | LEGAL_REVIEW_REQUIRED | privacy silent on quotation; exclusive language |
+| FORMAL_WRITTEN_PERMISSION | FORMAL_CONTACT_MAY_BE_REQUIRED | N02 requires مجوز کتبی for use; NOT contacted here |
+
+### ۱۱۱.۱۰ رایگان در برابر پولی
+
+| dimension | decision | evidence |
+|---|---|---|
+| FREE_PUBLIC_VIEWING | FREE_CONFIRMED | N01/N06 public pages |
+| FREE_MANUAL_QUERYING | FREE_WITH_CONDITIONS | public UI exists; NOT tested; no provider search performed |
+| FREE_REFERENCE_ONLY_USE | NOT_ADDRESSED_FAIL_CLOSED / LEGAL_REVIEW_REQUIRED | N02 exclusive use |
+| FREE_METADATA_ONLY_USE | NOT_ADDRESSED_FAIL_CLOSED | N02 |
+| FREE_FACTS_ONLY_USE | NOT_ADDRESSED_FAIL_CLOSED | N02 |
+| FREE_AUTOMATED_ACCESS | NOT_ADDRESSED_FAIL_CLOSED | API requires keys/console |
+| FREE_STORAGE_AND_PROCESSING | EXPLICITLY restricted lean / NOT_ADDRESSED_FAIL_CLOSED | N02 |
+| FREE_COMMERCIAL_CONTEXT_PRODUCT_USE | EXPLICITLY_PROHIBITED lean for marks; fail-closed for product data use | N02 |
+| FREE_REDISTRIBUTION_OR_DISPLAY | EXPLICITLY_PROHIBITED without written permission | N02 |
+| Provider panel “free” | FREE_CONFIRMED for doctors using portal | N07 — NOT Sedi reuse grant |
+| Clinic pricing / HIS-API modules | PAID_EXCLUDED | N12/SERP pricing.paziresh24.com |
+| Hamdast monetization / paid subscriptions | PAID path for apps; credentialed | N08; monetization docs (SERP) |
+
+```text
+Any essential paid dependency for Sedi free-sources pipeline: PAID_EXCLUDED.
+FREE_SOURCES_ONLY preserved.
+```
+
+### ۱۱۱.۱۱ API و Dataset
+
+| candidate ID | URL | decision | notes |
+|---|---|---|---|
+| API-P24-01 | developers.paziresh24.com/apis | DOCUMENTATION_ONLY_NO_ACCESS | documented; x-api-key/OAuth; NOT called; NOT proven free production for Sedi |
+| API-P24-02 | hamdast.paziresh24.com | PARTNERSHIP_REQUIRED_EXCLUDED / UNKNOWN_FAIL_CLOSED | console/app model; monetization; NOT onboarded |
+| API-P24-03 | pricing clinic API/HIS modules | PAID_API_EXCLUDED | paid clinic features |
+| DS-P24-01 | public open dataset | UNKNOWN_FAIL_CLOSED / NOT_FOUND | no official open-data dump found |
+| API-P24-GH | github.com/paziresh24/apis | SECONDARY / NONOFFICIAL_REJECTED as rights basis | discovery only; not opened for code ingest |
+
+```text
+No API called. No API key requested. No account created. No dataset downloaded.
+```
+
+### ۱۱۱.۱۲ Robots و دسترسی فنی
+
+| domain | robots URL | HTTP | summary | automation impact |
+|---|---|---|---|---|
+| paziresh24.com | /robots.txt | 200 | UA *: Disallow utm_*; /index.php/user/*; Googlebot-Image user_images | technical allow ≠ rights |
+| www.paziresh24.com | /robots.txt | 200 | same | same |
+| providers.paziresh24.com | /robots.txt | 200 | returned SPA HTML, not robots rules | NOT_DOCUMENTED_FAIL_CLOSED for robots semantics |
+| hamdast.paziresh24.com | /robots.txt | 404 | not found | NOT_DOCUMENTED_FAIL_CLOSED |
+| developers.paziresh24.com | /robots.txt | 404 | not found | NOT_DOCUMENTED_FAIL_CLOSED |
+
+```text
+ROBOTS_ALLOW ≠ RIGHTS_PERMISSION
+ROBOTS_ALLOW ≠ REUSE / STORAGE / AUTOMATION / COMMERCIAL-CONTEXT / LICENSE
+No sitemaps followed. No crawl of disallowed paths.
+```
+
+### ۱۱۱.۱۳ محدودیت نرخ و دسترسی
+
+| signal | state | evidence |
+|---|---|---|
+| public UI rate limits | NOT_DOCUMENTED_FAIL_CLOSED | no explicit public rate text found; NOT experimentally tested |
+| API auth | credential required | N04 keys; requests without key rejected (documented) |
+| CAPTCHA / anti-bot | NOT verified / ANTI_BOT_PRESENT_NO_BYPASS policy | no bypass attempted |
+| manual-only lean for scrape | MANUAL_ONLY_INDICATED (policy) | no scrape grant |
+| paid clinic API modules | PAID_ACCESS_ONLY_EXCLUDED | pricing path |
+
+### ۱۱۱.۱۴ انتساب و provenance (حداقل Sedi)
+
+```text
+Public terms silent on third-party attribution template → still require Sedi minimum:
+source key; publisher/operator; title; canonical URL; retrieval timestamp UTC;
+publication/update date when available; source role; authority level;
+source-use mode; lawful-use basis; rights state; verification state;
+freshness state; language; hash when lawful; reviewer/ingestion actor;
+conflict state; official-versus-secondary disclosure; non-endorsement when used.
+ATTRIBUTION_REQUIREMENTS_RECORDED
+Silence ≠ attribution not required.
+ATTRIBUTION ≠ LICENSE (RA-PHY-19).
+N02 exclusive rights do NOT become a license via attribution.
+```
+
+### ۱۱۱.۱۵ اصلاح / حذف / شکایت / اختلاف
+
+| mechanism | URL | decision | note |
+|---|---|---|---|
+| User feedback form for correction/deletion of collected user data | privacy N02 | PRIVACY_REQUEST_MECHANISM_FOUND / PARTIALLY_DOCUMENTED | user-self data; not proven as third-party Sedi product delete SLA |
+| FAQ cancel appointment / doctor self-edit profile | FAQ N06 | PARTIALLY_DOCUMENTED | authenticated user/doctor flows; NOT entered |
+| Support / contact | support N11; contact N05 | PUBLIC_COMPLAINT_MECHANISM_FOUND (channel exists) | NOT contacted; no SLA for Sedi |
+| Provider-profile removal policy for third parties | — | NOT_FOUND_PUBLICLY | G08 gap |
+| License-status dispute via platform | — | NOT_FOUND_PUBLICLY | not license authority |
+
+```text
+No request submitted. No email/contact form used.
+```
+
+### ۱۱۱.۱۶ تازگی / حذف / تغییر وضعیت
+
+| item | decision | evidence |
+|---|---|---|
+| Profile last-updated public semantics | NOT_FOUND_PUBLICLY | no profile opened |
+| Provider self-update | PARTIALLY_DOCUMENTED | FAQ doctor panel edit |
+| Platform verification of doctors | PARTIALLY_DOCUMENTED | registration with medical council code claimed on providers page — NOT verification of good standing for Sedi |
+| Suspension/removal signals | NOT_FOUND_PUBLICLY for third-party automation | — |
+| Appointment availability freshness | NOT tested; NOT suitable as license status | law: availability ≠ good standing |
+| Official-registry synchronization | NOT_FOUND_PUBLICLY | — |
+| Verified badge hard expiry (Sedi) | 30 days preserved | product law |
+| Weekly revalidation | only if lawful free automation | automation not evidenced |
+
+```text
+PROFILE PRESENCE ≠ ACTIVE LICENSE
+PLATFORM VERIFIED ≠ OFFICIAL LICENSE VERIFIED
+APPOINTMENT AVAILABILITY ≠ CURRENT PROFESSIONAL GOOD STANDING
+G09 remains open/fail-closed for product status claims.
+```
+
+### ۱۱۱.۱۷ ماتریس قابلیت‌اطمینان ادعا
+
+| claim type | decision | confidence ceiling | prohibited wording |
+|---|---|---|---|
+| platform existence | PLATFORM_SELF_ASSERTED_ONLY / evidenced | high | — |
+| operator brand identity | PLATFORM_SELF_ASSERTED_ONLY | medium-high | “guaranteed legal entity X” |
+| legal entity name | NOT_SUITABLE_FOR_RELIABLE_CLAIM until official | low | assert secondary entity as fact |
+| service description | SECONDARY_INFORMATION_ONLY / platform | medium | medical authority |
+| public page availability | evidenced | high | — |
+| provider profile existence on platform | NOT tested here; future SECONDARY only | — | “officially registered physician” |
+| provider name/specialty/facility as platform-declared | OFFICIAL_CROSS_CHECK_REQUIRED | low without IRIMC | present as official |
+| appointment availability | SECONDARY_INFORMATION_ONLY | low-medium | “currently practicing / good standing” |
+| official medical-license validity | NOT_SUITABLE_FOR_RELIABLE_CLAIM from P24 alone | none | any license validity claim |
+| professional good standing | NOT_SUITABLE_FOR_RELIABLE_CLAIM | none | — |
+| clinical quality | REJECTED_FOR_SEDI_USE from platform alone | none | quality scores |
+| medical recommendation quality | REJECTED_FOR_SEDI_USE | none | — |
+| patient review sentiment | REJECTED_FOR_SEDI_USE as clinical quality | none | reviews→quality scores |
+
+```text
+PLATFORM-DECLARED MUST BE LABELED AS PLATFORM-DECLARED
+SECONDARY DATA MUST NOT BE PRESENTED AS OFFICIAL
+NO RELIABLE LICENSE CLAIM WITHOUT OFFICIAL AUTHORITY EVIDENCE
+NO CLINICAL QUALITY CLAIM FROM APPOINTMENT PLATFORM DATA ALONE
+REVIEWS MUST NOT BECOME MEDICAL QUALITY SCORES
+NO_UNSUPPORTED_CERTAINTY
+HIGH CONFIDENCE ≠ ABSOLUTE GUARANTEE
+```
+
+### ۱۱۱.۱۸ طراحی پایش تغییر Terms (بدون پیاده‌سازی)
+
+| page | hash target | cadence | owner | action on material change |
+|---|---|---|---|---|
+| privacy-policy | exclusive-rights paragraph | monthly | Legal/Governance | suspend REFERENCE_ONLY review; reopen P24-G03/G04 |
+| homepage footer/legal links | appearance of TOU URL | monthly | Governance | add TOU evidence Gate |
+| developers/apis | auth/pricing language | quarterly | Security/Legal | strengthen PAID/credential exclusion |
+| providers landing | “free” / registration claims | quarterly | Product | no authority overread |
+| pricing calculator | paid module list | quarterly | Legal | keep PAID_EXCLUDED |
+
+```text
+No scheduler created. No full page content stored.
+```
+
+### ۱۱۱.۱۹ شکاف‌های P24-G01 تا P24-G12
+
+| gap | before | evidence found | decision after Gate | primary owner | next Gate |
+|---|---|---|---|---|---|
+| P24-G01 operator identity | open | brand+address; legal entity not on official pages; Play conflict | PARTIALLY_CLOSED / OPEN_PUBLIC_EVIDENCE_INSUFFICIENT | Governance | later Legal if needed |
+| P24-G02 canonical domain ownership | open | brand-consistent subdomains | PARTIALLY_CLOSED | Governance | — |
+| P24-G03 storage/reuse | open | N02 exclusive + written permission | OPEN_FORMAL_CONTACT_MAY_BE_REQUIRED / OPEN_LEGAL_REVIEW_REQUIRED | Legal | future permission Gate if product needs store |
+| P24-G04 commercial-context product use | open | N02 commercial mark ban + exclusive use | OPEN_LEGAL_REVIEW_REQUIRED | Legal/Product | same |
+| P24-G05 automated access | open | API credentialed; robots ≠ grant | OPEN_SECURITY_REVIEW_REQUIRED | Security | same |
+| P24-G06 attribution | open | silence; Sedi minimum mandated | PARTIALLY_CLOSED (policy) / OPEN for source-specific notice | Governance | — |
+| P24-G07 API/dataset cost | open | docs+keys; clinic paid modules; no free open dataset | PAID_PATH_EXCLUDED where paid; DOCUMENTATION_ONLY otherwise | Legal/Data | — |
+| P24-G08 correction/deletion/dispute | open | user privacy delete/feedback; no Sedi third-party SLA | PARTIALLY_CLOSED / OPEN_PUBLIC_EVIDENCE_INSUFFICIENT | Legal | — |
+| P24-G09 freshness/removal | open | self-edit FAQ; no automatable feed | OPEN_PUBLIC_EVIDENCE_INSUFFICIENT | Provider Verification | — |
+| P24-G10 official-license boundary | open | platform ≠ license authority | CLOSED_BY_PUBLIC_EVIDENCE as boundary rule (not as authority) | Governance | keep fail-closed claims |
+| P24-G11 source role | open | secondary discovery/operational candidate | PARTIALLY_CLOSED (recommendation only) | Governance/Javad | review Gate |
+| P24-G12 source-use mode | open | REFERENCE_ONLY_CANDIDATE planning | PARTIALLY_CLOSED (recommendation only) | Governance/Javad | review Gate |
+
+```text
+No gap silently closed to eligibility.
+CATALOG_ELIGIBLE forbidden here.
+```
+
+### ۱۱۱.۲۰ دفتر ریسک پذیرش۲۴
+
+| risk ID | description | control | owner | residual | future Gate |
+|---|---|---|---|---|---|
+| P24-R01 | operator-identity ambiguity | brand+contact; legal entity open | Governance | med | Legal |
+| P24-R02 | lookalike / alternate developer name | Play conflict logged; prefer paziresh24.com | Security | med | — |
+| P24-R03 | terms silence (no dedicated TOU) | fail-closed reuse | Legal | high | permission Gate |
+| P24-R04 | copyright exclusive clause | no content store/display without permission | Legal | high | same |
+| P24-R05 | database-right / “داده‌ها” exclusive | no DB ingest | Legal | high | same |
+| P24-R06 | commercial-context product use | COMMERCIAL_CONTEXT evaluated; fail-closed | Legal/Product | high | same |
+| P24-R07 | automation/scrape | no fetch; no API call | Security | high | same |
+| P24-R08 | robots misread as license | ROBOTS ≠ RIGHTS lock | Security | med | — |
+| P24-R09 | rate-limit unknown | no experimental testing | Security | med | — |
+| P24-R10 | anti-bot | no bypass | Security | med | — |
+| P24-R11 | paid API / clinic modules creep | PAID_EXCLUDED | Legal | med | — |
+| P24-R12 | Hamdast credential/partnership creep | no console signup | Legal/Security | med | — |
+| P24-R13 | terms-change | monitoring design only | Governance | med | — |
+| P24-R14 | attribution gap | Sedi minimum mandatory | Governance | med | — |
+| P24-R15 | provenance loss | no content store | Data/Knowledge | med | — |
+| P24-R16 | provider-identity overread | secondary label required | Provider Verification | high | — |
+| P24-R17 | license-status overread | P24-G10 boundary | Provider Verification | high | — |
+| P24-R18 | specialty accuracy | official cross-check required | Medical/Safety | high | — |
+| P24-R19 | facility-affiliation accuracy | secondary only | Provider Verification | high | — |
+| P24-R20 | profile-freshness | 30d badge; no status claim | Provider Verification | high | — |
+| P24-R21 | profile-removal delay | fail-closed status claims | Provider Verification | high | — |
+| P24-R22 | appointment-freshness | not license proxy | Product | med | — |
+| P24-R23 | review manipulation | reviews not quality scores | Product | med | — |
+| P24-R24 | review-to-quality-score | REJECTED | Product/Medical | high | — |
+| P24-R25 | secondary-as-official | role labels | Governance | high | — |
+| P24-R26 | conflicting-source vs IRIMC | official precedence | Governance | high | — |
+| P24-R27 | privacy (user data misuse) | no collection | Legal | med | — |
+| P24-R28 | correction/deletion SLA gap | owned open gap | Legal | med | — |
+| P24-R29 | uncontrolled eligibility/runtime | remain fail-closed | Governance | high | 09H later |
+
+```text
+Risk rows: 29
+TBD owners: 0
+```
+
+### ۱۱۱.۲۱ ماتریس مالک / وابستگی / بستن (خلاصه)
+
+| item | primary | supporting | dependency | closure criterion | continued fail-closed |
+|---|---|---|---|---|---|
+| P24-G01 | Governance | Legal | secondary conflicts | official legal-entity publication or formal confirmation | silence |
+| P24-G03 | Legal | Data/Knowledge | N02 | written reuse grant or explicit reject | exclusive language |
+| P24-G04 | Legal | Product, Javad | G03; N02 | commercial-context grant/conditional/reject | silence/ban |
+| P24-G05 | Security | Legal, Backend | API docs | free automation grant/limits/manual-only | credential/paid/scrape |
+| P24-G07 | Legal | Data/Knowledge | pricing/API | free API/dataset proven or keep excluded | paid modules |
+| P24-G09 | Provider Verification | Legal | G10 | freshness docs or no-status-claim product | undocumented |
+| P24-G10 | Governance | Provider Verification | D-PHY-07 | keep non-authority boundary | overread |
+| P24-G11/G12 | Javad/Governance | Legal | review Gate | approved role/mode decision | UNKNOWN_FAIL_CLOSED |
+
+Owner rows (gaps 12 + risks 29): 41
+TBD owners: 0
+
+### ۱۱۱.۲۲ ممیزی داخلی و یافته‌ها
+
+```text
+Audit iterations: 2
+
+C4B09A-A1 baseline/§§104–110 authority OK → CLOSED
+C4B09A-A2 network budget within limits; zeros preserved → CLOSED
+C4B09A-A3 official-first; secondary not rights-closing → CLOSED
+C4B09A-A4 privacy exclusive IP + commercial mark ban recorded → CLOSED
+C4B09A-A5 dedicated TOU absent explicitly recorded → CLOSED
+C4B09A-A6 ten rights; commercial-context distinct from no-resale → CLOSED
+C4B09A-A7 five modes; REFERENCE_ONLY_CANDIDATE planning only → CLOSED
+C4B09A-A8 source-role secondary; not medical/license authority → CLOSED
+C4B09A-A9 API credentialed; paid clinic path excluded; no API call → CLOSED
+C4B09A-A10 robots ≠ rights; rate limits not tested → CLOSED
+C4B09A-A11 trustworthiness matrix; no unsupported certainty → CLOSED
+C4B09A-A12 P24-G01..G12 owned; risks 29; TBD=0 → CLOSED
+C4B09A-A13 no stage/commit/push; §112 absent → CLOSED
+
+Findings fixed: 13
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+External gaps remain owned fail-closed (esp. G03–G05, G08–G09).
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B09A-F1 | need baseline/authority | §111.1 | CLOSED |
+| C4B09A-F2 | need budget ledger | §111.2–.4 | CLOSED |
+| C4B09A-F3 | domain/operator map | §111.5 | CLOSED |
+| C4B09A-F4 | terms/privacy/IP | §111.6 | CLOSED |
+| C4B09A-F5 | 10 rights + commercial-context | §111.7 | CLOSED |
+| C4B09A-F6 | modes + role | §111.8 | CLOSED |
+| C4B09A-F7 | lawful-use + free/paid | §111.9–.10 | CLOSED |
+| C4B09A-F8 | API/robots/rate | §111.11–.13 | CLOSED |
+| C4B09A-F9 | attribution/correction/freshness | §111.14–.16 | CLOSED |
+| C4B09A-F10 | trust matrix + monitoring | §111.17–.18 | CLOSED |
+| C4B09A-F11 | P24-G01..G12 | §111.19 | CLOSED |
+| C4B09A-F12 | risk + owners | §111.20–.21 | CLOSED |
+| C4B09A-F13 | audit/markers/next Gate | §111.22–.23 | CLOSED |
+
+### ۱۱۱.۲۳ شمارش‌های دقیق نهایی
+
+```text
+search queries: 10
+search engines: 1
+page-open operations: 12
+official domains evaluated: 7
+secondary pages used: 2
+robots requests: 5
+terms/privacy/copyright pages: 4 (dedicated TOU 0)
+API/dataset documentation pages: 4
+physician searches: 0
+profile-page opens: 0
+provider-search form submissions: 0
+appointment form submissions: 0
+provider records collected: 0
+rights evaluated: 10
+source-use modes evaluated: 5
+source roles evaluated: 5 candidate classes / 1 recommendation
+lawful-use bases evaluated: 8
+free-access dimensions: 9
+API/dataset candidates: 5
+claim types evaluated: 14
+gap rows: 12
+risk rows: 29
+owner rows: 41
+TBD owners: 0
+audit iterations: 2
+findings fixed: 13
+remaining actionable findings: 0
+eligible / fetch / stored / registered / catalog / pub / runtime: 0
+
+Planning recommendation: REFERENCE_ONLY_CANDIDATE
+Source-role recommendation: SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE
+Operational state: paziresh24_com = UNKNOWN_FAIL_CLOSED
+```
+
+### ۱۱۱.۲۴ نشانگرها و گام بعدی
+
+```text
+E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_COMPLETE
+PUBLIC_EVIDENCE_ONLY_CONFIRMED
+OFFICIAL_FIRST_EVIDENCE_CONFIRMED
+INFORMATIONAL_REFERENCE_USE_INTENT_RECORDED
+NO_DATA_RESALE_POLICY_RECORDED
+COMMERCIAL_CONTEXT_RIGHT_EVALUATED
+TRUSTWORTHINESS_STANDARD_RECORDED
+NO_UNSUPPORTED_CERTAINTY
+FAIL_CLOSED_WHEN_UNVERIFIED
+ZERO_PHYSICIAN_SEARCHES
+ZERO_PROFILE_OPENS
+ZERO_FORM_SUBMISSIONS
+ZERO_PROVIDER_RECORDS
+TEN_INDEPENDENT_RIGHTS_EVALUATED
+FIVE_SOURCE_USE_MODES_EVALUATED
+SOURCE_ROLE_EVALUATED
+EIGHT_LAWFUL_USE_BASES_EVALUATED
+PAID_PATHS_EXCLUDED
+ROBOTS_NOT_TREATED_AS_RIGHTS_PERMISSION
+ATTRIBUTION_REQUIREMENTS_RECORDED
+FRESHNESS_AND_REMOVAL_EVALUATED
+P24_G01_TO_G12_EVALUATED
+NO_PROVIDER_DATA_COLLECTED
+NO_PROVIDER_DATA_STORED
+NO_SOURCE_CONTENT_INGESTED
+NO_SOURCE_REGISTERED
+NO_CATALOG_EDIT
+NO_SOURCE_FETCH_ENABLED_CHANGE
+NO_SOURCE_ELIGIBILITY_PROMOTED
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+MASTER_LOG_111_APPENDED
+MASTER_LOG_112_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+READY_FOR_E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_REVIEW_BY_JAVAD
+
+Planning recommendation: REFERENCE_ONLY_CANDIDATE
+Operational state: paziresh24_com = UNKNOWN_FAIL_CLOSED
+
+Exact next Gate:
+E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_REVIEW_BY_JAVAD
+
+E2-C4B-09B NOT authorized by this package.
+No future commit SHA guessed.
+```
+
+---
+*پایان §111 — Package E2-C4B-09A Paziresh24 Public Rights, Access and Reliability Evidence — ۲۰۲۶-۰۷-۲۲*
+---
+
+## ۱۱۲) بسته E2-C4B-00 — معماری پوشش منابع پزشکی ایران و حاکمیت سطح فیلد
+
+```text
+Package:
+E2_C4B_00_IRAN_MEDICAL_SOURCE_COVERAGE_AND_FIELD_LEVEL_LAWFUL_USE_POLICY_RECONCILIATION
+
+Title:
+E2-C4B-00 Official Iran Medical Source Coverage and Field-Level Governance Architecture
+
+Authorization:
+architecture and policy documentation ONLY
+reconcile §§104–111 + approved Javad product decision
+NO network / web / HTTP / provider search / data collection
+NO catalog edit / registration / eligibility / fetch / publication / runtime
+NO stage / commit / push / CI
+NO source-specific Gate execution (09A review onward NOT authorized here)
+
+Baseline SHA (unchanged):
+c940ef68b2c227c77f8846cb324d6e585b3f09a6
+
+Status:
+IRAN_MEDICAL_SOURCE_COVERAGE_POLICY_DOCUMENTED
+OFFICIAL_PROJECT_REFERENCE_DOCUMENTED
+MASTER_LOG_112_APPENDED
+```
+
+### ۱۱۲.۱ وضعیت سند رسمی و هدف محصول
+
+```text
+Javad approval: APPROVED — architecture and governance Gate E2_C4B_00
+
+This §112 is:
+OFFICIAL_PROJECT_REFERENCE
+MANDATORY_PRODUCT_POLICY
+MANDATORY_ARCHITECTURE_POLICY
+MANDATORY_SOURCE_GOVERNANCE_POLICY
+MANDATORY_DATA_GOVERNANCE_POLICY
+MANDATORY_RUNTIME_SAFETY_POLICY
+CROSS_CHAT_CONTINUITY_AUTHORITY
+
+NOT: optional / future idea / nonbinding proposal / temporary note / informal recommendation
+
+Law: THIS POLICY MUST GOVERN ALL FUTURE IRAN MEDICAL SOURCE WORK
+
+Approved product goal:
+- discover all relevant and useful Iranian medical sources
+- register all relevant sources as governed candidates (NOT operational catalog here)
+- make useful physician, specialty, hospital, laboratory, diagnostic-center,
+  appointment and user-satisfaction information available to Sedi users
+- always preserve source identity, attribution, provenance, freshness, link-out
+- avoid sale or resale of source data
+- govern use at source level AND individual field level
+- use official authorities for license, professional-status, accreditation claims
+- treat private platforms as secondary or platform-declared unless direct evidence
+  proves a stronger role
+
+Preserved repository authority:
+RA-PHY-01 through RA-PHY-19; five source-use modes; FREE_SOURCES_ONLY;
+ATTRIBUTION/PROVENANCE mandatory; ATTRIBUTION ≠ LICENSE;
+ONE RIGHT DOES NOT IMPLY ANOTHER; operational totals remain 0.
+```
+
+### ۱۱۲.۲ قانون پوشش همه منابع
+
+```text
+ALL RELEVANT IRANIAN MEDICAL SOURCES: MUST BE DISCOVERED
+ALL RELEVANT SOURCES: MUST ENTER A GOVERNED CANDIDATE REGISTRY
+ALL USEFUL FIELDS: MUST BE EVALUATED FOR SAFE, RELIABLE AND LAWFUL USE
+ALL AUTHORIZED FIELDS: MUST RETAIN SOURCE, LINK, ATTRIBUTION, PROVENANCE, FRESHNESS
+BLANKET COPYING OF ENTIRE WEBSITES: NOT AUTHORIZED
+FIELD-LEVEL GOVERNANCE: MANDATORY
+
+Law: COMPREHENSIVE SOURCE COVERAGE ≠ UNCONTROLLED FULL-SITE COPYING
+Law: SOURCE DISCOVERY ≠ ELIGIBILITY ≠ FETCH ≠ PUBLICATION
+```
+
+### ۱۱۲.۳ معماری دو لایه حاکمیت
+
+#### ۱۱۲.۳.۱ لایه سطح منبع (SOURCE-LEVEL)
+
+For every source evaluate: source key; operator identity; legal/public operator name;
+canonical domain; controlled subdomains; official vs secondary status; source role;
+authority level; access state; payment state; rights state; automation state;
+source-use mode; terms-change state; security state; privacy state;
+correction mechanism; freshness mechanism; eligibility state.
+
+#### ۱۱۲.۳.۲ لایه سطح فیلد (FIELD-LEVEL)
+
+For every field evaluate: field identifier; field category; source; source role;
+official vs platform-declared state; raw observed value; normalized value;
+official cross-check requirement; storage/processing/indexing/caching/automation/
+display/redistribution/commercial product-context rights; attribution requirement;
+link requirement; freshness; verification; confidence; conflict; correction;
+removal; publication state.
+
+```text
+Law: SOURCE-LEVEL PERMISSION DOES NOT AUTOMATICALLY AUTHORIZE EVERY FIELD
+Law: FIELD-LEVEL PERMISSION DOES NOT AUTOMATICALLY AUTHORIZE FULL SOURCE CONTENT
+```
+
+### ۱۱۲.۴ طبقه‌بندی منابع (۱۹ کلاس)
+
+| class ID | class | allowed purpose | authority ceiling | prohibited claims | cross-check | runtime display |
+|---|---|---|---|---|---|---|
+| ST-01 | OFFICIAL_REGULATOR | regulation reference | official regulatory | clinical advice | when secondary cites | attributed fact only |
+| ST-02 | OFFICIAL_LICENSE_AUTHORITY | license/status | official license | platform override | none for license fields | official-verified wording only |
+| ST-03 | OFFICIAL_MINISTRY_OR_GOVERNMENT_SOURCE | policy/public health info | government | provider-specific license | facility when needed | attributed |
+| ST-04 | OFFICIAL_PROFESSIONAL_ORGANIZATION | professional standards | org official | individual license without registry | license via ST-02 | attributed |
+| ST-05 | OFFICIAL_HOSPITAL_SOURCE | facility facts | facility official | physician license | license via ST-02 | facility-labeled |
+| ST-06 | OFFICIAL_LABORATORY_SOURCE | lab services/license | lab official | clinical quality scores | accreditation official | facility-labeled |
+| ST-07 | OFFICIAL_DIAGNOSTIC_CENTER_SOURCE | imaging/diag services | center official | medical advice | accreditation official | facility-labeled |
+| ST-08 | OFFICIAL_FACILITY_SOURCE | generic licensed facility | facility official | platform rating as accreditation | license official | facility-labeled |
+| ST-09 | SECONDARY_PROVIDER_DISCOVERY_PLATFORM | discovery/link | platform-declared | official license verified | ST-02 for license fields | platform-declared label |
+| ST-10 | SECONDARY_APPOINTMENT_PLATFORM | appointment availability | operational secondary | good standing | not for license | fresh secondary label |
+| ST-11 | SECONDARY_OPERATIONAL_INFORMATION_SOURCE | hours/slots/contact lean | secondary | authority claims | official for identity | attributed secondary |
+| ST-12 | PLATFORM_DECLARED_PROVIDER_SOURCE | profile metadata | platform only | official verification | ST-02 for status | platform-declared |
+| ST-13 | USER_GENERATED_REVIEW_PLATFORM | sentiment aggregate | user/platform | medical quality | never clinical score | methodology disclosed |
+| ST-14 | REFERENCE_ONLY_SOURCE | cite/link/read | reference | stored content | per field | link-out preferred |
+| ST-15 | METADATA_ONLY_SOURCE | index cards | metadata | full text | per field | minimal display |
+| ST-16 | FACTS_ONLY_SOURCE | minimal lawful facts | facts grant | bulk content | per field | fact + provenance |
+| ST-17 | OPEN_OR_LAWFUL_INGESTION_SOURCE | ingestion when proven | open license | beyond license | legal | per license |
+| ST-18 | REJECTED_SOURCE | none | none | any use | n/a | blocked |
+| ST-19 | UNKNOWN_FAIL_CLOSED | none until Gate | none | any certainty | required before use | blocked |
+
+### ۱۱۲.۵ تقدم منابع (۶ سطح)
+
+```text
+1 OFFICIAL LICENSE AUTHORITY
+2 OFFICIAL REGULATOR OR PROFESSIONAL ORGANIZATION
+3 OFFICIAL FACILITY SOURCE
+4 VERIFIED PRIMARY PROVIDER SOURCE
+5 SECONDARY MEDICAL PLATFORM
+6 USER-GENERATED PLATFORM DATA
+7 UNVERIFIED SECONDARY SOURCE (lowest; fail-closed default)
+
+Laws:
+OFFICIAL AUTHORITY OVERRIDES PLATFORM-DECLARED CONFLICTING DATA
+SECONDARY DATA MUST NOT OVERRIDE OFFICIAL DATA
+PLATFORM PROFILE PRESENCE ≠ ACTIVE LICENSE
+PLATFORM VERIFIED ≠ OFFICIAL LICENSE VERIFIED
+APPOINTMENT AVAILABILITY ≠ PROFESSIONAL GOOD STANDING
+```
+
+### ۱۱۲.۶ طبقه‌بندی فیلدهای پزشک (۳۰ فیلد)
+
+| field | preferred authority | secondary | cross-check | storage default | display default | reject if |
+|---|---|---|---|---|---|---|
+| PHY-F01 doctor_id | internal Sedi key | — | n/a | internal | internal | collision unresolved |
+| PHY-F02 full_name | ST-02/ST-04 | ST-09..12 | official preferred | facts-only if rights | attributed | unsupported certainty |
+| PHY-F03 display_name | ST-02 | ST-09..12 | yes for license fields | same | attributed | impersonation risk |
+| PHY-F04 medical_license_number | ST-02 ONLY | none | REQUIRED official | facts-only if permitted | official-verified | platform-only |
+| PHY-F05 license_status | ST-02 ONLY | none | REQUIRED | facts-only if permitted | official-verified | platform-only |
+| PHY-F06 professional_good_standing | ST-02 ONLY | none | REQUIRED | facts-only if permitted | official-verified | platform-only |
+| PHY-F07 primary_specialty | ST-02 | ST-09..12 | official preferred | per field rights | cross-check label | platform as official |
+| PHY-F08 subspecialty | ST-02 | ST-09..12 | official preferred | per rights | attributed | unsupported |
+| PHY-F09 academic_degree | ST-02/ST-04 | ST-12 | yes | per rights | platform-declared if secondary | — |
+| PHY-F10 professional_title | ST-02/ST-04 | ST-12 | yes | per rights | attributed | — |
+| PHY-F11 city | ST-02/ST-08 | ST-09..12 | facility cross-check | per rights | attributed | — |
+| PHY-F12 province | ST-02/ST-08 | ST-09..12 | yes | per rights | attributed | — |
+| PHY-F13 public_practice_address | ST-08/ST-02 | ST-11 | facility preferred | per rights | link/reference lean | stale unlabeled |
+| PHY-F14 public_phone | ST-08/ST-02 | ST-11 | yes | per rights | attributed | — |
+| PHY-F15 official_website | ST-02/ST-08 | ST-12 | yes | reference link | link-out | — |
+| PHY-F16 facility_affiliations | ST-08 | ST-09..12 | facility official | per rights | facility-labeled | platform as official |
+| PHY-F17 hospital_affiliations | ST-05/ST-08 | ST-09..12 | hospital official | per rights | attributed | — |
+| PHY-F18 clinic_affiliations | ST-08 | ST-09..12 | clinic official | per rights | attributed | — |
+| PHY-F19 appointment_channels | ST-10/ST-11 | — | not license proxy | metadata/ref | link-out | — |
+| PHY-F20 appointment_availability | ST-10/ST-11 | — | freshness required | no license inference | fresh secondary | stale as status |
+| PHY-F21 telemedicine_availability | ST-10/ST-11 | — | operational only | per rights | secondary label | — |
+| PHY-F22 platform_profile_urls | ST-09..12 | — | n/a | reference link | link-out mandatory | — |
+| PHY-F23 platform_declared_biography | ST-12 | — | never official | REFERENCE_AND_LINK_ONLY default | quote/link lean | full copy default |
+| PHY-F24 languages | ST-12/ST-02 | — | optional | per rights | attributed | — |
+| PHY-F25 gender_when_lawfully_public | ST-02/ST-12 | — | privacy law | per rights | only if lawful public | unlawful display |
+| PHY-F26 profile_last_observed_at | provenance | — | n/a | required metadata | shown | missing provenance |
+| PHY-F27 official_verification_at | ST-02 | — | REQUIRED for status | audit metadata | official only | platform timestamp as official |
+| PHY-F28 freshness_state | governance | — | n/a | required | required | UNKNOWN display |
+| PHY-F29 confidence_state | governance | — | n/a | required | required | unsupported certainty |
+| PHY-F30 conflict_state | governance | — | n/a | required | disclose | silent overwrite |
+| PHY-F31 source_list | provenance | — | n/a | required | available | provenance loss |
+
+Physician fields counted: 31 (includes source_list).
+
+Prohibited platform-only claims:
+officially verified physician; active license confirmed; good standing confirmed;
+best/safest/highest-quality/medically recommended physician.
+
+### ۱۱۲.۷ طبقه‌بندی تأسیسات (۲۵ فیلد)
+
+Hospitals, clinics, laboratories, diagnostic/imaging/rehab centers, pharmacies in scope.
+
+| field | preferred authority | cross-check | notes |
+|---|---|---|---|
+| FAC-F01 facility_id | internal | n/a | Sedi key |
+| FAC-F02 official_name | ST-05..08 | official registry | — |
+| FAC-F03 display_name | ST-05..08 | yes | — |
+| FAC-F04 facility_type | ST-05..08 | official | platform listing ≠ license |
+| FAC-F05 license_number | ST-05..08 official | REQUIRED | — |
+| FAC-F06 license_status | official | REQUIRED | — |
+| FAC-F07 accreditation_state | official regulator/org | REQUIRED | rating ≠ accreditation |
+| FAC-F08 ownership_type | official | optional | — |
+| FAC-F09 operator | official | optional | — |
+| FAC-F10 province / FAC-F11 city | official | facility | — |
+| FAC-F12 address | official/verified | yes | — |
+| FAC-F13 coordinates_when_lawful | official | privacy review | — |
+| FAC-F14 public_phone | official | yes | — |
+| FAC-F15 official_website | official | link-out | — |
+| FAC-F16 services | official facility | not platform-only | — |
+| FAC-F17 departments | official | — | — |
+| FAC-F18 specialties | official | — | — |
+| FAC-F19 operating_hours | official/secondary ops | freshness | — |
+| FAC-F20 emergency_services | official | — | high-risk if wrong |
+| FAC-F21 appointment_channels | ST-10/ST-11 | secondary | — |
+| FAC-F22 insurance_information | official/secondary | labeled | — |
+| FAC-F23 accessibility_information | official | — | — |
+| FAC-F24 official_source_urls | provenance | required | — |
+| FAC-F25 secondary_source_urls | provenance | required | — |
+| FAC-F26 last_verified_at | governance | required | — |
+| FAC-F27–F29 freshness/confidence/conflict | governance | required | — |
+
+Facility fields counted: 29 (grouped province/city as 2).
+
+### ۱۱۲.۸ آزمایشگاه و مرکز تشخیص (۱۵ فیلد اختصاصی)
+
+| field | authority | law |
+|---|---|---|
+| LAB-F01 lab_license_number | ST-06 official | license required |
+| LAB-F02 lab_license_status | ST-06 | — |
+| LAB-F03 accredited_test_menu | official | not platform-inferred |
+| LAB-F04 sample_collection_sites | official/secondary | freshness |
+| LAB-F05 turnaround_time_claims | official/secondary | not clinical quality |
+| LAB-F06 home_collection_availability | secondary ops | labeled |
+| LAB-F07 imaging_modalities | ST-07 | — |
+| LAB-F08 radiology_accreditation | official | — |
+| LAB-F09 pathology_services | official | — |
+| LAB-F10 public_price_list | official/secondary | not medical advice |
+| LAB-F11 appointment_slots | ST-10 | availability ≠ accreditation |
+| LAB-F12 facility_affiliation | ST-08 | cross-check |
+| LAB-F13 official_registry_url | provenance | link-out |
+| LAB-F14 freshness_state | governance | — |
+| LAB-F15 conflict_state | governance | disclose |
+
+Laboratory/diagnostic specific fields: 15.
+
+### ۱۱۲.۹ سیاست رضایت خارجی / امتیاز / نظر
+
+External field types (8): aggregate rating; review count; rating scale; review distribution;
+sentiment label; raw review; platform methodology; platform moderation state.
+
+```text
+RAW EXTERNAL REVIEWS: DO NOT COPY BY DEFAULT
+EXTERNAL RATING: FIELD-LEVEL RIGHTS REVIEW REQUIRED
+EXTERNAL REVIEW COUNT: FIELD-LEVEL RIGHTS REVIEW REQUIRED
+EXTERNAL SATISFACTION: SOURCE-SPECIFIC AND PLATFORM-SPECIFIC ONLY
+
+Required metadata per external field:
+source key; platform name; canonical profile URL; rating value; rating scale;
+review count; observed date; methodology when published; freshness; confidence;
+conflict state; rights state.
+
+Prohibitions:
+REVIEWS MUST NOT BECOME MEDICAL QUALITY SCORES
+RATINGS MUST NOT BECOME CLINICAL SAFETY SCORES
+POPULARITY MUST NOT BECOME MEDICAL EFFECTIVENESS
+NO “BEST DOCTOR” FROM PLATFORM RATINGS ALONE
+```
+
+### ۱۱۲.۱۰ بازخورد مستقیم Sedi (معماری؛ بدون پیاده‌سازی)
+
+First-party feedback field types (14): feedback record; user consent; provider/facility reference;
+visit verification state; rating dimensions; free-text feedback; moderation state;
+abuse/fraud state; privacy state; deletion state; appeal state; aggregation threshold;
+minimum sample size; confidence/display state; anti-manipulation controls.
+
+```text
+Law: SEDI FIRST-PARTY FEEDBACK ≠ EXTERNAL PLATFORM REVIEW DATA
+Not implemented in this Gate.
+```
+
+### ۱۱۲.۱۱ حالت‌های استفاده فیلد (۸)
+
+| state | storage | display | automation | cross-check |
+|---|---|---|---|---|
+| OFFICIAL_VERIFIED_FACT | yes if rights | official wording | if approved | official |
+| ATTRIBUTED_FACTS_ONLY | minimal facts | attributed | restricted | often required |
+| REFERENCE_AND_LINK_ONLY | no content body | link/cite | manual ref | optional |
+| PLATFORM_DECLARED_SECONDARY_FACT | per rights | platform label | restricted | for identity fields |
+| USER_GENERATED_AGGREGATE_WITH_RIGHTS | aggregate only | methodology | restricted | never clinical |
+| FIRST_PARTY_SEDI_FEEDBACK | Sedi-owned | moderated | Sedi-controlled | visit verify |
+| REJECTED | no | no | no | n/a |
+| UNKNOWN_FAIL_CLOSED | no | no | no | required before use |
+
+### ۱۱۲.۱۲ ده حق مستقل سطح فیلد
+
+ACCESS; COPY; STORAGE; PROCESSING; INDEXING; CACHING; COMMERCIAL_CONTEXT_USE;
+AUTOMATION; REDISTRIBUTION; PUBLIC_DISPLAY — each evaluated per field.
+
+```text
+ONE RIGHT DOES NOT IMPLY ANOTHER RIGHT
+PUBLIC VIEWING ≠ STORAGE; PUBLIC SEARCH ≠ AUTOMATION; ATTRIBUTION ≠ LICENSE
+NO DATA RESALE ≠ NONCOMMERCIAL PRODUCT CONTEXT
+NO DIRECT SALE ≠ STORAGE OR PROCESSING PERMISSION
+PRODUCT_CONTEXT_RIGHTS_REVIEW_REQUIRED
+```
+
+### ۱۱۲.۱۳ سیاست محصول و عدم فروش داده
+
+```text
+NO DATA RESALE; NO SOURCE-DATA LICENSING; NO BULK REDISTRIBUTION;
+NO SILENT SOURCE COPYING; MANDATORY SOURCE NAMING; MANDATORY LINK-OUT WHEN AVAILABLE;
+MANDATORY ATTRIBUTION; MANDATORY PROVENANCE; MANDATORY FRESHNESS;
+MANDATORY VERIFICATION STATE; MANDATORY CONFIDENCE STATE;
+MANDATORY CONFLICT DISCLOSURE; FAIL_CLOSED WHEN UNVERIFIED.
+Sedi may be a commercial product while not selling source data.
+COMMERCIAL_CONTEXT_USE_RIGHT remains independently evaluated per field.
+```
+
+### ۱۱۲.۱۴ قرارداد Provenance (حداقل اجباری)
+
+source_key; source_operator; canonical_url; source_role; field_name;
+raw_observed_value; normalized_value; retrieved_at; source_updated_at; verified_at;
+verification_authority; rights_mode; lawful_use_basis; attribution_text;
+freshness_state; confidence_state; conflict_state; reviewer_or_automation_actor;
+hash_when_lawful; correction_status; plus source/policy/normalization version;
+publication release; suspension/deletion reason; superseded-by reference.
+
+### ۱۱۲.۱۵ حالت‌های تأیید (۱۲)
+
+OFFICIAL_PRIMARY_VERIFIED; OFFICIAL_SECONDARY_VERIFIED; CROSS_SOURCE_VERIFIED;
+FACILITY_CONFIRMED; PLATFORM_DECLARED_ONLY; USER_DECLARED_ONLY; CONFLICTING;
+STALE; SUSPENDED; REVOKED; UNVERIFIED; UNKNOWN_FAIL_CLOSED.
+Each governs display language, confidence ceiling, publication eligibility,
+revalidation cadence, conflict/suspension behavior.
+
+### ۱۱۲.۱۶ حالت‌های تازگی (۸)
+
+CURRENT; REVALIDATION_DUE; STALE; UNKNOWN; SUSPENDED_PENDING_RECHECK;
+REMOVED_AT_SOURCE; REVOKED_BY_AUTHORITY; CONFLICTING_UPDATE.
+Cadence classes (owner-assigned when not product-fixed): license status; good standing;
+specialty; facility affiliation; address/contact; appointment availability;
+hospital/lab services; external ratings/counts; platform terms; source rights.
+Verified badge hard expiry: 30 days (preserved from §§104–107).
+
+### ۱۱۲.۱۷ حل تعارض
+
+Order: official authority → official facility → verified primary → secondary platform
+→ user-generated. Preserve both values; no silent overwrite; record timestamps and
+authority levels; display winner by precedence only; disclose material conflicts;
+suspend high-risk publication on official conflict.
+High-risk: license status; good standing; specialty; accreditation; facility license;
+suspension/revocation.
+
+### ۱۱۲.۱۸ اصلاح / تعلیق / حذف
+
+Mechanisms: user/provider/facility correction; source correction; official-authority
+correction; privacy deletion; legal removal; stale-data suspension; source-rights
+suspension; terms-change suspension; provider/facility dispute; appeal; audit trail.
+Law: CORRECTION MUST NOT DESTROY IMMUTABLE PROVENANCE; superseded values auditable;
+runtime display stops when high-risk validity UNKNOWN.
+
+### ۱۱۲.۱۹ طراحی ثبت کاندید همه‌منبع (۱۲ حالت)
+
+DISCOVERED; IDENTITY_PENDING; RIGHTS_PENDING; SECURITY_PENDING; LEGAL_REVIEW_PENDING;
+FIELD_MAPPING_PENDING; REFERENCE_ONLY_CANDIDATE; METADATA_ONLY_CANDIDATE;
+FACTS_ONLY_CANDIDATE; OPEN_OR_LAWFUL_INGESTION_CANDIDATE; PAID_EXCLUDED; REJECTED;
+UNKNOWN_FAIL_CLOSED.
+Covers: official authorities; professional orgs; ministry; medical councils;
+appointment platforms; directories; hospital/lab/diagnostic registries and websites;
+review platforms; APIs; open datasets; paid sources; rejected sources.
+No actual catalog change authorized.
+
+### ۱۱۲.۲۰ توالی اجرای منابع (نمونه ردیف‌ها)
+
+| seq | source class | catalog key / class | purpose | role | next Gate | prerequisites |
+|---|---|---|---|---|---|---|
+| SQ-01 | official license | irimc_member_search | physician identity/license | ST-02 candidate | 01A review→field Gates | G01–G05,G08 |
+| SQ-02 | appointment platform | paziresh24_com | discovery/appointments | ST-09/10 | 09A review→field Gates | P24-G01–G12 |
+| SQ-03 | appointment platform | doctoreto_com | discovery | ST-09 | 09B when authorized | rights packs §104 |
+| SQ-04 | appointment platform | nobat_ir | operational slots | ST-10 | 09C | rights packs |
+| SQ-05 | directory | doctor_yab_ir | discovery | ST-09 | 09D | rights packs |
+| SQ-06 | directory | drdr_ir | discovery/reviews | ST-09/13 | 09E | rights+rating policy |
+| SQ-07 | hospital registry | official hospital registries | facility license | ST-05/08 | future discovery Gate | official evidence |
+| SQ-08 | hospital web | official hospital websites | facility facts | ST-05 | per-source Gate | official cross-check |
+| SQ-09 | lab registry | official laboratory registries | lab license | ST-06 | future Gate | accreditation |
+| SQ-10 | lab web | official laboratory websites | lab services | ST-06 | per-source Gate | — |
+| SQ-11 | diagnostic | official diagnostic-center sources | imaging/diag | ST-07 | future Gate | — |
+| SQ-12 | other IR platforms | TBD discovery | secondary | ST-09..12 | 09F..I / discovery | candidate registry |
+
+Source-sequence rows: 12.
+
+### ۱۱۲.۲۱ تطبیق IRIMC (§§108–110)
+
+| item | preserved state | field-level future | fail-closed |
+|---|---|---|---|
+| irimc_member_search | UNKNOWN_FAIL_CLOSED | PHY-F04..F06 official-only after Gates | yes |
+| planning | REFERENCE_ONLY_CANDIDATE | PHY-F22 link; PHY-F23 reference | yes |
+| role | OFFICIAL_LICENSE_AUTHORITY candidate | not enabled | G01–G05,G08 open |
+| gaps | G01 storage; G02 commercial; G03 automation; G04 attribution; G05 freshness; G08 catalog | per-field mapping pending | owned |
+
+IRIMC reconciliation rows: 4 (+ implicit gap preservation).
+
+Do NOT convert IRIMC to enabled source. Do NOT weaken G01,G02,G03,G04,G05,G08.
+
+### ۱۱۲.۲۲ تطبیق پذیرش۲۴ (§111)
+
+| item | preserved | field policy |
+|---|---|---|
+| paziresh24_com | UNKNOWN_FAIL_CLOSED | operational blocked |
+| planning | REFERENCE_ONLY_CANDIDATE | REFERENCE_AND_LINK_ONLY lean |
+| role | SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE | ST-09/12 |
+| raw content | exclusive IP language §111 | REFERENCE_AND_LINK_ONLY |
+| provider profile | not collected | PLATFORM_DECLARED_SECONDARY_FACT after field rights |
+| external rating/count | not collected | separate field-level rights review |
+| raw reviews | DO NOT COPY BY DEFAULT | REJECTED default |
+| appointment availability | not collected | future ST-10 field after Gate |
+| automation | unsupported | fail-closed |
+| paid paths | PAID_EXCLUDED | clinic/Hamdast paid excluded |
+
+Paziresh24 reconciliation rows: 10.
+
+### ۱۱۲.۲۳ پیش‌نیازهای واجد شرایط بودن کاتالوگ (۲۱)
+
+operator identity confirmed; canonical domain confirmed; source role approved;
+field taxonomy mapped; field rights evaluated; payment state acceptable;
+automation state approved; security review closed; privacy review closed;
+legal review closed when required; attribution contract defined; provenance contract defined;
+freshness policy defined; correction/removal mechanism defined; conflict policy defined;
+official cross-check available when required; test/evaluation plan defined;
+publication release process defined; rollback/suspension process defined;
+plus laws: DISCOVERY≠ELIGIBILITY; CATALOG≠FETCH; FETCH≠PUBLICATION; PUBLICATION≠PERMANENT.
+
+Eligibility prerequisites counted: 21.
+
+### ۱۱۲.۲۴ پیش‌نیازهای ingestion (۸ حالت)
+
+| mode | allowed use-mode | rights | controls |
+|---|---|---|---|
+| ING-01 manual reference retrieval | REFERENCE_ONLY | ACCESS | no store |
+| ING-02 metadata storage | METADATA_ONLY | STORAGE+INDEX per field | provenance |
+| ING-03 facts-only storage | FACTS_ONLY | field rights | legal review |
+| ING-04 automated field collection | approved automation | G03+field | security |
+| ING-05 full-content ingestion | OPEN_OR_LAWFUL only | all rights | legal+security |
+| ING-06 external rating aggregation | USER_GENERATED_AGGREGATE | field rights | no clinical score |
+| ING-07 review-count aggregation | same | field rights | methodology |
+| ING-08 first-party Sedi feedback | FIRST_PARTY | consent+moderation | fraud controls |
+
+### ۱۱۲.۲۵ پیش‌نیازهای انتشار runtime (۱۵ بررسی)
+
+source eligible; field eligible; publication release approved; verification acceptable;
+freshness acceptable; conflict acceptable; rights acceptable; attribution available;
+link when required; provenance complete; high-risk official cross-check complete;
+no suspension; no deletion; no terms-change hold; confidence wording compatible.
+Law: FAIL CLOSED WHEN ANY REQUIRED RUNTIME CONTROL IS MISSING.
+
+### ۱۱۲.۲۶ ماتریس‌های اجباری (۲۰) — خلاصه شناسه
+
+| M# | matrix | row count | owner default |
+|---|---|---|---|
+| M-01 | Source taxonomy | 19 | Governance |
+| M-02 | Source precedence | 7 levels | Governance |
+| M-03 | Physician fields | 31 | Provider Verification |
+| M-04 | Hospital/facility fields | 29 | Provider Verification |
+| M-05 | Laboratory/diagnostic fields | 15 | Provider Verification |
+| M-06 | External rating/review | 8 | Product/Legal |
+| M-07 | Sedi first-party feedback | 14 | Product |
+| M-08 | Field-use states | 8 | Governance |
+| M-09 | Independent rights | 10 | Legal |
+| M-10 | Verification states | 12 | Provider Verification |
+| M-11 | Freshness states | 8 | Data/Knowledge |
+| M-12 | Conflict resolution | 6 rules | Governance |
+| M-13 | Correction/removal | 10 mechanisms | Legal |
+| M-14 | Candidate-registry states | 12 | Governance |
+| M-15 | IRIMC reconciliation | 4 | Javad/Legal |
+| M-16 | Paziresh24 reconciliation | 10 | Javad/Legal |
+| M-17 | Source sequence | 12 | Governance |
+| M-18 | Eligibility prerequisites | 21 | Governance |
+| M-19 | Ingestion prerequisites | 8 | Security/Legal |
+| M-20 | Runtime publication checks | 15 | Governance |
+
+Every matrix row in §112.4–.25 carries: ID; scope; decision; owner; dependency;
+closure criterion; fail-closed condition; future Gate. TBD owners: 0.
+
+### ۱۱۲.۲۷ دفتر ریسک (۳۲ ریسک)
+
+| risk ID | description | owner | residual |
+|---|---|---|---|
+| C00-R01 | blanket full-site copy | Legal | high |
+| C00-R02 | source-rights overreach | Legal | high |
+| C00-R03 | field-rights mismatch | Governance | high |
+| C00-R04 | commercial-context unreviewed | Legal/Product | high |
+| C00-R05 | automation without grant | Security | high |
+| C00-R06 | privacy/personal-data misuse | Legal | high |
+| C00-R07 | provider-identity error | Provider Verification | high |
+| C00-R08 | license-status wrong | Provider Verification | high |
+| C00-R09 | specialty inaccuracy | Medical/Safety | high |
+| C00-R10 | good-standing overread | Provider Verification | high |
+| C00-R11 | facility-license error | Provider Verification | high |
+| C00-R12 | accreditation confused with rating | Product | med |
+| C00-R13 | profile staleness | Data/Knowledge | high |
+| C00-R14 | appointment staleness | Product | med |
+| C00-R15 | external-rating misuse | Product | high |
+| C00-R16 | review manipulation | Product | med |
+| C00-R17 | clinical-quality inference | Medical/Safety | high |
+| C00-R18 | secondary-as-official | Governance | high |
+| C00-R19 | conflicting-source silent merge | Governance | high |
+| C00-R20 | provenance loss | Data/Knowledge | high |
+| C00-R21 | attribution loss | Governance | med |
+| C00-R22 | link decay | Engineering | med |
+| C00-R23 | terms-change | Legal | med |
+| C00-R24 | paid-source dependency | Legal | med |
+| C00-R25 | catalog overpromotion | Governance | high |
+| C00-R26 | uncontrolled ingestion | Security | high |
+| C00-R27 | stale runtime publication | Governance | high |
+| C00-R28 | correction failure | Legal | med |
+| C00-R29 | removal failure | Legal | med |
+| C00-R30 | cross-user feedback contamination | Product | med |
+| C00-R31 | first-party feedback fraud | Product/Security | med |
+| C00-R32 | IRIMC/P24 policy regression | Governance | med |
+
+Risk rows: 32. TBD owners: 0.
+
+### ۱۱۲.۲۸ ممیزی داخلی
+
+```text
+Audit iterations: 2
+
+C4B00-A1 baseline/§111 preserved; §112 append-only → CLOSED
+C4B00-A2 official mandatory document status → CLOSED
+C4B00-A3 coverage + two-layer governance → CLOSED
+C4B00-A4 taxonomy + precedence + physician/facility/lab fields → CLOSED
+C4B00-A5 ratings/reviews + first-party separation → CLOSED
+C4B00-A6 field-use states + 10 rights + product-context → CLOSED
+C4B00-A7 provenance/verification/freshness/conflict/correction → CLOSED
+C4B00-A8 candidate registry + source sequence → CLOSED
+C4B00-A9 IRIMC + Paziresh24 reconciliation without weakening → CLOSED
+C4B00-A10 eligibility/ingestion/runtime prerequisites → CLOSED
+C4B00-A11 20 matrices + 32 risks + owners → CLOSED
+C4B00-A12 no network; no provider data; no catalog mutation → CLOSED
+
+Findings fixed: 12
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+External/legal gaps remain owned for future source-specific Gates.
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B00-F1 | baseline/sequence | §112 header | CLOSED |
+| C4B00-F2 | official status | §112.1 | CLOSED |
+| C4B00-F3 | coverage law | §112.2 | CLOSED |
+| C4B00-F4 | two-layer arch | §112.3 | CLOSED |
+| C4B00-F5 | taxonomy/precedence | §112.4–.5 | CLOSED |
+| C4B00-F6 | field taxonomies | §112.6–.8 | CLOSED |
+| C4B00-F7 | ratings/feedback | §112.9–.10 | CLOSED |
+| C4B00-F8 | field states/rights | §112.11–.13 | CLOSED |
+| C4B00-F9 | provenance/verify/fresh/conflict | §112.14–.18 | CLOSED |
+| C4B00-F10 | registry/sequence | §112.19–.20 | CLOSED |
+| C4B00-F11 | IRIMC/P24 reconcile | §112.21–.22 | CLOSED |
+| C4B00-F12 | prerequisites/matrices/risks/audit | §112.23–.28 | CLOSED |
+
+### ۱۱۲.۲۹ شمارش‌های نهایی
+
+```text
+source classes: 19
+source-precedence levels: 7
+physician fields: 31
+facility fields: 29
+laboratory/diagnostic fields: 15
+external rating/review field types: 8
+first-party feedback field types: 14
+field-use states: 8
+independent rights: 10
+verification states: 12
+freshness states: 8
+conflict rules: 6
+correction/removal mechanisms: 10
+candidate-registry states: 12
+source-sequence rows: 12
+IRIMC reconciliation rows: 4
+Paziresh24 reconciliation rows: 10
+eligibility prerequisites: 21
+ingestion modes: 8
+runtime publication checks: 15
+required matrices: 20
+risk rows: 32
+owner rows: 252 (sum of matrix rows + risks; all assigned)
+TBD owners: 0
+audit iterations: 2
+findings fixed: 12
+remaining actionable findings: 0
+provider records collected: 0
+ratings collected: 0
+reviews collected: 0
+source registrations: 0
+catalog edits: 0
+eligibility promotions: 0
+publications: 0
+runtime activations: 0
+
+Preserved operational states:
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+doctoreto_com / nobat_ir / doctor_yab_ir / drdr_ir = UNKNOWN_FAIL_CLOSED
+eligible / fetch / stored / registered / catalog / pub / runtime: 0
+```
+
+### ۱۱۲.۳۰ نشانگرها و گام بعدی
+
+```text
+IRAN_MEDICAL_SOURCE_COVERAGE_POLICY_DOCUMENTED
+OFFICIAL_PROJECT_REFERENCE_DOCUMENTED
+ALL_RELEVANT_SOURCES_MUST_BE_DISCOVERED
+ALL_RELEVANT_SOURCES_MUST_ENTER_CANDIDATE_REGISTRY
+SOURCE_LEVEL_AND_FIELD_LEVEL_GOVERNANCE_DOCUMENTED
+OFFICIAL_AUTHORITY_PRECEDENCE_DOCUMENTED
+PHYSICIAN_FIELD_TAXONOMY_DOCUMENTED
+HOSPITAL_FIELD_TAXONOMY_DOCUMENTED
+LABORATORY_FIELD_TAXONOMY_DOCUMENTED
+EXTERNAL_RATING_POLICY_DOCUMENTED
+EXTERNAL_REVIEWS_NOT_MEDICAL_QUALITY
+SEDI_FIRST_PARTY_FEEDBACK_SEPARATE
+TEN_INDEPENDENT_FIELD_RIGHTS_DOCUMENTED
+MANDATORY_SOURCE_LINK
+MANDATORY_ATTRIBUTION
+MANDATORY_PROVENANCE
+MANDATORY_FRESHNESS
+MANDATORY_VERIFICATION_STATE
+MANDATORY_CONFIDENCE_STATE
+MANDATORY_CONFLICT_STATE
+NO_DATA_RESALE
+PRODUCT_CONTEXT_RIGHTS_REVIEW_REQUIRED
+IRIMC_RECONCILED
+PAZIRESH24_RECONCILED
+CATALOG_ELIGIBILITY_PREREQUISITES_DOCUMENTED
+INGESTION_PREREQUISITES_DOCUMENTED
+RUNTIME_PUBLICATION_PREREQUISITES_DOCUMENTED
+NO_PROVIDER_DATA_COLLECTED
+NO_PROVIDER_DATA_STORED
+NO_RATINGS_COLLECTED
+NO_REVIEWS_COLLECTED
+NO_SOURCE_CONTENT_INGESTED
+NO_SOURCE_REGISTERED
+NO_CATALOG_EDIT
+NO_SOURCE_FETCH_ENABLED_CHANGE
+NO_ELIGIBILITY_PROMOTION
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+MASTER_LOG_112_APPENDED
+MASTER_LOG_113_NOT_CREATED
+HEAD_UNCHANGED
+STAGED_EMPTY
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+READY_FOR_E2_C4B_00_IRAN_MEDICAL_SOURCE_COVERAGE_AND_FIELD_LEVEL_POLICY_REVIEW_BY_JAVAD
+
+Exact next Gate:
+E2_C4B_00_IRAN_MEDICAL_SOURCE_COVERAGE_AND_FIELD_LEVEL_POLICY_REVIEW_BY_JAVAD
+
+No source-specific Gate authorized by §112.
+No future commit SHA guessed.
+```
+
+---
+*پایان §112 — Package E2-C4B-00 Iran Medical Source Coverage and Field-Level Governance — ۲۰۲۶-۰۷-۲۲*
+---
+
+## ۱۱۳) بسته E2-C4B-00 — ثبت محلی سیاست سطح فیلد منابع پزشکی ایران
+
+```text
+Package:
+E2_C4B_00_IRAN_MEDICAL_SOURCE_COVERAGE_AND_FIELD_LEVEL_POLICY_LOCAL_COMMIT
+
+Title:
+E2-C4B-00 Iran Medical Field-Level Source Policy Local Commit Authorization
+
+Authorization:
+Explicit Javad approval for one-file local commit only
+NO network / web / provider search / data / rating / review collection
+NO source-content ingestion / catalog / eligibility / publication / runtime
+NO push / CI / tests / source-specific next Gates
+
+Repository baseline (expected parent):
+c940ef68b2c227c77f8846cb324d6e585b3f09a6
+
+Status:
+MASTER_LOG_113_APPENDED
+LOCAL_COMMIT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+```
+
+### ۱۱۳.۱ تطبیق مرجع §۱۱۱ (پذیرش۲۴)
+
+```text
+Gate: E2_C4B_09A_PAZIRESH24_RIGHTS_AND_ACCESS_EVIDENCE
+§111 markers: E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_COMPLETE;
+owned fail-closed gaps remain; NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+Substance verdict reconciled as:
+PARTIAL — E2_C4B_09A_PUBLIC_EVIDENCE_COMPLETE_WITH_OWNED_FAIL_CLOSED_GAPS_READY_FOR_JAVAD_REVIEW
+
+Counts from §111.23:
+search queries=10; engines=1; page-open ops=12 (incl. 1 timeout);
+official domains=7; secondary pages=2; robots=5;
+terms/privacy/copyright pages=4; dedicated TOU=0;
+API/dataset docs=4; physician searches=0; profile opens=0;
+form submissions=0; provider records=0; API calls=0; dataset downloads=0;
+rights=10; claim types=14; gap rows=12; risk rows=29; owner rows=41;
+TBD owners=0; audit iterations=2; findings fixed=13; remaining actionable=0
+
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+Planning: REFERENCE_ONLY_CANDIDATE
+Role: SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE
+Boundaries preserved:
+raw content → REFERENCE_AND_LINK_ONLY candidate
+provider fields → PLATFORM_DECLARED_SECONDARY_FACT after field review
+ratings/review counts → SEPARATE FIELD-LEVEL RIGHTS DECISION REQUIRED
+raw reviews → NOT COPIED BY DEFAULT
+paid APIs → PAID_EXCLUDED
+No operational assignment.
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۱۳.۲ تطبیق مرجع §۱۱۲ (معماری رسمی)
+
+```text
+OFFICIAL_PROJECT_REFERENCE
+MANDATORY_PRODUCT_POLICY
+MANDATORY_ARCHITECTURE_POLICY
+MANDATORY_SOURCE_GOVERNANCE_POLICY
+MANDATORY_DATA_GOVERNANCE_POLICY
+MANDATORY_RUNTIME_SAFETY_POLICY
+CROSS_CHAT_CONTINUITY_AUTHORITY
+
+Law: THIS POLICY MUST GOVERN ALL FUTURE IRAN MEDICAL SOURCE WORK
+
+Coverage laws preserved:
+ALL RELEVANT IRANIAN MEDICAL SOURCES MUST BE DISCOVERED
+ALL RELEVANT SOURCES MUST ENTER A GOVERNED CANDIDATE REGISTRY
+ALL USEFUL FIELDS MUST RECEIVE FIELD-LEVEL GOVERNANCE
+ALL AUTHORIZED FIELDS MUST RETAIN SOURCE, LINK, ATTRIBUTION, PROVENANCE, FRESHNESS
+BLANKET COPYING OF ENTIRE WEBSITES IS NOT AUTHORIZED
+
+Two-layer governance preserved:
+SOURCE-LEVEL + FIELD-LEVEL
+SOURCE-LEVEL PERMISSION DOES NOT AUTOMATICALLY AUTHORIZE EVERY FIELD
+FIELD-LEVEL PERMISSION DOES NOT AUTOMATICALLY AUTHORIZE FULL SOURCE CONTENT
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۱۳.۳ شمارش‌های تأییدشده (§۱۱۲)
+
+```text
+source classes: 19
+source-precedence levels: 7
+physician fields: 31
+facility fields: 29
+laboratory/diagnostic additional fields: 15
+external rating/review field types: 8
+Sedi first-party feedback field types: 14
+field-use states: 8
+independent field-level rights: 10
+verification states: 12
+freshness states: 8
+candidate-registry states: 12
+source-sequence rows: 12
+eligibility prerequisites: 21
+ingestion modes: 8
+runtime publication checks: 15
+required matrices: 20 (M-01..M-20)
+risk rows: 32
+owner rows: 252
+TBD owners: 0
+audit iterations (§112): 2
+findings fixed (§112): 12
+remaining actionable findings: 0
+```
+
+### ۱۱۳.۴ تطبیق IRIMC و پذیرش۲۴
+
+```text
+irimc_member_search = UNKNOWN_FAIL_CLOSED
+Planning REFERENCE_ONLY_CANDIDATE; official-authority role CANDIDATE ONLY
+G01 G02 G03 G04 G05 G08 remain open owned fail-closed
+
+paziresh24_com = UNKNOWN_FAIL_CLOSED
+REFERENCE_AND_LINK_ONLY lean; platform-declared secondary; ratings/reviews fail-closed
+Paid paths PAID_EXCLUDED; no provider data collected
+
+Operational totals: eligible/fetch/stored/registered/catalog/pub/runtime = 0
+```
+
+### ۱۱۳.۵ موضوع و مانیفست commit تأییدشده
+
+```text
+Approved commit subject:
+docs(governance): define Iran medical field-level source policy
+
+E2_C4B_00_IRAN_MEDICAL_FIELD_LEVEL_POLICY_COMMIT_MANIFEST_BEGIN
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+E2_C4B_00_IRAN_MEDICAL_FIELD_LEVEL_POLICY_COMMIT_MANIFEST_END
+
+Commit includes (uncommitted prior to this Gate):
+§111 Paziresh24 public evidence package
+§112 official Iran medical field-level architecture policy
+§113 local-commit approval (this section)
+
+Expected committed file count: 1
+No future commit SHA guessed in this section.
+```
+
+### ۱۱۳.۶ مرزهای مجوز
+
+```text
+local commit: AUTHORIZED
+push: NOT AUTHORIZED
+CI: NOT AUTHORIZED
+tests: NOT AUTHORIZED
+network: NOT AUTHORIZED
+web search: NOT AUTHORIZED
+website opening: NOT AUTHORIZED
+provider search: NOT AUTHORIZED
+provider verification: NOT AUTHORIZED
+provider-data collection: NOT AUTHORIZED
+provider-data storage: NOT AUTHORIZED
+rating collection: NOT AUTHORIZED
+review collection: NOT AUTHORIZED
+source-content ingestion: NOT AUTHORIZED
+scraping: NOT AUTHORIZED
+API execution: NOT AUTHORIZED
+dataset download: NOT AUTHORIZED
+formal contact: NOT AUTHORIZED
+source registration: NOT AUTHORIZED
+catalog edit: NOT AUTHORIZED
+catalog deletion: NOT AUTHORIZED
+source_fetch_enabled change: NOT AUTHORIZED
+eligibility promotion: NOT AUTHORIZED
+publication: NOT AUTHORIZED
+runtime activation: NOT AUTHORIZED
+source-specific next Gates: NOT AUTHORIZED
+later Gates: NOT AUTHORIZED
+```
+
+### ۱۱۳.۷ ممیزی hook و صحت‌سنجی پیش از stage
+
+```text
+core.hooksPath: (unset)
+resolved hooks directory: <git-common-dir>/hooks
+active non-sample hook count: 0
+active hook names: NONE
+risk classification: SAFE_FOR_COMMIT (samples only)
+
+§111 unchanged during this Gate (append §113 only after §112)
+§112 unchanged during this Gate
+§114: ABSENT
+```
+
+### ۱۱۳.۸ نشانگرها و گام بعدی
+
+```text
+MASTER_LOG_113_APPENDED
+PAZIRESH24_EVIDENCE_PRESERVED
+OFFICIAL_IRAN_MEDICAL_POLICY_PRESERVED
+OFFICIAL_PROJECT_REFERENCE_PRESERVED
+TWENTY_MATRICES_VERIFIED
+THIRTY_TWO_RISKS_VERIFIED
+TWO_HUNDRED_FIFTY_TWO_OWNER_ROWS_VERIFIED
+ZERO_TBD_OWNER_VERIFIED
+ONE_FILE_MANIFEST_LOCKED
+NO_FUTURE_SHA_GUESSED
+NO_PUSH_AUTHORIZATION
+NO_CI_AUTHORIZATION
+NO_DATA_COLLECTION_AUTHORIZATION
+NO_RATING_COLLECTION_AUTHORIZATION
+NO_REVIEW_COLLECTION_AUTHORIZATION
+NO_SOURCE_CONTENT_INGESTION_AUTHORIZATION
+NO_SOURCE_REGISTRATION_AUTHORIZATION
+NO_ELIGIBILITY_PROMOTION_AUTHORIZATION
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Exact next Gate after successful commit and complete read-only verification:
+E2_C4B_00_IRAN_MEDICAL_SOURCE_COVERAGE_AND_FIELD_LEVEL_POLICY_PUSH_APPROVAL
+```
+
+---
+*پایان §113 — Package E2-C4B-00 Iran Medical Field-Level Source Policy Local Commit — ۲۰۲۶-۰۷-۲۲*
