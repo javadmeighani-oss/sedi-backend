@@ -20071,3 +20071,307 @@ NEXT_GATE_NOT_STARTED_OR_AUTHORIZED
 
 ---
 *پایان §۱۲۰ — E2-C4B-09B شواهد حقوق و دسترسی عمومی دکترتو — ۲۰۲۶-۰۷-۲۳ / Asia/Baku*
+
+---
+
+## ۱۲۱) E2-C4B-09B-F2 — ثبت محدودیت شواهد تاریخی و مهار انحراف جمع‌آوری دکترتو
+
+```text
+Package:
+E2_C4B_09B_F2_EVIDENCE_LIMITATION_AND_CONTAINMENT_RECORD
+
+Title:
+Doctoreto historical evidence-limitation and acquisition-deviation containment record
+
+Authorization (Javad — 2026-07-23 / Asia/Baku):
+offline append-only documentation of the historical evidence limitation in §120;
+correction of the prior F1 counting statement;
+aggregate scope-control deviation documentation;
+supersession of the inaccurate §120 execution-audit closure conclusion only;
+revalidation that all 16 Doctoreto capabilities remain NOT_ACTIVATED;
+maximum one local documentation-only commit.
+
+NO network / provider re-access / push / amend / test / implementation / ingestion
+NO reconstruction of missing R07–R16 URLs or incomplete R03–R06 fields
+NO claim that the 09B execution audit is closed
+NO retroactive authorization of out-of-scope retrieval
+
+Status:
+MASTER_LOG_121_APPENDED
+MASTER_LOG_122_NOT_CREATED
+```
+
+### ۱۲۱.۱) مجوز مستقیم جواد، baseline و مرز Gate
+
+```text
+Authorization date / timezone:
+2026-07-23 / Asia/Baku
+
+Exact starting baseline:
+Worktree: D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+Branch: feature/section15/backend-continuity-foundation
+HEAD: 3a7b4c050f5c25645c087e120a3c12c33b4325e9
+Parent: 75273fffcc6979e7fc75e441fe22059b9bb17a16
+Subject: docs(governance): record Doctoreto rights evidence
+Upstream: origin/feature/section15/backend-continuity-foundation
+Locally known upstream SHA: 75273fffcc6979e7fc75e441fe22059b9bb17a16
+Ahead/behind: 1/0
+Worktree clean; staging empty; untracked empty
+Original master-log SHA-256:
+F90BCA79DEDC16BD75DDFF053A3143230EE2EF2BECB50F5B77C73DF5CAEAD4D3
+Exact original byte length: 856909
+
+Gate boundary:
+documentation-only containment of the historical evidence limitation;
+preserve commit 3a7b4c050f5c25645c087e120a3c12c33b4325e9 and §120 unchanged;
+do not complete the missing inventory;
+do not close the 09B execution audit;
+do not re-access Doctoreto or GitHub.
+NETWORK_ACCESS_COUNT = 0
+```
+
+### ۱۲۱.۲) اصلاح شمارش F1 و طبقه‌بندی کفایت رکوردها
+
+```text
+Prior inaccurate F1 report phrase corrected:
+WAS (inaccurate): “6 complete rows”
+NOW (exact):
+COMPLETE_RECORD_COUNT = 2
+IDENTIFIABLE_ROW_COUNT = 6
+IDENTIFIABLE_INCOMPLETE_COUNT = 4
+AGGREGATE_ONLY_COUNT_RECORDED_BY_§120 = 10
+EXACT_R07_TO_R16_URL_INVENTORY = NOT_AVAILABLE
+EXACT_OUT_OF_SCOPE_URL_SUBSET = NOT_AVAILABLE
+EXACT_HISTORICAL_INVENTORY = INCOMPLETE
+
+Record-class definitions used by this Gate:
+COMPLETE = every mandatory field is exact in §120
+IDENTIFIABLE_INCOMPLETE = a discrete row exists but at least one mandatory
+field is missing or approximate
+AGGREGATE_ONLY = only an aggregate statement exists; no discrete exact row
+
+Interpretation:
+§120 states TOTAL_RETRIEVAL_INVOCATION_COUNT = 16.
+That stated count is not equivalent to a complete reconciled 16-row inventory.
+§120 records an aggregate 10-blog-retrieval cluster (R07–R16).
+That aggregate admission supports documenting an aggregate scope-control
+deviation, but does not identify the exact out-of-scope URL subset.
+```
+
+### ۱۲۱.۳) ماتریس شواهد محلی R01 تا R16
+
+Mandatory fields: sequence; requested URL; final URL; exact UTC; exact Asia/Baku;
+status/failure; redirect count; final host; content type; category; scope;
+rights-conclusion contribution.
+
+| Seq | Class | Requested URL | Final URL | UTC | Asia/Baku | Status | Redirects | Final host | Content type | Category | Scope | Rights contribution | Missing fields |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| R01 | COMPLETE | https://doctoreto.com/ | https://doctoreto.com/ | 2026-07-23T09:43:28Z | 2026-07-23T13:43:28+04:00 | 200 | 0 | doctoreto.com | text/html; charset=utf-8 | homepage | in-scope audit surface | YES (technical surface only) | none |
+| R02 | COMPLETE | https://doctoreto.com/robots.txt | https://doctoreto.com/robots.txt | 2026-07-23T09:43:29Z | 2026-07-23T13:43:29+04:00 | 200 | 0 | doctoreto.com | text/plain; charset=UTF-8 | robots | in-scope | YES (robots signal only; not a license) | none |
+| R03 | IDENTIFIABLE_INCOMPLETE | https://doctoreto.com/policy | https://doctoreto.com/policy | 2026-07-23T09:43:29Z | 2026-07-23T13:43:29+04:00 | 200 | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | doctoreto.com | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | Terms/Rules | in-scope | YES (ownership/IP terms) | redirect count; content type |
+| R04 | IDENTIFIABLE_INCOMPLETE | https://doctoreto.com/about-us | https://doctoreto.com/about-us | 2026-07-23T09:43:30Z | 2026-07-23T13:43:30+04:00 | 200 | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | doctoreto.com | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | about | in-scope | NO affirmative grant recorded | redirect count; content type |
+| R05 | IDENTIFIABLE_INCOMPLETE | https://doctoreto.com/faq | https://doctoreto.com/faq | APPROXIMATE_IN_§120_NOT_EXACT | APPROXIMATE_IN_§120_NOT_EXACT | 200 | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | doctoreto.com | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | FAQ + footer rights notice | in-scope | YES (footer all-rights reservation) | exact UTC; exact Asia/Baku; redirect count; content type |
+| R06 | IDENTIFIABLE_INCOMPLETE | https://doctoreto.com/contact-us | https://doctoreto.com/contact-us | APPROXIMATE_IN_§120_NOT_EXACT | APPROXIMATE_IN_§120_NOT_EXACT | 200 | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | doctoreto.com | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | contact | in-scope | NO (footer note only; form not submitted) | exact UTC; exact Asia/Baku; redirect count; content type |
+| R07 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R08 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R09 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R10 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R11 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R12 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R13 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R14 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R15 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+| R16 | AGGREGATE_ONLY | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | MISSING_FROM_ADMISSIBLE_LOCAL_EVIDENCE | blog aggregate member claimed by §120 | claimed out-of-scope by §120 aggregate | NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL | all mandatory row fields |
+
+```text
+COMPLETE_RECORD_COUNT = 2
+IDENTIFIABLE_ROW_COUNT = 6
+IDENTIFIABLE_INCOMPLETE_COUNT = 4
+AGGREGATE_ONLY_COUNT = 10
+No missing value was invented, inferred, or reconstructed.
+```
+
+### ۱۲۱.۴) انحراف aggregate از scope و محدودیت inventory تاریخی
+
+```text
+Aggregate statement supported by §120:
+R07–R16 described as “blog article URLs under /blog/... (10 URLs)”
+with category “accidental over-broad link match during discovery”
+and classification “NOT_APPLICABLE for 09B rights matrix”.
+
+Why this establishes an aggregate scope-control deviation:
+§120 itself admits ten retrievals outside the intended rights-evidence
+legal/footer/robots/homepage set. Retrieval of out-of-scope URLs is a
+scope-control deviation regardless of later classification.
+
+Why this does not establish the exact URL subset:
+no discrete requested URL, final URL, timestamp, status, redirect count,
+host, or content type exists for R07–R16 in admissible local evidence.
+EXACT_OUT_OF_SCOPE_URL_SUBSET = NOT_AVAILABLE
+
+NOT_APPLICABLE classification does not retroactively authorize retrieval.
+Public availability does not establish downstream-use rights.
+
+No historical reconstruction was attempted:
+memory, shell history, temp files, browser caches, and network re-access
+are outside admissible evidence and are prohibited by this Gate.
+
+OUT_OF_SCOPE_RETRIEVALS remain undocumented at row level and are
+NOT retroactively authorized.
+```
+
+### ۱۲۱.۵) اثر بر تصمیم حقوق، persistence و دامنه عدم‌قطعیت
+
+```text
+AFFIRMATIVE_DOCTORETO_PERMISSION = NO
+RIGHTS_DECISION = ACCEPTED_FAIL_CLOSED
+RIGHTS_CONCLUSION_CONTAMINATION = NOT_PROVEN
+OUT_OF_SCOPE_CONTENT_USE_FOR_RIGHTS_DETERMINATION =
+NOT_INDEPENDENTLY_RECONCILABLE_AT_ROW_LEVEL
+
+CURRENT_REPOSITORY_RESPONSE_BODY_ARTIFACT = NOT_OBSERVED
+HISTORICAL_REPOSITORY_RESPONSE_BODY_PERSISTENCE = NOT_PROVEN_BEYOND_§120_RECORD
+ANY_LOCAL_FILE_PERSISTENCE_OUTSIDE_REPOSITORY = NOT_PROVEN
+
+PERSONAL_DATA_COLLECTION = UNKNOWN
+PROVIDER_RECORD_COLLECTION = UNKNOWN
+(these values are not converted to NO)
+
+INGESTION_AUTHORIZED = NO
+IMPLEMENTATION_AUTHORIZED = NO
+OPERATIONAL_CAPABILITY_ACTIVATION = NO
+
+§120 claim RESPONSE_BODY_PERSISTENCE = NO is treated only as a historical
+record statement; this F2 Gate does not independently prove global absence
+of any temporary body persistence outside the repository.
+
+Doctoreto rights decision from §120 remains accepted fail-closed.
+No capability becomes authorized by this containment record.
+```
+
+### ۱۲۱.۶) بازاعتبارسنجی ۱۶ قابلیت canonical دکترتو
+
+Exact canonical identifiers (unchanged from prior master-log matrix):
+
+| Capability | §120 governance decision | §121 revalidation | Operational state | Evidence-gap effect |
+|---|---|---|---|---|
+| Automated collection | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | incomplete historical inventory does not create permission |
+| Automated enumeration | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Crawling/scraping | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Storage | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Bulk storage | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Full ingestion | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Governed ingestion | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Publication | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Republication | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Commercial reuse | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Sale | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Resale | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Redistribution | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Dataset creation | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Catalog activation | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+| Runtime serving | NO / NOT_AUTHORIZED / FAIL_CLOSED | ACCEPTED_FAIL_CLOSED | NOT_ACTIVATED | same |
+
+```text
+AFFIRMATIVE_PERMISSION_COUNT = 0
+ACTIVATED_CAPABILITY_COUNT = 0
+ALL_DOCTORETO_CAPABILITIES_FAIL_CLOSED = YES
+```
+
+### ۱۲۱.۷) supersession نتیجه audit قبلی
+
+```text
+§120 remains unchanged as historical execution evidence.
+Commit 3a7b4c050f5c25645c087e120a3c12c33b4325e9 is preserved unchanged.
+
+§121 supersedes ONLY the inaccurate §120 execution-audit closure conclusion
+that treated the acquisition-scope issue as closed with no remaining findings.
+
+§121 does NOT:
+- erase §120;
+- complete the missing historical inventory;
+- close the 09B execution audit;
+- reverse the fail-closed rights decision;
+- authorize ingestion, implementation, or activation.
+
+F2 documents and contains the limitation; it does not fabricate closure.
+F1 is not retroactively completed.
+```
+
+### ۱۲۱.۸) کنترل‌های پیشگیرانه retrievalهای آینده
+
+```text
+Documentation-only preventive controls for future provider-evidence Gates:
+1. immutable exact URL allowlist approved before retrieval;
+2. separation of DISCOVER_ONLY and RETRIEVE_APPROVED_URLS;
+3. discovered links are never retrieved automatically;
+4. default-deny for any URL absent from the approved manifest;
+5. no dynamic link following;
+6. pre-request host, path and purpose validation;
+7. immutable request number assigned before each request;
+8. exact UTC and Asia/Baku timestamps captured for every attempt;
+9. redirect count, final URL, host, content type and status captured atomically;
+10. retrieval counter checked before every request;
+11. stop on the first unexpected URL;
+12. separate Javad authorization before provider access;
+13. fail-closed handling of missing rights evidence;
+14. post-run exact inventory reconciliation before audit closure;
+15. final report must show every row and full hashes/byte lengths.
+
+These controls are documentation-only and are NOT implemented by this Gate.
+```
+
+### ۱۲۱.۹) findings، اصلاحات و revalidation
+
+```text
+Finding F2-01:
+Prior F1 report overstated completeness as “6 complete rows”.
+Root cause: conflating identifiable discrete rows with complete metadata rows.
+Correction: COMPLETE=2; IDENTIFIABLE=6; IDENTIFIABLE_INCOMPLETE=4; AGGREGATE_ONLY=10.
+Revalidation: evidence matrix in §121.3 matches these counts.
+
+Finding F2-02:
+§120 execution-audit text treated the acquisition-scope issue as closed.
+Root cause: NOT_APPLICABLE reclassification was treated as audit closure.
+Correction: §121 supersedes that closure conclusion only; execution audit remains open.
+Revalidation: markers and §121.7 state the audit remains open with evidence gap.
+
+IN_SCOPE_F2_DOCUMENTATION_FINDINGS after these corrections: NONE remaining open
+CORRECTIONS_REQUIRED = NO
+No medical/blog content reproduced.
+```
+
+### ۱۲۱.۱۰) owner، dependency، closure criteria و وضعیت Gate بعدی
+
+```text
+Governance owner:
+Sedi Governance/Engineering under Javad’s approval protocol
+(PRIMARY_GOVERNANCE_APPROVER)
+
+Dependency for exact historical inventory closure:
+admissible contemporaneous evidence containing the missing R03–R16 fields.
+That evidence is currently unavailable in the authorized local scope.
+Missing evidence must not be reconstructed from memory or new retrieval.
+
+09B execution audit remains open until a separately authorized governance decision.
+Doctoreto remains unavailable for operational use.
+This F2 Gate does not start or authorize the next Gate.
+
+
+E2_C4B_09B_F2_EVIDENCE_LIMITATION_AND_CONTAINMENT_RECORD_EXECUTED
+HISTORICAL_09B_RETRIEVAL_INVENTORY_REMAINS_INCOMPLETE
+COMPLETE_09B_RETRIEVAL_RECORD_COUNT_IS_2
+IDENTIFIABLE_09B_RETRIEVAL_RECORD_COUNT_IS_6
+AGGREGATE_09B_SCOPE_CONTROL_DEVIATION_DOCUMENTED
+09B_RIGHTS_DECISION_ACCEPTED_FAIL_CLOSED
+09B_EXECUTION_AUDIT_REMAINS_OPEN_WITH_EVIDENCE_GAP
+DOCTORETO_CAPABILITIES_REMAIN_NOT_ACTIVATED
+FUTURE_PROVIDER_RETRIEVAL_REQUIRES_EXACT_PREAPPROVED_URL_ALLOWLIST
+F2_NEXT_GATE_REQUIRES_SEPARATE_JAVAD_AUTHORIZATION
+
+§§1–§120 unchanged.
+§122 not created.
+```
+
+---
+*پایان §۱۲۱ — E2-C4B-09B-F2 محدودیت شواهد تاریخی و مهار انحراف جمع‌آوری دکترتو — ۲۰۲۶-۰۷-۲۳ / Asia/Baku*
