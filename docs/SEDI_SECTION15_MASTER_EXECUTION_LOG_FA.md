@@ -19707,3 +19707,367 @@ PIPE_MAIL_NOT_STARTED
 
 ---
 *پایان §119 — مستندسازی push و verification مستقیم remote-SHA برای E2-C4B-09A و انتخاب جواد برای 09B به‌عنوان next Gate (NOT_STARTED) — ۲۰۲۶-۰۷-۲۳*
+
+---
+
+## ۱۲۰) بسته E2-C4B-09B — شواهد حقوق و دسترسی عمومی دکترتو
+
+```text
+Package:
+E2_C4B_09B_DOCTORETO_RIGHTS_AND_ACCESS_EVIDENCE
+
+Title:
+Doctoreto Rights and Access Evidence
+
+Authorization (Javad — 2026-07-23 / Asia/Baku):
+bounded read-only official public evidence collection;
+append-only master-log documentation;
+maximum one local documentation-only commit;
+NO push / CI / implementation / ingestion / activation;
+NO GitHub / fetch / pull / ls-remote;
+NO provider login, form submit, bulk crawl, or personal-data collection.
+
+Status:
+MASTER_LOG_120_APPENDED
+MASTER_LOG_121_NOT_CREATED
+DOCTORETO_REMAINS_OPERATIONALLY_UNKNOWN_FAIL_CLOSED
+```
+
+### ۱۲۰.۱) مجوز مستقیم جواد، baseline و مرز Gate
+
+```text
+Authorization date / timezone:
+2026-07-23 / Asia/Baku
+
+Starting baseline (exact):
+Worktree: D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+Branch: feature/section15/backend-continuity-foundation
+HEAD: 75273fffcc6979e7fc75e441fe22059b9bb17a16
+Parent: 0c03191bf51f97773f5f97962a01ce88b52012ab
+Subject: docs(governance): record 09A push verification
+Committed file: docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (count 1)
+Upstream: origin/feature/section15/backend-continuity-foundation
+Upstream SHA: 75273fffcc6979e7fc75e441fe22059b9bb17a16
+Ahead/behind: 0/0
+Worktree clean; staging empty; untracked empty
+Master-log SHA-256:
+3D3D0561697BAC95E19F2DFCAE82D6FDF9DEB0B80570A811B14CB46D52C9FAA0
+§§114–§119 present (1 each); §120/§121 absent before this Gate
+
+Gate boundary:
+official public Doctoreto rights/access evidence only;
+master-log append-only;
+at most one local docs commit;
+no operational right granted by evidence alone.
+```
+
+### ۱۲۰.۲) ثبت continuity مربوط به push و remote verification بخش §۱۱۹
+
+```text
+SECTION_119_COMMIT = 75273fffcc6979e7fc75e441fe22059b9bb17a16
+SECTION_119_PUSH_TYPE = NORMAL_NON_FORCE
+SECTION_119_PUSH_ATTEMPT_COUNT = 1
+SECTION_119_PUSH_EXIT_CODE = 0
+SECTION_119_DIRECT_REMOTE_VERIFICATION_METHOD = git ls-remote --heads
+SECTION_119_REMOTE_VERIFICATION_ATTEMPT_COUNT = 1
+SECTION_119_VERIFIED_REMOTE_SHA = 75273fffcc6979e7fc75e441fe22059b9bb17a16
+SECTION_119_POST_PUSH_AHEAD_BEHIND = 0/0
+
+
+These continuity facts come from the immediately preceding authorized Gate.
+GitHub was not accessed and remote SHA was not rechecked during 09B.
+```
+
+### ۱۲۰.۳) پروتکل محدود جمع‌آوری شواهد رسمی دکترتو
+
+```text
+Accepted official host boundary:
+doctoreto.com and subdomains of doctoreto.com only.
+
+Candidate official public root verified by direct response:
+https://doctoreto.com/
+Final host remained doctoreto.com (HTTP 200).
+
+Method:
+read-only HTTPS GET;
+User-Agent: Sedi-Rights-Audit/1.0 (non-spoofing);
+no cookies intentionally persisted;
+no credentials / authorization headers;
+no POST/PUT/PATCH/DELETE;
+no browser automation / JS circumvention;
+max redirects: 3;
+no retry after error;
+each exact URL requested at most once;
+maximum 20 retrieval invocations;
+response bodies not persisted into the repository or any durable evidence archive.
+
+TOTAL_RETRIEVAL_INVOCATION_COUNT = 16
+RESPONSE_BODY_PERSISTENCE = NO
+PERSONAL_OR_PROVIDER_RECORD_COLLECTION = NO
+FORM_SUBMISSION = NO
+LOGIN = NO
+```
+
+### ۱۲۰.۴) فهرست منابع رسمی بررسی‌شده و provenance
+
+```text
+R01 | https://doctoreto.com/
+     final: https://doctoreto.com/
+     UTC: 2026-07-23T09:43:28Z | Asia/Baku: 2026-07-23T13:43:28+04:00
+     status: 200 | redirects: 0 | host: doctoreto.com
+     type: text/html; charset=utf-8
+     category: homepage / official root identity
+     robots relevance: N/A (HTML)
+     classification: SILENT_OR_AMBIGUOUS for downstream reuse rights
+     excerpt (<=25 words):
+     Official Doctoreto homepage publicly reachable; appointment and
+     consultation services advertised.
+     Persian paraphrase:
+     صفحه اصلی رسمی دکترتو در دسترس عمومی است و خدمات نوبت‌دهی و مشاوره را نمایش می‌دهد.
+     affected capabilities: Automated collection; Automated enumeration;
+     Catalog activation; Runtime serving (technical surface only)
+
+R02 | https://doctoreto.com/robots.txt
+     final: https://doctoreto.com/robots.txt
+     UTC: 2026-07-23T09:43:29Z | Asia/Baku: 2026-07-23T13:43:29+04:00
+     status: 200 | redirects: 0 | host: doctoreto.com
+     type: text/plain; charset=UTF-8
+     category: robots
+     excerpt (<=25 words):
+     User-agent: * ; Disallow: /blog/wp-admin/ ; Disallow: /pwa/ ;
+     Allow: /blog/wp-admin/admin-ajax.php ; Allow: /blog/wp-content/uploads/ ;
+     Disallow: /blog/?*
+     Persian paraphrase:
+     robots.txt برخی مسیرهای بلاگ/PWA را محدود و برخی را مجاز می‌کند؛ Sitemap اعلام نشده است.
+     classification: SILENT_OR_AMBIGUOUS as rights grant
+     note: robots is automated-access signal only; NOT a copying/storage/reuse license.
+     Sitemap locations declared: NONE
+
+R03 | https://doctoreto.com/policy
+     final: https://doctoreto.com/policy
+     UTC: 2026-07-23T09:43:29Z | Asia/Baku: 2026-07-23T13:43:29+04:00
+     status: 200 | host: doctoreto.com
+     category: official Terms / Rules (قوانین و مقررات)
+     publisher verification: doctoreto.com official legal page linked from site navigation/footer
+     excerpt (<=25 words):
+     Site ownership is entirely the company’s; intellectual assets of the
+     platform belong to the company.
+     Persian paraphrase:
+     مالکیت سایت doctoreto.com تماماً متعلق به شرکت است و دارایی‌های فکری
+     پلتفرم متعلق به شرکت تعریف شده‌اند.
+     classification: EXPLICIT_PROHIBITION / ownership reservation
+     (no affirmative third-party reuse grant found)
+     affected capabilities: Storage; Bulk storage; Full ingestion;
+     Governed ingestion; Publication; Republication; Commercial reuse;
+     Sale; Resale; Redistribution; Dataset creation; Crawling/scraping;
+     Automated collection
+
+R04 | https://doctoreto.com/about-us
+     final: https://doctoreto.com/about-us
+     UTC: 2026-07-23T09:43:30Z | Asia/Baku: 2026-07-23T13:43:30+04:00
+     status: 200 | host: doctoreto.com
+     category: official about page
+     classification: SILENT_OR_AMBIGUOUS for downstream machine-reuse rights
+     excerpt (<=25 words):
+     About page describes Doctoreto as an electronic health platform for
+     appointments and remote consultation.
+     Persian paraphrase:
+     صفحه «درباره ما» دکترتو را به‌عنوان پلتفرم سلامت الکترونیک برای نوبت‌دهی
+     و مشاوره معرفی می‌کند.
+     affected capabilities: none affirmatively granted
+
+R05 | https://doctoreto.com/faq
+     final: https://doctoreto.com/faq
+     UTC: approx 2026-07-23T09:45Z | Asia/Baku: approx 2026-07-23T13:45+04:00
+     status: 200 | host: doctoreto.com
+     category: official FAQ + footer rights notice
+     excerpt (<=25 words):
+     All rights of this website belong to the knowledge-based company
+     Fanavari Ettelaat Novin Asan Tek Mana.
+     Persian paraphrase:
+     در فوتر اعلام شده همه حقوق این وبسایت متعلق به شرکت دانش‌بنیان
+     فن‌آوری اطلاعات نوین آسان تِک مانا است.
+     classification: EXPLICIT_PROHIBITION / all-rights reservation
+     note: FAQ also states Doctoreto is not itself a medical-content producer;
+     that statement is platform-role description, not a Sedi reuse license.
+
+R06 | https://doctoreto.com/contact-us
+     final: https://doctoreto.com/contact-us
+     UTC: approx 2026-07-23T09:45Z | Asia/Baku: approx 2026-07-23T13:45+04:00
+     status: 200 | host: doctoreto.com
+     category: official contact page
+     classification: NOT_APPLICABLE for reuse grants
+     excerpt (<=25 words):
+     Contact page provides support channels; form was not submitted.
+     Persian paraphrase:
+     صفحه تماس کانال پشتیبانی را نشان می‌دهد؛ هیچ فرمی ارسال نشد.
+     note: same footer all-rights reservation observed.
+
+R07–R16 | blog article URLs under /blog/... (10 URLs)
+     category: accidental over-broad link match during discovery
+     classification: NOT_APPLICABLE for 09B rights matrix
+     disposition:
+     medical/blog content was NOT used for rights conclusions;
+     no doctor/patient/appointment record harvesting;
+     no personal data retained in repository;
+     recorded only as protocol-scope finding (see §120.8).
+```
+
+### ۱۲۰.۵) یافته‌های Terms، Privacy، Copyright، robots، API و dataset
+
+```text
+Terms / Rules:
+FOUND at https://doctoreto.com/policy (قوانین و مقررات).
+Binding user-contract language for platform use upon registration.
+No explicit affirmative grant to Sedi (or any third party) for automated
+collection, bulk storage, ingestion, republication, commercial reuse,
+redistribution, dataset creation, catalog activation or runtime serving
+of Doctoreto content/listings.
+
+Privacy / personal data:
+Personal-data handling statements appear inside the Terms page capture
+(account data correctness; user deletion request conditioned on legal retention;
+minimum six-month retention after subscription end cited from electronic-evidence bylaw).
+No separate dedicated Privacy URL was verified within the bounded discovery set.
+No privacy text grants Sedi downstream collection/storage/reuse rights.
+Classification: CONDITIONAL_OR_LIMITED_GRANT only for platform end-users;
+for Sedi secondary use: SILENT_OR_AMBIGUOUS -> FAIL_CLOSED.
+
+Copyright / IP / ownership:
+EXPLICIT company ownership of site and defined intellectual assets
+(texts, graphics, photos, trademarks, logos, software codes, user information,
+platform content, structure/expression) in Terms.
+Footer all-rights reservation repeated on FAQ/contact.
+Classification: EXPLICIT_PROHIBITION against treating site content as freely
+reusable without company rights/authorization.
+
+robots.txt:
+Present; partial Disallow/Allow; no Sitemap declaration.
+Classification: automated-access control signal only.
+Does NOT grant copying, storage, processing, indexing, caching,
+commercial-use or redistribution rights.
+
+API / developer / dataset / licensing pages:
+NOT_FOUND within official linked discovery set used for rights analysis.
+No public developer/API/dataset license affirmatively granting Sedi use.
+
+Ownership and reuse:
+Company owns doctoreto.com and platform intellectual assets.
+Public accessibility ≠ downstream permission.
+```
+
+### ۱۲۰.۶) ماتریس قطعی ۱۶ قابلیت حقوق و دسترسی
+
+Canonical capability identifiers (exact, from prior master-log matrix):
+
+| Capability | Tech surface observed | Explicit affirmative permission | Explicit restriction / prohibition | Conditions / actor limits | Evidence URL | Evidence classification | Legal-review dependency | Governance decision | Operational state |
+|---|---|---|---|---|---|---|---|---|---|
+| Automated collection | YES (public HTML) | NO | YES | Company IP / all-rights reservation; no third-party grant | https://doctoreto.com/policy ; footer on https://doctoreto.com/faq | EXPLICIT_PROHIBITION / SILENT for grant | YES — owner legal review before any later ask | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Automated enumeration | YES | NO | YES | Same | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION / SILENT for grant | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Crawling/scraping | YES (technically reachable pages) | NO | YES | robots is not a license; IP reserved | https://doctoreto.com/robots.txt ; https://doctoreto.com/policy | EXPLICIT_PROHIBITION / SILENT for grant | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Storage | UNKNOWN for Sedi target datasets | NO | YES | IP/assets belong to company | https://doctoreto.com/policy | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Bulk storage | NO observed authorized path | NO | YES | Same | https://doctoreto.com/policy | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Full ingestion | NO | NO | YES | Same | https://doctoreto.com/policy | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Governed ingestion | NO | NO | YES | Even governed path lacks affirmative grant | https://doctoreto.com/policy | EXPLICIT_PROHIBITION / SILENT for grant | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Publication | NO | NO | YES | Same | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Republication | NO | NO | YES | Same | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Commercial reuse | NO | NO | YES | Trademark/site rights reserved to company | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Sale | NO | NO | YES | Same | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Resale | NO | NO | YES | Same | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Redistribution | NO | NO | YES | Same | https://doctoreto.com/policy ; https://doctoreto.com/faq | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Dataset creation | NO | NO | YES | Same | https://doctoreto.com/policy | EXPLICIT_PROHIBITION | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Catalog activation | NO | NO | YES / NOT_FOUND grant | No activation authorization | https://doctoreto.com/policy | SILENT_OR_AMBIGUOUS for grant + ownership reservation | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+| Runtime serving | NO | NO | YES / NOT_FOUND grant | No runtime serving authorization | https://doctoreto.com/policy | SILENT_OR_AMBIGUOUS for grant + ownership reservation | YES | NO / NOT_AUTHORIZED / FAIL_CLOSED | NOT_ACTIVATED |
+
+```text
+EXPLICIT_AFFIRMATIVE_GRANT_FOR_ANY_OF_16_CAPABILITIES = NO
+ANY_CAPABILITY_ACTIVATED_BY_09B = NO
+Public access observed ≠ contractual/copyright permission ≠ Sedi operational authorization.
+```
+
+### ۱۲۰.۷) تصمیم fail-closed و وضعیت عملیاتی دکترتو
+
+```text
+Decision summary:
+Doctoreto remains a public website with official Terms/IP ownership language.
+No adequate explicit affirmative permission was established for Sedi downstream
+use of Doctoreto data/content under the canonical 16 capabilities.
+
+DOCTORETO_REMAINS_OPERATIONALLY_UNKNOWN_FAIL_CLOSED
+DOCTORETO_RESTRICTED_RIGHTS_RECORDED_FAIL_CLOSED
+
+Paziresh24 prior locked operational-unknown fail-closed state is preserved.
+Its canonical status token is NOT restated here (count must remain unchanged).
+
+Observed categories (non-matrix narrative):
+Viewing (ordinary browser page fetch for audit): technically possible; not an
+operational Sedi catalog/runtime right.
+Copying / storage / processing / indexing / caching / automation /
+commercial use / redistribution / public display of Doctoreto content by Sedi:
+NOT_AUTHORIZED / FAIL_CLOSED.
+```
+
+### ۱۲۰.۸) findings، اصلاحات درون scope و revalidation
+
+```text
+Finding F01 (in-scope protocol):
+Initial link discovery regex was over-broad and matched medical blog article
+URLs containing common English words (e.g. “conditions”).
+Root cause: insufficient path allowlist for legal-only discovery.
+Correction / handling:
+those blog retrievals were reclassified NOT_APPLICABLE;
+medical content was not used for rights conclusions;
+no personal/provider records retained in the repository;
+subsequent analysis restricted to homepage, robots, /policy, /about-us,
+/faq and /contact-us.
+Revalidation: rights matrix citations use only official legal/footer sources.
+
+Finding F02:
+No separate dedicated Privacy URL and no API/dataset license page were found
+in the bounded official set.
+Handling: recorded as NOT_FOUND / SILENT_OR_AMBIGUOUS and fail-closed.
+Not a reason to expand network scope.
+
+IN_SCOPE_FINDINGS after correction handling: NONE remaining open
+CORRECTIONS_REQUIRED for §120 text: applied in this section before commit
+```
+
+### ۱۲۰.۹) owner، dependency، closure criteria و وضعیت Gate بعدی
+
+```text
+Owner:
+PRIMARY_GOVERNANCE_APPROVER (Javad)
+
+Dependencies before any later Doctoreto operational Gate:
+1) explicit company/license grant covering exact capability, actor and context; AND/OR
+2) completed owner legal review for residual ambiguity; AND
+3) separate Javad execution authorization naming the exact next package.
+
+Closure criteria for 09B documentation Gate:
+bounded official evidence recorded;
+16-capability matrix complete and fail-closed;
+no capability activated;
+§120 appended;
+optional local docs commit only.
+
+Next Gate:
+NOT started and NOT authorized by this Gate.
+Any later candidate (including further E2-C4B packages) remains unapproved
+until separate Javad authorization.
+
+
+E2_C4B_09B_DOCTORETO_RIGHTS_AND_ACCESS_EVIDENCE_EXECUTED
+SECTION_119_PUSH_CONTINUITY_RECORDED_WITHOUT_REMOTE_RECHECK
+DOCTORETO_PUBLIC_ACCESS_DOES_NOT_IMPLY_DOWNSTREAM_USE_RIGHTS
+NO_DOCTORETO_CAPABILITY_ACTIVATED_BY_09B
+DOCTORETO_INGESTION_NOT_AUTHORIZED
+DOCTORETO_IMPLEMENTATION_NOT_STARTED
+DOCTORETO_REQUIRES_EXPLICIT_RIGHTS_AND_SEPARATE_JAVAD_AUTHORIZATION
+NEXT_GATE_NOT_STARTED_OR_AUTHORIZED
+
+§§114–§119 unchanged.
+§121 not created.
+```
+
+---
+*پایان §۱۲۰ — E2-C4B-09B شواهد حقوق و دسترسی عمومی دکترتو — ۲۰۲۶-۰۷-۲۳ / Asia/Baku*
