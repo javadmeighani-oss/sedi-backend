@@ -20375,3 +20375,160 @@ F2_NEXT_GATE_REQUIRES_SEPARATE_JAVAD_AUTHORIZATION
 
 ---
 *پایان §۱۲۱ — E2-C4B-09B-F2 محدودیت شواهد تاریخی و مهار انحراف جمع‌آوری دکترتو — ۲۰۲۶-۰۷-۲۳ / Asia/Baku*
+
+---
+
+## ۱۲۲) تصویب حاکمیتی prospective و ledger رسمی ۱۵ finding اصلاحی F3/F3-Fix1
+
+### ۱۲۲.۱) هویت تصمیم
+
+```text
+RATIFYING_OWNER = JAVAD / SEDI GOVERNANCE
+RATIFICATION_DATE = 2026-07-23
+RATIFIED_SOURCE = HANDOFF_SECTION_249_6
+RATIFICATION_TYPE = PROSPECTIVE_CANONICAL_CORRECTIVE_LEDGER_SOURCE
+RATIFIED_ITEM_COUNT = 15
+RATIFIED_ORIGINAL_F3_ITEM_COUNT = 7
+RATIFIED_FIX1_REVIEW_ITEM_COUNT = 8
+```
+
+### ۱۲۲.۲) محدودیت‌های مرجعیت prospective
+
+```text
+HISTORICAL_COMMITTED_LEDGER_EXISTENCE_CLAIMED = NO
+HISTORICAL_WORDING_RECONSTRUCTED = NO
+CORRECTION_OF_ANY_FINDING_CLAIMED = NO
+VALIDATION_OF_ANY_FINDING_CLAIMED = NO
+CLOSURE_OF_ANY_FINDING_CLAIMED = NO
+E2_ELIGIBILITY_CLAIMED = NO
+E2_CLOSURE_CLAIMED = NO
+F3_FIX2_REVALIDATION_EXECUTED = NO
+PREVIOUS_F3_FIX2_SUCCESS_CLAIMS_WITHDRAWN = YES
+ALL_15_INITIAL_STATUS = OPEN_UNVALIDATED
+
+CURRENT_DOCUMENTATION_EXECUTION_STATE =
+LOCAL_UNCOMMITTED_PENDING_JAVAD_REVIEW
+
+COMMITTED_REPOSITORY_AUTHORITY_CLAIMED_AT_THIS_STAGE = NO
+REMOTE_VERIFICATION_CLAIMED_AT_THIS_STAGE = NO
+```
+
+### ۱۲۲.۳) ledger رسمی ۱۵-item
+
+Closure of any row requires item-specific corrective evidence; exact audit citation;
+separately authorized read-only F3-Fix2 revalidation; and explicit evidence-based closure.
+No row below claims existing correction, validation, or closure.
+
+| ID | Exact ratified title | Origin class | Initial status | Closure evidence requirement |
+|---|---|---|---|---|
+| F3-REPORT-01 | Approximate ≈ L. citations | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-REPORT-02 | Grouped unproven Gate states | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-REPORT-03 | Silence → non-blocking | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-REPORT-04 | Overbroad acceptance YES | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-REPORT-05 | Nonconforming matrix | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-REPORT-06 | Nonnumeric counts | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-REPORT-07 | False no-findings | ORIGINAL_F3_REPORT_DEFECT | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-01 | MIXED HIERARCHY | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-02 | mandatory inferred from listing | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-03 | invalid mandatory counts | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-04 | incomplete exact citations | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-05 | criterion 19 logic defect | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-06 | false full-correction counts | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-07 | Outcome C not audit-proven | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+| F3-FIX1-REVIEW-08 | premature append-only recommendation | F3_FIX1_REVIEW_FINDING | OPEN_UNVALIDATED | Requires item-specific corrective evidence; exact audit citation; separately authorized read-only F3-Fix2 revalidation; explicit evidence-based closure |
+
+### ۱۲۲.۴) قواعد وضعیت و انتقال
+
+```text
+OPEN_UNVALIDATED means:
+- the item identity and title are ratified;
+- the item has not been proven corrected;
+- the item has not been revalidated;
+- the item has not been closed;
+- silence is not evidence;
+- grouped evidence is not item-specific evidence;
+- inferred mandatory status is not accepted without exact authority;
+- approximate citations are not exact audit evidence.
+
+Future status transition requires:
+1. exact item ID and unchanged title;
+2. exact supporting authority or repository evidence;
+3. item-specific correction evidence;
+4. repeat validation evidence;
+5. an explicit later append-only status record;
+6. separate Javad authorization for every sensitive next Gate.
+
+SECTION_122_ORIGINAL_LEDGER_ROWS_REMAIN_OPEN_UNVALIDATED = YES
+SECTION_122_ROWS_MUST_NOT_BE_REWRITTEN_IN_PLACE = YES
+```
+
+### ۱۲۲.۵) قرارداد شمارش و یکتایی
+
+```text
+KNOWN_ORIGINAL_F3_DEFECT_COUNT = 7
+KNOWN_FIX1_REVIEW_FINDING_COUNT = 8
+TOTAL_KNOWN_CORRECTIVE_ITEM_COUNT = 15
+
+SECTION_122_UNIQUE_LEDGER_ID_COUNT = 15
+SECTION_122_DUPLICATE_LEDGER_ID_COUNT = 0
+SECTION_122_MISSING_RATIFIED_ITEM_COUNT = 0
+SECTION_122_UNRATIFIED_EXTRA_ITEM_COUNT = 0
+```
+
+### ۱۲۲.۶) حفظ وضعیت fail-closed
+
+```text
+CURRENT_CANONICAL_PATH =
+I5-B2 / P1-L1 / E2 / C4B / 09B / F3-Fix2
+
+CURRENT_STATUS =
+BLOCKED_PENDING_COMMITTED_AUTHORITATIVE_15_ITEM_LEDGER
+
+F3_FIX2_RESULT =
+BLOCKED_MISSING_COMMITTED_15_ITEM_LEDGER
+
+PREVIOUS_SUCCESS_CLAIMS_WITHDRAWN = YES
+F3_FIX2_SUCCESS_MARKERS_WITHHELD = YES
+
+E2_CLOSED = NO
+E2_CLOSURE_NOT_AUTHORIZED
+
+09B_RIGHTS_DECISION_ACCEPTED_FAIL_CLOSED
+09B_EXECUTION_AUDIT_CURRENTLY_OPEN_WITH_EVIDENCE_GAP
+
+DOCTORETO_AFFIRMATIVE_PERMISSION = NO
+DOCTORETO_CAPABILITY_ACTIVATION = NO
+TOTAL_DOCTORETO_CAPABILITY_COUNT = 16
+ACTIVATED_DOCTORETO_CAPABILITY_COUNT = 0
+
+E3_NOT_STARTED
+P2_NOT_STARTED
+PIPE_MAIL_NOT_STARTED
+
+PRODUCTION_EXTERNAL_SOURCE_INGESTION_ACTIVE = NO
+NEW_RUNTIME_KNOWLEDGE_GROUNDING_ACTIVE = NO
+EMAIL_DELIVERY_ACTIVE = NO
+```
+
+### ۱۲۲.۷) توالی ادامهٔ جداگانه-gated
+
+```text
+Required future sequence (NOT authorized by this Gate):
+1. Javad review of the local §122 diff.
+2. Separately authorized documentation-only commit.
+3. Separately authorized normal non-force push and remote SHA verification.
+4. Separately authorized local read-only F3-Fix2 revalidation.
+5. Revalidation of all 15 items, hierarchy, evidence registry, exact counts,
+   propagation, exact 20-row matrix, criterion 19, and Outcome A/B/C/D.
+6. Only then determine E2/C4B/09B continuation eligibility.
+
+NEXT_GATE_STARTED = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+F3_FIX2_RERUN_AUTHORIZED_BY_THIS_GATE = NO
+E2_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+P2_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۲۲ — تصویب حاکمیتی prospective و ledger رسمی ۱۵ finding اصلاحی F3/F3-Fix1 — ۲۰۲۶-۰۷-۲۳ / Asia/Baku*
