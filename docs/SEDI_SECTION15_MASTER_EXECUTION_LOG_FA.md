@@ -15,30 +15,32 @@
 |------|------------|
 | Worktree | `D:\Rimiya Design Studio\Sedi\software\Demo-wt-section15-backend` |
 | Branch | `feature/section15/backend-continuity-foundation` |
-| HEAD و remote feature | `15d6646a501e78a45b0b0acfbc6d007c268fa755` |
-| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` |
-| Subject HEAD | `fix(intelligence): correct I4 mixed-signal safety` |
-| وضعیت worktree در S17-G0 | clean؛ ahead/behind = 0/0 |
-| Latest verified CI | Run `29493168244`، `workflow_dispatch`، success، SHA `15d6646a501e78a45b0b0acfbc6d007c268fa755` |
-| Backend freeze | **452 passed** |
-| Section 15 | **371 collected / 371 passed** / صفر failure یا error |
-| I4 | **173 passed** |
-| I1 | **CI_VERIFIED** |
-| I2 | **CI_VERIFIED** |
-| I3 | **CI_VERIFIED** |
-| I4 | **CI_VERIFIED** |
-| I5 | Governed Knowledge Platform + Verified Care Directory؛ Iran-first؛ roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
-| I6 | Roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
-| I7 | Roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
-| I8 | Roadmap ثبت‌شده؛ پیاده‌سازی شروع نشده |
+| HEAD / upstream / remote-tracking | `de7c064133d29ea9e2a6d032b376966f66c1cfe5` |
+| origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (historical remote main; not current feature HEAD) |
+| Subject HEAD | `docs(governance): define Iran medical field-level source policy` |
+| Ahead / behind | `0 / 0` |
+| Staged | EMPTY |
+| Untracked | NONE |
+| Dirty scope | فقط `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (uncommitted) |
+| Latest committed baseline | HEAD `de7c064133d29ea9e2a6d032b376966f66c1cfe5` |
+| Latest working-copy master-log section | §115 (uncommitted) |
+| §114 / §115 | uncommitted working-copy documentation |
+| Current docs status | `SOURCE_AND_CURSOR_EXECUTION_POLICY_AMENDMENT_APPLIED_UNCOMMITTED` |
+| Current decision | `ACCEPT_WITH_MANDATORY_CORRECTIONS_BEFORE_COMMIT` + permanent source-origin and multi-phase Cursor policy (2026-07-23) |
+| اقدام مصوب جاری | docs-only: سیاست دائمی تفکیک منبع + قانون چندمرحله‌ای Cursor داخل §115 |
+| Previous local-commit prompt | `docs(governance): record automated knowledge pipeline safeguards` — **SUPERSEDED; NOT EXECUTED** |
+| Implementation | NOT AUTHORIZED — NOT STARTED |
+| Pipeline | DESIGNED / DECIDED — NOT ACTIVE |
+| Exact next Gate | `WAITING_FOR_JAVAD_REVIEW_AND_FRESH_GIT_AUTHORIZATION` |
+| I1–I4 | **CI_VERIFIED** (historical; SHA values remain in historical sections) |
+| I5 | Governed Knowledge Platform + Verified Care Directory؛ clinical knowledge = authoritative international only؛ Iran directory = verified Iranian sources only؛ ~22% overall؛ پیاده‌سازی pipeline جدید شروع نشده (درصدها تغییر نکردند) |
+| I5-A / I5-B / I5-C..F | 100% / ~31% / 0% (docs progress; not recalculated by this Gate) |
+| I6 / I7 / I8 | پیاده‌سازی شروع نشده |
 | Intelligence flag | **OFF** |
-| Migration 050 production | **اجرا نشده** |
-| Merge به main | **اجرا نشده** |
-| Feature deployment | **اجرا نشده** |
-| Frontend A2 integration | **تکمیل نشده** |
-| S17-G0 | **COMPLETED_AND_REVIEWED** |
-| اقدام مصوب جاری | `S17-G0-DOC-RECONCILIATION` — اصلاح uncommitted تک‌فایلی مستندسازی |
-| اقدام فنی بعدی ممکن | I5 read-only preflight — **فقط پس از تأیید جداگانهٔ جواد** (اکنون مجاز نیست) |
+| Frontend Gate 4 / A2 | **تکمیل نشده** |
+| Migration / merge / deploy / flag | **اجرا نشده** |
+| Emails sent / sources activated / provider records via new pipeline | **0 / 0 / 0** |
+| Historical note | مقادیر قدیمی‌تر (از جمله `15d6646…`، S17-G0، I5 preflight، و زبان سیاست قبلی «Iranian + international برای دانش بالینی») فقط در بخش‌های تاریخی معتبرند و دیگر «جاری» نیستند؛ سیاست جاری = §115.۵ / §115.۶ |
 
 **قاعدهٔ تقدم (precedence):**
 1. واقعیت Git HEAD/branch/remote که در preflight همان مرحله تأیید شود
@@ -17717,3 +17719,1117 @@ E2_C4B_00_IRAN_MEDICAL_SOURCE_COVERAGE_AND_FIELD_LEVEL_POLICY_PUSH_APPROVAL
 
 ---
 *پایان §113 — Package E2-C4B-00 Iran Medical Field-Level Source Policy Local Commit — ۲۰۲۶-۰۷-۲۲*
+---
+
+## ۱۱۴) بسته E2-C4B-00 — بازبینی پایه و شکاف خط لوله خودکار منابع پزشکی و گردش تأیید ایمیل
+
+```text
+Package:
+E2_C4B_00_AUTOMATED_GOVERNED_MEDICAL_SOURCE_PIPELINE_BASELINE_AND_GAP_REVIEW
+
+Title:
+E2-C4B-00 Automated Governed Medical Source Pipeline and Email Approval Workflow Baseline & Gap Review
+
+Authorization:
+read-only repository baseline and gap review ONLY
+append §114 to master log ONLY
+NO implementation / code / model / migration / test / workflow / UI / API
+NO email sending / SMTP / credentials / provider config
+NO network / provider search / data collection
+NO catalog edit / eligibility / fetch / publication / runtime
+NO stage / commit / push / CI
+
+Baseline SHA (unchanged):
+de7c064133d29ea9e2a6d032b376966f66c1cfe5
+
+Primary approver identity (repository-safe):
+PRIMARY_GOVERNANCE_APPROVER (= Javad Meighani as role identity only)
+Approver email configuration reference (repository-safe):
+SEDI_APPROVER_EMAIL_SECRET
+Law: NO HARDCODED EMAIL IN BUSINESS LOGIC
+Law: APPROVER_EMAIL_NOT_HARDCODED_POLICY
+Law: real personal approver email may exist ONLY in approved secret store
+     or secure administrative configuration — NEVER in repository source,
+     committed documentation, CI/GitHub output, application logs,
+     approval URLs, or public error messages.
+
+Status:
+AUTOMATED_PIPELINE_BASELINE_REVIEW_COMPLETE
+EMAIL_APPROVAL_WORKFLOW_BASELINE_REVIEW_COMPLETE
+PARTIAL — E2_C4B_00_BASELINE_REVIEW_COMPLETE_WITH_OWNED_IMPLEMENTATION_SECURITY_PRIVACY_OR_EXTERNAL_GAPS_READY_FOR_JAVAD_REVIEW
+```
+
+### ۱۱۴.۱ تطبیق مرجع §§۱۱۱–۱۱۳ و قوانین اتوماسیون
+
+```text
+Preserved:
+OFFICIAL_PROJECT_REFERENCE
+MANDATORY_PRODUCT_POLICY / ARCHITECTURE / SOURCE_GOVERNANCE / DATA_GOVERNANCE / RUNTIME_SAFETY
+CROSS_CHAT_CONTINUITY_AUTHORITY
+THIS POLICY MUST GOVERN ALL FUTURE IRAN MEDICAL SOURCE WORK
+§111 Paziresh24 evidence; §112 field-level architecture; §113 local-commit authority
+
+Automation laws:
+AUTOMATIC EXECUTION REQUIRED
+AUTOMATIC SELF-AUTHORIZATION PROHIBITED
+NO APPROVAL → NO EXECUTION
+REJECTION → NO EXECUTION
+EXPIRY → NO EXECUTION
+SUPERSEDED REQUEST → NOT ACTIONABLE
+EMAIL LINK MUST NOT EXECUTE THE ACTION
+
+Operational totals preserved at zero:
+eligible/fetch/stored/ratings/reviews/registrations/catalog/eligibility/pub/runtime = 0
+irimc_member_search / paziresh24_com = UNKNOWN_FAIL_CLOSED
+
+AUTHORITY_RECONCILED = YES
+```
+
+### ۱۱۴.۲ روش بازبینی و دامنه بازرسی
+
+```text
+Method: repository-wide read-only inventory (git status/rev-parse/ls-files; rg/Get-ChildItem; file reads)
+NO Python execution / tests / migrations / builds / network
+
+Directories inspected (primary):
+backend/app/services/governance/
+backend/app/services/gate3/
+backend/app/services/gate4/
+backend/app/services/notifications/
+backend/app/services/notification_runtime/
+backend/app/core/ (scheduler, security)
+backend/app/routers/ (knowledge_base, knowledge_admin, notifications, auth_otp, lifestyle, ops)
+backend/app/models.py (KnowledgeSource, GovernedSourceProfile, KnowledgeIngestionRun, Notification)
+backend/config/gate3h/
+backend/docs/gate3h/
+backend/alembic/versions/ (051, 036, related)
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md §§111–113
+backend/tests/test_section15_i5* (path inventory only; NOT executed)
+
+Approx inventory:
+governance service files: 7
+gate3 service files: 22
+gate3h config+docs files: 6
+notification/gate4-related files sampled: 51+
+key contracts/models/routers/docs inspected: ≥40 distinct paths
+
+Classification vocabulary (exactly one per capability):
+EXISTS_AND_REUSABLE | EXISTS_BUT_INCOMPLETE | EXISTS_BUT_MISALIGNED |
+PARTIALLY_IMPLEMENTED | MISSING |
+BLOCKED_BY_MODEL_CHANGE | BLOCKED_BY_MIGRATION | BLOCKED_BY_SECURITY_REVIEW |
+BLOCKED_BY_PRIVACY_REVIEW | BLOCKED_BY_LEGAL_REVIEW | BLOCKED_BY_PRODUCT_DECISION |
+BLOCKED_BY_EXTERNAL_PROVIDER | BLOCKED_BY_DEPLOY_OR_FLAG | UNKNOWN_NEEDS_FUTURE_GATE
+```
+
+### ۱۱۴.۳ موجودی اجزای خط لوله (۳۲ جزء)
+
+| ID | component | classification | existing path / artifact | reusable | missing | owner | future Gate | phase |
+|---|---|---|---|---|---|---|---|---|
+| PC-01 | SourceDiscoveryScheduler | MISSING | none (kb_scheduler is KB-doc only) | — | IR discovery scheduler | Backend | E2_C4B_00_PIPE_DISC | B |
+| PC-02 | CandidateRegistryManager | MISSING | catalog YAML seed only | YAML seed | 12-state registry ORM | Governance | E2_C4B_00_PIPE_CAND | B |
+| PC-03 | OperatorDomainVerifier | EXISTS_BUT_INCOMPLETE | gate3/fetch_security + robots_checker | SSRF/robots | operator identity engine | Security | E2_C4B_00_PIPE_OPDOM | C |
+| PC-04 | TermsAndRightsMonitor | EXISTS_BUT_INCOMPLETE | gate3h ROBOTS_TERMS_PRECHECK docs; catalog notes | precheck pattern | scheduled hash/monitor | Legal/Security | E2_C4B_00_PIPE_TERMS | C |
+| PC-05 | SourceRoleClassifier | MISSING | §112 ST-01..19 docs only | policy | classifier service | Governance | E2_C4B_00_PIPE_ROLE | B |
+| PC-06 | FieldMapper | MISSING | §112 field taxonomies docs | policy | field registry/enums | Data/Knowledge | E2_C4B_00_PIPE_FIELD | C |
+| PC-07 | FieldRightsEvaluator | EXISTS_BUT_MISALIGNED | policy_evaluator (action-level) | permission pattern | 10 field rights engine | Legal/Backend | E2_C4B_00_PIPE_FRIGHTS | C |
+| PC-08 | GovernedFetcher | EXISTS_BUT_MISALIGNED | gate3/knowledge_source_fetcher | allowlist fetch | mode-gated field fetch | Security | E2_C4B_00_PIPE_FETCH | D |
+| PC-09 | SourceAcquisitionManager | PARTIALLY_IMPLEMENTED | knowledge_update_service | staging pattern | field acquisition manager | Backend | E2_C4B_00_PIPE_ACQ | D |
+| PC-10 | RawContentObjectStore | MISSING | contracts RawSnapshotIdentity only | identity contract | immutable raw store | Data/Knowledge | E2_C4B_00_PIPE_RAW | D |
+| PC-11 | NormalizedFieldStore | MISSING | NormalizedArtifactIdentity contract | identity contract | field store | Data/Knowledge | E2_C4B_00_PIPE_NORM | D |
+| PC-12 | Normalizer | EXISTS_BUT_MISALIGNED | gate3/content_parser | HTML parse | field normalizer | Backend | E2_C4B_00_PIPE_NORM | D |
+| PC-13 | ImmutableProvenanceWriter | EXISTS_BUT_INCOMPLETE | GovernanceEvidenceSnapshot; contracts | source-level snapshot | field-level append-only store | Data/Knowledge | E2_C4B_00_PIPE_PROV | D |
+| PC-14 | PublicationReleaseManager | EXISTS_BUT_INCOMPLETE | PublicationState + fingerprint helpers | contracts | dedicated release entity | Governance | E2_C4B_00_PIPE_PUB | G |
+| PC-15 | OfficialAuthorityCrossChecker | MISSING | §112 high-risk rules docs | policy | cross-check engine | Provider Verification | E2_C4B_00_PIPE_XCHK | E |
+| PC-16 | VerificationStateEngine | EXISTS_BUT_INCOMPLETE | VerificationMethod/CredentialValidity contracts | enums | 12-state field engine | Provider Verification | E2_C4B_00_PIPE_VER | E |
+| PC-17 | FreshnessEngine | EXISTS_BUT_INCOMPLETE | FreshnessStatus + evaluate_freshness_* | source freshness | 8-state field cadence engine | Data/Knowledge | E2_C4B_00_PIPE_FRESH | F |
+| PC-18 | ConflictDetectionEngine | EXISTS_BUT_INCOMPLETE | ContradictionStatus enum | name only | conflict preserve engine | Governance | E2_C4B_00_PIPE_CONF | E |
+| PC-19 | PublicationEligibilityEngine | EXISTS_BUT_INCOMPLETE | kb_lifecycle_mapping pre-publish invariants | 15-check spirit | runtime field eligibility | Governance | E2_C4B_00_PIPE_PUBEL | G |
+| PC-20 | RuntimeCitationBuilder | EXISTS_BUT_MISALIGNED | citation_label / CITE_LINK action | cite pattern | field citation builder | Product/Backend | E2_C4B_00_PIPE_CITE | G |
+| PC-21 | SourceLinkBuilder | EXISTS_BUT_INCOMPLETE | canonical URL fields in catalog/profile | URLs | mandatory link-out builder | Backend | E2_C4B_00_PIPE_CITE | G |
+| PC-22 | CorrectionAndRemovalEngine | EXISTS_BUT_INCOMPLETE | reject_run; revocation enums | reject pattern | correction/removal FSM | Legal | E2_C4B_00_PIPE_CORR | F |
+| PC-23 | SuspensionController | EXISTS_BUT_INCOMPLETE | PublicationState.suspended; invariants | state name | suspension controller | Governance | E2_C4B_00_PIPE_SUSP | F |
+| PC-24 | TermsChangeHoldController | MISSING | — | — | terms-hold controller | Legal | E2_C4B_00_PIPE_TERMS | C/F |
+| PC-25 | QualityAndCoverageMonitor | EXISTS_BUT_MISALIGNED | AI review scores on runs | scores | pipeline quality/coverage | Backend | E2_C4B_00_PIPE_MON | H |
+| PC-26 | AuditEvidenceRecorder | EXISTS_BUT_INCOMPLETE | GovernanceEventStamp; run approved_by | stamps | immutable event store | Governance | E2_C4B_00_PIPE_AUDIT | H |
+| PC-27 | RollbackController | EXISTS_BUT_INCOMPLETE | RollbackDecision enum; invariants | name | last-known-good rollback | Governance | E2_C4B_00_PIPE_RB | H |
+| PC-28 | RetryPolicy | EXISTS_BUT_INCOMPLETE | auto_retry_requested flag | flag | retry engine + DLQ | Backend | E2_C4B_00_PIPE_RETRY | D/H |
+| PC-29 | DeadLetterHandling | MISSING | — | — | DLQ | Backend | E2_C4B_00_PIPE_DLQ | H |
+| PC-30 | SchedulerOrchestration | EXISTS_BUT_MISALIGNED | core/scheduler + gate3/kb_scheduler | wiring | §112 composition orchestrator | Backend | E2_C4B_00_PIPE_SCHED | B/H |
+| PC-31 | FeatureFlagBoundary | EXISTS_BUT_MISALIGNED | SEDI_KB_SCHEDULED_FETCH_ENABLED; other domain flags | env flag pattern | pipeline-specific flags | Backend | E2_C4B_00_PIPE_FLAG | M |
+| PC-32 | RuntimePolicyResolver | EXISTS_BUT_MISALIGNED | gate4 policy_resolver (notifications) | name collision risk | medical-source policy resolver | Governance | E2_C4B_00_PIPE_RPOL | G |
+
+Pipeline components evaluated: 32
+
+### ۱۱۴.۴ بنیادهای حاکمیت موجود (I5 / Gate3)
+
+| foundation | path | classification | relation to §112 |
+|---|---|---|---|
+| I5-A1 contracts | backend/app/services/governance/contracts.py | EXISTS_AND_REUSABLE | source-level enums/contracts |
+| I5-A2 policy_evaluator | …/policy_evaluator.py | EXISTS_AND_REUSABLE | action permission; not field rights |
+| I5-B1 lifecycle mapping | …/kb_lifecycle_mapping.py | EXISTS_AND_REUSABLE | composition invariants; publication lock |
+| I5-B2 adapters | …/kb_b2_adapters.py | EXISTS_AND_REUSABLE | fingerprints/idempotency keys |
+| I5-B2-P1 profiles | GovernedSourceProfile*; kb_b2_source_profile_persistence | EXISTS_AND_REUSABLE | source identity backbone |
+| Gate3 fetcher/security/robots | services/gate3/* | PARTIALLY_IMPLEMENTED | allowlisted doc fetch ≠ field fetch |
+| KnowledgeSource / IngestionRun | models.py | PARTIALLY_IMPLEMENTED | legacy KB registry |
+| trusted_source_catalog_v1.yaml | config/gate3h/ | EXISTS_BUT_INCOMPLETE | inactive IR seeds; fetch false |
+| Gate3H risk/approval docs | docs/gate3h/* | EXISTS_AND_REUSABLE | human-review spirit |
+| §112 policy | master log | EXISTS_AND_REUSABLE | mandatory architecture authority |
+
+Law: existing name ≠ complete required behavior.
+
+### ۱۱۴.۵ ثبت کاندید و کشف منبع
+
+```text
+§112 candidate states (12+UFC): DISCOVERED … PAID_EXCLUDED / REJECTED / UNKNOWN_FAIL_CLOSED
+Repository representation today: NOT as CandidateRegistry.
+UNKNOWN_FAIL_CLOSED today = operational governance state on catalog keys (IRIMC/P24),
+NOT a CandidateRegistry enum row. Do not silently redesign; future Gate must
+decide mapping: BLOCKED_BY_MODEL_CHANGE → E2_C4B_00_PIPE_CAND_MODEL
+
+Discovery: no IR SourceDiscoveryScheduler. kb_scheduler discovers due KnowledgeSources
+for lifestyle/KB categories; provider_directory not auto-enabled.
+Laws preserved:
+DISCOVERY MUST NOT AUTOMATICALLY CREATE ELIGIBILITY
+DISCOVERY MUST NOT ENABLE FETCH
+DISCOVERY MUST NOT START PUBLICATION
+```
+
+### ۱۱۴.۶ اپراتور / دامنه / Terms / فیلد / حقوق
+
+| area | classification | note |
+|---|---|---|
+| Operator/domain verify | EXISTS_BUT_INCOMPLETE | fetch_security + robots; no identity engine |
+| Terms/privacy monitor | EXISTS_BUT_INCOMPLETE | docs precheck; no scheduled hash/semantic monitor |
+| Field mapping (31/29/15/8/14) | MISSING as code | §112 docs only |
+| 10 independent field rights | MISSING as field engine | policy_evaluator is action-level |
+| Laws | preserved | ONE RIGHT ≠ ANOTHER; source≠all fields; attribution≠rights; no-resale≠product-context |
+
+### ۱۱۴.۷ Fetch / نرمال‌سازی / provenance / cross-check
+
+| area | classification | blocker |
+|---|---|---|
+| Governed fetch | EXISTS_BUT_MISALIGNED | mode/rights/purpose binding missing |
+| Normalization | EXISTS_BUT_MISALIGNED | doc parser ≠ field normalizer |
+| Provenance | EXISTS_BUT_INCOMPLETE | source snapshot ≠ field immutable store |
+| Official cross-check | MISSING | BLOCKED_BY_LEGAL_REVIEW + product Gate for lookups |
+| Verification 12 states | EXISTS_BUT_INCOMPLETE | contracts partial |
+| Freshness 8 states | EXISTS_BUT_INCOMPLETE | cadence classes undecided (product measurement) |
+| Conflict | EXISTS_BUT_INCOMPLETE | NO SILENT OVERWRITE law docs-only |
+| Publication 15 checks | EXISTS_BUT_INCOMPLETE | invariants ≠ runtime field eligibility |
+| Citation/link | EXISTS_BUT_MISALIGNED | must become mandatory field citation |
+| Correction/suspension/rollback | EXISTS_BUT_INCOMPLETE | hide high-risk without destroying provenance = future |
+| Monitoring/reporting | EXISTS_BUT_MISALIGNED / MISSING | no pipeline weekly coverage/safety report |
+
+### ۱۱۴.۸ موجودی گردش تأیید ایمیل
+
+| ID | capability | classification | path / note | owner | future Gate | phase |
+|---|---|---|---|---|---|---|
+| EA-01 | Approver configuration | MISSING | ADMIN_TOKEN only; no approver email/role env | Security | E2_C4B_00_MAIL_APPR_CFG | I |
+| EA-02 | ApprovalRequest contract | MISSING | governance contracts lack request entity | Governance | E2_C4B_00_MAIL_REQ | I |
+| EA-03 | Approval state machine | EXISTS_BUT_INCOMPLETE | ReviewStatus/PublicationState reusable pattern; no email FSM | Governance | E2_C4B_00_MAIL_FSM | I |
+| EA-04 | Transactional email outbox | MISSING / EXISTS_BUT_MISALIGNED | Notification push outbox ≠ governance email | Backend | E2_C4B_00_MAIL_OUTBOX | J |
+| EA-05 | Email templates (governance) | MISSING | care templates misaligned if reused | Product | E2_C4B_00_MAIL_TPL | J |
+| EA-06 | Secure decision token | EXISTS_BUT_INCOMPLETE | JWT/OTP primitives; no purpose-bound single-use token | Security | E2_C4B_00_MAIL_TOKEN | K |
+| EA-07 | Auth / OTP / reauth | PARTIALLY_IMPLEMENTED | ADMIN_TOKEN; user phone OTP; no admin step-up | Security | E2_C4B_00_MAIL_AUTH | K |
+| EA-08 | Approve/Reject APIs (email) | EXISTS_BUT_INCOMPLETE | HTTP approve/reject KB/lifestyle; no email decision APIs | Backend | E2_C4B_00_MAIL_API | K |
+| EA-09 | Replay/idempotency/stale | EXISTS_BUT_INCOMPLETE | policy/fetch keys; not email-decision binding | Security | E2_C4B_00_MAIL_IDEM | K |
+| EA-10 | Approval audit | EXISTS_BUT_INCOMPLETE | attribution stamps; no durable decision log | Governance | E2_C4B_00_MAIL_AUDIT | K |
+| EA-11 | Execution binding | MISSING | APPROVAL→one job binder | Backend | E2_C4B_00_MAIL_EXEC | L |
+| EA-12 | Result email | MISSING | — | Backend | E2_C4B_00_MAIL_RESULT | L |
+| EA-13 | Admin approval dashboard | MISSING | no admin UI for governance approvals | Product/Frontend | E2_C4B_00_MAIL_UI | L |
+| EA-14 | Delivery failure/escalation | MISSING | email DLQ/bounce absent | Backend | E2_C4B_00_MAIL_DLV | J |
+
+Law: USER CARE NOTIFICATION ≠ ADMIN GOVERNANCE APPROVAL EMAIL
+
+Future templates (not implemented): APPROVAL_REQUIRED; REMINDER; APPROVED/REJECTED/EXPIRED/
+CANCELLED/SUPERSEDED confirmations; APPROVED_EXECUTED; EXECUTION_BLOCKED/FAILED;
+ROLLED_BACK; DELIVERY_FAILURE_ESCALATION.
+Subject pattern: [Sedi Approval Required] <Gate ID> — <Short Action>
+No PHI / raw provider data / secrets / tokens in email bodies.
+
+Target states (design only): DRAFT; READY_FOR_NOTIFICATION; EMAIL_QUEUED; EMAIL_SENT;
+PENDING_DECISION; APPROVED; REJECTED; EXPIRED; CANCELLED; SUPERSEDED;
+EXECUTION_PENDING; EXECUTED; EXECUTION_FAILED; ROLLED_BACK.
+
+Token laws: EMAIL LINK OPENS REVIEW PAGE ONLY; EMAIL LINK DOES NOT APPROVE OR REJECT.
+GET MUST NOT MUTATE; APPROVE/REJECT require explicit POST; stale/superseded/expired fail-closed.
+
+### ۱۱۴.۹ ماتریس محرک‌های تأیید ایمیل (نمونه اجباری)
+
+| trigger ID | request type | risk | email | OTP/reauth | expiry class | owner |
+|---|---|---|---|---|---|---|
+| AT-01 | new legal basis | high | YES | YES | short | Legal |
+| AT-02 | unclear/conflicting rights | high | YES | YES | short | Legal |
+| AT-03 | formal permission | high | YES | YES | medium | Legal |
+| AT-04 | paid dependency | high | YES | YES | short | Legal |
+| AT-05 | new source class | high | YES | YES | medium | Governance |
+| AT-06 | new high-risk field | high | YES | YES | medium | Provider Verification |
+| AT-07 | unresolved official conflict | high | YES | YES | short | Governance |
+| AT-08 | material Terms/Privacy change | high | YES | YES | short | Legal |
+| AT-09 | privacy/security risk | high | YES | YES | short | Security/Legal |
+| AT-10 | uncertain operator identity | high | YES | YES | medium | Governance |
+| AT-11 | CAPTCHA/login/anti-bot dependency | high | YES | YES | medium | Security |
+| AT-12 | first source registration | high | YES | YES | medium | Governance |
+| AT-13 | first eligibility promotion | high | YES | YES | short | Governance |
+| AT-14 | first fetch enablement | high | YES | YES | short | Security |
+| AT-15 | first provider-data storage | high | YES | YES | short | Legal/Data |
+| AT-16 | first external rating/review-count | high | YES | YES | medium | Product/Legal |
+| AT-17 | first runtime publication | high | YES | YES | short | Governance |
+| AT-18 | publication after suspension | high | YES | YES | short | Governance |
+| AT-19 | production scheduler activation | high | YES | YES | short | Backend |
+| AT-20 | migration/deploy/flag activation | high | YES | YES | short | Backend |
+| AT-21 | new external integration | high | YES | YES | medium | Security |
+| AT-22 | new retention/deletion/consent policy | high | YES | YES | medium | Legal/Privacy |
+| AT-23 | rollback needing product decision | high | YES | optional | short | Product |
+
+Approval triggers: 23
+
+### ۱۱۴.۱۰ ماتریس اتوماسیون پایدار (پس از تأیید اولیه)
+
+| SS ID | operation | initial approval | auto condition | stop / new-approval trigger |
+|---|---|---|---|---|
+| SS-01 | scheduled refresh approved fields | field+source Gate | scope+policy lock | rights/Terms change |
+| SS-02 | official revalidation | XCHK Gate | official source eligible | authority conflict |
+| SS-03 | freshness updates | freshness policy | cadence class | STALE high-risk |
+| SS-04 | conflict detection | conflict engine Gate | always detect | material conflict → hold |
+| SS-05 | auto suspension under approved rules | suspension policy | rule match | rule change |
+| SS-06 | source-health checks | monitor Gate | continuous | incident threshold |
+| SS-07 | approved retry | retry policy | within policy | DLQ exhaustion |
+| SS-08 | citation/link generation | cite Gate | publication eligible | attribution change |
+| SS-09 | approved publication release execution | publication Gate | release approved | suspension/hold |
+| SS-10 | weekly coverage report | monitor Gate | schedule | — |
+| SS-11 | weekly quality/safety report | monitor Gate | schedule | — |
+
+Steady-state rows: 11
+
+### ۱۱۴.۱۱ گراف وابستگی (لبه‌های کلیدی)
+
+| from | to | reason | blocking | owner | future Gate |
+|---|---|---|---|---|---|
+| CandidateRegistry | FieldMapper | fields need source candidates | Y | Governance | PIPE_CAND→FIELD |
+| FieldRights | GovernedFetcher | no fetch without rights | Y | Legal/Security | FRIGHTS→FETCH |
+| TermsMonitor | Suspension | material change → hold | Y | Legal | TERMS |
+| Provenance | Publication | incomplete provenance fail-closed | Y | Data | PROV→PUB |
+| OfficialXCheck | Verification | high-risk fields | Y | Provider Verification | XCHK |
+| Verification/Freshness/Conflict | PublicationEligibility | 15 runtime checks | Y | Governance | PUBEL |
+| ApprovalRequest | EmailOutbox | notify Javad | Y | Backend | MAIL_* |
+| SecureToken | DecisionAPI | review-only link | Y | Security | TOKEN→API |
+| DecisionAPI | ExecutionBinder | APPROVED→one job | Y | Backend | EXEC |
+| Care Notification stack | Governance Email | MUST NOT share channel | Y (separation) | Product | MAIL_OUTBOX |
+
+Dependency edges recorded: 10 primary (+ implied component graph ≥30)
+
+### ۱۱۴.۱۲ طرح استقرار Phase A–M
+
+| Phase | objective | reusable baseline | missing | parallelizable | future Gate family |
+|---|---|---|---|---|---|
+| A | Contracts/state machines | I5 contracts | pipeline+mail contracts | with I docs | CONTRACTS |
+| B | Candidate registry + discovery | catalog YAML; profiles | CandidateRegistry; discovery | Track2 | PIPE_CAND/DISC |
+| C | Terms/rights + field-rights | robots/fetch_security; policy_evaluator | monitors; FieldRights | Track1 | PIPE_TERMS/FRIGHTS |
+| D | Governed fetch/norm/provenance | Gate3 fetcher; identities | raw/field stores; mode gates | after C | PIPE_FETCH/PROV |
+| E | Cross-check/verification/conflict | enums | engines | after D | PIPE_XCHK/VER/CONF |
+| F | Freshness/correction/suspension | freshness contracts | engines | with E partial | PIPE_FRESH/CORR |
+| G | Publication/citation/link | PublicationState; cite patterns | eligibility engine; citation | after E/F | PIPE_PUB/CITE |
+| H | Monitoring/eval/rollback | scheduler; stamps | metrics/DLQ/rollback | Track5 | PIPE_MON/RB |
+| I | ApprovalRequest + approver cfg | ReviewStatus pattern; ADMIN_TOKEN | request model; email cfg | Track3 | MAIL_REQ/CFG |
+| J | Email outbox/templates/retry | push outbox pattern only | SMTP/outbox/templates/DLQ | Track3 | MAIL_OUTBOX/TPL |
+| K | Decision page + APIs + token/auth | JWT/OTP patterns; HTTP approve | token; admin auth; APIs | Track4 | MAIL_TOKEN/API |
+| L | Execution binding + result email + dashboard | — | binder; result mail; UI | after K | MAIL_EXEC/UI |
+| M | Source-by-source activation | §112 sequence | per-source Gates 09A.. | sequential | SOURCE_ACT |
+
+Critical path: A → B/C → D → E/F → G → H; parallel I→J→K→L; M last.
+Do not bypass Javad approval boundaries.
+
+Parallel tracks:
+Track1 pipeline contracts/policy; Track2 candidate/source registry;
+Track3 email contracts/outbox; Track4 decision security/audit;
+Track5 monitoring; Track6 admin dashboard design.
+
+### ۱۱۴.۱۳ راهبرد تست / مانیتورینگ (طراحی؛ بدون اجرا)
+
+Test rows (future; NOT authored/run): contract; state transition/invalid;
+field/source rights; unauthorized fetch reject; provenance immutability;
+cross-check precedence; conflict preserve; freshness expiry; publication fail-closed;
+suspension/rollback; ApprovalRequest; token signature/expiry/replay;
+payload/scope/policy/request-version mismatch; auth/OTP/CSRF/rate-limit;
+idempotency; outbox atomicity; retry/backoff/DLQ; delivery failure;
+audit immutability; approval→execution binding; stale/supersession;
+execution block; result email; dashboard auth.
+
+Monitoring metrics (future): candidates; transitions; rights/Terms changes;
+fetch success/fail; field coverage; cross-check; freshness breaches;
+publication blocks; suspensions; removals; rollbacks; approval lifecycle;
+email queue/send/fail/bounce/DLQ; pending age; latency; approve/reject/expiry;
+replay/mismatch attempts; auth/OTP failures; execution outcomes; scheduler lag;
+quality/safety scores. Thresholds NOT invented without evidence.
+
+### ۱۱۴.۱۴ ماتریس شکاف امنیتی (نمونه)
+
+| risk ID | gap | owner | future Gate | residual |
+|---|---|---|---|---|
+| SEC-01 | hardcoded approver email (must prevent) | Security | MAIL_CFG | low if policy enforced |
+| SEC-02 | approver impersonation / forwarding | Security | MAIL_AUTH | med |
+| SEC-03 | token leakage/replay | Security | MAIL_TOKEN | high until built |
+| SEC-04 | stale approval / payload/scope expansion | Security | MAIL_IDEM | high until built |
+| SEC-05 | CSRF / GET mutation | Security | MAIL_API | high until built |
+| SEC-06 | OTP abuse / brute force | Security | MAIL_AUTH | med |
+| SEC-07 | duplicate execution | Backend | MAIL_EXEC | high until binder |
+| SEC-08 | outbox duplication / credential leak | Backend | MAIL_OUTBOX | med |
+| SEC-09 | audit tampering | Governance | MAIL_AUDIT | med |
+| SEC-10 | dashboard unauthorized access | Security | MAIL_UI | high until built |
+| SEC-11 | open redirect / link manipulation | Security | MAIL_TOKEN | med |
+| SEC-12 | approval after supersession/expiry | Security | MAIL_FSM | high until built |
+| SEC-13 | ADMIN_TOKEN shared-secret limits | Security | MAIL_AUTH | med (current) |
+| SEC-14 | uncontrolled discovery/auto-promotion | Governance | PIPE_CAND | high until built |
+| SEC-15 | unauthorized fetch / provenance loss | Security/Data | PIPE_FETCH/PROV | high |
+
+Security risks documented: 15+
+
+### ۱۱۴.۱۵ ماتریس حریم خصوصی
+
+| risk ID | gap | owner | future Gate |
+|---|---|---|---|
+| PRIV-01 | approver email storage (secret/env only) | Privacy | MAIL_CFG |
+| PRIV-02 | IP/UA audit retention | Privacy | MAIL_AUDIT |
+| PRIV-03 | health-data / provider-data in email | Privacy/Legal | MAIL_TPL |
+| PRIV-04 | token logging | Security | MAIL_TOKEN |
+| PRIV-05 | dashboard exposure of sensitive payloads | Privacy | MAIL_UI |
+| PRIV-06 | request export/deletion policy | Legal | MAIL_REQ |
+
+Laws: NO PATIENT HEALTH DATA IN APPROVAL EMAIL; NO RAW PROVIDER DATA IN APPROVAL EMAIL;
+NO SECRET OR TOKEN IN EMAIL BODY.
+
+Privacy risks documented: 6+
+
+### ۱۱۴.۱۶ تأثیر مدل / مهاجرت / workflow / deploy
+
+| change class | examples | blocker class | future Gate |
+|---|---|---|---|
+| new models | CandidateRegistry; FieldRecord; Provenance; ApprovalRequest; EmailOutbox | BLOCKED_BY_MODEL_CHANGE | MODEL_* |
+| migrations | tables for above | BLOCKED_BY_MIGRATION | MIG_* |
+| scheduler | discovery; terms monitor; mail delivery | BLOCKED_BY_DEPLOY_OR_FLAG | SCHED_* |
+| secrets | SMTP; approver email ref; signing keys | BLOCKED_BY_SECURITY_REVIEW | SECRET_* |
+| feature flags | pipeline + mail activation | BLOCKED_BY_DEPLOY_OR_FLAG | FLAG_* |
+| email provider | SMTP/API | BLOCKED_BY_EXTERNAL_PROVIDER | PROVIDER_* |
+| legal/privacy | rights; retention; consent | BLOCKED_BY_LEGAL/PRIVACY_REVIEW | LEGAL/PRIV_* |
+
+No migrations designed beyond gap scope. No models edited.
+
+### ۱۱۴.۱۷ ماتریس شکاف یکپارچه (خلاصه ردیف‌ها)
+
+| gap ID | area | classification | impact | owner | phase | model | mig | sec | priv | legal |
+|---|---|---|---|---|---|---|---|---|---|---|
+| G-PIPE-01 | CandidateRegistry | MISSING | blocks discovery→eligibility | Governance | B | Y | Y | N | N | N |
+| G-PIPE-02 | FieldMapper/Rights | MISSING | blocks lawful field use | Legal/Data | C | Y | Y | N | N | Y |
+| G-PIPE-03 | GovernedFetcher+RawStore | MISSING/MISALIGNED | unauthorized fetch risk | Security | D | Y | Y | Y | N | Y |
+| G-PIPE-04 | Provenance field-level | INCOMPLETE | provenance loss | Data | D | Y | Y | N | Y | N |
+| G-PIPE-05 | Official cross-check | MISSING | wrong license claims | Provider Verification | E | Y | Y | N | N | Y |
+| G-PIPE-06 | Publication eligibility | INCOMPLETE | stale/unsafe publish | Governance | G | Y | Y | N | N | Y |
+| G-PIPE-07 | Terms monitor/hold | INCOMPLETE | terms-change miss | Legal | C/F | Y | Y | N | N | Y |
+| G-PIPE-08 | DLQ/rollback/monitor | MISSING/INCOMPLETE | silent failure | Backend | H | Y | Y | Y | N | N |
+| G-MAIL-01 | Approver cfg (no hardcode) | MISSING | cannot notify Javad safely | Security | I | N | N | Y | Y | N |
+| G-MAIL-02 | ApprovalRequest+FSM | MISSING | no governed approval | Governance | I | Y | Y | Y | Y | N |
+| G-MAIL-03 | Email outbox≠care push | MISSING/MISALIGNED | wrong channel / PHI risk | Backend | J | Y | Y | Y | Y | N |
+| G-MAIL-04 | Decision token+APIs | INCOMPLETE | spoof/replay | Security | K | Y | Y | Y | N | N |
+| G-MAIL-05 | Execution binding | MISSING | approve≠safe execute | Backend | L | Y | Y | Y | N | N |
+| G-MAIL-06 | Admin dashboard | MISSING | ops blindness | Product | L | N | N | Y | Y | N |
+
+Unified gap rows (primary): 14 (expanded inventory in §§114.3–.8 = 46 capability rows)
+
+### ۱۱۴.۱۸ دفتر ریسک ترکیبی
+
+| risk ID | description | owner | residual |
+|---|---|---|---|
+| R-01 | uncontrolled source discovery | Governance | high |
+| R-02 | candidate auto-promotion | Governance | high |
+| R-03 | rights misclassification / field mismatch | Legal | high |
+| R-04 | unauthorized fetch | Security | high |
+| R-05 | provenance loss | Data | high |
+| R-06 | official-source conflict / silent overwrite | Governance | high |
+| R-07 | stale publication | Governance | high |
+| R-08 | Terms-change miss | Legal | med |
+| R-09 | rollback failure | Backend | med |
+| R-10 | scheduler duplication | Backend | med |
+| R-11 | email delivery loss | Backend | high |
+| R-12 | approval spoofing / token replay | Security | high |
+| R-13 | stale approval / payload substitution / scope expansion | Security | high |
+| R-14 | duplicate execution | Backend | high |
+| R-15 | approval audit loss | Governance | med |
+| R-16 | OTP abuse / admin compromise | Security | med |
+| R-17 | hardcoded approver email | Security | low if banned |
+| R-18 | privacy / provider-data leakage in email | Privacy | high |
+| R-19 | dead-letter accumulation | Backend | med |
+| R-20 | execution without/after reject/expiry/supersession | Security | high |
+| R-21 | result email mismatch | Backend | med |
+| R-22 | dashboard auth failure | Security | high |
+| R-23 | care/governance channel mix | Product | high |
+| R-24 | catalog overpromotion / IRIMC-P24 regression | Governance | high |
+
+Risk rows: 24 (plus SEC/PRIV matrices)
+
+### ۱۱۴.۱۹ مالک / وابستگی / بستن
+
+All capability, gap, risk, trigger, and steady-state rows assign primary owners from:
+Governance; Legal; Security; Privacy; Backend; Data/Knowledge; Provider Verification;
+Product; Frontend; Javad (approver identity only).
+TBD owners: 0
+
+Fail-closed default: MISSING REQUIRED CONTROL → NO EXECUTION / NO FETCH / NO PUBLICATION
+
+### ۱۱۴.۲۰ ممیزی داخلی
+
+```text
+Audit iterations: 2
+
+C4B00G-A1 baseline HEAD de7c064; §113 latest; §114 absent → CLOSED
+C4B00G-A2 §§111–113 authority + automation laws preserved → CLOSED
+C4B00G-A3 no network; read-only inventory → CLOSED
+C4B00G-A4 pipeline 32 components classified with paths → CLOSED
+C4B00G-A5 I5/Gate3 foundations related without overclaim → CLOSED
+C4B00G-A6 candidate/discovery/operator/terms/field/rights → CLOSED
+C4B00G-A7 fetch/provenance/xcheck/verify/fresh/conflict/pub → CLOSED
+C4B00G-A8 email approval 14 capabilities; care≠governance → CLOSED
+C4B00G-A9 approver Javad + email recorded; no-hardcode law → CLOSED
+C4B00G-A10 triggers 23; steady-state 11; deps; phases A–M → CLOSED
+C4B00G-A11 security/privacy/model-mig-deploy gaps → CLOSED
+C4B00G-A12 unified gaps + risks; TBD=0; no implementation → CLOSED
+
+Findings fixed: 12
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+External implementation/security/privacy/legal/provider gaps remain owned.
+```
+
+| finding | root cause | fix | status |
+|---|---|---|---|
+| C4B00G-F1 | baseline/sequence | §114 header | CLOSED |
+| C4B00G-F2 | authority laws | §114.1 | CLOSED |
+| C4B00G-F3 | inventory method | §114.2 | CLOSED |
+| C4B00G-F4 | pipeline components | §114.3 | CLOSED |
+| C4B00G-F5 | I5 foundations | §114.4 | CLOSED |
+| C4B00G-F6 | registry/discovery/fields | §114.5–.6 | CLOSED |
+| C4B00G-F7 | fetch/pub engines | §114.7 | CLOSED |
+| C4B00G-F8 | email workflow | §114.8 | CLOSED |
+| C4B00G-F9 | triggers/steady-state | §114.9–.10 | CLOSED |
+| C4B00G-F10 | deps/phases/parallel | §114.11–.12 | CLOSED |
+| C4B00G-F11 | test/monitor/sec/priv | §114.13–.16 | CLOSED |
+| C4B00G-F12 | gaps/risks/audit/markers | §114.17–.21 | CLOSED |
+
+### ۱۱۴.۲۱ شمارش‌های دقیق نهایی
+
+```text
+repository files/paths inspected (primary set): ≥40
+directories inspected (primary): ≥12
+pipeline components evaluated: 32
+approval components evaluated: 14
+EXISTS_AND_REUSABLE (foundation/contracts): 8
+EXISTS_BUT_INCOMPLETE: 18
+EXISTS_BUT_MISALIGNED: 10
+PARTIALLY_IMPLEMENTED: 6
+MISSING: 20
+model-change blockers: 10+
+migration blockers: 10+
+security-review blockers: 8+
+privacy-review blockers: 6+
+legal-review blockers: 7+
+product-decision blockers: 4+
+external-provider blockers: 1+ (email provider)
+deploy/flag blockers: 4+
+candidate-registry states evaluated: 12 (+ UFC mapping note)
+field rights evaluated: 10
+verification states evaluated: 12
+freshness states evaluated: 8
+approval states evaluated: 14 (target FSM)
+approval triggers: 23
+steady-state automation rows: 11
+dependency edges (primary): 10
+rollout phases: 13 (A–M)
+parallel work tracks: 6
+test/evaluation rows: 30+
+monitoring metrics: 35+
+security risks: 15
+privacy risks: 6
+unified gap rows (primary): 14
+capability inventory rows: 46
+risk rows: 24
+owner rows: all assigned
+TBD owners: 0
+audit iterations: 2
+findings fixed: 12
+remaining actionable findings: 0
+provider records collected: 0
+emails sent: 0
+source activations: 0
+catalog edits: 0
+eligibility promotions: 0
+publications: 0
+runtime activations: 0
+```
+
+### ۱۱۴.۲۲ تصمیم بازبینی جواد و اصلاحات الزامی (docs-only)
+
+```text
+Javad reviewed the §114 baseline architecture package.
+Historical review result PRESERVED:
+AUTOMATED_PIPELINE_BASELINE_REVIEW_COMPLETE
+EMAIL_APPROVAL_WORKFLOW_BASELINE_REVIEW_COMPLETE
+PARTIAL — E2_C4B_00_BASELINE_REVIEW_COMPLETE_WITH_OWNED_IMPLEMENTATION_SECURITY_PRIVACY_OR_EXTERNAL_GAPS_READY_FOR_JAVAD_REVIEW
+
+Decision (NOW RECORDED):
+ACCEPT_WITH_MANDATORY_CORRECTIONS_BEFORE_COMMIT
+
+Acceptance is CONDITIONAL on closure of all mandatory documentation corrections.
+This decision does NOT authorize implementation, stage, commit, push, CI, tests,
+migration, deploy, flag activation, email sending, source activation, ingestion,
+publication, or provider-data storage.
+§114 remains uncommitted until a separate Git authorization.
+§115 records correction closure and reconciled state.
+No pipeline / approval workflow / email / migration / acquisition / publication /
+activation has been executed by this decision.
+```
+
+#### ۱۱۴.۲۲.۱ Approver privacy (mandatory correction)
+
+```text
+Repository-safe identifiers ONLY:
+PRIMARY_GOVERNANCE_APPROVER
+SEDI_APPROVER_EMAIL_SECRET
+
+Real personal approver email may exist ONLY in approved secret store or secure
+administrative configuration.
+MUST NOT appear in: repository source; committed documentation; CI/GitHub output;
+application logs; approval URLs; public error messages.
+```
+
+#### ۱۱۴.۲۲.۲ Email link and decision nonce (mandatory correction)
+
+```text
+EMAIL LINK: MUST NOT EXECUTE ACTION
+GET REQUEST: MUST NOT MUTATE STATE
+NO APPROVAL: NO EXECUTION
+REJECTED/EXPIRED/SUPERSEDED: NO EXECUTION
+FINAL DECISION: EXPLICIT AUTHENTICATED POST ONLY
+
+Required flow:
+1) Email contains only a non-secret, non-authorizing request reference.
+2) Opening it only displays the approval UI.
+3) Approver authenticates.
+4) Reauthentication or OTP when required.
+5) Server issues short-lived, purpose-bound, scope-bound, single-use nonce.
+6) Final decision uses authenticated POST.
+7) CSRF protection, authorization, expiry, replay protection and audit evidence mandatory.
+8) No bearer decision token may be embedded in an email URL.
+9) GET must never approve, reject, publish, migrate, deploy, activate or mutate state.
+```
+
+#### ۱۱۴.۲۲.۳ Bootstrap authority (mandatory correction)
+
+```text
+Until the email approval workflow is implemented, reviewed, tested, deployed and
+separately accepted by Javad, Javad’s explicit approval in the controlled
+development conversation remains the governing authority.
+The proposed workflow cannot approve its own implementation, migration, deployment,
+initial activation, policy changes or security boundary.
+Documentation of the workflow is not authorization to execute it.
+Every sensitive Gate continues to require separate explicit approval.
+```
+
+#### ۱۱۴.۲۲.۴ Clinical knowledge metadata (mandatory correction)
+
+```text
+Required fields for governed clinical and health claims (where relevant):
+evidence_grade
+clinical_claim_type
+target_population
+contraindications
+drug_interactions
+jurisdiction
+guideline_version
+effective_date
+review_date
+claim_level_provenance
+
+Apply where relevant to: diseases; prevention; care/follow-up; clinical and care
+recommendations; mental health/psychology; nutrition; exercise; lifestyle;
+daily health planning; longevity-related health knowledge.
+Metadata completeness does NOT itself prove a claim is clinically true.
+```
+
+#### ۱۱۴.۲۲.۵ Weekly acquisition meaning (mandatory correction)
+
+```text
+Binding decision: the weekly cycle MUST automatically discover, download, preserve
+and process newly published, newly discovered, corrected or updated eligible
+resources and articles.
+
+HISTORICAL COVERAGE TEXT (recorded earlier in §114; SUPERSEDED for source-origin
+routing by Javad decision 2026-07-23 — see §115.5):
+Coverage includes: Iran-first Iranian sources; authoritative international sources;
+diseases/clinical guidance; healthcare/care pathways; prevention/follow-up;
+mental health/psychology; nutrition; exercise; lifestyle/daily routines;
+evidence-supported longevity knowledge.
+
+CURRENT BINDING SOURCE-ORIGIN ROUTING (2026-07-23):
+- Clinical/health knowledge ingestion: authoritative international sources ONLY
+- Iranian sources: restricted to verified Iran care-directory fields
+  (doctors / hospitals / laboratories) ONLY
+- Iranian clinical/health articles are NOT eligible for clinical knowledge ingestion
+- Ambiguous/cross-category content: quarantine + governed review (fail closed)
+
+Weekly acquisition mechanics remain binding:
+- weekly reporting is NOT a substitute for acquisition
+- discovery and change detection run weekly
+- eligible new/changed content is actually downloaded and preserved
+- unchanged content is deterministically skipped
+- source-specific cadence may be more frequent based on clinical risk,
+  retraction risk or update frequency
+- licensing, source terms, access restrictions, rate limits and lawful
+  acquisition remain enforceable
+- one source failure must not silently invalidate unrelated successful acquisitions
+- every acquisition attempt, decision and failure remains auditable
+```
+
+#### ۱۱۴.۲۲.۶ Sedi automatic validation (mandatory correction)
+
+```text
+Sedi MUST perform routine automatic validation, including where applicable:
+publisher/domain identity; institutional authority; approved source-class eligibility;
+author/organization metadata; publication/revision dates; DOI/PMID/guideline ID
+or equivalent; peer-review or official-guideline status; evidence grade;
+jurisdiction/target population; retraction/correction/withdrawal signals;
+freshness/review dates; provenance completeness; immutable raw-object preservation;
+content hash/integrity; duplicate/near-duplicate detection; claim-level conflicts;
+contradictions with newer/higher-authority guidance; licensing/lawful-acquisition;
+file/content-safety checks; language/translation provenance; coverage gaps/confidence;
+policy/quality-rule evaluation.
+
+AUTOMATIC DISCOVERY: REQUIRED
+AUTOMATIC ACQUISITION: REQUIRED
+AUTOMATIC MACHINE VALIDATION: REQUIRED
+AUTOMATIC PROVENANCE AND QUALITY CHECKS: REQUIRED
+AUTOMATIC SELF-AUTHORIZATION: PROHIBITED
+UNCONTROLLED CLINICAL PUBLICATION: PROHIBITED
+GOVERNED CONTINUOUS KNOWLEDGE IMPROVEMENT: REQUIRED
+
+Clarify:
+- machine validation is required but not infallible proof of clinical truth
+- new content follows existing candidate/quarantine/review/publication lifecycle
+- new source family, high-risk claim, material conflict, policy change or uncertain
+  result MUST be escalated
+- only previously approved source classes may use steady-state automation inside
+  approved scope
+- retraction, expiry, material conflict or trust degradation triggers
+  suspension/quarantine and audit evidence
+- Sedi automates routine validation but cannot establish a new trust boundary alone
+```
+
+#### ۱۱۴.۲۲.۷ Clinical recommendation boundary (mandatory correction)
+
+```text
+Sedi V1 MUST NOT:
+- diagnose
+- prescribe medication
+- change dosage
+- instruct medication discontinuation
+- replace a physician or qualified clinician
+- present uncertain evidence as settled fact
+
+Suggestions MUST be:
+- grounded in governed released knowledge
+- personalized only from authorized user context
+- explicit about uncertainty
+- checked for contraindications and drug interactions where relevant
+- processed through I4 safety/risk controls
+- supported by claim-level provenance
+- accompanied by appropriate escalation or professional referral
+```
+
+#### ۱۱۴.۲۲.۸ Permanent reference-file rule (mandatory correction)
+
+```text
+REFERENCE_FILE_UPDATE_IS_MANDATORY_AND_ATOMIC_WITH_EVERY_APPROVED_GATE
+
+Binding meaning:
+- docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md is the canonical execution truth
+  for the current Section 15/24 development stream
+- Every future approved Gate prompt must include the master log in its allowlist
+  when that Gate can change project state
+- After every preflight, decision, architectural change, implementation, finding,
+  correction, audit, test, commit, push, CI, migration, deployment or flag decision,
+  the master log must be reconciled with the actual state within the same approved
+  execution cycle
+- It must record authorization, restrictions, baseline, allowlist, SHA values,
+  results, evidence, failures, root cause, fixes, completed work, remaining work
+  and the exact Next Gate
+- No material result may exist only in chat or only in a Cursor report
+- A Gate is not closed until the master log accurately reflects its result
+- Updating the master log does not authorize the next sensitive action
+- If a future prompt omits the required master-log update or its allowlist prevents
+  reconciliation, Cursor must stop before claiming Gate closure and report the
+  authorization/scope gap
+```
+
+### ۱۱۴.۲۳ نشانگرها و گام بعدی (پس از تصمیم اصلاحات الزامی)
+
+```text
+AUTOMATED_PIPELINE_BASELINE_REVIEW_COMPLETE
+EMAIL_APPROVAL_WORKFLOW_BASELINE_REVIEW_COMPLETE
+PARTIAL — E2_C4B_00_BASELINE_REVIEW_COMPLETE_WITH_OWNED_IMPLEMENTATION_SECURITY_PRIVACY_OR_EXTERNAL_GAPS_READY_FOR_JAVAD_REVIEW
+ACCEPT_WITH_MANDATORY_CORRECTIONS_BEFORE_COMMIT
+PRIMARY_GOVERNANCE_APPROVER_RECORDED
+SEDI_APPROVER_EMAIL_SECRET_REF_RECORDED
+APPROVER_EMAIL_NOT_HARDCODED_POLICY_RECORDED
+NO_REAL_APPROVER_EMAIL_IN_REPOSITORY_EXAMPLES
+EMAIL_LINK_NO_DIRECT_EXECUTION
+GET_MUST_NOT_MUTATE_STATE
+FINAL_DECISION_AUTHENTICATED_POST_ONLY
+BOOTSTRAP_AUTHORITY_EXTERNAL_TO_EMAIL_WORKFLOW
+WEEKLY_AUTOMATIC_ACQUISITION_REQUIRED
+AUTOMATIC_MACHINE_VALIDATION_REQUIRED
+AUTOMATIC_SELF_AUTHORIZATION_PROHIBITED
+CLINICAL_METADATA_REQUIREMENTS_RECORDED
+CLINICAL_RECOMMENDATION_BOUNDARY_V1_RECORDED
+REFERENCE_FILE_UPDATE_IS_MANDATORY_AND_ATOMIC_WITH_EVERY_APPROVED_GATE
+NO_IMPLEMENTATION
+NO_EMAIL_SENT
+NO_PROVIDER_DATA_COLLECTED
+NO_SOURCE_ACTIVATED
+NO_CATALOG_EDIT
+NO_ELIGIBILITY_PROMOTION
+NO_PUBLICATION
+NO_RUNTIME_ACTIVATION
+MASTER_LOG_114_APPENDED
+HEAD_UNCHANGED
+STAGED_EMPTY
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS_PENDING_115_CLOSURE
+
+Exact next Gate after docs-only §115 closure:
+WAITING_FOR_JAVAD_REVIEW_AND_FRESH_GIT_AUTHORIZATION
+
+No implementation authorized.
+No future commit SHA guessed.
+```
+
+---
+*پایان §114 — Package E2-C4B-00 Automated Pipeline and Email Approval Baseline & Gap Review (with mandatory-correction decision) — ۲۰۲۶-۰۷-۲۳*
+---
+
+## ۱۱۵) ثبت تصمیم اصلاحات الزامی §۱۱۴، چرخه خودکار هفتگی دانش و reconciliation وضعیت جاری
+
+```text
+Package:
+E2_C4B_00_SECTION24_MANDATORY_CORRECTIONS_AND_STATE_RECONCILIATION
+
+Title:
+§114 mandatory-correction decision registration, weekly governed-knowledge cycle, and Current State reconciliation
+
+Authorization:
+docs-only — correct §114, append §115, reconcile Current State Header
+NO stage / commit / push / CI / tests / implementation
+NO email sending / source activation / provider-data storage
+
+Status:
+SOURCE_AND_CURSOR_EXECUTION_POLICY_AMENDMENT_APPLIED_UNCOMMITTED
+WAITING_FOR_JAVAD_REVIEW_AND_FRESH_GIT_AUTHORIZATION
+PREVIOUS_LOCAL_COMMIT_PROMPT_SUPERSEDED_AND_NOT_EXECUTED
+```
+
+### ۱۱۵.۱ هویت تصمیم
+
+| فیلد | مقدار الزامی |
+|---|---|
+| Date | `2026-07-23` |
+| Timezone | `Asia/Baku` |
+| Authority | Javad’s explicit approval |
+| Decision | `ACCEPT_WITH_MANDATORY_CORRECTIONS_BEFORE_COMMIT` |
+| Authorized scope | §114 correction, §115 append, Current State Header reconciliation, docs-only audit |
+| Stage authorization | Not granted |
+| Commit/push authorization | Not granted |
+| Implementation authorization | Not granted |
+| CI/test authorization | Not granted |
+| Deployment/activation authorization | Not granted |
+
+### ۱۱۵.۲ ماتریس بستن اصلاحات الزامی
+
+| # | Correction | Final governance rule | Exact corrected location | Status |
+|---|---|---|---|---|
+| 1 | Current State Header reconciliation | Current state uses `de7c064…`; historical values remain historical | Current State Header (top table) | `CLOSED_DOCS_ONLY` |
+| 2 | Approver privacy | Real email only in approved secret/admin configuration; repo uses `PRIMARY_GOVERNANCE_APPROVER` + `SEDI_APPROVER_EMAIL_SECRET` | §114 header; §114.22.1 | `CLOSED_DOCS_ONLY` |
+| 3 | Email link vs decision nonce | Link non-authorizing; GET no mutate; final decision authenticated POST + single-use nonce | §114.22.2 | `CLOSED_DOCS_ONLY` |
+| 4 | Bootstrap authority | Controlled explicit approval remains authoritative until separate workflow acceptance | §114.22.3 | `CLOSED_DOCS_ONLY` |
+| 5 | Clinical metadata | Required claim-governance metadata recorded | §114.22.4 | `CLOSED_DOCS_ONLY` |
+| 6 | Weekly acquisition | New/updated eligible resources discovered, downloaded and preserved | §114.22.5; §115.3 | `CLOSED_DOCS_ONLY` |
+| 7 | Automatic Sedi validation | Machine validation required; self-authorization prohibited | §114.22.6 | `CLOSED_DOCS_ONLY` |
+| 8 | Clinical recommendation boundary | V1 limits and I4/provenance requirements recorded | §114.22.7 | `CLOSED_DOCS_ONLY` |
+| 9 | Permanent reference-file rule | Master log update mandatory for every approved Gate | §114.22.8; §115.4 | `CLOSED_DOCS_ONLY` |
+
+```text
+CLOSED_DOCS_ONLY closes documentation findings only.
+It does NOT imply implementation closure.
+```
+
+### ۱۱۵.۳ چرخه هفتگی خودکار دانش تحت حاکمیت
+
+```text
+Binding architecture decision (designed/decided; NOT implemented; NOT active):
+
+- Weekly discovery of eligible new/updated resources is REQUIRED
+- Source-origin routing (binding 2026-07-23; see §115.5):
+  * clinical/health knowledge → authoritative international sources ONLY
+  * Iranian doctors/hospitals/laboratories directory fields →
+    verified Iranian sources ONLY
+- Prior phrasing that paired “Iranian and authoritative international”
+  resources for clinical knowledge coverage is SUPERSEDED (2026-07-23)
+- Eligible changed content MUST be downloaded
+- Immutable raw evidence and provenance MUST be preserved
+- Sedi MUST execute automatic validation and quality checks
+- Cycle MUST improve governed knowledge freshness, coverage and reliability
+- A report is evidence of the cycle, NOT a replacement for acquisition
+- Unchanged objects MUST be skipped via deterministic change detection/idempotency
+- Automatic validation is SEPARATE from authorization and publication
+- Novel, conflicting, high-risk or low-confidence material MUST be escalated
+- Runtime may use ONLY the existing governed published/released knowledge state
+
+Weekly run evidence inventory (required when implemented):
+discovered; newly acquired; changed; unchanged/skipped; duplicates;
+validation passed; rejected; quarantined; escalated; suspended;
+acquisition failures; publication/release state; freshness; conflicts;
+retracted/corrections; provenance completeness; domain coverage;
+jurisdiction and population coverage.
+
+Status now:
+PIPELINE_DESIGNED_AND_DECIDED
+IMPLEMENTATION_NOT_STARTED
+RUNTIME_NOT_ACTIVE
+```
+
+### ۱۱۵.۴ قانون دائمی به‌روزرسانی master log
+
+```text
+REFERENCE_FILE_UPDATE_IS_MANDATORY_AND_ATOMIC_WITH_EVERY_APPROVED_GATE
+
+Operational meanings:
+- master log = canonical execution truth for Section 15/24 stream
+- every approved Gate that can change project state must allowlist this file
+- reconcile after every material Gate result in the same approved cycle
+- record authorization, restrictions, baseline, allowlist, SHAs, results,
+  evidence, failures, root cause, fixes, remaining work, exact Next Gate
+- no material result may live only in chat or only in a Cursor report
+- Gate not closed until master log accurately reflects the result
+- updating the master log does NOT authorize the next sensitive action
+- if allowlist/prompt omits required update: STOP before claiming closure
+```
+
+### ۱۱۵.۵ سیاست دائمی تفکیک منابع دانش سلامت و دایرکتوری مراقبت ایران
+
+```text
+Authority: Javad — 2026-07-23 / Asia/Baku
+Scope: permanent project governance (docs-only recording; NOT implementation)
+
+CLINICAL_AND_HEALTH_KNOWLEDGE_REQUIRES_AUTHORITATIVE_INTERNATIONAL_SOURCES
+
+All ingestion for these categories MUST originate from authoritative
+international sources:
+- diseases
+- clinical and healthcare knowledge
+- prevention and follow-up
+- mental health and psychology
+- nutrition
+- exercise
+- lifestyle
+- general health guidance
+- longevity and health-maintenance knowledge
+
+“International” or “foreign” alone is NOT sufficient.
+Each source must still satisfy governed Source Registry requirements, including:
+recognized authority; scientific or official legitimacy; provenance;
+licensing and permitted use; freshness; versioning; conflict and retraction
+controls; immutable raw preservation; governed validation and release.
+
+Permitted source classes include authoritative international or foreign
+governmental, intergovernmental, guideline, professional and peer-reviewed
+sources that pass Sedi governance.
+No specific source is claimed approved, fetched, or activated by this record.
+
+IRANIAN_SOURCES_ARE_RESTRICTED_TO_VERIFIED_IRAN_CARE_DIRECTORY_DATA
+
+Iranian sources may be used ONLY for verified Iranian directory information:
+- doctors
+- hospitals
+- laboratories
+
+Iranian sources must be authoritative and appropriate for the directory field
+(e.g. official registries, licensing authorities, verified official provider
+sources).
+This permission is field-level and does NOT authorize ingestion of clinical or
+health articles published by Iranian doctors, hospitals, laboratories or other
+Iranian websites into Sedi’s clinical knowledge base.
+```
+
+| Content class | Required source origin | Allowed use |
+|---|---|---|
+| Disease, clinical and general health knowledge | Authoritative international sources only | Governed health knowledge pipeline |
+| Iranian doctors | Verified Iranian sources only | Iranian care-provider directory |
+| Iranian hospitals | Verified Iranian sources only | Iranian care-provider directory |
+| Iranian laboratories | Verified Iranian sources only | Iranian care-provider directory |
+| Ambiguous or cross-category content | Not eligible automatically | Quarantine and governed review |
+
+```text
+Language translation or normalization does NOT change the original source
+identity or origin.
+
+SOURCE_ORIGIN_ROUTING_MUST_BE_ENFORCED_BEFORE_GOVERNED_PUBLICATION_AND_RUNTIME_USE
+
+Architecture MUST enforce source-origin and content-class checks through:
+discovery; registry eligibility; acquisition; normalization; validation;
+publication; runtime grounding boundaries.
+
+Source-origin mismatch MUST fail closed:
+- reject the candidate when deterministically invalid; OR
+- quarantine when classification is uncertain.
+It MUST NEVER be automatically published or used for Sedi runtime grounding.
+
+Prior current-policy language that permitted Iranian sources for clinical/
+health knowledge ingestion is SUPERSEDED by this decision (2026-07-23).
+Historical execution evidence elsewhere remains historically accurate and is
+NOT rewritten.
+```
+
+### ۱۱۵.۶ قانون دائمی اجرای چندمرحله‌ای Cursor و بستن موانع درون دامنه
+
+```text
+Authority: Javad — 2026-07-23 / Asia/Baku
+
+CURSOR_PROMPTS_MUST_BE_MULTI_PHASE_BY_DEFAULT
+ONE_APPROVED_GATE_MAY_EXECUTE_MULTIPLE_SEQUENTIAL_IN_SCOPE_PHASES
+IN_SCOPE_FINDINGS_REQUIRE_FIX_AND_REVALIDATION_UNTIL_CLOSED
+SPEED_MUST_NOT_BYPASS_JAVAD_APPROVAL_GATES
+
+Default future Cursor prompt structure:
+1) exact authorization and prohibitions
+2) read-only preflight
+3) explicit allowlist
+4) multiple sequential approved implementation or review phases
+5) in-scope diagnosis and correction loop
+6) regression proof or strengthened validation
+7) final audit
+8) atomic master-log update
+9) structured final report
+10) exact next Gate
+
+Adjacent tasks already authorized and inside one allowlist SHOULD be executed
+sequentially in the same prompt without repeated approval requests.
+
+Mandatory in-scope correction loop:
+If Cursor encounters an in-scope problem during implementation, code review,
+audit, test authoring, static validation, authorized CI-evidence review, or
+documentation validation, it MUST:
+1) identify the root cause
+2) apply the minimum in-scope correction
+3) add or strengthen regression proof
+4) rerun the relevant validation
+5) repeat until all fixable in-scope findings are closed
+6) then continue to the next authorized phase
+Cursor MUST NOT stop merely to report a finding that can be safely resolved
+inside the active allowlist and authorization.
+
+Legitimate stop conditions (outside current authorization):
+- baseline mismatch
+- scope expansion
+- modification outside the allowlist
+- a new product, clinical, legal, privacy or security decision
+- model, migration, conftest or workflow redesign not already authorized
+- commit, amend or push authorization
+- CI or workflow dispatch authorization
+- migration, seed, deploy or activation authorization
+- external network or evidence collection not authorized
+- access or permission unavailable to the active Gate
+
+For a legitimate stop, report: blocker; root cause; owner; dependency;
+closure criteria; exact next approval required.
+
+Speed and governance:
+Improve speed by grouping compatible in-scope work; avoiding repetitive
+preflights inside one unchanged Gate; avoiding unnecessary approval
+interruptions; automatically closing fixable in-scope findings; preserving an
+explicit phase-by-phase audit trail.
+This rule does NOT grant implicit permission for sensitive actions.
+Commit, push, CI, migration, seed, deploy, production activation and other
+separately gated actions remain prohibited unless Javad explicitly authorizes
+them.
+```
+
+### ۱۱۵.۷ مرزهای امنیتی و بالینی
+
+```text
+- no real approver email in repository examples
+- no executable approval email link
+- no state-changing GET
+- final decision through authenticated protected POST
+- short-lived, scope-bound, purpose-bound, single-use nonce
+- bootstrap authority remains external to the new email workflow
+- automatic validation cannot self-authorize
+- clinical metadata requirements recorded
+- Sedi V1 recommendation limits recorded
+- I4 safety and escalation requirements recorded
+- source-origin routing for clinical knowledge vs Iran directory recorded (§115.5)
+- multi-phase Cursor execution and in-scope closure loop recorded (§115.6)
+```
+
+### ۱۱۵.۸ وضعیت تطبیق‌شده پس از ویرایش
+
+```text
+Branch: feature/section15/backend-continuity-foundation
+HEAD / upstream / remote-tracking: de7c064133d29ea9e2a6d032b376966f66c1cfe5
+HEAD subject: docs(governance): define Iran medical field-level source policy
+Ahead/behind: 0 / 0
+Staged: EMPTY
+Untracked: NONE
+Only modified file: docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+Latest working-copy section: §115
+§114 and §115: uncommitted
+§116: NOT CREATED
+Current docs status: SOURCE_AND_CURSOR_EXECUTION_POLICY_AMENDMENT_APPLIED_UNCOMMITTED
+Previous local-commit prompt
+  docs(governance): record automated knowledge pipeline safeguards
+  = SUPERSEDED_AND_NOT_EXECUTED
+New automated pipeline: designed/decided; implementation not started; NOT active
+Email approval workflow: implementation not started
+Emails sent: 0
+Sources activated through new pipeline: 0
+Provider records stored through new pipeline: 0
+
+Progress (NOT recalculated by this docs Gate; preserved):
+I5 overall ≈ 22%
+I5-A = 100%
+I5-B ≈ 31%
+I5-C = 0%
+I5-D = 0%
+I5-E = 0%
+I5-F = 0%
+I6 / I7 / I8 = implementation not started
+Frontend Gate 4 = incomplete
+```
+
+### ۱۱۵.۹ گام بعدی
+
+```text
+1) Javad reviews the final docs-only diff and Cursor report.
+2) Any remaining in-scope documentation inconsistency is corrected in the
+   same allowlisted file.
+3) Stage, commit and push require a NEW / FRESH explicit authorization.
+4) The previous local-commit prompt for
+   docs(governance): record automated knowledge pipeline safeguards
+   is SUPERSEDED and must not be executed against the previous document state.
+5) Implementation requires a separate Gate after documentation Git closure.
+6) No email workflow, CI, migration, deployment or activation is implied.
+
+Exact next Gate:
+WAITING_FOR_JAVAD_REVIEW_AND_FRESH_GIT_AUTHORIZATION
+
+MASTER_LOG_115_APPENDED
+MASTER_LOG_116_NOT_CREATED
+```
+
+---
+*پایان §115 — تصمیم اصلاحات الزامی §114، سیاست تفکیک منبع، قانون چندمرحله‌ای Cursor و reconciliation — ۲۰۲۶-۰۷-۲۳*
