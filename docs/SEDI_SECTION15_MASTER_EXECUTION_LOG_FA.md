@@ -15,23 +15,39 @@
 |------|------------|
 | Worktree | `D:\Rimiya Design Studio\Sedi\software\Demo-wt-section15-backend` |
 | Branch | `feature/section15/backend-continuity-foundation` |
-| HEAD / upstream / remote-tracking | `de7c064133d29ea9e2a6d032b376966f66c1cfe5` |
+| Local HEAD | `d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c` |
+| Upstream / local remote-tracking | `d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c` |
+| Directly verified remote branch SHA | `d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c` |
 | origin/main | `89b79ad3fc20236a23ffae65fd868aafb60843e8` (historical remote main; not current feature HEAD) |
-| Subject HEAD | `docs(governance): define Iran medical field-level source policy` |
+| Subject HEAD | `docs(governance): codify knowledge source and Cursor execution policies` |
+| Parent | `de7c064133d29ea9e2a6d032b376966f66c1cfe5` |
 | Ahead / behind | `0 / 0` |
+| Remote push | completed by normal non-force push and directly verified (historical §117) |
+| Committed file in HEAD | `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` only |
 | Staged | EMPTY |
 | Untracked | NONE |
-| Dirty scope | فقط `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` (uncommitted) |
-| Latest committed baseline | HEAD `de7c064133d29ea9e2a6d032b376966f66c1cfe5` |
-| Latest working-copy master-log section | §115 (uncommitted) |
-| §114 / §115 | uncommitted working-copy documentation |
-| Current docs status | `SOURCE_AND_CURSOR_EXECUTION_POLICY_AMENDMENT_APPLIED_UNCOMMITTED` |
-| Current decision | `ACCEPT_WITH_MANDATORY_CORRECTIONS_BEFORE_COMMIT` + permanent source-origin and multi-phase Cursor policy (2026-07-23) |
-| اقدام مصوب جاری | docs-only: سیاست دائمی تفکیک منبع + قانون چندمرحله‌ای Cursor داخل §115 |
+| Dirty scope | فقط `docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md` |
+| Reason for dirtiness | uncommitted Current State Header, §116, §117 and §118 reconciliation |
+| Latest committed baseline | HEAD `d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c` |
+| Latest working-copy master-log section | §118 (uncommitted) |
+| §114 / §115 | committed and pushed in `d7ceaf9…` |
+| §116 | uncommitted |
+| §117 | uncommitted |
+| §118 | uncommitted |
+| §119 | NOT CREATED |
+| Current docs status | `E2_C4B_09A_DECISION_DOCUMENTED_UNCOMMITTED` |
+| 09A governance decision | documented by Javad — `REFERENCE_ONLY_CANDIDATE` |
+| Paziresh24 role | `SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE` |
+| Paziresh24 operational state | `UNKNOWN_FAIL_CLOSED` — NOT ACTIVATED |
+| 09B | NOT AUTHORIZED |
+| E2-C1 / E2-C2 | not started by this Gate |
+| E3 / P2 / PIPE/MAIL | NOT AUTHORIZED |
+| Seven permanent policy markers | present exactly once each (canonical in §115.5 / §115.6) |
 | Previous local-commit prompt | `docs(governance): record automated knowledge pipeline safeguards` — **SUPERSEDED; NOT EXECUTED** |
-| Implementation | NOT AUTHORIZED — NOT STARTED |
-| Pipeline | DESIGNED / DECIDED — NOT ACTIVE |
-| Exact next Gate | `WAITING_FOR_JAVAD_REVIEW_AND_FRESH_GIT_AUTHORIZATION` |
+| CI / tests / workflow dispatch | NOT RUN |
+| Implementation / migration / seed / build / deploy / activation | NOT PERFORMED |
+| Pipeline | DESIGNED / GOVERNED — NOT IMPLEMENTED — NOT ACTIVE |
+| Exact next Gate | requires separate explicit authorization from Javad — see §118.9 |
 | I1–I4 | **CI_VERIFIED** (historical; SHA values remain in historical sections) |
 | I5 | Governed Knowledge Platform + Verified Care Directory؛ clinical knowledge = authoritative international only؛ Iran directory = verified Iranian sources only؛ ~22% overall؛ پیاده‌سازی pipeline جدید شروع نشده (درصدها تغییر نکردند) |
 | I5-A / I5-B / I5-C..F | 100% / ~31% / 0% (docs progress; not recalculated by this Gate) |
@@ -40,7 +56,7 @@
 | Frontend Gate 4 / A2 | **تکمیل نشده** |
 | Migration / merge / deploy / flag | **اجرا نشده** |
 | Emails sent / sources activated / provider records via new pipeline | **0 / 0 / 0** |
-| Historical note | مقادیر قدیمی‌تر (از جمله `15d6646…`، S17-G0، I5 preflight، و زبان سیاست قبلی «Iranian + international برای دانش بالینی») فقط در بخش‌های تاریخی معتبرند و دیگر «جاری» نیستند؛ سیاست جاری = §115.۵ / §115.۶ |
+| Historical note | مقادیر قدیمی‌تر (از جمله «§118 NOT CREATED»، tip صرفاً wait-state پس از push، و planning recommendation در §111) فقط snapshot تاریخی‌اند؛ وضعیت جاری = این Header و §118 |
 
 **قاعدهٔ تقدم (precedence):**
 1. واقعیت Git HEAD/branch/remote که در preflight همان مرحله تأیید شود
@@ -18828,8 +18844,607 @@ Exact next Gate:
 WAITING_FOR_JAVAD_REVIEW_AND_FRESH_GIT_AUTHORIZATION
 
 MASTER_LOG_115_APPENDED
-MASTER_LOG_116_NOT_CREATED
 ```
 
 ---
 *پایان §115 — تصمیم اصلاحات الزامی §114، سیاست تفکیک منبع، قانون چندمرحله‌ای Cursor و reconciliation — ۲۰۲۶-۰۷-۲۳*
+---
+
+## ۱۱۶) ثبت محلی commit سیاست منبع دانش و اجرای Cursor + reconciliation
+
+```text
+Package:
+E2_C4B_00_SECTION24_LOCAL_DOCUMENTATION_COMMIT_AND_SECTION116_RECONCILIATION
+
+Title:
+Local documentation commit of knowledge-source and Cursor execution policies,
+seven-policy-marker verification, and §116 SHA reconciliation
+
+Authorization:
+Explicit Javad approval — one-file local commit + uncommitted §116 reconciliation
+NO push / force-push / fetch / pull / network
+NO CI / tests / implementation / migration / deploy / activation / email
+
+Date / timezone:
+2026-07-23 / Asia/Baku
+
+Status:
+MASTER_LOG_116_APPENDED
+LOCAL_COMMIT_COMPLETE
+SECTION116_RECONCILIATION_UNCOMMITTED
+PUSH_NOT_AUTHORIZED
+WAITING_FOR_JAVAD_PUSH_AUTHORIZATION
+```
+
+### ۱۱۶.۱ نتیجه preflight و تأیید هفت نشانگر دائمی
+
+```text
+Preflight parent baseline (matched):
+de7c064133d29ea9e2a6d032b376966f66c1cfe5
+
+Preflight subject:
+docs(governance): define Iran medical field-level source policy
+
+Ahead/behind before commit: 0 / 0
+Dirty before commit: docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md only
+Staged before commit: EMPTY
+Untracked before commit: NONE
+§114 / §115 / §116 before commit: 1 / 1 / 0
+
+Seven permanent policy markers verified exactly once each before stage
+(canonical locations remain §115.5 source-origin and §115.6 Cursor rule;
+this section does not restate the marker tokens):
+1) clinical/health → authoritative international sources only
+2) Iranian sources → verified Iran care-directory fields only
+3) source-origin routing enforced before publication/runtime
+4) Cursor prompts multi-phase by default
+5) one approved Gate may run sequential in-scope phases
+6) in-scope findings require fix + revalidation until closed
+7) speed must not bypass Javad approval Gates
+
+SEVEN_POLICY_MARKERS_VERIFIED_PRE_COMMIT
+```
+
+### ۱۱۶.۲ هویت commit محلی واقعی
+
+```text
+Approved commit subject (exact):
+docs(governance): codify knowledge source and Cursor execution policies
+
+Actual 40-character commit SHA:
+d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+
+Parent SHA:
+de7c064133d29ea9e2a6d032b376966f66c1cfe5
+
+Committed file (exactly one):
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+Commit contents include:
+§114 baseline gap review + mandatory-correction decision
+§115 mandatory-correction closure, weekly cycle, source-origin policy (§115.5),
+    multi-phase Cursor rule (§115.6), and state reconciliation
+
+Amend: NOT USED
+Second commit: NOT CREATED
+Push: NOT PERFORMED
+```
+
+### ۱۱۶.۳ وضعیت پس از commit و قبل از بستن Git
+
+```text
+Branch: feature/section15/backend-continuity-foundation
+HEAD: d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+Upstream / local remote-tracking: de7c064133d29ea9e2a6d032b376966f66c1cfe5
+Ahead / behind: 1 / 0
+Staged: EMPTY
+Untracked: NONE
+Dirty after §116 append: docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md only
+Latest working-copy section: §116 (uncommitted)
+§117: NOT CREATED
+
+Pipeline: designed/decided; NOT implemented; NOT active
+Emails sent: 0
+Sources activated via new pipeline: 0
+Provider records via new pipeline: 0
+Progress percentages: NOT recalculated (I5 ≈22% preserved)
+```
+
+### ۱۱۶.۴ مرزهای مجوز باقی‌مانده
+
+```text
+local commit: COMPLETE
+§116 reconciliation commit: NOT AUTHORIZED in this Gate
+push: NOT AUTHORIZED
+CI / workflow dispatch: NOT AUTHORIZED
+tests: NOT AUTHORIZED
+implementation: NOT AUTHORIZED
+migration / seed / deploy / activation: NOT AUTHORIZED
+email sending: NOT AUTHORIZED
+network / external evidence: NOT AUTHORIZED
+```
+
+### ۱۱۶.۵ نشانگرها و گام بعدی
+
+```text
+§114 / §115 append markers preserved in their sections (not restated here)
+SEVEN_POLICY_MARKERS_VERIFIED_PRE_COMMIT
+LOCAL_COMMIT_COMPLETE_SECTION116_RECONCILIATION_UNCOMMITTED
+NO_PUSH
+NO_CI
+NO_IMPLEMENTATION
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS
+
+Exact next Gate:
+WAITING_FOR_JAVAD_PUSH_AUTHORIZATION
+```
+
+---
+*پایان §116 — ثبت محلی commit سیاست منبع/Cursor و reconciliation — ۲۰۲۶-۰۷-۲۳*
+---
+
+## ۱۱۷) ثبت push عادی و non-force برای commit سیاست‌های منابع و اجرای Cursor و verification مستقیم remote SHA
+
+```text
+Package:
+E2_C4B_00_SECTION24_CONTROLLED_NORMAL_NON_FORCE_PUSH_AND_DIRECT_REMOTE_SHA_VERIFICATION
+
+Title:
+Normal non-force push of knowledge-source and Cursor execution policy commit
+with direct remote SHA verification and uncommitted §117 reconciliation
+
+Authorization (Javad — 2026-07-23 / Asia/Baku):
+- local read-only preflight
+- one required pre-push remote race check (git ls-remote)
+- exactly one normal non-force push
+- direct post-push remote SHA verification (git ls-remote)
+- Current State Header reconciliation
+- §117 appended uncommitted
+NO commit / amend / force-push / unnecessary fetch/pull
+NO CI / test / workflow dispatch / implementation / migration / seed
+NO build / deploy / activation
+
+Status:
+MASTER_LOG_117_APPENDED
+NORMAL_NON_FORCE_PUSH_VERIFIED
+SECTION117_RECONCILIATION_UNCOMMITTED
+```
+
+### ۱۱۷.۱ مجوز و مستثنیات
+
+```text
+Authorized:
+local read-only preflight;
+one pre-push remote race check;
+exactly one normal non-force push;
+direct post-push remote SHA verification;
+Current State Header reconciliation;
+§117 appended uncommitted.
+
+Excluded / not performed:
+commit; amend; force-push; force-with-lease; unnecessary fetch/pull;
+rebase/merge/reset/history rewrite; CI; workflow dispatch; tests;
+implementation; migration; seed; build; deploy; activation;
+external evidence collection; source download/scraping;
+out-of-allowlist modification; staging of §116 or §117.
+```
+
+### ۱۱۷.۲ نتیجه preflight محلی
+
+```text
+Worktree:
+D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+
+Branch:
+feature/section15/backend-continuity-foundation
+
+Initial local HEAD:
+d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+
+Parent:
+de7c064133d29ea9e2a6d032b376966f66c1cfe5
+
+Initial upstream:
+de7c064133d29ea9e2a6d032b376966f66c1cfe5
+
+Initial ahead/behind:
+1/0
+
+Subject:
+docs(governance): codify knowledge source and Cursor execution policies
+
+Committed file:
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md only
+
+Initial dirty file:
+master log only because §116 and header reconciliation were uncommitted
+
+Staged: EMPTY
+Untracked: NONE
+Latest pre-push working-copy section: §116
+§114/§115/§116/§117 heading counts before push: 1/1/1/0
+
+Seven approved policy markers remained present exactly once each
+(canonical tokens not restated here; see §115.5 / §115.6).
+Active pre-push hook: NONE (hooks/pre-push absent)
+```
+
+### ۱۱۷.۳ بررسی مسابقه remote پیش از push
+
+```text
+Queried remote ref (exact):
+refs/heads/feature/section15/backend-continuity-foundation
+
+Remote: origin
+Command: git ls-remote --heads origin refs/heads/feature/section15/backend-continuity-foundation
+Matching refs returned: 1
+
+Observed remote SHA (pre-push):
+de7c064133d29ea9e2a6d032b376966f66c1cfe5
+
+Remote matched approved parent/upstream.
+No remote race detected.
+No fetch or pull occurred.
+```
+
+### ۱۱۷.۴ نتیجه دقیق push
+
+```text
+Exactly one normal non-force push executed.
+Command:
+git push --no-force origin d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c:refs/heads/feature/section15/backend-continuity-foundation
+
+Source commit:
+d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+
+Destination:
+refs/heads/feature/section15/backend-continuity-foundation
+
+Remote: origin
+Result: SUCCESS (exit 0)
+Observed progress: de7c064..d7ceaf9
+
+No --force / --force-with-lease / --mirror / --all / --tags / --no-verify.
+No amend, second commit, or alternate ref.
+```
+
+### ۱۱۷.۵ verification مستقیم پس از push
+
+```text
+Command:
+git ls-remote --heads origin refs/heads/feature/section15/backend-continuity-foundation
+
+Directly observed remote output:
+d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c    refs/heads/feature/section15/backend-continuity-foundation
+
+Matching refs: 1
+Directly observed remote SHA:
+d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+
+Remote SHA exactly matched local HEAD.
+Local upstream/remote-tracking SHA matched.
+Final ahead/behind: 0/0
+Subject, parent and committed-file scope unchanged.
+```
+
+### ۱۱۷.۶ وضعیت نهایی مخزن و سند
+
+```text
+Local HEAD = upstream = directly verified remote SHA =
+d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+
+Only master log dirty.
+Staged: EMPTY
+Untracked: NONE
+§114 and §115: committed and pushed in d7ceaf9…
+§116: remains uncommitted
+§117: appended and uncommitted
+§118: NOT CREATED
+Pipeline implementation/activation: inactive
+Progress percentages: unchanged (I5 ≈22% preserved)
+```
+
+### ۱۱۷.۷ اقدامات مستثنی
+
+```text
+NONE of the following occurred:
+commit or amend;
+force-push or force-with-lease;
+unnecessary fetch or pull;
+rebase, merge, reset or history rewriting;
+CI or workflow dispatch;
+tests;
+implementation;
+migration;
+seed;
+build;
+deploy;
+activation;
+external evidence collection;
+source download or scraping;
+out-of-allowlist modification;
+staging of §116 or §117.
+```
+
+### ۱۱۷.۸ گام بعدی
+
+```text
+1) Javad must review the push and direct remote evidence.
+2) Current State Header, §116 and §117 remain uncommitted.
+3) No CI or implementation is implied by this push.
+4) Any later commit, CI, implementation, migration, deploy or activation
+   requires separate explicit authorization.
+
+Exact next Gate:
+WAITING_FOR_JAVAD_REVIEW_AND_SEPARATE_NEXT_GATE_AUTHORIZATION
+```
+
+---
+*پایان §117 — push عادی non-force و verification مستقیم remote SHA — ۲۰۲۶-۰۷-۲۳*
+---
+
+## ۱۱۸) تصمیم حاکمیتی جواد درباره شواهد عمومی موجود پذیرش۲۴ در E2-C4B-09A
+
+```text
+Package:
+E2_C4B_09A_GOVERNANCE_DECISION_DOCUMENTATION
+
+Title:
+Javad governance decision on existing local Paziresh24 public evidence (§111)
+
+Authorization (Javad — 2026-07-23 / Asia/Baku):
+local-evidence-only documentation of locked governance decision
+master-log-only mutation
+NO network / web search / URL open / evidence recollection or refresh
+NO provider-record access / API / robots / sitemap
+NO implementation / code / test / stage / commit / push / CI
+NO migration / seed / DB / build / deploy / activation
+NO 09B / E2-C1 / E2-C2 / E3 / P2 / PIPE/MAIL
+
+Status:
+MASTER_LOG_118_APPENDED
+MASTER_LOG_119_NOT_CREATED
+E2_C4B_09A_DECISION_DOCUMENTED
+PAZIRESH24_REMAINS_OPERATIONALLY_UNKNOWN_FAIL_CLOSED
+MASTER_LOG_UPDATED_UNCOMMITTED_AND_UNSTAGED
+```
+
+### ۱۱۸.۱ مجوز و محدوده
+
+```text
+Javad authorized documentation-only application of the locked Paziresh24
+governance decision to the existing §111 evidence pack.
+Fixed baseline HEAD/upstream: d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+Allowlist: docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md only
+Review mode: local master-log evidence only — no network.
+Excluded: network recollection; provider data; implementation; tests;
+staging; commit; push; CI; migration; seed; DB; storage; publication;
+activation; 09B; E2-C1/C2; E3; P2; PIPE/MAIL; §119.
+```
+
+### ۱۱۸.۲ نتیجه preflight
+
+```text
+Worktree: D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+Branch: feature/section15/backend-continuity-foundation
+HEAD: d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+Parent: de7c064133d29ea9e2a6d032b376966f66c1cfe5
+Upstream: d7ceaf9e8ab910fa8d9f4bf8c77babedb595a01c
+Ahead/behind: 0/0
+Subject: docs(governance): codify knowledge source and Cursor execution policies
+Initial dirty: master log only (§116/§117 uncommitted)
+Staged: EMPTY
+Untracked: NONE
+Initial headings §114–§118: 1/1/1/1/0
+Initial markers: 114–117_APPENDED=1; 118_NOT_CREATED=1
+Initial SHA-256:
+74237F1AC46EE9165931EDEB987E50966E39CFAC2EFD9B684776D8FF04C6C7DA
+§116 and §117 preserved.
+Seven permanent policy markers verified present exactly once each
+(canonical in §115.5 / §115.6; not restated here).
+Preflight: PASS
+```
+
+### ۱۱۸.۳ شواهد محلی موجود بررسی‌شده
+
+```text
+Primary evidence pack section: §111
+Supporting reconciliation: §112.22; §113.1; §113.4
+Package recorded in §111:
+E2_C4B_09A_PAZIRESH24_RIGHTS_AND_ACCESS_EVIDENCE
+Marker already present: E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_COMPLETE
+
+Existing search IDs reviewed (local only): Q01–Q10
+Recorded access timestamps (UTC, from §111.3; NOT refreshed):
+2026-07-22T06:58Z … 2026-07-22T07:06Z
+
+Existing page-access IDs reviewed (local only): N01–N12
+Previously recorded URLs (NOT opened in this Gate):
+https://paziresh24.com/
+https://www.paziresh24.com/privacy-policy/
+https://developers.paziresh24.com/
+https://developers.paziresh24.com/apis
+https://www.paziresh24.com/home/contact-us/
+https://www.paziresh24.com/faq/
+https://providers.paziresh24.com/
+https://hamdast.paziresh24.com/
+https://developers.paziresh24.com/authorization/scopes
+https://ecosystem.ir/legal/6860/   (SECONDARY_DISCOVERY_ONLY)
+https://support.paziresh24.com/
+https://pricing.paziresh24.com/calculator/  (TIMEOUT historically)
+
+Key facts already recorded in §111 (not revalidated externally):
+- brand/operator presence on official domains PARTIALLY_EVIDENCED
+- dedicated TOU NOT_FOUND_PUBLICLY
+- privacy/IP exclusive ownership language EXPLICIT (N02 paraphrase)
+- commercial trademark use EXPLICITLY_PROHIBITED without written permission
+- storage/processing/indexing/caching lean EXPLICITLY_PROHIBITED without written permission
+- API credential-gated; free automation grant NOT documented
+- paid clinic/API paths EXCLUDED
+- physician searches / profile opens / provider records = 0
+- P24-G01..G12 owned fail-closed / partial gaps remain
+- §111 already recorded a planning recommendation for reference-only
+  candidate use and secondary provider-discovery role (not activated)
+- §111 operational recording: paziresh24_com remains unknown/fail-closed
+
+Evidence provenance for THIS Gate: master-log §111 only.
+No URL opened. No evidence recollected or refreshed.
+No claim of current external revalidation.
+```
+
+### ۱۱۸.۴ تصمیم حاکمیتی قفل‌شده جواد
+
+Authoritative decision table (each locked value appears exactly once in §118):
+
+| Field | Exact locked value |
+|---|---|
+| Gate | `E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_REVIEW_BY_JAVAD` |
+| Decision | `REFERENCE_ONLY_CANDIDATE` |
+| Role | `SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE` |
+| Operational state | `UNKNOWN_FAIL_CLOSED` |
+
+```text
+Governance classification = Decision row above
+Candidate role = Role row above
+Operational state = Operational-state row above
+Current runtime/source activation: NOT_AUTHORIZED
+Current collection or ingestion authorization: NOT_AUTHORIZED
+Rights conclusion:
+NO AUTOMATION, STORAGE, INGESTION, PUBLICATION OR COMMERCIAL-REUSE RIGHT PROVEN
+Verification boundary:
+NOT AN OFFICIAL PROVIDER OR CARE-CENTER VERIFICATION AUTHORITY
+Clinical boundary:
+NOT ELIGIBLE AS A CLINICAL-GUIDANCE AUTHORITY
+
+This decision is documentation-only.
+It does NOT activate any source, catalog, fetch, publication or runtime capability.
+It is NOT a legal license or contractual permission.
+```
+
+### ۱۱۸.۵ مرز استفاده مجاز (سیاست آینده، نه فعال‌سازی)
+
+```text
+Permitted policy role: secondary discovery only
+
+Mandatory safeguards for any later separately authorized discovery use:
+- explicit attribution
+- explicit provenance
+- separate official verification of provider/center identity, license,
+  specialty, accreditation and active status
+- separate implementation authorization
+- separate activation authorization
+- purpose limitation
+- data minimization
+- fail-closed handling
+
+Platform listing ≠ official verification.
+Paziresh24 ≠ clinical-guidance authority.
+Public visibility ≠ automation/reuse permission.
+Attribution ≠ license.
+Absence of prohibition ≠ permission.
+Missing/ambiguous rights evidence remains fail-closed.
+```
+
+### ۱۱۸.۶ ماتریس حقوق و استفاده‌های ممنوع
+
+| Capability | Right proven | Current authorization | Handling |
+|---|---|---|---|
+| Automated collection | NO | NO | FAIL_CLOSED |
+| Automated enumeration | NO | NO | FAIL_CLOSED |
+| Crawling/scraping | NO | NO | FAIL_CLOSED |
+| Storage | NO | NO | FAIL_CLOSED |
+| Bulk storage | NO | NO | FAIL_CLOSED |
+| Full ingestion | NO | NO | FAIL_CLOSED |
+| Governed ingestion | NO | NO | FAIL_CLOSED |
+| Publication | NO | NO | FAIL_CLOSED |
+| Republication | NO | NO | FAIL_CLOSED |
+| Commercial reuse | NO | NO | FAIL_CLOSED |
+| Sale | NO | NO | FAIL_CLOSED |
+| Resale | NO | NO | FAIL_CLOSED |
+| Redistribution | NO | NO | FAIL_CLOSED |
+| Dataset creation | NO | NO | FAIL_CLOSED |
+| Catalog activation | NO | NO | FAIL_CLOSED |
+| Runtime serving | NO | NO | FAIL_CLOSED |
+
+```text
+For every capability above:
+RIGHT_NOT_ESTABLISHED
+NOT_AUTHORIZED
+FAIL_CLOSED
+
+Public accessibility is not a license.
+Attribution is not a license.
+Absence of prohibition is not permission.
+No missing or ambiguous evidence may be upgraded into a positive right.
+```
+
+### ۱۱۸.۷ آثار وضعیتی
+
+```text
+E2-C4B-09A governance decision:
+DOCUMENTED_BY_JAVAD
+
+E2-C4B-09A operational source status:
+NOT_ACTIVATED
+
+Paziresh24 source eligibility:
+reference-only candidate; fail-closed for all unproven rights
+(exact tokens only in §118.4 decision table)
+
+E2-C4B-09B:
+NOT_STARTED_NOT_AUTHORIZED
+
+E2-C1/C2:
+NOT_STARTED_BY_THIS_GATE
+
+E2 overall:
+NOT_CLOSED_BY_THIS_GATE
+
+E3:
+NOT_STARTED_NOT_AUTHORIZED
+
+P2:
+NOT_STARTED_NOT_AUTHORIZED
+
+PIPE/MAIL:
+NOT_STARTED_NOT_AUTHORIZED
+
+Progress percentages: NOT recalculated (I5 ≈22% preserved).
+```
+
+### ۱۱۸.۸ اقدامات مستثنی
+
+```text
+NONE of the following occurred:
+network access;
+evidence recollection;
+provider-data access;
+implementation;
+code/configuration/test change;
+test execution;
+stage;
+commit or amend;
+push, fetch or pull;
+CI or workflow dispatch;
+migration or seed;
+database action;
+raw-content/provider-record storage;
+build or deploy;
+publication;
+source, flag, scheduler or runtime activation;
+out-of-allowlist mutation.
+```
+
+### ۱۱۸.۹ وضعیت جاری و گام بعدی
+
+```text
+E2_C4B_09A_DECISION_DOCUMENTED
+PAZIRESH24_REMAINS_OPERATIONALLY_UNKNOWN_FAIL_CLOSED
+MASTER_LOG_UPDATED_UNCOMMITTED_AND_UNSTAGED
+WAITING_FOR_JAVAD_REVIEW_AND_SEPARATE_NEXT_GATE_AUTHORIZATION
+
+No next Gate selected or started by this documentation Gate.
+```
+
+---
+*پایان §118 — تصمیم حاکمیتی جواد درباره شواهد عمومی پذیرش۲۴ (E2-C4B-09A) — ۲۰۲۶-۰۷-۲۳*
