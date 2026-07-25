@@ -21177,3 +21177,180 @@ LEDGER_TRANSITION_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۲۴ — F3 Remediation B: Exact Child-Gate Citations, Outcome C Owner Authority, and Current-State Supersession — ۲۰۲۶-۰۷-۲۳ / Asia/Baku*
+
+---
+
+## ۱۲۵) F3-Fix2 canonical 15-item revalidation and append-only analytical result deposit
+
+### ۱۲۵.۱) AUTHORIZATION AND SCOPE
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-09B-
+F3-FIX2-CANONICAL-15-ITEM-REVALIDATION-
+AND-APPEND-ONLY-RESULT-DEPOSIT-v1
+
+AUTHORIZATION = JAVAD_EXPLICIT_FOR_THIS_GATE_ONLY
+GATE_DATE = 2026-07-25
+GATE_TYPE = READ_ONLY_ANALYTICAL_REVALIDATION_PLUS_APPEND_ONLY_RESULT_DEPOSIT
+
+SCOPE =
+  fresh evidence-bound revalidation of all 15 canonical F3 ledger items;
+  append-only deposit of the actual analytical result into §125 only
+
+PROHIBITED_IN_THIS_GATE =
+  ledger status transition;
+  remediation implementation;
+  F3 / 09B / E2 / P2 / E3 / PIPE_MAIL closure or start;
+  capability activation;
+  test / network / staging / commit / push / CI / migration / deploy / flag change
+```
+
+### ۱۲۵.۲) VERIFIED BASELINE
+
+```text
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = 40b94e90c9ad83c321d1436b59721587762d9229
+PARENT = cffe328bcd361f97c1a369e5289f0af2eaf5ba8d
+HEAD_SUBJECT = docs(governance): add F3 remediation B authority addendum
+LOCAL_UPSTREAM_SHA = 40b94e90c9ad83c321d1436b59721587762d9229
+AHEAD_BEHIND = 0/0
+INITIAL_WORKTREE = CLEAN
+INITIAL_STAGING = EMPTY
+INITIAL_UNTRACKED_COUNT = 0
+ACTIVE_GIT_OPERATION = NONE
+NETWORK_FETCH_PERFORMED = NO
+
+SECTION_122_HEADING_COUNT = 1
+SECTION_123_HEADING_COUNT = 1
+SECTION_124_HEADING_COUNT = 1
+SECTION_125_PREVIOUSLY_ABSENT = YES
+
+CANONICAL_LEDGER_ROW_COUNT = 15
+PERSISTED_OPEN_UNVALIDATED_COUNT = 15
+PERSISTED_REVALIDATED_PASS_COUNT = 0
+
+PREVIOUS_PRESERVED_ANALYTICAL_RESULT (§124.7) =
+  REVALIDATED_PASS = 13
+  REVALIDATED_FAIL = 1
+  BLOCKED_EVIDENCE_GAP = 1
+  SUM = 15
+
+SELECTED_OUTCOME = C
+09B_CLOSED = NO
+E2_CLOSED = NO
+P2_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+F3_CLOSED_TOKEN_BEFORE_THIS_GATE = ABSENT_EXPECTED_MARKER_GAP_NOT_BASELINE_MISMATCH
+```
+
+### ۱۲۵.۳) CANONICAL 15-ITEM REVALIDATION TABLE
+
+Fresh revalidation against committed §122–§124 and exact committed repository evidence referenced therein.
+Persisted ledger statuses are not transitioned.
+
+| canonical_row_id | finding_or_category_identity | closure_requirement | exact_authority_pointer | exact_committed_evidence_pointer | prior_analytical_verdict | fresh_revalidation_verdict | concise_evidence_bound_reason | persisted_status | transition_performed |
+|---|---|---|---|---|---|---|---|---|---|
+| F3-REPORT-01 | Approximate ≈ L. citations / ORIGINAL_F3_REPORT_DEFECT | Exact L##### citations only; approximate citation tokens forbidden | §122.3 row F3-REPORT-01; §123.3 APPROXIMATE_CITATION_TOKEN=FORBIDDEN; §123.12 | §123.3; §123.5 20-row matrix evidence cells use exact L/E- citations; ≈ L. appears only as defect-title text in §123.12, not as citation practice | REVALIDATED_PASS | PASS | Committed §123 forbids approximate citations and uses exact L-range evidence; no approximate citation practice remains in corrective matrix | OPEN_UNVALIDATED | NO |
+| F3-REPORT-02 | Grouped unproven Gate states / ORIGINAL_F3_REPORT_DEFECT | One-Gate rows; no grouped multi-Gate state row; two-axis model | §122.3; §123.6; §123.12 | §123.6: 21 unique E2-C* rows; NO_GROUPED_MULTI_GATE_STATE_ROW=YES; AXIS A/B separated | REVALIDATED_PASS | PASS | Committed child-Gate inventory is 21 discrete one-Gate rows with independent axes | OPEN_UNVALIDATED | NO |
+| F3-REPORT-03 | Silence → non-blocking / ORIGINAL_F3_REPORT_DEFECT | Silence/missing evidence not treated as non-blocking; UNKNOWN retained | §122.3; §123.7; §123.10; §123.12 | §123.7 SILENCE_IS_NOT_EVIDENCE=YES; MISSING_EVIDENCE_IS_NOT_NON_BLOCKING=YES; UNKNOWN_NOT_CONVERTED_TO_NO=YES; §123.10 09B_AUDIT_RECOMMENDATION=INDETERMINATE_REQUIRES_GOVERNANCE_DECISION | REVALIDATED_PASS | PASS | Explicit silence/fail-closed policy and indeterminate 09B recommendation are committed | OPEN_UNVALIDATED | NO |
+| F3-REPORT-04 | Overbroad acceptance YES / ORIGINAL_F3_REPORT_DEFECT | OVERBROAD_ACCEPTANCE_YES must be NO; no acceptance decision on Javad behalf | §122.3; §123.10; §124.4 JOA clause 5 | §123.10 OVERBROAD_ACCEPTANCE_YES=NO; ACCEPTANCE_DECISION_ON_JAVAD_BEHALF=NO; §124.4 same markers | REVALIDATED_PASS | PASS | Overbroad YES is explicitly negated in committed §123.10 and §124.4 | OPEN_UNVALIDATED | NO |
+| F3-REPORT-05 | Nonconforming matrix / ORIGINAL_F3_REPORT_DEFECT | Exact 20-row matrix; single Result; normative≠evidence columns | §122.3; N-FIX1-P6 via §123.3; §123.5; §123.12 | §123.5: 20 criteria; Result ∈ {PASS,FAIL,BLOCKED_EVIDENCE_GAP}; 9+6+5=20; normative and committed-evidence columns separated | REVALIDATED_PASS | PASS | Committed matrix conforms to exact 20-row single-classification reconciliation | OPEN_UNVALIDATED | NO |
+| F3-REPORT-06 | Nonnumeric counts / ORIGINAL_F3_REPORT_DEFECT | Integer reconciliations for criteria, child-Gate axes, and findings | §122.3; §123.6; §123.8; §123.11; §123.12 | §123.8: 20=9+6+5+0; authority 10+11=21; evidence 7+14=21; §123.11 FINDINGS_COUNT=9 with 9+0=9 | REVALIDATED_PASS | PASS | All required count reconciliations are present as integers and sum correctly | OPEN_UNVALIDATED | NO |
+| F3-REPORT-07 | False no-findings / ORIGINAL_F3_REPORT_DEFECT | Explicit non-empty findings list; NO_FINDINGS prohibited | §122.3; §123.11; §123.12 | §123.11: FINDINGS_PRESENT path via FINDINGS_COUNT=9; nine distinct F123-C* rows; NO_FINDINGS=FALSE | REVALIDATED_PASS | PASS | Committed findings inventory is explicit, deduplicated, and non-zero | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-01 | MIXED HIERARCHY / F3_FIX1_REVIEW_FINDING | Criteria hierarchy separated from CHILD_GATE_INVENTORY; nested listed separately | §122.3; §123.4–§123.6; §123.12 | §123.4 NO_MIXED_HIERARCHY=YES; §123.5 criteria matrix separate from §123.6 21-row inventory; nested Gates not flattened into mandatory-10 | REVALIDATED_PASS | PASS | Hierarchy separation and nested listing are committed and machine-checkable | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-02 | mandatory inferred from listing / F3_FIX1_REVIEW_FINDING | AXIS A MANDATORY only via Blocking/L9672; else LISTED_NOT_PROVEN_MANDATORY | §122.3; §123.6; N-FIX1-SILENCE via §123.3; §123.12 | §123.6: 10 MANDATORY_WITH_EXACT_AUTHORITY + 11 LISTED_NOT_PROVEN_MANDATORY; NO_MANDATORY_INFERRED_FROM_LISTING_ONLY=YES; E2-C3A/C3B PASS evidence does not convert authority to mandatory | REVALIDATED_PASS | PASS | Mandatory status is not inferred from listing-only rows in committed inventory | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-03 | invalid mandatory counts / F3_FIX1_REVIEW_FINDING | Authority 10+11=21; Evidence 7+14=21; no PASS+MANDATORY cross-add | §122.3; §123.6; §123.8; §123.12 | §123.6/§123.8 AUTHORITY_RECONCILE=10+11+0+0+0=21; EVIDENCE_RECONCILE=7+14+0+0=21; NO_CROSS_ADD_OF_AUTHORITY_AND_EVIDENCE_AXES=YES; NO_FORMULA_ADDING_PASS_TO_MANDATORY_OR_LISTED=YES | REVALIDATED_PASS | PASS | Axis counts reconcile independently without cross-addition | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-04 | incomplete exact citations / F3_FIX1_REVIEW_FINDING | Exact path+commit+L citations for child-Gate inventory; bare section/prose-only forbidden | §122.3; §124.2 correction target (incomplete citations in §123.6); §124.3 restatement authority | §124.3 at HEAD 40b94e9: 21/21 rows with docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md @ cffe328… + L-ranges; EXACT_CITATION_COVERAGE=21_OF_21_ROWS; BARE_SECTION_ONLY_CITATIONS=0; cited L-lines verified present in cffe328 blob | BLOCKED_EVIDENCE_GAP | PASS | Prior GAP resolved by committed §124.3 exact 21-row citation restatement; sample L citations authenticate against cffe328 | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-05 | criterion 19 logic defect / F3_FIX1_REVIEW_FINDING | Named inventories A/B/C; independent re-evaluation; no generic incomplete phrase | §122.3; §123.9; §123.12 | §123.9 defines INVENTORY_A/B/C with named incomplete/fail entries; CORRECTED_LOGICAL_EVALUATION; RESULT=FAIL; PRIOR_GENERIC_INVENTORY_WORDING superseded | REVALIDATED_PASS | PASS | Criterion 19 corrective logic with named inventories is committed | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-06 | false full-correction counts / F3_FIX1_REVIEW_FINDING | Must not claim full correction/closure while ledger remains OPEN_UNVALIDATED pending Fix2 | §122.3; §123.2; §123.12; §123.14; §124.2 REVALIDATED_PASS_CLAIMED=NO | §123.12 CORRECTIVE_EVIDENCE_AUTHORED_PENDING_REVALIDATION=15; REVALIDATED_PASS_USED=NO; ALL_15_LEDGER_ROWS=OPEN_UNVALIDATED; §124 REVALIDATED_PASS_CLAIMED=NO | REVALIDATED_PASS | PASS | Committed corrective artifacts withhold false full-correction and keep persisted OPEN_UNVALIDATED | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-07 | Outcome C not audit-proven / F3_FIX1_REVIEW_FINDING | Committed Outcome C contract authority after matrices; A/B/D unproven; no overbroad YES | §122.3; §124.2 target (unavailable committed N-F3-P6 Outcome C authority); §124.4 JOA-F3-OUTCOME-C-2026-07-23-v1 | JOA body committed at HEAD 40b94e9 (§124.4); absent at parent cffe328; SELECTED_OUTCOME=C; contract matches §123.5 9+6+5=20; OUTCOME A/B/D unproven; OVERBROAD_ACCEPTANCE_YES=NO; attestation occurrences=1 | REVALIDATED_FAIL | PASS | Prior FAIL resolved: JOA Outcome C owner authority is present in HEAD blob and binds SELECTED_OUTCOME=C to the committed matrix without recovering N-F3-P6 text | OPEN_UNVALIDATED | NO |
+| F3-FIX1-REVIEW-08 | premature append-only recommendation / F3_FIX1_REVIEW_FINDING | No E2/09B closure append; next steps separately gated (commit/push/Fix2) | §122.3; §123.14–§123.15; §124.5–§124.8 | §123.14 E2_CLOSED=NO / 09B_CLOSED=NO; §123.15 Fix2 not authorized by that Gate; §124.5 supersedes stale commit-as-next; §124.8 LEDGER_TRANSITION_AUTHORIZED_BY_THIS_GATE=NO | REVALIDATED_PASS | PASS | Premature closure/transition recommendations are absent; next Gates remain separately authorization-gated | OPEN_UNVALIDATED | NO |
+
+### ۱۲۵.۴) MACHINE-CHECKABLE ACTUAL TOTALS
+
+```text
+CANONICAL_LEDGER_ROW_COUNT = 15
+REVALIDATED_ITEM_COUNT = 15
+REVALIDATED_PASS_COUNT = 15
+REVALIDATED_FAIL_COUNT = 0
+RESIDUAL_GAP_COUNT = 0
+PASS_FAIL_GAP_RECONCILE = 15 + 0 + 0 = 15
+
+DUPLICATE_ROW_ID_COUNT = 0
+MISSING_ROW_ID_COUNT = 0
+UNEXPECTED_ROW_ID_COUNT = 0
+
+PERSISTED_OPEN_UNVALIDATED_COUNT = 15
+PERSISTED_REVALIDATED_PASS_COUNT = 0
+LEDGER_TRANSITION_PERFORMED = NO
+
+SELECTED_OUTCOME = C
+
+F3_FIX2_ANALYTICAL_REVALIDATION = PASS_15_OF_15
+F3_FIX2_REVALIDATION_RESULT = PASS_15_OF_15
+
+DELTA_FROM_PRESERVED_PRIOR_13_1_1 =
+  F3-FIX1-REVIEW-04 : BLOCKED_EVIDENCE_GAP -> PASS (committed §124.3)
+  F3-FIX1-REVIEW-07 : REVALIDATED_FAIL -> PASS (committed §124.4 JOA at HEAD)
+  OTHER_13_ROWS : REVALIDATED_PASS -> PASS (reconfirmed)
+```
+
+### ۱۲۵.۵) FAIL/GAP DETAILS
+
+```text
+NO_ACTIONABLE_ANALYTICAL_FINDING_REMAINS = YES
+REVALIDATED_FAIL_COUNT = 0
+RESIDUAL_GAP_COUNT = 0
+FAIL_OR_GAP_DETAIL_ROWS = 0
+```
+
+No FAIL or GAP remains from this fresh Fix2 revalidation. Remediation implementation is not authorized or performed by this Gate.
+
+### ۱۲۵.۶) EXPLICIT NON-CLOSURE BOUNDARY
+
+```text
+F3_CLOSED = NO
+09B_CLOSED = NO
+E2_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+PIPE_MAIL_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+LEDGER_TRANSITION_PERFORMED = NO
+REMEDIATION_IMPLEMENTED = NO
+TEST_EXECUTED = NO
+NETWORK_USED = NO
+STAGING_PERFORMED = NO
+COMMIT_PERFORMED = NO
+PUSH_PERFORMED = NO
+CI_EXECUTED = NO
+MIGRATION_EXECUTED = NO
+DEPLOY_EXECUTED = NO
+FLAG_CHANGED = NO
+```
+
+Analytical PASS_15_OF_15 does not close F3, does not transition any §122 persisted row, and does not authorize 09B/E2 closure or capability activation.
+
+### ۱۲۵.۷) NEXT GATE — NOT AUTHORIZED
+
+```text
+NEXT_SEPARATELY_APPROVAL_GATED_ACTION =
+  read-only review of newly appended §125 and the one-file append-only diff
+
+LEDGER_TRANSITION_AUTHORIZED_BY_THIS_GATE = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+REMOTE_VERIFY_AUTHORIZED_BY_THIS_GATE = NO
+
+AFTER_SEPARATE_REVIEW_AND_ANY_SEPARATELY_APPROVED_COMMIT_PUSH_VERIFY =
+  a later ledger-transition Gate would require a new Javad authorization
+  and a new baseline; it is not started here
+
+REMEDIATION_ANALYSIS_GATE_REQUIRED = NO
+  (because REVALIDATED_FAIL_COUNT = 0 and RESIDUAL_GAP_COUNT = 0)
+```
+
+---
+*پایان §۱۲۵ — F3-Fix2 canonical 15-item revalidation and append-only analytical result deposit — ۲۰۲۶-۰۷-۲۵ / Asia/Baku*
