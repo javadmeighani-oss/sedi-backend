@@ -22649,3 +22649,1167 @@ P2_START_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۳۰ — 09B formal closure after validated residual disposition — ۲۰۲۶-۰۷-۲۵ / Asia/Baku*
+
+---
+
+## ۱۳۱) بسته E2-C4B-02 — آماده‌سازی مخزنی کشف هویت/اعتباربخشی بیمارستان و کلینیک (بدون شبکه)
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-02-HOSPITAL-ACCREDITATION-DISCOVERY-v1
+
+GATE =
+E2_C4B_02_HOSPITAL_ACCREDITATION_DISCOVERY_REPOSITORY_PREPARATION
+
+Owner:
+Facility Verification + Legal (evidence design)
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for repository-side E2-C4B-02 preparation ONLY
+NETWORK = NO
+NO web search / curl / HTTP / browser / scrape / API / DNS probe
+NO live hospital lookup / live accreditation lookup
+NO individual facility record collection
+NO catalog edit / eligibility promotion / fetch enablement / publication
+NO E2-C4B-03..F / E3 / P2
+NO stage / commit / push / CI
+NO capability activation
+
+Baseline SHA:
+c3487379026746809f9cfe346fe9e2119897af56
+
+Controlling governance at entry:
+F3_CLOSED = YES
+09B_CLOSED = YES
+E2_CLOSED = NO
+E2_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+P2_STARTED = NO
+RIGHTS_STATE_REMAINS_FAIL_CLOSED = YES
+16_CAPABILITIES_REMAIN_NOT_ACTIVATED = YES
+CAPABILITY_ACTIVATION = NO
+```
+
+### ۱۳۱.۱) اختیار و بازسازی قرارداد E2-C4B-02
+
+```text
+E2_C4B_02_PURPOSE =
+  hospital / clinic identity discovery (IR-SC-03)
+  + hospital / clinic accreditation discovery (IR-SC-04)
+  + scoped teaching-hospital facility-identity slice of IR-SC-14
+    (patient-education slice remains E2-C4B-05)
+  under Iran-first free-official discovery rules from §99
+
+E2_C4B_02_AUTHORITY =
+  §99.21 L11867 — E2-C4B-02 hospital and accreditation discovery approval
+  IR-SC-03 / IR-SC-04 (§99.3)
+  OD-C4A-03 / OD-C4A-04 (§99.19)
+  Strategy H (§99.8) Facility/accreditation discovery
+  D-IR-03 APPROVED_BY_JAVAD — hospitals/clinics deferred until free official
+    identity and accreditation source is verified (§97.۲۲)
+
+E2_C4B_02_ENTRY_CRITERIA =
+  HEAD = c3487379026746809f9cfe346fe9e2119897af56
+  worktree clean
+  09B_CLOSED = YES
+  E2-C4A COMPLETE (scope)
+  E2-C4B-00 / E2-C4B-01 / E2-C4B-01A / E2-C4B-09A PASS as listed evidence
+  E2-C4B-09B CLOSED_RESIDUAL (§130)
+  explicit Javad approval of this package
+  NETWORK not authorized in this Gate
+
+E2_C4B_02_REQUIRED_ARTIFACTS =
+  Logical discovery-review artifacts (§99.10) — documentation-level only:
+  1 DiscoveryCandidateRecord
+  2 AuthorityEvidenceRecord
+  3 CostEvidenceRecord
+  4 TermsAndLicenseEvidenceRecord
+  5 AutomatedAccessEvidenceRecord
+  6 AttributionRequirementRecord
+  7 MedicalReviewRequirementRecord
+  8 FreshnessRequirementRecord
+  9 SecurityAssessmentRecord
+  10 CandidateDecisionRecord
+  Schemas/models implemented in this Gate: 0
+  Separate on-disk evidence files: NOT authoritatively named for C4B-02
+  Continuity artifact: master-log only (same pattern as C4B discovery packages)
+
+E2_C4B_02_REQUIRED_FIELDS =
+  From §99.11 provenance (31) + §99.12 attribution (12) applied to:
+  FACILITY_IDENTITY_AUTHORITY (IR-SC-03)
+  ACCREDITATION_AUTHORITY (IR-SC-04)
+  See §131.4–§131.5 field contracts below
+
+E2_C4B_02_ALLOWED_EVIDENCE_CLASSES =
+  official MoH / facility-regulator identity registries (OFS-02)
+  official accreditation-body status evidence (OFS-03)
+  TIER A government/regulator/statutory when ownership proven
+  TIER C teaching-facility self-identity LIMITED (not independent national
+    accreditation of peers) — §99.5
+  NOT: commercial directory as primary accreditation (TIER D)
+  NOT: facility website alone as independent accreditation (§99.4 lock)
+  NOT: ranking / quality claims / clinical advice
+
+E2_C4B_02_SUCCESS_CRITERIA =
+  Full child success (authoritative, after controlled network Gate):
+    discovery of free official hospital/clinic identity and accreditation
+    source candidates with authority/cost/terms/automation packs recorded;
+    all candidates remain UNKNOWN_FAIL_CLOSED or excluded until governance;
+    no catalog promotion; no individual facility PII harvest beyond allowlist
+  This Gate (network = NO) success:
+    repository preparation of contracts + planned discovery + fail-closed
+    slots + exact network allowlist proposal + master-log truth record
+
+E2_C4B_02_FAIL_CLOSED_STATES =
+  UNKNOWN_FAIL_CLOSED (default for IR-SC-03/04)
+  NOT_ESTABLISHED
+  UNVERIFIED
+  NOT_AUTHORIZED
+  PAID_EXCLUDED (if paid API/source discovered later)
+  REJECTED / NONOFFICIAL_REJECTED_AS_PRIMARY_AUTHORITY (lookalikes)
+  Absence of evidence ≠ negative proof of non-existence
+
+E2_C4B_02_DOWNSTREAM_DEPENDENCIES =
+  E2-C4B-03 (lab identity/accreditation) — not started
+  E2-C4B-05 (IR-SC-14 education slice) — not started
+  E2-C4C evidence normalization
+  Parent E2-C4 remains open until C4 path complete
+  D-IR-03 product deferral remains until free official sources verified
+```
+
+### ۱۳۱.۲) پیش‌نیازها / وضعیت پیشینیان
+
+```text
+E2-C4A = PASS (scope-review COMPLETE; ZERO FREE_AND_DISCOVERY_ELIGIBLE at scope time)
+E2-C4B-00 = PASS (field-level governance docs)
+E2-C4B-01 = PASS (physician-registry discovery; network was authorized then)
+E2-C4B-01A = PASS (IRIMC public evidence docs)
+E2-C4B-09A = PASS (commercial directory evidence docs; NOT_ACTIVATED)
+E2-C4B-09B = CLOSED_RESIDUAL (§130; gaps preserved; rights fail-closed)
+E2-C4B-02 prior state = NOT STARTED / NOT AUTHORIZED in historical sections
+E2-C4 parent = FAIL / NOT CLOSED
+E2 parent = NOT CLOSED
+
+Local catalog hospital/accreditation source rows for IR-SC-03/04 = ZERO
+  (trusted_source_catalog_v1.yaml contains irimc_member_search physician key only;
+   no hospital registry / accreditation source_key found)
+
+Local admissible external discovery evidence for hospital identity/accreditation
+  registries = NONE (no prior C4B-02 search/page ledger exists)
+```
+
+### ۱۳۱.۳) DERIVED MUTATION ALLOWLIST
+
+```text
+DERIVED_MUTATION_ALLOWLIST =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+PATH =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+AUTHORITY / PRECEDENT =
+  Section 26 continuity; C4A/C4B packages record discovery contracts and
+  evidence ledgers in this master log; §99.10 schemas implemented = 0;
+  no separate C4B-02 evidence filename/path is authoritatively named in repo
+WHY REQUIRED =
+  append-only Gate continuity + contract/preparation record
+EXPECTED MUTATION TYPE =
+  APPEND_ONLY new §131
+
+OUT_OF_ALLOWLIST_PATHS_MUTATED = 0
+NEW_FOLDER_NAMES_INVENTED = 0
+NEW_EVIDENCE_FILENAMES_INVENTED = 0
+NEW_SCHEMAS_IMPLEMENTED = 0
+```
+
+### ۱۳۱.۴) قرارداد هویت بیمارستان / کلینیک (IR-SC-03)
+
+Documentation contract only — no live values asserted.
+
+| Field / evidence need | Required? | Allowed role | Prohibited use | Default if unknown |
+|---|---|---|---|---|
+| publisher legal/official identity | REQUIRED | FACILITY_IDENTITY_AUTHORITY | ranking; accreditation alone | UNKNOWN_FAIL_CLOSED |
+| authority owner (MoH / facility regulator) | REQUIRED | IDENTITY_AUTHORITY | commercial popularity as authority | UNKNOWN_FAIL_CLOSED |
+| canonical registry / locator URL | REQUIRED after discovery | provenance | inventing URL without capture | NOT_ESTABLISHED |
+| domain / jurisdiction / language | REQUIRED after discovery | provenance | spoof/lookalike as primary | UNKNOWN_FAIL_CLOSED |
+| facility identity evidence type | REQUIRED | facility identity pack | treating directory scrape as official | UNKNOWN_FAIL_CLOSED |
+| free-of-charge to view | REQUIRED | free-source model | paid source adoption | UNKNOWN_FAIL_CLOSED |
+| storage / product-use rights | REQUIRED | Cost+Terms packs | free-to-view ≠ free-to-store | UNKNOWN_FAIL_CLOSED |
+| automation / robots / API rights | REQUIRED | AutomatedAccess pack | bypass / form abuse | UNKNOWN_FAIL_CLOSED |
+| attribution feasibility | REQUIRED | Attribution pack | promote without attribution | UNKNOWN_FAIL_CLOSED |
+| freshness / revocation signals | REQUIRED | Freshness pack | stale as verified | UNKNOWN_FAIL_CLOSED |
+| medical review level | REQUIRED | MR-0 identity/admin | clinical claims | MR-0 proposed |
+| security / hostile-content controls | REQUIRED | §99.17 | trust raw HTML | UNTRUSTED |
+
+```text
+IR-SC-03_DEFAULT_STATE = UNKNOWN_FAIL_CLOSED
+DISCOVERED_OFFICIAL_HOSPITAL_IDENTITY_CANDIDATES_IN_THIS_GATE = 0
+FABRICATED_FACILITY_IDENTITIES = 0
+INDIVIDUAL_FACILITY_RECORDS_COLLECTED = 0
+```
+
+### ۱۳۱.۵) قرارداد اعتباربخشی / مجوز (IR-SC-04)
+
+Documentation contract only — no live grades/status asserted.
+
+| Field / evidence need | Required? | Allowed role | Prohibited use | Default if unknown |
+|---|---|---|---|---|
+| official accreditor identity | REQUIRED | ACCREDITATION_AUTHORITY | facility self-claim as national accreditation | UNKNOWN_FAIL_CLOSED |
+| accreditation certificate/status evidence type | REQUIRED | accreditation pack | quality ranking; clinical advice | UNKNOWN_FAIL_CLOSED |
+| status + date (when captured) | REQUIRED after discovery | freshness | inventing grade/status | NOT_ESTABLISHED |
+| free / paid / paywall classification | REQUIRED | free-source model | PAID_API adoption | UNKNOWN_FAIL_CLOSED |
+| storage / product-use / automation rights | REQUIRED | Cost+Terms+Auto packs | operational enablement from discovery alone | UNKNOWN_FAIL_CLOSED |
+| corroboration vs facility website | REQUIRED | TIER C limit | facility website = independent peer accreditation | UNKNOWN_FAIL_CLOSED |
+| medical review | REQUIRED | MR-0/1 per §99.3 | clinical ranking from accreditation | UNKNOWN_FAIL_CLOSED |
+
+```text
+IR-SC-04_DEFAULT_STATE = UNKNOWN_FAIL_CLOSED
+DISCOVERED_OFFICIAL_ACCREDITATION_CANDIDATES_IN_THIS_GATE = 0
+FABRICATED_ACCREDITATION_GRADES_OR_STATUS = 0
+ACCREDITATION_AS_QUALITY_RANKING = FORBIDDEN
+```
+
+### ۱۳۱.۶) IR-SC-14 محدوده این Gate
+
+```text
+IN_SCOPE_FOR_E2_C4B_02 =
+  teaching-hospital / academic-center FACILITY_IDENTITY slice only
+  (identity corroboration under Strategy I / OD-C4A-14 dependency on OD-C4A-03)
+
+OUT_OF_SCOPE_DEFERRED_TO_E2_C4B_05 =
+  PATIENT_EDUCATION content collection from teaching hospitals
+  MR-1–3 education packs
+
+OUT_OF_SCOPE_DEFERRED_TO_E2_C4B_03 =
+  laboratory / diagnostic identity (IR-SC-05)
+  laboratory accreditation (IR-SC-06)
+  Strategy H lab-focused query «آزمایشگاه تشخیصی» as primary target
+```
+
+### ۱۳۱.۷) کاندیدهای منطقی (اسلات خالی — بدون ساخت شواهد)
+
+| Slot ID | Class | Purpose | Current state | Evidence acquired this Gate |
+|---|---|---|---|---|
+| C-IR-HOSP-ID-01 | IR-SC-03 / OFS-02 | official hospital/clinic identity registry candidate | NOT_ESTABLISHED | NO |
+| C-IR-HOSP-ACC-01 | IR-SC-04 / OFS-03 | official hospital/clinic accreditation candidate | NOT_ESTABLISHED | NO |
+| C-IR-TEACH-ID-01 | IR-SC-14 identity slice | teaching-hospital identity corroboration candidate | NOT_ESTABLISHED | NO |
+
+```text
+Candidate slots defined: 3
+Candidate URLs invented: 0
+Candidate ownership asserted: 0
+ELIGIBLE / APPROVED_FOR_FETCH / STORAGE / PUBLICATION / RUNTIME_ACTIVE used: 0
+ALL_SLOTS_REMAIN_FAIL_CLOSED_OR_NOT_ESTABLISHED = YES
+```
+
+### ۱۳۱.۸) برنامه کشف (اجرا نشده)
+
+Derived from Strategy H (§99.8) hospital/accreditation portion + Strategy I facility-identity portion; lab-primary queries excluded.
+
+Planned search queries (NOT EXECUTED):
+
+| query ID | exact planned query | purpose | class target |
+|---|---|---|---|
+| PQ-H01 | اعتباربخشی بیمارستان ایران سامانه رسمی | FA accreditation discovery | IR-SC-04 |
+| PQ-H02 | سامانه هویت مراکز درمانی / بیمارستان وزارت بهداشت | FA facility identity registry | IR-SC-03 |
+| PQ-H03 | Iran hospital accreditation official registry | EN accreditation discovery | IR-SC-04 |
+| PQ-H04 | Iran Ministry of Health hospital registry official | EN facility identity | IR-SC-03 |
+| PQ-H05 | شناسه مرکز درمانی رسمی ایران رجیستری | FA facility identity corroboration | IR-SC-03 / IR-SC-14 ID |
+
+```text
+PLANNED_SEARCH_QUERY_COUNT = 5
+SEARCH_EXECUTED = 0
+PAGES_OPENED = 0
+NETWORK_OPERATIONS_EXECUTED = 0
+```
+
+Planned page-class inspections after approved network Gate (NOT EXECUTED):
+about / contact / legal / terms / privacy / robots / API-docs / dataset-docs /
+registry landing / accreditation status landing — public GET/HEAD only;
+NO facility-name or facility-ID form submission; NO individual facility record harvest;
+NO raw HTML/PDF storage unless a later Gate explicitly allowlists it.
+
+### ۱۳۱.۹) تعیین نیاز شبکه
+
+```text
+NETWORK_REQUIRED = YES
+NETWORK_EXECUTED = NO
+NETWORK_DISCOVERY_REQUIRED = YES
+NETWORK_DISCOVERY_NOT_EXECUTED = YES
+
+EXACT_TARGET_SOURCE_FAMILY =
+  official MoH / facility-regulator hospital-clinic identity registries (OFS-02 / IR-SC-03)
+  official hospital/clinic accreditation bodies / status systems (OFS-03 / IR-SC-04)
+  scoped teaching-hospital official identity pages only if returned by official-first discovery
+    (IR-SC-14 identity slice)
+
+EXACT_EVIDENCE_REQUIRED =
+  DiscoveryCandidateRecord fields for each official candidate
+  AuthorityEvidenceRecord (ownership/statutory/regulator)
+  CostEvidenceRecord (free vs paid)
+  TermsAndLicenseEvidenceRecord (storage/product-use)
+  AutomatedAccessEvidenceRecord (robots/API/automation)
+  AttributionRequirementRecord
+  FreshnessRequirementRecord / revocation signals
+  SecurityAssessmentRecord
+  CandidateDecisionRecord → remain UNKNOWN_FAIL_CLOSED or PAID_EXCLUDED / REJECTED
+
+EXACT_NETWORK_OPERATION_NEEDED =
+  controlled search-engine queries (planned PQ-H01..H05; ≤15 total like C4B-01)
+  + public GET/HEAD of official candidate landings/about/terms/robots only
+  + optional secondary statutory corroboration hosts if SERP returns them
+  NO form POST; NO individual facility lookup submit; NO crawl/mirror;
+  NO CAPTCHA/anti-bot bypass; NO login; NO paid API call; NO dataset download
+
+WHY_LOCAL_REPOSITORY_EVIDENCE_IS_INSUFFICIENT =
+  No prior C4B-02 search/page ledger exists.
+  Catalog has zero hospital/accreditation source_key rows.
+  §99 left IR-SC-03/04 at UNKNOWN_FAIL_CLOSED with future Gate = E2-C4B-02.
+  D-IR-03 defers hospitals until free official identity+accreditation source verified.
+  Fabricating domains/status would violate no-synthetic-evidence rule.
+
+PROPOSED_NETWORK_ALLOWLIST =
+  Search engines: ≤ 2 (same bound family as E2-C4B-01)
+  Search query class: PQ-H01..H05 (+ narrowly expanded synonyms only if needed;
+    still ≤15 total queries; lab-primary queries reserved for E2-C4B-03)
+  Page open budget: ≤ 40 (same bound family as E2-C4B-01)
+  Redirects/page: ≤ 3
+  Domain class allow (when SERP returns them; domains NOT pre-invented here):
+    official .gov.ir / .ir government or statutory regulator hosts for MoH /
+    facility licensing / hospital accreditation
+    official accreditation-body hosts when ownership corroborated
+  Explicitly excluded unless later Gate expands:
+    commercial directories as primary accreditation authority
+    individual hospital marketing sites as national accreditation proof
+    paid API portals (classify PAID_EXCLUDED if encountered)
+    physician-registry hosts already covered by C4B-01 (out of C4B-02 purpose)
+    laboratory-primary systems (E2-C4B-03)
+
+NEXT_GATE =
+E2-C4B-02 CONTROLLED NETWORK DISCOVERY APPROVAL
+```
+
+### ۱۳۱.۱۰) مرز حقوق / قابلیت / عملیاتی
+
+```text
+RIGHTS_STATE_REMAINS_FAIL_CLOSED = YES
+SOURCE_RIGHTS_EXPANSION = NO
+OPERATIONAL_AUTHORIZATION = NO
+CAPABILITY_ACTIVATION = NO
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+DISCOVERY_IS_NOT_AUTHORIZATION = YES
+FACILITY_OR_ACCREDITATION_DISCOVERY_IS_NOT_ENDORSEMENT = YES
+REGISTRY_PRESENCE_IS_NOT_INGESTION_OR_REDISTRIBUTION_PERMISSION = YES
+16_CAPABILITIES_REMAIN_NOT_ACTIVATED = YES
+```
+
+### ۱۳۱.۱۱) اثر بر والد E2 / C4 / EO / P2
+
+```text
+E2_C4B_02_STATE =
+PARTIAL — REPOSITORY_PREPARATION_COMPLETE_EXTERNAL_DISCOVERY_REQUIRED
+
+E2_C4B_02_REPOSITORY_PREPARATION_COMPLETE = YES
+E2_C4B_02_EXTERNAL_DISCOVERY_COMPLETE = NO
+E2_C4B_02_ADVANCES_PARENT_C4 = YES
+  (advances by depositing executable discovery contract + network Gate proposal;
+   does NOT close parent C4)
+
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+E2_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+P2_STARTED = NO
+E3_STARTED = NO
+PIPE_MAIL_STARTED = NO
+
+P2_FOUNDATION_PARALLEL_START = NOT AUTHORIZED
+P2_CONTROLLED_PLUMBING_PARALLEL_START = NOT AUTHORIZED
+P2_LIVE_FETCH = NOT AUTHORIZED
+P2_ACTIVATION = NOT AUTHORIZED
+E3 = NOT AUTHORIZED
+```
+
+### ۱۳۱.۱۲) پیاده‌سازی انجام‌شده / انجام‌نشده
+
+```text
+IMPLEMENTATION_PERFORMED =
+  append-only §131 repository preparation for E2-C4B-02
+  authority reconstruction
+  IR-SC-03 / IR-SC-04 / scoped IR-SC-14 contracts
+  empty fail-closed candidate slots
+  planned discovery ledger (not executed)
+  exact controlled-network allowlist proposal
+  parent-state truth markers
+
+ARTIFACTS_CREATED_OR_UPDATED =
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (§131 append only)
+
+NETWORK_PERFORMED = NO
+EXTERNAL_EVIDENCE_ACQUIRED = NO
+CATALOG_EDITED = NO
+CODE_CHANGED = NO
+TESTS_RUN = NO
+CI_RUN = NO
+COMMIT_PERFORMED = NO
+PUSH_PERFORMED = NO
+```
+
+### ۱۳۱.۱۳) شکاف‌های باقیمانده (blocking برای تکمیل کامل child)
+
+| Gap ID | Class | Observed | Owner | Blocking? | Closure criterion | Next Gate |
+|---|---|---|---|---|---|---|
+| G-C4B02-01 | network authorization | NETWORK=NO this Gate | Javad | YES for full child | approve controlled network package | E2-C4B-02 CONTROLLED NETWORK DISCOVERY APPROVAL |
+| G-C4B02-02 | IR-SC-03 official identity candidate | NOT_ESTABLISHED | Facility Verification + Legal | YES | DiscoveryCandidate + Authority packs recorded | same network Gate |
+| G-C4B02-03 | IR-SC-04 official accreditation candidate | NOT_ESTABLISHED | Facility Verification + Legal + Medical/Safety | YES | accreditation packs recorded | same network Gate |
+| G-C4B02-04 | cost/terms/automation for discovered hosts | unknown until capture | Legal + Security | YES after hosts found | Cost+Terms+Auto decisions | network Gate → Javad review |
+| G-C4B02-05 | D-IR-03 deferral release | still deferred | Javad | YES for product use | free official identity+accreditation verified | after discovery + governance |
+
+```text
+REMAINING_EXTERNAL_EVIDENCE_GAPS = 5
+IN_SCOPE_ACTIONABLE_REPO_FINDINGS_AFTER_SELF_HEAL = 0
+```
+
+### ۱۳۱.۱۴) ممیزی داخلی (self-healing)
+
+```text
+Audit iterations: 2
+
+C4B02-A01 baseline HEAD c348737… clean → CLOSED
+C4B02-A02 allowlist derived = master-log only; no invented paths → CLOSED
+C4B02-A03 IR-SC-03/04/14-scope contracts recorded without fabricated facts → CLOSED
+C4B02-A04 network markers NETWORK_EXECUTED=NO explicit → CLOSED
+C4B02-A05 no E2/EO/P2/E3/capability claims → CLOSED
+C4B02-A06 no leakage into E2-C4B-03 lab primary / C4B-05 education → CLOSED
+C4B02-A07 planned queries hospital-focused; lab-primary deferred → CLOSED
+C4B02-A08 candidate slots NOT_ESTABLISHED / fail-closed; zero synthetic URLs → CLOSED
+C4B02-A09 next Gate = controlled network discovery approval (not roadmap) → CLOSED
+C4B02-A10 parent E2_C4 / E2 remain open → CLOSED
+
+Findings fixed in-scope: 0 (first-pass complete)
+Remaining actionable in-scope findings: 0
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS = YES
+```
+
+### ۱۳۱.۱۵) نشانگرهای نهایی
+
+```text
+E2_C4B_02_REPOSITORY_PREPARATION_COMPLETE
+EXTERNAL_DISCOVERY_REQUIRED
+NETWORK_NOT_EXECUTED
+EXACT_NETWORK_ALLOWLIST_DEFINED
+FAIL_CLOSED_EVIDENCE_CONTRACT_PRESERVED
+PARENT_E2_REMAINS_OPEN
+PARENT_E2_C4_REMAINS_OPEN
+P2_NOT_STARTED
+E3_NOT_STARTED
+CAPABILITY_ACTIVATION = NO
+MASTER_LOG_131_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_E2_C4B_02_CONTROLLED_NETWORK_DISCOVERY_APPROVAL
+```
+
+### ۱۳۱.۱۶) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+E2-C4B-02 CONTROLLED NETWORK DISCOVERY APPROVAL
+
+NEXT_GATE_STARTED = NO
+NETWORK_AUTHORIZED_BY_THIS_GATE = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+E3_START_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۱ — Package E2-C4B-02 Hospital/Accreditation Discovery Repository Preparation (network not executed) — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+---
+
+## ۱۳۲) بسته E2-C4B-02 — کشف شبکه‌ای کنترل‌شده هویت/اعتباربخشی بیمارستان و کلینیک
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-02-HOSPITAL-ACCREDITATION-DISCOVERY-v1
+
+GATE =
+E2_C4B_02_HOSPITAL_ACCREDITATION_CONTROLLED_NETWORK_DISCOVERY
+
+Owner:
+Facility Verification + Legal (evidence capture)
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for CONTROLLED BOUNDED EVIDENCE-ONLY network discovery
+Scope: IR-SC-03 / IR-SC-04 / IR-SC-14 facility-identity slice ONLY
+NOT bulk facility harvest
+NOT P2 / E3 / capability activation / publication / runtime ingestion
+NO login / form submit / CAPTCHA bypass / paid API / credential use
+NO E2-C4B-03 lab primary / E2-C4B-05 education expansion
+NO stage / commit / push / CI
+
+Baseline SHA (unchanged HEAD):
+c3487379026746809f9cfe346fe9e2119897af56
+
+Pre-Gate dirty path (approved §131 only):
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+ADDITIONAL_ARTIFACT_PATH =
+NO_ADDITIONAL_ARTIFACT_PATH_AUTHORIZED
+```
+
+### ۱۳۲.۱) پیش‌اعلام دفترچه جستجو (قبل از اجرا)
+
+```text
+SEARCH_ENGINES_MAX = 2
+SEARCH_QUERIES_MAX = 15
+PLANNED_QUERY_COUNT = 10
+SEARCH_ENGINE_SELECTED = Cursor WebSearch (1 engine)
+QUERY_REPLACED = NO
+```
+
+| query ID | exact query | purpose | class target |
+|---|---|---|---|
+| PQ-H01 | اعتباربخشی بیمارستان ایران سامانه رسمی | FA accreditation portal discovery | IR-SC-04 |
+| PQ-H02 | سامانه هویت مراکز درمانی بیمارستان وزارت بهداشت | FA facility identity/licensing | IR-SC-03 |
+| PQ-H03 | Iran hospital accreditation official registry | EN accreditation discovery | IR-SC-04 |
+| PQ-H04 | Iran Ministry of Health hospital registry official | EN MoH registry discovery | IR-SC-03 |
+| PQ-H05 | شناسه مرکز درمانی رسمی ایران رجیستری | FA unique facility ID | IR-SC-03 |
+| PQ-H06 | اعتباربخشی مراکز درمانی وزارت بهداشت | FA MoH accreditation authority | IR-SC-04 |
+| PQ-H07 | سامانه صدور پروانه مراکز درمانی ایران behdasht | FA licensing portal | IR-SC-03 |
+| PQ-H08 | hospital licensing authority Iran Ministry of Health parvaneh | EN licensing authority | IR-SC-03 |
+| PQ-H09 | بیمارستان آموزشی دانشگاه علوم پزشکی هویت رسمی وزارت بهداشت | teaching-hospital identity slice | IR-SC-14 ID |
+| PQ-H10 | accreditation.behdasht.gov.ir سامانه اعتباربخشی ملی بیمارستان | confirm national accreditation host | IR-SC-04 |
+
+```text
+Forbidden query classes not used:
+city-by-city / best-hospital / ranking / doctor search / laboratory-primary harvest
+```
+
+### ۱۳۲.۲) خلاصه اجرای جستجو
+
+| query ID | engine | result (official-signal hosts surfaced) | ignored / excluded from Phase-2 primary |
+|---|---|---|---|
+| PQ-H01 | WebSearch-1 | accreditation.behdasht.gov.ir via university service desks; MoH نظارت و اعتباربخشی | farname.ir commercial SEO |
+| PQ-H02 | WebSearch-1 | parvaneh / SIAM signals; university licensing desks | medario.ir / easymed commercial; pharmacy HIX; parvaneh.irimc.org physician |
+| PQ-H03 | WebSearch-1 | same accreditation portal; MoH instruction PDF mirrors | academic articles (context only) |
+| PQ-H04 | WebSearch-1 | SEPAS/EHR context (not facility registry) | OUT_OF_SCOPE EHR/patient-record systems |
+| PQ-H05 | WebSearch-1 | siam.behdasht.gov.ir unique facility ID | commercial SIAM how-to blogs |
+| PQ-H06 | WebSearch-1 | MoH مرکز نظارت و اعتباربخشی; national program | news portals as primary |
+| PQ-H07 | WebSearch-1 | parvaneh.behdasht.gov.ir licensing | samanehha/heyvagroup SEO mirrors |
+| PQ-H08 | WebSearch-1 | MoH licensing authority; parvaneh | Wikipedia MoH overview (secondary) |
+| PQ-H09 | WebSearch-1 | medical-university hospital listings (e.g. iums.ac.ir) | curriculum/education deep links not followed |
+| PQ-H10 | WebSearch-1 | corroborates accreditation.behdasht.gov.ir + login/self-assess model | — |
+
+```text
+SEARCH_ENGINE_COUNT = 1
+SEARCH_QUERY_COUNT = 10
+```
+
+### ۱۳۲.۳) بودجه و عملیات شبکه (اعداد دقیق)
+
+```text
+SEARCH_ENGINE_COUNT = 1
+SEARCH_QUERY_COUNT = 10
+GET_HEAD_REQUEST_COUNT = 33
+  Phase-2 intentional WebFetch attempts = 9
+  Phase-2 intentional Shell GET/HEAD attempts = 12
+  Search-tool expanded result pages (unique hosts/files) = 12
+MAX_REDIRECT_COUNT_OBSERVED = 0
+  (no successful multi-hop redirect chain completed on primary .behdasht.gov.ir hosts;
+   university pages returned 200 without redirect chain >0 observed)
+
+NETWORK_BUDGET_EXHAUSTED = NO
+SEARCH_ENGINE_COUNT <= 2 = YES
+SEARCH_QUERY_COUNT <= 15 = YES
+GET_HEAD_REQUEST_COUNT <= 40 = YES
+MAX_REDIRECT_COUNT_OBSERVED <= 3 = YES
+```
+
+Primary `.behdasht.gov.ir` hosts (accreditation / parvaneh / siam / behdasht / daramad):
+direct GET/HEAD from this Gate client → TIMEOUT or HTTP 500 via fetch tool.
+Authority characterization therefore relies on official university MoH-subordinate service pages
++ MoH instruction PDF mirrored on university host (arums), which cite the primary portals.
+
+### ۱۳۲.۴) دفترچه دسترسی صفحه (Phase 2)
+
+| op# | type | URL / target | result | class | notes |
+|---|---|---|---|---|---|
+| N01 | GET | https://accreditation.behdasht.gov.ir/ | TIMEOUT | primary target | unreachable from Gate client |
+| N02 | GET | https://parvaneh.behdasht.gov.ir/ | 500 / TIMEOUT | primary target | unreachable/unstable from Gate client |
+| N03 | GET | https://siam.behdasht.gov.ir/ | 500 / TIMEOUT | primary target | unreachable/unstable from Gate client |
+| N04 | GET | https://behdasht.gov.ir/ | 500 / TIMEOUT | MoH apex | unreachable from Gate client |
+| N05 | GET | http://accreditation.behdasht.gov.ir/ | TIMEOUT | primary target | http also timeout |
+| N06 | GET | https://gservice.mui.ac.ir/fa/node/1211 | 200 | official university service desk | cites http://accreditation.behdasht.gov.ir; parent = MoH |
+| N07 | GET | https://iums.ac.ir/ | 200 | official medical university | lists affiliated hospitals (identity slice) |
+| N08 | GET | https://treatment.sbmu.ac.ir/Hospital-Accreditation-Department | 200 | official university treatment deputy | describes national accreditation workflow + MoH certificates |
+| N09 | GET | https://gservice.mui.ac.ir/fa/node/1207 | 200 | official university service desk | licensing/provanah institutions incl. hospitals |
+| N10 | GET | https://shmu.ac.ir/darman/fa/page/5049 | 200 | official university | اداره نظارت و اعتباربخشی; electronic accreditation system of MoH |
+| N11 | GET | https://daramad.behdasht.gov.ir/ | TIMEOUT | fee portal cited by N06 | unreachable from Gate client |
+| N12 | GET | robots.txt on accreditation/parvaneh/siam | TIMEOUT | automation signal | NOT obtained from primary hosts |
+| N13–Nxx | expanded SERP pages | various | mixed | corroboration / exclude | counted in GET_HEAD budget; no login/form submit |
+
+```text
+FORM_POST_COUNT = 0
+LOGIN_ATTEMPT_COUNT = 0
+CAPTCHA_BYPASS_COUNT = 0
+PAID_API_CALL_COUNT = 0
+INDIVIDUAL_FACILITY_LOOKUP_SUBMIT_COUNT = 0
+BULK_REGISTRY_PAGINATION_COUNT = 0
+SAMPLE_RECORD_COUNT = 0
+```
+
+### ۱۳۲.۵) دفترچه کاندید منبع
+
+| CANDIDATE_ID | SOURCE_NAME | SOURCE_URL | DISCOVERY_QUERY_ID | SOURCE_IDENTITY | AUTHORITY_CLASS | OFFICIAL_STATUS_EVIDENCE | FACILITY_IDENTITY_RELEVANCE | ACCREDITATION_RELEVANCE | PUBLIC_ACCESS_STATE | COST_STATE | TERMS_OR_REUSE_SIGNAL | AUTOMATED_ACCESS_SIGNAL | ROBOTS_SIGNAL | ATTRIBUTION_REQUIREMENT | FRESHNESS_SIGNAL | SECURITY_OR_ACCESS_RESTRICTION_SIGNAL | EVIDENCE_PAGES_REVIEWED | CANDIDATE_DECISION | DECISION_REASON |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C-IR-HOSP-ACC-01 | سامانه اعتباربخشی ملی بیمارستان‌ها (MoH) | https://accreditation.behdasht.gov.ir/ (also cited http://) | PQ-H01,H03,H06,H10 | مرکز نظارت و اعتباربخشی امور درمان / MoH national hospital accreditation portal | ACCREDITATION_AUTHORITY / TIER A | University G2G desk N06 names MoH parent + portal link; MoH period-6 instruction PDF (university mirror) cites accreditation.behdasht.gov.ir; SBMU/SHMU describe national system + MoH certificates | LOW (status system, not identity registry) | HIGH | PRIMARY_HOST_UNREACHABLE_FROM_GATE_CLIENT; operational use described as credentialed hospital login | Fee payment cited via daramad.behdasht.gov.ir for certificates (N06); free public directory of grades NOT established | NOT found on reachable pages; RIGHTS=UNKNOWN_FAIL_CLOSED | UNKNOWN (robots not retrieved; login-gated ops) | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | Periodicity described (≈2y comprehensive) on N06 — not a machine freshness feed | ACCESS_RESTRICTED for operational self-assess/results; LEGAL_REVIEW_REQUIRED for reuse | N06,N08,N10 + MoH PDF mirror | OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED | Official MoH accreditation authority established by corroboration; primary host not directly fetched; no reuse grant |
+| C-IR-HOSP-ID-01 | سامانه صدور پروانه‌ها (MoH) | https://parvaneh.behdasht.gov.ir/ | PQ-H02,H07,H08 | MoH licensing portal for medical institutions (hospitals/clinics among others) | FACILITY_IDENTITY_AUTHORITY / REGULATORY / TIER A | N09 university service desk: licensing of medical institutions via سامانه صدور پروانه‌ها; MoH PDF mirror cites parvaneh.behdasht.gov.ir; SERP consensus on host | HIGH (establishment/operating permits) | MED (prerequisite to accreditation per N06 FAQ: پروانه بهره‌برداری before accreditation list) | PRIMARY_HOST_UNREACHABLE_FROM_GATE_CLIENT; applicant login described by third-party/SEO — not used | Fees via portal to MoH accounts (service desk text); not a free open dataset proven | UNKNOWN_FAIL_CLOSED | UNKNOWN | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | NOT_ESTABLISHED | ACCESS_RESTRICTED for applicant workflows; do not expand to lab-primary C4B-03 | N09 + MoH PDF mirror + SERP | OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED | Official licensing authority for facility identity; rights/automation unproven; no bulk harvest |
+| C-IR-HOSP-ID-02 | سامانه سیام (شناسه یکتای مراکز سلامت) | https://siam.behdasht.gov.ir/ | PQ-H05 | MoH unique facility SystemID (SIAM) for health service providers | FACILITY_IDENTITY_AUTHORITY / TIER A (scoped) | University/IT pages + SERP identify siam.behdasht.gov.ir as MoH facility ID issuer; used for SEPAS exchange identity | HIGH (unique facility ID) | LOW | PRIMARY_HOST_UNREACHABLE_FROM_GATE_CLIENT | NOT_ESTABLISHED | UNKNOWN_FAIL_CLOSED | UNKNOWN; public search UI claimed by third parties — NOT submitted | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | NOT_ESTABLISHED | No facility-name search submitted (no harvest); SIAM also covers non-hospital facilities — lab use deferred to C4B-03 | SERP + university SIAM instruction pages (not form-submitted) | OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED | Official unique ID authority for facilities; no dataset pull; rights unknown |
+| C-IR-TEACH-ID-01 | دانشگاه علوم پزشکی ایران — فهرست بیمارستان‌های وابسته | https://iums.ac.ir/ | PQ-H09 | Official medical university under MoH; publishes affiliated hospital names | FACILITY_IDENTITY (IR-SC-14 slice) / TIER B–C LIMITED | Live homepage lists affiliated hospitals under university branding; MoH affiliation stated in ecosystem | MED (institutional affiliation identity) | LOW (not national accreditor) | PUBLIC readable (200) | free-to-view homepage | UNKNOWN_FAIL_CLOSED for storage/product-use of listings | UNKNOWN | NOT fetched | government/university attribution expected; UNKNOWN formal terms | NOT_ESTABLISHED | Do NOT treat as independent national accreditation; education/curriculum NOT collected | N07 | OFFICIAL_CANDIDATE | Teaching-hospital identity corroboration source only; not accreditation authority |
+| C-IR-HOSP-ACC-COR-01 | میز خدمت دانشگاهی اعتباربخشی جامع (Isfahan MED) | https://gservice.mui.ac.ir/fa/node/1211 | PQ-H01,H10 | Medical university service desk under MoH | OFFICIAL_CORROBORATION / TIER B | Explicit parent MoH; publishes portal link + process | LOW | HIGH (corroborates ACC-01) | PUBLIC readable | N/A secondary | page has comment form only; no reuse license for MoH data | N/A | N/A | cite as secondary corroboration | N/A | Not primary registry | N06 | OFFICIAL_CANDIDATE | Corroboration artifact; not substitute primary portal rights pack |
+
+### ۱۳۲.۶) شمارش تصمیم‌ها
+
+```text
+OFFICIAL_CANDIDATE_COUNT = 2
+  (C-IR-TEACH-ID-01, C-IR-HOSP-ACC-COR-01)
+
+OFFICIAL_RIGHTS_UNKNOWN_COUNT = 3
+  (C-IR-HOSP-ACC-01, C-IR-HOSP-ID-01, C-IR-HOSP-ID-02)
+
+PUBLIC_AUTOMATION_UNKNOWN_COUNT = 3
+  (same three primary MoH systems — automation unknown)
+
+NOT_ESTABLISHED_COUNT = 0
+  (slots filled at least to official-candidate / rights-unknown)
+
+EXCLUDED_AS_PRIMARY_COUNT = 6
+  farname.ir; medario.ir; portal.easymed.ir; samanehha.com; pishkhanak.com; heyvagroup/zehnagahane SEO mirrors
+
+PAID_EXCLUDED_COUNT = 0
+  (no paid API purchase executed; certificate fee portals noted but not classified PAID_API product)
+
+ACCESS_RESTRICTED_COUNT = 3
+  (credentialed hospital/applicant workflows on ACC-01 / ID-01 / ID-02)
+
+OUT_OF_SCOPE_COUNT = 4
+  parvaneh.irimc.org (physician practice license);
+  SEPAS/EHR patient-record systems (PQ-H04 drift);
+  pharmacy HIX / drug SIAM deep paths;
+  laboratory-primary licensing expansion (deferred E2-C4B-03)
+```
+
+### ۱۳۲.۷) یافته هویت تسهیلات (IR-SC-03)
+
+```text
+E2_C4B_02_FACILITY_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+
+FOUND:
+  MoH licensing portal family (parvaneh.behdasht.gov.ir) as official issuance path
+    for medical institution operating permits including hospitals/clinics
+  MoH SIAM unique facility identifier authority (siam.behdasht.gov.ir)
+  Medical-university affiliated hospital identity listings (e.g. iums.ac.ir) for IR-SC-14 slice
+
+NOT_FOUND / NOT_COMPLETED:
+  Direct public open facility registry dump
+  Rights/terms/robots packs from primary hosts
+  Direct reachability proof of primary hosts from this Gate client
+
+NO full facility population collected.
+NO addresses/phones/licenses bulk downloaded.
+```
+
+### ۱۳۲.۸) یافته اعتباربخشی (IR-SC-04)
+
+```text
+E2_C4B_02_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+
+FOUND:
+  National hospital accreditation program owned by MoH
+    (مرکز نظارت و اعتباربخشی امور درمان)
+  Official electronic national accreditation portal named:
+    accreditation.behdasht.gov.ir
+  Certificates issued by MoH after national process
+  Accreditation ≠ facility website marketing; ranking sites excluded
+
+NOT_FOUND / NOT_COMPLETED:
+  Public machine-readable grade directory without login
+  Explicit reuse/automation permission
+  Direct portal landing fetch success from Gate client
+  Any invented accreditation grades/status for named hospitals = FORBIDDEN / NOT DONE
+
+ACCREDITATION_AUTHORITY = ESTABLISHED_AS_MOH_NATIONAL_PROGRAM
+PUBLIC_GRADE_FEED = NOT_ESTABLISHED
+```
+
+### ۱۳۲.۹) حقوق / اتوماسیون / شرایط
+
+```text
+RIGHTS_STATE_REMAINS_FAIL_CLOSED = YES
+SOURCE_RIGHTS_EXPANSION = NO
+PUBLIC_READABILITY_DOES_NOT_EQUAL_REUSE = YES
+LEGAL_REVIEW_REQUIRED = YES
+  (for any future storage/product-use of MoH registry/accreditation data)
+
+TERMS_PAGES_FROM_PRIMARY_HOSTS = NOT_RETRIEVED
+ROBOTS_FROM_PRIMARY_HOSTS = NOT_RETRIEVED
+AUTOMATION_STATE = UNKNOWN_FAIL_CLOSED
+ATTRIBUTION_STATE = UNKNOWN_FAIL_CLOSED
+```
+
+### ۱۳۲.۱۰) مستثنی / خارج از دامنه
+
+| item | decision | reason |
+|---|---|---|
+| farname.ir / commercial standards sellers | EXCLUDED_AS_PRIMARY | commercial SEO; not MoH accreditor |
+| medario / easymed SIAM how-to | EXCLUDED_AS_PRIMARY | commercial; may mention official URL only |
+| parvaneh.irimc.org | OUT_OF_SCOPE | physician practice license (IRIMC), not hospital facility MoH licensing |
+| SEPAS EHR / patient record systems | OUT_OF_SCOPE | patient information / EHR — not facility identity registry |
+| pharmacy HIX / drug SIAM deep paths | OUT_OF_SCOPE | pharmacy/lab-adjacent; C4B-03 / other |
+| hospital ranking / news “best hospital” | EXCLUDED_AS_PRIMARY | ranking/news ≠ accreditation authority |
+| individual teaching-hospital education pages | OUT_OF_SCOPE | C4B-05 education not opened |
+
+### ۱۳۲.۱۱) تأیید عدم برداشت انبوه / عدم جمع‌آوری PII
+
+```text
+NO_BULK_FACILITY_HARVEST = YES
+NO_REGISTRY_PAGINATION = YES
+NO_FACILITY_DATASET_DOWNLOAD = YES
+NO_INDIVIDUAL_FACILITY_FORM_SUBMIT = YES
+NO_PHYSICIAN_PERSON_HARVEST = YES
+NO_PATIENT_INFORMATION_COLLECTION = YES
+NO_PERSONAL_DATA_COLLECTION = YES
+SAMPLE_RECORD_COUNT = 0
+```
+
+### ۱۳۲.۱۲) اثر بر E2-C4B-02 / والد
+
+```text
+E2_C4B_02_FACILITY_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+E2_C4B_02_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+
+E2_C4B_02_CHILD_STATE = PARTIAL
+  Reason: official MoH authority candidates identified and corroborated,
+  but primary-host direct evidence packs (terms/robots/public landing)
+  incomplete due to client unreachability + login-gated operational layers;
+  rights remain UNKNOWN_FAIL_CLOSED; D-IR-03 deferral not released.
+
+E2_C4B_02_ADVANCES_PARENT_C4 = YES
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+RIGHTS_STATE_REMAINS_FAIL_CLOSED = YES
+16_CAPABILITIES_REMAIN_NOT_ACTIVATED = YES
+```
+
+### ۱۳۲.۱۳) شکاف‌های باقیمانده
+
+| Gap ID | Severity | Evidence | Owner | Closure criterion | Next dependency |
+|---|---|---|---|---|---|
+| G-C4B02-N01 | MAJOR | primary .behdasht.gov.ir hosts timeout/500 from Gate client | Security/Backend + Facility Verification | separately approved reachability/re-fetch Gate or alternate official mirror pack | after read-only review |
+| G-C4B02-N02 | MAJOR | reuse/automation/robots not established | Legal | written rights decision after terms/robots captured | Legal review Gate |
+| G-C4B02-N03 | MAJOR | operational portals login-gated | Facility Verification | ACCESS_RESTRICTED preserved; public evidence path defined or residual accepted | Javad/Legal |
+| G-C4B02-N04 | MINOR | SIAM covers non-hospital classes | Governance | keep hospital/clinic scope only; labs → C4B-03 | C4B-03 later |
+| G-C4B02-N05 | NOTE | D-IR-03 still deferred | Javad | free official identity+accreditation verified + product decision | after rights packs |
+
+### ۱۳۲.۱۴) ممیزی داخلی
+
+```text
+Audit iterations: 2
+
+C4B02N-A01 baseline + §131-only dirty path → CLOSED
+C4B02N-A02 queries predeclared; count 10≤15; no silent adds → CLOSED
+C4B02N-A03 engines 1≤2 → CLOSED
+C4B02N-A04 GET/HEAD 33≤40 → CLOSED
+C4B02N-A05 no login/form/CAPTCHA/paid API → CLOSED
+C4B02N-A06 no bulk harvest / no PII / sample=0 → CLOSED
+C4B02N-A07 no C4B-03 lab primary / no C4B-05 education expansion → CLOSED
+C4B02N-A08 no APPROVED_FOR_INGESTION / ACTIVATED / RUNTIME_ENABLED → CLOSED
+C4B02N-A09 rights remain UNKNOWN_FAIL_CLOSED → CLOSED
+C4B02N-A10 parent E2/EO/P2 markers unchanged open/not-started → CLOSED
+C4B02N-A11 no additional artifact path invented → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS = YES
+```
+
+### ۱۳۲.۱۵) نشانگرهای نهایی
+
+```text
+E2_C4B_02_CONTROLLED_NETWORK_DISCOVERY_EXECUTED
+NETWORK_BUDGET_COMPLIANT
+OFFICIAL_SOURCE_EVIDENCE_RECORDED
+NO_BULK_FACILITY_HARVEST
+NO_PERSONAL_DATA_COLLECTION
+RIGHTS_REMAIN_FAIL_CLOSED
+NO_CAPABILITY_ACTIVATION
+E2_REMAINS_OPEN
+P2_NOT_STARTED
+E2_C4B_02_CHILD_STATE = PARTIAL
+MASTER_LOG_132_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_E2_C4B_02_NETWORK_RESULT_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۲.۱۶) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+STRICT READ-ONLY REVIEW OF E2-C4B-02 CONTROLLED NETWORK DISCOVERY RESULT
+
+NEXT_GATE_STARTED = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+E3_START_AUTHORIZED_BY_THIS_GATE = NO
+CAPABILITY_ACTIVATION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۲ — Package E2-C4B-02 Hospital/Accreditation Controlled Network Discovery — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+---
+
+## ۱۳۳) بسته E2-C4B-02 — تصمیم کشف و disposition با شکاف‌های fail-closed محفوظ
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-02-DISCOVERY-DECISION-FAIL-CLOSED-DISPOSITION-v1
+
+GATE =
+E2_C4B_02_DISCOVERY_DECISION_FAIL_CLOSED_DISPOSITION
+
+GATE_TYPE =
+DISCOVERY ARC / DISCOVERY DECISION DISPOSITION
+DOCUMENTATION_ONLY
+APPEND_ONLY
+
+THIS_IS_NOT =
+  full child completion
+  rights closure
+  operational closure
+  parent E2-C4 closure
+  E2 closure
+  Evidence Overlay closure
+  P2 / E3 / capability activation
+
+Owner:
+Facility Verification + Governance
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only §133 disposition
+NETWORK = NO
+NO new evidence acquisition
+NO legal decision
+NO E2-C4B-03 implementation
+NO stage / commit / push / CI
+
+Baseline SHA (unchanged HEAD):
+c3487379026746809f9cfe346fe9e2119897af56
+
+Controlling reviewed state source:
+  §131 repository preparation
+  §132 controlled network discovery
+  PACKAGE-15-I5-B2-P1-L1-E2-C4B-02-NETWORK-RESULT-STRICT-READONLY-REVIEW-v1
+
+MUTATION_ALLOWLIST =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+§§131–132 rewritten = NO
+NEW_SUBSTANTIVE_GOVERNANCE_AUTHORITY_CREATED = NO
+NEW_LEGAL_AUTHORITY_CREATED = NO
+NEW_RIGHTS_AUTHORITY_CREATED = NO
+NEW_OPERATIONAL_AUTHORIZATION_CREATED = NO
+NEW_CAPABILITY_ACTIVATION_AUTHORITY_CREATED = NO
+```
+
+### ۱۳۳.۱) تصمیم کشف / انتقال وضعیت
+
+```text
+E2_C4B_02_DISCOVERY_SUBSTEP_COMPLETE = YES
+E2_C4B_02_DISCOVERY_STATE =
+COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+E2_C4B_02_DISCOVERY_DECISION_RECORDED = YES
+
+E2_C4B_02_FULL_CHILD_COMPLETE = NO
+
+DISTINCTION_MANDATORY =
+  discovery arc disposition
+  ≠
+  full child / rights / ingestion / operational completion
+```
+
+### ۱۳۳.۲) وضعیت شواهد اختیار (authority-evidence)
+
+```text
+E2_C4B_02_FACILITY_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+E2_C4B_02_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+DIRECT_PRIMARY_EVIDENCE_COMPLETE = NO
+
+MOH_ACCREDITATION_AUTHORITY_FAMILY_CORROBORATED = YES
+MOH_LICENSING_AUTHORITY_FAMILY_CORROBORATED = YES
+SIAM_FACILITY_IDENTITY_FAMILY_CORROBORATED = YES
+
+NOTE =
+  Authority families corroborated via official MoH-subordinate / university
+  evidence recorded in §132.
+  Direct primary verification of unavailable .behdasht.gov.ir portals
+  is NOT claimed.
+```
+
+### ۱۳۳.۳) حقوق / اتوماسیون / شرایط
+
+```text
+RIGHTS = UNKNOWN_FAIL_CLOSED
+REUSE_PERMISSION_ESTABLISHED = NO
+ROBOTS_CAPTURED = NO
+AUTOMATED_ACCESS_PERMISSION_ESTABLISHED = NO
+SOURCE_RIGHTS_EXPANSION = NO
+OPERATIONAL_AUTHORIZATION = NO
+INGESTION_ELIGIBILITY = NOT_AUTHORIZED
+CAPABILITY_ACTIVATION = NO
+
+LEGAL_RIGHTS_REVIEW =
+DOWNSTREAM_GOVERNANCE_DEPENDENCY
+LEGAL_RIGHTS_DECISION_REQUIRED_BEFORE_LIVE_ACQUISITION_OR_REUSE = YES
+LEGAL_RIGHTS_DECISION_REQUIRED_BEFORE_DISCOVERY_COMPLETION = NO
+LEGAL_DECISION_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۳۳.۴) disposition بازخوانی میزبان اولیه
+
+```text
+PRIMARY_HOST_REFETCH_REQUIRED_FOR_DISCOVERY_COMPLETION = NO
+PRIMARY_HOST_REFETCH =
+OPTIONAL_FUTURE_EVIDENCE_ENHANCEMENT
+PRIMARY_HOST_UNREACHABILITY =
+NONBLOCKING_FOR_DISCOVERY_DECISION
+
+OPTIONAL_FUTURE_REFETCH_MAY_IMPROVE =
+  direct landing evidence
+  robots evidence
+  terms/reuse evidence
+  public-access characterization
+
+NEW_REFETCH_GATE_CREATED_NOW = NO
+```
+
+### ۱۳۳.۵) شمارش تصمیم نهایی کاندید (محور انحصاری) — اصلاح محور §۱۳۲.۶
+
+```text
+UNIQUE_EVALUATED_CANDIDATE_COUNT = 15
+
+FINAL_OFFICIAL_CANDIDATE_COUNT = 2
+FINAL_OFFICIAL_RIGHTS_UNKNOWN_COUNT = 3
+FINAL_PUBLIC_AUTOMATION_UNKNOWN_COUNT = 0
+FINAL_NOT_ESTABLISHED_COUNT = 0
+FINAL_EXCLUDED_AS_PRIMARY_COUNT = 6
+FINAL_PAID_EXCLUDED_COUNT = 0
+FINAL_ACCESS_RESTRICTED_COUNT = 0
+FINAL_OUT_OF_SCOPE_COUNT = 4
+FINAL_DECISION_TOTAL = 15
+
+ARITHMETIC_CHECK =
+2 + 3 + 0 + 0 + 6 + 0 + 0 + 4 = 15
+FINAL_DECISION_TOTAL = UNIQUE_EVALUATED_CANDIDATE_COUNT = YES
+
+FINAL_CANDIDATE_DECISIONS_ARE_MUTUALLY_EXCLUSIVE = YES
+
+Ledger CANDIDATE_DECISION (5 IDs from §132.5):
+  C-IR-TEACH-ID-01 → OFFICIAL_CANDIDATE
+  C-IR-HOSP-ACC-COR-01 → OFFICIAL_CANDIDATE
+  C-IR-HOSP-ACC-01 → OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+  C-IR-HOSP-ID-01 → OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+  C-IR-HOSP-ID-02 → OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+Plus 6 EXCLUDED_AS_PRIMARY + 4 OUT_OF_SCOPE uniquely named in §132.6/§132.10
+= 15 exclusive final decisions
+```
+
+### ۱۳۳.۶) شمارش ویژگی‌های متعامد (orthogonal) — جدا از تصمیم نهایی
+
+```text
+RIGHTS_UNKNOWN_ATTRIBUTE_COUNT = 3
+AUTOMATION_UNKNOWN_ATTRIBUTE_COUNT = 3
+ACCESS_RESTRICTED_ATTRIBUTE_COUNT = 3
+PRIMARY_HOST_UNREACHABLE_ATTRIBUTE_COUNT = 3
+OFFICIAL_AUTHORITY_CORROBORATED_ATTRIBUTE_COUNT = 3
+
+ORTHOGONAL_ATTRIBUTES_NOT_FINAL_DECISIONS = YES
+ATTRIBUTE_COUNTS_MAY_OVERLAP = YES
+ATTRIBUTE_COUNTS_MUST_NOT_BE_ADDED_TO_FINAL_DECISION_TOTAL = YES
+
+F-C4B02-R01 =
+RESOLVED_BY_COUNT_AXIS_CLARIFICATION
+§132 not rewritten; axes clarified here
+```
+
+### ۱۳۳.۷) شکاف itemization بودجه شبکه
+
+```text
+SEARCH_ENGINE_COUNT = 1
+SEARCH_QUERY_COUNT = 10
+GET_HEAD_REQUEST_COUNT = 33
+MAX_REDIRECT_COUNT_OBSERVED = 0
+
+NETWORK_BUDGET_CAP_COMPLIANCE = YES
+NETWORK_BUDGET_ITEMIZATION_GAP =
+ACCEPTED_NONBLOCKING_RECORDING_GAP
+NETWORK_BUDGET_FULL_REQUEST_LEVEL_RECONCILIATION = NO
+NO_NEW_NETWORK_REQUEST_AUTHORIZED_FOR_RETROACTIVE_ITEMIZATION = YES
+
+F-C4B02-R02 =
+ACCEPTED_NONBLOCKING_RECORDING_GAP
+  (12 expanded SERP pages counted in §132 but not individually itemized;
+   no exact existing itemization found elsewhere; no fabrication)
+```
+
+### ۱۳۳.۸) انضباط دامنه شبکه / بدون برداشت انبوه / بدون PII
+
+```text
+NO_BULK_FACILITY_HARVEST = YES
+NO_PERSONAL_DATA_COLLECTION = YES
+SAMPLE_RECORD_COUNT = 0
+FORM_POST_COUNT = 0
+
+NO_C4B_03_LAB_DISCOVERY = YES
+NO_C4B_05_EDUCATION_DISCOVERY = YES
+NO_PHYSICIAN_PROVIDER_PERSON_HARVEST = YES
+NO_RANKING = YES
+NO_RECOMMENDATION = YES
+NO_PAID_API = YES
+NO_AUTHENTICATED_ACCESS = YES
+NO_P2_INGESTION = YES
+```
+
+### ۱۳۳.۹) مرز IR-SC-14
+
+```text
+IR_SC_14_SCOPE =
+facility identity / teaching-hospital affiliation ONLY
+
+IR_SC_14_NOT_TREATED_AS =
+  national regulator
+  national accreditation authority
+  education/training package
+  C4B-05 evidence
+
+IR_SC_14_SCOPE_VALID = YES
+```
+
+### ۱۳۳.۱۰) مرز والد / پروژه
+
+```text
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+PIPE_MAIL_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+```
+
+### ۱۳۳.۱۱) نشانگر فرزند بعدی
+
+```text
+NEXT_E2_CHILD_MAY_PROCEED_WITH_C4B_02_RESIDUALS_PRESERVED = YES
+NEXT_E2_CHILD_GATE_ID = E2-C4B-03
+E2_C4B_03_IMPLEMENTATION = NOT_AUTHORIZED
+
+NOTE =
+  Marker selects next approval target only.
+  Residuals (rights UNKNOWN_FAIL_CLOSED; optional primary re-fetch;
+  D-IR-03 product deferral) remain preserved.
+```
+
+### ۱۳۳.۱۲) disposition یافته‌ها
+
+```text
+F-C4B02-R01 =
+RESOLVED_BY_COUNT_AXIS_CLARIFICATION
+
+F-C4B02-R02 =
+ACCEPTED_NONBLOCKING_RECORDING_GAP
+
+PRIMARY_HOST_UNREACHABILITY =
+NONBLOCKING_FOR_DISCOVERY_DECISION
+
+RIGHTS_UNKNOWN =
+DOWNSTREAM_GOVERNANCE_DEPENDENCY
+```
+
+### ۱۳۳.۱۳) ممیزی داخلی (self-healing)
+
+```text
+Audit iterations: 2
+
+C4B02D-A01 baseline HEAD c348737…; dirty = §131+§132 only → CLOSED
+C4B02D-A02 append-only §133; §§131–132 untouched → CLOSED
+C4B02D-A03 discovery COMPLETE_WITH_FAIL_CLOSED_GAPS; FULL_CHILD=NO → CLOSED
+C4B02D-A04 exclusive decisions 2+3+0+0+6+0+0+4 = 15 → CLOSED
+C4B02D-A05 attributes separated; not added to final total → CLOSED
+C4B02D-A06 network itemization gap accepted nonblocking; no network → CLOSED
+C4B02D-A07 rights UNKNOWN_FAIL_CLOSED; no legal decision → CLOSED
+C4B02D-A08 primary re-fetch optional; not required for discovery → CLOSED
+C4B02D-A09 next child E2-C4B-03 selected; NOT_AUTHORIZED → CLOSED
+C4B02D-A10 parent E2/EO/P2/E3/activation remain open/not-started → CLOSED
+C4B02D-A11 no new substantive/legal/rights/ops/capability authority → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS = YES
+```
+
+### ۱۳۳.۱۴) نشانگرهای نهایی
+
+```text
+E2_C4B_02_DISCOVERY_DECISION_DISPOSITION_RECORDED
+DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+FULL_CHILD_COMPLETE_NO
+FINAL_CANDIDATE_DECISIONS_RECONCILED_15_OF_15
+RIGHTS_REMAIN_UNKNOWN_FAIL_CLOSED
+NETWORK_ITEMIZATION_GAP_TRUTHFULLY_RESOLVED_OR_PRESERVED
+NO_NEW_SUBSTANTIVE_AUTHORITY
+PARENT_E2_REMAINS_OPEN
+P2_NOT_STARTED
+NEXT_E2_CHILD_E2_C4B_03_SELECTED
+MASTER_LOG_133_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_E2_C4B_02_§131_§132_§133_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۳.۱۵) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+STRICT READ-ONLY REVIEW OF §131 + §132 + §133 E2-C4B-02 DISCOVERY ARC
+
+NEXT_GATE_STARTED = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_C4B_03_AUTHORIZED_BY_THIS_GATE = NO
+E2_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+LEGAL_DECISION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۳ — Package E2-C4B-02 Discovery Decision / Fail-Closed Disposition — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
