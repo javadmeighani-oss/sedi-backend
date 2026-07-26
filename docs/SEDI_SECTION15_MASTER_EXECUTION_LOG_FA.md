@@ -25311,3 +25311,1709 @@ INGESTION_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۳۶ — Package E2-C4B-03 Laboratory/Accreditation Discovery Disposition — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+---
+
+## ۱۳۷) بسته Section 26 — وضعیت جاری / نقشه راه / قوانین دائمی اجرا و خزندهٔ هفتگی حاکمیتی
+
+```text
+PACKAGE =
+PACKAGE-SECTION26-MASTER-LOG-§137-CURRENT-STATE-ROADMAP-PERMANENT-RULES-v1
+
+GATE =
+SECTION26_MASTER_LOG_CURRENT_STATE_ROADMAP_PERMANENT_RULES_UPDATE
+
+Owner:
+Governance / Continuity
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only master-log continuity append ONLY
+NO network / source discovery / HTTP evidence collection
+NO test / CI / workflow dispatch
+NO stage / commit / push / amend
+NO edit to §§1–136
+NO §138
+NO C4B-04 implementation / network discovery
+NO C4B-05 / P2 / E3
+NO capability / flag activation
+
+Baseline SHA (local = upstream = remote tip at Gate entry):
+55403062543163b3f6815873c68fe3ac6da0f1ef
+
+Controlling prior tip subject:
+docs(governance): record E2-C4B-03 laboratory discovery disposition
+```
+
+### ۱۳۷.۱) بازسازی اختیار / تداوم (current vs superseded)
+
+```text
+CLAIM | CURRENT AUTHORITY | CURRENT STATE | SUPERSEDED | §137 VALUE
+----- | ----------------- | ------------- | ---------- | ----------
+Latest master-log tip | §136 end + this append | §136 was latest; §137 becomes current continuity | §136 next-gate review markers | CURRENT_CONTINUITY = §137
+C4B-03 discovery disposition | §136 | COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS; FULL_CHILD=NO | §135 NO_PENDING_REVIEW | PRESERVED + remote delivery recorded
+C4B-03 remote delivery | post-§136 verified ops (this Gate) | LOCAL=REMOTE=55403062…; AHEAD/BEHIND=0/0 | unlogged after §136 | C4B_03_REMOTE_DELIVERY=COMPLETE
+Next product Gate | §99.21 + §136 parent boundaries | E2-C4B-04 NOT STARTED | §133/§134 next=C4B-03 (done) | NEXT=E2-C4B-04 AUTHORITY RECONSTRUCTION
+09B governance | §128+ closure markers | 09B_CLOSED=YES (historical closure recorded) | earlier 09B_CLOSED=NO | PRESERVE closed
+E2 parent | §136.12 | E2_CLOSED=NO; E2_C4_PARENT_CLOSED=NO | none | NO
+I5 complete | roadmap + this Gate | I5_COMPLETE=NO | any premature I5-done claims | NO; requires weekly crawler
+I6/I7/I8 | roadmap | NOT STARTED | none | NOT STARTED
+Frontend Gate 4 | §1 matrix / early markers | incomplete / not started by this Gate | none | PENDING
+P2/E3 | §136 | NOT STARTED | none | NO
+```
+
+### ۱۳۷.۲) شواهد نهایی تحویل remote برای E2-C4B-03
+
+```text
+C4B_03_REMOTE_DELIVERY = COMPLETE
+
+E2_C4B_03_DELIVERED_COMMIT =
+55403062543163b3f6815873c68fe3ac6da0f1ef
+
+E2_C4B_03_DELIVERED_PARENT =
+0af65c31fa1f66299dd5aa574a6fe9f118d67c9b
+
+E2_C4B_03_DELIVERED_SUBJECT =
+docs(governance): record E2-C4B-03 laboratory discovery disposition
+
+COMMITTED_FILE_COUNT = 1
+COMMITTED_PATH =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+COMMIT_ADDITIONS = 838
+COMMIT_DELETIONS = 0
+
+COMMIT_OBJECT_VERIFICATION = PASS
+  (strict commit-object review of combined §135+§136)
+
+NORMAL_NONFORCE_PUSH = SUCCESS
+PUSH_FORCE_USED = NO
+PUSH_CAUSALITY = PROVEN
+
+REMOTE_SHA_BEFORE =
+0af65c31fa1f66299dd5aa574a6fe9f118d67c9b
+REMOTE_SHA_AFTER =
+55403062543163b3f6815873c68fe3ac6da0f1ef
+
+LOCAL_HEAD =
+55403062543163b3f6815873c68fe3ac6da0f1ef
+UPSTREAM =
+55403062543163b3f6815873c68fe3ac6da0f1ef
+REMOTE_SHA =
+55403062543163b3f6815873c68fe3ac6da0f1ef
+AHEAD/BEHIND = 0/0
+WORKTREE_AT_ENTRY = CLEAN
+
+COAUTHOR_TRAILER_RECORDED =
+Co-authored-by: Cursor <cursoragent@cursor.com>
+  (body-only trailer; subject unaffected; not a defect)
+```
+
+### ۱۳۷.۳) وضعیت نهایی کشف E2-C4B-03 (حفظ‌شده)
+
+```text
+E2_C4B_03_DISCOVERY_EVIDENCE_COLLECTION = EXECUTED
+E2_C4B_03_DISCOVERY_REVIEW = COMPLETE
+E2_C4B_03_DISCOVERY_DISPOSITION = RECORDED
+E2_C4B_03_DISCOVERY_SUBSTEP_COMPLETE = YES
+E2_C4B_03_DISCOVERY_STATE =
+COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+E2_C4B_03_DISCOVERY_DECISION_RECORDED = YES
+
+E2_C4B_03_FULL_CHILD_COMPLETE = NO
+
+DISCOVERY_COMPLETE DOES_NOT_IMPLY SOURCE_ACTIVATION
+
+DISCOVERY_STATE_ENUM_ATTRIBUTION =
+ADJACENT_C4B_02_PRECEDENT under §134.18
+NOT a §99-hardcoded C4B-03 enum
+```
+
+### ۱۳۷.۴) نتایج شواهد / دفترچه / residuals
+
+```text
+LAB_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+LAB_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+DIRECT_PRIMARY_EVIDENCE_COMPLETE = NO
+
+PARVANEH_AUTHORITY_FAMILY = CORROBORATED
+PARVANEH_DIRECT_PRIMARY = UNREACHABLE
+REFERENCE_HEALTH_LAB_PRIMARY_PORTAL = NOT_ESTABLISHED
+NACI_AUTHORITY_EVIDENCE = ESTABLISHED_AS_AUTHORITY_FAMILY
+NACI_REUSE_PERMISSION = UNKNOWN_FAIL_CLOSED
+NACI_AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+IACLD_CLAIM = NOT_ESTABLISHED
+
+UNIQUE_EVALUATED_CANDIDATE_COUNT = 13
+FINAL_DECISION_TOTAL = 13
+ONE_FINAL_DECISION_PER_CANDIDATE = YES
+
+N01 = PRESERVED_DIRECT_PRIMARY_EVIDENCE_GAP
+N02 = PRESERVED_EVIDENCE_GAP
+N03 = BLOCKS_LIVE_ACQUISITION_OR_REUSE
+N04 = ACCEPTED_NONBLOCKING_RECORDING_GAP
+N05 = NOT_ESTABLISHED_RESIDUAL
+N01_SOLVED = NO
+N02_SOLVED = NO
+N05_PROMOTED = NO
+```
+
+### ۱۳۷.۵) fail-closed عملیاتی و مرز والد
+
+```text
+RIGHTS_STATE = UNKNOWN_FAIL_CLOSED
+REUSE_PERMISSION_ESTABLISHED = NO
+AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+INGESTION_ELIGIBILITY = NOT_AUTHORIZED
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+CAPABILITY_ACTIVATION = NO
+
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+E2_C4B_04_STARTED = NO
+E2_C4B_05_STARTED = NO
+```
+
+### ۱۳۷.۶) خلاصه کار انجام‌شده (authoritative done-work)
+
+```text
+DONE (concise continuity summary; not every historical line):
+
+I1–I4 backend intelligence / safety package chain —
+  completed at their approved verification levels (historical master-log)
+
+I5-A foundations — completed
+I5-B1 — completed
+I5-B2-A1 — completed (boundary adapters)
+I5-B2-P1 — completed (governed source profiles / identity)
+I5-B2-P1-L1 — completed (controlled legacy companion seed track)
+
+F3 canonical findings — closed
+09B governance closure — completed (09B_CLOSED=YES recorded)
+
+E2-C4B-02 — discovery evidence / disposition / delivery completed
+E2-C4B-03 — repository preparation (§134) completed
+E2-C4B-03 — controlled external discovery (§135) completed
+E2-C4B-03 — accounting remediation (COUNTING_BASIS) completed
+E2-C4B-03 — strict + focused reviews completed
+E2-C4B-03 — formal disposition (§136) completed
+E2-C4B-03 — combined §135+§136 docs commit verified
+E2-C4B-03 — normal non-force remote delivery verified
+
+CURRENT_DELIVERED_COMMIT =
+55403062543163b3f6815873c68fe3ac6da0f1ef
+
+NOTE =
+  Historical intermediate SHAs remain in prior sections;
+  this Gate does not invent unrecovered historical SHAs.
+```
+
+### ۱۳۷.۷) نقشهٔ کار باقیمانده (authoritative remaining)
+
+```text
+I5_COMPLETE = NO
+
+NEAR_TERM_REMAINING =
+  E2-C4B-04
+  E2-C4B-05
+  remaining mandatory E2 children
+  remaining Evidence Overlay closure work
+
+THEN_PIPELINE =
+  P2 — controlled acquisition / immutable raw content storage
+  P3 — source versions / version identity
+  P4 — documents / provenance / lifecycle
+  P5 — human review / approval
+  P6 — policy / publication release evidence
+  R1 / R2 — shadow / rehearsal
+  S1 — scheduler
+  Weekly Governed Crawler
+  content packs
+  runtime knowledge grounding
+
+THEN =
+  I6
+  I7
+  I8
+
+THEN =
+  Frontend Gate 4 finalization
+  GitHub Actions build
+  real Android device validation
+
+NONE_OF_THE_ABOVE_STARTED_BY_THIS_GATE = YES
+```
+
+### ۱۳۷.۸) قانون دائمی اجرای چندمرحله‌ای Cursor
+
+```text
+PERMANENT_RULE_MULTI_STAGE_CURSOR_PROMPTS = YES
+CURSOR_SELF_HEALING_EXECUTION_REQUIRED = YES
+
+MANDATORY_EXECUTION_MODEL =
+  PREFLIGHT
+  → AUTHORITY / SCOPE RECONSTRUCTION
+  → EXECUTE ALL AUTHORIZED IN-SCOPE WORK
+  → DETECT FINDINGS
+  → ROOT CAUSE
+  → MINIMUM IN-SCOPE FIX
+  → STATIC / REGRESSION PROOF
+  → REPEAT UNTIL ALL IN-SCOPE FINDINGS CLOSED
+  → FINAL AUDIT
+  → MASTER-LOG UPDATE WHEN MUTATION IS AUTHORIZED
+  → FINAL REPORT
+
+IN_SCOPE_SELF_HEAL_CYCLE =
+  DETECT → ROOT CAUSE → MINIMUM ALLOWLISTED FIX → VERIFY → REPEAT
+
+CONTINUE_UNTIL_IN_SCOPE =
+  BLOCKER = 0
+  MAJOR = 0
+  MINOR = 0
+
+Cursor must NOT stop merely after discovering an in-scope defect
+when the current Gate already authorizes the minimum correction.
+```
+
+### ۱۳۷.۹) شرایط توقف دائمی (hard stop)
+
+```text
+STOP_BEFORE_CROSSING_INTO =
+  baseline mismatch
+  scope expansion
+  out-of-allowlist mutation
+  new architecture decision
+  new product decision
+  new legal/rights authority
+  unapproved external network
+  unapproved test / CI
+  commit
+  push
+  migration
+  database mutation
+  deploy
+  flag activation
+  capability activation
+  workflow redesign
+  new external evidence collection
+
+WHEN_STOPPING_REPORT =
+  finding
+  root cause
+  owner
+  dependency
+  closure criterion
+  exact next Gate
+```
+
+### ۱۳۷.۱۰) سیاست سرعت دائمی
+
+```text
+FEWER_PAUSES = YES
+REDUNDANT_REVIEWS = AVOID
+REPEATED_QUESTIONS = AVOID
+COMBINE_LOGICALLY_RELATED_SUBSTEPS_WITHIN_APPROVED_GATE = YES
+MULTI_STAGE_CURSOR_PROMPT_PREFERRED = YES
+APPROVAL_BOUNDARIES_REMAIN_STRICT = YES
+
+CLARIFICATION =
+  A multi-stage prompt accelerates work INSIDE an approved Gate.
+  It must never silently merge separately approval-gated operations.
+```
+
+### ۱۳۷.۱۱) قانون دائمی خزندهٔ هفتگی حاکمیتی (I5 architecture)
+
+```text
+PERMANENT_RULE_WEEKLY_GOVERNED_CRAWLER = YES
+I5_COMPLETION_REQUIRES_WEEKLY_GOVERNED_CRAWLER = YES
+CRAWLER_MINIMUM_FREQUENCY = WEEKLY
+CRAWLER_FREQUENCY = WEEKLY
+CRAWLER_EXACT_SCHEDULE = NOT_YET_DECIDED
+
+CORE_REQUIREMENT =
+  Sedi must become more knowledgeable every week
+  through governed, auditable, fail-closed source updates.
+```
+
+### ۱۳۷.۱۲) اولویت منابع خزنده
+
+```text
+SOURCE_PRIORITY =
+  1. Iran-first official / authoritative sources
+  2. trusted international official sources
+  3. approved institutional corroboration
+  4. commercial/community sources only under explicit authority
+
+IRAN_FIRST_TARGET_FAMILIES =
+  Ministry of Health / regulatory authorities
+  medical universities
+  official public-health resources
+  official hospitals / clinics
+  official laboratories / diagnostic centers
+  official medical/professional licensing bodies
+  approved Iranian medical / health institutions
+
+INTERNATIONAL_CANDIDATE_AUTHORITY_FAMILIES_EXAMPLES =
+  WHO
+  NHS
+  CDC
+  NIH / MedlinePlus
+  NIMH
+  official specialty/regulatory bodies
+
+NOTE =
+  Examples are candidate authority families only.
+  NOT all operationally enabled.
+```
+
+### ۱۳۷.۱۳) لولهٔ اجباری خزندهٔ هفتگی
+
+```text
+MANDATORY_WEEKLY_CRAWLER_PIPELINE =
+  SOURCE DISCOVERY
+  → SOURCE AUTHORITY CLASSIFICATION
+  → RIGHTS / TERMS VALIDATION
+  → ROBOTS / AUTOMATION PERMISSION
+  → ACCESS / COST CLASSIFICATION
+  → RATE-LIMIT POLICY
+  → CONTROLLED FETCH
+  → IMMUTABLE RAW STORAGE
+  → SOURCE VERSIONING
+  → NORMALIZED EXTRACTION
+  → PROVENANCE RECORD
+  → DEDUPLICATION
+  → CHANGE DETECTION
+  → FRESHNESS / EXPIRY / RETRACTION
+  → CONFLICT DETECTION
+  → SECURITY / POISONING CHECK
+  → HUMAN / GOVERNANCE REVIEW WHERE REQUIRED
+  → FAIL-CLOSED PUBLICATION
+  → CONTENT PACK / KNOWLEDGE UPDATE
+  → RUNTIME GROUNDING ELIGIBILITY
+  → AUDIT / METRICS / ALERTING
+```
+
+### ۱۳۷.۱۴) معناشناسی fail-closed خزنده
+
+```text
+PUBLICLY_READABLE DOES_NOT_IMPLY REUSABLE
+SUCCESSFUL_GET DOES_NOT_IMPLY AUTOMATION_ALLOWED
+DISCOVERED DOES_NOT_IMPLY INGESTIBLE
+INGESTED DOES_NOT_IMPLY APPROVED
+APPROVED DOES_NOT_IMPLY PUBLISHED
+PUBLISHED DOES_NOT_IMPLY UNRESTRICTED_RUNTIME_USE
+
+IF_UNKNOWN =
+  RIGHTS_UNKNOWN
+  AUTOMATION_UNKNOWN
+  AUTHORITY_UNKNOWN
+  PROVENANCE_INCOMPLETE
+  SECURITY_UNCLEAR
+THEN =
+  FAIL_CLOSED
+```
+
+### ۱۳۷.۱۵) قرارداد پروفایل منبع حاکمیتی
+
+```text
+GOVERNED_SOURCE_PROFILE_REQUIRED = YES
+CAPABILITY_FLAGS_ARE_INDEPENDENT = YES
+
+MINIMUM_FUTURE_FIELDS =
+  source_id
+  publisher
+  authority_class
+  country
+  domain
+  allowed_paths
+  prohibited_paths
+  content_scope
+  rights_state
+  terms_evidence
+  robots_state
+  automation_permission
+  rate_limit
+  attribution_requirement
+  freshness_policy
+  verification_timestamp
+  verification_expiry
+  security_class
+  enabled_for_discovery
+  enabled_for_fetch
+  enabled_for_storage
+  enabled_for_publication
+  enabled_for_runtime
+
+A source may be discoverable without being fetchable,
+storable, publishable, or runtime-active.
+```
+
+### ۱۳۷.۱۶) خزیدن افزایشی هفتگی
+
+```text
+UNCONTROLLED_FULL_SITE_HARVEST_EVERY_WEEK = FORBIDDEN
+
+REQUIRED_TECHNIQUES_WHERE_SUPPORTED =
+  canonical URL
+  conditional GET
+  ETag
+  Last-Modified
+  content hashes
+  source versions
+  new-document detection
+  changed-document detection
+  removed-document detection
+  retraction detection
+
+GOALS =
+  lower network load
+  lower operational risk
+  better provenance
+  faster weekly execution
+```
+
+### ۱۳۷.۱۷) ادب / ایمنی خزنده
+
+```text
+FUTURE_PER_SOURCE_CONTROLS =
+  request budget
+  concurrency limit
+  delay
+  backoff
+  retry count
+  Retry-After handling
+  timeout
+  redirect cap
+  response-size cap
+  content-type allowlist
+
+FORBIDDEN =
+  CAPTCHA bypass
+  login circumvention
+  session bypass
+  aggressive scraping
+  unbounded crawling
+  PII harvesting
+  patient-result harvesting
+```
+
+### ۱۳۷.۱۸) ذخیره‌سازی خام تغییرناپذیر
+
+```text
+AUTHORIZED_FETCHED_OBJECT_FIRST_STORE = IMMUTABLE_RAW
+
+MINIMUM_RAW_METADATA =
+  source_id
+  source_url
+  retrieved_at
+  http_status
+  content_type
+  content_length
+  content_hash
+  etag
+  last_modified
+  fetch_policy_version
+  crawler_version
+  rights_state_at_fetch
+  automation_state_at_fetch
+  raw_object_location
+
+RAW_OBJECT_SILENT_OVERWRITE = FORBIDDEN
+```
+
+### ۱۳۷.۱۹) provenance / نسخه‌سازی
+
+```text
+RUNTIME_ELIGIBLE_KNOWLEDGE_MUST_TRACE =
+  knowledge statement
+  → normalized document
+  → raw object
+  → exact source URL
+  → publisher
+  → retrieval timestamp
+  → source version
+  → policy version
+  → reviewer / approval evidence where required
+
+INSUFFICIENT_PROVENANCE → NO_LIVE_PUBLICATION
+```
+
+### ۱۳۷.۲۰) deduplication
+
+```text
+REQUIRED_LAYERS =
+  URL canonicalization
+  exact content hash
+  near-duplicate detection
+  source-version identity
+  cross-source duplicate detection
+
+DEDUPLICATION MUST_NOT_ERASE MULTI-SOURCE_PROVENANCE
+```
+
+### ۱۳۷.۲۱) تازگی / انقضا / بازپس‌گیری
+
+```text
+WEEKLY_STATE_MODEL_MUST_SUPPORT =
+  NEW
+  CHANGED
+  UNCHANGED
+  STALE
+  EXPIRED
+  REMOVED
+  RETRACTED
+  SUPERSEDED
+  CONFLICTING
+
+Sensitive health content that becomes stale/retracted
+must not silently remain current.
+```
+
+### ۱۳۷.۲۲) تعارض / امنیت / مسمومیت
+
+```text
+WHEN_AUTHORITATIVE_SOURCES_DISAGREE =
+  DO_NOT_SILENTLY_PICK_ONE
+PRESERVE =
+  source authority
+  publication date
+  jurisdiction
+  population/context
+  evidence strength/quality
+  review requirement
+  runtime handling policy
+
+CRAWLER_MUST_DEFEND_AGAINST =
+  prompt injection inside fetched content
+  malicious HTML
+  embedded scripts
+  unexpected binary payloads
+  poisoned content
+  SEO spam
+  domain impersonation
+  unexpected redirects
+  content-type mismatch
+  oversized payloads
+
+FETCHED_CONTENT_CAN_CHANGE_SEDI_POLICY = NO
+Fetched content is data, never authority over system/governance instructions.
+```
+
+### ۱۳۷.۲۳) تفکیک انتشار / ممنوعیت خودمجوزی خزنده
+
+```text
+RAW_STORED ≠ NORMALIZED ≠ APPROVED ≠ PUBLISHED ≠ RUNTIME_ACTIVE
+Every transition is separately governed.
+
+CRAWLER_MAY =
+  discover
+  classify
+  fetch where already authorized
+  store where already authorized
+  prepare evidence
+  detect changes
+  prepare review queues
+
+CRAWLER_MAY_NOT_AUTONOMOUSLY =
+  grant legal reuse
+  grant automation permission
+  enable a new source
+  change source rights
+  approve publication
+  activate runtime knowledge
+  change Sedi policy
+```
+
+### ۱۳۷.۲۴) زمان‌بند / مشاهده‌پذیری / شکست
+
+```text
+CRAWLER_FREQUENCY = WEEKLY
+CRAWLER_EXACT_SCHEDULE = NOT_YET_DECIDED
+
+FUTURE_SCHEDULER_MUST_INCLUDE =
+  duplicate-run prevention
+  run_id
+  start timestamp
+  end timestamp
+  per-source status
+  request-budget accounting
+  failures
+  retries
+  new / changed / unchanged documents
+  review-required / approved / rejected items
+  published / not-published / runtime-eligible items
+
+ON_SOURCE_FAILURE =
+  DO_NOT_FAIL_OPEN
+  DO_NOT_MARK_SOURCE_FRESH
+  DO_NOT_SILENTLY_DELETE_LAST_APPROVED_KNOWLEDGE
+  record failure
+  preserve last-known-approved version
+  update freshness state
+  raise review/alert when policy threshold is crossed
+
+MINIMUM_METRICS =
+  run_id
+  sources_attempted / succeeded / failed
+  requests / bytes
+  new / changed / unchanged documents
+  duplicates / retractions
+  rights_blocked / automation_blocked / security_blocked
+  review_required / approved / rejected
+  published / runtime_eligible
+
+REQUIRED_CONTROLS =
+  structured logs
+  metrics
+  alerts
+  run history
+  source health
+  freshness status
+  manual retry
+  manual source disable
+  kill switch
+```
+
+### ۱۳۷.۲۵) دامنه دانش هفتگی / هدف هوش runtime
+
+```text
+WEEKLY_KNOWLEDGE_SCOPE_TARGETS =
+  Neurology
+  Cardiovascular
+  Diabetes / metabolic
+  other diseases
+  prevention
+  care
+  treatment guidance
+  medications
+  labs / diagnostics
+  mental health / psychology
+  nutrition
+  exercise
+  daily routines
+  lifestyle
+  doctors / specialists
+  hospitals / clinics
+  laboratories
+  public-health guidance
+
+CONTENT_PACKS_ALREADY_EXIST = NOT_CLAIMED
+
+RUNTIME_INTELLIGENCE_PURPOSE =
+  CURRENT GOVERNED KNOWLEDGE
+  + USER IDENTITY / PROFILE
+  + LIFESTYLE MEMORY
+  + HEALTH CONTEXT
+  + CONVERSATION CONTINUITY
+  → PERSONALIZED SAFE EVIDENCE-GROUNDED SEDI RESPONSE
+
+The crawler is not only an archive subsystem;
+it keeps Sedi's governed knowledge current for safe runtime grounding.
+```
+
+### ۱۳۷.۲۶) قرارداد تکمیل I5
+
+```text
+I5_COMPLETION_REQUIRES_WEEKLY_GOVERNED_CRAWLER = YES
+I5_COMPLETE = NO
+
+Do NOT declare I5 complete while the governed weekly update loop is missing.
+
+CURRENT_MINIMUM_REMAINING_ARCHITECTURAL_CHAIN =
+  remaining E2 / Evidence Overlay work
+  → P2
+  → P3
+  → P4
+  → P5
+  → P6
+  → R1
+  → R2
+  → S1
+  → Weekly Governed Crawler
+  → content packs
+  → runtime grounding
+  → I5 closure
+```
+
+### ۱۳۷.۲۷) I6 / I7 / I8 و Frontend Gate 4
+
+```text
+I6 = NOT STARTED
+I7 = NOT STARTED
+I8 = NOT STARTED
+
+ORDERED_INTENT =
+  finish I5 → I6 → I7 → I8
+
+Exact I6/I7/I8 implementation scopes must be reconstructed
+from authoritative roadmap before execution.
+
+FRONTEND_GATE_4 =
+  incomplete / pending finalization
+  NOT STARTED by this Gate
+
+FRONTEND_GATE_4_REMAINING_HIGH_LEVEL =
+  Smart Notifications UX
+  lock-screen / push behavior
+  distinct Sedi notification sound
+  conversation-created reminders
+  Android-first integration
+  GitHub Actions build
+  real-device validation
+```
+
+### ۱۳۷.۲۸) نقشهٔ سطح‌بالا (NOW → NEXT)
+
+```text
+NOW =
+  C4B-03 remote delivery COMPLETE
+
+NEXT_REPOSITORY_CONTINUITY_STEP =
+  §137 master-log synchronization (this Gate)
+
+NEXT_PRODUCT_AUTHORITY_STEP =
+  E2-C4B-04 AUTHORITY RECONSTRUCTION / CONFIRMATION
+  (read-only first; NOT STARTED)
+
+THEN =
+  C4B-04 preparation / discovery / disposition / delivery
+  C4B-05 + remaining mandatory E2 children
+  remaining Evidence Overlay closure
+  P2 → P3 → P4 → P5 → P6 → R1 → R2 → S1
+  Weekly Governed Crawler
+  content packs
+  runtime grounding
+  I5 completion
+  I6 → I7 → I8
+  Frontend Gate 4 finalization
+  GitHub build
+  device validation
+```
+
+### ۱۳۷.۲۹) Exact next product Gate (NOT AUTHORIZED now)
+
+```text
+NEXT_PRODUCT_GATE =
+E2-C4B-04 AUTHORITY RECONSTRUCTION / CONFIRMATION
+
+MUST_BE_READ_ONLY_FIRST = YES
+E2_C4B_04_STARTED = NO
+E2_C4B_04_AUTHORIZED_BY_THIS_GATE = NO
+
+LATER_RECONSTRUCTION_MUST_DETERMINE =
+  exact §99.21 C4B-04 wording
+  IR-SC ownership
+  OD ownership
+  OFS ownership
+  Ministry/regulatory/public-health source scope
+  primary vs secondary authority
+  discovery vs health-content boundary
+  rights / terms / robots / automation requirements
+  provenance requirements
+  out-of-scope content
+  network requirement / hard caps
+  completion/disposition model
+  mutation allowlist
+```
+
+### ۱۳۷.۳۰) ممیزی داخلی (self-healing) — فقط §۱۳۷
+
+```text
+Audit iterations: 2
+
+S26-137-A01 baseline HEAD/UPSTREAM 55403062…; clean; §137 free → CLOSED
+S26-137-A02 append-only §137; §§1–136 untouched → CLOSED
+S26-137-A03 C4B-03 remote delivery evidence recorded exactly → CLOSED
+S26-137-A04 discovery COMPLETE_WITH_FAIL_CLOSED; FULL_CHILD=NO preserved → CLOSED
+S26-137-A05 residuals N01–N05 preserved unsolved → CLOSED
+S26-137-A06 rights/automation UNKNOWN_FAIL_CLOSED; ingestion NOT_AUTHORIZED → CLOSED
+S26-137-A07 parents E2/EO/P2/E3/C4B-04/05 open/not-started → CLOSED
+S26-137-A08 permanent multi-stage + self-healing Cursor rules recorded → CLOSED
+S26-137-A09 weekly governed crawler permanent rule + I5 completion contract → CLOSED
+S26-137-A10 crawler fail-closed / incremental / raw / provenance / security recorded → CLOSED
+S26-137-A11 I6/I7/I8 NOT STARTED; Frontend Gate 4 pending → CLOSED
+S26-137-A12 next product Gate = C4B-04 authority reconstruction; not started → CLOSED
+S26-137-A13 no network/test/CI/commit/push → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_§137_DEFECT_REMAINS = YES
+```
+
+### ۱۳۷.۳۱) نشانگرهای نهایی
+
+```text
+SECTION26_MASTER_LOG_CURRENT_STATE_UPDATE_COMPLETE
+C4B_03_REMOTE_DELIVERY = COMPLETE
+PERMANENT_RULE_MULTI_STAGE_CURSOR_PROMPTS = YES
+CURSOR_SELF_HEALING_EXECUTION_REQUIRED = YES
+PERMANENT_RULE_WEEKLY_GOVERNED_CRAWLER = YES
+I5_COMPLETION_REQUIRES_WEEKLY_GOVERNED_CRAWLER = YES
+CRAWLER_MINIMUM_FREQUENCY = WEEKLY
+I5_COMPLETE = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I6 = NOT STARTED
+I7 = NOT STARTED
+I8 = NOT STARTED
+E2_C4B_04_STARTED = NO
+MASTER_LOG_137_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_§137_CURRENT_STATE_AND_PERMANENT_RULES_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۷.۳۲) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+STRICT READ-ONLY REVIEW OF §137
+CURRENT-STATE + ROADMAP + PERMANENT EXECUTION RULES
++ WEEKLY GOVERNED CRAWLER
+
+NEXT_GATE_STARTED = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_C4B_04_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+I5_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۷ — Package Section 26 Current-State / Roadmap / Permanent Rules / Weekly Governed Crawler — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+## ۱۳۸) PERMANENT I5 COMPREHENSIVE KNOWLEDGE, HUMAN-CENTERED CARE & HEALTHY-LONGEVITY LAW — قانون دائمی دانش جامع I5، مراقبت انسان‌محور و طول‌عمر سالم
+
+```text
+PACKAGE =
+GATE-S27-02 — APPEND MASTER LOG §138
+
+LAW =
+PERMANENT I5 COMPREHENSIVE KNOWLEDGE,
+HUMAN-CENTERED CARE & HEALTHY-LONGEVITY LAW
+
+Owner:
+Governance / Continuity / I5 Product Architecture Law
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only APPEND of §138 ONLY
+NO network / source discovery / HTTP / crawler execution
+NO test / CI / workflow dispatch
+NO stage / commit / push / amend
+NO edit to §§1–137
+NO §139
+NO C4B-04 / C4B-05 / P2 / I6 / I7 / I8 / Frontend Gate 4 implementation
+NO capability / flag activation
+NO meal-plan / exercise-plan runtime implementation
+NO claim that writing §138 closes I5
+
+Baseline SHA at Gate entry (local = upstream):
+55403062543163b3f6815873c68fe3ac6da0f1ef
+
+Prior continuity tip:
+§137 APPENDED / STRICT-REVIEWED / UNCOMMITTED
+(existing master-log dirty delta before this Gate: +873 / -0)
+
+THIS_GATE_ROLE =
+governance synchronization of already-approved Section 27
+permanent I5 product/architecture law into the in-repository Master Log
+
+THIS_GATE_IS_NOT =
+implementation shortcut
+I5 closure
+crawler delivery
+runtime grounding delivery
+content-pack completion
+```
+
+### ۱۳۸.۱) هدف اصلی / Core Purpose
+
+```text
+I5 is NOT merely a small medical Knowledge Base.
+
+I5 must make Sedi progressively more knowledgeable through:
+  governed
+  current
+  traceable
+  evidence-aware
+health knowledge.
+
+Final I5 architecture MUST support:
+  comprehensive health knowledge
+  governed acquisition
+  content governance
+  retrieval / runtime grounding
+  safe personalization
+
+I5 may NOT be declared complete merely because several sources,
+diseases, or medical documents exist.
+
+I5_CANNOT_CLOSE_WITHOUT_COMPREHENSIVE_GOVERNED_HEALTH_KNOWLEDGE = YES
+```
+
+### ۱۳۸.۲) قانون پوشش جامع سلامت انسان
+
+```text
+I5 must pursue taxonomy-based coverage of all major human:
+  disease families
+  conditions
+  health states
+  prevention
+  screening
+  diagnostics
+  evidence-based treatment knowledge
+  care
+  supportive care
+  chronic-care management
+  follow-up
+  rehabilitation
+  safe self-care
+  red flags
+  care navigation
+
+Coverage must be measurable through a future governed Coverage Manifest.
+
+Presence of a limited number of documents
+MUST NEVER be interpreted as comprehensive coverage.
+
+Required concepts for each domain/condition SHOULD include,
+where applicable:
+  coverage state
+  source authority
+  evidence / provenance
+  freshness
+  version
+  retraction state
+  known gaps
+  publication eligibility
+  runtime-grounding eligibility
+
+IMPLEMENTATION_DETAILS_NOT_YET_AUTHORIZED =
+do not invent schemas, APIs, tables, or pipelines beyond this law
+```
+
+### ۱۳۸.۳) حوزه‌های بالینی اولویت‌دار اجباری
+
+```text
+SPECIAL_PRIORITY_KNOWLEDGE_DEPTH_AND_FRESHNESS_REQUIRED_FOR =
+
+  Neurology / Brain / Nervous System
+
+  Cardiovascular System
+
+  Diabetes / Endocrine / Metabolic Health
+
+  Mental Health / Psychology
+
+  Medication Safety
+
+  Emergency / Red-Flag Care Navigation
+
+PRIORITY_DOES_NOT_MEAN_EXCLUSION_OF_OTHER_DISEASES = YES
+
+I5 must ultimately support the broader health taxonomy.
+Priority domains require deeper / fresher governed coverage first,
+not a permanent narrow catalog.
+```
+
+### ۱۳۸.۴) قانون صریح Hepatitis و Liver Health
+
+```text
+This requirement is EXPLICIT and must NOT remain merely implied
+under infectious disease.
+
+MANDATORY_FUTURE_GOVERNED_COVERAGE_FOR =
+  Hepatitis A
+  Hepatitis B
+  Hepatitis C
+  Hepatitis D
+  Hepatitis E
+
+AND relevant Liver Health knowledge including,
+where authoritative sources support it:
+  prevention
+  vaccination where applicable
+  screening
+  diagnostics
+  monitoring
+  follow-up
+  evidence-based treatment knowledge
+  supportive care
+  chronic liver disease context
+  cirrhosis risk/context
+  liver cancer surveillance context where clinically appropriate
+  medication/liver safety
+  complications and red flags
+  care navigation
+
+HEPATITIS_AND_LIVER_KNOWLEDGE =
+FOR_GROUNDED_EDUCATION_CARE_SUPPORT_AND_NAVIGATION
+
+INDEPENDENT_DIAGNOSIS = NO
+INDEPENDENT_PRESCRIBING = NO
+UNAUTHORIZED_TREATMENT_MODIFICATION = NO
+
+Sedi does NOT independently diagnose hepatitis or liver disease.
+Sedi does NOT independently prescribe.
+Sedi may NOT change a physician's treatment without authorized pathway.
+```
+
+### ۱۳۸.۵) دانش درمان، مراقبت و پیشگیری
+
+```text
+Governed I5 knowledge should eventually allow Sedi to retrieve and
+safely explain authoritative information about:
+  disease understanding
+  prevention
+  screening
+  standard-of-care pathways
+  treatment options
+  supportive care
+  chronic-care management
+  rehabilitation
+  adherence support
+  safe self-care
+  red flags
+  follow-up
+  when professional care is needed
+  where appropriate professional care may be sought
+
+SEDI_IS_NOT_A_REPLACEMENT_FOR_A_PHYSICIAN = YES
+
+PROHIBITED =
+  independent diagnosis
+  independent treatment replacement
+  unauthorized medication change
+  unauthorized dose change
+```
+
+### ۱۳۸.۶) قانون Psychology / Behavioral Science / Human Interaction
+
+```text
+Psychology / Behavioral Science / Human Interaction =
+FIRST-CLASS I5 knowledge domain
+
+Must support Sedi's ability to interact in a manner that is:
+  calm
+  caring
+  empathetic
+  respectful
+  non-judgmental
+  supportive
+  human-centered
+  trustworthy
+  context-sensitive
+  long-term oriented
+
+Required knowledge areas SHOULD include, when governed evidence
+is available:
+  motivational interviewing
+  behavior-change science
+  habit formation
+  CBT-informed psychoeducation
+  stress management
+  coping
+  resilience
+  trauma-informed communication
+  shared decision-making
+  autonomy support
+  health literacy
+  adherence support
+  communication during fear
+  communication during anger
+  communication during grief
+  communication around difficult health information
+  prevention of unhealthy dependency
+  prevention of anthropomorphic overreach
+```
+
+### ۱۳۸.۷) قانون شخصی‌سازی (Personalization)
+
+```text
+Sedi MUST adapt its interaction and recommendations using
+authorized information about the user's:
+  health context
+  lifestyle
+  goals
+  preferences
+  daily routine
+  constraints
+  history
+  communication preferences where authorized
+  previous feedback
+
+AUTHORIZED_CONTEXT_AWARE_PERSONALIZATION = REQUIRED
+
+HIDDEN_PSYCHOLOGICAL_PROFILING = PROHIBITED
+
+Sedi must NOT silently create sensitive psychological/personality
+facts unsupported by governed evidence and authorization.
+
+Sedi MAY adapt communication style from authorized context and
+observed/explicit preferences WITHOUT inventing:
+  a psychological diagnosis
+  OR a hidden personality label
+```
+
+### ۱۳۸.۸) قانون دانش Nutrition
+
+```text
+MANDATORY_GOVERNED_KNOWLEDGE_FOR =
+  nutrition science
+  healthy dietary patterns
+  energy and nutrient concepts
+  disease-related nutrition constraints
+  weight-management knowledge
+  food safety where applicable
+  supplements where evidence and safety permit
+  cultural and practical dietary context
+  Iran food context
+
+Future personalized dietary guidance MUST combine:
+  governed knowledge
+  +
+  authorized user context
+
+NOT one-size-fits-all plans.
+
+MEAL_PLAN_IMPLEMENTATION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۳۸.۹) قانون Exercise / Rehabilitation / Mobility
+
+```text
+MANDATORY_GOVERNED_KNOWLEDGE_FOR =
+  physical activity
+  exercise science
+  mobility
+  rehabilitation
+  sedentary-behavior reduction
+  safe progression
+  condition-specific exercise constraints where authoritative
+  functional health
+
+Future recommendations MUST be personalized against health and
+lifestyle context and remain subject to safety rules.
+
+EXERCISE_PLAN_RUNTIME_IMPLEMENTATION_AUTHORIZED_NOW = NO
+```
+
+### ۱۳۸.۱۰) قانون Sleep / Circadian / Lifestyle
+
+```text
+MANDATORY_GOVERNED_KNOWLEDGE_FOR =
+  sleep
+  circadian health
+  stress and recovery
+  daily routines
+  activity patterns
+  social health where appropriate
+  preventive lifestyle
+  healthy ageing
+  sustainable behavior change
+
+PURPOSE ≠ generic tips dump.
+
+Future runtime objective =
+  Health Context
+  +
+  Lifestyle Memory
+  +
+  Goals
+  +
+  Preferences
+  +
+  Constraints
+  +
+  Daily Routine
+  +
+  Safety Rules
+→ appropriate personalized guidance
+```
+
+### ۱۳۸.۱۱) هویت انسان‌محور Sedi
+
+```text
+SEDI_PRODUCT_IDENTITY =
+  intelligent
+  caring
+  calm
+  empathetic
+  trustworthy
+  responsible
+  supportive
+  proactive where authorized
+  non-judgmental
+  long-term oriented
+
+Sedi should create the experience of a continuous intelligent
+companion familiar with the user's authorized health/lifestyle
+context.
+
+SEDI_MUST_NOT_CLAIM_TO_BE_HUMAN = YES
+SEDI_MUST_NOT_CLAIM_TO_BE_A_LICENSED_PHYSICIAN = YES
+SEDI_MUST_NOT_CLAIM_TO_BE_A_LICENSED_THERAPIST = YES
+
+unless future product/legal authority explicitly changes the
+relevant representation.
+```
+
+### ۱۳۸.۱۲) مأموریت دائمی Healthy Longevity + Quality of Life
+
+```text
+HEALTHY_LONGEVITY_AND_QUALITY_OF_LIFE_IS_A_PERMANENT_SEDI_PRODUCT_MISSION = YES
+
+Sedi's long-term mission includes helping users pursue:
+  healthier living
+  better prevention
+  better disease self-management support
+  preservation of physical function
+  preservation of cognitive function
+  better mental well-being
+  greater independence
+  sustainable healthy habits
+  higher quality of life
+  healthy longevity
+
+Sedi must optimize for healthy longevity and quality of life,
+not lifespan at any cost.
+
+A better life may include, where appropriate:
+  meaning
+  well-being
+  human connection
+  satisfaction
+  enjoyment of life
+  functional independence
+
+THIS_IS_A_PRODUCT_MISSION_NOT_A_GUARANTEE = YES
+LIFESPAN_EXTENSION_GUARANTEE = NO
+
+Do NOT promise that Sedi will extend any particular user's lifespan.
+```
+
+### ۱۳۸.۱۳) تقویت قانون خزندهٔ هفتگی حاکمیتی (§۱۳۷ preserved)
+
+```text
+§138 PRESERVES AND STRENGTHENS — does NOT replace — the already
+verified §137 crawler law.
+
+PERMANENT_RULE_WEEKLY_GOVERNED_CRAWLER = YES
+I5_COMPLETION_REQUIRES_WEEKLY_GOVERNED_CRAWLER = YES
+CRAWLER_MINIMUM_FREQUENCY = WEEKLY
+
+EXACT_SCHEDULE = NOT_YET_DECIDED
+  (unless a later Gate authorizes it)
+
+Governed lifecycle architecture (permanent law / not claim of
+current implementation):
+  source discovery
+  → authority validation
+  → rights / terms / robots / automation validation
+  → controlled acquisition
+  → immutable raw storage
+  → parsing
+  → normalization
+  → versioning
+  → provenance
+  → integrity hashing
+  → deduplication
+  → change detection
+  → freshness / expiry / retraction handling
+  → conflict / security review
+  → poisoning protection
+  → quarantine / security-blocked state where required
+  → human / governance approval where required
+  → fail-closed publication
+  → runtime-grounding eligibility
+
+ALL_OF_THE_ABOVE_CURRENTLY_IMPLEMENTED = NO
+THIS_IS_PERMANENT_ARCHITECTURE_AND_CLOSURE_LAW = YES
+```
+
+### ۱۳۸.۱۴) استراتژی منبع Iran-First
+
+```text
+IRAN_FIRST_PILOT_SOURCE_PRIORITY = YES
+IRAN_ONLY_ARCHITECTURE = NO
+
+Meaning:
+  Iranian authoritative sources are strategically prioritized
+  for the Iran pilot.
+  Authoritative international sources remain required where
+  appropriate.
+
+Neither Iranian nor international sources become authorized
+simply because of geography.
+
+EVERY_SOURCE_REMAINS_GOVERNED_BY =
+  authority
+  rights
+  terms
+  robots
+  automation permission
+  provenance
+  quality
+  freshness
+  safety
+  publication eligibility
+```
+
+### ۱۳۸.۱۵) ممنوعیت خوداجازه‌دهی خزنده
+
+```text
+The crawler may NOT autonomously grant:
+  source authority
+  reuse rights
+  automation permission
+  ingestion eligibility
+  publication authorization
+  runtime-use authorization
+  policy authority
+  flag activation
+  capability activation
+  legal approval
+
+SEMANTIC_RULES =
+  READABLE != REUSABLE
+  GET != AUTOMATION_PERMISSION
+  DISCOVERED != INGESTIBLE
+  INGESTED != APPROVED
+  APPROVED != PUBLISHED
+  PUBLISHED != UNRESTRICTED_RUNTIME_USE
+```
+
+### ۱۳۸.۱۶) امنیت و Knowledge-Poisoning
+
+```text
+Comprehensive knowledge growth MUST remain protected against:
+  malicious sources
+  source impersonation
+  unexpected source changes
+  content poisoning
+  prompt-injection-like source content
+  conflicting authority
+  stale guidance
+  retracted guidance
+  tampering
+  duplicate or misleading versions
+
+GOVERNANCE_SEMANTICS = FAIL-CLOSED
+OPERATIONAL_CODE_DETAILS_NOT_INVENTED_HERE = YES
+```
+
+### ۱۳۸.۱۷) قانون Runtime Grounding
+
+```text
+A governed Knowledge Base that is not actually available to
+Sedi's authorized response pipeline is insufficient for I5 closure.
+
+Future I5 closure REQUIRES runtime grounding.
+
+I5_CANNOT_CLOSE_WITHOUT_RUNTIME_GROUNDING = YES
+
+Runtime grounding must eventually combine:
+  governed knowledge
+  +
+  authorized context
+  +
+  safety rules
+
+RUNTIME_GROUNDING_COMPLETE = NO
+RUNTIME_GROUNDING_CLAIMED_BY_THIS_GATE = NO
+```
+
+### ۱۳۸.۱۸) قوانین سخت بسته‌شدن I5
+
+```text
+I5_CANNOT_CLOSE_WITHOUT_COMPREHENSIVE_GOVERNED_HEALTH_KNOWLEDGE = YES
+I5_CANNOT_CLOSE_WITHOUT_WEEKLY_GOVERNED_CRAWLER = YES
+I5_CANNOT_CLOSE_WITHOUT_PSYCHOLOGY_AND_HUMAN_INTERACTION_KNOWLEDGE = YES
+I5_CANNOT_CLOSE_WITHOUT_LIFESTYLE_NUTRITION_EXERCISE_KNOWLEDGE = YES
+I5_CANNOT_CLOSE_WITHOUT_RUNTIME_GROUNDING = YES
+
+I5 closure ultimately requires evidence of:
+  operational and testable governed crawler
+  Coverage Manifest
+  acceptable priority-domain coverage
+  explicit Hepatitis/Liver coverage
+  Psychology/Human Interaction governed content
+  Lifestyle/Nutrition/Exercise governed content
+  provenance
+  citation/support where required
+  versioning
+  freshness
+  retraction handling
+  security/poisoning protections
+  publication governance
+  runtime grounding
+  safety evaluation
+  personalization evaluation
+  observable coverage gaps
+
+WRITING_§138_DOES_NOT_MARK_ANY_OF_THESE_COMPLETE = YES
+I5_CLOSED_BY_THIS_GATE = NO
+```
+
+### ۱۳۸.۱۹) صداقت وضعیت پیاده‌سازی جاری
+
+```text
+DISTINCTION_REQUIRED =
+  PERMANENT LAW / REQUIRED FUTURE ARCHITECTURE
+  vs
+  CURRENTLY IMPLEMENTED / VERIFIED
+
+CURRENT_STATE_SAFEGUARDS =
+  I5_COMPLETE = NO
+  WEEKLY_CRAWLER_IMPLEMENTED = NO
+  WEEKLY_CRAWLER_OPERATIONAL = NO
+  COMPREHENSIVE_CONTENT_PACKS_COMPLETE = NO
+  RUNTIME_GROUNDING_COMPLETE = NO
+  E2_CLOSED = NO
+  EVIDENCE_OVERLAY_CLOSED = NO
+  P2_STARTED = NO
+
+NO_DOWNSTREAM_PACKAGE_STARTED_OR_COMPLETED_BY_§138 = YES
+```
+
+### ۱۳۸.۲۰) تداوم نقشه راه (بدون بازچینش)
+
+```text
+VERIFIED_CONTINUATION_ORDER_PRESERVED =
+
+  E2-C4B-04
+  → E2-C4B-05
+  → remaining E2 / Evidence Overlay
+  → P2
+  → P3
+  → P4
+  → P5
+  → P6
+  → R1
+  → R2
+  → S1
+  → Weekly Governed Crawler
+  → governed content packs
+  → runtime grounding
+  → I5 closure
+  → I6
+  → I7
+  → I8
+  → Frontend Gate 4
+
+§138 does NOT reorder this chain.
+§138 is a governance synchronization step,
+NOT a new implementation shortcut.
+```
+
+### ۱۳۸.۲۱) قانون تداوم مستندسازی
+
+```text
+After every material:
+  analysis
+  architecture decision
+  scope review
+  implementation
+  audit
+  test
+  CI
+  commit
+  push
+  migration
+  deploy
+  flag / capability change
+  material result
+
+the project state MUST be updated in:
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+AND the latest authoritative cross-chat Reference.
+
+NO material result may exist only in chat history.
+```
+
+### ۱۳۸.۲۲) قانون Multi-Stage Cursor + Self-Healing
+
+```text
+PERMANENT_RULE_MULTI_STAGE_CURSOR_PROMPTS = YES
+CURSOR_SELF_HEALING_EXECUTION_REQUIRED = YES
+
+IN_SCOPE_EXECUTION_LOOP =
+  DETECT
+  → ROOT CAUSE
+  → MINIMAL IN-SCOPE FIX
+  → REGRESSION PROOF / INTERNAL DOCUMENT PROOF
+  → VERIFY
+  → REPEAT UNTIL CLOSED
+
+For this docs-only Gate:
+  if in-scope defect in newly written §138 → fix only §138
+  re-audit → repeat until clean
+  no separate approval needed for trivial §138-only corrections
+
+STOP if fixing would require:
+  editing §§1–137
+  scope expansion
+  code change
+  workflow change
+  test execution
+  network
+  legal decision beyond already approved policy
+  new product decision
+  commit
+  push
+  CI
+  migration
+  deploy
+  flag/capability activation
+```
+
+### ۱۳۸.۲۳) کیفیت پیش‌نویس / مرزهای ادعا
+
+```text
+§138 MUST remain:
+  precise
+  auditable
+  non-duplicative where possible
+  clear about current vs future state
+  fail-closed
+  free from medical overclaim
+  free from implementation overclaim
+  consistent with §137
+  consistent with five-Gate backend architecture
+  consistent with I5 → I6 → I7 → I8 sequencing
+
+DO_NOT =
+  weaken existing safety or approval boundaries
+  claim legal/rights approval that does not exist
+  state that all disease knowledge is already present
+  state that crawler is already implemented
+```
+
+### ۱۳۸.۲۴) ممیزی داخلی (self-healing) — فقط §۱۳۸
+
+```text
+Audit iterations: 3
+SELF_HEALING_FIX_COUNT = 2
+
+S27-138-A01 baseline HEAD/UPSTREAM 55403062…; ahead/behind 0/0;
+           dirty=§137-only; staged empty; untracked zero;
+           §138 free before append → CLOSED
+S27-138-A02 append-only §138; §§1–137 byte-for-byte preserved → CLOSED
+S27-138-A03 core purpose + comprehensive coverage law recorded → CLOSED
+S27-138-A04 priority clinical domains + Hepatitis A–E / Liver Health
+           explicit safety boundaries recorded → CLOSED
+S27-138-A05 treatment/care/prevention + physician-replacement ban → CLOSED
+S27-138-A06 Psychology / Behavioral Science / Human Interaction
+           first-class domain recorded → CLOSED
+S27-138-A07 personalization required; hidden psychological profiling
+           prohibited → CLOSED
+S27-138-A08 Nutrition / Exercise / Sleep / Lifestyle laws recorded;
+           no meal/exercise plan implementation claimed → CLOSED
+S27-138-A09 human-centered identity + no human/physician/therapist
+           claim recorded → CLOSED
+S27-138-A10 Healthy Longevity + Quality of Life permanent mission;
+           lifespan guarantee = NO → CLOSED
+S27-138-A11 weekly governed crawler law preserved/strengthened;
+           schedule NOT_YET_DECIDED; lifecycle = architecture law → CLOSED
+S27-138-A12 Iran-first / not Iran-only; crawler self-authorization
+           prohibition; security/poisoning fail-closed → CLOSED
+S27-138-A13 runtime grounding required for I5; currently incomplete → CLOSED
+S27-138-A14 all I5 closure invariants recorded; §138 does not close I5 → CLOSED
+S27-138-A15 current-state honesty markers all NO / not-started → CLOSED
+S27-138-A16 roadmap continuation order unchanged → CLOSED
+S27-138-A17 continuity + multi-stage + self-healing rules reaffirmed → CLOSED
+S27-138-A18 no network/test/CI/commit/push/C4B-04 → CLOSED
+S27-138-A19 DETECT literal backslash-n line artifacts in §138 append
+           from shell escaping → ROOT CAUSE=PowerShell/python -c
+           escaping → MINIMAL FIX=remove artifacts from §138 only
+           → prefix §§1–137 re-proven → CLOSED
+S27-138-A20 DETECT CRLF inside §138 append (Write-tool Windows)
+           while historical prefix is LF → ROOT CAUSE=CRLF append
+           → MINIMAL FIX=normalize §138 append to LF only
+           → prefix §§1–137 re-proven; git diff --check clean for
+           new §138 whitespace → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_§138_DEFECT_REMAINS = YES
+```
+
+### ۱۳۸.۲۵) نشانگرهای نهایی
+
+```text
+GATE_S27_02_APPEND_§138_COMPLETE
+PACKAGE = GATE-S27-02 — APPEND MASTER LOG §138
+LAW = PERMANENT I5 COMPREHENSIVE KNOWLEDGE,
+      HUMAN-CENTERED CARE & HEALTHY-LONGEVITY LAW
+
+I5_CANNOT_CLOSE_WITHOUT_COMPREHENSIVE_GOVERNED_HEALTH_KNOWLEDGE = YES
+I5_CANNOT_CLOSE_WITHOUT_WEEKLY_GOVERNED_CRAWLER = YES
+I5_CANNOT_CLOSE_WITHOUT_PSYCHOLOGY_AND_HUMAN_INTERACTION_KNOWLEDGE = YES
+I5_CANNOT_CLOSE_WITHOUT_LIFESTYLE_NUTRITION_EXERCISE_KNOWLEDGE = YES
+I5_CANNOT_CLOSE_WITHOUT_RUNTIME_GROUNDING = YES
+
+PERMANENT_RULE_WEEKLY_GOVERNED_CRAWLER = YES
+I5_COMPLETION_REQUIRES_WEEKLY_GOVERNED_CRAWLER = YES
+CRAWLER_MINIMUM_FREQUENCY = WEEKLY
+EXACT_SCHEDULE = NOT_YET_DECIDED
+
+IRAN_FIRST_PILOT_SOURCE_PRIORITY = YES
+IRAN_ONLY_ARCHITECTURE = NO
+
+AUTHORIZED_CONTEXT_AWARE_PERSONALIZATION = REQUIRED
+HIDDEN_PSYCHOLOGICAL_PROFILING = PROHIBITED
+
+HEALTHY_LONGEVITY_AND_QUALITY_OF_LIFE_IS_A_PERMANENT_SEDI_PRODUCT_MISSION = YES
+LIFESPAN_EXTENSION_GUARANTEE = NO
+
+SEDI_IS_NOT_A_REPLACEMENT_FOR_A_PHYSICIAN = YES
+SEDI_MUST_NOT_CLAIM_TO_BE_HUMAN = YES
+SEDI_MUST_NOT_CLAIM_TO_BE_A_LICENSED_PHYSICIAN = YES
+SEDI_MUST_NOT_CLAIM_TO_BE_A_LICENSED_THERAPIST = YES
+
+INDEPENDENT_DIAGNOSIS = NO
+INDEPENDENT_PRESCRIBING = NO
+UNAUTHORIZED_TREATMENT_MODIFICATION = NO
+
+I5_COMPLETE = NO
+WEEKLY_CRAWLER_IMPLEMENTED = NO
+WEEKLY_CRAWLER_OPERATIONAL = NO
+COMPREHENSIVE_CONTENT_PACKS_COMPLETE = NO
+RUNTIME_GROUNDING_COMPLETE = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E2_C4B_04_STARTED = NO
+I6 = NOT STARTED
+I7 = NOT STARTED
+I8 = NOT STARTED
+
+PERMANENT_RULE_MULTI_STAGE_CURSOR_PROMPTS = YES
+CURSOR_SELF_HEALING_EXECUTION_REQUIRED = YES
+
+MASTER_LOG_138_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_§138_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۸.۲۶) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+GATE-S27-03 — STRICT READ-ONLY REVIEW OF MASTER LOG §138
+
+NEXT_GATE_STARTED = NO
+AUTHORIZATION = NOT YET GRANTED
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_C4B_04_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+I5_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۸ — GATE-S27-02 PERMANENT I5 COMPREHENSIVE KNOWLEDGE, HUMAN-CENTERED CARE & HEALTHY-LONGEVITY LAW — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
