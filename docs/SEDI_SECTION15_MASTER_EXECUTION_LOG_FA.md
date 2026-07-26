@@ -23813,3 +23813,663 @@ LEGAL_DECISION_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۳۳ — Package E2-C4B-02 Discovery Decision / Fail-Closed Disposition — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+---
+
+## ۱۳۴) بسته E2-C4B-03 — آماده‌سازی مخزنی کشف هویت/پروانه و اعتباربخشی آزمایشگاه و مرکز تشخیص (بدون شبکه)
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-03-LABORATORY-ACCREDITATION-DISCOVERY-v1
+
+GATE =
+E2_C4B_03_LABORATORY_ACCREDITATION_DISCOVERY_REPOSITORY_PREPARATION
+
+Owner:
+Facility Verification + Legal (evidence design)
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for repository-side E2-C4B-03 preparation ONLY
+NETWORK = NO
+NO web search / curl / HTTP / browser / scrape / API / DNS probe
+NO live laboratory lookup / live accreditation lookup
+NO individual laboratory record collection
+NO catalog edit / eligibility promotion / fetch enablement / publication
+NO E2-C4B-04..F / E3 / P2
+NO stage / commit / push / CI
+NO capability activation
+
+Baseline SHA:
+6c59eb7aae398d01f47c29fb603712135c5f65da
+
+Controlling governance at entry:
+F3_CLOSED = YES
+09B_CLOSED = YES
+E2_C4B_02_DISCOVERY_STATE = COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+E2_C4B_02_FULL_CHILD_COMPLETE = NO
+NEXT_E2_CHILD_GATE_ID = E2-C4B-03 (§133.11)
+NEXT_E2_CHILD_MAY_PROCEED_WITH_C4B_02_RESIDUALS_PRESERVED = YES
+E2_CLOSED = NO
+E2_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+P2_STARTED = NO
+RIGHTS_STATE_REMAINS_FAIL_CLOSED = YES
+16_CAPABILITIES_REMAIN_NOT_ACTIVATED = YES
+CAPABILITY_ACTIVATION = NO
+```
+
+### ۱۳۴.۱) اختیار و بازسازی قرارداد E2-C4B-03
+
+```text
+E2_C4B_03_PURPOSE =
+  laboratory / diagnostic-center identity discovery (IR-SC-05 / OFS-04)
+  + laboratory / diagnostic-center licensing / registry evidence
+  + laboratory / diagnostic accreditation discovery (IR-SC-06 / OFS-05)
+  under Iran-first free-official discovery rules from §99
+  = SOURCE / FACILITY DISCOVERY ONLY
+  ≠ clinical laboratory-test knowledge / CDS
+
+EXPLICIT_C4B_03_AUTHORITY =
+  §99.21 — E2-C4B-03 laboratory and accreditation discovery approval
+  IR-SC-05 lab/diagnostic identity registry (§99.3)
+  IR-SC-06 lab/diagnostic accreditation (§99.3)
+  OD-C4A-05 IR-SC-05 lab identity pack (§99.19)
+  OD-C4A-06 IR-SC-06 lab accreditation pack (§99.19; depends OD-C4A-05)
+  OFS-04 official laboratory registry (§97.7)
+  OFS-05 official laboratory accreditation (§97.7)
+  D-IR-04 APPROVED_BY_JAVAD — laboratories/diagnostic centers deferred until
+    free official identity and accreditation source is verified
+  Strategy H (§99.8) Facility/accreditation discovery — FA «آزمایشگاه تشخیصی»
+    shared Gate label E2-C4B-02/03; lab-primary reserved to C4B-03 (§131.6)
+  Strategy I (§99.8) Provider/facility identity — Gate E2-C4B-01..03
+  §99.10 logical discovery artifacts (schemas implemented = 0)
+  §99.11 provenance contract (31 fields)
+  §99.12 attribution contract (12 fields)
+  §99.4 lock: facility website ≠ independent accreditation
+  §99.5 TIER A/C/D/E role ceilings
+  §99.6 free-source eligibility model + decision enum
+  §99.9 automated-access policy
+  §99.20 R10 outdated laboratory accreditation → E2-C4B-03
+  ST-06 OFFICIAL_LABORATORY_SOURCE (§112.4) — lab services/license;
+    clinical quality scores prohibited
+  §133.11 next-child marker: E2-C4B-03; IMPLEMENTATION was NOT_AUTHORIZED
+    until this approved repository-preparation Gate
+
+ADJACENT_C4B_02_PRECEDENT =
+  §131–§133 hospital/clinic discovery arc structure:
+    repository preparation → controlled network → disposition
+  master-log-only mutation allowlist pattern (§131.3)
+  discovery-completion vs full-child / rights-downstream distinction (§133)
+  empty fail-closed candidate slots + planned query IDs without live URLs
+  university/institutional corroboration as SECONDARY for national claims
+  DO NOT treat C4B-02 disposition enum labels as §99-hardcoded C4B-03 states
+
+E2_C4B_03_ENTRY_CRITERIA =
+  HEAD = 6c59eb7aae398d01f47c29fb603712135c5f65da
+  worktree clean; AHEAD/BEHIND = 0/0
+  E2-C4A COMPLETE (IR-SC-05/06 assigned to E2-C4B-03)
+  E2-C4B-02 discovery disposition recorded (§133);
+    residuals preserved; rights clearance NOT required to enter C4B-03
+  explicit Javad approval of this package
+  NETWORK not authorized in this Gate
+
+E2_C4B_03_DEDICATED_ARTIFACT_PATH_AUTHORITATIVELY_NAMED = NO
+§99.10_LOGICAL_DISCOVERY_RECORDS_EXIST = YES
+§99.10_SCHEMAS_IMPLEMENTED = 0
+CURRENT_REPOSITORY_PREPARATION_MUTATION_ALLOWLIST =
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+CURRENT_PACKAGE_CAN_BE_MASTER_LOG_ONLY = YES
+PERMANENT_MASTER_LOG_ONLY_ARTIFACT_CONVENTION_CLAIMED = NO
+FUTURE_AUTHORITY_MAY_NAME_ADDITIONAL_EVIDENCE_PATHS = YES
+
+E2_C4B_03_REQUIRED_ARTIFACTS =
+  Logical discovery-review artifacts (§99.10) — documentation-level only:
+  1 DiscoveryCandidateRecord
+  2 AuthorityEvidenceRecord
+  3 CostEvidenceRecord
+  4 TermsAndLicenseEvidenceRecord
+  5 AutomatedAccessEvidenceRecord
+  6 AttributionRequirementRecord
+  7 MedicalReviewRequirementRecord
+  8 FreshnessRequirementRecord
+  9 SecurityAssessmentRecord
+  10 CandidateDecisionRecord
+  Schemas/models implemented in this Gate: 0
+  Separate on-disk evidence files: NOT authoritatively named for C4B-03
+```
+
+### ۱۳۴.۲) پیش‌نیازها / وضعیت پیشینیان
+
+```text
+E2-C4A = PASS (scope-review COMPLETE)
+E2-C4B-00 = PASS (field-level governance docs)
+E2-C4B-01 / 01A = PASS (physician path; not lab-primary)
+E2-C4B-02 = DISCOVERY disposition COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS;
+  FULL_CHILD_COMPLETE = NO; residuals preserved
+E2-C4B-09A/09B = prior commercial-directory path closed/residual as recorded
+E2-C4B-03 prior state = NOT STARTED / NOT AUTHORIZED until this Gate
+E2-C4 parent = NOT CLOSED
+E2 parent = NOT CLOSED
+
+Local catalog laboratory identity/accreditation source rows for IR-SC-05/06
+  = ZERO admissible dedicated C4B-03 discovery evidence in-repo
+Local fabricated lab registry/accreditation hosts = FORBIDDEN
+```
+
+### ۱۳۴.۳) DERIVED MUTATION ALLOWLIST
+
+```text
+DERIVED_MUTATION_ALLOWLIST =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+PATH =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+AUTHORITY / PRECEDENT =
+  Section 26 continuity; §99.10 schemas implemented = 0;
+  C4B-02 §131.3 adjacent pattern: no separate C4B-03 evidence filename
+  authoritatively named in repo
+WHY REQUIRED =
+  append-only Gate continuity + contract/preparation record
+EXPECTED MUTATION TYPE =
+  APPEND_ONLY new §134
+
+OUT_OF_ALLOWLIST_PATHS_MUTATED = 0
+NEW_FOLDER_NAMES_INVENTED = 0
+NEW_EVIDENCE_FILENAMES_INVENTED = 0
+NEW_SCHEMAS_IMPLEMENTED = 0
+```
+
+### ۱۳۴.۴) قرارداد هویت / پروانه آزمایشگاه و مرکز تشخیص (IR-SC-05 / OFS-04)
+
+Documentation contract only — no live values asserted.
+
+| Field / evidence need | Classification | Allowed role | Prohibited use | Default if unknown |
+|---|---|---|---|---|
+| candidate ID | EXPLICIT_REQUIREMENT (§99.11) | stable slot/key | inventing as verified source | NOT_ESTABLISHED |
+| source identity / publisher legal/official identity | EXPLICIT_REQUIREMENT | FACILITY_IDENTITY_AUTHORITY | ranking; accreditation alone | UNKNOWN_FAIL_CLOSED |
+| authority owner (lab regulator / MoH / licensing authority) | EXPLICIT_REQUIREMENT | IDENTITY / LICENSE authority | commercial popularity as authority | UNKNOWN_FAIL_CLOSED |
+| canonical source URL | EXPLICIT_REQUIREMENT after discovery | provenance | inventing URL without capture | NOT_ESTABLISHED |
+| authority class (IR-SC-05 / OFS-04 / ST-06) | EXPLICIT_REQUIREMENT | class lock | wrong class as license proof | UNKNOWN_FAIL_CLOSED |
+| laboratory / diagnostic-center relevance | EXPLICIT_REQUIREMENT | lab-primary scope | hospital-primary leakage | UNKNOWN_FAIL_CLOSED |
+| facility identity relevance | EXPLICIT_REQUIREMENT | identity pack | directory scrape as official | UNKNOWN_FAIL_CLOSED |
+| license / registry relevance | EXPLICIT_REQUIREMENT (OFS-04; ST-06; LAB-F01/F02 model) | license/status evidence | platform-only license claim | UNKNOWN_FAIL_CLOSED |
+| facility type (when officially evidenced) | EXPLICIT_REQUIREMENT after discovery | identity metadata | inventing facility class | NOT_ESTABLISHED |
+| public-access state | EXPLICIT_REQUIREMENT | free-source model | login/patient portal as discovery core | UNKNOWN_FAIL_CLOSED |
+| cost / free state | EXPLICIT_REQUIREMENT (§99.6) | free-only path | PAID_API adoption | UNKNOWN_FAIL_CLOSED |
+| terms / reuse state | EXPLICIT_REQUIREMENT | Cost+Terms packs | free-to-view ≠ free-to-store | UNKNOWN_FAIL_CLOSED |
+| automation state | EXPLICIT_REQUIREMENT (§99.9) | AutomatedAccess pack | bypass / form abuse | UNKNOWN_FAIL_CLOSED |
+| robots state (web method) | EXPLICIT_REQUIREMENT where applicable | robots review | ignore robots | UNKNOWN_FAIL_CLOSED |
+| attribution requirement | EXPLICIT_REQUIREMENT (§99.12) | Attribution pack | promote without attribution | UNKNOWN_FAIL_CLOSED |
+| freshness signal | EXPLICIT_REQUIREMENT | Freshness pack | stale as verified | UNKNOWN_FAIL_CLOSED |
+| security / access-restriction state | EXPLICIT_REQUIREMENT | SecurityAssessment | trust raw HTML | UNTRUSTED |
+| provenance reference | EXPLICIT_REQUIREMENT (§99.11) | mandatory provenance | promote without provenance | UNKNOWN_FAIL_CLOSED |
+| candidate decision | EXPLICIT_REQUIREMENT | CandidateDecisionRecord | optimistic ELIGIBLE without packs | UNKNOWN_FAIL_CLOSED / NOT_ESTABLISHED |
+| decision rationale | EXPLICIT_REQUIREMENT | auditability | empty rationale on promote | NOT_ESTABLISHED |
+| limited service/scope metadata (if official) | ADJACENT_PRECEDENT_INFERENCE / field-model only | facility metadata label | clinical knowledge harvest | NOT_ESTABLISHED |
+
+```text
+IR-SC-05_DEFAULT_STATE = UNKNOWN_FAIL_CLOSED
+LAB_IDENTITY = IN_SCOPE_FOR_E2_C4B_03
+LAB_LICENSING = IN_SCOPE_FOR_E2_C4B_03_AS_IDENTITY_LICENSE_EVIDENCE
+LAB_QUALITY_RANKING = NOT_AUTHORIZED
+DISCOVERED_OFFICIAL_LAB_IDENTITY_CANDIDATES_IN_THIS_GATE = 0
+FABRICATED_LAB_IDENTITIES = 0
+INDIVIDUAL_LABORATORY_RECORDS_COLLECTED = 0
+LICENSE_STATUS_FABRICATED = 0
+```
+
+### ۱۳۴.۵) قرارداد اعتباربخشی آزمایشگاه / مرکز تشخیص (IR-SC-06 / OFS-05)
+
+Documentation contract only — no live grades/status asserted.
+
+| Field / evidence need | Classification | Allowed role | Prohibited use | Default if unknown |
+|---|---|---|---|---|
+| official accreditor identity | EXPLICIT_REQUIREMENT | ACCREDITATION_AUTHORITY | facility self-claim as national accreditation | UNKNOWN_FAIL_CLOSED |
+| accreditation certificate/status evidence type | EXPLICIT_REQUIREMENT | accreditation pack | quality ranking; clinical advice | UNKNOWN_FAIL_CLOSED |
+| status + date (when captured) | EXPLICIT_REQUIREMENT after discovery | freshness (R10) | inventing grade/status/score | NOT_ESTABLISHED |
+| free / paid / paywall classification | EXPLICIT_REQUIREMENT | free-source model | PAID_API adoption | UNKNOWN_FAIL_CLOSED |
+| storage / product-use / automation rights | EXPLICIT_REQUIREMENT | Cost+Terms+Auto packs | operational enablement from discovery alone | UNKNOWN_FAIL_CLOSED |
+| corroboration vs laboratory website | EXPLICIT_REQUIREMENT (§99.4) | TIER C/self limits | lab website = independent national accreditation | UNKNOWN_FAIL_CLOSED |
+| commercial directory as accreditation | EXPLICIT_REQUIREMENT ban | — | primary accreditation authority | EXCLUDED_AS_PRIMARY |
+| marketing / ranking / best-lab claims | EXPLICIT_REQUIREMENT ban | — | accreditation evidence | OUT_OF_SCOPE / REJECT |
+| medical review | EXPLICIT_REQUIREMENT | MR-0 per §99.3 | clinical ranking from accreditation | UNKNOWN_FAIL_CLOSED |
+
+```text
+IR-SC-06_DEFAULT_STATE = UNKNOWN_FAIL_CLOSED
+LAB_ACCREDITATION = IN_SCOPE_FOR_E2_C4B_03
+ACCREDITATION_AS_QUALITY_RANKING = FORBIDDEN
+CLINICAL_QUALITY_SCORE = NOT_AUTHORIZED
+DISCOVERED_OFFICIAL_LAB_ACCREDITATION_CANDIDATES_IN_THIS_GATE = 0
+FABRICATED_ACCREDITATION_GRADES_OR_STATUS = 0
+FACILITY_WEBSITE_ALONE_IS_INDEPENDENT_ACCREDITATION_PROOF = NO
+COMMERCIAL_DIRECTORY_IS_PRIMARY_ACCREDITATION_AUTHORITY = NO
+MARKETING_CLAIMS_ARE_ACCREDITATION_PROOF = NO
+```
+
+### ۱۳۴.۶) جداسازی هویت / پروانه / اعتباربخشی / کیفیت
+
+```text
+LAB_IDENTITY =
+  within E2-C4B-03 discovery scope (IR-SC-05 / OFS-04)
+
+LAB_LICENSING =
+  within E2-C4B-03 discovery scope as official license/registry evidence
+  (ST-06; OFS-04 identity pack; LAB-F01/F02 field model — not runtime enablement)
+
+LAB_ACCREDITATION =
+  within E2-C4B-03 discovery scope (IR-SC-06 / OFS-05)
+  ≠ subjective quality ranking
+
+LAB_QUALITY_RANKING =
+  NOT AUTHORIZED
+
+CLINICAL_QUALITY_SCORE =
+  NOT AUTHORIZED
+
+SEMANTIC_BOUNDARY =
+  accreditation status/authority evidence ≠ quality ranking ≠ clinical score
+```
+
+### ۱۳۴.۷) مرز کاتالوگ آزمون / دانش بالینی
+
+```text
+E2_C4B_03_IS =
+  SOURCE / FACILITY DISCOVERY
+
+E2_C4B_03_IS_NOT =
+  laboratory test medical knowledge
+  reference ranges
+  test preparation guidance
+  test interpretation
+  diagnostic recommendation
+  clinical decision support
+
+LAB-F03 accredited_test_menu (§112.8) =
+  DIRECTORY FIELD MODEL ONLY
+  NOT authorization to harvest clinical laboratory catalogs in this Gate
+
+LIMITED_SERVICE_SCOPE_METADATA =
+  if later officially evidenced: facility metadata label only
+  NOT clinical knowledge authority
+
+CLINICAL_CONTENT_PATHS =
+  deferred to other I5/IR-SC education/guidance Gates (e.g. C4B-04/05/07)
+  — not started by this Gate
+```
+
+### ۱۳۴.۸) مرز بیمار / PII
+
+```text
+PII_COLLECTION_ALLOWED = NO
+PATIENT_RESULT_ACCESS_ALLOWED = NO
+PATIENT_RESULT_HARVEST = NO
+MEDICAL_RECORD_ACCESS = NO
+PROVIDER_PERSON_HARVEST = NO
+PATHOLOGIST_OR_STAFF_HARVEST = NO
+AUTHENTICATED_PATIENT_PORTAL_ACCESS = NO
+LOGIN_GATED_SYSTEM_ACCESS = NO
+NO_FORM_POST = YES
+NO_CAPTCHA_OR_ANTIBOT_BYPASS = YES
+```
+
+### ۱۳۴.۹) محافظ قیمت آزمایشگاه (lab-price guardrail)
+
+```text
+LAB_PRICE = OUTSIDE_C4B_03_DISCOVERY_CORE
+LAB_PRICE_STORAGE_AUTHORITY = NOT_ESTABLISHED_BY_THIS_GATE
+LAB_PRICE_COLLECTION = NOT_AUTHORIZED
+LAB_PRICE_PRODUCT_POLICY = DEFER / SEPARATE_DECISION_IF_NEEDED
+
+NOTE =
+  Do NOT claim D-IR-05 specifically prohibits laboratory-price storage.
+  D-IR-05 holds consultation price (and other V1 holds) for approved minimal
+  public fields; lab-price remains outside C4B-03 discovery core and is
+  NOT authorized for collection in this Gate.
+```
+
+### ۱۳۴.۱۰) طبقه‌بندی خانواده منبع (بدون دامنه زنده)
+
+```text
+official national MoH / government laboratory regulator =
+  PRIMARY_ALLOWED when ownership/authority proven (TIER A)
+
+official laboratory licensing authority =
+  PRIMARY_ALLOWED for license / identity evidence
+
+official accreditation authority =
+  PRIMARY_ALLOWED for accreditation evidence
+
+official facility registry containing laboratory class =
+  PRIMARY_ALLOWED for identity if laboratory classification is proven
+
+official medical-university / government institutional source =
+  SECONDARY_CORROBORATION_ONLY for national regulator/accreditation claims
+  (ADJACENT_C4B_02_PRECEDENT for national-claim corroboration pattern)
+  MAY still be authoritative later for its OWN institutional/facility facts
+  if evidence supports that LIMITED role (TIER C limits; §99.5)
+
+individual laboratory website =
+  EXCLUDED_AS_PRIMARY for independent accreditation proof
+  LIMITED own-facility facts only with official cross-check (ST-06 / SQ-10)
+
+commercial directory =
+  EXCLUDED_AS_PRIMARY (IR-SC-16 / TIER D)
+
+booking platform =
+  OUT_OF_SCOPE as primary authority
+
+ranking/review site =
+  OUT_OF_SCOPE
+
+provider-person directory =
+  OUT_OF_SCOPE
+
+patient result portal =
+  OUT_OF_SCOPE
+
+LIVE_DOMAINS_NAMED_AS_EVIDENCE_IN_THIS_GATE = 0
+```
+
+### ۱۳۴.۱۱) حقوق / استفاده مجدد / اتوماسیون
+
+```text
+PUBLIC_SOURCE_LANDING_CAN_BE_RECORDED_FOR_DISCOVERY = YES
+REUSE_RIGHTS_REQUIRED_BEFORE_LIVE_STORAGE_OR_REUSE = YES (§99.6 EXPLICIT)
+AUTOMATION_PERMISSION_REQUIRED_BEFORE_AUTOMATED_ACQUISITION = YES (§99.9 EXPLICIT)
+
+RIGHTS_STATE = UNKNOWN_FAIL_CLOSED until proven
+SOURCE_RIGHTS_EXPANSION = NO
+OPERATIONAL_AUTHORIZATION = NO
+INGESTION_ELIGIBILITY = NOT_AUTHORIZED
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+CAPABILITY_ACTIVATION = NO
+
+LEGAL_RIGHTS_REVIEW =
+  DOWNSTREAM_BEFORE_LIVE_ACQUISITION_OR_REUSE
+
+DISCOVERY_VS_RIGHTS_COMPLETION_SPLIT =
+  ADJACENT_C4B_02_PRECEDENT
+  (§133.3: legal decision not required before discovery completion;
+   required before live acquisition/reuse)
+  NOT claimed as a §99-hardcoded C4B-03 enum in this preparation Gate
+
+LEGAL_DECISION_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۳۴.۱۲) حالت‌های fail-closed مجاز (اولیه)
+
+```text
+UNKNOWN_FAIL_CLOSED          — EXPLICIT (IR-SC-05/06 default)
+NOT_ESTABLISHED              — PRECEDENT_SUPPORTED / slot initial
+UNVERIFIED                   — PRECEDENT_SUPPORTED
+NOT_AUTHORIZED               — governance default
+PAID_EXCLUDED                — EXPLICIT (§99.6)
+ACCESS_RESTRICTED_FAIL_CLOSED — PRECEDENT_SUPPORTED (orthogonal attribute; not exclusive final decision)
+EXCLUDED_AS_PRIMARY          — EXPLICIT tier locks + PRECEDENT
+OUT_OF_SCOPE                 — PRECEDENT_SUPPORTED
+REJECTED / NONOFFICIAL_REJECTED_AS_PRIMARY_AUTHORITY — EXPLICIT (R05 / IR-SC-18)
+
+NO_NEW_OPTIMISTIC_STATES_CREATED = YES
+ELIGIBLE / APPROVED_FOR_FETCH / STORAGE / PUBLICATION / RUNTIME_ACTIVE used = 0
+
+NOTE =
+  DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS is NOT declared as a
+  C4B-03 authoritative state in this repository-preparation Gate
+  (C4B-02 disposition label = ADJACENT_PRECEDENT only).
+```
+
+### ۱۳۴.۱۳) قرارداد provenance / attribution
+
+```text
+APPLICABLE =
+  §99.11 mandatory provenance fields (31)
+  §99.12 attribution fields (12)
+  §99.10 logical artifact minimum fields
+
+MINIMUM_LATER_EVIDENCE_MUST_INCLUDE =
+  source URL
+  publisher / authority identity
+  capture timestamp when evidence is later collected
+  authority evidence
+  terms/license evidence
+  robots / automation evidence
+  freshness / revocation signal
+  attribution requirement
+  security/access assessment
+  candidate decision rationale
+  hash/version fields where applicable
+
+PROMOTION_WITHOUT_REQUIRED_PROVENANCE = FORBIDDEN
+```
+
+### ۱۳۴.۱۴) کاندیدهای منطقی (اسلات خالی — بدون ساخت شواهد)
+
+| Slot ID | Class | Purpose | Current state | Evidence acquired this Gate |
+|---|---|---|---|---|
+| C-IR-LAB-ID-01 | IR-SC-05 / OFS-04 | official laboratory / diagnostic identity / licensing registry candidate | NOT_ESTABLISHED | NO |
+| C-IR-LAB-ACC-01 | IR-SC-06 / OFS-05 | official laboratory / diagnostic accreditation candidate | NOT_ESTABLISHED | NO |
+| C-IR-LAB-COR-01 | institutional corroboration (limited) | optional official institutional corroboration candidate for national claims | NOT_ESTABLISHED | NO |
+
+```text
+Candidate slots defined: 3
+DISCOVERED_REAL_CANDIDATE_COUNT = 0
+FABRICATED_SOURCE_IDENTITY_COUNT = 0
+Candidate URLs invented: 0
+Candidate ownership asserted: 0
+Hostnames / domains / registry portals invented as real evidence: 0
+ELIGIBLE / APPROVED_FOR_FETCH / STORAGE / PUBLICATION / RUNTIME_ACTIVE used: 0
+ALL_SLOTS_REMAIN_FAIL_CLOSED_OR_NOT_ESTABLISHED = YES
+```
+
+### ۱۳۴.۱۵) برنامه کشف (اجرا نشده) — planned query families
+
+Derived from Strategy H lab-focused portion + Strategy I facility-identity portion for labs; hospital-primary queries excluded (C4B-02 already dispositioned).
+
+Planned search query intents (NOT EXECUTED; no evidence URLs):
+
+| query ID | conceptual query intent | purpose | class target |
+|---|---|---|---|
+| PQ-L01 | official Iran medical laboratory registry | FA/EN registry discovery | IR-SC-05 / OFS-04 |
+| PQ-L02 | official diagnostic-center registry | FA/EN diagnostic identity | IR-SC-05 / OFS-04 |
+| PQ-L03 | official laboratory licensing authority Iran | license / پروانه authority | IR-SC-05 / OFS-04 |
+| PQ-L04 | official laboratory accreditation authority Iran | accreditation authority | IR-SC-06 / OFS-05 |
+| PQ-L05 | official government / MoH laboratory regulator | regulator ownership | IR-SC-05/06 |
+| PQ-L06 | official free laboratory identity source Iran | free-official identity | IR-SC-05 / OFS-04 |
+
+```text
+PLANNED_QUERY_COUNT = 6
+EXECUTED_QUERY_COUNT = 0
+SEARCH_EXECUTED = 0
+PAGES_OPENED = 0
+NETWORK_OPERATIONS_EXECUTED = 0
+LIVE_EVIDENCE_URLS_RECORDED = 0
+```
+
+Planned page-class inspections after a later approved network Gate (NOT EXECUTED):
+about / contact / legal / terms / privacy / robots / API-docs / dataset-docs /
+registry landing / accreditation status landing — public GET/HEAD only;
+NO laboratory-name or laboratory-ID form submission; NO individual lab record harvest;
+NO patient portal; NO raw HTML/PDF storage unless a later Gate explicitly allowlists it.
+
+### ۱۳۴.۱۶) تعیین نیاز شبکه
+
+```text
+NETWORK_REQUIRED = YES
+NETWORK_EXECUTED = NO
+E2_C4B_03_NETWORK_REQUIRED_FOR_FULL_DISCOVERY = YES
+E2_C4B_03_EXTERNAL_DISCOVERY_COMPLETE = NO
+NETWORK_DISCOVERY_REQUIRED = YES
+NETWORK_DISCOVERY_NOT_EXECUTED = YES
+
+WHY_LOCAL_REPOSITORY_EVIDENCE_IS_INSUFFICIENT =
+  Real official laboratory identity / accreditation evidence does not exist
+  locally in sufficient form for C4B-03 and must not be fabricated.
+  §99 left IR-SC-05/06 at UNKNOWN_FAIL_CLOSED with future Gate = E2-C4B-03.
+  D-IR-04 defers laboratories until free official identity+accreditation
+  source is verified.
+  Fabricating domains/status would violate no-synthetic-evidence rule.
+
+EXACT_TARGET_SOURCE_FAMILY_CONCEPTUAL =
+  OFS-04 / IR-SC-05 official laboratory identity / licensing sources
+  OFS-05 / IR-SC-06 official laboratory accreditation sources
+  official-government institutional corroboration where required
+  Domains NOT pre-invented in this Gate.
+
+EXACT_EVIDENCE_REQUIRED_LATER =
+  Authority / Cost-Free / Terms-Reuse / Automated access / Robots /
+  Attribution / Freshness / Security / Provenance / Candidate decision
+  (§99.10 packs)
+
+LIVE_QUERY_REQUEST_BUDGETS =
+  NOT assigned in this Gate
+  (later controlled-network Gate may derive exact budgets;
+   C4B-01/02 bound family = ADJACENT_PRECEDENT only)
+```
+
+### ۱۳۴.۱۷) مرز شبکه کنترل‌شده آینده (مفهومی)
+
+```text
+TARGET_SOURCE_CLASSES =
+  OFS-04 / IR-SC-05
+  OFS-05 / IR-SC-06
+  official-government institutional corroboration where required
+
+EVIDENCE_PACKS_REQUIRED =
+  Authority; Cost/Free; Terms/Reuse; Automated access; Robots;
+  Attribution; Freshness; Security; Provenance; Candidate decision
+
+FUTURE_EXCLUSIONS =
+  NO bulk lab dataset harvesting
+  NO PII
+  NO patient results
+  NO provider-person harvesting
+  NO ranking/review sources as authority
+  NO commercial directory as primary authority
+  NO paid API
+  NO authenticated portal
+  NO form submission
+  NO P2 ingestion
+  NO capability activation
+```
+
+### ۱۳۴.۱۸) وضعیت کشف / فرزند کامل (بدون اعلام premature)
+
+```text
+E2_C4B_03_DISCOVERY_COMPLETE = NO
+E2_C4B_03_FULL_CHILD_COMPLETE =
+  NO / NOT_ESTABLISHED_PENDING_LATER_DISPOSITION_AUTHORITY
+
+DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS =
+  NOT_DECLARED_AS_C4B_03_AUTHORITATIVE_STATE_IN_THIS_GATE
+
+NOTE =
+  Later controlled discovery + review may determine whether the C4B-02
+  disposition pattern should be applied (ADJACENT_C4B_02_PRECEDENT).
+```
+
+### ۱۳۴.۱۹) مرز والد / پایین‌دست
+
+```text
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+PIPE_MAIL_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+
+E2_C4B_04_STARTED = NO
+E2_C4B_05_STARTED = NO
+NO_LEAKAGE_INTO_C4B_04_OR_C4B_05 = YES
+```
+
+### ۱۳۴.۲۰) اثر بر D-IR-04 / محصول
+
+```text
+D-IR-04_PRODUCT_DEFERRAL_PRESERVED = YES
+laboratories and diagnostic centers remain deferred until a free official
+identity and accreditation source is verified
+(discovery preparation ≠ product verified-source claim)
+
+drdr_ir_MUST_NOT_BE_TREATED_AS_LABORATORY_AUTHORITY =
+  YES (D-IR-04 APPROVED; classification remains unresolved)
+```
+
+### ۱۳۴.۲۱) ممیزی داخلی (self-healing)
+
+```text
+Audit iterations: 2
+
+C4B03P-A01 baseline HEAD 6c59eb7…; §133=1 §134=0 → CLOSED
+C4B03P-A02 append-only §134; §§131–133 untouched → CLOSED
+C4B03P-A03 EXPLICIT vs ADJACENT_C4B_02_PRECEDENT labeled → CLOSED
+C4B03P-A04 artifact: dedicated path NO; schemas=0; no permanent-only overclaim → CLOSED
+C4B03P-A05 identity+licensing+accreditation in scope; quality ranking forbidden → CLOSED
+C4B03P-A06 clinical knowledge / LAB-F03 harvest not authorized → CLOSED
+C4B03P-A07 PII/patient/portal/staff harvest = NO → CLOSED
+C4B03P-A08 lab-price: outside core; storage authority NOT_ESTABLISHED; collection NO → CLOSED
+C4B03P-A09 empty slots NOT_ESTABLISHED; discovered real candidates = 0 → CLOSED
+C4B03P-A10 planned PQ-L01..L06; executed = 0; no live domains → CLOSED
+C4B03P-A11 NETWORK_EXECUTED=NO; network required for full discovery=YES → CLOSED
+C4B03P-A12 discovery/full-child complete = NO; no premature C4B-02 disposition enum → CLOSED
+C4B03P-A13 parent E2/EO/P2/E3/activation remain open/not-started → CLOSED
+C4B03P-A14 no stage/commit/push/CI/network → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_FINDING_REMAINS = YES
+```
+
+### ۱۳۴.۲۲) نشانگرهای نهایی
+
+```text
+E2_C4B_03_STATE =
+PARTIAL — REPOSITORY_PREPARATION_COMPLETE_EXTERNAL_DISCOVERY_REQUIRED
+
+E2_C4B_03_REPOSITORY_PREPARATION_COMPLETE = YES
+E2_C4B_03_EXTERNAL_DISCOVERY_COMPLETE = NO
+E2_C4B_03_NETWORK_REQUIRED_FOR_FULL_DISCOVERY = YES
+NETWORK_EXECUTED = NO
+E2_C4B_03_DISCOVERY_COMPLETE = NO
+E2_C4B_03_FULL_CHILD_COMPLETE =
+NO / NOT_ESTABLISHED_PENDING_LATER_DISPOSITION_AUTHORITY
+
+LAB_IDENTITY_AND_ACCREDITATION_CONTRACT_RECORDED
+NO_REAL_SOURCE_FABRICATION
+RIGHTS_REMAIN_FAIL_CLOSED
+NO_PII_OR_PATIENT_RESULT_ACCESS
+LAB_PRICE_NOT_AUTHORIZED
+NO_PERMANENT_ARTIFACT_CONVENTION_OVERCLAIM
+PARENT_E2_REMAINS_OPEN
+P2_NOT_STARTED
+MASTER_LOG_134_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_E2_C4B_03_REPOSITORY_PREPARATION_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۴.۲۳) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+STRICT READ-ONLY REVIEW OF
+E2-C4B-03 REPOSITORY PREPARATION
+
+NEXT_GATE_STARTED = NO
+NETWORK_DISCOVERY_AUTHORIZED_BY_THIS_GATE = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_C4B_04_AUTHORIZED_BY_THIS_GATE = NO
+E2_C4B_05_AUTHORIZED_BY_THIS_GATE = NO
+E2_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+LEGAL_DECISION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۴ — Package E2-C4B-03 Laboratory/Accreditation Discovery Repository Preparation (network not executed) — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
