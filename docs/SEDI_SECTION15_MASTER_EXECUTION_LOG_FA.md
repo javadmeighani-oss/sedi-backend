@@ -24473,3 +24473,841 @@ LEGAL_DECISION_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۳۴ — Package E2-C4B-03 Laboratory/Accreditation Discovery Repository Preparation (network not executed) — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+---
+
+## ۱۳۵) بسته E2-C4B-03 — کشف شبکه‌ای کنترل‌شده هویت/پروانه و اعتباربخشی آزمایشگاه و مرکز تشخیص
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-03-CONTROLLED-NETWORK-DISCOVERY-v1
+
+GATE =
+E2_C4B_03_LABORATORY_ACCREDITATION_CONTROLLED_NETWORK_DISCOVERY
+
+Owner:
+Facility Verification + Legal (evidence design)
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for bounded public network discovery ONLY
+NO login / form POST / CAPTCHA bypass / paid API / patient portal
+NO bulk lab harvest / PII / lab-price collection / clinical knowledge harvest
+NO catalog edit / ingestion / publication / runtime / capability activation
+NO stage / commit / push / CI
+NO E2-C4B-04..F / E3 / P2
+
+Baseline SHA:
+0af65c31fa1f66299dd5aa574a6fe9f118d67c9b
+
+Controlling preparation (§134):
+E2_C4B_03_REPOSITORY_PREPARATION_COMPLETE = YES
+E2_C4B_03_EXTERNAL_DISCOVERY_COMPLETE = NO (at entry)
+NETWORK_EXECUTED = NO (at entry)
+RIGHTS_STATE = UNKNOWN_FAIL_CLOSED
+Planned PQ-L01..L06; empty slots C-IR-LAB-ID-01 / ACC-01 / COR-01
+```
+
+### ۱۳۵.۱) قرارداد بودجه شبکه (سخت)
+
+```text
+SEARCH_ENGINE_COUNT_CAP = 2
+SEARCH_QUERY_COUNT_CAP = 15
+PUBLIC_GET_HEAD_REQUEST_COUNT_CAP = 40
+MAX_REDIRECTS_PER_REQUEST_CAP = 3
+```
+
+### ۱۳۵.۲) دفترچه اجرای جستجو (PQ-L)
+
+| query ID | exact executed query | engine | purpose | class target |
+|---|---|---|---|---|
+| PQ-L01 | سامانه رسمی آزمایشگاه تشخیص طبی وزارت بهداشت ایران رجیستری | WebSearch-1 | registry discovery | IR-SC-05 / OFS-04 |
+| PQ-L02 | مرکز تشخیصی پزشکی رجیستری رسمی وزارت بهداشت ایران | WebSearch-1 | diagnostic identity | IR-SC-05 / OFS-04 |
+| PQ-L03 | آزمایشگاه مرجع سلامت وزارت بهداشت پروانه آزمایشگاه | WebSearch-1 | licensing + MoH lab regulator | IR-SC-05 |
+| PQ-L04 | اعتباربخشی آزمایشگاه تشخیص طبی ایران سامانه رسمی | WebSearch-1 | accreditation authority | IR-SC-06 / OFS-05 |
+| PQ-L05 | آزمایشگاه مرجع سلامت سایت رسمی behdasht.gov.ir | WebSearch-1 | MoH regulator ownership | IR-SC-05/06 |
+| PQ-L06 | فهرست آزمایشگاه های تایید صلاحیت شده پزشکی NACI ایران رسمی | WebSearch-1 | free official accreditation evidence | IR-SC-06 |
+| PQ-L07 | Iran NACI medical laboratory accreditation ISO 15189 official | WebSearch-1 | EN accreditation corroboration | IR-SC-06 |
+| PQ-L08 | "آزمایشگاه مرجع سلامت" site:behdasht.gov.ir | WebSearch-1 | official MoH page locator | IR-SC-05 |
+| PQ-L09 | آزمایشگاه مرجع سلامت وزارت بهداشت صفحه رسمی | WebSearch-1 | dedicated portal discovery | IR-SC-05 |
+
+```text
+SEARCH_ENGINE_COUNT = 1
+SEARCH_QUERY_COUNT = 9
+EXECUTED_QUERY_COUNT = 9
+SEARCH_EXECUTED = YES
+```
+
+### ۱۳۵.۳) بودجه و عملیات شبکه (اعداد دقیق)
+
+```text
+SEARCH_ENGINE_COUNT = 1
+SEARCH_QUERY_COUNT = 9
+PUBLIC_GET_HEAD_REQUEST_COUNT = 22
+MAX_REDIRECT_COUNT_OBSERVED = 1
+FORM_POST_COUNT = 0
+LOGIN_ATTEMPT_COUNT = 0
+CAPTCHA_BYPASS_COUNT = 0
+PAID_API_COUNT = 0
+SAMPLE_RECORD_COUNT = 0
+SAMPLE_LAB_RECORD_HARVEST = NO
+BULK_LAB_HARVEST = NO
+PII_RECORD_COUNT = 0
+PATIENT_RESULT_ACCESS_COUNT = 0
+
+NETWORK_BUDGET_CAP_COMPLIANCE = YES
+NETWORK_BUDGET_ITEMIZATION_GAP = YES
+NETWORK_BUDGET_ITEMIZATION_GAP_REASON =
+  WebSearch tool returned expanded SERP page captures for some results;
+  those expanded SERP page opens are counted toward PUBLIC_GET_HEAD aggregate
+  but are not fully itemized as individual request IDs in this ledger.
+NETWORK_BUDGET_FULL_REQUEST_LEVEL_RECONCILIATION = NO
+NO_NEW_NETWORK_REQUEST_AUTHORIZED_FOR_RETROACTIVE_ITEMIZATION = YES
+```
+
+Itemized GET/HEAD ledger (primary probes; not exhaustive of SERP expansions):
+
+| req ID | method | URL | outcome |
+|---|---|---|---|
+| N01 | HEAD | https://naciportal.inso.gov.ir/portal/home | 404 (HEAD rejected; GET later OK) |
+| N02 | HEAD | https://naciportal.inso.gov.ir/ | 404 (HEAD rejected) |
+| N03 | HEAD | https://parvaneh.behdasht.gov.ir/ | TIMEOUT |
+| N04 | HEAD | https://gservice.mui.ac.ir/fa/node/1207 | 200 |
+| N05 | HEAD | https://behdasht.gov.ir/ | TIMEOUT |
+| N06 | HEAD | https://labsnet.ir/ | TIMEOUT |
+| N07 | HEAD | https://ilac.org/signatory-detail/?id=143 | 200 |
+| N08 | HEAD | https://naciportal.inso.gov.ir/robots.txt | 404 |
+| N09 | HEAD | https://parvaneh.behdasht.gov.ir/robots.txt | TIMEOUT |
+| N10 | HEAD | https://inso.gov.ir/ | 404 |
+| N11 | GET | https://naciportal.inso.gov.ir/portal/home | 200 — NACI portal; ISO 15189 medical lab accreditation listed |
+| N12 | GET | https://gservice.mui.ac.ir/fa/node/1207 | 200 — university MoH desk; labs in parvaneh scope |
+| N13 | GET | https://ilac.org/signatory-detail/?id=143 | 200 — NACI ILAC MRA incl. Medical Testing ISO 15189 |
+| N14 | GET | https://parvaneh.behdasht.gov.ir/ | TIMEOUT |
+| N15 | GET | https://behdasht.gov.ir/ | 500 |
+| N16 | GET | https://labsnet.ir/ | TIMEOUT |
+| N17 | GET | https://naciportal.inso.gov.ir/Category/CategoryPrivacy.aspx | 200 — minimal/empty privacy body retrieved |
+| N18 | GET | https://medcare.behdasht.gov.ir/ | 500 |
+| N19 | GET | https://naciportal.inso.gov.ir/robots.txt | 200 body not a valid robots policy (portal HTML/noise; treated ROBOTS_NOT_FOUND) |
+| N20 | GET | https://gservice.mui.ac.ir/robots.txt | 200 — Drupal defaults; Disallow /user/login etc. |
+| N21 | GET | https://ilac.org/robots.txt | 200 — Allow public; Disallow /wp-admin/ |
+| N22 | GET | mehrnews MoH Reference Health Lab news URL | 301 / CDN interstitial — news corroboration only |
+
+### ۱۳۵.۴) دفترچه کاندید منبع (ارزیابی‌شده)
+
+| CANDIDATE_ID | SOURCE_NAME | SOURCE_URL | DISCOVERY_QUERY_ID | SOURCE_IDENTITY | AUTHORITY_CLASS | OFFICIAL_STATUS_EVIDENCE | LAB_IDENTITY_RELEVANCE | LICENSE_RELEVANCE | ACCREDITATION_RELEVANCE | PUBLIC_ACCESS_STATE | COST_STATE | TERMS_OR_REUSE_SIGNAL | AUTOMATED_ACCESS_SIGNAL | ROBOTS_SIGNAL | ATTRIBUTION_REQUIREMENT | FRESHNESS_SIGNAL | SECURITY_OR_ACCESS_RESTRICTION_SIGNAL | EVIDENCE_PAGES_REVIEWED | CANDIDATE_DECISION | DECISION_REASON |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C-IR-LAB-ID-01 | سامانه صدور پروانه‌ها (MoH) | https://parvaneh.behdasht.gov.ir/ | PQ-L01,L02,L03 | MoH licensing portal for medical institutions (labs among others) | FACILITY_IDENTITY / LICENSING / TIER A | N12 university desk: پروانه مؤسسات incl. آزمایشگاه‌ها via parvaneh.behdasht.gov.ir; SERP consensus | HIGH | HIGH | LOW (license ≠ NACI accreditation) | PRIMARY_HOST_UNREACHABLE_FROM_GATE_CLIENT (HEAD/GET timeout) | Fees via portal to MoH (N12 text); free open dataset NOT established | UNKNOWN_FAIL_CLOSED | UNKNOWN | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | NOT_ESTABLISHED | ACCESS_RESTRICTED applicant workflows; no form submitted | N12 + SERP | OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED | Official MoH facility/lab licensing family corroborated; primary host not directly fetched; rights unknown |
+| C-IR-LAB-ACC-01 | مرکز ملی تأیید صلاحیت ایران (NACI) | https://naciportal.inso.gov.ir/portal/home | PQ-L04,L06,L07 | National Accreditation Centre under National Standards Org (INSO) | ACCREDITATION_AUTHORITY / TIER A | N11 portal lists ISO 15189 medical lab accreditation; N13 ILAC MRA Medical Testing ISO 15189; naci@inso.gov.ir | LOW | LOW | HIGH | DIRECT_PRIMARY_READABLE (GET 200; HEAD 404 quirk) | Public landing free-to-view; paid certification process possible — NOT product dataset | TERMS_NOT_FOUND / UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | ROBOTS_NOT_FOUND (N19 not valid robots) | Copyright footer present; reuse grant NOT found | Portal news dated; status lists freshness NOT captured as product feed | Accreditation application/login systems not entered | N11,N13,N17,N19 | OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED | Official national accreditation authority for medical labs established; rights/automation incomplete |
+| C-IR-LAB-COR-01 | میز خدمت دانشگاه علوم پزشکی اصفهان — صدور پروانه مؤسسات سلامت | https://gservice.mui.ac.ir/fa/node/1207 | PQ-L02,L03 | Medical university G2G/G2C desk under MoH | SECONDARY_CORROBORATION / TIER B–C institutional | Explicitly names parvaneh.behdasht.gov.ir; lists آزمایشگاه‌ها among پروانه‌دار institutions | MED (corroboration) | MED | LOW | DIRECT_PRIMARY_READABLE | Free public service desk page | Not a license grant; UNKNOWN for reuse of desk text | Robots captured (N20); automation not approved | Captured | University attribution | Page live | Comment form present — NOT submitted | N04,N12,N20 | OFFICIAL_CANDIDATE | Official institutional corroboration of MoH licensing family + lab class in scope |
+| C-IR-LAB-ACC-COR-01 | ILAC MRA signatory detail — NACI | https://ilac.org/signatory-detail/?id=143 | PQ-L07 | ILAC international accreditation cooperation | SECONDARY_CORROBORATION (international) | Lists NACI Full Member; Medical Testing ISO 15189 in MRA scope; website http://naciportal.inso.gov.ir | LOW | LOW | HIGH (corroborates NACI) | DIRECT_PRIMARY_READABLE | Free public page | ILAC site terms not fully captured; UNKNOWN_FAIL_CLOSED for reuse | robots allow public (N21) | Captured | ILAC attribution | Scope dates 29 Apr 2024 on page | None beyond public web | N07,N13,N21 | OFFICIAL_CANDIDATE | International corroboration of NACI medical-lab accreditation authority; not a substitute Iranian registry |
+| C-IR-LAB-X-01 | شبکه آزمایشگاهی کشور (labsnet.ir) | https://labsnet.ir/ | PQ-L01,L06 | Research/equipment-sharing lab network | OPERATIONAL_DIRECTORY / non-MoH medical license | SERP; GET timeout from gate client | LOW for MoH medical identity | NO | NO (ISO 17025 marketing ≠ MoH/NACI medical authority alone) | PRIMARY_HOST_UNREACHABLE / SERP-described | NOT_ESTABLISHED | UNKNOWN | UNKNOWN | NOT_RETRIEVED | UNKNOWN | NOT_ESTABLISHED | N/A | SERP + N06/N16 | EXCLUDED_AS_PRIMARY | Not MoH medical diagnostic identity/accreditation authority |
+| C-IR-LAB-X-02 | commercial SEO / directory explainers (samanehha, pishkhanak, shimico blog) | multiple SERP | PQ-L01,L06 | Commercial publishers | TIER D | SERP only | LOW | NO as primary | NO as primary | readable SERP | commercial | UNKNOWN | UNKNOWN | NOT_RETRIEVED | UNKNOWN | N/A | N/A | SERP | EXCLUDED_AS_PRIMARY | Commercial secondary discovery only |
+| C-IR-LAB-X-03 | individual laboratory websites (e.g. riazilab, mahdiehlab) | SERP | PQ-L02 | Private lab websites | TIER E / facility self | SERP | self-identity only | NO | NO (website ≠ independent accreditation) | public marketing | N/A | N/A | N/A | N/A | N/A | N/A | N/A | SERP | EXCLUDED_AS_PRIMARY | Facility website alone not licensing/accreditation proof |
+| C-IR-LAB-X-04 | jabak.ir / association news portals | SERP | PQ-L09 | Professional association / news | OUT_OF_SCOPE / non-primary | SERP | LOW | NO | NO | public | N/A | N/A | N/A | N/A | N/A | N/A | N/A | SERP | EXCLUDED_AS_PRIMARY | News/association not national registry/accreditation authority |
+| C-IR-LAB-OOS-01 | سازمان نظام پزشکی parvaneh.irimc.org | https://parvaneh.irimc.org/ | PQ-L02 | IRIMC physician practice license portal | PROVIDER_PERSON / OUT_OF_SCOPE for C4B-03 | SERP | NO | physician not lab facility | NO | public login-capable — NOT used | N/A | N/A | N/A | N/A | N/A | N/A | NO_LOGIN | SERP | OUT_OF_SCOPE | Physician licensing ≠ laboratory facility identity |
+| C-IR-LAB-OOS-02 | SEPAS / lab-result exchange docs (incl. regulatoryit.behdasht.gov.ir cites) | SERP | PQ-L01,L03 | EHR / result exchange | PATIENT_RESULT / OUT_OF_SCOPE | SERP | NO as identity registry | NO | NO | cites exist; portals not entered | N/A | N/A | N/A | N/A | N/A | N/A | NO_PATIENT_RESULT_ACCESS | SERP | OUT_OF_SCOPE | Patient-result / EHR exchange not C4B-03 discovery core |
+| C-IR-LAB-OOS-03 | IRCT clinical trial login host on behdasht.gov.ir | https://irct.behdasht.gov.ir/login | PQ-L08 | Clinical trials registry login | OUT_OF_SCOPE | SERP | NO | NO | NO | login page — NOT used | N/A | N/A | N/A | N/A | N/A | N/A | NO_LOGIN | SERP | OUT_OF_SCOPE | Login-gated trial system; not lab registry |
+| C-IR-LAB-NE-01 | آزمایشگاه مرجع سلامت (MoH Reference Health Laboratory unit) | NO stable dedicated official portal URL retrieved | PQ-L03,L05,L08,L09 | MoH subordinate quality/oversight unit (news-corroborated) | REGULATORY / quality oversight family | Mehr/ANA/news + SERP describe حاکمیتی role; medcare.behdasht.gov.ir 500; no canonical landing captured | MED (regulator family) | MED (oversight of lab licenses cited in secondary) | PARTIAL (quality/ISO15189 checklist role claimed in secondary; ≠ NACI) | NOT_ESTABLISHED as direct portal | NOT_ESTABLISHED | UNKNOWN | UNKNOWN | NOT_RETRIEVED | UNKNOWN | NOT_ESTABLISHED | N/A | SERP + failed medcare/behdasht | NOT_ESTABLISHED | Authority-family existence corroborated by news; no direct official landing verified this Gate |
+| C-IR-LAB-NE-02 | IACLD accreditation body claim (ab.iacld.com cited in secondary EN) | NOT directly fetched | PQ-L07 | Professional association accreditation body claim | NOT_ESTABLISHED | Secondary EN case-study only; no primary page capture | LOW | NO | UNKNOWN pending primary | NOT_FETCHED | NOT_ESTABLISHED | UNKNOWN | UNKNOWN | NOT_RETRIEVED | UNKNOWN | NOT_ESTABLISHED | NO_LOGIN | SERP secondary only | NOT_ESTABLISHED | Do not promote association claim without primary official evidence |
+
+```text
+DISCOVERED_REAL_CANDIDATE_COUNT = 13 unique evaluated rows above
+FABRICATED_SOURCE_IDENTITY_COUNT = 0
+BULK_LAB_HARVEST = NO
+SAMPLE_LAB_RECORD_HARVEST = NO
+LAB_PRICE_COLLECTION = NO
+CLINICAL_TEST_KNOWLEDGE_HARVEST = NO
+```
+
+### ۱۳۵.۵) شمارش تصمیم‌ها (محور انحصاری)
+
+```text
+UNIQUE_EVALUATED_CANDIDATE_COUNT = 13
+
+FINAL_OFFICIAL_CANDIDATE_COUNT = 2
+FINAL_OFFICIAL_RIGHTS_UNKNOWN_COUNT = 2
+FINAL_PUBLIC_AUTOMATION_UNKNOWN_COUNT = 0
+FINAL_NOT_ESTABLISHED_COUNT = 2
+FINAL_EXCLUDED_AS_PRIMARY_COUNT = 4
+FINAL_PAID_EXCLUDED_COUNT = 0
+FINAL_ACCESS_RESTRICTED_COUNT = 0
+FINAL_OUT_OF_SCOPE_COUNT = 3
+FINAL_DECISION_TOTAL = 13
+
+ARITHMETIC_CHECK =
+2 + 2 + 0 + 2 + 4 + 0 + 0 + 3 = 13
+FINAL_DECISION_TOTAL = UNIQUE_EVALUATED_CANDIDATE_COUNT = YES
+FINAL_CANDIDATE_DECISIONS_ARE_MUTUALLY_EXCLUSIVE = YES
+
+NOTE =
+  ACCESS_RESTRICTED / AUTOMATION_UNKNOWN / PRIMARY_HOST_UNREACHABLE
+  are orthogonal attributes (see §135.6), not exclusive final decisions.
+```
+
+### ۱۳۵.۶) شمارش ویژگی‌های متعامد (orthogonal)
+
+```text
+RIGHTS_UNKNOWN_ATTRIBUTE_COUNT = 2
+AUTOMATION_UNKNOWN_ATTRIBUTE_COUNT = 2
+ACCESS_RESTRICTED_ATTRIBUTE_COUNT = 1
+PRIMARY_HOST_UNREACHABLE_ATTRIBUTE_COUNT = 2
+OFFICIAL_AUTHORITY_CORROBORATED_ATTRIBUTE_COUNT = 3
+DIRECT_PRIMARY_READABLE_ATTRIBUTE_COUNT = 3
+TERMS_NOT_FOUND_ATTRIBUTE_COUNT = 2
+ROBOTS_NOT_FOUND_ATTRIBUTE_COUNT = 2
+
+COUNTING_BASIS =
+  RIGHTS_UNKNOWN_ATTRIBUTE_COUNT / AUTOMATION_UNKNOWN_ATTRIBUTE_COUNT =
+  explicit orthogonal attribute tags on primary
+  OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED candidates only:
+    C-IR-LAB-ID-01
+    C-IR-LAB-ACC-01
+  NOT a count of every candidate that separately records unresolved
+  reuse/automation language.
+  OFFICIAL_CANDIDATE corroboration rows (C-IR-LAB-COR-01,
+  C-IR-LAB-ACC-COR-01) may record UNKNOWN reuse / non-approved automation
+  without contributing to these attribute counts
+  (C4B-02 §133.6 axis precedent).
+
+ORTHOGONAL_ATTRIBUTES_NOT_FINAL_DECISIONS = YES
+ATTRIBUTE_COUNTS_MAY_OVERLAP = YES
+ATTRIBUTE_COUNTS_MUST_NOT_BE_ADDED_TO_FINAL_DECISION_TOTAL = YES
+```
+
+### ۱۳۵.۷) یافته هویت / پروانه (IR-SC-05 / OFS-04)
+
+```text
+LAB_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+LAB_LICENSING_AUTHORITY_FAMILY =
+  MoH سامانه صدور پروانه‌ها (parvaneh.behdasht.gov.ir)
+  corroborated by university service desk (N12)
+MOH_REFERENCE_HEALTH_LABORATORY_UNIT =
+  existence/role corroborated by secondary news only;
+  dedicated official portal URL NOT_ESTABLISHED this Gate
+DIRECT_PRIMARY_LAB_IDENTITY_PORTAL_FETCHED = NO
+```
+
+### ۱۳۵.۸) یافته اعتباربخشی (IR-SC-06 / OFS-05)
+
+```text
+LAB_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+NACI_ACCREDITATION_AUTHORITY_FAMILY =
+  ESTABLISHED as national accreditation body for medical labs (ISO 15189)
+  via direct NACI portal (N11) + ILAC MRA corroboration (N13)
+FACILITY_WEBSITE_ALONE_IS_INDEPENDENT_ACCREDITATION_PROOF = NO
+COMMERCIAL_DIRECTORY_IS_PRIMARY_ACCREDITATION_AUTHORITY = NO
+MARKETING_CLAIMS_ARE_ACCREDITATION_PROOF = NO
+ACCREDITATION_AS_QUALITY_RANKING = FORBIDDEN
+CLINICAL_QUALITY_SCORE = NOT_AUTHORIZED
+```
+
+### ۱۳۵.۹) Direct primary vs corroboration
+
+```text
+DIRECT_PRIMARY_EVIDENCE =
+  NACI portal landing readable (C-IR-LAB-ACC-01)
+  university desk readable (C-IR-LAB-COR-01)
+  ILAC signatory page readable (C-IR-LAB-ACC-COR-01)
+
+OFFICIAL_CORROBORATION =
+  university desk → MoH parvaneh licensing family
+  ILAC → NACI medical accreditation scope
+  news → MoH Reference Health Laboratory unit existence
+
+DIRECT_PRIMARY_EVIDENCE_COMPLETE = NO
+  (parvaneh primary host unreachable; Reference Health Lab portal missing;
+   terms/robots incomplete on NACI)
+```
+
+### ۱۳۵.۱۰) حقوق / استفاده مجدد
+
+```text
+PUBLIC_SOURCE_LANDING_CAN_BE_RECORDED_FOR_DISCOVERY = YES
+REUSE_PERMISSION_ESTABLISHED = NO
+RIGHTS_STATE = UNKNOWN_FAIL_CLOSED
+SOURCE_RIGHTS_EXPANSION = NO
+LEGAL_RIGHTS_REVIEW = DOWNSTREAM_BEFORE_LIVE_ACQUISITION_OR_REUSE
+LEGAL_DECISION_EXECUTED_BY_THIS_GATE = NO
+INGESTION_ELIGIBILITY = NOT_AUTHORIZED
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+```
+
+### ۱۳۵.۱۱) اتوماسیون / robots
+
+```text
+AUTOMATION_PERMISSION_ESTABLISHED = NO
+AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+ROBOTS_CAPTURED =
+  YES for gservice + ilac
+  NO/invalid for naciportal robots.txt response
+  NOT_RETRIEVED for parvaneh (timeout)
+Successful GET ≠ automated acquisition authorization
+```
+
+### ۱۳۵.۱۲) تازگی / دسترسی / امنیت
+
+```text
+FRESHNESS =
+  NACI portal shows dated notices; no machine freshness feed captured for lab status lists
+ACCESS =
+  parvaneh / several behdasht hosts timeout or 500 from gate client
+  NACI GET OK; HEAD quirk 404
+SECURITY =
+  no login/CAPTCHA bypass; no patient portal entry; comment forms not submitted
+LAB_PRICE_COLLECTION = NOT_AUTHORIZED
+```
+
+### ۱۳۵.۱۳) provenance summary
+
+```text
+Provenance recorded for evaluated candidates via URL + query ID + capture method + decision rationale in §135.4.
+Promotion without required provenance = FORBIDDEN (unchanged §99.11).
+Schemas implemented = 0; master-log logical record only.
+```
+
+### ۱۳۵.۱۴) مرزهای سخت رعایت‌شده
+
+```text
+PII_RECORD_COUNT = 0
+PATIENT_RESULT_ACCESS_COUNT = 0
+BULK_LAB_HARVEST = NO
+SAMPLE_LAB_RECORD_HARVEST = NO
+FORM_POST_COUNT = 0
+LOGIN_ATTEMPT_COUNT = 0
+CAPTCHA_BYPASS_COUNT = 0
+PAID_API_COUNT = 0
+LAB_PRICE_COLLECTION = NO
+CLINICAL_TEST_KNOWLEDGE_HARVEST = NO
+NO_C4B_04_START = YES
+NO_C4B_05_START = YES
+```
+
+### ۱۳۵.۱۵) شکاف‌های باقیمانده
+
+```text
+G-C4B03-N01 | MAJOR | parvaneh primary host unreachable | Facility Verification | optional future refetch Gate | rights/automation still fail-closed
+G-C4B03-N02 | MAJOR | MoH Reference Health Lab dedicated portal URL not established | Facility Verification | later discovery refinement | do not invent URL
+G-C4B03-N03 | MAJOR | NACI terms/reuse + valid robots not established | Legal/Security | downstream rights Gate | UNKNOWN_FAIL_CLOSED preserved
+G-C4B03-N04 | MINOR | network itemization gap from SERP expansions | Governance | accept nonblocking if caps truthful | recording gap
+G-C4B03-N05 | MINOR | IACLD association accreditation claim unverified primarily | Facility Verification | separate evidence if needed | NOT_ESTABLISHED
+```
+
+### ۱۳۵.۱۶) مرز والد / پایین‌دست
+
+```text
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+E2_C4B_04_STARTED = NO
+E2_C4B_05_STARTED = NO
+```
+
+### ۱۳۵.۱۷) ممیزی داخلی (self-healing)
+
+```text
+Audit iterations: 3
+
+C4B03N-A01 baseline HEAD 0af65c3…; worktree clean; §134 present → CLOSED
+C4B03N-A02 budgets ≤1 engine / 9 queries / 22 GET-HEAD / redirects≤3 → CLOSED
+C4B03N-A03 no login/POST/CAPTCHA/paid/PII/patient/bulk/price/clinical harvest → CLOSED
+C4B03N-A04 exclusive decisions 2+2+0+2+4+0+0+3 = 13 → CLOSED
+C4B03N-A05 attributes separated from final decisions → CLOSED
+C4B03N-A06 identity PARTIAL; accreditation PARTIAL; direct-primary complete NO → CLOSED
+C4B03N-A07 rights/automation UNKNOWN_FAIL_CLOSED; ingestion NOT_AUTHORIZED → CLOSED
+C4B03N-A08 itemization gap recorded truthfully; no fabricated request rows → CLOSED
+C4B03N-A09 parents E2/EO/P2/E3/C4B-04/05 remain open/not-started → CLOSED
+C4B03N-A10 no stage/commit/push → CLOSED
+C4B03N-A11 R02 RIGHTS/AUTOMATION_UNKNOWN_ATTRIBUTE_COUNT basis made explicit
+  (2 = ID-01 + ACC-01 only; not all unresolved-reuse rows) → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_NETWORK_VIOLATION_REMAINS = YES
+```
+
+### ۱۳۵.۱۸) نشانگرهای نهایی
+
+```text
+E2_C4B_03_EXTERNAL_DISCOVERY_EXECUTED = YES
+E2_C4B_03_DISCOVERY_REVIEW_REQUIRED = YES
+E2_C4B_03_DISCOVERY_COMPLETE = NO_PENDING_REVIEW
+E2_C4B_03_FULL_CHILD_COMPLETE = NO
+
+LAB_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+LAB_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+DIRECT_PRIMARY_EVIDENCE_COMPLETE = NO
+
+RIGHTS_REMAIN_UNKNOWN_FAIL_CLOSED
+NETWORK_WITHIN_APPROVED_BUDGET
+NO_PII
+NO_PATIENT_RESULTS
+NO_BULK_LAB_HARVEST
+NO_COMMIT
+NO_PUSH
+MASTER_LOG_135_APPENDED
+READY_FOR_E2_C4B_03_NETWORK_RESULT_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۵.۱۹) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+STRICT READ-ONLY REVIEW OF
+E2-C4B-03 CONTROLLED NETWORK DISCOVERY RESULT
+
+NEXT_GATE_STARTED = NO
+FORMAL_DISCOVERY_DISPOSITION_AUTHORIZED_BY_THIS_GATE = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+INGESTION_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+LEGAL_DECISION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۵ — Package E2-C4B-03 Laboratory/Accreditation Controlled Network Discovery — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+---
+
+## ۱۳۶) بسته E2-C4B-03 — disposition کشف هویت/پروانه و اعتباربخشی آزمایشگاه و مرکز تشخیص (بدون شبکه)
+
+```text
+PACKAGE =
+PACKAGE-15-I5-B2-P1-L1-E2-C4B-03-DISCOVERY-DISPOSITION-v1
+
+GATE =
+E2_C4B_03_LABORATORY_ACCREDITATION_DISCOVERY_DISPOSITION
+
+Owner:
+Facility Verification + Legal (evidence design)
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only discovery disposition ONLY
+NO network / new candidate / new source evidence
+NO login / form POST / CAPTCHA / paid API / patient portal
+NO bulk lab harvest / PII / lab-price / clinical knowledge harvest
+NO catalog edit / ingestion / publication / runtime / capability activation
+NO stage / commit / push / CI
+NO E2-C4B-04..F / E3 / P2
+NO edit to §§1–135
+
+Baseline SHA:
+0af65c31fa1f66299dd5aa574a6fe9f118d67c9b
+
+Dirty prior state at Gate entry:
+§134 = 1 (committed)
+§135 = 1 (uncommitted network result + accounting clarification)
+§136 = 0
+ADDITIONS = 396 / DELETIONS = 0 (parent→WT)
+```
+
+### ۱۳۶.۱) بازسازی اختیار disposition
+
+```text
+EXPLICIT_C4B_03_AUTHORITY =
+  §99.21 — E2-C4B-03 laboratory and accreditation discovery approval
+  IR-SC-05 / OFS-04 — lab/diagnostic identity / licensing
+  IR-SC-06 / OFS-05 — lab/diagnostic accreditation
+  OD-C4A-05 / OD-C4A-06 — identity + accreditation packs (Blocking → E2-C4B-03)
+  D-IR-04 APPROVED_BY_JAVAD — labs deferred until free official
+    identity + accreditation evidence path exists
+  §99.10–§99.12 — logical artifact / provenance / attribution minima
+  §134 — repository preparation contract
+  §135 — controlled network discovery evidence + accounting clarification
+
+ADJACENT_C4B_02_PRECEDENT =
+  §131–§133 E2-C4B-02 discovery arc
+  §133.1 discovery disposition markers:
+    DISCOVERY_SUBSTEP_COMPLETE = YES
+    DISCOVERY_STATE = COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+    DISCOVERY_DECISION_RECORDED = YES
+    FULL_CHILD_COMPLETE = NO
+  §133.3 rights UNKNOWN_FAIL_CLOSED; legal decision not required
+    before discovery completion; required before live acquisition/reuse
+  §133.6 orthogonal attribute counts separate from exclusive final decisions
+
+C4B_03_EXPLICIT_DISPOSITION_ENUM_DEFINED = NO
+  (§99 does not hardcode a C4B-03 discovery-complete enum;
+   §134.12 / §134.18: COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+   was NOT declared as a C4B-03 authoritative state in preparation)
+
+C4B_02_DISPOSITION_PATTERN_APPLICABLE_BY_PRECEDENT = YES
+  PRECEDENT_BASIS =
+    §134.18 NOTE — later controlled discovery + review may determine
+    whether the C4B-02 disposition pattern should be applied
+    (ADJACENT_C4B_02_PRECEDENT);
+    + completed §135 evidence;
+    + strict §135 network-result review;
+    + focused §135 accounting-remediation verification;
+    + structural parity with §133.1 (collection + review + gaps +
+      full-child incomplete)
+
+DISCOVERY_STATE_ENUM_ATTRIBUTION =
+  ADJACENT_C4B_02_PRECEDENT (§133.1) applied under §134.18
+  NOT claimed as a §99-hardcoded C4B-03 enum
+```
+
+### ۱۳۶.۲) خلاصه شواهد §۱۳۵ (بدون شواهد جدید)
+
+```text
+E2_C4B_03_EXTERNAL_DISCOVERY_EXECUTED = YES
+SEARCH_ENGINE_COUNT = 1
+SEARCH_QUERY_COUNT = 9
+PUBLIC_GET_HEAD_REQUEST_COUNT = 22
+MAX_REDIRECT_COUNT_OBSERVED = 1
+NETWORK_BUDGET_CAP_COMPLIANCE = YES
+
+LAB_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+LAB_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+DIRECT_PRIMARY_EVIDENCE_COMPLETE = NO
+
+PARVANEH_AUTHORITY_FAMILY = CORROBORATED
+PARVANEH_DIRECT_PRIMARY = UNREACHABLE
+REFERENCE_HEALTH_LAB_PRIMARY_PORTAL = NOT_ESTABLISHED
+NACI_AUTHORITY_EVIDENCE = ESTABLISHED_AS_AUTHORITY_FAMILY
+NACI_REUSE_PERMISSION = UNKNOWN_FAIL_CLOSED
+NACI_AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+IACLD_CLAIM = NOT_ESTABLISHED
+
+NO_NEW_NETWORK_IN_THIS_GATE = YES
+NO_NEW_CANDIDATE_IN_THIS_GATE = YES
+NO_NEW_SOURCE_EVIDENCE_IN_THIS_GATE = YES
+§135_EVIDENCE_PRESERVED_WITHOUT_EDIT = YES
+```
+
+### ۱۳۶.۳) reconciliation کاندید / تصمیم نهایی
+
+```text
+UNIQUE_EVALUATED_CANDIDATE_COUNT = 13
+DUPLICATE_CANDIDATE_ID_COUNT = 0
+ONE_FINAL_DECISION_PER_CANDIDATE = YES
+
+FINAL_OFFICIAL_CANDIDATE_COUNT = 2
+FINAL_OFFICIAL_RIGHTS_UNKNOWN_COUNT = 2
+FINAL_PUBLIC_AUTOMATION_UNKNOWN_COUNT = 0
+FINAL_NOT_ESTABLISHED_COUNT = 2
+FINAL_EXCLUDED_AS_PRIMARY_COUNT = 4
+FINAL_PAID_EXCLUDED_COUNT = 0
+FINAL_ACCESS_RESTRICTED_COUNT = 0
+FINAL_OUT_OF_SCOPE_COUNT = 3
+FINAL_DECISION_TOTAL = 13
+
+ARITHMETIC_CHECK =
+2 + 2 + 0 + 2 + 4 + 0 + 0 + 3 = 13
+FINAL_DECISION_TOTAL = UNIQUE_EVALUATED_CANDIDATE_COUNT = YES
+FINAL_CANDIDATE_DECISIONS_ARE_MUTUALLY_EXCLUSIVE = YES
+FINAL_DECISION_AXIS_RECLASSIFIED_BY_THIS_GATE = NO
+
+Ledger (unchanged from §135.4):
+  C-IR-LAB-COR-01 → OFFICIAL_CANDIDATE
+  C-IR-LAB-ACC-COR-01 → OFFICIAL_CANDIDATE
+  C-IR-LAB-ID-01 → OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+  C-IR-LAB-ACC-01 → OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+  C-IR-LAB-NE-01 → NOT_ESTABLISHED
+  C-IR-LAB-NE-02 → NOT_ESTABLISHED
+  C-IR-LAB-X-01..X-04 → EXCLUDED_AS_PRIMARY (4)
+  C-IR-LAB-OOS-01..OOS-03 → OUT_OF_SCOPE (3)
+```
+
+### ۱۳۶.۴) مدل ویژگی متعامد (orthogonal)
+
+```text
+RIGHTS_UNKNOWN_COUNTING_MODEL = EXPLICIT_ATTRIBUTE_TAG_ONLY
+AUTOMATION_UNKNOWN_COUNTING_MODEL = EXPLICIT_ATTRIBUTE_TAG_ONLY
+
+RIGHTS_UNKNOWN_ATTRIBUTE_COUNT = 2
+AUTOMATION_UNKNOWN_ATTRIBUTE_COUNT = 2
+QUALIFYING_IDS =
+  C-IR-LAB-ID-01
+  C-IR-LAB-ACC-01
+
+COUNTING_BASIS =
+  explicit orthogonal attribute tags on primary
+  OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED candidates only
+  (preserved from §135.6)
+
+NOT_IN_EXPLICIT_ATTRIBUTE_SET ≠ reuse approved
+NOT_IN_EXPLICIT_ATTRIBUTE_SET ≠ automation approved
+
+C-IR-LAB-COR-01 /
+C-IR-LAB-ACC-COR-01 =
+  remain OFFICIAL_CANDIDATE (authority/source-role only);
+  may record UNKNOWN reuse / non-approved automation
+  without contributing to the explicit-tag counts above;
+  OPERABILITY_OVERCLAIM = NO
+
+ORTHOGONAL_ATTRIBUTES_NOT_FINAL_DECISIONS = YES
+ATTRIBUTE_COUNTS_MUST_NOT_BE_ADDED_TO_FINAL_DECISION_TOTAL = YES
+```
+
+### ۱۳۶.۵) disposition هویت / پروانه (IR-SC-05 / OFS-04)
+
+```text
+LAB_IDENTITY_AUTHORITY_EVIDENCE = PARTIAL
+
+FOUND =
+  MoH سامانه صدور پروانه‌ها family (parvaneh.behdasht.gov.ir)
+  as lab-inclusive licensing authority family,
+  corroborated by university service desk (C-IR-LAB-COR-01 / N12)
+
+NOT_CLAIMED =
+  direct primary parvaneh fetch success
+  dedicated MoH Reference Health Laboratory portal URL
+  free open lab-identity dataset ready for ingestion
+
+DIRECT_PRIMARY_LAB_IDENTITY_PORTAL_FETCHED = NO
+```
+
+### ۱۳۶.۶) disposition اعتباربخشی (IR-SC-06 / OFS-05)
+
+```text
+LAB_ACCREDITATION_AUTHORITY_EVIDENCE = PARTIAL
+
+FOUND =
+  NACI (naciportal.inso.gov.ir) as national accreditation authority
+  for medical labs (ISO 15189) via direct primary portal
+  + ILAC MRA international corroboration (C-IR-LAB-ACC-COR-01)
+
+NOT_CLAIMED =
+  reuse / automation / terms pack complete
+  product freshness feed for accredited-lab status lists
+  IACLD association claim as primary national authority
+
+FACILITY_WEBSITE_ALONE_IS_INDEPENDENT_ACCREDITATION_PROOF = NO
+COMMERCIAL_DIRECTORY_IS_PRIMARY_ACCREDITATION_AUTHORITY = NO
+ACCREDITATION_AS_QUALITY_RANKING = FORBIDDEN
+CLINICAL_QUALITY_SCORE = NOT_AUTHORIZED
+```
+
+### ۱۳۶.۷) residuals N01–N05
+
+```text
+G-C4B03-N01 | parvaneh primary unreachable
+  CLASS = PRESERVED_DIRECT_PRIMARY_EVIDENCE_GAP
+  PARVANEH_AUTHORITY_FAMILY_CORROBORATED = YES
+  DIRECT_PRIMARY_COMPLETE = NO
+  BLOCKS_TRUTHFUL_FAIL_CLOSED_DISCOVERY_DISPOSITION = NO
+  SOLVED = NO
+
+G-C4B03-N02 | Reference Health Lab dedicated primary portal not established
+  CLASS = PRESERVED_EVIDENCE_GAP
+  REFERENCE_HEALTH_LAB_PRIMARY_PORTAL = NOT_ESTABLISHED
+  BLOCKS_TRUTHFUL_FAIL_CLOSED_DISCOVERY_DISPOSITION = NO
+  URL_INVENTED = NO
+
+G-C4B03-N03 | NACI terms/reuse/valid automation not established
+  CLASS = PRESERVED_RIGHTS_AUTOMATION_EVIDENCE_GAP
+  NACI_AUTHORITY_DISCOVERY = SUFFICIENT_FOR_AUTHORITY_CLASSIFICATION
+  NACI_REUSE_PERMISSION = UNKNOWN_FAIL_CLOSED
+  NACI_AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+  BLOCKS_DISCOVERY_DISPOSITION = NO
+  BLOCKS_LIVE_ACQUISITION_OR_REUSE = YES
+
+G-C4B03-N04 | network/SERP request-level itemization gap
+  CLASS = ACCEPTED_NONBLOCKING_RECORDING_GAP
+  BASIS =
+    aggregate network counters recorded
+    approved hard caps respected
+    no fabricated retrospective request rows
+    gap explicitly disclosed in §135.3
+    no safety/provenance evidence hidden
+  RETROACTIVE_REQUEST_ROWS_FABRICATED = NO
+
+G-C4B03-N05 | IACLD claim not verified at primary
+  CLASS = NOT_ESTABLISHED_RESIDUAL
+  BLOCKS_DISCOVERY_DISPOSITION = NO
+  IACLD_PROMOTED = NO
+```
+
+### ۱۳۶.۸) تصمیم no-additional-network (با provenance)
+
+```text
+ADDITIONAL_NETWORK_REQUIRED_BEFORE_DISPOSITION = NO
+
+ADDITIONAL_NETWORK_DECISION_PROVENANCE =
+REVIEWED_GOVERNANCE_CONCLUSION_NOT_ORIGINAL_§135_RAW_MARKER
+
+DERIVED_FROM =
+  §135 controlled network evidence
+  + strict §135 network-result review
+  + focused §135 accounting-remediation verification
+
+NOT_CLAIMED =
+  that the exact marker already existed as a raw §135 field
+
+PRESERVED_FAIL_CLOSED_RESIDUALS_DO_NOT_FORCE_NEW_NETWORK =
+  parvaneh primary unreachable
+  Reference Health Lab portal unresolved
+  NACI reuse/robots unknown
+```
+
+### ۱۳۶.۹) حقوق / استفاده مجدد / اتوماسیون
+
+```text
+RIGHTS_STATE = UNKNOWN_FAIL_CLOSED
+REUSE_PERMISSION_ESTABLISHED = NO
+AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+AUTOMATION_PERMISSION_ESTABLISHED = NO
+SOURCE_RIGHTS_EXPANSION = NO
+OPERATIONAL_AUTHORIZATION = NO
+INGESTION_ELIGIBILITY = NOT_AUTHORIZED
+PUBLICATION_AUTHORIZATION = NO
+RUNTIME_USE_AUTHORIZATION = NO
+CAPABILITY_ACTIVATION = NO
+
+PUBLIC_READABILITY ≠ REUSE_PERMISSION
+SUCCESSFUL_GET ≠ AUTOMATION_PERMISSION
+OFFICIAL_CANDIDATE ≠ OPERATIONAL_AUTHORIZATION
+
+LEGAL_RIGHTS_REVIEW =
+DOWNSTREAM_GOVERNANCE_DEPENDENCY
+LEGAL_RIGHTS_DECISION_REQUIRED_BEFORE_LIVE_ACQUISITION_OR_REUSE = YES
+LEGAL_RIGHTS_DECISION_REQUIRED_BEFORE_DISCOVERY_COMPLETION = NO
+LEGAL_DECISION_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۳۶.۱۰) disposition رسمی کشف
+
+```text
+E2_C4B_03_DISCOVERY_EVIDENCE_COLLECTION = EXECUTED
+E2_C4B_03_DISCOVERY_REVIEW = COMPLETE
+E2_C4B_03_DISCOVERY_DISPOSITION = RECORDED
+
+E2_C4B_03_DISCOVERY_SUBSTEP_COMPLETE = YES
+E2_C4B_03_DISCOVERY_STATE =
+COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+E2_C4B_03_DISCOVERY_DECISION_RECORDED = YES
+
+DISCOVERY_STATE_ENUM_BASIS =
+  ADJACENT_C4B_02_PRECEDENT (§133.1)
+  applied under §134.18 after discovery + review
+  NOT a §99-hardcoded C4B-03 enum
+
+DISTINCTION_MANDATORY =
+  discovery arc disposition
+  ≠
+  full child / rights / ingestion / operational completion
+
+SUPERSEDES_§135_PENDING_MARKERS =
+  E2_C4B_03_DISCOVERY_COMPLETE = NO_PENDING_REVIEW
+  → now disposition-recorded as COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+  (§135 text itself not edited; this Gate records the formal disposition)
+```
+
+### ۱۳۶.۱۱) تکمیل فرزند کامل
+
+```text
+E2_C4B_03_FULL_CHILD_COMPLETE = NO
+
+PREVENTS_FULL_CHILD_COMPLETION =
+  rights/reuse not established
+  automation permission not established
+  direct-primary gaps remain (parvaneh unreachable;
+    Reference Health Lab portal NOT_ESTABLISHED)
+  live acquisition not authorized
+  no operational source activation
+  ingestion / publication / runtime remain unauthorized
+```
+
+### ۱۳۶.۱۲) مرز والد / پایین‌دست
+
+```text
+E2_C4_PARENT_CLOSED = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E3_STARTED = NO
+CAPABILITY_ACTIVATION = NO
+E2_C4B_04_STARTED = NO
+E2_C4B_05_STARTED = NO
+
+C4B_03_DISCOVERY_DISPOSITION ≠ E2_CLOSURE
+NO_LEAKAGE_INTO_C4B_04_OR_C4B_05 = YES
+```
+
+### ۱۳۶.۱۳) حریم خصوصی / ایمنی
+
+```text
+PII_RECORD_COUNT = 0
+PATIENT_RESULT_ACCESS_COUNT = 0
+SAMPLE_RECORD_COUNT = 0
+BULK_LAB_HARVEST = NO
+LAB_PRICE_COLLECTION = NO
+CLINICAL_TEST_KNOWLEDGE_HARVEST = NO
+NO_LOGIN = YES
+NO_FORM_SUBMISSION = YES
+NO_CAPTCHA_BYPASS = YES
+NO_PAID_API = YES
+NO_PROVIDER_PERSON_HARVEST = YES
+```
+
+### ۱۳۶.۱۴) ممیزی داخلی (self-healing) — فقط §۱۳۶
+
+```text
+Audit iterations: 2
+
+C4B03D-A01 baseline HEAD 0af65c3…; dirty = §135 only; §136 free → CLOSED
+C4B03D-A02 append-only §136; §§1–135 untouched → CLOSED
+C4B03D-A03 authority split EXPLICIT vs ADJACENT_PRECEDENT recorded → CLOSED
+C4B03D-A04 enum COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS attributed to
+  ADJACENT_C4B_02_PRECEDENT under §134.18; not §99-hardcoded → CLOSED
+C4B03D-A05 exclusive decisions 2+2+0+2+4+0+0+3 = 13 preserved → CLOSED
+C4B03D-A06 orthogonal explicit-tag counts 2/2; COR rows not overclaimed → CLOSED
+C4B03D-A07 identity PARTIAL; accreditation PARTIAL; direct-primary NO → CLOSED
+C4B03D-A08 N01–N05 residual classes recorded; N03 blocks live reuse only → CLOSED
+C4B03D-A09 N04 ACCEPTED_NONBLOCKING_RECORDING_GAP; no fabricated rows → CLOSED
+C4B03D-A10 ADDITIONAL_NETWORK=NO with REVIEWED_GOVERNANCE provenance → CLOSED
+C4B03D-A11 rights/automation UNKNOWN_FAIL_CLOSED; ingestion NOT_AUTHORIZED → CLOSED
+C4B03D-A12 FULL_CHILD_COMPLETE=NO; parents E2/EO/P2/E3/C4B-04/05 open/not-started → CLOSED
+C4B03D-A13 no network/stage/commit/push → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_DISPOSITION_DEFECT_REMAINS = YES
+```
+
+### ۱۳۶.۱۵) نشانگرهای نهایی
+
+```text
+E2_C4B_03_DISCOVERY_DISPOSITION_RECORDED
+DISCOVERY_COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+FULL_CHILD_COMPLETE_NO
+FINAL_CANDIDATE_DECISIONS_RECONCILED_13_OF_13
+RIGHTS_REMAIN_UNKNOWN_FAIL_CLOSED
+AUTOMATION_REMAINS_UNKNOWN_FAIL_CLOSED
+ADDITIONAL_NETWORK_NOT_REQUIRED_BEFORE_DISPOSITION
+NETWORK_ITEMIZATION_GAP_ACCEPTED_NONBLOCKING
+NO_NEW_NETWORK
+NO_NEW_SUBSTANTIVE_AUTHORITY
+PARENT_E2_REMAINS_OPEN
+P2_NOT_STARTED
+MASTER_LOG_136_APPENDED
+COMMIT_NOT_AUTHORIZED
+PUSH_NOT_AUTHORIZED
+READY_FOR_E2_C4B_03_DISCOVERY_DISPOSITION_STRICT_READONLY_REVIEW
+```
+
+### ۱۳۶.۱۶) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+STRICT READ-ONLY REVIEW OF
+E2-C4B-03 DISCOVERY DISPOSITION
+§136
+
+NEXT_GATE_STARTED = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+E2_C4B_04_AUTHORIZED_BY_THIS_GATE = NO
+E2_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+P2_START_AUTHORIZED_BY_THIS_GATE = NO
+LEGAL_DECISION_AUTHORIZED_BY_THIS_GATE = NO
+INGESTION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۶ — Package E2-C4B-03 Laboratory/Accreditation Discovery Disposition — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
