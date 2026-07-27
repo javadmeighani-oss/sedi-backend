@@ -29642,3 +29642,509 @@ YES
 
 ---
 *پایان §۱۴۳ — GATE-S27-20 E2-C4B-05 Universities / Research Repository Authority / Scope Preparation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
+## ۱۴۴) E2-C4B-05 CONTROLLED NETWORK DISCOVERY — GOVERNED EVIDENCE LEDGER
+
+```text
+PACKAGE =
+GATE-S27-24A —
+E2-C4B-05 CONTROLLED NETWORK DISCOVERY + GOVERNED §144 EVIDENCE CAPTURE
+
+REPAIR_PASS =
+GATE-S27-24AG —
+C4B-05 NETWORK CONTRACT VIOLATION DISPOSITION +
+§144 TRUTHFULNESS / LEDGER REPAIR (existing evidence only)
+
+MODE =
+CONTROLLED_NETWORK / IRAN_FIRST / VERIFIED_§143_CONTRACT_ONLY /
+MASTER_LOG_§144_APPEND_ONLY / NO_CONTENT_INGESTION / NO_COMMIT / NO_PUSH
+(REPAIR: EXISTING_EVIDENCE_ONLY / §144_REPAIR_ONLY / NO_NETWORK)
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for controlled C4B-05 network discovery ONLY
+NO medical content-body acquisition / ingestion / publication / runtime
+NO source activation / crawler activation / P2 implementation
+NO code / test / CI / migration / DB / stage / commit / push
+NO edit to §§1–143
+NO §145
+
+Baseline SHA (local = upstream):
+f166e4766ff09f96837938c2fce297e037b37fd6
+
+Controlling contract:
+§143 — E2-C4B-05 network-readiness contract (GATE-S27-21R PASS)
+
+§§1–143_SHA256_BEFORE_APPEND =
+06180f7d65584149c7d01d4b2d0ea580ec819cd66d59742d93fc508a28b77622
+```
+
+### ۱۴۴.۱) قرارداد §143 بازسازی‌شده
+
+```text
+LOCKED_QUERY_COUNT = 10
+EXECUTABLE_QUERY_SET = EXACTLY C4B05-C-01..C4B05-C-10
+MAX_QUERY_COUNT = 15
+MAX_QUERY_COUNT_INTERPRETATION = HARD_CAP_ONLY
+UNLOCKED_QUERY_CREATION_AUTHORIZED = NO
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+STRATEGY_C_APPLIES = YES
+STRATEGY_B_APPLIES = NO
+STRATEGY_G_APPLIES = NO
+
+SOURCE_CLASSES =
+  IR-SC-08 official Iranian medical universities
+  IR-SC-09 official Iranian medical research centers/institutes
+  IR-SC-14 education slice only (teaching-hospital academic/patient-education)
+
+C4B_05_MUST_NOT_REOPEN_C4B_02_FACILITY_DISCOVERY = YES
+C4B_05_OFS_MAPPING_GAP = ACCEPTED_FAIL_CLOSED (non-blocking)
+```
+
+### ۱۴۴.۲) مرز شبکه و non-activation
+
+```text
+CONTENT_BODY_ACQUISITION = NO
+MEDICAL_CONTENT_INGESTION = NO
+PUBLICATION = NO
+RUNTIME_GROUNDING = NO
+SOURCE_ACTIVATION = NO
+CRAWLER_ACTIVATION = NO
+P2_EXECUTION = NO
+
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+P2_IMPLEMENTATION_STARTED = NO
+P2_RUNTIME_STARTED = NO
+P2_MIGRATION_EXECUTED = NO
+```
+
+### ۱۴۴.۳) کوئری‌های اجراشده — locked authorized + STOP-06 violation
+
+| query_id | exact executed query / template | engine | results seen | primary signal |
+|---|---|---|---|---|
+| C4B05-C-01 | دانشگاه علوم پزشکی رسمی ایران سایت رسمی .ac.ir | Search-A | 5 | iums.ac.ir; tums.ac.ir |
+| C4B05-C-02 | دانشگاه علوم پزشکی آموزش به بیمار سلامت رسمی | Search-A | 3 | kums.ac.ir patient-education units |
+| C4B05-C-03 | medical university patient education Iran official | Search-A | 5 | kums.ac.ir; mui.ac.ir; sbmu.ac.ir |
+| C4B05-C-04 | دانشگاه علوم پزشکی پرتال آموزش سلامت بهداشت عمومی سایت رسمی | Search-A | 5 | goums.ac.ir/sph; gmu.ac.ir |
+| C4B05-C-05 | مرکز تحقیقات پزشکی پژوهشگاه علوم پزشکی رسمی ایران | Search-A | 4 | lmrc.ir; royan; pasteur |
+| C4B05-C-06 | Iran medical research center institute official site | Search-A | 4 | pasteur.ac.ir; mbrc.ac.ir |
+| C4B05-C-07 | پژوهشگاه رویان معرفی رسمی مسئولیت علمی site:royaninstitute.org OR site:royan.org | Search-A | 5 | royan.org; res.royan.org |
+| C4B05-C-08 | بیمارستان آموزشی دانشگاه علوم پزشکی آموزش به بیمار رسمی | Search-A | 5 | taleghani.kums.ac.ir; fatemi.arums.ac.ir |
+| C4B05-C-09 | دانشگاه علوم پزشکی حریم خصوصی کپی رایت شرایط استفاده site:.ac.ir | Search-A | 4 | kums diglib; sbmu diglib |
+| C4B05-C-10 | دانشگاه علوم پزشکی robots.txt terms API automation site:.ac.ir | Search-A | 5 | IT portal pages; robots evidence |
+
+```text
+LOCKED_QUERY_COUNT = 10
+EXECUTABLE_QUERY_SET = EXACTLY C4B05-C-01..C4B05-C-10
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+SEARCH_ENGINES_USED = 1 (Search-A only; cap=2)
+AUTHORIZED_LOCKED_QUERY_EXECUTIONS = 10
+UNAUTHORIZED_UNLOCKED_QUERY_TRANSMISSIONS = 1
+TOTAL_SEARCH_REQUESTS_TRANSMITTED = 11
+
+ACTUAL_EXECUTION_DEVIATION =
+1 UNAUTHORIZED UNLOCKED SEARCH TRANSMITTED (STOP-06)
+
+NETWORK_CONTRACT_VIOLATION = YES
+ORIGINAL_NETWORK_EXECUTION_RETROACTIVELY_VALIDATED = NO
+
+STOP-06 (UNAUTHORIZED — no locked query ID assigned):
+  query_string = site:pasteur.ac.ir بیانیه حریم خصوصی
+  purpose = Pasteur Institute privacy statement URL discovery
+  request_created = YES
+  response_received = YES
+  results_used = UNKNOWN
+  candidate_contamination = NO
+  budget_counted_in_locked_set = NO
+  action_after = network phase stopped immediately
+
+LOCKED_QUERY_SEARCH_RESULTS_SEEN = 45
+STOP_06_SEARCH_RESULT_COUNT = NOT_PROVABLE_FROM_EXISTING_EVIDENCE
+TOTAL_SEARCH_RESULTS_SEEN = AT_LEAST_45 / NOT_FULLY_RECONSTRUCTABLE
+```
+
+### ۱۴۴.۴) شمارنده‌های بودجه
+
+| Cap | Limit | Actual | Remaining | Exceeded |
+|---|---:|---:|---:|---|
+| MAX_QUERY_COUNT | 15 | 11 transmitted (10 authorized + 1 STOP-06) | 4 | NO |
+| SEARCH_ENGINE_COUNT_CAP | 2 | 1 | 1 | NO |
+| MAX_RESULTS_PER_QUERY | 10 | max 5 | — | NO |
+| MAX_TOTAL_SEARCH_RESULTS | 100 | ≥45 (locked); STOP-06 count NOT_PROVABLE | — | NO |
+| MAX_OFFICIAL_DOMAINS_TO_OPEN | 10 | 10 | 0 | NO |
+| MAX_PAGES_PER_DOMAIN | 5 | max 3 | — | NO |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 | max 2 | — | NO |
+| MAX_ROBOTS_FETCHES | 10 | 6 | 4 | NO |
+| MAX_REDIRECT_HOPS | 3 | 0 observed | — | NO |
+| MAX_RETRIES_PER_REQUEST | 0 | 0 | — | NO |
+| MAX_TOTAL_HTTP_REQUESTS | 40 | 22 | 18 | NO |
+| MAX_CANDIDATES_RECORDED | 12 | 11 governed evaluated rows | 1 | NO |
+| MAX_SECONDARY_SOURCE_PAGES | 5 | 0 | 5 | NO |
+| REQUEST_TIMEOUT_SECONDS | 30 | timeouts recorded | — | NO |
+
+```text
+BUDGET_EXCEED_BEHAVIOR = STOP_FAIL_CLOSED (numeric caps not exceeded)
+FAILURES = 6 (timeouts/404; no retries)
+
+NUMERIC_HARD_CAP_EXCEED_CONFIRMED = NO
+NETWORK_QUERY_CONTRACT_COMPLIANCE = NO
+  reason = STOP-06 unauthorized unlocked search transmitted
+FULL_BUDGET_CONTRACT_COMPLIANCE = FAILED_DUE_TO_QUERY_CONTRACT_VIOLATION
+
+COUNTER_AUDIT_CONFIDENCE:
+  AUTHORIZED_LOCKED_QUERY_EXECUTIONS = HIGH (transcript + §144.3 table)
+  UNAUTHORIZED_UNLOCKED_QUERY_TRANSMISSIONS = HIGH (GATE-S27-25A transcript)
+  MAX_ROBOTS_FETCHES actual = NOT_FULLY_RECONSTRUCTABLE (reported 6; transcript ≥8 attempts)
+  MAX_TOTAL_HTTP_REQUESTS actual = NOT_FULLY_RECONSTRUCTABLE (reported 22; transcript ~23 fetches)
+```
+
+### ۱۴۴.۵) رویدادهای توقف
+
+| event_id | trigger | scope | action |
+|---|---|---|---|
+| STOP-01 | iums.ac.ir/robots.txt fetch timeout | candidate-local | recorded ROBOTS=NOT_RETRIEVED; no retry |
+| STOP-02 | kums.ac.ir root redirect loop/timeout | domain-local | used www.kums.ac.ir + subdomains |
+| STOP-03 | pasteur.ac.ir/robots.txt 404 | candidate-local | used fa.pasteur.ac.ir + network listing |
+| STOP-04 | mbrc.ac.ir timeout | candidate-local | deferred; no retry |
+| STOP-05 | alzahra.mui.ac.ir health-education timeout | candidate-local | used mui.ac.ir root + robots |
+| STOP-06 | UNAUTHORIZED unlocked search: `site:pasteur.ac.ir بیانیه حریم خصوصی` | gate-local | transmitted YES; response YES; stopped immediately; F-25A-BLOCKER-01 |
+
+### ۱۴۴.۶) دفتر کاندید — governed evaluated rows (۱۱/۱۲)
+
+```text
+GOVERNED_CANDIDATE_ROW_COUNT = 11
+AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS = 10
+REJECTED_EVALUATED_ROWS = 1 (C4B05-CAND-11 / mbrc.ac.ir)
+```
+
+| candidate_id | source_class | canonical_name | official_domain | authority_tier | discovered_via | disposition | terms | reuse | automation | robots |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B05-CAND-01 | IR-SC-08 | دانشگاه علوم پزشکی تهران | tums.ac.ir | TIER B | C4B05-C-01,C-03,C-09,C-10 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | PROHIBITED_OR_BLOCKED | DISALLOW_ALL |
+| C4B05-CAND-02 | IR-SC-08 | دانشگاه علوم پزشکی ایران | iums.ac.ir | TIER B | C4B05-C-01,C-02 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED |
+| C4B05-CAND-03 | IR-SC-08 | دانشگاه علوم پزشکی کرمانشاه | kums.ac.ir | TIER B | C4B05-C-02,C-04,C-09,C-10 | ACCEPTED_WITH_RESIDUALS | RETRIEVED_RESTRICTIVE | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | ALLOW_ALL |
+| C4B05-CAND-04 | IR-SC-08 | دانشگاه علوم پزشکی اصفهان | mui.ac.ir | TIER B | C4B05-C-03,C-04,C-10 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | RESTRICTED_PARTIAL |
+| C4B05-CAND-05 | IR-SC-08 | دانشگاه علوم پزشکی شهید بهشتی | sbmu.ac.ir | TIER B | C4B05-C-03,C-09,C-10 | ACCEPTED_WITH_RESIDUALS | RETRIEVED_RESTRICTIVE | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | ALLOW_ALL |
+| C4B05-CAND-06 | IR-SC-09 | انستیتو پاستور ایران | pasteur.ac.ir | TIER B | C4B05-C-05,C-06,C-07,C-09,C-10 | ACCEPTED_WITH_RESIDUALS | PARTIAL_SIGNAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_FOUND_WITHIN_BUDGET |
+| C4B05-CAND-07 | IR-SC-09 | مرکز تحقیقات پزشکی قانونی | lmrc.ir | TIER B | C4B05-C-05,C-06,C-07 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | ALLOW_ALL |
+| C4B05-CAND-08 | IR-SC-09 | پژوهشگاه رویان | royan.org | TIER B | C4B05-C-05,C-07 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED |
+| C4B05-CAND-09 | IR-SC-14 slice | بیمارستان طالقانی (آموزش به بیمار) | taleghani.kums.ac.ir | TIER C | C4B05-C-08 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED |
+| C4B05-CAND-10 | IR-SC-14 slice | بیمارستان فاطمی (آموزش به بیمار) | fatemi.arums.ac.ir | TIER C | C4B05-C-08 | ACCEPTED_WITH_RESIDUALS | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED |
+| C4B05-CAND-11 | IR-SC-09 | mbrc.ac.ir (identity not established) | mbrc.ac.ir | NOT_ESTABLISHED | C4B05-C-06 | REJECTED_INSUFFICIENT_FIRST_PARTY_EVIDENCE | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED |
+
+```text
+REJECTED_COMMERCIAL_DIRECTORY_PRIMARY = avval.ir (C4B05-C-05 result excluded)
+REJECTED_WIKIPEDIA_PRIMARY = fa.wikipedia.org (secondary only)
+CROSS_CHILD_SCOPE_COLLISION = NO
+R06_IMPERSONATION_BLOCK = NO confirmed impersonation among accepted set
+```
+
+### ۱۴۴.۶.۱) دفتر کاندید — طرح کامل ۲۳ فیلدی
+
+```text
+C4B05-CAND-01:
+  source_class=IR-SC-08 | canonical_name=دانشگاه علوم پزشکی تهران | official_domain=tums.ac.ir
+  authority_role=official medical university publisher | authority_tier=TIER B
+  official_identity_evidence=tums.ac.ir landing; MoH-subordinate .ac.ir branding
+  publisher_evidence=university-owned root domain | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=university identity; not patient-content ingestion | discovered_via=C4B05-C-01,C-03,C-09,C-10
+  primary_or_secondary_evidence=PRIMARY first-party | terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED
+  automation_permission_state=PROHIBITED_OR_BLOCKED | attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED
+  robots_state=DISALLOW_ALL (robots.txt Disallow: /) | ir_sc_14_slice_applicable=NO
+  provenance_references=https://tums.ac.ir/ ; https://tums.ac.ir/robots.txt
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=terms not retrieved; robots disallow for contemplated automation
+  residuals=RESIDUAL-02,RESIDUAL-03,RESIDUAL-05
+
+C4B05-CAND-02:
+  source_class=IR-SC-08 | canonical_name=دانشگاه علوم پزشکی ایران | official_domain=iums.ac.ir
+  authority_role=official medical university publisher | authority_tier=TIER B
+  official_identity_evidence=iums.ac.ir official university portal
+  publisher_evidence=university-owned .ac.ir | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=university identity | discovered_via=C4B05-C-01,C-02
+  primary_or_secondary_evidence=PRIMARY | terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED
+  automation_permission_state=UNKNOWN_FAIL_CLOSED | attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED
+  robots_state=NOT_RETRIEVED (timeout) | ir_sc_14_slice_applicable=NO
+  provenance_references=https://iums.ac.ir/
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=robots/terms not retrieved within budget
+  residuals=RESIDUAL-02,RESIDUAL-03,RESIDUAL-05
+
+C4B05-CAND-03:
+  source_class=IR-SC-08 | canonical_name=دانشگاه علوم پزشکی کرمانشاه | official_domain=kums.ac.ir
+  authority_role=official medical university publisher | authority_tier=TIER B
+  official_identity_evidence=www.kums.ac.ir; patient-education subdomains under university branding
+  publisher_evidence=university-owned domain family | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=university + health-education portal signals | discovered_via=C4B05-C-02,C-04,C-09,C-10
+  primary_or_secondary_evidence=PRIMARY | terms_state=RETRIEVED_RESTRICTIVE (nsftlib copyright rules)
+  reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=ALLOW_ALL
+  ir_sc_14_slice_applicable=PARTIAL (education units discovered; not facility licensing)
+  provenance_references=https://www.kums.ac.ir/ ; https://www.kums.ac.ir/nsftlib
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=restrictive copyright signals; no reuse clearance
+  residuals=RESIDUAL-02,RESIDUAL-05
+
+C4B05-CAND-04:
+  source_class=IR-SC-08 | canonical_name=دانشگاه علوم پزشکی اصفهان | official_domain=mui.ac.ir
+  authority_role=official medical university publisher | authority_tier=TIER B
+  official_identity_evidence=mui.ac.ir official portal | publisher_evidence=university .ac.ir
+  reviewer_editorial_evidence=NOT_ESTABLISHED | candidate_scope=university identity/education landing
+  discovered_via=C4B05-C-03,C-04,C-10 | primary_or_secondary_evidence=PRIMARY
+  terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED
+  robots_state=RESTRICTED_PARTIAL (Drupal paths disallowed) | ir_sc_14_slice_applicable=NO
+  provenance_references=https://mui.ac.ir/ ; https://mui.ac.ir/robots.txt
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=partial robots restrictions
+  residuals=RESIDUAL-02,RESIDUAL-03,RESIDUAL-05
+
+C4B05-CAND-05:
+  source_class=IR-SC-08 | canonical_name=دانشگاه علوم پزشکی شهید بهشتی | official_domain=sbmu.ac.ir
+  authority_role=official medical university publisher | authority_tier=TIER B
+  official_identity_evidence=sbmu.ac.ir portal | publisher_evidence=university .ac.ir
+  reviewer_editorial_evidence=NOT_ESTABLISHED | candidate_scope=university digital library policy context
+  discovered_via=C4B05-C-03,C-09,C-10 | primary_or_secondary_evidence=PRIMARY
+  terms_state=RETRIEVED_RESTRICTIVE (diglib digital resources policy)
+  reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=ALLOW_ALL
+  ir_sc_14_slice_applicable=NO | provenance_references=https://sbmu.ac.ir/ ; https://sbmu.ac.ir/diglib
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=restrictive reuse signals
+  residuals=RESIDUAL-02,RESIDUAL-05
+
+C4B05-CAND-06:
+  source_class=IR-SC-09 | canonical_name=انستیتو پاستور ایران | official_domain=pasteur.ac.ir
+  authority_role=official medical research institute publisher | authority_tier=TIER B
+  official_identity_evidence=fa.pasteur.ac.ir / pasteur.ac.ir institute portal
+  publisher_evidence=institute-owned domain | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=research institute identity | discovered_via=C4B05-C-05,C-06,C-07,C-09,C-10
+  primary_or_secondary_evidence=PRIMARY | terms_state=PARTIAL_SIGNAL (privacy/service statements on portal)
+  reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED
+  robots_state=NOT_FOUND_WITHIN_BUDGET (404 on /robots.txt) | ir_sc_14_slice_applicable=NO
+  provenance_references=https://www.pasteur.ac.ir/ ; https://fa.pasteur.ac.ir/
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=robots not found; terms partial only
+  residuals=RESIDUAL-02,RESIDUAL-03,RESIDUAL-05
+
+C4B05-CAND-07:
+  source_class=IR-SC-09 | canonical_name=مرکز تحقیقات پزشکی قانونی | official_domain=lmrc.ir
+  authority_role=official forensic medical research center | authority_tier=TIER B
+  official_identity_evidence=lmrc.ir official center site | publisher_evidence=lmrc.ir
+  reviewer_editorial_evidence=NOT_ESTABLISHED | candidate_scope=research center identity
+  discovered_via=C4B05-C-05,C-06,C-07 | primary_or_secondary_evidence=PRIMARY
+  terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=ALLOW_ALL
+  ir_sc_14_slice_applicable=NO | provenance_references=https://lmrc.ir/
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=terms not retrieved
+  residuals=RESIDUAL-02,RESIDUAL-05
+
+C4B05-CAND-08:
+  source_class=IR-SC-09 | canonical_name=پژوهشگاه رویان | official_domain=royan.org
+  authority_role=official reproductive biomedicine research institute | authority_tier=TIER B
+  official_identity_evidence=royan.org official institute site | publisher_evidence=royan.org
+  reviewer_editorial_evidence=NOT_ESTABLISHED | candidate_scope=research institute identity
+  discovered_via=C4B05-C-05,C-07 | primary_or_secondary_evidence=PRIMARY
+  terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=NOT_RETRIEVED
+  ir_sc_14_slice_applicable=NO | provenance_references=https://royan.org/
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=terms/robots not retrieved
+  residuals=RESIDUAL-02,RESIDUAL-03,RESIDUAL-05
+
+C4B05-CAND-09:
+  source_class=IR-SC-14 education slice | canonical_name=بیمارستان طالقانی (آموزش به بیمار)
+  official_domain=taleghani.kums.ac.ir | authority_role=teaching-hospital patient-education unit
+  authority_tier=TIER C | official_identity_evidence=hospital subdomain under KUMS branding
+  publisher_evidence=university-affiliated hospital education page | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=patient-education only; NOT facility licensing/accreditation (C4B-02 fence)
+  discovered_via=C4B05-C-08 | primary_or_secondary_evidence=PRIMARY scoped
+  terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=NOT_RETRIEVED
+  ir_sc_14_slice_applicable=YES | provenance_references=https://taleghani.kums.ac.ir/
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=education-slice sample only
+  residuals=RESIDUAL-04,RESIDUAL-05
+
+C4B05-CAND-10:
+  source_class=IR-SC-14 education slice | canonical_name=بیمارستان فاطمی (آموزش به بیمار)
+  official_domain=fatemi.arums.ac.ir | authority_role=teaching-hospital patient-education unit
+  authority_tier=TIER C | official_identity_evidence=hospital subdomain under ARUMS branding
+  publisher_evidence=university-affiliated hospital education page | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=patient-education only; NOT facility licensing (C4B-02 fence)
+  discovered_via=C4B05-C-08 | primary_or_secondary_evidence=PRIMARY scoped
+  terms_state=NOT_RETRIEVED | reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=NOT_RETRIEVED
+  ir_sc_14_slice_applicable=YES | provenance_references=https://fatemi.arums.ac.ir/
+  disposition=AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS | limitations=education-slice sample only
+  residuals=RESIDUAL-04,RESIDUAL-05
+
+C4B05-CAND-11:
+  source_class=IR-SC-09 | canonical_name=NOT_ESTABLISHED (mbrc.ac.ir) | official_domain=mbrc.ac.ir
+  authority_role=medical research center candidate (unevaluated) | authority_tier=NOT_ESTABLISHED
+  official_identity_evidence=NOT_ESTABLISHED_FROM_EXISTING_SUCCESSFUL_FIRST_PARTY_FETCH
+  publisher_evidence=NOT_ESTABLISHED | reviewer_editorial_evidence=NOT_ESTABLISHED
+  candidate_scope=research center identity attempt via C4B05-C-06 | discovered_via=C4B05-C-06
+  primary_or_secondary_evidence=NONE_ESTABLISHED | terms_state=NOT_RETRIEVED
+  reuse_rights_state=UNKNOWN_FAIL_CLOSED | automation_permission_state=UNKNOWN_FAIL_CLOSED
+  attribution_state=UNKNOWN_FAIL_CLOSED | rate_limit_state=UNKNOWN_FAIL_CLOSED | robots_state=NOT_RETRIEVED
+  ir_sc_14_slice_applicable=NO | provenance_references=https://www.mbrc.ac.ir/ (fetch timeout STOP-04)
+  disposition=REJECTED_INSUFFICIENT_FIRST_PARTY_EVIDENCE | limitations=domain open timeout; no retry; no first-party identity
+  residuals=STOP-04
+
+REJECTED (search-result only; no governed candidate row):
+  avval.ir — REJECTED_SCOPE_MISMATCH / commercial directory (C4B05-C-05)
+  fa.wikipedia.org — REJECTED_INSUFFICIENT_FIRST_PARTY_EVIDENCE as primary
+```
+
+### ۱۴۴.۷) شواهد حقوق / اتوماسیون / robots (خلاصه)
+
+```text
+READABLE != REUSABLE preserved
+GET != AUTOMATION_PERMISSION preserved
+AUTHORITY_DISCOVERY != RIGHTS_CLEARANCE preserved
+
+TERMS evidence retrieved (restrictive, not clearance):
+  kums.ac.ir/nsftlib — copyright rules; copying/printing limits
+  sbmu.ac.ir/diglib — digital resources reuse restrictions
+  pasteur.ac.ir — privacy/service-level statements referenced on portal
+
+AUTOMATION_PERMISSION default = UNKNOWN_FAIL_CLOSED for candidates without direct automation evidence
+C4B05-CAND-01 automation = PROHIBITED_OR_BLOCKED (robots DISALLOW_ALL applies to contemplated automation)
+No robots.txt interpreted as reuse permission
+ROBOTS_DISALLOW != COPYRIGHT_DECISION
+ROBOTS_DISALLOW != REUSE_RIGHTS_DETERMINATION
+ROBOTS_ALLOW != REUSE_PERMISSION
+ROBOTS_ALLOW != AUTOMATION_PERMISSION
+tums.ac.ir robots = Disallow: (all agents) — automation signal restrictive
+```
+
+### ۱۴۴.۸) باقیمانده‌ها (RESIDUALS) و یافته‌های حاکمیتی
+
+| RESIDUAL_ID | description | owner | blocks discovery substep | blocks C4B-05 full child | blocks C4B-06 |
+|---|---|---|---|---|---|
+| RESIDUAL-01 | OFS numeric ID not assigned (§143 GAP-01 carry-forward) | Governance/Framework | NO | NO | NO |
+| RESIDUAL-02 | University-wide terms/privacy not retrieved for all candidates within budget | Legal/Knowledge Ops | NO | YES | NO |
+| RESIDUAL-03 | Robots retrieval incomplete (timeouts/404 on several hosts) | Provider Verification | NO | YES | NO |
+| RESIDUAL-04 | IR-SC-14 sample limited to 2 teaching-hospital education pages | Governance | NO | PARTIAL / SCOPE_DEPENDENT | NO |
+| RESIDUAL-05 | Reviewer/editorial evidence not established for all candidates | Knowledge Ops | NO | YES | NO |
+| F-25A-BLOCKER-01 / STOP-06 | Historical unauthorized unlocked search transmitted during 24A | Governance | YES | YES | NO |
+
+```text
+C4B_05_RESIDUALS_BLOCK_C4B_06_START = NO
+C4B_CHILDREN_EXECUTION_MODEL = INDEPENDENT_GOVERNED_CHILDREN
+
+ORIGINAL_NETWORK_CONTRACT_VIOLATION = YES
+HISTORICAL_VIOLATION = RECORDED / DISPOSITIONED
+NETWORK_EXECUTION = NOT RETROACTIVELY VALIDATED
+
+PRE_EXISTING_DOCUMENTATION_DEBT =
+COMMITTED_PREFIX_DOCUMENT_FENCE_DELTA = 1 (inherited; not introduced by §144)
+HISTORICAL_FENCE_DEBT_ALREADY_TRACKED = NOT_FOUND
+HISTORICAL_FENCE_REPAIRED_IN_THIS_GATE = NO
+OWNER = Documentation / Governance
+FUTURE_CLOSURE = separate explicitly approved historical-doc repair Gate
+```
+
+### ۱۴۴.۹) تصمیم تکمیل کشف و full-child closure
+
+```text
+E2_C4B_05_NETWORK_DISCOVERY_RESULT =
+INVALID_DUE_TO_NETWORK_CONTRACT_VIOLATION
+
+E2_C4B_05_REPOSITORY_PREPARATION_COMPLETE = YES
+E2_C4B_05_NETWORK_DISCOVERY_EXECUTED = YES
+E2_C4B_05_DISCOVERY_SUBSTEP_COMPLETE = NO
+E2_C4B_05_FULL_CHILD_COMPLETE = NO
+C4B_05_STARTED = DISCOVERY_SUBSTEP_EXECUTED
+
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+
+C4B_05_FULL_CHILD_OPEN_BECAUSE =
+  1. reuse rights not cleared (all candidates UNKNOWN_FAIL_CLOSED)
+  2. automation permission not cleared across candidate set (CAND-01 PROHIBITED_OR_BLOCKED; others unproven)
+  3. terms evidence incomplete (RESIDUAL-02)
+  4. robots evidence incomplete (RESIDUAL-03)
+  5. reviewer/editorial evidence incomplete (RESIDUAL-05)
+  6. MBRC candidate ledger omission — REPAIRED_BY_S27_24AG
+  7. STOP-06 historical network-contract violation — PRESERVED (OPEN_GOVERNANCE_DEPENDENCY)
+  8. IR-SC-14 sample scope limitation (RESIDUAL-04)
+  9. OFS numeric mapping gap — non-blocking by itself (RESIDUAL-01)
+
+C4B_05_FULL_CHILD_CLOSURE_CRITERIA =
+  - Complete governed candidate ledger for all evaluated encounters
+  - Truthful network-action audit including STOP-06 disposition
+  - Terms/robots/automation states accurate per §143.11–.12
+  - Separate rights/automation clearance (FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE)
+  - Reviewer/editorial evidence established or formally fail-closed per candidate
+  - No unresolved BLOCKER on discovery-substep acceptance
+  - Discovery-substep may not be marked COMPLETE while NETWORK_CONTRACT_VIOLATION = YES
+
+REPAIRED_ARTIFACT_GAP vs OPEN_GOVERNANCE_DEPENDENCY vs HISTORICAL_EXECUTION_VIOLATION:
+  REPAIRED_ARTIFACT_GAP = MBRC row, CAND-01 automation, residual semantics, counter truthfulness
+  OPEN_GOVERNANCE_DEPENDENCY = rights/terms/robots/reviewer clearance not yet achieved
+  HISTORICAL_EXECUTION_VIOLATION = STOP-06 transmitted unlocked query (permanent audit record)
+```
+
+### ۱۴۴.۱۰) گام بعدی — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+GATE-S27-25A-R —
+STRICT READ-ONLY RE-REVIEW OF REPAIRED §144
+
+NEXT_GATE_STARTED = NO
+AUTHORIZATION = NOT YET GRANTED
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۴۴.۱۱) GATE-S27-25A Findings + GATE-S27-24AG Repair Record
+
+```text
+STRICT_REVIEW_GATE = GATE-S27-25A (completed)
+REPAIR_GATE = GATE-S27-24AG (this repair pass)
+
+S27-25A FINDINGS (preserved):
+  F-25A-BLOCKER-01 = STOP-06 unlocked search transmitted → RECORDED / NOT ERASED
+  F-25A-MAJOR-01 = mbrc.ac.ir missing row → REPAIRED_BY_S27_24AG
+  F-25A-MAJOR-02 = CAND-01 automation understated → REPAIRED_BY_S27_24AG
+  F-25A-MAJOR-03 = residual full-child semantics understated → REPAIRED_BY_S27_24AG
+  F-25A-MINOR-01 = query/counter undercount → REPAIRED_BY_S27_24AG
+  F-25A-NOTE-01 = inherited document fence delta → PRE_EXISTING_DOCUMENTATION_DEBT
+  F-25A-NOTE-02 = temporary append separator lines → RESOLVED (prefix intact)
+
+§144_TRUTHFULNESS_REPAIR_FINDINGS = CLOSED
+ORIGINAL_S27_24A_NETWORK_CONTRACT_VIOLATION = PRESERVED_AND_RECORDED
+ORIGINAL_NETWORK_EXECUTION_RETROACTIVELY_VALIDATED = NO
+
+UNPROVEN_RIGHTS_NEVER_UPGRADED = YES
+AUTHORITY_DISCOVERY_NEVER_BECAME_RIGHTS_CLEARANCE = YES
+CONTENT_BODY_ACQUISITION = NO
+MEDICAL_CONTENT_INGESTION = NO
+PUBLICATION = NO
+RUNTIME_GROUNDING = NO
+SOURCE_ACTIVATION = NO
+CRAWLER_ACTIVATION = NO
+```
+
+### ۱۴۴.۱۲) Append-Only Integrity Record
+
+```text
+§§1–143_SHA256_BEFORE =
+06180f7d65584149c7d01d4b2d0ea580ec819cd66d59742d93fc508a28b77622
+
+PREFIX_MATCH =
+YES (verified before and after S27-24AG repair)
+
+§144_ONLY_MUTATION =
+YES (repair confined to §144 content)
+
+§144_AT_EOF =
+YES
+
+§144_ARTIFACT_COMMIT_READINESS =
+REQUIRES_SEPARATE_STRICT_RE_REVIEW
+```
+
+---
+*پایان §۱۴۴ — GATE-S27-24A E2-C4B-05 Controlled Network Discovery + GATE-S27-24AG Truthfulness/Ledger Repair — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
