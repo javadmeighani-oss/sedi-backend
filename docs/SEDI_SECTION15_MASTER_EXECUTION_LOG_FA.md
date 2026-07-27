@@ -29082,3 +29082,563 @@ NO
 
 ---
 *پایان §۱۴۲ — GATE-S27-15 E2-C4B-04 Remote Docs Delivery Closure / State Reconciliation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
+## ۱۴۳) E2-C4B-05 UNIVERSITIES / RESEARCH — REPOSITORY AUTHORITY / SCOPE PREPARATION
+
+```text
+PACKAGE =
+GATE-S27-20 —
+E2-C4B-05 UNIVERSITIES / RESEARCH
+REPOSITORY AUTHORITY / SCOPE PREPARATION
+
+MODE =
+DOCS_ONLY / APPEND_ONLY / NO_NETWORK / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only C4B-05 repository preparation ONLY
+NO network / search / HTTP / WHOIS / DNS / robots / terms fetch
+NO source discovery / source download / content acquisition
+NO ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–142
+NO §144
+NO C4B-06 / P2 execution / I6 / I7 / I8 / Frontend Gate 4
+
+Baseline SHA (local = upstream):
+0d4de12720ae181b5a482e9f9edf6994d93d9231
+
+Controlling prior tip subject:
+docs(governance): record C4B-04 remote delivery closure
+
+Controlling reconstruction:
+GATE-S27-19 — C4B-04 post-delivery / C4B-05 transition review = PASS
+C4B_05_TRANSITION_READY = YES_WITH_EXPLICIT_FAIL_CLOSED_GAPS
+C4B-04 discovery + docs delivery complete; full child remains OPEN
+```
+
+### ۱۴۳.۱) اختیار و هدف E2-C4B-05
+
+```text
+E2_C4B_05_OBJECTIVE =
+Medical-university and research-center discovery approval — establish authority,
+identity, scope, and candidate evidence for official Iranian medical universities
+and medical research centers/institutes under Iran-first governed discovery
+boundaries, without clearing reuse, automation, ingestion, publication, or
+runtime-use rights.
+
+EXPLICIT_AUTHORITY_BASIS =
+  §99.21 — E2-C4B-05 medical-university and research-center discovery approval
+  §99.3  — IR-SC-08 / IR-SC-09 Gate = E2-C4B-05; IR-SC-14 shared C4B-02/05
+  §99.7  — Strategy C Medical-university discovery Gate = E2-C4B-05
+  §99.19 — OD-C4A-08 / OD-C4A-09 / OD-C4A-14 Blocking → E2-C4B-05
+  §97.25 — Iranian source priority: official medical universities and research centers
+  §99.5  — TIER B university / public research authority tier
+  §142   — C4B-04 delivery complete; C4B-05 not started
+  GATE-S27-19 — transition review PASS
+
+C4B_05_DISCOVERY =
+METADATA / AUTHORITY / POLICY / ELIGIBILITY EVIDENCE ONLY
+≠ clinical knowledge harvest
+≠ content-body acquisition
+≠ ingestion / publication / runtime grounding
+≠ weekly crawler activation
+
+DISCOVERY_SUBSTEP_COMPLETE != FULL_CHILD_COMPLETE
+```
+
+### ۱۴۳.۲) قرارداد قفل IR-SC-08 / IR-SC-09 / IR-SC-14 (education slice)
+
+| SOURCE_CLASS_ID | NAME | ROLE | AUTHORITY_TIER | PERMITTED_DISCOVERY_PURPOSE | PROHIBITED_USE |
+|---|---|---|---|---|---|
+| IR-SC-08 | official medical-university sources | SCIENTIFIC_EDUCATION / PATIENT_EDUCATION | TIER B | identify official Iranian medical-university domains/pages; publisher/reviewer/terms evidence packs | statutory license alone; automatic clinical guideline; commercial ranking |
+| IR-SC-09 | medical research centers/institutes | SCIENTIFIC_EDUCATION | TIER B | identify official Iranian medical research center/institute domains; authority+terms packs | clinical referral authority; publication without review |
+| IR-SC-14 (education slice) | teaching hospitals / academic centers | FACILITY_IDENTITY / PATIENT_EDUCATION (scoped) | TIER C | scoped teaching-hospital academic/patient-education evidence only | independent national accreditation of peers; facility-identity primary discovery (C4B-02 owned) |
+
+```text
+IR_SC_AUTHORITY_CONTRACT_LOCKED = YES
+
+EVIDENCE_REQUIREMENTS_COMMON =
+  official identity / ownership
+  publisher / editorial responsibility
+  authority basis
+  public accessibility
+  cost / free status
+  terms
+  reuse rights
+  robots where applicable
+  automation permission
+  attribution requirement
+  rate-limit information
+  freshness / update signals
+  provenance
+  candidate disposition
+  residual gap
+
+READABLE != REUSABLE
+GET != AUTOMATION_PERMISSION
+DISCOVERED != INGESTIBLE
+AUTHORITY_DISCOVERY != RIGHTS_CLEARANCE
+INGESTED != APPROVED
+APPROVED != PUBLISHED
+PUBLISHED != UNRESTRICTED_RUNTIME_USE
+```
+
+### ۱۴۳.۳) قفل نگاشت OD packs
+
+| PACK_ID | TARGET_SOURCE_CLASS | PURPOSE | REQUIRED_EVIDENCE | DEPENDENCIES | BLOCKING_CONDITIONS | OWNER |
+|---|---|---|---|---|---|---|
+| OD-C4A-08 | IR-SC-08 universities | publisher + terms evidence pack for official medical universities | ownership; publisher; reviewer/editorial; terms; reuse/automation fail-closed | — | Blocking until pack recorded or remain fail-closed | Data/Knowledge, Medical/Safety, Legal |
+| OD-C4A-09 | IR-SC-09 research centers | authority + terms evidence pack for medical research centers/institutes | authority; ownership; terms; reuse/automation fail-closed | OD-C4A-08 where repository requires university/research chain | Blocking | Data/Knowledge, Medical/Safety |
+| OD-C4A-14 | IR-SC-14 teaching hospitals / academic centers | scoped teaching-hospital / academic-center evidence | scoped facility+education evidence; not independent accreditation | OD-C4A-03 facility identity family for C4B-02 boundary | Blocking; C4B-05 education slice only | Facility Verification, Medical/Safety, Legal |
+
+```text
+OD_PACK_LOCK_COMPLETE = YES
+NO_NEW_OD_IDS_INVENTED = YES
+```
+
+### ۱۴۳.۴) تصمیم نگاشت OFS — بستن شکاف S27-19
+
+```text
+C4B_05_OFS_MAPPING_DECISION =
+Operate C4B-05 through IR-SC-08 / IR-SC-09 / IR-SC-14 (education slice)
++ OD-C4A-08 / OD-C4A-09 / OD-C4A-14 authority without inventing a new OFS ID.
+
+REPOSITORY_BASIS =
+  §97.7 OFS-01..OFS-09 inventory covers physician/hospital/lab/MoH/FDA/TTAC/open-data
+  No existing OFS entry maps to medical universities or research centers
+  §99.3 maps IR-SC-08/09 directly to E2-C4B-05 without OFS column
+  §99.19 OD-C4A-08/09 provide blocking evidence packs without OFS prerequisite
+  C4B-04 precedent used OFS-06..09 because those OFS IDs already existed in §97.7
+  No framework Gate authorizes new OFS identifier creation in this preparation Gate
+
+OPTION_A_NEW_OFS_IN_THIS_SECTION = NOT_AUTHORIZED
+OPTION_B_IR_SC_PLUS_OD_WITHOUT_NEW_OFS = SELECTED
+OPTION_C_DEFER_TO_LATER_FRAMEWORK_GATE = NOT_REQUIRED (Option B sufficient)
+
+C4B_05_OFS_MAPPING_GAP_AFTER_PREPARATION =
+ACCEPTED_FAIL_CLOSED
+
+OFS_GAP_BLOCKS_NETWORK_DISCOVERY = NO
+RATIONALE =
+  IR-SC + OD authority chain is repository-complete for discovery approval;
+  missing OFS numeric ID does not prevent bounded Strategy C network discovery
+  when query contract, budget, stop conditions, and candidate schema are locked
+```
+
+### ۱۴۳.۵) مرز IR-SC-14 بین C4B-02 و C4B-05
+
+```text
+C4B_02_IR_SC_14_SLICE =
+facility identity / hospital-accreditation context
+owned by E2-C4B-02
+discovery of teaching-hospital facility identity corroboration
+NOT reopened by C4B-05
+
+C4B_05_IR_SC_14_SLICE =
+education / academic / teaching-hospital patient-education evidence only
+scoped pages under official university or teaching-hospital branding
+NOT independent national accreditation authority
+NOT facility licensing / SIAM / parvaneh primary discovery
+
+C4B_05_MUST_NOT_REOPEN_C4B_02_FACILITY_DISCOVERY =
+YES
+
+CROSS_CHILD_SCOPE_COLLISION =
+NO (when boundary respected)
+
+FORBIDDEN_IN_C4B_05_IR_SC_14 =
+  hospital licensing primary discovery
+  accreditation portal primary discovery
+  SIAM facility ID primary discovery
+  C4B-02 disposition re-litigation
+```
+
+### ۱۴۳.۶) قرارداد Strategy C
+
+```text
+STRATEGY_C_APPLIES = YES
+STRATEGY_B_APPLIES = NO
+STRATEGY_G_APPLIES = NO
+
+Strategy C (§99.7) =
+Medical-university discovery
+method = universities
+purpose = universities
+permitted future search = approved search Gate only
+
+QUERY_TEMPLATES_PREP_ONLY =
+  FA: «دانشگاه علوم پزشکی» + topic
+  EN: medical university patient education Iran
+
+OWNERSHIP_SIGNALS =
+  university official domain (.ac.ir / official university subdomain under MoH)
+
+FALSE_POSITIVE_RISKS =
+  faculty blogs
+  personal faculty pages
+  student pages
+  unofficial departmental mirrors
+  commercial directories
+  SEO health pages
+
+MIN_EVIDENCE_BEFORE_REGISTRATION =
+  publisher + reviewer + terms
+
+OFFICIAL_DOMAIN_REQUIREMENT =
+  candidate must demonstrate official institutional ownership on university-owned
+  or MoH-subordinate university domain; secondary pages never PRIMARY without
+  direct official ownership evidence
+
+STRATEGY_C_EXECUTED = NO
+HISTORICAL_§99_DEFINITIONS_NOT_REWRITTEN = YES
+```
+
+### ۱۴۳.۷) قرارداد قفل کوئری — بستن QUERY_CONTRACT_GAP
+
+```text
+QUERIES_EXECUTED = 0
+QUERY_RESULTS_PREPOPULATED = NO
+PLANNED_QUERY_COUNT = 10
+LOCKED_QUERY_COUNT = 10
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+UNLOCKED_QUERY_EXECUTION = PROHIBITED
+```
+
+| query_id | strategy | target IR-SC | target OD | objective | expected official-domain signal | allowed result type | disallowed result type | planned evidence to capture |
+|---|---|---|---|---|---|---|---|---|
+| C4B05-C-01 | C | IR-SC-08 | OD-C4A-08 | FA official medical university locator Iran | *.ac.ir / official university MoH-subordinate host | official university landing/index | faculty blogs; commercial SEO | ownership; publisher; accessibility; cost |
+| C4B05-C-02 | C | IR-SC-08 | OD-C4A-08 | FA «دانشگاه علوم پزشکی» + health/patient education topic | official university health education pages | official patient-education index | clinic ads; aggregator reprints | authority; terms; attribution; freshness |
+| C4B05-C-03 | C | IR-SC-08 | OD-C4A-08 | EN medical university patient education Iran | official university EN/FA host | official education landing | news mirrors as primary | ownership; provenance |
+| C4B05-C-04 | C | IR-SC-08 | OD-C4A-08 | official university health / public-health education portal discovery | university-owned health subdomain | official education portal | personal faculty subdomain | publisher; reviewer; terms |
+| C4B05-C-05 | C | IR-SC-09 | OD-C4A-09 | FA مرکز تحقیقات پزشکی / research institute official Iran | official research center / institute host | official institute landing | commercial research SEO | authority; ownership; terms |
+| C4B05-C-06 | C | IR-SC-09 | OD-C4A-09 | EN Iran medical research center institute official | research-center-owned host | official publications/about page | predatory journal mirrors | authority; provenance |
+| C4B05-C-07 | C | IR-SC-09 | OD-C4A-09 | research center identity / scientific responsibility evidence | same official host family | institute identity page | treating news as authority | publisher; editorial; terms |
+| C4B05-C-08 | C | IR-SC-14 | OD-C4A-14 | FA teaching-hospital academic / patient-education slice (scoped) | teaching-hospital under university branding | scoped education page | facility licensing primary (C4B-02) | scoped evidence; role lock |
+| C4B05-C-09 | C | IR-SC-08/09 | OD-C4A-08/09 | university/research-center terms/privacy/copyright pages | same official host family | terms/privacy/copyright | third-party TOU summaries | terms; reuse; attribution |
+| C4B05-C-10 | C | IR-SC-08/09 | OD-C4A-08/09 | university/research robots/terms/automation signals | same official host family | robots.txt; public API docs if free | paid-only API as free grant | robots; automation; rate-limit |
+
+```text
+LOCKED_QUERY_IDS =
+C4B05-C-01, C4B05-C-02, C4B05-C-03, C4B05-C-04, C4B05-C-05,
+C4B05-C-06, C4B05-C-07, C4B05-C-08, C4B05-C-09, C4B05-C-10
+
+NO_QUERY_SENT_TO_SEARCH_ENGINE = YES
+NO_HTTP_PERFORMED = YES
+C4B_05_QUERY_CONTRACT_GAPS = CLOSED_BY_THIS_SECTION
+```
+
+### ۱۴۳.۸) سقف‌های عددی شبکه — بستن BUDGET_CONTRACT_GAP
+
+```text
+CAP_DERIVATION =
+  Primary precedent = E2-C4B-04 §139.8 / §141.4 network hard budget
+  Supporting precedent = E2-C4B-03 §135.1; C4B-01 §108.2; C4B-02 executed caps
+  Rule applied = single Strategy C (not dual B+G); reuse validated caps;
+    do not increase; conservative; discovery ≠ crawler-scale acquisition
+  C4B-04 used 12/15 queries with dual strategies; C4B-05 locks 10/15 (proportionate)
+```
+
+| Cap field | Locked value | Derivation |
+|---|---|---|
+| MAX_QUERY_COUNT / SEARCH_QUERY_COUNT_CAP | 15 | = C4B-03 / C4B-04 family cap (10 locked queries ≤ cap) |
+| SEARCH_ENGINE_COUNT_CAP | 2 | = C4B-03 / C4B-04 |
+| MAX_RESULTS_PER_QUERY | 10 | conservative manual-audit bound |
+| MAX_TOTAL_SEARCH_RESULTS | 100 | conservative ≤ 15×10 theoretical |
+| MAX_OFFICIAL_DOMAINS_TO_OPEN | 10 | = C4B-01 official domain families max |
+| MAX_PAGES_PER_DOMAIN | 5 | conservative (landing+terms+robots+privacy+1 corroboration) |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 | subset of per-domain pages |
+| MAX_ROBOTS_FETCHES | 10 | = C4B-01 robots.txt max |
+| MAX_REDIRECT_HOPS / MAX_REDIRECTS_PER_REQUEST_CAP | 3 | = C4B-03 / C4B-04 |
+| MAX_RETRIES_PER_REQUEST | 0 | no retry loops beyond budget |
+| MAX_TOTAL_HTTP_REQUESTS / PUBLIC_GET_HEAD_REQUEST_COUNT_CAP | 40 | = C4B-03 / C4B-04 |
+| MAX_CANDIDATES_RECORDED | 12 | conservative; not crawler-scale |
+| MAX_SECONDARY_SOURCE_PAGES | 5 | = C4B-01 secondary-source pages max |
+| REQUEST_TIMEOUT_SECONDS | 30 | conservative operational bound (C4B-04 precedent) |
+
+```text
+BUDGET_EXCEED_BEHAVIOR = STOP_FAIL_CLOSED
+BACKOFF_POLICY = NONE_AUTOMATIC (MAX_RETRIES_PER_REQUEST = 0)
+NETWORK_HARD_CAPS_LOCKED = YES
+C4B_05_BUDGET_CONTRACT_GAPS = CLOSED_BY_THIS_SECTION
+NETWORK_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۴۳.۹) شرایط توقف اجباری
+
+```text
+MANDATORY_STOP_CONDITIONS =
+  baseline mismatch before/during network Gate
+  scope expansion beyond IR-SC-08/09/14 education slice
+  query not in locked query contract (C4B05-C-01..C-10)
+  source class outside approved C4B-05 scope
+  budget exhaustion (any numeric hard cap exceeded)
+  unexpected authentication wall
+  CAPTCHA wall
+  terms/robots conflict requiring legal interpretation
+  automation prohibition signal
+  unsafe redirect chain (> MAX_REDIRECT_HOPS)
+  candidate identity ambiguity requiring scope expansion
+  network behavior outside allowlist
+  attempt to reopen C4B-02 facility discovery via IR-SC-14
+  leakage into C4B-06..09 / P2 / ingestion / runtime
+
+STOP_ON_RATE_LIMIT = YES
+STOP_ON_AUTH_WALL = YES
+STOP_ON_CAPTCHA = YES
+STOP_ON_ROBOTS_DISALLOW = YES
+STOP_ON_TERMS_UNCERTAINTY = YES (record metadata; do NOT treat as reuse grant)
+STOP_ON_LOGIN_REQUIREMENT = YES
+STOP_ON_FORM_POST_NEED = YES
+STOP_ON_PAID_API_REQUIREMENT = YES
+STOP_ON_BUDGET_EXHAUSTION = YES
+
+SELF_EXPANSION = PROHIBITED
+```
+
+### ۱۴۳.۱۰) طرح کاندید — فیلدهای قفل‌شده
+
+```text
+CANDIDATE_SCHEMA_LOCKED_FIELDS =
+  candidate_id
+  source_class (IR-SC-08 / IR-SC-09 / IR-SC-14-education-slice)
+  canonical_name
+  official_domain
+  authority_role
+  authority_tier
+  official_identity_evidence
+  publisher_evidence
+  reviewer_editorial_evidence
+  candidate_scope
+  discovered_via_query_id
+  primary_or_secondary_evidence
+  terms_state
+  reuse_rights_state
+  automation_permission_state
+  attribution_state
+  rate_limit_state
+  robots_state
+  ir_sc_14_slice_applicable (YES/NO)
+  provenance_references
+  disposition
+  limitations
+  residuals
+
+AUTHORITY_CONFIDENCE =
+  separate from RIGHTS_CLEARANCE
+
+AUTHORITY_DISCOVERY != RIGHTS_CLEARANCE = YES
+
+INITIAL_CANDIDATE_TABLE_ROWS = 0
+SYNTHETIC_CANDIDATES = 0
+```
+
+### ۱۴۳.۱۱) وضعیت حقوق fail-closed پیش‌فرض
+
+```text
+DEFAULT_FOR_ALL_NEW_C4B_05_CANDIDATES =
+  TERMS = NOT_RETRIEVED
+  REUSE_RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+  ATTRIBUTION = UNKNOWN_FAIL_CLOSED
+  RATE_LIMIT = UNKNOWN_FAIL_CLOSED
+  ROBOTS = NOT_RETRIEVED
+
+DISCOVERY_MUST_NOT_SELF_UPGRADE_RIGHTS = YES
+```
+
+### ۱۴۳.۱۲) کنترل‌های جعل هویت / false-positive — R06
+
+```text
+R06_APPLIES = YES
+R06 = university subdomain impersonation / unofficial academic pages
+
+REJECT_OR_DOWNGRADE =
+  faculty personal pages
+  student pages
+  unofficial departmental mirrors
+  commercial directories
+  SEO pages
+  social accounts without official-domain authority
+  copied patient-education pages without publisher evidence
+
+REQUIRE_OFFICIAL_INSTITUTIONAL_OWNERSHIP_EVIDENCE = YES
+```
+
+### ۱۴۳.۱۳) مرز ایران-اول
+
+```text
+C4B_05_REGION_PRIORITY = IRAN_FIRST
+
+PRIMARY_C4B_05_SCOPE =
+  official Iranian medical universities
+  official Iranian medical research centers/institutes
+  approved academic teaching-hospital education slice (IR-SC-14)
+
+FOREIGN_UNIVERSITIES_RESEARCH_ORGANIZATIONS =
+OUT_OF_PRIMARY_C4B_05_SCOPE
+
+SECONDARY_CORROBORATION =
+permitted only where repository explicitly allows;
+never becomes primary Iranian authority
+```
+
+### ۱۴۳.۱۴) ممنوعیت اکتساب محتوا / non-activation
+
+```text
+CONTENT_BODY_ACQUISITION = NOT_AUTHORIZED
+MEDICAL_CONTENT_INGESTION = NOT_AUTHORIZED
+PUBLICATION = NOT_AUTHORIZED
+RUNTIME_GROUNDING = NOT_AUTHORIZED
+SOURCE_ACTIVATION = NOT_AUTHORIZED
+CRAWLER_ACTIVATION = NOT_AUTHORIZED
+CAPABILITY_ACTIVATION = NO
+```
+
+### ۱۴۳.۱۵) مرز خارج از محدوده (OOS)
+
+```text
+OOS_FOR_C4B_05_DISCOVERY =
+  C4B-06 scientific associations
+  C4B-07 Persian patient education (primary child)
+  C4B-08 journals / publication portals
+  C4B-09 commercial directories
+  C4B-04 ministry/regulatory re-discovery
+  C4B-02 facility-identity primary (IR-SC-14 facility slice)
+  general content ingestion
+  bulk crawling
+  medical advice extraction
+  runtime retrieval
+  publication
+  scheduler activation
+  P2 acquisition execution
+  P3+
+  I6 / I7 / I8
+  Frontend Gate 4
+
+NO_SCOPE_LEAKAGE = YES
+```
+
+### ۱۴۳.۱۶) تداوم C4B-04 و carry-forward
+
+```text
+C4B_04_POST_DELIVERY_STATUS =
+DISCOVERY_AND_DOCS_DELIVERY_COMPLETE_WITH_FAIL_CLOSED_RESIDUALS
+
+C4B_04_RESIDUALS_BLOCK_C4B_05_START = NO
+C4B_04_MAY_REMAIN_FULL_CHILD_OPEN_WHILE_C4B_05_STARTS = YES
+
+C4B_04_RESIDUALS_CARRY_FORWARD_TO_C4B_04_ONLY =
+  RESIDUAL-01..07 remain attached to C4B-04 candidates
+  do not silently close because C4B-05 preparation begins
+```
+
+### ۱۴۳.۱۷) تداوم نقشه راه P2 — ثبت فقط، بدون اجرا
+
+```text
+ROADMAP_TRACK_A = Evidence Overlay completion
+ROADMAP_TRACK_B = P2 foundation / controlled acquisition plumbing preparation (parallel concept)
+
+P2_FOUNDATION_EXECUTION_AUTHORIZED = NO
+P2_STARTED = NO
+```
+
+### ۱۴۳.۱۸) آمادگی شبکه
+
+```text
+C4B_05_NETWORK_READINESS =
+READY_WITH_EXPLICIT_FAIL_CLOSED_GAPS
+
+REMAINING_GAPS =
+  GAP-01: OFS numeric ID not assigned (ACCEPTED_FAIL_CLOSED; blocks network = NO)
+    owner = Governance / Framework
+    closure = future framework Gate if OFS table extended
+    blocks network = NO
+
+PREPARATION_ITEMS_LOCKED =
+  objective YES
+  IR-SC contract YES
+  OD packs YES
+  Strategy C YES
+  query contract YES (10 locked IDs)
+  budget contract YES
+  stop conditions YES
+  candidate schema YES
+  IR-SC-14 boundary YES
+  fail-closed defaults YES
+  non-activation YES
+  OOS boundary YES
+```
+
+### ۱۴۳.۱۹) نشانگرهای تکمیل
+
+```text
+E2_C4B_05_REPOSITORY_PREPARATION_COMPLETE = YES
+E2_C4B_05_NETWORK_DISCOVERY_EXECUTED = NO
+E2_C4B_05_DISCOVERY_SUBSTEP_COMPLETE = NO
+E2_C4B_05_DISCOVERY_DOCS_DELIVERY_PREPARATION_COMPLETE = NO
+E2_C4B_05_DISCOVERY_DOCS_DELIVERY_COMPLETE = NO
+E2_C4B_05_FULL_CHILD_COMPLETE = NO
+
+C4B_05_STARTED = PREPARATION_ONLY
+
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+```
+
+### ۱۴۳.۲۰) آمادگی بررسی / commit
+
+```text
+§143_REVIEW_STATUS = PENDING_STRICT_READ_ONLY_REVIEW
+DOCS_ONLY_COMMIT_READINESS = PENDING_STRICT_REVIEW
+
+GIT_ADD_AUTHORIZED = NO
+COMMIT_AUTHORIZED = NO
+PUSH_AUTHORIZED = NO
+
+STAGE_NOW = NO
+COMMIT_NOW = NO
+PUSH_NOW = NO
+```
+
+### ۱۴۳.۲۱) گام بعدی — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+GATE-S27-21 —
+STRICT READ-ONLY REVIEW OF §143
+E2-C4B-05 NETWORK-READINESS CONTRACT VERIFICATION
+
+NEXT_GATE_STARTED = NO
+AUTHORIZATION = NOT YET GRANTED
+NETWORK_AUTHORIZED_BY_THIS_GATE = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۴۳.۲۲) Append-Only Integrity Record
+
+```text
+§§1–142_SHA256_BEFORE =
+fbbb012f97ee29d822cbb562d30cf7fb8b1301e8d37febde7117ff7121db4b87
+
+§§1–142_SHA256_AFTER =
+fbbb012f97ee29d822cbb562d30cf7fb8b1301e8d37febde7117ff7121db4b87
+
+PREFIX_MATCH =
+YES
+
+§143_ONLY_MUTATION =
+YES
+
+§143_AT_EOF =
+YES
+```
+
+---
+*پایان §۱۴۳ — GATE-S27-20 E2-C4B-05 Universities / Research Repository Authority / Scope Preparation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
