@@ -28578,3 +28578,507 @@ P2_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۴۱ — GATE-S27-11 E2-C4B-04 Discovery Delivery / Docs-Only Commit-Readiness Preparation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
+
+
+## ۱۴۲) E2-C4B-04 REMOTE DOCS DELIVERY CLOSURE / STATE RECONCILIATION
+
+```text
+PACKAGE =
+GATE-S27-15 —
+E2-C4B-04 REMOTE DELIVERY CLOSURE / STATE RECONCILIATION
+DOCS-ONLY PREPARATION
+
+MODE =
+DOCS_ONLY / APPEND_ONLY / NO_NETWORK / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only remote delivery closure / state reconciliation ONLY
+NO network / search / HTTP / WHOIS / robots / terms
+NO new evidence collection
+NO content acquisition / ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–141
+NO §143
+NO C4B-05 / P2 / I6 / I7 / I8 / Frontend Gate 4
+
+Baseline SHA (local = upstream):
+9e19bc955b9c61697386c617a6ceb9a7fcd25db5
+
+Controlling prior tip subject:
+docs(governance): record C4B-04 discovery delivery
+
+Controlling reconstruction:
+GATE-S27-14 = normal non-force push succeeded; remote SHA verified
+§§139–141 committed at 9e19bc9
+```
+
+### ۱۴۲.۱) Verified Gate / Authority Chain
+
+```text
+GATE-S27-09 =
+controlled network discovery executed
+GATE_S27_09_NETWORK_EXECUTION = VALID / COMPLETE
+
+GATE-S27-09R =
+§140 authority/disposition precision repair = PASS
+
+GATE-S27-10R =
+repaired §140 strict review = PASS
+GATE_S27_09_FINAL_CLOSURE = PASS
+
+GATE-S27-11 =
+§141 delivery / commit-readiness preparation PASS
+
+GATE-S27-12 =
+§141 strict review PASS
+DOCS_ONLY_COMMIT_READINESS = READY_FOR_SEPARATE_COMMIT_GATE
+
+GATE-S27-13 =
+local docs-only commit created
+COMMIT_SHA = 9e19bc955b9c61697386c617a6ceb9a7fcd25db5
+COMMIT_SUBJECT = docs(governance): record C4B-04 discovery delivery
+COMMITTED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+COMMITTED_DIFF = +1561 / -0
+
+GATE-S27-14 =
+normal non-force push succeeded
+remote SHA verified
+FORCE_PUSH_USED = NO
+PUSH_ATTEMPT_COUNT = 1
+
+DELIVERY_AUTHORITY_CHAIN_MATCH = YES
+```
+
+### ۱۴۲.۲) Verified Remote Delivery Evidence
+
+```text
+DELIVERY_COMMIT_SHA =
+9e19bc955b9c61697386c617a6ceb9a7fcd25db5
+
+DELIVERY_COMMIT_SUBJECT =
+docs(governance): record C4B-04 discovery delivery
+
+DELIVERY_BRANCH =
+feature/section15/backend-continuity-foundation
+
+REMOTE_FEATURE_SHA =
+9e19bc955b9c61697386c617a6ceb9a7fcd25db5
+
+UPSTREAM_SHA =
+9e19bc955b9c61697386c617a6ceb9a7fcd25db5
+
+REMOTE_SHA_MATCH =
+YES
+
+AHEAD/BEHIND_AFTER_PUSH =
+0/0
+
+DOCS_DELIVERY_COMMIT_PRESENT_ON_REMOTE_FEATURE_BRANCH =
+YES
+
+FORCE_PUSH_USED =
+NO
+
+PUSH_ATTEMPT_COUNT =
+1
+
+REMOTE_EVIDENCE_SOURCE =
+GATE-S27-14 recorded verification (no re-query in this Gate)
+```
+
+### ۱۴۲.۳) Delivery State Reconciliation
+
+```text
+DISCOVERY_DOCS_DELIVERY_COMPLETE !=
+FULL_CHILD_COMPLETE
+
+E2_C4B_04_REPOSITORY_PREPARATION_COMPLETE =
+YES
+
+E2_C4B_04_NETWORK_DISCOVERY_EXECUTED =
+YES
+
+E2_C4B_04_DISCOVERY_SUBSTEP_COMPLETE =
+YES
+
+E2_C4B_04_DISCOVERY_DOCS_DELIVERY_PREPARATION_COMPLETE =
+YES
+
+E2_C4B_04_DISCOVERY_DOCS_DELIVERY_COMPLETE =
+YES
+
+RECONCILIATION_BASIS =
+reviewed documentation commit verified on remote feature branch via GATE-S27-14
+
+DOCUMENTATION_DELIVERY_TRANSITION_ONLY =
+YES
+
+REMOTE_DOCS_DELIVERY_DOES_NOT_CLEAR_LEGAL_RIGHTS_AUTOMATION_INGESTION_PUBLICATION_RUNTIME =
+YES
+```
+
+### ۱۴۲.۴) Full-Child Closure Remains NO
+
+```text
+E2_C4B_04_FULL_CHILD_COMPLETE =
+NO
+
+E2_CLOSED =
+NO
+
+EVIDENCE_OVERLAY_CLOSED =
+NO
+
+P2_STARTED =
+NO
+
+FULL_CHILD_OVERCLAIM =
+NO
+
+DISCOVERY_DOCS_DELIVERY_COMPLETE !=
+FULL_CHILD_COMPLETE
+
+RIGHTS_CLEARED =
+NO
+
+AUTOMATION_PERMISSION_CLEARED =
+NO
+
+INGESTION_AUTHORIZED =
+NO
+
+PUBLICATION_AUTHORIZED =
+NO
+
+RUNTIME_USE_AUTHORIZED =
+NO
+```
+
+### ۱۴۲.۵) Fail-Closed Residuals Preserved
+
+```text
+TERMS =
+NOT_RETRIEVED
+
+REUSE_RIGHTS =
+UNKNOWN_FAIL_CLOSED
+
+AUTOMATION_PERMISSION =
+UNKNOWN_FAIL_CLOSED
+
+ATTRIBUTION =
+UNKNOWN_FAIL_CLOSED
+
+RATE_LIMIT =
+UNKNOWN_FAIL_CLOSED
+
+ROBOTS =
+NOT_RETRIEVED (direct first-party robots not retrieved for any retained candidate)
+
+TTAC_FIRST_PARTY_EVIDENCE =
+LIMITED
+
+WHOIS_FOR_TTAC =
+NOT_RECORDED
+
+REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL =
+NO (all residuals except docs-delivery state itself)
+```
+
+### ۱۴۲.۶) Final Verified Candidate Matrix (Unchanged)
+
+| candidate_id | domain | authority disposition | role | limitations |
+|---|---|---|---|---|
+| C-MOH-01 | behdasht.gov.ir | SUPPORTED | PRIMARY_OFFICIAL_AUTHORITY | rights/automation fail-closed; CAPTCHA blocked first-party inspection |
+| C-FDA-01 | fda.gov.ir | SUPPORTED | OFFICIAL_REGULATORY_AUTHORITY | rights/automation fail-closed; HTTP 500 blocked first-party inspection |
+| C-TTAC-01 | ttac.ir | SUPPORTED_WITH_LIMITATIONS | OFFICIAL_VERIFICATION_SERVICE / REGULATORY_ADJACENT | PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO; WHOIS_FOR_TTAC = NOT_RECORDED; no first-party page evidence; .gov.ir namespace NOT applicable |
+| C-OPENDATA-01 | data.gov.ir | SUPPORTED | OFFICIAL_OPEN_DATA_PORTAL | rights/automation fail-closed; portal ≠ medical authority; portal ≠ reuse license |
+
+```text
+C-MOH-01 AUTHORITY = SUPPORTED
+C-FDA-01 AUTHORITY = SUPPORTED
+C-TTAC-01 OFFICIAL_SERVICE = SUPPORTED_WITH_LIMITATIONS
+C-TTAC-01 REGULATORY_ADJACENT = SUPPORTED
+C-TTAC-01 PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO
+C-TTAC-01 WHOIS_FOR_TTAC = NOT_RECORDED
+C-OPENDATA-01 AUTHORITY = SUPPORTED
+
+TTAC_NOT_UPGRADED = YES
+TTAC_LIMITATIONS_PRESERVED = YES
+NO_AUTHORITY_RECLASSIFICATION = YES
+```
+
+### ۱۴۲.۷) Content Acquisition / Runtime Non-Authorization
+
+```text
+CONTENT_BODY_ACQUISITION =
+NOT_AUTHORIZED
+
+MEDICAL_CONTENT_INGESTION =
+NOT_AUTHORIZED
+
+PUBLICATION =
+NOT_AUTHORIZED
+
+RUNTIME_GROUNDING =
+NOT_AUTHORIZED
+
+SOURCE_ACTIVATION =
+NOT_AUTHORIZED
+
+CRAWLER_ACTIVATION =
+NOT_AUTHORIZED
+
+CAPABILITY_ACTIVATION =
+NO
+
+REMOTE_DOCS_DELIVERY_DOES_NOT_AUTHORIZE_ANY_OF_THE_ABOVE =
+YES
+```
+
+### ۱۴۲.۸) I5 Governance Laws Preserved
+
+```text
+READABLE != REUSABLE
+GET != AUTOMATION_PERMISSION
+DISCOVERED != INGESTIBLE
+AUTHORITY_DISCOVERY != RIGHTS_CLEARANCE
+INGESTED != APPROVED
+APPROVED != PUBLISHED
+PUBLISHED != UNRESTRICTED_RUNTIME_USE
+```
+
+### ۱۴۲.۹) Residual Ledger Continuity
+
+```text
+RESIDUAL-01:
+  TYPE = REUSE_RIGHTS_UNKNOWN_FAIL_CLOSED
+  OWNER = Javad / Legal
+  DEPENDENCY = first-party terms/license retrieval or formal permission Gate
+  CLOSURE_CRITERION = first-party reuse language recorded and reviewed fail-closed
+  FUTURE_PACKAGE = E2-C4B-04 TERMS/RIGHTS REVIEW (separate Javad approval)
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+
+RESIDUAL-02:
+  TYPE = AUTOMATION_PERMISSION_UNKNOWN_FAIL_CLOSED
+  OWNER = Javad / Legal / Knowledge Ops
+  DEPENDENCY = robots/terms/API policy evidence or formal permission
+  CLOSURE_CRITERION = automation permission expressly established or remain fail-closed
+  FUTURE_PACKAGE = E2-C4B-04 AUTOMATION / PERMISSION EVIDENCE (separate approval)
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+
+RESIDUAL-03:
+  TYPE = TERMS_NOT_RETRIEVED
+  OWNER = Javad / Legal
+  DEPENDENCY = accessible network to official domains or manual evidence pack
+  CLOSURE_CRITERION = terms/privacy/copyright pages retrieved and recorded
+  FUTURE_PACKAGE = E2-C4B-04 MANUAL TERMS EVIDENCE COLLECTION
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+
+RESIDUAL-04:
+  TYPE = ATTRIBUTION_UNKNOWN
+  OWNER = Javad / Legal
+  DEPENDENCY = terms/attribution policy evidence
+  CLOSURE_CRITERION = attribution requirement recorded or remain UNKNOWN_FAIL_CLOSED
+  FUTURE_PACKAGE = same TERMS/RIGHTS review Gate
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+
+RESIDUAL-05:
+  TYPE = RATE_LIMIT_UNKNOWN
+  OWNER = Knowledge Ops
+  DEPENDENCY = robots/API/rate-limit policy evidence
+  CLOSURE_CRITERION = rate-limit state recorded or remain UNKNOWN_FAIL_CLOSED
+  FUTURE_PACKAGE = AUTOMATION / PERMISSION evidence Gate
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+
+RESIDUAL-06:
+  TYPE = TTAC_FIRST_PARTY_EVIDENCE_LIMITED
+  OWNER = Javad / Provider Verification
+  DEPENDENCY = first-party ttac.ir page evidence and/or WHOIS for .ir domain
+  CLOSURE_CRITERION = first-party TTAC evidence reviewed OR retain SUPPORTED_WITH_LIMITATIONS permanently
+  FUTURE_PACKAGE = optional TTAC first-party evidence Gate (NOT required to reopen GATE-S27-09)
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+
+RESIDUAL-07:
+  TYPE = MANUAL_PERMISSION_EVIDENCE_REQUIRED
+  OWNER = Javad / Legal
+  DEPENDENCY = formal organization contact or published permission/license
+  CLOSURE_CRITERION = separately approved permission-evidence package recorded
+  FUTURE_PACKAGE = MANUAL_PERMISSION_EVIDENCE Gate (separate approval)
+  REMOTE_DOCS_DELIVERY_CLOSES_RESIDUAL = NO
+```
+
+### ۱۴۲.۱۰) Delivery Closure Matrix
+
+```text
+REPOSITORY_PREPARATION =
+COMPLETE
+
+NETWORK_DISCOVERY =
+COMPLETE
+
+DISCOVERY_EVIDENCE_CAPTURE =
+COMPLETE
+
+AUTHORITY_DISPOSITION_REVIEW =
+COMPLETE
+
+DOCS_DELIVERY_PREPARATION =
+COMPLETE
+
+DOCS_LOCAL_COMMIT =
+COMPLETE
+
+DOCS_REMOTE_PUSH =
+COMPLETE
+
+REMOTE_SHA_VERIFICATION =
+COMPLETE
+
+DISCOVERY_DOCS_DELIVERY =
+COMPLETE
+
+FULL_CHILD =
+OPEN
+```
+
+### ۱۴۲.۱۱) C4B-04 Child Status
+
+```text
+E2_C4B_04_STATUS =
+DISCOVERY_AND_DOCS_DELIVERY_COMPLETE_WITH_FAIL_CLOSED_RESIDUALS
+
+FULLY_COMPLETE =
+NOT CLAIMED
+
+CLOSED =
+NOT CLAIMED
+
+PRODUCTION_READY =
+NOT CLAIMED
+
+RIGHTS_CLEARED =
+NOT CLAIMED
+
+AUTOMATION_CLEARED =
+NOT CLAIMED
+
+INGESTION_READY =
+NOT CLAIMED
+```
+
+### ۱۴۲.۱۲) Next Execution Boundary
+
+```text
+C4B-04 docs delivery reconciliation does NOT start C4B-05 automatically.
+
+EXPECTED_DOWNSTREAM_SEQUENCE (conceptual only; NONE started by this Gate) =
+  C4B-04 delivery reconciliation
+  → C4B-05
+  → remaining E2 / Evidence Overlay
+  → P2
+  → P3
+  → P4
+  → P5
+  → P6
+  → R1
+  → R2
+  → S1
+  → Weekly Governed Crawler
+  → governed content packs
+  → runtime grounding
+  → I5 closure
+  → I6
+  → I7
+  → I8
+  → Frontend Gate 4
+
+C4B_05_STARTED =
+NO
+
+P2_STARTED =
+NO
+```
+
+### ۱۴۲.۱۳) Append-Only Integrity Record
+
+```text
+§§1–141_SHA256_BEFORE =
+73959e68bdaa57c74444bacfa6de53db6d3db3e820531d1b08437043a0e72b8f
+
+§§1–141_SHA256_AFTER =
+73959e68bdaa57c74444bacfa6de53db6d3db3e820531d1b08437043a0e72b8f
+
+PREFIX_MATCH =
+YES
+
+§142_ONLY_MUTATION =
+YES
+
+§142_AT_EOF =
+YES
+```
+
+### ۱۴۲.۱۴) Review / Commit Readiness
+
+```text
+§142_REVIEW_STATUS =
+PENDING_STRICT_READ_ONLY_REVIEW
+
+DOCS_STATE_RECONCILIATION_COMMIT_READINESS =
+PENDING_STRICT_REVIEW
+
+GIT_ADD_AUTHORIZED =
+NO
+
+COMMIT_AUTHORIZED =
+NO
+
+PUSH_AUTHORIZED =
+NO
+
+STAGE_NOW =
+NO
+
+COMMIT_NOW =
+NO
+
+PUSH_NOW =
+NO
+```
+
+### ۱۴۲.۱۵) Exact Next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+GATE-S27-16 —
+STRICT READ-ONLY REVIEW OF §142
+E2-C4B-04 REMOTE DELIVERY CLOSURE VERIFICATION
+
+NEXT_GATE_STARTED =
+NO
+
+AUTHORIZATION =
+NOT YET GRANTED
+
+COMMIT_AUTHORIZED_BY_THIS_GATE =
+NO
+
+PUSH_AUTHORIZED_BY_THIS_GATE =
+NO
+
+C4B_05_AUTHORIZED_BY_THIS_GATE =
+NO
+
+P2_AUTHORIZED_BY_THIS_GATE =
+NO
+```
+
+---
+*پایان §۱۴۲ — GATE-S27-15 E2-C4B-04 Remote Docs Delivery Closure / State Reconciliation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
