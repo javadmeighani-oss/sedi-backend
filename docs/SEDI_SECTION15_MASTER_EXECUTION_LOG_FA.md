@@ -27017,3 +27017,1564 @@ I5_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
 
 ---
 *پایان §۱۳۸ — GATE-S27-02 PERMANENT I5 COMPREHENSIVE KNOWLEDGE, HUMAN-CENTERED CARE & HEALTHY-LONGEVITY LAW — ۲۰۲۶-۰۷-۲۶ / Asia/Baku*
+
+## ۱۳۹) E2-C4B-04 MINISTRY / REGULATORY / PUBLIC-HEALTH DISCOVERY REPOSITORY PREPARATION — آماده‌سازی مخزنی کشف وزارت / تنظیم‌گری / بهداشت عمومی
+
+```text
+PACKAGE =
+GATE-S27-07 — E2-C4B-04 MINISTRY / REGULATORY / PUBLIC-HEALTH
+DISCOVERY REPOSITORY PREPARATION
+
+MODE =
+DOCS_ONLY / APPEND_ONLY / NO_NETWORK
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only C4B-04 repository preparation ONLY
+NO network / search / HTTP / robots / terms fetch
+NO source discovery / source download / content acquisition
+NO ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–138
+NO §140
+NO C4B-05 / P2 / I6 / I7 / I8 / Frontend Gate 4
+
+Baseline SHA (local = upstream):
+7d2ba25dfc9a64016a1d0108be5158e50e85ef55
+
+Controlling prior tip subject:
+docs(governance): record Section 27 I5 knowledge law
+
+Controlling reconstruction:
+GATE-S27-06 — E2-C4B-04 AUTHORITY / SCOPE RECONSTRUCTION = PASS
+MINOR-01 / MINOR-02 must be closed by this preparation section
+```
+
+### ۱۳۹.۱) اختیار و هدف جاری E2-C4B-04
+
+```text
+E2_C4B_04_CURRENT_OBJECTIVE =
+Iran-first, free-official, fail-closed DISCOVERY APPROVAL
+for Ministry / regulatory / public-health source classes
+= SOURCE / AUTHORITY / POLICY / ELIGIBILITY EVIDENCE ONLY
+≠ clinical knowledge harvest
+≠ content-body acquisition
+≠ ingestion / publication / runtime grounding
+≠ weekly crawler activation
+
+EXPLICIT_AUTHORITY_BASIS =
+  §99.21 — E2-C4B-04 Ministry, regulatory and public-health discovery approval
+  §99.3  — IR-SC-07 / IR-SC-11 / IR-SC-15 Gate = E2-C4B-04
+  §99.7  — Strategies B and G Gate = E2-C4B-04
+  §99.19 — OD-C4A-07 / OD-C4A-11 / OD-C4A-15 Blocking → E2-C4B-04
+  §97.7  — OFS-06 / OFS-07 / OFS-08 / OFS-09 free-official inventory
+  §137   — NEXT_PRODUCT_GATE = E2-C4B-04 AUTHORITY RECONSTRUCTION first
+  §138   — roadmap preserves E2-C4B-04 before C4B-05 / P2 / I5 closure
+  C4B-02/C4B-03 precedent arc:
+    repository preparation → controlled network → disposition → docs delivery
+
+ADJACENT_PRECEDENT_ONLY (not §99-hardcoded C4B-04 enums) =
+  C4B-02/C4B-03 master-log-only preparation allowlist
+  discovery-completion ≠ full-child / rights / ingestion completion
+  disposition enum COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+    attributed to adjacent precedent when used later
+
+C4B_04_DISCOVERY =
+METADATA / AUTHORITY / POLICY / ELIGIBILITY EVIDENCE ONLY
+
+CONTENT_BODY_ACQUISITION = NOT_AUTHORIZED
+INGESTION = NOT_AUTHORIZED
+PUBLICATION = NOT_AUTHORIZED
+RUNTIME_GROUNDING = NOT_AUTHORIZED
+CRAWLER_ACTIVATION = NOT_AUTHORIZED
+SOURCE_ACTIVATION = NOT_AUTHORIZED
+CAPABILITY_ACTIVATION = NO
+```
+
+### ۱۳۹.۲) قرارداد قفل IR-SC-07 / IR-SC-11 / IR-SC-15
+
+| IR-SC | purpose | authority type | expected official owner type | discovery objective | OD pack | RIGHTS_STATE | AUTOMATION_PERMISSION | INGESTION_ELIGIBILITY | PUBLICATION_AUTHORIZATION | RUNTIME_USE_AUTHORIZATION | CAPABILITY_ACTIVATION |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| IR-SC-07 | MoH guidance / public-health | PUBLIC_HEALTH_GUIDANCE / OFFICIAL_GUIDANCE | Ministry of Health / official MoH portals | identify free-official MoH guidance / public-health domains+pages; capture authority/cost/terms/automation evidence packs | OD-C4A-07 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_AUTHORIZED | NO | NO | NO |
+| IR-SC-11 | regulatory / licensing / safety alerts | REGULATORY | official regulator (e.g. food/drug/safety/licensing regulator) | identify official alert/license/safety domains+pages; capture alert provenance + rights/automation packs | OD-C4A-11 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_AUTHORIZED | NO | NO | NO |
+| IR-SC-15 | official public / open-data health portals | REGULATORY / PUBLIC_HEALTH (scoped) | government open-data / official public-data portals | identify official open-data/public dataset portals+licenses; never treat as medical advice authority alone | OD-C4A-15 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_AUTHORIZED | NO | NO | NO |
+
+```text
+IR_SC_AUTHORITY_CONTRACT_LOCKED = YES
+EVIDENCE_REQUIREMENTS_COMMON =
+  official identity / ownership
+  authority basis
+  public accessibility
+  cost / free status
+  terms
+  reuse rights
+  robots where applicable
+  automation permission
+  attribution requirement
+  rate-limit information
+  freshness / update signals
+  revocation / change signals
+  provenance
+  candidate disposition
+  residual gap
+
+READABLE != REUSABLE
+GET != AUTOMATION_PERMISSION
+DISCOVERED != INGESTIBLE
+INGESTED != APPROVED
+APPROVED != PUBLISHED
+PUBLISHED != UNRESTRICTED_RUNTIME_USE
+```
+
+### ۱۳۹.۳) قفل نگاشت OD packs
+
+```text
+IR-SC-07 ↔ OD-C4A-07
+IR-SC-11 ↔ OD-C4A-11
+IR-SC-15 ↔ OD-C4A-15
+
+OD_PACK_MAPPING_LOCKED = YES
+```
+
+| OD pack | IR-SC | planned evidence slots (all EMPTY / UNKNOWN_FAIL_CLOSED until network Gate) |
+|---|---|---|
+| OD-C4A-07 | IR-SC-07 | official identity/ownership; authority basis; public accessibility; cost/free; terms; reuse rights; robots; automation permission; attribution; rate-limit; freshness; revocation/change; provenance; candidate disposition; residual gap |
+| OD-C4A-11 | IR-SC-11 | same slot set; plus alert provenance emphasis |
+| OD-C4A-15 | IR-SC-15 | same slot set; plus dataset license / machine-readable terms emphasis |
+
+```text
+SYNTHETIC_EVIDENCE_CREATED = NO
+OD_SLOT_INITIAL_STATE = EMPTY_OR_UNKNOWN_FAIL_CLOSED
+```
+
+### ۱۳۹.۴) قفل نگاشت OFS ↔ IR-SC — بستن MINOR-01
+
+| OFS ID | Source class | IR-SC target | Authority role | Discovery priority | Guardrail |
+|---|---|---|---|---|---|
+| OFS-06 | MoH public data | IR-SC-07 (primary); IR-SC-15 (when dataset/open-data form) | PRIMARY_OFFICIAL_AUTHORITY / OFFICIAL_OPEN_DATA_PORTAL (by artifact type) | HIGH | MoH ownership required; guidance pages ≠ automatic clinical CDS; dataset license required before any reuse claim |
+| OFS-07 | Iran FDA public safety information | IR-SC-11 | OFFICIAL_REGULATORY_AUTHORITY | HIGH | safety/alert/licensing regulator evidence; not a commercial directory; not primary physician/facility registry (those are other C4B classes) |
+| OFS-08 | TTAC / official product verification | IR-SC-11 (scoped adjacency only) | OFFICIAL_VERIFICATION_SERVICE / REGULATORY_ADJACENT | MED | OFS-08 / TTAC = REGULATORY_ADJACENT; MUST NOT auto-classify as PRIMARY_PUBLIC_HEALTH_AUTHORITY; product-verification service ≠ MoH public-health guidance authority unless later evidence proves otherwise |
+| OFS-09 | public regulatory / open-data portals | IR-SC-15 (primary); may corroborate IR-SC-07/11 metadata only | OFFICIAL_OPEN_DATA_PORTAL | HIGH | government open-data / official public datasets; license+scope required; never medical-advice authority alone |
+
+```text
+MINOR-01 = CLOSED_BY_EXPLICIT_OFS_IRSC_MAPPING
+
+OFS_IRSC_MAPPING_LOCKED = YES
+OFS_08_TTAC_CLASSIFICATION = REGULATORY_ADJACENT
+OFS_08_PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO
+
+RESIDUAL_AMBIGUITY_RECORDED =
+  Whether a specific future TTAC/successor URL is in-scope remains
+  UNKNOWN until network discovery evidence; classification stays
+  REGULATORY_ADJACENT / OFFICIAL_VERIFICATION_SERVICE until proven.
+  No broadening of authority to remove this ambiguity.
+```
+
+### ۱۳۹.۵) نقش‌های اختیار منبع (primary / secondary)
+
+```text
+PRIMARY_OFFICIAL_AUTHORITY =
+  statutory MoH / ministry-owned official guidance or public-health authority pages/datasets
+
+OFFICIAL_REGULATORY_AUTHORITY =
+  official regulator-owned licensing / safety-alert / regulatory status sources
+
+OFFICIAL_VERIFICATION_SERVICE =
+  official product/credential verification services (e.g. TTAC-class); not auto MoH guidance
+
+OFFICIAL_OPEN_DATA_PORTAL =
+  government open-data / official public dataset portals with explicit license/scope
+
+SECONDARY_DIRECTORY_OR_AGGREGATOR =
+  commercial SEO, news, unofficial mirrors, university desks as corroboration only
+  (corroboration ≠ primary national authority)
+
+UNKNOWN_AUTHORITY =
+  default until ownership/authority evidence pack is recorded
+
+FAIL_CLOSED_DECISION_RULES =
+  publicly accessible ≠ primary authority
+  government-looking ≠ primary authority
+  official-sounding ≠ primary authority
+  high search ranking ≠ primary authority
+  SERP mention alone ≠ rights / automation / ingestion clearance
+  secondary corroboration cannot promote a source to PRIMARY without
+    direct official ownership evidence
+```
+
+### ۱۳۹.۶) قرارداد Strategy B / G
+
+```text
+Strategy B (§99.7) =
+Official government-domain discovery
+purpose = MoH/regulator domains
+permitted future search = approved search Gate only
+query templates (prep only; NOT executed) =
+  FA: «وزارت بهداشت» «راهنمای سلامت»
+  EN: Iran MoH public health
+ownership signals = official MoH ownership
+false-positive risks = mirror sites
+min evidence before registration = authority+cost+terms+automation pack
+owner = Data/Knowledge+Legal
+Gate = E2-C4B-04
+
+Strategy G (§99.7) =
+Regulatory/safety-alert discovery
+purpose = alerts/licenses
+permitted future search = approved search Gate only
+query templates (prep only; NOT executed) =
+  FA: «هشدار ایمنی دارو» «ابطال پروانه»
+  EN: Iran drug safety alert
+ownership signals = regulator ownership
+false-positive risks = unofficial news
+min evidence before registration = alert provenance
+owner = Provider Verification+Legal
+Gate = E2-C4B-04
+
+STRATEGY_B_ROLE_FOR_C4B04 =
+  primary discovery method for IR-SC-07 / OFS-06 and MoH-domain leads
+  also feeds IR-SC-15 open-data portal discovery when MoH/gov open-data surfaces
+
+STRATEGY_G_ROLE_FOR_C4B04 =
+  primary discovery method for IR-SC-11 / OFS-07 and REGULATORY_ADJACENT OFS-08 leads
+
+STRATEGY_B_EXECUTED = NO
+STRATEGY_G_EXECUTED = NO
+HISTORICAL_§99_DEFINITIONS_NOT_REWRITTEN = YES
+```
+
+### ۱۳۹.۷) برنامهٔ خانوادهٔ کوئری‌های آینده (اجرا نشده)
+
+```text
+QUERIES_EXECUTED = 0
+QUERY_RESULTS_PREPOPULATED = NO
+PLANNED_QUERY_COUNT = 12
+```
+
+| query_id | strategy | target IR-SC | target OFS | objective | expected official-domain signal | allowed result type | disallowed result type | planned evidence to capture |
+|---|---|---|---|---|---|---|---|---|
+| C4B04-B-01 | B | IR-SC-07 | OFS-06 | MoH official public-health / guidance portal discovery | behdasht.gov.ir / MoH-owned hosts | official MoH landing/guidance index | commercial SEO health blogs | ownership; authority; accessibility; cost |
+| C4B04-B-02 | B | IR-SC-07 | OFS-06 | FA MoH «راهنمای سلامت» / official guidance locator | MoH-owned guidance pages | official guidance page | clinic ads; aggregator reprints | authority; terms; attribution; freshness |
+| C4B04-B-03 | B | IR-SC-07 | OFS-06 | EN Iran MoH public health official site corroboration | MoH English/official mirror if any | official MoH host | news mirrors as primary | ownership; provenance |
+| C4B04-B-04 | B | IR-SC-15 | OFS-09 | MoH/government open-data / public dataset portal discovery | gov open-data / MoH dataset portals | official open-data catalog | scraped “dataset” blogs | license; scope; cost; terms |
+| C4B04-B-05 | B | IR-SC-15 | OFS-09 | FA open-data health / داده باز سلامت official locator | government open-data host | official dataset landing | unofficial mirrors | license; machine-readable terms; robots |
+| C4B04-B-06 | B | IR-SC-07/15 | OFS-06/09 | MoH terms/privacy/copyright pages for discovered hosts | same official host family | terms/privacy/copyright | third-party TOU summaries | terms; reuse; attribution |
+| C4B04-G-01 | G | IR-SC-11 | OFS-07 | FA drug safety alert / هشدار ایمنی دارو official regulator | food/drug/safety regulator host | official alert index/bulletin | news portals as authority | alert provenance; ownership; freshness |
+| C4B04-G-02 | G | IR-SC-11 | OFS-07 | FA license revocation / ابطال پروانه official regulator | official regulator host | official revocation/status page | SEO “how to revoke” blogs | authority; provenance; change signals |
+| C4B04-G-03 | G | IR-SC-11 | OFS-07 | EN Iran drug safety alert official source | regulator-owned EN/FA host | official safety bulletin | press reprints as primary | ownership; alert provenance |
+| C4B04-G-04 | G | IR-SC-11 | OFS-08 | TTAC / official product verification service discovery | TTAC or successor official host | official verification landing | commercial barcode apps | classify REGULATORY_ADJACENT only; terms; automation |
+| C4B04-G-05 | G | IR-SC-11 | OFS-07/08 | regulator robots/terms/API automation signals | same official host family | robots.txt; public API docs if free | paid-only API as free grant | robots; automation; rate-limit; cost |
+| C4B04-G-06 | G | IR-SC-11 | OFS-07 | secondary corroboration only for regulator identity | university/gov desk naming regulator | SECONDARY corroboration page | treating secondary as PRIMARY | provenance; role lock = secondary |
+
+```text
+NO_QUERY_SENT_TO_SEARCH_ENGINE = YES
+NO_HTTP_PERFORMED = YES
+```
+
+### ۱۳۹.۸) سقف‌های عددی شبکه — بستن MINOR-02
+
+```text
+CAP_DERIVATION =
+  Primary precedent = E2-C4B-03 §135.1 network hard budget:
+    SEARCH_ENGINE_COUNT_CAP = 2
+    SEARCH_QUERY_COUNT_CAP = 15
+    PUBLIC_GET_HEAD_REQUEST_COUNT_CAP = 40
+    MAX_REDIRECTS_PER_REQUEST_CAP = 3
+  Supporting precedent = C4B-01 §108.2 budget table:
+    search queries max 15; engines 2; page-open 40;
+    official domain families 10; secondary pages 5;
+    robots.txt 10; terms/privacy pages 15
+  Supporting precedent = C4B-02 executed ≤15 queries / ≤40 GET-HEAD family
+  Rule applied = reuse validated caps; do not increase; choose conservative
+  where multiple values exist; discovery ≠ crawler-scale acquisition
+```
+
+| Cap field | Locked value | Derivation |
+|---|---|---|
+| MAX_QUERY_COUNT / SEARCH_QUERY_COUNT_CAP | 15 | = C4B-03 / C4B-01 / C4B-02 |
+| SEARCH_ENGINE_COUNT_CAP | 2 | = C4B-03 / C4B-01 |
+| MAX_RESULTS_PER_QUERY | 10 | conservative manual-audit bound; C4B used “top results”; not increased |
+| MAX_TOTAL_SEARCH_RESULTS | 100 | conservative ≤ 15×10 theoretical; audit-bounded below full product |
+| MAX_OFFICIAL_DOMAINS_TO_OPEN | 10 | = C4B-01 official domain families max |
+| MAX_PAGES_PER_DOMAIN | 5 | conservative (landing+terms+robots+privacy+1 corroboration) |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 | subset of per-domain pages; ≤ C4B-01 terms budget family |
+| MAX_ROBOTS_FETCHES | 10 | = C4B-01 robots.txt max |
+| MAX_REDIRECT_HOPS / MAX_REDIRECTS_PER_REQUEST_CAP | 3 | = C4B-03 |
+| MAX_RETRIES_PER_REQUEST | 0 | C4B ledgers: no retry loops beyond budget; single attempt |
+| MAX_TOTAL_HTTP_REQUESTS / PUBLIC_GET_HEAD_REQUEST_COUNT_CAP | 40 | = C4B-03 / C4B-01 page-open family |
+| MAX_CANDIDATES_RECORDED | 12 | conservative above C4B-03 recorded primary/secondary set; not crawler-scale |
+| MAX_SECONDARY_SOURCE_PAGES | 5 | = C4B-01 secondary-source pages max |
+| MAX_WALL_CLOCK_DISCOVERY_WINDOW | NOT_NUMERICALLY_LOCKED_BY_PRECEDENT | prior C4B network Gates did not publish a numeric wall-clock cap; operational stop remains budget-exhaustion + STOP_ON_* rules |
+| REQUEST_TIMEOUT_SECONDS | 30 | operational Gate-client bound; prior Gates observed timeouts without a published numeric timeout lock — fixed conservatively for future Gate |
+
+```text
+BACKOFF_POLICY = NONE_AUTOMATIC (MAX_RETRIES_PER_REQUEST = 0)
+STOP_ON_RATE_LIMIT = YES
+STOP_ON_AUTH_WALL = YES
+STOP_ON_CAPTCHA = YES
+STOP_ON_ROBOTS_DISALLOW = YES
+STOP_ON_TERMS_UNCERTAINTY = YES (continue metadata recording; do NOT treat as reuse grant)
+STOP_ON_LOGIN_REQUIREMENT = YES
+STOP_ON_FORM_POST_NEED = YES
+STOP_ON_PAID_API_REQUIREMENT = YES
+STOP_ON_BUDGET_EXHAUSTION = YES
+
+NETWORK_HARD_CAPS_LOCKED = YES
+MINOR-02 = CLOSED_BY_NUMERIC_NETWORK_HARD_CAPS
+NETWORK_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۳۹.۹) طرح شواهد robots / terms / rights / automation
+
+```text
+Separate future capture fields (do not collapse):
+
+ROBOTS_STATE
+TERMS_STATE
+REUSE_RIGHTS_STATE
+AUTOMATION_PERMISSION_STATE
+ATTRIBUTION_REQUIREMENT
+RATE_LIMIT_STATE
+
+Allowed vocabulary (repository-established / fail-closed preserving):
+  CONFIRMED_ALLOWED
+  CONFIRMED_RESTRICTED
+  UNKNOWN_FAIL_CLOSED
+  NOT_APPLICABLE
+  MANUAL_REVIEW_REQUIRED
+  NOT_RETRIEVED
+  TERMS_NOT_FOUND
+  ROBOTS_NOT_FOUND
+  RIGHT_NOT_ADDRESSED_UNKNOWN_FAIL_CLOSED
+  AUTOMATION_UNKNOWN_FAIL_CLOSED
+  OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+
+Initial planned state for all C4B-04 candidates =
+  UNKNOWN_FAIL_CLOSED / NOT_RETRIEVED / EMPTY
+until a future approved network Gate records evidence.
+```
+
+### ۱۳۹.۱۰) جدول کاندید کشف (خالی)
+
+| candidate_id | query_id | IR-SC | OFS | candidate_name | candidate_url/domain | claimed owner | authority evidence | official status | cost/free state | terms evidence | robots evidence | reuse evidence | automation evidence | attribution | freshness signal | provenance | decision | residual gap |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
+
+```text
+CANDIDATE_ROWS = 0
+SYNTHETIC_CANDIDATES = 0
+EMPTY_PREPARATION_SLOTS_RESERVED =
+  C-IR-MOH-GUIDE-01
+  C-IR-MOH-OPENDATA-01
+  C-IR-REG-ALERT-01
+  C-IR-TTAC-VERIFY-01
+  (IDs reserved only; no URL/domain invented; no row populated)
+```
+
+### ۱۳۹.۱۱) واژگان disposition آینده
+
+```text
+Reconstructed from C4B-02/C4B-03 adjacent precedent (not new conflicting enum):
+
+PLANNED_DISPOSITION_SEMANTICS =
+  OFFICIAL_CANDIDATE
+  OFFICIAL_BUT_RIGHTS_UNKNOWN_FAIL_CLOSED
+  INSUFFICIENT_AUTHORITY_EVIDENCE
+  RIGHTS_UNKNOWN_FAIL_CLOSED
+  AUTOMATION_UNKNOWN_FAIL_CLOSED
+  TERMS_RESTRICTED
+  ROBOTS_RESTRICTED
+  DUPLICATE
+  OUT_OF_SCOPE
+  SECONDARY_ONLY / OFFICIAL_CANDIDATE (corroboration)
+  EXCLUDED_AS_PRIMARY
+  MANUAL_REVIEW_REQUIRED
+  COMPLETE_WITH_FAIL_CLOSED_EVIDENCE_GAPS
+    (discovery-arc disposition only; adjacent precedent attribution required)
+
+POSITIVE_DISCOVERY_DECISION ≠
+  INGESTION_APPROVED
+  PUBLICATION_APPROVED
+  RUNTIME_APPROVED
+
+FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE = YES
+```
+
+### ۱۳۹.۱۲) مرزهای خارج از دامنه (OOS)
+
+```text
+OOS_FOR_C4B_04_DISCOVERY =
+  general commercial health websites
+  SEO / content farms
+  social media
+  general news as authority (news may be lead-only; never primary authority)
+  private unofficial directories
+  physician directories owned by C4B-01
+  hospital/clinic discovery owned by C4B-02
+  lab/accreditation discovery owned by C4B-03
+  university/research-center discovery owned by C4B-05
+  content-body ingestion
+  bulk crawling
+  medical content extraction
+  publication
+  runtime grounding
+  source activation
+  crawler activation
+  clinical recommendation activation
+
+NO_SCOPE_LEAKAGE_INTO =
+  P2+
+  C4B-05
+  Frontend
+  Gate 4
+  Gate 5
+  I6 / I7 / I8
+```
+
+### ۱۳۹.۱۳) ممنوعیت اکتساب محتوا
+
+```text
+C4B_04_DISCOVERY =
+METADATA / AUTHORITY / POLICY / ELIGIBILITY EVIDENCE ONLY
+
+CONTENT_BODY_ACQUISITION = NOT_AUTHORIZED
+INGESTION = NOT_AUTHORIZED
+PUBLICATION = NOT_AUTHORIZED
+RUNTIME_GROUNDING = NOT_AUTHORIZED
+CRAWLER_ACTIVATION = NOT_AUTHORIZED
+SOURCE_ACTIVATION = NOT_AUTHORIZED
+
+DISCOVERY_SUCCESS_DOES_NOT_AUTHORIZE_DOWNLOAD_OR_STORE_OF_MEDICAL_CONTENT = YES
+```
+
+### ۱۳۹.۱۴) Gate شبکهٔ آینده (تعریف مفهومی — بدون اختیار)
+
+```text
+NEXT_NETWORK_GATE_CONCEPT =
+E2-C4B-04 CONTROLLED NETWORK DISCOVERY
+FOR MINISTRY / REGULATORY / PUBLIC-HEALTH SOURCES
+
+MAY_USE_ONLY =
+  locked query IDs (C4B04-B-01..B-06 / C4B04-G-01..G-06)
+  locked numeric hard caps (§139.۸)
+  locked IR-SC / OD / OFS maps
+  locked evidence schema
+  locked OOS boundaries
+
+EXCEEDING_ANY_BOUND = STOP_FOR_NEW_APPROVAL
+NETWORK_GATE_AUTHORIZED_BY_THIS_GATE = NO
+NETWORK_GATE_STARTED = NO
+```
+
+### ۱۳۹.۱۵) سازگاری با قانون دائمی Section 27 / I5 (§۱۳۸)
+
+```text
+C4B-04 is ONE governed Iran-first official-source discovery child
+supporting broader I5 architecture.
+
+C4B-04_DOES_NOT_BY_ITSELF_SATISFY =
+  comprehensive disease coverage
+  Neurology coverage
+  Cardiovascular coverage
+  Hepatitis / Liver coverage
+  Psychology / Human Interaction knowledge
+  Nutrition / Exercise / Sleep / Lifestyle knowledge
+  Weekly Governed Crawler
+  Runtime Grounding
+  I5 closure
+
+I5_COMPLETE = NO
+SECTION27_COMPATIBLE = YES
+```
+
+### ۱۳۹.۱۶) تداوم / Multi-stage / Self-healing
+
+```text
+PERMANENT_RULE_MULTI_STAGE_CURSOR_PROMPTS = YES
+CURSOR_SELF_HEALING_EXECUTION_REQUIRED = YES
+
+IN_SCOPE_LOOP =
+  DETECT → ROOT CAUSE → MINIMAL IN-SCOPE FIX → VERIFY → REPEAT UNTIL CLEAN
+
+SELF_HEALING_SCOPE_THIS_GATE = §139 ONLY
+§§1–138_EDIT = PROHIBITED
+```
+
+### ۱۳۹.۱۷) نشانگرهای تکمیل / صداقت حالت
+
+```text
+REPOSITORY_PREPARATION_STARTED = YES
+E2_C4B_04_REPOSITORY_PREPARATION_COMPLETE = YES
+
+E2_C4B_04_DISCOVERY_SUBSTEP_COMPLETE = NO
+E2_C4B_04_DISCOVERY_DOCS_DELIVERY_COMPLETE = NO
+E2_C4B_04_FULL_CHILD_COMPLETE = NO
+E2_C4B_04_NETWORK_DISCOVERY_EXECUTED = NO
+NETWORK_DISCOVERY_STARTED = NO
+
+RIGHTS_CLEARED = NO
+AUTOMATION_PERMISSION_CLEARED = NO
+INGESTION_AUTHORIZED = NO
+PUBLICATION_AUTHORIZED = NO
+RUNTIME_USE_AUTHORIZED = NO
+
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+E2_C4B_05_STARTED = NO
+
+MINOR-01 = CLOSED_BY_EXPLICIT_OFS_IRSC_MAPPING
+MINOR-02 = CLOSED_BY_NUMERIC_NETWORK_HARD_CAPS
+NETWORK_HARD_CAPS_LOCKED = YES
+```
+
+### ۱۳۹.۱۸) ممیزی داخلی (self-healing) — فقط §۱۳۹
+
+```text
+Audit iterations: 1
+SELF_HEALING_FIX_COUNT = 0
+
+S27-139-A01 baseline HEAD/UPSTREAM 7d2ba25…; clean; §139 free → CLOSED
+S27-139-A02 append-only §139; §§1–138 byte-for-byte preserved → CLOSED
+S27-139-A03 IR-SC-07/11/15 + OD-C4A-07/11/15 locked → CLOSED
+S27-139-A04 OFS-06..09 ↔ IR-SC map locked; TTAC REGULATORY_ADJACENT → CLOSED
+             MINOR-01 CLOSED → CLOSED
+S27-139-A05 Strategies B/G locked; EXECUTED=NO → CLOSED
+S27-139-A06 query IDs deterministic; results empty; QUERIES_EXECUTED=0 → CLOSED
+S27-139-A07 numeric hard caps locked from C4B-01/02/03 precedents;
+             MINOR-02 CLOSED → CLOSED
+S27-139-A08 rights/robots/terms/automation fields separate; fail-closed → CLOSED
+S27-139-A09 candidate table empty; synthetic candidates=0 → CLOSED
+S27-139-A10 OOS + content acquisition prohibition + non-activation → CLOSED
+S27-139-A11 completion markers honest; network not started → CLOSED
+S27-139-A12 Section 27 / roadmap compatibility recorded → CLOSED
+S27-139-A13 no network/test/CI/commit/push → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_§139_DEFECT_REMAINS = YES
+```
+
+### ۱۳۹.۱۹) Exact next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+GATE-S27-08 — STRICT READ-ONLY REVIEW OF C4B-04 REPOSITORY PREPARATION §139
+
+NEXT_GATE_STARTED = NO
+AUTHORIZATION = NOT YET GRANTED
+NETWORK_DISCOVERY_AUTHORIZED_BY_THIS_GATE = NO
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+C4B_05_AUTHORIZED_BY_THIS_GATE = NO
+P2_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۳۹ — GATE-S27-07 E2-C4B-04 Ministry / Regulatory / Public-Health Discovery Repository Preparation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
+
+## ۱۴۰) E2-C4B-04 CONTROLLED NETWORK DISCOVERY — MINISTRY / REGULATORY / PUBLIC-HEALTH
+
+```text
+PACKAGE =
+GATE-S27-09 — E2-C4B-04 CONTROLLED NETWORK DISCOVERY
+MINISTRY / REGULATORY / PUBLIC-HEALTH
+
+MODE =
+CONTROLLED_NETWORK_DISCOVERY / APPEND_ONLY / BOUNDED
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for controlled network discovery Gate
+BOUNDED by §139 locked query IDs and numeric hard caps
+NO content-body acquisition
+NO ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–139
+NO §141
+NO C4B-05 / P2 / I6 / I7 / I8 / Frontend Gate 4
+
+Baseline SHA (local = upstream):
+7d2ba25dfc9a64016a1d0108be5158e50e85ef55
+
+Controlling prior tip subject:
+docs(governance): record Section 27 I5 knowledge law
+
+Controlling reconstruction:
+GATE-S27-07 — §139 = REPAIRED / STRICTLY VERIFIED / UNCOMMITTED
+GATE-S27-08 — STRICT READ-ONLY REVIEW = PASS (implicit; §139 verified before network)
+```
+
+### ۱۴۰.۱) PREFLIGHT BASELINE VERIFICATION
+
+```text
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = 7d2ba25dfc9a64016a1d0108be5158e50e85ef55
+UPSTREAM = 7d2ba25dfc9a64016a1d0108be5158e50e85ef55
+AHEAD/BEHIND = 0/0
+
+DIRTY_PATHS =
+M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+STAGED = EMPTY
+UNTRACKED = ZERO
+ACTIVE_GIT_OPERATION = NONE
+
+§137_COUNT = 1
+§138_COUNT = 1
+§139_COUNT = 1
+§140_COUNT = 0 (before this Gate)
+
+§139_STATE = REPAIRED / STRICTLY VERIFIED / UNCOMMITTED
+
+§139_FENCE_INTEGRITY =
+VALID_OPEN_FENCES = 23
+VALID_CLOSE_FENCES = 23
+MALFORMED_FENCES = 0
+UNMATCHED_FENCE_DELTA = 0
+
+GIT_DIFF_CHECK = CLEAN (whitespace warning on LF→CRLF only; no hard errors)
+
+BASELINE_VERIFIED = YES
+```
+
+### ۱۴۰.۲) AUTHORITY RECONSTRUCTION
+
+```text
+AUTHORITY_RECONSTRUCTED_FROM = §139 (lines 27021–27578)
+RECONSTRUCTION_VERIFIED = YES
+
+IR-SC-07 = MoH guidance / public-health
+IR-SC-11 = regulatory / licensing / safety alerts
+IR-SC-15 = official public / open-data health portals
+
+IR-SC-07 ↔ OD-C4A-07
+IR-SC-11 ↔ OD-C4A-11
+IR-SC-15 ↔ OD-C4A-15
+
+OFS-06 → IR-SC-07 (primary); IR-SC-15 (when dataset/open-data form)
+OFS-07 → IR-SC-11
+OFS-08 → IR-SC-11 (scoped adjacency only)
+  ROLE = OFFICIAL_VERIFICATION_SERVICE / REGULATORY_ADJACENT
+  OFS_08_PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO
+OFS-09 → IR-SC-15
+
+STRATEGY_B = official government-domain discovery (MoH/regulator)
+STRATEGY_G = regulatory/safety-alert discovery (alerts/licenses)
+
+LOCKED_QUERY_IDS =
+  C4B04-B-01, C4B04-B-02, C4B04-B-03, C4B04-B-04, C4B04-B-05, C4B04-B-06
+  C4B04-G-01, C4B04-G-02, C4B04-G-03, C4B04-G-04, C4B04-G-05, C4B04-G-06
+
+PLANNED_QUERY_COUNT = 12
+AUTHORITY_MATCH = YES
+```
+
+### ۱۴۰.۳) QUERY EXECUTION LOG
+
+```text
+SEARCH_ENGINE_USED = WebSearch (single engine)
+SEARCH_ENGINE_COUNT_USED = 1 / 2
+
+UNLOCKED_QUERIES_EXECUTED = 0
+```
+
+| query_id | strategy | search text (abbreviated) | results reviewed | useful candidates | OOS/duplicate |
+|---|---|---|---|---|---|
+| C4B04-B-01 | B | وزارت بهداشت ایران سایت رسمی … behdasht.gov.ir | ~4 | 2 (behdasht.gov.ir, Wikipedia corroboration) | 2 (danyaar.com=secondary, zehnagahane.ir=secondary) |
+| C4B04-B-02 | B | وزارت بهداشت راهنمای سلامت سایت رسمی | ~5 | 1 (behdasht.gov.ir confirmed; CAPTCHA observed) | 3 (phc.mui.ac.ir=university, health.piho.ir=university, pbehdasht.org=secondary) |
+| C4B04-B-03 | B | Iran Ministry of Health official website public health | ~5 | 2 (en.wikipedia.org corroboration, behdasht.gov.ir=CAPTCHA) | 3 (eitaa.com=social, commonwealthfund.org=secondary, doi.org=academic) |
+| C4B04-B-04 | B | Iran government open data health portal داده باز سلامت | ~5 | 2 (data.gov.ir, data.gov.ir/organization/behdasht) | 2 (npo.gov.ir=not-health-specific, iranstatis.com=commercial/paid) |
+| C4B04-B-05 | B | داده باز سلامت ایران سایت رسمی دولتی | ~5 | 1 (data.gov.ir confirmed) | 3 (iranstatis.com=paid, elmnet.ir×2=academic) |
+| C4B04-B-06 | B | behdasht.gov.ir terms of use privacy policy … | ~5 | 0 (no direct behdasht.gov.ir terms found) | 5 (university privacy pages, gov SSO terms, commercial) |
+| C4B04-G-01 | G | هشدار ایمنی دارو ایران سازمان غذا و دارو … | ~5 | 2 (fda.gov.ir identified, adr.ttac.ir identified) | 3 (khabaronline=news, hamshahrionline=news, rasanews=news) |
+| C4B04-G-02 | G | ابطال پروانه دارو ایران سازمان غذا و دارو … | ~5 | 1 (fda.gov.ir confirmed regulator role) | 4 (news portals as secondary only) |
+| C4B04-G-03 | G | Iran FDA food drug administration official website … | ~4 | 1 (fda.gov.ir confirmed via ijhpm.com pharmacovigilance study) | 3 (fdo.mui.ac.ir=university, fda.gmu.ac.ir=university) |
+| C4B04-G-04 | G | TTAC Iran official product verification ttac.ir … | ~5 | 1 (ttac.ir confirmed) | 4 (irmedline=aggregator, damirco=commercial, samanehha=aggregator, bpums=university) |
+| C4B04-G-05 | G | fda.gov.ir robots.txt API automation … | ~5 | 1 (fda.gov.ir confirmed no public API; robots info from third-party mirror) | 4 (pishkhanak=commercial, open.fda.gov=US FDA, fdacrm.ir=internal portal, siteindices.com=mirror) |
+| C4B04-G-06 | G | Iran food drug organization … Wikipedia | ~4 | 1 (en.wikipedia.org/MoHME confirms IFDA subordinate role) | 3 (grokipedia=wiki mirror, sambuz=presentation, brieflands=academic) |
+
+### ۱۴۰.۴) OFFICIAL DOMAIN OPENING LOG
+
+```text
+OFFICIAL_DOMAINS_OPENED = 4 / 10
+
+| domain | method | result | pages consumed |
+|---|---|---|---|
+| behdasht.gov.ir | search result (B-01, B-02) | CAPTCHA — STOP_ON_CAPTCHA | 0 (CAPTCHA blocked at landing) |
+| fda.gov.ir | WebFetch (G-03, G-05) | HTTP 500 — server error / geo-restriction | 0 |
+| data.gov.ir | WebFetch (B-04) | HTTP 500 — server error / geo-restriction | 0 |
+| ttac.ir | WebFetch (G-04) | TIMEOUT — unreachable from fetch infrastructure | 0 |
+
+STOP_CONDITIONS_TRIGGERED =
+  behdasht.gov.ir: STOP_ON_CAPTCHA
+  fda.gov.ir: HTTP_500 (not auth wall; recorded as ACCESS_FAILURE)
+  data.gov.ir: HTTP_500 (not auth wall; recorded as ACCESS_FAILURE)
+  ttac.ir: TIMEOUT (not auth wall; recorded as ACCESS_FAILURE)
+
+NOTE: All four .gov.ir / .ir official domains were unreachable via the
+automated fetch infrastructure. This is consistent with Iranian government
+websites commonly restricting non-Iranian IP ranges. This is NOT a bypass-
+able condition — it is an infrastructure access limitation.
+
+PAGES_OPENED_PER_DOMAIN = 0 (all blocked before page load)
+TERMS_POLICY_PAGES_OPENED = 0
+```
+
+### ۱۴۰.۵) ROBOTS EVIDENCE
+
+```text
+ROBOTS_FETCHES_USED = 1 / 10
+(data.gov.ir/robots.txt attempted; returned HTTP 500)
+
+DIRECT_ROBOTS_EVIDENCE = NONE RETRIEVED
+
+INDIRECT_ROBOTS_EVIDENCE (from third-party mirror siteindices.com for fda.gov.ir):
+  GoogleBot / allowed
+  BingBot / allowed
+  BaiduSpider / allowed
+  YandexBot / allowed
+  (no specific Disallow rules observed in mirror)
+  EVIDENCE_CLASS = SECONDARY_MIRROR_ONLY
+  AUTHORITY = NOT_FIRST_PARTY — CANNOT_CONFIRM
+
+ROBOTS_STATE_PER_CANDIDATE:
+  behdasht.gov.ir = NOT_RETRIEVED (CAPTCHA blocked before robots fetch)
+  fda.gov.ir = NOT_RETRIEVED (HTTP 500); secondary mirror suggests open robots
+  data.gov.ir = NOT_RETRIEVED (HTTP 500)
+  ttac.ir = NOT_RETRIEVED (TIMEOUT)
+```
+
+### ۱۴۰.۶) TERMS / POLICY EVIDENCE
+
+```text
+TERMS_POLICY_PAGES_USED = 0 / (per-domain cap 3)
+
+behdasht.gov.ir TERMS = NOT_RETRIEVED (CAPTCHA)
+fda.gov.ir TERMS = NOT_RETRIEVED (HTTP 500)
+data.gov.ir TERMS = NOT_RETRIEVED (HTTP 500)
+  INDIRECT: data.gov.ir landing page (from search) states:
+    "درگاه ملی داده باز به منظور استفاده رایگان و عمومی از داده‌های دولتی طراحی شده است"
+    (The national open data portal is designed for free and public use of government data)
+    EVIDENCE_CLASS = SEARCH_SNIPPET_ONLY — not first-party terms page
+ttac.ir TERMS = NOT_RETRIEVED (TIMEOUT)
+
+TERMS_STATE = NOT_RETRIEVED for all candidates
+REUSE_RIGHTS_STATE = UNKNOWN_FAIL_CLOSED for all candidates
+AUTOMATION_PERMISSION_STATE = UNKNOWN_FAIL_CLOSED for all candidates
+```
+
+### ۱۴۰.۷) DISCOVERED CANDIDATE EVIDENCE TABLE
+
+| candidate_id | query_id | IR-SC | OFS | candidate_name | canonical domain | institutional owner | authority role | official-identity evidence | public-accessibility | cost/free | robots | terms | reuse rights | automation permission | attribution | freshness | provenance | disposition | residual gap |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C-MOH-01 | C4B04-B-01/B-02/B-03 | IR-SC-07 | OFS-06 | وزارت بهداشت، درمان و آموزش پزشکی (MoHME) | behdasht.gov.ir | Ministry of Health and Medical Education, Government of Iran | PRIMARY_OFFICIAL_AUTHORITY | Wikipedia (FA+EN); WHOIS (.gov.ir); multiple corroborating sources; official social media @webda | PUBLIC (but CAPTCHA on landing) | FREE (government) | NOT_RETRIEVED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED (CAPTCHA blocks automation) | UNKNOWN_FAIL_CLOSED | Active — Eitaa channel active 1405; minister named | B-01 search→archive.org/behdasht.gov.ir; B-02→behdasht.gov.ir CAPTCHA; B-03→en.wikipedia.org | OFFICIAL_CANDIDATE_SUPPORTED — RIGHTS_UNKNOWN_FAIL_CLOSED | terms/robots/reuse/automation all unresolved; CAPTCHA blocks automated inspection |
+| C-FDA-01 | C4B04-G-01/G-02/G-03/G-05 | IR-SC-11 | OFS-07 | سازمان غذا و دارو (Iran FDA / IFDA) | fda.gov.ir | Iran Food and Drug Administration, subordinate to MoHME | OFFICIAL_REGULATORY_AUTHORITY | WHOIS: "Food and Drug Organization"; Wikipedia; IJHPM pharmacovigilance study; multiple news cite as official regulator | PUBLIC (but HTTP 500 from fetch infra) | FREE (government) | NOT_RETRIEVED (indirect mirror: open robots) | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Active — news alerts from 1404/1405; pharmacovigilance data to 2017+ | G-01→news citing fda.gov.ir; G-03→ijhpm.com article; G-05→siteindices.com WHOIS/robots mirror | OFFICIAL_REGULATORY_CANDIDATE_SUPPORTED — RIGHTS_UNKNOWN_FAIL_CLOSED | terms/reuse/automation all unresolved; fda.gov.ir unreachable from fetch infra; no public API confirmed for Iran IFDA |
+| C-FDA-FAKE-01 | C4B04-G-01/G-02 | IR-SC-11 | OFS-07 | IFDA Fake/Counterfeit Product Alert System | fda.gov.ir/fake | Iran FDA (same institutional owner as C-FDA-01) | OFFICIAL_REGULATORY_AUTHORITY (alert sub-service) | fda.gmu.ac.ir references fda.gov.ir/fake as official counterfeit reporting URL | PUBLIC (sub-path of fda.gov.ir) | FREE | NOT_RETRIEVED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Referenced in current-year news articles | G-01/G-02 search results reference fda.gov.ir/fake | DUPLICATE — consolidated under C-FDA-01 (same domain, sub-path) | — |
+| C-TTAC-01 | C4B04-G-04 | IR-SC-11 | OFS-08 | سامانه تیتک (TTAC — Track & Trace & Authentication Control) | ttac.ir | Iran FDA / operated under IFDA supervision | OFFICIAL_VERIFICATION_SERVICE / REGULATORY_ADJACENT | Multiple university/medical sources confirm; ADR reporting at adr.ttac.ir; USSD #4*7777#; SMS 20008822 | PUBLIC (but TIMEOUT from fetch infra) | FREE (public verification) | NOT_RETRIEVED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Active — referenced in 1404/1405 news; app on Google Play/Bazaar | G-04 search→irmedline.com, damirco.com, samanehha.com, ta.mui.ac.ir | OFFICIAL_VERIFICATION_SERVICE_SUPPORTED_WITH_LIMITATIONS — RIGHTS_UNKNOWN_FAIL_CLOSED | OFS-08 guardrail: REGULATORY_ADJACENT only; NOT PRIMARY_PUBLIC_HEALTH_AUTHORITY; terms/reuse/automation all unresolved |
+| C-ADR-01 | C4B04-G-01 | IR-SC-11 | OFS-07/OFS-08 | ADR Reporting System (adr.ttac.ir) | adr.ttac.ir | Iran FDA / operated under IFDA | OFFICIAL_REGULATORY_AUTHORITY (pharmacovigilance sub-service) | rasanews.ir cites "سامانه ADR.TTAC.IR" as official ADR reporting | PUBLIC (sub-domain of ttac.ir) | FREE | NOT_RETRIEVED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Referenced in 1404 news | G-01 search→rasanews article | DUPLICATE — consolidated under C-TTAC-01 (same domain family, sub-service) | — |
+| C-OPENDATA-01 | C4B04-B-04/B-05 | IR-SC-15 | OFS-09 | درگاه ملی داده باز (National Open Data Portal) | data.gov.ir | Government of Iran (multi-ministry) | OFFICIAL_OPEN_DATA_PORTAL | Search results show data.gov.ir as official national open data portal; MoH section at data.gov.ir/organization/behdasht with 105+ datasets | PUBLIC (but HTTP 500 from fetch infra) | FREE (stated: "استفاده رایگان و عمومی") | NOT_RETRIEVED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED (stated free/public use but no first-party terms inspected) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Active — datasets visible in search; 105 datasets listed under MoH | B-04/B-05 search→data.gov.ir, data.gov.ir/organization/behdasht | OFFICIAL_OPEN_DATA_CANDIDATE_SUPPORTED — RIGHTS_UNKNOWN_FAIL_CLOSED | terms/license/reuse/automation all unresolved; search snippet says "free public use" but no first-party terms page inspected |
+| C-OPENDATA-MOH-01 | C4B04-B-04/B-05 | IR-SC-15/IR-SC-07 | OFS-06/OFS-09 | MoH section of National Open Data Portal | data.gov.ir/organization/behdasht | MoHME via data.gov.ir | OFFICIAL_OPEN_DATA_PORTAL (MoH subset) | data.gov.ir/organization/behdasht lists 105 datasets; includes health insurance org (salamat) sub-org | PUBLIC (sub-path of data.gov.ir) | FREE | NOT_RETRIEVED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Active | B-04/B-05 search results | DUPLICATE — consolidated under C-OPENDATA-01 (same portal, sub-path) | — |
+
+```text
+CANDIDATES_RECORDED = 4 / 12
+(C-MOH-01, C-FDA-01, C-TTAC-01, C-OPENDATA-01)
+
+DUPLICATES_IDENTIFIED = 3
+(C-FDA-FAKE-01 → C-FDA-01; C-ADR-01 → C-TTAC-01; C-OPENDATA-MOH-01 → C-OPENDATA-01)
+
+OUT_OF_SCOPE_RESULTS = multiple news/commercial/university results excluded
+SECONDARY_LEADS_ONLY = Wikipedia, news portals, university sites (used for corroboration only)
+SECONDARY_SOURCE_PAGES_USED = 0 / 5 (no secondary pages opened; all evidence from search snippets)
+```
+
+### ۱۴۰.۸) AUTHORITY CLASSIFICATION
+
+```text
+C-MOH-01 (behdasht.gov.ir) =
+  PRIMARY_OFFICIAL_AUTHORITY
+  statutory MoH / ministry-owned
+  IR-SC-07 / OFS-06
+
+C-FDA-01 (fda.gov.ir) =
+  OFFICIAL_REGULATORY_AUTHORITY
+  official regulator / subordinate to MoHME
+  IR-SC-11 / OFS-07
+
+C-TTAC-01 (ttac.ir) =
+  OFFICIAL_VERIFICATION_SERVICE / REGULATORY_ADJACENT
+  product verification service under IFDA supervision
+  IR-SC-11 (scoped) / OFS-08
+  OFS_08_PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO
+
+C-OPENDATA-01 (data.gov.ir) =
+  OFFICIAL_OPEN_DATA_PORTAL
+  government multi-ministry open data; MoH health section included
+  IR-SC-15 / OFS-09
+```
+
+### ۱۴۰.۹) OD EVIDENCE UPDATES
+
+```text
+OD-C4A-07 (IR-SC-07):
+  CANDIDATE = C-MOH-01 (behdasht.gov.ir)
+  OFFICIAL_IDENTITY = CONFIRMED (government .gov.ir domain, Wikipedia, WHOIS)
+  PUBLIC_ACCESSIBILITY = YES (CAPTCHA observed; public website exists)
+  COST = FREE
+  TERMS = NOT_RETRIEVED
+  REUSE_RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+  ATTRIBUTION = UNKNOWN_FAIL_CLOSED
+  ROBOTS = NOT_RETRIEVED
+  RATE_LIMIT = UNKNOWN_FAIL_CLOSED
+
+OD-C4A-11 (IR-SC-11):
+  CANDIDATES = C-FDA-01 (fda.gov.ir), C-TTAC-01 (ttac.ir)
+  C-FDA-01 OFFICIAL_IDENTITY = SUPPORTED (.gov.ir namespace; WHOIS/registrant via secondary mirror; peer-reviewed academic; Wikipedia; news)
+  C-TTAC-01 OFFICIAL_SERVICE_IDENTITY = SUPPORTED_WITH_LIMITATIONS (official institutional cross-reference; named IFDA official corroboration; multiple convergent secondary sources; NO WHOIS for ttac.ir recorded; .gov.ir namespace NOT applicable to .ir domain)
+  PUBLIC_ACCESSIBILITY = YES (HTTP 500/TIMEOUT from fetch infra; public websites exist)
+  COST = FREE
+  TERMS = NOT_RETRIEVED
+  REUSE_RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+  ATTRIBUTION = UNKNOWN_FAIL_CLOSED
+  ROBOTS = NOT_RETRIEVED (indirect mirror evidence for fda.gov.ir: open)
+  RATE_LIMIT = UNKNOWN_FAIL_CLOSED
+
+OD-C4A-15 (IR-SC-15):
+  CANDIDATE = C-OPENDATA-01 (data.gov.ir)
+  OFFICIAL_IDENTITY = CONFIRMED (government .gov.ir domain; official national portal)
+  PUBLIC_ACCESSIBILITY = YES (HTTP 500 from fetch infra; public website exists)
+  COST = FREE (search snippet: "free and public use")
+  TERMS = NOT_RETRIEVED
+  REUSE_RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+  ATTRIBUTION = UNKNOWN_FAIL_CLOSED
+  ROBOTS = NOT_RETRIEVED
+  RATE_LIMIT = UNKNOWN_FAIL_CLOSED
+```
+
+### ۱۴۰.۱۰) RIGHTS / AUTOMATION / ATTRIBUTION SUMMARY
+
+```text
+ALL CANDIDATES:
+  REUSE_RIGHTS_STATE = UNKNOWN_FAIL_CLOSED
+  AUTOMATION_PERMISSION_STATE = UNKNOWN_FAIL_CLOSED
+  ATTRIBUTION_REQUIREMENT = UNKNOWN_FAIL_CLOSED
+  RATE_LIMIT_STATE = UNKNOWN_FAIL_CLOSED
+
+ROOT CAUSE:
+  All four official .ir domains were unreachable from the automated fetch
+  infrastructure (CAPTCHA on behdasht.gov.ir; HTTP 500 on fda.gov.ir and
+  data.gov.ir; TIMEOUT on ttac.ir). No terms, robots, or policy pages
+  could be directly inspected.
+
+PERMANENT RULES MAINTAINED:
+  READABLE != REUSABLE
+  GET != AUTOMATION_PERMISSION
+  DISCOVERED != INGESTIBLE
+  INGESTED != APPROVED
+  APPROVED != PUBLISHED
+  PUBLISHED != UNRESTRICTED_RUNTIME_USE
+```
+
+### ۱۴۰.۱۱) PROVENANCE
+
+| evidence_id | query_id | search_engine | result_position | discovered_url | canonical_url | evidence_url | retrieval_timestamp | evidence_purpose |
+|---|---|---|---|---|---|---|---|---|
+| PROV-01 | C4B04-B-01 | WebSearch | 1 | web.archive.org/…/behdasht.gov.ir | behdasht.gov.ir | web.archive.org snapshot | 2026-07-27T06:38Z | MoH domain identity |
+| PROV-02 | C4B04-B-01 | WebSearch | 2 | fa.wikipedia.org/…/وزارت_بهداشت_ایران | fa.wikipedia.org | fa.wikipedia.org | 2026-07-27T06:38Z | MoH institutional identity corroboration |
+| PROV-03 | C4B04-B-02 | WebSearch | 4 | behdasht.gov.ir/ | behdasht.gov.ir | behdasht.gov.ir | 2026-07-27T06:38Z | CAPTCHA observed; MoH official domain confirmed |
+| PROV-04 | C4B04-B-03 | WebSearch | 3 | en.wikipedia.org/…/Ministry_of_Health_… | en.wikipedia.org | en.wikipedia.org | 2026-07-27T06:38Z | EN corroboration of MoHME identity/website |
+| PROV-05 | C4B04-B-04 | WebSearch | 1 | data.gov.ir/ | data.gov.ir | data.gov.ir | 2026-07-27T06:39Z | Open data portal identity |
+| PROV-06 | C4B04-B-04 | WebSearch | 2 | data.gov.ir/organization/behdasht | data.gov.ir | data.gov.ir | 2026-07-27T06:39Z | MoH datasets within open data portal |
+| PROV-07 | C4B04-G-01 | WebSearch | synth | fda.gov.ir referenced | fda.gov.ir | search synthesis | 2026-07-27T06:39Z | IFDA domain identity; alert provenance |
+| PROV-08 | C4B04-G-01 | WebSearch | synth | adr.ttac.ir referenced | adr.ttac.ir | rasanews.ir article | 2026-07-27T06:39Z | ADR reporting system identity |
+| PROV-09 | C4B04-G-03 | WebSearch | 1 | ijhpm.com/article_3984 | fda.gov.ir | ijhpm.com | 2026-07-27T06:39Z | Pharmacovigilance study confirming fda.gov.ir |
+| PROV-10 | C4B04-G-04 | WebSearch | 1–5 | irmedline/damirco/samanehha | ttac.ir | multiple secondary | 2026-07-27T06:39Z | TTAC identity and service description |
+| PROV-11 | C4B04-G-05 | WebSearch | 5 | fda.gov.ir.siteindices.com | fda.gov.ir | siteindices.com | 2026-07-27T06:39Z | WHOIS + robots mirror (SECONDARY) |
+| PROV-12 | C4B04-G-06 | WebSearch | 4 | en.wikipedia.org/MoHME | en.wikipedia.org | en.wikipedia.org | 2026-07-27T06:39Z | IFDA subordinate-to-MoHME corroboration |
+
+### ۱۴۰.۱۲) BUDGET LEDGER
+
+```text
+QUERIES_USED = 12 / 15
+SEARCH_ENGINES_USED = 1 / 2
+SEARCH_RESULTS_SEEN = ~58 / 100
+OFFICIAL_DOMAINS_OPENED = 4 / 10
+MAX_PAGES_USED_ON_ANY_DOMAIN = 0 / 5 (all blocked before page load)
+TERMS_POLICY_PAGES_USED = 0 / (per-domain cap 3)
+ROBOTS_FETCHES_USED = 1 / 10
+MAX_REDIRECT_HOPS_OBSERVED = 0 / 3
+RETRIES_USED = 0 / 0
+HTTP_REQUESTS_USED = 18 / 40
+  (12 search queries + 3 WebFetch attempts + 3 WebFetch www-variant attempts)
+CANDIDATES_RECORDED = 4 / 12
+SECONDARY_PAGES_USED = 0 / 5
+REQUEST_TIMEOUT_SECONDS = 30
+
+NO_BUDGET_EXCEEDED = YES
+```
+
+### ۱۴۰.۱۳) STOP-CONDITION EVENTS
+
+```text
+STOP_ON_CAPTCHA:
+  behdasht.gov.ir — CAPTCHA detected on landing page
+  action: stopped automated investigation of behdasht.gov.ir
+  recorded as residual
+
+STOP_ON_ACCESS_FAILURE (not classified as auth-wall/login/rate-limit):
+  fda.gov.ir — HTTP 500 (likely geo-restriction or server issue)
+  data.gov.ir — HTTP 500 (likely geo-restriction or server issue)
+  ttac.ir — TIMEOUT (likely geo-restriction or server issue)
+  action: stopped automated investigation; recorded as infrastructure residual
+
+NO bypass attempted for any stop condition.
+NO rate-limit, auth-wall, login, CAPTCHA bypass, form-POST, or paid-API encountered
+  beyond the behdasht.gov.ir CAPTCHA.
+```
+
+### ۱۴۰.۱۴) CANDIDATE DISPOSITIONS
+
+```text
+C-MOH-01 (behdasht.gov.ir):
+  DISPOSITION = OFFICIAL_CANDIDATE_SUPPORTED
+  RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION = UNKNOWN_FAIL_CLOSED
+  RESIDUAL = terms/robots/reuse/automation/attribution all unresolved;
+    CAPTCHA blocks further automated inspection;
+    MANUAL_REVIEW_REQUIRED for terms and reuse evidence
+
+C-FDA-01 (fda.gov.ir):
+  DISPOSITION = OFFICIAL_REGULATORY_CANDIDATE_SUPPORTED
+  RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION = UNKNOWN_FAIL_CLOSED
+  RESIDUAL = terms/robots/reuse/automation all unresolved;
+    HTTP 500 blocks further automated inspection;
+    MANUAL_REVIEW_REQUIRED for terms and reuse evidence;
+    no public API confirmed for Iran IFDA (US FDA openFDA excluded as OOS)
+
+C-TTAC-01 (ttac.ir):
+  DISPOSITION = OFFICIAL_VERIFICATION_SERVICE_SUPPORTED_WITH_LIMITATIONS
+  RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION = UNKNOWN_FAIL_CLOSED
+  OFS-08 GUARDRAIL = REGULATORY_ADJACENT only; NOT PRIMARY_PUBLIC_HEALTH_AUTHORITY
+  LIMITATIONS =
+    NO_FIRST_PARTY_TTAC_PAGE_EVIDENCE = YES
+    NO_WHOIS_FOR_TTAC = YES
+    TTAC_DOT_IR_NAMESPACE_ALONE_PROVES_OFFICIAL_STATUS = NO
+    OFFICIAL_INSTITUTIONAL_CROSS_REFERENCE = PRESENT
+    NAMED_IFDA_OFFICIAL_CORROBORATION = PRESENT
+    SECONDARY_CONVERGENCE = PRESENT
+  RESIDUAL = terms/robots/reuse/automation all unresolved;
+    TIMEOUT blocks further automated inspection;
+    MANUAL_REVIEW_REQUIRED
+
+C-OPENDATA-01 (data.gov.ir):
+  DISPOSITION = OFFICIAL_OPEN_DATA_CANDIDATE_SUPPORTED
+  RIGHTS = UNKNOWN_FAIL_CLOSED (search snippet suggests free/public but no first-party terms)
+  AUTOMATION = UNKNOWN_FAIL_CLOSED
+  RESIDUAL = terms/license/reuse/automation all unresolved;
+    HTTP 500 blocks further automated inspection;
+    MANUAL_REVIEW_REQUIRED for dataset-level license verification
+```
+
+### ۱۴۰.۱۵) FAIL-CLOSED RESIDUALS
+
+```text
+RESIDUAL-01:
+  TYPE = RIGHTS_UNKNOWN
+  CANDIDATES = ALL (C-MOH-01, C-FDA-01, C-TTAC-01, C-OPENDATA-01)
+  CAUSE = official domains unreachable from fetch infrastructure
+  CLOSURE_ACTION = manual review of terms/reuse pages from Iranian IP or
+    formal permission request (separate Gate required)
+  FUTURE_GATE = E2-C4B-04 MANUAL EVIDENCE COLLECTION or
+    E2-C4B-04 TERMS/RIGHTS REVIEW (requires Javad approval)
+
+RESIDUAL-02:
+  TYPE = AUTOMATION_UNKNOWN
+  CANDIDATES = ALL
+  CAUSE = same as RESIDUAL-01
+  CLOSURE_ACTION = same as RESIDUAL-01
+
+RESIDUAL-03:
+  TYPE = ROBOTS_NOT_RETRIEVED
+  CANDIDATES = ALL
+  CAUSE = same as RESIDUAL-01
+  CLOSURE_ACTION = manual robots.txt verification from accessible network
+
+RESIDUAL-04:
+  TYPE = TERMS_NOT_RETRIEVED
+  CANDIDATES = ALL
+  CAUSE = same as RESIDUAL-01
+  CLOSURE_ACTION = manual terms page review
+
+RESIDUAL-05:
+  TYPE = CAPTCHA_BLOCKED
+  CANDIDATE = C-MOH-01 (behdasht.gov.ir)
+  CAUSE = behdasht.gov.ir serves CAPTCHA to automated visitors
+  CLOSURE_ACTION = manual browser inspection or formal permission
+
+RESIDUAL-06:
+  TYPE = ATTRIBUTION_UNKNOWN
+  CANDIDATES = ALL
+  CAUSE = no terms/attribution pages retrieved
+  CLOSURE_ACTION = same as RESIDUAL-01
+
+RESIDUAL-07:
+  TYPE = MANUAL_PERMISSION_EVIDENCE_REQUIRED
+  CANDIDATES = ALL (for any future automation/ingestion/reuse)
+  CAUSE = no terms/permission evidence obtained
+  CLOSURE_ACTION = separately approved permission-evidence Gate
+```
+
+### ۱۴۰.۱۶) FINDINGS
+
+```text
+BLOCKER = 0
+
+MAJOR = 0
+
+MINOR-01:
+  ID = S140-MINOR-01
+  SEVERITY = MINOR
+  CANDIDATE = ALL
+  EVIDENCE = all official .ir domains unreachable from fetch infrastructure
+  ROOT_CAUSE = Iranian government domains geo-restricted or serving
+    CAPTCHA/errors to non-Iranian automated clients
+  IMPACT = rights/terms/robots/automation evidence entirely unresolved
+  OWNER = Javad / manual review
+  DEPENDENCY = accessible network (Iranian IP or VPN) or formal contact
+  CLOSURE_ACTION = manual evidence collection from Iranian network
+  CLOSURE_CRITERION = first-party terms and robots pages retrieved and recorded
+  FUTURE_GATE = E2-C4B-04 MANUAL TERMS/RIGHTS EVIDENCE COLLECTION
+
+NOTE-01:
+  ID = S140-NOTE-01
+  SEVERITY = NOTE
+  EVIDENCE = data.gov.ir search snippet says "free and public use"
+  IMPACT = promising signal but NOT first-party terms; cannot upgrade
+    rights state from UNKNOWN_FAIL_CLOSED based on snippet alone
+  FUTURE_GATE = confirm via first-party terms page when accessible
+
+NOTE-02:
+  ID = S140-NOTE-02
+  SEVERITY = NOTE
+  EVIDENCE = fda.gov.ir.siteindices.com mirror shows open robots.txt
+  IMPACT = secondary evidence only; cannot confirm first-party robots state
+  FUTURE_GATE = confirm via direct robots.txt fetch when accessible
+
+NOTE-03:
+  ID = S140-NOTE-03
+  SEVERITY = NOTE
+  EVIDENCE = IFDA confirmed to have no public API (per pishkhanak.com source);
+    ADR reporting at adr.ttac.ir exists but is a reporting form, not data API
+  IMPACT = automation via API unlikely for IFDA; manual or formal arrangement needed
+  FUTURE_GATE = formal API/data-access inquiry if required
+```
+
+### ۱۴۰.۱۷) COMPLETION MARKERS
+
+```text
+E2_C4B_04_REPOSITORY_PREPARATION_COMPLETE = YES (§139)
+E2_C4B_04_NETWORK_DISCOVERY_EXECUTED = YES
+E2_C4B_04_DISCOVERY_SUBSTEP_COMPLETE = YES
+
+E2_C4B_04_DISCOVERY_DOCS_DELIVERY_COMPLETE = NO
+E2_C4B_04_FULL_CHILD_COMPLETE = NO
+
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+
+INGESTION_AUTHORIZED = NO
+PUBLICATION_AUTHORIZED = NO
+RUNTIME_USE_AUTHORIZED = NO
+CRAWLER_ACTIVATION = NO
+CAPABILITY_ACTIVATION = NO
+
+RIGHTS_CLEARED = NO
+AUTOMATION_PERMISSION_CLEARED = NO
+```
+
+### ۱۴۰.۱۸) OPERATIONS NOT PERFORMED
+
+```text
+NOT_PERFORMED =
+  BULK_CRAWLING
+  RECURSIVE_CRAWLING
+  CONTENT_CORPUS_DOWNLOAD
+  MEDICAL_CONTENT_ACQUISITION
+  PDF_CORPUS_HARVESTING
+  BULK_API_EXPORT
+  CONTENT_CHUNKING
+  EMBEDDING
+  INGESTION
+  PUBLICATION
+  RUNTIME_GROUNDING
+  SOURCE_ACTIVATION
+  CRAWLER_ACTIVATION
+  CAPABILITY_ACTIVATION
+  LOGIN
+  ACCOUNT_CREATION
+  CAPTCHA_BYPASS
+  RATE_LIMIT_BYPASS
+  ROBOTS_BYPASS
+  PAYWALL_BYPASS
+  EMAIL
+  FORM_SUBMISSION
+  ORGANIZATION_CONTACT
+  TERMS_ACCEPTANCE
+  CODE_CHANGE
+  TEST_AUTHORING
+  TEST_EXECUTION
+  PYTEST
+  CI
+  WORKFLOW_DISPATCH
+  MODEL_CHANGE
+  SCHEMA_CHANGE
+  MIGRATION
+  DB_OPERATION
+  GIT_ADD
+  COMMIT
+  AMEND
+  PUSH
+  PULL
+  MERGE
+  REBASE
+  DEPLOY
+  BUILD
+  FLAG_ACTIVATION
+  C4B-05
+  P2
+  I6
+  I7
+  I8
+  FRONTEND_GATE_4
+```
+
+### ۱۴۰.۱۹) SELF-HEALING AUDIT
+
+```text
+Audit iterations: 1
+SELF_HEALING_FIX_COUNT = 0
+
+S140-A01 baseline verified; HEAD/UPSTREAM match; §139 fence integrity confirmed → CLOSED
+S140-A02 authority reconstruction matches §139 locked plan exactly → CLOSED
+S140-A03 all 12 locked queries executed; 0 unlocked queries → CLOSED
+S140-A04 budget ledger: all counters within caps → CLOSED
+S140-A05 stop conditions properly recorded; no bypass → CLOSED
+S140-A06 candidates deduplicated (4 retained, 3 duplicates identified) → CLOSED
+S140-A07 TTAC guardrail maintained (REGULATORY_ADJACENT only) → CLOSED
+S140-A08 rights/automation/terms all UNKNOWN_FAIL_CLOSED → CLOSED (honest)
+S140-A09 no content-body acquisition → CLOSED
+S140-A10 completion markers honest; discovery executed but rights not cleared → CLOSED
+S140-A11 §§1–139 not modified; §140 appended at EOF → CLOSED
+S140-A12 no prohibited operations performed → CLOSED
+
+NO_ACTIONABLE_IN_SCOPE_§140_DEFECT_REMAINS = YES
+```
+
+### ۱۴۰.۲۰) NEXT GATE
+
+```text
+NEXT_RECOMMENDED_GATE =
+GATE-S27-10 — STRICT READ-ONLY REVIEW OF §140
+E2-C4B-04 CONTROLLED NETWORK DISCOVERY EVIDENCE/DISPOSITION VERIFICATION
+
+AUTHORIZED = NO — SEPARATE JAVAD APPROVAL REQUIRED
+COMMIT = NOT AUTHORIZED
+PUSH = NOT AUTHORIZED
+C4B_05 = NOT AUTHORIZED
+P2 = NOT AUTHORIZED
+```
+
+---
+*پایان §۱۴۰ — GATE-S27-09 E2-C4B-04 CONTROLLED NETWORK DISCOVERY — MINISTRY / REGULATORY / PUBLIC-HEALTH — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
+
+## ۱۴۱) E2-C4B-04 DISCOVERY DELIVERY / DOCS-ONLY COMMIT-READINESS PREPARATION
+
+```text
+PACKAGE =
+GATE-S27-11 —
+DOCS-ONLY DELIVERY / COMMIT-READINESS PREPARATION
+FOR E2-C4B-04 §§139–140
+
+MODE =
+DOCS_ONLY / APPEND_ONLY / NO_NETWORK / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only delivery / commit-readiness preparation ONLY
+NO network / search / HTTP / WHOIS / robots / terms
+NO new evidence collection
+NO content acquisition / ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–140
+NO §142
+NO C4B-05 / P2 / I6 / I7 / I8 / Frontend Gate 4
+
+Baseline SHA (local = upstream):
+7d2ba25dfc9a64016a1d0108be5158e50e85ef55
+
+Controlling prior tip subject:
+docs(governance): record Section 27 I5 knowledge law
+
+Controlling reconstruction:
+GATE-S27-09_FINAL_CLOSURE = PASS (via GATE-S27-09R + GATE-S27-10R)
+§139 = repository preparation (GATE-S27-07 / 07R / 08R)
+§140 = controlled network discovery + disposition repair (GATE-S27-09 / 09R / 10 / 10R)
+```
+
+### ۱۴۱.۱) Verified Gate / Authority Chain
+
+```text
+GATE-S27-07 =
+§139 repository preparation appended
+
+GATE-S27-07R =
+§139 fence repair = PASS
+
+GATE-S27-08R =
+repaired §139 strict review = PASS
+CONTROLLED_NETWORK_DISCOVERY_READINESS = READY
+
+GATE-S27-09 =
+controlled network discovery executed
+GATE_S27_09_NETWORK_EXECUTION = VALID / COMPLETE
+
+GATE-S27-10 =
+authority/disposition strict review
+finding = S27-10-MINOR-01 TTAC/OD-C4A-11 WHOIS attribution precision
+
+GATE-S27-09R =
+§140 authority/disposition precision repair = PASS
+
+GATE-S27-10R =
+repaired §140 strict review = PASS
+S27-10-MINOR-01 = CLOSED
+
+GATE_S27_09_FINAL_CLOSURE = PASS
+NETWORK_RERUN_REQUIRED = NO
+```
+
+### ۱۴۱.۲) E2-C4B-04 Child Scope (Locked)
+
+```text
+E2-C4B-04 =
+Ministry / Regulatory / Public-Health Discovery
+
+IR-SC-07 = MoH guidance / public-health
+IR-SC-11 = regulatory / licensing / safety alerts
+IR-SC-15 = official public / open-data health portals
+
+IR-SC-07 ↔ OD-C4A-07
+IR-SC-11 ↔ OD-C4A-11
+IR-SC-15 ↔ OD-C4A-15
+
+OFS-06 → IR-SC-07 (+ IR-SC-15 where artifact is an official dataset)
+OFS-07 → IR-SC-11
+OFS-08 → IR-SC-11 scoped
+OFS-09 → IR-SC-15
+
+OFS-08 =
+OFFICIAL_VERIFICATION_SERVICE
+REGULATORY_ADJACENT
+
+OFS_08_PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO
+```
+
+### ۱۴۱.۳) Final Verified Candidate Matrix
+
+| candidate_id | domain | authority disposition | role | limitations |
+|---|---|---|---|---|
+| C-MOH-01 | behdasht.gov.ir | SUPPORTED | PRIMARY_OFFICIAL_AUTHORITY | rights/automation fail-closed; CAPTCHA blocked first-party inspection |
+| C-FDA-01 | fda.gov.ir | SUPPORTED | OFFICIAL_REGULATORY_AUTHORITY | rights/automation fail-closed; HTTP 500 blocked first-party inspection |
+| C-TTAC-01 | ttac.ir | SUPPORTED_WITH_LIMITATIONS | OFFICIAL_VERIFICATION_SERVICE / REGULATORY_ADJACENT | PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO; WHOIS_FOR_TTAC = NOT_RECORDED; no first-party page evidence; .gov.ir namespace NOT applicable |
+| C-OPENDATA-01 | data.gov.ir | SUPPORTED | OFFICIAL_OPEN_DATA_PORTAL | rights/automation fail-closed; portal ≠ medical authority; portal ≠ reuse license |
+
+```text
+C-MOH-01 AUTHORITY = SUPPORTED
+C-FDA-01 AUTHORITY = SUPPORTED
+C-TTAC-01 OFFICIAL_SERVICE = SUPPORTED_WITH_LIMITATIONS
+C-TTAC-01 REGULATORY_ADJACENT = SUPPORTED
+C-TTAC-01 PRIMARY_PUBLIC_HEALTH_AUTHORITY = NO
+C-TTAC-01 WHOIS_FOR_TTAC = NOT_RECORDED
+C-OPENDATA-01 AUTHORITY = SUPPORTED
+
+TTAC_NOT_UPGRADED = YES
+TTAC_LIMITATIONS_PRESERVED = YES
+```
+
+### ۱۴۱.۴) Controlled Network Execution Delivery Summary
+
+```text
+LOCKED_QUERY_IDS =
+C4B04-B-01..B-06
+C4B04-G-01..G-06
+
+LOCKED_QUERIES_EXECUTED = 12
+UNLOCKED_QUERIES_EXECUTED = 0
+
+QUERIES_USED = 12 / 15
+SEARCH_ENGINES_USED = 1 / 2
+SEARCH_RESULTS_SEEN = approximately 58 / 100
+OFFICIAL_DOMAINS_OPENED = 4 / 10
+MAX_PAGES_USED_ON_ANY_DOMAIN = 0 / 5
+TERMS_POLICY_PAGES_USED = 0
+ROBOTS_FETCHES_USED = 1 / 10
+MAX_REDIRECT_HOPS_OBSERVED = 0 / 3
+RETRIES_USED = 0 / 0
+HTTP_REQUESTS_USED = 18 / 40
+CANDIDATES_RECORDED = 4 / 12
+SECONDARY_PAGES_USED = 0 / 5
+REQUEST_TIMEOUT_SECONDS = 30
+PROVENANCE_RECORDS = 12
+
+NO_BUDGET_EXCEEDED = YES
+STOP_CONDITIONS_RESPECTED = YES
+NETWORK_RERUN_REQUIRED = NO
+```
+
+### ۱۴۱.۵) Final Rights / Automation / Terms / Robots State
+
+```text
+TERMS = NOT_RETRIEVED
+REUSE_RIGHTS = UNKNOWN_FAIL_CLOSED
+AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+ATTRIBUTION = UNKNOWN_FAIL_CLOSED
+RATE_LIMIT = UNKNOWN_FAIL_CLOSED
+ROBOTS = NOT_RETRIEVED (direct first-party robots not retrieved for any retained candidate)
+
+PERMANENT RULES MAINTAINED:
+READABLE != REUSABLE
+GET != AUTOMATION_PERMISSION
+DISCOVERED != INGESTIBLE
+INGESTED != APPROVED
+APPROVED != PUBLISHED
+PUBLISHED != UNRESTRICTED_RUNTIME_USE
+
+AUTHORITY_DISCOVERY != RIGHTS_CLEARANCE
+AUTHORITY_DISCOVERY != AUTOMATION_CLEARANCE
+RIGHTS_CLEARED = NO
+AUTOMATION_PERMISSION_CLEARED = NO
+```
+
+### ۱۴۱.۶) Fail-Closed Residual Ledger
+
+```text
+RESIDUAL-01:
+  TYPE = REUSE_RIGHTS_UNKNOWN_FAIL_CLOSED
+  SCOPE = ALL candidates (C-MOH-01, C-FDA-01, C-TTAC-01, C-OPENDATA-01)
+  OWNER = Javad / Legal
+  DEPENDENCY = first-party terms/license retrieval or formal permission Gate
+  WHY_OPEN = official domains unreachable during controlled discovery; no reuse grant recorded
+  CLOSURE_CRITERION = first-party reuse language recorded and reviewed fail-closed
+  FUTURE_PACKAGE = E2-C4B-04 TERMS/RIGHTS REVIEW (separate Javad approval)
+
+RESIDUAL-02:
+  TYPE = AUTOMATION_PERMISSION_UNKNOWN_FAIL_CLOSED
+  SCOPE = ALL candidates
+  OWNER = Javad / Legal / Knowledge Ops
+  DEPENDENCY = robots/terms/API policy evidence or formal permission
+  WHY_OPEN = no automation permission evidence retrieved; CAPTCHA/HTTP failures prevented inspection
+  CLOSURE_CRITERION = automation permission expressly established or remain fail-closed
+  FUTURE_PACKAGE = E2-C4B-04 AUTOMATION / PERMISSION EVIDENCE (separate approval)
+
+RESIDUAL-03:
+  TYPE = TERMS_NOT_RETRIEVED
+  SCOPE = ALL candidates
+  OWNER = Javad / Legal
+  DEPENDENCY = accessible network to official domains or manual evidence pack
+  WHY_OPEN = CAPTCHA / HTTP 500 / TIMEOUT blocked terms pages
+  CLOSURE_CRITERION = terms/privacy/copyright pages retrieved and recorded
+  FUTURE_PACKAGE = E2-C4B-04 MANUAL TERMS EVIDENCE COLLECTION
+
+RESIDUAL-04:
+  TYPE = ATTRIBUTION_UNKNOWN
+  SCOPE = ALL candidates
+  OWNER = Javad / Legal
+  DEPENDENCY = terms/attribution policy evidence
+  WHY_OPEN = no attribution requirement language retrieved
+  CLOSURE_CRITERION = attribution requirement recorded or remain UNKNOWN_FAIL_CLOSED
+  FUTURE_PACKAGE = same TERMS/RIGHTS review Gate
+
+RESIDUAL-05:
+  TYPE = RATE_LIMIT_UNKNOWN
+  SCOPE = ALL candidates
+  OWNER = Knowledge Ops
+  DEPENDENCY = robots/API/rate-limit policy evidence
+  WHY_OPEN = no rate-limit policy retrieved
+  CLOSURE_CRITERION = rate-limit state recorded or remain UNKNOWN_FAIL_CLOSED
+  FUTURE_PACKAGE = AUTOMATION / PERMISSION evidence Gate
+
+RESIDUAL-06:
+  TYPE = TTAC_FIRST_PARTY_EVIDENCE_LIMITED
+  SCOPE = C-TTAC-01
+  OWNER = Javad / Provider Verification
+  DEPENDENCY = first-party ttac.ir page evidence and/or WHOIS for .ir domain
+  WHY_OPEN = TIMEOUT blocked ttac.ir; WHOIS for TTAC not recorded; disposition remains SUPPORTED_WITH_LIMITATIONS
+  CLOSURE_CRITERION = first-party TTAC evidence reviewed OR retain SUPPORTED_WITH_LIMITATIONS permanently for this discovery child
+  FUTURE_PACKAGE = optional TTAC first-party evidence Gate (NOT required to reopen GATE-S27-09)
+
+RESIDUAL-07:
+  TYPE = MANUAL_PERMISSION_EVIDENCE_REQUIRED
+  SCOPE = ALL candidates (before any later automation/acquisition)
+  OWNER = Javad / Legal
+  DEPENDENCY = formal organization contact or published permission/license
+  WHY_OPEN = discovery alone cannot authorize automation/ingestion/reuse
+  CLOSURE_CRITERION = separately approved permission-evidence package recorded
+  FUTURE_PACKAGE = MANUAL_PERMISSION_EVIDENCE Gate (separate approval)
+
+NO_RESIDUAL_SILENTLY_CLOSED_BECAUSE_DISCOVERY_SUCCEEDED = YES
+```
+
+### ۱۴۱.۷) Content Acquisition / Runtime Non-Authorization
+
+```text
+CONTENT_BODY_ACQUISITION = NOT_AUTHORIZED
+MEDICAL_CONTENT_INGESTION = NOT_AUTHORIZED
+PUBLICATION = NOT_AUTHORIZED
+RUNTIME_GROUNDING = NOT_AUTHORIZED
+SOURCE_ACTIVATION = NOT_AUTHORIZED
+CRAWLER_ACTIVATION = NOT_AUTHORIZED
+CAPABILITY_ACTIVATION = NO
+
+C4B_04_DISCOVERY_SUCCESS =
+SOURCE / AUTHORITY / POLICY / ELIGIBILITY EVIDENCE ONLY
+≠ knowledge ingestion
+≠ medical content corpus
+≠ weekly crawler activation
+```
+
+### ۱۴۱.۸) Discovery Completion vs Full Child
+
+```text
+DISCOVERY_SUBSTEP_COMPLETE != FULL_CHILD_COMPLETE
+
+E2_C4B_04_REPOSITORY_PREPARATION_COMPLETE = YES
+E2_C4B_04_NETWORK_DISCOVERY_EXECUTED = YES
+E2_C4B_04_DISCOVERY_SUBSTEP_COMPLETE = YES
+
+E2_C4B_04_DISCOVERY_DOCS_DELIVERY_PREPARATION_COMPLETE = YES
+E2_C4B_04_DISCOVERY_DOCS_DELIVERY_COMPLETE = NO
+  reason = §§139–141 still uncommitted; strict independent review of §141 still pending
+
+E2_C4B_04_FULL_CHILD_COMPLETE = NO
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+
+RIGHTS_CLEARED = NO
+AUTOMATION_PERMISSION_CLEARED = NO
+INGESTION_AUTHORIZED = NO
+PUBLICATION_AUTHORIZED = NO
+RUNTIME_USE_AUTHORIZED = NO
+CRAWLER_ACTIVATION = NO
+CAPABILITY_ACTIVATION = NO
+```
+
+### ۱۴۱.۹) Docs-Only Commit-Readiness Assessment
+
+```text
+DOCS_ONLY_COMMIT_READINESS_ASSESSMENT =
+READY_PENDING_STRICT_REVIEW
+
+Assessment basis:
+  §§139–140 strict reviews passed
+  GATE_S27_09_FINAL_CLOSURE = PASS
+  §141 records delivery state without overclaim
+  all residuals explicit
+  no BLOCKER/MAJOR/MINOR remains in delivery preparation
+  only Master Log dirty
+  staging empty
+  untracked zero
+  git diff --check clean
+  no prohibited runtime/rights/full-child overclaim
+
+COMMIT_AUTHORIZED = NO
+PUSH_AUTHORIZED = NO
+
+EXPECTED_FUTURE_DOCS_ONLY_COMMIT_SCOPE =
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+covering uncommitted §§139–141 additions only
+
+STAGE_NOW = NO
+COMMIT_NOW = NO
+PUSH_NOW = NO
+```
+
+### ۱۴۱.۱۰) I5 / Roadmap Continuity
+
+```text
+C4B-04 is ONE governed Iran-first official-source discovery child under I5.
+C4B-04 does NOT complete:
+  comprehensive health knowledge
+  weekly governed crawler
+  content acquisition
+  governed ingestion
+  publication
+  runtime grounding
+  I5 closure
+  I6 / I7 / I8
+  Frontend Gate 4
+
+EXPECTED_DOWNSTREAM_SEQUENCE (conceptual only; NONE started by this Gate) =
+  C4B-04 docs delivery
+  → C4B-05
+  → remaining E2 / Evidence Overlay
+  → P2
+  → P3
+  → P4
+  → P5
+  → P6
+  → R1
+  → R2
+  → S1
+  → Weekly Governed Crawler
+  → governed content packs
+  → runtime grounding
+  → I5 closure
+  → I6
+  → I7
+  → I8
+  → Frontend Gate 4
+
+C4B_05_STARTED = NO
+P2_STARTED = NO
+I5_COMPLETE = NO
+```
+
+### ۱۴۱.۱۱) Exact Next Gate — NOT AUTHORIZED by this Gate
+
+```text
+NEXT_GATE =
+GATE-S27-12 —
+STRICT READ-ONLY REVIEW OF §141
+E2-C4B-04 DOCS DELIVERY / COMMIT-READINESS VERIFICATION
+
+NEXT_GATE_STARTED = NO
+AUTHORIZATION = NOT YET GRANTED
+COMMIT_AUTHORIZED_BY_THIS_GATE = NO
+PUSH_AUTHORIZED_BY_THIS_GATE = NO
+C4B_05_AUTHORIZED_BY_THIS_GATE = NO
+P2_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+---
+*پایان §۱۴۱ — GATE-S27-11 E2-C4B-04 Discovery Delivery / Docs-Only Commit-Readiness Preparation — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
