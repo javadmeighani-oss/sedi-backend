@@ -1,0 +1,724 @@
+{
+  "by_classification": {
+    "DO_NOT_REUSE": 3,
+    "REUSE_AS_IS": 1,
+    "REUSE_SCHEMA_ONLY": 3,
+    "REUSE_TEST_PATTERN_ONLY": 1,
+    "REUSE_WITH_ADAPTER": 4,
+    "REUSE_WITH_EXTENSION": 19
+  },
+  "components": [
+    {
+      "COMPONENT_ID": "INV-01",
+      "COMPONENT_NAME": "KnowledgeSource (Gate3 legacy registry)",
+      "DEPENDENCY": [
+        "migrations 027,036"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "MISSING_CAPABILITY": "Not International Source Registry contract; mixes categories including IR directories",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "KnowledgeSource"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "Persists curated sources with trust, freshness, fetch flags, allowlist domain/patterns"
+    },
+    {
+      "COMPONENT_ID": "INV-02",
+      "COMPONENT_NAME": "GovernedSourceProfile + Version",
+      "DEPENDENCY": [
+        "051 migration",
+        "kb_b2_source_profile_persistence"
+      ],
+      "EVIDENCE_STRENGTH": "E3_SCHEMA_OR_MIGRATION_EVIDENCE",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/alembic/versions/051_i5b2_governed_source_profile.py"
+      ],
+      "MISSING_CAPABILITY": "Not full International Source Registry field set; no weekly run binding",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "GovernedSourceProfile",
+        "GovernedSourceProfileVersion"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "I5-B2 governed profile persistence with immutable version evidence columns; operational_status default disabled"
+    },
+    {
+      "COMPONENT_ID": "INV-03",
+      "COMPONENT_NAME": "Gate3H trusted_source_catalog_v1.yaml",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FILE_PATHS": [
+        "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+      ],
+      "MISSING_CAPABILITY": "Header forbids import without approval; mixes IR directories into same catalog",
+      "PACKAGE_OWNER": "JAVAD_DECISION",
+      "REQUIRED_CHANGE_TYPE": "ADAPTER_LAYER",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_ADAPTER",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "sources",
+        "source_key",
+        "risk_tiers"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "Proposal catalog of WHO/MedlinePlus/NHS/CDC/NIMH/APA/IR keys; all fetch false"
+    },
+    {
+      "COMPONENT_ID": "INV-04",
+      "COMPONENT_NAME": "source_fetch_enabled + profile eligibility",
+      "DEPENDENCY": [
+        "INV-01",
+        "INV-02"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/governance/kb_b2_source_profile_persistence.py",
+        "backend/app/services/gate3/kb_scheduler.py"
+      ],
+      "MISSING_CAPABILITY": "Not weekly I5 ledger-aware",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "NONE",
+      "REUSE_CLASSIFICATION": "REUSE_AS_IS",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "source_fetch_enabled",
+        "profile_is_fetch_eligible",
+        "scheduled_fetch_enabled"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W6-P01",
+      "WHY_REUSABLE": "Per-source and env gates prevent fetch unless explicitly enabled"
+    },
+    {
+      "COMPONENT_ID": "INV-05",
+      "COMPONENT_NAME": "fetch_security allowlist validators",
+      "DEPENDENCY": [
+        "INV-01"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/fetch_security.py",
+        "backend/app/services/gate3/robots_checker.py"
+      ],
+      "MISSING_CAPABILITY": "Single-URL; not host registry table",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "validate_fetch_url",
+        "validate_redirect_url",
+        "check_robots_allowed"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W3-P01",
+      "WHY_REUSABLE": "Domain/pattern/SSRF-style and robots checks for single-URL fetch"
+    },
+    {
+      "COMPONENT_ID": "INV-06",
+      "COMPONENT_NAME": "KnowledgeDocument",
+      "DEPENDENCY": [
+        "INV-01"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "MISSING_CAPABILITY": "Not versioned document table; not Knowledge Unit",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "KnowledgeDocument"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P01",
+      "WHY_REUSABLE": "Curated document rows linked to sources; draft/publish status"
+    },
+    {
+      "COMPONENT_ID": "INV-07",
+      "COMPONENT_NAME": "content_hash / fingerprint helpers",
+      "DEPENDENCY": [
+        "INV-06",
+        "INV-09"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/governance/kb_b2_adapters.py"
+      ],
+      "MISSING_CAPABILITY": "No supersession graph on documents",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "NEW_SERVICE_ON_SCHEMA",
+      "REUSE_CLASSIFICATION": "REUSE_SCHEMA_ONLY",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "content_hash",
+        "fetched_content_hash",
+        "derive_provenance_evidence_fingerprint"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P01",
+      "WHY_REUSABLE": "Hash fields and pure fingerprint helpers; no immutable document_version entity"
+    },
+    {
+      "COMPONENT_ID": "INV-08",
+      "COMPONENT_NAME": "KnowledgeChunk",
+      "DEPENDENCY": [
+        "INV-06"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "MISSING_CAPABILITY": "Raw/curated text units; not Structured Knowledge Units",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "KnowledgeChunk"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P01",
+      "WHY_REUSABLE": "Text chunks with citation_label for retrieval"
+    },
+    {
+      "COMPONENT_ID": "INV-09",
+      "COMPONENT_NAME": "KnowledgeIngestionRun",
+      "DEPENDENCY": [
+        "INV-01"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "MISSING_CAPABILITY": "Not weekly multi-stage Run Ledger; single-source oriented",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "KnowledgeIngestionRun"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "Per-source ingest/fetch/review/approve ledger with quality and risk scores"
+    },
+    {
+      "COMPONENT_ID": "INV-10",
+      "COMPONENT_NAME": "last_fetched_at / fetch fields on sources and runs",
+      "DEPENDENCY": [
+        "INV-09"
+      ],
+      "EVIDENCE_STRENGTH": "E3_SCHEMA_OR_MIGRATION_EVIDENCE",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "MISSING_CAPABILITY": "No dedicated fetch-history table",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "NEW_SERVICE_ON_SCHEMA",
+      "REUSE_CLASSIFICATION": "REUSE_SCHEMA_ONLY",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "last_fetched_at",
+        "fetch_url",
+        "fetched_at"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "Basic fetch timestamps and URLs"
+    },
+    {
+      "COMPONENT_ID": "INV-11",
+      "COMPONENT_NAME": "APScheduler core + kb_scheduled_fetch job",
+      "DEPENDENCY": [
+        "INV-04",
+        "INV-15"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/core/scheduler.py",
+        "backend/app/services/gate3/kb_scheduler.py"
+      ],
+      "MISSING_CAPABILITY": "Not weekly governed I5 pipeline; not gap-queue driven; PLAN-F06",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "start_scheduler",
+        "kb_scheduled_fetch",
+        "run_scheduled_kb_fetch"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W3-P02",
+      "WHY_REUSABLE": "Interval job registers only when SEDI_KB_SCHEDULED_FETCH_ENABLED; lifestyle-only; never auto-approves"
+    },
+    {
+      "COMPONENT_ID": "INV-15",
+      "COMPONENT_NAME": "KnowledgeSourceFetcher",
+      "DEPENDENCY": [
+        "INV-05"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/knowledge_source_fetcher.py"
+      ],
+      "MISSING_CAPABILITY": "PUBLIC_WEB_FETCH only; not official API adapters",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "ADAPTER_LAYER",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_ADAPTER",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "KnowledgeSourceFetcher"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W3-P01",
+      "WHY_REUSABLE": "Single-URL allowlisted GET with size limits; no recursive crawl; no bypass"
+    },
+    {
+      "COMPONENT_ID": "INV-16",
+      "COMPONENT_NAME": "content_parser",
+      "DEPENDENCY": [
+        "INV-15"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/content_parser.py"
+      ],
+      "MISSING_CAPABILITY": "Not conceptual important-point extraction",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "parse_content"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W3-P01",
+      "WHY_REUSABLE": "HTML/text extraction with quality gates"
+    },
+    {
+      "COMPONENT_ID": "INV-19",
+      "COMPONENT_NAME": "Duplicate / change detection via hashes",
+      "DEPENDENCY": [
+        "INV-07"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/knowledge_update_service.py"
+      ],
+      "MISSING_CAPABILITY": "No KU-level dedupe",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "KnowledgeUpdateService"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W3-P01",
+      "WHY_REUSABLE": "Content hash compare on fetch; limited dedupe"
+    },
+    {
+      "COMPONENT_ID": "INV-24",
+      "COMPONENT_NAME": "User conversation memory / KC / LocalRAG",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/routers/memory.py",
+        "backend/app/services/knowledge",
+        "backend/app/services/local_rag",
+        "backend/app/services/rag_context"
+      ],
+      "MISSING_CAPABILITY": "Must not be treated as Knowledge Memory",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXCLUDE",
+      "REUSE_CLASSIFICATION": "DO_NOT_REUSE",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "process_message",
+        "LocalRAGProvider",
+        "build_rag_context_pack"
+      ],
+      "TARGET_PACKAGE": "OUT_OF_SCOPE_AS_KNOWLEDGE_MEMORY",
+      "WHY_REUSABLE": "User facts, conversation history, personal RAG context"
+    },
+    {
+      "COMPONENT_ID": "INV-25",
+      "COMPONENT_NAME": "Evidence strength / quality scores on ingestion",
+      "DEPENDENCY": [
+        "INV-09"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/knowledge_ai_review_service.py"
+      ],
+      "MISSING_CAPABILITY": "Not multi-source evidence strength",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "evidence_quality_score",
+        "KnowledgeAIReviewService"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P02",
+      "WHY_REUSABLE": "Run-level AI review scores; not KU evidence strength states"
+    },
+    {
+      "COMPONENT_ID": "INV-26",
+      "COMPONENT_NAME": "freshness_policy_days / last_checked_at",
+      "DEPENDENCY": [
+        "INV-01"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/knowledge_retrieval_service.py"
+      ],
+      "MISSING_CAPABILITY": "No KU freshness_state enum / gap enqueue on stale",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "freshness_policy_days",
+        "search_knowledge"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P02",
+      "WHY_REUSABLE": "Source-level freshness policy used in keyword retrieval ranking/filter"
+    },
+    {
+      "COMPONENT_ID": "INV-27",
+      "COMPONENT_NAME": "Knowledge conflict records",
+      "DEPENDENCY": [
+        "INV-22"
+      ],
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FILE_PATHS": [
+        "backend/app/services/governance/contracts.py"
+      ],
+      "MISSING_CAPABILITY": "User-context conflict resolver is unrelated",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "ContradictionStatus"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P02",
+      "WHY_REUSABLE": "Enum/types in governance contracts; unwired"
+    },
+    {
+      "COMPONENT_ID": "INV-28",
+      "COMPONENT_NAME": "Gate3 safety + AI review + SafetyPolicy",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/safety_core.py",
+        "backend/app/services/gate3/safety_validator.py",
+        "backend/app/services/gate3/knowledge_ai_review_service.py",
+        "backend/app/services/intelligence/safety_risk.py"
+      ],
+      "MISSING_CAPABILITY": "Not KU medical_safety_state machine / admin safety queue for KU",
+      "PACKAGE_OWNER": "MEDICAL_SAFETY",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "RiskClassifier",
+        "SafetyPolicy",
+        "validate_response_text",
+        "assess_safety_risk"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P02",
+      "WHY_REUSABLE": "Retrieval/response risk classification; ingest AI review; I4 safety separate"
+    },
+    {
+      "COMPONENT_ID": "INV-29",
+      "COMPONENT_NAME": "search_knowledge keyword retrieval",
+      "DEPENDENCY": [
+        "INV-08",
+        "INV-01"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/knowledge_retrieval_service.py"
+      ],
+      "MISSING_CAPABILITY": "Not Knowledge-Database-First over KUs; no conflict/freshness state machine",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "ADAPTER_LAYER",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_ADAPTER",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "search_knowledge"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W4-P01",
+      "WHY_REUSABLE": "Keyword search over active docs/chunks with trust/freshness/citations/emergency block"
+    },
+    {
+      "COMPONENT_ID": "INV-30",
+      "COMPONENT_NAME": "brain CARE_CONTEXT integration",
+      "DEPENDENCY": [
+        "INV-29"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/core/conversation/brain.py",
+        "backend/app/services/gate3/care_intelligence.py",
+        "backend/app/services/gate3/health_care_services.py"
+      ],
+      "MISSING_CAPABILITY": "Does not query Structured Knowledge Database / Knowledge Memory",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "_maybe_append_gate3_care_context",
+        "build_care_context",
+        "answer_health_question"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W4-P01",
+      "WHY_REUSABLE": "Medical intent appends CARE_CONTEXT from search_knowledge; health APIs reuse search"
+    },
+    {
+      "COMPONENT_ID": "INV-31",
+      "COMPONENT_NAME": "citation_label + citation dict in retrieval",
+      "DEPENDENCY": [
+        "INV-29"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/knowledge_retrieval_service.py"
+      ],
+      "MISSING_CAPABILITY": "PLAN-F08: not full Reference Renderer / WHY SEDI SAID THIS",
+      "PACKAGE_OWNER": "PRODUCT",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "citation_label",
+        "citation"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W4-P02",
+      "WHY_REUSABLE": "Labels returned in CARE_CONTEXT metadata; limited user-facing reference UX"
+    },
+    {
+      "COMPONENT_ID": "INV-32",
+      "COMPONENT_NAME": "KB admin APIs + approve/reject runs",
+      "DEPENDENCY": [
+        "INV-01",
+        "INV-09"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/routers/knowledge_base.py",
+        "backend/app/services/gate3/knowledge_base_service.py",
+        "backend/app/services/gate3/knowledge_update_service.py"
+      ],
+      "MISSING_CAPABILITY": "No KU/gap/registry admin surfaces",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "approve_run",
+        "reject_run",
+        "list_sources",
+        "create_source"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W2-P03",
+      "WHY_REUSABLE": "Admin CRUD sources/docs; ingest; approve/reject"
+    },
+    {
+      "COMPONENT_ID": "INV-35",
+      "COMPONENT_NAME": "Iranian doctor directory registry",
+      "DEPENDENCY": [
+        "javad_decision"
+      ],
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FILE_PATHS": [
+        "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+      ],
+      "MISSING_CAPABILITY": "PLAN-F05; UserDoctor is personal not IR directory",
+      "PACKAGE_OWNER": "PRODUCT",
+      "REQUIRED_CHANGE_TYPE": "ADAPTER_LAYER",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_ADAPTER",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "irimc_member_search",
+        "paziresh24_com",
+        "doctoreto_com"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W5-P01",
+      "WHY_REUSABLE": "Catalog keys only; seed marks legal hold"
+    },
+    {
+      "COMPONENT_ID": "INV-38",
+      "COMPONENT_NAME": "UserDoctor personal records",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "MISSING_CAPABILITY": "Not IR verification directory; PLAN-F05",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXCLUDE",
+      "REUSE_CLASSIFICATION": "DO_NOT_REUSE",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "UserDoctor"
+      ],
+      "TARGET_PACKAGE": "OUT_OF_SCOPE_AS_IR_DIRECTORY",
+      "WHY_REUSABLE": "User-entered doctor contacts"
+    },
+    {
+      "COMPONENT_ID": "INV-39",
+      "COMPONENT_NAME": "KnowledgeChunkEmbedding + hybrid retrieval",
+      "DEPENDENCY": [
+        "INV-08"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/kb_embedding_service.py",
+        "backend/app/services/gate3/kb_hybrid_retrieval.py",
+        "backend/app/services/section10/feature_flags.py"
+      ],
+      "MISSING_CAPABILITY": "Not Knowledge Memory; not KU retrieval",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "KnowledgeChunkEmbedding",
+        "hybrid_search_knowledge",
+        "kb_hybrid_retrieval_enabled"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W4-P01",
+      "WHY_REUSABLE": "JSON embeddings + hybrid search behind flags; fake embedding provider; not wired to brain"
+    },
+    {
+      "COMPONENT_ID": "INV-40",
+      "COMPONENT_NAME": "I5 governance contracts + policy_evaluator",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/governance/contracts.py",
+        "backend/app/services/governance/policy_evaluator.py",
+        "backend/app/services/governance/kb_lifecycle_mapping.py",
+        "backend/app/services/governance/kb_b2_adapters.py",
+        "backend/app/services/governance/__init__.py"
+      ],
+      "MISSING_CAPABILITY": "Not runtime enforcement; PLAN-F01 risk if mistaken for production wiring",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "evaluate_policy",
+        "evaluate_authority_separation",
+        "map_legacy_*",
+        "CONTRACT_VERSION"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "Pure stdlib contracts/evaluators/adapters; package boundary exports CONTRACT_VERSION only; intentionally unwired"
+    },
+    {
+      "COMPONENT_ID": "INV-43",
+      "COMPONENT_NAME": "Immutable knowledge provenance store",
+      "DEPENDENCY": [
+        "INV-22"
+      ],
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FILE_PATHS": [
+        "backend/app/services/governance/kb_b2_adapters.py"
+      ],
+      "MISSING_CAPABILITY": "Not full Provenance Store",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXTEND_MODEL_OR_SERVICE",
+      "REUSE_CLASSIFICATION": "REUSE_WITH_EXTENSION",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [
+        "derive_provenance_evidence_fingerprint"
+      ],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P02",
+      "WHY_REUSABLE": "Fingerprint helpers + run snapshots; no KU provenance table"
+    },
+    {
+      "COMPONENT_ID": "INV-44",
+      "COMPONENT_NAME": "I5/Gate3 knowledge test suite",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E2_DIRECT_TEST_COVERAGE",
+      "FILE_PATHS": [
+        "backend/tests/test_gate3_knowledge_v1.py",
+        "backend/tests/test_gate3g_kb_crawler_v1.py",
+        "backend/tests/test_gate3i_kb_scheduler_v1.py",
+        "backend/tests/test_section10_rag.py",
+        "backend/tests/test_section15_i5a1_",
+        "backend/tests/test_section15_i5a2_policy_evaluator.py",
+        "backend/tests/test_section15_i5b1_lifecycle_mapping.py",
+        "backend/tests/test_section15_i5b2_"
+      ],
+      "MISSING_CAPABILITY": "PLAN-F10",
+      "PACKAGE_OWNER": "CI",
+      "REQUIRED_CHANGE_TYPE": "NEW_TESTS_FROM_PATTERN",
+      "REUSE_CLASSIFICATION": "REUSE_TEST_PATTERN_ONLY",
+      "RISK": "FALSE_COMPLETION",
+      "SYMBOLS": [],
+      "TARGET_PACKAGE": "I5-IMPL-W6-P02",
+      "WHY_REUSABLE": "Covers Gate3 KB, fetch security, dormant scheduler, I5 contracts/profiles; not KU/gap/weekly"
+    },
+    {
+      "COMPONENT_ID": "INV-45",
+      "COMPONENT_NAME": "KB/I5 migrations 027-030,036,049,051",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E3_SCHEMA_OR_MIGRATION_EVIDENCE",
+      "FILE_PATHS": [
+        "backend/alembic/versions/027_knowledge_sources.py",
+        "backend/alembic/versions/028_knowledge_documents.py",
+        "backend/alembic/versions/029_knowledge_chunks.py",
+        "backend/alembic/versions/030_knowledge_ingestion_runs.py",
+        "backend/alembic/versions/036_gate3g_kb_fetch_review.py",
+        "backend/alembic/versions/049_section10_kb_embeddings_memory_governance.py",
+        "backend/alembic/versions/051_i5b2_governed_source_profile.py"
+      ],
+      "MISSING_CAPABILITY": "No KU/gap/ledger/directory migrations; PLAN-F09",
+      "PACKAGE_OWNER": "DATABASE_SCHEMA",
+      "REQUIRED_CHANGE_TYPE": "NEW_SERVICE_ON_SCHEMA",
+      "REUSE_CLASSIFICATION": "REUSE_SCHEMA_ONLY",
+      "RISK": "LOW",
+      "SYMBOLS": [],
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REUSABLE": "Legacy KB + embeddings + governed profiles schema present"
+    },
+    {
+      "COMPONENT_ID": "INV-46",
+      "COMPONENT_NAME": "sedi_knowledge_base persona copy",
+      "DEPENDENCY": [],
+      "EVIDENCE_STRENGTH": "E5_NAME_ONLY_OR_PLACEHOLDER",
+      "FILE_PATHS": [
+        "backend/app/core/conversation/sedi_knowledge_base.py"
+      ],
+      "MISSING_CAPABILITY": "Name collision with medical KB",
+      "PACKAGE_OWNER": "BACKEND_IMPLEMENTATION",
+      "REQUIRED_CHANGE_TYPE": "EXCLUDE",
+      "REUSE_CLASSIFICATION": "DO_NOT_REUSE",
+      "RISK": "LOW",
+      "SYMBOLS": [
+        "SEDI_IDENTITY",
+        "build_complete_sedi_context"
+      ],
+      "TARGET_PACKAGE": "OUT_OF_SCOPE",
+      "WHY_REUSABLE": "Static persona prompt text"
+    }
+  ],
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "reusable_count": 31
+}

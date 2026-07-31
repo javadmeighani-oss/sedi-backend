@@ -1,0 +1,78 @@
+{
+  "controls": [
+    "SSRF",
+    "UNSAFE_URLS",
+    "HOST_ALLOWLIST",
+    "REDIRECT_CONTROL",
+    "RATE_LIMITING",
+    "TIMEOUTS",
+    "MAX_RESPONSE_SIZE",
+    "CONTENT_TYPE",
+    "PARSER_LIMITS",
+    "MALICIOUS_CONTENT",
+    "PROMPT_INJECTION_IN_SOURCE_TEXT",
+    "PROVENANCE_SPOOFING",
+    "DUPLICATE_SOURCES",
+    "POISONED_KNOWLEDGE",
+    "PRIVILEGE_SEPARATION",
+    "ADMIN_APPROVAL",
+    "AUDIT_LOGGING",
+    "FAILURE_RETRY",
+    "DEAD_LETTER_STATE",
+    "METRICS",
+    "ALERTS",
+    "NO_AUTH_CAPTCHA_ANTIBOT_BYPASS",
+    "IR_DIRECTORY_NOT_CLINICAL_KU"
+  ],
+  "high_risk_domains_requiring_stricter_controls": [
+    "emergency symptoms",
+    "medication",
+    "contraindications",
+    "pregnancy",
+    "pediatrics",
+    "elderly/frail",
+    "neurology",
+    "cardiovascular",
+    "diabetes",
+    "infectious diseases",
+    "mental-health crisis",
+    "high-risk conflicts"
+  ],
+  "metric_count": 17,
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "required_metrics": [
+    "SOURCES_CHECKED",
+    "NEW_SOURCES",
+    "UPDATED_SOURCES",
+    "FAILED_SOURCES",
+    "BLOCKED_SOURCES",
+    "NEW_KNOWLEDGE_UNITS",
+    "UPDATED_UNITS",
+    "SUPERSEDED_UNITS",
+    "REJECTED_UNITS",
+    "KNOWLEDGE_GAPS_CLOSED",
+    "HIGH_RISK_GAPS_REMAINING",
+    "CONFLICTS",
+    "SAFETY_REJECTIONS",
+    "COVERAGE_SCORE",
+    "FRESHNESS_SCORE",
+    "RUN_DURATION",
+    "DATABASE_WRITE_COUNT"
+  ],
+  "reuse_and_gaps": {
+    "EXISTING": [
+      "fetch_security.validate_fetch_url",
+      "validate_redirect_url",
+      "robots_checker",
+      "max_fetch_bytes",
+      "admin approve/reject"
+    ],
+    "MISSING": [
+      "dead-letter for weekly stages",
+      "poisoned knowledge detection",
+      "AA metrics emitters",
+      "prompt-injection filters on source text"
+    ]
+  },
+  "security_control_count": 23
+}

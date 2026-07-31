@@ -1,0 +1,822 @@
+{
+  "bounded_contexts": [
+    {
+      "API_OWNERSHIP": "admin source APIs(+ext)",
+      "CONTEXT_ID": "BC-01",
+      "CONTEXT_NAME": "International Source Registry",
+      "CURRENT_REPOSITORY_MAPPING": "INV-01,INV-02,INV-03,INV-40",
+      "DATA_OWNERSHIP": "governed_source_profiles*",
+      "DEPENDENCIES": [],
+      "FAIL_CLOSED_RULE": "deny fetch if not eligible",
+      "INPUTS": [
+        "catalog proposals",
+        "admin updates"
+      ],
+      "JOB_OWNERSHIP": "NONE",
+      "MODEL_OWNERSHIP": "GovernedSourceProfile(+ext)",
+      "OBSERVABILITY": "source counts",
+      "OUTPUTS": [
+        "source profiles",
+        "eligibility"
+      ],
+      "RESPONSIBILITY": "Trusted international knowledge authority registry only",
+      "SAFETY_BOUNDARY": "IR excluded from clinical authority",
+      "SECURITY_BOUNDARY": "host allowlist; no bypass",
+      "SERVICE_OWNERSHIP": "kb_b2_source_profile_persistence(+ext)"
+    },
+    {
+      "API_OWNERSHIP": "NEW search APIs",
+      "CONTEXT_ID": "BC-02",
+      "CONTEXT_NAME": "Iranian Healthcare Directory Registry",
+      "CURRENT_REPOSITORY_MAPPING": "INV-35,INV-36,INV-37,INV-38 (do-not-reuse as knowledge)",
+      "DATA_OWNERSHIP": "NEW iran_directory_*",
+      "DEPENDENCIES": [
+        "Javad decision"
+      ],
+      "FAIL_CLOSED_RULE": "refuse clinical mapping",
+      "INPUTS": [
+        "directory sources"
+      ],
+      "JOB_OWNERSHIP": "optional sync job later",
+      "MODEL_OWNERSHIP": "NEW",
+      "OBSERVABILITY": "directory coverage",
+      "OUTPUTS": [
+        "directory records"
+      ],
+      "RESPONSIBILITY": "Doctors/labs/hospitals discovery only; never clinical KU",
+      "SAFETY_BOUNDARY": "IR_DIRECTORY_RECORD→CLINICAL_KU forbidden",
+      "SECURITY_BOUNDARY": "PII/contact handling",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "admin gap APIs",
+      "CONTEXT_ID": "BC-03",
+      "CONTEXT_NAME": "Knowledge Gap Priority Queue",
+      "CURRENT_REPOSITORY_MAPPING": "MISS-01; law JSON only today",
+      "DATA_OWNERSHIP": "NEW knowledge_gaps",
+      "DEPENDENCIES": [
+        "BC-01"
+      ],
+      "FAIL_CLOSED_RULE": "no run without gap load",
+      "INPUTS": [
+        "missing/stale/conflict/safety/user questions"
+      ],
+      "JOB_OWNERSHIP": "weekly load stage",
+      "MODEL_OWNERSHIP": "NEW",
+      "OBSERVABILITY": "gaps_closed/high_risk_remaining",
+      "OUTPUTS": [
+        "prioritized gap set"
+      ],
+      "RESPONSIBILITY": "Persistent prioritized gaps driving weekly discovery",
+      "SAFETY_BOUNDARY": "safety risk outranks popularity",
+      "SECURITY_BOUNDARY": "no privilege escalation",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-04",
+      "CONTEXT_NAME": "Source Discovery",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING",
+      "DATA_OWNERSHIP": "ephemeral+ledger",
+      "DEPENDENCIES": [
+        "BC-01",
+        "BC-03"
+      ],
+      "FAIL_CLOSED_RULE": "skip unknown hosts",
+      "INPUTS": [
+        "gaps",
+        "registry"
+      ],
+      "JOB_OWNERSHIP": "weekly stage",
+      "MODEL_OWNERSHIP": "NONE",
+      "OBSERVABILITY": "new_sources discovered",
+      "OUTPUTS": [
+        "discovery plan"
+      ],
+      "RESPONSIBILITY": "Map gaps to target authorities and query sets",
+      "SAFETY_BOUNDARY": "high-risk domains prefer stronger authorities",
+      "SECURITY_BOUNDARY": "allowlisted targets only",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-05",
+      "CONTEXT_NAME": "Source Acquisition Adapters",
+      "CURRENT_REPOSITORY_MAPPING": "INV-15 PUBLIC_WEB only",
+      "DATA_OWNERSHIP": "transient",
+      "DEPENDENCIES": [
+        "BC-01",
+        "INV-15"
+      ],
+      "FAIL_CLOSED_RULE": "fail closed on policy deny",
+      "INPUTS": [
+        "selected sources"
+      ],
+      "JOB_OWNERSHIP": "weekly stage",
+      "MODEL_OWNERSHIP": "adapter contracts",
+      "OBSERVABILITY": "sources_checked/failed/blocked",
+      "OUTPUTS": [
+        "raw payloads+hashes"
+      ],
+      "RESPONSIBILITY": "Typed acquisition without bypass",
+      "SAFETY_BOUNDARY": "no CAPTCHA/auth bypass",
+      "SECURITY_BOUNDARY": "SSRF/rate/timeout/size",
+      "SERVICE_OWNERSHIP": "fetcher+NEW adapters"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-06",
+      "CONTEXT_NAME": "Raw Retention Manager",
+      "CURRENT_REPOSITORY_MAPPING": "partial via run preview fields",
+      "DATA_OWNERSHIP": "raw store or link-only",
+      "DEPENDENCIES": [
+        "Section29 lawful-use"
+      ],
+      "FAIL_CLOSED_RULE": "RAW_EXCLUDED when unclear",
+      "INPUTS": [
+        "acquired content",
+        "content_class"
+      ],
+      "JOB_OWNERSHIP": "pipeline stage",
+      "MODEL_OWNERSHIP": "NEW retention policy fields",
+      "OBSERVABILITY": "retention_mode counts",
+      "OUTPUTS": [
+        "retention decision+storage handle"
+      ],
+      "RESPONSIBILITY": "Content-class dependent raw retention modes",
+      "SAFETY_BOUNDARY": "deny full raw by default unless A1/A2",
+      "SECURITY_BOUNDARY": "exclude protected elements",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "admin KB APIs",
+      "CONTEXT_ID": "BC-07",
+      "CONTEXT_NAME": "Document and Version Store",
+      "CURRENT_REPOSITORY_MAPPING": "INV-06,INV-07,INV-09",
+      "DATA_OWNERSHIP": "knowledge_documents(+version table)",
+      "DEPENDENCIES": [
+        "BC-05"
+      ],
+      "FAIL_CLOSED_RULE": "no publish without review when required",
+      "INPUTS": [
+        "parsed content"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "KnowledgeDocument(+ext)",
+      "OBSERVABILITY": "docs updated",
+      "OUTPUTS": [
+        "documents/versions"
+      ],
+      "RESPONSIBILITY": "Curated documents/versions supporting provenance",
+      "SAFETY_BOUNDARY": "draft until approved",
+      "SECURITY_BOUNDARY": "admin auth",
+      "SERVICE_OWNERSHIP": "knowledge_update_service(+ext)"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-08",
+      "CONTEXT_NAME": "Conceptual Knowledge Extraction",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING; AI review != extraction",
+      "DATA_OWNERSHIP": "staging",
+      "DEPENDENCIES": [
+        "BC-07"
+      ],
+      "FAIL_CLOSED_RULE": "reject unextractable unsafe content",
+      "INPUTS": [
+        "parsed docs"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "NEW",
+      "OBSERVABILITY": "extraction yields",
+      "OUTPUTS": [
+        "important points"
+      ],
+      "RESPONSIBILITY": "Important-point extraction for learning",
+      "SAFETY_BOUNDARY": "high-risk domains stricter",
+      "SECURITY_BOUNDARY": "prompt-injection hardening on source text",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-09",
+      "CONTEXT_NAME": "Knowledge Normalization and Taxonomy Mapping",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING",
+      "DATA_OWNERSHIP": "staging",
+      "DEPENDENCIES": [
+        "BC-08"
+      ],
+      "FAIL_CLOSED_RULE": "hold if taxonomy gap (enqueue gap)",
+      "INPUTS": [
+        "important points"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "taxonomy config",
+      "OBSERVABILITY": "taxonomy_gaps",
+      "OUTPUTS": [
+        "normalized candidates"
+      ],
+      "RESPONSIBILITY": "Normalize to taxonomy and populations",
+      "SAFETY_BOUNDARY": "population/jurisdiction tags required for clinical",
+      "SECURITY_BOUNDARY": "N/A",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-10",
+      "CONTEXT_NAME": "Evidence Strength and Freshness",
+      "CURRENT_REPOSITORY_MAPPING": "INV-25,INV-26 partial",
+      "DATA_OWNERSHIP": "KU fields",
+      "DEPENDENCIES": [
+        "BC-09"
+      ],
+      "FAIL_CLOSED_RULE": "ineligible if stale/high-risk without review",
+      "INPUTS": [
+        "multi-source candidates"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "enums",
+      "OBSERVABILITY": "freshness_score",
+      "OUTPUTS": [
+        "scored candidates"
+      ],
+      "RESPONSIBILITY": "Assign evidence_strength and freshness_state",
+      "SAFETY_BOUNDARY": "stale → gap enqueue",
+      "SECURITY_BOUNDARY": "N/A",
+      "SERVICE_OWNERSHIP": "NEW+extend INV-25/26"
+    },
+    {
+      "API_OWNERSHIP": "admin",
+      "CONTEXT_ID": "BC-11",
+      "CONTEXT_NAME": "Conflict Detection",
+      "CURRENT_REPOSITORY_MAPPING": "contracts only",
+      "DATA_OWNERSHIP": "NEW knowledge_conflicts",
+      "DEPENDENCIES": [
+        "BC-10",
+        "INV-27"
+      ],
+      "FAIL_CLOSED_RULE": "runtime ineligible until resolved/disclosed",
+      "INPUTS": [
+        "candidates"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "ContradictionStatus→ORM",
+      "OBSERVABILITY": "CONFLICTS metric",
+      "OUTPUTS": [
+        "conflict records"
+      ],
+      "RESPONSIBILITY": "Detect and record multi-source conflicts",
+      "SAFETY_BOUNDARY": "conflicts trigger disclosure",
+      "SECURITY_BOUNDARY": "N/A",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "admin review",
+      "CONTEXT_ID": "BC-12",
+      "CONTEXT_NAME": "Medical-Safety Review",
+      "CURRENT_REPOSITORY_MAPPING": "INV-28",
+      "DATA_OWNERSHIP": "KU+queue",
+      "DEPENDENCIES": [
+        "BC-11"
+      ],
+      "FAIL_CLOSED_RULE": "fail closed reject",
+      "INPUTS": [
+        "candidates"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "extend INV-28",
+      "OBSERVABILITY": "SAFETY_REJECTIONS",
+      "OUTPUTS": [
+        "safety decisions"
+      ],
+      "RESPONSIBILITY": "KU medical safety state + human queue for high-risk",
+      "SAFETY_BOUNDARY": "high-risk domains require human",
+      "SECURITY_BOUNDARY": "privilege separation",
+      "SERVICE_OWNERSHIP": "NEW+Gate3 safety"
+    },
+    {
+      "API_OWNERSHIP": "admin+internal",
+      "CONTEXT_ID": "BC-13",
+      "CONTEXT_NAME": "Structured Knowledge Database",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING",
+      "DATA_OWNERSHIP": "NEW knowledge_units",
+      "DEPENDENCIES": [
+        "BC-10",
+        "BC-11",
+        "BC-12",
+        "BC-15"
+      ],
+      "FAIL_CLOSED_RULE": "no write without provenance",
+      "INPUTS": [
+        "approved candidates"
+      ],
+      "JOB_OWNERSHIP": "pipeline write",
+      "MODEL_OWNERSHIP": "NEW KnowledgeUnit",
+      "OBSERVABILITY": "NEW/UPDATED/REJECTED units",
+      "OUTPUTS": [
+        "KUs"
+      ],
+      "RESPONSIBILITY": "Canonical Knowledge Units",
+      "SAFETY_BOUNDARY": "runtime_eligibility gated",
+      "SECURITY_BOUNDARY": "write ACLs",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "internal",
+      "CONTEXT_ID": "BC-14",
+      "CONTEXT_NAME": "Knowledge Memory",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING; not INV-24",
+      "DATA_OWNERSHIP": "NEW knowledge_memory_items",
+      "DEPENDENCIES": [
+        "BC-13"
+      ],
+      "FAIL_CLOSED_RULE": "exclude ineligible",
+      "INPUTS": [
+        "KUs"
+      ],
+      "JOB_OWNERSHIP": "pipeline write",
+      "MODEL_OWNERSHIP": "NEW",
+      "OBSERVABILITY": "memory write counts",
+      "OUTPUTS": [
+        "memory items"
+      ],
+      "RESPONSIBILITY": "Governed retrievable memory of eligible KUs",
+      "SAFETY_BOUNDARY": "filter safety/freshness/conflict",
+      "SECURITY_BOUNDARY": "no user PII mix",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "internal/refs",
+      "CONTEXT_ID": "BC-15",
+      "CONTEXT_NAME": "Provenance Store",
+      "CURRENT_REPOSITORY_MAPPING": "INV-43 partial",
+      "DATA_OWNERSHIP": "NEW knowledge_provenance",
+      "DEPENDENCIES": [
+        "BC-01",
+        "BC-07"
+      ],
+      "FAIL_CLOSED_RULE": "block KU without provenance",
+      "INPUTS": [
+        "source/doc/version"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "NEW",
+      "OBSERVABILITY": "provenance completeness",
+      "OUTPUTS": [
+        "provenance records"
+      ],
+      "RESPONSIBILITY": "Mandatory provenance for every KU",
+      "SAFETY_BOUNDARY": "disclosure support",
+      "SECURITY_BOUNDARY": "anti spoofing",
+      "SERVICE_OWNERSHIP": "NEW+fingerprint helpers"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-16",
+      "CONTEXT_NAME": "Versioning and Supersession",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING",
+      "DATA_OWNERSHIP": "KU columns",
+      "DEPENDENCIES": [
+        "BC-13"
+      ],
+      "FAIL_CLOSED_RULE": "no dual active conflict without record",
+      "INPUTS": [
+        "new KU"
+      ],
+      "JOB_OWNERSHIP": "pipeline",
+      "MODEL_OWNERSHIP": "NEW rules",
+      "OBSERVABILITY": "SUPERSEDED_UNITS",
+      "OUTPUTS": [
+        "supersession updates"
+      ],
+      "RESPONSIBILITY": "Version compare and supersede graph",
+      "SAFETY_BOUNDARY": "superseded not runtime eligible",
+      "SECURITY_BOUNDARY": "N/A",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "admin",
+      "CONTEXT_ID": "BC-17",
+      "CONTEXT_NAME": "Weekly Run Ledger",
+      "CURRENT_REPOSITORY_MAPPING": "INV-09 related but insufficient",
+      "DATA_OWNERSHIP": "NEW weekly_knowledge_runs",
+      "DEPENDENCIES": [
+        "BC-03"
+      ],
+      "FAIL_CLOSED_RULE": "run incomplete if ledger write fails",
+      "INPUTS": [
+        "pipeline events"
+      ],
+      "JOB_OWNERSHIP": "weekly job owner",
+      "MODEL_OWNERSHIP": "NEW",
+      "OBSERVABILITY": "all AA metrics",
+      "OUTPUTS": [
+        "run records+metrics"
+      ],
+      "RESPONSIBILITY": "Auditability and measurable weekly improvement",
+      "SAFETY_BOUNDARY": "records safety outcomes",
+      "SECURITY_BOUNDARY": "immutable audit fields",
+      "SERVICE_OWNERSHIP": "NEW"
+    },
+    {
+      "API_OWNERSHIP": "NONE",
+      "CONTEXT_ID": "BC-18",
+      "CONTEXT_NAME": "Scheduler and Job Orchestration",
+      "CURRENT_REPOSITORY_MAPPING": "INV-11",
+      "DATA_OWNERSHIP": "config",
+      "DEPENDENCIES": [
+        "BC-17"
+      ],
+      "FAIL_CLOSED_RULE": "job no-op unless activation flag",
+      "INPUTS": [
+        "cron/config"
+      ],
+      "JOB_OWNERSHIP": "weekly job",
+      "MODEL_OWNERSHIP": "N/A",
+      "OBSERVABILITY": "run_duration",
+      "OUTPUTS": [
+        "job ticks"
+      ],
+      "RESPONSIBILITY": "Schedule weekly orchestrator; keep activation gated",
+      "SAFETY_BOUNDARY": "lifestyle-only legacy remains separate",
+      "SECURITY_BOUNDARY": "no silent enable",
+      "SERVICE_OWNERSHIP": "extend scheduler.py"
+    },
+    {
+      "API_OWNERSHIP": "search APIs",
+      "CONTEXT_ID": "BC-19",
+      "CONTEXT_NAME": "Runtime Knowledge Retrieval",
+      "CURRENT_REPOSITORY_MAPPING": "INV-29 interim",
+      "DATA_OWNERSHIP": "read KU/memory",
+      "DEPENDENCIES": [
+        "BC-13",
+        "BC-14"
+      ],
+      "FAIL_CLOSED_RULE": "if no eligible KU → safe fallback + gap",
+      "INPUTS": [
+        "classified query",
+        "user context"
+      ],
+      "JOB_OWNERSHIP": "N/A",
+      "MODEL_OWNERSHIP": "N/A",
+      "OBSERVABILITY": "retrieval hit rates",
+      "OUTPUTS": [
+        "eligible KUs/memory"
+      ],
+      "RESPONSIBILITY": "Knowledge-Database-First retrieval",
+      "SAFETY_BOUNDARY": "filter safety/freshness/conflict",
+      "SECURITY_BOUNDARY": "user authz",
+      "SERVICE_OWNERSHIP": "NEW retrieval service"
+    },
+    {
+      "API_OWNERSHIP": "N/A",
+      "CONTEXT_ID": "BC-20",
+      "CONTEXT_NAME": "Personalization Integration",
+      "CURRENT_REPOSITORY_MAPPING": "INV-24,INV-30",
+      "DATA_OWNERSHIP": "user stores",
+      "DEPENDENCIES": [
+        "BC-19",
+        "INV-24"
+      ],
+      "FAIL_CLOSED_RULE": "prefer KU over user anecdote for clinical",
+      "INPUTS": [
+        "user profile/RAG pack",
+        "KUs"
+      ],
+      "JOB_OWNERSHIP": "N/A",
+      "MODEL_OWNERSHIP": "existing user services",
+      "OBSERVABILITY": "N/A",
+      "OUTPUTS": [
+        "personalized constraints"
+      ],
+      "RESPONSIBILITY": "Apply user health/lifestyle context after KB retrieval",
+      "SAFETY_BOUNDARY": "personalization must not invent clinical facts",
+      "SECURITY_BOUNDARY": "user data isolation",
+      "SERVICE_OWNERSHIP": "care_intelligence(+ext)"
+    },
+    {
+      "API_OWNERSHIP": "chat",
+      "CONTEXT_ID": "BC-21",
+      "CONTEXT_NAME": "Independent Sedi Synthesis",
+      "CURRENT_REPOSITORY_MAPPING": "brain.py path",
+      "DATA_OWNERSHIP": "N/A",
+      "DEPENDENCIES": [
+        "BC-19",
+        "BC-20"
+      ],
+      "FAIL_CLOSED_RULE": "refuse when safety blocks",
+      "INPUTS": [
+        "eligible knowledge",
+        "personalization"
+      ],
+      "JOB_OWNERSHIP": "N/A",
+      "MODEL_OWNERSHIP": "N/A",
+      "OBSERVABILITY": "N/A",
+      "OUTPUTS": [
+        "assistant response draft"
+      ],
+      "RESPONSIBILITY": "Answer in Sedi language; source is learning input not quote dump",
+      "SAFETY_BOUNDARY": "no unsupported clinical claims",
+      "SECURITY_BOUNDARY": "prompt injection defenses",
+      "SERVICE_OWNERSHIP": "brain synthesis(+policy)"
+    },
+    {
+      "API_OWNERSHIP": "chat metadata",
+      "CONTEXT_ID": "BC-22",
+      "CONTEXT_NAME": "Reference Renderer",
+      "CURRENT_REPOSITORY_MAPPING": "INV-31 partial",
+      "DATA_OWNERSHIP": "provenance",
+      "DEPENDENCIES": [
+        "BC-15"
+      ],
+      "FAIL_CLOSED_RULE": "force refs on high-risk/conflict/uncertainty",
+      "INPUTS": [
+        "provenance",
+        "response"
+      ],
+      "JOB_OWNERSHIP": "N/A",
+      "MODEL_OWNERSHIP": "schemas",
+      "OBSERVABILITY": "ref render counts",
+      "OUTPUTS": [
+        "reference payloads"
+      ],
+      "RESPONSIBILITY": "User-facing sources/references/why",
+      "SAFETY_BOUNDARY": "mandatory triggers",
+      "SECURITY_BOUNDARY": "no leaking raw protected content",
+      "SERVICE_OWNERSHIP": "NEW renderer"
+    },
+    {
+      "API_OWNERSHIP": "admin routers",
+      "CONTEXT_ID": "BC-23",
+      "CONTEXT_NAME": "Admin Review and Activation",
+      "CURRENT_REPOSITORY_MAPPING": "INV-32",
+      "DATA_OWNERSHIP": "status fields",
+      "DEPENDENCIES": [
+        "BC-12"
+      ],
+      "FAIL_CLOSED_RULE": "default disabled",
+      "INPUTS": [
+        "pending reviews"
+      ],
+      "JOB_OWNERSHIP": "N/A",
+      "MODEL_OWNERSHIP": "extend admin",
+      "OBSERVABILITY": "approval latency",
+      "OUTPUTS": [
+        "approvals/activations"
+      ],
+      "RESPONSIBILITY": "Human review, activation, source/KU controls",
+      "SAFETY_BOUNDARY": "high-risk human gate",
+      "SECURITY_BOUNDARY": "admin privilege separation",
+      "SERVICE_OWNERSHIP": "extend knowledge_base APIs"
+    },
+    {
+      "API_OWNERSHIP": "ops",
+      "CONTEXT_ID": "BC-24",
+      "CONTEXT_NAME": "Monitoring and Alerts",
+      "CURRENT_REPOSITORY_MAPPING": "MISSING",
+      "DATA_OWNERSHIP": "metrics store",
+      "DEPENDENCIES": [
+        "BC-17"
+      ],
+      "FAIL_CLOSED_RULE": "alert on silent zero improvement",
+      "INPUTS": [
+        "ledger metrics"
+      ],
+      "JOB_OWNERSHIP": "post-run",
+      "MODEL_OWNERSHIP": "N/A",
+      "OBSERVABILITY": "AA metric set",
+      "OUTPUTS": [
+        "dashboards/alerts"
+      ],
+      "RESPONSIBILITY": "Coverage/freshness/safety metrics and alerts",
+      "SAFETY_BOUNDARY": "alert high-risk gaps",
+      "SECURITY_BOUNDARY": "no secret leakage in logs",
+      "SERVICE_OWNERSHIP": "NEW emitters"
+    }
+  ],
+  "context_count": 24,
+  "international_source_registry_design": {
+    "ACCESS_MODE": "enum",
+    "ACTIVATION_STATE": "DISABLED_DEFAULT",
+    "ALLOWED_HOSTS": [
+      "host"
+    ],
+    "API_OR_FEED_MODE": "OFFICIAL_API|OFFICIAL_XML|OFFICIAL_JSON|RSS_OR_FEED|PUBLIC_WEB_FETCH|MANUAL_OR_LINK_ONLY|BLOCKED_OR_EXCLUDED",
+    "ATTRIBUTION_MODE": "enum",
+    "AUTHORITY_TIER": "enum",
+    "CANONICAL_URL": "url",
+    "CONTENT_CLASSES": [
+      "class"
+    ],
+    "COUNTRY": "str",
+    "CRAWLER_STATE": "enum",
+    "CURRENT_HASH": "str?",
+    "CURRENT_MAPPING": "GovernedSourceProfile + YAML proposal; extend don't duplicate KnowledgeSource blindly",
+    "CURRENT_VERSION": "str?",
+    "FRESHNESS_CADENCE": "P7D",
+    "KNOWLEDGE_MODE": "CONCEPTUAL_EXTRACTION",
+    "LANGUAGE": "str",
+    "LAST_CHANGED_AT": "datetime?",
+    "LAST_FETCHED_AT": "datetime?",
+    "NO_BYPASS_STATE": true,
+    "OWNER": "Javad|team",
+    "PUBLISHER": "str",
+    "RATE_LIMIT_POLICY": "object",
+    "RAW_RETENTION_MODE": "enum",
+    "REFERENCE_MODE": "enum",
+    "SEPARATION_RULE": "Iran directory records must not appear as ISR clinical authorities",
+    "SOURCE_ID": "uuid",
+    "SOURCE_NAME": "str",
+    "TOPIC_TAXONOMY": [
+      "topic"
+    ]
+  },
+  "iran_directory_design": {
+    "entities": [
+      "IranDoctor",
+      "IranLaboratory",
+      "IranHospital"
+    ],
+    "prohibited": "IRAN_DIRECTORY_RECORD → CLINICAL_KNOWLEDGE_UNIT",
+    "purpose": "user discovery and service navigation only",
+    "required_fields": [
+      "DIRECTORY_IDENTITY",
+      "PROVIDER_OR_FACILITY_TYPE",
+      "SPECIALTY",
+      "LOCATION",
+      "CONTACT",
+      "SERVICE_AVAILABILITY",
+      "LICENSING_OR_REGISTRATION_SIGNAL",
+      "SOURCE",
+      "LAST_VERIFIED",
+      "CONFIDENCE",
+      "DUPLICATE_STATE",
+      "ACTIVE_STATE"
+    ]
+  },
+  "knowledge_gap_priority_queue_design": {
+    "fields": [
+      "GAP_ID",
+      "DOMAIN",
+      "TOPIC",
+      "KNOWLEDGE_TYPE",
+      "SOURCE_OF_GAP",
+      "USER_IMPACT",
+      "SAFETY_RISK",
+      "FREQUENCY",
+      "CURRENT_COVERAGE",
+      "CURRENT_CONFIDENCE",
+      "CURRENT_FRESHNESS",
+      "CURRENT_SOURCE_DIVERSITY",
+      "TARGET_AUTHORITIES",
+      "DISCOVERY_QUERY_SET",
+      "PRIORITY_SCORE",
+      "OWNER",
+      "TARGET_RUN",
+      "STATUS",
+      "CLOSURE_CRITERIA",
+      "CLOSED_BY_RUN_ID"
+    ],
+    "prioritization_rule": "SAFETY_RISK weight dominates; low-risk popularity cannot outrank critical medical-safety gaps",
+    "priority_score_formula": "priority = 1000*safety_tier + 100*user_impact + 10*frequency + freshness_penalty + coverage_penalty + diversity_penalty - confidence_bonus"
+  },
+  "knowledge_memory_design": {
+    "distinct_from": [
+      "user memory",
+      "conversation history",
+      "Lifestyle Memory",
+      "raw documents",
+      "embeddings",
+      "model memory"
+    ],
+    "fields": [
+      "MEMORY_ITEM_ID",
+      "KNOWLEDGE_UNIT_ID",
+      "DOMAIN",
+      "TOPIC",
+      "KNOWLEDGE_VERSION",
+      "SOURCE_IDS",
+      "SOURCE_VERSIONS",
+      "EVIDENCE_STRENGTH",
+      "FRESHNESS_STATE",
+      "CONFLICT_STATE",
+      "MEDICAL_SAFETY_STATE",
+      "RUNTIME_ELIGIBILITY_STATE",
+      "SUPERSESSION_STATE",
+      "CREATED_AT",
+      "UPDATED_AT"
+    ],
+    "repository_decision": "SEPARATE_MODEL_REQUIRED — do not extend user_memory_facts or LocalRAG"
+  },
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "provenance_raw_retention_design": {
+    "existing_support": "KnowledgeDocument/Chunk/IngestionRun + fingerprint helpers — extend with provenance table",
+    "fields": [
+      "SOURCE_ID",
+      "DOCUMENT_ID",
+      "DOCUMENT_VERSION",
+      "CANONICAL_URL",
+      "TITLE",
+      "PUBLISHER",
+      "PUBLICATION_DATE",
+      "LAST_UPDATED_DATE",
+      "RETRIEVAL_DATE",
+      "HASH",
+      "CONTENT_CLASS",
+      "ACCESS_MODE",
+      "RAW_RETENTION_MODE",
+      "MINIMAL_EVIDENCE",
+      "KNOWLEDGE_UNIT_IDS"
+    ],
+    "raw_modes": [
+      "RAW_FULL_GOVERNED_RETENTION",
+      "RAW_TRANSIENT_PROCESSING",
+      "RAW_MINIMAL_EVIDENCE_ONLY",
+      "RAW_LINK_AND_CITATION_ONLY",
+      "RAW_EXCLUDED_PROTECTED_ELEMENTS"
+    ]
+  },
+  "runtime_flow": [
+    "USER_REQUEST",
+    "USER_IDENTITY",
+    "HEALTH_PROFILE",
+    "LIFESTYLE_CONTEXT",
+    "QUERY_CLASSIFICATION",
+    "KNOWLEDGE_DATABASE_RETRIEVAL",
+    "KNOWLEDGE_MEMORY_RETRIEVAL",
+    "FRESHNESS_EVIDENCE_CONFLICT_FILTER",
+    "MEDICAL_SAFETY_POLICY",
+    "PERSONALIZATION",
+    "SEDI_SYNTHESIS",
+    "REFERENCE_SELECTION",
+    "RESPONSE"
+  ],
+  "runtime_integration_points": {
+    "brain._maybe_append_gate3_care_context": "backend/app/core/conversation/brain.py:200+",
+    "care_intelligence.build_care_context": "backend/app/services/gate3/care_intelligence.py:38",
+    "do_not_modify_in_this_gate": true,
+    "search_knowledge": "backend/app/services/gate3/knowledge_retrieval_service.py:56"
+  },
+  "source_adapter_candidates": {
+    "APA": "MANUAL_OR_LINK_ONLY|FACT_EXTRACTION_ONLY disposition — inactive",
+    "CDC": "OFFICIAL_API|feed candidate — inactive",
+    "MedlinePlus": "OFFICIAL_API|JSON candidate — inactive",
+    "NHS": "PUBLIC_WEB_FETCH|OGL considerations — inactive",
+    "NIMH": "PUBLIC_WEB_FETCH — inactive",
+    "WHO": "PUBLIC_WEB_FETCH|future API — inactive",
+    "note": "Adapter design separated from activation; no fetch in this Gate"
+  },
+  "structured_knowledge_unit_design": {
+    "fields": [
+      "KNOWLEDGE_UNIT_ID",
+      "KNOWLEDGE_TYPE",
+      "DOMAIN",
+      "TOPIC_TAXONOMY",
+      "DISEASE_OR_HEALTH_CONDITION",
+      "NORMALIZED_CONTENT",
+      "SEDI_SYNTHESIS",
+      "TARGET_POPULATION",
+      "JURISDICTION",
+      "SOURCE_IDS",
+      "SOURCE_VERSIONS",
+      "EVIDENCE_STRENGTH",
+      "QUALITY_STATE",
+      "MEDICAL_SAFETY_STATE",
+      "CONFLICT_STATE",
+      "CONFIDENCE_STATE",
+      "FRESHNESS_STATE",
+      "RUNTIME_ELIGIBILITY_STATE",
+      "VALID_FROM",
+      "VALID_UNTIL",
+      "SUPERSEDED_BY",
+      "CREATED_AT",
+      "UPDATED_AT",
+      "LAST_REVIEWED_AT"
+    ],
+    "supersession": "new eligible KU sets prior SUPERSEDED_BY; superseded RUNTIME_ELIGIBILITY=false",
+    "uniqueness": "dedupe_key = hash(domain, topic, population, jurisdiction, normalized_content_canonical)"
+  },
+  "weekly_pipeline_stages": [
+    "SCHEDULE",
+    "GAP_PRIORITY_LOAD",
+    "SOURCE_DISCOVERY",
+    "SOURCE_SELECTION",
+    "ACQUISITION",
+    "HASH",
+    "CHANGE_DETECTION",
+    "PARSING",
+    "IMPORTANT_POINT_EXTRACTION",
+    "NORMALIZATION",
+    "TAXONOMY_MAPPING",
+    "MULTI_SOURCE_COMPARISON",
+    "EVIDENCE_STRENGTH",
+    "CONFLICT_DETECTION",
+    "MEDICAL_SAFETY_REVIEW",
+    "KNOWLEDGE_WRITE",
+    "MEMORY_WRITE",
+    "PROVENANCE_WRITE",
+    "VERSION_SUPERSEDE",
+    "GAP_UPDATE",
+    "RUN_LEDGER",
+    "MONITORING"
+  ]
+}

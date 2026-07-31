@@ -1,0 +1,146 @@
+{
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "structure_note": "Preserved recommended AB structure; evidence supports WAVE1 first via Option A",
+  "wave_count": 6,
+  "waves": [
+    {
+      "NAME": "CORE CONTRACTS AND SCHEMAS",
+      "OBJECTIVE": "Persist ISR extensions, Knowledge Gap Queue, Weekly Run Ledger, KU+Provenance foundations",
+      "PACKAGES": [
+        "I5-IMPL-W1-P01",
+        "I5-IMPL-W1-P02"
+      ],
+      "REPOSITORY_JUSTIFICATION": "GovernedSourceProfile+IngestionRun+governance contracts exist; Gap/Ledger/KU missing",
+      "UNLOCKS": [
+        "WAVE2",
+        "WAVE3"
+      ],
+      "WAVE_ID": "WAVE1"
+    },
+    {
+      "NAME": "KNOWLEDGE STORAGE AND GOVERNANCE",
+      "OBJECTIVE": "Knowledge Memory, versioning/supersession, evidence/freshness/conflict/medical-safety states",
+      "PACKAGES": [
+        "I5-IMPL-W2-P01",
+        "I5-IMPL-W2-P02",
+        "I5-IMPL-W2-P03"
+      ],
+      "REPOSITORY_JUSTIFICATION": "AI review and safety services reusable; KU states absent",
+      "UNLOCKS": [
+        "WAVE4"
+      ],
+      "WAVE_ID": "WAVE2"
+    },
+    {
+      "NAME": "CRAWLER FRAMEWORK",
+      "OBJECTIVE": "Adapter framework, discovery, parse/extract/normalize, weekly orchestrator (no activation)",
+      "PACKAGES": [
+        "I5-IMPL-W3-P01",
+        "I5-IMPL-W3-P02"
+      ],
+      "REPOSITORY_JUSTIFICATION": "Fetcher/parser/scheduler substrate exists; weekly gap pipeline missing",
+      "UNLOCKS": [
+        "WAVE6 dry-run"
+      ],
+      "WAVE_ID": "WAVE3"
+    },
+    {
+      "NAME": "RUNTIME INTEGRATION",
+      "OBJECTIVE": "Knowledge-Database-First retrieval, personalization, synthesis, references",
+      "PACKAGES": [
+        "I5-IMPL-W4-P01",
+        "I5-IMPL-W4-P02"
+      ],
+      "REPOSITORY_JUSTIFICATION": "CARE_CONTEXT hook is exact integration point",
+      "UNLOCKS": [
+        "production usefulness"
+      ],
+      "WAVE_ID": "WAVE4"
+    },
+    {
+      "NAME": "IRAN DIRECTORY",
+      "OBJECTIVE": "Separate doctors/labs/hospitals directory; forbid clinical KU path",
+      "PACKAGES": [
+        "I5-IMPL-W5-P01"
+      ],
+      "REPOSITORY_JUSTIFICATION": "Catalog IR keys blocked; UserDoctor not directory",
+      "UNLOCKS": [
+        "directory UX"
+      ],
+      "WAVE_ID": "WAVE5"
+    },
+    {
+      "NAME": "VALIDATION AND ACTIVATION",
+      "OBJECTIVE": "Tests/CI/migration-run/dry-run/activation/monitoring — separate approvals",
+      "PACKAGES": [
+        "I5-IMPL-W6-P02",
+        "I5-IMPL-W6-P03",
+        "I5-IMPL-W6-P01"
+      ],
+      "REPOSITORY_JUSTIFICATION": "PLAN-F11 activation must not ride with implementation",
+      "UNLOCKS": [
+        "EO-C11 future consideration only after Javad"
+      ],
+      "WAVE_ID": "WAVE6"
+    }
+  ],
+  "management_map_reconciliation": {
+    "planning_ids_authoritative": true,
+    "management_identifier_format": "P01..P13 aliases only",
+    "ledger": "i5_completion_ledger.json",
+    "map": [
+      {
+        "management_id": "P01",
+        "planning_package_id": "I5-IMPL-W1-P01"
+      },
+      {
+        "management_id": "P02",
+        "planning_package_id": "I5-IMPL-W1-P02"
+      },
+      {
+        "management_id": "P03",
+        "planning_package_id": "I5-IMPL-W2-P01"
+      },
+      {
+        "management_id": "P04",
+        "planning_package_id": "I5-IMPL-W2-P02"
+      },
+      {
+        "management_id": "P05",
+        "planning_package_id": "I5-IMPL-W2-P03"
+      },
+      {
+        "management_id": "P06",
+        "planning_package_id": "I5-IMPL-W3-P01"
+      },
+      {
+        "management_id": "P07",
+        "planning_package_id": "I5-IMPL-W3-P02"
+      },
+      {
+        "management_id": "P08",
+        "planning_package_id": "I5-IMPL-W4-P01"
+      },
+      {
+        "management_id": "P09",
+        "planning_package_id": "I5-IMPL-W4-P02"
+      },
+      {
+        "management_id": "P10",
+        "planning_package_id": "I5-IMPL-W5-P01"
+      },
+      {
+        "management_id": "P11",
+        "planning_package_id": "I5-IMPL-W6-P02"
+      },
+      {
+        "management_id": "P12",
+        "planning_package_id": "I5-IMPL-W6-P03"
+      },
+      {
+        "management_id": "P13",
+        "planning_package_id": "I5-IMPL-W6-P01"
+      }
+    ]
+  }
+}

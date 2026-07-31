@@ -1,0 +1,127 @@
+{
+  "dependencies": [
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING",
+      "CLOSURE_CRITERIA": "migrations authored+reviewed",
+      "DEPENDENCY_ID": "DEP-01",
+      "DEPENDENCY_TYPE": "SCHEMA",
+      "OWNER": "DATABASE_SCHEMA",
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REQUIRED": "New tables for gap/ledger/KU"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_LATER",
+      "CLOSURE_CRITERIA": "migrate Gate PASS",
+      "DEPENDENCY_ID": "DEP-02",
+      "DEPENDENCY_TYPE": "MIGRATION_RUN",
+      "OWNER": "DATABASE_SCHEMA",
+      "TARGET_PACKAGE": "I5-IMPL-W6-P01",
+      "WHY_REQUIRED": "Apply migrations to target DB"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_FOR_RUNTIME",
+      "CLOSURE_CRITERIA": "policy signed by owner",
+      "DEPENDENCY_ID": "DEP-03",
+      "DEPENDENCY_TYPE": "MEDICAL_SAFETY_POLICY",
+      "OWNER": "MEDICAL_SAFETY",
+      "TARGET_PACKAGE": "I5-IMPL-W2-P02",
+      "WHY_REQUIRED": "High-risk domain rules"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_FOR_REFS",
+      "CLOSURE_CRITERIA": "renderer acceptance",
+      "DEPENDENCY_ID": "DEP-04",
+      "DEPENDENCY_TYPE": "PRODUCT_REFERENCE_UX",
+      "OWNER": "PRODUCT",
+      "TARGET_PACKAGE": "I5-IMPL-W4-P02",
+      "WHY_REQUIRED": "Reference UI contracts"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_FOR_RAW",
+      "CLOSURE_CRITERIA": "retention matrix approved",
+      "DEPENDENCY_ID": "DEP-05",
+      "DEPENDENCY_TYPE": "LEGAL_CONTENT_CLASS",
+      "OWNER": "LEGAL_OR_CONTENT_POLICY",
+      "TARGET_PACKAGE": "I5-IMPL-W1-P02",
+      "WHY_REQUIRED": "Raw retention modes per content class"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "NON_BLOCKING_IMPL",
+      "CLOSURE_CRITERIA": "workflow Gate",
+      "DEPENDENCY_ID": "DEP-06",
+      "DEPENDENCY_TYPE": "CI_WORKFLOW",
+      "OWNER": "CI",
+      "TARGET_PACKAGE": "I5-IMPL-W6-P02",
+      "WHY_REQUIRED": "CI includes new tests"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "NON_BLOCKING_IMPL",
+      "CLOSURE_CRITERIA": "emitters live in env",
+      "DEPENDENCY_ID": "DEP-07",
+      "DEPENDENCY_TYPE": "DEVOPS_METRICS",
+      "OWNER": "DEVOPS",
+      "TARGET_PACKAGE": "I5-IMPL-W6-P03",
+      "WHY_REQUIRED": "Metrics/alerts plumbing"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_ACTIVATION",
+      "CLOSURE_CRITERIA": "written activation",
+      "DEPENDENCY_ID": "DEP-08",
+      "DEPENDENCY_TYPE": "JAVAD_ACTIVATION",
+      "OWNER": "JAVAD_DECISION",
+      "TARGET_PACKAGE": "I5-IMPL-W6-P01",
+      "WHY_REQUIRED": "Enable weekly job / source fetch"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_W5",
+      "CLOSURE_CRITERIA": "decision recorded",
+      "DEPENDENCY_ID": "DEP-09",
+      "DEPENDENCY_TYPE": "JAVAD_IR_DIRECTORY",
+      "OWNER": "JAVAD_DECISION",
+      "TARGET_PACKAGE": "I5-IMPL-W5-P01",
+      "WHY_REQUIRED": "Which IR directory sources allowed"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_ACTIVATION",
+      "CLOSURE_CRITERIA": "dry-run Gate",
+      "DEPENDENCY_ID": "DEP-10",
+      "DEPENDENCY_TYPE": "NETWORK_DRY_RUN",
+      "OWNER": "JAVAD_DECISION",
+      "TARGET_PACKAGE": "I5-IMPL-W6-P01",
+      "WHY_REQUIRED": "Allowlisted offline/online dry-run"
+    },
+    {
+      "APPROVAL_REQUIRED": false,
+      "BLOCKING_STATE": "NOT_UNIVERSAL",
+      "CLOSURE_CRITERIA": "follow Section29 lawful-use",
+      "DEPENDENCY_ID": "DEP-11",
+      "DEPENDENCY_TYPE": "PUBLISHER_APPROVAL",
+      "OWNER": "LEGAL_OR_CONTENT_POLICY",
+      "TARGET_PACKAGE": "N/A",
+      "WHY_REQUIRED": "Not required for conceptual use"
+    },
+    {
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING",
+      "CLOSURE_CRITERIA": "closure criteria per package",
+      "DEPENDENCY_ID": "DEP-12",
+      "DEPENDENCY_TYPE": "BACKEND_IMPL",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "TARGET_PACKAGE": "I5-IMPL-W1-P01",
+      "WHY_REQUIRED": "Code packages W1-W4"
+    }
+  ],
+  "dependency_count": 12,
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "completion_ledger_note": "i5_completion_ledger.json is documentation-only governance evidence; it reconciles §164.2 formal weights and does not authorize implementation."
+}

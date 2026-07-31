@@ -1,0 +1,706 @@
+{
+  "explicit_path_entry_count": 114,
+  "notes": [
+    "0XX revision filenames are placeholders; exact alembic rev decided at implementation Gate",
+    "PROHIBITED entries are package-scoped; later packages may authorize some paths"
+  ],
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "packages": {
+    "I5-IMPL-W1-P01": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "new i5 package namespace",
+          "path": "backend/app/services/i5/__init__.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/enums.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/isr_registry_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/knowledge_gap_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/weekly_run_ledger_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/schemas/i5_core.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "admin only; no fetch",
+          "path": "backend/app/routers/i5_admin.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "exact revision id decided at impl",
+          "path": "backend/alembic/versions/0XX_i5_w1_p01_gap_ledger_isr.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w1_p01_gap_ledger_isr.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "add KnowledgeGap, WeeklyKnowledgeRun; optional ISR columns",
+          "path": "backend/app/models.py"
+        },
+        {
+          "action": "MODIFY",
+          "note": "router include if pattern requires",
+          "path": "backend/app/main.py"
+        },
+        {
+          "action": "MODIFY",
+          "note": "append-only evidence later",
+          "path": "docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "no job enable in P01",
+          "path": "backend/app/core/scheduler.py"
+        },
+        {
+          "action": "PROHIBITED",
+          "note": "no fetch changes",
+          "path": "backend/app/services/gate3/knowledge_source_fetcher.py"
+        },
+        {
+          "action": "PROHIBITED",
+          "note": "",
+          "path": ".github/workflows/**"
+        },
+        {
+          "action": "PROHIBITED",
+          "note": "except explicit later package",
+          "path": "backend/config/**"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/models.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/contracts.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/kb_b2_source_profile_persistence.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/kb_lifecycle_mapping.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/kb_scheduler.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/alembic/versions/051_i5b2_governed_source_profile.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "docs/evidence/section29/pkg_ext_e2_bounded_01_r1/decision_matrices/weekly_governed_knowledge_crawler_law.json"
+        }
+      ]
+    },
+    "I5-IMPL-W1-P02": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/knowledge_unit_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/provenance_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/schemas/i5_knowledge_unit.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/alembic/versions/0XX_i5_w1_p02_ku_provenance.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w1_p02_ku_provenance.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/models.py"
+        },
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/routers/i5_admin.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "runtime switch is WAVE4",
+          "path": "backend/app/core/conversation/brain.py"
+        },
+        {
+          "action": "PROHIBITED",
+          "note": "",
+          "path": "backend/app/services/gate3/knowledge_source_fetcher.py"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/models.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/contracts.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/kb_b2_source_profile_persistence.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/kb_lifecycle_mapping.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/kb_scheduler.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/alembic/versions/051_i5b2_governed_source_profile.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "docs/evidence/section29/pkg_ext_e2_bounded_01_r1/decision_matrices/weekly_governed_knowledge_crawler_law.json"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/knowledge_update_service.py"
+        }
+      ]
+    },
+    "I5-IMPL-W2-P01": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/knowledge_memory_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/supersession_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/alembic/versions/0XX_i5_w2_p01_memory_supersession.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w2_p01_knowledge_memory.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/models.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "user KC unchanged as Knowledge Memory",
+          "path": "backend/app/services/knowledge/**"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "contrast only",
+          "path": "backend/app/routers/memory.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "do not conflate",
+          "path": "backend/app/services/local_rag"
+        }
+      ]
+    },
+    "I5-IMPL-W2-P02": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/conflict_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/medical_safety_gate.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/alembic/versions/0XX_i5_w2_p02_conflict_safety.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w2_p02_conflict_safety.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/models.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "",
+          "path": "backend/app/core/conversation/brain.py"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/knowledge_ai_review_service.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/safety_core.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/governance/contracts.py"
+        }
+      ]
+    },
+    "I5-IMPL-W2-P03": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w2_p03_admin_review.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/routers/i5_admin.py"
+        },
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/schemas/i5_core.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "",
+          "path": "backend/app/core/scheduler.py"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/routers/knowledge_base.py"
+        }
+      ]
+    },
+    "I5-IMPL-W3-P01": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/adapters/__init__.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/adapters/base.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/adapters/public_web_fetch.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/adapters/official_api.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/adapters/rss_feed.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/conceptual_extraction.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/normalization.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w3_p01_adapters_extract.py"
+        }
+      ],
+      "MODIFY": [],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "no activation edits",
+          "path": "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+        },
+        {
+          "action": "PROHIBITED",
+          "note": "no live network in package",
+          "path": "**/*"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/knowledge_source_fetcher.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/content_parser.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/fetch_security.py"
+        }
+      ]
+    },
+    "I5-IMPL-W3-P02": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/weekly_orchestrator.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/source_discovery.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "register dormant weekly job only; default off",
+          "path": "backend/app/core/scheduler.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "do not set enable env true",
+          "path": "**/*"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/kb_scheduler.py"
+        }
+      ]
+    },
+    "I5-IMPL-W4-P01": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/runtime_knowledge_retrieval.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/core/conversation/brain.py"
+        },
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/services/gate3/care_intelligence.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "do not replace user RAG",
+          "path": "backend/app/services/local_rag/**"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/knowledge_retrieval_service.py"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/care_intelligence.py"
+        }
+      ]
+    },
+    "I5-IMPL-W4-P02": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/reference_renderer.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/schemas/i5_references.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w4_p02_references.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/core/conversation/brain.py"
+        }
+      ],
+      "PROHIBITED": [],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/app/services/gate3/knowledge_retrieval_service.py"
+        }
+      ]
+    },
+    "I5-IMPL-W5-P01": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/iran_directory_service.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/schemas/i5_iran_directory.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/routers/i5_iran_directory.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/alembic/versions/0XX_i5_w5_iran_directory.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w5_iran_directory.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/models.py"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "no IR→KU writes",
+          "path": "backend/app/services/i5/knowledge_unit_service.py"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+        },
+        {
+          "action": "READ_ONLY",
+          "note": "UserDoctor contrast",
+          "path": "backend/app/models.py"
+        }
+      ]
+    },
+    "I5-IMPL-W6-P01": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "future evidence root",
+          "path": "docs/evidence/section30/activation_*/**"
+        }
+      ],
+      "MODIFY": [],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "no auto execution in planning; requires Javad subgates for migrate/run/dry-run/activate/commit/push",
+          "path": "**/*"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "docs/evidence/section30/**"
+        }
+      ]
+    },
+    "I5-IMPL-W6-P02": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_e2e_offline_dryrun.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "only if separately authorized",
+          "path": ".github/workflows/**"
+        }
+      ],
+      "PROHIBITED": [
+        {
+          "action": "PROHIBITED",
+          "note": "tests/CI focused",
+          "path": "backend/app/**"
+        }
+      ],
+      "READ_ONLY": [
+        {
+          "action": "READ_ONLY",
+          "note": "",
+          "path": "backend/tests/**"
+        }
+      ]
+    },
+    "I5-IMPL-W6-P03": {
+      "CREATE": [
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/app/services/i5/metrics.py"
+        },
+        {
+          "action": "CREATE",
+          "note": "",
+          "path": "backend/tests/test_section30_i5_w6_metrics.py"
+        }
+      ],
+      "MODIFY": [
+        {
+          "action": "MODIFY",
+          "note": "",
+          "path": "backend/app/services/i5/weekly_orchestrator.py"
+        }
+      ],
+      "PROHIBITED": [],
+      "READ_ONLY": []
+    }
+  },
+  "completion_ledger_note": "i5_completion_ledger.json is documentation-only governance evidence; it reconciles §164.2 formal weights and does not authorize implementation."
+}

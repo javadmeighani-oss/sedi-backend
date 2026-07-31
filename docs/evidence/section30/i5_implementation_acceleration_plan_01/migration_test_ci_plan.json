@@ -1,0 +1,202 @@
+{
+  "ci_impact": "Expect new test modules under backend/tests; workflow edit only in I5-IMPL-W6-P02 if authorized",
+  "do_not_edit_tests_in_this_planning_gate": true,
+  "migration_item_count": 5,
+  "migrations": [
+    {
+      "COMPATIBILITY_RISK": "LOW",
+      "DATA_BACKFILL": "NONE_REQUIRED",
+      "EXTEND_OR_NEW": "NEW_BOUNDED_TABLES_PREFERRED",
+      "FOREIGN_KEYS": [
+        "gap.target optional source keys"
+      ],
+      "INDEXES": [
+        "gap priority_score",
+        "gap status",
+        "run started_at"
+      ],
+      "MIGRATION_CREATE_GATE": "I5-IMPL-W1-P01",
+      "MIGRATION_ID": "MIG-I5-W1-P01",
+      "MIGRATION_RUN_GATE": "I5-IMPL-W6-P01",
+      "MODELS_AFFECTED": [
+        "GovernedSourceProfile?",
+        "KnowledgeGap",
+        "WeeklyKnowledgeRun"
+      ],
+      "NEW_COLUMNS": [
+        "optional ISR extension columns on governed_source_profiles"
+      ],
+      "NEW_TABLES": [
+        "knowledge_gaps",
+        "weekly_knowledge_runs"
+      ],
+      "ROLLBACK_STRATEGY": "down migration drop new tables",
+      "TEST_REQUIREMENTS": [
+        "alembic upgrade/downgrade smoke"
+      ],
+      "UNIQUE_CONSTRAINTS": [
+        "gap_id",
+        "run_id"
+      ]
+    },
+    {
+      "COMPATIBILITY_RISK": "MED if premature backfill",
+      "DATA_BACKFILL": "OPTIONAL later from approved chunks — separate Gate",
+      "EXTEND_OR_NEW": "NEW_TABLES_NOT_REPURPOSE_CHUNKS",
+      "FOREIGN_KEYS": [
+        "provenance.knowledge_unit_id"
+      ],
+      "INDEXES": [
+        "domain+topic",
+        "runtime_eligibility",
+        "source_ids GIN/JSON"
+      ],
+      "MIGRATION_CREATE_GATE": "I5-IMPL-W1-P02",
+      "MIGRATION_ID": "MIG-I5-W1-P02",
+      "MIGRATION_RUN_GATE": "I5-IMPL-W6-P01",
+      "MODELS_AFFECTED": [
+        "KnowledgeUnit",
+        "KnowledgeProvenance"
+      ],
+      "NEW_COLUMNS": [],
+      "NEW_TABLES": [
+        "knowledge_units",
+        "knowledge_provenance"
+      ],
+      "ROLLBACK_STRATEGY": "drop new tables",
+      "TEST_REQUIREMENTS": [
+        "provenance required constraint"
+      ],
+      "UNIQUE_CONSTRAINTS": [
+        "knowledge_unit_id",
+        "dedupe hash"
+      ]
+    },
+    {
+      "COMPATIBILITY_RISK": "LOW",
+      "DATA_BACKFILL": "NONE",
+      "EXTEND_OR_NEW": "NEW_TABLE",
+      "FOREIGN_KEYS": [
+        "knowledge_unit_id"
+      ],
+      "INDEXES": [
+        "memory runtime_eligibility"
+      ],
+      "MIGRATION_CREATE_GATE": "I5-IMPL-W2-P01",
+      "MIGRATION_ID": "MIG-I5-W2-P01",
+      "MIGRATION_RUN_GATE": "I5-IMPL-W6-P01",
+      "MODELS_AFFECTED": [
+        "KnowledgeMemoryItem",
+        "KnowledgeUnit"
+      ],
+      "NEW_COLUMNS": [
+        "knowledge_units.superseded_by"
+      ],
+      "NEW_TABLES": [
+        "knowledge_memory_items"
+      ],
+      "ROLLBACK_STRATEGY": "drop+column remove",
+      "TEST_REQUIREMENTS": [
+        "memory distinct from user_memory_facts"
+      ],
+      "UNIQUE_CONSTRAINTS": [
+        "memory_item_id"
+      ]
+    },
+    {
+      "COMPATIBILITY_RISK": "LOW",
+      "DATA_BACKFILL": "NONE",
+      "EXTEND_OR_NEW": "NEW_PLUS_EXTEND_KU",
+      "FOREIGN_KEYS": [
+        "ku_id"
+      ],
+      "INDEXES": [
+        "conflict_state",
+        "safety queue status"
+      ],
+      "MIGRATION_CREATE_GATE": "I5-IMPL-W2-P02",
+      "MIGRATION_ID": "MIG-I5-W2-P02",
+      "MIGRATION_RUN_GATE": "I5-IMPL-W6-P01",
+      "MODELS_AFFECTED": [
+        "KnowledgeConflict",
+        "SafetyReviewQueueItem",
+        "KnowledgeUnit"
+      ],
+      "NEW_COLUMNS": [
+        "medical_safety_state",
+        "conflict_state",
+        "evidence_strength",
+        "freshness_state"
+      ],
+      "NEW_TABLES": [
+        "knowledge_conflicts",
+        "knowledge_safety_reviews"
+      ],
+      "ROLLBACK_STRATEGY": "drop+column remove",
+      "TEST_REQUIREMENTS": [
+        "state transition tests"
+      ],
+      "UNIQUE_CONSTRAINTS": []
+    },
+    {
+      "COMPATIBILITY_RISK": "LOW",
+      "DATA_BACKFILL": "NONE until source decision",
+      "EXTEND_OR_NEW": "NEW_BOUNDED_NOT_USERDOCTOR",
+      "FOREIGN_KEYS": [],
+      "INDEXES": [
+        "specialty",
+        "location"
+      ],
+      "MIGRATION_CREATE_GATE": "I5-IMPL-W5-P01",
+      "MIGRATION_ID": "MIG-I5-W5-P01",
+      "MIGRATION_RUN_GATE": "I5-IMPL-W6-P01",
+      "MODELS_AFFECTED": [
+        "IranDoctor",
+        "IranLaboratory",
+        "IranHospital"
+      ],
+      "NEW_COLUMNS": [],
+      "NEW_TABLES": [
+        "iran_doctors",
+        "iran_laboratories",
+        "iran_hospitals"
+      ],
+      "ROLLBACK_STRATEGY": "drop",
+      "TEST_REQUIREMENTS": [
+        "no FK to knowledge_units as authority"
+      ],
+      "UNIQUE_CONSTRAINTS": [
+        "directory identity keys"
+      ]
+    }
+  ],
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "reusable_test_patterns": [
+    "backend/tests/test_gate3g_kb_crawler_v1.py",
+    "backend/tests/test_gate3i_kb_scheduler_v1.py",
+    "backend/tests/test_section15_i5b2_*.py",
+    "backend/tests/test_section15_i5a2_policy_evaluator.py"
+  ],
+  "test_authoring_same_package": "Unit/service/API tests authored with implementation packages",
+  "test_execution_separate_approval": "Full suite / CI / e2e dry-run may require separate approval per package boundary",
+  "test_layer_count": 17,
+  "test_layers": [
+    "MODEL_TESTS",
+    "REPOSITORY_TESTS",
+    "SERVICE_TESTS",
+    "ADAPTER_CONTRACT_TESTS",
+    "PARSER_TESTS",
+    "NORMALIZATION_TESTS",
+    "DEDUPLICATION_TESTS",
+    "VERSIONING_TESTS",
+    "CONFLICT_TESTS",
+    "MEDICAL_SAFETY_TESTS",
+    "SCHEDULER_TESTS",
+    "RUN_LEDGER_TESTS",
+    "RUNTIME_RETRIEVAL_TESTS",
+    "REFERENCE_RENDERER_TESTS",
+    "API_TESTS",
+    "MIGRATION_TESTS",
+    "END_TO_END_DRY_RUN_TESTS"
+  ]
+}

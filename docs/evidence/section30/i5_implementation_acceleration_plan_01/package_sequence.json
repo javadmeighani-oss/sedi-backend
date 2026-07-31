@@ -1,0 +1,747 @@
+{
+  "first_package": "I5-IMPL-W1-P01",
+  "package_count": 13,
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "packages": [
+    {
+      "APIS": [
+        "admin read/write gaps/ledger/ISR — no fetch"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "Javad for package start; migration run separate"
+      ],
+      "CLOSURE_CRITERIA": [
+        "models+services+tests authored; static checks pass; no activation"
+      ],
+      "COMPONENTS": [
+        "ISR fields/services",
+        "KnowledgeGap model+service",
+        "WeeklyRunLedger model+service",
+        "state enums",
+        "governance wiring stubs"
+      ],
+      "DEPENDENCIES": [
+        "051 profiles",
+        "governance contracts"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W1-P01",
+      "EXPECTED_I5_COMPLETION_IMPACT": "DESIGN/CODE progress only; formal % unchanged until validation Gate",
+      "JOBS": [],
+      "MIGRATIONS": [
+        "AUTHOR_ONLY in package; RUN separate Gate"
+      ],
+      "MODELS": [
+        "extend GovernedSourceProfile or companion ISR view",
+        "KnowledgeGap",
+        "WeeklyKnowledgeRun"
+      ],
+      "NEXT_PACKAGE": "I5-IMPL-W1-P02",
+      "OBJECTIVE": "Core contracts+persistence for International Source Registry extensions, Knowledge Gap Priority Queue, Weekly Run Ledger",
+      "OUT_OF_SCOPE": [
+        "network",
+        "fetch",
+        "activation",
+        "KU write",
+        "migration run",
+        "commit"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W1-P01",
+      "RECOMMENDED_FIRST": true,
+      "REPOSITORIES": [
+        "optional SQLAlchemy repos"
+      ],
+      "SCHEMAS": [
+        "Pydantic create/read for gap/ledger/ISR"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F01,F03,F05,F06,F09,F11,F12"
+      ],
+      "SERVICES": [
+        "gap_priority_service",
+        "weekly_run_ledger_service",
+        "isr_registry_service"
+      ],
+      "STATIC_VALIDATION": [
+        "import graph no network",
+        "IR clinical path forbidden unit assert"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "model",
+        "repository",
+        "service",
+        "api schema"
+      ],
+      "WAVE": "WAVE1"
+    },
+    {
+      "APIS": [
+        "admin KU read; no runtime switch yet"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "migration run separate"
+      ],
+      "CLOSURE_CRITERIA": [
+        "KU+provenance persist; fail closed without provenance"
+      ],
+      "COMPONENTS": [
+        "KnowledgeUnit",
+        "KnowledgeProvenance",
+        "raw retention mode enums"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W1-P01"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W1-P02",
+      "EXPECTED_I5_COMPLETION_IMPACT": "code complete candidate; formal % unchanged here",
+      "JOBS": [],
+      "MIGRATIONS": [
+        "AUTHOR_ONLY"
+      ],
+      "MODELS": [
+        "KnowledgeUnit",
+        "KnowledgeProvenance"
+      ],
+      "NEXT_PACKAGE": "I5-IMPL-W2-P01",
+      "OBJECTIVE": "Knowledge Unit + Provenance persistence foundation",
+      "OUT_OF_SCOPE": [
+        "runtime brain switch",
+        "crawler",
+        "activation"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W1-P02",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [
+        "yes"
+      ],
+      "SCHEMAS": [
+        "KU/provenance schemas"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F07,F09"
+      ],
+      "SERVICES": [
+        "knowledge_unit_service",
+        "provenance_service"
+      ],
+      "STATIC_VALIDATION": [
+        "KU cannot link to iran_directory as authority"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "model uniqueness",
+        "provenance required"
+      ],
+      "WAVE": "WAVE1"
+    },
+    {
+      "APIS": [
+        "admin"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "standard"
+      ],
+      "CLOSURE_CRITERIA": [
+        "memory items filterable by safety/freshness"
+      ],
+      "COMPONENTS": [
+        "KnowledgeMemoryItem",
+        "superseded_by rules"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W1-P02"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W2-P01",
+      "EXPECTED_I5_COMPLETION_IMPACT": "storage governance progress",
+      "JOBS": [],
+      "MIGRATIONS": [
+        "AUTHOR_ONLY"
+      ],
+      "MODELS": [
+        "KnowledgeMemoryItem"
+      ],
+      "NEXT_PACKAGE": "I5-IMPL-W2-P02",
+      "OBJECTIVE": "Knowledge Memory + versioning/supersession",
+      "OUT_OF_SCOPE": [
+        "user memory changes except integration reads"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W2-P01",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [
+        "yes"
+      ],
+      "SCHEMAS": [
+        "memory schemas"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F04,F07"
+      ],
+      "SERVICES": [
+        "knowledge_memory_service",
+        "supersession_service"
+      ],
+      "STATIC_VALIDATION": [
+        "PLAN-F04 asserts"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "memory!=user_memory",
+        "supersession eligibility"
+      ],
+      "WAVE": "WAVE2"
+    },
+    {
+      "APIS": [
+        "admin safety queue"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "MEDICAL_SAFETY review"
+      ],
+      "CLOSURE_CRITERIA": [
+        "deterministic state transitions documented+tested"
+      ],
+      "COMPONENTS": [
+        "state enums",
+        "conflict records",
+        "safety queue"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W2-P01"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W2-P02",
+      "EXPECTED_I5_COMPLETION_IMPACT": "governance quality progress",
+      "JOBS": [],
+      "MIGRATIONS": [
+        "AUTHOR_ONLY"
+      ],
+      "MODELS": [
+        "KnowledgeConflict",
+        "SafetyReviewQueueItem"
+      ],
+      "NEXT_PACKAGE": "I5-IMPL-W2-P03",
+      "OBJECTIVE": "Evidence strength, freshness, conflict, medical-safety state machines",
+      "OUT_OF_SCOPE": [
+        "network"
+      ],
+      "OWNER": "MEDICAL_SAFETY",
+      "PACKAGE_ID": "I5-IMPL-W2-P02",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [
+        "yes"
+      ],
+      "SCHEMAS": [
+        "yes"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F01"
+      ],
+      "SERVICES": [
+        "extend AI review + safety"
+      ],
+      "STATIC_VALIDATION": [
+        "high-risk requires human"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "conflict",
+        "medical-safety transitions"
+      ],
+      "WAVE": "WAVE2"
+    },
+    {
+      "APIS": [
+        "admin"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "standard"
+      ],
+      "CLOSURE_CRITERIA": [
+        "admin can review without enabling crawler"
+      ],
+      "COMPONENTS": [
+        "admin APIs"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W2-P02"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W2-P03",
+      "EXPECTED_I5_COMPLETION_IMPACT": "ops readiness",
+      "JOBS": [],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W3-P01",
+      "OBJECTIVE": "Admin review surfaces for KU/gap/safety",
+      "OUT_OF_SCOPE": [
+        "activation of sources"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W2-P03",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [
+        "admin schemas"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F11"
+      ],
+      "SERVICES": [
+        "extend knowledge_base router"
+      ],
+      "STATIC_VALIDATION": [
+        "authz"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "API tests"
+      ],
+      "WAVE": "WAVE2"
+    },
+    {
+      "APIS": [],
+      "APPROVAL_BOUNDARIES": [
+        "network Gate separate"
+      ],
+      "CLOSURE_CRITERIA": [
+        "adapters mock-tested; PUBLIC_WEB wraps existing fetcher"
+      ],
+      "COMPONENTS": [
+        "adapter contracts",
+        "reuse KnowledgeSourceFetcher",
+        "extraction",
+        "normalization"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W1-P02"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W3-P01",
+      "EXPECTED_I5_COMPLETION_IMPACT": "pipeline framework progress",
+      "JOBS": [],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W3-P02",
+      "OBJECTIVE": "Adapter framework + parse/extract/normalize/dedupe (no source activation)",
+      "OUT_OF_SCOPE": [
+        "live fetch",
+        "activation",
+        "WHO/NHS download"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W3-P01",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [
+        "adapter result schemas"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F06,F11"
+      ],
+      "SERVICES": [
+        "adapters",
+        "extraction",
+        "normalization"
+      ],
+      "STATIC_VALIDATION": [
+        "no bypass; no network in unit tests"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "adapter contract",
+        "parser",
+        "normalization",
+        "dedupe"
+      ],
+      "WAVE": "WAVE3"
+    },
+    {
+      "APIS": [],
+      "APPROVAL_BOUNDARIES": [
+        "activation separate"
+      ],
+      "CLOSURE_CRITERIA": [
+        "job code present; env default false"
+      ],
+      "COMPONENTS": [
+        "weekly orchestrator",
+        "gap load",
+        "ledger writes"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W1-P01",
+        "I5-IMPL-W3-P01"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W3-P02",
+      "EXPECTED_I5_COMPLETION_IMPACT": "crawler framework progress",
+      "JOBS": [
+        "weekly_international_knowledge_crawler — registered dormant"
+      ],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W4-P01",
+      "OBJECTIVE": "Weekly orchestrator job + discovery wiring (implementation only; activation off)",
+      "OUT_OF_SCOPE": [
+        "enable flag",
+        "network",
+        "dry-run live"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W3-P02",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [],
+      "SELF_HEALING_RULES": [
+        "PLAN-F06,F11"
+      ],
+      "SERVICES": [
+        "weekly_orchestrator"
+      ],
+      "STATIC_VALIDATION": [
+        "default disabled"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "scheduler registration dormant",
+        "orchestrator dry unit"
+      ],
+      "WAVE": "WAVE3"
+    },
+    {
+      "APIS": [
+        "optional search"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "product+medical safety"
+      ],
+      "CLOSURE_CRITERIA": [
+        "CARE_CONTEXT path uses KU/Memory filters"
+      ],
+      "COMPONENTS": [
+        "retrieval service",
+        "brain/care_intelligence hooks"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W2-P01",
+        "I5-IMPL-W2-P02"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W4-P01",
+      "EXPECTED_I5_COMPLETION_IMPACT": "runtime usefulness progress",
+      "JOBS": [],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W4-P02",
+      "OBJECTIVE": "Knowledge-Database-First runtime retrieval integration",
+      "OUT_OF_SCOPE": [
+        "EO-C11 closure"
+      ],
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PACKAGE_ID": "I5-IMPL-W4-P01",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [],
+      "SELF_HEALING_RULES": [
+        "PLAN-F01,F04"
+      ],
+      "SERVICES": [
+        "runtime_knowledge_retrieval"
+      ],
+      "STATIC_VALIDATION": [
+        "KB before model invent"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "runtime retrieval",
+        "fallback+gap enqueue"
+      ],
+      "WAVE": "WAVE4"
+    },
+    {
+      "APIS": [
+        "chat metadata"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "PRODUCT"
+      ],
+      "CLOSURE_CRITERIA": [
+        "SHOW SOURCES / WHY SEDI SAID THIS supported"
+      ],
+      "COMPONENTS": [
+        "ReferenceRenderer"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W4-P01",
+        "I5-IMPL-W1-P02"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W4-P02",
+      "EXPECTED_I5_COMPLETION_IMPACT": "transparency progress",
+      "JOBS": [],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W5-P01",
+      "OBJECTIVE": "Reference renderer + mandatory disclosure triggers",
+      "OUT_OF_SCOPE": [],
+      "OWNER": "PRODUCT",
+      "PACKAGE_ID": "I5-IMPL-W4-P02",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [
+        "reference response metadata"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F08"
+      ],
+      "SERVICES": [
+        "reference_renderer"
+      ],
+      "STATIC_VALIDATION": [
+        "PLAN-F08"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "reference renderer",
+        "trigger tests"
+      ],
+      "WAVE": "WAVE4"
+    },
+    {
+      "APIS": [
+        "search"
+      ],
+      "APPROVAL_BOUNDARIES": [
+        "JAVAD_DECISION",
+        "LEGAL_OR_CONTENT_POLICY"
+      ],
+      "CLOSURE_CRITERIA": [
+        "directory searchable; clinical path blocked in tests"
+      ],
+      "COMPONENTS": [
+        "directory models/APIs"
+      ],
+      "DEPENDENCIES": [
+        "Javad directory source decisions"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W5-P01",
+      "EXPECTED_I5_COMPLETION_IMPACT": "directory capability; not clinical I5 authority",
+      "JOBS": [],
+      "MIGRATIONS": [
+        "AUTHOR_ONLY"
+      ],
+      "MODELS": [
+        "IranDoctor",
+        "IranLaboratory",
+        "IranHospital"
+      ],
+      "NEXT_PACKAGE": "I5-IMPL-W6-P02",
+      "OBJECTIVE": "Iran doctors/labs/hospitals directory layer",
+      "OUT_OF_SCOPE": [
+        "clinical knowledge from IR sources"
+      ],
+      "OWNER": "PRODUCT",
+      "PACKAGE_ID": "I5-IMPL-W5-P01",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [
+        "yes"
+      ],
+      "SCHEMAS": [
+        "directory schemas"
+      ],
+      "SELF_HEALING_RULES": [
+        "PLAN-F05"
+      ],
+      "SERVICES": [
+        "directory_search"
+      ],
+      "STATIC_VALIDATION": [
+        "PLAN-F05"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "forbid directory→KU"
+      ],
+      "WAVE": "WAVE5"
+    },
+    {
+      "APIS": [],
+      "APPROVAL_BOUNDARIES": [
+        "CI owner",
+        "workflow edit separate if needed"
+      ],
+      "CLOSURE_CRITERIA": [
+        "required tests authored; CI policy decided"
+      ],
+      "COMPONENTS": [
+        "tests",
+        "CI"
+      ],
+      "DEPENDENCIES": [
+        "prior impl packages"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W6-P02",
+      "EXPECTED_I5_COMPLETION_IMPACT": "validation progress",
+      "JOBS": [],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W6-P03",
+      "OBJECTIVE": "Expanded tests + CI workflow authorization package",
+      "OUT_OF_SCOPE": [
+        "activation",
+        "network dry-run"
+      ],
+      "OWNER": "CI",
+      "PACKAGE_ID": "I5-IMPL-W6-P02",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [],
+      "SELF_HEALING_RULES": [
+        "PLAN-F10"
+      ],
+      "SERVICES": [],
+      "STATIC_VALIDATION": [
+        "CI green on unit subset"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "all layers listed in Z"
+      ],
+      "WAVE": "WAVE6"
+    },
+    {
+      "APIS": [],
+      "APPROVAL_BOUNDARIES": [
+        "DEVOPS"
+      ],
+      "CLOSURE_CRITERIA": [
+        "AA metrics defined and emitted in dry unit"
+      ],
+      "COMPONENTS": [
+        "metrics",
+        "alerts"
+      ],
+      "DEPENDENCIES": [
+        "I5-IMPL-W1-P01 ledger"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W6-P03",
+      "EXPECTED_I5_COMPLETION_IMPACT": "observability progress",
+      "JOBS": [],
+      "MIGRATIONS": [],
+      "MODELS": [],
+      "NEXT_PACKAGE": "I5-IMPL-W6-P01",
+      "OBJECTIVE": "Monitoring metrics emitters + alerts",
+      "OUT_OF_SCOPE": [
+        "pagerDuty prod wiring unless approved"
+      ],
+      "OWNER": "DEVOPS",
+      "PACKAGE_ID": "I5-IMPL-W6-P03",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [],
+      "SELF_HEALING_RULES": [],
+      "SERVICES": [
+        "metrics_emitter"
+      ],
+      "STATIC_VALIDATION": [],
+      "TESTS_TO_AUTHOR": [
+        "metric emission unit"
+      ],
+      "WAVE": "WAVE6"
+    },
+    {
+      "APIS": [],
+      "APPROVAL_BOUNDARIES": [
+        "JAVAD_DECISION mandatory; split subgates"
+      ],
+      "CLOSURE_CRITERIA": [
+        "explicit written activation; measurable dry-run report"
+      ],
+      "COMPONENTS": [
+        "ops gates"
+      ],
+      "DEPENDENCIES": [
+        "all prior",
+        "Javad"
+      ],
+      "EXACT_FILE_ALLOWLIST_REF": "file_allowlist_matrix.json#I5-IMPL-W6-P01",
+      "EXPECTED_I5_COMPLETION_IMPACT": "only after validated activation may formal completion rise",
+      "JOBS": [
+        "activation toggles"
+      ],
+      "MIGRATIONS": [
+        "RUN"
+      ],
+      "MODELS": [],
+      "NEXT_PACKAGE": "NONE_PENDING_JAVAD",
+      "OBJECTIVE": "Migration run + offline dry-run + activation decisions (SEPARATE authorizations)",
+      "OUT_OF_SCOPE": [
+        "commit/push/deploy unless separately authorized",
+        "EO-C11 auto-close"
+      ],
+      "OWNER": "JAVAD_DECISION",
+      "PACKAGE_ID": "I5-IMPL-W6-P01",
+      "RECOMMENDED_FIRST": false,
+      "REPOSITORIES": [],
+      "SCHEMAS": [],
+      "SELF_HEALING_RULES": [
+        "PLAN-F11"
+      ],
+      "SERVICES": [],
+      "STATIC_VALIDATION": [
+        "PLAN-F11"
+      ],
+      "TESTS_TO_AUTHOR": [
+        "e2e dry-run offline"
+      ],
+      "WAVE": "WAVE6"
+    }
+  ],
+  "recommendation": "OPTION_A",
+  "recommendation_rationale": "GovernedSourceProfile+IngestionRun+governance contracts maximize reuse; Gap Queue+Run Ledger unlock weekly law; KU (Option B) follows immediately as P02; adapters (Option C) lack persistence drivers without A",
+  "management_map_reconciliation": {
+    "planning_ids_authoritative": true,
+    "management_identifier_format": "P01..P13 aliases only",
+    "ledger": "i5_completion_ledger.json",
+    "map": [
+      {
+        "management_id": "P01",
+        "planning_package_id": "I5-IMPL-W1-P01"
+      },
+      {
+        "management_id": "P02",
+        "planning_package_id": "I5-IMPL-W1-P02"
+      },
+      {
+        "management_id": "P03",
+        "planning_package_id": "I5-IMPL-W2-P01"
+      },
+      {
+        "management_id": "P04",
+        "planning_package_id": "I5-IMPL-W2-P02"
+      },
+      {
+        "management_id": "P05",
+        "planning_package_id": "I5-IMPL-W2-P03"
+      },
+      {
+        "management_id": "P06",
+        "planning_package_id": "I5-IMPL-W3-P01"
+      },
+      {
+        "management_id": "P07",
+        "planning_package_id": "I5-IMPL-W3-P02"
+      },
+      {
+        "management_id": "P08",
+        "planning_package_id": "I5-IMPL-W4-P01"
+      },
+      {
+        "management_id": "P09",
+        "planning_package_id": "I5-IMPL-W4-P02"
+      },
+      {
+        "management_id": "P10",
+        "planning_package_id": "I5-IMPL-W5-P01"
+      },
+      {
+        "management_id": "P11",
+        "planning_package_id": "I5-IMPL-W6-P02"
+      },
+      {
+        "management_id": "P12",
+        "planning_package_id": "I5-IMPL-W6-P03"
+      },
+      {
+        "management_id": "P13",
+        "planning_package_id": "I5-IMPL-W6-P01"
+      }
+    ]
+  }
+}

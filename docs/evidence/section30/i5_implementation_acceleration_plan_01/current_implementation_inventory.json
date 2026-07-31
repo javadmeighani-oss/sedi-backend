@@ -1,0 +1,1715 @@
+{
+  "baseline_head": "9ba65b67407e26ac683f735e44330a6fdbe5ff22",
+  "component_count": 46,
+  "components": [
+    {
+      "ACTIVATION_STATE": "fetch defaults false",
+      "CI_COVERAGE": "repo CI if backend tests run",
+      "COMPONENT_ID": "INV-01",
+      "COMPONENT_NAME": "KnowledgeSource (Gate3 legacy registry)",
+      "COMPONENT_TYPE": "ORM_MODEL",
+      "CURRENT_CAPABILITY": "Persists curated sources with trust, freshness, fetch flags, allowlist domain/patterns",
+      "CURRENT_INPUTS": [
+        "admin CRUD payloads"
+      ],
+      "CURRENT_OUTPUTS": [
+        "knowledge_sources rows"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "migrations 027,036"
+      ],
+      "DOMAIN": "source_registry",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "source_fetch_enabled per row",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "LIMITATIONS": "Not International Source Registry contract; mixes categories including IR directories",
+      "NOTES": "Line range models.py:856-888",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "knowledge_sources (027+036)",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES_via_retrieval_joins",
+      "SAFETY_STATE": "review_required default true",
+      "SCHEDULING": "feeds kb_scheduler when enabled",
+      "SECURITY_STATE": "allowlist fields present",
+      "SYMBOLS": [
+        "KnowledgeSource"
+      ],
+      "TARGET_I5_ROLE": "Legacy bridge under GovernedSourceProfile.legacy_knowledge_source_id",
+      "TEST_COVERAGE": "test_gate3_knowledge_v1.py; test_gate3g_kb_crawler_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "disabled_by_default",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-02",
+      "COMPONENT_NAME": "GovernedSourceProfile + Version",
+      "COMPONENT_TYPE": "ORM_MODEL",
+      "CURRENT_CAPABILITY": "I5-B2 governed profile persistence with immutable version evidence columns; operational_status default disabled",
+      "CURRENT_INPUTS": [
+        "offline seed / persistence helpers"
+      ],
+      "CURRENT_OUTPUTS": [
+        "governed_source_profiles rows"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_DORMANT",
+      "DEPENDENCIES": [
+        "051 migration",
+        "kb_b2_source_profile_persistence"
+      ],
+      "DOMAIN": "source_registry",
+      "EVIDENCE_STRENGTH": "E3_SCHEMA_OR_MIGRATION_EVIDENCE",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/alembic/versions/051_i5b2_governed_source_profile.py"
+      ],
+      "LIMITATIONS": "Not full International Source Registry field set; no weekly run binding",
+      "NOTES": "models.py:1124-1276",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "YES",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "NO_chat_wiring",
+      "SAFETY_STATE": "iran_first_applicable flags stored",
+      "SCHEDULING": "NONE",
+      "SECURITY_STATE": "governance evidence columns",
+      "SYMBOLS": [
+        "GovernedSourceProfile",
+        "GovernedSourceProfileVersion"
+      ],
+      "TARGET_I5_ROLE": "Primary International Source Registry persistence foundation",
+      "TEST_COVERAGE": "test_section15_i5b2_*.py"
+    },
+    {
+      "ACTIVATION_STATE": "PROPOSAL_ONLY",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-03",
+      "COMPONENT_NAME": "Gate3H trusted_source_catalog_v1.yaml",
+      "COMPONENT_TYPE": "CONFIG_PROPOSAL",
+      "CURRENT_CAPABILITY": "Proposal catalog of WHO/MedlinePlus/NHS/CDC/NIMH/APA/IR keys; all fetch false",
+      "CURRENT_INPUTS": [
+        "manual review"
+      ],
+      "CURRENT_OUTPUTS": [
+        "YAML proposal"
+      ],
+      "CURRENT_STATUS": "DOCUMENTED_ONLY",
+      "DEPENDENCIES": [],
+      "DOMAIN": "source_policy",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+      ],
+      "LIMITATIONS": "Header forbids import without approval; mixes IR directories into same catalog",
+      "NOTES": "catalog_version 3h-v1.1",
+      "OWNER": "JAVAD_DECISION",
+      "PERSISTENCE": "FILE_ONLY",
+      "REUSABILITY": "REUSE_WITH_ADAPTER",
+      "RUNTIME_USE": "NO_auto_load",
+      "SAFETY_STATE": "risk_tiers defined",
+      "SCHEDULING": "NONE",
+      "SECURITY_STATE": "robots/terms notes",
+      "SYMBOLS": [
+        "sources",
+        "source_key",
+        "risk_tiers"
+      ],
+      "TARGET_I5_ROLE": "Seed input for International Source Registry (IR keys redirected to directory layer)",
+      "TEST_COVERAGE": "seed inventory references keys"
+    },
+    {
+      "ACTIVATION_STATE": "OFF_DEFAULT",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-04",
+      "COMPONENT_NAME": "source_fetch_enabled + profile eligibility",
+      "COMPONENT_TYPE": "FEATURE_GATE",
+      "CURRENT_CAPABILITY": "Per-source and env gates prevent fetch unless explicitly enabled",
+      "CURRENT_INPUTS": [
+        "env + DB flags"
+      ],
+      "CURRENT_OUTPUTS": [
+        "boolean eligibility"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_DORMANT",
+      "DEPENDENCIES": [
+        "INV-01",
+        "INV-02"
+      ],
+      "DOMAIN": "source_activation",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "SEDI_KB_SCHEDULED_FETCH_ENABLED",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/governance/kb_b2_source_profile_persistence.py",
+        "backend/app/services/gate3/kb_scheduler.py"
+      ],
+      "LIMITATIONS": "Not weekly I5 ledger-aware",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "flags on models",
+      "REUSABILITY": "REUSE_AS_IS",
+      "RUNTIME_USE": "fetch path only",
+      "SAFETY_STATE": "never_auto_approve",
+      "SCHEDULING": "gates scheduler",
+      "SECURITY_STATE": "fail_closed",
+      "SYMBOLS": [
+        "source_fetch_enabled",
+        "profile_is_fetch_eligible",
+        "scheduled_fetch_enabled"
+      ],
+      "TARGET_I5_ROLE": "Activation boundary for Wave 6 only",
+      "TEST_COVERAGE": "test_gate3i_kb_scheduler_v1.py; i5b2 tests"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE_IN_FETCH",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-05",
+      "COMPONENT_NAME": "fetch_security allowlist validators",
+      "COMPONENT_TYPE": "SECURITY_SERVICE",
+      "CURRENT_CAPABILITY": "Domain/pattern/SSRF-style and robots checks for single-URL fetch",
+      "CURRENT_INPUTS": [
+        "url",
+        "source allowlist"
+      ],
+      "CURRENT_OUTPUTS": [
+        "allow/deny"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-01"
+      ],
+      "DOMAIN": "url_allowlist",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/fetch_security.py",
+        "backend/app/services/gate3/robots_checker.py"
+      ],
+      "LIMITATIONS": "Single-URL; not host registry table",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NONE",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "fetcher path",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "SSRF_REDIRECT_ROBOTS",
+      "SYMBOLS": [
+        "validate_fetch_url",
+        "validate_redirect_url",
+        "check_robots_allowed"
+      ],
+      "TARGET_I5_ROLE": "Acquisition security boundary",
+      "TEST_COVERAGE": "test_gate3g_kb_crawler_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-06",
+      "COMPONENT_NAME": "KnowledgeDocument",
+      "COMPONENT_TYPE": "ORM_MODEL",
+      "CURRENT_CAPABILITY": "Curated document rows linked to sources; draft/publish status",
+      "CURRENT_INPUTS": [
+        "ingest/approve"
+      ],
+      "CURRENT_OUTPUTS": [
+        "knowledge_documents"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-01"
+      ],
+      "DOMAIN": "document_store",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "LIMITATIONS": "Not versioned document table; not Knowledge Unit",
+      "NOTES": "models.py:890-908",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "028",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES_via_chunks",
+      "SAFETY_STATE": "status gated",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "admin_path",
+      "SYMBOLS": [
+        "KnowledgeDocument"
+      ],
+      "TARGET_I5_ROLE": "Document and Version Store raw/curated layer",
+      "TEST_COVERAGE": "test_gate3_knowledge_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-07",
+      "COMPONENT_NAME": "content_hash / fingerprint helpers",
+      "COMPONENT_TYPE": "HELPER",
+      "CURRENT_CAPABILITY": "Hash fields and pure fingerprint helpers; no immutable document_version entity",
+      "CURRENT_INPUTS": [
+        "bytes/text"
+      ],
+      "CURRENT_OUTPUTS": [
+        "hash strings"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-06",
+        "INV-09"
+      ],
+      "DOMAIN": "document_versioning",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/governance/kb_b2_adapters.py"
+      ],
+      "LIMITATIONS": "No supersession graph on documents",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "columns only",
+      "REUSABILITY": "REUSE_SCHEMA_ONLY",
+      "RUNTIME_USE": "ingest",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "integrity_signal",
+      "SYMBOLS": [
+        "content_hash",
+        "fetched_content_hash",
+        "derive_provenance_evidence_fingerprint"
+      ],
+      "TARGET_I5_ROLE": "Feed Versioning and Supersession + Provenance",
+      "TEST_COVERAGE": "i5b2 adapter tests"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-08",
+      "COMPONENT_NAME": "KnowledgeChunk",
+      "COMPONENT_TYPE": "ORM_MODEL",
+      "CURRENT_CAPABILITY": "Text chunks with citation_label for retrieval",
+      "CURRENT_INPUTS": [
+        "parsed text"
+      ],
+      "CURRENT_OUTPUTS": [
+        "knowledge_chunks"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-06"
+      ],
+      "DOMAIN": "chunk_store",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "LIMITATIONS": "Raw/curated text units; not Structured Knowledge Units",
+      "NOTES": "models.py:910-922; PLAN-F07 distinction",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "029",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES_keyword_retrieval",
+      "SAFETY_STATE": "citation_label required",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "KnowledgeChunk"
+      ],
+      "TARGET_I5_ROLE": "Supporting store under Document layer; NOT Knowledge Database",
+      "TEST_COVERAGE": "test_gate3_knowledge_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-09",
+      "COMPONENT_NAME": "KnowledgeIngestionRun",
+      "COMPONENT_TYPE": "ORM_MODEL",
+      "CURRENT_CAPABILITY": "Per-source ingest/fetch/review/approve ledger with quality and risk scores",
+      "CURRENT_INPUTS": [
+        "fetch or upload"
+      ],
+      "CURRENT_OUTPUTS": [
+        "knowledge_ingestion_runs"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-01"
+      ],
+      "DOMAIN": "ingestion_runs",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "LIMITATIONS": "Not weekly multi-stage Run Ledger; single-source oriented",
+      "NOTES": "models.py:924-960+",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "030+036",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "admin_review",
+      "SAFETY_STATE": "AI review fields",
+      "SCHEDULING": "created by scheduler/manual",
+      "SECURITY_STATE": "snapshot_json",
+      "SYMBOLS": [
+        "KnowledgeIngestionRun"
+      ],
+      "TARGET_I5_ROLE": "Stage-level run records under Weekly Run Ledger",
+      "TEST_COVERAGE": "gate3 crawler/scheduler tests"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-10",
+      "COMPONENT_NAME": "last_fetched_at / fetch fields on sources and runs",
+      "COMPONENT_TYPE": "SCHEMA_FIELDS",
+      "CURRENT_CAPABILITY": "Basic fetch timestamps and URLs",
+      "CURRENT_INPUTS": [
+        "fetcher"
+      ],
+      "CURRENT_OUTPUTS": [
+        "timestamps"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-09"
+      ],
+      "DOMAIN": "source_fetch_history",
+      "EVIDENCE_STRENGTH": "E3_SCHEMA_OR_MIGRATION_EVIDENCE",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "LIMITATIONS": "No dedicated fetch-history table",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "YES",
+      "REUSABILITY": "REUSE_SCHEMA_ONLY",
+      "RUNTIME_USE": "freshness heuristic",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "updated by fetch",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "last_fetched_at",
+        "fetch_url",
+        "fetched_at"
+      ],
+      "TARGET_I5_ROLE": "Extend into Weekly Run Ledger metrics",
+      "TEST_COVERAGE": "partial"
+    },
+    {
+      "ACTIVATION_STATE": "OFF_DEFAULT",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-11",
+      "COMPONENT_NAME": "APScheduler core + kb_scheduled_fetch job",
+      "COMPONENT_TYPE": "SCHEDULER_JOB",
+      "CURRENT_CAPABILITY": "Interval job registers only when SEDI_KB_SCHEDULED_FETCH_ENABLED; lifestyle-only; never auto-approves",
+      "CURRENT_INPUTS": [
+        "env flags",
+        "due sources"
+      ],
+      "CURRENT_OUTPUTS": [
+        "ingestion runs / staged content"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_DORMANT",
+      "DEPENDENCIES": [
+        "INV-04",
+        "INV-15"
+      ],
+      "DOMAIN": "scheduler",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "SEDI_KB_SCHEDULED_FETCH_ENABLED",
+      "FILE_PATHS": [
+        "backend/app/core/scheduler.py",
+        "backend/app/services/gate3/kb_scheduler.py"
+      ],
+      "LIMITATIONS": "Not weekly governed I5 pipeline; not gap-queue driven; PLAN-F06",
+      "NOTES": "scheduler.py ~520-536; kb_scheduler.py:26,170",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "via INV-09",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "background",
+      "SAFETY_STATE": "blocks clinical/provider/lab categories",
+      "SCHEDULING": "APScheduler interval",
+      "SECURITY_STATE": "uses fetch_security",
+      "SYMBOLS": [
+        "start_scheduler",
+        "kb_scheduled_fetch",
+        "run_scheduled_kb_fetch"
+      ],
+      "TARGET_I5_ROLE": "Scheduler and Job Orchestration substrate",
+      "TEST_COVERAGE": "test_gate3i_kb_scheduler_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "NOT_IMPLEMENTED",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-12",
+      "COMPONENT_NAME": "Weekly International Knowledge Crawler job",
+      "COMPONENT_TYPE": "JOB",
+      "CURRENT_CAPABILITY": "Law committed; no job implementation",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "gap_queue",
+        "source_registry",
+        "run_ledger"
+      ],
+      "DOMAIN": "weekly_job",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "docs/evidence/section29/pkg_ext_e2_bounded_01_r1/decision_matrices/weekly_governed_knowledge_crawler_law.json"
+      ],
+      "LIMITATIONS": "Eligibility != activation; implementation absent",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "law_requires_safety",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW"
+      ],
+      "TARGET_I5_ROLE": "Mandatory weekly pipeline orchestration",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-13",
+      "COMPONENT_NAME": "Source discovery from Knowledge Gap Queue",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "None",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "gap_queue"
+      ],
+      "DOMAIN": "discovery",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "No discovery service",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Source Discovery bounded context",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-14",
+      "COMPONENT_NAME": "Official API/XML/RSS adapters",
+      "COMPONENT_TYPE": "ADAPTER",
+      "CURRENT_CAPABILITY": "None beyond html_page fetch_method string",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-15"
+      ],
+      "DOMAIN": "api_feed_adapters",
+      "EVIDENCE_STRENGTH": "E5_NAME_ONLY_OR_PLACEHOLDER",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "fetch_method enum on KnowledgeSource is metadata only",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Source Acquisition Adapters",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE_WHEN_ENABLED",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-15",
+      "COMPONENT_NAME": "KnowledgeSourceFetcher",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "Single-URL allowlisted GET with size limits; no recursive crawl; no bypass",
+      "CURRENT_INPUTS": [
+        "source",
+        "url"
+      ],
+      "CURRENT_OUTPUTS": [
+        "bytes/text + hash"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-05"
+      ],
+      "DOMAIN": "fetch_adapter",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "source_fetch_enabled",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/knowledge_source_fetcher.py"
+      ],
+      "LIMITATIONS": "PUBLIC_WEB_FETCH only; not official API adapters",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "via runs",
+      "REUSABILITY": "REUSE_WITH_ADAPTER",
+      "RUNTIME_USE": "ingest",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "optional",
+      "SECURITY_STATE": "allowlist+robots+redirect",
+      "SYMBOLS": [
+        "KnowledgeSourceFetcher"
+      ],
+      "TARGET_I5_ROLE": "PUBLIC_WEB_FETCH adapter implementation",
+      "TEST_COVERAGE": "test_gate3g_kb_crawler_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-16",
+      "COMPONENT_NAME": "content_parser",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "HTML/text extraction with quality gates",
+      "CURRENT_INPUTS": [
+        "raw content"
+      ],
+      "CURRENT_OUTPUTS": [
+        "extracted text"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-15"
+      ],
+      "DOMAIN": "parser",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/content_parser.py"
+      ],
+      "LIMITATIONS": "Not conceptual important-point extraction",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "ingest",
+      "SAFETY_STATE": "quality_gates",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "parser_limits_partial",
+      "SYMBOLS": [
+        "parse_content"
+      ],
+      "TARGET_I5_ROLE": "Parsing stage before Conceptual Extraction",
+      "TEST_COVERAGE": "gate3 tests"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-17",
+      "COMPONENT_NAME": "Conceptual important-point extraction",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "Law only",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-16"
+      ],
+      "DOMAIN": "important_point_extraction",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "docs/evidence/section29/pkg_ext_e2_bounded_01_r1/decision_matrices/conceptual_knowledge_use_and_memory_law.json"
+      ],
+      "LIMITATIONS": "AI review scores != conceptual extraction",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "required_by_law",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "I5-CONCEPTUAL-KNOWLEDGE-USE-AND-MEMORY-LAW"
+      ],
+      "TARGET_I5_ROLE": "Conceptual Knowledge Extraction",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-18",
+      "COMPONENT_NAME": "Knowledge normalization / taxonomy mapping",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "Category strings on docs only",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-17"
+      ],
+      "DOMAIN": "normalization",
+      "EVIDENCE_STRENGTH": "E5_NAME_ONLY_OR_PLACEHOLDER",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "No taxonomy service",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Knowledge Normalization and Taxonomy Mapping",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-19",
+      "COMPONENT_NAME": "Duplicate / change detection via hashes",
+      "COMPONENT_TYPE": "LOGIC",
+      "CURRENT_CAPABILITY": "Content hash compare on fetch; limited dedupe",
+      "CURRENT_INPUTS": [
+        "hashes"
+      ],
+      "CURRENT_OUTPUTS": [
+        "changed/unchanged"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-07"
+      ],
+      "DOMAIN": "duplicate_detection",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/knowledge_update_service.py"
+      ],
+      "LIMITATIONS": "No KU-level dedupe",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "hash columns",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "ingest",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "KnowledgeUpdateService"
+      ],
+      "TARGET_I5_ROLE": "Change detection + KU dedupe foundation",
+      "TEST_COVERAGE": "partial"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-20",
+      "COMPONENT_NAME": "Document/KU version comparison",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "Hash inequality only",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-07"
+      ],
+      "DOMAIN": "version_comparison",
+      "EVIDENCE_STRENGTH": "E6_INFERENCE_REQUIRES_IMPLEMENTATION_REVIEW",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "No semantic version compare",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Versioning and Supersession",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-21",
+      "COMPONENT_NAME": "Knowledge supersession graph",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "None",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "knowledge_unit"
+      ],
+      "DOMAIN": "supersession",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "None present",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Versioning and Supersession",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-22",
+      "COMPONENT_NAME": "Structured Knowledge Unit",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "None; documents/chunks are not KUs",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "provenance",
+        "source_registry"
+      ],
+      "DOMAIN": "knowledge_unit",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "PLAN-F07",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "required",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Structured Knowledge Database core",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-23",
+      "COMPONENT_NAME": "Governed Knowledge Memory store",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "None",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-22"
+      ],
+      "DOMAIN": "knowledge_memory",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "User memory/KC/LocalRAG are NOT Knowledge Memory (PLAN-F04)",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "required",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Knowledge Memory bounded context",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-24",
+      "COMPONENT_NAME": "User conversation memory / KC / LocalRAG",
+      "COMPONENT_TYPE": "SERVICE_CLUSTER",
+      "CURRENT_CAPABILITY": "User facts, conversation history, personal RAG context",
+      "CURRENT_INPUTS": [
+        "user messages/profile"
+      ],
+      "CURRENT_OUTPUTS": [
+        "user memory / RAG packs"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [],
+      "DOMAIN": "user_memory_false_friend",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "section10 flags",
+      "FILE_PATHS": [
+        "backend/app/routers/memory.py",
+        "backend/app/services/knowledge",
+        "backend/app/services/local_rag",
+        "backend/app/services/rag_context"
+      ],
+      "LIMITATIONS": "Must not be treated as Knowledge Memory",
+      "NOTES": "PLAN-F04",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "user_memory_facts / rag_embeddings",
+      "REUSABILITY": "DO_NOT_REUSE",
+      "RUNTIME_USE": "YES_chat",
+      "SAFETY_STATE": "user_context",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "user_scoped",
+      "SYMBOLS": [
+        "process_message",
+        "LocalRAGProvider",
+        "build_rag_context_pack"
+      ],
+      "TARGET_I5_ROLE": "Personalization Integration input only",
+      "TEST_COVERAGE": "local_rag / knowledge capture tests"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-25",
+      "COMPONENT_NAME": "Evidence strength / quality scores on ingestion",
+      "COMPONENT_TYPE": "FIELDS",
+      "CURRENT_CAPABILITY": "Run-level AI review scores; not KU evidence strength states",
+      "CURRENT_INPUTS": [
+        "extracted text"
+      ],
+      "CURRENT_OUTPUTS": [
+        "scores / recommended_action"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-09"
+      ],
+      "DOMAIN": "evidence_strength",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/knowledge_ai_review_service.py"
+      ],
+      "LIMITATIONS": "Not multi-source evidence strength",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "run columns",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "admin_review",
+      "SAFETY_STATE": "medical_risk_level fields",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "evidence_quality_score",
+        "KnowledgeAIReviewService"
+      ],
+      "TARGET_I5_ROLE": "Evidence Strength and Freshness + Medical-Safety Review inputs",
+      "TEST_COVERAGE": "partial"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-26",
+      "COMPONENT_NAME": "freshness_policy_days / last_checked_at",
+      "COMPONENT_TYPE": "SCHEMA_FIELDS",
+      "CURRENT_CAPABILITY": "Source-level freshness policy used in keyword retrieval ranking/filter",
+      "CURRENT_INPUTS": [
+        "source timestamps"
+      ],
+      "CURRENT_OUTPUTS": [
+        "retrieval preference"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-01"
+      ],
+      "DOMAIN": "freshness",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/knowledge_retrieval_service.py"
+      ],
+      "LIMITATIONS": "No KU freshness_state enum / gap enqueue on stale",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "YES",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES_search_knowledge",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "freshness_policy_days",
+        "search_knowledge"
+      ],
+      "TARGET_I5_ROLE": "Evidence Strength and Freshness",
+      "TEST_COVERAGE": "gate3 knowledge tests"
+    },
+    {
+      "ACTIVATION_STATE": "DORMANT_LIBRARY",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-27",
+      "COMPONENT_NAME": "Knowledge conflict records",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "Enum/types in governance contracts; unwired",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "DOCUMENTED_ONLY",
+      "DEPENDENCIES": [
+        "INV-22"
+      ],
+      "DOMAIN": "conflict_records",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/governance/contracts.py"
+      ],
+      "LIMITATIONS": "User-context conflict resolver is unrelated",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "design_only",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "ContradictionStatus"
+      ],
+      "TARGET_I5_ROLE": "Conflict Detection",
+      "TEST_COVERAGE": "i5a contract tests"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-28",
+      "COMPONENT_NAME": "Gate3 safety + AI review + SafetyPolicy",
+      "COMPONENT_TYPE": "SERVICE_CLUSTER",
+      "CURRENT_CAPABILITY": "Retrieval/response risk classification; ingest AI review; I4 safety separate",
+      "CURRENT_INPUTS": [
+        "text",
+        "intent"
+      ],
+      "CURRENT_OUTPUTS": [
+        "risk levels / blocks"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [],
+      "DOMAIN": "safety_review",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/safety_core.py",
+        "backend/app/services/gate3/safety_validator.py",
+        "backend/app/services/gate3/knowledge_ai_review_service.py",
+        "backend/app/services/intelligence/safety_risk.py"
+      ],
+      "LIMITATIONS": "Not KU medical_safety_state machine / admin safety queue for KU",
+      "NOTES": "",
+      "OWNER": "MEDICAL_SAFETY",
+      "PERSISTENCE": "partial scores",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES_chat_and_ingest",
+      "SAFETY_STATE": "ACTIVE",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "RiskClassifier",
+        "SafetyPolicy",
+        "validate_response_text",
+        "assess_safety_risk"
+      ],
+      "TARGET_I5_ROLE": "Medical-Safety Review + runtime safety policy",
+      "TEST_COVERAGE": "gate3 + intelligence tests"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-29",
+      "COMPONENT_NAME": "search_knowledge keyword retrieval",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "Keyword search over active docs/chunks with trust/freshness/citations/emergency block",
+      "CURRENT_INPUTS": [
+        "query"
+      ],
+      "CURRENT_OUTPUTS": [
+        "snippets + citations"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-08",
+        "INV-01"
+      ],
+      "DOMAIN": "runtime_retrieval",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/gate3/knowledge_retrieval_service.py"
+      ],
+      "LIMITATIONS": "Not Knowledge-Database-First over KUs; no conflict/freshness state machine",
+      "NOTES": "knowledge_retrieval_service.py:56",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "reads chunks",
+      "REUSABILITY": "REUSE_WITH_ADAPTER",
+      "RUNTIME_USE": "YES_care_context",
+      "SAFETY_STATE": "emergency_block",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "search_knowledge"
+      ],
+      "TARGET_I5_ROLE": "Interim retrieval; evolve to Runtime Knowledge Retrieval over KU/Memory",
+      "TEST_COVERAGE": "test_gate3_knowledge_v1.py"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-30",
+      "COMPONENT_NAME": "brain CARE_CONTEXT integration",
+      "COMPONENT_TYPE": "RUNTIME_HOOK",
+      "CURRENT_CAPABILITY": "Medical intent appends CARE_CONTEXT from search_knowledge; health APIs reuse search",
+      "CURRENT_INPUTS": [
+        "user message"
+      ],
+      "CURRENT_OUTPUTS": [
+        "prompt blocks + citations"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-29"
+      ],
+      "DOMAIN": "chat_integration",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/core/conversation/brain.py",
+        "backend/app/services/gate3/care_intelligence.py",
+        "backend/app/services/gate3/health_care_services.py"
+      ],
+      "LIMITATIONS": "Does not query Structured Knowledge Database / Knowledge Memory",
+      "NOTES": "brain.py:200-207,441",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "N/A",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES",
+      "SAFETY_STATE": "gate3 emergency short-circuit",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "injection-aware assembly partial",
+      "SYMBOLS": [
+        "_maybe_append_gate3_care_context",
+        "build_care_context",
+        "answer_health_question"
+      ],
+      "TARGET_I5_ROLE": "Primary runtime integration point for Knowledge-Database-First",
+      "TEST_COVERAGE": "partial"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-31",
+      "COMPONENT_NAME": "citation_label + citation dict in retrieval",
+      "COMPONENT_TYPE": "FIELDS",
+      "CURRENT_CAPABILITY": "Labels returned in CARE_CONTEXT metadata; limited user-facing reference UX",
+      "CURRENT_INPUTS": [
+        "chunks"
+      ],
+      "CURRENT_OUTPUTS": [
+        "citation fields"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-29"
+      ],
+      "DOMAIN": "reference_rendering",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/knowledge_retrieval_service.py"
+      ],
+      "LIMITATIONS": "PLAN-F08: not full Reference Renderer / WHY SEDI SAID THIS",
+      "NOTES": "",
+      "OWNER": "PRODUCT",
+      "PERSISTENCE": "citation_label",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "YES_limited",
+      "SAFETY_STATE": "mandatory_triggers_absent",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "citation_label",
+        "citation"
+      ],
+      "TARGET_I5_ROLE": "Reference Renderer foundation",
+      "TEST_COVERAGE": "partial"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-32",
+      "COMPONENT_NAME": "KB admin APIs + approve/reject runs",
+      "COMPONENT_TYPE": "API",
+      "CURRENT_CAPABILITY": "Admin CRUD sources/docs; ingest; approve/reject",
+      "CURRENT_INPUTS": [
+        "admin token"
+      ],
+      "CURRENT_OUTPUTS": [
+        "API responses"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [
+        "INV-01",
+        "INV-09"
+      ],
+      "DOMAIN": "admin_review",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/routers/knowledge_base.py",
+        "backend/app/services/gate3/knowledge_base_service.py",
+        "backend/app/services/gate3/knowledge_update_service.py"
+      ],
+      "LIMITATIONS": "No KU/gap/registry admin surfaces",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "YES",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "admin",
+      "SAFETY_STATE": "human_review_gate",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "admin_token",
+      "SYMBOLS": [
+        "approve_run",
+        "reject_run",
+        "list_sources",
+        "create_source"
+      ],
+      "TARGET_I5_ROLE": "Admin Review and Activation",
+      "TEST_COVERAGE": "gate3 tests"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-33",
+      "COMPONENT_NAME": "KB run metrics / alerts",
+      "COMPONENT_TYPE": "OBSERVABILITY",
+      "CURRENT_CAPABILITY": "Generic health_check job exists; no I5 crawler metrics suite",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "run_ledger"
+      ],
+      "DOMAIN": "monitoring",
+      "EVIDENCE_STRENGTH": "E5_NAME_ONLY_OR_PLACEHOLDER",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "Required metrics from AA absent",
+      "NOTES": "",
+      "OWNER": "DEVOPS",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "health_check unrelated",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Monitoring and Alerts",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-34",
+      "COMPONENT_NAME": "High-risk gap / safety rejection alerts",
+      "COMPONENT_TYPE": "OBSERVABILITY",
+      "CURRENT_CAPABILITY": "None for I5",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-33"
+      ],
+      "DOMAIN": "alerts",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "",
+      "NOTES": "",
+      "OWNER": "DEVOPS",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "required",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Monitoring and Alerts",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "BLOCKED_LEGAL_HOLD",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-35",
+      "COMPONENT_NAME": "Iranian doctor directory registry",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "Catalog keys only; seed marks legal hold",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "DOCUMENTED_ONLY",
+      "DEPENDENCIES": [
+        "javad_decision"
+      ],
+      "DOMAIN": "iran_directory_doctors",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+      ],
+      "LIMITATIONS": "PLAN-F05; UserDoctor is personal not IR directory",
+      "NOTES": "",
+      "OWNER": "PRODUCT",
+      "PERSISTENCE": "NO_DIRECTORY_TABLE",
+      "REUSABILITY": "REUSE_WITH_ADAPTER",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "must_not_become_clinical_KU",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "irimc_member_search",
+        "paziresh24_com",
+        "doctoreto_com"
+      ],
+      "TARGET_I5_ROLE": "Iranian Healthcare Directory Registry — doctors",
+      "TEST_COVERAGE": "seed tests mention keys"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-36",
+      "COMPONENT_NAME": "Iranian laboratory directory",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "Catalog proposal only",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "DOCUMENTED_ONLY",
+      "DEPENDENCIES": [
+        "javad_decision"
+      ],
+      "DOMAIN": "iran_directory_labs",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/config/gate3h/trusted_source_catalog_v1.yaml"
+      ],
+      "LIMITATIONS": "PLAN-F05",
+      "NOTES": "",
+      "OWNER": "PRODUCT",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "directory_only",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "lab_directory",
+        "drdr_ir"
+      ],
+      "TARGET_I5_ROLE": "Iranian Healthcare Directory Registry — labs",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-37",
+      "COMPONENT_NAME": "Iranian hospital/medical center directory",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "None",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "javad_decision"
+      ],
+      "DOMAIN": "iran_directory_hospitals",
+      "EVIDENCE_STRENGTH": "E5_NAME_ONLY_OR_PLACEHOLDER",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "",
+      "NOTES": "",
+      "OWNER": "PRODUCT",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "directory_only",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Iranian Healthcare Directory Registry — hospitals",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-38",
+      "COMPONENT_NAME": "UserDoctor personal records",
+      "COMPONENT_TYPE": "ORM_MODEL",
+      "CURRENT_CAPABILITY": "User-entered doctor contacts",
+      "CURRENT_INPUTS": [
+        "user"
+      ],
+      "CURRENT_OUTPUTS": [
+        "user_doctors"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [],
+      "DOMAIN": "user_doctor_false_friend",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/models.py"
+      ],
+      "LIMITATIONS": "Not IR verification directory; PLAN-F05",
+      "NOTES": "models.py:780-795",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "YES",
+      "REUSABILITY": "DO_NOT_REUSE",
+      "RUNTIME_USE": "user_profile",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "user_scoped",
+      "SYMBOLS": [
+        "UserDoctor"
+      ],
+      "TARGET_I5_ROLE": "Out of scope for clinical knowledge; personal contacts only",
+      "TEST_COVERAGE": "partial"
+    },
+    {
+      "ACTIVATION_STATE": "OFF_DEFAULT",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-39",
+      "COMPONENT_NAME": "KnowledgeChunkEmbedding + hybrid retrieval",
+      "COMPONENT_TYPE": "SERVICE",
+      "CURRENT_CAPABILITY": "JSON embeddings + hybrid search behind flags; fake embedding provider; not wired to brain",
+      "CURRENT_INPUTS": [
+        "chunks"
+      ],
+      "CURRENT_OUTPUTS": [
+        "ranked hits"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_DORMANT",
+      "DEPENDENCIES": [
+        "INV-08"
+      ],
+      "DOMAIN": "hybrid_embeddings",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "SEDI_KB_* embedding/hybrid flags",
+      "FILE_PATHS": [
+        "backend/app/models.py",
+        "backend/app/services/gate3/kb_embedding_service.py",
+        "backend/app/services/gate3/kb_hybrid_retrieval.py",
+        "backend/app/services/section10/feature_flags.py"
+      ],
+      "LIMITATIONS": "Not Knowledge Memory; not KU retrieval",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "049",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "NO_chat",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "KnowledgeChunkEmbedding",
+        "hybrid_search_knowledge",
+        "kb_hybrid_retrieval_enabled"
+      ],
+      "TARGET_I5_ROLE": "Optional retrieval accelerator after KU layer",
+      "TEST_COVERAGE": "test_section10_rag.py"
+    },
+    {
+      "ACTIVATION_STATE": "LIBRARY_ONLY",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-40",
+      "COMPONENT_NAME": "I5 governance contracts + policy_evaluator",
+      "COMPONENT_TYPE": "LIBRARY",
+      "CURRENT_CAPABILITY": "Pure stdlib contracts/evaluators/adapters; package boundary exports CONTRACT_VERSION only; intentionally unwired",
+      "CURRENT_INPUTS": [
+        "policy requests"
+      ],
+      "CURRENT_OUTPUTS": [
+        "evaluation results"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_DORMANT",
+      "DEPENDENCIES": [],
+      "DOMAIN": "governance_contracts",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/governance/contracts.py",
+        "backend/app/services/governance/policy_evaluator.py",
+        "backend/app/services/governance/kb_lifecycle_mapping.py",
+        "backend/app/services/governance/kb_b2_adapters.py",
+        "backend/app/services/governance/__init__.py"
+      ],
+      "LIMITATIONS": "Not runtime enforcement; PLAN-F01 risk if mistaken for production wiring",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "authority_separation_helpers",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "pure_no_io",
+      "SYMBOLS": [
+        "evaluate_policy",
+        "evaluate_authority_separation",
+        "map_legacy_*",
+        "CONTRACT_VERSION"
+      ],
+      "TARGET_I5_ROLE": "Policy/contracts foundation for registry, eligibility, authority separation",
+      "TEST_COVERAGE": "test_section15_i5a1_*.py; i5a2; i5b1; i5b2"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-41",
+      "COMPONENT_NAME": "Knowledge Gap Priority Queue",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "Mandatory by Section 29 law; no persistence/service",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [],
+      "DOMAIN": "gap_priority_queue",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "docs/evidence/section29/pkg_ext_e2_bounded_01_r1/decision_matrices/weekly_governed_knowledge_crawler_law.json"
+      ],
+      "LIMITATIONS": "",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "safety_gaps_must_outrank_popularity",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "Knowledge Gap Priority Queue"
+      ],
+      "TARGET_I5_ROLE": "Knowledge Gap Priority Queue",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "MISSING",
+      "CI_COVERAGE": "NO",
+      "COMPONENT_ID": "INV-42",
+      "COMPONENT_NAME": "Weekly governed run ledger",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "IngestionRun is not weekly multi-stage ledger",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "MISSING",
+      "DEPENDENCIES": [
+        "INV-09"
+      ],
+      "DOMAIN": "weekly_run_ledger",
+      "EVIDENCE_STRENGTH": "E4_DOCUMENTED_CONTRACT_ONLY",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [],
+      "LIMITATIONS": "PLAN-F06",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "N/A",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "audit_required",
+      "SCHEDULING": "NO",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Weekly Run Ledger",
+      "TEST_COVERAGE": "NO"
+    },
+    {
+      "ACTIVATION_STATE": "PARTIAL",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-43",
+      "COMPONENT_NAME": "Immutable knowledge provenance store",
+      "COMPONENT_TYPE": "MODEL",
+      "CURRENT_CAPABILITY": "Fingerprint helpers + run snapshots; no KU provenance table",
+      "CURRENT_INPUTS": [
+        "evidence fields"
+      ],
+      "CURRENT_OUTPUTS": [
+        "fingerprint"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [
+        "INV-22"
+      ],
+      "DOMAIN": "provenance_store",
+      "EVIDENCE_STRENGTH": "E1_DIRECT_IMPLEMENTATION",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/services/governance/kb_b2_adapters.py"
+      ],
+      "LIMITATIONS": "Not full Provenance Store",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "partial",
+      "REUSABILITY": "REUSE_WITH_EXTENSION",
+      "RUNTIME_USE": "NO",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "anti_spoof_design_partial",
+      "SYMBOLS": [
+        "derive_provenance_evidence_fingerprint"
+      ],
+      "TARGET_I5_ROLE": "Provenance Store",
+      "TEST_COVERAGE": "i5b2 tests"
+    },
+    {
+      "ACTIVATION_STATE": "N/A",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-44",
+      "COMPONENT_NAME": "I5/Gate3 knowledge test suite",
+      "COMPONENT_TYPE": "TESTS",
+      "CURRENT_CAPABILITY": "Covers Gate3 KB, fetch security, dormant scheduler, I5 contracts/profiles; not KU/gap/weekly",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "IMPLEMENTED_PARTIAL",
+      "DEPENDENCIES": [],
+      "DOMAIN": "test_coverage",
+      "EVIDENCE_STRENGTH": "E2_DIRECT_TEST_COVERAGE",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/tests/test_gate3_knowledge_v1.py",
+        "backend/tests/test_gate3g_kb_crawler_v1.py",
+        "backend/tests/test_gate3i_kb_scheduler_v1.py",
+        "backend/tests/test_section10_rag.py",
+        "backend/tests/test_section15_i5a1_",
+        "backend/tests/test_section15_i5a2_policy_evaluator.py",
+        "backend/tests/test_section15_i5b1_lifecycle_mapping.py",
+        "backend/tests/test_section15_i5b2_"
+      ],
+      "LIMITATIONS": "PLAN-F10",
+      "NOTES": "",
+      "OWNER": "CI",
+      "PERSISTENCE": "N/A",
+      "REUSABILITY": "REUSE_TEST_PATTERN_ONLY",
+      "RUNTIME_USE": "N/A",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Test patterns for Waves 1-6",
+      "TEST_COVERAGE": "SELF"
+    },
+    {
+      "ACTIVATION_STATE": "SCHEMA_PRESENT",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-45",
+      "COMPONENT_NAME": "KB/I5 migrations 027-030,036,049,051",
+      "COMPONENT_TYPE": "MIGRATIONS",
+      "CURRENT_CAPABILITY": "Legacy KB + embeddings + governed profiles schema present",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [],
+      "DOMAIN": "migration_state",
+      "EVIDENCE_STRENGTH": "E3_SCHEMA_OR_MIGRATION_EVIDENCE",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/alembic/versions/027_knowledge_sources.py",
+        "backend/alembic/versions/028_knowledge_documents.py",
+        "backend/alembic/versions/029_knowledge_chunks.py",
+        "backend/alembic/versions/030_knowledge_ingestion_runs.py",
+        "backend/alembic/versions/036_gate3g_kb_fetch_review.py",
+        "backend/alembic/versions/049_section10_kb_embeddings_memory_governance.py",
+        "backend/alembic/versions/051_i5b2_governed_source_profile.py"
+      ],
+      "LIMITATIONS": "No KU/gap/ledger/directory migrations; PLAN-F09",
+      "NOTES": "",
+      "OWNER": "DATABASE_SCHEMA",
+      "PERSISTENCE": "YES",
+      "REUSABILITY": "REUSE_SCHEMA_ONLY",
+      "RUNTIME_USE": "N/A",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [],
+      "TARGET_I5_ROLE": "Baseline schema to extend",
+      "TEST_COVERAGE": "migration tests partial"
+    },
+    {
+      "ACTIVATION_STATE": "ACTIVE",
+      "CI_COVERAGE": "partial",
+      "COMPONENT_ID": "INV-46",
+      "COMPONENT_NAME": "sedi_knowledge_base persona copy",
+      "COMPONENT_TYPE": "PROMPT_STATIC",
+      "CURRENT_CAPABILITY": "Static persona prompt text",
+      "CURRENT_INPUTS": [],
+      "CURRENT_OUTPUTS": [
+        "prompt strings"
+      ],
+      "CURRENT_STATUS": "IMPLEMENTED_ACTIVE",
+      "DEPENDENCIES": [],
+      "DOMAIN": "sedi_persona_false_friend",
+      "EVIDENCE_STRENGTH": "E5_NAME_ONLY_OR_PLACEHOLDER",
+      "FEATURE_FLAG": "N/A",
+      "FILE_PATHS": [
+        "backend/app/core/conversation/sedi_knowledge_base.py"
+      ],
+      "LIMITATIONS": "Name collision with medical KB",
+      "NOTES": "",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "PERSISTENCE": "NO",
+      "REUSABILITY": "DO_NOT_REUSE",
+      "RUNTIME_USE": "YES_prompt",
+      "SAFETY_STATE": "N/A",
+      "SCHEDULING": "N/A",
+      "SECURITY_STATE": "N/A",
+      "SYMBOLS": [
+        "SEDI_IDENTITY",
+        "build_complete_sedi_context"
+      ],
+      "TARGET_I5_ROLE": "Out of scope for I5 knowledge database",
+      "TEST_COVERAGE": "partial"
+    }
+  ],
+  "eo_c11": "OPEN",
+  "evidence_histogram": {
+    "E1_DIRECT_IMPLEMENTATION": 23,
+    "E2_DIRECT_TEST_COVERAGE": 1,
+    "E3_SCHEMA_OR_MIGRATION_EVIDENCE": 3,
+    "E4_DOCUMENTED_CONTRACT_ONLY": 13,
+    "E5_NAME_ONLY_OR_PLACEHOLDER": 5,
+    "E6_INFERENCE_REQUIRES_IMPLEMENTATION_REVIEW": 1
+  },
+  "formal_i5_completion_preserved": "21.79487179%",
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "status_histogram": {
+    "DOCUMENTED_ONLY": 4,
+    "IMPLEMENTED_ACTIVE": 15,
+    "IMPLEMENTED_DORMANT": 5,
+    "IMPLEMENTED_PARTIAL": 8,
+    "MISSING": 14
+  }
+}

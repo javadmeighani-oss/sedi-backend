@@ -45262,3 +45262,569 @@ CONCEPTUAL_KNOWLEDGE_USE_LAW_RECORDED_AND_CHECKPOINT_COMMITTED
 
 ---
 *پایان §۱۷۱ — SECTION-29 CONCEPTUAL-KNOWLEDGE-USE-LAW-FIX4 — PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS — ۲۰۲۶-۰۷-۳۱*
+
+## ۱۷۲) SECTION 30 / I5 IMPLEMENTATION ACCELERATION PLAN, CURRENT BACKEND INVENTORY, TARGET ARCHITECTURE AND EXECUTION PACKAGE SEQUENCE
+
+`	ext
+PACKAGE =
+SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01
+
+OWNER = Javad
+MODE = REPOSITORY_LOCAL / READ_ANALYZE_DOCUMENT_ONLY / NO_NETWORK /
+  NO_APPLICATION_CODE_EDIT / NO_CONFIG_EDIT / NO_TEST_EDIT_OR_EXECUTION /
+  NO_CI / NO_MIGRATION / NO_DB / NO_CRAWLER / NO_INGESTION /
+  NO_COMMIT / NO_PUSH / APPEND_ONLY_MASTER_LOG /
+  DOCUMENTATION_ONLY_PLANNING_ARTIFACTS / IN_SCOPE_SELF_HEALING /
+  SAME_RUN_FINAL_AUDIT
+
+BASELINE_HEAD = 9ba65b67407e26ac683f735e44330a6fdbe5ff22
+PARENT = af1d583df55a8df8284105917e86caf6342eb089
+TREE = faddc0e42f32a24478cb63cc027909037cc5f6f5
+BRANCH = feature/section15/backend-continuity-foundation
+FORMAL_I5_COMPLETION_PRESERVED = 21.79487179%
+EO_C11 = OPEN
+I5_PRODUCTION_READY = NO
+`
+
+### ۱۷۲.۱ Gate identity and Javad authorization
+
+`	ext
+Javad authorized a repository-local implementation-planning Gate for I5.
+This Gate converts committed Section 29 governance laws into an accelerated
+executable backend implementation programme.
+This Gate may inspect repository code and tests read-only.
+This Gate may modify documentation only.
+This Gate must not implement any application behaviour.
+`
+
+### ۱۷۲.۲ Baseline and scope
+
+`	ext
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+HEAD = 9ba65b67407e26ac683f735e44330a6fdbe5ff22
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY (preflight)
+WORKTREE = CLEAN (preflight)
+MASTER_LOG_TIP_BEFORE = §۱۷۱
+AUTHORIZED_WRITE =
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (append §172 only)
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/*
+`
+
+### ۱۷۲.۳ Permanent Section 29 laws
+
+`	ext
+1. Scientific/medical/disease/care/psychology/lifestyle/nutrition/exercise/sleep
+   and daily-routine knowledge must use trusted international sources.
+2. Iranian sources limited to Iranian doctors, laboratories, hospitals/centers.
+3. Weekly International Knowledge Crawler is mandatory.
+4. Knowledge Gap Priority Queue is mandatory.
+5. Sedi must query its governed Knowledge Database first.
+6. Trusted source material may be read conceptually; important knowledge extracted.
+7. Structured Knowledge Database and Knowledge Memory are mandatory.
+8. Sedi answers with own language and independent synthesis.
+9. Source provenance is mandatory.
+10. References available on user request and when safety/conflict/uncertainty requires.
+11. Direct publisher approval is not a universal knowledge-use prerequisite.
+12. Permanent full raw-text retention remains content-class dependent.
+13. Auth/CAPTCHA/anti-bot/rate-limit bypass prohibited.
+14. Missing/stale/low-confidence/conflicting domains create Knowledge Gaps.
+15. Every weekly run must measurably improve coverage/freshness/safety/usefulness.
+
+LAW_IDS =
+  I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW
+  I5-CONCEPTUAL-KNOWLEDGE-USE-AND-MEMORY-LAW
+`
+
+### ۱۷۲.۴ Discovery method and evidence standard
+
+`	ext
+METHOD = repository-local rg/git-grep/file enumeration/JSON parse/read-only history
+EVIDENCE_STRENGTHS = E1..E6
+RULES =
+  documentation is not implementation
+  model alone is not a complete service
+  fixtures are not production implementation
+  manual scripts are not a governed weekly crawler
+`
+
+### ۱۷۲.۵ Current implementation inventory
+
+`	ext
+INVENTORY_COMPONENT_COUNT = 46
+ARTIFACT = current_implementation_inventory.json
+SHA256 = 98aa386c723636bf6916d8b0fdd759a242862bd15de3cc4c8b772c94f26ab3a9
+
+HIGHLIGHTS_PRESENT =
+  KnowledgeSource / KnowledgeDocument / KnowledgeChunk / KnowledgeIngestionRun
+  GovernedSourceProfile(+Version) schema (051; default disabled)
+  KnowledgeSourceFetcher + fetch_security + robots_checker
+  content_parser + KnowledgeUpdateService + KnowledgeAIReviewService
+  search_knowledge -> CARE_CONTEXT via brain/care_intelligence
+  APScheduler kb_scheduled_fetch DORMANT (SEDI_KB_SCHEDULED_FETCH_ENABLED)
+  I5 governance contracts/policy_evaluator/lifecycle/adapters LIBRARY DORMANT
+  Gate3H trusted_source_catalog_v1.yaml PROPOSAL_ONLY
+
+HIGHLIGHTS_ABSENT =
+  KnowledgeUnit / KnowledgeMemory / KnowledgeGapQueue / WeeklyRunLedger
+  weekly governed orchestrator / conceptual extraction / KU conflict ORM
+  Iran directory tables / full Reference Renderer / I5 metrics suite
+`
+
+### ۱۷۲.۶ Reusable components
+
+`	ext
+REUSABLE_COUNT = 31
+ARTIFACT = reusable_component_matrix.json
+SHA256 = f2a97d3c0d333ccf0d96db0be1a40a10e8ba092cc07b1bce733af8ca866c6a7c
+PRIMARY_REUSE =
+  REUSE_WITH_EXTENSION: GovernedSourceProfile, Gate3 KB stack, safety, admin APIs
+  REUSE_WITH_ADAPTER: KnowledgeSourceFetcher as PUBLIC_WEB_FETCH
+  REUSE_AS_IS: activation fail-closed flags
+  DO_NOT_REUSE_AS_KNOWLEDGE_MEMORY: user memory / KC / LocalRAG
+  DO_NOT_REUSE_AS_IR_DIRECTORY: UserDoctor
+`
+
+### ۱۷۲.۷ Partial, dormant and false-positive components
+
+`	ext
+PARTIAL_DORMANT_COUNT = 12
+ARTIFACT = partial_and_dormant_component_matrix.json
+SHA256 = 9184ae1d076fcff74f8b8ce1badd03a0b877663ecd8fc198313985acc318783a
+FALSE_FRIENDS =
+  PLAN-F01 docs/contracts mistaken for runtime wiring
+  PLAN-F04 user memory != Knowledge Memory
+  PLAN-F05 Iran directory != clinical knowledge
+  PLAN-F06 scheduler != active weekly crawler
+  PLAN-F07 documents/chunks != Structured Knowledge Database
+  PLAN-F08 citations != Reference Renderer
+  PLAN-F11 activation != implementation
+`
+
+### ۱۷۲.۸ Missing component matrix
+
+`	ext
+MISSING_COUNT = 20
+ARTIFACT = missing_component_matrix.json
+SHA256 = 04fd4d87bde34e65e225e65e90cf6b73d5f5050ac89c60b269e92b2db89066b0
+CRITICAL_GAPS = Knowledge Gap Queue; Weekly Run Ledger+orchestrator;
+  Knowledge Unit+Provenance+Memory; Runtime KB-first; Reference Renderer;
+  Iran directory; Activation/dry-run/migration-run (separate Gates)
+`
+
+### ۱۷۲.۹ Target architecture
+
+`	ext
+BOUNDED_CONTEXT_COUNT = 24
+ARTIFACT = target_architecture_map.json
+SHA256 = b2962b77df1b2e2c2fafd650b1a4ee2ea2641bf306f9b7b3c6d1e0e25b1c93c0
+CONTEXTS = BC-01 International Source Registry ... BC-24 Monitoring and Alerts
+`
+
+### ۱۷۲.۱۰ International Source Registry
+
+`	ext
+DESIGN = full ISR field set in target_architecture_map.json
+CURRENT_FOUNDATION = GovernedSourceProfile + YAML proposal
+RULE = do not mix Iranian directory data into knowledge authority
+ACTIVATION_DEFAULT = DISABLED
+`
+
+### ۱۷۲.۱۱ Iran doctors/labs/hospitals directory separation
+
+`	ext
+SEPARATE_REGISTRY = IranDoctor / IranLaboratory / IranHospital
+PURPOSE = discovery and service navigation only
+PROHIBITED = IRAN_DIRECTORY_RECORD -> CLINICAL_KNOWLEDGE_UNIT
+CURRENT = catalog keys + UserDoctor personal records only
+`
+
+### ۱۷۲.۱۲ Knowledge Gap Priority Queue
+
+`	ext
+MANDATORY = YES (Section 29)
+PERSISTENCE = NEW knowledge_gaps
+PRIORITY_RULE = safety risk outranks low-risk popularity
+DRIVERS = missing/stale/low-confidence/conflict/safety/taxonomy/user questions
+`
+
+### ۱۷۲.۱۳ Structured Knowledge Database
+
+`	ext
+CANONICAL_ENTITY = KnowledgeUnit (NEW)
+NOT_EQUIVALENT = knowledge_documents / knowledge_chunks
+REQUIRES = provenance, evidence/freshness/conflict/safety states, supersession
+`
+
+### ۱۷۲.۱۴ Knowledge Memory
+
+`	ext
+DISTINCT_FROM = user memory / conversation / Lifestyle Memory / raw docs / embeddings
+DECISION = SEPARATE_MODEL_REQUIRED
+LINKED_TO = KnowledgeUnit; filtered by safety/freshness/conflict/eligibility
+`
+
+### ۱۷۲.۱۵ Provenance and raw retention
+
+`	ext
+PROVENANCE = mandatory per Knowledge Unit
+RAW_MODES = FULL_GOVERNED | TRANSIENT | MINIMAL_EVIDENCE | LINK_CITATION | EXCLUDED
+REUSE = document/chunk/run snapshots + fingerprint helpers -> provenance table
+`
+
+### ۱۷۲.۱۶ Weekly crawler pipeline
+
+`	ext
+STAGES = SCHEDULE -> GAP_LOAD -> DISCOVERY -> SELECTION -> ACQUISITION -> HASH ->
+  CHANGE_DETECT -> PARSE -> EXTRACT -> NORMALIZE -> TAXONOMY -> COMPARE ->
+  EVIDENCE -> CONFLICT -> SAFETY -> KU_WRITE -> MEMORY_WRITE -> PROVENANCE ->
+  SUPERSEDE -> GAP_UPDATE -> RUN_LEDGER -> MONITORING
+CURRENT = partial Gate3 fetch/parse/review only; weekly governed pipeline MISSING
+ELIGIBILITY != ACTIVATION
+`
+
+### ۱۷۲.۱۷ Source adapter framework
+
+`	ext
+ADAPTER_CLASSES = OFFICIAL_API | OFFICIAL_XML | OFFICIAL_JSON | RSS_OR_FEED |
+  PUBLIC_WEB_FETCH | MANUAL_OR_LINK_ONLY | BLOCKED_OR_EXCLUDED
+CANDIDATES_INACTIVE = WHO / MedlinePlus / NHS / CDC / NIMH / APA
+REUSE = KnowledgeSourceFetcher wraps as PUBLIC_WEB_FETCH
+NO_FETCH_IN_THIS_GATE = YES
+`
+
+### ۱۷۲.۱۸ Quality, conflict and medical-safety gates
+
+`	ext
+STATES = QUALITY / EVIDENCE_STRENGTH / FRESHNESS / CONFLICT /
+  MEDICAL_SAFETY / RUNTIME_ELIGIBILITY
+HIGH_RISK_DOMAINS = emergency, medication, contraindications, pregnancy,
+  pediatrics, elderly/frail, neurology, cardiovascular, diabetes,
+  infectious diseases, mental-health crisis, high-risk conflicts
+HUMAN_REVIEW = required for high-risk KU transitions
+REUSE = Gate3 AI review + SafetyPolicy + RiskClassifier (extend)
+`
+
+### ۱۷۲.۱۹ Runtime Knowledge-Database-First retrieval
+
+`	ext
+TARGET_FLOW = USER_REQUEST -> identity/profile/lifestyle -> classify ->
+  KU retrieval -> Knowledge Memory -> filters -> safety -> personalization ->
+  Sedi synthesis -> references -> response
+INTEGRATION_POINTS =
+  backend/app/core/conversation/brain.py::_maybe_append_gate3_care_context
+  backend/app/services/gate3/care_intelligence.py::build_care_context
+  backend/app/services/gate3/knowledge_retrieval_service.py::search_knowledge
+NOT_MODIFIED_IN_THIS_GATE = YES
+`
+
+### ۱۷۲.۲۰ Sedi independent synthesis and references
+
+`	ext
+SYNTHESIS = independent Sedi language; sources are learning inputs
+REFERENCE_RENDERER = SHOW SOURCES / VIEW REFERENCES / WHY SEDI SAID THIS
+MANDATORY_TRIGGERS = user request; high-risk; conflict; uncertainty;
+  stale; jurisdictional difference; safety escalation
+CURRENT = citation_label partial (PLAN-F08)
+`
+
+### ۱۷۲.۲۱ Migration plan
+
+`	ext
+MIGRATION_ITEM_COUNT = 5
+ARTIFACT = migration_test_ci_plan.json
+SHA256 = e50a64fd92952c2ae6183c412fb18d50b436349b789495169aff34b9d29d70db
+CREATE_IN = implementation packages W1/W2/W5
+RUN_IN = I5-IMPL-W6-P01 only (separate authorization)
+PREFER = new bounded tables over repurposing chunks as KUs
+NO_MIGRATION_CREATED_OR_RUN_IN_THIS_GATE = YES
+`
+
+### ۱۷۲.۲۲ Test and CI plan
+
+`	ext
+TEST_LAYER_COUNT = 17
+AUTHOR_WITH_IMPL_PACKAGES = unit/service/API tests
+SEPARATE_APPROVAL = full suite / CI workflow edit / e2e dry-run
+REUSE_PATTERNS = test_gate3g/i, test_section15_i5a*, i5b*
+NO_TEST_EDIT_OR_EXECUTION_IN_THIS_GATE = YES
+`
+
+### ۱۷۲.۲۳ Security, safety and observability
+
+`	ext
+SECURITY_CONTROL_COUNT = 23
+ARTIFACT = safety_security_observability_plan.json
+SHA256 = 1abfabfb6fa4b31da1d6e82e4e70f795ae76534c38a57f619af43822fd164ed1
+REUSE = fetch_security / robots / max bytes / admin approve
+ADD = dead-letter, poisoned-knowledge controls, AA metrics, source prompt-injection filters
+NO_BYPASS = auth/CAPTCHA/anti-bot/rate-limit bypass remains prohibited
+`
+
+### ۱۷۲.۲۴ Implementation waves
+
+`	ext
+WAVE_COUNT = 6
+ARTIFACT = implementation_wave_plan.json
+SHA256 = b6032ab2e0f550e5e94580a92006a1aed85623de824fd8d328b8237eb37a1f45
+WAVE1 = Core contracts/schemas (ISR/Gap/Ledger/KU/Provenance)
+WAVE2 = Knowledge storage/governance (Memory/states/admin)
+WAVE3 = Crawler framework (adapters/orchestrator; no activation)
+WAVE4 = Runtime KB-first + references
+WAVE5 = Iran directory
+WAVE6 = Validation/activation (split approvals)
+`
+
+### ۱۷۲.۲۵ Package sequence
+
+`	ext
+PACKAGE_COUNT = 13
+ARTIFACT = package_sequence.json
+SHA256 = 50614299a3736e89fd88d9e55104b9f8198da865147269b3298b15e29356e051
+FIRST = I5-IMPL-W1-P01
+RECOMMENDATION = OPTION_A
+RATIONALE = maximize reuse of GovernedSourceProfile + contracts;
+  Gap Queue + Run Ledger unlock weekly law; KU follows as W1-P02;
+  adapters (Option C) need persistence drivers from A
+`
+
+### ۱۷۲.۲۶ File allowlist matrix
+
+`	ext
+EXPLICIT_PATH_ENTRY_COUNT = 114
+ARTIFACT = file_allowlist_matrix.json
+SHA256 = e46058efda491eeea6d6ced52d1b665d43569e60e482a1d79264f659f5ec89ca
+CLASSES = READ_ONLY / CREATE / MODIFY / PROHIBITED per package
+`
+
+### ۱۷۲.۲۷ Dependency and owner matrix
+
+`	ext
+DEPENDENCY_COUNT = 12
+ARTIFACT = dependency_and_owner_matrix.json
+SHA256 = a2a118d0f56dc32bab37982d131003f1efe07b87624d4803d1a8fbd0aa5c4c59
+OWNERS = BACKEND_IMPLEMENTATION / DATABASE_SCHEMA / MEDICAL_SAFETY /
+  PRODUCT / LEGAL_OR_CONTENT_POLICY / DEVOPS / CI / JAVAD_DECISION
+PUBLISHER_APPROVAL = NOT_UNIVERSAL (Section 29)
+`
+
+### ۱۷۲.۲۸ I5 completion-impact model
+
+`	ext
+CURRENT_FORMAL_COMPLETION = 21.79487179%
+CHANGED_BY_THIS_GATE = NO
+DOCUMENTATION_ALONE_MUST_NOT_INCREASE_FORMAL_COMPLETION = YES
+ARTIFACT = i5_completion_impact_model.json
+SHA256 = cc2f878a083579aae637fcee95023e11dcf2fb67fe3563beb2616d06e339d843
+STAGES_DISTINGUISHED = DESIGN / CODE / TESTED / MIGRATED / DRY_RUN / ACTIVE / PROD_READY
+`
+
+### ۱۷۲.۲۹ First implementation Gate
+
+`	ext
+EXACT_PACKAGE_ID = I5-IMPL-W1-P01
+OBJECTIVE = ISR extensions + Knowledge Gap Priority Queue + Weekly Run Ledger
+  persistence+services without network/fetch/activation
+ARTIFACT = first_implementation_gate.json
+SHA256 = 77cd5e3a5e314245f6a001b7ebf6f4dbb4b6eb55e05b1342017893dfae70b6b7
+MIGRATION_AUTHOR = YES
+MIGRATION_RUN = NO (deferred to I5-IMPL-W6-P01)
+DO_NOT_EXECUTE_IN_THIS_PLANNING_GATE = YES
+NEXT_APPROVAL = Javad review before any code edit
+`
+
+### ۱۷۲.۳۰ Approval boundaries
+
+`	ext
+NO package is automatically authorized by this planning Gate.
+Separate authorization required for:
+  application code implementation
+  migration create vs migration run
+  test execution / CI workflow edit
+  network / dry-run / ingestion / activation
+  commit / push / deploy
+  EO-C11 closure / Stage 5 / P2 / formal I5 % change
+`
+
+### ۱۷۲.۳۱ Self-healing record
+
+`	ext
+PLAN-F-UNAUTHORIZED-_hashes.json = deleted helper outside allowlist
+PLAN-F-HASH-CYCLE = README lists core+final_audit hashes; README hash in §172
+PLAN-F01..F12 = encoded in partial/dormant + package self-healing rules
+NO BLOCKED_SCOPE_EXPANSION
+`
+
+### ۱۷۲.۳۲ Final same-run audit
+
+`	ext
+VERDICT = PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS
+TOKEN = I5_IMPLEMENTATION_ACCELERATION_PLAN_COMPLETE_UNCOMMITTED
+ARTIFACT = final_audit.json
+SHA256 = ca943eae6086fdf9104a39f94ca7d2659883383d067f3473ca265ab493af99ec
+FORMAL_I5 = 21.79487179%
+EO_C11 = OPEN
+CODE_CONFIG_TEST_WORKFLOW_MIGRATION_EDITED = NO
+SECTION29_EVIDENCE_MODIFIED = NO
+NETWORK = NO
+TESTS_EXECUTED = NO
+COMMIT_OR_PUSH = NO
+`
+
+### ۱۷۲.۳۳ Exact next step
+
+`	ext
+NEXT = Javad review of first implementation Gate I5-IMPL-W1-P01
+NO automatic implementation authorization
+READY_FOR_SECTION30_FIRST_IMPLEMENTATION_GATE_REVIEW
+`
+
+### ۱۷۲.۳۴ Append-only integrity record
+
+`	ext
+§§1–171 = IMMUTABLE in this Gate
+§۱۷۲ = APPENDED once
+§173 = ABSENT
+PLANNING_ROOT = docs/evidence/section30/i5_implementation_acceleration_plan_01/
+PLANNING_ARTIFACT_COUNT = 15
+FULL_SHA256 =
+  README.md = 3c938f92b2c00b035c20b17cc7e70f2f613045d6633948f3a1fda0ba9a44ebe7
+  current_implementation_inventory.json = 98aa386c723636bf6916d8b0fdd759a242862bd15de3cc4c8b772c94f26ab3a9
+  dependency_and_owner_matrix.json = a2a118d0f56dc32bab37982d131003f1efe07b87624d4803d1a8fbd0aa5c4c59
+  file_allowlist_matrix.json = e46058efda491eeea6d6ced52d1b665d43569e60e482a1d79264f659f5ec89ca
+  final_audit.json = ca943eae6086fdf9104a39f94ca7d2659883383d067f3473ca265ab493af99ec
+  first_implementation_gate.json = 77cd5e3a5e314245f6a001b7ebf6f4dbb4b6eb55e05b1342017893dfae70b6b7
+  i5_completion_impact_model.json = cc2f878a083579aae637fcee95023e11dcf2fb67fe3563beb2616d06e339d843
+  implementation_wave_plan.json = b6032ab2e0f550e5e94580a92006a1aed85623de824fd8d328b8237eb37a1f45
+  migration_test_ci_plan.json = e50a64fd92952c2ae6183c412fb18d50b436349b789495169aff34b9d29d70db
+  missing_component_matrix.json = 04fd4d87bde34e65e225e65e90cf6b73d5f5050ac89c60b269e92b2db89066b0
+  package_sequence.json = 50614299a3736e89fd88d9e55104b9f8198da865147269b3298b15e29356e051
+  partial_and_dormant_component_matrix.json = 9184ae1d076fcff74f8b8ce1badd03a0b877663ecd8fc198313985acc318783a
+  reusable_component_matrix.json = f2a97d3c0d333ccf0d96db0be1a40a10e8ba092cc07b1bce733af8ca866c6a7c
+  safety_security_observability_plan.json = 1abfabfb6fa4b31da1d6e82e4e70f795ae76534c38a57f619af43822fd164ed1
+  target_architecture_map.json = b2962b77df1b2e2c2fafd650b1a4ee2ea2641bf306f9b7b3c6d1e0e25b1c93c0
+`
+
+---
+
+*پایان ثبت — SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01 — PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS — پایان-بدون-شبکه*
+
+### ۱۷۲.۳۵ Formal completion and remaining authority
+
+`\text
+FORMAL_CLOSED = 17/78 = 21.79487179%
+FORMAL_REMAINING = 61/78 = 78.20512821%
+AUTHORITY = §164.2 LOCKED
+RULE = documentation and planning do not change formal completion
+`
+
+### ۱۷۲.۳۶ Ledger semantics and exact weight reconciliation
+
+`\text
+LEDGER = i5_completion_ledger.json
+CLOSED_REMAINING_TOTALS = §164.2 only
+PACKAGE_POINTS = remaining-relative planning points, not formal increments
+PACKAGE_POINTS_SUM = 100.00000000%
+SCALE = points_i / 100 * 78.20512821; final package absorbs rounding
+CLOSED_SUM = 21.79487179%
+REMAINING_SUM = 78.20512821%
+`
+
+### ۱۷۲.۳۷ Completed, partial, and missing capability state
+
+`\text
+FORMALLY_CLOSED = I5-A (1/1) + I5-B (4/13 credit)
+PARTIAL = repository inventory components recorded in partial_and_dormant_component_matrix.json
+MISSING = 20 implementation components recorded in missing_component_matrix.json
+PLANNED_NOT_STARTED = remaining package work not evidenced as partial
+EO_C11 = OPEN; I5_PRODUCTION_READY = NO
+`
+
+### ۱۷۲.۳۸ Thirteen-package management-map reconciliation
+
+`\text
+PLANNING_PACKAGE_IDS = authoritative I5-IMPL-W*-P* identifiers
+MANAGEMENT_IDS = P01..P13 aliases only; no package deleted or renamed
+MAP = package_sequence.json + implementation_wave_plan.json + i5_completion_ledger.json
+FIRST = I5-IMPL-W1-P01
+`
+
+### ۱۷۲.۳۹ Formal closure rules
+
+`\text
+NO_FORMAL_INCREMENT_FROM = documentation / design / code authoring / migration authoring alone
+REQUIRES = package evidence + applicable tests + authorized migration/dry-run/activation + Javad authority
+FORMAL_PERCENT_CHANGE = future Gate only under §164.2 authority
+`
+
+### ۱۷۲.۴۰ Exact remaining-work checklist
+
+`\text
+CHECKLIST_ARTIFACT = i5_completion_ledger.json
+CHECKLIST_ITEM_COUNT = 30
+SCOPE = 20 missing-component outcomes + 10 cross-cutting governance closure obligations
+STATUS = OPEN
+`
+
+### ۱۷۲.۴۱ Cursor multi-stage law
+
+`\text
+STAGES = DESIGN -> CODE -> TESTED -> MIGRATED -> DRY_RUN -> ACTIVE -> PRODUCTION_READY
+LAW = later stages are never inferred from earlier stages; each needs evidence and applicable authorization
+`
+
+### ۱۷۲.۴۲ Dual-reference law
+
+`\text
+REFERENCE_1 = Section 29 permanent I5 laws in §172.3
+REFERENCE_2 = docs/evidence/section30/i5_implementation_acceleration_plan_01/
+LAW = every future I5 implementation package cites both references
+SEPARATE_HANDOFF_FILE = ABSENT
+`
+
+### ۱۷۲.۴۳ Next gate and checkpoint scope
+
+`\text
+FIRST_GATE = I5-IMPL-W1-P01
+NEXT = Javad review and separate authorization before implementation
+CHECKPOINT_SCOPE = documentation ledger + consistency metadata + §172 append only
+CODE_CONFIG_TEST_WORKFLOW_MIGRATION_SECTION29 = NOT_EDITED
+NETWORK_CRAWLER_DB_TESTS_CI = NOT_RUN
+`
+
+### ۱۷۲.۴۴ Completion-ledger integrity and self-healing
+
+`\text
+LEDGER_SHA256 = df38e5450129c4a31d075bd78b449221aacdc3c32799c7f09a710ae776ef8b60
+SELF_HEALING = formal weights anchored to §164.2; all 13 planning IDs retained;
+  partial inventory separated from closure; last allocation absorbs rounding exactly
+VERDICT_TOKEN = I5_COMPLETION_LEDGER_RECONCILED_CHECKPOINT_READY
+`
+
+### ۱۷۲.۴۵ Full planning-artifact SHA-256 record
+
+`\text
+PLANNING_ARTIFACT_COUNT = 16
+FULL_SHA256 =
+  current_implementation_inventory.json = 98aa386c723636bf6916d8b0fdd759a242862bd15de3cc4c8b772c94f26ab3a9
+  dependency_and_owner_matrix.json = e6913efce17355bc24e966706be735047108192d5d1b6b1e3ec625c9f966c7e5
+  file_allowlist_matrix.json = 0a2287a62865a21ab150d5800b44fea11d7e3777a26457f4818f92a3f9c59345
+  final_audit.json = 6de2a9b620691e7e7286ad234f73dff873019221d051594f05ecb8ffd81ffcd8
+  first_implementation_gate.json = c986ad8f44a8ab065f8e67d0a0b172caa10909dfa8df30e36f586a63adf31bbe
+  i5_completion_impact_model.json = 2782a73e535ec7dc47c6c64c5e08e953343c3e6fab20ed3172c683ea9b214360
+  i5_completion_ledger.json = df38e5450129c4a31d075bd78b449221aacdc3c32799c7f09a710ae776ef8b60
+  implementation_wave_plan.json = 027a8949ff9105b7084deba211c7b15162f602a7716cb9c8dc6b55c6f1092c07
+  migration_test_ci_plan.json = e50a64fd92952c2ae6183c412fb18d50b436349b789495169aff34b9d29d70db
+  missing_component_matrix.json = 04fd4d87bde34e65e225e65e90cf6b73d5f5050ac89c60b269e92b2db89066b0
+  package_sequence.json = 2181ebe90f437c6c0239992381c9e096ba11b3ec23247a0c1e38613f9920c375
+  partial_and_dormant_component_matrix.json = 9184ae1d076fcff74f8b8ce1badd03a0b877663ecd8fc198313985acc318783a
+  README.md = a34191f85fa6f66a4de68bdf367f5c741923a93fc3a650ea66c0e30e5c3f13a4
+  reusable_component_matrix.json = f2a97d3c0d333ccf0d96db0be1a40a10e8ba092cc07b1bce733af8ca866c6a7c
+  safety_security_observability_plan.json = 1abfabfb6fa4b31da1d6e82e4e70f795ae76534c38a57f619af43822fd164ed1
+  target_architecture_map.json = b2962b77df1b2e2c2fafd650b1a4ee2ea2641bf306f9b7b3c6d1e0e25b1c93c0
+`
+
+---
+
+*پایان الحاق §۱۷۲ — SECTION30-I5-COMPLETION-LEDGER-FIX1-AND-CHECKPOINT-COMMIT-01 — I5_COMPLETION_LEDGER_RECONCILED_CHECKPOINT_READY — بدون-شبکه*

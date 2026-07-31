@@ -1,0 +1,247 @@
+{
+  "CURRENT_FORMAL_COMPLETION": "21.79487179%",
+  "EO_C11": "OPEN",
+  "FORMAL_COMPLETION_CHANGED_BY_THIS_GATE": false,
+  "I5_PRODUCTION_READY": "NO",
+  "documentation_alone_must_not_increase_formal_completion": true,
+  "note": "Weights are planning estimates only; formal percentage remains 21.79487179% until a future validation Gate updates it under Javad authority",
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "packages": [
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "HIGH",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after validated migration+tests Gate",
+      "PACKAGE_ID": "I5-IMPL-W1-P01",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 8.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "HIGH",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after validated migration+tests Gate",
+      "PACKAGE_ID": "I5-IMPL-W1-P02",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 10.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "MED",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after tests",
+      "PACKAGE_ID": "I5-IMPL-W2-P01",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 8.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "MED",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after medical safety acceptance",
+      "PACKAGE_ID": "I5-IMPL-W2-P02",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 8.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "HIGH",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after API tests",
+      "PACKAGE_ID": "I5-IMPL-W2-P03",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 3.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "MED",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after adapter tests",
+      "PACKAGE_ID": "I5-IMPL-W3-P01",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 10.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "MED",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after orchestrator tests; still inactive",
+      "PACKAGE_ID": "I5-IMPL-W3-P02",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 8.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": false
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "MED",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after runtime tests",
+      "PACKAGE_ID": "I5-IMPL-W4-P01",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 12.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": true
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "HIGH",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "after renderer tests",
+      "PACKAGE_ID": "I5-IMPL-W4-P02",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 5.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": true
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "LOW",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "directory; limited clinical I5 weight",
+      "PACKAGE_ID": "I5-IMPL-W5-P01",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 6.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": true
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "HIGH",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "CI green",
+      "PACKAGE_ID": "I5-IMPL-W6-P02",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 4.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": true
+    },
+    {
+      "ACTIVATION_REQUIRED": false,
+      "DEPENDENCY_CONFIDENCE": "MED",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "metrics verified",
+      "PACKAGE_ID": "I5-IMPL-W6-P03",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 3.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": true
+    },
+    {
+      "ACTIVATION_REQUIRED": true,
+      "DEPENDENCY_CONFIDENCE": "LOW_UNTIL_DONE",
+      "EXPECTED_FORMAL_INCREMENT_THIS_PLANNING_GATE": 0.0,
+      "FORMAL_COMPLETION_ELIGIBLE_AFTER": "only after dry-run+activation evidence",
+      "PACKAGE_ID": "I5-IMPL-W6-P01",
+      "PACKAGE_WEIGHT_ESTIMATE_POINTS": 15.0,
+      "STAGES": {
+        "ACTIVE": "future",
+        "CODE_COMPLETE": "future",
+        "DESIGN_COMPLETE": "planned_here",
+        "DRY_RUN_VERIFIED": "future",
+        "MIGRATED": "future",
+        "PRODUCTION_READY": "NO_UNTIL_JAVAD",
+        "TESTED": "future"
+      },
+      "VALIDATION_REQUIRED": true
+    }
+  ],
+  "FORMAL_REMAINING_COMPLETION": "78.20512821%",
+  "completion_ledger_reconciliation": "See i5_completion_ledger.json: §164.2 CLOSED/REMAINING authority; package points are remaining-relative and scaled to 78.20512821%."
+}

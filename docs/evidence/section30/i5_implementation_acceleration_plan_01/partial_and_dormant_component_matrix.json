@@ -1,0 +1,114 @@
+{
+  "count": 12,
+  "items": [
+    {
+      "FALSE_COMPLETION_RISK": "Scheduler exists but no active weekly governed job",
+      "PARTIAL_DORMANT_ID": "PD-01",
+      "RELATED_COMPONENT_IDS": "INV-11",
+      "REQUIRED_PACKAGE": "I5-IMPL-W3-P02",
+      "ROOT_CAUSE": "PLAN-F06",
+      "WHAT_IS_ACTUALLY_PRESENT": "APScheduler + kb_scheduled_fetch dormant lifestyle-only",
+      "WHAT_IS_MISSING": "Weekly gap-driven multi-stage crawler + ledger"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Source models exist but not International Source Registry contract",
+      "PARTIAL_DORMANT_ID": "PD-02",
+      "RELATED_COMPONENT_IDS": "INV-01/INV-02",
+      "REQUIRED_PACKAGE": "I5-IMPL-W1-P01",
+      "ROOT_CAUSE": "PLAN-F03",
+      "WHAT_IS_ACTUALLY_PRESENT": "KnowledgeSource + GovernedSourceProfile",
+      "WHAT_IS_MISSING": "Full ISR fields, activation separation, IR exclusion"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Document/chunk tables exist but no Knowledge Unit layer",
+      "PARTIAL_DORMANT_ID": "PD-03",
+      "RELATED_COMPONENT_IDS": "INV-06/INV-08",
+      "REQUIRED_PACKAGE": "I5-IMPL-W1-P02",
+      "ROOT_CAUSE": "PLAN-F07",
+      "WHAT_IS_ACTUALLY_PRESENT": "knowledge_documents/chunks",
+      "WHAT_IS_MISSING": "Structured KU with synthesis/states/supersede"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Ingestion exists but no conceptual extraction pipeline",
+      "PARTIAL_DORMANT_ID": "PD-04",
+      "RELATED_COMPONENT_IDS": "INV-09/INV-16/INV-25",
+      "REQUIRED_PACKAGE": "I5-IMPL-W3-P01",
+      "ROOT_CAUSE": "PLAN-F01",
+      "WHAT_IS_ACTUALLY_PRESENT": "Fetch/parse/AI review/approve",
+      "WHAT_IS_MISSING": "Important-point extraction + normalization + KU write"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Memory exists but is user/conversation memory",
+      "PARTIAL_DORMANT_ID": "PD-05",
+      "RELATED_COMPONENT_IDS": "INV-24",
+      "REQUIRED_PACKAGE": "I5-IMPL-W2-P01",
+      "ROOT_CAUSE": "PLAN-F04",
+      "WHAT_IS_ACTUALLY_PRESENT": "memory router, KC, LocalRAG, user_memory_facts",
+      "WHAT_IS_MISSING": "Separate Knowledge Memory linked to KUs"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Retrieval exists but does not enforce Knowledge-Database-First",
+      "PARTIAL_DORMANT_ID": "PD-06",
+      "RELATED_COMPONENT_IDS": "INV-29/INV-30",
+      "REQUIRED_PACKAGE": "I5-IMPL-W4-P01",
+      "ROOT_CAUSE": "PLAN-F01",
+      "WHAT_IS_ACTUALLY_PRESENT": "search_knowledge → CARE_CONTEXT",
+      "WHAT_IS_MISSING": "Retrieve KU/Memory with filters before synthesis"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Citations exist but not full reference renderer",
+      "PARTIAL_DORMANT_ID": "PD-07",
+      "RELATED_COMPONENT_IDS": "INV-31",
+      "REQUIRED_PACKAGE": "I5-IMPL-W4-P02",
+      "ROOT_CAUSE": "PLAN-F08",
+      "WHAT_IS_ACTUALLY_PRESENT": "citation_label + citation dict",
+      "WHAT_IS_MISSING": "SHOW SOURCES / VIEW REFERENCES / WHY SEDI SAID THIS + mandatory triggers"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Doctor records/catalog not separated IR directory authority",
+      "PARTIAL_DORMANT_ID": "PD-08",
+      "RELATED_COMPONENT_IDS": "INV-35/INV-38",
+      "REQUIRED_PACKAGE": "I5-IMPL-W5-P01",
+      "ROOT_CAUSE": "PLAN-F05",
+      "WHAT_IS_ACTUALLY_PRESENT": "YAML IR keys + UserDoctor",
+      "WHAT_IS_MISSING": "Directory registry distinct from clinical KU; forbid IR→KU"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Governance contracts look complete but unwired",
+      "PARTIAL_DORMANT_ID": "PD-09",
+      "RELATED_COMPONENT_IDS": "INV-40",
+      "REQUIRED_PACKAGE": "I5-IMPL-W1-P01",
+      "ROOT_CAUSE": "PLAN-F01",
+      "WHAT_IS_ACTUALLY_PRESENT": "contracts/policy_evaluator/lifecycle pure library",
+      "WHAT_IS_MISSING": "Wire into registry eligibility and runtime gates later"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Trusted catalog YAML looks like registry",
+      "PARTIAL_DORMANT_ID": "PD-10",
+      "RELATED_COMPONENT_IDS": "INV-03",
+      "REQUIRED_PACKAGE": "I5-IMPL-W1-P01",
+      "ROOT_CAUSE": "PLAN-F01",
+      "WHAT_IS_ACTUALLY_PRESENT": "Proposal YAML all fetch false",
+      "WHAT_IS_MISSING": "Governed import into ISR after Javad approval"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Hybrid embeddings look like knowledge memory/retrieval",
+      "PARTIAL_DORMANT_ID": "PD-11",
+      "RELATED_COMPONENT_IDS": "INV-39",
+      "REQUIRED_PACKAGE": "I5-IMPL-W4-P01",
+      "ROOT_CAUSE": "PLAN-F04",
+      "WHAT_IS_ACTUALLY_PRESENT": "chunk embeddings + hybrid_search flags off",
+      "WHAT_IS_MISSING": "Optional accelerator after KU; not Knowledge Memory"
+    },
+    {
+      "FALSE_COMPLETION_RISK": "Tests validate schemas/mocks more than weekly crawler",
+      "PARTIAL_DORMANT_ID": "PD-12",
+      "RELATED_COMPONENT_IDS": "INV-44",
+      "REQUIRED_PACKAGE": "I5-IMPL-W6-P02",
+      "ROOT_CAUSE": "PLAN-F10",
+      "WHAT_IS_ACTUALLY_PRESENT": "I5a/I5b/Gate3 tests",
+      "WHAT_IS_MISSING": "Layered tests for KU/gap/ledger/adapters/runtime"
+    }
+  ],
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01"
+}

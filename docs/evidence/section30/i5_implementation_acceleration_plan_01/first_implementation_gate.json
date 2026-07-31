@@ -1,0 +1,119 @@
+{
+  "APIS": [
+    "i5_admin read/write — no fetch endpoints"
+  ],
+  "BASELINE": {
+    "branch": "feature/section15/backend-continuity-foundation",
+    "expected_head_at_plan": "9ba65b67407e26ac683f735e44330a6fdbe5ff22",
+    "note": "Implementation Gate must re-verify baseline at start",
+    "worktree": "D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend"
+  },
+  "CLOSURE_CRITERIA": [
+    "models and services land behind tests",
+    "migration file authored but not run",
+    "admin APIs cannot enable fetch",
+    "master-log evidence section for implementation Gate"
+  ],
+  "DO_NOT_EXECUTE_IN_THIS_PLANNING_GATE": true,
+  "EVALUATED_OPTIONS": {
+    "OPTION_A": {
+      "reuse": [
+        "GovernedSourceProfile",
+        "KnowledgeIngestionRun",
+        "governance contracts",
+        "kb_b2 persistence"
+      ],
+      "score": "BEST",
+      "summary": "Source Registry + Knowledge Gap Queue + Run Ledger contracts and persistence"
+    },
+    "OPTION_B": {
+      "reuse": [
+        "documents/chunks as supporting raw layer only",
+        "fingerprint helpers"
+      ],
+      "score": "SECOND — immediate follow-on P02",
+      "summary": "Knowledge Unit + Provenance + Knowledge Memory persistence"
+    },
+    "OPTION_C": {
+      "reuse": [
+        "KnowledgeSourceFetcher",
+        "kb_scheduler",
+        "APScheduler"
+      ],
+      "score": "THIRD — needs gap/ledger drivers from A first",
+      "summary": "Adapter framework + scheduler contracts without activation"
+    }
+  },
+  "EXACT_PACKAGE_ID": "I5-IMPL-W1-P01",
+  "EXPECTED_REPORT": "SECTION30 first implementation Gate completion report with evidence hashes",
+  "FILES_TO_CREATE": [
+    "backend/app/services/i5/__init__.py",
+    "backend/app/services/i5/enums.py",
+    "backend/app/services/i5/isr_registry_service.py",
+    "backend/app/services/i5/knowledge_gap_service.py",
+    "backend/app/services/i5/weekly_run_ledger_service.py",
+    "backend/app/schemas/i5_core.py",
+    "backend/app/routers/i5_admin.py",
+    "backend/alembic/versions/0XX_i5_w1_p01_gap_ledger_isr.py",
+    "backend/tests/test_section30_i5_w1_p01_gap_ledger_isr.py"
+  ],
+  "FILES_TO_MODIFY": [
+    "backend/app/models.py",
+    "backend/app/main.py"
+  ],
+  "FILE_ALLOWLIST": "file_allowlist_matrix.json#I5-IMPL-W1-P01",
+  "MIGRATION_REQUIREMENTS": {
+    "author": true,
+    "run": false,
+    "run_requires_package": "I5-IMPL-W6-P01"
+  },
+  "MODELS": [
+    "KnowledgeGap",
+    "WeeklyKnowledgeRun",
+    "optional GovernedSourceProfile extensions"
+  ],
+  "NEXT_APPROVAL": "Javad review of I5-IMPL-W1-P01 before any code edit",
+  "OBJECTIVE": "Implement core ISR extensions, Knowledge Gap Priority Queue, and Weekly Run Ledger persistence+services without network/fetch/activation",
+  "PROHIBITED_OPERATIONS": [
+    "network",
+    "fetch",
+    "crawler execution",
+    "migration run",
+    "source activation",
+    "scheduler enable",
+    "commit",
+    "push",
+    "EO-C11 closure",
+    "formal I5 % change"
+  ],
+  "RECOMMENDATION": "OPTION_A",
+  "SCHEMAS": [
+    "i5_core.py"
+  ],
+  "SELF_HEALING": [
+    "PLAN-F01",
+    "PLAN-F03",
+    "PLAN-F05",
+    "PLAN-F06",
+    "PLAN-F09",
+    "PLAN-F11",
+    "PLAN-F12"
+  ],
+  "SERVICES": [
+    "isr_registry_service",
+    "knowledge_gap_service",
+    "weekly_run_ledger_service"
+  ],
+  "STATIC_VALIDATION": [
+    "no network imports in i5 services",
+    "default activation false"
+  ],
+  "TESTS_TO_AUTHOR": [
+    "model",
+    "service priority ordering",
+    "API schema",
+    "IR not clinical authority assert"
+  ],
+  "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
+  "completion_ledger_reference": "i5_completion_ledger.json; first gate remains I5-IMPL-W1-P01 and formal completion remains unchanged."
+}
