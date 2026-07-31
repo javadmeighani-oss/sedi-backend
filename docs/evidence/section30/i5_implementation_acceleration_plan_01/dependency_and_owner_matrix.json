@@ -1,4 +1,5 @@
 {
+  "completion_ledger_note": "i5_completion_ledger.json is documentation-only governance evidence; it reconciles §164.2 formal weights and does not authorize implementation.",
   "dependencies": [
     {
       "APPROVAL_REQUIRED": true,
@@ -119,9 +120,90 @@
       "OWNER": "BACKEND_IMPLEMENTATION",
       "TARGET_PACKAGE": "I5-IMPL-W1-P01",
       "WHY_REQUIRED": "Code packages W1-W4"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-13",
+      "DEPENDENCY_TYPE": "CONTINUOUS_LEARNING_GOVERNANCE",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "TARGET_PACKAGE": "ALL_I5_IMPL",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "GOVERNANCE",
+      "CLOSURE_CRITERIA": "loop + measurement evidence under continuous-learning law",
+      "WHY_REQUIRED": "Enforce governed knowledge growth loop"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-14",
+      "DEPENDENCY_TYPE": "RIGHTS_REVIEW",
+      "OWNER": "LEGAL_OR_CONTENT_POLICY",
+      "TARGET_PACKAGE": "I5-IMPL-W1-P02",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_FOR_RAW",
+      "CLOSURE_CRITERIA": "rights gate before publication",
+      "WHY_REQUIRED": "Rights-aware retrieval and publish gates"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-15",
+      "DEPENDENCY_TYPE": "KNOWLEDGE_PUBLICATION",
+      "OWNER": "MEDICAL_SAFETY",
+      "TARGET_PACKAGE": "I5-IMPL-W2-P02",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_FOR_RUNTIME",
+      "CLOSURE_CRITERIA": "only approved knowledge published",
+      "WHY_REQUIRED": "Governed approval before KB publication"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-16",
+      "DEPENDENCY_TYPE": "RUNTIME_GROUNDING",
+      "OWNER": "BACKEND_IMPLEMENTATION",
+      "TARGET_PACKAGE": "I5-IMPL-W4-P01",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "BLOCKING_FOR_RUNTIME",
+      "CLOSURE_CRITERIA": "KB-first retrieval + grounding measurable",
+      "WHY_REQUIRED": "Grounded response generation"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-17",
+      "DEPENDENCY_TYPE": "RESPONSE_QUALITY_MEASUREMENT",
+      "OWNER": "PRODUCT",
+      "TARGET_PACKAGE": "I5-IMPL-W6-P03",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "NON_BLOCKING_IMPL",
+      "CLOSURE_CRITERIA": "measurement law metrics defined/emitted",
+      "WHY_REQUIRED": "Knowledge growth must improve real responses"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-18",
+      "DEPENDENCY_TYPE": "MASTER_LOG_UPDATE",
+      "OWNER": "JAVAD_DECISION",
+      "TARGET_PACKAGE": "ALL_I5_IMPL",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "DOCUMENTATION",
+      "CLOSURE_CRITERIA": "master log updated after every material result",
+      "WHY_REQUIRED": "Dual-reference documentation law (repo half)"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-19",
+      "DEPENDENCY_TYPE": "HANDOFF_REFERENCE_UPDATE",
+      "OWNER": "JAVAD_DECISION",
+      "TARGET_PACKAGE": "ALL_I5_IMPL",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "DOCUMENTATION",
+      "CLOSURE_CRITERIA": "latest authoritative handoff/reference updated outside Cursor inventing a repo path",
+      "WHY_REQUIRED": "Dual-reference documentation law (external half)"
+    },
+    {
+      "DEPENDENCY_ID": "DEP-20",
+      "DEPENDENCY_TYPE": "BASE_MODEL_RETRAINING_BOUNDARY",
+      "OWNER": "JAVAD_DECISION",
+      "TARGET_PACKAGE": "N/A_SEPARATE_GATE",
+      "APPROVAL_REQUIRED": true,
+      "BLOCKING_STATE": "FORBIDDEN_WITHOUT_SEPARATE_GATE",
+      "CLOSURE_CRITERIA": "separate fine-tuning Gate with curated dataset, reviews, eval, rollback",
+      "WHY_REQUIRED": "Crawler must not autonomously retrain/modify base model"
     }
   ],
-  "dependency_count": 12,
+  "dependency_count": 20,
+  "fix2_ledger_capability_owners": "See i5_completion_ledger.json capability_matrix.capabilities[].OWNER",
   "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
-  "completion_ledger_note": "i5_completion_ledger.json is documentation-only governance evidence; it reconciles §164.2 formal weights and does not authorize implementation."
+  "fix3_note": "Added continuous-learning / dual-reference / retraining-boundary dependencies; existing owners reused"
 }

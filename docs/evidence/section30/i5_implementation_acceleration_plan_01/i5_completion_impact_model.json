@@ -1,8 +1,20 @@
 {
   "CURRENT_FORMAL_COMPLETION": "21.79487179%",
+  "CURRENT_FORMAL_REMAINING": "78.20512821%",
   "EO_C11": "OPEN",
   "FORMAL_COMPLETION_CHANGED_BY_THIS_GATE": false,
+  "FORMAL_REMAINING_COMPLETION": "78.20512821%",
   "I5_PRODUCTION_READY": "NO",
+  "completion_ledger_reconciliation": {
+    "capability_count": 30,
+    "fix2_status": "IMPLEMENTED_UNCOMMITTED",
+    "formal_closed": "21.79487179%",
+    "formal_remaining": "78.20512821%",
+    "ledger": "i5_completion_ledger.json",
+    "note": "Package points remain remaining-relative; formal % unchanged by FIX2/FIX3; continuous-learning law adds closure requirements only",
+    "remaining_plan_points": "100.00000000",
+    "fix3_status": "IMPLEMENTED_UNCOMMITTED"
+  },
   "documentation_alone_must_not_increase_formal_completion": true,
   "note": "Weights are planning estimates only; formal percentage remains 21.79487179% until a future validation Gate updates it under Javad authority",
   "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
@@ -242,6 +254,12 @@
       "VALIDATION_REQUIRED": true
     }
   ],
-  "FORMAL_REMAINING_COMPLETION": "78.20512821%",
-  "completion_ledger_reconciliation": "See i5_completion_ledger.json: §164.2 CLOSED/REMAINING authority; package points are remaining-relative and scaled to 78.20512821%."
+  "fix3_permanent_law_impact": {
+    "changes_closure_requirements": true,
+    "changes_current_formal_weight": false,
+    "FORMAL_CLOSED_REMAINS": "21.79487179%",
+    "FORMAL_REMAINING_REMAINS": "78.20512821%",
+    "package_points_rebalanced": false,
+    "note": "THE PERMANENT LAW CHANGES CLOSURE REQUIREMENTS, NOT CURRENT FORMAL WEIGHT."
+  }
 }

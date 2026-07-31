@@ -1,271 +1,1169 @@
 {
   "artifact": "I5 Completion Ledger",
-  "package_id": "SECTION30-I5-COMPLETION-LEDGER-FIX1-AND-CHECKPOINT-COMMIT-01",
+  "package_id": "SECTION30-I5-COMPLETION-LEDGER-FIX3-BASELINE-HASH-AND-CONTINUOUS-LEARNING-LAW-01",
+  "parent_fix1_package": "SECTION30-I5-COMPLETION-LEDGER-FIX1-AND-CHECKPOINT-COMMIT-01",
+  "baseline_head": "30c91dfc484fe8305039f5dc62a21e55de41abd6",
+  "status": "IMPLEMENTED_UNCOMMITTED_FIX3",
   "planning_root": "docs/evidence/section30/i5_implementation_acceleration_plan_01/",
+  "ef_schema_reconstruction": {
+    "result": "RECONSTRUCTED",
+    "canonical_sources": [
+      "FIX2 Gate §4 semantic field list (authorized)",
+      "current_implementation_inventory.json component fields",
+      "missing_component_matrix.json fields",
+      "FIX1 i5_completion_ledger.json package reconciliation + closed/open summaries",
+      "§164.2 formal weight authority"
+    ],
+    "schema_field_map": {
+      "CAPABILITY_ID": "unique capability identifier (FIX2 §4 + inventory COMPONENT_ID pattern)",
+      "DOMAIN": "authoritative domain name (FIX2 §5.2 + missing/inventory DOMAIN)",
+      "SUBDOMAIN_OR_CAPABILITY_GROUP": "capability group / subdomain",
+      "PLANNING_PACKAGE_ID": "authoritative I5-IMPL-* id",
+      "MANAGEMENT_ALIAS": "P01-P13 alias only",
+      "CURRENT_STATE": "NOT_STARTED|PLANNED|PARTIAL|DORMANT|FORMALLY_CLOSED|...",
+      "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "CLOSED fraction ref OR package remaining-points ref; no invented formal %",
+      "FORMAL_CLOSURE_CREDIT": "0.00000000 or closed-unit credit percent",
+      "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "package-level points reference; not a second formal %",
+      "EVIDENCE_GATE": "what evidence class is required for closure",
+      "EVIDENCE_REFERENCE": "paths/symbols/matrix refs",
+      "DEPENDENCIES": "capability or package deps",
+      "OWNER": "owner category",
+      "BLOCKER": "blocker or NONE",
+      "CLOSURE_CRITERIA": "explicit closure criteria",
+      "APPROVAL_BOUNDARY": "approval gates",
+      "RUNTIME_STATUS": "NOT_WIRED|PARTIAL_INTERIM|ACTIVE_USER_CONTEXT|N/A",
+      "PRODUCTION_READINESS": "NO|N/A",
+      "NOTES": "notes",
+      "_SYNONYM_MAP": {
+        "capability_id": "CAPABILITY_ID",
+        "planning_package_id": "PLANNING_PACKAGE_ID",
+        "status": "CURRENT_STATE",
+        "remaining_weight_percent": "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE (scaled remaining display at package level only)",
+        "planning_points": "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE",
+        "COMPONENT_ID": "inventory synonym for capability-like rows",
+        "MISSING_COMPONENT_ID": "missing-matrix synonym",
+        "CURRENT_STATUS": "inventory synonym for CURRENT_STATE",
+        "TARGET_PACKAGE": "synonym for PLANNING_PACKAGE_ID"
+      }
+    },
+    "weight_rule": "No invented per-capability formal WEIGHT_PERCENT. Formal closed credits only on CAP-CLOSED-* rows. Open rows use package remaining-point references."
+  },
   "authority": {
     "formal_weight_source": "docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md §164.2 LOCKED",
-    "formal_formula": "(I5_A 1/1 + I5_B 4/13 + I5_C 0/1 + I5_D 0/1 + I5_E 0/1 + I5_F 0/1) / 6 = 17/78",
-    "closed_percent": "21.79487179%",
-    "remaining_percent": "78.20512821%",
-    "documentation_does_not_change_formal_completion": true
+    "formal_formula": "(1 + 4/13) / 6 = 17/78 = 21.79487179%",
+    "FORMAL_I5_TOTAL": "100.00000000%",
+    "FORMAL_I5_CLOSED": "21.79487179%",
+    "FORMAL_I5_REMAINING": "78.20512821%",
+    "FORMAL_CLOSED_FRACTION": "17/78",
+    "I5_A_CREDIT": "1/1",
+    "I5_B_CREDIT": "4/13",
+    "I5_C_THROUGH_I5_F": "0 formal implementation/closure credit",
+    "REMAINING_PLAN_POINTS_TOTAL": "100.00000000",
+    "documentation_does_not_change_formal_completion": true,
+    "planning_ids_authoritative": true,
+    "management_aliases_only": true
   },
-  "closed_capabilities": [
-    {
-      "capability_id": "I5-A",
-      "status": "FORMALLY_CLOSED",
-      "credit": "1/1",
-      "weight_percent": "16.66666667%",
-      "domain": "SOURCE GOVERNANCE"
-    },
-    {
-      "capability_id": "I5-B",
-      "status": "FORMALLY_CLOSED",
-      "credit": "4/13",
-      "weight_percent": "5.12820512%",
-      "domain": "SOURCE GOVERNANCE",
-      "rounding_adjustment": "Adjusted by -0.00000001 percentage points so closed total is exactly 21.79487179%."
-    }
-  ],
-  "open_capabilities": [
-    {
-      "capability_id": "P01",
-      "planning_package_id": "I5-IMPL-W1-P01",
-      "domain_ids": [
-        "PLAN-F01",
-        "PLAN-F02",
-        "PLAN-F03",
-        "PLAN-F05",
-        "PLAN-F06",
-        "PLAN-F09",
-        "PLAN-F11",
-        "PLAN-F12"
-      ],
-      "domain_scope": [
-        "conceptual knowledge use and runtime governance wiring",
-        "source authority and trusted-source scope",
-        "International Source Registry contract completion",
-        "Iran directory separation from clinical knowledge",
-        "weekly governed crawler, scheduler, and activation separation",
-        "provenance, raw-retention, and persistence integrity",
-        "activation, dry-run, and authorization boundaries",
-        "scope integrity and forbidden-path controls"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "6.25641026%",
-      "planning_points": "8.0",
-      "wave": "WAVE1",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P02",
-      "planning_package_id": "I5-IMPL-W1-P02",
-      "domain_ids": [
-        "PLAN-F07",
-        "PLAN-F09"
-      ],
-      "domain_scope": [
-        "Structured Knowledge Database / Knowledge Unit distinction",
-        "provenance, raw-retention, and persistence integrity"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "7.82051282%",
-      "planning_points": "10.0",
-      "wave": "WAVE1",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P03",
-      "planning_package_id": "I5-IMPL-W2-P01",
-      "domain_ids": [
-        "PLAN-F04",
-        "PLAN-F07"
-      ],
-      "domain_scope": [
-        "Knowledge Memory distinct from user/conversation memory",
-        "Structured Knowledge Database / Knowledge Unit distinction"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "6.25641026%",
-      "planning_points": "8.0",
-      "wave": "WAVE2",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P04",
-      "planning_package_id": "I5-IMPL-W2-P02",
-      "domain_ids": [
-        "PLAN-F01",
-        "PLAN-F09"
-      ],
-      "domain_scope": [
-        "conceptual knowledge use and runtime governance wiring",
-        "provenance, raw-retention, and persistence integrity"
-      ],
-      "status": "PLANNED_NOT_STARTED",
-      "remaining_weight_percent": "6.25641026%",
-      "planning_points": "8.0",
-      "wave": "WAVE2",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P05",
-      "planning_package_id": "I5-IMPL-W2-P03",
-      "domain_ids": [
-        "PLAN-F11"
-      ],
-      "domain_scope": [
-        "activation, dry-run, and authorization boundaries"
-      ],
-      "status": "PLANNED_NOT_STARTED",
-      "remaining_weight_percent": "2.34615385%",
-      "planning_points": "3.0",
-      "wave": "WAVE2",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P06",
-      "planning_package_id": "I5-IMPL-W3-P01",
-      "domain_ids": [
-        "PLAN-F01",
-        "PLAN-F06",
-        "PLAN-F11"
-      ],
-      "domain_scope": [
-        "conceptual knowledge use and runtime governance wiring",
-        "weekly governed crawler, scheduler, and activation separation",
-        "activation, dry-run, and authorization boundaries"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "7.82051282%",
-      "planning_points": "10.0",
-      "wave": "WAVE3",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P07",
-      "planning_package_id": "I5-IMPL-W3-P02",
-      "domain_ids": [
-        "PLAN-F06",
-        "PLAN-F11"
-      ],
-      "domain_scope": [
-        "weekly governed crawler, scheduler, and activation separation",
-        "activation, dry-run, and authorization boundaries"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "6.25641026%",
-      "planning_points": "8.0",
-      "wave": "WAVE3",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P08",
-      "planning_package_id": "I5-IMPL-W4-P01",
-      "domain_ids": [
-        "PLAN-F01",
-        "PLAN-F04"
-      ],
-      "domain_scope": [
-        "conceptual knowledge use and runtime governance wiring",
-        "Knowledge Memory distinct from user/conversation memory"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "9.38461539%",
-      "planning_points": "12.0",
-      "wave": "WAVE4",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P09",
-      "planning_package_id": "I5-IMPL-W4-P02",
-      "domain_ids": [
-        "PLAN-F08"
-      ],
-      "domain_scope": [
-        "reference renderer and disclosure triggers"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "3.91025641%",
-      "planning_points": "5.0",
-      "wave": "WAVE4",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P10",
-      "planning_package_id": "I5-IMPL-W5-P01",
-      "domain_ids": [
-        "PLAN-F05"
-      ],
-      "domain_scope": [
-        "Iran directory separation from clinical knowledge"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "4.69230769%",
-      "planning_points": "6.0",
-      "wave": "WAVE5",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P11",
-      "planning_package_id": "I5-IMPL-W6-P02",
-      "domain_ids": [
-        "PLAN-F10"
-      ],
-      "domain_scope": [
-        "layered implementation tests and CI authorization"
-      ],
-      "status": "PARTIAL",
-      "remaining_weight_percent": "3.12820513%",
-      "planning_points": "4.0",
-      "wave": "WAVE6",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P12",
-      "planning_package_id": "I5-IMPL-W6-P03",
-      "domain_ids": [
-        "PLAN-F06"
-      ],
-      "domain_scope": [
-        "weekly governed crawler, scheduler, and activation separation"
-      ],
-      "status": "PLANNED_NOT_STARTED",
-      "remaining_weight_percent": "2.34615385%",
-      "planning_points": "3.0",
-      "wave": "WAVE6",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    },
-    {
-      "capability_id": "P13",
-      "planning_package_id": "I5-IMPL-W6-P01",
-      "domain_ids": [
-        "PLAN-F11"
-      ],
-      "domain_scope": [
-        "activation, dry-run, and authorization boundaries"
-      ],
-      "status": "PLANNED_NOT_STARTED",
-      "remaining_weight_percent": "11.73076921%",
-      "planning_points": "15.0",
-      "wave": "WAVE6",
-      "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
-    }
-  ],
   "weight_proof": {
-    "package_points_sum": "100.00000000%",
-    "closed_weight_sum": "21.79487179%",
-    "remaining_weight_sum": "78.20512821%",
-    "total": "100.00000000%",
+    "FORMAL_I5_TOTAL": "100.00000000%",
+    "FORMAL_I5_CLOSED": "21.79487179%",
+    "FORMAL_I5_REMAINING": "78.20512821%",
+    "SUM_FORMAL_CLOSURE_CREDIT_ROWS": "21.79487179%",
+    "SUM_OPEN_FORMAL_CLOSURE_CREDIT": "0.00000000%",
+    "REMAINING_PLAN_POINTS_SUM": "100.00000000",
+    "PACKAGE_REMAINING_WEIGHT_DISPLAY_SUM": "78.20512821%",
     "last_package_rounding_absorption": {
       "planning_package_id": "I5-IMPL-W6-P01",
       "weight_percent": "11.73076921%",
       "reason": "absorbs eight-decimal rounding so remaining total is exact"
-    }
+    },
+    "scale": "remaining_weight_display_i = package_points_i / 100 * 78.20512821; last package absorbs rounding"
+  },
+  "formal_completion_rules": [
+    "Formal completion remains 21.79487179% until a future authorized validation Gate changes §164.2 authority.",
+    "Documentation, package planning, code authoring, or migration authoring alone does not increase formal completion.",
+    "Any formal completion change requires package evidence, applicable tests, authorized migration/dry-run/activation evidence, and Javad authority.",
+    "EO-C11 remains OPEN; production readiness is not implied by this ledger."
+  ],
+  "capability_matrix": {
+    "capability_count": 30,
+    "domain_count": 28,
+    "domains": [
+      "DISCOVERY / FETCH / EXTRACTION",
+      "DISEASE / CARE / PREVENTION / SELF-CARE KNOWLEDGE",
+      "EO-C11 FINAL CLOSURE DEPENDENCIES",
+      "FRESHNESS / EVIDENCE STRENGTH / CONFLICT",
+      "INTERNATIONAL SOURCE REGISTRY",
+      "IRAN DOCTOR DIRECTORY",
+      "IRAN HOSPITAL / MEDICAL-CENTER DIRECTORY",
+      "IRAN LABORATORY DIRECTORY",
+      "KNOWLEDGE GAP PRIORITY QUEUE",
+      "KNOWLEDGE MEMORY",
+      "KNOWLEDGE-DATABASE-FIRST RETRIEVAL",
+      "MEDICAL SAFETY AND REVIEW STATES",
+      "MIGRATION / TEST / CI / DRY-RUN / ACTIVATION / PRODUCTION CLOSURE",
+      "NUTRITION / EXERCISE / LIFESTYLE / DAILY ROUTINES",
+      "PERSONALIZATION",
+      "PROVENANCE",
+      "PSYCHOLOGY AND HUMAN INTERACTION KNOWLEDGE",
+      "RAW RETENTION POLICY",
+      "REFERENCE RENDERING",
+      "RUNTIME GROUNDING",
+      "SCHEDULER / MONITORING / ALERTS",
+      "SEDI INDEPENDENT SYNTHESIS",
+      "SOURCE ADAPTERS",
+      "SOURCE GOVERNANCE",
+      "STRUCTURED KNOWLEDGE UNIT",
+      "VERSIONING / DIFF / SUPERSESSION",
+      "WEEKLY ORCHESTRATION AND GOVERNED WRITES",
+      "WEEKLY RUN LEDGER"
+    ],
+    "capabilities": [
+      {
+        "CAPABILITY_ID": "CAP-CLOSED-I5A",
+        "DOMAIN": "SOURCE GOVERNANCE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "FORMAL_CLOSED_UNITS",
+        "PLANNING_PACKAGE_ID": "HISTORICAL_I5A",
+        "MANAGEMENT_ALIAS": "N/A",
+        "CURRENT_STATE": "FORMALLY_CLOSED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "§164.2 I5_A=1/1 → 16.66666667% of total I5",
+        "FORMAL_CLOSURE_CREDIT": "16.66666667",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "N/A_CLOSED_UNIT",
+        "EVIDENCE_GATE": "UNIT_FORMALLY_CLOSED",
+        "EVIDENCE_REFERENCE": "§164.2; governance contracts/tests/CI historical",
+        "DEPENDENCIES": [],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "NONE",
+        "CLOSURE_CRITERIA": "Preserve closed unit; do not recount",
+        "APPROVAL_BOUNDARY": "NONE_ALREADY_CLOSED",
+        "RUNTIME_STATUS": "N/A_LIBRARY",
+        "PRODUCTION_READINESS": "N/A",
+        "NOTES": "Formal closed credit only; not crawler activation"
+      },
+      {
+        "CAPABILITY_ID": "CAP-CLOSED-I5B-4OF13",
+        "DOMAIN": "SOURCE GOVERNANCE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "FORMAL_CLOSED_UNITS",
+        "PLANNING_PACKAGE_ID": "HISTORICAL_I5B_PARTIAL",
+        "MANAGEMENT_ALIAS": "N/A",
+        "CURRENT_STATE": "FORMALLY_CLOSED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "§164.2 I5_B=4/13 → 5.12820512% of total I5 (adjusted to keep closed sum 21.79487179%)",
+        "FORMAL_CLOSURE_CREDIT": "5.12820512",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "N/A_CLOSED_UNIT",
+        "EVIDENCE_GATE": "SUBUNITS_FORMALLY_CLOSED",
+        "EVIDENCE_REFERENCE": "§164.2; I5-B1/B2 foundation closed subunits",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "NONE",
+        "CLOSURE_CRITERIA": "Only 4/13 B credit closed; 9/13 remain open via remaining packages",
+        "APPROVAL_BOUNDARY": "NONE_FOR_CLOSED_CREDIT",
+        "RUNTIME_STATUS": "N/A",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Does not authorize fetch/activation"
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-01",
+        "DOMAIN": "SOURCE GOVERNANCE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "GOVERNANCE",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P03",
+        "MANAGEMENT_ALIAS": "P05",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P03 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=3.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=2.34615385%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "ADMIN/GOVERNANCE WIRING",
+        "EVIDENCE_REFERENCE": "open admin/governance after I5-A close; W2-P03",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P03; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-02",
+        "DOMAIN": "INTERNATIONAL SOURCE REGISTRY",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "SOURCE",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
+        "MANAGEMENT_ALIAS": "P01",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST+CI",
+        "EVIDENCE_REFERENCE": "GovernedSourceProfile; YAML proposal; missing ISR contract MISS-03",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-03",
+        "DOMAIN": "KNOWLEDGE GAP PRIORITY QUEUE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "GAP",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
+        "MANAGEMENT_ALIAS": "P01",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST+CI",
+        "EVIDENCE_REFERENCE": "missing_component_matrix MISS-01",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-04",
+        "DOMAIN": "WEEKLY RUN LEDGER",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUN_GOVERNANCE",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
+        "MANAGEMENT_ALIAS": "P01",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST+CI",
+        "EVIDENCE_REFERENCE": "MISS-02",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-05",
+        "DOMAIN": "SOURCE ADAPTERS",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "ACQUISITION",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
+        "MANAGEMENT_ALIAS": "P06",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST; NETWORK gated",
+        "EVIDENCE_REFERENCE": "KnowledgeSourceFetcher PUBLIC_WEB only",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-06",
+        "DOMAIN": "DISCOVERY / FETCH / EXTRACTION",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "ACQUISITION",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
+        "MANAGEMENT_ALIAS": "P06",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST; NETWORK/DRY_RUN gated",
+        "EVIDENCE_REFERENCE": "fetcher/parser partial; conceptual extraction missing",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "PARTIAL_WHEN_ENABLED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-07",
+        "DOMAIN": "RAW RETENTION POLICY",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "PROVENANCE",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P02",
+        "MANAGEMENT_ALIAS": "P02",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+POLICY+TEST",
+        "EVIDENCE_REFERENCE": "run preview/hash partial; lawful-use modes",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-08",
+        "DOMAIN": "STRUCTURED KNOWLEDGE UNIT",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "KNOWLEDGE_DB",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P02",
+        "MANAGEMENT_ALIAS": "P02",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST+CI+DB",
+        "EVIDENCE_REFERENCE": "MISS-04; chunks≠KU",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-09",
+        "DOMAIN": "PROVENANCE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "PROVENANCE",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P02",
+        "MANAGEMENT_ALIAS": "P02",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST+CI+DB",
+        "EVIDENCE_REFERENCE": "MISS-05; fingerprint helpers partial",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-10",
+        "DOMAIN": "KNOWLEDGE MEMORY",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "MEMORY",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P01",
+        "MANAGEMENT_ALIAS": "P03",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST+CI+DB",
+        "EVIDENCE_REFERENCE": "MISS-06; ≠ user memory",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-11",
+        "DOMAIN": "VERSIONING / DIFF / SUPERSESSION",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "VERSIONING",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P01",
+        "MANAGEMENT_ALIAS": "P03",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+MIGRATE+TEST",
+        "EVIDENCE_REFERENCE": "MISS-07",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-12",
+        "DOMAIN": "FRESHNESS / EVIDENCE STRENGTH / CONFLICT",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "QUALITY",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",
+        "MANAGEMENT_ALIAS": "P04",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST+SAFETY",
+        "EVIDENCE_REFERENCE": "INV partial scores; MISS-08",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-13",
+        "DOMAIN": "MEDICAL SAFETY AND REVIEW STATES",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "SAFETY",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",
+        "MANAGEMENT_ALIAS": "P04",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST+MEDICAL_SAFETY",
+        "EVIDENCE_REFERENCE": "Gate3 safety partial; MISS-09",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "MEDICAL_SAFETY",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-14",
+        "DOMAIN": "WEEKLY ORCHESTRATION AND GOVERNED WRITES",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "ORCHESTRATION",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P02",
+        "MANAGEMENT_ALIAS": "P07",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST; ACTIVATION gated",
+        "EVIDENCE_REFERENCE": "MISS-13; scheduler dormant ≠ weekly",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-15",
+        "DOMAIN": "KNOWLEDGE-DATABASE-FIRST RETRIEVAL",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
+        "MANAGEMENT_ALIAS": "P08",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=12.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=9.38461539%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST+RUNTIME",
+        "EVIDENCE_REFERENCE": "search_knowledge interim; MISS-14",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-16",
+        "DOMAIN": "RUNTIME GROUNDING",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
+        "MANAGEMENT_ALIAS": "P08",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=12.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=9.38461539%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST+RUNTIME_VERIFY",
+        "EVIDENCE_REFERENCE": "CARE_CONTEXT hook; KU grounding missing",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-17",
+        "DOMAIN": "PERSONALIZATION",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
+        "MANAGEMENT_ALIAS": "P08",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=12.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=9.38461539%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST",
+        "EVIDENCE_REFERENCE": "user RAG active; post-KU personalization incomplete",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-18",
+        "DOMAIN": "SEDI INDEPENDENT SYNTHESIS",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P02",
+        "MANAGEMENT_ALIAS": "P09",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=5.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.91025641%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST+SAFETY",
+        "EVIDENCE_REFERENCE": "brain synthesis; governed KU-grounded law incomplete",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-19",
+        "DOMAIN": "REFERENCE RENDERING",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P02",
+        "MANAGEMENT_ALIAS": "P09",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=5.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.91025641%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+TEST+PRODUCT",
+        "EVIDENCE_REFERENCE": "citation_label partial; MISS-15",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "PRODUCT",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-20",
+        "DOMAIN": "PSYCHOLOGY AND HUMAN INTERACTION KNOWLEDGE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "KNOWLEDGE_CONTENT",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
+        "MANAGEMENT_ALIAS": "P06",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "CONTENT_VIA_CRAWLER_PIPELINE",
+        "EVIDENCE_REFERENCE": "international sources only; via adapters/extract",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "International-source KU path closed under crawler+KU+runtime rules; no Iran clinical authority",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-21",
+        "DOMAIN": "DISEASE / CARE / PREVENTION / SELF-CARE KNOWLEDGE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "KNOWLEDGE_CONTENT",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
+        "MANAGEMENT_ALIAS": "P06",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "CONTENT_VIA_CRAWLER_PIPELINE",
+        "EVIDENCE_REFERENCE": "international sources; KU path",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "International-source KU path closed under crawler+KU+runtime rules; no Iran clinical authority",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-22",
+        "DOMAIN": "NUTRITION / EXERCISE / LIFESTYLE / DAILY ROUTINES",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "KNOWLEDGE_CONTENT",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
+        "MANAGEMENT_ALIAS": "P06",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=10.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=7.82051282%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "CONTENT_VIA_CRAWLER_PIPELINE",
+        "EVIDENCE_REFERENCE": "Gate3 lifestyle categories partial",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "International-source KU path closed under crawler+KU+runtime rules; no Iran clinical authority",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-23",
+        "DOMAIN": "IRAN DOCTOR DIRECTORY",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
+        "MANAGEMENT_ALIAS": "P10",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+JAVAD_IR",
+        "EVIDENCE_REFERENCE": "MISS-16; catalog only",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "PRODUCT",
+        "BLOCKER": "Javad Iran-directory source decision + implementation",
+        "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W5-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-24",
+        "DOMAIN": "IRAN LABORATORY DIRECTORY",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
+        "MANAGEMENT_ALIAS": "P10",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+JAVAD_IR",
+        "EVIDENCE_REFERENCE": "MISS-16",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "PRODUCT",
+        "BLOCKER": "Javad Iran-directory source decision + implementation",
+        "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W5-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-25",
+        "DOMAIN": "IRAN HOSPITAL / MEDICAL-CENTER DIRECTORY",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
+        "MANAGEMENT_ALIAS": "P10",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+JAVAD_IR",
+        "EVIDENCE_REFERENCE": "MISS-16",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "PRODUCT",
+        "BLOCKER": "Javad Iran-directory source decision + implementation",
+        "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W5-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-26",
+        "DOMAIN": "SCHEDULER / MONITORING / ALERTS",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "OPS",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P03",
+        "MANAGEMENT_ALIAS": "P12",
+        "CURRENT_STATE": "PARTIAL",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P03 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=3.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=2.34615385%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "PACKAGE_IMPL+DEVOPS; ACTIVATION gated",
+        "EVIDENCE_REFERENCE": "kb_scheduled_fetch dormant; MISS-17",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "DEVOPS",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P03; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-27",
+        "DOMAIN": "MIGRATION / TEST / CI / DRY-RUN / ACTIVATION / PRODUCTION CLOSURE",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "VALIDATION",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P02",
+        "MANAGEMENT_ALIAS": "P11",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P02 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=4.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.12820513%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "SEPARATE_GATES W6",
+        "EVIDENCE_REFERENCE": "MISS-18/19/20",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "CI",
+        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "CLOSURE_CRITERIA": "Separate test/CI/migration-run/dry-run/activation/deploy Gates",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      },
+      {
+        "CAPABILITY_ID": "CAP-OPEN-28",
+        "DOMAIN": "EO-C11 FINAL CLOSURE DEPENDENCIES",
+        "SUBDOMAIN_OR_CAPABILITY_GROUP": "CLOSURE",
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P01",
+        "MANAGEMENT_ALIAS": "P13",
+        "CURRENT_STATE": "NOT_STARTED",
+        "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P01 remaining-points (not a per-capability formal % invent)",
+        "FORMAL_CLOSURE_CREDIT": "0.00000000",
+        "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=15.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=11.73076921%; allocation_level=PACKAGE_NOT_CAPABILITY",
+        "EVIDENCE_GATE": "JAVAD_DECISION",
+        "EVIDENCE_REFERENCE": "EO-C11 OPEN",
+        "DEPENDENCIES": [
+          "CAP-CLOSED-I5A"
+        ],
+        "OWNER": "JAVAD_DECISION",
+        "BLOCKER": "Upstream I5 packages incomplete; Javad EO-C11 decision",
+        "CLOSURE_CRITERIA": "Explicit Javad EO-C11 closure with evidence",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "RUNTIME_STATUS": "NOT_WIRED",
+        "PRODUCTION_READINESS": "NO",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+      }
+    ],
+    "inherited_permanent_laws": [
+      "PERMANENT_CONTINUOUS_LEARNING_LAW",
+      "WEEKLY_GOVERNED_KNOWLEDGE_LOOP",
+      "BASE_MODEL_RETRAINING_BOUNDARY",
+      "KNOWLEDGE_GROWTH_MEASUREMENT_REQUIREMENTS",
+      "DUAL_REFERENCE_DOCUMENTATION_LAW",
+      "CANONICAL_ARTIFACT_HASH_RULE"
+    ]
   },
   "thirteen_package_reconciliation": {
+    "package_count": 13,
     "semantics": "CLOSED and REMAINING percentages are formal §164.2 totals. Package points are remaining-relative planning points, not formal completion increments.",
     "scale": "remaining_weight_i = package_points_i / 100 * 78.20512821; the last package absorbs rounding.",
     "planning_ids_authoritative": true,
+    "management_identifiers_are_aliases_not_replacements": true,
+    "packages": [
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
+        "MANAGEMENT_ALIAS": "P01",
+        "WAVE": "WAVE1",
+        "OBJECTIVE": "Core contracts+persistence for International Source Registry extensions, Knowledge Gap Priority Queue, Weekly Run Ledger",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-02",
+          "CAP-OPEN-03",
+          "CAP-OPEN-04"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "8.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P02",
+        "MANAGEMENT_ALIAS": "P02",
+        "WAVE": "WAVE1",
+        "OBJECTIVE": "Knowledge Unit + Provenance persistence foundation",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-07",
+          "CAP-OPEN-08",
+          "CAP-OPEN-09"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "10.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "7.82051282%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P01",
+        "MANAGEMENT_ALIAS": "P03",
+        "WAVE": "WAVE2",
+        "OBJECTIVE": "Knowledge Memory + versioning/supersession",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-10",
+          "CAP-OPEN-11"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "8.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",
+        "MANAGEMENT_ALIAS": "P04",
+        "WAVE": "WAVE2",
+        "OBJECTIVE": "Evidence strength, freshness, conflict, medical-safety state machines",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-12",
+          "CAP-OPEN-13"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "8.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P03",
+        "MANAGEMENT_ALIAS": "P05",
+        "WAVE": "WAVE2",
+        "OBJECTIVE": "Admin review surfaces for KU/gap/safety",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-01"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "3.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "2.34615385%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
+        "MANAGEMENT_ALIAS": "P06",
+        "WAVE": "WAVE3",
+        "OBJECTIVE": "Adapter framework + parse/extract/normalize/dedupe (no source activation)",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-05",
+          "CAP-OPEN-06",
+          "CAP-OPEN-20",
+          "CAP-OPEN-21",
+          "CAP-OPEN-22"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "10.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "7.82051282%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P02",
+        "MANAGEMENT_ALIAS": "P07",
+        "WAVE": "WAVE3",
+        "OBJECTIVE": "Weekly orchestrator job + discovery wiring (implementation only; activation off)",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-14"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "8.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
+        "MANAGEMENT_ALIAS": "P08",
+        "WAVE": "WAVE4",
+        "OBJECTIVE": "Knowledge-Database-First runtime retrieval integration",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-15",
+          "CAP-OPEN-16",
+          "CAP-OPEN-17"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "12.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "9.38461539%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P02",
+        "MANAGEMENT_ALIAS": "P09",
+        "WAVE": "WAVE4",
+        "OBJECTIVE": "Reference renderer + mandatory disclosure triggers",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-18",
+          "CAP-OPEN-19"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "5.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "3.91025641%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
+        "MANAGEMENT_ALIAS": "P10",
+        "WAVE": "WAVE5",
+        "OBJECTIVE": "Iran doctors/labs/hospitals directory layer",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-23",
+          "CAP-OPEN-24",
+          "CAP-OPEN-25"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "6.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "4.69230769%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P02",
+        "MANAGEMENT_ALIAS": "P11",
+        "WAVE": "WAVE6",
+        "OBJECTIVE": "Expanded tests + CI workflow authorization package",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-27"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "4.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "3.12820513%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P03",
+        "MANAGEMENT_ALIAS": "P12",
+        "WAVE": "WAVE6",
+        "OBJECTIVE": "Monitoring metrics emitters + alerts",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-26"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "BACKEND_IMPLEMENTATION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "3.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "2.34615385%"
+      },
+      {
+        "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P01",
+        "MANAGEMENT_ALIAS": "P13",
+        "WAVE": "WAVE6",
+        "OBJECTIVE": "Migration run + offline dry-run + activation decisions (SEPARATE authorizations)",
+        "CAPABILITY_IDS": [
+          "CAP-OPEN-28"
+        ],
+        "DEPENDENCIES": "see package_sequence.json",
+        "OWNER": "JAVAD_DECISION",
+        "BLOCKERS": "Separate approval gates; activation/network not included in impl packages",
+        "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
+        "SEPARATE_APPROVAL_GATES": [
+          "IMPLEMENTATION",
+          "TEST/CI",
+          "MIGRATION_RUN",
+          "NETWORK/DRY_RUN",
+          "ACTIVATION",
+          "DEPLOY"
+        ],
+        "REMAINING_PLAN_POINTS": "15.0",
+        "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
+        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "11.73076921%"
+      }
+    ],
     "management_to_planning_map": [
       {
         "management_id": "P01",
@@ -372,240 +1270,487 @@
         "wave": "WAVE6"
       }
     ],
-    "management_identifiers_are_aliases_not_replacements": true
-  },
-  "required_f_domains": {
-    "PLAN-F01": "conceptual knowledge use and runtime governance wiring",
-    "PLAN-F02": "source authority and trusted-source scope",
-    "PLAN-F03": "International Source Registry contract completion",
-    "PLAN-F04": "Knowledge Memory distinct from user/conversation memory",
-    "PLAN-F05": "Iran directory separation from clinical knowledge",
-    "PLAN-F06": "weekly governed crawler, scheduler, and activation separation",
-    "PLAN-F07": "Structured Knowledge Database / Knowledge Unit distinction",
-    "PLAN-F08": "reference renderer and disclosure triggers",
-    "PLAN-F09": "provenance, raw-retention, and persistence integrity",
-    "PLAN-F10": "layered implementation tests and CI authorization",
-    "PLAN-F11": "activation, dry-run, and authorization boundaries",
-    "PLAN-F12": "scope integrity and forbidden-path controls"
-  },
-  "exact_remaining_work_checklist": [
-    {
-      "id": "RW-01",
-      "domain": "gap_queue",
-      "target_package": "I5-IMPL-W1-P01",
-      "required_outcome": "Persistent gap model+service+priority+tests",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-02",
-      "domain": "weekly_run_ledger",
-      "target_package": "I5-IMPL-W1-P01",
-      "required_outcome": "WeeklyRunLedger CRUD+metrics fields+tests",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-03",
-      "domain": "isr_contract_completion",
-      "target_package": "I5-IMPL-W1-P01",
-      "required_outcome": "ISR schema+service contracts; IR excluded",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-04",
-      "domain": "knowledge_unit",
-      "target_package": "I5-IMPL-W1-P02",
-      "required_outcome": "KU model+states+uniqueness+tests",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-05",
-      "domain": "provenance_store",
-      "target_package": "I5-IMPL-W1-P02",
-      "required_outcome": "Provenance table linked to KU",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-06",
-      "domain": "knowledge_memory",
-      "target_package": "I5-IMPL-W2-P01",
-      "required_outcome": "Memory items linked to KU with eligibility filters",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-07",
-      "domain": "version_supersession",
-      "target_package": "I5-IMPL-W2-P01",
-      "required_outcome": "superseded_by + rules",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-08",
-      "domain": "conflict_detection",
-      "target_package": "I5-IMPL-W2-P02",
-      "required_outcome": "Conflict model+detection service",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-09",
-      "domain": "medical_safety_ku_gate",
-      "target_package": "I5-IMPL-W2-P02",
-      "required_outcome": "State machine + admin queue",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-10",
-      "domain": "adapter_framework",
-      "target_package": "I5-IMPL-W3-P01",
-      "required_outcome": "Adapter interfaces + PUBLIC_WEB reuse",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-11",
-      "domain": "conceptual_extraction",
-      "target_package": "I5-IMPL-W3-P01",
-      "required_outcome": "Extraction producing normalized points",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-12",
-      "domain": "normalization_taxonomy",
-      "target_package": "I5-IMPL-W3-P01",
-      "required_outcome": "Taxonomy service",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-13",
-      "domain": "weekly_orchestrator",
-      "target_package": "I5-IMPL-W3-P02",
-      "required_outcome": "Job exists; activation separate Gate",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-14",
-      "domain": "runtime_kb_first",
-      "target_package": "I5-IMPL-W4-P01",
-      "required_outcome": "brain/care path uses KU/Memory with filters",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-15",
-      "domain": "reference_renderer",
-      "target_package": "I5-IMPL-W4-P02",
-      "required_outcome": "SHOW SOURCES / WHY SEDI SAID THIS",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-16",
-      "domain": "iran_directory",
-      "target_package": "I5-IMPL-W5-P01",
-      "required_outcome": "Directory models; forbid clinical KU path",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-17",
-      "domain": "i5_metrics_alerts",
-      "target_package": "I5-IMPL-W6-P03",
-      "required_outcome": "Metrics emit + alert rules",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-18",
-      "domain": "migration_create_run",
-      "target_package": "SPLIT_GATES",
-      "required_outcome": "Separate Gates for create vs run",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-19",
-      "domain": "ci_expansion",
-      "target_package": "I5-IMPL-W6-P02",
-      "required_outcome": "Workflow update authorized separately",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-20",
-      "domain": "activation_dry_run",
-      "target_package": "I5-IMPL-W6-P01",
-      "required_outcome": "Explicit activation Gate after dry-run",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-21",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W1-P01",
-      "required_outcome": "Preserve international-source authority and block Iranian directory records from clinical Knowledge Unit authority.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-22",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W3-P02",
-      "required_outcome": "Keep network acquisition, source activation, and live crawling disabled until separately authorized.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-23",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W1-P02",
-      "required_outcome": "Require provenance and governed raw-retention mode for each eligible Knowledge Unit.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-24",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W2-P02",
-      "required_outcome": "Enforce safety, freshness, conflict, and runtime-eligibility filters before synthesis.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-25",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W2-P01",
-      "required_outcome": "Keep Knowledge Memory separate from user, conversation, and embedding stores.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-26",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W4-P01",
-      "required_outcome": "Require Knowledge-Database-First retrieval before Sedi synthesis in the runtime path.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-27",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W4-P02",
-      "required_outcome": "Render references for user request and mandatory safety, conflict, uncertainty, stale, and jurisdiction triggers.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-28",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W6-P01",
-      "required_outcome": "Keep migration authoring and migration execution in separate approved Gates.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-29",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W6-P02",
-      "required_outcome": "Authorize and complete layered tests and any CI workflow change separately.",
-      "status": "OPEN"
-    },
-    {
-      "id": "RW-30",
-      "domain": "cross_cutting_governance",
-      "target_package": "I5-IMPL-W6-P01",
-      "required_outcome": "Obtain explicit Javad authorization and measurable dry-run evidence before activation or formal completion change.",
-      "status": "OPEN"
+    "inherited_permanent_laws": [
+      "PERMANENT_CONTINUOUS_LEARNING_LAW",
+      "DUAL_REFERENCE_DOCUMENTATION_LAW",
+      "CANONICAL_ARTIFACT_HASH_RULE"
+    ],
+    "package_closure_documentation_requirements": {
+      "master_log_update_required": true,
+      "latest_handoff_reference_update_required": true,
+      "documentation_only_closure_credit": false
     }
-  ],
-  "formal_completion_rules": [
-    "Formal completion remains 21.79487179% until a future authorized validation Gate changes §164.2 authority.",
-    "Documentation, package planning, code authoring, or migration authoring alone does not increase formal completion.",
-    "Any formal completion change requires package evidence, applicable tests, authorized migration/dry-run/activation evidence, and Javad authority.",
-    "EO-C11 remains OPEN; production readiness is not implied by this ledger."
-  ],
+  },
+  "preserved_fix1_summaries": {
+    "closed_capabilities_compact": [
+      {
+        "capability_id": "I5-A",
+        "status": "FORMALLY_CLOSED",
+        "credit": "1/1",
+        "weight_percent": "16.66666667%",
+        "domain": "SOURCE GOVERNANCE"
+      },
+      {
+        "capability_id": "I5-B",
+        "status": "FORMALLY_CLOSED",
+        "credit": "4/13",
+        "weight_percent": "5.12820512%",
+        "domain": "SOURCE GOVERNANCE",
+        "rounding_adjustment": "Adjusted by -0.00000001 percentage points so closed total is exactly 21.79487179%."
+      }
+    ],
+    "open_capabilities_compact": [
+      {
+        "capability_id": "P01",
+        "planning_package_id": "I5-IMPL-W1-P01",
+        "domain_ids": [
+          "PLAN-F01",
+          "PLAN-F02",
+          "PLAN-F03",
+          "PLAN-F05",
+          "PLAN-F06",
+          "PLAN-F09",
+          "PLAN-F11",
+          "PLAN-F12"
+        ],
+        "domain_scope": [
+          "conceptual knowledge use and runtime governance wiring",
+          "source authority and trusted-source scope",
+          "International Source Registry contract completion",
+          "Iran directory separation from clinical knowledge",
+          "weekly governed crawler, scheduler, and activation separation",
+          "provenance, raw-retention, and persistence integrity",
+          "activation, dry-run, and authorization boundaries",
+          "scope integrity and forbidden-path controls"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "6.25641026%",
+        "planning_points": "8.0",
+        "wave": "WAVE1",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P02",
+        "planning_package_id": "I5-IMPL-W1-P02",
+        "domain_ids": [
+          "PLAN-F07",
+          "PLAN-F09"
+        ],
+        "domain_scope": [
+          "Structured Knowledge Database / Knowledge Unit distinction",
+          "provenance, raw-retention, and persistence integrity"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "7.82051282%",
+        "planning_points": "10.0",
+        "wave": "WAVE1",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P03",
+        "planning_package_id": "I5-IMPL-W2-P01",
+        "domain_ids": [
+          "PLAN-F04",
+          "PLAN-F07"
+        ],
+        "domain_scope": [
+          "Knowledge Memory distinct from user/conversation memory",
+          "Structured Knowledge Database / Knowledge Unit distinction"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "6.25641026%",
+        "planning_points": "8.0",
+        "wave": "WAVE2",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P04",
+        "planning_package_id": "I5-IMPL-W2-P02",
+        "domain_ids": [
+          "PLAN-F01",
+          "PLAN-F09"
+        ],
+        "domain_scope": [
+          "conceptual knowledge use and runtime governance wiring",
+          "provenance, raw-retention, and persistence integrity"
+        ],
+        "status": "PLANNED_NOT_STARTED",
+        "remaining_weight_percent": "6.25641026%",
+        "planning_points": "8.0",
+        "wave": "WAVE2",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P05",
+        "planning_package_id": "I5-IMPL-W2-P03",
+        "domain_ids": [
+          "PLAN-F11"
+        ],
+        "domain_scope": [
+          "activation, dry-run, and authorization boundaries"
+        ],
+        "status": "PLANNED_NOT_STARTED",
+        "remaining_weight_percent": "2.34615385%",
+        "planning_points": "3.0",
+        "wave": "WAVE2",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P06",
+        "planning_package_id": "I5-IMPL-W3-P01",
+        "domain_ids": [
+          "PLAN-F01",
+          "PLAN-F06",
+          "PLAN-F11"
+        ],
+        "domain_scope": [
+          "conceptual knowledge use and runtime governance wiring",
+          "weekly governed crawler, scheduler, and activation separation",
+          "activation, dry-run, and authorization boundaries"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "7.82051282%",
+        "planning_points": "10.0",
+        "wave": "WAVE3",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P07",
+        "planning_package_id": "I5-IMPL-W3-P02",
+        "domain_ids": [
+          "PLAN-F06",
+          "PLAN-F11"
+        ],
+        "domain_scope": [
+          "weekly governed crawler, scheduler, and activation separation",
+          "activation, dry-run, and authorization boundaries"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "6.25641026%",
+        "planning_points": "8.0",
+        "wave": "WAVE3",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P08",
+        "planning_package_id": "I5-IMPL-W4-P01",
+        "domain_ids": [
+          "PLAN-F01",
+          "PLAN-F04"
+        ],
+        "domain_scope": [
+          "conceptual knowledge use and runtime governance wiring",
+          "Knowledge Memory distinct from user/conversation memory"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "9.38461539%",
+        "planning_points": "12.0",
+        "wave": "WAVE4",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P09",
+        "planning_package_id": "I5-IMPL-W4-P02",
+        "domain_ids": [
+          "PLAN-F08"
+        ],
+        "domain_scope": [
+          "reference renderer and disclosure triggers"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "3.91025641%",
+        "planning_points": "5.0",
+        "wave": "WAVE4",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P10",
+        "planning_package_id": "I5-IMPL-W5-P01",
+        "domain_ids": [
+          "PLAN-F05"
+        ],
+        "domain_scope": [
+          "Iran directory separation from clinical knowledge"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "4.69230769%",
+        "planning_points": "6.0",
+        "wave": "WAVE5",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P11",
+        "planning_package_id": "I5-IMPL-W6-P02",
+        "domain_ids": [
+          "PLAN-F10"
+        ],
+        "domain_scope": [
+          "layered implementation tests and CI authorization"
+        ],
+        "status": "PARTIAL",
+        "remaining_weight_percent": "3.12820513%",
+        "planning_points": "4.0",
+        "wave": "WAVE6",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P12",
+        "planning_package_id": "I5-IMPL-W6-P03",
+        "domain_ids": [
+          "PLAN-F06"
+        ],
+        "domain_scope": [
+          "weekly governed crawler, scheduler, and activation separation"
+        ],
+        "status": "PLANNED_NOT_STARTED",
+        "remaining_weight_percent": "2.34615385%",
+        "planning_points": "3.0",
+        "wave": "WAVE6",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      },
+      {
+        "capability_id": "P13",
+        "planning_package_id": "I5-IMPL-W6-P01",
+        "domain_ids": [
+          "PLAN-F11"
+        ],
+        "domain_scope": [
+          "activation, dry-run, and authorization boundaries"
+        ],
+        "status": "PLANNED_NOT_STARTED",
+        "remaining_weight_percent": "11.73076921%",
+        "planning_points": "15.0",
+        "wave": "WAVE6",
+        "closure_evidence_required": "package closure criteria, authorized implementation evidence, and applicable validation/approval evidence; planning documentation alone is insufficient"
+      }
+    ],
+    "required_f_domains_plan_f_map": {
+      "PLAN-F01": "conceptual knowledge use and runtime governance wiring",
+      "PLAN-F02": "source authority and trusted-source scope",
+      "PLAN-F03": "International Source Registry contract completion",
+      "PLAN-F04": "Knowledge Memory distinct from user/conversation memory",
+      "PLAN-F05": "Iran directory separation from clinical knowledge",
+      "PLAN-F06": "weekly governed crawler, scheduler, and activation separation",
+      "PLAN-F07": "Structured Knowledge Database / Knowledge Unit distinction",
+      "PLAN-F08": "reference renderer and disclosure triggers",
+      "PLAN-F09": "provenance, raw-retention, and persistence integrity",
+      "PLAN-F10": "layered implementation tests and CI authorization",
+      "PLAN-F11": "activation, dry-run, and authorization boundaries",
+      "PLAN-F12": "scope integrity and forbidden-path controls"
+    },
+    "exact_remaining_work_checklist": [
+      {
+        "id": "RW-01",
+        "domain": "gap_queue",
+        "target_package": "I5-IMPL-W1-P01",
+        "required_outcome": "Persistent gap model+service+priority+tests",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-02",
+        "domain": "weekly_run_ledger",
+        "target_package": "I5-IMPL-W1-P01",
+        "required_outcome": "WeeklyRunLedger CRUD+metrics fields+tests",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-03",
+        "domain": "isr_contract_completion",
+        "target_package": "I5-IMPL-W1-P01",
+        "required_outcome": "ISR schema+service contracts; IR excluded",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-04",
+        "domain": "knowledge_unit",
+        "target_package": "I5-IMPL-W1-P02",
+        "required_outcome": "KU model+states+uniqueness+tests",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-05",
+        "domain": "provenance_store",
+        "target_package": "I5-IMPL-W1-P02",
+        "required_outcome": "Provenance table linked to KU",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-06",
+        "domain": "knowledge_memory",
+        "target_package": "I5-IMPL-W2-P01",
+        "required_outcome": "Memory items linked to KU with eligibility filters",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-07",
+        "domain": "version_supersession",
+        "target_package": "I5-IMPL-W2-P01",
+        "required_outcome": "superseded_by + rules",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-08",
+        "domain": "conflict_detection",
+        "target_package": "I5-IMPL-W2-P02",
+        "required_outcome": "Conflict model+detection service",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-09",
+        "domain": "medical_safety_ku_gate",
+        "target_package": "I5-IMPL-W2-P02",
+        "required_outcome": "State machine + admin queue",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-10",
+        "domain": "adapter_framework",
+        "target_package": "I5-IMPL-W3-P01",
+        "required_outcome": "Adapter interfaces + PUBLIC_WEB reuse",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-11",
+        "domain": "conceptual_extraction",
+        "target_package": "I5-IMPL-W3-P01",
+        "required_outcome": "Extraction producing normalized points",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-12",
+        "domain": "normalization_taxonomy",
+        "target_package": "I5-IMPL-W3-P01",
+        "required_outcome": "Taxonomy service",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-13",
+        "domain": "weekly_orchestrator",
+        "target_package": "I5-IMPL-W3-P02",
+        "required_outcome": "Job exists; activation separate Gate",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-14",
+        "domain": "runtime_kb_first",
+        "target_package": "I5-IMPL-W4-P01",
+        "required_outcome": "brain/care path uses KU/Memory with filters",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-15",
+        "domain": "reference_renderer",
+        "target_package": "I5-IMPL-W4-P02",
+        "required_outcome": "SHOW SOURCES / WHY SEDI SAID THIS",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-16",
+        "domain": "iran_directory",
+        "target_package": "I5-IMPL-W5-P01",
+        "required_outcome": "Directory models; forbid clinical KU path",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-17",
+        "domain": "i5_metrics_alerts",
+        "target_package": "I5-IMPL-W6-P03",
+        "required_outcome": "Metrics emit + alert rules",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-18",
+        "domain": "migration_create_run",
+        "target_package": "SPLIT_GATES",
+        "required_outcome": "Separate Gates for create vs run",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-19",
+        "domain": "ci_expansion",
+        "target_package": "I5-IMPL-W6-P02",
+        "required_outcome": "Workflow update authorized separately",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-20",
+        "domain": "activation_dry_run",
+        "target_package": "I5-IMPL-W6-P01",
+        "required_outcome": "Explicit activation Gate after dry-run",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-21",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W1-P01",
+        "required_outcome": "Preserve international-source authority and block Iranian directory records from clinical Knowledge Unit authority.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-22",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W3-P02",
+        "required_outcome": "Keep network acquisition, source activation, and live crawling disabled until separately authorized.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-23",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W1-P02",
+        "required_outcome": "Require provenance and governed raw-retention mode for each eligible Knowledge Unit.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-24",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W2-P02",
+        "required_outcome": "Enforce safety, freshness, conflict, and runtime-eligibility filters before synthesis.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-25",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W2-P01",
+        "required_outcome": "Keep Knowledge Memory separate from user, conversation, and embedding stores.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-26",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W4-P01",
+        "required_outcome": "Require Knowledge-Database-First retrieval before Sedi synthesis in the runtime path.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-27",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W4-P02",
+        "required_outcome": "Render references for user request and mandatory safety, conflict, uncertainty, stale, and jurisdiction triggers.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-28",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W6-P01",
+        "required_outcome": "Keep migration authoring and migration execution in separate approved Gates.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-29",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W6-P02",
+        "required_outcome": "Authorize and complete layered tests and any CI workflow change separately.",
+        "status": "OPEN"
+      },
+      {
+        "id": "RW-30",
+        "domain": "cross_cutting_governance",
+        "target_package": "I5-IMPL-W6-P01",
+        "required_outcome": "Obtain explicit Javad authorization and measurable dry-run evidence before activation or formal completion change.",
+        "status": "OPEN"
+      }
+    ]
+  },
   "multi_stage_law": {
     "stages": [
       "DESIGN",
@@ -619,19 +1764,159 @@
     "rule": "A later stage must not be inferred from an earlier stage; each stage requires its own evidence and applicable authorization."
   },
   "dual_reference_law": {
-    "first_reference": "Section 29 permanent I5 laws recorded in master log §172.3",
-    "second_reference": "docs/evidence/section30/i5_implementation_acceleration_plan_01/",
-    "rule": "Every future I5 implementation package must cite both references; no separate handoff file exists in this repository."
+    "historical_fix2_note": {
+      "first_reference": "Section 29 permanent I5 laws recorded in master log §172.3",
+      "second_reference": "docs/evidence/section30/i5_implementation_acceleration_plan_01/",
+      "rule": "Every future I5 implementation package must cite both references; no separate handoff file exists in this repository."
+    },
+    "superseded_by": "DUAL_REFERENCE_DOCUMENTATION_LAW",
+    "status": "SUPERSEDED_BY_FIX3_PERMANENT_LAW"
   },
-  "next_gate": {
-    "package_id": "I5-IMPL-W1-P01",
-    "status": "FIRST_GATE",
-    "rule": "Javad review and separate authorization are required before any implementation work."
-  },
+  "next_gate": "SECTION30-I5-COMPLETION-LEDGER-FIX3-STRICT-READONLY-AUDIT",
   "self_healing_notes": [
-    "Uses §164.2 as the sole CLOSED/REMAINING formal-weight authority.",
-    "Retains all thirteen authoritative planning package IDs and records management P01-P13 aliases without replacing them.",
-    "Separates partial repository inventory from formal closure and preserves explicit implementation gaps.",
-    "Uses last-package rounding absorption to keep the remaining allocation exact."
-  ]
+    "Expanded compact FIX1 rows into full capability matrix without inventing formal per-capability weights",
+    "Preserved FIX1 package-point scale and closed credits",
+    "PLAN-F01..F12 retained as preserved_fix1_summaries aliases to defect classes, not as formal domains"
+  ],
+  "eo_c11": "OPEN",
+  "i5_production_ready": "NO",
+  "parent_fix2_package": "SECTION30-I5-COMPLETION-LEDGER-FIX2-FULL-CAPABILITY-MATRIX-AND-FENCE-REPAIR-01",
+  "PERMANENT_CONTINUOUS_LEARNING_LAW": {
+    "canonical_english": "SEDI IS A CONTINUOUSLY LEARNING,\nGOVERNED HEALTH RESEARCH AGENT.\n\nSEDI MUST CONTINUOUSLY:\n\nSEARCH TRUSTED SOURCES\nREAD AND EXTRACT IMPORTANT KNOWLEDGE\nSTRUCTURE FACTS, GUIDELINES, WARNINGS AND RELATIONSHIPS\nCOMPARE NEW EVIDENCE WITH EXISTING KNOWLEDGE\nDETECT CONFLICTS, CHANGES AND RETRACTIONS\nPRESERVE PROVENANCE AND VERSION HISTORY\nPASS RIGHTS, QUALITY, SAFETY AND SECURITY GATES\nPUBLISH ONLY APPROVED KNOWLEDGE\nRETRIEVE APPROVED KNOWLEDGE BEFORE ANSWERING\nMEASURE WHETHER NEW KNOWLEDGE IMPROVES REAL RESPONSES\n\nTHE WEEKLY CRAWLER EXPANDS SEDI'S EXTERNAL KNOWLEDGE.\nIT DOES NOT AUTONOMOUSLY RETRAIN OR MODIFY THE BASE MODEL.",
+    "persian_interpretation": "صدی یک ایجنت پژوهش سلامتِ یادگیرنده، مستمر و governed است.\n\nصدی باید مانند یک دانشجوی پژوهشگر دائمی:\nمنابع معتبر را پیدا کند؛\nمطالب را بخواند و مفاهیم مهم را استخراج کند؛\nfacts، guidelines، warnings و relationships را ساختاریافته کند؛\nشواهد جدید را با دانش موجود مقایسه کند؛\nتعارض، تغییر، supersession و retraction را تشخیص دهد؛\nprovenance و version history را حفظ کند؛\nاز گیت‌های حقوق، کیفیت، ایمنی و امنیت عبور کند؛\nفقط دانش تأییدشده را منتشر کند؛\nپیش از پاسخ از دانش تأییدشده بازیابی کند؛\nو اثر دانش جدید بر پاسخ‌های واقعی را اندازه‌گیری کند.",
+    "inherits_to_all_open_capabilities": true,
+    "creates_formal_closure_credit": false
+  },
+  "WEEKLY_GOVERNED_KNOWLEDGE_LOOP": {
+    "loop": [
+      "TRUSTED SOURCE DISCOVERY",
+      "RIGHTS-AWARE RETRIEVAL",
+      "IMMUTABLE RAW EVIDENCE",
+      "READING AND EXTRACTION",
+      "STRUCTURED KNOWLEDGE UNIT",
+      "PROVENANCE",
+      "VERSION / DIFF / SUPERSESSION",
+      "CONFLICT / FRESHNESS / EVIDENCE EVALUATION",
+      "MEDICAL / QUALITY / SAFETY / SECURITY REVIEW",
+      "GOVERNED APPROVAL",
+      "KNOWLEDGE DATABASE PUBLICATION",
+      "RUNTIME ELIGIBILITY",
+      "KNOWLEDGE-DATABASE-FIRST RETRIEVAL",
+      "GROUNDED RESPONSE GENERATION",
+      "RESPONSE QUALITY AND SAFETY MEASUREMENT",
+      "KNOWLEDGE-GAP DISCOVERY",
+      "REPEAT"
+    ],
+    "invariants": [
+      "CRAWLER OUTPUT ≠ AUTOMATIC TRUTH",
+      "DOWNLOADED TEXT ≠ APPROVED KNOWLEDGE",
+      "DOCUMENT COUNT ≠ KNOWLEDGE QUALITY",
+      "CODE AUTHORED ≠ RUNTIME VERIFIED",
+      "RUNTIME VERIFIED ≠ PRODUCTION READY",
+      "USER MEMORY ≠ GLOBAL MEDICAL KNOWLEDGE",
+      "NEW KNOWLEDGE ≠ BASE-MODEL RETRAINING"
+    ],
+    "mandatory_for_i5": true
+  },
+  "BASE_MODEL_RETRAINING_BOUNDARY": {
+    "crawler_must_not": [
+      "AUTONOMOUSLY RETRAIN THE BASE MODEL",
+      "MODIFY MODEL WEIGHTS",
+      "PUBLISH UNREVIEWED MEDICAL CLAIMS",
+      "TURN USER-SPECIFIC MEMORY INTO GLOBAL KNOWLEDGE",
+      "BYPASS RIGHTS / QUALITY / SAFETY / SECURITY GATES"
+    ],
+    "future_fine_tuning_requires_separate_gate": [
+      "CURATED DATASET",
+      "PRIVACY / DE-IDENTIFICATION REVIEW",
+      "MEDICAL AND SAFETY REVIEW",
+      "OFFLINE TRAINING",
+      "REGRESSION EVALUATION",
+      "RED-TEAM EVALUATION",
+      "ROLLBACK PLAN",
+      "CONTROLLED ROLLOUT",
+      "SEPARATE JAVAD APPROVAL"
+    ],
+    "weekly_crawler_expands_external_knowledge_only": true
+  },
+  "KNOWLEDGE_GROWTH_MEASUREMENT_REQUIREMENTS": {
+    "storage_alone_does_not_prove_intelligence": true,
+    "metrics": [
+      "KNOWLEDGE COVERAGE",
+      "KNOWLEDGE FRESHNESS",
+      "SOURCE AUTHORITY",
+      "PROVENANCE COMPLETENESS",
+      "VERSION / SUPERSESSION CORRECTNESS",
+      "RETRIEVAL PRECISION",
+      "GROUNDING RATE",
+      "CITATION ACCURACY",
+      "CONFLICT-DETECTION QUALITY",
+      "MEDICAL SAFETY RECALL",
+      "UNSUPPORTED-CLAIM RATE",
+      "PERSONALIZATION QUALITY",
+      "QUESTION-REPETITION RATE",
+      "HUMAN-INTERACTION QUALITY",
+      "REAL RESPONSE IMPROVEMENT AGAINST BASELINE"
+    ],
+    "rule": "A WEEKLY RUN DOES NOT COUNT AS REAL KNOWLEDGE GROWTH UNLESS IT PRODUCES GOVERNED NEW OR UPDATED KNOWLEDGE AND ITS RUNTIME USE OR READINESS IS MEASURABLE. PINGING URLS, REFRESHING METADATA, OR RE-DOWNLOADING UNCHANGED CONTENT IS NOT SUFFICIENT."
+  },
+  "DUAL_REFERENCE_DOCUMENTATION_LAW": {
+    "permanent_rule": "AFTER EVERY MATERIAL RESULT, BOTH AUTHORITATIVE CONTINUITY REFERENCES MUST BE UPDATED: (1) docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md AND (2) THE LATEST AUTHORITATIVE HANDOFF / REFERENCE FILE",
+    "material_results_include": [
+      "ANALYSIS",
+      "ARCHITECTURE DECISION",
+      "SCOPE REVIEW",
+      "IMPLEMENTATION",
+      "AUDIT",
+      "TEST",
+      "COMMIT",
+      "PUSH",
+      "CI",
+      "MIGRATION",
+      "DEPLOY",
+      "FLAG OR CAPABILITY CHANGE",
+      "CRAWLER RUN",
+      "KNOWLEDGE INGESTION",
+      "KNOWLEDGE PUBLICATION",
+      "RUNTIME-GROUNDING RESULT",
+      "FAILURE",
+      "BLOCKER"
+    ],
+    "each_update_should_include_where_applicable": [
+      "ACTUAL STATUS",
+      "WORK COMPLETED",
+      "DECISIONS",
+      "FINDINGS",
+      "FILES",
+      "SHAS",
+      "TEST RESULTS",
+      "CI RUNS",
+      "MIGRATIONS",
+      "CRAWLER / INGESTION RUNS",
+      "FORMAL I5 PERCENTAGE",
+      "REMAINING PERCENTAGE",
+      "CLOSED CAPABILITIES",
+      "OPEN CAPABILITIES",
+      "BLOCKERS",
+      "NEXT PACKAGE / GATE",
+      "APPROVAL BOUNDARIES"
+    ],
+    "repository_master_log_must_record": "LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES",
+    "external_handoff_not_in_repository": true,
+    "external_handoff_updated_by_cursor": false,
+    "supersedes_prior_dual_reference_law_field": true
+  },
+  "CANONICAL_ARTIFACT_HASH_RULE": {
+    "rule": "CANONICAL_SECTION30_ARTIFACT_SHA256 = SHA-256 OF CANONICAL GIT-BLOB-EQUIVALENT / LF-NORMALIZED BYTES",
+    "working_tree_crlf_hash_is_not_canonical": true,
+    "git_blob_lf_hash_is_canonical": true,
+    "do_not_hash_pretty_printed_regenerated_json_as_substitute_for_file_bytes": true,
+    "crlf_era_fix1_claims": {
+      "status": "HISTORICAL_PROCESS_EVIDENCE_NOT_CANONICAL_ARTIFACT_IDENTIFIERS",
+      "fix1_sha_basis": "WORKING-TREE CRLF BYTES",
+      "fix2_old_sha_basis": "COMMITTED GIT-BLOB / LF BYTES",
+      "fix1_matches_crlf_converted_blobs": "7/7",
+      "fix2_old_matches_committed_blobs": "7/7"
+    }
+  }
 }

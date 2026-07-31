@@ -1,5 +1,11 @@
 {
   "first_package": "I5-IMPL-W1-P01",
+  "management_map_reconciliation": {
+    "fix2": "aliases only; no package merge/delete",
+    "ledger_ref": "i5_completion_ledger.json#thirteen_package_reconciliation",
+    "management_aliases": "P01-P13",
+    "planning_ids_authoritative": true
+  },
   "package_count": 13,
   "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
   "packages": [
@@ -11,7 +17,8 @@
         "Javad for package start; migration run separate"
       ],
       "CLOSURE_CRITERIA": [
-        "models+services+tests authored; static checks pass; no activation"
+        "models+services+tests authored; static checks pass; no activation",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "ISR fields/services",
@@ -82,7 +89,8 @@
         "migration run separate"
       ],
       "CLOSURE_CRITERIA": [
-        "KU+provenance persist; fail closed without provenance"
+        "KU+provenance persist; fail closed without provenance",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "KnowledgeUnit",
@@ -142,7 +150,8 @@
         "standard"
       ],
       "CLOSURE_CRITERIA": [
-        "memory items filterable by safety/freshness"
+        "memory items filterable by safety/freshness",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "KnowledgeMemoryItem",
@@ -198,7 +207,8 @@
         "MEDICAL_SAFETY review"
       ],
       "CLOSURE_CRITERIA": [
-        "deterministic state transitions documented+tested"
+        "deterministic state transitions documented+tested",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "state enums",
@@ -255,7 +265,8 @@
         "standard"
       ],
       "CLOSURE_CRITERIA": [
-        "admin can review without enabling crawler"
+        "admin can review without enabling crawler",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "admin APIs"
@@ -300,7 +311,8 @@
         "network Gate separate"
       ],
       "CLOSURE_CRITERIA": [
-        "adapters mock-tested; PUBLIC_WEB wraps existing fetcher"
+        "adapters mock-tested; PUBLIC_WEB wraps existing fetcher",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "adapter contracts",
@@ -355,7 +367,8 @@
         "activation separate"
       ],
       "CLOSURE_CRITERIA": [
-        "job code present; env default false"
+        "job code present; env default false",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "weekly orchestrator",
@@ -408,7 +421,8 @@
         "product+medical safety"
       ],
       "CLOSURE_CRITERIA": [
-        "CARE_CONTEXT path uses KU/Memory filters"
+        "CARE_CONTEXT path uses KU/Memory filters",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "retrieval service",
@@ -456,7 +470,8 @@
         "PRODUCT"
       ],
       "CLOSURE_CRITERIA": [
-        "SHOW SOURCES / WHY SEDI SAID THIS supported"
+        "SHOW SOURCES / WHY SEDI SAID THIS supported",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "ReferenceRenderer"
@@ -504,7 +519,8 @@
         "LEGAL_OR_CONTENT_POLICY"
       ],
       "CLOSURE_CRITERIA": [
-        "directory searchable; clinical path blocked in tests"
+        "directory searchable; clinical path blocked in tests",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "directory models/APIs"
@@ -558,7 +574,8 @@
         "workflow edit separate if needed"
       ],
       "CLOSURE_CRITERIA": [
-        "required tests authored; CI policy decided"
+        "required tests authored; CI policy decided",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "tests",
@@ -601,7 +618,8 @@
         "DEVOPS"
       ],
       "CLOSURE_CRITERIA": [
-        "AA metrics defined and emitted in dry unit"
+        "AA metrics defined and emitted in dry unit",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "metrics",
@@ -641,7 +659,8 @@
         "JAVAD_DECISION mandatory; split subgates"
       ],
       "CLOSURE_CRITERIA": [
-        "explicit written activation; measurable dry-run report"
+        "explicit written activation; measurable dry-run report",
+        "master-log + latest handoff/reference update; no documentation-only formal credit"
       ],
       "COMPONENTS": [
         "ops gates"
@@ -685,63 +704,22 @@
   ],
   "recommendation": "OPTION_A",
   "recommendation_rationale": "GovernedSourceProfile+IngestionRun+governance contracts maximize reuse; Gap Queue+Run Ledger unlock weekly law; KU (Option B) follows immediately as P02; adapters (Option C) lack persistence drivers without A",
-  "management_map_reconciliation": {
-    "planning_ids_authoritative": true,
-    "management_identifier_format": "P01..P13 aliases only",
-    "ledger": "i5_completion_ledger.json",
-    "map": [
-      {
-        "management_id": "P01",
-        "planning_package_id": "I5-IMPL-W1-P01"
-      },
-      {
-        "management_id": "P02",
-        "planning_package_id": "I5-IMPL-W1-P02"
-      },
-      {
-        "management_id": "P03",
-        "planning_package_id": "I5-IMPL-W2-P01"
-      },
-      {
-        "management_id": "P04",
-        "planning_package_id": "I5-IMPL-W2-P02"
-      },
-      {
-        "management_id": "P05",
-        "planning_package_id": "I5-IMPL-W2-P03"
-      },
-      {
-        "management_id": "P06",
-        "planning_package_id": "I5-IMPL-W3-P01"
-      },
-      {
-        "management_id": "P07",
-        "planning_package_id": "I5-IMPL-W3-P02"
-      },
-      {
-        "management_id": "P08",
-        "planning_package_id": "I5-IMPL-W4-P01"
-      },
-      {
-        "management_id": "P09",
-        "planning_package_id": "I5-IMPL-W4-P02"
-      },
-      {
-        "management_id": "P10",
-        "planning_package_id": "I5-IMPL-W5-P01"
-      },
-      {
-        "management_id": "P11",
-        "planning_package_id": "I5-IMPL-W6-P02"
-      },
-      {
-        "management_id": "P12",
-        "planning_package_id": "I5-IMPL-W6-P03"
-      },
-      {
-        "management_id": "P13",
-        "planning_package_id": "I5-IMPL-W6-P01"
-      }
-    ]
-  }
+  "inherited_permanent_laws": {
+    "applies_to_all_13_packages": true,
+    "laws": [
+      "PERMANENT_CONTINUOUS_LEARNING_LAW",
+      "WEEKLY_GOVERNED_KNOWLEDGE_LOOP",
+      "BASE_MODEL_RETRAINING_BOUNDARY",
+      "KNOWLEDGE_GROWTH_MEASUREMENT_REQUIREMENTS",
+      "DUAL_REFERENCE_DOCUMENTATION_LAW",
+      "CANONICAL_ARTIFACT_HASH_RULE"
+    ],
+    "package_closure_requires": [
+      "MASTER LOG UPDATE",
+      "LATEST HANDOFF / REFERENCE UPDATE",
+      "NO DOCUMENTATION-ONLY CLOSURE CREDIT"
+    ],
+    "source": "i5_completion_ledger.json"
+  },
+  "fix3_note": "Inherited laws added; planning IDs/order/points unchanged; first_package remains I5-IMPL-W1-P01"
 }

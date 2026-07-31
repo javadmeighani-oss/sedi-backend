@@ -62,6 +62,7 @@
     "backend/app/main.py"
   ],
   "FILE_ALLOWLIST": "file_allowlist_matrix.json#I5-IMPL-W1-P01",
+  "FIX2_NOTE": "Capability matrix expanded; first gate remains I5-IMPL-W1-P01; FIX2 uncommitted",
   "MIGRATION_REQUIREMENTS": {
     "author": true,
     "run": false,
@@ -114,6 +115,19 @@
     "API schema",
     "IR not clinical authority assert"
   ],
+  "completion_ledger_reference": "i5_completion_ledger.json; first gate remains I5-IMPL-W1-P01 and formal completion remains unchanged.",
   "package_id": "SECTION30-I5-IMPLEMENTATION-ACCELERATION-PLAN-01",
-  "completion_ledger_reference": "i5_completion_ledger.json; first gate remains I5-IMPL-W1-P01 and formal completion remains unchanged."
+  "FIX3_ACCEPTANCE_REQUIREMENTS": {
+    "connects_W1_P01_to": [
+      "INTERNATIONAL SOURCE REGISTRY",
+      "KNOWLEDGE GAP PRIORITY QUEUE",
+      "WEEKLY RUN LEDGER",
+      "CONTINUOUS LEARNING LAW",
+      "NO AUTONOMOUS MODEL RETRAINING",
+      "DUAL-REFERENCE UPDATE AFTER MATERIAL RESULT"
+    ],
+    "implementation_authorized_by_this_gate": false,
+    "first_gate_unchanged": "I5-IMPL-W1-P01"
+  },
+  "FIX3_NOTE": "Laws integrated; first gate remains I5-IMPL-W1-P01; FIX3 uncommitted; no implementation authorized"
 }
