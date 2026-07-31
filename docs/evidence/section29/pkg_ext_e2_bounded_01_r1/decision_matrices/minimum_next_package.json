@@ -1,0 +1,38 @@
+{
+  "SELECTED_PACKAGE_ID": "PKG-EXT-E2-BOUNDED-02-REMAINING-GAPS",
+  "PACKAGE_CLASS": "REMAINING_BOUNDED_EVIDENCE_PACKAGE",
+  "CLOSURE_IMPACT": "advance WHO copyright + NHS reuse + NIMH rights + MH safety; address CDC/APA blocks via defer/exclude decisions",
+  "HARD_DEPENDENCY": "§168 results + Javad reauthorization",
+  "SENSITIVE_APPROVAL_BOUNDARY": "NO_BYPASS_OF_ANTI_BOT_OR_AUTH",
+  "AFFECTED_CANDIDATES": [
+    "who_global_health_topics",
+    "medlineplus_consumer_health",
+    "nhs_uk_live_well",
+    "cdc_health_lifestyle",
+    "who_mental_health",
+    "nimh_nih_mental_health",
+    "apa_psychology_help",
+    "nhs_mental_health",
+    "medlineplus_mental_health"
+  ],
+  "OWNER": "Javad",
+  "OBJECTIVE": "close remaining collectable evidence gaps without overlay approval",
+  "ALLOWLIST": "frozen hosts from §167 only; new same-host governance paths must be ledgered first",
+  "PROHIBITIONS": [
+    "overlay approval",
+    "dry-run",
+    "nlm.nih.gov",
+    "generic nih.gov",
+    "search engines",
+    "CAPTCHA bypass"
+  ],
+  "EXPECTED_OUTPUT": "updated evidence packs + eligibility matrix",
+  "CLOSURE_CRITERIA": "material gap advancement or explicit defer/exclude package prepared",
+  "WHY_MINIMUM": "0 overlay-eligible; legal-only package premature while WHO/CDC/APA collection gaps remain",
+  "SEPARATE_JAVAD_APPROVAL_REQUIRED": "YES",
+  "ALTERNATES": [
+    "LEGAL_RIGHTS_DECISION_PACKAGE (MedlinePlus/NHS partial)",
+    "GOVERNANCE_DEFER_OR_EXCLUSION_PACKAGE (APA/CDC)",
+    "MEDICAL_EDITORIAL_DECISION_PACKAGE (MH safety)"
+  ]
+}

@@ -1,0 +1,12 @@
+TITLE: MedlinePlus: Linking to and Using Content from MedlinePlus
+URL: https://medlineplus.gov/about/using/usingcontent/
+REQUEST_ID: R-ECU-MEDLINEPLUS-01-H2-2
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://medlineplus.gov/about/using/usingcontent/
+https://medlineplus.gov/about/
+https://medlineplus.gov/about/using/
+https://medlineplus.gov/about/developers/webservices/
+https://medlineplus.gov/about/using/criteria/
+https://medlineplus.gov/about/developers/
+MINIMAL_EXCERPT:
+MedlinePlus: Linking to and Using Content from MedlinePlus Skip navigation An official website of the United States government Here’s how you know Here’s how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( Lock Locked padlock icon ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. National Library of Medicine Menu Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia About MedlinePlus Search Search MedlinePlus GO About MedlinePlus What's New Site Map Customer Support Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia Español You Are Here: Home &rarr; About MedlinePlus &rarr; Using MedlinePlus &rarr; Linking to and Using Content from MedlinePlus URL of this page: https://medlineplus.gov/about/using/usingcontent/ Linking to and Using Content from MedlinePlus To use the sharing features on this page, please enable JavaScript. Some of the content on MedlinePlus is in the public domain (not copyrighted), and other content is copyrighted and licensed specifically for use on MedlinePlus. There are different rules for linking to and using content that is in the public domain and content that is copyrighted. These rules are described below. Content that is not copyrighted Works produced by the federal government are not copyrighted under U.S. law. Y

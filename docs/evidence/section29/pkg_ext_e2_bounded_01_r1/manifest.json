@@ -1,0 +1,83 @@
+{
+  "PACKAGE_ID": "PKG-EXT-E2-BOUNDED-01-R1",
+  "MANIFEST_VERSION": "4.0-CONCEPTUAL-KNOWLEDGE-USE-FIX4",
+  "POST_AUDIT": "SECTION29-CONCEPTUAL-KNOWLEDGE-USE-LAW-FIX4",
+  "WEEKLY_CRAWLER_LAW_ID": "I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW",
+  "CONCEPTUAL_KNOWLEDGE_USE_LAW_ID": "I5-CONCEPTUAL-KNOWLEDGE-USE-AND-MEMORY-LAW",
+  "UPDATED_AT_UTC": "2026-07-31T07:32:59Z",
+  "REQUEST_COUNT": 44,
+  "SUCCESS_COUNT": 5,
+  "PARTIAL_COUNT": 32,
+  "BLOCKED_COUNT": 3,
+  "FAILED_COUNT": 2,
+  "SKIPPED_COUNT": 2,
+  "KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS_COUNT": 7,
+  "FACT_EXTRACTION_ONLY_COUNT": 2,
+  "OVERLAY_APPROVAL_ELIGIBLE_COUNT": 0,
+  "APPROVED_OVERLAYS": 0,
+  "ACTIVATED_CRAWLERS": 0,
+  "RUNTIME_ACTIVE": 0,
+  "CRAWLER_STATE_COUNTS": {
+    "CRAWLER_DEFERRED": 3,
+    "OFFICIAL_API_OR_FEED_REQUIRED": 2,
+    "TARGETED_ACCESS_POLICY_EVIDENCE_REQUIRED": 3,
+    "CRAWLER_EXCLUDED": 1
+  },
+  "SOURCE_LAYER_POLICY": "INTERNATIONAL_KNOWLEDGE;IRAN_DIRECTORY_SEPARATE",
+  "CONCEPTUAL_KNOWLEDGE_USE_MATRIX_SHA256": "7b9fd0a1dc230f41d3b0c33ab3f68dd63d9bccf635cda620960458774a56f0ed",
+  "WEEKLY_CRAWLER_LAW_MATRIX_SHA256": "c2389897b292ea305e9f242d20f2299e50c8c057046157f80da7e9c1198e26b3",
+  "REQUEST_LEDGER_SHA256": "23595a28e6a940f289370237f834b7d5d0511255162d2d04650d068173ed55f6",
+  "URL_ALLOWLIST_SHA256": "13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345",
+  "CANDIDATE_PACKS": [
+    {
+      "CANDIDATE_ID": "apa_psychology_help",
+      "PACK_PATH": "candidate_packs/apa_psychology_help.json",
+      "PACK_SHA256": "b876ef7b958142bcab95cb6adb95f3c581fdb5eab23e96e27d204f15591934dd"
+    },
+    {
+      "CANDIDATE_ID": "cdc_health_lifestyle",
+      "PACK_PATH": "candidate_packs/cdc_health_lifestyle.json",
+      "PACK_SHA256": "cab44f9718ba362c434341e87a46dcd61b8c3ca18d0ad93669e30c9755b53fed"
+    },
+    {
+      "CANDIDATE_ID": "medlineplus_consumer_health",
+      "PACK_PATH": "candidate_packs/medlineplus_consumer_health.json",
+      "PACK_SHA256": "66624bb120b6c38b7f5664618c26a28018c9a36806b8b3d7587f9896e56dceb6"
+    },
+    {
+      "CANDIDATE_ID": "medlineplus_mental_health",
+      "PACK_PATH": "candidate_packs/medlineplus_mental_health.json",
+      "PACK_SHA256": "fab784fc7ee08e598346f520c9db14bac16524fad6b7fb4b61a6049cb5491c1e"
+    },
+    {
+      "CANDIDATE_ID": "nhs_mental_health",
+      "PACK_PATH": "candidate_packs/nhs_mental_health.json",
+      "PACK_SHA256": "dd7644a32f1cf8e222dbd0c1299aaeb188fdefa2bf2d049cf7cc1dd7de8c99e7"
+    },
+    {
+      "CANDIDATE_ID": "nhs_uk_live_well",
+      "PACK_PATH": "candidate_packs/nhs_uk_live_well.json",
+      "PACK_SHA256": "172a40f63a1d0fc278a2cff40c248af65baea93b2fa3d3b4410148ff970e4ddf"
+    },
+    {
+      "CANDIDATE_ID": "nimh_nih_mental_health",
+      "PACK_PATH": "candidate_packs/nimh_nih_mental_health.json",
+      "PACK_SHA256": "b6a3606c66a9da8ecb7ba378fafa7f5e93c5fc25c4fdeb86fca9ef833e861939"
+    },
+    {
+      "CANDIDATE_ID": "who_global_health_topics",
+      "PACK_PATH": "candidate_packs/who_global_health_topics.json",
+      "PACK_SHA256": "ce605e310ddc279eefe8a731fff03e2fe52140ef7eed21c6987f49788dda11f0"
+    },
+    {
+      "CANDIDATE_ID": "who_mental_health",
+      "PACK_PATH": "candidate_packs/who_mental_health.json",
+      "PACK_SHA256": "8e50d078b87b64a56c72374d91cce3d08624cf47e14367a33b6528ba92d53dfb"
+    }
+  ],
+  "EVIDENCE_FILE_COUNT": 73,
+  "I5_FORMAL_COMPLETION": "21.79487179%",
+  "FINAL_VERDICT": "PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS",
+  "CHECKPOINT_READY": "YES",
+  "OBSOLETE_FIX1_MARKER_IN_REPO": "NO"
+}

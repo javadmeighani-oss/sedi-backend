@@ -1,0 +1,13 @@
+TITLE: About the NHS - NHS
+URL: https://www.nhs.uk/using-the-nhs/about-the-nhs/
+REQUEST_ID: R-ECU-NHS-01-H2-3
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nhs.uk/using-the-nhs/about-the-nhs/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/what-is-an-nhs-number/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/friends-and-family-test-fft/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/your-choices-in-the-nhs/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/quality-accounts/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/opt-out-of-sharing-your-health-records/
+https://www.nhs.uk/about-us/
+MINIMAL_EXCERPT:
+﻿ About the NHS - NHS Skip to main content NHS Search the NHS website Search Health A to Z NHS services Healthy living Mental health Care and support Browse More Home Services Back to Services Back About the NHS What is an NHS number? Find out what an NHS Number is and what they&#x27;re used for Friends and Family Test (FFT) Find out about the Friends and Family Test, a simple way to provide feedback on NHS services Your choices in the NHS Learn more about the choices you have with your NHS care Quality Accounts Reports about the quality of services offered by NHS healthcare providers Opt out of sharing your health records Find out how to opt out of sharing your health records Support links Home Health A to Z NHS services Healthy living Mental health Care and support COVID-19 NHS App Find my NHS number View your test results About the NHS Healthcare abroad Other NHS websites Profile editor login About us Report an issue with the NHS website Accessibility statement Our policies Cookies © Crown copyright

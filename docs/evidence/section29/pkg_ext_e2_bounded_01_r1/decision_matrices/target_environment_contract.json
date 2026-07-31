@@ -1,0 +1,69 @@
+{
+  "TARGET_ENVIRONMENT_CONTRACT_PREPARED": "YES",
+  "TARGET_ENVIRONMENT_APPROVED": "NO",
+  "CREATED_AT_UTC": "2026-07-29T06:45:33Z",
+  "OPTIONS": [
+    {
+      "ENVIRONMENT_OPTION_ID": "ENV-LOCAL-ISOLATED-01",
+      "ENVIRONMENT_NAME": "local isolated non-production",
+      "PURPOSE": "future controlled dry-run only after overlays",
+      "DATA_CLASS": "synthetic_or_fixture_only",
+      "DATABASE_EFFECT": "NONE_DESIGNED",
+      "WRITE_EFFECT": "NO_WRITE_REQUIRED",
+      "NETWORK_EFFECT": "NONE_FOR_DRY_RUN_DESIGN",
+      "SECRETS_REQUIRED": "NO",
+      "PRODUCTION_ACCESS": "NO",
+      "ISOLATION_LEVEL": "WORKTREE_LOCAL",
+      "LOG_DESTINATION": "local_docs_only",
+      "AUDITABILITY": "HIGH",
+      "NO_WRITE_GUARANTEE": "DESIGN_CLAIM_ONLY",
+      "ROLLBACK_REQUIREMENT": "N/A_NO_WRITES",
+      "CURRENT_EVIDENCE": "repository docs; no execution proof",
+      "CURRENT_APPROVAL_STATE": "NOT_APPROVED",
+      "OWNER": "Javad",
+      "RISKS": [
+        "premature activation",
+        "false no-write claims"
+      ],
+      "MISSING_ENGINEERING_EVIDENCE": [
+        "entrypoint flags proof",
+        "digest reproduction"
+      ],
+      "MISSING_SECURITY_EVIDENCE": [
+        "isolation attestation"
+      ],
+      "DECISION_CRITERIA": "Javad explicit approval after overlays+allowlist",
+      "RECOMMENDED_STATUS": "NEEDS_ENGINEERING_EVIDENCE"
+    },
+    {
+      "ENVIRONMENT_OPTION_ID": "ENV-CI-EPHEMERAL-01",
+      "ENVIRONMENT_NAME": "ephemeral CI non-production",
+      "PURPOSE": "optional future dry-run",
+      "DATA_CLASS": "fixture",
+      "DATABASE_EFFECT": "NONE",
+      "WRITE_EFFECT": "UNKNOWN",
+      "NETWORK_EFFECT": "POLICY_GATED",
+      "SECRETS_REQUIRED": "POSSIBLE",
+      "PRODUCTION_ACCESS": "NO",
+      "ISOLATION_LEVEL": "CI_EPHEMERAL",
+      "LOG_DESTINATION": "CI_LOGS",
+      "AUDITABILITY": "MEDIUM",
+      "NO_WRITE_GUARANTEE": "NOT_ESTABLISHED",
+      "ROLLBACK_REQUIREMENT": "REQUIRED_IF_WRITES",
+      "CURRENT_EVIDENCE": "authority not established for this package",
+      "CURRENT_APPROVAL_STATE": "NOT_APPROVED",
+      "OWNER": "Javad",
+      "RISKS": [
+        "CI side effects"
+      ],
+      "MISSING_ENGINEERING_EVIDENCE": [
+        "workflow contract"
+      ],
+      "MISSING_SECURITY_EVIDENCE": [
+        "secret scoping"
+      ],
+      "DECISION_CRITERIA": "explicit engineering+security review",
+      "RECOMMENDED_STATUS": "AUTHORITY_NOT_ESTABLISHED"
+    }
+  ]
+}

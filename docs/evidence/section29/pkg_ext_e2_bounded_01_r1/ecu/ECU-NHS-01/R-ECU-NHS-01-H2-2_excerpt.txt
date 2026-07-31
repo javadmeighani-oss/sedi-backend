@@ -1,0 +1,12 @@
+TITLE: About us - NHS
+URL: https://www.nhs.uk/about-us/
+REQUEST_ID: R-ECU-NHS-01-H2-2
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nhs.uk/about-us/
+https://www.nhs.uk/about-us/about-the-nhs-website/
+https://www.nhs.uk/about-us/health-information-in-other-languages/
+https://www.nhs.uk/about-us/nhs-website-datasets/
+https://www.nhs.uk/about-us/site-map/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/
+MINIMAL_EXCERPT:
+﻿ About us - NHS Skip to main content NHS Search the NHS website Search Health A to Z NHS services Healthy living Mental health Care and support Browse More Home Back to Home Back About us About the NHS website Find out about the services we provide, how we work and the improvements we&#x27;re making Health information in other languages How to translate information on the NHS website and where you can find health information in other languages NHS website datasets Find out about the datasets we provide and how to access them Site map See a simplified version of the NHS website site map Support links Home Health A to Z NHS services Healthy living Mental health Care and support COVID-19 NHS App Find my NHS number View your test results About the NHS Healthcare abroad Other NHS websites Profile editor login About us Report an issue with the NHS website Accessibility statement Our policies Cookies © Crown copyright

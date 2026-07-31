@@ -1,0 +1,12 @@
+TITLE: MedlinePlus: About MedlinePlus
+URL: https://medlineplus.gov/about/
+REQUEST_ID: R-ECU-MEDLINEPLUS-01-H2-1
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://medlineplus.gov/about/
+https://medlineplus.gov/about/general/
+https://medlineplus.gov/about/using/
+https://medlineplus.gov/about/developers/
+https://medlineplus.gov/about/using/usingcontent/
+https://medlineplus.gov/about/using/criteria/
+MINIMAL_EXCERPT:
+MedlinePlus: About MedlinePlus Skip navigation An official website of the United States government Here’s how you know Here’s how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( Lock Locked padlock icon ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. National Library of Medicine Menu Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia About MedlinePlus Search Search MedlinePlus GO About MedlinePlus What's New Site Map Customer Support Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia Español You Are Here: Home &rarr; About MedlinePlus URL of this page: https://medlineplus.gov/about/ About MedlinePlus To use the sharing features on this page, please enable JavaScript. MedlinePlus is an online health information resource for patients and their families and friends. General Information about MedlinePlus Description &amp; history Using MedlinePlus Policies, training, &amp; help Information for Developers Web service, data files, &amp; linking MedlinePlus is a service of the National Library of Medicine (NLM), the world's largest medical library, which is part of the National Institutes of Health (NIH). Our mission is to present high-quality, relevant health and wellness information that is trusted, easy to understand, and free of advertis

@@ -1,0 +1,37 @@
+{
+  "AUDIT_ID": "R1-POST-AUDIT-02",
+  "CREATED_AT_UTC": "2026-07-29T07:34:11Z",
+  "PRIOR_AUDIT": "R1-POST-AUDIT-01",
+  "FINDINGS": [
+    {
+      "FINDING_ID": "R1-POST2-F01",
+      "DETECTED": "WHO SUFFICIENT_FOR_R1_H2 claimed",
+      "CORRECTED_STATE": "UNKNOWN_FAIL_CLOSED",
+      "EVIDENCE_BASIS": "R-WHO-H2-4_excerpt.txt"
+    },
+    {
+      "FINDING_ID": "R1-POST2-F02",
+      "DETECTED": "MedlinePlus SUFFICIENT_FOR_R1_H2 claimed",
+      "CORRECTED_STATE": "NOT_PROHIBITED_BUT_NOT_EXPLICIT",
+      "EVIDENCE_BASIS": "R-ECU-MEDLINEPLUS-01-H2-2_excerpt.txt"
+    },
+    {
+      "FINDING_ID": "R1-POST2-F03",
+      "DETECTED": "NHS SUFFICIENT_FOR_R1_H2 claimed",
+      "CORRECTED_STATE": "NOT_PROHIBITED_BUT_NOT_EXPLICIT",
+      "EVIDENCE_BASIS": "R-NHS-H2-5-TERMS_excerpt.txt"
+    },
+    {
+      "FINDING_ID": "R1-POST2-F04",
+      "DETECTED": "NIMH SUFFICIENT_FOR_R1_H2 claimed",
+      "CORRECTED_STATE": "UNKNOWN_FAIL_CLOSED",
+      "EVIDENCE_BASIS": "R-NIMH-H2-4-F1_excerpt.txt"
+    },
+    {
+      "FINDING_ID": "R1-POST2-F05",
+      "DETECTED": "cross-artifact SUFFICIENT propagation",
+      "CORRECTED_STATE": "COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED",
+      "EVIDENCE_BASIS": "r1_permission_basis_reconciliation.json"
+    }
+  ]
+}

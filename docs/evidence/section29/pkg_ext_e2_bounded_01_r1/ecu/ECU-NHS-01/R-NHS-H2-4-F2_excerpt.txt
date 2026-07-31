@@ -1,0 +1,11 @@
+TITLE: Profile editor login - NHS
+URL: https://www.nhs.uk/our-policies/profile-editor-login/
+REQUEST_ID: R-NHS-H2-4-F2
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nhs.uk/our-policies/profile-editor-login/
+https://www.nhs.uk/our-policies/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/
+https://www.nhs.uk/about-us/
+https://www.nhs.uk/our-policies/choose-your-cookie-settings/
+MINIMAL_EXCERPT:
+﻿ Profile editor login - NHS Skip to main content NHS Search the NHS website Search Health A to Z NHS services Healthy living Mental health Care and support Browse More Home Our policies Back to Our policies Back Profile editor login The NHS Profile Manager is being launched in stages, to replace the NHS website profile editor. Dental practices, GP surgeries, pharmacies, social care providers and vaccination centres Use the NHS Profile Manager to manage your NHS profiles. Sign in to the NHS Profile Manager Register for the NHS Profile Manager NHS trust profiles NHS trusts can: use the NHS Profile Manager to manage contact details on NHS trust profiles contact the NHS website service desk to manage contact details, services and facilities on hospital and clinic profiles Independent sector provider (ISP) profiles Contact the NHS website service desk to manage ISP profiles and contact details, services and facilities for ISP hospital and clinic profiles. How to contact the NHS website service desk Email nhswebsite.servicedesk@nhs.net . Your request needs to include: the Organisation Data Service (ODS) code details of the changes to be made It may take up to 2 weeks for your profile to be updated. Support If you need help with the NHS Profile Manager, contact us about managing an organisation's profile on the NHS website . Page last reviewed: 27 January 2023 Next review due: 27 January 2026 Support links Home Health A to Z NHS services Healthy living Mental health Care and support COVID-19 NHS App Find my NHS number View your test results About the NHS Healthcare abroad Other NHS websites Profile editor login About us Report an issue with the NHS website Accessibility statement Our policies Cookies © Crown copyright

@@ -1,0 +1,10 @@
+TITLE: MedlinePlus - Health Information from the National Library of Medicine
+URL: https://medlineplus.gov
+REQUEST_ID: R-MPL-H2-DISC-1
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://medlineplus.gov/about/
+https://medlineplus.gov/about/using/usingcontent/
+https://medlineplus.gov/about/using/criteria/
+https://medlineplus.gov/about/developers/
+MINIMAL_EXCERPT:
+MedlinePlus - Health Information from the National Library of Medicine Skip navigation An official website of the United States government Here’s how you know Here’s how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( Lock Locked padlock icon ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. National Library of Medicine Menu Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia About MedlinePlus Search Search MedlinePlus GO About MedlinePlus What's New Site Map Customer Support Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia Español Welcome to MedlinePlus MedlinePlus is an online health information resource for patients and their families and friends. It is a service of the National Library of Medicine (NLM), the world&#x27;s largest medical library, which is part of the National Institutes of Health (NIH). Learn more about MedlinePlus FEATURED TOPIC Menopause Menopause is the time when your periods stop permanently. Symptoms may begin as you transition to menopause and continue for years. Learn how to get relief. Learn more Health Topics Find information on health, wellness, disorders and conditions Medical Encyclopedia Articles and images for diseases, symptoms, tests, treatments Genetics Explore genetic conditions, genes, and how gen

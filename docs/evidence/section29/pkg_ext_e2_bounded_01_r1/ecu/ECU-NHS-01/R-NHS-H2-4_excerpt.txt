@@ -1,0 +1,13 @@
+TITLE: About the NHS website - NHS
+URL: https://www.nhs.uk/about-us/about-the-nhs-website/
+REQUEST_ID: R-NHS-H2-4
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nhs.uk/about-us/about-the-nhs-website/
+https://www.nhs.uk/about-us/
+https://www.nhs.uk/our-policies/
+https://www.nhs.uk/give-feedback-about-the-nhs-website/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/
+https://www.nhs.uk/our-policies/profile-editor-login/
+https://www.nhs.uk/our-policies/choose-your-cookie-settings/
+MINIMAL_EXCERPT:
+﻿ About the NHS website - NHS Skip to main content NHS Search the NHS website Search Health A to Z NHS services Healthy living Mental health Care and support Browse More Home About us Back to About us Back About the NHS website The NHS website for England (www.nhs.uk) is the UK&#x27;s biggest health website, with more than 50 million visits every month. Information about NHS services can vary in other parts of the UK. Please visit your local NHS website for: Scotland Wales Northern Ireland We're not just a website Millions of people also access our content through: partner websites apps internet-connected devices More than 2,000 organisations share our content, including other NHS websites, local authorities, charities and commercial organisations, from start-ups to large technology leaders. With our range of APIs and widgets, we have made it simple to connect and syndicate our content. Information: Read more about our free syndication programme on the NHS developer and integration hub . Social media channels Social media is also an important part of the NHS website service. We reach millions of people a month through: Facebook Twitter: follow us at @NHSUK YouTube Instagram What we do See what we do We aim to: Improve health and care outcomes. Improve people’s experiences of health and care services. Reduce pressure on frontline services. Make health and care services more efficient. We're focused on meeting the health and care needs of people across England. We provide NHS information through a range of digital channels, including: the NHS website (nhs.uk) social media platforms APIs and syndication services that connect and share our content What our offer includes Information about health, healthcare and social care, for example: symptoms, conditions and treatments r

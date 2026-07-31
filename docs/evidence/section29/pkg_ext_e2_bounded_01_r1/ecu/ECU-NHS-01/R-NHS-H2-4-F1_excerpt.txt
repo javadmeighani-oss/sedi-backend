@@ -1,0 +1,16 @@
+TITLE: Our policies - NHS
+URL: https://www.nhs.uk/our-policies/
+REQUEST_ID: R-NHS-H2-4-F1
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nhs.uk/our-policies/
+https://www.nhs.uk/our-policies/content-policy/
+https://www.nhs.uk/our-policies/linking-from-the-nhs-website/
+https://www.nhs.uk/our-policies/terms-and-conditions/
+https://www.nhs.uk/our-policies/privacy-policy/
+https://www.nhs.uk/our-policies/choose-your-cookie-settings/
+https://www.nhs.uk/our-policies/requests-for-research-support/
+https://www.nhs.uk/using-the-nhs/about-the-nhs/
+https://www.nhs.uk/our-policies/profile-editor-login/
+https://www.nhs.uk/about-us/
+MINIMAL_EXCERPT:
+﻿ Our policies - NHS Skip to main content NHS Search the NHS website Search Health A to Z NHS services Healthy living Mental health Care and support Browse More Home Back to Home Back Our policies Content policy Linking from the NHS website Terms and conditions Your privacy on the NHS website Choose your cookie settings on the NHS website Requests for research support Support links Home Health A to Z NHS services Healthy living Mental health Care and support COVID-19 NHS App Find my NHS number View your test results About the NHS Healthcare abroad Other NHS websites Profile editor login About us Report an issue with the NHS website Accessibility statement Our policies Cookies © Crown copyright

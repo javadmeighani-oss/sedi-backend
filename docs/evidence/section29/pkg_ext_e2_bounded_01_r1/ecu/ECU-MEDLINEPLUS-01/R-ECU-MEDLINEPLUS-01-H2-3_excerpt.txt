@@ -1,0 +1,11 @@
+TITLE: MedlinePlus: Guidelines for Links
+URL: https://medlineplus.gov/about/using/criteria/
+REQUEST_ID: R-ECU-MEDLINEPLUS-01-H2-3
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://medlineplus.gov/about/using/criteria/
+https://medlineplus.gov/about/
+https://medlineplus.gov/about/using/
+https://medlineplus.gov/about/using/usingcontent/
+https://medlineplus.gov/about/developers/
+MINIMAL_EXCERPT:
+MedlinePlus: Guidelines for Links Skip navigation An official website of the United States government Here’s how you know Here’s how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( Lock Locked padlock icon ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. National Library of Medicine Menu Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia About MedlinePlus Search Search MedlinePlus GO About MedlinePlus What's New Site Map Customer Support Health Topics Drugs & Supplements Genetics Medical Tests Medical Encyclopedia Español You Are Here: Home &rarr; About MedlinePlus &rarr; Using MedlinePlus &rarr; Guidelines for Links URL of this page: https://medlineplus.gov/about/using/criteria/ Guidelines for Links To use the sharing features on this page, please enable JavaScript. MedlinePlus is a website with high-quality health information that is easy to understand. It includes links from the National Library of Medicine, the National Institutes of Health, and other U.S. federal government agencies. MedlinePlus also links to selected non-government websites. Staff decides whether to link to a given resource using the following criteria as a guide: Website Content The website offers a description of the organization, including its mission, structure, governance, and policie

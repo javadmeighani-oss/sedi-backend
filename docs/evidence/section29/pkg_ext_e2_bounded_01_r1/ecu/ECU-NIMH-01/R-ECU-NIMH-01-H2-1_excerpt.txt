@@ -1,0 +1,16 @@
+TITLE: About NIMH - National Institute of Mental Health (NIMH)
+URL: https://www.nimh.nih.gov/about
+REQUEST_ID: R-ECU-NIMH-01-H2-1
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nimh.nih.gov/about
+https://www.nimh.nih.gov/about/director
+https://www.nimh.nih.gov/about/advisory-boards-and-groups
+https://www.nimh.nih.gov/about/strategic-planning-reports
+https://www.nimh.nih.gov/about/organization
+https://www.nimh.nih.gov/about/budget
+https://www.nimh.nih.gov/about/careers
+https://www.nimh.nih.gov/about/staff-directories
+https://www.nimh.nih.gov/about/nimh-history
+https://www.nimh.nih.gov/about/connect-with-nimh
+MINIMAL_EXCERPT:
+About NIMH - National Institute of Mental Health (NIMH) Skip to main content An official website of the United States government Here’s how you know Here’s how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( Lock Locked padlock icon ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. NIH Websites Are Changing Beginning in late July, NIH will start introducing a new website experience designed to make it easier to find health information, research, funding opportunities, and other resources. During the transition, you may notice changes to navigation, page layouts, and where some information is located. Learn more in our Frequently Asked Questions . &nbsp;In Crisis? Call or Text 988 &nbsp; Transforming the understanding and treatment of mental illnesses. Home &nbsp;|&nbsp; Help for Mental Illnesses --> Search the NIMH website: Search the NIMH Website Search the NIMH Website: --> Información en español Mental Health Information Get Involved Research Funding News &amp; Events About Us Health Topics NIMH offers expert-reviewed information on mental disorders and a range of topics. Statistics NIMH statistics pages include statistics on the prevalence, treatment, and costs of mental illness for the population of the United States. Brochures and Fact Sheets Download, read, and order free NIMH broch

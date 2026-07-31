@@ -1,0 +1,164 @@
+{
+  "MATRIX_ID": "R1-POST-AUDIT-02-PERMISSION-BASIS-RECONCILIATION-v1",
+  "AUDIT_ID": "R1-POST-AUDIT-02",
+  "CREATED_AT_UTC": "2026-07-29T07:34:11Z",
+  "CONTRACT": {
+    "EVIDENCE_RETAINED_NE_POSITIVE_GOVERNANCE_USE": true,
+    "NO_ANTI_BOT_NE_AUTOMATION_PERMISSION": true,
+    "TECHNICAL_FETCH_SUCCESS_NE_GOVERNANCE_VALID_EVIDENCE": true,
+    "ROBOTS_NOT_DISALLOWING_NE_TERMS_OR_ACCESS_PERMISSION": true,
+    "PUBLIC_HTTP_200_NE_AUTOMATED_COLLECTION_PERMISSION": true,
+    "JAVAD_AUTHORIZATION_NE_PUBLISHER_PERMISSION": true,
+    "NOT_PROHIBITED_NE_EXPLICITLY_SUPPORTED": true
+  },
+  "PERMISSION_CLASSIFICATION_COUNTS": {
+    "NOT_PROHIBITED_BUT_NOT_EXPLICIT": 2,
+    "EXPLICITLY_SUPPORTED_FOR_R1_H2": 0,
+    "CONTRADICTED_FAIL_CLOSED": 0,
+    "UNKNOWN_FAIL_CLOSED": 2
+  },
+  "H2_GOVERNANCE_VALID_COUNT": 0,
+  "RESTRICTED_USE_H2_REQUEST_COUNT": 26,
+  "ROWS": [
+    {
+      "ECU_ID": "ECU-WHO-01",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics",
+        "who_mental_health"
+      ],
+      "REQUEST_IDS": [
+        "R-WHO-H1-R",
+        "R-WHO-H1-L1",
+        "R-WHO-H1-L2",
+        "R-WHO-H2-DISC-1",
+        "R-WHO-H2-DISC-2",
+        "R-ECU-WHO-01-H2-1",
+        "R-ECU-WHO-01-H2-2",
+        "R-ECU-WHO-01-H2-3",
+        "R-WHO-H2-4"
+      ],
+      "EVIDENCE_FILE_PATHS": [
+        "ecu/ECU-WHO-01/R-WHO-H2-4_excerpt.txt",
+        "ecu/ECU-WHO-01/R-WHO-H1-R_robots.txt"
+      ],
+      "TERMS_STATE": "MISSING",
+      "AUTOMATION_POLICY_STATE": "UNKNOWN_FAIL_CLOSED",
+      "DIRECT_SUPPORT_FOR_R1_H2": "NONE_AFFIRMATIVE_DIRECT_SUPPORT",
+      "FINAL_PERMISSION_CLASSIFICATION": "UNKNOWN_FAIL_CLOSED",
+      "H2_GOVERNANCE_VALID": "NO_OR_UNPROVEN",
+      "EVIDENCE_USE_STATE": "COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED",
+      "H2_REQUEST_COUNT": 6,
+      "RATIONALE": "Retained H2 evidence is About WHO pages only (R-WHO-H2-4, R-ECU-WHO-01-H2-*); no terms/copyright/automation policy page. Robots (R-WHO-H1-R) blocks named bots but does not affirmatively permit scripted one-time evidence collection. Silence != explicit support.",
+      "FINDING_ID": "R1-POST2-F01",
+      "OWNER": "Legal+Governance",
+      "CLOSURE_CRITERIA": "primary terms/automation policy with AFFIRMATIVE_DIRECT_SUPPORT or explicit legal disposition"
+    },
+    {
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "CANDIDATE_IDS": [
+        "medlineplus_consumer_health",
+        "medlineplus_mental_health"
+      ],
+      "REQUEST_IDS": [
+        "R-MPL-H1-R",
+        "R-MPL-H1-L1",
+        "R-MPL-H1-L2",
+        "R-MPL-H2-DISC-1",
+        "R-MPL-H2-DISC-2",
+        "R-ECU-MEDLINEPLUS-01-H2-1",
+        "R-ECU-MEDLINEPLUS-01-H2-2",
+        "R-ECU-MEDLINEPLUS-01-H2-3"
+      ],
+      "EVIDENCE_FILE_PATHS": [
+        "ecu/ECU-MEDLINEPLUS-01/R-ECU-MEDLINEPLUS-01-H2-2_excerpt.txt",
+        "ecu/ECU-MEDLINEPLUS-01/R-MPL-H1-R_robots.txt"
+      ],
+      "TERMS_STATE": "PARTIAL_REUSE_ONLY",
+      "AUTOMATION_POLICY_STATE": "NOT_ADDRESSED_IN_RETAINED_EVIDENCE",
+      "DIRECT_SUPPORT_FOR_R1_H2": "SILENT_OR_NON_PROHIBITIVE_ONLY_ON_AUTOMATION",
+      "FINAL_PERMISSION_CLASSIFICATION": "NOT_PROHIBITED_BUT_NOT_EXPLICIT",
+      "H2_GOVERNANCE_VALID": "NO_OR_UNPROVEN",
+      "EVIDENCE_USE_STATE": "COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED",
+      "H2_REQUEST_COUNT": 5,
+      "RATIONALE": "R-ECU-MEDLINEPLUS-01-H2-2 (usingcontent) addresses linking/reuse and mixed copyright/public-domain rules; does not affirmatively permit scripted low-rate HTML page retrieval for evidence collection. API/developer paths discovered but not retrieved and are a different access channel. Robots does not prohibit catalog paths but robots!=terms permission.",
+      "FINDING_ID": "R1-POST2-F02",
+      "OWNER": "Legal+Governance",
+      "CLOSURE_CRITERIA": "primary terms/automation policy with AFFIRMATIVE_DIRECT_SUPPORT or explicit legal disposition"
+    },
+    {
+      "ECU_ID": "ECU-NHS-01",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well",
+        "nhs_mental_health"
+      ],
+      "REQUEST_IDS": [
+        "R-NHS-H1-R",
+        "R-NHS-H1-L1",
+        "R-NHS-H1-L2",
+        "R-NHS-H2-DISC-1",
+        "R-NHS-H2-DISC-2",
+        "R-ECU-NHS-01-H2-1",
+        "R-ECU-NHS-01-H2-2",
+        "R-ECU-NHS-01-H2-3",
+        "R-NHS-H2-4",
+        "R-NHS-H2-4-F1",
+        "R-NHS-H2-4-F2",
+        "R-NHS-H2-5-TERMS"
+      ],
+      "EVIDENCE_FILE_PATHS": [
+        "ecu/ECU-NHS-01/R-NHS-H2-5-TERMS_excerpt.txt",
+        "ecu/ECU-NHS-01/R-NHS-H2-4_excerpt.txt",
+        "ecu/ECU-NHS-01/R-NHS-H1-R_robots.txt"
+      ],
+      "TERMS_STATE": "PARTIAL_BROWSER_ACCESS_ONLY",
+      "AUTOMATION_POLICY_STATE": "NOT_ADDRESSED_FOR_SCRIPTED_COLLECTION",
+      "DIRECT_SUPPORT_FOR_R1_H2": "SILENT_OR_NON_PROHIBITIVE_ONLY_ON_AUTOMATION",
+      "FINAL_PERMISSION_CLASSIFICATION": "NOT_PROHIBITED_BUT_NOT_EXPLICIT",
+      "H2_GOVERNANCE_VALID": "NO_OR_UNPROVEN",
+      "EVIDENCE_USE_STATE": "COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED",
+      "H2_REQUEST_COUNT": 9,
+      "RATIONALE": "R-NHS-H2-5-TERMS excerpt: personal website access/use if bound by terms; not automated/scripted collection. R-NHS-H2-4 mentions APIs/widgets syndication (different channel, conditional). Login page block (R-NHS-H2-4-F2) is page-specific; does not prove sitewide automation permission.",
+      "FINDING_ID": "R1-POST2-F03",
+      "OWNER": "Legal+Governance",
+      "CLOSURE_CRITERIA": "primary terms/automation policy with AFFIRMATIVE_DIRECT_SUPPORT or explicit legal disposition"
+    },
+    {
+      "ECU_ID": "ECU-NIMH-01",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "REQUEST_IDS": [
+        "R-NIMH-H1-R",
+        "R-NIMH-H1-L1",
+        "R-NIMH-H2-DISC-1",
+        "R-ECU-NIMH-01-H2-1",
+        "R-ECU-NIMH-01-H2-2",
+        "R-ECU-NIMH-01-H2-3",
+        "R-NIMH-H2-4",
+        "R-NIMH-H2-4-F1"
+      ],
+      "EVIDENCE_FILE_PATHS": [
+        "ecu/ECU-NIMH-01/R-NIMH-H2-4-F1_excerpt.txt",
+        "ecu/ECU-NIMH-01/R-NIMH-H1-R_robots.txt"
+      ],
+      "TERMS_STATE": "MISSING_IN_EXCERPT",
+      "AUTOMATION_POLICY_STATE": "UNKNOWN_FAIL_CLOSED",
+      "DIRECT_SUPPORT_FOR_R1_H2": "INSUFFICIENT_EVIDENCE",
+      "FINAL_PERMISSION_CLASSIFICATION": "UNKNOWN_FAIL_CLOSED",
+      "H2_GOVERNANCE_VALID": "NO_OR_UNPROVEN",
+      "EVIDENCE_USE_STATE": "COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED",
+      "H2_REQUEST_COUNT": 6,
+      "RATIONALE": "R-NIMH-H2-4-F1 (site-info/policies) and other H2 excerpts retain navigation/header only; no affirmative automation, scraping, or reuse permission text in retained excerpts. About/health pages do not establish collection permission. Robots retained but contextual only per audit contract.",
+      "FINDING_ID": "R1-POST2-F04",
+      "OWNER": "Legal+Governance",
+      "CLOSURE_CRITERIA": "primary terms/automation policy with AFFIRMATIVE_DIRECT_SUPPORT or explicit legal disposition"
+    }
+  ],
+  "POST_AUDIT": "SECTION29-CONCEPTUAL-KNOWLEDGE-USE-LAW-FIX4",
+  "SUPERSEDED_BY": "two-axis lawful-use model + authority-trace audit; publisher-permission-as-universal-gate remains superseded",
+  "UPDATED_AT_UTC": "2026-07-31T07:32:59Z",
+  "WEEKLY_CRAWLER_LAW_ID": "I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW",
+  "PUBLISHER_APPROVAL_UNIVERSAL_PREREQUISITE": "NO",
+  "CONCEPTUAL_KNOWLEDGE_USE_LAW_ID": "I5-CONCEPTUAL-KNOWLEDGE-USE-AND-MEMORY-LAW",
+  "DIRECT_PUBLISHER_APPROVAL_UNIVERSAL_PREREQUISITE": "NO"
+}

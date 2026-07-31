@@ -1,0 +1,5 @@
+TITLE: 
+URL: https://www.apa.org/topics
+REQUEST_ID: R-APA-H1-L1
+MINIMAL_EXCERPT:
+

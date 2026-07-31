@@ -1,0 +1,16 @@
+TITLE: Terms and conditions - NHS
+URL: https://www.nhs.uk/our-policies/terms-and-conditions/
+REQUEST_ID: R-NHS-H2-5-TERMS
+DISCOVERED_SAME_HOST_GOVERNANCE_LINKS:
+https://www.nhs.uk/our-policies/terms-and-conditions/
+https://www.nhs.uk/our-policies/
+https://www.nhs.uk/nhs-app/about/privacy-legal-information/nhs-app-terms-of-use/
+https://www.nhs.uk/our-policies/terms-and-conditions/content-not-licensed-for-re-use/
+https://www.nhs.uk/our-policies/linking-from-the-nhs-website/
+https://www.nhs.uk/our-policies/governance-of-the-nhs-website/
+https://www.nhs.uk/our-policies/comments-policy/
+https://www.nhs.uk/our-policies/nbs-privacy-policy/
+https://www.nhs.uk/our-policies/find-your-nhs-number-service-privacy-policy/
+https://www.nhs.uk/our-policies/content-policy/
+MINIMAL_EXCERPT:
+﻿ Terms and conditions - NHS Skip to main content NHS Search the NHS website Search Health A to Z NHS services Healthy living Mental health Care and support Browse More Home Our policies Back to Our policies Back Terms and conditions 1 Introduction 1.1 The Department of Health and Social Care owns the NHS website. The content, data and services on the NHS website are delivered by NHS Digital . You may access and use this website if you agree to be legally bound by the terms set out here. If you do not agree to be legally bound by these terms, please do not access and/or use the NHS website. 1.2 Terms for access to and use of the patient feedback facility under which you can review, or comment on, individual NHS services, such as GPs or hospitals, or comment on articles, are set out in sections 7 to 10 below. If you agree to be legally bound by the terms you may use the comments facility. If you do not agree to be legally bound by these terms, please do not use the facility to post comments. 1.3 If you choose to log in to the NHS website, you are using your NHS account . By using your NHS account you are accepting the NHS account terms and conditions , NHS account privacy policy and NHS account cookies policy . These will apply while you are using services within your NHS account. Your use of the NHS website other than for the services available in your NHS account will continue to be covered by the NHS website terms and conditions, privacy policy and cookies policy (other than where other applicable terms or policies are notified to you). 1.4 The NHS website is intended for use only by people who live in England. References to "the NHS" mean "the NHS in England" unless otherwise stated. Service descriptions, entitlements and costs refer to services in England and arrangements may differ elsewhere in the UK. 1.5 If you use the NHS website on behalf of someone else: (a) these terms apply to your use; (b) you are responsible for such access and use, including being res

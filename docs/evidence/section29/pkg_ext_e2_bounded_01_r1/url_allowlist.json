@@ -1,0 +1,631 @@
+{
+  "URL_ALLOWLIST_ID": "PKG-EXT-E2-BOUNDED-01-R1-ALLOWLIST-v1",
+  "URL_ALLOWLIST_VERSION": "1",
+  "CREATED_AT_UTC": "2026-07-29T06:12:28Z",
+  "UPDATED_AT_UTC": "2026-07-29T06:42:03Z",
+  "MASTER_LOG_AUTHORITY": "§167",
+  "ECU_CONTRACT_REFERENCE": "S4-EO-08-PREQ-02-ECU-CONTRACT-v1",
+  "TOTAL_ECUS": 6,
+  "TOTAL_CANDIDATES": 9,
+  "TOTAL_URLS": 33,
+  "EXACT_ALLOWED_HOSTS": [
+    "www.who.int",
+    "medlineplus.gov",
+    "www.nhs.uk",
+    "www.cdc.gov",
+    "www.nimh.nih.gov",
+    "www.apa.org"
+  ],
+  "REDIRECT_POLICY_REFERENCE": "S4-EO-08-PREQ-02-RDP-v1",
+  "REQUEST_LIMITS": {
+    "PER_ECU_MAX": 12,
+    "SAME_HOST_MIN_DELAY_SEC": 2,
+    "MAX_REDIRECTS": 3
+  },
+  "SHA256": "5891e7300003e4d478560fecb17dabba8b3806dcc1681aeb5b4a75231ffd960a",
+  "URLS": [
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-WHO-L1",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-LIC-WHO"
+      ],
+      "URL": "https://www.who.int/health-topics",
+      "ECU_ID": "ECU-WHO-01",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-WHO"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-WHO-L2",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "URL": "https://www.who.int/health-topics/mental-health",
+      "ECU_ID": "ECU-WHO-01",
+      "CANDIDATE_IDS": [
+        "who_mental_health"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-WHO-MH"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-WHO-R",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-OVR-20"
+      ],
+      "URL": "https://www.who.int/robots.txt",
+      "ECU_ID": "ECU-WHO-01",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics",
+        "who_mental_health"
+      ],
+      "EVIDENCE_CLASS": "ROBOTS",
+      "PARENT_URL": "ROBOTS_TERMS_PRECHECK_BATCH1.md",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ROBOTS-WHO"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-MPL-L1",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-LIC-MPL-C"
+      ],
+      "URL": "https://medlineplus.gov",
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "CANDIDATE_IDS": [
+        "medlineplus_consumer_health"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-MPL"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-MPL-L2",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-PAGE-MPL-MH",
+        "GAP-MH-POL"
+      ],
+      "URL": "https://medlineplus.gov/mentalhealthandbehavior.html",
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "CANDIDATE_IDS": [
+        "medlineplus_mental_health"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-MPL-MH"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-MPL-R",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-OVR-20"
+      ],
+      "URL": "https://medlineplus.gov/robots.txt",
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "CANDIDATE_IDS": [
+        "medlineplus_consumer_health",
+        "medlineplus_mental_health"
+      ],
+      "EVIDENCE_CLASS": "ROBOTS",
+      "PARENT_URL": "ROBOTS_TERMS_PRECHECK_BATCH1.md",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ROBOTS-MPL"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-NHS-L1",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "URL": "https://www.nhs.uk/live-well",
+      "ECU_ID": "ECU-NHS-01",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-NHS-LW"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-NHS-L2",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "URL": "https://www.nhs.uk/mental-health",
+      "ECU_ID": "ECU-NHS-01",
+      "CANDIDATE_IDS": [
+        "nhs_mental_health"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-NHS-MH"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-NHS-R",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-OVR-20"
+      ],
+      "URL": "https://www.nhs.uk/robots.txt",
+      "ECU_ID": "ECU-NHS-01",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well",
+        "nhs_mental_health"
+      ],
+      "EVIDENCE_CLASS": "ROBOTS",
+      "PARENT_URL": "ROBOTS_TERMS_PRECHECK_BATCH1.md",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ROBOTS-NHS"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-CDC-L1",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-LIC-CDC"
+      ],
+      "URL": "https://www.cdc.gov/healthyliving",
+      "ECU_ID": "ECU-CDC-01",
+      "CANDIDATE_IDS": [
+        "cdc_health_lifestyle"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-CDC"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-CDC-R",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-OVR-20"
+      ],
+      "URL": "https://www.cdc.gov/robots.txt",
+      "ECU_ID": "ECU-CDC-01",
+      "CANDIDATE_IDS": [
+        "cdc_health_lifestyle"
+      ],
+      "EVIDENCE_CLASS": "ROBOTS",
+      "PARENT_URL": "ROBOTS_TERMS_PRECHECK_BATCH1.md",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ROBOTS-CDC"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-NIMH-L1",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "URL": "https://www.nimh.nih.gov/health",
+      "ECU_ID": "ECU-NIMH-01",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-NIMH"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-NIMH-R",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-OVR-20"
+      ],
+      "URL": "https://www.nimh.nih.gov/robots.txt",
+      "ECU_ID": "ECU-NIMH-01",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "EVIDENCE_CLASS": "ROBOTS",
+      "PARENT_URL": "ROBOTS_TERMS_PRECHECK_BATCH1.md",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ROBOTS-NIMH"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-APA-L1",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-LIC-APA"
+      ],
+      "URL": "https://www.apa.org/topics",
+      "ECU_ID": "ECU-APA-01",
+      "CANDIDATE_IDS": [
+        "apa_psychology_help"
+      ],
+      "EVIDENCE_CLASS": "SOURCE_IDENTITY",
+      "PARENT_URL": "catalog",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ID-APA"
+    },
+    {
+      "ANCHOR_TEXT": "seed",
+      "PATH_VALIDATION": "PASS",
+      "URL_ID": "U-APA-R",
+      "HOST_VALIDATION": "PASS",
+      "GAP_IDS": [
+        "GAP-OVR-20"
+      ],
+      "URL": "https://www.apa.org/robots.txt",
+      "ECU_ID": "ECU-APA-01",
+      "CANDIDATE_IDS": [
+        "apa_psychology_help"
+      ],
+      "EVIDENCE_CLASS": "ROBOTS",
+      "PARENT_URL": "catalog+standard_host_robots",
+      "FROZEN": true,
+      "QUESTION_ID": "Q-ROBOTS-APA"
+    },
+    {
+      "URL_ID": "U-ECU-APA-01-H2-1",
+      "ECU_ID": "ECU-APA-01",
+      "URL": null,
+      "CANDIDATE_IDS": [
+        "apa_psychology_help"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-APA"
+      ],
+      "QUESTION_ID": "Q-H2-1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.apa.org/topics",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-MEDLINEPLUS-01-H2-1",
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "URL": "https://medlineplus.gov/about/",
+      "CANDIDATE_IDS": [
+        "medlineplus_consumer_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-MPL-C"
+      ],
+      "QUESTION_ID": "Q-H2-1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://medlineplus.gov",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-MEDLINEPLUS-01-H2-2",
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "URL": "https://medlineplus.gov/about/using/usingcontent/",
+      "CANDIDATE_IDS": [
+        "medlineplus_consumer_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-MPL-C"
+      ],
+      "QUESTION_ID": "Q-H2-2",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://medlineplus.gov",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-MEDLINEPLUS-01-H2-3",
+      "ECU_ID": "ECU-MEDLINEPLUS-01",
+      "URL": "https://medlineplus.gov/about/using/criteria/",
+      "CANDIDATE_IDS": [
+        "medlineplus_consumer_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-MPL-C"
+      ],
+      "QUESTION_ID": "Q-H2-3",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://medlineplus.gov",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NHS-01-H2-1",
+      "ECU_ID": "ECU-NHS-01",
+      "URL": "https://www.nhs.uk/using-the-nhs/about-the-nhs/",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "QUESTION_ID": "Q-H2-1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nhs.uk/live-well",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NHS-01-H2-2",
+      "ECU_ID": "ECU-NHS-01",
+      "URL": "https://www.nhs.uk/about-us/",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "QUESTION_ID": "Q-H2-2",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nhs.uk/live-well",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NIMH-01-H2-1",
+      "ECU_ID": "ECU-NIMH-01",
+      "URL": "https://www.nimh.nih.gov/about",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "QUESTION_ID": "Q-H2-1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nimh.nih.gov/health",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NIMH-01-H2-2",
+      "ECU_ID": "ECU-NIMH-01",
+      "URL": "https://www.nimh.nih.gov/about/director",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "QUESTION_ID": "Q-H2-2",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nimh.nih.gov/health",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NIMH-01-H2-3",
+      "ECU_ID": "ECU-NIMH-01",
+      "URL": "https://www.nimh.nih.gov/about/advisory-boards-and-groups",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "QUESTION_ID": "Q-H2-3",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nimh.nih.gov/health",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-WHO-01-H2-1",
+      "ECU_ID": "ECU-WHO-01",
+      "URL": "https://www.who.int/mega-menu/about-us",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-WHO"
+      ],
+      "QUESTION_ID": "Q-H2-1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.who.int/health-topics",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-WHO-01-H2-2",
+      "ECU_ID": "ECU-WHO-01",
+      "URL": "https://www.who.int/mega-menu/about-us/about",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-WHO"
+      ],
+      "QUESTION_ID": "Q-H2-2",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.who.int/health-topics",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-WHO-01-H2-3",
+      "ECU_ID": "ECU-WHO-01",
+      "URL": "https://www.who.int/mega-menu/about-us/about/partnerships-and-collaboration",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-WHO"
+      ],
+      "QUESTION_ID": "Q-H2-3",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.who.int/health-topics",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-WHO-01-EXTRA-28",
+      "ECU_ID": "ECU-WHO-01",
+      "URL": "https://www.who.int/about",
+      "CANDIDATE_IDS": [
+        "who_global_health_topics",
+        "who_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-WHO"
+      ],
+      "QUESTION_ID": "Q-LIC-WHO",
+      "EVIDENCE_CLASS": "PUBLISHER_OWNERSHIP",
+      "PARENT_URL": "R-ECU-WHO-01-H2-2",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS_GOVERNANCE_TOKEN",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NHS-01-EXTRA-29",
+      "ECU_ID": "ECU-NHS-01",
+      "URL": "https://www.nhs.uk/about-us/about-the-nhs-website/",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well",
+        "nhs_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "QUESTION_ID": "Q-LIC-NHS",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "R-ECU-NHS-01-H2-2",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS_GOVERNANCE_TOKEN",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NHS-01-EXTRA-30",
+      "ECU_ID": "ECU-NHS-01",
+      "URL": "https://www.nhs.uk/our-policies/",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well",
+        "nhs_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "QUESTION_ID": "Q-LIC-NHS-F1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nhs.uk/about-us/about-the-nhs-website/",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS_GOVERNANCE_TOKEN",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NHS-01-EXTRA-31",
+      "ECU_ID": "ECU-NHS-01",
+      "URL": "https://www.nhs.uk/our-policies/profile-editor-login/",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well",
+        "nhs_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "QUESTION_ID": "Q-LIC-NHS-F2",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nhs.uk/about-us/about-the-nhs-website/",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS_GOVERNANCE_TOKEN",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-ECU-NIMH-01-EXTRA-32",
+      "ECU_ID": "ECU-NIMH-01",
+      "URL": "https://www.nimh.nih.gov/site-info/policies",
+      "CANDIDATE_IDS": [
+        "nimh_nih_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-MH-POL"
+      ],
+      "QUESTION_ID": "Q-MH-SAFE-NIMH-F1",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nimh.nih.gov/health",
+      "ANCHOR_TEXT": "discovered",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS_GOVERNANCE_TOKEN",
+      "FROZEN": true
+    },
+    {
+      "URL_ID": "U-NHS-TERMS-1",
+      "ECU_ID": "ECU-NHS-01",
+      "URL": "https://www.nhs.uk/our-policies/terms-and-conditions/",
+      "CANDIDATE_IDS": [
+        "nhs_uk_live_well",
+        "nhs_mental_health"
+      ],
+      "GAP_IDS": [
+        "GAP-LIC-NHS-LW"
+      ],
+      "QUESTION_ID": "Q-LIC-NHS",
+      "EVIDENCE_CLASS": "TERMS_OF_USE",
+      "PARENT_URL": "https://www.nhs.uk/our-policies/",
+      "ANCHOR_TEXT": "Terms and conditions",
+      "HOST_VALIDATION": "PASS",
+      "PATH_VALIDATION": "PASS_GOVERNANCE_TOKEN",
+      "FROZEN": true
+    }
+  ]
+}

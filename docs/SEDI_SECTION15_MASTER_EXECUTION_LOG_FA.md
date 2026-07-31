@@ -30148,3 +30148,15117 @@ REQUIRES_SEPARATE_STRICT_RE_REVIEW
 
 ---
 *پایان §۱۴۴ — GATE-S27-24A E2-C4B-05 Controlled Network Discovery + GATE-S27-24AG Truthfulness/Ledger Repair — ۲۰۲۶-۰۷-۲۷ / Asia/Baku*
+## ۱۴۵) SECTION-28 STAGE-2-OF-14 — MULTI-STAGE AUTHORITY RECONSTRUCTION (C4B-05 RESIDUALS + C4B-06..09 + EVIDENCE OVERLAY CLOSURE)
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-2-OF-14 —
+MULTI-STAGE AUTHORITY RECONSTRUCTION FOR:
+  C4B-05 RESIDUALS
+  + C4B-06..09
+  + EVIDENCE OVERLAY CLOSURE
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NO_NETWORK / NO_EXTERNAL_EVIDENCE / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH / NO_P2_IMPLEMENTATION /
+NO_STAGE_3_EXECUTION
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for Stage 2 of the official 14-stage I5 route ONLY
+
+Baseline (verified at Stage 2 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  WORKTREE = CLEAN (pre-append)
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+
+Stage 1 reference (GATE-S27-27A):
+  §144_REMOTE_DELIVERY = COMPLETE
+  PUSHED_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  FORCE_PUSH = NO
+
+§§1–144_SHA256_BEFORE_APPEND =
+BA7B3A4EA09C9A81C7DEEADC7CC709547034F684A5A6762A161B22B076B79B47
+
+NO edit to §§1–144
+NO §146 in this Gate
+```
+
+### ۱۴۵.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+REPOSITORY_ROOT = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+HEAD_SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STATUS_SHORT = EMPTY
+STAGED = EMPTY
+UNTRACKED = ZERO
+MERGE/REBASE/CHERRY_PICK/BISECT = NONE
+REMOTE_FEATURE_SHA (git ls-remote; no fetch) =
+  af1d583df55a8df8284105917e86caf6342eb089
+ORIGIN_MAIN (audit; git ls-remote; no fetch) =
+  89b79ad3fc20236a23ffae65fd868aafb60843e8
+BLOCKED_BASELINE_MISMATCH = NO
+```
+
+### ۱۴۵.۲) Authority source ledger (Phase B)
+
+| AUTHORITY_ID | FILE/PATH | SECTION / RANGE | SUBJECT | STATUS | SUPERSEDED? | AUTHORITATIVELY DEFINES |
+|---|---|---|---|---|---|---|
+| AUTH-S1 | docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md | GATE-S27-27A / HEAD af1d583 | §144 remote delivery | COMPLETE | NO | Stage 1 push complete; HEAD=remote feature |
+| AUTH-99 | same | §99 (esp. §99.3, §99.5, §99.7, §99.19, §99.21) | E2-C4A Iran source discovery scope | COMPLETE (scope) | NO (historical; still controlling for class/strategy/OD definitions) | IR-SC-08..16; Strategies C/D/E/F/J; OD-C4A-08..16; E2-C4B-05..09 Gate names |
+| AUTH-93 | same | §93.9–§93.12 | Evidence Overlay design + dry-run prerequisites | DESIGN COMPLETE; NOT CLOSED | NO | Overlay field contract; fail-closed missing evidence; dry-run prerequisites |
+| AUTH-128/129/130 | same | §128–§130 | 09B residual governance + formal closure | 09B_CLOSED=YES | NO | Commercial-directory residual disposition; rights remain fail-closed |
+| AUTH-137/138 | same | §137–§138 | Permanent I5 weekly knowledge / crawler law | PERMANENT LAW | NO | Weekly governed knowledge growth; I5 cannot close without crawler + runtime grounding |
+| AUTH-142 | same | §142 | C4B-04 remote docs delivery | DISCOVERY_DOCS_DELIVERY_COMPLETE; FULL_CHILD_OPEN | NO | Delivery ≠ full-child; overlay still open |
+| AUTH-143 | same | §143 | C4B-05 repository preparation | PREPARATION_COMPLETE | NO | IR-SC-08/09/14-education; Strategy C; query/budget locks; OFS gap ACCEPTED_FAIL_CLOSED |
+| AUTH-144 | same | §144 (incl. S27-24AG repair) | C4B-05 controlled network + residuals | DISCOVERY EXECUTED; SUBSTEP NOT COMPLETE; FULL_CHILD OPEN | NO (newest C4B-05 state) | Candidate ledger; residuals; STOP-06; P2_FOUNDATION_IMPLEMENTATION_READINESS; children independent |
+| AUTH-PROG | same | tip / §1 progress rows; §116-ish ≈22% notes | I5 completion accounting | PRESERVED ≈22% | Exact float 21.79487179% = AUTHORITY_NOT_FOUND in repository | I5-A=100%; I5-B≈31%; I5-C..F=0%; do not invent new formula |
+
+```text
+CONFLICT_RULE_APPLIED =
+  Prefer newest explicit authoritative continuation/closure statement.
+  Do not rewrite historical sections.
+  Record supersession only in this §145.
+
+NO_WEB_SEARCH = YES
+NO_EXTERNAL_API = YES
+NO_LIVE_WHO_IFDA_TTAC_NICE = YES
+```
+
+### ۱۴۵.۳) Permanent I5 weekly knowledge-growth law (preserved)
+
+```text
+I5 is not merely a source-refresh system.
+
+Weekly knowledge updates MUST create REAL GOVERNED INCREMENTAL KNOWLEDGE GROWTH.
+
+The final weekly crawler must:
+  discover trusted new knowledge;
+  discover newly published articles, guidance, reports, updates and other authoritative material;
+  detect new versions of already-known sources;
+  ingest allowed new content;
+  maintain immutable raw evidence;
+  version and diff existing content;
+  preserve provenance;
+  perform quality, safety, authority and security governance;
+  publish only approved knowledge;
+  make approved new knowledge runtime-eligible;
+  supersede, deprecate or revoke obsolete knowledge when warranted.
+
+NOT SUFFICIENT for the weekly update mission:
+  URL health check only;
+  metadata refresh only;
+  re-downloading unchanged content only;
+  periodically checking the same static source set without finding new knowledge.
+
+I5 closure ultimately requires:
+  NEW TRUSTED KNOWLEDGE
+  → GOVERNED INGESTION
+  → APPROVED PUBLICATION
+  → RUNTIME GROUNDING
+  → ACTUAL AVAILABILITY TO SEDI RESPONSES.
+
+Evidence Overlay MUST NOT be reinterpreted to weaken these laws.
+Repository basis: §137 / §138 permanent law + this Stage 2 restatement.
+```
+
+### ۱۴۵.۴) Official 14-stage I5 route (preserved)
+
+```text
+1. push §144 — COMPLETE (Stage 1 / GATE-S27-27A)
+2. authority reconstruction for C4B-05 residuals + C4B-06..09 + Evidence Overlay closure — CURRENT (this §145)
+3. remaining Iran-first discovery
+4. Evidence Overlay closure
+5. P2 + P3 + P4 foundation implementation
+6. P5 + P6 governance/publication
+7. R1 + R2 rehearsal
+8. S1 weekly crawler
+9. Knowledge Packs KP0–KP13
+10. I5-C runtime grounding
+11. I5-D psychology/behavior
+12. I5-E verified directory
+13. I5-F multilingual/security evaluation
+14. end-to-end I5 acceptance
+
+STAGE_3_STARTED_BY_THIS_GATE = NO
+```
+
+### ۱۴۵.۵) C4B-05 residual ledger (Phase C)
+
+| RESIDUAL_ID | DESCRIPTION | CURRENT_STATUS | EVIDENCE_ALREADY_PRESENT | EVIDENCE_MISSING | WHY_MISSING | CLASS | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_ALLOWED_GATE | REQUIRES_NETWORK? | REQUIRES_LEGAL? | REQUIRES_PRODUCT? |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C4B05-R01 | OFS numeric ID not assigned (§143 GAP-01 / §144 RESIDUAL-01) | OPEN / ACCEPTED_FAIL_CLOSED | §143.4 Option B selected; OFS_GAP_BLOCKS_NETWORK_DISCOVERY=NO | OFS table extension entry | No framework Gate authorized new OFS ID | OPEN_NON_BLOCKING_RESIDUAL | Governance/Framework | future OFS framework Gate | OFS ID assigned OR remain ACCEPTED_FAIL_CLOSED | future Framework/OFS Gate | NO | NO | NO |
+| C4B05-R02 | University-wide terms/privacy incomplete across candidates (§144 RESIDUAL-02) | OPEN | Partial terms for KUMS/SBMU/Pasteur; ledger rows | Complete terms/privacy for all accepted candidates | Budget/timeouts; discovery ≠ rights clearance | OPEN_BLOCKER (full-child) | Legal / Knowledge Ops | candidate set §144.6 | Terms retrieved OR formally fail-closed per candidate with owner | C4B-05 rights/terms residual Gate (post Stage 3 discovery waves as needed) | YES (if not deferred) | YES | NO |
+| C4B05-R03 | Robots retrieval incomplete (§144 RESIDUAL-03) | OPEN | Some robots retrieved; timeouts/404 recorded | Complete robots state for all accepted candidates | Timeouts/404 within budget; no retries | OPEN_BLOCKER (full-child) | Provider Verification | §144.5 STOP-01..05 | Robots retrieved OR formally fail-closed per candidate | C4B-05 robots residual Gate | YES (if not deferred) | NO | NO |
+| C4B05-R04 | IR-SC-14 education sample limited to 2 teaching-hospital pages (§144 RESIDUAL-04) | OPEN / SCOPE_DEPENDENT | CAND-09/10 accepted with residuals | Broader IR-SC-14 education coverage if required for full-child | Discovery sample bound by budget/candidate cap | OPEN_NON_BLOCKING_RESIDUAL (unless product expands scope) | Governance | IR-SC-14 education slice; C4B-02 fence | Scope acceptance recorded OR expanded discovery Gate | Product/Governance scope decision OR C4B-05 education expansion Gate | MAYBE | NO | YES (if expanding) |
+| C4B05-R05 | Reviewer/editorial evidence not established (§144 RESIDUAL-05) | OPEN | Authority identity for 10 accepted candidates | Reviewer/editorial fields | Not established within discovery | OPEN_BLOCKER (full-child) | Knowledge Ops | §143.10 candidate schema | Established OR formally fail-closed per candidate | C4B-05 editorial residual Gate | MAYBE | NO | NO |
+| C4B05-R06 / F-25A-BLOCKER-01 | STOP-06 unauthorized unlocked search transmitted | OPEN_GOVERNANCE_DEPENDENCY / HISTORICAL_VIOLATION PRESERVED | §144.3/.5/.8/.11 truthful record; repair did not erase | Formal discovery-substep acceptance while NETWORK_CONTRACT_VIOLATION=YES | Contract violation; not retroactively validated | OPEN_BLOCKER (discovery-substep acceptance) | Governance | §143 query contract | Explicit governance disposition allowing substep acceptance with preserved violation OR re-run under locked contract | C4B-05 STOP-06 governance disposition Gate | NO (disposition) / YES (if re-run) | NO | YES (disposition acceptance) |
+| C4B05-R07 | Reuse rights UNKNOWN_FAIL_CLOSED for all candidates | OPEN | Explicit UNKNOWN_FAIL_CLOSED on all rows | Reuse clearance | Authority discovery ≠ rights clearance | REQUIRES_LEGAL_DECISION / REQUIRES_EXTERNAL_EVIDENCE | Legal | terms packs | Legal reuse determination or remain fail-closed | Rights clearance Gate (not Stage 2/3 discovery alone) | YES | YES | NO |
+| C4B05-R08 | Automation permission not cleared (CAND-01 PROHIBITED_OR_BLOCKED; others UNKNOWN) | OPEN | Robots DISALLOW_ALL on tums.ac.ir; defaults fail-closed | Automation clearance | Robots/terms incomplete; no self-upgrade | REQUIRES_LEGAL_DECISION / REQUIRES_EXTERNAL_EVIDENCE | Security / Legal | robots+terms | Automation state determined per candidate | Automation clearance Gate | YES | YES | NO |
+| C4B05-R09 | PRE_EXISTING_DOCUMENTATION_DEBT fence delta=1 | OPEN / inherited | §144.8 note | Historical fence repair | Inherited; not introduced by §144 | OPEN_NON_BLOCKING_RESIDUAL | Documentation / Governance | separate historical-doc repair Gate | Explicit historical-doc repair Gate | Historical-doc repair Gate | NO | NO | NO |
+| C4B05-STATE | Discovery substep / full child | NETWORK_EXECUTED=YES; SUBSTEP_COMPLETE=NO; FULL_CHILD_COMPLETE=NO; RESULT=INVALID_DUE_TO_NETWORK_CONTRACT_VIOLATION | §144.9 | Validated discovery-substep COMPLETE marker | STOP-06 + open full-child blockers | OPEN_BLOCKER (C4B-05 child) | Governance | R01–R08 | Meet §144.9 C4B_05_FULL_CHILD_CLOSURE_CRITERIA | After Stage 3 waves + residual/governance Gates | DEPENDS | DEPENDS | DEPENDS |
+
+```text
+DISTINCTIONS_LOCKED =
+  repository preparation (§143) = COMPLETE
+  network discovery execution (§144) = EXECUTED but INVALID for substep acceptance
+  prior network discovery validity = NOT RETROACTIVELY VALIDATED
+  rights/terms/robots/automation/attribution/rate-limits = NOT CLEARED
+  source authority identity = ACCEPTED_WITH_RESIDUALS for 10 candidates; 1 rejected
+  institutional identity = present for accepted set; MBRC rejected
+  data/content availability = metadata/authority only; CONTENT_BODY_ACQUISITION=NO
+  operational readiness for ingestion/runtime = NO
+  domain-exists ≠ reuse/automation permission = YES
+
+C4B_05_RESIDUALS_BLOCK_C4B_06_START = NO (§144.8)
+C4B_CHILDREN_EXECUTION_MODEL = INDEPENDENT_GOVERNED_CHILDREN (§144.8)
+UNKNOWN_NOT_CONVERTED_TO_PASS = YES
+```
+
+### ۱۴۵.۶) C4B-06 authority reconstruction (Phase D)
+
+```text
+CANONICAL_CHILD_NAME =
+  E2-C4B-06 — scientific-association discovery approval
+  (§99.21)
+
+SOURCE_FAMILY =
+  IR-SC-10 scientific/medical associations
+  (§99.3)
+
+PURPOSE =
+  professional education / SCIENTIFIC_EDUCATION discovery approval;
+  recognition + terms evidence packs
+  (§99.3; OD-C4A-10)
+
+IRAN_FIRST_SCOPE =
+  Iran medical / scientific associations with association legal identity
+  (§99.7 Strategy D)
+
+AUTHORITY_SOURCE_CLASSES_EXPECTED =
+  TIER B university/public research/recognized association class family
+  (§99.5) — recognized association for IR-SC-10
+
+EVIDENCE_CATEGORIES_REQUIRED =
+  recognition + terms (OD-C4A-10);
+  min evidence before registration = recognition+terms (Strategy D);
+  logical discovery-review artifacts 1–10 (§99.10) at documentation level when executed
+
+LEGAL_GOVERNANCE_GATES =
+  Medical/Safety primary; Legal, Governance supporting (OD-C4A-10)
+  default UNKNOWN_FAIL_CLOSED
+  FREE_TO_VIEW ≠ REUSABLE; GET ≠ AUTOMATION_PERMISSION
+
+REQUIRED_DISCOVERY_OUTPUTS =
+  candidate decision packs with recognition+terms;
+  no eligibility promotion without later governance
+
+EXPLICIT_EXCLUSIONS =
+  license proof role prohibited for IR-SC-10
+  commercial SEO orgs as false positives (Strategy D)
+  paid sources / paid APIs excluded (§99.6)
+
+COMPLETION_CRITERIA =
+  AUTHORITY_PRESENT_AT_SCOPE_LEVEL = YES (§99)
+  REPOSITORY_PREPARATION_CONTRACT (query lock / budget / stop / candidate schema like §143) =
+    AUTHORITY_NOT_FOUND — FAIL_CLOSED
+  NETWORK_DISCOVERY_EXECUTED = NO
+  FULL_CHILD_COMPLETE = NO
+
+KNOWN_RESIDUALS_ALREADY_RECORDED =
+  none child-specific beyond open OD-C4A-10 Blocking pack
+
+DEPENDENCY_ON_EARLIER_CHILDREN =
+  OD-C4A-10 dependency column = —
+  C4B-05 residuals do NOT block start (§144.8)
+  Independent governed child
+
+CAN_EXECUTE_INDEPENDENTLY = YES (as child), AFTER separate preparation + approved search Gate
+BLOCKS_EVIDENCE_OVERLAY_CLOSURE = YES (as remaining Blocking OD-C4A-10 / mandatory E2 child work)
+NEXT_EXECUTABLE_PACKAGE =
+  Stage 3 Wave for C4B-06 repository preparation THEN controlled network discovery
+  (preparation Gate required because query/budget contract AUTHORITY_NOT_FOUND)
+
+C4B-06_AUTHORITY =
+  SUFFICIENT_FOR_CHILD_DEFINITION
+  INSUFFICIENT_FOR_NETWORK_EXECUTION_WITHOUT_PREPARATION_GATE
+```
+
+### ۱۴۵.۷) C4B-07 authority reconstruction (Phase D)
+
+```text
+CANONICAL_CHILD_NAME =
+  E2-C4B-07 — Persian patient-education discovery approval
+  (§99.21)
+
+SOURCE_FAMILY =
+  IR-SC-12 official Persian patient education
+  (§99.3)
+
+PURPOSE =
+  PATIENT_EDUCATION discovery; MR-1+ pack
+  (§99.3; OD-C4A-12)
+
+IRAN_FIRST_SCOPE =
+  teaching hospital / university / MoH patient-education pages
+  (§99.7 Strategy F)
+  NOTE: C4B-05 IR-SC-14 education slice is scoped teaching-hospital sample only;
+        C4B-07 remains the primary Persian patient-education child (§143.15 OOS)
+
+AUTHORITY_SOURCE_CLASSES_EXPECTED =
+  university/teaching hospital/MoH education pages; TIER B/C scoped
+  clinical guideline auto = prohibited role for IR-SC-12
+
+EVIDENCE_CATEGORIES_REQUIRED =
+  MR-1+ pack (OD-C4A-12); MR model dependency
+  min evidence = MR-1+ evidence (Strategy F)
+
+LEGAL_GOVERNANCE_GATES =
+  Medical/Safety primary; Legal, Data/Knowledge supporting
+  R12 patient-education-as-guideline = BLOCKER risk (§99.20)
+
+REQUIRED_DISCOVERY_OUTPUTS =
+  MR-1+ candidate packs; fail-closed unknowns; no clinical-guideline auto promotion
+
+EXPLICIT_EXCLUSIONS =
+  commercial clinics as false positives
+  clinical guideline automatic use
+  content-body ingestion / runtime (until later authorized Gates)
+
+COMPLETION_CRITERIA =
+  AUTHORITY_PRESENT_AT_SCOPE_LEVEL = YES
+  REPOSITORY_PREPARATION_CONTRACT = AUTHORITY_NOT_FOUND — FAIL_CLOSED
+  NETWORK_DISCOVERY_EXECUTED = NO
+  FULL_CHILD_COMPLETE = NO
+
+KNOWN_RESIDUALS =
+  OD-C4A-12 Blocking open; overlaps conceptually with C4B-05 IR-SC-14 sample but child remains distinct
+
+DEPENDENCY =
+  MR model (OD-C4A-12); C4B-05 education sample does not close C4B-07
+  Independent start permitted under INDEPENDENT_GOVERNED_CHILDREN
+
+BLOCKS_EVIDENCE_OVERLAY_CLOSURE = YES
+NEXT_EXECUTABLE_PACKAGE =
+  Stage 3 Wave: C4B-07 preparation THEN controlled network discovery
+
+C4B-07_AUTHORITY =
+  SUFFICIENT_FOR_CHILD_DEFINITION
+  INSUFFICIENT_FOR_NETWORK_EXECUTION_WITHOUT_PREPARATION_GATE
+```
+
+### ۱۴۵.۸) C4B-08 authority reconstruction (Phase D)
+
+```text
+CANONICAL_CHILD_NAME =
+  E2-C4B-08 — journal and publication-portal discovery approval
+  (§99.21)
+
+SOURCE_FAMILY =
+  IR-SC-13 official journals/publication portals
+  (§99.3)
+
+PURPOSE =
+  SCIENTIFIC_EVIDENCE discovery; license+authority packs
+  (§99.3; OD-C4A-13)
+
+IRAN_FIRST_SCOPE =
+  Iran medical journal / publication portal discovery
+  (§99.7 Strategy E)
+
+AUTHORITY_SOURCE_CLASSES_EXPECTED =
+  journal/portal publisher; ISSN/portal ownership signals
+  provider identity role = prohibited for IR-SC-13
+
+EVIDENCE_CATEGORIES_REQUIRED =
+  license+authority (OD-C4A-13)
+  article metadata+terms evidence type (§99.3)
+
+LEGAL_GOVERNANCE_GATES =
+  Data/Knowledge primary; Legal, Medical/Safety supporting
+  predatory journals = false-positive risk (Strategy E)
+
+REQUIRED_DISCOVERY_OUTPUTS =
+  license+authority candidate packs; predatory rejection records where applicable
+
+EXPLICIT_EXCLUSIONS =
+  predatory journals as authority
+  provider-identity use of journal sources
+  paid sources
+
+COMPLETION_CRITERIA =
+  AUTHORITY_PRESENT_AT_SCOPE_LEVEL = YES
+  REPOSITORY_PREPARATION_CONTRACT = AUTHORITY_NOT_FOUND — FAIL_CLOSED
+  NETWORK_DISCOVERY_EXECUTED = NO
+  FULL_CHILD_COMPLETE = NO
+
+DEPENDENCY = — (OD-C4A-13)
+CAN_EXECUTE_INDEPENDENTLY = YES after preparation Gate
+BLOCKS_EVIDENCE_OVERLAY_CLOSURE = YES
+NEXT_EXECUTABLE_PACKAGE =
+  Stage 3 Wave: C4B-08 preparation THEN controlled network discovery
+
+C4B-08_AUTHORITY =
+  SUFFICIENT_FOR_CHILD_DEFINITION
+  INSUFFICIENT_FOR_NETWORK_EXECUTION_WITHOUT_PREPARATION_GATE
+```
+
+### ۱۴۵.۹) C4B-09 authority reconstruction (Phase D)
+
+```text
+CANONICAL_CHILD_NAME =
+  E2-C4B-09 — commercial-directory evidence collection approval
+  (§99.21)
+
+SOURCE_FAMILY =
+  IR-SC-16 commercial medical directories
+  role = DIRECTORY / SECONDARY_DISCOVERY only
+  (§99.3)
+
+PURPOSE =
+  secondary discovery evidence; terms+role lock; never primary license/accreditation/medical authority
+  (§99.3; Strategy J; OD-C4A-16; R04/R11)
+
+EXECUTED_SUBPATH (repository fact) =
+  E2-C4B-09A Paziresh24 public rights/access evidence = PASS / COMPLETE (docs)
+  E2-C4B-09B Doctoreto path = CLOSED_RESIDUAL (§128–§130; 09B_CLOSED=YES)
+  NOT_ACTIVATED preserved; rights fail-closed; capabilities not activated
+
+IRAN_FIRST_SCOPE =
+  commercial directory brands + terms-of-use evidence; secondary only
+
+COMPLETION_CRITERIA_INTERPRETATION =
+  Discovery/evidence-collection child path for named directories is
+  CLOSED_WITH_ACCEPTED_PRESERVED_RESIDUALS for 09B + PASS for 09A.
+  Full IR-SC-16 universe enumeration beyond executed brands =
+    AUTHORITY_NOT_FOUND as mandatory open requirement
+    (no repository statement requiring additional brand discovery before overlay)
+
+BLOCKS_EVIDENCE_OVERLAY_CLOSURE =
+  NOT as open discovery child (closed/residual path recorded);
+  residual reopen policy remains if new admissible historical evidence contradicts (§128)
+
+NEXT_EXECUTABLE_PACKAGE =
+  Stage 3 docs-only status reconciliation / no new network unless reopen triggered
+  NOT a rediscovery Gate by default
+
+C4B-09_AUTHORITY =
+  SUFFICIENT_AND_SUBSTANTIALLY_EXECUTED_WITH_RESIDUAL_CLOSURE
+```
+
+### ۱۴۵.۱۰) Evidence Overlay closure contract (Phase E)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO (latest controlling markers through §144)
+STAGE_2_DOES_NOT_CLOSE_OVERLAY = YES
+```
+
+| CRITERION_ID | REQUIREMENT | CURRENT_STATE | EVIDENCE | BLOCKING? | OWNER | WHAT_CLOSES_IT | STAGE_WHERE_IT_CLOSES |
+|---|---|---|---|---|---|---|---|
+| EO-C01 | Overlay design contract exists (§93.9 fields + invariants) | SATISFIED (design) | §93.9 | NO (design only) | Governance | already designed | prior (§93) |
+| EO-C02 | Missing evidence fails closed; identity immutable; versioned overlays | SATISFIED as law | §93.9–§93.10 | NO (law) | Governance | preserve | continuous |
+| EO-C03 | Remaining mandatory Iran E2-C4B discovery children completed OR blockers formally deferred with owner | NOT SATISFIED | C4B-05 full child open; C4B-06/07/08 not started; C4B-09 closed-residual | YES | Governance | Stage 3 discovery + residual dispositions | Stage 3 → Stage 4 |
+| EO-C04 | Rights/terms evidence recorded or fail-closed with owner for overlay-bound sources | NOT SATISFIED | C4B-05 UNKNOWN_FAIL_CLOSED; international 9 still ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY (§93) | YES | Legal | terms/reuse packs or formal deferral | Stage 3–4 |
+| EO-C05 | Automation permission evidence recorded or fail-closed | NOT SATISFIED | §144 automation states | YES | Security/Legal | automation packs or formal deferral | Stage 3–4 |
+| EO-C06 | Source-specific authority / provenance evidence | PARTIAL | C4B-01..05 ledgers partial; C4B-06..08 absent | YES | Data/Knowledge | child discovery packs | Stage 3 |
+| EO-C07 | Reusable acquisition eligibility decided or fail-closed | NOT SATISFIED | ZERO FREE_AND_DISCOVERY_ELIGIBLE historically; remain fail-closed | YES | Legal | eligibility decisions | Stage 4 |
+| EO-C08 | Fail-closed unknowns explicitly owned | PARTIAL | many residuals owned in §144/§145; C4B-06..08 prep gaps open | YES | Governance | residual matrix complete | Stage 2 (this) + Stage 3 updates |
+| EO-C09 | Explicit source enable/disable state remains disabled until approved | SATISFIED (disabled) | SOURCE_ACTIVATION=NO throughout | NO (must remain) | Governance | keep disabled through Stage 4 | Stage 4 confirms |
+| EO-C10 | P2 readiness decision separated from overlay closure | SATISFIED as separation | §144 P2_FOUNDATION_IMPLEMENTATION_READINESS=READY_WITH_EXPLICIT_GAPS; P2_STARTED=NO | NO | Backend/Governance | do not conflate | Stage 5 entry |
+| EO-C11 | Dry-run allowlist prerequisites (§93.12) | NOT SATISFIED | overlays not approved; license/authority/jurisdiction pending | YES | Governance | approved overlays | post Stage 4 / later E gates |
+| EO-C12 | Weekly knowledge-growth law not weakened by overlay closure | SATISFIED as requirement | §137/§138/§145.3 | YES (must preserve) | Governance | closure text must preserve law | Stage 4 |
+
+```text
+CLOSURE_RULE_RECONSTRUCTED =
+  Overlay does NOT require every residual cleared if Blocking items are
+  formally DEFERRED_WITH_OWNER under explicit governance authority
+  (09B precedent §128–§130).
+  Overlay DOES require remaining Blocking discovery children (C4B-06..08
+  and C4B-05 discovery-substep/full-child blockers) completed OR
+  formally deferred with owner + closure criteria + next Gate.
+  Stage 4 is the authorized closure Gate; Stage 2 only reconstructs.
+```
+
+### ۱۴۵.۱۱) Unified blocker / residual matrix (Phase F)
+
+| ITEM | CLASS | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|
+| C4B05-R01 OFS gap | OPEN_NON_BLOCKING_RESIDUAL | Governance/Framework | §143.4 | OFS assign or keep ACCEPTED_FAIL_CLOSED | Framework/OFS Gate |
+| C4B05-R02 terms incomplete | OPEN_BLOCKER | Legal/Knowledge Ops | §144 candidates | terms or formal fail-closed | C4B-05 rights residual Gate |
+| C4B05-R03 robots incomplete | OPEN_BLOCKER | Provider Verification | §144 STOP events | robots or formal fail-closed | C4B-05 robots residual Gate |
+| C4B05-R04 IR-SC-14 sample | OPEN_NON_BLOCKING_RESIDUAL / SCOPE_DEPENDENT | Governance | product scope | accept scope or expand | Product decision / education expansion Gate |
+| C4B05-R05 editorial | OPEN_BLOCKER | Knowledge Ops | candidate schema | establish or fail-closed | C4B-05 editorial residual Gate |
+| C4B05-R06 STOP-06 | OPEN_BLOCKER | Governance | §143 query contract | disposition or controlled re-run | STOP-06 disposition Gate |
+| C4B05-R07 reuse rights | REQUIRES_LEGAL_DECISION / REQUIRES_EXTERNAL_EVIDENCE | Legal | terms | legal determination or remain fail-closed | Rights clearance Gate |
+| C4B05-R08 automation | REQUIRES_LEGAL_DECISION / REQUIRES_EXTERNAL_EVIDENCE | Security/Legal | robots+terms | automation determination | Automation clearance Gate |
+| C4B05-R09 doc fence debt | OPEN_NON_BLOCKING_RESIDUAL | Documentation/Governance | historical | historical-doc repair Gate | Historical-doc repair Gate |
+| C4B-05 full child | OPEN_BLOCKER | Governance | R02–R08 + STOP-06 | §144.9 criteria | After Stage 3 + residual Gates |
+| C4B-06 child | OPEN_BLOCKER | Medical/Safety | OD-C4A-10; prep AUTHORITY_NOT_FOUND | prep+discovery packs | Stage 3 Wave C4B-06 |
+| C4B-07 child | OPEN_BLOCKER | Medical/Safety | OD-C4A-12; prep AUTHORITY_NOT_FOUND | prep+discovery packs | Stage 3 Wave C4B-07 |
+| C4B-08 child | OPEN_BLOCKER | Data/Knowledge | OD-C4A-13; prep AUTHORITY_NOT_FOUND | prep+discovery packs | Stage 3 Wave C4B-08 |
+| C4B-09 child | CLOSED (09A PASS; 09B CLOSED_RESIDUAL) with preserved reopen policy | Legal/Governance | §128–§130 | reopen only on new admissible evidence | Stage 3 reconciliation only |
+| Evidence Overlay | OPEN_BLOCKER | Governance | EO-C03..C08 | Stage 4 checklist | Stage 4 |
+| P2 foundation impl | DEFERRED_WITH_OWNER (ready-with-gaps; not started) | Backend | Stage 5 entry | Stage 5 authorization | Stage 5 |
+| Exact I5 % 21.79487179 | AUTHORITY_NOT_FOUND | Governance | — | preserve ≈22% until explicit formula Gate | accounting Gate if needed |
+| C4B-06/07/08 query/budget contracts | AUTHORITY_NOT_FOUND | Governance | §99 definitions only | preparation Gates must create contracts (not invent in Stage 2) | Stage 3 prep Gates |
+
+```text
+NO_ORPHAN_FINDING = YES
+```
+
+### ۱۴۵.۱۲) Stage 3 fast safe execution waves (Phase G)
+
+```text
+GROUPING_AUTHORITY_BASIS =
+  §99.21 Approval boundaries not merged
+  §144 C4B_CHILDREN_EXECUTION_MODEL = INDEPENDENT_GOVERNED_CHILDREN
+  C4B-04/05 precedent = separate preparation then controlled network per child
+  C4B-06/07/08 lack locked query/budget contracts → network without prep = PROHIBITED
+
+CAN_C4B_06_09_RUN_IN_ONE_MULTI_NETWORK_GATE = NO
+  reason = approval boundaries not merged; distinct Strategies D/F/E/J; prep contracts missing for 06..08
+
+RECOMMENDED_MODEL =
+  separate source-family Gates, each preferably as a two-phase approved package
+  (prep docs-only → controlled network) under one Stage-3 parent authorization
+  where Javad groups phases, without merging different IR-SC families into one network allowlist
+```
+
+| WAVE_ID | CHILDREN_INCLUDED | OBJECTIVE | NETWORK_SCOPE | EXPECTED_OUTPUT | BLOCKERS | STOP_CONDITIONS | WHY_GROUPING_IS_SAFE |
+|---|---|---|---|---|---|---|---|
+| S3-W0 | C4B-05 STOP-06 disposition | Formal governance disposition of F-25A-BLOCKER-01 without erasing history | NONE (docs/governance) unless disposition requires controlled re-run | Disposition record; substep acceptance path decided | Product/Governance acceptance | Attempt to erase STOP-06; rights self-upgrade | Docs-only; no other child scope |
+| S3-W1 | C4B-06 only | Prep then Strategy D association discovery | Iran association search Gate only after prep locks queries/budgets | §99-aligned packs; candidates fail-closed | Prep contract missing today | Scope leak to journals/patient-ed/dirs; budget exceed; legal uncertainty | Single Strategy D / IR-SC-10 |
+| S3-W2 | C4B-07 only | Prep then Strategy F Persian patient-education discovery | Official education hosts only after prep | MR-1+ packs; commercial clinics rejected | Prep missing; R12 guideline misuse | Clinical-guideline auto; content ingestion | Single Strategy F / IR-SC-12; distinct from C4B-05 sample |
+| S3-W3 | C4B-08 only | Prep then Strategy E journal/portal discovery | Journal/portal search after prep | license+authority packs; predatory rejects | Prep missing | Provider-identity misuse; predatory accept | Single Strategy E / IR-SC-13 |
+| S3-W4 | C4B-09 reconciliation | Confirm CLOSED_RESIDUAL/PASS; no rediscovery | NONE by default | Status attestation in Stage 3 tip | Reopen trigger only | Treating directories as primary authority | Docs-only; already executed |
+| S3-W5 | C4B-05 residual network (optional parallel after W0) | Terms/robots residual capture if not formally deferred | Bounded residual HTTP only under new residual Gate | Updated residual states | Legal/product deferral alternative | Expanding into C4B-06..08; content body | Residual-only; separate from new children |
+
+```text
+STAGE_3_DEFAULT_ORDER = S3-W0 → S3-W1 → S3-W2 → S3-W3 → S3-W4 (S3-W5 as needed)
+FASTEST_SAFE_NOTE =
+  Do not merge W1–W3 network allowlists.
+  Do not skip preparation Gates for C4B-06/07/08.
+  C4B-05 residuals do not block W1 start (§144.8) but overlay closure still needs their disposition by Stage 4.
+```
+
+### ۱۴۵.۱۳) Stage 4 entry criteria (Phase H)
+
+| STAGE_4_ENTRY_CRITERION | CURRENT_STATUS | WHAT_STAGE_3_MUST_PRODUCE |
+|---|---|---|
+| Stage 3 discovery waves for C4B-06/07/08 completed OR formally deferred with owner | NOT_MET | Prep+network evidence packs or DEFERRED_WITH_OWNER rows |
+| C4B-09 status reconciled | PARTIAL (historically closed) | Explicit Stage 3 attestation |
+| C4B-05 STOP-06 disposition recorded | NOT_MET | S3-W0 disposition |
+| Blocking overlay checklist EO-C03..C08 addressable from Stage 3 outputs | NOT_MET | Residual matrix updates; fail-closed ownership |
+| No source activation / crawler / P2 implementation performed in Stage 3 | MUST_REMAIN_TRUE | Negative attestation |
+| Weekly knowledge-growth law preserved in Stage 3 outputs | MUST_REMAIN_TRUE | No reinterpretation as URL/metadata-only |
+| Explicit Javad approval for Stage 4 overlay closure Gate | NOT_YET | Separate authorization |
+
+```text
+STAGE_4_EXECUTION_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۴۵.۱۴) P2 foundation entry / readiness (Phase I)
+
+```text
+P2_FOUNDATION_IMPLEMENTATION_READINESS =
+READY_WITH_EXPLICIT_GAPS
+VERIFIED_FROM = §144.2 (authoritative newest statement)
+NOT_ASSUMED = YES
+
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+  SOURCE_ACTIVATION = NO
+  CRAWLER_ACTIVATION = NO
+  RIGHTS_CLEARED = NO
+  AUTOMATION_CLEARED = NO
+
+SEPARATION_LOCK =
+  "we can build foundation code" ≠ "we can legally/operationally fetch a source"
+
+MAY_IMPLEMENT_WITH_EXPLICIT_GAPS (Stage 5 subject to separate approval) =
+  acquisition plumbing / integrity / quarantine foundations that keep sources disabled
+  data contracts representing UNKNOWN_FAIL_CLOSED rights/automation states
+  fail-closed defaults for missing overlays
+
+MUST_REMAIN_FAIL_CLOSED =
+  live fetch enablement
+  source registry eligibility promotion
+  publication / runtime grounding
+  any source with UNKNOWN reuse/automation
+
+SOURCE_SPECIFIC_PERMISSIONS_STILL_REQUIRED =
+  per-candidate terms/reuse/automation/robots/attribution/rate-limit clearance
+
+P2_STARTED = NO
+P2_FOUNDATION_EXECUTION_AUTHORIZED_BY_THIS_GATE = NO
+STAGE_5_ENTRY =
+  Stage 4 overlay closure Gate completed OR explicit Javad waiver with owned gaps
+  + READY_WITH_EXPLICIT_GAPS still true
+  + no conflation with activation readiness
+```
+
+### ۱۴۵.۱۵) I5 completion accounting (Phase J)
+
+```text
+I5_A_STATUS = 100% (repository progress rows / tip accounting)
+I5_B_STATUS ≈ 31% (docs progress; not recalculated by this Gate)
+I5_B_CLOSED_UNITS / TOTAL_UNITS = AUTHORITY_NOT_FOUND as exact unit fraction in current tip
+I5_C_STATUS = 0%
+I5_D_STATUS = 0%
+I5_E_STATUS = 0%
+I5_F_STATUS = 0%
+CURRENT_I5_COMPLETION_PERCENT ≈ 22% (authoritative preserved approximate)
+
+REQUESTED_EXACT_FLOAT_21.79487179% =
+AUTHORITY_NOT_FOUND in repository-local evidence
+ACTION = DO NOT INVENT; preserve ≈22%; do not increase because Stage 2 docs performed
+
+I5_COMPLETE = NO
+I5_COMPLETION_REQUIRES_WEEKLY_GOVERNED_CRAWLER = YES (§137/§138)
+PROGRESS_NOT_INCREASED_BY_STAGE_2 = YES
+```
+
+### ۱۴۵.۱۶) Operations NOT performed
+
+```text
+NO network discovery
+NO external evidence collection
+NO web/search-engine discovery
+NO tests / pytest
+NO CI / workflow dispatch / rerun / cancel
+NO commit
+NO push
+NO fetch / pull / merge / rebase
+NO file edit except this master-log append
+NO new §146
+NO C4B-05 residual network re-run
+NO C4B-06/07/08/09 discovery execution
+NO Evidence Overlay closure claim
+NO P2/P3/P4/P5/P6 implementation
+NO migration / DB / build / deploy
+NO frontend operation
+NO source / crawler / flag / capability activation
+NO production operation
+NO Stage 3 execution
+```
+
+### ۱۴۵.۱۷) Execution state and next Gate
+
+```text
+STAGE_1_OF_14 = CLOSED
+STAGE_2_OF_14 = RECONSTRUCTED_AND_DOCUMENTED_UNCOMMITTED
+DOCUMENTED_UNCOMMITTED = YES
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+AHEAD_BEHIND = 0/0 (commit not performed)
+WORKTREE_AFTER_APPEND = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+EVIDENCE_OVERLAY = NOT_CLOSED
+P2_IMPLEMENTATION = NOT_STARTED
+STAGE_3 = NOT_STARTED
+
+NEXT_GATE =
+SECTION-28 STAGE-3-OF-14 —
+REMAINING IRAN-FIRST DISCOVERY
+starting with S3-W0 (C4B-05 STOP-06 disposition)
+then S3-W1 (C4B-06 prep→network)
+then S3-W2 (C4B-07 prep→network)
+then S3-W3 (C4B-08 prep→network)
+then S3-W4 (C4B-09 reconciliation)
+optional S3-W5 (C4B-05 residual network if not deferred)
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+
+FINAL_VERDICT_FOR_STAGE_2 =
+PASS_WITH_EXPLICIT_AUTHORITY_GAPS
+```
+
+### ۱۴۵.۱۸) Append-only integrity record
+
+```text
+§§1–144_SHA256_BEFORE =
+BA7B3A4EA09C9A81C7DEEADC7CC709547034F684A5A6762A161B22B076B79B47
+
+§145_ONLY_MUTATION = YES (intended)
+§145_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۴۵ — SECTION-28 STAGE-2-OF-14 Authority Reconstruction (C4B-05 residuals + C4B-06..09 + Evidence Overlay closure) — DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+## ۱۴۶) SECTION-28 STAGE-3-OF-14 — S3-W0 C4B-05 STOP-06 GOVERNANCE DISPOSITION + RESIDUAL CLOSURE/DEFERMENT REVIEW
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 / S3-W0 —
+C4B-05 STOP-06 GOVERNANCE DISPOSITION +
+RESIDUAL CLOSURE / DEFERMENT REVIEW
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NO_NETWORK / NO_EXTERNAL_EVIDENCE / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH / NO_P2_IMPLEMENTATION /
+NO_S3_W1_EXECUTION / NO_S3_W5_EXECUTION
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for S3-W0 ONLY
+
+Baseline (verified at S3-W0 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  WORKTREE = DIRTY ONLY docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (§145 preserved)
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  CURRENT_TIP_SECTION = §145
+
+§145_PRESERVATION =
+  MUST_REMAIN_EXACT
+  NO_RESET / NO_DISCARD / NO_CHECKOUT / NO_STASH / NO_REWRITE / NO_PARTIAL_REVERT
+
+§§1–145_SHA256_BEFORE_APPEND =
+7f87db86aadde9ca2b498d13e2909d962ee0e20fd393e64275964f9d23524d34
+
+NO edit to §§1–145
+NO §147 in this Gate
+```
+
+### ۱۴۶.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+REPOSITORY_ROOT = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+HEAD_SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STATUS_SHORT = M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+STAGED = EMPTY
+UNTRACKED = ZERO
+MERGE/REBASE/CHERRY_PICK/BISECT = NONE
+REMOTE_FEATURE_SHA (git ls-remote; no fetch) =
+  af1d583df55a8df8284105917e86caf6342eb089
+ORIGIN_MAIN (audit; git ls-remote; no fetch) =
+  89b79ad3fc20236a23ffae65fd868aafb60843e8
+DIFF_LIMITED_TO_MASTER_LOG = YES
+§145_PRESENT_AND_INTACT = YES
+BLOCKED_BASELINE_MISMATCH = NO
+```
+
+### ۱۴۶.۲) STOP-06 exact authority reconstruction (Phase B)
+
+```text
+STOP_06_DEFINITION =
+  Gate-local STOP event recorded in §144.5 / §144.3:
+  UNAUTHORIZED unlocked search transmitted during GATE-S27-24A
+  with no locked query ID assigned.
+
+STOP_06_TRIGGER =
+  query_string = site:pasteur.ac.ir بیانیه حریم خصوصی
+  purpose = Pasteur Institute privacy statement URL discovery
+  request_created = YES
+  response_received = YES
+  results_used = UNKNOWN
+  candidate_contamination = NO
+  budget_counted_in_locked_set = NO
+  action_after = network phase stopped immediately
+  finding_id = F-25A-BLOCKER-01
+
+WHY_IT_WAS_TRIGGERED =
+  An unlocked search was transmitted outside the executable locked set
+  C4B05-C-01..C4B05-C-10 (§143.7 / §144.1).
+  UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO was violated.
+
+WHICH_NETWORK_CONTRACT_WAS_VIOLATED =
+  §143.7 / §144.1 query contract:
+    EXECUTABLE_QUERY_SET = EXACTLY C4B05-C-01..C4B05-C-10
+    UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+  Consequence markers (§144.3 / §144.4 / §144.9):
+    NETWORK_CONTRACT_VIOLATION = YES
+    NETWORK_QUERY_CONTRACT_COMPLIANCE = NO
+    FULL_BUDGET_CONTRACT_COMPLIANCE = FAILED_DUE_TO_QUERY_CONTRACT_VIOLATION
+    E2_C4B_05_NETWORK_DISCOVERY_RESULT = INVALID_DUE_TO_NETWORK_CONTRACT_VIOLATION
+    ORIGINAL_NETWORK_EXECUTION_RETROACTIVELY_VALIDATED = NO
+
+WHAT_EVIDENCE_ALREADY_EXISTS =
+  Truthful §144 ledger after GATE-S27-24AG repair:
+  10 authorized locked queries executed;
+  candidate rows C4B05-CAND-01..11;
+  STOP-01..06 recorded;
+  residual matrix;
+  artifact-gap repairs closed;
+  STOP-06 preserved and not erased.
+
+WHAT_EVIDENCE_IS_INVALIDATED =
+  Acceptance of the overall network discovery RESULT as contract-valid.
+  Any claim that the GATE-S27-24A network run was fully compliant.
+  Any claim that STOP-06 response contents are proven usable
+  (results_used = UNKNOWN; STOP_06_SEARCH_RESULT_COUNT = NOT_PROVABLE).
+
+WHAT_REMAINS_USABLE =
+  Repository preparation (§143) remains COMPLETE.
+  Governed candidate ledger rows remain usable as
+  AUTHORITY_CANDIDATE_ACCEPTED_WITH_RESIDUALS / REJECTED records,
+  with fail-closed rights states preserved.
+  Historical STOP-06 audit record remains usable as permanent truth.
+  Independent-child lock remains usable:
+    C4B_05_RESIDUALS_BLOCK_C4B_06_START = NO
+
+SEPARATION_LOCKS =
+  NETWORK_EXECUTED = YES
+  NETWORK_RESULT_VALID = NO
+  DISCOVERY_SUBSTEP_ACCEPTED = DECIDED_IN_THIS_SECTION (see §146.5)
+  FULL_CHILD_COMPLETE = NO
+
+WHAT_EXACTLY_CLOSES_STOP_06_AS_OPEN_GOVERNANCE_DEPENDENCY =
+  Per §145 C4B05-R06 closure criteria:
+  Explicit governance disposition allowing substep acceptance
+  with preserved violation
+  OR
+  controlled re-run under locked contract.
+  S3-W0 selects the disposition path (no network re-run).
+
+WHETHER_CLOSURE_REQUIRES_NETWORK = NO (for disposition path)
+WHETHER_CLOSURE_REQUIRES_LEGAL_DECISION = NO
+WHETHER_EXISTING_REPOSITORY_AUTHORITY_ALREADY_SUPPORTS_GOVERNANCE_DISPOSITION =
+  YES — §145 R06 next Gate = this disposition Gate;
+  Javad explicitly approved S3-W0;
+  §128 residual governance precedent permits documentation/governance
+  disposition with known gaps preserved, without converting unknowns to PASS
+  and without rights/activation expansion.
+```
+
+### ۱۴۶.۳) Residual-by-residual disposition (Phase C)
+
+| RESIDUAL_ID | DESCRIPTION | CURRENT_AUTHORITY | CURRENT_STATE_BEFORE_S3_W0 | BLOCKS_DISCOVERY_SUBSTEP? | BLOCKS_FULL_CHILD? | BLOCKS_S3_W1? | BLOCKS_EVIDENCE_OVERLAY? | OWNER | DEPENDENCY | EXTERNAL_EVIDENCE_REQUIRED? | LEGAL_DECISION_REQUIRED? | PRODUCT_DECISION_REQUIRED? | CLOSURE_CRITERIA | NEXT_GATE | CAN_FORMALLY_DEFER? | DEFERMENT_AUTHORITY | FINAL_S3_W0_DISPOSITION |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| R01 | OFS numeric ID not assigned | §143.4 ACCEPTED_FAIL_CLOSED; §144 RESIDUAL-01; §145 R01 | OPEN_NON_BLOCKING / ACCEPTED_FAIL_CLOSED | NO | NO | NO | NO (non-blocking alone) | Governance/Framework | future OFS framework Gate | NO | NO | NO | OFS ID assigned OR remain ACCEPTED_FAIL_CLOSED | Framework/OFS Gate | YES | §143.4 already accepted; §128-style owned gap | DEFERRED_WITH_OWNER |
+| R02 | Terms/privacy incomplete across candidates | §144 RESIDUAL-02; §145 R02 | OPEN_BLOCKER (full-child) | NO (§144.8) | YES | NO | YES until deferred/cleared | Legal / Knowledge Ops | §144.6 candidate set | YES (if not staying fail-closed) | YES | NO | Terms retrieved OR formally fail-closed per candidate with owner | C4B-05 rights/terms residual Gate | YES | §145 EO deferment rule + §128 owned-gap precedent; rights remain fail-closed | DEFERRED_WITH_OWNER |
+| R03 | Robots retrieval incomplete | §144 RESIDUAL-03; §145 R03 | OPEN_BLOCKER (full-child) | NO (§144.8) | YES | NO | YES until deferred/cleared | Provider Verification | §144.5 STOP-01..05 | YES (if not staying fail-closed) | NO | NO | Robots retrieved OR formally fail-closed per candidate | C4B-05 robots residual Gate | YES | same as R02; no UNKNOWN→PASS | DEFERRED_WITH_OWNER |
+| R04 | IR-SC-14 education sample limited to 2 pages | §144 RESIDUAL-04; §145 R04 | OPEN_NON_BLOCKING / SCOPE_DEPENDENT | NO | PARTIAL / SCOPE_DEPENDENT | NO | NO unless product expands as mandatory | Governance | IR-SC-14 education slice; C4B-02 fence | MAYBE (if expansion) | NO | YES (only if expanding) | Accept sample scope OR authorize expansion Gate | Product/Governance scope Gate OR education expansion Gate | YES | sample accepted as discovery scope; expansion separate product decision | DEFERRED_WITH_OWNER |
+| R05 | Reviewer/editorial evidence not established | §144 RESIDUAL-05; §145 R05 | OPEN_BLOCKER (full-child) | NO (§144.8) | YES | NO | YES until deferred/cleared | Knowledge Ops | §143.10 candidate schema | MAYBE | NO | NO | Established OR formally fail-closed per candidate | C4B-05 editorial residual Gate | YES | owned fail-closed deferment permitted; no invented editorial PASS | DEFERRED_WITH_OWNER |
+| R06 / STOP-06 / F-25A-BLOCKER-01 | Unauthorized unlocked search | §144.3/.5/.8/.9/.11; §145 R06 | OPEN_BLOCKER (discovery-substep) | YES before this Gate | YES as open governance dependency before disposition | NO | YES while open governance dependency | Governance | §143 query contract | NO for disposition; YES only if re-run chosen | NO | YES — satisfied by Javad S3-W0 approval | Explicit governance disposition with preserved violation OR locked re-run | Future reopen only if new admissible evidence requires re-run | Disposition path selected (not defer-as-open) | §145 R06 + this approved Gate | CLOSED |
+| R07 | Reuse rights UNKNOWN_FAIL_CLOSED | §144.7/.9; §145 R07 | REQUIRES_LEGAL + EXTERNAL | NO | YES | NO | YES | Legal | terms packs | YES | YES | NO | Legal reuse determination or remain fail-closed | Rights clearance Gate | YES (as fail-closed owned deferment) | must remain UNKNOWN_FAIL_CLOSED; §128 no rights expansion | DEFERRED_WITH_OWNER |
+| R08 | Automation uncleared / CAND-01 PROHIBITED_OR_BLOCKED | §144.7/.9; §145 R08 | REQUIRES_LEGAL + EXTERNAL | NO | YES | NO | YES | Security / Legal | robots+terms | YES | YES | NO | Automation determination per candidate or remain fail-closed | Automation clearance Gate | YES (as fail-closed owned deferment) | CAND-01 PROHIBITED_OR_BLOCKED preserved; others UNKNOWN_FAIL_CLOSED | DEFERRED_WITH_OWNER |
+| R09 | Pre-existing documentation fence debt | §144.8; §145 R09 | OPEN_NON_BLOCKING | NO | NO | NO | NO | Documentation / Governance | historical-doc repair Gate | NO | NO | NO | Explicit historical-doc repair Gate | Historical-doc repair Gate | YES | inherited non-blocking debt | DEFERRED_WITH_OWNER |
+
+```text
+UNKNOWN_NOT_PROMOTED_TO_PASS = YES
+RIGHTS_NOT_CLEARED_BY_INFERENCE = YES
+ROBOTS_ALLOW_NOT_TREATED_AS_REUSE_OR_AUTOMATION_PERMISSION = YES
+C4B_05_RESIDUALS_BLOCK_C4B_06_START = NO (PRESERVED)
+```
+
+### ۱۴۶.۴) Formal deferment review (Phase D)
+
+```text
+DEFERMENT_PRECEDENT_USED =
+  §128–§130 residual governance / owned-gap disposition
+  + §145 EO rule allowing formal DEFERRED_WITH_OWNER for Blocking items
+  WITHOUT converting UNKNOWN to PASS
+  WITHOUT rights/activation expansion
+
+DEFERMENT_SCOPE_DIFFERENCE_FROM_09B =
+  09B concerned historical contemporaneous evidence gaps for commercial-directory path.
+  C4B-05 R02/R03/R05/R07/R08 concern incomplete rights/editorial/automation evidence
+  on university/research candidates.
+  Mechanical copy of 09B closure markers = PROHIBITED.
+  Shared principle only: owned explicit gaps may be formally deferred.
+
+ITEMS_FORMALLY_DEFERRED_WITH_OWNER =
+  R01, R02, R03, R04, R05, R07, R08, R09
+
+FOR_EACH_DEFERRED_ITEM_COMMON_LOCKS =
+  OWNER = as residual table
+  DEPENDENCY = as residual table
+  WHY_DEFERMENT_IS_SAFE =
+    does not block S3-W1 (§144.8 / §145);
+    discovery candidate ledger already recorded;
+    fail-closed rights/automation remain disabled;
+    no source activation authorized
+  WHAT_REMAINS_DISABLED =
+    reuse clearance; automation clearance; ingestion; publication;
+    runtime grounding; source/crawler/flag activation
+  CLOSURE_CRITERIA = as residual table
+  FUTURE_GATE = as residual table
+  NO_SILENT_PASS = YES
+
+R06_NOT_DEFERRED_AS_OPEN =
+  CLOSED by this governance disposition (violation preserved)
+
+AUTHORITY_NOT_FOUND_FOR_DEFERMENT = NONE for the above items
+```
+
+### ۱۴۶.۵) Discovery-substep status decision (Phase E)
+
+```text
+C4B_05_DISCOVERY_SUBSTEP_COMPLETE = YES
+
+C4B_05_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+
+AUTHORITY_FOR_THIS_DECISION =
+  1. §145 C4B05-R06 closure criteria explicitly allows:
+     "Explicit governance disposition allowing substep acceptance
+      with preserved violation OR re-run under locked contract"
+  2. This Gate is the approved S3-W0 disposition Gate.
+  3. Javad explicitly approved S3-W0.
+  4. Disposition path selected; network re-run NOT required for substep acceptance.
+
+§144.9_MARKER_HANDLING =
+  Prior rule:
+    Discovery-substep may not be marked COMPLETE while
+    NETWORK_CONTRACT_VIOLATION = YES
+  This §146 supersedes that prohibition ONLY for the
+  discovery-substep acceptance marker, via the §145-contemplated
+  governance disposition path.
+  It does NOT:
+    erase STOP-06;
+    set NETWORK_RESULT_VALID = YES;
+    set ORIGINAL_NETWORK_EXECUTION_RETROACTIVELY_VALIDATED = YES;
+    set FULL_CHILD_COMPLETE = YES;
+    clear rights/automation unknowns.
+
+PRESERVED_AFTER_SUBSTEP_ACCEPTANCE =
+  NETWORK_EXECUTED = YES
+  NETWORK_RESULT_VALID = NO
+  NETWORK_CONTRACT_VIOLATION = YES (historical fact preserved)
+  ORIGINAL_NETWORK_EXECUTION_RETROACTIVELY_VALIDATED = NO
+  STOP-06 / F-25A-BLOCKER-01 = RECORDED_PERMANENT_AUDIT
+  CANDIDATE_LEDGER = USABLE_WITH_RESIDUALS
+```
+
+### ۱۴۶.۶) Full-child status decision (Phase E)
+
+```text
+C4B_05_FULL_CHILD_COMPLETE = NO
+
+WHY_REMAINS_NO =
+  §144.9 full-child open because rights/terms/robots/editorial/automation
+  remain uncleared; FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE = YES.
+  S3-W0 dispositions/deferments do not satisfy rights clearance.
+  Default assumption NO unless authority proves closure — not proven.
+
+FULL_CHILD_REMAINS_BLOCKED_BY =
+  R02, R03, R05, R07, R08 (now DEFERRED_WITH_OWNER but still blocking full-child
+  until their future Gates clear or a later Gate explicitly accepts full-child
+  closure with those owned gaps — NOT authorized here)
+```
+
+### ۱۴۶.۷) S3-W5 necessity decision (Phase F)
+
+```text
+S3_W5_STATUS = DEFERRED
+
+WHY =
+  S3-W5 was defined in §145 as optional C4B-05 residual network capture
+  if residuals are not formally deferred.
+  This Gate formally deferred R02/R03 (and related residual network needs)
+  with owners to dedicated residual Gates.
+  R06 disposition selected the no-network path.
+  Therefore another C4B-05 network action is NOT required before S3-W1.
+
+REQUIRED_BEFORE_S3_W1 = NO
+REQUIRED_BEFORE_STAGE_4_OVERLAY = NOT_PROVEN_MANDATORY
+  (Stage 4 may accept DEFERRED_WITH_OWNER rows; separate Stage 4 authority)
+REQUIRED_BEFORE_P2_FOUNDATION_IMPLEMENTATION = NO
+  (P2 foundation readiness already READY_WITH_EXPLICIT_GAPS; activation still NOT_READY)
+REQUIRED_BEFORE_RUNTIME_OR_SOURCE_ACTIVATION = NOT_AS_S3_W5_MANDATE
+  (activation remains blocked by R07/R08 fail-closed until rights/automation Gates)
+
+IF_LATER_REAUTHORIZED_AS_NETWORK_RESIDUAL_GATE =
+  OBJECTIVE = capture missing terms/robots evidence for accepted C4B-05 candidates
+  EXACT_RESIDUALS = R02, R03 (optionally supporting R07/R08 inputs)
+  NETWORK_SCOPE = bounded residual HTTP/search under a new residual Gate only
+  EXPECTED_EVIDENCE = per-candidate terms/robots states; still fail-closed on uncertainty
+  STOP_CONDITIONS = budget/auth/captcha/robots-disallow/terms-uncertainty/scope leak
+  WHY_EXISTING_EVIDENCE_INSUFFICIENT_FOR_FULL_CHILD =
+    §144 already records incomplete terms/robots; disposition does not invent completeness
+
+S3_W5_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۴۶.۸) S3-W1 entry readiness (Phase G)
+
+```text
+S3_W1_ENTRY_READY = YES
+
+ENTRY_CONDITIONS_FOR_C4B_06_PREPARATION_CONTRACT =
+  1. HEAD / remote feature remain on approved continuity branch baseline
+     (commit of §§145–146 is a separate later docs Gate; not required to start
+      preparation drafting under explicit future S3-W1 approval)
+  2. C4B_05_RESIDUALS_BLOCK_C4B_06_START = NO (preserved)
+  3. STOP-06 open governance dependency CLOSED by §146 disposition
+  4. C4B-06 child definition remains as §145 / §99:
+       scientific-association discovery approval
+       IR-SC-10 / Strategy D / OD-C4A-10
+  5. C4B_06_PREPARATION_CONTRACT remains AUTHORITY_NOT_FOUND
+       → S3-W1 owns creation of that preparation contract
+  6. No network discovery authorized until after preparation contract
+       is approved in a separately authorized Strategy-D network Gate
+  7. No source activation / crawler / P2 implementation in S3-W1
+
+S3_W1_AUTHORIZED_BY_THIS_GATE = NO
+C4B_06_PREPARATION_CONTRACT_CREATED_BY_THIS_GATE = NO
+```
+
+### ۱۴۶.۹) Evidence Overlay impact (Phase H)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| RESIDUAL | IMPACT_ON_EO_C03_TO_C08 | STATUS_AFTER_S3_W0 |
+|---|---|---|
+| R01 | EO-C08 owned unknowns | already satisfiable as owned deferred gap |
+| R02 | EO-C04 rights/terms | closeable through formal deferment (done); later residual/legal Gate for clearance |
+| R03 | EO-C05 automation inputs / robots | formal deferment done; later residual Gate |
+| R04 | EO-C03/C06 scope completeness | deferred sample scope; expansion = product decision |
+| R05 | EO-C06 provenance/editorial | formal deferment done; later editorial Gate |
+| R06 | EO-C03 mandatory child / owned blockers | CLOSED as governance dependency; historical violation preserved |
+| R07 | EO-C04 / EO-C07 reuse eligibility | deferred fail-closed; requires later legal/external |
+| R08 | EO-C05 automation | deferred fail-closed; requires later legal/external |
+| R09 | none material to EO-C03..C08 | deferred docs debt |
+
+```text
+EO_C03_AFTER_S3_W0 =
+  improved for C4B-05 discovery-substep acceptance,
+  but NOT satisfied overall because C4B-06/07/08 remain open
+  and C4B-05 full child remains NO.
+
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS (preserved)
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY (preserved)
+P2_STARTED = NO (preserved)
+```
+
+### ۱۴۶.۱۰) Permanent locks preserved
+
+```text
+C4B_05_RESIDUALS_BLOCK_C4B_06_START = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+I5_PROGRESS ≈ 22%
+EXACT_FLOAT_21.79487179_NOT_USED = YES
+WEEKLY_KNOWLEDGE_GROWTH_LAW = UNCHANGED (§137/§138/§145.3)
+```
+
+### ۱۴۶.۱۱) Operations NOT performed
+
+```text
+NO network discovery
+NO web/search-engine discovery
+NO external API / external evidence collection
+NO legal determination beyond documenting fail-closed deferment
+NO product decision beyond authorized S3-W0 disposition acceptance
+NO edit outside master log
+NO rewrite of §§1–145
+NO test / pytest
+NO CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO P2/P3/P4 implementation
+NO source activation / crawler execution
+NO migration / DB / deploy / build / frontend / flag activation
+NO S3-W1 execution
+NO S3-W5 execution
+NO Stage 4 overlay closure
+NO C4B-06 preparation-contract creation
+```
+
+### ۱۴۶.۱۲) Execution state and next Gate
+
+```text
+STAGE_1_OF_14 = CLOSED
+STAGE_2_OF_14 = RECONSTRUCTED_AND_DOCUMENTED_UNCOMMITTED
+STAGE_3_W0 = DOCUMENTED_UNCOMMITTED
+DOCUMENTED_UNCOMMITTED = YES
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+AHEAD_BEHIND = 0/0 (commit not performed)
+WORKTREE_AFTER_APPEND = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+C4B_05_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_05_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_05_FULL_CHILD_COMPLETE = NO
+S3_W5_STATUS = DEFERRED
+S3_W1_ENTRY_READY = YES
+
+EVIDENCE_OVERLAY = NOT_CLOSED
+P2_IMPLEMENTATION = NOT_STARTED
+I5_PROGRESS ≈ 22%
+
+NEXT_GATE =
+S3-W1 — C4B-06 PREPARATION CONTRACT
+THEN SEPARATELY APPROVED STRATEGY-D NETWORK DISCOVERY
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+
+FINAL_VERDICT_FOR_S3_W0 =
+PASS — S3-W0 GOVERNANCE DISPOSITION COMPLETE
+```
+
+### ۱۴۶.۱۳) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_AT_S3_W0_ENTRY_INCLUDING_§145 =
+7f87db86aadde9ca2b498d13e2909d962ee0e20fd393e64275964f9d23524d34
+
+SELF_HEAL_IN_THIS_GATE =
+  DETECTED: accidental duplicate identical §146 append during Gate write
+  ROOT_CAUSE: repeated append of the same S3-W0 section body
+  MINIMAL_FIX: remove exact duplicate §146 body; keep single §146 at EOF
+  ALSO: reconstruct §§1–144 from HEAD blob + preserve §145 section content
+          so committed prefix remains byte-identical to HEAD
+
+§§1–144_AFTER_SELF_HEAL =
+BYTE_IDENTICAL_TO_HEAD af1d583df55a8df8284105917e86caf6342eb089
+
+§145_CONTENT_PRESERVED =
+YES (Stage-2 markers retained; no historical rewrite of Stage-2 substance)
+
+§§1–145_SHA256_AFTER_SELF_HEAL_BEFORE_FINAL_§146_BODY =
+48e8ebafbb396d67fd8bef7416a5e3c52bc2ef57ce9054d27538ae37f9ca6243
+
+NOTE =
+  Entry working-tree hash 7f87… is preserved as audit fact.
+  Post-self-heal prefix hash 48e8… reflects HEAD-byte reconstruction
+  + preserved §145 content after duplicate removal.
+  Exact pre-self-heal working-tree byte identity of §145 was not
+  re-established; substance/markers preserved.
+
+§146_ONLY_AUTHORITATIVE_NEW_SECTION = YES
+§146_AT_EOF = YES
+§146_DUPLICATE_REMOVED = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۴۶ — SECTION-28 STAGE-3-OF-14 S3-W0 C4B-05 STOP-06 Governance Disposition + Residual Closure/Deferment Review — DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۴۷) SECTION-28 STAGE-3-OF-14 — S3-W1 C4B-06 SCIENTIFIC-ASSOCIATION DISCOVERY PREPARATION CONTRACT
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 / S3-W1 —
+C4B-06 SCIENTIFIC-ASSOCIATION DISCOVERY
+PREPARATION CONTRACT
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NO_NETWORK / NO_EXTERNAL_EVIDENCE / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH / NO_P2_IMPLEMENTATION /
+NO_STRATEGY_D_NETWORK_EXECUTION
+
+Owner:
+Medical/Safety (primary per OD-C4A-10)
+Supporting:
+Legal, Governance, Data/Knowledge
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for S3-W1 preparation ONLY
+NO network / search / HTTP / WHOIS / DNS / robots / terms fetch
+NO candidate discovery / source download / content acquisition
+NO ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–146
+NO §148
+NO S3-W2 / Stage 4 / P2 execution
+
+Baseline (verified at S3-W1 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  WORKTREE = DIRTY ONLY docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_SECTION = §146
+  §145_AND_§146 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD
+  §145_BYTE_IDENTITY = NOT_CLAIMED (known integrity residual from S3-W0)
+
+Controlling prior authority:
+  §146 S3_W1_ENTRY_READY = YES
+  §145 C4B-06 definition / AUTHORITY_NOT_FOUND for prep contract
+  §99.3 IR-SC-10; §99.7 Strategy D; §99.19 OD-C4A-10; §99.21 E2-C4B-06
+  §143.8 budget-family precedent (conservative reuse; do not increase)
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+ea3a3bc938b9df536f94c42e04c3e13d4e0e88e0ef1b441907e78d7c0b883ad2
+```
+
+### ۱۴۷.۱) Preflight (Phase 1)
+
+```text
+PREFLIGHT = PASS
+REPOSITORY_ROOT = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+HEAD_SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STATUS_SHORT = M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+STAGED = EMPTY
+UNTRACKED = ZERO
+MERGE/REBASE/CHERRY_PICK/BISECT = NONE
+REMOTE_FEATURE_SHA (git ls-remote; no fetch) =
+  af1d583df55a8df8284105917e86caf6342eb089
+ORIGIN_MAIN (audit; git ls-remote; no fetch) =
+  89b79ad3fc20236a23ffae65fd868aafb60843e8
+DIFF_SCOPE = master log only
+§145_PRESENT = YES
+§146_PRESENT = YES (latest tip before this append)
+§147_ABSENT_BEFORE_APPEND = YES
+BLOCKED_BASELINE_MISMATCH = NO
+```
+
+### ۱۴۷.۲) Authority ledger (Phase 2)
+
+| AUTHORITY_ID | PATH | SECTION | STATUS | SUPERSEDED? | WHAT_IT_DEFINES | HOW_IT_APPLIES_TO_C4B_06 |
+|---|---|---|---|---|---|---|
+| AUTH-99-SC10 | docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md | §99.3 | COMPLETE (scope) | NO | IR-SC-10 scientific/medical associations; SCIENTIFIC_EDUCATION; license proof prohibited; default UNKNOWN_FAIL_CLOSED | Canonical source family |
+| AUTH-99-TIER | same | §99.5 | COMPLETE | NO | TIER B recognized association may prove scientific/patient education; not statutory license alone | Authority tier for IR-SC-10 |
+| AUTH-99-STR-D | same | §99.7 Strategy D | COMPLETE (prep templates) | NO | Scientific-association discovery; FA/EN templates; association legal identity; commercial SEO false positives; recognition+terms min evidence | Strategy + query semantics basis |
+| AUTH-99-OD10 | same | §99.19 OD-C4A-10 | COMPLETE | NO | Blocking pack: recognition+terms; Medical/Safety primary; Legal, Governance supporting | Evidence pack + owners |
+| AUTH-99-GATE | same | §99.21 | COMPLETE | NO | E2-C4B-06 scientific-association discovery approval; approval boundaries not merged | Child Gate name + independence |
+| AUTH-99-AUTO | same | §99.6 / §99.9 | COMPLETE | NO | Free-source + automated-access fail-closed model | Rights/automation defaults |
+| AUTH-93 | same | §93.9–§93.12 | DESIGN | NO | Evidence Overlay fields; dry-run prerequisites; fail-closed missing evidence | Overlay impact mapping |
+| AUTH-137/138 | same | §137–§138 | PERMANENT LAW | NO | Weekly governed knowledge growth; crawler not self-authorizing | Forward compatibility |
+| AUTH-143-BUDGET | same | §143.8–§143.12 | COMPLETE for C4B-05; reusable precedent | NO | Conservative network hard caps; fail-closed defaults; STOP lessons | Budget derivation (do not increase) |
+| AUTH-144-STOP06 | same | §144 / §146 | DISPOSITIONED | NO | Unlocked-query violation permanent lesson | Contamination / STOP contract |
+| AUTH-145-C4B06 | same | §145.6 | RECONSTRUCTED | NO | C4B-06 definition; prep AUTHORITY_NOT_FOUND until this Gate | This Gate closes prep gap |
+| AUTH-146-ENTRY | same | §146.8 | COMPLETE | NO | S3_W1_ENTRY_READY=YES; S3-W1 owns prep contract | Entry authorization path |
+
+```text
+NO_WEB_SEARCH = YES
+NO_EXTERNAL_API = YES
+NO_INSTITUTION_INVENTION = YES
+```
+
+### ۱۴۷.۳) Canonical C4B-06 definition (locked)
+
+```text
+CANONICAL_CHILD_NAME =
+  E2-C4B-06 — scientific-association discovery approval
+
+SOURCE_FAMILY =
+  IR-SC-10 scientific/medical associations
+
+STRATEGY =
+  Strategy D — Scientific-association discovery
+
+OD_PACK =
+  OD-C4A-10 (recognition + terms)
+
+PURPOSE =
+  Establish authority, identity, recognition, and terms/eligibility evidence
+  for Iranian scientific/medical professional associations under Iran-first
+  governed discovery boundaries, for SCIENTIFIC_EDUCATION role only.
+
+NOT_PROOF_OF (permanent locks) =
+  reuse permission
+  automation permission
+  publication eligibility
+  clinical-guideline authority
+  statutory license proof
+  runtime eligibility
+  source activation
+
+DEFAULT_STATE_FOR_NEW_CANDIDATES =
+  UNKNOWN_FAIL_CLOSED
+
+C4B_06_DISCOVERY =
+  METADATA / AUTHORITY / POLICY / ELIGIBILITY EVIDENCE ONLY
+  ≠ clinical knowledge harvest
+  ≠ content-body acquisition
+  ≠ ingestion / publication / runtime grounding
+  ≠ weekly crawler activation
+```
+
+### ۱۴۷.۴) Locked source scope (Phase 3)
+
+```text
+IN_SCOPE =
+  Official or demonstrably authoritative Iranian scientific / medical
+  professional associations fitting IR-SC-10 and Strategy D,
+  with association legal/institutional identity evidence,
+  for professional/scientific education discovery only.
+
+PERMITTED_CANDIDATE_CLASSES =
+  recognized Iranian medical/scientific professional associations
+  association-owned official domains / official association subdomains
+  association about/mission/recognition pages
+  association terms/privacy/copyright/robots pages
+  association educational/guideline INDEX or catalog pages
+    (metadata/authority signals only; not body ingestion)
+
+OUT_OF_SCOPE =
+  commercial SEO directories / health marketplaces
+  generic health blogs
+  provider/commercial directories (IR-SC-16 / C4B-09 territory)
+  anonymous educational portals
+  predatory journals / journal portals as primary (IR-SC-13 / C4B-08)
+  universities / research centers as primary (IR-SC-08/09 / C4B-05)
+  MoH/regulatory primary (IR-SC-07/11 / C4B-04)
+  social accounts as standalone authority
+  scraped mirrors / unofficial reprints
+  user-generated forums
+  sources whose institutional identity cannot be established
+  individual physician sites (IR-SC-17)
+  paid APIs / paid partnerships / paywalled sources (§99.6 excluded)
+
+IRAN_FIRST =
+  YES — Iranian associations are primary scope
+  Foreign associations = OUT_OF_PRIMARY_SCOPE
+  Secondary foreign corroboration never becomes primary Iranian authority
+
+NO_SPECIFIC_INSTITUTIONS_PREPOPULATED = YES
+SYNTHETIC_CANDIDATES = 0
+INITIAL_CANDIDATE_TABLE_ROWS = 0
+```
+
+### ۱۴۷.۵) Locked query contract (Phase 4)
+
+```text
+QUERY_ID_SCHEME =
+  C4B06-D-NN
+  Pattern precedent = C4B05-C-NN (child + strategy letter + ordinal)
+  Collision check vs C4B05-C-* / C4B04-* IDs = NO_COLLISION
+
+EXECUTABLE_QUERY_SET = EXACTLY C4B06-D-01..C4B06-D-10
+LOCKED_QUERY_COUNT = 10
+PLANNED_QUERY_COUNT = 10
+MAX_QUERY_COUNT_HARD_CAP = 15 (budget ceiling; locked set ≤ cap)
+UNLOCKED_QUERY_CREATION_AUTHORIZED = NO
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+QUERIES_EXECUTED_BY_THIS_GATE = 0
+QUERY_RESULTS_PREPOPULATED = NO
+STRATEGY_D_APPLIES = YES
+STRATEGY_C_APPLIES = NO
+STRATEGY_E/F/J_APPLIES = NO
+```
+
+| QUERY_ID | PURPOSE | TARGET_EVIDENCE_CLASS | ALLOWED_DOMAIN_SCOPE | EXPECTED_OUTPUT | NOT_PROOF_OF | STOP_CONDITION |
+|---|---|---|---|---|---|---|
+| C4B06-D-01 | FA official scientific/medical association locator (Iran) | association identity / ownership signal | Iran association official hosts | candidate official landing/index URLs | reuse; automation; guideline authority | non-association commercial SEO as primary |
+| C4B06-D-02 | FA «انجمن علمی» + medical specialty recognition | recognition + specialty scope | same | recognition/about pages under association branding | license proof; clinical guideline auto | specialty blogs / clinic ads as association |
+| C4B06-D-03 | EN Iran medical / scientific association official | identity corroboration (EN/FA) | same | official EN/FA association landing | foreign association as Iran primary | directory scrapes as official identity |
+| C4B06-D-04 | association legal identity / about / mission pages | association legal identity | same official host family | about/mission/identity evidence | statutory regulator status | personal faculty pages / mirrors |
+| C4B06-D-05 | association education / guidelines catalog (metadata) | SCIENTIFIC_EDUCATION catalog signals | same | education/guidelines index pages (no body harvest) | publication eligibility; runtime use | content-body acquisition attempt |
+| C4B06-D-06 | association terms / privacy / copyright pages | terms + reuse signals | same | terms/privacy/copyright URLs + states | clearance of reuse | third-party TOU summaries as primary |
+| C4B06-D-07 | association robots / automation / public API signals | robots + automation | same | robots.txt / public access-policy signals | automation permission grant from mere GET | paid API as free grant |
+| C4B06-D-08 | editorial / publication responsibility signals | editorial / reviewer / publisher | same | editorial/publisher responsibility evidence | MR completion; rights clearance | anonymous undated articles as authority |
+| C4B06-D-09 | recognition corroboration (official signals only) | recognition pack inputs | association host; optional official corroboration host if clearly official | recognition corroboration refs | activation; ranking quality | commercial directory endorsement as recognition |
+| C4B06-D-10 | association attribution / citation / reuse-notice pages | attribution + reuse notices | same official host family | attribution/reuse-notice evidence | FREE_AND_DISCOVERY_ELIGIBLE award | inferring permission from silence |
+
+```text
+STRATEGY_D_TEMPLATE_ALIGNMENT =
+  FA templates rooted in «انجمن علمی» + specialty (§99.7)
+  EN templates rooted in Iran medical association (§99.7)
+  ownership signal = association legal identity
+  false-positive class = commercial SEO orgs
+  min evidence before registration = recognition + terms
+
+LOCKED_QUERY_IDS =
+C4B06-D-01, C4B06-D-02, C4B06-D-03, C4B06-D-04, C4B06-D-05,
+C4B06-D-06, C4B06-D-07, C4B06-D-08, C4B06-D-09, C4B06-D-10
+
+FINITE_QUERY_SET = YES
+TOTAL_LOCKED_QUERY_COUNT = 10
+```
+
+### ۱۴۷.۶) Network / request budget (Phase 5)
+
+```text
+CAP_DERIVATION =
+  Primary precedent = §143.8 C4B-05 conservative family caps
+  Supporting = C4B-03 / C4B-04 family hard budgets referenced by §143.8
+  Rule = single Strategy D; reuse validated caps; do not increase;
+         discovery ≠ crawler-scale acquisition
+  Locked queries = 10 ≤ MAX_QUERY_COUNT 15
+```
+
+| Cap field | Locked value | Derivation |
+|---|---:|---|
+| MAX_QUERY_COUNT / SEARCH_QUERY_COUNT_CAP | 15 | §143.8 family cap |
+| LOCKED_EXECUTABLE_QUERIES | 10 | this contract |
+| SEARCH_ENGINE_COUNT_CAP | 2 | §143.8 |
+| MAX_RESULTS_PER_QUERY | 10 | §143.8 |
+| MAX_TOTAL_SEARCH_RESULTS | 100 | §143.8 |
+| MAX_OFFICIAL_DOMAINS_TO_OPEN | 10 | §143.8 |
+| MAX_PAGES_PER_DOMAIN | 5 | §143.8 |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 | §143.8 |
+| MAX_ROBOTS_FETCHES | 10 | §143.8 |
+| MAX_REDIRECT_HOPS | 3 | §143.8 |
+| MAX_RETRIES_PER_REQUEST | 0 | §143.8 |
+| MAX_TOTAL_HTTP_REQUESTS | 40 | §143.8 |
+| MAX_CANDIDATES_RECORDED | 12 | §143.8 |
+| MAX_SECONDARY_SOURCE_PAGES | 5 | §143.8 |
+| MAX_QUERIES_PER_CANDIDATE | 4 | conservative preparation-layer default under §143.8 family rule (do not increase; discovery ≠ crawler); not a separately numbered historical cap |
+| MAX_DIRECT_PAGE_REQUESTS_PER_CANDIDATE | 5 | equals MAX_PAGES_PER_DOMAIN (§143.8) |
+| REQUEST_TIMEOUT_SECONDS | 30 | §143.8 |
+
+```text
+RETRY_POLICY = NONE (MAX_RETRIES_PER_REQUEST = 0)
+BACKOFF_POLICY = NONE_AUTOMATIC
+DUPLICATE_REQUEST_POLICY = DO_NOT_REPEAT_IDENTICAL_URL_WITHIN_RUN
+WHEN_TO_STOP_EARLY =
+  any STOP_ID triggered;
+  any hard cap exhausted;
+  unlocked query attempted;
+  scope leak into non-IR-SC-10 families
+
+BUDGET_EXCEED_BEHAVIOR = STOP_FAIL_CLOSED
+NETWORK_HARD_CAPS_LOCKED = YES
+UNBOUNDED_NETWORK_CONTRACT = NO
+NETWORK_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۴۷.۷) Evidence contract (Phase 6)
+
+Required capture fields for the future Strategy-D network Gate:
+
+| FIELD | CLASS | NOTES |
+|---|---|---|
+| CANDIDATE_ID | OBSERVED/ASSIGNED | stable ID; no reuse across distinct orgs |
+| SOURCE_FAMILY | OBSERVED | must be IR-SC-10 or reject |
+| OFFICIAL_NAME | OBSERVED | fail-closed if not established |
+| OFFICIAL_DOMAIN | OBSERVED | official association domain family |
+| QUERY_ID | OBSERVED | must be in C4B06-D-01..10 |
+| REQUEST_URL | OBSERVED | exact request |
+| FINAL_URL | OBSERVED | after redirects ≤ MAX_REDIRECT_HOPS |
+| HTTP/RETRIEVAL_STATUS | OBSERVED | incl. timeout/404/blocked |
+| PAGE_ROLE | OBSERVED/INFERRED_LABELED | landing/about/terms/robots/education-index/... |
+| EVIDENCE_TYPE | OBSERVED | identity/recognition/terms/robots/editorial/... |
+| EVIDENCE_EXCERPT_OR_SUMMARY | OBSERVED | metadata only; no clinical body harvest |
+| EVIDENCE_LOCATION | OBSERVED | URL + locator |
+| OBSERVED_DATE | OBSERVED | capture timestamp |
+| AUTHORITY_STATUS | OBSERVED/UNKNOWN | not clearance |
+| TERMS_STATUS | OBSERVED/UNKNOWN | NOT_RETRIEVED / RETRIEVED_* / UNKNOWN_FAIL_CLOSED |
+| ROBOTS_STATUS | OBSERVED/UNKNOWN | |
+| AUTOMATION_STATUS | OBSERVED/UNKNOWN | never inferred from GET alone |
+| REUSE_STATUS | OBSERVED/UNKNOWN | |
+| ATTRIBUTION_STATUS | OBSERVED/UNKNOWN | |
+| EDITORIAL_STATUS | OBSERVED/UNKNOWN | |
+| LICENSE_STATUS | OBSERVED/UNKNOWN/NOT_APPLICABLE | |
+| RIGHTS_UNKNOWN | OBSERVED | explicit boolean/flag when unknown |
+| PROVENANCE | OBSERVED | query_id + URLs + timestamps |
+| CONTRADICTION_STATUS | OBSERVED | if conflicting evidence |
+| NOTES | OBSERVED | |
+| STOP_REASON | OBSERVED/NOT_APPLICABLE | if stopped |
+
+```text
+FIELD_VALUE_VOCABULARY =
+  OBSERVED
+  INFERRED (must be labeled; never silent)
+  UNKNOWN
+  NOT_APPLICABLE
+  FAIL_CLOSED / UNKNOWN_FAIL_CLOSED
+
+NO_RAW_FIELD_IMPLIES_APPROVAL = YES
+READABLE != REUSABLE
+GET != AUTOMATION_PERMISSION
+DISCOVERED != INGESTIBLE
+AUTHORITY_DISCOVERY != RIGHTS_CLEARANCE
+```
+
+### ۱۴۷.۸) Rights / terms / robots / automation contract (Phase 7)
+
+```text
+SEPARATE_DETERMINATIONS_REQUIRED =
+  TERMS_RETRIEVED
+  ROBOTS_RETRIEVED
+  AUTOMATION_PERMISSION
+  REUSE_PERMISSION
+  ATTRIBUTION_REQUIREMENT
+  COPYRIGHT_OR_LICENSE
+  RATE_LIMIT_OR_USAGE_LIMIT
+
+RULES =
+  institutional identity ≠ automation permission
+  public accessibility ≠ reuse permission
+  absence of prohibition ≠ permission
+  robots allowance ≠ copyright/reuse permission
+  robots disallow ≠ copyright decision (but blocks contemplated automation)
+  terms retrieval failure = UNKNOWN_FAIL_CLOSED
+  a source can be recognized and still remain disabled
+
+DEFAULT_FOR_ALL_NEW_C4B_06_CANDIDATES =
+  TERMS = NOT_RETRIEVED
+  REUSE_RIGHTS = UNKNOWN_FAIL_CLOSED
+  AUTOMATION_PERMISSION = UNKNOWN_FAIL_CLOSED
+  ATTRIBUTION = UNKNOWN_FAIL_CLOSED
+  RATE_LIMIT = UNKNOWN_FAIL_CLOSED
+  ROBOTS = NOT_RETRIEVED
+  LICENSE = UNKNOWN_FAIL_CLOSED / NOT_APPLICABLE when truly N/A
+
+FUTURE_AUTOMATION_STATES (§99.9 vocabulary) =
+  AUTOMATION_ALLOWED
+  AUTOMATION_ALLOWED_WITH_LIMITS
+  MANUAL_ONLY
+  METADATA_ONLY
+  AUTOMATION_PROHIBITED
+  UNKNOWN_FAIL_CLOSED
+
+FUTURE_ELIGIBILITY_DECISIONS (§99.6) remain available later;
+NONE awarded by preparation or by mere discovery.
+DISCOVERY_MUST_NOT_SELF_UPGRADE_RIGHTS = YES
+```
+
+### ۱۴۷.۹) Candidate ledger schema (Phase 8)
+
+```text
+CANDIDATE_ID_SCHEME =
+  C4B06-CAND-NN (stable within C4B-06 ledger; immutable once assigned)
+
+REQUIRED_CONCEPTUAL_FIELDS =
+  CANDIDATE_ID
+  NAME
+  SOURCE_FAMILY
+  AUTHORITY_CLASS / AUTHORITY_TIER
+  OFFICIAL_IDENTITY_STATUS
+  DOMAIN_STATUS
+  EVIDENCE_PACK_STATUS
+  TERMS_STATUS
+  ROBOTS_STATUS
+  AUTOMATION_STATUS
+  REUSE_STATUS
+  EDITORIAL_STATUS
+  RIGHTS_STATUS
+  NETWORK_RESULT_STATUS
+  DISCOVERY_STATUS
+  FULL_CHILD_ELIGIBILITY
+  OVERLAY_IMPACT
+  ACTIVATION_STATUS
+  RESIDUAL_IDS
+  PROVENANCE_REFERENCES
+  DISPOSITION
+  LIMITATIONS
+
+INITIAL_ROWS = 0
+NO_ORPHAN_UNKNOWN = YES
+EVERY_UNKNOWN_MAPS_TO_RESIDUAL_WITH =
+  OWNER
+  DEPENDENCY
+  CLOSURE_CRITERIA
+  NEXT_GATE
+```
+
+### ۱۴۷.۱۰) Contamination / duplicate controls (Phase 9)
+
+```text
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+STOP-06_LESSON_APPLIES = YES
+  If later network Gate transmits unlocked query:
+    STOP immediately
+    record violation (do not erase)
+    do not silently use results
+    do not contaminate candidate evidence
+    require governance disposition before substep acceptance
+
+ADDITIONAL_CONTROLS =
+  queries outside C4B06-D-01..10 forbidden
+  no accidental candidate expansion beyond IR-SC-10
+  no use of unauthorized-search results
+  duplicate candidates: merge only on proven same association identity keys;
+    title/display-name merge alone FORBIDDEN (§99.18 principle)
+  redirect/domain identity confusion: record FINAL_URL; reject lookalikes
+  secondary/commercial source promotion forbidden
+  search snippets ≠ proof
+  namespace/domain alone ≠ institutional proof
+  no mixing evidence packs across candidates
+  no content-body acquisition
+```
+
+### ۱۴۷.۱۱) STOP conditions (Phase 10)
+
+| STOP_ID | TRIGGER | REQUIRED_ACTION | RESULTS_USABLE? | NEXT_OWNER | NEXT_GATE |
+|---|---|---|---|---|---|
+| C4B06-STOP-01 | baseline mismatch before/during network Gate | abort run; no ledger mutation beyond abort record | NO for new claims | Governance | re-baseline Gate |
+| C4B06-STOP-02 | unlocked / non-locked query transmitted | stop; record violation; no silent use | NO for unlocked results | Governance | disposition Gate (STOP-06 pattern) |
+| C4B06-STOP-03 | any hard budget cap exhausted | stop fail-closed | partial locked evidence may remain if uncontaminated | Knowledge Ops | residual/budget Gate |
+| C4B06-STOP-04 | source family outside IR-SC-10 | reject/exclude; do not promote | NO as C4B-06 primary | Data/Knowledge | keep OOS; route to correct child if any |
+| C4B06-STOP-05 | domain/identity ambiguity requiring scope expansion | stop candidate; no invention | NO until resolved | Governance/Security | identity residual Gate |
+| C4B06-STOP-06 | candidate contamination / cross-candidate mix | quarantine affected rows | NO until cleaned | Governance | contamination disposition |
+| C4B06-STOP-07 | legal/product decision required beyond contract | stop that decision path; keep fail-closed | metadata only | Legal / Javad | legal/product Gate |
+| C4B06-STOP-08 | robots/terms ambiguity needing new authority | record UNKNOWN_FAIL_CLOSED; do not self-upgrade | authority rows may remain; rights uncleared | Legal/Security | rights residual Gate |
+| C4B06-STOP-09 | auth wall / CAPTCHA / login / form-post / paid credential | stop that path; no bypass | NO for blocked path | Security | residual / exclude |
+| C4B06-STOP-10 | need for source activation / crawler / unrestricted crawl | refuse; stop | N/A | Governance | not authorized here |
+| C4B06-STOP-11 | credentials / hidden endpoints / anti-bot bypass temptation | refuse; stop | NO | Security | prohibited |
+| C4B06-STOP-12 | attempt to treat association as license proof or clinical guideline authority | reject misuse | NO for misuse claim | Medical/Safety | E2-C4D misuse control |
+
+### ۱۴۷.۱۲) Completion-state contract (Phase 11)
+
+```text
+C4B_06_REPOSITORY_PREPARATION_COMPLETE =
+  YES after this §147 locks scope/queries/budget/evidence/STOPs
+  (this Gate sets it YES)
+
+C4B_06_NETWORK_DISCOVERY_EXECUTED =
+  NO until separately approved Strategy-D network Gate runs
+
+C4B_06_NETWORK_RESULT_VALID =
+  NO until network Gate completes with zero unresolved unlocked-query
+  violations and truthful budget/query compliance
+
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE =
+  NO until NETWORK_RESULT_VALID=YES and governed candidate ledger
+  recorded under this contract (or CLOSED_WITH_RESIDUAL via later
+  explicit governance disposition — not authorized here)
+
+C4B_06_FULL_CHILD_COMPLETE =
+  NO until recognition+terms packs complete AND separate
+  rights/automation clearance per FULL_CHILD pattern
+  (FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE)
+
+C4B_06_SOURCE_ACTIVATED =
+  NO (activation forbidden by this contract and permanent locks)
+
+STATE_SEPARATION_LOCKS =
+  preparation ≠ network execution
+  network executed ≠ result valid
+  valid discovery ≠ rights clearance
+  full child ≠ runtime activation
+```
+
+### ۱۴۷.۱۳) Evidence Overlay impact (Phase 12)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+```
+
+| Overlay need | C4B-06 must produce | May DEFERRED_WITH_OWNER later? | Must remain FAIL_CLOSED until cleared? | Blocks overlay? | Blocks P2 foundation impl? | Blocks source activation? |
+|---|---|---|---|---|---|---|
+| EO-C03 mandatory children | network discovery packs under this contract | only after governed disposition | open child until discovery/disposition | YES while C4B-06 open | NO | YES |
+| EO-C04 rights/terms | terms evidence fields | YES with owner | YES | YES if undeferred unknown | NO | YES |
+| EO-C05 automation | robots/automation fields | YES with owner | YES | YES if undeferred unknown | NO | YES |
+| EO-C06 authority/provenance | identity/recognition/editorial provenance | partial deferment possible | unknowns fail-closed | YES while missing and undeferred | NO | YES |
+| EO-C07 reusable acquisition eligibility | eligibility decision records | YES (remain unknown) | YES default | YES if claiming eligible without evidence | NO | YES |
+| EO-C08 owned unknowns | residual matrix with owners | YES | YES | YES if orphan unknowns | NO | YES |
+
+```text
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS (preserved)
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY (preserved)
+P2_STARTED = NO
+STAGE_4_NOT_EXECUTED = YES
+```
+
+### ۱۴۷.۱۴) Weekly knowledge-growth compatibility (Phase 13)
+
+```text
+FORWARD_COMPATIBILITY_REQUIREMENT = YES
+IMPLEMENTATION_IN_THIS_GATE = NO
+
+C4B-06 sources MUST NOT be treated as a one-time static directory.
+
+Future weekly governed crawler (later Stages) must be capable of recognizing,
+for authorized association sources only after rights/automation clearance:
+  new association publications
+  new educational material
+  updated guidance
+  revised publication pages
+  changed terms/rights
+  withdrawn/superseded content
+
+S3-W1 does not implement crawler behavior.
+Weekly knowledge-growth law (§137/§138/§145.3) remains unchanged.
+```
+
+### ۱۴۷.۱۵) Exact next Strategy-D network Gate (Phase 14)
+
+```text
+GATE_NAME =
+SECTION-28 / STAGE-3-OF-14 / C4B-06 STRATEGY-D CONTROLLED NETWORK DISCOVERY
+(short: C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY)
+
+LOCKED_QUERY_IDS =
+C4B06-D-01 .. C4B06-D-10
+
+NETWORK_BUDGET =
+  as §147.6 hard caps (MAX_QUERY_COUNT=15; locked executable=10; HTTP≤40; etc.)
+
+ALLOWED_TARGET_SCOPE =
+  IR-SC-10 Iranian scientific/medical professional associations only
+  Strategy D only
+
+EVIDENCE_FIELDS =
+  §147.7 field table
+
+STOP_IDS =
+  C4B06-STOP-01 .. C4B06-STOP-12
+
+PROHIBITED_ACTIONS =
+  unlocked queries
+  content-body acquisition
+  ingestion / publication / runtime grounding
+  source / crawler / flag activation
+  treating associations as license proof or clinical guideline authority
+  paid credential / CAPTCHA bypass / login scraping
+  scope leak to C4B-05/07/08/09 families
+  commit/push/CI/tests unless separately authorized
+
+EXPECTED_RESULT =
+  governed candidate ledger rows with recognition+terms evidence states;
+  all rights/automation default UNKNOWN_FAIL_CLOSED unless directly evidenced;
+  truthful query/budget counters;
+  STOP events recorded
+
+SUCCESS_CRITERIA =
+  locked queries only;
+  budget not exceeded;
+  no unlocked-query contamination;
+  candidate schema complete for evaluated encounters;
+  no activation;
+  master-log evidence capture under separately authorized docs Gate
+
+FAIL_CLOSED_BEHAVIOR =
+  on any STOP: halt; preserve audit; do not self-upgrade rights;
+  do not mark NETWORK_RESULT_VALID without compliance
+
+NETWORK_GATE_AUTHORIZED_BY_THIS_GATE = NO
+NETWORK_GATE_EXECUTION = NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۴۷.۱۶) Preparation completion markers
+
+```text
+C4B_06_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_06_PREPARATION_CONTRACT =
+  LOCKED_BY_THIS_SECTION
+  (closes §145 AUTHORITY_NOT_FOUND for preparation contract)
+
+C4B_06_NETWORK_DISCOVERY_EXECUTED = NO
+C4B_06_NETWORK_RESULT_VALID = NO
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE = NO
+C4B_06_FULL_CHILD_COMPLETE = NO
+C4B_06_SOURCE_ACTIVATED = NO
+
+E2_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+```
+
+### ۱۴۷.۱۷) Operations NOT performed
+
+```text
+NO network discovery
+NO browser / web / search-engine discovery
+NO external API / external evidence
+NO candidate invention / institution prepopulation
+NO test / pytest
+NO CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend
+NO P2/P3/P4/P5/P6 implementation
+NO source activation / crawler execution / flag activation
+NO Strategy-D network execution
+NO Stage 4 overlay closure
+NO edit outside master log
+NO rewrite of §§1–146
+```
+
+### ۱۴۷.۱۸) Execution state and next Gate
+
+```text
+STAGE_1_OF_14 = CLOSED
+STAGE_2_OF_14 = DOCUMENTED_UNCOMMITTED
+S3_W0 = DOCUMENTED_UNCOMMITTED
+S3_W1_PREPARATION = PREPARATION_CONTRACT_DOCUMENTED_UNCOMMITTED
+DOCUMENTED_UNCOMMITTED = YES
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+AHEAD_BEHIND = 0/0 (commit not performed)
+WORKTREE_AFTER_APPEND = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+C4B_06_NETWORK = NOT_STARTED
+EVIDENCE_OVERLAY = NOT_CLOSED
+P2 = NOT_STARTED
+I5_PROGRESS ≈ 22%
+
+NEXT_GATE =
+C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+
+FINAL_VERDICT_FOR_S3_W1 =
+PASS — C4B-06 PREPARATION CONTRACT LOCKED
+```
+
+### ۱۴۷.۱۹) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+ea3a3bc938b9df536f94c42e04c3e13d4e0e88e0ef1b441907e78d7c0b883ad2
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (must remain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§145_SUBSTANCE_PRESERVED = YES
+§146_PRESERVED = YES
+§147_ONLY_NEW_SECTION = YES
+§147_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۴۷ — SECTION-28 STAGE-3-OF-14 S3-W1 C4B-06 Scientific-Association Discovery Preparation Contract — PREPARATION_CONTRACT_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۴۸) SECTION-28 STAGE-3-OF-14 — C4B-06 STRATEGY-D CONTROLLED NETWORK DISCOVERY — PRE-NETWORK BLOCK
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 —
+C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY
+PRE-NETWORK CONTRACT BLOCK RECORD
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NETWORK_AUTHORIZED_BUT_NOT_EXECUTED /
+FAIL_CLOSED_BEFORE_NETWORK
+
+Owner:
+Medical/Safety + Governance / Continuity
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for controlled Strategy-D network discovery
+ONLY within exact locked §147 contract
+
+Baseline (verified at Gate entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE_APPEND = §147
+  §§145–147 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+bd9b3546e3d43b1febdeb91a82b257d90d0093e0885aec4b7f21a4b2f30ce3db
+
+NO edit to §§1–147
+NO §149 in this Gate
+```
+
+### ۱۴۸.۱) Preflight (Phase 1)
+
+```text
+PREFLIGHT = PASS
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+AHEAD_BEHIND = 0/0
+DIRTY = MASTER_LOG_ONLY
+STAGED = EMPTY
+UNTRACKED = ZERO
+ACTIVE_GIT_OPERATION = NONE
+§147_PRESENT = YES
+§147_CONTAINS_C4B06_D_01_TO_10 = YES
+§147_CONTAINS_BOUNDED_BUDGET = YES
+§147_CONTAINS_C4B06_STOP_01_TO_12 = YES
+§147_CONTAINS_EVIDENCE_CONTRACT = YES
+§147_CONTAINS_CANDIDATE_LEDGER_CONTRACT = YES
+BLOCKED_BASELINE_OR_CONTRACT_MISMATCH = NO
+```
+
+### ۱۴۸.۲) Contract reconstruction attempt (Phase 2)
+
+```text
+RECONSTRUCTED_FROM_§147 =
+  QUERY_IDS = C4B06-D-01 .. C4B06-D-10 (YES; count=10)
+  PURPOSE_PER_ID = YES (§147.5 PURPOSE column)
+  TARGET_EVIDENCE_CLASS = YES
+  ALLOWED_DOMAIN_SCOPE = YES
+  EXPECTED_OUTPUT = YES
+  STOP_CONDITION_PER_QUERY = YES
+  BUDGET = YES (§147.6)
+  EVIDENCE_FIELDS = YES (§147.7)
+  CANDIDATE_LEDGER_SCHEMA = YES (§147.9)
+  STOP_IDS = C4B06-STOP-01 .. C4B06-STOP-12 (YES; count=12)
+  COMPLETION_CRITERIA = YES (§147.12)
+
+EXACT_LOCKED_QUERY_TEXT_PER_ID =
+  NOT_RECOVERABLE
+
+EVIDENCE =
+  §147.5 table columns are:
+    QUERY_ID | PURPOSE | TARGET_EVIDENCE_CLASS | ALLOWED_DOMAIN_SCOPE |
+    EXPECTED_OUTPUT | NOT_PROOF_OF | STOP_CONDITION
+  No column or field named EXACT_LOCKED_QUERY_TEXT / EXACT_QUERY /
+  EXECUTABLE_QUERY_STRING exists in §147.
+  PURPOSE values are intent descriptions (e.g. "FA official
+  scientific/medical association locator (Iran)"), not unambiguous
+  executable search strings.
+  STRATEGY_D_TEMPLATE_ALIGNMENT cites §99.7 templates
+    FA: «انجمن علمی» + specialty
+    EN: Iran medical association
+  Those are templates with unbound specialty / incomplete executable
+  strings, not per-ID locked query text.
+
+GATE_RULE_APPLIED =
+  "Do NOT invent, paraphrase, expand, translate, shorten, generalize
+   or reconstruct the query text.
+   If the exact locked query text for ANY authorized query ID cannot
+   be unambiguously reconstructed from §147:
+   STOP BEFORE NETWORK:
+   BLOCKED_LOCKED_QUERY_TEXT_NOT_RECOVERABLE
+   Do not create substitute queries."
+
+C4B06_NETWORK_CONTRACT_RECONSTRUCTED = NO
+REASON =
+  exact locked query text missing for all 10 query IDs
+
+NETWORK_ACTIONS_PERFORMED = 0
+SEARCH_REQUESTS_TRANSMITTED = 0
+HTTP_REQUESTS = 0
+ENGINES_USED = 0
+CANDIDATES_CREATED = 0
+```
+
+### ۱۴۸.۳) Pre-network stop decision
+
+```text
+FINAL_VERDICT =
+BLOCKED_LOCKED_QUERY_TEXT_NOT_RECOVERABLE
+
+NETWORK_PHASE_STARTED = NO
+UNLOCKED_QUERY_CREATED = NO
+SUBSTITUTE_QUERY_CREATED = NO
+STOP-06_FAILURE_MODE_REPEATED = NO
+
+C4B_06_REPOSITORY_PREPARATION_COMPLETE = YES (§147 preserved)
+C4B_06_NETWORK_DISCOVERY_EXECUTED = NO
+C4B_06_NETWORK_RESULT_VALID = NO
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE = NO
+C4B_06_FULL_CHILD_COMPLETE = NO
+C4B_06_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+```
+
+### ۱۴۸.۴) Residual / dependency created by this block
+
+| RESIDUAL_ID | DESCRIPTION | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|
+| C4B06-R-QUERYTEXT-01 | Exact executable locked query text missing for C4B06-D-01..D-10 | Governance / Medical/Safety | §147.5 purpose-only contract | Append-only prep-amendment Gate locks EXACT_LOCKED_QUERY_TEXT per ID without inventing during network | C4B-06 PREPARATION CONTRACT AMENDMENT — LOCK EXACT QUERY TEXTS |
+| C4B06-R-NETWORK-01 | Strategy-D network not executed because query text unrecoverable | Governance | C4B06-R-QUERYTEXT-01 | Network Gate may start only after exact texts locked and separately re-approved | C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY (re-approval required) |
+
+```text
+NO_ORPHAN_UNKNOWN = YES
+NO_RIGHTS_INFERENCE = YES
+NO_CANDIDATE_INVENTION = YES
+```
+
+### ۱۴۸.۵) Evidence Overlay impact
+
+```text
+WHAT_C4B06_NOW_SATISFIES =
+  preparation contract remains locked (§147);
+  pre-network fail-closed discipline demonstrated
+
+WHAT_REMAINS_OPEN =
+  all C4B-06 network evidence;
+  recognition+terms packs;
+  candidate ledger rows;
+  EO-C03 C4B-06 child completion
+
+WHAT_CAN_BE_DEFERRED_WITH_OWNER =
+  none newly deferred by this block beyond the query-text residual
+
+WHAT_REQUIRES_EXTERNAL_OR_LEGAL_FOLLOWUP =
+  none yet (network not started)
+
+WHAT_BLOCKS_FULL_CHILD =
+  network not executed; rights/automation uncleared
+
+WHAT_BLOCKS_OVERLAY =
+  C4B-06 discovery still incomplete
+
+WHAT_BLOCKS_ACTIVATION =
+  everything above + permanent activation lock
+
+EVIDENCE_OVERLAY_CLOSED = NO
+```
+
+### ۱۴۸.۶) Weekly knowledge-growth forward link
+
+```text
+Unaffected by this block except that C4B-06 sources remain undiscovered.
+Future weekly crawler still requires later governed acquisition → publish → runtime path.
+No crawler behavior implemented by this Gate.
+```
+
+### ۱۴۸.۷) Exact next Gate
+
+```text
+NEXT_GATE =
+C4B-06 PREPARATION CONTRACT AMENDMENT —
+LOCK EXACT EXECUTABLE QUERY TEXTS FOR C4B06-D-01..D-10
+(docs-only; no network)
+
+THEN SEPARATELY =
+C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY
+(requires fresh explicit Javad approval after query texts are locked)
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+
+C4B-07 = NOT STARTED
+RESIDUAL_NETWORK_FOLLOWUP = NOT STARTED
+```
+
+### ۱۴۸.۸) Operations NOT performed
+
+```text
+NO network access
+NO search-engine query
+NO HTTP / curl / browser fetch
+NO unlocked query
+NO substitute / paraphrased / translated query
+NO unrestricted crawling
+NO candidate creation
+NO source activation
+NO bulk content harvesting
+NO P2 / test / CI
+NO commit / push / fetch / pull
+NO migration / DB / deploy / build / frontend / flag activation
+NO Stage 4
+NO C4B-07
+NO rewrite of §§1–147
+```
+
+### ۱۴۸.۹) Execution state
+
+```text
+STAGE_1 = CLOSED
+STAGE_2 = DOCUMENTED_UNCOMMITTED
+S3_W0 = DOCUMENTED_UNCOMMITTED
+S3_W1_PREPARATION = DOCUMENTED_UNCOMMITTED
+C4B06_NETWORK_GATE =
+  BLOCKED_LOCKED_QUERY_TEXT_NOT_RECOVERABLE
+  DOCUMENTED_UNCOMMITTED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+NETWORK_DISCOVERY_BLOCKED_PRE_NETWORK_DOCUMENTED_UNCOMMITTED
+```
+
+### ۱۴۸.۱۰) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+bd9b3546e3d43b1febdeb91a82b257d90d0093e0885aec4b7f21a4b2f30ce3db
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–147_PRESERVED = YES
+§148_ONLY_NEW_SECTION = YES
+§148_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۴۸ — SECTION-28 STAGE-3-OF-14 C4B-06 Strategy-D Controlled Network Discovery — BLOCKED_LOCKED_QUERY_TEXT_NOT_RECOVERABLE — DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۴۹) SECTION-28 — C4B-06 PREPARATION CONTRACT AMENDMENT — LOCK EXACT EXECUTABLE QUERY TEXTS
+
+```text
+PACKAGE =
+SECTION-28 —
+C4B-06 PREPARATION CONTRACT AMENDMENT —
+LOCK EXACT EXECUTABLE QUERY TEXTS FOR C4B06-D-01..C4B06-D-10
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Medical/Safety
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for docs-only query-text amendment ONLY
+
+Baseline (verified):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §148
+  §§145–148 = PRESENT
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  PRIOR_NETWORK_ACTIONS = ZERO (§148)
+
+Controlling defect (§148):
+  EXACT_EXECUTABLE_QUERY_TEXT_PER_QUERY_ID = NOT_RECOVERABLE
+  C4B06_NETWORK_CONTRACT_RECONSTRUCTED = NO
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+2f9c0afcc0fc804473456bc5b50d08f334e1eb5950aeef78b9231614b240989f
+
+NO rewrite of §§1–148
+NO §150 in this Gate
+NO network Gate execution
+```
+
+### ۱۴۹.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+AHEAD_BEHIND = 0/0
+DIRTY = MASTER_LOG_ONLY
+STAGED = EMPTY
+UNTRACKED = ZERO
+ACTIVE_GIT_OPERATION = NONE
+TIP = §148
+§§145–148_ORDER = YES
+NO_NETWORK_ARTIFACTS = YES
+NO_CANDIDATE_LEDGER_CREATED = YES
+NO_QUERY_EXECUTION_LEDGER_POPULATED = YES
+BLOCKED_BASELINE_MISMATCH = NO
+```
+
+### ۱۴۹.۲) §148 blocking defect (preserved)
+
+```text
+HISTORICAL_DEFECT_PRESERVED = YES
+§147_PURPOSE_ONLY_CONTRACT = YES
+§148_BLOCK =
+  BLOCKED_LOCKED_QUERY_TEXT_NOT_RECOVERABLE
+THIS_AMENDMENT_CLOSES =
+  C4B06-R-QUERYTEXT-01 (exact executable text missing)
+THIS_AMENDMENT_DOES_NOT_EXECUTE_NETWORK = YES
+§147_AND_§148_NOT_REWRITTEN = YES
+```
+
+### ۱۴۹.۳) Existing query-purpose reconstruction (from §147.5)
+
+| QUERY_ID | CURRENT_PURPOSE | TARGET_EVIDENCE_CLASS | ALLOWED_SCOPE | EXPECTED_OUTPUT | NOT_PROOF_OF | CURRENT_STOP_CONDITION |
+|---|---|---|---|---|---|---|
+| C4B06-D-01 | FA official scientific/medical association locator (Iran) | association identity / ownership signal | Iran association official hosts | candidate official landing/index URLs | reuse; automation; guideline authority | non-association commercial SEO as primary |
+| C4B06-D-02 | FA «انجمن علمی» + medical specialty recognition | recognition + specialty scope | same | recognition/about pages under association branding | license proof; clinical guideline auto | specialty blogs / clinic ads as association |
+| C4B06-D-03 | EN Iran medical / scientific association official | identity corroboration (EN/FA) | same | official EN/FA association landing | foreign association as Iran primary | directory scrapes as official identity |
+| C4B06-D-04 | association legal identity / about / mission pages | association legal identity | same official host family | about/mission/identity evidence | statutory regulator status | personal faculty pages / mirrors |
+| C4B06-D-05 | association education / guidelines catalog (metadata) | SCIENTIFIC_EDUCATION catalog signals | same | education/guidelines index pages (no body harvest) | publication eligibility; runtime use | content-body acquisition attempt |
+| C4B06-D-06 | association terms / privacy / copyright pages | terms + reuse signals | same | terms/privacy/copyright URLs + states | clearance of reuse | third-party TOU summaries as primary |
+| C4B06-D-07 | association robots / automation / public API signals | robots + automation | same | robots.txt / public access-policy signals | automation permission grant from mere GET | paid API as free grant |
+| C4B06-D-08 | editorial / publication responsibility signals | editorial / reviewer / publisher | same | editorial/publisher responsibility evidence | MR completion; rights clearance | anonymous undated articles as authority |
+| C4B06-D-09 | recognition corroboration (official signals only) | recognition pack inputs | association host; optional official corroboration host | recognition corroboration refs | activation; ranking quality | commercial directory endorsement as recognition |
+| C4B06-D-10 | association attribution / citation / reuse-notice pages | attribution + reuse notices | same official host family | attribution/reuse-notice evidence | FREE_AND_DISCOVERY_ELIGIBLE award | inferring permission from silence |
+
+```text
+QUERY_IDS_UNCHANGED = YES
+PURPOSE_NOT_SILENTLY_REDESIGNED = YES
+```
+
+### ۱۴۹.۴) Exact executable query table (LOCKED)
+
+```text
+EXACT_QUERY_TEXT_COUNT = 10
+QUERY_ID_COUNT = 10
+QUERY_ID_TEXT_MAPPING = 1_TO_1
+EMPTY_QUERY_TEXT_COUNT = 0
+DUPLICATE_QUERY_TEXT_COUNT = 0
+PLACEHOLDER_COUNT = 0
+RUNTIME_SUBSTITUTION_TOKEN_COUNT = 0
+COPY_VERBATIM_REQUIRED = YES
+```
+
+| QUERY_ID | EXACT_EXECUTABLE_QUERY_TEXT | QUERY_LANGUAGE | PURPOSE (preserved) | TARGET_EVIDENCE_CLASS | ALLOWED_SCOPE | EXPECTED_OUTPUT | NOT_PROOF_OF | STOP_CONDITION | SEMANTIC_MATCH |
+|---|---|---|---|---|---|---|---|---|---|
+| C4B06-D-01 | انجمن علمی پزشکی رسمی ایران سایت رسمی | FA | FA official scientific/medical association locator (Iran) | association identity / ownership signal | Iran association official hosts | candidate official landing/index URLs | reuse; automation; guideline authority | non-association commercial SEO as primary | PASS |
+| C4B06-D-02 | انجمن علمی قلب و عروق ایران سایت رسمی | FA | FA «انجمن علمی» + medical specialty recognition | recognition + specialty scope | same | recognition/about pages under association branding | license proof; clinical guideline auto | specialty blogs / clinic ads as association | PASS |
+| C4B06-D-03 | Iran medical scientific association official site | EN | EN Iran medical / scientific association official | identity corroboration (EN/FA) | same | official EN/FA association landing | foreign association as Iran primary | directory scrapes as official identity | PASS |
+| C4B06-D-04 | انجمن علمی پزشکی ایران درباره ما معرفی رسمی | FA | association legal identity / about / mission pages | association legal identity | same official host family | about/mission/identity evidence | statutory regulator status | personal faculty pages / mirrors | PASS |
+| C4B06-D-05 | انجمن علمی پزشکی ایران آموزش راهنما فهرست رسمی | FA | association education / guidelines catalog (metadata) | SCIENTIFIC_EDUCATION catalog signals | same | education/guidelines index pages (no body harvest) | publication eligibility; runtime use | content-body acquisition attempt | PASS |
+| C4B06-D-06 | انجمن علمی پزشکی ایران شرایط استفاده حریم خصوصی کپی رایت | FA | association terms / privacy / copyright pages | terms + reuse signals | same | terms/privacy/copyright URLs + states | clearance of reuse | third-party TOU summaries as primary | PASS |
+| C4B06-D-07 | انجمن علمی پزشکی ایران robots.txt automation API | MIXED | association robots / automation / public API signals | robots + automation | same | robots.txt / public access-policy signals | automation permission grant from mere GET | paid API as free grant | PASS |
+| C4B06-D-08 | انجمن علمی پزشکی ایران هیئت تحریریه مسئولیت علمی رسمی | FA | editorial / publication responsibility signals | editorial / reviewer / publisher | same | editorial/publisher responsibility evidence | MR completion; rights clearance | anonymous undated articles as authority | PASS |
+| C4B06-D-09 | انجمن علمی پزشکی ایران به رسمیت شناخته شده رسمی | FA | recognition corroboration (official signals only) | recognition pack inputs | association host; optional official corroboration host | recognition corroboration refs | activation; ranking quality | commercial directory endorsement as recognition | PASS |
+| C4B06-D-10 | انجمن علمی پزشکی ایران استناد attribution شرایط بازنشر | MIXED | association attribution / citation / reuse-notice pages | attribution + reuse notices | same official host family | attribution/reuse-notice evidence | FREE_AND_DISCOVERY_ELIGIBLE award | inferring permission from silence | PASS |
+
+```text
+D-02_SPECIALTY_LOCK_NOTE =
+  §147 purpose required «انجمن علمی» + specialty without an executable string.
+  This amendment locks the concrete specialty phrase «قلب و عروق»
+  to make D-02 finite/non-parameterized while remaining IR-SC-10 /
+  Strategy D medical-association discovery (not a named institution invention;
+  not a university/journal/MoH/directory query).
+
+NO_TEMPLATE_OPERATORS = YES
+NO_ANGLE_PLACEHOLDERS = YES
+NO_BRACE_PLACEHOLDERS = YES
+NO_BRACKET_PLACEHOLDERS = YES
+```
+
+### ۱۴۹.۵) Deterministic query integrity hashes
+
+```text
+HASH_ALGORITHM = SHA-256
+HASH_INPUT = exact UTF-8 bytes of EXACT_EXECUTABLE_QUERY_TEXT only
+  (no Markdown delimiters; no surrounding spaces added/removed)
+
+QUERY_SET_HASH_INPUT =
+  ordered concatenation for IDs C4B06-D-01..D-10 of:
+    QUERY_ID + LF + EXACT_EXECUTABLE_QUERY_TEXT + LF
+  UTF-8 encoded
+
+FUTURE_NETWORK_GATE_MUST_VERIFY_HASHES_BEFORE_EXECUTION = YES
+```
+
+| QUERY_ID | UTF8_SHA256 |
+|---|---|
+| C4B06-D-01 | dc307f69679791e3a2f62cf682fdfe2c6595863116061d3ffb4f4646dd752093 |
+| C4B06-D-02 | a989236b7be1268fe3a6526ee22016c1bd090b68102445bae36c5223545c1c53 |
+| C4B06-D-03 | d756acd1417dd5611a5f35ef863a281508951edf96a85f58588e609a4a8725db |
+| C4B06-D-04 | ffddf72f8450fc1d122ffdd004477a58645a1e9b2252252b2ed6129497a87fae |
+| C4B06-D-05 | 7f84b52c9e84760957fdc7c9a5e087dbd9ae87cbaab20f5792b26d4d8b45a5cb |
+| C4B06-D-06 | d2d86ef8011b8ec631a2c47e94e33c87c8df29761ce31e9dfd8b6c7a7f69e221 |
+| C4B06-D-07 | 3fff7cf1b428732aebe23f1a15560d99e976c6b80aa78e7e17c1fa601a4a0c17 |
+| C4B06-D-08 | d24842aa1d04d8c1d33c2d149999fcd2b9b1ea27c86a442ebd6dbcb5174e1113 |
+| C4B06-D-09 | 65f63da40015f24c358982c0987ebf1ae5189de7d24c966976f057247969b252 |
+| C4B06-D-10 | 238ccbe4b756107d04f71afc17e28d7b1987f5abf355b877d4ba8f9051fcc5db |
+
+```text
+QUERY_SET_SHA256 =
+8d5e1192c6aeba03a2e7d6f0281b27b031bdfc402eebc3c08b117bbef5553f23
+
+C4B06_QUERY_HASH_COUNT = 10
+```
+
+### ۱۴۹.۶) Query-ID collision audit
+
+```text
+LOCAL_SEARCH_PATTERN = C4B06-D-
+DEFINING_CONTRACT_SECTIONS = §147 (IDs+purposes), §149 (IDs+exact texts)
+INTENDED_IDS = C4B06-D-01 .. C4B06-D-10 exactly
+CONFLICTING_DEFINITION = NO
+DUPLICATE_ID_MAPPED_TO_OTHER_PURPOSE = NO
+C4B05_C_NAMING_COLLISION = NO
+C4B07_NAMING_COLLISION = NO (no C4B07-D-* IDs found as conflicting contract)
+
+QUERY_ID_COLLISION = NO
+```
+
+### ۱۴۹.۷) Semantic preservation audit
+
+```text
+C4B06_QUERY_SEMANTIC_AUDIT = PASS_10_OF_10
+AUTHORITY_GAP_COUNT = 0
+SCOPE_BROADENING_INTO_C4B04_05_07_08_09 = NO
+INSTITUTION_PREPOPULATION = NO
+```
+
+### ۱۴۹.۸) Immutability / execution law
+
+```text
+ONE_QUERY_ID = ONE_EXACT_QUERY_TEXT
+COPY_VERBATIM_REQUIRED = YES
+RUNTIME_PARAPHRASING = NO
+RUNTIME_SYNONYM_EXPANSION = NO
+RUNTIME_TRANSLATION = NO
+RUNTIME_TERM_SUBSTITUTION = NO
+AD_HOC_SITE_QUERY = NO
+FOLLOW_UP_QUERY_INVENTION = NO
+EXPLORATORY_QUERY = NO
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+IF_EXACT_QUERY_INSUFFICIENT_LATER =
+  STOP
+  DO NOT MODIFY DURING NETWORK EXECUTION
+  REQUIRE NEW EXPLICITLY APPROVED PREPARATION AMENDMENT GATE
+```
+
+### ۱۴۹.۹) Network contract readiness
+
+```text
+C4B06_EXACT_QUERY_TEXT_COUNT = 10
+C4B06_QUERY_HASH_COUNT = 10
+C4B06_QUERY_ID_TEXT_MAPPING_COMPLETE = YES
+C4B06_QUERY_SEMANTIC_AUDIT = PASS_10_OF_10
+C4B06_NETWORK_CONTRACT_RECONSTRUCTABLE = YES
+
+NETWORK_EXECUTED_TO_PROVE_THIS = NO
+```
+
+### ۱۴۹.۱۰) Budget and STOP contract preservation
+
+```text
+BUDGET_REDESIGNED = NO
+MAX_TOTAL_QUERIES = 15
+LOCKED_QUERIES = 10
+MAX_ENGINES = 2
+MAX_RESULTS_PER_QUERY = 10
+MAX_DOMAINS = 10
+MAX_PAGES_PER_DOMAIN = 5
+MAX_ROBOTS_REQUESTS = 10
+MAX_REDIRECT_DEPTH = 3
+RETRIES = 0
+MAX_HTTP_REQUESTS = 40
+MAX_CANDIDATES = 12
+TIMEOUT_SECONDS = 30
+
+STOP_SET_REDESIGNED = NO
+C4B06-STOP-01 .. C4B06-STOP-12 = PRESERVED
+
+AMENDMENT_SCOPE =
+  exact executable query text + integrity hashes + immutability law ONLY
+```
+
+### ۱۴۹.۱۱) Current C4B-06 states
+
+```text
+C4B_06_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B06_QUERY_TEXT_AMENDMENT_COMPLETE = YES
+
+C4B_06_NETWORK_DISCOVERY_EXECUTED = NO
+C4B_06_NETWORK_RESULT_VALID = NO
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE = NO
+C4B_06_FULL_CHILD_COMPLETE = NO
+C4B_06_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+```
+
+### ۱۴۹.۱۲) Operations NOT performed
+
+```text
+NO network
+NO search
+NO HTTP
+NO browser
+NO external API / external evidence
+NO query execution
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO P2/P3/P4/P5/P6
+NO migration / DB / deploy / build / frontend
+NO source / crawler / flag activation
+NO Stage 4
+NO rewrite of §§1–148
+```
+
+### ۱۴۹.۱۳) Exact next Gate
+
+```text
+NEXT_GATE =
+C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY
+
+MANDATORY_PRECHECKS_FOR_THAT_GATE =
+  verify EXACT_EXECUTABLE_QUERY_TEXT for C4B06-D-01..D-10 from this §149
+  verify UTF8_SHA256 and QUERY_SET_SHA256
+  copy queries verbatim
+  enforce §147 budget + STOP set
+  no paraphrase / translation / substitution
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۴۹.۱۴) Execution state
+
+```text
+STATE =
+QUERY_TEXT_AMENDMENT_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — C4B-06 EXACT QUERY TEXT AMENDMENT LOCKED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+```
+
+### ۱۴۹.۱۵) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+2f9c0afcc0fc804473456bc5b50d08f334e1eb5950aeef78b9231614b240989f
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–148_PRESERVED = YES
+§149_ONLY_NEW_SECTION = YES
+§149_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۴۹ — SECTION-28 C4B-06 Preparation Contract Amendment — Exact Executable Query Texts Locked — QUERY_TEXT_AMENDMENT_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۰) SECTION-28 STAGE-3-OF-14 — C4B-06 STRATEGY-D CONTROLLED NETWORK DISCOVERY — RE-EXECUTION AFTER §149
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 —
+C4B-06 / STRATEGY-D CONTROLLED NETWORK DISCOVERY —
+RE-EXECUTION AFTER §149 QUERY-TEXT AMENDMENT
+
+MODE =
+CONTROLLED_NETWORK / APPEND_ONLY / FAIL_CLOSED /
+NO_QUERY_MODIFICATION / NO_UNLOCKED_QUERY /
+NO_UNRESTRICTED_CRAWL / NO_SOURCE_ACTIVATION /
+NO_P2 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Medical/Safety + Governance / Continuity
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this re-execution after the §149
+exact-query-text amendment. Network limited to locked §149 queries
++ §147 budget/STOP contract only.
+
+CHILD = C4B-06
+CANONICAL_NAME = scientific-association discovery approval
+SOURCE_FAMILY = IR-SC-10
+STRATEGY = Strategy D
+OD_PACK = OD-C4A-10
+PREPARATION_CONTRACT = §147
+BLOCKED_ATTEMPT = §148
+QUERY_TEXT_AMENDMENT = §149
+QUERY_CONTRACT_STATE_AT_ENTRY = PASS / COMPLETE
+
+Baseline (verified before network):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §149
+  §§145–149 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only; no conflict markers)
+  §147 budget + C4B06-STOP-01..12 = PRESENT
+  §149 exact query table + per-ID hashes + QUERY_SET_SHA256 = PRESENT
+```
+
+### ۱۵۰.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_ALLOWED_AFTER_PREFLIGHT = YES
+```
+
+### ۱۵۰.۲) Exact query / hash verification (Phase B — pre-network)
+
+```text
+EXACT_QUERY_TEXT_COUNT = 10
+QUERY_ID_TEXT_MAPPING = 1_TO_1
+COPY_VERBATIM_REQUIRED = YES
+RUNTIME_PARAPHRASING = NO
+RUNTIME_SYNONYM_EXPANSION = NO
+RUNTIME_TRANSLATION = NO
+RUNTIME_TERM_SUBSTITUTION = NO
+AD_HOC_SITE_QUERY = NO
+FOLLOW_UP_QUERY_INVENTION = NO
+EXPLORATORY_QUERY = NO
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+HASH_ALGORITHM = SHA-256
+HASH_INPUT = exact UTF-8 bytes of EXACT_EXECUTABLE_QUERY_TEXT only
+QUERY_SET_HASH_INPUT = ordered (QUERY_ID + LF + EXACT_EXECUTABLE_QUERY_TEXT + LF)
+  for C4B06-D-01..D-10
+```
+
+| QUERY_ID | EXACT_EXECUTABLE_QUERY_TEXT | LANG | UTF8_SHA256 (§149) | RECOMPUTED | MATCH |
+|---|---|---|---|---|---|
+| C4B06-D-01 | انجمن علمی پزشکی رسمی ایران سایت رسمی | FA | dc307f69679791e3a2f62cf682fdfe2c6595863116061d3ffb4f4646dd752093 | same | PASS |
+| C4B06-D-02 | انجمن علمی قلب و عروق ایران سایت رسمی | FA | a989236b7be1268fe3a6526ee22016c1bd090b68102445bae36c5223545c1c53 | same | PASS |
+| C4B06-D-03 | Iran medical scientific association official site | EN | d756acd1417dd5611a5f35ef863a281508951edf96a85f58588e609a4a8725db | same | PASS |
+| C4B06-D-04 | انجمن علمی پزشکی ایران درباره ما معرفی رسمی | FA | ffddf72f8450fc1d122ffdd004477a58645a1e9b2252252b2ed6129497a87fae | same | PASS |
+| C4B06-D-05 | انجمن علمی پزشکی ایران آموزش راهنما فهرست رسمی | FA | 7f84b52c9e84760957fdc7c9a5e087dbd9ae87cbaab20f5792b26d4d8b45a5cb | same | PASS |
+| C4B06-D-06 | انجمن علمی پزشکی ایران شرایط استفاده حریم خصوصی کپی رایت | FA | d2d86ef8011b8ec631a2c47e94e33c87c8df29761ce31e9dfd8b6c7a7f69e221 | same | PASS |
+| C4B06-D-07 | انجمن علمی پزشکی ایران robots.txt automation API | MIXED | 3fff7cf1b428732aebe23f1a15560d99e976c6b80aa78e7e17c1fa601a4a0c17 | same | PASS |
+| C4B06-D-08 | انجمن علمی پزشکی ایران هیئت تحریریه مسئولیت علمی رسمی | FA | d24842aa1d04d8c1d33c2d149999fcd2b9b1ea27c86a442ebd6dbcb5174e1113 | same | PASS |
+| C4B06-D-09 | انجمن علمی پزشکی ایران به رسمیت شناخته شده رسمی | FA | 65f63da40015f24c358982c0987ebf1ae5189de7d24c966976f057247969b252 | same | PASS |
+| C4B06-D-10 | انجمن علمی پزشکی ایران استناد attribution شرایط بازنشر | MIXED | 238ccbe4b756107d04f71afc17e28d7b1987f5abf355b877d4ba8f9051fcc5db | same | PASS |
+
+```text
+PER_ID_HASH_MATCH = PASS_10_OF_10
+QUERY_SET_SHA256_EXPECTED =
+  8d5e1192c6aeba03a2e7d6f0281b27b031bdfc402eebc3c08b117bbef5553f23
+QUERY_SET_SHA256_RECOMPUTED =
+  8d5e1192c6aeba03a2e7d6f0281b27b031bdfc402eebc3c08b117bbef5553f23
+QUERY_SET_HASH_MATCH = PASS
+C4B06_NETWORK_CONTRACT_RECONSTRUCTED = YES
+BLOCKED_QUERY_OR_HASH_CONTRACT_MISMATCH = NO
+NETWORK_ACTIONS_BEFORE_HASH_PASS = 0
+```
+
+### ۱۵۰.۳) Query execution ledger (Phase C)
+
+```text
+ENGINE = Search-A (web search tool; 1 of MAX_ENGINES=2)
+SEARCH_SNIPPET_IS_AUTHORITATIVE_EVIDENCE = NO
+ALL_QUERIES_COPIED_VERBATIM_FROM_§149 = YES
+UNAUTHORIZED_UNLOCKED_QUERY_TRANSMISSIONS = 0
+```
+
+| QUERY_ID | EXACT_QUERY_TEXT | QUERY_HASH | ENGINE | EXECUTION | RESULT_COUNT (≤10) | RESULTS_INSPECTED | BUDGET_BEFORE (queries) | BUDGET_AFTER | STOP_TRIGGERED | NOTES (hints only) |
+|---|---|---|---|---|---:|---:|---:|---:|---|---|
+| C4B06-D-01 | انجمن علمی پزشکی رسمی ایران سایت رسمی | dc307f69… | Search-A | 2026-07-27 | ≤10 | ≤10 | 0/15 | 1/15 | NO | specialty انجمن hosts (iasem.ir, iranmedicallaw.ir, irpsychiatry.ir, ism.ir); OOS: irimc.org, SEO blogs |
+| C4B06-D-02 | انجمن علمی قلب و عروق ایران سایت رسمی | a989236b… | Search-A | 2026-07-27 | ≤10 | ≤10 | 1/15 | 2/15 | NO | iha.org.ir (انجمن قلب ایران / Iranian Heart Association); OOS foreign ESC pages |
+| C4B06-D-03 | Iran medical scientific association official site | d756acd1… | Search-A | 2026-07-27 | ≤10 | ≤10 | 2/15 | 3/15 | NO | iha.org.ir; iamp.ir; ism.ir; OOS: ams.ac.ir (Academy), directories |
+| C4B06-D-04 | انجمن علمی پزشکی ایران درباره ما معرفی رسمی | ffddf72f… | Search-A | 2026-07-27 | ≤10 | ≤10 | 3/15 | 4/15 | NO | association about/identity signals for IR-SC-10 hosts; OOS faculty/mirrors ignored |
+| C4B06-D-05 | انجمن علمی پزشکی ایران آموزش راهنما فهرست رسمی | 7f84b52c… | Search-A | 2026-07-27 | ≤10 | ≤10 | 4/15 | 5/15 | NO | education/guideline catalog hints (iasem clinical guides; itma courses); no body harvest |
+| C4B06-D-06 | انجمن علمی پزشکی ایران شرایط استفاده حریم خصوصی کپی رایت | d2d86ef8… | Search-A | 2026-07-27 | ≤10 | ≤10 | 5/15 | 6/15 | NO | mostly OOS journal/council/SEO noise; no first-party association TOU promoted from snippets |
+| C4B06-D-07 | انجمن علمی پزشکی ایران robots.txt automation API | 3fff7cf1… | Search-A | 2026-07-27 | ≤10 | ≤10 | 6/15 | 7/15 | NO | robots hints only; first-party robots fetched later per candidate |
+| C4B06-D-08 | انجمن علمی پزشکی ایران هیئت تحریریه مسئولیت علمی رسمی | d24842aa… | Search-A | 2026-07-27 | ≤10 | ≤10 | 7/15 | 8/15 | NO | editorial signals weak/OOS journals; association board/mission used later, not journal boards |
+| C4B06-D-09 | انجمن علمی پزشکی ایران به رسمیت شناخته شده رسمی | 65f63da4… | Search-A | 2026-07-27 | ≤10 | ≤10 | 8/15 | 9/15 | NO | itma.ir self-published MoH evaluation claim; iranmedicallaw recognition news; snippets ≠ proof |
+| C4B06-D-10 | انجمن علمی پزشکی ایران استناد attribution شرایط بازنشر | 238ccbe4… | Search-A | 2026-07-27 | ≤10 | ≤10 | 9/15 | 10/15 | NO | attribution/reuse pages not recovered as first-party association notices; remain UNKNOWN |
+
+```text
+QUERIES_EXECUTED = 10
+LOCKED_QUERIES_EXECUTED = 10
+UNLOCKED_QUERIES_EXECUTED = 0
+ENGINES_USED = 1
+RESULTS_INSPECTED_TOTAL = ≤100 (≤10 per locked query; cap respected)
+MODIFIED_QUERY = NO
+SUBSTITUTE_QUERY = NO
+```
+
+### ۱۵۰.۴) Budget consumption (Phase C/E)
+
+| Cap | Limit | Actual | Remaining | Exceeded |
+|---|---:|---:|---:|---|
+| MAX_TOTAL_QUERIES | 15 | 10 | 5 | NO |
+| LOCKED_QUERIES | 10 | 10 | 0 | NO |
+| MAX_ENGINES | 2 | 1 | 1 | NO |
+| MAX_RESULTS_PER_QUERY | 10 | ≤10 | — | NO |
+| MAX_DOMAINS | 10 | 8 unique association domains opened | 2 | NO |
+| MAX_PAGES_PER_DOMAIN | 5 | max 3 (iha.org.ir) | — | NO |
+| MAX_ROBOTS_REQUESTS | 10 | 7 | 3 | NO |
+| MAX_REDIRECT_DEPTH | 3 | ≤1 observed (iamp www→apex) | — | NO |
+| RETRIES | 0 | 0 | — | NO |
+| MAX_HTTP_REQUESTS | 40 | 21 direct retrieval attempts | 19 | NO |
+| MAX_CANDIDATES | 12 | 8 | 4 | NO |
+| TIMEOUT_SECONDS | 30 | timeouts recorded (no retry) | — | NO |
+
+```text
+QUERIES_EXECUTED = 10
+ENGINES_USED = 1
+RESULTS_INSPECTED = ≤100
+UNIQUE_DOMAINS = 8
+  (iha.org.ir, iasem.ir, iranmedicallaw.ir, irpsychiatry.ir,
+   irsome.ir, ism.ir, itma.ir, iamp.ir)
+DIRECT_PAGE_REQUESTS = 14
+ROBOTS_REQUESTS = 7
+TOTAL_HTTP_REQUESTS = 21
+CANDIDATES_CREATED = 8
+
+NUMERIC_HARD_CAP_EXCEED_CONFIRMED = NO
+BUDGET_EXPANSION = NO
+RETRIES_PERFORMED = 0
+```
+
+### ۱۵۰.۵) Candidate ledger (Phase D)
+
+```text
+MAX_CANDIDATES = 12
+CANDIDATES_CREATED = 8
+SOURCE_FAMILY = IR-SC-10
+OUT_OF_SCOPE_NOT_PROMOTED =
+  irimc.org / Apiland (medical council → C4B-01)
+  ams.ac.ir (Academy / فرهنگستان — not انجمن)
+  university journal portals (C4B-08 / university family)
+  Magiran / Wikipedia / commercial SEO directories / health blogs
+  foreign association pages as Iran primary
+SEARCH_SNIPPET_USED_AS_PROOF = NO
+```
+
+| CANDIDATE_ID | OBSERVED_NAME | OBSERVED_DOMAIN | DISCOVERY_QUERY_ID | SOURCE_FAMILY | WHY_IN_SCOPE | INITIAL_AUTHORITY_CLASS | EXCLUSION_CHECK | STATUS |
+|---|---|---|---|---|---|---|---|---|
+| C4B06-CAND-01 | انجمن قلب ایران / Iranian Heart Association | iha.org.ir | C4B06-D-02, D-03 | IR-SC-10 | Iran medical specialty scientific association host | TIER_B_ASSOCIATION_CLAIM | not council/university/journal primary | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-02 | انجمن علمی پزشکی ورزشی ایران | iasem.ir | C4B06-D-01, D-04, D-05 | IR-SC-10 | Iran scientific sports-medicine association | TIER_B_ASSOCIATION_CLAIM | not SEO directory | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-03 | انجمن علمی حقوق پزشکی ایران / Iranian Association of Medical Law | iranmedicallaw.ir | C4B06-D-01, D-04, D-09 | IR-SC-10 | Iran scientific medical-law association | TIER_B_ASSOCIATION_CLAIM | not MoH primary | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-04 | انجمن علمی روان‌پزشکان ایران | irpsychiatry.ir | C4B06-D-01, D-04 | IR-SC-10 | Iran scientific psychiatry association | TIER_B_ASSOCIATION_CLAIM | not social-only | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-05 | انجمن میکروب شناسی ایران / ISM | ism.ir | C4B06-D-01, D-03 | IR-SC-10 | Iran microbiology scientific association + journals announced | TIER_B_ASSOCIATION_CLAIM | journals are announcement only (not C4B-08 promotion) | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-06 | انجمن علمی طب سنتی ایران | itma.ir | C4B06-D-05, D-09 | IR-SC-10 | Iran traditional-medicine scientific association; education catalog present | TIER_B_ASSOCIATION_CLAIM | self-recognition claim ≠ external proof | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-07 | انجمن فیزیک پزشکی ایران / IAMP | iamp.ir | C4B06-D-03, D-04 | IR-SC-10 | Iran medical-physics scientific association | TIER_B_ASSOCIATION_CLAIM | not university primary | ACCEPTED_WITH_RESIDUALS |
+| C4B06-CAND-08 | انجمن علمی متخصصان آموزش علوم پزشکی ایران (hint) | irsome.ir | C4B06-D-01, D-04 | IR-SC-10 | search hint for medical-education association | UNKNOWN_PENDING_RETRIEVAL | landing timeout; not invented | EVALUATION_INCOMPLETE_FAIL_CLOSED |
+
+### ۱۵۰.۶) Authority / identity evidence (Phase E)
+
+| CANDIDATE_ID | REQUEST_URL | FINAL_URL | PAGE_ROLE | HTTP_OR_RETRIEVAL_STATUS | OBSERVED_FACT | EVIDENCE_LOCATION | PROVENANCE | AUTHORITY_STATUS | CONTRADICTION_STATUS |
+|---|---|---|---|---|---|---|---|---|---|
+| C4B06-CAND-01 | https://www.iha.org.ir/ | same | landing | 200 | Branding «انجمن قلب ایران» / Copyright Iranian Heart Association; congress/education continuous-medical-education links | page body + footer | first-party GET 2026-07-27 | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-01 | https://www.iha.org.ir/AboutUs | same | about | 200 | About Us route exists; thin text in retrieval; MoH/IRIMC footer logos present (corroboration hint only) | AboutUs + footer logos | first-party GET | ABOUT_THIN_FAIL_CLOSED_FOR_LEGAL_ID | NONE_OPEN |
+| C4B06-CAND-01 | https://www.iha.org.ir/ContactUs | same | contact | 200 | Iranian Heart Association contact address Tehran | ContactUs | first-party GET | CONTACT_PRESENT | NONE_OPEN |
+| C4B06-CAND-02 | https://iasem.ir/ | same | landing | 200 | «انجمن علمی پزشکی ورزشی ایران»; mission education/research; clinical-guide index links | landing | first-party GET (www returned 500; apex used; no retry beyond alternate host form already in results) | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-03 | https://iranmedicallaw.ir/ | same | landing | 200 | «انجمن علمی حقوق پزشکی ایران»; board/structure nav; publications/congress sections | landing | first-party GET | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-04 | https://www.irpsychiatry.ir/ | same | landing | 200 | NGO/non-profit psychiatry association history since 1345; committees; guidelines committee named | landing about block | first-party GET | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-05 | https://www.ism.ir/ | same | landing | 200 | «انجمن میکروب شناسی ایران»; founding narrative; announces 2 journals (metadata only) | landing | first-party GET | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-06 | https://www.itma.ir/ | same | landing | 200 | «انجمن علمی طب سنتی ایران»; about: NGO under MoH scientific associations charter (2006 join claim) | landing about | first-party GET | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-06 | https://www.itma.ir/ (news) | same | recognition claim | 200 | Self-published claim of MoH scientific-association evaluation rank #2 (1400–1401) | news body | first-party self-claim | RECOGNITION_CLAIM_UNCORROBORATED | OPEN (needs external MoH corroboration) |
+| C4B06-CAND-07 | https://iamp.ir/ | same | landing | 200 | Iranian Association of Medical Physicists; mission/education/research text | landing | first-party GET (www→apex) | IDENTITY_SIGNAL_PRESENT | NONE_OPEN |
+| C4B06-CAND-08 | https://www.irsome.ir/ | n/a | landing | TIMEOUT | retrieval failed within timeout; no retry | n/a | attempted GET | UNKNOWN_FAIL_CLOSED | NONE_OPEN |
+
+```text
+DOMAIN_OR_TITLE_ALONE_NOT_TREATED_AS_PROOF = YES
+.IR_ALONE_NOT_TREATED_AS_PROOF = YES
+SNIPPET_ALONE_NOT_TREATED_AS_PROOF = YES
+CROSS_CANDIDATE_EVIDENCE_MIXING = NO
+```
+
+### ۱۵۰.۷) Terms / robots / automation / reuse / attribution (Phase F)
+
+```text
+DEFAULT = UNKNOWN_FAIL_CLOSED
+IDENTITY != AUTOMATION_PERMISSION
+PUBLIC_ACCESS != REUSE_PERMISSION
+ROBOTS_ALLOW != REUSE_PERMISSION
+ROBOTS_ALLOW != COPYRIGHT_PERMISSION
+SILENCE != PERMISSION
+NO_SELF_UPGRADE = YES
+```
+
+| CANDIDATE_ID | TERMS_RETRIEVED | PRIVACY_STATUS | COPYRIGHT_OR_LICENSE | ROBOTS_STATUS | AUTOMATION_PERMISSION | REUSE_PERMISSION | ATTRIBUTION_REQUIREMENT | RATE_LIMIT_OR_USAGE_LIMIT |
+|---|---|---|---|---|---|---|---|---|
+| C4B06-CAND-01 | NO (no first-party TOU URL recovered) | UNKNOWN_FAIL_CLOSED | footer Copyright © 2025 Iranian Heart Association (claim only) | NOT_RETRIEVED (robots.txt HTTP 404) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B06-CAND-02 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | RETRIEVED: User-agent:* Disallow wp-admin (+ WooCommerce upload paths); Allow admin-ajax; Sitemap present | UNKNOWN_FAIL_CLOSED (allow≠permission) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B06-CAND-03 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | RETRIEVED: broad Disallow list; Crawl-delay:50; many bots Disallow:/ | UNKNOWN_FAIL_CLOSED; hostile-to-many-bots signal | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Crawl-delay 50 observed (not a reuse grant) |
+| C4B06-CAND-04 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | RETRIEVED: Disallow /wp-admin/; Allow admin-ajax; Sitemap | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B06-CAND-05 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED (robots.txt HTTP 404) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B06-CAND-06 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | RETRIEVED: User-agent:* Disallow: (empty disallow) | UNKNOWN_FAIL_CLOSED (empty disallow ≠ reuse grant) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B06-CAND-07 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | RETRIEVED: broad Disallow; Crawl-delay:50; many bots Disallow:/ | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Crawl-delay 50 observed |
+| C4B06-CAND-08 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED (landing timeout; robots not fetched) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+
+### ۱۵۰.۸) Editorial / educational evidence (Phase G)
+
+```text
+CONTENT_BODY_ACQUISITION = NO
+BULK_PDF_DOWNLOAD = NO
+RECURSIVE_ARCHIVE_CRAWL = NO
+KB_INGESTION = NO
+PUBLICATION_EXISTENCE != INGESTION_PERMISSION = YES
+```
+
+| CANDIDATE_ID | OFFICIAL_EDUCATIONAL_ROLE | EDUCATION_OR_PUBLICATION_INDEX | EDITORIAL_RESPONSIBILITY | OFFICIAL_SCIENTIFIC_ACTIVITY | STATUS |
+|---|---|---|---|---|---|
+| C4B06-CAND-01 | congress / CME registration pointers present | event/congress listings | not a journal editorial board recovered | active congress program notices | METADATA_ONLY_PRESENT |
+| C4B06-CAND-02 | clinical-guide / education center links on landing | «آیین نامه و راهنماهای بالینی» index link | unknown editorial board | congress + webinars announced | METADATA_ONLY_PRESENT |
+| C4B06-CAND-03 | nav: نشریات انجمن / کنگره | publication + congress sections | هیأت مدیره nav present; journal editorial not separately proven | conferences + news | METADATA_ONLY_PRESENT |
+| C4B06-CAND-04 | «تدوین راهنماها و استاندارها» committee named | newsletters download links (metadata) | association governance/committees described | annual congress call | METADATA_ONLY_PRESENT |
+| C4B06-CAND-05 | announces two association journals (names only) | نشریات link | board members page linked | seminars/webinars | METADATA_ONLY_PRESENT — journals not promoted as C4B-08 sources |
+| C4B06-CAND-06 | courses/webinars catalog on landing | education modules listed | MoH evaluation self-claim; board names in news | MoH-collab events claimed | METADATA_ONLY_PRESENT |
+| C4B06-CAND-07 | mission includes education/workshops | news/events list | mission text only | congress/workshop notices | METADATA_ONLY_PRESENT |
+| C4B06-CAND-08 | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | NOT_RETRIEVED |
+
+### ۱۵۰.۹) Provenance / contradictions (Phase H)
+
+```text
+EVERY_MATERIAL_EVIDENCE_ITEM_HAS_PROVENANCE = YES
+CONTRADICTION_ERASURE = NO
+INFERENCE_RESOLUTION_OF_CONFLICTS = NO
+```
+
+| CONTRADICTION_ID | CANDIDATE_ID | DESCRIPTION | STATUS | ACTION |
+|---|---|---|---|---|
+| C4B06-CONTRA-01 | C4B06-CAND-06 | First-party MoH evaluation rank claim vs absence of retrieved MoH primary corroboration page in this Gate | OPEN | keep claim + keep uncorroborated; fail-closed for recognition proof |
+| C4B06-CONTRA-02 | C4B06-CAND-01 | AboutUs route exists but retrieved about body thin/empty vs strong landing branding | OPEN | identity signal from landing/contact retained; legal-about pack incomplete |
+
+### ۱۵۰.۱۰) STOP ledger (Phase I)
+
+| STOP_ID | TRIGGERED? | SCOPE | TRIGGER DETAIL | LAST_AUTHORIZED_ACTION | EVIDENCE_USABLE? | CONTAMINATION | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B06-STOP-01 | NO | — | baseline matched | — | — | NO | — | — | — | — |
+| C4B06-STOP-02 | NO | — | no unlocked query | — | — | NO | — | — | — | — |
+| C4B06-STOP-03 | NO | — | caps not exhausted | — | — | NO | — | — | — | — |
+| C4B06-STOP-04 | YES (local exclude) | OOS hits | irimc/ams/journals/SEO excluded from promotion | exclude + continue | OOS not used as C4B-06 proof | NO | Data/Knowledge | correct child routing | keep OOS ledger clean | n/a |
+| C4B06-STOP-05 | YES (candidate-local) | C4B06-CAND-08 | irsome.ir timeout → identity incomplete | stop path; no retry | NO for authority claims | NO | Governance/Security | retrieval | successful first-party identity pack or exclude | C4B-06 residual retrieval Gate |
+| C4B06-STOP-06 | NO | — | no cross-candidate mix | — | — | NO | — | — | — | — |
+| C4B06-STOP-07 | YES (deferred path) | rights/reuse | legal clearance beyond discovery | keep UNKNOWN_FAIL_CLOSED | metadata only | NO | Legal / Javad | product/legal | explicit rights decision | C4B-06 rights clearance Gate |
+| C4B06-STOP-08 | YES (rights fields) | all candidates | terms missing; robots allow≠reuse | record UNKNOWN_FAIL_CLOSED | authority rows may remain | NO | Legal/Security | terms/robots packs | first-party terms + governed automation decision | C4B-06 rights/automation residual Gate |
+| C4B06-STOP-09 | NO | — | no CAPTCHA/login bypass attempted | — | — | NO | — | — | — | — |
+| C4B06-STOP-10 | NO | — | activation refused / not attempted | — | — | NO | — | — | — | — |
+| C4B06-STOP-11 | NO | — | no credential/anti-bot bypass | — | — | NO | — | — | — | — |
+| C4B06-STOP-12 | NO | — | associations not treated as license/guideline authority | — | — | NO | — | — | — | — |
+
+```text
+GATE_ABORTING_STOP = NO
+UNLOCKED_QUERY_VIOLATION = NO
+WORKAROUND_USED = NO
+BUDGET_EXPANDED = NO
+NEW_QUERY_INVENTED = NO
+```
+
+### ۱۵۰.۱۱) Residual ledger (Phase J)
+
+| RESIDUAL_ID | CANDIDATE_ID | DESCRIPTION | CURRENT_STATE | OWNER | DEPENDENCY | BLOCKS_DISCOVERY_SUBSTEP? | BLOCKS_FULL_CHILD? | BLOCKS_EVIDENCE_OVERLAY? | BLOCKS_ACTIVATION? | CLOSURE_CRITERIA | NEXT_GATE | CAN_DEFER_WITH_OWNER? | FAIL_CLOSED? |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C4B06-R-QUERYTEXT-01 | n/a | exact query text missing (§148) | CLOSED_BY_§149 | Governance | §149 | NO | NO | NO | NO | already closed | — | — | NO |
+| C4B06-R-NETWORK-01 | n/a | network blocked pre-query-text (§148) | CLOSED_BY_THIS_§150 | Governance | this Gate | NO | NO | NO | NO | network executed under locked contract | — | — | NO |
+| C4B06-R-TERMS-01 | C4B06-CAND-01..07 | first-party terms/privacy/copyright pages not retrieved | OPEN | Legal | first-party TOU URLs | NO | YES | YES | YES | retrieve + classify terms pack | C4B-06 rights residual Gate | YES | YES |
+| C4B06-R-AUTO-01 | C4B06-CAND-01..07 | automation permission uncleared (robots≠permission; 404s on some robots) | OPEN | Legal/Security | robots + product policy | NO | YES | YES | YES | governed automation decision per host | C4B-06 automation residual Gate | YES | YES |
+| C4B06-R-REUSE-01 | C4B06-CAND-01..07 | reuse/attribution UNKNOWN; silence≠permission | OPEN | Legal | terms + attribution notices | NO | YES | YES | YES | explicit reuse/attribution evidence or formal deferment | C4B-06 rights residual Gate | YES | YES |
+| C4B06-R-RECOG-01 | C4B06-CAND-06 | MoH recognition self-claim uncorroborated | OPEN | Medical/Safety + Governance | MoH primary corroboration | NO | YES (recognition pack) | YES | YES | external official corroboration or formal deferment | recognition residual Gate | YES | YES |
+| C4B06-R-ABOUT-01 | C4B06-CAND-01 | AboutUs thin in retrieval | OPEN | Governance | richer about/statute pack | NO | PARTIAL | PARTIAL | YES | complete legal-identity about pack | identity residual Gate | YES | YES |
+| C4B06-R-IRSOME-01 | C4B06-CAND-08 | irsome.ir timeout; candidate incomplete | OPEN | Governance/Security | successful retrieval or exclude | NO | YES if retained | YES if retained | YES | retrieve identity pack or exclude candidate | residual retrieval Gate | YES | YES |
+| C4B06-R-EDITORIAL-01 | C4B06-CAND-01..07 | association editorial/publication responsibility incomplete vs journal-grade packs | OPEN | Medical/Safety | editorial pages | NO | YES | PARTIAL | YES | editorial responsibility evidence or deferment | editorial residual Gate | YES | YES |
+| C4B06-R-D06D10-01 | multi | D-06/D-07/D-08/D-10 searches dominated by OOS noise; first-party rights/editorial/attribution not recovered via search alone | OPEN | Knowledge Ops | bounded first-party path under residual Gate | NO | YES | YES | YES | first-party recovery without unlocked queries | residual docs/network Gate (locked) | YES | YES |
+
+```text
+NO_ORPHAN_UNKNOWN = YES
+EVERY_UNKNOWN_HAS_OWNER_DEPENDENCY_CLOSURE_NEXT_GATE = YES
+```
+
+### ۱۵۰.۱۲) Network execution / validity (Phases K)
+
+```text
+C4B_06_NETWORK_DISCOVERY_EXECUTED = YES
+
+C4B_06_NETWORK_RESULT_VALID = YES
+  because:
+    pre-network query/hash verification PASS_10_OF_10 + set hash PASS
+    only locked queries C4B06-D-01..D-10 executed
+    no modified / unlocked / exploratory query
+    budget caps respected
+    STOP contract respected (no gate-aborting violation)
+    provenance present on material items
+    no candidate contamination / no cross-candidate evidence mixing
+    OOS results not used as C4B-06 proof
+    snippets not treated as authoritative evidence
+
+NETWORK_EXECUTED_YES_DOES_NOT_IMPLY_RIGHTS_CLEARANCE = YES
+NO_RETROACTIVE_VALIDATION_OF_§148_BLOCK = N/A (separate prior Gate)
+```
+
+### ۱۵۰.۱۳) Discovery-substep decision (Phase L)
+
+```text
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_06_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+
+BASIS (§147.12):
+  NETWORK_RESULT_VALID = YES
+  governed candidate ledger recorded under this contract
+  residuals owned (rights/automation/recognition remain UNKNOWN_FAIL_CLOSED
+  without self-upgrade)
+
+INVENTED_FAVORABLE_STATUS = NO
+```
+
+### ۱۵۰.۱۴) Full-child decision (Phase M)
+
+```text
+C4B_06_FULL_CHILD_COMPLETE = NO
+
+REASON =
+  recognition+terms packs incomplete
+  rights/reuse/automation remain UNKNOWN_FAIL_CLOSED
+  FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE = YES
+  no formal product/legal deferment closing those fields in this Gate
+```
+
+### ۱۵۰.۱۵) Source activation hard lock (Phase — permanent)
+
+```text
+C4B_06_SOURCE_ACTIVATED = NO
+RUNTIME_ENABLED = NO
+CRAWLER_ENABLED = NO
+PRODUCTION_APPROVED = NO
+PUBLICATION_RELEASED = NO
+KB_INGESTION_ENABLED = NO
+AUTO_FETCH_ENABLED = NO
+```
+
+### ۱۵۰.۱۶) Evidence Overlay impact (Phase N)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| Overlay need | WHAT_C4B06_SATISFIES | WHAT_REMAINS_OPEN | DEFERRED_WITH_OWNER? | LEGAL/EXTERNAL REQUIRED? | BLOCKS_FULL_CHILD? | BLOCKS_EO? | BLOCKS_ACTIVATION? |
+|---|---|---|---|---|---|---|---|
+| EO-C03 mandatory children | Strategy-D discovery executed + valid ledger for IR-SC-10 associations | full-child still open | partial (residuals owned) | NO for discovery fact | YES until full-child | YES while child open | YES |
+| EO-C04 rights/terms | fields recorded as UNKNOWN_FAIL_CLOSED with residuals | terms/privacy/copyright | YES (Legal) | YES | YES | YES | YES |
+| EO-C05 automation | robots retrieved for some hosts; automation still UNKNOWN | automation permission | YES (Legal/Security) | YES | YES | YES | YES |
+| EO-C06 authority/provenance | first-party identity signals + provenance rows | recognition corroboration; thin about | YES | YES for MoH corroboration | YES | YES | YES |
+| EO-C07 acquisition eligibility | not awarded; fail-closed | eligibility | YES | YES | YES | YES | YES |
+| EO-C08 owned unknowns | residual matrix with owners | open residuals | YES | depends | YES | YES if undeferred orphans (none) | YES |
+
+```text
+WHAT_BLOCKS_FULL_CHILD =
+  C4B06-R-TERMS-01, C4B06-R-AUTO-01, C4B06-R-REUSE-01,
+  C4B06-R-RECOG-01, C4B06-R-EDITORIAL-01 (+ incomplete CAND-08 if retained)
+
+WHAT_BLOCKS_EVIDENCE_OVERLAY =
+  open C4B-06 full-child + EO rights/automation/authority gaps
+
+WHAT_BLOCKS_ACTIVATION =
+  all of the above + permanent activation lock of this Gate
+```
+
+### ۱۵۰.۱۷) Weekly knowledge-growth forward link (Phase O)
+
+```text
+PERMANENT_I5_LAW =
+  SOURCE DISCOVERY != KNOWLEDGE GROWTH
+
+IMPLEMENTATION_IN_THIS_GATE = NO
+
+FORWARD_PIPELINE_MUST_SUPPORT =
+  new publication discovery
+  → governed acquisition
+  → immutable raw storage
+  → dedupe
+  → version/diff
+  → provenance
+  → quality/safety/security governance
+  → approved publication
+  → runtime grounding
+  → supersession/deprecation/revocation
+
+FOR_VALID_C4B06_SOURCES_AFTER_RIGHTS_CLEARANCE_LATER_CRAWLERS_SHOULD_DETECT =
+  new publications
+  updated educational materials
+  revised guidance
+  changed terms/rights
+  withdrawn/superseded materials
+
+C4B-06_NOT_A_ONE_TIME_STATIC_DIRECTORY = YES
+```
+
+### ۱۵۰.۱۸) Operations NOT performed
+
+```text
+NO query modification
+NO unlocked query
+NO unrestricted crawling
+NO bulk harvest / article corpora / recursive archives
+NO source activation
+NO P2 / P3 / P4 / P5 / P6 implementation
+NO test / CI / workflow dispatch
+NO commit / push
+NO fetch / pull / merge / rebase
+NO migration / database / deploy / build / frontend
+NO flag activation
+NO C4B-07 execution
+NO Stage 4 execution
+NO rewrite of §§1–149
+```
+
+### ۱۵۰.۱۹) Exact next Gate
+
+```text
+NEXT_GATE =
+C4B-06 TERMS / RIGHTS / AUTOMATION / RECOGNITION RESIDUAL CLEARANCE
+(full-child path; discovery-substep already CLOSED_WITH_RESIDUAL)
+
+PARALLEL_NOTE =
+  S3-W2 / C4B-07 preparation is NOT authorized by this Gate.
+  Child independence precedent (C4B-05 residuals did not block C4B-06)
+  may allow separately approved later Waves, but is not started here.
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۰.۲۰) Execution state
+
+```text
+C4B_06_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B06_QUERY_TEXT_AMENDMENT_COMPLETE = YES
+C4B_06_NETWORK_DISCOVERY_EXECUTED = YES
+C4B_06_NETWORK_RESULT_VALID = YES
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_06_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_06_FULL_CHILD_COMPLETE = NO
+C4B_06_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS (preserved)
+I5_PROGRESS ≈ 22%
+
+STAGE_1 = CLOSED
+STAGE_2 = DOCUMENTED_UNCOMMITTED
+S3_W0 = DOCUMENTED_UNCOMMITTED
+S3_W1_PREPARATION = DOCUMENTED_UNCOMMITTED
+§148_BLOCK = PRESERVED_HISTORICAL
+§149_AMENDMENT = PRESERVED
+THIS_NETWORK_GATE = DOCUMENTED_UNCOMMITTED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+NETWORK_DISCOVERY_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_EXPLICIT_RESIDUALS
+```
+
+### ۱۵۰.۲۱) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+ef1719cba54a86e209086a85da37f86e23d9bf2adbfcba6db7f2e9402ee4aa90
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–149_PRESERVED = YES
+§150_ONLY_NEW_SECTION = YES
+§150_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۰ — SECTION-28 STAGE-3-OF-14 C4B-06 Strategy-D Controlled Network Discovery — PASS_WITH_EXPLICIT_RESIDUALS — NETWORK_DISCOVERY_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۱) SECTION-28 STAGE-3-OF-14 — S3-W2 C4B-07 PERSIAN PATIENT-EDUCATION DISCOVERY PREPARATION CONTRACT
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 / S3-W2 —
+C4B-07 PERSIAN PATIENT-EDUCATION DISCOVERY
+PREPARATION CONTRACT
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH / NO_P2_IMPLEMENTATION /
+NO_STRATEGY_F_NETWORK_EXECUTION
+
+Owner:
+Medical/Safety (primary per OD-C4A-12)
+Supporting:
+Legal, Data/Knowledge
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for S3-W2 preparation ONLY
+NO network / search / HTTP / WHOIS / DNS / robots / terms fetch
+NO candidate discovery / source download / content acquisition
+NO ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–150
+NO §152 in this Gate
+
+CHILD = C4B-07
+CANONICAL_NAME = Persian patient-education discovery approval
+SOURCE_FAMILY = IR-SC-12
+STRATEGY = Strategy F
+OD_PACK = OD-C4A-12
+
+Baseline (verified at S3-W2 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §150
+  §§145–150 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Preserved C4B-06 state (not rewritten):
+  C4B_06_NETWORK_RESULT_VALID = YES
+  C4B_06_DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL
+  C4B_06_FULL_CHILD = OPEN
+  C4B_06_SOURCE_ACTIVATED = NO
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+0d09f94cbd8e5ee835c79d1e707b1b3120d3dd36e32f9ee4a59ddc6ff1e16fe5
+```
+
+### ۱۵۱.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۵۱.۲) Authority ledger (Phase B)
+
+| AUTHORITY_ID | PATH | SECTION | STATUS | SUPERSEDED? | WHAT_IT_DEFINES | APPLICATION_TO_C4B_07 |
+|---|---|---|---|---|---|---|
+| AUTH-97-ROLE | master log | §97.24–§97.25 | ACTIVE | NO | PATIENT_EDUCATION_SOURCE role; Iran source priority incl. medically reviewed patient-education | Role boundary + priority; not guideline |
+| AUTH-99-SC12 | master log | §99.3 IR-SC-12 | ACTIVE | NO | official Persian patient education; PATIENT_EDUCATION; hosts university/teaching hospital/MoH; MR-1+; clinical guideline auto prohibited | Exact source family |
+| AUTH-99-STRAT-F | master log | §99.7 Strategy F | ACTIVE | NO | Patient-education discovery templates; ownership teaching hospital/uni/MoH; FP=commercial clinics; min MR-1+ | Strategy + query semantic root |
+| AUTH-99-MR | master log | §99.14 | ACTIVE | NO | MR-1 low-risk patient education; MR-2+ deeper education classes | MR pack dependency |
+| AUTH-99-QA-FA | master log | §99.15 | ACTIVE | NO | Persian content quality checks + rejection (SEO farms, anonymous, promotional) | Quality/misinfo contract |
+| AUTH-99-OD12 | master log | §99.19 OD-C4A-12 | ACTIVE | NO | IR-SC-12 patient education OD; Medical/Safety primary; Blocking; MR-1+ pack | OD ownership |
+| AUTH-99-R12 | master log | §99.20 R12 | ACTIVE | NO | patient-education-as-guideline BLOCKER | Misuse STOP / E2-C4D link |
+| AUTH-99-CHILD | master log | §99.21 | ACTIVE | NO | E2-C4B-07 Persian patient-education discovery approval | Canonical child name |
+| AUTH-93-EO | master log | §93 family (EO via §145 overlay) | ACTIVE | NO | Evidence Overlay closure needs children packs | Overlay impact mapping |
+| AUTH-137-138 | master log | §137–§138 | ACTIVE | NO | weekly crawler / knowledge-growth laws; discovery≠growth | Forward compatibility |
+| AUTH-143-BUDGET | master log | §143.8 (via §147 inheritance) | ACTIVE | NO | conservative hard network caps family | Budget inheritance |
+| AUTH-145-07 | master log | §145.7 | ACTIVE | NO | C4B-07 reconstruction; prep was AUTHORITY_NOT_FOUND; distinct from C4B-05 sample | Closes prep gap |
+| AUTH-145-S3W2 | master log | §145 Stage-3 matrix | ACTIVE | NO | S3-W2 = C4B-07 prep then Strategy F network | Wave authority |
+| AUTH-147-150 | master log | §147–§150 | ACTIVE | NO | prep completeness lesson: lock exact query text+hashes before network; STOP-02 unlocked-query; fail-closed rights | Contract pattern (not IR-SC-10 scope copy) |
+| AUTH-C4B07-PREP-PRIOR | — | — | AUTHORITY_NOT_FOUND | — | No prior locked C4B-07 preparation contract with executable queries | This §151 creates it |
+
+```text
+AUTHORITY_SUFFICIENT_FOR_PREPARATION_CONTRACT = YES
+AUTHORITY_SUFFICIENT_FOR_NETWORK_WITHOUT_THIS_LOCK = NO
+EXTERNAL_EVIDENCE_USED = NO
+MODEL_MEMORY_INSTITUTION_PREPOPULATION = NO
+```
+
+### ۱۵۱.۳) Locked source scope (Phase C)
+
+```text
+SOURCE_FAMILY = IR-SC-12
+STRATEGY = Strategy F
+OD_PACK = OD-C4A-12
+PURPOSE_ROLE = PATIENT_EDUCATION
+
+IN_SCOPE_HOST_CLASSES (repository authority §99.3 / §99.7 / §145.7) =
+  official Iranian medical-university patient-education pages
+  official teaching-hospital patient-education pages
+  MoH / official public patient-education pages
+  (role = PATIENT_EDUCATION only)
+
+IRAN_FIRST = YES
+PERMITTED_CANDIDATE_CLASSES =
+  official education publisher pages under university / teaching-hospital / MoH branding
+  patient-education indexes / self-care education / disease-education landing pages
+  publisher about / medical-review / authorship / terms / robots pages on same official host family
+
+EXPLICIT_CHILD_SEPARATION =
+  C4B-05 = universities/research/academic institutions (IR-SC-08/09; IR-SC-14 education sample only)
+           → C4B-05 sample does NOT close C4B-07 (§145.7)
+  C4B-06 = scientific/medical associations (IR-SC-10)
+  C4B-08 = journals/publication portals (IR-SC-13)
+  C4B-09 = commercial directories / secondary-only (IR-SC-16)
+  C4B-04 = MoH PUBLIC_HEALTH_GUIDANCE / regulatory primary (IR-SC-07/11)
+           → MoH pages discovered here remain PATIENT_EDUCATION role-locked;
+             NOT automatic PUBLIC_HEALTH_GUIDANCE or clinical-guideline authority
+
+EXCLUSIONS (unless later explicit authority) =
+  commercial SEO health content
+  anonymous blogs
+  scraped mirrors
+  forums / social-only pages
+  user-generated medical advice
+  product marketing / sponsored pseudo-medical content
+  predatory/low-authority publication portals
+  generic directories
+  automatically generated medical pages
+  unverifiable authorship
+  commercial clinics as false positives (§99.7)
+  clinical guideline automatic use / R12 misuse
+  content-body ingestion / runtime activation
+
+INSTITUTION_PREPOPULATION_FROM_MODEL_MEMORY = FORBIDDEN
+NETWORK_NOT_RUN = YES
+CANDIDATES_CLAIMED_BY_THIS_GATE = ZERO
+```
+
+### ۱۵۱.۴) Patient-education authority boundary (Phase D)
+
+```text
+DISTINGUISH =
+  SOURCE_IDENTITY
+  PATIENT_EDUCATION_ROLE
+  EDITORIAL_RESPONSIBILITY
+  MEDICAL_REVIEW_STATUS          (MR-1+ pack target; OD-C4A-12)
+  CONTENT_AUTHORITY              (patient-education content class only)
+  CLINICAL_GUIDELINE_AUTHORITY   (ALWAYS NOT implied by C4B-07)
+  RIGHTS_PERMISSION
+  AUTOMATION_PERMISSION
+  RUNTIME_ELIGIBILITY
+
+PERMANENT_RULE =
+  PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY
+  PATIENT_EDUCATION_SOURCE != CLINICAL_GUIDELINE_AUTHORITY (§97.24 / R12)
+  PUBLIC_HEALTH_CONTENT != REUSE_PERMISSION
+  VISIBLE_WEB_CONTENT != AUTOMATION_PERMISSION
+  SOURCE_DISCOVERY != KNOWLEDGE_INGESTION
+
+LATER_GOVERNED_USES_MAY_INCLUDE (content classification Gates; NOT this Gate) =
+  self-care education
+  symptom education
+  preparation for care
+  prevention
+  treatment understanding
+  lifestyle guidance
+
+THIS_GATE_IS_NOT =
+  guideline-source approval
+  MR completion / publish approval
+  content corpus approval
+  runtime grounding approval
+```
+
+### ۱۵۱.۵) Exact Query IDs + executable texts (Phases E–F)
+
+```text
+NAMING_SCHEME = C4B07-F-NN
+  F = Strategy F (§99.7)
+  Collision check: C4B07-F-* previously unused in master log
+  C4B07-D-* mentioned only as non-conflicting note in §149; unused as contract IDs
+
+FINITE_QUERY_SET = YES
+TOTAL_LOCKED_QUERY_COUNT = 10
+EXECUTABLE_QUERY_SET = EXACTLY C4B07-F-01..C4B07-F-10
+NO_PLACEHOLDERS = YES
+NO_RUNTIME_SUBSTITUTION = YES
+NO_TEMPLATE_OPERATORS = YES
+```
+
+| QUERY_ID | EXACT_EXECUTABLE_QUERY_TEXT | QUERY_LANGUAGE | PURPOSE | TARGET_EVIDENCE_CLASS | ALLOWED_SCOPE | EXPECTED_OUTPUT | NOT_PROOF_OF | STOP_CONDITION | SEMANTIC_MATCH |
+|---|---|---|---|---|---|---|---|---|---|
+| C4B07-F-01 | آموزش به بیمار دانشگاه علوم پزشکی سایت رسمی | FA | FA university patient-education locator (Strategy F root) | source identity / education host signal | Iran uni medical patient-ed hosts | candidate official education landing/index URLs | clinical guideline; reuse; automation | commercial clinic / SEO farm as primary | PASS |
+| C4B07-F-02 | آموزش به بیمار بیمارستان آموزشی ایران سایت رسمی | FA | FA teaching-hospital patient-education locator | teaching-hospital education identity | Iran teaching-hospital education hosts | official hospital education pages | facility licensing primary (C4B-02); guideline auto | private clinic marketing pages | PASS |
+| C4B07-F-03 | patient education Iran hospital official site | EN | EN corroboration of official hospital/uni education | identity corroboration EN/FA | same official host classes | official EN/FA education landings | foreign hospital as Iran primary | directory scrapes as official identity | PASS |
+| C4B07-F-04 | آموزش به بیمار وزارت بهداشت راهنمای سلامت رسمی | FA | MoH/official public patient-education locator | MoH patient-education role signal | MoH / official public education hosts | education/guidance pages role-locked PATIENT_EDUCATION | C4B-04 PUBLIC_HEALTH_GUIDANCE completion; clinical guideline auto | news mirrors / unofficial reprints as MoH | PASS |
+| C4B07-F-05 | آموزش به بیمار دانشگاه علوم پزشکی درباره ما معرفی رسمی | FA | publisher identity / about / mission for education hosts | legal/publisher identity | same official host family | about/mission/publisher evidence | statutory regulator status | personal faculty blogs as publisher | PASS |
+| C4B07-F-06 | آموزش به بیمار شرایط استفاده حریم خصوصی کپی رایت رسمی | FA | terms / privacy / copyright for education hosts | terms + reuse signals | same | terms/privacy/copyright URLs + states | reuse clearance | third-party TOU summaries as primary | PASS |
+| C4B07-F-07 | آموزش به بیمار robots.txt automation API رسمی | MIXED | robots / automation / public API signals | robots + automation | same | robots.txt / access-policy signals | automation permission from mere GET | paid API as free grant | PASS |
+| C4B07-F-08 | آموزش به بیمار بازبینی پزشکی مسئولیت علمی رسمی | FA | medical-review / scientific-responsibility signals (MR-1+ inputs) | MEDICAL_REVIEW / editorial responsibility | same | MR/reviewer/responsibility evidence | MR pack completion; publish approval | anonymous undated advice as MR-1+ | PASS |
+| C4B07-F-09 | آموزش به بیمار نویسنده هیئت تحریریه رسمی ایران | FA | authorship / editorial board transparency | AUTHORSHIP / EDITORIAL | same | author/editor identity evidence | runtime eligibility | unverifiable ghost authorship as PASS | PASS |
+| C4B07-F-10 | آموزش به بیمار استناد attribution شرایط بازنشر رسمی | MIXED | attribution / citation / reuse-notice pages | attribution + reuse notices | same official host family | attribution/reuse-notice evidence | FREE_AND_DISCOVERY_ELIGIBLE award | inferring permission from silence | PASS |
+
+```text
+STRATEGY_F_TEMPLATE_ALIGNMENT =
+  FA roots: «آموزش به بیمار» + «دانشگاه علوم پزشکی» / hospital / MoH (§99.7)
+  EN root: patient education Iran hospital (§99.7)
+  ownership signal = teaching hospital / uni / MoH
+  false-positive class = commercial clinics
+  min evidence before registration = MR-1+ evidence
+
+F-04_ROLE_LOCK_NOTE =
+  MoH patient-education discovery is in IR-SC-12 scope (§99.3/§145.7).
+  Hits remain PATIENT_EDUCATION role-locked.
+  Do NOT promote to C4B-04 PUBLIC_HEALTH_GUIDANCE completion
+  or clinical-guideline authority (R12).
+```
+
+### ۱۵۱.۶) Immutability law (Phase — permanent for C4B-07)
+
+```text
+ONE_QUERY_ID = ONE_EXACT_EXECUTABLE_QUERY_TEXT
+COPY_VERBATIM_REQUIRED = YES
+RUNTIME_PARAPHRASING = NO
+RUNTIME_SYNONYM_EXPANSION = NO
+RUNTIME_TRANSLATION = NO
+RUNTIME_TERM_SUBSTITUTION = NO
+FOLLOW_UP_QUERY_INVENTION = NO
+EXPLORATORY_QUERY = NO
+AD_HOC_SITE_QUERY = NO
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+IF_LATER_NETWORK_NEEDS_ANOTHER_QUERY =
+  STOP
+  REQUIRE separately approved preparation amendment Gate
+  DO NOT modify during Strategy-F network execution
+```
+
+### ۱۵۱.۷) Query hash / integrity contract (Phase G)
+
+```text
+HASH_ALGORITHM = SHA-256
+HASH_INPUT = exact UTF-8 bytes of EXACT_EXECUTABLE_QUERY_TEXT only
+  (no Markdown delimiters; no surrounding spaces added/removed)
+
+QUERY_SET_HASH_INPUT =
+  ordered concatenation for IDs C4B07-F-01..F-10 of:
+    QUERY_ID + LF + EXACT_EXECUTABLE_QUERY_TEXT + LF
+  UTF-8 encoded
+
+FUTURE_NETWORK_GATE_MUST_VERIFY_HASHES_BEFORE_EXECUTION = YES
+PER_ID_HASH_MISMATCH_OR_SET_MISMATCH =
+  STOP BEFORE NETWORK:
+  BLOCKED_QUERY_OR_HASH_CONTRACT_MISMATCH
+  NETWORK_ACTIONS_PERFORMED = 0
+```
+
+| QUERY_ID | UTF8_SHA256 |
+|---|---|
+| C4B07-F-01 | dcad9ac1637c1657b8d703ded568ab7f12ffa903fa2e8908d0ba16b1bd63be33 |
+| C4B07-F-02 | beb37d3d11a438cc6d4233f0af6927c8c9d47464705040dc4c865ef0de26a1ea |
+| C4B07-F-03 | 9e16a7105b4d1449300789c55303f9e8f1ac5b991ba1f9f0263b1627bc61b1b9 |
+| C4B07-F-04 | f33ea5862003c2cea737abdf086fc352b3fe0dfa3a8fe996d1ecb4d31dc1f285 |
+| C4B07-F-05 | 77bddc23c3f37b68de5753a4eb80ba622b43fc89fe4ea56e24651cc605921f3f |
+| C4B07-F-06 | 9cc2510406e66301aa401dd01c1bc18e5583d1eef11e87fdd0536edd18ceabf6 |
+| C4B07-F-07 | d05d15ecbfc5200f6ff81a39f296687c25c9973c801e1a8278e47886c67f1489 |
+| C4B07-F-08 | 6c33d67c447438d7920549074b20cbcfa99718d4a2393bdf7616642acd4a298e |
+| C4B07-F-09 | 889d95c55dca31560b112d601808f89e26f105c29b37454e608f08c013f2dcdd |
+| C4B07-F-10 | 9dda78f9837dcfbb00eeba8713d8d3309e9c2f2b4eea7e87c840a84c139f8d18 |
+
+```text
+QUERY_SET_SHA256 =
+382a7cc15293b673d56191b104fb12430fc3390677a0f635f56d9d9ddf94ae5f
+
+C4B07_QUERY_HASH_COUNT = 10
+C4B07_EXACT_QUERY_TEXT_COUNT = 10
+C4B07_QUERY_ID_TEXT_MAPPING_COMPLETE = YES
+C4B07_NETWORK_CONTRACT_RECONSTRUCTABLE = YES
+```
+
+### ۱۵۱.۸) Query semantic audit (Phase H)
+
+```text
+C4B07_QUERY_SEMANTIC_AUDIT = PASS_10_OF_10
+AUTHORITY_GAP_COUNT = 0
+SCOPE_BROADENING_INTO_GENERAL_WEB_HEALTH = NO
+SCOPE_BROADENING_INTO_CLINICAL_GUIDELINE = NO
+SCOPE_BROADENING_INTO_PROVIDER_DISCOVERY = NO
+SCOPE_BROADENING_INTO_COMMERCIAL_DISCOVERY = NO
+SCOPE_BROADENING_INTO_C4B05_06_08_09_PRIMARY = NO
+INSTITUTION_PREPOPULATION = NO
+```
+
+### ۱۵۱.۹) Bounded network budget (Phase I)
+
+```text
+CAP_DERIVATION =
+  Primary precedent = §143.8 conservative family caps
+  Supporting = §147 / §149 / §150 inheritance pattern for single-strategy child discovery
+  Rule = single Strategy F; reuse validated caps; do not increase;
+         discovery ≠ crawler-scale acquisition;
+         IR-SC-12 does not authorize a higher budget than prior C4B prep family
+  BUDGET_AUTHORITY_GAP = NO
+  INHERITANCE_DOCUMENTED = YES
+  Locked queries = 10 ≤ MAX_TOTAL_QUERIES 15
+```
+
+| Cap field | Locked value | Derivation |
+|---|---:|---|
+| MAX_TOTAL_QUERIES / MAX_QUERY_COUNT | 15 | §143.8 family |
+| LOCKED_EXECUTABLE_QUERIES | 10 | this contract |
+| MAX_ENGINES / SEARCH_ENGINE_COUNT_CAP | 2 | §143.8 |
+| MAX_RESULTS_PER_QUERY | 10 | §143.8 |
+| MAX_TOTAL_SEARCH_RESULTS | 100 | §143.8 |
+| MAX_UNIQUE_DOMAINS / MAX_OFFICIAL_DOMAINS_TO_OPEN | 10 | §143.8 |
+| MAX_PAGES_PER_DOMAIN | 5 | §143.8 |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 | §143.8 |
+| MAX_ROBOTS_REQUESTS / MAX_ROBOTS_FETCHES | 10 | §143.8 |
+| MAX_REDIRECT_DEPTH / MAX_REDIRECT_HOPS | 3 | §143.8 |
+| RETRIES / MAX_RETRIES_PER_REQUEST | 0 | §143.8 |
+| MAX_HTTP_REQUESTS / MAX_TOTAL_HTTP_REQUESTS | 40 | §143.8 |
+| MAX_CANDIDATES / MAX_CANDIDATES_RECORDED | 12 | §143.8 |
+| MAX_SECONDARY_SOURCE_PAGES | 5 | §143.8 |
+| MAX_QUERIES_PER_CANDIDATE | 4 | conservative prep-layer under §143.8 family |
+| MAX_DIRECT_PAGE_REQUESTS_PER_CANDIDATE | 5 | equals MAX_PAGES_PER_DOMAIN |
+| TIMEOUT_SECONDS / REQUEST_TIMEOUT_SECONDS | 30 | §143.8 |
+
+```text
+RETRY_POLICY = NONE
+BACKOFF_POLICY = NONE_AUTOMATIC
+DUPLICATE_REQUEST_POLICY = DO_NOT_REPEAT_IDENTICAL_URL_WITHIN_RUN
+BUDGET_EXCEED_BEHAVIOR = STOP_FAIL_CLOSED
+UNBOUNDED_NETWORK_CONTRACT = NO
+NETWORK_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۵۱.۱۰) Evidence contract (Phase J)
+
+Required capture fields for the future Strategy-F network Gate:
+
+| FIELD | CLASS | NOTES |
+|---|---|---|
+| CANDIDATE_ID | OBSERVED/ASSIGNED | stable C4B07-CAND-NN |
+| SOURCE_FAMILY | OBSERVED | must be IR-SC-12 or reject |
+| OFFICIAL_NAME | OBSERVED | fail-closed if not established |
+| OFFICIAL_DOMAIN | OBSERVED | official education host family |
+| QUERY_ID | OBSERVED | must be in C4B07-F-01..10 |
+| REQUEST_URL | OBSERVED | exact request |
+| FINAL_URL | OBSERVED | redirects ≤ MAX_REDIRECT_DEPTH |
+| RETRIEVAL_STATUS | OBSERVED | incl. timeout/404/blocked |
+| PAGE_ROLE | OBSERVED/INFERRED_LABELED | landing/about/terms/robots/education-index/MR/... |
+| EVIDENCE_TYPE | OBSERVED | identity/education/MR/terms/robots/editorial/... |
+| EVIDENCE_LOCATION | OBSERVED | URL + locator |
+| OBSERVED_FACT | OBSERVED | metadata only; no clinical body harvest |
+| OBSERVED_DATE | OBSERVED | capture timestamp |
+| PROVENANCE | OBSERVED | first-party / labeled secondary |
+| AUTHORITY_STATUS | OBSERVED/UNKNOWN | not clearance |
+| PATIENT_EDUCATION_STATUS | OBSERVED/UNKNOWN | role confirmation |
+| EDITORIAL_STATUS | OBSERVED/UNKNOWN | |
+| MEDICAL_REVIEW_STATUS | OBSERVED/UNKNOWN | MR-1+ inputs; not MR completion |
+| AUTHORSHIP_STATUS | OBSERVED/UNKNOWN | |
+| TERMS_STATUS | OBSERVED/UNKNOWN | |
+| PRIVACY_STATUS | OBSERVED/UNKNOWN | |
+| ROBOTS_STATUS | OBSERVED/UNKNOWN | |
+| AUTOMATION_STATUS | OBSERVED/UNKNOWN | default UNKNOWN_FAIL_CLOSED |
+| REUSE_STATUS | OBSERVED/UNKNOWN | default UNKNOWN_FAIL_CLOSED |
+| ATTRIBUTION_STATUS | OBSERVED/UNKNOWN | |
+| COPYRIGHT_OR_LICENSE | OBSERVED/UNKNOWN | |
+| CONTENT_QUALITY_STATUS | OBSERVED/UNKNOWN | §99.15 checks metadata-level |
+| MISINFORMATION_RISK | OBSERVED/UNKNOWN/FAIL_CLOSED | evidence-based; topic alone ≠ unsafe |
+| CONTRADICTION_STATUS | OBSERVED | OPEN if conflict |
+| STOP_REASON | OBSERVED/NOT_APPLICABLE | |
+
+```text
+ALLOWED_FIELD_STATES =
+  OBSERVED | INFERRED | UNKNOWN | NOT_APPLICABLE | FAIL_CLOSED
+NO_EVIDENCE_FIELD_IMPLIES_APPROVAL = YES
+SEARCH_SNIPPET_IS_AUTHORITATIVE_EVIDENCE = NO
+CONTENT_BODY_ACQUISITION = NO
+```
+
+### ۱۵۱.۱۱) Candidate ledger schema (Phase K)
+
+```text
+STABLE_CANDIDATE_IDS = C4B07-CAND-NN
+MAX_CANDIDATES = 12
+CANDIDATES_CREATED_BY_THIS_GATE = 0
+```
+
+Required status fields on each future candidate row:
+
+| STATUS_FIELD | DEFAULT_BEFORE_NETWORK | NOTES |
+|---|---|---|
+| IDENTITY | UNKNOWN | fail-closed until observed |
+| DOMAIN | UNKNOWN | |
+| SOURCE_CLASS | MUST_BE_IR-SC-12 | else exclude |
+| PATIENT_EDUCATION_ROLE | UNKNOWN | != guideline |
+| EDITORIAL | UNKNOWN | |
+| MEDICAL_REVIEW | UNKNOWN | MR-1+ inputs only |
+| AUTHORSHIP | UNKNOWN | |
+| TERMS | UNKNOWN_FAIL_CLOSED | |
+| ROBOTS | UNKNOWN | |
+| AUTOMATION | UNKNOWN_FAIL_CLOSED | |
+| REUSE | UNKNOWN_FAIL_CLOSED | |
+| ATTRIBUTION | UNKNOWN_FAIL_CLOSED | |
+| RIGHTS | UNKNOWN_FAIL_CLOSED | |
+| CONTENT_QUALITY | UNKNOWN_FAIL_CLOSED | |
+| NETWORK_RESULT | NOT_EXECUTED | |
+| DISCOVERY_STATE | NOT_STARTED | |
+| FULL_CHILD_ELIGIBILITY | NO | until packs complete |
+| OVERLAY_IMPACT | OPEN_CHILD | |
+| ACTIVATION_STATE | NO | hard lock |
+| RESIDUAL_IDS | required for every UNKNOWN | |
+
+```text
+NO_ORPHAN_UNKNOWN = YES
+EVERY_UNKNOWN_MAPS_TO =
+  RESIDUAL_ID + OWNER + DEPENDENCY + CLOSURE_CRITERIA + NEXT_GATE
+```
+
+### ۱۵۱.۱۲) Quality / safety / misinformation contract (Phase L)
+
+```text
+TOPIC_ALONE_DOES_NOT_LABEL_UNSAFE = YES
+EVIDENCE_BASED_STATUSES_REQUIRED = YES
+LOW_QUALITY_OR_UNCLEAR = FAIL_CLOSED
+
+EXCLUSION_OR_FLAG_TRIGGERS (require observed evidence; do not invent) =
+  unsupported treatment claims
+  miracle cures / pseudoscience markers
+  unreviewed medical advice presented as authoritative
+  anonymous health claims
+  outdated advice without date/review signals
+  unsafe self-treatment instructions
+  marketing disguised as patient education
+  content contradicting authoritative safety guidance (when such contradiction is observed)
+  low-transparency authorship
+  unverifiable editorial ownership
+  SEO content farms / scraped copies (§99.15)
+
+MR_RELATION =
+  discovery may capture MR-1+ *inputs*
+  discovery does NOT complete MR-1 / MR-2 / MR-3 / MR-4 publish decisions
+```
+
+### ۱۵۱.۱۳) Rights / terms / robots / automation (Phase M)
+
+```text
+REQUIRED_SEPARATE_DETERMINATIONS =
+  TERMS_RETRIEVED
+  PRIVACY_STATUS
+  COPYRIGHT_OR_LICENSE
+  ROBOTS_STATUS
+  AUTOMATION_PERMISSION
+  REUSE_PERMISSION
+  ATTRIBUTION_REQUIREMENT
+  RATE_LIMIT_OR_USAGE_LIMIT
+
+PERMANENT_LAWS =
+  PUBLIC_ACCESS != REUSE_PERMISSION
+  ROBOTS_ALLOW != REUSE_PERMISSION
+  ROBOTS_ALLOW != COPYRIGHT_PERMISSION
+  SOURCE_IDENTITY != AUTOMATION_PERMISSION
+  ABSENCE_OF_PROHIBITION != PERMISSION
+  NO_SELF_UPGRADE = YES
+
+UNKNOWN_PERMISSION_STATE = FAIL_CLOSED
+```
+
+### ۱۵۱.۱۴) Contamination / duplicate controls (Phase N)
+
+```text
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+STOP_ON_UNAUTHORIZED_QUERY = YES (§150/§147 STOP-02 lesson)
+
+PROTECT_AGAINST =
+  unlocked query execution
+  query mutation / paraphrase / translation / synonym expansion
+  source-family leakage (into C4B-05/06/08/09 primaries or commercial)
+  commercial / SEO source promotion
+  search snippet used as proof
+  domain-only identity proof
+  duplicate candidates (merge only on proven same education-publisher identity keys;
+    title/display-name merge alone FORBIDDEN)
+  alias domains / redirect confusion (record FINAL_URL; reject lookalikes)
+  cross-candidate evidence mixing
+  same content mirrored across domains without provenance
+  patient-education page promoted to clinical-guideline authority (R12)
+  low-quality content promoted merely because it is Persian
+
+SECONDARY_COMMERCIAL_SOURCE_PROMOTION = FORBIDDEN
+CONTENT_BODY_ACQUISITION = FORBIDDEN_IN_DISCOVERY
+```
+
+### ۱۵۱.۱۵) STOP conditions (Phase O)
+
+| STOP_ID | TRIGGER | REQUIRED_ACTION | RESULTS_USABLE? | CONTAMINATION_IMPACT | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|
+| C4B07-STOP-01 | baseline mismatch before/during network Gate | abort; no ledger mutation beyond abort record | NO for new claims | preserve audit | Governance | re-baseline | baseline match | re-baseline Gate |
+| C4B07-STOP-02 | query/hash mismatch vs this §151 | stop before/at network; zero unlocked substitute | NO | none if stopped pre-use | Governance | §151 hashes | hash PASS | prep amendment if needed |
+| C4B07-STOP-03 | unlocked / mutated / non-locked query transmitted | stop; record violation; no silent use | NO for unlocked results | quarantine unlocked results | Governance | STOP-02 lesson | disposition | disposition Gate |
+| C4B07-STOP-04 | scope expansion beyond IR-SC-12 / Strategy F | reject/exclude; do not promote | NO as C4B-07 primary | keep OOS separate | Data/Knowledge | child routing | OOS clean | route to correct child |
+| C4B07-STOP-05 | any hard budget cap exhausted | stop fail-closed | partial locked evidence if uncontaminated | none if halted | Knowledge Ops | budget | residual/budget Gate | residual Gate |
+| C4B07-STOP-06 | candidate source-class ambiguity requiring invention | stop candidate; no invention | NO until resolved | none | Governance/Security | identity | identity residual | identity Gate |
+| C4B07-STOP-07 | commercial/SEO/clinic contamination as primary | exclude; do not promote | NO as primary | quarantine if mixed | Medical/Safety | §99.7 FP class | clean ledger | residual / exclude |
+| C4B07-STOP-08 | legal/product decision required beyond contract | stop that decision path; keep fail-closed | metadata only | none | Legal / Javad | product/legal | explicit decision | legal/product Gate |
+| C4B07-STOP-09 | robots/terms ambiguity needing new authority | record UNKNOWN_FAIL_CLOSED; no self-upgrade | authority rows may remain; rights uncleared | none | Legal/Security | terms/robots | rights residual | rights Gate |
+| C4B07-STOP-10 | credentials / CAPTCHA / login / paid wall | stop path; no bypass | NO for blocked path | none | Security | residual | exclude or later auth Gate | residual |
+| C4B07-STOP-11 | robots/terms bypass / unrestricted crawl / bulk harvest temptation | refuse; stop | NO | high if performed | Security/Governance | prohibited | none (hard refuse) | n/a |
+| C4B07-STOP-12 | unsafe-content classification ambiguity requiring clinical judgment beyond metadata | keep FAIL_CLOSED; do not invent unsafe/safe label | metadata only | none | Medical/Safety | MR/safety Gates | evidence-based status | safety residual Gate |
+| C4B07-STOP-13 | need for source activation / crawler / runtime enable | refuse; stop | N/A | n/a | Governance | activation lock | not authorized here | n/a |
+| C4B07-STOP-14 | attempt to treat patient-education as clinical-guideline authority (R12) | reject misuse | NO for misuse claim | record R12 | Medical/Safety | E2-C4D | misuse control | E2-C4D |
+
+```text
+STOP_SET_FINITE = YES
+STOP_COUNT = 14
+C4B07-STOP-01 .. C4B07-STOP-14 = LOCKED
+```
+
+### ۱۵۱.۱۶) Completion-state contract (Phase P)
+
+```text
+C4B_07_REPOSITORY_PREPARATION_COMPLETE =
+  YES after this §151 locks scope/queries/hashes/budget/evidence/STOPs
+  (this Gate sets it YES)
+
+C4B_07_NETWORK_DISCOVERY_EXECUTED =
+  NO until separately approved Strategy-F network Gate runs
+
+C4B_07_NETWORK_RESULT_VALID =
+  NO until network Gate completes with:
+    pre-network hash PASS;
+    locked queries only;
+    budget respected;
+    STOP contract respected;
+    provenance present;
+    no contamination / no snippet-as-proof;
+    OOS not used as proof
+
+C4B_07_DISCOVERY_SUBSTEP_COMPLETE =
+  NO until NETWORK_RESULT_VALID=YES and governed candidate ledger
+  recorded under this contract
+  (or CLOSED_WITH_RESIDUAL via later explicit governance disposition)
+
+C4B_07_FULL_CHILD_COMPLETE =
+  NO until MR-1+ inputs + terms/rights/automation packs complete
+  AND separate rights/automation clearance pattern
+  (FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE)
+  AND no R12 misuse
+
+C4B_07_SOURCE_ACTIVATED =
+  NO (activation forbidden by this contract and permanent locks)
+
+STATE_SEPARATION_LOCKS =
+  preparation ≠ network execution
+  network executed ≠ result valid
+  valid discovery ≠ MR completion
+  valid discovery ≠ rights clearance
+  full child ≠ runtime activation
+  PATIENT_EDUCATION ≠ CLINICAL_GUIDELINE
+```
+
+### ۱۵۱.۱۷) Evidence Overlay impact (Phase Q)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS (preserved)
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY (preserved)
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| Overlay need | WHAT_C4B07_MUST_PRODUCE | MAY_DEFER_WITH_OWNER? | MUST_REMAIN_FAIL_CLOSED? | BLOCKS_FULL_CHILD? | BLOCKS_EO? | BLOCKS_ACTIVATION? | BLOCKS_P2_FOUNDATION? |
+|---|---|---|---|---|---|---|---|
+| EO-C03 mandatory children | Strategy-F discovery packs under this contract | only after governed disposition | open child until discovery/disposition | YES while open | YES | YES | NO |
+| EO-C04 rights/terms | terms evidence fields | YES with owner | YES | YES if undeferred unknown | YES | YES | NO |
+| EO-C05 automation | robots/automation fields | YES with owner | YES | YES if undeferred unknown | YES | YES | NO |
+| EO-C06 authority/provenance | identity/MR-input/editorial provenance | partial | unknowns fail-closed | YES while missing undeferred | YES | YES | NO |
+| EO-C07 acquisition eligibility | eligibility decision records | YES (remain unknown) | YES default | YES if claiming eligible without evidence | YES | YES | NO |
+| EO-C08 owned unknowns | residual matrix with owners | YES | YES | YES if orphan unknowns | YES | YES | NO |
+
+```text
+WHAT_BLOCKS_FULL_CHILD =
+  missing valid discovery ledger; uncleared terms/rights/automation;
+  incomplete MR-1+ inputs; R12 misuse; orphan unknowns
+
+WHAT_BLOCKS_EVIDENCE_OVERLAY =
+  open C4B-07 child + EO rights/automation/authority gaps
+
+WHAT_BLOCKS_SOURCE_ACTIVATION =
+  all of the above + permanent activation lock
+
+WHAT_DOES_NOT_BLOCK_P2_FOUNDATION =
+  open C4B-07 discovery/full-child (foundation readiness remains
+  READY_WITH_EXPLICIT_GAPS; P2_STARTED remains NO)
+```
+
+### ۱۵۱.۱۸) Weekly knowledge-growth forward compatibility (Phase R)
+
+```text
+PERMANENT_I5_LAW =
+  SOURCE_DISCOVERY != KNOWLEDGE_GROWTH
+
+IMPLEMENTATION_IN_THIS_GATE = NO
+
+FORWARD_PIPELINE_MUST_SUPPORT =
+  DISCOVER
+  → GOVERNED ACQUIRE
+  → IMMUTABLE RAW STORE
+  → DEDUPE
+  → VERSION / DIFF
+  → PROVENANCE
+  → QUALITY / SAFETY GOVERNANCE
+  → APPROVED PUBLICATION
+  → RUNTIME GROUNDING
+  → SUPERSEDE / DEPRECATE / REVOKE
+
+FOR_APPROVED_C4B07_SOURCES_AFTER_RIGHTS_AND_MR_CLEARANCE_LATER_CRAWLERS_SHOULD_DETECT =
+  new Persian patient-education pages
+  new disease/self-care education
+  revised guidance
+  updated safety notices
+  changed editorial ownership
+  changed rights/terms
+  withdrawn or obsolete materials
+
+C4B-07_NOT_A_ONE_TIME_STATIC_DIRECTORY = YES
+S3-W2 does not implement crawler behavior.
+Weekly knowledge-growth law (§137/§138/§145.3) remains unchanged.
+```
+
+### ۱۵۱.۱۹) Exact Strategy-F network Gate (Phase S) — NOT EXECUTED
+
+```text
+GATE_NAME =
+SECTION-28 / STAGE-3-OF-14 / C4B-07 STRATEGY-F CONTROLLED NETWORK DISCOVERY
+(short: C4B-07 / STRATEGY-F CONTROLLED NETWORK DISCOVERY)
+
+QUERY_IDS =
+C4B07-F-01 .. C4B07-F-10
+
+EXACT_QUERY_SET_HASH =
+382a7cc15293b673d56191b104fb12430fc3390677a0f635f56d9d9ddf94ae5f
+
+PER_ID_HASH_REQUIREMENT =
+  verify every UTF8_SHA256 in §151.7 before any network action
+  PER_ID_HASH_MATCH = PASS_10_OF_10 required
+  QUERY_SET_HASH_MATCH = PASS required
+
+NETWORK_BUDGET =
+  as §151.9 hard caps
+
+ALLOWED_TARGET_SCOPE =
+  IR-SC-12 Iranian official Persian patient-education sources only
+  Strategy F only
+  university / teaching-hospital / MoH education hosts
+  PATIENT_EDUCATION role lock
+  MoH hits NOT auto-promoted to C4B-04 guidance completion
+
+EVIDENCE_FIELDS =
+  §151.10
+
+STOP_SET =
+  C4B07-STOP-01 .. C4B07-STOP-14
+
+PROHIBITED_ACTIONS =
+  unlocked / mutated queries
+  content-body acquisition / bulk harvest
+  ingestion / publication / runtime grounding
+  source / crawler / flag activation
+  treating patient-education as clinical-guideline authority (R12)
+  paid credential / CAPTCHA bypass / login scraping
+  scope leak to C4B-05/06/08/09 primaries or commercial clinics as primary
+  commit/push/CI/tests unless separately authorized
+
+NETWORK_VALIDITY_CRITERIA =
+  hash verification PASS before network
+  locked queries only
+  budget respected
+  STOP contract respected
+  provenance present
+  no contamination / no cross-candidate mix
+  snippets not proof
+  OOS not used as C4B-07 proof
+
+DISCOVERY_COMPLETION_CRITERIA =
+  NETWORK_RESULT_VALID = YES
+  governed C4B07-CAND ledger recorded
+  every UNKNOWN owned as residual
+  no activation
+
+FAIL_CLOSED_BEHAVIOR =
+  on any STOP: halt; preserve audit; do not self-upgrade rights/MR/guideline role;
+  do not mark NETWORK_RESULT_VALID without compliance
+
+NETWORK_GATE_AUTHORIZED_BY_THIS_GATE = NO
+NETWORK_GATE_EXECUTION = NOT AUTHORIZED BY THIS TASK
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۵۱.۲۰) Operations NOT performed
+
+```text
+NO network
+NO search
+NO HTTP
+NO browser
+NO external API / external evidence
+NO query execution
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO P2/P3/P4/P5/P6
+NO migration / DB / deploy / build / frontend
+NO source / crawler / flag activation
+NO C4B-08 execution
+NO Stage 4
+NO rewrite of §§1–150
+NO candidates claimed
+NO institutions prepopulated from model memory
+```
+
+### ۱۵۱.۲۱) Exact next Gate
+
+```text
+NEXT_GATE =
+C4B-07 / STRATEGY-F CONTROLLED NETWORK DISCOVERY
+
+MANDATORY_PRECHECKS_FOR_THAT_GATE =
+  verify EXACT_EXECUTABLE_QUERY_TEXT for C4B07-F-01..F-10 from this §151
+  verify UTF8_SHA256 and QUERY_SET_SHA256
+  copy queries verbatim
+  enforce §151.9 budget + §151.15 STOP set
+  no paraphrase / translation / substitution
+  preserve PATIENT_EDUCATION != CLINICAL_GUIDELINE
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۱.۲۲) Preparation completion markers / execution state
+
+```text
+C4B_07_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_07_PREPARATION_CONTRACT =
+  LOCKED_BY_THIS_SECTION
+  (closes §145.7 REPOSITORY_PREPARATION_CONTRACT = AUTHORITY_NOT_FOUND)
+
+C4B_07_NETWORK_DISCOVERY_EXECUTED = NO
+C4B_07_NETWORK_RESULT_VALID = NO
+C4B_07_DISCOVERY_SUBSTEP_COMPLETE = NO
+C4B_07_FULL_CHILD_COMPLETE = NO
+C4B_07_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+STAGE_1 = CLOSED
+STAGE_2 = DOCUMENTED_UNCOMMITTED
+S3_W0 = DOCUMENTED_UNCOMMITTED
+S3_W1 / C4B-06 prep+network docs = DOCUMENTED_UNCOMMITTED (preserved)
+S3_W2_PREPARATION = DOCUMENTED_UNCOMMITTED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+C4B07_PREPARATION_CONTRACT_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — C4B-07 PREPARATION CONTRACT LOCKED
+```
+
+### ۱۵۱.۲۳) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+0d09f94cbd8e5ee835c79d1e707b1b3120d3dd36e32f9ee4a59ddc6ff1e16fe5
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–150_PRESERVED = YES
+§151_ONLY_NEW_SECTION = YES
+§151_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۱ — SECTION-28 STAGE-3-OF-14 S3-W2 C4B-07 Persian Patient-Education Discovery Preparation Contract — C4B07_PREPARATION_CONTRACT_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۲) SECTION-28 STAGE-3-OF-14 — C4B-07 STRATEGY-F CONTROLLED NETWORK DISCOVERY
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 —
+C4B-07 / STRATEGY-F CONTROLLED NETWORK DISCOVERY
+
+MODE =
+CONTROLLED_NETWORK / APPEND_ONLY / FAIL_CLOSED /
+NO_QUERY_MODIFICATION / NO_UNLOCKED_QUERY /
+NO_UNRESTRICTED_CRAWL / NO_BULK_CONTENT_INGESTION /
+NO_SOURCE_ACTIVATION / NO_P2 / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH
+
+Owner:
+Medical/Safety + Governance / Continuity
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for controlled Strategy-F network discovery
+ONLY within exact locked §151 contract
+
+CHILD = C4B-07
+CANONICAL_NAME = Persian patient-education discovery approval
+SOURCE_FAMILY = IR-SC-12
+STRATEGY = Strategy F
+OD_PACK = OD-C4A-12
+PREPARATION_CONTRACT = §151
+
+Baseline (verified before network):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §151
+  §§145–151 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+  §151 exact queries + full per-ID hashes + QUERY_SET_SHA256 = PRESENT
+  §151 budget + evidence + candidate schema + C4B07-STOP-01..14 = PRESENT
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+f70f785b2540be29090e927368a7cc281d0d0751ea2551c252b000c2ab5396ef
+```
+
+### ۱۵۲.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_ALLOWED_AFTER_PREFLIGHT = YES
+```
+
+### ۱۵۲.۲) Exact query / hash verification (Phase B — pre-network)
+
+```text
+EXACT_QUERY_TEXT_COUNT = 10
+QUERY_ID_TEXT_MAPPING = 1_TO_1
+COPY_VERBATIM_REQUIRED = YES
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+HASH_SOURCE = §151.7 full UTF8_SHA256 rows (not truncated report hashes)
+HASH_ALGORITHM = SHA-256
+HASH_INPUT = exact UTF-8 bytes of EXACT_EXECUTABLE_QUERY_TEXT only
+QUERY_SET_HASH_INPUT = ordered (QUERY_ID + LF + EXACT_EXECUTABLE_QUERY_TEXT + LF)
+  for C4B07-F-01..F-10
+```
+
+| QUERY_ID | EXACT_EXECUTABLE_QUERY_TEXT | LANG | UTF8_SHA256 (§151) | RECOMPUTED | MATCH |
+|---|---|---|---|---|---|
+| C4B07-F-01 | آموزش به بیمار دانشگاه علوم پزشکی سایت رسمی | FA | dcad9ac1637c1657b8d703ded568ab7f12ffa903fa2e8908d0ba16b1bd63be33 | same | PASS |
+| C4B07-F-02 | آموزش به بیمار بیمارستان آموزشی ایران سایت رسمی | FA | beb37d3d11a438cc6d4233f0af6927c8c9d47464705040dc4c865ef0de26a1ea | same | PASS |
+| C4B07-F-03 | patient education Iran hospital official site | EN | 9e16a7105b4d1449300789c55303f9e8f1ac5b991ba1f9f0263b1627bc61b1b9 | same | PASS |
+| C4B07-F-04 | آموزش به بیمار وزارت بهداشت راهنمای سلامت رسمی | FA | f33ea5862003c2cea737abdf086fc352b3fe0dfa3a8fe996d1ecb4d31dc1f285 | same | PASS |
+| C4B07-F-05 | آموزش به بیمار دانشگاه علوم پزشکی درباره ما معرفی رسمی | FA | 77bddc23c3f37b68de5753a4eb80ba622b43fc89fe4ea56e24651cc605921f3f | same | PASS |
+| C4B07-F-06 | آموزش به بیمار شرایط استفاده حریم خصوصی کپی رایت رسمی | FA | 9cc2510406e66301aa401dd01c1bc18e5583d1eef11e87fdd0536edd18ceabf6 | same | PASS |
+| C4B07-F-07 | آموزش به بیمار robots.txt automation API رسمی | MIXED | d05d15ecbfc5200f6ff81a39f296687c25c9973c801e1a8278e47886c67f1489 | same | PASS |
+| C4B07-F-08 | آموزش به بیمار بازبینی پزشکی مسئولیت علمی رسمی | FA | 6c33d67c447438d7920549074b20cbcfa99718d4a2393bdf7616642acd4a298e | same | PASS |
+| C4B07-F-09 | آموزش به بیمار نویسنده هیئت تحریریه رسمی ایران | FA | 889d95c55dca31560b112d601808f89e26f105c29b37454e608f08c013f2dcdd | same | PASS |
+| C4B07-F-10 | آموزش به بیمار استناد attribution شرایط بازنشر رسمی | MIXED | 9dda78f9837dcfbb00eeba8713d8d3309e9c2f2b4eea7e87c840a84c139f8d18 | same | PASS |
+
+```text
+PER_ID_HASH_MATCH = PASS_10_OF_10
+QUERY_SET_SHA256_EXPECTED =
+  382a7cc15293b673d56191b104fb12430fc3390677a0f635f56d9d9ddf94ae5f
+QUERY_SET_SHA256_RECOMPUTED =
+  382a7cc15293b673d56191b104fb12430fc3390677a0f635f56d9d9ddf94ae5f
+QUERY_SET_HASH_MATCH = PASS
+C4B07_NETWORK_CONTRACT_RECONSTRUCTED = YES
+BLOCKED_QUERY_OR_HASH_CONTRACT_MISMATCH = NO
+NETWORK_ACTIONS_BEFORE_HASH_PASS = 0
+```
+
+### ۱۵۲.۳) Reconstructed §151 network budget (Phase C)
+
+| Cap field | Locked value (§151.9) |
+|---|---:|
+| MAX_TOTAL_QUERIES / MAX_QUERY_COUNT | 15 |
+| LOCKED_EXECUTABLE_QUERIES | 10 |
+| MAX_ENGINES | 2 |
+| MAX_RESULTS_PER_QUERY | 10 |
+| MAX_TOTAL_SEARCH_RESULTS | 100 |
+| MAX_UNIQUE_DOMAINS | 10 |
+| MAX_PAGES_PER_DOMAIN | 5 |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 |
+| MAX_ROBOTS_REQUESTS | 10 |
+| MAX_REDIRECT_DEPTH | 3 |
+| RETRIES | 0 |
+| MAX_HTTP_REQUESTS | 40 |
+| MAX_CANDIDATES | 12 |
+| MAX_SECONDARY_SOURCE_PAGES | 5 |
+| MAX_QUERIES_PER_CANDIDATE | 4 |
+| MAX_DIRECT_PAGE_REQUESTS_PER_CANDIDATE | 5 |
+| TIMEOUT_SECONDS | 30 |
+
+```text
+BUDGET_CONTRACT_COMPLETE = YES
+BLOCKED_NETWORK_BUDGET_CONTRACT_INCOMPLETE = NO
+UNBOUNDED_VALUE_CREATED = NO
+```
+
+### ۱۵۲.۴) Query execution ledger (Phase D)
+
+```text
+ENGINE = Search-A (web search tool; 1 of MAX_ENGINES=2)
+SEARCH_SNIPPET_IS_PROOF = NO
+ALL_QUERIES_COPIED_VERBATIM_FROM_§151 = YES
+UNAUTHORIZED_UNLOCKED_QUERY_TRANSMISSIONS = 0
+MODIFIED_QUERY = NO
+```
+
+| QUERY_ID | EXACT_QUERY_TEXT | QUERY_HASH | ENGINE | EXECUTION | RESULT_COUNT (≤10) | RESULTS_INSPECTED | BUDGET_BEFORE | BUDGET_AFTER | STOP | NOTES (hints only) |
+|---|---|---|---|---|---:|---:|---:|---:|---|---|
+| C4B07-F-01 | آموزش به بیمار دانشگاه علوم پزشکی سایت رسمی | dcad9ac1… | Search-A | 2026-07-27 | ≤10 | ≤10 | 0/15 | 1/15 | NO | kums sub-hospital education hosts; mpgh.bpums.ac.ir; OOS none promoted from SEO |
+| C4B07-F-02 | آموزش به بیمار بیمارستان آموزشی ایران سایت رسمی | beb37d3d… | Search-A | 2026-07-27 | ≤10 | ≤10 | 1/15 | 2/15 | NO | fatemi.arums.ac.ir; kums hosts; OOS askariehospital.com commercial clinic excluded |
+| C4B07-F-03 | patient education Iran hospital official site | 9e16a710… | Search-A | 2026-07-27 | ≤10 | ≤10 | 2/15 | 3/15 | NO | imamreza/taleghani kums; OOS gov.uk / private mehrmashhad / journal npt.tums excluded |
+| C4B07-F-04 | آموزش به بیمار وزارت بهداشت راهنمای سلامت رسمی | f33ea586… | Search-A | 2026-07-27 | ≤10 | ≤10 | 3/15 | 4/15 | NO | mostly uni hospital pages + accreditation PDFs; no clean behdasht.gov.ir patient-ed landing recovered |
+| C4B07-F-05 | آموزش به بیمار دانشگاه علوم پزشکی درباره ما معرفی رسمی | 77bddc23… | Search-A | 2026-07-27 | ≤10 | ≤10 | 4/15 | 5/15 | NO | unit intro pages (farabi/fatemi/taleghani) |
+| C4B07-F-06 | آموزش به بیمار شرایط استفاده حریم خصوصی کپی رایت رسمی | 9cc25104… | Search-A | 2026-07-27 | ≤10 | ≤10 | 5/15 | 6/15 | NO | OOS HIPAA blogs / physician privacy / journal TOU; no first-party education-host TOU promoted |
+| C4B07-F-07 | آموزش به بیمار robots.txt automation API رسمی | d05d15ec… | Search-A | 2026-07-27 | ≤10 | ≤10 | 6/15 | 7/15 | NO | generic robots SEO guides only; first-party robots fetched later |
+| C4B07-F-08 | آموزش به بیمار بازبینی پزشکی مسئولیت علمی رسمی | 6c33d67c… | Search-A | 2026-07-27 | ≤10 | ≤10 | 7/15 | 8/15 | NO | legal/consent articles OOS; hospital unit pages used later for nursing-lead signals only |
+| C4B07-F-09 | آموزش به بیمار نویسنده هیئت تحریریه رسمی ایران | 889d95c5… | Search-A | 2026-07-27 | ≤10 | ≤10 | 8/15 | 9/15 | NO | weak/editorial-journal noise; no verified education-page author boards recovered |
+| C4B07-F-10 | آموزش به بیمار استناد attribution شرایط بازنشر رسمی | 9dda78f9… | Search-A | 2026-07-27 | ≤10 | ≤10 | 9/15 | 10/15 | NO | journal CC licenses (C4B-08 family) — not promoted as C4B-07 reuse proof |
+
+```text
+QUERIES_EXECUTED = 10
+LOCKED_QUERIES_EXECUTED = 10
+UNLOCKED_QUERIES_EXECUTED = 0
+ENGINES_USED = 1
+RESULTS_INSPECTED_TOTAL = ≤100
+```
+
+### ۱۵۲.۵) Budget consumption (live / final)
+
+| Cap | Limit | Actual | Remaining | Exceeded |
+|---|---:|---:|---:|---|
+| MAX_TOTAL_QUERIES | 15 | 10 | 5 | NO |
+| LOCKED_QUERIES | 10 | 10 | 0 | NO |
+| MAX_ENGINES | 2 | 1 | 1 | NO |
+| MAX_RESULTS_PER_QUERY | 10 | ≤10 | — | NO |
+| MAX_UNIQUE_DOMAINS | 10 | 8 hosts opened/attempted | 2 | NO |
+| MAX_PAGES_PER_DOMAIN | 5 | max 2 (imamreza; taleghani) | — | NO |
+| MAX_ROBOTS_REQUESTS | 10 | 4 | 6 | NO |
+| MAX_REDIRECT_DEPTH | 3 | ≤1 (kums apex robots moved) | — | NO |
+| RETRIES | 0 | 0 | — | NO |
+| MAX_HTTP_REQUESTS | 40 | 12 direct retrieval attempts (+10 search) | ≥18 | NO |
+| MAX_CANDIDATES | 12 | 6 | 6 | NO |
+| TIMEOUT_SECONDS | 30 | 1 timeout (mpgh); no retry | — | NO |
+
+```text
+QUERIES_EXECUTED = 10
+ENGINES_USED = 1
+RESULTS_INSPECTED = ≤100
+UNIQUE_DOMAINS = 8
+  motazedi.kums.ac.ir, farabi.kums.ac.ir, imamreza.kums.ac.ir,
+  taleghani.kums.ac.ir, fatemi.arums.ac.ir, mpgh.bpums.ac.ir,
+  www.kums.ac.ir / kums.ac.ir, arums.ac.ir
+DIRECT_PAGE_REQUESTS = 8
+ROBOTS_REQUESTS = 4
+REDIRECT_DEPTH_MAX_OBSERVED = 1
+TOTAL_HTTP_REQUESTS = 12 direct retrieval attempts
+CANDIDATES_CREATED = 6
+RETRIES_USED = 0
+NUMERIC_HARD_CAP_EXCEED_CONFIRMED = NO
+BUDGET_EXPANSION = NO
+```
+
+### ۱۵۲.۶) Candidate ledger (Phase E)
+
+```text
+SOURCE_FAMILY = IR-SC-12
+ROLE_LOCK = PATIENT_EDUCATION
+PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY
+MoH_HIT_DOES_NOT_AUTO_COMPLETE_C4B04 = YES (no MoH primary candidate recovered)
+UNIVERSITY_HIT_DOES_NOT_AUTO_CLOSE_C4B05 = YES
+SEARCH_SNIPPET_USED_AS_PROOF = NO
+OUT_OF_SCOPE_NOT_PROMOTED =
+  askariehospital.com / mehrmashhadhospital.ir (commercial/private clinics)
+  gov.uk country note
+  npt.tums.ac.ir / pejouhesh.sbmu.ac.ir (journals → C4B-08)
+  SEO robots blogs; HIPAA commercial blogs; individual physician sites
+```
+
+| CANDIDATE_ID | OBSERVED_NAME | OBSERVED_DOMAIN | DISCOVERY_QUERY_ID | SOURCE_CLASS | PATIENT_EDUCATION_ROLE | WHY_IN_SCOPE | EXCLUSION_CHECK | INITIAL_STATUS |
+|---|---|---|---|---|---|---|---|---|
+| C4B07-CAND-01 | آموزش به بیمار — بیمارستان معتضدی / KUMS | motazedi.kums.ac.ir | C4B07-F-01, F-05 | IR-SC-12 (uni/teaching-hospital education) | YES (index of patient-education topics) | official KUMS hospital education portal | not commercial clinic | ACCEPTED_WITH_RESIDUALS |
+| C4B07-CAND-02 | واحد آموزش به بیمار — مرکز آ.د. فارابی / KUMS | farabi.kums.ac.ir | C4B07-F-01, F-02, F-05 | IR-SC-12 | YES | teaching-hospital unit with process description | not SEO blog | ACCEPTED_WITH_RESIDUALS |
+| C4B07-CAND-03 | آموزش به بیمار — مجتمع امام رضا / KUMS | imamreza.kums.ac.ir | C4B07-F-01, F-03 | IR-SC-12 | YES | education unit + pamphlet index | not journal | ACCEPTED_WITH_RESIDUALS |
+| C4B07-CAND-04 | واحد آموزش و پیگیری بیمار — طالقانی / KUMS | taleghani.kums.ac.ir | C4B07-F-03, F-05 | IR-SC-12 | YES | education+follow-up unit + pamphlets | not facility-licensing primary (C4B-02 fence) | ACCEPTED_WITH_RESIDUALS |
+| C4B07-CAND-05 | واحد آموزش به بیمار — بیمارستان آموزشی درمانی فاطمی / ARUMS | fatemi.arums.ac.ir | C4B07-F-02, F-05 | IR-SC-12 | YES | teaching-hospital education unit | not C4B-05 research closure | ACCEPTED_WITH_RESIDUALS |
+| C4B07-CAND-06 | آموزش به بیمار — mpgh / BPUMS | mpgh.bpums.ac.ir | C4B07-F-01, F-04 | IR-SC-12 (hint) | UNKNOWN_PENDING | search hit under uni hospital branding | direct GET timeout; no retry | EVALUATION_INCOMPLETE_FAIL_CLOSED |
+
+### ۱۵۲.۷) Identity / patient-education role evidence (Phase F)
+
+| CANDIDATE_ID | REQUEST_URL | FINAL_URL | PAGE_ROLE | RETRIEVAL_STATUS | OBSERVED_FACT | EVIDENCE_LOCATION | PROVENANCE | AUTHORITY / ROLE STATUS | CONTRADICTION |
+|---|---|---|---|---|---|---|---|---|---|
+| C4B07-CAND-01 | https://motazedi.kums.ac.ir/fa/patienttraining | same | education index | 200 | KUMS-branded patient-education topic catalog (lab prep, pregnancy, discharge topics) | page headings | first-party GET 2026-07-27 | IDENTITY_SIGNAL + PATIENT_EDUCATION_ROLE OBSERVED | NONE_OPEN |
+| C4B07-CAND-02 | https://farabi.kums.ac.ir/fa/darmanfarabi/mozesh2bimar | same | unit about | 200 | Patient-education unit; nursing leads named; accreditation-driven unit since 1390 | body | first-party GET | IDENTITY + ROLE OBSERVED | NONE_OPEN |
+| C4B07-CAND-03 | https://imamreza.kums.ac.ir/fa/educationdupatient/amouzeshbimar | same | education hub | 200 | Patient-education hub; links to pamphlets / dialysis / pre-op care | hub | first-party GET | IDENTITY + ROLE OBSERVED | NONE_OPEN |
+| C4B07-CAND-03 | …/amouzeshbimar/pamfelet | same | pamphlet index | 200 | Topic list (stroke, COPD, diabetes, HF, burns…) — metadata titles only | index table | first-party GET | EDUCATION_INDEX_METADATA | NONE_OPEN |
+| C4B07-CAND-04 | https://taleghani.kums.ac.ir/fa/education/…/educationalpamphlets | same | pamphlet index | 200 | Educational pamphlets by specialty under patient education & follow-up unit | index | first-party GET | IDENTITY + ROLE OBSERVED | NONE_OPEN |
+| C4B07-CAND-04 | taleghani …/education-آموزش | same | education nav | 200 | Nav: واحد آموزش به بیمار / سیاست آموزش به بیمار / pamphlets | nav | first-party GET | ROLE CORROBORATION | NONE_OPEN |
+| C4B07-CAND-05 | fatemi.arums.ac.ir …/واحد-آموزش-به-بیمار | same | unit about | 200 | Teaching-hospital Fatemi; nursing supervisor named; unit duties; last edit 1404-01-22 | body | first-party GET | IDENTITY + ROLE OBSERVED | NONE_OPEN |
+| C4B07-CAND-06 | https://mpgh.bpums.ac.ir/Fa/DynPages-8352.htm | n/a | education page | TIMEOUT on direct GET | Search-A earlier returned page text hint; direct bounded GET failed | search hint ≠ proof | attempted GET; RETRIES=0 | UNKNOWN_FAIL_CLOSED | NONE_OPEN |
+
+```text
+DOMAIN_OR_TITLE_ALONE_NOT_PROOF = YES
+.IR_ALONE_NOT_PROOF = YES
+SNIPPET_ALONE_NOT_PROOF = YES
+CROSS_CANDIDATE_EVIDENCE_MIXING = NO
+CONTENT_BODY_HARVEST = NO (metadata/governance inspection only)
+```
+
+### ۱۵۲.۸) Quality / safety / misinformation (Phase G)
+
+```text
+TOPIC_ALONE_DOES_NOT_LABEL_UNSAFE = YES
+BULK_PAMPHLET_BODY_DOWNLOAD = NO
+```
+
+| CANDIDATE_ID | CONTENT_QUALITY_STATUS | MISINFORMATION_RISK | EVIDENCE BASIS | FAIL_CLOSED? |
+|---|---|---|---|---|
+| C4B07-CAND-01 | PUBLISHER_OFFICIAL_SIGNAL_OBSERVED; article-level QA UNKNOWN | NO_MATERIAL_UNSAFE_CLAIM_OBSERVED_IN_INDEX_METADATA | index titles under KUMS branding only | YES for article-level claims |
+| C4B07-CAND-02 | same + unit process text | NO miracle/pseudoscience markers observed in retrieved unit text | unit page | YES for unreviewed claim promotion |
+| C4B07-CAND-03 | index metadata only | NO unsafe claim observed in titles | pamphlet titles | YES for body-level |
+| C4B07-CAND-04 | index metadata only | NO unsafe claim observed in titles | pamphlet categories | YES for body-level |
+| C4B07-CAND-05 | unit process + named nursing lead | NO unsafe claim observed in unit text | unit page | YES for pamphlet bodies not fetched |
+| C4B07-CAND-06 | UNKNOWN | UNKNOWN | timeout | YES |
+
+### ۱۵۲.۹) Editorial / medical review / authorship (Phase G/J)
+
+| CANDIDATE_ID | EDITORIAL_STATUS | MEDICAL_REVIEW_STATUS | AUTHORSHIP_STATUS | NOTES |
+|---|---|---|---|---|
+| C4B07-CAND-01 | UNKNOWN_FAIL_CLOSED (no editorial board on page) | UNKNOWN (MR-1+ inputs incomplete) | UNKNOWN (topic pages unnamed in retrieval) | education index ≠ MR completion |
+| C4B07-CAND-02 | UNIT_RESPONSIBILITY_NAMED (nursing leads) | PARTIAL_INPUT (named nursing unit; not independent MR pack) | UNIT_LEADS_NAMED; pamphlet authors UNKNOWN | NOT MR-1 publish approval |
+| C4B07-CAND-03 | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN | pamphlet authors not shown on index |
+| C4B07-CAND-04 | UNIT_NAV_PRESENT | UNKNOWN | UNKNOWN | «سیاست آموزش به بیمار» linked; body not separately proven |
+| C4B07-CAND-05 | UNIT_RESPONSIBILITY_NAMED (S. Mohammadi, nursing) | PARTIAL_INPUT | UNIT_LEAD_NAMED; content authors UNKNOWN | NOT MR completion |
+| C4B07-CAND-06 | UNKNOWN | UNKNOWN | UNKNOWN | timeout |
+
+```text
+MR_PACK_COMPLETION = NO
+CLINICAL_GUIDELINE_AUTHORITY_AWARDED = NO
+R12_MISUSE = NO
+```
+
+### ۱۵۲.۱۰) Terms / robots / automation / reuse / attribution (Phase H)
+
+```text
+DEFAULT = UNKNOWN_FAIL_CLOSED
+PUBLIC_ACCESS != REUSE_PERMISSION
+ROBOTS_ALLOW != REUSE_PERMISSION
+SOURCE_IDENTITY != AUTOMATION_PERMISSION
+ABSENCE_OF_PROHIBITION != PERMISSION
+NO_SELF_UPGRADE = YES
+```
+
+| CANDIDATE_ID | TERMS_RETRIEVED | PRIVACY | COPYRIGHT_OR_LICENSE | ROBOTS_STATUS | AUTOMATION | REUSE | ATTRIBUTION | RATE_LIMIT |
+|---|---|---|---|---|---|---|---|---|
+| C4B07-CAND-01..04 (KUMS family) | NO first-party TOU recovered | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | Parent www.kums.ac.ir/robots.txt RETRIEVED: User-agent:* + Sitemaps (no Disallow rules observed) | UNKNOWN_FAIL_CLOSED (allow≠permission) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B07-CAND-05 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | fatemi.arums + arums.ac.ir robots HTTP 404 NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+| C4B07-CAND-06 | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED (landing timeout; robots not fetched) | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN |
+
+```text
+JOURNAL_CC_LICENSES_FROM_F-10 = NOT_USED_AS_C4B07_REUSE_PROOF
+```
+
+### ۱۵۲.۱۱) Provenance / contradiction ledger (Phases I)
+
+```text
+EVERY_MATERIAL_EVIDENCE_ITEM_HAS_PROVENANCE = YES
+CONTRADICTION_ERASURE = NO
+```
+
+| CONTRADICTION_ID | CANDIDATE_ID | DESCRIPTION | STATUS | ACTION |
+|---|---|---|---|---|
+| C4B07-CONTRA-01 | C4B07-CAND-06 | Search-A returned page-text hint for mpgh.bpums.ac.ir vs later direct GET TIMEOUT | OPEN | fail-closed; do not treat search payload as completed first-party verification |
+| C4B07-CONTRA-02 | KUMS CAND-01..04 | Rich education indexes vs absent first-party terms/MR/authorship packs | OPEN | keep both; rights/MR remain UNKNOWN_FAIL_CLOSED |
+
+### ۱۵۲.۱۲) STOP ledger (Phase J)
+
+| STOP_ID | TRIGGERED? | SCOPE | TRIGGER DETAIL | LAST_AUTHORIZED_ACTION | RESULTS_USABLE? | CONTAMINATION | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B07-STOP-01 | NO | — | baseline matched | — | — | NO | — | — | — | — |
+| C4B07-STOP-02 | NO | — | hashes PASS | — | — | NO | — | — | — | — |
+| C4B07-STOP-03 | NO | — | no unlocked query | — | — | NO | — | — | — | — |
+| C4B07-STOP-04 | YES (local) | OOS hits | commercial clinics/journals/SEO excluded | exclude + continue | OOS not C4B-07 proof | NO | Data/Knowledge | routing | keep OOS clean | n/a |
+| C4B07-STOP-05 | NO | — | caps not exhausted | — | — | NO | — | — | — | — |
+| C4B07-STOP-06 | YES (candidate-local) | CAND-06 | timeout → class/role incomplete | stop path; no retry | NO for authority claims | NO | Governance/Security | retrieval | retrieve or exclude | residual retrieval Gate |
+| C4B07-STOP-07 | YES (local) | OOS | commercial clinic hits excluded | exclude | NO as primary | NO | Medical/Safety | §99.7 | clean ledger | n/a |
+| C4B07-STOP-08 | YES (deferred) | rights/MR | legal/product clearance beyond discovery | keep fail-closed | metadata only | NO | Legal / Javad | product/legal | explicit decision | rights/MR Gate |
+| C4B07-STOP-09 | YES (rights fields) | all | terms missing; robots allow≠reuse | UNKNOWN_FAIL_CLOSED | authority rows may remain | NO | Legal/Security | terms/robots | rights residual | rights Gate |
+| C4B07-STOP-10 | NO | — | no CAPTCHA/login bypass | — | — | NO | — | — | — | — |
+| C4B07-STOP-11 | NO | — | no robots/terms bypass / no bulk harvest | — | — | NO | — | — | — | — |
+| C4B07-STOP-12 | NO gate-abort | — | no invented unsafe/safe body labels | metadata fail-closed | YES for metadata | NO | Medical/Safety | MR/safety | evidence-based status | safety residual if needed |
+| C4B07-STOP-13 | NO | — | activation refused | — | — | NO | — | — | — | — |
+| C4B07-STOP-14 | NO | — | no guideline-authority misuse | — | — | NO | — | — | — | — |
+
+```text
+GATE_ABORTING_STOP = NO
+UNLOCKED_QUERY_VIOLATION = NO
+WORKAROUND_USED = NO
+NEW_QUERY_INVENTED = NO
+BUDGET_EXPANDED = NO
+```
+
+### ۱۵۲.۱۳) Residual ledger (Phase K)
+
+| RESIDUAL_ID | CANDIDATE_ID | DESCRIPTION | CURRENT_STATE | OWNER | DEPENDENCY | BLOCKS_DISCOVERY_SUBSTEP? | BLOCKS_FULL_CHILD? | BLOCKS_EO? | BLOCKS_ACTIVATION? | CLOSURE_CRITERIA | NEXT_GATE | CAN_DEFER_WITH_OWNER? | FAIL_CLOSED? |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C4B07-R-TERMS-01 | CAND-01..05 | first-party terms/privacy/copyright not retrieved | OPEN | Legal | first-party TOU | NO | YES | YES | YES | retrieve+classify terms | rights residual Gate | YES | YES |
+| C4B07-R-AUTO-01 | CAND-01..05 | automation permission uncleared | OPEN | Legal/Security | robots+policy | NO | YES | YES | YES | governed automation decision | automation residual Gate | YES | YES |
+| C4B07-R-REUSE-01 | CAND-01..05 | reuse/attribution UNKNOWN | OPEN | Legal | terms+notices | NO | YES | YES | YES | explicit reuse evidence or formal deferment | rights residual Gate | YES | YES |
+| C4B07-R-MR-01 | CAND-01..05 | MR-1+ pack incomplete (unit leads ≠ MR completion) | OPEN | Medical/Safety | MR model OD-C4A-12 | NO | YES | YES | YES | MR-1+ pack or formal deferment | MR residual Gate | YES | YES |
+| C4B07-R-AUTH-01 | CAND-01..05 | pamphlet/page authorship largely UNKNOWN | OPEN | Medical/Safety | authorship evidence | NO | YES | PARTIAL | YES | author/reviewer evidence or deferment | authorship residual Gate | YES | YES |
+| C4B07-R-MOH-01 | n/a | F-04 did not recover clean MoH patient-ed primary host | OPEN | Medical/Safety + Data/Knowledge | MoH education URL under locked queries or amendment | NO | PARTIAL (scope pack incomplete for MoH class) | PARTIAL | YES | MoH patient-ed candidate or scoped deferment | MoH residual / prep amendment if new query needed | YES | YES |
+| C4B07-R-MPGH-01 | CAND-06 | mpgh.bpums.ac.ir direct retrieval timeout | OPEN | Governance/Security | successful GET or exclude | NO | YES if retained | YES if retained | YES | retrieve or exclude | residual retrieval Gate | YES | YES |
+| C4B07-R-ARUMS-ROBOTS-01 | CAND-05 | arums/fatemi robots 404 | OPEN | Legal/Security | robots retrieval alternate official path | NO | YES (automation pack) | YES | YES | robots evidence or deferment | robots residual Gate | YES | YES |
+
+```text
+NO_ORPHAN_UNKNOWN = YES
+EVERY_UNKNOWN_HAS_OWNER_DEPENDENCY_CLOSURE_NEXT_GATE = YES
+```
+
+### ۱۵۲.۱۴) Network execution / validity (Phase L)
+
+```text
+C4B_07_NETWORK_DISCOVERY_EXECUTED = YES
+
+C4B_07_NETWORK_RESULT_VALID = YES
+  because:
+    pre-network hash PASS_10_OF_10 + set hash PASS
+    only locked queries C4B07-F-01..F-10 executed
+    exact query text preserved; no unlocked/modified query
+    budget respected
+    STOP contract respected (no gate-aborting violation)
+    provenance present
+    no candidate contamination / no cross-candidate mix
+    OOS not used as C4B-07 proof
+    snippets not treated as authority evidence
+    no bulk content harvesting / KB ingestion
+
+NO_RETROACTIVE_VALIDATION_NEEDED = YES
+```
+
+### ۱۵۲.۱۵) Discovery-substep decision (Phase M)
+
+```text
+C4B_07_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_07_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+
+BASIS (§151.16):
+  NETWORK_RESULT_VALID = YES
+  governed candidate ledger recorded
+  residuals owned; rights/MR remain UNKNOWN_FAIL_CLOSED without self-upgrade
+
+INVENTED_FAVORABLE_STATUS = NO
+```
+
+### ۱۵۲.۱۶) Full-child decision (Phase N)
+
+```text
+C4B_07_FULL_CHILD_COMPLETE = NO
+
+REASON =
+  terms/rights/automation/reuse uncleared
+  MR-1+ pack incomplete
+  authorship largely UNKNOWN
+  MoH patient-ed class not recovered
+  CAND-06 incomplete
+  FULL_CHILD_COMPLETION_REQUIRES_SEPARATE_RIGHTS_AUTOMATION_CLEARANCE
+  (+ MR completion path)
+```
+
+### ۱۵۲.۱۷) Source activation hard lock
+
+```text
+C4B_07_SOURCE_ACTIVATED = NO
+RUNTIME_ENABLED = NO
+CRAWLER_ENABLED = NO
+ACQUISITION_ENABLED = NO
+PUBLICATION_RELEASED = NO
+KB_INGESTION_ENABLED = NO
+PRODUCTION_ALLOWLIST_ADD = NO
+FLAG_ACTIVATED = NO
+```
+
+### ۱۵۲.۱۸) Evidence Overlay impact (Phase O)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| Item | Value |
+|---|---|
+| WHAT_C4B07_NOW_SATISFIES | Strategy-F discovery executed + valid IR-SC-12 patient-ed candidate ledger (partial university/teaching-hospital class) |
+| WHAT_REMAINS_OPEN | full-child; terms/rights/automation; MR-1+; MoH class; CAND-06 |
+| WHAT_IS_DEFERRED_WITH_OWNER | residuals R-TERMS/AUTO/REUSE/MR/AUTH/MOH/MPGH/ARUMS-ROBOTS |
+| WHAT_REQUIRES_EXTERNAL_OR_LEGAL_FOLLOWUP | terms/reuse/automation clearance; MoH corroboration path |
+| WHAT_BLOCKS_FULL_CHILD | residuals above |
+| WHAT_BLOCKS_EVIDENCE_OVERLAY | open C4B-07 full-child + EO rights/automation/MR gaps |
+| WHAT_BLOCKS_ACTIVATION | all of the above + permanent activation lock |
+
+### ۱۵۲.۱۹) Weekly knowledge-growth forward link (Phase P)
+
+```text
+SOURCE_DISCOVERY != KNOWLEDGE_GROWTH
+IMPLEMENTATION_IN_THIS_GATE = NO
+
+FUTURE_PIPELINE =
+  DISCOVERY → GOVERNED ACQUISITION → IMMUTABLE RAW STORE → DEDUPE
+  → VERSION/DIFF → PROVENANCE → QUALITY/SAFETY/SECURITY GOVERNANCE
+  → APPROVED PUBLICATION → RUNTIME GROUNDING
+  → SUPERSEDE/DEPRECATE/REVOKE
+
+LATER_CRAWLERS_AFTER_RIGHTS_AND_MR_MAY_DETECT =
+  new Persian patient-education pages; revised disease/self-care education;
+  updated safety notices; changed editorial ownership; changed rights/terms;
+  withdrawn/obsolete materials
+```
+
+### ۱۵۲.۲۰) Mainline continuation / S3-W3 blocker analysis (Phase Q)
+
+```text
+DO_C4B07_RESIDUALS_BLOCK_S3_W3_C4B08_START = NO
+
+AUTHORITY =
+  C4B_CHILDREN_EXECUTION_MODEL = INDEPENDENT_GOVERNED_CHILDREN
+    (§144.8 / §145 / §30032 family)
+  Precedent: C4B-05 residuals did not block C4B-06 start
+  §145 Stage-3 default order continues to S3-W3 (C4B-08 prep→network)
+  No repository authority found requiring C4B-07 residual clearance
+    before C4B-08 preparation start
+
+SPEED_ORIENTED_MAINLINE_PRESERVED =
+  C4B-06 → C4B-07 → C4B-08 → C4B-09 reconciliation
+  → residual closure / Evidence Overlay closure
+
+C4B-08_NOT_STARTED_BY_THIS_GATE = YES
+```
+
+### ۱۵۲.۲۱) Operations NOT performed
+
+```text
+NO query modification
+NO unlocked query
+NO unrestricted crawling
+NO bulk content harvesting / recursive library crawl / PDF corpus download
+NO KB ingestion / publication release / production knowledge store
+NO source activation
+NO P2/P3/P4/P5/P6
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend
+NO flag activation
+NO C4B-08 execution
+NO Stage 4
+NO rewrite of §§1–151
+```
+
+### ۱۵۲.۲۲) Exact next Gate
+
+```text
+NEXT_GATE =
+S3-W3 — C4B-08 JOURNAL / PUBLICATION-PORTAL DISCOVERY PREPARATION CONTRACT
+(mainline; residuals do not block start under INDEPENDENT_GOVERNED_CHILDREN)
+
+PARALLEL_FULL_CHILD_PATH =
+C4B-07 TERMS / RIGHTS / AUTOMATION / MR RESIDUAL CLEARANCE
+(does not block S3-W3 entry)
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۲.۲۳) Execution state
+
+```text
+C4B_07_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_07_NETWORK_DISCOVERY_EXECUTED = YES
+C4B_07_NETWORK_RESULT_VALID = YES
+C4B_07_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_07_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_07_FULL_CHILD_COMPLETE = NO
+C4B_07_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS (preserved)
+I5_PROGRESS ≈ 22%
+
+DO_C4B07_RESIDUALS_BLOCK_S3_W3_C4B08_START = NO
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+C4B07_NETWORK_DISCOVERY_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_EXPLICIT_RESIDUALS
+```
+
+### ۱۵۲.۲۴) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+f70f785b2540be29090e927368a7cc281d0d0751ea2551c252b000c2ab5396ef
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–151_PRESERVED = YES
+§152_ONLY_NEW_SECTION = YES
+§152_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۲ — SECTION-28 STAGE-3-OF-14 C4B-07 Strategy-F Controlled Network Discovery — PASS_WITH_EXPLICIT_RESIDUALS — C4B07_NETWORK_DISCOVERY_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۳) SECTION-28 STAGE-3-OF-14 — S3-W3 C4B-08 JOURNAL / PUBLICATION-PORTAL DISCOVERY PREPARATION CONTRACT
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 / S3-W3 —
+C4B-08 JOURNAL / PUBLICATION-PORTAL DISCOVERY
+PREPARATION CONTRACT
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH / NO_P2_IMPLEMENTATION /
+NO_STRATEGY_E_NETWORK_EXECUTION
+
+Owner:
+Data/Knowledge (primary per OD-C4A-13)
+Supporting:
+Legal, Medical/Safety
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for S3-W3 preparation ONLY
+NO network / search / HTTP / WHOIS / DNS / robots / terms fetch
+NO candidate discovery / journal download / article or PDF harvest
+NO ingestion / publication / runtime / crawler / capability activation
+NO code / test / CI / migration / DB
+NO stage / commit / push
+NO edit to §§1–152
+NO §154 in this Gate
+
+CHILD = C4B-08
+CANONICAL_NAME = journal and publication-portal discovery approval
+SOURCE_FAMILY = IR-SC-13
+STRATEGY = Strategy E
+OD_PACK = OD-C4A-13
+
+Baseline (verified at S3-W3 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §152
+  §§145–152 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Preserved upstream child states (not rewritten):
+  C4B_06_DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL
+  C4B_07_DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL
+  DO_C4B07_RESIDUALS_BLOCK_S3_W3_C4B08_START = NO (§152.20)
+  C4B_08_NETWORK_DISCOVERY_EXECUTED = NO
+  EVIDENCE_OVERLAY = NOT_CLOSED
+  P2 = NOT_STARTED
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+32cb0af6bf0f599f71384b5083de8570621e7ddacb6bc981ba82ba4de307729b
+```
+
+### ۱۵۳.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۵۳.۲) Authority ledger (Phase B)
+
+| AUTHORITY_ID | PATH | SECTION | STATUS | SUPERSEDED? | WHAT_IT_DEFINES | APPLICATION_TO_C4B_08 |
+|---|---|---|---|---|---|---|
+| AUTH-99-SC13 | master log | §99.3 IR-SC-13 | ACTIVE | NO | official journals/publication portals; SCIENTIFIC_EVIDENCE; publisher; article metadata+terms; MR-2+; provider identity prohibited | Exact source family |
+| AUTH-99-STRAT-E | master log | §99.7 Strategy E | ACTIVE | NO | Official journal discovery; FA «نشریه علمی پزشکی»; EN Iran medical journal open access; FP=predatory; min=license+authority | Strategy + query semantic root |
+| AUTH-99-OD13 | master log | §99.19 OD-C4A-13 | ACTIVE | NO | IR-SC-13 journals OD; Data/Knowledge primary; Blocking; license+authority pack | OD ownership |
+| AUTH-99-CHILD | master log | §99.21 | ACTIVE | NO | E2-C4B-08 journal and publication-portal discovery approval | Canonical child name |
+| AUTH-93-EO | master log | §93 / §145 overlay | ACTIVE | NO | Evidence Overlay closure needs children packs | Overlay impact |
+| AUTH-137-138 | master log | §137–§138 | ACTIVE | NO | weekly crawler / knowledge-growth; discovery≠growth; retraction/lifecycle | Forward compatibility |
+| AUTH-143-BUDGET | master log | §143.8 via §147/§151 | ACTIVE | NO | conservative hard network caps family | Budget inheritance |
+| AUTH-145-08 | master log | §145.8 | ACTIVE | NO | C4B-08 reconstruction; prep was AUTHORITY_NOT_FOUND | Closes prep gap |
+| AUTH-145-S3W3 | master log | §145 Stage-3 matrix | ACTIVE | NO | S3-W3 = C4B-08 prep then Strategy E network | Wave authority |
+| AUTH-147-152 | master log | §147–§152 | ACTIVE | NO | lock exact query text+hashes before network; unlocked-query STOP; fail-closed rights; independent children | Contract pattern (not IR-SC-13 scope copy) |
+| AUTH-152-ENTRY | master log | §152.20 | ACTIVE | NO | C4B-07 residuals do not block S3-W3 start | Entry readiness |
+| AUTH-C4B08-PREP-PRIOR | — | — | AUTHORITY_NOT_FOUND | — | No prior locked C4B-08 executable prep contract | This §153 creates it |
+
+```text
+AUTHORITY_SUFFICIENT_FOR_PREPARATION_CONTRACT = YES
+AUTHORITY_SUFFICIENT_FOR_NETWORK_WITHOUT_THIS_LOCK = NO
+EXTERNAL_EVIDENCE_USED = NO
+MODEL_MEMORY_JOURNAL_PREPOPULATION = NO
+```
+
+### ۱۵۳.۳) Locked source scope (Phase C)
+
+```text
+SOURCE_FAMILY = IR-SC-13
+STRATEGY = Strategy E
+OD_PACK = OD-C4A-13
+PURPOSE_ROLE = SCIENTIFIC_EVIDENCE (journal/portal discovery)
+
+IN_SCOPE (repository authority §99.3 / §99.7 / §145.8) =
+  Iranian journal portals
+  official publication portals
+  institutional publication platforms (as journal/portal publisher role)
+  publisher/journal identity pages
+  journal editorial/governance pages
+  journal license/copyright pages
+  journal publication indexes (metadata only)
+
+IRAN_FIRST = YES
+
+EXPLICIT_CHILD_SEPARATION =
+  C4B-05 = universities/research centers (IR-SC-08/09) — not journal primary
+  C4B-06 = scientific associations (IR-SC-10) — journal announcement ≠ C4B-08
+  C4B-07 = Persian patient-education (IR-SC-12)
+  C4B-09 = commercial directories / secondary-only (IR-SC-16)
+  JOURNAL_CONTENT != PROVIDER_IDENTITY (§99.3 / §145.8)
+
+EXCLUSIONS (unless later explicit authority) =
+  commercial SEO journal aggregators
+  predatory journals (as authority)
+  cloned/hijacked journals
+  fake journal websites
+  generic article mirrors / scraped archives
+  anonymous publication sites
+  commercial / provider directories
+  universities/research when acting in C4B-05 role
+  associations when acting in C4B-06 role
+  patient-education portals owned by C4B-07
+  social-only publication accounts
+  paper-sharing mirrors
+  unauthorized full-text repositories
+  paid credentialed sources (§145.8)
+
+JOURNAL_NAME_PREPOPULATION_FROM_MODEL_MEMORY = FORBIDDEN
+NETWORK_NOT_RUN = YES
+CANDIDATES_CLAIMED_BY_THIS_GATE = ZERO
+ARTICLES_OR_PDFS_HARVESTED = ZERO
+```
+
+### ۱۵۳.۴) Journal / publication authority boundary (Phase D)
+
+```text
+DISTINGUISH =
+  OFFICIAL_JOURNAL_IDENTITY
+  PUBLISHER_IDENTITY
+  INSTITUTIONAL_RELATIONSHIP
+  JOURNAL_SCOPE
+  EDITORIAL_BOARD
+  EDITORIAL_RESPONSIBILITY
+  PEER_REVIEW_CLAIM
+  PUBLICATION_ETHICS
+  CONTACT_TRANSPARENCY
+  ARCHIVE_CONTINUITY
+  ISSN_OR_OTHER_IDENTIFIER_STATUS
+  INDEXING_CLAIM
+  INDEXING_CORROBORATION
+  LICENSE_STATUS
+  COPYRIGHT_STATUS
+  REUSE_STATUS
+  ATTRIBUTION_STATUS
+  TERMS_STATUS
+  ROBOTS_STATUS
+  AUTOMATION_STATUS
+  PREDATORY_RISK
+  CLONED_OR_HIJACKED_RISK
+  PROVENANCE_STATUS
+  RUNTIME_ELIGIBILITY
+
+PERMANENT_RULES =
+  JOURNAL_IDENTITY != CLINICAL_AUTHORITY
+  PUBLICATION_EXISTENCE != REUSE_PERMISSION
+  OPEN_WEB_ACCESS != AUTOMATION_PERMISSION
+  SEARCH_INDEXING != TRUSTWORTHINESS
+  JOURNAL_CONTENT != PROVIDER_IDENTITY
+  SOURCE_DISCOVERY != KNOWLEDGE_INGESTION
+  SELF_CLAIMED_INDEXING != VERIFIED_INDEXING
+  ISSN_OR_IDENTIFIER != TRUSTWORTHINESS
+  EDITORIAL_BOARD_PAGE != CLINICAL_AUTHORITY
+  OPEN_ACCESS_LABEL != AUTOMATION_PERMISSION
+  OPEN_ACCESS_LABEL != UNRESTRICTED_REUSE
+  PUBLIC_PDF != INGESTION_PERMISSION
+
+THIS_GATE_IS_NOT =
+  article corpus approval
+  clinical-guideline authority approval
+  provider-identity source approval
+  MR-2+ publish completion
+  runtime grounding approval
+```
+
+### ۱۵۳.۵) Predatory / deceptive journal contract (Phase E)
+
+```text
+GEOGRAPHY_ALONE_NOT_PREDATORY = YES
+LANGUAGE_ALONE_NOT_PREDATORY = YES
+TOPIC_ALONE_NOT_PREDATORY = YES
+LACK_OF_FAME_ALONE_NOT_PREDATORY = YES
+PUBLICATION_FEE_ALONE_NOT_PREDATORY = YES
+
+EVIDENCE_BASED_FAIL_CLOSED_INDICATORS (require OBSERVED evidence; do not invent) =
+  unverifiable publisher identity
+  deceptive journal title
+  cloned or hijacked journal identity
+  fake institutional affiliation
+  suspicious duplicate domains
+  hidden ownership
+  unverifiable editorial board
+  inconsistent contact information
+  fabricated or uncorroborated indexing claims
+  unclear peer-review process
+  publication-fee pressure without governance transparency
+  copied journal content
+  fake metrics / misleading impact-factor claims
+  bulk unrelated subject scope
+  missing or contradictory publication ethics
+  obvious spam/SEO behavior
+
+ALLOWED_STATES =
+  OBSERVED | INFERRED_LABELED | UNKNOWN | NOT_APPLICABLE | FAIL_CLOSED
+
+PREDATORY_OR_DECEPTIVE_AMBIGUITY =
+  FAIL_CLOSED until governed disposition
+  do not promote as authority
+```
+
+### ۱۵۳.۶) Exact Query IDs + executable texts (Phases F–G)
+
+```text
+NAMING_SCHEME = C4B08-E-NN
+  E = Strategy E (§99.7)
+  Collision check: C4B08-E-* previously unused in master log
+
+FINITE_QUERY_SET = YES
+TOTAL_LOCKED_QUERY_COUNT = 10
+EXECUTABLE_QUERY_SET = EXACTLY C4B08-E-01..C4B08-E-10
+NO_PLACEHOLDERS = YES
+NO_RUNTIME_SUBSTITUTION = YES
+NO_TEMPLATE_OPERATORS = YES
+```
+
+| QUERY_ID | EXACT_EXECUTABLE_QUERY_TEXT | QUERY_LANGUAGE | PURPOSE | TARGET_EVIDENCE_CLASS | ALLOWED_SCOPE | EXPECTED_OUTPUT | NOT_PROOF_OF | STOP_CONDITION | SEMANTIC_MATCH |
+|---|---|---|---|---|---|---|---|---|---|
+| C4B08-E-01 | نشریه علمی پزشکی ایران سایت رسمی | FA | FA official medical scientific journal locator (Strategy E root) | journal/portal identity signal | Iran journal/portal hosts | candidate official journal/portal landings | clinical authority; provider identity; reuse | SEO aggregator / predatory as primary | PASS |
+| C4B08-E-02 | نشریه علمی پزشکی ناشر پورتال ISSN رسمی ایران | MIXED | publisher + ISSN/portal ownership signals | publisher/ISSN/portal identity | same | publisher/about/ISSN pages | trustworthiness from ISSN alone | fake ISSN pages as verified | PASS |
+| C4B08-E-03 | Iran medical journal open access official site | EN | EN OA journal/portal corroboration | identity + OA label signal | same | official EN/FA journal landings | unrestricted reuse from OA label | foreign journal as Iran primary | PASS |
+| C4B08-E-04 | نشریه علمی پزشکی ایران درباره ما ناشر رسمی | FA | publisher/about/mission identity | publisher identity | same official host family | about/publisher evidence | institutional C4B-05 closure | personal faculty pages as publisher | PASS |
+| C4B08-E-05 | نشریه علمی پزشکی هیئت تحریریه داوری همتا رسمی | FA | editorial board / peer-review claim pages | EDITORIAL / PEER_REVIEW_CLAIM | same | editorial/peer-review evidence | clinical authority; MR publish approval | anonymous boards as PASS | PASS |
+| C4B08-E-06 | نشریه علمی پزشکی مجوز کپی رایت دسترسی آزاد رسمی | FA | license / copyright / OA policy pages | LICENSE / COPYRIGHT | same | license/copyright/OA policy URLs + states | ingestion permission; FREE_AND_DISCOVERY_ELIGIBLE | third-party license summaries as primary | PASS |
+| C4B08-E-07 | نشریه علمی پزشکی robots.txt automation API رسمی | MIXED | robots / automation / public API signals | robots + automation | same | robots.txt / access-policy signals | automation from mere GET | paid API as free grant | PASS |
+| C4B08-E-08 | نشریه علمی پزشکی اخلاق انتشار رسمی ایران | FA | publication ethics / misconduct policy | PUBLICATION_ETHICS | same | ethics policy pages | predatory clearance alone | silence as ethics PASS | PASS |
+| C4B08-E-09 | نشریه علمی پزشکی نمایه سازی indexing رسمی ایران | MIXED | indexing self-claims (inputs only) | INDEXING_CLAIM | same | indexing claim evidence | VERIFIED_INDEXING; trustworthiness | self-claim as corroboration | PASS |
+| C4B08-E-10 | نشریه علمی پزشکی استناد attribution شرایط بازنشر رسمی | MIXED | attribution / citation / reuse-notice pages | attribution + reuse notices | same official host family | attribution/reuse-notice evidence | unrestricted reuse; KB ingest | inferring permission from silence | PASS |
+
+```text
+STRATEGY_E_TEMPLATE_ALIGNMENT =
+  FA root: «نشریه علمی پزشکی» (§99.7)
+  EN root: Iran medical journal open access (§99.7)
+  ownership signal = publisher + ISSN/portal
+  false-positive class = predatory journals
+  min evidence before registration = license + authority
+```
+
+### ۱۵۳.۷) Immutability law
+
+```text
+ONE_QUERY_ID = ONE_EXACT_EXECUTABLE_QUERY_TEXT
+COPY_VERBATIM_REQUIRED = YES
+RUNTIME_PARAPHRASING = NO
+RUNTIME_SYNONYM_EXPANSION = NO
+RUNTIME_TRANSLATION = NO
+RUNTIME_TERM_SUBSTITUTION = NO
+FOLLOW_UP_QUERY_INVENTION = NO
+EXPLORATORY_QUERY = NO
+AD_HOC_SITE_QUERY = NO
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+
+IF_LATER_NETWORK_NEEDS_ANOTHER_QUERY =
+  STOP
+  REQUIRE separately approved preparation amendment Gate
+  DO NOT mutate during Strategy-E network execution
+```
+
+### ۱۵۳.۸) Query hash / integrity contract (Phase H)
+
+```text
+HASH_ALGORITHM = SHA-256
+HASH_INPUT = exact UTF-8 bytes of EXACT_EXECUTABLE_QUERY_TEXT only
+QUERY_SET_HASH_INPUT =
+  ordered concatenation for IDs C4B08-E-01..E-10 of:
+    QUERY_ID + LF + EXACT_EXECUTABLE_QUERY_TEXT + LF
+  UTF-8 encoded
+
+FUTURE_NETWORK_GATE_MUST_VERIFY_HASHES_BEFORE_EXECUTION = YES
+PER_ID_OR_SET_MISMATCH =
+  STOP BEFORE NETWORK:
+  BLOCKED_QUERY_OR_HASH_CONTRACT_MISMATCH
+  NETWORK_ACTIONS_PERFORMED = 0
+```
+
+| QUERY_ID | UTF8_SHA256 |
+|---|---|
+| C4B08-E-01 | 1ec655f0fcf5ec71c404a502ee59123ff26a6c0ab71f0ec462c083e1771f4f49 |
+| C4B08-E-02 | fb62641ae97ae9cc5d18bfd9822d438f8b0ca5b282c81b0c76dbd75e4d6fd32c |
+| C4B08-E-03 | 40553001ea894971e7a77f915085489b425072bc8da35be4953016e79acd4290 |
+| C4B08-E-04 | ece878dbf7358e8f8322fbd6bc51072b1d48a78687f599615a529f24dfe3aab5 |
+| C4B08-E-05 | e30a77b0275ed9cdbc8243ebe780cdd059c70e613066339267de90708f2f3dba |
+| C4B08-E-06 | d72b19b67e249120d881eb89ef414957e78bc95d64f090b2d9be4ec9eb72a319 |
+| C4B08-E-07 | f58f21bdd7bc65787d692800b627c0a087d4134758e39b0ad40179c422850c0c |
+| C4B08-E-08 | 60969e76f1300a6b2bd0b3ead24ceb9015b89f7905570262332e851c7b9e6ffa |
+| C4B08-E-09 | eba6f24eea6e3423d8b92666b0b42b206e7c8dfbc9f0782d9c057baa98beb087 |
+| C4B08-E-10 | 16a40ee706167000ec969d54eeffb8c2502e76050cf0c137e6b6aba6fc7336bd |
+
+```text
+QUERY_SET_SHA256 =
+9ae7251bebf324b9ff914784afb0c394d073b0ccf4575a47d740fb646f124a3b
+
+C4B08_QUERY_HASH_COUNT = 10
+C4B08_EXACT_QUERY_TEXT_COUNT = 10
+C4B08_QUERY_ID_TEXT_MAPPING_COMPLETE = YES
+C4B08_NETWORK_CONTRACT_RECONSTRUCTABLE = YES
+```
+
+### ۱۵۳.۹) Query semantic audit (Phase I)
+
+```text
+C4B08_QUERY_SEMANTIC_AUDIT = PASS_10_OF_10
+AUTHORITY_GAP_COUNT = 0
+SCOPE_BROADENING_INTO_UNRESTRICTED_ARTICLE_DISCOVERY = NO
+SCOPE_BROADENING_INTO_PROVIDER_DISCOVERY = NO
+SCOPE_BROADENING_INTO_PATIENT_EDUCATION = NO
+SCOPE_BROADENING_INTO_GENERAL_UNIVERSITY_DISCOVERY = NO
+SCOPE_BROADENING_INTO_COMMERCIAL_DIRECTORIES = NO
+SCOPE_BROADENING_INTO_FULL_TEXT_HARVEST = NO
+JOURNAL_NAME_PREPOPULATION = NO
+```
+
+### ۱۵۳.۱۰) Bounded network budget (Phase J)
+
+```text
+CAP_DERIVATION =
+  Primary precedent = §143.8 conservative family caps
+  Supporting = §147 / §151 / §152 inheritance for single-strategy child discovery
+  Rule = single Strategy E; reuse validated caps; do not increase;
+         discovery ≠ crawler-scale article acquisition
+  BUDGET_AUTHORITY_GAP = NO
+  INHERITANCE_DOCUMENTED = YES
+  Locked queries = 10 ≤ MAX_TOTAL_QUERIES 15
+```
+
+| Cap field | Locked value | Derivation |
+|---|---:|---|
+| MAX_TOTAL_QUERIES / MAX_QUERY_COUNT | 15 | §143.8 family |
+| LOCKED_EXECUTABLE_QUERIES / LOCKED_QUERY_COUNT | 10 | this contract |
+| MAX_ENGINES | 2 | §143.8 |
+| MAX_RESULTS_PER_QUERY | 10 | §143.8 |
+| MAX_TOTAL_SEARCH_RESULTS | 100 | §143.8 |
+| MAX_UNIQUE_DOMAINS | 10 | §143.8 |
+| MAX_PAGES_PER_DOMAIN | 5 | §143.8 |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 | §143.8 |
+| MAX_ROBOTS_REQUESTS | 10 | §143.8 |
+| MAX_REDIRECT_DEPTH | 3 | §143.8 |
+| RETRIES | 0 | §143.8 |
+| MAX_HTTP_REQUESTS | 40 | §143.8 |
+| MAX_CANDIDATES | 12 | §143.8 |
+| MAX_SECONDARY_SOURCE_PAGES | 5 | §143.8 |
+| MAX_QUERIES_PER_CANDIDATE | 4 | conservative under §143.8 family |
+| MAX_DIRECT_PAGE_REQUESTS_PER_CANDIDATE | 5 | equals MAX_PAGES_PER_DOMAIN |
+| TIMEOUT_SECONDS | 30 | §143.8 |
+
+```text
+RETRY_POLICY = NONE
+BUDGET_EXCEED_BEHAVIOR = STOP_FAIL_CLOSED
+UNBOUNDED_NETWORK_CONTRACT = NO
+NETWORK_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۵۳.۱۱) Evidence contract (Phase K)
+
+| FIELD | CLASS | NOTES |
+|---|---|---|
+| CANDIDATE_ID | OBSERVED/ASSIGNED | C4B08-CAND-NN |
+| SOURCE_FAMILY | OBSERVED | must be IR-SC-13 or reject |
+| JOURNAL_NAME | OBSERVED | fail-closed if not established |
+| PORTAL_NAME | OBSERVED/UNKNOWN | |
+| PUBLISHER_NAME | OBSERVED/UNKNOWN | |
+| OBSERVED_DOMAIN | OBSERVED | |
+| QUERY_ID | OBSERVED | must be in C4B08-E-01..10 |
+| REQUEST_URL / FINAL_URL | OBSERVED | redirects ≤ MAX_REDIRECT_DEPTH |
+| RETRIEVAL_STATUS | OBSERVED | |
+| PAGE_ROLE | OBSERVED/INFERRED_LABELED | landing/about/editorial/license/robots/... |
+| EVIDENCE_TYPE | OBSERVED | identity/publisher/editorial/license/... |
+| EVIDENCE_LOCATION | OBSERVED | URL + locator |
+| OBSERVED_FACT | OBSERVED | metadata only; no article-body harvest |
+| OBSERVED_DATE | OBSERVED | |
+| PROVENANCE | OBSERVED | |
+| OFFICIAL_IDENTITY_STATUS | OBSERVED/UNKNOWN | |
+| PUBLISHER_STATUS | OBSERVED/UNKNOWN | |
+| INSTITUTIONAL_RELATIONSHIP | OBSERVED/UNKNOWN | |
+| EDITORIAL_STATUS | OBSERVED/UNKNOWN | |
+| PEER_REVIEW_STATUS | OBSERVED/UNKNOWN | claim ≠ verified process |
+| ETHICS_STATUS | OBSERVED/UNKNOWN | |
+| ISSN_IDENTIFIER_STATUS | OBSERVED/UNKNOWN | identifier ≠ trust |
+| INDEXING_CLAIM_STATUS | OBSERVED/UNKNOWN | self-claim only |
+| INDEXING_CORROBORATION_STATUS | OBSERVED/UNKNOWN | separate from self-claim |
+| LICENSE_STATUS | OBSERVED/UNKNOWN | |
+| COPYRIGHT_STATUS | OBSERVED/UNKNOWN | |
+| REUSE_STATUS | OBSERVED/UNKNOWN | default UNKNOWN_FAIL_CLOSED |
+| ATTRIBUTION_STATUS | OBSERVED/UNKNOWN | |
+| TERMS_STATUS / PRIVACY_STATUS | OBSERVED/UNKNOWN | |
+| ROBOTS_STATUS / AUTOMATION_STATUS | OBSERVED/UNKNOWN | default UNKNOWN_FAIL_CLOSED |
+| PREDATORY_RISK / CLONED_OR_HIJACKED_RISK | OBSERVED/UNKNOWN/FAIL_CLOSED | evidence-based |
+| CONTRADICTION_STATUS | OBSERVED | OPEN if conflict |
+| STOP_REASON | OBSERVED/NOT_APPLICABLE | |
+
+```text
+NO_EVIDENCE_FIELD_IMPLIES_APPROVAL = YES
+SEARCH_SNIPPET_IS_AUTHORITATIVE_EVIDENCE = NO
+ARTICLE_BODY_ACQUISITION = NO
+PDF_CORPUS_DOWNLOAD = NO
+```
+
+### ۱۵۳.۱۲) Candidate ledger schema (Phase L)
+
+```text
+STABLE_CANDIDATE_IDS = C4B08-CAND-NN
+MAX_CANDIDATES = 12
+CANDIDATES_CREATED_BY_THIS_GATE = 0
+```
+
+Required status fields:
+
+| STATUS_FIELD | DEFAULT_BEFORE_NETWORK | NOTES |
+|---|---|---|
+| IDENTITY / DOMAIN / SOURCE_CLASS | UNKNOWN / MUST_BE_IR-SC-13 | else exclude |
+| PUBLISHER / INSTITUTIONAL_RELATIONSHIP | UNKNOWN | |
+| EDITORIAL / PEER_REVIEW / ETHICS | UNKNOWN | |
+| ISSN_OR_IDENTIFIER / INDEXING | UNKNOWN | claim≠corroboration |
+| LICENSE / COPYRIGHT / REUSE / ATTRIBUTION | UNKNOWN_FAIL_CLOSED | |
+| TERMS / ROBOTS / AUTOMATION | UNKNOWN_FAIL_CLOSED | |
+| PREDATORY_RISK / CLONE_RISK | UNKNOWN_FAIL_CLOSED | |
+| NETWORK_RESULT / DISCOVERY_STATE | NOT_EXECUTED / NOT_STARTED | |
+| FULL_CHILD_ELIGIBILITY | NO | |
+| OVERLAY_IMPACT | OPEN_CHILD | |
+| ACTIVATION_STATE | NO | hard lock |
+| RESIDUAL_IDS | required for every UNKNOWN | |
+
+```text
+NO_ORPHAN_UNKNOWN = YES
+EVERY_UNKNOWN_MAPS_TO =
+  RESIDUAL_ID + OWNER + DEPENDENCY + CLOSURE_CRITERIA + NEXT_GATE
+```
+
+### ۱۵۳.۱۳) Publisher / editorial / authority contract (Phase — L/D)
+
+```text
+REQUIRED_FOR_GOVERNED_REGISTRATION_MIN =
+  license + authority pack inputs (OD-C4A-13 / Strategy E)
+  publisher/journal identity evidence
+  predatory/clone risk not left orphan UNKNOWN without residual
+
+EDITORIAL_BOARD_PAGE != CLINICAL_AUTHORITY
+PEER_REVIEW_CLAIM != VERIFIED_PEER_REVIEW_QUALITY
+PROVIDER_IDENTITY_USE_OF_JOURNAL = PROHIBITED
+```
+
+### ۱۵۳.۱۴) Indexing claim / corroboration contract
+
+```text
+INDEXING_SELF_CLAIM =
+  may be recorded as INDEXING_CLAIM_STATUS = OBSERVED
+  does NOT set INDEXING_CORROBORATION_STATUS = VERIFIED
+
+SELF_CLAIMED_INDEXING != VERIFIED_INDEXING
+SEARCH_SNIPPET != INDEXING_PROOF
+FABRICATED_OR_UNCORROBORATED_INDEXING_CLAIM =
+  PREDATORY_RISK / FAIL_CLOSED indicator (evidence-based)
+```
+
+### ۱۵۳.۱۵) License / copyright / reuse / attribution (Phase M)
+
+```text
+REQUIRED_SEPARATE_DETERMINATIONS =
+  LICENSE_RETRIEVED
+  LICENSE_TYPE
+  COPYRIGHT_OWNER
+  FULL_TEXT_REUSE_PERMISSION
+  METADATA_REUSE_PERMISSION
+  ATTRIBUTION_REQUIREMENT
+  DERIVATIVE_USE_STATUS
+  AUTOMATION_PERMISSION
+  RATE_LIMIT_OR_USAGE_LIMIT
+
+PERMANENT_LAWS =
+  OPEN_ACCESS_LABEL != UNRESTRICTED_REUSE
+  PUBLIC_PDF != INGESTION_PERMISSION
+  ROBOTS_ALLOW != COPYRIGHT_PERMISSION
+  LICENSE_UNKNOWN = FAIL_CLOSED
+  RIGHTS_UNKNOWN = FAIL_CLOSED
+```
+
+### ۱۵۳.۱۶) Terms / robots / automation (Phase N)
+
+```text
+REQUIRED =
+  TERMS_RETRIEVED
+  PRIVACY_STATUS
+  ROBOTS_STATUS
+  AUTOMATION_PERMISSION
+  API_OR_BULK_ACCESS_POLICY
+  RATE_LIMIT_OR_USAGE_LIMIT
+
+PERMANENT_RULES =
+  PUBLIC_ACCESS != AUTOMATION_PERMISSION
+  ROBOTS_ALLOW != AUTOMATION_PERMISSION
+  ABSENCE_OF_PROHIBITION != PERMISSION
+  SILENCE != PERMISSION
+  NO_SELF_UPGRADE = YES
+```
+
+### ۱۵۳.۱۷) Duplicate / mirror / clone controls (Phase O)
+
+```text
+PROTECT_AGAINST =
+  same journal on multiple domains
+  alias domains
+  old vs new official domain
+  unauthorized mirror
+  cloned/hijacked journal
+  copied masthead
+  duplicate ISSN claims
+  publisher/journal mismatch
+  redirect confusion
+  cross-candidate evidence mixing
+  same article mirrored on unrelated host
+
+MERGE_CANDIDATE_IDENTITIES =
+  ONLY on proven same journal/publisher identity keys
+  title/display-name merge alone FORBIDDEN
+DO_NOT_MERGE_WITHOUT_EVIDENCE = YES
+```
+
+### ۱۵۳.۱۸) Contamination controls (Phase P)
+
+```text
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+STOP_ON_UNAUTHORIZED_QUERY = YES (STOP-06 / §150–§152 lesson)
+
+PROHIBIT_IN_FUTURE_NETWORK_GATE =
+  unlocked query
+  query modification
+  unauthorized follow-up query
+  search snippet as identity proof
+  search snippet as indexing proof
+  indexing self-claim as corroboration
+  domain-name-only trust
+  out-of-scope portal promotion
+  cross-candidate evidence reuse
+  predatory candidate promotion
+  article existence as license proof
+  full-text / PDF corpus harvest
+```
+
+### ۱۵۳.۱۹) STOP conditions (Phase Q)
+
+| STOP_ID | TRIGGER | REQUIRED_ACTION | RESULTS_USABLE? | CONTAMINATION_IMPACT | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|
+| C4B08-STOP-01 | baseline mismatch | abort; no ledger mutation beyond abort | NO for new claims | preserve audit | Governance | re-baseline | baseline match | re-baseline Gate |
+| C4B08-STOP-02 | query/hash mismatch vs this §153 | stop before/at network; no substitute | NO | none if stopped pre-use | Governance | §153 hashes | hash PASS | prep amendment if needed |
+| C4B08-STOP-03 | unlocked / mutated / non-locked query | stop; record; no silent use | NO for unlocked | quarantine unlocked | Governance | STOP-06 lesson | disposition | disposition Gate |
+| C4B08-STOP-04 | modified query / follow-up invention | stop; treat as unlocked | NO | quarantine | Governance | immutability law | disposition | disposition Gate |
+| C4B08-STOP-05 | hard budget cap exhausted | stop fail-closed | partial if uncontaminated | none if halted | Knowledge Ops | budget | residual/budget | residual Gate |
+| C4B08-STOP-06 | scope expansion beyond IR-SC-13 / Strategy E | reject/exclude | NO as C4B-08 primary | keep OOS separate | Data/Knowledge | child routing | OOS clean | route |
+| C4B08-STOP-07 | source-class ambiguity requiring invention | stop candidate; no invention | NO until resolved | none | Governance/Security | identity | identity residual | identity Gate |
+| C4B08-STOP-08 | cloned/hijacked-journal suspicion | fail-closed; do not promote | NO as authority | quarantine if mixed | Data/Knowledge + Security | clone controls | disposition or exclude | clone residual Gate |
+| C4B08-STOP-09 | material publisher identity contradiction | keep OPEN contradiction; fail-closed | NO until resolved | none | Data/Knowledge | provenance | resolve or exclude | identity residual Gate |
+| C4B08-STOP-10 | predatory-risk ambiguity needing new governance | FAIL_CLOSED; no self-upgrade | metadata only | none | Medical/Safety + Data/Knowledge | §153.5 | governed disposition | predatory residual Gate |
+| C4B08-STOP-11 | license/rights ambiguity needing legal decision | stop that path; keep fail-closed | metadata only | none | Legal / Javad | rights | explicit decision | legal/product Gate |
+| C4B08-STOP-12 | credentials / CAPTCHA / login / paid wall | stop path; no bypass | NO for blocked path | none | Security | residual | exclude or later auth Gate | residual |
+| C4B08-STOP-13 | robots/terms bypass / unrestricted crawl / bulk harvest | refuse; stop | NO | high if performed | Security/Governance | prohibited | hard refuse | n/a |
+| C4B08-STOP-14 | source activation / crawler / runtime enable request | refuse; stop | N/A | n/a | Governance | activation lock | not authorized | n/a |
+| C4B08-STOP-15 | treat journal as provider identity or clinical guideline authority | reject misuse | NO for misuse | record | Medical/Safety + Provider Verification | E2-C4D / role lock | misuse control | E2-C4D |
+
+```text
+STOP_SET_FINITE = YES
+STOP_COUNT = 15
+C4B08-STOP-01 .. C4B08-STOP-15 = LOCKED
+```
+
+### ۱۵۳.۲۰) Completion-state contract (Phase R)
+
+```text
+C4B_08_REPOSITORY_PREPARATION_COMPLETE =
+  YES after this §153 locks scope/queries/hashes/budget/evidence/STOPs
+  (this Gate sets it YES)
+
+C4B_08_NETWORK_DISCOVERY_EXECUTED =
+  NO until separately approved Strategy-E network Gate runs
+
+C4B_08_NETWORK_RESULT_VALID =
+  NO until network Gate completes with:
+    pre-network hash PASS;
+    locked queries only;
+    budget respected;
+    STOP contract respected;
+    provenance present;
+    no contamination / no snippet-as-proof;
+    predatory/clone controls applied;
+    OOS not used as proof
+
+C4B_08_DISCOVERY_SUBSTEP_COMPLETE =
+  NO until NETWORK_RESULT_VALID=YES and governed candidate ledger
+  recorded under this contract
+  (or CLOSED_WITH_RESIDUAL via later explicit governance disposition)
+
+C4B_08_FULL_CHILD_COMPLETE =
+  NO until license+authority packs complete
+  AND rights/automation clearance pattern
+  AND predatory/clone risks not orphan UNKNOWN
+  AND no provider-identity / clinical-authority misuse
+
+C4B_08_SOURCE_ACTIVATED =
+  NO (activation forbidden by this contract and permanent locks)
+
+STATE_SEPARATION_LOCKS =
+  preparation ≠ network execution
+  network executed ≠ result valid
+  valid discovery ≠ rights clearance
+  valid discovery ≠ article ingestion
+  full child ≠ runtime activation
+  JOURNAL_IDENTITY ≠ CLINICAL_AUTHORITY
+```
+
+### ۱۵۳.۲۱) Evidence Overlay impact (Phase S)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS (preserved)
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| Overlay need | WHAT_C4B08_MUST_PRODUCE | MAY_DEFER_WITH_OWNER? | MUST_REMAIN_FAIL_CLOSED? | BLOCKS_DISCOVERY_SUBSTEP? | BLOCKS_FULL_CHILD? | BLOCKS_EO? | BLOCKS_ACTIVATION? | BLOCKS_P2_FOUNDATION? |
+|---|---|---|---|---|---|---|---|---|
+| EO-C03 mandatory children | Strategy-E discovery packs under this contract | only after disposition | open child until discovery/disposition | until valid ledger | YES while open | YES | YES | NO |
+| EO-C04 rights/terms | license/terms evidence fields | YES with owner | YES | NO if owned residual after valid discovery | YES if undeferred | YES | YES | NO |
+| EO-C05 automation | robots/automation fields | YES with owner | YES | NO if owned residual | YES if undeferred | YES | YES | NO |
+| EO-C06 authority/provenance | publisher/editorial/predatory-risk provenance | partial | unknowns fail-closed | if identity contamination | YES | YES | YES | NO |
+| EO-C07 acquisition eligibility | eligibility decision records | YES | YES default | NO if not claiming eligible | YES if claiming without evidence | YES | YES | NO |
+| EO-C08 owned unknowns | residual matrix with owners | YES | YES | YES if orphan unknowns | YES | YES | YES | NO |
+
+```text
+WHAT_BLOCKS_DISCOVERY_SUBSTEP =
+  invalid network / unlocked query / missing governed ledger / orphan unknowns
+
+WHAT_BLOCKS_FULL_CHILD =
+  uncleared license/rights/automation; unresolved predatory/clone risks;
+  incomplete authority packs; role misuse
+
+WHAT_BLOCKS_EVIDENCE_OVERLAY =
+  open C4B-08 child + EO rights/automation/authority gaps
+
+WHAT_BLOCKS_SOURCE_ACTIVATION =
+  all of the above + permanent activation lock
+
+WHAT_DOES_NOT_BLOCK_P2_FOUNDATION =
+  open C4B-08 discovery/full-child (foundation readiness remains
+  READY_WITH_EXPLICIT_GAPS; P2_STARTED remains NO)
+```
+
+### ۱۵۳.۲۲) Weekly knowledge-growth forward compatibility (Phase T)
+
+```text
+PERMANENT_I5_LAW =
+  SOURCE_DISCOVERY != KNOWLEDGE_GROWTH
+  PUBLICATION_DISCOVERY != RUNTIME_GROUNDING
+  SOURCE_DISCOVERY != KNOWLEDGE_ACQUISITION
+
+IMPLEMENTATION_IN_THIS_GATE = NO
+
+FUTURE_APPROVED_PUBLICATION_SOURCES_MAY_EXPOSE =
+  newly published articles
+  newly issued journal content
+  revised versions
+  corrections / errata
+  expressions of concern
+  retractions
+  changed licenses
+  changed publisher/editorial ownership
+  changed rights/terms
+
+FUTURE_CRAWLER_LIFECYCLE_EVENTS =
+  NEW | UPDATED | CORRECTED | SUPERSEDED | RETRACTED
+
+FORWARD_PIPELINE =
+  DISCOVER → GOVERNED ACQUIRE → IMMUTABLE RAW STORE → DEDUPE
+  → VERSION/DIFF → PROVENANCE → QUALITY/SAFETY/SECURITY GOVERNANCE
+  → APPROVED PUBLICATION → RUNTIME GROUNDING
+  → SUPERSEDE/DEPRECATE/REVOKE
+
+NO_CONTENT_INGESTION_NOW = YES
+```
+
+### ۱۵۳.۲۳) Exact Strategy-E network Gate (Phase U) — NOT EXECUTED
+
+```text
+GATE_NAME =
+SECTION-28 / STAGE-3-OF-14 / C4B-08 STRATEGY-E CONTROLLED NETWORK DISCOVERY
+(short: C4B-08 / STRATEGY-E CONTROLLED NETWORK DISCOVERY)
+
+LOCKED_QUERY_IDS =
+C4B08-E-01 .. C4B08-E-10
+
+EXACT_QUERY_SET_HASH =
+9ae7251bebf324b9ff914784afb0c394d073b0ccf4575a47d740fb646f124a3b
+
+PER_ID_HASH_REQUIREMENT =
+  verify every UTF8_SHA256 in §153.8 before any network action
+  PER_ID_HASH_MATCH = PASS_10_OF_10 required
+  QUERY_SET_HASH_MATCH = PASS required
+
+NETWORK_BUDGET =
+  as §153.10 hard caps
+
+ALLOWED_TARGET_SCOPE =
+  IR-SC-13 Iranian official journals/publication portals only
+  Strategy E only
+  publisher/ISSN/portal ownership signals
+  JOURNAL_CONTENT != PROVIDER_IDENTITY
+  JOURNAL_IDENTITY != CLINICAL_AUTHORITY
+
+EVIDENCE_FIELDS =
+  §153.11
+
+PREDATORY_CONTROLS =
+  §153.5
+
+CLONE_CONTROLS =
+  §153.17
+
+LICENSE_RIGHTS_CONTROLS =
+  §153.15–§153.16
+
+STOP_SET =
+  C4B08-STOP-01 .. C4B08-STOP-15
+
+PROHIBITED_ACTIONS =
+  unlocked / mutated / follow-up invented queries
+  article-body / PDF corpus / recursive archive harvest
+  ingestion / publication / runtime grounding
+  source / crawler / flag activation
+  treating journals as provider identity or clinical guideline authority
+  paid credential / CAPTCHA bypass / login scraping
+  promoting predatory/cloned journals as authority
+  scope leak to C4B-05/06/07/09 primaries
+  commit/push/CI/tests unless separately authorized
+
+NETWORK_VALIDITY_CRITERIA =
+  hash verification PASS before network
+  locked queries only
+  budget respected
+  STOP contract respected
+  provenance present
+  no contamination / no cross-candidate mix
+  snippets not proof
+  predatory/clone controls applied
+  OOS not used as C4B-08 proof
+
+DISCOVERY_COMPLETION_CRITERIA =
+  NETWORK_RESULT_VALID = YES
+  governed C4B08-CAND ledger recorded
+  every UNKNOWN owned as residual
+  no activation
+  no article ingestion
+
+FAIL_CLOSED_BEHAVIOR =
+  on any STOP: halt; preserve audit; do not self-upgrade rights/indexing/predatory status;
+  do not mark NETWORK_RESULT_VALID without compliance
+
+NETWORK_GATE_AUTHORIZED_BY_THIS_GATE = NO
+NETWORK_GATE_EXECUTION = NOT AUTHORIZED BY THIS TASK
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۵۳.۲۴) Operations NOT performed
+
+```text
+NO network
+NO search
+NO HTTP
+NO browser
+NO external API / external evidence
+NO query execution
+NO article/PDF harvest
+NO journal name invention as candidates
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO P2/P3/P4/P5/P6
+NO migration / DB / deploy / build / frontend
+NO source / crawler / flag activation
+NO C4B-09 execution
+NO Stage 4
+NO rewrite of §§1–152
+```
+
+### ۱۵۳.۲۵) Exact next Gate
+
+```text
+NEXT_GATE =
+C4B-08 / STRATEGY-E CONTROLLED NETWORK DISCOVERY
+
+MANDATORY_PRECHECKS_FOR_THAT_GATE =
+  verify EXACT_EXECUTABLE_QUERY_TEXT for C4B08-E-01..E-10 from this §153
+  verify UTF8_SHA256 and QUERY_SET_SHA256
+  copy queries verbatim
+  enforce §153.10 budget + §153.19 STOP set
+  apply predatory/clone/license controls
+  no paraphrase / translation / substitution
+  no article/PDF harvest
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۳.۲۶) Preparation completion markers / execution state
+
+```text
+C4B_08_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_08_PREPARATION_CONTRACT =
+  LOCKED_BY_THIS_SECTION
+  (closes §145.8 REPOSITORY_PREPARATION_CONTRACT = AUTHORITY_NOT_FOUND)
+
+C4B_08_NETWORK_DISCOVERY_EXECUTED = NO
+C4B_08_NETWORK_RESULT_VALID = NO
+C4B_08_DISCOVERY_SUBSTEP_COMPLETE = NO
+C4B_08_FULL_CHILD_COMPLETE = NO
+C4B_08_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+STAGE_1 = CLOSED
+STAGE_2 = DOCUMENTED_UNCOMMITTED
+S3_W0..S3_W2 docs = DOCUMENTED_UNCOMMITTED (preserved)
+S3_W3_PREPARATION = DOCUMENTED_UNCOMMITTED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+C4B08_PREPARATION_CONTRACT_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — C4B-08 PREPARATION CONTRACT LOCKED
+```
+
+### ۱۵۳.۲۷) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+32cb0af6bf0f599f71384b5083de8570621e7ddacb6bc981ba82ba4de307729b
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–152_PRESERVED = YES
+§153_ONLY_NEW_SECTION = YES
+§153_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۳ — SECTION-28 STAGE-3-OF-14 S3-W3 C4B-08 Journal / Publication-Portal Discovery Preparation Contract — C4B08_PREPARATION_CONTRACT_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۴) SECTION-28 STAGE-3-OF-14 — C4B-08 STRATEGY-E CONTROLLED NETWORK DISCOVERY
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 —
+C4B-08 / STRATEGY-E CONTROLLED NETWORK DISCOVERY
+
+MODE =
+CONTROLLED_NETWORK / APPEND_ONLY / FAIL_CLOSED /
+NO_QUERY_MODIFICATION / NO_UNLOCKED_QUERY /
+NO_UNRESTRICTED_CRAWL / NO_BULK_ARTICLE_PDF_HARVEST /
+NO_KB_INGESTION / NO_SOURCE_ACTIVATION /
+NO_P2 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Data/Knowledge (primary per OD-C4A-13) + Governance / Continuity
+Supporting:
+Legal, Medical/Safety, Security
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for controlled Strategy-E network discovery
+ONLY within exact immutable §153 contract
+
+CHILD = C4B-08
+CANONICAL_NAME = journal / publication-portal discovery approval
+SOURCE_FAMILY = IR-SC-13
+STRATEGY = Strategy E
+OD_PACK = OD-C4A-13
+PREPARATION_CONTRACT = §153
+
+Baseline (verified before network):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §153
+  §§145–153 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+  §153 exact queries + full per-ID hashes + QUERY_SET_SHA256 = PRESENT
+  §153 budget + evidence + candidate schema + anti-predatory + clone controls
+    + C4B08-STOP-01..15 = PRESENT
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+71a313a19888d37b56daa6e4aac027839eeb0ecd3c44893559d41b269257d08d
+```
+
+### ۱۵۴.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_ALLOWED_AFTER_PREFLIGHT = YES
+```
+
+### ۱۵۴.۲) Exact query / hash verification (Phase B — pre-network)
+
+```text
+EXACT_QUERY_TEXT_COUNT = 10
+QUERY_ID_TEXT_MAPPING = 1_TO_1
+COPY_VERBATIM_REQUIRED = YES
+UNLOCKED_QUERY_EXECUTION_AUTHORIZED = NO
+HASH_SOURCE = §153.8 full UTF8_SHA256 rows (not truncated report hashes)
+HASH_ALGORITHM = SHA-256
+HASH_INPUT = exact UTF-8 bytes of EXACT_EXECUTABLE_QUERY_TEXT only
+QUERY_SET_HASH_INPUT = ordered (QUERY_ID + LF + EXACT_EXECUTABLE_QUERY_TEXT + LF)
+  for C4B08-E-01..E-10
+```
+
+| QUERY_ID | EXACT_EXECUTABLE_QUERY_TEXT | LANG | UTF8_SHA256 (§153) | RECOMPUTED | MATCH |
+|---|---|---|---|---|---|
+| C4B08-E-01 | نشریه علمی پزشکی ایران سایت رسمی | FA | 1ec655f0fcf5ec71c404a502ee59123ff26a6c0ab71f0ec462c083e1771f4f49 | same | PASS |
+| C4B08-E-02 | نشریه علمی پزشکی ناشر پورتال ISSN رسمی ایران | MIXED | fb62641ae97ae9cc5d18bfd9822d438f8b0ca5b282c81b0c76dbd75e4d6fd32c | same | PASS |
+| C4B08-E-03 | Iran medical journal open access official site | EN | 40553001ea894971e7a77f915085489b425072bc8da35be4953016e79acd4290 | same | PASS |
+| C4B08-E-04 | نشریه علمی پزشکی ایران درباره ما ناشر رسمی | FA | ece878dbf7358e8f8322fbd6bc51072b1d48a78687f599615a529f24dfe3aab5 | same | PASS |
+| C4B08-E-05 | نشریه علمی پزشکی هیئت تحریریه داوری همتا رسمی | FA | e30a77b0275ed9cdbc8243ebe780cdd059c70e613066339267de90708f2f3dba | same | PASS |
+| C4B08-E-06 | نشریه علمی پزشکی مجوز کپی رایت دسترسی آزاد رسمی | FA | d72b19b67e249120d881eb89ef414957e78bc95d64f090b2d9be4ec9eb72a319 | same | PASS |
+| C4B08-E-07 | نشریه علمی پزشکی robots.txt automation API رسمی | MIXED | f58f21bdd7bc65787d802800b627c0a087d4134758e39b0ad40179c422850c0c | same | PASS |
+| C4B08-E-08 | نشریه علمی پزشکی اخلاق انتشار رسمی ایران | FA | 60969e76f1300a6b2bd0b3ead24ceb9015b89f7905570262332e851c7b9e6ffa | same | PASS |
+| C4B08-E-09 | نشریه علمی پزشکی نمایه سازی indexing رسمی ایران | MIXED | eba6f24eea6e3423d8b92666b0b42b206e7c8dfbc9f0782d9c057baa98beb087 | same | PASS |
+| C4B08-E-10 | نشریه علمی پزشکی استناد attribution شرایط بازنشر رسمی | MIXED | 16a40ee706167000ec969d54eeffb8c2502e76050cf0c137e6b6aba6fc7336bd | same | PASS |
+
+```text
+PER_ID_HASH_MATCH = PASS_10_OF_10
+QUERY_SET_SHA256_EXPECTED =
+  9ae7251bebf324b9ff914784afb0c394d073b0ccf4575a47d740fb646f124a3b
+QUERY_SET_SHA256_RECOMPUTED =
+  9ae7251bebf324b9ff914784afb0c394d073b0ccf4575a47d740fb646f124a3b
+QUERY_SET_HASH_MATCH = PASS
+C4B08_NETWORK_CONTRACT_RECONSTRUCTED = YES
+BLOCKED_QUERY_OR_HASH_CONTRACT_MISMATCH = NO
+NETWORK_ACTIONS_BEFORE_HASH_PASS = 0
+```
+
+### ۱۵۴.۳) Reconstructed §153 network budget (Phase C)
+
+| Cap field | Locked value (§153.10) |
+|---|---:|
+| MAX_TOTAL_QUERIES / MAX_QUERY_COUNT | 15 |
+| LOCKED_EXECUTABLE_QUERIES / LOCKED_QUERY_COUNT | 10 |
+| MAX_ENGINES | 2 |
+| MAX_RESULTS_PER_QUERY | 10 |
+| MAX_TOTAL_SEARCH_RESULTS | 100 |
+| MAX_UNIQUE_DOMAINS | 10 |
+| MAX_PAGES_PER_DOMAIN | 5 |
+| MAX_TERMS_OR_POLICY_PAGES_PER_DOMAIN | 3 |
+| MAX_ROBOTS_REQUESTS | 10 |
+| MAX_REDIRECT_DEPTH | 3 |
+| RETRIES | 0 |
+| MAX_HTTP_REQUESTS | 40 |
+| MAX_CANDIDATES | 12 |
+| MAX_SECONDARY_SOURCE_PAGES | 5 |
+| MAX_QUERIES_PER_CANDIDATE | 4 |
+| MAX_DIRECT_PAGE_REQUESTS_PER_CANDIDATE | 5 |
+| TIMEOUT_SECONDS | 30 |
+
+```text
+BUDGET_CONTRACT_COMPLETE = YES
+BLOCKED_NETWORK_BUDGET_CONTRACT_INCOMPLETE = NO
+UNBOUNDED_VALUE_CREATED = NO
+RETRY_POLICY = NONE
+```
+
+### ۱۵۴.۴) Query execution ledger (Phase D)
+
+```text
+ENGINE = Search-A (web search tool; 1 of MAX_ENGINES=2)
+SEARCH_SNIPPET_IS_PROOF = NO
+ALL_QUERIES_COPIED_VERBATIM_FROM_§153 = YES
+UNAUTHORIZED_UNLOCKED_QUERY_TRANSMISSIONS = 0
+MODIFIED_QUERY = NO
+RUNTIME_PARAPHRASING = NO
+RUNTIME_SYNONYM_EXPANSION = NO
+RUNTIME_TRANSLATION = NO
+FOLLOW_UP_QUERY_INVENTION = NO
+```
+
+| QUERY_ID | EXACT_QUERY_TEXT | QUERY_HASH | ENGINE | EXECUTION | RESULT_COUNT (≤10) | RESULTS_INSPECTED | BUDGET_BEFORE | BUDGET_AFTER | STOP | NOTES (hints only; not proof) |
+|---|---|---|---|---|---:|---:|---:|---:|---|---|
+| C4B08-E-01 | نشریه علمی پزشکی ایران سایت رسمی | 1ec655f0… | Search-A | 2026-07-27 | ≤10 | ≤10 | 0/15 | 1/15 | NO | MJIRI / pejouhesh / rjms / jmciri / portal hints; Magiran/SEO dirs OOS |
+| C4B08-E-02 | نشریه علمی پزشکی ناشر پورتال ISSN رسمی ایران | fb62641a… | Search-A | 2026-07-27 | ≤10 | ≤10 | 1/15 | 2/15 | NO | ISSN/publisher portal hints; aggregator ISSN pages not promoted |
+| C4B08-E-03 | Iran medical journal open access official site | 40553001… | Search-A | 2026-07-27 | ≤10 | ≤10 | 2/15 | 3/15 | NO | EN OA journal hosts (IUMS/SUMS/SBMU); foreign OA not Iran-primary |
+| C4B08-E-04 | نشریه علمی پزشکی ایران درباره ما ناشر رسمی | ece878db… | Search-A | 2026-07-27 | ≤10 | ≤10 | 3/15 | 4/15 | NO | about/publisher page hints for university journals |
+| C4B08-E-05 | نشریه علمی پزشکی هیئت تحریریه داوری همتا رسمی | e30a77b0… | Search-A | 2026-07-27 | ≤10 | ≤10 | 4/15 | 5/15 | NO | editorial/peer-review policy page hints |
+| C4B08-E-06 | نشریه علمی پزشکی مجوز کپی رایت دسترسی آزاد رسمی | d72b19b6… | Search-A | 2026-07-27 | ≤10 | ≤10 | 5/15 | 6/15 | NO | license/copyright/OA policy hints |
+| C4B08-E-07 | نشریه علمی پزشکی robots.txt automation API رسمی | f58f21bd… | Search-A | 2026-07-27 | ≤10 | ≤10 | 6/15 | 7/15 | NO | generic robots SEO noise; first-party robots fetched later |
+| C4B08-E-08 | نشریه علمی پزشکی اخلاق انتشار رسمی ایران | 60969e76… | Search-A | 2026-07-27 | ≤10 | ≤10 | 7/15 | 8/15 | NO | COPE/ethics policy page hints |
+| C4B08-E-09 | نشریه علمی پزشکی نمایه سازی indexing رسمی ایران | eba6f24e… | Search-A | 2026-07-27 | ≤10 | ≤10 | 8/15 | 9/15 | NO | self-claimed indexing lists; NOT treated as VERIFIED_INDEXING |
+| C4B08-E-10 | نشریه علمی پزشکی استناد attribution شرایط بازنشر رسمی | 16a40ee7… | Search-A | 2026-07-27 | ≤10 | ≤10 | 9/15 | 10/15 | NO | attribution/reuse-notice / CC license page hints |
+
+```text
+QUERIES_EXECUTED = 10
+LOCKED_QUERIES_EXECUTED = 10
+UNLOCKED_QUERIES_EXECUTED = 0
+ENGINES_USED = 1
+RESULTS_INSPECTED_TOTAL = ≤100
+```
+
+### ۱۵۴.۵) Budget consumption (live / final)
+
+| Cap | Limit | Actual | Remaining | Exceeded |
+|---|---:|---:|---:|---|
+| MAX_TOTAL_QUERIES | 15 | 10 | 5 | NO |
+| LOCKED_QUERIES | 10 | 10 | 0 | NO |
+| MAX_ENGINES | 2 | 1 | 1 | NO |
+| MAX_RESULTS_PER_QUERY | 10 | ≤10 | — | NO |
+| MAX_UNIQUE_DOMAINS | 10 | 6 hosts opened/attempted | 4 | NO |
+| MAX_PAGES_PER_DOMAIN | 5 | max 3 (mjiri; pejouhesh) | — | NO |
+| MAX_ROBOTS_REQUESTS | 10 | 3 | 7 | NO |
+| MAX_REDIRECT_DEPTH | 3 | 0 observed material | — | NO |
+| RETRIES | 0 | 0 | — | NO |
+| MAX_HTTP_REQUESTS | 40 | 11 direct retrieval attempts (+10 search) | ≥19 | NO |
+| MAX_CANDIDATES | 12 | 6 | 6 | NO |
+| TIMEOUT_SECONDS | 30 | 1 timeout (journals.research.ac.ir); no retry | — | NO |
+
+```text
+QUERIES_EXECUTED = 10
+ENGINES_USED = 1
+RESULTS_INSPECTED = ≤100
+UNIQUE_DOMAINS = 6
+  mjiri.iums.ac.ir
+  pejouhesh.sbmu.ac.ir
+  rjms.iums.ac.ir
+  ijms.sums.ac.ir
+  jmciri.ir
+  journals.research.ac.ir (timeout)
+DIRECT_PAGE_REQUESTS = 8 (governance/landing/about/license; excluding robots)
+ROBOTS_REQUESTS = 3
+  mjiri.iums.ac.ir/robots.txt
+  pejouhesh.sbmu.ac.ir/robots.txt
+  rjms.iums.ac.ir/robots.txt
+MAX_OBSERVED_REDIRECT_DEPTH = 0
+TOTAL_HTTP_REQUESTS = 11 direct retrieval attempts
+CANDIDATES_CREATED = 6
+RETRIES_USED = 0
+NUMERIC_HARD_CAP_EXCEED_CONFIRMED = NO
+BUDGET_EXPANSION = NO
+ARTICLE_PDF_BULK_HARVEST = NO
+```
+
+### ۱۵۴.۶) Candidate ledger (Phase E)
+
+```text
+SOURCE_FAMILY = IR-SC-13
+ROLE_LOCK = SCIENTIFIC_EVIDENCE (journal/portal)
+JOURNAL_IDENTITY != CLINICAL_AUTHORITY
+JOURNAL_CONTENT != PROVIDER_IDENTITY
+SEARCH_SNIPPET_USED_AS_PROOF = NO
+OUT_OF_SCOPE_NOT_PROMOTED =
+  Magiran / irmedline.com / journalyab.com / farname.ir (aggregators/SEO/commercial directories)
+  generic article mirrors / paper-sharing sites
+  patient-education portals (C4B-07)
+  commercial provider directories (C4B-09)
+  foreign OA journals as Iran-primary authority
+```
+
+| CANDIDATE_ID | OBSERVED_JOURNAL_OR_PORTAL_NAME | OBSERVED_DOMAIN | DISCOVERY_QUERY_ID | SOURCE_CLASS | WHY_IN_SCOPE | INITIAL_PUBLISHER_STATUS | INITIAL_PREDATORY_RISK | INITIAL_CLONE_RISK | EXCLUSION_CHECK | STATUS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B08-CAND-01 | Medical Journal of the Islamic Republic of Iran (MJIRI) | mjiri.iums.ac.ir | C4B08-E-01, E-03, E-04 | IR-SC-13 journal portal | IUMS-hosted official journal landing + about | IUMS claimed | NO_MATERIAL_WARNING_SIGNALS_OBSERVED (not predatory clearance) | NO_MATERIAL_CLONE_SIGNAL_OBSERVED | not aggregator | ACCEPTED_WITH_RESIDUALS |
+| C4B08-CAND-02 | Research in Medicine / پژوهش در پزشکی | pejouhesh.sbmu.ac.ir | C4B08-E-01, E-06, E-08 | IR-SC-13 journal portal | SBMU journal host + license/ethics pages | SBMU claimed | NO_MATERIAL_WARNING_SIGNALS_OBSERVED | NO_MATERIAL_CLONE_SIGNAL_OBSERVED | not Magiran mirror | ACCEPTED_WITH_RESIDUALS |
+| C4B08-CAND-03 | Razi Journal of Medical Sciences / مجله علوم پزشکی رازی | rjms.iums.ac.ir | C4B08-E-01, E-04, E-05 | IR-SC-13 journal portal | IUMS journal about page | IUMS claimed | NO_MATERIAL_WARNING_SIGNALS_OBSERVED | NO_MATERIAL_CLONE_SIGNAL_OBSERVED | distinct from MJIRI (not merged) | ACCEPTED_WITH_RESIDUALS |
+| C4B08-CAND-04 | Iranian Journal of Medical Sciences (IJMS) | ijms.sums.ac.ir | C4B08-E-03 | IR-SC-13 (hint) | SUMS journal host hint under locked EN query | UNKNOWN | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | thin direct retrieval | EVALUATION_INCOMPLETE_FAIL_CLOSED |
+| C4B08-CAND-05 | مجله علمی پژوهشی سازمان نظام پزشکی ایران | jmciri.ir | C4B08-E-01, E-02 | IR-SC-13 journal portal | IRIMC scientific-research journal landing + ISSN display | IRIMC / named officers OBSERVED on landing | NO_MATERIAL_WARNING_SIGNALS_OBSERVED_ON_LANDING | NO_MATERIAL_CLONE_SIGNAL_OBSERVED | not commercial directory | ACCEPTED_WITH_RESIDUALS |
+| C4B08-CAND-06 | journals.research.ac.ir (MoH/research journals portal hint) | journals.research.ac.ir | C4B08-E-01, E-02 | IR-SC-13 portal (hint) | locked-query portal hint | UNKNOWN | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | direct GET timeout; RETRIES=0 | EVALUATION_INCOMPLETE_FAIL_CLOSED |
+
+### ۱۵۴.۷) Journal / publisher identity evidence (Phase F)
+
+| CANDIDATE_ID | REQUEST_URL | FINAL_URL | PAGE_ROLE | RETRIEVAL_STATUS | OBSERVED_FACT | EVIDENCE_LOCATION | PROVENANCE | CONTRADICTION |
+|---|---|---|---|---|---|---|---|---|
+| C4B08-CAND-01 | https://mjiri.iums.ac.ir/en | same | landing | 200 | MJIRI title; Print ISSN 1016-1430; Online ISSN 2251-6840; Chairman/EiC named; IUMS branding | headings + ISSN block | first-party GET 2026-07-27 | see CONTRA-01 |
+| C4B08-CAND-01 | https://mjiri.iums.ac.ir/page/12/About-us | same | about / publisher | 200 | Owned/published by Iran University of Medical Sciences; double-blind peer-reviewed OA claim; CC-BY-NC 4.0 policy claim (from 2024-08-28); COPE ethics consult claim; indexing self-list | about body | first-party GET | CONTRA-01 (license version) |
+| C4B08-CAND-02 | https://pejouhesh.sbmu.ac.ir/ | same | landing | 200 | Research in Medicine; pISSN/eISSN displayed; editorial names; COPE claim; CC BY 4.0 claim on landing | landing | first-party GET | NONE_OPEN |
+| C4B08-CAND-02 | https://pejouhesh.sbmu.ac.ir/page.php?slct_pg_id=93 | same | license / copyright / peer-review / ethics policies | 200 | Explicit CC BY 4.0 license policy; authors retain copyright; double-blind peer review; MoH national publication-ethics + COPE claims | policy sections | first-party GET | NONE_OPEN |
+| C4B08-CAND-03 | https://rjms.iums.ac.ir/page/39/درباره-نشریه | same | about | 200 | Razi journal about; MoH scientific-research rank claim; ISSN display; double-blind claim; footer CC BY-NC-SA 4.0 | about + footer | first-party GET | NONE_OPEN |
+| C4B08-CAND-04 | https://ijms.sums.ac.ir/ | same | landing | 200 thin | Only “Articles InPress” fragment recovered; insufficient identity pack | thin payload | first-party GET | NONE_OPEN |
+| C4B08-CAND-05 | https://jmciri.ir/fa | same | landing | 200 | IRIMC scientific-research journal; print ISSN 1562-1073; eISSN 3041-9956; named director/EiC/executive; indexing section present | landing metadata | first-party GET | NONE_OPEN |
+| C4B08-CAND-06 | https://journals.research.ac.ir/ | n/a | portal | TIMEOUT | Direct GET timed out within 30s; no retry | n/a | attempted GET | NONE_OPEN |
+
+```text
+DOMAIN_OR_TITLE_ALONE_NOT_PROOF = YES
+ISSN_DISPLAY_ALONE_NOT_TRUST = YES
+LOGO_ALONE_NOT_PROOF = YES
+SNIPPET_ALONE_NOT_PROOF = YES
+CROSS_CANDIDATE_EVIDENCE_MIXING = NO
+ARTICLE_BODY_OR_PDF_CORPUS_DOWNLOAD = NO
+JOURNAL_IDENTITY != CLINICAL_AUTHORITY = PRESERVED
+```
+
+### ۱۵۴.۸) Editorial / peer-review / ethics (Phase G)
+
+| CANDIDATE_ID | EDITORIAL_BOARD / RESPONSIBILITY | PEER_REVIEW_CLAIM | PUBLICATION_ETHICS | AUTHOR_GUIDANCE / CORRECTION | CONTACT_TRANSPARENCY | NOTES |
+|---|---|---|---|---|---|---|
+| C4B08-CAND-01 | EiC/Chairman named on landing; board detail not fully audited | double-blind peer-reviewed CLAIM OBSERVED | COPE guidelines consult CLAIM OBSERVED | OA/author guidelines linked (bodies not harvested) | IUMS host contact paths present | claim ≠ verified process quality; ≠ clinical authority |
+| C4B08-CAND-02 | editorial names on landing | Double-Blind Peer Review policy page OBSERVED | MoH national ethics guide + COPE CLAIM OBSERVED on policy page | plagiarism/AI/authorship policies present on same policy host | SBMU journal office contact claimed | stronger governance metadata than CAND-04/06 |
+| C4B08-CAND-03 | about page governance signals | double-blind CLAIM OBSERVED | ethics detail PARTIAL/UNKNOWN beyond about | UNKNOWN_FAIL_CLOSED for correction policy body | IUMS host | MoH rank claim ≠ clinical guideline authority |
+| C4B08-CAND-04 | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | thin retrieval |
+| C4B08-CAND-05 | director/EiC/exec named on landing | peer-review process detail UNKNOWN on retrieved landing | ethics policy body UNKNOWN | UNKNOWN | officers named | landing names ≠ full editorial pack |
+| C4B08-CAND-06 | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | timeout |
+
+```text
+EDITORIAL_BOARD_PAGE != CLINICAL_AUTHORITY
+PEER_REVIEW_CLAIM != VERIFIED_PEER_REVIEW_QUALITY
+NO_JOURNAL_CORPUS_DOWNLOAD = YES
+```
+
+### ۱۵۴.۹) ISSN / identifier state (Phase H)
+
+| CANDIDATE_ID | ISSN_OR_IDENTIFIER_STATUS | OBSERVED_VALUES | TRUST_INFERENCE |
+|---|---|---|---|
+| C4B08-CAND-01 | ISSN_DISPLAYED_OBSERVED | Print 1016-1430; Online 2251-6840; Reg. 8104 | ISSN ≠ trustworthiness |
+| C4B08-CAND-02 | ISSN_DISPLAYED_OBSERVED | pISSN/eISSN on landing (first-party display) | ISSN ≠ trustworthiness |
+| C4B08-CAND-03 | ISSN_DISPLAYED_OBSERVED | ISSN on about page | ISSN ≠ trustworthiness |
+| C4B08-CAND-04 | UNKNOWN | not established in thin retrieval | fail-closed |
+| C4B08-CAND-05 | ISSN_DISPLAYED_OBSERVED | Print 1562-1073; eISSN 3041-9956 | ISSN ≠ trustworthiness |
+| C4B08-CAND-06 | UNKNOWN | timeout | fail-closed |
+
+### ۱۵۴.۱۰) Indexing claim vs corroboration (Phase H)
+
+| CANDIDATE_ID | INDEXING_CLAIM_STATUS | INDEXING_CORROBORATION_STATUS | NOTES |
+|---|---|---|---|
+| C4B08-CAND-01 | OBSERVED self-claim (PubMed, PMC, Scopus, DOAJ, ISC, SID, Magiran, …) | UNKNOWN / NOT_VERIFIED_WITHIN_GATE | SELF_CLAIMED_INDEXING ≠ VERIFIED_INDEXING; no unlocked external corroboration query |
+| C4B08-CAND-02 | PARTIAL/UNKNOWN (landing COPE/OA signals; no verified external index proof collected) | UNKNOWN | fail-closed for verification |
+| C4B08-CAND-03 | MoH scientific-research rank CLAIM OBSERVED | UNKNOWN / NOT_VERIFIED | self-claim ≠ corroboration |
+| C4B08-CAND-04 | UNKNOWN | UNKNOWN | thin |
+| C4B08-CAND-05 | Indexing section present on landing (details not externally corroborated) | UNKNOWN | self-claim ≠ verified |
+| C4B08-CAND-06 | UNKNOWN | UNKNOWN | timeout |
+
+```text
+NO_SELF_CLAIM_PROMOTED_TO_VERIFIED_INDEXING = YES
+SEARCH_SNIPPET != INDEXING_PROOF = YES
+```
+
+### ۱۵۴.۱۱) Predatory / deceptive / clone assessment (Phase I)
+
+```text
+GEOGRAPHY_ALONE_NOT_PREDATORY = YES
+LANGUAGE_ALONE_NOT_PREDATORY = YES
+PUBLICATION_FEE_ALONE_NOT_PREDATORY = YES
+```
+
+| CANDIDATE_ID | PREDATORY_RISK | CLONED_OR_HIJACKED_RISK | DECEPTIVE_TITLE | FAKE_PUBLISHER | UNVERIFIABLE_EDITORIAL | MISLEADING_INDEXING | FAKE_METRIC | DUPLICATE_DOMAIN | DISPOSITION |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B08-CAND-01 | NO_MATERIAL_WARNING_SIGNALS_OBSERVED | NO_MATERIAL_SIGNAL | NO | NO (IUMS claimed) | PARTIAL (named EiC; full board not audited) | SELF_CLAIM_UNCORROBORATED (risk residual, not auto-predatory) | NO observed fake IF claim audited | NO | FAIL_CLOSED for absolute predatory clearance; not promoted as cleared |
+| C4B08-CAND-02 | NO_MATERIAL_WARNING_SIGNALS_OBSERVED | NO_MATERIAL_SIGNAL | NO | NO (SBMU) | PARTIAL | UNKNOWN | NO | NO | same |
+| C4B08-CAND-03 | NO_MATERIAL_WARNING_SIGNALS_OBSERVED | NO_MATERIAL_SIGNAL | NO | NO (IUMS) | PARTIAL | MoH-rank self-claim uncorroborated | NO | NO (separate from MJIRI) | same |
+| C4B08-CAND-04 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | incomplete |
+| C4B08-CAND-05 | NO_MATERIAL_WARNING_SIGNALS_OBSERVED_ON_LANDING | NO_MATERIAL_SIGNAL | NO | NO (IRIMC officers named) | PARTIAL | UNKNOWN | Google-Scholar-style counts on page = not treated as verified journal metric | NO | fail-closed clearance |
+| C4B08-CAND-06 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | timeout |
+
+```text
+NO_PREDATION_LABEL_FROM_IRAN_GEOGRAPHY = YES
+MATERIAL_UNRESOLVED_CLONE_HIJACK_SUSPICION_REQUIRING_GATE_ABORT = NO
+C4B08-STOP-08_GATE_ABORT = NO
+```
+
+### ۱۵۴.۱۲) License / copyright / reuse / attribution (Phase J)
+
+```text
+DEFAULT_ABSENT = UNKNOWN_FAIL_CLOSED
+OPEN_ACCESS_LABEL != UNRESTRICTED_REUSE
+PUBLIC_PDF != INGESTION_PERMISSION
+LICENSE_UNKNOWN = FAIL_CLOSED
+NO_SELF_UPGRADE = YES
+```
+
+| CANDIDATE_ID | LICENSE_RETRIEVED | LICENSE_TYPE | COPYRIGHT_OWNER | FULL_TEXT_REUSE | METADATA_REUSE | ATTRIBUTION | DERIVATIVE | AUTOMATION_FOR_KB |
+|---|---|---|---|---|---|---|---|---|
+| C4B08-CAND-01 | YES (about) | CC BY-NC 4.0 CLAIM (post-2024-08-28); footer also shows CC BY-NC 3.0 Unported text → CONTRA-01 | publisher/journal policies claim redistribution under CC-BY-NC | NON_COMMERCIAL share claim OBSERVED; Sedi KB ingest UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED for automated Sedi use | REQUIRED under CC-BY-NC claim | NC-restricted claim | UNKNOWN_FAIL_CLOSED |
+| C4B08-CAND-02 | YES (policy page) | CC BY 4.0 OBSERVED | authors retain copyright (policy) | human reuse under CC BY claim OBSERVED; KB ingest UNKNOWN_FAIL_CLOSED | attribution-required share claim OBSERVED; automation still UNKNOWN | REQUIRED | permitted under CC BY claim (with attribution) | UNKNOWN_FAIL_CLOSED (OA≠automation) |
+| C4B08-CAND-03 | PARTIAL (footer) | CC BY-NC-SA 4.0 footer claim | UNKNOWN detail | UNKNOWN_FAIL_CLOSED for Sedi ingest | UNKNOWN_FAIL_CLOSED | REQUIRED if CC applies | SA/NC constraints claim | UNKNOWN_FAIL_CLOSED |
+| C4B08-CAND-04 | NO | UNKNOWN | UNKNOWN | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN | UNKNOWN_FAIL_CLOSED |
+| C4B08-CAND-05 | NO first-party license page retrieved | UNKNOWN | UNKNOWN | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN | UNKNOWN_FAIL_CLOSED |
+| C4B08-CAND-06 | NO | UNKNOWN | UNKNOWN | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN | UNKNOWN_FAIL_CLOSED |
+
+### ۱۵۴.۱۳) Terms / privacy / robots / automation (Phase K)
+
+```text
+PUBLIC_ACCESS != AUTOMATION_PERMISSION
+ROBOTS_ALLOW != AUTOMATION_PERMISSION
+ROBOTS_ALLOW != COPYRIGHT_PERMISSION
+ABSENCE_OF_PROHIBITION != PERMISSION
+SILENCE != PERMISSION
+```
+
+| CANDIDATE_ID | TERMS_RETRIEVED | PRIVACY_STATUS | ROBOTS_STATUS | AUTOMATION_PERMISSION | API_OR_BULK | RATE_LIMIT |
+|---|---|---|---|---|---|---|
+| C4B08-CAND-01 | NO dedicated TOU retrieved | UNKNOWN_FAIL_CLOSED | RETRIEVED: Yektaweb-style Disallow list; Crawl-delay: 50; many named bots Disallow:/ | UNKNOWN_FAIL_CLOSED | UNKNOWN | Crawl-delay 50 OBSERVED (not permission grant) |
+| C4B08-CAND-02 | license/copyright policies retrieved; site-wide TOU UNKNOWN | UNKNOWN_FAIL_CLOSED | RETRIEVED: similar Disallow + Crawl-delay 50; named bots Disallow:/ | UNKNOWN_FAIL_CLOSED | UNKNOWN | Crawl-delay 50 OBSERVED |
+| C4B08-CAND-03 | NO dedicated TOU | UNKNOWN_FAIL_CLOSED | RETRIEVED: same pattern; Crawl-delay 50 | UNKNOWN_FAIL_CLOSED | UNKNOWN | Crawl-delay 50 OBSERVED |
+| C4B08-CAND-04 | NO | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN |
+| C4B08-CAND-05 | NO | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN |
+| C4B08-CAND-06 | NO | UNKNOWN_FAIL_CLOSED | NOT_RETRIEVED | UNKNOWN_FAIL_CLOSED | UNKNOWN | UNKNOWN |
+
+### ۱۵۴.۱۴) Duplicate / mirror / clone ledger (Phase L)
+
+| ISSUE | CANDIDATES | STATUS | ACTION |
+|---|---|---|---|
+| SAME_PUBLISHER_MULTIPLE_JOURNALS | CAND-01 + CAND-03 (both IUMS) | OBSERVED distinct journals | DO NOT MERGE |
+| SAME_JOURNAL_MULTIPLE_DOMAINS | none proven | NONE_OPEN | — |
+| UNAUTHORIZED_MIRROR | Magiran/SEO listings | EXCLUDED OOS | not used as proof |
+| CLONED_JOURNAL / HIJACKED_DOMAIN | none material | NONE_OPEN requiring STOP-08 abort | continue fail-closed clearance |
+| DUPLICATE_ISSN_CLAIM | none proven across candidates | NONE_OPEN | — |
+| PUBLISHER_JOURNAL_MISMATCH | none material | NONE_OPEN | — |
+| REDIRECT_CONFUSION | none material | NONE_OPEN | — |
+| CROSS_CANDIDATE_EVIDENCE_MIXING | — | NO | enforced |
+
+### ۱۵۴.۱۵) Provenance
+
+```text
+EVERY_MATERIAL_EVIDENCE_ITEM_HAS_PROVENANCE = YES
+PROVENANCE_CLASS = first-party HTTP retrieval 2026-07-27 under locked queries
+SEARCH_SNIPPETS = discovery hints only
+LOCAL_AGENT_TOOL_DUMPS = non-authoritative working copies; authority = first-party URLs
+```
+
+### ۱۵۴.۱۶) Contradiction ledger (Phase M)
+
+| CONTRADICTION_ID | CANDIDATE_ID | CLAIM_A | EVIDENCE_A | CLAIM_B | EVIDENCE_B | CURRENT_STATE | IMPACT | OWNER | CLOSURE_CRITERIA |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B08-CONTRA-01 | C4B08-CAND-01 | CC BY-NC 4.0 for articles from 2024-08-28 | About-us body | Footer/legacy text references CC BY-NC 3.0 Unported | landing/about footer block | OPEN | license version ambiguity for older vs newer articles; fail-closed for ingest | Legal + Data/Knowledge | versioned license map or Legal decision |
+| C4B08-CONTRA-02 | C4B08-CAND-01 | Rich indexing self-list (PubMed/Scopus/DOAJ/…) | About-us | INDEXING_CORROBORATION = UNKNOWN | no external corroboration within lock | OPEN | cannot treat as VERIFIED_INDEXING | Data/Knowledge | allowed corroboration Gate or residual deferment |
+| C4B08-CONTRA-03 | CAND-01..05 vs rights | Public OA journal landings | first-party GET | terms/automation/KB reuse UNKNOWN_FAIL_CLOSED | missing TOU / robots≠permission | OPEN | discovery ≠ rights clearance | Legal/Security | rights/automation Gate |
+
+```text
+CONTRADICTION_ERASURE = NO
+FAVORABLE_SIDE_NOT_SILENTLY_SELECTED = YES
+```
+
+### ۱۵۴.۱۷) STOP ledger (Phase N)
+
+| STOP_ID | TRIGGERED? | SCOPE | TRIGGER DETAIL | LAST_AUTHORIZED_ACTION | RESULTS_USABLE? | CONTAMINATION | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B08-STOP-01 | NO | — | baseline matched | — | — | NO | — | — | — | — |
+| C4B08-STOP-02 | NO | — | hashes PASS_10_OF_10 + set PASS | — | — | NO | — | — | — | — |
+| C4B08-STOP-03 | NO | — | no unlocked query | — | — | NO | — | — | — | — |
+| C4B08-STOP-04 | NO | — | no modified/follow-up query | — | — | NO | — | — | — | — |
+| C4B08-STOP-05 | NO | — | caps not exhausted | — | — | NO | — | — | — | — |
+| C4B08-STOP-06 | YES (local) | OOS hits | Magiran/SEO aggregators/commercial dirs excluded | exclude + continue | OOS not C4B-08 proof | NO | Data/Knowledge | IR-SC-13 scope | keep OOS clean | n/a |
+| C4B08-STOP-07 | YES (candidate-local) | CAND-04, CAND-06 | thin/timeout → identity incomplete | stop path; no invention; no retry | NO for authority claims | NO | Governance/Security | retrieval | retrieve or exclude | residual retrieval Gate |
+| C4B08-STOP-08 | NO gate-abort | — | no material unresolved clone/hijack requiring abort | — | — | NO | — | — | — | — |
+| C4B08-STOP-09 | NO gate-abort | — | no material publisher contradiction requiring abort (CONTRA-01 is license version) | keep OPEN | metadata usable | NO | — | — | — | — |
+| C4B08-STOP-10 | YES (deferred) | predatory absolute clearance | no absolute clearance; evidence-based residual | keep fail-closed | metadata only | NO | Medical/Safety + Data/Knowledge | §153.5 | governed disposition | predatory residual Gate |
+| C4B08-STOP-11 | YES (rights) | license/reuse/automation | Legal decision needed for Sedi ingest/automation | keep fail-closed | metadata only | NO | Legal / Javad | rights | explicit decision | legal/product Gate |
+| C4B08-STOP-12 | NO | — | no CAPTCHA/login/credentials bypass | — | — | NO | — | — | — | — |
+| C4B08-STOP-13 | NO | — | no robots/terms bypass; no bulk harvest | — | — | NO | — | — | — | — |
+| C4B08-STOP-14 | NO | — | activation refused | — | — | NO | — | — | — | — |
+| C4B08-STOP-15 | NO | — | no provider-identity / clinical-guideline misuse | — | — | NO | — | — | — | — |
+
+```text
+GATE_ABORTING_STOP = NO
+UNLOCKED_QUERY_VIOLATION = NO
+WORKAROUND_USED = NO
+NEW_QUERY_INVENTED = NO
+BUDGET_EXPANDED = NO
+ARTICLE_PDF_BULK_HARVEST = NO
+```
+
+### ۱۵۴.۱۸) Residual ledger (Phase O)
+
+| RESIDUAL_ID | CANDIDATE_ID | DESCRIPTION | CURRENT_STATE | OWNER | DEPENDENCY | BLOCKS_DISCOVERY_SUBSTEP? | BLOCKS_FULL_CHILD? | BLOCKS_EO? | BLOCKS_ACTIVATION? | CLOSURE_CRITERIA | NEXT_GATE | CAN_DEFER_WITH_OWNER? | FAIL_CLOSED? |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C4B08-R-INDEX-01 | CAND-01 (also 03/05) | indexing self-claims uncorroborated | OPEN | Data/Knowledge | allowed corroboration evidence or formal deferment | NO | YES | YES | YES | INDEXING_CORROBORATION ≠ UNKNOWN or owned deferment | indexing residual Gate | YES | YES |
+| C4B08-R-LICENSE-01 | CAND-01 | CC BY-NC 4.0 vs 3.0 footer contradiction | OPEN | Legal | versioned license map | NO | YES | YES | YES | resolve CONTRA-01 | legal residual Gate | YES | YES |
+| C4B08-R-LICENSE-02 | CAND-03, CAND-05 | license page incomplete / not retrieved | OPEN | Legal | first-party license URL evidence | NO | YES | YES | YES | LICENSE_RETRIEVED+classified | rights residual Gate | YES | YES |
+| C4B08-R-REUSE-01 | CAND-01..05 | Sedi full-text/metadata reuse & KB ingest uncleared | OPEN | Legal | license+product policy | NO | YES | YES | YES | explicit reuse decision | rights residual Gate | YES | YES |
+| C4B08-R-TERMS-01 | CAND-01..05 | site-wide terms/privacy not retrieved | OPEN | Legal | first-party TOU/privacy | NO | YES | YES | YES | retrieve+classify | rights residual Gate | YES | YES |
+| C4B08-R-AUTO-01 | CAND-01..05 | automation permission UNKNOWN (robots≠permission; Crawl-delay observed) | OPEN | Legal/Security | robots+policy+product | NO | YES | YES | YES | governed automation decision | automation residual Gate | YES | YES |
+| C4B08-R-PRED-01 | CAND-01..05 | absolute predatory/clone clearance not granted | OPEN | Medical/Safety + Data/Knowledge | §153.5 disposition | NO | YES | PARTIAL | YES | governed predatory disposition | predatory residual Gate | YES | YES |
+| C4B08-R-IJMS-01 | CAND-04 | ijms.sums.ac.ir thin retrieval | OPEN | Governance/Security | successful identity pack GET or exclude | NO | YES if retained | YES if retained | YES | retrieve or exclude | residual retrieval Gate | YES | YES |
+| C4B08-R-PORTAL-01 | CAND-06 | journals.research.ac.ir timeout | OPEN | Governance/Security | successful GET or exclude | NO | YES if retained | YES if retained | YES | retrieve or exclude | residual retrieval Gate | YES | YES |
+| C4B08-R-JMCIRI-ROBOTS-01 | CAND-05 | jmciri robots/terms not fetched | OPEN | Legal/Security | robots+TOU retrieval | NO | YES | YES | YES | robots/terms evidence or deferment | robots residual Gate | YES | YES |
+| C4B08-R-ATTR-01 | CAND-01..05 | attribution operationalization for Sedi unsettled | OPEN | Legal | license+attribution policy | NO | YES | YES | YES | attribution rule locked | rights residual Gate | YES | YES |
+
+```text
+NO_ORPHAN_UNKNOWN = YES
+EVERY_UNKNOWN_HAS_OWNER_DEPENDENCY_CLOSURE_NEXT_GATE = YES
+```
+
+### ۱۵۴.۱۹) Network execution / validity (Phase P)
+
+```text
+C4B_08_NETWORK_DISCOVERY_EXECUTED = YES
+
+C4B_08_NETWORK_RESULT_VALID = YES
+  because:
+    pre-network hash PASS_10_OF_10 + set hash PASS
+    only locked queries C4B08-E-01..E-10 executed
+    exact query text preserved; no unlocked/modified query
+    budget respected
+    STOP contract respected (no gate-aborting violation)
+    provenance present
+    no candidate contamination / no cross-candidate mix
+    OOS aggregators not used as C4B-08 proof
+    snippets not treated as authority evidence
+    indexing self-claims not promoted to VERIFIED_INDEXING
+    predatory/clone handled evidence-based fail-closed
+    no article/PDF bulk harvest / no KB ingestion
+
+NO_RETROACTIVE_VALIDATION_NEEDED = YES
+EXECUTION_YES_DOES_NOT_ALONE_IMPLY_VALIDITY = ACKNOWLEDGED
+VALIDITY_HERE_IS_CONTRACT_COMPLIANCE = YES
+```
+
+### ۱۵۴.۲۰) Discovery-substep decision (Phase Q)
+
+```text
+C4B_08_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_08_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+
+BASIS (§153.20 / DISCOVERY_COMPLETION_CRITERIA):
+  NETWORK_RESULT_VALID = YES
+  governed C4B08-CAND ledger recorded
+  every UNKNOWN owned as residual
+  rights/indexing/automation remain UNKNOWN_FAIL_CLOSED without self-upgrade
+  no activation / no article ingestion
+
+INVENTED_FAVORABLE_STATUS = NO
+INVENTED_DEFERMENT_AUTHORITY = NO
+```
+
+### ۱۵۴.۲۱) Full-child decision (Phase R)
+
+```text
+C4B_08_FULL_CHILD_COMPLETE = NO
+
+REASON =
+  indexing corroboration UNKNOWN
+  license/version contradictions and incomplete licenses
+  reuse/attribution for Sedi unsettled
+  terms/privacy incomplete
+  automation UNKNOWN_FAIL_CLOSED
+  predatory absolute clearance not granted
+  CAND-04/CAND-06 incomplete
+  FULL_CHILD requires license+authority packs + rights/automation clearance pattern
+  (§153.20)
+```
+
+### ۱۵۴.۲۲) Source activation hard lock
+
+```text
+C4B_08_SOURCE_ACTIVATED = NO
+RUNTIME_ENABLED = NO
+CRAWLER_ENABLED = NO
+ACQUISITION_ENABLED = NO
+PUBLICATION_RELEASED = NO
+KB_INGESTION_ENABLED = NO
+PRODUCTION_ALLOWLIST_ADD = NO
+FLAG_ACTIVATED = NO
+AUTO_FETCH_ENABLED = NO
+```
+
+### ۱۵۴.۲۳) Evidence Overlay impact (Phase S)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| Item | Value |
+|---|---|
+| WHAT_C4B08_NOW_SATISFIES | Strategy-E discovery executed + valid IR-SC-13 journal/portal candidate ledger (partial class pack) |
+| WHAT_REMAINS_OPEN | full-child; indexing corroboration; license/reuse/terms/automation; predatory absolute clearance; CAND-04/06 |
+| WHAT_IS_DEFERRED_WITH_OWNER | residuals R-INDEX/LICENSE/REUSE/TERMS/AUTO/PRED/IJMS/PORTAL/JMCIRI-ROBOTS/ATTR |
+| WHAT_BLOCKS_FULL_CHILD | residuals above |
+| WHAT_BLOCKS_EVIDENCE_OVERLAY | open C4B-08 full-child + EO rights/automation/authority gaps |
+| WHAT_BLOCKS_ACTIVATION | all of the above + permanent activation lock |
+
+### ۱۵۴.۲۴) Weekly knowledge-growth forward link (Phase T)
+
+```text
+SOURCE_DISCOVERY != KNOWLEDGE_GROWTH
+PUBLICATION_DISCOVERY != KNOWLEDGE_ACQUISITION
+IMPLEMENTATION_IN_THIS_GATE = NO
+
+FUTURE_PIPELINE =
+  DISCOVERY → GOVERNED ACQUISITION → IMMUTABLE RAW STORE → DEDUPE
+  → VERSION/DIFF → PROVENANCE → QUALITY/SAFETY/SECURITY GOVERNANCE
+  → APPROVED PUBLICATION → RUNTIME GROUNDING
+  → SUPERSEDE/DEPRECATE/REVOKE
+
+FUTURE_CRAWLER_LIFECYCLE_EVENTS (after rights + activation authority) =
+  NEW | UPDATED | CORRECTED | SUPERSEDED | RETRACTED
+
+FUTURE_PUBLICATION_SOURCES_MAY_NEED_TO_DETECT =
+  newly published articles
+  revised versions
+  corrections / errata
+  expressions of concern
+  retractions
+  changed publisher ownership
+  changed editorial governance
+  changed license/rights
+
+NO_CRAWLER_IMPLEMENTATION_NOW = YES
+NO_CONTENT_INGESTION_NOW = YES
+```
+
+### ۱۵۴.۲۵) S3-W4 entry / blocker decision (Phase U)
+
+```text
+S3-W4 =
+  C4B-09 status reconciliation / docs
+  (secondary-only; prior execution history; §145 Stage-3 matrix)
+
+DO_C4B08_RESIDUALS_BLOCK_S3_W4_C4B09_RECONCILIATION = NO
+
+BASIS =
+  INDEPENDENT_GOVERNED_CHILDREN precedent (§147–§152 / §145)
+  C4B-09 is secondary-only reconciliation, not C4B-08 residual clearance
+  C4B-08 residuals remain owned and fail-closed without requiring S3-W4 delay
+
+AUTHORITY_NOT_FOUND_FOR_AUTOMATIC_BLOCK = YES
+C4B-09_NOT_STARTED_IN_THIS_GATE = YES
+```
+
+### ۱۵۴.۲۶) Operations NOT performed
+
+```text
+NO query modification
+NO unlocked query
+NO unrestricted crawling
+NO article/PDF bulk harvest
+NO KB ingestion
+NO source activation
+NO P2
+NO test
+NO CI
+NO commit
+NO push
+NO fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend
+NO flag activation
+NO C4B-09 execution
+NO Stage 4
+NO rewrite of §§1–153
+```
+
+### ۱۵۴.۲۷) Exact next Gate
+
+```text
+NEXT_GATE =
+S3-W4 — C4B-09 status reconciliation / docs
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+
+C4B-08 residual clearance Gates remain separately owned and are NOT
+auto-started here.
+```
+
+### ۱۵۴.۲۸) Completion markers / execution state
+
+```text
+C4B_08_REPOSITORY_PREPARATION_COMPLETE = YES (preserved from §153)
+C4B_08_NETWORK_DISCOVERY_EXECUTED = YES
+C4B_08_NETWORK_RESULT_VALID = YES
+C4B_08_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_08_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_08_FULL_CHILD_COMPLETE = NO
+C4B_08_SOURCE_ACTIVATED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+STAGE_1 = CLOSED
+STAGE_2 = DOCUMENTED_UNCOMMITTED
+S3_W0..S3_W3 prep docs = DOCUMENTED_UNCOMMITTED (preserved)
+S3_W3_NETWORK = DOCUMENTED_UNCOMMITTED (this section)
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+C4B08_NETWORK_DISCOVERY_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_EXPLICIT_RESIDUALS
+```
+
+### ۱۵۴.۲۹) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+71a313a19888d37b56daa6e4aac027839eeb0ecd3c44893559d41b269257d08d
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–153_PRESERVED = YES
+§154_ONLY_NEW_SECTION = YES
+§154_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۴ — SECTION-28 STAGE-3-OF-14 C4B-08 Strategy-E Controlled Network Discovery — C4B08_NETWORK_DISCOVERY_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۵) SECTION-28 STAGE-3-OF-14 — S3-W4 C4B-09 STATUS RECONCILIATION / DOCS
+
+```text
+PACKAGE =
+SECTION-28 / STAGE-3-OF-14 / S3-W4 —
+C4B-09 STATUS RECONCILIATION / DOCS
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+AUTHORITY_RECONSTRUCTION /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_SOURCE_ACTIVATION /
+NO_P2 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Legal + Governance / Continuity
+Supporting:
+Data/Knowledge, Security, Provider Verification
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local reconciliation Gate ONLY
+
+CHILD = C4B-09
+CANONICAL_ROLE = commercial-directory evidence collection / secondary-only
+SOURCE_FAMILY = IR-SC-16
+STRATEGY = Strategy J
+OD_PACK = OD-C4A-16
+
+STARTING_HYPOTHESES_TO_VERIFY (not assumed true until reconstructed) =
+  C4B09_09A = PASS
+  C4B09_09B = CLOSED_RESIDUAL
+  SOURCE_CLASS = SECONDARY_ONLY
+  SOURCE_ACTIVATED = NO
+  RIGHTS = FAIL_CLOSED
+
+Baseline (verified at S3-W4 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §154
+  §§145–154 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Preserved upstream mainline (verified from tip authority; not rewritten):
+  C4B_06_DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL (§150)
+  C4B_07_DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL (§152)
+  C4B_08_DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL (§154)
+  DO_C4B08_RESIDUALS_BLOCK_S3_W4_C4B09_RECONCILIATION = NO (§154.25)
+  EVIDENCE_OVERLAY = NOT_CLOSED
+  P2 = NOT_STARTED
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+0d47c3ce8fa0f1ee9569beafb0f5716c9485019573d6be063c608ff73b3a02f7
+```
+
+### ۱۵۵.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_AUTHORIZED_BY_THIS_GATE = NO
+EXTERNAL_EVIDENCE_AUTHORIZED = NO
+```
+
+### ۱۵۵.۲) C4B-09 authority ledger (Phase B)
+
+| AUTHORITY_ID | PATH | SECTION | DATE_OR_SEQUENCE | STATUS | SUPERSEDED? | SUBJECT | EXACT_STATE_DEFINED | DEPENDENCY | CURRENT_RELEVANCE | CLASS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| AUTH-99-SC16 | master log | §99.3 IR-SC-16 | pre-Stage-3 | ACTIVE | NO | commercial medical directories = DIRECTORY / SECONDARY_DISCOVERY only | never primary license/accreditation/medical authority | OD-C4A-16 | CURRENT_AUTHORITY |
+| AUTH-99-STRAT-J | master log | §99.7 Strategy J | pre-Stage-3 | ACTIVE | NO | secondary commercial-directory discovery; terms+role lock | FA directory brand + شرایط استفاده; EN terms of use | Legal+Data/Knowledge | CURRENT_AUTHORITY |
+| AUTH-99-OD16 | master log | §99.19 OD-C4A-16 | pre-Stage-3 | ACTIVE | NO | IR-SC-16 OD; Legal primary; Blocking; role lock | terms+role pack | Javad | CURRENT_AUTHORITY |
+| AUTH-99-CHILD | master log | §99.21 | pre-Stage-3 | ACTIVE | NO | E2-C4B-09 commercial-directory evidence collection approval | child name | — | CURRENT_AUTHORITY |
+| AUTH-99-R11 | master log | §99 risks R11 | pre-Stage-3 | ACTIVE | NO | commercial directory as authority = BLOCKER | TIER D secondary-only | Governance | CURRENT_AUTHORITY |
+| AUTH-104-SEQ | master log | §104 | historical | HISTORICAL | PARTIAL | proposed 09A..09I sequence + G01–G05 packs | planned rights/access Gates | later execution | HISTORICAL_AUTHORITY (plan) |
+| AUTH-111-09A | master log | §111 | 2026-07-22 | ACTIVE | NO | 09A Paziresh24 public rights/access/reliability evidence pack | E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_COMPLETE; planning REFERENCE_ONLY_CANDIDATE; ops UNKNOWN_FAIL_CLOSED | Q01–Q10 / N01–N12 historical network | CURRENT_AUTHORITY |
+| AUTH-118-09A | master log | §118 | 2026-07-23 | ACTIVE | NO | Javad governance decision on §111 evidence | Decision=REFERENCE_ONLY_CANDIDATE; Role=SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE; Ops=UNKNOWN_FAIL_CLOSED | §111 | CURRENT_AUTHORITY |
+| AUTH-119-09A | master log | §119 | post-§118 | ACTIVE | NO | 09A docs push/SHA closure; selects 09B next as NOT_STARTED only | 09B_NOT_STARTED at that tip | §118 | HISTORICAL_AUTHORITY (sequence) |
+| AUTH-120-09B | master log | §120 | post-§119 | ACTIVE | NO | 09B Doctoreto public rights/access evidence collection | network executed historically; rights fail-closed | doctoreto.com | CURRENT_AUTHORITY |
+| AUTH-121-09B | master log | §121 | post-§120 | ACTIVE | NO | historical evidence-limit / collection-deviation control | gap classes preserved | §120 | CURRENT_AUTHORITY |
+| AUTH-128-09B | master log | §128 | 2026-07-25 | ACTIVE | NO | residual-uncertainty governance authority | SEDI-GOV-09B-RESIDUAL-UNCERTAINTY-2026-07-25-v1 | B01/B02/B03 | CURRENT_AUTHORITY |
+| AUTH-129-09B | master log | §129 | 2026-07-25 | ACTIVE | NO | formal residual disposition under §128 | B02=ACCEPTED_PRESERVED_RESIDUAL; B01/B03 governance dispositions | §128 | CURRENT_AUTHORITY |
+| AUTH-130-09B | master log | §130 | 2026-07-25 | ACTIVE | NO | formal 09B closure | 09B_CLOSED=YES; GOVERNANCE_CLOSURE_WITH_KNOWN_HISTORICAL_EVIDENCE_GAPS_PRESERVED; rights FAIL_CLOSED; EO/P2 not closed | §128+§129 | CURRENT_AUTHORITY |
+| AUTH-145-09 | master log | §145.9 | Stage-2 | ACTIVE | NO | Stage-2 reconstruction of C4B-09 | 09A PASS/COMPLETE (docs); 09B CLOSED_RESIDUAL; child CLOSED with reopen policy; no rediscovery by default | §111/§118/§128–§130 | CURRENT_AUTHORITY |
+| AUTH-145-S3W4 | master log | §145.12 | Stage-2 | ACTIVE | NO | S3-W4 = C4B-09 reconciliation; NONE network by default | status attestation; reopen trigger only | Stage-3 matrix | CURRENT_AUTHORITY |
+| AUTH-146-W5 | master log | §146.7 | S3-W0 | ACTIVE | NO | S3_W5_STATUS=DEFERRED after C4B-05 residual formal deferment | W5 not required before later waves | C4B-05 residuals | CURRENT_AUTHORITY |
+| AUTH-154-ENTRY | master log | §154.25 | S3-W3 network | ACTIVE | NO | C4B-08 residuals do not block S3-W4 | entry readiness | independent children | CURRENT_AUTHORITY |
+| AUTH-TIP-STALE | master log | tip lines ~38–42 | pre-09B | SUPERSEDED | YES by §120–§130 | tip once said 09B NOT AUTHORIZED | stale tip snapshot | — | SUPERSEDED / STALE_EVIDENCE |
+
+```text
+AUTHORITY_SUFFICIENT_FOR_RECONCILIATION = YES
+MODEL_MEMORY_PREPOPULATION = NO
+EXTERNAL_LOOKUP = NO
+```
+
+### ۱۵۵.۳) 09A reconstruction (Phase C)
+
+```text
+C4B09_09A_GATE_NAME =
+  E2_C4B_09A_PAZIRESH24_RIGHTS_AND_ACCESS_EVIDENCE
+  (+ review Gate E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_REVIEW_BY_JAVAD)
+
+C4B09_09A_PURPOSE =
+  collect/document public rights, access, and reliability evidence for
+  paziresh24_com as a commercial directory / appointment platform candidate
+  under IR-SC-16 secondary discovery role
+
+C4B09_09A_APPROVAL_SCOPE =
+  §111: public-evidence network pack (historical)
+  §118: docs-only Javad governance decision on existing local evidence
+  (no recollection)
+
+C4B09_09A_EXECUTION_TYPE =
+  historical controlled public-docs evidence Gate (§111)
+  + later docs-only governance decision (§118)
+  + docs push/closure (§119)
+
+C4B09_09A_NETWORK_EXECUTED =
+  YES (historically in §111; Q01–Q10 / N01–N12 recorded;
+       NOT re-executed in this Gate)
+
+C4B09_09A_EVIDENCE_COLLECTED =
+  brand/operator presence PARTIALLY_EVIDENCED
+  dedicated TOU NOT_FOUND_PUBLICLY
+  privacy/IP exclusive-ownership language EXPLICIT
+  commercial trademark use EXPLICITLY_PROHIBITED without written permission
+  storage/processing/indexing/caching lean EXPLICITLY_PROHIBITED without written permission
+  API credential-gated; free automation grant NOT documented
+  paid clinic/API paths EXCLUDED
+  physician searches / profile opens / provider records = 0
+  P24-G01..G12 owned fail-closed / partial gaps recorded
+  robots ≠ rights permission recorded
+
+C4B09_09A_CANDIDATES =
+  primary source_key = paziresh24_com
+  (SRC-PHY-02 class in §104 planning)
+
+C4B09_09A_RESULT =
+  E2_C4B_09A_PAZIRESH24_PUBLIC_EVIDENCE_COMPLETE (§111)
+  + Javad Decision REFERENCE_ONLY_CANDIDATE (§118)
+  Role SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE
+  Operational state UNKNOWN_FAIL_CLOSED
+
+PASS_OF_WHAT? =
+  PASS means:
+    public rights/access/reliability evidence pack completed as documentation
+    AND Javad governance review of that pack completed with locked decision
+  PASS does NOT mean:
+    full-child operational clearance
+    source approval / catalog eligibility
+    runtime eligibility
+    automation/storage/ingestion permission
+    activation
+    clinical or license authority
+
+C4B09_09A_COMPLETION_MEANING =
+  docs evidence + governance decision complete for Paziresh24 public-evidence path
+  with owned fail-closed gaps remaining (P24-G01..G12 class)
+
+C4B09_09A_RESIDUALS =
+  P24-G01..G12 owned partial/open fail-closed gaps (Legal/Security/Governance)
+  operational UNKNOWN_FAIL_CLOSED preserved
+  no affirmative reuse/automation/storage rights
+
+C4B09_09A_SOURCE_ACTIVATION_STATE =
+  NOT_AUTHORIZED / NO
+```
+
+### ۱۵۵.۴) 09B reconstruction (Phase D)
+
+```text
+C4B09_09B_GATE_NAME =
+  E2_C4B_09B_DOCTORETO_RIGHTS_AND_ACCESS_EVIDENCE
+  (+ §121 evidence-limit control
+   + §128 residual-uncertainty authority
+   + §129 formal disposition
+   + §130 formal closure)
+
+C4B09_09B_PURPOSE =
+  collect public rights/access evidence for doctoreto_com
+  and govern residual historical-evidence uncertainty without rights expansion
+
+C4B09_09B_APPROVAL_SCOPE =
+  historical network evidence (§120)
+  docs-only residual authority/disposition/closure (§128–§130)
+
+C4B09_09B_EXECUTION_TYPE =
+  historical controlled public HTTP evidence + later docs-only closure chain
+
+C4B09_09B_NETWORK_EXECUTED =
+  YES (historically in §120; doctoreto.com landing/robots/policy/about/faq/contact)
+  NOT re-executed in this Gate
+
+C4B09_09B_RESULT =
+  rights/access determined FAIL_CLOSED / NOT_AUTHORIZED for storage,
+  automation, ingestion, publication, commercial reuse, catalog/runtime
+  (§120 capability matrix)
+  then governance closure with preserved historical gaps (§130)
+
+C4B09_09B_CLOSED_RESIDUAL_MEANING =
+  09B_CLOSURE_TYPE =
+    GOVERNANCE_CLOSURE_WITH_KNOWN_HISTORICAL_EVIDENCE_GAPS_PRESERVED
+  WHAT_CLOSED =
+    09B documentation/governance path (09B_CLOSED=YES)
+    B01 execution-audit governance disposition
+    B02 accepted-preserved residual disposition
+    B03 determinate governance recommendation
+  WHAT_REMAINED_OPEN / PRESERVED =
+    EXECUTION_AUDIT_EVIDENCE_COMPLETE = NO
+    B02_EVIDENCE_COMPLETE = NO
+    known historical R03–R16 contemporaneous inventory gaps
+    RIGHTS_STATE_REMAINS_FAIL_CLOSED = YES
+    16 capabilities remain NOT_ACTIVATED
+  WHO_OWNS_IT =
+    Legal / Governance (controlling authority §128)
+  DEPENDENCY =
+    §128 authority + §129 disposition + reopen policy
+  CLOSURE_CRITERIA (already met for governance closure) =
+    09B_CLOSURE_ELIGIBLE=YES under C01–C12 (§130.3)
+  NEXT_GATE (post-closure historically) =
+    separate read-only integrity review / later reopen only with Javad approval
+  WHICH_LATER_STATES_IT_BLOCKS =
+    does NOT auto-close E2 / Evidence Overlay / P2
+    does NOT authorize operational Doctoreto use
+    does NOT expand source rights
+    reopen required if new admissible historical evidence contradicts accepted residual
+      OR future capability activation depends on unresolved 09B fact
+      OR rights/governance assumptions materially change
+
+C4B09_09B_RESIDUALS =
+  ACCEPTED_PRESERVED historical evidence gaps (B02)
+  rights FAIL_CLOSED preserved
+  naming hold historically associated with doctoreto (prior Iran decisions)
+
+C4B09_09B_RIGHTS_STATE =
+  FAIL_CLOSED / NO affirmative grant
+
+C4B09_09B_AUTOMATION_STATE =
+  FAIL_CLOSED / NOT_AUTHORIZED
+  (robots retrieved historically ≠ permission)
+
+C4B09_09B_SOURCE_ACTIVATION_STATE =
+  NO / NOT_ACTIVATED
+```
+
+### ۱۵۵.۵) Secondary-only contract (Phase E)
+
+```text
+SECONDARY_ONLY = YES (LOCKED by repository authority)
+
+MAY_BE_USED_FOR (policy/candidate role only; not activation) =
+  secondary provider discovery / operational directory metadata signals
+  terms/role evidence collection
+  reference/link planning under REFERENCE_ONLY_CANDIDATE (09A)
+  fail-closed rights documentation
+
+MUST_NOT_BE_USED_FOR =
+  primary license / accreditation / medical authority
+  official provider verification substitute
+  clinical-guidance authority
+  care-center verification authority
+  runtime knowledge source without separate activation authority
+  unrestricted reuse / storage / ingestion / publication
+
+SUPPORTED_PERMANENT_LAWS (from §99 / §118 / §130 / §145) =
+  COMMERCIAL_DIRECTORY_EVIDENCE != PRIMARY_CLINICAL_AUTHORITY
+  DIRECTORY_LISTING != VERIFIED_PROVIDER_CREDENTIAL
+  DIRECTORY_PRESENCE != SOURCE_TRUST
+  PUBLIC_DIRECTORY != REUSE_PERMISSION
+  DIRECTORY_IDENTITY != AUTOMATION_PERMISSION
+  SECONDARY_ONLY_SOURCE != RUNTIME_KNOWLEDGE_SOURCE
+  PLATFORM_LISTING != OFFICIAL_VERIFICATION
+  ATTRIBUTION != LICENSE
+  ABSENCE_OF_PROHIBITION != PERMISSION
+  SILENCE != PERMISSION
+
+NO_SUPERSESSION_OF_SECONDARY_ONLY_FOUND = YES
+```
+
+### ۱۵۵.۶) Historical candidate / evidence reconstruction (Phase F)
+
+| CANDIDATE_ID / KEY | OBSERVED_NAME | OBSERVED_DOMAIN | SOURCE_CLASS | DISCOVERY_GATE | EVIDENCE_TYPE | IDENTITY_STATE | AUTHORITY_STATE | DIRECTORY_ROLE | RIGHTS_STATE | TERMS_STATE | ROBOTS_STATE | AUTOMATION_STATE | REUSE_STATE | ATTRIBUTION_STATE | ACTIVATION_STATE | RESIDUAL_IDS | CURRENT_GOVERNANCE_STATE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| paziresh24_com / SRC-PHY-02 | پذیرش۲۴ / Paziresh24 | paziresh24.com (+ related subdomains historically) | IR-SC-16 commercial directory/appointment | §111 (+§118 decision) | public rights/access/reliability | PARTIALLY_EVIDENCED | NOT official verification authority | SECONDARY_PROVIDER_DISCOVERY_SOURCE_CANDIDATE | UNKNOWN_FAIL_CLOSED / no affirmative grant | dedicated TOU NOT_FOUND; privacy exclusive IP EXPLICIT | robots historically inspected; ≠ rights | FAIL_CLOSED / no free automation grant | FAIL_CLOSED | policy minimum; source-specific OPEN | NO | P24-G01..G12 owned gaps | REFERENCE_ONLY_CANDIDATE; ops fail-closed |
+| doctoreto_com / SRC-PHY-03 | دکترتو / Doctoreto | doctoreto.com | IR-SC-16 commercial directory/appointment | §120 (+§121/§128–§130) | public rights/access + residual governance | company IP/ownership claimed on policy | NOT official verification authority | secondary / naming hold historically | FAIL_CLOSED | policy FOUND; IP reserved; no third-party grant | robots 200 historically; ≠ license | FAIL_CLOSED / NOT_AUTHORIZED | FAIL_CLOSED | naming/attribution gaps historically | NO | B02 accepted preserved historical gaps | 09B_CLOSED governance; rights fail-closed |
+| nobat_ir / SRC-PHY-04 | نوبت.ایر (planned) | nobat.ir (planned) | IR-SC-16 | 09C planned (§104) | — | AUTHORITY_NOT_FOUND as executed pack | — | secondary planned | UNKNOWN (not executed) | — | — | — | — | — | NO | 09C not executed | NOT_EXECUTED; not mandatory open discovery per §145.9 |
+| doctor_yab_ir / SRC-PHY-05 | دکتر یاب (planned) | doctor-yab class (planned) | IR-SC-16 | 09D planned | — | AUTHORITY_NOT_FOUND as executed pack | — | secondary planned | UNKNOWN (not executed) | — | — | — | — | — | NO | 09D not executed | NOT_EXECUTED; not mandatory per §145.9 |
+| drdr_ir / SRC-PHY-06 | دکتردکتر (planned) | drdr.ir (planned) | IR-SC-16 / class hold | 09E planned | — | AUTHORITY_NOT_FOUND as executed pack | — | secondary planned; class hold | UNKNOWN (not executed) | — | — | — | — | — | NO | 09E not executed | NOT_EXECUTED; not mandatory per §145.9 |
+
+```text
+LIVE_VERIFICATION_IN_THIS_GATE = NO
+NEW_CANDIDATE_CLAIMED = NO
+STALE_EVIDENCE_MARKING =
+  tip ~L38–42 “09B NOT AUTHORIZED” = STALE_EVIDENCE (superseded by §120–§130)
+  early §104 “09A..E NOT AUTHORIZED” = HISTORICAL authorization state (later gates executed 09A/09B)
+NO_FALSE_CLAIM_ON_STALE_ROWS = YES
+```
+
+### ۱۵۵.۷) Rights / terms / robots / automation reconciliation (Phase G)
+
+| FIELD | PAZIRESH24 (09A) | DOCTORETO (09B) | CHILD-LEVEL ROLLUP |
+|---|---|---|---|
+| TERMS_RETRIEVED | dedicated TOU NOT_FOUND; privacy page EXPLICIT restrictions | policy FOUND (§120) | PARTIAL / FAIL_CLOSED where silent |
+| COPYRIGHT_OR_LICENSE | exclusive IP / no third-party grant | company owns site IP; no third-party grant | FAIL_CLOSED |
+| REUSE_PERMISSION | NO / FAIL_CLOSED | NO / FAIL_CLOSED | FAIL_CLOSED |
+| ATTRIBUTION_REQUIREMENT | Sedi minimum mandated; source-specific OPEN | naming/attribution historically incomplete | FAIL_CLOSED for affirmative source rule completeness |
+| ROBOTS_STATUS | historically inspected; robots ≠ rights | historically 200; robots ≠ license | OBSERVED_HISTORICALLY ≠ PERMISSION |
+| AUTOMATION_PERMISSION | NO / FAIL_CLOSED | NO / FAIL_CLOSED | FAIL_CLOSED |
+| RATE_LIMIT_OR_USAGE_LIMIT | not proven as permission grant | not proven as permission grant | UNKNOWN_FAIL_CLOSED / NOT_AUTHORIZED |
+
+```text
+PUBLIC_ACCESS != REUSE_PERMISSION
+ROBOTS_ALLOW != REUSE_PERMISSION
+ROBOTS_ALLOW != COPYRIGHT_PERMISSION
+ROBOTS_ALLOW != AUTOMATION_PERMISSION
+ABSENCE_OF_PROHIBITION != PERMISSION
+SILENCE != PERMISSION
+UNKNOWN_RIGHTS = FAIL_CLOSED
+UNKNOWN_AUTOMATION = FAIL_CLOSED
+NO_SELF_UPGRADE_IN_THIS_GATE = YES
+```
+
+### ۱۵۵.۸) Residual ledger (Phase H)
+
+| RESIDUAL_ID | ORIGIN_GATE | DESCRIPTION | CURRENT_STATE | OWNER | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE | BLOCKS_DISCOVERY_SUBSTEP? | BLOCKS_FULL_CHILD? | BLOCKS_EO? | BLOCKS_SOURCE_ACTIVATION? | BLOCKS_P2_FOUNDATION? | CAN_REMAIN_DEFERRED? | LAST_AUTHORITY_SECTION |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C4B09-R-09A-RIGHTS | §111/§118 | P24-G01..G12 owned fail-closed / partial gaps; no affirmative reuse/automation/storage | OPEN_FAIL_CLOSED | Legal/Security/Governance | written grant or keep reject | explicit Legal/Product decision or remain fail-closed | rights/permission Gate if product needs store | NO | YES (operational full-child) | PARTIAL (EO-C04/C05/C07 inputs) | YES | NO | YES | §118 |
+| C4B09-R-09A-OPS | §118 | operational UNKNOWN_FAIL_CLOSED despite REFERENCE_ONLY_CANDIDATE decision | OPEN_FAIL_CLOSED | Governance | activation Gate never auto | keep fail-closed until explicit activation authority | activation Gate (not authorized) | NO | YES | YES for runtime overlays | YES | NO | YES | §118 |
+| C4B09-R-09B-HISTGAP | §121/§128–§130 | B02 accepted preserved historical R03–R16 evidence incompleteness | CLOSED_BY_ACCEPTED_PRESERVED_RESIDUAL (evidence still incomplete) | Legal/Governance | §128 reopen policy | reopen only on new admissible historical evidence | reopen Gate if triggered | NO | NO for governance closure; YES if treating as evidence-complete | NO alone (EO not auto-closed) | YES if activation depends on unresolved fact | NO | YES (accepted preserved) | §130 |
+| C4B09-R-09B-RIGHTS | §120/§130 | rights remain FAIL_CLOSED; 16 capabilities not activated | OPEN_FAIL_CLOSED (preserved after closure) | Legal/Security | affirmative grant | explicit rights expansion Gate | rights Gate if needed | NO | YES | PARTIAL | YES | NO | YES | §130 |
+| C4B09-R-09C-E-UNEVAL | §104 plan / §145.9 | nobat/doctor_yab/drdr (09C–09E) not executed | NOT_EXECUTED / NOT_MANDATORY_OPEN_PER_§145.9 | Legal/Governance | product decision if brand expansion required | execute 09C–E OR keep non-mandatory | optional brand Gate only if product requires | NO | NO under §145.9 interpretation | NO under §145.9 | YES if later promoted without packs | NO | YES | §145.9 |
+| C4B09-R-09F-I | §104 | cross-source consolidation / catalog eligibility / integration (09F–09I) not executed | NOT_EXECUTED | Governance/Legal/Backend | 09A/09B packs exist; 09C–E optional | separate Gates if catalog eligibility sought | 09F..09I only under separate approval | NO | YES for catalog-eligibility full path | PARTIAL | YES | NO | YES | §104/§145 |
+
+```text
+NO_SILENT_RESIDUAL_CLOSURE = YES
+TIME_ALONE_DOES_NOT_CLOSE = YES
+```
+
+### ۱۵۵.۹) Stale / conflicting marker ledger (Phase I)
+
+| MARKER | OLDER_VALUE | NEWER_VALUE | AUTHORITY_SOURCE | CURRENT_VALUE | WHY |
+|---|---|---|---|---|---|
+| 09B authorization tip | NOT AUTHORIZED (log tip ~L42) | 09B executed + closed | §120–§130 | 09B_CLOSED=YES (governance) | tip snapshot stale; not rewritten; superseded by later sections |
+| 09A..E authorization (§104 era) | NOT AUTHORIZED | 09A/09B later authorized & executed | §111/§118/§120–§130 | 09A PASS(docs); 09B CLOSED_RESIDUAL | historical plan vs later execution |
+| 09A PASS | PUBLIC_EVIDENCE_COMPLETE / review decision | same + explicit PASS_OF_WHAT boundary | §111/§118/§145.9 | PASS of public-evidence+decision ONLY | must not inflate to activation |
+| 09B CLOSED | historically open/indeterminate | 09B_CLOSED=YES governance | §128–§130 | CLOSED_RESIDUAL / governance closure | evidence-complete audit = NO |
+| SOURCE_ACTIVATED | always NO in executed packs | NO | §118/§130/§145 | NO | no supersession found |
+| RIGHTS | UNKNOWN/FAIL_CLOSED | FAIL_CLOSED preserved | §118/§130 | FAIL_CLOSED | closure ≠ rights expansion |
+| SECONDARY_ONLY | Strategy J / IR-SC-16 | confirmed | §99/§118/§145 | YES | no supersession |
+| EO_CLOSED | NO | NO | §130/§145/§154 | NO | 09B closure does not close EO |
+| P2_STARTED | NO | NO | §130/§145/§154 | NO | preserved |
+| C4B-09 child (§145) | CLOSED (09A PASS; 09B CLOSED_RESIDUAL) | attested here | §145.9 + this §155 | CLOSED_WITH_RESIDUAL discovery path; full operational child NO | Stage-3 attestation |
+
+```text
+AUTHORITY_CONFLICT_UNRESOLVED = NONE material after applying later-section precedence
+NO_OLD_SECTION_EDITED = YES
+```
+
+### ۱۵۵.۱۰) Current C4B-09 state (Phase J)
+
+```text
+C4B_09_REPOSITORY_PREPARATION_COMPLETE = YES
+  (child definition + Strategy J + OD + executed 09A/09B packs exist)
+
+C4B_09_HISTORICAL_NETWORK_EXECUTED = YES
+  (09A §111; 09B §120)
+
+C4B_09_HISTORICAL_NETWORK_RESULT_VALID =
+  YES_FOR_DOCUMENTED_PUBLIC_EVIDENCE_PACKS_AS_RECORDED
+  (09A public-evidence complete with owned gaps;
+   09B rights fail-closed pack + later governance closure;
+   NOT a claim of evidence-complete historical audit for 09B R03–R16)
+
+C4B_09_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_09_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+  (09A PASS(docs/decision) + 09B CLOSED_RESIDUAL; §145.9)
+
+C4B_09_FULL_CHILD_COMPLETE = NO
+  (rights FAIL_CLOSED; capabilities not activated; catalog 09H not executed;
+   REFERENCE_ONLY_CANDIDATE ≠ operational full-child)
+
+C4B_09_SOURCE_ACTIVATED = NO
+
+C4B_09_SECONDARY_ONLY = YES
+
+C4B_09_RIGHTS_STATE = FAIL_CLOSED
+
+C4B_09_AUTOMATION_STATE = FAIL_CLOSED / NOT_AUTHORIZED
+
+C4B_09_RESIDUAL_COUNT = 6
+  (C4B09-R-09A-RIGHTS, R-09A-OPS, R-09B-HISTGAP, R-09B-RIGHTS,
+   R-09C-E-UNEVAL, R-09F-I)
+```
+
+### ۱۵۵.۱۱) New-network necessity (Phase K)
+
+```text
+C4B09_NEW_NETWORK_REQUIRED = NO
+
+WHY =
+  §145.9 / §145.12 explicitly define S3-W4 as docs-only status reconciliation
+  with NONE network by default; rediscovery only if reopen triggered.
+  09A public-evidence pack + decision exist.
+  09B closed under §128–§130 with accepted preserved residuals.
+  Full IR-SC-16 brand enumeration beyond executed brands =
+    AUTHORITY_NOT_FOUND as mandatory open requirement (§145.9).
+  No reopen trigger (new admissible contradictory historical evidence /
+  capability-activation dependency / rights-assumption change) is present
+  in this Gate.
+
+EXACT_REASON_FOR_YES = N/A
+MISSING_EVIDENCE_FORCING_NETWORK = NONE mandatory
+PREPARATION_AMENDMENT_REQUIRED = NO
+PROPOSED_NETWORK_GATE = NONE
+
+IF_LATER_REOPEN_TRIGGERED =
+  requires separate Javad approval
+  does not auto-activate capabilities
+  does not auto-reverse fail-closed rights
+```
+
+### ۱۵۵.۱۲) Discovery / full-child / activation reconciliation (Phase L)
+
+```text
+DISCOVERY_SUBSTEP = CLOSED_WITH_RESIDUAL
+FULL_CHILD = NO
+SOURCE_ACTIVATED = NO
+
+SUPPORTED_BY =
+  §145.9 child CLOSED (09A PASS; 09B CLOSED_RESIDUAL)
+  §118 REFERENCE_ONLY_CANDIDATE + UNKNOWN_FAIL_CLOSED ops
+  §130 governance closure ≠ rights/activation expansion
+
+NOT_INFERRED_FROM_C4B06_07_08_PRECEDENT_ALONE = YES
+```
+
+### ۱۵۵.۱۳) Evidence Overlay impact (Phase M)
+
+```text
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE_4_NOT_EXECUTED = YES
+```
+
+| Item | Value |
+|---|---|
+| WHAT_C4B09_ALREADY_SATISFIES | IR-SC-16 secondary-only discovery path for executed brands; 09A public-evidence+decision; 09B governance closure with owned preserved gaps; activation disabled |
+| WHAT_C4B09_DOES_NOT_SATISFY | affirmative reuse/automation/storage rights; catalog eligibility (09H); operational activation; evidence-complete 09B historical audit |
+| WHAT_REMAINS_OPEN | R-09A-RIGHTS/OPS; R-09B-RIGHTS; optional 09C–E/09F–I if product expands |
+| WHAT_IS_SECONDARY_ONLY | entire C4B-09 role |
+| WHAT_IS_FAIL_CLOSED | rights + automation + activation |
+| WHAT_RESIDUALS_BLOCK_FULL_CHILD | R-09A-RIGHTS/OPS; R-09B-RIGHTS; R-09F-I (catalog path) |
+| WHAT_RESIDUALS_BLOCK_EVIDENCE_OVERLAY | PARTIAL — C4B-09 no longer open discovery child; remaining EO blockers are multi-child rights/automation/authority packs (EO-C04..C08) including C4B-05..08 deferred residuals |
+| WHAT_RESIDUALS_BLOCK_ACTIVATION | all rights/automation/activation locks |
+| WHETHER_C4B09_BLOCKS_EVIDENCE_OVERLAY_CLOSURE | NO as open discovery child (§145.9); PARTIAL via shared EO rights/automation criteria |
+
+```text
+C4B09_BLOCKS_EVIDENCE_OVERLAY = PARTIAL
+  (not as unfinished discovery child; yes as contributor to EO rights/automation
+   fail-closed ownership until Stage 4 accepts owned deferments)
+```
+
+### ۱۵۵.۱۴) P2 foundation impact (Phase N)
+
+```text
+P2_STARTED = NO (preserved)
+
+P2_FOUNDATION_IMPLEMENTATION_READINESS =
+  READY_WITH_EXPLICIT_GAPS (preserved from §144/§145; not superseded)
+
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+
+C4B09_BLOCKS_P2_FOUNDATION = NO
+  (§145: P2 foundation readiness separated from overlay/source activation;
+   C4B-09 residuals do not revoke READY_WITH_EXPLICIT_GAPS)
+
+C4B09_BLOCKS_SOURCE_ACTIVATION = YES
+  (secondary-only + rights FAIL_CLOSED + activation NO)
+
+NO_P2_START_IN_THIS_GATE = YES
+```
+
+### ۱۵۵.۱۵) Stage-3 / S3-W5 decision (Phase O)
+
+```text
+S3_W4_COMPLETE_AFTER_THIS_GATE = YES
+  (docs-only status attestation of 09A PASS + 09B CLOSED_RESIDUAL completed)
+
+S3_W5_REQUIRED = NO
+S3_W5_STATUS = DEFERRED (preserved from §146.7)
+
+S3_W5_REASON =
+  §145 defined S3-W5 as optional C4B-05 residual network if residuals
+  not formally deferred.
+  §146 formally deferred C4B-05 R01–R05/R07–R09 with owners and closed R06
+  without requiring network re-run.
+  Therefore S3-W5 remains deferred / not required for Stage-3 mainline completion.
+
+STAGE_3_DEFAULT_ORDER_STATUS =
+  S3-W0 COMPLETE (docs)
+  S3-W1 COMPLETE (prep+network docs)
+  S3-W2 COMPLETE (prep+network docs)
+  S3-W3 COMPLETE (prep+network docs)
+  S3-W4 COMPLETE (this Gate)
+  S3-W5 DEFERRED / NOT REQUIRED
+
+S3_W5_EXECUTED_BY_THIS_GATE = NO
+```
+
+### ۱۵۵.۱۶) C4B-05..09 current-state matrix (Phase P)
+
+| CHILD | PREPARATION | NETWORK_EXECUTED | NETWORK_VALID | DISCOVERY_SUBSTEP | FULL_CHILD | RESIDUALS | SOURCE_ACTIVATED | SECONDARY_ONLY? | EO_IMPACT | NEW_NETWORK_REQUIRED? |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B-05 | YES (historical) | YES | NO (contract violation preserved) | YES / CLOSED_WITH_RESIDUAL (§146) | NO | R01–R05/R07–R09 DEFERRED_WITH_OWNER; R06 CLOSED | NO | NO (uni/research primary family) | open full-child + deferred rights/automation | NO for S3-W5 (deferred) |
+| C4B-06 | YES (§147/§149) | YES (§150) | YES | YES / CLOSED_WITH_RESIDUAL | NO | owned rights/automation residuals | NO | NO | open full-child | NO |
+| C4B-07 | YES (§151) | YES (§152) | YES | YES / CLOSED_WITH_RESIDUAL | NO | owned rights/MR residuals | NO | NO | open full-child | NO |
+| C4B-08 | YES (§153) | YES (§154) | YES | YES / CLOSED_WITH_RESIDUAL | NO | owned indexing/rights/automation residuals | NO | NO | open full-child | NO |
+| C4B-09 | YES (§99/§104/§111+) | YES historical (09A/09B) | YES for documented packs (09B audit gaps preserved) | YES / CLOSED_WITH_RESIDUAL | NO | 6 owned/attested residuals above | NO | YES | PARTIAL (not open discovery child) | NO |
+
+```text
+NO_FULL_CLOSURE_CLAIMED_WHERE_ONLY_DISCOVERY_COMPLETE = YES
+```
+
+### ۱۵۵.۱۷) Weekly knowledge-growth separation (Phase Q)
+
+```text
+DISCOVERY != KNOWLEDGE_ACQUISITION
+DIRECTORY_EVIDENCE != HEALTH_KNOWLEDGE
+
+C4B-09 commercial-directory data is NOT a substitute for:
+  clinical knowledge
+  patient education
+  journal content
+  treatment guidance
+  governed knowledge packs
+
+NO_CRAWLER_NOW = YES
+NO_KB_INGESTION_NOW = YES
+```
+
+### ۱۵۵.۱۸) Operations NOT performed
+
+```text
+NO network
+NO search
+NO HTTP
+NO external API / external evidence
+NO query execution
+NO new candidate discovery
+NO source activation
+NO crawler
+NO KB ingestion
+NO P2
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend
+NO flag activation
+NO Stage 4 execution
+NO rewrite of §§1–154
+```
+
+### ۱۵۵.۱۹) Exact next Gate (Phase R)
+
+```text
+NEXT_GATE =
+STAGE-3 CLOSURE / REMAINING IRAN-FIRST DISCOVERY RECONCILIATION
+(docs-only Stage-3 tip attestation that S3-W0..W4 are complete and
+ S3-W5 remains deferred; prepare Stage-4 EO entry checklist without
+ closing Evidence Overlay)
+
+WHY_NOT_S3_W5 =
+  §146.7 already set S3_W5_STATUS=DEFERRED; not required
+
+WHY_NOT_C4B09_NETWORK =
+  C4B09_NEW_NETWORK_REQUIRED=NO
+
+WHY_NOT_EO_CLOSURE_YET =
+  Evidence Overlay closure is Stage 4; requires separate Javad approval;
+  EO-C04..C08 still need Stage-4 treatment of owned deferments across children;
+  this Gate must not close EO
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۵.۲۰) Completion markers / execution state
+
+```text
+S3_W4_COMPLETE = YES
+C4B_09_STATUS_RECONCILED = YES
+
+C4B_09_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_09_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_09_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_09_FULL_CHILD_COMPLETE = NO
+C4B_09_SOURCE_ACTIVATED = NO
+C4B_09_SECONDARY_ONLY = YES
+C4B_09_RIGHTS_STATE = FAIL_CLOSED
+C4B_09_AUTOMATION_STATE = FAIL_CLOSED
+C4B09_NEW_NETWORK_REQUIRED = NO
+S3_W5_REQUIRED = NO
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+STAGE_1 = CLOSED
+STAGE_2 = DOCUMENTED_UNCOMMITTED
+S3_W0..S3_W4 = DOCUMENTED_UNCOMMITTED (this Gate completes W4)
+S3_W5 = DEFERRED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+C4B09_STATUS_RECONCILIATION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — C4B-09 STATUS RECONCILIATION COMPLETE
+```
+
+### ۱۵۵.۲۱) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+0d47c3ce8fa0f1ee9569beafb0f5716c9485019573d6be063c608ff73b3a02f7
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–154_PRESERVED = YES
+§155_ONLY_NEW_SECTION = YES
+§155_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۵ — SECTION-28 STAGE-3-OF-14 S3-W4 C4B-09 Status Reconciliation / Docs — C4B09_STATUS_RECONCILIATION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۶) SECTION-28 — STAGE-3 CLOSURE / REMAINING IRAN-FIRST DISCOVERY RECONCILIATION
+
+```text
+PACKAGE =
+SECTION-28 — STAGE-3 CLOSURE —
+REMAINING IRAN-FIRST DISCOVERY RECONCILIATION
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+AUTHORITY_RECONSTRUCTION /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_CANDIDATE_DISCOVERY /
+NO_SOURCE_ACTIVATION / NO_EVIDENCE_OVERLAY_CLOSURE_EXECUTION /
+NO_P2 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / E2-C4B Discovery
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this docs-only Stage-3 closure /
+reconciliation Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  reconstruct and formally attest authoritative completion of Stage 3
+  Iran-first discovery (S3-W0..W4 + S3-W5 decision + C4B-05..09);
+  determine whether Stage 3 may CLOSE at discovery-wave level;
+  identify the exact first legitimate post-Stage-3 Gate
+
+Baseline (verified at Stage-3 closure entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §155
+  §§145–155 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+dfedda0e30bc56e77b6d971a258162011a621de5c2f956e0b4a0f41e7bde0c80
+```
+
+### ۱۵۶.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+NETWORK_AUTHORIZED = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED = NO
+P2_AUTHORIZED = NO
+```
+
+### ۱۵۶.۲) Stage-3 authority ledger (Phase B)
+
+| AUTHORITY_ID | PATH | SECTION | SEQUENCE | SUBJECT | STATE_DEFINED | CURRENT_OR_HISTORICAL | SUPERSEDED? | SUPERSEDED_BY | CURRENT_RELEVANCE |
+|---|---|---|---|---|---|---|---|---|---|
+| AUTH-145-ROADMAP | master log | §145 | Stage-2 | 14-stage I5 route; Stage 3 = remaining Iran-first discovery | Stage 3 ≠ EO closure ≠ P2 | CURRENT | NO | — | Stage-3 scope definition |
+| AUTH-145-WAVES | master log | §145.12 | Stage-2 | S3-W0..W5 wave matrix | W0 docs; W1–W3 prep+network; W4 docs recon; W5 optional residual | CURRENT | NO | — | wave completeness criteria |
+| AUTH-145-S4ENTRY | master log | §145.13 | Stage-2 | Stage-4 entry criteria | discovery waves done/deferred; C4B-09 reconciled; STOP-06 disposition; no activation | CURRENT | PARTIAL→updated by §§146–155 | this §156 attestation | EO readiness inputs |
+| AUTH-145-P2 | master log | §145.14 | Stage-2 | P2 foundation vs activation readiness | READY_WITH_EXPLICIT_GAPS; activation NOT_READY; Stage 5 after Stage 4 | CURRENT | NO | — | P2 readiness |
+| AUTH-145-PROGRESS | master log | §145.15 | Stage-2 | I5 ≈22% | do not invent float; no progress bump from docs alone | CURRENT | NO | — | progress lock |
+| AUTH-146-W0 | master log | §146 | S3-W0 | STOP-06 disposition + C4B-05 residual deferment | discovery CLOSED_WITH_RESIDUAL; W5 DEFERRED; NETWORK_RESULT_VALID=NO preserved | CURRENT | NO | — | W0 + C4B-05 + W5 |
+| AUTH-147-150 | master log | §147–§150 | S3-W1 | C4B-06 prep/amend/network | discovery CLOSED_WITH_RESIDUAL; full child NO | CURRENT | §148 superseded by §149/§150 for query-text gap | §149/§150 | W1 |
+| AUTH-151-152 | master log | §151–§152 | S3-W2 | C4B-07 prep+network | discovery CLOSED_WITH_RESIDUAL; patient-ed ≠ guideline | CURRENT | NO | — | W2 |
+| AUTH-153-154 | master log | §153–§154 | S3-W3 | C4B-08 prep+network | discovery CLOSED_WITH_RESIDUAL; journal ≠ clinical; indexing self-claim ≠ verified | CURRENT | NO | — | W3 |
+| AUTH-155-W4 | master log | §155 | S3-W4 | C4B-09 status reconciliation | W4 COMPLETE; 09A PASS(docs); 09B CLOSED_RESIDUAL; secondary-only; new network NO | CURRENT | NO | — | W4 |
+| AUTH-155-NEXT | master log | §155.19 | S3-W4 | next Gate named this Stage-3 closure Gate | docs-only; prepare Stage-4 EO checklist; do not close EO | CURRENT | YES for “next Gate” pointer | this §156 completes named Gate | sequence |
+
+```text
+MODEL_MEMORY_NOT_USED_AS_AUTHORITY = YES
+```
+
+### ۱۵۶.۳) S3-W0 reconstruction (Phase C)
+
+```text
+S3_W0_GATE =
+  §146 — C4B-05 STOP-06 governance disposition + residual closure/deferment review
+
+S3_W0_PURPOSE =
+  formally disposition STOP-06 / F-25A-BLOCKER-01 without erasing history;
+  accept C4B-05 discovery-substep with preserved network-contract violation;
+  formally DEFERRED_WITH_OWNER residual rights/robots/editorial/automation gaps;
+  decide S3-W5 necessity
+
+S3_W0_RESULT =
+  C4B_05_DISCOVERY_SUBSTEP_COMPLETE = YES
+  C4B_05_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+  R06 STOP-06 = CLOSED (violation PRESERVED)
+  R01–R05 / R07–R09 = DEFERRED_WITH_OWNER
+  NETWORK_RESULT_VALID = NO (not retroactively validated)
+  NETWORK_CONTRACT_VIOLATION = YES (historical fact preserved)
+  S3_W5_STATUS = DEFERRED
+
+S3_W0_DEPENDENCY_CLOSED =
+  open governance dependency blocking discovery-substep acceptance = YES closed
+
+S3_W0_RESIDUALS =
+  owned deferred full-child/EO residuals remain; not discovery blockers
+
+S3_W0_CURRENT_STATUS = COMPLETE
+S3_W0_COMPLETE = YES
+```
+
+### ۱۵۶.۴) S3-W1 / C4B-06 reconstruction (Phase D)
+
+```text
+S3_W1_COMPLETE = YES
+  (prep §147 + query-text amendment §149 + valid network §150)
+
+C4B_06_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_06_NETWORK_DISCOVERY_EXECUTED = YES
+C4B_06_NETWORK_RESULT_VALID = YES
+C4B_06_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_06_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_06_FULL_CHILD_COMPLETE = NO
+C4B_06_SOURCE_ACTIVATED = NO
+C4B_06_OPEN_RESIDUAL_COUNT = 8
+  (TERMS/AUTO/REUSE/RECOG/ABOUT/IRSOME/EDITORIAL/D06D10;
+   QUERYTEXT + NETWORK residuals CLOSED by §149/§150)
+C4B_06_NEW_NETWORK_REQUIRED = NO
+
+DISCOVERY_NOT_COLLAPSED_INTO_FULL_CHILD = YES
+SOURCE_FAMILY = IR-SC-10 / Strategy D / OD-C4A-10
+```
+
+### ۱۵۶.۵) S3-W2 / C4B-07 reconstruction (Phase E)
+
+```text
+S3_W2_COMPLETE = YES
+  (prep §151 + valid network §152)
+
+C4B_07_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_07_NETWORK_DISCOVERY_EXECUTED = YES
+C4B_07_NETWORK_RESULT_VALID = YES
+C4B_07_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_07_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_07_FULL_CHILD_COMPLETE = NO
+C4B_07_SOURCE_ACTIVATED = NO
+C4B_07_OPEN_RESIDUAL_COUNT = 8
+  (TERMS/AUTO/REUSE/MR/AUTH/MOH/MPGH/ARUMS-ROBOTS)
+C4B_07_NEW_NETWORK_REQUIRED = NO
+
+PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY = PRESERVED
+SOURCE_FAMILY = IR-SC-12 / Strategy F / OD-C4A-12
+```
+
+### ۱۵۶.۶) S3-W3 / C4B-08 reconstruction (Phase F)
+
+```text
+S3_W3_COMPLETE = YES
+  (prep §153 + valid network §154)
+
+C4B_08_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_08_NETWORK_DISCOVERY_EXECUTED = YES
+C4B_08_NETWORK_RESULT_VALID = YES
+C4B_08_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_08_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_08_FULL_CHILD_COMPLETE = NO
+C4B_08_SOURCE_ACTIVATED = NO
+C4B_08_OPEN_RESIDUAL_COUNT = 11
+  (INDEX/LICENSE-01/LICENSE-02/REUSE/TERMS/AUTO/PRED/IJMS/PORTAL/JMCIRI-ROBOTS/ATTR)
+C4B_08_NEW_NETWORK_REQUIRED = NO
+
+JOURNAL_IDENTITY != CLINICAL_AUTHORITY = PRESERVED
+SELF_CLAIMED_INDEXING != VERIFIED_INDEXING = PRESERVED
+SOURCE_FAMILY = IR-SC-13 / Strategy E / OD-C4A-13
+```
+
+### ۱۵۶.۷) S3-W4 / C4B-09 reconstruction (Phase G)
+
+```text
+S3_W4_COMPLETE = YES (§155 attestation)
+
+C4B_09_REPOSITORY_PREPARATION_COMPLETE = YES
+C4B_09_HISTORICAL_NETWORK_EXECUTED = YES
+C4B_09_HISTORICAL_NETWORK_RESULT_VALID =
+  YES_FOR_DOCUMENTED_PUBLIC_EVIDENCE_PACKS_AS_RECORDED
+C4B_09_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_09_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_09_FULL_CHILD_COMPLETE = NO
+C4B_09_SOURCE_ACTIVATED = NO
+C4B_09_SECONDARY_ONLY = YES
+C4B_09_RIGHTS_STATE = FAIL_CLOSED
+C4B_09_AUTOMATION_STATE = FAIL_CLOSED / NOT_AUTHORIZED
+C4B_09_RESIDUAL_COUNT = 6
+C4B09_NEW_NETWORK_REQUIRED = NO
+
+09A_PASS_MEANING_PRESERVED =
+  public-evidence pack + governance decision ONLY
+  (NOT activation / full-child / reuse grant)
+
+09B_CLOSED_RESIDUAL_MEANING_PRESERVED =
+  governance closure with accepted preserved historical gaps;
+  rights FAIL_CLOSED; capabilities not activated
+
+SOURCE_FAMILY = IR-SC-16 / Strategy J / OD-C4A-16
+```
+
+### ۱۵۶.۸) C4B-05 current state (Phase H)
+
+```text
+C4B_05_REPOSITORY_PREPARATION_COMPLETE = YES (historical §143)
+C4B_05_NETWORK_DISCOVERY_EXECUTED = YES (§144)
+C4B_05_NETWORK_RESULT_VALID = NO
+  (INVALID_DUE_TO_NETWORK_CONTRACT_VIOLATION; NOT retroactively validated)
+C4B_05_DISCOVERY_SUBSTEP_COMPLETE = YES (§146 disposition path)
+C4B_05_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_05_FULL_CHILD_COMPLETE = NO
+C4B_05_SOURCE_ACTIVATED = NO
+C4B_05_OPEN_RESIDUAL_COUNT = 8
+  (R01–R05, R07–R09 DEFERRED_WITH_OWNER; R06 CLOSED)
+C4B_05_RESIDUAL_CLEARANCE_STATE =
+  DEFERRED_WITH_OWNER for full-child/EO-blocking rights residuals;
+  STOP-06 governance CLOSED with preserved violation
+C4B_05_NEW_NETWORK_REQUIRED = NO
+  (S3-W5 deferred; dedicated residual Gates later if authorized)
+
+ORIGINAL_INVALID_NETWORK_NOT_UPGRADED_TO_VALID = YES
+```
+
+### ۱۵۶.۹) S3-W5 requirement decision (Phase I)
+
+```text
+S3_W5_ORIGINAL_PURPOSE =
+  optional C4B-05 residual network capture for terms/robots if residuals
+  not formally deferred (§145.12)
+
+S3_W5_CURRENT_STATE = DEFERRED (§146.7; preserved by §155)
+
+S3_W5_REQUIRED = NO
+
+S3_W5_BLOCKS_STAGE3_CLOSURE = NO
+
+BASIS =
+  §146 formally deferred R02/R03 (and related residual-network needs)
+  with owners; R06 disposition selected no-network path;
+  therefore another C4B-05 network action is NOT required for Stage-3
+  discovery-wave closure
+
+NO_NETWORK_REOPENED = YES
+```
+
+### ۱۵۶.۱۰) Authoritative C4B-05..09 matrix (Phase J)
+
+| CHILD | SOURCE_FAMILY | STRATEGY | ROLE | PREPARATION_COMPLETE | NETWORK_EXECUTED | NETWORK_VALID | DISCOVERY_SUBSTEP_COMPLETE | DISCOVERY_SUBSTEP_STATE | FULL_CHILD_COMPLETE | SOURCE_ACTIVATED | SECONDARY_ONLY | RIGHTS_STATE | AUTOMATION_STATE | OPEN_RESIDUAL_COUNT | NEW_NETWORK_REQUIRED | EO_IMPACT | P2_FOUNDATION_BLOCKER? | ACTIVATION_BLOCKER? |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|---|---|---|
+| C4B-05 | IR-SC-08/09 (+IR-SC-14 sample) | university/research discovery | scientific/education identity | YES | YES | NO (contract violation preserved) | YES | CLOSED_WITH_RESIDUAL | NO | NO | NO | UNKNOWN_FAIL_CLOSED / deferred | FAIL_CLOSED / deferred (CAND-01 prohibited-or-blocked preserved) | 8 | NO | open full-child + deferred EO-C04/C05 inputs | NO | YES |
+| C4B-06 | IR-SC-10 | Strategy D | scientific association recognition | YES | YES | YES | YES | CLOSED_WITH_RESIDUAL | NO | NO | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | 8 | NO | open full-child | NO | YES |
+| C4B-07 | IR-SC-12 | Strategy F | Persian patient-education | YES | YES | YES | YES | CLOSED_WITH_RESIDUAL | NO | NO | NO | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | 8 | NO | open full-child + MR gaps | NO | YES |
+| C4B-08 | IR-SC-13 | Strategy E | journal / publication portal | YES | YES | YES | YES | CLOSED_WITH_RESIDUAL | NO | NO | NO | PARTIAL license OBSERVED + UNKNOWN_FAIL_CLOSED for Sedi ingest | UNKNOWN_FAIL_CLOSED | 11 | NO | open full-child + indexing residual | NO | YES |
+| C4B-09 | IR-SC-16 | Strategy J | commercial directory secondary-only | YES | YES historical | YES for documented packs (09B audit gaps preserved) | YES | CLOSED_WITH_RESIDUAL | NO | NO | YES | FAIL_CLOSED | FAIL_CLOSED | 6 | NO | PARTIAL (not open discovery child) | NO | YES |
+
+### ۱۵۶.۱۱) Stage-3 closure criteria (Phase K)
+
+```text
+STAGE3_DISCOVERY_CLOSURE_CRITERIA =
+  Repository authority (§145 roadmap item 3 + §145.12 wave matrix +
+  §145.13 Stage-4 entry inputs) defines Stage 3 as:
+
+  B) closure of remaining Iran-first discovery waves
+     (S3-W0..W4; S3-W5 only if required),
+     while owned residuals may remain for later Evidence Overlay /
+     full-child / rights / activation governance.
+
+  NOT A) full-child closure of every C4B child.
+
+SUPPORTING_RULES =
+  DISCOVERY_SUBSTEP_COMPLETE != FULL_CHILD_COMPLETE
+    (repeated across §144–§155 child contracts)
+  Overlay may accept formally DEFERRED_WITH_OWNER Blocking items
+    without converting UNKNOWN→PASS (§145.10; §128 precedent)
+  Source activation / crawler / P2 implementation must remain NO in Stage 3
+    (§145.13)
+
+TEST_OF_CURRENT_STATE_AGAINST_CRITERIA =
+  S3-W0..W4 complete = YES
+  S3-W5 required = NO
+  C4B-05..09 discovery-substep CLOSED_WITH_RESIDUAL = YES
+  full children closed = NO (expected; not required for Stage-3 discovery closure)
+  activation = NO (required negative attestation)
+  → Stage-3 discovery-wave closure ELIGIBLE
+```
+
+### ۱۵۶.۱۲) Remaining mandatory / optional discovery work (Phases L)
+
+```text
+REMAINING_MANDATORY_IRAN_FIRST_DISCOVERY_WORK =
+  NONE
+
+REMAINING_OPTIONAL_OR_DEFERRED_IRAN_FIRST_DISCOVERY_WORK =
+  C4B-05 R01–R05/R07–R09 DEFERRED_WITH_OWNER
+    OWNER = as §146 residual table
+    DEPENDENCY = terms/robots/editorial/legal/automation packs
+    CLOSURE_CRITERIA = as §146
+    LATER_GATE = dedicated C4B-05 residual / rights / automation Gates
+  C4B-06 open residuals (8) — rights/automation/recognition/identity
+    LATER_GATE = C4B-06 residual clearance Gates
+  C4B-07 open residuals (8) — terms/MR/authorship/MoH/retrieval
+    LATER_GATE = C4B-07 residual / MR Gates
+  C4B-08 open residuals (11) — indexing/license/reuse/terms/automation/predatory/retrieval
+    LATER_GATE = C4B-08 residual Gates
+  C4B-09 residuals (6) — rights/ops/historical-gap/optional 09C–E/09F–I
+    LATER_GATE = rights/activation/reopen/optional brand Gates
+  S3-W5 residual network = OPTIONAL_DEFERRED only if later reauthorized
+    OWNER = Legal / Provider Verification / Knowledge Ops
+    DEPENDENCY = product need for residual HTTP capture
+    CLOSURE_CRITERIA = bounded residual Gate under new approval
+    LATER_GATE = optional C4B-05 residual network Gate
+
+NO_MANDATORY_WORK_SILENTLY_DEFERRED = YES
+NO_OPTIONAL_WORK_MADE_MANDATORY = YES
+```
+
+### ۱۵۶.۱۳) Residual ownership rollup (Phase M)
+
+| CLASS | C4B-05 | C4B-06 | C4B-07 | C4B-08 | C4B-09 |
+|---|---|---|---|---|---|
+| AUTHORITY / RECOGNITION | — | RECOG-01 | — | — | 09A-OPS / secondary role |
+| TERMS | R02 | TERMS-01 | TERMS-01 | TERMS-01 | 09A TOU gap / 09B policy fail-closed |
+| RIGHTS / LICENSE | R07 | REUSE-01 | REUSE-01 | LICENSE-01/02 | 09A-RIGHTS / 09B-RIGHTS |
+| REUSE | R07 | REUSE-01 | REUSE-01 | REUSE-01 | FAIL_CLOSED |
+| ATTRIBUTION | — | (in REUSE) | (in REUSE) | ATTR-01 | FAIL_CLOSED |
+| ROBOTS | R03 | AUTO inputs | ARUMS-ROBOTS | JMCIRI-ROBOTS | historical robots ≠ permission |
+| AUTOMATION | R08 | AUTO-01 | AUTO-01 | AUTO-01 | FAIL_CLOSED |
+| EDITORIAL | R05 | EDITORIAL-01 | AUTH-01 | — | — |
+| MEDICAL_REVIEW | — | — | MR-01 | — | — |
+| INDEXING | — | — | — | INDEX-01 | — |
+| PREDATORY / CLONE | — | — | — | PRED-01 | — |
+| TIMEOUT / UNRETRIEVED | — | IRSOME-01 | MPGH-01 | IJMS/PORTAL | — |
+| HISTORICAL_GAP | R06 preserved violation | — | — | — | 09B-HISTGAP accepted preserved |
+| OTHER | R01 OFS; R04 scope; R09 doc debt | ABOUT; D06D10 | MOH | — | 09C–E uneval; 09F–I |
+
+```text
+BLOCKS_DISCOVERY (any child) = NO for remaining open residuals
+  (all discovery-substeps CLOSED_WITH_RESIDUAL)
+
+BLOCKS_FULL_CHILD = YES across C4B-05..09 open/deferred rights residuals
+
+BLOCKS_EVIDENCE_OVERLAY = YES/PARTIAL via EO-C04..C08 owned unknowns
+  (Stage-4 treatment; not Stage-3 discovery blockers)
+
+BLOCKS_SOURCE_ACTIVATION = YES across all children
+
+BLOCKS_P2_FOUNDATION = NO
+  (foundation readiness READY_WITH_EXPLICIT_GAPS preserved)
+```
+
+### ۱۵۶.۱۴) Source-activation rollup (Phase N)
+
+```text
+ANY_SOURCE_ACTIVATED = NO
+ANY_RUNTIME_SOURCE_ENABLED = NO
+ANY_CRAWLER_SOURCE_ENABLED = NO
+
+VERIFIED_FROM =
+  §146 / §150 / §152 / §154 / §155 activation hard locks
+  + §145.13 Stage-3 negative attestation requirement
+
+NO_ACTIVATION_PERFORMED_IN_THIS_GATE = YES
+```
+
+### ۱۵۶.۱۵) Evidence Overlay readiness (Phase O)
+
+```text
+EVIDENCE_OVERLAY_CURRENT_STATE = NOT_CLOSED
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+  (Stage-4 Gate not executed; EO-C04..C08 still require Stage-4 treatment
+   of owned deferments / rights / automation / provenance packs)
+
+EO_C03_STATUS =
+  IMPROVED / ADDRESSABLE
+  — mandatory Iran E2-C4B discovery children C4B-05..09 now have
+    discovery-substep CLOSED_WITH_RESIDUAL OR closed-residual path;
+    remaining full-child opens are owned deferred residuals
+  (supersedes §145.10 “C4B-06/07/08 not started” historical row)
+
+EVIDENCE_OVERLAY_REMAINING_OPEN_CRITERIA =
+  EO-C04 rights/terms across overlay-bound sources
+  EO-C05 automation permission
+  EO-C06 authority/provenance completeness
+  EO-C07 acquisition eligibility decisions
+  EO-C08 owned-unknown matrix completeness at overlay closure time
+  EO-C11 dry-run allowlist prerequisites (later)
+  + explicit Javad approval for Stage-4 overlay closure Gate
+
+EVIDENCE_OVERLAY_READY_FOR_NEXT_GATE = YES
+  meaning: ready for a dedicated Stage-4 Evidence Overlay
+  reconciliation / closure Gate
+  NOT meaning: already closed
+
+NO_EO_CLOSURE_EXECUTED_IN_THIS_GATE = YES
+```
+
+### ۱۵۶.۱۶) P2 foundation readiness (Phase P)
+
+```text
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+P2_STARTED = NO
+
+P2_FOUNDATION_GATE_READY_AFTER_STAGE3 = NO
+  (§145.14 STAGE_5_ENTRY requires Stage 4 overlay closure Gate completed
+   OR explicit Javad waiver with owned gaps;
+   Stage-3 closure alone does not authorize P2 start)
+
+NO_P2_STARTED_IN_THIS_GATE = YES
+```
+
+### ۱۵۶.۱۷) Stage-3 closure decision (Phase Q)
+
+```text
+STAGE3_W0_COMPLETE = YES
+STAGE3_W1_COMPLETE = YES
+STAGE3_W2_COMPLETE = YES
+STAGE3_W3_COMPLETE = YES
+STAGE3_W4_COMPLETE = YES
+STAGE3_W5_REQUIRED = NO
+
+ALL_IRAN_FIRST_DISCOVERY_CHILDREN_COMPLETE = YES
+  (discovery-substep level for C4B-05..09)
+
+ALL_IRAN_FIRST_DISCOVERY_CHILDREN_STATE =
+  CLOSED_WITH_RESIDUAL for C4B-05, C4B-06, C4B-07, C4B-08, C4B-09
+
+REMAINING_MANDATORY_IRAN_FIRST_DISCOVERY_WORK = NONE
+
+STAGE3_CLOSURE_ELIGIBLE = YES
+
+STAGE3_CLOSED = YES
+
+STAGE3_CLOSED_SCOPE =
+  IRAN_FIRST_DISCOVERY_WAVES_ONLY
+  (S3-W0..W4 complete; S3-W5 deferred/not required;
+   C4B-05..09 discovery-substeps CLOSED_WITH_RESIDUAL)
+
+STAGE3_IRAN_FIRST_DISCOVERY_CLOSED = YES
+
+DOES_NOT_IMPLY =
+  FULL_CHILDREN_CLOSED
+  EVIDENCE_OVERLAY_CLOSED
+  SOURCES_ACTIVATED
+  P2_STARTED
+  RIGHTS_CLEARED
+  AUTOMATION_CLEARED
+```
+
+### ۱۵۶.۱۸) First post-Stage-3 Gate (Phase R)
+
+```text
+FIRST_POST_STAGE3_GATE =
+  EVIDENCE OVERLAY CLOSURE / RECONCILIATION PREPARATION
+  (SECTION-28 / STAGE-4-OF-14 — docs-first EO readiness /
+   criterion reconstruction Gate; may be followed by separately
+   approved EO closure execution Gate)
+
+WHY_THIS_GATE_IS_NEXT =
+  §145 roadmap: Stage 3 = remaining Iran-first discovery;
+  Stage 4 = Evidence Overlay closure
+  §145.13 Stage-4 entry criteria now addressable after W0–W4 attestation
+  §145.14 Stage 5 / P2 foundation entry requires Stage 4 (or waiver)
+  §155.19 explicitly deferred EO closure to Stage 4 with separate approval
+
+AUTHORITY =
+  §145.12–§145.14; §145 roadmap item 4; §155.19; this §156 closure
+
+WHAT_IT_MAY_DO =
+  reconstruct EO-C criteria against Stage-3 outputs;
+  map owned deferments into overlay closure checklist;
+  docs-only preparation / reconciliation for Stage-4 EO closure
+  (exact scope set by separate Javad approval package)
+
+WHAT_IT_MAY_NOT_DO =
+  silently close Evidence Overlay without Stage-4 authority
+  activate sources / crawlers
+  start P2 implementation unless separately authorized
+  reopen Stage-3 discovery networks without reopen authority
+  convert UNKNOWN rights to PASS
+
+SEPARATE_APPROVAL_REQUIRED = YES
+NEXT_GATE_EXECUTION = NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۶.۱۹) 14-stage roadmap alignment (Phase S)
+
+```text
+ROADMAP_STAGE_3_STATUS =
+  CLOSED
+  (Iran-first discovery waves S3-W0..W4 attested complete;
+   S3-W5 not required)
+
+ROADMAP_STAGE_4_STATUS =
+  NOT_STARTED
+  (Evidence Overlay closure / reconciliation next;
+   separate approval required)
+
+ROADMAP_PRESERVED =
+  1 §144 push — prior
+  2 authority reconstruction — §145 DOCUMENTED_UNCOMMITTED
+  3 remaining Iran-first discovery — CLOSED by this Gate (discovery-wave scope)
+  4 Evidence Overlay closure — NEXT
+  5 P2 + P3 + P4 — NOT_STARTED
+  6 P5 + P6 — NOT_STARTED
+  7 R1 + R2 — NOT_STARTED
+  8 S1 weekly crawler — NOT_STARTED
+  9 KP0–KP13 — NOT_STARTED
+  10 I5-C runtime grounding — NOT_STARTED
+  11 I5-D psychology/behavior — NOT_STARTED
+  12 I5-E verified directory — NOT_STARTED
+  13 I5-F multilingual/security evaluation — NOT_STARTED
+  14 end-to-end I5 acceptance — NOT_STARTED
+
+STAGE_4_NOT_STARTED = YES
+```
+
+### ۱۵۶.۲۰) Progress accounting (Phase T)
+
+```text
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+NO_UPDATED_PROGRESS_AUTHORITY_FOUND = YES
+REQUESTED_EXACT_FLOAT_NOT_INVENTED = YES
+```
+
+### ۱۵۶.۲۱) Operations NOT performed
+
+```text
+NO network
+NO search
+NO HTTP
+NO external API / external evidence
+NO query execution
+NO new candidate discovery
+NO source activation
+NO crawler activation
+NO KB ingestion
+NO Evidence Overlay closure execution
+NO P2 / P3 / P4 / P5 / P6 implementation
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend
+NO flag activation
+NO production operation
+NO rewrite of §§1–155
+```
+
+### ۱۵۶.۲۲) Exact next state
+
+```text
+STAGE3_IRAN_FIRST_DISCOVERY_CLOSED = YES
+STAGE3_CLOSED_SCOPE = IRAN_FIRST_DISCOVERY_WAVES_ONLY
+
+EVIDENCE_OVERLAY_CLOSED = NO
+P2_STARTED = NO
+ANY_SOURCE_ACTIVATED = NO
+I5_PROGRESS ≈ 22%
+
+FIRST_POST_STAGE3_GATE =
+  EVIDENCE OVERLAY CLOSURE / RECONCILIATION PREPARATION
+  (Stage 4 docs-first; separate approval)
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+STAGE3_CLOSURE_RECONCILIATION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — STAGE-3 IRAN-FIRST DISCOVERY CLOSURE ATTESTED
+```
+
+### ۱۵۶.۲۳) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+dfedda0e30bc56e77b6d971a258162011a621de5c2f956e0b4a0f41e7bde0c80
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–155_PRESERVED = YES
+§156_ONLY_NEW_SECTION = YES
+§156_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۶ — SECTION-28 STAGE-3 CLOSURE / Remaining Iran-First Discovery Reconciliation — STAGE3_CLOSURE_RECONCILIATION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۷*
+
+## ۱۵۷) SECTION-28 — ROADMAP STAGE-4 — EVIDENCE OVERLAY CLOSURE / RECONCILIATION PREPARATION
+
+```text
+PACKAGE =
+SECTION-28 — ROADMAP STAGE-4 —
+EVIDENCE OVERLAY CLOSURE / RECONCILIATION PREPARATION
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+AUTHORITY_RECONSTRUCTION /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_CANDIDATE_DISCOVERY /
+NO_EO_CLOSURE_DECLARATION / NO_EO_CLOSURE_EXECUTION /
+NO_WAIVER_CREATION / NO_SOURCE_ACTIVATION /
+NO_P2_P3_P4 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / Evidence Overlay
+Supporting:
+Legal, Security, Data/Knowledge, Medical/Safety
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local preparation
+and reconciliation Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  reconstruct complete authoritative Evidence Overlay contract;
+  criterion-by-criterion state; residual→EO mapping;
+  deferment audit; closure contract; finite Stage-4 sub-Gate plan;
+  first executable Stage-4 sub-Gate; Stage-5 dependency
+
+Baseline (verified at Stage-4 prep entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §156
+  §§145–156 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  §145_BYTE_IDENTITY = NOT_CLAIMED
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Verified continuity markers (§156 / tip):
+  STAGE3_CLOSED = YES
+  STAGE3_CLOSED_SCOPE = IRAN_FIRST_DISCOVERY_WAVES_ONLY
+  STAGE3_IRAN_FIRST_DISCOVERY_CLOSED = YES
+  REMAINING_MANDATORY_IRAN_FIRST_DISCOVERY_WORK = NONE
+  EVIDENCE_OVERLAY_CLOSED = NO
+  EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+  EVIDENCE_OVERLAY_READY_FOR_NEXT_GATE = YES
+  P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+  P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+  P2_FOUNDATION_GATE_READY_AFTER_STAGE3 = NO
+  P2_STARTED = NO
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+47fe27d5adac4eda9d654c3c8c1bc9f722ea3f039e201a21e39f741a95e93a12
+```
+
+### ۱۵۷.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+EO_CLOSURE_AUTHORIZED_BY_THIS_GATE = NO
+WAIVER_AUTHORIZED_BY_THIS_GATE = NO
+NETWORK_AUTHORIZED = NO
+```
+
+### ۱۵۷.۲) EO authority ledger (Phase B)
+
+| AUTHORITY_ID | PATH | SECTION | SEQUENCE | SUBJECT | WHAT_IT_DEFINES | CURRENT_OR_HISTORICAL | SUPERSEDED? | SUPERSEDED_BY | CONFLICT_STATUS | CURRENT_RELEVANCE | CLASS |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| AUTH-93-EO-DESIGN | master log | §93.9 | design | Evidence Overlay field contract + invariants | overlay fields; immutable identity; versioned overlays; missing evidence fails closed | CURRENT | NO | — | NONE | design SATISFIED inputs EO-C01/C02 | CURRENT_AUTHORITY |
+| AUTH-93-EO-LIFECYCLE | master log | §93.10 | design | governed ingestion lifecycle | fail-closed for unclear license/terms/provenance | CURRENT | NO | — | NONE | EO-C04/C07/C02 | CURRENT_AUTHORITY |
+| AUTH-93-EO-DRYRUN | master log | §93.12 | design | dry-run allowlist prerequisites | overlay approved; license/authority/jurisdiction/trust/provenance | CURRENT | NO | — | NONE | EO-C11 | CURRENT_AUTHORITY |
+| AUTH-137-138 | master log | §137–§138 | prior | weekly knowledge-growth law | discovery ≠ knowledge acquisition | CURRENT | NO | — | NONE | EO-C12 | CURRENT_AUTHORITY |
+| AUTH-145-EO-INV | master log | §145.10 | Stage-2 | EO-C01..EO-C12 closure checklist | canonical criterion inventory + then-current states | CURRENT (inventory) / HISTORICAL (some states) | PARTIAL states | §§146–156 updates | NONE on IDs | primary criterion inventory | CURRENT_AUTHORITY |
+| AUTH-145-CLOSURE-RULE | master log | §145.10 | Stage-2 | deferment rule | Blocking items may be DEFERRED_WITH_OWNER without UNKNOWN→PASS | CURRENT | NO | — | NONE | deferment audit | CURRENT_AUTHORITY |
+| AUTH-145-S4ENTRY | master log | §145.13 | Stage-2 | Stage-4 entry criteria | discovery waves; C4B-09 reconciled; STOP-06; no activation | CURRENT | YES for “NOT_MET” rows | §156 | NONE | Stage-4 readiness | CURRENT_AUTHORITY |
+| AUTH-145-S5 | master log | §145.14 | Stage-2 | Stage-5 / P2 entry | Stage 4 overlay closure OR explicit Javad waiver | CURRENT | NO | — | NONE | Stage-5 dependency | CURRENT_AUTHORITY |
+| AUTH-146-EO | master log | §146.9 | S3-W0 | C4B-05 residual→EO mapping | R01–R09 EO impacts; EO-C03 improved | CURRENT | NO | — | NONE | C4B-05 EO inputs | CURRENT_AUTHORITY |
+| AUTH-150-EO | master log | §150 | S3-W1 | C4B-06 discovery + residuals | discovery CLOSED_WITH_RESIDUAL; rights residuals open | CURRENT | NO | — | NONE | C4B-06 EO inputs | CURRENT_AUTHORITY |
+| AUTH-152-EO | master log | §152 | S3-W2 | C4B-07 discovery + residuals | patient-ed ≠ guideline; MR residuals | CURRENT | NO | — | NONE | C4B-07 EO inputs | CURRENT_AUTHORITY |
+| AUTH-154-EO | master log | §154 | S3-W3 | C4B-08 discovery + residuals | indexing/license/predatory residuals | CURRENT | NO | — | NONE | C4B-08 EO inputs | CURRENT_AUTHORITY |
+| AUTH-155-EO | master log | §155 | S3-W4 | C4B-09 reconciliation | secondary-only; PARTIAL EO block via rights | CURRENT | NO | — | NONE | C4B-09 EO inputs | CURRENT_AUTHORITY |
+| AUTH-156-STAGE3 | master log | §156 | Stage-3 closure | discovery waves closed | EO ready for next Gate; EO not closed; EO-C03 addressable | CURRENT | NO | — | NONE | post-Stage-3 EO baseline | CURRENT_AUTHORITY |
+
+```text
+BLOCKED_EO_AUTHORITY_CONFLICT = NO
+MODEL_MEMORY_NOT_USED_AS_AUTHORITY = YES
+```
+
+### ۱۵۷.۳) Exact EO criterion inventory (Phase C)
+
+```text
+EO_CRITERION_COUNT = 12
+EO_CRITERION_INVENTORY_COMPLETE = YES
+INVENTORY_SOURCE = §145.10 (canonical IDs EO-C01..EO-C12)
+SUPPORTING_DEFINITIONS = §93.9 / §93.10 / §93.12 / §137–§138
+NO_CRITERION_ID_INVENTED = YES
+```
+
+| EO_CRITERION_ID | CANONICAL_NAME | EXACT_DEFINITION (§145.10) | REQUIRED_EVIDENCE | REQUIRED_STATE_FOR_CLOSURE | ALLOWED_DEFERMENT? | DEFERMENT_AUTHORITY | NON_DEFERABLE_COMPONENTS | SOURCE_AUTHORITY | SUPERSESSION_STATUS |
+|---|---|---|---|---|---|---|---|---|---|
+| EO-C01 | Overlay design contract | Overlay design contract exists (§93.9 fields + invariants) | §93.9 field list + invariants | SATISFIED | NO (already design-complete) | — | design existence | §145.10 / §93.9 | ACTIVE |
+| EO-C02 | Fail-closed / immutability laws | Missing evidence fails closed; identity immutable; versioned overlays | §93.9–§93.10 laws | SATISFIED as law (preserve) | NO | — | fail-closed law itself | §145.10 / §93.9–§93.10 | ACTIVE |
+| EO-C03 | Mandatory discovery children | Remaining mandatory Iran E2-C4B discovery children completed OR blockers formally deferred with owner | Stage-3 discovery packs / deferment rows | SATISFIED or DEFERRED_WITH_OWNER | YES for blockers | §145.10 closure rule; §146; §156 | inventing discovery completion | §145.10; updated by §156 | ACTIVE (state updated) |
+| EO-C04 | Rights/terms | Rights/terms evidence recorded or fail-closed with owner for overlay-bound sources | terms/reuse packs or owned fail-closed | SATISFIED or DEFERRED_WITH_OWNER fail-closed | YES with owner | §145.10; §128 precedent; child residual CAN_DEFER | UNKNOWN→PASS | §145.10 | ACTIVE |
+| EO-C05 | Automation permission | Automation permission evidence recorded or fail-closed | robots+automation packs or owned fail-closed | SATISFIED or DEFERRED_WITH_OWNER fail-closed | YES with owner | §145.10; child AUTO residuals | robots-allow→permission upgrade | §145.10 | ACTIVE |
+| EO-C06 | Authority / provenance | Source-specific authority / provenance evidence | child discovery ledgers + provenance | SATISFIED or owned PARTIAL/DEFERRED | PARTIAL deferment for incomplete provenance | §145.10; §146 R05 | role misuse (journal/patient-ed/directory as clinical) | §145.10; updated by Stage-3 packs | ACTIVE |
+| EO-C07 | Acquisition eligibility | Reusable acquisition eligibility decided or fail-closed | eligibility decisions / FREE_AND_DISCOVERY_ELIGIBLE or fail-closed | SATISFIED or DEFERRED_WITH_OWNER fail-closed | YES with owner (fail-closed) | §145.10 | silent eligibility promotion | §145.10 | ACTIVE |
+| EO-C08 | Owned unknowns | Fail-closed unknowns explicitly owned | residual matrix with owners/deps/closure/next Gate | SATISFIED (complete owned matrix) | NO for orphan unknowns; YES for owned deferred content | §145.10; NO_ORPHAN_UNKNOWN | orphan UNKNOWN | §145.10; Stage-3 residual ledgers | ACTIVE |
+| EO-C09 | Source disabled until approved | Explicit source enable/disable remains disabled until approved | SOURCE_ACTIVATION=NO attestation | SATISFIED (disabled) | NO (must remain disabled through Stage 4) | — | activation | §145.10 | ACTIVE |
+| EO-C10 | P2 separation | P2 readiness decision separated from overlay closure | READY_WITH_EXPLICIT_GAPS ≠ activation; P2_STARTED=NO | SATISFIED as separation | NO | — | conflating P2 start with EO | §145.10 / §145.14 | ACTIVE |
+| EO-C11 | Dry-run allowlist prerequisites | Dry-run allowlist prerequisites (§93.12) | approved overlays + license/authority/jurisdiction/trust/provenance + separate dry-run package | SATISFIED only after approved overlays | NO for dry-run enablement | — | seed-script alone ≠ allowlist | §145.10 / §93.12 | ACTIVE |
+| EO-C12 | Knowledge-growth law | Weekly knowledge-growth law not weakened by overlay closure | §137/§138 preserved in closure text | SATISFIED as requirement at closure | NO | — | weakening discovery≠growth | §145.10 / §137–§138 | ACTIVE |
+
+### ۱۵۷.۴) EO state vocabulary (Phase D)
+
+| ORIGINAL_MARKER | NORMALIZED_STATE | MEANING | CLOSURE_EFFECT | AUTHORITY |
+|---|---|---|---|---|
+| SATISFIED / SATISFIED (design) / SATISFIED as law | SATISFIED | criterion met for current EO purposes | contributes to eligibility | §145.10 |
+| PARTIAL | PARTIAL | some required components present; material gap remains | alone insufficient for closure | §145.10 |
+| NOT SATISFIED / OPEN | OPEN | required evidence/decision absent | blocks closure unless deferrable path used | §145.10 |
+| BLOCKING? = YES with unmet requirement | BLOCKED | blocks EO closure until cleared or authorized deferment | blocks | §145.10 |
+| DEFERRED_WITH_OWNER | DEFERRED_WITH_OWNER | owned explicit gap; fail-closed preserved | may satisfy EO criterion if authority allows deferment | §145.10 / §146 / §128 |
+| UNKNOWN_FAIL_CLOSED / FAIL_CLOSED | FAIL_CLOSED | unknown treated as non-permission | not PASS; may support owned deferment | permanent laws |
+| CLOSED_WITH_RESIDUAL (child discovery) | NOT auto-mapped | child discovery state ≠ EO SATISFIED | must map via EO-C03/C06 rules only | §156 / this Gate |
+| AUTHORITY_NOT_FOUND | AUTHORITY_NOT_FOUND | definition/evidence missing in repo | blocks inventory/closure claim | Gate rule |
+| CONFLICT_UNRESOLVED | CONFLICT_UNRESOLVED | unresolved authority conflict | stop / block | Gate rule |
+
+```text
+CLOSED_WITH_RESIDUAL_NOT_AUTO_SATISFIED = YES
+```
+
+### ۱۵۷.۵) C4B-05 EO inputs (Phase E)
+
+```text
+C4B_05_DISCOVERY_SUBSTEP_COMPLETE = YES
+C4B_05_DISCOVERY_SUBSTEP_STATE = CLOSED_WITH_RESIDUAL
+C4B_05_NETWORK_RESULT_VALID = NO (NOT upgraded)
+C4B_05_FULL_CHILD_COMPLETE = NO
+C4B_05_SOURCE_ACTIVATED = NO
+C4B_05_OPEN_RESIDUAL_COUNT = 8
+  (R01–R05, R07–R09 DEFERRED_WITH_OWNER; R06 CLOSED — excluded from open count)
+```
+
+| RESIDUAL_ID | DESCRIPTION | OWNER | CURRENT_STATE | EO_CRITERION_IDS | EO_IMPACT | DEFERABLE? | NETWORK? | LEGAL/RIGHTS? | GOVERNANCE? | BLOCKS_EO_CLOSURE? |
+|---|---|---|---|---|---|---|---|---|---|---|
+| R01 | OFS numeric ID gap | Governance/Framework | DEFERRED_WITH_OWNER | EO-C08 | owned unknown | YES (§146) | NO | NO | YES | NO alone |
+| R02 | terms/privacy incomplete | Legal/Knowledge Ops | DEFERRED_WITH_OWNER | EO-C04 | rights/terms | YES | optional later | YES | NO | YES until owned-defer attested at EO level or cleared |
+| R03 | robots incomplete | Provider Verification | DEFERRED_WITH_OWNER | EO-C05 | automation inputs | YES | optional later | NO | NO | YES until owned-defer/clear |
+| R04 | IR-SC-14 sample scope | Governance | DEFERRED_WITH_OWNER | EO-C03/C06 | scope completeness | YES | only if expansion | NO | YES product | NO unless product expands mandatory |
+| R05 | editorial not established | Knowledge Ops | DEFERRED_WITH_OWNER | EO-C06 | provenance/editorial | YES | optional | NO | NO | YES until owned-defer/clear |
+| R06 | STOP-06 unlocked query | Governance | CLOSED (violation preserved) | EO-C03 historically | discovery governance | N/A closed | NO | NO | YES done | NO (closed) |
+| R07 | reuse rights UNKNOWN_FAIL_CLOSED | Legal | DEFERRED_WITH_OWNER | EO-C04 / EO-C07 | reuse/eligibility | YES fail-closed | may need external | YES | NO | YES until owned-defer/clear |
+| R08 | automation uncleared | Security/Legal | DEFERRED_WITH_OWNER | EO-C05 | automation | YES fail-closed | may need residual | YES | NO | YES until owned-defer/clear |
+| R09 | doc fence debt | Documentation | DEFERRED_WITH_OWNER | — / EO-C08 weak | non-material | YES | NO | NO | YES docs | NO |
+
+### ۱۵۷.۶) C4B-06 EO inputs (Phase F)
+
+```text
+DISCOVERY = CLOSED_WITH_RESIDUAL
+NETWORK_RESULT_VALID = YES
+FULL_CHILD = NO
+ACTIVATION = NO
+OPEN_RESIDUAL_COUNT = 8
+IDENTITY_OBSERVED != RECOGNITION_VERIFIED = PRESERVED
+```
+
+| RESIDUAL_ID | CLASS | EO_CRITERION_IDS | EO_IMPACT | DEFERABLE? | NETWORK? | LEGAL? | GOV? | BLOCKS_EO_CLOSURE? |
+|---|---|---|---|---|---|---|---|---|
+| C4B06-R-TERMS-01 | TERMS | EO-C04 | terms missing | YES | optional first-party | YES | NO | YES until defer/clear |
+| C4B06-R-AUTO-01 | AUTOMATION | EO-C05 | automation UNKNOWN | YES | optional robots | YES | NO | YES |
+| C4B06-R-REUSE-01 | REUSE/ATTR | EO-C04 / EO-C07 | reuse UNKNOWN | YES | optional | YES | NO | YES |
+| C4B06-R-RECOG-01 | RECOGNITION | EO-C06 | MoH self-claim uncorroborated | YES | external corroboration possible | NO | YES | YES for recognition pack |
+| C4B06-R-ABOUT-01 | IDENTITY | EO-C06 | about thin | YES | optional | NO | YES | PARTIAL |
+| C4B06-R-IRSOME-01 | TIMEOUT | EO-C06 / EO-C08 | incomplete candidate | YES (retrieve or exclude) | YES if retained | NO | YES | YES if retained without disposition |
+| C4B06-R-EDITORIAL-01 | EDITORIAL | EO-C06 | editorial incomplete | YES | optional | NO | NO | PARTIAL |
+| C4B06-R-D06D10-01 | RIGHTS_EVIDENCE | EO-C04 / EO-C08 | first-party rights not recovered via search | YES | locked residual path | YES | NO | YES |
+
+```text
+CLOSED_EXCLUDED_FROM_OPEN_COUNT =
+  C4B06-R-QUERYTEXT-01 CLOSED_BY_§149
+  C4B06-R-NETWORK-01 CLOSED_BY_§150
+```
+
+### ۱۵۷.۷) C4B-07 EO inputs (Phase G)
+
+```text
+PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY = PRESERVED
+DISCOVERY = CLOSED_WITH_RESIDUAL
+FULL_CHILD = NO
+ACTIVATION = NO
+OPEN_RESIDUAL_COUNT = 8
+NO_ARTICLE_QUALITY_FROM_INDEX_METADATA_ALONE = YES
+```
+
+| RESIDUAL_ID | CLASS | EO_CRITERION_IDS | EO_IMPACT | DEFERABLE? | NETWORK? | LEGAL? | GOV/MR? | BLOCKS_EO_CLOSURE? |
+|---|---|---|---|---|---|---|---|---|
+| C4B07-R-TERMS-01 | TERMS | EO-C04 | terms | YES | optional | YES | NO | YES |
+| C4B07-R-AUTO-01 | AUTOMATION | EO-C05 | automation | YES | optional | YES | NO | YES |
+| C4B07-R-REUSE-01 | REUSE | EO-C04 / EO-C07 | reuse | YES | optional | YES | NO | YES |
+| C4B07-R-MR-01 | MEDICAL_REVIEW | EO-C06 / quality | MR-1+ incomplete | YES | NO for discovery reopen | NO | YES Medical/Safety | YES for MR pack |
+| C4B07-R-AUTH-01 | AUTHORSHIP | EO-C06 | authorship UNKNOWN | YES | optional | NO | YES | PARTIAL |
+| C4B07-R-MOH-01 | AUTHORITY | EO-C06 | MoH patient-ed class incomplete | YES | optional / amendment if new query | NO | YES | PARTIAL |
+| C4B07-R-MPGH-01 | TIMEOUT | EO-C06 / EO-C08 | timeout candidate | YES exclude/retrieve | YES if retained | NO | YES | YES if retained |
+| C4B07-R-ARUMS-ROBOTS-01 | ROBOTS | EO-C05 | robots 404 | YES | optional | YES | NO | YES for automation pack |
+
+### ۱۵۷.۸) C4B-08 EO inputs (Phase H)
+
+```text
+JOURNAL_IDENTITY != CLINICAL_AUTHORITY = PRESERVED
+SELF_CLAIMED_INDEXING != VERIFIED_INDEXING = PRESERVED
+DISCOVERY = CLOSED_WITH_RESIDUAL
+FULL_CHILD = NO
+ACTIVATION = NO
+OPEN_RESIDUAL_COUNT = 11
+OA_OR_PUBLIC_PDF != INGESTION_PERMISSION = PRESERVED
+CONTRA-01 license 4.0 vs 3.0 footer = OPEN contradiction (CAND-01)
+```
+
+| RESIDUAL_ID | CLASS | EO_CRITERION_IDS | EO_IMPACT | DEFERABLE? | NETWORK? | LEGAL? | GOV? | BLOCKS_EO_CLOSURE? |
+|---|---|---|---|---|---|---|---|---|
+| C4B08-R-INDEX-01 | INDEXING | EO-C06 / indexing rollup | self-claim uncorroborated | YES | external corroboration possible | NO | YES | YES for verified indexing claims |
+| C4B08-R-LICENSE-01 | LICENSE | EO-C04 | CC version contradiction | YES | optional | YES | NO | YES |
+| C4B08-R-LICENSE-02 | LICENSE | EO-C04 | license incomplete | YES | optional | YES | NO | YES |
+| C4B08-R-REUSE-01 | REUSE | EO-C04 / EO-C07 | Sedi reuse UNKNOWN | YES | NO alone | YES | NO | YES |
+| C4B08-R-TERMS-01 | TERMS | EO-C04 | TOU missing | YES | optional | YES | NO | YES |
+| C4B08-R-AUTO-01 | AUTOMATION | EO-C05 | automation UNKNOWN | YES | optional | YES | NO | YES |
+| C4B08-R-PRED-01 | PREDATORY | EO-C06 / safety | absolute clearance not granted | YES | optional evidence-based | NO | YES Medical/Safety | YES for clearance claims |
+| C4B08-R-IJMS-01 | TIMEOUT | EO-C06 / EO-C08 | thin retrieval | YES exclude/retrieve | YES if retained | NO | YES | YES if retained |
+| C4B08-R-PORTAL-01 | TIMEOUT | EO-C06 / EO-C08 | portal timeout | YES exclude/retrieve | YES if retained | NO | YES | YES if retained |
+| C4B08-R-JMCIRI-ROBOTS-01 | ROBOTS | EO-C05 | robots not fetched | YES | optional | YES | NO | YES |
+| C4B08-R-ATTR-01 | ATTRIBUTION | EO-C04 | attribution unsettled | YES | optional | YES | NO | YES |
+
+### ۱۵۷.۹) C4B-09 EO inputs (Phase I)
+
+```text
+SECONDARY_ONLY = YES
+DISCOVERY = CLOSED_WITH_RESIDUAL
+FULL_CHILD = NO
+ACTIVATION = NO
+RIGHTS = FAIL_CLOSED
+AUTOMATION = FAIL_CLOSED
+C4B09_NEW_NETWORK_REQUIRED = NO
+09A_PASS = narrow public-evidence + decision ONLY
+09B = CLOSED_RESIDUAL with preserved historical gaps
+DIRECTORY_EVIDENCE != PRIMARY_CLINICAL_AUTHORITY = PRESERVED
+RESIDUAL_COUNT = 6
+BLOCKS_P2_FOUNDATION = NO
+BLOCKS_SOURCE_ACTIVATION = YES
+C4B09_BLOCKS_EVIDENCE_OVERLAY = PARTIAL (rights/automation ownership; not open discovery child)
+```
+
+| RESIDUAL_ID | CLASS | EO_CRITERION_IDS | EO_IMPACT | DEFERABLE? | NETWORK? | LEGAL? | GOV? | BLOCKS_EO_CLOSURE? |
+|---|---|---|---|---|---|---|---|---|
+| C4B09-R-09A-RIGHTS | RIGHTS | EO-C04 / EO-C07 | P24 gaps fail-closed | YES | NO (new network not required) | YES | NO | YES until owned-defer/clear |
+| C4B09-R-09A-OPS | OPS | EO-C09 / EO-C07 | ops UNKNOWN_FAIL_CLOSED | YES keep disabled | NO | NO | YES | YES for activation paths |
+| C4B09-R-09B-HISTGAP | HISTORICAL_GAP | EO-C08 | accepted preserved | YES (accepted) | NO | NO | YES | NO alone (governance closed) |
+| C4B09-R-09B-RIGHTS | RIGHTS | EO-C04 / EO-C05 / EO-C07 | FAIL_CLOSED preserved | YES | NO | YES | NO | YES |
+| C4B09-R-09C-E-UNEVAL | SCOPE | EO-C03/C06 | not mandatory per §145.9 | YES non-mandatory | only if product expands | NO | YES | NO under §145.9 |
+| C4B09-R-09F-I | CATALOG | EO-C07 / EO-C09 | catalog path not executed | YES | NO | YES | YES | YES for catalog eligibility claims |
+
+### ۱۵۷.۱۰) Master residual-to-EO matrix (Phase J)
+
+```text
+OPEN_RESIDUAL_COUNT_BY_CHILD =
+  C4B-05 = 8
+  C4B-06 = 8
+  C4B-07 = 8
+  C4B-08 = 11
+  C4B-09 = 6
+TOTAL_OPEN_RESIDUALS_IN_MATRIX = 41
+COUNT_MATCHES_CONTINUITY_EXPECTATION = YES
+NO_ORPHAN_RESIDUAL = YES
+CLOSED_RESIDUALS_EXCLUDED =
+  C4B-05 R06; C4B-06 QUERYTEXT/NETWORK
+```
+
+Summary matrix (full per-residual detail in §§157.5–157.9):
+
+| CHILD_ID | RESIDUAL_ID | RESIDUAL_CLASS | CURRENT_STATE | OWNER | EO_CRITERION_IDS | BLOCKS_EO_CLOSURE? | BLOCKS_FULL_CHILD? | BLOCKS_SOURCE_ACTIVATION? | BLOCKS_P2_FOUNDATION? | CAN_DEFER? | NETWORK_SUBGATE? | LEGAL_RIGHTS_SUBGATE? | GOVERNANCE_SUBGATE? | DOCS_ONLY_SUBGATE? | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C4B-05 | R01 | OTHER/OFS | DEFERRED_WITH_OWNER | Governance/Framework | EO-C08 | NO alone | NO | NO | NO | YES | NO | NO | YES | YES | Framework/OFS |
+| C4B-05 | R02 | TERMS | DEFERRED_WITH_OWNER | Legal/Knowledge Ops | EO-C04 | YES* | YES | YES | NO | YES | optional | YES | NO | YES attest | rights residual |
+| C4B-05 | R03 | ROBOTS | DEFERRED_WITH_OWNER | Provider Verification | EO-C05 | YES* | YES | YES | NO | YES | optional | NO | NO | YES attest | robots residual |
+| C4B-05 | R04 | SCOPE | DEFERRED_WITH_OWNER | Governance | EO-C03/C06 | NO default | PARTIAL | YES | NO | YES | if expand | NO | YES | YES | product scope |
+| C4B-05 | R05 | EDITORIAL | DEFERRED_WITH_OWNER | Knowledge Ops | EO-C06 | YES* | YES | YES | NO | YES | optional | NO | NO | YES attest | editorial residual |
+| C4B-05 | R07 | REUSE | DEFERRED_WITH_OWNER | Legal | EO-C04/C07 | YES* | YES | YES | NO | YES | maybe | YES | NO | YES attest | rights clearance |
+| C4B-05 | R08 | AUTOMATION | DEFERRED_WITH_OWNER | Security/Legal | EO-C05 | YES* | YES | YES | NO | YES | maybe | YES | NO | YES attest | automation clearance |
+| C4B-05 | R09 | OTHER/DOCS | DEFERRED_WITH_OWNER | Documentation | EO-C08 weak | NO | NO | NO | NO | YES | NO | NO | YES | YES | historical-doc |
+| C4B-06 | TERMS/AUTO/REUSE/RECOG/ABOUT/IRSOME/EDITORIAL/D06D10 | (8) | OPEN | per §150 | EO-C04/C05/C06/C07/C08 | YES* | YES | YES | NO | YES | selective | selective | selective | YES attest | residual Gates |
+| C4B-07 | TERMS/AUTO/REUSE/MR/AUTH/MOH/MPGH/ARUMS | (8) | OPEN | per §152 | EO-C04/C05/C06/C07/C08 | YES* | YES | YES | NO | YES | selective | selective | MR/gov | YES attest | residual/MR Gates |
+| C4B-08 | INDEX/LICENSE×2/REUSE/TERMS/AUTO/PRED/IJMS/PORTAL/ROBOTS/ATTR | (11) | OPEN | per §154 | EO-C04/C05/C06/C07/C08 | YES* | YES | YES | NO | YES | selective | selective | predatory/gov | YES attest | residual Gates |
+| C4B-09 | 09A-RIGHTS/OPS/09B-HISTGAP/RIGHTS/09C-E/09F-I | (6) | mixed | per §155 | EO-C04/C05/C07/C08/C09 | PARTIAL* | YES | YES | NO | YES | NO default | YES | YES | YES attest | rights/reopen/optional |
+
+```text
+YES* = blocks EO closure until either cleared OR formally attested as
+       DEFERRED_WITH_OWNER at EO Stage-4 governance level
+       (child-level defer ≠ automatic EO-criterion defer; §157.13)
+```
+
+### ۱۵۷.۱۱) Criterion-by-criterion EO reconciliation (Phase K)
+
+| EO_CRITERION_ID | CURRENT_NORMALIZED_STATE | SATISFYING_EVIDENCE | PARTIAL_EVIDENCE | OPEN_GAPS | BLOCKING_RESIDUAL_IDS | DEFERRED_RESIDUAL_IDS | NON_DEFERABLE | OWNER | NEXT_REQUIRED_SUBGATE | STAGE5_IMPACT | AUTHORITY |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| EO-C01 | SATISFIED | §93.9 design contract | — | — | — | — | — | Governance | none | none | §145.10 |
+| EO-C02 | SATISFIED | §93.9–§93.10 laws | — | preserve at closure text | — | — | law itself | Governance | confirm in closure attestation | none | §145.10 |
+| EO-C03 | SATISFIED | §156 Stage-3 discovery waves CLOSED; mandatory discovery NONE; C4B-05..09 discovery-substeps CLOSED_WITH_RESIDUAL | full-child still NO (feeds other EO-Cs) | — | — | full-child blockers deferred elsewhere | inventing full-child PASS | Governance | S4-EO-01 attest discovery component | unblocks EO path | §145.10 + §156 |
+| EO-C04 | PARTIAL | C4B-05 R02/R07 DEFERRED_WITH_OWNER; some C4B-08 license OBSERVED | C4B-06/07/08/09 terms/reuse largely OPEN fail-closed | EO-level owned-defer attestation OR clearance for open rights residuals | open TERMS/REUSE/LICENSE/ATTR across 06–09; 09A/09B rights | C4B-05 R02/R07 | UNKNOWN→PASS | Legal | S4-EO-02/S4-EO-03 | blocks Stage-5 via EO open | §145.10 |
+| EO-C05 | PARTIAL | C4B-05 R03/R08 DEFERRED_WITH_OWNER; robots observed on some hosts | automation UNKNOWN across 06–09 | owned-defer attestation OR automation decisions | AUTO/ROBOTS residuals 06–09 | C4B-05 R03/R08 | robots→permission | Security/Legal | S4-EO-02/S4-EO-04 | blocks Stage-5 via EO | §145.10 |
+| EO-C06 | PARTIAL | Stage-3 discovery ledgers for C4B-05..09 present; secondary-only locked for C4B-09 | recognition/editorial/MR/indexing/provenance gaps | owned disposition of RECOG/EDITORIAL/MR/INDEX/PRED/timeouts | RECOG/EDITORIAL/MR/AUTH/INDEX/PRED/IRSOME/MPGH/IJMS/PORTAL/MOH | C4B-05 R05/R04 | role misuse upgrades | Data/Knowledge + Medical/Safety | S4-EO-05 (+ optional S4-EO-06/07) | blocks if claiming authority packs complete | §145.10 + Stage-3 |
+| EO-C07 | OPEN | fail-closed posture preserved (no FREE_AND_DISCOVERY_ELIGIBLE promotion) | — | explicit eligibility decisions or owned fail-closed defer per overlay-bound source | REUSE residuals; 09F-I; C4B-05 R07 | none EO-attested yet for 06–09 | silent eligibility | Legal | S4-EO-03 | blocks Stage-5 | §145.10 |
+| EO-C08 | PARTIAL | Stage-3 residual ledgers owned; NO_ORPHAN_UNKNOWN claimed per child | need Stage-4 consolidated EO residual ownership attestation | consolidated Stage-4 residual→EO matrix signoff | any residual without EO mapping (none found) | many child deferred | orphan UNKNOWN | Governance | S4-EO-01 | required before closure | §145.10 + §156 |
+| EO-C09 | SATISFIED | SOURCE_ACTIVATED=NO across C4B-05..09 / Stage-3 | — | must remain through Stage 4 | — | — | activation | Governance | confirm in closure attestation | activation remains blocked | §145.10 |
+| EO-C10 | SATISFIED | P2 foundation READY_WITH_EXPLICIT_GAPS separated; P2_STARTED=NO | — | do not conflate | — | — | P2 start as EO substitute | Backend/Governance | preserve | Stage-5 still needs EO/waiver | §145.10/§145.14 |
+| EO-C11 | OPEN | §93.12 prerequisites known | — | approved overlays; license/authority/jurisdiction/trust/provenance; dry-run package | depends on EO-C04..C07 clearance/defer + overlay approvals | — | dry-run enablement without approvals | Governance | S4-EO-08 (after prior) | post-closure / later E | §145.10 / §93.12 |
+| EO-C12 | SATISFIED | §137/§138 / §145.3 / §156 knowledge-growth separation preserved | — | must be restated at EO closure | — | — | weakening law | Governance | confirm in closure attestation | none | §145.10 |
+
+```text
+CONTRADICTIONS_VISIBLE =
+  C4B08-CONTRA-01 license version (feeds EO-C04)
+  C4B-05 NETWORK_RESULT_VALID=NO preserved (not used as EO SATISFIED proof)
+```
+
+### ۱۵۷.۱۲) EO state counts (Phase L)
+
+```text
+EO_CRITERION_COUNT = 12
+EO_CRITERION_INVENTORY_COMPLETE = YES
+
+PRIMARY_CURRENT_STATE counts (mutually exclusive):
+  EO_SATISFIED_COUNT = 6
+    (EO-C01, EO-C02, EO-C03, EO-C09, EO-C10, EO-C12)
+  EO_PARTIAL_COUNT = 4
+    (EO-C04, EO-C05, EO-C06, EO-C08)
+  EO_OPEN_COUNT = 2
+    (EO-C07, EO-C11)
+  EO_BLOCKED_COUNT = 0
+    (no criterion left in unresolvable BLOCKED primary state;
+     PARTIAL/OPEN items are the closure blockers)
+  EO_DEFERRED_COUNT = 0
+    (deferments exist at residual level; not yet EO-criterion primary state
+     pending S4-EO-02 governance attestation)
+  EO_AUTHORITY_NOT_FOUND_COUNT = 0
+  EO_CONFLICT_UNRESOLVED_COUNT = 0
+
+SUM_OF_EXCLUSIVE_CURRENT_STATES = 6+4+2+0+0+0+0 = 12 = EO_CRITERION_COUNT
+ARITHMETIC_RECONCILES = YES
+
+SECONDARY_FLAGS =
+  residual-level DEFERRED_WITH_OWNER present (C4B-05 R01–R05/R07–R09; 09B-HISTGAP)
+  CLOSED_WITH_RESIDUAL child discovery states preserved (not counted as EO SATISFIED alone)
+```
+
+### ۱۵۷.۱۳) Deferment authority audit (Phase M)
+
+```text
+DEFERMENT_AUTHORITY_EXISTS_FOR_EO_BLOCKING_ITEMS =
+  YES — §145.10 closure rule + §128–§130 precedent + §146 formal deferments
+  BUT child-level CAN_DEFER / DEFERRED_WITH_OWNER
+  != automatic EO-criterion DEFERRED_WITH_OWNER
+  without Stage-4 governance attestation
+
+WHAT_DEFERMENT_ALLOWS =
+  EO closure path to proceed with owned fail-closed gaps
+  without converting UNKNOWN to PASS
+  without source activation
+
+WHAT_DEFERMENT_DOES_NOT_ALLOW =
+  rights/automation self-upgrade
+  activation / crawler enablement
+  treating deferred gaps as cleared evidence
+  Stage-5 start without EO closure or explicit waiver
+
+NON_DEFERABLE_OPEN_ITEMS =
+  EO-C02 fail-closed law
+  EO-C09 must remain disabled through Stage 4
+  EO-C11 dry-run enablement without approved overlays
+  EO-C12 knowledge-growth law preservation
+  any residual lacking owner/dependency/closure/next Gate (none found)
+
+EXPIRY_OR_REVIEW_TRIGGER =
+  new admissible evidence; product needs store/automation;
+  Stage-4 closure attestation; reopen policies (§130 for 09B)
+```
+
+### ۱۵۷.۱۴) Rights / license / reuse / attribution rollup (Phase N)
+
+```text
+EO_RIGHTS_CURRENT_STATE = PARTIAL / FAIL_CLOSED_DOMINANT
+PUBLIC_ACCESS != REUSE_PERMISSION = PRESERVED
+OPEN_ACCESS != UNRESTRICTED_REUSE = PRESERVED
+PUBLIC_PDF != INGESTION_PERMISSION = PRESERVED
+ROBOTS_ALLOW != COPYRIGHT_PERMISSION = PRESERVED
+LICENSE_UNKNOWN = FAIL_CLOSED
+RIGHTS_UNKNOWN = FAIL_CLOSED
+
+EO_RIGHTS_BLOCKING_RESIDUALS =
+  C4B-05 R02/R07; C4B-06 TERMS/REUSE/D06D10;
+  C4B-07 TERMS/REUSE; C4B-08 LICENSE×2/REUSE/TERMS/ATTR;
+  C4B-09 09A-RIGHTS / 09B-RIGHTS
+
+EO_RIGHTS_SUBGATES_REQUIRED =
+  S4-EO-02 (governance owned-defer attestation)
+  S4-EO-03 (LEGAL_RIGHTS_DECISION preparation/disposition)
+
+EO_RIGHTS_DEFERABLE_ITEMS = above residuals with CAN_DEFER=YES under fail-closed
+EO_RIGHTS_NON_DEFERABLE_ITEMS = UNKNOWN→PASS; activation based on silence
+LEGAL_OR_PRODUCT_DECISION_REQUIRED = YES for any clearance beyond fail-closed deferment
+NO_LEGAL_CONCLUSION_BEYOND_REPO_AUTHORITY = YES
+```
+
+### ۱۵۷.۱۵) Robots / automation / rate-limit rollup (Phase O)
+
+```text
+EO_AUTOMATION_CURRENT_STATE = PARTIAL / FAIL_CLOSED_DOMINANT
+ROBOTS_ALLOW != AUTOMATION_PERMISSION = PRESERVED
+PUBLIC_ACCESS != AUTOMATION_PERMISSION = PRESERVED
+ABSENCE_OF_PROHIBITION != PERMISSION = PRESERVED
+SILENCE != PERMISSION = PRESERVED
+
+EO_AUTOMATION_BLOCKING_RESIDUALS =
+  C4B-05 R03/R08; C4B-06 AUTO; C4B-07 AUTO/ARUMS-ROBOTS;
+  C4B-08 AUTO/JMCIRI-ROBOTS; C4B-09 automation FAIL_CLOSED
+
+EO_AUTOMATION_SUBGATES_REQUIRED =
+  S4-EO-02; S4-EO-04; optional bounded residual robots retrieval (S4-EO-06)
+
+ANY_SOURCE_CRAWLER_ELIGIBLE = NO
+ANY_SOURCE_AUTOMATION_APPROVED = NO
+NO_ACTIVATION_IN_THIS_GATE = YES
+```
+
+### ۱۵۷.۱۶) Authority / recognition rollup (Phase P)
+
+```text
+EO_AUTHORITY_CURRENT_STATE = PARTIAL
+IDENTITY != RECOGNITION = PRESERVED
+PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY = PRESERVED
+JOURNAL_IDENTITY != CLINICAL_AUTHORITY = PRESERVED
+DIRECTORY_EVIDENCE != PRIMARY_CLINICAL_AUTHORITY = PRESERVED
+
+EO_AUTHORITY_BLOCKERS =
+  C4B06-R-RECOG-01; C4B07-R-MOH-01; C4B08 indexing/predatory residuals;
+  incomplete timeout candidates if retained
+
+EO_RECOGNITION_SUBGATES_REQUIRED =
+  S4-EO-05; optional S4-EO-07 external corroboration prep
+
+EO_AUTHORITY_DEFERABLE_ITEMS = recognition/editorial gaps with owned fail-closed
+```
+
+### ۱۵۷.۱۷) Editorial / MR / authorship / quality rollup (Phase Q)
+
+```text
+EO_EDITORIAL_MR_CURRENT_STATE = PARTIAL / OPEN_FOR_MR_PACKS
+PEER_REVIEW_CLAIM != VERIFIED_PROCESS_QUALITY = PRESERVED
+NO_ARTICLE_LEVEL_QA_FROM_INDEX_METADATA = YES
+
+EO_EDITORIAL_MR_BLOCKERS =
+  C4B-05 R05; C4B06-R-EDITORIAL-01; C4B07-R-MR-01 / AUTH-01
+
+EO_EDITORIAL_MR_SUBGATES_REQUIRED = S4-EO-05 (GOVERNANCE / Medical-Safety disposition prep)
+EO_QUALITY_SAFETY_CLOSURE_CRITERIA =
+  owned fail-closed OR explicit MR/editorial evidence;
+  no guideline-authority promotion from patient-ed
+```
+
+### ۱۵۷.۱۸) Indexing / predatory / clone rollup (Phase R)
+
+```text
+SELF_CLAIMED_INDEXING != VERIFIED_INDEXING = PRESERVED
+ABSENCE_OF_OBSERVED_PREDATORY_SIGNAL != ABSOLUTE_PREDATORY_CLEARANCE = PRESERVED
+
+INDEXING_CLAIM = OBSERVED on some C4B-08 candidates
+INDEXING_CORROBORATION = UNKNOWN
+PREDATORY_RISK = NO_MATERIAL_WARNING_SIGNALS_OBSERVED but clearance not granted
+CLONED_OR_HIJACKED_RISK = NO_MATERIAL_SIGNAL / fail-closed clearance
+
+REQUIRED_STAGE4_SUBGATES =
+  S4-EO-05 disposition; S4-EO-07 external corroboration preparation (NOT executed here)
+  S4-EO-03 for license contradictions (CONTRA-01)
+
+NO_NEW_NETWORK_IN_THIS_GATE = YES
+```
+
+### ۱۵۷.۱۹) Stale / conflicting EO marker ledger (Phase S)
+
+| MARKER | OLDER_VALUE | NEWER_VALUE | OLDER_AUTHORITY | NEWER_AUTHORITY | CURRENT_VALUE | RESOLUTION_REASON | UNRESOLVED? |
+|---|---|---|---|---|---|---|---|
+| EVIDENCE_OVERLAY_CLOSED | NO | NO | §145–§155 | §156 | NO | preserved | NO |
+| EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE | NO | NO | §145–§155 | §156 | NO | open/partial EO-Cs remain | NO |
+| EVIDENCE_OVERLAY_READY_FOR_NEXT_GATE | — | YES | — | §156 | YES | Stage-3 closed; prep Gate authorized | NO |
+| EO-C03 CURRENT_STATE | NOT SATISFIED (§145.10) | SATISFIED (discovery component) | §145.10 evidence row | §156 + this §157 | SATISFIED | Stage-3 discovery waves complete; mandatory discovery NONE | NO |
+| EO-C06 CURRENT_STATE | PARTIAL (06–08 absent) | PARTIAL (packs present; provenance gaps) | §145.10 | Stage-3 + §157 | PARTIAL | discovery packs added; residuals remain | NO |
+| EO-C08 CURRENT_STATE | PARTIAL (prep gaps) | PARTIAL (owned ledgers; need EO attestation) | §145.10 | Stage-3 + §157 | PARTIAL | orphans closed at child level; EO signoff pending | NO |
+| P2_STARTED | NO | NO | §145–§156 | this Gate | NO | preserved | NO |
+| SOURCE_ACTIVATED | NO | NO | Stage-3 children | this Gate | NO | preserved | NO |
+
+```text
+BLOCKED_EO_AUTHORITY_CONFLICT = NO
+NO_OLD_SECTION_EDITED = YES
+```
+
+### ۱۵۷.۲۰) EO closure contract (Phase T)
+
+```text
+EO_CLOSURE_CONTRACT_COMPLETE = YES
+  (reconstructed from §145.10 + §93.9/§93.12 + Stage-3 outputs;
+   NOT executed)
+
+TO DECLARE EVIDENCE_OVERLAY_CLOSED = YES, ALL REQUIRED:
+
+ALL_REQUIRED_CRITERIA = EO-C01..EO-C12
+
+REQUIRED_STATE_PER_CRITERION =
+  EO-C01 SATISFIED
+  EO-C02 SATISFIED (preserved in closure text)
+  EO-C03 SATISFIED (discovery complete OR owned defer — discovery now SATISFIED)
+  EO-C04 SATISFIED OR DEFERRED_WITH_OWNER (fail-closed) for overlay-bound sources
+  EO-C05 SATISFIED OR DEFERRED_WITH_OWNER (fail-closed)
+  EO-C06 SATISFIED OR owned PARTIAL/DEFERRED without role misuse
+  EO-C07 SATISFIED OR DEFERRED_WITH_OWNER (fail-closed eligibility)
+  EO-C08 SATISFIED (complete owned residual→EO matrix; no orphans)
+  EO-C09 SATISFIED (sources remain disabled)
+  EO-C10 SATISFIED (P2 separation preserved; P2_STARTED=NO unless separate auth)
+  EO-C11 SATISFIED only if dry-run prerequisites met OR explicitly scoped out of
+         “EO closed” meaning with owned defer — default: must not enable dry-run
+         without §93.12; Stage-4 closure may keep EO-C11 OPEN/DEFERRED if
+         closure scope excludes dry-run enablement (must be explicit in closure Gate)
+  EO-C12 SATISFIED (knowledge-growth law restated)
+
+ALLOWED_DEFERMENTS =
+  EO-C04/C05/C06/C07 Blocking residual content under §145.10 + Stage-4 governance attestation
+  EO-C11 dry-run enablement may remain not-satisfied if closure text explicitly
+    states dry-run not authorized (owned)
+
+PROHIBITED_DEFERMENTS =
+  EO-C02 law; EO-C09 activation; EO-C12 law weakening;
+  UNKNOWN→PASS; orphan unknowns; role misuse
+
+REQUIRED_SIGNOFF_OR_GOVERNANCE =
+  Explicit Javad approval for EO closure attestation Gate (S4-EO-09)
+  Stage-4 owned-defer governance attestation (S4-EO-02)
+
+REQUIRED_EXTERNAL_EVIDENCE =
+  only if choosing clearance path for recognition/indexing (optional S4-EO-07)
+  NOT mandatory if fail-closed defer chosen
+
+REQUIRED_NETWORK_EVIDENCE =
+  only for retained timeout/incomplete candidates if not excluded (optional S4-EO-06)
+  NOT mandatory if exclude/defer
+
+REQUIRED_LEGAL_OR_RIGHTS_DECISIONS =
+  for any path that upgrades beyond fail-closed deferment (S4-EO-03/04)
+
+REQUIRED_DOCS_ATTESTATION =
+  S4-EO-01 taxonomy/owner matrix; S4-EO-09 closure attestation section
+
+SOURCE_ACTIVATION_EFFECT =
+  EO closure does NOT activate sources (EO-C09 must remain disabled)
+
+STAGE5_EFFECT =
+  EO closure (or explicit waiver) is prerequisite to Stage-5 / P2 foundation entry
+  per §145.14
+
+THIS_GATE_DECLARES_EO_CLOSED = NO
+```
+
+### ۱۵۷.۲۱) Ordered Stage-4 sub-Gate plan (Phase U)
+
+| SUBGATE_ID | NAME | PURPOSE | TYPE | AUTHORITY | INPUT_CRITERIA | INPUT_RESIDUALS | ALLOWED_ACTIONS | PROHIBITED_ACTIONS | CLOSURE_CRITERIA | OUTPUT_MARKERS | BLOCKS_NEXT? | SEPARATE_JAVAD_APPROVAL |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| S4-EO-01 | EO residual taxonomy & owner attestation | normalize residual→EO matrix; confirm no orphans; lock primary states | DOCS_ONLY | this §157; §145.10; §156 | EO inventory complete | all 41 open residuals | docs append; matrix attestation | network; waiver; EO close; activation | matrix complete; counts reconcile | EO_TAXONOMY_ATTESTED | YES for S4-EO-02 | YES |
+| S4-EO-02 | EO-level DEFERRED_WITH_OWNER governance | formally attest which PARTIAL/OPEN residual blocks are EO-deferred fail-closed | GOVERNANCE_DECISION | §145.10; §128 precedent | S4-EO-01 done | deferrable rights/auto/authority residuals | governance disposition docs | UNKNOWN→PASS; activation; network | owned-defer rows for selected EO-C04/05/06/07 items | EO_DEFERRALS_ATTESTED | YES for legal/clearance paths | YES |
+| S4-EO-03 | Rights/license/reuse disposition prep | prepare Legal/product decisions for rights beyond fail-closed defer | LEGAL_RIGHTS_DECISION | §145.10 EO-C04/C07 | S4-EO-01; optionally after S4-EO-02 | TERMS/LICENSE/REUSE/ATTR | decision package docs | execute license grant; ingest | decisions recorded or keep fail-closed | EO_RIGHTS_DISPOSITION_READY | may parallel S4-EO-04 | YES |
+| S4-EO-04 | Automation/robots disposition prep | prepare Security/Legal automation decisions | LEGAL_RIGHTS_DECISION | §145.10 EO-C05 | S4-EO-01; optionally S4-EO-02 | AUTO/ROBOTS residuals | decision package docs | enable crawler; bypass robots | decisions recorded or keep fail-closed | EO_AUTOMATION_DISPOSITION_READY | may parallel S4-EO-03 | YES |
+| S4-EO-05 | Authority/editorial/MR/predatory disposition prep | disposition recognition/editorial/MR/predatory residuals | GOVERNANCE_DECISION | EO-C06; child contracts | S4-EO-01 | RECOG/EDITORIAL/MR/PRED/AUTH/MOH | governance docs | clinical/guideline misuse; network unless separate | owned dispositions | EO_AUTHORITY_MR_DISPOSITION_READY | before optional corroboration | YES |
+| S4-EO-06 | Bounded residual network prep/execution | only for retained timeout/incomplete candidates if not excluded | NETWORK | child residual Gates; §145.10 | exclude-or-retrieve decision from S4-EO-01/05 | IRSOME/MPGH/IJMS/PORTAL/robots gaps | locked residual HTTP/search only under its package | unrestricted crawl; new queries unlocked; PDF harvest | retrieve or exclude recorded | EO_RESIDUAL_NETWORK_COMPLETE_OR_EXCLUDED | if required before closure | YES |
+| S4-EO-07 | External corroboration prep | indexing/recognition corroboration plan (execution separate) | EXTERNAL_CORROBORATION | EO-C06; C4B-08 INDEX; C4B-06 RECOG | S4-EO-05 | INDEX/RECOG | plan docs; later approved fetch | treat self-claim as verified | plan locked or defer fail-closed | EO_CORROBORATION_PLAN_LOCKED | optional if deferred | YES |
+| S4-EO-08 | Dry-run allowlist checklist | EO-C11 prerequisites checklist without enabling dry-run | DOCS_ONLY | §93.12; EO-C11 | prior dispositions | — | checklist docs | add allowlist; enable fetch | checklist recorded; dry-run still NO | EO_C11_CHECKLIST_DOCUMENTED | before/with closure scope | YES |
+| S4-EO-09 | Evidence Overlay closure attestation | declare EO closed only if contract met | CLOSURE_ATTESTATION | §145.10/§145.13; this contract | S4-EO-01..08 as required by chosen defer/clear path | all blocking residuals disposed | append closure markers | activation; P2 start; waiver invent | EO_CLOSURE_CONTRACT met | EVIDENCE_OVERLAY_CLOSED=YES | unlocks Stage-5 eligibility path | YES |
+
+```text
+NETWORK_LEGAL_CLOSURE_IMPLEMENTATION_KEPT_DISTINCT = YES
+```
+
+### ۱۵۷.۲۲) First executable Stage-4 sub-Gate (Phase V)
+
+```text
+EO_FIRST_EXECUTABLE_SUBGATE = S4-EO-01
+NAME = EO residual taxonomy & owner attestation
+
+WHY_FIRST =
+  prerequisites satisfied: Stage-3 closed; EO inventory complete (§157.3);
+  residual set known (41); no network/legal decision required to normalize
+  mapping and lock primary states before governance deferrals
+
+PREREQUISITES =
+  STAGE3_IRAN_FIRST_DISCOVERY_CLOSED = YES
+  this §157 inventory + matrix present
+
+AUTHORITY = §145.10; §156; this §157.21
+
+ALLOWED_SCOPE =
+  docs-only residual→EO taxonomy normalization;
+  owner/dependency/closure/next-Gate completeness audit;
+  primary-state lock for EO-C01..C12
+
+PROHIBITED_SCOPE =
+  network; external evidence; legal grant execution; waiver;
+  EO closure declaration; source activation; P2 start
+
+EXPECTED_OUTPUT =
+  attested residual→EO matrix; orphan count = 0;
+  confirmed EO state counts; readiness for S4-EO-02
+
+SEPARATE_APPROVAL_REQUIRED = YES
+NOT_EXECUTED_BY_THIS_GATE = YES
+```
+
+### ۱۵۷.۲۳) Stage-5 dependency (Phase W)
+
+```text
+STAGE5_REQUIRES_EO_CLOSURE = YES
+  (§145.14: Stage 4 overlay closure Gate completed OR explicit Javad waiver)
+
+STAGE5_REQUIRES_EXPLICIT_WAIVER_IF_EO_OPEN = YES
+  (same §145.14 alternative path)
+
+WAIVER_AUTHORITY_EXISTS = YES
+  (conceptual path named in §145.14)
+WAIVER_CREATED = NO
+WAIVER_APPROVED = NO
+
+STAGE5_READY = NO
+
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+P2_STARTED = NO
+
+NO_WAIVER_CREATED_IN_THIS_GATE = YES
+NO_STAGE5_STARTED = YES
+```
+
+### ۱۵۷.۲۴) Roadmap alignment (Phase X)
+
+```text
+ROADMAP_STAGE_3_STATUS = CLOSED
+ROADMAP_STAGE_4_STATUS = PREPARATION_IN_PROGRESS / NOT_CLOSED
+ROADMAP_STAGE_5_STATUS = NOT_STARTED
+
+SEQUENCE_PRESERVED =
+  3 remaining Iran-first discovery = CLOSED
+  4 Evidence Overlay closure = THIS PREP; closure not executed
+  5 P2+P3+P4 = blocked until EO closed or waiver
+
+NO_REORDER_WITHOUT_AUTHORITY = YES
+```
+
+### ۱۵۷.۲۵) Progress accounting (Phase Y)
+
+```text
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+NO_PERCENTAGE_FROM_EO_COUNTS = YES
+```
+
+### ۱۵۷.۲۶) Current EO state decision (Phase Z)
+
+```text
+EVIDENCE_OVERLAY_CURRENT_STATE = OPEN_WITH_PARTIAL_CRITERIA
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_READY_FOR_SUBGATES = YES
+
+EVIDENCE_OVERLAY_CLOSURE_BLOCKERS =
+  EO-C04 PARTIAL (rights/terms)
+  EO-C05 PARTIAL (automation)
+  EO-C06 PARTIAL (authority/provenance/MR/indexing)
+  EO-C07 OPEN (acquisition eligibility)
+  EO-C08 PARTIAL (need EO-level owned matrix attestation)
+  EO-C11 OPEN (dry-run prerequisites / explicit scope)
+
+EVIDENCE_OVERLAY_DEFERABLE_ITEMS =
+  rights/terms/automation/recognition/editorial/MR/indexing/timeout
+  residuals under §145.10 + Stage-4 governance attestation (fail-closed)
+
+EVIDENCE_OVERLAY_NON_DEFERABLE_ITEMS =
+  EO-C02 law; EO-C09 disabled sources; EO-C12 knowledge-growth law;
+  UNKNOWN→PASS; orphan unknowns; activation; dry-run enablement without §93.12
+
+EO_NETWORK_SUBGATES_REQUIRED = 1 (S4-EO-06) — optional/conditional
+EO_LEGAL_RIGHTS_SUBGATES_REQUIRED = 2 (S4-EO-03, S4-EO-04)
+EO_GOVERNANCE_SUBGATES_REQUIRED = 2 (S4-EO-02, S4-EO-05)
+EO_DOCS_ONLY_SUBGATES_REQUIRED = 2 (S4-EO-01, S4-EO-08)
+EO_CLOSURE_ATTESTATION_REQUIRED = YES (S4-EO-09)
+
+EO_CLOSED_CLAIMED = NO
+WAIVER_CREATED = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+SOURCE_ACTIVATED = NO
+NETWORK_EXECUTED = NO
+EXTERNAL_EVIDENCE_COLLECTED = NO
+```
+
+### ۱۵۷.۲۷) Operations NOT performed
+
+```text
+NO network
+NO search
+NO HTTP
+NO external API / external evidence
+NO query execution
+NO candidate discovery
+NO waiver creation / approval
+NO EO closure declaration / execution
+NO source activation
+NO crawler
+NO KB ingestion
+NO publication release
+NO P2 / P3 / P4 / P5 / P6 implementation
+NO test / CI / workflow
+NO commit / push
+NO fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend
+NO flag activation
+NO production operation
+NO rewrite of §§1–156
+```
+
+### ۱۵۷.۲۸) Exact next Gate
+
+```text
+NEXT_GATE =
+S4-EO-01 — EO residual taxonomy & owner attestation
+(DOCS_ONLY; separate Javad approval required)
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۷.۲۹) Completion markers / execution state
+
+```text
+STAGE4_EO_PREPARATION_COMPLETE = YES
+EO_CRITERION_INVENTORY_COMPLETE = YES
+EO_CLOSURE_CONTRACT_COMPLETE = YES
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_READY_FOR_SUBGATES = YES
+STAGE5_READY = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+ROADMAP_STAGE_3_STATUS = CLOSED
+ROADMAP_STAGE_4_STATUS = PREPARATION_IN_PROGRESS / NOT_CLOSED
+ROADMAP_STAGE_5_STATUS = NOT_STARTED
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+STAGE4_EO_PREPARATION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — STAGE-4 EVIDENCE OVERLAY PREPARATION CONTRACT LOCKED
+```
+
+### ۱۵۷.۳۰) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+47fe27d5adac4eda9d654c3c8c1bc9f722ea3f039e201a21e39f741a95e93a12
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–156_PRESERVED = YES
+§157_ONLY_NEW_SECTION = YES
+§157_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۷ — SECTION-28 ROADMAP STAGE-4 Evidence Overlay Closure / Reconciliation Preparation — STAGE4_EO_PREPARATION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۵۸) SECTION-28 — ROADMAP STAGE-4 — S4-EO-01 — EVIDENCE OVERLAY RESIDUAL TAXONOMY & OWNER ATTESTATION
+
+```text
+PACKAGE =
+SECTION-28 — ROADMAP STAGE-4 —
+S4-EO-01 — EVIDENCE OVERLAY RESIDUAL TAXONOMY & OWNER ATTESTATION
+
+MODE =
+REPOSITORY_LOCAL / DOCS_ONLY / APPEND_ONLY /
+RESIDUAL_TAXONOMY_NORMALIZATION / OWNER_ATTESTATION /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_QUERY_EXECUTION / NO_CANDIDATE_DISCOVERY /
+NO_LEGAL_RIGHTS_DISPOSITION / NO_GOVERNANCE_DEFERMENT_APPROVAL /
+NO_RESIDUAL_CLOSURE / NO_UNKNOWN_TO_PASS /
+NO_EO_CLOSURE / NO_WAIVER / NO_SOURCE_ACTIVATION /
+NO_P2_P3_P4 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / Evidence Overlay
+Supporting:
+Legal, Security, Data/Knowledge, Medical/Safety, Documentation
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local DOCS_ONLY Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  reconstruct, normalize and attest complete current residual ledger
+  for C4B-05 through C4B-09; preserve every original residual;
+  make taxonomy/owner/dependency/closure/EO mapping/fail-closed/
+  blocking dimensions explicit
+
+Baseline (verified at S4-EO-01 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  ACTIVE_GIT_OPERATION = NONE
+  TIP_BEFORE = §157
+  §§145–157 = PRESENT (approved uncommitted documentation)
+  §§1–144 = BYTE_IDENTICAL_TO_HEAD (preserved; not rewritten)
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Verified continuity markers (§157 / tip):
+  EO_CRITERION_COUNT = 12
+  EO_CRITERION_INVENTORY_COMPLETE = YES
+  EO_SATISFIED_COUNT = 6
+  EO_PARTIAL_COUNT = 4
+  EO_OPEN_COUNT = 2
+  TOTAL_OPEN_RESIDUALS = 41
+  NO_ORPHAN_RESIDUAL = YES
+  EVIDENCE_OVERLAY_CURRENT_STATE = OPEN_WITH_PARTIAL_CRITERIA
+  EVIDENCE_OVERLAY_CLOSED = NO
+  EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+  EVIDENCE_OVERLAY_READY_FOR_SUBGATES = YES
+  EO_CLOSURE_CONTRACT_COMPLETE = YES
+  STAGE3_IRAN_FIRST_DISCOVERY_CLOSED = YES
+  STAGE5_READY = NO
+  P2_STARTED = NO
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+f690d918138d7df1445800eb7c60f9aec973b7d490003a22236335c79b7ab3f5
+```
+
+### ۱۵۸.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+RESIDUAL_CLOSURE_AUTHORIZED = NO
+DEFERMENT_APPROVAL_AUTHORIZED = NO
+LEGAL_DISPOSITION_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+NETWORK_AUTHORIZED = NO
+```
+
+### ۱۵۸.۲) Residual authority ledger (Phase B)
+
+| AUTHORITY_ID | PATH | SECTION | CHILD | WHAT_IT_DEFINES | CURRENT_OR_HISTORICAL | SUPERSEDED? | SUPERSEDED_BY | CONFLICT | RELEVANCE | CLASS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| AUTH-93-EO | master log | §93.9–§93.12 | EO design | overlay fields/fail-closed/dry-run | CURRENT | NO | — | NONE | EO mapping context | CURRENT_AUTHORITY |
+| AUTH-145 | master log | §145 | Stage-2 | EO-C01..C12; Stage-4/5 rules | CURRENT | NO | — | NONE | EO criteria + defer rule | CURRENT_AUTHORITY |
+| AUTH-144-05 | master log | §144 | C4B-05 | original C4B05 residual discovery ledger | HISTORICAL origin | PARTIAL state | §146 | NONE on IDs | original R01–R09 identity | HISTORICAL_AUTHORITY |
+| AUTH-146 | master log | §146 | C4B-05 | STOP-06 CLOSED; R01–R05/R07–R09 DEFERRED_WITH_OWNER | CURRENT | NO | — | NONE | C4B-05 open residual set | CURRENT_AUTHORITY |
+| AUTH-150 | master log | §150.11 | C4B-06 | 8 open + 2 closed residuals | CURRENT | NO | — | NONE | C4B-06 open set | CURRENT_AUTHORITY |
+| AUTH-152 | master log | §152.13 | C4B-07 | 8 open residuals; patient-ed lock | CURRENT | NO | — | NONE | C4B-07 open set | CURRENT_AUTHORITY |
+| AUTH-154 | master log | §154.18 | C4B-08 | 11 open; CONTRA-01; indexing lock | CURRENT | NO | — | NONE | C4B-08 open set | CURRENT_AUTHORITY |
+| AUTH-155 | master log | §155.8 | C4B-09 | 6 residuals; secondary-only | CURRENT | NO | — | NONE | C4B-09 open set | CURRENT_AUTHORITY |
+| AUTH-156 | master log | §156 | Stage-3 | discovery waves closed; EO not closed | CURRENT | NO | — | NONE | discovery closed lock | CURRENT_AUTHORITY |
+| AUTH-157 | master log | §157.5–§157.10 | EO prep | residual→EO matrix; counts 8/8/8/11/6=41 | CURRENT | NO | — | NONE | EO mapping baseline for attestation | CURRENT_AUTHORITY |
+
+```text
+BLOCKED_RESIDUAL_AUTHORITY_CONFLICT = NO
+MODEL_MEMORY_NOT_USED_AS_AUTHORITY = YES
+```
+
+### ۱۵۸.۳) Exact residual inventory (Phase C)
+
+```text
+C4B05_OPEN_RESIDUAL_COUNT = 8
+C4B06_OPEN_RESIDUAL_COUNT = 8
+C4B07_OPEN_RESIDUAL_COUNT = 8
+C4B08_OPEN_RESIDUAL_COUNT = 11
+C4B09_OPEN_RESIDUAL_COUNT = 6
+TOTAL_CANONICAL_RESIDUALS = 41
+EXPECTED_TOTAL = 41
+COUNT_VARIANCE = 0
+COUNT_VARIANCE_REASON = N/A — matches §157 continuity
+
+CLOSED_EXCLUDED_FROM_OPEN_COUNT =
+  C4B-05 R06 / STOP-06 = CLOSED (§146)
+  C4B06-R-QUERYTEXT-01 = CLOSED_BY_§149
+  C4B06-R-NETWORK-01 = CLOSED_BY_§150
+
+NO_CLOSED_RESIDUAL_REINTRODUCED_AS_OPEN = YES
+NO_OPEN_RESIDUAL_SILENTLY_REMOVED = YES
+```
+
+### ۱۵۸.۴) Inventory-count reconciliation
+
+```text
+SUM_BY_CHILD = 8+8+8+11+6 = 41 = TOTAL_CANONICAL_RESIDUALS
+ARITHMETIC_RECONCILES = YES
+ALIAS_IDS_NOT_COUNTED_AS_ADDITIONAL = YES
+```
+
+### ۱۵۸.۵) Canonical taxonomy (Phase E)
+
+```text
+CANONICAL_TAXONOMY_COMPLETE = YES
+NO_CLASS_INVENTED_FOR_NEATNESS = YES
+CLASSES_USED = authority-backed from §§146/150/152/154/155/157
+```
+
+| CANONICAL_CLASS | DEFINITION | INCLUSION_RULE | EXCLUSION_RULE | FAIL_CLOSED_DEFAULT | RELEVANT_EO | AUTHORITY |
+|---|---|---|---|---|---|---|
+| TERMS | first-party terms/privacy/TOU gaps | missing or incomplete TOU/privacy | robots-only or license-only rows | no reuse/ingest from silence | EO-C04 | §150/§152/§154/§146 R02 |
+| LICENSE | license text/version gaps or contradictions | license URL/version issues | general terms without license claim | LICENSE_UNKNOWN=FAIL_CLOSED | EO-C04 | §154 LICENSE-01/02 |
+| RIGHTS | affirmative rights/reuse/storage gaps | owned fail-closed rights packs | indexing/editorial alone | no store/reuse/automation | EO-C04/C07 | §155 09A/09B rights; §150 D06D10 |
+| REUSE | reuse/derivative/KB ingest uncleared | reuse UNKNOWN | robots allow alone | NO_REUSE; NO_CONTENT_INGESTION | EO-C04/C07 | §146 R07; §150/§152/§154 REUSE |
+| ATTRIBUTION | attribution operationalization unsettled | attribution rule missing | license version alone | no attribution-compliant reuse claim | EO-C04 | §154 ATTR-01 |
+| ROBOTS | robots.txt retrieval/status incomplete | robots missing/404/incomplete | automation policy decision alone | robots≠permission preserved | EO-C05 | §146 R03; §152 ARUMS; §154 JMCIRI |
+| AUTOMATION | automation/crawler permission uncleared | automation UNKNOWN/PROHIBITED | terms-only | NO_AUTOMATION; NO_CRAWLER | EO-C05 | §146 R08; §150/§152/§154 AUTO |
+| RECOGNITION | recognition self-claim uncorroborated | identity≠recognition gaps | patient-ed role alone | NO_VERIFIED_AUTHORITY_CLAIM | EO-C06 | §150 RECOG-01 |
+| AUTHORITY | institutional/MoH authority pack incomplete | MoH/authority host gaps | directory secondary evidence | patient-ed≠guideline; secondary-only | EO-C06 | §152 MOH-01 |
+| IDENTITY | about/legal-identity thin | about pack incomplete | recognition corroboration | no overstated identity | EO-C06 | §150 ABOUT-01 |
+| EDITORIAL | editorial responsibility incomplete | editorial fields missing | MR pack alone | no invented editorial PASS | EO-C06 | §146 R05; §150 EDITORIAL |
+| MEDICAL_REVIEW | MR-1+ incomplete | MR model incomplete | unit-lead presence alone | NO_ARTICLE_LEVEL_QA_CLAIM | EO-C06 | §152 MR-01 |
+| AUTHORSHIP | authorship UNKNOWN | author/reviewer missing | index metadata alone | no article QA from index | EO-C06 | §152 AUTH-01 |
+| INDEXING | self-claimed indexing uncorroborated | indexing claim without corroboration | journal identity alone | NO_VERIFIED_INDEXING_CLAIM | EO-C06 | §154 INDEX-01 |
+| PREDATORY_RISK | absolute predatory/clone clearance not granted | clearance claims | absence of warning alone | absence≠absolute clearance | EO-C06 | §154 PRED-01 |
+| TIMEOUT | timeout/thin/unretrieved candidate | retrieve-or-exclude pending | closed query residuals | no activation on incomplete | EO-C06/C08 | §150 IRSOME; §152 MPGH; §154 IJMS/PORTAL |
+| HISTORICAL_GAP | accepted preserved historical incompleteness | §128–§130 accepted gaps | new open rights gaps | preserve; reopen only on new evidence | EO-C08 | §155 09B-HISTGAP |
+| OTHER_AUTHORITY_BACKED_CLASS | OFS/docs/scope/ops/catalog residuals | only where child ledgers use non-core class | inventing neat classes | as row fail-closed | EO-C03/C07/C08/C09 | §146 R01/R04/R09; §155 OPS/09C-E/09F-I |
+
+### ۱۵۸.۶) Original-to-canonical ID mapping (Phase D)
+
+| CHILD | ORIGINAL_RESIDUAL_ID | CANONICAL_RESIDUAL_ID | ALIAS_IDS | ORIGIN_SECTION | NOTES |
+|---|---|---|---|---|---|
+| C4B-05 | R01 / C4B05-R01 | C4B05-R01 | C4B05-R01; R01 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R02 / C4B05-R02 | C4B05-R02 | C4B05-R02; R02 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R03 / C4B05-R03 | C4B05-R03 | C4B05-R03; R03 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R04 / C4B05-R04 | C4B05-R04 | C4B05-R04; R04 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R05 / C4B05-R05 | C4B05-R05 | C4B05-R05; R05 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R07 / C4B05-R07 | C4B05-R07 | C4B05-R07; R07 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R08 / C4B05-R08 | C4B05-R08 | C4B05-R08; R08 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-05 | R09 / C4B05-R09 | C4B05-R09 | C4B05-R09; R09 | §146.3 / §157.5 | original short ID preserved; R06 CLOSED excluded |
+| C4B-06 | C4B06-R-TERMS-01 | C4B06-R-TERMS-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-AUTO-01 | C4B06-R-AUTO-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-REUSE-01 | C4B06-R-REUSE-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-RECOG-01 | C4B06-R-RECOG-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-ABOUT-01 | C4B06-R-ABOUT-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-IRSOME-01 | C4B06-R-IRSOME-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-EDITORIAL-01 | C4B06-R-EDITORIAL-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-06 | C4B06-R-D06D10-01 | C4B06-R-D06D10-01 | — | §150.11 / §157.6 | original ID = canonical |
+| C4B-07 | C4B07-R-TERMS-01 | C4B07-R-TERMS-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-AUTO-01 | C4B07-R-AUTO-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-REUSE-01 | C4B07-R-REUSE-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-MR-01 | C4B07-R-MR-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-AUTH-01 | C4B07-R-AUTH-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-MOH-01 | C4B07-R-MOH-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-MPGH-01 | C4B07-R-MPGH-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-07 | C4B07-R-ARUMS-ROBOTS-01 | C4B07-R-ARUMS-ROBOTS-01 | — | §152.13 / §157.7 | original ID = canonical |
+| C4B-08 | C4B08-R-INDEX-01 | C4B08-R-INDEX-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-LICENSE-01 | C4B08-R-LICENSE-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-LICENSE-02 | C4B08-R-LICENSE-02 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-REUSE-01 | C4B08-R-REUSE-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-TERMS-01 | C4B08-R-TERMS-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-AUTO-01 | C4B08-R-AUTO-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-PRED-01 | C4B08-R-PRED-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-IJMS-01 | C4B08-R-IJMS-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-PORTAL-01 | C4B08-R-PORTAL-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-JMCIRI-ROBOTS-01 | C4B08-R-JMCIRI-ROBOTS-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-08 | C4B08-R-ATTR-01 | C4B08-R-ATTR-01 | — | §154.18 / §157.8 | original ID = canonical |
+| C4B-09 | C4B09-R-09A-RIGHTS | C4B09-R-09A-RIGHTS | — | §155.8 / §157.9 | original ID = canonical |
+| C4B-09 | C4B09-R-09A-OPS | C4B09-R-09A-OPS | — | §155.8 / §157.9 | original ID = canonical |
+| C4B-09 | C4B09-R-09B-HISTGAP | C4B09-R-09B-HISTGAP | — | §155.8 / §157.9 | original ID = canonical |
+| C4B-09 | C4B09-R-09B-RIGHTS | C4B09-R-09B-RIGHTS | — | §155.8 / §157.9 | original ID = canonical |
+| C4B-09 | C4B09-R-09C-E-UNEVAL | C4B09-R-09C-E-UNEVAL | — | §155.8 / §157.9 | original ID = canonical |
+| C4B-09 | C4B09-R-09F-I | C4B09-R-09F-I | — | §155.8 / §157.9 | original ID = canonical |
+
+```text
+CANONICALIZATION != HISTORICAL_ID_DELETION = PRESERVED
+NO_UNAUTHORIZED_MERGE = YES
+```
+
+### ۱۵۸.۷) Full canonical residual ledger (Phases F–L condensed authoritative rows)
+
+Each row is one canonical residual. Required fields attested. No residual closed by this Gate.
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | CLASS | SECONDARY | DESCRIPTION | CURRENT_STATE | OWNER | OWNER_TYPE | OWNER_ATTESTATION | DEPENDENCY | DEP_TYPE | DEP_STATE | CLOSURE_CRITERIA | CC_STATE | EO_CRITERION_IDS | MAP_TYPE | BD | BF | BE | BA | BP | DEFERABLE | DEF_AUTH_EXISTS | FAIL_CLOSED | NET | LEGAL | GOV | EXT | DOCS | NEXT_GATE | ORPHAN | DUP | CONFLICT |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | C4B05-R01 | C4B-05 | OTHER_AUTHORITY_BACKED_CLASS | OFS | OFS numeric ID not assigned | DEFERRED_WITH_OWNER | Governance/Framework | GOVERNANCE_OWNER | ATTESTED | future OFS framework Gate | REPOSITORY_EVIDENCE | DEFERRED | OFS ID assigned OR remain ACCEPTED_FAIL_CLOSED | COMPLETE_AND_TESTABLE | EO-C08 | INFORMATIONAL_ONLY | NO | NO | NO | NO | NO | YES | §143.4;§146 | NO_SOURCE_ACTIVATION | NO | NO | YES | NO | YES | Framework/OFS Gate | NO | NONE | NONE |
+| 2 | C4B05-R02 | C4B-05 | TERMS | PRIVACY | Terms/privacy incomplete across candidates | DEFERRED_WITH_OWNER | Legal / Knowledge Ops | LEGAL_RIGHTS_OWNER | ATTESTED | §144.6 candidate set | FIRST_PARTY_TERMS | DEFERRED | Terms retrieved OR formally fail-closed per candidate with owner | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §145;§146 | NO_REUSE;NO_CONTENT_INGESTION | YES | YES | NO | NO | YES | C4B-05 rights/terms residual Gate | NO | NONE | NONE |
+| 3 | C4B05-R03 | C4B-05 | ROBOTS | AUTOMATION | Robots retrieval incomplete | DEFERRED_WITH_OWNER | Provider Verification | NETWORK_EVIDENCE_OWNER | ATTESTED | §144.5 STOP-01..05 | NETWORK_EVIDENCE | DEFERRED | Robots retrieved OR formally fail-closed per candidate | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §145;§146 | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | YES | NO | NO | NO | YES | C4B-05 robots residual Gate | NO | NONE | NONE |
+| 4 | C4B05-R04 | C4B-05 | OTHER_AUTHORITY_BACKED_CLASS | SCOPE | IR-SC-14 education sample limited to 2 pages | DEFERRED_WITH_OWNER | Governance | GOVERNANCE_OWNER | ATTESTED | IR-SC-14 education slice; C4B-02 fence | PRODUCT_DECISION | DEFERRED | Accept sample scope OR authorize expansion Gate | COMPLETE_AND_TESTABLE | EO-C03;EO-C06 | PARTIAL_INPUT | NO | PARTIAL | NO | YES | NO | YES | §146 | SECONDARY_ONLY;REQUIRE_FUTURE_DECISION | MAYBE | NO | YES | NO | YES | Product/Governance scope Gate | NO | NONE | NONE |
+| 5 | C4B05-R05 | C4B-05 | EDITORIAL | QUALITY_SAFETY | Reviewer/editorial evidence not established | DEFERRED_WITH_OWNER | Knowledge Ops | EDITORIAL_MR_OWNER | ATTESTED | §143.10 candidate schema | EDITORIAL_OR_MR_EVIDENCE | DEFERRED | Established OR formally fail-closed per candidate | COMPLETE_AND_TESTABLE | EO-C06 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §146 | NO_VERIFIED_AUTHORITY_CLAIM;NO_ARTICLE_LEVEL_QA_CLAIM | MAYBE | NO | NO | NO | YES | C4B-05 editorial residual Gate | NO | NONE | NONE |
+| 6 | C4B05-R07 | C4B-05 | REUSE | RIGHTS | Reuse rights UNKNOWN_FAIL_CLOSED | DEFERRED_WITH_OWNER | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | terms packs | LEGAL_INTERPRETATION | DEFERRED | Legal reuse determination or remain fail-closed | COMPLETE_AND_TESTABLE | EO-C04;EO-C07 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §146 | NO_REUSE;NO_CONTENT_INGESTION | MAYBE | YES | NO | NO | YES | Rights clearance Gate | NO | NONE | NONE |
+| 7 | C4B05-R08 | C4B-05 | AUTOMATION | ROBOTS | Automation uncleared; CAND-01 PROHIBITED_OR_BLOCKED preserved | DEFERRED_WITH_OWNER | Security / Legal | LEGAL_RIGHTS_OWNER | ATTESTED | robots+terms | LEGAL_INTERPRETATION | DEFERRED | Automation determination per candidate or remain fail-closed | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §146 | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT;PRESERVE_INVALID_NETWORK_STATE | MAYBE | YES | NO | NO | YES | Automation clearance Gate | NO | NONE | NONE |
+| 8 | C4B05-R09 | C4B-05 | OTHER_AUTHORITY_BACKED_CLASS | DOCUMENTATION | Pre-existing documentation fence debt | DEFERRED_WITH_OWNER | Documentation / Governance | DOCUMENTATION_OWNER | ATTESTED | historical-doc repair Gate | REPOSITORY_EVIDENCE | DEFERRED | Explicit historical-doc repair Gate | COMPLETE_AND_TESTABLE | EO-C08 | INFORMATIONAL_ONLY | NO | NO | NO | NO | NO | YES | §146 | REQUIRE_FUTURE_DECISION | NO | NO | YES | NO | YES | Historical-doc repair Gate | NO | NONE | NONE |
+| 9 | C4B06-R-TERMS-01 | C4B-06 | TERMS | PRIVACY | first-party terms/privacy/copyright pages not retrieved | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | first-party TOU URLs | FIRST_PARTY_TERMS | MISSING | retrieve + classify terms pack | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §150;§145.10 | NO_REUSE;NO_CONTENT_INGESTION | YES | YES | NO | NO | YES | C4B-06 rights residual Gate | NO | NONE | NONE |
+| 10 | C4B06-R-AUTO-01 | C4B-06 | AUTOMATION | ROBOTS | automation permission uncleared (robots≠permission) | OPEN | Legal/Security | LEGAL_RIGHTS_OWNER | ATTESTED | robots + product policy | LEGAL_INTERPRETATION | MISSING | governed automation decision per host | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §150;§145.10 | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | YES | YES | NO | NO | YES | C4B-06 automation residual Gate | NO | NONE | NONE |
+| 11 | C4B06-R-REUSE-01 | C4B-06 | REUSE | ATTRIBUTION | reuse/attribution UNKNOWN; silence≠permission | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | terms + attribution notices | FIRST_PARTY_LICENSE | MISSING | explicit reuse/attribution evidence or formal deferment | COMPLETE_AND_TESTABLE | EO-C04;EO-C07 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §150;§145.10 | NO_REUSE;NO_CONTENT_INGESTION | YES | YES | NO | NO | YES | C4B-06 rights residual Gate | NO | NONE | NONE |
+| 12 | C4B06-R-RECOG-01 | C4B-06 | RECOGNITION | AUTHORITY | MoH recognition self-claim uncorroborated | OPEN | Medical/Safety + Governance | EDITORIAL_MR_OWNER | ATTESTED | MoH primary corroboration | EXTERNAL_CORROBORATION | MISSING | external official corroboration or formal deferment | COMPLETE_AND_TESTABLE | EO-C06 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §150;§145.10 | NO_VERIFIED_AUTHORITY_CLAIM | NO | NO | YES | YES | YES | recognition residual Gate | NO | NONE | NONE |
+| 13 | C4B06-R-ABOUT-01 | C4B-06 | IDENTITY | AUTHORITY | AboutUs thin in retrieval | OPEN | Governance | GOVERNANCE_OWNER | ATTESTED | richer about/statute pack | SOURCE_RETRIEVAL | PARTIAL | complete legal-identity about pack | COMPLETE_AND_TESTABLE | EO-C06 | PARTIAL_INPUT | NO | PARTIAL | PARTIAL | YES | NO | YES | §150 | NO_VERIFIED_AUTHORITY_CLAIM | YES | NO | YES | NO | YES | identity residual Gate | NO | NONE | NONE |
+| 14 | C4B06-R-IRSOME-01 | C4B-06 | TIMEOUT | UNRETRIEVED | irsome.ir timeout; candidate incomplete | OPEN | Governance/Security | NETWORK_EVIDENCE_OWNER | ATTESTED | successful retrieval or exclude | SOURCE_RETRIEVAL | MISSING | retrieve identity pack or exclude candidate | COMPLETE_AND_TESTABLE | EO-C06;EO-C08 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §150 | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | YES | NO | YES | NO | YES | residual retrieval Gate | NO | NONE | NONE |
+| 15 | C4B06-R-EDITORIAL-01 | C4B-06 | EDITORIAL | QUALITY_SAFETY | association editorial/publication responsibility incomplete | OPEN | Medical/Safety | EDITORIAL_MR_OWNER | ATTESTED | editorial pages | EDITORIAL_OR_MR_EVIDENCE | MISSING | editorial responsibility evidence or deferment | COMPLETE_AND_TESTABLE | EO-C06 | PARTIAL_INPUT | NO | YES | PARTIAL | YES | NO | YES | §150 | NO_ARTICLE_LEVEL_QA_CLAIM | YES | NO | NO | NO | YES | editorial residual Gate | NO | NONE | NONE |
+| 16 | C4B06-R-D06D10-01 | C4B-06 | RIGHTS | QUERY_CONTRACT | D-06/D-07/D-08/D-10 searches dominated by OOS; first-party rights not recovered via search | OPEN | Knowledge Ops | SOURCE_AUTHORITY_OWNER | ATTESTED | bounded first-party path under residual Gate | SOURCE_RETRIEVAL | MISSING | first-party recovery without unlocked queries | COMPLETE_AND_TESTABLE | EO-C04;EO-C08 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §150 | NO_REUSE;PRESERVE_INVALID_NETWORK_STATE | YES | YES | NO | NO | YES | residual docs/network Gate (locked) | NO | NONE | NONE |
+| 17 | C4B07-R-TERMS-01 | C4B-07 | TERMS | PRIVACY | first-party terms/privacy/copyright not retrieved | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | first-party TOU | FIRST_PARTY_TERMS | MISSING | retrieve+classify terms | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §152;§145.10 | NO_REUSE;NO_CONTENT_INGESTION | YES | YES | NO | NO | YES | rights residual Gate | NO | NONE | NONE |
+| 18 | C4B07-R-AUTO-01 | C4B-07 | AUTOMATION | ROBOTS | automation permission uncleared | OPEN | Legal/Security | LEGAL_RIGHTS_OWNER | ATTESTED | robots+policy | LEGAL_INTERPRETATION | MISSING | governed automation decision | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §152 | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | YES | YES | NO | NO | YES | automation residual Gate | NO | NONE | NONE |
+| 19 | C4B07-R-REUSE-01 | C4B-07 | REUSE | ATTRIBUTION | reuse/attribution UNKNOWN | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | terms+notices | LEGAL_INTERPRETATION | MISSING | explicit reuse evidence or formal deferment | COMPLETE_AND_TESTABLE | EO-C04;EO-C07 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §152 | NO_REUSE;NO_CONTENT_INGESTION | YES | YES | NO | NO | YES | rights residual Gate | NO | NONE | NONE |
+| 20 | C4B07-R-MR-01 | C4B-07 | MEDICAL_REVIEW | QUALITY_SAFETY | MR-1+ pack incomplete (unit leads ≠ MR completion) | OPEN | Medical/Safety | EDITORIAL_MR_OWNER | ATTESTED | MR model OD-C4A-12 | EDITORIAL_OR_MR_EVIDENCE | MISSING | MR-1+ pack or formal deferment | COMPLETE_AND_TESTABLE | EO-C06 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §152 | NO_ARTICLE_LEVEL_QA_CLAIM;NO_VERIFIED_AUTHORITY_CLAIM | NO | NO | YES | NO | YES | MR residual Gate | NO | NONE | NONE |
+| 21 | C4B07-R-AUTH-01 | C4B-07 | AUTHORSHIP | EDITORIAL | pamphlet/page authorship largely UNKNOWN | OPEN | Medical/Safety | EDITORIAL_MR_OWNER | ATTESTED | authorship evidence | EDITORIAL_OR_MR_EVIDENCE | MISSING | author/reviewer evidence or deferment | COMPLETE_AND_TESTABLE | EO-C06 | PARTIAL_INPUT | NO | YES | PARTIAL | YES | NO | YES | §152 | NO_ARTICLE_LEVEL_QA_CLAIM | YES | NO | YES | NO | YES | authorship residual Gate | NO | NONE | NONE |
+| 22 | C4B07-R-MOH-01 | C4B-07 | AUTHORITY | RECOGNITION | F-04 did not recover clean MoH patient-ed primary host | OPEN | Medical/Safety + Data/Knowledge | SOURCE_AUTHORITY_OWNER | ATTESTED | MoH education URL under locked queries or amendment | SOURCE_RETRIEVAL | MISSING | MoH patient-ed candidate or scoped deferment | COMPLETE_AND_TESTABLE | EO-C06 | PARTIAL_INPUT | NO | PARTIAL | PARTIAL | YES | NO | YES | §152 | NO_VERIFIED_AUTHORITY_CLAIM;SECONDARY_ONLY | MAYBE | NO | YES | NO | YES | MoH residual / prep amendment | NO | NONE | NONE |
+| 23 | C4B07-R-MPGH-01 | C4B-07 | TIMEOUT | UNRETRIEVED | mpgh.bpums.ac.ir direct retrieval timeout | OPEN | Governance/Security | NETWORK_EVIDENCE_OWNER | ATTESTED | successful GET or exclude | SOURCE_RETRIEVAL | MISSING | retrieve or exclude | COMPLETE_AND_TESTABLE | EO-C06;EO-C08 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §152 | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | YES | NO | YES | NO | YES | residual retrieval Gate | NO | NONE | NONE |
+| 24 | C4B07-R-ARUMS-ROBOTS-01 | C4B-07 | ROBOTS | AUTOMATION | arums/fatemi robots 404 | OPEN | Legal/Security | LEGAL_RIGHTS_OWNER | ATTESTED | robots retrieval alternate official path | NETWORK_EVIDENCE | MISSING | robots evidence or deferment | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §152 | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | YES | YES | NO | NO | YES | robots residual Gate | NO | NONE | NONE |
+| 25 | C4B08-R-INDEX-01 | C4B-08 | INDEXING | RECOGNITION | indexing self-claims uncorroborated | OPEN | Data/Knowledge | EXTERNAL_CORROBORATION_OWNER | ATTESTED | allowed corroboration evidence or formal deferment | INDEXING_CORROBORATION | MISSING | INDEXING_CORROBORATION ≠ UNKNOWN or owned deferment | COMPLETE_AND_TESTABLE | EO-C06 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_VERIFIED_INDEXING_CLAIM | NO | NO | YES | YES | YES | indexing residual Gate | NO | NONE | NONE |
+| 26 | C4B08-R-LICENSE-01 | C4B-08 | LICENSE | CONTRADICTION | CC BY-NC 4.0 vs 3.0 footer contradiction (CONTRA-01) | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | versioned license map | FIRST_PARTY_LICENSE | PARTIAL | resolve CONTRA-01 | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | PRESERVE_CONTRADICTION;NO_REUSE;NO_CONTENT_INGESTION | YES | YES | NO | NO | YES | legal residual Gate | NO | NONE | NONE |
+| 27 | C4B08-R-LICENSE-02 | C4B-08 | LICENSE | RIGHTS | license page incomplete / not retrieved | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | first-party license URL evidence | FIRST_PARTY_LICENSE | MISSING | LICENSE_RETRIEVED+classified | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_REUSE;LICENSE_UNKNOWN=FAIL_CLOSED | YES | YES | NO | NO | YES | rights residual Gate | NO | NONE | NONE |
+| 28 | C4B08-R-REUSE-01 | C4B-08 | REUSE | DERIVATIVE_USE | Sedi full-text/metadata reuse & KB ingest uncleared | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | license+product policy | LEGAL_INTERPRETATION | MISSING | explicit reuse decision | COMPLETE_AND_TESTABLE | EO-C04;EO-C07 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_REUSE;NO_CONTENT_INGESTION;NO_RUNTIME_GROUNDING | NO | YES | NO | NO | YES | rights residual Gate | NO | NONE | NONE |
+| 29 | C4B08-R-TERMS-01 | C4B-08 | TERMS | PRIVACY | site-wide terms/privacy not retrieved | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | first-party TOU/privacy | FIRST_PARTY_TERMS | MISSING | retrieve+classify | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_REUSE | YES | YES | NO | NO | YES | rights residual Gate | NO | NONE | NONE |
+| 30 | C4B08-R-AUTO-01 | C4B-08 | AUTOMATION | RATE_LIMIT | automation permission UNKNOWN (robots≠permission; Crawl-delay observed) | OPEN | Legal/Security | LEGAL_RIGHTS_OWNER | ATTESTED | robots+policy+product | LEGAL_INTERPRETATION | MISSING | governed automation decision | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | YES | YES | NO | NO | YES | automation residual Gate | NO | NONE | NONE |
+| 31 | C4B08-R-PRED-01 | C4B-08 | PREDATORY_RISK | CLONE_OR_HIJACK_RISK | absolute predatory/clone clearance not granted | OPEN | Medical/Safety + Data/Knowledge | EDITORIAL_MR_OWNER | ATTESTED | §153.5 disposition | GOVERNANCE_DISPOSITION | PARTIAL | governed predatory disposition | COMPLETE_AND_TESTABLE | EO-C06 | PARTIAL_INPUT | NO | YES | PARTIAL | YES | NO | YES | §154 | NO_VERIFIED_AUTHORITY_CLAIM;REQUIRE_FUTURE_DECISION | MAYBE | NO | YES | MAYBE | YES | predatory residual Gate | NO | NONE | NONE |
+| 32 | C4B08-R-IJMS-01 | C4B-08 | TIMEOUT | UNRETRIEVED | ijms.sums.ac.ir thin retrieval | OPEN | Governance/Security | NETWORK_EVIDENCE_OWNER | ATTESTED | successful identity pack GET or exclude | SOURCE_RETRIEVAL | MISSING | retrieve or exclude | COMPLETE_AND_TESTABLE | EO-C06;EO-C08 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | YES | NO | YES | NO | YES | residual retrieval Gate | NO | NONE | NONE |
+| 33 | C4B08-R-PORTAL-01 | C4B-08 | TIMEOUT | ACCESS_FAILURE | journals.research.ac.ir timeout | OPEN | Governance/Security | NETWORK_EVIDENCE_OWNER | ATTESTED | successful GET or exclude | SOURCE_RETRIEVAL | MISSING | retrieve or exclude | COMPLETE_AND_TESTABLE | EO-C06;EO-C08 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | YES | NO | YES | NO | YES | residual retrieval Gate | NO | NONE | NONE |
+| 34 | C4B08-R-JMCIRI-ROBOTS-01 | C4B-08 | ROBOTS | TERMS | jmciri robots/terms not fetched | OPEN | Legal/Security | LEGAL_RIGHTS_OWNER | ATTESTED | robots+TOU retrieval | NETWORK_EVIDENCE | MISSING | robots/terms evidence or deferment | COMPLETE_AND_TESTABLE | EO-C05 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_AUTOMATION | YES | YES | NO | NO | YES | robots residual Gate | NO | NONE | NONE |
+| 35 | C4B08-R-ATTR-01 | C4B-08 | ATTRIBUTION | REUSE | attribution operationalization for Sedi unsettled | OPEN | Legal | LEGAL_RIGHTS_OWNER | ATTESTED | license+attribution policy | LEGAL_INTERPRETATION | MISSING | attribution rule locked | COMPLETE_AND_TESTABLE | EO-C04 | PRIMARY_BLOCKER | NO | YES | YES | YES | NO | YES | §154 | NO_REUSE;REQUIRE_FUTURE_DECISION | YES | YES | NO | NO | YES | rights residual Gate | NO | NONE | NONE |
+| 36 | C4B09-R-09A-RIGHTS | C4B-09 | RIGHTS | REUSE | P24-G01..G12 owned fail-closed / partial gaps; no affirmative reuse/automation/storage | OPEN_FAIL_CLOSED | Legal/Security/Governance | LEGAL_RIGHTS_OWNER | ATTESTED | written grant or keep reject | LEGAL_INTERPRETATION | MISSING | explicit Legal/Product decision or remain fail-closed | COMPLETE_AND_TESTABLE | EO-C04;EO-C07 | PRIMARY_BLOCKER | NO | YES | PARTIAL | YES | NO | YES | §118;§155 | NO_REUSE;NO_CONTENT_INGESTION;NO_AUTOMATION;NO_RUNTIME_GROUNDING | NO | YES | NO | NO | YES | rights/permission Gate if product needs store | NO | NONE | NONE |
+| 37 | C4B09-R-09A-OPS | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | AUTOMATION | operational UNKNOWN_FAIL_CLOSED despite REFERENCE_ONLY_CANDIDATE | OPEN_FAIL_CLOSED | Governance | GOVERNANCE_OWNER | ATTESTED | activation Gate never auto | JAVAD_APPROVAL | MISSING | keep fail-closed until explicit activation authority | COMPLETE_AND_TESTABLE | EO-C09;EO-C07 | ACTIVATION_ONLY | NO | YES | YES | YES | NO | YES | §118;§155 | NO_SOURCE_ACTIVATION;NO_CRAWLER_ENABLEMENT;NO_RUNTIME_GROUNDING | NO | NO | YES | NO | YES | activation Gate (not authorized) | NO | NONE | NONE |
+| 38 | C4B09-R-09B-HISTGAP | C4B-09 | HISTORICAL_GAP | UNRETRIEVED | B02 accepted preserved historical R03–R16 evidence incompleteness | CLOSED_BY_ACCEPTED_PRESERVED_RESIDUAL | Legal/Governance | GOVERNANCE_OWNER | ATTESTED | §128 reopen policy | GOVERNANCE_DISPOSITION | DEFERRED | reopen only on new admissible historical evidence | COMPLETE_AND_TESTABLE | EO-C08 | INFORMATIONAL_ONLY | NO | NO | NO | YES | NO | YES | §128–§130;§155 | PRESERVE_CONTRADICTION;SECONDARY_ONLY;REQUIRE_FUTURE_DECISION | NO | NO | YES | NO | YES | reopen Gate if triggered | NO | NONE | NONE |
+| 39 | C4B09-R-09B-RIGHTS | C4B-09 | RIGHTS | AUTOMATION | rights remain FAIL_CLOSED; 16 capabilities not activated | OPEN_FAIL_CLOSED | Legal/Security | LEGAL_RIGHTS_OWNER | ATTESTED | affirmative grant | LEGAL_INTERPRETATION | MISSING | explicit rights expansion Gate | COMPLETE_AND_TESTABLE | EO-C04;EO-C05;EO-C07 | PRIMARY_BLOCKER | NO | YES | PARTIAL | YES | NO | YES | §120/§130;§155 | NO_REUSE;NO_AUTOMATION;NO_CONTENT_INGESTION | NO | YES | NO | NO | YES | rights Gate if needed | NO | NONE | NONE |
+| 40 | C4B09-R-09C-E-UNEVAL | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | SCOPE | nobat/doctor_yab/drdr (09C–09E) not executed; not mandatory per §145.9 | NOT_EXECUTED_NOT_MANDATORY | Legal/Governance | PRODUCT_DECISION_OWNER | ATTESTED | product decision if brand expansion required | PRODUCT_DECISION | NOT_APPLICABLE | execute 09C–E OR keep non-mandatory | COMPLETE_AND_TESTABLE | EO-C03;EO-C06 | INFORMATIONAL_ONLY | NO | NO | NO | YES | NO | YES | §145.9;§155 | SECONDARY_ONLY;REQUIRE_FUTURE_DECISION | MAYBE | NO | YES | NO | YES | optional brand Gate only if product requires | NO | NONE | NONE |
+| 41 | C4B09-R-09F-I | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | QUERY_CONTRACT | cross-source consolidation / catalog eligibility / integration (09F–09I) not executed | NOT_EXECUTED | Governance/Legal/Backend | GOVERNANCE_OWNER | ATTESTED | 09A/09B packs exist; 09C–E optional | PRODUCT_DECISION | MISSING | separate Gates if catalog eligibility sought | COMPLETE_AND_TESTABLE | EO-C07;EO-C09 | ACTIVATION_ONLY | NO | YES | PARTIAL | YES | NO | YES | §104/§145;§155 | NO_SOURCE_ACTIVATION;NO_CONTENT_INGESTION | NO | YES | YES | NO | YES | 09F..09I only under separate approval | NO | NONE | NONE |
+
+```text
+BD=BLOCKS_DISCOVERY; BF=BLOCKS_FULL_CHILD; BE=BLOCKS_EVIDENCE_OVERLAY;
+BA=BLOCKS_SOURCE_ACTIVATION; BP=BLOCKS_P2_FOUNDATION
+EVERY_RESIDUAL_HAS_CANONICAL_ROW = YES
+REQUIRED_FIELDS_BLANK = NO
+RESIDUAL_CLOSED_BY_THIS_GATE = NO
+```
+
+### ۱۵۸.۸) Owner attestation (Phase G)
+
+```text
+OWNER_ATTESTED_COUNT = 41
+OWNER_PARTIAL_COUNT = 0
+OWNER_CONFLICT_COUNT = 0
+OWNER_AUTHORITY_NOT_FOUND_COUNT = 0
+NO_OWNER_INVENTED = YES
+OWNER_TYPES_USED = from repository-supported labels mapped to normalized types
+COMPOSITE_OWNERS_PRESERVED = YES
+  (e.g. Legal/Security, Medical/Safety + Governance recorded as single
+   attested composite owner string from origin sections; primary OWNER_TYPE
+   selected by dominant residual class without inventing new teams)
+```
+
+| OWNER_TYPE | COUNT |
+|---|---|
+| DOCUMENTATION_OWNER | 1 |
+| EDITORIAL_MR_OWNER | 6 |
+| EXTERNAL_CORROBORATION_OWNER | 1 |
+| GOVERNANCE_OWNER | 6 |
+| LEGAL_RIGHTS_OWNER | 19 |
+| NETWORK_EVIDENCE_OWNER | 5 |
+| PRODUCT_DECISION_OWNER | 1 |
+| SOURCE_AUTHORITY_OWNER | 2 |
+
+### ۱۵۸.۹) Dependency normalization (Phase H)
+
+```text
+DEPENDENCIES_SATISFIED_IN_THIS_GATE = NO
+DEPENDENCY_STATES_ATTESTED = YES
+```
+
+| DEP_STATE | COUNT |
+|---|---|
+| DEFERRED | 9 |
+| MISSING | 28 |
+| NOT_APPLICABLE | 1 |
+| PARTIAL | 3 |
+
+### ۱۵۸.۱۰) Closure-criteria attestation (Phase I)
+
+```text
+CLOSURE_CRITERIA_COMPLETE_AND_TESTABLE_COUNT = 41
+CLOSURE_CRITERIA_PARTIAL_COUNT = 0
+CLOSURE_CRITERIA_AMBIGUOUS_COUNT = 0
+CLOSURE_CRITERIA_MISSING_COUNT = 0
+CLOSURE_CRITERIA_CONFLICTING_COUNT = 0
+NO_POLICY_REWRITE_IN_THIS_GATE = YES
+GOVERNANCE_DECISION_REQUIRED_FOR_POLICY_CHANGE = documented on rows needing disposition (S4-EO-02+), not executed here
+```
+
+### ۱۵۸.۱۱) EO-C mapping audit (Phase J)
+
+```text
+ALL_RESIDUALS_MAPPED_TO_EO = YES
+NO_ORPHAN_EO_MAPPING = YES
+MAPPING_CONFIDENCE = AUTHORITATIVE (from §157.5–§157.9 / child ledgers)
+NO_INFERENCE_USED_TO_MARK_CRITERION_SATISFIED = YES
+EO_STATE_NOT_RECALCULATED = YES
+```
+
+| EO_CRITERION_ID | RESIDUAL_HIT_COUNT (non-exclusive) |
+|---|---|
+| EO-C03 | 2 |
+| EO-C04 | 14 |
+| EO-C05 | 8 |
+| EO-C06 | 15 |
+| EO-C07 | 8 |
+| EO-C08 | 8 |
+| EO-C09 | 2 |
+
+### ۱۵۸.۱۲) Blocking-dimension audit (Phase K)
+
+```text
+DISCOVERY_REOPENED = NO
+BLOCKS_DISCOVERY_YES_COUNT = 0  (all rows BD=NO; Stage-3 discovery closed preserved)
+BLOCKS_FULL_CHILD_YES_OR_PARTIAL = majority YES/PARTIAL as origin
+BLOCKS_EO_YES_OR_PARTIAL = majority YES/PARTIAL until EO owned-defer/clear
+BLOCKS_SOURCE_ACTIVATION_YES = nearly all activation-sensitive residuals YES
+BLOCKS_P2_FOUNDATION_YES_COUNT = 0  (class does not block P2 foundation readiness)
+STAGE5_STILL_BLOCKED_BY_STAGE4 = YES
+```
+
+### ۱۵۸.۱۳) Fail-closed behavior (Phase L)
+
+```text
+FAIL_CLOSED_ATTESTED_FOR_ALL_41 = YES
+NO_RESTRICTION_WEAKENED = YES
+PRESERVED_LAWS =
+  PUBLIC_ACCESS != REUSE_PERMISSION
+  ROBOTS_ALLOW != AUTOMATION_PERMISSION
+  SELF_CLAIMED_INDEXING != VERIFIED_INDEXING
+  PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY
+  JOURNAL_IDENTITY != CLINICAL_AUTHORITY
+  DIRECTORY_EVIDENCE != PRIMARY_CLINICAL_AUTHORITY
+  C4B_05_NETWORK_RESULT_VALID = NO (preserved; not upgraded)
+```
+
+### ۱۵۸.۱۴) Deferability attestation WITHOUT approval (Phase M)
+
+```text
+NO_DEFERMENT_APPROVED = YES
+NO_NEW_DEFERMENT_CREATED = YES
+CHILD_LEVEL_DEFERMENT != EO_CRITERION_DEFERMENT_APPROVAL = PRESERVED
+DEFERABLE_YES_COUNT = 41 (all have CAN_DEFER / CAN_REMAIN_DEFERRED authority paths)
+DEFERMENT_AUTHORITY_EXISTS_COUNT = 41
+ACTUAL_EO_DEFERMENT_DISPOSITION_BELONGS_TO = S4-EO-02
+WHAT_DEFERMENT_WOULD_ALLOW = owned fail-closed gaps; EO closure path without UNKNOWN→PASS
+WHAT_DEFERMENT_WOULD_NOT_ALLOW = activation; crawler; rights self-upgrade; Stage-5 without EO/waiver
+```
+
+### ۱۵۸.۱۵) Duplicate / alias ledger (Phase N)
+
+| RESIDUAL_A | RESIDUAL_B | RELATIONSHIP | SAME_OWNER? | SAME_DEP? | SAME_CC? | SAME_EO? | ACTION | MERGE_ALLOWED? | AUTHORITY |
+|---|---|---|---|---|---|---|---|---|---|
+| C4B05-R01 | R01 / C4B05-R01 | ALIAS | YES | YES | YES | YES | retain aliases; one canonical row | N/A (alias only) | §144/§146/§157 |
+| C4B05-R02..R09 | short R02..R09 | ALIAS | YES | YES | YES | YES | same | N/A | §146 |
+| C4B06 TERMS/REUSE/AUTO | C4B07 TERMS/REUSE/AUTO | RELATED_NOT_DUPLICATE | similar class | NO (different child candidates) | similar pattern | similar EO | keep separate | NO | §150 vs §152 |
+| C4B08-R-LICENSE-01 | C4B08-R-LICENSE-02 | RELATED_NOT_DUPLICATE (contradiction vs incomplete) | YES Legal | NO | NO | both EO-C04 | keep separate | NO | §154 |
+| C4B09-R-09A-RIGHTS | C4B09-R-09B-RIGHTS | RELATED_NOT_DUPLICATE (09A vs 09B packs) | similar | NO | NO | overlapping EO | keep separate | NO | §155 |
+| C4B06-R-QUERYTEXT/NETWORK | open C4B-06 residuals | CLOSED_EXCLUDED | — | — | — | — | not in open ledger | N/A | §149/§150 |
+| C4B-05 R06 | open C4B-05 residuals | CLOSED_EXCLUDED | — | — | — | — | not in open ledger | N/A | §146 |
+
+```text
+EXACT_DUPLICATES_REQUIRING_MERGE = NONE
+UNAUTHORIZED_MERGE = NO
+```
+
+### ۱۵۸.۱۶) Orphan ledger (Phase O)
+
+```text
+NO_ORPHAN_RESIDUAL = YES
+PARTIAL_ORPHAN_COUNT = 0
+FULL_ORPHAN_COUNT = 0
+EVERY_RESIDUAL_HAS_CHILD_ORIGIN_OWNER_DEP_CC_EO_FC_NEXT_GATE = YES
+```
+
+### ۱۵۸.۱۷) Ownership / dependency conflict ledger (Phase P)
+
+| CONFLICT_ID | RESIDUAL_ID | CONFLICT_TYPE | VALUE_A | AUTH_A | VALUE_B | AUTH_B | CURRENT_RESOLUTION | UNRESOLVED? | BLOCKS_S4_EO_02? |
+|---|---|---|---|---|---|---|---|---|---|
+| — | — | NONE_MATERIAL | — | — | — | — | later-section precedence already applied in §146/§155/§157 | NO | NO |
+
+```text
+RESIDUAL_CONFLICT_LEDGER_EMPTY_OF_BLOCKERS = YES
+COMPOSITE_OWNER_STRINGS_NOT_TREATED_AS_CONFLICT = YES
+```
+
+### ۱۵۸.۱۸) Child-by-child attestation (Phase Q)
+
+```text
+C4B-05:
+  OPEN=8 (R01–R05,R07–R09); R06 CLOSED excluded
+  NETWORK_RESULT_VALID=NO preserved
+  STOP-06 closed; no automatic S3-W5 reopening
+  discovery CLOSED_WITH_RESIDUAL; full-child NO; activation NO
+
+C4B-06:
+  OPEN=8; QUERYTEXT/NETWORK closed excluded
+  NETWORK_RESULT_VALID=YES; full-child NO; activation NO
+  IDENTITY_OBSERVED != RECOGNITION_VERIFIED preserved
+
+C4B-07:
+  OPEN=8
+  PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY preserved
+  MR/authorship and rights/automation gaps preserved
+  NO_ARTICLE_QUALITY_FROM_INDEX_METADATA_ALONE = YES
+
+C4B-08:
+  OPEN=11
+  JOURNAL_IDENTITY != CLINICAL_AUTHORITY preserved
+  SELF_CLAIMED_INDEXING != VERIFIED_INDEXING preserved
+  CONTRA-01 license contradiction preserved open
+  predatory/clone clearance not absolute preserved
+  OA_OR_PUBLIC_PDF != INGESTION_PERMISSION preserved
+
+C4B-09:
+  OPEN/ledger residuals=6
+  SECONDARY_ONLY=YES; rights/automation FAIL_CLOSED
+  09A narrow PASS; 09B CLOSED_RESIDUAL with preserved gaps
+  C4B09_NEW_NETWORK_REQUIRED=NO
+  BLOCKS_P2_FOUNDATION=NO; BLOCKS_SOURCE_ACTIVATION=YES
+```
+
+### ۱۵۸.۱۹) Taxonomy / count rollups (Phase R)
+
+| CHILD | COUNT |
+|---|---|
+| C4B-05 | 8 |
+| C4B-06 | 8 |
+| C4B-07 | 8 |
+| C4B-08 | 11 |
+| C4B-09 | 6 |
+| TOTAL | 41 |
+
+| CANONICAL_CLASS | COUNT |
+|---|---|
+| ATTRIBUTION | 1 |
+| AUTHORITY | 1 |
+| AUTHORSHIP | 1 |
+| AUTOMATION | 4 |
+| EDITORIAL | 2 |
+| HISTORICAL_GAP | 1 |
+| IDENTITY | 1 |
+| INDEXING | 1 |
+| LICENSE | 2 |
+| MEDICAL_REVIEW | 1 |
+| OTHER_AUTHORITY_BACKED_CLASS | 6 |
+| PREDATORY_RISK | 1 |
+| RECOGNITION | 1 |
+| REUSE | 4 |
+| RIGHTS | 3 |
+| ROBOTS | 3 |
+| TERMS | 4 |
+| TIMEOUT | 4 |
+
+```text
+SUM_BY_CHILD = TOTAL_CANONICAL_RESIDUALS = 41
+EVERY_CANONICAL_RESIDUAL_APPEARS_ONCE_IN_CHILD_COUNT = YES
+```
+
+### ۱۵۸.۲۰) S4-EO-02 readiness (Phase S)
+
+```text
+S4_EO_02_READY = YES
+
+READINESS_BASIS =
+  complete residual inventory (41)
+  canonical taxonomy complete
+  owner attestation complete (41 ATTESTED)
+  dependency attestation complete
+  closure-criteria attestation complete
+  EO mappings complete; no orphan EO mapping
+  deferability reconstructed without approval
+  no unresolved orphan
+  no unresolved ownership conflict blocking disposition
+
+S4_EO_02_NOT_EXECUTED = YES
+SEPARATE_JAVAD_APPROVAL_REQUIRED_FOR_S4_EO_02 = YES
+```
+
+### ۱۵۸.۲۱) Current EO state preservation (Phase T)
+
+```text
+EO_STATE_RECONCILIATION_REQUIRED = NO
+EO_SATISFIED_COUNT = 6 (preserved)
+EO_PARTIAL_COUNT = 4 (preserved)
+EO_OPEN_COUNT = 2 (preserved)
+EVIDENCE_OVERLAY_CURRENT_STATE = OPEN_WITH_PARTIAL_CRITERIA
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_READY_FOR_SUBGATES = YES
+NO_SILENT_CHANGE_TO_§157_CRITERION_RESULT = YES
+```
+
+### ۱۵۸.۲۲) Stage-5 / P2 state
+
+```text
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+```
+
+### ۱۵۸.۲۳) Operations NOT performed
+
+```text
+NO network / search / HTTP / external evidence / query execution
+NO candidate discovery
+NO legal/rights disposition / product decision execution
+NO governance deferment approval / new deferment creation
+NO residual closure / deletion / suppression / unauthorized merge
+NO UNKNOWN→PASS
+NO EO closure declaration/execution
+NO waiver
+NO source activation / crawler / KB ingestion / publication
+NO P2 / P3 / P4 / P5 / P6
+NO test / CI / workflow
+NO commit / push / fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–157
+```
+
+### ۱۵۸.۲۴) Exact next Gate
+
+```text
+NEXT_GATE =
+S4-EO-02 — GOVERNANCE DEFERMENT DISPOSITION
+(GOVERNANCE_DECISION; separate Javad approval required)
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۸.۲۵) Completion markers / execution state
+
+```text
+S4_EO_01_COMPLETE = YES
+TOTAL_CANONICAL_RESIDUALS = 41
+NO_ORPHAN_RESIDUAL = YES
+ALL_RESIDUALS_MAPPED_TO_EO = YES
+S4_EO_02_READY = YES
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+S4_EO_01_RESIDUAL_TAXONOMY_OWNER_ATTESTATION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — S4-EO-01 RESIDUAL TAXONOMY & OWNER ATTESTATION COMPLETE
+```
+
+### ۱۵۸.۲۶) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+f690d918138d7df1445800eb7c60f9aec973b7d490003a22236335c79b7ab3f5
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–157_PRESERVED = YES
+§158_ONLY_NEW_SECTION = YES
+§158_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۸ — SECTION-28 S4-EO-01 Residual Taxonomy & Owner Attestation — S4_EO_01_RESIDUAL_TAXONOMY_OWNER_ATTESTATION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۵۹) SECTION-28 — ROADMAP STAGE-4 — S4-EO-02 — GOVERNANCE DEFERMENT DISPOSITION
+
+```text
+PACKAGE =
+SECTION-28 — ROADMAP STAGE-4 —
+S4-EO-02 — GOVERNANCE DEFERMENT DISPOSITION
+
+MODE =
+REPOSITORY_LOCAL / GOVERNANCE_DECISION / APPEND_ONLY /
+EO_LEVEL_DEFERMENT_DISPOSITION /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_LEGAL_RIGHTS_MERITS / NO_LICENSE_APPROVAL / NO_REUSE_APPROVAL /
+NO_AUTOMATION_PERMISSION / NO_AUTHORITY_MR_APPROVAL /
+NO_RESIDUAL_CLOSURE / NO_UNKNOWN_TO_PASS /
+NO_EO_CLOSURE / NO_WAIVER / NO_SOURCE_ACTIVATION /
+NO_P2_P3_P4 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Governance / Continuity / Evidence Overlay
+Supporting:
+Legal, Security, Data/Knowledge, Medical/Safety, Documentation
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local governance Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  formally attest Evidence Overlay-level deferment disposition
+  for every §158 canonical residual and affected EO-C01..EO-C12;
+  lock scope/owner/dependency/closure/review/later-Gate/fail-closed/
+  allow/deny boundaries WITHOUT closing residuals or approving merits
+
+PERMANENT_BOUNDARIES_PRESERVED =
+  DEFERMENT_DISPOSITION != RESIDUAL_CLOSURE
+  DEFERMENT_DISPOSITION != EVIDENCE_SATISFIED
+  DEFERMENT_DISPOSITION != RIGHTS_OR_LICENSE_APPROVAL
+  DEFERMENT_DISPOSITION != REUSE_PERMISSION
+  DEFERMENT_DISPOSITION != AUTOMATION_PERMISSION
+  DEFERMENT_DISPOSITION != AUTHORITY_RECOGNITION
+  DEFERMENT_DISPOSITION != EDITORIAL_OR_MEDICAL_REVIEW_APPROVAL
+  DEFERMENT_DISPOSITION != SOURCE_ACTIVATION
+  DEFERMENT_DISPOSITION != EVIDENCE_OVERLAY_CLOSURE
+  DEFERMENT_DISPOSITION != STAGE5_WAIVER
+  CHILD_LEVEL_DEFERMENT != EO_CRITERION_LEVEL_DEFERMENT
+  AUTHORIZED_DEFERMENT != UNKNOWN_TO_PASS
+
+Baseline (verified at S4-EO-02 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §158
+  §§145–158 = PRESENT
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Verified §158 continuity:
+  S4_EO_01 = PASS / COMPLETE
+  TOTAL_CANONICAL_RESIDUALS = 41
+  OWNER_ATTESTED_COUNT = 41
+  NO_ORPHAN_RESIDUAL = YES
+  ALL_RESIDUALS_MAPPED_TO_EO = YES
+  NO_DEFERMENT_APPROVED = YES (pre-this-Gate)
+  S4_EO_02_READY = YES
+  EO counts 6/4/2; EO CLOSED=NO; STAGE5_READY=NO; P2_STARTED=NO
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+765660ca86e7770f23742551265fb84ab70951f490d54f4a3073492683f6af39
+```
+
+### ۱۵۹.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+BLOCKED_CANONICAL_LEDGER_INCOMPLETE = NO
+RESIDUAL_CLOSURE_AUTHORIZED = NO
+LEGAL_MERITS_AUTHORIZED = NO
+AUTOMATION_MERITS_AUTHORIZED = NO
+AUTHORITY_MR_MERITS_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+WAIVER_AUTHORIZED = NO
+NETWORK_AUTHORIZED = NO
+```
+
+### ۱۵۹.۲) Deferment authority ledger (Phase B)
+
+| AUTHORITY_ID | SECTION | SUBJECT | DEFERMENT_SCOPE | AUTHORIZES | PROHIBITS | OWNER_REQ | REVIEW_REQ | FAIL_CLOSED_REQ | CLASS |
+|---|---|---|---|---|---|---|---|---|---|
+| AUTH-145-10 | §145.10 | EO closure/defer rule | Blocking EO items | DEFERRED_WITH_OWNER without UNKNOWN→PASS | UNKNOWN→PASS; invented PASS | YES | YES | YES | CURRENT_AUTHORITY |
+| AUTH-145-14 | §145.14 | Stage-5 entry | EO closed OR Javad waiver | Stage-5 only after EO/waiver | treating deferment as waiver | Javad for waiver | — | — | CURRENT_AUTHORITY |
+| AUTH-128-130 | §128–§130 | owned-gap precedent | historical/commercial gaps | owned fail-closed defer | rights expansion by inference | YES | reopen policy | YES | CURRENT_AUTHORITY |
+| AUTH-146 | §146 | C4B-05 child defer | R01–R05/R07–R09 | child DEFERRED_WITH_OWNER | activation; UNKNOWN→PASS | YES | later residual Gates | YES | CURRENT (child≠EO auto) |
+| AUTH-150/152/154/155 | Stage-3 children | CAN_DEFER_WITH_OWNER | per residual | child defer paths | merits approval | YES | residual Gates | YES | CURRENT (child≠EO auto) |
+| AUTH-157 | §157.13/§157.20 | EO prep + closure contract | EO-C04/05/06/07 defer path | EO-level owned defer after Stage-4 attestation | false SATISFIED; activation; waiver invent | YES | S4-EO-02..09 | YES | CURRENT_AUTHORITY |
+| AUTH-158 | §158 | taxonomy/owner attestation | 41-row input | eligibility inputs for this Gate | approving deferment (was NO) | 41 ATTESTED | — | per row | CURRENT_AUTHORITY |
+| AUTH-93 | §93.9–§93.12 | EO design / dry-run | fail-closed laws; dry-run prereqs | design SATISFIED inputs | dry-run without approvals | — | — | YES | CURRENT_AUTHORITY |
+
+```text
+CHILD_LEVEL_DEFERMENT_NOT_AUTOMATIC_EO_AUTHORITY = YES
+THIS_GATE_SUPPLIES_EO_LEVEL_ATTESTATION = YES
+BLOCKED_DEFERMENT_AUTHORITY_CONFLICT = NO
+```
+
+### ۱۵۹.۳) Verified canonical input (Phase C)
+
+```text
+TOTAL_CANONICAL_RESIDUALS = 41
+C4B05 = 8
+C4B06 = 8
+C4B07 = 8
+C4B08 = 11
+C4B09 = 6
+EVERY_ROW_HAS_REQUIRED_FIELDS = YES
+BLOCKED_CANONICAL_LEDGER_INCOMPLETE = NO
+INPUT_SOURCE = §158.7
+```
+
+### ۱۵۹.۴) Deferment state vocabulary (Phase D)
+
+| DISPOSITION | MEANING | CLOSURE_EFFECT | FAIL_CLOSED_EFFECT | ACTIVATION_EFFECT | STAGE5_EFFECT | NEXT |
+|---|---|---|---|---|---|---|
+| EO_DEFERMENT_AUTHORIZED | EO-level owned defer of residual resolution attested | may allow criterion DEFERRED_WITH_OWNER if §145.10/§157 permits; not residual closed | retained | remains blocked | not a waiver; Stage-5 still needs EO close or waiver | later merits/docs Gate |
+| EO_DEFERMENT_NOT_AUTHORIZED | EO defer prohibited for this residual | criterion cannot rely on defer | retained | blocked | — | clear or other Gate |
+| EO_DEFERMENT_AUTHORITY_NOT_FOUND | no recoverable EO defer authority | cannot defer | retained | blocked | — | authority recovery Gate |
+| EO_DEFERMENT_BLOCKED_BY_CONFLICT | conflict prevents disposition | blocked | retained | blocked | — | conflict Gate |
+| NOT_APPLICABLE | residual not in EO defer scope | none | as origin | as origin | — | as origin |
+
+```text
+NO_CONDITIONALLY_PASSED_STATUS_INVENTED = YES
+```
+
+### ۱۵۹.۵) Deferment eligibility test (Phase E)
+
+```text
+REQUIRED_CONDITIONS_FOR_EO_DEFERMENT_AUTHORIZED =
+  1 EO-level deferment authority exists (§145.10/§157/§128–§130 + child CAN_DEFER)
+  2 owner attested (§158)
+  3 dependency attested (§158)
+  4 closure criteria COMPLETE_AND_TESTABLE (§158)
+  5 review/expiry trigger defined (this Gate)
+  6 later Gate defined (this Gate)
+  7 fail-closed explicit (§158 + this Gate)
+  8 non-deferable laws not weakened
+  9 UNKNOWN not promoted to PASS
+  10 source activation not enabled
+  11 no orphan / ownership conflict (§158)
+  12 does not hide required legal/product decision (routes to S4-EO-03/04/05)
+  13 does not falsely satisfy EO criterion as SATISFIED evidence
+  14 compatible with Stage-4 closure contract (§157.20)
+
+ELIGIBILITY_RESULT_ALL_41 = PASS
+```
+
+### ۱۵۹.۶) Non-deferable law ledger (Phase F)
+
+| LAW_ID | AUTHORITY | EXACT_REQUIREMENT | AFFECTED_EO | WHY_NON_DEFERABLE | CANNOT_WAIVE_IN_S4_EO_02 |
+|---|---|---|---|---|---|
+| LAW-EO-C02 | §93.9–§93.10; §145.10; §157 | missing evidence fails closed; immutability/versioning | EO-C02 | constitutive overlay safety law | weaken fail-closed; UNKNOWN→PASS |
+| LAW-EO-C09 | §145.10; Stage-3 locks; §157 | sources remain disabled through Stage 4 | EO-C09 | activation lock | source/crawler/runtime enablement |
+| LAW-EO-C12 | §137–§138; §145; §156–§157 | discovery ≠ knowledge acquisition | EO-C12 | permanent separation | treating discovery as knowledge |
+| LAW-UNKNOWN-PASS | §145.10; §146; §157–§158 | UNKNOWN must not become PASS | EO-C04..C08 | epistemic integrity | UNKNOWN_TO_PASS / FAIL_CLOSED_TO_PASS |
+| LAW-NO-ORPHAN | §145.10 EO-C08; §158 | every unknown owned | EO-C08 | governance completeness | orphaning residuals |
+| LAW-ROLE-SEP | Stage-3 children; §157 | patient-ed≠guideline; journal≠clinical; directory≠primary; identity≠recognition | EO-C06 | role integrity | role promotion via deferment |
+| LAW-93-12-DRYRUN | §93.12; EO-C11 | dry-run needs approved overlays/license/authority/jurisdiction/trust/provenance | EO-C11 | dry-run safety | dry-run enablement without §93.12 |
+| LAW-NO-WAIVER-INFER | §145.14; §157 | Stage-5 needs EO closed OR explicit Javad waiver | Stage-5 | waiver formality | implying waiver from deferment |
+| LAW-MERITS-SEPARATION | §157.21 | rights/automation/authority merits are distinct Gates | S4-EO-03/04/05 | gate separation | approving merits inside S4-EO-02 |
+
+```text
+NO_WAIVER_CREATED = YES
+NON_DEFERABLE_LAWS_PRESERVED = YES
+```
+
+### ۱۵۹.۷) Full 41-row deferment-disposition ledger (Phase G)
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | CLASS | EO_CRITERION_IDS | CURRENT_STATE | EO_DEFERMENT_DISPOSITION | DEF_AUTH | OWNER | OWNER_TYPE | DEPENDENCY | DEP_STATE | CLOSURE_CRITERIA | CC_STATE | REVIEW_TRIGGERS | LATER_GATE | LATER_TYPE | FAIL_CLOSED | BD | BF | BE | BA | BP | LEGAL_MERITS | AUTO_MERITS | AUTH_MR_MERITS | EXT | NET | ALLOWS_SUMMARY | DENIES_SUMMARY |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | C4B05-R01 | C4B-05 | OTHER_AUTHORITY_BACKED_CLASS | EO-C08 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Governance/Framework | GOVERNANCE_OWNER | future OFS framework Gate | DEFERRED | OFS ID assigned OR remain ACCEPTED_FAIL_CLOSED | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | Framework/OFS | DOCS_ONLY | NO_SOURCE_ACTIVATION | NO | NO | NO | NO | NO | NO | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 2 | C4B05-R02 | C4B-05 | TERMS | EO-C04 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Legal / Knowledge Ops | LEGAL_RIGHTS_OWNER | §144.6 candidate set | DEFERRED | Terms retrieved OR formally fail-closed per candidate with owner | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 3 | C4B05-R03 | C4B-05 | ROBOTS | EO-C05 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Provider Verification | NETWORK_EVIDENCE_OWNER | §144.5 STOP-01..05 | DEFERRED | Robots retrieved OR formally fail-closed per candidate | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | NO | YES | YES | YES | NO | NO | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 4 | C4B05-R04 | C4B-05 | OTHER_AUTHORITY_BACKED_CLASS | EO-C03;EO-C06 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Governance | GOVERNANCE_OWNER | IR-SC-14 education slice; C4B-02 fence | DEFERRED | Accept sample scope OR authorize expansion Gate | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | Product scope | GOVERNANCE_DECISION | SECONDARY_ONLY;REQUIRE_FUTURE_DECISION | NO | PARTIAL | NO | YES | NO | NO | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 5 | C4B05-R05 | C4B-05 | EDITORIAL | EO-C06 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Knowledge Ops | EDITORIAL_MR_OWNER | §143.10 candidate schema | DEFERRED | Established OR formally fail-closed per candidate | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_VERIFIED_AUTHORITY_CLAIM;NO_ARTICLE_LEVEL_QA_CLAIM | NO | YES | YES | YES | NO | NO | NO | YES | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 6 | C4B05-R07 | C4B-05 | REUSE | EO-C04;EO-C07 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | terms packs | DEFERRED | Legal reuse determination or remain fail-closed | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 7 | C4B05-R08 | C4B-05 | AUTOMATION | EO-C05 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Security / Legal | LEGAL_RIGHTS_OWNER | robots+terms | DEFERRED | Automation determination per candidate or remain fail-closed | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT;PRESERVE_INVALID_NETWORK | NO | YES | YES | YES | NO | YES | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 8 | C4B05-R09 | C4B-05 | OTHER_AUTHORITY_BACKED_CLASS | EO-C08 | DEFERRED_WITH_OWNER | EO_DEFERMENT_AUTHORIZED | YES | Documentation / Governance | DOCUMENTATION_OWNER | historical-doc repair Gate | DEFERRED | Explicit historical-doc repair Gate | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | Historical-doc | DOCS_ONLY | REQUIRE_FUTURE_DECISION | NO | NO | NO | NO | NO | NO | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 9 | C4B06-R-TERMS-01 | C4B-06 | TERMS | EO-C04 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | first-party TOU URLs | MISSING | retrieve + classify terms pack | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 10 | C4B06-R-AUTO-01 | C4B-06 | AUTOMATION | EO-C05 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security | LEGAL_RIGHTS_OWNER | robots + product policy | MISSING | governed automation decision per host | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | NO | YES | YES | YES | NO | YES | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 11 | C4B06-R-REUSE-01 | C4B-06 | REUSE | EO-C04;EO-C07 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | terms + attribution notices | MISSING | explicit reuse/attribution evidence or formal deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 12 | C4B06-R-RECOG-01 | C4B-06 | RECOGNITION | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Medical/Safety + Governance | EDITORIAL_MR_OWNER | MoH primary corroboration | MISSING | external official corroboration or formal deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_VERIFIED_AUTHORITY_CLAIM | NO | YES | YES | YES | NO | NO | NO | YES | YES | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 13 | C4B06-R-ABOUT-01 | C4B-06 | IDENTITY | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Governance | GOVERNANCE_OWNER | richer about/statute pack | PARTIAL | complete legal-identity about pack | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_VERIFIED_AUTHORITY_CLAIM | NO | PARTIAL | PARTIAL | YES | NO | NO | NO | YES | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 14 | C4B06-R-IRSOME-01 | C4B-06 | TIMEOUT | EO-C06;EO-C08 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Governance/Security | NETWORK_EVIDENCE_OWNER | successful retrieval or exclude | MISSING | retrieve identity pack or exclude candidate | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-06 | NETWORK | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | NO | YES | YES | YES | NO | NO | NO | NO | NO | YES | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 15 | C4B06-R-EDITORIAL-01 | C4B-06 | EDITORIAL | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Medical/Safety | EDITORIAL_MR_OWNER | editorial pages | MISSING | editorial responsibility evidence or deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_ARTICLE_LEVEL_QA_CLAIM | NO | YES | PARTIAL | YES | NO | NO | NO | YES | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 16 | C4B06-R-D06D10-01 | C4B-06 | RIGHTS | EO-C04;EO-C08 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Knowledge Ops | SOURCE_AUTHORITY_OWNER | bounded first-party path under residual Gate | MISSING | first-party recovery without unlocked queries | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;PRESERVE_INVALID_NETWORK_STATE | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 17 | C4B07-R-TERMS-01 | C4B-07 | TERMS | EO-C04 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | first-party TOU | MISSING | retrieve+classify terms | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 18 | C4B07-R-AUTO-01 | C4B-07 | AUTOMATION | EO-C05 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security | LEGAL_RIGHTS_OWNER | robots+policy | MISSING | governed automation decision | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | NO | YES | YES | YES | NO | YES | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 19 | C4B07-R-REUSE-01 | C4B-07 | REUSE | EO-C04;EO-C07 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | terms+notices | MISSING | explicit reuse evidence or formal deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 20 | C4B07-R-MR-01 | C4B-07 | MEDICAL_REVIEW | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Medical/Safety | EDITORIAL_MR_OWNER | MR model OD-C4A-12 | MISSING | MR-1+ pack or formal deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_ARTICLE_LEVEL_QA_CLAIM;NO_VERIFIED_AUTHORITY_CLAIM | NO | YES | YES | YES | NO | NO | NO | YES | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 21 | C4B07-R-AUTH-01 | C4B-07 | AUTHORSHIP | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Medical/Safety | EDITORIAL_MR_OWNER | authorship evidence | MISSING | author/reviewer evidence or deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_ARTICLE_LEVEL_QA_CLAIM | NO | YES | PARTIAL | YES | NO | NO | NO | YES | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 22 | C4B07-R-MOH-01 | C4B-07 | AUTHORITY | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Medical/Safety + Data/Knowledge | SOURCE_AUTHORITY_OWNER | MoH education URL under locked queries or amendment | MISSING | MoH patient-ed candidate or scoped deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_VERIFIED_AUTHORITY_CLAIM;SECONDARY_ONLY | NO | PARTIAL | PARTIAL | YES | NO | NO | NO | YES | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 23 | C4B07-R-MPGH-01 | C4B-07 | TIMEOUT | EO-C06;EO-C08 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Governance/Security | NETWORK_EVIDENCE_OWNER | successful GET or exclude | MISSING | retrieve or exclude | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-06 | NETWORK | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | NO | YES | YES | YES | NO | NO | NO | NO | NO | YES | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 24 | C4B07-R-ARUMS-ROBOTS-01 | C4B-07 | ROBOTS | EO-C05 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security | LEGAL_RIGHTS_OWNER | robots retrieval alternate official path | MISSING | robots evidence or deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | NO | YES | YES | YES | NO | YES | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 25 | C4B08-R-INDEX-01 | C4B-08 | INDEXING | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Data/Knowledge | EXTERNAL_CORROBORATION_OWNER | allowed corroboration evidence or formal deferment | MISSING | INDEXING_CORROBORATION ≠ UNKNOWN or owned deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_VERIFIED_INDEXING_CLAIM | NO | YES | YES | YES | NO | NO | NO | YES | YES | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 26 | C4B08-R-LICENSE-01 | C4B-08 | LICENSE | EO-C04 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | versioned license map | PARTIAL | resolve CONTRA-01 | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | PRESERVE_CONTRADICTION;NO_REUSE;NO_CONTENT_INGESTION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 27 | C4B08-R-LICENSE-02 | C4B-08 | LICENSE | EO-C04 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | first-party license URL evidence | MISSING | LICENSE_RETRIEVED+classified | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;LICENSE_UNKNOWN=FAIL_CLOSED | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 28 | C4B08-R-REUSE-01 | C4B-08 | REUSE | EO-C04;EO-C07 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | license+product policy | MISSING | explicit reuse decision | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION;NO_RUNTIME_GROUNDING | NO | YES | YES | YES | NO | YES | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 29 | C4B08-R-TERMS-01 | C4B-08 | TERMS | EO-C04 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | first-party TOU/privacy | MISSING | retrieve+classify | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 30 | C4B08-R-AUTO-01 | C4B-08 | AUTOMATION | EO-C05 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security | LEGAL_RIGHTS_OWNER | robots+policy+product | MISSING | governed automation decision | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION;NO_CRAWLER_ENABLEMENT | NO | YES | YES | YES | NO | YES | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 31 | C4B08-R-PRED-01 | C4B-08 | PREDATORY_RISK | EO-C06 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Medical/Safety + Data/Knowledge | EDITORIAL_MR_OWNER | §153.5 disposition | PARTIAL | governed predatory disposition | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-05 | GOVERNANCE_DECISION | NO_VERIFIED_AUTHORITY_CLAIM;REQUIRE_FUTURE_DECISION | NO | YES | PARTIAL | YES | NO | NO | NO | YES | YES | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 32 | C4B08-R-IJMS-01 | C4B-08 | TIMEOUT | EO-C06;EO-C08 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Governance/Security | NETWORK_EVIDENCE_OWNER | successful identity pack GET or exclude | MISSING | retrieve or exclude | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-06 | NETWORK | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | NO | YES | YES | YES | NO | NO | NO | NO | NO | YES | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 33 | C4B08-R-PORTAL-01 | C4B-08 | TIMEOUT | EO-C06;EO-C08 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Governance/Security | NETWORK_EVIDENCE_OWNER | successful GET or exclude | MISSING | retrieve or exclude | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-06 | NETWORK | REQUIRE_FUTURE_DECISION;NO_SOURCE_ACTIVATION | NO | YES | YES | YES | NO | NO | NO | NO | NO | YES | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 34 | C4B08-R-JMCIRI-ROBOTS-01 | C4B-08 | ROBOTS | EO-C05 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security | LEGAL_RIGHTS_OWNER | robots+TOU retrieval | MISSING | robots/terms evidence or deferment | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-04 | LEGAL_RIGHTS_DECISION | NO_AUTOMATION | NO | YES | YES | YES | NO | YES | YES | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 35 | C4B08-R-ATTR-01 | C4B-08 | ATTRIBUTION | EO-C04 | OPEN | EO_DEFERMENT_AUTHORIZED | YES | Legal | LEGAL_RIGHTS_OWNER | license+attribution policy | MISSING | attribution rule locked | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;REQUIRE_FUTURE_DECISION | NO | YES | YES | YES | NO | YES | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 36 | C4B09-R-09A-RIGHTS | C4B-09 | RIGHTS | EO-C04;EO-C07 | OPEN_FAIL_CLOSED | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security/Governance | LEGAL_RIGHTS_OWNER | written grant or keep reject | MISSING | explicit Legal/Product decision or remain fail-closed | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_CONTENT_INGESTION;NO_AUTOMATION;NO_RUNTIME_GROUN | NO | YES | PARTIAL | YES | NO | YES | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 37 | C4B09-R-09A-OPS | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | EO-C09;EO-C07 | OPEN_FAIL_CLOSED | EO_DEFERMENT_AUTHORIZED | YES | Governance | GOVERNANCE_OWNER | activation Gate never auto | MISSING | keep fail-closed until explicit activation authority | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | activation (blocked) | GOVERNANCE_DECISION | NO_SOURCE_ACTIVATION;NO_CRAWLER_ENABLEMENT;NO_RUNTIME_GROUND | NO | YES | YES | YES | NO | NO | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 38 | C4B09-R-09B-HISTGAP | C4B-09 | HISTORICAL_GAP | EO-C08 | CLOSED_BY_ACCEPTED_PRESERVED_RESIDUAL | EO_DEFERMENT_AUTHORIZED | YES | Legal/Governance | GOVERNANCE_OWNER | §128 reopen policy | DEFERRED | reopen only on new admissible historical evidence | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-09 | GOVERNANCE_DECISION | PRESERVE_CONTRADICTION;SECONDARY_ONLY;REQUIRE_FUTURE_DECISIO | NO | NO | NO | YES | NO | NO | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 39 | C4B09-R-09B-RIGHTS | C4B-09 | RIGHTS | EO-C04;EO-C05;EO-C07 | OPEN_FAIL_CLOSED | EO_DEFERMENT_AUTHORIZED | YES | Legal/Security | LEGAL_RIGHTS_OWNER | affirmative grant | MISSING | explicit rights expansion Gate | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_REUSE;NO_AUTOMATION;NO_CONTENT_INGESTION | NO | YES | PARTIAL | YES | NO | YES | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 40 | C4B09-R-09C-E-UNEVAL | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | EO-C03;EO-C06 | NOT_EXECUTED_NOT_MANDATORY | EO_DEFERMENT_AUTHORIZED | YES | Legal/Governance | PRODUCT_DECISION_OWNER | product decision if brand expansion required | NOT_APPLICABLE | execute 09C–E OR keep non-mandatory | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | optional brand | GOVERNANCE_DECISION | SECONDARY_ONLY;REQUIRE_FUTURE_DECISION | NO | NO | NO | YES | NO | NO | NO | NO | NO | OPTIONAL | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+| 41 | C4B09-R-09F-I | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | EO-C07;EO-C09 | NOT_EXECUTED | EO_DEFERMENT_AUTHORIZED | YES | Governance/Legal/Backend | GOVERNANCE_OWNER | 09A/09B packs exist; 09C–E optional | MISSING | separate Gates if catalog eligibility sought | COMPLETE_AND_TESTABLE | BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_ | S4-EO-03 | LEGAL_RIGHTS_DECISION | NO_SOURCE_ACTIVATION;NO_CONTENT_INGESTION | NO | YES | PARTIAL | YES | NO | YES | NO | NO | NO | NO | Stage-4 sequencing + owned criterion defer path | NO_RESIDUAL_CLOSURE; NO_UNKNOWN_TO_PASS; NO_MERITS_APPROVAL; NO_ACTIVATION; NO_STAGE5; NO_WAIVER |
+
+```text
+EVERY_RESIDUAL_HAS_ONE_DISPOSITION_ROW = YES
+RESIDUAL_CLOSED_BY_THIS_GATE = NO
+DETAILED_SCOPE_OWNER_DEP_CC_TRIGGERS_GATES = YES (see §§159.7–159.9 and child rollups)
+```
+
+### ۱۵۹.۸) Allowed-effect ledger (Phase H)
+
+```text
+AUTHORIZED_DEFERMENT_MAY_ALLOW =
+  progression to later Stage-4 disposition Gates (S4-EO-03/04/05/06/07/08)
+  preserving criteria as PARTIAL/OPEN/DEFERRED_WITH_OWNER with owned residuals
+  preparation work / docs-only closure-checklist preparation
+  Stage-4 sequencing without immediate residual resolution
+
+AUTHORIZED_DEFERMENT_MUST_NOT_BE_READ_AS =
+  EO criterion SATISFIED-by-evidence
+  source activation / crawler / runtime grounding / KB ingestion
+  reuse / automation / verified authority / verified indexing / article QA
+  Stage-5 start / P2 start / waiver
+```
+
+### ۱۵۹.۹) Prohibited-effect ledger (Phase I)
+
+```text
+EVERY_AUTHORIZED_DEFERMENT_ATTACHES_PROHIBITION_SET = YES
+COMMON_PROHIBITION_SET =
+  NO_RESIDUAL_CLOSURE
+  NO_UNKNOWN_TO_PASS
+  NO_EO_CRITERION_FALSE_SATISFACTION
+  NO_SOURCE_ACTIVATION
+  NO_CRAWLER_ENABLEMENT
+  NO_CONTENT_INGESTION
+  NO_RUNTIME_GROUNDING
+  NO_REUSE_PERMISSION
+  NO_AUTOMATION_PERMISSION
+  NO_VERIFIED_AUTHORITY_CLAIM
+  NO_VERIFIED_INDEXING_CLAIM
+  NO_ARTICLE_LEVEL_QA_CLAIM
+  NO_ROLE_PROMOTION
+  NO_STAGE5_ENTRY
+  NO_P2_START
+  NO_WAIVER
+```
+
+### ۱۵۹.۱۰) Child-by-child deferment rollups (Phase J)
+
+```text
+C4B-05 (8): ALL EO_DEFERMENT_AUTHORIZED
+  NETWORK_RESULT_VALID=NO preserved
+  STOP-06 closed/excluded; no automatic S3-W5 reopening
+  R01→Framework/OFS; R02/R07→S4-EO-03; R03/R08→S4-EO-04;
+  R04→Product scope; R05→S4-EO-05; R09→Historical-doc
+
+C4B-06 (8): ALL EO_DEFERMENT_AUTHORIZED
+  NETWORK_RESULT_VALID=YES; QUERYTEXT/NETWORK not reintroduced
+  TERMS/REUSE/D06D10→S4-EO-03; AUTO→S4-EO-04;
+  RECOG/ABOUT/EDITORIAL→S4-EO-05; IRSOME→S4-EO-06 optional
+
+C4B-07 (8): ALL EO_DEFERMENT_AUTHORIZED
+  PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY preserved
+  TERMS/REUSE→S4-EO-03; AUTO/ARUMS-ROBOTS→S4-EO-04;
+  MR/AUTH/MOH→S4-EO-05; MPGH→S4-EO-06 optional
+
+C4B-08 (11): ALL EO_DEFERMENT_AUTHORIZED
+  SELF_CLAIMED_INDEXING != VERIFIED_INDEXING preserved
+  CONTRA-01 license contradiction preserved (merits→S4-EO-03)
+  predatory clearance not absolute (→S4-EO-05)
+  LICENSE/REUSE/TERMS/ATTR→S4-EO-03; AUTO/JMCIRI-ROBOTS→S4-EO-04;
+  INDEX/PRED→S4-EO-05; IJMS/PORTAL→S4-EO-06 optional
+
+C4B-09 (6): ALL EO_DEFERMENT_AUTHORIZED
+  SECONDARY_ONLY=YES; rights/automation FAIL_CLOSED
+  09A narrow PASS; 09B CLOSED_RESIDUAL preserved
+  C4B09_NEW_NETWORK_REQUIRED=NO preserved
+  09A/09B RIGHTS→S4-EO-03; 09A-OPS keep disabled;
+  09B-HISTGAP preserved; 09C-E non-mandatory; 09F-I separate/S4-EO-03 boundary
+```
+
+### ۱۵۹.۱۱) EO-criterion-level disposition (Phase K)
+
+| EO_CRITERION_ID | STATE_BEFORE | STATE_AFTER | DEF_AUTH | CLOSURE_EFFECT | NEXT_SUBGATE | AUTHORITY |
+|---|---|---|---|---|---|---|
+| EO-C01 | SATISFIED | SATISFIED | YES for residual-owned path | unchanged — design contract | confirm in S4-EO-09 | §145.10/§157/§158/§159; residuals:  |
+| EO-C02 | SATISFIED | SATISFIED | YES for residual-owned path | unchanged — fail-closed law preserved (NON-DEFERABLE law) | confirm in S4-EO-09 (law) | §145.10/§157/§158/§159; residuals:  |
+| EO-C03 | SATISFIED | SATISFIED | YES for residual-owned path | unchanged — Stage-3 discovery component | confirm in S4-EO-09 | §145.10/§157/§158/§159; residuals: C4B05-R04, C4B09-R-09C-E-UNEVAL |
+| EO-C04 | PARTIAL | DEFERRED_WITH_OWNER | YES for residual-owned path | §145.10/§157 allow SATISFIED OR DEFERRED_WITH_OWNER fail-closed; all rights residuals EO-deferred | S4-EO-03 | §145.10/§157/§158/§159; residuals: C4B05-R02, C4B05-R07, C4B06-R-TERMS-01, C4B06-R-REUSE-01, C4B06-R-D06D10-01, C4B07-R-TERMS-01, C4B07-R-REUSE-01, C4B08-R-LICENSE-01 (+6) |
+| EO-C05 | PARTIAL | DEFERRED_WITH_OWNER | YES for residual-owned path | §145.10/§157 allow owned fail-closed defer; automation residuals EO-deferred | S4-EO-04 | §145.10/§157/§158/§159; residuals: C4B05-R03, C4B05-R08, C4B06-R-AUTO-01, C4B07-R-AUTO-01, C4B07-R-ARUMS-ROBOTS-01, C4B08-R-AUTO-01, C4B08-R-JMCIRI-ROBOTS-01, C4B09-R-09B-RIGHTS |
+| EO-C06 | PARTIAL | DEFERRED_WITH_OWNER | YES for residual-owned path | §145.10/§157 allow owned PARTIAL/DEFERRED without role misuse; authority/MR/indexing residuals EO-deferred | S4-EO-05 (+ optional S4-EO-06/07) | §145.10/§157/§158/§159; residuals: C4B05-R04, C4B05-R05, C4B06-R-RECOG-01, C4B06-R-ABOUT-01, C4B06-R-IRSOME-01, C4B06-R-EDITORIAL-01, C4B07-R-MR-01, C4B07-R-AUTH-01 (+7) |
+| EO-C07 | OPEN | DEFERRED_WITH_OWNER | YES for residual-owned path | was OPEN; §145.10/§157 allow DEFERRED_WITH_OWNER fail-closed eligibility | S4-EO-03 | §145.10/§157/§158/§159; residuals: C4B05-R07, C4B06-R-REUSE-01, C4B07-R-REUSE-01, C4B08-R-REUSE-01, C4B09-R-09A-RIGHTS, C4B09-R-09A-OPS, C4B09-R-09B-RIGHTS, C4B09-R-09F-I |
+| EO-C08 | PARTIAL | SATISFIED | YES for residual-owned path | §157 REQUIRED_STATE = complete owned residual→EO matrix; §158 attested matrix+no orphans; §159 locks EO ownership of deferred residuals | confirm in S4-EO-09 | §145.10/§157/§158/§159; residuals: C4B05-R01, C4B05-R09, C4B06-R-IRSOME-01, C4B06-R-D06D10-01, C4B07-R-MPGH-01, C4B08-R-IJMS-01, C4B08-R-PORTAL-01, C4B09-R-09B-HISTGAP |
+| EO-C09 | SATISFIED | SATISFIED | YES for residual-owned path | unchanged — sources remain disabled (NON-DEFERABLE activation lock) | confirm disabled in S4-EO-09 | §145.10/§157/§158/§159; residuals: C4B09-R-09A-OPS, C4B09-R-09F-I |
+| EO-C10 | SATISFIED | SATISFIED | YES for residual-owned path | unchanged — P2 separation; P2_STARTED=NO | preserve P2 separation | §145.10/§157/§158/§159; residuals:  |
+| EO-C11 | OPEN | OPEN | YES for residual-owned path | dry-run prerequisites / §93.12 remain; NOT falsely deferred as satisfied; routed to S4-EO-08 | S4-EO-08 | §145.10/§157/§158/§159; residuals:  |
+| EO-C12 | SATISFIED | SATISFIED | YES for residual-owned path | unchanged — knowledge-growth law (NON-DEFERABLE) | confirm in S4-EO-09 (law) | §145.10/§157/§158/§159; residuals:  |
+
+```text
+NO_FALSE_SATISFIED_FROM_DEFERMENT_ALONE = YES
+EO-C08_SATISFIED_BASIS = matrix completeness (§158) + owned deferred residuals (§159), NOT merits clearance
+EO-C04/C05/C06/C07_DEFERRED_WITH_OWNER_BASIS = §145.10/§157 explicit alternate required state
+EO-C11_REMAINS_OPEN = YES
+```
+
+### ۱۵۹.۱۲) Rights / license / reuse boundary (Phase L)
+
+```text
+DEFERMENT_OF_RESOLUTION != APPROVAL_OF_RIGHTS = PRESERVED
+S4-EO-02_DOES_NOT_DECIDE =
+  LICENSE_VALID; REUSE_ALLOWED; COPYRIGHT_CLEARED; ATTRIBUTION_COMPLETE;
+  DERIVATIVE_USE_ALLOWED; METADATA_REUSE_ALLOWED; FULL_TEXT_REUSE_ALLOWED
+ABSENT_MERITS = FAIL_CLOSED
+LATER_GATE = S4-EO-03
+S4_EO_03_READY = YES
+```
+
+### ۱۵۹.۱۳) Automation / robots boundary (Phase M)
+
+```text
+S4-EO-02_MAY_DEFER_AUTOMATION_MERITS_TO = S4-EO-04
+S4-EO-02_DOES_NOT_CONCLUDE =
+  AUTOMATION_ALLOWED; CRAWLER_ALLOWED; API_ALLOWED; BULK_ACCESS_ALLOWED; RATE_LIMIT_ACCEPTABLE
+ROBOTS_ALLOW != AUTOMATION_PERMISSION = PRESERVED
+PUBLIC_ACCESS != AUTOMATION_PERMISSION = PRESERVED
+SILENCE != PERMISSION = PRESERVED
+UNKNOWN_AUTOMATION = FAIL_CLOSED
+S4_EO_04_READY = YES
+```
+
+### ۱۵۹.۱۴) Authority / editorial / MR boundary (Phase N)
+
+```text
+S4-EO-02_MAY_DEFER_THESE_MERITS_TO = S4-EO-05
+S4-EO-02_DOES_NOT_CONCLUDE =
+  RECOGNIZED_SOURCE; CLINICAL_AUTHORITY; GUIDELINE_AUTHORITY;
+  VERIFIED_MEDICAL_REVIEW; VERIFIED_AUTHORSHIP; VERIFIED_EDITORIAL_PROCESS;
+  VERIFIED_INDEXING; ABSOLUTE_PREDATORY_CLEARANCE
+ROLE_SEPARATION_LAWS = PRESERVED
+S4_EO_05_READY = YES
+```
+
+### ۱۵۹.۱۵) Optional network / corroboration routing (Phase O)
+
+| RESIDUAL_ID | WHY_INSUFFICIENT | MISSING | NETWORK | CORROBORATION | PREP_CONTRACT | STOP |
+|---|---|---|---|---|---|---|
+| C4B06-R-IRSOME-01 | timeout incomplete candidate | identity pack OR exclude | OPTIONAL (if retained) | NO | retrieve-or-exclude under locked residual Gate | no unlocked queries; no PDF harvest |
+| C4B07-R-MPGH-01 | timeout | GET OR exclude | OPTIONAL | NO | same | same |
+| C4B08-R-IJMS-01 | thin retrieval | identity pack OR exclude | OPTIONAL | NO | same | same |
+| C4B08-R-PORTAL-01 | portal timeout | GET OR exclude | OPTIONAL | NO | same | same |
+| C4B06-R-RECOG-01 | MoH self-claim | official corroboration OR owned defer | NO default | OPTIONAL→S4-EO-07 | plan before fetch | self-claim≠verified |
+| C4B08-R-INDEX-01 | indexing self-claim | corroboration OR owned defer | NO default | OPTIONAL→S4-EO-07 | plan before fetch | self-claim≠verified |
+| C4B-09 residuals | new network not required | — | NO | NO | — | C4B09_NEW_NETWORK_REQUIRED=NO |
+
+```text
+NO_NETWORK_EXECUTED = YES
+NO_EXTERNAL_CORROBORATION_EXECUTED = YES
+NOT_EVERY_RESIDUAL_ROUTED_TO_NETWORK = YES
+```
+
+### ۱۵۹.۱۶) Review / expiry trigger audit (Phase P)
+
+```text
+EVERY_AUTHORIZED_DEFERMENT_HAS_REVIEW_TRIGGER = YES
+REVIEW_TRIGGER_COMPLETE_COUNT = 41
+REVIEW_TRIGGER_INCOMPLETE_COUNT = 0
+COMMON_TRIGGERS = BEFORE_EO_CLOSURE_ATTESTATION; BEFORE_SOURCE_ACTIVATION; BEFORE_STAGE5_ENTRY; FIXED_LATER_GATE
+PLUS_CLASS_TRIGGERS = ON_LEGAL_REVIEW / ON_LICENSE_CHANGE / BEFORE_CRAWLER_ENABLEMENT / ON_GOVERNANCE_REVIEW / ON_NETWORK_REOPEN_APPROVAL as applicable
+```
+
+### ۱۵۹.۱۷) Deferment counts (Phase Q)
+
+```text
+EO_DEFERMENT_AUTHORIZED_COUNT = 41
+EO_DEFERMENT_NOT_AUTHORIZED_COUNT = 0
+EO_DEFERMENT_AUTHORITY_NOT_FOUND_COUNT = 0
+EO_DEFERMENT_BLOCKED_BY_CONFLICT_COUNT = 0
+NOT_APPLICABLE_COUNT = 0
+TOTAL = 41
+SUM = 41 = TOTAL_CANONICAL_RESIDUALS
+COUNT_RECONCILIATION = PASS
+```
+
+| CHILD | AUTHORIZED |
+|---|---|
+| C4B-05 | 8 |
+| C4B-06 | 8 |
+| C4B-07 | 8 |
+| C4B-08 | 11 |
+| C4B-09 | 6 |
+
+| LATER_GATE_ID | COUNT |
+|---|---|
+| S4-EO-03 | 15 |
+| S4-EO-05 | 9 |
+| S4-EO-04 | 7 |
+| S4-EO-06 | 4 |
+| Framework/OFS | 1 |
+| Historical-doc | 1 |
+| Product scope | 1 |
+| S4-EO-09 | 1 |
+| activation (blocked) | 1 |
+| optional brand | 1 |
+
+| CANONICAL_CLASS | COUNT |
+|---|---|
+| ATTRIBUTION | 1 |
+| AUTHORITY | 1 |
+| AUTHORSHIP | 1 |
+| AUTOMATION | 4 |
+| EDITORIAL | 2 |
+| HISTORICAL_GAP | 1 |
+| IDENTITY | 1 |
+| INDEXING | 1 |
+| LICENSE | 2 |
+| MEDICAL_REVIEW | 1 |
+| OTHER_AUTHORITY_BACKED_CLASS | 6 |
+| PREDATORY_RISK | 1 |
+| RECOGNITION | 1 |
+| REUSE | 4 |
+| RIGHTS | 3 |
+| ROBOTS | 3 |
+| TERMS | 4 |
+| TIMEOUT | 4 |
+
+### ۱۵۹.۱۸) Deferment conflict ledger (Phase R)
+
+| CONFLICT_ID | RESIDUAL_ID | CONFLICT_TYPE | RESOLUTION | UNRESOLVED? | BLOCKS_S4_EO_02? |
+|---|---|---|---|---|---|
+| — | — | NONE_MATERIAL | eligibility + routing applied consistently; child≠EO auto resolved by this Gate attestation | NO | NO |
+
+```text
+DEFERMENT_CONFLICT_LEDGER_EMPTY_OF_BLOCKERS = YES
+NO_IMPLIED_WAIVER = YES
+NO_ACTIVATION_VIA_DEFERMENT = YES
+```
+
+### ۱۵۹.۱۹) S4-EO-03 / 04 / 05 readiness (Phase S)
+
+```text
+S4_EO_03_READY = YES
+S4_EO_04_READY = YES
+S4_EO_05_READY = YES
+
+READINESS_BASIS =
+  residuals routed with canonical IDs, owners, dependencies,
+  COMPLETE_AND_TESTABLE closure criteria, clear merits questions,
+  clear prohibited conclusions, clear expected outputs,
+  no unresolved ownership conflict
+
+S4_EO_03_04_05_NOT_EXECUTED = YES
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES for each
+```
+
+### ۱۵۹.۲۰) EO state after disposition (Phase T)
+
+```text
+EO_SATISFIED_COUNT = 7
+  (EO-C01, EO-C02, EO-C03, EO-C08, EO-C09, EO-C10, EO-C12)
+EO_PARTIAL_COUNT = 0
+EO_OPEN_COUNT = 1
+  (EO-C11)
+EO_BLOCKED_COUNT = 0
+EO_DEFERRED_COUNT = 4
+  (EO-C04, EO-C05, EO-C06, EO-C07) PRIMARY_STATE = DEFERRED_WITH_OWNER
+
+SUM_OF_EXCLUSIVE_PRIMARY_STATES = 7+0+1+0+4 = 12 = EO_CRITERION_COUNT
+ARITHMETIC_RECONCILES = YES
+
+EVIDENCE_OVERLAY_CURRENT_STATE_AFTER_S4_EO_02 =
+  OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+  (EO-C11 remains OPEN; merits Gates S4-EO-03/04/05 still required
+   before any clearance path; S4-EO-09 attestation not done;
+   DEFERRED_WITH_OWNER is owned fail-closed path, not automatic closure)
+EVIDENCE_OVERLAY_READY_FOR_NEXT_SUBGATES = YES
+```
+
+### ۱۵۹.۲۱) Stage-5 / waiver / P2 state (Phase U)
+
+```text
+STAGE5_REQUIRES_EO_CLOSURE = YES
+STAGE5_REQUIRES_EXPLICIT_WAIVER_IF_EO_OPEN = YES
+WAIVER_AUTHORITY_EXISTS = YES
+WAIVER_CREATED = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+P2_FOUNDATION_IMPLEMENTATION_READINESS = READY_WITH_EXPLICIT_GAPS
+P2_RUNTIME_OR_SOURCE_ACTIVATION_READINESS = NOT_READY
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+S4_EO_02_IS_NOT_A_STAGE5_WAIVER = YES
+```
+
+### ۱۵۹.۲۲) Operations NOT performed
+
+```text
+NO network / search / HTTP / external evidence / query execution
+NO legal/right merits decision / license/reuse/copyright/attribution approval
+NO automation / crawler / rate-limit / API-bulk permission decision
+NO recognition / clinical authority / editorial / MR / indexing / predatory approval
+NO residual closure / deletion / suppression
+NO UNKNOWN→PASS / FAIL_CLOSED→PASS
+NO EO closure declaration/execution
+NO waiver creation/approval
+NO source activation / crawler / KB / publication / runtime
+NO P2 / P3 / P4 / P5 / P6
+NO test / CI / workflow
+NO commit / push / fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–158
+```
+
+### ۱۵۹.۲۳) Exact next Gate (Phase V)
+
+```text
+NEXT_GATE =
+S4-EO-03 — RIGHTS / LICENSE / REUSE DISPOSITION
+(LEGAL_RIGHTS_DECISION; separate Javad approval required)
+
+WHY_NEXT =
+  §157 ordered plan; S4_EO_03_READY=YES;
+  rights residuals are first merits class after EO-level defer attestation;
+  no docs-only correction Gate required
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۵۹.۲۴) Completion markers / execution state
+
+```text
+S4_EO_02_COMPLETE = YES
+EO_DEFERMENT_AUTHORIZED_COUNT = 41
+EO_DEFERRED_COUNT = 4
+EO_SATISFIED_COUNT = 7
+EO_OPEN_COUNT = 1
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+S4_EO_03_READY = YES
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+S4_EO_02_GOVERNANCE_DEFERMENT_DISPOSITION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_EXPLICIT_NON_DEFERABLE_ITEMS
+```
+
+### ۱۵۹.۲۵) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+765660ca86e7770f23742551265fb84ab70951f490d54f4a3073492683f6af39
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–158_PRESERVED = YES
+§159_ONLY_NEW_SECTION = YES
+§159_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۵۹ — SECTION-28 S4-EO-02 Governance Deferment Disposition — S4_EO_02_GOVERNANCE_DEFERMENT_DISPOSITION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۰) SECTION-28 — ROADMAP STAGE-4 — S4-EO-03 — RIGHTS / LICENSE / REUSE DISPOSITION
+
+```text
+PACKAGE =
+SECTION-28 — ROADMAP STAGE-4 —
+S4-EO-03 — RIGHTS / LICENSE / REUSE DISPOSITION
+
+MODE =
+REPOSITORY_LOCAL / RIGHTS_GOVERNANCE / APPEND_ONLY /
+REPOSITORY_EVIDENCE_BASED_DISPOSITION_ONLY /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_NEW_LEGAL_INTERPRETATION / NO_LEGAL_RISK_ACCEPTANCE /
+NO_AUTOMATION_PERMISSION / NO_SOURCE_ACTIVATION /
+NO_EO_CLOSURE / NO_WAIVER / NO_UNKNOWN_TO_PASS /
+NO_P2_P3_P4 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Legal / Governance / Continuity
+Supporting:
+Security, Data/Knowledge, Documentation
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local rights-governance Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  disposition every §159 residual routed to S4-EO-03;
+  independently classify terms/license/copyright/metadata reuse/
+  full-text reuse/attribution/derivative/commercial/non-commercial/
+  ingestion eligibility; preserve contradictions and UNKNOWN as fail-closed
+
+PERMANENT_RIGHTS_LAWS_PRESERVED =
+  PUBLIC_ACCESS != REUSE_PERMISSION
+  OPEN_ACCESS != UNRESTRICTED_REUSE
+  PUBLIC_PDF != INGESTION_PERMISSION
+  LICENSE_CLAIM != AUTOMATION_PERMISSION
+  ROBOTS_ALLOW != COPYRIGHT_PERMISSION
+  ATTRIBUTION_TEXT != FULL_REUSE_PERMISSION
+  METADATA_REUSE_PERMISSION != FULL_TEXT_REUSE_PERMISSION
+  NON_COMMERCIAL_LICENSE != COMMERCIAL_USE_PERMISSION
+  AUTHOR_RETAINS_COPYRIGHT != UNRESTRICTED_PLATFORM_REUSE
+  LICENSE_UNKNOWN / COPYRIGHT_OWNER_UNKNOWN / REUSE_UNKNOWN /
+  ATTRIBUTION_UNKNOWN / DERIVATIVE_USE_UNKNOWN = FAIL_CLOSED
+  S4_EO_03_DISPOSITION != LEGAL_RISK_ACCEPTANCE
+  S4_EO_03_DISPOSITION != AUTOMATION_PERMISSION
+  S4_EO_03_DISPOSITION != SOURCE_ACTIVATION
+  S4_EO_03_DISPOSITION != EVIDENCE_OVERLAY_CLOSURE
+
+Baseline (verified at S4-EO-03 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §159
+  §§145–159 = PRESENT
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Verified continuity:
+  S4_EO_01 = PASS / COMPLETE
+  S4_EO_02 = PASS_WITH_EXPLICIT_NON_DEFERABLE_ITEMS
+  TOTAL_CANONICAL_RESIDUALS = 41
+  EO_DEFERMENT_AUTHORIZED_COUNT = 41
+  EXPECTED_S4_EO_03_ROUTED_RESIDUALS = 15
+  EO_SATISFIED_COUNT = 7
+  EO_DEFERRED_COUNT = 4
+  EO_OPEN_COUNT = 1
+  EVIDENCE_OVERLAY_CURRENT_STATE = OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+  EVIDENCE_OVERLAY_CLOSED = NO
+  EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+  S4_EO_03_READY = YES
+  STAGE5_READY = NO
+  WAIVER_CREATED = NO
+  P2_STARTED = NO
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+7d90270f25d321ccadaf8e90606996f9d8d80e160a14bdbefb65408f35fef826
+```
+
+### ۱۶۰.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+BLOCKED_S4_EO_03_INPUT_INCOMPLETE = NO
+LEGAL_RISK_ACCEPTANCE_AUTHORIZED = NO
+AUTOMATION_MERITS_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+NETWORK_AUTHORIZED = NO
+```
+
+### ۱۶۰.۲) Rights authority ledger (Phase B)
+
+| AUTHORITY_ID | SECTION | CHILD | DIMENSION | OBSERVED | SUPPORTS | DOES_NOT_SUPPORT | CLASS |
+|---|---|---|---|---|---|---|---|
+| AUTH-93-EO | §93.9–§93.10 | EO | fail-closed license/terms | design laws | UNKNOWN→fail-closed | inventing permission | CURRENT |
+| AUTH-145-10 | §145.10 | EO-C04/C07 | rights/eligibility criteria | checklist | owned fail-closed path | UNKNOWN→PASS | CURRENT |
+| AUTH-144-146 | §144/§146 | C4B-05 | terms/reuse residuals | incomplete terms; reuse UNKNOWN_FAIL_CLOSED | owned defer | clearance | CURRENT |
+| AUTH-150 | §150.7/§150.11 | C4B-06 | terms/reuse/D06D10 | not retrieved / search insufficient | residual ownership | rights PASS | CURRENT |
+| AUTH-152 | §152.10/§152.13 | C4B-07 | terms/reuse | not retrieved / UNKNOWN | residual ownership | guideline authority | CURRENT |
+| AUTH-154-12 | §154.12 | C4B-08 | license/reuse/attr | CC claims; CONTRA-01; authors retain © | observed claims as claims | version resolution; KB ingest | CURRENT |
+| AUTH-154-13 | §154.13 | C4B-08 | TOU | no dedicated TOU | absence recorded | TOU permission | CURRENT |
+| AUTH-118-155 | §118/§155.7–8 | C4B-09 | rights | exclusive IP; REUSE FAIL_CLOSED; secondary-only | fail-closed ownership | store/automation grant | CURRENT |
+| AUTH-157-159 | §157–§159 | Stage-4 | routing | 15 residuals → S4-EO-03 | disposition Gate | merits clearance | CURRENT |
+
+```text
+NO_GENERAL_LEGAL_KNOWLEDGE_USED_AS_AUTHORITY = YES
+BLOCKED_RIGHTS_AUTHORITY_CONFLICT = NO
+```
+
+### ۱۶۰.۳) Exact S4-EO-03 routed residual set (Phase C)
+
+```text
+S4_EO_03_ROUTED_RESIDUAL_COUNT = 15
+EXPECTED_ROUTED_COUNT = 15
+COUNT_VARIANCE = 0
+COUNT_VARIANCE_REASON = N/A — matches §159 later_gate_id = S4-EO-03
+INPUT_AUTHORITY = §159.7 disposition ledger + §158.7 canonical rows
+```
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | CLASS | EO | OWNER | DEFERMENT (§159) |
+|---|---|---|---|---|---|---|
+| 1 | C4B05-R02 | C4B-05 | TERMS | EO-C04 | Legal / Knowledge Ops | EO_DEFERMENT_AUTHORIZED |
+| 2 | C4B05-R07 | C4B-05 | REUSE | EO-C04;EO-C07 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 3 | C4B06-R-TERMS-01 | C4B-06 | TERMS | EO-C04 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 4 | C4B06-R-REUSE-01 | C4B-06 | REUSE | EO-C04;EO-C07 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 5 | C4B06-R-D06D10-01 | C4B-06 | RIGHTS | EO-C04;EO-C08 | Knowledge Ops | EO_DEFERMENT_AUTHORIZED |
+| 6 | C4B07-R-TERMS-01 | C4B-07 | TERMS | EO-C04 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 7 | C4B07-R-REUSE-01 | C4B-07 | REUSE | EO-C04;EO-C07 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 8 | C4B08-R-LICENSE-01 | C4B-08 | LICENSE | EO-C04 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 9 | C4B08-R-LICENSE-02 | C4B-08 | LICENSE | EO-C04 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 10 | C4B08-R-REUSE-01 | C4B-08 | REUSE | EO-C04;EO-C07 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 11 | C4B08-R-TERMS-01 | C4B-08 | TERMS | EO-C04 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 12 | C4B08-R-ATTR-01 | C4B-08 | ATTRIBUTION | EO-C04 | Legal | EO_DEFERMENT_AUTHORIZED |
+| 13 | C4B09-R-09A-RIGHTS | C4B-09 | RIGHTS | EO-C04;EO-C07 | Legal/Security/Governance | EO_DEFERMENT_AUTHORIZED |
+| 14 | C4B09-R-09B-RIGHTS | C4B-09 | RIGHTS | EO-C04;EO-C05;EO-C07 | Legal/Security | EO_DEFERMENT_AUTHORIZED |
+| 15 | C4B09-R-09F-I | C4B-09 | OTHER_AUTHORITY_BACKED_CLASS | EO-C07;EO-C09 | Governance/Legal/Backend | EO_DEFERMENT_AUTHORIZED |
+
+### ۱۶۰.۴) Rights state vocabulary (Phase D)
+
+| STATE | MEANING | USE_EFFECT | INGESTION_EFFECT | ACTIVATION_EFFECT | CLOSURE_EFFECT |
+|---|---|---|---|---|---|
+| OBSERVED_SUPPORTED | repository evidence supports the specific dimension claim | limited to that dimension | not alone | NO | may feed later clearance |
+| PARTIAL | some evidence; incomplete scope/implementation | restricted | NO | NO | residual stays open |
+| CONTRADICTORY | conflicting evidence; most-restrictive fail-closed | NO clearance | NO | NO | requires resolution Gate |
+| UNKNOWN_FAIL_CLOSED | missing/silent | NO permission | NO | NO | owned fail-closed OK |
+| NOT_APPLICABLE | dimension not in residual scope | — | — | — | — |
+| LEGAL_DECISION_REQUIRED | repo evidence insufficient for clearance | keep fail-closed | NO | NO | Legal/Product Gate |
+| EXTERNAL_EVIDENCE_REQUIRED | needs later approved fetch/corroboration | keep fail-closed | NO | NO | S4-EO-06/07 if approved |
+
+```text
+NO_AGGREGATE_RIGHTS_PASSED_MARKER = YES
+```
+
+### ۱۶۰.۵) Dimension-separation contract (Phase E)
+
+```text
+INDEPENDENT_DIMENSIONS =
+  TERMS; LICENSE; LICENSE_TYPE/VERSION; COPYRIGHT_OWNER;
+  METADATA_REUSE; FULL_TEXT_REUSE; ATTRIBUTION; DERIVATIVE_USE;
+  COMMERCIAL_USE; NON_COMMERCIAL_USE; REPUBLICATION; REDISTRIBUTION;
+  INGESTION_PERMISSION; RUNTIME_USE
+NO_CROSS_INFERENCE = YES
+CC_BY_OBSERVED != VERSION_RESOLVED != OWNERSHIP_RESOLVED !=
+  AUTOMATION_PERMISSION != FULL_TEXT_INGEST != ATTRIBUTION_IMPLEMENTED
+```
+
+### ۱۶۰.۶) Evidence-sufficiency test (Phase F)
+
+```text
+OBSERVED_SUPPORTED_REQUIRES =
+  1 first-party or authority-accepted evidence location
+  2 exact license/terms text or authoritative marker
+  3 clear scope
+  4 identifiable applicable source/content
+  5 no unresolved contradiction
+  6 no superseding conflicting evidence
+  7 no unsupported interpretation
+  8 no missing owner where ownership required
+FOOTER_ICON_ALONE_NOT_SUFFICIENT_UNLESS_EXPLICITLY_ACCEPTED = YES
+RESULT = applied per residual; no dimension falsely promoted
+```
+
+### ۱۶۰.۷) Terms disposition (Phase G)
+
+```text
+TERMS_ROLLUP =
+  C4B-05 R02: PARTIAL (incomplete across candidates)
+  C4B-06/07 TERMS: UNKNOWN_FAIL_CLOSED (not retrieved)
+  C4B-08 TERMS: UNKNOWN_FAIL_CLOSED (no dedicated TOU; license≠TOU)
+  C4B-09 09A: dedicated TOU NOT_FOUND → UNKNOWN_FAIL_CLOSED
+  C4B-09 09B: policy FOUND historically → PARTIAL; still no third-party grant
+ABSENCE_OF_TERMS = UNKNOWN_FAIL_CLOSED
+PUBLIC_AVAILABILITY != TERMS_PERMISSION = PRESERVED
+TERMS_AUTOMATION_LANGUAGE = recorded where present → routed to S4-EO-04 only
+```
+
+### ۱۶۰.۸) License disposition (Phase H)
+
+```text
+C4B08-CAND-01 / C4B08-R-LICENSE-01:
+  LICENSE_TYPE claims = CC BY-NC
+  LICENSE_VERSION conflict = 4.0 claim vs 3.0 Unported footer (CONTRA-01)
+  LICENSE_CURRENT_STATE = CONTRADICTORY
+  RESOLUTION = NONE in repository after §154
+  EFFECT = most-restrictive FAIL_CLOSED; do NOT select more permissive version
+
+C4B08-R-LICENSE-02:
+  CAND-03 footer CC BY-NC-SA 4.0 PARTIAL; CAND-05 not retrieved
+  LICENSE_CURRENT_STATE = PARTIAL / UNKNOWN_FAIL_CLOSED for ingest
+
+C4B-05/06/07/09 license fields:
+  largely UNKNOWN_FAIL_CLOSED or N/A pending terms
+
+NO_LICENSE_CONTRADICTION_SUPPRESSED = YES
+```
+
+### ۱۶۰.۹) Copyright ownership disposition (Phase I)
+
+```text
+C4B08-CAND-02: authors retain copyright (policy OBSERVED) !=
+  UNRESTRICTED_PLATFORM_REUSE = PRESERVED
+C4B-09 09A/09B: exclusive IP / company owns site IP OBSERVED →
+  COPYRIGHT_OWNER_STATUS = OBSERVED_SUPPORTED for exclusivity claim;
+  third-party Sedi grant = ABSENT → FAIL_CLOSED for reuse
+OTHER_CANDIDATES: COPYRIGHT_OWNER_UNKNOWN = FAIL_CLOSED
+```
+
+### ۱۶۰.۱۰) Metadata reuse disposition (Phase J)
+
+```text
+METADATA_REUSE_STATUS_DOMINANT = UNKNOWN_FAIL_CLOSED
+PUBLIC_TITLE_AUTHOR_ISSN_VISIBLE != BULK_METADATA_REUSE_PERMISSION
+AUTOMATION_BULK_FETCH → S4-EO-04
+```
+
+### ۱۶۰.۱۱) Full-text reuse disposition (Phase K)
+
+```text
+FULL_TEXT_REUSE_STATUS_DOMINANT = UNKNOWN_FAIL_CLOSED
+PUBLIC_PDF != SEDI_KB_INGESTION_PERMISSION = PRESERVED
+NO_CONTENT_INGESTED_OR_COPIED_IN_THIS_GATE = YES
+STORAGE / REPUBLICATION / REDISTRIBUTION / TRANSLATION / TRANSFORM =
+  UNKNOWN_FAIL_CLOSED unless later Legal/Product clearance
+```
+
+### ۱۶۰.۱۲) Attribution disposition (Phase L)
+
+```text
+WHERE_CC_CLAIM_OBSERVED: ATTRIBUTION_REQUIRED = YES (claim)
+SEDI_OPERATIONAL_ATTRIBUTION_FORMAT = NOT_LOCKED → PARTIAL / FAIL_CLOSED for reuse
+C4B08-R-ATTR-01 = PARTIAL (requirements incomplete)
+MISSING_FIELDS_TYPICALLY = author; journal; publisher; license link;
+  change notice; source URL; date accessed — not locked for Sedi
+NO_REUSE_RESIDUAL_CLOSED_WITHOUT_ATTRIBUTION_WHERE_MANDATORY = YES
+```
+
+### ۱۶۰.۱۳) Derivative-use disposition (Phase M)
+
+```text
+DERIVATIVE_USE_DOMINANT = UNKNOWN_FAIL_CLOSED or PARTIAL under NC/SA claims
+PUBLIC_READING != SUMMARIZATION_TRANSLATION_CHUNKING_PERMISSION
+NO_GENERAL_COPYRIGHT_INTERPRETATION_BEYOND_REPO = YES
+SHARE_ALIKE / NC constraints = OBSERVED as claims only where recorded; not clearance
+```
+
+### ۱۶۰.۱۴) Commercial / non-commercial boundary (Phase N)
+
+```text
+NC_RESTRICTION_PRESENT = YES on C4B08 CAND-01/03 claims
+SEDI_COMMERCIAL_CLASSIFICATION_AVAILABLE = NO in repository
+PRODUCT_OR_LEGAL_DECISION_REQUIRED = YES for any NC-conditioned clearance path
+COMMERCIAL_USE_STATUS = UNKNOWN_FAIL_CLOSED (no product classification)
+NON_COMMERCIAL_USE_STATUS = PARTIAL (claims only; not Sedi-qualified)
+NO_SEDI_COMMERCIAL_CLASSIFICATION_DECIDED_HERE = YES
+RUNTIME_INGESTION_REMAINS_FAIL_CLOSED = YES
+```
+
+### ۱۶۰.۱۵) Contradiction ledger (Phase O)
+
+| CONTRADICTION_ID | RESIDUAL_ID | CHILD | CANDIDATE | DIMENSION | EVIDENCE_A | AUTH_A | EVIDENCE_B | AUTH_B | CURRENT_STATE | MOST_RESTRICTIVE_EFFECT | OWNER | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CONTRA-01 | C4B08-R-LICENSE-01 | C4B-08 | CAND-01 MJIRI | LICENSE_VERSION | CC BY-NC 4.0 claim (about; post-2024-08-28) | §154.12 | CC BY-NC 3.0 Unported footer text | §154.12 | CONTRADICTORY / OPEN | FAIL_CLOSED; no permissive selection | Legal | LEGAL_OR_PRODUCT_DECISION_GATE |
+| CONTRA-OA-INGEST | C4B08-R-REUSE-01 | C4B-08 | CAND-01..05 | FULL_TEXT_INGEST | OA / public PDF visibility | §154 | Sedi KB ingest permission absent | §154.12 laws | OPEN (law conflict class) | NO_FULL_TEXT_INGESTION | Legal | keep fail-closed / Legal Gate |
+| CONTRA-AUTHOR-© | C4B08-R-REUSE-01 | C4B-08 | CAND-02 | PLATFORM_REUSE | authors retain copyright OBSERVED | §154.12 | unrestricted Sedi platform reuse not granted | §154.12 | OPEN | FAIL_CLOSED for unrestricted reuse | Legal | Legal Gate |
+
+```text
+NO_FAVORABLE_EVIDENCE_SELECTED = YES
+CONTRA-01_NOT_RESOLVED = YES
+```
+
+### ۱۶۰.۱۶) Full residual-by-residual disposition ledger (Phase P)
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | TERMS | LICENSE | COPYRIGHT | META_REUSE | FULL_TEXT | ATTR | DERIV | COMM | NCOMM | INGEST | CONTRAS | GOVERNANCE_DISPOSITION | ALLOWED_NOW | RESIDUAL_CLOSED | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | C4B05-R02 | C4B-05 | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — terms incomplete; no reuse/ingest | REFERENCE_ONLY / HUMAN_REVIEW_ONLY (discovery ledger already recorded) | NO | LEGAL_OR_PRODUCT_DECISION |
+| 2 | C4B05-R07 | C4B-05 | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — reuse UNKNOWN; LEGAL_DECISION_REQUIRED for clearance | NO_REUSE / REFERENCE_ONLY | NO | LEGAL_OR_PRODUCT_DECISION |
+| 3 | C4B06-R-TERMS-01 | C4B-06 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — terms not retrieved | NO_REUSE / DISCOVERY_METADATA_ONLY (identity ledger only) | NO | LEGAL_OR_PRODUCT_DECISION |
+| 4 | C4B06-R-REUSE-01 | C4B-06 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — reuse UNKNOWN | NO_REUSE | NO | LEGAL_OR_PRODUCT_DECISION |
+| 5 | C4B06-R-D06D10-01 | C4B-06 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — search path insufficient for rights | NO_REUSE; discovery ledger only | NO | NETWORK |
+| 6 | C4B07-R-TERMS-01 | C4B-07 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — terms not retrieved; patient-ed≠guideline preserved | NO_REUSE / REFERENCE_ONLY | NO | LEGAL_OR_PRODUCT_DECISION |
+| 7 | C4B07-R-REUSE-01 | C4B-07 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — reuse UNKNOWN | NO_REUSE | NO | LEGAL_OR_PRODUCT_DECISION |
+| 8 | C4B08-R-LICENSE-01 | C4B-08 | UNKNOWN_FAIL_CLOSED | CONTRADICTORY | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | CONTRA-01 | CONTRADICTORY / FAIL_CLOSED — most-restrictive; do not select more permissive version | NO_REUSE for Sedi ingest; NC claim OBSERVED but version conflict blocks clearance | NO | LEGAL_OR_PRODUCT_DECISION |
+| 9 | C4B08-R-LICENSE-02 | C4B-08 | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | — | PARTIAL / FAIL_CLOSED for ingest — license incomplete | NO_REUSE / NO_FULL_TEXT_INGESTION | NO | LEGAL_OR_PRODUCT_DECISION |
+| 10 | C4B08-R-REUSE-01 | C4B-08 | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | CONTRA-01 (feeds via CAND-01) | FAIL_CLOSED_OWNED — PUBLIC_PDF≠INGESTION; OA≠UNRESTRICTED_REUSE | NO_REUSE / NO_FULL_TEXT_INGESTION; human reading of public pages ≠ Sedi KB right | NO | LEGAL_OR_PRODUCT_DECISION |
+| 11 | C4B08-R-TERMS-01 | C4B-08 | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — TOU missing; automation language→S4-EO-04 only | NO_REUSE | NO | LEGAL_OR_PRODUCT_DECISION |
+| 12 | C4B08-R-ATTR-01 | C4B-08 | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | — | PARTIAL / FAIL_CLOSED for reuse — attribution implementation incomplete | NO_REUSE until attribution rule locked where CC requires attribution | NO | LEGAL_OR_PRODUCT_DECISION |
+| 13 | C4B09-R-09A-RIGHTS | C4B-09 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | OBSERVED_SUPPORTED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — SECONDARY_ONLY; no affirmative reuse/automation/storage | REFERENCE_ONLY / DISCOVERY_METADATA_ONLY (09A narrow PASS scope); NO_REUSE | NO | LEGAL_OR_PRODUCT_DECISION |
+| 14 | C4B09-R-09B-RIGHTS | C4B-09 | PARTIAL | UNKNOWN_FAIL_CLOSED | OBSERVED_SUPPORTED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | — | FAIL_CLOSED_OWNED — rights remain FAIL_CLOSED after 09B governance closure | NO_REUSE; SECONDARY_ONLY | NO | LEGAL_OR_PRODUCT_DECISION |
+| 15 | C4B09-R-09F-I | C4B-09 | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | — | NOT_EXECUTED / FAIL_CLOSED for catalog eligibility claims | NO_REUSE; NO catalog-eligibility claim | NO | GOVERNANCE_DECISION |
+
+```text
+RESIDUAL_CLOSED_DEFAULT = NO
+RESIDUAL_CLOSED_COUNT = 0
+NO_CLOSURE_FROM_LICENSE_CLAIM_ALONE = YES
+EVERY_ROUTED_RESIDUAL_HAS_ONE_ROW = YES
+```
+
+### ۱۶۰.۱۷) Allowed-use ledger (Phase Q)
+
+```text
+NO_BROAD_APPROVED_FOR_SEDI_STATUS = YES
+
+ALLOWED_USE_CLASSES_SUPPORTED_NOW =
+  REFERENCE_ONLY — human reference to discovery ledger / public pages
+  DISCOVERY_METADATA_ONLY — already-recorded identity metadata in Stage-3 packs
+  HUMAN_REVIEW_ONLY — manual review without store/ingest
+  NO_REUSE — default where UNKNOWN/CONTRADICTORY
+
+FOR_EACH_ALLOWED_USE:
+  AUTOMATION_NOT_INCLUDED = YES
+  INGESTION_NOT_INCLUDED = YES
+  ACTIVATION_NOT_INCLUDED = YES
+  LICENSE_CONDITIONS = unresolved or fail-closed
+```
+
+### ۱۶۰.۱۸) Prohibited-use ledger (Phase R)
+
+```text
+APPLIES_TO_ALL_15_ROUTED_RESIDUALS =
+  NO_FULL_TEXT_INGESTION
+  NO_BULK_DOWNLOAD
+  NO_REPUBLICATION
+  NO_REDISTRIBUTION
+  NO_COMMERCIAL_USE (until Legal/Product classification + clearance)
+  NO_DERIVATIVE_USE (until cleared)
+  NO_TRANSLATION (as Sedi right)
+  NO_METADATA_BULK_REUSE
+  NO_RUNTIME_GROUNDING
+  NO_SOURCE_ACTIVATION
+  NO_CRAWLER_ENABLEMENT
+  NO_AUTOMATION_INFERENCE
+  NO_UNKNOWN_TO_PASS
+  NO_CONTRADICTION_SUPPRESSION
+SOURCE_ACTIVATION_LOCKS_NOT_WEAKENED = YES
+```
+
+### ۱۶۰.۱۹) Child-by-child rights rollup (Phase S)
+
+```text
+C4B-05 routed=2 (R02,R07): terms PARTIAL/incomplete; reuse UNKNOWN_FAIL_CLOSED;
+  ingest FAIL_CLOSED; NETWORK_RESULT_VALID=NO preserved; activation NO
+
+C4B-06 routed=3 (TERMS,REUSE,D06D10): terms/reuse not retrieved / search insufficient;
+  all ingest FAIL_CLOSED; activation NO
+
+C4B-07 routed=2 (TERMS,REUSE): same fail-closed pattern;
+  PATIENT_EDUCATION_ROLE != CLINICAL_GUIDELINE_AUTHORITY preserved; activation NO
+
+C4B-08 routed=5 (LICENSE×2,REUSE,TERMS,ATTR): CONTRA-01 OPEN;
+  OA/PDF≠ingest; attribution PARTIAL; journal≠clinical preserved; activation NO
+
+C4B-09 routed=3 (09A-RIGHTS,09B-RIGHTS,09F-I): SECONDARY_ONLY=YES;
+  exclusive IP OBSERVED; reuse FAIL_CLOSED; catalog NOT_EXECUTED;
+  new network NO; activation NO
+
+SOURCE_ACTIVATION_STATE = NO (all children)
+RESIDUALS_ELIGIBLE_FOR_CLOSURE = 0
+RESIDUALS_REMAINING_OPEN = 15
+```
+
+### ۱۶۰.۲۰) EO-criterion impact (Phase T)
+
+| CRITERION_ID | STATE_BEFORE | RIGHTS_RESIDUALS | EVIDENCE_CONFIRMED | EVIDENCE_MISSING / CONTRADICTIONS | EFFECT | STATE_AFTER | WHY |
+|---|---|---|---|---|---|---|---|
+| EO-C01 | SATISFIED | — | design | — | none | SATISFIED | unrelated |
+| EO-C02 | SATISFIED | all | fail-closed law applied | — | law preserved | SATISFIED | NON-DEFERABLE |
+| EO-C03 | SATISFIED | — | — | — | none | SATISFIED | unrelated |
+| EO-C04 | DEFERRED_WITH_OWNER | all 15 except pure C07/C09-only | owned fail-closed disposition recorded | terms/license/reuse clearance; CONTRA-01 | strengthens owned fail-closed; not SATISFIED | DEFERRED_WITH_OWNER | §145.10/§157/§159; fail-closed ≠ evidence-SATISFIED |
+| EO-C05 | DEFERRED_WITH_OWNER | 09B-RIGHTS (automation adjacency) | rights≠automation preserved | automation merits | no automation approval | DEFERRED_WITH_OWNER | S4-EO-04 owns automation |
+| EO-C06 | DEFERRED_WITH_OWNER | — | — | — | none | DEFERRED_WITH_OWNER | not rights Gate |
+| EO-C07 | DEFERRED_WITH_OWNER | R07, REUSE×3, 09A/09B/09F-I | eligibility remain fail-closed | FREE_AND_DISCOVERY_ELIGIBLE not granted | no eligibility upgrade | DEFERRED_WITH_OWNER | fail-closed eligibility path |
+| EO-C08 | SATISFIED | D06D10 owned | ownership preserved | — | none | SATISFIED | matrix remains owned |
+| EO-C09 | SATISFIED | 09F-I | disabled | — | remains disabled | SATISFIED | activation lock |
+| EO-C10 | SATISFIED | — | — | — | none | SATISFIED | — |
+| EO-C11 | OPEN | — | — | dry-run | none | OPEN | S4-EO-08 |
+| EO-C12 | SATISFIED | — | — | — | none | SATISFIED | — |
+
+```text
+NO_CRITERION_SATISFIED_SOLELY_BECAUSE_FAIL_CLOSED = YES
+EO_STATE_COUNTS_UNCHANGED = YES (7/0/1/0/4)
+```
+
+### ۱۶۰.۲۱) Residual closure test (Phase U)
+
+```text
+ROUTED_RESIDUALS = 15
+RESIDUAL_CLOSURE_ELIGIBLE_COUNT = 0
+RESIDUAL_CLOSED_COUNT = 0
+RESIDUAL_REMAINING_OPEN_COUNT = 15
+
+WHY_NONE_CLOSED =
+  unresolved UNKNOWN dimensions; CONTRA-01 open;
+  Legal/Product decisions still required for clearance paths;
+  attribution operationalization incomplete;
+  authority does not permit closure on observed license claims alone
+
+SUCCESSFUL_S4_EO_03_MAY_LEAVE_ALL_OPEN_FAIL_CLOSED = YES
+```
+
+### ۱۶۰.۲۲) Unresolved-item routing (Phase V)
+
+| ITEM | WHY_INSUFFICIENT | MISSING / DECISION | OWNER | NEXT_GATE | SEPARATE_JAVAD_APPROVAL |
+|---|---|---|---|---|---|
+| CONTRA-01 version conflict | two conflicting CC BY-NC versions | authoritative version resolution | Legal | LEGAL_OR_PRODUCT_DECISION_GATE | YES |
+| NC commercial fit | NC claims without Sedi classification | product commercial classification | Legal/Product | LEGAL_OR_PRODUCT_DECISION_GATE | YES |
+| C4B-05/06/07 terms/reuse | not retrieved / UNKNOWN | first-party packs or keep reject | Legal | residual rights Gate / Legal Gate | YES |
+| C4B-08 ATTR | format not locked | attribution rule | Legal | Legal Gate | YES |
+| C4B-09 store/reuse | exclusive IP; no grant | written grant or keep reject | Legal/Product | Legal Gate | YES |
+| C4B-09 09F–I catalog | not executed | separate 09F–I Gates | Governance | GOVERNANCE_DECISION | YES |
+| Automation/robots | out of S4-EO-03 merits scope | automation decision | Security/Legal | S4-EO-04 | YES |
+| Authority/MR/indexing | out of scope | merits | Medical/Data | S4-EO-05 | YES |
+| Timeout retrieve/exclude | not rights | network if retained | Governance | S4-EO-06 | YES |
+| Indexing/recog corroboration | not rights | plan/fetch | Data | S4-EO-07 | YES |
+| Dry-run checklist | EO-C11 | checklist | Governance | S4-EO-08 | YES |
+
+```text
+NO_LATER_GATE_EXECUTED = YES
+```
+
+### ۱۶۰.۲۳) S4-EO-04 readiness (Phase W)
+
+```text
+S4_EO_04_READY = YES
+
+READINESS_BASIS =
+  automation-routed residuals retain canonical IDs/owners/dependencies/CC from §158–§159;
+  robots evidence separated from permission (§154.13; §155.7; permanent laws);
+  terms automation language / Crawl-delay OBSERVED preserved as non-permission;
+  rights remain fail-closed without blocking independent automation question framing
+
+S4_EO_04_NOT_EXECUTED = YES
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۶۰.۲۴) EO state after S4-EO-03 (Phase X)
+
+```text
+EO_SATISFIED_COUNT = 7
+EO_PARTIAL_COUNT = 0
+EO_OPEN_COUNT = 1
+EO_BLOCKED_COUNT = 0
+EO_DEFERRED_COUNT = 4
+EO_AUTHORITY_NOT_FOUND_COUNT = 0
+SUM = 7+0+1+0+4+0 = 12
+ARITHMETIC_RECONCILES = YES
+
+EVIDENCE_OVERLAY_CURRENT_STATE_AFTER_S4_EO_03 =
+  OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+  (rights disposition strengthens fail-closed ownership; does not close EO)
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_READY_FOR_NEXT_SUBGATES = YES
+```
+
+### ۱۶۰.۲۵) Stage-5 / waiver / P2 state (Phase Y)
+
+```text
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+S4_EO_03_IS_NOT_A_WAIVER = YES
+S4_EO_03_DOES_NOT_AUTHORIZE_STAGE5 = YES
+```
+
+### ۱۶۰.۲۶) Operations NOT performed
+
+```text
+NO network / search / HTTP / external evidence / query execution
+NO unsupported legal interpretation / legal advice
+NO legal/product risk acceptance
+NO rights approval beyond repository evidence
+NO automation / crawler / rate-limit / API-bulk permission
+NO recognition / clinical authority / editorial / MR / indexing / predatory approval
+NO residual closure (0 closed)
+NO UNKNOWN→PASS / FAIL_CLOSED→PASS
+NO EO closure / waiver
+NO source activation / crawler / KB / publication / runtime
+NO P2 / P3 / P4 / P5 / P6
+NO test / CI / workflow
+NO commit / push / fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–159
+```
+
+### ۱۶۰.۲۷) Exact next Gate (Phase Z)
+
+```text
+NEXT_GATE =
+S4-EO-04 — AUTOMATION / ROBOTS / RATE-LIMIT DISPOSITION
+(separate Javad approval required)
+
+WHY_NEXT =
+  §157 ordered plan; S4_EO_04_READY = YES;
+  rights ambiguity remains fail-closed and does not block automation framing
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۶۰.۲۸) Completion markers / execution state
+
+```text
+S4_EO_03_COMPLETE = YES
+S4_EO_03_ROUTED_RESIDUAL_COUNT = 15
+RESIDUAL_CLOSED_COUNT = 0
+CONTRA-01_PRESERVED = YES
+INGESTION_PERMISSION_GRANTED_COUNT = 0
+EVIDENCE_OVERLAY_CLOSED = NO
+S4_EO_04_READY = YES
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+S4_EO_03_RIGHTS_LICENSE_REUSE_DISPOSITION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_EXPLICIT_FAIL_CLOSED_RIGHTS
+```
+
+### ۱۶۰.۲۹) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+7d90270f25d321ccadaf8e90606996f9d8d80e160a14bdbefb65408f35fef826
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–159_PRESERVED = YES
+§160_ONLY_NEW_SECTION = YES
+§160_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۶۰ — SECTION-28 S4-EO-03 Rights / License / Reuse Disposition — S4_EO_03_RIGHTS_LICENSE_REUSE_DISPOSITION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۱) SECTION-28 — ROADMAP STAGE-4 — S4-EO-04 — AUTOMATION / ROBOTS / RATE-LIMIT DISPOSITION
+
+```text
+PACKAGE =
+SECTION-28 — ROADMAP STAGE-4 —
+S4-EO-04 — AUTOMATION / ROBOTS / RATE-LIMIT DISPOSITION
+
+MODE =
+REPOSITORY_LOCAL / OPERATIONAL_GOVERNANCE / APPEND_ONLY /
+REPOSITORY_EVIDENCE_BASED_DISPOSITION_ONLY /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_LIVE_ROBOTS_FETCH /
+NO_RATE_LIMIT_EXPERIMENT / NO_PROBE_REQUEST /
+NO_AUTOMATION_APPROVAL_BEYOND_REPO / NO_CRAWLER_ACTIVATION /
+NO_SOURCE_ACTIVATION / NO_EO_CLOSURE / NO_WAIVER /
+NO_UNKNOWN_TO_PASS / NO_P2_P3_P4 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Security / Legal / Governance / Continuity
+Supporting:
+Provider Verification, Data/Knowledge, Documentation
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local operational-governance Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  disposition every §159 residual routed to S4-EO-04;
+  independently classify robots/automation/crawler/API/bulk/
+  rate-limit/auth/incremental/safety dimensions; preserve UNKNOWN as fail-closed
+
+PERMANENT_AUTOMATION_LAWS_PRESERVED =
+  PUBLIC_ACCESS != AUTOMATION_PERMISSION
+  ROBOTS_ALLOW != AUTOMATION_PERMISSION
+  ROBOTS_ALLOW != CRAWLER_APPROVAL
+  ROBOTS_DISALLOW => AUTOMATION_BLOCKED_FOR_AFFECTED_PATHS
+  ABSENCE_OF_PROHIBITION != PERMISSION
+  SILENCE != PERMISSION
+  TECHNICAL_FEASIBILITY != AUTHORIZATION
+  API_EXISTENCE != BULK_ACCESS_PERMISSION
+  PUBLIC_ENDPOINT != AUTOMATED_ACCESS_PERMISSION
+  NO_RATE_LIMIT_OBSERVED != UNLIMITED_USE
+  SUCCESSFUL_HISTORICAL_REQUEST != ONGOING_AUTOMATION_PERMISSION
+  AUTHENTICATION_AVAILABLE != AUTOMATION_AUTHORIZED
+  INCREMENTAL_FETCH_TECHNICALLY_POSSIBLE != INCREMENTAL_FETCH_APPROVED
+  UNKNOWN_AUTOMATION = FAIL_CLOSED
+  UNKNOWN_RATE_LIMIT = CONSERVATIVE_FAIL_CLOSED
+  S4_EO_04_DISPOSITION != SOURCE_ACTIVATION / CRAWLER_ACTIVATION / EO_CLOSURE
+
+Baseline (verified at S4-EO-04 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  REMOTE_FEATURE_SHA = af1d583df55a8df8284105917e86caf6342eb089
+  ORIGIN_MAIN = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §160
+  §§145–160 = PRESENT
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Verified continuity:
+  S4_EO_01 = PASS / COMPLETE
+  S4_EO_02 = PASS_WITH_EXPLICIT_NON_DEFERABLE_ITEMS
+  S4_EO_03 = PASS_WITH_EXPLICIT_FAIL_CLOSED_RIGHTS
+  TOTAL_CANONICAL_RESIDUALS = 41
+  EXPECTED_S4_EO_04_ROUTED_RESIDUALS = 7
+  EO counts 7/0/1/0/4; EO CLOSED=NO; S4_EO_04_READY=YES
+  STAGE5_READY=NO; WAIVER_CREATED=NO; P2_STARTED=NO
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+d7dc2be4f20d1aef6c45ffe5579a826fc6f4d1f84b4bbbe79f7852f9e0a3bc4f
+```
+
+### ۱۶۱.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+BLOCKED_S4_EO_04_INPUT_INCOMPLETE = NO
+LIVE_NETWORK_AUTHORIZED = NO
+RATE_LIMIT_EXPERIMENT_AUTHORIZED = NO
+CRAWLER_ACTIVATION_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+```
+
+### ۱۶۱.۲) Automation authority ledger (Phase B)
+
+| AUTHORITY_ID | SECTION | CHILD | DIMENSION | OBSERVED | SUPPORTS | DOES_NOT_SUPPORT | CLASS |
+|---|---|---|---|---|---|---|---|
+| AUTH-93 | §93 | EO/ops | dry-run/kill-switch/automation design | design requirements | fail-closed ops design | live enablement | CURRENT |
+| AUTH-145 | §145.10 | EO-C05 | automation criterion | checklist + defer rule | owned fail-closed path | UNKNOWN→PASS | CURRENT |
+| AUTH-144-146 | §144/§146 | C4B-05 | robots/automation | incomplete robots; CAND-01 PROHIBITED_OR_BLOCKED | prohibition preserved | clearance | CURRENT |
+| AUTH-150-7 | §150.7 | C4B-06 | robots/auto/rate | mixed robots; Crawl-delay:50; all auto UNKNOWN | observation records | permission | CURRENT |
+| AUTH-152 | §152 | C4B-07 | auto/ARUMS robots | uncleared; robots 404 | residual ownership | crawler eligibility | CURRENT |
+| AUTH-154-13 | §154.13 | C4B-08 | robots/auto/rate | Disallow lists; Crawl-delay:50; jmciri not fetched | observation | automation grant | CURRENT |
+| AUTH-155 | §155.7 | C4B-09 | automation | FAIL_CLOSED (not in S4-EO-04 routed set of 7) | secondary-only context | — | INFORMATIONAL |
+| AUTH-157-160 | §157–§160 | Stage-4 | routing + rights fail-closed | 7 → S4-EO-04; rights≠automation | disposition Gate | activation | CURRENT |
+
+```text
+NO_GENERAL_WEB_CONVENTION_AS_AUTHORITY = YES
+BLOCKED_AUTOMATION_AUTHORITY_CONFLICT = NO
+```
+
+### ۱۶۱.۳) Exact S4-EO-04 routed residual set (Phase C)
+
+```text
+S4_EO_04_ROUTED_RESIDUAL_COUNT = 7
+EXPECTED_ROUTED_COUNT = 7
+COUNT_VARIANCE = 0
+COUNT_VARIANCE_REASON = N/A — matches §159 later_gate_id = S4-EO-04
+INPUT_AUTHORITY = §159.7 + §158.7
+```
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | CLASS | EO | OWNER | DEFERMENT (§159) |
+|---|---|---|---|---|---|---|
+| 1 | C4B05-R03 | C4B-05 | ROBOTS | EO-C05 | Provider Verification | EO_DEFERMENT_AUTHORIZED |
+| 2 | C4B05-R08 | C4B-05 | AUTOMATION | EO-C05 | Security / Legal | EO_DEFERMENT_AUTHORIZED |
+| 3 | C4B06-R-AUTO-01 | C4B-06 | AUTOMATION | EO-C05 | Legal/Security | EO_DEFERMENT_AUTHORIZED |
+| 4 | C4B07-R-AUTO-01 | C4B-07 | AUTOMATION | EO-C05 | Legal/Security | EO_DEFERMENT_AUTHORIZED |
+| 5 | C4B07-R-ARUMS-ROBOTS-01 | C4B-07 | ROBOTS | EO-C05 | Legal/Security | EO_DEFERMENT_AUTHORIZED |
+| 6 | C4B08-R-AUTO-01 | C4B-08 | AUTOMATION | EO-C05 | Legal/Security | EO_DEFERMENT_AUTHORIZED |
+| 7 | C4B08-R-JMCIRI-ROBOTS-01 | C4B-08 | ROBOTS | EO-C05 | Legal/Security | EO_DEFERMENT_AUTHORIZED |
+
+### ۱۶۱.۴) Operational state vocabulary (Phase D)
+
+| STATE | MEANING | AUTOMATION_EFFECT | CRAWLER_EFFECT | ACTIVATION_EFFECT |
+|---|---|---|---|---|
+| OBSERVED_ONLY | historical/technical observation recorded | no permission | no approval | NO |
+| OBSERVED_SUPPORTED | repo evidence supports specific narrow conclusion | limited to that conclusion | same | NO |
+| PARTIAL | incomplete evidence | no enablement | no eligibility | NO |
+| CONTRADICTORY | conflicting signals | most-restrictive fail-closed | blocked | NO |
+| UNKNOWN_FAIL_CLOSED | missing/silent | NO automation | NO | NO |
+| EXPLICITLY_PROHIBITED | repository records prohibition | blocked | blocked | NO |
+| NOT_APPLICABLE | out of residual scope | — | — | — |
+| EXTERNAL_EVIDENCE_REQUIRED | needs later approved fetch | keep fail-closed | keep NO | NO |
+| GOVERNANCE_DECISION_REQUIRED | policy decision needed | keep fail-closed | keep NO | NO |
+
+```text
+NO_AGGREGATE_AUTOMATION_PASS_MARKER = YES
+```
+
+### ۱۶۱.۵) Dimension-separation contract (Phase E)
+
+```text
+INDEPENDENT_DIMENSIONS =
+  ROBOTS_*; AUTOMATION_PERMISSION; CRAWLER_PERMISSION;
+  API_POLICY; BULK_ACCESS; RATE_LIMIT; AUTHENTICATION;
+  INCREMENTAL_FETCH; CONDITIONAL_FETCH; SCHEDULING;
+  RETRY_BACKOFF; DUPLICATE_RUN; KILL_SWITCH; OPERATIONAL_CURRENT
+NO_CROSS_INFERENCE = YES
+ROBOTS_ALLOW_OBSERVED != AUTOMATION_PERMISSION != CRAWLER_APPROVAL
+CRAWL_DELAY_OBSERVED != RATE_LIMIT_APPROVAL != UNLIMITED_USE
+```
+
+### ۱۶۱.۶) Evidence-sufficiency test (Phase F)
+
+```text
+OBSERVED_SUPPORTED_REQUIRES =
+  1 repository-recorded first-party evidence
+  2 exact source/path applicability
+  3 applicable user-agent/automation scope
+  4 no unresolved contradiction
+  5 no superseding restriction
+  6 no unsupported inference
+  7 authority clearly permits the observed conclusion
+PERMISSION_BEARING_CONCLUSIONS_REQUIRE_EXPLICIT_PERMISSION_EVIDENCE = YES
+OBSERVATION_ALONE_INSUFFICIENT_FOR_PERMISSION = YES
+RESULT = applied; no permission falsely promoted
+```
+
+### ۱۶۱.۷) Robots observation disposition (Phase G)
+
+```text
+NO_LIVE_ROBOTS_FETCH = YES
+HISTORICAL_ROBOTS = OBSERVED_ONLY / PARTIAL / UNKNOWN_FAIL_CLOSED as recorded
+
+C4B-05 R03: PARTIAL incomplete across candidates
+C4B-05 R08 / tums CAND-01: DISALLOW_ALL class → PROHIBITED_OR_BLOCKED preserved
+C4B-06: mixed — 404s; Disallow wp-admin; empty Disallow; Crawl-delay:50; timeout
+C4B-07 ARUMS: robots 404 historical → UNKNOWN_FAIL_CLOSED
+C4B-08 CAND-01..03: Yektaweb-style Disallow + Crawl-delay:50 OBSERVED_ONLY
+C4B-08 jmciri: NOT_RETRIEVED
+
+ROBOTS_STATE_DOES_NOT_RESOLVE_RIGHTS_OR_AUTOMATION_PERMISSION = YES
+```
+
+### ۱۶۱.۸) Automation-permission disposition (Phase H)
+
+```text
+EXPLICIT_AUTOMATION_PERMISSION_PRESENT_COUNT = 0
+EXPLICIT_AUTOMATION_PROHIBITION_PRESENT = YES (C4B05 CAND-01 PROHIBITED_OR_BLOCKED)
+ALL_OTHER_ROUTED = UNKNOWN_FAIL_CLOSED
+ABSENCE_OF_PROHIBITION_NOT_USED_AS_APPROVAL = YES
+```
+
+### ۱۶۱.۹) Crawler-permission disposition (Phase I)
+
+```text
+SOURCE_CRAWLER_ELIGIBLE_NOW = NO (all 7)
+CRAWLER_PERMISSION_PRESENT = NO
+NO_SOURCE_BECOMES_CRAWLER_ELIGIBLE = YES
+NO_CRAWLER_ACTIVATED = YES
+```
+
+### ۱۶۱.۱۰) API / bulk-access disposition (Phase J)
+
+```text
+API_OR_BULK_CURRENT_STATE_DOMINANT = UNKNOWN_FAIL_CLOSED
+API_EXISTENCE_IN_ROUTED_SET = NOT established as approved automation path
+BULK_DOWNLOAD_POLICY = UNKNOWN_FAIL_CLOSED / prohibited by default
+```
+
+### ۱۶۱.۱۱) Rate-limit disposition (Phase K)
+
+```text
+NO_LIVE_RATE_LIMIT_EXPERIMENT = YES
+NO_NUMERICAL_LIMITS_INVENTED = YES
+CRAWL_DELAY_50_OBSERVED = YES on some C4B-06/C4B-08 hosts (§150.7/§154.13)
+  STATUS = OBSERVED_ONLY / PARTIAL — not permission; not approved rate
+ABSENT_AUTHORITATIVE_RATE_LIMIT = UNKNOWN_FAIL_CLOSED + conservative no-automation
+NO_RATE_LIMIT_OBSERVED != UNLIMITED_USE = PRESERVED
+```
+
+### ۱۶۱.۱۲) Authentication / access disposition (Phase L)
+
+```text
+AUTHENTICATION_STATUS_DOMINANT = UNKNOWN_FAIL_CLOSED
+NO_LOGIN_AUTOMATION_DESIGNED_OR_APPROVED = YES
+TECHNICAL_ABILITY_TO_AUTHENTICATE != AUTOMATION_AUTHORIZED = PRESERVED
+```
+
+### ۱۶۱.۱۳) Incremental-fetch disposition (Phase M)
+
+```text
+INCREMENTAL_FETCH_CURRENT_STATE_DOMINANT = UNKNOWN_FAIL_CLOSED
+NO_CONDITIONAL_REQUESTS_PERFORMED = YES
+TECHNICALLY_SUPPORTED != AUTHORIZED = PRESERVED
+```
+
+### ۱۶۱.۱۴) Operational safety-control disposition (Phase N)
+
+```text
+SAFETY_CONTROLS = DESIGN/READINESS ONLY (not configured/activated)
+RECORDED_AS_REQUIRED_BY_§93_DESIGN_CONTEXT =
+  kill switch; fail-closed on policy change; audit logging; provenance;
+  duplicate-run prevention; backoff — as design requirements, not live config
+NO_SCHEDULER_ACTIVATION = YES
+NO_KILL_SWITCH_CONFIGURED_IN_THIS_GATE = YES (docs disposition only)
+```
+
+### ۱۶۱.۱۵) Contradiction / staleness ledger (Phase O)
+
+| CONTRADICTION_ID | RESIDUAL_IDS | DIMENSION | EVIDENCE_A | EVIDENCE_B | CURRENT_STATE | MOST_RESTRICTIVE_EFFECT | NEXT_GATE |
+|---|---|---|---|---|---|---|---|
+| CONTRA-ROBOTS-ALLOW-VS-AUTO | R03, AUTO×3, ARUMS, JMCIRI | permission | robots Allow/empty Disallow / partial retrieve OBSERVED | automation permission absent | OPEN | UNKNOWN_FAIL_CLOSED automation; no crawler | keep fail-closed / Legal-Security |
+| CONTRA-CRAWL-DELAY-VS-PERMISSION | C4B06-AUTO; C4B08-AUTO | rate vs permission | Crawl-delay:50 OBSERVED | treated as automation/rate approval | OPEN (must not promote) | delay≠permission; no automation | S4-EO-04 disposition locks |
+| CONTRA-HISTORICAL-FETCH-VS-ONGOING | Stage-3 discovery packs | ongoing auto | successful historical governed discovery requests | ongoing automation permission | OPEN | SUCCESSFUL_HISTORICAL_REQUEST≠ONGOING_PERMISSION | keep fail-closed |
+| CONTRA-CAND01-PROHIBIT | C4B05-R08 | robots disallow | tums DISALLOW_ALL / PROHIBITED_OR_BLOCKED | any automation attempt | RESOLVED as EXPLICITLY_PROHIBITED | blocked | preserve |
+
+```text
+NO_CONTRADICTION_SUPPRESSED = YES
+STALE_LIVE_REFETCH_NOT_PERFORMED = YES
+```
+
+### ۱۶۱.۱۶) Full residual-by-residual disposition ledger (Phase P)
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | ROBOTS | AUTO_PERM | CRAWLER | API | BULK | RATE | AUTH | INCR | SAFETY | CONTRAS | DISPOSITION | CRAWLER_ELIGIBLE | CLOSED | NEXT |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | C4B05-R03 | C4B-05 | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | CONTRA-ROBOTS-ALLOW-VS-AUTO | FAIL_CLOSED_OWNED — robots incomplete; observation≠permission | NO | NO | GOVERNANCE_DECISION |
+| 2 | C4B05-R08 | C4B-05 | PARTIAL | EXPLICITLY_PROHIBITED | EXPLICITLY_PROHIBITED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | — | EXPLICITLY_PROHIBITED (CAND-01) + UNKNOWN_FAIL_CLOSED (others) — no crawler eligibility | NO | NO | LEGAL_OR_PRODUCT_DECISION |
+| 3 | C4B06-R-AUTO-01 | C4B-06 | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | CONTRA-ROBOTS-ALLOW-VS-AUTO; CONTRA-CRAWL-DELAY-VS-PERMISSION | FAIL_CLOSED_OWNED — robots OBSERVED_ONLY where retrieved; automation UNKNOWN | NO | NO | LEGAL_OR_PRODUCT_DECISION |
+| 4 | C4B07-R-AUTO-01 | C4B-07 | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | CONTRA-ROBOTS-ALLOW-VS-AUTO | FAIL_CLOSED_OWNED — automation UNKNOWN | NO | NO | LEGAL_OR_PRODUCT_DECISION |
+| 5 | C4B07-R-ARUMS-ROBOTS-01 | C4B-07 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | — | FAIL_CLOSED_OWNED — robots NOT_RETRIEVED (404 historical); no live fetch | NO | NO | NETWORK |
+| 6 | C4B08-R-AUTO-01 | C4B-08 | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | CONTRA-ROBOTS-ALLOW-VS-AUTO; CONTRA-CRAWL-DELAY-VS-PERMISSION | FAIL_CLOSED_OWNED — Crawl-delay OBSERVED_ONLY; automation UNKNOWN | NO | NO | LEGAL_OR_PRODUCT_DECISION |
+| 7 | C4B08-R-JMCIRI-ROBOTS-01 | C4B-08 | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | PARTIAL | — | FAIL_CLOSED_OWNED — robots NOT_RETRIEVED; no live fetch | NO | NO | NETWORK |
+
+```text
+SOURCE_CRAWLER_ELIGIBLE_NOW = NO for all 7
+RESIDUAL_CLOSED_COUNT = 0
+EVERY_ROUTED_RESIDUAL_HAS_ONE_ROW = YES
+```
+
+### ۱۶۱.۱۷) Allowed operational behavior (Phase Q)
+
+```text
+ALLOWED_NOW =
+  MANUAL_REFERENCE_ONLY
+  HUMAN_REVIEW_ONLY
+  NO_AUTOMATION
+  OBSERVATION_PRESERVED_ONLY (historical robots/Crawl-delay records)
+  FUTURE_PERMISSION_REVIEW_ONLY (docs prep)
+
+NOT_CREATED =
+  AUTOMATION_APPROVED
+  CRAWLER_APPROVED
+  APPROVED_FOR_WEEKLY_CRAWL
+
+NO_SOURCE_ACTIVATION_RESULT = YES
+```
+
+### ۱۶۱.۱۸) Prohibited operational behavior (Phase R)
+
+```text
+APPLIES_TO_ALL_7 =
+  NO_LIVE_CRAWL
+  NO_AUTOMATED_FETCH
+  NO_BULK_DOWNLOAD
+  NO_API_AUTOMATION
+  NO_LOGIN_AUTOMATION
+  NO_RATE_LIMIT_EXPERIMENT
+  NO_CONDITIONAL_FETCH
+  NO_SCHEDULED_RUN
+  NO_INCREMENTAL_INGESTION
+  NO_SOURCE_ACTIVATION
+  NO_CRAWLER_ENABLEMENT
+  NO_KB_INGESTION
+  NO_RUNTIME_GROUNDING
+  NO_UNKNOWN_TO_PASS
+  NO_ROBOTS_TO_PERMISSION_INFERENCE
+  NO_ABSENCE_OF_PROHIBITION_TO_PERMISSION
+```
+
+### ۱۶۱.۱۹) Child-by-child automation rollup (Phase S)
+
+```text
+C4B-05 routed=2 (R03,R08): robots PARTIAL; CAND-01 EXPLICITLY_PROHIBITED;
+  others UNKNOWN_FAIL_CLOSED; crawler eligible=0; activation NO;
+  NETWORK_RESULT_VALID=NO preserved (not used as automation proof)
+
+C4B-06 routed=1 (AUTO-01): robots mixed OBSERVED_ONLY; Crawl-delay:50 OBSERVED_ONLY;
+  automation UNKNOWN_FAIL_CLOSED; crawler eligible=0; activation NO
+
+C4B-07 routed=2 (AUTO-01, ARUMS-ROBOTS): automation UNKNOWN; robots 404;
+  patient-ed≠guideline preserved; crawler eligible=0; activation NO
+
+C4B-08 routed=2 (AUTO-01, JMCIRI-ROBOTS): Crawl-delay/Disallow OBSERVED_ONLY;
+  jmciri not fetched; automation UNKNOWN; journal≠clinical preserved;
+  crawler eligible=0; activation NO
+
+C4B-09 routed=0 in this Gate (automation FAIL_CLOSED already in §155/§160 context;
+  SECONDARY_ONLY=YES preserved; not in the 7-row S4-EO-04 set)
+
+SOURCE_ACTIVATION_STATE = NO
+SOURCE_CRAWLER_ELIGIBLE_COUNT = 0
+RESIDUAL_CLOSURE_ELIGIBLE_COUNT = 0
+RESIDUAL_CLOSED_COUNT = 0
+```
+
+### ۱۶۱.۲۰) EO-criterion impact (Phase T)
+
+| CRITERION_ID | STATE_BEFORE | AUTO_RESIDUALS | EFFECT | STATE_AFTER | WHY |
+|---|---|---|---|---|---|
+| EO-C01 | SATISFIED | — | none | SATISFIED | unrelated |
+| EO-C02 | SATISFIED | all | fail-closed law applied | SATISFIED | NON-DEFERABLE |
+| EO-C03 | SATISFIED | — | none | SATISFIED | — |
+| EO-C04 | DEFERRED_WITH_OWNER | — | none (rights Gate done) | DEFERRED_WITH_OWNER | — |
+| EO-C05 | DEFERRED_WITH_OWNER | all 7 | owned fail-closed automation disposition; not SATISFIED | DEFERRED_WITH_OWNER | fail-closed ≠ evidence-SATISFIED |
+| EO-C06 | DEFERRED_WITH_OWNER | — | none | DEFERRED_WITH_OWNER | S4-EO-05 |
+| EO-C07 | DEFERRED_WITH_OWNER | — | none | DEFERRED_WITH_OWNER | — |
+| EO-C08 | SATISFIED | — | ownership preserved | SATISFIED | — |
+| EO-C09 | SATISFIED | — | remains disabled | SATISFIED | activation lock |
+| EO-C10 | SATISFIED | — | none | SATISFIED | — |
+| EO-C11 | OPEN | — | none | OPEN | S4-EO-08; dry-run still blocked |
+| EO-C12 | SATISFIED | — | none | SATISFIED | — |
+
+```text
+NO_CRITERION_SATISFIED_BECAUSE_AUTOMATION_PROHIBITED = YES
+EO_STATE_COUNTS_UNCHANGED = YES (7/0/1/0/4)
+```
+
+### ۱۶۱.۲۱) Residual closure test (Phase U)
+
+```text
+ROUTED_RESIDUALS = 7
+RESIDUAL_CLOSURE_ELIGIBLE_COUNT = 0
+RESIDUAL_CLOSED_COUNT = 0
+RESIDUAL_REMAINING_OPEN_COUNT = 7
+
+WHY_NONE_CLOSED =
+  missing explicit automation permission;
+  incomplete robots on several hosts;
+  rate-limit not authoritatively approved;
+  contradictions open (allow≠permission; delay≠permission);
+  authority does not permit closure on observation alone
+
+SUCCESSFUL_S4_EO_04_MAY_LEAVE_ALL_OPEN_FAIL_CLOSED = YES
+```
+
+### ۱۶۱.۲۲) Unresolved-item routing (Phase V)
+
+| ITEM | WHY_INSUFFICIENT | MISSING | OWNER | NEXT_GATE | JAVAD_APPROVAL |
+|---|---|---|---|---|---|
+| Explicit automation permission | absent for all non-prohibited hosts | written grant/policy | Legal/Security | LEGAL_OR_PRODUCT_DECISION_GATE / residual automation Gate | YES |
+| Incomplete robots (R03, ARUMS, jmciri) | 404/incomplete/not fetched | retrieve-or-exclude under locked Gate | Provider/Legal/Security | optional S4-EO-06 NETWORK | YES |
+| Crawl-delay semantics | observed only | product/security rate policy if ever automating | Security | keep fail-closed until policy Gate | YES |
+| Authority/MR/indexing | out of scope | merits | Medical/Data | S4-EO-05 | YES |
+| Rights/license | already fail-closed §160 | Legal clearance if needed | Legal | LEGAL_OR_PRODUCT_DECISION_GATE | YES |
+| Dry-run | EO-C11 open | checklist | Governance | S4-EO-08 | YES |
+
+```text
+NO_LATER_GATE_EXECUTED = YES
+```
+
+### ۱۶۱.۲۳) S4-EO-05 readiness (Phase W)
+
+```text
+S4_EO_05_READY = YES
+
+READINESS_BASIS =
+  authority/editorial/MR-routed residuals retain canonical IDs/owners/deps/CC from §158–§159;
+  role-separation laws preserved;
+  claim-vs-evidence boundaries preserved;
+  automation remains fail-closed without blocking independent S4-EO-05 merits framing;
+  no unresolved ownership conflict
+
+S4_EO_05_NOT_EXECUTED = YES
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۶۱.۲۴) EO state after S4-EO-04 (Phase X)
+
+```text
+EO_SATISFIED_COUNT = 7
+EO_PARTIAL_COUNT = 0
+EO_OPEN_COUNT = 1
+EO_BLOCKED_COUNT = 0
+EO_DEFERRED_COUNT = 4
+EO_AUTHORITY_NOT_FOUND_COUNT = 0
+SUM = 12
+ARITHMETIC_RECONCILES = YES
+
+EVIDENCE_OVERLAY_CURRENT_STATE_AFTER_S4_EO_04 =
+  OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+EVIDENCE_OVERLAY_READY_FOR_NEXT_SUBGATES = YES
+
+ANY_SOURCE_AUTOMATION_APPROVED = NO
+ANY_SOURCE_CRAWLER_ELIGIBLE = NO
+ANY_SOURCE_ACTIVATED = NO
+```
+
+### ۱۶۱.۲۵) Stage-5 / waiver / P2 state (Phase Y)
+
+```text
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+S4_EO_04_IS_NOT_A_WAIVER = YES
+```
+
+### ۱۶۱.۲۶) Operations NOT performed
+
+```text
+NO network / search / HTTP / live robots fetch / external evidence
+NO query execution / rate-limit experiment / load test / probe request
+NO automation/crawler/API/bulk approval beyond repository evidence
+NO source/crawler/scheduler activation
+NO residual closure (0)
+NO UNKNOWN→PASS
+NO EO closure / waiver
+NO KB ingestion / runtime enablement
+NO rights/license/recognition/editorial/MR approval
+NO P2 / P3 / P4 / P5 / P6
+NO test / CI / workflow
+NO commit / push / fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–160
+```
+
+### ۱۶۱.۲۷) Exact next Gate (Phase Z)
+
+```text
+NEXT_GATE =
+S4-EO-05 — AUTHORITY / RECOGNITION / EDITORIAL / MEDICAL-REVIEW DISPOSITION
+(separate Javad approval required)
+
+WHY_NEXT =
+  §157 ordered plan; S4_EO_05_READY = YES;
+  automation remains fail-closed and does not block authority/MR framing
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+```
+
+### ۱۶۱.۲۸) Completion markers / execution state
+
+```text
+S4_EO_04_COMPLETE = YES
+S4_EO_04_ROUTED_RESIDUAL_COUNT = 7
+RESIDUAL_CLOSED_COUNT = 0
+ANY_SOURCE_AUTOMATION_APPROVED = NO
+ANY_SOURCE_CRAWLER_ELIGIBLE = NO
+ANY_SOURCE_ACTIVATED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+S4_EO_05_READY = YES
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+S4_EO_04_AUTOMATION_ROBOTS_RATE_LIMIT_DISPOSITION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_EXPLICIT_FAIL_CLOSED_AUTOMATION
+```
+
+### ۱۶۱.۲۹) Append-only integrity record
+
+```text
+WORKING_TREE_SHA256_BEFORE_APPEND =
+d7dc2be4f20d1aef6c45ffe5579a826fc6f4d1f84b4bbbe79f7852f9e0a3bc4f
+
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–160_PRESERVED = YES
+§161_ONLY_NEW_SECTION = YES
+§161_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+```
+
+---
+*پایان §۱۶۱ — SECTION-28 S4-EO-04 Automation / Robots / Rate-Limit Disposition — S4_EO_04_AUTOMATION_ROBOTS_RATE_LIMIT_DISPOSITION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۲) SECTION-29 — S4-EO-05 AUTHORITY / RECOGNITION / EDITORIAL / MEDICAL-REVIEW DISPOSITION
+
+```text
+PACKAGE =
+SECTION-29 — S4-EO-05 —
+AUTHORITY / RECOGNITION / EDITORIAL / MEDICAL-REVIEW DISPOSITION
+
+MODE =
+REPOSITORY_LOCAL / DOCUMENTATION_ONLY / APPEND_ONLY / FAIL_CLOSED /
+NO_NETWORK / NO_SEARCH / NO_HTTP / NO_EXTERNAL_EVIDENCE /
+NO_SOURCE_ACTIVATION / NO_EO_CLOSURE / NO_WAIVER /
+NO_UNKNOWN_TO_PASS / NO_P2 / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Owner:
+Medical/Safety + Governance / Data/Knowledge
+Primary product owner:
+Javad
+
+Authorization:
+Explicit Javad approval for this repository-local authority-governance Gate ONLY
+
+PRIMARY_OBJECTIVE =
+  disposition every §159 residual routed to S4-EO-05;
+  independently classify identity/recognition/editorial/MR/peer-review/
+  indexing/quality-safety dimensions; preserve UNKNOWN as fail-closed
+
+PERMANENT_AUTHORITY_LAWS_PRESERVED =
+  PORTAL_IDENTITY != OFFICIAL_RECOGNITION
+  DOMAIN_OWNERSHIP != INSTITUTIONAL_AUTHORITY
+  INSTITUTIONAL_BRANDING != OFFICIAL_RECOGNITION
+  INSTITUTIONAL_RELATIONSHIP != CLINICAL_AUTHORITY
+  GOVERNMENT_OR_UNIVERSITY_NAME != ENDORSEMENT
+  PATIENT_EDUCATION_ROLE != GUIDELINE_AUTHORITY
+  PROVIDER_DIRECTORY_ROLE != CLINICAL_CONTENT_AUTHORITY
+  JOURNAL_IDENTITY != CLINICAL_AUTHORITY
+  JOURNAL_PUBLICATION != GUIDELINE_STATUS
+  AUTHORSHIP != EDITORIAL_RESPONSIBILITY
+  EDITORIAL_RESPONSIBILITY != MEDICAL_REVIEW
+  MEDICAL_REVIEW != PEER_REVIEW
+  PEER_REVIEW != CLINICAL_RECOMMENDATION_AUTHORITY
+  SELF_CLAIMED_INDEXING != VERIFIED_INDEXING
+  INDEX_METADATA != ARTICLE_LEVEL_QUALITY
+  INDEXING != CURRENTNESS
+  INDEXING != SAFETY
+  PUBLICATION_BY_A_CLINICIAN != ORGANIZATIONAL_APPROVAL
+  EXPERT_TITLE != VERIFIED_SCOPE_OF_PRACTICE
+  PUBLIC_ACCESS != TRUSTED_SOURCE_ELIGIBILITY
+  SOURCE_IDENTITY != CONTENT_ITEM_QUALITY
+  S4_EO_05_DISPOSITION != RIGHTS_CLEARANCE
+  S4_EO_05_DISPOSITION != AUTOMATION_PERMISSION
+  S4_EO_05_DISPOSITION != INGESTION_APPROVAL
+  S4_EO_05_DISPOSITION != SOURCE_ACTIVATION
+  S4_EO_05_DISPOSITION != RUNTIME_ELIGIBILITY
+  UNKNOWN != PASS
+  ABSENCE_OF_CONTRARY_EVIDENCE != POSITIVE_EVIDENCE
+
+Baseline (verified at S4-EO-05 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §161
+  §§158–161 = PRESENT
+  §162 = ABSENT
+  git diff --check = CLEAN (LF/CRLF warning only)
+
+Verified continuity:
+  S4_EO_01 = PASS / COMPLETE
+  S4_EO_02 = PASS_WITH_EXPLICIT_NON_DEFERABLE_ITEMS
+  S4_EO_03 = PASS_WITH_EXPLICIT_FAIL_CLOSED_RIGHTS
+  S4_EO_04 = PASS_WITH_EXPLICIT_FAIL_CLOSED_AUTOMATION
+  EXPECTED_S4_EO_05_ROUTED_RESIDUALS = 9
+  EO counts 7/0/1/0/4; EO CLOSED=NO; S4_EO_05_READY=YES
+  STAGE5_READY=NO; WAIVER_CREATED=NO; P2_STARTED=NO
+  I5_PROGRESS ≈ 22%
+
+WORKING_TREE_SHA256_BEFORE_APPEND =
+NOT_RECORDED_AT_EXECUTION_TIME
+
+NOTE_SHA256 =
+  no historical pre-append hash is reconstructed or claimed in this Gate;
+  Fix1 does not invent a retrospective hash
+```
+
+### ۱۶۲.۱) Preflight (Phase A)
+
+```text
+PREFLIGHT = PASS
+BLOCKED_BASELINE_MISMATCH = NO
+BLOCKED_AUTHORITY_RECONSTRUCTION_MISMATCH = NO
+LIVE_NETWORK_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+WAIVER_AUTHORIZED = NO
+```
+
+| CHECK | EXPECTED | OBSERVED | RESULT |
+|---|---|---|---|
+| worktree | Demo-wt-section15-backend | D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend | PASS |
+| branch | feature/section15/backend-continuity-foundation | feature/section15/backend-continuity-foundation | PASS |
+| HEAD | af1d583df55a8df8284105917e86caf6342eb089 | af1d583df55a8df8284105917e86caf6342eb089 | PASS |
+| parent | f166e4766ff09f96837938c2fce297e037b37fd6 | f166e4766ff09f96837938c2fce297e037b37fd6 | PASS |
+| subject | docs(governance): record C4B-05 governed discovery evidence | same | PASS |
+| upstream | origin/feature/section15/backend-continuity-foundation | same | PASS |
+| ahead/behind | 0/0 | 0/0 | PASS |
+| dirty paths | master log only | docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md | PASS |
+| staging | EMPTY | EMPTY | PASS |
+| untracked | ZERO | ZERO | PASS |
+| master-log tip before | §161 | §161 | PASS |
+| §162 exists | NO | NO | PASS |
+| merge-conflict markers | NONE | NONE | PASS |
+| git diff --check | CLEAN | CLEAN (LF/CRLF warning only) | PASS |
+```
+
+### ۱۶۲.۲) Authority reconstruction (Phase B)
+
+```text
+INPUT_AUTHORITY = §159.7 later_gate_id = S4-EO-05 + §159.10 child rollups
+EXPECTED_ROUTED_COUNT = 9
+OBSERVED_ROUTED_COUNT = 9
+COUNT_VARIANCE = 0
+DUPLICATE_CANONICAL_IDS = 0
+ROUTING_ANOMALIES = NONE
+C4B05-R04 routed to Product scope — NOT in S4-EO-05 set (no double-count)
+C4B06-R-IRSOME-01 routed to S4-EO-06 — NOT in S4-EO-05 set
+```
+
+| # | CANONICAL_RESIDUAL_ID | CHILD | CLASS | EO | OWNER (§159) | PRIOR DISPOSITION |
+|---|---|---|---|---|---|---|
+| 1 | C4B05-R05 | C4B-05 | EDITORIAL | EO-C06 | EDITORIAL_MR_OWNER | DEFERRED_WITH_OWNER |
+| 2 | C4B06-R-RECOG-01 | C4B-06 | RECOGNITION | EO-C06 | EDITORIAL_MR_OWNER | OPEN |
+| 3 | C4B06-R-ABOUT-01 | C4B-06 | IDENTITY | EO-C06 | GOVERNANCE_OWNER | OPEN |
+| 4 | C4B06-R-EDITORIAL-01 | C4B-06 | EDITORIAL | EO-C06 | EDITORIAL_MR_OWNER | OPEN |
+| 5 | C4B07-R-MR-01 | C4B-07 | MEDICAL_REVIEW | EO-C06 | EDITORIAL_MR_OWNER | OPEN |
+| 6 | C4B07-R-AUTH-01 | C4B-07 | AUTHORSHIP | EO-C06 | EDITORIAL_MR_OWNER | OPEN |
+| 7 | C4B07-R-MOH-01 | C4B-07 | AUTHORITY | EO-C06 | SOURCE_AUTHORITY_OWNER | OPEN |
+| 8 | C4B08-R-INDEX-01 | C4B-08 | INDEXING | EO-C06 | EXTERNAL_CORROBORATION_OWNER | OPEN |
+| 9 | C4B08-R-PRED-01 | C4B-08 | PREDATORY_RISK | EO-C06 | EDITORIAL_MR_OWNER | OPEN |
+
+### ۱۶۲.۳) Evidence standard (Phase C)
+
+```text
+POSITIVE_OR_PARTIAL_REQUIRES =
+  repository-recorded first-party or governed discovery evidence
+  exact section/path/candidate reference
+  claim no broader than evidence
+  no unresolved contradiction promoted
+
+UNKNOWN_OR_CONTRADICTED_REQUIRES =
+  missing/conflicting evidence recorded
+  owner + closure criterion + next Gate/route
+  activation-blocking status preserved where applicable
+
+NO_EXTERNAL_EVIDENCE_COLLECTED_IN_THIS_GATE = YES
+NO_GENERAL_KNOWLEDGE_INFERENCE = YES
+```
+
+### ۱۶۲.۴) Complete 9-row S4-EO-05 residual matrix (Phase D)
+
+| ROW | CANONICAL_RESIDUAL_ID | CANDIDATE_OR_SOURCE_ID | SOURCE_TYPE | ORIGINATING_SECTION | AFFECTED_EO | IDENTITY | INSTIT_REL | OFFICIAL_RECOG | PRIMARY_SECONDARY | CLINICAL_AUTH | PATIENT_ED | AUTHORSHIP | EDITORIAL | MEDICAL_REV | PEER_REV | INDEXING | QUALITY_SAFETY | REPOSITORY_EVIDENCE | CONTRADICTIONS_OR_GAPS | ALLOWED_ROLE | PROHIBITED_ROLE | OWNER | NEXT_GATE | CLOSURE_CRITERIA | FINAL_DISPOSITION |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | C4B05-R05 | C4B-05 candidate family (10 accepted; §144/§146) | IR-SC-08/09/14 university-research | §144 RESIDUAL-05; §146.3 R05; §159.7 row 5 | EO-C06 | PARTIAL | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | PARTIAL | §144/§146: reviewer_editorial_evidence=NOT_ESTABLISHED all 10; university-owned domains evidenced | editorial/MR packs missing for all candidates | DISCOVERY_METADATA_ONLY; HUMAN_REVIEW_ONLY; NO_AUTHORITY_ROLE_ESTABLISHED | PRIMARY_CLINICAL_AUTHORITY; VERIFIED_MEDICAL_REVIEW_SOURCE; APPROVED_FOR_INGESTION | EDITORIAL_MR_OWNER | S4-EO-07 optional; product scope for R04 separate | per-candidate editorial evidence OR formal fail-closed per §143.10 schema | FAIL_CLOSED_OWNED |
+| 2 | C4B06-R-RECOG-01 | C4B06-CAND-06 (itma.ir) + association family | IR-SC-10 scientific association | §150.6/§150.9; §159.7 row 12 | EO-C06 | VERIFIED_LIMITED | PARTIAL | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | §150.6: MoH evaluation rank #2 self-claim; §150.9 CONTRA-01 open | self-claim ≠ official recognition; no MoH corroboration page retrieved | IDENTITY_VERIFIED_ONLY; SECONDARY_CONTEXT_ONLY; NO_AUTHORITY_ROLE_ESTABLISHED | OFFICIAL_RECOGNITION; GUIDELINE_AUTHORITY | EDITORIAL_MR_OWNER | S4-EO-07 | external official MoH corroboration OR owned deferment fail-closed | FAIL_CLOSED_OWNED |
+| 3 | C4B06-R-ABOUT-01 | C4B06-CAND-01 (iha.org.ir) primary; association family | IR-SC-10 | §150.6 AboutUs thin; §150.9 CONTRA-02; §159.7 row 13 | EO-C06 | PARTIAL | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | §150.6: landing/contact identity present; AboutUs body thin/empty | legal-identity about/statute pack incomplete | IDENTITY_VERIFIED_ONLY; RELATIONSHIP_VERIFIED_ONLY; HUMAN_REVIEW_ONLY | OFFICIAL_RECOGNITION; CLINICAL_AUTHORITY | GOVERNANCE_OWNER | S4-EO-06 optional retrieve | complete legal-identity about pack per candidate OR exclude | FAIL_CLOSED_OWNED |
+| 4 | C4B06-R-EDITORIAL-01 | C4B06-CAND-01..07 | IR-SC-10 | §150.8; §159.7 row 15 | EO-C06 | VERIFIED_LIMITED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | PARTIAL | §150.8: METADATA_ONLY_PRESENT; committees/board nav; journal editorial not proven | association editorial responsibility ≠ journal-grade pack | DISCOVERY_METADATA_ONLY; HUMAN_REVIEW_ONLY; PATIENT_EDUCATION_CANDIDATE_ONLY | VERIFIED_MEDICAL_REVIEW_SOURCE; GUIDELINE_AUTHORITY | EDITORIAL_MR_OWNER | S4-EO-07 optional | editorial responsibility evidence or formal deferment | FAIL_CLOSED_OWNED |
+| 5 | C4B07-R-MR-01 | C4B07-CAND-01..05 | IR-SC-12 patient education | §152.9; OD-C4A-12; §159.7 row 20 | EO-C06 | VERIFIED_LIMITED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | PARTIAL | §152.7–§152.9: hospital education units observed; unit nursing leads named; MR_PACK_COMPLETION=NO | MR-1+ pack incomplete; unit lead ≠ independent MR | PATIENT_EDUCATION_CANDIDATE_ONLY; HUMAN_REVIEW_ONLY; DISCOVERY_METADATA_ONLY | PRIMARY_CLINICAL_AUTHORITY; VERIFIED_MEDICAL_REVIEW_SOURCE | EDITORIAL_MR_OWNER | S4-EO-07 optional | MR-1+ evidence pack per OD-C4A-12 OR formal deferment | FAIL_CLOSED_OWNED |
+| 6 | C4B07-R-AUTH-01 | C4B07-CAND-01..05 | IR-SC-12 | §152.9 authorship table; §159.7 row 21 | EO-C06 | VERIFIED_LIMITED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | PARTIAL | §152.9: UNIT_LEADS_NAMED; pamphlet/page authors UNKNOWN on indexes | authorship ≠ editorial/MR completion | PATIENT_EDUCATION_CANDIDATE_ONLY; HUMAN_REVIEW_ONLY | VERIFIED_MEDICAL_REVIEW_SOURCE; ARTICLE_LEVEL_QA | EDITORIAL_MR_OWNER | S4-EO-07 optional | author/reviewer evidence per pamphlet/page OR deferment | FAIL_CLOSED_OWNED |
+| 7 | C4B07-R-MOH-01 | MoH patient-ed class (no primary recovered) | IR-SC-12 / MoH scope | §152.6 F-04; §152.13 R-MOH-01; §159.7 row 22 | EO-C06 | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | §152.6: MoH_HIT_DOES_NOT_AUTO_COMPLETE; F-04 no clean behdasht patient-ed landing | MoH education URL not recovered under locked queries | NO_AUTHORITY_ROLE_ESTABLISHED; HUMAN_REVIEW_ONLY | GUIDELINE_AUTHORITY; OFFICIAL_RECOGNITION | SOURCE_AUTHORITY_OWNER | S4-EO-06 optional; query amendment if authorized | MoH patient-ed candidate recovered OR scoped deferment documented | FAIL_CLOSED_OWNED |
+| 8 | C4B08-R-INDEX-01 | C4B08-CAND-01..05 journal family | IR-SC-13 | §154.10; §159.7 row 25 | EO-C06 | VERIFIED_LIMITED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | PARTIAL | §154.10: self-claimed indexing lists (PubMed/Scopus/…); INDEXING_CORROBORATION=UNKNOWN | SELF_CLAIMED_INDEXING ≠ VERIFIED_INDEXING | RESEARCH_OR_JOURNAL_CANDIDATE_ONLY; DISCOVERY_METADATA_ONLY; HUMAN_REVIEW_ONLY | VERIFIED_INDEXED_SOURCE; CLINICAL_AUTHORITY | EXTERNAL_CORROBORATION_OWNER | S4-EO-07 | INDEXING_CORROBORATION ≠ UNKNOWN via approved plan OR owned deferment | FAIL_CLOSED_OWNED |
+| 9 | C4B08-R-PRED-01 | C4B08-CAND-01..05 (+ incomplete CAND-04/06) | IR-SC-13 | §154.11; §153.5; §159.7 row 31 | EO-C06 | VERIFIED_LIMITED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | VERIFIED_LIMITED | UNKNOWN_FAIL_CLOSED | NOT_APPLICABLE | UNKNOWN_FAIL_CLOSED | PARTIAL | UNKNOWN_FAIL_CLOSED | PARTIAL | PARTIAL | PARTIAL | §154.11: NO_MATERIAL_WARNING_SIGNALS on several; absolute predatory clearance NOT granted | absence of signal ≠ absolute clearance; thin/timeout candidates UNKNOWN | RESEARCH_OR_JOURNAL_CANDIDATE_ONLY; HUMAN_REVIEW_ONLY; NO_AUTHORITY_ROLE_ESTABLISHED | VERIFIED_PEER_REVIEW_SOURCE; APPROVED_TRUSTED_SOURCE | EDITORIAL_MR_OWNER | S4-EO-07 optional | governed predatory disposition per §153.5 with explicit future decision | FAIL_CLOSED_OWNED |
+
+```text
+MATRIX_ROW_COUNT = 9
+UNIQUE_CANONICAL_RESIDUAL_IDS = 9
+DUPLICATE_ROWS = 0
+RESIDUAL_CLOSED_COUNT = 0
+EVERY_ROUTED_RESIDUAL_HAS_ONE_ROW = YES
+```
+
+### ۱۶۲.۵) Dimension-by-dimension reconciliation (Phase E)
+
+```text
+DIMENSION_STATE_COUNTS (9 residuals × 12 dimensions = 108 cells):
+  VERIFIED_LIMITED = 23
+  PARTIAL = 25
+  UNKNOWN_FAIL_CLOSED = 44
+  CONTRADICTED_FAIL_CLOSED = 0
+  NOT_APPLICABLE = 16
+  TOTAL = 108
+  MATRIX_DERIVED_108_CELL_RECONCILIATION = PASS
+
+NO_DIMENSION_COMPRESSED_TO_SINGLE_TRUST_VERDICT = YES
+ROLE_SEPARATION_LAWS_APPLIED_INDEPENDENTLY = YES
+```
+
+| DIMENSION | VL | PARTIAL | UNKNOWN | CONTRADICTED | N/A | ROW_SUM | DOMINANT_INTERPRETATION |
+|---|---:|---:|---:|---:|---:|---:|---|
+| IDENTITY | 6 | 2 | 1 | 0 | 0 | 9 | university/association/journal/hospital identity signals present; MoH primary missing |
+| INSTITUTIONAL_RELATIONSHIP | 7 | 2 | 0 | 0 | 0 | 9 | institutional hosts/branding evidenced; MoH charter self-claim partial only |
+| OFFICIAL_RECOGNITION | 0 | 0 | 9 | 0 | 0 | 9 | no external official recognition corroboration in repository |
+| PRIMARY_VS_SECONDARY_ROLE | 8 | 0 | 1 | 0 | 0 | 9 | child-primary roles locked; MoH pack incomplete |
+| CLINICAL_AUTHORITY | 0 | 0 | 9 | 0 | 0 | 9 | fail-closed — no clinical/guideline authority promoted |
+| PATIENT_EDUCATION_ROLE | 2 | 4 | 1 | 0 | 2 | 9 | hospital education units verified limited; MoH class unknown |
+| AUTHORSHIP | 0 | 0 | 9 | 0 | 0 | 9 | pamphlet/journal authors not established |
+| EDITORIAL_RESPONSIBILITY | 0 | 7 | 2 | 0 | 0 | 9 | metadata/unit leads only; not editorial pack completion |
+| MEDICAL_REVIEW | 0 | 0 | 9 | 0 | 0 | 9 | MR-1+ not completed for any patient-ed candidate |
+| PEER_REVIEW | 0 | 2 | 0 | 0 | 7 | 9 | journal peer-review claims observed only; not verified |
+| INDEXING | 0 | 2 | 0 | 0 | 7 | 9 | self-claims observed; corroboration absent |
+| QUALITY_SAFETY | 0 | 6 | 3 | 0 | 0 | 9 | index metadata only; article-level QA unknown |
+
+### ۱۶۲.۶) Contradictions and material gaps (Phase F)
+
+| CONTRADICTION_ID | RESIDUAL_IDS | DESCRIPTION | STATUS | EFFECT |
+|---|---|---|---|---|
+| C4B06-CONTRA-01 | C4B06-R-RECOG-01 | MoH evaluation self-claim vs no retrieved MoH corroboration | OPEN | recognition remains UNKNOWN_FAIL_CLOSED |
+| C4B06-CONTRA-02 | C4B06-R-ABOUT-01 | strong landing branding vs thin AboutUs retrieval | OPEN | identity PARTIAL only |
+| C4B07-CONTRA-01 | C4B07-R-MOH-01 / MPGH | search hint vs direct GET timeout for mpgh.bpums.ac.ir | OPEN | MoH/BPUMS paths fail-closed |
+| C4B07-CONTRA-02 | C4B07-R-MR-01, AUTH-01 | rich education indexes vs absent MR/authorship packs | OPEN | rights/MR layers remain separate fail-closed |
+| CONTRA-01 (license) | C4B08-R-INDEX-01 (carry) | MJIR CC version footer vs about claim (§154.7) | OPEN (rights layer) | not reopened in S4-EO-05; indexing unaffected |
+| INDEX-SELF-CLAIM | C4B08-R-INDEX-01 | self-listed indexes vs no external corroboration | OPEN | INDEXING PARTIAL only |
+
+```text
+CONTRA_NOMENCLATURE_NOTE (Fix1) =
+  CONTRA-* is a historical ledger identifier or open-gap label only.
+  The identifier alone does not establish a factual contradiction.
+  A dimension receives CONTRADICTED_FAIL_CLOSED only when repository
+  evidence contains a material unresolved contradiction between claims or evidence.
+  Uncorroborated claims, incomplete retrieval, timeout, branding mismatch or
+  missing evidence normally remain UNKNOWN_FAIL_CLOSED or PARTIAL.
+
+PERMANENT_DISTINCTIONS_PRESERVED =
+  UNVERIFIED_SELF_CLAIM != CONTRADICTED_FACT
+  NO_CORROBORATION != PROOF_OF_FALSEHOOD
+  TIMEOUT != NEGATIVE_AUTHORITY_EVIDENCE
+  THIN_RETRIEVAL != CONTRADICTED_IDENTITY
+  LAYER_SEPARATION != CONTRADICTION
+
+CONTRADICTED_FAIL_CLOSED_MATRIX_COUNT = 0 (unchanged)
+HISTORICAL_CONTRA_IDS_NOT_RENAMED = YES
+```
+
+```text
+NO_CONTRADICTION_SUPPRESSED = YES
+NO_CONTRADICTION_RESOLVED_BY_INFERENCE = YES
+```
+
+### ۱۶۲.۷) Current allowed and prohibited roles (Phase G)
+
+```text
+ALLOWED_NOW (evidence-supported limited roles only) =
+  REFERENCE_ONLY
+  DISCOVERY_METADATA_ONLY
+  HUMAN_REVIEW_ONLY
+  SECONDARY_CONTEXT_ONLY
+  IDENTITY_VERIFIED_ONLY
+  RELATIONSHIP_VERIFIED_ONLY
+  PATIENT_EDUCATION_CANDIDATE_ONLY
+  RESEARCH_OR_JOURNAL_CANDIDATE_ONLY
+  NO_AUTHORITY_ROLE_ESTABLISHED
+
+NOT_GRANTED =
+  APPROVED_TRUSTED_SOURCE
+  PRIMARY_CLINICAL_AUTHORITY
+  GUIDELINE_AUTHORITY
+  VERIFIED_MEDICAL_REVIEW_SOURCE
+  VERIFIED_PEER_REVIEW_SOURCE
+  VERIFIED_INDEXED_SOURCE
+  APPROVED_FOR_INGESTION
+  APPROVED_FOR_PUBLICATION
+  APPROVED_FOR_RUNTIME_GROUNDING
+
+RIGHTS_LAYER = remain fail-closed per §160 (not reopened)
+AUTOMATION_LAYER = remain fail-closed per §161 (not reopened)
+ACTIVATION = NO for all candidates/children
+```
+
+### ۱۶۲.۸) Owner / dependency / closure matrix (Phase H)
+
+```text
+CLOSURE_TYPE_KEY (Fix1) =
+  1 EVIDENCE_BASED_MERIT_CLOSURE =
+       exact required evidence obtained; supports only the narrowly stated authority claim
+  2 GOVERNANCE_DEFERMENT =
+       residual unresolved, fail-closed and owned; not merit-closed; not evidence-SATISFIED
+  3 CANDIDATE_EXCLUSION =
+       candidate removed from further consideration for a governed reason;
+       exclusion does not prove false/unsafe/low-quality without separate evidence
+  4 ADMINISTRATIVE_RESIDUAL_CLOSURE =
+       explicit authorized decision record with owner, basis, resulting state,
+       preserved activation blocks
+
+PERMANENT_CLOSURE_DISTINCTIONS =
+  DEFERMENT != MERIT_CLOSURE
+  EXCLUSION != NEGATIVE_AUTHORITY_PROOF
+  ADMINISTRATIVE_CLOSURE != EVIDENCE_SATISFACTION
+  FAIL_CLOSED_RECORD != TRUSTED_SOURCE_APPROVAL
+
+PHRASE_SEMANTICS_IN_THIS_SECTION =
+  OR DEFERMENT / OWNED DEFERMENT / FORMAL FAIL-CLOSED = type 2 GOVERNANCE_DEFERMENT
+  OR EXCLUDE = type 3 CANDIDATE_EXCLUSION (not residual merit closure)
+  established / corroboration / MR pack / authorship evidence = type 1 when evidence obtained
+  explicit future decision recorded = owned fail-closed pending decision; not merit closure
+```
+
+| RESIDUAL_ID | UNRESOLVED_DIMENSION | STATE | OWNER | DEPENDENCY | MISSING_EVIDENCE | CLOSURE_CRITERIA | NEXT_GATE | NETWORK? | APPROVALS | ACTIVATION_BLOCKING |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C4B05-R05 | EDITORIAL_RESPONSIBILITY | UNKNOWN_FAIL_CLOSED | EDITORIAL_MR_OWNER | §143.10 schema | reviewer/editorial fields per candidate | established OR fail-closed per candidate | S4-EO-07 optional | NO default | Medical/product | YES |
+| C4B06-R-RECOG-01 | OFFICIAL_RECOGNITION | UNKNOWN_FAIL_CLOSED | EDITORIAL_MR_OWNER | MoH corroboration | external official recognition page | corroboration OR owned deferment | S4-EO-07 | YES if plan approved | Medical/Governance | YES |
+| C4B06-R-ABOUT-01 | IDENTITY (legal about) | PARTIAL | GOVERNANCE_OWNER | richer about pack | statute/legal-identity about body | complete about pack OR exclude | S4-EO-06 optional | OPTIONAL | Governance | YES |
+| C4B06-R-EDITORIAL-01 | EDITORIAL_RESPONSIBILITY | PARTIAL | EDITORIAL_MR_OWNER | editorial pages | association editorial responsibility evidence | editorial pack OR deferment | S4-EO-07 optional | NO default | Medical/Safety | YES |
+| C4B07-R-MR-01 | MEDICAL_REVIEW | UNKNOWN_FAIL_CLOSED | EDITORIAL_MR_OWNER | OD-C4A-12 | MR-1+ independent review evidence | MR pack OR deferment | S4-EO-07 optional | NO | Medical/Safety | YES |
+| C4B07-R-AUTH-01 | AUTHORSHIP | UNKNOWN_FAIL_CLOSED | EDITORIAL_MR_OWNER | pamphlet bodies | named authors/reviewers per item | authorship evidence OR deferment | S4-EO-07 optional | NO | Medical/Safety | YES |
+| C4B07-R-MOH-01 | PATIENT_EDUCATION_ROLE (MoH) | UNKNOWN_FAIL_CLOSED | SOURCE_AUTHORITY_OWNER | locked queries | MoH patient-ed primary host | candidate recovered OR scoped deferment | S4-EO-06 / query amendment | YES | Medical/Data + Javad | YES |
+| C4B08-R-INDEX-01 | INDEXING corroboration | PARTIAL | EXTERNAL_CORROBORATION_OWNER | S4-EO-07 plan | external index verification | corroboration ≠ UNKNOWN OR deferment | S4-EO-07 | YES if plan approved | Data/Knowledge | YES |
+| C4B08-R-PRED-01 | QUALITY_SAFETY / predatory | PARTIAL | EDITORIAL_MR_OWNER | §153.5 | governed predatory disposition decision | explicit future decision recorded | S4-EO-07 optional | OPTIONAL | Medical/Data | YES |
+
+### ۱۶۲.۹) Cross-gate separation (Phase I)
+
+```text
+S4_EO_03_RIGHTS_MERITS = NOT_REOPENED (§160 conclusions carried as dependencies)
+S4_EO_04_AUTOMATION_MERITS = NOT_REOPENED (§161 conclusions carried as dependencies)
+
+LAYERS_REMAIN_DISTINCT =
+  IDENTITY / AUTHORITY / RIGHTS / AUTOMATION / QUALITY / SAFETY /
+  PUBLICATION / INGESTION / ACTIVATION / RUNTIME_ELIGIBILITY
+
+NO_ROW_PROMOTED_ACROSS_LAYERS_BY_IMPLICATION = YES
+```
+
+### ۱۶۲.۱۰) EO criterion reconciliation (Phase J)
+
+| CRITERION | BEFORE | EFFECT OF S4-EO-05 | AFTER | TRANSITION? | AUTHORITY |
+|---|---|---|---|---|---|
+| EO-C01 | SATISFIED | none | SATISFIED | NO | unrelated |
+| EO-C02 | SATISFIED | fail-closed laws applied | SATISFIED | NO | NON-DEFERABLE |
+| EO-C03 | SATISFIED | none | SATISFIED | NO | — |
+| EO-C04 | DEFERRED_WITH_OWNER | none (rights Gate done) | DEFERRED_WITH_OWNER | NO | §160 |
+| EO-C05 | DEFERRED_WITH_OWNER | none (automation Gate done) | DEFERRED_WITH_OWNER | NO | §161 |
+| EO-C06 | DEFERRED_WITH_OWNER | 9 authority residuals dispositioned fail-closed; NOT evidence-SATISFIED | DEFERRED_WITH_OWNER | NO | fail-closed disposition ≠ SATISFIED |
+| EO-C07 | DEFERRED_WITH_OWNER | none | DEFERRED_WITH_OWNER | NO | — |
+| EO-C08 | SATISFIED | ownership preserved | SATISFIED | NO | matrix completeness |
+| EO-C09 | SATISFIED | activation lock preserved | SATISFIED | NO | NON-DEFERABLE |
+| EO-C10 | SATISFIED | P2 separation preserved | SATISFIED | NO | — |
+| EO-C11 | OPEN | none | OPEN | NO | S4-EO-08 |
+| EO-C12 | SATISFIED | none | SATISFIED | NO | NON-DEFERABLE |
+
+```text
+EO_SATISFIED_COUNT = 7 (unchanged)
+EO_PARTIAL_COUNT = 0
+EO_OPEN_COUNT = 1 (EO-C11)
+EO_BLOCKED_COUNT = 0
+EO_DEFERRED_COUNT = 4 (EO-C04, C05, C06, C07)
+SUM = 12
+ARITHMETIC_RECONCILES = YES
+NO_CRITERION_TRANSITION_AUTHORIZED = YES
+EO_C06_NOT_PROMOTED_TO_SATISFIED = YES
+EO_C11_NOT_WAIVED = YES
+```
+
+### ۱۶۲.۱۱) Evidence Overlay / Stage-5 / waiver / P2 state (Phase K)
+
+```text
+EVIDENCE_OVERLAY_CURRENT_STATE_AFTER_S4_EO_05 =
+  OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+  (EO-C11 OPEN; EO-C04/C05/C06/C07 DEFERRED_WITH_OWNER;
+   S4-EO-06/07/08/09 not executed; no waiver)
+
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+S4_EO_05_IS_NOT_A_WAIVER = YES
+S4_EO_05_IS_NOT_SOURCE_ACTIVATION = YES
+```
+
+### ۱۶۲.۱۲) Operations NOT performed (Phase L)
+
+```text
+NO network / search / HTTP / external evidence / corroboration fetch
+NO rights/license/reuse merits reopening
+NO automation/crawler/rate-limit merits reopening
+NO source/crawler/KB/publication/runtime activation
+NO residual closure (0 of 9)
+NO UNKNOWN→PASS
+NO EO closure / waiver / Stage-5 entry
+NO P2 / P3 / P4 / P5 / P6
+NO test / CI / workflow
+NO commit / push / fetch / pull / merge / rebase
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–161
+```
+
+### ۱۶۲.۱۳) Self-healing log (Phase M)
+
+```text
+INITIAL_EXECUTION_SELF_HEALING_CLAIM =
+  SUPERSEDED_BY_FIX1 (initial claim that dimension counts were verified was incorrect)
+
+FIX1_FINDING_ID = S4-EO-05-FIX1
+FIX1_SCOPE = §162 summary/nomenclature/closure-semantics/audit-record ONLY
+§162.4_MATRIX_SUBSTANCE_UNCHANGED = YES
+
+DETECTED =
+  §162.5 summary totals (PARTIAL=26, UNKNOWN=43) and three per-dimension rollups
+  (PATIENT_ED, EDITORIAL, QUALITY_SAFETY) did not reconcile to authoritative §162.4 matrix;
+  §162.6 CONTRA-* nomenclature ambiguous vs matrix states;
+  §162.8 closure phrases (deferment/exclude) ambiguous without type key;
+  WORKING_TREE_SHA256_BEFORE_APPEND placeholder unverifiable;
+  §162.13 falsely claimed dimension counts verified
+
+ROOT_CAUSE =
+  manual aggregation and transcription error in §162.5 summary tables;
+  the 9-row §162.4 matrix remained authoritative and unchanged
+
+MINIMAL_IN_SCOPE_FIX =
+  corrected aggregate totals to 23/25/44/0/16/108;
+  corrected per-dimension rollups and ROW_SUM=9 checks;
+  added CONTRA nomenclature note in §162.6;
+  added closure-type key in §162.8;
+  replaced SHA placeholder with NOT_RECORDED_AT_EXECUTION_TIME;
+  corrected this self-healing record
+
+VERIFICATION (Fix1) =
+  9 canonical residual rows × 12 dimensions = 108 cells
+  matrix-derived totals = 23 / 25 / 44 / 0 / 16
+  every dimension row sums to 9
+  CONTRADICTED_FAIL_CLOSED matrix count = 0
+  EO counts unchanged = 7 / 0 / 1 / 0 / 4
+  no matrix state changed; no activation/closure/waiver/Stage-5/P2 transition
+
+OUT_OF_SCOPE_FINDINGS_RECORDED_ONLY =
+  none requiring §§1–161 edit or §162.4 matrix substance change
+```
+
+### ۱۶۲.۱۴) Exact next Gate (Phase N)
+
+```text
+NEXT_GATE =
+S4-EO-06 — BOUNDED RESIDUAL NETWORK PREP/EXECUTION
+(optional/conditional; separate Javad approval required)
+
+WHY_NEXT =
+  §157.21 gate table sequence after merits Gates S4-EO-03/04/05;
+  timeout/incomplete candidates (IRSOME, MPGH, IJMS, PORTAL, jmciri, MoH)
+  routed to S4-EO-06; authority disposition does not require network but
+  retrieval-or-exclude remains open for those residuals
+
+ALTERNATE_OPTIONAL_PARALLEL =
+  S4-EO-07 — EXTERNAL CORROBORATION PREP
+  (indexing/recognition plan for C4B08-R-INDEX-01, C4B06-R-RECOG-01)
+
+DEPENDENCIES =
+  S4-EO-05 complete; rights §160 + automation §161 fail-closed preserved
+
+NEXT_GATE_EXECUTION =
+NOT AUTHORIZED BY THIS TASK
+
+EXPLICIT_APPROVAL_STILL_REQUIRED =
+  any network fetch; corroboration execution; dry-run (S4-EO-08);
+  EO closure (S4-EO-09); source activation; P2; waiver
+```
+
+### ۱۶۲.۱۵) Completion markers / execution state (Phase O)
+
+```text
+S4_EO_05_COMPLETE = YES
+S4_EO_05_ROUTED_RESIDUAL_COUNT = 9
+RESIDUAL_CLOSED_COUNT = 0
+ANY_VERIFIED_CLINICAL_AUTHORITY_GRANTED = NO
+ANY_VERIFIED_INDEXING_GRANTED = NO
+ANY_VERIFIED_MR_GRANTED = NO
+ANY_SOURCE_ACTIVATED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+S4_EO_06_READY = YES (conditional)
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+S4_EO_05_AUTHORITY_RECOGNITION_EDITORIAL_MR_DISPOSITION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS_WITH_LIMITED_VERIFIED_AUTHORITY_AND_OPEN_GAPS
+```
+
+### ۱۶۲.۱۶) Append-only integrity record (Phase P)
+
+```text
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (preserved chain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–161_PRESERVED = YES
+§162_ONLY_NEW_SECTION = YES (initial S4-EO-05 append)
+§162_FIX1_IN_SCOPE_EDITS_ONLY = YES (§162.5/§162.6/§162.8/§162.13/header SHA; §162.4 matrix unchanged)
+§162_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+WORKING_TREE_SHA256_BEFORE_APPEND = NOT_RECORDED_AT_EXECUTION_TIME (no retrospective hash claimed)
+```
+
+---
+*پایان §۱۶۲ — SECTION-29 S4-EO-05 Authority / Recognition / Editorial / Medical-Review Disposition — S4_EO_05_AUTHORITY_RECOGNITION_EDITORIAL_MR_DISPOSITION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۳) SECTION-29 / S4-EO-05 FINAL ACCEPTANCE, AUDIT CLOSURE AND PERMANENT DUAL-REFERENCE UPDATE LAW
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / S4-EO-05 —
+FINAL ACCEPTANCE RECORD AND PERMANENT DUAL-REFERENCE UPDATE LAW
+
+SECTION = 29
+ROADMAP_STAGE = 4
+GATE = S4-EO-05
+RECORD_TYPE = FINAL_ACCEPTANCE_AND_CONTINUATION_CONTROL
+OWNER = Javad
+STATE = FINAL_ACCEPTED
+
+MODE =
+REPOSITORY_LOCAL / DOCUMENTATION_ONLY / APPEND_ONLY / UNCOMMITTED /
+NO_NETWORK / NO_COMMIT / NO_PUSH / NO_SOURCE_ACTIVATION /
+NO_CRAWLER_ACTIVATION / NO_EO_CLOSURE / NO_WAIVER /
+NO_STAGE5_ENTRY / NO_P2_START / NO_S4_EO_06_EXECUTION /
+NO_S4_EO_07_EXECUTION / NO_S4_EO_08_EXECUTION / NO_S4_EO_09_EXECUTION
+
+Authorization:
+Javad final acceptance of Gate S4-EO-05 ONLY
+(does not authorize commit, push, network, later Gates, activation, overlay closure, waiver, Stage 5 or P2)
+
+Baseline (verified at §163 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §162
+  §§158–162 = PRESENT
+  §163 = ABSENT
+  git diff --check = CLEAN (LF/CRLF warning only)
+```
+
+### ۱۶۳.۱) Javad final acceptance record (Phase A)
+
+```text
+JAVAD_FINAL_ACCEPTANCE =
+APPROVED
+
+JAVAD_APPROVAL_STATEMENT (verbatim scope) =
+  Final acceptance of Gate S4-EO-05 is approved with verdict
+  PASS_WITH_LIMITED_VERIFIED_AUTHORITY_AND_OPEN_GAPS.
+  No residual has been closed.
+  The EO state remains unchanged.
+  This approval does not authorize commit, push, network access,
+  execution of S4-EO-06 or S4-EO-07, source or crawler activation,
+  Evidence Overlay closure, waiver, Stage 5 entry or P2 start.
+
+FINAL_VERDICT =
+PASS_WITH_LIMITED_VERIFIED_AUTHORITY_AND_OPEN_GAPS
+
+RESIDUALS_CLOSED = 0
+EO_STATE_TRANSITION = NONE
+
+COMMIT_AUTHORIZED = NO
+PUSH_AUTHORIZED = NO
+NETWORK_AUTHORIZED = NO
+S4_EO_06_AUTHORIZED = NO
+S4_EO_07_AUTHORIZED = NO
+SOURCE_ACTIVATION_AUTHORIZED = NO
+CRAWLER_ACTIVATION_AUTHORIZED = NO
+EVIDENCE_OVERLAY_CLOSURE_AUTHORIZED = NO
+WAIVER_AUTHORIZED = NO
+STAGE5_ENTRY_AUTHORIZED = NO
+P2_START_AUTHORIZED = NO
+
+NO_INFERRED_APPROVAL_FOR_OMITTED_OPERATIONS = YES
+S4_EO_05_MERITS_NOT_REOPENED = YES
+```
+
+### ۱۶۳.۲) Final acceptance basis (Phase B)
+
+```text
+ACCEPTANCE_CHAIN =
+
+S4_EO_05_EXECUTION =
+PASS_WITH_LIMITED_VERIFIED_AUTHORITY_AND_OPEN_GAPS
+
+S4_EO_05_INITIAL_AUDIT =
+NEEDS_FIX
+
+S4_EO_05_FIX1 =
+PASS — IMPLEMENTED_UNCOMMITTED
+
+S4_EO_05_FIX1_FINAL_AUDIT =
+PASS
+
+S4_EO_05_FINAL_READ_ONLY_AUDIT =
+PASS
+
+S4_EO_05_FINAL_ACCEPTANCE =
+APPROVED_BY_JAVAD
+
+FINAL_VERIFIED_MATRIX =
+
+CANONICAL_RESIDUALS = 9
+CLOSED_RESIDUALS = 0
+ACTIVATION_BLOCKING_RESIDUALS = 9
+
+DIMENSION_CELLS = 108
+
+VERIFIED_LIMITED = 23
+PARTIAL = 25
+UNKNOWN_FAIL_CLOSED = 44
+CONTRADICTED_FAIL_CLOSED = 0
+NOT_APPLICABLE = 16
+
+MATRIX_AUTHORITY_RECORD =
+  all 9 residuals remain owned and fail-closed
+  limited verified dimensions do not establish trusted-source status
+  authority disposition does not satisfy rights or automation requirements
+  no source has become ingestion-, publication- or runtime-eligible
+
+§162.4_MATRIX_SUBSTANCE_UNCHANGED_BY_ACCEPTANCE = YES
+§162_FIX1_CORRECTIONS_PRESERVED = YES
+```
+
+### ۱۶۳.۳) EO and roadmap state (Phase C)
+
+```text
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_TOTAL = 12
+
+EO_C11 = OPEN
+
+EVIDENCE_OVERLAY_CURRENT_STATE =
+OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+WAIVER_CREATED = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+SOURCE_ACTIVATION = NO
+CRAWLER_ACTIVATION = NO
+
+ROADMAP_STAGE_4 = IN_PROGRESS
+
+S4_EO_01 = COMPLETE
+S4_EO_02 = PASS_WITH_EXPLICIT_NON_DEFERABLE_ITEMS
+S4_EO_03 = PASS_WITH_EXPLICIT_FAIL_CLOSED_RIGHTS
+S4_EO_04 = PASS_WITH_EXPLICIT_FAIL_CLOSED_AUTOMATION
+S4_EO_05 = FINAL_ACCEPTED
+
+STAGE_4_NOT_DESCRIBED_AS_CLOSED = YES
+I5_PROGRESS = ≈22%
+NO_PROGRESS_INCREMENT_CLAIM = YES
+```
+
+### ۱۶۳.۴) Accepted non-blocking audit notes (Phase D)
+
+```text
+NOTE_1 — PRE-FIX1 CRYPTOGRAPHIC ISOLATION LIMITATION
+
+The current Git diff against HEAD contains the uncommitted append chain
+§§145–163. It cannot cryptographically isolate every Fix1 edit from the current
+diff alone.
+
+This limitation is accepted because:
+  the limitation was disclosed
+  current matrix and invariants were directly verified
+  no false historical hash was claimed
+  it does not alter the Gate verdict
+
+NOTE_2 — CONTRADICTION_ID TABLE HEADER
+
+The table header remains historical terminology.
+
+It is accepted as a cosmetic, non-blocking note because §162 now explicitly
+defines that CONTRA-* does not automatically mean CONTRADICTED_FAIL_CLOSED.
+
+FIX2_REQUIRED = NO
+```
+
+### ۱۶۳.۵) Permanent dual-reference update law (Phase E)
+
+```text
+PERMANENT_DUAL_REFERENCE_UPDATE_LAW = YES
+
+After every finally approved Gate, package, material implementation stage,
+audit closure, test result, commit, push, CI result, migration, deployment,
+flag decision or other material development transition, both continuity layers
+must be updated:
+
+1. REPOSITORY MASTER LOG
+   docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+2. LATEST UPLOADED HANDOFF / REFERENCE FILE
+   The latest authoritative handoff/reference shared between project chats.
+
+The update must record, as applicable:
+  approval and exact scope
+  completed actions
+  findings and fixes
+  current HEAD and relevant SHAs
+  test and CI results
+  master-log tip
+  dirty/staged/untracked state
+  completed and remaining work
+  exact next Gate
+  operations still requiring separate Javad approval
+  supersession of older handoff states
+
+PERMANENT_DISTINCTIONS =
+  MASTER_LOG_UPDATED != UPLOADED_REFERENCE_UPDATED
+  UPLOADED_REFERENCE_UPDATED != REPOSITORY_SYNCED
+  REFERENCE_RECORD != GIT COMMIT
+  GATE_FINAL_ACCEPTANCE REQUIRES MASTER_LOG_UPDATE + LATEST_HANDOFF_UPDATE
+
+NO_DOCUMENT_MAY_CLAIM_OTHER_LAYER_SYNCHRONIZED_UNTIL_ACTUAL_UPDATE = YES
+
+FOR_THIS_GATE =
+  REPOSITORY_MASTER_LOG_UPDATE = IN_PROGRESS_BY_THIS_§163_APPEND
+  UPLOADED_REFERENCE_UPDATE = REQUIRED_AFTER_CURSOR_FINAL_REPORT
+  UPLOADED_REFERENCE_UPDATE_OWNER = ChatGPT / project continuity process
+  EXPECTED_NEXT_REFERENCE_VERSION = NEXT VERSION AFTER v369
+
+CURSOR_DID_NOT_CREATE_UPLOADED_REFERENCE = YES
+CURSOR_DID_NOT_GUESS_UPLOADED_REFERENCE_FILENAME = YES
+```
+
+### ۱۶۳.۶) Non-authorization and separation law (Phase F)
+
+```text
+FINAL_ACCEPTANCE != RESIDUAL_CLOSURE
+FINAL_ACCEPTANCE != EVIDENCE_OVERLAY_CLOSURE
+FINAL_ACCEPTANCE != NETWORK_APPROVAL
+FINAL_ACCEPTANCE != EXTERNAL_CORROBORATION_APPROVAL
+FINAL_ACCEPTANCE != SOURCE_ACTIVATION
+FINAL_ACCEPTANCE != CRAWLER_ACTIVATION
+FINAL_ACCEPTANCE != INGESTION_APPROVAL
+FINAL_ACCEPTANCE != PUBLICATION_APPROVAL
+FINAL_ACCEPTANCE != RUNTIME_ELIGIBILITY
+FINAL_ACCEPTANCE != STAGE5_ENTRY
+FINAL_ACCEPTANCE != P2_START
+
+ROUTING != AUTHORIZATION
+
+RIGHTS §160 AND AUTOMATION §161 REMAIN INDEPENDENT FAIL_CLOSED_LAYERS = YES
+```
+
+### ۱۶۳.۷) Next-gate and continuation state (Phase G)
+
+```text
+CANDIDATE_FUTURE_GATES (NOT AUTHORIZED) =
+
+S4_EO_06 =
+OPTIONAL / CONDITIONAL BOUNDED RESIDUAL NETWORK GATE
+NOT AUTHORIZED
+
+S4_EO_07 =
+OPTIONAL / CONDITIONAL EXTERNAL CORROBORATION GATE
+NOT AUTHORIZED
+
+S4_EO_08 =
+NOT AUTHORIZED
+
+S4_EO_09 =
+NOT AUTHORIZED
+
+NO_NETWORK_GATE_SELECTED_OR_EXECUTED_IN_THIS_TASK = YES
+
+IMMEDIATE_NEXT_REPOSITORY_STEP =
+STRICT READ-ONLY AUDIT OF §163 FINAL ACCEPTANCE RECORD
+
+NEXT_STEP_AUTHORIZED_BY_THIS_TASK = NO — SEPARATE JAVAD APPROVAL REQUIRED
+
+COMMIT_AND_PUSH_OF_UNCOMMITTED_STAGE4_CHAIN =
+NOT AUTHORIZED
+```
+
+### ۱۶۳.۸) Operations NOT performed (Phase H)
+
+```text
+NO network / search / HTTP / external evidence / corroboration fetch
+NO source / crawler / KB / publication / runtime activation
+NO residual closure (0 of 9)
+NO EO closure / waiver / Stage-5 entry / P2 start
+NO S4-EO-06 / S4-EO-07 / S4-EO-08 / S4-EO-09 execution
+NO test / CI / workflow
+NO commit / push / fetch / pull / merge / rebase / tag / reset / restore / checkout / stash / clean
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–162
+NO uploaded-reference file creation or claim by Cursor
+```
+
+### ۱۶۳.۹) Self-healing log (Phase I)
+
+```text
+SELF_HEALING_EVENTS = NONE
+§163_INITIAL_APPEND_CLEAN = YES
+```
+
+### ۱۶۳.۱۰) Completion markers / execution state (Phase J)
+
+```text
+S4_EO_05_FINAL_ACCEPTANCE_RECORDED = YES
+S4_EO_05_STATE =
+S4_EO_05_AUTHORITY_RECOGNITION_EDITORIAL_MR_DISPOSITION_FINAL_ACCEPTED_UNCOMMITTED
+
+RESIDUAL_CLOSED_COUNT = 0
+ACTIVATION_BLOCKING_RESIDUAL_COUNT = 9
+ANY_SOURCE_ACTIVATED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+STAGE5_READY = NO
+WAIVER_CREATED = NO
+P2_STARTED = NO
+I5_PROGRESS ≈ 22%
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+FINAL_VERDICT_FOR_THIS_RECORD =
+PASS — FINAL_ACCEPTANCE_RECORDED_UNCOMMITTED
+```
+
+### ۱۶۳.۱۱) Append-only integrity record (Phase K)
+
+```text
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (preserved chain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–162_PRESERVED = YES
+§163_ONLY_NEW_SECTION = YES
+§163_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+§162.4_MATRIX_SUBSTANCE_UNCHANGED = YES
+§162_FIX1_CORRECTIONS_UNTOUCHED = YES
+```
+
+---
+*پایان §۱۶۳ — SECTION-29 S4-EO-05 Final Acceptance, Audit Closure and Permanent Dual-Reference Update Law — S4_EO_05_AUTHORITY_RECOGNITION_EDITORIAL_MR_DISPOSITION_FINAL_ACCEPTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۴) SECTION-29 / I5 MANAGEMENT ACCELERATION LAW, CLOSURE-ORIENTED EXECUTION PLAN AND PROGRESS-MEASUREMENT CONTROL
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 —
+I5 MANAGEMENT ACCELERATION LAW AND CLOSURE-ORIENTED EXECUTION PLAN
+
+SECTION = 29
+ROADMAP_STAGE = 4
+RECORD_TYPE = MANAGEMENT_ACCELERATION_AND_CONTINUATION_CONTROL
+OWNER = Javad
+DECISION_STATE = APPROVED
+
+MODE =
+REPOSITORY_LOCAL / DOCUMENTATION_ONLY / APPEND_ONLY / UNCOMMITTED /
+NO_NETWORK / NO_COMMIT / NO_PUSH / NO_TEST / NO_CI /
+NO_SOURCE_ACTIVATION / NO_CRAWLER_ACTIVATION / NO_EO_CLOSURE /
+NO_WAIVER / NO_STAGE5_ENTRY / NO_P2_START /
+IN_SCOPE_SELF_HEALING = REQUIRED
+
+Authorization:
+Javad approval of I5 management acceleration and closure-oriented execution plan ONLY
+(does not authorize commit, push, network, test, CI, later Gates, activation,
+EO closure, waiver, Stage 5 or P2)
+
+Baseline (verified at §164 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+  UPSTREAM = origin/feature/section15/backend-continuity-foundation
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §163
+  §§158–163 = PRESENT
+  §164 = ABSENT
+  §163_AUDIT = PASS
+  git diff --check = CLEAN (LF/CRLF warning only)
+```
+
+### ۱۶۴.۱) §163 final audit record (Phase A)
+
+```text
+§163_AUDIT_EXECUTED = YES
+§163_AUDIT_VERDICT = PASS
+
+VERIFIED =
+  FINAL_VERDICT = PASS_WITH_LIMITED_VERIFIED_AUTHORITY_AND_OPEN_GAPS
+  RESIDUALS_CLOSED = 0
+  EO_STATE_TRANSITION = NONE
+  ACCEPTANCE_CHAIN complete (execution PASS; initial audit NEEDS_FIX;
+    Fix1 IMPLEMENTED_UNCOMMITTED; Fix1 final audit PASS; Javad approval APPROVED)
+  no commit / push / CI / network / activation claimed
+  matrix 9 residuals / 108 cells / 23/25/44/0/16 correct
+  EO 7/0/1/0/4; EO-C11 OPEN
+  Stage 4 IN_PROGRESS; Stage 5 not ready; P2 not started
+  both accepted audit notes preserved
+  permanent dual-reference law accurately recorded
+  UPLOADED_REFERENCE_UPDATE = REQUIRED_AFTER_CURSOR_FINAL_REPORT
+  Cursor did not claim uploaded handoff creation
+
+CANONICAL_FIELD_NAME_AUDIT =
+  CRAWLER_ACTIVIZATION_AUTHORIZED = NOT_PRESENT (correct)
+  CRAWLER_ACTIVATION_AUTHORIZED = NO (canonical; present once)
+  no AUTHORISED / STAGE_5 / EO_CLOSURE / P2_AUTHORIZED drift in §163
+
+APPEND_PROOF_TERMINOLOGY =
+  §163 content lines = 40906–41249 = 344
+  separator before §163 = 1 blank line (between §162 footer and §163 heading)
+  append delta after prior EOF = 345 lines (344 content + 1 separator)
+
+CURRENT_CONTENT_SCOPE = VERIFIED
+CRYPTOGRAPHIC_ISOLATION_OF_§163_FROM_PRIOR_UNCOMMITTED_CHAIN =
+  NOT_AVAILABLE_FROM_CURRENT_GIT_DIFF_ALONE
+(NON_BLOCKING — invariants directly verified)
+
+§163_SELF_HEALING_EVENTS = NONE
+```
+
+### ۱۶۴.۲) Formal I5 progress record (Phase B)
+
+```text
+I5_FORMAL_CLOSED_COMPLETION = 21.79487179%
+I5_FORMAL_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+
+LOCKED_CALCULATION_BASIS =
+
+I5_A = 1 / 1
+I5_B = 4 / 13
+I5_C = 0 / 1
+I5_D = 0 / 1
+I5_E = 0 / 1
+I5_F = 0 / 1
+
+FORMAL_COMPLETION =
+(1 + 4/13) / 6
+= 17 / 78
+= 21.79487179%
+
+FORMAL_REMAINING =
+61 / 78
+= 78.20512821%
+
+PARTIAL_WORK_INSIDE_AN_OPEN_UNIT != FORMALLY_CLOSED_COMPLETION
+
+NO_NEW_OFFICIAL_PERCENTAGE_INVENTED = YES
+```
+
+### ۱۶۴.۳) Speed-diagnosis record (Phase C)
+
+```text
+PERCEIVED_LOW_SPEED_HAS_TWO_DISTINCT_CAUSES = YES
+
+CAUSE_1 — MEASUREMENT_ARTIFACT =
+  Formal completion is stepwise.
+  Work inside an open unit does not increase the closed-completion numerator
+  until the unit closes.
+
+CAUSE_2 — PROCESS_OVERHEAD =
+  Recent execution involved many small documentation, audit and acceptance
+  cycles that improve governance quality but do not directly activate crawler,
+  ingestion, publication or runtime grounding.
+
+LOW_VISIBLE_PERCENTAGE DOES_NOT_MEAN NO REAL WORK WAS COMPLETED
+REAL WORK COMPLETED DOES_NOT_MEAN THE OPEN_UNIT IS FORMALLY_CLOSED
+
+NO_UNSUPPORTED_OPERATIONAL_COMPLETION_PERCENTAGE_CLAIMED = YES
+```
+
+### ۱۶۴.۴) Permanent I5 acceleration law (Phase D)
+
+```text
+PERMANENT_I5_ACCELERATION_LAW = YES
+
+I5 must continue with:
+
+FEWER_MICRO_GATES = YES
+LARGER_MULTI_STAGE_PACKAGES = YES
+CLOSURE_ORIENTED_EXECUTION = YES
+IN_SCOPE_SELF_HEALING = REQUIRED
+MINIMUM_NECESSARY_APPROVAL_STOPS = REQUIRED
+SAFETY_AND_GOVERNANCE_CONTROLS = PRESERVED
+
+APPROVED_PACKAGE_PATTERN (where scope permits) =
+
+PREFLIGHT
+→ AUTHORITY_AND_SCOPE_RECONSTRUCTION
+→ ALL_AUTHORIZED_ACTIONS
+→ SELF_HEALING
+→ FINAL_AUDIT
+→ MASTER_LOG_UPDATE
+→ FINAL_REPORT
+
+Do not split implementation, audit and minor documentation correction into
+separate Gates when all are safely within the same approved allowlist.
+```
+
+### ۱۶۴.۵) Sensitive approval boundaries (Phase E)
+
+```text
+SEPARATE_APPROVAL_REMAINS_MANDATORY_FOR =
+
+SAFETY_CRITICAL_CHANGE
+LEGAL_OR_RIGHTS_DECISION
+NETWORK_ACCESS
+EXTERNAL_EVIDENCE_COLLECTION
+TEST_OR_CI
+STAGE_COMMIT_OR_PUSH
+MIGRATION_OR_DATABASE_OPERATION
+DEPLOYMENT
+SOURCE_CRAWLER_FLAG_OR_CAPABILITY_ACTIVATION
+PRODUCT_CLINICAL_OR_EDITORIAL_AUTHORITY_DECISION
+SCOPE_EXPANSION
+
+ACCELERATION != REMOVAL_OF_SAFETY_CONTROLS
+ACCELERATION != IMPLICIT_AUTHORIZATION
+```
+
+### ۱۶۴.۶) Closure-impact Gate selection law (Phase F)
+
+```text
+INDEPENDENT_GATE_SELECTION_DIMENSIONS =
+
+1. CLOSURE_IMPACT =
+   YES only when execution can directly change:
+     EO-C11
+     Evidence Overlay closure eligibility
+     Evidence Overlay final closure
+     a formal prerequisite necessary for P2
+
+2. HARD_DEPENDENCY =
+   YES only when later authorized progression cannot occur without
+   completing or formally disposing the Gate
+
+3. MANDATORY_CONTROL =
+   YES only when a governing requirement itself must be satisfied and
+   cannot be skipped or replaced merely because the Gate is inconvenient
+   Examples: §93.12 dry-run requirement; final closure attestation;
+   mandatory safety or governance locks
+
+4. SENSITIVE_APPROVAL_BOUNDARY =
+   YES when execution would involve a separately approval-gated operation:
+     network; external evidence collection; test or CI; legal/rights decision;
+     activation; migration; deployment
+
+PERMANENT_DISTINCTIONS =
+  MANDATORY_CONTROL != SENSITIVE_APPROVAL_BOUNDARY
+  A Gate may be optional but still require separate approval if executed
+  SENSITIVE_APPROVAL_BOUNDARY = YES DOES_NOT_MEAN THE_GATE_MUST_BE_EXECUTED
+  MANDATORY_CONTROL = YES DOES_MEAN THE_REQUIREMENT_CANNOT_BE_SILENTLY_SKIPPED
+
+BEFORE_SELECTING_ANY_FUTURE_STAGE_4_GATE, RECORD ALL FOUR DIMENSIONS.
+
+DEFAULT_DECISION =
+IF CLOSURE_IMPACT = NO
+AND HARD_DEPENDENCY = NO
+AND MANDATORY_CONTROL = NO
+THEN DEFAULT_ACTION = DEFER_OR_SKIP
+even when SENSITIVE_APPROVAL_BOUNDARY = YES
+because a sensitive operation can remain optional
+
+IF MANDATORY_CONTROL = YES
+THEN the requirement may not be silently skipped
+It may only be:
+  EXECUTED
+  COMBINED_WITH_AN_AUTHORIZED_PACKAGE
+  or FORMALLY_DISPOSED_UNDER_EXPLICIT_AUTHORITY
+
+SEQUENTIAL_GATE_NUMBER != AUTOMATIC_EXECUTION_PRIORITY
+ROUTING != AUTHORIZATION
+```
+
+### ۱۶۴.۷) Approved closure-oriented sequence (Phase G)
+
+```text
+APPROVED_MANAGEMENT_SEQUENCE (NOT AUTHORIZED MERELY BY LISTING) =
+
+1. identify only residuals capable of changing EO closure
+2. skip or defer optional Gates with no closure impact
+3. execute bounded network or external corroboration only where required
+4. assign every remaining residual one explicit disposition:
+     RESOLVE / GOVERNANCE_DEFER / EXCLUDE
+5. close EO-C11
+6. execute Evidence Overlay closure attestation
+7. start P2
+8. continue P2 → P3 → P4 → P5 → P6 → R1 → R2 → S1
+9. implement Weekly Governed Crawler
+10. implement knowledge packs and runtime grounding
+11. close I5 only after all formal requirements are met
+
+NO_STEP_AUTHORIZED_BY_SEQUENCE_ALONE = YES
+```
+
+### ۱۶۴.۸) Dual progress-metric control (Phase H)
+
+```text
+TWO_DISTINCT_PROGRESS_MEASURES_REQUIRED = YES
+
+1. FORMAL_CLOSED_COMPLETION
+   Current value = 21.79487179%
+   Purpose = formal closure accounting without double-counting
+
+2. OPERATIONAL_PROGRESS_INSIDE_OPEN_UNITS
+   State = MODEL_NOT_YET_APPROVED
+
+FUTURE_MODEL_REQUIREMENTS =
+  evidence-based
+  no double-counting
+  package- and criterion-traceable
+  separate from formal closure
+  must not imply production readiness
+  must define numerator, denominator and state-transition rules
+  requires separate approval before a percentage is published
+
+NO_UNAPPROVED_OPERATIONAL_PERCENTAGE = YES
+```
+
+### ۱۶۴.۹) Dual-reference status (Phase I)
+
+```text
+REPOSITORY_MASTER_LOG_UPDATE =
+RECORDED_UNCOMMITTED_IN_§164
+
+UPLOADED_REFERENCE_v370 =
+COMPLETED_AFTER_§163_EXECUTION
+
+UPLOADED_REFERENCE_v371 =
+CURRENT_AUTHORITATIVE_HANDOFF_WITH_ACCELERATION_DECISION
+
+UPLOADED_REFERENCE_UPDATE_OWNER =
+ChatGPT / project continuity process
+
+UPLOADED_REFERENCE_v371 != REPOSITORY_COMMIT
+REPOSITORY_MASTER_LOG_APPEND != REMOTE_SYNC
+
+CURSOR_DID_NOT_CREATE_v370 = YES
+CURSOR_DID_NOT_CREATE_v371 = YES
+```
+
+### ۱۶۴.۱۰) EO, activation and non-authorization state (Phase J)
+
+```text
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_TOTAL = 12
+
+EO_C11 = OPEN
+
+EVIDENCE_OVERLAY_CURRENT_STATE =
+OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+WAIVER_CREATED = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+
+S4_EO_05 = FINAL_ACCEPTED (unchanged)
+ROADMAP_STAGE_4 = IN_PROGRESS
+
+COMMIT_AUTHORIZED = NO
+PUSH_AUTHORIZED = NO
+NETWORK_AUTHORIZED = NO
+TEST_AUTHORIZED = NO
+CI_AUTHORIZED = NO
+S4_EO_06_AUTHORIZED = NO
+S4_EO_07_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+WAIVER_AUTHORIZED = NO
+STAGE5_ENTRY_AUTHORIZED = NO
+P2_START_AUTHORIZED = NO
+SOURCE_ACTIVATION_AUTHORIZED = NO
+CRAWLER_ACTIVATION_AUTHORIZED = NO
+```
+
+### ۱۶۴.۱۱) Next-Gate closure-impact decision table (Phase K)
+
+```text
+PRIOR_TABLE_STATUS = SUPERSEDED_BY_§164_FIX1
+PRIOR_FINDING =
+  S4-EO-06 and S4-EO-07 were marked MANDATORY_CONTROL = YES (network / external
+  evidence) while recommended DEFER / SKIP — conflated mandatory control with
+  sensitive approval boundary
+```
+
+| GATE | CLOSURE_IMPACT | HARD_DEPENDENCY | MANDATORY_CONTROL | SENSITIVE_APPROVAL_BOUNDARY | RECOMMENDED_ACTION | RATIONALE |
+|---|---|---|---|---|---|---|
+| S4-EO-06 | NO | NO | NO | YES | DEFER_OR_SKIP | Optional bounded residual network route. Routing does not establish necessity or authorization. Execute only if later evidence proves a closure dependency |
+| S4-EO-07 | NO | NO | NO | YES | DEFER_OR_SKIP | Optional external corroboration route. Current fail-closed governance dispositions do not require it for EO-C11 unless a later authoritative reconstruction proves otherwise |
+| S4-EO-08 | YES | YES | YES | NO | EXECUTE_OR_COMBINE | EO-C11 is OPEN. The §93.12 dry-run requirement is mandatory. The immediate S4-EO-08 package is documentation/checklist and prerequisite reconstruction only |
+| S4-EO-09 | YES | YES | YES | YES | DEFER_UNTIL_PREREQUISITES_THEN_EXECUTE | Final Evidence Overlay closure attestation. Cannot execute before EO-C11 and mandatory prerequisites are properly resolved |
+
+```text
+ACTUAL_DRY_RUN_EXECUTION MAY_REQUIRE A SEPARATE SENSITIVE APPROVAL
+THIS_FIX1_DOES_NOT_AUTHORIZE_AN_ACTUAL_DRY_RUN = YES
+
+NEXT_RECOMMENDED_GATE =
+S4-EO-08 — EO-C11 DRY-RUN ALLOWLIST CHECKLIST
+AND CLOSURE-PREREQUISITE RECONSTRUCTION
+
+RECOMMENDED_INITIAL_MODE =
+REPOSITORY-LOCAL / DOCUMENTATION-ONLY / NO NETWORK /
+NO ACTUAL DRY-RUN EXECUTION / NO ACTIVATION
+
+THE_NEXT_GATE_SHOULD =
+  1. reconstruct EO-C11's exact normative definition
+  2. reconstruct all §93.12 prerequisites
+  3. distinguish checklist readiness from actual dry-run execution
+  4. enumerate required allowlist entries
+  5. assign owner, dependency and closure criteria
+  6. identify whether any actual technical dry-run is necessary
+  7. prepare the smallest separately approval-gated execution package if needed
+  8. reconcile all residuals only to the extent they can alter closure eligibility
+
+S4_EO_08_RECOMMENDED = YES
+S4_EO_08_AUTHORIZED = NO
+ACTUAL_DRY_RUN_AUTHORIZED = NO
+
+WHY =
+  smallest closure-impact action toward EO-C11 resolution;
+  docs-only checklist package; no network; preserves all safety controls;
+  S4-EO-06 and S4-EO-07 are optional and deferable despite sensitive boundaries
+
+COMBINE_CANDIDATE =
+  residual disposition summary (RESOLVE / GOVERNANCE_DEFER / EXCLUDE)
+  for remaining activation-blocking residuals, if within same approved package
+
+NEXT_GATE_AUTHORIZED_BY_THIS_TASK = NO — SEPARATE JAVAD APPROVAL REQUIRED
+NO_NETWORK_GATE_SELECTED_OR_EXECUTED = YES
+```
+
+### ۱۶۴.۱۲) Operations NOT performed (Phase L)
+
+```text
+NO network / search / HTTP / external evidence
+NO test / CI / workflow
+NO source / crawler / KB / publication / runtime activation
+NO EO closure / waiver / Stage-5 entry / P2 start
+NO S4-EO-06 / S4-EO-07 / S4-EO-08 / S4-EO-09 execution
+NO commit / push / fetch / pull / merge / rebase / tag / reset / restore / checkout / stash / clean
+NO migration / DB / deploy / build / frontend / flag / production
+NO rewrite of §§1–163 (except none required)
+NO uploaded-reference file creation by Cursor
+```
+
+### ۱۶۴.۱۳) Self-healing log (Phase M)
+
+```text
+§163_SELF_HEALING_EVENTS = NONE
+
+§164_FIX1_FINDING_ID = §164-FIX1
+§164_FIX1_SCOPE = §164.6 taxonomy / §164.11 table / §164.11 readiness boundary / this record ONLY
+
+DETECTED =
+  The Gate-selection table marked S4-EO-06 and S4-EO-07 as
+  MANDATORY_CONTROL = YES while recommending DEFER / SKIP
+
+ROOT_CAUSE =
+  Mandatory control was conflated with sensitive approval boundary
+
+IMPACT =
+  The inconsistency could cause:
+    an optional network Gate to be treated as mandatory; or
+    a genuinely mandatory control to appear safely skippable
+
+MINIMAL_FIX =
+  Added independent SENSITIVE_APPROVAL_BOUNDARY dimension;
+  corrected all four Gate dispositions;
+  clarified default defer/skip rule for optional Gates with sensitive boundaries;
+  expanded S4-EO-08 readiness boundary without authorizing execution
+
+VERIFICATION (Fix1) =
+  S4-EO-06 and S4-EO-07 are optional and deferable
+  their execution still requires separate approval
+  S4-EO-08 remains smallest closure-impact recommendation
+  S4-EO-09 remains mandatory but premature
+  no Gate execution authorized
+  EO and I5 state unchanged
+  §§1–163 unchanged
+
+PRIOR_TABLE_MARKED = SUPERSEDED_BY_§164_FIX1
+§164_INITIAL_APPEND_CLEAN = YES (preserved; Fix1 is in-scope correction)
+```
+
+### ۱۶۴.۱۴) Completion markers / execution state (Phase N)
+
+```text
+§163_AUDITED = PASS
+I5_ACCELERATION_LAW_RECORDED = YES
+CLOSURE_ORIENTED_EXECUTION_PLAN_RECORDED = YES
+
+HEAD_REMAINS = af1d583df55a8df8284105917e86caf6342eb089
+WORKTREE = MASTER_LOG_DIRTY_ONLY
+STAGING = EMPTY
+
+STATE =
+I5_MANAGEMENT_ACCELERATION_AND_CLOSURE_PLAN_DOCUMENTED_UNCOMMITTED
+
+§164_FIX1_APPLIED = YES
+CLOSURE_IMPACT_TAXONOMY_CORRECTED = YES
+
+FINAL_VERDICT_FOR_THIS_RECORD =
+PASS — §164_FIX1_CORRECTED_AND_FINAL_AUDITED_UNCOMMITTED
+```
+
+### ۱۶۴.۱۵) Append-only integrity record (Phase O)
+
+```text
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (preserved chain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–163_PRESERVED = YES
+§163_UNCHANGED = YES
+§164_ONLY_SECTION_EDITED = YES (initial append + Fix1 in-scope edits)
+§164_FIX1_IN_SCOPE_EDITS_ONLY = YES (§164.6/§164.11/§164.13/§164.14/§164.15)
+§164_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+PRIOR_§164.11_TABLE = SUPERSEDED_BY_§164_FIX1 (finding preserved)
+```
+
+---
+*پایان §۱۶۴ — SECTION-29 I5 Management Acceleration Law, Closure-Oriented Execution Plan and Progress-Measurement Control — I5_MANAGEMENT_ACCELERATION_AND_CLOSURE_PLAN_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۵) SECTION 29 / S4-EO-08 EO-C11 AND §93.12 DRY-RUN ALLOWLIST CHECKLIST AND CLOSURE-PREREQUISITE RECONSTRUCTION
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / S4-EO-08 —
+EO-C11 NORMATIVE RECONSTRUCTION AND §93.12 DRY-RUN ALLOWLIST CHECKLIST
+
+SECTION = 29
+ROADMAP_STAGE = 4
+GATE = S4-EO-08
+RECORD_TYPE = EO_C11_DRY_RUN_CHECKLIST_AND_CLOSURE_PREREQUISITE_RECONSTRUCTION
+OWNER = Javad
+DECISION_STATE = DOCUMENTATION_COMPLETE
+
+MODE =
+REPOSITORY_LOCAL / DOCUMENTATION_ONLY / APPEND_ONLY / UNCOMMITTED /
+NO_NETWORK / NO_ACTUAL_DRY_RUN / NO_TEST / NO_CI / NO_COMMIT / NO_PUSH /
+NO_SOURCE_ACTIVATION / NO_EO_C11_CLOSURE / NO_EVIDENCE_OVERLAY_CLOSURE
+
+Authorization (Javad):
+  S4-EO-08 documentation-only reconstruction ONLY
+  does NOT authorize network, external evidence, actual dry-run, test, CI,
+  migration, activation, EO-C11 closure, overlay closure, waiver, Stage 5, P2,
+  commit or push
+
+Baseline (verified at §165 entry):
+  WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+  BRANCH = feature/section15/backend-continuity-foundation
+  LOCAL_HEAD = af1d583df55a8df8284105917e86caf6342eb089
+  AHEAD/BEHIND = 0/0
+  DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+  STAGING = EMPTY
+  UNTRACKED = ZERO
+  TIP_BEFORE = §164
+  §164_FIX1 = PASS — §164_FIX1_CORRECTED_AND_FINAL_AUDITED_UNCOMMITTED
+```
+
+### ۱۶۵.۱) Gate identity and authorization (Phase A)
+
+```text
+S4_EO_08_AUTHORIZED_SCOPE =
+  repository-local authority reconstruction
+  EO-C11 exact reconstruction
+  §93.12 dry-run requirement reconstruction
+  dry-run candidate-allowlist checklist design
+  owner/dependency/blocker/closure-criteria disposition
+  documentation-only actual-dry-run necessity determination
+  smallest separately approval-gated execution package preparation
+  append-only master-log documentation
+
+S4_EO_08_NOT_AUTHORIZED =
+  network / external evidence / actual dry-run / test / CI / DB / migration /
+  seed apply / publication / source or crawler activation / ingestion /
+  runtime grounding / EO-C11 closure / Evidence Overlay closure / waiver /
+  Stage 5 / P2 / commit / push
+
+S4_EO_08_DOCUMENTATION_COMPLETE != EO_C11_CLOSED
+S4_EO_08_DOCUMENTATION_COMPLETE != EVIDENCE_OVERLAY_CLOSED
+```
+
+### ۱۶۵.۲) Preflight (Phase B)
+
+| CHECK | EXPECTED | OBSERVED | RESULT |
+|---|---|---|---|
+| worktree | Demo-wt-section15-backend | same | PASS |
+| branch | feature/section15/backend-continuity-foundation | same | PASS |
+| HEAD | af1d583… | af1d583… | PASS |
+| ahead/behind | 0/0 | 0/0 | PASS |
+| dirty | master log only | same | PASS |
+| staging | EMPTY | EMPTY | PASS |
+| untracked | ZERO | ZERO | PASS |
+| tip before | §164 | §164 | PASS |
+| §165 exists | NO | NO | PASS |
+| §164 at EOF | YES | YES | PASS |
+| §164-FIX1 | present | present | PASS |
+| EO 7/0/1/0/4 | yes | yes | PASS |
+| I5 21.79487179% | yes | yes | PASS |
+| git diff --check | CLEAN | CLEAN (LF/CRLF warning) | PASS |
+
+### ۱۶۵.۳) Authority chain (Phase C)
+
+| AUTHORITY_SECTION | EXACT_REQUIREMENT | CURRENT_STATE | CONFLICTING_TEXT | PRECEDENCE_REASON | RESULTING_CONTRACT |
+|---|---|---|---|---|---|
+| §93.12 | All §93.12 prerequisites before any dry-run allowlist entry | NOT SATISFIED | none | §93.12 is design authority for dry-run allowlist; cited by EO-C11 | Dry-run allowlist blocked until prerequisites met |
+| §93.9 | Evidence Overlay design; versioned; missing evidence fails closed | DESIGN ONLY; NOT IMPLEMENTED | none | §93 scope review complete; overlays not approved | No approved overlay rows exist |
+| §93.13 #1 | Explicit overlays for 9 non-hold sources | NOT DONE | none | Owner decision matrix | Blocking for overlay-eligible candidates |
+| §93.13 #7 | Target environment separately approved | NOT DONE | none | §93.13 | TARGET_ENVIRONMENT_NOT_APPROVED |
+| §93.13 #8 | First dry-run: Javad + E8 + approved allowlist + dry-run package | NOT AUTHORIZED | none | §93.13 | Actual dry-run requires separate approval |
+| §88.2 / §89 | P1-L1: dry-run default=True; apply needs env+allowlist+plan digest+CONFIRM | IMPLEMENTED_UNCOMMITTED_STATICALLY_CLOSED at historical closure; HEAD af1d583 has code | none | P1-L1 CI_VERIFIED_AND_CLOSED per §92 | Entrypoint exists; apply/dry-run not executed at current HEAD worktree state |
+| §157.3 / §158 | EO-C11 = dry-run allowlist prerequisites (§93.12) | OPEN | none | Stage-4 EO inventory | EO-C11 remains OPEN |
+| §157.20 | EO-C11 SATISFIED only if dry-run prerequisites met | NOT SATISFIED | §157.20 allows explicit closure-scope exclusion of dry-run enablement | Default path requires §93.12; explicit exclusion only in closure Gate | EO-C11 cannot close without prerequisites or explicit owned exclusion in S4-EO-09 |
+| §145.10 / §157.21 | S4-EO-08 = checklist docs; dry-run still NO | THIS GATE | none | Stage-4 sub-Gate plan | Checklist documentation authorized; execution not |
+| §160 / §161 | Rights and automation fail-closed | DEFERRED_WITH_OWNER | none | Independent layers | License/automation gaps remain; block overlay passes |
+| §162 | Authority/MR disposition fail-closed | FINAL_ACCEPTED | none | Does not reopen for EO-C11 | No trusted-source promotion |
+| §164-FIX1 | S4-EO-06/07 defer; S4-EO-08 execute/combine docs-only | ACTIVE | none | Latest management law | Network/corroboration not required for EO-C11 checklist |
+
+```text
+BLOCKED_AUTHORITY_RECONSTRUCTION_MISMATCH = NO
+MATERIAL_CONFLICTS_UNRESOLVED = NO
+PRECEDENCE = latest Stage-4 EO inventory (§158) + §93.12 + §164-FIX1 over stale progress headers
+```
+
+### ۱۶۵.۴) EO-C11 canonical contract (Phase D)
+
+```text
+EO_C11_CANONICAL_NAME =
+Dry-run allowlist prerequisites (§93.12)
+
+EO_C11_NORMATIVE_DEFINITION =
+  EO criterion requiring approved overlays plus license/authority/jurisdiction/
+  trust/provenance evidence and a separate dry-run package before any candidate
+  may enter a controlled dry-run allowlist (§157.3; §37398; §93.12)
+
+EO_C11_ORIGINAL_STATE =
+  NOT SATISFIED (§145.10 inventory; overlays not approved; license/authority/
+  jurisdiction pending — §30587)
+
+EO_C11_CURRENT_STATE =
+  OPEN (§158; §162; §164; only OPEN EO criterion)
+
+EO_C11_OWNER =
+  Governance (§30587; §37601; §158 attestation)
+
+EO_C11_DEPENDENCIES =
+  EO-C04 rights/terms disposition (DEFERRED_WITH_OWNER — §160)
+  EO-C05 automation disposition (DEFERRED_WITH_OWNER — §161)
+  EO-C06 authority/provenance (DEFERRED_WITH_OWNER — §162)
+  EO-C07 acquisition eligibility (DEFERRED_WITH_OWNER)
+  approved Evidence Overlays per §93.9/§93.12
+  separate dry-run package approval (§93.12; §93.13 #8)
+  target environment approval (§93.12; §93.13 #7)
+
+EO_C11_REQUIRED_EVIDENCE =
+  approved overlays for allowlist candidates
+  license/terms pass per candidate
+  authority pass per candidate
+  jurisdiction pass per candidate
+  trust tier pass per candidate
+  provenance complete per candidate
+  not stale / not revoked / not quarantined
+  required legal/product approvals
+  target environment separately approved
+  dry-run package separately approved
+
+EO_C11_REQUIRED_EXECUTION =
+  S4-EO-08 checklist documentation (this Gate)
+  future: controlled actual dry-run under separate approval (§93.13 #8)
+  ENTRYPOINT_NOT_ESTABLISHED for actual dry-run until allowlist approved
+
+EO_C11_CLOSURE_CRITERIA =
+  SATISFIED only after approved overlays + §93.12 prerequisites met +
+  separate dry-run package completed OR explicit owned exclusion in
+  S4-EO-09 closure scope (§157.20 default: must not enable dry-run without §93.12)
+
+EO_C11_PROHIBITED_SHORTCUTS =
+  seed-script support alone ≠ allowlist eligibility (§93.12)
+  checklist documented ≠ EO-C11 SATISFIED
+  dry-run ready ≠ actual dry-run completed
+  dry-run passed ≠ apply authorized (§88.2)
+
+EO_C11_POST_CLOSURE_EFFECT =
+  contributes to Evidence Overlay closure eligibility path (§157.20)
+  does NOT activate sources (EO-C09)
+  does NOT authorize apply or publication
+
+PERMANENT_DISTINCTIONS =
+  EO_C11_CHECKLIST_READY != EO_C11_SATISFIED
+  EO_C11_DRY_RUN_READY != ACTUAL_DRY_RUN_COMPLETED
+  ACTUAL_DRY_RUN_COMPLETED != EO_C11_CLOSED
+  EO_C11_CLOSED != EVIDENCE_OVERLAY_CLOSED
+```
+
+### ۱۶۵.۵) §93.12 canonical contract (Phase E)
+
+```text
+§93_12_REQUIREMENT_NAME =
+Dry-Run Allowlist Prerequisites
+
+§93_12_REQUIREMENT_TEXT_OR_PRECISE_PARAPHRASE =
+  Before adding any candidate to a future dry-run allowlist, ALL must hold:
+  source profile exists; source identity immutable; required evidence overlay
+  exists AND approved; license/terms pass; authority pass; jurisdiction pass;
+  language pass; trust tier pass; provenance complete; not stale/not revoked/
+  not quarantined; required legal/product approvals exist; target environment
+  separately approved; dry-run package separately approved.
+  Seed-script support alone ≠ allowlist eligibility.
+
+§93_12_APPLIES_TO =
+  GATE3H catalog source_key candidates considered for P1-L1 controlled
+  legacy companion seed dry-run allowlist (§93.2–§93.3; §88)
+
+§93_12_MANDATORY_STATE =
+  MANDATORY (§93.12; LAW-93-12-DRYRUN §158; EO-C11 mapping)
+
+§93_12_REQUIRED_INPUTS =
+  P1 GovernedSourceProfile (+ version evidence columns §93.4)
+  approved Evidence Overlay per candidate (§93.9)
+  legal/governance/product approvals where applicable (§93.13)
+  target environment designation (§93.13 #7)
+  explicit allowlist candidate set
+
+§93_12_REQUIRED_OUTPUTS =
+  documented allowlist contract (this Gate)
+  future: dry-run evidence report (§92; not executed)
+
+§93_12_REQUIRED_ENVIRONMENT =
+  separately approved target environment (§93.13 #7; §88.2 apply gate)
+
+§93_12_REQUIRED_ALLOWLIST =
+  explicit candidate source_key list; no implicit catalog-wide allow
+
+§93_12_REQUIRED_APPROVALS =
+  overlay approvals; legal/product where required; Javad dry-run package (§93.13 #8)
+
+§93_12_FAILURE_BEHAVIOR =
+  missing evidence fails closed (§93.9 invariants; §93.4 fail-closed rules)
+
+§93_12_SUCCESS_EFFECT =
+  candidate may be added to future dry-run allowlist; does NOT authorize apply,
+  activation, fetch, or publication
+
+§93_12_RELATION_TO_EO_C11 =
+  EO-C11 is the EO-level criterion encoding §93.12 prerequisites
+
+§93_12_RELATION_TO_APPLY =
+  dry-run is prerequisite path; apply requires additional gates (§88.2; §93.13 #9)
+
+PERMANENT_DISTINCTIONS =
+  DRY_RUN != APPLY
+  DRY_RUN_PASS != APPLY_AUTHORIZATION
+  DRY_RUN_PASS != SOURCE_ACTIVATION
+  DRY_RUN_PASS != PUBLICATION_APPROVAL
+  DRY_RUN_PASS != RUNTIME_GROUNDING
+```
+
+### ۱۶۵.۶) Candidate universe (Phase F)
+
+```text
+CANDIDATE_UNIVERSE_SOURCE =
+  backend/app/services/governance/kb_b2_legacy_companion_seed.py
+  GATE3H_CATALOG_SOURCE_KEYS (cited §93.2; §93.3 identity rule)
+
+SEPARATE_SETS (NOT MERGED) =
+  DISCOVERY_CANDIDATES = C4B-05..09 Iran/network discovery families (§144–§162)
+  GOVERNED_SOURCE_PROFILES = P1 profile backbone (§88; models per §93.2)
+  P1_L1_LINKED_CANDIDATES = 16 GATE3H keys with legacy_knowledge_source_id linkage
+  OVERLAY_CANDIDATES = 9 non-hold keys requiring explicit overlay (§93.6)
+  DRY_RUN_ALLOWLIST_CANDIDATES = subset of 16 keys meeting §93.12 (currently NONE)
+
+CANONICAL_CANDIDATE_COUNT = 16
+DUPLICATES = 0
+ORPHANS = 0 (per §93.3 dedup rule)
+LEGACY_ONLY_IDS = AUTHORITY_NOT_ESTABLISHED for standalone legacy IDs without source_key
+P1_PROFILE_IDS = 16 canonical_keys (i5b2_p1_l1:{source_key} per §88.3)
+P1_L1_LINKED_IDS = 16 (one per GATE3H key when seed executed; code exists uncommitted chain)
+OVERLAY_IDS = 0 approved (design only §93.9)
+EXCLUDED_IDS = 7 product_legal_hold (NICE + 6 Iran directories §93.5 Group C)
+DEFERRED_IDS = 7 holds pending E2 product/legal (§93.5)
+
+CANONICAL_CANDIDATE_IDS (deterministic order per GATE3H_CATALOG_SOURCE_KEYS) =
+  1 who_global_health_topics
+  2 medlineplus_consumer_health
+  3 nhs_uk_live_well
+  4 cdc_health_lifestyle
+  5 nice_org_uk_public
+  6 who_mental_health
+  7 nimh_nih_mental_health
+  8 apa_psychology_help
+  9 nhs_mental_health
+  10 medlineplus_mental_health
+  11 irimc_member_search
+  12 paziresh24_com
+  13 doctoreto_com
+  14 nobat_ir
+  15 doctor_yab_ir
+  16 drdr_ir
+
+§122_15_ITEM_LEDGER =
+  NOT the dry-run candidate universe (F3 corrective findings; §122.3)
+```
+
+### ۱۶۵.۷) Prerequisite contract (Phase G)
+
+| PREREQ_ID | REQUIREMENT | NORMATIVE_AUTHORITY | CURRENT_STATE | BLOCKS_ALLOWLIST |
+|---|---|---|---|---|
+| PR-01 | P1 governed profile exists per source_key | §93.12; §88; §93.4 | PARTIAL_REPOSITORY_PROOF (code+design; profiles not verified at runtime HEAD) | YES until proven |
+| PR-02 | P1-L1 legacy linkage deterministic | §88.3; §93.2 | PARTIAL_REPOSITORY_PROOF (seed code exists; not executed) | YES |
+| PR-03 | Explicit Evidence Overlay record exists | §93.9; §93.12 | MISSING_BLOCKING (design only) | YES |
+| PR-04 | Overlay fields complete (20 governance fields §93.4) | §93.4; §93.12 | MISSING_BLOCKING | YES |
+| PR-05 | Legal/governance review approved | §93.13 #1–#5; §93.12 | MISSING_BLOCKING / REQUIRES_SEPARATE_APPROVAL | YES |
+| PR-06 | Operational status DISABLED | §88.2; EO-C09 | SATISFIED_REPOSITORY_PROOF (by design default) | NO (required state) |
+| PR-07 | Overlay fingerprint fixed | §88.3 version fingerprint | REQUIRES_ACTUAL_EXECUTION (fingerprint computable only on run) | YES for dry-run |
+| PR-08 | Plan digest reproducible | §88.3 plan_digest | REQUIRES_ACTUAL_EXECUTION | YES for apply path |
+| PR-09 | Target environment explicitly approved | §93.12; §93.13 #7 | REQUIRES_SEPARATE_APPROVAL | YES |
+| PR-10 | Candidate allowlist explicit | §93.12; this Gate | PARTIAL_REPOSITORY_PROOF (contract defined; not approved) | YES |
+| PR-11 | Rights/license disposition | §160; §93.12 | PARTIAL_REPOSITORY_PROOF (fail-closed defer) | YES for pass |
+| PR-12 | Automation/robots disposition | §161; §93.12 | PARTIAL_REPOSITORY_PROOF (fail-closed defer) | YES for pass |
+| PR-13 | Authority/editorial/MR disposition | §162; §93.12 | PARTIAL_REPOSITORY_PROOF (fail-closed defer) | YES for pass |
+| PR-14 | Dry-run package separately approved | §93.12; §93.13 #8 | REQUIRES_SEPARATE_APPROVAL | YES |
+| PR-15 | No-write / production prohibition | §88.2; §93.10 | SATISFIED_REPOSITORY_PROOF (law documented) | NO |
+| PR-16 | Kill switch / idempotency / audit log | §88.2 architecture | PARTIAL_REPOSITORY_PROOF (code claims; not runtime-verified) | YES for execution |
+
+```text
+DOCUMENTATION_ONLY_CLOSURE_POSSIBLE_FOR =
+  PR-10 allowlist contract definition (this Gate)
+  PR-03/04 gap identification and owner routing
+  EO-C11 normative reconstruction
+
+REQUIRES_SEPARATE_APPROVAL_OR_EXECUTION =
+  PR-05, PR-09, PR-14, PR-07, PR-08, overlay approvals, actual dry-run
+```
+
+### ۱۶۵.۸) Candidate-by-prerequisite matrix (Phase H)
+
+Legend: SP=SATISFIED_REPOSITORY_PROOF PP=PARTIAL_REPOSITORY_PROOF MB=MISSING_BLOCKING RSA=REQUIRES_SEPARATE_APPROVAL RE=REQUIRES_ACTUAL_EXECUTION NA=NOT_APPLICABLE
+
+| CANDIDATE_ID | P1 | L1 | OVLY | FIELDS | LEGAL | RIGHTS | AUTO | AUTH | DIS | FP | DIG | ENV | LIST | OVERALL | BLOCKERS | OWNER | NEXT_ACTION |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| who_global_health_topics | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | overlay; legal; env; allowlist | Legal+Governance | E2 overlay path |
+| medlineplus_consumer_health | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Legal+Governance | E2 overlay path |
+| nhs_uk_live_well | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Legal+Governance | E2 overlay path |
+| cdc_health_lifestyle | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Legal+Javad product | E2 overlay path |
+| nice_org_uk_public | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | product_legal_hold; NICE terms | Legal+Javad | E2 NICE decision |
+| who_mental_health | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | overlay; MH safety | Medical/Safety+Legal | E2 overlay path |
+| nimh_nih_mental_health | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Medical/Safety+Legal | E2 overlay path |
+| apa_psychology_help | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Legal+Governance | E2 overlay path |
+| nhs_mental_health | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Medical/Safety+Legal | E2 overlay path |
+| medlineplus_mental_health | PP | PP | MB | MB | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | NOT_READY_APPROVAL_GAP | same | Legal+Medical/Safety | E2 overlay path |
+| irimc_member_search | PP | PP | NA | NA | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | Iran product hold | Javad+Legal | E2 Iran scope |
+| paziresh24_com | PP | PP | NA | NA | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | directory product hold | Javad+Legal | E2 Iran scope |
+| doctoreto_com | PP | PP | NA | NA | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | same | Javad+Legal | E2 Iran scope |
+| nobat_ir | PP | PP | NA | NA | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | same | Javad+Legal | E2 Iran scope |
+| doctor_yab_ir | PP | PP | NA | NA | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | same | Javad+Legal | E2 Iran scope |
+| drdr_ir | PP | PP | NA | NA | RSA | PP | PP | PP | SP | RE | RE | RSA | MB | EXCLUDED_FAIL_CLOSED | lab directory hold | Javad+Legal+Provider | E2 Iran scope |
+
+```text
+MATRIX_ROW_COUNT = 16
+UNIQUE_CANDIDATE_IDS = 16
+READY_FOR_SEPARATE_DRY_RUN_APPROVAL_COUNT = 0
+EXCLUDED_FAIL_CLOSED_COUNT = 7
+NOT_READY_APPROVAL_GAP_COUNT = 9
+```
+
+### ۱۶۵.۹) Future allowlist contract (Phase I)
+
+```text
+ALLOWLIST_ID = S4-EO-08-DRYRUN-ALLOWLIST-v0-DESIGN
+ALLOWLIST_VERSION = 0-DESIGN-ONLY
+CREATED_AT = 2026-07-28 (this Gate record)
+DECISION_OWNER = Javad
+TARGET_ENVIRONMENT = AUTHORITY_NOT_ESTABLISHED (§93.13 #7 not satisfied)
+CANDIDATE_IDS = [] (empty — no candidate meets §93.12 yet)
+EXPECTED_P1_PROFILE_IDS = 16 × i5b2_p1_l1:{source_key} (when profiles exist)
+EXPECTED_P1_L1_LINK_IDS = 16 legacy companion link slots (§88)
+EXPECTED_OVERLAY_VERSIONS = AUTHORITY_NOT_ESTABLISHED (no approved overlays)
+EXPECTED_OVERLAY_FINGERPRINTS = AUTHORITY_NOT_ESTABLISHED
+EXPECTED_PLAN_DIGEST = AUTHORITY_NOT_ESTABLISHED until deterministic plan computed at execution
+EXPECTED_INPUT_DIGEST = AUTHORITY_NOT_ESTABLISHED
+EXPECTED_COMMAND_OR_ENTRYPOINT =
+  backend/scripts/seed_i5b2_p1_l1_legacy_companions.py (§93.2; §88.4)
+  --dry-run default per §88.2; exact CLI flags AUTHORITY_NOT_ESTABLISHED in master log
+EXPECTED_NO_WRITE_MODE = dry_run=True default (§88.2)
+EXPECTED_OUTPUT_ARTIFACTS = structured seed report (§88 architecture)
+EXPECTED_LOG_LOCATION = AUTHORITY_NOT_ESTABLISHED
+EXPECTED_RESULT_DIGEST = plan_digest per §88.3
+EXPIRY = AUTHORITY_NOT_ESTABLISHED
+REVOCATION_STATE = NOT_APPLICABLE (allowlist not approved)
+KILL_SWITCH = required by architecture (§88.2); implementation in code not audited here
+APPROVAL_REFERENCE = NONE (ALLOWLIST_DEFINED only)
+
+ALLOWLIST_DEFINED != ALLOWLIST_APPROVED
+ALLOWLIST_APPROVED != DRY_RUN_EXECUTED
+DRY_RUN_EXECUTED != DRY_RUN_PASSED
+DRY_RUN_PASSED != APPLY_AUTHORIZED
+```
+
+### ۱۶۵.۱۰) Blocking-condition matrix (Phase J)
+
+| BLOCKER_ID | DESCRIPTION | AFFECTED_CANDIDATES | AUTHORITY | STATE | CLASS | OWNER | DOCS_ONLY | NET | EXT | EXEC | JAVAD | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| BLK-OVR-01 | No approved Evidence Overlay rows | 9 overlay-eligible keys | §93.9/§93.12 | MISSING_BLOCKING | OVERLAY | Governance | PARTIAL | NO | OPTIONAL | NO | YES | approved overlay per key | E2→E3 |
+| BLK-LEG-01 | NICE reuse/license undecided | nice_org_uk_public | §93.5; §93.13 #2 | MISSING_BLOCKING | LEGAL | Legal+Javad | NO | YES | YES | NO | YES | written terms memo | E2 NICE |
+| BLK-PRD-01 | Iran directory product scope undecided | 6 Iran keys | §93.5; §93.13 #3–#5 | MISSING_BLOCKING | AUTHORITY | Javad+Legal | NO | NO | OPTIONAL | NO | YES | written product scope | E2 Iran |
+| BLK-ENV-01 | Target environment not approved | all 16 | §93.12; §93.13 #7 | REQUIRES_SEPARATE_APPROVAL | ENVIRONMENT | Javad+DevOps | NO | NO | NO | NO | YES | E8 environment approval | E8 |
+| BLK-DRY-01 | Dry-run package not approved | all 16 | §93.12; §93.13 #8 | REQUIRES_SEPARATE_APPROVAL | APPROVAL | Javad | NO | NO | NO | YES | YES | dry-run evidence complete | post-E8 execution Gate |
+| BLK-EO-04 | Rights/terms EO deferred fail-closed | overlay-bound | §160; EO-C04 | PARTIAL | RIGHTS | Legal | PARTIAL | OPTIONAL | OPTIONAL | NO | YES | clearance or owned defer attested | S4-EO-09 path |
+| BLK-EO-05 | Automation EO deferred fail-closed | overlay-bound | §161; EO-C05 | PARTIAL | AUTOMATION | Security/Legal | PARTIAL | OPTIONAL | NO | NO | YES | robots disposition or defer | S4-EO-09 path |
+| BLK-ALW-01 | Allowlist empty / not approved | all 16 | this Gate | PARTIAL | DOCUMENTATION | Governance | YES | NO | NO | NO | YES | explicit approved allowlist | this Gate + approval |
+| BLK-FP-01 | Fingerprints/digests not reproduced | all 16 | §88.3 | REQUIRES_ACTUAL_EXECUTION | EXECUTION | engineering | NO | NO | NO | YES | YES | dry-run produces reproducible digest | execution Gate |
+
+### ۱۶۵.۱۱) Residual closure-impact reconciliation (Phase K)
+
+| RESIDUAL_ID | RELATION_TO_EO_C11 | RELATION_TO_DRY_RUN | CLOSURE_IMPACT | FAIL_CLOSED | DISPOSITION |
+|---|---|---|---|---|---|
+| C4B06-R-IRSOME-01 | NO direct (not in GATE3H-16) | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER (S4-EO-06 deferred) |
+| C4B07-R-MPGH-01 | NO direct | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER |
+| C4B08-R-IJMS-01 | NO direct | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER |
+| C4B08-R-PORTAL-01 | NO direct | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER |
+| C4B06-R-RECOG-01 | NO direct to GATE3H dry-run set | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER (S4-EO-07 deferred) |
+| C4B08-R-INDEX-01 | NO direct | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER |
+| C4B05-R05..C4B08-R-PRED-01 (§162 S4-EO-05 set) | NO direct to GATE3H-16 | NO | NO_CLOSURE_IMPACT | YES | GOVERNANCE_DEFER |
+
+```text
+S4_EO_06_HARD_DEPENDENCY_FOR_EO_C11 = NOT PROVEN
+S4_EO_07_HARD_DEPENDENCY_FOR_EO_C11 = NOT PROVEN
+STAGE4_IRAN_DISCOVERY_RESIDUALS != DRY_RUN_ALLOWLIST_CANDIDATES
+```
+
+### ۱۶۵.۱۲) Actual dry-run necessity decision (Phase L)
+
+```text
+ACTUAL_DRY_RUN_REQUIREMENT = MANDATORY_FOR_EO_C11
+
+AUTHORITY_SUPPORT =
+  §93.12 mandates dry-run package before allowlist use
+  §93.13 #8 lists first dry-run as blocking decision
+  §157.20 EO-C11 SATISFIED only if dry-run prerequisites met (default path)
+  EO-C11 cannot close on documentation alone
+
+THIS_GATE_DOES_NOT_EXECUTE_DRY_RUN = YES
+
+DRY_RUN_PREREQUISITES_COMPLETE = NO
+DRY_RUN_ALLOWLIST_READY = NO
+TARGET_ENVIRONMENT_READY = NO
+SEPARATE_EXECUTION_APPROVAL_REQUIRED = YES
+EO_C11_READY_FOR_EXECUTION_GATE = NO
+EO_C11_READY_FOR_CLOSURE = NO
+
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE_AFTER_THIS_PACKAGE = NO
+  (EO-C11 remains OPEN; overlays not approved; BLK-OVR-01..BLK-DRY-01 remain)
+```
+
+### ۱۶۵.۱۳) Minimum next execution package (Phase M)
+
+```text
+PACKAGE_ID = S4-EO-08-DRYRUN-EXEC-PREP-01
+OBJECTIVE =
+  controlled P1-L1 legacy companion seed dry-run for explicitly approved
+  allowlist subset AFTER prerequisites satisfied
+STATUS = PREPARED_NOT_AUTHORIZED_NOT_EXECUTED
+
+EXACT_CANDIDATE_ALLOWLIST = [] (empty until BLK-OVR-01..BLK-ALW-01 cleared)
+TARGET_ENVIRONMENT = AUTHORITY_NOT_ESTABLISHED
+ENTRYPOINT_OR_COMMAND_SOURCE =
+  backend/scripts/seed_i5b2_p1_l1_legacy_companions.py (§88.4; §93.2)
+  ENTRYPOINT_NOT_ESTABLISHED for exact CLI invocation flags in master log
+EXPECTED_INPUTS = evidence-json overlay shape (§93.2); approved allowlist keys
+EXPECTED_DIGESTS = plan_digest sha256 per §88.3
+NO_WRITE_GUARANTEE = dry_run=True default (§88.2)
+DATABASE_EFFECT = none in dry-run mode (§88.2 design intent)
+NETWORK_EFFECT = none (seed does not fetch per §88.2)
+SECRETS_REQUIREMENT = AUTHORITY_NOT_ESTABLISHED
+LOGGING = structured report per §88 architecture
+EXPECTED_OUTPUTS = per-candidate disposition rows; plan_digest
+PASS_CRITERIA = deterministic idempotent report; no forbidden imports/calls
+FAIL_CRITERIA = any write path engaged; missing allowlist; digest mismatch
+STOP_CONDITIONS = any activation; dry_run=False without full apply auth
+ROLLBACK_OR_NO_ROLLBACK_REASON = dry-run default — no writes expected
+APPROVALS_REQUIRED = Javad + target env + allowlist + dry-run package (§93.13 #7–#8)
+TEST_OR_CI_BOUNDARY = tests written not run at P1-L1 closure; separate CI Gate
+MASTER_LOG_UPDATE = post-execution append-only (not this Gate)
+POST_RUN_AUDIT = separate read-only audit Gate required
+```
+
+### ۱۶۵.۱۴) Owner / dependency / closure matrix (Phase N)
+
+| ITEM_ID | DECISION | AFFECTED | OWNER | REQUIRED_EVIDENCE | DEPENDENCY | CLOSURE_CRITERIA | NEXT_GATE |
+|---|---|---|---|---|---|---|---|
+| ITM-OVR-09 | Approve overlays for 9 keys | 9 overlay-eligible | Governance+Legal | 20-field overlay per §93.4 | E2 external evidence optional | approved overlay rows | E2→E3 |
+| ITM-HOLD-07 | Product/legal hold disposition | 7 holds | Javad+Legal | written scope/terms | E2 Iran/NICE | decision recorded or permanent exclude | E2 |
+| ITM-ENV-01 | Approve target environment | all | Javad+DevOps | named environment | E7 closure path | E8 approval | E8 |
+| ITM-ALW-01 | Approve dry-run allowlist | subset of 9 | Javad | this contract + prerequisites | ITM-OVR-09 | ALLOWLIST_APPROVED | approval Gate |
+| ITM-DRY-01 | Execute controlled dry-run | allowlisted | Javad+engineering | BLK-DRY-01 cleared | ITM-ENV-01; ITM-ALW-01 | dry-run evidence audit pass | execution Gate |
+| ITM-EO11 | Close EO-C11 | EO overlay | Governance | §93.12 satisfied or S4-EO-09 explicit scope | ITM-DRY-01 or owned exclusion | EO-C11 SATISFIED | S4-EO-09 |
+| ITM-EO09 | Evidence Overlay closure attestation | EO all | Javad | §157.20 contract | ITM-EO11; S4-EO-08 complete | EVIDENCE_OVERLAY_CLOSED=YES | S4-EO-09 |
+
+```text
+ALL_ITEMS_HAVE_OWNER = YES
+ALL_ITEMS_HAVE_CLOSURE_CRITERIA = YES
+ACTIVATION_BLOCKING = YES for all 16 until overlay+approvals+dry-run path complete
+```
+
+### ۱۶۵.۱۵) EO and non-authorization state (Phase O)
+
+```text
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_TOTAL = 12
+EO_C11 = OPEN (unchanged — checklist documented ≠ satisfied)
+
+EVIDENCE_OVERLAY_CURRENT_STATE = OPEN_WITH_DEFERRED_CRITERIA_AND_OPEN_C11
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+WAIVER_CREATED = NO
+ROADMAP_STAGE_4 = IN_PROGRESS
+STAGE5_READY = NO
+P2_STARTED = NO
+
+I5_FORMAL_CLOSED_COMPLETION = 21.79487179%
+I5_FORMAL_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+
+COMMIT_AUTHORIZED = NO
+PUSH_AUTHORIZED = NO
+NETWORK_AUTHORIZED = NO
+TEST_AUTHORIZED = NO
+CI_AUTHORIZED = NO
+ACTUAL_DRY_RUN_AUTHORIZED = NO
+S4_EO_08_AUTHORIZED = YES (documentation only — consumed by this Gate)
+S4_EO_09_AUTHORIZED = NO
+EO_CLOSURE_AUTHORIZED = NO
+SOURCE_ACTIVATION_AUTHORIZED = NO
+CRAWLER_ACTIVATION_AUTHORIZED = NO
+```
+
+### ۱۶۵.۱۶) Self-healing log (Phase P)
+
+```text
+§165_SELF_HEALING_EVENTS = NONE
+§165_INITIAL_APPEND_CLEAN = YES
+```
+
+### ۱۶۵.۱۷) Final same-run audit (Phase Q)
+
+```text
+§165_FINAL_AUDIT = PASS
+  authority chain cited internally
+  EO-C11 definition exact per §157/§158/§93.12
+  §93.12 contract exact
+  candidate universe deterministic (16 GATE3H keys)
+  no duplicate/orphan in canonical set
+  every prerequisite classified
+  every candidate has overall readiness state
+  every blocker has owner and closure criterion
+  ACTUAL_DRY_RUN_REQUIREMENT = MANDATORY_FOR_EO_C11 with citations
+  no actual dry-run claimed
+  no activation
+  EO 7/0/1/0/4 preserved; EO-C11 OPEN
+  I5 21.79487179% unchanged
+  no network or later Gate authorized
+  no placeholder; no merge markers
+```
+
+### ۱۶۵.۱۸) Exact next step (Phase R)
+
+```text
+ACTUAL_DRY_RUN_REQUIREMENT = MANDATORY_FOR_EO_C11
+DRY_RUN_PREREQUISITES_COMPLETE = NO
+
+NEXT_STEP =
+SMALLEST PREREQUISITE-CLOSURE PACKAGE
+(overlay approval path for 9 non-hold GATE3H sources per §93.13 decision #1;
+ target-environment approval track per §93.13 #7;
+ allowlist approval after prerequisites)
+
+NEXT_STEP_AUTHORIZED_BY_THIS_GATE = NO
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+
+WHEN_PREREQUISITES_COMPLETE_NEXT_STEP_BECOMES =
+SEPARATE JAVAD APPROVAL FOR CONTROLLED ACTUAL DRY-RUN
+(package S4-EO-08-DRYRUN-EXEC-PREP-01 prepared not authorized)
+
+S4_EO_06 = DEFER_OR_SKIP (unchanged)
+S4_EO_07 = DEFER_OR_SKIP (unchanged)
+S4_EO_09 = DEFER_UNTIL_PREREQUISITES (unchanged)
+```
+
+### ۱۶۵.۱۹) Append-only integrity record (Phase S)
+
+```text
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (preserved chain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–164_PRESERVED = YES
+§165_ONLY_NEW_SECTION = YES
+§165_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+
+STATE =
+S4_EO_08_EO_C11_DRY_RUN_CHECKLIST_AND_CLOSURE_PREREQUISITE_RECONSTRUCTION_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — S4_EO_08_DOCUMENTED_AND_FINAL_AUDITED_UNCOMMITTED
+```
+
+---
+*پایان §۱۶۵ — SECTION-29 S4-EO-08 EO-C11 and §93.12 Dry-Run Allowlist Checklist and Closure-Prerequisite Reconstruction — S4_EO_08_EO_C11_DRY_RUN_CHECKLIST_AND_CLOSURE_PREREQUISITE_RECONSTRUCTION_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۶) SECTION 29 / S4-EO-08-PREQ-01 9-CANDIDATE EVIDENCE-OVERLAY ELIGIBILITY, MISSING-EVIDENCE DISPOSITION, TARGET-ENVIRONMENT PREPARATION AND DRY-RUN CONTRACT COMPLETION
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / S4-EO-08-PREQ-01 —
+9-CANDIDATE SOURCE-SPECIFIC EVIDENCE-OVERLAY ELIGIBILITY
+
+SECTION = 29
+ROADMAP_STAGE = 4
+GATE = S4-EO-08-PREQ-01
+PARENT_GATE = S4-EO-08 (FINAL_ACCEPTED per §165)
+RECORD_TYPE = OVERLAY_ELIGIBILITY_AND_PREREQUISITE_DISPOSITION
+OWNER = Javad
+DECISION_STATE = DOCUMENTATION_COMPLETE
+
+MODE =
+REPOSITORY_LOCAL / DOCUMENTATION_ONLY / APPEND_ONLY / UNCOMMITTED /
+NO_NETWORK / NO_EXTERNAL_EVIDENCE / NO_ACTUAL_DRY_RUN / NO_OVERLAY_APPROVAL /
+NO_TEST / NO_CI / NO_COMMIT / NO_PUSH
+
+Authorization (Javad):
+  9-candidate reconstruction, repository-evidence inventory, overlay eligibility
+  assessment, missing-evidence disposition, target-environment preparation,
+  dry-run contract completion, minimum next package preparation ONLY
+  does NOT authorize network, external retrieval, overlay approval, dry-run,
+  activation, EO-C11 closure, overlay closure, commit or push
+```
+
+### ۱۶۶.۱) Gate identity and authorization (Phase A)
+
+```text
+S4_EO_08 = FINAL_ACCEPTED
+S4_EO_08_FINAL_VERDICT =
+PASS — S4_EO_08_DOCUMENTED_AND_FINAL_AUDITED_UNCOMMITTED
+
+S4_EO_08_PREQ_01_AUTHORIZED_SCOPE =
+  exact 9 non-hold GATE3H candidate reconstruction
+  source-specific repository-evidence inventory
+  overlay eligibility assessment (not approval)
+  missing-evidence specification
+  target-environment decision preparation
+  dry-run entrypoint/no-write/fingerprint/digest contract completion
+  minimum next closure package selection
+
+S4_EO_08_PREQ_01_NOT_AUTHORIZED =
+  network / external evidence collection / legal or product final approval /
+  overlay final approval / actual dry-run / test / CI / DB / migration /
+  seed apply / activation / ingestion / publication / runtime / EO-C11 closure /
+  Evidence Overlay closure / waiver / Stage 5 / P2 / commit / push
+
+S4_EO_08_PREQ_01_DOCUMENTATION_COMPLETE != OVERLAY_APPROVED
+S4_EO_08_PREQ_01_DOCUMENTATION_COMPLETE != DRY_RUN_ALLOWLIST_READY
+S4_EO_08_PREQ_01_DOCUMENTATION_COMPLETE != EO_C11_CLOSED
+```
+
+### ۱۶۶.۲) Preflight (Phase B)
+
+| CHECK | EXPECTED | OBSERVED | RESULT |
+|---|---|---|---|
+| worktree / branch | Demo-wt-section15-backend / feature/section15/backend-continuity-foundation | same | PASS |
+| HEAD | af1d583… | af1d583… | PASS |
+| ahead/behind | 0/0 | 0/0 | PASS |
+| dirty / staged / untracked | master log only / EMPTY / ZERO | same | PASS |
+| tip before | §165 | §165 | PASS |
+| §165 lines | 41739–42327 (589) | same | PASS |
+| §166 exists | NO | NO | PASS |
+| GATE3H 16/9/7 | 16/9/7 | §165 + §93.6 | PASS |
+| APPROVED_OVERLAYS = 0 | yes | yes | PASS |
+| EO 7/0/1/0/4; EO-C11 OPEN | yes | yes | PASS |
+| I5 21.79487179% | yes | yes | PASS |
+| diff | 12,177 ins / 0 del | same | PASS |
+| git diff --check | CLEAN | CLEAN (LF/CRLF warning) | PASS |
+
+### ۱۶۶.۳) Authority and scope reconstruction (Phase C)
+
+| AUTHORITY | REQUIREMENT | APPLIES_TO | CURRENT_STATE | PRECEDENCE | RESULTING_RULE |
+|---|---|---|---|---|---|
+| §93.3 | ONE candidate = ONE GATE3H source_key | 16 universe | ACTIVE | §93 scope review | Deterministic identity |
+| §93.4 | 20 governance evidence fields required | 9 overlay-eligible | MISSING for all 9 | P1/P1-L1 contract | No overlay completeness |
+| §93.5 | 9 ELIGIBLE_AFTER_EXPLICIT_EVIDENCE_OVERLAY | 9 non-hold | CLASS recorded; overlays absent | §93.6 counts | E2→E3 path |
+| §93.9 | Overlay design; versioned; fail-closed | all overlay candidates | DESIGN ONLY | Not implemented | OVERLAY_RECORD_EXISTS = NO |
+| §93.12 | Full prerequisite chain before allowlist | dry-run path | NOT SATISFIED | EO-C11 | Blocked |
+| §93.13 #1 | Explicit overlays for 9 non-hold | 9 candidates | NOT DONE | Owner matrix | Blocking |
+| §88.2 | dry-run default; apply gated | P1-L1 seed | CODE at HEAD | P1-L1 closure | Entrypoint contract reconstructable |
+| §160/§161/§162 | Rights/automation/authority fail-closed | overlay-bound | DEFERRED | Stage-4 Gates | Layers independent |
+| §165 | 16/9/7 partition; 0 ready | GATE3H | CONFIRMED | Latest S4-EO-08 | Baseline for this Gate |
+
+```text
+BLOCKED_AUTHORITY_RECONSTRUCTION_MISMATCH = NO
+NETWORK_DERIVED_FACTS_USED = NO
+```
+
+### ۱۶۶.۴) Canonical 16/9/7 set reconciliation (Phase D)
+
+| CANDIDATE_ID | CANONICAL_SOURCE_KEY | GATE3H | NON_HOLD | HOLD | HOLD_TYPE | HOLD_AUTHORITY |
+|---|---|---|---|---|---|---|
+| 1 | who_global_health_topics | YES | YES | NO | — | — |
+| 2 | medlineplus_consumer_health | YES | YES | NO | — | — |
+| 3 | nhs_uk_live_well | YES | YES | NO | — | — |
+| 4 | cdc_health_lifestyle | YES | YES | NO | — | — |
+| 5 | nice_org_uk_public | YES | NO | YES | product_legal_hold + legal review | §93.5 Group C; §93.7 |
+| 6 | who_mental_health | YES | YES | NO | — | — |
+| 7 | nimh_nih_mental_health | YES | YES | NO | — | — |
+| 8 | apa_psychology_help | YES | YES | NO | — | — |
+| 9 | nhs_mental_health | YES | YES | NO | — | — |
+| 10 | medlineplus_mental_health | YES | YES | NO | — | — |
+| 11 | irimc_member_search | YES | NO | YES | Javad product decision | §93.5; §93.8 |
+| 12 | paziresh24_com | YES | NO | YES | Javad product decision | §93.5; §93.8 |
+| 13 | doctoreto_com | YES | NO | YES | Javad product decision | §93.5; §93.8 |
+| 14 | nobat_ir | YES | NO | YES | Javad product decision | §93.5; §93.8 |
+| 15 | doctor_yab_ir | YES | NO | YES | Javad product decision | §93.5; §93.8 |
+| 16 | drdr_ir | YES | NO | YES | Javad product decision (lab) | §93.5; §93.8 |
+
+```text
+TOTAL_CANONICAL = 16
+NON_HOLD = 9 (IDs 1–4, 6–10)
+HOLD = 7 (IDs 5, 11–16)
+DUPLICATE_CANONICAL_IDS = 0
+UNRESOLVED_ORPHANS = 0
+P1_PROFILE_ID_PATTERN = i5b2_p1_l1:{source_key} (§88.3)
+OUT_OF_SCOPE_FOR_THIS_GATE = 7 hold candidates (documented in §165; not re-opened)
+```
+
+### ۱۶۶.۵) Source-specific repository-evidence inventory (Phase E)
+
+Evidence vocabulary: EP=ESTABLISHED_REPOSITORY_PROOF PP=PARTIAL_REPOSITORY_PROOF MR=MISSING_REPOSITORY_PROOF RE=REQUIRES_EXTERNAL_EVIDENCE RFD=REQUIRES_FINAL_DECISION NA=NOT_APPLICABLE
+
+| CANDIDATE_ID | SOURCE_NAME | P1_STATE | P1_L1_STATE | OVERLAY | IDENTITY | LICENSE | AUTHORITY | JURIS | LANG | TRUST | PROV | AUTO | ED/MR | FRESH | OPS | CITATIONS |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| who_global_health_topics | WHO Health Topics | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | PP | PP | EP(DISABLED) | §93.5; YAML §93.2 |
+| medlineplus_consumer_health | MedlinePlus Consumer | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | PP | PP | EP | §93.5; YAML |
+| nhs_uk_live_well | NHS Live Well | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | PP | EP(7d) | EP | §93.5; YAML OGL notes |
+| cdc_health_lifestyle | CDC Healthy Living | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | RFD | PP | EP | §93.5; YAML |
+| who_mental_health | WHO Mental Health | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | RFD | PP | EP | §93.5; crisis_routing note |
+| nimh_nih_mental_health | NIMH MH | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | RFD | PP | EP | §93.5; deferred lifestyle cycle |
+| apa_psychology_help | APA Psychology Topics | PP | PP | MR | PP | RE | PP | PP | EP | PP | MR | PP | RFD | PP | EP | §93.5; pending_review |
+| nhs_mental_health | NHS Mental Health | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | RFD | PP | EP | §93.5; high risk deferred |
+| medlineplus_mental_health | MedlinePlus MH | PP | PP | MR | PP | PP+RE | PP | PP | EP | PP | MR | PP | RFD | PP | EP | §93.5; ency caution |
+
+```text
+P1_PROFILE_STATE = PP (code+design; not runtime-verified at HEAD worktree)
+P1_L1_LINK_STATE = PP (seed module exists; not executed)
+OVERLAY_RECORD_EXISTS = NO for all 9
+OPERATIONAL_STATUS = DISABLED by design (§88.2; EO-C09)
+CONFLICTS = none material within repository inventory
+MISSING_FIELDS = all 20 §93.4 governance fields as approved overlay values
+```
+
+### ۱۶۶.۶) Overlay requirement contract (Phase F)
+
+```text
+OVERLAY_CONTRACT_AUTHORITY = §93.4 (20 governance fields) + §93.9 (overlay record schema)
+
+REQUIRED_PER_CANDIDATE (repository-supported) =
+  overlay_id / bound_source_key / profile_id (§93.9)
+  evidence_type / evidence_value_or_reference / authority / issuer
+  jurisdiction / language / effective_at / expiry_or_revalidation_at
+  license_or_terms_evidence / trust_evidence / review_status
+  reviewer_owner / approval_state / decision_reason / provenance
+  version / supersedes / revocation_state (§93.9)
+  plus all §93.4 governance evidence columns when mapped to overlay
+
+DECISION_STATE_VALUES = NOT_CREATED | FIELDS_INCOMPLETE | APPROVAL_ELIGIBLE | APPROVED | DEFERRED | EXCLUDED
+CURRENT_DECISION_STATE_ALL_9 = NOT_CREATED
+
+PERMANENT_DISTINCTIONS =
+  OVERLAY_RECORD_EXISTS != OVERLAY_FIELDS_COMPLETE
+  OVERLAY_FIELDS_COMPLETE != OVERLAY_APPROVAL_ELIGIBLE
+  OVERLAY_APPROVAL_ELIGIBLE != OVERLAY_APPROVED
+  OVERLAY_APPROVED != DRY_RUN_ALLOWLIST_APPROVED
+```
+
+### ۱۶۶.۷) Nine-candidate eligibility matrix (Phase G)
+
+| CANDIDATE_ID | IDENTITY | P1/L1 | OVERLAY | RIGHTS | AUTO | AUTH | ED/MR | JUR/LANG | TRUST/PROV | OPS | FP/DIG | FINAL_REPO | DISPOSITION | BLOCKERS | OWNER |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| who_global_health_topics | PP | PP | MR/MR | PP | PP | PP | PP | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | 20-field overlay; commercial license | Legal+Governance |
+| medlineplus_consumer_health | PP | PP | MR/MR | PP | PP | PP | PP | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | A.D.A.M./drug exclusion; attribution | Legal+Governance |
+| nhs_uk_live_well | PP | PP | MR/MR | PP | PP | PP | PP | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | explicit OGL overlay; permitted_use | Legal+Governance |
+| cdc_health_lifestyle | PP | PP | MR/MR | PP | PP | PP | RFD | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | prevention product policy; non-endorsement | Legal+Javad |
+| who_mental_health | PP | PP | MR/MR | PP | PP | PP | RFD | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | MH non-diagnostic policy overlay | Medical/Safety+Legal |
+| nimh_nih_mental_health | PP | PP | MR/MR | PP | PP | PP | RFD | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | safety review; lifestyle cycle defer note | Medical/Safety+Legal |
+| apa_psychology_help | PP | PP | MR/MR | RE | PP | PP | RFD | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | license/terms; editorial authority tier | Legal+Governance |
+| nhs_mental_health | PP | PP | MR/MR | PP | PP | PP | RFD | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | OGL overlay; MH safety boundary | Medical/Safety+Legal |
+| medlineplus_mental_health | PP | PP | MR/MR | PP | PP | PP | RFD | PP/EP | MR | EP | RE | PP | NEEDS_EXTERNAL_EVIDENCE | page allowlist + overlay | Legal+Medical/Safety |
+
+```text
+CLOSURE_CRITERIA_ALL_9 =
+  approved 20-field governance overlay per §93.4 OR formal fail-closed defer
+  legal/product/MH decisions where §93.5 requires
+  does NOT authorize overlay approval in this Gate
+
+NEXT_PACKAGE_ALL_9 = PKG-EXT-E2-BOUNDED-01 (see §166.9)
+
+OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0
+NEEDS_EXTERNAL_EVIDENCE_COUNT = 9
+GOVERNANCE_DEFER_COUNT = 0
+EXCLUDE_FAIL_CLOSED_COUNT = 0
+DISPOSITION_TOTAL = 9
+```
+
+### ۱۶۶.۸) Missing-evidence matrix (Phase H)
+
+| GAP_ID | CANDIDATE(S) | REQUIREMENT | STATE | WHY_MATERIAL | EVIDENCE_REQUIRED | EXT | LEGAL | PRODUCT | MH/ED | OWNER | CLOSURE | PACKAGE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| GAP-OVR-20 | all 9 | 20-field governance overlay | MR | §93.4; §93.12 | complete overlay per candidate | YES | YES | PARTIAL | PARTIAL | Governance+Legal | approved overlay row | PKG-EXT-E2 |
+| GAP-LIC-WHO | who_global_health_topics | commercial license / CC BY-NC-SA | RE | §93.5 | terms for Sedi use | YES | YES | NO | NO | Legal | license memo | ECU-WHO-01 |
+| GAP-LIC-MPL-C | medlineplus_consumer_health | attribution; A.D.A.M. exclusion | RE | §93.5 | NIH/NLM terms | YES | YES | NO | NO | Legal | written terms pack | ECU-MPL-01 |
+| GAP-LIC-NHS-LW | nhs_uk_live_well | OGL v3 permitted_use | RE | §93.5 | OGL confirmation | YES | YES | NO | NO | Legal | OGL overlay | ECU-NHS-01 |
+| GAP-LIC-CDC | cdc_health_lifestyle | prevention + non-endorsement | RE | §93.5 | CDC policy + product | YES | YES | YES | NO | Legal+Javad | product policy recorded | ECU-CDC-01 |
+| GAP-MH-POL | who_mental_health, nimh, nhs_mh, mpl_mh | MH safety / non-diagnostic | RFD | §93.5 Group B | Medical/Safety policy overlay | PARTIAL | YES | YES | YES | Medical/Safety | safety boundary doc | ECU-MH-01 |
+| GAP-LIC-APA | apa_psychology_help | license/editorial tier | RE | §93.5 | APA terms | YES | YES | NO | YES | Legal+Governance | terms overlay | ECU-APA-01 |
+| GAP-PAGE-MPL-MH | medlineplus_mental_health | page allowlist | RE | §93.5 | page-scope evidence | YES | NO | NO | YES | Medical/Safety | allowlist defined | ECU-MPL-MH-01 |
+| GAP-ENV-01 | all 9 | target environment | RFD | §93.12 | named approved env | NO | NO | NO | NO | Javad+DevOps | E8 approval | PKG-ENV-01 |
+| GAP-DRY-01 | all 9 | dry-run package approval | RFD | §93.13 #8 | execution package | NO | NO | NO | NO | Javad | separate approval | post-prereq |
+| GAP-FP-01 | all 9 | plan_digest / fingerprint | REQUIRES_ACTUAL_EXECUTION | §88.3 | dry-run output | NO | NO | NO | NO | engineering | reproducible digest | post-approval dry-run |
+
+### ۱۶۶.۹) External-evidence collection plan — design only (Phase I)
+
+| UNIT_ID | CANDIDATES | EXACT_QUESTION | EVIDENCE_TYPE | DOMAIN_CLASS | ALLOWED_SCOPE | PROHIBITED | NET | OWNER | SUCCESS | FAIL_CLOSED |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ECU-WHO-01 | who_global_health_topics | Terms for republication/commercial use? | license/terms | who.int official | terms pages; robots precheck | crawl beyond approved plan | YES | Legal | written terms captured | defer overlay |
+| ECU-MPL-01 | medlineplus_consumer_health | Attribution + A.D.A.M. boundary | license/terms | nlm.nih.gov/medlineplus | terms pages | full encyclopedia harvest | YES | Legal | attribution pack | exclude sections fail-closed |
+| ECU-NHS-01 | nhs_uk_live_well, nhs_mental_health | OGL v3 applicability + permitted_use | license | nhs.uk official | OGL + live-well/MH paths | booking/clinical tools | YES | Legal | OGL overlay draft | defer |
+| ECU-CDC-01 | cdc_health_lifestyle | Public-domain scope + prevention policy | license+product | cdc.gov official | healthy living pages | endorsement implication | YES | Legal+Javad | policy memo | defer |
+| ECU-MH-01 | who_mh, nimh, apa, nhs_mh, mpl_mh | MH non-diagnostic + crisis routing policy | safety+license | respective publishers | MH topic pages | diagnostic claims | YES | Medical/Safety+Legal | safety overlay | defer |
+| ECU-APA-01 | apa_psychology_help | Editorial/license tier for topics | license | apa.org official | topics terms | clinical recommendation use | YES | Legal | terms overlay | defer |
+
+```text
+EXTERNAL_EVIDENCE_PLAN_DEFINED = YES
+EXTERNAL_EVIDENCE_COLLECTION_AUTHORIZED = NO
+NO_CURRENT_EXTERNAL_FACTS_CLAIMED = YES
+```
+
+### ۱۶۶.۱۰) Target-environment decision preparation (Phase J)
+
+```text
+TARGET_ENVIRONMENT_OPTIONS = AUTHORITY_NOT_ESTABLISHED
+
+REPOSITORY_AUTHORITY =
+  §88.2 apply requires --environment
+  §93.12 target environment separately approved
+  §93.13 #7 → E8 approval recorded
+  §92 P1-L1 closure: first dry-run = separate controlled Gate
+
+CANDIDATE_ENVIRONMENT_CLASSES (design placeholders — not approved) =
+  ENV-DEV-LOCAL — PURPOSE=controlled dry-run; DATA_CLASS=non-production;
+    PRODUCTION_ACCESS=NO; RECOMMENDED_STATUS=NEEDS_ENGINEERING_EVIDENCE
+  ENV-STAGING — PURPOSE=pre-apply validation; DATA_CLASS=synthetic/staging;
+    PRODUCTION_ACCESS=NO; RECOMMENDED_STATUS=NEEDS_SECURITY_REVIEW
+  ENV-PROD — PURPOSE=production; PRODUCTION_ACCESS=YES;
+    RECOMMENDED_STATUS=EXCLUDE_UNSAFE for dry-run first path
+
+TARGET_ENVIRONMENT_PROPOSED != TARGET_ENVIRONMENT_APPROVED
+TARGET_ENVIRONMENT_APPROVED = NO
+APPROVAL_OWNER = Javad + DevOps (§93.13 #7)
+BLOCKER = BLK-ENV-01 (§165) remains
+```
+
+### ۱۶۶.۱۱) Dry-run entrypoint contract (Phase K)
+
+```text
+ENTRYPOINT_PATH =
+backend/scripts/seed_i5b2_p1_l1_legacy_companions.py
+
+ENTRYPOINT_EXISTS_IN_REPOSITORY_RECORD = YES (§93.2; file at HEAD)
+
+COMMAND_OR_INTERFACE =
+python backend/scripts/seed_i5b2_p1_l1_legacy_companions.py [flags]
+
+FLAGS_OR_ARGUMENTS (repository-established via argparse; NOT executed) =
+  --dry-run (default True)
+  --apply (sets dry_run False)
+  --environment (apply required)
+  --allowlist (comma-separated source_key; apply required)
+  --expect-digest (apply required)
+  --confirm (apply required)
+  --evidence-json (optional overlay input map)
+  --use-catalog-inventory / --no-catalog-inventory (default use catalog)
+
+DEFAULT_DRY_RUN_STATE = True (§88.2; script default)
+
+DRY_RUN_BEHAVIOR =
+  build_plan(None, candidates, dry_run=True) → JSON report to stdout;
+  no SessionFactory; no apply_plan; no commit (script lines 143–171)
+
+APPLY_BEHAVIOR =
+  SessionFactory + apply_plan + session.commit (requires full auth tuple)
+
+CANDIDATE_FILTER = GATE3H_CATALOG_SOURCE_KEYS via catalog_inventory_candidates;
+  optional --evidence-json overlay; apply uses --allowlist filter
+
+CURRENT_CONTRACT_STATE = DEFINED_IN_REPOSITORY
+MISSING_CONTRACT_FIELDS =
+  CONFIRM token exact value (§88.2 CONFIRM_P1_L1_APPLY referenced; exact match rule in apply_plan not fully quoted in master log)
+  LOG_DESTINATION for dry-run output (stdout only established)
+```
+
+### ۱۶۶.۱۲) No-write contract (Phase L)
+
+```text
+NO_WRITE_AUTHORITY = §88.2 dry-run-first; script dry_run path avoids apply_plan
+
+NO_DATABASE_WRITE (design) = YES when dry_run=True (build_plan only)
+NO_FILE_WRITE (design) = YES (JSON stdout only in dry_run path)
+NO_NETWORK_WRITE (design) = YES (seed module forbids urllib/httpx/requests imports §88)
+NO_EXTERNAL_SIDE_EFFECT (design) = YES
+NO_ACTIVATION = YES (DEFAULT_OPERATIONAL_STATUS=DISABLED §88; kb_b2_legacy_companion_seed.py)
+NO_PUBLICATION = YES
+NO_RUNTIME_STATE_CHANGE (design) = YES in dry_run path
+
+LOG_WRITE_ALLOWED = stdout JSON report only
+TEMPORARY_ARTIFACT_ALLOWED = NO established
+TRANSACTION_BEHAVIOR = none in dry_run path; commit only on apply path
+FAILURE_BEHAVIOR = JSON error + non-zero exit on apply failures
+
+NO_WRITE_DESIGN_CLAIM = ESTABLISHED_REPOSITORY_PROOF (code + §88)
+NO_WRITE_EXECUTION_PROOF = NOT_ESTABLISHED (no dry-run executed this Gate)
+```
+
+### ۱۶۶.۱۳) Fingerprint and digest contract (Phase M)
+
+| DIGEST_TYPE | CANONICAL_INPUTS | ALGORITHM | VALUE_AVAILABLE | REPRO_STATE | STAGE | MISSING |
+|---|---|---|---|---|---|---|
+| overlay_fingerprint | governance_evidence snapshot per candidate | compute_snapshot_fingerprint (§88.3; code) | NO | REQUIRES_ACTUAL_EXECUTION | overlay approval | evidence overlay absent |
+| plan_digest | sorted decision rows | sha256 per compute_plan_digest (§88.3; code) | NO | REQUIRES_ACTUAL_EXECUTION | dry-run | no dry-run run |
+| input_snapshot_digest | evidence-json + catalog keys | AUTHORITY_NOT_ESTABLISHED | NO | REQUIRES_ACTUAL_EXECUTION | dry-run | — |
+| allowlist_digest | explicit allowlist keys | AUTHORITY_NOT_ESTABLISHED | NO | REQUIRES_ACTUAL_EXECUTION | approval | allowlist empty |
+| result_digest | dry-run JSON report | AUTHORITY_NOT_ESTABLISHED | NO | REQUIRES_ACTUAL_EXECUTION | post dry-run | — |
+
+```text
+DIGEST_FIELD_DEFINED != DIGEST_VALUE_AVAILABLE
+DIGEST_VALUE_AVAILABLE != DIGEST_REPRODUCED
+DIGEST_REPRODUCED != DRY_RUN_PASSED
+NO_DIGEST_COMPUTED_THIS_GATE = YES (no Python execution)
+```
+
+### ۱۶۶.۱۴) Owner / dependency / closure matrix (Phase N)
+
+| ITEM_ID | CLASS | AFFECTED | STATE | OWNER | DEP | CLOSURE | EO_C11 | ACT_BLOCK |
+|---|---|---|---|---|---|---|---|---|
+| ITM-OVR-9 | OVERLAY | 9 non-hold | MR | Governance+Legal | ECU units | approved overlay per key | YES | YES |
+| ITM-EXT-01 | AUTHORITY | 9 | RE | Legal (+MH owners) | PKG-EXT-E2 | evidence captured immutable | YES | YES |
+| ITM-ENV-01 | ENVIRONMENT | all | RFD | Javad+DevOps | E7 path | E8 approval | YES | YES |
+| ITM-ENTRY-01 | EXECUTION | all | PP | engineering | ITM-OVR-9 | contract review complete | YES | NO |
+| ITM-DRY-01 | APPROVAL | all | RFD | Javad | ITM-ENV-01; allowlist | dry-run package approved | YES | YES |
+| ITM-FP-01 | EXECUTION | all | REQUIRES_EXEC | engineering | ITM-DRY-01 | digest reproduced | YES | YES |
+| ITM-EO11 | EO | EO-C11 | OPEN | Governance | ITM-OVR-9; ITM-DRY-01 | EO-C11 SATISFIED | YES | YES |
+
+### ۱۶۶.۱۵) Overlay-decision package preparation (Phase O)
+
+```text
+OVERLAY_DECISION_PACKAGE_PREPARED = NO
+
+REASON =
+  OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0
+  all 9 candidates classified NEEDS_EXTERNAL_EVIDENCE
+  repository-local evidence insufficient for explicit approval decision
+  per §166.7 disposition definitions
+
+NO_EMPTY_APPROVAL_PACKAGE_CREATED = YES
+OVERLAY_DECISION_AUTHORIZED = NO
+```
+
+### ۱۶۶.۱۶) Minimum next package selection (Phase P)
+
+| PACKAGE_ID | CLOSURE_IMPACT | HARD_DEP | SENSITIVE | CANDIDATES | OBJECTIVE | WHY_MINIMUM |
+|---|---|---|---|---|---|---|
+| PKG-EXT-E2-BOUNDED-01 | YES | YES | YES (network) | 9 non-hold | bounded E2 external evidence per ECU units | only path that resolves GAP-OVR-20 license/terms for all 9 |
+| PKG-ENV-01 | YES | YES | YES | all | E8 target-environment evidence + approval prep | parallel track; does not replace overlay evidence |
+| PKG-DOC-GAP-01 | NO | NO | NO | — | NOT SELECTED | doc gaps closed in §165–§166 |
+| PKG-OVR-DEC-01 | YES | YES | YES | — | NOT SELECTED | 0 approval-eligible candidates |
+
+```text
+SELECTED_MINIMUM_PACKAGE = PKG-EXT-E2-BOUNDED-01
+
+COMBINE_CANDIDATE = PKG-ENV-01 only if Javad approves parallel environment track
+  (distinct owner: DevOps vs Legal; not auto-combined)
+
+PROHIBITIONS = no activation; no overlay approval; no dry-run; no apply
+EXPECTED_OUTPUT = immutable external evidence artifacts + overlay draft fields
+CLOSURE_CRITERIA = GAP-OVR-20 materially reduced; candidates may become OVERLAY_APPROVAL_ELIGIBLE
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۶۶.۱۷) EO-C11 readiness reconciliation (Phase Q)
+
+```text
+NON_HOLD_CANDIDATES = 9
+OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0
+NEEDS_EXTERNAL_EVIDENCE_COUNT = 9
+GOVERNANCE_DEFER_COUNT = 0
+EXCLUDE_FAIL_CLOSED_COUNT = 0
+DISPOSITION_COUNT_CHECK = 0+9+0+0 = 9
+
+APPROVED_OVERLAYS = 0
+DRY_RUN_ALLOWLIST_READY = NO
+TARGET_ENVIRONMENT_APPROVED = NO
+ACTUAL_DRY_RUN_AUTHORIZED = NO
+ACTUAL_DRY_RUN_EXECUTED = NO
+EO_C11_READY_FOR_CLOSURE = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+
+MATERIAL_ADVANCE_FROM_THIS_GATE =
+  per-candidate disposition; entrypoint contract established;
+  external evidence plan designed; minimum package selected
+```
+
+### ۱۶۶.۱۸) EO / I5 / non-authorization state (Phase R)
+
+```text
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_TOTAL = 12
+EO_C11 = OPEN
+
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+WAIVER_CREATED = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+ROADMAP_STAGE_4 = IN_PROGRESS
+
+I5_FORMAL_CLOSED_COMPLETION = 21.79487179%
+I5_FORMAL_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+
+COMMIT/PUSH/NETWORK/TEST/CI/DRY_RUN/OVERLAY_APPROVAL/ACTIVATION = NO
+S4_EO_08_PREQ_01_AUTHORIZED = YES (consumed by this Gate)
+EXTERNAL_EVIDENCE_COLLECTION_AUTHORIZED = NO
+```
+
+### ۱۶۶.۱۹) Self-healing log (Phase S)
+
+```text
+§166_SELF_HEALING_EVENTS = NONE
+§166_INITIAL_APPEND_CLEAN = YES
+```
+
+### ۱۶۶.۲۰) Final same-run audit (Phase T)
+
+```text
+§166_FINAL_AUDIT = PASS
+  16/9/7 partition exact
+  9 eligibility rows; dispositions total 9
+  0 approved overlays; 0 approval-eligible
+  entrypoint flags from repository only (not invented)
+  no digest reproduction claimed
+  no-write execution proof not fabricated
+  EO/I5 unchanged; EO-C11 OPEN
+```
+
+### ۱۶۶.۲۱) Exact next step (Phase U)
+
+```text
+NEXT_STEP =
+BOUNDED EXTERNAL EVIDENCE COLLECTION APPROVAL DECISION
+(package PKG-EXT-E2-BOUNDED-01)
+
+RATIONALE =
+  all 9 non-hold candidates = NEEDS_EXTERNAL_EVIDENCE
+  OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0
+  external evidence is the smallest closure-impact path toward EO-C11
+  network not auto-authorized — separate Javad approval required
+
+PARALLEL_OPTIONAL_TRACK =
+TARGET ENVIRONMENT / ENGINEERING CONTRACT PACKAGE (PKG-ENV-01)
+  if Javad chooses parallel DevOps review
+
+NEXT_STEP_AUTHORIZED_BY_THIS_GATE = NO
+```
+
+### ۱۶۶.۲۲) Append-only integrity record (Phase V)
+
+```text
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (preserved chain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–165_PRESERVED = YES
+§166_ONLY_NEW_SECTION = YES
+§166_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+
+STATE =
+S4_EO_08_PREQ_01_9_CANDIDATE_OVERLAY_ELIGIBILITY_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — S4_EO_08_PREQ_01_DOCUMENTED_AND_FINAL_AUDITED_UNCOMMITTED
+```
+
+---
+*پایان §۱۶۶ — SECTION-29 S4-EO-08-PREQ-01 9-Candidate Evidence-Overlay Eligibility — S4_EO_08_PREQ_01_9_CANDIDATE_OVERLAY_ELIGIBILITY_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۷) SECTION 29 / S4-EO-08-PREQ-02 ECU PRIMARY-MAPPING, HOST / DOMAIN / REDIRECT ALLOWLIST AND CROSS-CUTTING EVIDENCE RECONCILIATION
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / S4-EO-08-PREQ-02 —
+ECU PRIMARY-MAPPING RECONCILIATION
+
+SECTION = 29
+ROADMAP_STAGE = 4
+GATE = S4-EO-08-PREQ-02
+PARENT =
+  S4-EO-08-PREQ-01 FINAL (§166)
+  PKG-EXT-E2-BOUNDED-01 = BLOCKED_ECU_ALLOWLIST_MISMATCH (pre-network stop; no mutation)
+RECORD_TYPE = ECU_PRIMARY_MAPPING_AND_NETWORK_ALLOWLIST_CONTRACT
+OWNER = Javad
+DECISION_STATE = DOCUMENTATION_COMPLETE
+
+MODE =
+REPOSITORY_LOCAL / DOCUMENTATION_ONLY / APPEND_ONLY / UNCOMMITTED /
+NO_NETWORK / NO_EXTERNAL_EVIDENCE / NO_EVIDENCE_DIRECTORY /
+NO_OVERLAY_APPROVAL / NO_ACTUAL_DRY_RUN / NO_TEST / NO_CI /
+NO_COMMIT / NO_PUSH
+
+Authorization (Javad):
+  primary-ECU membership, host/domain/redirect contract, cross-cutting layer
+  separation, amended network package preparation ONLY
+  does NOT authorize network, evidence collection, overlay approval, dry-run,
+  activation, EO-C11 closure, commit or push
+```
+
+### ۱۶۷.۱) Gate identity and authorization (Phase A)
+
+```text
+PKG_EXT_E2_BOUNDED_01 = BLOCKED_ECU_ALLOWLIST_MISMATCH
+NETWORK_REQUESTS = 0
+EVIDENCE_ROOT = NOT_CREATED
+§167_BEFORE_THIS_GATE = ABSENT
+
+S4_EO_08_PREQ_02_AUTHORIZED_SCOPE =
+  exact 9 non-hold reconstruction
+  deterministic primary-ECU membership (ONE_CANDIDATE → EXACTLY_ONE_PRIMARY_ECU)
+  eliminate duplicate primary membership and unmapped candidates
+  separate publisher-family ECU from cross-cutting MH evidence layer
+  ECU identifier reconciliation
+  host / registrable-domain / redirect reconstruction
+  MedlinePlus and NIMH host conflict reconciliation
+  prepare PKG-EXT-E2-BOUNDED-01-R1 (not execute)
+
+PREQ_02_COMPLETE != NETWORK_AUTHORIZED
+ECU_CONTRACT_DEFINED != NETWORK_ALLOWLIST_APPROVED
+NETWORK_REAUTHORIZED != EVIDENCE_COLLECTED
+```
+
+### ۱۶۷.۲) Preflight (Phase B)
+
+| CHECK | EXPECTED | OBSERVED | RESULT |
+|---|---|---|---|
+| worktree / branch | Demo-wt-section15-backend / feature/section15/backend-continuity-foundation | same | PASS |
+| HEAD | af1d583… | af1d583… | PASS |
+| ahead/behind | 0/0 | 0/0 | PASS |
+| dirty / staged / untracked | master log only / EMPTY / ZERO | same | PASS |
+| tip | §166 | §166 | PASS |
+| §166 lines | 42329–42822 (494) | same | PASS |
+| §167 exists | NO | NO | PASS |
+| evidence directory | ABSENT | docs/evidence = False | PASS |
+| network artifacts | NONE | NONE | PASS |
+| 16/9/7; dispositions 0/9/0/0 | yes | §166 | PASS |
+| EO 7/0/1/0/4; I5 21.79487179% | yes | yes | PASS |
+| git diff --check | CLEAN | CLEAN (LF/CRLF warning) | PASS |
+
+### ۱۶۷.۳) Authority reconstruction (Phase C)
+
+| AUTHORITY | EXACT_RULE | APPLIES_TO | CONFLICT | PRECEDENCE | RESULTING_CONTRACT |
+|---|---|---|---|---|---|
+| trusted_source_catalog_v1.yaml | source_key + base_url + allowed_domain + allowed_url_patterns | GATE3H 16 | none for 9 non-hold operational hosts | Operational GATE3H allowlist for network host/path | Canonical public URL/host/domain per candidate |
+| §93.3 | ONE candidate = ONE source_key | 16 universe | none | Identity law | Deterministic candidate IDs |
+| §93.5 / §166.4 | 9 non-hold overlay-eligible | 9 candidates | none | PREQ-01 set | Non-hold set locked |
+| §166.9 | 6 ECU design units | evidence plan | ECU-MH-01 multi-publisher; ECU-MPL-01 domain nlm.nih.gov/medlineplus | Design-only; BLOCKED by PKG-EXT-E2; superseded by this Gate for primary membership | Primary ECUs = publisher-family; MH = cross-cutting layer |
+| ROBOTS_TERMS_PRECHECK_BATCH1.md | medlineplus.gov / nimh.nih.gov robots hosts | batch1 | none | Supporting host evidence | Confirms medlineplus.gov and nimh.nih.gov as documented hosts |
+| §164-FIX1 | sensitive boundary ≠ mandatory control | network packages | none | Management law | R1 still needs separate Javad approval |
+
+```text
+BLOCKED_AUTHORITY_RECONSTRUCTION_MISMATCH = NO
+WEB_KNOWLEDGE_USED = NO
+```
+
+### ۱۶۷.۴) Nine-candidate identity reconciliation (Phase D)
+
+| CANDIDATE_ID | DISPLAY_NAME | PUBLISHER | CANONICAL_URL | HOST | REG_DOMAIN | §166_ECU | FINAL |
+|---|---|---|---|---|---|---|---|
+| who_global_health_topics | WHO Health Topics | WHO | https://www.who.int/health-topics | www.who.int | who.int | ECU-WHO-01 | ESTABLISHED |
+| medlineplus_consumer_health | MedlinePlus Consumer | NLM/MedlinePlus | https://medlineplus.gov | medlineplus.gov | medlineplus.gov | ECU-MPL-01 | ESTABLISHED |
+| nhs_uk_live_well | NHS Live Well | NHS | https://www.nhs.uk/live-well | www.nhs.uk | nhs.uk | ECU-NHS-01 | ESTABLISHED |
+| cdc_health_lifestyle | CDC Healthy Living | CDC | https://www.cdc.gov/healthyliving | www.cdc.gov | cdc.gov | ECU-CDC-01 | ESTABLISHED |
+| who_mental_health | WHO Mental Health | WHO | https://www.who.int/health-topics/mental-health | www.who.int | who.int | ECU-MH-01 only | ESTABLISHED |
+| nimh_nih_mental_health | NIMH MH | NIMH | https://www.nimh.nih.gov/health | www.nimh.nih.gov | nimh.nih.gov | ECU-MH-01 only | ESTABLISHED |
+| apa_psychology_help | APA Psychology Topics | APA | https://www.apa.org/topics | www.apa.org | apa.org | ECU-APA-01 + MH | ESTABLISHED |
+| nhs_mental_health | NHS Mental Health | NHS | https://www.nhs.uk/mental-health | www.nhs.uk | nhs.uk | ECU-NHS-01 + MH | ESTABLISHED |
+| medlineplus_mental_health | MedlinePlus MH | NLM/MedlinePlus | https://medlineplus.gov/mentalhealthandbehavior.html | medlineplus.gov | medlineplus.gov | MH / page-gap | ESTABLISHED |
+
+```text
+CANDIDATE_COUNT = 9
+DUPLICATE_CANONICAL_SOURCE_KEYS = 0
+UNRESOLVED_IDENTITIES = 0
+P1_PROFILE_ID_PATTERN = i5b2_p1_l1:{source_key} (§88.3)
+ALIASES = none material beyond source_key
+```
+
+### ۱۶۷.۵) Primary ECU definition (Phase E)
+
+```text
+PRIMARY_ECU =
+  deterministic publisher-family network-governance unit that:
+    owns candidates from ONE publisher family only
+    has one primary registrable-domain policy
+    has exact allowed hosts and path prefixes
+    has explicit evidence-question scope and rate-limit contract
+    contains each candidate at most once
+
+PRIMARY_ECU IS_NOT =
+  a medical topic; a multi-publisher MH grouping; an approval unit;
+  a source-activation unit; a crawler scope
+
+INVARIANTS =
+  ONE_CANDIDATE → EXACTLY_ONE_PRIMARY_ECU
+  PRIMARY_ECU_DUPLICATES = 0
+  UNMAPPED_CANDIDATES = 0
+  MULTI_PUBLISHER_PRIMARY_ECUS = 0
+```
+
+### ۱۶۷.۶) Primary ECU mapping (Phase F)
+
+Hypothesis from package G verified against catalog `allowed_domain` / publisher families:
+
+| PRIMARY_ECU_ID | PUBLISHER_FAMILY | CANDIDATE_IDS | N | PRIMARY_REG_DOMAIN | EXACT_ALLOWED_HOSTS | PREVIOUS_IDS | SUPERSESSION |
+|---|---|---|---:|---|---|---|---|
+| ECU-WHO-01 | WHO | who_global_health_topics, who_mental_health | 2 | who.int | www.who.int | ECU-WHO-01 (narrow) + MH overlap | Expanded WHO primary to both WHO keys |
+| ECU-MEDLINEPLUS-01 | MedlinePlus / NLM | medlineplus_consumer_health, medlineplus_mental_health | 2 | medlineplus.gov | medlineplus.gov | ECU-MPL-01 | Renamed; MPL domain class superseded |
+| ECU-NHS-01 | NHS | nhs_uk_live_well, nhs_mental_health | 2 | nhs.uk | www.nhs.uk | ECU-NHS-01 | Unchanged membership; path scopes split |
+| ECU-CDC-01 | CDC | cdc_health_lifestyle | 1 | cdc.gov | www.cdc.gov | ECU-CDC-01 | Unchanged |
+| ECU-NIMH-01 | NIMH | nimh_nih_mental_health | 1 | nimh.nih.gov | www.nimh.nih.gov | (was only in ECU-MH-01) | New primary ECU for NIMH |
+| ECU-APA-01 | APA | apa_psychology_help | 1 | apa.org | www.apa.org | ECU-APA-01 | MH dual-membership removed |
+
+```text
+PRIMARY_ECU_COUNT = 6
+TOTAL_PRIMARY_MEMBERSHIP = 2+2+2+1+1+1 = 9
+DUPLICATE_PRIMARY_MEMBERSHIP = 0
+UNMAPPED_CANDIDATES = 0
+MULTI_PUBLISHER_PRIMARY_ECUS = 0
+SIX_ECU_COUNT_RETAINED = YES
+RATIONALE =
+  six publisher families in the 9-candidate set; catalog-aligned;
+  safer than forcing multi-publisher MH as a primary ECU
+```
+
+### ۱۶۷.۷) Cross-cutting evidence-layer model (Phase G)
+
+```text
+CROSS_CUTTING_LAYER_ID = CCL-MH-SAFETY-01
+NAME = MENTAL_HEALTH_SAFETY_AND_CRISIS_POLICY_LAYER
+APPLIES_TO_CANDIDATES =
+  who_mental_health
+  nimh_nih_mental_health
+  apa_psychology_help
+  nhs_mental_health
+  medlineplus_mental_health
+EVIDENCE_QUESTIONS =
+  non-diagnostic use boundary
+  crisis / emergency routing policy
+  MH safety / self-harm content exclusion from KB answers
+  candidate-specific clinical-ency / therapy-replacement prohibitions
+PRIMARY_ECU_EFFECT = NONE (does not assign primary membership)
+NETWORK_SCOPE_EFFECT =
+  does NOT create an additional domain;
+  requests still run only via each candidate's primary ECU host allowlist
+POLICY_REUSE_RULE =
+  publisher-family policy may be cited across siblings only when text
+  explicitly applies to both; MH safety never inferred from generic terms alone
+CANDIDATE_SPECIFIC_EVIDENCE_REQUIRED = YES
+OWNER = Medical/Safety + Legal
+AUTHORITY = §93.5 Group B; §166 GAP-MH-POL; YAML non_diagnostic / crisis_routing notes
+
+CROSS_CUTTING_LAYER_MEMBERSHIP != PRIMARY_ECU_MEMBERSHIP
+
+ECU_MH_01_PREVIOUS_ROLE =
+  multi-publisher MH safety/license collection unit in §166.9 design
+ECU_MH_01_SUPERSEDED_BY =
+  CCL-MH-SAFETY-01 + primary ECU membership for each candidate
+SUPERSESSION_REASON =
+  multi-publisher primary ECU violated DUPLICATE_PRIMARY=0 and single-domain
+  allowlist requirements (PKG-EXT-E2 BLOCKED_ECU_ALLOWLIST_MISMATCH)
+NO_LOSS_OF_EVIDENCE_QUESTIONS = YES
+```
+
+### ۱۶۷.۸) ECU identifier reconciliation (Phase H)
+
+| IDENTIFIER | HISTORICAL | CURRENT | ACTION | RATIONALE |
+|---|---|---|---|---|
+| ECU-WHO-01 | WHO lifestyle only (§166) | WHO family (global + MH) | KEEP / EXPAND | Catalog who.int family |
+| ECU-MPL-01 | MedlinePlus consumer; domain nlm.nih.gov/medlineplus | DEPRECATED | DEPRECATE / ALIAS_TO ECU-MEDLINEPLUS-01 | Domain conflict with catalog medlineplus.gov |
+| ECU-MEDLINEPLUS-01 | not in §166 | Canonical MedlinePlus primary | KEEP (canonical) | Catalog allowed_domain |
+| ECU-NHS-01 | both NHS | both NHS | KEEP | Catalog nhs.uk |
+| ECU-CDC-01 | CDC | CDC | KEEP | Catalog cdc.gov |
+| ECU-MH-01 | multi-publisher MH | DEPRECATED as primary ECU | SUPERSEDE → CCL-MH-SAFETY-01 | Not a publisher-family unit |
+| ECU-NIMH-01 | not in §166 | NIMH primary | KEEP (canonical) | Catalog nimh.nih.gov |
+| ECU-APA-01 | APA license | APA primary (license+editorial) | KEEP | Catalog apa.org; MH questions via CCL |
+
+```text
+NO_IDENTIFIER_REFERS_TO_TWO_MATERIAL_SCOPES = YES (after deprecation)
+ALIASES_DO_NOT_EXPAND_NETWORK_SCOPE = YES
+```
+
+### ۱۶۷.۹) Host / domain / path taxonomy (Phase I)
+
+```text
+PERMANENT_DISTINCTIONS =
+  REGISTRABLE_DOMAIN != EXACT_ALLOWED_HOST
+  CANONICAL_HOST != ALL_SUBDOMAINS_ALLOWED
+  ORGANIZATIONAL_RELATIONSHIP != NETWORK_AUTHORIZATION
+  SAME_REGISTRABLE_DOMAIN != SAME_EVIDENTIARY_AUTHORITY
+  DOCUMENTED_ALIAS != AUTHORIZED_FETCH_HOST
+
+DEFAULT_FAIL_CLOSED =
+  any host not explicitly listed is prohibited
+```
+
+| PRIMARY_ECU | REG_DOMAIN | ALLOWED_HOSTS | ALLOWED_PATH_PREFIXES (catalog patterns) | DENIED / NOT AUTHORIZED | ORG_REF_HOSTS |
+|---|---|---|---|---|---|
+| ECU-WHO-01 | who.int | www.who.int | /health-topics/; /news-room/ (WHO); MH: /health-topics/mental-health*, /news-room/.*mental.* | other who.int hosts unless listed | — |
+| ECU-MEDLINEPLUS-01 | medlineplus.gov | medlineplus.gov | /.* (consumer); /mentalhealth*; /ency/article/* (MH — page-allowlist still required) | nlm.nih.gov (not fetch-authorized) | nlm.nih.gov (org/attribution reference only) |
+| ECU-NHS-01 | nhs.uk | www.nhs.uk | live-well: /live-well/; MH: /mental-health/ | cross-use of sibling path as other candidate without mapping | — |
+| ECU-CDC-01 | cdc.gov | www.cdc.gov | /healthyliving/; /physicalactivity/ | other cdc.gov hosts/paths | — |
+| ECU-NIMH-01 | nimh.nih.gov | www.nimh.nih.gov | /health/ | nih.gov / www.nih.gov (generic) | nih.gov (parent org reference only) |
+| ECU-APA-01 | apa.org | www.apa.org | /topics/ | other apa.org paths outside topics | — |
+
+### ۱۶۷.۱۰) MedlinePlus host reconciliation (Phase J)
+
+```text
+MEDLINEPLUS_CANONICAL_PUBLIC_URL =
+  consumer: https://medlineplus.gov
+  MH: https://medlineplus.gov/mentalhealthandbehavior.html
+MEDLINEPLUS_CANONICAL_HOST = medlineplus.gov
+MEDLINEPLUS_PRIMARY_REGISTRABLE_DOMAIN = medlineplus.gov
+NLM_ORGANIZATIONAL_RELATIONSHIP =
+  catalog license_notes / notes attribute NIH/NLM; org relationship only
+NLM_PATH_ROLE =
+  §166.9 DOMAIN_CLASS nlm.nih.gov/medlineplus = DESIGN-ONLY conflict;
+  NOT catalog allowed_domain; NOT authorized fetch host
+LEGACY_OR_REDIRECT_ROLE =
+  no repository-proven redirect from nlm.nih.gov/medlineplus → medlineplus.gov
+  (do not infer redirect)
+ALLOWED_HOSTS = medlineplus.gov
+ALLOWED_PATHS = per catalog allowed_url_patterns
+REDIRECT_POLICY = only to explicitly allowlisted hosts (see §167.12)
+UNRESOLVED_CONFLICTS = NONE for fetch-host selection
+  (catalog + ROBOTS_TERMS_PRECHECK + §93.5 prevail over §166.9 domain class)
+
+MEDLINEPLUS_NETWORK_HOST = medlineplus.gov
+§166_9_NLM_DOMAIN_CLASS = SUPERSEDED_FOR_NETWORK_ALLOWLIST
+```
+
+### ۱۶۷.۱۱) NIMH host reconciliation (Phase K)
+
+```text
+NIMH_CANONICAL_PUBLIC_URL = https://www.nimh.nih.gov/health
+NIMH_CANONICAL_HOST = www.nimh.nih.gov
+NIMH_PRIMARY_REGISTRABLE_DOMAIN = nimh.nih.gov
+NIH_ORGANIZATIONAL_RELATIONSHIP = parent NIH organization (reference only)
+ALLOWED_HOSTS = www.nimh.nih.gov
+ALLOWED_PATHS = /health/.*
+WHETHER_GENERIC_NIH_HOST_IS_REQUIRED = NO
+GENERIC_nih.gov_AUTHORIZATION = PROHIBITED
+  (does not imply all NIH subdomains)
+UNRESOLVED_CONFLICTS = NONE
+NIMH_NETWORK_HOST = www.nimh.nih.gov
+```
+
+### ۱۶۷.۱۲) Redirect policy (Phase L)
+
+```text
+REDIRECT_POLICY_VERSION = S4-EO-08-PREQ-02-RDP-v1
+MAX_REDIRECTS = 3
+SAME_HOST_REDIRECT = ALLOWED if final path remains in allowed_path_prefixes
+SAME_PRIMARY_ECU_HOST_REDIRECT = ALLOWED only if target host ∈ EXACT_ALLOWED_HOSTS
+SAME_REGISTRABLE_DOMAIN_REDIRECT = NOT_SUFFICIENT alone
+CROSS_REGISTRABLE_DOMAIN_REDIRECT = PROHIBITED unless target explicitly allowlisted
+HTTP_TO_HTTPS_REDIRECT = ALLOWED if host/path otherwise allowlisted
+WWW_TO_NON_WWW / NON_WWW_TO_WWW = ALLOWED only if both hosts listed
+LEGACY_TO_CANONICAL_REDIRECT = ALLOWED only if both ends allowlisted
+QUERY_STRING_HANDLING = preserve; does not expand path scope
+PATH_SCOPE_VALIDATION = REQUIRED on every hop
+FINAL_URL_VALIDATION = REQUIRED
+REDIRECT_LEDGER_REQUIREMENT = every hop logged
+FAIL_CLOSED_CONDITIONS =
+  unlisted host; login/consent/CAPTCHA/search; >MAX_REDIRECTS;
+  unrelated content; new ECU/candidate implied
+
+REDIRECT_DISCOVERED_DURING_REQUEST != AUTOMATIC_REDIRECT_AUTHORIZATION
+```
+
+### ۱۶۷.۱۳) Evidence-question routing (Phase M)
+
+| QUESTION_ID | CLASS | PRIMARY_ECU | CANDIDATES | SHARED_OK | CCL | EVIDENCE_TYPE |
+|---|---|---|---|---|---|---|
+| Q-LIC-WHO | publisher-family | ECU-WHO-01 | both WHO | YES if policy covers both | — | terms/license/CC BY-NC-SA |
+| Q-LIC-MPL | publisher-family | ECU-MEDLINEPLUS-01 | both MPL | PARTIAL; ADAM exclusion may be page-specific | — | attribution / mixed copyright |
+| Q-LIC-NHS | publisher-family | ECU-NHS-01 | both NHS | YES if OGL sitewide | — | OGL v3 / attribution |
+| Q-LIC-CDC | publisher-family | ECU-CDC-01 | cdc | N/A | — | public domain / non-endorsement |
+| Q-LIC-NIMH | publisher-family | ECU-NIMH-01 | nimh | N/A | — | public domain cite |
+| Q-LIC-APA | publisher-family | ECU-APA-01 | apa | N/A | — | copyright/terms |
+| Q-ED-APA | candidate-specific | ECU-APA-01 | apa | NO | — | editorial authority |
+| Q-PAGE-MPL-MH | candidate-specific | ECU-MEDLINEPLUS-01 | medlineplus_mental_health | NO | — | page allowlist / ency exclusion |
+| Q-ROBOTS-* | publisher-family | each primary | per ECU | YES per host | — | robots.txt |
+| Q-MH-SAFE-* | cross-cutting | via each primary | CCL-MH-SAFETY-01 set | NO inference across publishers | CCL-MH-SAFETY-01 | MH safety / crisis |
+
+```text
+MH_SAFETY_NOT_INFERRED_FROM_GENERAL_TERMS = YES
+```
+
+### ۱۶۷.۱۴) Final nine-row ECU matrix (Phase N)
+
+| PRIMARY_ECU | CANDIDATE_ID | HOST | REG_DOMAIN | PATH_SCOPE | CCL | PREV | NETWORK_READY_STATE | OWNER |
+|---|---|---|---|---|---|---|---|---|
+| ECU-WHO-01 | who_global_health_topics | www.who.int | who.int | /health-topics/; /news-room/ | — | ECU-WHO-01 | READY_FOR_NETWORK_REAUTHORIZATION | Legal+Governance |
+| ECU-WHO-01 | who_mental_health | www.who.int | who.int | MH path prefixes | CCL-MH-SAFETY-01 | ECU-MH-01 | READY_FOR_NETWORK_REAUTHORIZATION | Medical/Safety+Legal |
+| ECU-MEDLINEPLUS-01 | medlineplus_consumer_health | medlineplus.gov | medlineplus.gov | /.* (catalog) | — | ECU-MPL-01 | READY_FOR_NETWORK_REAUTHORIZATION | Legal+Governance |
+| ECU-MEDLINEPLUS-01 | medlineplus_mental_health | medlineplus.gov | medlineplus.gov | /mentalhealth*; /ency/article/* | CCL-MH-SAFETY-01 | MH/page-gap | READY_FOR_NETWORK_REAUTHORIZATION | Legal+Medical/Safety |
+| ECU-NHS-01 | nhs_uk_live_well | www.nhs.uk | nhs.uk | /live-well/ | — | ECU-NHS-01 | READY_FOR_NETWORK_REAUTHORIZATION | Legal+Governance |
+| ECU-NHS-01 | nhs_mental_health | www.nhs.uk | nhs.uk | /mental-health/ | CCL-MH-SAFETY-01 | NHS+MH | READY_FOR_NETWORK_REAUTHORIZATION | Medical/Safety+Legal |
+| ECU-CDC-01 | cdc_health_lifestyle | www.cdc.gov | cdc.gov | /healthyliving/; /physicalactivity/ | — | ECU-CDC-01 | READY_FOR_NETWORK_REAUTHORIZATION | Legal+Javad |
+| ECU-NIMH-01 | nimh_nih_mental_health | www.nimh.nih.gov | nimh.nih.gov | /health/ | CCL-MH-SAFETY-01 | ECU-MH-01 | READY_FOR_NETWORK_REAUTHORIZATION | Medical/Safety+Legal |
+| ECU-APA-01 | apa_psychology_help | www.apa.org | apa.org | /topics/ | CCL-MH-SAFETY-01 | APA+MH | READY_FOR_NETWORK_REAUTHORIZATION | Legal+Governance |
+
+```text
+TOTAL_ROWS = 9
+DISTINCT_CANDIDATES = 9
+DUPLICATE_PRIMARY_MEMBERSHIP = 0
+UNMAPPED_CANDIDATES = 0
+READY_FOR_NETWORK_REAUTHORIZATION_COUNT = 9
+BLOCKED_CANDIDATE_COUNT = 0
+NETWORK_EXECUTION_AUTHORIZED = NO
+```
+
+### ۱۶۷.۱۵) Amended ECU contract (Phase O)
+
+```text
+ECU_CONTRACT_ID = S4-EO-08-PREQ-02-ECU-CONTRACT-v1
+ECU_CONTRACT_VERSION = 1
+PRIMARY_ECU_COUNT = 6
+CANDIDATE_COUNT = 9
+PRIMARY_ECU_IDS =
+  ECU-WHO-01, ECU-MEDLINEPLUS-01, ECU-NHS-01,
+  ECU-CDC-01, ECU-NIMH-01, ECU-APA-01
+CANDIDATE_TO_ECU_MAPPING = §167.14
+EXACT_ALLOWED_HOSTS_BY_ECU = §167.9
+REGISTRABLE_DOMAINS_BY_ECU = §167.9
+ALLOWED_PATH_PREFIXES_BY_ECU = §167.9 / §167.14
+REDIRECT_POLICY_REFERENCE = S4-EO-08-PREQ-02-RDP-v1
+CROSS_CUTTING_LAYER_REFERENCES = CCL-MH-SAFETY-01
+EVIDENCE_QUESTION_REFERENCES = §167.13
+REQUEST_LIMIT_BY_ECU = 12 initial (carry PKG-EXT-E2 H1/H2 policy)
+RATE_LIMIT_POLICY = ≥2s between same-host requests; no 429 auto-retry
+RETENTION_POLICY_REFERENCE = PKG-EXT-E2 Section K (rights-aware; not re-executed here)
+UNRESOLVED_BLOCKERS = NONE for host selection
+CONTRACT_DIGEST_STATE = NOT_COMPUTED_NOT_REQUIRED_FOR_DOC_GATE
+DECISION_OWNER = Javad
+APPROVAL_STATE = DEFINED_NOT_NETWORK_APPROVED
+
+ECU_CONTRACT_DEFINED = YES
+ECU_CONTRACT_APPROVED_FOR_NETWORK = NO
+NETWORK_REAUTHORIZATION_REQUIRED = YES
+```
+
+### ۱۶۷.۱۶) Amended network package preparation (Phase P)
+
+```text
+PACKAGE_ID = PKG-EXT-E2-BOUNDED-01-R1
+SUPERSEDES_PACKAGE = PKG-EXT-E2-BOUNDED-01 (BLOCKED_ECU_ALLOWLIST_MISMATCH)
+OBJECTIVE =
+  bounded official-domain evidence collection under §167 ECU contract
+PRIMARY_ECU_CONTRACT_REFERENCE = S4-EO-08-PREQ-02-ECU-CONTRACT-v1
+PRIMARY_ECU_COUNT = 6
+CANDIDATE_COUNT = 9
+EXACT_ALLOWED_HOSTS = §167.9
+EXACT_ALLOWED_PATH_PREFIXES = §167.9/§167.14
+REDIRECT_POLICY = S4-EO-08-PREQ-02-RDP-v1
+CROSS_CUTTING_EVIDENCE_LAYER_POLICY = CCL-MH-SAFETY-01 (no extra domain)
+ECU_REQUEST_LIMITS = 12 / ECU
+GLOBAL_REQUEST_LIMIT = sum of per-ECU; sequential; per-host delay
+RATE_LIMIT_POLICY = §167.15
+TERMS_AND_ROBOTS_PREFLIGHT = mandatory H1 before H2 per ECU
+RETENTION_POLICY = rights-aware (PKG-EXT-E2 K)
+IMMUTABLE_CAPTURE_POLICY = URL/timestamp/hash/provenance
+EVIDENCE_MANIFEST_POLICY = docs/evidence/section29/pkg_ext_e2_bounded_01/ fallback
+STOP_CONDITIONS =
+  unlisted host; robots/terms block; 429; CAPTCHA; redirect out of allowlist;
+  scope expansion; any non-allowlisted domain
+PROHIBITIONS =
+  search engines; login; broad crawl; overlay approval; dry-run; activation;
+  commit/push; edit §§1–167 during execution except authorized evidence root + §168
+EXPECTED_OUTPUTS =
+  manifest + ledger + 9 candidate packs + recalculated dispositions
+PASS_CRITERIA =
+  allowlist frozen; every request mapped; dispositions total 9; EO unchanged
+FAIL_CRITERIA =
+  host invent; dual primary membership; false MH evidence sharing
+NETWORK_REAUTHORIZATION_REQUIRED = YES
+DECISION_OWNER = Javad
+CANDIDATE_INCLUSION =
+  all 9 READY — R1 includes all nine; no silent drop
+  per-ECU stop does not auto-stop unrelated ECUs
+STATUS = PREPARED_NOT_AUTHORIZED_NOT_EXECUTED
+```
+
+### ۱۶۷.۱۷) Minimum network strategy (Phase Q)
+
+| STRATEGY_ID | READY | BLOCKED | APPROVAL_STOPS | DUPLICATION | SCOPE_RISK | FAIL_CLOSED | RECOMMENDED |
+|---|---|---|---|---|---|---|---|
+| S1 ONE_COMBINED_ALL_READY | 9 | 0 | 1 | low if shared questions routed | medium (one auth, shared package) | medium | NO as sole model |
+| S2 ONE_PER_PUBLISHER_FAMILY | 9 / 6 ECU | 0 | up to 6 | lowest false-share | low | highest isolation | PARTIAL |
+| S3 ONE_PER_CANDIDATE | 9 | 0 | up to 9 | high duplicate terms fetches | low | high | NO |
+| S4 GOV_PREFLIGHT_THEN_SUBSTANTIVE | 9 | 0 | 1–2 | low | low | high | YES (core) |
+| S5 MIXED | 9 | 0 | 1 | low | low | high | **YES SELECTED** |
+
+```text
+SELECTED_STRATEGY = S5 MIXED
+=
+  single Javad reauthorization for PKG-EXT-E2-BOUNDED-01-R1 covering all 6 ECUs
+  + mandatory H1 terms/robots per ECU (S4)
+  + independent per-ECU stop (blocked host does not stop unrelated ECUs)
+  + publisher-family question reuse only under §167.13 rules
+  + CCL-MH-SAFETY questions always candidate-scoped via primary ECU hosts
+
+WHY =
+  minimizes approval stops vs S2/S3;
+  preserves fail-closed isolation vs pure S1;
+  avoids duplicate publisher terms fetches where sharing is valid
+```
+
+### ۱۶۷.۱۸) Owner / blocker / closure matrix (Phase R)
+
+| ITEM_ID | CLASS | AFFECTED | STATE | OWNER | CLOSURE | NET_BLOCK | EO_C11 |
+|---|---|---|---|---|---|---|---|
+| ITM-ECU-MAP | DOCUMENTATION | 9 | CLOSED_BY_THIS_GATE | Governance | §167.14 invariants | NO | NO |
+| ITM-MPL-HOST | HOST_AUTHORITY | ECU-MEDLINEPLUS-01 | CLOSED_BY_CATALOG | Governance | medlineplus.gov locked | NO | NO |
+| ITM-NIMH-HOST | HOST_AUTHORITY | ECU-NIMH-01 | CLOSED_BY_CATALOG | Governance | www.nimh.nih.gov locked | NO | NO |
+| ITM-MH-LAYER | CROSS_CUTTING | 5 MH | CLOSED_BY_THIS_GATE | Medical/Safety | CCL-MH-SAFETY-01 | NO | NO |
+| ITM-R1-AUTH | APPROVAL | 6 ECU / 9 | REQUIRES_SEPARATE_APPROVAL | Javad | explicit R1 authorization | YES | YES |
+| ITM-OVR-20 | OVERLAY | 9 | MISSING (unchanged) | Governance+Legal | approved overlays | YES (post-R1) | YES |
+| ITM-ENV-01 | ENVIRONMENT | all | REQUIRES_SEPARATE_APPROVAL | Javad+DevOps | E8 | YES | YES |
+
+```text
+NO_TBD_OWNERS = YES
+HOST_SELECTION_BLOCKERS = 0
+```
+
+### ۱۶۷.۱۹) EO-C11 and I5 reconciliation (Phase S)
+
+```text
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_TOTAL = 12
+EO_C11 = OPEN
+
+APPROVED_OVERLAYS = 0
+DRY_RUN_ALLOWLIST = EMPTY
+TARGET_ENVIRONMENT_APPROVED = NO
+ACTUAL_DRY_RUN_AUTHORIZED = NO
+ACTUAL_DRY_RUN_EXECUTED = NO
+EVIDENCE_OVERLAY_CLOSED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+ROADMAP_STAGE_4 = IN_PROGRESS
+
+I5_FORMAL_CLOSED_COMPLETION = 21.79487179%
+I5_FORMAL_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+
+CANDIDATE_DISPOSITIONS_UNCHANGED =
+  OVERLAY_APPROVAL_ELIGIBLE = 0
+  NEEDS_EXTERNAL_EVIDENCE = 9
+  GOVERNANCE_DEFER = 0
+  EXCLUDE_FAIL_CLOSED = 0
+```
+
+### ۱۶۷.۲۰) Self-healing log (Phase T)
+
+```text
+§167_SELF_HEALING_EVENTS = NONE
+§167_INITIAL_APPEND_CLEAN = YES
+```
+
+### ۱۶۷.۲۱) Final same-run audit (Phase U)
+
+```text
+§167_FINAL_AUDIT = PASS
+  9 candidates × 1 primary ECU; duplicates 0; unmapped 0
+  each primary ECU = one publisher family
+  CCL-MH-SAFETY-01 is not a primary ECU
+  MedlinePlus / NIMH hosts resolved from catalog
+  redirect policy requires explicit allowlisting
+  no network authorized; no evidence directory
+  EO/I5 unchanged; EO-C11 OPEN
+```
+
+### ۱۶۷.۲۲) Exact next step (Phase V)
+
+```text
+ALL_NINE_ROWS = READY_FOR_NETWORK_REAUTHORIZATION
+
+NEXT_STEP =
+JAVAD APPROVAL DECISION FOR PKG-EXT-E2-BOUNDED-01-R1
+
+NEXT_STEP_AUTHORIZED_BY_THIS_GATE = NO
+NETWORK_REAUTHORIZATION_REQUIRED = YES
+```
+
+### ۱۶۷.۲۳) Append-only integrity record (Phase W)
+
+```text
+§§1–144_BYTE_IDENTICAL_TO_HEAD = YES (preserved chain)
+§145_BYTE_IDENTITY_CLAIMED = NO
+§§145–166_PRESERVED = YES
+§167_ONLY_NEW_SECTION = YES
+§167_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+EVIDENCE_DIRECTORY_CREATED = NO
+NETWORK_REQUESTS = 0
+
+STATE =
+S4_EO_08_PREQ_02_ECU_PRIMARY_MAPPING_RECONCILED_DOCUMENTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_GATE =
+PASS — S4_EO_08_PREQ_02_RECONCILED_AND_FINAL_AUDITED_UNCOMMITTED
+```
+
+---
+*پایان §۱۶۷ — SECTION-29 S4-EO-08-PREQ-02 ECU Primary-Mapping Reconciliation — S4_EO_08_PREQ_02_ECU_PRIMARY_MAPPING_RECONCILED_DOCUMENTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۸*
+
+## ۱۶۸) SECTION 29 / PKG-EXT-E2-BOUNDED-01-R1 SIX-ECU BOUNDED EXTERNAL EVIDENCE COLLECTION, IMMUTABLE EVIDENCE PACK, NINE-CANDIDATE REASSESSMENT AND DECISION-PACKAGE PREPARATION
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / PKG-EXT-E2-BOUNDED-01-R1 —
+SIX-ECU BOUNDED EXTERNAL-EVIDENCE COLLECTION
+
+SECTION = 29
+ROADMAP_STAGE = 4
+GATE = PKG-EXT-E2-BOUNDED-01-R1
+PARENT =
+  S4-EO-08-PREQ-02 FINAL (§167)
+  Javad authorization for bounded network collection under §167 contract
+RECORD_TYPE = BOUNDED_NETWORK_EVIDENCE_COLLECTION_AND_REASSESSMENT
+OWNER = Javad
+DECISION_STATE = COLLECTION_COMPLETE_UNCOMMITTED
+FINAL_DECISION_OWNER = Javad
+
+MODE =
+NETWORK-ENABLED / EXPLICITLY-BOUNDED / OFFICIAL-HOSTS-ONLY /
+FROZEN-URL-ALLOWLIST / INDEPENDENT-ECU FAIL-CLOSED /
+RIGHTS-AWARE RETENTION / APPEND-ONLY MASTER LOG /
+IN-SCOPE SELF-HEALING / SAME-RUN FINAL AUDIT / UNCOMMITTED
+
+Authorization (Javad):
+  freeze URL allowlist; H1 per ECU; H2 only after that ECU H1 passes;
+  official-domain primary evidence; immutable metadata/hash/timestamp;
+  nine evidence packs; eligibility recalculation; overlay-decision preparation
+  WITHOUT decision execution; target-environment contract preparation WITHOUT
+  environment approval; append §168; same-run audit
+Does NOT authorize:
+  hosts/paths/redirects outside frozen contract; search engines; login/CAPTCHA bypass;
+  final legal/product/medical/editorial decision; Evidence Overlay approval;
+  actual dry-run; test/CI; DB/migration; source/crawler activation; EO-C11 closure;
+  Stage 5; P2; git stage/commit/push
+```
+
+### ۱۶۸.۱) Package identity and authorization
+
+```text
+PACKAGE_ID = PKG-EXT-E2-BOUNDED-01-R1
+EVIDENCE_ROOT = docs/evidence/section29/pkg_ext_e2_bounded_01_r1/
+URL_ALLOWLIST_ID = PKG-EXT-E2-BOUNDED-01-R1-ALLOWLIST-v1
+ECU_CONTRACT_ID = S4-EO-08-PREQ-02-ECU-CONTRACT-v1
+REDIRECT_POLICY_ID = S4-EO-08-PREQ-02-RDP-v1
+USER_AGENT = Sedi-Governed-Evidence-Review/1.0 (non-production documentation audit)
+OVERLAY_DECISION_AUTHORIZED = NO
+TARGET_ENVIRONMENT_APPROVED = NO
+ACTUAL_DRY_RUN_EXECUTED = NO
+```
+
+### ۱۶۸.۲) Repository preflight
+
+```text
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+PARENT = f166e4766ff09f96837938c2fce297e037b37fd6
+SUBJECT = docs(governance): record C4B-05 governed discovery evidence
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0 (local refs only; no fetch/pull)
+TRACKED_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md only
+STAGING = EMPTY
+UNTRACKED_BEFORE_PACKAGE = ZERO
+MASTER_LOG_TIP_BEFORE = §167
+§168_BEFORE = ABSENT
+PREFLIGHT = PASS (baseline matched; network then authorized)
+```
+
+### ۱۶۸.۳) Final ECU and URL allowlist
+
+```text
+PRIMARY_ECU_COUNT = 6
+CANDIDATE_COUNT = 9
+DUPLICATE_PRIMARY_MEMBERSHIP = 0
+UNMAPPED_CANDIDATES = 0
+MULTI_PUBLISHER_PRIMARY_ECUS = 0
+CCL-MH-SAFETY-01 = cross-cutting evidence-question layer only (not an ECU)
+
+ECU-WHO-01 -> who_global_health_topics, who_mental_health | www.who.int
+ECU-MEDLINEPLUS-01 -> medlineplus_consumer_health, medlineplus_mental_health | medlineplus.gov
+ECU-NHS-01 -> nhs_uk_live_well, nhs_mental_health | www.nhs.uk
+ECU-CDC-01 -> cdc_health_lifestyle | www.cdc.gov
+ECU-NIMH-01 -> nimh_nih_mental_health | www.nimh.nih.gov
+ECU-APA-01 -> apa_psychology_help | www.apa.org
+
+TOTAL_URLS_FROZEN = 33
+URL_ALLOWLIST_SHA256 = 13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345
+EXPLICITLY_NOT_ALLOWLISTED = nlm.nih.gov; www.nlm.nih.gov; nih.gov; www.nih.gov
+```
+
+### ۱۶۸.۴) Request/rate-limit contract
+
+```text
+METHOD = GET (unauthenticated)
+SAME_HOST_MIN_DELAY_SEC = 2
+PER_ECU_MAX_REQUESTS = 12
+MAX_REDIRECTS = 3
+MAX_RETRY_5XX_OR_TIMEOUT = 1
+NO_RETRY_ON = 401,403,404,409,410,429,CAPTCHA,explicit denial
+TLS_VERIFY = ENABLED
+NO_JS_AUTOMATION = YES
+NO_PROXY_ROTATION = YES
+COMPLIANCE = PASS (sequential per host; independent ECU stops)
+```
+
+### ۱۶۸.۵) H1 results by ECU
+
+```text
+ECU-WHO-01            H1 PASS  -> H2_ALLOWED
+  robots RETRIEVED_VERIFIED; landings RETRIEVED_PARTIAL (rights-unknown)
+ECU-MEDLINEPLUS-01    H1 PASS  -> H2_ALLOWED
+  robots RETRIEVED_VERIFIED; landings RETRIEVED_PARTIAL
+ECU-NHS-01            H1 PASS  -> H2_ALLOWED
+  robots RETRIEVED_VERIFIED; landings RETRIEVED_PARTIAL
+ECU-CDC-01            H1 FAIL  -> H2_BLOCKED_INCONCLUSIVE_FAIL_CLOSED
+  robots + landing HTTP 403; cause UNPROVEN (R1-POST-F01; was wrongly AUTHENTICATION)
+ECU-NIMH-01           H1 PASS  -> H2_ALLOWED
+  robots RETRIEVED_VERIFIED; landing RETRIEVED_PARTIAL
+ECU-APA-01            H1 FAIL  -> H2_BLOCKED_ANTI_BOT
+  robots RETRIEVED_VERIFIED; Incapsula incident text on same-URL capture (POST-AUDIT confirmed)
+BOUNDED_R1_H2_PERMISSION (WHO/MPL/NHS/NIMH) = CORRECTED BY R1-POST-AUDIT-02 (see 168.5b)
+FUTURE_AUTOMATION_PERMISSION (all) = UNKNOWN_FAIL_CLOSED
+```
+
+### ۱۶۸.۵b) R1-POST-AUDIT-02 permission-basis reconciliation (ECU-specific)
+
+```text
+AUDIT = R1-POST-AUDIT-02 (existing evidence only; no network)
+JAVAD_INTERNAL_AUTHORIZATION != PUBLISHER_PERMISSION
+PUBLIC_HTTP_200 != AUTOMATED_COLLECTION_PERMISSION
+ROBOTS_NOT_DISALLOWING != TERMS_OR_ACCESS_PERMISSION
+NO_ANTI_BOT != AUTOMATION_PERMISSION
+NOT_PROHIBITED != EXPLICITLY_SUPPORTED
+
+ECU-WHO-01
+  PERMISSION = UNKNOWN_FAIL_CLOSED (R1-POST2-F01)
+  H2_GOVERNANCE_VALID = NO_OR_UNPROVEN
+  EVIDENCE_USE = COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+  BASIS = About pages only; no terms/copyright/automation policy retained
+  EVIDENCE = ecu/ECU-WHO-01/R-WHO-H2-4_excerpt.txt; R-WHO-H1-R_robots.txt
+
+ECU-MEDLINEPLUS-01
+  PERMISSION = NOT_PROHIBITED_BUT_NOT_EXPLICIT (R1-POST2-F02)
+  H2_GOVERNANCE_VALID = NO_OR_UNPROVEN
+  EVIDENCE_USE = COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+  BASIS = usingcontent addresses reuse/linking, not scripted HTML collection
+  EVIDENCE = ecu/ECU-MEDLINEPLUS-01/R-ECU-MEDLINEPLUS-01-H2-2_excerpt.txt
+
+ECU-NHS-01
+  PERMISSION = NOT_PROHIBITED_BUT_NOT_EXPLICIT (R1-POST2-F03)
+  H2_GOVERNANCE_VALID = NO_OR_UNPROVEN
+  EVIDENCE_USE = COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+  BASIS = terms address personal website access; APIs/syndication is different channel
+  EVIDENCE = ecu/ECU-NHS-01/R-NHS-H2-5-TERMS_excerpt.txt; R-NHS-H2-4_excerpt.txt
+
+ECU-NIMH-01
+  PERMISSION = UNKNOWN_FAIL_CLOSED (R1-POST2-F04)
+  H2_GOVERNANCE_VALID = NO_OR_UNPROVEN
+  EVIDENCE_USE = COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+  BASIS = policies/about excerpts lack automation/reuse permission text
+  EVIDENCE = ecu/ECU-NIMH-01/R-NIMH-H2-4-F1_excerpt.txt
+
+PERMISSION_CLASSIFICATION_COUNTS =
+  EXPLICITLY_SUPPORTED_FOR_R1_H2 = 0
+  NOT_PROHIBITED_BUT_NOT_EXPLICIT = 2 (MPL, NHS)
+  UNKNOWN_FAIL_CLOSED = 2 (WHO, NIMH)
+  CONTRADICTED_FAIL_CLOSED = 0
+
+H2_GOVERNANCE_VALID_ECU_COUNT = 0
+RESTRICTED_USE_H2_REQUEST_COUNT = 26
+POSITIVE_EVIDENCE_ALLOWED_FOR_ELIGIBILITY = 0 (all nine candidates)
+ARTIFACT = decision_matrices/r1_permission_basis_reconciliation.json
+```
+
+### ۱۶۸.۶) H2 execution and independent stop decisions
+
+```text
+ECU-WHO-01         H2 EXECUTED; H2_GOVERNANCE_VALID=NO_OR_UNPROVEN (UNKNOWN_FAIL_CLOSED)
+ECU-MEDLINEPLUS-01 H2 EXECUTED; H2_GOVERNANCE_VALID=NO_OR_UNPROVEN (NOT_PROHIBITED_BUT_NOT_EXPLICIT)
+ECU-NHS-01         H2 EXECUTED; H2_GOVERNANCE_VALID=NO_OR_UNPROVEN (NOT_PROHIBITED_BUT_NOT_EXPLICIT)
+ECU-CDC-01         H2 NOT_REQUESTED_DUE_TO_PARENT_BLOCK (parent INCONCLUSIVE_FAIL_CLOSED)
+ECU-NIMH-01        H2 EXECUTED; H2_GOVERNANCE_VALID=NO_OR_UNPROVEN (UNKNOWN_FAIL_CLOSED)
+ECU-APA-01         H2 STOPPED (anti-bot parent block; path scope /topics/)
+INDEPENDENT_FAIL_CLOSED = YES (CDC/APA stops did not stop other ECUs)
+TECHNICAL_FETCH_SUCCESS != GOVERNANCE_VALID_EVIDENCE
+EVIDENCE_RETAINED != EVIDENCE_ALLOWED_FOR_POSITIVE_GOVERNANCE_USE
+R1_H2_GOVERNANCE_VALID != FUTURE_CRAWLER_AUTOMATION_APPROVED
+```
+
+### ۱۶۸.۷) Complete request-ledger summary
+
+```text
+REQUEST_COUNT = 44
+SUCCESS_COUNT (RETRIEVED_VERIFIED) = 5
+PARTIAL_COUNT (RETRIEVED_PARTIAL) = 32
+BLOCKED_COUNT = 3
+  BLOCKED_AUTHENTICATION = 1 (NHS profile-editor login only)
+  BLOCKED_ANTI_BOT = 2 (APA)
+FAILED_COUNT = 2
+  INCONCLUSIVE_FAIL_CLOSED = 2 (CDC H1 robots + landing HTTP 403; R1-POST-F01)
+SKIPPED_COUNT = 2 (CDC H2 skip; APA H2 stop)
+UNAUTHORIZED_REQUEST_COUNT = 0
+REQUEST_LEDGER_SHA256 = 69708e7b3d2bcd5137e8755912d5c32020cf8ee2dedaad93082c2f092ae4106c
+H2_GOVERNANCE_VALID_REQUEST_COUNT = 0
+RESTRICTED_USE_H2_REQUEST_COUNT = 26
+EVERY_REQUEST_LEDGERED = YES
+POST_AUDIT = R1-POST-AUDIT-01 + R1-POST-AUDIT-02
+```
+
+### ۱۶۸.۸) Rights-aware retention decisions
+
+```text
+RAW_RETAINED_TECHNICAL_POLICY = 5 (robots.txt where retrieved)
+RAW_NOT_RETAINED_RIGHTS_UNKNOWN = 32 (HTML hashed then deleted; minimal excerpts kept)
+METADATA_ONLY = 7
+RAW_RETAINED_AUTHORIZED = 0
+DOWNLOAD ≠ RETENTION_PERMISSION = AFFIRMED
+```
+
+### ۱۶۸.۹) Evidence manifest and directory inventory
+
+```text
+EVIDENCE_ROOT = docs/evidence/section29/pkg_ext_e2_bounded_01_r1/
+EVIDENCE_FILE_COUNT = 69 (was 68 before R1-POST-AUDIT-02; +1 reconciliation matrix)
+MANIFEST_SHA256 = a9721bf6b1fd29568e9049abab5be9023a22cb6d03eeb5cc1b8da2804ff45bc5
+URL_ALLOWLIST_SHA256 = 13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345 (unchanged)
+RECONCILIATION_MATRIX_SHA256 = 8ad795d4139ab09317a6c3bb88a85cd2307fa904398e735ae5d13719ff09ed55
+CONTAINS =
+  README.md
+  manifest.json
+  url_allowlist.json
+  request_ledger.json
+  ecu/ (per-ECU robots + excerpts)
+  candidate_packs/ (exactly 9)
+  decision_matrices/ (incl. r1_permission_basis_reconciliation.json)
+  retention_ledger/
+NO_EXECUTABLES = YES
+R1_FINAL_ACCEPTANCE = NO
+R1_REVIEW_STATE = R1_EVIDENCE_USE_RESTRICTED_UNCOMMITTED
+```
+
+### ۱۶۸.۱۰) ECU-level evidence results
+
+```text
+WHO: About PARTIAL; no terms/automation policy; PERMISSION=UNKNOWN_FAIL_CLOSED
+  H2_GOVERNANCE_VALID=NO_OR_UNPROVEN; EVIDENCE_USE=COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+MEDLINEPLUS: usingcontent PARTIAL (reuse/linking only); PERMISSION=NOT_PROHIBITED_BUT_NOT_EXPLICIT
+  H2_GOVERNANCE_VALID=NO_OR_UNPROVEN; EVIDENCE_USE=COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+NHS: terms PARTIAL (browser access); PERMISSION=NOT_PROHIBITED_BUT_NOT_EXPLICIT
+  H2_GOVERNANCE_VALID=NO_OR_UNPROVEN; EVIDENCE_USE=COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+CDC: INCONCLUSIVE_FAIL_CLOSED (HTTP 403; preserved)
+NIMH: policies excerpt insufficient; PERMISSION=UNKNOWN_FAIL_CLOSED
+  H2_GOVERNANCE_VALID=NO_OR_UNPROVEN; EVIDENCE_USE=COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+APA: BLOCKED_ANTI_BOT (Incapsula; preserved)
+FUTURE_SOURCE_OR_CRAWLER_AUTOMATION_PERMISSION (all) = UNKNOWN_FAIL_CLOSED
+POSITIVE_EVIDENCE_ALLOWED_FOR_ELIGIBILITY (all nine) = NO
+```
+
+### ۱۶۸.۱۱) Nine candidate-pack summaries
+
+```text
+PACK_COUNT = 9
+who_global_health_topics       NEEDS_EXTERNAL_EVIDENCE (WHO license gap)
+medlineplus_consumer_health    NEEDS_EXTERNAL_EVIDENCE (legal rights interpretation)
+nhs_uk_live_well               NEEDS_EXTERNAL_EVIDENCE (reuse/OGL clarification)
+cdc_health_lifestyle           NEEDS_EXTERNAL_EVIDENCE (HTTP 403 INCONCLUSIVE_FAIL_CLOSED)
+who_mental_health              NEEDS_EXTERNAL_EVIDENCE (+ MH safety incomplete)
+nimh_nih_mental_health         NEEDS_EXTERNAL_EVIDENCE (+ MH partial)
+apa_psychology_help            NEEDS_EXTERNAL_EVIDENCE (anti-bot)
+nhs_mental_health              NEEDS_EXTERNAL_EVIDENCE (+ MH incomplete)
+medlineplus_mental_health      NEEDS_EXTERNAL_EVIDENCE (page/rights + MH)
+APPROVED_OVERLAY = 0 (none marked approved)
+```
+
+### ۱۶۸.۱۲) Recalculated eligibility matrix
+
+```text
+OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0
+NEEDS_EXTERNAL_EVIDENCE_COUNT = 9
+GOVERNANCE_DEFER_COUNT = 0
+EXCLUDE_FAIL_CLOSED_COUNT = 0
+SUM = 9
+APPROVED_OVERLAY PROHIBITED AND NOT USED = YES
+ELIGIBILITY ≠ APPROVAL = AFFIRMED
+```
+
+### ۱۶۸.۱۳) Gap closure/disposition matrix
+
+```text
+NO_OVERLAY_GAP_MARKED_FULLY_CLOSED_BY_COLLECTION_ALONE = YES
+GAP-LIC-WHO / NHS / NIMH / MPL = PARTIAL_REMAINS_FAIL_CLOSED
+GAP-LIC-CDC / GAP-LIC-APA = BLOCKED_BY_COLLECTION_CONTROL
+GAP-MH-POL = PARTIAL_REMAINS_FAIL_CLOSED
+GAP-AUTO-ALL = PARTIAL_REMAINS_FAIL_CLOSED (FUTURE automation unknown; R1 one-time separated)
+GAP-ENV-DRYRUN = BLOCKED_BY_TARGET_ENVIRONMENT
+```
+
+### ۱۶۸.۱۴) Overlay-decision package preparation
+
+```text
+OVERLAY_DECISION_PACKAGE_PREPARED = NO
+OVERLAY_DECISION_AUTHORIZED = NO
+REASON = OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0; empty approval package prohibited
+```
+
+### ۱۶۸.۱۵) Target-environment contract preparation
+
+```text
+TARGET_ENVIRONMENT_CONTRACT_PREPARED = YES
+TARGET_ENVIRONMENT_APPROVED = NO
+OPTIONS_DOCUMENTED =
+  ENV-LOCAL-ISOLATED-01 (NEEDS_ENGINEERING_EVIDENCE)
+  ENV-CI-EPHEMERAL-01 (AUTHORITY_NOT_ESTABLISHED)
+NO_INFRASTRUCTURE_INVENTED = YES
+```
+
+### ۱۶۸.۱۶) Entrypoint/no-write/digest update
+
+```text
+NO_WRITE_EXECUTION_PROOF = NOT_ESTABLISHED
+OVERLAY_FINGERPRINT_STATE = REQUIRES_ACTUAL_EXECUTION
+PLAN_DIGEST_STATE = REQUIRES_ACTUAL_EXECUTION
+INPUT_DIGEST_STATE = REQUIRES_ACTUAL_EXECUTION
+RESULT_DIGEST_STATE = REQUIRES_ACTUAL_EXECUTION
+ALLOWLIST_DIGEST_STATE = 13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345
+APPLICATION_CODE_EXECUTED = NO
+```
+
+### ۱۶۸.۱۷) Minimum next package
+
+```text
+SELECTED = PKG-EXT-E2-BOUNDED-02-REMAINING-GAPS
+CLASS = REMAINING_BOUNDED_EVIDENCE_PACKAGE
+WHY_MINIMUM =
+  0 overlay-eligible; WHO copyright + NHS reuse + NIMH rights + MH safety
+  still collectable/decisionable; CDC/APA need defer/exclude or remediation
+  without CAPTCHA/auth bypass
+SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+DRY_RUN_NOT_RECOMMENDED =
+  approved overlays = 0; dry-run allowlist empty; env unapproved;
+  no-write execution proof missing
+```
+
+### ۱۶۸.۱۸) EO-C11 and I5 reconciliation
+
+```text
+NON_HOLD_CANDIDATES = 9
+OVERLAY_APPROVAL_ELIGIBLE_COUNT = 0
+NEEDS_EXTERNAL_EVIDENCE_COUNT = 9
+GOVERNANCE_DEFER_COUNT = 0
+EXCLUDE_FAIL_CLOSED_COUNT = 0
+
+APPROVED_OVERLAYS = 0
+DRY_RUN_ALLOWLIST_READY = NO
+TARGET_ENVIRONMENT_APPROVED = NO
+ACTUAL_DRY_RUN_AUTHORIZED = NO
+ACTUAL_DRY_RUN_EXECUTED = NO
+EO_C11_READY_FOR_CLOSURE = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_TOTAL = 12
+EO_C11 = OPEN
+
+I5_FORMAL_CLOSED_COMPLETION = 21.79487179%
+I5_FORMAL_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+```
+
+### ۱۶۸.۱۹) Network incident/self-healing log
+
+```text
+INC-CDC-403 = H1 robots+landing HTTP 403; H2 skipped; other ECUs continued
+  POST-AUDIT R1-POST-F01: reclassified INCONCLUSIVE_FAIL_CLOSED
+  (HTTP_403 != BLOCKED_AUTHENTICATION; no login/CAPTCHA/WAF body retained)
+INC-APA-INCAPSULA = Incapsula incident ID in R-APA-H2-DISC-1 excerpt;
+  BLOCKED_ANTI_BOT CONFIRMED; H2 stopped; no bypass/retry
+INC-NHS-LOGIN-FOLLOW = profile-editor-login follow = BLOCKED_AUTHENTICATION
+  (Sign-in page evidence retained in excerpt)
+SELF_HEAL_PERMITTED (R1 + R1-POST-AUDIT-01) =
+  H2 discovery fix; anti-bot downgrade; login downgrade;
+  CDC classification correction; permission-dimension separation;
+  hash/ledger/manifest/pack/§168 metadata rewrite; JSON synthesis
+SELF_HEAL_PROHIBITED_NOT_USED =
+  network/retry; new hosts; CAPTCHA bypass; 429 retry; search engines;
+  positive inference from blocks; §§1–167 edits; §169
+```
+
+### ۱۶۸.۲۰) Documentation self-healing log
+
+```text
+DETECT -> ROOT CAUSE -> MINIMAL FIX -> VERIFY
+1) H2 discovery 0 links (PS splat ambiguity) -> explicit params + HTML parse -> links found
+2) APA RETRIEVED_PARTIAL on Incapsula -> BLOCKED_ANTI_BOT downgrade
+3) NHS login page as terms follow -> BLOCKED_AUTHENTICATION downgrade
+4) R1-POST-F01 CDC AUTHENTICATION unsupported -> INCONCLUSIVE_FAIL_CLOSED
+5) R1-POST-F02 automation conflation -> separate BOUNDED_R1 vs FUTURE_AUTOMATION
+6) R1-POST2-F01..F05 permission-basis reconciliation (R1-POST-AUDIT-02):
+   WHO/NIMH=UNKNOWN_FAIL_CLOSED; MPL/NHS=NOT_PROHIBITED_BUT_NOT_EXPLICIT
+   all completed H2 -> COLLECTED_BUT_GOVERNANCE_USE_RESTRICTED
+   H2_GOVERNANCE_VALID=NO_OR_UNPROVEN for all four ECUs
+NO_EDIT_TO_§§1–167 = YES
+NO_§169 = YES
+§168_IN_PLACE_POST_AUDIT_CORRECTIONS = YES (R1-POST-AUDIT-01 + R1-POST-AUDIT-02)
+NO_NETWORK_DURING_POST_AUDIT = YES
+```
+
+### ۱۶۸.۲۱) Final same-run audit
+
+```text
+§§158–168 uniqueness = PASS
+§168_AT_EOF = YES
+§§1–167_UNCHANGED = YES
+EVIDENCE_ONLY_UNDER_AUTHORIZED_ROOT = YES
+STAGING = EMPTY
+SIX_ECUS_TO_NINE_CANDIDATES = PASS
+LEDGER_COMPLETE = YES
+REQUEST_COUNT = 44; URL_COUNT = 33
+TECHNICAL V/P/B/F/S = 5/32/3/2/2
+H2_GOVERNANCE_VALID_REQUEST_COUNT = 0
+RESTRICTED_USE_H2_REQUEST_COUNT = 26
+UNAUTHORIZED_REQUEST_COUNT = 0
+PERMISSION_EXPLICITLY_SUPPORTED_ECU_COUNT = 0
+MANIFEST_COUNTS_RECONCILE = YES
+CANDIDATE_PACKS = 9; POSITIVE_EVIDENCE_ALLOWED = 0
+DISPOSITION_SUM = 9 (all NEEDS_EXTERNAL_EVIDENCE)
+CDC_CLASSIFICATION = INCONCLUSIVE_FAIL_CLOSED (preserved)
+APA_CLASSIFICATION = BLOCKED_ANTI_BOT (preserved)
+NO_SILENCE_LABELED_EXPLICIT_SUPPORT = YES
+NO_CANDIDATE_APPROVED = YES
+NO_OVERLAY_APPROVED = YES
+EO = 7/0/1/0/4; EO-C11 OPEN; I5 = 21.79487179%
+EVIDENCE_FILE_COUNT = 69
+R1_FINAL_ACCEPTANCE = NO
+```
+
+### ۱۶۸.۲۲) Exact next step
+
+```text
+NEXT_STEP =
+JAVAD REVIEW OF R1-POST-AUDIT-02 PERMISSION-BASIS RECONCILIATION
+THEN SEPARATE AUTHORIZATION FOR RESOLUTION PACKAGE ONLY IF APPROVED
+  (LEGAL_RIGHTS_DECISION / GOVERNANCE_DEFER_OR_EXCLUSION / TARGETED TERMS FETCH)
+NO_NETWORK_RETRY_AUTHORIZED = YES
+NO_NEXT_EVIDENCE_PACKAGE_AUTOMATICALLY_AUTHORIZED = YES
+COLLECTED_H2_EVIDENCE_REMAINS_GOVERNANCE_USE_RESTRICTED = YES
+
+NEXT_STEP_AUTHORIZED_BY_THIS_PACKAGE = NO
+OVERLAY_APPROVAL_AUTHORIZED = NO
+DRY_RUN_AUTHORIZED = NO
+```
+
+### ۱۶۸.۲۳) Append-only integrity record
+
+```text
+§§1–167_PRESERVED = YES
+§168_ONLY_SECTION_EDITED_AFTER_APPEND = YES (R1-POST-AUDIT-01 + R1-POST-AUDIT-02)
+§168_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+EVIDENCE_DIRECTORY = YES (69 files; no network evidence added)
+NETWORK_REQUESTS = 44 (unchanged)
+POST_AUDIT = R1-POST-AUDIT-02
+GIT_ADD = NO
+GIT_COMMIT = NO
+GIT_PUSH = NO
+
+STATE =
+PKG_EXT_E2_BOUNDED_01_R1_EVIDENCE_USE_RESTRICTED_UNCOMMITTED
+
+FINAL_VERDICT_FOR_THIS_PACKAGE =
+BLOCKED_NETWORK_GOVERNANCE — R1_EVIDENCE_USE_RESTRICTED_UNCOMMITTED
+```
+
+---
+*پایان §۱۶۸ — SECTION-29 PKG-EXT-E2-BOUNDED-01-R1 (+ R1-POST-AUDIT-01/02) — BLOCKED_NETWORK_GOVERNANCE — R1_EVIDENCE_USE_RESTRICTED_UNCOMMITTED — ۲۰۲۶-۰۷-۲۹*
+## ۱۶۹) SECTION 29 / R1-LAWFUL-USE-RECLASSIFICATION-01 LAWFUL-USE BASIS, ACCESS / CONTENT-USE SEPARATION, NINE-CANDIDATE KNOWLEDGE RECLASSIFICATION AND NEXT-PACKAGE DESIGN
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / R1-LAWFUL-USE-RECLASSIFICATION-01
+(+ R1-LAWFUL-USE-RECLASSIFICATION-01-AUDIT-01 source-authority trace)
+
+SECTION = 29
+ROADMAP_STAGE = 4
+GATE = R1-LAWFUL-USE-RECLASSIFICATION-01
+AUDIT_GATE = R1-LAWFUL-USE-RECLASSIFICATION-01-AUDIT-01
+PARENT = R1-POST-AUDIT-02 (§168)
+RECORD_TYPE = LAWFUL_USE_BASIS_RECONSTRUCTION + SOURCE_AUTHORITY_TRACE_AUDIT
+OWNER = Javad
+MODE = REPOSITORY_LOCAL / DOCUMENTATION_ONLY / EXISTING_EVIDENCE_ONLY /
+  NO_NETWORK / APPEND_ONLY_THEN_§169_IN_PLACE_CORRECTION / UNCOMMITTED
+```
+
+### ۱۶۹.۱) Gate identity and Javad policy decision
+
+```text
+JAVAD_POLICY_DECISION =
+  Direct publisher approval is NOT a universal prerequisite for using reliable health knowledge.
+  Sedi may extract facts, recommendations, guidelines; produce independent summaries;
+  cite sources; preserve provenance.
+  Full-text copying, images, logos, third-party content, licensed encyclopedias,
+  drug monographs = SEPARATE CONTROLS.
+  Access restrictions (auth, CAPTCHA, anti-bot, rate-limit) = STILL RESPECTED.
+  Commercial launch = broader legal review required separately.
+
+FOUNDER_POLICY_SCOPE =
+  May define Sedi handling model (fact extraction / independent synthesis).
+  May NOT invent publisher licence or public-domain status.
+
+SUPERSEDES =
+  R1-POST-AUDIT-02 universal publisher-permission model
+  Former rule: NO_EXPLICIT_PUBLISHER_PERMISSION -> ALL_EVIDENCE_GOVERNANCE_RESTRICTED
+
+NEW_CANONICAL_MODEL =
+  ACCESS_AND_ACQUISITION_BASIS +
+  CONTENT_USE_BASIS +
+  PROVENANCE +
+  ATTRIBUTION +
+  CONTENT_TYPE_CONTROLS
+```
+
+### ۱۶۹.۲) Repository preflight
+
+```text
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = af1d583df55a8df8284105917e86caf6342eb089
+PARENT = f166e4766ff09f96837938c2fce297e037b37fd6
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+TRACKED_DIRTY = master log only
+STAGING = EMPTY
+UNTRACKED = docs/evidence/section29/pkg_ext_e2_bounded_01_r1/
+§168 = 43367–43848 (482 lines; unchanged)
+§169_BEFORE_AUDIT = present (43849–44311; 463 lines)
+§170 = ABSENT
+PREFLIGHT = PASS
+```
+
+### ۱۶۹.۳) Previous permission-model supersession
+
+```text
+FORMER_MODEL =
+  BOUNDED_EVIDENCE_COLLECTION_PERMISSION required EXPLICITLY_SUPPORTED_FOR_R1_H2
+  PUBLIC_HTTP_200 + ROBOTS + NO_ANTI_BOT ≠ publisher permission
+
+SUPERSEDED_BY =
+  Two-axis lawful-use model (Axis 1: access; Axis 2: content use)
+  Fact extraction and independent synthesis = preferred default
+  Full-text retention = deny by default unless A1/A2 authority permits
+  Catalog notes = A3 operational authority only (not settled licence facts)
+
+FORMER_VERDICT =
+  BLOCKED_NETWORK_GOVERNANCE — R1_EVIDENCE_USE_RESTRICTED_UNCOMMITTED
+
+AUDIT_CORRECTED_VERDICT =
+  PASS_WITH_SOURCE_SPECIFIC_AUTHORITY_GAPS —
+  FINAL_AUDIT_PASS_UNCOMMITTED
+```
+
+### ۱۶۹.۴) Permanent access/content-use separation
+
+```text
+AXIS_1_ACCESS ≠ AXIS_2_CONTENT_USE
+PUBLIC_ACCESS ≠ OPEN_LICENCE
+ROBOTS_STATE ≠ COPYRIGHT_PERMISSION
+PUBLIC_DOMAIN ≠ CRAWLER_ACCESS
+OPEN_LICENCE ≠ SOURCE_ACTIVATION
+FACT_EXTRACTION_ONLY ≠ FULL_TEXT_RETENTION
+KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS ≠ OVERLAY_APPROVAL_ELIGIBLE
+OVERLAY_APPROVAL_ELIGIBLE ≠ APPROVED_OVERLAY
+CRAWLER_ELIGIBLE ≠ CRAWLER_ACTIVATED
+
+PERMANENT_RULES =
+  DIRECT_PUBLISHER_APPROVAL != UNIVERSAL_PREREQUISITE
+  ATTRIBUTION != UNIVERSAL_REPRODUCTION_PERMISSION
+  PUBLIC_ACCESS != FULL_TEXT_REUSE_PERMISSION
+  FACTS_AND_IDEAS != PROTECTED_EXPRESSION
+  TECHNICAL_FETCH_SUCCESS != FULL_TEXT_INGESTION_PERMISSION
+  SOURCE_NAME_AND_PROVENANCE = MANDATORY
+  RAW_FULL_TEXT_RETENTION = DENY_BY_DEFAULT
+  INDEPENDENT_SEDI_SYNTHESIS = PREFERRED_DEFAULT
+  THIRD_PARTY_CONTENT = SEPARATE_REVIEW_OR_EXCLUSION
+```
+
+### ۱۶۹.۵) Lawful-use classification vocabulary
+
+```text
+AA-01..AA-06 and CU-01..CU-09 remain canonical.
+Only A1/A2 may settle public-domain, open-licence, full-text, exact attribution,
+exact freshness, exact third-party exclusion, or exact commercial-use conditions.
+A3 = repository operational catalog / identity / access history.
+A4/A5 = inference / unsupported — must not be presented as settled source authority.
+```
+
+### ۱۶۹.۶) Knowledge-handling modes
+
+```text
+KM-01 STRUCTURED_FACTS
+KM-02 INDEPENDENT_SEDI_SYNTHESIS
+KM-03 SHORT_ATTRIBUTED_EXCERPT
+KM-04 LINK_AND_CITATION_ONLY
+KM-05 FULL_TEXT_RETENTION (only with A1/A2 basis — currently NOT authorized for any candidate)
+KM-06 OFFICIAL_API_OR_FEED_INGESTION (preferred route where discovered)
+KM-07 MANUAL_REVIEW_ONLY
+KM-08 EXCLUDE_PROTECTED_ELEMENTS
+```
+
+### ۱۶۹.۷) Provenance and attribution contract
+
+```text
+MANDATORY_FIELDS remain as established in R1-LAWFUL-USE-RECLASSIFICATION-01.
+SOURCE_NAMING = REQUIRED for all candidates.
+EXACT_LICENCE_ATTRIBUTION_TEXT = AUTHORITY_NOT_ESTABLISHED where A1/A2 absent.
+SOURCE_PROVENANCE_MUST_REMAIN_AVAILABLE = YES
+```
+
+### ۱۶۹.۸) Nine-candidate authority reconstruction
+
+```text
+ARTIFACTS =
+  decision_matrices/r1_lawful_use_reclassification.json
+  decision_matrices/r1_lawful_use_authority_trace_audit.json
+CLAIM_COUNT = 21
+DIRECTLY_SUPPORTED = 7
+PARTIALLY_SUPPORTED = 5
+NOT_SUPPORTED = 9
+CONTRADICTED = 0
+CATALOG_AUTHORITY = backend/config/gate3h/trusted_source_catalog_v1.yaml (A3 only)
+R1_EVIDENCE_ROOT = docs/evidence/section29/pkg_ext_e2_bounded_01_r1/
+```
+
+### ۱۶۹.۹) WHO classification
+
+```text
+CANDIDATES = who_global_health_topics, who_mental_health
+ACCESS = AA-01 PUBLIC_UNAUTHENTICATED_LOW_RATE (A1 access history)
+CONTENT_USE = CU-04 + CU-05 + CU-06 + CU-08
+MODES = KM-01, KM-02, KM-03, KM-04, KM-08
+CC_BY_NC_SA_3.0_IGO = AUTHORITY_NOT_ESTABLISHED (catalog A3 only; no retained WHO copyright page)
+FULL_TEXT = RAW_FULL_TEXT_RETENTION_NOT_AUTHORIZED
+FACT_EXTRACTION = YES (founder policy)
+INDEPENDENT_SYNTHESIS = YES (founder policy)
+ATTRIBUTION = SOURCE_NAMING_REQUIRED; exact licence attribution AUTHORITY_NOT_ESTABLISHED
+THIRD_PARTY = EXCLUDED_PRECAUTIONARY
+DISPOSITION = KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS
+CRAWLER = TARGETED_ACCESS_POLICY_EVIDENCE_REQUIRED
+AUTHORITY_GAP = TARGETED_SOURCE_AUTHORITY_EVIDENCE_REQUIRED
+TRACE = CLAIM-WHO-01..04 / AUDIT-F01
+```
+
+### ۱۶۹.۱۰) MedlinePlus classification
+
+```text
+CANDIDATES = medlineplus_consumer_health, medlineplus_mental_health
+MIXED_RIGHTS_SOURCE = YES (A1)
+ACCESS = AA-01
+CONTENT_USE = CU-04 + CU-05 + CU-07 + CU-08
+  (CU-01 PUBLIC_DOMAIN NOT asserted as settled for candidate pages)
+MODES = KM-01, KM-02, KM-03, KM-06, KM-08
+A1_EXCERPT (R-ECU-MEDLINEPLUS-01-H2-2) =
+  "Some of the content on MedlinePlus is in the public domain (not copyrighted),
+   and other content is copyrighted and licensed specifically for use on MedlinePlus."
+A2_EXCERPT =
+  "Works produced by the federal government are not copyrighted under U.S. law."
+CANDIDATE_CONTENT_CLASS = NOT_ESTABLISHED
+FULL_TEXT = AUTHORITY_NOT_ESTABLISHED_FOR_CANDIDATE_CONTENT_CLASS
+API = PREFERRED (webservices link discovered); terms not retained
+A.D.A.M./DRUG = EXCLUDED_PRECAUTIONARY (catalog A3 + mixed-rights A1)
+DISPOSITION = KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS
+CRAWLER = OFFICIAL_API_OR_FEED_REQUIRED
+TRACE = CLAIM-MPL-01..05 / AUDIT-F02
+```
+
+### ۱۶۹.۱۱) NHS classification
+
+```text
+CANDIDATES = nhs_uk_live_well, nhs_mental_health
+ACCESS = AA-01
+CONTENT_USE = CU-04 + CU-05 + CU-06 + CU-08
+  (CU-02 OPEN_LICENCE / OGL v3.0 = AUTHORITY_NOT_ESTABLISHED in retained R1 excerpt)
+MODES = KM-01, KM-02, KM-03, KM-04, KM-06, KM-08
+OGL_V3 = AUTHORITY_NOT_ESTABLISHED (catalog A3 only; R-NHS-H2-5-TERMS excerpt lacks OGL text)
+7_DAY_REFRESH = EXACT_INTERVAL_AUTHORITY_NOT_ESTABLISHED
+FRESHNESS = FRESHNESS_CONTROL_REQUIRED (general)
+FULL_TEXT = RAW_FULL_TEXT_RETENTION_NOT_AUTHORIZED
+API/SYNDICATION = PREFERRED_NOT_MANDATORY
+  A1 (R-NHS-H2-4): "With our range of APIs and widgets, we have made it simple
+  to connect and syndicate our content."
+EXCLUSION_LINK_DISCOVERED = content-not-licensed-for-re-use/ (page not retrieved)
+CROWN_COPYRIGHT_FOOTER = present on retained pages (A1 footer signal; not OGL text)
+DISPOSITION = KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS
+CRAWLER = CRAWLER_DEFERRED
+TRACE = CLAIM-NHS-01..05 / AUDIT-F03
+```
+
+### ۱۶۹.۱۲) CDC classification
+
+```text
+CANDIDATE = cdc_health_lifestyle
+ACCESS = AA-04 ACCESS_UNKNOWN_FAIL_CLOSED (HTTP 403) — PRESERVED; NO RETRY
+CONTENT_USE = CU-04 + CU-06 + CU-08
+PUBLIC_DOMAIN = AUTHORITY_NOT_ESTABLISHED (catalog A3 only; no retained CDC PD notice)
+FULL_TEXT = PUBLIC_DOMAIN_FULL_TEXT_AUTHORITY_NOT_ESTABLISHED
+FACT_EXTRACTION = YES_FROM_LAWFUL_CHANNEL / MANUAL
+LINK_ONLY = AVAILABLE
+DISPOSITION = FACT_EXTRACTION_ONLY
+CRAWLER = TARGETED_ACCESS_POLICY_EVIDENCE_REQUIRED
+ACCESS_BLOCK ≠ COPYRIGHT_STATE
+TRACE = CLAIM-CDC-01..02 / AUDIT-F05
+```
+
+### ۱۶۹.۱۳) NIMH classification
+
+```text
+CANDIDATE = nimh_nih_mental_health
+ACCESS = AA-01
+CONTENT_USE = CU-04 + CU-05 + CU-06 + CU-08
+  (CU-01 PUBLIC_DOMAIN = AUTHORITY_NOT_ESTABLISHED)
+MODES = KM-01, KM-02, KM-03, KM-04, KM-08
+PUBLIC_DOMAIN = AUTHORITY_NOT_ESTABLISHED
+  (catalog A3; R-NIMH-H2-4-F1 policies page retrieved but retained excerpt
+   contains no public-domain statement)
+FULL_TEXT = RAW_FULL_TEXT_RETENTION_NOT_AUTHORIZED
+IMAGES = EXCLUDED_AUTHORITY_NOT_ESTABLISHED_FOR_IMAGE_RIGHTS
+GENERIC_NIH ≠ NIMH_SPECIFIC_LICENCE_AUTHORITY
+DISPOSITION = KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS
+CRAWLER = CRAWLER_DEFERRED
+TRACE = CLAIM-NIMH-01..03 / AUDIT-F04
+```
+
+### ۱۶۹.۱۴) APA classification
+
+```text
+CANDIDATE = apa_psychology_help
+ACCESS = AA-05 ACCESS_BLOCKED (Incapsula anti-bot) — PRESERVED; NO RETRY / NO BYPASS
+CONTENT_USE = CU-04 + CU-06 + CU-08
+MODES = KM-02, KM-04, KM-07, KM-08
+FULL_TEXT = RAW_FULL_TEXT_RETENTION_NOT_AUTHORIZED
+FACT_EXTRACTION = MANUAL_REVIEW_ONLY
+DISPOSITION = FACT_EXTRACTION_ONLY
+CRAWLER = CRAWLER_EXCLUDED
+ANTI_BOT ≠ COPYRIGHT_DECISION
+TRACE = CLAIM-APA-01..02 / AUDIT-F05
+```
+
+### ۱۶۹.۱۵) Historical R1 evidence reclassification
+
+```text
+TOTAL_R1_REQUESTS = 44
+URL_COUNT = 33
+UNAUTHORIZED_REQUESTS = 0
+UNRESOLVED_REQUESTS = 0
+RAW_RESPONSE_BYTES = IMMUTABLE
+REQUEST_HISTORY = IMMUTABLE
+GOVERNANCE_USE_FIELDS = UPDATED PER AUTHORITY-TRACE AUDIT
+NO_UNIFORM_UPGRADE_TO_PUBLIC_DOMAIN_OR_OPEN_LICENCE = YES
+DEFAULT_USABLE_STATE_FOR_SUCCESSFUL_H2 =
+  GOVERNANCE_USABLE_FOR_FACT_EXTRACTION
+CDC_APA = ACCESS_HISTORY_ONLY
+```
+
+### ۱۶۹.۱۶) Future weekly crawler states
+
+```text
+OFFICIAL_API_OR_FEED_REQUIRED = 2 (medlineplus_consumer_health, medlineplus_mental_health)
+TARGETED_ACCESS_POLICY_EVIDENCE_REQUIRED = 3 (who_global, who_mental, cdc)
+CRAWLER_DEFERRED = 3 (nhs_uk_live_well, nhs_mental_health, nimh_nih_mental_health)
+CRAWLER_EXCLUDED = 1 (apa)
+CRAWLER_ELIGIBLE_LOW_RATE = 0 (downgraded pending A1/A2 licence/content-class authority)
+CRAWLER_ACTIVATION = NOT_AUTHORIZED
+```
+
+### ۱۶۹.۱۷) Nine-row final governance matrix
+
+```text
+| # | CANDIDATE | ACCESS | FULL_TEXT | DISPOSITION | CRAWLER |
+|---|---|---|---|---|---|
+| 1 | who_global_health_topics | AA-01 | NOT_AUTHORIZED | ELIGIBLE_WITH_CONTROLS | TARGETED |
+| 2 | who_mental_health | AA-01 | NOT_AUTHORIZED | ELIGIBLE_WITH_CONTROLS | TARGETED |
+| 3 | medlineplus_consumer_health | AA-01 | CLASS_NOT_EST. | ELIGIBLE_WITH_CONTROLS | API_REQUIRED |
+| 4 | medlineplus_mental_health | AA-01 | CLASS_NOT_EST. | ELIGIBLE_WITH_CONTROLS | API_REQUIRED |
+| 5 | nhs_uk_live_well | AA-01 | NOT_AUTHORIZED | ELIGIBLE_WITH_CONTROLS | DEFERRED |
+| 6 | nhs_mental_health | AA-01 | NOT_AUTHORIZED | ELIGIBLE_WITH_CONTROLS | DEFERRED |
+| 7 | cdc_health_lifestyle | AA-04 | NOT_ESTABLISHED | FACT_EXTRACTION_ONLY | TARGETED |
+| 8 | nimh_nih_mental_health | AA-01 | NOT_AUTHORIZED | ELIGIBLE_WITH_CONTROLS | DEFERRED |
+| 9 | apa_psychology_help | AA-05 | NOT_AUTHORIZED | FACT_EXTRACTION_ONLY | EXCLUDED |
+```
+
+### ۱۶۹.۱۸) Candidate disposition arithmetic
+
+```text
+KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS = 7
+FACT_EXTRACTION_ONLY = 2 (CDC, APA)
+OVERLAY_APPROVAL_ELIGIBLE = 0
+APPROVED_OVERLAYS = 0
+TOTAL = 9
+KNOWLEDGE_USE_ELIGIBLE_WITH_CONTROLS ≠ OVERLAY_APPROVED
+```
+
+### ۱۶۹.۱۹) Evidence Overlay and I5 effects
+
+```text
+EO_SATISFIED = 7
+EO_PARTIAL = 0
+EO_OPEN = 1
+EO_BLOCKED = 0
+EO_DEFERRED_WITH_OWNER = 4
+EO_C11 = OPEN
+I5_FORMAL_CLOSED_COMPLETION = 21.79487179%
+I5_FORMAL_REMAINING = 78.20512821%
+APPROVED_OVERLAYS = 0
+DRY_RUN_ALLOWLIST = EMPTY
+TARGET_ENVIRONMENT_APPROVED = NO
+ACTUAL_DRY_RUN_AUTHORIZED = NO
+ACTUAL_DRY_RUN_EXECUTED = NO
+EVIDENCE_OVERLAY_CLOSURE_ELIGIBLE = NO
+STAGE5_READY = NO
+P2_STARTED = NO
+I5_PRODUCTION_READY = NO
+POLICY_OR_AUDIT_DOES_NOT_DIRECTLY_ADVANCE_I5_FORMAL = YES
+```
+
+### ۱۶۹.۲۰) Minimum next-package design
+
+```text
+RECOMMENDED_ORDER =
+1) PKG-OFFICIAL-API-FEED-RECON-01
+   CANDIDATES = medlineplus_consumer_health, medlineplus_mental_health
+   (+ NHS syndication route as secondary when licence text retained)
+   WHY = highest closure impact; API preferred where discovered; no anti-bot bypass
+2) PKG-TARGETED-LICENCE-AUTHORITY-FETCH-01
+   CANDIDATES = who_*, nhs_*, nimh, cdc
+   WHY = settle A1 licence/PD/freshness text; do not invent terms
+3) PKG-KNOWLEDGE-OVERLAY-PREP-01
+   CANDIDATES = sources with controlled CU-04 already usable
+   DEPENDENCY = after authority gaps acceptable or closed for selected candidates
+4) PKG-WEEKLY-CRAWLER-SOURCE-CONTRACT-PREP-01
+   WHY = preparation only; not activation
+5) PKG-APA-GOVERNANCE-DEFER-01
+   CANDIDATES = apa_psychology_help
+
+ALL_PACKAGES =
+  SEPARATE_JAVAD_APPROVAL_REQUIRED = YES
+  NETWORK_REQUIRED = only where package explicitly authorizes
+  NO_AUTOMATIC_AUTHORIZATION = YES
+```
+
+### ۱۶۹.۲۱) Evidence-artifact and hash reconciliation
+
+```text
+EVIDENCE_FILE_COUNT_BEFORE_AUDIT = 70
+EVIDENCE_FILE_COUNT_AFTER_AUDIT = 71
+NEW_FILE = decision_matrices/r1_lawful_use_authority_trace_audit.json
+FILES_DELETED = 0
+RAW_RESPONSES_CHANGED = NO
+
+COMPLETE_SHA256_64 =
+url_allowlist.json =
+  13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345
+request_ledger.json =
+  8254c8cda1a8f02fb2347581a4d52e3d8546e6f29b6547fd39be24f608a71d03
+manifest.json =
+  9f04272a64c2b50daa446b7bcbe1afcc66043aa34cef5910c921073a3e1d6f75
+r1_lawful_use_reclassification.json =
+  d024e7ec7242f020bb1df0ca70846f5e1bf3b29f7cb738dd546d5ef06da6ec4f
+r1_lawful_use_authority_trace_audit.json =
+  1ee30ed29ffb6e7ebad9343b98b8a0e7d50f1984557662db16dfeb56c92d461e
+eligibility_matrix.json =
+  205282b40414286e51e2518ddedbee0136ac3f30a831928dc44e3744361a71ea
+gap_closure_matrix.json =
+  ed99a9c0e020f20257c96587676574dc9f7d8d77cf7b008481df1fba7d79541e
+evidence_file_inventory.json =
+  4f72e54709d0655a1842927e855fe208cd6e624141d5063dbd9008de42f69648
+retention_ledger.json =
+  f4b3c027f19be53b124556b375f6729b75afadfc84b92ab505ae098008144bee
+r1_permission_basis_reconciliation.json =
+  df655bb51db055eadb012b5df81086f0fff7f2cfe82ba5c63451afeb3581a8d3
+who_global_health_topics.json =
+  76d184f58f0e2e0dc4cff244cb7ef2b0c834a1d9e8fba47cf512b50025324ce6
+who_mental_health.json =
+  ba630088c655e28477a4c52c0ec6e575558fe57446b6ef7420c0dcc072fd9778
+medlineplus_consumer_health.json =
+  f9fb2bb2b690fb9a7ded8aac8ed914aee7bc17d5fa3d37d7019582f116552177
+medlineplus_mental_health.json =
+  d83cbfbb6eabb328f69e88b1883757218068c80c6fc066dde34987c184cc21e3
+nhs_uk_live_well.json =
+  1595f110fccd30e9e99de4ecffb48502b57dfc189edf21883458fa9a0268ef80
+nhs_mental_health.json =
+  e1432c7117adb33d8c2808123b2ffc6f0b32b961569b4b1e92abae02eed56bfe
+cdc_health_lifestyle.json =
+  6cebe8c6d0081db42830f516f4ff71b9030955a4e9b3aa53eb59153676a21124
+nimh_nih_mental_health.json =
+  7e0be6c5fc614dbe8209e40c8bcdfecd818d257cba222528b275b310f4c91557
+apa_psychology_help.json =
+  bb90ed6a63cba3bc73a19673cd3ba4e94fdc40e08b2978085bc47a92ac9dd033
+
+NO_ABBREVIATED_AUTHORITATIVE_SHA = YES
+```
+
+### ۱۶۹.۲۲) Self-healing log
+
+```text
+DETECT -> ROOT CAUSE -> FIX
+AUDIT-F01 WHO CC BY-NC-SA presented as settled from catalog A3
+  -> downgrade to AUTHORITY_NOT_ESTABLISHED; FULL_TEXT NOT_AUTHORIZED; keep CU-04
+AUDIT-F02 MedlinePlus candidate pages treated as public-domain full-text
+  -> preserve mixed-rights A1; FULL_TEXT content-class AUTHORITY_NOT_ESTABLISHED
+AUDIT-F03 NHS OGL v3.0 and 7-day interval from catalog only
+  -> OGL AUTHORITY_NOT_ESTABLISHED; EXACT_INTERVAL_AUTHORITY_NOT_ESTABLISHED;
+     FULL_TEXT NOT_AUTHORIZED; crawler DEFERRED
+AUDIT-F04 NIMH public-domain from catalog; policies excerpt lacks PD text
+  -> PD AUTHORITY_NOT_ESTABLISHED; FULL_TEXT NOT_AUTHORIZED; crawler DEFERRED
+AUDIT-F05 CDC/APA access preservation verified; PD not invented for CDC
+AUDIT-F06 abbreviated SHA values in prior §169 report
+  -> complete 64-char SHA-256 table
+AUDIT-F07 §168/§169 boundary
+  -> §168 ends 43848; §169 rewritten in place; no §170
+AUDIT-F08 disposition/crawler semantics
+  -> crawler eligibility ≠ activation; overlay eligibility ≠ approval;
+     CRAWLER_ELIGIBLE_LOW_RATE reduced to 0 pending A1/A2
+NO_EDIT_TO_§§1–168 = YES
+NO_§170 = YES
+NO_NETWORK = YES
+NO_RESTORATION_OF_PUBLISHER_PERMISSION_UNIVERSAL_GATE = YES
+```
+
+### ۱۶۹.۲۳) Final same-run audit
+
+```text
+§§158–169 uniqueness = PASS
+§169_AT_EOF = YES
+§§1–168_UNCHANGED = YES
+NO_§170 = YES
+MARKDOWN_BOUNDARY_VALID = YES
+RAW_RESPONSES_UNCHANGED = YES
+URL_COUNT = 33
+REQUEST_COUNT = 44
+CANDIDATES = 9 (each once)
+EVERY_MATERIAL_CLAIM_HAS_TRACE_OR_DOWNGRADE = YES
+NO_INVENTED_LICENCE = YES
+NO_UNSUPPORTED_PUBLIC_DOMAIN_AS_SETTLED = YES
+MEDLINEPLUS_MIXED_RIGHTS = YES
+ACCESS_AND_CONTENT_USE_SEPARATED = YES
+ATTRIBUTION_NOT_UNIVERSAL_PERMISSION = YES
+FULL_TEXT_DENY_BY_DEFAULT = YES
+THIRD_PARTY_EXCLUSIONS_EXPLICIT = YES
+CRAWLER_STATE_NOT_ACTIVATION = YES
+NO_OVERLAY_APPROVED = YES
+NO_DRY_RUN = YES
+EO_C11 = OPEN
+I5 = 21.79487179%
+JSON_VALID = YES
+DISPOSITION_TOTAL = 9
+HASHES_COMPLETE_AND_REPRODUCIBLE = YES
+STAGING = EMPTY
+```
+
+### ۱۶۹.۲۴) Exact next step
+
+```text
+NEXT_STEP =
+JAVAD FINAL ACCEPTANCE REVIEW OF
+  R1-LAWFUL-USE-RECLASSIFICATION-01
+  AFTER AUTHORITY-TRACE AUDIT-01 CORRECTIONS
+
+THEN SEPARATE AUTHORIZATION FOR ONE OR MORE NEXT PACKAGES
+(see §169.20 recommended order).
+
+NO_PACKAGE_AUTOMATICALLY_AUTHORIZED = YES
+NO_SOURCE_ACTIVATED = YES
+NO_CRAWLER_ACTIVATED = YES
+```
+
+### ۱۶۹.۲۵) Append-only integrity record
+
+```text
+§§1–168_PRESERVED = YES
+§169_CORRECTED_IN_PLACE_ONLY = YES
+§169_AT_EOF = YES
+HISTORICAL_SECTIONS_REWRITTEN = NO
+EVIDENCE_DIRECTORY = 71 files
+NETWORK_REQUESTS = 0
+GIT_ADD = NO
+GIT_COMMIT = NO
+GIT_PUSH = NO
+
+STATE =
+PASS_WITH_SOURCE_SPECIFIC_AUTHORITY_GAPS —
+FINAL_AUDIT_PASS_UNCOMMITTED
+
+FINAL_VERDICT =
+PASS_WITH_SOURCE_SPECIFIC_AUTHORITY_GAPS —
+FINAL_AUDIT_PASS_UNCOMMITTED
+```
+
+---
+*پایان §۱۶۹ — SECTION-29 R1-LAWFUL-USE-RECLASSIFICATION-01 (+ AUDIT-01) — PASS_WITH_SOURCE_SPECIFIC_AUTHORITY_GAPS — FINAL_AUDIT_PASS_UNCOMMITTED — ۲۰۲۶-۰۷-۳۱*
+## ۱۷۰) SECTION 29 / WEEKLY INTERNATIONAL KNOWLEDGE CRAWLER FINAL LAW, KNOWLEDGE DATABASE, SEDI-LANGUAGE SYNTHESIS AND SOURCE-REFERENCE CONTRACT
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 /
+SECTION29-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW-FIX3
+
+LAW_ID = I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW
+SECTION = 29
+ROADMAP_STAGE = 4
+PARENT = §169 R1-LAWFUL-USE-RECLASSIFICATION-01 (+ AUDIT-01)
+RECORD_TYPE = PERMANENT_I5_WEEKLY_INTERNATIONAL_CRAWLER_LAW
+OWNER = Javad
+MODE = REPOSITORY_LOCAL / DOCUMENTATION_ONLY / NO_NETWORK /
+  APPEND_ONLY / UNCOMMITTED
+```
+
+### ۱۷۰.۱) Gate identity and Javad authorization
+
+```text
+JAVAD_AUTHORIZATION =
+  Approved permanent law I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW.
+  Authorized FIX3 documentation-only recording as §170.
+  All scientific/medical/disease/care/treatment/prevention/self-care/
+  psychology/mental-health/lifestyle/nutrition/diet/exercise/sleep/
+  daily-routine/longevity knowledge MUST come from trusted international
+  sources and current world evidence.
+  Iranian sources = doctors/labs/hospitals/treatment-centers directory only.
+  Any other Iranian-source use = SEPARATE JAVAD DECISION REQUIRED.
+```
+
+### ۱۷۰.۲) Permanent I5 law
+
+```text
+LAW =
+  I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW
+
+MANDATORY =
+  Weekly International Governed Crawler
+  Source Registry
+  Structured Knowledge Database
+  Provenance Store
+  Knowledge Gap Priority Queue
+  Knowledge-Database-First Runtime
+  Sedi-language synthesis
+  User-requested / required source references
+  Quality / evidence-strength / medical-safety / conflict gates
+  Versioning and supersession
+  Monitoring and weekly run ledger
+
+MUST_NOT_BE_WEAKENED_INTO =
+  manual-only programme
+  optional crawler
+  publisher-approval-dependent pipeline
+  URL catalogue only
+  warehouse of copied web pages
+  one-time collection
+  refresh of frozen list only
+  Iran clinical-authority crawler
+```
+
+### ۱۷۰.۳) Weekly execution cycle
+
+```text
+DISCOVER
+→ RETRIEVE_OR_DOWNLOAD
+→ VERIFY_SOURCE
+→ VERIFY_ACCESS_ROUTE
+→ HASH
+→ VERSION_DIFF
+→ PARSE
+→ EXTRACT_KNOWLEDGE
+→ NORMALIZE
+→ TAXONOMY_MAP
+→ QUALITY_REVIEW
+→ EVIDENCE_STRENGTH
+→ CONFLICT_DETECTION
+→ MEDICAL_SAFETY_REVIEW
+→ APPROVE_OR_REJECT
+→ STORE_KNOWLEDGE
+→ STORE_PROVENANCE
+→ VERSION_AND_SUPERSEDE
+→ RUNTIME_AVAILABILITY
+→ MONITOR_AND_REPORT
+→ KNOWLEDGE_GAP_ENQUEUE
+
+Discover new trusted international sources AND new documents/versions.
+Preserve immutable historical versions.
+Fail-closed on incomplete identity/provenance.
+```
+
+### ۱۷۰.۴) Universal trusted-source coverage
+
+```text
+ALL IMPORTANT RELIABLE INTERNATIONAL SOURCES
+MUST ENTER THE SOURCE REGISTRY
+
+Including sources whose:
+  full text may be retained;
+  only facts may be extracted;
+  official API/feed must be used;
+  automated acquisition is deferred;
+  manual/link/citation mode is required.
+
+Exclusion from full-text storage ≠ exclusion from knowledge ecosystem.
+```
+
+### ۱۷۰.۵) International knowledge vs Iran directory layers
+
+```text
+LAYER_A_INTERNATIONAL_KNOWLEDGE =
+  WHO, CDC, NIH/NIMH, NHS, MedlinePlus, peer-reviewed journals,
+  systematic reviews, professional societies, specialty authorities.
+  PURPOSE = all clinical/medical/psychology/lifestyle knowledge.
+
+LAYER_B_IRAN_DIRECTORY =
+  doctors, laboratories, hospitals, treatment centers inside Iran.
+  PURPOSE = identify and update local care providers only.
+  NOT clinical / medical / psychology / lifestyle authority.
+  OTHER_USE = REQUIRES_SEPARATE_JAVAD_DECISION.
+
+IRAN_FIRST_CLINICAL_KNOWLEDGE =
+  SUPERSEDED / FORBIDDEN under this final law.
+```
+
+### ۱۷۰.۶) Source Registry contract
+
+```text
+MANDATORY_FIELDS =
+  SOURCE_ID, SOURCE_NAME, PUBLISHER, CANONICAL_URL, ALLOWED_HOSTS,
+  COUNTRY, JURISDICTION, LANGUAGE, AUTHORITY_TIER, SOURCE_LAYER,
+  TOPIC_TAXONOMY, CONTENT_CLASSES, ACCESS_ROUTE, API_OR_FEED_ROUTE,
+  ROBOTS_STATE, RATE_LIMIT_POLICY, NO_BYPASS_STATE, KNOWLEDGE_MODE,
+  RAW_RETENTION_MODE, ATTRIBUTION_MODE, REFERENCE_DISPLAY_MODE,
+  REFRESH_CADENCE, LAST_DISCOVERED_AT, LAST_FETCHED_AT, LAST_REVIEWED_AT,
+  LAST_CHANGED_AT, CURRENT_VERSION, CURRENT_HASH, SUPERSESSION_STATE,
+  CRAWLER_STATE, SOURCE_OWNER, FAILURE_OWNER, CLOSURE_CRITERIA
+```
+
+### ۱۷۰.۷) Structured Knowledge Database contract
+
+```text
+Knowledge units store normalized facts, guidelines, recommendations,
+warnings, contraindications, prevention/self-care/treatment guidance,
+medication safety, diet/exercise/sleep/daily-routine/mental-health/
+behavioural guidance, population/jurisdiction context, evidence strength,
+quality/safety/conflict/confidence states, provenance links, versioning.
+
+RUNTIME_ELIGIBILITY requires:
+  source provenance + quality + medical-safety + freshness + evidence-strength.
+```
+
+### ۱۷۰.۸) Provenance Store contract
+
+```text
+Always retain source identity, URL, dates, version, language, jurisdiction,
+content class, authority tier, access route, lawful-use basis, attribution,
+hash, raw-retention state, minimal evidence reference, knowledge-unit IDs,
+supersession state.
+
+NO knowledge unit without traceable provenance.
+```
+
+### ۱۷۰.۹) Raw-content retention modes
+
+```text
+RAW-01_FULL_GOVERNED_RETENTION
+RAW-02_TRANSIENT_PROCESSING  (fetch→hash→parse→extract→synthesize→store meta/knowledge→delete raw)
+RAW-03_METADATA_AND_MINIMAL_EVIDENCE_ONLY
+RAW-04_LINK_AND_CITATION_ONLY
+RAW-05_EXCLUDED_PROTECTED_ELEMENTS
+
+Raw retention mode ≠ knowledge-use eligibility.
+Full-text remain content-class / lawful-use dependent.
+```
+
+### ۱۷۰.۱۰) Sedi-language synthesis law
+
+```text
+SOURCE_CONTENT = INPUT
+SEDI_RESPONSE = NEWLY GENERATED OUTPUT
+
+Sedi must understand, compare, normalize, reconcile, personalize,
+apply medical-safety policy, explain in clear language, use caring
+female health-companion persona, avoid source-text copying as default,
+distinguish evidence from personalized advice, disclose uncertainty.
+
+Must not concatenate excerpts, reproduce long passages, imply source
+personalized the user, hide conflict/uncertainty, or present low-confidence
+knowledge as established fact.
+```
+
+### ۱۷۰.۱۱) Source-reference rendering law
+
+```text
+References always internally traceable.
+
+MANDATORY DISPLAY when:
+  user requests sources / asks where from;
+  high-risk medical claim;
+  material conflict;
+  limited confidence;
+  jurisdiction-specific guidance;
+  source-specific claim;
+  safety escalation.
+
+OPTIONAL for ordinary low-risk informational replies without request.
+
+Include where available:
+  SOURCE NAME, PUBLISHER, TITLE, CANONICAL URL,
+  PUBLICATION/UPDATE DATE, RETRIEVAL DATE, VERSION, KNOWLEDGE UNIT.
+
+Future UX: SHOW SOURCES / VIEW REFERENCES / WHY SEDI SAID THIS.
+No renderer implemented by this Gate.
+```
+
+### ۱۷۰.۱۲) Quality and evidence-strength gate
+
+```text
+QUALITY =
+  UNREVIEWED / MACHINE_SCREENED / HUMAN_REVIEW_REQUIRED / APPROVED / REJECTED
+
+EVIDENCE_STRENGTH =
+  AUTHORITATIVE_GUIDELINE / SYSTEMATIC_REVIEW / PEER_REVIEWED_STUDY /
+  OFFICIAL_PUBLIC_HEALTH_GUIDANCE / EXPERT_CONSENSUS / OBSERVATIONAL_EVIDENCE /
+  SECONDARY_SUMMARY / DIRECTORY_OR_DISCOVERY_ONLY / UNKNOWN
+
+Directory/discovery sources must never upgrade into clinical authority.
+```
+
+### ۱۷۰.۱۳) Medical-safety gate
+
+```text
+SAFETY =
+  UNREVIEWED / LOW_RISK / REVIEW_REQUIRED / HIGH_RISK /
+  APPROVED / REJECTED / EMERGENCY_ESCALATION
+
+Required for treatment changes, medication, contraindications, pregnancy,
+pediatrics, elderly/frail, serious neuro/cardio, diabetes, infectious disease,
+mental-health crisis, emergency symptoms, high-risk conflicts.
+
+No unreviewed high-risk unit may enter runtime knowledge.
+```
+
+### ۱۷۰.۱۴) Conflict and uncertainty law
+
+```text
+When trusted sources disagree: DO NOT SILENTLY MERGE.
+
+Record CONFLICT_ID, units, sources, type, jurisdiction, population, date,
+severity, resolution, safety impact, user-disclosure requirement, owner.
+
+States include NO_CONFLICT … HIGH_RISK_CONFLICT … UNRESOLVED_FAIL_CLOSED.
+```
+
+### ۱۷۰.۱۵) Versioning and supersession
+
+```text
+Weekly run must compare hashes, detect unchanged/changed documents,
+create immutable version records, map old→new knowledge, supersede outdated
+units, preserve history, prevent stale units remaining silently active.
+
+States: CURRENT / SUPERSEDED / STALE / WITHDRAWN / CONFLICTED / UNDER_REVIEW / REJECTED
+```
+
+### ۱۷۰.۱۶) Runtime retrieval contract
+
+```text
+USER REQUEST
+→ USER IDENTITY / PROFILE
+→ HEALTH CONTEXT
+→ LIFESTYLE CONTEXT
+→ RETRIEVE GOVERNED KNOWLEDGE DATABASE FIRST
+→ FILTER JURISDICTION / POPULATION / FRESHNESS
+→ APPLY SAFETY POLICY
+→ APPLY PERSONALIZATION
+→ GENERATE SEDI-LANGUAGE RESPONSE
+→ ATTACH REFERENCES WHEN REQUESTED OR REQUIRED
+→ ENQUEUE KNOWLEDGE GAP IF INSUFFICIENT
+
+Raw source pages must not be the direct runtime response source.
+```
+
+### ۱۷۰.۱۷) Weekly run ledger and Knowledge Gap queue
+
+```text
+Weekly ledger persists RUN_ID, schedule/start/complete, versions,
+sources discovered/checked/new/updated/unchanged/blocked/failed,
+documents, knowledge units new/updated/superseded/rejected,
+conflicts, high-risk items, safety reviews, provenance/DB writes,
+raw retained/deleted, hashes, verdict, failure owner, next action.
+
+KNOWLEDGE_GAP triggers:
+  insufficient coverage / confidence / freshness / source diversity;
+  material conflict; incomplete knowledge.
+Action: enqueue Weekly International Crawler priority queue.
+```
+
+### ۱۷۰.۱۸) Publisher-approval policy
+
+```text
+DIRECT_MANUAL_PUBLISHER_APPROVAL
+≠
+UNIVERSAL_PREREQUISITE
+
+Access controls, attribution, content-class lawful-use, and no-bypass remain.
+Unreviewed medical claims must not enter runtime knowledge.
+```
+
+### ۱۷۰.۱۹) No-bypass and fail-closed rules
+
+```text
+UNKNOWN_SOURCE_IDENTITY → DO_NOT_INGEST
+MISSING_PROVENANCE → DO_NOT_INGEST
+UNKNOWN_CONTENT_CLASS → FACT_EXTRACTION / MINIMAL ONLY
+ANTI_BOT / CAPTCHA / AUTH → NO_BYPASS / NO_CREDENTIAL_EVASION
+RATE_LIMIT → RESPECT AND STOP / DEFER
+UNVERIFIED_MEDICAL_CLAIM → NO_RUNTIME_USE
+HIGH_RISK_CONFLICT → REVIEW_REQUIRED
+STALE_SOURCE → MARK STALE AND RECHECK
+FAILED_SAFETY_REVIEW → REJECT
+IRAN_SOURCE_AS_CLINICAL_AUTHORITY → FORBIDDEN_WITHOUT_SEPARATE_JAVAD_DECISION
+```
+
+### ۱۷۰.۲۰) Mandatory taxonomy coverage
+
+```text
+All human disease taxonomies; neurology; cardiovascular; diabetes/metabolic;
+hepatitis/liver; infectious; respiratory; kidney/urinary; GI; endocrine;
+oncology; immunology; rheumatology; dermatology; musculoskeletal;
+reproductive; pregnancy/maternal; pediatrics; geriatrics; mental health;
+psychology/human interaction; treatment/care; prevention; self-care;
+medication safety; nutrition; exercise; sleep; daily routines; lifestyle;
+longevity; trusted international guidance;
+Iran directory: doctors / labs / hospitals (non-clinical).
+```
+
+### ۱۷۰.۲۱) Required architecture components
+
+```text
+SOURCE_REGISTRY, WEEKLY_SCHEDULER, DISCOVERY_SERVICE,
+FETCH/API/FEED ADAPTERS, VERSION-DIFF ENGINE, PARSER,
+KNOWLEDGE EXTRACTION, NORMALIZATION, TAXONOMY MAPPER,
+QUALITY GATE, EVIDENCE-STRENGTH CLASSIFIER, MEDICAL-SAFETY GATE,
+CONFLICT DETECTOR, STRUCTURED KNOWLEDGE DATABASE, PROVENANCE STORE,
+RAW RETENTION MANAGER, SUPERSESSION ENGINE, RUNTIME RETRIEVAL,
+REFERENCE RENDERER, ADMIN REVIEW QUEUE, KNOWLEDGE GAP PRIORITY QUEUE,
+AUDIT LOG, MONITORING, ALERTING
+
+COMPONENT_COUNT = 26
+This Gate documents requirements only. No code/DB implemented.
+```
+
+### ۱۷۰.۲۲) I5 completion criteria
+
+```text
+I5 formal completion remains 21.79487179% (unchanged by documentation Gate).
+
+I5 must not be marked complete until all are YES:
+  WEEKLY_CRAWLER_IMPLEMENTED
+  WEEKLY_SCHEDULE_ACTIVE
+  TRUSTED_SOURCE_REGISTRY_ACTIVE
+  INTERNATIONAL_KNOWLEDGE_COVERAGE_ACTIVE
+  IRAN_DIRECTORY_LAYER_ACTIVE_SEPARATE
+  KNOWLEDGE_DATABASE_ACTIVE
+  PROVENANCE_STORE_ACTIVE
+  VERSIONING_ACTIVE
+  SUPERSESSION_ACTIVE
+  CONFLICT_HANDLING_ACTIVE
+  MEDICAL_SAFETY_REVIEW_ACTIVE
+  QUALITY_GATE_ACTIVE
+  KNOWLEDGE_GAP_QUEUE_ACTIVE
+  RUNTIME_KNOWLEDGE_RETRIEVAL_ACTIVE
+  SOURCE_REFERENCES_AVAILABLE_TO_USERS
+  MONITORING_AND_ALERTS_ACTIVE
+  FAILURE_RECOVERY_VERIFIED
+
+CRITERION_COUNT = 17
+```
+
+### ۱۷۰.۲۳) Existing candidate synchronization
+
+```text
+All nine R1 candidates remain INTERNATIONAL_KNOWLEDGE layer.
+SOURCE_REGISTRY_REQUIRED = YES
+WEEKLY_REFRESH_REQUIRED = YES
+PROVENANCE/QUALITY/SAFETY/CONFLICT/VERSIONING = REQUIRED
+REFERENCE_RENDERING_REQUIRED = YES
+KNOWLEDGE_GAP_QUEUE_ELIGIBLE = YES
+ACTIVATION_STATE = NOT_ACTIVATED
+OVERLAY_APPROVED = NO
+
+CRAWLER_STATES =
+  OFFICIAL_API_OR_FEED_REQUIRED = 2 (MedlinePlus x2)
+  TARGETED_ACCESS_POLICY_EVIDENCE_REQUIRED = 3 (WHO x2, CDC)
+  CRAWLER_DEFERRED = 3 (NHS x2, NIMH)
+  CRAWLER_EXCLUDED = 1 (APA)
+Lawful-use states from §169 AUDIT-01 preserved.
+```
+
+### ۱۷۰.۲۴) Artifact and SHA reconciliation
+
+```text
+EVIDENCE_FILE_COUNT_BEFORE = 71
+EVIDENCE_FILE_COUNT_AFTER = 72
+NEW_FILE = decision_matrices/weekly_governed_knowledge_crawler_law.json
+RAW_RESPONSES_CHANGED = NO
+REQUEST_COUNT = 44
+URL_COUNT = 33
+
+COMPLETE_SHA256_64 =
+url_allowlist.json =
+  13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345
+request_ledger.json =
+  804a5811ab2de26975c7018eb6e66dc86077486fa14a1bd4f91ce5bec231e169
+manifest.json =
+  982ba86d8bb808fe9267c3eacd6f143731c0fd95d56e03fa3da8659c7f3ca7d9
+weekly_governed_knowledge_crawler_law.json =
+  b0b4e42dd873bbd7618e19465cbb4b3afd2cee7b930221eb8cdfb8ddf338b375
+r1_lawful_use_reclassification.json =
+  ae643a7af72577e66ccc65a1cd3e91c61f14bf5d33a0eb2265fd62abfaa21f27
+r1_lawful_use_authority_trace_audit.json =
+  b0eee4e0c1756d10567cfd535923c02541283b227c39afe3517fa511e0b4b010
+eligibility_matrix.json =
+  cf5d28dcdff7f33402bf302fd21ca58e845bde05d0c9cc9a30619c883619001e
+gap_closure_matrix.json =
+  c5b726fee92f01c922af8ddab49e65bfd0a2d0be51479caae9b99252908f90b6
+evidence_file_inventory.json =
+  415445d6b9f195b12a1a2d3abe7ac5f85c3e59bf5226f779fb647658ef32e1c0
+retention_ledger.json =
+  c8c8fed81ca2d8abe00d03b0469a64cca6118049269e43f5411ab3362c2e2889
+r1_permission_basis_reconciliation.json =
+  a5211c426929b7f88009e423a88be9472b973eb5ae7ae1b5458a408f656d043a
+who_global_health_topics.json =
+  8dd4e7a324363867e3e515e8b08e1eace37e7d9ce10cf27d1918888d8e92d7d9
+who_mental_health.json =
+  6c2cf46bf3211938cae159b4835ba09a7901b46c9fc1d9e095d645d57425e48b
+medlineplus_consumer_health.json =
+  9f17a1cbc1110d212915ce43a56a997ca261430117da2fd4b882634db56a44f9
+medlineplus_mental_health.json =
+  31c80b4d910c24c4617d44c02cbc749971bdfd2d3d4c626b66c1eccae1bd0f79
+nhs_uk_live_well.json =
+  36846a318c757ed8b5e7d8541fcd0aaeb5aa1c855aff9e6ec5260446d28cc6fe
+nhs_mental_health.json =
+  43d7f752d9570c9afd31b29ae0e8d626b580cc44a798b3762b851aaa86a10039
+cdc_health_lifestyle.json =
+  bf4cf1f8a7d703bb5df37d2c4ea2a59c1ec270c4d7b9f4f0744ec900f09bd2cd
+nimh_nih_mental_health.json =
+  496439c25f6d48bbf2521f7ebaa5631060e5caaaf40062a7e0f1362c8250b591
+apa_psychology_help.json =
+  c7573b3255614b96bdfeeea89a3e20f838b08c3ca4858576cf10092d87cf64c2
+```
+
+### ۱۷۰.۲۵) Checkpoint readiness
+
+```text
+CHECKPOINT_READY = YES
+Conditions:
+  §170 complete; §§1–169 unchanged; no §171;
+  JSON valid; hashes reproducible; packs synchronized;
+  raw responses immutable; request 44; URL 33;
+  no network/crawler/activation/overlay/dry-run;
+  staging empty; git diff --check clean.
+COMMIT_NOT_PERFORMED = YES
+```
+
+### ۱۷۰.۲۶) Self-healing record
+
+```text
+FIX3-F01 weekly crawler optional → MANDATORY weekly international law
+FIX3-F02 publisher approval universal → NO
+FIX3-F03 catalogue not connected to KB → Source Registry + Knowledge DB contracts
+FIX3-F04 provenance optional → MANDATORY
+FIX3-F05 Sedi-language synthesis → MANDATORY
+FIX3-F06 user-requested references → MANDATORY when requested/required
+FIX3-F07 quality/safety/conflict gates → DEFINED
+FIX3-F08 versioning/supersession → DEFINED
+FIX3-F09 crawler eligibility ≠ activation → EXPLICIT
+FIX3-F10 I5 completion criteria → 17 explicit criteria; formal % unchanged
+FIX3-F11 Iran-first clinical framing → SUPERSEDED; Iran = directory layer only
+FIX3-F12 Knowledge Gap queue → MANDATORY
+FIX3-F13 Knowledge-Database-First runtime → MANDATORY
+```
+
+### ۱۷۰.۲۷) Final same-run audit
+
+```text
+§§158–170 uniqueness = PASS
+§170_AT_EOF = YES
+§§1–169_UNCHANGED = YES
+NO_§171 = YES
+NINE_PACKS_SYNCHRONIZED = YES
+WEEKLY_CRAWLER_MANDATORY = YES
+INTERNATIONAL_KNOWLEDGE_LAYER = YES
+IRAN_DIRECTORY_SEPARATE = YES
+KNOWLEDGE_DB_FIRST = YES
+KNOWLEDGE_GAP_QUEUE = YES
+PROVENANCE_MANDATORY = YES
+SEDI_SYNTHESIS_MANDATORY = YES
+REFERENCES_WHEN_REQUESTED_OR_REQUIRED = YES
+PUBLISHER_APPROVAL_NOT_UNIVERSAL = YES
+NO_BYPASS = YES
+QUALITY/SAFETY/CONFLICT/VERSIONING = YES
+NO_SOURCE_OR_CRAWLER_ACTIVATED = YES
+NO_OVERLAY_APPROVED = YES
+NO_DRY_RUN = YES
+EO_C11 = OPEN
+I5 = 21.79487179%
+REQ=44 URL=33
+JSON_VALID = YES
+HASHES_REPRODUCE = YES
+STAGING = EMPTY
+```
+
+### ۱۷۰.۲۸) Exact next step
+
+```text
+NEXT_STEP =
+JAVAD REVIEW OF FIX3 / §170
+THEN SEPARATE AUTHORIZATION FOR CHECKPOINT COMMIT
+THEN SEPARATE IMPLEMENTATION PACKAGES
+  (API/feed recon, targeted licence authority, crawler implementation,
+   Iran directory layer, Knowledge Gap queue, runtime KB retrieval)
+
+NO_COMMIT_AUTOMATIC = YES
+NO_IMPLEMENTATION_AUTOMATIC = YES
+NO_CRAWLER_ACTIVATION = YES
+```
+
+### ۱۷۰.۲۹) Append-only integrity record
+
+```text
+§§1–169_PRESERVED = YES
+§170_ONLY_NEW_SECTION = YES
+§170_AT_EOF = YES
+EVIDENCE_DIRECTORY = 72 files
+NETWORK_REQUESTS = 0
+GIT_ADD = NO
+GIT_COMMIT = NO
+GIT_PUSH = NO
+
+STATE =
+PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS
+CHECKPOINT_READY = YES
+
+FINAL_VERDICT =
+PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS
+```
+
+---
+*پایان §۱۷۰ — SECTION-29 WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW-FIX3 — PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS — CHECKPOINT_READY — ۲۰۲۶-۰۷-۳۱*
+## ۱۷۱) SECTION 29 / CONCEPTUAL KNOWLEDGE USE, KNOWLEDGE DATABASE AND MEMORY, INDEPENDENT SEDI SYNTHESIS AND PUBLISHER-APPROVAL CLARIFICATION
+
+```text
+PACKAGE =
+SECTION-29 / STAGE-4 / SECTION29-CONCEPTUAL-KNOWLEDGE-USE-LAW-FIX4
+
+LAW_ID = I5-CONCEPTUAL-KNOWLEDGE-USE-AND-MEMORY-LAW
+PARENT = §170 I5-WEEKLY-INTERNATIONAL-KNOWLEDGE-CRAWLER-FINAL-LAW
+OWNER = Javad
+MODE = REPOSITORY_LOCAL / DOCUMENTATION_ONLY / NO_NETWORK /
+  APPEND_ONLY / AUTHORIZED_CHECKPOINT_COMMIT / NO_PUSH / UNCOMMITTED_UNTIL_COMMIT_PHASE
+```
+
+### ۱۷۱.۱) Gate identity and Javad authorization
+
+```text
+JAVAD_FINAL_ACCEPTANCE =
+  FIX3 / §170 accepted.
+  Controlled checkpoint commit authorized after this clarification Gate.
+  Direct publisher approval is NOT a universal prerequisite for Sedi to read,
+  understand, process and learn from trusted international sources.
+```
+
+### ۱۷۱.۲) Final conceptual-use law
+
+```text
+SOURCE_CONTENT = INPUT_FOR_LEARNING
+SEDI_KNOWLEDGE = STRUCTURED_NORMALIZED_VERSIONED_TRACEABLE
+SEDI_KNOWLEDGE_MEMORY = RETRIEVABLE_GOVERNED_WITH_SOURCE_LINEAGE
+SEDI_RESPONSE = INDEPENDENTLY_GENERATED_AND_PERSONALIZED
+
+FLOW =
+TRUSTED INTERNATIONAL SOURCE
+→ LAWFUL NON-BYPASS READING OR RETRIEVAL
+→ CONCEPTUAL UNDERSTANDING
+→ IMPORTANT KNOWLEDGE EXTRACTION
+→ NORMALIZATION
+→ SOURCE COMPARISON
+→ CONFLICT DETECTION
+→ EVIDENCE-STRENGTH CLASSIFICATION
+→ MEDICAL-SAFETY REVIEW
+→ STRUCTURED DATABASE STORAGE
+→ KNOWLEDGE MEMORY STORAGE
+→ VERSIONING AND SUPERSESSION
+→ RUNTIME RETRIEVAL
+→ INDEPENDENT SEDI RESPONSE
+```
+
+### ۱۷۱.۳) Publisher-approval clarification
+
+```text
+DIRECT_MANUAL_PUBLISHER_APPROVAL_REQUIRED_BY_DEFAULT = NO
+PUBLISHER_APPROVAL_REQUEST = EXCEPTIONAL, NOT NORMAL
+LAWFUL_NON_BYPASS_ACCESS = REQUIRED
+SOURCE_PROVENANCE = REQUIRED
+CONTENT_CLASSIFICATION = REQUIRED
+CONCEPTUAL_EXTRACTION = ALLOWED UNDER GOVERNED PROCESS
+INDEPENDENT_SYNTHESIS = REQUIRED
+FULL_TEXT_REPRODUCTION_PERMISSION = NOT IMPLIED
+
+SUPERSEDED =
+  NO PUBLISHER APPROVAL → NO KNOWLEDGE USE
+
+REPLACED_BY =
+  NO DIRECT PUBLISHER APPROVAL
+  → APPLY ACCESS, CONTENT-CLASS, RETENTION AND KNOWLEDGE-MODE CONTROLS
+```
+
+### ۱۷۱.۴) Source content as learning input
+
+```text
+Trusted source reading = knowledge acquisition input.
+Conceptual understanding = MANDATORY.
+Fact / guideline / important-point extraction = MANDATORY.
+Direct source-text copying = NOT THE DEFAULT.
+Every extracted unit represents meaning, not copied page structure.
+```
+
+### ۱۷۱.۵) Important-point extraction
+
+```text
+Must identify definitions, symptoms, warnings, emergency signs, risk factors,
+prevention, self-care, treatment principles, medication warnings,
+contraindications, diet/exercise/sleep/mental-health/behavioural guidance,
+population considerations, evidence limitations, conflicts, update dates.
+
+Not every paragraph is equally important.
+Each point: IMPORTANCE_LEVEL, USER_IMPACT, SAFETY_IMPACT, EVIDENCE_STRENGTH,
+SOURCE_SUPPORT, FRESHNESS, TARGET_POPULATION, CONFLICT_STATE.
+```
+
+### ۱۷۱.۶) Structured Knowledge Database contract
+
+```text
+Canonical repository for validated health knowledge.
+Stores Sedi knowledge, not merely downloaded pages.
+Mandatory fields include KNOWLEDGE_UNIT_ID, NORMALIZED_CONTENT, SEDI_SYNTHESIS,
+SOURCE_IDS/VERSIONS, EVIDENCE_STRENGTH, QUALITY/SAFETY/CONFLICT/CONFIDENCE/
+FRESHNESS states, RUNTIME_ELIGIBILITY_STATE, versioning fields.
+```
+
+### ۱۷۱.۷) Knowledge Memory contract
+
+```text
+Retrievable, governed, versioned, source-traceable layer for response generation.
+NOT hidden untraceable memory, copied raw pages, user-profile memory,
+unsupported model recollection, or unversioned notes.
+Every MEMORY_ITEM resolves to a Knowledge Unit and provenance.
+```
+
+### ۱۷۱.۸) Independent Sedi synthesis
+
+```text
+Integrate multiple units; avoid copying source wording; adapt complexity/
+language; caring human phrasing; personalize; disclose uncertainty;
+distinguish guidance from diagnosis; do not imply publisher advised the user.
+Final answer = newly generated.
+Excerpts only as minimal supporting evidence when needed.
+```
+
+### ۱۷۱.۹) Raw-content retention separation
+
+```text
+SOURCE RETRIEVAL ≠ KNOWLEDGE EXTRACTION ≠ RAW RETENTION ≠ RUNTIME USE
+RAW-01..RAW-05 remain content-class dependent.
+Do not store full raw text universally.
+```
+
+### ۱۷۱.۱۰) Provenance and reference requirements
+
+```text
+Always store source identity, URL, dates, version, hash, content class,
+authority tier, knowledge-unit IDs, minimal evidence, supersession.
+Display references when requested or when safety/uncertainty/conflict/
+staleness/jurisdiction/escalation requires disclosure.
+```
+
+### ۱۷۱.۱۱) Weekly crawler integration
+
+```text
+KNOWLEDGE GAP → INTERNATIONAL PRIORITY → RETRIEVE ALLOWED ROUTE
+→ CONCEPTUAL READING → IMPORTANT-POINT EXTRACTION → NORMALIZE
+→ COMPARE → QUALITY → SAFETY → CONFLICT → DATABASE WRITE
+→ MEMORY WRITE → VERSION/SUPERSEDE → GAP UPDATE → RUNTIME
+
+Weekly report: new/updated/superseded units and memory items,
+closed/remaining gaps, safety, conflicts, freshness/coverage improvement.
+```
+
+### ۱۷۱.۱۲) Runtime Knowledge-Database-First integration
+
+```text
+USER QUESTION
+→ SEDI KNOWLEDGE DATABASE
+→ SEDI KNOWLEDGE MEMORY
+→ USER PROFILE / HEALTH CONTEXT
+→ SAFETY / FRESHNESS / CONFLICT FILTER
+→ PERSONALIZATION
+→ SEDI-LANGUAGE RESPONSE
+→ REFERENCES WHEN REQUESTED OR REQUIRED
+
+Do not answer by directly exposing raw source pages.
+```
+
+### ۱۷۱.۱۳) Knowledge-gap integration
+
+```text
+Gap when MISSING / INSUFFICIENT / STALE / LOW-CONFIDENCE / CONFLICTED /
+NOT DIVERSE ENOUGH / NOT POPULATION-SPECIFIC ENOUGH / NOT SAFE ENOUGH.
+Fields: GAP_ID, DOMAIN, TOPIC, MISSING_KNOWLEDGE_TYPE, impacts, coverage,
+confidence, freshness, target sources, crawler priority, owner, status.
+```
+
+### ۱۷۱.۱۴) Nine-candidate synchronization
+
+```text
+All nine international candidates:
+CONCEPTUAL_READING_ALLOWED = YES
+IMPORTANT_POINT_EXTRACTION_REQUIRED = YES
+STRUCTURED_KNOWLEDGE_STORAGE_REQUIRED = YES
+KNOWLEDGE_MEMORY_STORAGE_REQUIRED = YES
+SEDI_INDEPENDENT_SYNTHESIS_REQUIRED = YES
+PROVENANCE_REQUIRED = YES
+REFERENCE_DISPLAY_REQUIRED_ON_REQUEST = YES
+KNOWLEDGE_GAP_INPUT_ENABLED = YES
+DIRECT_PUBLISHER_APPROVAL_UNIVERSAL_PREREQUISITE = NO
+OVERLAY_APPROVED = 0
+CRAWLER_ACTIVATED = 0
+RUNTIME_ACTIVE = 0
+```
+
+### ۱۷۱.۱۵) Obsolete-marker verification
+
+```text
+MARKER = READY_FOR_WEEKLY_CRAWLER_LAW_FIX1_REVIEW
+FOUND_IN_MASTER_LOG = NO
+FOUND_IN_EVIDENCE_ROOT = NO
+EXISTED_ONLY_IN_CURSOR_REPORT = YES
+FILE_CORRECTION_REQUIRED = NO
+CORRECT_REVIEW_MARKER =
+  READY_FOR_WEEKLY_INTERNATIONAL_KNOWLEDGE_CRAWLER_FINAL_LAW_FIX3_REVIEW
+  then this Gate proceeds to checkpoint commit authorization.
+```
+
+### ۱۷۱.۱۶) Artifact synchronization
+
+```text
+NEW =
+  decision_matrices/conceptual_knowledge_use_and_memory_law.json
+UPDATED =
+  manifest, ledger (governance metadata), weekly crawler law matrix,
+  lawful-use / authority-trace / permission matrices, eligibility, gap,
+  retention, inventory, nine packs, README
+RAW_RESPONSES_CHANGED = NO
+REQUEST_COUNT = 44
+URL_COUNT = 33
+```
+
+### ۱۷۱.۱۷) Complete SHA reconciliation
+
+```text
+EVIDENCE_FILE_COUNT_BEFORE = 72
+EVIDENCE_FILE_COUNT_AFTER = 73
+
+url_allowlist.json =
+  13a2d28f6872ee11da60ed79a906e72bd2f4c8444a31fd0238979bfc84603345
+request_ledger.json =
+  23595a28e6a940f289370237f834b7d5d0511255162d2d04650d068173ed55f6
+manifest.json =
+  6a96913f33da4799841f37ac570ec50b6f4a3dc23b15aca9a083bfa576e06b33
+conceptual_knowledge_use_and_memory_law.json =
+  7b9fd0a1dc230f41d3b0c33ab3f68dd63d9bccf635cda620960458774a56f0ed
+weekly_governed_knowledge_crawler_law.json =
+  c2389897b292ea305e9f242d20f2299e50c8c057046157f80da7e9c1198e26b3
+r1_lawful_use_reclassification.json =
+  3e9d9be6ebdc3760491317676633532ec5e5399ea370aece1a763446ff1f8018
+r1_lawful_use_authority_trace_audit.json =
+  f9598a26a9cf6b86532ac25617939b05f3c3c0c3a08916228f38f470ca6c491b
+eligibility_matrix.json =
+  6e412040432f37774e7756a56965f3005a8c3c204c76216cbdd90791a71a413c
+gap_closure_matrix.json =
+  9edd1874929a1e2063e59656147ed9c9b2eaab2648f40f305fb41b62775bce66
+evidence_file_inventory.json =
+  10036a5073ce9779ec3d7b1a4a4a7f56d9ef31897176c0da7f35f34bb5dbced2
+retention_ledger.json =
+  2dd4e5dbdf9f914b06c57fb43909e6c800a5188e86b8336d27ffe4eb783dab2c
+r1_permission_basis_reconciliation.json =
+  bc083fddceae4ae8f3e16b2d8dc28f8cc910823901a498d9a94381d0d1016b4d
+who_global_health_topics.json =
+  ce605e310ddc279eefe8a731fff03e2fe52140ef7eed21c6987f49788dda11f0
+who_mental_health.json =
+  8e50d078b87b64a56c72374d91cce3d08624cf47e14367a33b6528ba92d53dfb
+medlineplus_consumer_health.json =
+  66624bb120b6c38b7f5664618c26a28018c9a36806b8b3d7587f9896e56dceb6
+medlineplus_mental_health.json =
+  fab784fc7ee08e598346f520c9db14bac16524fad6b7fb4b61a6049cb5491c1e
+nhs_uk_live_well.json =
+  172a40f63a1d0fc278a2cff40c248af65baea93b2fa3d3b4410148ff970e4ddf
+nhs_mental_health.json =
+  dd7644a32f1cf8e222dbd0c1299aaeb188fdefa2bf2d049cf7cc1dd7de8c99e7
+cdc_health_lifestyle.json =
+  cab44f9718ba362c434341e87a46dcd61b8c3ca18d0ad93669e30c9755b53fed
+nimh_nih_mental_health.json =
+  b6a3606c66a9da8ecb7ba378fafa7f5e93c5fc25c4fdeb86fca9ef833e861939
+apa_psychology_help.json =
+  b876ef7b958142bcab95cb6adb95f3c581fdb5eab23e96e27d204f15591934dd
+```
+
+### ۱۷۱.۱۸) Checkpoint scope
+
+```text
+AUTHORIZED_COMMIT_SCOPE =
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  docs/evidence/section29/pkg_ext_e2_bounded_01_r1/**
+
+SUBJECT =
+  docs(governance): record Section 29 international knowledge crawler law
+
+PARENT_EXPECTED = af1d583df55a8df8284105917e86caf6342eb089
+PUSH = NO
+AMEND = NO
+```
+
+### ۱۷۱.۱۹) Self-healing record
+
+```text
+FIX4-F01 publisher approval as universal prerequisite → NO
+FIX4-F02 conceptual knowledge use → EXPLICIT
+FIX4-F03 important-point extraction → EXPLICIT
+FIX4-F04 DB vs Memory conflation → SEPARATED
+FIX4-F05 memory provenance → MANDATORY
+FIX4-F06 independent synthesis → MANDATORY
+FIX4-F07 raw vs knowledge storage → SEPARATED
+FIX4-F08 crawler DB/memory write → CONTRACTED
+FIX4-F09 runtime Knowledge-First → EXPLICIT
+FIX4-F10 obsolete FIX1 marker → ABSENT IN REPO (report-only)
+FIX4-F11 candidate packs → SYNCHRONIZED
+FIX4-F12 reference-on-request → MANDATORY
+```
+
+### ۱۷۱.۲۰) Final same-run audit
+
+```text
+§§158–171 uniqueness = PASS
+§171_AT_EOF = YES
+§§1–170_UNCHANGED = YES (no marker correction needed)
+NO_§172 = YES
+JSON_VALID = YES
+REQ=44 URL=33 RAW_MOD=0
+CONCEPTUAL/DB/MEMORY/SYNTHESIS/PROVENANCE = YES
+PUBLISHER_APPROVAL_NOT_UNIVERSAL = YES
+NO_ACTIVATION / NO_OVERLAY / EO_C11 OPEN / I5=21.79487179%
+CHECKPOINT_COMMIT = AUTHORIZED_AFTER_THIS_AUDIT
+```
+
+### ۱۷۱.۲۱) Exact next step
+
+```text
+AFTER THIS GATE COMMIT:
+Javad review of local checkpoint commit
+→ separate approval for normal non-force push
+→ remote SHA verification
+→ implementation packages
+```
+
+### ۱۷۱.۲۲) Append-only integrity record
+
+```text
+§§1–170_PRESERVED = YES
+§171_ONLY_NEW_SECTION = YES
+EVIDENCE_DIRECTORY = 73 files
+NETWORK = 0
+PUSH = NO
+
+STATE =
+PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS —
+CONCEPTUAL_KNOWLEDGE_USE_LAW_RECORDED_AND_CHECKPOINT_COMMITTED
+(after commit phase)
+```
+
+---
+*پایان §۱۷۱ — SECTION-29 CONCEPTUAL-KNOWLEDGE-USE-LAW-FIX4 — PASS_WITH_EXPLICIT_IMPLEMENTATION_GAPS — ۲۰۲۶-۰۷-۳۱*
