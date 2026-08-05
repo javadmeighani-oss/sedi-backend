@@ -46,11 +46,17 @@ jobs:
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
       OPENAI_API_KEY: w1p01-test-placeholder-not-used
       # Force harness evidence under runner.temp (helper uses tempfile.gettempdir()).
-      TMPDIR: ${{ runner.temp }}
-      TEMP: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
 
     steps:
+      - name: Configure runner temporary environment
+        shell: bash
+        run: |
+          {
+            echo "TMPDIR=$RUNNER_TEMP"
+            echo "TEMP=$RUNNER_TEMP"
+            echo "TMP=$RUNNER_TEMP"
+          } >> "$GITHUB_ENV"
+
       - name: Checkout
         uses: actions/checkout@v4
 
