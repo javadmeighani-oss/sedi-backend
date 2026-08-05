@@ -46184,3 +46184,11514 @@ FIRST_IMPLEMENTATION_GATE_STILL = I5-IMPL-W1-P01
 ---
 
 *پایان بند ۱۷۴ — SECTION30-I5-COMPLETION-LEDGER-FIX3 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+
+## ۱۷۵) I5-IMPL-W1-P01 DATABASE FOUNDATION READINESS AUDIT
+
+### ۱۷۵.۱ Approval and baseline
+
+```text
+JAVAD_DATABASE_FIRST_DECISION = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-READINESS-AUDIT-01
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+SCOPE = READ-ONLY REPOSITORY AUDIT + DOCUMENTATION-ONLY MASTER-LOG APPEND
+```
+
+### ۱۷۵.۲ Audit-only scope confirmation
+
+```text
+APPLICATION_IMPLEMENTATION = NOT_PERFORMED
+DATABASE_CONNECTION = NOT_PERFORMED
+MIGRATION_CREATION = NOT_PERFORMED
+MIGRATION_EXECUTION = NOT_PERFORMED
+TEST_EXECUTION = NOT_PERFORMED
+COMMIT = NOT_PERFORMED
+PUSH = NOT_PERFORMED
+NETWORK = NOT_PERFORMED
+BACKEND_MODEL_SCHEMA_MIGRATION_EDIT = NOT_PERFORMED
+```
+
+### ۱۷۵.۳ Database stack (repository-local, authoritative)
+
+```text
+DATABASE_ENGINE = PostgreSQL (AUTHORITATIVE — database.py default URL postgresql+psycopg2)
+DATABASE_VERSION_ASSUMPTION = INFERRED FROM DRIVER ONLY (no pinned server version in-repo)
+ORM = SQLAlchemy declarative_base (AUTHORITATIVE — backend/app/database.py, models.py)
+MIGRATION_TOOL = Alembic (AUTHORITATIVE — backend/alembic.ini, backend/alembic/env.py)
+MODEL_BASE_CLASS = Base = declarative_base()
+PRIMARY_KEY_STANDARD = Integer Identity / Integer PK (AUTHORITATIVE; no UUID PKs on ORM models)
+UUID_STRATEGY = application-level strings/helpers only (INFERRED NOT PK)
+TIMESTAMP_STANDARD = DateTime + datetime.utcnow and/or server_default=now() (AUTHORITATIVE)
+TIMEZONE_STANDARD = naive UTC-style utcnow usage (INFERRED; no explicit timezone columns)
+ENUM_STRATEGY = Python str Enum in contracts.py + String columns in ORM (AUTHORITATIVE; no sa.Enum DB types for KB/I5)
+JSON_USAGE = Text-encoded JSON for most KB metadata; native JSON mainly Gate5 (AUTHORITATIVE)
+SOFT_DELETE = MISSING as deleted_at; operational_status / is_active used selectively
+AUDIT_FIELD_STANDARD = PARTIAL (approved_by/at, fingerprints, immutable GSP versions; no dedicated I5 audit table)
+SESSION_PATTERN = sessionmaker bind engine; get_db/SessionLocal yield (AUTHORITATIVE)
+```
+
+### ۱۷۵.۴ Migration-chain result
+
+```text
+MIGRATION_DIR = backend/alembic/versions/
+REVISION_FILE_COUNT = 51
+MIGRATION_HEAD_COUNT = 1
+MIGRATION_HEAD_IDS = 051_i5b2_governed_source_profile
+ROOT = 001_baseline_v1
+CHAIN_CONTIGUOUS = YES
+BROKEN_REVISIONS = NONE
+MULTIPLE_HEAD_STATUS = NO
+BRANCH_POINTS = NONE
+MERGE_REVISIONS = NONE
+ORPHANS = NONE
+MIGRATION_AUTHORITY = CLEAR
+```
+
+### ۱۷۵.۵ Existing reusable components (W1-P01 lens)
+
+```text
+YES / EXTEND:
+  governed_source_profiles + GovernedSourceProfile (+ migration 051)
+  governed_source_profile_versions + GovernedSourceProfileVersion (immutable snapshots)
+  governance contracts enums (SourceOperationalStatus, AutomationStatus, LicenseStatus, ReviewStatus, …)
+  kb_b2_source_profile_persistence service boundary
+
+PARTIAL:
+  knowledge_sources / KnowledgeSource (Gate3 legacy registry; not full ISR)
+  knowledge_ingestion_runs / KnowledgeIngestionRun (per-source ingest; not weekly multi-stage ledger)
+  knowledge_documents / knowledge_chunks (supporting raw/curated layer; KU is W1-P02)
+  fetch/robots/rights columns and gate3 services (must remain disabled in W1-P01)
+
+MISSING (required for W1-P01):
+  knowledge_gaps / KnowledgeGap
+  weekly_knowledge_runs / WeeklyKnowledgeRun
+  backend/app/services/i5/* package
+  dedicated I5 run_source_result / run_gap_result junction tables
+  dedicated I5 decision/audit event table
+```
+
+### ۱۷۵.۶ Three-subsystem database readiness
+
+```text
+INTERNATIONAL_SOURCE_REGISTRY = PARTIAL
+  EXISTS: GSP identity, canonical_key, locator uniqueness, version supersession, rights/automation/freshness columns
+  MISSING: full registry_state machine (DISCOVERED…ARCHIVED), runtime_eligibility distinct from operational_status,
+           owner/reviewer/approver fields, block_reason, topic coverage matrix, temporal effective_to, review history table
+  REUSE_DECISION = EXTEND GovernedSourceProfile / Version; do not replace KnowledgeSource destructively
+
+KNOWLEDGE_GAP_PRIORITY_QUEUE = MISSING
+  No table/model/migration for KnowledgeGap
+  Required: gap types, state machine, priority inputs, dedupe key, links to source/run/capability
+
+WEEKLY_RUN_LEDGER = MISSING
+  KnowledgeIngestionRun is NOT the weekly multi-source ledger
+  Required: WeeklyKnowledgeRun + idempotency_key + metrics + approval_state + parent/retry linkage
+  Optional supporting: run_source_results / run_gap_results
+```
+
+### ۱۷۵.۷ Gap counts (database capability matrix summary)
+
+```text
+SATISFIED = 8
+PARTIAL = 14
+MISSING = 22
+CONFLICTING = 1
+  CONFLICTING_NOTE = KnowledgeIngestionRun ondelete=CASCADE from knowledge_sources vs governed-history no-destructive-cascade law;
+                     W1-P01 new tables must use RESTRICT/SET NULL and must not cascade-delete run/gap evidence
+DEFERRED_WITH_OWNER = 2 (KU/provenance tables deferred to W1-P02; dedicated rate-limit registry deferred)
+BLOCKED = 0
+```
+
+### ۱۷۵.۸ Security / PII / PHI / rights classification
+
+```text
+W1_P01_TABLES_CLASS =
+  PUBLIC_SOURCE_METADATA + LICENSE_TERMS_METADATA + INTERNAL_GOVERNANCE + OPERATIONAL_LOG
+FORBIDDEN_IN_W1_P01 =
+  SECRETS / API KEYS
+  USER PII / PHI payloads
+  RAW USER CONVERSATIONS
+  DEFAULT RAW COPYRIGHTED FULL TEXT
+USER_DERIVED_GAPS =
+  aggregate / de-identified reference only; no conversation copy
+DATA_CLASSIFICATION_DECISION_REQUIRED = NO (boundaries explicit for W1-P01 authoring)
+```
+
+### ۱۷۵.۹ Idempotency and deduplication design (proposed for next Gate)
+
+```text
+SOURCE_CANONICAL_KEY = already unique on governed_source_profiles.canonical_key
+SOURCE_LOCATOR_UNIQUE = (locator_kind, normalized_locator)
+GAP_CANONICAL_KEY = sha256(domain|subdomain|gap_type|normalized_title_or_capability|target_source_key_or_none)
+WEEKLY_RUN_IDEMPOTENCY_KEY = sha256(schedule_key|planned_window_start|planned_window_end|source_scope_hash|domain_scope_hash|config_version)
+RUN_SOURCE_RESULT_UNIQUE = (run_id, source_profile_id)
+RUN_GAP_RESULT_UNIQUE = (run_id, gap_id)
+TITLE_ALONE = NOT a unique key
+```
+
+### ۱۷۵.۱۰ Index-plan result (query-driven; author in migration Gate)
+
+```text
+knowledge_gaps: UNIQUE(canonical_gap_key); INDEX(status, priority); INDEX(next_review_at); INDEX(discovered_run_id); INDEX(target_source_id)
+weekly_knowledge_runs: UNIQUE(idempotency_key); INDEX(status, started_at); INDEX(schedule_key, planned_window_start); INDEX(parent_run_id)
+governed_source_profiles: existing canonical/locator/ops indexes; ADD INDEX(runtime_eligibility) if column added; ADD INDEX(last_checked_at) if column added
+No unjustified GIN indexes in W1-P01
+```
+
+### ۱۷۵.۱۱ Migration requirement
+
+```text
+MIGRATION_CREATION_REQUIRED = YES (separate Gate after model/enum authoring or combined authoring Gate per allowlist)
+MIGRATION_RUN = NOT AUTHORIZED (reserved for I5-IMPL-W6-P01)
+BACKFILL_REQUIRED = NO for empty new tables; OPTIONAL additive GSP column defaults only
+ROLLBACK = downgrade drops new W1-P01 tables only; must not drop GSP/legacy tables
+PARENT_REVISION = 051_i5b2_governed_source_profile
+PROPOSED_REVISION_PATTERN = 052_i5_w1_p01_gap_ledger_isr (exact ID chosen in authoring Gate)
+```
+
+### ۱۷۵.۱۲ Final readiness verdict
+
+```text
+VERDICT = READY_FOR_W1_P01_DB_FOUNDATION_AUTHORING
+TOKEN = W1_P01_DB_FOUNDATION_AUDITED_AND_AUTHORING_SCOPE_READY
+NOT = READY_FOR_W1_P01_SERVICE_IMPLEMENTATION
+NOT = READY_FOR_MIGRATION_EXECUTION
+NOT = READY_FOR_COMMIT
+NOT = READY_FOR_PUSH
+```
+
+### ۱۷۵.۱۳ Exact next Gate and approval boundaries
+
+```text
+NEXT_GATE = I5-IMPL-W1-P01-DB-FOUNDATION-AUTHORING-01
+
+SEPARATE_APPROVAL_BOUNDARIES =
+  1) DB MODEL / ENUM AUTHORING
+  2) MIGRATION CREATION
+  3) STATIC MIGRATION REVIEW
+  4) TEST AUTHORING
+  5) TEST EXECUTION
+  6) CI
+  7) MIGRATION RUN
+  8) SERVICE / API IMPLEMENTATION
+  9) COMMIT
+  10) PUSH
+
+THIS_AUDIT_AUTHORIZES_NONE_OF_THE_ABOVE_EXCEPT_MASTER_LOG_APPEND
+```
+
+### ۱۷۵.۱۴ Proposed authoring allowlist (for next Gate only; not authorized here)
+
+```text
+MODIFY:
+  backend/app/models.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+CREATE (if truly required):
+  backend/app/services/i5/enums.py
+  backend/alembic/versions/052_i5_w1_p01_gap_ledger_isr.py   # migration creation may be a separate Gate
+
+DO_NOT_MODIFY_YET:
+  backend/app/services/i5/*_service.py
+  backend/app/schemas/i5_core.py
+  backend/app/routers/i5_admin.py
+  backend/app/main.py
+  backend/tests/**
+  .github/**
+  backend/core/scheduler.py
+  backend/app/services/gate3/knowledge_source_fetcher.py
+```
+
+### ۱۷۵.۱۵ Dual-reference reminder
+
+```text
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+---
+
+*پایان بند ۱۷۵ — I5-IMPL-W1-P01-DB-FOUNDATION-READINESS-AUDIT — PASS — AUTHORING_SCOPE_READY — بدون-کامیت*
+
+## ۱۷۶) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE
+
+### ۱۷۶.۱ Approval and baseline
+
+```text
+JAVAD_APPROVAL = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-01
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STARTING_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY (§175 uncommitted)
+SCOPE = DOCUMENTATION-ONLY DESIGN FREEZE
+```
+
+### ۱۷۶.۲ Accepted §175 audit conclusions
+
+```text
+STACK = PostgreSQL + SQLAlchemy Base + Alembic
+MIGRATION_HEAD = 051_i5b2_governed_source_profile (single contiguous head)
+PK = Integer / Identity
+ENUM_STORAGE = String columns
+TIMESTAMPS = naive UTC-style DateTime
+JSON = mostly Text-encoded
+REUSE = GovernedSourceProfile / Version + governance contracts + kb_b2 persistence
+LEGACY_PARTIAL = KnowledgeSource; KnowledgeIngestionRun = per-source ingest NOT weekly ledger
+MISSING = knowledge_gaps, weekly run ledger family, i5_governance_decisions
+CASCADE_CONFLICT = do not copy KnowledgeIngestionRun ON DELETE CASCADE into W1-P01 evidence
+```
+
+### ۱۷۶.۳ Mandatory architecture decisions (frozen)
+
+```text
+D1_LOGICAL_RUN_VS_ATTEMPT = SEPARATE TABLES
+  weekly_knowledge_runs = one logical scheduled governed run
+  weekly_knowledge_run_attempts = append-only executions/retries
+  UNIQUE(logical_run_key); UNIQUE(weekly_run_id, attempt_number)
+  UNIQUE(id, weekly_run_id) on attempts = referenced same-run composite FK target
+  same-run retry / successful_attempt / latest_attempt = COMPOSITE DATABASE FKs
+  MATCH SIMPLE on nullable composite FK pointer components
+  at most one successful terminal attempt per logical run (partial unique + service)
+
+D2_GOVERNANCE_DECISIONS = APPEND-ONLY TABLE i5_governance_decisions
+  mutable status columns are projections only; history via decisions
+  NO generic result.decision_id projection in W1-P01
+  result decision history = polymorphic entity_type/entity_id lookup only
+  decision_family = REQUIRED family key component (entity_type, entity_id, decision_family)
+  decision_request_key = operational idempotency key
+    UNIQUE(entity_type, entity_id, decision_request_key)  — decision_type NOT in unique boundary
+  canonical_hash = NON-UNIQUE content fingerprint (includes decision_family)
+  same-entity-family supersession = fk_i5gd_supersedes_same_entity_family
+  one root per entity/family = uq_i5gd_one_root_per_family
+  SUPERSESSION BRANCHING = PROHIBITED (uq_i5gd_one_superseder)
+  linear root-to-leaf chains only; STALE_SUPERSESSION_TARGET on non-leaf target
+
+D3_UTC = ALL W1-P01 TIMESTAMPS ARE UTC
+  store via existing naive DateTime convention; document as UTC; serialization emits UTC
+  no mixed aware/naive columns in W1-P01; no project-wide tz migration
+
+D4_CANONICALIZATION = VERSIONED SHA-256 v1
+  preserve canonicalization_version + hash_algorithm + key/hash on relevant rows
+  title alone NEVER a unique key
+  decision canonical_hash excludes created_at, database id, and decision_request_key
+  canonical_hash format CHECK ck_i5gd_canonical_hash_format = ^[0-9a-f]{64}$
+
+D5_DELETE_BEHAVIOR = FAIL-CLOSED RESTRICT for governed evidence
+  completed runs/attempts/results/decisions/version history/supersession = RESTRICT
+  discovered_attempt_id / same-run composite pointers / retry / decision supersession = RESTRICT
+  NO SET NULL for gap discovery provenance or governed decision evidence in W1-P01
+```
+
+### ۱۷۶.۴ Exact frozen table set
+
+```text
+TABLE_COUNT = 8 entities in contract
+EXTENDED = 1  (governed_source_profiles)
+REUSED_AS_IS = 1  (governed_source_profile_versions)
+NEW = 6
+  knowledge_gaps
+  weekly_knowledge_runs
+  weekly_knowledge_run_attempts
+  weekly_run_source_results
+  weekly_run_gap_results
+  i5_governance_decisions
+NEW_TABLE_COUNT = 6
+NO separate ISR root table (GSP is registry root)
+NO replacement of knowledge_sources
+DEFERRED = knowledge_units / provenance tables (W1-P02); dedicated rate-limit registry
+```
+
+### ۱۷۶.۵ GovernedSourceProfile extension contract
+
+```text
+TABLE = governed_source_profiles (EXISTING / EXTEND)
+TOPIC_COVERAGE_STORAGE = Text (UTF-8 canonical JSON string; project-compatible)
+  NOT JSONB in W1-P01 (no proven GIN query requirement)
+
+ADDITIVE COLUMNS:
+  registry_state              String(32)  NOT NULL  server_default='DISCOVERED'  app_default=DISCOVERED
+                              CHECK ck_gsp_registry_state_vocab
+                              IN (DISCOVERED,UNDER_REVIEW,APPROVED,ACTIVE,DEFERRED,BLOCKED,REVOKED,SUPERSEDED,ARCHIVED)
+                              BACKFILL existing rows = DISCOVERED (fail-closed; NEVER ACTIVE)
+
+  runtime_eligibility         String(32)  NOT NULL  server_default='NOT_ELIGIBLE'  app_default=NOT_ELIGIBLE
+                              CHECK ck_gsp_runtime_eligibility_vocab
+                              IN (NOT_ELIGIBLE,REVIEW_REQUIRED,ELIGIBLE,SUSPENDED,REVOKED)
+                              BACKFILL existing rows = NOT_ELIGIBLE (NEVER ELIGIBLE)
+
+  block_reason                Text        NULLABLE
+                              CHECK ck_gsp_block_reason_length: block_reason IS NULL OR char_length(block_reason) <= 2000
+  owner_reference             String(512) NULLABLE
+  reviewer_reference          String(512) NULLABLE
+  approver_reference          String(512) NULLABLE
+  topic_coverage              Text        NULLABLE   (canonical JSON; max UTF-8 bytes 65536 service-enforced)
+  effective_from              DateTime    NULLABLE   (UTC)
+  effective_to                DateTime    NULLABLE   (UTC)
+                              CHECK ck_gsp_effective_window_order:
+                              (effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from)
+  last_discovered_at          DateTime    NULLABLE
+  last_checked_at             DateTime    NULLABLE
+  last_reviewed_at            DateTime    NULLABLE
+  canonicalization_version    String(32)  NOT NULL  server_default='v1'
+
+QUERY_INDEXES (named; see §176.14 full matrix):
+  ix_gsp_registry_state (registry_state)
+  ix_gsp_runtime_eligibility (runtime_eligibility)
+  ix_gsp_last_checked_at (last_checked_at)
+  ix_gsp_last_reviewed_at (last_reviewed_at)
+  ix_gsp_registry_runtime (registry_state, runtime_eligibility)
+  NOTE: last_discovered_at has NO dedicated W1-P01 query index
+
+EXISTING KEPT: id, canonical_key, locator_*, legacy_knowledge_source_id, current_profile_version_id,
+               operational_status, row_version, created_at, updated_at
+VERSION TABLE REUSE: rights/automation/freshness/jurisdiction remain on governed_source_profile_versions
+```
+
+### ۱۷۶.۶ knowledge_gaps table contract
+
+```text
+TABLE = knowledge_gaps (NEW)
+COLUMN_COUNT = 39
+
+id                         Integer Identity PK
+canonical_gap_key          String(64)  NOT NULL  UNIQUE uq_knowledge_gaps_canonical_gap_key
+canonicalization_version   String(32)  NOT NULL  default 'v1'
+hash_algorithm             String(32)  NOT NULL  default 'SHA-256'
+domain                     String(128) NOT NULL
+subdomain                  String(128) NULLABLE
+capability_id              String(64)  NULLABLE
+gap_type                   String(64)  NOT NULL  CHECK ck_kg_gap_type_vocab
+title                      String(512) NOT NULL
+description                Text        NULLABLE
+                           CHECK ck_kg_description_length: description IS NULL OR char_length(description) <= 8000
+evidence_of_gap            Text        NULLABLE  (canonical JSON reference metadata; max UTF-8 bytes 16384 service)
+current_knowledge_state    Text        NULLABLE
+                           CHECK ck_kg_current_knowledge_state_length:
+                           current_knowledge_state IS NULL OR char_length(current_knowledge_state) <= 4000
+required_knowledge_state   Text        NULLABLE
+                           CHECK ck_kg_required_knowledge_state_length:
+                           required_knowledge_state IS NULL OR char_length(required_knowledge_state) <= 4000
+source_need                Text        NULLABLE  (canonical JSON; max UTF-8 bytes 16384 service)
+priority                   String(32)  NOT NULL  CHECK ck_kg_priority_vocab IN (P0,P1,P2,P3)  default 'P2'
+severity                   String(32)  NOT NULL  CHECK ck_kg_severity_vocab IN (LOW,MEDIUM,HIGH,CRITICAL)  default 'MEDIUM'
+urgency                    String(32)  NOT NULL  CHECK ck_kg_urgency_vocab IN (LOW,NORMAL,HIGH,IMMEDIATE)  default 'NORMAL'
+confidence                 Float       NULLABLE  CHECK ck_kg_confidence_range
+                           (confidence IS NULL OR (confidence >= 0 AND confidence <= 1))
+status                     String(32)  NOT NULL  CHECK ck_kg_status_vocab  default 'OPEN'
+owner_reference            String(512) NULLABLE
+reviewer_reference         String(512) NULLABLE
+blocker                    Text        NULLABLE
+                           CHECK ck_kg_blocker_length: blocker IS NULL OR char_length(blocker) <= 2000
+dependencies               Text        NULLABLE  (canonical JSON list; max UTF-8 bytes 16384 service)
+target_package_id          String(64)  NULLABLE
+target_source_profile_id   Integer     NULLABLE  FK → governed_source_profiles.id ON DELETE RESTRICT
+target_knowledge_unit_id   Integer     NULLABLE  NO FK until W1-P02 (scalar reference only)
+discovered_by              String(512) NULLABLE
+discovered_attempt_id      Integer     NULLABLE  FK → weekly_knowledge_run_attempts.id
+                           name=fk_knowledge_gaps_discovered_attempt_id
+                           ON DELETE RESTRICT  ON UPDATE NO ACTION / project convention
+                           CANONICAL DISCOVERY PROVENANCE (not part of canonical_gap_key)
+                           NULLABLE because gap may originate from manual governance review,
+                           runtime retrieval analysis, medical safety review, or non-crawler
+                           internal analysis (no crawler attempt yet)
+                           LOGICAL WEEKLY RUN = DERIVED via
+                           discovered_attempt_id → attempts.id → attempts.weekly_run_id → runs.id
+                           NO duplicate logical-run discovery FK projection in W1-P01
+next_action                Text        NULLABLE
+                           CHECK ck_kg_next_action_length: next_action IS NULL OR char_length(next_action) <= 2000
+next_review_at             DateTime    NULLABLE
+retry_count                Integer     NOT NULL  default 0  CHECK ck_kg_retry_count_nonneg (>= 0)
+last_attempt_at            DateTime    NULLABLE
+resolution_type            String(64)  NULLABLE
+resolution_evidence        Text        NULLABLE  (canonical JSON references; max UTF-8 bytes 16384 service)
+resolved_by_reference      String(512) NULLABLE
+resolved_at                DateTime    NULLABLE
+created_at                 DateTime    NOT NULL  UTC
+updated_at                 DateTime    NOT NULL  UTC
+row_version                Integer     NOT NULL  default 1
+
+COLUMN_COUNT_CONFIRMATION = 39
+  NO lineage self-FK on knowledge_gaps in W1-P01
+  reopening retains same knowledge_gaps.id + same canonical_gap_key
+
+STRUCTURED_TEXT_FIELDS = evidence_of_gap, source_need, dependencies, resolution_evidence
+  = Text storing canonical JSON; never raw user chat; never unrestricted copyrighted full text
+
+GAP_TYPES = MISSING|STALE|LOW_CONFIDENCE|CONFLICTING|RETRACTED|INSUFFICIENT_COVERAGE|
+            MISSING_PROVENANCE|MISSING_RIGHTS_REVIEW|MISSING_SAFETY_REVIEW|RUNTIME_RETRIEVAL_FAILURE
+GAP_STATUS = OPEN|TRIAGED|PLANNED|IN_PROGRESS|BLOCKED|DEFERRED|RESOLVED|REJECTED|REOPENED
+
+CHECKS:
+  RESOLVED ⇒ resolution_type, resolution_evidence, resolved_by_reference, resolved_at NOT NULL
+  BLOCKED ⇒ blocker NOT NULL
+  REOPENED ⇒ requires append-only GAP_REOPEN decision with reason + evidence_reference
+               (service/transaction enforced; no lineage self-FK)
+
+REOPENING_TRANSACTION (same gap identity; no new gap row):
+  1. Load existing gap by canonical_gap_key
+  2. Lock gap row SELECT FOR UPDATE (or equivalent conditional row_version update)
+  3. Verify current status eligible for reopening: RESOLVED|REJECTED only
+  4. Append i5_governance_decisions:
+       decision_type=GAP_REOPEN; decision_family=GAP_LIFECYCLE;
+       entity_type=KNOWLEDGE_GAP; entity_id=existing id;
+       evidence_reference REQUIRED; reason REQUIRED
+  5. Update same-row projection: status=REOPENED
+  6. Clear resolution projection atomically:
+       resolution_type=NULL; resolution_evidence=NULL;
+       resolved_by_reference=NULL; resolved_at=NULL
+  7. Preserve prior GAP_RESOLUTION exclusively via append-only decision history
+     and any prior weekly_run_gap_results (do NOT delete/overwrite prior decision)
+  8. Increment row_version
+  9. If caused by weekly attempt: finalize ONE weekly_run_gap_results SUMMARY row
+       UNIQUE(attempt_id, gap_id); result_type=final material outcome (e.g. REOPENED);
+       previous_status=before first material effect; new_status=final at terminalization;
+       evidence_reference REQUIRED
+  10. Commit decision + projection + optional run-gap result in one transaction
+
+ALLOWED_TO_REOPENED = RESOLVED→REOPENED | REJECTED→REOPENED (default-deny otherwise)
+AFTER_REOPENED_ALLOWED = TRIAGED|PLANNED|IN_PROGRESS|BLOCKED|DEFERRED|RESOLVED|REJECTED
+  each governed transition recorded through append-only decisions when required
+
+QUERY_INDEXES (named; see §176.14):
+  ix_kg_status_priority_severity (status, priority, severity)
+  ix_kg_next_review_at (next_review_at)
+  ix_kg_target_source_profile_id (target_source_profile_id)
+  ix_kg_discovered_attempt_id (discovered_attempt_id)
+  ix_kg_capability_id (capability_id)
+  ix_kg_target_package_id (target_package_id)
+  ix_kg_domain_subdomain (domain, subdomain)
+QUERY_PURPOSE_discovered_attempt_id =
+  find gaps discovered by a specific execution attempt;
+  reconstruct gaps created/reopened during an attempt;
+  derive logical-run gap outcomes through attempt.weekly_run_id
+CANONICAL_GAP_RULE =
+  same gap discovered by multiple runs/attempts resolves to same canonical_gap_key and gap id;
+  discovered_attempt_id is provenance, not identity; reopening must not change canonical_gap_key
+```
+
+### ۱۷۶.۷ weekly_knowledge_runs (logical run) contract
+
+```text
+TABLE = weekly_knowledge_runs (NEW)
+COLUMN_COUNT = 28
+
+id                         Integer Identity PK
+logical_run_key            String(64)  NOT NULL  UNIQUE uq_weekly_knowledge_runs_logical_run_key
+canonicalization_version   String(32)  NOT NULL  default 'v1'
+hash_algorithm             String(32)  NOT NULL  default 'SHA-256'
+schedule_key               String(128) NOT NULL
+run_type                   String(64)  NOT NULL  default 'WEEKLY_GOVERNED'  CHECK ck_wkr_run_type_vocab
+trigger_type               String(64)  NOT NULL  CHECK ck_wkr_trigger_type_vocab IN (SCHEDULED,MANUAL,RETRY_PARENT,AD_HOC)
+planned_window_start       DateTime    NOT NULL  UTC
+planned_window_end         DateTime    NOT NULL  UTC
+                           CHECK ck_wkr_window_order: planned_window_end >= planned_window_start
+approval_state             String(32)  NOT NULL  CHECK ck_wkr_approval_state_vocab IN (NOT_REQUIRED,REQUIRED,APPROVED,REJECTED,EXPIRED)
+source_scope_hash          String(64)  NOT NULL
+domain_scope_hash          String(64)  NOT NULL
+gap_scope_hash             String(64)  NOT NULL
+config_version             String(64)  NOT NULL
+config_hash                String(64)  NOT NULL
+source_scope               Text        NOT NULL  (canonical JSON; max UTF-8 bytes 65536 service)
+domain_scope               Text        NOT NULL  (canonical JSON; max UTF-8 bytes 65536 service)
+gap_scope                  Text        NOT NULL  (canonical JSON; max UTF-8 bytes 65536 service)
+status                     String(32)  NOT NULL  CHECK ck_wkr_status_vocab
+successful_attempt_id      Integer     NULLABLE
+                           DEFERRED COMPOSITE FK name=fk_wkr_successful_attempt_same_run
+                           (successful_attempt_id, id) → weekly_knowledge_run_attempts(id, weekly_run_id)
+                           ON DELETE RESTRICT  ON UPDATE NO ACTION / project convention
+                           MATCH SIMPLE
+                           created in PHASE 8 after attempts table exists
+latest_attempt_id          Integer     NULLABLE
+                           DEFERRED COMPOSITE FK name=fk_wkr_latest_attempt_same_run
+                           (latest_attempt_id, id) → weekly_knowledge_run_attempts(id, weekly_run_id)
+                           ON DELETE RESTRICT  ON UPDATE NO ACTION / project convention
+                           MATCH SIMPLE
+                           created in PHASE 8 after attempts table exists
+created_by_reference       String(512) NULLABLE
+approved_by_reference      String(512) NULLABLE
+approved_at                DateTime    NULLABLE
+supersedes_run_id          Integer     NULLABLE  FK → weekly_knowledge_runs.id ON DELETE RESTRICT
+                           CHECK ck_wkr_supersedes_not_self: supersedes_run_id IS NULL OR supersedes_run_id <> id
+created_at                 DateTime    NOT NULL
+updated_at                 DateTime    NOT NULL
+row_version                Integer     NOT NULL  default 1
+
+COLUMN_COUNT_CONFIRMATION = 28 (exact enumerated list; no phantom columns)
+
+LOGICAL_STATUS = PLANNED|APPROVAL_REQUIRED|APPROVED|IN_PROGRESS|COMPLETED|COMPLETED_WITH_WARNINGS|
+                 FAILED|BLOCKED|DEFERRED|CANCELLED|SUPERSEDED
+DATABASE_ENFORCED =
+  same-run successful_attempt_id ownership via fk_wkr_successful_attempt_same_run
+  same-run latest_attempt_id ownership via fk_wkr_latest_attempt_same_run
+SERVICE_TRANSACTION_ENFORCED =
+  successful_attempt.status IN (COMPLETED, COMPLETED_WITH_WARNINGS)
+  latest_attempt.attempt_number = MAX committed attempt_number for that weekly run
+  successful_attempt_id set only once terminal successful attempt + immutable results persisted
+  latest_attempt_id updated atomically with attempt creation
+  no overwrite of prior completed evidence
+
+LOGICAL_RUN_CREATE (explicit transaction; separate from attempt allocation):
+  1. Canonicalize schedule, time window, scopes and config
+  2. Compute logical_run_key
+  3. Attempt INSERT under uq_weekly_knowledge_runs_logical_run_key
+  4. On unique conflict: load the existing logical run
+  5. Compare every canonical logical-run identity field:
+       schedule_key, planned_window_start, planned_window_end,
+       source_scope_hash, domain_scope_hash, gap_scope_hash,
+       config_version, config_hash, canonicalization_version, hash_algorithm
+  6. If all identity fields match: return existing run (idempotent create)
+  7. If any field differs: FAIL CLOSED LOGICAL_RUN_KEY_PAYLOAD_MISMATCH
+  8. Never overwrite the existing logical run
+  9. Never create a second logical run under the same key
+
+QUERY_INDEXES (named; see §176.14):
+  ix_wkr_status_window (status, planned_window_start)
+  ix_wkr_schedule_window (schedule_key, planned_window_start)
+  ix_wkr_approval_state (approval_state)
+  ix_wkr_successful_attempt_id (successful_attempt_id)
+  ix_wkr_latest_attempt_id (latest_attempt_id)
+  ix_wkr_supersedes_run_id (supersedes_run_id)
+```
+
+### ۱۷۶.۸ weekly_knowledge_run_attempts contract
+
+```text
+TABLE = weekly_knowledge_run_attempts (NEW)
+COLUMN_COUNT = 33
+
+id                         Integer Identity PK
+weekly_run_id              Integer NOT NULL  FK → weekly_knowledge_runs.id ON DELETE RESTRICT
+                           name=fk_wkra_weekly_run_id
+attempt_number             Integer NOT NULL  CHECK >= 1
+UNIQUE(weekly_run_id, attempt_number)  name=uq_wkra_run_attempt
+UNIQUE(id, weekly_run_id)              name=uq_wkra_id_weekly_run_id
+  = referenced unique pair required for same-run composite FK targets
+retry_of_attempt_id        Integer NULLABLE
+                           COMPOSITE SAME-RUN SELF-FK name=fk_wkra_retry_same_run
+                           (retry_of_attempt_id, weekly_run_id)
+                           → weekly_knowledge_run_attempts(id, weekly_run_id)
+                           ON DELETE RESTRICT  ON UPDATE NO ACTION / project convention
+                           MATCH SIMPLE
+                           DATABASE-ENFORCED: when retry_of_attempt_id IS NOT NULL,
+                           retry_of_attempt.weekly_run_id = current.weekly_run_id
+                           CHECK retry_of_attempt_id IS NULL OR retry_of_attempt_id <> id
+                           name=ck_wkra_retry_not_self
+status                     String(32) NOT NULL  CHECK ck_wkra_status_vocab
+started_at                 DateTime NULLABLE
+completed_at               DateTime NULLABLE
+                           CHECK ck_wkra_completed_after_started:
+                           completed_at IS NULL OR started_at IS NULL OR completed_at >= started_at
+worker_reference           String(512) NULLABLE  (reference only; no secret payload)
+config_snapshot_reference  String(2048) NULLABLE  (reference only; no secret payload)
+run_checksum               String(64) NULLABLE
+canonicalization_version   String(32) NOT NULL default 'v1'
+hash_algorithm             String(32) NOT NULL default 'SHA-256'
+total_sources              Integer NOT NULL default 0  CHECK ck_wkra_total_sources_nonnegative (>= 0)
+checked_sources            Integer NOT NULL default 0  CHECK ck_wkra_checked_sources_nonnegative (>= 0)
+fetched_sources            Integer NOT NULL default 0  CHECK ck_wkra_fetched_sources_nonnegative (>= 0)
+skipped_sources            Integer NOT NULL default 0  CHECK ck_wkra_skipped_sources_nonnegative (>= 0)
+blocked_sources            Integer NOT NULL default 0  CHECK ck_wkra_blocked_sources_nonnegative (>= 0)
+failed_sources             Integer NOT NULL default 0  CHECK ck_wkra_failed_sources_nonnegative (>= 0)
+new_knowledge_count        Integer NOT NULL default 0  CHECK ck_wkra_new_knowledge_count_nonnegative (>= 0)
+updated_knowledge_count    Integer NOT NULL default 0  CHECK ck_wkra_updated_knowledge_count_nonnegative (>= 0)
+superseded_knowledge_count Integer NOT NULL default 0  CHECK ck_wkra_superseded_knowledge_count_nonnegative (>= 0)
+rejected_knowledge_count   Integer NOT NULL default 0  CHECK ck_wkra_rejected_knowledge_count_nonnegative (>= 0)
+created_gap_count          Integer NOT NULL default 0  CHECK ck_wkra_created_gap_count_nonnegative (>= 0)
+resolved_gap_count         Integer NOT NULL default 0  CHECK ck_wkra_resolved_gap_count_nonnegative (>= 0)
+warning_count              Integer NOT NULL default 0  CHECK ck_wkra_warning_count_nonnegative (>= 0)
+error_count                Integer NOT NULL default 0  CHECK ck_wkra_error_count_nonnegative (>= 0)
+failure_code               String(128) NULLABLE
+failure_reason             Text NULLABLE
+                           CHECK ck_wkra_failure_reason_length:
+                           failure_reason IS NULL OR char_length(failure_reason) <= 2000
+block_reason               Text NULLABLE
+                           CHECK ck_wkra_block_reason_length:
+                           block_reason IS NULL OR char_length(block_reason) <= 2000
+evidence_reference         String(2048) NULLABLE
+created_at                 DateTime NOT NULL
+updated_at                 DateTime NOT NULL
+row_version                Integer NOT NULL default 1
+
+COLUMN_COUNT_CONFIRMATION = 33 (all metric names explicit; no abbreviated ellipsis)
+
+ATTEMPT_STATUS = CREATED|STARTED|RUNNING|COMPLETED|COMPLETED_WITH_WARNINGS|FAILED|BLOCKED|DEFERRED|CANCELLED|SUPERSEDED
+
+PARTIAL_UNIQUE (DATABASE-ENFORCED):
+  CREATE UNIQUE INDEX uq_wkra_one_successful_terminal
+  ON weekly_knowledge_run_attempts (weekly_run_id)
+  WHERE status IN ('COMPLETED', 'COMPLETED_WITH_WARNINGS');
+
+SERVICE_TRANSACTION_ENFORCED =
+  retry attempt_number > referenced attempt_number
+  latest_attempt_id / attempt_number allocation under run lock
+  successful terminalization atomicity (see §176.14 transaction contract)
+
+TERMINAL_CHECKS:
+  STARTED/RUNNING/terminal ⇒ started_at NOT NULL
+  terminal ⇒ completed_at NOT NULL
+  FAILED ⇒ failure_code OR failure_reason NOT NULL
+  BLOCKED ⇒ block_reason NOT NULL
+QUERY_INDEXES (named; see §176.14):
+  ix_wkra_status_started_at (status, started_at)
+  ix_wkra_retry_of_attempt_id (retry_of_attempt_id)
+IMMUTABLE_AFTER = terminal status (service-enforced; no destructive overwrite)
+```
+
+### ۱۷۶.۹ weekly_run_source_results contract
+
+```text
+TABLE = weekly_run_source_results (NEW)
+COLUMN_COUNT = 21
+
+id Integer Identity PK
+attempt_id Integer NOT NULL FK → weekly_knowledge_run_attempts.id ON DELETE RESTRICT
+source_profile_id Integer NOT NULL FK → governed_source_profiles.id ON DELETE RESTRICT
+source_version_id Integer NULLABLE FK → governed_source_profile_versions.id ON DELETE RESTRICT
+result_status String(32) NOT NULL  CHECK ck_wrsr_result_status_vocab
+checked_at DateTime NULLABLE
+fetch_outcome String(64) NULLABLE
+extraction_outcome String(64) NULLABLE
+publication_outcome String(64) NULLABLE
+knowledge_new_count Integer NOT NULL default 0 CHECK ck_wrsr_knowledge_new_count_nonnegative (>= 0)
+knowledge_updated_count Integer NOT NULL default 0 CHECK ck_wrsr_knowledge_updated_count_nonnegative (>= 0)
+knowledge_superseded_count Integer NOT NULL default 0 CHECK ck_wrsr_knowledge_superseded_count_nonnegative (>= 0)
+knowledge_rejected_count Integer NOT NULL default 0 CHECK ck_wrsr_knowledge_rejected_count_nonnegative (>= 0)
+gap_created_count Integer NOT NULL default 0 CHECK ck_wrsr_gap_created_count_nonnegative (>= 0)
+warning_count Integer NOT NULL default 0 CHECK ck_wrsr_warning_count_nonnegative (>= 0)
+error_count Integer NOT NULL default 0 CHECK ck_wrsr_error_count_nonnegative (>= 0)
+failure_code String(128) NULLABLE
+failure_reason Text NULLABLE
+  CHECK ck_wrsr_failure_reason_length: failure_reason IS NULL OR char_length(failure_reason) <= 2000
+evidence_reference String(2048) NULLABLE
+content_fingerprint String(64) NULLABLE
+created_at DateTime NOT NULL
+
+UNIQUE(attempt_id, source_profile_id) name=uq_wrsr_attempt_source_profile
+COLUMN_COUNT_CONFIRMATION = 21 (exact Gate order; all count columns named explicitly; no knowledge_* abbreviation)
+NO generic decision_id column in W1-P01
+decision history for a source result =
+  i5_governance_decisions WHERE entity_type='RUN_SOURCE_RESULT' AND entity_id=result.id
+  ORDER BY created_at ASC, id ASC
+NO destructive update after parent attempt terminal
+QUERY_INDEXES (named; see §176.14):
+  ix_wrsr_source_profile_id (source_profile_id)
+  ix_wrsr_result_status (result_status)
+```
+
+### ۱۷۶.۱۰ weekly_run_gap_results contract
+
+```text
+TABLE = weekly_run_gap_results (NEW)
+COLUMN_COUNT = 8
+SEMANTICS = ONE FINAL IMMUTABLE SUMMARY ROW PER (attempt_id, gap_id)
+  NOT an event ledger
+
+id Integer Identity PK
+attempt_id Integer NOT NULL FK → weekly_knowledge_run_attempts.id ON DELETE RESTRICT
+gap_id Integer NOT NULL FK → knowledge_gaps.id ON DELETE RESTRICT
+UNIQUE(attempt_id, gap_id) name=uq_wrgr_attempt_gap
+result_type String(32) NOT NULL
+  CHECK ck_wrgr_result_type_vocab
+  IN (DISCOVERED,UPDATED,TRIAGED,PLANNED,BLOCKED,DEFERRED,RESOLVED,REOPENED,REJECTED,UNCHANGED)
+previous_status String(32) NULLABLE
+  CHECK ck_wrgr_previous_status_vocab
+  (NULL OR KnowledgeGapStatus vocabulary)
+  = gap status before the first material effect attributable to the attempt
+new_status String(32) NULLABLE
+  CHECK ck_wrgr_new_status_vocab
+  (NULL OR KnowledgeGapStatus vocabulary)
+  = final gap current-state projection when the attempt is terminalized
+evidence_reference String(2048) NULLABLE
+created_at DateTime NOT NULL
+  = time the final summary is persisted
+
+result_type = final material outcome produced by the attempt for the gap
+UNCHANGED = the attempt evaluated the gap but produced no material state change
+
+PERSISTENCE_TIMING:
+  created or finalized during attempt terminalization
+  before terminalization: service may hold an in-transaction candidate summary
+  after terminalization: row is IMMUTABLE
+
+MULTIPLE_INTERNAL_TRANSITIONS_IN_ONE_ATTEMPT:
+  previous_status = status before the first transition
+  new_status = status after the final transition
+  result_type = final material outcome
+  all intermediate governed transitions = append-only i5_governance_decisions
+  DO NOT insert additional weekly_run_gap_results rows for intermediate events
+
+NO generic decision_id column in W1-P01
+decision history for a gap result =
+  i5_governance_decisions WHERE entity_type='RUN_GAP_RESULT' AND entity_id=result.id
+  ORDER BY created_at ASC, id ASC
+QUERY_INDEXES (named; see §176.14):
+  ix_wrgr_gap_id (gap_id)
+  ix_wrgr_result_type (result_type)
+```
+
+### ۱۷۶.۱۱ i5_governance_decisions contract
+
+```text
+TABLE = i5_governance_decisions (NEW) APPEND-ONLY
+COLUMN_COUNT = 20
+
+1. id Integer Identity PK
+2. entity_type String(64) NOT NULL CHECK ck_i5gd_entity_type_vocab
+3. entity_id Integer NOT NULL CHECK ck_i5gd_entity_id_pos (entity_id > 0)
+4. decision_family String(64) NOT NULL CHECK ck_i5gd_decision_family_vocab
+5. decision_type String(64) NOT NULL CHECK ck_i5gd_decision_type_vocab
+6. decision_request_key String(128) NOT NULL
+   CHECK ck_i5gd_decision_request_key_format: ^[A-Za-z0-9._:-]{1,128}$
+   same retry = same key; later review = new key; NO reuse across decision_types for same entity
+7. from_state String(64) NULLABLE ENFORCEMENT=SERVICE-ONLY OWNER=BACKEND+GOVERNANCE DEFAULT=DENY UNKNOWN
+8. to_state String(64) NULLABLE ENFORCEMENT=SERVICE-ONLY OWNER=BACKEND+GOVERNANCE DEFAULT=DENY UNKNOWN
+9. outcome String(32) NOT NULL CHECK ck_i5gd_outcome_vocab
+10. reason_code String(128) NULLABLE
+11. reason Text NULLABLE CHECK ck_i5gd_reason_length char_length<=4000
+12. actor_type String(32) NOT NULL CHECK ck_i5gd_actor_type_vocab
+13. actor_reference String(512) NULLABLE
+14. evidence_reference String(2048) NULLABLE
+15. decision_metadata Text NULLABLE max UTF-8 bytes 16384 service
+16. canonical_hash String(64) NOT NULL NON-UNIQUE CHECK ck_i5gd_canonical_hash_format ^[0-9a-f]{64}$
+17. canonicalization_version String(32) NOT NULL default 'v1' CHECK ck_i5gd_canonicalization_version_constant ='v1'
+18. hash_algorithm String(32) NOT NULL default 'SHA-256' CHECK ck_i5gd_hash_algorithm_constant ='SHA-256'
+19. supersedes_decision_id Integer NULLABLE
+20. created_at DateTime NOT NULL
+
+COLUMN_COUNT_CONFIRMATION = 20
+NO updated_at COLUMN AUTHORIZED
+ALL_COLUMNS_IMMUTABLE_AFTER_INSERT = YES
+  id, entity_type, entity_id, decision_family, decision_type, decision_request_key,
+  from_state, to_state, outcome, reason_code, reason, actor_type, actor_reference,
+  evidence_reference, decision_metadata, canonical_hash, canonicalization_version,
+  hash_algorithm, supersedes_decision_id, created_at
+HARD_DELETE = PROHIBITED; SOFT_DELETE_MUTATION = PROHIBITED; CASCADE_DELETE = PROHIBITED
+parent supersession FK ON DELETE = RESTRICT
+
+REPOSITORY_WRITE_SURFACE = INSERT ONLY
+ALLOWED_SERVICE_OPS = create, get, list, query history, query family chain, query current family leaf
+PROHIBITED_SERVICE_OPS = update, patch, delete, restore by mutation, rewrite history
+CORRECTIONS = new append-only decision row only
+
+APPEND_ONLY_TRIGGER_FUNCTION = fn_i5gd_reject_mutation
+APPEND_ONLY_TRIGGER = trg_i5gd_append_only
+EQUIVALENT_INTENT:
+  CREATE TRIGGER trg_i5gd_append_only
+  BEFORE UPDATE OR DELETE ON i5_governance_decisions
+  FOR EACH ROW EXECUTE FUNCTION fn_i5gd_reject_mutation();
+TRIGGER_MUST: reject every UPDATE; reject every DELETE; raise deterministic DB exception;
+  include table and attempted operation; not expose sensitive row content; return no mutated row
+ERROR_IDENTIFIER = I5_GOVERNANCE_DECISION_APPEND_ONLY_VIOLATION
+PostgreSQL exception code may be frozen at migration authoring; mutation rejection is mandatory
+
+UNIQUE:
+  uq_i5gd_decision_request (entity_type, entity_id, decision_request_key)  -- NO decision_type
+  uq_i5gd_id_entity_family (id, entity_type, entity_id, decision_family)
+
+PARTIAL UNIQUE:
+  uq_i5gd_one_superseder ON (supersedes_decision_id) WHERE supersedes_decision_id IS NOT NULL
+  uq_i5gd_one_root_per_family ON (entity_type, entity_id, decision_family) WHERE supersedes_decision_id IS NULL
+
+FK fk_i5gd_supersedes_same_entity_family
+  (supersedes_decision_id, entity_type, entity_id, decision_family)
+  -> (id, entity_type, entity_id, decision_family) MATCH SIMPLE ON DELETE RESTRICT
+  ENFORCES: same entity_type, same entity_id, same decision_family between new and prior decision
+
+CHECK ck_i5gd_supersedes_not_self; ck_i5gd_supersession_requires_parent;
+CHECK ck_i5gd_decision_type_family_matrix; ck_i5gd_entity_family_matrix;
+CHECK ck_i5gd_entity_decision_matrix
+
+--- AUTHORITATIVE MATRIX 1: DECISION_TYPE_TO_FAMILY_MATRIX (default-deny) ---
+  RIGHTS_REVIEW -> RIGHTS
+  AUTOMATION_REVIEW -> AUTOMATION
+  QUALITY_REVIEW -> QUALITY
+  MEDICAL_SAFETY_REVIEW -> MEDICAL_SAFETY
+  SECURITY_REVIEW -> SECURITY
+  APPROVAL -> LIFECYCLE
+  REJECTION -> LIFECYCLE
+  ACTIVATION -> LIFECYCLE
+  SUSPENSION -> LIFECYCLE
+  REVOCATION -> LIFECYCLE
+  GAP_RESOLUTION -> GAP_LIFECYCLE
+  GAP_REOPEN -> GAP_LIFECYCLE
+  RUN_APPROVAL -> RUN_APPROVAL
+  RUN_TERMINALIZATION -> RUN_TERMINALIZATION
+  SUPERSESSION -> inherits decision_family from prior decision (service/transaction);
+                 not a root; cannot change entity_type or entity_id
+ck_i5gd_decision_type_family_matrix enforces normal non-SUPERSESSION type/family mappings.
+For decision_type=SUPERSESSION the CHECK only permits the row-level special form;
+it does NOT compare the parent row's family.
+NO DATABASE CHECK IS CLAIMED TO READ A REFERENCED PARENT ROW.
+
+--- AUTHORITATIVE MATRIX 2: ENTITY_TYPE_TO_FAMILY_MATRIX (default-deny) ---
+  SOURCE_PROFILE -> RIGHTS, AUTOMATION, QUALITY, MEDICAL_SAFETY, SECURITY, LIFECYCLE
+  SOURCE_PROFILE_VERSION -> RIGHTS, AUTOMATION, QUALITY, MEDICAL_SAFETY, SECURITY, LIFECYCLE
+  KNOWLEDGE_GAP -> LIFECYCLE, GAP_LIFECYCLE
+  WEEKLY_RUN -> LIFECYCLE, RUN_APPROVAL
+  WEEKLY_RUN_ATTEMPT -> RUN_TERMINALIZATION
+  RUN_SOURCE_RESULT -> RIGHTS, AUTOMATION, QUALITY, MEDICAL_SAFETY, SECURITY, LIFECYCLE
+  RUN_GAP_RESULT -> QUALITY, LIFECYCLE
+DB CHECK = ck_i5gd_entity_family_matrix (same-row entity_type × decision_family)
+
+--- AUTHORITATIVE MATRIX 3: ENTITY_TYPE_TO_DECISION_TYPE_MATRIX (default-deny) ---
+  SOURCE_PROFILE ->
+    RIGHTS_REVIEW, AUTOMATION_REVIEW, QUALITY_REVIEW, MEDICAL_SAFETY_REVIEW, SECURITY_REVIEW,
+    APPROVAL, REJECTION, ACTIVATION, SUSPENSION, REVOCATION, SUPERSESSION
+  SOURCE_PROFILE_VERSION ->
+    RIGHTS_REVIEW, AUTOMATION_REVIEW, QUALITY_REVIEW, MEDICAL_SAFETY_REVIEW, SECURITY_REVIEW,
+    APPROVAL, REJECTION, SUPERSESSION
+  KNOWLEDGE_GAP ->
+    APPROVAL, REJECTION, GAP_RESOLUTION, GAP_REOPEN, SUPERSESSION
+  WEEKLY_RUN ->
+    RUN_APPROVAL, APPROVAL, REJECTION, SUSPENSION, REVOCATION, SUPERSESSION
+  WEEKLY_RUN_ATTEMPT ->
+    RUN_TERMINALIZATION, SUPERSESSION
+  RUN_SOURCE_RESULT ->
+    RIGHTS_REVIEW, AUTOMATION_REVIEW, QUALITY_REVIEW, MEDICAL_SAFETY_REVIEW, SECURITY_REVIEW,
+    APPROVAL, REJECTION, SUPERSESSION
+  RUN_GAP_RESULT ->
+    QUALITY_REVIEW, APPROVAL, REJECTION, SUPERSESSION
+ALL UNLISTED entity_type × decision_type COMBINATIONS = DENIED BY DEFAULT
+DB CHECK = ck_i5gd_entity_decision_matrix
+  enforces only the same-row pair (entity_type, decision_type)
+  exact allowed-pair vocabulary MUST match GovernanceEntityType × GovernanceDecisionType byte-for-byte
+This CHECK is separate from ck_i5gd_entity_family_matrix and ck_i5gd_decision_type_family_matrix.
+All three matrices MUST be mutually compatible.
+
+--- AUTHORITATIVE MATRIX 4: NEW_TO_PRIOR_SUPERSESSION_TYPE_MATRIX ---
+DIRECTION = NEW DECISION TYPE → PRIOR SUPERSEDED DECISION TYPE
+ENFORCEMENT = SERVICE / TRANSACTION (NOT a same-row DB CHECK; compares new vs referenced prior)
+DEFAULT = DENY
+ERROR = INVALID_SUPERSESSION_TRANSITION
+
+GENERIC SAME-TYPE CORRECTION (remain within respective families):
+  RIGHTS_REVIEW -> RIGHTS_REVIEW
+  AUTOMATION_REVIEW -> AUTOMATION_REVIEW
+  QUALITY_REVIEW -> QUALITY_REVIEW
+  MEDICAL_SAFETY_REVIEW -> MEDICAL_SAFETY_REVIEW
+  SECURITY_REVIEW -> SECURITY_REVIEW
+
+LIFECYCLE FAMILY:
+  APPROVAL -> REJECTION, APPROVAL, SUSPENSION
+  REJECTION -> APPROVAL, REJECTION, SUSPENSION
+  ACTIVATION -> APPROVAL, SUSPENSION, ACTIVATION
+  SUSPENSION -> APPROVAL, ACTIVATION, SUSPENSION
+  REVOCATION -> APPROVAL, ACTIVATION, SUSPENSION, REVOCATION
+INTERPRETATION:
+  APPROVAL may correct a prior rejection, refresh approval, or close temporary suspension at approval layer.
+  REJECTION may reverse approval, replace a prior rejection, or reject after suspension review.
+  ACTIVATION may follow approval, reactivate after suspension, or replace an activation decision.
+  SUSPENSION may suspend an approved or active entity, or replace a suspension decision.
+  REVOCATION may revoke an approved, active or suspended entity, or replace a revocation decision.
+  Matrix does NOT authorize automatic runtime activation; it only governs append-only decision history.
+
+GAP_LIFECYCLE FAMILY:
+  GAP_REOPEN -> GAP_RESOLUTION
+  GAP_RESOLUTION -> GAP_REOPEN, GAP_RESOLUTION
+
+RUN_APPROVAL FAMILY:
+  RUN_APPROVAL -> RUN_APPROVAL
+
+RUN_TERMINALIZATION FAMILY:
+  RUN_TERMINALIZATION -> RUN_TERMINALIZATION
+  evidenced correction REQUIRED for a replacement terminalization decision
+
+SUPERSESSION SPECIAL TYPE:
+  SUPERSESSION -> any prior decision type that is:
+    1. allowed for the same entity_type;
+    2. mapped to the same decision_family;
+    3. the current family leaf;
+    4. supported by non-empty reason;
+    5. supported by non-empty evidence_reference.
+  SUPERSESSION cannot be a root.
+  SUPERSESSION inherits decision_family from the prior decision.
+  SUPERSESSION cannot change entity_type or entity_id.
+ALL UNLISTED TRANSITIONS = DENIED BY DEFAULT
+
+--- EFFECTIVE_PRIOR_DECISION_TYPE (FIX6; F-AUD-05-01) ---
+OWNER = SERVICE / TRANSACTION (deterministic derivation from immutable chain; no mutable projection)
+DEFINITION:
+  effective_prior_decision_type(decision):
+    IF decision.decision_type != SUPERSESSION:
+      return decision.decision_type
+    ELSE:
+      follow supersedes_decision_id backward within the same
+        (entity_type, entity_id, decision_family)
+      return the decision_type of the nearest ancestor whose decision_type != SUPERSESSION
+PRECONDITIONS:
+  SUPERSESSION CANNOT BE A ROOT DECISION
+  SUPERSESSION LINKS ARE APPEND-ONLY
+  SUPERSESSION LINKS ARE IMMUTABLE
+  SAME-ENTITY-FAMILY COMPOSITE FK REMAINS REQUIRED
+  SUPERSESSION BRANCHING REMAINS PROHIBITED (uq_i5gd_one_superseder)
+  CYCLES ARE PROHIBITED (append-only links to already-persisted rows; not-self CHECK)
+FAIL_CLOSED:
+  IF NO VALID NON-SUPERSESSION ANCESTOR CAN BE RESOLVED:
+    CORRUPT_SUPERSESSION_CHAIN
+COMPATIBILITY RULE FOR A NEW SUCCESSOR AFTER A SUPERSESSION LEAF:
+  validate NEW decision_type → effective_prior_decision_type(current_leaf)
+  DO NOT treat the literal leaf decision_type SUPERSESSION as the historical business prior type
+MULTIPLE CONSECUTIVE SUPERSESSION DECISIONS:
+  traversal continues until the nearest non-SUPERSESSION ancestor is found;
+  if the chain is corrupt or truncated, fail closed with CORRUPT_SUPERSESSION_CHAIN
+EXAMPLE:
+  APPROVAL root → SUPERSESSION leaf → ACTIVATION successor
+  effective_prior_decision_type(SUPERSESSION leaf) = APPROVAL
+  transition checked = ACTIVATION → APPROVAL (allowed under LIFECYCLE matrix)
+
+--- SUPERSESSION CORRUPTION CASE → OWNER → FAILURE CROSSWALK (FINAL-DESIGN-FIX; F-FINAL-03) ---
+DISTINCTION:
+  WRITE-TIME STRUCTURAL REJECTION = DB constraints / pre-insert validation prevent bad inserts
+  READ-TIME CORRUPTION DETECTION = service traversal of already-persisted (or external/legacy) chains
+OWNERSHIP:
+  DB = fk_i5gd_supersedes_same_entity_family; ck_i5gd_supersedes_not_self;
+       uq_i5gd_one_superseder; target existence; ON DELETE RESTRICT; append-only trigger
+  SERVICE / TRANSACTION = root prohibition; target pre-read; effective_prior traversal;
+       bounded ancestor walk; read-time cycle detection; CORRUPT_SUPERSESSION_CHAIN classification;
+       transition matrix validation; deterministic integrity error mapping
+CASE CROSSWALK (no new error enum/schema object invented):
+  SUPERSESSION as root
+    OWNER=SERVICE/TRANSACTION pre-insert | FAIL=invalid-root / default-deny (TX step reject SUPERSESSION root)
+  Self-link
+    OWNER=DB ck_i5gd_supersedes_not_self | FAIL=named CHECK / integrity failure
+  Cross-entity target
+    OWNER=DB fk_i5gd_supersedes_same_entity_family | FAIL=named composite-FK / integrity failure
+  Cross-family target
+    OWNER=DB fk_i5gd_supersedes_same_entity_family | FAIL=named composite-FK / integrity failure
+  Missing/broken target row
+    OWNER=DB FK ON DELETE RESTRICT + service pre-read | FAIL=named FK / integrity; no insertion
+  Branching / second superseder
+    OWNER=DB uq_i5gd_one_superseder + TX re-read | FAIL=STALE_SUPERSESSION_TARGET or INTEGRITY_CONFLICT
+  Valid-write cycle attempt
+    OWNER=structural (append-only + target-must-already-exist + immutable link + not-self + one-superseder)
+    FAIL=no valid write path may create a cycle; runtime cycle-walk NOT required to prevent valid new writes
+  Corrupted legacy/external cycle detected during traversal
+    OWNER=SERVICE traversal | FAIL=CORRUPT_SUPERSESSION_CHAIN
+  Chain with no non-SUPERSESSION ancestor
+    OWNER=SERVICE traversal | FAIL=CORRUPT_SUPERSESSION_CHAIN
+  Cross-entity/family anomaly discovered during read-time traversal despite DB expectations
+    OWNER=SERVICE traversal | FAIL=CORRUPT_SUPERSESSION_CHAIN
+  Unresolvable or broken ancestry during traversal
+    OWNER=SERVICE traversal | FAIL=CORRUPT_SUPERSESSION_CHAIN
+BOUNDED TRAVERSAL:
+  ancestor walk must terminate; if depth/visited-set detects a cycle or broken link → CORRUPT_SUPERSESSION_CHAIN
+
+MATRIX_COMPATIBILITY:
+  every allowed NEW→PRIOR pair maps to the same GovernanceDecisionFamily
+    (exception: SUPERSESSION inherits prior family via service/transaction logic)
+  every allowed entity × decision pair's mapped family is permitted by ENTITY_TYPE_TO_FAMILY_MATRIX
+  NEW→PRIOR after a SUPERSESSION leaf uses effective_prior_decision_type(current_leaf)
+
+DECISION_FAMILY_KEY=(entity_type,entity_id,decision_family)
+ROOT=only row with supersedes_decision_id IS NULL
+CURRENT_LEAF=only row not referenced by supersedes_decision_id in family
+CURRENT_LEAF may have decision_type=SUPERSESSION; effective prior is derived as above
+
+--- CANONICAL POLYMORPHIC ADVISORY LOCK ---
+LOCK_DOMAIN = (entity_type, entity_id, decision_family)
+LOCK_MATERIAL =
+  "sedi:i5gd:family-lock:v1|" + entity_type + "|" + base10(entity_id) + "|" + decision_family
+NORMALIZATION:
+  entity_type = exact persisted uppercase GovernanceEntityType string
+  entity_id = positive base-10 integer; no leading plus; no leading zeros (zero not permitted)
+  decision_family = exact persisted uppercase GovernanceDecisionFamily string
+  separator = ASCII vertical bar | ; trailing newline = NONE; trailing whitespace = NONE
+EXAMPLE = sedi:i5gd:family-lock:v1|KNOWLEDGE_GAP|123|GAP_LIFECYCLE
+ENCODING = UTF-8
+DIGEST = SHA-256(lock_material_bytes)
+LOCK_KEY = int.from_bytes(digest[0:8], byteorder="big", signed=True)  # PostgreSQL BIGINT / signed int64
+SQL = SELECT pg_advisory_xact_lock(:lock_key);
+SCOPE = transaction-scoped; released automatically on commit or rollback;
+  cross-thread; cross-process; cross-worker; cross-service-instance
+ACQUIRE_AFTER = begin transaction
+ACQUIRE_BEFORE = reading root or current leaf; validating supersession target;
+  inserting a root or superseding decision
+MULTIPLE_LOCK_ORDERING:
+  1. Compute all signed int64 lock keys
+  2. Deduplicate identical keys
+  3. Sort keys in ascending signed numeric order
+  4. Acquire locks in that exact order
+  PURPOSE = prevent lock-order deadlocks
+COLLISION_IMPACT = safe over-serialization only
+COLLISION_MUST_NOT = skip entity/family validation; change unique constraints;
+  relax FK checks; relax transition checks
+OPTIONAL_PHYSICAL_ROW_LOCK = SELECT ... FOR UPDATE may be used IN ADDITION when a stable
+  physical target row exists; advisory lock remains MANDATORY and CANONICAL for all
+  GovernanceEntityType values. Do NOT require a polymorphic entity-table lock map as the
+  primary lock contract.
+
+--- FAMILY ROOT / LEAF TRANSACTION (FIX6; F-AUD-05-01 + F-AUD-05-02) ---
+  1. Begin transaction.
+  2. Validate entity_type, entity_id, decision_family and decision_type against authoritative matrices.
+  3. Compute and acquire the canonical advisory family lock
+     (already-frozen advisory lock / transaction boundary).
+  4. Verify that the polymorphic governed entity exists.
+  5. REQUEST-KEY-FIRST IDEMPOTENCY (before root/leaf mutation path):
+       Look up existing row by (entity_type, entity_id, decision_request_key)
+       under uq_i5gd_decision_request identity.
+       OPERATION IDEMPOTENCY IDENTITY = (entity_type, entity_id, decision_request_key)
+       EXACT RETRY PAYLOAD IDENTITY = decision_canonical_payload_v1 (§176.13 authoritative field set)
+       COMPARISON = FIELD-FOR-FIELD comparison of decision_canonical_payload_v1
+                    PLUS canonical_hash consistency verification
+       canonical_hash ALONE = NOT SUFFICIENT (non-unique content fingerprint only)
+       IF FOUND:
+         IF decision_canonical_payload_v1 is field-for-field identical
+            AND canonical_hash is consistent with that payload:
+              RETURN existing decision immediately; DO NOT insert a second row.
+         IF ANY field of decision_canonical_payload_v1 differs
+            OR hash/payload is inconsistent:
+              FAIL CLOSED IDEMPOTENCY_KEY_PAYLOAD_MISMATCH.
+       IF NOT FOUND: continue.
+       NOTE: Operation idempotency authority = decision_request_key identity.
+             Content fingerprint authority = decision_canonical_payload_v1 → canonical_hash.
+  6. Load the root and current leaf for (entity_type, entity_id, decision_family).
+  7. If no root exists:
+       require supersedes_decision_id IS NULL;
+       reject decision_type = SUPERSESSION;
+       insert a valid root under uq_i5gd_one_root_per_family.
+  8. If a root exists:
+       require supersedes_decision_id;
+       require supplied target = current family leaf;
+       compute effective_prior = effective_prior_decision_type(current_leaf);
+         if unresolved → CORRUPT_SUPERSESSION_CHAIN;
+       validate NEW decision_type → effective_prior (NOT literal SUPERSESSION leaf type);
+       validate reason/evidence requirements;
+       insert under uq_i5gd_one_superseder.
+  9. Commit once.
+UNIQUE-CONFLICT CLASSIFICATION (independent of PostgreSQL index conflict order):
+  IF insert raises any unique-constraint conflict:
+    do NOT classify from whichever index PostgreSQL reported first;
+    do NOT depend on ON CONFLICT selecting one particular unique index;
+    under the same advisory lock, perform deterministic transaction-safe re-reads in this order:
+      1. re-read by (entity_type, entity_id, decision_request_key);
+         if present and decision_canonical_payload_v1 field-for-field match
+            with consistent canonical_hash → return existing (exact retry);
+         if present and any payload field differs or hash/payload inconsistent
+            → IDEMPOTENCY_KEY_PAYLOAD_MISMATCH;
+      2. else if one-root partial unique conflict → ROOT_ALREADY_EXISTS
+         (reload leaf; if exact same root payload retry, return existing; else fail closed);
+      3. else if one-superseder partial unique conflict →
+         reload current leaf; if target != current leaf → STALE_SUPERSESSION_TARGET;
+         else INTEGRITY_CONFLICT;
+      4. else → INTEGRITY_CONFLICT.
+  Fail closed when not an exact request-key retry.
+NAMED ERRORS:
+  IDEMPOTENCY_KEY_PAYLOAD_MISMATCH
+  STALE_SUPERSESSION_TARGET
+  ROOT_ALREADY_EXISTS
+  INTEGRITY_CONFLICT
+  CORRUPT_SUPERSESSION_CHAIN
+  INVALID_SUPERSESSION_TRANSITION
+Non-leaf target -> STALE_SUPERSESSION_TARGET; branching/multi-root PROHIBITED
+IDEMPOTENCY SUMMARY:
+  EXACT request key + FIELD-FOR-FIELD identical decision_canonical_payload_v1
+    + consistent canonical_hash → RETURN EXISTING
+  SAME request key + ANY decision_canonical_payload_v1 field difference
+    OR hash/payload inconsistency → IDEMPOTENCY_KEY_PAYLOAD_MISMATCH
+  NO request-key row → CONTINUE TO NORMAL VALIDATION / INSERT PATH
+  later review cycles MUST use a new decision_request_key
+  decision_type reuse across different request keys for same entity remains allowed only
+  when matrices and transition rules permit; request-key uniqueness still excludes decision_type
+  AUTHORITY CROSS-REF: decision_canonical_payload_v1 fields/EXCLUDE = §176.13
+  canonical_hash alone is NEVER the operation idempotency authority
+
+--- ENFORCEMENT LAYER SPLIT ---
+DB SAME-ROW CHECKS enforce:
+  entity_type / decision_family / decision_type / outcome / actor_type vocabulary;
+  entity_type × decision_family allowed pairs;
+  entity_type × decision_type allowed pairs;
+  non-SUPERSESSION decision_type × decision_family mapping;
+  SUPERSESSION requires supersedes_decision_id IS NOT NULL;
+  canonical hash format; request-key format; hash algorithm constant;
+  canonicalization version constant; reason length; entity_id positive; not-self supersession
+COMPOSITE FK enforces: same entity_type, entity_id, decision_family vs referenced prior
+PARTIAL UNIQUE INDEXES enforce: one root per entity/family; one direct superseder per prior decision
+SERVICE/TRANSACTION enforces:
+  current-family-leaf selection; target is current leaf;
+  effective_prior_decision_type(current_leaf) for NEW→PRIOR after SUPERSESSION leaves;
+  allowed NEW→effective-prior decision transition; SUPERSESSION inherits parent family;
+  reason/evidence requirements; entity row existence for polymorphic reference;
+  request-key-first idempotency and unique-conflict classification;
+  append-only write surface; transaction-scoped advisory locking
+NO DATABASE CHECK IS CLAIMED TO READ A REFERENCED PARENT ROW.
+
+CONTENT_FINGERPRINT payload includes decision_family; excludes id/created_at/decision_request_key
+OPERATIONAL_IDEMPOTENCY (FIX6 authoritative; FINAL-DESIGN-FIX cross-ref):
+  authority = (entity_type, entity_id, decision_request_key) via uq_i5gd_decision_request
+  exact-retry payload identity = decision_canonical_payload_v1 (§176.13)
+  comparison = field-for-field decision_canonical_payload_v1 + canonical_hash consistency
+  request-key lookup and that comparison precede insert and
+  precede any other unique-conflict classification; independent of PostgreSQL index order
+  exact match => return existing; mismatch => IDEMPOTENCY_KEY_PAYLOAD_MISMATCH
+  canonical_hash remains NON-UNIQUE content fingerprint only; NEVER sole idempotency authority
+```
+
+### ۱۷۶.۱۲ Enum / vocabulary contract (future enums.py)
+
+```text
+FILE = backend/app/services/i5/enums.py (CREATE after FINAL strict audit PASS; NOT created here)
+STORAGE = String columns (no native PostgreSQL ENUM)
+ENUM_COUNT = 19
+
+RegistryState VALUES=DISCOVERED,UNDER_REVIEW,APPROVED,ACTIVE,DEFERRED,BLOCKED,REVOKED,SUPERSEDED,ARCHIVED COLUMN=governed_source_profiles.registry_state DEFAULT=DISCOVERED TERMINAL=REVOKED,ARCHIVED,SUPERSEDED DB_CHECK=ck_gsp_registry_state_vocab
+RuntimeEligibility VALUES=NOT_ELIGIBLE,REVIEW_REQUIRED,ELIGIBLE,SUSPENDED,REVOKED COLUMN=governed_source_profiles.runtime_eligibility DEFAULT=NOT_ELIGIBLE TERMINAL=REVOKED DB_CHECK=ck_gsp_runtime_eligibility_vocab
+KnowledgeGapType VALUES=MISSING,STALE,LOW_CONFIDENCE,CONFLICTING,RETRACTED,INSUFFICIENT_COVERAGE,MISSING_PROVENANCE,MISSING_RIGHTS_REVIEW,MISSING_SAFETY_REVIEW,RUNTIME_RETRIEVAL_FAILURE COLUMN=knowledge_gaps.gap_type DB_CHECK=ck_kg_gap_type_vocab
+KnowledgeGapStatus VALUES=OPEN,TRIAGED,PLANNED,IN_PROGRESS,BLOCKED,DEFERRED,RESOLVED,REJECTED,REOPENED COLUMN=knowledge_gaps.status DEFAULT=OPEN TERMINAL=RESOLVED,REJECTED DB_CHECK=ck_kg_status_vocab ALSO ck_wrgr_previous_status_vocab/ck_wrgr_new_status_vocab
+KnowledgeGapPriority VALUES=P0,P1,P2,P3 COLUMN=knowledge_gaps.priority DEFAULT=P2 DB_CHECK=ck_kg_priority_vocab
+KnowledgeGapSeverity VALUES=LOW,MEDIUM,HIGH,CRITICAL COLUMN=knowledge_gaps.severity DEFAULT=MEDIUM DB_CHECK=ck_kg_severity_vocab
+KnowledgeGapUrgency VALUES=LOW,NORMAL,HIGH,IMMEDIATE COLUMN=knowledge_gaps.urgency DEFAULT=NORMAL DB_CHECK=ck_kg_urgency_vocab
+WeeklyRunStatus VALUES=PLANNED,APPROVAL_REQUIRED,APPROVED,IN_PROGRESS,COMPLETED,COMPLETED_WITH_WARNINGS,FAILED,BLOCKED,DEFERRED,CANCELLED,SUPERSEDED COLUMN=weekly_knowledge_runs.status TERMINAL=COMPLETED,COMPLETED_WITH_WARNINGS,FAILED,CANCELLED,SUPERSEDED DB_CHECK=ck_wkr_status_vocab
+WeeklyRunAttemptStatus VALUES=CREATED,STARTED,RUNNING,COMPLETED,COMPLETED_WITH_WARNINGS,FAILED,BLOCKED,DEFERRED,CANCELLED,SUPERSEDED COLUMN=weekly_knowledge_run_attempts.status TERMINAL=COMPLETED,COMPLETED_WITH_WARNINGS,FAILED,BLOCKED,DEFERRED,CANCELLED,SUPERSEDED DB_CHECK=ck_wkra_status_vocab
+WeeklyRunApprovalState VALUES=NOT_REQUIRED,REQUIRED,APPROVED,REJECTED,EXPIRED COLUMN=weekly_knowledge_runs.approval_state DB_CHECK=ck_wkr_approval_state_vocab
+WeeklyRunType VALUES=WEEKLY_GOVERNED COLUMN=weekly_knowledge_runs.run_type DEFAULT=WEEKLY_GOVERNED DB_CHECK=ck_wkr_run_type_vocab
+WeeklyRunTriggerType VALUES=SCHEDULED,MANUAL,RETRY_PARENT,AD_HOC COLUMN=weekly_knowledge_runs.trigger_type DB_CHECK=ck_wkr_trigger_type_vocab
+RunSourceResultStatus VALUES=CHECKED,FETCHED,EXTRACTED,PUBLISHED,SKIPPED,BLOCKED,FAILED,WARNING COLUMN=weekly_run_source_results.result_status DB_CHECK=ck_wrsr_result_status_vocab
+RunGapResultType VALUES=DISCOVERED,UPDATED,TRIAGED,PLANNED,BLOCKED,DEFERRED,RESOLVED,REOPENED,REJECTED,UNCHANGED COLUMN=weekly_run_gap_results.result_type DB_CHECK=ck_wrgr_result_type_vocab
+GovernanceEntityType VALUES=SOURCE_PROFILE,SOURCE_PROFILE_VERSION,KNOWLEDGE_GAP,WEEKLY_RUN,WEEKLY_RUN_ATTEMPT,RUN_SOURCE_RESULT,RUN_GAP_RESULT COLUMN=i5_governance_decisions.entity_type DB_CHECK=ck_i5gd_entity_type_vocab
+GovernanceDecisionFamily VALUES=RIGHTS,AUTOMATION,QUALITY,MEDICAL_SAFETY,SECURITY,LIFECYCLE,GAP_LIFECYCLE,RUN_APPROVAL,RUN_TERMINALIZATION COLUMN=i5_governance_decisions.decision_family DB_CHECK=ck_i5gd_decision_family_vocab
+GovernanceDecisionType VALUES=RIGHTS_REVIEW,AUTOMATION_REVIEW,QUALITY_REVIEW,MEDICAL_SAFETY_REVIEW,SECURITY_REVIEW,APPROVAL,REJECTION,ACTIVATION,SUSPENSION,REVOCATION,SUPERSESSION,GAP_RESOLUTION,GAP_REOPEN,RUN_APPROVAL,RUN_TERMINALIZATION COLUMN=i5_governance_decisions.decision_type DB_CHECK=ck_i5gd_decision_type_vocab
+GovernanceDecisionOutcome VALUES=APPROVED,REJECTED,DEFERRED,BLOCKED,SUPERSEDED,RECORDED COLUMN=i5_governance_decisions.outcome DB_CHECK=ck_i5gd_outcome_vocab
+GovernanceActorType VALUES=SYSTEM,HUMAN,SERVICE,JAVAD,UNKNOWN COLUMN=i5_governance_decisions.actor_type DB_CHECK=ck_i5gd_actor_type_vocab
+
+SERVICE_ONLY_EXEMPTIONS: from_state, to_state (entity-specific; DEFAULT DENY UNKNOWN)
+NO other enum-backed persisted column may lack a named DB vocabulary CHECK
+```
+
+### ۱۷۶.۱۳ Canonicalization and hash contract
+
+```text
+ALGORITHM = SHA-256
+VERSION = v1
+CANONICAL_JSON = UTF-8; sorted object keys; stable list order or sorted-set; no insignificant whitespace;
+                 UTC timestamps as YYYY-MM-DDTHH:MM:SSZ; stable null/Boolean/numeric; canonical nested JSON;
+                 Unicode normalization per v1; LF line endings
+
+decision_canonical_payload_v1 fields:
+  canonicalization_version, entity_type, entity_id, decision_family, decision_type,
+  from_state, to_state, outcome, reason_code, reason, actor_type,
+  actor_reference, evidence_reference, decision_metadata, supersedes_decision_id
+EXCLUDE: id, created_at, decision_request_key
+canonical_hash = SHA-256(canonical payload bytes) NON-UNIQUE
+DB: ck_i5gd_canonical_hash_format; ck_i5gd_hash_algorithm_constant; ck_i5gd_canonicalization_version_constant
+INDEX: ix_i5gd_content_hash (hash_algorithm, canonicalization_version, canonical_hash)
+COLLISION_OR_NORM_MISMATCH = FAIL CLOSED
+```
+
+### ۱۷۶.۱۴ Constraint / index / concurrency / ERD / FK matrix (FIX6-corrected)
+
+```text
+TABLE_COUNTS: EXTENDED=1 REUSED=1 NEW=6 TOTAL=8
+COLUMN_COUNTS:
+  governed_source_profiles additive W1-P01 columns = 13
+  knowledge_gaps = 39
+  weekly_knowledge_runs = 28
+  weekly_knowledge_run_attempts = 33
+  weekly_run_source_results = 21
+  weekly_run_gap_results = 8
+  i5_governance_decisions = 20
+
+PK_COUNT (W1-P01 new tables) = 6
+
+UNIQUE_CONSTRAINTS = 8
+  uq_knowledge_gaps_canonical_gap_key
+  uq_weekly_knowledge_runs_logical_run_key
+  uq_wkra_run_attempt
+  uq_wkra_id_weekly_run_id
+  uq_wrsr_attempt_source_profile
+  uq_wrgr_attempt_gap
+  uq_i5gd_decision_request (entity_type, entity_id, decision_request_key)
+  uq_i5gd_id_entity_family (id, entity_type, entity_id, decision_family)
+
+PARTIAL_UNIQUE_INDEXES = 3
+  uq_wkra_one_successful_terminal
+  uq_i5gd_one_superseder
+  uq_i5gd_one_root_per_family
+
+SIMPLE_FOREIGN_KEYS = 9
+  fk_knowledge_gaps_target_source_profile_id
+  fk_knowledge_gaps_discovered_attempt_id
+  fk_wkr_supersedes_run_id
+  fk_wkra_weekly_run_id
+  fk_wrsr_attempt_id
+  fk_wrsr_source_profile_id
+  fk_wrsr_source_version_id
+  fk_wrgr_attempt_id
+  fk_wrgr_gap_id
+
+COMPOSITE_FOREIGN_KEYS = 4
+  fk_wkra_retry_same_run (MATCH SIMPLE; immediate; self-ref)
+  fk_wkr_successful_attempt_same_run (MATCH SIMPLE; DEFERRED PHASE 8)
+  fk_wkr_latest_attempt_same_run (MATCH SIMPLE; DEFERRED PHASE 8)
+  fk_i5gd_supersedes_same_entity_family (MATCH SIMPLE; self-ref; with decision table)
+
+DEFERRED_FOREIGN_KEYS (subset) = 2
+SELF_REFERENTIAL_FOREIGN_KEYS (subset) = 3
+TOTAL_DISTINCT_FK_CONSTRAINTS = 13  (9 simple + 4 composite; subsets not additive)
+
+NAMED_DB_CHECK_CONSTRAINTS = 70
+  (prior 49 retained + FIX2 addition of 21 nonnegative counter CHECKs:
+   14 ck_wkra_*_nonnegative + 7 ck_wrsr_*_nonnegative;
+   ORIGINAL_NAMED_49 + 21 = 70)
+UNNAMED W1-P01 DATABASE CHECK CONSTRAINTS = PROHIBITED
+UNNAMED SQLAlchemy CheckConstraint OBJECTS = PROHIBITED
+UNNAMED MIGRATION CHECK CONSTRAINTS = PROHIBITED
+TOTAL UNNAMED DATABASE CHECKS = 0
+  ck_gsp_registry_state_vocab
+  ck_gsp_runtime_eligibility_vocab
+  ck_gsp_effective_window_order
+  ck_gsp_block_reason_length
+  ck_kg_gap_type_vocab
+  ck_kg_priority_vocab
+  ck_kg_severity_vocab
+  ck_kg_urgency_vocab
+  ck_kg_status_vocab
+  ck_kg_confidence_range
+  ck_kg_retry_count_nonneg
+  ck_kg_description_length
+  ck_kg_current_knowledge_state_length
+  ck_kg_required_knowledge_state_length
+  ck_kg_next_action_length
+  ck_kg_blocker_length
+  ck_wkr_run_type_vocab
+  ck_wkr_trigger_type_vocab
+  ck_wkr_approval_state_vocab
+  ck_wkr_status_vocab
+  ck_wkr_window_order
+  ck_wkr_supersedes_not_self
+  ck_wkra_status_vocab
+  ck_wkra_attempt_number_pos
+  ck_wkra_retry_not_self
+  ck_wkra_completed_after_started
+  ck_wkra_failure_reason_length
+  ck_wkra_block_reason_length
+  ck_wkra_total_sources_nonnegative
+  ck_wkra_checked_sources_nonnegative
+  ck_wkra_fetched_sources_nonnegative
+  ck_wkra_skipped_sources_nonnegative
+  ck_wkra_blocked_sources_nonnegative
+  ck_wkra_failed_sources_nonnegative
+  ck_wkra_new_knowledge_count_nonnegative
+  ck_wkra_updated_knowledge_count_nonnegative
+  ck_wkra_superseded_knowledge_count_nonnegative
+  ck_wkra_rejected_knowledge_count_nonnegative
+  ck_wkra_created_gap_count_nonnegative
+  ck_wkra_resolved_gap_count_nonnegative
+  ck_wkra_warning_count_nonnegative
+  ck_wkra_error_count_nonnegative
+  ck_wrsr_result_status_vocab
+  ck_wrsr_failure_reason_length
+  ck_wrsr_knowledge_new_count_nonnegative
+  ck_wrsr_knowledge_updated_count_nonnegative
+  ck_wrsr_knowledge_superseded_count_nonnegative
+  ck_wrsr_knowledge_rejected_count_nonnegative
+  ck_wrsr_gap_created_count_nonnegative
+  ck_wrsr_warning_count_nonnegative
+  ck_wrsr_error_count_nonnegative
+  ck_wrgr_result_type_vocab
+  ck_wrgr_previous_status_vocab
+  ck_wrgr_new_status_vocab
+  ck_i5gd_entity_type_vocab
+  ck_i5gd_decision_family_vocab
+  ck_i5gd_decision_type_vocab
+  ck_i5gd_outcome_vocab
+  ck_i5gd_actor_type_vocab
+  ck_i5gd_entity_id_pos
+  ck_i5gd_supersedes_not_self
+  ck_i5gd_canonical_hash_format
+  ck_i5gd_decision_request_key_format
+  ck_i5gd_hash_algorithm_constant
+  ck_i5gd_canonicalization_version_constant
+  ck_i5gd_decision_type_family_matrix
+  ck_i5gd_entity_family_matrix
+  ck_i5gd_entity_decision_matrix
+  ck_i5gd_supersession_requires_parent
+  ck_i5gd_reason_length
+
+APPEND_ONLY_TRIGGERS = 1  (trg_i5gd_append_only)
+TRIGGER_FUNCTIONS = 1  (fn_i5gd_reject_mutation)
+NOT_COUNTED_AS_CHECK =
+  service-only NEW→PRIOR supersession transition matrix;
+  service-only current-leaf validation;
+  append-only trigger;
+  advisory-lock contract
+
+QUERY_INDEXES (non-unique; excluding PK/UNIQUE/PARTIAL-UNIQUE) = 29
+  For each: PREDICATE=NONE; WRITE_COST=standard B-tree; REQUIRED_NOW=YES; NO GIN
+  ix_gsp_registry_state TABLE=governed_source_profiles COLUMNS=(registry_state) PURPOSE=filter registry workflow state
+  ix_gsp_runtime_eligibility TABLE=governed_source_profiles COLUMNS=(runtime_eligibility) PURPOSE=eligible/suspended source selection
+  ix_gsp_last_checked_at TABLE=governed_source_profiles COLUMNS=(last_checked_at) PURPOSE=stale-source review scheduling
+  ix_gsp_last_reviewed_at TABLE=governed_source_profiles COLUMNS=(last_reviewed_at) PURPOSE=governance review scheduling
+  ix_gsp_registry_runtime TABLE=governed_source_profiles COLUMNS=(registry_state, runtime_eligibility) PURPOSE=fail-closed registry/runtime selection
+  ix_kg_status_priority_severity TABLE=knowledge_gaps COLUMNS=(status, priority, severity) PURPOSE=prioritized open-gap queue
+  ix_kg_next_review_at TABLE=knowledge_gaps COLUMNS=(next_review_at) PURPOSE=due review scheduling
+  ix_kg_target_source_profile_id TABLE=knowledge_gaps COLUMNS=(target_source_profile_id) PURPOSE=gaps targeting one source
+  ix_kg_discovered_attempt_id TABLE=knowledge_gaps COLUMNS=(discovered_attempt_id) PURPOSE=gaps attributable to one attempt
+  ix_kg_capability_id TABLE=knowledge_gaps COLUMNS=(capability_id) PURPOSE=capability-level gap planning
+  ix_kg_target_package_id TABLE=knowledge_gaps COLUMNS=(target_package_id) PURPOSE=package-level implementation planning
+  ix_kg_domain_subdomain TABLE=knowledge_gaps COLUMNS=(domain, subdomain) PURPOSE=taxonomy/domain coverage analysis
+  ix_wkr_status_window TABLE=weekly_knowledge_runs COLUMNS=(status, planned_window_start) PURPOSE=run queue and historical window lookup
+  ix_wkr_schedule_window TABLE=weekly_knowledge_runs COLUMNS=(schedule_key, planned_window_start) PURPOSE=scheduled logical-run lookup
+  ix_wkr_approval_state TABLE=weekly_knowledge_runs COLUMNS=(approval_state) PURPOSE=runs waiting for governance approval
+  ix_wkr_successful_attempt_id TABLE=weekly_knowledge_runs COLUMNS=(successful_attempt_id) PURPOSE=successful-attempt projection lookup
+  ix_wkr_latest_attempt_id TABLE=weekly_knowledge_runs COLUMNS=(latest_attempt_id) PURPOSE=latest-attempt projection lookup
+  ix_wkr_supersedes_run_id TABLE=weekly_knowledge_runs COLUMNS=(supersedes_run_id) PURPOSE=logical-run supersession history
+  ix_wkra_status_started_at TABLE=weekly_knowledge_run_attempts COLUMNS=(status, started_at) PURPOSE=active/stale attempt operations
+  ix_wkra_retry_of_attempt_id TABLE=weekly_knowledge_run_attempts COLUMNS=(retry_of_attempt_id) PURPOSE=retry-chain reconstruction
+  ix_wrsr_source_profile_id TABLE=weekly_run_source_results COLUMNS=(source_profile_id) PURPOSE=source history across attempts
+  ix_wrsr_result_status TABLE=weekly_run_source_results COLUMNS=(result_status) PURPOSE=result-state operations and audit
+  ix_wrgr_gap_id TABLE=weekly_run_gap_results COLUMNS=(gap_id) PURPOSE=gap history across attempts
+  ix_wrgr_result_type TABLE=weekly_run_gap_results COLUMNS=(result_type) PURPOSE=final gap outcome reporting
+  ix_i5gd_entity_history TABLE=i5_governance_decisions COLUMNS=(entity_type, entity_id, created_at, id) PURPOSE=complete entity decision history
+  ix_i5gd_family_history TABLE=i5_governance_decisions COLUMNS=(entity_type, entity_id, decision_family, created_at, id) PURPOSE=ordered family-chain history
+  ix_i5gd_content_hash TABLE=i5_governance_decisions COLUMNS=(hash_algorithm, canonicalization_version, canonical_hash) PURPOSE=content fingerprint and collision audit
+  ix_i5gd_decision_type TABLE=i5_governance_decisions COLUMNS=(decision_type) PURPOSE=decision-type governance reporting
+  ix_i5gd_outcome TABLE=i5_governance_decisions COLUMNS=(outcome) PURPOSE=outcome governance reporting
+
+ENUM_COUNT = 19
+
+TRANSACTION_AND_LOCKING_CONTRACT:
+  LOGICAL_RUN_CREATE: canonicalize -> compute key -> INSERT uq_weekly_knowledge_runs_logical_run_key ->
+    on conflict load existing -> compare identity fields -> return or FAIL LOGICAL_RUN_KEY_PAYLOAD_MISMATCH
+  attempt create: lock run -> allocate attempt_number -> insert -> update latest_attempt_id -> commit
+  successful terminalization: lock run -> validate -> persist source/gap summaries -> append decision ->
+    metrics/completed_at -> set successful_attempt_id -> update run state -> single commit
+  gap reopen: see §176.6
+  decision insert / family-chain mutation (FIX6 request-key-first):
+    begin txn -> validate matrices -> acquire canonical advisory family lock
+    (sedi:i5gd:family-lock:v1|entity_type|entity_id|decision_family -> SHA-256 -> signed int64
+     via pg_advisory_xact_lock; multi-lock = dedupe + ascending signed order) ->
+    verify polymorphic entity exists ->
+    LOOKUP request-key identity FIRST under uq_i5gd_decision_request ->
+      field-for-field decision_canonical_payload_v1 match + consistent canonical_hash
+        = return existing;
+      any payload field difference or hash/payload inconsistency
+        = IDEMPOTENCY_KEY_PAYLOAD_MISMATCH ->
+    ONLY if no request-key row: load root/leaf ->
+      resolve effective_prior_decision_type(current_leaf) when superseding ->
+      validate NEW→effective_prior transition -> insert root or superseding leaf ->
+    on ANY unique conflict: deterministic re-read order =
+      request-key first (decision_canonical_payload_v1 field-for-field + hash consistency),
+      then one-root (ROOT_ALREADY_EXISTS), then one-superseder
+      (STALE_SUPERSESSION_TARGET / INTEGRITY_CONFLICT); NEVER classify by index report order;
+      NEVER rely on ON CONFLICT selecting one particular unique index
+  OPTIONAL FOR UPDATE physical row lock may accompany advisory lock; advisory lock remains canonical
+  NO DATABASE CHECK IS CLAIMED TO READ A REFERENCED PARENT ROW
+
+NO_GIN_INDEX_IN_W1_P01 = YES
+```
+
+### ۱۷۶.۱۵ Immutability / UTC / security / text safety
+
+```text
+IMMUTABLE_APPEND_ONLY = GovernedSourceProfileVersion; i5_governance_decisions;
+  terminal attempts/results; terminal weekly_run_gap_results FINAL SUMMARY; gap resolution evidence
+i5_governance_decisions IMMUTABILITY (FIX5 authoritative):
+  ALL columns immutable after INSERT (no updated_at);
+  repository write surface = INSERT ONLY;
+  DB trigger trg_i5gd_append_only + fn_i5gd_reject_mutation reject UPDATE and DELETE;
+  error I5_GOVERNANCE_DECISION_APPEND_ONLY_VIOLATION;
+  hard delete / soft-delete mutation / cascade delete = PROHIBITED;
+  parent supersession FK ON DELETE = RESTRICT;
+  archival/partitioning/retention = separate governed design required
+MUTABLE_PROJECTIONS = GSP current fields; KnowledgeGap status; WeeklyKnowledgeRun status/pointers; Attempt while non-terminal
+DELETE_IMMUTABILITY_RULES = RESTRICT for governed evidence FKs; NO cascade; NO generic result.decision_id
+
+TEXT_REFERENCE_SAFETY_MATRIX (authoritative; every W1-P01 Text/reference-like field):
+COLUMNS = TABLE|COLUMN|SQLALCHEMY|POSTGRES|NULLABLE|CHAR_LIMIT|UTF8_BYTE_LIMIT|DB_CHECK|SERVICE_CHECK|SANITIZATION|PROHIBITED|OWNER
+  governed_source_profiles|block_reason|Text|text|YES|2000 chars|n/a|ck_gsp_block_reason_length|char_length|sanitize|no secrets/PHI/raw|BACKEND+SECURITY+MEDICAL_SAFETY/PRIVACY+LEGAL
+  governed_source_profiles|owner_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  governed_source_profiles|reviewer_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  governed_source_profiles|approver_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  governed_source_profiles|topic_coverage|Text|text|YES|n/a|65536|none(service byte)|UTF-8 bytes|canonical JSON; no raw full text|BACKEND+LEGAL
+  knowledge_gaps|title|String(512)|varchar(512)|NO|512|n/a|type|type|no raw payload|BACKEND
+  knowledge_gaps|description|Text|text|YES|8000 chars|n/a|ck_kg_description_length|char_length|sanitize|BACKEND+SECURITY+MEDICAL_SAFETY/PRIVACY+LEGAL
+  knowledge_gaps|evidence_of_gap|Text|text|YES|n/a|16384|none(service byte)|UTF-8 bytes|canonical JSON refs only|BACKEND+SECURITY+MEDICAL_SAFETY/PRIVACY+LEGAL
+  knowledge_gaps|current_knowledge_state|Text|text|YES|4000 chars|n/a|ck_kg_current_knowledge_state_length|char_length|sanitize|BACKEND+SECURITY
+  knowledge_gaps|required_knowledge_state|Text|text|YES|4000 chars|n/a|ck_kg_required_knowledge_state_length|char_length|sanitize|BACKEND+SECURITY
+  knowledge_gaps|source_need|Text|text|YES|n/a|16384|none(service byte)|UTF-8 bytes|canonical JSON|BACKEND+LEGAL
+  knowledge_gaps|owner_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  knowledge_gaps|reviewer_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  knowledge_gaps|blocker|Text|text|YES|2000 chars|n/a|ck_kg_blocker_length|char_length|sanitize|BACKEND+SECURITY
+  knowledge_gaps|dependencies|Text|text|YES|n/a|16384|none(service byte)|UTF-8 bytes|canonical JSON ids|BACKEND
+  knowledge_gaps|discovered_by|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  knowledge_gaps|next_action|Text|text|YES|2000 chars|n/a|ck_kg_next_action_length|char_length|sanitize|BACKEND
+  knowledge_gaps|resolution_evidence|Text|text|YES|n/a|16384|none(service byte)|UTF-8 bytes|canonical JSON refs|BACKEND+SECURITY+MEDICAL_SAFETY/PRIVACY+LEGAL
+  knowledge_gaps|resolved_by_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  weekly_knowledge_runs|source_scope|Text|text|NO|n/a|65536|none(service byte)|UTF-8 bytes|canonical JSON|BACKEND+LEGAL
+  weekly_knowledge_runs|domain_scope|Text|text|NO|n/a|65536|none(service byte)|UTF-8 bytes|canonical JSON|BACKEND
+  weekly_knowledge_runs|gap_scope|Text|text|NO|n/a|65536|none(service byte)|UTF-8 bytes|canonical JSON|BACKEND
+  weekly_knowledge_runs|created_by_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  weekly_knowledge_runs|approved_by_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  weekly_knowledge_run_attempts|worker_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  weekly_knowledge_run_attempts|config_snapshot_reference|String(2048)|varchar(2048)|YES|2048|n/a|type|type|location only; no secrets|BACKEND+SECURITY
+  weekly_knowledge_run_attempts|failure_reason|Text|text|YES|2000 chars|n/a|ck_wkra_failure_reason_length|char_length|sanitize|BACKEND+SECURITY
+  weekly_knowledge_run_attempts|block_reason|Text|text|YES|2000 chars|n/a|ck_wkra_block_reason_length|char_length|sanitize|BACKEND+SECURITY
+  weekly_knowledge_run_attempts|evidence_reference|String(2048)|varchar(2048)|YES|2048|n/a|type|type|location only|BACKEND+SECURITY+LEGAL
+  weekly_run_source_results|failure_reason|Text|text|YES|2000 chars|n/a|ck_wrsr_failure_reason_length|char_length|sanitize|BACKEND+SECURITY
+  weekly_run_source_results|evidence_reference|String(2048)|varchar(2048)|YES|2048|n/a|type|type|location only|BACKEND+SECURITY+LEGAL
+  weekly_run_gap_results|evidence_reference|String(2048)|varchar(2048)|YES|2048|n/a|type|type|location only|BACKEND+SECURITY+LEGAL
+  i5_governance_decisions|reason|Text|text|YES|4000 chars|n/a|ck_i5gd_reason_length|char_length|sanitize|BACKEND+SECURITY+MEDICAL_SAFETY/PRIVACY
+  i5_governance_decisions|actor_reference|String(512)|varchar(512)|YES|512|n/a|type|type|id/location only|BACKEND+SECURITY
+  i5_governance_decisions|evidence_reference|String(2048)|varchar(2048)|YES|2048|n/a|type|type|location only|BACKEND+SECURITY+MEDICAL_SAFETY/PRIVACY+LEGAL
+  i5_governance_decisions|decision_metadata|Text|text|YES|n/a|16384|none(service byte)|UTF-8 bytes|canonical JSON; no secrets|BACKEND+SECURITY
+
+IDENTITY_REFERENCE_SIZE = String(512) for owner/reviewer/approver/created_by/approved_by/discovered_by/resolved_by/actor/worker
+EVIDENCE_SNAPSHOT_REFERENCE_SIZE = String(2048)
+NO String(128) identity-reference declarations remain in W1-P01 contract
+
+SANITIZATION_BEFORE_PERSIST:
+  reject NUL; normalize LF; reject/redact credentials/secrets; reject raw PHI;
+  reject raw user conversations; reject unrestricted copyrighted source full text;
+  sanitize disallowed control characters; preserve meaningful Unicode
+OWNERS:
+  BACKEND_IMPLEMENTATION = length, canonicalization, encoding
+  SECURITY_REVIEW = credentials/secrets/control characters
+  MEDICAL_SAFETY / PRIVACY = PII/PHI/user-derived evidence
+  LEGAL_OR_CONTENT_POLICY = copyright-sensitive source payload boundaries
+
+UTC = all W1-P01 DateTime values are UTC; naive storage; explicit UTC in APIs
+PROHIBITED = API keys, credentials, raw user conversations, PHI, unrestricted full text, secret config in rows
+```
+
+### ۱۷۶.۱۶ Migration creation order (NOT authorized to create/run here) — FIX6 10-phase
+
+```text
+PARENT = 051_i5b2_governed_source_profile
+PROPOSED_REVISION = 052_i5_w1_p01_db_foundation
+PHASE_MODEL = dependency-safe table order preserved from FIX5;
+              every schema object has EXACTLY ONE creation phase (F-AUD-05-03)
+
+PHASE 1 — governed_source_profiles additive fail-closed columns + GSP-local CHECKs/indexes
+PHASE 2 — weekly_knowledge_runs without circular attempt FKs + run-local PK/UQ/FK/CHECK/indexes
+PHASE 3 — weekly_knowledge_run_attempts and retry same-run FK + attempt-local objects
+PHASE 4 — knowledge_gaps with discovered_attempt_id + gap-local objects
+PHASE 5 — weekly_run_source_results + source-result-local PK/UQ/FK/CHECK/indexes
+PHASE 6 — weekly_run_gap_results final-summary table + gap-result-local PK/UQ/FK/CHECK/indexes
+PHASE 7 — i5_governance_decisions and ALL decision-local objects ONLY:
+           decision PK; decision-local ordinary uniques; decision-local partial uniques;
+           decision-local FKs; decision-local CHECKs only (NOT the global 70);
+           decision-local query indexes; append-only function; append-only trigger
+  PHASE 7 INTERNAL DEPENDENCY ORDER:
+    1. create decision table and decision-local same-row checks
+    2. create referenced unique tuple (uq_i5gd_id_entity_family)
+    3. create same-entity-family composite self-FK
+    4. create ordinary and partial unique indexes
+    5. create non-unique decision query indexes
+    6. create append-only trigger function fn_i5gd_reject_mutation
+    7. create append-only trigger trg_i5gd_append_only
+PHASE 8 — ONLY deferred successful/latest same-run composite FKs
+PHASE 9 — verification and reconciliation of all declared objects
+  PHASE 9 RESIDUAL CREATION LIST = EMPTY
+  PHASE 9 MAY VERIFY: existence, name, definition, column order, predicate,
+    referential action, deferrability, constraint/index ownership,
+    trigger/function linkage, object counts
+  PHASE 9 MUST NOT create, recreate, backfill, or conditionally create any schema object
+PHASE 10 — service / advisory-lock / transaction / static-audit expectations only
+  PHASE 10 SCHEMA OBJECT CREATION = NONE
+  Phase 10 does NOT execute service code inside Alembic
+
+INVARIANT: NO FOREIGN KEY IS CREATED BEFORE ITS REFERENCED TABLE EXISTS
+NO result decision_id FK phase
+NO OBJECT MAY BE DESCRIBED AS CREATED IN MORE THAN ONE PHASE
+
+--- MIGRATION OBJECT OWNERSHIP LEDGER (authoritative; one creation phase each) ---
+FORMAT = object | type | phase | owning_table_or_scope | create_action | rollback_action
+
+PHASE 1 OBJECTS:
+  governed_source_profiles W1-P01 additive columns | COLUMNS | 1 | governed_source_profiles | ALTER ADD | DROP COLUMN
+  ck_gsp_registry_state_vocab | CHECK | 1 | governed_source_profiles | CREATE | DROP
+  ck_gsp_runtime_eligibility_vocab | CHECK | 1 | governed_source_profiles | CREATE | DROP
+  ck_gsp_effective_window_order | CHECK | 1 | governed_source_profiles | CREATE | DROP
+  ck_gsp_block_reason_length | CHECK | 1 | governed_source_profiles | CREATE | DROP
+  ix_gsp_registry_state | QUERY_INDEX | 1 | governed_source_profiles | CREATE | DROP
+  ix_gsp_runtime_eligibility | QUERY_INDEX | 1 | governed_source_profiles | CREATE | DROP
+  ix_gsp_last_checked_at | QUERY_INDEX | 1 | governed_source_profiles | CREATE | DROP
+  ix_gsp_last_reviewed_at | QUERY_INDEX | 1 | governed_source_profiles | CREATE | DROP
+  ix_gsp_registry_runtime | QUERY_INDEX | 1 | governed_source_profiles | CREATE | DROP
+
+PHASE 2 OBJECTS:
+  weekly_knowledge_runs | TABLE+PK | 2 | weekly_knowledge_runs | CREATE | DROP TABLE
+  uq_weekly_knowledge_runs_logical_run_key | UNIQUE | 2 | weekly_knowledge_runs | CREATE | DROP
+  fk_wkr_supersedes_run_id | SIMPLE_FK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ck_wkr_run_type_vocab | CHECK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ck_wkr_trigger_type_vocab | CHECK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ck_wkr_approval_state_vocab | CHECK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ck_wkr_status_vocab | CHECK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ck_wkr_window_order | CHECK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ck_wkr_supersedes_not_self | CHECK | 2 | weekly_knowledge_runs | CREATE | DROP
+  ix_wkr_status_window | QUERY_INDEX | 2 | weekly_knowledge_runs | CREATE | DROP
+  ix_wkr_schedule_window | QUERY_INDEX | 2 | weekly_knowledge_runs | CREATE | DROP
+  ix_wkr_approval_state | QUERY_INDEX | 2 | weekly_knowledge_runs | CREATE | DROP
+  ix_wkr_successful_attempt_id | QUERY_INDEX | 2 | weekly_knowledge_runs | CREATE | DROP
+  ix_wkr_latest_attempt_id | QUERY_INDEX | 2 | weekly_knowledge_runs | CREATE | DROP
+  ix_wkr_supersedes_run_id | QUERY_INDEX | 2 | weekly_knowledge_runs | CREATE | DROP
+  NOTE: successful/latest attempt COMPOSITE FKs are NOT Phase 2; they are Phase 8 only
+
+PHASE 3 OBJECTS:
+  weekly_knowledge_run_attempts | TABLE+PK | 3 | weekly_knowledge_run_attempts | CREATE | DROP TABLE
+  uq_wkra_run_attempt | UNIQUE | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  uq_wkra_id_weekly_run_id | UNIQUE | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  uq_wkra_one_successful_terminal | PARTIAL_UNIQUE | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  fk_wkra_weekly_run_id | SIMPLE_FK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  fk_wkra_retry_same_run | COMPOSITE_FK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_status_vocab | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_attempt_number_pos | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_retry_not_self | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_completed_after_started | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_failure_reason_length | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_block_reason_length | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_total_sources_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_checked_sources_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_fetched_sources_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_skipped_sources_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_blocked_sources_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_failed_sources_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_new_knowledge_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_updated_knowledge_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_superseded_knowledge_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_rejected_knowledge_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_created_gap_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_resolved_gap_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_warning_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ck_wkra_error_count_nonnegative | CHECK | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ix_wkra_status_started_at | QUERY_INDEX | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+  ix_wkra_retry_of_attempt_id | QUERY_INDEX | 3 | weekly_knowledge_run_attempts | CREATE | DROP
+
+PHASE 4 OBJECTS:
+  knowledge_gaps | TABLE+PK | 4 | knowledge_gaps | CREATE | DROP TABLE
+  uq_knowledge_gaps_canonical_gap_key | UNIQUE | 4 | knowledge_gaps | CREATE | DROP
+  fk_knowledge_gaps_target_source_profile_id | SIMPLE_FK | 4 | knowledge_gaps | CREATE | DROP
+  fk_knowledge_gaps_discovered_attempt_id | SIMPLE_FK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_gap_type_vocab | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_priority_vocab | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_severity_vocab | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_urgency_vocab | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_status_vocab | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_confidence_range | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_retry_count_nonneg | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_description_length | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_current_knowledge_state_length | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_required_knowledge_state_length | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_next_action_length | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ck_kg_blocker_length | CHECK | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_status_priority_severity | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_next_review_at | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_target_source_profile_id | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_discovered_attempt_id | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_capability_id | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_target_package_id | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+  ix_kg_domain_subdomain | QUERY_INDEX | 4 | knowledge_gaps | CREATE | DROP
+
+PHASE 5 OBJECTS:
+  weekly_run_source_results | TABLE+PK | 5 | weekly_run_source_results | CREATE | DROP TABLE
+  uq_wrsr_attempt_source_profile | UNIQUE | 5 | weekly_run_source_results | CREATE | DROP
+  fk_wrsr_attempt_id | SIMPLE_FK | 5 | weekly_run_source_results | CREATE | DROP
+  fk_wrsr_source_profile_id | SIMPLE_FK | 5 | weekly_run_source_results | CREATE | DROP
+  fk_wrsr_source_version_id | SIMPLE_FK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_result_status_vocab | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_failure_reason_length | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_knowledge_new_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_knowledge_updated_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_knowledge_superseded_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_knowledge_rejected_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_gap_created_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_warning_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ck_wrsr_error_count_nonnegative | CHECK | 5 | weekly_run_source_results | CREATE | DROP
+  ix_wrsr_source_profile_id | QUERY_INDEX | 5 | weekly_run_source_results | CREATE | DROP
+  ix_wrsr_result_status | QUERY_INDEX | 5 | weekly_run_source_results | CREATE | DROP
+
+PHASE 6 OBJECTS:
+  weekly_run_gap_results | TABLE+PK | 6 | weekly_run_gap_results | CREATE | DROP TABLE
+  uq_wrgr_attempt_gap | UNIQUE | 6 | weekly_run_gap_results | CREATE | DROP
+  fk_wrgr_attempt_id | SIMPLE_FK | 6 | weekly_run_gap_results | CREATE | DROP
+  fk_wrgr_gap_id | SIMPLE_FK | 6 | weekly_run_gap_results | CREATE | DROP
+  ck_wrgr_result_type_vocab | CHECK | 6 | weekly_run_gap_results | CREATE | DROP
+  ck_wrgr_previous_status_vocab | CHECK | 6 | weekly_run_gap_results | CREATE | DROP
+  ck_wrgr_new_status_vocab | CHECK | 6 | weekly_run_gap_results | CREATE | DROP
+  ix_wrgr_gap_id | QUERY_INDEX | 6 | weekly_run_gap_results | CREATE | DROP
+  ix_wrgr_result_type | QUERY_INDEX | 6 | weekly_run_gap_results | CREATE | DROP
+
+PHASE 7 OBJECTS (decision-local only; NOT global 70 CHECKs):
+  i5_governance_decisions | TABLE+PK | 7 | i5_governance_decisions | CREATE | DROP TABLE
+  uq_i5gd_decision_request | UNIQUE | 7 | i5_governance_decisions | CREATE | DROP
+  uq_i5gd_id_entity_family | UNIQUE | 7 | i5_governance_decisions | CREATE | DROP
+  uq_i5gd_one_root_per_family | PARTIAL_UNIQUE | 7 | i5_governance_decisions | CREATE | DROP
+  uq_i5gd_one_superseder | PARTIAL_UNIQUE | 7 | i5_governance_decisions | CREATE | DROP
+  fk_i5gd_supersedes_same_entity_family | COMPOSITE_FK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_entity_type_vocab | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_decision_family_vocab | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_decision_type_vocab | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_outcome_vocab | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_actor_type_vocab | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_entity_id_pos | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_supersedes_not_self | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_canonical_hash_format | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_decision_request_key_format | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_hash_algorithm_constant | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_canonicalization_version_constant | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_decision_type_family_matrix | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_entity_family_matrix | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_entity_decision_matrix | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_supersession_requires_parent | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ck_i5gd_reason_length | CHECK | 7 | i5_governance_decisions | CREATE | DROP
+  ix_i5gd_entity_history | QUERY_INDEX | 7 | i5_governance_decisions | CREATE | DROP
+  ix_i5gd_family_history | QUERY_INDEX | 7 | i5_governance_decisions | CREATE | DROP
+  ix_i5gd_content_hash | QUERY_INDEX | 7 | i5_governance_decisions | CREATE | DROP
+  ix_i5gd_decision_type | QUERY_INDEX | 7 | i5_governance_decisions | CREATE | DROP
+  ix_i5gd_outcome | QUERY_INDEX | 7 | i5_governance_decisions | CREATE | DROP
+  fn_i5gd_reject_mutation | FUNCTION | 7 | i5_governance_decisions | CREATE | DROP
+  trg_i5gd_append_only | TRIGGER | 7 | i5_governance_decisions | CREATE | DROP
+
+PHASE 8 OBJECTS:
+  fk_wkr_successful_attempt_same_run | COMPOSITE_FK_DEFERRED | 8 | weekly_knowledge_runs | CREATE | DROP
+  fk_wkr_latest_attempt_same_run | COMPOSITE_FK_DEFERRED | 8 | weekly_knowledge_runs | CREATE | DROP
+
+PHASE 9 OBJECTS:
+  (none) RESIDUAL_CREATION_LIST = EMPTY
+
+PHASE 10 OBJECTS:
+  (none) SCHEMA_OBJECT_CREATION = NONE
+
+OWNERSHIP COUNT RECONCILIATION:
+  NAMED_DB_CHECKS by phase = P1:4 + P2:6 + P3:20 + P4:12 + P5:9 + P6:3 + P7:16 = 70
+  (FIX2: P3 was 6+14 nonnegative; P5 was 2+7 nonnegative; historical 4+6+6+12+2+3+16=49 SUPERSEDED)
+  QUERY_INDEXES by phase = P1:5 + P2:6 + P3:2 + P4:7 + P5:2 + P6:2 + P7:5 = 29
+  PARTIAL_UNIQUES by phase = P3:1 + P7:2 = 3
+  ORDINARY_UNIQUES by phase = P2:1 + P3:2 + P4:1 + P5:1 + P6:1 + P7:2 = 8
+  SIMPLE_FKS by phase = P2:1 + P3:1 + P4:2 + P5:3 + P6:2 = 9
+  COMPOSITE_FKS by phase = P3:1 + P7:1 + P8:2 = 4
+  TOTAL_DISTINCT_FKS = 13
+  NO Phase 7 / Phase 9 creation overlap
+  NO Phase 9 / Phase 10 schema creation
+
+ROLLBACK (dependency-safe; each object removed exactly once by reverse creation owner):
+  1. Drop Phase 8 deferred successful/latest attempt FKs
+  2. Drop Phase 7 trg_i5gd_append_only
+  3. Drop Phase 7 fn_i5gd_reject_mutation
+  4. Drop Phase 7 decision query/partial/ordinary indexes and constraints not auto-dropped
+  5. Drop Phase 7 i5_governance_decisions
+  6. Drop Phase 6 weekly_run_gap_results
+  7. Drop Phase 5 weekly_run_source_results
+  8. Drop Phase 4 knowledge_gaps
+  9. Drop Phase 3 weekly_knowledge_run_attempts
+  10. Drop Phase 2 weekly_knowledge_runs
+  11. Drop Phase 1 W1-P01 additive governed_source_profiles columns and GSP-local objects
+  DO NOT alter: legacy knowledge_sources; KnowledgeIngestionRun;
+                governed_source_profile_versions; existing GSP history
+
+MIGRATION_RUN = UNAUTHORIZED
+```
+
+### ۱۷۶.۱۷ Exact next authoring allowlist
+
+```text
+IMMEDIATE_NEXT_GATE =
+  I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FINAL-STRICT-READONLY-AUDIT-01
+NEXT_GATE_AFTER_FINAL_STRICT_AUDIT_PASS =
+  I5-IMPL-W1-P01-DB-FOUNDATION-MODEL-ENUM-AUTHORING-01
+PROPOSED_AUTHORING_ALLOWLIST (after successful FINAL strict re-audit only):
+MODIFY: backend/app/models.py ; docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+CREATE (if required): backend/app/services/i5/enums.py ; backend/app/services/i5/__init__.py
+NOT AUTHORIZED UNTIL SEPARATE AUTHORING GATE: alembic versions; services beyond enum packaging;
+  routers; tests; CI; DB connection; migration create/run; commit/push
+```
+
+### ۱۷۶.۱۸ Future approval boundaries
+
+```text
+G1 MODEL/ENUM AUTHORING
+G2 STATIC MODEL AUDIT
+G3 MIGRATION CREATION
+G4 STATIC MIGRATION REVIEW
+G5 TEST AUTHORING
+G6 TEST EXECUTION
+G7 CI
+G8 MIGRATION RUN
+G9 SERVICE/REPOSITORY IMPLEMENTATION
+G10 API/SCHEMA INTEGRATION
+G11 COMMIT
+G12 PUSH
+G13 CRAWLER/SCHEDULER ACTIVATION
+NO GATE IMPLIES THE NEXT
+```
+
+### ۱۷۶.۱۹ Remaining deferred items
+
+```text
+W1-P02 = KnowledgeUnit + Provenance tables and FK for target_knowledge_unit_id
+RATE_LIMIT_REGISTRY = deferred
+NATIVE_TIMESTAMPTZ_MIGRATION = out of scope
+OUTBOX_EVENTS = deferred until orchestration Gate
+EXTERNAL_HANDOFF = required after this material result; not updated by Cursor
+```
+
+### ۱۷۶.۲۰ Final design-freeze verdict
+
+```text
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FROZEN (FIX6 corrections applied in-place)
+MARKER = READY_FOR_FINAL_STRICT_READ_ONLY_W1_P01_DB_DESIGN_AUDIT
+NO_FORMAL_I5_CREDIT = YES
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DB_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+
+*پایان بند ۱۷۶ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE — PASS — DESIGN_FROZEN (FIX6-CORRECTED) — بدون-کامیت*
+
+## ۱۷۷) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FIX1
+
+### ۱۷۷.۱ Approval and baseline
+
+```text
+JAVAD_APPROVAL = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX1-01
+EXECUTION_MODE = REPOSITORY-LOCAL / DOCUMENTATION-ONLY / UNCOMMITTED
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STARTING_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STARTING_STAGING = EMPTY
+STARTING_UNTRACKED = ZERO
+STARTING_MASTER_LOG_STRUCTURE =
+  §175 START = 46188 PRESENT
+  §176 START = 46419 END = 46950 INCLUSIVE = 532
+  §177 = ABSENT
+SCOPE = DOCUMENTATION-ONLY FIX1 of §176 + append §177
+NO_BACKEND_CODE_EDIT = YES
+NO_MODEL_EDIT = YES
+NO_ENUM_EDIT = YES
+NO_MIGRATION_CREATE_OR_RUN = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+NO_NETWORK = YES
+```
+
+### ۱۷۷.۲ Design Freeze PASS report and ChatGPT review verdict
+
+```text
+PRIOR_GATE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-01
+PRIOR_VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FROZEN
+PRIOR_MARKER = READY_FOR_I5_W1_P01_DB_MODEL_ENUM_AUTHORING_APPROVAL
+CHATGPT_REVIEW_VERDICT = FAIL / FIX1 REQUIRED
+  four relational / provenance / foreign-key defects blocked model/enum authoring
+FINDINGS = F-176-01, F-176-02, F-176-03, F-176-04
+```
+
+### ۱۷۷.۳ F-176-01 — Migration order and forward references
+
+```text
+ROOT_CAUSE =
+  frozen creation order placed knowledge_gaps before the attempt table that
+  owns canonical discovery provenance, and deferred FK separation for
+  successful/latest pointers and result decision FKs was incomplete.
+CORRECTION =
+  freeze exact PHASE 1..9 creation order:
+    1 GSP additive extension
+    2 weekly_knowledge_runs (nullable pointer columns; no circular FKs yet)
+    3 weekly_knowledge_run_attempts (+ weekly_run_id FK + same-run retry)
+    4 knowledge_gaps (discovered_attempt_id)
+    5 result tables (nullable decision_id; no decision FKs yet)
+    6 i5_governance_decisions
+    7 deferred FKs (successful/latest composite + result decision FKs)
+    8 indexes / unique / partial unique / CHECKs
+    9 service/transaction invariants record
+RESULT = NO FOREIGN KEY CREATED BEFORE ITS REFERENCED TABLE EXISTS
+```
+
+### ۱۷۷.۴ F-176-02 — Exact gap discovery provenance
+
+```text
+ROOT_CAUSE =
+  authoritative knowledge_gaps contract used a logical-run discovery FK
+  (historical field name recorded here only) as source of truth, which cannot
+  identify which attempt under a multi-attempt logical run discovered the gap.
+CORRECTION =
+  REMOVE as canonical field: discovered_run_id
+  FREEZE canonical field: discovered_attempt_id
+  TYPE = Integer
+  NULLABLE = YES
+  FK = weekly_knowledge_run_attempts.id
+  NAME = fk_knowledge_gaps_discovered_attempt_id
+  ON DELETE = RESTRICT
+  ON UPDATE = NO ACTION / project convention
+  INDEX = ix_knowledge_gaps_discovered_attempt_id
+  PURPOSE = exact execution attempt that discovered or materially reintroduced the gap
+  LOGICAL RUN = DERIVED through attempt.weekly_run_id
+  NO duplicate logical-run discovery projection in W1-P01
+  knowledge_gaps COLUMN_COUNT remains 40 (1:1 replacement)
+```
+
+### ۱۷۷.۵ F-176-03 — Deferred decision foreign keys
+
+```text
+ROOT_CAUSE =
+  result-table contracts retained nullable decision_id but did not freeze an
+  explicit deferred FK creation phase after i5_governance_decisions exists.
+CORRECTION =
+  weekly_run_source_results.decision_id → i5_governance_decisions.id
+    name=fk_wrsr_decision_id  NULLABLE YES  ON DELETE RESTRICT  PHASE 7
+  weekly_run_gap_results.decision_id → i5_governance_decisions.id
+    name=fk_wrgr_decision_id  NULLABLE YES  ON DELETE RESTRICT  PHASE 7
+  NO SET NULL for decision evidence
+  rollback drops deferred decision FKs before dropping the decision table
+```
+
+### ۱۷۷.۶ F-176-04 — Same-run database and transaction invariants
+
+```text
+ROOT_CAUSE =
+  same-run ownership for retry / successful_attempt / latest_attempt was
+  treated as service-only or simple self-FK, without a referenced unique pair
+  and composite FKs that database-prove same weekly_run_id.
+CORRECTION =
+  UNIQUE uq_wkra_id_weekly_run_id ON weekly_knowledge_run_attempts(id, weekly_run_id)
+  COMPOSITE SAME-RUN RETRY FK fk_wkra_retry_same_run
+    (retry_of_attempt_id, weekly_run_id) → (id, weekly_run_id) ON DELETE RESTRICT
+  CHECK ck_wkra_retry_not_self (retry_of_attempt_id <> id)
+  DEFERRED COMPOSITE SUCCESSFUL FK fk_wkr_successful_attempt_same_run
+    (successful_attempt_id, id) → attempts(id, weekly_run_id) ON DELETE RESTRICT
+  DEFERRED COMPOSITE LATEST FK fk_wkr_latest_attempt_same_run
+    (latest_attempt_id, id) → attempts(id, weekly_run_id) ON DELETE RESTRICT
+  RETAIN partial unique uq_wkra_one_successful_terminal
+SERVICE_TRANSACTION_ENFORCED =
+  successful_attempt.status IN (COMPLETED, COMPLETED_WITH_WARNINGS)
+  latest_attempt.attempt_number = MAX committed attempt_number for that run
+  successful_attempt_id set only after terminal success + immutable results
+  latest_attempt_id updated atomically with attempt creation
+  retry attempt_number > referenced attempt_number
+ATOMIC_LOCKING_CONTRACT =
+  SELECT FOR UPDATE (or equivalent) on weekly_knowledge_runs;
+  allocate attempt_number; insert attempt; update latest_attempt_id;
+  on terminal success: lock run; validate; persist results+decision+metrics;
+  set successful_attempt_id; update run state; single commit;
+  competing success fails closed via partial unique + lock + one txn
+```
+
+### ۱۷۷.۷ Corrected text ERD (authoritative after FIX1)
+
+```text
+governed_source_profiles
+    1 ── 1..* governed_source_profile_versions
+weekly_knowledge_runs
+    1 ── 0..* weekly_knowledge_run_attempts
+
+weekly_knowledge_run_attempts
+    1 ── 0..* knowledge_gaps
+        through knowledge_gaps.discovered_attempt_id
+
+weekly_knowledge_run_attempts
+    1 ── 0..* weekly_run_source_results
+
+weekly_knowledge_run_attempts
+    1 ── 0..* weekly_run_gap_results
+
+governed_source_profiles
+    1 ── 0..* knowledge_gaps
+        through target_source_profile_id
+
+governed_source_profiles
+    1 ── 0..* weekly_run_source_results
+
+knowledge_gaps
+    1 ── 0..* weekly_run_gap_results
+
+weekly_knowledge_runs
+    0..1 ── 1 weekly_knowledge_run_attempts
+        through successful_attempt_id, same-run composite FK
+
+weekly_knowledge_runs
+    0..1 ── 1 weekly_knowledge_run_attempts
+        through latest_attempt_id, same-run composite FK
+
+weekly_knowledge_run_attempts
+    0..1 ── 1 weekly_knowledge_run_attempts
+        through retry_of_attempt_id, same-run composite self-FK
+
+i5_governance_decisions
+    1 ── 0..* source/gap/run/result governance references
+    polymorphic entity_type/entity_id = SERVICE-VALIDATED (no multi-table FK)
+```
+
+### ۱۷۷.۸ Corrected migration order and rollback
+
+```text
+MIGRATION_ORDER =
+  PHASE1 GSP additive
+  PHASE2 weekly_knowledge_runs (nullable pointers; no circular FKs)
+  PHASE3 weekly_knowledge_run_attempts (+ same-run retry composite FK)
+  PHASE4 knowledge_gaps (discovered_attempt_id)
+  PHASE5 weekly_run_source_results + weekly_run_gap_results (nullable decision_id)
+  PHASE6 i5_governance_decisions
+  PHASE7 deferred FKs (successful/latest composite + decision FKs)
+  PHASE8 unique / partial unique / query indexes / CHECKs
+  PHASE9 service/transaction invariant record
+ROLLBACK_ORDER =
+  1 drop deferred decision FKs
+  2 drop deferred successful/latest composite FKs
+  3 drop query + partial unique indexes
+  4 drop i5_governance_decisions
+  5 drop weekly_run_gap_results
+  6 drop weekly_run_source_results
+  7 drop knowledge_gaps
+  8 drop weekly_knowledge_run_attempts
+  9 drop weekly_knowledge_runs
+  10 drop W1-P01 additive GSP columns only
+  DO NOT alter legacy knowledge_sources / KnowledgeIngestionRun /
+               governed_source_profile_versions / existing GSP history
+```
+
+### ۱۷۷.۹ Recomputed counts (must agree with §176)
+
+```text
+TABLES_TOTAL = 8
+EXTENDED = 1
+REUSED = 1
+NEW = 6
+COLUMNS:
+  GSP additive W1-P01 = 13
+  knowledge_gaps = 40
+  weekly_knowledge_runs = 26
+  weekly_knowledge_run_attempts = 36
+  weekly_run_source_results = 20
+  weekly_run_gap_results = 9
+  i5_governance_decisions = 18
+
+PK_COUNT (new tables) = 6
+UNIQUE_CONSTRAINTS = 6
+PARTIAL_UNIQUE_INDEXES = 1
+SIMPLE_FOREIGN_KEYS = 13
+COMPOSITE_FOREIGN_KEYS = 3
+DEFERRED_FOREIGN_KEYS = 4
+SELF_REFERENTIAL_FOREIGN_KEYS = 4
+TOTAL_FK_CONSTRAINTS = 16
+CHECK_CONSTRAINTS (named core set) = 18
+QUERY_INDEXES = 30
+ENUMS = 18
+
+PROPOSED_CONSTRAINT_NAMES =
+  uq_knowledge_gaps_canonical_gap_key
+  uq_weekly_knowledge_runs_logical_run_key
+  uq_wkra_run_attempt
+  uq_wkra_id_weekly_run_id
+  uq_wrsr_attempt_source_profile
+  uq_wrgr_attempt_gap
+  uq_wkra_one_successful_terminal
+  fk_knowledge_gaps_discovered_attempt_id
+  fk_knowledge_gaps_target_source_profile_id
+  fk_knowledge_gaps_reopened_from_gap_id
+  fk_wkr_supersedes_run_id
+  fk_wkra_weekly_run_id
+  fk_wkra_retry_same_run
+  fk_wkr_successful_attempt_same_run
+  fk_wkr_latest_attempt_same_run
+  fk_wrsr_attempt_id
+  fk_wrsr_source_profile_id
+  fk_wrsr_source_version_id
+  fk_wrsr_decision_id
+  fk_wrgr_attempt_id
+  fk_wrgr_gap_id
+  fk_wrgr_decision_id
+  fk_igd_supersedes_decision_id
+  ck_wkra_retry_not_self
+```
+
+### ۱۷۷.۱۰ Exact §176 corrections summary
+
+```text
+§§1–175 = PRESERVED
+§176 = MINIMALLY CORRECTED for F-176-01..04
+  D1/D2/D5 architecture decisions updated
+  knowledge_gaps.discovered_attempt_id frozen
+  weekly_knowledge_runs same-run deferred composite FKs frozen
+  weekly_knowledge_run_attempts composite retry + uq_wkra_id_weekly_run_id frozen
+  result decision FKs deferred
+  §176.13 canonicalization provenance clarification
+  §176.14 ERD / FK matrix / counts / transaction contract rewritten
+  §176.15 delete immutability rules
+  §176.16 migration + rollback order rewritten to PHASE 1..9
+  §176.17 next gate points to FIX1 strict audit before model/enum authoring
+  §176.20 marker = READY_FOR_W1_P01_DB_DESIGN_FIX1_STRICT_READONLY_AUDIT
+§177 = THIS RECORD
+§178 = ABSENT
+```
+
+### ۱۷۷.۱۱ Remaining authoring allowlist (not authorized in FIX1)
+
+```text
+AFTER_STRICT_AUDIT_PASS_NEXT =
+  I5-IMPL-W1-P01-DB-FOUNDATION-MODEL-ENUM-AUTHORING-01
+MODIFY:
+  backend/app/models.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+CREATE:
+  backend/app/services/i5/enums.py
+
+OPTIONAL_CREATE:
+  backend/app/services/i5/__init__.py
+  only if package does not already exist and repository integrity requires it
+
+EXCLUDED:
+  migrations / services beyond enum packaging / schemas / routers /
+  scheduler / crawler / tests / CI / DB connection
+```
+
+### ۱۷۷.۱۲ Final FIX1 verdict
+
+```text
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX1_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_W1_P01_DB_DESIGN_FIX1_STRICT_READONLY_AUDIT
+NEXT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX1-STRICT-READONLY-AUDIT-01
+NO_FORMAL_I5_CREDIT = YES
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+---
+
+*پایان بند ۱۷۷ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX1 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+## ۱۷۸) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FIX2
+
+### ۱۷۸.۱ Approval and baseline
+
+```text
+JAVAD_APPROVAL = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX2-01
+EXECUTION_MODE = REPOSITORY-LOCAL / DOCUMENTATION-ONLY / UNCOMMITTED
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STARTING_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STARTING_STAGING = EMPTY
+STARTING_UNTRACKED = ZERO
+STARTING_MASTER_LOG_STRUCTURE =
+  §175 START = 46188 PRESENT
+  §176 START = 46419 END = 47282 INCLUSIVE = 864
+  §177 START = 47283 END = 47611 INCLUSIVE = 329
+  §178 = ABSENT
+SCOPE = DOCUMENTATION-ONLY FIX2 of §176 + append §178; §177 preserved as FIX1 history
+NO_BACKEND_CODE_EDIT = YES
+NO_MODEL_EDIT = YES
+NO_ENUM_EDIT = YES
+NO_MIGRATION_CREATE_OR_RUN = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+NO_NETWORK = YES
+```
+
+### ۱۷۸.۲ Prior FIX1 PASS and ChatGPT review verdict
+
+```text
+PRIOR_GATE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX1-01
+PRIOR_VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX1_IMPLEMENTED_UNCOMMITTED
+PRIOR_MARKER = READY_FOR_W1_P01_DB_DESIGN_FIX1_STRICT_READONLY_AUDIT
+CHATGPT_REVIEW_VERDICT = FAIL / FIX2 REQUIRED
+  three remaining architectural defects blocked strict design audit readiness
+FINDINGS = F-177-01, F-177-02, F-177-03
+```
+
+### ۱۷۸.۳ F-177-01 — Generic result decision_id cardinality defect
+
+```text
+ROOT_CAUSE =
+  singular generic weekly_run_source_results.decision_id and
+  weekly_run_gap_results.decision_id cannot represent multi-decision history
+  and create an unnecessary semantic cycle with polymorphic decisions.
+
+CORRECTION =
+  REMOVE weekly_run_source_results.decision_id
+  REMOVE weekly_run_gap_results.decision_id
+  REMOVE fk_wrsr_decision_id / fk_wrgr_decision_id
+  REMOVE deferred result decision FK phase / indexes / rollback drops
+  NO replacement terminal/publication/latest decision pointer in W1-P01
+  AUTHORITATIVE HISTORY =
+    i5_governance_decisions WHERE entity_type/entity_id match result
+    ORDER BY created_at ASC, id ASC
+  COLUMN_COUNTS AFTER REMOVAL =
+    weekly_run_source_results = 19
+    weekly_run_gap_results = 8
+```
+
+### ۱۷۸.۴ F-177-02 — reopened_from_gap_id identity / deduplication defect
+
+```text
+ROOT_CAUSE =
+  historical field reopened_from_gap_id implied a new gap row lineage that
+  conflicts with UNIQUE canonical_gap_key and one governed gap identity.
+
+CORRECTION =
+  REMOVE knowledge_gaps.reopened_from_gap_id and its self-FK/CHECK
+  NO replacement lineage column in W1-P01
+  REOPENING retains same knowledge_gaps.id and same canonical_gap_key
+  REOPENING_TRANSACTION frozen in §176.6:
+    lock gap; allow RESOLVED|REJECTED only; append GAP_REOPEN;
+    set status=REOPENED; clear resolution projection; preserve prior
+    GAP_RESOLUTION in append-only history; optional run-gap REOPENED result;
+    single commit
+  knowledge_gaps COLUMN_COUNT = 39
+```
+
+### ۱۷۸.۵ F-177-03 — Governance decision idempotency and same-entity supersession
+
+```text
+ROOT_CAUSE =
+  decision identity and same-entity supersession were under-specified;
+  simple self-FK on supersedes_decision_id could not prove same entity.
+
+CORRECTION =
+  Freeze canonical decision payload JSON (no created_at / no DB id)
+  canonical_hash = SHA-256(payload bytes); algorithm+version scoped
+  UNIQUE uq_i5gd_hash_identity(hash_algorithm, canonicalization_version, canonical_hash)
+  UNIQUE uq_i5gd_id_entity(id, entity_type, entity_id)
+  COMPOSITE FK fk_i5gd_supersedes_same_entity
+    (supersedes_decision_id, entity_type, entity_id)
+    → (id, entity_type, entity_id) ON DELETE RESTRICT
+  CHECK ck_igd_supersedes_not_self
+  Idempotent duplicate on exact canonical match; fail-closed on hash collision
+  Service default-deny supersession type matrix frozen
+  i5_governance_decisions COLUMN_COUNT remains 18
+```
+
+### ۱۷۸.۶ Corrected text ERD after FIX2
+
+```text
+governed_source_profiles
+    1 ── 1..* governed_source_profile_versions
+
+weekly_knowledge_runs
+    1 ── 0..* weekly_knowledge_run_attempts
+
+weekly_knowledge_run_attempts
+    1 ── 0..* knowledge_gaps
+        through knowledge_gaps.discovered_attempt_id
+
+weekly_knowledge_run_attempts
+    1 ── 0..* weekly_run_source_results
+
+weekly_knowledge_run_attempts
+    1 ── 0..* weekly_run_gap_results
+
+governed_source_profiles
+    1 ── 0..* knowledge_gaps
+        through target_source_profile_id
+
+governed_source_profiles
+    1 ── 0..* weekly_run_source_results
+
+knowledge_gaps
+    1 ── 0..* weekly_run_gap_results
+
+weekly_knowledge_runs
+    0..1 ── 1 weekly_knowledge_run_attempts
+        through successful_attempt_id, same-run composite FK
+
+weekly_knowledge_runs
+    0..1 ── 1 weekly_knowledge_run_attempts
+        through latest_attempt_id, same-run composite FK
+
+weekly_knowledge_run_attempts
+    0..1 ── 1 weekly_knowledge_run_attempts
+        through retry_of_attempt_id, same-run composite self-FK
+
+i5_governance_decisions
+    0..* governed decisions for one result/gap/run/source entity
+        through polymorphic entity_type + entity_id (SERVICE-VALIDATED)
+        NO generic result.decision_id back-pointer
+
+i5_governance_decisions
+    0..1 ── 1 i5_governance_decisions
+        through supersedes_decision_id, same-entity composite self-FK
+```
+
+### ۱۷۸.۷ Recomputed counts (must agree with §176)
+
+```text
+TABLES_TOTAL = 8
+EXTENDED = 1
+REUSED = 1
+NEW = 6
+
+COLUMNS:
+  GSP additive W1-P01 = 13
+  knowledge_gaps = 39
+  weekly_knowledge_runs = 26
+  weekly_knowledge_run_attempts = 36
+  weekly_run_source_results = 19
+  weekly_run_gap_results = 8
+  i5_governance_decisions = 18
+
+PK_COUNT (new tables) = 6
+UNIQUE_CONSTRAINTS = 8
+PARTIAL_UNIQUE_INDEXES = 1
+SIMPLE_FOREIGN_KEYS = 9
+COMPOSITE_FOREIGN_KEYS = 4
+DEFERRED_FOREIGN_KEYS = 2
+SELF_REFERENTIAL_FOREIGN_KEYS = 3
+TOTAL_FK_CONSTRAINTS = 13
+CHECK_CONSTRAINTS (named core set) = 17
+QUERY_INDEXES = 28
+ENUMS = 18
+
+PROPOSED_CONSTRAINT_NAMES (FIX2 additions/corrections) =
+  uq_i5gd_hash_identity
+  uq_i5gd_id_entity
+  fk_i5gd_supersedes_same_entity
+  ck_igd_supersedes_not_self
+REMOVED_FROM_CONTRACT =
+  result.decision_id fields and FKs
+  knowledge_gaps.reopened_from_gap_id and self-FK
+```
+
+### ۱۷۸.۸ Corrected migration / rollback summary
+
+```text
+MIGRATION_ORDER =
+  PHASE1 GSP additive
+  PHASE2 weekly_knowledge_runs (nullable pointers; no circular FKs)
+  PHASE3 weekly_knowledge_run_attempts (+ same-run retry composite FK)
+  PHASE4 knowledge_gaps (discovered_attempt_id; no lineage self-FK)
+  PHASE5 result tables (NO decision_id columns)
+  PHASE6 i5_governance_decisions (+ hash unique + id_entity unique + same-entity supersession FK)
+  PHASE7 deferred FKs (successful/latest composite only)
+  PHASE8 indexes / CHECKs
+  PHASE9 service/transaction invariants
+
+ROLLBACK_ORDER =
+  1 drop deferred successful/latest composite FKs
+  2 drop query + partial unique indexes
+  3 drop i5_governance_decisions
+  4 drop weekly_run_gap_results
+  5 drop weekly_run_source_results
+  6 drop knowledge_gaps
+  7 drop weekly_knowledge_run_attempts
+  8 drop weekly_knowledge_runs
+  9 drop W1-P01 additive GSP columns only
+```
+
+### ۱۷۸.۹ Exact §176 / §177 / §178 structure
+
+```text
+§§1–175 = PRESERVED
+§176 = MINIMALLY CORRECTED for F-177-01..03
+§177 = PRESERVED AS FIX1 HISTORY (fence integrity restored only;
+       PowerShell backtick corruption from FIX1 append repaired;
+       FIX1 historical content unchanged)
+§178 = THIS RECORD
+§179 = ABSENT
+```
+
+### ۱۷۸.۱۰ Remaining authoring allowlist (not authorized in FIX2)
+
+```text
+AFTER_STRICT_AUDIT_PASS_NEXT =
+  I5-IMPL-W1-P01-DB-FOUNDATION-MODEL-ENUM-AUTHORING-01
+
+MODIFY:
+  backend/app/models.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+CREATE:
+  backend/app/services/i5/enums.py
+
+OPTIONAL_CREATE:
+  backend/app/services/i5/__init__.py
+  only if package does not already exist and repository integrity requires it
+
+EXCLUDED:
+  migrations / services beyond enum packaging / schemas / routers /
+  scheduler / crawler / tests / CI / DB connection
+```
+
+### ۱۷۸.۱۱ Final FIX2 verdict
+
+```text
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX2_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_W1_P01_DB_DESIGN_FIX2_STRICT_READONLY_AUDIT
+NEXT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX2-STRICT-READONLY-AUDIT-01
+NO_FORMAL_I5_CREDIT = YES
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+---
+
+*پایان بند ۱۷۸ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX2 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+## ۱۷۹) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FIX3
+
+### ۱۷۹.۱ Approval and baseline
+
+```text
+JAVAD_APPROVAL = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX3-01
+EXECUTION_MODE = REPOSITORY-LOCAL / DOCUMENTATION-ONLY / UNCOMMITTED
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STARTING_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STARTING_STRUCTURE =
+  §175 START=46188; §176 46419–47395 (977); §177 47396–47724 (329);
+  §178 47725–47999 (275); §179 ABSENT
+SCOPE = FIX3 close F-AUD-02-01..13; §177 fence restore only; §178 preserved; append §179
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+NO_NETWORK = YES
+```
+
+### ۱۷۹.۲ FIX2 strict-audit verdict and findings closed
+
+```text
+PRIOR_AUDIT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX2-STRICT-READONLY-AUDIT-01
+PRIOR_VERDICT = NEEDS_FIX — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX2_AUDIT_FOUND_DEFECTS
+FINDINGS_CLOSED = F-AUD-02-01 .. F-AUD-02-13
+```
+
+### ۱۷۹.۳ Per-finding root cause and correction
+
+```text
+F-AUD-02-01 ROOT = ambiguous summary/event for weekly_run_gap_results
+  FIX = ONE FINAL IMMUTABLE SUMMARY per (attempt_id,gap_id); intermediates in decisions
+F-AUD-02-02 ROOT = content hash conflated with operational idempotency
+  FIX = decision_request_key + uq_i5gd_decision_request; canonical_hash NON-UNIQUE fingerprint
+F-AUD-02-03 ROOT = supersession branching unspecified
+  FIX = PROHIBITED via uq_i5gd_one_superseder; leaf-only supersession txn
+F-AUD-02-04 ROOT = runs declared 26 vs listed 28
+  FIX = COLUMN_COUNT = 28 exact list
+F-AUD-02-05 ROOT = attempts declared 36 vs expanded 33
+  FIX = COLUMN_COUNT = 33 with explicit metric columns
+F-AUD-02-06 ROOT = §177 CORRECTION outside fences after PowerShell repair
+  FIX = fence placement restored; semantic compact unchanged; no prose rewrite
+F-AUD-02-07 ROOT = no hash-format CHECK
+  FIX = ck_i5gd_canonical_hash_format + ix_i5gd_content_hash
+F-AUD-02-08 ROOT = decision-type matrix unbound to entity_type
+  FIX = DECISION_TYPE_x_ENTITY_TYPE_MATRIX default-deny
+F-AUD-02-09 ROOT = ck_igd_* vs uq_i5gd_* naming split
+  FIX = normalize to ck_i5gd_* / uq_i5gd_* / fk_i5gd_* / ix_i5gd_*
+F-AUD-02-10 ROOT = knowledge_*_count abbreviation
+  FIX = exact 21 named source-result columns
+F-AUD-02-11 ROOT = unbounded Text without owners
+  FIX = size limits + sanitization + named owners
+F-AUD-02-12 ROOT = MATCH SIMPLE undocumented
+  FIX = explicit MATCH SIMPLE contract for nullable composite FKs
+F-AUD-02-13 ROOT = 9 vs 10 phase numbering ambiguity
+  FIX = exact PHASE 1..10 migration order
+```
+
+### ۱۷۹.۴ §177 fence restoration evidence
+
+```text
+§177_SEMANTIC_PROSE_CHANGED = NO
+SEMANTIC_CHANGE_COUNT = 0
+§177_FINDING_IDS_UNCHANGED = YES
+§177_COUNTS_UNCHANGED = YES
+§177_STATUS_UNCHANGED = YES
+§177_NEXT_GATE_UNCHANGED = YES
+§177_APPROVAL_BOUNDARIES_UNCHANGED = YES
+PRE_FIX2_BYTE_EQUIVALENCE_CLAIM = NOT MADE
+EVIDENTIARY_LIMIT = no retained pre-FIX2 byte snapshot
+FENCE_REPAIR = reopen/close placement restored so ROOT_CAUSE/CORRECTION/RESULT
+  remain inside intended fenced regions for FIX1 finding blocks
+EMPTY_LINE_NORMALIZATION_ONLY = YES (compact semantic hash match; no prose rewrite)
+STARTING_§177_RANGE_AT_FIX3_ENTRY = 47396–47724 (inclusive 329)
+CURRENT_§177_RANGE_AFTER_FIX3 = 47454–47774 (inclusive 321)
+  note: absolute line numbers shifted by §176 expansion (+57 contract lines);
+  §177 inclusive length change = empty-line normalization around fences only
+FINDING_BLOCKS_FENCE_TOUCH_RANGES (current absolute lines) =
+  ۱۷۷.۳ F-176-01 fence 47499–47516
+  ۱۷۷.۴ F-176-02 fence 47520–47539
+  ۱۷۷.۵ F-176-03 fence 47543–47554
+  ۱۷۷.۶ F-176-04 fence 47558–47585
+FENCE_LINE_COUNT_IN_§177 = 24 (12 open + 12 close; BALANCED)
+FINDING_BLOCK_FENCE_DELIMITER_LINES = 8
+  (four ```text openers + four ``` closers at ۱۷۷.۳–۱۷۷.۶)
+EMPTY_LINES_REMOVED_BY_COMPACT_NORMALIZATION = 8
+  (329 → 321 inclusive; no prose / finding-ID / count / status rewrite)
+NO_TAB_EXPANDED_ext = YES
+NO_MALFORMED_OPENER = YES
+NO_UNMATCHED_CLOSER = YES
+CORRECTION_OUTSIDE_INTENDED_FENCE = 0
+```
+
+### ۱۷۹.۵ Recomputed counts (agree with §176)
+
+```text
+TABLES_TOTAL = 8
+COLUMNS: GSP additive=13; gaps=39; runs=28; attempts=33; source_results=21; gap_results=8; decisions=19
+PK=6 UNIQUE=8 PARTIAL_UNIQUE=2
+SIMPLE_FK=9 COMPOSITE_FK=4 TOTAL_DISTINCT_FK=13
+DEFERRED_FK_SUBSET=2 SELF_REF_FK_SUBSET=3
+CORE_CHECK=20 QUERY_INDEXES=29 ENUMS=18
+```
+
+### ۱۷۹.۶ Final FIX3 verdict
+
+```text
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX3_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_W1_P01_DB_DESIGN_FIX3_STRICT_READONLY_AUDIT
+NEXT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX3-STRICT-READONLY-AUDIT-01
+NO_FORMAL_I5_CREDIT = YES
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+---
+
+*پایان بند ۱۷۹ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX3 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+
+## ۱۸۰) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FIX4
+
+### ۱۸۰.۱ Approval and baseline
+
+```text
+JAVAD_APPROVAL = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX4-01
+EXECUTION_MODE = REPOSITORY-LOCAL / DOCUMENTATION-ONLY / UNCOMMITTED
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STARTING_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STARTING_STRUCTURE =
+  §175 START=46188; §176 46419–47452 (1034); §177 47454–47774 (321);
+  §178 47775–48049 (275); §179 48050–48178 (129); §180 ABSENT
+SCOPE = FIX4 close F-AUD-03-01..10; §177 BYTE-UNCHANGED; §178/§179 PRESERVED; append §180
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+NO_NETWORK = YES
+```
+
+### ۱۸۰.۲ FIX3 strict-audit verdict and findings closed
+
+```text
+PRIOR_AUDIT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX3-STRICT-READONLY-AUDIT-01
+PRIOR_VERDICT = NEEDS_FIX — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX3_AUDIT_FOUND_DEFECTS
+FINDINGS_CLOSED = F-AUD-03-01 .. F-AUD-03-10
+```
+
+### ۱۸۰.۳ Per-finding root cause and closure
+
+```text
+F-AUD-03-01 ROOT = decision-family leaf key undefined
+  FIX = decision_family column + GovernanceDecisionFamily enum + family matrices +
+        DECISION_FAMILY_KEY=(entity_type,entity_id,decision_family) + root/leaf algorithm
+F-AUD-03-02 ROOT = String(128) vs String(512) identity reference contradiction
+  FIX = all identity refs String(512); evidence/snapshot refs String(2048)
+F-AUD-03-03 ROOT = 29 query indexes claimed but only 9 named
+  FIX = exact named list ix_gsp_* / ix_kg_* / ix_wkr_* / ix_wkra_* / ix_wrsr_* / ix_wrgr_* / ix_i5gd_* (29)
+F-AUD-03-04 ROOT = enum-backed columns without named DB vocabulary CHECKs
+  FIX = named vocab CHECKs for all 19 enums' persisted columns; from_state/to_state SERVICE-ONLY
+F-AUD-03-05 ROOT = Text fields without size/sanitization coverage
+  FIX = TEXT_REFERENCE_SAFETY_MATRIX covering every Text/reference-like field
+F-AUD-03-06 ROOT = §177 blank-line/semantic preservation not independently provable
+  FIX = withdraw unprovable pre-FIX2 claims; freeze CURRENT §177 as canonical FIX1 history as of FIX4;
+        compute sedi-section-hash-v1; prove unchanged across §180 append; NO §177 byte edit
+F-AUD-03-07 ROOT = logical-run create transaction underspecified
+  FIX = LOGICAL_RUN_CREATE explicit idempotent insert/compare/fail-closed flow
+F-AUD-03-08 ROOT = request-key reuse across decision_types ambiguous
+  FIX = uq_i5gd_decision_request WITHOUT decision_type; cross-type reuse => IDEMPOTENCY_KEY_PAYLOAD_MISMATCH
+F-AUD-03-09 ROOT = hash_algorithm/canonicalization_version defaults only
+  FIX = ck_i5gd_hash_algorithm_constant; ck_i5gd_canonicalization_version_constant
+F-AUD-03-10 ROOT = INFORMATIONAL historical RESULT-label pattern in §177
+  FIX = preserved unchanged (no §177 prose edit); recorded as historical FIX1 structure
+```
+
+### ۱۸۰.۴ Decision-family model summary
+
+```text
+decision_family String(64) NOT NULL (column 4 of 20)
+GovernanceDecisionFamily VALUES = RIGHTS,AUTOMATION,QUALITY,MEDICAL_SAFETY,SECURITY,LIFECYCLE,GAP_LIFECYCLE,RUN_APPROVAL,RUN_TERMINALIZATION
+TYPE->FAMILY and ENTITY->FAMILY matrices frozen; SUPERSESSION inherits family
+uq_i5gd_one_root_per_family; uq_i5gd_one_superseder; fk_i5gd_supersedes_same_entity_family
+uq_i5gd_id_entity_family; deterministic family leaf; STALE_SUPERSESSION_TARGET
+```
+
+### ۱۸۰.۵ §177 evidentiary limitation and canonical hash
+
+```text
+PRE-FIX2 BYTE EQUIVALENCE = UNKNOWN
+PRE-FIX2 SEMANTIC PRESERVATION = NOT INDEPENDENTLY PROVABLE
+CURRENT §177 = CANONICAL RECONCILED FIX1 HISTORICAL RECORD AS OF FIX4
+HASH_PROCEDURE_VERSION = sedi-section-hash-v1
+SOURCE = current uncommitted worktree BEFORE §180 append
+§177_START_LINE_AT_HASH = 47380
+§177_END_LINE_AT_HASH = 47700
+§177_INCLUSIVE_LINE_COUNT = 321
+§177_LF_NORMALIZED_UTF8_BYTE_LENGTH = 11431
+§177_CANONICAL_SHA256 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+§177_SHA256_AFTER_§180_APPEND = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+§177_HASH_UNCHANGED_AFTER_APPEND = YES
+§177_BYTES_EDITED_DURING_FIX4 = NO
+FUTURE_§177_MODIFICATION_REQUIRES = new explicit approval + new hash + new reconciliation record
+```
+
+### ۱۸۰.۶ Recomputed counts (agree with §176)
+
+```text
+TABLES_TOTAL = 8
+COLUMNS: GSP additive=13; gaps=39; runs=28; attempts=33; source_results=21; gap_results=8; decisions=20
+PK=6 UNIQUE=8 PARTIAL_UNIQUE=3
+SIMPLE_FK=9 COMPOSITE_FK=4 TOTAL_DISTINCT_FK=13
+DEFERRED_FK_SUBSET=2 SELF_REF_FK_SUBSET=3
+NAMED_DB_CHECK=48 QUERY_INDEXES=29 ENUMS=19
+```
+
+### ۱۸۰.۷ Final FIX4 verdict
+
+```text
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX4_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_W1_P01_DB_DESIGN_FIX4_STRICT_READONLY_AUDIT
+NEXT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX4-STRICT-READONLY-AUDIT-01
+NO_FORMAL_I5_CREDIT = YES
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+---
+
+*پایان بند ۱۸۰ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX4 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+
+
+## ۱۸۱) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FIX5
+
+### ۱۸۱.۱ Approval and baseline
+
+```text
+JAVAD_APPROVAL = YES
+PACKAGE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX5-01
+EXECUTION_MODE = REPOSITORY-LOCAL / DOCUMENTATION-ONLY / UNCOMMITTED
+STARTING_HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+PARENT = 30c91dfc484fe8305039f5dc62a21e55de41abd6
+TREE = 87616981337ac768f9320006a4a26f7d1064cff3
+BRANCH = feature/section15/backend-continuity-foundation
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND = 0/0
+STARTING_DIRTY = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STARTING_STAGING = EMPTY
+STARTING_UNTRACKED = ZERO
+STARTING_STRUCTURE =
+  §175 = 46188–46417 inclusive 230
+  §176 = 46419–47378 inclusive 960
+  §177 = 47380–47700 inclusive 321
+  §178 = 47701–47975 inclusive 275
+  §179 = 47976–48104 inclusive 129
+  §180 = 48106–48224 inclusive 119
+  §181 = ABSENT
+SCOPE = FIX5 close F-AUD-04-01..05; §176 CORRECTED; §§177–180 BYTE-UNCHANGED; append §181
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+NO_NETWORK = YES
+```
+
+### ۱۸۱.۲ FIX4 strict-audit verdict and findings closed
+
+```text
+PRIOR_AUDIT = W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX4_STRICT_READONLY_AUDIT
+PRIOR_VERDICT = NEEDS_FIX — remaining defects F-AUD-04-01..05
+FINDINGS_CLOSED = F-AUD-04-01, F-AUD-04-02, F-AUD-04-03, F-AUD-04-04, F-AUD-04-05
+```
+
+### ۱۸۱.۳ Per-finding root cause and closure
+
+```text
+F-AUD-04-01 ROOT = ENTITY_TYPE_TO_DECISION_TYPE_MATRIX replaced by "retained / compatible" reference
+  FIX = restore full default-deny ENTITY_TYPE_TO_DECISION_TYPE_MATRIX in §176;
+        freeze ck_i5gd_entity_decision_matrix (same-row entity_type × decision_type)
+
+F-AUD-04-02 ROOT = supersession transaction said "lock entity" without canonical polymorphic lock
+  FIX = freeze LOCK_DOMAIN=(entity_type,entity_id,decision_family);
+        lock material sedi:i5gd:family-lock:v1|...;
+        SHA-256 → signed big-endian int64; pg_advisory_xact_lock;
+        multi-lock ascending order; advisory lock mandatory/canonical
+
+F-AUD-04-03 ROOT = append-only immutability underspecified (partial column immutability; no trigger)
+  FIX = ALL 20 decision columns immutable after INSERT; no updated_at;
+        repository INSERT-ONLY; fn_i5gd_reject_mutation + trg_i5gd_append_only;
+        error I5_GOVERNANCE_DECISION_APPEND_ONLY_VIOLATION;
+        hard/soft/cascade delete prohibited; ON DELETE RESTRICT
+
+F-AUD-04-04 ROOT = enforcement layers conflated (CHECK claimed to cover parent-row transitions)
+  FIX = split DB same-row CHECKs / composite FK / partial uniques / service-transaction;
+        explicit: NO DATABASE CHECK IS CLAIMED TO READ A REFERENCED PARENT ROW;
+        NEW→PRIOR supersession = service/transaction only
+
+F-AUD-04-05 ROOT = NEW→PRIOR supersession matrix incomplete / not authoritative in §176
+  FIX = freeze complete NEW_TO_PRIOR_SUPERSESSION_TYPE_MATRIX including
+        same-type corrections, LIFECYCLE, GAP_LIFECYCLE, RUN_APPROVAL,
+        RUN_TERMINALIZATION, SUPERSESSION special rules; default deny;
+        error INVALID_SUPERSESSION_TRANSITION
+```
+
+### ۱۸۱.۴ Complete entity × decision matrix (authoritative mirror of §176)
+
+```text
+SOURCE_PROFILE →
+  RIGHTS_REVIEW, AUTOMATION_REVIEW, QUALITY_REVIEW, MEDICAL_SAFETY_REVIEW, SECURITY_REVIEW,
+  APPROVAL, REJECTION, ACTIVATION, SUSPENSION, REVOCATION, SUPERSESSION
+SOURCE_PROFILE_VERSION →
+  RIGHTS_REVIEW, AUTOMATION_REVIEW, QUALITY_REVIEW, MEDICAL_SAFETY_REVIEW, SECURITY_REVIEW,
+  APPROVAL, REJECTION, SUPERSESSION
+KNOWLEDGE_GAP →
+  APPROVAL, REJECTION, GAP_RESOLUTION, GAP_REOPEN, SUPERSESSION
+WEEKLY_RUN →
+  RUN_APPROVAL, APPROVAL, REJECTION, SUSPENSION, REVOCATION, SUPERSESSION
+WEEKLY_RUN_ATTEMPT →
+  RUN_TERMINALIZATION, SUPERSESSION
+RUN_SOURCE_RESULT →
+  RIGHTS_REVIEW, AUTOMATION_REVIEW, QUALITY_REVIEW, MEDICAL_SAFETY_REVIEW, SECURITY_REVIEW,
+  APPROVAL, REJECTION, SUPERSESSION
+RUN_GAP_RESULT →
+  QUALITY_REVIEW, APPROVAL, REJECTION, SUPERSESSION
+UNLISTED = DENIED BY DEFAULT
+DB_CHECK = ck_i5gd_entity_decision_matrix
+```
+
+### ۱۸۱.۵ Complete NEW→PRIOR supersession / lifecycle transition matrix
+
+```text
+GENERIC SAME-TYPE:
+  RIGHTS_REVIEW→RIGHTS_REVIEW; AUTOMATION_REVIEW→AUTOMATION_REVIEW;
+  QUALITY_REVIEW→QUALITY_REVIEW; MEDICAL_SAFETY_REVIEW→MEDICAL_SAFETY_REVIEW;
+  SECURITY_REVIEW→SECURITY_REVIEW
+LIFECYCLE:
+  APPROVAL→REJECTION|APPROVAL|SUSPENSION
+  REJECTION→APPROVAL|REJECTION|SUSPENSION
+  ACTIVATION→APPROVAL|SUSPENSION|ACTIVATION
+  SUSPENSION→APPROVAL|ACTIVATION|SUSPENSION
+  REVOCATION→APPROVAL|ACTIVATION|SUSPENSION|REVOCATION
+GAP_LIFECYCLE:
+  GAP_REOPEN→GAP_RESOLUTION
+  GAP_RESOLUTION→GAP_REOPEN|GAP_RESOLUTION
+RUN_APPROVAL: RUN_APPROVAL→RUN_APPROVAL
+RUN_TERMINALIZATION: RUN_TERMINALIZATION→RUN_TERMINALIZATION (evidenced correction required)
+SUPERSESSION→ prior type allowed for same entity, same family, current leaf,
+  non-empty reason + evidence_reference; cannot be root; inherits family
+UNLISTED = DENIED BY DEFAULT
+ERROR = INVALID_SUPERSESSION_TRANSITION
+ENFORCEMENT = SERVICE/TRANSACTION (not same-row DB CHECK)
+```
+
+### ۱۸۱.۶ Matrix-compatibility proof
+
+```text
+TYPE→FAMILY and ENTITY→FAMILY and ENTITY→DECISION matrices mutually compatible:
+  every listed entity×decision maps to a family permitted for that entity
+  (SUPERSESSION inherits prior family via service logic)
+every NEW→PRIOR pair (except SUPERSESSION special) maps to same GovernanceDecisionFamily
+COMPATIBILITY_RESULT = PASS
+```
+
+### ۱۸۱.۷ DB / FK / service enforcement split
+
+```text
+DB SAME-ROW CHECKS = vocabulary; entity×family; entity×decision; non-SUPERSESSION type×family;
+  SUPERSESSION requires parent id; hash/request-key/constants; reason length; entity_id>0; not-self
+COMPOSITE FK fk_i5gd_supersedes_same_entity_family = same entity_type/entity_id/decision_family
+PARTIAL UNIQUE = one root per family; one superseder per prior
+SERVICE/TRANSACTION = current leaf; NEW→PRIOR; SUPERSESSION family inherit;
+  reason/evidence; entity existence; request-key conflict; append-only; advisory lock
+NO DATABASE CHECK IS CLAIMED TO READ A REFERENCED PARENT ROW = YES
+```
+
+### ۱۸۱.۸ Canonical advisory-lock contract
+
+```text
+MATERIAL = "sedi:i5gd:family-lock:v1|" + entity_type + "|" + base10(entity_id) + "|" + decision_family
+EXAMPLE = sedi:i5gd:family-lock:v1|KNOWLEDGE_GAP|123|GAP_LIFECYCLE
+DIGEST = SHA-256(UTF-8 bytes)
+LOCK_KEY = int.from_bytes(digest[0:8], byteorder="big", signed=True)
+SQL = SELECT pg_advisory_xact_lock(:lock_key);
+MULTI_LOCK = dedupe → ascending signed int64 order → acquire
+ACQUIRE_BEFORE = root/leaf read, supersession validate, root/supersede insert
+```
+
+### ۱۸۱.۹ Family root/leaf transaction + append-only + immutability
+
+```text
+TX = begin → validate matrices → advisory lock → entity exists → load root/leaf →
+     insert root or superseding leaf → idempotency → commit once
+APPEND_ONLY_FUNCTION = fn_i5gd_reject_mutation
+APPEND_ONLY_TRIGGER = trg_i5gd_append_only
+ERROR = I5_GOVERNANCE_DECISION_APPEND_ONLY_VIOLATION
+IMMUTABLE_COLUMNS = ALL 20 columns listed in §176.11
+NO updated_at
+```
+
+### ۱۸۱.۱۰ Final counts (FIX5)
+
+```text
+TABLE_OBJECTS = 8
+DECISION_COLUMNS = 20
+ENUMS = 19
+ORDINARY_UNIQUES = 8
+PARTIAL_UNIQUE_INDEXES = 3
+NON_UNIQUE_QUERY_INDEXES = 29
+SIMPLE_FKS = 9
+COMPOSITE_FKS = 4
+TOTAL_DISTINCT_FKS = 13
+NAMED_DB_CHECKS = 49  (48 retained + ck_i5gd_entity_decision_matrix)
+APPEND_ONLY_TRIGGERS = 1
+TRIGGER_FUNCTIONS = 1
+MIGRATION_PHASES = 10
+NO_NEW_COLUMN_ENUM_INDEX_UQ_FK_BY_FIX5 = YES (except named CHECK + trigger/function)
+```
+
+### ۱۸۱.۱۱ Migration Phase 7 and rollback update
+
+```text
+PHASE_7 = decision table + all 49 CHECKs + entity×decision CHECK + same-entity-family FK +
+  request-key unique + one-root + one-superseder + append-only function/trigger +
+  content-hash indexes/checks
+PHASE_7_ORDER = table+checks → unique tuple → composite FK → uniques/partials →
+  query indexes → trigger function → trigger
+PHASE_10 = service/advisory-lock expectations only (no service execution in Alembic)
+ROLLBACK_BEFORE_DECISION_DROP = drop trg_i5gd_append_only; drop fn_i5gd_reject_mutation;
+  drop managed decision indexes/constraints; drop i5_governance_decisions
+```
+
+### ۱۸۱.۱۲ §§177–180 byte-preservation evidence
+
+```text
+HASH_PROCEDURE_VERSION = sedi-section-hash-v1
+PRE_EDIT:
+  §177_SHA256 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+  §178_SHA256 = 78f5f407af1a96f46a9c5dbade7126c0725da6066b548885f4efcf7ec0c8c142
+  §179_SHA256 = 7c823bd7b375ffb19e77fad5a20ea58eb230eb3d8c4dbc4154225cbd7d96913d
+  §180_SHA256 = 1831fc318ddd39cc96b80ed708e8582bb61f93af411e0a9a5f17c41888eda6a8
+POST_APPEND:
+  §177_SHA256 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+  §178_SHA256 = 78f5f407af1a96f46a9c5dbade7126c0725da6066b548885f4efcf7ec0c8c142
+  §179_SHA256 = 7c823bd7b375ffb19e77fad5a20ea58eb230eb3d8c4dbc4154225cbd7d96913d
+  §180_SHA256 = 1831fc318ddd39cc96b80ed708e8582bb61f93af411e0a9a5f17c41888eda6a8
+PRE_EQUALS_POST = YES
+§177_KNOWN_EXPECTED = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+§177_MATCHES_KNOWN = YES
+BYTES_EDITED_IN_§§177–180_DURING_FIX5 = NO
+```
+
+### ۱۸۱.۱۳ Final FIX5 verdict
+
+```text
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX5_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_W1_P01_DB_DESIGN_FIX5_STRICT_READONLY_AUDIT
+NEXT = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX5-STRICT-READONLY-AUDIT-01
+STRUCTURE =
+  §§1–175 PRESERVED
+  §176 CORRECTED
+  §§177–180 BYTE-PRESERVED
+  §181 APPENDED
+  §182 ABSENT
+NO_FORMAL_I5_CREDIT = YES
+NO_BACKEND_MODEL_ENUM_MIGRATION_CHANGE = YES
+NO_DATABASE_CONNECTION = YES
+NO_TEST_CI = YES
+NO_COMMIT_PUSH = YES
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+---
+
+*پایان بند ۱۸۱ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX5 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+
+
+## ۱۸۲) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FIX6
+
+### ۱۸۲.۱ Approval and baseline
+
+```text
+GATE_ID = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX6-01
+DATE = 2026-08-01
+MODE = DOCUMENTATION-ONLY / UNCOMMITTED
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+DIRTY_PATHS = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STAGING = EMPTY
+UNTRACKED = ZERO
+AUTHORIZED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+STARTING_STRUCTURE = §175–§181 present; §182 ABSENT; §183 ABSENT
+NO_MERGE_REBASE_CHERRY_PICK_REVERT_BISECT = YES
+```
+
+### ۱۸۲.۲ Findings closed
+
+```text
+F-AUD-05-01 = CLOSED
+  ROOT = SUPERSESSION leaf continuity undefined; ACTIVATION could not deterministically
+         supersede a SUPERSESSION leaf under literal NEW→PRIOR matrix
+  FIX = freeze effective_prior_decision_type traversal within same entity/family chain;
+        NEW→PRIOR after SUPERSESSION leaf uses effective prior, not literal SUPERSESSION;
+        fail closed CORRUPT_SUPERSESSION_CHAIN when no non-SUPERSESSION ancestor resolves
+
+F-AUD-05-02 = CLOSED
+  ROOT = idempotency applied after insert; unique-conflict classification could depend on
+         PostgreSQL index conflict order
+  FIX = request-key-first lookup under advisory lock before root/leaf mutation;
+        on any unique conflict, deterministic re-read order =
+        request-key → one-root → one-superseder;
+        named errors IDEMPOTENCY_KEY_PAYLOAD_MISMATCH / ROOT_ALREADY_EXISTS /
+        STALE_SUPERSESSION_TARGET / INTEGRITY_CONFLICT;
+        canonical_hash remains non-unique fingerprint only;
+        no dependence on ON CONFLICT selecting one particular unique index
+
+F-AUD-05-03 = CLOSED
+  ROOT = Phase 7 claimed all 49 CHECKs while Phase 9 still owned remaining CHECKs/indexes
+  FIX = complete migration-object ownership ledger; every object exactly one creation phase;
+        Phase 7 = decision-local objects only; Phase 8 = deferred FKs only;
+        Phase 9 residual creation list = EMPTY (verify-only);
+        Phase 10 schema creation = NONE;
+        dependency-safe Phase 1–6 table order preserved (GSP→runs→attempts→gaps→results)
+        NOTE: Stage-F illustrative gap-before-run numbering was NOT adopted because it would
+        break discovered_attempt_id FK dependency; accepted FIX5 dependency order retained
+```
+
+### ۱۸۲.۳ Supersession continuity contract (final)
+
+```text
+effective_prior_decision_type(decision):
+  if decision_type != SUPERSESSION: return decision_type
+  else walk supersedes_decision_id backward in same (entity_type,entity_id,decision_family)
+       until nearest non-SUPERSESSION ancestor; else CORRUPT_SUPERSESSION_CHAIN
+NEW successor after SUPERSESSION leaf validates against effective prior
+EXAMPLE: APPROVAL → SUPERSESSION → ACTIVATION checks ACTIVATION→APPROVAL
+```
+
+### ۱۸۲.۴ Request-key-first idempotency contract (final)
+
+```text
+under advisory lock:
+  lookup (entity_type,entity_id,decision_request_key) first
+  exact payload+hash → return existing
+  same key different payload → IDEMPOTENCY_KEY_PAYLOAD_MISMATCH
+  no row → validate/insert
+  any unique conflict → re-read request-key first, then ROOT_ALREADY_EXISTS /
+    STALE_SUPERSESSION_TARGET / INTEGRITY_CONFLICT
+independent of PostgreSQL index conflict order
+```
+
+### ۱۸۲.۵ Migration object ownership (final)
+
+```text
+PHASE_7_OWNER_SET = i5_governance_decisions + decision-local UQ/partial-UQ/FK/CHECK/
+  query indexes + fn_i5gd_reject_mutation + trg_i5gd_append_only
+PHASE_8_OWNER_SET = fk_wkr_successful_attempt_same_run; fk_wkr_latest_attempt_same_run
+PHASE_9_RESIDUAL_CREATION_LIST = EMPTY
+PHASE_10_SCHEMA_OBJECT_CREATION = NONE
+CHECK_BY_PHASE = 4+6+6+12+2+3+16 = 49
+INDEX_BY_PHASE = 5+6+2+7+2+2+5 = 29
+NO_PHASE_7_PHASE_9_CREATION_OVERLAP = YES
+```
+
+### ۱۸۲.۶ Preserved §§177–181 hash proof
+
+```text
+HASH_PROCEDURE = sedi-section-hash-v1
+BEFORE:
+  §177 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+  §178 = 78f5f407af1a96f46a9c5dbade7126c0725da6066b548885f4efcf7ec0c8c142
+  §179 = 7c823bd7b375ffb19e77fad5a20ea58eb230eb3d8c4dbc4154225cbd7d96913d
+  §180 = 1831fc318ddd39cc96b80ed708e8582bb61f93af411e0a9a5f17c41888eda6a8
+  §181 = e3c7445a99f69242ea96741d3f2a4bb0073a04e50509234236256020c5e69c0b
+AFTER:
+  §177 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+  §178 = 78f5f407af1a96f46a9c5dbade7126c0725da6066b548885f4efcf7ec0c8c142
+  §179 = 7c823bd7b375ffb19e77fad5a20ea58eb230eb3d8c4dbc4154225cbd7d96913d
+  §180 = 1831fc318ddd39cc96b80ed708e8582bb61f93af411e0a9a5f17c41888eda6a8
+  §181 = e3c7445a99f69242ea96741d3f2a4bb0073a04e50509234236256020c5e69c0b
+PRE_EQUALS_POST = YES
+BYTES_EDITED_IN_§§177–181_DURING_FIX6 = NO
+```
+
+### ۱۸۲.۷ Architectural counts and Gate boundaries
+
+```text
+TABLE_OBJECTS = 8
+DECISION_COLUMNS = 20
+ENUMS = 19
+ORDINARY_UNIQUES = 8
+PARTIAL_UNIQUE_INDEXES = 3
+NON_UNIQUE_QUERY_INDEXES = 29
+SIMPLE_FKS = 9
+COMPOSITE_FKS = 4
+TOTAL_DISTINCT_FKS = 13
+NAMED_DB_CHECKS = 49
+APPEND_ONLY_TRIGGERS = 1
+TRIGGER_FUNCTIONS = 1
+MIGRATION_PHASES = 10
+FORMAL_I5_COMPLETION = 21.79487179%
+FORMAL_I5_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+TESTS = NOT RUN — NOT AUTHORIZED
+CI = NOT RUN — NOT AUTHORIZED
+MODEL_ENUM_AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+MIGRATION_CREATE_RUN = NOT PERFORMED — NOT AUTHORIZED
+DATABASE_CONNECTION = NOT PERFORMED — NOT AUTHORIZED
+COMMIT_PUSH = NOT PERFORMED — NOT AUTHORIZED
+MODEL_ENUM_AUTHORING_READY = NO UNTIL FINAL STRICT AUDIT PASSES
+NEXT_REQUIRED_GATE = FINAL STRICT READ-ONLY W1-P01 DATABASE DESIGN AUDIT
+§183 = ABSENT
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+```
+
+### ۱۸۲.۸ Final FIX6 verdict
+
+```text
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_DB_FOUNDATION_DESIGN_FREEZE_FIX6_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_FINAL_STRICT_READ_ONLY_W1_P01_DB_DESIGN_AUDIT
+STRUCTURE =
+  §§1–175 PRESERVED
+  §176 CORRECTED
+  §§177–181 BYTE-PRESERVED
+  §182 APPENDED
+  §183 ABSENT
+```
+
+---
+
+*پایان بند ۱۸۲ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FIX6 — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+
+
+## ۱۸۳) I5-IMPL-W1-P01 DATABASE FOUNDATION DESIGN FREEZE FINAL DESIGN FIX
+
+### ۱۸۳.۱ Approval and baseline
+
+```text
+GATE_ID = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FINAL-DESIGN-FIX-01
+DATE = 2026-08-01
+MODE = DOCUMENTATION-ONLY / UNCOMMITTED
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+DIRTY_PATHS = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STAGING = EMPTY
+UNTRACKED = ZERO
+AUTHORIZED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+SOURCE_AUDIT = FINAL STRICT READ-ONLY AUDIT — NEEDS_FIX
+AUTHORIZED_FINDINGS = F-FINAL-01, F-FINAL-02, F-FINAL-03
+```
+
+### ۱۸۳.۲ Findings closed
+
+```text
+F-FINAL-01 = CLOSED
+  ROOT = PowerShell backtick escaping corrupted §182 fence markers to single-backtick+TAB+ext
+  FIX = replace all 16 corrupt fence-marker lines with literal triple-backtick openers/closers
+  BEFORE_CORRUPT_MARKER_COUNT = 16
+  AFTER_VALID_TRIPLE_BACKTICK_FENCE_COUNT = 16
+  SUBSTANTIVE_CONTENT_HASH_BEFORE = d6f3bf456daa6fbd57fc24f202598216808680ebc4d030503e02d31cd687121d
+  SUBSTANTIVE_CONTENT_HASH_AFTER = d6f3bf456daa6fbd57fc24f202598216808680ebc4d030503e02d31cd687121d
+  SUBSTANTIVE_UNCHANGED = YES
+  BYTE_PATTERN_CORRUPT_ABSENT = YES
+
+F-FINAL-02 = CLOSED
+  ROOT = TX said complete canonical request payload without naming decision_canonical_payload_v1
+  FIX = bind exact-retry comparison to decision_canonical_payload_v1 field-for-field
+        plus canonical_hash consistency; operation identity remains request-key triple
+  CANONICAL_PAYLOAD_AUTHORITY = decision_canonical_payload_v1
+  OPERATION_IDEMPOTENCY_AUTHORITY = (entity_type, entity_id, decision_request_key)
+  canonical_hash ALONE = NOT SUFFICIENT
+
+F-FINAL-03 = CLOSED
+  ROOT = incomplete case→owner→failure crosswalk for SUPERSESSION corruption
+  FIX = explicit write-time vs read-time crosswalk; no new error enum/schema object
+  WRITE_TIME_CYCLE_PREVENTION = structural (append-only + existing target + not-self + one-superseder + FK)
+  READ_TIME_CORRUPTION_DETECTION = service traversal → CORRUPT_SUPERSESSION_CHAIN
+```
+
+### ۱۸۳.۳ Architecture preservation
+
+```text
+TABLES = 8
+DECISION_COLUMNS = 20
+ENUMS = 19
+ORDINARY_UNIQUES = 8
+PARTIAL_UNIQUE_INDEXES = 3
+QUERY_INDEXES = 29
+SIMPLE_FKS = 9
+COMPOSITE_FKS = 4
+TOTAL_DISTINCT_FKS = 13
+NAMED_DB_CHECKS = 49
+FUNCTIONS = 1
+TRIGGERS = 1
+DEPENDENCY_SAFE_PHASE_ORDER = GSP→runs→attempts→gaps→source_results→gap_results→decisions→deferred FKs
+PHASE_9_RESIDUAL_CREATION = EMPTY
+PHASE_10_SCHEMA_CREATION = NONE
+FORMAL_I5_COMPLETION = 21.79487179%
+FORMAL_I5_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+```
+
+### ۱۸۳.۴ Preserved §§177–181 hashes
+
+```text
+HASH_PROCEDURE = sedi-section-hash-v1
+§177 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+§178 = 78f5f407af1a96f46a9c5dbade7126c0725da6066b548885f4efcf7ec0c8c142
+§179 = 7c823bd7b375ffb19e77fad5a20ea58eb230eb3d8c4dbc4154225cbd7d96913d
+§180 = 1831fc318ddd39cc96b80ed708e8582bb61f93af411e0a9a5f17c41888eda6a8
+§181 = e3c7445a99f69242ea96741d3f2a4bb0073a04e50509234236256020c5e69c0b
+BYTES_EDITED_IN_§§177–181 = NO
+```
+
+### ۱۸۳.۵ Gate boundaries and next step
+
+```text
+TESTS = NOT RUN — NOT AUTHORIZED
+CI = NOT RUN — NOT AUTHORIZED
+MODEL_ENUM_AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+MIGRATION_CREATE_RUN = NOT PERFORMED — NOT AUTHORIZED
+DATABASE_CONNECTION = NOT PERFORMED — NOT AUTHORIZED
+STAGE_COMMIT_PUSH = NOT PERFORMED — NOT AUTHORIZED
+MODEL_ENUM_AUTHORING_READY = NO UNTIL RE-AUDIT PASSES
+NEXT_REQUIRED_GATE = I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-F-FINAL-01-03-STRICT-READONLY-REAUDIT-01
+§184 = ABSENT
+LATEST HANDOFF / REFERENCE UPDATE REQUIRED = YES
+EXTERNAL HANDOFF UPDATED BY CURSOR = NO
+STATUS = IMPLEMENTED_UNCOMMITTED
+VERDICT = PASS — W1_P01_FINAL_DESIGN_FIX_IMPLEMENTED_UNCOMMITTED
+MARKER = READY_FOR_STRICT_READ_ONLY_REAUDIT_OF_F_FINAL_01_03
+```
+
+---
+
+*پایان بند ۱۸۳ — I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-FINAL-DESIGN-FIX — PASS — IMPLEMENTED_UNCOMMITTED — بدون-کامیت*
+
+
+## ۱۸۴) W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW
+
+### ۱۸۴.۱ Approval, baseline, Re-audit Pass, and FIX1 status
+
+```text
+
+GATE = W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW
+FIX1_RECONCILIATION = THIS SECTION CORRECTED UNDER
+  W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX1
+DATE_ORIGINAL = 2026-08-01
+DATE_FIX1 = 2026-08-01
+MODE = DOCUMENTATION-ONLY / UNCOMMITTED
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+DIRTY_PATHS = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STAGING = EMPTY
+UNTRACKED = ZERO
+
+RE-AUDIT GATE =
+  I5-IMPL-W1-P01-DB-FOUNDATION-DESIGN-FREEZE-
+  F-FINAL-01-03-STRICT-READONLY-REAUDIT-01
+RE-AUDIT RESULT = PASS
+RE-AUDIT REPOSITORY MUTATION = ZERO
+DESIGN FREEZE = PASS
+F-FINAL-01 = CLOSED
+F-FINAL-02 = CLOSED
+F-FINAL-03 = CLOSED
+ACTIONABLE RE-AUDIT FINDINGS = ZERO BLOCKER / ZERO MAJOR / ZERO MINOR
+RE-AUDIT MASTER-LOG HASH = 69461a1ccbc147d5eda1c99cba37c8c08505d6baf1e1ee70ebdd386571904bcf
+RE-AUDIT MASTER-LOG SIZE = 2221134 bytes
+§182 DURING RE-AUDIT = VALID BALANCED FENCES; SUBSTANTIVE CONTENT PRESERVATION PROVEN
+§183 DURING RE-AUDIT = PRESENT EXACTLY ONCE; VALID BALANCED FENCES
+§184 DURING RE-AUDIT = ABSENT
+RE-AUDIT ITSELF EDITED MASTER LOG = NO
+
+PRE-APPEND COMPLETE MASTER-LOG SHA-256 (at original §184 append) =
+  69461a1ccbc147d5eda1c99cba37c8c08505d6baf1e1ee70ebdd386571904bcf
+PRE-APPEND COMPLETE MASTER-LOG BYTE SIZE = 2221134
+PREFIX BYTE-PRESERVATION (bytes before §184 heading) =
+  SIZE = 2221138
+  SHA-256 = 790db78f220afe2c5787a0006bc4bbddec5c1d6e16adaaec4fa667f8288eeb11
+
+F-SCOPE-01 = CLOSED AFTER FIX2 — complete ledgers + 70 named CHECKs; unnamed DB CHECKs = 0
+F-SCOPE-02 = CLOSED AFTER FIX2 — ReviewStatus collision evidence exact
+F-SCOPE-03 = CLOSED — dependency-safe sequence below
+F-SCOPE-04 = CLOSED — Alembic metadata policy Option C below
+F-REA-01 = CLOSED — 21 nonnegative counters named; unnamed DB CHECKs prohibited; total=70
+F-REA-02 = CLOSED — three matrix CHECKs fully owned by name
+F-REA-03 = CLOSED — five column ledgers complete with full attributes
+F-REA-04 = CLOSED — ReviewStatus exact members/values
+NAMED DATABASE CHECKS = 70
+UNNAMED DATABASE CHECKS = 0
+AUTHORING_READY = NO UNTIL STRICT READ-ONLY FIX2 / 70-CHECK RE-AUDIT PASSES
+```
+
+### ۱۸۴.۲ Existing repository conventions (authoritative)
+
+```text
+
+MODEL_MODULE = backend/app/models.py (monolith; NO models/ package)
+BASE = backend/app/database.py::Base = declarative_base()
+models.py IMPORTS = from backend.app.database import Base
+database.py IMPORTS models = NO
+ALEMBIC env.py IMPORTS = from backend.app.database import Base ONLY
+ALEMBIC env.py IMPORTS models = NO
+SIDE-EFFECT METADATA POPULATION FROM env.py = NONE PROVEN
+MIGRATION STYLE = hand-authored Alembic revisions (051 etc.); autogenerate NOT wired
+PK = Integer + Identity(start=1) for I5-B2-P1 / W1 new tables
+TIMESTAMP = DateTime naive UTC; server_default=func.now() where I5-B2-P1 requires
+ENUM_DB = String columns + named CHECK; NO sa.Enum; NO postgresql.ENUM; NO native_enum
+PYTHON_ENUM_EXISTING = str, Enum in backend/app/services/governance/contracts.py (snake_case .value)
+CONSTRAINTS = named uq_/ck_/fk_/ix_ in __table_args__
+PARTIAL_INDEX = Index(..., unique=True, postgresql_where=...)
+DEFERRABLE_FK = ForeignKeyConstraint(..., deferrable=True, initially="DEFERRED", use_alter=True)
+RELATIONSHIPS = sparse; GSP uses FK columns WITHOUT relationship()
+JSON_W1 = Text canonical JSON (NOT JSONB)
+APPEND_ONLY_I5GD = DB trigger+function MIGRATION-ONLY
+STATIC_TEST_PATTERN = backend/tests/test_section15_i5b2_p1_source_profile.py
+```
+
+### ۱۸۴.۳ ORM relationship freeze (F-SCOPE-01)
+
+```text
+
+W1-P01 MODEL AUTHORING RELATIONSHIPS =
+  FK COLUMNS AND CONSTRAINT METADATA ONLY
+  NO NEW relationship() OBJECTS
+
+AUTHORITY =
+  Design Freeze §176 declares FKs/constraints, not ORM navigation
+  Repository convention: GovernedSourceProfile / GovernedSourceProfileVersion have NO relationship()
+
+PER POSSIBLE RELATIONSHIP:
+  GSP ↔ GSPV current pointer          DECLARED_IN_ORM=NO  REASON=existing P1 FK-only pattern
+  Gap → GSP target_source_profile     DECLARED_IN_ORM=NO  REASON=FK column + named FK only
+  Gap → Attempt discovered_attempt    DECLARED_IN_ORM=NO  REASON=avoid cycles; FK only
+  Run → Attempt successful/latest     DECLARED_IN_ORM=NO  REASON=composite deferred FK metadata only
+  Attempt → Run                       DECLARED_IN_ORM=NO  REASON=FK only
+  Attempt retry self-ref              DECLARED_IN_ORM=NO  REASON=composite FK only
+  WRSR → Attempt/GSP/GSPV             DECLARED_IN_ORM=NO  REASON=FK only
+  WRGR → Attempt/Gap                  DECLARED_IN_ORM=NO  REASON=FK only
+  I5GD supersedes self-ref            DECLARED_IN_ORM=NO  REASON=composite FK only
+  I5GD polymorphic entity             DECLARED_IN_ORM=NO  REASON=no multi-table FK; scalar entity_id
+```
+
+### ۱۸۴.۴ Eight-table complete implementation ledger (F-SCOPE-01)
+
+#### ۱۸۴.۴.۱ governed_source_profiles — EXISTING ADDITIVE
+
+```text
+
+TABLE = governed_source_profiles
+CLASS = GovernedSourceProfile
+PATH = backend/app/models.py
+CLASSIFICATION = EXISTING — REQUIRES ADDITIVE MODEL CHANGE
+CURRENT_SYMBOL = GovernedSourceProfile
+TOTAL_FROZEN_ADDITIVE_COLUMNS = 13
+PK = id Integer Identity (EXISTING; DO NOT CHANGE)
+IDENTITY = existing Identity(start=1) autoincrement="ignore_fk"
+TIMESTAMP_CONTRACT = existing created_at/updated_at kept; additive DateTime cols naive UTC nullable
+JSON_CONTRACT = topic_coverage Text canonical JSON; max 65536 UTF-8 bytes SERVICE
+HASH_CONTRACT = none new on GSP additive set
+RELATIONSHIP_DECISION = NO relationship()
+CASCADE = existing FKs unchanged; no new FKs in additive set
+APPEND_ONLY = NO (mutable projection)
+ORM_OWNED = 13 columns + 4 CHECKs + 5 query indexes
+MIGRATION_ONLY = backfill DISCOVERED/NOT_ELIGIBLE for existing rows
+SERVICE_OWNED = fail-closed transitions; never backfill ACTIVE/ELIGIBLE
+METADATA = Base via models.py subclass
+STATIC_TEST = assert 13 additive columns exact; 4 CHECKs; 5 indexes; GSPV untouched
+
+ORDERED_ADDITIVE_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB|NULL|PK|IDENTITY|DEFAULT|SERVER_DEFAULT|ENUM|FK|INDEXED|UNIQUE|CHECK|ORM|MIG
+1|registry_state|String(32)|varchar(32)|NO|NO|NO|DISCOVERED|'DISCOVERED'|RegistryState|-|via ix_gsp_registry_state|NO|ck_gsp_registry_state_vocab|ORM+MIG|MIG
+2|runtime_eligibility|String(32)|varchar(32)|NO|NO|NO|NOT_ELIGIBLE|'NOT_ELIGIBLE'|RuntimeEligibility|-|via ix_gsp_runtime_eligibility|NO|ck_gsp_runtime_eligibility_vocab|ORM+MIG|MIG
+3|block_reason|Text|text|YES|NO|NO|-|-|-|-|NO|NO|ck_gsp_block_reason_length|ORM+MIG|MIG
+4|owner_reference|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+5|reviewer_reference|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+6|approver_reference|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+7|topic_coverage|Text|text|YES|NO|NO|-|-|canonical JSON Text|-|NO|NO|-|ORM+MIG|MIG
+8|effective_from|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|NO|NO|ck_gsp_effective_window_order|ORM+MIG|MIG
+9|effective_to|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|NO|NO|ck_gsp_effective_window_order|ORM+MIG|MIG
+10|last_discovered_at|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|NO|NO|-|ORM+MIG|MIG
+11|last_checked_at|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|via ix_gsp_last_checked_at|NO|-|ORM+MIG|MIG
+12|last_reviewed_at|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|via ix_gsp_last_reviewed_at|NO|-|ORM+MIG|MIG
+13|canonicalization_version|String(32)|varchar(32)|NO|NO|NO|-|'v1'|-|-|NO|NO|-|ORM+MIG|MIG
+
+NAMED_OBJECTS_ADD:
+ck_gsp_registry_state_vocab|CHECK|governed_source_profiles|registry_state|-|-|-|-|-|CheckConstraint|op.create_check|MODEL+MIG|MIG|static name+expr
+ck_gsp_runtime_eligibility_vocab|CHECK|governed_source_profiles|runtime_eligibility|-|-|-|-|-|CheckConstraint|op.create_check|MODEL+MIG|MIG|static
+ck_gsp_effective_window_order|CHECK|governed_source_profiles|effective_from,effective_to|-|-|-|-|-|CheckConstraint|op.create_check|MODEL+MIG|MIG|static
+ck_gsp_block_reason_length|CHECK|governed_source_profiles|block_reason|-|-|-|-|-|CheckConstraint|op.create_check|MODEL+MIG|MIG|static
+ix_gsp_registry_state|QUERY_INDEX|governed_source_profiles|(registry_state)|NONE|-|-|-|-|Index|op.create_index|MODEL+MIG|MIG|static
+ix_gsp_runtime_eligibility|QUERY_INDEX|governed_source_profiles|(runtime_eligibility)|NONE|-|-|-|-|Index|op.create_index|MODEL+MIG|MIG|static
+ix_gsp_last_checked_at|QUERY_INDEX|governed_source_profiles|(last_checked_at)|NONE|-|-|-|-|Index|op.create_index|MODEL+MIG|MIG|static
+ix_gsp_last_reviewed_at|QUERY_INDEX|governed_source_profiles|(last_reviewed_at)|NONE|-|-|-|-|Index|op.create_index|MODEL+MIG|MIG|static
+ix_gsp_registry_runtime|QUERY_INDEX|governed_source_profiles|(registry_state,runtime_eligibility)|NONE|-|-|-|-|Index|op.create_index|MODEL+MIG|MIG|static
+```
+
+#### ۱۸۴.۴.۲ governed_source_profile_versions — REUSE UNCHANGED
+
+```text
+
+TABLE = governed_source_profile_versions
+CLASS = GovernedSourceProfileVersion
+PATH = backend/app/models.py
+CLASSIFICATION = EXISTING — REUSE WITHOUT MODEL CHANGE
+CURRENT_SYMBOL = GovernedSourceProfileVersion
+PROOF_UNCHANGED =
+  W1-P01 MUST NOT modify class body, __table_args__, columns, or constraints
+  Existing symbols (I5-B2-P1): id Identity PK; profile_id FK CASCADE; version_seq;
+  supersedes_version_id; snapshot_schema_version; snapshot_fingerprint; effective_at;
+  created_at; publisher_authority_identity; source_class; authority_evidence_tier;
+  jurisdiction_*; primary_language; specialty_domain; license_status; permission fields;
+  automation_status; verification_method; freshness_status; rights/automation evidence fields
+  Existing named objects remain P1-owned: uq_gspv_*; ck_gspv_supersedes_not_self;
+  fk_gspv_profile_id; fk_gspv_supersedes_same_profile
+W1_P01_NEW_OBJECTS_ON_THIS_TABLE = ZERO
+ENUM_DEPS_NEW = NONE
+RELATIONSHIP_DECISION = NO new relationship()
+APPEND_ONLY = service-boundary immutability (existing; NO W1 trigger)
+ORM_OWNED_W1 = NONE (do not touch)
+MIGRATION_ONLY_W1 = NONE for this table
+STATIC_TEST = assert GovernedSourceProfileVersion.__table__ identical to pre-authoring baseline
+```
+
+#### ۱۸۴.۴.۳ knowledge_gaps — NEW (39 columns)
+
+```text
+
+TABLE = knowledge_gaps
+CLASS = KnowledgeGap
+PATH = backend/app/models.py
+CLASSIFICATION = NEW MODEL REQUIRED
+CURRENT_SYMBOL = ABSENT
+TOTAL_FROZEN_COLUMNS = 39
+PK = id Integer Identity(start=1)
+IDENTITY = Identity(start=1) autoincrement=True
+TIMESTAMP = created_at/updated_at DateTime NOT NULL UTC; server_default per P1 convention (func.now())
+JSON = evidence_of_gap,source_need,dependencies,resolution_evidence Text canonical JSON (service byte caps)
+HASH = hash_algorithm String default SHA-256; canonical_gap_key identity hash key
+RELATIONSHIP = NO relationship()
+CASCADE = all FKs ON DELETE RESTRICT
+APPEND_ONLY = NO (mutable status); reopen keeps same id
+ORM_OWNED = all 39 columns + UQ + 7 indexes + 2 FKs + 12 named CHECKs
+MIGRATION_ONLY = none beyond create parity
+SERVICE = reopen txn; RESOLVED/BLOCKED field requirements
+METADATA = Base via models.py
+STATIC_TEST = 39 columns exact; no lineage self-FK; named objects present
+
+ORDERED_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB|NULL|PK|IDENTITY|DEFAULT|SERVER_DEFAULT|ENUM|FK|IX|UQ|CHECK|ORM|MIG
+1|id|Integer|integer|NO|YES|YES Identity|-|-|-|-|PK|PK|-|ORM+MIG|MIG
+2|canonical_gap_key|String(64)|varchar(64)|NO|NO|NO|-|-|-|-|NO|uq_knowledge_gaps_canonical_gap_key|-|ORM+MIG|MIG
+3|canonicalization_version|String(32)|varchar(32)|NO|NO|NO|v1|prefer 'v1'|-|-|NO|NO|-|ORM+MIG|MIG
+4|hash_algorithm|String(32)|varchar(32)|NO|NO|NO|SHA-256|prefer 'SHA-256'|-|-|NO|NO|-|ORM+MIG|MIG
+5|domain|String(128)|varchar(128)|NO|NO|NO|-|-|-|-|via domain_subdomain|NO|-|ORM+MIG|MIG
+6|subdomain|String(128)|varchar(128)|YES|NO|NO|-|-|-|-|via domain_subdomain|NO|-|ORM+MIG|MIG
+7|capability_id|String(64)|varchar(64)|YES|NO|NO|-|-|-|-|ix_kg_capability_id|NO|-|ORM+MIG|MIG
+8|gap_type|String(64)|varchar(64)|NO|NO|NO|-|-|KnowledgeGapType|-|NO|NO|ck_kg_gap_type_vocab|ORM+MIG|MIG
+9|title|String(512)|varchar(512)|NO|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+10|description|Text|text|YES|NO|NO|-|-|-|-|NO|NO|ck_kg_description_length|ORM+MIG|MIG
+11|evidence_of_gap|Text|text|YES|NO|NO|-|-|JSON Text|-|NO|NO|-|ORM+MIG|MIG
+12|current_knowledge_state|Text|text|YES|NO|NO|-|-|-|-|NO|NO|ck_kg_current_knowledge_state_length|ORM+MIG|MIG
+13|required_knowledge_state|Text|text|YES|NO|NO|-|-|-|-|NO|NO|ck_kg_required_knowledge_state_length|ORM+MIG|MIG
+14|source_need|Text|text|YES|NO|NO|-|-|JSON Text|-|NO|NO|-|ORM+MIG|MIG
+15|priority|String(32)|varchar(32)|NO|NO|NO|P2|prefer 'P2'|KnowledgeGapPriority|-|via status_priority_severity|NO|ck_kg_priority_vocab|ORM+MIG|MIG
+16|severity|String(32)|varchar(32)|NO|NO|NO|MEDIUM|prefer 'MEDIUM'|KnowledgeGapSeverity|-|via status_priority_severity|NO|ck_kg_severity_vocab|ORM+MIG|MIG
+17|urgency|String(32)|varchar(32)|NO|NO|NO|NORMAL|prefer 'NORMAL'|KnowledgeGapUrgency|-|NO|NO|ck_kg_urgency_vocab|ORM+MIG|MIG
+18|confidence|Float|double precision|YES|NO|NO|-|-|-|-|NO|NO|ck_kg_confidence_range|ORM+MIG|MIG
+19|status|String(32)|varchar(32)|NO|NO|NO|OPEN|prefer 'OPEN'|KnowledgeGapStatus|-|via status_priority_severity|NO|ck_kg_status_vocab|ORM+MIG|MIG
+20|owner_reference|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+21|reviewer_reference|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+22|blocker|Text|text|YES|NO|NO|-|-|-|-|NO|NO|ck_kg_blocker_length|ORM+MIG|MIG
+23|dependencies|Text|text|YES|NO|NO|-|-|JSON Text|-|NO|NO|-|ORM+MIG|MIG
+24|target_package_id|String(64)|varchar(64)|YES|NO|NO|-|-|-|-|ix_kg_target_package_id|NO|-|ORM+MIG|MIG
+25|target_source_profile_id|Integer|integer|YES|NO|NO|-|-|-|fk_knowledge_gaps_target_source_profile_id → gsp.id RESTRICT|ix_kg_target_source_profile_id|NO|-|ORM+MIG|MIG
+26|target_knowledge_unit_id|Integer|integer|YES|NO|NO|-|-|-|NO FK (W1-P02)|NO|NO|-|ORM+MIG|MIG
+27|discovered_by|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+28|discovered_attempt_id|Integer|integer|YES|NO|NO|-|-|-|fk_knowledge_gaps_discovered_attempt_id → wkra.id RESTRICT|ix_kg_discovered_attempt_id|NO|-|ORM+MIG|MIG
+29|next_action|Text|text|YES|NO|NO|-|-|-|-|NO|NO|ck_kg_next_action_length|ORM+MIG|MIG
+30|next_review_at|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|ix_kg_next_review_at|NO|-|ORM+MIG|MIG
+31|retry_count|Integer|integer|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_kg_retry_count_nonneg|ORM+MIG|MIG
+32|last_attempt_at|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|NO|NO|-|ORM+MIG|MIG
+33|resolution_type|String(64)|varchar(64)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+34|resolution_evidence|Text|text|YES|NO|NO|-|-|JSON Text|-|NO|NO|-|ORM+MIG|MIG
+35|resolved_by_reference|String(512)|varchar(512)|YES|NO|NO|-|-|-|-|NO|NO|-|ORM+MIG|MIG
+36|resolved_at|DateTime|timestamp|YES|NO|NO|-|-|UTC|-|NO|NO|-|ORM+MIG|MIG
+37|created_at|DateTime|timestamp|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|ORM+MIG|MIG
+38|updated_at|DateTime|timestamp|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|ORM+MIG|MIG
+39|row_version|Integer|integer|NO|NO|NO|1|prefer '1'|-|-|NO|NO|-|ORM+MIG|MIG
+
+NAMED_OBJECTS:
+uq_knowledge_gaps_canonical_gap_key|ORDINARY_UQ|knowledge_gaps|(canonical_gap_key)|-|MODEL+MIG|MIG
+fk_knowledge_gaps_target_source_profile_id|SIMPLE_FK|knowledge_gaps|(target_source_profile_id)|→gsp.id|ON DELETE RESTRICT|ON UPDATE NO ACTION|MODEL+MIG|MIG
+fk_knowledge_gaps_discovered_attempt_id|SIMPLE_FK|knowledge_gaps|(discovered_attempt_id)|→wkra.id|RESTRICT|NO ACTION|MODEL+MIG|MIG
+ix_kg_status_priority_severity|QUERY_INDEX|(status,priority,severity)|NONE|MODEL+MIG|MIG
+ix_kg_next_review_at|QUERY_INDEX|(next_review_at)|NONE|MODEL+MIG|MIG
+ix_kg_target_source_profile_id|QUERY_INDEX|(target_source_profile_id)|NONE|MODEL+MIG|MIG
+ix_kg_discovered_attempt_id|QUERY_INDEX|(discovered_attempt_id)|NONE|MODEL+MIG|MIG
+ix_kg_capability_id|QUERY_INDEX|(capability_id)|NONE|MODEL+MIG|MIG
+ix_kg_target_package_id|QUERY_INDEX|(target_package_id)|NONE|MODEL+MIG|MIG
+ix_kg_domain_subdomain|QUERY_INDEX|(domain,subdomain)|NONE|MODEL+MIG|MIG
+CHECKs: ck_kg_gap_type_vocab,ck_kg_priority_vocab,ck_kg_severity_vocab,ck_kg_urgency_vocab,
+ck_kg_status_vocab,ck_kg_confidence_range,ck_kg_retry_count_nonneg,ck_kg_description_length,
+ck_kg_current_knowledge_state_length,ck_kg_required_knowledge_state_length,ck_kg_next_action_length,
+ck_kg_blocker_length — all ORM CheckConstraint + MIG op.create_check
+```
+
+#### ۱۸۴.۴.۴ weekly_knowledge_runs — NEW (28 columns)
+
+```text
+
+TABLE = weekly_knowledge_runs
+CLASS = WeeklyKnowledgeRun
+PATH = backend/app/models.py
+CLASSIFICATION = NEW MODEL REQUIRED
+TOTAL_FROZEN_COLUMNS = 28
+PK/IDENTITY = id Integer Identity(start=1)
+TIMESTAMP = created_at/updated_at NOT NULL UTC
+JSON = source_scope,domain_scope,gap_scope Text canonical JSON
+RELATIONSHIP = NO relationship()
+CASCADE = RESTRICT on all FKs
+APPEND_ONLY = NO (mutable status/pointers)
+ORM_OWNED = 28 cols + UQ + 6 indexes + simple FK supersedes + composite deferred FK metadata + 6 CHECKs
+MIGRATION_ONLY = PHASE 8 physical create of deferred FKs (ORM still declares ForeignKeyConstraint deferrable)
+SERVICE = logical_run_key idempotency
+STATIC_TEST = 28 cols; deferred FK metadata present
+
+ORDERED_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB_TYPE|LENGTH|NULL|PK|IDENTITY|PY_DEFAULT|SERVER_DEFAULT|ENUM_DOMAIN|FK_TARGET|INDEXED|UNIQUE|CHECK_DEPENDENCY|ORM_DECL_OWNER|MIG_DECL_OWNER
+1|id|Integer|integer|n/a|NO|YES|Identity(start=1)|-|-|-|-|PK|PK|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+2|logical_run_key|String(64)|varchar(64)|64|NO|NO|NO|-|-|-|-|NO|uq_weekly_knowledge_runs_logical_run_key|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+3|canonicalization_version|String(32)|varchar(32)|32|NO|NO|NO|v1|prefer 'v1'|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+4|hash_algorithm|String(32)|varchar(32)|32|NO|NO|NO|SHA-256|prefer 'SHA-256'|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+5|schedule_key|String(128)|varchar(128)|128|NO|NO|NO|-|-|-|-|via ix_wkr_schedule_window|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+6|run_type|String(64)|varchar(64)|64|NO|NO|NO|WEEKLY_GOVERNED|prefer 'WEEKLY_GOVERNED'|WeeklyRunType|-|NO|NO|ck_wkr_run_type_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+7|trigger_type|String(64)|varchar(64)|64|NO|NO|NO|-|-|WeeklyRunTriggerType|-|NO|NO|ck_wkr_trigger_type_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+8|planned_window_start|DateTime|timestamp|n/a|NO|NO|NO|-|-|UTC|-|via ix_wkr_status_window|NO|ck_wkr_window_order|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+9|planned_window_end|DateTime|timestamp|n/a|NO|NO|NO|-|-|UTC|-|NO|NO|ck_wkr_window_order|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+10|approval_state|String(32)|varchar(32)|32|NO|NO|NO|-|-|WeeklyRunApprovalState|-|ix_wkr_approval_state|NO|ck_wkr_approval_state_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+11|source_scope_hash|String(64)|varchar(64)|64|NO|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+12|domain_scope_hash|String(64)|varchar(64)|64|NO|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+13|gap_scope_hash|String(64)|varchar(64)|64|NO|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+14|config_version|String(64)|varchar(64)|64|NO|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+15|config_hash|String(64)|varchar(64)|64|NO|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+16|source_scope|Text|text|n/a|NO|NO|NO|-|-|canonical JSON Text|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+17|domain_scope|Text|text|n/a|NO|NO|NO|-|-|canonical JSON Text|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+18|gap_scope|Text|text|n/a|NO|NO|NO|-|-|canonical JSON Text|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+19|status|String(32)|varchar(32)|32|NO|NO|NO|-|-|WeeklyRunStatus|-|via ix_wkr_status_window|NO|ck_wkr_status_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+20|successful_attempt_id|Integer|integer|n/a|YES|NO|NO|-|-|-|fk_wkr_successful_attempt_same_run DEFERRED|ix_wkr_successful_attempt_id|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+21|latest_attempt_id|Integer|integer|n/a|YES|NO|NO|-|-|-|fk_wkr_latest_attempt_same_run DEFERRED|ix_wkr_latest_attempt_id|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+22|created_by_reference|String(512)|varchar(512)|512|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+23|approved_by_reference|String(512)|varchar(512)|512|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+24|approved_at|DateTime|timestamp|n/a|YES|NO|NO|-|-|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+25|supersedes_run_id|Integer|integer|n/a|YES|NO|NO|-|-|-|fk_wkr_supersedes_run_id → weekly_knowledge_runs.id RESTRICT|ix_wkr_supersedes_run_id|NO|ck_wkr_supersedes_not_self|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+26|created_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+27|updated_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+28|row_version|Integer|integer|n/a|NO|NO|NO|1|prefer '1'|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+
+NAMED_OBJECTS:
+uq_weekly_knowledge_runs_logical_run_key|ORDINARY_UQ|MODEL+MIG
+fk_wkr_supersedes_run_id|SIMPLE_FK|RESTRICT|MODEL+MIG
+fk_wkr_successful_attempt_same_run|COMPOSITE_FK|DEFERRED initially DEFERRED|MATCH SIMPLE|RESTRICT|ORM declares; MIG Phase8 creates|MIG owns create timing
+fk_wkr_latest_attempt_same_run|COMPOSITE_FK|same as successful|ORM declares; MIG Phase8|MIG
+ix_wkr_status_window,ix_wkr_schedule_window,ix_wkr_approval_state,ix_wkr_successful_attempt_id,ix_wkr_latest_attempt_id,ix_wkr_supersedes_run_id|QUERY_INDEX|MODEL+MIG
+CHECKs: ck_wkr_run_type_vocab,ck_wkr_trigger_type_vocab,ck_wkr_approval_state_vocab,ck_wkr_status_vocab,ck_wkr_window_order,ck_wkr_supersedes_not_self
+```
+
+#### ۱۸۴.۴.۵ weekly_knowledge_run_attempts — NEW (33 columns)
+
+```text
+
+TABLE = weekly_knowledge_run_attempts
+CLASS = WeeklyKnowledgeRunAttempt
+PATH = backend/app/models.py
+CLASSIFICATION = NEW MODEL REQUIRED
+TOTAL_FROZEN_COLUMNS = 33
+PK/IDENTITY = id Integer Identity
+RELATIONSHIP = NO relationship()
+CASCADE = RESTRICT
+APPEND_ONLY = terminal immutability SERVICE-OWNED; non-terminal mutable
+ORM_OWNED = 33 cols + 2 ordinary UQ + 1 partial UQ + 2 query indexes + simple FK + composite retry FK + 20 named CHECKs
+NOTE_NONNEG_NAMED = FIX2: all attempt counter >=0 rules are named ck_wkra_*_nonnegative (14);
+  ORM declares named CheckConstraint; MIG creates named CHECK; UNNAMED PROHIBITED;
+  ORM DECLARATION OWNER = MODEL/ENUM AUTHORING GATE; MIGRATION CREATION OWNER = MANUAL MIGRATION GATE;
+  DUAL REPRESENTATION = REQUIRED FOR PARITY; DATABASE CREATION AUTHORITY = MIGRATION ONLY
+STATIC_TEST = 33 cols; partial unique predicate exact; retry composite FK present; 20 named CHECKs
+
+ORDERED_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB_TYPE|LENGTH|NULL|PK|IDENTITY|PY_DEFAULT|SERVER_DEFAULT|ENUM_DOMAIN|FK_TARGET|INDEXED|UNIQUE|CHECK_DEPENDENCY|ORM_DECL_OWNER|MIG_DECL_OWNER
+1|id|Integer|integer|n/a|NO|YES|Identity(start=1)|-|-|-|part uq_wkra_id_weekly_run_id|PK|PK|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+2|weekly_run_id|Integer|integer|n/a|NO|NO|NO|-|-|-|fk_wkra_weekly_run_id → weekly_knowledge_runs.id RESTRICT|NO|part UQs|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+3|attempt_number|Integer|integer|n/a|NO|NO|NO|-|-|-|-|NO|uq_wkra_run_attempt|ck_wkra_attempt_number_pos|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+4|retry_of_attempt_id|Integer|integer|n/a|YES|NO|NO|-|-|-|fk_wkra_retry_same_run composite RESTRICT|ix_wkra_retry_of_attempt_id|NO|ck_wkra_retry_not_self|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+5|status|String(32)|varchar(32)|32|NO|NO|NO|-|-|WeeklyRunAttemptStatus|-|via ix_wkra_status_started_at|partial uq predicate|ck_wkra_status_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+6|started_at|DateTime|timestamp|n/a|YES|NO|NO|-|-|UTC|-|via ix_wkra_status_started_at|NO|ck_wkra_completed_after_started|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+7|completed_at|DateTime|timestamp|n/a|YES|NO|NO|-|-|UTC|-|NO|NO|ck_wkra_completed_after_started|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+8|worker_reference|String(512)|varchar(512)|512|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+9|config_snapshot_reference|String(2048)|varchar(2048)|2048|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+10|run_checksum|String(64)|varchar(64)|64|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+11|canonicalization_version|String(32)|varchar(32)|32|NO|NO|NO|v1|prefer 'v1'|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+12|hash_algorithm|String(32)|varchar(32)|32|NO|NO|NO|SHA-256|prefer 'SHA-256'|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+13|total_sources|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_total_sources_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+14|checked_sources|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_checked_sources_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+15|fetched_sources|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_fetched_sources_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+16|skipped_sources|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_skipped_sources_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+17|blocked_sources|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_blocked_sources_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+18|failed_sources|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_failed_sources_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+19|new_knowledge_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_new_knowledge_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+20|updated_knowledge_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_updated_knowledge_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+21|superseded_knowledge_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_superseded_knowledge_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+22|rejected_knowledge_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_rejected_knowledge_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+23|created_gap_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_created_gap_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+24|resolved_gap_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_resolved_gap_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+25|warning_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_warning_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+26|error_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wkra_error_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+27|failure_code|String(128)|varchar(128)|128|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+28|failure_reason|Text|text|n/a|YES|NO|NO|-|-|-|-|NO|NO|ck_wkra_failure_reason_length|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+29|block_reason|Text|text|n/a|YES|NO|NO|-|-|-|-|NO|NO|ck_wkra_block_reason_length|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+30|evidence_reference|String(2048)|varchar(2048)|2048|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+31|created_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+32|updated_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+33|row_version|Integer|integer|n/a|NO|NO|NO|1|prefer '1'|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+
+NAMED_OBJECTS:
+uq_wkra_run_attempt|ORDINARY_UQ|(weekly_run_id,attempt_number)|MODEL+MIG
+uq_wkra_id_weekly_run_id|ORDINARY_UQ|(id,weekly_run_id)|MODEL+MIG
+uq_wkra_one_successful_terminal|PARTIAL_UQ|(weekly_run_id)|WHERE status IN ('COMPLETED','COMPLETED_WITH_WARNINGS')|Index postgresql_where|MODEL+MIG
+fk_wkra_weekly_run_id|SIMPLE_FK|RESTRICT|MODEL+MIG
+fk_wkra_retry_same_run|COMPOSITE_FK|immediate|MATCH SIMPLE|RESTRICT|(retry_of_attempt_id,weekly_run_id)→(id,weekly_run_id)|MODEL+MIG
+ix_wkra_status_started_at,ix_wkra_retry_of_attempt_id|QUERY_INDEX|MODEL+MIG
+CHECKs named (20): ck_wkra_status_vocab,ck_wkra_attempt_number_pos,ck_wkra_retry_not_self,ck_wkra_completed_after_started,ck_wkra_failure_reason_length,ck_wkra_block_reason_length,ck_wkra_total_sources_nonnegative,ck_wkra_checked_sources_nonnegative,ck_wkra_fetched_sources_nonnegative,ck_wkra_skipped_sources_nonnegative,ck_wkra_blocked_sources_nonnegative,ck_wkra_failed_sources_nonnegative,ck_wkra_new_knowledge_count_nonnegative,ck_wkra_updated_knowledge_count_nonnegative,ck_wkra_superseded_knowledge_count_nonnegative,ck_wkra_rejected_knowledge_count_nonnegative,ck_wkra_created_gap_count_nonnegative,ck_wkra_resolved_gap_count_nonnegative,ck_wkra_warning_count_nonnegative,ck_wkra_error_count_nonnegative
+```
+
+#### ۱۸۴.۴.۶ weekly_run_source_results — NEW (21 columns)
+
+```text
+
+TABLE = weekly_run_source_results
+CLASS = WeeklyRunSourceResult
+PATH = backend/app/models.py
+CLASSIFICATION = NEW MODEL REQUIRED
+TOTAL_FROZEN_COLUMNS = 21
+PK/IDENTITY = id Integer Identity
+NO updated_at
+RELATIONSHIP = NO relationship()
+CASCADE = RESTRICT on all 3 simple FKs
+APPEND_ONLY = YES after parent attempt terminal (SERVICE); no destructive update
+ORM_OWNED = 21 cols + UQ + 2 indexes + 3 FKs + 9 named CHECKs
+NOTE_NONNEG_NAMED = FIX2: all source-result counter >=0 rules are named ck_wrsr_*_nonnegative (7); UNNAMED PROHIBITED;
+  ORM DECLARATION OWNER = MODEL/ENUM AUTHORING GATE; MIGRATION CREATION OWNER = MANUAL MIGRATION GATE;
+  DUAL REPRESENTATION = REQUIRED FOR PARITY; DATABASE CREATION AUTHORITY = MIGRATION ONLY
+STATIC_TEST = 21 cols; no updated_at; unique(attempt,profile); 9 named CHECKs
+
+ORDERED_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB_TYPE|LENGTH|NULL|PK|IDENTITY|PY_DEFAULT|SERVER_DEFAULT|ENUM_DOMAIN|FK_TARGET|INDEXED|UNIQUE|CHECK_DEPENDENCY|ORM_DECL_OWNER|MIG_DECL_OWNER
+1|id|Integer|integer|n/a|NO|YES|Identity(start=1)|-|-|-|-|PK|PK|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+2|attempt_id|Integer|integer|n/a|NO|NO|NO|-|-|-|fk_wrsr_attempt_id → wkra.id RESTRICT|NO|uq_wrsr_attempt_source_profile|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+3|source_profile_id|Integer|integer|n/a|NO|NO|NO|-|-|-|fk_wrsr_source_profile_id → gsp.id RESTRICT|ix_wrsr_source_profile_id|uq_wrsr_attempt_source_profile|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+4|source_version_id|Integer|integer|n/a|YES|NO|NO|-|-|-|fk_wrsr_source_version_id → gspv.id RESTRICT|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+5|result_status|String(32)|varchar(32)|32|NO|NO|NO|-|-|RunSourceResultStatus|-|ix_wrsr_result_status|NO|ck_wrsr_result_status_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+6|checked_at|DateTime|timestamp|n/a|YES|NO|NO|-|-|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+7|fetch_outcome|String(64)|varchar(64)|64|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+8|extraction_outcome|String(64)|varchar(64)|64|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+9|publication_outcome|String(64)|varchar(64)|64|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+10|knowledge_new_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_knowledge_new_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+11|knowledge_updated_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_knowledge_updated_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+12|knowledge_superseded_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_knowledge_superseded_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+13|knowledge_rejected_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_knowledge_rejected_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+14|gap_created_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_gap_created_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+15|warning_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_warning_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+16|error_count|Integer|integer|n/a|NO|NO|NO|0|prefer '0'|-|-|NO|NO|ck_wrsr_error_count_nonnegative|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+17|failure_code|String(128)|varchar(128)|128|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+18|failure_reason|Text|text|n/a|YES|NO|NO|-|-|-|-|NO|NO|ck_wrsr_failure_reason_length|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+19|evidence_reference|String(2048)|varchar(2048)|2048|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+20|content_fingerprint|String(64)|varchar(64)|64|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+21|created_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+
+NAMED_OBJECTS:
+uq_wrsr_attempt_source_profile|ORDINARY_UQ|(attempt_id,source_profile_id)|MODEL+MIG
+fk_wrsr_attempt_id,fk_wrsr_source_profile_id,fk_wrsr_source_version_id|SIMPLE_FK|RESTRICT|MODEL+MIG
+ix_wrsr_source_profile_id,ix_wrsr_result_status|QUERY_INDEX|MODEL+MIG
+ck_wrsr_result_status_vocab,ck_wrsr_failure_reason_length,ck_wrsr_knowledge_new_count_nonnegative,ck_wrsr_knowledge_updated_count_nonnegative,ck_wrsr_knowledge_superseded_count_nonnegative,ck_wrsr_knowledge_rejected_count_nonnegative,ck_wrsr_gap_created_count_nonnegative,ck_wrsr_warning_count_nonnegative,ck_wrsr_error_count_nonnegative|CHECK|MODEL+MIG (9 total)
+```
+
+#### ۱۸۴.۴.۷ weekly_run_gap_results — NEW (8 columns)
+
+```text
+
+TABLE = weekly_run_gap_results
+CLASS = WeeklyRunGapResult
+PATH = backend/app/models.py
+CLASSIFICATION = NEW MODEL REQUIRED
+TOTAL_FROZEN_COLUMNS = 8
+PK/IDENTITY = id Integer Identity
+NO updated_at
+RELATIONSHIP = NO relationship()
+CASCADE = RESTRICT
+APPEND_ONLY = YES — one final immutable summary row per (attempt_id,gap_id)
+ORM_OWNED = 8 cols + UQ + 2 indexes + 2 FKs + 3 named CHECKs
+STATIC_TEST = 8 cols; unique(attempt,gap)
+
+ORDERED_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB_TYPE|LENGTH|NULL|PK|IDENTITY|PY_DEFAULT|SERVER_DEFAULT|ENUM_DOMAIN|FK_TARGET|INDEXED|UNIQUE|CHECK_DEPENDENCY|ORM_DECL_OWNER|MIG_DECL_OWNER
+1|id|Integer|integer|n/a|NO|YES|Identity(start=1)|-|-|-|-|PK|PK|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+2|attempt_id|Integer|integer|n/a|NO|NO|NO|-|-|-|fk_wrgr_attempt_id → wkra.id RESTRICT|NO|uq_wrgr_attempt_gap|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+3|gap_id|Integer|integer|n/a|NO|NO|NO|-|-|-|fk_wrgr_gap_id → knowledge_gaps.id RESTRICT|ix_wrgr_gap_id|uq_wrgr_attempt_gap|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+4|result_type|String(32)|varchar(32)|32|NO|NO|NO|-|-|RunGapResultType|-|ix_wrgr_result_type|NO|ck_wrgr_result_type_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+5|previous_status|String(32)|varchar(32)|32|YES|NO|NO|-|-|KnowledgeGapStatus or NULL|-|NO|NO|ck_wrgr_previous_status_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+6|new_status|String(32)|varchar(32)|32|YES|NO|NO|-|-|KnowledgeGapStatus or NULL|-|NO|NO|ck_wrgr_new_status_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+7|evidence_reference|String(2048)|varchar(2048)|2048|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+8|created_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+
+NAMED_OBJECTS:
+uq_wrgr_attempt_gap|ORDINARY_UQ|(attempt_id,gap_id)|MODEL+MIG
+fk_wrgr_attempt_id,fk_wrgr_gap_id|SIMPLE_FK|RESTRICT|MODEL+MIG
+ix_wrgr_gap_id,ix_wrgr_result_type|QUERY_INDEX|MODEL+MIG
+ck_wrgr_result_type_vocab,ck_wrgr_previous_status_vocab,ck_wrgr_new_status_vocab|CHECK|MODEL+MIG
+```
+
+#### ۱۸۴.۴.۸ i5_governance_decisions — NEW (20 columns)
+
+```text
+
+TABLE = i5_governance_decisions
+CLASS = I5GovernanceDecision
+PATH = backend/app/models.py
+CLASSIFICATION = NEW MODEL REQUIRED
+TOTAL_FROZEN_COLUMNS = 20
+PK/IDENTITY = id Integer Identity
+NO updated_at — FORBIDDEN
+TIMESTAMP = created_at NOT NULL UTC only
+HASH = canonical_hash String(64) NOT NULL NON-UNIQUE; hash_algorithm constant SHA-256; canonicalization_version constant v1
+JSON = decision_metadata Text optional
+RELATIONSHIP = NO relationship()
+CASCADE = RESTRICT on composite supersedes FK
+APPEND_ONLY = YES — ALL COLUMNS IMMUTABLE AFTER INSERT
+ORM_OWNED = 20 cols + 2 ordinary UQ + 2 partial UQ + 5 query indexes + 1 composite FK + 16 named CHECKs
+MIGRATION_ONLY = fn_i5gd_reject_mutation; trg_i5gd_append_only — MUST NOT appear in ORM
+SERVICE = request-key-first TX; effective_prior; advisory lock; matrices validation beyond DB CHECKs
+STATIC_TEST = 20 cols; no updated_at; no trigger symbols in models.py; partial UQs predicates exact
+
+ORDERED_COLUMN_LEDGER:
+ORD|NAME|SA_TYPE|DB_TYPE|LENGTH|NULL|PK|IDENTITY|PY_DEFAULT|SERVER_DEFAULT|ENUM_DOMAIN|FK_TARGET|INDEXED|UNIQUE|CHECK_DEPENDENCY|ORM_DECL_OWNER|MIG_DECL_OWNER
+1|id|Integer|integer|n/a|NO|YES|Identity(start=1)|-|-|-|part uq_i5gd_id_entity_family|PK|PK|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+2|entity_type|String(64)|varchar(64)|64|NO|NO|NO|-|-|GovernanceEntityType|NO polymorphic FK|via history indexes|NO|ck_i5gd_entity_type_vocab; ck_i5gd_entity_family_matrix; ck_i5gd_entity_decision_matrix|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+3|entity_id|Integer|integer|n/a|NO|NO|NO|-|-|-|NO polymorphic FK|via history indexes|NO|ck_i5gd_entity_id_pos|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+4|decision_family|String(64)|varchar(64)|64|NO|NO|NO|-|-|GovernanceDecisionFamily|-|via family history|NO|ck_i5gd_decision_family_vocab; ck_i5gd_entity_family_matrix; ck_i5gd_decision_type_family_matrix|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+5|decision_type|String(64)|varchar(64)|64|NO|NO|NO|-|-|GovernanceDecisionType|-|ix_i5gd_decision_type|NO|ck_i5gd_decision_type_vocab; ck_i5gd_decision_type_family_matrix; ck_i5gd_entity_decision_matrix|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+6|decision_request_key|String(128)|varchar(128)|128|NO|NO|NO|-|-|-|-|NO|uq_i5gd_decision_request|ck_i5gd_decision_request_key_format|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+7|from_state|String(64)|varchar(64)|64|YES|NO|NO|-|-|SERVICE_ONLY no DB enum|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+8|to_state|String(64)|varchar(64)|64|YES|NO|NO|-|-|SERVICE_ONLY no DB enum|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+9|outcome|String(32)|varchar(32)|32|NO|NO|NO|-|-|GovernanceDecisionOutcome|-|ix_i5gd_outcome|NO|ck_i5gd_outcome_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+10|reason_code|String(128)|varchar(128)|128|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+11|reason|Text|text|n/a|YES|NO|NO|-|-|-|-|NO|NO|ck_i5gd_reason_length|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+12|actor_type|String(32)|varchar(32)|32|NO|NO|NO|-|-|GovernanceActorType|-|NO|NO|ck_i5gd_actor_type_vocab|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+13|actor_reference|String(512)|varchar(512)|512|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+14|evidence_reference|String(2048)|varchar(2048)|2048|YES|NO|NO|-|-|-|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+15|decision_metadata|Text|text|n/a|YES|NO|NO|-|-|canonical JSON Text|-|NO|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+16|canonical_hash|String(64)|varchar(64)|64|NO|NO|NO|-|-|hex64|-|via ix_i5gd_content_hash|NO|ck_i5gd_canonical_hash_format|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+17|canonicalization_version|String(32)|varchar(32)|32|NO|NO|NO|v1|prefer 'v1'|-|-|via ix_i5gd_content_hash|NO|ck_i5gd_canonicalization_version_constant|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+18|hash_algorithm|String(32)|varchar(32)|32|NO|NO|NO|SHA-256|prefer 'SHA-256'|-|-|via ix_i5gd_content_hash|NO|ck_i5gd_hash_algorithm_constant|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+19|supersedes_decision_id|Integer|integer|n/a|YES|NO|NO|-|-|-|fk_i5gd_supersedes_same_entity_family RESTRICT|NO|partial uq|ck_i5gd_supersedes_not_self; ck_i5gd_supersession_requires_parent|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+20|created_at|DateTime|timestamp|n/a|NO|NO|NO|-|func.now()/now()|UTC|-|via history indexes|NO|-|MODEL/ENUM AUTHORING GATE|MANUAL MIGRATION GATE
+
+NAMED_OBJECTS:
+uq_i5gd_decision_request|ORDINARY_UQ|(entity_type,entity_id,decision_request_key)|MODEL+MIG
+uq_i5gd_id_entity_family|ORDINARY_UQ|(id,entity_type,entity_id,decision_family)|MODEL+MIG
+uq_i5gd_one_superseder|PARTIAL_UQ|(supersedes_decision_id)|WHERE supersedes_decision_id IS NOT NULL|MODEL+MIG
+uq_i5gd_one_root_per_family|PARTIAL_UQ|(entity_type,entity_id,decision_family)|WHERE supersedes_decision_id IS NULL|MODEL+MIG
+fk_i5gd_supersedes_same_entity_family|COMPOSITE_FK|MATCH SIMPLE|RESTRICT|(supersedes_decision_id,entity_type,entity_id,decision_family)→(id,entity_type,entity_id,decision_family)|MODEL+MIG
+ix_i5gd_entity_history,ix_i5gd_family_history,ix_i5gd_content_hash,ix_i5gd_decision_type,ix_i5gd_outcome|QUERY_INDEX|MODEL+MIG
+16 named CHECKs listed in §176.14 for i5gd — all ORM+MIG including:
+  ck_i5gd_decision_type_family_matrix
+  ck_i5gd_entity_family_matrix
+  ck_i5gd_entity_decision_matrix
+fn_i5gd_reject_mutation|FUNCTION|MIGRATION ONLY|NOT IN ORM
+trg_i5gd_append_only|TRIGGER|MIGRATION ONLY|NOT IN ORM
+
+MATRIX_CHECK_OWNERSHIP (F-REA-02; each included in I5GD 16 and TOTAL 70):
+OBJECT_NAME|TABLE|OBJECT_TYPE|MATRIX_PURPOSE|COLUMNS_EXPR_AUTHORITY|ORM_REPRESENTATION|MIGRATION_REPRESENTATION|CREATION_PHASE|ROLLBACK_OWNER|STATIC_MODEL_TEST|STATIC_MIGRATION_TEST|IN_DECISION_SUBTOTAL|IN_TOTAL_70
+ck_i5gd_decision_type_family_matrix|i5_governance_decisions|NAMED CHECK CONSTRAINT|decision_type×decision_family allowed pairs|exact matrix expression authority=§176|named CheckConstraint|op.create_check_constraint / table CHECK|PHASE 7|DROP CHECK on i5_governance_decisions|YES|YES|YES|YES
+ck_i5gd_entity_family_matrix|i5_governance_decisions|NAMED CHECK CONSTRAINT|entity_type×decision_family allowed pairs|exact matrix expression authority=§176|named CheckConstraint|op.create_check_constraint / table CHECK|PHASE 7|DROP CHECK on i5_governance_decisions|YES|YES|YES|YES
+ck_i5gd_entity_decision_matrix|i5_governance_decisions|NAMED CHECK CONSTRAINT|entity_type×decision_type allowed pairs|exact matrix expression authority=§176|named CheckConstraint|op.create_check_constraint / table CHECK|PHASE 7|DROP CHECK on i5_governance_decisions|YES|YES|YES|YES
+```
+
+#### ۱۸۴.۴.۹ Global named-object reconciliation
+
+```text
+
+ORDINARY_UNIQUE_CONSTRAINTS = 8 — all owned MODEL+MIG (listed above)
+PARTIAL_UNIQUE_INDEXES = 3 — all owned MODEL+MIG
+QUERY_INDEXES = 29 — all owned MODEL+MIG
+SIMPLE_FOREIGN_KEYS = 9 — all owned MODEL+MIG; ON DELETE RESTRICT
+COMPOSITE_FOREIGN_KEYS = 4 — all owned MODEL+MIG (2 deferred Phase8 create timing MIG)
+TOTAL_FOREIGN_KEYS = 13
+NAMED_CHECKS = 70 — all owned MODEL+MIG (GSP 4 + WKR 6 + WKRA 20 + KG 12 + WRSR 9 + WRGR 3 + I5GD 16 = 70)
+UNNAMED DATABASE CHECKS = 0
+FUNCTIONS = 1 — fn_i5gd_reject_mutation — MIGRATION ONLY
+TRIGGERS = 1 — trg_i5gd_append_only — MIGRATION ONLY
+
+EIGHT TABLES CLASSIFIED EXACTLY ONCE = YES
+ALL FROZEN COLUMNS OWNED EXACTLY ONCE = YES
+ALL NAMED OBJECTS OWNED EXACTLY ONCE = YES
+ORM DECLARATION OWNER = MODEL/ENUM AUTHORING GATE declares named CheckConstraint metadata
+MIGRATION CREATION OWNER = MANUAL MIGRATION GATE creates DB object
+DUAL REPRESENTATION = REQUIRED FOR PARITY (not duplicate ownership)
+DATABASE CREATION AUTHORITY = MIGRATION ONLY
+UNOWNED MODEL OBJECT = ZERO
+DUPLICATE MODEL / MIGRATION OWNERSHIP = ZERO
+  (ORM+MIG parity objects have dual representation with single creation owner = MIGRATION GATE;
+   ORM declaration owner = MODEL AUTHORING GATE)
+```
+
+### ۱۸۴.۵ Nineteen-enum persistence ledger (F-SCOPE-02)
+
+```text
+
+PYTHON_POLICY (reconstructed from §176.12 + repo String+CHECK convention):
+  PYTHON BASE = class X(str, Enum)
+  PYTHON MEMBER NAMES = SCREAMING_SNAKE_CASE identical to frozen tokens
+  PYTHON .value = EXACT DATABASE CHECK LITERAL = EXACT FROZEN UPPERCASE TOKEN
+  DATABASE LITERALS = UPPERCASE tokens from §176.12
+  MODEL STORAGE = String(N) + named CHECK
+  NATIVE POSTGRES ENUM = NO
+  SQLALCHEMY sa.Enum = NO
+  native_enum = N/A
+  validate_strings = N/A (no sa.Enum)
+  create_constraint = N/A on Python enum itself
+  ENUM VALIDATION AUTHORITY = named DB CHECK + static model/service validation
+  PATH = backend/app/services/i5/enums.py
+  SERIALIZATION VALUE = .value string
+  API EXPOSURE = NOT IN AUTHORING GATE
+  MIGRATION RESPONSIBILITY = column type String + CHECK + defaults; no PG ENUM type
+
+ENUM_COUNT = 19
+```
+```text
+PER_ENUM LEDGER (member name = .value = DB literal for each token; order contractual as listed):
+
+1) RegistryState
+   PYTHON_CLASS = RegistryState
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = DISCOVERED,UNDER_REVIEW,APPROVED,ACTIVE,DEFERRED,BLOCKED,REVOKED,SUPERSEDED,ARCHIVED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = governed_source_profiles.registry_state
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / DISCOVERED / 'DISCOVERED'
+   DB_CHECK = ck_gsp_registry_state_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+2) RuntimeEligibility
+   PYTHON_CLASS = RuntimeEligibility
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = NOT_ELIGIBLE,REVIEW_REQUIRED,ELIGIBLE,SUSPENDED,REVOKED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = governed_source_profiles.runtime_eligibility
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / NOT_ELIGIBLE / 'NOT_ELIGIBLE'
+   DB_CHECK = ck_gsp_runtime_eligibility_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+3) KnowledgeGapType
+   PYTHON_CLASS = KnowledgeGapType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = MISSING,STALE,LOW_CONFIDENCE,CONFLICTING,RETRACTED,INSUFFICIENT_COVERAGE,MISSING_PROVENANCE,MISSING_RIGHTS_REVIEW,MISSING_SAFETY_REVIEW,RUNTIME_RETRIEVAL_FAILURE
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(64) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = knowledge_gaps.gap_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_kg_gap_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+4) KnowledgeGapStatus
+   PYTHON_CLASS = KnowledgeGapStatus
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = OPEN,TRIAGED,PLANNED,IN_PROGRESS,BLOCKED,DEFERRED,RESOLVED,REJECTED,REOPENED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = knowledge_gaps.status; weekly_run_gap_results.previous_status; weekly_run_gap_results.new_status
+   NULLABLE/DEFAULT/SERVER_DEFAULT = status NO / prev YES / new YES / status OPEN / prefer 'OPEN' on status
+   DB_CHECK = ck_kg_status_vocab; ck_wrgr_previous_status_vocab; ck_wrgr_new_status_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+5) KnowledgeGapPriority
+   PYTHON_CLASS = KnowledgeGapPriority
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = P0,P1,P2,P3
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = knowledge_gaps.priority
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / P2 / prefer 'P2'
+   DB_CHECK = ck_kg_priority_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+6) KnowledgeGapSeverity
+   PYTHON_CLASS = KnowledgeGapSeverity
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = LOW,MEDIUM,HIGH,CRITICAL
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = knowledge_gaps.severity
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / MEDIUM / prefer 'MEDIUM'
+   DB_CHECK = ck_kg_severity_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+7) KnowledgeGapUrgency
+   PYTHON_CLASS = KnowledgeGapUrgency
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = LOW,NORMAL,HIGH,IMMEDIATE
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = knowledge_gaps.urgency
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / NORMAL / prefer 'NORMAL'
+   DB_CHECK = ck_kg_urgency_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+8) WeeklyRunStatus
+   PYTHON_CLASS = WeeklyRunStatus
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = PLANNED,APPROVAL_REQUIRED,APPROVED,IN_PROGRESS,COMPLETED,COMPLETED_WITH_WARNINGS,FAILED,BLOCKED,DEFERRED,CANCELLED,SUPERSEDED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_knowledge_runs.status
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_wkr_status_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+9) WeeklyRunAttemptStatus
+   PYTHON_CLASS = WeeklyRunAttemptStatus
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = CREATED,STARTED,RUNNING,COMPLETED,COMPLETED_WITH_WARNINGS,FAILED,BLOCKED,DEFERRED,CANCELLED,SUPERSEDED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_knowledge_run_attempts.status
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_wkra_status_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+10) WeeklyRunApprovalState
+   PYTHON_CLASS = WeeklyRunApprovalState
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = NOT_REQUIRED,REQUIRED,APPROVED,REJECTED,EXPIRED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_knowledge_runs.approval_state
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_wkr_approval_state_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+11) WeeklyRunType
+   PYTHON_CLASS = WeeklyRunType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = WEEKLY_GOVERNED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(64) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_knowledge_runs.run_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / WEEKLY_GOVERNED / prefer 'WEEKLY_GOVERNED'
+   DB_CHECK = ck_wkr_run_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+12) WeeklyRunTriggerType
+   PYTHON_CLASS = WeeklyRunTriggerType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = SCHEDULED,MANUAL,RETRY_PARENT,AD_HOC
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(64) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_knowledge_runs.trigger_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_wkr_trigger_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+13) RunSourceResultStatus
+   PYTHON_CLASS = RunSourceResultStatus
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = CHECKED,FETCHED,EXTRACTED,PUBLISHED,SKIPPED,BLOCKED,FAILED,WARNING
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_run_source_results.result_status
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_wrsr_result_status_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+14) RunGapResultType
+   PYTHON_CLASS = RunGapResultType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = DISCOVERED,UPDATED,TRIAGED,PLANNED,BLOCKED,DEFERRED,RESOLVED,REOPENED,REJECTED,UNCHANGED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = weekly_run_gap_results.result_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_wrgr_result_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+15) GovernanceEntityType
+   PYTHON_CLASS = GovernanceEntityType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = SOURCE_PROFILE,SOURCE_PROFILE_VERSION,KNOWLEDGE_GAP,WEEKLY_RUN,WEEKLY_RUN_ATTEMPT,RUN_SOURCE_RESULT,RUN_GAP_RESULT
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(64) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = i5_governance_decisions.entity_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_i5gd_entity_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+16) GovernanceDecisionFamily
+   PYTHON_CLASS = GovernanceDecisionFamily
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = RIGHTS,AUTOMATION,QUALITY,MEDICAL_SAFETY,SECURITY,LIFECYCLE,GAP_LIFECYCLE,RUN_APPROVAL,RUN_TERMINALIZATION
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(64) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = i5_governance_decisions.decision_family
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_i5gd_decision_family_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+17) GovernanceDecisionType
+   PYTHON_CLASS = GovernanceDecisionType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = RIGHTS_REVIEW,AUTOMATION_REVIEW,QUALITY_REVIEW,MEDICAL_SAFETY_REVIEW,SECURITY_REVIEW,APPROVAL,REJECTION,ACTIVATION,SUSPENSION,REVOCATION,SUPERSESSION,GAP_RESOLUTION,GAP_REOPEN,RUN_APPROVAL,RUN_TERMINALIZATION
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(64) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = i5_governance_decisions.decision_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_i5gd_decision_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+18) GovernanceDecisionOutcome
+   PYTHON_CLASS = GovernanceDecisionOutcome
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = APPROVED,REJECTED,DEFERRED,BLOCKED,SUPERSEDED,RECORDED
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = i5_governance_decisions.outcome
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_i5gd_outcome_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+19) GovernanceActorType
+   PYTHON_CLASS = GovernanceActorType
+   PATH = backend/app/services/i5/enums.py
+   BASE = str, Enum
+   VALUES_IN_ORDER = SYSTEM,HUMAN,SERVICE,JAVAD,UNKNOWN
+   EACH_MEMBER: NAME=<TOKEN> .value="<TOKEN>" DB_LITERAL=<TOKEN> CASE=UPPER
+   STORAGE = String(32) String + CHECK; native_enum=NO; sa.Enum=NO
+   CONSUMERS = i5_governance_decisions.actor_type
+   NULLABLE/DEFAULT/SERVER_DEFAULT = NO / - / -
+   DB_CHECK = ck_i5gd_actor_type_vocab
+   COLLISION_STATUS = see §184.6 matrix
+
+UNUSED_ENUMS = ZERO
+SERVICE_ONLY_NON_ENUM_COLUMNS = from_state, to_state (NOT among 19)
+ALL PYTHON .value STRINGS FROZEN = YES
+ALL DB LITERALS FROZEN = YES
+ALL CONSUMING COLUMNS MAPPED = YES
+```
+
+### ۱۸۴.۶ Enum collision / authority boundary (F-SCOPE-02)
+
+```text
+
+AUTHORITATIVE BOUNDARY:
+  W1-P01 ENUMS (backend/app/services/i5/enums.py) =
+    PERSISTENCE AND WEEKLY-KNOWLEDGE-PIPELINE CONTRACT (SCREAMING .value)
+  EXISTING governance/contracts.py ENUMS =
+    SEPARATE GOVERNANCE DOCUMENT / VALIDATION DOMAIN (snake_case .value)
+  DIRECT CROSS-IMPORT = PROHIBITED UNLESS EXPLICIT ADAPTER EXISTS
+  AUTOMATIC VALUE CONVERSION = PROHIBITED
+  ADAPTER IMPLEMENTATION = OUT OF CURRENT AUTHORING SCOPE; SERVICE-GATE OWNED IF EVER REQUIRED
+  SAME AUTHORITY? = NO for all rows below
+  REUSE SAFE? = NO
+
+COLLISION MATRIX (token/semantic overlaps inspected; not exhaustive of unrelated enums):
+W1_ENUM|EXISTING_SYMBOL|FILE|EXISTING_VALUES|DOMAIN|CASING|SAME_AUTH|REUSE|REASON|ADAPTER|BOUNDARY_OWNER
+RegistryState|SourceOperationalStatus|governance/contracts.py|disabled,enabled_idle,outage,suspended|GSP operational runtime flag|snake|NO|NO|Different column operational_status vs registry_state; different semantics|NO|SERVICE if ever
+RuntimeEligibility|FreshnessUseDecision.ELIGIBLE / RollbackDecision.ELIGIBLE|contracts.py|eligible|policy use decisions|snake|NO|NO|Not GSP runtime_eligibility persistence|NO|SERVICE
+KnowledgeGapStatus|ReviewStatus|backend/app/services/governance/contracts.py|EXISTING_MEMBERS=QUARANTINED,PENDING_HUMAN,APPROVED,REJECTED|EXISTING_VALUES=quarantined,pending_human,approved,rejected|W1_MEMBERS=OPEN,TRIAGED,PLANNED,IN_PROGRESS,BLOCKED,DEFERRED,RESOLVED,REJECTED,REOPENED|W1_VALUES=same SCREAMING tokens|DOMAIN=KB document review workflow vs knowledge_gaps.status persistence|SAME_PERSISTED_COLUMN_AUTHORITY=NO|REUSE_SAFE=NO|DIRECT_CROSS_IMPORT=PROHIBITED|AUTOMATIC_CONVERSION=PROHIBITED|ADAPTER=SERVICE-GATE IF EVER REQUIRED|COMPETING_SOT=NO
+GovernanceDecisionOutcome.APPROVED|ReviewStatus.APPROVED|contracts.py|approved|review vs decision outcome|snake vs SCREAMING|NO|NO|Different persistence table/column|NO|SERVICE
+GovernanceDecisionOutcome.BLOCKED|KnowledgePolicyDecision.BLOCKED etc.|contracts.py|blocked|policy decisions|snake|NO|NO|Not i5_governance_decisions.outcome|NO|SERVICE
+WeeklyRunStatus|PublicationState / IngestionAttemptOutcome|contracts.py|various|ingestion publication|snake|NO|NO|Not weekly_knowledge_runs.status|NO|SERVICE
+GovernanceActorType|none identical|—|—|—|—|NO|NO|No matching persisted actor_type enum|NO|—
+
+SEMANTIC COLLISIONS UNRESOLVED = ZERO
+COMPETING SOURCE OF TRUTH = NO
+```
+
+### ۱۸۴.۷ Dependency-safe execution sequence (F-SCOPE-03)
+
+```text
+
+PHASE 1 = Javad separately approves model / enum / focused static-test authoring
+PHASE 2 = Cursor authors only allowlisted models, enums, package files,
+          focused static tests and master-log implementation record
+          NO test execution; NO migration
+PHASE 3 = Strict read-only static model / enum audit
+PHASE 4 = Minimal model / enum fix Gate, only if required
+PHASE 5 = Javad separately approves migration scope review
+PHASE 6 = Migration scope review freezes exact revision path, object ownership,
+          metadata registration, backfill, rollback and test requirements
+PHASE 7 = Javad separately approves migration authoring
+PHASE 8 = Cursor authors the migration uncommitted
+PHASE 9 = Strict read-only static migration audit
+PHASE 10 = Minimal migration fix Gate, only if required
+PHASE 11 = Javad separately approves test authoring completion or test execution,
+           depending on what was authored earlier
+PHASE 12 = Run approved static/model/migration tests against the accepted
+           model + migration pair
+PHASE 13 = Separate local commit approval for accepted model, enum,
+           migration, focused tests and documentation set
+PHASE 14 = Read-only commit audit
+PHASE 15 = Separate non-force push approval
+PHASE 16 = Separate CI approval or controlled workflow dispatch
+PHASE 17 = Only after accepted CI and separate Javad approval:
+           migration execution in the approved environment
+PHASE 18 = Post-migration verification and later activation remain separately gated
+
+MODEL-ONLY PUSH BEFORE MIGRATION ARTIFACT = PROHIBITED BY DEFAULT
+MODEL-ONLY CI BEFORE MIGRATION ARTIFACT = PROHIBITED BY DEFAULT
+MODEL-ONLY COMMIT = NOT PART OF THE DEFAULT W1-P01 PATH
+EXCEPTION = requires separate isolation proof AND explicit Javad approval
+
+TEST CLASS EARLIEST SAFE EXECUTION:
+  SOURCE-TEXT STATIC TEST (read .py/.sql as text; no import) =
+    may execute only after separate test-execution approval; may be before migration
+    IF approval explicitly allows source-only tests
+  ORM METADATA TEST (import models; inspect __table__) =
+    AFTER model authoring accepted AND separate execution approval;
+    BEFORE or AFTER migration authoring only if no DB required;
+    MUST NOT require DB
+  DATABASE / MIGRATION TEST =
+    ONLY AFTER accepted migration artifact exists + Phase 11/12 approvals
+  INTEGRATION TEST =
+    ONLY AFTER migration execution approval path (Phase 17+) or explicit later Gate
+
+FOCUSED STATIC TESTS authored in model/enum Gate MUST NOT be executed until
+accepted migration artifact exists, UNLESS proven source-only AND separate
+execution approval explicitly allows them.
+```
+
+### ۱۸۴.۸ Alembic metadata registration policy (F-SCOPE-04)
+
+```text
+
+STATIC IMPORT ANALYSIS:
+  backend/alembic/env.py imports: backend.app.database.Base ONLY
+  backend/app/database.py defines Base = declarative_base(); does NOT import models
+  backend/app/models.py imports Base and subclasses it
+  THEREFORE: importing Base alone does NOT register model tables into Base.metadata
+  Option B = NOT SUPPORTED
+
+SELECTED POLICY = C — MANUAL MIGRATION POLICY
+  ALEMBIC AUTOGENERATE = PROHIBITED FOR W1-P01
+  MIGRATION AUTHORING = MANUAL FROM §176 OBJECT LEDGER + ORM parity audit
+  target_metadata COMPLETENESS = NOT RELIED UPON FOR REVISION GENERATION
+  env.py CHANGE = NOT REQUIRED FOR MODEL/ENUM AUTHORING
+  STATIC MIGRATION AUDIT = must reconcile every object manually against §176 + models.py
+
+OWNER = MIGRATION SCOPE REVIEW / MIGRATION AUTHORING GATES
+EXACT PATH = backend/alembic/env.py (unchanged by model/enum authoring)
+VERIFICATION METHOD =
+  static import-chain audit (this section)
+  + manual object-by-object migration audit against §176 ledger
+  + optional later ORM metadata inspection only in approved tests that import models explicitly
+
+MODEL / ENUM AUTHORING ALLOWLIST IMPACT = NONE
+  (env.py NOT on model/enum allowlist)
+
+NOTE: Option A (explicit import backend.app.models in env.py) remains a possible
+future migration-scope hardening but is NOT selected as the W1-P01 required policy
+because current repository practice is manual revisions and C matches that practice.
+```
+
+### ۱۸۴.۹ Future authoring allowlist (reconciled)
+
+```text
+
+VERIFY:
+  backend/app/services/i5/ = ABSENT (confirmed)
+  no existing authoritative W1 enum module to extend
+  models.py remains authoritative monolith
+  test path follows test_section15_i5* naming
+
+ADD =
+  backend/app/services/i5/__init__.py
+  backend/app/services/i5/enums.py
+  backend/tests/test_section15_i5_w1_p01_model_enum_contract.py
+
+MODIFY =
+  backend/app/models.py
+    (GovernedSourceProfile additive ONLY; ADD 6 new classes;
+     DO NOT modify GovernedSourceProfileVersion)
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+    (append-only implementation record after authoring)
+
+READ-ONLY DEPENDENCIES =
+  backend/app/database.py
+  backend/app/models.py (GSP/GSPV baseline)
+  backend/alembic/env.py
+  backend/alembic/versions/051_i5b2_governed_source_profile.py
+  backend/tests/test_section15_i5b2_p1_source_profile.py
+  backend/app/services/governance/contracts.py
+  docs/... §176–§183 Design Freeze / audits
+
+PROHIBITED IN MODEL/ENUM AUTHORING =
+  backend/alembic/env.py
+  backend/alembic/versions/**
+  service implementation beyond enums package
+  routers / APIs / crawler / scheduler / frontend / CI / deploy / .env
+```
+
+### ۱۸۴.۱۰ Future authoring acceptance criteria
+
+```text
+
+Each criterion: METHOD=static source + ORM metadata inspection (no DB);
+EVIDENCE=diff + symbol/constraint presence; SEVERITY=MAJOR unless noted; FIX_OWNER=Cursor authoring Gate
+
+ALL 8 TABLES CLASSIFIED / REQUIRED CLASSES / FROZEN COLUMNS / NO EXTRA COLUMN
+ALL 19 ENUMS / EXACT .value / CONSUMERS CORRECT
+STRING LENGTHS / NULLABILITY / DEFAULTS / PK IDENTITY CORRECT
+ORM-OWNED UQ / INDEX / CHECK / FK CORRECT
+MIGRATION-ONLY OBJECTS EXCLUDED FROM ORM (fn/trg)
+NO relationship() UNLESS EXPLICITLY FROZEN (frozen = NONE)
+NO updated_at ON i5_governance_decisions
+NO APPEND-ONLY TRIGGER FABRICATED IN ORM
+NO EXISTING GSPV CHANGE
+NO EXISTING ENUM COLLISION / CROSS-IMPORT
+NO DUPLICATE TABLE REGISTRATION / NO CIRCULAR IMPORT
+NO MIGRATION FILE / NO DB CONNECTION / NO TEST EXECUTION
+ALLOWLIST-ONLY DIFF / MASTER LOG APPEND-ONLY / UNCOMMITTED
+```
+
+### ۱۸۴.۱۱ Gate boundaries
+
+```text
+
+MODEL / ENUM AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+TEST FILE AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+TEST EXECUTION = NOT PERFORMED — NOT AUTHORIZED
+MIGRATION CREATE / RUN = NOT PERFORMED — NOT AUTHORIZED
+DATABASE CONNECTION = NOT PERFORMED — NOT AUTHORIZED
+SERVICE / API / CRAWLER = NOT PERFORMED — NOT AUTHORIZED
+STAGE / COMMIT / PUSH = NOT PERFORMED — NOT AUTHORIZED
+FORMAL_I5_COMPLETION = 21.79487179%
+FORMAL_I5_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+AUTHORING_READY = NO UNTIL STRICT READ-ONLY FIX2 / 70-CHECK RE-AUDIT PASSES
+NEXT_REQUIRED_GATE =
+  W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX2
+  70-CHECK STRICT READ-ONLY RE-AUDIT
+§185 = SEE APPEND RECORD (HISTORICAL FIX1; SUPERSEDED BY FIX2 FOR CHECK TOTAL)
+§186 = SEE APPEND RECORD (THIS FIX2)
+STATUS = SCOPE_REVIEW_FIX2_COMPLETE_UNCOMMITTED
+VERDICT = PASS — W1_P01_SCOPE_REVIEW_FIX2_CHECK_RECONCILIATION_COMPLETE_UNCOMMITTED
+```
+
+---
+
+*پایان بند ۱۸۴ — W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW — FIX2 RECONCILED — PASS — بدون-کامیت*
+
+
+## ۱۸۵) W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX1
+
+### ۱۸۵.۱ Approval and baseline
+
+```text
+GATE = W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX1
+DATE = 2026-08-01
+MODE = DOCUMENTATION-ONLY / UNCOMMITTED
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+DIRTY_PATHS = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STAGING = EMPTY
+UNTRACKED = ZERO
+AUTHORIZED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+PRESERVED_PREFIX = §§176–183 byte-for-byte (prefix before §184)
+PREFIX_SIZE = 2221138
+PREFIX_SHA-256 = 790db78f220afe2c5787a0006bc4bbddec5c1d6e16adaaec4fa667f8288eeb11
+```
+
+### ۱۸۵.۲ Findings closed
+
+```text
+F-SCOPE-01 = CLOSED
+  EVIDENCE = §184.4 complete eight-table ordered column ledgers + named object ownership;
+  13/39/28/33/21/8/20 column counts; relationship freeze FK-only; GSPV reuse unchanged
+
+F-SCOPE-02 = CLOSED
+  EVIDENCE = §184.5 nineteen-enum persistence ledger with exact .value=DB literal policy;
+  all consumers mapped; §184.6 collision matrix + authority boundary; unresolved=0
+
+F-SCOPE-03 = CLOSED
+  EVIDENCE = §184.7 Phases 1–18 dependency-safe sequence;
+  model-only push/CI/commit prohibited by default;
+  test-class earliest execution points frozen
+
+F-SCOPE-04 = CLOSED
+  EVIDENCE = §184.8 selected Option C manual migration policy;
+  env.py imports Base only; models not side-effect registered;
+  owner = migration Gates; allowlist impact NONE
+```
+
+### ۱۸۵.۳ Completeness summaries
+
+```text
+EIGHT-TABLE OBJECT LEDGER = COMPLETE in §184.4
+NINETEEN-ENUM PERSISTENCE LEDGER = COMPLETE in §184.5
+ENUM COLLISION BOUNDARY = W1 SCREAMING persistence vs contracts.py snake governance domain;
+  DIRECT CROSS-IMPORT PROHIBITED; ADAPTER SERVICE-GATE IF EVER REQUIRED
+FUTURE AUTHORING ALLOWLIST =
+  ADD: backend/app/services/i5/__init__.py;
+       backend/app/services/i5/enums.py;
+       backend/tests/test_section15_i5_w1_p01_model_enum_contract.py
+  MODIFY: backend/app/models.py; docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+METADATA REGISTRATION POLICY = C
+  OWNER = MIGRATION SCOPE REVIEW / MIGRATION AUTHORING
+  PATH = backend/alembic/env.py (no model/enum allowlist change)
+  VERIFICATION = static import-chain + manual object reconciliation
+DEPENDENCY-SAFE SEQUENCE =
+  model/enum → static audit → migration scope → migration authoring → migration audit
+  → tests → commit → push → CI → later migration run
+MODEL-ONLY PUSH / CI = PROHIBITED BY DEFAULT
+```
+
+### ۱۸۵.۴ Boundaries and next step
+
+```text
+MODEL AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+ENUM AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+TEST AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+MIGRATION = NOT CREATED OR RUN
+DATABASE = NOT CONNECTED
+TEST / CI EXECUTION = NOT PERFORMED
+STAGE / COMMIT / PUSH = NOT PERFORMED
+FORMAL_I5_COMPLETION = 21.79487179%
+FORMAL_I5_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+NEXT_REQUIRED_GATE =
+  W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW
+  F-SCOPE-01..04 STRICT READ-ONLY RE-AUDIT
+MODEL / ENUM AUTHORING READY = NO UNTIL RE-AUDIT PASSES
+§186 = ABSENT
+STATUS = FIX1_COMPLETE_UNCOMMITTED
+VERDICT = PASS — W1_P01_MODEL_ENUM_AUTHORING_SCOPE_REVIEW_FIX1_COMPLETE_UNCOMMITTED
+MARKER = READY_FOR_STRICT_READ_ONLY_F_SCOPE_01_04_REAUDIT
+```
+
+---
+
+*پایان بند ۱۸۵ — W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX1 — PASS — بدون-کامیت*
+
+
+## ۱۸۶) W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX2 — CHECK-CONSTRAINT RECONCILIATION
+
+### ۱۸۶.۱ Approval and baseline
+
+```text
+GATE = W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX2
+  DESIGN-FREEZE CHECK-CONSTRAINT RECONCILIATION
+DATE = 2026-08-01
+MODE = DOCUMENTATION-ONLY / UNCOMMITTED
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+DIRTY_PATHS = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STAGING = EMPTY
+UNTRACKED = ZERO
+PRE_FIX_MASTER_LOG_SHA-256 = 233c6e63441fe8652b5a9d67db49503e14108323e06afe8b20e8ed2b756aeef8
+PRE_FIX_MASTER_LOG_SIZE = 2278378
+AUTHORIZED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+MODIFIED_SECTIONS = §176 ; §184
+PRESERVED_SECTIONS = §§177–183 ; §185
+```
+
+### ۱۸۶.۲ Findings closed
+
+```text
+F-REA-01 = CLOSED
+  21 nonnegative counters reconciled as named DB CHECKs
+  UNNAMED DATABASE CHECKS = 0
+  UNNAMED SQLAlchemy CheckConstraint = PROHIBITED
+F-REA-02 = CLOSED
+  ck_i5gd_decision_type_family_matrix
+  ck_i5gd_entity_family_matrix
+  ck_i5gd_entity_decision_matrix
+  each has complete ownership row in §184
+F-REA-03 = CLOSED
+  weekly_knowledge_runs rows=28
+  weekly_knowledge_run_attempts rows=33
+  weekly_run_source_results rows=21
+  weekly_run_gap_results rows=8
+  i5_governance_decisions rows=20
+  full attribute schema applied
+F-REA-04 = CLOSED
+  ReviewStatus members = QUARANTINED, PENDING_HUMAN, APPROVED, REJECTED
+  ReviewStatus values = quarantined, pending_human, approved, rejected
+  existing file = backend/app/services/governance/contracts.py
+  competing SOT = NO
+F-SCOPE-03 = PRESERVED CLOSED
+F-SCOPE-04 = PRESERVED CLOSED — ALEMBIC OPTION C
+```
+
+### ۱۸۶.۳ Check-count reconciliation
+
+```text
+ORIGINAL_NAMED_CHECK_TOTAL = 49
+NEW_ATTEMPT_NONNEGATIVE_CHECKS = 14
+NEW_SOURCE_RESULT_NONNEGATIVE_CHECKS = 7
+NEW_CHECKS_TOTAL = 21
+RECONCILED_NAMED_CHECK_TOTAL = 70
+UNNAMED_DATABASE_CHECKS = 0
+ARITHMETIC = 4 + 6 + 20 + 12 + 9 + 3 + 16 = 70
+HISTORICAL_49_ARITHMETIC = 4+6+6+12+2+3+16 = 49
+  (SUPERSEDED; may remain in §185 historical record only)
+CHECK_SUBTOTALS =
+  GSP/PHASE1 = 4
+  RUNS/PHASE2 = 6
+  ATTEMPTS/PHASE3 = 20
+  GAPS/PHASE4 = 12
+  SOURCE_RESULTS/PHASE5 = 9
+  GAP_RESULTS/PHASE6 = 3
+  DECISIONS/PHASE7 = 16
+```
+
+### ۱۸۶.۴ Twenty-one named CHECK ledger
+
+```text
+NUM|NAME|TABLE|COLUMN|EXPR|NULLABLE_COL|SOURCE|ORM|ORM_OWNER|MIG|MIG_OWNER|PHASE|ROLLBACK|TESTS|IN_70|DB_ENFORCE
+1|ck_wkra_total_sources_nonnegative|weekly_knowledge_run_attempts|total_sources|total_sources >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+2|ck_wkra_checked_sources_nonnegative|weekly_knowledge_run_attempts|checked_sources|checked_sources >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+3|ck_wkra_fetched_sources_nonnegative|weekly_knowledge_run_attempts|fetched_sources|fetched_sources >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+4|ck_wkra_skipped_sources_nonnegative|weekly_knowledge_run_attempts|skipped_sources|skipped_sources >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+5|ck_wkra_blocked_sources_nonnegative|weekly_knowledge_run_attempts|blocked_sources|blocked_sources >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+6|ck_wkra_failed_sources_nonnegative|weekly_knowledge_run_attempts|failed_sources|failed_sources >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+7|ck_wkra_new_knowledge_count_nonnegative|weekly_knowledge_run_attempts|new_knowledge_count|new_knowledge_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+8|ck_wkra_updated_knowledge_count_nonnegative|weekly_knowledge_run_attempts|updated_knowledge_count|updated_knowledge_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+9|ck_wkra_superseded_knowledge_count_nonnegative|weekly_knowledge_run_attempts|superseded_knowledge_count|superseded_knowledge_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+10|ck_wkra_rejected_knowledge_count_nonnegative|weekly_knowledge_run_attempts|rejected_knowledge_count|rejected_knowledge_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+11|ck_wkra_created_gap_count_nonnegative|weekly_knowledge_run_attempts|created_gap_count|created_gap_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+12|ck_wkra_resolved_gap_count_nonnegative|weekly_knowledge_run_attempts|resolved_gap_count|resolved_gap_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+13|ck_wkra_warning_count_nonnegative|weekly_knowledge_run_attempts|warning_count|warning_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+14|ck_wkra_error_count_nonnegative|weekly_knowledge_run_attempts|error_count|error_count >= 0|NO|§176.8|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 3|DROP|static model+mig|YES|YES
+15|ck_wrsr_knowledge_new_count_nonnegative|weekly_run_source_results|knowledge_new_count|knowledge_new_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+16|ck_wrsr_knowledge_updated_count_nonnegative|weekly_run_source_results|knowledge_updated_count|knowledge_updated_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+17|ck_wrsr_knowledge_superseded_count_nonnegative|weekly_run_source_results|knowledge_superseded_count|knowledge_superseded_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+18|ck_wrsr_knowledge_rejected_count_nonnegative|weekly_run_source_results|knowledge_rejected_count|knowledge_rejected_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+19|ck_wrsr_gap_created_count_nonnegative|weekly_run_source_results|gap_created_count|gap_created_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+20|ck_wrsr_warning_count_nonnegative|weekly_run_source_results|warning_count|warning_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+21|ck_wrsr_error_count_nonnegative|weekly_run_source_results|error_count|error_count >= 0|NO|§176.9|CheckConstraint named|MODEL/ENUM GATE|op.create_check|MIG GATE|PHASE 5|DROP|static model+mig|YES|YES
+```
+
+### ۱۸۶.۵ Preservation evidence
+
+```text
+PRESERVATION_TARGET = §§177–183 RAW SECTION BYTES UNCHANGED; §185 RAW SECTION BYTES UNCHANGED
+PRE_KNOWN_LF_HASHES =
+  §177 = 887503f33b643d7d138413348789fb596788be04f81e06c16db8759a5b5df624
+  §178 = 78f5f407af1a96f46a9c5dbade7126c0725da6066b548885f4efcf7ec0c8c142
+  §179 = 7c823bd7b375ffb19e77fad5a20ea58eb230eb3d8c4dbc4154225cbd7d96913d
+  §180 = 1831fc318ddd39cc96b80ed708e8582bb61f93af411e0a9a5f17c41888eda6a8
+  §181 = e3c7445a99f69242ea96741d3f2a4bb0073a04e50509234236256020c5e69c0b
+  §185 = 5bec675e1fff9dcac8a40bdc353d60d304329634c385de55070bbcafbe931848
+POST = verified identical to PRE for §§177–183 and §185 (raw + LF where known)
+§185 = PRESERVED AS HISTORICAL FIX1 RECORD (self-reported closure superseded by Re-audit + FIX2)
+```
+
+### ۱۸۶.۶ Boundaries
+
+```text
+MODEL AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+ENUM AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+TEST AUTHORING = NOT PERFORMED — NOT AUTHORIZED
+MIGRATION CREATE / RUN = NOT PERFORMED — NOT AUTHORIZED
+DATABASE CONNECTION = NOT PERFORMED — NOT AUTHORIZED
+TEST / CI EXECUTION = NOT PERFORMED — NOT AUTHORIZED
+STAGE / COMMIT / PUSH = NOT PERFORMED — NOT AUTHORIZED
+FORMAL_I5_COMPLETION = 21.79487179%
+FORMAL_I5_REMAINING = 78.20512821%
+I5_PRODUCTION_READY = NO
+NEXT_REQUIRED_GATE =
+  W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX2
+  70-CHECK STRICT READ-ONLY RE-AUDIT
+MODEL / ENUM AUTHORING READY = NO UNTIL RE-AUDIT PASSES
+§187 = ABSENT
+STATUS = FIX2_COMPLETE_UNCOMMITTED
+VERDICT = PASS — W1_P01_SCOPE_REVIEW_FIX2_CHECK_RECONCILIATION_COMPLETE_UNCOMMITTED
+MARKER = READY_FOR_STRICT_READ_ONLY_FIX2_70_CHECK_REAUDIT
+```
+
+---
+
+*پایان بند ۱۸۶ — W1-P01 MODEL / ENUM AUTHORING SCOPE REVIEW FIX2 — PASS — بدون-کامیت*
+
+
+## ۱۸۷) قانون دائمی معماری مکمل Backend و Database صدی
+
+### ۱۸۷.۱ هویت، اختیار و وضعیت قانون
+
+```text
+LAW_ID = SEDI-BACKEND-DATABASE-COMPLEMENTARY-ARCHITECTURE-LAW-v1
+GATE = SEDI BACKEND / DATABASE COMPLEMENTARY ARCHITECTURE LAW
+  MASTER-LOG REGISTRATION
+DATE = 2026-08-01
+STATUS = PERMANENT / AUTHORITATIVE / MANDATORY
+SCOPE =
+  ALL FUTURE SEDI BACKEND
+  DATABASE
+  I5
+  CRAWLER
+  KNOWLEDGE
+  MEMORY
+  RETRIEVAL
+  RESPONSE-INTELLIGENCE
+  SERVICE
+  MIGRATION
+  DEPLOYMENT WORK
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+MODE = DOCUMENTATION-ONLY / APPEND-ONLY / UNCOMMITTED
+AUTHORIZED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+AUTHORIZED_ACTION = APPEND §187 EXACTLY ONCE
+EDITED_SECTIONS_176_TO_186 = NONE
+§188 = ABSENT
+THIS_GATE_AUTHORIZES_IMPLEMENTATION = NO
+```
+
+### ۱۸۷.۲ بیانیهٔ فارسی canonical
+
+```text
+هوشمندی صدی در Backend ساخته می‌شود، ولی بدون Database نمی‌تواند
+حافظه، دانش پایدار، نسخه‌بندی و یادگیری کنترل‌شده داشته باشد.
+
+Backend و Database مکمل یکدیگرند:
+Backend عمل می‌کند و Database به خاطر می‌سپارد.
+```
+
+### ۱۸۷.۳ Canonical English statement
+
+```text
+Sedi's intelligence is implemented in the Backend, but without the Database
+it cannot maintain memory, durable knowledge, version history, provenance,
+or governed learning.
+
+Backend and Database are complementary:
+the Backend acts, reasons, orchestrates, validates and responds;
+the Database remembers, constrains, versions and preserves evidence.
+```
+
+### ۱۸۷.۴ Backend ownership law
+
+```text
+BACKEND OWNS =
+  source discovery
+  crawler scheduling
+  external retrieval and download
+  robots / rights / rate-limit enforcement
+  retry and incremental fetching
+  document parsing
+  chunking
+  fact extraction
+  guideline extraction
+  warning extraction
+  deduplication
+  version comparison
+  conflict detection
+  retraction detection
+  quality evaluation
+  clinical-safety evaluation
+  governance orchestration
+  approval / rejection workflow
+  knowledge publication workflow
+  knowledge retrieval orchestration
+  user-context retrieval
+  personalization
+  risk classification
+  emergency detection
+  LLM prompt construction
+  response planning
+  citation selection
+  final response safety checks
+  notification decisions
+  care-plan logic
+  service and API behavior
+
+BACKEND =
+  EXECUTION
+  ORCHESTRATION
+  BUSINESS LOGIC
+  DECISION WORKFLOW
+  REASONING CONTROL
+  EXTERNAL INTEGRATION
+  USER RESPONSE CONTROL
+```
+
+### ۱۸۷.۵ Database ownership law
+
+```text
+DATABASE OWNS =
+  users and profiles
+  health memory
+  lifestyle memory
+  source profiles
+  source versions
+  document metadata
+  structured knowledge
+  knowledge chunks
+  facts
+  guidelines
+  warnings
+  provenance
+  citations
+  knowledge gaps
+  weekly runs
+  attempts
+  source results
+  gap results
+  governance decisions
+  approval state
+  conflict history
+  supersession history
+  audit trail
+  notification state
+  device observations
+
+DATABASE INTEGRITY RESPONSIBILITIES =
+  FOREIGN KEYS
+  UNIQUE CONSTRAINTS
+  INDEXES
+  NAMED CHECK CONSTRAINTS
+  TRANSACTIONAL CONSISTENCY
+  APPEND-ONLY PROTECTION
+  IMMUTABILITY
+  DUPLICATE PREVENTION
+  VERSION RELATIONSHIPS
+  NONNEGATIVE COUNTERS
+  AUDIT HISTORY
+
+DATABASE =
+  DURABLE MEMORY
+  STRUCTURED SOURCE OF TRUTH
+  VERSION HISTORY
+  PROVENANCE
+  INTEGRITY
+  AUDITABILITY
+```
+
+### ۱۸۷.۶ Database prohibition law
+
+```text
+DATABASE MUST NOT OWN OR EXECUTE =
+  crawler execution
+  external network access
+  source downloading
+  medical reasoning
+  treatment recommendation logic
+  LLM orchestration
+  response generation
+  source-authority decision logic
+  rights decision logic
+  clinical-safety decision logic
+  personalization logic
+  conversation control
+
+HIGH-LEVEL DECISIONS MAY BE STORED IN DATABASE =
+  YES — as durable records / outcomes
+
+WORKFLOW AND EVALUATION OF THOSE DECISIONS =
+  BACKEND SERVICES ONLY
+```
+
+### ۱۸۷.۷ Object storage law
+
+```text
+RAW SOURCE FILES =
+  PDF
+  HTML SNAPSHOT
+  XML
+  JSON FEED
+  IMAGE
+  ORIGINAL DOCUMENT
+  LARGE BINARY ARTIFACT
+
+DEFAULT OWNER = OBJECT STORAGE
+SUPPORTED ARCHITECTURE =
+  S3-COMPATIBLE STORAGE
+  MINIO
+  CLOUD OBJECT STORAGE
+
+POSTGRESQL SHOULD STORE =
+  OBJECT KEY
+  CONTENT HASH
+  MEDIA TYPE
+  BYTE SIZE
+  SOURCE IDENTITY
+  VERSION IDENTITY
+  DOWNLOAD TIMESTAMP
+  PROCESSING STATUS
+  PROVENANCE
+  RETENTION STATE
+
+LARGE RAW FILES MUST NOT BE STORED IN POSTGRESQL BY DEFAULT = YES
+SMALL TEXT / JSON INLINE =
+  ONLY WHEN AN APPROVED SIZE, SECURITY, QUERY AND RETENTION JUSTIFICATION EXISTS
+```
+
+### ۱۸۷.۸ Queue / worker law
+
+```text
+QUEUE / WORKER OWNS =
+  BACKGROUND JOBS
+  WEEKLY SCHEDULING
+  RETRY TIMING
+  RATE-LIMIT WAITING
+  PARALLEL SOURCE PROCESSING
+  LONG-RUNNING PARSING
+  EMBEDDING GENERATION
+  BATCH VALIDATION
+  FAILURE ISOLATION
+  IDEMPOTENT JOB EXECUTION
+
+DATABASE MAY STORE JOB STATE = YES
+DATABASE MUST NOT REPLACE WORKER EXECUTION LAYER = YES
+```
+
+### ۱۸۷.۹ LLM law
+
+```text
+LLM OWNS =
+  LANGUAGE UNDERSTANDING
+  REASONING ASSISTANCE
+  SUMMARIZATION
+  SCHEMA-GOVERNED EXTRACTION
+  NATURAL-LANGUAGE RESPONSE GENERATION
+
+LLM IS NOT =
+  THE AUTHORITATIVE KNOWLEDGE DATABASE
+  THE PROVENANCE LEDGER
+  THE RIGHTS AUTHORITY
+  THE CLINICAL-SAFETY AUTHORITY
+  THE IMMUTABLE AUDIT LOG
+  THE SOURCE-VERSION HISTORY
+
+BACKEND MUST CONTROL =
+  LLM INPUTS
+  RETRIEVED CONTEXT
+  TOOLS
+  SAFETY CHECKS
+  OUTPUT VALIDATION
+  PUBLICATION DECISIONS
+```
+
+### ۱۸۷.۱۰ Response-intelligence law
+
+```text
+REQUIRED PATH =
+  USER QUESTION
+  → BACKEND INTENT / RISK ANALYSIS
+  → USER HEALTH + LIFESTYLE CONTEXT RETRIEVAL
+  → APPROVED KNOWLEDGE RETRIEVAL
+  → PROVENANCE / VERSION / SAFETY FILTERING
+  → LLM REASONING AND LANGUAGE GENERATION
+  → BACKEND FINAL SAFETY / POLICY CHECK
+  → RESPONSE WITH APPROPRIATE CITATIONS
+
+HARD RULE =
+  APPROVED KNOWLEDGE MUST BE RETRIEVED BEFORE THE LLM PROVIDES
+  A KNOWLEDGE-DEPENDENT HEALTH RESPONSE.
+
+  THE BASE MODEL'S INTERNAL MEMORY MUST NOT BE TREATED AS
+  THE AUTHORITATIVE CURRENT SEDI KNOWLEDGE DATABASE.
+```
+
+### ۱۸۷.۱۱ Weekly governed crawler law
+
+```text
+PIPELINE =
+  SCHEDULER
+  → SOURCE DISCOVERY
+  → CRAWLER / DOWNLOADER
+  → RAW OBJECT STORAGE
+  → PARSER / EXTRACTOR
+  → RIGHTS GATE
+  → SOURCE-AUTHORITY GATE
+  → QUALITY GATE
+  → CLINICAL-SAFETY GATE
+  → VERSION / CONFLICT / RETRACTION ANALYSIS
+  → GOVERNANCE DECISION
+  → APPROVED KNOWLEDGE DATABASE
+  → RETRIEVAL INDEX
+
+FREEZE =
+  CRAWLER MUST NOT DIRECTLY PUBLISH TO APPROVED KNOWLEDGE TABLES.
+
+  ONLY GOVERNANCE-APPROVED KNOWLEDGE MAY ENTER THE APPROVED
+  KNOWLEDGE DATABASE AND RETRIEVAL INDEX.
+```
+
+### ۱۸۷.۱۲ ORM / migration / service ownership law
+
+```text
+ORM MODEL OWNS =
+  APPLICATION-SIDE SCHEMA METADATA
+  COLUMN DEFINITIONS
+  NAMED CONSTRAINT PARITY
+  MODEL SERIALIZATION BOUNDARIES
+
+MIGRATION OWNS =
+  ACTUAL DATABASE OBJECT CREATION
+  ALTERATION
+  DELETION
+  BACKFILL
+  FUNCTION CREATION
+  TRIGGER CREATION
+  DOWNGRADE
+  ROLLBACK
+
+SERVICE OWNS =
+  TRANSACTIONS
+  LOCKS
+  STATE TRANSITIONS
+  BUSINESS INVARIANTS
+  CROSS-TABLE WORKFLOWS
+  EXTERNAL INTEGRATION
+  GOVERNANCE ORCHESTRATION
+
+FREEZE =
+  DUAL ORM + MIGRATION REPRESENTATION OF A NAMED CONSTRAINT =
+    REQUIRED FOR PARITY
+  ACTUAL DATABASE CREATION AUTHORITY =
+    MIGRATION ONLY
+```
+
+### ۱۸۷.۱۳ Permanent prohibitions
+
+```text
+PROHIBITED =
+  crawler or network execution inside PostgreSQL functions or triggers
+  medical reasoning inside database triggers
+  large raw PDF/blob storage in PostgreSQL by default
+  using the LLM as the only knowledge store
+  publishing extracted knowledge without governance approval
+  allowing crawler output to bypass provenance or version history
+  database-only implementation of response intelligence
+  service writes that bypass DB integrity constraints
+  model-only deployment while a required migration is absent
+  silent ownership transfer between Backend and Database
+```
+
+### ۱۸۷.۱۴ Future package acceptance questions
+
+```text
+EVERY FUTURE PACKAGE MUST ANSWER =
+  1. What logic belongs to Backend?
+  2. What durable state belongs to Database?
+  3. What raw artifacts belong to Object Storage?
+  4. What asynchronous work belongs to Queue / Workers?
+  5. What language and reasoning work belongs to the LLM?
+  6. What integrity rules belong to Database constraints?
+  7. What actual DB objects belong to migrations?
+  8. What service transactions and state transitions are required?
+  9. What provenance and audit evidence is preserved?
+  10. What remains disabled until separate activation approval?
+
+FREEZE =
+  A PACKAGE IS NOT IMPLEMENTATION-READY
+  IF THESE OWNERSHIP BOUNDARIES ARE AMBIGUOUS.
+```
+
+### ۱۸۷.۱۵ W1-P01 application of the law
+
+```text
+W1-P01 DATABASE FOUNDATION OWNS =
+  knowledge gaps
+  weekly knowledge runs
+  run attempts
+  source results
+  gap results
+  governance decisions
+  version integrity
+  audit integrity
+  constraint integrity
+
+W1-P01 DOES NOT YET IMPLEMENT =
+  crawler
+  downloader
+  parser
+  extractor
+  conflict detector
+  retrieval service
+  response intelligence
+  scheduler runtime
+  knowledge publication workflow
+
+FREEZE =
+  THESE CAPABILITIES BELONG TO LATER BACKEND SERVICE / CRAWLER PACKAGES
+  AND MUST USE THE W1-P01 DATABASE FOUNDATION.
+
+  THEIR EXECUTION LOGIC MUST NOT BE MOVED INTO THE DATABASE.
+```
+
+### ۱۸۷.۱۶ Governance consequences
+
+```text
+ALL FUTURE CURSOR PROMPTS =
+  MUST STATE BACKEND / DATABASE / OBJECT STORAGE / QUEUE / LLM OWNERSHIP
+
+ALL FUTURE SCOPE REVIEWS =
+  MUST AUDIT THESE OWNERSHIP BOUNDARIES
+
+ALL FUTURE MIGRATIONS =
+  MUST CONTAIN ONLY DATABASE-SCHEMA OR DATA-MIGRATION RESPONSIBILITIES
+
+ALL FUTURE SERVICE GATES =
+  MUST NOT SILENTLY CHANGE DATABASE CONTRACTS
+
+ALL FUTURE CRAWLER GATES =
+  MUST NOT DIRECTLY PUBLISH UNAPPROVED KNOWLEDGE
+
+ALL FUTURE RESPONSE-INTELLIGENCE GATES =
+  MUST RETRIEVE APPROVED KNOWLEDGE AND USER CONTEXT BEFORE RESPONSE
+```
+
+### ۱۸۷.۱۷ Current project status record
+
+```text
+W1-P01 DESIGN = COMPLETE
+W1-P01 SCOPE REVIEW = PASS
+W1-P01 NAMED DATABASE CHECKS = 70
+W1-P01 UNNAMED DATABASE CHECKS = 0
+W1-P01 MODEL AUTHORING = NOT STARTED / NOT AUTHORIZED BY THIS GATE
+W1-P01 ENUM AUTHORING = NOT STARTED / NOT AUTHORIZED BY THIS GATE
+W1-P01 MIGRATION = NOT CREATED
+W1-P01 DATABASE APPLICATION = NOT PERFORMED
+FORMAL_I5_COMPLETION = 21.79487179%
+I5_PRODUCTION_READY = NO
+```
+
+### ۱۸۷.۱۸ Ownership boundary matrix
+
+```text
+LAYER | OWNS | MUST NOT OWN
+Backend | execution, orchestration, business logic, decision workflow, reasoning control, external integration, user response control | durable SOT, provenance ledger, immutable audit authority, large raw binary storage
+Database | durable memory, structured SOT, version history, provenance, integrity constraints, auditability | crawler/network execution, medical reasoning, LLM orchestration, response generation, clinical-safety decision logic
+Object Storage | PDF/HTML/XML/JSON/image/original/large binary raw artifacts | business decision workflow, clinical reasoning, approved-knowledge publication authority
+Queue / Worker | background jobs, scheduling, retry/rate-limit waits, parallel processing, long parsing, embeddings, batch validation, failure isolation, idempotent jobs | replacing DB integrity; replacing Backend governance decisions
+LLM | language understanding, reasoning assistance, summarization, schema-governed extraction, NL response generation | authoritative knowledge DB, provenance ledger, rights/clinical-safety authority, immutable audit log, source-version history
+ORM | app-side schema metadata, column defs, named-constraint parity, serialization boundaries | actual DB object creation authority
+Migration | actual DB create/alter/drop/backfill/function/trigger/downgrade/rollback | crawler, LLM, service business workflows
+Service | transactions, locks, state transitions, business invariants, cross-table workflows, external integration, governance orchestration | bypassing DB integrity; silent schema contract change
+```
+
+### ۱۸۷.۱۹ Operations not performed
+
+```text
+NO MODEL AUTHORING
+NO ENUM AUTHORING
+NO TEST AUTHORING
+NO MIGRATION CREATION
+NO MIGRATION RUN
+NO DATABASE CONNECTION
+NO TEST EXECUTION
+NO CI
+NO STAGE
+NO COMMIT
+NO PUSH
+NO SERVICE IMPLEMENTATION
+NO API IMPLEMENTATION
+NO CRAWLER IMPLEMENTATION
+NO DEPLOY
+NO ACTIVATION
+```
+
+### ۱۸۷.۲۰ Next gate
+
+```text
+NEXT IMPLEMENTATION GATE =
+  W1-P01 MODEL / ENUM / FOCUSED STATIC-CONTRACT TEST
+  AUTHORING IMPLEMENTATION — UNCOMMITTED
+
+SEPARATE JAVAD APPROVAL = REQUIRED
+THIS LAW-REGISTRATION GATE AUTHORIZES IMPLEMENTATION = NO
+
+NEXT AUDIT GATE =
+  STRICT READ-ONLY LAW REGISTRATION AUDIT
+
+STATUS = LAW_REGISTERED_UNCOMMITTED
+VERDICT = PASS — SEDI_BACKEND_DATABASE_ARCHITECTURE_LAW_REGISTERED_UNCOMMITTED
+MARKER = READY_FOR_STRICT_READ_ONLY_LAW_REGISTRATION_AUDIT
+```
+
+### ۱۸۷.۲۱ Baseline of this registration
+
+```text
+WORKTREE = D:/Rimiya Design Studio/Sedi/software/Demo-wt-section15-backend
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+DIRTY_PATHS = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+STAGING = EMPTY
+UNTRACKED = ZERO
+PRE_APPEND_MASTER_LOG_SHA-256 = e8dec12fd4a7aad30f700006a1f4b476e1a967746cab4fd47e689a6c156bad6f
+PRE_APPEND_MASTER_LOG_SIZE = 2305788
+PREFIX_THROUGH_§186_SIZE = 2305788
+PREFIX_THROUGH_§186_SHA-256 = e8dec12fd4a7aad30f700006a1f4b476e1a967746cab4fd47e689a6c156bad6f
+```
+
+---
+
+*پایان بند ۱۸۷ — قانون دائمی معماری مکمل Backend و Database صدی — PASS — بدون-کامیت*
+
+## ۱۸۸) SEDI V1 COMPLETE CONSOLIDATION PASS — AUTHORITATIVE ROOT LAW, FOUR-LEFTOVER CLOSURE, AND W1-P01 BASELINE RECHECK
+
+### ۱۸۸.۱ Approval
+
+```text
+GATE_ID = SEDI-V1-POST-CONSOLIDATION-DOCUMENTATION-SYNC-AND-W1-P01-READONLY-BASELINE-RECHECK-RERUN-01
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+APPROVED_ITEMS =
+  - complete Sedi V1 consolidation
+  - exact four-leftover relocation
+  - authoritative-root documentation sync
+  - read-only W1-P01 baseline recheck
+MODE = DOCUMENTATION-ONLY / APPEND-ONLY / UNCOMMITTED
+AUTHORIZED_PATH = docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+THIS_GATE_AUTHORIZES_W1_P01_AUTHORING = NO
+```
+
+### ۱۸۸.۲ Final consolidation result
+
+```text
+FINAL_RESULT=SEDI_V1_COMPLETE_CONSOLIDATION_PASS
+OLD_SEDI_ITEMS_OUTSIDE_ROOT=0
+REGISTERED_WORKTREES=6
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM_SHA=f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND=0/0
+STAGING=EMPTY
+DATA_LOSS_DETECTED=NO
+OVERWRITE_DETECTED=NO
+DELETE_PERFORMED=NO
+```
+
+### ۱۸۸.۳ Authoritative root law
+
+```text
+پوشه زیر مرجع رسمی، واحد و authoritative نسخه ۱ صدی است:
+
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+
+تمام repositoryها، Git metadata، worktreeها، workspace فعال، archiveها،
+backupها، referenceها، templateها، image/design assetها، continuity
+documentها، manifestها، project-owned scriptها، credentials، keys،
+service-accountها و environment artifactهای متعلق به Sedi V1 باید فقط در
+زیر همین مسیر قرار گیرند.
+
+هیچ فایل، پوشه یا مسیر project-owned متعلق به Sedi V1 نباید خارج از این
+ریشه ایجاد، نگهداری، کپی یا پراکنده شود.
+
+هر مسیر جدید مربوط به Sedi V1 باید descendant همین authoritative root باشد.
+
+بازگشت به ساختار پراکنده قبلی ممنوع است.
+
+موارد غیرمرتبط با Sedi V1 مانند Corel از این قانون مستثنا هستند.
+```
+
+### ۱۸۸.۴ Canonical paths
+
+```text
+SEDI_V1_AUTHORITATIVE_ROOT =
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+
+GIT_ROOT =
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\git-root
+
+ACTIVE_CURSOR_WORKSPACE =
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+
+ARCHIVE_ROOT =
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\archive
+
+REFERENCES_ROOT =
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\references
+
+PRIVATE_ROOT =
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\private
+```
+
+### ۱۸۸.۵ Cursor path law
+
+```text
+Cursor must open the active Sedi V1 project only from:
+
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+
+Any future Cursor prompt, PowerShell command, Git command, script or handoff
+that references an old Demo or Demo-wt path must be corrected before execution.
+```
+
+### ۱۸۸.۶ Retired paths
+
+```text
+The following paths are retired and absent:
+
+D:\Rimiya Design Studio\Sedi\software\Demo
+D:\Rimiya Design Studio\Sedi\software\Demo-wt-section15-backend
+D:\Rimiya Design Studio\Sedi\software\Demo-wt-frontend-gate3-finalization
+D:\Rimiya Design Studio\Sedi\software\Demo-wt-section10-migration-safety
+D:\Rimiya Design Studio\Sedi\software\Demo-section14a1-clean
+D:\Rimiya Design Studio\Sedi\software\Demo-section14a2-clean
+```
+
+### ۱۸۸.۷ Four-leftover closure
+
+```text
+The first documentation-sync preflight correctly stopped because four
+Sedi V1 files remained at the software root.
+
+No master-log write occurred during that failed preflight.
+
+The four exact files were subsequently moved without rename, overwrite or
+deletion:
+
+.pub-ssh.txt
+→ private\keys\.pub-ssh.txt
+
+key-open IA.txt
+→ private\credentials\key-open IA.txt
+
+Sedi_Chat_Update_Template.md
+→ references\templates\Sedi_Chat_Update_Template.md
+
+Sedi_Phase2_Development.md.md
+→ references\historical\Sedi_Phase2_Development.md.md
+
+Closure evidence:
+
+FOUR_LEFTOVER_RELOCATION_RESULT=PASS
+OLD_SEDI_ITEMS_OUTSIDE_ROOT=0
+SOFTWARE_ROOT_ITEMS=Corel, Sedi-v-1
+```
+
+### ۱۸۸.۸ Private / secrets law
+
+```text
+All Sedi V1 secrets, credentials, keys, service-account files and environment
+artifacts must remain under:
+
+D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\private
+
+They must remain outside all Git worktrees.
+
+They must never be staged, committed, pushed, printed in logs or copied into
+repository documentation.
+
+Only filenames, paths and non-secret identity metadata may be recorded.
+```
+
+### ۱۸۸.۹ Forbidden-action attestation
+
+```text
+During consolidation and this documentation Gate:
+
+SOURCE_CODE_EDIT=NO
+MODEL_ENUM_AUTHORING=NO
+TEST_EXECUTION=NO
+CI_DISPATCH=NO
+MIGRATION_CREATION_OR_RUN=NO
+DATABASE_ACCESS_OR_MUTATION=NO
+STAGE=NO
+COMMIT=NO
+PUSH=NO
+DEPLOY=NO
+CRAWLER_OR_SERVICE_ACTIVATION=NO
+```
+
+### ۱۸۸.۱۰ W1-P01 baseline
+
+```text
+W1-P01 remains paused.
+
+Expected dirty paths remain exactly:
+
+ M backend/app/models.py
+ M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+?? backend/app/services/i5/__init__.py
+?? backend/app/services/i5/enums.py
+
+The focused test remains absent:
+
+backend/tests/test_section15_i5_w1_p01_model_enum_contract.py
+
+No model/enum authoring, migration, test authoring, database work, stage,
+commit, push or deploy was authorized by this Gate.
+```
+
+### ۱۸۸.۱۱ Next eligible gate
+
+```text
+NEXT ELIGIBLE GATE =
+  W1-P01 AUTHORING BASELINE REVIEW / CONTINUATION DECISION
+
+This next Gate requires a new explicit approval from Javad after ChatGPT audits
+the current Gate report.
+
+VERDICT = PASS — SEDI_V1_POST_CONSOLIDATION_DOCUMENTATION_SYNC_AND_W1P01_BASELINE_RECHECK_RERUN_PASS
+```
+
+---
+
+*پایان بند ۱۸۸ — SEDI V1 COMPLETE CONSOLIDATION PASS — AUTHORITATIVE ROOT LAW, FOUR-LEFTOVER CLOSURE, AND W1-P01 BASELINE RECHECK — PASS — بدون-کامیت*
+
+## ۱۸۹) W1-P01 AUTHORING BASELINE REVIEW AND DUAL-CONTINUITY FINAL SYNC
+
+### ۱۸۹.۱ Approval and Gate identity
+
+```text
+GATE_ID = W1-P01 AUTHORING BASELINE REVIEW AND DUAL-CONTINUITY FINAL SYNC-01
+DATE = 2026-08-03
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+MODE = DOCUMENTATION + STATIC AUDIT + REFERENCE CONTINUITY / UNCOMMITTED
+AUTHORIZED_ACTIONS =
+  master-log append-only continuity sync
+  static read-only W1-P01 model/enum audit
+  Design Freeze reconstruction
+  create v479 under references/authoritative
+  move v478 to references/historical
+FORBIDDEN = source edit / test / migration / database / stage / commit / push / deploy
+WORKSPACE = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+DIRTY_PATHS =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+```
+
+### ۱۸۹.۲ Structural Stability result (accepted)
+
+```text
+SEDI_V1_STRUCTURAL_STABILITY = PASS
+AUTHORITATIVE_ROOT_STRUCTURE = PASS
+SOFTWARE_ROOT_PROJECT_SCATTER = ZERO
+GIT_COMMON_DIR = HEALTHY
+ACTIVE_WORKSPACE_REGISTRATION = HEALTHY
+REGISTERED_WORKTREES = 6
+BROKEN_WORKTREE_REGISTRATIONS = 0
+RETIRED_PATH_REGISTRATIONS = 0
+EXPECTED_GIT_BASELINE = MATCH
+EXPECTED_DIRTY_SCOPE = EXACT
+STAGING = EMPTY
+PRIVATE_ARTIFACT_EXPOSURE = ZERO
+STRUCTURAL_INSTABILITY = NOT_DETECTED
+```
+
+### ۱۸۹.۳ Reference Sync result (accepted)
+
+```text
+REFERENCE_SYNC = PASS
+CURRENT_AUTHORITATIVE_VERSION_AT_SYNC = v478
+CURRENT_AUTHORITATIVE_COUNT_AT_SYNC = 1
+HISTORICAL_TRANSFER_COUNT = 3
+EXTERNAL_EXACT_COPY_COUNT = 0
+AUTHORITY_AMBIGUITY = ZERO
+REPOSITORY_MUTATED_BY_REFERENCE_SYNC = NO
+MASTER_LOG_MUTATED_BY_REFERENCE_SYNC = NO
+SOURCE_FILES_MUTATED_BY_REFERENCE_SYNC = NO
+GIT_TOPOLOGY_MUTATED_BY_REFERENCE_SYNC = NO
+```
+
+### ۱۸۹.۴ EOL audit final acceptance
+
+```text
+MASTER_LOG_EOL_BASELINE = CRLF_ONLY
+BARE_LF_COUNT = 0
+BARE_CR_COUNT = 0
+MASTER_LOG_CORRUPTION_DETECTED = NO
+MASTER_LOG_NORMALIZATION_REQUIRED = NO
+RERUN01_FINAL_ACCEPTANCE = PASS
+PRE_APPEND_SIZE = 2326083
+PRE_APPEND_SHA256 = a3c8efd9480f83e8205cdfdf6c8be48613b93d7c0febbc7dabe78ce75d9c880f
+PRE_APPEND_CRLF_COUNT = 51316
+TIP_SECTION_BEFORE_APPEND = §188
+APPENDED_SECTION = §189
+```
+
+### ۱۸۹.۵ Permanent dual-continuity law
+
+```text
+ALL_MATERIAL_WORK_MUST_BE_RECORDED_IN_MASTER_LOG = YES
+ALL_MATERIAL_WORK_MUST_BE_RECORDED_IN_AUTHORITATIVE_HANDOFF = YES
+HANDOFFS_MUST_BE_CREATED_DIRECTLY_UNDER_REFERENCES_AUTHORITATIVE = YES
+CURRENT_HANDOFF_PREDECESSOR_MUST_MOVE_TO_REFERENCES_HISTORICAL = YES
+CURRENT_AUTHORITATIVE_HANDOFF_COUNT_MUST_EQUAL_ONE = YES
+CURRENT_HANDOFFS_IN_DOWNLOADS_OR_OUTSIDE_SEDI_V1 = PROHIBITED
+SEDI_V1_AUTHORITATIVE_ROOT = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+```
+
+### ۱۸۹.۶ Reference timestamp evidence (v475–v478)
+
+```text
+v478 AUTHORITATIVE
+  PATH = references\authoritative\Sedi_Master_Handoff_Section33_ReferenceSync_ExecutionAuthority_v478_FA.md
+  SIZE = 3236643
+  SHA256 = 6544d90626b3a27fd715ab477a8b981923ddc8bb49273acf8c81f43610b106e4
+  CTIME = 2026-08-03T21:50:01.878672
+  MTIME = 2026-08-03T21:45:30.298736
+  ATTRS = 32
+v477 HISTORICAL
+  SIZE = 3232752 SHA256 = e1f67c46cfe189942414dc4343c37e4ca0396e83b2895e0890ff4e756dfd8b43
+v476 HISTORICAL
+  SIZE = 3226836 SHA256 = 42ec99cd45e13336b34ad6c03328e82f423bf1c708553b9c9b4172c932877c87
+v475 HISTORICAL
+  SIZE = 3219898 SHA256 = 0cef5ad153b964293526fb6db40df837907bbba385d8f6222f6c8d07f83dd6a5
+EXTERNAL_EXACT_COPY_COUNT = 0
+```
+
+### ۱۸۹.۷ Final W1-P01 Design Freeze contract (reconstructed)
+
+```text
+AUTHORITY_LEDGER_PRIMARY =
+  §183 FINAL DESIGN FIX + F-FINAL re-audit PASS
+  §184 SCOPE REVIEW (ledgers) as corrected by §185 FIX1 and §186 FIX2
+  §186 CHECK-CONSTRAINT RECONCILIATION supersedes historical named-check total 49 → 70
+TABLE_SET = EXTENDED 1 + REUSED 1 + NEW 6 = TOTAL 8
+  EXTENDED = governed_source_profiles (13 additive columns)
+  REUSED = governed_source_profile_versions (unchanged)
+  NEW = weekly_knowledge_runs (28)
+        weekly_knowledge_run_attempts (33)
+        knowledge_gaps (39)
+        weekly_run_source_results (21)
+        weekly_run_gap_results (8)
+        i5_governance_decisions (20)
+ENUMS = 19 (SCREAMING_SNAKE str Enum; .value = member name)
+NAMED_DB_CHECKS = 70
+RELATIONSHIPS = FK metadata only; NO new relationship()
+decision_request_key = REQUIRED on i5_governance_decisions
+canonical_hash = 64 lowercase SHA-256 v1; NOT unique alone
+decision uniqueness = (entity_type, entity_id, decision_type, decision_request_key)
+weekly_run_source_results unique = (attempt_id, source_profile_id)
+weekly_run_gap_results immutable per (attempt_id, gap_id)
+supersession branching = PROHIBITED
+knowledge-gap reopen = same governed gap identity
+generic result decision_id = PROHIBITED unless freeze explicitly restores
+```
+
+### ۱۸۹.۸ Static audit of existing uncommitted authoring
+
+```text
+enums.py
+  SIZE = 6778 SHA256 = 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+  ENUM_CLASS_COUNT = 19 MATCH
+  stdlib-only / no sqlalchemy.Enum / no governance.contracts import = MATCH
+  EOL = CRLF_ONLY
+__init__.py
+  SIZE = 159 SHA256 = 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+  CONTENT = package marker only; no re-exports = NOTE (allowlisted add; no unauthorized exports)
+models.py
+  WT SIZE = 68823 SHA256 = a12a640131ee778f74a078e534786a2706c27aa167c1055832270cb00074edf3
+  HEAD BLOB = d604b8c60169bc810c878e6cc8fe76ce02034f6a
+  WT GIT HASH = 9582a50398b5bbf0786f9cfd8f84815dcacc452c
+  UNSTAGED DIFF = +37 lines only (i5.enums imports + _vocab_sql helper)
+  GSP ADDITIVE 13 COLUMNS = MISSING
+  GSP ADDITIVE CHECKS/INDEXES = MISSING
+  GSPV REUSE UNCHANGED = MATCH (class body not altered by W1 beyond top imports)
+  NEW MODELS (6) = MISSING
+    KnowledgeGap / WeeklyKnowledgeRun / WeeklyKnowledgeRunAttempt /
+    WeeklyRunSourceResult / WeeklyRunGapResult / I5GovernanceDecision = ABSENT
+CROSS_FILE =
+  models imports all 19 enum symbols statically declared in enums.py = MATCH names
+  no model class yet consumes CheckConstraint/_vocab_sql in table args = INCOMPLETE
+  focused test absent = EXPECTED (not authorized this Gate)
+```
+
+### ۱۸۹.۹ Findings
+
+```text
+F-W1P01-01 MAJOR models.py — GSP 13 additive columns/checks/indexes missing
+F-W1P01-02 MAJOR models.py — six NEW W1-P01 model classes absent
+F-W1P01-03 NOTE __init__.py — package marker without public re-exports (non-blocking)
+F-W1P01-04 NOTE enums.py present and identity-protected; model body incomplete
+BLOCKER_COUNT = 0
+MAJOR_COUNT = 2
+MINOR_COUNT = 0
+NOTE_COUNT = 2
+```
+
+### ۱۸۹.۱۰ Primary verdict
+
+```text
+PRIMARY_VERDICT = LIMITED_IN_SCOPE_DEVIATIONS_FOUND
+W1_P01_STATIC_AUDIT = NEEDS_FIX
+READY_FOR = W1-P01 MINIMAL FIX SCOPE APPROVAL
+SOURCE_CORRECTION_THIS_GATE = NO
+TESTS_RUN = NO
+MIGRATION_OR_DATABASE = NO
+STAGE_COMMIT_PUSH = NO
+```
+
+### ۱۸۹.۱۱ Continuity handoff actions of this Gate
+
+```text
+CREATE_v479_UNDER_REFERENCES_AUTHORITATIVE = AUTHORIZED / EXECUTED AFTER THIS APPEND
+MOVE_v478_TO_REFERENCES_HISTORICAL = AUTHORIZED / EXECUTED AFTER v479 VERIFY
+CURRENT_AUTHORITATIVE_AFTER_GATE = v479
+W1_P01_AUTHORING = PAUSED_PENDING_MINIMAL_FIX_SCOPE_APPROVAL
+NEXT_GATE = W1-P01 MINIMAL FIX SCOPE APPROVAL
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۱۸۹ — W1-P01 AUTHORING BASELINE REVIEW AND DUAL-CONTINUITY FINAL SYNC — LIMITED_IN_SCOPE_DEVIATIONS_FOUND — بدون-کامیت*
+
+## ۱۹۰) W1-P01 MODEL AUTHORING COMPLETION
+
+### ۱۹۰.۱ Approval and baseline
+
+```text
+GATE_ID = W1-P01 MODEL AUTHORING COMPLETION-01
+DATE = 2026-08-03
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+AUTHORIZED_SOURCE_EDIT = backend/app/models.py ONLY
+PROTECTED_UNCHANGED = backend/app/services/i5/enums.py ; backend/app/services/i5/__init__.py
+WORKSPACE = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+PRE_GATE_DIRTY =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+v479_PRE = 3239743 / ac599bc1f0a6e876de0bad0e53987b47a12c2b221030d4e643d38e80646c93ad
+```
+
+### ۱۹۰.۲ Design Freeze applied
+
+```text
+AUTHORITY = §§176/183/184 as corrected by §185/§186 ; continuity §§188/189
+EXTENDED = 1 governed_source_profiles (+13)
+REUSED = 1 governed_source_profile_versions UNCHANGED
+NEW = 6
+TOTAL = 8
+COLUMN_COUNTS = GSP_ADD 13 ; WKR 28 ; WKRA 33 ; KG 39 ; WRSR 21 ; WRGR 8 ; I5GD 20
+ENUMS = 19 PROTECTED
+NAMED_CHECKS = 70
+```
+
+### ۱۹۰.۳ models.py identities
+
+```text
+PRE_SIZE = 68823
+PRE_SHA256 = a12a640131ee778f74a078e534786a2706c27aa167c1055832270cb00074edf3
+POST_SIZE = 96956
+POST_SHA256 = 38493b1dd45ce730eb39cade1433e02b204087e74fd80a99ea4e7afe54921581
+POST_GIT_OBJECT = 7680b068636996f38e100d3dbeb5f2c9e50ab26f
+DIFF_STAT = +395 lines
+EOL = CRLF_ONLY
+GSP_ADDITIVE_COLUMNS = 13 / 13
+NEW_MODELS = 6 / 6
+COLUMN_COUNT_CONTRACT = PASS
+NAMED_CHECK_CONTRACT = 70 / 70
+ENUM_FILES_MUTATED = NO
+```
+
+### ۱۹۰.۴ Authored surface
+
+```text
+GovernedSourceProfile += 13 columns + 4 CHECKs + 5 indexes
+WeeklyKnowledgeRun = 28 cols + deferred composite FKs + checks/indexes
+WeeklyKnowledgeRunAttempt = 33 cols + partial unique + retry composite FK
+KnowledgeGap = 39 cols + RESTRICT FKs + 12 checks
+WeeklyRunSourceResult = 21 cols + unique(attempt,profile) + NO updated_at
+WeeklyRunGapResult = 8 cols + unique(attempt,gap) + immutable summary
+I5GovernanceDecision = 20 cols + decision_request_key uniqueness + matrices + NO updated_at
+relationship() = NONE added
+generic decision_id on results = NONE
+reopened_from_gap_id = NONE
+```
+
+### ۱۹۰.۵ Static audit and self-healing
+
+```text
+STATIC_PARSE_COLUMN_COUNTS = MATCH
+STATIC_NAMED_CHECK_SET = EXACT_70
+git diff --check = CLEAN
+SELF_HEALING_ITERATIONS_AFTER_PRIMARY_AUTHORING = 0 (contract closed on first full static verify)
+FINDINGS_OPEN = ZERO
+VERDICT = PASS — W1_P01_MODEL_AUTHORING_COMPLETION
+```
+
+### ۱۹۰.۶ Forbidden operations attestation
+
+```text
+TESTS_RUN = NO
+TEST_FILES_CREATED = NO
+MIGRATION_CREATED_OR_RUN = NO
+DATABASE_ACCESSED = NO
+STAGE_COMMIT_PUSH = NO
+CI_DEPLOY_ACTIVATION = NO
+SERVICE_API_CRAWLER_IMPL = NO
+```
+
+### ۱۹۰.۷ Continuity and next Gate
+
+```text
+CREATE_v480_UNDER_REFERENCES_AUTHORITATIVE = AUTHORIZED / AFTER THIS APPEND
+MOVE_v479_TO_HISTORICAL = AUTHORIZED / AFTER v480 VERIFY
+READY_FOR = W1-P01 MODEL AUTHORING STRICT READ-ONLY RE-AUDIT-01
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۱۹۰ — W1-P01 MODEL AUTHORING COMPLETION — PASS — بدون-کامیت*
+
+
+## ۱۹۱) W1-P01 MODEL AUTHORING MICRO-FIX AND DUAL-CONTINUITY CLOSURE
+
+### ۱۹۱.۱ Gate authorization and automatic-execution law
+
+```text
+GATE = W1-P01 MODEL AUTHORING MICRO-FIX AND DUAL-CONTINUITY CLOSURE-01
+DATE_TIME = 2026-08-03T22:59:05-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+STOP_ONLY_FOR =
+  baseline mismatch
+  authoritative-file identity mismatch
+  required source change beyond exact blank-line deletion
+  required schema or enum change
+  operation outside allowlist
+  secret-exposure risk
+  test/migration/database/CI/deploy requirement
+  irreconcilable authority conflict
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+DIRTY_PATHS =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+WORKTREES = 6 RESOLVABLE UNDER Sedi-v-1
+```
+
+### ۱۹۱.۲ Strict re-audit supersession
+
+```text
+PRIOR_GATE = W1-P01 MODEL AUTHORING STRICT READ-ONLY RE-AUDIT-01
+PRIOR_VERDICT = NEEDS_FIX
+F-REAUDIT-01 = MAJOR — one empty blank line between pre-existing
+  GovernedSourceProfile.row_version and created_at (~L1233)
+  SCHEMA IMPACT = NONE ; RUNTIME IMPACT = NONE
+F-REAUDIT-02 = MINOR — §190 / v480 overstated FINDINGS_OPEN=ZERO / clean PASS
+THIS_SECTION_SUPERSEDES =
+  §190 FINDINGS_OPEN=ZERO / completion-as-strict-clean-PASS overclaim
+  for source out-of-scope whitespace only
+§190 = PRESERVED HISTORICAL RECORD (not rewritten)
+```
+
+### ۱۹۱.۳ Exact one-line source correction
+
+```text
+FILE = backend/app/models.py
+ACTION = DELETE exactly one empty blank line (CRLF 0d0a) between
+  pre-existing row_version and created_at inside GovernedSourceProfile
+REMOVED_LINES = 1
+ADDED_LINES = 0
+OTHER_SOURCE_LINES_CHANGED = 0
+REMOVED_CONTENT = EMPTY LINE ONLY
+PRE_SIZE = 96956
+PRE_SHA256 = 38493b1dd45ce730eb39cade1433e02b204087e74fd80a99ea4e7afe54921581
+PRE_WT_GIT_OBJECT = 7680b068636996f38e100d3dbeb5f2c9e50ab26f
+POST_SIZE = 96954
+POST_SHA256 = 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+POST_WT_GIT_OBJECT = be77cd0cb7295906f8f458fb2d317dbc7d2d0018
+DELTA_BYTES = -2
+HEAD_DIFF_NUMSTAT = 394 insertions / 0 deletions (was 395 / 0)
+EOL = CRLF_ONLY
+BYTE_PROOF = inserting the blank line back reconstructs exact pre SHA256
+UNRELATED_EXISTING_MODEL_CHANGES = 0
+UNRELATED_WHITESPACE_CHURN = 0
+OUT_OF_SCOPE_SOURCE_CHANGE = NO
+```
+
+### ۱۹۱.۴ Schema-contract non-regression
+
+```text
+GSP_ADDITIVE_COLUMNS = 13 / 13
+NEW_MODELS = 6 / 6
+WeeklyKnowledgeRun = 28
+WeeklyKnowledgeRunAttempt = 33
+KnowledgeGap = 39
+WeeklyRunSourceResult = 21
+WeeklyRunGapResult = 8
+I5GovernanceDecision = 20
+ENUMS = 19 / 19 PROTECTED (unchanged identities)
+NAMED_CHECKS = 70 / 70
+SIMPLE_FK = 9 / 9 (RESTRICT)
+COMPOSITE_FK = 4 / 4
+ORDINARY_UQ = 8 / 8
+PARTIAL_UQ = 3 / 3
+QUERY_INDEXES = 29 / 29
+RELATIONSHIPS = 0
+decision unique = (entity_type, entity_id, decision_request_key)
+canonical_hash = 64 lowercase hex; alone NON-UNIQUE
+FORBIDDEN decision_id on result tables = ABSENT
+FORBIDDEN reopened_from_gap_id = ABSENT
+PROTECTED enums.py SHA256 = 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+PROTECTED i5/__init__.py SHA256 = 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+SQLALCHEMY_RUNTIME_MAPPER_VALIDATION = NOT_RUN
+SCHEMA_CONTRACT = PASS
+STRICT_ZERO_OUT_OF_SCOPE_CHANGE = PASS
+SOURCE_MATCHES_FINAL_DESIGN_FREEZE = YES
+```
+
+### ۱۹۱.۵ Finding closure
+
+```text
+F-REAUDIT-01 = CLOSED
+F-REAUDIT-02 = CLOSED_BY_SUPERSEDING_DOCUMENTATION (§191 + v481)
+W1_P01_MODEL_AUTHORING_MICRO_FIX = PASS
+```
+
+### ۱۹۱.۶ Forbidden operations attestation
+
+```text
+TESTS_RUN = NO
+TEST_FILES_CREATED = NO
+PYTHON_APP_IMPORT_EXECUTED = NO
+MIGRATION_CREATED_OR_RUN = NO
+DATABASE_ACCESSED = NO
+STAGE_COMMIT_PUSH = NO
+CI_DEPLOY_ACTIVATION = NO
+ENUM_OR_SCHEMA_REDESIGN = NO
+FORMATTER_RUN = NO
+```
+
+### ۱۹۱.۷ Continuity and next Gate
+
+```text
+CREATE_v481_UNDER_REFERENCES_AUTHORITATIVE = AUTHORIZED / AFTER THIS APPEND
+MOVE_v480_TO_HISTORICAL = AUTHORIZED / AFTER v481 VERIFY
+READY_FOR = W1-P01 MODEL AUTHORING FINAL STRICT READ-ONLY RE-AUDIT-02
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۱۹۱ — W1-P01 MODEL AUTHORING MICRO-FIX AND DUAL-CONTINUITY CLOSURE — PASS — بدون-کامیت*
+
+
+## ۱۹۲) W1-P01 FINAL STRICT RE-AUDIT-02 PASS AND STATIC MODEL-AUTHORING CLOSURE
+
+### ۱۹۲.۱ Gate identity and authorization
+
+```text
+GATE_AUDITED = W1-P01 MODEL AUTHORING FINAL STRICT READ-ONLY RE-AUDIT-02
+RESULT = PASS
+DOCUMENTATION_SYNC_GATE = W1-P01 FINAL RE-AUDIT RESULT DOCUMENTATION SYNC-01
+DATE_TIME = 2026-08-03T23:18:08-07:00
+JAVAD_APPROVAL = CONFIRMED / EXPLICITLY RECEIVED
+```
+
+### ۱۹۲.۲ Automatic-execution law
+
+```text
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+STOP_ONLY_FOR =
+  baseline mismatch
+  authoritative-file identity mismatch
+  unexpected master-log tip
+  destination conflict
+  required source-code mutation
+  scope expansion
+  secret-exposure risk
+  irreconcilable authority conflict
+  required test/migration/database/Git/network/deploy operation
+```
+
+### ۱۹۲.۳ Final baseline
+
+```text
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+DIRTY_PATHS =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+WORKTREES = 6 RESOLVABLE UNDER Sedi-v-1
+SEDI_V1_ROOT = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+ACTIVE_WORKSPACE = ...\Sedi-v-1\workspace
+GIT_COMMON_DIR = ...\Sedi-v-1\git-root\.git
+```
+
+### ۱۹۲.۴ Final source identities
+
+```text
+backend/app/models.py
+  SIZE = 96954
+  SHA256 = 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+  WORKING-TREE GIT OBJECT = be77cd0cb7295906f8f458fb2d317dbc7d2d0018
+  EOL = CRLF_ONLY
+
+backend/app/services/i5/enums.py
+  SIZE = 6778
+  SHA256 = 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+
+backend/app/services/i5/__init__.py
+  SIZE = 159
+  SHA256 = 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+```
+
+### ۱۹۲.۵ Final contract closure
+
+```text
+W1_P01_MODEL_AUTHORING_FINAL_STRICT_REAUDIT_02 = PASS
+SOURCE_MATCHES_FINAL_DESIGN_FREEZE = YES
+STRICT_ZERO_OUT_OF_SCOPE_CHANGE = PASS
+DOCUMENTATION_MATCHES_SOURCE = YES
+FILES_MUTATED_BY_REAUDIT = NO
+
+GSP_ADDITIVE_COLUMNS = 13 / 13
+NEW_MODELS = 6 / 6
+KnowledgeGap = 39
+WeeklyKnowledgeRun = 28
+WeeklyKnowledgeRunAttempt = 33
+WeeklyRunSourceResult = 21
+WeeklyRunGapResult = 8
+I5GovernanceDecision = 20
+ENUMS = 19 / 19
+NAMED_CHECKS = 70 / 70
+SIMPLE_FKS = 9 / 9
+COMPOSITE_FKS = 4 / 4
+ORDINARY_UNIQUES = 8 / 8
+PARTIAL_UNIQUE_INDEXES = 3 / 3
+QUERY_INDEXES = 29 / 29
+RELATIONSHIPS = 0
+FORBIDDEN_RESULT_DECISION_ID = ABSENT
+FORBIDDEN_REOPENED_FROM_GAP_ID = ABSENT
+UNRELATED_SOURCE_CHANGE = NO
+```
+
+### ۱۹۲.۶ Findings closure
+
+```text
+F-REAUDIT-01 = CLOSED
+F-REAUDIT-02 = CLOSED
+UNRELATED_SOURCE_CHANGE = NO
+STRICT_ZERO_OUT_OF_SCOPE_CHANGE = PASS
+```
+
+### ۱۹۲.۷ Validation boundary
+
+```text
+STATIC MODEL AUTHORING CLOSURE = YES
+W1_P01_MODEL_AUTHORING_STATIC_CLOSURE = YES
+SQLALCHEMY RUNTIME MAPPER VALIDATION = NOT RUN
+TESTS = NOT RUN
+TEST_FILES_CREATED = NO
+MIGRATION = NOT CREATED OR RUN
+DATABASE = NOT ACCESSED
+STAGE / COMMIT / PUSH = NOT PERFORMED
+CI / DEPLOY / ACTIVATION = NOT PERFORMED
+PYTHON_APP_IMPORT_EXECUTED = NO
+```
+
+### ۱۹۲.۸ Continuity actions of this documentation Gate
+
+```text
+APPEND_§192 = AUTHORIZED / THIS SECTION
+CREATE_v482_UNDER_REFERENCES_AUTHORITATIVE = AUTHORIZED / AFTER THIS APPEND
+MOVE_v481_TO_HISTORICAL = AUTHORIZED / AFTER v482 VERIFY
+PRE_LOG_SIZE = 2341896
+PRE_LOG_SHA256 = d28c085f9d270cbb73fe7014b199f0c9c8e1c4e65fd6caf7b78d46731c46334a
+v481_PRE_SIZE = 3244504
+v481_PRE_SHA256 = 032b6ae87656791fd1851653a9d7cdbade0097db055c0dec960f4992986a0872
+```
+
+### ۱۹۲.۹ Exact next planning boundary
+
+```text
+NEXT_GATE = W1-P01 TEST AUTHORING SCOPE REVIEW
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+TEST_VALIDATION = PENDING
+MIGRATION_VALIDATION = PENDING
+DATABASE_VALIDATION = PENDING
+COMMIT_PUSH = NOT AUTHORIZED
+```
+
+---
+
+*پایان بند ۱۹۲ — W1-P01 FINAL STRICT RE-AUDIT-02 PASS AND STATIC MODEL-AUTHORING CLOSURE — بدون-کامیت*
+
+
+## ۱۹۳) W1-P01 TEST AUTHORING SCOPE REVIEW — SCOPE FREEZE
+
+### ۱۹۳.۱ Gate authorization and automatic-execution law
+
+```text
+GATE = W1-P01 TEST AUTHORING SCOPE REVIEW-01
+DATE_TIME = 2026-08-03T23:32:39-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+STOP_ONLY_FOR =
+  baseline mismatch
+  authoritative-reference identity mismatch
+  unexpected master-log tip
+  irreconcilable Design Freeze conflict
+  required source or test-file mutation
+  scope expansion
+  required test/DB/migration/CI execution
+  secret-exposure risk
+  destination conflict
+  required action outside allowlist
+```
+
+### ۱۹۳.۲ Baseline and identities
+
+```text
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+DIRTY_PATHS =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+WORKTREES = 6 UNDER Sedi-v-1
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / WT be77cd0cb7295906f8f458fb2d317dbc7d2d0018
+enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+i5/__init__.py = 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+PRE_LOG = 2346216 / ba998cdf8e17df7d71e352a6ec05c4b992ce36c3e07f47f68a67899123fb3f58 TIP=§192
+v482 = 3247690 / a4a8c36312953de67b4625ca4cfeffd5da0e1ebad090293a751b0726de0bab9f
+W1_P01_MODEL_AUTHORING_STATIC_CLOSURE = YES (authority §§183–192 / v482)
+```
+
+### ۱۹۳.۳ Final W1-P01 contract (test basis)
+
+```text
+EXTENDED=1 REUSED=1 NEW=6 TOTAL=8
+GSP_ADDITIVE=13
+KG=39 WKR=28 WKRA=33 WRSR=21 WRGR=8 I5GD=20
+ENUMS=19 NAMED_CHECKS=70 SIMPLE_FK=9 COMPOSITE_FK=4
+ORDINARY_UQ=8 PARTIAL_UQ=3 QUERY_IX=29 RELATIONSHIPS=0
+canonical_hash=64 lowercase hex NON-UNIQUE alone
+decision UQ=(entity_type,entity_id,decision_request_key) ; decision_type NOT in UQ
+same-entity/family supersession ; branching prohibited
+same-gap reopen ; forbidden decision_id on results ; forbidden reopened_from_gap_id
+```
+
+### ۱۹۳.۴ Existing test-infrastructure inventory (read-only)
+
+```text
+pytest.ini = PROVEN (testpaths=backend/tests ; python_files=test_*.py)
+backend/tests/conftest.py = PROVEN
+  session engine via get_test_database_url()
+  Base.metadata.create_all / drop_all session autouse
+  per-test connection+transaction rollback fixture db
+  TestClient fixture ; imports backend.app.models for metadata registration
+backend/tests/test_db_config.py = PROVEN
+  TEST_DATABASE_URL env precedence
+  NEVER uses DATABASE_URL for tests
+  TCP fallback to dedicated sedi_test DB (names only; secrets not printed)
+Relevant prior ORM DB tests = PROVEN reusable patterns
+  backend/tests/test_section15_i5b2_p1_source_profile.py
+  backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py
+  IntegrityError + postgresql dialect guards + nested savepoints
+CI = PROVEN ephemeral Postgres
+  .github/workflows/ci-backend-tests.yml (postgres:15 service ; alembic upgrade head ; Section15 pytest list)
+  .github/workflows/gate5-db-tests.yml (pattern reference; Gate5-scoped)
+Alembic = PROVEN layout backend/alembic.ini + versions through 051_i5b2_governed_source_profile.py
+  W1-P01 NEW tables NOT yet migrated (ORM-authored only) = PROVEN ABSENCE
+SQLite substitute for PG contracts = REJECTED / NO SILENT SUBSTITUTION
+pyproject.toml = ABSENT at workspace root
+requirements = backend/requirements.txt contains sqlalchemy + psycopg2-binary (pytest installed in CI steps)
+```
+
+### ۱۹۳.۵ Risk classification (R1–R20) — summary
+
+```text
+R1 import/syntax → T1 import smoke ; MAJOR
+R2 mapper/config → T2 configure_mappers ; MAJOR/BLOCKER
+R3–R4 metadata type/null/default → T3/T4 ; MAJOR
+R5–R6 FK simple/composite → T8 PG IntegrityError ; MAJOR
+R7–R8 ordinary/partial UQ → T8 PG ; MAJOR
+R9 query indexes → T3 introspection + PG pg_indexes ; MINOR/MAJOR
+R10 CheckConstraint expr → T4 name ledger + T7 negative ; MAJOR
+R11 enum drift → T1/T4 vocab ; MAJOR
+R12–R13 hash/request-key → T7 regex checks ; MAJOR
+R14–R15 supersession branching/cross-entity → T8/T9 ; MAJOR
+R16 gap reopen replacement → T9 ABSENT field + identity UQ ; MAJOR
+R17 mutable result identity → T9 no updated_at + unique pairs ; MAJOR
+R18 PG-only SQL → T5/T6/T7 PostgreSQL required ; BLOCKER if SQLite used
+R19 preexisting GSP/GSPV regression → T10 ; MAJOR
+R20 migration/model mismatch → T11 AFTER migration ; OUT OF INITIAL AUTHORING
+```
+
+### ۱۹۳.۶ Frozen test categories
+
+```text
+T1 INCLUDE — source/import smoke (requires Python import when execution authorized)
+T2 INCLUDE — SQLAlchemy configure_mappers (requires import; no DB)
+T3 INCLUDE — metadata contract (table/column/FK/UQ/index/check names+types)
+T4 INCLUDE — Design Freeze regression ledgers (counts 13/6/39/28/33/21/8/20/70/9+4/8/3/29/0)
+T5 INCLUDE — PostgreSQL DDL via existing create_all path (NOT Alembic migration create)
+T6 INCLUDE — positive row inserts for each NEW table + GSP additive fields
+T7 INCLUDE — negative CheckConstraint families (parametrized)
+T8 INCLUDE — FK/UQ/partial-UQ violation IntegrityError cases
+T9 INCLUDE — lifecycle/immutability enforceable at ORM/DB only
+  (service-only reopen TX / append-only triggers = OUT OF SCOPE until service/migration Gates)
+T10 INCLUDE — preexisting GSPV unchanged + GSP preexisting columns intact
+T11 DEFER — migration parity AFTER W1-P01 migration creation Gate
+```
+
+### ۱۹۳.۷ Exact future test-file allowlist
+
+```text
+PRIMARY TEST FILES (NEW; authoring Gate only):
+  1) backend/tests/test_section15_i5_w1p01_orm_contracts.py
+     purpose = T1–T10 W1-P01 ORM contract suite (parametrized)
+     PostgreSQL = YES for T5–T9 ; dialect-skip if non-postgresql
+     why minimum = mirrors i5b2_p1 single-suite pattern; one allowlisted entrypoint
+
+OPTIONAL HELPER FILE (NEW only if unavoidable duplication):
+  2) backend/tests/helpers/w1p01_orm_builders.py
+     purpose = pure row-builder helpers for positive/negative cases
+     PostgreSQL = NO
+     prefer keeping helpers private inside primary file first
+
+PROTECTED (DO NOT MODIFY IN TEST AUTHORING GATE):
+  backend/tests/conftest.py
+  backend/tests/test_db_config.py
+  backend/tests/test_section15_i5b2_p1_source_profile.py
+  backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py
+  all other existing tests
+  pytest.ini
+  .github/workflows/**
+  backend/app/models.py
+  backend/app/services/i5/**
+  backend/alembic/**
+
+EXPLICITLY OUT OF SCOPE:
+  service/API/crawler tests
+  migration version files
+  CI workflow edits (separate approval)
+  production DB targeting
+```
+
+### ۱۹۳.۸ Fixture and isolation design
+
+```text
+REUSE existing conftest fixtures: _create_drop_all ; db (txn rollback) ; get_test_database_url
+NO conftest edit unless later Gate proves blocker
+ENGINE = session-scoped PostgreSQL via TEST_DATABASE_URL only
+ISOLATION = per-test connection begin/rollback (existing)
+SCHEMA = Base.metadata.create_all includes W1-P01 ORM tables (pre-migration acceptable for T5–T9)
+PRODUCTION REFUSAL = fail closed if URL host/db cannot be proven test-oriented
+  (existing policy: never use DATABASE_URL in test_db_config)
+NO SQLite substitution for R18 contracts
+CLEANUP = rollback + session drop_all at session end
+PARALLEL = not required for initial suite; avoid shared mutable state beyond rollback
+DESTRUCTIVE OPS = only against proven test DB identity
+FIXTURE DB EXECUTION = requires separate later execution approval (not this Gate)
+```
+
+### ۱۹۳.۹ Static / import / mapper / PostgreSQL / migration / CI boundaries
+
+```text
+| Group | Author without exec | Needs import | Needs PG | Needs migration |
+| T1 import smoke | YES author | YES exec | NO | NO |
+| T2 mapper | YES author | YES exec | NO | NO |
+| T3/T4 metadata | YES author | YES exec | NO | NO |
+| T5 DDL create_all | YES author | YES | YES | NO (pre-mig OK) |
+| T6–T9 row/constraints | YES author | YES | YES | NO (pre-mig OK) |
+| T10 regression | YES author | YES | YES preferred | NO |
+| T11 mig parity | YES later author | YES | YES | YES REQUIRED |
+
+TEST AUTHORING ≠ TEST EXECUTION ≠ PG VALIDATION ≠ CI ≠ MIGRATION PARITY
+MAPPER/IMPORT VALIDATION SHOULD PRECEDE MIGRATION DESIGN
+```
+
+### ۱۹۳.۱۰ Contract-test matrix (prefixes)
+
+```text
+W1P01-T1-* import/enums/classes exposed
+W1P01-T2-* configure_mappers success ; FK targets resolve ; relationships count=0
+W1P01-T3-* table names ; column lists/counts ; types/null/defaults ; named objects
+W1P01-T4-* ledger equality 13/6/70/9/4/8/3/29 ; forbidden fields ABSENT
+W1P01-T5-* create_all on PG succeeds for W1 tables ; partial indexes present
+W1P01-T6-* positive inserts GSP-add / WKR / WKRA / KG / WRSR / WRGR / I5GD
+W1P01-T7-* negative CHECK families (vocab/hash/request-key/nonneg/window/order/matrices)
+W1P01-T8-* IntegrityError simple FK / composite / UQ pairs / partial UQs
+W1P01-T9-* supersession leaf/root ; no branching ; gap reopen same id ; no updated_at on results/decisions
+W1P01-T10-* GSPV body markers unchanged ; preexisting GSP columns still present
+W1P01-T11-* DEFERRED migration introspection parity
+```
+
+### ۱۹۳.۱۱ Mandatory negative cases
+
+```text
+invalid vocab tokens ; malformed/short/uppercase canonical_hash
+empty/bad decision_request_key ; negative counters ; bad timestamp/window order
+attempt_number<=0 ; duplicate (attempt,source) ; duplicate (attempt,gap)
+duplicate decision_request tuple ; second successful terminal attempt
+second root per family ; second superseder ; cross-run composite mismatch
+cross-entity/family supersession ; SUPERSESSION without parent
+assert no reopened_from_gap_id column ; assert no result decision_id column
+Expected failure class = sqlalchemy.exc.IntegrityError (or CheckViolation) on PostgreSQL
+Service-layer-only behaviors = NOT asserted as DB failures
+```
+
+### ۱۹۳.۱۲ PostgreSQL-only scope
+
+```text
+POSTGRESQL_REQUIRED =
+  partial unique indexes + predicates
+  regex CheckConstraints (~)
+  deferrable composite FKs create/enforce
+  constraint/index name introspection via PG catalogs
+  IntegrityError negative matrix T7–T9
+DATABASE_INDEPENDENT (import/mapper/metadata Attribute inspection) = T1–T4
+STATIC-ONLY (no import) = NOT SUFFICIENT for mapper/FK resolution ; authoring may draft asserts but execution needs import Gate
+SQLite = FORBIDDEN for PostgreSQL_REQUIRED set
+```
+
+### ۱۹۳.۱۳ Migration boundary freeze
+
+```text
+BEFORE migration creation:
+  MAY author T1–T10
+  MAY later execute T1–T4 without PG
+  MAY later execute T5–T10 against Base.metadata.create_all on isolated PG
+MUST NOT claim Alembic schema parity
+AFTER migration creation + separate approval:
+  T11 compares alembic-created schema vs ORM metadata
+PASS evidence before migration-design Gate =
+  TEST AUTHORING PASS for allowlisted files
+  + (separately authorized) import/mapper PASS
+  + preferably PG constraint smoke PASS on create_all
+W1-P01 migration file = NOT YET PRESENT (latest 051 is GSP P1)
+```
+
+### ۱۹۳.۱۴ CI boundary freeze
+
+```text
+PRIMARY WORKFLOW = .github/workflows/ci-backend-tests.yml
+  ephemeral postgres:15 ; TEST_DATABASE_URL ; alembic upgrade head ; Section15 pytest list
+NATURAL JOIN = add primary W1-P01 test path to Section15 step AFTER separate CI-edit approval
+UNTIL CI EDIT APPROVED = local/explicit pytest path only
+workflow_dispatch = exists ; dispatch NOT authorized by this Gate
+NO workflow file mutation in test-authoring Gate
+Separate Javad approvals required for:
+  1) test execution
+  2) CI workflow path inclusion
+  3) workflow_dispatch / PR CI reliance
+```
+
+### ۱۹۳.۱۵ Acceptance criteria
+
+```text
+TEST AUTHORING PASS =
+  only allowlisted new test/helper files created
+  no source/CI/conftest/migration edits
+  categories T1–T10 covered by deterministic named tests
+  PG-only tests dialect-guarded
+  negative cases assert IntegrityError/CheckViolation class
+  no network ; no production URL ; no flaky sleep/random
+  collection-ready when execution later authorized
+
+TEST EXECUTION PASS = separate Gate
+POSTGRESQL VALIDATION PASS = separate Gate
+CI PASS = separate Gate after workflow allowlist update
+MIGRATION PARITY PASS = after migration creation Gate
+```
+
+### ۱۹۳.۱۶ Failure triage / self-healing rules
+
+```text
+DETECT → ROOT CAUSE → MINIMAL IN-SCOPE FIX → VERIFY → REPEAT
+Authoring stage: may fix only allowlisted test/helper files
+Stop if models/enums/source defect required
+Execution stage: may fix test implementation defects when authorized
+Stop if failure proves ORM Design Freeze defect → return to model correction Gate
+PG stage stop for schema defect / env uncertainty / production-target risk / cleanup uncertainty
+Unresolved finding requires owner/severity/root-cause/allowlist/closure/next Gate
+```
+
+### ۱۹۳.۱۷ Verdict and next Gate
+
+```text
+W1_P01_TEST_AUTHORING_SCOPE_REVIEW = PASS
+TEST_SCOPE_FROZEN = YES
+TEST_AUTHORING_PERFORMED = NO
+TESTS_RUN = NO
+PYTHON_APP_IMPORT_EXECUTED = NO
+MIGRATION_CREATED_OR_RUN = NO
+DATABASE_ACCESSED = NO
+SOURCE_FILES_MUTATED = NO
+TEST_FILES_MUTATED = NO
+CI_FILES_MUTATED = NO
+READY_FOR = W1-P01 TEST AUTHORING IMPLEMENTATION-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۹۳.۱۸ Continuity
+
+```text
+CREATE_v483 = AUTHORIZED / AFTER THIS APPEND
+MOVE_v482_TO_HISTORICAL = AUTHORIZED / AFTER v483 VERIFY
+```
+
+---
+
+*پایان بند ۱۹۳ — W1-P01 TEST AUTHORING SCOPE REVIEW — PASS — بدون-اجرای تست — بدون-کامیت*
+
+
+## ۱۹۴) I5 COVERAGE MANIFEST EXPLICIT DOMAIN EXPANSION، ALS P0-CRITICAL و MS P0-HIGH DESIGN FREEZE
+
+### ۱۹۴.۱ Gate authorization and automatic-execution law
+
+`	ext
+GATE = I5 COVERAGE MANIFEST EXPLICIT DOMAIN EXPANSION DESIGN FREEZE AND DUAL-CONTINUITY SYNC-01
+DATE_TIME = 2026-08-04T00:32:25-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+MANDATORY_AMENDMENT =
+  ALS and MS must each be independent, explicit, measurable Coverage Manifest tracks
+  ALS_PRIORITY = P0-CRITICAL
+  MS_PRIORITY = P0-HIGH
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+SCOPE_CLASS =
+  Formal decomposition / measurability improvement of already-approved all-disease I5 scope
+  NOT a new expansion beyond approved I5 all-disease / all-health-domain law
+`
+
+### ۱۹۴.۲ Product-history rationale (ALS founder priority) — non-clinical
+
+`	ext
+ALS_FOUNDER_PRIORITY_RATIONALE =
+  ALS is deeply connected to the origin and identity of Sedi.
+  The person whose identity and name inspired Sedi died from ALS.
+CLINICAL_EVIDENCE_BOUNDARY =
+  personal significance determines priority ranking only;
+  clinical knowledge must still come only from credible, current,
+  governed scientific authorities.
+NO_CLINICAL_CLAIM_FROM_PERSONAL_HISTORY = YES
+NO_EXTRA_PRIVATE_DETAIL_RECORDED = YES
+`
+
+### ۱۹۴.۳ Baseline and identities (pre-mutation)
+
+`	ext
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+DIRTY_PATHS =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+WORKTREES = 6 UNDER Sedi-v-1
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / WT be77cd0cb7295906f8f458fb2d317dbc7d2d0018
+enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+i5/__init__.py = 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+PRE_LOG = 2360243 / 2120a274c92082b69b2aff015e809a86ab4fc9bed585025ec0e088b8d1b12d4e / tip §193 / CRLF_ONLY
+PRE_AUTH = v483 only / 3250630 / 6526d8bed0e1b71746c2ab64e4d42ee3d651b6f0796633de03a36d347d230467
+`
+
+### ۱۹۴.۴ Current Coverage Manifest authority reconstruction
+
+`	ext
+RULE | SOURCE | STATUS | SUPERSEDING | EFFECT_ON_NEW_MANIFEST | CONFLICT
+all-disease architecture not pilot-limited | §58.5 / §59 | ACTIVE | none | architecture must support all disease families | NONE
+Neurology lists ALS+MS among priority conditions | §58.5 | ACTIVE | THIS GATE makes ALS/MS independent tracks | ALS/MS leave aggregated-only Neurology measurability | NONE — additive measurability
+priority domains Neurology/Cardio/Diabetes/Mental/MedSafety/Emergency | §138.3 | ACTIVE | preserved | remain priority; not replaced by D01–D17 | NONE
+Hepatitis/Liver EXPLICIT not merely implied | §138.4 | ACTIVE | preserved | D13 = infectious beyond hepatitis; does NOT absorb Hep/Liver | NONE
+Coverage must be measurable via future Coverage Manifest | §138.2 / §138.18 | ACTIVE | THIS GATE freezes entity ledger + field/metric contracts | Manifest entities = 19 explicit top-level | NONE
+Presence of few docs ≠ coverage | §138.2 | ACTIVE | preserved | initial coverage_state cannot be COVERED without evidence | NONE
+Psychology first-class | §138.6 | ACTIVE | preserved | remains priority; not one of D01–D17 rows | NONE
+Lifestyle/nutrition/exercise/sleep/routines required | §138 / §170 | ACTIVE | preserved | remain cross-cutting requirements linked from domains | NONE
+International clinical authority; Iran = local services | §170.1 | ACTIVE | preserved | source boundary freeze below | NONE
+Weekly crawler + gap queue + provenance required for I5 close | §137 / §138 / §170 | ACTIVE | preserved | wave mapping uses W1–W6 packages | NONE
+Disease Packs as governed data not hardcoded per-disease enums | §59 / A1 | ACTIVE | ALS/MS tracks are Manifest entities, NOT new Python enum members in this Gate | NONE
+W1-P01 ORM static closure + test-scope frozen | §§190–193 / v482–v483 | ACTIVE | unchanged; this Gate does not author tests | NONE
+`
+
+### ۱۹۴.۵ All-disease scope consistency
+
+`	ext
+PRIOR_IMPLICIT_RISK =
+  ALS/MS measurable only inside aggregated Neurology;
+  many major health families listed architecturally but not as auditable Manifest entities
+THIS_GATE_RESOLUTION =
+  17 broad families D01–D17 become explicit Manifest entities
+  + ALS-TRACK D18 and MS-TRACK D19 independent top-level tracks
+  = 19 explicit top-level Coverage Manifest entities
+CONSISTENCY =
+  Does not shrink all-disease law
+  Does not remove §138.3 priority domains
+  Does not merge ALS into MS or into Neurology-only aggregate score
+  Does not claim knowledge COVERED
+INITIAL_COVERAGE_STATE_FOR_ALL_19 = UNKNOWN
+  (allowed states: UNKNOWN|MISSING|INSUFFICIENT|STALE|CONFLICTED|PARTIAL|COVERED)
+COVERED_REQUIRES_EVIDENCE = YES
+`
+
+### ۱۹۴.۶ Ledger — 17 broad domain families (D01–D17)
+
+`	ext
+COMMON_DEFAULTS_FOR_D01–D17 =
+  entity_type = BROAD_DOMAIN_FAMILY
+  initial_coverage_state = UNKNOWN
+  initial_owner_role = I5_Coverage_Governance_Owner
+  reviewer_role = I5_Medical_Safety_Reviewer
+  approver_role = Javad_or_Delegated_Governance_Approver
+  priority_tier = P2-STANDARD unless noted
+  closure_criteria = all required knowledge-unit families have source_authority +
+    coverage_evidence + freshness_state + safety_state + gap_status +
+    runtime_eligibility + owner + next_review_at
+
+D01 | Oncology and supportive cancer care | انکولوژی و مراقبت حمایتی سرطان
+  aliases=cancer care; oncology supportive; سرطان
+  parent=Oncology / Supportive Oncology
+  subdomains=solid tumors; hematologic malignancy education; supportive care; survivorship; oncologic emergencies education
+  population=adult+AYA+where applicable pediatric oncology cross-link D11
+  conditions=major cancer families education; NOT autonomous diagnosis
+  deps=D16 palliative; Medication Safety; Emergency; Nutrition
+  KU_min=definition; risk; screening; red-flags; treatment-education categories; supportive care; med-safety; rehab; caregiver; Iran services
+  priority=P1-HIGH | owner=I5_Coverage_Governance_Owner
+
+D02 | Respiratory health and diseases | سلامت و بیماری‌های تنفسی
+  aliases=pulmonary; lung health
+  parent=Respiratory System
+  subdomains=asthma; COPD; ILD education; infection-linked respiratory (x-link D13); sleep-disordered breathing x-link Sleep
+  deps=Emergency; Medication Safety; Rehabilitation D15
+  KU_min=definition; symptoms; red-flags; prevention; treatment-education; self-care; rehab; Iran pulmonology/services
+  priority=P1-HIGH
+
+D03 | Kidney and urinary tract health | سلامت کلیه و مجاری ادراری
+  aliases=renal; nephrology; urology education
+  parent=Renal / Urinary
+  subdomains=CKD education; AKI awareness; UTI education; stone disease education; dialysis care-nav
+  deps=Cardio; Diabetes/Metabolic; Medication Safety; Emergency
+  KU_min=definition; risk; monitoring; red-flags; treatment-education; med-safety; Iran nephrology/urology services
+  priority=P1-HIGH
+
+D04 | Gastroenterology and digestive health | گوارش و سلامت دستگاه گوارش
+  aliases=GI; digestive
+  parent=Gastroenterology
+  subdomains=GERD; IBD education; IBS education; liver cross-link §138.4 Hep/Liver; GI cancers cross-link D01
+  deps=Nutrition; Hepatitis/Liver authority; Emergency
+  KU_min=definition; symptoms; red-flags; diet context; treatment-education; Iran GI services
+  priority=P2-STANDARD
+
+D05 | Musculoskeletal health and pain | اسکلتی-عضلانی و درد
+  aliases=MSK; orthopedics education; rheumatology education
+  parent=Musculoskeletal / Pain
+  subdomains=osteoarthritis; back pain education; inflammatory arthritis education; injury recovery x-link D15
+  deps=Rehab D15; Medication Safety; Exercise lifestyle
+  KU_min=definition; pain red-flags; self-care; rehab; med-safety; Iran ortho/rheum/physio services
+  priority=P2-STANDARD
+
+D06 | Dermatology and skin health | پوست و سلامت پوست
+  aliases=derm; skin
+  parent=Dermatology
+  subdomains=common inflammatory derm; infection-linked derm x-link D13; skin-cancer awareness x-link D01
+  deps=Emergency (severe cutaneous); Medication Safety
+  KU_min=definition; red-flags; self-care; treatment-education; Iran derm services
+  priority=P2-STANDARD
+
+D07 | Ophthalmology and vision | چشم‌پزشکی و بینایی
+  aliases=eye; vision
+  parent=Ophthalmology
+  subdomains=refractive education; glaucoma awareness; diabetic eye x-link Diabetes; MS vision x-link D19
+  deps=Diabetes; Emergency; MS-TRACK
+  KU_min=definition; red-flags; screening context; treatment-education; Iran ophthalmology services
+  priority=P2-STANDARD
+
+D08 | Ear, hearing and vestibular health | گوش، شنوایی و دهلیزی
+  aliases=ENT otology; hearing; vestibular
+  parent=Otolaryngology / Audiology
+  subdomains=hearing loss; tinnitus education; vestibular disorders; infection-linked ear x-link D13
+  deps=Rehab D15; Emergency
+  KU_min=definition; red-flags; rehab/hearing support; Iran ENT/audiology services
+  priority=P3-EXPANSION
+
+D09 | Oral and dental health | سلامت دهان و دندان
+  aliases=dental; oral health
+  parent=Oral / Dental
+  subdomains=caries prevention; periodontal education; oral-systemic links
+  deps=Diabetes; Nutrition; Medication Safety
+  KU_min=prevention; self-care; red-flags; Iran dental services
+  priority=P3-EXPANSION
+
+D10 | Women's health and reproductive health | سلامت زنان و باروری
+  aliases=OB/GYN education; reproductive health
+  parent=Women's / Reproductive Health
+  subdomains=menstrual health; contraception education; pregnancy care-nav; menopause; MS pregnancy x-link D19
+  deps=Mental Health; Emergency; Medication Safety; MS-TRACK
+  KU_min=definition; screening; red-flags; reproductive safety; Iran OB/GYN services
+  priority=P1-HIGH
+
+D11 | Pediatrics and adolescent health | کودکان و نوجوانان
+  aliases=pediatrics; adolescent
+  parent=Pediatrics / Adolescent Medicine
+  subdomains=growth; vaccination context; common pediatric illness education; adolescent mental health x-link
+  deps=Infectious D13; Mental Health; Emergency; Prevention
+  KU_min=age-appropriate education; red-flags; prevention; caregiver; Iran pediatrics services
+  priority=P1-HIGH
+
+D12 | Geriatrics and healthy aging | سالمندی و پیری سالم
+  aliases=geriatrics; ageing; healthy aging
+  parent=Geriatrics / Longevity-adjacent care
+  subdomains=frailty; falls; polypharmacy x-link Med Safety; cognition x-link Neurology; longevity lifestyle x-link
+  deps=Medication Safety; Mental Health; Rehab D15; Longevity evidence scope
+  KU_min=prevention; monitoring; red-flags; caregiver; Iran geriatrics/services
+  priority=P1-HIGH
+
+D13 | Infectious diseases beyond hepatitis | بیماری‌های عفونی فراتر از هپاتیت
+  aliases=ID beyond hep; infection
+  parent=Infectious Disease
+  subdomains=bacterial/viral/fungal education families; antimicrobial stewardship education; vaccine-preventable disease context
+  NOTE=Hepatitis A–E + Liver remain under §138.4 EXPLICIT authority — NOT absorbed here
+  deps=Emergency; Medication Safety; Respiratory D02; Hep/Liver authority
+  KU_min=prevention; red-flags; treatment-education categories; stewardship; Iran ID services
+  priority=P1-HIGH
+
+D14 | Rare diseases | بیماری‌های نادر
+  aliases=rare disease; orphan disease
+  parent=Rare Disease Taxonomy
+  subdomains=rare neuromuscular x-link ALS-TRACK; diagnostic odyssey education; orphan-drug awareness boundary
+  deps=ALS-TRACK; Genetics-adjacent education; Rehab; Palliative D16
+  KU_min=definition; care-nav; red-flags; research-awareness boundary; Iran rare-disease services where available
+  priority=P2-STANDARD (ALS itself is separate P0-CRITICAL track)
+
+D15 | Rehabilitation and functional recovery | توانبخشی و بازیابی عملکرد
+  aliases=rehab; physio; OT; SLT
+  parent=Rehabilitation Medicine
+  subdomains=PT; OT; speech/swallow; cardiac/pulmonary rehab; neurorehab x-link ALS/MS
+  deps=ALS-TRACK; MS-TRACK; MSK D05; Cardio; Respiratory
+  KU_min=functional goals education; modality categories; red-flags; Iran rehab services
+  priority=P1-HIGH
+
+D16 | Palliative care | مراقبت تسکینی
+  aliases=palliative; supportive end-of-life education
+  parent=Palliative / Supportive Care
+  subdomains=symptom control education; advance-care planning education (user-led); caregiver support
+  deps=Oncology D01; ALS-TRACK; Emergency; Mental Health
+  KU_min=principles; communication; symptom categories; Iran palliative services
+  BOUNDARY=sensitive; user-led; not coercive
+  priority=P1-HIGH
+
+D17 | Environmental and occupational health | سلامت محیطی و شغلی
+  aliases=occupational health; environmental exposure
+  parent=Environmental / Occupational Medicine
+  subdomains=workplace hazards education; air/water exposure context; occupational disease prevention
+  deps=Respiratory D02; Dermatology D06; Prevention
+  KU_min=prevention; exposure red-flags; Iran occupational/environmental services
+  priority=P3-EXPANSION
+`
+
+### ۱۹۴.۷ ALS independent track (D18 / ALS-TRACK) — FROZEN
+
+`	ext
+CANONICAL_DOMAIN_ID = D18
+TRACK_ID = ALS-TRACK
+CANONICAL_NAME_EN = Amyotrophic Lateral Sclerosis
+CANONICAL_NAME_FA = اسکلروز جانبی آمیوتروفیک
+COMMON_ALIAS = ALS
+ENTITY_TYPE = DISEASE_PRIORITY_TRACK
+PARENT_TAXONOMY = Neurology > Neuromuscular Disorders ; Rare Diseases where applicable
+LINKED_BUT_NOT_HIDDEN_IN = Neurology aggregated coverage (§138.3 / §58.5)
+PRIORITY = P0-CRITICAL
+INDEPENDENT_MEASURABILITY = REQUIRED
+MUST_NOT_BE_SCORED_ONLY_AS_NEUROLOGY_AGGREGATE = YES
+
+DIMENSIONS (ALS-T01..ALS-T27) =
+  ALS-T01 disease definition and terminology
+  ALS-T02 phenotypes and clinical variation
+  ALS-T03 risk and epidemiological context
+  ALS-T04 symptoms and early recognition
+  ALS-T05 diagnostic pathway and differential diagnosis
+  ALS-T06 progression and functional staging
+  ALS-T07 respiratory assessment and support
+  ALS-T08 nutrition, swallowing and weight maintenance
+  ALS-T09 communication and AAC
+  ALS-T10 mobility and assistive technology
+  ALS-T11 symptom management
+  ALS-T12 disease-modifying and symptomatic treatment knowledge categories
+  ALS-T13 medication safety and monitoring
+  ALS-T14 physiotherapy and rehabilitation
+  ALS-T15 mental health and emotional support
+  ALS-T16 caregiver education and burden support
+  ALS-T17 multidisciplinary-care coordination
+  ALS-T18 emergency and red-flag navigation
+  ALS-T19 advance-care planning
+  ALS-T20 palliative and supportive care
+  ALS-T21 quality of life
+  ALS-T22 research and clinical-trial awareness boundary
+  ALS-T23 guideline freshness
+  ALS-T24 provenance and evidence strength
+  ALS-T25 conflicts, supersession and retraction
+  ALS-T26 runtime eligibility
+  ALS-T27 Iran local specialists/centers/services context
+
+BOUNDARIES =
+  trial awareness = informational, NOT enrollment advice
+  treatment knowledge = NOT autonomous prescribing
+  advance-care/palliative = sensitive, user-led
+  founder significance MUST NOT alter evidence standards
+
+ALS_CRITICAL_DIMENSIONS (minimum for runtime completeness gate) =
+  ALS-T01,T04,T05,T07,T08,T11,T12,T13,T18,T19,T20,T23,T24,T25,T26
+RULE =
+  ALS_CRITICAL_DIMENSIONS_MISSING > 0
+  → ALS_RUNTIME_COVERAGE cannot be COMPLETE
+
+ALS_CLOSURE =
+  every required dimension has:
+    source authority; coverage evidence; freshness status;
+    safety status; gap status; runtime eligibility; owner; review date
+
+INITIAL_COVERAGE_STATE = UNKNOWN
+MONITORING_POLICY_LEVEL = P0-CRITICAL
+CONTINUOUS_GUIDELINE_RESEARCH_MONITORING = REQUIRED
+`
+
+### ۱۹۴.۸ MS independent track (D19 / MS-TRACK) — FROZEN
+
+`	ext
+CANONICAL_DOMAIN_ID = D19
+TRACK_ID = MS-TRACK
+CANONICAL_NAME_EN = Multiple Sclerosis
+CANONICAL_NAME_FA = مولتیپل اسکلروزیس / ام‌اس
+COMMON_ALIAS = MS
+ENTITY_TYPE = DISEASE_PRIORITY_TRACK
+PARENT_TAXONOMY = Neurology > Neuroimmunology
+LINKED_BUT_NOT_HIDDEN_IN = Neurology aggregated coverage
+PRIORITY = P0-HIGH
+INDEPENDENT_MEASURABILITY = REQUIRED
+MUST_NOT_MERGE_LEDGERS_WITH_ALS = YES
+
+DIMENSIONS (MS-T01..MS-T27) =
+  MS-T01 disease definition and terminology
+  MS-T02 disease courses and phenotypes
+  MS-T03 risk and epidemiological context
+  MS-T04 symptoms and early recognition
+  MS-T05 diagnosis and differential diagnosis
+  MS-T06 imaging and laboratory-monitoring context
+  MS-T07 relapse recognition and management knowledge
+  MS-T08 progression and disability monitoring
+  MS-T09 disease-modifying treatment knowledge categories
+  MS-T10 medication safety and monitoring
+  MS-T11 fatigue and energy management
+  MS-T12 mobility, spasticity and rehabilitation
+  MS-T13 cognition and mental health
+  MS-T14 vision, sensory and pain symptoms
+  MS-T15 bladder, bowel and sexual health
+  MS-T16 pregnancy and reproductive considerations
+  MS-T17 vaccination and infection-safety context
+  MS-T18 lifestyle, exercise and nutrition context
+  MS-T19 emergency and red-flag navigation
+  MS-T20 quality of life and work participation
+  MS-T21 caregiver and family support
+  MS-T22 research-awareness boundary
+  MS-T23 guideline freshness
+  MS-T24 provenance and evidence strength
+  MS-T25 conflicts, supersession and retraction
+  MS-T26 runtime eligibility
+  MS-T27 Iran local specialists/centers/services context
+
+INITIAL_COVERAGE_STATE = UNKNOWN
+MONITORING_POLICY_LEVEL = ENHANCED
+CONTINUOUS_GUIDELINE_RESEARCH_MONITORING = REQUIRED
+SEPARATE_SOURCE_FRESHNESS_SAFETY_GAP_LEDGERS_FROM_ALS = YES
+`
+
+### ۱۹۴.۹ Common manifest field contract (all 19 entities)
+
+`	ext
+FIELD | CLASS
+canonical_domain_id | required / immutable identity
+canonical_name_en | required / immutable identity
+canonical_name_fa | required / governance-controlled
+aliases | required / governance-controlled
+entity_type | required / immutable identity (BROAD_DOMAIN_FAMILY|DISEASE_PRIORITY_TRACK)
+parent_taxonomy | required / governance-controlled
+cross_domain_links | required / governance-controlled
+subdomains | required / governance-controlled
+population_scope | required / governance-controlled
+condition_scope | required / governance-controlled
+knowledge_unit_requirements | required / governance-controlled
+clinical_questions_supported | optional / governance-controlled
+red_flag_requirements | required / governance-controlled
+self_care_requirements | required / governance-controlled
+medication_safety_requirements | required / governance-controlled
+rehabilitation_requirements | required / governance-controlled
+caregiver_support_requirements | required / governance-controlled
+international_source_authority | required / governance-controlled
+Iranian_local_service_context | required / governance-controlled (services only)
+coverage_state | required / derived+governance-controlled
+coverage_score | required / derived
+coverage_score_method | required / immutable identity of method version
+freshness_state | required / derived+governance-controlled
+freshness_threshold | required / governance-controlled (policy level; exact days may defer)
+last_evidence_update_at | required / runtime-controlled when evidence exists; else null allowed
+evidence_strength | required / governance-controlled
+source_diversity_state | required / derived
+conflict_state | required / governance+runtime-controlled
+retraction_state | required / governance+runtime-controlled
+safety_state | required / governance-controlled
+runtime_eligibility | required / runtime-controlled (fail-closed)
+knowledge_gap_count | required / derived
+highest_open_gap_priority | required / derived
+priority | required / governance-controlled
+owner | required / governance-controlled (role-based OK)
+reviewer | required / governance-controlled
+approver | required / governance-controlled
+dependencies | required / governance-controlled
+closure_criteria | required / immutable identity of criteria version
+next_review_at | required / governance-controlled
+`
+
+### ۱۹۴.۱۰ Coverage metric contract
+
+`	ext
+COVERAGE_MUST_NOT_BE_DOCUMENT_COUNT_ONLY = YES
+
+COMPONENT_INPUTS =
+  required knowledge-unit completion
+  source-authority sufficiency
+  population coverage
+  prevention/screening coverage
+  diagnosis/monitoring coverage
+  treatment/care coverage
+  self-care/lifestyle coverage
+  medication-safety coverage
+  red-flag coverage
+  rehabilitation/support coverage
+  freshness compliance
+  conflict resolution
+  runtime eligibility
+
+SEPARATE_SCORES =
+  STRUCTURAL_COVERAGE
+  EVIDENCE_COVERAGE
+  SAFETY_COVERAGE
+  FRESHNESS_COVERAGE
+  RUNTIME_COVERAGE
+  OVERALL_COVERAGE
+
+HARD_RULE =
+  No domain may become COVERED when any critical safety dimension is missing
+ALS_HARD_RULE =
+  ALS_CRITICAL_DIMENSIONS_MISSING > 0 → ALS_RUNTIME_COVERAGE ≠ COMPLETE
+`
+
+### ۱۹۴.۱۱ Freshness and evidence contract
+
+`	ext
+FRESHNESS_STATES =
+  UNKNOWN | CURRENT | APPROACHING_REVIEW | STALE | SUPERSEDED | RETRACTED_CONTEXT
+
+POLICY_LEVELS =
+  STANDARD | ENHANCED | P0-CRITICAL
+
+ASSIGNMENTS =
+  ALS-TRACK = P0-CRITICAL
+  MS-TRACK = ENHANCED (floor); may elevate to P0-CRITICAL for specific dimensions
+  D01/D02/D03/D10/D11/D12/D13/D15/D16 = ENHANCED recommended
+  others = STANDARD default
+
+EXACT_DAY_THRESHOLDS =
+  DEFERRED where current authority insufficient
+  MUST NOT invent medical update intervals without governance basis
+  Future Implementation Scope Review must propose day thresholds with cited basis
+
+EVIDENCE_STRENGTH_CATEGORIES =
+  UNGRADED | LOW | MODERATE | HIGH | GUIDELINE_BACKED | CONFLICTED
+
+SOURCE_DIVERSITY =
+  single-source dependency flagged; multi-authority preferred for P0 tracks
+
+SUPERSSESSION / RETRACTION / CONFLICT_ESCALATION =
+  preserve immutable historical versions
+  escalate unresolved medical conflicts fail-closed for runtime
+`
+
+### ۱۹۴.۱۲ Safety / conflict / retraction / runtime eligibility
+
+`	ext
+SAFETY_STATES = UNKNOWN | SAFE_FOR_EDUCATION | RESTRICTED | BLOCKED
+CONFLICT_STATES = NONE | DETECTED | UNDER_REVIEW | UNRESOLVED_BLOCKING
+RETRACTION_STATES = NONE | PARTIAL | FULL | SUPERSEDED_AFTER_RETRACTION
+
+RUNTIME_ELIGIBILITY_RULES =
+  fail-closed on UNRESOLVED_BLOCKING conflict
+  fail-closed on FULL retraction without superseding approved knowledge
+  fail-closed when SAFETY_STATE = BLOCKED
+  fail-closed when required red-flag knowledge missing for P0 tracks
+  ALS: RUNTIME COMPLETE forbidden if critical dimensions missing
+
+SERVICE_LAYER_VS_DB =
+  Manifest eligibility is governance/runtime state — not authored as ORM in this Gate
+`
+
+### ۱۹۴.۱۳ Source-governance boundary
+
+`	ext
+CLINICAL_SCIENTIFIC_PSYCHOLOGY_NUTRITION_LIFESTYLE_KNOWLEDGE =
+  credible international sources / current world evidence ONLY
+IRANIAN_SOURCES =
+  doctors, laboratories, hospitals, medical centers,
+  referral pathways, local service availability
+  = local-service records, NOT scientific clinical authorities
+
+ALS_AND_MS_IRAN_CONTEXT_SHOULD_INCLUDE_WHERE_AVAILABLE =
+  neurologists
+  neuromuscular specialists
+  MS specialists/clinics
+  respiratory support services
+  rehabilitation
+  speech and swallowing services
+  nutrition support
+  assistive technology
+  palliative/supportive services
+  laboratories and imaging centers where applicable
+`
+
+### ۱۹۴.۱۴ Priority and ownership model
+
+`	ext
+PRIORITY_HIERARCHY =
+  P0-CRITICAL
+  P0-HIGH
+  P1-HIGH
+  P2-STANDARD
+  P3-EXPANSION
+
+REQUIRED =
+  ALS = P0-CRITICAL
+  MS = P0-HIGH
+
+PRIORITY_INPUTS =
+  medical severity
+  red-flag impact
+  population burden
+  knowledge gap severity
+  freshness risk
+  user/product priority
+  founder priority
+  runtime demand
+  dependency impact
+
+EVIDENCE_QUALITY_NEVER_REDUCED_BY_PRIORITY = YES
+
+OWNER_ROLES (no unauthorized personal names invented) =
+  I5_Coverage_Governance_Owner
+  I5_Medical_Safety_Reviewer
+  I5_Source_Governance_Owner
+  I5_Iran_Services_Directory_Owner
+  Approver = Javad_or_Delegated_Governance_Approver
+`
+
+### ۱۹۴.۱۵ Wave / package mapping (19 entities)
+
+`	ext
+ALL_19 depend on foundation chain:
+  W1-P01 registry/gap/weekly ledger (ORM authored; tests/migration later)
+  W1-P02 raw retention/provenance
+  W2-P01 knowledge memory/versioning
+  W2-P02 quality/freshness/safety
+  W2-P03 source governance
+  W3-P01 crawler/extraction
+  W3-P02 weekly orchestration
+  W4-P01 runtime retrieval/grounding
+  W4-P02 independent synthesis
+  W5-P01 Iranian service context
+  W6 validation/activation/monitoring
+
+EXPLICIT_ALS_MAPPING =
+  W1 gap queue must accept ALS-TRACK dimension gaps as first-class
+  W2-P02 ENHANCED/P0-CRITICAL freshness+safety for ALS dimensions
+  W2-P03 international ALS guideline/source profiles
+  W3 weekly discovery prioritizes ALS source freshness
+  W4 runtime grounding consumes ALS-eligible KU only
+  W5 ALS Iran specialists/services context (T27)
+  W6 ALS coverage metrics on closure dashboards
+
+EXPLICIT_MS_MAPPING =
+  same package dependencies with MS-TRACK IDs
+  W5 MS clinics/specialists context (T27)
+  MUST NOT be represented only by generic Neurology row
+
+D01–D17 =
+  onboard via Disease/Domain packs on same wave chain;
+  priority tiers modulate scheduling, not evidence standards
+`
+
+### ۱۹۴.۱۶ Implementation boundary
+
+`	ext
+NEXT_GATE =
+  I5 COVERAGE MANIFEST IMPLEMENTATION SCOPE REVIEW-01
+
+THAT_GATE_MUST_LATER_DETERMINE =
+  DB vs governed configuration vs both
+  model/table reuse vs new schema
+  enum/vocabulary needs
+  seed/bootstrap
+  versioning + audit history
+  runtime query requirements
+  gap-generation integration
+  weekly-run integration
+  admin/governance workflow
+  test/migration/CI boundaries
+
+THIS_GATE_DOES_NOT =
+  create tables/YAML/JSON/CSV/code
+  mutate models/enums/tests
+  run crawler/DB/migration/CI
+`
+
+### ۱۹۴.۱۷ Verdict
+
+`	ext
+I5_COVERAGE_MANIFEST_EXPLICIT_DOMAIN_DESIGN_FREEZE = PASS
+BROAD_DOMAIN_FAMILIES = 17 / 17
+ALS_INDEPENDENT_TRACK = FROZEN
+MS_INDEPENDENT_TRACK = FROZEN
+TOTAL_EXPLICIT_ENTITIES = 19
+ALS_PRIORITY = P0-CRITICAL
+MS_PRIORITY = P0-HIGH
+COMMON_FIELD_CONTRACT = FROZEN
+COVERAGE_METRIC_CONTRACT = FROZEN
+FRESHNESS_EVIDENCE_CONTRACT = FROZEN
+SAFETY_CONFLICT_RETRACTION_CONTRACT = FROZEN
+RUNTIME_ELIGIBILITY_CONTRACT = FROZEN
+WAVE_PACKAGE_MAPPING = COMPLETE
+SOURCE_FILES_MUTATED = NO
+TEST_FILES_MUTATED = NO
+TESTS_RUN = NO
+CRAWLER_OR_CONTENT_OPERATION = NO
+MIGRATION_OR_DATABASE_USED = NO
+STAGE_COMMIT_PUSH = NO
+READY_FOR = I5 COVERAGE MANIFEST IMPLEMENTATION SCOPE REVIEW-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+`
+
+### ۱۹۴.۱۸ Continuity
+
+`	ext
+CREATE_v484 = AUTHORIZED / AFTER THIS APPEND
+MOVE_v483_TO_HISTORICAL = AUTHORIZED / AFTER v484 VERIFY
+`
+
+---
+
+*پایان بند ۱۹۴ — I5 COVERAGE MANIFEST EXPLICIT DOMAIN + ALS/MS DESIGN FREEZE — PASS — بدون-پیاده‌سازی — بدون-کامیت*
+
+
+## ۱۹۵) I5 COVERAGE MANIFEST IMPLEMENTATION SCOPE REVIEW AND ARCHITECTURE DESIGN FREEZE
+
+### ۱۹۵.۱ Gate authorization and automatic-execution law
+
+`	ext
+GATE = I5 COVERAGE MANIFEST IMPLEMENTATION SCOPE REVIEW-01
+DATE_TIME = 2026-08-04T00:50:44-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+ROLE = architecture Design Freeze / implementation-scope freeze ONLY
+IMPLEMENTATION_PERFORMED = NO
+`
+
+### ۱۹۵.۲ Baseline and identities (pre-mutation)
+
+`	ext
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+DIRTY_PATHS =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+WORKTREES = 6 UNDER Sedi-v-1
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / WT be77cd0cb7295906f8f458fb2d317dbc7d2d0018
+enums/init = protected MATCH
+PRE_LOG = 2387824 / 68d84f89ddfff7cd4098acc5feb51c9c9b0c3eada452648262ebd4f4985f06fe / tip §194 / CRLF_ONLY
+PRE_AUTH = v484 only / 3253834 / f8429ff19c6c37ad7f6097bf9591994902210f58f8b5be14adfd8a3ef478ba51
+MANIFEST_DESIGN = 19 entities; ALS P0-CRITICAL; MS P0-HIGH; IMPLEMENTATION NOT STARTED
+`
+
+### ۱۹۵.۳ Implementation-authority ledger
+
+`	ext
+RULE | SOURCE | ACTIVE | EFFECT | CONFLICT
+19 explicit Manifest entities | §194 / v484 | ACTIVE | implementation must populate all 19 | NONE
+ALS P0-CRITICAL independent track + 27 dims | §194 | ACTIVE | independent operational ledger | NONE
+MS P0-HIGH independent track + 27 dims | §194 | ACTIVE | independent operational ledger | NONE
+field/metric/freshness/safety/runtime contracts | §194 | ACTIVE | storage must persist/compute them | NONE
+international clinical / Iran services split | §170 / §194 | ACTIVE | no Iran clinical authority in Manifest | NONE
+Coverage Manifest required for I5 close | §138.2/.18 | ACTIVE | measurable coverage | NONE
+W1-P01 ORM: KG/WKR/WKRA/WRSR/WRGR/I5GD + GSP(+13) | §§176–192 | ACTIVE ORM; mig only GSP@051 | Manifest must NOT duplicate W1-P01 | NONE
+decision UQ (entity_type, entity_id, decision_request_key) | W1-P01 freeze | ACTIVE | preserve; no decision_type in UQ | NONE
+no reopened_from_gap_id; reopen preserves canonical_gap_key | W1-P01 | ACTIVE | Manifest gaps reuse KG identity rules | NONE
+W1-P01 TEST AUTHORING IMPLEMENTATION-01 READY NOT AUTHORIZED | §193 / v483 | ACTIVE | parallel lane; do not merge scopes | NONE
+Disease Packs = governed data not per-disease Python enums | §59/A1 | ACTIVE | Manifest IDs in config+DB vocab, not disease classes | NONE
+`
+
+### ۱۹۵.۴ Repository architecture inventory (summary)
+
+`	ext
+REUSE_AS_IS =
+  GovernedSourceProfileVersion fingerprint pattern
+  WeeklyKnowledgeRunAttempt / WeeklyRunSourceResult / WeeklyRunGapResult
+  backend/tests/conftest.py + test_db_config.py (TEST_DATABASE_URL only)
+  seed dry-run/digest pattern (seed_i5b2_p1_l1_legacy_companions.py / kb_b2_legacy_companion_seed.py)
+  ci-backend-tests.yml Postgres15 + alembic upgrade head pattern
+
+REUSE_WITH_EXTENSION =
+  KnowledgeGap (domain/subdomain → Manifest entity/dimension keys)
+  WeeklyKnowledgeRun (domain_scope_hash pins Manifest version)
+  I5GovernanceDecision + GovernanceEntityType/Family/Type matrices
+  GovernedSourceProfile (source binding target; topic_coverage insufficient alone)
+  i5/enums.py (add Manifest vocab; extend GovernanceEntityType)
+  governance contracts/policy_evaluator/kb_b2 adapters (patterns)
+
+NOT_SUITABLE_AS_MANIFEST_STORE =
+  knowledge_sources / knowledge_documents / chunks / embeddings
+  knowledge_ingestion_runs
+  routers/knowledge_base.py and knowledge_admin.py (legacy Gate3)
+  topic_coverage Text alone
+
+ABSENT =
+  Coverage Manifest model/table/migration/tests/API/config catalog file
+  Alembic for W1-P01 weekly/gap/governance tables (ORM present; mig head=051 GSP only)
+
+CONFIG_PATTERN_EVIDENCE =
+  backend/config/gate3h/trusted_source_catalog_v1.yaml proves governed YAML catalogs exist
+`
+
+### ۱۹۵.۵ Storage option comparison
+
+`	ext
+CRITERION | PRI | A CONFIG_ONLY | B DB_ONLY | C HYBRID | EVIDENCE
+Audit of canonical taxonomy | HIGH | strong (PR review) | weak without seed discipline | strong (config authority + DB hash) | trusted_source_catalog + §194
+Weekly mutable coverage/freshness/safety | HIGH | weak | strong | strong | W1 weekly/gap ORM
+Runtime query performance | HIGH | weak at scale | strong | strong | existing PG test/CI
+Approval workflow | HIGH | PR-only slow | DB decisions ready | hybrid: config change + I5GD | I5GovernanceDecision
+Gap integration | HIGH | weak | strong | strong | KnowledgeGap domain/subdomain
+Version history | HIGH | git history only | needs tables | config rev + entity_versions | GSPV pattern
+Deployment coupling | MED | high (redeploy for ops) | low for ops | config for identity; DB for ops | —
+Migration burden | MED | none | high | medium (4 tables + enums) | alembic 051 head
+Environment drift | HIGH | low for identity | high if seed ad-hoc | low if bootstrap from config | seed digest pattern
+ALS/MS independent measurability | HIGH | possible but ops weak | strong | strong | §194
+Duplication of W1-P01 | HIGH | N/A | risk if reinvent | low if reuse KG/WKR/I5GD | models.py
+
+DECISION_SCORE =
+  A rejected: cannot host weekly operational evidence or gap/run integration
+  B rejected: fights existing YAML catalog pattern; harder review of 19-entity taxonomy; identity drift risk
+  C selected: repository evidence favors hybrid
+`
+
+### ۱۹۵.۶ SELECTED STORAGE ARCHITECTURE = HYBRID
+
+`	ext
+STORAGE_ARCHITECTURE = HYBRID
+
+GOVERNED_CONFIG_OWNS =
+  canonical_domain_id D01–D19
+  names EN/FA, aliases
+  entity_type, parent_taxonomy, cross_domain_links
+  required subdomains / knowledge dimensions (incl ALS-T01..T27, MS-T01..T27)
+  priority defaults (ALS P0-CRITICAL, MS P0-HIGH)
+  closure criteria versions
+  monitoring_policy_level defaults
+  product metadata (ALS founder-priority rationale) SEPARATE from clinical fields
+  required international source-authority classes (not Iran clinical)
+  Iran local-service requirement checklist (services only)
+
+DATABASE_OWNS =
+  entity registry rows keyed to config IDs
+  immutable entity specification versions + canonical_hash
+  operational coverage/freshness/safety/runtime states
+  per-dimension operational states (mandatory for ALS/MS)
+  derived scores and gap aggregates (persisted after governed recompute)
+  review/approval pointers via I5GovernanceDecision
+  weekly-run scope hashes referencing Manifest version
+  KnowledgeGap rows for Manifest-linked gaps
+
+REJECTED =
+  GOVERNED_CONFIG_ONLY — insufficient for weekly ops/audit/runtime
+  DATABASE_ONLY — insufficient reviewability; conflicts with catalog pattern
+`
+
+### ۱۹۵.۷ Reuse / extend / new ledger
+
+`	ext
+REUSED TABLES (no Manifest responsibility change) =
+  governed_source_profile_versions
+  weekly_knowledge_run_attempts
+  weekly_run_source_results
+  weekly_run_gap_results
+
+EXTENDED TABLES =
+  knowledge_gaps
+    — domain MUST accept canonical_domain_id (e.g. D18)
+    — subdomain MUST accept dimension_id (e.g. ALS-T07) when applicable
+    — no new reopened_from_gap_id; reopen keeps canonical_gap_key
+  weekly_knowledge_runs
+    — domain_scope_hash / config_hash MUST be able to pin Manifest entity-version set
+  i5_governance_decisions
+    — extend allowed entity_type/family matrices for Manifest approvals
+  governed_source_profiles
+    — remains source spine; optional future binding via decisions/gaps; NOT Manifest store
+
+NEW TABLES =
+  1) i5_coverage_manifest_entities
+  2) i5_coverage_manifest_entity_versions
+  3) i5_coverage_manifest_operational_states
+  4) i5_coverage_manifest_dimension_states
+
+NEW CONFIG ARTIFACTS =
+  backend/config/i5/coverage_manifest_v1.yaml
+  (optional companion) backend/config/i5/coverage_manifest_v1.schema.md OR loader module later
+
+REUSED CONFIG PATTERN =
+  gate3h trusted_source_catalog_v1.yaml review/PR discipline
+
+NO_DUPLICATION =
+  do not create parallel gap/run/decision tables
+`
+
+### ۱۹۵.۸ Model/table Design Freeze (future authoring)
+
+`	ext
+TABLE 1 = i5_coverage_manifest_entities
+  purpose = stable registry identity for D01–D19
+  PK = id Identity
+  columns =
+    canonical_domain_id String(16) NOT NULL UNIQUE  -- D01..D19
+    entity_type String(64) NOT NULL  -- BROAD_DOMAIN_FAMILY | DISEASE_PRIORITY_TRACK
+    track_id String(32) NULL  -- ALS-TRACK | MS-TRACK | NULL
+    priority String(32) NOT NULL
+    parent_taxonomy String(256) NOT NULL
+    monitoring_policy_level String(32) NOT NULL
+    current_version_id INT NULL FK → entity_versions.id RESTRICT
+    product_metadata_ref String(128) NULL  -- non-clinical pointer only
+    created_at / updated_at / row_version
+  immutable after bootstrap = canonical_domain_id, entity_type, track_id
+  deletion = RESTRICT / soft-archive only; no hard delete of ALS/MS
+
+TABLE 2 = i5_coverage_manifest_entity_versions
+  purpose = immutable governed specification snapshot
+  PK = id
+  columns =
+    entity_id FK entities RESTRICT
+    version_ordinal INT NOT NULL  -- per-entity increasing
+    spec_schema_version String(32) NOT NULL default v1
+    canonical_payload Text NOT NULL  -- deterministic serialization of config slice
+    canonical_hash String(64) NOT NULL  -- SHA-256 lowercase hex
+    hash_algorithm String(32) NOT NULL default SHA-256
+    canonicalization_version String(32) NOT NULL default v1
+    name_en / name_fa / aliases_json_or_text
+    required_dimensions_count INT NOT NULL
+    closure_criteria_version String(32) NOT NULL
+    approved_decision_id INT NULL FK i5_governance_decisions RESTRICT
+    created_at
+  UNIQUE (entity_id, version_ordinal)
+  UNIQUE (entity_id, canonical_hash) optional if same content re-approved — PREFER allow non-unique hash across entities; UNIQUE (entity_id, version_ordinal) required
+  supersession = new version row; pointer current_version_id updates via governed apply
+  no in-place mutation of payload/hash
+
+TABLE 3 = i5_coverage_manifest_operational_states
+  purpose = current measurable operational state (1:1 entity)
+  PK = id
+  UNIQUE entity_id
+  columns =
+    entity_id FK UNIQUE RESTRICT
+    based_on_version_id FK entity_versions RESTRICT
+    coverage_state String(32) NOT NULL default UNKNOWN
+    structural_coverage_score / evidence / safety / freshness / runtime / overall  Numeric or Float NULL until computed
+    coverage_score_method String(32) NOT NULL
+    freshness_state String(32) NOT NULL default UNKNOWN
+    evidence_strength String(32) NOT NULL default UNGRADED
+    source_diversity_state String(32) NOT NULL
+    conflict_state String(32) NOT NULL default NONE
+    retraction_state String(32) NOT NULL default NONE
+    safety_state String(32) NOT NULL default UNKNOWN
+    runtime_eligibility String(32) NOT NULL default NOT_ELIGIBLE
+    knowledge_gap_count INT NOT NULL default 0
+    highest_open_gap_priority String(32) NULL
+    last_evidence_update_at DateTime NULL
+    next_review_at DateTime NULL
+    last_recompute_run_id FK weekly_knowledge_runs NULL RESTRICT
+    owner_role / reviewer_role String
+    updated_at / row_version
+  HARD RULES =
+    existence ≠ ELIGIBLE
+    COVERED forbidden if critical safety missing
+    ALS: if any ALS critical dimension incomplete → runtime_eligibility cannot be ELIGIBLE / RUNTIME COMPLETE
+
+TABLE 4 = i5_coverage_manifest_dimension_states
+  purpose = independent dimension measurability (mandatory ALS/MS; used for D01–D17 KU requirements)
+  PK = id
+  UNIQUE (entity_id, dimension_id)
+  columns =
+    entity_id FK RESTRICT
+    dimension_id String(32) NOT NULL  -- ALS-T07 / MS-T10 / D01-KU-redflags
+    criticality String(32) NOT NULL  -- CRITICAL | STANDARD
+    coverage_state String(32) NOT NULL default UNKNOWN
+    freshness_state String(32) NOT NULL default UNKNOWN
+    safety_state String(32) NOT NULL default UNKNOWN
+    evidence_strength String(32) NOT NULL default UNGRADED
+    runtime_eligibility String(32) NOT NULL default NOT_ELIGIBLE
+    open_gap_count INT NOT NULL default 0
+    last_evidence_update_at DateTime NULL
+    next_review_at DateTime NULL
+    updated_at / row_version
+  ALS critical dimensions = frozen §194 list; fail-closed aggregate
+
+INDEXES (minimum) =
+  entities(priority), entities(entity_type)
+  operational(coverage_state), operational(runtime_eligibility), operational(next_review_at)
+  dimensions(entity_id, coverage_state), dimensions(criticality, runtime_eligibility)
+
+RELATIONSHIPS ORM = 0 preferred (match W1-P01 style) unless later justified
+JSON BLOBS = REJECTED for states/scores; structured columns required
+`
+
+### ۱۹۵.۹ ALS / MS independent operational ledgers
+
+`	ext
+ALS =
+  canonical_domain_id = D18
+  track_id = ALS-TRACK
+  priority = P0-CRITICAL
+  27 dimension_states ALS-T01..T27 mandatory rows after bootstrap
+  independent coverage/freshness/safety/runtime/gaps/reviews/sources
+  founder rationale = product_metadata_ref ONLY (not clinical KU)
+  evidence standards unchanged by founder priority
+
+MS =
+  canonical_domain_id = D19
+  track_id = MS-TRACK
+  priority = P0-HIGH
+  27 dimension_states MS-T01..T27 mandatory
+  independent ledgers; MUST NOT merge with ALS or Neurology aggregate-only score
+
+QUERY REQUIREMENT =
+  list/get ALS and MS states without joining aggregated Neurology rollups
+`
+
+### ۱۹۵.۱۰ Enum / vocabulary Design Freeze (do not edit now)
+
+`	ext
+REUSE =
+  RuntimeEligibility (map Manifest runtime; values already fit)
+  KnowledgeGapType/Status/Priority/Severity/Urgency
+  Weekly* and Run* enums
+  GovernanceActorType / DecisionOutcome
+
+EXTEND =
+  GovernanceEntityType += COVERAGE_MANIFEST_ENTITY | COVERAGE_MANIFEST_ENTITY_VERSION | COVERAGE_MANIFEST_DIMENSION
+  GovernanceDecisionFamily += COVERAGE_MANIFEST | COVERAGE_RUNTIME_ELIGIBILITY
+  GovernanceDecisionType += MANIFEST_SPEC_APPROVAL | MANIFEST_BOOTSTRAP_APPLY | MANIFEST_RUNTIME_ELIGIBILITY | MANIFEST_COVERAGE_STATE_APPROVAL | MANIFEST_CONFLICT_RESOLUTION | MANIFEST_RETRACTION_HANDLING | MANIFEST_PRIORITY_OVERRIDE | MANIFEST_CLOSURE_APPROVAL
+  (exact members finalized at authoring; matrices must be updated with checks)
+
+NEW ENUM CLASSES (in i5/enums.py later) =
+  ManifestEntityType = BROAD_DOMAIN_FAMILY | DISEASE_PRIORITY_TRACK
+  ManifestCoverageState = UNKNOWN|MISSING|INSUFFICIENT|STALE|CONFLICTED|PARTIAL|COVERED
+  ManifestFreshnessState = UNKNOWN|CURRENT|APPROACHING_REVIEW|STALE|SUPERSEDED|RETRACTED_CONTEXT
+  ManifestEvidenceStrength = UNGRADED|LOW|MODERATE|HIGH|GUIDELINE_BACKED|CONFLICTED
+  ManifestSourceDiversityState = UNKNOWN|SINGLE_SOURCE|MULTI_SOURCE|INSUFFICIENT_DIVERSITY
+  ManifestConflictState = NONE|DETECTED|UNDER_REVIEW|UNRESOLVED_BLOCKING
+  ManifestRetractionState = NONE|PARTIAL|FULL|SUPERSEDED_AFTER_RETRACTION
+  ManifestSafetyState = UNKNOWN|SAFE_FOR_EDUCATION|RESTRICTED|BLOCKED
+  ManifestPriorityTier = P0_CRITICAL|P0_HIGH|P1_HIGH|P2_STANDARD|P3_EXPANSION
+    — NOTE: gap priority remains P0..P3; Manifest priority tiers are DISTINCT vocab
+  ManifestMonitoringPolicyLevel = STANDARD|ENHANCED|P0_CRITICAL
+  ManifestDimensionCriticality = CRITICAL|STANDARD
+  ManifestReviewStatus / ManifestApprovalStatus if not fully covered by I5GD
+
+FORWARD_COMPAT =
+  additive enum members only; no silent renames
+  DB check constraints via _vocab_sql pattern
+`
+
+### ۱۹۵.۱۱ Canonical identity and hash contract
+
+`	ext
+ENTITY_ID_FORMAT = ^D(0[1-9]|1[0-9])$  -- D01..D19
+DIMENSION_ID_FORMAT =
+  ALS-T(0[1-9]|1[0-9]|2[0-7])
+  MS-T(0[1-9]|1[0-9]|2[0-7])
+  Dxx-KU-[a-z0-9_]{2,64} for broad-domain KU requirements
+ALIAS_RULES = aliases are non-authoritative; canonical_domain_id immutable
+NAMING_AUTHORITY = config EN/FA; governance-controlled updates via new entity_version
+CANONICAL_PAYLOAD = deterministic UTF-8 JSON object with sorted keys; LF; no insignificant whitespace variance
+HASH = SHA-256 lowercase hex 64
+canonical_hash NON-UNIQUE globally where identical payload reuse valid across versions/entities as needed
+IDEMPOTENCY =
+  bootstrap apply key unique per (env, manifest_spec_version, apply_request_key)
+  governance uses existing (entity_type, entity_id, decision_request_key)
+  do NOT reuse decision-request uniqueness for bootstrap incorrectly
+VERSION_IDENTITY = (entity_id, version_ordinal)
+DUPLICATE_DETECTION = canonical_domain_id unique; dimension unique per entity
+RENAME = forbidden for canonical_domain_id; aliases may change in new version
+MERGE/SPLIT = new Javad approval + new version(s); no silent merge of ALS/MS
+SUPERSESSION = pointer move to new entity_version after approved apply
+`
+
+### ۱۹۵.۱۲ Coverage / freshness / safety / runtime state storage
+
+`	ext
+SOURCE_OF_TRUTH =
+  structural requirements → config + entity_version
+  operational states → operational_states + dimension_states
+  gap counts / highest priority → DERIVED from KnowledgeGap then PERSISTED on recompute
+  runtime_eligibility → PERSISTED; write authority = governance service after checks
+  weekly updates → recompute triggered by successful attempt completion (not activation)
+
+COMPUTED_VS_PERSISTED =
+  scores computed by governed method version then persisted
+  COVERED/ELIGIBLE never auto-set from entity existence
+
+FAIL_CLOSED =
+  UNRESOLVED_BLOCKING conflict → NOT_ELIGIBLE
+  BLOCKED safety → NOT_ELIGIBLE
+  ALS critical dimension miss → NOT_ELIGIBLE
+  missing based_on_version_id → NOT_ELIGIBLE
+`
+
+### ۱۹۵.۱۳ Bootstrap / seed contract
+
+`	ext
+AUTHORITATIVE_BOOTSTRAP_SOURCE = backend/config/i5/coverage_manifest_v1.yaml
+MECHANISM = dedicated idempotent bootstrap service + CLI (pattern from legacy companion seed)
+REQUIRED =
+  dry-run default
+  digest of planned inserts/updates
+  diff preview
+  explicit confirm token for apply
+  refuse non-test/prod ambiguity; environment guard
+INITIAL_ROWS =
+  19 entities
+  version_ordinal=1 for each from config hash
+  operational_states coverage_state=UNKNOWN; runtime_eligibility=NOT_ELIGIBLE
+  dimension_states for all required dimensions (ALS 27 + MS 27 + D01–D17 KU set)
+IDEMPOTENCY = re-apply same digest = no-op / safe
+ROLLBACK = compensating governance correction + new version; no silent destructive wipe
+NO_SEED_IN_THIS_GATE = YES
+`
+
+### ۱۹۵.۱۴ KnowledgeGap integration
+
+`	ext
+domain = canonical_domain_id (D18/D19/D01...)
+subdomain = dimension_id when dimension-scoped; else NULL/broad KU code
+canonical_gap_key = SHA-256 of canonical gap payload (existing pattern)
+gap_type uses existing KnowledgeGapType (INSUFFICIENT_COVERAGE/STALE/MISSING_SAFETY_REVIEW/...)
+priority = P0 for ALS critical gaps; P0/P1 for MS per severity mapping (Manifest P0-HIGH ≠ auto P0 gap always — map via policy)
+discovery via weekly attempt / manual governance
+dedup by canonical_gap_key
+reopen = status REOPENED on SAME canonical_gap_key (no reopened_from_gap_id)
+ALS/MS separately queryable via domain IN (D18)/(D19)
+`
+
+### ۱۹۵.۱۵ Weekly Run integration
+
+`	ext
+selection input = open gaps + stale operational/dimension states ordered by
+  1) ALS P0-CRITICAL dimensions
+  2) MS P0-HIGH dimensions
+  3) other P1 domains
+  4) remaining
+domain_scope_hash includes sorted Manifest entity_version hashes in scope
+per-run snapshot stores scope hashes only (existing columns)
+attempt evidence via WKRA; source/gap results unchanged tables
+coverage recomputation trigger = after attempt terminal success/warning (service later)
+NO autonomous scheduler activation in Manifest authoring Gates
+`
+
+### ۱۹۵.۱۶ Governance decision integration
+
+`	ext
+I5GD governs =
+  manifest entity/version approval
+  bootstrap apply
+  coverage-state approval
+  runtime eligibility
+  conflict resolution
+  retraction handling
+  priority override
+  closure approval
+  source-authority assignment decisions targeting SOURCE_PROFILE linked to Manifest entity via decision payload / future binding
+UQ preserved = (entity_type, entity_id, decision_request_key)
+canonical_payload mismatch = reject apply / fail-closed (existing W1-P01 rule family)
+entity_id for Manifest rows = string form of canonical_domain_id or numeric id policy:
+  FREEZE = use stable string canonical_domain_id in entity_id column where entity_type is Manifest*
+  (consistent length ≤ existing entity_id column constraints — verify at authoring)
+`
+
+### ۱۹۵.۱۷ Runtime query / eligibility contract
+
+`	ext
+FUTURE_QUERIES =
+  get/list entities by priority
+  get ALS / get MS
+  list critical open gaps
+  list stale domains
+  list runtime-eligible domains
+  resolve dimension requirements
+  verify grounding eligibility for answer pipeline (later W4)
+
+OWNER = internal domain service first; NO public API in first authoring phases
+HYBRID MERGE = DB operational + config requirements; config miss = fail-closed
+CACHE = optional later; must not override fail-closed
+AUTHZ = admin/governance roles; runtime read separate from mutate
+DTO boundary = no raw ORM leakage
+`
+
+### ۱۹۵.۱۸ Admin / service / API boundary
+
+`	ext
+PHASE_1 MODULES (create later) =
+  backend/config/i5/coverage_manifest_v1.yaml
+  backend/app/services/i5/coverage_manifest_loader.py
+  backend/app/services/i5/coverage_manifest_bootstrap.py
+  backend/app/services/i5/coverage_manifest_recompute.py
+  backend/app/services/i5/coverage_manifest_queries.py
+
+PHASE_2 =
+  governance wiring extensions in services/governance/*
+  optional admin router ONLY after storage+bootstrap validated
+  NO public chatbot grounding API until W4 Gate
+
+PROTECTED =
+  do not overload knowledge_base.py / knowledge_admin.py for Manifest
+`
+
+### ۱۹۵.۱۹ Test boundary
+
+`	ext
+FUTURE_TESTS (new file primary) =
+  backend/tests/test_section15_i5_coverage_manifest_contracts.py
+OPTIONAL helper =
+  backend/tests/helpers/coverage_manifest_builders.py
+
+CATEGORIES =
+  config schema validation; identity/hash; model metadata; bootstrap idempotency;
+  19-entity population; ALS/MS independence; coverage compute; fail-closed eligibility;
+  KG integration; weekly selection inputs; governance matrices; runtime queries;
+  migration parity; PG constraints; W1-P01 regression untouched
+
+POSTGRESQL_ONLY = constraint/IntegrityError/partial behaviors if any PG-specific SQL
+CI_INCLUSION = separate approval after authoring
+W1-P01 TEST AUTHORING IMPLEMENTATION-01 = READY BUT NOT AUTHORIZED (parallel; do not mix allowlists)
+`
+
+### ۱۹۵.۲۰ Migration / PostgreSQL / CI boundaries
+
+`	ext
+PREREQ =
+  W1-P01 weekly/gap/governance tables must be migrated (or ordered) before Manifest FKs to them
+  current alembic head = 051 GSP only — Manifest migration is NOT next until W1-P01 mig Gate sequencing decided
+RECOMMENDED ORDER =
+  1) W1-P01 migration for NEW6 tables (separate Gate)
+  2) Manifest models authored
+  3) Manifest migration after W1-P01 mig present OR combined only if explicitly approved
+BOOTSTRAP vs MIGRATION =
+  migration creates empty tables
+  bootstrap populates 19 entities (not raw SQL in migration preferred)
+PG VALIDATION = create/upgrade on isolated TEST_DATABASE_URL; production refusal
+DOWNGRADE = drop Manifest tables only; never drop W1-P01/GSP
+CI = ci-backend-tests.yml; add Manifest tests only after workflow-edit approval; no dispatch now
+`
+
+### ۱۹۵.۲۱ Minimal implementation file allowlist (future Gates)
+
+`	ext
+SOURCE_CREATE =
+  backend/app/services/i5/coverage_manifest_loader.py (required)
+  backend/app/services/i5/coverage_manifest_bootstrap.py (required)
+  backend/app/services/i5/coverage_manifest_recompute.py (required phase1b)
+  backend/app/services/i5/coverage_manifest_queries.py (required phase1b)
+
+SOURCE_MODIFY =
+  backend/app/models.py — ADD 4 Manifest models only; do not alter W1-P01 contracts except minimal Governance check-matrix extensions tied to new entity types
+  backend/app/services/i5/enums.py — ADD new enums + EXTEND Governance* members as frozen
+  backend/app/services/governance/* — ONLY as needed for matrices/adapters (narrow diffs)
+
+CONFIG_CREATE =
+  backend/config/i5/coverage_manifest_v1.yaml (required)
+
+TEST_CREATE =
+  backend/tests/test_section15_i5_coverage_manifest_contracts.py (required)
+  backend/tests/helpers/coverage_manifest_builders.py (optional)
+
+MIGRATION_CREATE =
+  backend/alembic/versions/0xx_i5_coverage_manifest.py (required after sequencing Gate)
+
+PROTECTED_FROM_CHANGE_IN_MANIFEST_AUTHORING =
+  W1-P01 column/check/UQ contracts except documented governance matrix extensions
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py lane (separate Gate)
+  conftest.py / test_db_config.py unless proven blocker
+  CI workflows (separate approval)
+  crawler/activation/API public routes
+`
+
+### ۱۹۵.۲۲ Implementation sequencing
+
+`	ext
+RECOMMENDED =
+  1) config/spec artifact authoring (coverage_manifest_v1.yaml + loader)
+  2) enum vocabulary authoring
+  3) model authoring (4 tables + governance matrix extensions)
+  4) static re-audit
+  5) Manifest test authoring
+  6) import/mapper validation
+  7) W1-P01 migration Gate (if still absent) — dependency
+  8) Manifest migration authoring
+  9) PostgreSQL validation
+  10) bootstrap dry-run/apply on test DB
+  11) CI path inclusion approval
+  12) commit/push (separate approvals)
+  13) service/runtime integration
+  14) activation (separate)
+
+PARALLEL_WITHOUT_FILE_OVERLAP =
+  W1-P01 TEST AUTHORING IMPLEMENTATION-01  ||  Manifest config/spec authoring
+  (stop if both need models.py concurrently)
+
+REJECTED_AS_FIRST =
+  migration-first before models/spec
+  DB-only bootstrap without config authority
+`
+
+### ۱۹۵.۲۳ Findings and risks
+
+`	ext
+F-CM-SCOPE-01 | MAJOR | migration sequencing
+  evidence = alembic head 051; W1-P01 NEW6 ORM unmigrated
+  impact = Manifest FKs to weekly/gap/decisions unsafe until W1-P01 mig exists
+  resolution = sequence W1-P01 migration Gate before/with Manifest mig
+  approval = YES for migration Gates
+
+F-CM-SCOPE-02 | MAJOR | config/DB drift
+  mitigation = bootstrap digest + entity_version canonical_hash must match config slice
+
+F-CM-SCOPE-03 | MAJOR | coverage overclaim
+  mitigation = initial UNKNOWN + NOT_ELIGIBLE; COVERED requires evidence+safety
+
+F-CM-SCOPE-04 | MAJOR | ALS/MS aggregation regression
+  mitigation = independent dimension_states + query requirements
+
+F-CM-SCOPE-05 | MAJOR | runtime eligibility bypass
+  mitigation = fail-closed rules; no existence⇒eligible
+
+F-CM-SCOPE-06 | MINOR | JSON overuse temptation
+  mitigation = structured columns frozen; reject state blobs
+
+F-CM-SCOPE-07 | MAJOR | governance entity_id string policy
+  resolution = confirm column width at authoring for canonical_domain_id
+
+F-CM-SCOPE-08 | INFO | parallel W1-P01 test lane
+  keep allowlists separate
+`
+
+### ۱۹۵.۲۴ Verdict
+
+`	ext
+I5_COVERAGE_MANIFEST_IMPLEMENTATION_SCOPE_REVIEW = PASS
+STORAGE_ARCHITECTURE = HYBRID
+REUSE_EXTEND_NEW_LEDGER = FROZEN
+MODEL_TABLE_CONTRACT = FROZEN
+ENUM_VOCABULARY_CONTRACT = FROZEN
+CANONICAL_IDENTITY_HASH_CONTRACT = FROZEN
+ALS_INDEPENDENT_OPERATIONAL_LEDGER = FROZEN
+MS_INDEPENDENT_OPERATIONAL_LEDGER = FROZEN
+BOOTSTRAP_CONTRACT = FROZEN
+KNOWLEDGE_GAP_INTEGRATION_CONTRACT = FROZEN
+WEEKLY_RUN_INTEGRATION_CONTRACT = FROZEN
+GOVERNANCE_DECISION_INTEGRATION = FROZEN
+RUNTIME_QUERY_ELIGIBILITY_CONTRACT = FROZEN
+TEST_MIGRATION_DB_CI_BOUNDARIES = FROZEN
+MINIMAL_IMPLEMENTATION_ALLOWLIST = FROZEN
+READY_FOR = I5 COVERAGE MANIFEST IMPLEMENTATION AUTHORING-01
+PARALLEL_READY_GATE = W1-P01 TEST AUTHORING IMPLEMENTATION-01
+NEXT_GATES_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+`
+
+### ۱۹۵.۲۵ Continuity
+
+`	ext
+CREATE_v485 = AUTHORIZED / AFTER THIS APPEND
+MOVE_v484_TO_HISTORICAL = AUTHORIZED / AFTER v485 VERIFY
+`
+
+---
+
+*پایان بند ۱۹۵ — I5 COVERAGE MANIFEST IMPLEMENTATION SCOPE REVIEW — PASS — HYBRID — بدون-پیاده‌سازی — بدون-کامیت*
+
+
+## ۱۹۶) W1-P01 TEST AUTHORING IMPLEMENTATION، STATIC AUDIT AND DUAL-CONTINUITY SYNC
+
+### ۱۹۶.۱ Gate authorization and automatic-execution law
+
+```text
+GATE = W1-P01 TEST AUTHORING IMPLEMENTATION-01
+DATE_TIME = 2026-08-04T01:38:43-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+TEST_AUTHORING_PERFORMED = YES
+TESTS_RUN = NO
+TEST_COLLECTION_RUN = NO
+PYTHON_APP_IMPORT_EXECUTED = NO
+SQLALCHEMY_MAPPER_EXECUTED = NO
+DATABASE_ACCESSED = NO
+```
+
+### ۱۹۶.۲ Baseline and identities (pre-mutation)
+
+```text
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGING = EMPTY
+PRE_DIRTY =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/__init__.py
+  ?? backend/app/services/i5/enums.py
+models/enums/init = protected MATCH
+PRE_LOG = 2416274 / 36f32a26e2aaa14e77aa7924dfb07614139e49c745b10e1657af2ecc23111e97 / tip §195
+PRE_AUTH = v485 only / 3256250 / 67fead61319140995641895b190c6d0c47254f8ac0c5c1d6eefc103157463a49
+TARGET_COLLISION = NO
+```
+
+### ۱۹۶.۳ Frozen contract reconstruction (test basis)
+
+```text
+EXTENDED=1 REUSED=1 NEW=6 TOTAL=8
+GSP_ADDITIVE=13
+COLS = KG39 WKR28 WKRA33 WRSR21 WRGR8 I5GD20
+ENUMS=19 CHECKS=70 FK=9+4 UQ=8 PARTIAL=3 IX=29 REL=0
+FORBIDDEN = decision_id on results; reopened_from_gap_id
+DECISION_UQ = (entity_type, entity_id, decision_request_key) WITHOUT decision_type
+canonical_hash alone NOT unique
+```
+
+### ۱۹۶.۴ Created files
+
+```text
+PRIMARY = backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  SIZE = 67503
+  SHA256 = 5fea1e015b4755c891fb86319728d40e98839de3287024835d64d08319d7892a
+  EOL = CRLF_ONLY
+OPTIONAL_HELPER = backend/tests/helpers/w1p01_orm_builders.py
+OPTIONAL_HELPER_CREATED = NO
+OPTIONAL_HELPER_NECESSITY = NOT_NEEDED
+REASON = in-file builders + parametrized T7 matrix remain readable; no material duplication forcing helper
+```
+
+### ۱۹۶.۵ T1–T10 authoring + T11 deferral
+
+```text
+T1_IMPORT_SMOKE_AUTHORED = YES
+T2_MAPPER_AUTHORED = YES
+T3_METADATA_CONTRACT_AUTHORED = YES
+T4_DESIGN_FREEZE_REGRESSION_AUTHORED = YES
+T5_POSTGRESQL_DDL_AUTHORED = YES
+T6_POSITIVE_ROWS_AUTHORED = YES
+T7_NEGATIVE_CHECKS_AUTHORED = YES (parametrized; all 70 named checks mapped)
+T8_FK_UQ_PARTIAL_UQ_AUTHORED = YES
+T9_LIFECYCLE_IDENTITY_AUTHORED = YES
+T10_GSP_GSPV_REGRESSION_AUTHORED = YES
+T11_MIGRATION_PARITY = DEFERRED
+FROZEN_CONTRACT_MAPPING = COMPLETE
+Coverage Manifest / ALS-MS source NOT mixed into W1-P01 tests
+```
+
+### ۱۹۶.۶ Static audit
+
+```text
+STATIC_AST_PARSE = PASS
+GIT_DIFF_CHECK = PASS
+BOM = ABSENT
+NUL = 0
+EOL = CRLF_ONLY (matches existing Section15 ORM tests)
+LANGUAGE_SERVER_DIAGNOSTICS = NOT_RUN_AS_BLOCKER / AST_PASS
+SELF_HEALING =
+  replaced non-deterministic secrets.token_hex with _det_hex
+  strengthened T3_06 postgresql_where assertion
+  T5_01 uses Base.metadata.tables (no live catalog listing beyond fixture world)
+```
+
+### ۱۹۶.۷ Findings
+
+```text
+NONE_BLOCKING
+NOTE = PostgreSQL execution / collection remain unauthorized
+NOTE = W1-P01 migration still absent at alembic 051 — T5/T6–T8 need later execution Gate on isolated PG after create_all
+```
+
+### ۱۹۶.۸ Verdict
+
+```text
+W1_P01_TEST_AUTHORING_IMPLEMENTATION = PASS
+PRIMARY_TEST_FILE_CREATED = YES
+OPTIONAL_HELPER_CREATED = NO
+T1_TO_T10_AUTHORED = YES
+T11_MIGRATION_PARITY = DEFERRED
+STATIC_SYNTAX_AUDIT = PASS
+PROTECTED_FILES_MUTATED = NO
+READY_FOR = W1-P01 TEST AUTHORING STRICT READ-ONLY RE-AUDIT-01
+NEXT_GATE_AUTHORIZED = NO
+COVERAGE_MANIFEST_IMPLEMENTATION_AUTHORING_READY = YES
+COVERAGE_MANIFEST_IMPLEMENTATION_AUTHORING_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+### ۱۹۶.۹ Continuity
+
+```text
+CREATE_v486 = AUTHORIZED / AFTER THIS APPEND
+MOVE_v485_TO_HISTORICAL = AUTHORIZED / AFTER v486 VERIFY
+```
+
+---
+
+*پایان بند ۱۹۶ — W1-P01 TEST AUTHORING IMPLEMENTATION — PASS — بدون-اجرای تست — بدون-کامیت*
+
+## ۱۹۷) W1-P01 TEST AUTHORING FINAL STATIC CLOSURE
+
+### ۱۹۷.۱ Gate authorization and automatic-execution law
+
+```text
+GATE = W1-P01 TEST AUTHORING FINAL RE-AUDIT RESULT DOCUMENTATION SYNC-01
+DATE_TIME = 2026-08-04T09:04:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+DOCUMENTATION_SYNC_ONLY = YES
+TESTS_RUN = NO
+TEST_COLLECTION_RUN = NO
+PYTHON_APP_IMPORT_EXECUTED = NO
+SQLALCHEMY_MAPPER_EXECUTED = NO
+DATABASE_ACCESSED = NO
+SOURCE_FILES_MUTATED = NO
+TEST_FILE_MUTATED = NO
+```
+
+### ۱۹۷.۲ Accepted Gate history
+
+```text
+W1-P01 TEST AUTHORING IMPLEMENTATION-01 = PASS (initial authoring)
+  INITIAL_IDENTITY = 67503 / 5fea1e015b4755c891fb86319728d40e98839de3287024835d64d08319d7892a / CRLF_ONLY
+
+W1-P01 TEST AUTHORING STRICT READ-ONLY RE-AUDIT-01 =
+  Cursor reported PASS
+  ChatGPT review DID NOT ACCEPT the PASS
+  RESULT_RECLASSIFIED = NEEDS_FIX
+  REVIEW_FINDINGS =
+    1) collection-scope application imports
+    2) incomplete runtime FK/UQ/partial-UQ negative coverage
+    3) incomplete FK/predicate precision
+    4) possible named-CHECK shadowing
+
+W1-P01 TEST AUTHORING MICRO-FIX-01 = NEEDS_FIX
+  INTERMEDIATE_IDENTITY = 82469 / 7e9003da2c4de91c51e9927df8afd041b0e0a1ae04d78de2e6d2a87425e0be31 / CRLF_ONLY
+  CLOSED =
+    collection-scope imports removed
+    simple FK runtime negatives 9/9
+    composite FK runtime negatives 4/4
+    ordinary UQ runtime negatives 8/8
+    partial UQ runtime negatives 3/3
+    exact FK metadata
+    exact partial predicates
+  RESIDUAL =
+    ck_i5gd_entity_family_matrix
+    could not be isolated as a deterministic first-failure IntegrityError
+    because of overlapping frozen constraints
+
+W1-P01 TEST AUTHORING MICRO-FIX-02 = PASS
+  introduced narrowly scoped SEMANTIC_EXCEPTION for ck_i5gd_entity_family_matrix
+  PRODUCTION_SCHEMA_CHANGED = NO
+
+W1-P01 TEST AUTHORING FINAL STRICT READ-ONLY RE-AUDIT-02 = PASS
+  FINAL_STATIC_AUTHORING_PASS accepted
+```
+
+### ۱۹۷.۳ Final test-file identity
+
+```text
+FINAL_TEST_FILE = backend/tests/test_section15_i5_w1p01_orm_contracts.py
+SIZE = 90041
+SHA256 = 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+EOL = CRLF_ONLY
+OPTIONAL_HELPER_CREATED = NO
+```
+
+### ۱۹۷.۴ Final collection-safety status (static source conclusion only)
+
+```text
+TOP_LEVEL_BACKEND_APP_IMPORTS = 0
+TOP_LEVEL_APPLICATION_IMPORT_CALLS = 0
+TOP_LEVEL_LAZY_LOADER_CALLS = 0
+COLLECTION_TIME_APP_IMPORT_RISK = NONE_FOUND
+NOTE = pytest collection was NOT executed in any authoring/re-audit/micro-fix Gate
+```
+
+### ۱۹۷.۵ Final frozen-contract coverage
+
+```text
+ENUMS = 19 / 19
+NAMED_CHECKS = 70 / 70
+SIMPLE_FK_METADATA = 9 / 9
+SIMPLE_FK_RUNTIME_NEGATIVES_AUTHORED = 9 / 9
+COMPOSITE_FK_METADATA = 4 / 4
+COMPOSITE_FK_RUNTIME_NEGATIVES_AUTHORED = 4 / 4
+ORDINARY_UNIQUE_METADATA = 8 / 8
+ORDINARY_UQ_RUNTIME_NEGATIVES_AUTHORED = 8 / 8
+PARTIAL_UNIQUE_METADATA = 3 / 3
+PARTIAL_UQ_RUNTIME_NEGATIVES_AUTHORED = 3 / 3
+QUERY_INDEXES = 29 / 29
+FK_METADATA_PRECISION = COMPLETE
+PARTIAL_PREDICATE_PRECISION = EXACT
+T1_TO_T10 = PRESERVED
+T11_MIGRATION_PARITY = DEFERRED
+```
+
+### ۱۹۷.۶ Final 69+1 CHECK policy
+
+```text
+ISOLATED_FIRST_FAILURE_CASES = 69 / 70
+DOCUMENTED_UNISOLATABLE_CASES = 1 / 70
+SEMANTIC_CHECK_CASES = 1 / 70
+TOTAL_NAMED_CHECK_COVERAGE = 70 / 70
+UNEXPLAINED_SHADOWED_CASES = 0
+AMBIGUOUS_CHECK_CASES = 0
+GENERIC_CHECK_WAIVER = ABSENT
+SOLE_SEMANTIC_EXCEPTION = ck_i5gd_entity_family_matrix
+AUTHORITATIVE_SIBLING_CHECK = ck_i5gd_decision_type_family_matrix
+NON_AUTHORITATIVE_SHORTHAND_NOT_USED = ck_i5gd_type_family_matrix
+OVERLAPPING_COMPOSITE_FK = fk_i5gd_supersedes_same_entity_family
+```
+
+### ۱۹۷.۷ Semantic-evaluator result
+
+```text
+ACTUAL_EXPRESSION_SOURCE = MODEL_METADATA
+EXPECTED_EXPRESSION_SOURCE = INDEPENDENT_TEST_AUTHORITY
+CIRCULAR_EXPRESSION_ASSERTION = NO
+SEMANTIC_EVALUATOR_INDEPENDENT = YES
+SEMANTIC_EVALUATOR_CIRCULAR = NO
+COMPLETE_ALLOWED_PAIR_MATRIX_REPRESENTED = YES
+VALID_SEMANTIC_TUPLE = (SOURCE_PROFILE, RIGHTS)
+INVALID_SEMANTIC_TUPLE = (SOURCE_PROFILE, GAP_LIFECYCLE)
+```
+
+### ۱۹۷.۸ Preserved critical rules
+
+```text
+decision unique boundary = (entity_type, entity_id, decision_request_key)
+decision_type excluded from DB unique tuple = YES
+canonical_hash not unique alone = YES
+forbidden generic decision_id absent from result tables = YES
+forbidden reopened_from_gap_id absent = YES
+Coverage Manifest contracts not mixed into W1-P01 test file = YES
+```
+
+### ۱۹۷.۹ Static closure boundary
+
+```text
+W1_P01_TEST_AUTHORING_STATIC_CLOSURE = PASS
+RUNTIME_VALIDATION = NOT YET EXECUTED
+NOT_EXECUTED_OR_PROVEN =
+  pytest collection
+  application import execution
+  SQLAlchemy mapper configuration
+  PostgreSQL DDL/create_all
+  positive-row runtime
+  negative constraint enforcement runtime
+  migration parity
+  CI
+```
+
+### ۱۹۷.۱۰ Operations not performed
+
+```text
+TESTS_RUN = NO
+TEST_COLLECTION_RUN = NO
+PYTHON_APP_IMPORT_EXECUTED = NO
+SQLALCHEMY_MAPPER_EXECUTED = NO
+DATABASE_ACCESSED = NO
+MIGRATION_CREATED_OR_RUN = NO
+SOURCE_FILES_MUTATED = NO
+CONFTEST_MUTATED = NO
+STAGE_COMMIT_PUSH = NO
+CI_DEPLOY_ACTIVATION = NO
+```
+
+### ۱۹۷.۱۱ Continuity actions of this Gate
+
+```text
+APPEND_§197 = YES
+CREATE_v487 = YES
+ARCHIVE_v486_TO_HISTORICAL = YES
+AUTHORITATIVE_COUNT_AFTER = 1
+AUTHORITY_AMBIGUITY = ZERO
+```
+
+### ۱۹۷.۱۲ Approval boundary
+
+```text
+NEXT_GATE_AUTHORIZED = NO
+PROPOSED_NEXT_GATE =
+  W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION SCOPE REVIEW-01
+NOTE = proposed successor recommendation only; not authorization to run collection,
+       imports, mappers, PostgreSQL, migration or CI
+v486_PRIOR_READY_FOR_CONTEXT =
+  W1-P01 TEST AUTHORING STRICT READ-ONLY RE-AUDIT-01 (historical; now superseded by final static closure)
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۱۹۷ — W1-P01 TEST AUTHORING FINAL STATIC CLOSURE — PASS — بدون-اجرای تست — بدون-کامیت*
+
+## ۱۹۸) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION SCOPE REVIEW-01-RERUN01
+
+### ۱۹۸.۱ Gate authorization and automatic-execution law
+
+```text
+GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION SCOPE REVIEW-01-RERUN01
+DATE_TIME = 2026-08-04T21:23:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_AFTER_GATE_APPROVAL = REQUIRED
+CURSOR_DUPLICATE_CONFIRMATION_REQUESTS = PROHIBITED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT READ-ONLY SOURCE INSPECTION + DOCUMENTATION-ONLY CONTINUITY UPDATE
+EXECUTABLE_VALIDATION = PROHIBITED
+```
+
+### ۱۹۸.۲ Prior blocked attempt (historical; not rewritten)
+
+```text
+PRIOR_GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION SCOPE REVIEW-01
+PRIOR_ATTEMPT_RESULT = BLOCKED_BASELINE_MISMATCH
+CURSOR_BEHAVIOR = COMPLIANT
+SOURCE_CODE_DEFECT = NO
+TEST_DEFECT = NOT ESTABLISHED
+REPOSITORY_DEFECT = NO
+ROOT_CAUSE =
+  LOCAL PRESENCE OF EXTERNAL v488 WAS INCORRECTLY TREATED AS
+  A REPOSITORY BASELINE PREREQUISITE
+SUPERSESSION =
+  This Rerun supersedes ONLY that incorrect local-v488 baseline requirement.
+  The prior blocked attempt remains historically recorded.
+```
+
+### ۱۹۸.۳ Corrected authority hierarchy
+
+```text
+PRIMARY_REPOSITORY_AUTHORITY =
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md tip §197
+  +
+  Sedi_Master_Handoff_Section33_W1P01_TestAuthoring_FinalStaticClosure_v487_FA.md
+
+EXTERNAL_CONTINUITY_FILE =
+  Sedi_NewChat_Master_Handoff_Section33_W1P01_StaticClosure_v488_FA.md
+SUPPLIED_SIZE = 22795
+SUPPLIED_SHA256 = 813c22154dba417a57c30d9d5b3acedacfd2a10f4de9545b4e948ec9eee05f28
+ROLE = COMPLETE NEW-CHAT CONTINUITY HANDOFF
+REPOSITORY_AUTHORITATIVE = NO
+LOCAL_PRESENCE_REQUIRED = NO
+LOCAL_BYTE_VERIFICATION = NOT_PERFORMED (file absent locally; non-blocking)
+```
+
+### ۱۹۸.۴ Preflight and baseline reconciliation
+
+```text
+SEDI_V1_ROOT = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+ACTIVE_WORKSPACE = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+GIT_COMMON_DIR = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\git-root\.git
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+INDEX_LOCK = ABSENT
+WORKTREES = 6
+
+KNOWN_EXPLAINED_DIRTY =
+  M  backend/app/models.py
+  M  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/
+  ?? backend/tests/test_section15_i5_w1p01_orm_contracts.py
+
+UNEXPLAINED_DIRTY = NONE
+
+v487 =
+  SIZE = 3263354
+  SHA256 = 473d25a3cd5ef093f33160c79cd06a7471b2ac1ee9d6123c146e34413736f361
+  EOL = LF_ONLY
+  MATCH_EXPECTED = YES
+
+MASTER_LOG_PRE =
+  TIP = §197 (count=1)
+  SIZE = 2426745
+  SHA256 = 396378a4624da753accb5cbaccc719bd0e29b9903291de30bd1aed5ef6fa1b8c
+  EOL = CRLF_ONLY
+
+TEST_FILE =
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  SIZE = 90041
+  SHA256 = 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+  EOL = CRLF_ONLY
+  CHECK_POLICY = 69 isolated + 1 semantic = 70
+
+MODELS =
+  SIZE = 96954
+  SHA256 = 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+  RECONCILED_WITH_§197_AND_v487 = YES
+
+i5 =
+  __init__.py 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+  enums.py 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+```
+
+### ۱۹۸.۵ Files inspected (read-only)
+
+```text
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+references/authoritative/...FinalStaticClosure_v487_FA.md
+backend/app/models.py
+backend/app/database.py
+backend/app/__init__.py
+backend/app/main.py (import/scheduler surface)
+backend/app/services/i5/__init__.py
+backend/app/services/i5/enums.py
+backend/tests/test_section15_i5_w1p01_orm_contracts.py
+backend/tests/conftest.py
+backend/tests/test_db_config.py
+pytest.ini
+backend/.env.example (path presence only; secrets not printed)
+```
+
+### ۱۹۸.۶ Pytest collection static analysis
+
+```text
+WORKING_DIRECTORY = workspace root
+FOCUSED_TARGET = backend/tests/test_section15_i5_w1p01_orm_contracts.py
+PYTEST_INI = workspace/pytest.ini (testpaths=backend/tests; addopts=-ra)
+CONFTEST_CHAIN_IF_DEFAULT =
+  backend/tests/conftest.py LOADS AT IMPORT TIME:
+    import backend.app
+    import backend.app.database  (load_dotenv + create_engine)
+    import backend.app.main      (routers + conditional start_scheduler)
+    create_engine(get_test_database_url()) as _TEST_ENGINE
+    session autouse fixture _create_drop_all -> create_all/drop_all (fixture body;
+      not executed under --collect-only, but module import still occurs)
+DEFAULT_COLLECTION_WITHOUT_NOCONFTEST = UNSAFE_FOR_THIS_GATE_CONTRACT
+SAFE_COLLECTION_POLICY =
+  --noconftest REQUIRED
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 REQUIRED
+TEST_MODULE_TOP_LEVEL_BACKEND_APP_IMPORTS = 0 (AST-proven)
+_load_w1p01 MODULE_LEVEL_CALLS = 0
+COLLECTION_WITH_SAFE_FLAGS_APP_IMPORT_RISK = NONE_FOUND (static)
+```
+
+### ۱۹۸.۷ Controlled test-module import static analysis
+
+```text
+CANONICAL_IMPORT = backend.tests.test_section15_i5_w1p01_orm_contracts
+METHOD = importlib.import_module (preferred over path file load)
+TRANSITIVE_EXPECTED =
+  pytest, sqlalchemy (+dialects/exc/orm/schema), stdlib only at import
+  backend.app.models / backend.app.database NOT imported until _load_w1p01()
+ENV_READS_AT_IMPORT = NONE observed in test module source
+ENGINE_AT_IMPORT = NO
+DB_NETWORK_AT_IMPORT = NO (static)
+FILESYSTEM_WRITES_AT_IMPORT = NO (static)
+SUBPROCESS_ISOLATION = REQUIRED
+```
+
+### ۱۹۸.۸ Application-model import static analysis
+
+```text
+CANONICAL_IMPORT = backend.app.models
+IMPORT_ORDER =
+  1) install DB/network refusal patches
+  2) set minimal validation env (DATABASE_URL sentinel already set; load_dotenv will not override)
+  3) importlib.import_module("backend.app.models")
+  4) importlib.import_module("backend.app.services.i5.enums") (also pulled by models)
+database.py SIDE_EFFECTS_AT_IMPORT =
+  load_dotenv()
+  os.getenv DATABASE_URL (default localhost sedi_db if unset)
+  create_engine(...)  — connection-lazy; pool_pre_ping only on checkout
+  sessionmaker bind; Base = declarative_base()
+IMPLICIT_CONNECT_RISK = LOW if Engine.connect / DBAPI.connect intercepted
+MODEL_REGISTRY = single module backend.app.models registers all ORM classes on Base
+ADDITIONAL_MODEL_MODULES_REQUIRED = NONE identified for W1-P01
+CIRCULAR_IMPORT_RISK = enums is stdlib-only; models imports Base + enums (acceptable)
+```
+
+### ۱۹۸.۹ configure_mappers static analysis
+
+```text
+SAFE_SEQUENCE =
+  patches + env
+  import backend.app.models
+  import backend.app.services.i5.enums
+  sqlalchemy.orm.configure_mappers()
+DB_INDEPENDENT = YES (mapper config does not require live DB)
+RELATIONSHIP_TARGETS = resolvable within models.py registry (static expectation)
+WARNING_CAPTURE = warnings.catch_warnings(record=True)
+SUCCESS = configure_mappers returns without exception + SENTINEL printed
+FAILURE = exception OR DB/network sentinel exit
+NOTE = authored test_W1P01_T2_01 calls configure_mappers() but does not itself
+       call _load_w1p01(); V4 harness MUST import models before configure_mappers
+SUBPROCESS_ISOLATION = REQUIRED
+```
+
+### ۱۹۸.۱۰ Production-refusal contract (fail-closed, multi-layer)
+
+```text
+Layer1 = minimal env allowlist only (PATH/SYSTEMROOT/PYTHON*/SEDI_*/validation markers)
+Layer2 = remove inherited DATABASE_URL TEST_DATABASE_URL POSTGRES* REDIS*
+         *PASSWORD *SECRET *TOKEN *API_KEY OPENAI* AWS* GH_* credentials
+Layer3 = set SEDI_VALIDATION_MODE=W1P01_CONTROLLED_COLLECTION_IMPORT_MAPPER
+         APP_ENV=ENVIRONMENT=ENV=validation_isolated
+         SEDI_DISABLE_SCHEDULER=1
+         SEDI_REFUSE_PRODUCTION=1
+Layer4 = refuse if APP_ENV/ENVIRONMENT/ENV/SEDI_ENV in
+         {production,prod,live,prod-like,staging-prod}
+Layer5 = DATABASE_URL/TEST_DATABASE_URL must equal exact refused sentinel URL
+         host must be 127.0.0.1 port 1 user __W1P01_REFUSED_USER__
+         db __W1P01_REFUSED_DB__
+Layer6 = patch Engine.connect + psycopg2.connect (+ asyncpg.connect if present)
+         -> SystemExit SENTINEL_DB_CONNECT_ATTEMPTED
+Layer7 = patch socket.create_connection / socket.connect
+         -> SystemExit SENTINEL_NETWORK_CONNECT_ATTEMPTED
+Layer8 = each V0–V4 unit = fresh subprocess
+Layer9 = do not rely on dotenv; pre-set env so load_dotenv cannot override
+Layer10 = SEDI_DISABLE_SCHEDULER=1; do not import backend.app.main in V1–V4
+Layer11 = no metadata create/drop
+Layer12 = no Alembic
+SENTINEL_URL =
+  postgresql+psycopg2://__W1P01_REFUSED_USER__:__REFUSED__@127.0.0.1:1/__W1P01_REFUSED_DB__
+```
+
+### ۱۹۸.۱۱ Frozen V0–V5 units
+
+```text
+V0 = Environment and production-refusal precheck
+V1 = Focused pytest collection only (--noconftest + plugin autoload disabled)
+V2 = Controlled W1-P01 test-module import
+V3 = Controlled application-model import
+V4 = SQLAlchemy configure_mappers validation
+V5 = Read-only post-execution repository integrity verification
+RULES = fresh subprocess; explicit timeouts; fail-fast; no test functions;
+        no DB/network; no repo artifacts; temp outside repo; V5 still runs when safe
+```
+
+### ۱۹۸.۱۲ Exact later-Gate commands (execution-ready; NOT executed here)
+
+```text
+SHELL = powershell.exe
+WORKDIR = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+PYTHON = python
+HARNESS_DIR = %TEMP%\sedi_w1p01_v0v5_<nonce>\   (OUTSIDE repository; deleted after)
+COMMON_ENV_ALLOWLIST =
+  PATH, SYSTEMROOT, WINDIR, COMSPEC, PATHEXT, TMP, TEMP, USERPROFILE,
+  PYTHONPATH=<WORKDIR>, PYTHONNOUSERSITE=1, PYTHONDONTWRITEBYTECODE=1,
+  SEDI_VALIDATION_MODE=W1P01_CONTROLLED_COLLECTION_IMPORT_MAPPER,
+  SEDI_DISABLE_SCHEDULER=1, SEDI_REFUSE_PRODUCTION=1,
+  APP_ENV=validation_isolated, ENVIRONMENT=validation_isolated, ENV=validation_isolated,
+  DATABASE_URL=<SENTINEL_URL>, TEST_DATABASE_URL=<SENTINEL_URL>
+COMMON_ENV_DENYLIST = all other inherited variables scrubbed before spawn
+
+V0_TIMEOUT_SEC = 30
+V0_COMMAND = python %HARNESS_DIR%\v0_precheck.py
+V0_EXPECT_STDOUT = SENTINEL_V0_ENV_REFUSAL_OK
+V0_EXPECT_EXIT = 0
+V0_FAIL = SENTINEL_V0_PRODUCTION_VALUE_PRESENT | SENTINEL_V0_URL_NOT_REFUSED | nonzero
+
+V1_TIMEOUT_SEC = 120
+V1_COMMAND =
+  python -m pytest --collect-only -q --noconftest
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py
+V1_EXTRA_ENV = PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+V1_EXPECT_STDOUT_MARKERS =
+  collected
+  test_section15_i5_w1p01_orm_contracts.py
+V1_EXPECT_EXIT = 0
+V1_FAIL = nonzero | ImportError backend.app during collection | DB/network sentinel
+
+V2_TIMEOUT_SEC = 60
+V2_COMMAND = python %HARNESS_DIR%\v2_import_test_module.py
+V2_EXPECT_STDOUT =
+  SENTINEL_V2_TEST_MODULE_IMPORT_OK
+  SENTINEL_V2_NO_APP_IMPORT
+V2_EXPECT_EXIT = 0
+
+V3_TIMEOUT_SEC = 60
+V3_COMMAND = python %HARNESS_DIR%\v3_import_models.py
+V3_EXPECT_STDOUT =
+  SENTINEL_V3_MODELS_IMPORT_OK
+  SENTINEL_V3_NO_DB_CONNECT
+V3_EXPECT_EXIT = 0
+V3_FAIL = SENTINEL_DB_CONNECT_ATTEMPTED | SENTINEL_NETWORK_CONNECT_ATTEMPTED | nonzero
+
+V4_TIMEOUT_SEC = 60
+V4_COMMAND = python %HARNESS_DIR%\v4_configure_mappers.py
+V4_EXPECT_STDOUT = SENTINEL_V4_CONFIGURE_MAPPERS_OK
+V4_EXPECT_EXIT = 0
+
+V5_TIMEOUT_SEC = 60
+V5_COMMAND = python %HARNESS_DIR%\v5_integrity.py
+V5_EXPECT_STDOUT = SENTINEL_V5_INTEGRITY_OK
+V5_EXPECT_EXIT = 0
+
+CLEANUP = Remove-Item -Recurse -Force %HARNESS_DIR%
+HARNESS_BODIES = recorded verbatim in v489 Section 34 (identical authority)
+```
+
+### ۱۹۸.۱۳ Approved Section-34 explanations (decision state = APPROVED)
+
+```text
+I5_REMAINING_SCOPE = W1..W6 multi-Wave program (control-plane -> memory -> adapters ->
+  retrieval/synthesis -> Iran directory -> migration/CI/activation) — APPROVED
+W1P01_DEPENDENCY =
+  W1-P01 must close before real crawler/scheduler activation — APPROVED
+I5_EXECUTION_LOCATION =
+  backend/PostgreSQL/server/scheduler/crawler/knowledge/ops;
+  Frontend = consumer/renderer — APPROVED
+APPROVED_EXPLANATION_DOCUMENTATION_LAW =
+  ChatGPT+Javad approved substantive explanations must sync to handoff + master log
+  PROPOSED / APPROVED / SUPERSEDED states required — APPROVED
+CORRECTED_AUTHORITY_DECISION =
+  v487+§197 repository authority; v488 external; local v488 absence non-blocking — APPROVED
+```
+
+### ۱۹۸.۱۴ Acceptance criteria result
+
+```text
+AC-01..AC-24 = PASS (this Rerun Gate)
+SCOPE_REVIEW_EXECUTION_READY = YES
+EXECUTABLE_UNITS_RUN = NO
+```
+
+### ۱۹۸.۱۵ Findings
+
+```text
+F1 =
+  FINDING = backend/tests/conftest.py import-time loads app/main/database + test engine
+  OWNER = future remediation Gate if full-conftest collection evidence is required
+  DEPENDENCY = none for V1 safe path
+  CLOSURE = V1 frozen with --noconftest (accepted evidence scope)
+  STATUS = ACCEPTED_IN_CONTRACT
+
+F2 =
+  FINDING = database.py load_dotenv + create_engine at import
+  OWNER = controlled by V3/V4 env+patch contract
+  CLOSURE = sentinel URL + connect interception
+  STATUS = ACCEPTED_IN_CONTRACT
+
+F3 =
+  FINDING = v487 retained unmodified beside new v489 (archival not authorized by this Gate)
+  OWNER = optional future continuity housekeeping Gate
+  STATUS = DOCUMENTED
+```
+
+### ۱۹۸.۱۶ Continuity mutations of this Gate
+
+```text
+APPEND_§198 = YES
+CREATE_v489 = YES (exact v487 bytes + one Section-34 append)
+MODIFY_v487 = NO
+CREATE_OR_MODIFY_LOCAL_v488 = NO
+SOURCE_TEST_CONFIG_MIGRATION_WORKFLOW_MUTATED = NO
+```
+
+### ۱۹۸.۱۷ Operations explicitly not performed
+
+```text
+pytest / collect-only = NO
+test-module import execution = NO
+application-module import execution = NO
+configure_mappers execution = NO
+database / redis / network access = NO
+migration / CI / docker / deploy = NO
+stage / commit / push = NO
+EXECUTION_GATE = NOT STARTED
+```
+
+### ۱۹۸.۱۸ Approval boundary
+
+```text
+NEXT_GATE =
+  W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+EXECUTION_GATE_MAY_RUN = frozen V0–V5 only
+EXECUTION_GATE_STILL_PROHIBITS =
+  test-function execution, PostgreSQL runtime tests, DB connection,
+  migration, CI, stage, commit, push, deploy, crawler, ingestion,
+  scheduler activation, production activation
+```
+
+---
+
+*پایان بند ۱۹۸ — W1-P01 COLLECTION/IMPORT/MAPPER SCOPE REVIEW RERUN01 — PASS — بدون-اجرای V0–V5 — بدون-کامیت*
+
+## ۱۹۹) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01 — BLOCKED_PREEXECUTION_CONTRACT_AUDIT
+
+### ۱۹۹.۱ Gate authorization
+
+```text
+GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01
+DATE_TIME = 2026-08-04T21:44:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT PRE-EXECUTION READ-ONLY CONTRACT AUDIT + DOCUMENTATION-ONLY CONTINUITY UPDATE
+EXECUTABLE_V0_V5 = NOT STARTED (blocked before V0)
+```
+
+### ۱۹۹.۲ Preflight
+
+```text
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+WORKTREES = 6
+INDEX_LOCK = ABSENT
+KNOWN_DIRTY = models.py, master-log, i5/, W1-P01 test file
+UNEXPLAINED_DIRTY = NONE
+
+v489 =
+  SIZE = 3277315
+  SHA256 = fed022fcbe23e9e4f349efa533588cac463efdb3fddef386d7f9136285428062
+  EOL = LF_ONLY
+  MATCH = YES
+
+MASTER_LOG_PRE =
+  TIP = §198 (count=1)
+  SIZE = 2441337
+  SHA256 = dbe42577cd1d13c5b58b0d5f6f85596ee47f5be60d403d6f765529160fc3abd5
+  EOL = CRLF_ONLY
+  MATCH = YES
+
+TEST = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+MODELS = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+```
+
+### ۱۹۹.۳ Pre-execution contract audit of v489 §49.8
+
+```text
+PREEXECUTION_CONTRACT_AUDIT = FAIL
+FINAL_RESULT = BLOCKED_PREEXECUTION_CONTRACT_AUDIT
+V0_EXECUTED = NO
+V1_EXECUTED = NO
+V2_EXECUTED = NO
+V3_EXECUTED = NO
+V4_EXECUTED = NO
+FROZEN_CONTRACT_ALTERED = NO
+ALTERNATIVE_EXECUTION_CONTRACT_CREATED = NO
+SOURCE_TEST_CONFIG_EDITED = NO
+```
+
+#### Audit deficiencies (exact)
+
+```text
+D1_CACHEPROVIDER =
+  REQUIRED = V1 command includes -p no:cacheprovider
+  FROZEN_§49.8.3 = MISSING (-p no:cacheprovider absent)
+  IMPACT = .pytest_cache creation not contractually prohibited in frozen V1 command
+
+D2_BYTECODE =
+  REQUIRED = PYTHONDONTWRITEBYTECODE=1 or python -B in execution contract for V1+
+  FROZEN_§49.8 = NOT stated in V1 ENV / command block
+  IMPACT = __pycache__/.pyc prohibition not explicit in frozen §49.8 unit text
+
+D3_DOTENV =
+  REQUIRED = (A) patch load_dotenv to no-op before database import
+             OR (B) dotenv cannot override sentinel + immediate validation of all
+             loaded values + refuse production/secret/database values before import continues
+  FROZEN_§49.8 guard_lib = NEITHER A NOR complete B
+  NOTE = load_dotenv / dotenv not mentioned in §49.8 harnesses
+  IMPACT = database.py import-time load_dotenv() is not fail-closed per Gate §4.3
+
+D4_GUARD_ORDER =
+  REQUIRED = scrub env → sentinel env → neutralize dotenv → DB guards → network guards → import
+  FROZEN_V2/V3/V4 = assert_validation_env → install_connect_guards → import
+  MISSING_STEP = dotenv neutralize/guard before models/database import
+
+D5_SAWARNING_POLICY =
+  REQUIRED = unexpected SAWarning = FAIL; allowlist only if explicit+justified
+  FROZEN_§49.8.6 = prints SENTINEL_V4_WARNING_COUNT only; does not fail on warnings
+  IMPACT = V4 warning classification incomplete
+
+D6_V0_COMPLETENESS =
+  REQUIRED = prove dotenv protection, DB refusal patch ready, network refusal patch ready
+  FROZEN_§49.8.2 = only assert_validation_env(); does not install or prove patches
+```
+
+#### What §49.8 does correctly (partial)
+
+```text
+--collect-only PRESENT
+--noconftest PRESENT
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PRESENT (V1 ENV note)
+SENTINEL_URL PRESENT
+SENTINEL_DB_CONNECT_ATTEMPTED PRESENT
+SENTINEL_NETWORK_CONNECT_ATTEMPTED PRESENT
+TEMP-only harness location stated
+subprocess isolation stated in parent contract
+```
+
+### ۱۹۹.۴ V0–V4 results
+
+```text
+V0 = NOT_RUN
+V1 = NOT_RUN
+V2 = NOT_RUN
+V3 = NOT_RUN
+V4 = NOT_RUN
+STDOUT_STDERR_CAPTURE = N/A
+EXIT_CODES = N/A
+TIMEOUTS = N/A
+COLLECTED_NODE_COUNT = N/A
+SQLALCHEMY_WARNINGS = N/A
+DB_CONNECT_COUNT = 0 (no execution)
+NETWORK_CONNECT_COUNT = 0 (no execution)
+```
+
+### ۱۹۹.۵ V5 / integrity (post-block; no harness TEMP created)
+
+```text
+TEMP_HARNESS_DIR_CREATED = NO
+TEMP_HARNESS_DIR_REMOVED = N/A
+GIT_STATUS_PORCELAIN =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/
+  ?? backend/tests/test_section15_i5_w1p01_orm_contracts.py
+STAGED = EMPTY
+MODELS/TEST/v489 hashes = UNCHANGED vs preflight
+MASTER_LOG prefix before this append = UNCHANGED
+UNAUTHORIZED_MUTATION_BY_THIS_GATE = NO
+NOTE = pre-existing workspace .pytest_cache / __pycache__ trees observed;
+       gitignored / not introduced by this Gate (no V1 executed)
+V5_INTEGRITY = PASS_FOR_THIS_GATE_ACTIONS
+```
+
+### ۱۹۹.۶ Findings / owners / closure
+
+```text
+F1 =
+  FINDING = frozen §49.8 incomplete vs EXECUTION-01 pre-execution safety requirements
+  ROOT_CAUSE = Scope-Review Rerun01 contract freeze omitted cacheprovider, explicit
+               bytecode flag in §49.8 V1 text, dotenv fail-closed control, SAWarning fail policy,
+               and complete V0 readiness proofs
+  OWNER = documentation/contract remediation (NOT source/test defect established)
+  DEPENDENCY = new Javad-approved contract-hardening Gate before any V0–V5 execution
+  CLOSURE =
+    harden §49.8 successor contract to include D1–D6 fixes without inventing during EXECUTION
+  STATUS = OPEN — blocks EXECUTION-01
+```
+
+### ۱۹۹.۷ Continuity mutations
+
+```text
+APPEND_§199 = YES
+CREATE_v490 = YES (exact v489 bytes + one blocked-result append)
+MODIFY_v489 = NO
+MODIFY_v487 = NO
+ARCHIVE_v487_OR_v489 = NO
+```
+
+### ۱۹۹.۸ Actions explicitly not performed
+
+```text
+V0–V4 execution = NO
+pytest / collect-only = NO
+test/app import = NO
+configure_mappers = NO
+DB/Redis/network = NO
+test-function / fixture execution = NO
+source/test/conftest/config/migration/workflow edits = NO
+stage/commit/push/CI/deploy/crawler = NO
+```
+
+### ۱۹۹.۹ Approval boundary
+
+```text
+NEXT_GATE =
+  W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION
+  CONTRACT HARDENING SCOPE REVIEW-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+NOTE = do not re-attempt EXECUTION-01 against unmodified §49.8
+POSTGRESQL_RUNTIME_SCOPE_REVIEW = NOT_PROPOSED_UNTIL_EXECUTION_PASS
+```
+
+---
+
+*پایان بند ۱۹۹ — EXECUTION-01 — BLOCKED_PREEXECUTION_CONTRACT_AUDIT — بدون-اجرای V0–V4 — بدون-کامیت*
+
+## ۲۰۰) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION CONTRACT HARDENING SCOPE REVIEW-01
+
+### ۲۰۰.۱ Gate authorization
+
+```text
+GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION CONTRACT HARDENING SCOPE REVIEW-01
+DATE_TIME = 2026-08-04T21:53:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT READ-ONLY SOURCE AND CONTRACT INSPECTION + DOCUMENTATION-ONLY CONTRACT HARDENING
+EXECUTABLE_VALIDATION = PROHIBITED
+V0_V5_EXECUTED = NO
+```
+
+### ۲۰۰.۲ Preflight and authority
+
+```text
+BRANCH/HEAD = feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+WORKTREES = 6
+KNOWN_DIRTY = models.py, master-log, i5/, W1-P01 test
+UNEXPLAINED_DIRTY = NONE
+
+v490 =
+  SIZE = 3281711
+  SHA256 = 796e7cdc7cbe59b9b86d0528a438c99dc627ece96a2f8c5fc8f5c193767d7830
+  EOL = LF_ONLY
+  MATCH = YES
+
+MASTER_LOG_PRE =
+  TIP = §199 (count=1)
+  SIZE = 2447885
+  SHA256 = 727d925f073f0b7daa9888ddb8f4ad8b0911cea44d4920fef69bbc5e20a2a42e
+  EOL = CRLF_ONLY
+
+TEST = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+MODELS = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+```
+
+### ۲۰۰.۳ Prior blocked EXECUTION-01 (preserved)
+
+```text
+RESULT = BLOCKED_PREEXECUTION_CONTRACT_AUDIT
+V0_V4 = NOT_RUN
+V5_INTEGRITY = PASS
+ROOT_CAUSE = contract-quality failure D1–D6 (not established source/test defect)
+HISTORY_REWRITTEN = NO
+```
+
+### ۲۰۰.۴ D1–D6 closure
+
+```text
+D1 CLOSED = V1 includes -p no:cacheprovider; cache inventory before/after required
+D2 CLOSED = PYTHONDONTWRITEBYTECODE=1 AND python -B on all python invocations
+D3 CLOSED = dotenv.load_dotenv + dotenv.main.load_dotenv patched no-op;
+            SENTINEL_DOTENV_LOAD_NEUTRALIZED; dotenv_values/find_dotenv refuse
+D4 CLOSED = order: isolated env → production refusal → dotenv → DB → network → verify → import
+D5 CLOSED = unexpected SAWarning = FAIL; EXPECTED_SA_WARNING_ALLOWLIST = EMPTY
+D6 CLOSED = V0 probes dotenv/DBAPI/network; readiness markers required
+```
+
+### ۲۰۰.۵ Environment / production / sentinel policy
+
+```text
+MINIMAL_ENV_BASE_KEYS =
+  PATH, SystemRoot, SYSTEMROOT, WINDIR, TEMP, TMP, COMSPEC, PATHEXT,
+  USERPROFILE, HOMEDRIVE, HOMEPATH, USERNAME
+ALWAYS_SET =
+  PYTHONPATH=<WORKDIR>
+  PYTHONNOUSERSITE=1
+  PYTHONDONTWRITEBYTECODE=1
+  PYTHONUTF8=1
+  PYTHONIOENCODING=utf-8
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+  SEDI_VALIDATION_MODE=W1P01_CONTROLLED_COLLECTION_IMPORT_MAPPER
+  SEDI_DISABLE_SCHEDULER=1
+  SEDI_REFUSE_PRODUCTION=1
+  APP_ENV=ENVIRONMENT=ENV=validation_isolated
+  DATABASE_URL=TEST_DATABASE_URL=SENTINEL_URL
+SENTINEL_URL =
+  postgresql+psycopg2://__W1P01_REFUSED_USER__:__REFUSED__@127.0.0.1:1/__W1P01_REFUSED_DB__
+PROD_EXACT = production|prod|live|staging-prod
+FORBIDDEN_HOSTS_EXACT = api.sedi-ai.com|sedi-cloudir|sedi-backend
+NO_PARENT_ENV_WHOLESALE_COPY = YES
+```
+
+### ۲۰۰.۶ Exact V1 command
+
+```text
+python -B -m pytest --collect-only --noconftest -p no:cacheprovider -q
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py
+WORKDIR = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+TIMEOUT_SEC = 120
+EXPECT_EXIT = 0
+EXPECT_MIN_COLLECTED_NODES = 54
+SUCCESS = V1_PASS
+```
+
+### ۲۰۰.۷ Exact unit markers / timeouts / exits
+
+```text
+V0_TIMEOUT=30  EXPECT_EXIT=0  MARKERS=V0_ENVIRONMENT_ISOLATED,V0_PRODUCTION_REFUSAL_PASS,
+  SENTINEL_DOTENV_LOAD_NEUTRALIZED,V0_DOTENV_GUARD_READY,V0_DB_GUARD_READY,
+  V0_NETWORK_GUARD_READY,V0_PASS
+V1_TIMEOUT=120 EXPECT_EXIT=0  MARKERS=collected + V1_PASS
+V2_TIMEOUT=60  EXPECT_EXIT=0  MARKERS=V2_PASS
+V3_TIMEOUT=60  EXPECT_EXIT=0  MARKERS=V3_PASS
+V4_TIMEOUT=60  EXPECT_EXIT=0  MARKERS=V4_PASS ; FAIL=SENTINEL_V4_UNEXPECTED_SAWARNING
+V5_TIMEOUT=60  EXPECT_EXIT=0  MARKERS=V5_PASS ; FAIL=SENTINEL_V5_CACHE_BYTECODE_DELTA|
+  SENTINEL_V5_UNEXPECTED_PATH
+FAIL_FAST = V0→skip V1–V4; V1→skip V2–V4; V2→skip V3–V4; V3→skip V4; V5 when safe
+CLEANUP = Remove-Item -Recurse -Force $HARNESS_ROOT
+```
+
+### ۲۰۰.۸ Verbatim contract location
+
+```text
+COMPLETE_VERBATIM_HARNESSES =
+  v491 §51.10 guard_lib.py
+  v491 §51.11 v0_ready.py
+  v491 §51.12 V1 command
+  v491 §51.13 v2_import_test_module.py
+  v491 §51.14 v3_import_models.py
+  v491 §51.15 v4_configure_mappers.py
+  v491 §51.16 inventory_cache.py
+  v491 §51.17 v5_integrity.py
+  v491 §51.18 run_all.ps1
+FILE =
+  Sedi_Master_Handoff_Section34_W1P01_CollectionImportMapperContractHardening_v491_FA.md
+```
+
+### ۲۰۰.۹ Cache/bytecode policy
+
+```text
+DELETE_PREEXISTING = PROHIBITED
+BEFORE_AFTER_INVENTORY = required
+PASS_IFF = no new/modified .pytest_cache|__pycache__|*.pyc caused by execution Gate
+```
+
+### ۲۰۰.۱۰ Acceptance
+
+```text
+AC-01..AC-31 = PASS (this hardening Gate)
+HARDENED_CONTRACT_EXECUTION_READY = YES
+EXECUTABLE_UNITS_RUN = NO
+```
+
+### ۲۰۰.۱۱ Continuity mutations
+
+```text
+APPEND_§200 = YES
+CREATE_v491 = YES (exact v490 bytes + one append)
+MODIFY_v487_v489_v490 = NO
+ARCHIVE_PREDECESSORS = NO
+```
+
+### ۲۰۰.۱۲ Operations not performed
+
+```text
+V0–V5 execution = NO
+pytest/import/configure_mappers = NO
+DB/network = NO
+source/test/config edits = NO
+stage/commit/push/CI = NO
+```
+
+### ۲۰۰.۱۳ Approval boundary
+
+```text
+NEXT_GATE =
+  W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+NOTE = EXECUTION-01-RERUN01 may execute only the exact hardened contract in v491;
+       must not redesign or alter the contract
+```
+
+---
+
+*پایان بند ۲۰۰ — CONTRACT HARDENING SCOPE REVIEW-01 — PASS — بدون-اجرای V0–V5 — بدون-کامیت*
+
+## ۲۰۱) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN01 — CONTROLLED_VALIDATION_FAILED
+
+### ۲۰۱.۱ Gate authorization
+
+```text
+GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN01
+DATE_TIME = 2026-08-04T22:04:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT CONTRACT AUDIT + EXACT HARDENED V0–V5 EXECUTION + DOCUMENTATION-ONLY CONTINUITY
+CONTRACT_SOURCE = v491 §51.10–§51.18
+CONTRACT_ALTERED = NO
+```
+
+### ۲۰۱.۲ Preflight / authority
+
+```text
+BRANCH/HEAD = feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+KNOWN_DIRTY only / UNEXPLAINED_DIRTY = NONE
+
+v491 = 3313046 / b46322719c790f90e7cd9759f891988266a6ead53b81ab7a1d249c9a7cc201aa / LF_ONLY / MATCH
+MASTER_LOG_PRE = §200 / 2453787 / d9cfd2cba3a9c2c3b3cd3879af23635c91091cfc6fbb19e97f43fd4c73d8d088 / CRLF_ONLY
+TEST = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+MODELS = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+PREDECESSORS v487/v489/v490/v491 = PRESENT UNCHANGED
+```
+
+### ۲۰۱.۳ Pre-execution contract audit
+
+```text
+PREEXECUTION_CONTRACT_AUDIT = PASS
+D1–D6 controls present in actual v491 text
+PLACEHOLDERS = NONE
+```
+
+### ۲۰۱.۴ TEMP harness equivalence
+
+```text
+HARNESS_ROOT = %TEMP%\sedi_w1p01_mapper_validation_b65fb23bb7b04635b7ec08e27e9ba2a8
+EQUIVALENCE_TO_v491_FENCES = YES (normalized text match for all 8 files)
+FILES =
+  guard_lib.py / v0_ready.py / v2_import_test_module.py / v3_import_models.py /
+  v4_configure_mappers.py / inventory_cache.py / v5_integrity.py / run_all.ps1
+TEMP_REMOVED_AFTER = YES
+```
+
+### ۲۰۱.۵ Cache/bytecode inventory
+
+```text
+BEFORE_COUNT = 295
+AFTER_COUNT = 295
+EQUAL = YES
+NO_NEW_CACHE_ARTIFACT = YES
+NO_NEW_BYTECODE_ARTIFACT = YES
+NO_PREEXISTING_MODIFICATION = YES
+```
+
+### ۲۰۱.۶ Unit results
+
+```text
+V0 = PASS  exit=0  timeout=NO
+  MARKERS = V0_ENVIRONMENT_ISOLATED, V0_PRODUCTION_REFUSAL_PASS,
+            SENTINEL_DOTENV_LOAD_NEUTRALIZED, V0_DOTENV_GUARD_READY,
+            V0_DB_GUARD_READY, V0_NETWORK_GUARD_READY, V0_PASS
+  PROBES = intentional SENTINEL_DB_CONNECT_ATTEMPTED / SENTINEL_NETWORK_CONNECT_ATTEMPTED observed
+
+V1 = PASS  exit=0  timeout=NO
+  COMMAND = python -B -m pytest --collect-only --noconftest -p no:cacheprovider -q
+            backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  COLLECTED_NODES = 174  (sanity threshold >=54 met)
+  NOTE = collection evidence only; NOT proof of 70 CHECK runtime pass
+
+V2 = PASS  exit=0  timeout=NO  MARKER=V2_PASS
+
+V3 = FAIL  exit=1  timeout=NO
+  MARKER_V3_PASS = ABSENT
+  ERROR =
+    ImportError: cannot import name 'MedicalCondition' from partially initialized
+    module 'backend.app.models' (circular import)
+  IMPORT_CHAIN =
+    backend.app.models
+    → backend.app.services.i5.enums
+    → backend.app.services.__init__ (imports MedicalService)
+    → backend.app.services.medical
+    → backend.app.models (partial)
+  ROOT_CAUSE_CLASS = source/package-init circular import (NOT contract improvisation)
+  DB_SENTINEL_DURING_V3 = NOT the failure mode (dotenv neutralized; then ImportError)
+
+V4 = SKIPPED (fail-fast after V3)
+
+V5 = PASS  exit=0  timeout=NO  MARKER=V5_PASS
+  TEMP cleanup + cache equality + known dirty paths + protected hashes
+```
+
+### ۲۰۱.۷ DB/network refusal evidence
+
+```text
+REAL_DB_CONNECTION = NO
+REAL_NETWORK_CONNECTION = NO
+INTENTIONAL_GUARD_PROBES_FIRED = YES (V0/V2 readiness)
+```
+
+### ۲۰۱.۸ Final result
+
+```text
+W1_P01_CONTROLLED_COLLECTION_IMPORT_MAPPER_VALIDATION_EXECUTION_01_RERUN01 =
+CONTROLLED_VALIDATION_FAILED
+
+FAILING_UNIT = V3
+FAIL_FAST_APPLIED = YES
+UNAUTHORIZED_REPOSITORY_MUTATION = NO
+```
+
+### ۲۰۱.۹ Findings / owners / closure
+
+```text
+F1 =
+  FINDING = circular import when importing backend.app.models via services package init
+  OWNER = source remediation scope-review Gate
+  DEPENDENCY = change backend.app.services.__init__ import side effects OR
+               provide side-effect-free enums import path (NOT authorized in this Gate)
+  CLOSURE = after remediation, re-run EXECUTION against unchanged hardened contract
+            (or contract-hardening only if remediation changes import assumptions)
+  STATUS = OPEN
+```
+
+### ۲۰۱.۱۰ Continuity mutations
+
+```text
+APPEND_§201 = YES
+CREATE_v492 = YES (exact v491 bytes + one append)
+MODIFY_v491 = NO
+ARCHIVE_PREDECESSORS = NO
+```
+
+### ۲۰۱.۱۱ Actions not performed
+
+```text
+test-function execution = NO
+fixture-body execution = NO
+PostgreSQL runtime tests = NO
+configure_mappers (V4) = SKIPPED
+source/test/conftest edits = NO
+stage/commit/push/CI/deploy = NO
+contract redesign = NO
+```
+
+### ۲۰۱.۱۲ Approval boundary
+
+```text
+NEXT_GATE =
+  W1-P01 MODELS-IMPORT CIRCULARITY REMEDIATION SCOPE REVIEW-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+NOTE = PostgreSQL ORM runtime scope review is NOT proposed until EXECUTION PASS
+```
+
+---
+
+*پایان بند ۲۰۱ — EXECUTION-01-RERUN01 — CONTROLLED_VALIDATION_FAILED (V3 circular import) — بدون-کامیت*
+
+## ۲۰۲) W1-P01 MODELS-IMPORT CIRCULARITY REMEDIATION SCOPE REVIEW-01
+
+### ۲۰۲.۱ Gate authorization
+
+```text
+GATE = W1-P01 MODELS-IMPORT CIRCULARITY REMEDIATION SCOPE REVIEW-01
+DATE_TIME = 2026-08-04T22:23:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT READ-ONLY SOURCE INSPECTION + DOCUMENTATION-ONLY REMEDIATION SCOPE FREEZE
+IMPLEMENTATION = NOT PERFORMED
+PYTHON_APP_IMPORT_EXECUTED = NO
+```
+
+### ۲۰۲.۲ Preflight / authority
+
+```text
+BRANCH/HEAD = feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0 | STAGED=EMPTY | WORKTREES=6
+KNOWN_DIRTY only | UNEXPLAINED_DIRTY=NONE
+
+v492 = 3317028 / 4e0d64d1338fc38a68c3a854858698d7c54ee24c2433cfd714b07d658df119ee / LF_ONLY
+MASTER_LOG_PRE = §201 / 2459145 / 83cbe477fcc5707524f7ad869b032dd2fc30f1c071fea6a22c6493e957d88f54 / CRLF_ONLY
+TEST = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+MODELS = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+services/__init__.py = 714 / 02c38878ab8b88fb52648ae874a453fac734fdbb2992a36db478b726ed031ad2
+medical.py = 8440 / e784c46b4bd1764a4722955681c72fb62c55788cf4154c95b3b28b377c46562d
+i5/enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+i5/__init__.py = 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+```
+
+### ۲۰۲.۳ Prior controlled-validation result (preserved)
+
+```text
+EXECUTION-01-RERUN01 = CONTROLLED_VALIDATION_FAILED
+V0/V1/V2=PASS V3=FAIL V4=SKIPPED V5=PASS
+```
+
+### ۲۰۲.۴ Confirmed circular import chain (static)
+
+```text
+DIRECT/TRANSITIVE CYCLE =
+  models.py TOP → backend.app.services.i5.enums
+    NECESSARILY executes parent package backend.app.services.__init__
+  services/__init__.py TOP → .medical.MedicalService   [DIRECT CIRCULAR EDGE]
+  medical.py TOP → backend.app.models (MedicalCondition, ...)  [DIRECT CIRCULAR EDGE]
+  → ImportError: MedicalCondition from partially initialized models
+
+ADDITIONAL EAGER EDGES IN services/__init__ (same class of risk):
+  → .notification_engine (TOP imports backend.app.models)  [POTENTIAL SAME-CYCLE]
+  → .rag
+  → .user_context (package; UserContextService)
+
+NON-CIRCULAR:
+  i5/enums.py = stdlib Enum only
+  i5/__init__.py = marker only, no imports
+  sms_gateway eager import = no models import found (NON-CIRCULAR RELATED)
+
+TYPE-ONLY EDGES = none in this cycle path
+```
+
+### ۲۰۲.۵ services/__init__ eager export inventory
+
+```text
+sms_gateway          = submodule import (patch compatibility) — KEEP eager if still needed
+MedicalService       = from .medical — EAGER — CYCLE TRIGGER
+DecisionEngine       = from .notification_engine — EAGER — models-importing module
+NotificationBuilder  = from .notification_engine — EAGER
+TimingRules          = from .notification_engine — EAGER
+RAGService           = from .rag — EAGER
+UserContextService   = from .user_context — EAGER
+UserContextPack      = from .user_context — EAGER
+__all__ = those seven symbols (not sms_gateway)
+Side effects beyond imports = NONE observed statically (no settings/DB/network construction in __init__)
+```
+
+### ۲۰۲.۶ Consumer inventory (package-level)
+
+```text
+from backend.app.services import MedicalService =
+  INTERNAL_PRODUCTION = 0 matches
+  INTERNAL_TEST = 0 matches
+  KNOWN_DIRECT_ALTERNATIVES =
+    backend/app/routers/conditions.py → from backend.app.services.medical import MedicalService
+    backend/app/services/notification_engine.py → from backend.app.services.medical import MedicalService
+
+from backend.app.services import DecisionEngine|NotificationBuilder|TimingRules|RAGService|UserContext* =
+  package-level = 0 matches
+  consumers use direct module/package imports instead
+
+from backend.app.services import auth_otp_service =
+  production: routers/auth_otp.py
+  many tests (submodule import; requires package init to be import-safe, not MedicalService eager)
+
+from backend.app.services import device_ingestion =
+  one acceptance test (submodule import)
+
+EXTERNAL_OUTSIDE_REPO_DEPENDENCY_ON_PACKAGE_EXPORTS =
+  UNKNOWN (compatibility uncertainty) → prefer preserving lazy re-exports
+```
+
+### ۲۰۲.۷ Option comparison and recommendation
+
+```text
+RECOMMENDED_OPTION = B — Lazy package re-exports (__getattr__ + TYPE_CHECKING)
+
+REJECTED:
+  A — empty/minimal __init__ removing re-exports
+      reason = internal consumers of package MedicalService=0, BUT external/API compatibility
+               remains UNKNOWN; A would force hard removal without deprecation
+  C — convert models/consumers to direct imports only
+      reason = importing backend.app.services.i5.enums STILL runs services/__init__;
+               C alone does NOT break the cycle
+  D — relocate i5.enums outside services
+      reason = larger scope (many import path changes); unnecessary if package init is fixed;
+               architectural move without necessity
+  E — function-local import in medical.py
+      reason = does not stop services/__init__ eager medical import during models load;
+               only defers failure / obscures graph
+  F — TYPE_CHECKING-only for enums in models
+      reason = models uses enums at RUNTIME (_vocab_sql / CheckConstraint literals)
+
+WHY_B =
+  1) resolves cycle: package init no longer eagerly imports medical/notification_engine
+  2) preserves from backend.app.services import MedicalService via __getattr__
+  3) single-file allowlist
+  4) submodule imports (auth_otp_service) remain valid
+  5) Python 3.7+ module __getattr__ available (repo uses 3.12)
+  6) keep sms_gateway eager submodule import (no models edge)
+```
+
+### ۲۰۲.۸ Exact implementation allowlist (next Gate)
+
+```text
+REQUIRED_SOURCE_EDIT =
+  backend/app/services/__init__.py
+  CHANGE =
+    remove eager imports of MedicalService, DecisionEngine, NotificationBuilder,
+    TimingRules, RAGService, UserContextService, UserContextPack
+    keep: from . import sms_gateway
+    add: TYPE_CHECKING import map for the seven __all__ symbols
+    add: __getattr__(name) lazy importlib.import_module + getattr
+    add: __dir__ exposing __all__
+    keep identical __all__ list
+  ROLLBACK = restore prior eager __init__ bytes
+
+REQUIRED_TEST_EDIT =
+  backend/tests/test_w1p01_models_import_no_circularity.py  (NEW)
+  assertions (conceptual; not authored here) =
+    importlib.import_module("backend.app.models") succeeds
+    importlib.import_module("backend.app.services.i5.enums") succeeds without models partial init
+    optional: after models import, getattr(services, "MedicalService") resolves (compat)
+  guards = same isolated env pattern as hardened V0–V3 recommended for executable proof
+
+OPTIONAL_TEST_EDIT = NONE
+READ_ONLY_VERIFICATION_ONLY =
+  models.py, medical.py, i5/enums.py, W1-P01 orm contracts test, routers/conditions.py
+PROHIBITED =
+  models.py edit, enums relocation, medical.py edit, conftest, migrations, workflows,
+  unrelated import cleanup, formatting-only churn
+```
+
+### ۲۰۲.۹ Regression / execution rerun requirements
+
+```text
+AFTER_IMPLEMENTATION =
+  1) static AST verify services/__init__ has no eager medical/notification_engine/rag/user_context imports
+  2) authorized controlled import proof for backend.app.models (isolated env/guards)
+  3) package compat proof: from backend.app.services import MedicalService (lazy path)
+  4) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN02
+     against unchanged hardened v491 contract (or current tip recording that contract)
+  5) V4 configure_mappers must run; unexpected SAWarning=0; DB/network=0
+  6) repository integrity / no unrelated mutation
+```
+
+### ۲۰۲.۱۰ Self-healing policy for implementation Gate
+
+```text
+DETECT → ROOT CAUSE → MINIMAL IN-SCOPE FIX → STATIC VERIFY → AUTHORIZED REGRESSION VERIFY → REPEAT
+ALLOWLIST-ONLY self-heal
+STOP for package relocation, migration, public API redesign, dependency/config redesign,
+     unauthorized test/CI, commit/push/deploy
+```
+
+### ۲۰۲.۱۱ Continuity
+
+```text
+APPEND_§202 = YES
+CREATE_v493 = YES
+MODIFY_v492 = NO
+IMPLEMENTATION = NO
+```
+
+### ۲۰۲.۱۲ Approval boundary
+
+```text
+NEXT_GATE =
+  W1-P01 MODELS-IMPORT CIRCULARITY MINIMAL REMEDIATION IMPLEMENTATION-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۲۰۲ — CIRCULARITY SCOPE REVIEW-01 — PASS — Option B — بدون-پیاده‌سازی — بدون-کامیت*
+
+
+## ۲۰۳) W1-P01 MODELS-IMPORT CIRCULARITY MINIMAL REMEDIATION IMPLEMENTATION-01 — PASS
+
+### ۲۰۳.۱ Gate authorization
+
+`	ext
+GATE = W1-P01 MODELS-IMPORT CIRCULARITY MINIMAL REMEDIATION IMPLEMENTATION-01
+DATE_TIME = 2026-08-05T05:45:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED (FINAL AUTHORIZED IMPLEMENTATION GATE PROMPT)
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = LIMITED SOURCE AUTHORING + LIMITED TEST AUTHORING + STATIC VERIFICATION + DOCUMENTATION CONTINUITY UPDATE
+EXECUTABLE_APPLICATION_VALIDATION = PROHIBITED_AND_NOT_PERFORMED
+PYTEST = NOT_RUN
+APP_IMPORT_EXECUTION = NOT_PERFORMED
+CONFIGURE_MAPPERS = NOT_PERFORMED
+`
+
+### ۲۰۳.۲ Preflight / authority identities
+
+`	ext
+SEDI_V1_ROOT = D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+ACTIVE_WORKSPACE = ...\workspace
+GIT_COMMON_DIR = ...\git-root\.git
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+INDEX_LOCK = ABSENT
+KNOWN_DIRTY_EXPLAINED =
+  M backend/app/models.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/
+  ?? backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  (+ this Gate: M services/__init__.py ; ?? test_w1p01_models_import_no_circularity.py)
+UNEXPLAINED_DIRTY = NONE
+
+v493 = 3324712 / 3335538a14bf3520f7c96f74b018d8fc707d4f28ca2c5df0e658e9996e07e9bc / LF_ONLY / MATCH
+MASTER_LOG_PRE = §202 / 2467841 / 1bc08c0d3815bedd700a495979546dc455613b4585c34da87909f33385fbfac0 / CRLF_ONLY / MATCH
+§202_OCCURRENCE = 1 header (## ۲۰۲))
+PREDECESSORS v487/v489/v490/v491/v492/v493 = PRESENT UNCHANGED
+
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / CRLF_ONLY / UNCHANGED
+medical.py = 8440 / e784c46b4bd1764a4722955681c72fb62c55788cf4154c95b3b28b377c46562d / CRLF_ONLY / UNCHANGED
+i5/enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3 / CRLF_ONLY / UNCHANGED
+W1P01_ORM_TEST = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530 / CRLF_ONLY / UNCHANGED
+`
+
+### ۲۰۳.۳ Confirmed defect and selected remediation
+
+`	ext
+CONFIRMED_CYCLE =
+  backend.app.models
+  → backend.app.services.i5.enums
+  → backend.app.services.__init__
+  → MedicalService (eager)
+  → backend.app.services.medical
+  → backend.app.models
+
+SELECTED = OPTION B = GOVERNED LAZY PACKAGE RE-EXPORTS
+SOURCE_OF_SELECTION = v493 / §202
+`
+
+### ۲۰۳.۴ Exact source implementation
+
+`	ext
+FILE = backend/app/services/__init__.py
+BEFORE = 714 / 02c38878ab8b88fb52648ae874a453fac734fdbb2992a36db478b726ed031ad2 / CRLF_ONLY (eager seven)
+AFTER  = 2039 / 538c9be11c92042ef0e7e6bfa6c964806892da8fbe65146cd85280144d977b4f / CRLF_ONLY
+
+REMOVED_EAGER_RUNTIME_IMPORTS =
+  MedicalService, DecisionEngine, NotificationBuilder, TimingRules,
+  RAGService, UserContextService, UserContextPack
+
+PRESERVED =
+  from . import sms_gateway  (patch-path compatibility; not converted to unrelated lazy export)
+  exact __all__ sequence (seven symbols, same order)
+
+ADDED =
+  _LAZY_EXPORTS explicit map
+  TYPE_CHECKING guarded imports (type-only)
+  __getattr__ (importlib.import_module + getattr + globals() cache + AttributeError)
+  __dir__ (sorted globals ∪ lazy export names)
+`
+
+### ۲۰۳.۵ Exact export map
+
+`	ext
+_LAZY_EXPORTS = {
+  "MedicalService": (".medical", "MedicalService"),
+  "DecisionEngine": (".notification_engine", "DecisionEngine"),
+  "NotificationBuilder": (".notification_engine", "NotificationBuilder"),
+  "TimingRules": (".notification_engine", "TimingRules"),
+  "RAGService": (".rag", "RAGService"),
+  "UserContextService": (".user_context", "UserContextService"),
+  "UserContextPack": (".user_context", "UserContextPack"),
+}
+
+__all__ = [
+  MedicalService, DecisionEngine, NotificationBuilder, TimingRules,
+  RAGService, UserContextService, UserContextPack
+]
+`
+
+### ۲۰۳.۶ sms_gateway / __getattr__ / __dir__ / TYPE_CHECKING
+
+`	ext
+sms_gateway = KEEP eager submodule import (F401 noqa comment preserved intent)
+TYPE_CHECKING imports = type-only; zero runtime eager service imports for the seven
+__getattr__ =
+  allowlist-only via _LAZY_EXPORTS
+  importlib.import_module(relative, __name__)
+  getattr(module, attr)
+  cache into globals()[name]
+  unknown → AttributeError(f"module {__name__!r} has no attribute {name!r}")
+  does not swallow underlying import errors
+__dir__ = sorted(set(globals()) | set(_LAZY_EXPORTS))
+`
+
+### ۲۰۳.۷ New regression test scope (authored; not executed)
+
+`	ext
+FILE = backend/tests/test_w1p01_models_import_no_circularity.py (NEW)
+SIZE/SHA/EOL = 7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11 / CRLF_ONLY
+TOP_LEVEL_APPLICATION_IMPORTS = NONE
+SUBPROCESS = YES (python -B; PYTHONDONTWRITEBYTECODE=1; timeout; capture)
+CASES =
+  T1 no-eager load of seven lazy modules after import backend.app.services
+  T2 import backend.app.models succeeds (circularity regression)
+  T3 lazy MedicalService is DirectMedicalService
+  T4 lazy export cached in package __dict__ / identity
+  T5 __all__ exact sequence
+  T6 unknown attribute → AttributeError
+  T7 dir() includes all lazy exports
+  T8 models import with Engine.connect/psycopg2.connect refuse (no live DB)
+`
+
+### ۲۰۳.۸ Static verification
+
+`	ext
+AST_PARSE = YES (python -B; PYTHONDONTWRITEBYTECODE=1; parse text only; no app/test import)
+TOP_EAGER_SERVICE_IMPORTS_IN_INIT = []
+LAZY_MAP_SYMBOLS = exact seven
+__all__ = exact seven sequence
+TYPE_CHECKING = present with guarded imports
+__getattr__/__dir__ = present; globals cache + AttributeError + import_module proven in AST/source
+sms_gateway statement = intact
+TEST_TOP_APP_IMPORTS = []
+TEST_FUNCS = T1–T8 present
+SUBPROCESS/TIMEOUT/BYTECODE_CONTROLS = authored
+PY_COMPILE / COMPILEALL / PYTEST / APP_IMPORT = NOT_PERFORMED
+`
+
+### ۲۰۳.۹ Diff audit
+
+`	ext
+IMPLEMENTATION_DIFF_PATHS =
+  backend/app/services/__init__.py
+  backend/tests/test_w1p01_models_import_no_circularity.py
+PROHIBITED_PATH_BYTES_CHANGED = NO
+STAGED = EMPTY
+SELF_HEALING =
+  CRLF normalization of authored files
+  removed unused pytest import from test file
+OUT_OF_SCOPE_EXPANSION = NO
+`
+
+### ۲۰۳.۱۰ Actions performed / not performed
+
+`	ext
+PERFORMED =
+  authority/preflight verification
+  Option B authoring of services/__init__.py
+  authoring of permanent regression test file
+  static/AST verification
+  implementation diff audit
+  master-log §203 append
+  v494 = exact v493 bytes + one append
+
+NOT_PERFORMED =
+  pytest / collection / test execution
+  application or test-module import execution
+  configure_mappers
+  DB / Redis / network access
+  Alembic / migration / CI
+  stage / commit / amend / push / merge / deploy
+  crawler / scheduler / activation
+  later Gate EXECUTION-01-RERUN02
+`
+
+### ۲۰۳.۱۱ Runtime validation status and remaining work
+
+`	ext
+RUNTIME_PROOF = NOT_YET_PERFORMED (belongs to next Gate)
+REMAINING_W1_P01 =
+  controlled V0–V5 execution rerun including new import-regression test
+  prove models import + lazy MedicalService + configure_mappers
+  prove zero real DB/network and zero unauthorized cache/bytecode mutation
+  then PostgreSQL runtime tests remain blocked until that Gate PASSes
+`
+
+### ۲۰۳.۱۲ Continuity
+
+`	ext
+APPEND_§203 = YES
+CREATE_v494 = YES
+MODIFY_v493 = NO
+FILENAME_v494 =
+  Sedi_Master_Handoff_Section34_W1P01_ModelsImportCircularityMinimalRemediation_v494_FA.md
+NEXT_PROPOSED_GATE =
+  W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN02
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+`
+
+### ۲۰۳.۱۳ Approval boundary
+
+`	ext
+THIS_AUTHORIZATION_ENDS_AFTER =
+  authority verification + two-file remediation + static/AST + diff audit
+  + §203 + v494 + integrity audit + final report
+EXECUTABLE_VALIDATION = OUT_OF_SCOPE_THIS_GATE
+`
+
+---
+
+*پایان بند ۲۰۳ — CIRCULARITY MINIMAL REMEDIATION IMPLEMENTATION-01 — PASS — Option B authored — بدون-اجرای-pytest/import — بدون-کامیت*
+
+
+## ۲۰۴) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN02 — CONTROLLED_VALIDATION_FAILED
+
+### ۲۰۴.۱ Gate authorization
+
+```text
+GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN02
+DATE_TIME = 2026-08-05T06:15:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED (FINAL AUTHORIZED EXECUTION GATE PROMPT)
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT READ-ONLY AUTHORITY AUDIT + EXACT HARDENED V0–V5 EXECUTION
+      + LIMITED PERMANENT REGRESSION-TEST EXECUTION + DOCUMENTATION-ONLY CONTINUITY
+SOURCE/TEST_AUTHORING = PROHIBITED_AND_NOT_PERFORMED
+POSTGRESQL_ORM_RUNTIME = PROHIBITED_AND_NOT_PERFORMED
+```
+
+### ۲۰۴.۲ Authority identities (full SHA256)
+
+```text
+MASTER_LOG_PRE =
+  TIP = §203
+  SIZE = 2476096
+  SHA256 = 0eb4f3a97d83c09a0850ae056faf11191e64474c5b06fc43f474b52d399da018
+  EOL = CRLF_ONLY
+  §203_HEADERS = 1
+
+v494 =
+  FILE = Sedi_Master_Handoff_Section34_W1P01_ModelsImportCircularityMinimalRemediation_v494_FA.md
+  SIZE = 3332340
+  SHA256 = 2ad868c1e36b484faac03a9e6f570950e00730afa052a56d5f5a1c628ba2f430
+  EOL = LF_ONLY
+  PREFIX = exact v493 (3324712 / 3335538a14bf3520f7c96f74b018d8fc707d4f28ca2c5df0e658e9996e07e9bc) = YES
+
+v491 (hardened contract) =
+  FILE = Sedi_Master_Handoff_Section34_W1P01_CollectionImportMapperContractHardening_v491_FA.md
+  SIZE = 3313046
+  SHA256 = b46322719c790f90e7cd9759f891988266a6ead53b81ab7a1d249c9a7cc201aa
+  EOL = LF_ONLY
+  CONTRACT = §51.10–§51.18 UNCHANGED
+
+PREDECESSORS v487/v489/v490/v491/v492/v493/v494 = PRESENT UNCHANGED
+```
+
+### ۲۰۴.۳ Preflight / Git baseline
+
+```text
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+WORKTREES = 6
+STAGED = EMPTY
+INDEX_LOCK = ABSENT
+KNOWN_DIRTY_RECONCILED_WITH_§203/v494 =
+  M backend/app/models.py
+  M backend/app/services/__init__.py
+  M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  ?? backend/app/services/i5/
+  ?? backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  ?? backend/tests/test_w1p01_models_import_no_circularity.py
+UNEXPLAINED_DIRTY = NONE
+```
+
+### ۲۰۴.۴ Protected source/test identities
+
+```text
+services/__init__.py =
+  2039 / 538c9be11c92042ef0e7e6bfa6c964806892da8fbe65146cd85280144d977b4f / CRLF_ONLY
+test_w1p01_models_import_no_circularity.py =
+  7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11 / CRLF_ONLY
+models.py =
+  96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / CRLF_ONLY
+test_section15_i5_w1p01_orm_contracts.py =
+  90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530 / CRLF_ONLY
+medical.py =
+  8440 / e784c46b4bd1764a4722955681c72fb62c55788cf4154c95b3b28b377c46562d / CRLF_ONLY
+i5/enums.py =
+  6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3 / CRLF_ONLY
+```
+
+### ۲۰۴.۵ Pre-execution contract audit (v491 §51.10–§51.18)
+
+```text
+PREEXECUTION_CONTRACT_AUDIT = PASS
+PRESENT =
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+  PYTHONDONTWRITEBYTECODE=1
+  python -B
+  --collect-only / --noconftest / -p no:cacheprovider
+  dotenv.load_dotenv + dotenv.main.load_dotenv patching before app import
+  DB + network guards before app import
+  V0 readiness probes
+  unexpected SAWarning = FAIL; EXPECTED_SA_WARNING_ALLOWLIST empty
+  cache/bytecode pre/post inventory
+  fresh subprocess per unit
+  TEMP-only harness/evidence policy
+CONTRACT_ALTERED = NO
+```
+
+### ۲۰۴.۶ Regression-test safety audit
+
+```text
+REGRESSION_TEST_SAFETY_AUDIT = PASS
+FILE = backend/tests/test_w1p01_models_import_no_circularity.py
+TOP_LEVEL_backend.app*_IMPORTS = NONE
+SUBPROCESS + python -B + PYTHONDONTWRITEBYTECODE=1 + timeouts = YES
+SENTINEL DB/ENV = YES
+T1–T8 scope = YES
+INVOKED_WITH = --noconftest -p no:cacheprovider (conftest not loaded)
+TEST_EDITED = NO
+```
+
+### ۲۰۴.۷ Cache/bytecode pre-inventory
+
+```text
+BEFORE_COUNT = 295
+POLICY = inventory only; no deletion of pre-existing artifacts
+```
+
+### ۲۰۴.۸ TEMP harness
+
+```text
+HARNESS_ROOT =
+  %TEMP%\sedi_w1p01_mapper_validation_9c6c9628fabc42369226c462e665e02c
+SOURCE = exact v491 §51.10–§51.18 fences
+EQUIVALENCE_NORMALIZED = YES (all 8 files)
+FILES =
+  guard_lib.py 9284 / 42bee3722223971933ec190897503976d6daa7d73ec1e689f5a802ef340be2b3
+  v0_ready.py 382 / 632823286eab33564817fa47c1d8d21ed560b5b2bcd8a51b2e71aa8dad2ab22d
+  v2_import_test_module.py 516 / aa73d5d020d715292ac4b79e5eb0be74664c5090d38129b98a1e2cf570149625
+  v3_import_models.py 811 / 1fdc796cec0a580c062347fbc297834b0806ada9922416a1e060b1ba3a485bf4
+  v4_configure_mappers.py 1424 / a8e21e5894d0546330056a4b89da16a467eec5a73e6bd0566bafa1c3d6f12277
+  inventory_cache.py 2002 / 5430040d20fe6545a5032b336f87fed7007f3231d2290e233177d442205ff565
+  v5_integrity.py 2021 / ad50fcbade118246d75d17505e8ef2f9f59726da1f8145e70dbc1b5bc58798a1
+  run_all.ps1 5104 / 2928488d9872e2414a62e5866fd93282e4fc4877dececa603c07b387d6a861cc
+SUMMARY_SHA256 = 7a30bfda5a2cb6f7a6bd21ccf6129de17f65064e70e8f1dbc6021728262890cb
+```
+
+### ۲۰۴.۹ Unit results
+
+```text
+V0 = PASS exit=0 timeout=NO
+  MARKERS =
+    V0_ENVIRONMENT_ISOLATED
+    V0_PRODUCTION_REFUSAL_PASS
+    SENTINEL_DOTENV_LOAD_NEUTRALIZED
+    V0_DOTENV_GUARD_READY
+    V0_DB_GUARD_READY
+    V0_NETWORK_GUARD_READY
+    V0_PASS
+  PROBES = SENTINEL_DB_CONNECT_ATTEMPTED / SENTINEL_NETWORK_CONNECT_ATTEMPTED observed
+
+V1 = PASS exit=0 timeout=NO
+  COMMAND = python -B -m pytest --collect-only --noconftest -p no:cacheprovider -q
+            backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  COLLECTED_NODES = 174
+  ORM_TEST_FUNCTIONS_EXECUTED = NO
+
+V2 = PASS exit=0 timeout=NO MARKER=V2_PASS
+  test/fixture bodies executed = NO
+
+V3 = PASS exit=0 timeout=NO MARKER=V3_PASS
+  CIRCULAR_PARTIAL_INIT = ABSENT
+  HISTORICAL_V3_DEFECT = CLOSED_AT_RUNTIME_FOR_MODELS_IMPORT
+
+V4 = PASS exit=0 timeout=NO
+  MARKERS = V4_PASS ; SENTINEL_V4_WARNING_COUNT 0
+  unexpected SAWarning = 0
+
+REGRESSION COLLECTION = PASS exit=0
+  COMMAND = python -B -m pytest --collect-only --noconftest -p no:cacheprovider -q
+            backend/tests/test_w1p01_models_import_no_circularity.py
+  ENV = PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 ; PYTHONDONTWRITEBYTECODE=1 ; isolated/sentinel
+  COLLECTED = 8 nodes (T1–T8 only; authorized file only)
+
+REGRESSION EXECUTION = PASS exit=0
+  COMMAND = python -B -m pytest --noconftest -p no:cacheprovider -q
+            backend/tests/test_w1p01_models_import_no_circularity.py
+  RESULT = 8 passed / 0 failed / 0 skipped (≈7.61s)
+
+V5 = FAIL exit=1 timeout=NO
+  MARKER_V5_PASS = ABSENT
+  ERROR = SENTINEL_V5_UNEXPECTED_PATH backend/app/services/__init__.py
+  ROOT_CAUSE =
+    frozen v491 v5_integrity.py allowlist predates Option B remediation dirty paths
+    and does not include:
+      backend/app/services/__init__.py
+      backend/tests/test_w1p01_models_import_no_circularity.py
+    These paths are authorized known-dirty from §203/v494, not unauthorized mutation
+    by this Gate. Contract was not redesigned (forbidden).
+```
+
+### ۲۰۴.۱۰ DB/network refusal evidence
+
+```text
+REAL_DB_CONNECTION = ZERO (sentinels intercept; refuse URLs)
+REAL_NETWORK_CONNECTION = ZERO (sentinels intercept)
+V0/V3/V4 probe markers observed as required
+```
+
+### ۲۰۴.۱۱ V5 outer integrity (post-cleanup)
+
+```text
+TEMP_REMOVED = YES (harness directory absent after evidence hash)
+CACHE_BEFORE_COUNT = 295
+CACHE_AFTER_COUNT = 295
+CACHE_EQUAL = YES
+NO_NEW_CACHE_ARTIFACT = YES
+NO_NEW_BYTECODE_ARTIFACT = YES
+PROTECTED_SOURCE/TEST/CONFIG BYTES = UNCHANGED vs pre-execution identities
+STAGED = EMPTY
+NO_REPOSITORY_HARNESS_LEFT = YES
+UNAUTHORIZED_REPOSITORY_MUTATION = NO
+NOTE = frozen V5 script FAIL does not equal unauthorized mutation;
+       outer integrity checks PASS independently
+```
+
+### ۲۰۴.۱۲ Final Gate result
+
+```text
+W1_P01_CONTROLLED_COLLECTION_IMPORT_MAPPER_VALIDATION_EXECUTION_01_RERUN02 =
+  CONTROLLED_VALIDATION_FAILED
+
+SUBSTANTIVE_RUNTIME_PROOF =
+  V0–V4 PASS
+  circularity regression 8/8 PASS
+  models import + lazy MedicalService + configure_mappers proven under guards
+INTEGRITY_SCRIPT_RESULT =
+  V5 FAIL due to stale dirty-path allowlist in frozen v491 contract
+```
+
+### ۲۰۴.۱۳ Findings / owners / closure
+
+```text
+F1 = V5 allowlist stale vs post-remediation known dirty paths
+  OWNER = contract micro-hardening / allowlist reconciliation Gate
+  CLOSURE = update V5 allowed dirty paths to include remediation paths
+            (or superseding hardened contract) WITHOUT weakening other V5 checks
+  THIS_GATE_EDIT = FORBIDDEN (no source/test/contract redesign)
+
+F2 = Option B circularity remediation runtime proof (models/lazy/mapper) = ESTABLISHED
+  OWNER = closed for import/mapper evidence; remains contingent on V5 allowlist PASS
+           for full Gate PASS classification
+```
+
+### ۲۰۴.۱۴ Actions performed / not performed
+
+```text
+PERFORMED =
+  authority + contract + regression-safety audits
+  cache pre/post inventory
+  TEMP harness extract + equivalence
+  V0–V5 execution (fail-fast policy honored; V5 ran)
+  regression collection + execution (authorized file only)
+  TEMP cleanup
+  outer integrity verification
+  master-log §204 append
+  v495 = exact v494 bytes + one append
+
+NOT_PERFORMED =
+  ORM contract test-function execution
+  PostgreSQL ORM runtime tests
+  real DB/Redis/network
+  source/test/conftest/config/workflow/dependency edits
+  Alembic/CI/Docker/SSH/deploy
+  stage/commit/push/merge
+  crawler/scheduler/activation
+  predecessor modify/archive/delete
+  later Gate
+```
+
+### ۲۰۴.۱۵ Approved explanations / decisions
+
+```text
+CARRIED =
+  I5 W1–W6 remaining scope
+  W1-P01 before crawler/scheduler activation
+  location model / sequence / documentation law / dual continuity
+  lineage through v494
+  execution Gates may not improvise frozen contracts
+  foundational models/enums must not depend on eager service initialization
+  lazy exports must remain explicit, allowlisted and regression-tested
+
+OPERATIONAL_CONCLUSION =
+  Lazy-export remediation has runtime proof for models import, package
+  compatibility (8/8 regression) and configure_mappers under isolated guards.
+  Full Gate PASS is blocked solely by frozen V5 dirty-path allowlist mismatch.
+  PostgreSQL runtime remains unauthorized until a complete PASS Gate.
+```
+
+### ۲۰۴.۱۶ Continuity
+
+```text
+APPEND_§204 = YES
+CREATE_v495 = YES
+MODIFY_v494 = NO
+FILENAME_v495 =
+  Sedi_Master_Handoff_Section34_W1P01_CollectionImportMapperExecutionRerun02_v495_FA.md
+NEXT_PROPOSED_GATE =
+  W1-P01 V5 DIRTY-PATH ALLOWLIST RECONCILIATION / CONTRACT MICRO-HARDENING-01
+  (NOT PostgreSQL ORM runtime — Gate did not PASS)
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۲۰۴ — EXECUTION-01-RERUN02 — CONTROLLED_VALIDATION_FAILED — V0–V4+regression PASS — V5 allowlist stale — بدون-کامیت*
+
+
+## ۲۰۵) W1-P01 V5 DIRTY-PATH ALLOWLIST RECONCILIATION / CONTRACT MICRO-HARDENING-01 — PASS
+
+### ۲۰۵.۱ Gate authorization
+
+```text
+GATE = W1-P01 V5 DIRTY-PATH ALLOWLIST RECONCILIATION / CONTRACT MICRO-HARDENING-01
+DATE_TIME = 2026-08-05T06:30:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT READ-ONLY INSPECTION + DOCUMENTATION-ONLY V5 MICRO-HARDENING + DUAL CONTINUITY
+V0_V5_EXECUTED = NO
+SOURCE/TEST/CONFIG EDIT = NO
+```
+
+### ۲۰۵.۲ Preflight / authority
+
+```text
+BRANCH/HEAD = feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+WORKTREES = 6
+INDEX_LOCK = ABSENT
+
+MASTER_LOG_PRE =
+  TIP = §204
+  SIZE = 2487303
+  SHA256 = a13d888b013561e0034f64a997999f08d8ca68b3ba73f63981afe36261477fbc
+  EOL = CRLF_ONLY
+  §204_HEADERS = 1
+
+v495 =
+  SIZE = 3338148
+  SHA256 = 74f4e0ea0a67b3bd2cce7fb94cb875aed887f8c98b59f4c5ffba2d10f35f86ee
+  EOL = LF_ONLY
+
+v491 =
+  SIZE = 3313046
+  SHA256 = b46322719c790f90e7cd9759f891988266a6ead53b81ab7a1d249c9a7cc201aa
+  EOL = LF_ONLY
+
+PREDECESSORS v487–v495 = PRESENT UNCHANGED
+```
+
+### ۲۰۵.۳ Prior RERUN02 result (preserved historically)
+
+```text
+W1_P01_CONTROLLED_COLLECTION_IMPORT_MAPPER_VALIDATION_EXECUTION_01_RERUN02 =
+  CONTROLLED_VALIDATION_FAILED
+NOT_RETROSPECTIVELY_CONVERTED_TO_PASS = YES
+
+V0–V4 = PASS
+V1_NODES = 174
+UNEXPECTED_SA_WARNING_COUNT = 0
+CIRCULARITY_REGRESSION = 8/8 PASS
+REAL_DB = 0
+REAL_NETWORK = 0
+CACHE_BYTECODE_DELTA = NONE
+UNAUTHORIZED_MUTATION = NO
+V5_SCRIPT = FAIL
+ROOT_CAUSE = STALE V5 DIRTY-PATH ALLOWLIST (v491)
+```
+
+### ۲۰۵.۴ Exact post-remediation dirty baseline (frozen)
+
+```text
+COMMAND = git status --porcelain=v1 --untracked-files=all
+
+EXPECTED_STATUS_LINES =
+  " M backend/app/models.py"
+  " M backend/app/services/__init__.py"
+  " M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md"
+  "?? backend/app/services/i5/__init__.py"
+  "?? backend/app/services/i5/enums.py"
+  "?? backend/tests/test_section15_i5_w1p01_orm_contracts.py"
+  "?? backend/tests/test_w1p01_models_import_no_circularity.py"
+
+PROTECTED_DIRTY_IDENTITIES =
+  models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / CRLF / status=" M"
+  services/__init__.py = 2039 / 538c9be11c92042ef0e7e6bfa6c964806892da8fbe65146cd85280144d977b4f / CRLF / status=" M"
+  master-log = (POST-§205 identity frozen in v496 V5 script) / status=" M"
+  i5/__init__.py = 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce / CRLF / status="??"
+  i5/enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3 / CRLF / status="??"
+  ORM test = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530 / CRLF / status="??"
+  circ regression = 7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11 / CRLF / status="??"
+
+GOVERNED_UNTRACKED_DIR backend/app/services/i5/ =
+  ONLY =
+    backend/app/services/i5/__init__.py
+    backend/app/services/i5/enums.py
+  NEW_FILE_IN_DIR = FAIL (SENTINEL_V5_UNEXPECTED_PATH)
+
+PROTECTED_CLEAN =
+  medical.py = 8440 / e784c46b4bd1764a4722955681c72fb62c55788cf4154c95b3b28b377c46562d
+  database.py = 961 / afcc0d6983e43cc709e3c3a9af2966f281c35d01ec77bf67e4e05e33008d28ac
+  conftest.py = 3380 / 19aab5fe035821aa357bb261d68f75ad1b598e49c2a86a281d59ce5978af19b9
+```
+
+### ۲۰۵.۵ Hardened V5 contract summary
+
+```text
+PRE/POST porcelain exact equality
+PRE/POST size/sha/eol/status_class equality for every protected dirty path
+Exact i5 file inventory (no directory wildcard trust)
+STAGED empty pre/post
+cache/bytecode inventory exact equality (inventory_cache.py unchanged from v491)
+TEMP harness not inside repo; no repo harness/evidence artifacts
+Failure markers =
+  SENTINEL_V5_CACHE_BYTECODE_DELTA
+  SENTINEL_V5_STAGED_NOT_EMPTY
+  SENTINEL_V5_UNEXPECTED_PATH
+  SENTINEL_V5_EXPECTED_PATH_MISSING
+  SENTINEL_V5_PROTECTED_PATH_CHANGED
+  SENTINEL_V5_STATUS_CLASS_CHANGED
+  SENTINEL_V5_REPO_HARNESS_ARTIFACT
+Success markers =
+  V5_PASS
+  V5_DIRTY_BASELINE_RECONCILED
+  V5_STATUS_EQUAL
+  V5_PROTECTED_HASHES_EQUAL
+  V5_STAGED_EMPTY
+  V5_CACHE_EQUAL
+```
+
+### ۲۰۵.۶ V0–V4 / regression immutability
+
+```text
+V0–V4 CONTRACT = UNCHANGED FROM v491
+REGRESSION COMMANDS = UNCHANGED FROM RERUN02 / v495
+ONLY V5 BASELINE CONTRACT = SUPERSEDED BY v496
+```
+
+### ۲۰۵.۷ RERUN03 sequence (frozen; not executed)
+
+```text
+V0 → V1 → V2 → V3 → V4
+→ circularity regression collection
+→ circularity regression execution
+→ hardened V5 (v496 script)
+Must generate NEW evidence; must not reuse RERUN02 results retrospectively
+```
+
+### ۲۰۵.۸ Continuity
+
+```text
+APPEND_§205 = YES
+CREATE_v496 = YES
+MODIFY_v495/v491 = NO
+FILENAME_v496 =
+  Sedi_Master_Handoff_Section34_W1P01_V5DirtyPathAllowlistContractMicroHardening_v496_FA.md
+NEXT_PROPOSED_GATE =
+  W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN03
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+POSTGRESQL_SCOPE_REVIEW = STILL_BLOCKED_UNTIL_RERUN03_PASS
+```
+
+### ۲۰۵.۹ Approved decision added
+
+```text
+A pre-existing authorized dirty path must not be ignored by integrity checks.
+It must be treated as a protected baseline artifact whose status, size, hash,
+EOL and existence are compared before and after execution.
+Integrity means no delta from the approved baseline, not an artificially clean Git worktree.
+DECISION_STATE = APPROVED
+```
+
+---
+
+*پایان بند ۲۰۵ — V5 DIRTY-PATH ALLOWLIST MICRO-HARDENING-01 — PASS — بدون-اجرای-V0–V5 — بدون-کامیت*
+
+
+## ۲۰۶) W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN03 — PASS
+
+### ۲۰۶.۱ Gate authorization
+
+```text
+GATE = W1-P01 CONTROLLED COLLECTION / IMPORT / MAPPER VALIDATION EXECUTION-01-RERUN03
+DATE_TIME = 2026-08-05T06:45:00-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT AUTHORITY AUDIT + CONTROLLED ISOLATED EXECUTION
+      + PERMANENT CIRCULARITY REGRESSION + HARDENED V5 + DUAL CONTINUITY
+SOURCE/TEST_AUTHORING = NO
+RERUN02_RESULT_REUSED = NO
+RERUN02_REMAINS = CONTROLLED_VALIDATION_FAILED (historical)
+POSTGRESQL_ORM_RUNTIME = NOT_PERFORMED
+```
+
+### ۲۰۶.۲ Authority identities
+
+```text
+MASTER_LOG_PRE = §205 / 2493093 / 09663672ba087fe92f1d5b863360037285bec9d38144e2425fc048c95c677728 / CRLF_ONLY
+v496 = 3358542 / 3c6c7fa96f0ac0b4ee440329573921b195c8e6b9cf30c026eea423c920eb3a17 / LF_ONLY
+v491 = 3313046 / b46322719c790f90e7cd9759f891988266a6ead53b81ab7a1d249c9a7cc201aa / LF_ONLY
+PREDECESSORS v487–v496 = PRESENT UNCHANGED
+```
+
+### ۲۰۶.۳ Preflight / exact dirty baseline
+
+```text
+BRANCH/HEAD = feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+WORKTREES = 6
+INDEX_LOCK = ABSENT
+PORCELAIN (--untracked-files=all) EXACT =
+  " M backend/app/models.py"
+  " M backend/app/services/__init__.py"
+  " M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md"
+  "?? backend/app/services/i5/__init__.py"
+  "?? backend/app/services/i5/enums.py"
+  "?? backend/tests/test_section15_i5_w1p01_orm_contracts.py"
+  "?? backend/tests/test_w1p01_models_import_no_circularity.py"
+UNEXPLAINED_DIRTY = NONE
+```
+
+### ۲۰۶.۴ Protected identities (verified)
+
+```text
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+services/__init__.py = 2039 / 538c9be11c92042ef0e7e6bfa6c964806892da8fbe65146cd85280144d977b4f
+i5/__init__.py = 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+i5/enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+ORM test = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+circ regression = 7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11
+medical.py / database.py / conftest.py = MATCH v496 clean protected
+```
+
+### ۲۰۶.۵ Contract / safety audits
+
+```text
+V0–V4 CONTRACT AUDIT (v491) = PASS
+HARDENED V5 CONTRACT AUDIT (v496 §56.7) = PASS
+REGRESSION SAFETY AUDIT = PASS
+```
+
+### ۲۰۶.۶ Cache pre-inventory / TEMP harness
+
+```text
+CACHE_BEFORE_COUNT = 295
+HARNESS_ROOT = %TEMP%\sedi_w1p01_mapper_validation_b179e0faf7e144499fcd0f1e716e900c
+SUMMARY_SHA256 = 5261bc4bef733f5a2edc6d6849ec080030b24002cf87bd69e19aecda56d957a8
+HARNESS_FILES =
+  guard_lib.py = 9284 / 42bee3722223971933ec190897503976d6daa7d73ec1e689f5a802ef340be2b3 / v491 ## 51\.10 VERBATIM — guard_lib\.py / eq=True
+  v0_ready.py = 382 / 632823286eab33564817fa47c1d8d21ed560b5b2bcd8a51b2e71aa8dad2ab22d / v491 ## 51\.11 VERBATIM — v0_ready\.py / eq=True
+  v2_import_test_module.py = 516 / aa73d5d020d715292ac4b79e5eb0be74664c5090d38129b98a1e2cf570149625 / v491 ## 51\.13 VERBATIM — v2_import_test_module\.py / eq=True
+  v3_import_models.py = 811 / 1fdc796cec0a580c062347fbc297834b0806ada9922416a1e060b1ba3a485bf4 / v491 ## 51\.14 VERBATIM — v3_import_models\.py / eq=True
+  v4_configure_mappers.py = 1424 / a8e21e5894d0546330056a4b89da16a467eec5a73e6bd0566bafa1c3d6f12277 / v491 ## 51\.15 VERBATIM — v4_configure_mappers\.py / eq=True
+  inventory_cache.py = 2002 / 5430040d20fe6545a5032b336f87fed7007f3231d2290e233177d442205ff565 / v491 ## 51\.16 VERBATIM — inventory_cache\.py / eq=True
+  v5_integrity.py = 10068 / 4ca666c89d479439c848acbf6818460aeef7982adeb5c227a349712d1300d97c / v496 §56.7 / eq=True
+EQUIVALENCE = YES for all extracted files
+```
+
+### ۲۰۶.۷ Unit results (new evidence)
+
+```text
+V0 = PASS exit=0
+  MARKERS = V0_ENVIRONMENT_ISOLATED, V0_PRODUCTION_REFUSAL_PASS,
+            SENTINEL_DOTENV_LOAD_NEUTRALIZED, V0_DOTENV_GUARD_READY,
+            V0_DB_GUARD_READY, V0_NETWORK_GUARD_READY, V0_PASS
+  PROBES = SENTINEL_DB_CONNECT_ATTEMPTED / SENTINEL_NETWORK_CONNECT_ATTEMPTED
+
+V1 = PASS exit=0 COLLECTED_NODES = 174
+  ORM_TEST_FUNCTIONS_EXECUTED = NO
+
+V2 = PASS exit=0 MARKER=V2_PASS
+  test/fixture bodies = 0
+
+V3 = PASS exit=0 MARKER=V3_PASS
+  CIRCULAR_PARTIAL_INIT = ABSENT
+
+V4 = PASS exit=0 MARKER=V4_PASS
+  SENTINEL_V4_WARNING_COUNT = 0
+  unexpected SAWarning = 0
+
+REG_COLLECT = PASS exit=0 NODES = 8 (T1–T8 only)
+REG_EXEC = PASS exit=0 RESULT = 8 passed / 0 failed / 0 skipped
+
+V5 = PASS exit=0
+  MARKERS =
+    V5_PASS
+    V5_DIRTY_BASELINE_RECONCILED
+    V5_STATUS_EQUAL
+    V5_PROTECTED_HASHES_EQUAL
+    V5_STAGED_EMPTY
+    V5_CACHE_EQUAL
+```
+
+### ۲۰۶.۸ DB/network / integrity
+
+```text
+REAL_DB_CONNECTION = ZERO
+REAL_NETWORK_CONNECTION = ZERO
+CACHE_AFTER_COUNT = 295
+CACHE_EQUAL = YES
+TEMP_REMOVED = YES
+STAGED = EMPTY
+PROTECTED_BYTES_UNCHANGED = YES
+UNAUTHORIZED_REPOSITORY_MUTATION = NO
+NO_REPO_HARNESS_ARTIFACT = YES
+```
+
+### ۲۰۶.۹ Final result
+
+```text
+W1_P01_CONTROLLED_COLLECTION_IMPORT_MAPPER_VALIDATION_EXECUTION_01_RERUN03 = PASS
+CONTROLLED_COLLECTION_IMPORT_CONFIGURE_MAPPERS_STAGE = FORMALLY_CLOSED
+CIRCULAR_IMPORT_REMEDIATION_RUNTIME_PROOF = REPEATABLE
+HARDENED_DIRTY_BASELINE_INTEGRITY = PASS
+```
+
+### ۲۰۶.۱۰ Continuity
+
+```text
+APPEND_§206 = YES
+CREATE_v497 = YES
+MODIFY_v496 = NO
+FILENAME_v497 =
+  Sedi_Master_Handoff_Section34_W1P01_CollectionImportMapperExecutionRerun03_v497_FA.md
+NEXT_PROPOSED_GATE =
+  W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST SCOPE REVIEW-01
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۲۰۶ — EXECUTION-01-RERUN03 — PASS — بدون-PostgreSQL — بدون-کامیت*
+
+
+## ۲۰۷) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST SCOPE REVIEW-01 — PASS
+
+### ۲۰۷.۱ Gate authorization
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST SCOPE REVIEW-01
+DATE_TIME = 2026-08-05T00:15:56-07:00
+JAVAD_APPROVAL = EXPLICITLY RECEIVED
+CURSOR_AUTO_EXECUTION_COMPLIED = YES
+DUPLICATE_CONFIRMATION_REQUESTED = NO
+MODE = STRICT READ-ONLY REPOSITORY INSPECTION
+      + DOCUMENTATION-ONLY POSTGRESQL RUNTIME CONTRACT FREEZE
+SOURCE/TEST/MIGRATION/WORKFLOW_EDIT = NO
+PYTEST_EXECUTED = NO
+POSTGRESQL_CONNECTION = NO
+DOCKER/COMPOSE_EXECUTED = NO
+ALEMBIC_EXECUTED = NO
+NETWORK_ACCESS = NO
+RERUN03_PASS_PRESERVED = YES
+```
+
+### ۲۰۷.۲ Authority identities (PRE)
+
+```text
+MASTER_LOG_PRE = §206 / 2499078 / 475214deb790b3721bd8aa7899abe798c35c2dfd5162e67fa1545119cc761dfb / CRLF_ONLY
+v497 = 3364687 / fad175f5da17b39ed5120adc431e168df7c57102d99e322df26439bfbd419ee2 / LF_ONLY
+v498_PREEXISTING = ABSENT
+PREDECESSORS v487–v497 = PRESENT UNCHANGED
+```
+
+### ۲۰۷.۳ Preflight / dirty baseline
+
+```text
+BRANCH/HEAD = feature/section15/backend-continuity-foundation @ f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+WORKTREES = 6
+SEVEN_LINE_PORCELAIN = EXACT MATCH to v496/v497 governed dirty baseline
+UNEXPLAINED_DIRTY = NONE
+```
+
+### ۲۰۷.۴ Protected identities (verified; unchanged)
+
+```text
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+database.py = 961 / afcc0d6983e43cc709e3c3a9af2966f281c35d01ec77bf67e4e05e33008d28ac
+conftest.py = 3380 / 19aab5fe035821aa357bb261d68f75ad1b598e49c2a86a281d59ce5978af19b9
+ORM test = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530
+circ regression = 7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11
+i5/__init__.py = 159 / 27f234870c5b1d78c830705003f94c7392ebf80f7cc6f74f0ec48c971633ecce
+i5/enums.py = 6778 / 1ac6906ab5d281a8cc3c22af3454c66747f7658fd17650988c37e404d62c42d3
+alembic.ini = 850 / b5ee7b3b372f5c5188ac6af0304e4489b49577a0fc329105f3608542102a6dfd
+alembic/env.py = 2757 / 232151c943ef6c1e4ac60c12910658069b763c65f628b24b4ca674dda04f368e
+```
+
+### ۲۰۷.۵ RERUN03 PASS preservation
+
+```text
+W1_P01_CONTROLLED_COLLECTION_IMPORT_MAPPER_VALIDATION_EXECUTION_01_RERUN03 = PASS
+CONTROLLED_COLLECTION_IMPORT_CONFIGURE_MAPPERS_STAGE = FORMALLY_CLOSED
+CIRCULAR_IMPORT_REMEDIATION_RUNTIME_PROOF = REPEATABLE
+POSTGRESQL_ORM_RUNTIME = NOT_YET_EXECUTED
+```
+
+### ۲۰۷.۶ Database architecture reconstruction
+
+```text
+ENGINE_SOURCE = backend/app/database.py
+DATABASE_URL_ENV = DATABASE_URL
+DEFAULT_FALLBACK = postgresql+psycopg2://sedi_user:***@localhost:5432/sedi_db
+DRIVER = postgresql+psycopg2
+POOL = pool_pre_ping=True ; pool_size=5 ; max_overflow=10
+Base = declarative_base() ; engine created at import
+SessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = generator wrapping SessionFactory
+ALEMBIC_INI = backend/alembic.ini (script_location=backend/alembic)
+ALEMBIC_ENV = TEST_DATABASE_URL OR DATABASE_URL required
+ALEMBIC_HEAD = 051_i5b2_governed_source_profile
+ALEMBIC_CHAIN = 51 linear revisions ; single head
+W1P01_TABLES_IN_MIGRATIONS = ABSENT (only GSP at head)
+COMPOSE_PROD = compose.production.yml service sedi-postgres (postgres:16-alpine) — REFUSED for this Gate
+CI_EPHEMERAL = ci-backend-tests.yml / gate4b-db-qa.yml / gate5-db-tests.yml (postgres:15)
+TEST_URL_POLICY = TEST_DATABASE_URL preferred ; never DATABASE_URL in test_db_config.py
+```
+
+### ۲۰۷.۷ Dependency / version evidence
+
+```text
+backend/requirements.txt = sqlalchemy (unpinned) ; psycopg2-binary (unpinned) ; alembic>=1.13.0
+workspace/requirements.txt = sqlalchemy + psycopg2-binary (no alembic)
+pyproject.toml = ABSENT
+CI installs pytest + alembic unpinned atop backend/requirements.txt
+SQLALCHEMY/PSYCOPG2_PIN = NONE (record as environment-capability risk for later Gates)
+```
+
+### ۲۰۷.۸ 174-node inventory summary
+
+```text
+TOTAL_COLLECTED_NODES = 174
+METHOD = static AST/text reconstruction (no pytest collection)
+PARAMETRIZED_EXPANSION = 130
+NON_PARAMETRIZED = 44
+STATIC_METADATA_IMPORT_MAPPER ≈ 69 nodes (T1–T4, coverage/semantic helpers, T8_05, T9_01/02/03/05/06, T10, T11, …)
+POSTGRESQL_RUNTIME_ALLOWLIST = 105 nodes
+ARITHMETIC = T5×3 + T6×6 + T7×71 + T8×24 + T9_04×1 = 105
+FUNCTION_SELECTORS = 15
+```
+
+### ۲۰۷.۹ Exact PostgreSQL runtime node allowlist (15 selectors → 105 nodes)
+
+```text
+TOTAL_RUNTIME_NODE_COUNT = 105
+TOTAL_POSITIVE_COUNT = 6
+TOTAL_FK_NEGATIVE_COUNT = 13
+TOTAL_UNIQUE_NEGATIVE_COUNT = 12
+TOTAL_CHECK_COUNT = 71
+TOTAL_SEMANTIC_CHECK_COUNT = 0 (semantic covered outside T7 IntegrityError matrix)
+TOTAL_DDL_SMOKE_COUNT = 3
+TOTAL_OTHER_COUNT = 0
+RECONCILE = 3+6+71+13+12 = 105 (T8_01=9 + T8_02=4 =13 FK; T8_03=8 + T8_04=3 + T9_04=1 =12 UQ)
+
+SELECTORS =
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T5_01_metadata_contains_w1p01_tables
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T5_02_partial_unique_indexes_exist_in_pg_catalog
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T5_03_regex_check_names_present_on_i5gd
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T6_01_positive_weekly_run_insert
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T6_02_positive_attempt_and_gap
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T6_03_positive_source_and_gap_results
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T6_04_positive_governance_decision
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T6_05_positive_gsp_additive_fields
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T6_06_positive_completed_with_warnings_attempt
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T7_negative_check_constraints
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T8_01_simple_fk_runtime_negative
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T8_02_composite_fk_runtime_negative
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T8_03_ordinary_uq_runtime_negative
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T8_04_partial_uq_runtime_negative
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py::test_W1P01_T9_04_same_request_key_payload_collision_is_db_enforced
+```
+
+### ۲۰۷.۱۰ Static-only exclusions (rationale)
+
+```text
+EXCLUDED_FROM_RUNTIME =
+  T1–T4 entire (import/mapper/metadata; no PG required)
+  T7_coverage_ledger / T7_entity_family_* semantic helpers (static/semantic; not IntegrityError matrix)
+  T8_05 metadata lists (no PG)
+  T9_01/02/03/05/06 metadata/lifecycle asserts without required PG enforcement path for this Gate
+  T10 regression metadata
+  T11 deferred migration marker
+RATIONALE = runtime Gate proves PostgreSQL-native DDL/constraint/partial-index/IntegrityError only
+```
+
+### ۲۰۷.۱۱ NAMED_CHECKS_70 complete ledger (70)
+
+```text
+COUNT = 70
+ISOLATED_NEGATIVE = 69
+SEMANTIC_EXCEPTION = ck_i5gd_entity_family_matrix
+T7_PARAM_NODES = 71 (69 unique + 2 dual-format extras for hash/request-key)
+ALL_NAMES =
+  01. ck_gsp_registry_state_vocab
+  02. ck_gsp_runtime_eligibility_vocab
+  03. ck_gsp_block_reason_length
+  04. ck_gsp_effective_window_order
+  05. ck_wkr_run_type_vocab
+  06. ck_wkr_trigger_type_vocab
+  07. ck_wkr_approval_state_vocab
+  08. ck_wkr_status_vocab
+  09. ck_wkr_window_order
+  10. ck_wkr_supersedes_not_self
+  11. ck_wkra_status_vocab
+  12. ck_wkra_attempt_number_pos
+  13. ck_wkra_retry_not_self
+  14. ck_wkra_completed_after_started
+  15. ck_wkra_failure_reason_length
+  16. ck_wkra_block_reason_length
+  17. ck_wkra_total_sources_nonnegative
+  18. ck_wkra_checked_sources_nonnegative
+  19. ck_wkra_fetched_sources_nonnegative
+  20. ck_wkra_skipped_sources_nonnegative
+  21. ck_wkra_blocked_sources_nonnegative
+  22. ck_wkra_failed_sources_nonnegative
+  23. ck_wkra_new_knowledge_count_nonnegative
+  24. ck_wkra_updated_knowledge_count_nonnegative
+  25. ck_wkra_superseded_knowledge_count_nonnegative
+  26. ck_wkra_rejected_knowledge_count_nonnegative
+  27. ck_wkra_created_gap_count_nonnegative
+  28. ck_wkra_resolved_gap_count_nonnegative
+  29. ck_wkra_warning_count_nonnegative
+  30. ck_wkra_error_count_nonnegative
+  31. ck_kg_gap_type_vocab
+  32. ck_kg_priority_vocab
+  33. ck_kg_severity_vocab
+  34. ck_kg_urgency_vocab
+  35. ck_kg_status_vocab
+  36. ck_kg_confidence_range
+  37. ck_kg_retry_count_nonneg
+  38. ck_kg_description_length
+  39. ck_kg_current_knowledge_state_length
+  40. ck_kg_required_knowledge_state_length
+  41. ck_kg_next_action_length
+  42. ck_kg_blocker_length
+  43. ck_wrsr_result_status_vocab
+  44. ck_wrsr_failure_reason_length
+  45. ck_wrsr_knowledge_new_count_nonnegative
+  46. ck_wrsr_knowledge_updated_count_nonnegative
+  47. ck_wrsr_knowledge_superseded_count_nonnegative
+  48. ck_wrsr_knowledge_rejected_count_nonnegative
+  49. ck_wrsr_gap_created_count_nonnegative
+  50. ck_wrsr_warning_count_nonnegative
+  51. ck_wrsr_error_count_nonnegative
+  52. ck_wrgr_result_type_vocab
+  53. ck_wrgr_previous_status_vocab
+  54. ck_wrgr_new_status_vocab
+  55. ck_i5gd_entity_type_vocab
+  56. ck_i5gd_decision_family_vocab
+  57. ck_i5gd_decision_type_vocab
+  58. ck_i5gd_outcome_vocab
+  59. ck_i5gd_actor_type_vocab
+  60. ck_i5gd_entity_id_pos
+  61. ck_i5gd_supersedes_not_self
+  62. ck_i5gd_canonical_hash_format
+  63. ck_i5gd_decision_request_key_format
+  64. ck_i5gd_hash_algorithm_constant
+  65. ck_i5gd_canonicalization_version_constant
+  66. ck_i5gd_reason_length
+  67. ck_i5gd_supersession_requires_parent
+  68. ck_i5gd_decision_type_family_matrix
+  69. ck_i5gd_entity_family_matrix
+  70. ck_i5gd_entity_decision_matrix
+```
+
+### ۲۰۷.۱۲ Foreign-key runtime matrix
+
+```text
+SIMPLE_FK = 9 ; ondelete = RESTRICT (all)
+  - fk_wkr_supersedes_run_id
+  - fk_wkra_weekly_run_id
+  - fk_knowledge_gaps_target_source_profile_id
+  - fk_knowledge_gaps_discovered_attempt_id
+  - fk_wrsr_attempt_id
+  - fk_wrsr_source_profile_id
+  - fk_wrsr_source_version_id
+  - fk_wrgr_attempt_id
+  - fk_wrgr_gap_id
+COMPOSITE_FK = 4
+  - fk_wkr_successful_attempt_same_run (DEFERRED)
+  - fk_wkr_latest_attempt_same_run (DEFERRED)
+  - fk_wkra_retry_same_run
+  - fk_i5gd_supersedes_same_entity_family
+RUNTIME_NODES = T8_01×9 + T8_02×4
+```
+
+### ۲۰۷.۱۳ Unique / partial-index matrix
+
+```text
+ORDINARY_UQ = 8
+  - uq_weekly_knowledge_runs_logical_run_key
+  - uq_wkra_run_attempt
+  - uq_wkra_id_weekly_run_id
+  - uq_knowledge_gaps_canonical_gap_key
+  - uq_wrsr_attempt_source_profile
+  - uq_wrgr_attempt_gap
+  - uq_i5gd_decision_request
+  - uq_i5gd_id_entity_family
+PARTIAL_UQ = 3
+  - uq_wkra_one_successful_terminal WHERE status IN ('COMPLETED','COMPLETED_WITH_WARNINGS')
+  - uq_i5gd_one_superseder WHERE supersedes_decision_id IS NOT NULL
+  - uq_i5gd_one_root_per_family WHERE supersedes_decision_id IS NULL
+QUERY_INDEX_LEDGER = 29 (metadata only; no dedicated runtime index-negative suite)
+T9_04 = same decision_request_key payload collision → uq_i5gd_decision_request
+```
+
+### ۲۰۷.۱۴ Positive ORM persistence cases
+
+```text
+T6_01 weekly_knowledge_runs insert
+T6_02 attempt + knowledge_gaps
+T6_03 weekly_run_source_results + weekly_run_gap_results
+T6_04 i5_governance_decisions
+T6_05 GSP additive fields
+T6_06 COMPLETED_WITH_WARNINGS attempt (partial UQ companion)
+INSERT_ORDER = GSP deps → WKR → WKRA → KG → WRSR/WRGR → I5GD
+CLEANUP = Gate harness session rollback / DB drop (not conftest)
+```
+
+### ۲۰۷.۱۵ Schema strategy options and SELECTED decision
+
+```text
+OPTION_A_ALEMBIC_UPGRADE_HEAD =
+  REJECTED
+  WHY = W1-P01 tables ABSENT from migrations; head=051_i5b2_governed_source_profile only has GSP;
+        would test historical migration state, not authored W1-P01 models
+
+OPTION_B_BASE_METADATA_CREATE_ALL =
+  SELECTED
+  CONTRACT = create Gate-owned empty DB → import governed model registry → Base.metadata.create_all
+             → run allowlisted nodes → drop only Gate-created DB
+
+OPTION_C_FOCUSED_TABLE_SUBSET =
+  REJECTED
+  WHY = dependency completeness risk; divergence from production metadata registry
+
+OPTION_D_DEDICATED_MIGRATION_FIRST =
+  REJECTED_FOR_THIS_SEQUENCE
+  WHY = requires separate migration Scope/Authoring Gates; not silent prerequisite
+
+SELECTED_SCHEMA_STRATEGY = B
+```
+
+### ۲۰۷.۱۶ PostgreSQL environment options and SELECTED decision
+
+```text
+LOCAL_EPHEMERAL_PG_127_0_0_1_5432 = SELECTED
+COMPOSE_SEDI_POSTGRES / PROD = REFUSED
+SHARED_PREEXISTING_DB = REFUSED
+GITHUB_ACTIONS_SERVICE = FUTURE_CI_SCOPE (not this immediate sequence)
+DOCKER_DAEMON_DISCOVERY = NOT_PERFORMED (static inspection only)
+```
+
+### ۲۰۷.۱۷ Production / shared-database refusal
+
+```text
+REFUSE_HOSTS_NOT_IN = {127.0.0.1}
+REFUSE_NAMES = production|prod|live|staging-prod|sedi_db|any non-matching regex
+REFUSE_IDENTIFIERS = api.sedi-ai.com ; sedi-cloudir ; sedi-backend ; sedi-postgres compose service
+REFUSE_PREEXISTING_DB_WITH_SAME_NAME = YES (fail-closed)
+MARKERS =
+  SENTINEL_POSTGRES_PRODUCTION_REFUSED
+  SENTINEL_POSTGRES_HOST_REFUSED
+  SENTINEL_POSTGRES_DATABASE_NAME_REFUSED
+  SENTINEL_POSTGRES_PREEXISTING_DATABASE_REFUSED
+  SENTINEL_POSTGRES_CONNECTION_TARGET_MISMATCH
+```
+
+### ۲۰۷.۱۸ Database name / ownership / pre-existence
+
+```text
+DB_NAME_REGEX = ^sedi_w1p01_orm_[0-9a-f]{32}$
+GENERATION = cryptographically random 32 hex suffix by Gate harness
+OWNERSHIP_PRINCIPLE =
+  THE GATE MAY ONLY DROP A DATABASE THAT IT CREATED
+  AND WHOSE EXACT GENERATED NAME AND OWNERSHIP MARKER IT RECORDED.
+PREEXISTING_SAME_NAME = BLOCKED_DATABASE_PREEXISTED
+DROP_BY_PREFIX_ONLY = FORBIDDEN
+DROP_BY_ENV_VAR_ONLY = FORBIDDEN
+CLEANUP_UNKNOWN_NAMES = FORBIDDEN
+```
+
+### ۲۰۷.۱۹ Connection / session / timeout contract
+
+```text
+ADMIN_URL = redacted postgresql+psycopg2://***@127.0.0.1:5432/postgres (or allowlisted admin DB)
+TEST_DB_URL = redacted …@127.0.0.1:5432/<generated Gate DB>
+ENV_VARS =
+  SEDI_W1P01_PG_ADMIN_URL (redacted in evidence)
+  SEDI_W1P01_PG_TEST_URL (set after create; redacted)
+  TEST_DATABASE_URL = Gate test URL only
+  DATABASE_URL = MUST NOT point at prod/shared; refuse if mismatched
+  APP_ENV=test_isolated ; ENVIRONMENT=test_isolated ; ENV=test_isolated
+TIMEOUTS = connect=10s ; statement=60s ; lock=30s ; idle_in_tx=60s (harness-enforced)
+application_name = sedi_w1p01_orm_runtime
+AUTOCOMMIT = required for CREATE/DROP DATABASE
+ENGINE_DISPOSE = mandatory after suite
+PASSWORD_PRINT = FORBIDDEN
+```
+
+### ۲۰۷.۲۰ Transaction isolation / IntegrityError recovery
+
+```text
+SELECTED = per-test connection + transaction rollback (savepoint-compatible)
+AFTER_EXPECTED_IntegrityError =
+  rollback active transaction/savepoint
+  expire/close poisoned session
+  open fresh session/savepoint for next case
+DDL = create_all once per Gate DB (suite scope)
+FRESH_DB_PER_TEST = REJECTED (cost)
+```
+
+### ۲۰۷.۲۱ Conftest / helper safety decision
+
+```text
+CONFTEST_CLASSIFICATION = UNSAFE — BYPASS WITH --noconftest
+WHY =
+  imports backend.app.database (engine at import / default sedi_db risk)
+  imports FastAPI main
+  session autouse create_all/drop_all against shared test engine
+  unsafe for controlled Gate-owned DB lifecycle
+HELPER_PATHS_REQUIRED =
+  backend/tests/helpers/w1p01_postgres_runtime.py
+  backend/tests/helpers/w1p01_postgres_runtime_plugin.py
+HELPER_AUTHORING = NEXT GATE (not this Scope Review)
+```
+
+### ۲۰۷.۲۲ Test-authoring gap decision
+
+```text
+FOCUSED_TEST_FILE = EXECUTION_READY_UNCHANGED
+HARNESS = REQUIRES_LIMITED HARNESS AUTHORING
+PATTERN = Pattern 2 — Helper/Test Authoring Required
+NO_CHANGE_TO_70_CHECK_SEMANTICS = YES
+NO_BROAD_TEST_REFACTOR = YES
+```
+
+### ۲۰۷.۲۳ Exact future commands (post-harness)
+
+```text
+ENV =
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+  PYTHONDONTWRITEBYTECODE=1
+  APP_ENV=test_isolated
+  ENVIRONMENT=test_isolated
+  ENV=test_isolated
+  TEST_DATABASE_URL=<Gate-generated redacted URL>
+  SEDI_W1P01_PG_OWNERSHIP_MARKER=<recorded>
+COMMAND_STRUCTURE =
+  python -B -m pytest
+    --noconftest
+    -p backend.tests.helpers.w1p01_postgres_runtime_plugin
+    -p no:cacheprovider
+    -q
+    --maxfail=1
+    <15 function selectors / 105 nodes>
+DEPENDENT_ON = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS AUTHORING-01
+```
+
+### ۲۰۷.۲۴ Fail-fast / result classifications
+
+```text
+BLOCKED_BASELINE_MISMATCH
+BLOCKED_ENVIRONMENT_CAPABILITY_MISMATCH
+BLOCKED_POSTGRES_TARGET_REFUSAL
+BLOCKED_DATABASE_PREEXISTED
+BLOCKED_SCHEMA_STRATEGY_MISMATCH
+CONTROLLED_SCHEMA_SETUP_FAILED
+CONTROLLED_POSTGRES_TEST_FAILED
+CONTROLLED_CLEANUP_FAILED
+FAIL_UNAUTHORIZED_DATABASE_TARGET
+FAIL_UNAUTHORIZED_REPOSITORY_MUTATION
+PASS
+SEQUENCE =
+  authority → env capability → target refusal → unique name → preexistence refusal
+  → create DB → schema setup → focused tests → cleanup → cleanup proof
+  → repository integrity → documentation
+```
+
+### ۲۰۷.۲۵ Evidence capture contract
+
+```text
+REQUIRED =
+  redacted admin/test targets ; generated DB name ; ownership marker
+  PG server version ; current_database() ; current_user ; inet_server_addr safe
+  schema strategy ; created tables/constraints ; pytest node IDs ; pass/fail/skip
+  IntegrityError SQLSTATE + constraint_name (+ table/column when available)
+  stdout/stderr ; timeouts ; cleanup commands ; DB absence proof
+  repository status ; cache/bytecode inventory
+FORBIDDEN = plaintext passwords / full secret-bearing URLs
+NEGATIVE_EVIDENCE = structured PG diagnostics preferred over substring-only matching
+```
+
+### ۲۰۷.۲۶ Cleanup / failure-containment contract
+
+```text
+ON_PASS_OR_FAIL =
+  close sessions → rollback → dispose engines
+  terminate ONLY connections to Gate-created DB
+  DROP ONLY exact Gate-created DB
+  prove absence → remove TEMP harness → verify repository integrity
+IF_ABSENCE_UNPROVEN = CONTROLLED_CLEANUP_FAILED + report exact DB name for manual owner action
+NO_CONNECTION_TERMINATION_TO_OTHER_DBS = YES
+```
+
+### ۲۰۷.۲۷ Repository-integrity contract
+
+```text
+PRESERVE_HARDENED_DIRTY_BASELINE_v496 = YES
+PRE_POST_GIT_STATUS_EQUAL = REQUIRED
+PROTECTED_HASHES_EQUAL = REQUIRED
+STAGED_EMPTY = REQUIRED
+CACHE_BYTECODE_EQUAL = REQUIRED
+TEMP_REMOVED = REQUIRED
+NO_REPO_EVIDENCE_ARTIFACT = REQUIRED
+SEVEN_LINE_BASELINE = NOT WEAKENED
+```
+
+### ۲۰۷.۲۸ Minimum next Gate + W1-P01 closure sequence
+
+```text
+NEXT_GATE =
+  W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS AUTHORING-01
+WHY_MINIMUM =
+  test file EXECUTION_READY_UNCHANGED but conftest UNSAFE;
+  dedicated helpers/plugin required before safe PG execution
+
+CLOSURE_SEQUENCE =
+  1) THIS Scope Review PASS
+  2) TEST/HARNESS AUTHORING-01
+  3) Static Re-Audit of harness
+  4) FOCUSED POSTGRESQL ORM RUNTIME EXECUTION-01
+  5) execution result re-audit if needed
+  6) Migration Scope Review → Authoring → Static validation → PG apply/rollback
+  7) Focused CI Scope Review → CI execution
+  8) Documentation closure → stage/commit/push Gates
+CRAWLER_SCHEDULER_ACTIVATION = OUTSIDE W1-P01
+```
+
+### ۲۰۷.۲۹ Risks / owners / closure criteria (summary)
+
+```text
+R01 prod/shared DB connect → MAJOR → host/name/ownership refusal → owner=harness
+R02 drop preexisting DB → BLOCKER → Gate-only DROP principle → owner=harness
+R03 incomplete cleanup → MAJOR → absence proof / CONTROLLED_CLEANUP_FAILED
+R04 PG version drift → MAJOR → record server version in evidence
+R05 migration/model drift → MAJOR → strategy B + later migration Gates
+R06 unrelated model tables via create_all → MAJOR → accept registry fidelity; document
+R07 conftest side effects → BLOCKER → --noconftest + helpers
+R08 IntegrityError session poison → MAJOR → rollback/new session contract
+R09 credential leakage → MAJOR → redaction law
+R10 cache/bytecode mutation → MAJOR → V5-style integrity
+```
+
+### ۲۰۷.۳۰ Actions performed / not performed
+
+```text
+PERFORMED =
+  static read-only inspection
+  NAMED_CHECKS_70 extraction
+  runtime contract freeze
+  append-only §207
+  create v498 = exact v497 bytes + section 58
+NOT_PERFORMED =
+  PostgreSQL connect/create/drop
+  pytest / collection / import execution
+  Alembic / Docker / Compose / network
+  source/test/helper/config/migration/workflow edit
+  commit/push/CI/crawler
+```
+
+### ۲۰۷.۳۱ Approved explanations + new principle
+
+```text
+CARRIED =
+  I5 W1–W6; W1-P01 before crawler; dual continuity; lineage through v497;
+  no contract improvisation; RERUN03 PASS; dirty-baseline integrity law
+NEW_APPROVED_PRINCIPLE =
+  A destructive database cleanup action is authorized only for a database
+  created by the same Gate, with an exact generated identity and recorded
+  ownership proof. No pre-existing, shared, staging or production database
+  may be modified, truncated, migrated or dropped by a focused test Gate.
+```
+
+### ۲۰۷.۳۲ Continuity
+
+```text
+APPEND_§207 = YES
+CREATE_v498 = YES
+MODIFY_v497 = NO
+FILENAME_v498 =
+  Sedi_Master_Handoff_Section34_W1P01_FocusedPostgreSQLOrmRuntimeTestScopeReview_v498_FA.md
+PRIMARY_VERDICT =
+  W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_SCOPE_REVIEW_01 = PASS
+NEXT_GATE_AUTHORIZED = NO
+NEW_JAVAD_APPROVAL_REQUIRED = YES
+```
+
+---
+
+*پایان بند ۲۰۷ — FOCUSED POSTGRESQL ORM RUNTIME TEST SCOPE REVIEW-01 — PASS — بدون-PostgreSQL — بدون-pytest — بدون-کامیت*
+
+## ۲۰۸) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME SCOPE STRICT READ-ONLY RE-AUDIT-01 — **PASS**
+
+### ۲۰۸.۱ هدف و مجوز
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME SCOPE STRICT READ-ONLY RE-AUDIT-01
+JAVAD_AUTHORIZATION = EXPLICIT
+MODE = READ-ONLY RE-AUDIT v498 + DOCUMENTATION-ONLY CORRECTIVE SUPERSESSION
+```
+
+### ۲۰۸.۲ هویت مرجع ورودی
+
+```text
+§207 VERIFIED = YES (2520916 / fc47fa342e17bbc8754d2695967fd71a8a1f49a2dc22a8cd92c88e9753e2ef46)
+v498 VERIFIED = YES (3384119 / ae508d51f48b95ccf83c6d3108d91a656370c030b79ad8286d4241029b6a671f)
+v497 PREFIX IN v498 = VERIFIED
+```
+
+### ۲۰۸.۳ اثبات حساب نودها (APPROVED)
+
+```text
+TOTAL = 174
+RUNTIME = 105
+STATIC_EXCLUDED = 69
+INTERSECTION = 0
+T5=3 T6=6 T7=71 T8=24 T9_04=1 → 105
+```
+
+### ۲۰۸.۴ تفاوت ۷۰ CHECK و ۷۱ نود T7 (APPROVED)
+
+```text
+70 named CHECK = 69 isolated + 1 semantic (ck_i5gd_entity_family_matrix)
+71 T7 nodes = 67*1 + 2*2 (دو CHECK فرمت دوم دارند: canonical_hash_format و decision_request_key_format)
+semantic CHECK در 71 نود T7 IntegrityError نیست
+```
+
+### ۲۰۸.۵ مدل محیط PostgreSQL (APPROVED — Model A)
+
+```text
+SERVER = pre-existing local 127.0.0.1:5432
+GATE_CREATES/DROPS = database only with ownership proof
+ENVIRONMENT_CAPABILITY_ALREADY_PROVEN = NO
+```
+
+### ۲۰۸.۶ ترتیب محیط قبل از import (APPROVED)
+
+```text
+scrub → refuse → generate name → preexistence check → create DB →
+set TEST_DATABASE_URL + DATABASE_URL → test_isolated → then import database/models → create_all
+SENTINEL_APPLICATION_IMPORT_BEFORE_TEST_DATABASE_BINDING
+```
+
+### ۲۰۸.۷ بندهای SUPERSEDED در v498
+
+```text
+≈69 excluded → exact 69
+ambiguous ephemeral PG wording → Model A
+placeholder command → 15 exact selectors
+next Gate Harness before capability → Environment Capability first
+```
+
+### ۲۰۸.۸ اقدامات / عدم اقدام
+
+```text
+PERFORMED = static manifests; §208 append; v499 create
+NOT_PERFORMED = PostgreSQL; pytest; imports; harness authoring; commit
+```
+
+### ۲۰۸.۹ نتیجه و Gate بعدی
+
+```text
+W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_SCOPE_STRICT_READ_ONLY_RE_AUDIT_01 = PASS
+NEXT_GATE = W1-P01 ISOLATED POSTGRESQL ENVIRONMENT CAPABILITY / PREPARATION-01
+POST_LOG identity recorded authoritatively in v499 §59.21
+v499 = see §59.21 for size/sha256
+```
+
+---
+
+*پایان بند ۲۰۸ — STRICT READ-ONLY RE-AUDIT-01 — PASS*
+
+
+## ۲۰۹) W1-P01 ISOLATED POSTGRESQL ENVIRONMENT CAPABILITY / PREPARATION-01 — **BLOCKED_ENVIRONMENT_CONFIGURATION_MISSING**
+
+### ۲۰۹.۱ مجوز و هدف
+
+```text
+GATE = W1-P01 ISOLATED POSTGRESQL ENVIRONMENT CAPABILITY / PREPARATION-01
+MODEL = A — سرور محلی از پیش موجود؛ فقط دیتابیس Gate ایجاد/حذف می‌شود
+```
+
+### ۲۰۹.۲ هویت مرجع
+
+```text
+§208 VERIFIED = YES (2523464 / e33a2c2a44a600780e6902261ad9e5e6fe259bd1b93dfb5f57333bff9dab419d)
+v499 VERIFIED = YES (3431850 / 58e3a9da950a6342e9801cc6edb89f16316646074347398009c057be78a7f70b)
+```
+
+### ۲۰۹.۳ متغیر محیطی اداری
+
+```text
+SEDI_W1P01_PG_ADMIN_URL present = False
+SEDI_W1P01_PG_ADMIN_URL non-empty = False
+```
+
+### ۲۰۹.۴ نتیجه
+
+```text
+W1_P01_ISOLATED_POSTGRESQL_ENVIRONMENT_CAPABILITY_PREPARATION_01 = BLOCKED_ENVIRONMENT_CONFIGURATION_MISSING
+EXIT_CODE = 2
+```
+
+### ۲۰۹.۵ اقدامات انجام‌شده / انجام‌نشده
+
+```text
+PERFORMED = preflight; TEMP harness; capability subprocess; integrity audit; §209; v500
+NOT_PERFORMED = harness authoring; pytest; schema create_all; Alembic; commit
+```
+
+### ۲۰۹.۶ Gate بعدی
+
+```text
+NEXT = operator must set SEDI_W1P01_PG_ADMIN_URL and rerun capability
+POST_LOG identity recorded authoritatively in v500 §60.11
+v500 identity recorded in v500 §60.11
+```
+
+---
+
+*پایان بند ۲۰۹ — ENVIRONMENT CAPABILITY — BLOCKED_ENVIRONMENT_CONFIGURATION_MISSING*
+
+
+## ۲۱۰) SEDI-V1 GITHUB-FIRST TESTING / CI AND SERVER-ONLY POST-CI DEPLOYMENT GOVERNANCE LAW-01 — **PASS**
+
+### ۲۱۰.۱ مجوز دائمی
+
+```text
+GATE = SEDI-V1 GITHUB-FIRST TESTING / CI AND SERVER-ONLY POST-CI DEPLOYMENT GOVERNANCE LAW-01
+JAVAD_AUTHORIZATION = EXPLICIT PERMANENT PROJECT LAW
+STATUS = APPROVED — PERMANENT / PROJECT-WIDE / SEDI V1
+```
+
+### ۲۱۰.۲ قانون اجرای تست و CI
+
+```text
+همه تست‌های قابل اجرا، buildها، اعتبارسنجی‌های runtime و بررسی‌های CI
+باید از طریق GitHub / GitHub Actions و با orchestration توسط Cursor انجام شوند.
+
+لپ‌تاپ به‌صورت پیش‌فرض محیط اجرای PostgreSQL، Docker، pytest، integration، ORM runtime،
+migration apply/rollback، build، CI simulation و deployment validation نیست.
+
+نقش پیش‌فرض لپ‌تاپ:
+  نویسندگی source/test/workflow، بازرسی read-only، audit استاتیک، diff review،
+  مستندسازی، به‌روزرسانی continuity، اجرای promptهای Cursor
+```
+
+### ۲۱۰.۳ مرزهای تأیید مستقل
+
+```text
+authoring workflow / test / stage / commit / push / GitHub dispatch / remediation
+= مرزهای تأیید جدا
+
+push به‌تنهایی مجوز CI، dispatch، deployment، migration یا server execution نیست.
+
+برای اعتبارسنجی focused/sensitive ترجیحاً workflow_dispatch است.
+```
+
+### ۲۱۰.۴ قانون server فقط پس از GitHub PASS
+
+```text
+هر اقدام server پس از PASS مربوط در GitHub نیازمند Gate جدا با تأیید صریح Javad است.
+push به‌تنهایی مجوز upload/deploy/migration/activation نیست.
+```
+
+### ۲۱۰.۵ قانون دستورالعمل گام‌به‌گام برای اپراتور
+
+```text
+هر اقدام دستی Javad باید با دستورالعمل کامل گام‌به‌گام ارائه شود:
+  برنامه، مسیر/صفحه، دستور/UI دقیق، خروجی مورد انتظار، اطلاعات قابل اشتراک،
+  secret ممنوع، mismatch توقف فوری، اطلاعات لازم برای audit
+```
+
+### ۲۱۰.۶ حفظ نتیجه capability محلی و مسیر superseded
+
+```text
+W1_P01_ISOLATED_POSTGRESQL_ENVIRONMENT_CAPABILITY_PREPARATION_01 =
+  BLOCKED_ENVIRONMENT_CONFIGURATION_MISSING (حفظ شود؛ تبدیل به PASS/FAIL نشود)
+
+SUPERSEDED FOR CURRENT W1-P01 EXECUTION PATH:
+  local PostgreSQL Model A on 127.0.0.1:5432 as immediate execution environment
+
+SELECTED_W1P01_POSTGRESQL_RUNTIME_DIRECTION =
+  GITHUB ACTIONS EPHEMERAL POSTGRESQL SERVICE
+```
+
+### ۲۱۰.۷ توالی Gate اصلاح‌شده W1-P01
+
+```text
+1. POSTGRESQL RUNTIME GITHUB-ACTIONS-FIRST SCOPE REVIEW-01
+2. TEST/HARNESS AUTHORING-01
+3. GITHUB WORKFLOW AUTHORING-01
+4. HARNESS / WORKFLOW STRICT STATIC RE-AUDIT-01
+5–12. Stage / Commit / Push / Dispatch / Result Audit / Remediation /
+      Migration GitHub Gates / Server Gate only after GitHub PASS
+```
+
+### ۲۱۰.۸ اقدامات / عدم اقدام
+
+```text
+PERFORMED = law registration; §210 append; v501 create; path correction
+NOT_PERFORMED = source/test/workflow edit; PG/Docker/pytest/CI/Git/server; later Gates
+```
+
+### ۲۱۰.۹ Gate بعدی
+
+```text
+PROPOSED_NEXT_GATE =
+  W1-P01 POSTGRESQL RUNTIME GITHUB-ACTIONS-FIRST SCOPE REVIEW-01
+NEXT_GATE_AUTHORIZED = NO
+v501 identity = v501 §61.15 and handoff continuity index
+```
+
+---
+
+*پایان بند ۲۱۰ — GITHUB-FIRST TESTING / POST-CI DEPLOYMENT GOVERNANCE LAW-01 — PASS*
+
+
+## ۲۱۱) W1-P01 POSTGRESQL RUNTIME GITHUB-ACTIONS-FIRST SCOPE REVIEW-01 — **PASS**
+
+### ۲۱۱.۱ مجوز و هدف
+
+```text
+GATE = W1-P01 POSTGRESQL RUNTIME GITHUB-ACTIONS-FIRST SCOPE REVIEW-01
+MODE = DOCUMENTATION-ONLY GITHUB RUNTIME CONTRACT FREEZE
+```
+
+### ۲۱۱.۲ حفظ حاکمیت
+
+```text
+§210 GitHub-first law preserved
+local Model A superseded for current execution
+BLOCKED_ENVIRONMENT_CONFIGURATION_MISSING preserved
+```
+
+### ۲۱۱.۳ تصمیم‌های کلیدی (APPROVED)
+
+```text
+SELECTED_RUNNER = ubuntu-24.04
+SELECTED_POSTGRES_IMAGE = postgres:15
+DATABASE_LIFECYCLE = A (service DB sedi_w1p01_orm directly)
+SCHEMA = Base.metadata.create_all (no Alembic in W1-P01 workflow)
+WORKFLOW = .github/workflows/w1p01-postgresql-orm-runtime.yml
+WORKFLOW_NAME = W1-P01 Focused PostgreSQL ORM Runtime
+TRIGGER = workflow_dispatch only
+PERMISSIONS = contents: read
+RUNTIME_NODES = 105 via 15 selectors (preserved from v499)
+```
+
+### ۲۱۱.۴ اقدامات / عدم اقدام
+
+```text
+PERFORMED = workflow static inspection; contract freeze; §211; v502
+NOT_PERFORMED = helper/workflow authoring; pytest; GHA execution; Git push
+```
+
+### ۲۱۱.۵ Gate بعدی
+
+```text
+PROPOSED = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS AUTHORING-01
+v502 identity = v502 §62.26
+```
+
+---
+
+*پایان بند ۲۱۱ — GITHUB-ACTIONS-FIRST SCOPE REVIEW-01 — PASS*
+
+
+## ۲۱۲) W1-P01 POSTGRESQL RUNTIME GITHUB-ACTIONS-FIRST CONTRACT MICRO-HARDENING-01 — **PASS**
+
+### ۲۱۲.۱ مجوز و هدف
+
+```text
+GATE = W1-P01 POSTGRESQL RUNTIME GITHUB-ACTIONS-FIRST CONTRACT MICRO-HARDENING-01
+MODE = DOCUMENTATION-ONLY MICRO-HARDENING (5 AREAS)
+```
+
+### ۲۱۲.۲ یافته‌های اصلی
+
+```text
+A = Option A lifecycle corrected; manifest mismatch stops before create_all/schema/runtime (not service DB)
+B = collect-only Process 1 + runtime Process 2 frozen as separate pytest processes
+C = transaction Option 2 selected (outer tx + test begin_nested)
+D = diagnostic Option B selected (engine handle_error); test file EXECUTION_READY_UNCHANGED
+E = dependency Decision A (unpinned accepted; pip freeze evidence required)
+```
+
+### ۲۱۲.۳ نتیجه و تداوم
+
+```text
+VERDICT = W1_P01_POSTGRESQL_RUNTIME_GITHUB_ACTIONS_FIRST_CONTRACT_MICRO_HARDENING_01 = PASS
+SUPERSESSION_LEDGER = v503 §63.21
+NEXT_GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS AUTHORING-01
+v503 identity = v503 §63.24 + external whole-file hash
+```
+
+### ۲۱۲.۴ اقدامات / عدم اقدام
+
+```text
+PERFORMED = actual v502 audit; 5-area hardening; §212; v503
+NOT_PERFORMED = helper/workflow/test authoring; pytest; GHA execution; git push
+```
+
+---
+
+*پایان بند ۲۱۲ — CONTRACT MICRO-HARDENING-01 — PASS*
+
+
+## ۲۱۳) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS AUTHORING-01 — **PASS**
+
+### ۲۱۳.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS AUTHORING-01
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_HARNESS_AUTHORING_01 = PASS
+```
+
+### ۲۱۳.۲ فایل‌های ایجادشده
+
+```text
+backend/tests/helpers/w1p01_postgres_runtime.py = 36968 / 8e9be9676f33662d016e20934719f8bd50e4a865f04b5b1b8b9d7457e90059cb
+backend/tests/helpers/w1p01_postgres_runtime_plugin.py = 5217 / 7ec6a5bb012192390db5404c5bb4a9e9d502c30d8fdb50628ad89473cdd583f6
+```
+
+### ۲۱۳.۳ پیاده‌سازی قرارداد v503
+
+```text
+collect-only/runtime separation = IMPLEMENTED
+manifest 15→105 = IMPLEMENTED
+Option 2 transaction = IMPLEMENTED
+handle_error diagnostics = IMPLEMENTED
+dependency >=2.0 gate = IMPLEMENTED
+```
+
+### ۲۱۳.۴ اقدامات / عدم اقدام
+
+```text
+PERFORMED = two-file authoring; AST/static verification; §213; v504
+NOT_PERFORMED = pytest; workflow; commit/push; later Gates
+NEXT = STRICT STATIC RE-AUDIT-01
+v504 identity = v504 §64.10
+```
+
+---
+
+*پایان بند ۲۱۳ — TEST/HARNESS AUTHORING-01 — PASS*
+
+
+## ۲۱۴) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-01 — **PASS**
+
+### ۲۱۴.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-01
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_HARNESS_STRICT_STATIC_RE_AUDIT_01 = PASS
+OPEN_FINDINGS = 0
+```
+
+### ۲۱۴.۲ هویت فایل‌ها
+
+```text
+w1p01_postgres_runtime.py = 36968 / 8e9be9676f33662d016e20934719f8bd50e4a865f04b5b1b8b9d7457e90059cb
+w1p01_postgres_runtime_plugin.py = 5217 / 7ec6a5bb012192390db5404c5bb4a9e9d502c30d8fdb50628ad89473cdd583f6
+```
+
+### ۲۱۴.۳ خلاصه ممیزی
+
+```text
+AST = PASS | manifests 15/105 EXACT | manifest-before-schema PASS | collect-only safe PASS
+OPTION_2 transaction PASS | handle_error PASS | no forbidden patterns
+```
+
+### ۲۱۴.۴ Gate بعدی
+
+```text
+PROPOSED = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW AUTHORING-01
+v505 identity = v505 §65.9
+```
+
+---
+
+*پایان بند ۲۱۴ — STRICT STATIC RE-AUDIT-01 — PASS*
+
+
+## ۲۱۵) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS MICRO-FIX-01 — **PASS**
+
+### ۲۱۵.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS MICRO-FIX-01
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_HARNESS_MICRO_FIX_01 = PASS
+FINDINGS_CLOSED = FINDING-01, FINDING-02
+```
+
+### ۲۱۵.۲ بازطبقه‌بندی PASS قبلی (append-only)
+
+```text
+CURSOR_REPORTED §214/v505 = PASS
+CHATGPT_AUDIT_RECLASSIFICATION = NEEDS_FIX
+  FINDING-01 = fixture acquisition/cleanup not fully failure-safe
+  FINDING-02 = EXPECTED_TEST_URL executable fallback when URLs absent
+§214 and v505 bytes = UNCHANGED (historical)
+```
+
+### ۲۱۵.۳ Remediation
+
+```text
+FINDING-01 = independent cleanup + primary-failure preservation + CONTROLLED_FIXTURE_CLEANUP_FAILED
+FINDING-02 = both URLs mandatory; EXPECTED_TEST_URL comparison-only; fail-closed SENTINEL_GITHUB_POSTGRES_URL_MISMATCH
+```
+
+### ۲۱۵.۴ هویت جدید فایل‌ها
+
+```text
+w1p01_postgres_runtime.py = 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef
+w1p01_postgres_runtime_plugin.py = 5923 / c71fdc2186ae5a01af32a7ed0e95cc98c1ef7a5232fe5b7aa625c9517fb459d5
+```
+
+### ۲۱۵.۵ Gate بعدی
+
+```text
+PROPOSED = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-02
+v506 identity = v506 §66.11
+```
+
+---
+
+*پایان بند ۲۱۵ — TEST/HARNESS MICRO-FIX-01 — PASS*
+
+
+## ۲۱۶) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-02 — **NEEDS_FIX**
+
+### ۲۱۶.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-02
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_HARNESS_STRICT_STATIC_RE_AUDIT_02 = NEEDS_FIX
+OPEN_FINDINGS = FINDING-01A
+FINDING-02 = CLOSED
+```
+
+### ۲۱۶.۲ هویت‌ها (unchanged helpers)
+
+```text
+§215 prefix = 2535299 / 672cb1d70ea2d059a804f4d2f7dfe5c109f5837d8048549873cda7ee7561e311
+helper = 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef
+plugin = 5923 / c71fdc2186ae5a01af32a7ed0e95cc98c1ef7a5232fe5b7aa625c9517fb459d5
+```
+
+### ۲۱۶.۳ FINDING-01A (HIGH)
+
+```text
+PRIMARY_FAILURE_SOURCE = ACTIVE_EXCEPTION_ONLY
+makereport stores setattr(item, f"rep_{when}", report) — PASS storage
+db fixture NEVER reads rep_setup / rep_call / request.node reports
+sole detector = sys.exc_info()[1] is None at plugin L131-L132
+CONTRACT = pytest phase reports required for setup/call prior-failure detection
+```
+
+### ۲۱۶.۴ FINDING-02
+
+```text
+STATUS = CLOSED
+EXPECTED_TEST_URL executable fallback = 0
+both URLs mandatory; fail-closed SENTINEL_GITHUB_POSTGRES_URL_MISMATCH
+```
+
+### ۲۱۶.۵ Gate بعدی
+
+```text
+PROPOSED = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS MICRO-FIX-02
+ALLOWLIST = w1p01_postgres_runtime.py + w1p01_postgres_runtime_plugin.py
+WORKFLOW_AUTHORING = BLOCKED
+v507 identity = v507 §67
+```
+
+---
+
+*پایان بند ۲۱۶ — STRICT STATIC RE-AUDIT-02 — NEEDS_FIX*
+
+
+## ۲۱۷) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS MICRO-FIX-02 — **PASS**
+
+### ۲۱۷.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS MICRO-FIX-02
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_HARNESS_MICRO_FIX_02 = PASS
+FINDING_CLOSED = FINDING-01A
+PRIMARY_FAILURE_SOURCE = COMBINED_REPORTS_AND_ACTIVE_EXCEPTION
+```
+
+### ۲۱۷.۲ اصلاح
+
+```text
+WRITABLE = w1p01_postgres_runtime_plugin.py ONLY
+HELPER = UNCHANGED 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef
+PLUGIN_NEW = 6614 / 06906e0c3ccd8d7b0f06670338bc29b6c4d4c6aaca6c4b8661714457884d5d31
+FIX = _prior_primary_failure_exists(request) reads rep_setup/rep_call.failed + sys.exc_info
+```
+
+### ۲۱۷.۳ Gate بعدی
+
+```text
+PROPOSED = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-03
+WORKFLOW_AUTHORING = BLOCKED_UNTIL_REAUDIT_03_PASS
+v508 identity = v508 §68
+```
+
+---
+
+*پایان بند ۲۱۷ — TEST/HARNESS MICRO-FIX-02 — PASS*
+
+
+## ۲۱۸) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-03 — **PASS**
+
+### ۲۱۸.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME TEST/HARNESS STRICT STATIC RE-AUDIT-03
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_TEST_HARNESS_STRICT_STATIC_RE_AUDIT_03 = PASS
+OPEN_FINDINGS = 0
+FINDING-01A = CLOSED
+FINDING-02 = CLOSED (preserved)
+PRIMARY_FAILURE_SOURCE = COMBINED_REPORTS_AND_ACTIVE_EXCEPTION
+```
+
+### ۲۱۸.۲ هویت‌ها (unchanged)
+
+```text
+helper = 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef
+plugin = 6614 / 06906e0c3ccd8d7b0f06670338bc29b6c4d4c6aaca6c4b8661714457884d5d31
+```
+
+### ۲۱۸.۳ اثبات مرکزی
+
+```text
+makereport stores per-item rep_{when}
+_prior_primary_failure_exists reads rep_setup/rep_call.failed + sys.exc_info
+db finally raises CONTROLLED_FIXTURE_CLEANUP_FAILED only when cleanup_errors and not prior_primary_failure
+four scenarios A–D = PASS
+EXPECTED_TEST_URL fallback = 0
+```
+
+### ۲۱۸.۴ Gate بعدی
+
+```text
+PROPOSED = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW AUTHORING-01
+AUTHORIZED = NO
+v509 identity = v509 §69
+```
+
+---
+
+*پایان بند ۲۱۸ — STRICT STATIC RE-AUDIT-03 — PASS*
+
+
+## ۲۱۹) W1-P01 HARNESS STATIC CLOSURE / NEW-CHAT CONTINUITY FINAL SYNC-01 — **PASS**
+
+### ۲۱۹.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 HARNESS STATIC CLOSURE / NEW-CHAT CONTINUITY FINAL SYNC-01
+JAVAD_REQUEST = NEW-CHAT CONTINUITY DOCUMENTATION
+VERDICT = W1_P01_HARNESS_STATIC_CLOSURE_NEW_CHAT_CONTINUITY_FINAL_SYNC_01 = PASS
+MODE = DOCUMENTATION-ONLY
+IMPLEMENTATION_WRITES = NONE
+```
+
+### ۲۱۹.۲ هویت مرجع (§218 / v509)
+
+```text
+§218 PREFIX = 2539269 / 27cd2260b79667e26f5c17f01b8a7372331a27f049380621b18af67f20a1e4f5
+v509 = 3508715 / a261835e2df949f72eebb9d3d4593f89ff0311cb5f02aeb72e11f08a9f026a16
+v508_PREFIX_IN_v509 = VERIFIED (3503494 / 173400706ab041fa57d5fef5d4b076263d19404f313a327bf9d89451877b49b0)
+helper = 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef
+plugin = 6614 / 06906e0c3ccd8d7b0f06670338bc29b6c4d4c6aaca6c4b8661714457884d5d31
+```
+
+### ۲۱۹.۳ Repository baseline
+
+```text
+WORKSPACE = D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+WORKTREE_COUNT = 6
+NINE_LINE_DIRTY_BASELINE = EXACT
+```
+
+### ۲۱۹.۴ Permanent governance laws (full)
+
+```text
+1) JAVAD APPROVAL BOUNDARY — separate approval before architecture/scope,
+   implementation, test authoring/execution, CI/workflow authoring/dispatch,
+   migration, stage/commit/push/merge, deploy, activation, server action,
+   branch/worktree ops, repository cleanup. push ≠ CI auth; CI PASS ≠ deploy.
+2) NO DUPLICATE CONFIRMATION after Gate approval + final prompt.
+3) DUAL CONTINUITY — master log + authoritative handoff both required.
+4) APPEND-ONLY — master log append-only; handoff = exact predecessor + append;
+   predecessors immutable (no rewrite/rename/move/archive/delete/normalize).
+5) SELF-HEALING — DETECT → ROOT CAUSE → MINIMAL IN-SCOPE FIX → VERIFY → REPEAT.
+6) GITHUB-FIRST TESTING — all executable tests/builds/CI = GitHub Actions;
+   laptop = authoring + read-only inspection + static audit + docs;
+   server only after relevant GitHub PASS + separate Javad approval.
+7) SECRET-SAFETY — no password/full DSN/token/credentials/env dump in chat,
+   prompts, source, logs, artifacts, master log, handoff, reports.
+8) SEDI V1 ROOT — all Sedi V1 files under
+   D:/Rimiya Design Studio/Sedi/software/Sedi-v-1
+```
+
+### ۲۱۹.۵ Product / I5 context
+
+```text
+Sedi = caring intelligent proactive healthcare companion
+English = canonical design language; Persian + Arabic required product languages
+I5 = governed continuously learning health research agent
+International credible sources = primary medical/health knowledge
+Iranian sources = secondary/contextual local providers/referral
+Weekly crawling must not autonomously retrain/modify base model
+W1-P01 = DB/control-plane foundation BEFORE crawler/scheduler activation
+```
+
+### ۲۱۹.۶ Frozen W1-P01 scope
+
+```text
+ARCHITECTURE = EXTENDED 1 + REUSED 1 + NEW 6 = 8
+GSP ADDITIVE COLUMNS = 13
+NAMED CHECKS = 70
+RUNTIME SELECTORS = 15
+RUNTIME NODES = 105
+STATIC-EXCLUDED = 69
+TOTAL UNION = 174
+INTERSECTION = 0
+T7 NODES = 71
+T5=3 T6=6 T7=71 T8=24 T9_04=1 TOTAL=105
+SCHEMA = Base.metadata.create_all()
+MODEL CONTRACT RUNTIME PROOF = YES
+MIGRATION FIDELITY PROOF = NO
+```
+
+### ۲۱۹.۷ Protected + harness identities
+
+```text
+models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff
+orm_contracts.py = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530 (174 nodes)
+import_no_circularity.py = 7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11
+w1p01_postgres_runtime.py = 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef
+w1p01_postgres_runtime_plugin.py = 6614 / 06906e0c3ccd8d7b0f06670338bc29b6c4d4c6aaca6c4b8661714457884d5d31
+```
+
+### ۲۱۹.۸ Completed Gate chain + reclassifications
+
+```text
+RERUN03 collection/import/mapper = PASS
+Scope Strict Re-Audit-01 = PASS
+GitHub-Actions-First Scope Review-01 = PASS
+Contract Micro-Hardening-01 = PASS
+Harness Authoring-01 = PASS AS AUTHORING
+Re-Audit-01 = reported PASS → SUPERSEDED/RECLASSIFIED NEEDS_FIX
+  (partial acquisition/cleanup unsafe; EXPECTED_TEST_URL fallback)
+Micro-Fix-01 = PASS AS AUTHORING (cleanup + URL fail-closed)
+Re-Audit-02 = NEEDS_FIX FINDING-01A
+  (phase reports stored; fixture used only sys.exc_info)
+Micro-Fix-02 = PASS AS AUTHORING
+  (COMBINED_REPORTS_AND_ACTIVE_EXCEPTION)
+Re-Audit-03 = PASS
+FINAL =
+  OPEN_IMPLEMENTATION_FINDINGS = 0
+  FINDING-01A = CLOSED
+  FINDING-02 = CLOSED
+  HARNESS_STATIC_CONTRACT_CLOSURE = PASS
+```
+
+### ۲۱۹.۹ Frozen GitHub runtime / URL / transaction / diagnostics
+
+```text
+RUNNER=ubuntu-24.04 PYTHON=3.12 POSTGRES=postgres:15
+DB=sedi_w1p01_orm USER=sedi_w1p01_test HOST=127.0.0.1 PORT=5432
+TRIGGER=workflow_dispatch only PERMISSIONS=contents:read TIMEOUT=30m
+Option A lifecycle; harness does NOT CREATE/DROP DATABASE
+Collect-only + Runtime = independent processes; --noconftest; governed plugin
+Runtime: --maxfail=1; create_all only after 105-node manifest PASS; no Alembic/drop_all
+DATABASE_URL + TEST_DATABASE_URL mandatory identical approved target
+EXPECTED_TEST_URL validation-only; EXECUTABLE_FALLBACK_OCCURRENCES=0
+Option 2 outer tx never committed; test-owned begin_nested; independent cleanup
+PRIMARY_FAILURE_SOURCE = active exception OR rep_setup.failed OR rep_call.failed
+CONTROLLED_FIXTURE_CLEANUP_FAILED; handle_error runtime-only; TEMP evidence
+SQLAlchemy >=2.0; unpinned deps accepted first runtime; BLOCKED_DEPENDENCY_RESOLUTION
+```
+
+### ۲۱۹.۱۰ Explicit non-actions
+
+```text
+WORKFLOW FILE CREATED = NO
+WORKFLOW STATIC AUDIT = NO
+STAGE/COMMIT/PUSH = NO
+GITHUB ACTIONS DISPATCH = NO
+POSTGRESQL RUNTIME PROOF = NO
+POSTGRESQL 16 PARITY = NO
+SERVER/DEPLOY/ACTIVATION = NO
+```
+
+### ۲۱۹.۱۱ Remaining work (exact order) + next Gate
+
+```text
+1) GITHUB WORKFLOW AUTHORING-01
+2) WORKFLOW STRICT STATIC RE-AUDIT-01
+3) Stage Gate  4) Commit Gate  5) Push Gate  6) Dispatch Gate
+7) GitHub runtime evidence audit
+8) Remediation only if runtime fails
+9) PostgreSQL 16 parity later
+10) server/deploy/activation only after GitHub PASS + separate approval
+
+NEXT_GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW AUTHORING-01
+NEXT_GATE_AUTHORIZED = NO
+NEXT_GATE_EXECUTED = NO
+NOTE = any prior §218/v509 workflow authoring draft is SUPERSEDED for execution;
+       fresh Workflow Authoring prompt must use §219 + v510
+```
+
+### ۲۱۹.۱۲ Continuity tip
+
+```text
+CURRENT_AUTHORITATIVE_TIP = v510
+NEW_CHAT_CONTINUITY = COMPLETE
+```
+
+---
+
+*پایان بند ۲۱۹ — HARNESS STATIC CLOSURE / NEW-CHAT CONTINUITY FINAL SYNC-01 — PASS*
+
+
+## ۲۲۰) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW AUTHORING-01 - **PASS**
+
+### ۲۲۰.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW AUTHORING-01
+JAVAD_APPROVAL = EXPLICIT (Gate prompt AUTHORING-ONLY; no second confirmation)
+VERDICT = W1_P01_FOCUSED_POSTGRESQL_ORM_RUNTIME_GITHUB_WORKFLOW_AUTHORING_01 = PASS
+MODE = AUTHORING-ONLY / UNCOMMITTED / DOCUMENTATION-SYNCHRONIZED
+TEST_EXECUTION = NO
+GITHUB_ACTIONS_DISPATCH = NO
+STAGE = NO
+COMMIT = NO
+PUSH = NO
+```
+
+### ۲۲۰.۲ Preflight baseline
+
+```text
+WORKSPACE = D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+GIT_TOP_LEVEL = D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH = feature/section15/backend-continuity-foundation
+HEAD = f38316169a6abe6fd639e904fcd975ec020168be
+UPSTREAM = origin/feature/section15/backend-continuity-foundation
+UPSTREAM_SHA = f38316169a6abe6fd639e904fcd975ec020168be
+AHEAD_BEHIND = 0/0
+STAGED = EMPTY
+ORIGIN_MAIN_SHA_LOCAL = 89b79ad3fc20236a23ffae65fd868aafb60843e8
+WORKTREE_COUNT = 6
+```
+
+### ۲۲۰.۳ Dirty-path baseline preserved
+
+```text
+ M backend/app/models.py
+ M backend/app/services/__init__.py
+ M docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+?? backend/app/services/i5/
+?? backend/tests/helpers/
+?? backend/tests/test_section15_i5_w1p01_orm_contracts.py
+?? backend/tests/test_w1p01_models_import_no_circularity.py
+PLUS_NEW_AFTER_GATE =
+?? .github/workflows/w1p01-postgresql-orm-runtime.yml
+(v511 under Sedi-v-1/references/authoritative/ outside git workspace, same as v510)
+```
+
+### ۲۲۰.۴ Authoritative input identities
+
+```text
+MASTER_LOG_TIP_PRE = §219
+MASTER_LOG_SIZE_PRE = 2546215
+MASTER_LOG_SHA256_PRE = 864580e11ea40731a584528128c0df29c160a8d398143c57230659c2b02b4b6d
+MASTER_LOG_EOL_PRE = CRLF_ONLY
+v510_PATH = references/authoritative/Sedi_Master_Handoff_Section34_W1P01_HarnessStaticClosureNewChatContinuity_v510_FA.md
+v510_SIZE = 3521271
+v510_SHA256 = b86ea5c6fd95d1495cc7c6c0ed6de96ed3918f5110f229d05d55d8a14f7b9f1c
+v510_EOL = LF_ONLY
+CURRENT_AUTHORITATIVE_TIP_PRE = v510
+HARNESS_STATIC_CONTRACT_CLOSURE = PASS
+OPEN_IMPLEMENTATION_FINDINGS = 0
+FINDING-01A = CLOSED
+FINDING-02 = CLOSED
+POSTGRESQL_RUNTIME_PROOF = NOT EXECUTED
+WORKFLOW_FILE_CREATED_PRE = NO
+WORKFLOW_STATIC_AUDIT_PRE = NO
+```
+
+### ۲۲۰.۵ Writable path allowlist (exact three)
+
+```text
+1) .github/workflows/w1p01-postgresql-orm-runtime.yml
+2) docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+3) references/authoritative/Sedi_Master_Handoff_Section35_W1P01_PostgreSQLRuntimeGitHubWorkflowAuthoring_v511_FA.md
+NO_FOURTH_WRITABLE_PATH = YES
+v510 = IMMUTABLE
+```
+
+### ۲۲۰.۶ Protected file identity verification
+
+```text
+backend/app/models.py = 96954 / 0e21d7a36ba778c681bf955ec439f3b2ad51abecda3feeb34a9a49868a7b46ff / CRLF_ONLY / UNCHANGED
+backend/tests/test_section15_i5_w1p01_orm_contracts.py = 90041 / 7acdc1e1334ecf245d506264d53e80cbba067af66823b9d860db42d786677530 / CRLF_ONLY / UNCHANGED / NODES=174
+backend/tests/test_w1p01_models_import_no_circularity.py = 7164 / 5fb70baf3fd41f941443ebea6b1e6e169b28cf5cdc6bd3e72a61b9b515d18e11 / CRLF_ONLY / UNCHANGED
+backend/tests/helpers/w1p01_postgres_runtime.py = 39789 / 421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef / CRLF_ONLY / UNCHANGED
+backend/tests/helpers/w1p01_postgres_runtime_plugin.py = 6614 / 06906e0c3ccd8d7b0f06670338bc29b6c4d4c6aaca6c4b8661714457884d5d31 / CRLF_ONLY / UNCHANGED
+```
+
+### ۲۲۰.۷ Workflow authored
+
+```text
+PATH = .github/workflows/w1p01-postgresql-orm-runtime.yml
+NAME = W1-P01 Focused PostgreSQL ORM Runtime
+TRIGGER = workflow_dispatch ONLY
+PERMISSIONS = contents: read
+CONCURRENCY_GROUP = w1p01-postgresql-orm-runtime-${ github.ref }
+CANCEL_IN_PROGRESS = false
+RUNNER = ubuntu-24.04
+TIMEOUT_MINUTES = 30
+PYTHON = 3.12
+POSTGRES_IMAGE = postgres:15
+POSTGRES_DB = sedi_w1p01_orm
+POSTGRES_USER = sedi_w1p01_test
+HOST = 127.0.0.1
+PORT = 5432
+OPTION_A_LIFECYCLE = service creates DB at startup; harness CREATE/DROP DATABASE = NO
+URL_SCHEME = postgresql+psycopg2
+BOTH_URLS_IDENTICAL = YES
+EXECUTABLE_FALLBACK_OCCURRENCES = 0
+ACTIONS = checkout@v4 / setup-python@v5 / upload-artifact@v4
+INSTALL = pip upgrade + backend/requirements.txt + pytest
+ARTIFACT = w1p01-postgresql-orm-runtime-evidence / if: always() / retention-days: 14 / runner.temp / if-no-files-found: error
+EVIDENCE_DIR = ${ runner.temp }/sedi_w1p01_postgres_runtime_evidence
+```
+
+### ۲۲۰.۸ Exact selector manifest (frozen)
+
+```text
+SELECTOR_COUNT = 15
+EXPECTED_RUNTIME_NODES = 105
+ARITHMETIC = T5=3 T6=6 T7=71 T8=24 T9_04=1 TOTAL=105
+SOURCE = helper W1P01_RUNTIME_SELECTORS + v510 sections 59.8/62.16/63.7/63.9
+COLLECT_COMMAND_SET = RUNTIME_COMMAND_SET
+ORDER_DETERMINISTIC = YES
+NO_DUPLICATES = YES
+PROCESS_1 = --collect-only --noconftest governed plugin + exact 15 selectors
+PROCESS_2 = --noconftest governed plugin --maxfail=1 + exact same 15 selectors
+```
+
+### ۲۲۰.۹ Static audit results
+
+```text
+WORKFLOW_STATIC_CONTRACT = PASS
+OPEN_IN_SCOPE_FINDINGS = 0
+SELF_HEALING = comment token cleanup only (no executable fallback)
+```
+
+### ۲۲۰.۱۰ Explicit non-actions
+
+```text
+PYTEST_EXECUTION = NO
+GITHUB_ACTIONS_DISPATCH = NO
+STAGE = NO
+COMMIT = NO
+PUSH = NO
+POSTGRESQL_RUNTIME_PROOF = NOT EXECUTED
+```
+
+### ۲۲۰.۱۱ Workflow file identity (post-authoring)
+
+```text
+WORKFLOW_SIZE = 8231
+WORKFLOW_SHA256 = b336f41ea67cd0ddc1870b95e890fa34bd4b44da998af6e86d7d051cc11fa7e8
+WORKFLOW_EOL = CRLF_ONLY
+```
+
+### ۲۲۰.۱۲ Master log + v511 identities (this Gate)
+
+```text
+MASTER_LOG_SECTION = §220
+MASTER_LOG_SIZE_POST = 0002553049
+MASTER_LOG_SHA256_POST = 6edb5a4ff9ececb3dac62ac54d4dce6cb0bcae217886345c2afe0acffba208d8
+MASTER_LOG_EOL_POST = CRLF_ONLY
+v511_PATH = references/authoritative/Sedi_Master_Handoff_Section35_W1P01_PostgreSQLRuntimeGitHubWorkflowAuthoring_v511_FA.md
+v511_SIZE = 0003525245
+v511_SHA256 = 66bbe02cad883dfc051e0f3dfdc3454ac4ee45cdf046be1b7095eafcd54a821f
+v511_EOL = LF_ONLY
+EXACT_v510_PREFIX_MATCH = YES
+V511_SUFFIX_SIZE = 00003974
+```
+
+### ۲۲۰.۱۳ Next Gate + approval boundary
+
+```text
+PROPOSED_NEXT_GATE =
+  W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW STRICT STATIC RE-AUDIT-01
+NEXT_GATE_AUTHORIZED = NO
+NEXT_GATE_EXECUTED = NO
+APPROVAL_BOUNDARY =
+  no stage/commit/push/dispatch/runtime proof without separate Javad approval
+```
+
+### ۲۲۰.۱۴ Continuity tip
+
+```text
+CURRENT_AUTHORITATIVE_TIP = v511
+OPEN_FINDINGS = 0
+LIMITATIONS =
+  PostgreSQL runtime proof not executed;
+  workflow not dispatched;
+  staging empty;
+  unpinned dependency policy accepted for first runtime Gate
+```
+
+---
+
+*پایان بند ۲۲۰ — GITHUB WORKFLOW AUTHORING-01 — PASS*
+
+
+## ۲۲۱) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW CONTINUITY SHA-CLAIM MICRO-FIX IMPLEMENTATION-01 - **PASS**
+
+### ۲۲۱.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW CONTINUITY SHA-CLAIM MICRO-FIX IMPLEMENTATION-01
+APPROVAL = EXPLICITLY APPROVED BY JAVAD
+VERDICT = W1_P01_GITHUB_WORKFLOW_CONTINUITY_SHA_CLAIM_MICRO_FIX_IMPLEMENTATION_01 = PASS
+MODE = APPEND-ONLY / DOCUMENTATION-ONLY / UNCOMMITTED
+```
+
+### ۲۲۱.۲ Findings superseded (history preserved)
+
+```text
+FINDING-01 = §220 MASTER_LOG_SHA256_POST CLAIM INCORRECT
+FINDING-01_CLAIMED = 6edb5a4ff9ececb3dac62ac54d4dce6cb0bcae217886345c2afe0acffba208d8
+FINDING-01_ACTUAL = 2ff6e7a9704787990510039e1db06d38afc6cb1680ff16853663f7bde9d83894
+
+FINDING-02 = §220 AND v511 V511_SHA256 CLAIM INCORRECT
+FINDING-02_CLAIMED = 66bbe02cad883dfc051e0f3dfdc3454ac4ee45cdf046be1b7095eafcd54a821f
+FINDING-02_ACTUAL_v511 = 59c68ac925bfafd45408d84d1d9482a02f602d9b7b6699a75253a548360de056
+
+§220 = IMMUTABLE HISTORICAL RECORD
+INCORRECT SHA CLAIMS = SUPERSEDED BY §221
+v511 = IMMUTABLE PREDECESSOR
+```
+
+### ۲۲۱.۳ Predecessor identities (actual on-disk)
+
+```text
+MASTER_LOG_PRE_§221_SIZE = 2553049
+MASTER_LOG_PRE_§221_SHA256 = 2ff6e7a9704787990510039e1db06d38afc6cb1680ff16853663f7bde9d83894
+MASTER_LOG_PRE_§221_EOL = CRLF_ONLY
+
+V511_PREDECESSOR_SIZE = 3525245
+V511_PREDECESSOR_SHA256 = 59c68ac925bfafd45408d84d1d9482a02f602d9b7b6699a75253a548360de056
+V511_PREDECESSOR_EOL = LF_ONLY
+V511_EXACT_v510_PREFIX = YES
+```
+
+### ۲۲۱.۴ Workflow identity (unchanged)
+
+```text
+WORKFLOW_PATH = .github/workflows/w1p01-postgresql-orm-runtime.yml
+WORKFLOW_SIZE = 8231
+WORKFLOW_SHA256 = b336f41ea67cd0ddc1870b95e890fa34bd4b44da998af6e86d7d051cc11fa7e8
+WORKFLOW_EOL = CRLF_ONLY
+WORKFLOW_STATIC_CONTRACT = PASS
+WORKFLOW_IMPLEMENTATION_FINDINGS = 0
+WORKFLOW_CHANGED_IN_THIS_GATE = NO
+```
+
+### ۲۲۱.۵ Explicit non-actions
+
+```text
+TESTS = NOT RUN
+COLLECT-ONLY = NOT RUN
+POSTGRESQL RUNTIME PROOF = NOT EXECUTED
+STAGE = NO
+COMMIT = NO
+PUSH = NO
+DISPATCH = NO
+MIGRATION = NO
+DEPLOY = NO
+ACTIVATION = NO
+```
+
+### ۲۲۱.۶ Frozen identity policy
+
+```text
+IDENTITY_POLICY = PREDECESSOR-IDENTITY CHAINING ONLY
+ORDINARY FINAL WHOLE-FILE SELF-SHA INSIDE SAME FILE = PROHIBITED
+MASTER_LOG_FINAL_SHA_AFTER_§221 = COMPUTED EXTERNALLY; RECORDED IN v512 ONLY
+v512_ORDINARY_FINAL_SELF_SHA = NOT EMBEDDED BY POLICY
+```
+
+### ۲۲۱.۷ Successor and next Gate
+
+```text
+SUCCESSOR = references/authoritative/Sedi_Master_Handoff_Section35_W1P01_PostgreSQLRuntimeGitHubWorkflowContinuitySHAClaimCorrection_v512_FA.md
+CURRENT_AUTHORITATIVE_TIP_AFTER_GATE = v512
+PROPOSED_NEXT_GATE =
+  W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW CONTINUITY SHA-CLAIM MICRO-FIX STRICT RE-AUDIT-01
+NEXT_GATE_AUTHORIZED = NO
+NEXT_GATE_EXECUTED = NO
+```
+
+---
+
+*پایان بند ۲۲۱ — CONTINUITY SHA-CLAIM MICRO-FIX IMPLEMENTATION-01 — PASS*
+
+
+## ۲۲۲) W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW CONTINUITY SHA-CLAIM MICRO-FIX STRICT RE-AUDIT-01 - **PASS**
+
+### ۲۲۲.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW CONTINUITY SHA-CLAIM MICRO-FIX STRICT RE-AUDIT-01
+APPROVAL = EXPLICITLY APPROVED BY JAVAD
+VERDICT = PASS
+PHASE A = STRICT INDEPENDENT BYTE-LEVEL RE-AUDIT
+PHASE A_VERDICT = PASS
+PHASE A_DELTA = ZERO
+MICRO-FIX IMPLEMENTATION-01 = FINALLY RATIFIED
+OPEN CONTINUITY FINDINGS = 0
+MODE = PHASE A READ-ONLY + PASS-ONLY APPEND-ONLY CONTINUITY SYNC / UNCOMMITTED
+```
+
+### ۲۲۲.۲ Predecessor identities (actual on-disk)
+
+```text
+MASTER_LOG_PRE_§222_SIZE = 2556060
+MASTER_LOG_PRE_§222_SHA256 = 5dae79e38557eccf52db7af08ad0da02bf1fc16c78998260fa51723a09099c33
+MASTER_LOG_PRE_§222_EOL = CRLF_ONLY
+
+V512_PREDECESSOR_SIZE = 3527959
+V512_PREDECESSOR_SHA256 = b6a962dd9708d0cd4566cc394e71654deb3768da8b58775bdbaa94764c12f548
+V512_PREDECESSOR_EOL = LF_ONLY
+V512_EXACT_v511_PREFIX = YES
+```
+
+### ۲۲۲.۳ Workflow identity (unchanged)
+
+```text
+WORKFLOW_PATH = .github/workflows/w1p01-postgresql-orm-runtime.yml
+WORKFLOW_SIZE = 8231
+WORKFLOW_SHA256 = b336f41ea67cd0ddc1870b95e890fa34bd4b44da998af6e86d7d051cc11fa7e8
+WORKFLOW_EOL = CRLF_ONLY
+WORKFLOW_STATIC_CONTRACT = PASS
+WORKFLOW_IMPLEMENTATION_FINDINGS = 0
+WORKFLOW_CHANGED = NO
+```
+
+### ۲۲۲.۴ Explicit non-actions
+
+```text
+TESTS = NOT RUN
+COLLECT-ONLY = NOT RUN
+POSTGRESQL RUNTIME PROOF = NOT EXECUTED
+STAGE = NO
+COMMIT = NO
+PUSH = NO
+DISPATCH = NO
+MIGRATION = NO
+DEPLOY = NO
+ACTIVATION = NO
+```
+
+### ۲۲۲.۵ Frozen identity policy
+
+```text
+IDENTITY_POLICY = PREDECESSOR-IDENTITY CHAINING ONLY
+ORDINARY FINAL WHOLE-FILE SELF-SHA INSIDE SAME FILE = PROHIBITED
+MASTER_LOG_FINAL_SHA_AFTER_§222 = COMPUTED EXTERNALLY; RECORDED IN v513 ONLY
+```
+
+### ۲۲۲.۶ Exact next Stage allowlist (frozen; not staged)
+
+```text
+NEXT_STAGE_ALLOWLIST_COUNT = 10
+NEXT_STAGE_ALLOWLIST =
+  1. backend/app/models.py
+  2. backend/app/services/__init__.py
+  3. backend/app/services/i5/__init__.py
+  4. backend/app/services/i5/enums.py
+  5. backend/tests/helpers/w1p01_postgres_runtime.py
+  6. backend/tests/helpers/w1p01_postgres_runtime_plugin.py
+  7. backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  8. backend/tests/test_w1p01_models_import_no_circularity.py
+  9. .github/workflows/w1p01-postgresql-orm-runtime.yml
+  10. docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+STAGE_EXECUTED = NO
+STAGE_SCOPE_REVIEW_GATE = NOT REQUIRED (ALLOWLIST FROZEN HERE)
+```
+
+### ۲۲۲.۷ Successor and next Gate
+
+```text
+SUCCESSOR = references/authoritative/Sedi_Master_Handoff_Section35_W1P01_PostgreSQLRuntimeGitHubWorkflowContinuitySHAClaimMicroFixStrictReAudit_v513_FA.md
+CURRENT_AUTHORITATIVE_TIP_AFTER_GATE = v513
+PROPOSED_NEXT_GATE =
+  W1-P01 APPROVED IMPLEMENTATION FILESET EXACT STAGE-01
+NEXT_GATE_AUTHORIZED = NO
+NEXT_GATE_EXECUTED = NO
+```
+
+---
+
+*پایان بند ۲۲۲ — CONTINUITY SHA-CLAIM MICRO-FIX STRICT RE-AUDIT-01 — PASS*
+
+
+## ۲۲۳) W1-P01 APPROVED IMPLEMENTATION FILESET EXACT STAGE-01 - **PASS**
+
+### ۲۲۳.۱ مجوز و نتیجه
+
+```text
+GATE = W1-P01 APPROVED IMPLEMENTATION FILESET EXACT STAGE-01
+APPROVAL = EXPLICITLY APPROVED BY JAVAD
+VERDICT = PASS
+MODE = EXACT-STAGE / UNCOMMITTED
+```
+
+### ۲۲۳.۲ Predecessor identities
+
+```text
+MASTER_LOG_PRE_§223_TIP = §222
+MASTER_LOG_PRE_§223_SIZE = 2559158
+MASTER_LOG_PRE_§223_SHA256 = 26cf5c97d29611da71a5a868f60cb44d8b2f128b5eeb7773d83d8e37aeba19ee
+MASTER_LOG_PRE_§223_EOL = CRLF_ONLY
+
+V513_PREDECESSOR_SIZE = 3530967
+V513_PREDECESSOR_SHA256 = 28b25807d25ccc9e9253109c5aad14bf956165bf1597b771881487692c5d74e1
+V513_PREDECESSOR_EOL = LF_ONLY
+```
+
+### ۲۲۳.۳ Exact stage allowlist and initial audit
+
+```text
+EXACT_STAGE_ALLOWLIST_COUNT = 10
+INITIAL_STAGE_AUDIT = PASS
+STAGED_STATUS_CLASSES = 3 MODIFIED / 7 ADDED
+UNAUTHORIZED_STAGED_PATHS = 0
+UNSTAGED_PATHS_AFTER_FINAL_RESTAGE = 0
+
+STAGED_PATHS =
+  1. backend/app/models.py
+  2. backend/app/services/__init__.py
+  3. backend/app/services/i5/__init__.py
+  4. backend/app/services/i5/enums.py
+  5. backend/tests/helpers/w1p01_postgres_runtime.py
+  6. backend/tests/helpers/w1p01_postgres_runtime_plugin.py
+  7. backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  8. backend/tests/test_w1p01_models_import_no_circularity.py
+  9. .github/workflows/w1p01-postgresql-orm-runtime.yml
+  10. docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+
+INDEX_WORKTREE_RELATION =
+  WORKTREE_EOL = CRLF_ONLY (authoritative on-disk identities)
+  INDEX_BLOB_EOL = LF_ONLY via core.autocrlf=true clean filter
+  GIT_LOGICAL_EQUIVALENCE = PASS (git diff unstaged empty)
+  RAW_BYTE_EQUALITY_INDEX_TO_WORKTREE = NOT APPLICABLE UNDER AUTOCRLF
+```
+
+### ۲۲۳.۴ Workflow identity (unchanged)
+
+```text
+WORKFLOW_PATH = .github/workflows/w1p01-postgresql-orm-runtime.yml
+WORKFLOW_SIZE = 8231
+WORKFLOW_SHA256 = b336f41ea67cd0ddc1870b95e890fa34bd4b44da998af6e86d7d051cc11fa7e8
+WORKFLOW_EOL = CRLF_ONLY
+WORKFLOW_STATIC_CONTRACT = PASS
+WORKFLOW_IMPLEMENTATION_FINDINGS = 0
+WORKFLOW_CHANGED_IN_THIS_GATE = NO
+```
+
+### ۲۲۳.۵ Explicit non-actions
+
+```text
+TESTS = NOT RUN
+COLLECT-ONLY = NOT RUN
+POSTGRESQL RUNTIME PROOF = NOT EXECUTED
+COMMIT = NO
+PUSH = NO
+DISPATCH = NO
+MIGRATION = NO
+DEPLOY = NO
+ACTIVATION = NO
+```
+
+### ۲۲۳.۶ Frozen identity policy
+
+```text
+IDENTITY_POLICY = PREDECESSOR-IDENTITY CHAINING ONLY
+ORDINARY FINAL WHOLE-FILE SELF-SHA INSIDE SAME FILE = PROHIBITED
+MASTER_LOG_FINAL_SHA_AFTER_§223 = COMPUTED EXTERNALLY; RECORDED IN v514 ONLY
+```
+
+### ۲۲۳.۷ Successor and next Gate
+
+```text
+SUCCESSOR = references/authoritative/Sedi_Master_Handoff_Section36_W1P01_ApprovedImplementationFilesetExactStage_v514_FA.md
+CURRENT_AUTHORITATIVE_TIP_AFTER_GATE = v514
+PROPOSED_NEXT_GATE =
+  W1-P01 APPROVED IMPLEMENTATION FILESET EXACT COMMIT-01
+COMMIT_SCOPE_FREEZE =
+  COMMIT MAY CONTAIN EXACTLY THE CURRENT 10-PATH INDEX
+  NO WORKTREE EDIT
+  NO INDEX CHANGE
+  NO TEST
+  NO PUSH
+NEXT_GATE_AUTHORIZED = NO
+NEXT_GATE_EXECUTED = NO
+```
+
+---
+
+*پایان بند ۲۲۳ — APPROVED IMPLEMENTATION FILESET EXACT STAGE-01 — PASS*

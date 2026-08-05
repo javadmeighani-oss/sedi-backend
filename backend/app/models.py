@@ -4,6 +4,43 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
 
+# Section 15-I5-IMPL-W1-P01 — persisted-vocabulary enums (documentation/constants only;
+# columns below still use plain String literals matching these enum values so that
+# CheckConstraint SQL text stays self-contained and avoids any import-time circularity).
+from backend.app.services.i5.enums import (
+    GovernanceActorType,
+    GovernanceDecisionFamily,
+    GovernanceDecisionOutcome,
+    GovernanceDecisionType,
+    GovernanceEntityType,
+    KnowledgeGapPriority,
+    KnowledgeGapSeverity,
+    KnowledgeGapStatus,
+    KnowledgeGapType,
+    KnowledgeGapUrgency,
+    RegistryState,
+    RunGapResultType,
+    RunSourceResultStatus,
+    RuntimeEligibility,
+    WeeklyRunApprovalState,
+    WeeklyRunAttemptStatus,
+    WeeklyRunStatus,
+    WeeklyRunTriggerType,
+    WeeklyRunType,
+)
+
+
+def _vocab_sql(column: str, enum_cls) -> str:
+    """Build a `column IN ('A', 'B', ...)` CheckConstraint SQL fragment from an enum.
+
+    Keeps CheckConstraint literals in lock-step with the I5 enums (single source
+    of truth) while still compiling to a plain string of persisted literals, with
+    no SQLAlchemy Enum type and no enum class stored on the mapped Column itself.
+    """
+
+    literal_values = ", ".join(f"'{member.value}'" for member in enum_cls)
+    return f"{column} IN ({literal_values})"
+
 
 # -------------------- User --------------------
 class User(Base):
@@ -1156,6 +1193,18 @@ class GovernedSourceProfile(Base):
             "ix_governed_source_profiles_operational_status",
             "operational_status",
         ),
+        CheckConstraint(_vocab_sql("registry_state", RegistryState), name="ck_gsp_registry_state_vocab"),
+        CheckConstraint(_vocab_sql("runtime_eligibility", RuntimeEligibility), name="ck_gsp_runtime_eligibility_vocab"),
+        CheckConstraint("block_reason IS NULL OR char_length(block_reason) <= 2000", name="ck_gsp_block_reason_length"),
+        CheckConstraint(
+            "effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from",
+            name="ck_gsp_effective_window_order",
+        ),
+        Index("ix_gsp_registry_state", "registry_state"),
+        Index("ix_gsp_runtime_eligibility", "runtime_eligibility"),
+        Index("ix_gsp_last_checked_at", "last_checked_at"),
+        Index("ix_gsp_last_reviewed_at", "last_reviewed_at"),
+        Index("ix_gsp_registry_runtime", "registry_state", "runtime_eligibility"),
     )
 
     id = Column(
@@ -1191,6 +1240,19 @@ class GovernedSourceProfile(Base):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+    registry_state = Column(String(32), nullable=False, default="DISCOVERED", server_default="DISCOVERED")
+    runtime_eligibility = Column(String(32), nullable=False, default="NOT_ELIGIBLE", server_default="NOT_ELIGIBLE")
+    block_reason = Column(Text, nullable=True)
+    owner_reference = Column(String(512), nullable=True)
+    reviewer_reference = Column(String(512), nullable=True)
+    approver_reference = Column(String(512), nullable=True)
+    topic_coverage = Column(Text, nullable=True)
+    effective_from = Column(DateTime, nullable=True)
+    effective_to = Column(DateTime, nullable=True)
+    last_discovered_at = Column(DateTime, nullable=True)
+    last_checked_at = Column(DateTime, nullable=True)
+    last_reviewed_at = Column(DateTime, nullable=True)
+    canonicalization_version = Column(String(32), nullable=False, server_default="v1")
 
 
 class GovernedSourceProfileVersion(Base):
@@ -1279,3 +1341,335 @@ class GovernedSourceProfileVersion(Base):
     iran_first_applicable = Column(Boolean, nullable=False, default=False, server_default="false")
     policy_version_reference = Column(String(128), nullable=False)
     configuration_version_reference = Column(String(128), nullable=False)
+
+
+# -------------------- Section 15 I5 W1-P01: Weekly governed knowledge continuity --------------------
+class WeeklyKnowledgeRun(Base):
+    __tablename__ = "weekly_knowledge_runs"
+    __table_args__ = (
+        UniqueConstraint("logical_run_key", name="uq_weekly_knowledge_runs_logical_run_key"),
+        CheckConstraint(_vocab_sql("run_type", WeeklyRunType), name="ck_wkr_run_type_vocab"),
+        CheckConstraint(_vocab_sql("trigger_type", WeeklyRunTriggerType), name="ck_wkr_trigger_type_vocab"),
+        CheckConstraint(_vocab_sql("approval_state", WeeklyRunApprovalState), name="ck_wkr_approval_state_vocab"),
+        CheckConstraint(_vocab_sql("status", WeeklyRunStatus), name="ck_wkr_status_vocab"),
+        CheckConstraint("planned_window_end >= planned_window_start", name="ck_wkr_window_order"),
+        CheckConstraint("supersedes_run_id IS NULL OR supersedes_run_id <> id", name="ck_wkr_supersedes_not_self"),
+        ForeignKeyConstraint(["id", "successful_attempt_id"], ["weekly_knowledge_run_attempts.weekly_run_id", "weekly_knowledge_run_attempts.id"], name="fk_wkr_successful_attempt_same_run", ondelete="RESTRICT", use_alter=True, deferrable=True, initially="DEFERRED"),
+        ForeignKeyConstraint(["id", "latest_attempt_id"], ["weekly_knowledge_run_attempts.weekly_run_id", "weekly_knowledge_run_attempts.id"], name="fk_wkr_latest_attempt_same_run", ondelete="RESTRICT", use_alter=True, deferrable=True, initially="DEFERRED"),
+        Index("ix_wkr_status_window", "status", "planned_window_start"),
+        Index("ix_wkr_schedule_window", "schedule_key", "planned_window_start"),
+        Index("ix_wkr_approval_state", "approval_state"),
+        Index("ix_wkr_successful_attempt_id", "successful_attempt_id"),
+        Index("ix_wkr_latest_attempt_id", "latest_attempt_id"),
+        Index("ix_wkr_supersedes_run_id", "supersedes_run_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    logical_run_key = Column(String(64), nullable=False)
+    canonicalization_version = Column(String(32), nullable=False, default="v1", server_default="v1")
+    hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
+    schedule_key = Column(String(128), nullable=False)
+    run_type = Column(String(64), nullable=False, default="WEEKLY_GOVERNED", server_default="WEEKLY_GOVERNED")
+    trigger_type = Column(String(64), nullable=False)
+    planned_window_start = Column(DateTime, nullable=False)
+    planned_window_end = Column(DateTime, nullable=False)
+    approval_state = Column(String(32), nullable=False)
+    source_scope_hash = Column(String(64), nullable=False)
+    domain_scope_hash = Column(String(64), nullable=False)
+    gap_scope_hash = Column(String(64), nullable=False)
+    config_version = Column(String(64), nullable=False)
+    config_hash = Column(String(64), nullable=False)
+    source_scope = Column(Text, nullable=False)
+    domain_scope = Column(Text, nullable=False)
+    gap_scope = Column(Text, nullable=False)
+    status = Column(String(32), nullable=False)
+    successful_attempt_id = Column(Integer, nullable=True)
+    latest_attempt_id = Column(Integer, nullable=True)
+    created_by_reference = Column(String(512), nullable=True)
+    approved_by_reference = Column(String(512), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    supersedes_run_id = Column(Integer, ForeignKey("weekly_knowledge_runs.id", ondelete="RESTRICT", name="fk_wkr_supersedes_run_id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+    row_version = Column(Integer, nullable=False, default=1, server_default="1")
+
+
+class WeeklyKnowledgeRunAttempt(Base):
+    __tablename__ = "weekly_knowledge_run_attempts"
+    __table_args__ = (
+        UniqueConstraint("weekly_run_id", "attempt_number", name="uq_wkra_run_attempt"),
+        UniqueConstraint("id", "weekly_run_id", name="uq_wkra_id_weekly_run_id"),
+        CheckConstraint(_vocab_sql("status", WeeklyRunAttemptStatus), name="ck_wkra_status_vocab"),
+        CheckConstraint("attempt_number > 0", name="ck_wkra_attempt_number_pos"),
+        CheckConstraint("retry_of_attempt_id IS NULL OR retry_of_attempt_id <> id", name="ck_wkra_retry_not_self"),
+        CheckConstraint("completed_at IS NULL OR started_at IS NULL OR completed_at >= started_at", name="ck_wkra_completed_after_started"),
+        CheckConstraint("failure_reason IS NULL OR char_length(failure_reason) <= 2000", name="ck_wkra_failure_reason_length"),
+        CheckConstraint("block_reason IS NULL OR char_length(block_reason) <= 2000", name="ck_wkra_block_reason_length"),
+        CheckConstraint("total_sources >= 0", name="ck_wkra_total_sources_nonnegative"),
+        CheckConstraint("checked_sources >= 0", name="ck_wkra_checked_sources_nonnegative"),
+        CheckConstraint("fetched_sources >= 0", name="ck_wkra_fetched_sources_nonnegative"),
+        CheckConstraint("skipped_sources >= 0", name="ck_wkra_skipped_sources_nonnegative"),
+        CheckConstraint("blocked_sources >= 0", name="ck_wkra_blocked_sources_nonnegative"),
+        CheckConstraint("failed_sources >= 0", name="ck_wkra_failed_sources_nonnegative"),
+        CheckConstraint("new_knowledge_count >= 0", name="ck_wkra_new_knowledge_count_nonnegative"),
+        CheckConstraint("updated_knowledge_count >= 0", name="ck_wkra_updated_knowledge_count_nonnegative"),
+        CheckConstraint("superseded_knowledge_count >= 0", name="ck_wkra_superseded_knowledge_count_nonnegative"),
+        CheckConstraint("rejected_knowledge_count >= 0", name="ck_wkra_rejected_knowledge_count_nonnegative"),
+        CheckConstraint("created_gap_count >= 0", name="ck_wkra_created_gap_count_nonnegative"),
+        CheckConstraint("resolved_gap_count >= 0", name="ck_wkra_resolved_gap_count_nonnegative"),
+        CheckConstraint("warning_count >= 0", name="ck_wkra_warning_count_nonnegative"),
+        CheckConstraint("error_count >= 0", name="ck_wkra_error_count_nonnegative"),
+        ForeignKeyConstraint(["retry_of_attempt_id", "weekly_run_id"], ["weekly_knowledge_run_attempts.id", "weekly_knowledge_run_attempts.weekly_run_id"], name="fk_wkra_retry_same_run", ondelete="RESTRICT"),
+        Index("uq_wkra_one_successful_terminal", "weekly_run_id", unique=True, postgresql_where=text("status IN ('COMPLETED', 'COMPLETED_WITH_WARNINGS')")),
+        Index("ix_wkra_status_started_at", "status", "started_at"),
+        Index("ix_wkra_retry_of_attempt_id", "retry_of_attempt_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    weekly_run_id = Column(Integer, ForeignKey("weekly_knowledge_runs.id", ondelete="RESTRICT", name="fk_wkra_weekly_run_id"), nullable=False)
+    attempt_number = Column(Integer, nullable=False)
+    retry_of_attempt_id = Column(Integer, nullable=True)
+    status = Column(String(32), nullable=False)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    worker_reference = Column(String(512), nullable=True)
+    config_snapshot_reference = Column(String(2048), nullable=True)
+    run_checksum = Column(String(64), nullable=True)
+    canonicalization_version = Column(String(32), nullable=False, default="v1", server_default="v1")
+    hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
+    total_sources = Column(Integer, nullable=False, default=0, server_default="0")
+    checked_sources = Column(Integer, nullable=False, default=0, server_default="0")
+    fetched_sources = Column(Integer, nullable=False, default=0, server_default="0")
+    skipped_sources = Column(Integer, nullable=False, default=0, server_default="0")
+    blocked_sources = Column(Integer, nullable=False, default=0, server_default="0")
+    failed_sources = Column(Integer, nullable=False, default=0, server_default="0")
+    new_knowledge_count = Column(Integer, nullable=False, default=0, server_default="0")
+    updated_knowledge_count = Column(Integer, nullable=False, default=0, server_default="0")
+    superseded_knowledge_count = Column(Integer, nullable=False, default=0, server_default="0")
+    rejected_knowledge_count = Column(Integer, nullable=False, default=0, server_default="0")
+    created_gap_count = Column(Integer, nullable=False, default=0, server_default="0")
+    resolved_gap_count = Column(Integer, nullable=False, default=0, server_default="0")
+    warning_count = Column(Integer, nullable=False, default=0, server_default="0")
+    error_count = Column(Integer, nullable=False, default=0, server_default="0")
+    failure_code = Column(String(128), nullable=True)
+    failure_reason = Column(Text, nullable=True)
+    block_reason = Column(Text, nullable=True)
+    evidence_reference = Column(String(2048), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+    row_version = Column(Integer, nullable=False, default=1, server_default="1")
+
+
+class KnowledgeGap(Base):
+    __tablename__ = "knowledge_gaps"
+    __table_args__ = (
+        UniqueConstraint("canonical_gap_key", name="uq_knowledge_gaps_canonical_gap_key"),
+        CheckConstraint(_vocab_sql("gap_type", KnowledgeGapType), name="ck_kg_gap_type_vocab"),
+        CheckConstraint(_vocab_sql("priority", KnowledgeGapPriority), name="ck_kg_priority_vocab"),
+        CheckConstraint(_vocab_sql("severity", KnowledgeGapSeverity), name="ck_kg_severity_vocab"),
+        CheckConstraint(_vocab_sql("urgency", KnowledgeGapUrgency), name="ck_kg_urgency_vocab"),
+        CheckConstraint(_vocab_sql("status", KnowledgeGapStatus), name="ck_kg_status_vocab"),
+        CheckConstraint("confidence IS NULL OR (confidence >= 0 AND confidence <= 1)", name="ck_kg_confidence_range"),
+        CheckConstraint("retry_count >= 0", name="ck_kg_retry_count_nonneg"),
+        CheckConstraint("description IS NULL OR char_length(description) <= 8000", name="ck_kg_description_length"),
+        CheckConstraint("current_knowledge_state IS NULL OR char_length(current_knowledge_state) <= 4000", name="ck_kg_current_knowledge_state_length"),
+        CheckConstraint("required_knowledge_state IS NULL OR char_length(required_knowledge_state) <= 4000", name="ck_kg_required_knowledge_state_length"),
+        CheckConstraint("next_action IS NULL OR char_length(next_action) <= 2000", name="ck_kg_next_action_length"),
+        CheckConstraint("blocker IS NULL OR char_length(blocker) <= 2000", name="ck_kg_blocker_length"),
+        Index("ix_kg_status_priority_severity", "status", "priority", "severity"),
+        Index("ix_kg_next_review_at", "next_review_at"),
+        Index("ix_kg_target_source_profile_id", "target_source_profile_id"),
+        Index("ix_kg_discovered_attempt_id", "discovered_attempt_id"),
+        Index("ix_kg_capability_id", "capability_id"),
+        Index("ix_kg_target_package_id", "target_package_id"),
+        Index("ix_kg_domain_subdomain", "domain", "subdomain"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    canonical_gap_key = Column(String(64), nullable=False)
+    canonicalization_version = Column(String(32), nullable=False, default="v1", server_default="v1")
+    hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
+    domain = Column(String(128), nullable=False)
+    subdomain = Column(String(128), nullable=True)
+    capability_id = Column(String(64), nullable=True)
+    gap_type = Column(String(64), nullable=False)
+    title = Column(String(512), nullable=False)
+    description = Column(Text, nullable=True)
+    evidence_of_gap = Column(Text, nullable=True)
+    current_knowledge_state = Column(Text, nullable=True)
+    required_knowledge_state = Column(Text, nullable=True)
+    source_need = Column(Text, nullable=True)
+    priority = Column(String(32), nullable=False, default="P2", server_default="P2")
+    severity = Column(String(32), nullable=False, default="MEDIUM", server_default="MEDIUM")
+    urgency = Column(String(32), nullable=False, default="NORMAL", server_default="NORMAL")
+    confidence = Column(Float, nullable=True)
+    status = Column(String(32), nullable=False, default="OPEN", server_default="OPEN")
+    owner_reference = Column(String(512), nullable=True)
+    reviewer_reference = Column(String(512), nullable=True)
+    blocker = Column(Text, nullable=True)
+    dependencies = Column(Text, nullable=True)
+    target_package_id = Column(String(64), nullable=True)
+    target_source_profile_id = Column(Integer, ForeignKey("governed_source_profiles.id", ondelete="RESTRICT", name="fk_knowledge_gaps_target_source_profile_id"), nullable=True)
+    target_knowledge_unit_id = Column(Integer, nullable=True)
+    discovered_by = Column(String(512), nullable=True)
+    discovered_attempt_id = Column(Integer, ForeignKey("weekly_knowledge_run_attempts.id", ondelete="RESTRICT", name="fk_knowledge_gaps_discovered_attempt_id"), nullable=True)
+    next_action = Column(Text, nullable=True)
+    next_review_at = Column(DateTime, nullable=True)
+    retry_count = Column(Integer, nullable=False, default=0, server_default="0")
+    last_attempt_at = Column(DateTime, nullable=True)
+    resolution_type = Column(String(64), nullable=True)
+    resolution_evidence = Column(Text, nullable=True)
+    resolved_by_reference = Column(String(512), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+    row_version = Column(Integer, nullable=False, default=1, server_default="1")
+
+
+class WeeklyRunSourceResult(Base):
+    __tablename__ = "weekly_run_source_results"
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "source_profile_id", name="uq_wrsr_attempt_source_profile"),
+        CheckConstraint(_vocab_sql("result_status", RunSourceResultStatus), name="ck_wrsr_result_status_vocab"),
+        CheckConstraint("failure_reason IS NULL OR char_length(failure_reason) <= 2000", name="ck_wrsr_failure_reason_length"),
+        CheckConstraint("knowledge_new_count >= 0", name="ck_wrsr_knowledge_new_count_nonnegative"),
+        CheckConstraint("knowledge_updated_count >= 0", name="ck_wrsr_knowledge_updated_count_nonnegative"),
+        CheckConstraint("knowledge_superseded_count >= 0", name="ck_wrsr_knowledge_superseded_count_nonnegative"),
+        CheckConstraint("knowledge_rejected_count >= 0", name="ck_wrsr_knowledge_rejected_count_nonnegative"),
+        CheckConstraint("gap_created_count >= 0", name="ck_wrsr_gap_created_count_nonnegative"),
+        CheckConstraint("warning_count >= 0", name="ck_wrsr_warning_count_nonnegative"),
+        CheckConstraint("error_count >= 0", name="ck_wrsr_error_count_nonnegative"),
+        Index("ix_wrsr_source_profile_id", "source_profile_id"),
+        Index("ix_wrsr_result_status", "result_status"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("weekly_knowledge_run_attempts.id", ondelete="RESTRICT", name="fk_wrsr_attempt_id"), nullable=False)
+    source_profile_id = Column(Integer, ForeignKey("governed_source_profiles.id", ondelete="RESTRICT", name="fk_wrsr_source_profile_id"), nullable=False)
+    source_version_id = Column(Integer, ForeignKey("governed_source_profile_versions.id", ondelete="RESTRICT", name="fk_wrsr_source_version_id"), nullable=True)
+    result_status = Column(String(32), nullable=False)
+    checked_at = Column(DateTime, nullable=True)
+    fetch_outcome = Column(String(64), nullable=True)
+    extraction_outcome = Column(String(64), nullable=True)
+    publication_outcome = Column(String(64), nullable=True)
+    knowledge_new_count = Column(Integer, nullable=False, default=0, server_default="0")
+    knowledge_updated_count = Column(Integer, nullable=False, default=0, server_default="0")
+    knowledge_superseded_count = Column(Integer, nullable=False, default=0, server_default="0")
+    knowledge_rejected_count = Column(Integer, nullable=False, default=0, server_default="0")
+    gap_created_count = Column(Integer, nullable=False, default=0, server_default="0")
+    warning_count = Column(Integer, nullable=False, default=0, server_default="0")
+    error_count = Column(Integer, nullable=False, default=0, server_default="0")
+    failure_code = Column(String(128), nullable=True)
+    failure_reason = Column(Text, nullable=True)
+    evidence_reference = Column(String(2048), nullable=True)
+    content_fingerprint = Column(String(64), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class WeeklyRunGapResult(Base):
+    __tablename__ = "weekly_run_gap_results"
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "gap_id", name="uq_wrgr_attempt_gap"),
+        CheckConstraint(_vocab_sql("result_type", RunGapResultType), name="ck_wrgr_result_type_vocab"),
+        CheckConstraint("previous_status IS NULL OR (" + _vocab_sql("previous_status", KnowledgeGapStatus) + ")", name="ck_wrgr_previous_status_vocab"),
+        CheckConstraint("new_status IS NULL OR (" + _vocab_sql("new_status", KnowledgeGapStatus) + ")", name="ck_wrgr_new_status_vocab"),
+        Index("ix_wrgr_gap_id", "gap_id"),
+        Index("ix_wrgr_result_type", "result_type"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("weekly_knowledge_run_attempts.id", ondelete="RESTRICT", name="fk_wrgr_attempt_id"), nullable=False)
+    gap_id = Column(Integer, ForeignKey("knowledge_gaps.id", ondelete="RESTRICT", name="fk_wrgr_gap_id"), nullable=False)
+    result_type = Column(String(32), nullable=False)
+    previous_status = Column(String(32), nullable=True)
+    new_status = Column(String(32), nullable=True)
+    evidence_reference = Column(String(2048), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5GovernanceDecision(Base):
+    __tablename__ = "i5_governance_decisions"
+    __table_args__ = (
+        UniqueConstraint("entity_type", "entity_id", "decision_request_key", name="uq_i5gd_decision_request"),
+        UniqueConstraint("id", "entity_type", "entity_id", "decision_family", name="uq_i5gd_id_entity_family"),
+        CheckConstraint(_vocab_sql("entity_type", GovernanceEntityType), name="ck_i5gd_entity_type_vocab"),
+        CheckConstraint(_vocab_sql("decision_family", GovernanceDecisionFamily), name="ck_i5gd_decision_family_vocab"),
+        CheckConstraint(_vocab_sql("decision_type", GovernanceDecisionType), name="ck_i5gd_decision_type_vocab"),
+        CheckConstraint(_vocab_sql("outcome", GovernanceDecisionOutcome), name="ck_i5gd_outcome_vocab"),
+        CheckConstraint(_vocab_sql("actor_type", GovernanceActorType), name="ck_i5gd_actor_type_vocab"),
+        CheckConstraint("entity_id > 0", name="ck_i5gd_entity_id_pos"),
+        CheckConstraint("supersedes_decision_id IS NULL OR supersedes_decision_id <> id", name="ck_i5gd_supersedes_not_self"),
+        CheckConstraint("canonical_hash ~ '^[0-9a-f]{64}$'", name="ck_i5gd_canonical_hash_format"),
+        CheckConstraint("decision_request_key ~ '^[A-Za-z0-9._:-]{1,128}$'", name="ck_i5gd_decision_request_key_format"),
+        CheckConstraint("hash_algorithm = 'SHA-256'", name="ck_i5gd_hash_algorithm_constant"),
+        CheckConstraint("canonicalization_version = 'v1'", name="ck_i5gd_canonicalization_version_constant"),
+        CheckConstraint("reason IS NULL OR char_length(reason) <= 4000", name="ck_i5gd_reason_length"),
+        CheckConstraint("(decision_type <> 'SUPERSESSION') OR (supersedes_decision_id IS NOT NULL)", name="ck_i5gd_supersession_requires_parent"),
+        CheckConstraint(
+            "(decision_type = 'SUPERSESSION') OR ("
+            "(decision_type = 'RIGHTS_REVIEW' AND decision_family = 'RIGHTS') OR "
+            "(decision_type = 'AUTOMATION_REVIEW' AND decision_family = 'AUTOMATION') OR "
+            "(decision_type = 'QUALITY_REVIEW' AND decision_family = 'QUALITY') OR "
+            "(decision_type = 'MEDICAL_SAFETY_REVIEW' AND decision_family = 'MEDICAL_SAFETY') OR "
+            "(decision_type = 'SECURITY_REVIEW' AND decision_family = 'SECURITY') OR "
+            "(decision_type = 'APPROVAL' AND decision_family = 'LIFECYCLE') OR "
+            "(decision_type = 'REJECTION' AND decision_family = 'LIFECYCLE') OR "
+            "(decision_type = 'ACTIVATION' AND decision_family = 'LIFECYCLE') OR "
+            "(decision_type = 'SUSPENSION' AND decision_family = 'LIFECYCLE') OR "
+            "(decision_type = 'REVOCATION' AND decision_family = 'LIFECYCLE') OR "
+            "(decision_type = 'GAP_RESOLUTION' AND decision_family = 'GAP_LIFECYCLE') OR "
+            "(decision_type = 'GAP_REOPEN' AND decision_family = 'GAP_LIFECYCLE') OR "
+            "(decision_type = 'RUN_APPROVAL' AND decision_family = 'RUN_APPROVAL') OR "
+            "(decision_type = 'RUN_TERMINALIZATION' AND decision_family = 'RUN_TERMINALIZATION')"
+            ")",
+            name="ck_i5gd_decision_type_family_matrix",
+        ),
+        CheckConstraint(
+            "(entity_type IN ('SOURCE_PROFILE', 'SOURCE_PROFILE_VERSION') AND decision_family IN ('RIGHTS', 'AUTOMATION', 'QUALITY', 'MEDICAL_SAFETY', 'SECURITY', 'LIFECYCLE')) OR "
+            "(entity_type = 'KNOWLEDGE_GAP' AND decision_family IN ('LIFECYCLE', 'GAP_LIFECYCLE')) OR "
+            "(entity_type = 'WEEKLY_RUN' AND decision_family IN ('LIFECYCLE', 'RUN_APPROVAL')) OR "
+            "(entity_type = 'WEEKLY_RUN_ATTEMPT' AND decision_family = 'RUN_TERMINALIZATION') OR "
+            "(entity_type = 'RUN_SOURCE_RESULT' AND decision_family IN ('RIGHTS', 'AUTOMATION', 'QUALITY', 'MEDICAL_SAFETY', 'SECURITY', 'LIFECYCLE')) OR "
+            "(entity_type = 'RUN_GAP_RESULT' AND decision_family IN ('QUALITY', 'LIFECYCLE'))",
+            name="ck_i5gd_entity_family_matrix",
+        ),
+        CheckConstraint(
+            "(entity_type = 'SOURCE_PROFILE' AND decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'ACTIVATION', 'SUSPENSION', 'REVOCATION', 'SUPERSESSION')) OR "
+            "(entity_type = 'SOURCE_PROFILE_VERSION' AND decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'SUPERSESSION')) OR "
+            "(entity_type = 'KNOWLEDGE_GAP' AND decision_type IN ('APPROVAL', 'REJECTION', 'GAP_RESOLUTION', 'GAP_REOPEN', 'SUPERSESSION')) OR "
+            "(entity_type = 'WEEKLY_RUN' AND decision_type IN ('RUN_APPROVAL', 'APPROVAL', 'REJECTION', 'SUSPENSION', 'REVOCATION', 'SUPERSESSION')) OR "
+            "(entity_type = 'WEEKLY_RUN_ATTEMPT' AND decision_type IN ('RUN_TERMINALIZATION', 'SUPERSESSION')) OR "
+            "(entity_type = 'RUN_SOURCE_RESULT' AND decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'SUPERSESSION')) OR "
+            "(entity_type = 'RUN_GAP_RESULT' AND decision_type IN ('QUALITY_REVIEW', 'APPROVAL', 'REJECTION', 'SUPERSESSION'))",
+            name="ck_i5gd_entity_decision_matrix",
+        ),
+        ForeignKeyConstraint(["supersedes_decision_id", "entity_type", "entity_id", "decision_family"], ["i5_governance_decisions.id", "i5_governance_decisions.entity_type", "i5_governance_decisions.entity_id", "i5_governance_decisions.decision_family"], name="fk_i5gd_supersedes_same_entity_family", ondelete="RESTRICT"),
+        Index("uq_i5gd_one_superseder", "supersedes_decision_id", unique=True, postgresql_where=text("supersedes_decision_id IS NOT NULL")),
+        Index("uq_i5gd_one_root_per_family", "entity_type", "entity_id", "decision_family", unique=True, postgresql_where=text("supersedes_decision_id IS NULL")),
+        Index("ix_i5gd_entity_history", "entity_type", "entity_id", "created_at", "id"),
+        Index("ix_i5gd_family_history", "entity_type", "entity_id", "decision_family", "created_at", "id"),
+        Index("ix_i5gd_content_hash", "hash_algorithm", "canonicalization_version", "canonical_hash"),
+        Index("ix_i5gd_decision_type", "decision_type"),
+        Index("ix_i5gd_outcome", "outcome"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    entity_type = Column(String(64), nullable=False)
+    entity_id = Column(Integer, nullable=False)
+    decision_family = Column(String(64), nullable=False)
+    decision_type = Column(String(64), nullable=False)
+    decision_request_key = Column(String(128), nullable=False)
+    from_state = Column(String(64), nullable=True)
+    to_state = Column(String(64), nullable=True)
+    outcome = Column(String(32), nullable=False)
+    reason_code = Column(String(128), nullable=True)
+    reason = Column(Text, nullable=True)
+    actor_type = Column(String(32), nullable=False)
+    actor_reference = Column(String(512), nullable=True)
+    evidence_reference = Column(String(2048), nullable=True)
+    decision_metadata = Column(Text, nullable=True)
+    canonical_hash = Column(String(64), nullable=False)
+    canonicalization_version = Column(String(32), nullable=False, default="v1", server_default="v1")
+    hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
+    supersedes_decision_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
