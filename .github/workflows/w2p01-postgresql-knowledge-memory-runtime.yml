@@ -4,14 +4,6 @@ name: W2-P01 Focused PostgreSQL Knowledge Memory Runtime
 
 on:
   workflow_dispatch:
-  # Temporary registration trigger: GitHub cannot workflow_dispatch a never-run
-  # workflow that exists only on a non-default branch (HTTP 404). Path-scoped so
-  # only this YAML change fires registration. Removed after first registered run.
-  push:
-    branches:
-      - feature/section15/backend-continuity-foundation
-    paths:
-      - .github/workflows/w2p01-postgresql-knowledge-memory-runtime.yml
 
 permissions:
   contents: read
