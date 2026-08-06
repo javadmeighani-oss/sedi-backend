@@ -6,6 +6,17 @@ name: W3-P02 Focused PostgreSQL Weekly Orchestrator Runtime
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/section15/backend-continuity-foundation
+    paths:
+      - .github/workflows/w3p02-postgresql-weekly-orchestrator-runtime.yml
+      - backend/app/services/i5/weekly_orchestrator.py
+      - backend/app/services/i5/source_discovery.py
+      - backend/app/core/scheduler.py
+      - backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py
+      - backend/tests/helpers/w3p02_postgres_runtime.py
+      - backend/tests/helpers/w3p02_postgres_runtime_plugin.py
 
 permissions:
   contents: read
