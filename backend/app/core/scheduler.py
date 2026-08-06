@@ -544,6 +544,45 @@ def start_scheduler():
             # Fail-safe: do not break existing notification scheduler if KB wiring fails.
             print(f"[Sedi Scheduler] KB scheduled fetch wiring failed: {e}")
 
+        # I5-IMPL-W3-P02: dormant weekly international knowledge crawler registration.
+        # Job is always registered; body no-ops unless activation env is true, and even
+        # then W3-P02 refuses live network/production write (activation owned by W6-P01).
+        try:
+            from backend.app.services.i5.weekly_orchestrator import (
+                WEEKLY_ORCHESTRATOR_JOB_ID,
+                run_dormant_scheduled_tick,
+                weekly_orchestrator_enabled,
+            )
+
+            def _weekly_orchestrator_tick():
+                outcome = run_dormant_scheduled_tick()
+                print(
+                    "[Sedi Scheduler] weekly_international_knowledge_crawler "
+                    f"outcome={outcome.outcome} activation={weekly_orchestrator_enabled()}"
+                )
+
+            weekly_interval_min = int(
+                os.getenv("SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN", str(7 * 24 * 60))
+            )
+            weekly_interval_min = max(60, min(14 * 24 * 60, weekly_interval_min))
+            scheduler.add_job(
+                _weekly_orchestrator_tick,
+                "interval",
+                minutes=weekly_interval_min,
+                id=WEEKLY_ORCHESTRATOR_JOB_ID,
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=60,
+            )
+            print(
+                "[Sedi Scheduler] weekly_international_knowledge_crawler registered dormant "
+                f"interval_min={weekly_interval_min} "
+                f"enabled={weekly_orchestrator_enabled()}"
+            )
+        except Exception as e:
+            print(f"[Sedi Scheduler] weekly orchestrator dormant wiring failed: {e}")
+
         # Gate 5-D: Optional raw signal processing (disabled by default)
         try:
             from backend.app.services.gate5.raw_signal_processing_flags import (
