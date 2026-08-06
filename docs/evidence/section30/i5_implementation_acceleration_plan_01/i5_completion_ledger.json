@@ -120,6 +120,27 @@
       "migration_executed": "NO",
       "production_activation": "NO",
       "superseded_by_column": "NOT_ADDED_REUSED_supersedes_unit_id"
+    },
+    "w2p02_post_closure_recomputation": {
+      "recorded_at_utc": "2026-08-06T13:48:05Z",
+      "gate": "I5-IMPL-W2-P02 EVIDENCE/FRESHNESS/CONFLICT/MEDICAL-SAFETY",
+      "w2p02_technical_runtime_closure": "YES",
+      "w2p02_green_technical_commit": "0e18938fb845e7508939735c0b9e894347aa67ed",
+      "w2p02_implementation_commit": "c859a6555f6a0d58203c5ab74234650dc814dd8c",
+      "w2p02_green_run": 31107469313,
+      "w2p02_green_run_event": "workflow_dispatch",
+      "w2p02_registration_run": 31107140819,
+      "postgresql_runtime": "40/40 PASS",
+      "artifact_id": 8970203992,
+      "FORMAL_I5_CLOSED_AFTER_RECOMPUTATION": "21.79487179%",
+      "FORMAL_I5_REMAINING_AFTER_RECOMPUTATION": "78.20512821%",
+      "I5_B_CREDIT_AFTER_RECOMPUTATION": "4/13",
+      "reason_formal_percent_unchanged": "§164.2 LOCKED",
+      "w2p02_§164.2_formal_credit_awarded": "NO",
+      "migration_executed": "NO",
+      "production_activation": "NO",
+      "enums_reused": "EvidenceStrength/FreshnessState/ConflictState/MedicalSafetyState",
+      "tables_created": "knowledge_conflicts,knowledge_safety_reviews"
     }
   },
   "weight_proof": {
@@ -480,7 +501,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "QUALITY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",
         "MANAGEMENT_ALIAS": "P04",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -490,12 +511,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "§164.2 formal credit validation Gate; migration RUN owned by W6-P01",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W2-P02 evidence/freshness/conflict/medical-safety PostgreSQL runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock; migration NOT EXECUTED; reused W1-P02 state enums; created knowledge_conflicts + knowledge_safety_reviews."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-13",
@@ -503,7 +524,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "SAFETY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",
         "MANAGEMENT_ALIAS": "P04",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -513,12 +534,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "MEDICAL_SAFETY",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "§164.2 formal credit validation Gate; migration RUN owned by W6-P01",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W2-P02 evidence/freshness/conflict/medical-safety PostgreSQL runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock; migration NOT EXECUTED; reused W1-P02 state enums; created knowledge_conflicts + knowledge_safety_reviews."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-14",
@@ -997,8 +1018,12 @@
         ],
         "REMAINING_PLAN_POINTS": "8.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
-        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%",
+        "TECHNICAL_RUNTIME_CLOSURE": "YES",
+        "TECHNICAL_CLOSURE_EVIDENCE": "impl c859a6555f6a0d58203c5ab74234650dc814dd8c; green technical 0e18938fb845e7508939735c0b9e894347aa67ed workflow_dispatch run 31107469313; registration push run 31107140819; 40/40 nodes; artifact 8970203992",
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
+        "NOTES": "Conflict + safety queue tables; freshness/evidence/conflict/safety/eligibility gates; remaining plan points 8.0 retained until §164.2; migration RUN W6-P01"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P03",
