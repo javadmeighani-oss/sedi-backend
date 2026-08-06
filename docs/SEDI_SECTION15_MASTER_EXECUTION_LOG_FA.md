@@ -60318,3 +60318,196 @@ OPEN_FINDINGS=0
 NOTE=post-§240 final master-log whole-file self-SHA is NOT embedded inside §240 (predecessor-identity policy).
 MARKER=
 READY_FOR_I5_IMPL_W1_P02_CONTROLLED_IMPLEMENTATION_TEST_CI_AUTO_REMEDIATION_TO_GREEN_01
+
+================================================================================
+§241 — I5-IMPL-W1-P02 CONTROLLED IMPLEMENTATION / STATIC + POSTGRESQL
+RUNTIME / GITHUB CI AUTO-REMEDIATION TO GREEN / STRONGEST
+AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T12:20:07Z
+GATE_ID=I5-IMPL-W1-P02
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-06
+VERDICT=PASS
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+PREFLIGHT
+--------------------------------------------------------------------------------
+STARTING_HEAD=a9a92e43cfb5c73ffcd0936f823bbe876b0a0189
+BRANCH=feature/section15/backend-continuity-foundation
+PARITY_START=0/0
+WORKTREE_START=CLEAN
+MASTER_LOG_TIP_START=§240
+MASTER_LOG_PRE-§241_SIZE=2665744
+MASTER_LOG_PRE-§241_SHA256=4accb592f9c9528f417f071282722cd0ab9e548281fbc22a55a3c07abff6a12c
+MASTER_LOG_PRE-§241_EOL=CRLF_ONLY
+V531_SIZE=3592104
+V531_SHA256=5086999f213838fa6f8bfff9060c5b2a681bf62580fd55047ccd2d6693af903c
+V531_EOL=LF_ONLY
+FORMAL_I5_COMPLETION_START=21.79487179%
+I5_B_START=4/13
+
+--------------------------------------------------------------------------------
+AUTHORITY / FROZEN SCOPE
+--------------------------------------------------------------------------------
+SCOPE=RAW_RETENTION + STRUCTURED_KNOWLEDGE_UNIT + PROVENANCE
+MIGRATION_AUTHORING=NOT_AUTHORIZED
+MIGRATION_RUN=NOT_AUTHORIZED
+D20_ORM_BOOTSTRAP=DEFERRED
+D20_CONTENT=DEFERRED_TO_KP4_KP6
+CRAWLER_INGESTION_ACTIVATION_DEPLOY=PROHIBITED
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION INVENTORY (TECHNICAL)
+--------------------------------------------------------------------------------
+CREATE=
+  .github/workflows/w1p02-postgresql-knowledge-retention-runtime.yml
+  backend/app/routers/i5_admin.py
+  backend/app/schemas/i5_knowledge_unit.py
+  backend/app/services/i5/knowledge_unit_service.py
+  backend/app/services/i5/provenance_service.py
+  backend/tests/helpers/w1p02_postgres_runtime.py
+  backend/tests/helpers/w1p02_postgres_runtime_plugin.py
+  backend/tests/test_section30_i5_w1_p02_ku_provenance.py
+  backend/tests/test_w1p02_models_import_no_circularity.py
+MODIFY=
+  backend/app/models.py  (I5RawEvidence, KnowledgeUnit, KnowledgeProvenance;
+                          KnowledgeGap.target_knowledge_unit_id FK)
+  backend/app/services/i5/enums.py  (W1-P02 retention/SKU/eligibility enums)
+
+--------------------------------------------------------------------------------
+NODE / WORKFLOW CONTRACT
+--------------------------------------------------------------------------------
+EXPECTED_RUNTIME_NODE_COUNT=40
+SELECTORS=10
+WORKFLOW=.github/workflows/w1p02-postgresql-knowledge-retention-runtime.yml
+WORKFLOW_NAME=W1-P02 Focused PostgreSQL Knowledge Retention Runtime
+WORKFLOW_ID=328584655
+TRIGGER_FINAL=workflow_dispatch ONLY
+POSTGRES=postgres:15
+PYTHON=3.12
+DB=sedi_w1p02_knowledge
+ARTIFACT=w1p02-postgresql-knowledge-retention-evidence
+
+--------------------------------------------------------------------------------
+AUTO-REMEDIATION CYCLE LEDGER
+--------------------------------------------------------------------------------
+CYCLE=1
+STARTING_COMMIT=03eea6de5db63f978e2e2a45b7fa6f68bbbacd41
+SUBJECT=fix(ci): register W1-P02 workflow for dispatch
+REASON=GitHub HTTP 404 — never-run workflow only on non-default branch cannot be workflow_dispatch'ed
+REMEDIATION=temporary path-scoped push trigger for registration
+RUN_ID=31100232265
+RUN_NUMBER=1
+EVENT=push
+CONCLUSION=success
+PASS_COUNT=40
+SKIP_COUNT=0
+FINAL_STATUS=GREEN_REGISTRATION_AND_RUNTIME
+
+CYCLE=2
+STARTING_COMMIT=fe02728fc25ae2a974c2fb136712bfe74c53d8cb
+SUBJECT=fix(ci): restore W1-P02 workflow_dispatch-only trigger
+REASON=restore frozen TRIGGER=workflow_dispatch ONLY after registration
+RUN_ID=31100477952
+RUN_NUMBER=2
+EVENT=workflow_dispatch
+CONCLUSION=success
+JOB_ID=92612552010
+PASS_COUNT=40
+FAIL_COUNT=0
+SKIP_COUNT=0
+MISSING_NODES=0
+DUPLICATED_NODES=0
+UNEXPECTED_NODES=0
+ARTIFACT_ID=8967253911
+ARTIFACT_SIZE=3123
+FINAL_STATUS=GREEN_FROZEN_CONTRACT
+
+TECHNICAL_DISPATCH_CYCLES_USED=2
+MAX_TOTAL_TECHNICAL_DISPATCH_CYCLES=8
+REPEATED_IDENTICAL_FAILURE=NO
+
+--------------------------------------------------------------------------------
+COMMITS
+--------------------------------------------------------------------------------
+IMPL_COMMIT=ebfd6694fef448d955ea19a7441c3a383c41962d
+  subject=feat(i5): implement W1-P02 knowledge retention
+REG_COMMIT=03eea6de5db63f978e2e2a45b7fa6f68bbbacd41
+  subject=fix(ci): register W1-P02 workflow for dispatch
+GREEN_TECHNICAL_COMMIT=fe02728fc25ae2a974c2fb136712bfe74c53d8cb
+  subject=fix(ci): restore W1-P02 workflow_dispatch-only trigger
+PARENT_OF_IMPL=a9a92e43cfb5c73ffcd0936f823bbe876b0a0189
+
+--------------------------------------------------------------------------------
+GREEN ACCEPTANCE
+--------------------------------------------------------------------------------
+WORKFLOW_CONCLUSION=SUCCESS
+FOCUSED_COLLECTION_EXIT=0
+FOCUSED_RUNTIME_EXIT=0
+EXPECTED_NODE_SET=EXACT_MATCH (40)
+STATIC_CONTRACTS=PASS
+SQLALCHEMY_MAPPER=PASS
+POSTGRESQL_TABLE_CONTRACT=PASS
+ENUM_CONTRACT=PASS
+NAMED_CHECK_CONTRACT=PASS
+FOREIGN_KEY_LINEAGE=PASS
+UNIQUE_CONTRACT=PASS
+HASH_CONTRACT=PASS
+RAW_RETENTION=PASS
+SKU_FAIL_CLOSED_WITHOUT_PROVENANCE=PASS
+COMPLETE_PROVENANCE_ELIGIBILITY=PASS
+ARTIFACT_UPLOAD=PASS
+OPEN_IMPLEMENTATION_FINDINGS=0
+NO_SKIP_XFAIL_WEAKENING=CONFIRMED
+
+--------------------------------------------------------------------------------
+STRONGEST AUTHORITY-PERMITTED CLOSURE
+--------------------------------------------------------------------------------
+W1-P02_TECHNICAL_CONTRACT_CLOSURE=PASS
+W1-P02_RUNTIME_CONTRACT_CLOSURE=PASS
+W1-P02_CI_CLOSURE=GREEN
+W1-P02_MIGRATION=NOT_EXECUTED
+W1-P02_PRODUCTION_ACTIVATION=NOT_EXECUTED
+W1-P02_PROGRAM_LEDGER_CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% (UNCHANGED)
+FORMAL_I5_REMAINING=78.20512821% (UNCHANGED)
+I5_B=4/13 (UNCHANGED)
+REASON=§164.2 LOCKED
+LEDGER_POST_SIZE=102104
+LEDGER_POST_SHA256=b6e499a498bda83dc3421b274469ffaa9a537c88907db10f4bb8485df0170f92
+LEDGER_EOL=LF_ONLY
+
+--------------------------------------------------------------------------------
+D20 STATUS
+--------------------------------------------------------------------------------
+ENTITY_ID=D20
+TRACK_ID=DIABETES-GLYCEMIC-TRACK
+PRIORITY=P0-HIGH
+DIMENSIONS=DG-T01..DG-T32
+STRUCTURAL_ORM_OWNED_BY_W1P02=NO (deferred)
+CONTENT_POPULATION=NOT_DONE
+ALS_D18_PRESERVED=YES
+MS_D19_PRESERVED=YES
+
+--------------------------------------------------------------------------------
+NEXT PACKAGE
+--------------------------------------------------------------------------------
+NEXT_PACKAGE=I5-IMPL-W2-P01
+ALIAS=P03
+OBJECTIVE=Knowledge Memory + versioning/supersession
+REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+
+--------------------------------------------------------------------------------
+FALSE CLAIMS FORBIDDEN
+--------------------------------------------------------------------------------
+formal I5 % increase = NOT CLAIMED
+migration executed = NOT CLAIMED
+production activation = NOT CLAIMED
+diabetes content populated = NOT CLAIMED
+crawler/ingestion/runtime grounding = NOT CLAIMED
+
+NOTE=post-§241 final master-log whole-file self-SHA is NOT embedded inside §241 (predecessor-identity policy).
+MARKER=
+READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
