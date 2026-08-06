@@ -1152,6 +1152,9 @@ def _build_run(**overrides):
         gap_scope_hash=VALID_HASH,
         config_version="v1",
         config_hash=VALID_HASH,
+        source_scope="{}",
+        domain_scope="{}",
+        gap_scope="{}",
         status="PLANNED",
     )
     base.update(overrides)
