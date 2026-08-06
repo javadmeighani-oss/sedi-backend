@@ -2,6 +2,7 @@
 # Frozen contract: helper W3P02_RUNTIME_SELECTORS (15 -> 20).
 # Controlled real-source validation: NOT OWNED (W6-P01). No live network.
 # Source activation / weekly scheduler activation: OFF. No production write.
+# Infra bounce: re-dispatch after GitHub Actions Set-up-job Internal Server Error on 8d08df8.
 name: W3-P02 Focused PostgreSQL Weekly Orchestrator Runtime
 
 on:
