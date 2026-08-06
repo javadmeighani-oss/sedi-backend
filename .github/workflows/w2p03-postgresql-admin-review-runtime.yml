@@ -3,17 +3,6 @@
 name: W2-P03 Focused PostgreSQL Admin Review Runtime
 
 on:
-  push:
-    branches:
-      - feature/section15/backend-continuity-foundation
-    paths:
-      - '.github/workflows/w2p03-postgresql-admin-review-runtime.yml'
-      - 'backend/app/routers/i5_admin.py'
-      - 'backend/app/schemas/i5_core.py'
-      - 'backend/app/services/i5/admin_review_service.py'
-      - 'backend/tests/test_section30_i5_w2_p03_admin_review.py'
-      - 'backend/tests/helpers/w2p03_postgres_runtime.py'
-      - 'backend/tests/helpers/w2p03_postgres_runtime_plugin.py'
   workflow_dispatch:
 
 permissions:
