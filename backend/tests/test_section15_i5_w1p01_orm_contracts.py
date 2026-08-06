@@ -61,6 +61,8 @@ def _expect_named_integrity(
             mutate()
             db.flush()
     blob = _constraint_blob(ei.value)
+    if accept_any_of is None:
+        accept_any_of = NAMED_INTEGRITY_OVERLAP_ACCEPT.get(constraint)
     allowed = accept_any_of if accept_any_of is not None else frozenset({constraint})
     assert constraint in allowed
     assert any(name in blob for name in allowed), (sorted(allowed), blob)
@@ -98,9 +100,9 @@ UNEXPLAINED_SHADOWED_CHECK_CASES: tuple[str, ...] = ()
 AMBIGUOUS_CHECK_CASES: tuple[str, ...] = ()
 DOCUMENTED_UNISOLATABLE_CHECK_CASES: tuple[str, ...] = ("ck_i5gd_entity_family_matrix",)
 
-# Proven first-failure overlaps for invalid vocab literals that also fail matrix CHECKs.
-# PostgreSQL may report any member of the minimal set; unrelated ck_* names are not accepted.
-T7_CHECK_OVERLAP_ACCEPT: dict[str, frozenset[str]] = {
+# Proven first-failure overlaps: invalid vocab literals / PK-shadowed composite UQs.
+# PostgreSQL may report any member of the minimal set; unrelated names are not accepted.
+NAMED_INTEGRITY_OVERLAP_ACCEPT: dict[str, frozenset[str]] = {
     "ck_i5gd_entity_type_vocab": frozenset(
         {
             "ck_i5gd_entity_type_vocab",
@@ -122,6 +124,19 @@ T7_CHECK_OVERLAP_ACCEPT: dict[str, frozenset[str]] = {
             "ck_i5gd_entity_decision_matrix",
         }
     ),
+    # Composite UQ includes PK column `id`; duplicating id always violates table PK first.
+    "uq_wkra_id_weekly_run_id": frozenset(
+        {"uq_wkra_id_weekly_run_id", "weekly_knowledge_run_attempts_pkey"}
+    ),
+    "uq_i5gd_id_entity_family": frozenset(
+        {"uq_i5gd_id_entity_family", "i5_governance_decisions_pkey"}
+    ),
+}
+# Backward-compatible alias used by Cycle-01 continuity text.
+T7_CHECK_OVERLAP_ACCEPT = {
+    k: v
+    for k, v in NAMED_INTEGRITY_OVERLAP_ACCEPT.items()
+    if k.startswith("ck_i5gd_")
 }
 
 # Exact frozen SQL expression for ck_i5gd_entity_family_matrix (models.py authority).
@@ -2055,12 +2070,7 @@ assert TOTAL_NAMED_CHECK_COVERAGE == 70
     ids=[c[0] for c in CHECK_NEGATIVE_CASES],
 )
 def test_W1P01_T7_negative_check_constraints(db, case_id: str, constraint: str, mutate) -> None:
-    _expect_named_integrity(
-        db,
-        constraint=constraint,
-        mutate=lambda: mutate(db),
-        accept_any_of=T7_CHECK_OVERLAP_ACCEPT.get(constraint),
-    )
+    _expect_named_integrity(db, constraint=constraint, mutate=lambda: mutate(db))
 
 
 def test_W1P01_T7_coverage_ledger_maps_all_seventy_checks() -> None:

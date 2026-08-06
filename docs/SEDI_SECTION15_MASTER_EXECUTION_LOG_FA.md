@@ -59486,3 +59486,74 @@ TEST_FILE_EOL=CRLF_ONLY
 STATIC_VERIFICATION=PASS (ast.parse; names/ids/selectors textually preserved; model untouched)
 PROTECTED_CONTRACTS=15 selectors / 105 runtime / 174 total textually unaltered; no skip/xfail
 RUNTIME_NOT_YET_RE_EXECUTED=YES
+
+--------------------------------------------------------------------------------
+CYCLE-01 STAGE / COMMIT / PUSH / DISPATCH / TERMINAL RESULT
+--------------------------------------------------------------------------------
+RECORDED_AT_UTC=2026-08-06T07:34:43Z
+CYCLE=01
+STAGE_PATHS=
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+COMMIT_SHA=cf60629bcce7b4d4eea3a38c1052da7b38072d3e
+COMMIT_PARENT=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+COMMIT_TREE=184fb8359f532c56b8b158771308dd66181facc9
+COMMIT_SUBJECT=test(backend): handle overlapping W1-P01 check failures
+COMMIT_MESSAGE_FORM=A (subject only)
+COMMIT_BLOB_TEST=a73b2f0df1d2112284c9d88f0fd169819dc46511
+COMMIT_BLOB_MASTER_LOG=463835d7960197f49ea9dd512cf1fa9b1fb46652
+PUSH=NORMAL_NON_FORCE / FAST_FORWARD / PASS
+REMOTE_SHA_AFTER=cf60629bcce7b4d4eea3a38c1052da7b38072d3e
+LOCAL_REMOTE_PARITY=0/0
+DISPATCH_COMMAND=gh workflow run .github/workflows/w1p01-postgresql-orm-runtime.yml --ref feature/section15/backend-continuity-foundation
+DISPATCH_ATTEMPT_COUNT=1
+NEW_RUN_ID=31080887436
+RUN_NUMBER=4
+ATTEMPT=1
+HEAD_SHA=cf60629bcce7b4d4eea3a38c1052da7b38072d3e
+EVENT=workflow_dispatch
+URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31080887436
+CONCLUSION=failure
+JOB=W1-P01 PostgreSQL ORM runtime (105 nodes) / id=92549212964 / conclusion=failure
+TEMP_ENV=PASS (Configure runner temporary environment=success; TMPDIR/TEMP/TMP=/home/runner/work/_temp)
+POSTGRESQL_SERVICE=PASS (Initialize containers=success; postgres:15)
+DATABASE_CONNECTION=PASS (Process 2 reached ORM IntegrityError path; URL redacted postgresql+psycopg2://***@127.0.0.1:5432/sedi_w1p01_orm)
+PROCESS_1=PASS (collect-only step success; 105-node contract step name)
+PROCESS_2=FAIL exit=1 / 1 failed, 95 passed, 456 warnings in 1.18s
+FIRST_MATERIAL_FAILURE=test_W1P01_T8_03_ordinary_uq_runtime_negative[W1P01-T8-uq_wkra_id_weekly_run_id]
+EXPECTED_CONSTRAINT=uq_wkra_id_weekly_run_id
+ACTUAL_CONSTRAINT=weekly_knowledge_run_attempts_pkey
+ERROR_CLASS=AssertionError / named IntegrityError mismatch
+FAILURE_CLASSIFICATION=TEST MUTATION ISOLATION DEFECT / PROVEN PK-SHADOWED COMPOSITE UQ OVERLAP
+CLOSED_BY_CYCLE_01=T7 entity_type_vocab / decision_family_vocab / decision_type_vocab overlap mismatch
+REMAINING_OPEN=T8 uq_wkra_id_weekly_run_id vs weekly_knowledge_run_attempts_pkey
+ARTIFACT=PASS name=w1p01-postgresql-orm-runtime-evidence id=8959415419 size=4782 expired=false
+SAME_EXACT_FAILURE_AS_PRIOR=NO (different node/class/constraint)
+LOOP_DECISION=CONTINUE_CYCLE_02 (allowlisted test-only overlap remediation)
+
+--------------------------------------------------------------------------------
+CYCLE-02 CHECKPOINT (PRE-STAGE)
+--------------------------------------------------------------------------------
+RECORDED_AT_UTC=2026-08-06T07:34:43Z
+CYCLE=02
+SOURCE_RUN_ID=31080887436
+SOURCE_RUN_NUMBER=4
+SOURCE_COMMIT_SHA=cf60629bcce7b4d4eea3a38c1052da7b38072d3e
+FIRST_MATERIAL_FAILURE=test_W1P01_T8_03_ordinary_uq_runtime_negative[W1P01-T8-uq_wkra_id_weekly_run_id]
+EXPECTED_CONSTRAINT=uq_wkra_id_weekly_run_id
+ACTUAL_CONSTRAINT=weekly_knowledge_run_attempts_pkey
+ROOT_CAUSE_CLASSIFICATION=TEST MUTATION ISOLATION DEFECT / PROVEN PK-SHADOWED COMPOSITE UQ OVERLAP
+AUTHORITY_SOURCES=models.py UniqueConstraint(id, weekly_run_id, name=uq_wkra_id_weekly_run_id); table PK on id => weekly_knowledge_run_attempts_pkey; mutate _uq_mutate_wkra_id_weekly_run_id sets dup.id=att.id; same pattern for uq_i5gd_id_entity_family
+ROOT_CAUSE_PROOF=Because id is the primary key, any row that reuses an existing id necessarily violates the table PK. The composite UniqueConstraint that includes id cannot be violated in isolation without also violating the PK. Isolation Option A is logically impossible.
+T8_UQ_OVERLAP_MATRIX=
+  mutate reuse id on weekly_knowledge_run_attempts => violates {uq_wkra_id_weekly_run_id, weekly_knowledge_run_attempts_pkey}; isolated=NO
+  mutate reuse id on i5_governance_decisions => violates {uq_i5gd_id_entity_family, i5_governance_decisions_pkey}; isolated=NO
+EXACT_TECHNICAL_FIX=Option B: expand NAMED_INTEGRITY_OVERLAP_ACCEPT (replacing T7-only dict) with PK/UQ minimal sets; _expect_named_integrity auto-looks up accept set; target name must remain in set; proactive same-cause fix for uq_i5gd_id_entity_family
+MODIFIED_PATHS=backend/tests/test_section15_i5_w1p01_orm_contracts.py
+PROACTIVE_SAME_CAUSE_FIXES=uq_i5gd_id_entity_family + i5_governance_decisions_pkey
+TEST_FILE_SIZE=91891
+TEST_FILE_SHA256=515a21f2953943f6134e79b6c65e2954d669cce34ecb1f0aab7f97c78ee6d162
+TEST_FILE_EOL=CRLF_ONLY
+STATIC_VERIFICATION=PASS (ast.parse; names/ids/selectors textually preserved; model blob OID unchanged be77cd0cb7295906f8f458fb2d317dbc7d2d0018)
+PROTECTED_CONTRACTS=15 selectors / 105 runtime / 174 total textually unaltered; no skip/xfail
+RUNTIME_NOT_YET_RE_EXECUTED=YES
