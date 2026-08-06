@@ -4,6 +4,14 @@ name: W1-P02 Focused PostgreSQL Knowledge Retention Runtime
 
 on:
   workflow_dispatch:
+  # Temporary registration trigger: GitHub cannot workflow_dispatch a never-run
+  # workflow that exists only on a non-default branch (HTTP 404). Path-scoped so
+  # only this YAML change fires registration. Removed after first registered run.
+  push:
+    branches:
+      - feature/section15/backend-continuity-foundation
+    paths:
+      - .github/workflows/w1p02-postgresql-knowledge-retention-runtime.yml
 
 permissions:
   contents: read
