@@ -18,9 +18,12 @@ from backend.app.services.gate2_data_service import (
     list_restrictions,
 )
 from backend.app.services.memory_context_service import build_memory_context
-from backend.app.services.gate3.knowledge_retrieval_service import search_knowledge
 from backend.app.services.gate3.safety_core import RiskClassifier, SafetyPolicy
 from backend.app.schemas.gate3 import FollowUpCreateIn, FollowUpUpdateIn, RecommendationCreateIn
+from backend.app.services.i5.runtime_knowledge_retrieval import (
+    PACKAGE_ID as W4P01_PACKAGE_ID,
+    retrieve_knowledge_context,
+)
 
 
 class Gate3NotFoundError(Exception):
@@ -36,13 +39,32 @@ def get_vitals_summary(db: Session, user_id: int) -> Dict[str, Any]:
 
 
 def build_care_context(db: Session, user_id: int, language: str = "fa", query_hint: Optional[str] = None) -> Dict[str, Any]:
+    """Build CARE_CONTEXT with Knowledge-Database-First retrieval (I5-IMPL-W4-P01).
+
+    Medical knowledge context uses KU/Memory filters via runtime_knowledge_retrieval.
+    Interim Gate3 search_knowledge is not used as an ungoverned medical substitute.
+    Final answer synthesis / reference rendering remain outside this function (W4-P02).
+    """
     base = build_memory_context(db, user_id)
     base["vitals_summary"] = get_vitals_summary(db, user_id)
     base["care_plan_interpretation"] = interpret_care_plan(db, user_id)
     if query_hint:
-        risk = RiskClassifier().classify(query_hint, language)
-        kb = search_knowledge(db, query_hint, limit=3, risk_level=risk.risk_level)
-        base["knowledge_snippets"] = kb.get("chunks", [])
+        # Risk classification retained for care policy surfaces; not a knowledge substitute.
+        RiskClassifier().classify(query_hint, language)
+        retrieval = retrieve_knowledge_context(
+            db,
+            query_hint,
+            user_id=user_id,
+            language=language,
+            limit=3,
+            enqueue_gap_on_empty=True,
+        )
+        envelope = retrieval.to_dict()
+        base["i5_knowledge_retrieval"] = envelope
+        base["knowledge_snippets"] = envelope.get("knowledge_snippets") or []
+        base["i5_retrieval_status"] = retrieval.status
+        base["no_base_model_fallback"] = True
+        base["knowledge_db_first_package"] = W4P01_PACKAGE_ID
     return base
 
 

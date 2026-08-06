@@ -215,12 +215,22 @@ def _maybe_append_gate3_care_context(messages: list, db, user_id: int, user_mess
             lines.append("Upcoming: " + "; ".join(
                 f"{e.get('title')} ({e.get('event_type')})" for e in ctx["upcoming_events"][:3]
             ))
+        # I5-IMPL-W4-P01: Knowledge-DB-first envelope (synthesis/references = W4-P02).
+        i5_status = ctx.get("i5_retrieval_status")
+        if i5_status:
+            lines.append(f"Knowledge-DB-first status: {i5_status}")
+        if ctx.get("no_base_model_fallback"):
+            lines.append("NO_BASE_MODEL_MEDICAL_FALLBACK=1")
         snippets = ctx.get("knowledge_snippets") or []
         if snippets:
-            lines.append("Curated knowledge (cite sources):")
+            lines.append("Governed knowledge (W4-P02 renders citations):")
             for sn in snippets[:2]:
                 cit = sn.get("citation") or {}
                 lines.append(f"- [{cit.get('label', 'source')}] {sn.get('content', '')[:200]}")
+        elif i5_status and i5_status != "OK":
+            lines.append(
+                "No safe governed knowledge available; do not invent medical content."
+            )
         block = "\n".join(lines)[:1200]
         messages.append({"role": "system", "content": block})
     except Exception as e:
