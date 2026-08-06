@@ -8,6 +8,10 @@ from backend.app.database import Base
 # columns below still use plain String literals matching these enum values so that
 # CheckConstraint SQL text stays self-contained and avoids any import-time circularity).
 from backend.app.services.i5.enums import (
+    ConflictState,
+    EvidenceStrength,
+    ExpiryState,
+    FreshnessState,
     GovernanceActorType,
     GovernanceDecisionFamily,
     GovernanceDecisionOutcome,
@@ -18,7 +22,18 @@ from backend.app.services.i5.enums import (
     KnowledgeGapStatus,
     KnowledgeGapType,
     KnowledgeGapUrgency,
+    KnowledgeType,
+    KnowledgeUnitRuntimeEligibility,
+    MedicalSafetyState,
+    ProhibitedDataState,
+    PublicationState,
+    RawRetentionMode,
+    RawStorageMode,
+    RedactionState,
     RegistryState,
+    ReviewState,
+    RightsTermsState,
+    RobotsAccessState,
     RunGapResultType,
     RunSourceResultStatus,
     RuntimeEligibility,
@@ -1480,6 +1495,7 @@ class KnowledgeGap(Base):
         Index("ix_kg_next_review_at", "next_review_at"),
         Index("ix_kg_target_source_profile_id", "target_source_profile_id"),
         Index("ix_kg_discovered_attempt_id", "discovered_attempt_id"),
+        Index("ix_kg_target_knowledge_unit_id", "target_knowledge_unit_id"),
         Index("ix_kg_capability_id", "capability_id"),
         Index("ix_kg_target_package_id", "target_package_id"),
         Index("ix_kg_domain_subdomain", "domain", "subdomain"),
@@ -1510,7 +1526,7 @@ class KnowledgeGap(Base):
     dependencies = Column(Text, nullable=True)
     target_package_id = Column(String(64), nullable=True)
     target_source_profile_id = Column(Integer, ForeignKey("governed_source_profiles.id", ondelete="RESTRICT", name="fk_knowledge_gaps_target_source_profile_id"), nullable=True)
-    target_knowledge_unit_id = Column(Integer, nullable=True)
+    target_knowledge_unit_id = Column(Integer, ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_knowledge_gaps_target_knowledge_unit_id"), nullable=True)
     discovered_by = Column(String(512), nullable=True)
     discovered_attempt_id = Column(Integer, ForeignKey("weekly_knowledge_run_attempts.id", ondelete="RESTRICT", name="fk_knowledge_gaps_discovered_attempt_id"), nullable=True)
     next_action = Column(Text, nullable=True)
@@ -1672,4 +1688,164 @@ class I5GovernanceDecision(Base):
     canonicalization_version = Column(String(32), nullable=False, default="v1", server_default="v1")
     hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
     supersedes_decision_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+
+# ---------------------------------------------------------------------------
+# I5-IMPL-W1-P02 — Raw Retention / Structured Knowledge Unit / Provenance
+# Migration AUTHOR_ONLY deferred; runtime harness uses metadata.create_all.
+# Zero relationship() declarations (W1-P01 convention).
+# ---------------------------------------------------------------------------
+
+
+class I5RawEvidence(Base):
+    __tablename__ = "i5_raw_evidence"
+    __table_args__ = (
+        CheckConstraint(_vocab_sql("retention_mode", RawRetentionMode), name="ck_ire_retention_mode_vocab"),
+        CheckConstraint(_vocab_sql("storage_mode", RawStorageMode), name="ck_ire_storage_mode_vocab"),
+        CheckConstraint(_vocab_sql("rights_terms_state", RightsTermsState), name="ck_ire_rights_terms_state_vocab"),
+        CheckConstraint(_vocab_sql("robots_access_state", RobotsAccessState), name="ck_ire_robots_access_state_vocab"),
+        CheckConstraint(_vocab_sql("redaction_state", RedactionState), name="ck_ire_redaction_state_vocab"),
+        CheckConstraint(_vocab_sql("prohibited_data_state", ProhibitedDataState), name="ck_ire_prohibited_data_state_vocab"),
+        CheckConstraint(_vocab_sql("expiry_state", ExpiryState), name="ck_ire_expiry_state_vocab"),
+        CheckConstraint("content_hash ~ '^[0-9a-f]{64}$'", name="ck_ire_content_hash_format"),
+        CheckConstraint("byte_hash IS NULL OR byte_hash ~ '^[0-9a-f]{64}$'", name="ck_ire_byte_hash_format"),
+        CheckConstraint("normalized_hash IS NULL OR normalized_hash ~ '^[0-9a-f]{64}$'", name="ck_ire_normalized_hash_format"),
+        CheckConstraint("hash_algorithm = 'SHA-256'", name="ck_ire_hash_algorithm_constant"),
+        CheckConstraint("char_length(canonical_url) >= 1", name="ck_ire_canonical_url_nonempty"),
+        CheckConstraint("supersedes_raw_evidence_id IS NULL OR supersedes_raw_evidence_id <> id", name="ck_ire_supersedes_not_self"),
+        CheckConstraint(
+            "(prohibited_data_state <> 'CONFIRMED_PROHIBITED') OR (retention_mode = 'RAW_EXCLUDED_PROTECTED_ELEMENTS')",
+            name="ck_ire_prohibited_requires_excluded_mode",
+        ),
+        UniqueConstraint("content_hash", "source_profile_id", "canonical_url", name="uq_ire_content_source_url"),
+        Index("ix_ire_source_profile_id", "source_profile_id"),
+        Index("ix_ire_retrieval_run_id", "retrieval_run_id"),
+        Index("ix_ire_retention_mode", "retention_mode"),
+        Index("ix_ire_content_hash", "content_hash"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    source_profile_id = Column(Integer, ForeignKey("governed_source_profiles.id", ondelete="RESTRICT", name="fk_ire_source_profile_id"), nullable=False)
+    source_document_id = Column(String(128), nullable=True)
+    source_version_id = Column(String(128), nullable=True)
+    retrieval_run_id = Column(Integer, ForeignKey("weekly_knowledge_runs.id", ondelete="SET NULL", name="fk_ire_retrieval_run_id"), nullable=True)
+    retrieval_timestamp = Column(DateTime, nullable=False)
+    canonical_url = Column(Text, nullable=False)
+    content_hash = Column(String(64), nullable=False)
+    byte_hash = Column(String(64), nullable=True)
+    normalized_hash = Column(String(64), nullable=True)
+    hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
+    mime_type = Column(String(128), nullable=True)
+    language = Column(String(32), nullable=True)
+    jurisdiction = Column(String(64), nullable=True)
+    storage_mode = Column(String(64), nullable=False, default="NONE", server_default="NONE")
+    retention_mode = Column(String(64), nullable=False)
+    rights_terms_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    robots_access_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    redaction_state = Column(String(32), nullable=False, default="NONE", server_default="NONE")
+    prohibited_data_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    expiry_state = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
+    supersedes_raw_evidence_id = Column(Integer, ForeignKey("i5_raw_evidence.id", ondelete="RESTRICT", name="fk_ire_supersedes_raw_evidence_id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    created_by_run_id = Column(Integer, ForeignKey("weekly_knowledge_runs.id", ondelete="SET NULL", name="fk_ire_created_by_run_id"), nullable=True)
+
+
+class KnowledgeUnit(Base):
+    __tablename__ = "knowledge_units"
+    __table_args__ = (
+        CheckConstraint(_vocab_sql("knowledge_type", KnowledgeType), name="ck_ku_knowledge_type_vocab"),
+        CheckConstraint(_vocab_sql("evidence_strength", EvidenceStrength), name="ck_ku_evidence_strength_vocab"),
+        CheckConstraint(_vocab_sql("medical_safety_state", MedicalSafetyState), name="ck_ku_medical_safety_state_vocab"),
+        CheckConstraint(_vocab_sql("conflict_state", ConflictState), name="ck_ku_conflict_state_vocab"),
+        CheckConstraint(_vocab_sql("freshness_state", FreshnessState), name="ck_ku_freshness_state_vocab"),
+        CheckConstraint(_vocab_sql("review_state", ReviewState), name="ck_ku_review_state_vocab"),
+        CheckConstraint(_vocab_sql("publication_state", PublicationState), name="ck_ku_publication_state_vocab"),
+        CheckConstraint(_vocab_sql("runtime_eligibility", KnowledgeUnitRuntimeEligibility), name="ck_ku_runtime_eligibility_vocab"),
+        CheckConstraint("canonical_hash ~ '^[0-9a-f]{64}$'", name="ck_ku_canonical_hash_format"),
+        CheckConstraint("deduplication_key ~ '^[0-9a-f]{64}$'", name="ck_ku_deduplication_key_format"),
+        CheckConstraint("hash_algorithm = 'SHA-256'", name="ck_ku_hash_algorithm_constant"),
+        CheckConstraint("canonicalization_version = 'v1'", name="ck_ku_canonicalization_version_constant"),
+        CheckConstraint("char_length(normalized_statement) >= 1", name="ck_ku_normalized_statement_nonempty"),
+        CheckConstraint("supersedes_unit_id IS NULL OR supersedes_unit_id <> id", name="ck_ku_supersedes_not_self"),
+        CheckConstraint(
+            "(runtime_eligibility <> 'ELIGIBLE') OR (provenance_complete = true)",
+            name="ck_ku_eligible_requires_provenance",
+        ),
+        UniqueConstraint("canonical_unit_id", "immutable_version_id", name="uq_ku_canonical_version"),
+        UniqueConstraint("deduplication_key", name="uq_ku_deduplication_key"),
+        Index("ix_ku_domain", "domain"),
+        Index("ix_ku_runtime_eligibility", "runtime_eligibility"),
+        Index("ix_ku_canonical_hash", "canonical_hash"),
+        Index("ix_ku_manifest_track_id", "manifest_track_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    canonical_unit_id = Column(String(64), nullable=False)
+    immutable_version_id = Column(String(64), nullable=False)
+    domain = Column(String(128), nullable=False)
+    topic_taxonomy = Column(String(256), nullable=True)
+    disease_or_health_condition = Column(String(256), nullable=True)
+    manifest_entity_id = Column(String(16), nullable=True)
+    manifest_track_id = Column(String(64), nullable=True)
+    language = Column(String(32), nullable=False, default="en", server_default="en")
+    knowledge_type = Column(String(32), nullable=False)
+    normalized_statement = Column(Text, nullable=False)
+    applicability = Column(Text, nullable=True)
+    exclusions = Column(Text, nullable=True)
+    population = Column(String(256), nullable=True)
+    jurisdiction = Column(String(64), nullable=True)
+    evidence_strength = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    medical_safety_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    conflict_state = Column(String(32), nullable=False, default="NONE", server_default="NONE")
+    freshness_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    review_state = Column(String(32), nullable=False, default="NOT_REVIEWED", server_default="NOT_REVIEWED")
+    publication_state = Column(String(32), nullable=False, default="DRAFT", server_default="DRAFT")
+    runtime_eligibility = Column(String(32), nullable=False, default="NOT_ELIGIBLE", server_default="NOT_ELIGIBLE")
+    provenance_complete = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    deduplication_key = Column(String(64), nullable=False)
+    canonical_hash = Column(String(64), nullable=False)
+    hash_algorithm = Column(String(32), nullable=False, default="SHA-256", server_default="SHA-256")
+    canonicalization_version = Column(String(32), nullable=False, default="v1", server_default="v1")
+    supersedes_unit_id = Column(Integer, ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_ku_supersedes_unit_id"), nullable=True)
+    retraction_reason = Column(Text, nullable=True)
+    valid_from = Column(DateTime, nullable=True)
+    valid_until = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+    last_reviewed_at = Column(DateTime, nullable=True)
+
+
+class KnowledgeProvenance(Base):
+    __tablename__ = "knowledge_provenance"
+    __table_args__ = (
+        CheckConstraint("content_hash IS NULL OR content_hash ~ '^[0-9a-f]{64}$'", name="ck_kp_content_hash_format"),
+        CheckConstraint("byte_hash IS NULL OR byte_hash ~ '^[0-9a-f]{64}$'", name="ck_kp_byte_hash_format"),
+        CheckConstraint("normalized_hash IS NULL OR normalized_hash ~ '^[0-9a-f]{64}$'", name="ck_kp_normalized_hash_format"),
+        CheckConstraint("char_length(retrieval_method) >= 1", name="ck_kp_retrieval_method_nonempty"),
+        UniqueConstraint("knowledge_unit_id", name="uq_kp_knowledge_unit_id"),
+        Index("ix_kp_source_profile_id", "source_profile_id"),
+        Index("ix_kp_raw_evidence_id", "raw_evidence_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    knowledge_unit_id = Column(Integer, ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_kp_knowledge_unit_id"), nullable=False)
+    source_profile_id = Column(Integer, ForeignKey("governed_source_profiles.id", ondelete="RESTRICT", name="fk_kp_source_profile_id"), nullable=False)
+    source_document_id = Column(String(128), nullable=True)
+    source_version_id = Column(String(128), nullable=True)
+    raw_evidence_id = Column(Integer, ForeignKey("i5_raw_evidence.id", ondelete="RESTRICT", name="fk_kp_raw_evidence_id"), nullable=True)
+    retrieval_method = Column(String(128), nullable=False)
+    access_route = Column(String(128), nullable=True)
+    content_hash = Column(String(64), nullable=True)
+    byte_hash = Column(String(64), nullable=True)
+    normalized_hash = Column(String(64), nullable=True)
+    extraction_process = Column(String(256), nullable=True)
+    normalization_process = Column(String(256), nullable=True)
+    review_decision_id = Column(Integer, ForeignKey("i5_governance_decisions.id", ondelete="SET NULL", name="fk_kp_review_decision_id"), nullable=True)
+    attribution_data = Column(Text, nullable=True)
+    citation_rendering_data = Column(Text, nullable=True)
+    conflict_hook = Column(String(256), nullable=True)
+    supersession_hook = Column(String(256), nullable=True)
+    retraction_hook = Column(String(256), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)

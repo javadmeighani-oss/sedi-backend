@@ -1,4 +1,4 @@
-"""Section 15-I5-IMPL-W1-P01 — persisted-vocabulary enums for the I5 continuity schema.
+"""Section 15-I5-IMPL-W1-P01/W1-P02 — persisted-vocabulary enums for the I5 continuity schema.
 
 Pure, stdlib-only. Members are `str, Enum` with SCREAMING_SNAKE_CASE names whose
 value equals the member name (the persisted database literal). No `auto()`,
@@ -243,3 +243,156 @@ class GovernanceActorType(str, Enum):
     SERVICE = "SERVICE"
     JAVAD = "JAVAD"
     UNKNOWN = "UNKNOWN"
+
+
+# ---------------------------------------------------------------------------
+# I5-IMPL-W1-P02 — Raw Retention / Knowledge Unit / Provenance vocabularies
+# ---------------------------------------------------------------------------
+
+
+class RawRetentionMode(str, Enum):
+    """Canonical raw evidence retention mode (v531 Design Freeze literals)."""
+
+    RAW_FULL_GOVERNED_RETENTION = "RAW_FULL_GOVERNED_RETENTION"
+    RAW_TRANSIENT_PROCESSING = "RAW_TRANSIENT_PROCESSING"
+    RAW_MINIMAL_EVIDENCE_ONLY = "RAW_MINIMAL_EVIDENCE_ONLY"
+    RAW_LINK_AND_CITATION_ONLY = "RAW_LINK_AND_CITATION_ONLY"
+    RAW_EXCLUDED_PROTECTED_ELEMENTS = "RAW_EXCLUDED_PROTECTED_ELEMENTS"
+
+
+class RawStorageMode(str, Enum):
+    """Where retained raw evidence bytes/metadata are stored."""
+
+    OBJECT_STORE = "OBJECT_STORE"
+    DATABASE_INLINE = "DATABASE_INLINE"
+    EXTERNAL_REFERENCE = "EXTERNAL_REFERENCE"
+    NONE = "NONE"
+
+
+class RightsTermsState(str, Enum):
+    """Licence / rights / terms review state for retained evidence."""
+
+    UNKNOWN = "UNKNOWN"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    APPROVED = "APPROVED"
+    RESTRICTED = "RESTRICTED"
+    PROHIBITED = "PROHIBITED"
+    EXPIRED = "EXPIRED"
+
+
+class RobotsAccessState(str, Enum):
+    """Robots / access-policy state for retained evidence."""
+
+    UNKNOWN = "UNKNOWN"
+    ALLOWED = "ALLOWED"
+    DISALLOWED = "DISALLOWED"
+    CONDITIONAL = "CONDITIONAL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+class RedactionState(str, Enum):
+    """Redaction state of retained evidence."""
+
+    NONE = "NONE"
+    PARTIAL = "PARTIAL"
+    FULL = "FULL"
+    REQUIRED = "REQUIRED"
+
+
+class ProhibitedDataState(str, Enum):
+    """Whether prohibited data classes are present or cleared."""
+
+    CLEARED = "CLEARED"
+    SUSPECTED = "SUSPECTED"
+    CONFIRMED_PROHIBITED = "CONFIRMED_PROHIBITED"
+    UNKNOWN = "UNKNOWN"
+
+
+class ExpiryState(str, Enum):
+    """Expiry / tombstone lifecycle for retained evidence."""
+
+    ACTIVE = "ACTIVE"
+    EXPIRING = "EXPIRING"
+    EXPIRED = "EXPIRED"
+    TOMBSTONED = "TOMBSTONED"
+    SUPERSEDED = "SUPERSEDED"
+
+
+class KnowledgeType(str, Enum):
+    """Structured knowledge unit knowledge type."""
+
+    FACT = "FACT"
+    GUIDELINE = "GUIDELINE"
+    RECOMMENDATION = "RECOMMENDATION"
+    WARNING = "WARNING"
+    DEFINITION = "DEFINITION"
+    PROCEDURE = "PROCEDURE"
+    OTHER = "OTHER"
+
+
+class EvidenceStrength(str, Enum):
+    """Evidence strength band for a knowledge unit."""
+
+    UNKNOWN = "UNKNOWN"
+    LOW = "LOW"
+    MODERATE = "MODERATE"
+    HIGH = "HIGH"
+    CONFLICTED = "CONFLICTED"
+
+
+class MedicalSafetyState(str, Enum):
+    """Medical safety review state for a knowledge unit."""
+
+    UNKNOWN = "UNKNOWN"
+    PENDING_REVIEW = "PENDING_REVIEW"
+    CLEARED = "CLEARED"
+    RESTRICTED = "RESTRICTED"
+    BLOCKED = "BLOCKED"
+
+
+class ConflictState(str, Enum):
+    """Conflict state for a knowledge unit."""
+
+    NONE = "NONE"
+    SUSPECTED = "SUSPECTED"
+    CONFIRMED = "CONFIRMED"
+    RESOLVED = "RESOLVED"
+
+
+class FreshnessState(str, Enum):
+    """Freshness state for a knowledge unit."""
+
+    UNKNOWN = "UNKNOWN"
+    CURRENT = "CURRENT"
+    STALE = "STALE"
+    EXPIRED = "EXPIRED"
+
+
+class ReviewState(str, Enum):
+    """Review state for a knowledge unit."""
+
+    NOT_REVIEWED = "NOT_REVIEWED"
+    IN_REVIEW = "IN_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    DEFERRED = "DEFERRED"
+
+
+class PublicationState(str, Enum):
+    """Publication state for a knowledge unit."""
+
+    DRAFT = "DRAFT"
+    CANDIDATE = "CANDIDATE"
+    PUBLISHED = "PUBLISHED"
+    WITHDRAWN = "WITHDRAWN"
+    SUPERSEDED = "SUPERSEDED"
+
+
+class KnowledgeUnitRuntimeEligibility(str, Enum):
+    """Runtime eligibility for a structured knowledge unit (fail-closed default)."""
+
+    NOT_ELIGIBLE = "NOT_ELIGIBLE"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    ELIGIBLE = "ELIGIBLE"
+    SUSPENDED = "SUSPENDED"
+    REVOKED = "REVOKED"
