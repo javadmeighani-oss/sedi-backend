@@ -100,6 +100,26 @@
       "d20_structural_orm": "DEFERRED",
       "d20_content_population": "DEFERRED_TO_KP4_KP6",
       "next_formal_credit_requires": "authorized validation Gate updating §164.2 with package evidence + applicable tests + authorized migration/dry-run/activation evidence + Javad authority"
+    },
+    "w2p01_post_closure_recomputation": {
+      "recorded_at_utc": "2026-08-06T13:10:01Z",
+      "gate": "I5-IMPL-W2-P01 KNOWLEDGE MEMORY / VERSIONING / DIFF / SUPERSESSION",
+      "w2p01_technical_runtime_closure": "YES",
+      "w2p01_green_technical_commit": "4b1003c8b86a51c3f81039620caac93670228203",
+      "w2p01_implementation_commit": "b96165fdae3d09ce6f5a04d80b58abcd6d5087b1",
+      "w2p01_green_run": 31104415506,
+      "w2p01_green_run_event": "workflow_dispatch",
+      "w2p01_registration_run": 31104222164,
+      "postgresql_runtime": "36/36 PASS",
+      "artifact_id": 8968894012,
+      "FORMAL_I5_CLOSED_AFTER_RECOMPUTATION": "21.79487179%",
+      "FORMAL_I5_REMAINING_AFTER_RECOMPUTATION": "78.20512821%",
+      "I5_B_CREDIT_AFTER_RECOMPUTATION": "4/13",
+      "reason_formal_percent_unchanged": "§164.2 LOCKED",
+      "w2p01_§164.2_formal_credit_awarded": "NO",
+      "migration_executed": "NO",
+      "production_activation": "NO",
+      "superseded_by_column": "NOT_ADDED_REUSED_supersedes_unit_id"
     }
   },
   "weight_proof": {
@@ -414,7 +434,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "MEMORY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P01",
         "MANAGEMENT_ALIAS": "P03",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -424,12 +444,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "§164.2 formal credit validation Gate; migration RUN owned by W6-P01",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W2-P01 knowledge memory/versioning/supersession PostgreSQL runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock; migration NOT EXECUTED; reused supersedes_unit_id (no superseded_by column)."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-11",
@@ -437,7 +457,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "VERSIONING",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P01",
         "MANAGEMENT_ALIAS": "P03",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -447,12 +467,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "§164.2 formal credit validation Gate; migration RUN owned by W6-P01",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W2-P01 knowledge memory/versioning/supersession PostgreSQL runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock; migration NOT EXECUTED; reused supersedes_unit_id (no superseded_by column)."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-12",
@@ -947,8 +967,12 @@
         ],
         "REMAINING_PLAN_POINTS": "8.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
-        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%",
+        "TECHNICAL_RUNTIME_CLOSURE": "YES",
+        "TECHNICAL_CLOSURE_EVIDENCE": "impl b96165fdae3d09ce6f5a04d80b58abcd6d5087b1; green technical 4b1003c8b86a51c3f81039620caac93670228203 workflow_dispatch run 31104415506; registration push run 31104222164; 36/36 nodes; artifact 8968894012",
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
+        "NOTES": "KnowledgeMemoryItem + transitions + supersession/diff services; reused KU supersedes_unit_id; remaining plan points 8.0 retained until §164.2 validation; migration RUN still W6-P01"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",

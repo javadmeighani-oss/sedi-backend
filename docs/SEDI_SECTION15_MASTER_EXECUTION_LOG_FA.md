@@ -60511,3 +60511,161 @@ crawler/ingestion/runtime grounding = NOT CLAIMED
 NOTE=post-§241 final master-log whole-file self-SHA is NOT embedded inside §241 (predecessor-identity policy).
 MARKER=
 READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+================================================================================
+§242 — I5-IMPL-W2-P01 KNOWLEDGE MEMORY / VERSIONING / DIFF / SUPERSESSION
+AUTHORITY RECONSTRUCTION + DESIGN FREEZE + CONTROLLED IMPLEMENTATION /
+STATIC + POSTGRESQL RUNTIME / GITHUB CI AUTO-REMEDIATION TO GREEN /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T13:10:01Z
+GATE_ID=I5-IMPL-W2-P01
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-06
+VERDICT=PASS
+ON_CRITICAL_PATH=YES
+DEADLINE_RISK=CRITICAL_HIGH
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+JAVAD DEADLINES / SPEED / CRAWLER LAWS (MANDATORY CARRY-FORWARD)
+--------------------------------------------------------------------------------
+SEDI_V1_PILOT_READY_RELEASE_CANDIDATE=2026-08-22
+MINIMUM_50_HEART_RATE_GADGET_UNITS=2026-09-22
+CLOSED_PILOT_PERIOD=2026-09-23 THROUGH 2026-12-21
+INTEGRATED_MARKET_LAUNCH=WINTER_1405 (2026-12-22 THROUGH 2027-03-20)
+SEDI_DEVELOPMENT_CADENCE=DAILY_CONTINUOUS
+COMPREHENSIVE_GATE_LAW=AUTHORITY+FREEZE+IMPL+TEST+CI+AUTO-REMEDIATION+CLOSURE+CONTINUITY
+PERMANENT_WEEKLY_CRAWLER_LAW=
+  By the end of Mordad 1405, Sedi V1 must contain a real, permanent, governed
+  weekly crawler and knowledge pipeline that is fully operational end-to-end for
+  an initial high-priority source and knowledge scope. The same pipeline must
+  continue running weekly and progressively expand trusted sources, diseases,
+  care, prevention, lifestyle, nutrition, exercise, psychology, and daily-routine
+  coverage during the pilot and after launch.
+INITIAL_COVERAGE_MAY_BE_BOUNDED=YES
+PERMANENT_PIPELINE_MAY_BE_FAKE_OR_ONE_TIME=NO
+METADATA_ONLY_REFRESH_COUNTS_AS_KNOWLEDGE_GROWTH=NO
+CONTINUOUS_WEEKLY_EXPANSION=MANDATORY
+
+--------------------------------------------------------------------------------
+PREFLIGHT
+--------------------------------------------------------------------------------
+STARTING_HEAD=49a99230b8024fb7ed97ab5143707dbdc4a11df0
+BRANCH=feature/section15/backend-continuity-foundation
+PARITY_START=0/0
+WORKTREE_START=CLEAN
+MASTER_LOG_TIP_START=§241
+MASTER_LOG_PRE-§242_SIZE=2673291
+MASTER_LOG_PRE-§242_SHA256=1110fca7e4f30685d80b22790828b9fd8a3dbfe738e7d58a2e593aca2641bb67
+MASTER_LOG_PRE-§242_EOL=CRLF_ONLY
+V532_SIZE=3594848
+V532_SHA256=2616f66628fb4bb664094ba5b3bb06cae15014626ee075da0888f4fcb610b102
+V532_EOL=LF_ONLY
+FORMAL_I5_COMPLETION_START=21.79487179%
+I5_B_START=4/13
+
+--------------------------------------------------------------------------------
+DESIGN FREEZE (RECONCILED)
+--------------------------------------------------------------------------------
+SCOPE=KNOWLEDGE_MEMORY + VERSIONING + DIFF + SUPERSESSION
+CREATE=KnowledgeMemoryItem(knowledge_memory_items)+KnowledgeMemoryTransition
+REUSE=KnowledgeUnit.supersedes_unit_id (new→old); NO superseded_by column
+MISS-07_RECONCILIATION=service resolve_superseded_by inverse lookup
+STRUCTURED_DIFF=service-computed deterministic JSON (not separate table)
+MIGRATION_AUTHORING=NOT_AUTHORIZED
+D20=OUT_OF_SCOPE
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION INVENTORY
+--------------------------------------------------------------------------------
+CREATE=
+  .github/workflows/w2p01-postgresql-knowledge-memory-runtime.yml
+  backend/app/schemas/i5_knowledge_memory.py
+  backend/app/services/i5/knowledge_memory_service.py
+  backend/app/services/i5/supersession_service.py
+  backend/tests/helpers/w2p01_postgres_runtime.py
+  backend/tests/helpers/w2p01_postgres_runtime_plugin.py
+  backend/tests/test_section30_i5_w2_p01_knowledge_memory.py
+  backend/tests/test_w2p01_models_import_no_circularity.py
+MODIFY=
+  backend/app/models.py
+  backend/app/services/i5/enums.py
+
+--------------------------------------------------------------------------------
+NODE / WORKFLOW
+--------------------------------------------------------------------------------
+EXPECTED_RUNTIME_NODE_COUNT=36
+SELECTORS=10
+WORKFLOW=.github/workflows/w2p01-postgresql-knowledge-memory-runtime.yml
+TRIGGER_FINAL=workflow_dispatch ONLY
+ARTIFACT=w2p01-postgresql-knowledge-memory-evidence
+
+--------------------------------------------------------------------------------
+AUTO-REMEDIATION CYCLE LEDGER
+--------------------------------------------------------------------------------
+CYCLE=1
+STARTING_COMMIT=b96165fdae3d09ce6f5a04d80b58abcd6d5087b1
+SUBJECT=feat(i5): implement W2-P01 knowledge memory
+EVENT=push (registration+runtime)
+RUN_ID=31104222164
+RUN_NUMBER=1
+CONCLUSION=success
+PASS_COUNT=36
+SKIP_COUNT=0
+FINAL_STATUS=GREEN_REGISTRATION_AND_RUNTIME
+
+CYCLE=2
+STARTING_COMMIT=4b1003c8b86a51c3f81039620caac93670228203
+SUBJECT=fix(ci): restore W2-P01 workflow_dispatch-only trigger
+EVENT=workflow_dispatch
+RUN_ID=31104415506
+RUN_NUMBER=2
+CONCLUSION=success
+JOB_ID=92625767889
+PASS_COUNT=36
+FAIL_COUNT=0
+SKIP_COUNT=0
+MISSING_NODES=0
+ARTIFACT_ID=8968894012
+ARTIFACT_SIZE=2801
+FINAL_STATUS=GREEN_FROZEN_CONTRACT
+
+TECHNICAL_DISPATCH_CYCLES_USED=2
+MAX_TOTAL_TECHNICAL_DISPATCH_CYCLES=8
+
+--------------------------------------------------------------------------------
+STRONGEST AUTHORITY-PERMITTED CLOSURE
+--------------------------------------------------------------------------------
+W2-P01_TECHNICAL_CONTRACT_CLOSURE=PASS
+W2-P01_RUNTIME_CONTRACT_CLOSURE=PASS
+W2-P01_CI_CLOSURE=GREEN
+W2-P01_MIGRATION=NOT_EXECUTED
+W2-P01_PRODUCTION_ACTIVATION=NOT_EXECUTED
+W2-P01_PROGRAM_LEDGER_CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% (UNCHANGED)
+FORMAL_I5_REMAINING=78.20512821% (UNCHANGED)
+I5_B=4/13 (UNCHANGED)
+LEDGER_POST_SIZE=104229
+LEDGER_POST_SHA256=585daa4f4224f2674a0f63c96165bde89ab8fca351cdb76781379e9ca8b9efae
+
+--------------------------------------------------------------------------------
+CRITICAL-PATH / DEADLINE IMPACT
+--------------------------------------------------------------------------------
+PILOT_READY_DEADLINE=2026-08-22
+DAYS_REMAINING_AT_RECORDING=~16
+PACKAGE_CLOSED_ON_CRITICAL_PATH=YES
+REMAINING_CRITICAL_PATH=W2-P02 safety/conflict states → … → W6 migration/activation → weekly crawler E2E
+NEXT_24H_EXECUTION_TARGET=I5-IMPL-W2-P02 (evidence strength / freshness / conflict / medical-safety state machines) after separate Javad approval
+
+--------------------------------------------------------------------------------
+NEXT PACKAGE
+--------------------------------------------------------------------------------
+NEXT_PACKAGE=I5-IMPL-W2-P02
+ALIAS=P04
+OBJECTIVE=Evidence strength, freshness, conflict, medical-safety state machines
+REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+
+NOTE=post-§242 final master-log whole-file self-SHA is NOT embedded inside §242 (predecessor-identity policy).
+MARKER=
+READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
