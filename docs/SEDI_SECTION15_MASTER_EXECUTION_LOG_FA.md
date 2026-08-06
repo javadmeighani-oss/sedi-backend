@@ -60933,3 +60933,166 @@ REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
 NOTE=post-§244 final master-log whole-file self-SHA is NOT embedded inside §244 (predecessor-identity policy).
 MARKER=
 READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+================================================================================
+§245 — I5-IMPL-W3-P01 P06 CANONICAL SCOPE RECONCILIATION +
+ADAPTER FRAMEWORK / SOURCE ADAPTERS / DISCOVERY-FETCH-EXTRACTION CONTRACTS
+AUTHORITY RECONSTRUCTION + DESIGN FREEZE + CONTROLLED IMPLEMENTATION /
+STATIC + RUNTIME / GITHUB CI AUTO-REMEDIATION TO GREEN /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T14:50:27Z
+GATE_ID=I5-IMPL-W3-P01
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-06
+VERDICT=PASS
+ON_CRITICAL_PATH=YES
+DEADLINE_RISK=CRITICAL_HIGH
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+PRODUCT CALENDAR / SPEED / CRAWLER LAW VERIFICATION
+--------------------------------------------------------------------------------
+PILOT_READY=2026-08-22 = PRESENT (carried from §244)
+HEART_RATE_50_UNITS=2026-09-22 = PRESENT
+CLOSED_PILOT=2026-09-23..2026-12-21 = PRESENT
+MARKET_LAUNCH_WINTER_1405=2026-12-22..2027-03-20 = PRESENT
+DAILY_CONTINUOUS_DEVELOPMENT_LAW=PRESENT
+COMPREHENSIVE_GATE_LAW=PRESENT
+PERMANENT_WEEKLY_CRAWLER_LAW=PRESENT
+METADATA_ONLY_REFRESH_NOT_GROWTH=PRESENT
+
+--------------------------------------------------------------------------------
+PREFLIGHT
+--------------------------------------------------------------------------------
+STARTING_HEAD=a04b6d446c25deecc2f62268c20ba1bc3596c024
+BRANCH=feature/section15/backend-continuity-foundation
+PARITY_START=0/0
+WORKTREE_START=CLEAN
+MASTER_LOG_TIP_START=§244
+MASTER_LOG_PRE-§245_SIZE=2692575
+MASTER_LOG_PRE-§245_SHA256=378314e0641d694f37205a2222b031a494a89121cab5acb418ea34688b4fe5bc
+V535_SIZE=3600066
+V535_SHA256=79884eb1b13fa00de83f1fad2d58dd872fa73cfa5dbb88ac3184500b1c4521a5
+FORMAL_I5_COMPLETION_START=21.79487179%
+
+--------------------------------------------------------------------------------
+W3-P01 / P06 CANONICAL SCOPE RECONCILIATION
+--------------------------------------------------------------------------------
+CANONICAL_PACKAGE_ID=I5-IMPL-W3-P01
+CANONICAL_TITLE=Adapter framework + parse/extract/normalize/dedupe (no source activation)
+P06=MANAGEMENT_ALIAS_ONLY
+OUTCOME=F
+OWN=adapter interface/registry-in-package/concrete adapters/fetch envelopes/normalization/extraction/dedupe/idempotency/structural governance+URL safety
+OTHER=discovery+weekly orchestration->W3-P02; raw/provenance persistence->W1-P02; controlled network/dry-run/activation->W6-P01
+CONTROLLED_NETWORK_VALIDATION=NOT_OWNED_DEFERRED
+LIVE_NETWORK=NOT_EXECUTED
+SOURCE_ACTIVATION=NOT_EXECUTED
+WEEKLY_ORCHESTRATION=NOT_EXECUTED
+GOVERNED_DB_WRITE=NOT_EXECUTED
+MODELS=[]
+MIGRATIONS=[]
+
+--------------------------------------------------------------------------------
+DESIGN FREEZE
+--------------------------------------------------------------------------------
+ADAPTER_MODES=OFFICIAL_API|OFFICIAL_XML|OFFICIAL_JSON|RSS_OR_FEED|PUBLIC_WEB_FETCH|MANUAL_OR_LINK_ONLY|BLOCKED_OR_EXCLUDED
+CONCRETE_ADAPTERS=i5.public_web_fetch|i5.official_api|i5.rss_feed
+PUBLIC_WEB_WRAPS=KnowledgeSourceFetcher (READ_ONLY symbol; fixture transport only)
+SCHEMAS=backend/app/schemas/i5_adapters.py
+SERVICES=adapters/*,conceptual_extraction.py,normalization.py
+DEDUPE_KEY=hash(domain,topic,population,jurisdiction,normalized_content_canonical)
+CANDIDATES_ARE_NOT_APPROVED_KNOWLEDGE=YES
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION INVENTORY
+--------------------------------------------------------------------------------
+CREATE=
+  .github/workflows/w3p01-adapter-framework-runtime.yml
+  backend/app/schemas/i5_adapters.py
+  backend/app/services/i5/adapters/__init__.py
+  backend/app/services/i5/adapters/base.py
+  backend/app/services/i5/adapters/public_web_fetch.py
+  backend/app/services/i5/adapters/official_api.py
+  backend/app/services/i5/adapters/rss_feed.py
+  backend/app/services/i5/conceptual_extraction.py
+  backend/app/services/i5/normalization.py
+  backend/tests/helpers/w3p01_adapter_runtime*.py
+  backend/tests/test_section30_i5_w3_p01_adapters_extract.py
+MODIFY=NONE
+
+--------------------------------------------------------------------------------
+NODE / WORKFLOW
+--------------------------------------------------------------------------------
+EXPECTED_RUNTIME_NODE_COUNT=23
+SELECTORS=11
+TRIGGER_FINAL=workflow_dispatch ONLY
+ARTIFACT=w3p01-adapter-framework-evidence
+POSTGRESQL=NOT_REQUIRED
+
+--------------------------------------------------------------------------------
+AUTO-REMEDIATION CYCLE LEDGER
+--------------------------------------------------------------------------------
+CYCLE=1
+COMMIT=c4dcc5c030c78fbadc455fdcf86f4fa49586a589
+SUBJECT=feat(i5): implement W3-P01 adapter framework
+RUN_ID=31112480678 EVENT=push CONCLUSION=success PASS=23
+
+CYCLE=2
+COMMIT=de90f08e468f05dac0732d4e06a1aa96ab73c64c
+SUBJECT=fix(ci): restore W3-P01 workflow_dispatch-only trigger
+RUN_ID=31112639282 EVENT=workflow_dispatch CONCLUSION=success
+JOB_ID=92654112696 ARTIFACT_ID=8972340875 ARTIFACT_SIZE=1872
+TECHNICAL_DISPATCH_CYCLES_USED=2
+
+--------------------------------------------------------------------------------
+LAYERED CLOSURE
+--------------------------------------------------------------------------------
+ADAPTER_FRAMEWORK=CLOSED
+ADAPTER_REGISTRY=CLOSED
+CONCRETE_ADAPTERS=CLOSED
+DISCOVERY=NOT_OWNED_W3_P02
+FETCH_ENVELOPES=CLOSED_FIXTURE_ONLY
+EXTRACTION=CLOSED_CANDIDATE_ONLY
+RAW_EVIDENCE_PERSISTENCE=NOT_OWNED_W1_P02
+PROVENANCE_PERSISTENCE=NOT_OWNED_W1_P02
+CHANGE_DETECTION=CLOSED_HASH_DEDUPE
+CONTROLLED_REAL_SOURCE_VALIDATION=NOT_OWNED_DEFERRED_W6_P01
+GOVERNED_WRITE=NOT_EXECUTED
+WEEKLY_ORCHESTRATION=NOT_OWNED_W3_P02
+SOURCE_ACTIVATION=NOT_EXECUTED
+PRODUCTION_SCHEDULER=NOT_EXECUTED
+MIGRATION=NOT_EXECUTED
+DEPLOY=NOT_EXECUTED
+PROGRAM_LEDGER_CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% (UNCHANGED)
+LEDGER_POST_SIZE=110925
+LEDGER_POST_SHA256=15d3d216388eb4217272f8bd69040080347d0d2964fdc2748ea8ced2babc47a6
+
+--------------------------------------------------------------------------------
+MORDAD WEEKLY-CRAWLER REQUIREMENT PROGRESS
+--------------------------------------------------------------------------------
+REQUIREMENT_BY_2026-08-22=REAL_PERMANENT_GOVERNED_WEEKLY_CRAWLER_E2E
+W3_P01_CONTRIBUTION=ADAPTER_FRAMEWORK_AND_MOCK_ADAPTERS_ONLY
+NOT_YET=LIVE_FETCH|RAW_WRITE|WEEKLY_ORCH|SOURCE_ACTIVATION|DOWNSTREAM_ELIGIBILITY_E2E
+FALSE_EQUIVALENCE_TO_ACTIVE_CRAWLER=NO
+
+--------------------------------------------------------------------------------
+CRITICAL-PATH / DEADLINE IMPACT
+--------------------------------------------------------------------------------
+PILOT_READY_DEADLINE=2026-08-22
+PACKAGE_CLOSED_ON_CRITICAL_PATH=YES
+NEXT_24H_TARGET=I5-IMPL-W3-P02 (weekly orchestrator + discovery wiring; activation off) after separate Javad approval
+REMAINING_CRITICAL_PATH=W3-P02 → … → W6 network/dry-run/activation → weekly crawler E2E
+
+--------------------------------------------------------------------------------
+NEXT PACKAGE
+--------------------------------------------------------------------------------
+NEXT_PACKAGE=I5-IMPL-W3-P02
+ALIAS=P07
+OBJECTIVE=Weekly orchestrator job + discovery wiring (implementation only; activation off)
+REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+
+NOTE=post-§245 final master-log whole-file self-SHA is NOT embedded inside §245 (predecessor-identity policy).
+MARKER=
+READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
