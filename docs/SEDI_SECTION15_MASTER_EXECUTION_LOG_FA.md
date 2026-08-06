@@ -61096,3 +61096,169 @@ REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
 NOTE=post-§245 final master-log whole-file self-SHA is NOT embedded inside §245 (predecessor-identity policy).
 MARKER=
 READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+================================================================================
+§246 — I5-IMPL-W3-P02 P07 CANONICAL SCOPE RECONCILIATION +
+DISCOVERY / WEEKLY ORCHESTRATOR /
+RUN-ATTEMPT-SOURCE-GAP WIRING +
+EARLIEST REAL-E2E VALIDATION PATH FREEZE
+AUTHORITY RECONSTRUCTION + DESIGN FREEZE +
+CONTROLLED IMPLEMENTATION / STATIC + POSTGRESQL RUNTIME /
+GITHUB CI AUTO-REMEDIATION TO GREEN /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T16:15:00Z
+GATE_ID=I5-IMPL-W3-P02
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-06
+VERDICT=PASS
+ON_CRITICAL_PATH=YES
+DEADLINE_RISK=CRITICAL_HIGH
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+EVIDENCE ASSURANCE LAW
+--------------------------------------------------------------------------------
+EVIDENCE_ASSURANCE_LAW=PRESENT
+PURPOSE=every material PASS claim must map CLAIM→AUTHORITY→PATH/SYMBOL→METHOD→KEY_OUTPUT→TEST_NODE→COMMIT→RUN/JOB→ARTIFACT
+GENERIC_IMPLEMENTED_OR_GREEN_ALONE=INSUFFICIENT
+UNSUPPORTED_PASS=FORBIDDEN
+CLAIM_TO_EVIDENCE_MATRIX=REQUIRED
+ARTIFACT_PACK_REQUIRED=YES
+
+--------------------------------------------------------------------------------
+PRODUCT CALENDAR / SPEED / CRAWLER LAW VERIFICATION
+--------------------------------------------------------------------------------
+PILOT_READY=2026-08-22 = PRESENT (carried from §245)
+HEART_RATE_50_UNITS=2026-09-22 = PRESENT
+CLOSED_PILOT=2026-09-23..2026-12-21 = PRESENT
+MARKET_LAUNCH_WINTER_1405=2026-12-22..2027-03-20 = PRESENT
+DAILY_CONTINUOUS_DEVELOPMENT_LAW=PRESENT
+COMPREHENSIVE_GATE_LAW=PRESENT
+PERMANENT_WEEKLY_CRAWLER_LAW=PRESENT
+METADATA_ONLY_REFRESH_NOT_GROWTH=PRESENT
+SPEED_LAW=PRESENT
+
+--------------------------------------------------------------------------------
+PREFLIGHT
+--------------------------------------------------------------------------------
+STARTING_HEAD=7e98f52e819f6302fb114e456136630d54ab93d9
+BRANCH=feature/section15/backend-continuity-foundation
+PARITY_START=0/0
+WORKTREE_START=CLEAN
+MASTER_LOG_TIP_START=§245
+MASTER_LOG_PRE-§246_SIZE=2700154
+MASTER_LOG_PRE-§246_SHA256=7ef83a072c8c6536de22315186f94381aa6df7bbe379845114bc014be5c9ce87
+V536_SIZE=3601096
+V536_SHA256=f067d91944a47268151f76c6945d724591f25015439fb4746c530feb22c2353f
+FORMAL_I5_COMPLETION_START=21.79487179%
+
+--------------------------------------------------------------------------------
+W3-P02 / P07 RECONCILIATION
+--------------------------------------------------------------------------------
+CANONICAL_PACKAGE_ID=I5-IMPL-W3-P02
+CANONICAL_TITLE=Weekly orchestrator job + discovery wiring (implementation only; activation off)
+P07=MANAGEMENT_ALIAS_ONLY
+OUTCOME=P07_ALIAS_RECONCILED
+OWN=discovery wiring; weekly orchestrator (activation OFF); run/attempt/source/gap ledger wiring; adapter resolve reuse; dormant scheduler registration; prepare-only handoffs
+OTHER=adapters→W3-P01; raw/provenance persistence→W1-P02; controlled network/dry-run/activation→W6-P01; KB-first→W4-P01
+CONTROLLED_NETWORK_VALIDATION=NOT_OWNED_DEFERRED_W6_P01
+LIVE_NETWORK=NOT_EXECUTED
+SOURCE_ACTIVATION=NOT_EXECUTED
+WEEKLY_SCHEDULER_ACTIVATION=NOT_EXECUTED
+PRODUCTION_WRITE=NOT_EXECUTED
+MODELS=[]
+MIGRATIONS=[]
+
+--------------------------------------------------------------------------------
+DESIGN FREEZE
+--------------------------------------------------------------------------------
+JOB_ID=weekly_international_knowledge_crawler
+ENABLE_ENV=SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED default FALSE
+DISCOVERY=select_eligible+plan_discovery+dedupe+governance fail-closed
+ADAPTER_RESOLVE=W3-P01 registry
+RUN_IDEMPOTENCY=logical_run_key
+ATTEMPT_TRANSITIONS=CREATED→STARTED→RUNNING→terminal
+SOURCE_RESULT=UNIQUE(attempt_id,source_profile_id)
+GAP_RESULT=UNIQUE(attempt_id,gap_id)
+HANDOFF=prepare-only execute=False
+CANDIDATES_ARE_NOT_APPROVED_KNOWLEDGE=YES
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION / WORKFLOW / NODES
+--------------------------------------------------------------------------------
+IMPLEMENTATION_COMMIT=2dd906aaaf4b35b71c3357c7132ced7967796243
+GREEN_TECHNICAL_COMMIT=0ea1efb7f46ccae6596ca17ed0a42e127aea97c9
+CREATE=weekly_orchestrator.py;source_discovery.py;w3p02 helpers;test;workflow
+MODIFY=scheduler.py dormant registration
+WORKFLOW=.github/workflows/w3p02-postgresql-weekly-orchestrator-runtime.yml
+TRIGGER_FINAL=workflow_dispatch ONLY
+EXPECTED_RUNTIME_NODE_COUNT=20
+PASS=20 FAIL=0 MISSING=0 DUPLICATED=0 UNEXPECTED=0 SKIP=0
+
+--------------------------------------------------------------------------------
+AUTO-REMEDIATION CYCLE LEDGER
+--------------------------------------------------------------------------------
+CYCLE=1
+COMMIT=c3e947aac4cc805abfaa4f3a75575bc4cea54f3c
+SUBJECT=ci(i5): temporary push trigger for W3-P02 workflow registration
+RUN_ID=31115910417 EVENT=push
+NOTE=20-node tests PASS; evidence pack import failed
+
+CYCLE=2
+COMMIT=8d08df8c124429ff96468a023b7bdc2a4319da06
+SUBJECT=fix(ci): restore W3-P02 workflow_dispatch-only and evidence pack import
+RUN_ID=31116309555 EVENT=workflow_dispatch CONCLUSION=failure
+NOTE=GitHub Actions Set-up-job Internal Server Error (infra)
+
+CYCLE=3
+COMMIT=0ea1efb7f46ccae6596ca17ed0a42e127aea97c9
+SUBJECT=fix(ci): bounce W3-P02 dispatch after Actions setup failure
+RUN_ID=31116784670 EVENT=workflow_dispatch CONCLUSION=success
+JOB_ID=92668288031 ARTIFACT_ID=8973831189 ARTIFACT_SIZE=13281
+WHOLE_MANIFEST_SHA256=16cfe3f20876942777e2d847f809bc6fabb69c712cebaddddd5cc2f72eb1f9f0
+TECHNICAL_DISPATCH_CYCLES_USED=3
+
+--------------------------------------------------------------------------------
+LAYERED CLOSURE
+--------------------------------------------------------------------------------
+DISCOVERY_WIRING=CLOSED
+WEEKLY_ORCHESTRATOR=CLOSED_ACTIVATION_OFF
+DORMANT_SCHEDULER_REGISTRATION=CLOSED
+RUN_ATTEMPT_SOURCE_GAP_WIRING=CLOSED
+ADAPTER_RESOLVE_REUSE=CLOSED
+RAW_EVIDENCE_PERSISTENCE=NOT_OWNED_W1_P02
+PROVENANCE_PERSISTENCE=NOT_OWNED_W1_P02
+CONTROLLED_REAL_SOURCE_VALIDATION=NOT_OWNED_DEFERRED_W6_P01
+LIVE_NETWORK=NOT_EXECUTED
+SOURCE_ACTIVATION=NOT_EXECUTED
+WEEKLY_SCHEDULER_ACTIVATION=NOT_EXECUTED
+GOVERNED_WRITE_PRODUCTION=NOT_EXECUTED
+MIGRATION=NOT_EXECUTED
+DEPLOY=NOT_EXECUTED
+PROGRAM_LEDGER_CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% (UNCHANGED)
+
+--------------------------------------------------------------------------------
+REAL-E2E PATH FREEZE / MORDAD
+--------------------------------------------------------------------------------
+REQUIREMENT_BY_2026-08-22=REAL_PERMANENT_GOVERNED_WEEKLY_CRAWLER_E2E
+PATH=W3-P02(done technical activation OFF) → … → W6-P01(network/dry-run/activation) → E2E evidence
+W6_PARALLEL_WITH_W3_P02=NO
+FALSE_EQUIVALENCE_TO_ACTIVE_CRAWLER=NO
+W3_P02_CONTRIBUTION=WEEKLY_ORCHESTRATOR_AND_DISCOVERY_WIRING_ACTIVATION_OFF_ONLY
+
+--------------------------------------------------------------------------------
+CRITICAL-PATH / NEXT PACKAGE
+--------------------------------------------------------------------------------
+PILOT_READY_DEADLINE=2026-08-22
+PACKAGE_CLOSED_ON_CRITICAL_PATH=YES
+NEXT_24H_TARGET=I5-IMPL-W4-P01 (P08) Knowledge-Database-First runtime retrieval after separate Javad approval
+REMAINING_CRITICAL_PATH_FOR_E2E=W3-P02(done) → … → W6-P01 → weekly crawler E2E
+NEXT_PACKAGE=I5-IMPL-W4-P01
+ALIAS=P08
+REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+
+NOTE=post-§246 final master-log whole-file self-SHA is NOT embedded inside §246 (predecessor-identity policy).
+MARKER=
+READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE

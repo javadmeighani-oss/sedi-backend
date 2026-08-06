@@ -195,6 +195,39 @@
       "migration_executed": "NO",
       "models_created": "NONE",
       "adapters": "public_web_fetch,official_api,rss_feed"
+    },
+    "w3p02_post_closure_recomputation": {
+      "recorded_at_utc": "2026-08-06T16:15:00Z",
+      "gate": "I5-IMPL-W3-P02 WEEKLY ORCHESTRATOR / P07",
+      "canonical_title": "Weekly orchestrator job + discovery wiring (implementation only; activation off)",
+      "p07_interpretation": "MANAGEMENT_ALIAS_ONLY",
+      "reconciliation_outcome": "P07_ALIAS_RECONCILED",
+      "w3p02_technical_runtime_closure": "YES",
+      "w3p02_green_technical_commit": "0ea1efb7f46ccae6596ca17ed0a42e127aea97c9",
+      "w3p02_implementation_commit": "2dd906aaaf4b35b71c3357c7132ced7967796243",
+      "w3p02_green_run": 31116784670,
+      "w3p02_green_run_event": "workflow_dispatch",
+      "w3p02_registration_run": 31115910417,
+      "w3p02_infra_failed_dispatch_run": 31116309555,
+      "deterministic_runtime": "20/20 PASS",
+      "artifact_id": 8973831189,
+      "artifact_size": 13281,
+      "whole_manifest_sha256": "16cfe3f20876942777e2d847f809bc6fabb69c712cebaddddd5cc2f72eb1f9f0",
+      "job_id": 92668288031,
+      "controlled_network_validation": "NOT_OWNED_DEFERRED_TO_W6_P01",
+      "live_network_used": "NO",
+      "source_activation": "NO",
+      "weekly_scheduler_activation": "NO",
+      "production_write": "NO",
+      "weekly_orchestration": "TECHNICAL_CLOSED_ACTIVATION_OFF",
+      "FORMAL_I5_CLOSED_AFTER_RECOMPUTATION": "21.79487179%",
+      "FORMAL_I5_REMAINING_AFTER_RECOMPUTATION": "78.20512821%",
+      "I5_B_CREDIT_AFTER_RECOMPUTATION": "4/13",
+      "reason_formal_percent_unchanged": "§164.2 LOCKED",
+      "w3p02_§164.2_formal_credit_awarded": "NO",
+      "migration_executed": "NO",
+      "models_created": "NONE",
+      "surfaces": "source_discovery + weekly_orchestrator + dormant scheduler job weekly_international_knowledge_crawler"
     }
   },
   "weight_proof": {
@@ -601,7 +634,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "ORCHESTRATION",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P02",
         "MANAGEMENT_ALIAS": "P07",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_ACTIVATION_OFF",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -611,12 +644,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "Technical impl/runtime closed; source/scheduler activation + controlled network/dry-run gated to I5-IMPL-W6-P01; formal §164.2 credit not awarded",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "NOT_WIRED",
+        "RUNTIME_STATUS": "WEEKLY_ORCHESTRATOR_WIRED_ACTIVATION_OFF",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W3-P02 weekly orchestrator + discovery wiring technically closed 2026-08-06; dormant job registered; activation OFF; controlled network DEFERRED W6-P01; formal % credit not awarded under §164.2 lock; green technical 0ea1efb7f46ccae6596ca17ed0a42e127aea97c9 workflow_dispatch run 31116784670; 20/20 nodes; artifact 8973831189."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-15",
@@ -1163,8 +1196,11 @@
         ],
         "REMAINING_PLAN_POINTS": "8.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
-        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_ACTIVATION_OFF",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%",
+        "TECHNICAL_RUNTIME_CLOSURE": "YES",
+        "TECHNICAL_CLOSURE_EVIDENCE": "impl 2dd906aaaf4b35b71c3357c7132ced7967796243; green technical 0ea1efb7f46ccae6596ca17ed0a42e127aea97c9 workflow_dispatch run 31116784670 job 92668288031; registration push run 31115910417; infra-failed dispatch 31116309555; 20/20 nodes; artifact 8973831189 size 13281; whole_manifest_sha256 16cfe3f20876942777e2d847f809bc6fabb69c712cebaddddd5cc2f72eb1f9f0; network validation NOT_OWNED; activation OFF",
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
@@ -1786,7 +1822,7 @@
         "domain": "weekly_orchestrator",
         "target_package": "I5-IMPL-W3-P02",
         "required_outcome": "Job exists; activation separate Gate",
-        "status": "OPEN"
+        "status": "TECHNICAL_CLOSED_ACTIVATION_PENDING"
       },
       {
         "id": "RW-14",
