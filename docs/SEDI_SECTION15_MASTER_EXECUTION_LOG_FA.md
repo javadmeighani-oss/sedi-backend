@@ -61262,3 +61262,105 @@ REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
 NOTE=post-§246 final master-log whole-file self-SHA is NOT embedded inside §246 (predecessor-identity policy).
 MARKER=
 READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+================================================================================
+§247 — W3-P02 EVIDENCE ASSURANCE COMPLETION /
+INFRA-BOUNCE COMMIT AUDIT /
+REAL-E2E DEPENDENCY GRAPH FINALIZATION-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T16:20:00Z
+GATE_ID=W3-P02-EVIDENCE-ASSURANCE-COMPLETION-01
+PARENT_GATE=I5-IMPL-W3-P02
+JAVAD_APPROVAL=CONTINUATION_OF_EXPLICIT_W3-P02 (no new approval required)
+VERDICT=B
+TECHNICAL_PASS_PRESERVED=YES
+PROCESS_DEVIATION_RECORDED=YES
+EVIDENCE_ASSURANCE_PASS_AFTER_CORRECTION=YES
+CODE_CHANGES=NONE
+NEW_TECHNICAL_COMMIT=NONE
+NEW_WORKFLOW_DISPATCH=NONE
+MARKER=READY_FOR_CHATGPT_REAUDIT
+
+--------------------------------------------------------------------------------
+STARTING VERIFICATION
+--------------------------------------------------------------------------------
+HEAD=c73403952a398483bae1c3410266cced109c5218
+UPSTREAM=c73403952a398483bae1c3410266cced109c5218
+REMOTE=c73403952a398483bae1c3410266cced109c5218
+AHEAD_BEHIND=0/0
+WORKTREE=CLEAN
+MASTER_PRE=§246 SIZE=2707896 SHA256=7b7ca593a9f00d441a8d44fbab12f83ba8f9b6f6b8c9f81041170214ebfd646c CRLF_ONLY MATCH=YES
+V537_PRE=SIZE=3603875 SHA256=7045e738e50ce46fc4d87e91272d89c3d321559957fd3f253d5348f32fe1ec78 LF_ONLY MATCH=YES
+LEDGER_START=SIZE=113732 SHA256=9795322510f36ea21191df0b4fe02dceacbf7e3a4ebee73807d75e93ae0bd4d3 LF_ONLY MATCH=YES
+LEDGER_POST_CORRECTION=SIZE=114753 SHA256=10c01494de4f7230fa7a38dff17287a130630c9b112d7d24a7ee68ae5833eda3 LF_ONLY
+LEDGER_CHANGE=PROCESS_DEVIATION_NOTE_ONLY formal_i5_unchanged
+
+--------------------------------------------------------------------------------
+INFRA-BOUNCE COMMIT AUDIT
+--------------------------------------------------------------------------------
+FAILED_RUN=31116309555 EVENT=workflow_dispatch HEAD=8d08df8c124429ff96468a023b7bdc2a4319da06
+FAILURE=Set up job Internal Server Error (GitHub Actions infrastructure)
+BOUNCE_COMMIT=0ea1efb7f46ccae6596ca17ed0a42e127aea97c9
+PARENT=8d08df8c124429ff96468a023b7bdc2a4319da06
+TREE=b2fb272cac936e3144d7e3f6a142f44be86bc944
+SUBJECT=fix(ci): bounce W3-P02 dispatch after Actions setup failure
+CHANGED_PATHS=.github/workflows/w3p02-postgresql-weekly-orchestrator-runtime.yml
+DIFF_STAT=1 file changed, 1 insertion(+)
+PATCH_SUMMARY=added one YAML comment line: "Infra bounce: re-dispatch after GitHub Actions Set-up-job Internal Server Error on 8d08df8."
+CLASSIFICATION=B. EMPTY / COSMETIC INFRA-BOUNCE COMMIT (also fits C. documentation-only commit used to create a new run)
+PROCESS_COMPLIANCE=DEVIATION
+TECHNICAL_TEST_RESULT=MAY REMAIN VALID
+FALSE_FULL_PROCESS_PASS=PROHIBITED
+RATIONALE=same-commit rerun was prohibited by Gate law; the bounce commit created a new SHA without changing executable workflow logic, tests, services, or node contracts. Product code at 2dd906a / restored-dispatch logic at 8d08df8 remained the technical substance. Terminal green run 31116784670 executed headSha=0ea1efb and passed 20/20; that preserves technical PASS but does not authorize claiming a clean remediation-cycle process PASS.
+GREEN_RUN_PRESERVED=31116784670 JOB=92668288031 ARTIFACT=8973831189
+NO_NEW_RUNTIME_FOR_PROCESS_REPAIR=YES
+
+--------------------------------------------------------------------------------
+REAL-E2E DEPENDENCY GRAPH FINALIZATION
+--------------------------------------------------------------------------------
+OWNERS=
+  CONTROLLED_NETWORK_VALIDATION=I5-IMPL-W6-P01
+  LIVE_DRY_RUN=I5-IMPL-W6-P01
+  MIGRATION_RUN=I5-IMPL-W6-P01
+  SOURCE_ACTIVATION=I5-IMPL-W6-P01
+  SCHEDULER_ACTIVATION=I5-IMPL-W6-P01
+  PRODUCTION_EVIDENCE=I5-IMPL-W6-P01 (with separate Javad/deploy authorizations)
+  TEST_CI_EXPANSION=I5-IMPL-W6-P02
+  MONITORING_METRICS=I5-IMPL-W6-P03
+W6_FAMILY_RECONCILIATION=
+  W6-P02=Expanded tests + CI workflow authorization; OUT_OF_SCOPE=activation, network dry-run; NEXT=W6-P03
+  W6-P03=Monitoring metrics emitters + alerts; NEXT=W6-P01
+  W6-P01=Migration run + offline dry-run + activation decisions (SEPARATE authorizations); DEPENDENCIES=all prior + Javad
+EXECUTABLE_SEQUENCE_NO_ELLIPSIS=
+  1. I5-IMPL-W3-P02 = DONE technical (activation OFF) — HEAD continuity through c734039
+  2. I5-IMPL-W4-P01 = Knowledge-Database-First runtime retrieval (NEXT package; separate Javad approval)
+  3. I5-IMPL-W4-P02 = Reference renderer + disclosure triggers
+  4. I5-IMPL-W5-P01 = Iran doctors/labs/hospitals directory layer
+  5. I5-IMPL-W6-P02 = Expanded tests + CI workflow authorization
+  6. I5-IMPL-W6-P03 = Monitoring metrics emitters + alerts
+  7. I5-IMPL-W6-P01 = Migration RUN + offline dry-run + controlled network + source/scheduler activation (split subgates; Javad mandatory)
+  8. REAL_PERMANENT_GOVERNED_WEEKLY_CRAWLER_E2E evidence by 2026-08-22
+W6_P01_ELIGIBLE_NOW=NO
+BLOCKING_PACKAGE=I5-IMPL-W4-P01 (immediate next under package_sequence; full linear blockers through W4-P02, W5-P01, W6-P02, W6-P03 because W6-P01 DEPENDENCIES=all prior)
+BLOCKING_CONTRACT=package_sequence.json#I5-IMPL-W6-P01 DEPENDENCIES=["all prior","Javad"]; CAP-OPEN-14 APPROVAL_BOUNDARY NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01
+CLOSURE_CRITERIA_FOR_ELIGIBILITY=complete prior packages per package_sequence OR explicit Javad written authorization to execute W6-P01 early against §245/§246 deadline-critical-path interpretation
+W4_P01_REQUIRED_BEFORE_REAL_E2E=YES under package_sequence linear DEPENDENCIES=all prior for W6-P01; NO as a crawler-framework prerequisite under §245 REMAINING_CRITICAL_PATH wording alone — CONFLICT RESOLVED IN FAVOR OF package_sequence "all prior" unless Javad authorizes early W6
+MIGRATION_REQUIRED_BEFORE_CONTROLLED_REAL_SOURCE_VALIDATION=NO as a hard prerequisite ordering inside W6-P01 (OBJECTIVE states SEPARATE authorizations / split subgates for migration run vs dry-run/activation); YES for any production governed-write E2E that depends on migrated schema — both owned by W6-P01
+FALSE_ACTIVE_CRAWLER_CLAIM=NO
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+
+--------------------------------------------------------------------------------
+EVIDENCE ASSURANCE STATUS
+--------------------------------------------------------------------------------
+TERMINAL_GREEN_RUN=31116784670 headSha=0ea1efb7f46ccae6596ca17ed0a42e127aea97c9 PROVEN
+NODES=20/20 PASS MISSING=0 DUPLICATED=0 UNEXPECTED=0 SKIP=0
+ARTIFACT_ID=8973831189 WHOLE_MANIFEST_SHA256=16cfe3f20876942777e2d847f809bc6fabb69c712cebaddddd5cc2f72eb1f9f0
+CHECKSUM_VERIFY_OK=YES
+CLAIM_MATRIX_C1_C16=EVIDENCE_EXPANDED_IN_AUDIT_REPORT
+LEDGER_FORMAL_I5=21.79487179% UNCHANGED (process-deviation note appended; formal % locked)
+CODE_MUTATION_THIS_GATE=NONE
+
+NOTE=post-§247 final master-log whole-file self-SHA is NOT embedded inside §247 (predecessor-identity policy).
+MARKER=
+READY_FOR_CHATGPT_REAUDIT
+READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
