@@ -1,0 +1,170 @@
+# W2-P03 Focused PostgreSQL Admin Review Runtime — GitHub workflow.
+# Frozen contract: helper W2P03_RUNTIME_SELECTORS (12 -> 19).
+name: W2-P03 Focused PostgreSQL Admin Review Runtime
+
+on:
+  push:
+    branches:
+      - feature/section15/backend-continuity-foundation
+    paths:
+      - '.github/workflows/w2p03-postgresql-admin-review-runtime.yml'
+      - 'backend/app/routers/i5_admin.py'
+      - 'backend/app/schemas/i5_core.py'
+      - 'backend/app/services/i5/admin_review_service.py'
+      - 'backend/tests/test_section30_i5_w2_p03_admin_review.py'
+      - 'backend/tests/helpers/w2p03_postgres_runtime.py'
+      - 'backend/tests/helpers/w2p03_postgres_runtime_plugin.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: w2p03-postgresql-admin-review-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  w2p03-postgresql-admin-review-runtime:
+    name: W2-P03 PostgreSQL admin review runtime (19 nodes)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_w2p03_test
+          POSTGRES_PASSWORD: sedi_w2p03_test_password
+          POSTGRES_DB: sedi_w2p03_safety
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_w2p03_test -d sedi_w2p03_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_w2p03_test:sedi_w2p03_test_password@127.0.0.1:5432/sedi_w2p03_safety
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w2p03_test:sedi_w2p03_test_password@127.0.0.1:5432/sedi_w2p03_safety
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      OPENAI_API_KEY: w2p03-test-placeholder-not-used
+
+    steps:
+      - name: Configure runner temporary environment
+        shell: bash
+        run: |
+          {
+            echo "TMPDIR=$RUNNER_TEMP"
+            echo "TEMP=$RUNNER_TEMP"
+            echo "TMP=$RUNNER_TEMP"
+          } >> "$GITHUB_ENV"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Capture redacted dependency versions
+        run: |
+          python - <<'PY'
+          import sys
+
+          print("python", sys.version.split()[0])
+          try:
+              import pytest as _pytest
+              print("pytest", getattr(_pytest, "__version__", "unknown"))
+          except ImportError:
+              print("BLOCKED_DEPENDENCY_RESOLUTION")
+              raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          try:
+              import sqlalchemy
+              sa_ver = getattr(sqlalchemy, "__version__", "0")
+              print("sqlalchemy", sa_ver)
+              major_text = sa_ver.split(".", 1)[0]
+              try:
+                  major = int(major_text)
+              except ValueError:
+                  major = 0
+              if major < 2:
+                  print("BLOCKED_DEPENDENCY_RESOLUTION")
+                  raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          except ImportError:
+              print("BLOCKED_DEPENDENCY_RESOLUTION")
+              raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          try:
+              import psycopg2
+              print("psycopg2", getattr(psycopg2, "__version__", "unknown"))
+          except ImportError:
+              print("BLOCKED_DEPENDENCY_RESOLUTION")
+              raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          PY
+
+      - name: Prepare runner-temp evidence directory
+        run: |
+          mkdir -p "${{ runner.temp }}/sedi_w2p03_postgres_runtime_evidence"
+
+      - name: Process 1 — collect-only manifest (19 nodes)
+        run: |
+          python -B -m pytest \
+            --collect-only \
+            --noconftest \
+            -p backend.tests.helpers.w2p03_postgres_runtime_plugin \
+            -p no:cacheprovider \
+            -q \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T1_package_identity_and_schemas \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T2_queue_transition_matrix \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T3_list_and_filter_safety_queue \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T4_start_and_close_with_decision \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T5_fail_closed_close_without_decision \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T6_illegal_queue_transition \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T7_conflict_resolve_preserves_sides \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T8_gap_list_and_triage \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T9_authz_admin_token \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T10_idempotent_start \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T11_decision_fk_and_close_blocked \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T12_api_list_safety_reviews
+
+      - name: Process 2 — focused PostgreSQL admin review runtime
+        run: |
+          python -B -m pytest \
+            --noconftest \
+            -p backend.tests.helpers.w2p03_postgres_runtime_plugin \
+            -p no:cacheprovider \
+            -q \
+            --maxfail=1 \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T1_package_identity_and_schemas \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T2_queue_transition_matrix \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T3_list_and_filter_safety_queue \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T4_start_and_close_with_decision \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T5_fail_closed_close_without_decision \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T6_illegal_queue_transition \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T7_conflict_resolve_preserves_sides \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T8_gap_list_and_triage \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T9_authz_admin_token \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T10_idempotent_start \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T11_decision_fk_and_close_blocked \
+            backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T12_api_list_safety_reviews
+
+      - name: Upload redacted runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w2p03-postgresql-admin-review-evidence
+          path: ${{ runner.temp }}/sedi_w2p03_postgres_runtime_evidence
+          retention-days: 14
+          if-no-files-found: error
