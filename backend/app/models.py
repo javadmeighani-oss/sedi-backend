@@ -39,6 +39,7 @@ from backend.app.services.i5.enums import (
     RunGapResultType,
     RunSourceResultStatus,
     RuntimeEligibility,
+    SafetyReviewQueueStatus,
     SupersessionState,
     WeeklyRunApprovalState,
     WeeklyRunAttemptStatus,
@@ -1957,3 +1958,111 @@ class KnowledgeMemoryTransition(Base):
         server_default="W2P01_SUPERSESSION_SERVICE",
     )
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+# ---------------------------------------------------------------------------
+# I5-IMPL-W2-P02 — Conflict records / Medical-safety review queue
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeConflict(Base):
+    __tablename__ = "knowledge_conflicts"
+    __table_args__ = (
+        CheckConstraint(_vocab_sql("conflict_state", ConflictState), name="ck_kc_conflict_state_vocab"),
+        CheckConstraint("idempotency_key ~ '^[0-9a-f]{64}$'", name="ck_kc_idempotency_key_format"),
+        CheckConstraint(
+            "knowledge_unit_id_a < knowledge_unit_id_b",
+            name="ck_kc_units_ordered",
+        ),
+        UniqueConstraint("idempotency_key", name="uq_kc_idempotency_key"),
+        UniqueConstraint("conflict_key", name="uq_kc_conflict_key"),
+        UniqueConstraint("knowledge_unit_id_a", "knowledge_unit_id_b", name="uq_kc_unit_pair"),
+        Index("ix_kc_conflict_state", "conflict_state"),
+        Index("ix_kc_ku_a", "knowledge_unit_id_a"),
+        Index("ix_kc_ku_b", "knowledge_unit_id_b"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    conflict_key = Column(String(64), nullable=False)
+    knowledge_unit_id_a = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_kc_ku_a"),
+        nullable=False,
+    )
+    knowledge_unit_id_b = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_kc_ku_b"),
+        nullable=False,
+    )
+    conflict_state = Column(
+        String(32),
+        nullable=False,
+        default="SUSPECTED",
+        server_default="SUSPECTED",
+    )
+    conflict_summary = Column(Text, nullable=True)
+    resolution_note = Column(Text, nullable=True)
+    idempotency_key = Column(String(64), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class SafetyReviewQueueItem(Base):
+    __tablename__ = "knowledge_safety_reviews"
+    __table_args__ = (
+        CheckConstraint(
+            _vocab_sql("queue_status", SafetyReviewQueueStatus),
+            name="ck_ksr_queue_status_vocab",
+        ),
+        CheckConstraint(
+            _vocab_sql("medical_safety_state", MedicalSafetyState),
+            name="ck_ksr_medical_safety_state_vocab",
+        ),
+        CheckConstraint("idempotency_key ~ '^[0-9a-f]{64}$'", name="ck_ksr_idempotency_key_format"),
+        UniqueConstraint("queue_item_id", name="uq_ksr_queue_item_id"),
+        UniqueConstraint("idempotency_key", name="uq_ksr_idempotency_key"),
+        Index("ix_ksr_queue_status", "queue_status"),
+        Index("ix_ksr_knowledge_unit_id", "knowledge_unit_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    queue_item_id = Column(String(64), nullable=False)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_ksr_knowledge_unit_id"),
+        nullable=False,
+    )
+    queue_status = Column(
+        String(32),
+        nullable=False,
+        default="OPEN",
+        server_default="OPEN",
+    )
+    medical_safety_state = Column(String(32), nullable=False)
+    high_risk_domain = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+    reason = Column(Text, nullable=True)
+    decision_id = Column(
+        Integer,
+        ForeignKey("i5_governance_decisions.id", ondelete="SET NULL", name="fk_ksr_decision_id"),
+        nullable=True,
+    )
+    idempotency_key = Column(String(64), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )

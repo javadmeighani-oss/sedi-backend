@@ -436,3 +436,19 @@ class MemoryTransitionKind(str, Enum):
     RETRACTED = "RETRACTED"
     WITHDRAWN = "WITHDRAWN"
     CURRENT_VERSION_CHANGED = "CURRENT_VERSION_CHANGED"
+
+
+# ---------------------------------------------------------------------------
+# I5-IMPL-W2-P02 — Evidence / Freshness / Conflict / Medical-Safety queue
+# ---------------------------------------------------------------------------
+
+
+class SafetyReviewQueueStatus(str, Enum):
+    """Lifecycle status of a medical-safety review queue item."""
+
+    OPEN = "OPEN"
+    IN_REVIEW = "IN_REVIEW"
+    CLOSED_CLEARED = "CLOSED_CLEARED"
+    CLOSED_RESTRICTED = "CLOSED_RESTRICTED"
+    CLOSED_BLOCKED = "CLOSED_BLOCKED"
+    CLOSED_REJECTED = "CLOSED_REJECTED"
