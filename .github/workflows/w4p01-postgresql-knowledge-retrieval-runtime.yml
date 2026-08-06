@@ -6,17 +6,6 @@ name: W4-P01 Focused PostgreSQL Knowledge Retrieval Runtime
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feature/section15/backend-continuity-foundation
-    paths:
-      - .github/workflows/w4p01-postgresql-knowledge-retrieval-runtime.yml
-      - backend/app/services/i5/runtime_knowledge_retrieval.py
-      - backend/app/services/gate3/care_intelligence.py
-      - backend/app/core/conversation/brain.py
-      - backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py
-      - backend/tests/helpers/w4p01_postgres_runtime.py
-      - backend/tests/helpers/w4p01_postgres_runtime_plugin.py
 
 permissions:
   contents: read
