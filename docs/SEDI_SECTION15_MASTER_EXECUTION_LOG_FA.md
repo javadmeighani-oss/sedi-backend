@@ -61364,3 +61364,77 @@ NOTE=post-§247 final master-log whole-file self-SHA is NOT embedded inside §24
 MARKER=
 READY_FOR_CHATGPT_REAUDIT
 READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+================================================================================
+§248 — I5-IMPL-W4-P01 P08 KNOWLEDGE-DATABASE-FIRST /
+HARD-STOP — GITHUB ACTIONS QUEUE CANCEL BEFORE EXECUTABLE STEPS
+================================================================================
+RECORDED_AT_UTC=2026-08-06T17:35:00Z
+GATE_ID=I5-IMPL-W4-P01
+JAVAD_APPROVAL=EXPLICIT 2026-08-06
+VERDICT=DEFINED_HARD_STOP
+PASS=NO
+GREEN=NO
+CODE_IMPLEMENTATION=COMPLETE_ON_BRANCH
+CI_EXECUTABLE_VALIDATION=NOT_OBTAINED
+MARKER=HARD_STOP_AWAITING_JAVAD_EXECUTION_DECISION
+
+--------------------------------------------------------------------------------
+PREFLIGHT (MATCHED)
+--------------------------------------------------------------------------------
+START_HEAD=dcb233b3383589ec828f396380416aac50df5d67
+§247/v538/ledger identities MATCHED at Gate start
+W3P02-WARNINGS-CLASSIFICATION-01=CLOSED (123 DeprecationWarning datetime.utcnow; NON-MATERIAL)
+
+--------------------------------------------------------------------------------
+CANONICAL RECONCILIATION
+--------------------------------------------------------------------------------
+CANONICAL_PACKAGE_ID=I5-IMPL-W4-P01
+TITLE=Knowledge-Database-First runtime retrieval integration
+P08=MANAGEMENT_ALIAS_ONLY
+OWN=runtime_knowledge_retrieval; CARE_CONTEXT KU/Memory filters; current-version resolution; eligibility/provenance/freshness/conflict/safety gates reuse; ranking; language/domain personalization boundary; no-safe-knowledge + gap enqueue; W4-P02 handoff fields
+NOT_OWN=synthesis/references/disclosure→W4-P02; network/activation/migration→W6-P01; user RAG replacement PROHIBITED
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION COMMITS (NO GREEN TECHNICAL RUN)
+--------------------------------------------------------------------------------
+IMPL=98980db1b5c01d68035a2eef4e915162d8a71b0d feat(i5): implement W4-P01 knowledge retrieval
+REG_PUSH=ca3bcfcd1358532e0f6d1191cf28513d2a4e6810 ci(i5): temporary push trigger for W4-P01 workflow registration
+RESTORE=192ff0ee893ba7e685c39a5b1e5be0bce78380c7 fix(ci): restore W4-P01 workflow_dispatch-only after registration
+FINAL_HEAD=192ff0ee893ba7e685c39a5b1e5be0bce78380c7
+
+--------------------------------------------------------------------------------
+CI ATTEMPTS — INFRA BEFORE EXECUTABLE STEPS
+--------------------------------------------------------------------------------
+RUN_1=31121586309 EVENT=push HEAD=ca3bcfc JOB=92683220818
+  CONCLUSION=failure JOB_CONCLUSION=cancelled STEPS=[] (no Set up job / no pytest)
+RUN_2=31122549760 EVENT=workflow_dispatch HEAD=ca3bcfc JOB=92686029008
+  CONCLUSION=failure JOB_CONCLUSION=cancelled STEPS=[] (queued ~15m then cancelled; no executable steps)
+CLASSIFICATION=GITHUB_INFRA_QUEUE_CANCEL_BEFORE_EXECUTABLE_STEPS
+COSMETIC_BOUNCE=NOT_CREATED (PROHIBITED)
+TECHNICAL_FAILURE_CLAIM=PROHIBITED
+HARD_STOP_CURRENT_DISPATCH_CYCLE=YES
+
+--------------------------------------------------------------------------------
+COMPLETED VS BLOCKED
+--------------------------------------------------------------------------------
+COMPLETED=design freeze; runtime_knowledge_retrieval.py; care_intelligence + brain hooks; 16 selectors→19 nodes; helpers; workflow_dispatch-only restored; formal % unchanged intent
+BLOCKED=Process 1/2 pytest; evidence pack checksum verification from a green run; technical Green acceptance; layered W4-P01 CI closure
+
+--------------------------------------------------------------------------------
+SMALLEST REQUIRED JAVAD DECISION
+--------------------------------------------------------------------------------
+1. Authorize retry of workflow_dispatch for HEAD=192ff0ee893ba7e685c39a5b1e5be0bce78380c7 when GitHub Actions runners accept jobs (no code change required if queue recovers)
+OR
+2. Authorize alternate execution path (self-hosted runner / different concurrency) if SaaS queue cancel persists
+DO NOT authorize cosmetic SHA bounce
+DO NOT claim PASS without executable 19-node Green
+
+--------------------------------------------------------------------------------
+FORMAL I5
+--------------------------------------------------------------------------------
+FORMAL_I5_COMPLETION=21.79487179% UNCHANGED (§164.2 LOCKED)
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+NEXT_PACKAGE_IF_GREEN_LATER=I5-IMPL-W4-P02 (after W4-P01 Green)
+
+NOTE=post-§248 final master-log whole-file self-SHA is NOT embedded inside §248.
