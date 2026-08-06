@@ -59002,3 +59002,487 @@ READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_SOURCE_SCOPE_FIXTURE_REMEDIATION_EXACT_CO
 NOTE=post-§233 final master-log self-SHA is NOT embedded inside §233 (predecessor-identity policy).
 NOTE2=After this append, master log is restaged alone; final identities recorded externally / in v524.
 ================================================================================
+
+================================================================================
+§234 — W1-P01 POSTGRESQL ORM RUNTIME / SOURCE_SCOPE FIXTURE REMEDIATION EXACT COMMIT-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T06:36:57Z
+GATE=W1-P01 POSTGRESQL ORM RUNTIME SOURCE_SCOPE FIXTURE REMEDIATION EXACT COMMIT-01
+MODE=EXACT TWO-PATH COMMIT / POST-COMMIT TREE-BLOB AUDIT / APPEND-ONLY DUAL CONTINUITY / NO TEST / NO DISPATCH / NO PUSH
+VERDICT=PASS
+
+PREDECESSOR_CONTINUITY
+MASTER_LOG_PRE_§234_SIZE=2606026
+MASTER_LOG_PRE_§234_SHA256=715c58884944d5b3f5fcefb0ae56a7a0bb0672d4d85901cdccb7640bffc51c76
+MASTER_LOG_PRE_§234_EOL=CRLF_ONLY
+V524_PREDECESSOR_SIZE=3571252
+V524_PREDECESSOR_SHA256=4ce19c423daf6eb5dfe200eeb04368847dcaf704a97d3c24b072afc8fb2d1d57
+V524_PREDECESSOR_EOL=LF_ONLY
+SUCCESSOR_HANDOFF=Sedi_Master_Handoff_Section38_W1P01_PostgreSQLORMRuntimeSourceScopeFixtureRemediationExactCommit_v525_FA.md
+
+COMMIT_IDENTITY
+COMMIT_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+PARENT_SHA=8cdfa4fdce2e84c16220f3ea85bf6b7fc3fde5ef
+TREE_SHA=1e6cdc7ac295269cfef4e254c3a9ed6489a8e986
+SUBJECT=test(backend): supply required W1-P01 run scopes
+ACCEPTED_MESSAGE_FORM=B
+ACCEPTED_TRAILER=Co-authored-by: Cursor <cursoragent@cursor.com>
+OTHER_BODY_TEXT_TRAILERS=NONE
+AUTHOR=Javad Meighandi <javad.meighani@gmail.com>
+COMMITTER=Javad Meighandi <javad.meighani@gmail.com>
+COMMIT_COMMAND=git commit --no-verify -m "test(backend): supply required W1-P01 run scopes"
+AMEND=NO
+
+COMMITTED_MANIFEST
+COMMITTED_PATH_COUNT=2
+COMMITTED_STATUS_CLASSES=2 MODIFIED
+COMMIT_TREE_MATCHES_FROZEN_INDEX=YES
+COMMITTED_BLOB_MANIFEST_MATCH=YES
+1=backend/tests/test_section15_i5_w1p01_orm_contracts.py | M | 100644 | 34f027068d19b0ab5a639f1c31d7375089af3b36
+2=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md | M | 100644 | 6222bc054d9df206f588dee881093bfe41c0339b
+
+TECHNICAL_REMEDIATION
+TEST_PATH=backend/tests/test_section15_i5_w1p01_orm_contracts.py
+ROOT_CAUSE=POSITIVE TEST FIXTURE / BUILDER OMISSION
+COMMITTED_ADDITIONS=source_scope="{}"; domain_scope="{}"; gap_scope="{}"
+TECHNICAL_NUMSTAT=+3 / -0
+TEST_NAMES_SELECTORS_NODE_IDS_UNCHANGED=YES
+
+RUNTIME_STATUS
+STATIC_REMEDIATION=PASS
+RUNTIME_RE_EXECUTION=NO
+POSTGRESQL_RUNTIME_CONTRACT=NOT YET CLOSED
+
+PROHIBITED_OPERATIONS
+TEST=NO
+DISPATCH=NO
+RERUN=NO
+PUSH=NO
+MIGRATION=NO
+DEPLOY=NO
+ACTIVATION=NO
+AMEND=NO
+RESTAGE=NO
+
+POST_COMMIT_THEN_CONTINUITY
+IMMEDIATE_POST_COMMIT=CLEAN / AHEAD_1_BEHIND_0
+§234_STAGED=NO
+
+NEXT_DIRECT_GATE
+W1-P01 POSTGRESQL ORM RUNTIME SOURCE_SCOPE FIXTURE REMEDIATION EXACT PUSH-01
+
+EXACT_PUSH_CONTRACT_FREEZE
+REMOTE=origin
+LOCAL_REMOTE_BRANCH=feature/section15/backend-continuity-foundation
+EXPECTED_LOCAL_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+EXPECTED_REMOTE_SHA_BEFORE_PUSH=8cdfa4fdce2e84c16220f3ea85bf6b7fc3fde5ef
+PUSH_MODE=NORMAL NON-FORCE FAST-FORWARD
+FORCE_PUSH=PROHIBITED
+WORKFLOW_DISPATCH=NOT AUTHORIZED IN PUSH GATE
+
+MARKER
+READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_SOURCE_SCOPE_FIXTURE_REMEDIATION_EXACT_PUSH_01
+
+NOTE=post-§234 final master-log self-SHA is NOT embedded inside §234 (predecessor-identity policy).
+================================================================================
+
+================================================================================
+§235 — W1-P01 POSTGRESQL ORM RUNTIME / SOURCE_SCOPE FIXTURE REMEDIATION EXACT PUSH-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T06:45:27Z
+GATE=W1-P01 POSTGRESQL ORM RUNTIME SOURCE_SCOPE FIXTURE REMEDIATION EXACT PUSH-01
+MODE=NORMAL NON-FORCE FAST-FORWARD PUSH / REMOTE SHA VERIFICATION / APPEND-ONLY DUAL CONTINUITY / NO TEST / NO DISPATCH / NO NEW COMMIT
+VERDICT=PASS
+
+PREDECESSOR_CONTINUITY
+MASTER_LOG_PRE_§235_SIZE=2609320
+MASTER_LOG_PRE_§235_SHA256=0430c7b6fffb855b36ba68c65e1d00f656acab2a429be061aa1c05412c570082
+MASTER_LOG_PRE_§235_EOL=CRLF_ONLY
+V525_PREDECESSOR_SIZE=3573752
+V525_PREDECESSOR_SHA256=6094ab26dafd3638fca196eba52c865d418957af999764245292a0899c0c1d8b
+V525_PREDECESSOR_EOL=LF_ONLY
+SUCCESSOR_HANDOFF=Sedi_Master_Handoff_Section38_W1P01_PostgreSQLORMRuntimeSourceScopeFixtureRemediationExactPush_v526_FA.md
+
+PUSH_RESULT
+PUSH_MODE=NORMAL NON-FORCE FAST-FORWARD
+REMOTE=origin
+BRANCH=feature/section15/backend-continuity-foundation
+PUSH_ATTEMPT_COUNT=1
+COMMAND=git push --porcelain origin 41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5:refs/heads/feature/section15/backend-continuity-foundation
+EXIT_CODE=0
+PORCELAIN=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5:refs/heads/feature/section15/backend-continuity-foundation 8cdfa4f..41c60e8
+SOURCE_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+DESTINATION_REF=refs/heads/feature/section15/backend-continuity-foundation
+OLD_REMOTE_SHA=8cdfa4fdce2e84c16220f3ea85bf6b7fc3fde5ef
+NEW_REMOTE_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+FAST_FORWARD=YES
+FORCE=NO
+
+LOCAL_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+REMOTE_SHA_BEFORE_PUSH=8cdfa4fdce2e84c16220f3ea85bf6b7fc3fde5ef
+REMOTE_SHA_AFTER_PUSH=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+REMOTE_VERIFICATION=PASS
+LOCAL_REMOTE_PARITY=0/0
+
+COMMIT_IDENTITY
+PARENT_SHA=8cdfa4fdce2e84c16220f3ea85bf6b7fc3fde5ef
+TREE_SHA=1e6cdc7ac295269cfef4e254c3a9ed6489a8e986
+SUBJECT=test(backend): supply required W1-P01 run scopes
+ACCEPTED_TRAILER=Co-authored-by: Cursor <cursoragent@cursor.com>
+COMMITTED_PATHS=2 MODIFIED
+1=backend/tests/test_section15_i5_w1p01_orm_contracts.py | 100644 | 34f027068d19b0ab5a639f1c31d7375089af3b36
+2=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md | 100644 | 6222bc054d9df206f588dee881093bfe41c0339b
+
+TECHNICAL_REMEDIATION
+TEST_PATH=backend/tests/test_section15_i5_w1p01_orm_contracts.py
+COMMITTED_ADDITIONS=source_scope="{}"; domain_scope="{}"; gap_scope="{}"
+TECHNICAL_NUMSTAT=+3 / -0
+
+RUNTIME_STATUS
+STATIC_REMEDIATION=PASS
+POSTGRESQL_RUNTIME_CONTRACT=NOT YET CLOSED
+RUNTIME_RE_EXECUTION=NO
+
+PROHIBITED_OPERATIONS
+NEW_COMMIT=NO
+AMEND=NO
+FORCE_PUSH=NO
+TEST=NO
+POSTGRESQL=NO
+WORKFLOW_DISPATCH=NO
+RERUN=NO
+MIGRATION=NO
+DEPLOY=NO
+ACTIVATION=NO
+FETCH=NO
+PULL=NO
+STAGE=NO
+
+NEXT_DIRECT_GATE
+W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW EXACT DISPATCH-03
+
+EXACT_DISPATCH_03_CONTRACT_FREEZE
+WORKFLOW_FILE=.github/workflows/w1p01-postgresql-orm-runtime.yml
+WORKFLOW_NAME=W1-P01 Focused PostgreSQL ORM Runtime
+WORKFLOW_REMOTE_COMMIT=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+DISPATCH_REF=feature/section15/backend-continuity-foundation
+TRIGGER=workflow_dispatch
+INPUTS=none
+MAXIMUM_DISPATCH_COUNT=1
+RERUN_CANCEL=NOT AUTHORIZED
+
+MARKER
+READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_GITHUB_WORKFLOW_EXACT_DISPATCH_03
+
+NOTE=post-§235 final master-log self-SHA is NOT embedded inside §235 (predecessor-identity policy).
+================================================================================
+
+================================================================================
+§236 — W1-P01 FOCUSED POSTGRESQL ORM RUNTIME / GITHUB WORKFLOW EXACT DISPATCH-03
+================================================================================
+RECORDED_AT_UTC=2026-08-06T06:58:29Z
+GATE=W1-P01 FOCUSED POSTGRESQL ORM RUNTIME GITHUB WORKFLOW EXACT DISPATCH-03
+MODE=ONE_EXACT_DISPATCH / SYNCHRONOUS_TERMINAL_MONITORING / COMPLETE_RUNTIME_EVIDENCE_AUDIT / APPEND_ONLY_DUAL_CONTINUITY / NO_RERUN / NO_REMEDIATION / NO_SECOND_DISPATCH
+VERDICT=RUNTIME_FAILED
+
+PREDECESSOR_CONTINUITY
+MASTER_LOG_PRE_§236_SIZE=2612970
+MASTER_LOG_PRE_§236_SHA256=51dbc81aa6cb522980f96f8af3868a464059c7ef4522f80848f4e73c0129afa0
+MASTER_LOG_PRE_§236_EOL=CRLF_ONLY
+V526_PREDECESSOR_SIZE=3576533
+V526_PREDECESSOR_SHA256=a659afd0bd1ec96c40bd097664b250051e061fbc255edd5bd37ada08f37c8256
+V526_PREDECESSOR_EOL=LF_ONLY
+SUCCESSOR_HANDOFF=Sedi_Master_Handoff_Section39_W1P01_PostgreSQLORMRuntimeGitHubWorkflowExactDispatch03_v527_FA.md
+
+GIT_PREFLIGHT
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+UPSTREAM=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+AHEAD_BEHIND=0/0
+STAGING=EMPTY
+DIRTY_PATHS=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY
+REMOTE_BRANCH_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+REMOTE_MATCHING_REF_COUNT=1
+
+REMOTE_REMEDIATION_COMMIT_PROOF
+COMMIT=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+PARENT=8cdfa4fdce2e84c16220f3ea85bf6b7fc3fde5ef
+TREE=1e6cdc7ac295269cfef4e254c3a9ed6489a8e986
+SUBJECT=test(backend): supply required W1-P01 run scopes
+ACCEPTED_TRAILER=Co-authored-by: Cursor <cursoragent@cursor.com>
+COMMITTED_PATHS=2 MODIFIED
+TEST_BLOB=34f027068d19b0ab5a639f1c31d7375089af3b36
+MASTER_LOG_BLOB=6222bc054d9df206f588dee881093bfe41c0339b
+TECHNICAL_ADDITIONS=source_scope="{}"; domain_scope="{}"; gap_scope="{}"
+TECHNICAL_NUMSTAT=+3 / -0
+
+WORKFLOW_AUTHORITY
+REPOSITORY=javadmeighani-oss/sedi-backend
+WORKFLOW_DATABASE_ID=328106648
+WORKFLOW_NAME=W1-P01 Focused PostgreSQL ORM Runtime
+WORKFLOW_PATH=.github/workflows/w1p01-postgresql-orm-runtime.yml
+STATE=active
+TRIGGER=workflow_dispatch only
+INPUTS=none
+WORKTREE_SIZE=8385
+WORKTREE_SHA256=9492ff8ef3387b070f6660e37e1f0440c043ccd13ea329970e21d44fea0594be
+COMMITTED_BLOB_OID=d07a093153b6c59340abeec6f0cb7e7b41143eca
+
+EXPECTED_RUNTIME_CONTRACT
+RUNNER=ubuntu-24.04
+PYTHON=3.12
+POSTGRESQL_SERVICE=postgres:15
+PERMISSIONS=contents: read
+TIMEOUT=30 minutes
+JOB_NAME=W1-P01 PostgreSQL ORM runtime (105 nodes)
+PYTEST_PROCESS_COUNT=2
+SELECTOR_COUNT=15
+EXPECTED_RUNTIME_NODE_COUNT=105
+ARTIFACT_NAME=w1p01-postgresql-orm-runtime-evidence
+UPLOAD_CONDITION=always()
+IF_NO_FILES_FOUND=error
+RETENTION=14 days
+TEMP_ENV_STEP=Configure runner temporary environment
+DATABASE_URL_SHAPE=postgresql+psycopg2://<user>:***@127.0.0.1:5432/<database>
+
+PRE_DISPATCH_RUN_BASELINE
+DISPATCH_BASELINE_TIMESTAMP_UTC=2026-08-06T06:51:17.4819190Z
+PREEXISTING_EXACT_MATCHING_RUN_COUNT=0
+PREEXISTING_EXACT_MATCHING_RUN_IDS=(none)
+NOTE_PRIOR_RUN_31044421670_HEAD=8cdfa4fd… (not matching Dispatch-03 head)
+
+EXACT_DISPATCH
+DISPATCH_ATTEMPT_COUNT=1
+COMMAND=gh workflow run .github/workflows/w1p01-postgresql-orm-runtime.yml --ref feature/section15/backend-continuity-foundation
+EXIT_CODE=0
+STDOUT_REDACTED=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31078758597
+STDERR_REDACTED=(empty)
+DISPATCH_TIMESTAMP_UTC=2026-08-06T06:52:01Z
+DISPATCH_REF=feature/section15/backend-continuity-foundation
+DISPATCH_REMOTE_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+
+UNIQUE_RUN_IDENTIFICATION
+NEW_EXACT_MATCHING_RUN_COUNT=1
+RUN_ID=31078758597
+RUN_NUMBER=3
+RUN_ATTEMPT=1
+RUN_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31078758597
+CREATED_AT=2026-08-06T06:52:03Z
+HEAD_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+HEAD_BRANCH=feature/section15/backend-continuity-foundation
+EVENT=workflow_dispatch
+ACTOR=javadmeighani-oss
+INITIAL_STATUS=queued
+WORKFLOW_ID=328106648
+
+TERMINAL_RUN_IDENTITY
+STATUS=completed
+CONCLUSION=failure
+STARTED_AT=2026-08-06T06:52:03Z
+UPDATED_AT=2026-08-06T06:52:50Z
+WATCH_EXIT=1
+
+JOB_AUDIT
+JOB_ID=92542508976
+JOB_NAME=W1-P01 PostgreSQL ORM runtime (105 nodes)
+JOB_CONCLUSION=failure
+RUNNER_LABELS=ubuntu-24.04 / GitHub Actions
+JOB_STARTED_AT=2026-08-06T06:52:08Z
+JOB_COMPLETED_AT=2026-08-06T06:52:49Z
+UNEXPECTED_JOBS=0
+MISSING_EXPECTED_JOBS=0
+
+STEP_AUDIT_KEY
+1|Set up job|success
+2|Initialize containers|success
+3|Configure runner temporary environment|success
+4|Checkout|success
+5|Set up Python 3.12|success
+6|Install backend dependencies|success
+7|Capture redacted dependency versions|success
+8|Prepare runner-temp evidence directory|success
+9|Process 1 — collect-only manifest (105 nodes)|success
+10|Process 2 — focused PostgreSQL ORM runtime|failure
+11|Upload redacted runtime evidence|success
+20|Post Set up Python 3.12|skipped (post-action after Process 2 failure; accounted)
+21|Post Checkout|success
+22|Stop containers|success
+23|Complete job|success
+
+TEMP_ENVIRONMENT_EVIDENCE
+STEP=success
+TMPDIR=/home/runner/work/_temp
+TEMP=/home/runner/work/_temp
+TMP=/home/runner/work/_temp
+GITHUB_ENV_PERSISTED=YES
+PRIOR_runner.temp_PARSE_ISSUE=CLOSED
+
+POSTGRESQL_SERVICE_LAYER=PASS (postgres:15 created; health=healthy)
+DATABASE_CONNECTION_LAYER=PASS (ORM/runtime reached DB; redacted URL shape postgresql+psycopg2://<user>:***@127.0.0.1:5432/<database>)
+ORM_RUNTIME_CONTRACT=FAIL
+
+PYTEST_PROCESS_1
+PURPOSE=collect-only
+EXIT_CODE=0
+COLLECTED_NODE_COUNT=105
+DURATION=0.44s
+RESULT=PASS
+MISSING_DUPLICATED_UNEXPECTED_NODES=0/0/0
+
+PYTEST_PROCESS_2
+PURPOSE=PostgreSQL runtime execution
+EXIT_CODE=1
+SUMMARY=1 failed, 63 passed, 310 warnings in 1.27s
+FAILED=1
+PASSED=63
+ERRORS=0
+STOPPED_AFTER=--maxfail=1
+RESULT=FAIL
+
+15_SELECTOR_COVERAGE
+CLI_SELECTORS=15 (exact workflow nodeids)
+EXECUTED_BEFORE_MAXFAIL_STOP=63 passed + 1 failed (parametrized T7 node)
+REMAINING_AFTER_MAXFAIL=not executed due to early stop
+105_NODE_CONTRACT=NOT SATISFIED (runtime incomplete + failure)
+
+T6_01_PRIOR_FAILURE_CLOSURE
+NODE=test_W1P01_T6_01_positive_weekly_run_insert
+NODE_COLLECTED=YES
+NODE_EXECUTED=YES
+NODE_RESULT=PASS (included in 63 passed before T7 failure)
+NO_NotNullViolation_source_scope=YES
+NO_NotNullViolation_domain_scope=YES
+NO_NotNullViolation_gap_scope=YES
+FIXTURE_VALUES_COMMITTED=source_scope/domain_scope/gap_scope="{}" present in HEAD blob 34f0270…
+PRIOR_FINDING_T6_01=CLOSED
+DID_T6_01_PASS_BEFORE_NEW_FAILURE=YES
+
+ARTIFACT_AUDIT
+ARTIFACT_ID=8958579888
+NAME=w1p01-postgresql-orm-runtime-evidence
+SIZE_BYTES=4382
+EXPIRED=false
+CREATED_AT=2026-08-06T06:52:44Z
+EXPIRES_AT=2026-08-20T06:52:43Z
+RUN_ID=31078758597
+CONTRACT=PASS (always() upload succeeded; nonzero; name exact)
+DISK_EXTRACT=NO
+
+FAILURE_EVIDENCE
+FIRST_MATERIAL_FAILURE=test_W1P01_T7_negative_check_constraints[W1P01-T7-ck_i5gd_entity_type_vocab]
+FAILING_JOB=W1-P01 PostgreSQL ORM runtime (105 nodes) (92542508976)
+FAILING_STEP=Process 2 — focused PostgreSQL ORM runtime (#10)
+FAILING_PROCESS=2
+FAILING_SELECTOR=test_W1P01_T7_negative_check_constraints
+FAILING_NODE=test_W1P01_T7_negative_check_constraints[W1P01-T7-ck_i5gd_entity_type_vocab]
+ERROR_CLASS=AssertionError / CheckViolation constraint-name mismatch
+CONCISE_REDACTED_ERROR=expected constraint name ck_i5gd_entity_type_vocab not found in IntegrityError blob; PostgreSQL reported ck_i5gd_entity_decision_matrix CheckViolation on i5_governance_decisions insert (entity_type=NOPE mutate with default family/type from _build_decision)
+CLASSIFICATION=TEST / ORM CHECK-CONSTRAINT NEGATIVE-CASE SEMANTICS (not PostgreSQL infrastructure; not T6_01 scope NotNull)
+LIKELY_OWNER=backend/tests/test_section15_i5_w1p01_orm_contracts.py (_extend_wrsr_wrgr_i5gd_cases entity_type=NOPE case ~1784-1791) and/or model check ordering / entity-decision matrix vs entity_type vocab isolation
+LIKELY_PATH=backend/tests/test_section15_i5_w1p01_orm_contracts.py:61 (_expect_named_integrity assert) + mutate at W1P01-T7-ck_i5gd_entity_type_vocab
+MINIMAL_EVIDENCE_BASED_REMEDIATION_SCOPE=diagnose why entity_type=NOPE triggers ck_i5gd_entity_decision_matrix before/instead of ck_i5gd_entity_type_vocab; minimal isolate mutate or assertion contract so named vocab check is uniquely exercised — NO remediations in this Gate
+
+RUNTIME_CLASSIFICATION
+POSTGRESQL_RUNTIME_PROOF=FAIL
+W1-P01_STATIC_CONTRACT=PASS
+W1-P01_RUNTIME_CONTRACT=NOT CLOSED
+W1-P01_TECHNICAL_IMPLEMENTATION_CLOSURE=NOT CLOSED
+OPEN_FINDINGS=1 (T7 ck_i5gd_entity_type_vocab named-constraint mismatch)
+
+PROHIBITED_OPERATIONS
+SECOND_DISPATCH=NO
+RERUN=NO
+CANCEL=NO
+REMEDIATION=NO
+LOCAL_TEST=NO
+FILE_EDIT=NO
+STAGE=NO
+COMMIT=NO
+PUSH=NO
+MIGRATION=NO
+DEPLOY=NO
+ACTIVATION=NO
+
+NEXT_DIRECT_GATE
+W1-P01 POSTGRESQL ORM RUNTIME T7_CK_I5GD_ENTITY_TYPE_VOCAB CONSTRAINT-NAME MISMATCH DIAGNOSIS / MINIMAL REMEDIATION-01
+
+MARKER
+READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_FAILURE_DIAGNOSIS_MINIMAL_REMEDIATION_01
+
+NOTE=post-§236 final master-log self-SHA is NOT embedded inside §236 (predecessor-identity policy).
+================================================================================
+
+================================================================================
+§237 — W1-P01 POSTGRESQL ORM RUNTIME / CONTROLLED AUTO-REMEDIATION TO GREEN-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T07:23:44Z
+GATE=W1-P01 POSTGRESQL ORM RUNTIME CONTROLLED AUTO-REMEDIATION TO GREEN-01
+MODE=CONTROLLED_AUTO_REMEDIATION_LOOP / MAX_CYCLES=10 / APPEND_ONLY_DUAL_CONTINUITY
+SUCCESSOR_HANDOFF=Sedi_Master_Handoff_Section39_W1P01_PostgreSQLORMRuntimeControlledAutoRemediationToGreen_v528_FA.md
+
+MASTER_LOG_PRE_§237_SIZE=2622245
+MASTER_LOG_PRE_§237_SHA256=86f3113ab08ed858811084006b82b9141a03e3169267264614e1a4cc44049f8f
+MASTER_LOG_PRE_§237_EOL=CRLF_ONLY
+V527_PREDECESSOR_SIZE=3579089
+V527_PREDECESSOR_SHA256=1ae6313cbd2a29adedc66a78882846b3ee8b767ee64a8e6ec9985935739404d1
+V527_PREDECESSOR_EOL=LF_ONLY
+
+--------------------------------------------------------------------------------
+PERMANENT GOVERNANCE LAW RATIFICATION
+--------------------------------------------------------------------------------
+LAW_ID=SEDI-V1 CONTROLLED AUTO-REMEDIATION TO GREEN LAW-01
+STATUS=PERMANENT
+APPROVED_BY=JAVAD
+APPROVAL_DATE=2026-08-06
+PURPOSE=ACCELERATE DEVELOPMENT WHILE PRESERVING AUTHORITY, TRACEABILITY AND SAFETY
+INITIAL_APPROVAL_REQUIRED=YES
+INTERMEDIATE_APPROVALS=NO, WITHIN THE FROZEN GATE ALLOWLIST
+STAGE_COMMIT_NORMAL_PUSH_DISPATCH=AUTHORIZED INSIDE AN APPROVED COMPREHENSIVE GATE
+RERUN_SAME_COMMIT=PROHIBITED
+MAX_CYCLES_FOR_THIS_GATE=10
+CONTINUITY=APPEND-ONLY AFTER EVERY MATERIAL CYCLE
+FUTURE_APPLICABILITY=YES, ONLY WHEN A FUTURE GATE EXPLICITLY INVOKES THIS LAW AND DEFINES ITS ALLOWLIST, DENYLIST AND MAX CYCLES
+PERMANENT_LAW_DOCUMENTED=YES
+MASTER_LOG_LAW_RATIFICATION=PASS
+
+--------------------------------------------------------------------------------
+FROZEN AUTOMATIC ALLOWLIST
+--------------------------------------------------------------------------------
+ALWAYS_ALLOWED=
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+DISCOVERED_HARNESS_READ_ONLY=
+  backend/tests/helpers/w1p01_postgres_runtime.py SIZE=39789 SHA256=421efd224281a8af929f94b2393d88a720d7e2ade5dcfff1c564af092ac7c6ef ROLE=runtime helper
+  backend/tests/helpers/w1p01_postgres_runtime_plugin.py SIZE=6614 SHA256=06906e0c3ccd8d7b0f06670338bc29b6c4d4c6aaca6c4b8661714457884d5d31 ROLE=pytest plugin
+  .github/workflows/w1p01-postgresql-orm-runtime.yml SIZE=8385 SHA256=9492ff8ef3387b070f6660e37e1f0440c043ccd13ea329970e21d44fea0594be ROLE=workflow (edit only if proven workflow defect)
+CONDITIONAL=backend/tests/test_section15_i5_w1p01_import.py (only if proven matching failure)
+HARD_DENY=models.py / enums / CHECK SQL / nullability / migrations / services / force-push / local pytest
+
+--------------------------------------------------------------------------------
+CYCLE-01 CHECKPOINT (PRE-STAGE)
+--------------------------------------------------------------------------------
+CYCLE=01
+SOURCE_RUN_ID=31078758597
+SOURCE_RUN_NUMBER=3
+SOURCE_COMMIT_SHA=41c60e8bfe152d4094d028c0dc6fd3b7a6c852c5
+FIRST_MATERIAL_FAILURE=test_W1P01_T7_negative_check_constraints[W1P01-T7-ck_i5gd_entity_type_vocab]
+EXPECTED_CONSTRAINT=ck_i5gd_entity_type_vocab
+ACTUAL_CONSTRAINT=ck_i5gd_entity_decision_matrix
+ROOT_CAUSE_CLASSIFICATION=TEST MUTATION ISOLATION DEFECT / PROVEN CHECK OVERLAP
+AUTHORITY_SOURCES=models.py I5GovernanceDecision CheckConstraints; enums GovernanceEntityType/Family/Type; Design Freeze matrix semantics; run 31078758597
+ROOT_CAUSE_PROOF=entity_type not in enum necessarily falsifies ck_i5gd_entity_type_vocab AND every OR-branch of ck_i5gd_entity_decision_matrix AND ck_i5gd_entity_family_matrix; isolation of entity_type_vocab alone is logically impossible. Same for decision_family=NOPE and decision_type=NOPE vs sibling matrices.
+T7_OVERLAP_MATRIX=
+  entity_type=NOPE + defaults => violates {entity_type_vocab, entity_decision_matrix, entity_family_matrix}; isolated=NO
+  decision_family=NOPE + defaults => violates {decision_family_vocab, decision_type_family_matrix, entity_family_matrix}; isolated=NO
+  decision_type=NOPE + defaults => violates {decision_type_vocab, decision_type_family_matrix, entity_decision_matrix}; isolated=NO
+  outcome=NOPE / actor_type=NOPE => isolated=YES (vocab-only)
+  entity_decision_matrix isolated mutate (SOURCE_PROFILE_VERSION+ACTIVATION) => isolated=YES
+EXACT_TECHNICAL_FIX=Option B minimal overlap accept sets in T7_CHECK_OVERLAP_ACCEPT + _expect_named_integrity accept_any_of; target constraint must remain in set; no skip/xfail; node IDs unchanged
+MODIFIED_PATHS=backend/tests/test_section15_i5_w1p01_orm_contracts.py
+PROACTIVE_SAME_CAUSE_FIXES=ck_i5gd_decision_family_vocab; ck_i5gd_decision_type_vocab
+TEST_FILE_SIZE=91353
+TEST_FILE_SHA256=4dcb2e2c50f5b2b148d31cfcdc5c586b935eade9438b23bd3deb36cdcb60e98d
+TEST_FILE_EOL=CRLF_ONLY
+STATIC_VERIFICATION=PASS (ast.parse; names/ids/selectors textually preserved; model untouched)
+PROTECTED_CONTRACTS=15 selectors / 105 runtime / 174 total textually unaltered; no skip/xfail
+RUNTIME_NOT_YET_RE_EXECUTED=YES
