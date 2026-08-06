@@ -61,7 +61,23 @@
     "REMAINING_PLAN_POINTS_TOTAL": "100.00000000",
     "documentation_does_not_change_formal_completion": true,
     "planning_ids_authoritative": true,
-    "management_aliases_only": true
+    "management_aliases_only": true,
+    "w1p01_post_closure_recomputation": {
+      "recorded_at_utc": "2026-08-06T11:00:00Z",
+      "gate": "SECTION40-I5-POST-W1P01 AUTHORITATIVE ROADMAP TRANSITION",
+      "w1p01_technical_runtime_closure": "YES",
+      "w1p01_closure_commit": "04ddb308794e6c32dcdeaf606733e629bb696010",
+      "w1p01_green_technical_commit": "aec0df4f94d5493d8c328fc19113d104cedb7b86",
+      "w1p01_green_run": 31081741681,
+      "postgresql_runtime": "105/105 PASS",
+      "FORMAL_I5_CLOSED_AFTER_RECOMPUTATION": "21.79487179%",
+      "FORMAL_I5_REMAINING_AFTER_RECOMPUTATION": "78.20512821%",
+      "FORMAL_CLOSED_FRACTION": "17/78",
+      "I5_B_CREDIT_AFTER_RECOMPUTATION": "4/13",
+      "reason_formal_percent_unchanged": "§164.2 LOCKED; package_sequence EXPECTED_I5_COMPLETION_IMPACT=formal % unchanged until validation Gate; migration RUN/dry-run/activation evidence still owned by I5-IMPL-W6-P01; documentation and technical-runtime closure alone do not increase formal completion",
+      "w1p01_§164.2_formal_credit_awarded": "NO",
+      "next_formal_credit_requires": "authorized validation Gate updating §164.2 with package evidence + applicable tests + authorized migration/dry-run/activation evidence + Javad authority"
+    }
   },
   "weight_proof": {
     "FORMAL_I5_TOTAL": "100.00000000%",
@@ -191,7 +207,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "SOURCE",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
         "MANAGEMENT_ALIAS": "P01",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -206,7 +222,7 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W1-P01 PostgreSQL ORM runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-03",
@@ -214,7 +230,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "GAP",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
         "MANAGEMENT_ALIAS": "P01",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -229,7 +245,7 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W1-P01 PostgreSQL ORM runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-04",
@@ -237,7 +253,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUN_GOVERNANCE",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P01",
         "MANAGEMENT_ALIAS": "P01",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W1-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -252,7 +268,7 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W1-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W1-P01 PostgreSQL ORM runtime formally closed 2026-08-06; formal % credit not awarded under §164.2 lock."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-05",
@@ -847,8 +863,12 @@
         ],
         "REMAINING_PLAN_POINTS": "8.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
-        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%"
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%",
+        "TECHNICAL_RUNTIME_CLOSURE": "YES",
+        "TECHNICAL_CLOSURE_EVIDENCE": "commit aec0df4f94d5493d8c328fc19113d104cedb7b86 run 31081741681; docs closure 04ddb308794e6c32dcdeaf606733e629bb696010",
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
+        "NOTES": "ORM foundation + PostgreSQL 105/105 green closed; remaining plan points 8.0 retained until §164.2 validation Gate awards formal credit; migration RUN still W6-P01"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P02",

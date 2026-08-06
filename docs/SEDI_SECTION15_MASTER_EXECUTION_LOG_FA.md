@@ -59715,3 +59715,606 @@ NEXT_COMMIT_MESSAGE_FORMS=
 NOTE=post-§238 final master-log whole-file self-SHA is NOT embedded inside §238 (predecessor-identity policy).
 MARKER=
 READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_FINAL_CLOSURE_CONTINUITY_EXACT_COMMIT_01
+
+================================================================================
+§239 — W1-P01 POSTGRESQL ORM RUNTIME / FINAL CLOSURE COMMIT / PUSH / REMOTE VERIFICATION-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T08:10:22Z
+GATE=W1-P01 POSTGRESQL ORM RUNTIME FINAL CLOSURE COMMIT / PUSH / REMOTE VERIFICATION-01
+VERDICT=PASS
+
+FINAL_CLOSURE_COMMIT_SHA=04ddb308794e6c32dcdeaf606733e629bb696010
+PARENT_SHA=aec0df4f94d5493d8c328fc19113d104cedb7b86
+TREE_SHA=780c718a372e49ba40a3126d2bed18a27f45469f
+SUBJECT=docs(backend): record W1-P01 runtime closure
+MESSAGE_FORM=B (subject + Co-authored-by: Cursor <cursoragent@cursor.com>)
+COMMITTED_PATH_COUNT=1
+COMMITTED_PATH=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+STATUS=MODIFIED
+MODE=100644
+BLOB=820428066465f3edce00a918535e1b4fb67358db
+COMMIT_TREE_MATCHES_FROZEN_INDEX=YES
+
+REMOTE=origin
+BRANCH=feature/section15/backend-continuity-foundation
+REMOTE_SHA_BEFORE_PUSH=aec0df4f94d5493d8c328fc19113d104cedb7b86
+REMOTE_SHA_AFTER_PUSH=04ddb308794e6c32dcdeaf606733e629bb696010
+PUSH_MODE=NORMAL NON-FORCE FAST-FORWARD
+PUSH_ATTEMPT_COUNT=1
+PUSH_EXIT_CODE=0
+REMOTE_VERIFICATION=PASS
+LOCAL_REMOTE_PARITY=0/0
+
+FINAL_GREEN_RUN=31081741681
+FINAL_TECHNICAL_COMMIT=aec0df4f94d5493d8c328fc19113d104cedb7b86
+PROCESS_1=105 collected / exit 0
+PROCESS_2=105 passed / exit 0
+SELECTORS=15 / 15 PASS
+MISSING_DUPLICATED_UNEXPECTED=0 / 0 / 0
+ARTIFACT=8959743221 / 4931 bytes
+OPEN_FINDINGS=0
+
+WORKFLOW_GREEN=YES
+POSTGRESQL_RUNTIME_PROOF=PASS
+W1-P01_STATIC_CONTRACT=PASS
+W1-P01_RUNTIME_CONTRACT=PASS
+W1-P01_TECHNICAL_IMPLEMENTATION_CLOSURE=PASS
+W1-P01_FORMAL_CLOSURE=PASS
+
+LAW_ID=SEDI-V1 CONTROLLED AUTO-REMEDIATION TO GREEN LAW-01
+PERMANENT_LAW_RATIFICATION=PASS
+
+MASTER_LOG_PRE-§239_TIP=§238
+MASTER_LOG_PRE-§239_SIZE=2638621
+MASTER_LOG_PRE-§239_SHA256=fd1d45cba48c213e988ed274cbe482e7e9e1fecb4e03981fcc02096fa68cb9b9
+MASTER_LOG_PRE-§239_EOL=CRLF_ONLY
+
+V529_SIZE=3587420
+V529_SHA256=581a1cbcc6754fa041633057f35455429f87bb4577ae15d31000de43b5210c2b
+V529_EOL=LF_ONLY
+
+TECHNICAL_EDIT=NO
+TEST=NO
+POSTGRESQL=NO
+WORKFLOW_DISPATCH=NO
+RERUN=NO
+REMEDIATION=NO
+AMEND=NO
+FORCE_PUSH=NO
+MIGRATION=NO
+DEPLOY=NO
+ACTIVATION=NO
+
+W1-P01=FORMALLY CLOSED
+W1-P01_OPEN_FINDINGS=0
+W1-P01_FURTHER_REMEDIATION_REQUIRED=NO
+
+NEXT_PROJECT_ACTION=SELECT THE NEXT AUTHORITATIVE ROADMAP GATE
+AUTOMATIC_NEXT_IMPLEMENTATION=NOT AUTHORIZED BY THIS GATE
+
+NOTE=post-§239 final master-log whole-file self-SHA is NOT embedded inside §239 (predecessor-identity policy).
+NOTE_§239_UNCOMMITTED=push evidence recorded after push; committing §239 would require another commit/push loop; §239 remains append-only uncommitted for next authorized documentation commit.
+MARKER=
+W1P01_POSTGRESQL_ORM_RUNTIME_FORMALLY_CLOSED
+
+================================================================================
+§240 — SECTION40-I5-POST-W1P01 / AUTHORITATIVE ROADMAP TRANSITION /
+W1-P02 SCOPE RECONSTRUCTION, DIABETES-GLYCEMIC EXPLICIT TRACK,
+AND DATA-CONTRACT DESIGN FREEZE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T11:11:58Z
+GATE_ID=SECTION40-I5-POST-W1P01 AUTHORITATIVE ROADMAP TRANSITION / W1-P02 SCOPE RECONSTRUCTION, DIABETES-GLYCEMIC EXPLICIT TRACK, AND DATA-CONTRACT DESIGN FREEZE-01
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-06
+VERDICT=PASS
+MODE=READ-ONLY REPOSITORY AUTHORITY RECONSTRUCTION + DOCUMENTATION-ONLY DESIGN FREEZE + COMPLETION-LEDGER RECOMPUTATION + MASTER-LOG APPEND + EXACT-PREFIX AUTHORITATIVE HANDOFF SUCCESSOR + EXACT DOCUMENTATION COMMIT + NORMAL NON-FORCE PUSH + REMOTE VERIFICATION
+
+--------------------------------------------------------------------------------
+PREFLIGHT
+--------------------------------------------------------------------------------
+WORKSPACE=D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=04ddb308794e6c32dcdeaf606733e629bb696010
+UPSTREAM=04ddb308794e6c32dcdeaf606733e629bb696010
+REMOTE_FEATURE_SHA=04ddb308794e6c32dcdeaf606733e629bb696010
+AHEAD_BEHIND=0/0
+STAGING=EMPTY
+UNTRACKED=0
+DIRTY_BEFORE_APPEND=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md ONLY (§239 uncommitted post-push evidence)
+PREFLIGHT=PASS
+
+--------------------------------------------------------------------------------
+W1-P01 CLOSURE CARRY-FORWARD / §239 STATUS
+--------------------------------------------------------------------------------
+W1-P01=FORMALLY CLOSED
+CLOSURE_COMMIT=04ddb308794e6c32dcdeaf606733e629bb696010
+FINAL_GREEN_TECHNICAL_COMMIT=aec0df4f94d5493d8c328fc19113d104cedb7b86
+FINAL_GREEN_RUN=31081741681
+PROCESS_1=105 collected / exit 0
+PROCESS_2=105 passed / exit 0
+SELECTORS=15/15 PASS
+ARTIFACT=8959743221 / 4931
+OPEN_FINDINGS=0
+WORKFLOW_GREEN=YES
+POSTGRESQL_RUNTIME_PROOF=PASS
+W1-P01_STATIC_CONTRACT=PASS
+W1-P01_RUNTIME_CONTRACT=PASS
+W1-P01_TECHNICAL_IMPLEMENTATION_CLOSURE=PASS
+W1-P01_FORMAL_CLOSURE=PASS
+§239_TIP=YES
+§239_COMPLETE=YES
+§239_UNCOMMITTED_POST_PUSH_EVIDENCE=YES (carried forward into this Gate documentation commit)
+NEXT_FREE_SECTION_PROVEN=§240 (max existing section = 239; §240 HEADER absent before append)
+
+--------------------------------------------------------------------------------
+v530 IDENTITY
+--------------------------------------------------------------------------------
+PATH=referencesuthoritative/Sedi_Master_Handoff_Section39_W1P01_PostgreSQLORMRuntimeFinalClosureCommitPushRemoteVerification_v530_FA.md
+SIZE=3589468
+SHA256=a96bb3f164adac4e41d0b7b56bb761743bbbe055e6607bea7efde5eea637d892
+EOL=LF_ONLY
+BARE_CR=0
+COMPETING_CURRENT_HANDOFFS=NONE
+
+MASTER_LOG_PRE-§240_TIP=§239
+MASTER_LOG_PRE-§240_SIZE=2641477
+MASTER_LOG_PRE-§240_SHA256=752f82fbac17c90e82010a5b820f9a0e40d80b8faad1f7950d3aede6fa8a07bb
+MASTER_LOG_PRE-§240_EOL=CRLF_ONLY
+
+--------------------------------------------------------------------------------
+AUTHORITY ARTIFACT REGISTER (PRIMARY)
+--------------------------------------------------------------------------------
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md — §138.3 Diabetes priority aggregate; §164.2 formal % LOCK; §172 W1-P02 design; §194 Manifest D01-D19 + ALS/MS tracks; §237-§239 W1-P01 closure
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/i5_completion_ledger.json — formal weights + thirteen_package_reconciliation
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/package_sequence.json — I5-IMPL-W1-P02 authoritative scope
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/target_architecture_map.json — SKU + provenance/raw retention design
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/file_allowlist_matrix.json — W1-P02 path allowlist
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/missing_component_matrix.json — MISS-04/05
+  backend/app/models.py — W1-P01 models; KnowledgeGap.target_knowledge_unit_id stub (no FK)
+  backend/app/services/i5/enums.py — W1-P01 vocabs only
+  .github/workflows/w1p01-postgresql-orm-runtime.yml — W1-P01 runtime harness (reuse pattern for W1-P02)
+CONFLICT_STATUS=RESOLVED_BY_LATER_CONTINUATION (§194 Manifest overrides older D01-D18 E2 decision namespace; planning IDs beat management aliases)
+
+--------------------------------------------------------------------------------
+PLANNING-ID / ALIAS RECONCILIATION
+--------------------------------------------------------------------------------
+AUTHORITATIVE_PACKAGE_ID=I5-IMPL-W1-P02
+MANAGEMENT_ALIAS=P02
+FUNCTIONAL_SCOPE=RAW RETENTION + STRUCTURED KNOWLEDGE UNIT + PROVENANCE
+IMPLEMENTATION_OWNER=BACKEND_IMPLEMENTATION
+CURRENT_STATUS=DESIGN_FROZEN_THIS_GATE / IMPLEMENTATION_NOT_STARTED
+DEPENDENCIES=I5-IMPL-W1-P01 (technically closed; §164.2 credit pending validation)
+SUPERSEDED_NAMES=none for package identity; older roadmap P2 foundation is a different era and must not be confused with management alias P02
+
+FULL_ALIAS_MAP=
+  P01 <-> I5-IMPL-W1-P01 | ISR + Knowledge Gap + Weekly Run Ledger | TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION
+  P02 <-> I5-IMPL-W1-P02 | KU + Provenance + raw retention | DESIGN_FROZEN / NOT_IMPLEMENTED
+  P03 <-> I5-IMPL-W2-P01 | Knowledge Memory + supersession | OPEN
+  P04 <-> I5-IMPL-W2-P02 | Evidence/freshness/conflict/safety states | OPEN
+  P05 <-> I5-IMPL-W2-P03 | Admin review surfaces | OPEN
+  P06 <-> I5-IMPL-W3-P01 | Adapter / extract / normalize | OPEN
+  P07 <-> I5-IMPL-W3-P02 | Weekly orchestrator (activation off) | OPEN
+  P08 <-> I5-IMPL-W4-P01 | KB-first runtime retrieval | OPEN
+  P09 <-> I5-IMPL-W4-P02 | Reference renderer | OPEN
+  P10 <-> I5-IMPL-W5-P01 | Iran directory layer | OPEN
+  P11 <-> I5-IMPL-W6-P02 | Tests + CI | OPEN
+  P12 <-> I5-IMPL-W6-P03 | Monitoring/alerts | OPEN
+  P13 <-> I5-IMPL-W6-P01 | Migration run / dry-run / activation | OPEN
+
+KP0-KP13=Knowledge Packs roadmap stage NOT_STARTED; NOT management aliases; NOT Manifest entities
+I5-KP4=DIABETES + ENDOCRINE + METABOLIC CONTENT PACK (content ownership; later)
+I5-KP6=CROSS-CUTTING MEDICATION / LAB / DIAGNOSTIC SAFETY PACK (safety ownership; later)
+
+--------------------------------------------------------------------------------
+W1-P02 EXACT SCOPE (FROZEN)
+--------------------------------------------------------------------------------
+IN_SCOPE=
+  RAW RETENTION POLICY contract + enums
+  STRUCTURED KNOWLEDGE UNIT model/service/schema contract
+  PROVENANCE model/service/schema contract
+  FK for KnowledgeGap.target_knowledge_unit_id
+  fail-closed without provenance
+  static + PostgreSQL runtime tests
+  focused GitHub workflow (pattern from W1-P01)
+  migration AUTHOR_ONLY (MIG-I5-W1-P02) — authoring deferred to next implementation Gate; RUN remains W6-P01
+
+OUT_OF_SCOPE=
+  runtime brain switch
+  crawler / network fetch
+  knowledge content population
+  diabetes medical content authoring
+  activation / deploy / scheduler
+  migration RUN
+  §164.2 formal percentage invention
+
+CAPABILITIES=
+  CAP-OPEN-07 RAW RETENTION POLICY = PARTIAL → EXTEND
+  CAP-OPEN-08 STRUCTURED KNOWLEDGE UNIT = NOT_STARTED → NEW
+  CAP-OPEN-09 PROVENANCE = PARTIAL → EXTEND
+
+--------------------------------------------------------------------------------
+REUSE / EXTEND / NEW INVENTORY
+--------------------------------------------------------------------------------
+REUSE_AS_IS=
+  backend/tests/helpers/w1p01_postgres_runtime.py (pattern reference)
+  backend/tests/helpers/w1p01_postgres_runtime_plugin.py (pattern reference)
+  W1-P01 ORM tables / enums already closed
+  Gate3 KnowledgeDocument/Chunk/IngestionRun as supporting raw/curated layer (NOT SKU)
+
+EXTEND=
+  backend/app/models.py — add KnowledgeUnit + KnowledgeProvenance; FK target_knowledge_unit_id
+  backend/app/services/i5/enums.py — RawRetentionMode + KU/provenance state enums
+  backend/app/routers/i5_admin.py — admin KU/provenance read surfaces (no runtime switch)
+  CAP-OPEN-07 / CAP-OPEN-09 partial foundations
+
+NEW=
+  KnowledgeUnit ORM model
+  KnowledgeProvenance ORM model
+  knowledge_unit_service.py
+  provenance_service.py
+  schemas/i5_knowledge_unit.py
+  alembic MIG-I5-W1-P02 (AUTHOR_ONLY in next Gate)
+  tests/test_section30_i5_w1_p02_ku_provenance.py (or repository-conforming name)
+  .github/workflows/w1p02-*-runtime.yml (focused PostgreSQL runtime)
+
+DEFER=
+  migration RUN / dry-run / activation → I5-IMPL-W6-P01
+  diabetes content population → KP4 / KP6
+  Manifest YAML/ORM bootstrap of D20 → later Manifest implementation Gate (design freeze only here)
+  crawler / ingestion / runtime grounding
+
+SUPERSEDED=
+  treating KnowledgeDocument/Chunk as Structured Knowledge Unit
+  treating ContextProvenance / ImmutableProvenanceRecord docs as W1-P02 ORM tables
+
+NOT_APPLICABLE=
+  Iran directory models as KU authority
+  patient PII stores as raw knowledge retention
+
+--------------------------------------------------------------------------------
+RAW RETENTION CONTRACT (DESIGN FREEZE)
+--------------------------------------------------------------------------------
+IDENTITY_FIELDS=
+  raw_evidence_id (PK, immutable)
+  source_profile_id (FK RESTRICT)
+  source_document_id / source_version_id
+  retrieval_run_id (FK SET NULL or RESTRICT per W1-P01 pattern)
+  retrieval_timestamp (UTC timestamptz NOT NULL)
+  canonical_url (Text NOT NULL)
+  content_hash / byte_hash (hex SHA256)
+  normalized_hash (nullable where applicable)
+  mime_type / content_type
+  language
+  jurisdiction
+  storage_mode
+  retention_mode (enum NOT NULL)
+  licence_rights_terms_state
+  robots_access_state
+  redaction_state
+  prohibited_data_state
+  expiry_state
+  deletion_tombstone_state
+  supersession_raw_evidence_id (nullable self-FK)
+  created_at / created_by_run_id audit
+
+RAW_RETENTION_MODES (FROZEN CANONICAL LITERALS — resolve prior naming variants)=
+  RAW_FULL_GOVERNED_RETENTION
+  RAW_TRANSIENT_PROCESSING
+  RAW_MINIMAL_EVIDENCE_ONLY
+  RAW_LINK_AND_CITATION_ONLY
+  RAW_EXCLUDED_PROTECTED_ELEMENTS
+
+PROHIBITIONS=
+  PATIENT_PII_IN_RAW_KNOWLEDGE_RETENTION=PROHIBITED
+  SECRETS_TOKENS_CREDENTIALS=PROHIBITED
+  UNAPPROVED_FULL_TEXT_RETENTION=PROHIBITED
+
+IMMUTABILITY=
+  retained raw bytes/hashes append-only; corrections via supersession + tombstone; no in-place rewrite of hash lineage
+
+OWNER_PACKAGE=I5-IMPL-W1-P02
+REUSE_EXTEND_NEW=EXTEND (partial CAP-OPEN-07) + NEW enum/table fields as required
+
+--------------------------------------------------------------------------------
+STRUCTURED KNOWLEDGE UNIT CONTRACT (DESIGN FREEZE)
+--------------------------------------------------------------------------------
+IDENTITY_FIELDS=
+  knowledge_unit_id (immutable version PK or stable id + immutable version_id)
+  canonical_unit_id (stable across versions)
+  immutable_version_id
+  entity_taxonomy_link / domain_track_link (Manifest Dxx / track id nullable until Manifest impl)
+  language
+  knowledge_type
+  normalized_statement
+  fact_guideline_recommendation_warning_type
+  applicability / exclusions / population
+  evidence_strength
+  medical_safety_state
+  conflict_state
+  freshness_state
+  review_state
+  publication_state
+  runtime_eligibility
+  deduplication_key
+  canonical_hash
+  supersession_link / retraction_link
+  valid_from / valid_until
+  created_at / updated_at / last_reviewed_at
+  provenance_required = YES (fail-closed)
+
+UNIQUENESS=
+  dedupe_key = hash(domain, topic, population, jurisdiction, normalized_content_canonical)
+
+NOT_EQUIVALENT_TO=
+  knowledge_documents / knowledge_chunks
+
+OWNER_PACKAGE=I5-IMPL-W1-P02
+STATUS=NEW
+
+--------------------------------------------------------------------------------
+PROVENANCE CONTRACT (DESIGN FREEZE)
+--------------------------------------------------------------------------------
+FIELDS=
+  provenance_id (PK)
+  knowledge_unit_id (FK RESTRICT, NOT NULL)
+  source_profile_id (FK RESTRICT)
+  source_document_id / source_version_id
+  raw_evidence_id (FK SET NULL|RESTRICT)
+  retrieval_method / access_route
+  exact_hash_lineage (content_hash, byte_hash, normalized_hash)
+  extraction_process / normalization_process
+  review_decision_evidence_link (I5 governance decision id nullable)
+  attribution_data / citation_rendering_data
+  conflict_hooks / supersession_hooks / retraction_hooks
+  created_at audit
+
+RULE=
+  KnowledgeUnit WITHOUT provenance = FAIL_CLOSED for runtime eligibility
+
+OWNER_PACKAGE=I5-IMPL-W1-P02
+STATUS=EXTEND/NEW
+
+CONSTRAINT_OWNERSHIP_RULES=
+  PRIMARY KEYS / FOREIGN KEYS / ON DELETE = RESTRICT or SET NULL (no cascade-delete of evidence)
+  NULLABILITY / UNIQUE / NAMED CHECK / ENUM VALUES / HASH FORMAT=SHA256 hex / LENGTH LIMITS / TIMESTAMP=UTC
+  Every field MUST document PURPOSE, TYPE, NULLABILITY, DEFAULT, VALIDATION, OWNER, REUSE|EXTEND|NEW in implementation Gate
+
+--------------------------------------------------------------------------------
+DIABETES AUTHORITY FINDING
+--------------------------------------------------------------------------------
+INDEPENDENT_DIABETES_MANIFEST_TRACK_EXISTS=NO
+EVIDENCE=
+  §194 freezes D01-D17 broad families + D18 ALS-TRACK + D19 MS-TRACK = 19 entities
+  §138.3 Diabetes remains priority aggregate, NOT a Manifest entity with TRACK_ID/dimension ledger
+  ENTITY_ID_FORMAT was ^D(0[1-9]|1[0-9])$ (D01..D19 only)
+  No DIABETES-TRACK / DIABETES-GLYCEMIC-TRACK / D20 Manifest row found
+  KP4 aggregate and DIABETES_AND_METABOLIC taxonomy themes are NOT independent Manifest tracks
+ALS_IDENTITY_PRESERVED=YES (D18 / ALS-TRACK / P0-CRITICAL)
+MS_IDENTITY_PRESERVED=YES (D19 / MS-TRACK / P0-HIGH)
+NO_MERGE_WITH_ALS_MS=YES
+NO_MERGE_WITH_ENDOCRINE_AGGREGATE_ONLY=YES (track remains linked to endocrine/metabolic taxonomy + KP4 but is independently auditable)
+
+--------------------------------------------------------------------------------
+DIABETES EXPLICIT-TRACK DESIGN FREEZE
+--------------------------------------------------------------------------------
+DECISION=CREATE_DOCUMENTATION_ONLY_INDEPENDENT_TRACK
+CANONICAL_DOMAIN_ID=D20
+TRACK_ID=DIABETES-GLYCEMIC-TRACK
+ENTITY_TYPE=DISEASE_PRIORITY_TRACK
+PRIORITY=P0-HIGH
+PRIORITY_BASIS=no contrary explicit Manifest priority found; below ALS P0-CRITICAL; product execution priority only (not clinical evidence ranking)
+TOTAL_MANIFEST_ENTITY_COUNT_AFTER_FREEZE=20 (D01..D20)
+ENTITY_ID_FORMAT_AMENDMENT_FROZEN=
+  PREVIOUS=^D(0[1-9]|1[0-9])$
+  NEW=^D(0[1-9]|1[0-9]|20)$
+  NOTE=documentation Design Freeze only; Manifest YAML/ORM/bootstrap implementation remains a later Gate
+MUST_NOT_BE_SCORED_ONLY_AS_ENDOCRINE_OR_METABOLIC_AGGREGATE=YES
+INITIAL_COVERAGE_STATE=UNKNOWN
+IMPLEMENTATION_CREDIT=0
+POPULATION_CREDIT=0
+MONITORING_POLICY_LEVEL=P0-HIGH
+
+DIMENSIONS (DG-T01..DG-T32) =
+  DG-T01 type 1 diabetes education
+  DG-T02 type 2 diabetes education
+  DG-T03 prediabetes education
+  DG-T04 gestational diabetes education
+  DG-T05 other recognized diabetes / glycemic disorders
+  DG-T06 hypoglycemia recognition and response education
+  DG-T07 hyperglycemia recognition and response education
+  DG-T08 acute glycemic red flags
+  DG-T09 emergency care navigation
+  DG-T10 risk factors
+  DG-T11 prevention and risk reduction
+  DG-T12 screening and early detection
+  DG-T13 diagnosis education and diagnostic limitations
+  DG-T14 glucose monitoring education
+  DG-T15 continuous glucose monitoring education
+  DG-T16 HbA1c education and limitations
+  DG-T17 treatment education categories
+  DG-T18 medication classes education
+  DG-T19 medication safety
+  DG-T20 insulin safety (no autonomous dose change)
+  DG-T21 adherence education
+  DG-T22 nutrition and carbohydrate education
+  DG-T23 physical activity and exercise safety
+  DG-T24 weight / metabolic health
+  DG-T25 sick-day education
+  DG-T26 foot care
+  DG-T27 eye / retinopathy care
+  DG-T28 kidney / nephropathy care
+  DG-T29 neuropathy care
+  DG-T30 cardiovascular and other micro/macrovascular complications
+  DG-T31 fasting, acute illness, pregnancy, older adults, children/adolescents applicability
+  DG-T32 self-care, long-term follow-up, complication screening, referral and care navigation
+
+DG_CRITICAL_DIMENSIONS (minimum for future runtime completeness gate)=
+  DG-T01,T02,T06,T07,T08,T09,T13,T14,T16,T19,T20,T25,T26,T27,T28,T30,T32
+RULE=
+  DG_CRITICAL_DIMENSIONS_MISSING > 0 → DIABETES_GLYCEMIC_RUNTIME_COVERAGE cannot be COMPLETE
+
+--------------------------------------------------------------------------------
+KP4 / KP6 MAPPING
+--------------------------------------------------------------------------------
+I5-KP4=DIABETES + ENDOCRINE + METABOLIC CONTENT PACK — owns deep diabetes content population
+I5-KP6=CROSS-CUTTING MEDICATION / LAB / DIAGNOSTIC SAFETY PACK — owns medication/insulin/lab/diagnostic safety
+RELATIONSHIP_FROZEN=
+  KP4 + KP6 = DIABETES/METABOLIC CONTENT + MEDICATION/INSULIN/LAB/DIAGNOSTIC SAFETY
+MANIFEST_TRACK_D20=measures coverage completeness (DG-T01..T32)
+PACKAGE_IDENTITIES_NOT_MERGED=YES
+CONTENT_POPULATION_THIS_GATE=0
+CONTENT_POPULATION_NEXT_IMPL_GATE=0 (assigned to later KP4/KP6 packages)
+
+--------------------------------------------------------------------------------
+SAFETY BOUNDARIES (FROZEN)
+--------------------------------------------------------------------------------
+EDUCATIONAL_KNOWLEDGE=ALLOWED AFTER GOVERNED ELIGIBILITY
+DIAGNOSIS=NOT PERFORMED BY THIS TRACK
+PRESCRIBING=PROHIBITED
+AUTONOMOUS_MEDICATION_CHANGE=PROHIBITED
+AUTONOMOUS_INSULIN_DOSE_CHANGE=PROHIBITED
+EMERGENCY_REPLACEMENT=PROHIBITED
+RED_FLAG_ESCALATION=REQUIRED
+PERSONALIZED_OUTPUT=ONLY THROUGH LATER AUTHORIZED GROUNDING AND SAFETY GATES
+
+--------------------------------------------------------------------------------
+TEST / POSTGRESQL / WORKFLOW CONTRACT (NEXT IMPL GATE)
+--------------------------------------------------------------------------------
+STATIC_TESTS=
+  import graph; SQLAlchemy mapper; enum contract; named CHECK; UNIQUE; FK; hash validation;
+  immutability; raw-retention safety; provenance lineage; deduplication; no-PII
+
+POSTGRESQL_RUNTIME_TESTS=
+  positive KU+provenance insert; fail-closed without provenance; raw mode enforcement;
+  hash uniqueness; supersession; FK to W1-P01 profiles/runs/gaps
+
+DIABETES_TRACK_FUTURE_TESTS=
+  independent entity D20 presence; no merge with endocrine aggregate-only scoring;
+  no merge with ALS/MS; separate DG dimension ledger; required dimension completeness;
+  UNKNOWN initial state; evidence-required coverage; fail-closed runtime status; KP4/KP6 mapping
+
+EXPECTED_TEST_FILES=
+  backend/tests/test_section30_i5_w1_p02_ku_provenance.py (or conforming name)
+  optional static import companion
+
+EXPECTED_WORKFLOW=
+  .github/workflows/w1p02-postgresql-orm-runtime.yml (name may conform)
+  workflow_dispatch only; ubuntu-24.04; Python 3.12; postgres:15
+  Process 1 collect-only + Process 2 runtime; artifact always(); exact node accounting
+  SAME-COMMIT RERUN=PROHIBITED
+
+SUCCESS_CRITERIA_NEXT_GATE=
+  static PASS + PostgreSQL runtime PASS + artifact PASS + OPEN_FINDINGS=0
+  under Controlled Auto-Remediation To Green Law-01 after separate Javad approval
+
+MIGRATION=
+  AUTHOR_ONLY allowed in next Gate if within allowlist
+  RUN/DRY-RUN/ACTIVATION=EXCLUDED unless separately authorized
+
+--------------------------------------------------------------------------------
+COMPLETION-LEDGER RECOMPUTATION
+--------------------------------------------------------------------------------
+LEDGER_PATH=docs/evidence/section30/i5_implementation_acceleration_plan_01/i5_completion_ledger.json
+TOTAL_WEIGHT=100.00000000% (formal)
+CLOSED_WEIGHT_BEFORE_W1P01_TECHNICAL_CLOSURE=21.79487179%
+W1-P01_PACKAGE_POINTS=8.0 (remaining-relative display was 6.25641026%)
+CLOSED_WEIGHT_AFTER_W1P01_TECHNICAL_CLOSURE=21.79487179%
+FORMAL_COMPLETION_PERCENTAGE=21.79487179%
+FORMAL_REMAINING_PERCENTAGE=78.20512821%
+ROUNDING_METHOD=eight-decimal; last package I5-IMPL-W6-P01 absorbs remaining-display rounding
+FORMULA_STILL_LOCKED= (1 + 4/13) / 6 = 17/78 = 21.79487179%
+I5_B_CREDIT=4/13 (UNCHANGED)
+W1-P01_§164.2_FORMAL_CREDIT_AWARDED=NO
+REASON=
+  §164.2 LOCKED; package_sequence EXPECTED_I5_COMPLETION_IMPACT states formal % unchanged until validation Gate;
+  migration RUN / dry-run / activation evidence still owned by I5-IMPL-W6-P01;
+  documentation + technical-runtime closure alone must not increase formal completion
+LEDGER_DOC_UPDATE_THIS_GATE=YES (CURRENT_STATE → TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION; recomputation note recorded)
+LEDGER_SIZE_AFTER=99285
+LEDGER_SHA256_AFTER=e145f184ec66dc5341906084693a2fe48dc3653cadd37fcc52031e5d3f161289
+LEDGER_EOL=LF_ONLY
+NO_CREDIT_FOR=
+  diabetes track documentation; W1-P02 design freeze; unimplemented models; unrun tests;
+  unpopulated knowledge; crawler; ingestion; runtime grounding; migration; activation
+DIABETES_TRACK_IMPLEMENTATION_CREDIT=0
+DIABETES_TRACK_POPULATION_CREDIT=0
+DIABETES_COVERAGE_STATE=UNKNOWN
+
+--------------------------------------------------------------------------------
+ALLOWLIST (THIS GATE)
+--------------------------------------------------------------------------------
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+  docs/evidence/section30/i5_implementation_acceleration_plan_01/i5_completion_ledger.json
+  referencesuthoritative/...v531_FA.md (external continuity; not a Git path)
+
+--------------------------------------------------------------------------------
+DENYLIST / PROHIBITED (THIS GATE)
+--------------------------------------------------------------------------------
+TECHNICAL_EDIT=NO (models/enums/services/tests/workflows)
+MIGRATION=NO
+TEST_EXECUTION=NO
+POSTGRESQL=NO
+DOCKER=NO
+WORKFLOW_DISPATCH=NO
+CRAWLER=NO
+INGESTION=NO
+DEPLOY=NO
+ACTIVATION=NO
+FORCE_PUSH=NO
+AMEND=NO
+
+--------------------------------------------------------------------------------
+HARD STOPS ENCOUNTERED
+--------------------------------------------------------------------------------
+NONE
+
+--------------------------------------------------------------------------------
+NEXT IMPLEMENTATION GATE (FROZEN / COPYABLE)
+--------------------------------------------------------------------------------
+GATE_NAME=
+I5-IMPL-W1-P02
+CONTROLLED IMPLEMENTATION / TEST / CI /
+AUTO-REMEDIATION TO GREEN-01
+
+REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+LAW_INVOCATION=SEDI-V1 CONTROLLED AUTO-REMEDIATION TO GREEN LAW-01 (must redefine allowlist/denylist/max cycles)
+
+EXECUTION_SEQUENCE=
+  PREFLIGHT
+  → FROZEN CONTRACT RECONSTRUCTION
+  → COMPLETE ALLOWLISTED IMPLEMENTATION
+  → STATIC TEST AUTHORING
+  → POSTGRESQL RUNTIME TEST AUTHORING
+  → WORKFLOW AUTHORING / EXTENSION
+  → STATIC VERIFICATION
+  → EXACT STAGE
+  → COMMIT
+  → NORMAL PUSH
+  → ONE DISPATCH FOR THE NEW COMMIT
+  → TERMINAL AUDIT
+  → FAILURE DIAGNOSIS
+  → MINIMAL IN-SCOPE FIX
+  → NEW COMMIT
+  → NEW PUSH
+  → ONE NEW DISPATCH
+  → REPEAT UNTIL GREEN OR HARD-STOP
+  → FORMAL W1-P02 CLOSURE
+  → DUAL CONTINUITY UPDATE
+
+SAME_COMMIT_RERUN=PROHIBITED
+MIGRATION_AUTHORING=ALLOWLISTED ONLY IF EXPLICIT IN NEXT GATE
+MIGRATION_EXECUTION=EXCLUDED UNLESS SEPARATELY AUTHORIZED
+DIABETES_CONTENT_POPULATION=ASSIGNED TO LATER KP4 / KP6 (NOT W1-P02)
+
+--------------------------------------------------------------------------------
+CLOSURE STATEMENTS
+--------------------------------------------------------------------------------
+W1-P02_TECHNICAL_IMPLEMENTATION=UNEXECUTED
+DIABETES_EXPLICIT_INDEPENDENT_DESIGN_FROZEN_TRACK=YES
+DIABETES_TRACK_IMPLEMENTATION_OR_CONTENT_CREDIT=0
+MIGRATION_CRAWLER_INGESTION_RUNTIME_GROUNDING_DEPLOY_ACTIVATION=UNAUTHORIZED
+OPEN_FINDINGS=0
+
+NOTE=post-§240 final master-log whole-file self-SHA is NOT embedded inside §240 (predecessor-identity policy).
+MARKER=
+READY_FOR_I5_IMPL_W1_P02_CONTROLLED_IMPLEMENTATION_TEST_CI_AUTO_REMEDIATION_TO_GREEN_01
