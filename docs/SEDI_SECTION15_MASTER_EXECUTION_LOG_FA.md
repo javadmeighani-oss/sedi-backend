@@ -61438,3 +61438,164 @@ PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
 NEXT_PACKAGE_IF_GREEN_LATER=I5-IMPL-W4-P02 (after W4-P01 Green)
 
 NOTE=post-§248 final master-log whole-file self-SHA is NOT embedded inside §248.
+
+================================================================================
+§249 — W4-P01 GITHUB ACTIONS INFRA RECOVERY /
+REPEATED RUNNERLESS HARD-STOP — EXACT CURRENT-HEAD DISPATCH
+================================================================================
+RECORDED_AT_UTC=2026-08-06T18:05:00Z
+GATE_ID=W4-P01 GITHUB ACTIONS INFRA RECOVERY / EXACT CURRENT-HEAD WORKFLOW_DISPATCH / 19-NODE POSTGRESQL GREEN / EVIDENCE ASSURANCE / STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+PARENT_GATE=I5-IMPL-W4-P01
+JAVAD_APPROVAL=EXPLICIT 2026-08-06
+EXECUTION_TYPE=AUTHORIZED_CONTINUATION
+VERDICT=REPEATED_RUNNERLESS_INFRA_HARD_STOP
+PASS=NO
+GREEN=NO
+CODE_IMPLEMENTATION=COMPLETE_ON_BRANCH (unchanged; no new technical SHA)
+CI_EXECUTABLE_VALIDATION=NOT_OBTAINED
+SUPERSEDES_§248_HARD_STOP_AS_LATEST_INFRA_RESULT=YES (§248 preserved historically)
+MARKER=HARD_STOP_AWAITING_ALTERNATE_RUNNER_OR_PLATFORM_RECOVERY_DECISION
+
+--------------------------------------------------------------------------------
+PREFLIGHT (MATCHED BEFORE DISPATCH)
+--------------------------------------------------------------------------------
+WORKSPACE=D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=11d0f689d09ebb0aa147fe2d88419fb8b6c6dd33
+UPSTREAM=11d0f689d09ebb0aa147fe2d88419fb8b6c6dd33
+REMOTE_FEATURE_SHA=11d0f689d09ebb0aa147fe2d88419fb8b6c6dd33
+PARENT=192ff0ee893ba7e685c39a5b1e5be0bce78380c7
+SUBJECT=docs(i5): record W4-P01 hard-stop for Actions queue cancel
+AHEAD_BEHIND=0/0
+WORKTREE=CLEAN
+STAGING=EMPTY
+UNTRACKED=0
+MASTER_LOG_TIP=§248 SIZE=2719255 SHA256=cd40c7cde7810f6301bf5f4fa1ee0b84303c41d9d1520d7f921ea711f3541864 EOL=CRLF_ONLY
+HANDOFF=v539 SIZE=3607086 SHA256=7d124f848dbc65516b46d1a144ad9da439ff15323631843f26f8c08a880416ee EOL=LF_ONLY
+LEDGER SIZE=115246 SHA256=5bc8528f853666606f70b26f5f5f927dfb48a3fe0de90b339e827a6b1aba2cf5 EOL=LF_ONLY
+FORMAL_I5=21.79487179%
+
+--------------------------------------------------------------------------------
+WORKFLOW BYTE VERIFICATION (HEAD; NOT MUTATED)
+--------------------------------------------------------------------------------
+PATH=.github/workflows/w4p01-postgresql-knowledge-retrieval-runtime.yml
+WORKFLOW_NAME=W4-P01 Focused PostgreSQL Knowledge Retrieval Runtime
+WORKFLOW_ID=328773088
+TRIGGER=workflow_dispatch ONLY
+PUSH_TRIGGER=ABSENT
+RUNNER=ubuntu-24.04
+POSTGRESQL=postgres:15
+EXPECTED_NODE_CONTRACT=19
+CONCURRENCY_cancel-in-progress=false
+
+--------------------------------------------------------------------------------
+EXACT ONE CURRENT-HEAD DISPATCH
+--------------------------------------------------------------------------------
+DISPATCH_UTC≈2026-08-06T17:47:54Z
+COMMAND=gh workflow run .github/workflows/w4p01-postgresql-knowledge-retrieval-runtime.yml --repo javadmeighani-oss/sedi-backend --ref feature/section15/backend-continuity-foundation
+PERMITTED_DISPATCH_COUNT_BEFORE_EXECUTABLE_FAILURE=1 (USED)
+RERUN_OLD_RUNS=PROHIBITED (31121586309 / 31122549760 NOT RERUN)
+SECOND_DISPATCH=PROHIBITED AFTER THIS RUNNERLESS RESULT
+
+--------------------------------------------------------------------------------
+NEW RUN IDENTITY (VALIDATED)
+--------------------------------------------------------------------------------
+RUN_ID=31124170273
+RUN_NUMBER=3
+ATTEMPT=1
+EVENT=workflow_dispatch
+HEAD_BRANCH=feature/section15/backend-continuity-foundation
+HEAD_SHA=11d0f689d09ebb0aa147fe2d88419fb8b6c6dd33
+WORKFLOW_NAME=W4-P01 Focused PostgreSQL Knowledge Retrieval Runtime
+URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31124170273
+RUN_CREATED_AT=2026-08-06T17:47:56Z
+RUN_STARTED_AT=2026-08-06T17:47:56Z
+RUN_UPDATED_AT=2026-08-06T18:03:02Z
+RUN_STATUS=completed
+RUN_CONCLUSION=failure
+
+--------------------------------------------------------------------------------
+JOB / RUNNER ASSIGNMENT
+--------------------------------------------------------------------------------
+JOB_ID=92691184040
+JOB_NAME=W4-P01 PostgreSQL knowledge retrieval runtime (19 nodes)
+JOB_STATUS=completed
+JOB_CONCLUSION=cancelled
+JOB_CREATED_AT=2026-08-06T17:47:58Z
+JOB_STARTED_AT=2026-08-06T17:47:58Z
+JOB_COMPLETED_AT=2026-08-06T18:03:01Z
+QUEUE_DURATION_SECONDS=903 (~15m 3s)
+RUNNER_ID=0
+RUNNER_NAME=(empty)
+RUNNER_GROUP=(empty)
+LABELS=["ubuntu-24.04"]
+STEP_COUNT=0
+STEPS=[]
+ARTIFACT_COUNT=0
+ARTIFACTS=[]
+
+--------------------------------------------------------------------------------
+BRANCH APPLIED
+--------------------------------------------------------------------------------
+BRANCH=C — runnerless cancellation repeats
+EXECUTABLE_STEPS_BEGAN=NO
+TECHNICAL_FAILURE_REMEDIATION=NOT_APPLICABLE
+NEW_TECHNICAL_COMMIT=PROHIBITED
+WORKFLOW_CHANGE=PROHIBITED
+ALTERNATE_RUNNER=NOT_AUTHORIZED
+COSMETIC_BOUNCE=NOT_CREATED
+CODE_UNCHANGED_FROM=11d0f689d09ebb0aa147fe2d88419fb8b6c6dd33
+
+--------------------------------------------------------------------------------
+PRIOR INFRA ATTEMPTS (HISTORIC; NOT CURRENT HEAD)
+--------------------------------------------------------------------------------
+RUN_1=31121586309 EVENT=push HEAD=ca3bcfc JOB=92683220818 cancelled steps=[]
+RUN_2=31122549760 EVENT=workflow_dispatch HEAD=ca3bcfc JOB=92686029008 cancelled steps=[]
+RUN_3=31124170273 EVENT=workflow_dispatch HEAD=11d0f68 JOB=92691184040 cancelled steps=[] (THIS RECOVERY)
+
+--------------------------------------------------------------------------------
+19-NODE / WARNINGS / ARTIFACT
+--------------------------------------------------------------------------------
+EXPECTED_NODES=19 (contract in workflow; NOT EXECUTED)
+COLLECTED_NODES=N/A (no executable steps)
+EXECUTED_NODES=N/A
+WARNINGS=N/A
+EVIDENCE_ARTIFACT=NOT_PRODUCED
+CHECKSUM_VERIFY=N/A
+
+--------------------------------------------------------------------------------
+LAYERED W4-P01 STATUS
+--------------------------------------------------------------------------------
+W4-P01 CODE AUTHORING=COMPLETE_ON_BRANCH (not CI-closed)
+KNOWLEDGE-DB-FIRST RETRIEVAL=CODE_PRESENT_RUNTIME_UNVERIFIED
+POSTGRESQL RUNTIME=NOT_EXECUTED (0 executable steps)
+EVIDENCE ASSURANCE=INFRA_HARD_STOP_RECORDED
+FINAL SYNTHESIS / REFERENCES=NOT OWNED — W4-P02
+MIGRATION / NETWORK / ACTIVATION / DEPLOY=NOT EXECUTED
+PROGRAM CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% UNCHANGED (§164.2 LOCKED)
+
+--------------------------------------------------------------------------------
+SMALLEST REQUIRED JAVAD DECISION
+--------------------------------------------------------------------------------
+1. Authorize alternate runner / platform recovery path (self-hosted or GitHub platform remediation) then one fresh workflow_dispatch against then-current HEAD
+OR
+2. Authorize a differently scoped execution path if SaaS ubuntu-24.04 queue cancel persists
+DO NOT authorize cosmetic SHA bounce
+DO NOT authorize another SaaS-only dispatch without a platform/runner change decision
+DO NOT claim PASS without executable 19-node Green
+
+--------------------------------------------------------------------------------
+CONTINUITY ARTIFACTS THIS SECTION
+--------------------------------------------------------------------------------
+MASTER_LOG=§249 (this section)
+HANDOFF=v540 exact-prefix successor of v539
+LEDGER=w4p01_repeated_runnerless_hard_stop blocker state
+DOCS_COMMIT_SUBJECT=docs(i5): record repeated W4-P01 runnerless hard-stop
+NO_DISPATCH_AFTER_DOCS_COMMIT=YES
+
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+NEXT_PACKAGE_IF_GREEN_LATER=I5-IMPL-W4-P02 (blocked until W4-P01 Green)
+DEADLINE_IMPACT=CRITICAL/HIGH — W4-P01 remains blocked on GitHub Actions runner assignment
+
+NOTE=post-§249 final master-log whole-file self-SHA is NOT embedded inside §249.
