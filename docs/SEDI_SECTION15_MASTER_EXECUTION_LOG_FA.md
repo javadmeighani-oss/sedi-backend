@@ -60790,3 +60790,146 @@ REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
 NOTE=post-§243 final master-log whole-file self-SHA is NOT embedded inside §243 (predecessor-identity policy).
 MARKER=
 READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+================================================================================
+§244 — I5-IMPL-W2-P03 ADMIN REVIEW SURFACES / P05 ALIAS RECONCILIATION +
+AUTHORITY RECONSTRUCTION + DESIGN FREEZE + CONTROLLED IMPLEMENTATION /
+STATIC + POSTGRESQL RUNTIME / GITHUB CI AUTO-REMEDIATION TO GREEN /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T14:23:40Z
+GATE_ID=I5-IMPL-W2-P03
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-06
+VERDICT=PASS
+ON_CRITICAL_PATH=YES
+DEADLINE_RISK=CRITICAL_HIGH
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+PRODUCT CALENDAR / SPEED / CRAWLER LAW VERIFICATION
+--------------------------------------------------------------------------------
+PILOT_READY=2026-08-22 = PRESENT (carried from §243)
+HEART_RATE_50_UNITS=2026-09-22 = PRESENT
+CLOSED_PILOT=2026-09-23..2026-12-21 = PRESENT
+MARKET_LAUNCH_WINTER_1405=2026-12-22..2027-03-20 = PRESENT
+DAILY_CONTINUOUS_DEVELOPMENT_LAW=PRESENT
+COMPREHENSIVE_GATE_LAW=PRESENT
+PERMANENT_WEEKLY_CRAWLER_LAW=PRESENT
+METADATA_ONLY_REFRESH_NOT_GROWTH=PRESENT
+
+--------------------------------------------------------------------------------
+PREFLIGHT
+--------------------------------------------------------------------------------
+STARTING_HEAD=6c6d60ae6c07cf756e853158d1689de2c2a0aa36
+BRANCH=feature/section15/backend-continuity-foundation
+PARITY_START=0/0
+WORKTREE_START=CLEAN
+MASTER_LOG_TIP_START=§243
+MASTER_LOG_PRE-§244_SIZE=2685911
+MASTER_LOG_PRE-§244_SHA256=492dbe83e56940adb30885279fa7b0b6994462aebe986e9187574cf1a89c0a8f
+V534_SIZE=3599088
+V534_SHA256=24cdbdeaa9f8745791547a7243df4d02092afe5f8d0d196d124a44b17e1a293e
+FORMAL_I5_COMPLETION_START=21.79487179%
+
+--------------------------------------------------------------------------------
+W2-P03 / P05 CANONICAL RECONCILIATION
+--------------------------------------------------------------------------------
+CANONICAL_PACKAGE_ID=I5-IMPL-W2-P03
+CANONICAL_TITLE=Admin review surfaces for KU/gap/safety
+P05=MANAGEMENT_ALIAS_ONLY (not a package ID)
+OUTCOME=A+D
+OWNS_ADMIN_REVIEW_SURFACES=YES
+OWNS_SOURCE_GOVERNANCE_AS_PACKAGE=NO
+COMBINED_HYBRID_PACKAGE=NO
+SOURCE_GOVERNANCE_OTHER_IDS=HISTORICAL_I5A / HISTORICAL_I5B_PARTIAL / CAP-OPEN-02 under W1-P01
+STALE_PLAN=§194.15 "W2-P03 source governance" SUPERSEDED by §243/v534 tip + package_sequence + §240 alias map
+RELATION_W2P02=consumes SafetyReviewQueueItem + KnowledgeConflict; no new ORM tables
+RELATION_I5GD=optional decision_id link; no GovernanceEntityType extension
+W3_ENTRY=critical path requires W2-P03 before W3-P01; crawler activation still prohibited
+
+--------------------------------------------------------------------------------
+DESIGN FREEZE
+--------------------------------------------------------------------------------
+MODELS=[]
+MIGRATIONS=[]
+SCHEMAS=backend/app/schemas/i5_core.py
+SERVICES=backend/app/services/i5/admin_review_service.py
+APIS=backend/app/routers/i5_admin.py (extend; knowledge_base READ_ONLY)
+AUTHZ=X-Admin-Token when ADMIN_TOKEN set (repository convention)
+QUEUE_TRANSITIONS=OPEN->IN_REVIEW; IN_REVIEW->CLOSED_*
+CLOSE_REQUIRES_DECISION_ID=YES
+CONFLICT_RESOLVE_PRESERVES_BOTH_SIDES=YES
+GAP_TRIAGE=OPEN->TRIAGED (+ frozen matrix)
+CRAWLER_ACTIVATION=PROHIBITED
+SOURCE_ACTIVATION=PROHIBITED
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION INVENTORY
+--------------------------------------------------------------------------------
+CREATE=
+  .github/workflows/w2p03-postgresql-admin-review-runtime.yml
+  backend/app/schemas/i5_core.py
+  backend/app/services/i5/admin_review_service.py
+  backend/tests/helpers/w2p03_postgres_runtime*.py
+  backend/tests/test_section30_i5_w2_p03_admin_review.py
+MODIFY=backend/app/routers/i5_admin.py
+
+--------------------------------------------------------------------------------
+NODE / WORKFLOW
+--------------------------------------------------------------------------------
+EXPECTED_RUNTIME_NODE_COUNT=19
+SELECTORS=12
+TRIGGER_FINAL=workflow_dispatch ONLY
+ARTIFACT=w2p03-postgresql-admin-review-evidence
+
+--------------------------------------------------------------------------------
+AUTO-REMEDIATION CYCLE LEDGER
+--------------------------------------------------------------------------------
+CYCLE=1
+COMMIT=dc3dd9175ef70f7ea64212f33554fd60831ff9f9
+SUBJECT=feat(i5): implement W2-P03 admin review surfaces
+RUN_ID=31110156607 EVENT=push CONCLUSION=success PASS=19
+
+CYCLE=2
+COMMIT=6a19593d5220aeea41589946286ef40346a018cd
+SUBJECT=fix(ci): restore W2-P03 workflow_dispatch-only trigger
+RUN_ID=31110341672 EVENT=workflow_dispatch CONCLUSION=success
+JOB_ID=92646184278 ARTIFACT_ID=8971405692 ARTIFACT_SIZE=2042
+TECHNICAL_DISPATCH_CYCLES_USED=2
+
+--------------------------------------------------------------------------------
+STRONGEST AUTHORITY-PERMITTED CLOSURE
+--------------------------------------------------------------------------------
+W2-P03_CANONICAL_IDENTITY=ADMIN_REVIEW_SURFACES / P05_ALIAS
+W2-P03_TECHNICAL_CONTRACT_CLOSURE=PASS
+W2-P03_RUNTIME_CONTRACT_CLOSURE=PASS
+W2-P03_CI_CLOSURE=GREEN
+W2-P03_MIGRATION=NOT_EXECUTED
+W2-P03_CRAWLER_ACTIVATION=NOT_EXECUTED
+W2-P03_PRODUCTION_ACTIVATION=NOT_EXECUTED
+W2-P03_PROGRAM_LEDGER_CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% (UNCHANGED)
+LEDGER_POST_SIZE=108607
+LEDGER_POST_SHA256=bea5fcd40599e78cb30dae56b609be793f17f965d17cd826c6e0b1b9de1d3ca6
+
+--------------------------------------------------------------------------------
+CRITICAL-PATH / DEADLINE IMPACT
+--------------------------------------------------------------------------------
+PILOT_READY_DEADLINE=2026-08-22
+PACKAGE_CLOSED_ON_CRITICAL_PATH=YES
+NEXT_24H_TARGET=I5-IMPL-W3-P01 (adapter framework; no source activation) after separate Javad approval
+REMAINING_CRITICAL_PATH=W3-P01 → … → W6 migration/activation → weekly crawler E2E
+W3_ENTRY_EFFECT=W2-P03 admin surfaces closed; crawler still blocked until source activation Gates
+
+--------------------------------------------------------------------------------
+NEXT PACKAGE
+--------------------------------------------------------------------------------
+NEXT_PACKAGE=I5-IMPL-W3-P01
+ALIAS=P06
+OBJECTIVE=Adapter framework + parse/extract/normalize/dedupe (no source activation)
+REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+
+NOTE=post-§244 final master-log whole-file self-SHA is NOT embedded inside §244 (predecessor-identity policy).
+MARKER=
+READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE

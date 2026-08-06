@@ -141,6 +141,32 @@
       "production_activation": "NO",
       "enums_reused": "EvidenceStrength/FreshnessState/ConflictState/MedicalSafetyState",
       "tables_created": "knowledge_conflicts,knowledge_safety_reviews"
+    },
+    "w2p03_post_closure_recomputation": {
+      "recorded_at_utc": "2026-08-06T14:23:40Z",
+      "gate": "I5-IMPL-W2-P03 ADMIN REVIEW SURFACES / P05",
+      "canonical_title": "Admin review surfaces for KU/gap/safety",
+      "p05_interpretation": "MANAGEMENT_ALIAS_ONLY",
+      "reconciliation_outcome": "A+D",
+      "stale_label_disposition": "§194.15 W2-P03 source governance SUPERSEDED",
+      "w2p03_technical_runtime_closure": "YES",
+      "w2p03_green_technical_commit": "6a19593d5220aeea41589946286ef40346a018cd",
+      "w2p03_implementation_commit": "dc3dd9175ef70f7ea64212f33554fd60831ff9f9",
+      "w2p03_green_run": 31110341672,
+      "w2p03_green_run_event": "workflow_dispatch",
+      "w2p03_registration_run": 31110156607,
+      "postgresql_runtime": "19/19 PASS",
+      "artifact_id": 8971405692,
+      "FORMAL_I5_CLOSED_AFTER_RECOMPUTATION": "21.79487179%",
+      "FORMAL_I5_REMAINING_AFTER_RECOMPUTATION": "78.20512821%",
+      "I5_B_CREDIT_AFTER_RECOMPUTATION": "4/13",
+      "reason_formal_percent_unchanged": "§164.2 LOCKED",
+      "w2p03_§164.2_formal_credit_awarded": "NO",
+      "migration_executed": "NO",
+      "crawler_activation": "NO",
+      "production_activation": "NO",
+      "models_created": "NONE",
+      "surfaces": "i5_admin safety/conflict/gap review APIs + i5_core schemas + admin_review_service"
     }
   },
   "weight_proof": {
@@ -248,7 +274,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "GOVERNANCE",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P03",
         "MANAGEMENT_ALIAS": "P05",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W2-P03 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=3.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=2.34615385%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -261,9 +287,9 @@
         "BLOCKER": "Formal package implementation and separate approval gates pending",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+MIGRATION_RUN+DATABASE_VERIFICATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W2-P03; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "NOT_WIRED",
+        "RUNTIME_STATUS": "ADMIN_REVIEW_SURFACES_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | W2-P03 admin review surfaces technically closed 2026-08-06; formal % not awarded; crawler/source activation NOT executed."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-02",
@@ -1047,8 +1073,12 @@
         ],
         "REMAINING_PLAN_POINTS": "3.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
-        "REMAINING_WEIGHT_PERCENT_DISPLAY": "2.34615385%"
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "2.34615385%",
+        "TECHNICAL_RUNTIME_CLOSURE": "YES",
+        "TECHNICAL_CLOSURE_EVIDENCE": "impl dc3dd9175ef70f7ea64212f33554fd60831ff9f9; green technical 6a19593d5220aeea41589946286ef40346a018cd workflow_dispatch run 31110341672; registration push run 31110156607; 19/19 nodes; artifact 8971405692",
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
+        "NOTES": "Admin review APIs over SafetyReviewQueueItem/KnowledgeConflict/KnowledgeGap; P05=management alias; §194 source-governance label stale; remaining plan points 3.0 retained until §164.2; migration RUN W6-P01"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
