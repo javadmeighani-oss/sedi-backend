@@ -25,6 +25,8 @@ from backend.app.services.i5.enums import (
     KnowledgeType,
     KnowledgeUnitRuntimeEligibility,
     MedicalSafetyState,
+    MemoryChangeKind,
+    MemoryTransitionKind,
     ProhibitedDataState,
     PublicationState,
     RawRetentionMode,
@@ -37,6 +39,7 @@ from backend.app.services.i5.enums import (
     RunGapResultType,
     RunSourceResultStatus,
     RuntimeEligibility,
+    SupersessionState,
     WeeklyRunApprovalState,
     WeeklyRunAttemptStatus,
     WeeklyRunStatus,
@@ -1848,4 +1851,109 @@ class KnowledgeProvenance(Base):
     conflict_hook = Column(String(256), nullable=True)
     supersession_hook = Column(String(256), nullable=True)
     retraction_hook = Column(String(256), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+# ---------------------------------------------------------------------------
+# I5-IMPL-W2-P01 — Knowledge Memory / Versioning / Diff / Supersession
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeMemoryItem(Base):
+    __tablename__ = "knowledge_memory_items"
+    __table_args__ = (
+        CheckConstraint(_vocab_sql("evidence_strength", EvidenceStrength), name="ck_kmi_evidence_strength_vocab"),
+        CheckConstraint(_vocab_sql("freshness_state", FreshnessState), name="ck_kmi_freshness_state_vocab"),
+        CheckConstraint(_vocab_sql("conflict_state", ConflictState), name="ck_kmi_conflict_state_vocab"),
+        CheckConstraint(_vocab_sql("medical_safety_state", MedicalSafetyState), name="ck_kmi_medical_safety_state_vocab"),
+        CheckConstraint(
+            _vocab_sql("runtime_eligibility", KnowledgeUnitRuntimeEligibility),
+            name="ck_kmi_runtime_eligibility_vocab",
+        ),
+        CheckConstraint(_vocab_sql("supersession_state", SupersessionState), name="ck_kmi_supersession_state_vocab"),
+        CheckConstraint(
+            "(runtime_eligibility <> 'ELIGIBLE') OR (supersession_state = 'CURRENT')",
+            name="ck_kmi_eligible_requires_current",
+        ),
+        UniqueConstraint("memory_item_id", name="uq_kmi_memory_item_id"),
+        UniqueConstraint("knowledge_unit_id", name="uq_kmi_knowledge_unit_id"),
+        Index("ix_kmi_domain", "domain"),
+        Index("ix_kmi_runtime_eligibility", "runtime_eligibility"),
+        Index("ix_kmi_supersession_state", "supersession_state"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    memory_item_id = Column(String(64), nullable=False)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_kmi_knowledge_unit_id"),
+        nullable=False,
+    )
+    domain = Column(String(128), nullable=False)
+    topic = Column(String(256), nullable=True)
+    knowledge_version = Column(String(64), nullable=False)
+    source_ids = Column(Text, nullable=True)
+    source_versions = Column(Text, nullable=True)
+    evidence_strength = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    freshness_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    conflict_state = Column(String(32), nullable=False, default="NONE", server_default="NONE")
+    medical_safety_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    runtime_eligibility = Column(String(32), nullable=False, default="NOT_ELIGIBLE", server_default="NOT_ELIGIBLE")
+    supersession_state = Column(String(32), nullable=False, default="CURRENT", server_default="CURRENT")
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class KnowledgeMemoryTransition(Base):
+    __tablename__ = "knowledge_memory_transitions"
+    __table_args__ = (
+        CheckConstraint(
+            _vocab_sql("transition_kind", MemoryTransitionKind),
+            name="ck_kmt_transition_kind_vocab",
+        ),
+        CheckConstraint(_vocab_sql("change_kind", MemoryChangeKind), name="ck_kmt_change_kind_vocab"),
+        CheckConstraint("idempotency_key ~ '^[0-9a-f]{64}$'", name="ck_kmt_idempotency_key_format"),
+        CheckConstraint(
+            "diff_json IS NULL OR (char_length(diff_json) >= 2 AND left(diff_json, 1) = '{' AND right(diff_json, 1) = '}')",
+            name="ck_kmt_diff_json_object",
+        ),
+        UniqueConstraint("idempotency_key", name="uq_kmt_idempotency_key"),
+        Index("ix_kmt_memory_item_id", "memory_item_id"),
+        Index("ix_kmt_created_at", "created_at"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    memory_row_id = Column(
+        Integer,
+        ForeignKey("knowledge_memory_items.id", ondelete="RESTRICT", name="fk_kmt_memory_item_row_id"),
+        nullable=False,
+    )
+    memory_item_id = Column(String(64), nullable=False)
+    from_knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_kmt_from_knowledge_unit_id"),
+        nullable=True,
+    )
+    to_knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="RESTRICT", name="fk_kmt_to_knowledge_unit_id"),
+        nullable=True,
+    )
+    transition_kind = Column(String(32), nullable=False)
+    change_kind = Column(String(32), nullable=False)
+    diff_json = Column(Text, nullable=True)
+    idempotency_key = Column(String(64), nullable=False)
+    reason = Column(Text, nullable=True)
+    process_id = Column(
+        String(128),
+        nullable=False,
+        default="W2P01_SUPERSESSION_SERVICE",
+        server_default="W2P01_SUPERSESSION_SERVICE",
+    )
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)

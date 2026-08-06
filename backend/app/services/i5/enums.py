@@ -396,3 +396,43 @@ class KnowledgeUnitRuntimeEligibility(str, Enum):
     ELIGIBLE = "ELIGIBLE"
     SUSPENDED = "SUSPENDED"
     REVOKED = "REVOKED"
+
+
+# ---------------------------------------------------------------------------
+# I5-IMPL-W2-P01 — Knowledge Memory / Versioning / Diff / Supersession
+# ---------------------------------------------------------------------------
+
+
+class SupersessionState(str, Enum):
+    """Supersession / currency state for a knowledge memory projection."""
+
+    CURRENT = "CURRENT"
+    SUPERSEDED = "SUPERSEDED"
+    STALE = "STALE"
+    WITHDRAWN = "WITHDRAWN"
+    CONFLICTED = "CONFLICTED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    REJECTED = "REJECTED"
+    RETRACTED = "RETRACTED"
+
+
+class MemoryChangeKind(str, Enum):
+    """Material-change classification for a knowledge-unit revision."""
+
+    NO_MATERIAL_CHANGE = "NO_MATERIAL_CHANGE"
+    CONTENT_CHANGE = "CONTENT_CHANGE"
+    SOURCE_METADATA_CHANGE = "SOURCE_METADATA_CHANGE"
+    PROVENANCE_CHANGE = "PROVENANCE_CHANGE"
+    SAFETY_GOVERNANCE_CHANGE = "SAFETY_GOVERNANCE_CHANGE"
+    RETRACTION_WITHDRAWAL = "RETRACTION_WITHDRAWAL"
+
+
+class MemoryTransitionKind(str, Enum):
+    """Kind of recorded knowledge-memory transition event."""
+
+    CREATED = "CREATED"
+    NO_CHANGE = "NO_CHANGE"
+    SUPERSEDED = "SUPERSEDED"
+    RETRACTED = "RETRACTED"
+    WITHDRAWN = "WITHDRAWN"
+    CURRENT_VERSION_CHANGED = "CURRENT_VERSION_CHANGED"
