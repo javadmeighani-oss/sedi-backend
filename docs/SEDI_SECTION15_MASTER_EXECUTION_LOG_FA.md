@@ -59557,3 +59557,161 @@ TEST_FILE_EOL=CRLF_ONLY
 STATIC_VERIFICATION=PASS (ast.parse; names/ids/selectors textually preserved; model blob OID unchanged be77cd0cb7295906f8f458fb2d317dbc7d2d0018)
 PROTECTED_CONTRACTS=15 selectors / 105 runtime / 174 total textually unaltered; no skip/xfail
 RUNTIME_NOT_YET_RE_EXECUTED=YES
+
+--------------------------------------------------------------------------------
+CYCLE-02 STAGE / COMMIT / PUSH / DISPATCH / TERMINAL RESULT
+--------------------------------------------------------------------------------
+RECORDED_AT_UTC=2026-08-06T07:43:24Z
+CYCLE=02
+STAGE_PATHS=
+  backend/tests/test_section15_i5_w1p01_orm_contracts.py
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+COMMIT_SHA=aec0df4f94d5493d8c328fc19113d104cedb7b86
+COMMIT_PARENT=cf60629bcce7b4d4eea3a38c1052da7b38072d3e
+COMMIT_TREE=4d1c5b99f2480e34b97af305dcc553a01a266670
+COMMIT_SUBJECT=test(backend): handle overlapping W1-P01 PK/UQ failures
+COMMIT_MESSAGE_FORM=B (subject + Co-authored-by: Cursor <cursoragent@cursor.com>)
+COMMIT_BLOB_TEST=3315c327f805191e89d889b748e506d651b535cb
+COMMIT_BLOB_MASTER_LOG=1bb1264dfeb9b6450bf1d0855bfaccc43c286a3e
+PUSH=NORMAL_NON_FORCE / FAST_FORWARD / PASS
+REMOTE_SHA_AFTER=aec0df4f94d5493d8c328fc19113d104cedb7b86
+LOCAL_REMOTE_PARITY=0/0
+PRE_DISPATCH_BASELINE_UTC=2026-08-06T07:38:33Z
+PREEXISTING_EXACT_MATCHING_RUN_COUNT=0
+DISPATCH_UTC=2026-08-06T07:39:04Z
+DISPATCH_COMMAND=gh workflow run .github/workflows/w1p01-postgresql-orm-runtime.yml --ref feature/section15/backend-continuity-foundation
+DISPATCH_ATTEMPT_COUNT=1
+NEW_RUN_ID=31081741681
+RUN_NUMBER=5
+ATTEMPT=1
+HEAD_SHA=aec0df4f94d5493d8c328fc19113d104cedb7b86
+EVENT=workflow_dispatch
+URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31081741681
+CONCLUSION=success
+JOB=W1-P01 PostgreSQL ORM runtime (105 nodes) / id=92551904466 / conclusion=success / labels=ubuntu-24.04
+TEMP_ENV=PASS (Configure runner temporary environment=success; TMPDIR/TEMP/TMP=/home/runner/work/_temp)
+POSTGRESQL_SERVICE=PASS (Initialize containers=success; postgres:15)
+DATABASE_CONNECTION=PASS (URL redacted postgresql+psycopg2://***@127.0.0.1:5432/sedi_w1p01_orm)
+PROCESS_1=PASS exit=0 / 105 tests collected in 0.51s
+PROCESS_2=PASS exit=0 / 105 passed, 511 warnings in 1.61s
+SELECTOR_COVERAGE=15/15 PASS
+NODE_COVERAGE=105/105 PASS (missing=0 duplicated=0 unexpected=0)
+T6_01=PASS
+ALL_T7=PASS
+ALL_T8=PASS
+ARTIFACT=PASS name=w1p01-postgresql-orm-runtime-evidence id=8959743221 size=4931 expired=false
+CLOSED_BY_CYCLE_02=T8 uq_wkra_id_weekly_run_id vs weekly_knowledge_run_attempts_pkey; proactive uq_i5gd_id_entity_family vs i5_governance_decisions_pkey
+PREVIOUSLY_CLOSED_REMAIN_CLOSED=T6_01 source_scope; T7 vocab/matrix overlaps
+REMAINING_OPEN=0
+LOOP_DECISION=STOP / FINAL_GREEN_CONTINUITY
+
+--------------------------------------------------------------------------------
+FINAL GREEN CONTINUITY
+--------------------------------------------------------------------------------
+RECORDED_AT_UTC=2026-08-06T07:43:24Z
+FINAL_GREEN_RUN_ID=31081741681
+RUN_NUMBER=5
+ATTEMPT=1
+RUN_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31081741681
+FINAL_COMMIT_SHA=aec0df4f94d5493d8c328fc19113d104cedb7b86
+CONCLUSION=success
+POSTGRESQL_SERVICE=PASS
+DATABASE_CONNECTION=PASS
+PROCESS_1=105 collected / exit 0
+PROCESS_2=105 passed / exit 0
+15_SELECTORS=PASS
+105_RUNTIME_NODES=PASS
+T6_01=PASS
+ALL_T7_CASES=PASS
+ARTIFACT=PASS
+TOTAL_REMEDIATION_CYCLES=2
+ALL_CYCLE_COMMIT_SHAS=
+  CYCLE-01=cf60629bcce7b4d4eea3a38c1052da7b38072d3e
+  CYCLE-02=aec0df4f94d5493d8c328fc19113d104cedb7b86
+ALL_CYCLE_RUN_IDS=
+  CYCLE-01=31080887436
+  CYCLE-02=31081741681
+ALL_CLOSED_FINDINGS=
+  T6_01 source_scope NotNullViolation (pre-gate)
+  T7 ck_i5gd_entity_type_vocab / decision_family_vocab / decision_type_vocab overlap
+  T8 uq_wkra_id_weekly_run_id PK-shadow overlap
+  T8 uq_i5gd_id_entity_family PK-shadow overlap (proactive)
+OPEN_FINDINGS=0
+WORKFLOW_GREEN=YES
+POSTGRESQL_RUNTIME_PROOF=PASS
+W1-P01_STATIC_CONTRACT=PASS
+W1-P01_RUNTIME_CONTRACT=PASS
+W1-P01_TECHNICAL_IMPLEMENTATION_CLOSURE=PASS
+NEXT_DIRECT_GATE=
+W1-P01 POSTGRESQL ORM RUNTIME FINAL CLOSURE CONTINUITY EXACT STAGE-01
+EXACT_STAGE_ALLOWLIST=
+  docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+NOTE=final green continuity intentionally left UNCOMMITTED so green runtime remains tied to exact technical commit aec0df4f94d5493d8c328fc19113d104cedb7b86
+MARKER=
+READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_FINAL_CLOSURE_CONTINUITY_EXACT_STAGE_01
+
+================================================================================
+§238 — W1-P01 POSTGRESQL ORM RUNTIME / FINAL CLOSURE CONTINUITY EXACT STAGE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-06T07:57:04Z
+GATE=W1-P01 POSTGRESQL ORM RUNTIME FINAL CLOSURE CONTINUITY EXACT STAGE-01
+VERDICT=PASS
+
+STAGE_ALLOWLIST_COUNT=1
+STAGED_PATH=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+STATUS_CLASS=MODIFIED
+MODE=100644
+
+FINAL_GREEN_COMMIT=aec0df4f94d5493d8c328fc19113d104cedb7b86
+FINAL_GREEN_RUN=31081741681
+RUN_NUMBER=5
+ATTEMPT=1
+CONCLUSION=success
+PROCESS_1=105 collected / exit 0
+PROCESS_2=105 passed / exit 0
+SELECTORS=15 / 15
+MISSING_DUPLICATED_UNEXPECTED=0 / 0 / 0
+ARTIFACT=8959743221 / 4931 bytes
+OPEN_FINDINGS=0
+
+WORKFLOW_GREEN=YES
+POSTGRESQL_RUNTIME_PROOF=PASS
+W1-P01_STATIC_CONTRACT=PASS
+W1-P01_RUNTIME_CONTRACT=PASS
+W1-P01_TECHNICAL_IMPLEMENTATION_CLOSURE=PASS
+
+LAW_ID=SEDI-V1 CONTROLLED AUTO-REMEDIATION TO GREEN LAW-01
+PERMANENT_LAW_DOCUMENTED=YES
+MASTER_LOG_LAW_RATIFICATION=PASS
+AUTHORITATIVE_HANDOFF_LAW_RATIFICATION=PASS
+
+MASTER_LOG_PRE-§238_SIZE=2636579
+MASTER_LOG_PRE-§238_SHA256=145cad83c97bb1efb45613e25674cc42868e1881c2b7f6558b84d0251507504a
+MASTER_LOG_PRE-§238_EOL=CRLF_ONLY
+
+V528_SIZE=3585280
+V528_SHA256=a14ced6bbd1edbc2c88f006e3643082fcf3a8f280980e202c15b9dba00400d6c
+V528_EOL=LF_ONLY
+
+TECHNICAL_EDIT=NO
+TEST=NO
+POSTGRESQL=NO
+DISPATCH=NO
+RERUN=NO
+COMMIT=NO
+PUSH=NO
+MIGRATION=NO
+DEPLOY=NO
+ACTIVATION=NO
+
+NEXT_DIRECT_GATE=
+W1-P01 POSTGRESQL ORM RUNTIME FINAL CLOSURE CONTINUITY EXACT COMMIT-01
+NEXT_COMMIT_SUBJECT=
+docs(backend): record W1-P01 runtime closure
+NEXT_COMMIT_MESSAGE_FORMS=
+  Form A: subject only
+  Form B: subject + Co-authored-by: Cursor <cursoragent@cursor.com>
+
+NOTE=post-§238 final master-log whole-file self-SHA is NOT embedded inside §238 (predecessor-identity policy).
+MARKER=
+READY_FOR_W1P01_POSTGRESQL_ORM_RUNTIME_FINAL_CLOSURE_CONTINUITY_EXACT_COMMIT_01
