@@ -2066,3 +2066,132 @@ class SafetyReviewQueueItem(Base):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+
+
+# -------------------- I5-IMPL-W5-P01 / P10 — Iran directory (NOT clinical KU) --------------------
+# Permanent law: IR directory records are discovery metadata only.
+# They MUST NOT FK to knowledge_units / become KnowledgeUnit clinical authority.
+
+
+class IranDoctor(Base):
+    """Global Iran doctor directory entry (not user-owned UserDoctor)."""
+
+    __tablename__ = "iran_doctors"
+    __table_args__ = (
+        CheckConstraint("char_length(canonical_directory_key) >= 1", name="ck_iran_doctor_key_nonempty"),
+        CheckConstraint("char_length(full_name) >= 1", name="ck_iran_doctor_name_nonempty"),
+        CheckConstraint(
+            "record_state IN ('ACTIVE', 'INACTIVE')",
+            name="ck_iran_doctor_record_state",
+        ),
+        UniqueConstraint("canonical_directory_key", name="uq_iran_doctor_canonical_key"),
+        Index("ix_iran_doctor_city", "city"),
+        Index("ix_iran_doctor_province", "province"),
+        Index("ix_iran_doctor_specialty", "specialty"),
+        Index("ix_iran_doctor_record_state", "record_state"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    canonical_directory_key = Column(String(128), nullable=False)
+    full_name = Column(String(256), nullable=False)
+    specialty = Column(String(128), nullable=True)
+    city = Column(String(128), nullable=True)
+    province = Column(String(128), nullable=True)
+    phone = Column(String(64), nullable=True)
+    address = Column(String(512), nullable=True)
+    record_state = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
+    # Future governed-source readiness only — no live IR source embedded.
+    source_system_label = Column(String(128), nullable=True)
+    last_verified_at = Column(DateTime, nullable=True)
+    last_observed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class IranLaboratory(Base):
+    """Global Iran laboratory directory entry."""
+
+    __tablename__ = "iran_laboratories"
+    __table_args__ = (
+        CheckConstraint("char_length(canonical_directory_key) >= 1", name="ck_iran_lab_key_nonempty"),
+        CheckConstraint("char_length(name) >= 1", name="ck_iran_lab_name_nonempty"),
+        CheckConstraint(
+            "record_state IN ('ACTIVE', 'INACTIVE')",
+            name="ck_iran_lab_record_state",
+        ),
+        UniqueConstraint("canonical_directory_key", name="uq_iran_lab_canonical_key"),
+        Index("ix_iran_lab_city", "city"),
+        Index("ix_iran_lab_province", "province"),
+        Index("ix_iran_lab_record_state", "record_state"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    canonical_directory_key = Column(String(128), nullable=False)
+    name = Column(String(256), nullable=False)
+    city = Column(String(128), nullable=True)
+    province = Column(String(128), nullable=True)
+    services_text = Column(String(512), nullable=True)
+    phone = Column(String(64), nullable=True)
+    address = Column(String(512), nullable=True)
+    record_state = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
+    source_system_label = Column(String(128), nullable=True)
+    last_verified_at = Column(DateTime, nullable=True)
+    last_observed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class IranHospital(Base):
+    """Global Iran hospital / medical-center directory entry."""
+
+    __tablename__ = "iran_hospitals"
+    __table_args__ = (
+        CheckConstraint("char_length(canonical_directory_key) >= 1", name="ck_iran_hosp_key_nonempty"),
+        CheckConstraint("char_length(name) >= 1", name="ck_iran_hosp_name_nonempty"),
+        CheckConstraint(
+            "facility_type IN ('HOSPITAL', 'MEDICAL_CENTER')",
+            name="ck_iran_hosp_facility_type",
+        ),
+        CheckConstraint(
+            "record_state IN ('ACTIVE', 'INACTIVE')",
+            name="ck_iran_hosp_record_state",
+        ),
+        UniqueConstraint("canonical_directory_key", name="uq_iran_hosp_canonical_key"),
+        Index("ix_iran_hosp_city", "city"),
+        Index("ix_iran_hosp_province", "province"),
+        Index("ix_iran_hosp_facility_type", "facility_type"),
+        Index("ix_iran_hosp_record_state", "record_state"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    canonical_directory_key = Column(String(128), nullable=False)
+    name = Column(String(256), nullable=False)
+    facility_type = Column(String(32), nullable=False, default="HOSPITAL", server_default="HOSPITAL")
+    city = Column(String(128), nullable=True)
+    province = Column(String(128), nullable=True)
+    phone = Column(String(64), nullable=True)
+    address = Column(String(512), nullable=True)
+    record_state = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
+    source_system_label = Column(String(128), nullable=True)
+    last_verified_at = Column(DateTime, nullable=True)
+    last_observed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
