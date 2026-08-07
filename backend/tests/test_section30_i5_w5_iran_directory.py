@@ -327,10 +327,12 @@ def test_W5P01_T20_source_legal_boundary_no_live_source():
     assert NO_LIVE_IR_SOURCE_FETCH is True
     meta = ids.directory_package_metadata()
     assert meta["no_live_ir_source_fetch"] is True
-    # source_system_label may be present as future metadata readiness, not a live provider.
     src = Path("backend/app/services/i5/iran_directory_service.py").read_text(encoding="utf-8")
-    assert "scrape" not in src.lower()
-    assert "crawl" not in src.lower()
+    # Forbid live fetch/API client imports; docstring mentions of prohibited behaviors are allowed.
+    for token in ("import requests", "import httpx", "urllib.request", "aiohttp", "openai"):
+        assert token not in src
+    assert "def scrape" not in src
+    assert "def crawl" not in src
 
 
 def test_W5P01_T21_endorsement_disclaimer(db):
