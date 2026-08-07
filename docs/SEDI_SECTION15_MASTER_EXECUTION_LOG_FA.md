@@ -62212,3 +62212,180 @@ NEXT_PACKAGE=I5-IMPL-W6-P03
 DEADLINE_IMPACT=CRITICAL/HIGH mitigated for offline validation/CI blocker; remaining path W6-P01/W6-P03 + crawler E2E
 
 NOTE=post-§254 final master-log whole-file self-SHA is NOT embedded inside §254.
+
+
+================================================================================
+§255 — W6-P02 / P11 CONTINUITY + EVIDENCE TRUTH COMPLETION /
+PER-CYCLE JOB-RUNNER RECORD /
+MATERIAL EVENT COVERAGE CORRECTION /
+DIRECT EVIDENCE FINDING RECORD /
+DOCS-ONLY RATIFICATION CORRECTION-01
+================================================================================
+RECORDED_AT_UTC=2026-08-07T10:15:00Z
+GATE_ID=W6-P02-CONTINUITY-EVIDENCE-TRUTH-COMPLETION-01
+PARENT_PACKAGE=I5-IMPL-W6-P02
+MANAGEMENT_ALIAS=P11
+JAVAD_APPROVAL=EXPLICIT (separate docs/continuity correction Gate)
+PURPOSE=Supplement/correct coverage assertions in §254 without changing technical Green
+TECHNICAL_GREEN_PRESERVED=YES
+TECHNICAL_GREEN_SHA=b90b5221fb2d0eed58e519167e2c91c6f209105f
+TECHNICAL_GREEN_RUN=31167497219
+TECHNICAL_GREEN_JOB=92831601154
+CODE_CHANGES=NONE
+TEST_CHANGES=NONE
+WORKFLOW_CHANGES=NONE
+NEW_DISPATCH=NONE
+MARKER=READY_FOR_W6P03_SEPARATE_JAVAD_APPROVAL
+
+--------------------------------------------------------------------------------
+REASON FOR CORRECTION
+--------------------------------------------------------------------------------
+Direct ChatGPT audit found §254 summarized CI cycles 1–4 with SHA/run/root-cause
+but omitted main job IDs and runner identities required by the approved W6-P02
+per-cycle continuity contract. Numeric coverage used non-integer placeholders
+("COVERED"). This section records verified per-cycle truth and findings without
+reopening technical Green.
+
+--------------------------------------------------------------------------------
+FIVE-CYCLE VERIFIED EVIDENCE (DIRECT GITHUB)
+--------------------------------------------------------------------------------
+TECHNICAL_CYCLE_COUNT=5
+DUPLICATE_SAME_SHA_DISPATCH=NO
+
+CYCLE_1=
+  SHA=e840ff031cd956b5ad0061f349f64d361ca797f6
+  SUBJECT=test(i5): add W6-P02 offline E2E validation
+  RUN_ID=31166787412 RUN_NUMBER=297 EVENT=workflow_dispatch
+  JOB_ID=92829330622 JOB_NAME=W6-P02 Offline E2E + Prior Unit Subset
+  RUNNER_ID=1000001166 RUNNER_NAME=GitHub Actions 1000001166
+  CONCLUSION=failure FAILED_STEP=Migration-not-run sentinel (static)
+  ARTIFACT_COUNT=0
+  ROOT_CAUSE=migration sentinel false-positive against non-command ALEMBIC_UPGRADE prose
+
+CYCLE_2=
+  SHA=5d34eb7ac883d0bc244ab3844412c47738a85ed2
+  SUBJECT=fix(i5): tighten W6-P02 alembic sentinel pattern
+  RUN_ID=31166896078 RUN_NUMBER=298 EVENT=workflow_dispatch
+  JOB_ID=92829694932 JOB_NAME=W6-P02 Offline E2E + Prior Unit Subset
+  RUNNER_ID=1000001167 RUNNER_NAME=GitHub Actions 1000001167
+  CONCLUSION=failure FAILED_STEP=Migration-not-run sentinel (static)
+  ARTIFACT_COUNT=0
+  ROOT_CAUSE=sentinel still matched evidence/prose occurrence containing "alembic upgrade"
+
+CYCLE_3=
+  SHA=0cd1417d609c3150067400a35430f118818bdcc5
+  SUBJECT=fix(i5): exclude prose from W6-P02 alembic sentinel
+  RUN_ID=31167005282 RUN_NUMBER=299 EVENT=workflow_dispatch
+  JOB_ID=92830056434 JOB_NAME=W6-P02 Offline E2E + Prior Unit Subset
+  RUNNER_ID=1000001168 RUNNER_NAME=GitHub Actions 1000001168
+  CONCLUSION=failure FAILED_STEP=Collect + run W6 offline E2E (22 nodes)
+  ARTIFACT_COUNT=0
+  ROOT_CAUSE=Z08 wrong projection key; Z16 self-string/sentinel assertion problem
+
+CYCLE_4=
+  SHA=dd7158aca715f0cbf6b40fc23e07b7dca3e45ab7
+  SUBJECT=fix(i5): correct W6-P02 Z08 projection and Z16 sentinel
+  RUN_ID=31167270915 RUN_NUMBER=300 EVENT=workflow_dispatch
+  JOB_ID=92830879420 JOB_NAME=W6-P02 Offline E2E + Prior Unit Subset
+  RUNNER_ID=1000001169 RUNNER_NAME=GitHub Actions 1000001169
+  CONCLUSION=success
+  W6_TESTS=22/22 PASS PRIOR_UNIT=12/12 PASS
+  ARTIFACT_ID=8989502627 NAME=w6p02-i5-expanded-offline-e2e-evidence SIZE=20666
+  ARTIFACT_DIGEST=sha256:b6a83dabd8838a5a0a1d7f007108eb5b2ad60838dac45d1ff7187512f62ba52e
+  TERMINAL_GREEN=NO
+  REASON=post-run Evidence Assurance found undeclared collected-prior-unit-raw.txt
+
+CYCLE_5_GREEN=
+  SHA=b90b5221fb2d0eed58e519167e2c91c6f209105f
+  SUBJECT=fix(i5): purge W6-P02 evidence pack transient file
+  RUN_ID=31167497219 RUN_NUMBER=301 EVENT=workflow_dispatch
+  JOB_ID=92831601154 JOB_NAME=W6-P02 Offline E2E + Prior Unit Subset
+  RUNNER_ID=1000001170 RUNNER_NAME=GitHub Actions 1000001170
+  CONCLUSION=success TERMINAL_GREEN=YES
+  W6=22/22/22 PASS=22 FAIL=0 SKIP=0
+  PRIOR=12/12/12 PASS=12 FAIL=0 SKIP=0
+  WARNINGS_W6=11 WARNINGS_PRIOR=3 NEW_MATERIAL=0
+  ARTIFACT_ID=8989595136 NAME=w6p02-i5-expanded-offline-e2e-evidence SIZE=19742
+  ARTIFACT_DIGEST=sha256:b8444802128eb43121950e1ecde306bc6d366e6223aa33cfd612d60873d383e0
+  FILES=40 MANIFEST=40 CHECKSUM_ENTRIES=39 SET_EQUALITY=PASS VERIFY=PASS
+
+COMMIT_CHAIN=
+  174ad636c9365a4eda9e7198696a9f5a9d57a7de
+  -> e840ff031cd956b5ad0061f349f64d361ca797f6
+  -> 5d34eb7ac883d0bc244ab3844412c47738a85ed2
+  -> 0cd1417d609c3150067400a35430f118818bdcc5
+  -> dd7158aca715f0cbf6b40fc23e07b7dca3e45ab7
+  -> b90b5221fb2d0eed58e519167e2c91c6f209105f
+  -> cc9f845ab499feddb2226243411da2f525d13d46
+TECHNICAL_COMMITS_GATE_START_TO_GREEN=5
+
+--------------------------------------------------------------------------------
+FINDINGS
+--------------------------------------------------------------------------------
+FINDING_ID=W6P02-CONTINUITY-EVENT-COVERAGE-01
+TYPE=PERMANENT CONTINUITY LAW / PER-CYCLE EVENT COVERAGE GAP
+ENTRY_STATE=OPEN
+SEVERITY=BLOCKING FOR FULL CONTINUITY RATIFICATION; NON-BLOCKING FOR TECHNICAL GREEN
+TECHNICAL_GREEN_AFFECTED=NO
+ROOT_CAUSE=§254 omitted cycle 1–4 job IDs/runner identities required by continuity contract
+CORRECTION=this §255 + v546 + ledger sync
+EXIT_STATE=CLOSED
+
+FINDING_ID=W6P02-EVIDENCE-REMEDIATION-CHAIN-01
+TYPE=EVIDENCE ASSURANCE COMPLETENESS / TRACEABILITY
+SEVERITY=NON-BLOCKING
+TECHNICAL_GREEN_AFFECTED=NO
+OBSERVED=git-show-remediation-commits.txt="(none or see commit-chain.json)"; commit-chain.json incomplete vs actual remediation SHAs
+ACTUAL_REMEDIATION_SHAS=5d34eb7...;0cd1417...;dd7158a...;b90b522...
+STATE=RECORDED / OPEN_NON_BLOCKING_CARRY_FORWARD
+CLOSED=NO
+FUTURE_CRITERION=Evidence packs must enumerate every remediation commit with SHA/parent/subject/paths/run map
+
+FINDING_ID=W6P02-TEST-PROOF-QUALITY-01
+TYPE=TEST / EVIDENCE PROOF PRECISION
+SEVERITY=NON-BLOCKING
+TECHNICAL_GREEN_AFFECTED=NO
+NODE=test_W6P02_X04_sawarning_cleanup_justified_non_material
+OBSERVED_TAUTOLOGY=assert "transaction already deassociated" not in helper_src.lower() or True
+SEMANTIC=
+  W5P01-SAWARNING-CLEANUP-01=CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE
+  WARNING_CLASSIFICATION=KNOWN_NON_MATERIAL_HARNESS_CLEANUP
+  WARNING_ELIMINATION_PROVEN=NO
+  GLOBAL_SAWARNING_SUPPRESSION=NO
+  CLOSED_AS_JUSTIFIED_NON_MATERIAL != WARNING_ELIMINATED
+STATE=RECORDED / OPEN_NON_BLOCKING_CARRY_FORWARD
+CLOSED=NO
+LAW=Tautological/self-validating assertions (or True / self-equality / locally assigned disposition strings) cannot serve as material safety/quality evidence
+
+--------------------------------------------------------------------------------
+MATERIAL EVENT LEDGER (EXPLICIT COUNTING UNIT)
+--------------------------------------------------------------------------------
+MATERIAL_EVENT_DEFINITION=Numbered W6-P02 material continuity events E01–E30 listed below; each event is one countable unit that must appear in BOTH master and authoritative handoff.
+MATERIAL_RESULT_COUNT=30
+EVENTS=E01_GATE_APPROVAL_IDENTITY;E02_BASELINE_IDENTITIES;E03_P11_AUTHORITY_RECONCILIATION;E04_CAP_OPEN_27_PARTITION;E05_Z_AUTHORITY_RECONSTRUCTION;E06_DESIGN_FREEZE_ALLOWLIST;E07_WORKFLOW_ISOLATION_DECISION;E08_TECHNICAL_IMPL_COMMIT_E840FF0;E09_CI_CYCLE_1_RUN_JOB_RUNNER;E10_CI_CYCLE_2_RUN_JOB_RUNNER;E11_CI_CYCLE_3_RUN_JOB_RUNNER;E12_CI_CYCLE_4_RUN_JOB_RUNNER_ARTIFACT;E13_CI_CYCLE_5_GREEN_RUN_JOB_RUNNER_ARTIFACT;E14_W6_NODE_CONTRACT_22;E15_PRIOR_UNIT_CONTRACT_12;E16_WARNING_CLASSIFICATION;E17_W5_SAWARNING_JUSTIFIED_NON_MATERIAL;E18_NO_APP_MUTATION_PROOF;E19_NO_MIGRATION_RUN_PROOF;E20_NO_NETWORK_ACTIVATION_PROOF;E21_ARTIFACT_MANIFEST_CHECKSUM_GREEN;E22_DUPLICATE_SAME_SHA_DISPATCH_NO;E23_FINDING_CONTINUITY_EVENT_COVERAGE;E24_FINDING_REMEDIATION_CHAIN_EVIDENCE;E25_FINDING_TEST_PROOF_QUALITY;E26_FORMAL_I5_UNCHANGED;E27_CAP_OPEN_27_NOT_FORMALLY_CLOSED;E28_PROGRAM_CRITICAL_CRAWLER_OPEN;E29_NEXT_PACKAGE_W6P03_BOUNDARY;E30_DOCS_CLOSURE_CC9F845
+MASTER_RECORDED_RESULT_COUNT=30
+HANDOFF_RECORDED_RESULT_COUNT=30
+MISSING_MATERIAL_RESULTS=0
+TECHNICAL_CYCLE_COUNT=5
+MASTER_TECHNICAL_CYCLES_RECORDED=5
+HANDOFF_TECHNICAL_CYCLES_RECORDED=5
+MASTER_TECHNICAL_CYCLE_COVERAGE=5/5 PASS
+HANDOFF_TECHNICAL_CYCLE_COVERAGE=5/5 PASS
+MISSING_TECHNICAL_CYCLE_EVENTS=0
+CORRECTION_OF_PRIOR_SNAPSHOT=replaced non-integer "COVERED" placeholders; prior overbroad MISSING_MATERIAL_RESULTS=0 claim from incomplete cycle-job coverage is superseded by this explicit ledger
+
+--------------------------------------------------------------------------------
+PRESERVED TECHNICAL / PROGRAM STATE
+--------------------------------------------------------------------------------
+W6-P02_TECHNICAL=PASS + GREEN + RATIFIED
+W6-P02_CONTINUITY=CORRECTED + COMPLETE + RATIFIED
+FORMAL_I5=21.79487179% UNCHANGED
+CAP-OPEN-27_FORMAL_CLOSURE=NOT_CLAIMED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+REAL_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+NEXT_PACKAGE=I5-IMPL-W6-P03
+W6-P03_EXECUTED=NO
+W6-P03_REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+DEADLINE_RISK=CRITICAL/HIGH
+
+NOTE=post-§255 final master-log whole-file self-SHA is NOT embedded inside §255.
