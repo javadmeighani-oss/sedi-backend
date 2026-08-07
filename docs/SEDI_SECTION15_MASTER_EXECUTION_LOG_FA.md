@@ -61714,3 +61714,144 @@ NEXT_PACKAGE=I5-IMPL-W4-P02
 DEADLINE_IMPACT=CRITICAL/HIGH mitigated for W4-P01 CI blocker; remaining critical path continues
 
 NOTE=post-§250 final master-log whole-file self-SHA is NOT embedded inside §250.
+
+
+================================================================================
+§251 — W4-P02 GROUNDED SYNTHESIS + REFERENCE/CITATION HANDOFF /
+SAFETY DISCLOSURE + NO-UNSUPPORTED-CLAIM / PERSONALIZATION BOUNDARY /
+W4-P01 RETRIEVAL→ANSWER INTEGRATION / EVIDENCE-PACK + WARNING-PRECISION CLOSURE /
+STATIC + POSTGRESQL RUNTIME / GITHUB CI AUTO-REMEDIATION TO GREEN /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-07T06:25:56Z
+GATE_ID=I5-IMPL-W4-P02
+CANONICAL_TITLE=Reference renderer + mandatory disclosure triggers
+MANAGEMENT_ALIAS=P09
+JAVAD_APPROVAL=EXPLICIT
+VERDICT=PASS + GREEN + STRONGEST AUTHORITY-PERMITTED CLOSURE
+PASS=YES
+GREEN=YES
+EXPECTED_COLLECTED_EXECUTED=22/22/22
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+PREFLIGHT (MATCHED AT GATE START)
+--------------------------------------------------------------------------------
+START_HEAD=8022feb2fc5551bc11e7b9edf32e7d7dc9b7d786
+PARENT=f18bbd79cda1472fb5189c0262d7be88e47adf83
+AHEAD_BEHIND=0/0 CLEAN
+§250 SIZE=2733258 SHA256=fc977433e4a60b9298ee4080c79fccebcb403e224e317d57fc79bdddfb88ee9a CRLF_ONLY
+v541 SIZE=3610306 SHA256=a71f8d9f442a296d28d0df965bdc312a512438c36624351ae45cf46934292c57 LF_ONLY exact-v540-prefix=YES
+LEDGER SIZE=118405 SHA256=541af01f30d0a7cca89942596df5627672ecc70527dd68772d00d8c2f01e9805 LF_ONLY
+FORMAL_I5=21.79487179%
+
+--------------------------------------------------------------------------------
+AUTHORITY RECONCILIATION
+--------------------------------------------------------------------------------
+CANONICAL_PACKAGE_ID=I5-IMPL-W4-P02
+OBJECTIVE=Reference renderer + mandatory disclosure triggers
+ALIAS=P09 (verified; NOT assumed)
+OWN=CAP-OPEN-18 synthesis; CAP-OPEN-19 references/citations/disclosures
+DEPENDS_ON=W4-P01 RetrievalResult; W1-P02 knowledge models
+NEXT_PACKAGE=I5-IMPL-W5-P01
+ALLOWLIST_CREATE=reference_renderer.py; i5_references.py; test_section30_i5_w4_p02_references.py
+ALLOWLIST_MODIFY=brain.py
+local_rag=UNTOUCHED
+PostgreSQL_RUNTIME=REQUIRED for eligibility inheritance tests
+
+--------------------------------------------------------------------------------
+DESIGN FREEZE (SUMMARY)
+--------------------------------------------------------------------------------
+INPUT=W4-P01 RetrievalResult / care envelope (items|knowledge_snippets, exclusions, status)
+OUTPUT=GroundedAnswerView + SHOW SOURCES + WHY SEDI SAID THIS + disclosures
+SYNTHESIS=deterministic grounded statements only (NO live LLM/network)
+PERSONALIZATION=language/tone/format only; medical_facts_altered=false
+FAIL_CLOSED=NO_SAFE_KNOWLEDGE + NO_BASE_MODEL_MEDICAL_FALLBACK
+NODE_CONTRACT_FROZEN=22 (T1–T21; T9×2)
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION PATHS / SYMBOLS
+--------------------------------------------------------------------------------
+CREATE backend/app/services/i5/reference_renderer.py
+  render_grounded_answer / render_from_care_context / format_care_context_block
+  reject_unsupported_medical_claim / build_references / build_disclosures
+CREATE backend/app/schemas/i5_references.py GroundedAnswerView + ReferenceItemView + DisclosureView
+MODIFY brain._maybe_append_gate3_care_context (W4-P02 hook)
+HELPERS w4p02_postgres_runtime(+plugin) + w4p02_build_evidence_assurance_pack.py
+WORKFLOW .github/workflows/w4p02-postgresql-grounded-synthesis-runtime.yml
+
+--------------------------------------------------------------------------------
+CI CYCLE LEDGER
+--------------------------------------------------------------------------------
+CYCLE0_REGISTRATION_PUSH (NOT terminal Green):
+  COMMIT=e27a75e02cf2f3e78b25bc75df632088b413f08a chore(i5): register W4-P02 focused workflow
+  RUN=31153252633 JOB=92787163040 push trigger
+  TESTS=22 passed (Process2) BUT pack falsely reported pass=0
+  ROOT=collect-only evidence JSON overwrote runtime evidence in pack builder
+  PRIOR_STATE_TRUST=tests trustworthy; pack accounting NOT trustworthy (false FAIL)
+
+TECHNICAL_CYCLE_1 (GREEN):
+  COMMIT=75acdbae12ab8ac5e25379fcfdc8156b642cd480
+  SUBJECT=fix(i5): prefer W4-P02 runtime evidence over collect-only
+  ALSO=restore workflow_dispatch-only
+  STATUS_PRECHECK=Actions operational; unresolved incidents=0
+  DISPATCH=workflow_dispatch RUN=31153622621 JOB=92788265747
+  RUNNER_ID=1000001161 RUNNER_NAME=GitHub Actions 1000001161
+  EXPECTED/COLLECTED/EXECUTED=22/22/22
+  PASS=22 FAIL=0 SKIP=0 MISSING=0 DUP=0 UNEXPECTED=0
+  ARTIFACT_ID=8984262522 NAME=w4p02-postgresql-grounded-synthesis-evidence SIZE=83153
+  ARTIFACT_DIGEST=sha256:cbf5bde1b5c7a59a1b4c19b4f28b0a6f1155a18c8f25bfc22be247dc2031d8ee
+  MANIFEST_SET_EQUALITY=PASS (41/41)
+  CHECKSUM_SET_EQUALITY=PASS (40 entries = actual - checksums.sha256)
+  CHECKSUM_VERIFY=PASS
+
+IMPL_COMMIT_PRECURSOR=94da0774ab7558dd21305602b7e3cd32d8f9b34e feat(i5): implement W4-P02 grounded synthesis
+
+--------------------------------------------------------------------------------
+WARNING CLASSIFICATION
+--------------------------------------------------------------------------------
+PYTEST_WARNING_OCCURRENCES_TOTAL=39 (matches terminal summary exactly)
+REPRESENTATIVE=DeprecationWarning.datetime.utcnow (line-scan count may under-count occurrences)
+KNOWN_NON_MATERIAL=YES
+NEW_MATERIAL_WARNINGS=0
+WARNING-COUNT-PRECISION=CLOSED
+GitHub Node.js 20 deprecation annotation=NON-PYTEST / NON-MATERIAL for medical contract
+
+--------------------------------------------------------------------------------
+W4-P01 CARRY-FORWARD FINDINGS
+--------------------------------------------------------------------------------
+W4P01-EVIDENCE-PACK-COVERAGE-01=CLOSED
+  generation order: substantive → artifact-manifest.json → checksums.sha256 LAST
+  CHECKSUM_ENTRY_SET = ACTUAL - {checksums.sha256}
+  MANIFEST_DECLARED_SET = ACTUAL
+WARNING-COUNT-PRECISION=CLOSED
+  PYTEST_WARNING_TOTAL_FROM_EVIDENCE = PYTEST_TERMINAL_SUMMARY_WARNING_TOTAL = 39
+
+--------------------------------------------------------------------------------
+LAYERED W4-P02 CLOSURE
+--------------------------------------------------------------------------------
+W4-P02 CODE AUTHORING=CLOSED
+W4-P02 STATIC CONTRACT=PASS
+W4-P02 POSTGRESQL RUNTIME=22/22 PASS
+GROUNDED SYNTHESIS=PASS
+REFERENCE TRACEABILITY=PASS
+UNSUPPORTED-CLAIM PROTECTION=PASS
+SAFETY DISCLOSURE=PASS
+PERSONALIZATION BOUNDARY=PASS
+BRAIN / CARE INTEGRATION=PASS
+W4-P01 CARRY-FORWARD EVIDENCE FINDINGS=CLOSED
+NETWORK / EXTERNAL MODEL CALL=NOT EXECUTED
+MIGRATION=NOT EXECUTED
+SOURCE ACTIVATION=NOT EXECUTED
+SCHEDULER ACTIVATION=NOT EXECUTED
+DEPLOY=NOT EXECUTED
+PROGRAM CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% UNCHANGED (§164.2)
+W4-P02_STATE=TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION
+FORMAL_CREDIT=NOT_AWARDED
+
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+NEXT_PACKAGE=I5-IMPL-W5-P01
+DEADLINE_IMPACT=CRITICAL/HIGH mitigated for W4-P02 synthesis/reference blocker; remaining critical path continues (W5/W6 + crawler E2E)
+
+NOTE=post-§251 final master-log whole-file self-SHA is NOT embedded inside §251.

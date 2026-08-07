@@ -304,6 +304,31 @@
         "16030350f7ac36642df66baa83f0af1a57d7e33d",
         "f18bbd79cda1472fb5189c0262d7be88e47adf83"
       ]
+    },
+    "w4p02_runtime_closure": {
+      "recorded_at_utc": "2026-08-07T06:25:56Z",
+      "gate": "I5-IMPL-W4-P02",
+      "canonical_title": "Reference renderer + mandatory disclosure triggers",
+      "management_alias": "P09",
+      "verdict": "PASS_GREEN_STRONGEST_AUTHORITY_PERMITTED_CLOSURE",
+      "impl_commit": "94da0774ab7558dd21305602b7e3cd32d8f9b34e",
+      "green_technical_commit": "75acdbae12ab8ac5e25379fcfdc8156b642cd480",
+      "registration_commit": "e27a75e02cf2f3e78b25bc75df632088b413f08a",
+      "registration_run": 31153252633,
+      "green_run": 31153622621,
+      "green_job": 92788265747,
+      "runner_id": 1000001161,
+      "artifact_id": 8984262522,
+      "expected_collected_executed": "22/22/22",
+      "pytest_warning_occurrences_total": 39,
+      "new_material_warnings": 0,
+      "w4p01_evidence_pack_coverage_01": "CLOSED",
+      "warning_count_precision": "CLOSED",
+      "w4p02_state": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+      "formal_credit": "NOT_AWARDED",
+      "formal_i5_unchanged": "21.79487179%",
+      "next_package": "I5-IMPL-W5-P01",
+      "marker": "READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE"
     }
   },
   "weight_proof": {
@@ -802,7 +827,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P02",
         "MANAGEMENT_ALIAS": "P09",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=5.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.91025641%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -812,12 +837,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "Formal §164.2 credit not awarded; W5-P01 directory and W6-P01 migration/network/activation remain separate",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §251 W4-P02 runtime closure: green 75acdba run 31153622621 job 92788265747 artifact 8984262522; 22/22/22; formal % unchanged."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-19",
@@ -825,7 +850,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P02",
         "MANAGEMENT_ALIAS": "P09",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=5.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.91025641%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -835,12 +860,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "Formal §164.2 credit not awarded; W5-P01 directory and W6-P01 migration/network/activation remain separate",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §251 W4-P02 runtime closure: green 75acdba run 31153622621 job 92788265747 artifact 8984262522; 22/22/22; formal % unchanged."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-20",
@@ -1328,7 +1353,7 @@
         ],
         "REMAINING_PLAN_POINTS": "5.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "REMAINING_WEIGHT_PERCENT_DISPLAY": "3.91025641%"
       },
       {
