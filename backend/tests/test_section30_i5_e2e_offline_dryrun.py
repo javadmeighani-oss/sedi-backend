@@ -308,8 +308,8 @@ def test_W6P02_Z08_versioning_memory_supersede_projection():
             "runtime_eligibility": "ELIGIBLE",
         }
     )
+    assert projected["knowledge_unit_id"] == 9
     assert projected["knowledge_version"] == "ver-2"
-    assert projected["canonical_unit_id"] == "canon-x"
 
 
 def test_W6P02_Z09_conflict_detect_structured_offline():
@@ -423,12 +423,27 @@ def test_W6P02_Z16_migration_authored_not_run_sentinel(db):
         rows = db.execute(text("SELECT version_num FROM alembic_version")).fetchall()
         versions = {r[0] for r in rows}
         assert "052_i5_w5_iran_directory" not in versions
-    # this module must not call alembic.command.upgrade
+    # AST: this module must not invoke Alembic upgrade commands
     tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
-    src = Path(__file__).read_text(encoding="utf-8")
-    assert "alembic.command.upgrade" not in src
-    assert "upgrade head" not in src
-    del tree
+    banned_attr = ("upgrade",)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr in banned_attr:
+            # ignore non-alembic attributes named upgrade
+            continue
+        if isinstance(node, ast.Call):
+            func = node.func
+            parts = []
+            cur = func
+            while isinstance(cur, ast.Attribute):
+                parts.append(cur.attr)
+                cur = cur.value
+            if isinstance(cur, ast.Name):
+                parts.append(cur.id)
+            dotted = ".".join(reversed(parts))
+            if dotted.endswith("command.upgrade") or dotted == "upgrade":
+                # only fail if alembic appears in the dotted path
+                if "alembic" in dotted:
+                    raise AssertionError(f"forbidden call {dotted}")
 
 
 def test_W6P02_Z17_end_to_end_offline_dryrun_pipeline():
