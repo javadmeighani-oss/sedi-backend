@@ -48,6 +48,7 @@ jobs:
       ADMIN_TOKEN: w5p01-test-admin-token
       GATE_START_SHA: cb27cedde0dec27dbe4f74bac75e56a97da14f5a
       IMPLEMENTATION_SHA: c4dd897dc2149b80c578ab26eeac6007f8d82511
+      REMEDIATION_SHAS: ebf6a46b85ef42c51fd3f286d5557888b6660744
 
     steps:
       - name: Configure runner temporary environment

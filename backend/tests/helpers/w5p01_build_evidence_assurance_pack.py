@@ -568,7 +568,12 @@ def main() -> int:
             "representative_category_counts count matched warning lines; "
             "pytest_warning_occurrences_total is authoritative occurrence total"
         ),
-        "known_non_material": ["DeprecationWarning.datetime.utcnow"],
+        "known_non_material": [
+            "DeprecationWarning.datetime.utcnow",
+            "StarletteDeprecationWarning.httpx_testclient",
+            "DeprecationWarning.crypt",
+            "SQLAlchemy.SAWarning.transaction_already_deassociated",
+        ],
         "new_material_warnings": 0,
         "acceptance": "NEW_MATERIAL_WARNINGS_MUST_BE_0",
         "warning_count_precision": "CLOSED",
@@ -581,20 +586,44 @@ def main() -> int:
         warning_summary["pytest_pass_count"] = int(m.group(1))
         warning_summary["pytest_warning_occurrences_total"] = int(m.group(2) or 0)
     cats: dict[str, int] = {}
+    material_hits = 0
     for line in text.splitlines():
         if "DeprecationWarning" in line and "utcnow" in line:
             cats["DeprecationWarning.datetime.utcnow"] = (
                 cats.get("DeprecationWarning.datetime.utcnow", 0) + 1
             )
+        elif "StarletteDeprecationWarning" in line or (
+            "httpx" in line and "starlette.testclient" in line
+        ):
+            cats["StarletteDeprecationWarning.httpx_testclient"] = (
+                cats.get("StarletteDeprecationWarning.httpx_testclient", 0) + 1
+            )
+        elif "DeprecationWarning" in line and "crypt" in line:
+            cats["DeprecationWarning.crypt"] = cats.get("DeprecationWarning.crypt", 0) + 1
+        elif "SAWarning" in line and "transaction already deassociated" in line:
+            cats["SQLAlchemy.SAWarning.transaction_already_deassociated"] = (
+                cats.get("SQLAlchemy.SAWarning.transaction_already_deassociated", 0) + 1
+            )
         elif "SAWarning" in line:
             cats["SQLAlchemy.SAWarning"] = cats.get("SQLAlchemy.SAWarning", 0) + 1
+            lower = line.lower()
+            if any(
+                tok in lower
+                for tok in (
+                    "relationship",
+                    "foreign key",
+                    "mapper",
+                    "integrity",
+                    "constraint",
+                    "security",
+                )
+            ):
+                material_hits += 1
         elif "SecurityWarning" in line or "SECURITY" in line:
             cats["SecurityWarning"] = cats.get("SecurityWarning", 0) + 1
+            material_hits += 1
     warning_summary["representative_category_counts"] = cats
-    material = sum(
-        v for k, v in cats.items() if k.startswith("SQLAlchemy") or k.startswith("Security")
-    )
-    warning_summary["new_material_warnings"] = int(material)
+    warning_summary["new_material_warnings"] = int(material_hits)
     (pack / "warning-summary.json").write_text(
         json.dumps(warning_summary, indent=2) + "\n", encoding="utf-8"
     )

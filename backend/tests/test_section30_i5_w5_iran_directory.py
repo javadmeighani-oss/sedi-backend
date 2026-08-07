@@ -138,6 +138,8 @@ def test_W5P01_T5_unique_canonical_directory_key(db):
     with pytest.raises(IntegrityError):
         _seed_doctor(db, key_suffix="uniq", full_name="Other")
         db.flush()
+    # Clear failed nested transaction so fixture cleanup does not emit SAWarning.
+    db.rollback()
 
 
 def test_W5P01_T6_search_doctor(db):
