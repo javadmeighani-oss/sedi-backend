@@ -62066,3 +62066,149 @@ W6-P02_REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
 W6-P02_EXECUTED=NO
 
 NOTE=post-§253 final master-log whole-file self-SHA is NOT embedded inside §253.
+
+
+================================================================================
+§253.1 — W6-P02 WORKING CONTINUITY CHECKPOINT (DESIGN / AUTHORING)
+================================================================================
+RECORDED_AT_UTC=2026-08-07T09:20:00Z
+NOTE=Working checkpoint under approved W6-P02 Gate; final closure remains §254 after Green.
+PACKAGE=I5-IMPL-W6-P02 ALIAS=P11
+JAVAD_APPROVAL=EXPLICIT
+Z_LAYERS=17 from migration_test_ci_plan.json test_layers
+W6_EXPECTED_NODES=22
+PRIOR_UNIT_NODES=12
+WORKFLOW=.github/workflows/ci-backend-tests.yml validation_target=i5_w6p02
+NEW_WORKFLOW=NO
+ALEMBIC_IN_W6_JOB=NO
+APP_MUTATION=PROHIBITED
+V545_WORKING_SUCCESSOR=ESTABLISHED
+
+
+================================================================================
+§254 — W6-P02 / P11 EXPANDED TESTS + CI WORKFLOW AUTHORIZATION /
+OFFLINE I5 E2E VALIDATION / EVIDENCE ASSURANCE /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-07T09:55:00Z
+GATE_ID=I5-IMPL-W6-P02
+MANAGEMENT_ALIAS=P11
+JAVAD_APPROVAL=EXPLICIT
+VERDICT=PASS + GREEN + STRONGEST AUTHORITY-PERMITTED W6-P02 TEST/CI/CONTINUITY CLOSURE
+PASS=YES
+GREEN=YES
+MARKER=READY_FOR_W6P03_SEPARATE_JAVAD_APPROVAL
+
+--------------------------------------------------------------------------------
+PREFLIGHT (MATCHED)
+--------------------------------------------------------------------------------
+START_HEAD=174ad636c9365a4eda9e7198696a9f5a9d57a7de
+§253 SIZE=2750359 SHA256=8c914d4cd4b283b532ff01d71c3692539e65a7511e5a3cc85e782a9c54f6072c CRLF_ONLY
+v544 SIZE=3617198 SHA256=6cea4a3009bb96dbc3b0cc4e7816acedfd5d0254caaaa64d7af2b74bf3d9ccc1 LF exact-v543-prefix=YES
+LEDGER SIZE=124506 SHA256=dcbecdb0ba151559f4caf6ae315c01203b264741e6fc79bed6ea9ab1f1108713 LF
+FORMAL_I5=21.79487179%
+
+--------------------------------------------------------------------------------
+AUTHORITY / P11 / CAP-OPEN-27 PARTITION
+--------------------------------------------------------------------------------
+PACKAGE=I5-IMPL-W6-P02 ALIAS=P11 OWNER=CI
+OBJECTIVE=Expanded tests + CI workflow authorization package
+NEXT=I5-IMPL-W6-P03
+OUT_OF_SCOPE=activation, network dry-run
+MIGRATIONS=[]
+STATIC_VALIDATION=CI green on unit subset
+APP_MUTATION=PROHIBITED
+CAP-OPEN-27_OWNED=expanded tests, offline E2E, CI authorization, unit-subset green
+CAP-OPEN-27_NOT_OWNED=migration RUN, live network dry-run, activation, production, monitoring
+CAP-OPEN-27_FORMAL_CLOSURE=NOT_CLAIMED (CURRENT_STATE remains open/broader)
+
+--------------------------------------------------------------------------------
+Z AUTHORITY
+--------------------------------------------------------------------------------
+SOURCE=migration_test_ci_plan.json#test_layers
+LAYER_COUNT=17
+LETTER_Z_HEADING=ABSENT (dangling cross-ref)
+LAYERS_UNAMBIGUOUS=YES
+HARD_STOP_Z_AUTHORITY_UNRESOLVED=NO
+W6_OFFLINE_NODES=22 (Z01-Z17 + X01-X05)
+PRIOR_UNIT_NODES=12
+
+--------------------------------------------------------------------------------
+WORKFLOW
+--------------------------------------------------------------------------------
+PATH=.github/workflows/ci-backend-tests.yml
+EDIT_AUTHORIZATION=YES (minimum necessary of ONE existing workflow)
+NEW_WORKFLOW_CREATED=NO
+INPUT=validation_target=i5_w6p02
+ALEMBIC_IN_W6_JOB=NO
+DEFAULT_JOB_PRESERVED=YES (skipped when i5_w6p02)
+
+--------------------------------------------------------------------------------
+CI CYCLES
+--------------------------------------------------------------------------------
+CYCLE1 IMPL=e840ff031cd956b5ad0061f349f64d361ca797f6 RUN=31166787412 — migration sentinel false-positive on ALEMBIC_UPGRADE prose
+CYCLE2 REM=5d34eb7ac883d0bc244ab3844412c47738a85ed2 RUN=31166896078 — still matched evidence-pack prose "alembic upgrade"
+CYCLE3 REM=0cd1417d609c3150067400a35430f118818bdcc5 RUN=31167005282 — Z08 KeyError canonical_unit_id; Z16 self-string assert
+CYCLE4 REM=dd7158aca715f0cbf6b40fc23e07b7dca3e45ab7 RUN=31167270915 — tests 22/22+12/12 PASS; post-audit MANIFEST extra collected-prior-unit-raw.txt (NOT terminal Green)
+CYCLE5 GREEN=b90b5221fb2d0eed58e519167e2c91c6f209105f RUN=31167497219 JOB=92831601154 RUN_NUMBER=301 — workflow_dispatch SUCCESS
+DUPLICATE_SAME_SHA_DISPATCH=NO
+ACTIVE_SAME_SHA_PRE_DISPATCH=0 each cycle
+
+--------------------------------------------------------------------------------
+GREEN CONTRACT
+--------------------------------------------------------------------------------
+W6_EXPECTED/COLLECTED/EXECUTED=22/22/22 PASS=22 FAIL=0 SKIP=0
+PRIOR_UNIT_EXPECTED/COLLECTED/EXECUTED=12/12/12 PASS=12 FAIL=0 SKIP=0
+PYTEST_WARNING_TOTAL_W6=11
+PYTEST_WARNING_TOTAL_PRIOR_UNIT=3
+NEW_MATERIAL_WARNINGS=0
+W5P01-SAWARNING-CLEANUP-01=CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE
+MIGRATION_RUN=NOT_EXECUTED
+LIVE_NETWORK=NOT_EXECUTED
+ACTIVATION=NOT_EXECUTED
+PRODUCTION_WRITE=NOT_EXECUTED
+APP_MUTATION=NO
+
+--------------------------------------------------------------------------------
+ARTIFACT
+--------------------------------------------------------------------------------
+ARTIFACT_ID=8989595136
+ARTIFACT_NAME=w6p02-i5-expanded-offline-e2e-evidence
+ARTIFACT_SIZE=19742
+ARTIFACT_DIGEST=sha256:b8444802128eb43121950e1ecde306bc6d366e6223aa33cfd612d60873d383e0
+FILE_COUNT=40
+MANIFEST_SET_EQUALITY=PASS
+CHECKSUM_SET_EQUALITY=PASS
+CHECKSUM_VERIFY=PASS
+RUNNER_ID=1000001170
+RUNNER_NAME=GitHub Actions 1000001170
+
+--------------------------------------------------------------------------------
+FINDINGS
+--------------------------------------------------------------------------------
+CLOSED=
+  W6P02-ALEMBIC-SENTINEL-FALSE-POSITIVE (prose)
+  W6P02-Z08-PROJECTION-KEY
+  W6P02-Z16-SELF-STRING-ASSERT
+  W6P02-EVIDENCE-TRANSIENT-FILE
+  W5P01-SAWARNING-CLEANUP-01 (justified non-material under expanded evidence)
+OPEN_W6P02_IMPLEMENTATION_FINDINGS=0
+DEFERRED=migration RUN / network dry-run / activation / production / monitoring / crawler E2E / §164.2
+
+--------------------------------------------------------------------------------
+LAYERED CLOSURE
+--------------------------------------------------------------------------------
+W6-P02 TEST AUTHORING=CLOSED
+W6-P02 CI ISOLATION=CLOSED
+OFFLINE E2E=22/22 PASS
+PRIOR UNIT SUBSET=12/12 PASS
+EVIDENCE ASSURANCE=PASS
+CONTINUITY=COMPLETE (this §254 + v545)
+CAP-OPEN-27=NOT FORMALLY CLOSED
+FORMAL_I5=21.79487179% UNCHANGED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+REAL_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+NEXT_PACKAGE=I5-IMPL-W6-P03
+DEADLINE_IMPACT=CRITICAL/HIGH mitigated for offline validation/CI blocker; remaining path W6-P01/W6-P03 + crawler E2E
+
+NOTE=post-§254 final master-log whole-file self-SHA is NOT embedded inside §254.

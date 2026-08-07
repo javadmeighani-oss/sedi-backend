@@ -411,6 +411,35 @@
       "formal_i5_unchanged": "21.79487179%",
       "next_package": "I5-IMPL-W6-P02",
       "marker": "READY_FOR_W6P02_SEPARATE_JAVAD_APPROVAL"
+    },
+    "w6p02_runtime_closure": {
+      "recorded_at_utc": "2026-08-07T09:55:00Z",
+      "gate": "I5-IMPL-W6-P02",
+      "management_alias": "P11",
+      "verdict": "PASS_GREEN_STRONGEST_AUTHORITY_PERMITTED_TEST_CI_CONTINUITY_CLOSURE",
+      "implementation_commit": "e840ff031cd956b5ad0061f349f64d361ca797f6",
+      "remediation_commits": [
+        "5d34eb7ac883d0bc244ab3844412c47738a85ed2",
+        "0cd1417d609c3150067400a35430f118818bdcc5",
+        "dd7158aca715f0cbf6b40fc23e07b7dca3e45ab7",
+        "b90b5221fb2d0eed58e519167e2c91c6f209105f"
+      ],
+      "green_technical_commit": "b90b5221fb2d0eed58e519167e2c91c6f209105f",
+      "green_run": 31167497219,
+      "green_job": 92831601154,
+      "artifact_id": 8989595136,
+      "artifact_digest": "sha256:b8444802128eb43121950e1ecde306bc6d366e6223aa33cfd612d60873d383e0",
+      "w6_expected_collected_executed": "22/22/22",
+      "prior_unit_expected_collected_executed": "12/12/12",
+      "migration_run": "NOT_EXECUTED",
+      "live_network": "NOT_EXECUTED",
+      "activation": "NOT_EXECUTED",
+      "w5p01_sawarning_cleanup_01": "CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE",
+      "cap_open_27_formal_closure": "NOT_CLAIMED",
+      "formal_credit": "NOT_AWARDED",
+      "formal_i5_unchanged": "21.79487179%",
+      "next_package": "I5-IMPL-W6-P03",
+      "marker": "READY_FOR_W6P03_SEPARATE_JAVAD_APPROVAL"
     }
   },
   "weight_proof": {
@@ -1131,7 +1160,9 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining.",
+        "W6P02_TECHNICAL_VALIDATION": "PASS_GREEN_OFFLINE_E2E_AND_CI",
+        "W6P02_FORMAL_DOMAIN_CLOSURE": "NOT_CLAIMED"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-28",
