@@ -1,0 +1,222 @@
+# W4-P02 Focused PostgreSQL Grounded Synthesis Runtime — GitHub workflow.
+# Frozen contract: 22 nodes (T1–T21; T9×2). Management alias P09.
+# Controlled real-source validation: NOT OWNED (W6-P01). No live network.
+# Source activation / weekly scheduler activation: OFF. No production write.
+name: W4-P02 Focused PostgreSQL Grounded Synthesis Runtime
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: w4p02-postgresql-grounded-synthesis-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  w4p02-postgresql-grounded-synthesis-runtime:
+    name: W4-P02 PostgreSQL grounded synthesis runtime (22 nodes)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_w4p02_test
+          POSTGRES_PASSWORD: sedi_w4p02_test_password
+          POSTGRES_DB: sedi_w4p02_synthesis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_w4p02_test -d sedi_w4p02_synthesis"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_w4p02_test:sedi_w4p02_test_password@127.0.0.1:5432/sedi_w4p02_synthesis
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w4p02_test:sedi_w4p02_test_password@127.0.0.1:5432/sedi_w4p02_synthesis
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      OPENAI_API_KEY: w4p02-test-placeholder-not-used
+
+    steps:
+      - name: Configure runner temporary environment
+        shell: bash
+        run: |
+          {
+            echo "TMPDIR=$RUNNER_TEMP"
+            echo "TEMP=$RUNNER_TEMP"
+            echo "TMP=$RUNNER_TEMP"
+          } >> "$GITHUB_ENV"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Capture redacted dependency versions
+        run: |
+          python - <<'PY'
+          import sys
+          print("python", sys.version.split()[0])
+          try:
+              import pytest as _pytest
+              print("pytest", getattr(_pytest, "__version__", "unknown"))
+          except ImportError:
+              print("BLOCKED_DEPENDENCY_RESOLUTION")
+              raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          try:
+              import sqlalchemy
+              sa_ver = getattr(sqlalchemy, "__version__", "0")
+              print("sqlalchemy", sa_ver)
+              major = int(sa_ver.split(".", 1)[0])
+              if major < 2:
+                  print("BLOCKED_DEPENDENCY_RESOLUTION")
+                  raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          except ImportError:
+              print("BLOCKED_DEPENDENCY_RESOLUTION")
+              raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          try:
+              import psycopg2
+              print("psycopg2", getattr(psycopg2, "__version__", "unknown"))
+          except ImportError:
+              print("BLOCKED_DEPENDENCY_RESOLUTION")
+              raise SystemExit("BLOCKED_DEPENDENCY_RESOLUTION")
+          PY
+
+      - name: PostgreSQL readiness
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 5432 -U sedi_w4p02_test -d sedi_w4p02_synthesis; then
+              echo "postgres_ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "postgres_not_ready"
+          exit 1
+
+      - name: Prepare runner-temp evidence directory
+        run: |
+          mkdir -p "${{ runner.temp }}/sedi_w4p02_postgres_runtime_evidence"
+          mkdir -p "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack"
+
+      - name: Static import hygiene
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          paths = [
+              Path("backend/app/services/i5/reference_renderer.py"),
+              Path("backend/app/schemas/i5_references.py"),
+              Path("backend/app/core/conversation/brain.py"),
+              Path("backend/tests/test_section30_i5_w4_p02_references.py"),
+          ]
+          for path in paths:
+              ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+              print("ast_ok", path)
+          PY
+
+      - name: Process 1 — collect-only manifest (22 nodes)
+        run: |
+          set -o pipefail
+          python -B -m pytest \
+            --collect-only \
+            --noconftest \
+            -p backend.tests.helpers.w4p02_postgres_runtime_plugin \
+            -p no:cacheprovider \
+            -q \
+                        backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T1_package_identity \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T2_retrieval_to_synthesis_handoff \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T3_eligible_evidence_synthesis \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T4_reference_traceability \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T5_multi_evidence_deterministic \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T6_unsupported_claim_rejection \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T7_missing_evidence_fail_closed \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T8_no_base_model_fallback \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T9_conflict_disclosure \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T10_safety_restricted_disclosure \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T11_stale_exclusion_inheritance \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T12_provenance_requirement_inheritance \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T13_personalization_boundary \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T14_language_boundary \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T15_mandatory_disclosure_triggers \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T16_output_envelope \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T17_brain_care_integration \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T18_insufficiency_behavior \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T19_artifact_coverage_invariant \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T20_warning_precision_invariant \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T21_show_sources_why_sedi \
+            | tee "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack/collected-nodes.txt"
+
+      - name: Process 2 — focused PostgreSQL grounded synthesis runtime
+        run: |
+          set -o pipefail
+          python -B -m pytest \
+            --noconftest \
+            -p backend.tests.helpers.w4p02_postgres_runtime_plugin \
+            -p no:cacheprovider \
+            -q \
+            --maxfail=1 \
+                        backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T1_package_identity \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T2_retrieval_to_synthesis_handoff \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T3_eligible_evidence_synthesis \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T4_reference_traceability \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T5_multi_evidence_deterministic \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T6_unsupported_claim_rejection \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T7_missing_evidence_fail_closed \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T8_no_base_model_fallback \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T9_conflict_disclosure \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T10_safety_restricted_disclosure \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T11_stale_exclusion_inheritance \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T12_provenance_requirement_inheritance \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T13_personalization_boundary \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T14_language_boundary \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T15_mandatory_disclosure_triggers \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T16_output_envelope \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T17_brain_care_integration \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T18_insufficiency_behavior \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T19_artifact_coverage_invariant \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T20_warning_precision_invariant \
+            backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T21_show_sources_why_sedi \
+            | tee "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack/test-output.txt"
+
+      - name: Build Evidence Assurance Pack
+        if: always()
+        run: |
+          set -o pipefail
+          python -B backend/tests/helpers/w4p02_build_evidence_assurance_pack.py
+
+      - name: Upload Evidence Assurance Pack artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w4p02-postgresql-grounded-synthesis-evidence
+          path: ${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Verify uploaded artifact file presence locally before exit
+        if: always()
+        run: |
+          test -f "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack/evidence-index.json"
+          test -f "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack/checksums.sha256"
+          test -f "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack/node-accounting.json"
+          test -f "${{ runner.temp }}/sedi_w4p02_evidence_assurance_pack/controlled-network-decision.json"
+          echo "artifact_local_files_ok"
