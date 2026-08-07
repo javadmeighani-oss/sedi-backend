@@ -451,6 +451,9 @@ jobs:
               if "::test_" in line and line.startswith("backend/"):
                   nodes.append(line.split()[0])
           (ev/"collected-prior-unit-nodes.txt").write_text("\n".join(nodes)+("\n" if nodes else ""), encoding="utf-8")
+          raw = ev / "collected-prior-unit-raw.txt"
+          if raw.exists():
+              raw.unlink()
           if nodes != expected:
               print("PRIOR_COLLECT_MISMATCH", nodes, expected)
               raise SystemExit(1)
@@ -673,7 +676,7 @@ jobs:
           if missing:
               raise SystemExit(f"MISSING_EVIDENCE:{missing}")
 
-          files = sorted([p.name for p in ev.iterdir() if p.is_file() and p.name not in {"artifact-manifest.json", "checksums.sha256", "collected-prior-unit-raw.txt"}])
+          files = sorted([p.name for p in ev.iterdir() if p.is_file() and p.name not in {"artifact-manifest.json", "checksums.sha256"}])
           # Final set will include artifact-manifest.json + checksums.sha256
           declared = files + ["artifact-manifest.json", "checksums.sha256"]
           manifest = {
@@ -688,7 +691,12 @@ jobs:
               b = (ev / name).read_bytes()
               entries.append(f"{hashlib.sha256(b).hexdigest()}  {name}")
           (ev / "checksums.sha256").write_text("\n".join(entries) + "\n", encoding="utf-8")
-          actual = {p.name for p in ev.iterdir() if p.is_file() and p.name != "collected-prior-unit-raw.txt"}
+          # purge transient files before equality check / upload
+          for junk in ("collected-prior-unit-raw.txt",):
+              jp = ev / junk
+              if jp.exists():
+                  jp.unlink()
+          actual = {p.name for p in ev.iterdir() if p.is_file()}
           if set(declared) != actual:
               raise SystemExit(f"MANIFEST_SET_FAIL declared={sorted(declared)} actual={sorted(actual)}")
           checksum_names = {line.split()[-1] for line in (ev / "checksums.sha256").read_text().splitlines() if line.strip()}
