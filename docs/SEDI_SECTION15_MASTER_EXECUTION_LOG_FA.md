@@ -62389,3 +62389,519 @@ W6-P03_REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
 DEADLINE_RISK=CRITICAL/HIGH
 
 NOTE=post-§255 final master-log whole-file self-SHA is NOT embedded inside §255.
+
+================================================================================
+§256 — SEDI PRODUCT CONSTITUTION-01 /
+FOUNDER ORIGIN / LONGEVITY NORTH STAR /
+V1 MISSION / V1 FOCUS /
+PERSISTENT HEALTH RELATIONSHIP /
+DUAL LEARNING /
+PROACTIVITY /
+PILOT KPI PHILOSOPHY /
+COMPETITIVE POSITIONING /
+PRODUCT-GOVERNANCE FREEZE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-07T18:20:00Z
+GATE_ID=SEDI-PRODUCT-CONSTITUTION-01-REPOSITORY-SYNC
+JAVAD_APPROVAL=EXPLICIT
+APPROVAL_DATE=2026-08-07
+GATE_TYPE=PRODUCT-GOVERNANCE / DOCUMENTATION ONLY
+PURPOSE=MAKE SEDI PRODUCT PHILOSOPHY AND V1 CONSTITUTION REPOSITORY-AUTHORITATIVE
+TECHNICAL_IMPLEMENTATION=PROHIBITED
+TEST_CI_WORKFLOW_DISPATCH=PROHIBITED
+MIGRATION=PROHIBITED
+CRAWLER_NETWORK_SOURCE_FETCH=PROHIBITED
+KNOWLEDGE_INGESTION=PROHIBITED
+DEPLOY_ACTIVATION=PROHIBITED
+FORMAL_I5_CHANGE=PROHIBITED
+W6_P03_EXECUTION=PROHIBITED
+AUTHORITATIVE_HANDOFF_SUCCESSOR=v547
+MATERIAL_CONSTITUTION_ITEM_COUNT=38
+
+--------------------------------------------------------------------------------
+C01 — FOUNDER ORIGIN
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C01
+FOUNDER=Javad Meighani
+SEDI_NAME_ORIGIN=Javad's mother, Sediqeh / صدیقه
+FOUNDER_CONCLUSION=
+  THE PROBLEM REQUIRES = MULTIPLE STAGED SOLUTIONS
+  THE ECOSYSTEM MUST =
+    GAIN EXECUTION KNOWLEDGE
+    LEARN RESPONSIBLE LONGITUDINAL DATA COLLECTION
+    USE CAPABILITIES SCIENCE / TECHNOLOGY CAN SUPPORT AT EACH STAGE
+    BUILD FOUNDATIONS FOR MORE ADVANCED FUTURE STAGES
+
+--------------------------------------------------------------------------------
+C02 — SEDIQEH / ALS
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C02
+FOUNDER-ORIGIN EVENT=Sediqeh died from ALS
+RESULTING FOUNDER QUESTION=
+  Why should a human being, despite biological complexity, an advanced brain,
+  many hopes and aspirations, and an immense unexplored universe, have such a
+  short and biologically fragile life?
+ALS=FOUNDER ORIGIN + IMPORTANT MEDICAL PRIORITY
+ALS=NOT THE PRODUCT BOUNDARY
+
+--------------------------------------------------------------------------------
+C03 — LONGEVITY NORTH STAR
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C03
+SEDI ULTIMATE MISSION=
+  HELP HUMANITY PROGRESSIVELY EXTEND HEALTHY HUMAN LIFE THROUGH:
+  INTELLIGENCE; LONGITUDINAL DATA; PREVENTION; CONTINUOUS CARE; SENSING;
+  ADVANCED COMPUTATION; AND FUTURE TECHNOLOGIES
+PERSIAN_CANONICAL_MEANING=
+  ماموریت نهایی صدی =
+  ساخت یک اکوسیستم فناورانه و علمی برای کمک مرحله‌ای
+  به افزایش طول عمر سالم و در افق بلندمدت
+  افزایش معنی‌دار طول عمر انسان.
+
+--------------------------------------------------------------------------------
+C04 — V1 CLAIM BOUNDARY
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C04
+V1 PROVEN TO EXTEND HUMAN LIFE=NO
+DIRECT V1 LONGEVITY EFFICACY CLAIM=PROHIBITED WITHOUT EVIDENCE / AUTHORITY
+V1 MAY RESPONSIBLY TARGET=
+  PREVENTABLE RISK REDUCTION
+  HEALTHIER LIFESTYLE
+  BETTER ADHERENCE
+  CONTINUOUS CARE
+  EARLIER RECOGNITION OF MEANINGFUL CHANGE
+  BETTER DISEASE MANAGEMENT
+  BETTER RECOVERY SUPPORT
+  BETTER HEALTH CONTINUITY
+
+--------------------------------------------------------------------------------
+C05 — STAGED SEDI ECOSYSTEM
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C05
+PHASE 1=SEDI V1 — UNDERSTAND + PREVENT + CARE
+PHASE 2=OBSERVE MORE OF HUMAN LIFE — SENSORS / GADGETS / EMBODIED SEDI
+PHASE 3=DEEP LONGITUDINAL HUMAN MODELS — YEARS OF MULTIMODAL PERSONAL DATA + INTELLIGENCE
+PHASE 4+=LONG-HORIZON HUMAN-CONTINUITY TECHNOLOGIES — ADVANCED BIOLOGICAL / COMPUTATIONAL / COGNITIVE RESEARCH
+ULTIMATE DIRECTION=EXTEND HEALTHY HUMAN EXISTENCE AS FAR AS SCIENCE RESPONSIBLY PERMITS
+FUTURE_PHASES_ARCHITECTURAL_DIRECTION=YES
+FUTURE_PHASES_CURRENT_V1_IMPLEMENTATION_AUTHORITY=NO
+
+--------------------------------------------------------------------------------
+C06 — CANONICAL SEDI V1 MISSION
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C06
+SEDI V1=FIRST PRACTICAL OPERATING STAGE OF THE LONG-TERM SEDI ECOSYSTEM
+MISSION=Sedi V1 must become an intelligent, proactive and continuous health companion that:
+  KNOWS THE USER LONGITUDINALLY
+  USES GOVERNED / CREDIBLE / CURRENT MEDICAL KNOWLEDGE
+  SUPPORTS PREVENTION
+  SUPPORTS LIFESTYLE IMPROVEMENT
+  SUPPORTS EVERYDAY HEALTH MANAGEMENT
+  SUPPORTS PEOPLE LIVING WITH DISEASE
+  SUPPORTS TREATMENT FOLLOW-UP
+  SUPPORTS RECOVERY / CONVALESCENCE
+  TRACKS SYMPTOMS
+  TRACKS VITAL DATA
+  PROVIDES REMINDERS
+  FOLLOWS UP
+  HELPS IDENTIFY WHEN HUMAN CARE IS REQUIRED
+  BUILDS RESPONSIBLE LONGITUDINAL HEALTH-DATA FOUNDATIONS
+  BUILDS FUTURE SENSING / GADGET FOUNDATIONS
+V1_USEFUL_WITHOUT_PROPRIETARY_GADGET=YES
+
+--------------------------------------------------------------------------------
+C07 — HEALTHY-USER MISSION
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C07
+MISSION=PRESERVATION + PREVENTION + OPTIMIZATION
+INCLUDES=sleep; nutrition; exercise; weight-related habits; stress; daily routine;
+  preventive screening; risk reduction; healthy habits; prescribed adherence where relevant;
+  recognition of meaningful changes
+PHILOSOPHICAL_OBJECTIVE=
+  HELP THE PERSON REMAIN HEALTHY FOR AS LONG AS REASONABLY POSSIBLE
+  AND LIVE MORE HEALTHY YEARS
+
+--------------------------------------------------------------------------------
+C08 — ILLNESS / RECOVERY MISSION
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C08
+MISSION=STABILITY + CARE + ADHERENCE + SUPPORT + RECOVERY
+CONTEXTS_INCLUDE_BUT_NOT_LIMITED_TO=
+  neurological; ALS; MS; cardiovascular; diabetes / glycemic disorders; oncology;
+  liver disease; mental health; chronic disease; acute recovery; post-operative recovery
+SEDI_DOES_NOT_REPLACE_THE_CLINICIAN=YES
+SEDI_SUPPORTS_HOURS_DAYS_MONTHS_WHEN_CLINICIAN_NOT_PRESENT=YES
+
+--------------------------------------------------------------------------------
+C09 — PREVENTION
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C09
+PREVENTION=
+  Sleep; Nutrition; Exercise; Weight; Stress; Daily routine;
+  Preventive screening; Risk reduction; Healthy habits
+
+--------------------------------------------------------------------------------
+C10 — CARE
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C10
+CARE=
+  Medication adherence; Symptom tracking; Vitals; Appointments; Tests;
+  Care instructions; Recovery; Chronic-care routines; Red flags; Clinical escalation
+
+--------------------------------------------------------------------------------
+C11 — CONTINUITY
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C11
+CONTINUITY=
+  Memory; Longitudinal history; Personal context; Trends;
+  Follow-up; Proactivity; Learning from feedback
+RULE=A PRODUCT THAT DELIVERS ONLY ONE OR TWO DOES NOT YET FULFILL THE COMPLETE SEDI V1 MISSION.
+THREE_INSEPARABLE_V1_DIMENSIONS=PREVENTION + CARE + CONTINUITY
+
+--------------------------------------------------------------------------------
+C12 — EIGHT MANDATORY V1 PILLARS
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C12
+P1=PERSONAL HEALTH IDENTITY — know who the user is and relevant health/lifestyle context
+P2=LONGITUDINAL MEMORY — understand history, changes, patterns and trends
+P3=GOVERNED MEDICAL INTELLIGENCE — use credible/current/governed medical knowledge, provenance/evidence/safety controls
+P4=PREVENTION & LIFESTYLE — support sleep/nutrition/exercise/stress/routine/prevention
+P5=DISEASE & RECOVERY CARE — support illness continuity, adherence, symptoms, vitals, care and recovery
+P6=PROACTIVE COMPANION — appropriate reminders/check-ins/follow-ups
+P7=SENSING & VITALS — manual + digital vital/signal intake and gadget integration foundation
+P8=SAFE CARE ESCALATION — know when ordinary guidance is insufficient and safely escalate to clinician / urgent / emergency care
+
+--------------------------------------------------------------------------------
+C13 — CALM / ACCOMPANIMENT
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C13
+RESPONSIBLE_CALM=PART OF SEDI V1 PRODUCT EXPERIENCE
+DISEASE_OFTEN_CREATES=ILLNESS + UNCERTAINTY
+SEDI_MAY_REDUCE_UNNECESSARY_UNCERTAINTY_THROUGH=
+  clear plans; tracked symptoms; medication schedules; appointments;
+  care instructions; follow-up; red-flag guidance
+DESIRED_EXPERIENCE="I am not alone in keeping track of this process."
+PROHIBIT=DECEPTIVE HUMAN CLAIMS; UNHEALTHY DEPENDENCE; FALSE REASSURANCE; WEAKENED MEDICAL ESCALATION
+
+--------------------------------------------------------------------------------
+C14 — LONGITUDINAL DATA PURPOSE
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C14
+V1_MUST_HELP_SEDI_LEARN=
+  WHAT DATA CREATES LEGITIMATE HEALTH VALUE
+  HOW OFTEN IT SHOULD BE COLLECTED
+  WHAT SHOULD BE USER-ENTERED
+  WHAT SHOULD COME FROM SENSORS
+  WHAT CHANGES ARE MEANINGFUL
+  WHAT IS NOISE
+  HOW MONTHS / YEARS BECOME INTERPRETABLE
+  HOW CONSENT / PRIVACY / PROVENANCE / RETENTION WORK
+  HOW DATA REMAINS TRUSTWORTHY OVER YEARS
+
+--------------------------------------------------------------------------------
+C15 — DATA OWNERSHIP / CONSENT
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C15
+PERMANENT_ETHICAL_LAW=HEALTH DATA BELONGS TO THE HUMAN, NOT TO SEDI.
+COLLECT_BECAUSE_IT_CREATES_LEGITIMATE_HEALTH_VALUE=YES
+DO_NOT_COLLECT_SIMPLY_BECAUSE_IT_MAY_SOMEDAY_BE_USEFUL=YES
+REQUIRE=CONSENT; PRIVACY; PURPOSE LIMITATION; GOVERNANCE
+
+--------------------------------------------------------------------------------
+C16 — GADGET PHILOSOPHY
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C16
+CANONICAL_STATEMENT=SEDI IS THE BRAIN; GADGETS ARE THE SENSES.
+V1_GADGET_MISSIONS=
+  1. DIRECT USER HEALTH VALUE
+  2. LEARN RELIABLE LONGITUDINAL SENSING
+POSSIBLE_SIGNAL_CATEGORIES_WHERE_TECHNICALLY_REGULATORILY_APPROPRIATE=
+  heart rate; ECG where supported and governed; activity; sleep where supported; other useful vital signals
+RULE=SEDI V1 MUST REMAIN VALUABLE WITHOUT GADGETS.
+
+--------------------------------------------------------------------------------
+C17 — PERSISTENT HEALTH RELATIONSHIP
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C17
+SEDI PRODUCT CENTER OF GRAVITY=PERSISTENT HEALTH RELATIONSHIP
+MUST_NOT_BE_REDUCED_TO=
+  ONE-OFF QUESTION ANSWERING
+  ONE-OFF SYMPTOM CHECKING
+  PASSIVE HEALTH-DATA STORAGE
+  DEVICE-FIRST TRACKING
+  GENERIC LLM HEALTH MODE
+CANONICAL_LOOP=
+  UNDERSTAND THE PERSON
+  → REMEMBER RELEVANT CONTEXT
+  → OBSERVE CHANGE
+  → APPLY GOVERNED CURRENT KNOWLEDGE
+  → SUGGEST SAFE USEFUL ACTION
+  → REMIND / FOLLOW UP
+  → LEARN FROM FEEDBACK
+  → ADAPT
+  → ESCALATE WHEN REQUIRED
+  → CONTINUE THE RELATIONSHIP
+
+--------------------------------------------------------------------------------
+C18 — CLOSED-LOOP DIFFERENTIATION
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C18
+SEDI DIFFERENTIATION IS NOT ONE FEATURE.
+INTENDED_COMBINATION=
+  LONGITUDINAL PERSONAL MEMORY
+  + GOVERNED EVOLVING MEDICAL KNOWLEDGE
+  + PREVENTION & LIFESTYLE
+  + DISEASE / RECOVERY CARE
+  + PROACTIVE ACTION LOOP
+  + VITALS / SENSING
+  + LOCAL CARE NAVIGATION
+  + SAFE HUMAN ESCALATION
+  + CONSISTENT RELATIONAL IDENTITY
+  = PERSISTENT PERSONAL HEALTH RELATIONSHIP
+DESIRED_MOAT=QUALITY + CONTINUITY + SAFETY + USEFULNESS OF THE WHOLE RELATIONSHIP LOOP
+NOT=ISOLATED FEATURE OWNERSHIP
+
+--------------------------------------------------------------------------------
+C19 — PERSONAL LEARNING LOOP
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C19
+PERSONAL LEARNING LOOP=KNOW THIS USER BETTER OVER TIME
+MAY_USE_LEGITIMATELY_REQUIRED_AND_CONSENTED=
+  conversation history; health profile; conditions; medications; symptoms; vitals;
+  sleep; nutrition; exercise; stress; routines; plans; appointments; tests;
+  care instructions; preferences; feedback; outcomes; device signals; longitudinal trends
+PURPOSE=USEFUL GOVERNED PERSONAL MODEL — NOT MAXIMUM DATA COLLECTION
+
+--------------------------------------------------------------------------------
+C20 — MEDICAL KNOWLEDGE LEARNING LOOP
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C20
+MEDICAL KNOWLEDGE LEARNING LOOP=KNOW GOVERNED HEALTH KNOWLEDGE BETTER OVER TIME
+INCLUDING=
+  trusted international sources; weekly governed crawler; change detection; raw evidence;
+  provenance; structured knowledge; versioning; diff; supersession; freshness;
+  evidence strength; conflict; medical safety; human/governance review;
+  runtime eligibility; traceable references
+NO_AUTONOMOUS_BASE_MODEL_WEIGHT_MODIFICATION=YES
+
+--------------------------------------------------------------------------------
+C21 — DUAL LEARNING CONVERGENCE
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C21
+CANONICAL_INTELLIGENCE_QUESTION=
+  WHO IS THIS PERSON NOW?
+  + WHAT IS THE BEST GOVERNED KNOWLEDGE AVAILABLE NOW?
+  ↓
+  WHAT IS THE SAFEST USEFUL ACTION FOR THIS PERSON NOW?
+V1_INTELLIGENCE_MODEL=DUAL LEARNING
+
+--------------------------------------------------------------------------------
+C22 — PROACTIVITY RELEVANCE
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C22
+SEDI PROACTIVITY=RELEVANCE + TIMING + CONSENT
+RELEVANCE_MUST_TIE_TO=
+  health state; active plan; medication; appointment; test; meaningful change;
+  preventive goal; recovery need; prior agreed follow-up; safety condition
+NOISE != CARE
+
+--------------------------------------------------------------------------------
+C23 — PROACTIVITY TIMING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C23
+AVOID=
+  late reminders; excessive reminders; redundant check-ins;
+  actionless interruptions; disproportionate urgency
+
+--------------------------------------------------------------------------------
+C24 — PROACTIVITY CONSENT
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C24
+RESPECT=
+  notification permissions; quiet periods; frequency/channel preferences;
+  defer / talk-later options; category disabling; approved safety exceptions only
+CANONICAL_STATEMENT=
+  PROACTIVE DOES NOT MEAN FREQUENT.
+  IT MEANS RELEVANT, TIMELY AND PERMISSION-AWARE.
+
+--------------------------------------------------------------------------------
+C25 — V1 PILOT KPI PHILOSOPHY
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C25
+PILOT_SUCCESS_MUST_NOT_BE_PRIMARILY_MEASURED_BY=
+  NUMBER OF QUESTIONS; NUMBER OF CHAT MESSAGES; RAW AI USAGE
+PRIMARY_PRODUCT_LEARNING_QUESTIONS=
+  DOES THE USER RETURN BECAUSE SEDI REMEMBERS?
+  DOES THE USER HAVE TO REPEAT OLD CONTEXT?
+  WERE REMINDERS / FOLLOW-UPS USEFUL?
+  DID THE USER FOLLOW THE PLAN / CARE ACTION?
+  DID SEDI FOLLOW UP AT THE RIGHT TIME?
+  DID PERSONALIZATION IMPROVE OVER TIME?
+  DID SEDI RECOGNIZE MEANINGFUL CHANGE?
+  DID HEALTH / LIFESTYLE / CARE ADHERENCE IMPROVE?
+  DID THE USER FEEL SUPPORTED WITHOUT UNHEALTHY DEPENDENCE?
+  DID SEDI ESCALATE SAFELY?
+  DID TRUST INCREASE THROUGH CONSISTENCY, TRANSPARENCY AND SAFETY?
+EXACT_KPI_FORMULAS=FUTURE MEASUREMENT-DESIGN TASK
+NUMERIC_TARGETS_IN_THIS_GATE=NOT INVENTED
+
+--------------------------------------------------------------------------------
+C26 — KPI FAMILIES
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C26
+KPI_FAMILIES=
+  CONTINUITY; RETENTION; USEFUL FOLLOW-UP; PLAN / CARE ADHERENCE;
+  PERSONALIZATION QUALITY; REDUCTION IN CONTEXT REPETITION;
+  PROACTIVE-INTERACTION USEFULNESS; SAFE ESCALATION QUALITY; TRUST;
+  SUPPORT / CALM WITHOUT DEPENDENCY; KNOWLEDGE-GROUNDING QUALITY;
+  ERROR / HALLUCINATION / SAFETY INCIDENT RATE
+V1_EVALUATION=
+  CONTINUITY / RETENTION / ADHERENCE / FOLLOW-UP / PERSONALIZATION /
+  TRUST / SAFETY / USEFULNESS
+
+--------------------------------------------------------------------------------
+C27 — CHATGPT HEALTH POSITIONING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C27
+REFERENCE_CLASS=ADJACENT / STRATEGIC REFERENCE SYSTEMS AS OF THIS PRODUCT-GOVERNANCE DECISION
+  NOT AN EXHAUSTIVE LEGAL COMPETITOR SET
+ChatGPT Health=
+  AI + health context + personalization means these elements alone are not unique.
+
+--------------------------------------------------------------------------------
+C28 — APPLE HEALTH POSITIONING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C28
+Apple Health=
+  health-data aggregation / longitudinal trends means storage/trending alone is not unique.
+
+--------------------------------------------------------------------------------
+C29 — SAMSUNG HEALTH POSITIONING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C29
+Samsung Health=
+  wearables + increasingly proactive health experience means proactivity/device data alone is not unique.
+
+--------------------------------------------------------------------------------
+C30 — ADA POSITIONING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C30
+Ada=
+  health/symptom assessment means Sedi must not become merely another symptom checker.
+
+--------------------------------------------------------------------------------
+C31 — K HEALTH POSITIONING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C31
+K Health=
+  AI-supported clinical-care workflows means Sedi's center is not simply care-delivery automation.
+
+--------------------------------------------------------------------------------
+C32 — BUOY POSITIONING
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C32
+Buoy=
+  symptom assessment + next-care guidance means Sedi must own the before-and-after longitudinal relationship,
+  not only the moment of assessment.
+POSITIONING_NOTE=These are product-positioning principles, not superiority findings.
+NO_WEB_RESEARCH_IN_THIS_GATE=YES
+
+--------------------------------------------------------------------------------
+C33 — NO UNPROVEN SUPERIORITY CLAIM
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C33
+PERMANENT_LAW=
+  "SEDI IS BETTER THAN CHATGPT HEALTH / APPLE HEALTH / SAMSUNG HEALTH / ADA / K HEALTH / BUOY"
+  = NOT AUTHORIZED WITHOUT EVIDENCE
+APPROVED_POSITIONING=
+  SEDI IS INTENTIONALLY DESIGNED AROUND A DIFFERENT CENTER OF GRAVITY:
+  A PERSISTENT, GOVERNED, PROACTIVE PERSONAL HEALTH RELATIONSHIP
+  SPANNING: PREVENTION; LIFESTYLE; ILLNESS; RECOVERY; SENSING; SAFE CARE ESCALATION
+SUPERIORITY_FOR_SPECIFIC_NEED=MUST BE DEMONSTRATED BY EVIDENCE
+
+--------------------------------------------------------------------------------
+C34 — V2 BOUNDARY
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C34
+V2_POSSIBLE_FUTURE_DIRECTION=
+  independent from mobile phone; always available; voice-first; vision-capable;
+  environment-aware; persistent identity; natural conversation
+  APP → PRESENCE
+V2_IMPLEMENTATION_IN_CURRENT_V1=NO
+
+--------------------------------------------------------------------------------
+C35 — V3 / V4 BOUNDARY
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C35
+V3_V4_POSSIBLE_FOUNDER_RESEARCH_VISION=
+  digital continuity; cloud representation of identity; cognitive preservation;
+  mental-model emulation / transfer concepts;
+  other future biological/computational/cognitive technologies
+FOUNDER_VISION=YES
+CURRENT_VALIDATED_SCIENTIFIC_CAPABILITY=NO
+PUBLIC_PRODUCT_PROMISE=NO
+V1_IMPLEMENTATION=NO
+
+--------------------------------------------------------------------------------
+C36 — V1 FOCUS LAW
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C36
+PERMANENT_SEDI_V1_FOCUS_LAW=
+  NO V2 / V3 / V4 IMPLEMENTATION WORK UNTIL SEDI V1 REACHES ITS DEFINED PILOT-READY CLOSURE,
+  UNLESS JAVAD EXPLICITLY CHANGES THIS PRIORITY.
+EVERY_NEW_V1_GATE_MUST_ANSWER=
+  IS THIS REQUIRED TO DELIVER SEDI V1 UNDER THE EIGHT MANDATORY PILLARS?
+IF_NOT=DO NOT ADD TO V1 CRITICAL PATH WITHOUT NEW JAVAD AUTHORITY.
+CURRENT_EXECUTION_PRIORITY=SEDI V1 ONLY
+V2+=FUTURE VISION ONLY
+
+--------------------------------------------------------------------------------
+UNIFIED CONSTITUTION STATUS
+--------------------------------------------------------------------------------
+TITLE=SEDI PRODUCT CONSTITUTION-01
+ULTIMATE NORTH STAR=HELP HUMANITY PROGRESSIVELY EXTEND HEALTHY HUMAN LIFE
+CURRENT EXECUTION PRIORITY=SEDI V1 ONLY
+V1 CENTER OF GRAVITY=PERSISTENT HEALTH RELATIONSHIP
+V1 INTELLIGENCE MODEL=DUAL LEARNING
+V1 PROACTIVITY=RELEVANCE + TIMING + CONSENT
+V1 EVALUATION=CONTINUITY / RETENTION / ADHERENCE / FOLLOW-UP / PERSONALIZATION / TRUST / SAFETY / USEFULNESS
+DIRECT LONGEVITY CLAIM=NO
+PHYSICIAN REPLACEMENT CLAIM=NO
+V2+=FUTURE VISION ONLY
+
+--------------------------------------------------------------------------------
+C37 — CURRENT TECHNICAL STATE PRESERVATION
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C37
+W6-P02 TECHNICAL=PASS + GREEN + RATIFIED
+W6-P02 CONTINUITY=CORRECTED + COMPLETE + RATIFIED
+GREEN SHA=b90b5221fb2d0eed58e519167e2c91c6f209105f
+GREEN RUN=31167497219
+FORMAL I5=21.79487179%
+CAP-OPEN-27 FORMAL CLOSURE=NOT CLAIMED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+REAL WEEKLY CRAWLER E2E=NOT SATISFIED
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6-P03=NOT EXECUTED
+TECHNICAL_STATE_CHANGED_BY_THIS_GATE=NO
+FORMAL_I5_CHANGED_BY_THIS_GATE=NO
+
+--------------------------------------------------------------------------------
+C38 — REPOSITORY SYNC STATUS
+--------------------------------------------------------------------------------
+COVERAGE_UNIT=C38
+SEDI PRODUCT CONSTITUTION-01=REPOSITORY-SYNCED
+MASTER_APPEND=§256
+AUTHORITATIVE_HANDOFF=v547
+COMPLETION_LEDGER=READ_ONLY / BYTE-UNCHANGED
+MATERIAL_CONSTITUTION_ITEM_COUNT=38
+MASTER_RECORDED=38
+HANDOFF_RECORDED=38
+MISSING=0
+NEXT_CANONICAL_TECHNICAL_PACKAGE=I5-IMPL-W6-P03 / P12
+W6-P03 EXECUTION=STILL NOT AUTHORIZED
+NEXT_REQUIRED_DECISION=SEPARATE JAVAD APPROVAL FOR W6-P03
+MARKER=READY_FOR_W6P03_SEPARATE_JAVAD_APPROVAL
+
+NOTE=post-§256 final master-log whole-file self-SHA is NOT embedded inside §256.
