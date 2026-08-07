@@ -43,13 +43,27 @@ def main() -> int:
     ev_dir = Path(os.environ["RUNNER_TEMP"]) / "sedi_w4p02_postgres_runtime_evidence"
     runtime_ev = ev_dir / "w4p02_runtime_evidence.json"
     collect_ev = ev_dir / "w4p02_collect_only_evidence.json"
-    evidence: dict = {}
-    for p in (runtime_ev, collect_ev):
-        if p.exists():
-            evidence = json.loads(p.read_text(encoding="utf-8"))
-            (pack / p.name).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
+    # Prefer RUNTIME evidence for pass/fail accounting. Collect-only overwriting
+    # runtime caused a false-green-blocker (pass_count=0) on registration run.
+    collect_evidence: dict = {}
+    runtime_evidence: dict = {}
+    if collect_ev.exists():
+        collect_evidence = json.loads(collect_ev.read_text(encoding="utf-8"))
+        (pack / collect_ev.name).write_text(
+            collect_ev.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+    if runtime_ev.exists():
+        runtime_evidence = json.loads(runtime_ev.read_text(encoding="utf-8"))
+        (pack / runtime_ev.name).write_text(
+            runtime_ev.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+    evidence = runtime_evidence or collect_evidence
 
-    collected_ids = list(evidence.get("collected_node_ids") or [])
+    collected_ids = list(
+        (runtime_evidence.get("collected_node_ids") if runtime_evidence else None)
+        or collect_evidence.get("collected_node_ids")
+        or []
+    )
     if not collected_ids:
         collected_path = pack / "collected-nodes.txt"
         if collected_path.exists():
@@ -65,6 +79,20 @@ def main() -> int:
     pass_count = int(evidence.get("pass_count") or 0)
     fail_count = int(evidence.get("fail_count") or 0)
     skip_count = int(evidence.get("skip_count") or 0)
+    # Cross-check pytest terminal summary when runtime JSON is present.
+    test_out_preview = pack / "test-output.txt"
+    if test_out_preview.exists():
+        preview = test_out_preview.read_text(encoding="utf-8", errors="replace")
+        m_pass = re.search(r"(\d+) passed", preview)
+        if m_pass and runtime_evidence:
+            terminal_pass = int(m_pass.group(1))
+            if pass_count and terminal_pass and pass_count != terminal_pass:
+                raise SystemExit(
+                    f"SENTINEL_W4P02_PASS_COUNT_MISMATCH "
+                    f"runtime_json={pass_count} terminal={terminal_pass}"
+                )
+            if not pass_count and terminal_pass:
+                pass_count = terminal_pass
     if (
         pass_count
         and not fail_count

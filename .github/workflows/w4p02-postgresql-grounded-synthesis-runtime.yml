@@ -6,12 +6,6 @@ name: W4-P02 Focused PostgreSQL Grounded Synthesis Runtime
 
 on:
   workflow_dispatch:
-  # TEMPORARY registration trigger — remove after first Actions index (restore dispatch-only).
-  push:
-    branches:
-      - feature/section15/backend-continuity-foundation
-    paths:
-      - ".github/workflows/w4p02-postgresql-grounded-synthesis-runtime.yml"
 
 permissions:
   contents: read
