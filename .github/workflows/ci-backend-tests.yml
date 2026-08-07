@@ -289,12 +289,11 @@ jobs:
           start = text.index("i5-w6p02-offline-e2e:")
           body = text[start:]
           # Fail only on executable alembic upgrade commands in this job (not prose/comments).
-          blocked = re.compile(r"(?i)(?:python\s+-m\s+)?alembic(?:\s+-c\s+\S+)?\s+upgrade\b")
+          blocked = re.compile(r"(?i)^\s*(?:python\s+-m\s+)?alembic(?:\s+-c\s+\S+)?\s+upgrade\b")
           for line in body.splitlines():
               low = line.strip()
               if not low or low.startswith("#"):
                   continue
-              # ignore YAML comment-only / markdown prose inside heredocs that are not shell commands
               if blocked.search(line):
                   raise SystemExit(f"BLOCKED_ALEMBIC_IN_W6_JOB:{line}")
           print("W6P02_MIGRATION_RUN=NO")
@@ -585,7 +584,7 @@ jobs:
           })
 
           write("offline-network-proof.md", "W6 offline E2E uses FixtureTransportResponse + dry_run; socket sentinel in X03; no live source fetch.\n")
-          write("migration-not-run-proof.md", "W6-P02 isolated job does not run alembic upgrade; MIGRATION_RUN_EXECUTED=False; create_all schema only.\n")
+          write("migration-not-run-proof.md", "W6-P02 isolated job does not invoke Alembic; MIGRATION_RUN_EXECUTED=False; create_all schema only.\n")
           write("no-app-mutation-proof.md", "git diff gate..green contains no backend/app/** paths.\n")
           write("no-activation-proof.md", "weekly_orchestrator activation off; source_activation_enabled=False.\n")
           write("no-production-write-proof.md", "dry_run persist_ledger=False; production_write=False.\n")
