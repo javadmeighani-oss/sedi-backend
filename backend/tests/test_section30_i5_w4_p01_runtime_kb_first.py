@@ -147,10 +147,10 @@ def _ensure_provenance(db, ku, gsp=None, **overrides):
     return row
 
 
-def _seed_eligible(db, **ku_overrides):
+def _seed_eligible(db, *, memory_overrides: dict[str, Any] | None = None, **ku_overrides):
     gsp = _ensure_gsp(db)
     ku = _ensure_ku(db, **ku_overrides)
-    mem = _ensure_memory(db, ku)
+    mem = _ensure_memory(db, ku, **(memory_overrides or {}))
     prov = _ensure_provenance(db, ku, gsp=gsp)
     return gsp, ku, mem, prov
 
@@ -245,11 +245,13 @@ def test_W4P01_T6_missing_provenance_excluded(db):
 def test_W4P01_T7_stale_excluded(db):
     _require_postgres(db)
     configure_mappers()
+    # Keep memory column ELIGIBLE so KU freshness matrix (not memory column) is exercised.
     _seed_eligible(
         db,
         freshness_state="STALE",
         runtime_eligibility="NOT_ELIGIBLE",
         normalized_statement="Stale migraine guidance",
+        memory_overrides={"runtime_eligibility": "ELIGIBLE"},
     )
     result = retrieve_knowledge_context(
         db, "migraine", language="en", enqueue_gap_on_empty=False
@@ -271,6 +273,7 @@ def test_W4P01_T8_conflict_excluded(db, conflict_state: str, label: str):
         conflict_state=conflict_state,
         runtime_eligibility="REVIEW_REQUIRED",
         normalized_statement=f"Conflicted migraine {label}",
+        memory_overrides={"runtime_eligibility": "ELIGIBLE"},
     )
     result = retrieve_knowledge_context(
         db, "migraine", language="en", enqueue_gap_on_empty=False
@@ -298,6 +301,7 @@ def test_W4P01_T9_medical_safety_excluded(
         medical_safety_state=safety,
         runtime_eligibility=runtime_elig,
         normalized_statement=f"Safety {label} migraine note",
+        memory_overrides={"runtime_eligibility": "ELIGIBLE"},
     )
     result = retrieve_knowledge_context(
         db, "migraine", language="en", enqueue_gap_on_empty=False
