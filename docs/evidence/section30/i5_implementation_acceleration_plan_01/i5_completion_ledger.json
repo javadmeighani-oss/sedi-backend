@@ -281,6 +281,29 @@
       "formal_i5_unchanged": "21.79487179%",
       "w4p01_state": "CODE_COMPLETE_CI_BLOCKED_BY_GITHUB_ACTIONS_RUNNERLESS_CANCEL",
       "formal_credit": "NOT_AWARDED"
+    },
+    "w4p01_runtime_closure": {
+      "recorded_at_utc": "2026-08-07T05:40:00Z",
+      "gate": "W4-P01 GITHUB ACTIONS POST-OUTAGE RECOVERY",
+      "parent_gate": "I5-IMPL-W4-P01",
+      "verdict": "PASS_GREEN_STRONGEST_AUTHORITY_PERMITTED_CLOSURE",
+      "green_technical_commit": "f18bbd79cda1472fb5189c0262d7be88e47adf83",
+      "green_run": 31151031730,
+      "green_job": 92780521239,
+      "artifact_id": 8983294371,
+      "expected_collected_executed": "19/19/19",
+      "platform_laws": [
+        "CI-PLATFORM-STATUS-GATE-01",
+        "PLATFORM_OUTAGE_RECOVERY_EXCEPTION"
+      ],
+      "w4p01_state": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+      "formal_credit": "NOT_AWARDED",
+      "formal_i5_unchanged": "21.79487179%",
+      "false_green_run_rejected": 31150432197,
+      "remediation_commits": [
+        "16030350f7ac36642df66baa83f0af1a57d7e33d",
+        "f18bbd79cda1472fb5189c0262d7be88e47adf83"
+      ]
     }
   },
   "weight_proof": {
@@ -710,7 +733,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
         "MANAGEMENT_ALIAS": "P08",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=12.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=9.38461539%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -720,12 +743,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "GitHub Actions ubuntu-24.04 jobs cancel in queue with empty steps (runs 31121586309,31122549760,31124170273); awaiting alternate runner/platform recovery decision; formal package CI Green not obtained",
+        "BLOCKER": "Formal §164.2 credit not awarded; W4-P02 synthesis/references and W6-P01 migration/network/activation remain separate",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged. | §250 W4-P01 runtime closure: green f18bbd7 run 31151031730 job 92780521239 artifact 8983294371; 19/19/19; formal % unchanged."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-16",
@@ -733,7 +756,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
         "MANAGEMENT_ALIAS": "P08",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=12.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=9.38461539%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -743,12 +766,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "GitHub Actions ubuntu-24.04 jobs cancel in queue with empty steps (runs 31121586309,31122549760,31124170273); awaiting alternate runner/platform recovery decision; formal package CI Green not obtained",
+        "BLOCKER": "Formal §164.2 credit not awarded; W4-P02 synthesis/references and W6-P01 migration/network/activation remain separate",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "NOT_WIRED",
+        "RUNTIME_STATUS": "WIRED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged. | §250 W4-P01 runtime closure: green f18bbd7 run 31151031730 job 92780521239 artifact 8983294371; 19/19/19; formal % unchanged."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-17",
@@ -766,12 +789,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "GitHub Actions ubuntu-24.04 jobs cancel in queue with empty steps (runs 31121586309,31122549760,31124170273); awaiting alternate runner/platform recovery decision; formal package CI Green not obtained",
+        "BLOCKER": "Formal §164.2 credit not awarded; W4-P02 synthesis/references and W6-P01 migration/network/activation remain separate",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "PARTIAL_INTERIM",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged. | §250 W4-P01 runtime closure: green f18bbd7 run 31151031730 job 92780521239 artifact 8983294371; 19/19/19; formal % unchanged."
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-18",
@@ -1267,7 +1290,7 @@
         ],
         "DEPENDENCIES": "see package_sequence.json",
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKERS": "GitHub Actions runnerless queue cancel (latest run 31124170273); alternate runner/platform recovery decision required; activation/network not included",
+        "BLOCKERS": "Formal credit awaiting §164.2 validation Gate; synthesis/references→W4-P02; activation/network/migration→W6-P01",
         "CLOSURE_CRITERIA": "Package closure criteria + applicable validation/activation evidence; docs alone insufficient",
         "SEPARATE_APPROVAL_GATES": [
           "IMPLEMENTATION",
@@ -1279,7 +1302,7 @@
         ],
         "REMAINING_PLAN_POINTS": "12.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "CODE_AUTHORED_CI_BLOCKED_RUNNERLESS_HARD_STOP",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "REMAINING_WEIGHT_PERCENT_DISPLAY": "9.38461539%"
       },
       {

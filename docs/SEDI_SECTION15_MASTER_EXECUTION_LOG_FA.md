@@ -61599,3 +61599,118 @@ NEXT_PACKAGE_IF_GREEN_LATER=I5-IMPL-W4-P02 (blocked until W4-P01 Green)
 DEADLINE_IMPACT=CRITICAL/HIGH — W4-P01 remains blocked on GitHub Actions runner assignment
 
 NOTE=post-§249 final master-log whole-file self-SHA is NOT embedded inside §249.
+
+================================================================================
+§250 — W4-P01 GITHUB ACTIONS POST-OUTAGE RECOVERY /
+PLATFORM-STATUS-AWARE DISPATCH / 19-NODE GREEN /
+STRONGEST AUTHORITY-PERMITTED RUNTIME CLOSURE
+================================================================================
+RECORDED_AT_UTC=2026-08-07T05:40:00Z
+GATE_ID=W4-P01 GITHUB ACTIONS POST-OUTAGE RECOVERY / PLATFORM-STATUS-AWARE CURRENT-HEAD DISPATCH / RUNNER / REPOSITORY DIAGNOSIS / 19-NODE POSTGRESQL AUTO-REMEDIATION TO GREEN / EVIDENCE ASSURANCE / STRONGEST AUTHORITY-PERMITTED CLOSURE-02
+PARENT_GATE=I5-IMPL-W4-P01
+JAVAD_APPROVAL=EXPLICIT 2026-08-06 (continuation)
+VERDICT=PASS + GREEN + STRONGEST AUTHORITY-PERMITTED CLOSURE
+PASS=YES
+GREEN=YES
+EXPECTED_COLLECTED_EXECUTED=19/19/19
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+NEW PERMANENT LAWS RECORDED
+--------------------------------------------------------------------------------
+CI-PLATFORM-STATUS-GATE-01=Before every GitHub Actions dispatch: verify official Actions component=operational AND unresolved Actions incidents=NONE via githubstatus.com Statuspage APIs; else PLATFORM_OUTAGE_HARD_STOP (no dispatch/commit/runner/workflow change).
+PLATFORM_OUTAGE_RECOVERY_EXCEPTION=Same effective technical tree may be re-dispatched ONLY when prior run had runner_id=0, empty runner_name, steps=[], no executable step ran, coincided with confirmed external Actions incident now resolved, and a cosmetic SHA would serve only to manufacture a new SHA. Does NOT permit same-commit reruns for real technical failures.
+
+--------------------------------------------------------------------------------
+PREFLIGHT (MATCHED)
+--------------------------------------------------------------------------------
+START_HEAD=1095ed336b5fb26886eb733d1528c58b9ad0ea5b
+PARENT=11d0f689d09ebb0aa147fe2d88419fb8b6c6dd33
+SUBJECT=docs(i5): record repeated W4-P01 runnerless hard-stop
+AHEAD_BEHIND=0/0 CLEAN
+§249 SIZE=2726993 SHA256=05f004d2281746a16352c72dad69312f4a78b943c9ead8e8e8a7eb47800d7c10 CRLF_ONLY
+v540 SIZE=3608750 SHA256=603d90b72333937ddef2dc078c0d94f157191b0295b9322f8114581dceff01f0 LF_ONLY exact-v539-prefix=YES
+LEDGER SIZE=117239 SHA256=d4ea788aa7b37e3bfef34bb5e784bbcab809d7ee720e70766e1085229f10aaf4 LF_ONLY
+FORMAL_I5=21.79487179%
+
+--------------------------------------------------------------------------------
+PLATFORM STATUS PRECHECK (PRE-DISPATCH)
+--------------------------------------------------------------------------------
+STATUS_CHECK_UTC≈2026-08-07T05:23:22Z
+ACTIONS_COMPONENT_STATUS=operational
+UNRESOLVED_ACTIONS_INCIDENT_COUNT=0
+UNRESOLVED_INCIDENT_COUNT=0
+
+--------------------------------------------------------------------------------
+HISTORIC RUNNERLESS OUTAGE (PRESERVED; NOT CODE FAILURE)
+--------------------------------------------------------------------------------
+RUN_31121586309 / RUN_31122549760 / RUN_31124170273 = runner_id=0 steps=[] (external platform)
+§248/§249 HARD-STOPS PRESERVED HISTORICALLY=YES
+PREVIOUS_FAILURE_CLASS=EXTERNAL_PLATFORM_INFRASTRUCTURE
+W4_P01_CODE_FAILURE_PROVEN_BY_OUTAGE=NO
+
+--------------------------------------------------------------------------------
+POST-OUTAGE DISPATCH + TECHNICAL CYCLES
+--------------------------------------------------------------------------------
+POST_OUTAGE_RECOVERY_DISPATCH_1:
+  RUN=31150432197 HEAD=1095ed3 JOB=92778723570 RUNNER=1000001157 ASSIGNED=YES
+  GITHUB_CONCLUSION=success BUT FALSE_GREEN
+  ROOT=EXPECTED_DATABASE mismatch (helper sedi_w4p01_orchestrator vs workflow sedi_w4p01_retrieval)
+  + pytest|tee without pipefail masked INTERNALERROR
+  NODE=0/0 collected; NOT accepted as Green
+
+TECHNICAL_CYCLE_1:
+  COMMIT=16030350f7ac36642df66baa83f0af1a57d7e33d
+  SUBJECT=fix(i5): repair W4-P01 harness DB target and CI fail-closed
+  RUN=31150782004 JOB=92779758690
+  RESULT=failure Process2
+  ROOT=test_W4P01_T7_stale_excluded asserted KU_NOT_ELIGIBLE but memory column short-circuited as MEMORY_NOT_ELIGIBLE
+  FAIL_CLOSED_PACK=SENTINEL_W4P01_NODE_CONTRACT_NOT_GREEN worked (no false green)
+
+TECHNICAL_CYCLE_2 (GREEN):
+  COMMIT=f18bbd79cda1472fb5189c0262d7be88e47adf83
+  SUBJECT=fix(i5): exercise KU freshness/conflict/safety gates in W4-P01 tests
+  RUN=31151031730 JOB=92780521239 RUNNER_ID=1000001159 RUNNER_NAME=GitHub Actions 1000001159
+  RESULT=success ALL STEPS
+  EXPECTED/COLLECTED/EXECUTED=19/19/19
+  PASS=19 FAIL=0 SKIP=0 MISSING=0 DUP=0 UNEXPECTED=0
+  ARTIFACT_ID=8983294371 NAME=w4p01-postgresql-knowledge-retrieval-evidence SIZE=15072
+  CHECKSUMS=PASS MANIFEST_SHA256=dd3158dcfc8162a11f030ac414474684b4dccadd2eed21d1ed216f33948e1020
+
+--------------------------------------------------------------------------------
+WARNING CLASSIFICATION
+--------------------------------------------------------------------------------
+TOTAL_WARNINGS=135
+CATEGORY=DeprecationWarning datetime.utcnow
+KNOWN=YES (W3P02-WARNINGS-CLASSIFICATION-01 carried + W4 delta)
+MATERIAL=NO
+NEW_MATERIAL_WARNINGS=0
+SAWarning/mapper=0 data-integrity=0 security=0 collection=0 contract=0
+
+--------------------------------------------------------------------------------
+LAYERED W4-P01 CLOSURE
+--------------------------------------------------------------------------------
+W4-P01 CODE AUTHORING=CLOSED
+KNOWLEDGE-DB-FIRST RETRIEVAL=PASS
+CURRENT-VERSION RESOLUTION=PASS
+PROVENANCE ENFORCEMENT=PASS
+ELIGIBILITY ENFORCEMENT=PASS
+FRESHNESS ENFORCEMENT=PASS
+CONFLICT ENFORCEMENT=PASS
+MEDICAL-SAFETY ENFORCEMENT=PASS
+NO-SAFE-KNOWLEDGE=PASS
+NO-BASE-MODEL-MEDICAL-FALLBACK=PASS
+POSTGRESQL RUNTIME=19/19 PASS
+EVIDENCE ASSURANCE=PASS
+FINAL SYNTHESIS / REFERENCES=NOT OWNED — W4-P02
+MIGRATION / NETWORK / ACTIVATION / DEPLOY=NOT EXECUTED
+PROGRAM CREDIT=LOCKED
+FORMAL_I5_COMPLETION=21.79487179% UNCHANGED (§164.2)
+W4-P01_STATE=TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION
+FORMAL_CREDIT=NOT_AWARDED
+
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+NEXT_PACKAGE=I5-IMPL-W4-P02
+DEADLINE_IMPACT=CRITICAL/HIGH mitigated for W4-P01 CI blocker; remaining critical path continues
+
+NOTE=post-§250 final master-log whole-file self-SHA is NOT embedded inside §250.
