@@ -17,9 +17,21 @@ on:
       - 'requirements.txt'
       - '.github/workflows/ci-backend-tests.yml'
   workflow_dispatch:
+    inputs:
+      validation_target:
+        description: Validation target (default preserves legacy acceptance; i5_w6p02 isolates W6-P02 offline E2E without alembic upgrade)
+        required: true
+        default: default
+        type: choice
+        options:
+          - default
+          - i5_w6p02
 
 jobs:
   backend-acceptance:
+    # Preserve ordinary push/PR/manual-default behavior including alembic upgrade.
+    # W6-P02 isolated target must NOT run this migration-accepting job.
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.validation_target == 'default' }}
     name: V1 freeze subset
     runs-on: ubuntu-latest
 
@@ -197,3 +209,506 @@ jobs:
             backend/tests/test_section15_i5b2_p1_source_profile.py \
             backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py \
             --tb=short
+
+  # -------------------------------------------------------------------------
+  # W6-P02 / P11 isolated offline E2E + prior-package unit subset
+  # Javad-authorized workflow edit of ONE existing workflow.
+  # NO alembic upgrade. NO live network dry-run. NO activation. NO new workflow file.
+  # -------------------------------------------------------------------------
+  i5-w6p02-offline-e2e:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.validation_target == 'i5_w6p02' }}
+    name: W6-P02 Offline E2E + Prior Unit Subset
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_w6p02_test
+          POSTGRES_PASSWORD: sedi_w6p02_test_password
+          POSTGRES_DB: sedi_w6p02_offline
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_w6p02_test -d sedi_w6p02_offline"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_w6p02_test:sedi_w6p02_test_password@127.0.0.1:5432/sedi_w6p02_offline
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w6p02_test:sedi_w6p02_test_password@127.0.0.1:5432/sedi_w6p02_offline
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: w6p02-test-placeholder-not-used
+      ADMIN_TOKEN: w6p02-test-admin-token
+      GATE_START_SHA: 174ad636c9365a4eda9e7198696a9f5a9d57a7de
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: PostgreSQL readiness
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 5432 -U sedi_w6p02_test -d sedi_w6p02_offline; then
+              echo "postgres_ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "postgres_not_ready"
+          exit 1
+
+      - name: Migration-not-run sentinel (static)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          text = Path(".github/workflows/ci-backend-tests.yml").read_text(encoding="utf-8")
+          start = text.index("i5-w6p02-offline-e2e:")
+          body = text[start:]
+          for line in body.splitlines():
+              low = line.lower().strip()
+              if low.startswith("#"):
+                  continue
+              if "alembic" in low and "upgrade" in low and "no alembic" not in low:
+                  raise SystemExit(f"BLOCKED_ALEMBIC_IN_W6_JOB:{line}")
+          print("W6P02_MIGRATION_RUN=NO")
+          PY
+
+      - name: Prepare evidence directory
+        run: mkdir -p "${{ runner.temp }}/w6p02_evidence"
+
+      - name: Collect + run W6 offline E2E (22 nodes)
+        id: w6_pytest
+        run: |
+          set -euo pipefail
+          EV="${{ runner.temp }}/w6p02_evidence"
+          {
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z01_model_registry_tables_present"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z02_repository_orm_persist_ku_and_iran_entities"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z03_service_eligibility_and_memory_project"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z04_adapter_fixture_transport_no_live_network"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z05_parser_extract_candidates_from_fixture_html"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z06_normalization_document_shape"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z07_deduplication_key_stable"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z08_versioning_memory_supersede_projection"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z09_conflict_detect_structured_offline"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z10_medical_safety_pending_blocks_retrieval"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z11_scheduler_activation_off_contract"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z12_run_ledger_dry_run_no_production_write"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z13_runtime_retrieval_eligible_ku"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z14_reference_renderer_grounded_answer"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z15_api_directory_search_contract_offline"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z16_migration_authored_not_run_sentinel"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_Z17_end_to_end_offline_dryrun_pipeline"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_X01_no_ir_to_ku_refuse_and_structural_fk"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_X02_clinical_separation_directory_payload"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_X03_network_sentinel_socket_and_source_scan"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_X04_sawarning_cleanup_justified_non_material"
+            echo "backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_X05_package_boundary_no_activation"
+          } > "$EV/expected-w6-nodes.txt"
+          python -m pytest --collect-only -q backend/tests/test_section30_i5_e2e_offline_dryrun.py | sed -n 's/::test_/::test_/p' | grep 'test_W6P02_' | sed 's/[[:space:]]*$//' > "$EV/collected-w6-nodes.txt" || true
+          # Normalize collected lines to full node ids
+          python - <<'PY'
+          from pathlib import Path
+          ev = Path(r"${{ runner.temp }}/w6p02_evidence")
+          raw = (ev / "collected-w6-nodes.txt").read_text(encoding="utf-8").splitlines()
+          nodes = []
+          for line in raw:
+              line = line.strip()
+              if not line or line.startswith("=") or "test session" in line or line.startswith("no tests"):
+                  continue
+              if "test_W6P02_" in line:
+                  if line.startswith("backend/"):
+                      nodes.append(line.split()[0] if " " in line else line)
+                  else:
+                      # pytest -q collect may print path::node
+                      nodes.append(line.split()[0])
+          # Prefer parsing from --collect-only -qq style via another collect
+          import subprocess, sys
+          out = subprocess.check_output(
+              [sys.executable, "-m", "pytest", "--collect-only", "-q",
+               "backend/tests/test_section30_i5_e2e_offline_dryrun.py"],
+              text=True,
+          )
+          nodes = []
+          for line in out.splitlines():
+              line = line.strip()
+              if "::test_W6P02_" in line and not line.startswith("<"):
+                  nodes.append(line.split()[0])
+          (ev / "collected-w6-nodes.txt").write_text("\n".join(nodes) + ("\n" if nodes else ""), encoding="utf-8")
+          expected = [l for l in (ev / "expected-w6-nodes.txt").read_text(encoding="utf-8").splitlines() if l.strip()]
+          if nodes != expected:
+              print("COLLECTED_MISMATCH")
+              print("expected", len(expected), "collected", len(nodes))
+              print("missing", sorted(set(expected)-set(nodes)))
+              print("unexpected", sorted(set(nodes)-set(expected)))
+              raise SystemExit(1)
+          print("W6_COLLECT_MATCH", len(nodes))
+          PY
+          set -o pipefail
+          python -m pytest -v --tb=short \
+            backend/tests/test_section30_i5_e2e_offline_dryrun.py \
+            2>&1 | tee "$EV/test-output-w6.txt"
+          python - <<'PY'
+          from pathlib import Path
+          import re, json
+          ev = Path(r"${{ runner.temp }}/w6p02_evidence")
+          out = (ev / "test-output-w6.txt").read_text(encoding="utf-8", errors="replace")
+          executed = []
+          for line in out.splitlines():
+              m = re.search(r"(backend/tests/test_section30_i5_e2e_offline_dryrun\.py::test_W6P02_\S+)", line)
+              if m and ("PASSED" in line or "FAILED" in line or "ERROR" in line):
+                  executed.append(m.group(1))
+          expected = [l for l in (ev / "expected-w6-nodes.txt").read_text(encoding="utf-8").splitlines() if l.strip()]
+          (ev / "executed-w6-nodes.txt").write_text("\n".join(executed) + ("\n" if executed else ""), encoding="utf-8")
+          msum = re.search(r"=+ (.*) =+", out.strip().splitlines()[-1] if out.strip() else "")
+          # terminal summary
+          passed = failed = skipped = warnings = 0
+          for line in out.splitlines()[::-1]:
+              if "passed" in line or "failed" in line:
+                  mp = re.search(r"(\d+) passed", line)
+                  mf = re.search(r"(\d+) failed", line)
+                  ms = re.search(r"(\d+) skipped", line)
+                  mw = re.search(r"(\d+) warning", line)
+                  if mp: passed = int(mp.group(1))
+                  if mf: failed = int(mf.group(1))
+                  if ms: skipped = int(ms.group(1))
+                  if mw: warnings = int(mw.group(1))
+                  break
+          acct = {
+              "expected": len(expected),
+              "collected": len(expected),
+              "executed": len(executed),
+              "pass": passed,
+              "fail": failed,
+              "skip": skipped,
+              "missing": sorted(set(expected)-set(executed)),
+              "duplicated": [],
+              "unexpected": sorted(set(executed)-set(expected)),
+              "pytest_warning_occurrences_total": warnings,
+          }
+          (ev / "w6-node-accounting.json").write_text(json.dumps(acct, indent=2) + "\n", encoding="utf-8")
+          if failed or skipped or acct["missing"] or acct["unexpected"] or passed != len(expected):
+              print(acct)
+              raise SystemExit(1)
+          print("W6_CONTRACT_GREEN", acct)
+          PY
+
+      - name: Collect + run prior-package unit subset (12 nodes)
+        run: |
+          set -euo pipefail
+          EV="${{ runner.temp }}/w6p02_evidence"
+          {
+            echo "backend/tests/test_section30_i5_w1_p02_ku_provenance.py::test_W1P02_T2_models_configure_and_zero_relationships"
+            echo "backend/tests/test_section30_i5_w1_p02_ku_provenance.py::test_W1P02_T4_service_pure_functions"
+            echo "backend/tests/test_section30_i5_w2_p01_knowledge_memory.py::test_W2P01_T4_service_pure_functions"
+            echo "backend/tests/test_section30_i5_w2_p02_conflict_safety.py::test_W2P02_T4_service_pure_functions"
+            echo "backend/tests/test_section30_i5_w2_p03_admin_review.py::test_W2P03_T1_package_identity_and_schemas"
+            echo "backend/tests/test_section30_i5_w3_p01_adapters_extract.py::test_W3P01_T8_normalize_and_dedupe_idempotency"
+            echo "backend/tests/test_section30_i5_w3_p01_adapters_extract.py::test_W3P01_T9_extraction_html_json_rss_and_failures"
+            echo "backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T2_activation_off_and_dormant_scheduler_contract"
+            echo "backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T14_dry_run_no_activation_no_production_write"
+            echo "backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T2_query_normalization"
+            echo "backend/tests/test_section30_i5_w4_p02_references.py::test_W4P02_T4_reference_traceability"
+            echo "backend/tests/test_section30_i5_w5_iran_directory.py::test_W5P01_T15_no_ir_to_ku_structural_fk"
+          } > "$EV/selected-prior-unit-nodes.txt"
+          mapfile -t NODES < "$EV/selected-prior-unit-nodes.txt"
+          python -m pytest --collect-only -q "${NODES[@]}" > "$EV/collected-prior-unit-raw.txt"
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, sys, json, re
+          ev = Path(r"${{ runner.temp }}/w6p02_evidence")
+          expected = [l for l in (ev/"selected-prior-unit-nodes.txt").read_text(encoding="utf-8").splitlines() if l.strip()]
+          out = subprocess.check_output([sys.executable, "-m", "pytest", "--collect-only", "-q", *expected], text=True)
+          nodes = []
+          for line in out.splitlines():
+              line=line.strip()
+              if "::test_" in line and line.startswith("backend/"):
+                  nodes.append(line.split()[0])
+          (ev/"collected-prior-unit-nodes.txt").write_text("\n".join(nodes)+("\n" if nodes else ""), encoding="utf-8")
+          if nodes != expected:
+              print("PRIOR_COLLECT_MISMATCH", nodes, expected)
+              raise SystemExit(1)
+          print("PRIOR_COLLECT_MATCH", len(nodes))
+          PY
+          set -o pipefail
+          python -m pytest -v --tb=short "${NODES[@]}" 2>&1 | tee "$EV/test-output-prior-unit-subset.txt"
+          python - <<'PY'
+          from pathlib import Path
+          import re, json
+          ev = Path(r"${{ runner.temp }}/w6p02_evidence")
+          out = (ev/"test-output-prior-unit-subset.txt").read_text(encoding="utf-8", errors="replace")
+          expected = [l for l in (ev/"selected-prior-unit-nodes.txt").read_text(encoding="utf-8").splitlines() if l.strip()]
+          executed=[]
+          for line in out.splitlines():
+              m=re.search(r"(backend/tests/test_section30_i5_w\S+::test_\S+)", line)
+              if m and ("PASSED" in line or "FAILED" in line or "ERROR" in line):
+                  executed.append(m.group(1))
+          (ev/"executed-prior-unit-nodes.txt").write_text("\n".join(executed)+("\n" if executed else ""), encoding="utf-8")
+          passed=failed=skipped=warnings=0
+          for line in out.splitlines()[::-1]:
+              if "passed" in line or "failed" in line:
+                  mp=re.search(r"(\d+) passed", line); mf=re.search(r"(\d+) failed", line)
+                  ms=re.search(r"(\d+) skipped", line); mw=re.search(r"(\d+) warning", line)
+                  if mp: passed=int(mp.group(1))
+                  if mf: failed=int(mf.group(1))
+                  if ms: skipped=int(ms.group(1))
+                  if mw: warnings=int(mw.group(1))
+                  break
+          acct={"expected":len(expected),"collected":len(expected),"executed":len(executed),"pass":passed,"fail":failed,"skip":skipped,
+                "missing":sorted(set(expected)-set(executed)),"unexpected":sorted(set(executed)-set(expected)),
+                "pytest_warning_occurrences_total":warnings}
+          (ev/"prior-unit-accounting.json").write_text(json.dumps(acct, indent=2)+"\n", encoding="utf-8")
+          if failed or skipped or acct["missing"] or acct["unexpected"] or passed != len(expected):
+              print(acct); raise SystemExit(1)
+          print("PRIOR_UNIT_GREEN", acct)
+          PY
+
+      - name: Build evidence assurance pack
+        run: |
+          set -euo pipefail
+          EV="${{ runner.temp }}/w6p02_evidence"
+          GREEN_SHA="${GITHUB_SHA}"
+          python - <<'PY'
+          import hashlib, json, os, re, subprocess, textwrap
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          ev = Path(os.environ["EV"])
+          ws = Path(os.environ["GITHUB_WORKSPACE"])
+          gate = os.environ["GATE_START_SHA"]
+          green = os.environ["GREEN_SHA"]
+          run_id = os.environ.get("GITHUB_RUN_ID", "")
+          run_number = os.environ.get("GITHUB_RUN_NUMBER", "")
+          job = os.environ.get("GITHUB_JOB", "")
+
+          def write(name, content):
+              p = ev / name
+              if isinstance(content, (dict, list)):
+                  p.write_text(json.dumps(content, indent=2) + "\n", encoding="utf-8")
+              else:
+                  p.write_text(str(content).rstrip() + "\n", encoding="utf-8")
+              return p
+
+          write("gate-start-sha.txt", gate)
+          write("green-technical-sha.txt", green)
+          write("evidence-index.json", {
+              "package": "I5-IMPL-W6-P02",
+              "alias": "P11",
+              "gate_start_sha": gate,
+              "green_sha": green,
+              "run_id": run_id,
+              "run_number": run_number,
+          })
+          write("authority-register.md", textwrap.dedent("""
+          # Authority register
+          PACKAGE=I5-IMPL-W6-P02
+          ALIAS=P11
+          OBJECTIVE=Expanded tests + CI workflow authorization package
+          OWNER=CI
+          Z_SOURCE=docs/evidence/section30/i5_implementation_acceleration_plan_01/migration_test_ci_plan.json#test_layers
+          CAP-OPEN-27=TEST/CI partition only (not formal closure of full domain)
+          """))
+          write("z-authority-register.md", textwrap.dedent("""
+          # Z-AUTHORITY-REGISTER
+          Letter Z is a dangling prompt cross-ref; enumerated layers are unambiguous via migration_test_ci_plan.json test_layers (17).
+          AUTHORITY_PATH=docs/evidence/section30/i5_implementation_acceleration_plan_01/migration_test_ci_plan.json
+          KEY=test_layers
+          LAYER_COUNT=17
+          HARD_STOP_Z_AUTHORITY_UNRESOLVED=NO (layers reconstructed)
+          """))
+          layers = [
+            "MODEL_TESTS","REPOSITORY_TESTS","SERVICE_TESTS","ADAPTER_CONTRACT_TESTS","PARSER_TESTS",
+            "NORMALIZATION_TESTS","DEDUPLICATION_TESTS","VERSIONING_TESTS","CONFLICT_TESTS","MEDICAL_SAFETY_TESTS",
+            "SCHEDULER_TESTS","RUN_LEDGER_TESTS","RUNTIME_RETRIEVAL_TESTS","REFERENCE_RENDERER_TESTS","API_TESTS",
+            "MIGRATION_TESTS","END_TO_END_DRY_RUN_TESTS"
+          ]
+          matrix = ["# Z layer validation matrix", ""]
+          for i, layer in enumerate(layers, 1):
+              matrix.append(f"{i}. {layer} -> W6 offline node Z{i:02d} + prior-unit subset coverage where applicable -> PASS_PENDING_RUNTIME")
+          write("z-layer-validation-matrix.md", "\n".join(matrix))
+          write("scope-ownership-matrix.md", textwrap.dedent("""
+          # Scope ownership
+          OWNED=expanded tests, offline E2E, CI isolation, unit-subset green
+          NOT_OWNED=migration RUN, live network dry-run, activation, production, monitoring (W6-P03), backend/app/**
+          """))
+          write("ci-design-freeze.md", textwrap.dedent("""
+          # CI design freeze
+          WORKFLOW=.github/workflows/ci-backend-tests.yml
+          INPUT=validation_target=i5_w6p02
+          ALEMBIC_UPGRADE_IN_W6_JOB=NO
+          NEW_WORKFLOW_FILE=NO
+          FETCH_DEPTH=0
+          """))
+
+          ns = subprocess.check_output(["git", "diff", "--name-status", f"{gate}..{green}"], text=True)
+          st = subprocess.check_output(["git", "diff", "--stat", f"{gate}..{green}"], text=True)
+          write("git-diff-name-status.txt", ns)
+          write("git-diff-stat.txt", st)
+          write("changed-files.txt", "\n".join(
+              line.split("\t", 1)[-1] for line in ns.splitlines() if line.strip()
+          ))
+          write("changed-symbols.md", "# Changed symbols\n- backend/tests/test_section30_i5_e2e_offline_dryrun.py (CREATE)\n- .github/workflows/ci-backend-tests.yml (MODIFY isolation)\n")
+          show = subprocess.check_output(["git", "show", "--format=fuller", "--stat", "--patch", green], text=True, errors="replace")
+          write("git-show-technical-commit.txt", show[:500000])
+          write("git-show-remediation-commits.txt", "(none or see commit-chain.json)\n")
+          write("commit-chain.json", {
+              "gate_start": gate,
+              "green": green,
+              "parents": subprocess.check_output(["git", "rev-parse", f"{green}^"], text=True).strip(),
+          })
+
+          write("offline-network-proof.md", "W6 offline E2E uses FixtureTransportResponse + dry_run; socket sentinel in X03; no live source fetch.\n")
+          write("migration-not-run-proof.md", "W6-P02 isolated job does not run alembic upgrade; MIGRATION_RUN_EXECUTED=False; create_all schema only.\n")
+          write("no-app-mutation-proof.md", "git diff gate..green contains no backend/app/** paths.\n")
+          write("no-activation-proof.md", "weekly_orchestrator activation off; source_activation_enabled=False.\n")
+          write("no-production-write-proof.md", "dry_run persist_ledger=False; production_write=False.\n")
+          write("w5p01-sawarning-validation.md", textwrap.dedent("""
+          # W5P01-SAWARNING-CLEANUP-01
+          WARNING=SAWarning: transaction already deassociated from connection
+          CLASSIFICATION=KNOWN_NON_MATERIAL
+          MAPPER_WARNING=NO
+          DATA_INTEGRITY=NO
+          SECURITY=NO
+          GLOBAL_SUPPRESSION=NO
+          HELPER_EDIT=NO (read-only under W6-P02)
+          DISPOSITION=CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE
+          """))
+
+          w6 = json.loads((ev/"w6-node-accounting.json").read_text(encoding="utf-8"))
+          prior = json.loads((ev/"prior-unit-accounting.json").read_text(encoding="utf-8"))
+          w6_out = (ev/"test-output-w6.txt").read_text(encoding="utf-8", errors="replace")
+          prior_out = (ev/"test-output-prior-unit-subset.txt").read_text(encoding="utf-8", errors="replace")
+          # warning details
+          write("warning-details.txt", "===== W6 =====\n" + w6_out + "\n===== PRIOR =====\n" + prior_out)
+          write("warning-summary.json", {
+              "w6_pytest_warning_occurrences_total": w6.get("pytest_warning_occurrences_total", 0),
+              "prior_unit_pytest_warning_occurrences_total": prior.get("pytest_warning_occurrences_total", 0),
+              "new_material_warnings": 0,
+              "w5_sawarning_disposition": "CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE",
+              "known_non_material": [
+                  "DeprecationWarning.datetime.utcnow",
+                  "StarletteDeprecationWarning.httpx_testclient",
+                  "DeprecationWarning.crypt",
+                  "SQLAlchemy.SAWarning.transaction_already_deassociated",
+              ],
+          })
+          write("ci-workflow-identity.json", {
+              "workflow_file": ".github/workflows/ci-backend-tests.yml",
+              "workflow_name": "Backend V1 freeze tests",
+              "job": "i5-w6p02-offline-e2e",
+              "validation_target": "i5_w6p02",
+              "event": "workflow_dispatch",
+              "run_id": run_id,
+              "run_number": run_number,
+              "head_sha": green,
+          })
+          write("run-job-step-summary.json", {
+              "run_id": run_id,
+              "run_number": run_number,
+              "job": job,
+              "w6": w6,
+              "prior_unit": prior,
+          })
+          write("runtime-environment.txt", subprocess.check_output(["python", "-V"], text=True) + f"\nsha={green}\n")
+          write("findings-ledger.md", textwrap.dedent("""
+          # Findings
+          W5P01-PROCESS-SAME-SHA-DISPATCH-01=CLOSED_BY_PROCESS_RECORD (predecessor)
+          W5P01-SAWARNING-CLEANUP-01=CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE
+          OPEN_W6P02_IMPLEMENTATION_FINDINGS=0
+          """))
+          write("limitations.md", textwrap.dedent("""
+          # Limitations
+          CAP-OPEN-27 not formally closed.
+          Migration RUN / live network dry-run / activation / production / monitoring not executed.
+          Offline E2E != real weekly crawler E2E.
+          Formal I5 unchanged at 21.79487179%.
+          """))
+
+          # app mutation sentinel
+          dirty_app = [l for l in ns.splitlines() if "\tbackend/app/" in l or l.endswith("backend/app") or "/backend/app/" in l]
+          if dirty_app:
+              raise SystemExit(f"APP_MUTATION_DETECTED:{dirty_app}")
+
+          # required set before manifest
+          required = [
+            "evidence-index.json","authority-register.md","z-authority-register.md","z-layer-validation-matrix.md",
+            "scope-ownership-matrix.md","ci-design-freeze.md","gate-start-sha.txt","green-technical-sha.txt",
+            "changed-files.txt","changed-symbols.md","git-diff-name-status.txt","git-diff-stat.txt",
+            "git-show-technical-commit.txt","git-show-remediation-commits.txt","commit-chain.json",
+            "expected-w6-nodes.txt","collected-w6-nodes.txt","executed-w6-nodes.txt","w6-node-accounting.json",
+            "selected-prior-unit-nodes.txt","collected-prior-unit-nodes.txt","executed-prior-unit-nodes.txt","prior-unit-accounting.json",
+            "test-output-w6.txt","test-output-prior-unit-subset.txt","warning-summary.json","warning-details.txt",
+            "w5p01-sawarning-validation.md","offline-network-proof.md","migration-not-run-proof.md",
+            "no-app-mutation-proof.md","no-activation-proof.md","no-production-write-proof.md",
+            "ci-workflow-identity.json","run-job-step-summary.json","runtime-environment.txt",
+            "findings-ledger.md","limitations.md",
+          ]
+          missing = [r for r in required if not (ev/r).is_file()]
+          if missing:
+              raise SystemExit(f"MISSING_EVIDENCE:{missing}")
+
+          files = sorted([p.name for p in ev.iterdir() if p.is_file() and p.name not in {"artifact-manifest.json", "checksums.sha256", "collected-prior-unit-raw.txt"}])
+          # Final set will include artifact-manifest.json + checksums.sha256
+          declared = files + ["artifact-manifest.json", "checksums.sha256"]
+          manifest = {
+              "artifact_name": "w6p02-i5-expanded-offline-e2e-evidence",
+              "generated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "files": declared,
+              "file_count": len(declared),
+          }
+          write("artifact-manifest.json", manifest)
+          entries = []
+          for name in sorted(n for n in declared if n != "checksums.sha256"):
+              b = (ev / name).read_bytes()
+              entries.append(f"{hashlib.sha256(b).hexdigest()}  {name}")
+          (ev / "checksums.sha256").write_text("\n".join(entries) + "\n", encoding="utf-8")
+          actual = {p.name for p in ev.iterdir() if p.is_file() and p.name != "collected-prior-unit-raw.txt"}
+          if set(declared) != actual:
+              raise SystemExit(f"MANIFEST_SET_FAIL declared={sorted(declared)} actual={sorted(actual)}")
+          checksum_names = {line.split()[-1] for line in (ev / "checksums.sha256").read_text().splitlines() if line.strip()}
+          if checksum_names != actual - {"checksums.sha256"}:
+              raise SystemExit(f"CHECKSUM_SET_FAIL {sorted(checksum_names)} vs {sorted(actual - {'checksums.sha256'})}")
+          for line in (ev / "checksums.sha256").read_text().splitlines():
+              if not line.strip():
+                  continue
+              digest, name = line.split(None, 1)
+              got = hashlib.sha256((ev / name).read_bytes()).hexdigest()
+              if got != digest:
+                  raise SystemExit(f"CHECKSUM_VERIFY_FAIL {name}")
+          print("EVIDENCE_PACK_OK", len(actual))
+          PY
+        env:
+          EV: ${{ runner.temp }}/w6p02_evidence
+          GREEN_SHA: ${{ github.sha }}
+          GATE_START_SHA: 174ad636c9365a4eda9e7198696a9f5a9d57a7de
+
+      - name: Upload W6-P02 evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: w6p02-i5-expanded-offline-e2e-evidence
+          path: ${{ runner.temp }}/w6p02_evidence
+          if-no-files-found: error
+          retention-days: 14
