@@ -61855,3 +61855,91 @@ NEXT_PACKAGE=I5-IMPL-W5-P01
 DEADLINE_IMPACT=CRITICAL/HIGH mitigated for W4-P02 synthesis/reference blocker; remaining critical path continues (W5/W6 + crawler E2E)
 
 NOTE=post-§251 final master-log whole-file self-SHA is NOT embedded inside §251.
+
+
+================================================================================
+§252 — W5-P01 / P10 IRAN DIRECTORY LAYER /
+IranDoctor + IranLaboratory + IranHospital /
+NO-IR→KU + CLINICAL SEPARATION /
+MIGRATION AUTHOR-ONLY / FOCUSED POSTGRESQL RUNTIME /
+W4P02-EVIDENCE-GIT-HISTORY-01 CLOSURE /
+STRONGEST AUTHORITY-PERMITTED CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-07T08:05:01Z
+GATE_ID=I5-IMPL-W5-P01
+CANONICAL_TITLE=Iran doctors/labs/hospitals directory layer
+MANAGEMENT_ALIAS=P10
+JAVAD_APPROVAL=EXPLICIT
+VERDICT=PASS + GREEN + STRONGEST AUTHORITY-PERMITTED CLOSURE
+PASS=YES
+GREEN=YES
+EXPECTED_COLLECTED_EXECUTED=24/24/24
+MARKER=READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE
+
+--------------------------------------------------------------------------------
+PREFLIGHT (MATCHED)
+--------------------------------------------------------------------------------
+START_HEAD=cb27cedde0dec27dbe4f74bac75e56a97da14f5a
+§251 SIZE=2740490 SHA256=f66df25b8c291c919c61c9a452c6631c1b154c1137fceb9a83763eec99edd7de CRLF_ONLY
+v542 SIZE=3612989 SHA256=7d36a5135b4bc867f3eca87c46589d323d814d39c03261b4d06acea712a67d6c LF exact-v541-prefix=YES
+LEDGER SIZE=120055 SHA256=57f7f045664dd6478c0ea01db62bfe9d616d4b343e780eb3fc8aac6bc22dec47 LF
+FORMAL_I5=21.79487179%
+
+--------------------------------------------------------------------------------
+AUTHORITY / CAPABILITIES
+--------------------------------------------------------------------------------
+PACKAGE=I5-IMPL-W5-P01 ALIAS=P10
+CAP-OPEN-23/24/25 OWNED (directory only)
+OUT_OF_SCOPE=clinical knowledge from IR sources
+NEXT=I5-IMPL-W6-P02
+MIGRATIONS=AUTHOR_ONLY (052_i5_w5_iran_directory; RUN=NOT EXECUTED)
+PROHIBITED_MODIFY=knowledge_unit_service.py
+main.py=NOT MODIFIED (router test-mounted; allowlist pattern)
+
+--------------------------------------------------------------------------------
+DESIGN FREEZE SUMMARY
+--------------------------------------------------------------------------------
+Models=IranDoctor/IranLaboratory/IranHospital (no KU FK)
+Search dims=name/city/province/specialty|service/facility_type
+No endorsement/ranking/availability fabrication
+No live IR source fetch; source_system_label future-ready only
+Auth=X-Admin-Token (i5_admin convention)
+Frozen nodes=24 (T1–T24)
+
+--------------------------------------------------------------------------------
+CI CYCLES
+--------------------------------------------------------------------------------
+REGISTRATION_PUSH RUN=31159397882 COMMIT=c4dd897dc2149b80c578ab26eeac6007f8d82511 — T20 false-positive crawl docstring; 19 pass/1 fail (NOT terminal Green)
+TECH_1 COMMIT=ebf6a46b85ef42c51fd3f286d5557888b6660744 — restore dispatch-only + T20 fix; RUN=31159647212 — 24/24 tests PASS but pack NEW_MATERIAL due to SAWarning transaction deassociated (NOT terminal Green)
+TECH_2 GREEN COMMIT=7e42c484de96b2264126a646ad578c79636e2490 — IntegrityError db.rollback + warning precision classifier; RUN=31159890811 JOB=92807593572 workflow_dispatch
+EXPECTED/COLLECTED/EXECUTED=24/24/24 PASS=24 FAIL=0 SKIP=0
+ARTIFACT_ID=8986634001 NAME=w5p01-postgresql-iran-directory-evidence SIZE=49307 DIGEST=sha256:d7ada5324daec607fc6bc365712c60f0bb7ee496708fb013a7345deaf51f239d
+MANIFEST=47/47 PASS CHECKSUM=46 PASS VERIFY=PASS
+W4P02-EVIDENCE-GIT-HISTORY-01=CLOSED (fetch-depth:0; GATE_START_SHA..GREEN explicit; no ambiguous parent shorthand)
+
+--------------------------------------------------------------------------------
+WARNINGS
+--------------------------------------------------------------------------------
+PYTEST_WARNING_OCCURRENCES_TOTAL=41 (=terminal)
+NEW_MATERIAL_WARNINGS=0
+KNOWN_NON_MATERIAL=utcnow DeprecationWarning; Starlette httpx TestClient; passlib crypt; SAWarning transaction already deassociated (fixture)
+
+--------------------------------------------------------------------------------
+LAYERED CLOSURE
+--------------------------------------------------------------------------------
+AUTHORITY RECONCILIATION=PASS
+IranDoctor/IranLaboratory/IranHospital=PASS
+DIRECTORY SERVICE/SCHEMA/API=PASS
+ORM RUNTIME=24/24 PASS
+CLINICAL SEPARATION=PASS
+NO-IR→KU=PASS
+MIGRATION AUTHORED=YES RUN=NOT EXECUTED
+LIVE IR FETCH/NETWORK/ACTIVATION/PRODUCTION WRITE/DEPLOY=NOT EXECUTED
+FORMAL_I5=21.79487179% UNCHANGED
+W5-P01_STATE=TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION
+
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+NEXT_PACKAGE=I5-IMPL-W6-P02
+DEADLINE_IMPACT=CRITICAL/HIGH mitigated for W5 directory blocker; remaining path W6+crawler
+
+NOTE=post-§252 final master-log whole-file self-SHA is NOT embedded inside §252.
