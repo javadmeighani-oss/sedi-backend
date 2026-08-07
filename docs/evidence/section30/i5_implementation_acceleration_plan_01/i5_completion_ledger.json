@@ -352,7 +352,65 @@
       "formal_credit": "NOT_AWARDED",
       "formal_i5_unchanged": "21.79487179%",
       "next_package": "I5-IMPL-W6-P02",
-      "marker": "READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE"
+      "marker": "READY_FOR_NEXT_AUTHORIZED_I5_PACKAGE",
+      "process_cycle_compliance": "DEVIATION_RECORDED",
+      "package_verdict_corrected": "PASS_WITH_RECORDED_PROCESS_DEVIATION",
+      "false_full_process_pass": "PROHIBITED",
+      "canonical_green_run": 31159890811,
+      "duplicate_same_sha_run": 31159934538,
+      "duplicate_run_is_not_terminal_authority": true,
+      "sawarning_carry_forward": "W5P01-SAWARNING-CLEANUP-01_OPEN_NON_BLOCKING_TO_W6-P02"
+    },
+    "w5p01_process_truth_correction": {
+      "recorded_at_utc": "2026-08-07T08:30:00Z",
+      "gate": "W5-P01-EVIDENCE-CONTINUITY-TRUTH-CORRECTION-01",
+      "parent_package": "I5-IMPL-W5-P01",
+      "javad_approval": "EXPLICIT",
+      "verdict": "PASS_CONTINUITY_PROCESS_TRUTH_CORRECTION_CLOSED",
+      "technical_pass_preserved": true,
+      "evidence_assurance_pass": true,
+      "process_cycle_compliance": "DEVIATION_RECORDED",
+      "package_state": "PASS_WITH_RECORDED_PROCESS_DEVIATION",
+      "false_full_process_pass": "PROHIBITED",
+      "prior_false_claim": "RUN_31159934538_cancelled",
+      "corrected_duplicate_run": {
+        "run_id": 31159934538,
+        "run_number": 4,
+        "event": "workflow_dispatch",
+        "head_sha": "7e42c484de96b2264126a646ad578c79636e2490",
+        "status": "completed",
+        "conclusion": "success",
+        "artifact_id": 8986654067,
+        "artifact_name": "w5p01-postgresql-iran-directory-evidence",
+        "artifact_size": 49301,
+        "artifact_digest": "sha256:4347ce397f627e46173b177dc1477ede4dd1c9611a6fddce6b2e1f4774129974"
+      },
+      "canonical_green_authority": {
+        "commit": "7e42c484de96b2264126a646ad578c79636e2490",
+        "run_id": 31159890811,
+        "job_id": 92807593572,
+        "run_number": 3,
+        "artifact_id": 8986634001,
+        "artifact_digest": "sha256:d7ada5324daec607fc6bc365712c60f0bb7ee496708fb013a7345deaf51f239d"
+      },
+      "findings": {
+        "W5P01-PROCESS-SAME-SHA-DISPATCH-01": "CLOSED_BY_PROCESS_RECORD",
+        "W5P01-SAWARNING-CLEANUP-01": "OPEN_NON_BLOCKING_CARRY_FORWARD_TO_W6-P02"
+      },
+      "sawarning_carry_forward": {
+        "warning": "SAWarning: transaction already deassociated from connection",
+        "observed_in_terminal_green": true,
+        "classification": "KNOWN_NON_MATERIAL",
+        "eliminated": false,
+        "owner": "I5-IMPL-W6-P02",
+        "status": "OPEN_NON_BLOCKING_CARRY_FORWARD"
+      },
+      "no_new_runtime": true,
+      "no_product_change": true,
+      "formal_credit": "NOT_AWARDED",
+      "formal_i5_unchanged": "21.79487179%",
+      "next_package": "I5-IMPL-W6-P02",
+      "marker": "READY_FOR_W6P02_SEPARATE_JAVAD_APPROVAL"
     }
   },
   "weight_proof": {
