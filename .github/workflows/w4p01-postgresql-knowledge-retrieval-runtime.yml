@@ -135,6 +135,7 @@ jobs:
 
       - name: Process 1 — collect-only manifest (19 nodes)
         run: |
+          set -o pipefail
           python -B -m pytest \
             --collect-only \
             --noconftest \
@@ -161,6 +162,7 @@ jobs:
 
       - name: Process 2 — focused PostgreSQL knowledge retrieval runtime
         run: |
+          set -o pipefail
           python -B -m pytest \
             --noconftest \
             -p backend.tests.helpers.w4p01_postgres_runtime_plugin \
@@ -224,22 +226,42 @@ jobs:
           if evidence.get("collected_node_ids"):
               collected_ids = list(evidence["collected_node_ids"])
           (pack / "collected-nodes.txt").write_text("\n".join(sorted(set(collected_ids))) + "\n", encoding="utf-8")
-          executed = list(collected_ids) if evidence.get("pass_count") else list(collected_ids)
-          (pack / "executed-nodes.txt").write_text("\n".join(sorted(set(executed))) + "\n", encoding="utf-8")
           missing = sorted(set(expected) - set(collected_ids))
           unexpected = sorted(set(collected_ids) - set(expected))
+          pass_count = int(evidence.get("pass_count") or 0)
+          fail_count = int(evidence.get("fail_count") or 0)
+          skip_count = int(evidence.get("skip_count") or 0)
+          executed_count = pass_count + fail_count
+          if evidence.get("executed_node_ids"):
+              executed = list(evidence["executed_node_ids"])
+          elif pass_count and not fail_count and not skip_count and not missing and not unexpected:
+              executed = list(collected_ids)
+          else:
+              executed = []
+          (pack / "executed-nodes.txt").write_text("\n".join(sorted(set(executed))) + "\n", encoding="utf-8")
           node_accounting = {
               "expected_count": len(expected),
               "collected_count": len(set(collected_ids)),
-              "executed_count": int(evidence.get("pass_count") or 0) + int(evidence.get("fail_count") or 0),
+              "executed_count": executed_count if executed_count else len(set(executed)),
               "missing": missing,
               "duplicated": [],
               "unexpected": unexpected,
-              "skipped": int(evidence.get("skip_count") or 0),
+              "skipped": skip_count,
               "pass_count": evidence.get("pass_count"),
               "fail_count": evidence.get("fail_count"),
               "manifest_equality_pass": evidence.get("manifest_equality_pass"),
           }
+          green_ok = (
+              len(expected) == 19
+              and len(set(collected_ids)) == 19
+              and node_accounting["executed_count"] == 19
+              and not missing
+              and not unexpected
+              and skip_count == 0
+              and fail_count == 0
+              and pass_count == 19
+          )
+          node_accounting["green_contract_pass"] = green_ok
           (pack / "node-accounting.json").write_text(json.dumps(node_accounting, indent=2) + "\n", encoding="utf-8")
           (pack / "runtime-environment.txt").write_text(
               "\n".join([
@@ -294,45 +316,45 @@ jobs:
           (pack / "authority-register.md").write_text(
               "# Authority register (W4-P01)\n\n"
               "- CANONICAL_PACKAGE_ID=I5-IMPL-W4-P01\n"
-              "- MANAGEMENT_ALIAS=P07\n"
-              "- MASTER_LOG_TIP=§245\n"
-              "- HANDOFF=v536\n"
-              "- OWN=weekly orchestrator + discovery wiring; activation off\n"
-              "- DEFER_NETWORK=W6-P01\n"
-              "- RAW_PROVENANCE=W1-P02\n",
+              "- MANAGEMENT_ALIAS=P08\n"
+              "- OWN=runtime_knowledge_retrieval; CARE/brain hooks; eligibility/version/freshness/conflict/safety\n"
+              "- NOT_OWN=synthesis/references→W4-P02; network/activation/migration→W6-P01\n"
+              "- DEFER_NETWORK=W6-P01\n",
               encoding="utf-8",
           )
           (pack / "authority-excerpts.md").write_text(
               "# Authority excerpts\n\n"
-              "## §245 NEXT PACKAGE\n"
-              "NEXT_PACKAGE=I5-IMPL-W4-P01 ALIAS=P07\n"
-              "OBJECTIVE=Weekly orchestrator job + discovery wiring (implementation only; activation off)\n\n"
-              "## package_sequence.json W4-P01\n"
-              "OUT_OF_SCOPE=enable flag, network, dry-run live\n"
-              "JOBS=weekly_international_knowledge_crawler — registered dormant\n",
+              "## I5-IMPL-W4-P01\n"
+              "Knowledge-Database-First runtime retrieval integration\n"
+              "ALIAS=P08\n\n"
+              "## Out of scope\n"
+              "synthesis/references/disclosure→W4-P02; controlled network/activation/migration→W6-P01\n",
               encoding="utf-8",
           )
           (pack / "scope-ownership-matrix.md").write_text(
               "| Capability | Owner |\n|---|---|\n"
-              "| Discovery wiring | W4-P01 |\n"
-              "| Weekly orchestration | W4-P01 |\n"
-              "| Raw/provenance persistence | W1-P02 |\n"
+              "| Knowledge-DB-first retrieval | W4-P01 |\n"
+              "| CARE_CONTEXT / brain hooks | W4-P01 |\n"
+              "| Synthesis / references | W4-P02 |\n"
               "| Controlled network/activation | W6-P01 |\n",
               encoding="utf-8",
           )
           (pack / "contract-coverage-matrix.md").write_text(
               "# Contract coverage\n\n"
-              "- T1 identity\n- T2 activation-off / dormant scheduler\n"
-              "- T3-T6 discovery\n- T7-T11 ledger\n- T12 partial failure\n"
-              "- T13 handoff prepare-only\n- T14 dry unit\n- T15 FK\n",
+              "- T1 identity\n- T2 query normalization\n- T3 eligible current\n"
+              "- T4-T7 superseded/retracted/provenance/stale\n"
+              "- T8 conflict\n- T9 medical safety\n- T10 ranking\n"
+              "- T11 no-safe-knowledge + gap\n- T12 language personalization\n"
+              "- T13 no base-model fallback\n- T14 care_context kb-first\n"
+              "- T15 multiple-current fail-closed\n- T16 W4-P02 handoff fields\n",
               encoding="utf-8",
           )
           (pack / "changed-symbols.md").write_text(
               "# Changed symbols\n\n"
-              "- source_discovery.plan_discovery\n"
-              "- weekly_orchestrator.orchestrate_weekly_run\n"
-              "- weekly_orchestrator.run_dormant_scheduled_tick\n"
-              "- scheduler.start_scheduler dormant job registration\n",
+              "- runtime_knowledge_retrieval.retrieve_knowledge_context\n"
+              "- runtime_knowledge_retrieval.resolve_current_version_candidates\n"
+              "- care_intelligence CARE_CONTEXT I5-first path\n"
+              "- brain NO_BASE_MODEL_MEDICAL_FALLBACK status path\n",
               encoding="utf-8",
           )
           (pack / "findings-ledger.md").write_text(
@@ -344,13 +366,14 @@ jobs:
               "- Controlled real-source validation not executed (W6-P01)\n"
               "- Migration not authored/run\n"
               "- Source/scheduler activation remain off\n"
-              "- Formal I5 percentage locked unchanged\n",
+              "- Formal I5 percentage locked unchanged\n"
+              "- W4-P02 synthesis/references not owned\n",
               encoding="utf-8",
           )
           (pack / "orchestration-summary.json").write_text(
               json.dumps({
                   "package_id": "I5-IMPL-W4-P01",
-                  "job_id": "weekly_international_knowledge_crawler",
+                  "service": "runtime_knowledge_retrieval",
                   "activation": "OFF",
                   "network": "NOT_EXECUTED",
                   "expected_nodes": len(expected),
@@ -382,19 +405,20 @@ jobs:
                   (pack / p.name).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
           (pack / "changed-files.txt").write_text(
               "\n".join([
-                  "A backend/app/services/i5/weekly_orchestrator.py",
-                  "A backend/app/services/i5/source_discovery.py",
+                  "A backend/app/services/i5/runtime_knowledge_retrieval.py",
+                  "A backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py",
                   "A backend/tests/helpers/w4p01_postgres_runtime.py",
                   "A backend/tests/helpers/w4p01_postgres_runtime_plugin.py",
                   "A .github/workflows/w4p01-postgresql-knowledge-retrieval-runtime.yml",
-                  "M backend/app/core/scheduler.py",
+                  "M backend/app/services/gate3/care_intelligence.py",
+                  "M backend/app/core/conversation/brain.py",
               ]) + "\n",
               encoding="utf-8",
           )
           (pack / "evidence-index.json").write_text(
               json.dumps({
                   "package_id": "I5-IMPL-W4-P01",
-                  "alias": "P07",
+                  "alias": "P08",
                   "artifact_name": "w4p01-postgresql-knowledge-retrieval-evidence",
                   "files": sorted([p.name for p in pack.iterdir() if p.is_file()]),
               }, indent=2) + "\n",
@@ -471,6 +495,14 @@ jobs:
           (pack / "artifact-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
           print("evidence_pack_ready", pack)
           print("node_accounting", json.dumps(node_accounting))
+          if not green_ok:
+              raise SystemExit(
+                  "SENTINEL_W4P01_NODE_CONTRACT_NOT_GREEN "
+                  f"expected=19 collected={node_accounting['collected_count']} "
+                  f"executed={node_accounting['executed_count']} "
+                  f"pass={pass_count} fail={fail_count} skip={skip_count} "
+                  f"missing={len(missing)} unexpected={len(unexpected)}"
+              )
           PY
 
       - name: Copy helper runtime evidence into pack
