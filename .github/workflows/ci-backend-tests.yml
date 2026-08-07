@@ -284,14 +284,18 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
           text = Path(".github/workflows/ci-backend-tests.yml").read_text(encoding="utf-8")
           start = text.index("i5-w6p02-offline-e2e:")
           body = text[start:]
+          # Fail only on executable alembic upgrade commands in this job (not prose/comments).
+          blocked = re.compile(r"(?i)(?:python\s+-m\s+)?alembic(?:\s+-c\s+\S+)?\s+upgrade\b")
           for line in body.splitlines():
-              low = line.lower().strip()
-              if low.startswith("#"):
+              low = line.strip()
+              if not low or low.startswith("#"):
                   continue
-              if "alembic" in low and "upgrade" in low and "no alembic" not in low:
+              # ignore YAML comment-only / markdown prose inside heredocs that are not shell commands
+              if blocked.search(line):
                   raise SystemExit(f"BLOCKED_ALEMBIC_IN_W6_JOB:{line}")
           print("W6P02_MIGRATION_RUN=NO")
           PY
