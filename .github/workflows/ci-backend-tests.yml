@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       validation_target:
-        description: Validation target (default preserves legacy acceptance; i5_w6p02 isolates W6-P02 offline E2E without alembic upgrade; i5_w6p01_migrations proves 053-056 upgrade/downgrade/reupgrade)
+        description: Validation target (default preserves legacy acceptance; i5_w6p02 isolates W6-P02 offline E2E without alembic upgrade; i5_w6p01_migrations proves 053-056 upgrade/downgrade/reupgrade; i5_w6p01_real_network runs the opt-in real controlled-network E2E against the one ELIGIBLE NHS source)
         required: true
         default: default
         type: choice
@@ -27,6 +27,7 @@ on:
           - default
           - i5_w6p02
           - i5_w6p01_migrations
+          - i5_w6p01_real_network
 
 jobs:
   backend-acceptance:
@@ -831,3 +832,164 @@ jobs:
             backend/tests/test_section30_i5_w6_p01_live_acquisition.py \
             backend/tests/test_section30_i5_w6_p01_ci_sentinel.py \
             backend/tests/test_section30_i5_w6_metrics.py
+
+  # -------------------------------------------------------------------------
+  # W6-P01 Gate — REAL controlled network E2E (opt-in only).
+  # Ephemeral PostgreSQL at alembic head + a genuine HTTPS request to the one
+  # ELIGIBLE NHS source. Both activation env flags ON so the orchestrator's
+  # dormant/controlled-live tests in this file exercise the real ladder.
+  # -------------------------------------------------------------------------
+  i5-w6p01-real-network-e2e:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.validation_target == 'i5_w6p01_real_network' }}
+    name: W6-P01 Real Controlled Network E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_w6p01_real_test
+          POSTGRES_PASSWORD: sedi_w6p01_real_test_password
+          POSTGRES_DB: sedi_w6p01_real
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_w6p01_real_test -d sedi_w6p01_real"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_w6p01_real_test:sedi_w6p01_real_test_password@127.0.0.1:5432/sedi_w6p01_real
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w6p01_real_test:sedi_w6p01_real_test_password@127.0.0.1:5432/sedi_w6p01_real
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      OPENAI_API_KEY: w6p01-real-test-placeholder-not-used
+      # Opt-in gate — this is the ONLY workflow target that ever sets this flag.
+      SEDI_I5_ALLOW_REAL_NETWORK: "1"
+      # Both independent activation flags ON, for the orchestrator tests in
+      # this file that exercise run_dormant_scheduled_tick's controlled-live
+      # ladder end to end (weekly_orchestrator.py fail-closes on either flag
+      # being off). Neither flag is set in any other job in this workflow.
+      SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED: "1"
+      SEDI_I5_SOURCE_ACTIVATION_ENABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest alembic
+
+      - name: PostgreSQL readiness
+        run: |
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 5432 -U sedi_w6p01_real_test -d sedi_w6p01_real; then
+              echo "postgres_ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "postgres_not_ready"
+          exit 1
+
+      - name: Alembic upgrade head
+        run: |
+          python -m alembic -c backend/alembic.ini upgrade head
+          python - <<'PY'
+          from alembic.script import ScriptDirectory
+          heads = ScriptDirectory("backend/alembic").get_heads()
+          assert heads == ["056_i5_w2_p02_conflict_safety"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+
+      - name: Prepare evidence directory
+        run: mkdir -p "${{ runner.temp }}/w6p01_real_network_evidence"
+
+      - name: Run real controlled network E2E
+        id: real_e2e
+        run: |
+          set -o pipefail
+          EV="${{ runner.temp }}/w6p01_real_network_evidence"
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_section30_i5_w6_p01_real_network_e2e.py \
+            2>&1 | tee "$EV/test-output.txt"
+
+      - name: Write real-network evidence JSON
+        if: always()
+        run: |
+          set -euo pipefail
+          EV="${{ runner.temp }}/w6p01_real_network_evidence"
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          ev = Path(os.environ["EV"])
+          out = (ev / "test-output.txt").read_text(encoding="utf-8", errors="replace")
+
+          passed = failed = skipped = warnings = 0
+          for line in out.splitlines()[::-1]:
+              if "passed" in line or "failed" in line or "skipped" in line or "error" in line:
+                  mp = re.search(r"(\d+) passed", line)
+                  mf = re.search(r"(\d+) failed", line)
+                  ms = re.search(r"(\d+) skipped", line)
+                  mw = re.search(r"(\d+) warning", line)
+                  if mp or mf or ms:
+                      if mp: passed = int(mp.group(1))
+                      if mf: failed = int(mf.group(1))
+                      if ms: skipped = int(ms.group(1))
+                      if mw: warnings = int(mw.group(1))
+                      break
+
+          honest_failures = sorted(set(re.findall(r"REAL_NETWORK_HONEST_FAILURE:(\S+?):", out)))
+
+          evidence = {
+              "package_id": "I5-IMPL-W6-P01",
+              "generated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "workflow": ".github/workflows/ci-backend-tests.yml",
+              "job": "i5-w6p01-real-network-e2e",
+              "validation_target": "i5_w6p01_real_network",
+              "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "run_number": os.environ.get("GITHUB_RUN_NUMBER", ""),
+              "head_sha": os.environ.get("GITHUB_SHA", ""),
+              "eligible_source_url": "https://www.nhs.uk/live-well/sleep-and-tiredness/",
+              "eligible_allowed_domain": "nhs.uk",
+              "sedi_i5_allow_real_network": os.environ.get("SEDI_I5_ALLOW_REAL_NETWORK", ""),
+              "sedi_i5_weekly_orchestrator_enabled": os.environ.get("SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED", ""),
+              "sedi_i5_source_activation_enabled": os.environ.get("SEDI_I5_SOURCE_ACTIVATION_ENABLED", ""),
+              "pytest_pass": passed,
+              "pytest_fail": failed,
+              "pytest_skip": skipped,
+              "pytest_warning_occurrences_total": warnings,
+              "honest_network_failure_categories_observed": honest_failures,
+          }
+          (ev / "evidence.json").write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
+          print("EVIDENCE_WRITTEN", evidence)
+          PY
+        env:
+          EV: ${{ runner.temp }}/w6p01_real_network_evidence
+
+      - name: Upload W6-P01 real-network evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w6p01-real-network-evidence
+          path: ${{ runner.temp }}/w6p01_real_network_evidence
+          if-no-files-found: error
+          retention-days: 14

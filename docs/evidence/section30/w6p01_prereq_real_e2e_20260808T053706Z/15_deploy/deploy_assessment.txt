@@ -1,0 +1,108 @@
+I5-IMPL-W6-P01 — DEPLOY / PERSISTENT ACTIVATION ASSESSMENT
+Evidence package: w6p01_prereq_real_e2e_20260808T053706Z
+Scope: read-only repo + GitHub Actions run-metadata inspection ONLY.
+NO deployment executed. NO migration executed. NO SSH connection made to the
+production host by this assessment.
+
+QUESTION
+  Can a safe persistent DB identity + backup/restore + current deployed SHA
+  be proven from repo alone (i.e. without live-executing anything against
+  production)?
+
+ANSWER
+  NO.
+
+HARD_STOP=HARD_STOP_DEPLOY_HARNESS_REQUIRED
+
+EXACT REASON
+  1. The repo DOES contain a designed safety mechanism
+     (.github/workflows/deploy-backend-ghcr.yml,
+      .github/workflows/gate10-prod-migrate-049.yml,
+      .github/workflows/gate4b-postdeploy-readonly.yml):
+       - pinned 40-char commit-SHA image tag + sha256:<64hex> digest
+         verification before recreate (deploy-backend-ghcr.yml
+         "Deploy backend safely" step)
+       - pre/post `alembic_version` single-row + exact-revision guard
+         (both workflows' "DATABASE TARGET ALIGNMENT" / "DIRECT ALEMBIC
+         VERSION" checks)
+       - pg_dump | gzip pre-deploy/pre-migration backup with size + gzip
+         integrity + sha256 verification
+         (deploy-backend-ghcr.yml "PRE-DEPLOY DB BACKUP"; gate10 "BACKUP")
+       - automatic rollback to the previous image on failed health check
+         (deploy-backend-ghcr.yml "ROLLBACK TO PREVIOUS IMAGE")
+       - a dedicated read-only post-deploy check
+         (gate4b-postdeploy-readonly.yml: docker inspect image,
+          alembic current/heads, health, log scan)
+     This proves the MECHANISM is sound. It does NOT prove the CURRENT
+     LIVE VALUES, because none of image/digest/alembic_version/backup
+     files are stored in the repository — they exist only on the remote
+     host (secrets.SEDI_HOST via secrets.SEDI_SSH_PRIVATE_KEY_B64) and
+     are only observable by actually running one of these workflows.
+
+  2. Concrete evidence of drift risk (from `gh run view` on the last
+     recorded live-preflight output, read-only, no new action taken):
+       - Deploy run 29146208394 (2026-07-11T08:30:03Z, SUCCESS) recorded
+         its own live preflight output:
+             alembic_current=049_section10_kb_embeddings_memory_governance
+         i.e. the last CONFIRMED production alembic revision is 049.
+       - The current repository Alembic head is
+             056_i5_w2_p02_conflict_safety
+         (revisions 050-056 authored after 049; see
+          docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z/03_migrations/design_freeze.txt).
+         Production is therefore at minimum 7 revisions behind repo head,
+         per the last available evidence.
+       - The two recorded attempts to run
+         gate10-prod-migrate-049.yml (runs 29143463209 and 29145126120,
+         2026-07-11) BOTH FAILED at the "Run guarded production
+         migration" step (DATABASE_TARGET_ALIGNMENT_FAILED / precheck
+         exit), yet the very next deploy run (29146208394, same day,
+         later) observed alembic_current already at 049. This means
+         revision 049 was reached by a path this repo's CI history does
+         NOT fully explain (most plausibly an out-of-band/manual
+         intervention on the host) — i.e. persistent DB identity has, at
+         least once, drifted outside anything provable from repo/CI
+         evidence alone.
+       - No `gate*-prod-migrate-05x.yml` workflow exists in
+         .github/workflows/ for ANY of 050/051/052/053/054/055/056 (only
+         gate2-prod-migrate-044.yml and gate10-prod-migrate-049.yml
+         exist, one workflow authored per target revision by
+         established convention). The harness required to safely bring
+         the persistent production DB to the current head does not yet
+         exist in this repository.
+
+  3. Secrets required to observe (read-only) or change production state
+     (SEDI_SSH_PRIVATE_KEY_B64, SEDI_SSH_PRIVATE_KEY, SEDI_HOST,
+     SEDI_PORT, SEDI_USER, SEDI_DEPLOY_PATH) are configured at the GitHub
+     repository level (confirmed present via `gh secret list` — names
+     only, values inaccessible outside a workflow run) but are not
+     usable for a repo-only, non-executing assessment.
+
+CONCLUSION
+  - Persistent DB identity: NOT provable from repo alone (last known
+    value is a point-in-time CI-run log artifact, not a live-verified
+    current fact; at least one prior drift not explained by recorded CI
+    runs).
+  - Backup/restore: mechanism exists in-workflow; backup FILES live only
+    under `${SEDI_DEPLOY_PATH}/backups/postgres/` on the remote host and
+    their current existence/recency/restorability cannot be verified
+    without a live (even if read-only) SSH session.
+  - Current deployed SHA: last recorded value is the image built for
+    alembic revision 049 (2026-07-11); no newer production deploy run is
+    recorded. Current production HEAD_SHA cannot be confirmed without
+    running gate4b-postdeploy-readonly.yml or equivalent live check.
+  - No production migration or deployment for W6-P01 (053-056) is
+    authorized or attempted by this assessment. A dedicated, reviewed
+    `gate*-prod-migrate-05x.yml`-style workflow (backup + digest-pin +
+    revision-guard + rollback, per the existing pattern) must be
+    authored and separately approved before any real persistent
+    activation proceeds.
+
+METHOD (fully enumerated — nothing else was executed)
+  - Read: .github/workflows/deploy-backend-ghcr.yml
+  - Read: .github/workflows/gate10-prod-migrate-049.yml
+  - Read: .github/workflows/gate4b-postdeploy-readonly.yml
+  - Read: .github/workflows/gate2-prod-migrate-044.yml (naming precedent)
+  - `gh secret list` (names only; no secret values read or used)
+  - `gh run list` / `gh run view --log` against already-completed,
+    historical workflow runs (read-only GitHub Actions API; no new run
+    triggered; no SSH session opened to the production host)

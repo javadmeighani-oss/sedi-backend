@@ -1,0 +1,60 @@
+MIGRATION_CI_RUN=31243699141
+WORKFLOW=Backend V1 freeze tests (.github/workflows/ci-backend-tests.yml)
+JOB=W6-P01 Migration Parity (053-056)
+JOB_ID=93068715184
+VALIDATION_TARGET=i5_w6p01_migrations
+EVENT=workflow_dispatch
+CONCLUSION=success
+HEAD_SHA=42a1a3eb4caaa824f4375bd0fef5db05e31a22c0
+HEAD_SHA_SHORT=42a1a3e
+RUN_STARTED_AT=2026-08-08T06:20:35Z
+RUN_UPDATED_AT=2026-08-08T06:21:29Z
+JOB_DURATION=47s
+
+ALEMBIC_REPOSITORY_HEAD=056_i5_w2_p02_conflict_safety
+ALEMBIC_HEADS_SINGLE=PASS (exactly one head; verified via ScriptDirectory("backend/alembic").get_heads())
+ALEMBIC_BASE_FOR_PARITY=052_i5_w5_iran_directory
+
+EPHEMERAL_UPGRADE=PASS
+EPHEMERAL_DOWNGRADE=PASS
+EPHEMERAL_REUPGRADE=PASS
+NOTE=upgrade/downgrade/reupgrade all proved against a fresh ephemeral
+  postgres:15 service container for this job (sedi_w6p01_test /
+  sedi_w6p01_mig) — never against a persistent/production database.
+
+TEST_FILE=backend/tests/test_section30_i5_w6_p01_migration_parity.py
+TEST_STEP=Migration parity pytest (upgrade/downgrade/reupgrade)
+TEST_RESULT=4 passed, 6 warnings in 2.76s
+TEST_NODES=
+  test_W6P01_MIG_T01_repository_heads_single
+    -> asserts get_heads() == ["056_i5_w2_p02_conflict_safety"]
+  test_W6P01_MIG_T02_upgrade_052_then_head_parity
+    -> DROP/CREATE SCHEMA public; upgrade to 052 (pre-I5-ledger baseline);
+       asserts registry_state NOT YET a GSP column; upgrade to head;
+       asserts all 18 REQUIRED_TABLES + W1 GSP columns + named CHECK
+       constraints (ck_wkr_status_vocab, ck_ku_eligible_requires_provenance)
+       present  [EPHEMERAL_UPGRADE=PASS]
+  test_W6P01_MIG_T03_downgrade_to_052_and_reupgrade
+    -> upgrade head; downgrade to 052 (asserts weekly_knowledge_runs table
+       and registry_state column are GONE)  [EPHEMERAL_DOWNGRADE=PASS]
+       -> re-upgrade to head (asserts knowledge_safety_reviews +
+       knowledge_units present again)  [EPHEMERAL_REUPGRADE=PASS]
+  test_W6P01_MIG_T04_fk_gap_to_ku_exists_at_head
+    -> asserts fk_knowledge_gaps_target_knowledge_unit_id present at head
+       (053->054 deferred-FK design; see 03_migrations/design_freeze.txt)
+
+ADDITIONAL_STEP=Live acquisition + CI sentinel unit (no network)
+ADDITIONAL_TEST_FILES=
+  backend/tests/test_section30_i5_w6_p01_live_acquisition.py
+  backend/tests/test_section30_i5_w6_p01_ci_sentinel.py
+  backend/tests/test_section30_i5_w6_metrics.py
+ADDITIONAL_RESULT=47 passed, 169 warnings in 1.10s
+
+SOURCE_OF_RECORD=gh run view 31243699141 --repo javadmeighani-oss/sedi-backend --log
+  (read-only GitHub Actions API inspection of the already-completed run;
+  no new CI run triggered by this evidence write)
+CROSS_REFERENCE=docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z/03_migrations/design_freeze.txt
+CROSS_REFERENCE=docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z/04_postgres_runtime/migration_ci_cycle1.txt (CYCLE=1, failed, remediated)
+CROSS_REFERENCE=docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z/04_postgres_runtime/migration_ci_cycle2.txt (CYCLE=2, failed, remediated)
+CYCLE=3
+W6P01-MIGRATION-CI-GREEN-01=CLOSED
