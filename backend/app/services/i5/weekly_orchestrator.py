@@ -499,6 +499,8 @@ def create_attempt(
     # terminal attempt per run. Any new attempt after success is fail-closed —
     # including an unlabeled "fresh" attempt (retry_of_attempt_id is None).
     if prior_success is not None:
+        if retry_of_attempt_id is not None:
+            raise WeeklyOrchestratorError("RETRY_AFTER_SUCCESSFUL_TERMINAL", str(run.id))
         raise WeeklyOrchestratorError(
             "SUCCESSFUL_TERMINAL_ALREADY_EXISTS",
             f"run_id={run.id}:attempt_id={prior_success.id}",
