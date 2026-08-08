@@ -177,14 +177,27 @@ jobs:
 
           recreate_backend_pinned() {
             log "=== PULL + RECREATE BACKEND @ DIGEST ==="
-            docker pull "${IMAGE_REF}"
-            PULLED_DIGEST="$(docker image inspect "${IMAGE_REF}" --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
-            if ! echo "${PULLED_DIGEST}" | grep -Fq "${IMAGE_DIGEST}"; then
-              log "DEPLOY_FAILED: pulled image digest mismatch"
-              exit 13
+            # GHCR pull can intermittently 404; prefer local digest image when present.
+            if ! docker pull "${IMAGE_REF}"; then
+              log "WARN: digest pull failed; attempting local digest/tag verification"
             fi
-            # Tag local digest image with SHA so compose can reference it.
-            docker tag "${IMAGE_REF}" "${IMAGE_TAG}"
+            LOCAL_DIGEST_REF="$(docker image inspect "${IMAGE_REF}" --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+            if ! echo "${LOCAL_DIGEST_REF}" | grep -Fq "${IMAGE_DIGEST}"; then
+              # Fall back to already-tagged SHA image if it matches the digest.
+              LOCAL_TAG_ID="$(docker image inspect "${IMAGE_TAG}" --format '{{.Id}}' 2>/dev/null || true)"
+              LOCAL_TAG_DIGEST="$(
+                docker image inspect "${IMAGE_TAG}" \
+                  --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null \
+                  | head -n 1 || true
+              )"
+              if ! echo "${LOCAL_TAG_DIGEST}" | grep -Fq "${IMAGE_DIGEST}"; then
+                log "DEPLOY_FAILED: neither digest pull nor local tag matches ${IMAGE_DIGEST}"
+                exit 13
+              fi
+              log "using_local_tag=${IMAGE_TAG} id=${LOCAL_TAG_ID}"
+            else
+              docker tag "${IMAGE_REF}" "${IMAGE_TAG}"
+            fi
             cd "${DEPLOY_PATH}"
             SEDI_IMAGE_TAG="${IMAGE_SHA}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
             wait_health
@@ -330,6 +343,8 @@ jobs:
           log "=== STEP 6: INVOKE run_weekly_scheduled_job (x2 idempotency) ==="
           PROOF_OK=1
           if ! docker exec -i sedi-backend python - <<'PY'
+          from backend.app.database import get_db
+          import backend.app.models as models
           from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
 
           outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
@@ -342,6 +357,24 @@ jobs:
           )
           if outcome.outcome in {"ERROR", "FAILED"}:
               raise SystemExit(f"weekly_job_1_failed:{outcome.outcome}:{outcome.detail}")
+          # Fresh fetch path OR same-window idempotent replay after prior Green proof.
+          if outcome.network_executed:
+              if outcome.outcome != "FULL_SUCCESS":
+                  raise SystemExit(f"weekly_job_1_expected_FULL_SUCCESS:{outcome.outcome}")
+          else:
+              if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+                  raise SystemExit(f"weekly_job_1_unexpected_no_network:{outcome.detail}")
+              db = next(get_db())
+              try:
+                  raw_n = db.query(models.I5RawEvidence).count()
+                  ku_n = db.query(models.KnowledgeUnit).count()
+                  prov_n = db.query(models.KnowledgeProvenance).count()
+                  run_n = db.query(models.WeeklyKnowledgeRun).count()
+                  print(f"idempotent_db_counts raw={raw_n} ku={ku_n} prov={prov_n} runs={run_n}")
+                  if min(raw_n, ku_n, prov_n, run_n) < 1:
+                      raise SystemExit("weekly_job_1_idempotent_missing_governed_rows")
+              finally:
+                  db.close()
           PY
           then
             PROOF_OK=0
@@ -361,6 +394,10 @@ jobs:
           )
           if outcome.outcome in {"ERROR", "FAILED"}:
               raise SystemExit(f"weekly_job_2_failed:{outcome.outcome}:{outcome.detail}")
+          if outcome.network_executed:
+              raise SystemExit("weekly_job_2_unexpected_second_fetch")
+          if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit(f"weekly_job_2_expected_ALREADY_SUCCESSFUL_TERMINAL:{outcome.detail}")
           PY
             then
               PROOF_OK=0
@@ -380,12 +417,46 @@ jobs:
           env_flag_equals "${FLAG_INT}" "10080" || { log "VERIFY_FAILED: interval flag"; exit 17; }
           summary "flags_verified" "true"
 
-          docker logs --since 15m sedi-backend 2>&1 \
-            | grep -F "weekly_international_knowledge_crawler registered" \
-            | tail -5 || true
-          if ! docker logs --since 30m sedi-backend 2>&1 \
-            | grep -Fq "weekly_international_knowledge_crawler registered"; then
-            log "VERIFY_FAILED: scheduler registration log not found"
+          if grep -Eq '^SEDI_DISABLE_SCHEDULER=(1|true|yes|on)$' "${ENV_FILE}"; then
+            log "VERIFY_FAILED: SEDI_DISABLE_SCHEDULER is enabled"
+            fail_closed_dormant
+            exit 51
+          fi
+
+          # Prefer --tail over --since (host/container clock skew can hide fresh startup lines).
+          LOG_TAIL="$(docker logs --tail 500 sedi-backend 2>&1 || true)"
+          SCHED_LINES="$(printf '%s\n' "${LOG_TAIL}" | grep -aF '[Sedi Scheduler]' | tail -n 60 || true)"
+          log "scheduler_log_line_count=$(printf '%s\n' "${SCHED_LINES}" | grep -c . || true)"
+          printf '%s\n' "${SCHED_LINES}" || true
+
+          REGISTERED_LINE="$(printf '%s\n' "${SCHED_LINES}" | grep -aF 'weekly_international_knowledge_crawler registered' | tail -n 1 || true)"
+          if [ -z "${REGISTERED_LINE}" ]; then
+            # Brief retry: startup prints can race healthz readiness under load.
+            for _i in 1 2 3 4 5; do
+              sleep 2
+              LOG_TAIL="$(docker logs --tail 500 sedi-backend 2>&1 || true)"
+              SCHED_LINES="$(printf '%s\n' "${LOG_TAIL}" | grep -aF '[Sedi Scheduler]' | tail -n 60 || true)"
+              REGISTERED_LINE="$(printf '%s\n' "${SCHED_LINES}" | grep -aF 'weekly_international_knowledge_crawler registered' | tail -n 1 || true)"
+              if [ -n "${REGISTERED_LINE}" ]; then
+                break
+              fi
+            done
+          fi
+
+          if [ -z "${REGISTERED_LINE}" ]; then
+            if printf '%s\n' "${SCHED_LINES}" | grep -aqF 'weekly orchestrator dormant wiring failed'; then
+              log "VERIFY_FAILED: weekly orchestrator wiring failed at startup"
+            elif printf '%s\n' "${SCHED_LINES}" | grep -aqF 'Background scheduler started successfully'; then
+              log "VERIFY_FAILED: scheduler started but weekly job registration line missing"
+            else
+              log "VERIFY_FAILED: no weekly registration line in docker logs --tail 500"
+            fi
+            fail_closed_dormant
+            exit 51
+          fi
+          log "scheduler_registered_line=${REGISTERED_LINE}"
+          if ! printf '%s\n' "${REGISTERED_LINE}" | grep -Eq 'interval_min=10080'; then
+            log "VERIFY_FAILED: registered weekly interval is not 10080"
             fail_closed_dormant
             exit 51
           fi
