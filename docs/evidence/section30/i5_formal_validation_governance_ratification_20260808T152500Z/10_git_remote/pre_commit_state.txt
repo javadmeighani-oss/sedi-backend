@@ -1,1 +1,3 @@
-STARTING_HEAD=430859735c06a476cce970e09734f9d05a114fc8
+RECONCILIATION_SHA=9ee5195f674fe7be3f801595afab383ea84eb45e
+CONTINUITY_COMMIT_SUBJECT=docs(i5): record formal validation governance closure
+NOTE=Exact FINAL_DOCS_SHA/HEAD equal git tip of continuity commit after push; recorded in report and 10_git_remote/final_shas.txt after commit via second write in same commit is impossible without self-ref; tip filled post-commit in final_shas.txt as part of continuity commit using placeholder then...
