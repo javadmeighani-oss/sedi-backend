@@ -97,6 +97,7 @@ jobs:
           FLAG_ORCH="SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED"
           FLAG_SRC="SEDI_I5_SOURCE_ACTIVATION_ENABLED"
           FLAG_INT="SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN"
+          FLAG_DISABLE_SCHED="SEDI_DISABLE_SCHEDULER"
 
           # Replace ENV_FILE atomically without printing contents.
           # Deploy SSH user can read /etc/sedi but cannot replace the env file;
@@ -306,9 +307,13 @@ jobs:
           upsert_env_kv "${FLAG_ORCH}" "true"
           upsert_env_kv "${FLAG_SRC}" "true"
           upsert_env_kv "${FLAG_INT}" "10080"
+          # Permanent weekly registration requires the process scheduler to start.
+          # Production previously had this kill-switch set, which silently skipped APScheduler.
+          upsert_env_kv "${FLAG_DISABLE_SCHED}" "false"
           env_flag_equals "${FLAG_ORCH}" "true" || { log "ENV_UPSERT_FAILED: ${FLAG_ORCH}"; exit 16; }
           env_flag_equals "${FLAG_SRC}" "true" || { log "ENV_UPSERT_FAILED: ${FLAG_SRC}"; exit 16; }
           env_flag_equals "${FLAG_INT}" "10080" || { log "ENV_UPSERT_FAILED: ${FLAG_INT}"; exit 16; }
+          env_flag_equals "${FLAG_DISABLE_SCHED}" "false" || { log "ENV_UPSERT_FAILED: ${FLAG_DISABLE_SCHED}"; exit 16; }
           summary "flags_upserted" "true"
 
           log "=== STEP 4: RECREATE BACKEND WITH PINNED IMAGE ==="
@@ -415,6 +420,7 @@ jobs:
           env_flag_equals "${FLAG_ORCH}" "true" || { log "VERIFY_FAILED: orchestrator flag"; exit 17; }
           env_flag_equals "${FLAG_SRC}" "true" || { log "VERIFY_FAILED: source activation flag"; exit 17; }
           env_flag_equals "${FLAG_INT}" "10080" || { log "VERIFY_FAILED: interval flag"; exit 17; }
+          env_flag_equals "${FLAG_DISABLE_SCHED}" "false" || { log "VERIFY_FAILED: scheduler disable flag"; exit 17; }
           summary "flags_verified" "true"
 
           if grep -Eq '^SEDI_DISABLE_SCHEDULER=(1|true|yes|on)$' "${ENV_FILE}"; then
