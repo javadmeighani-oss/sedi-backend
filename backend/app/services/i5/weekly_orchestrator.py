@@ -1,9 +1,17 @@
-"""I5-IMPL-W3-P02 — weekly orchestrator (activation off; no live network).
+"""I5-IMPL-W3-P02/W6-P01 — weekly orchestrator.
 
 Owns run/attempt/source-result/gap-result ledger wiring against W1-P01 models,
 discovery invocation, adapter resolution reuse, and prepare-only handoffs to
-W1-P02 raw/provenance surfaces. Controlled live dry-run / network / activation
-remain W6-P01.
+W1-P02 raw/provenance surfaces.
+
+Controlled live network (W6-P01) is fail-closed behind TWO independent env
+flags (`SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED` AND `SEDI_I5_SOURCE_ACTIVATION_ENABLED`).
+`orchestrate_weekly_run(..., enforce_activation_off=True)` (the W3-P02 /
+W6-P02 offline-E2E default) is fixture-only and unchanged. Only the explicit
+`live_network=True` path (reached via `run_controlled_scheduled_tick` /
+`run_controlled_live_orchestration`, or a direct authorized caller that also
+passes `enforce_activation_off=False`) performs a real HTTPS fetch, and only
+through `PublicWebFetchAdapter.fetch_live`.
 """
 from __future__ import annotations
 
@@ -20,6 +28,7 @@ from backend.app.services.i5.adapters.base import (
     FixtureTransportResponse,
     default_registry,
 )
+from backend.app.services.i5.adapters.live_transport import HttpGet
 from backend.app.services.i5.enums import (
     RunGapResultType,
     RunSourceResultStatus,
@@ -184,10 +193,22 @@ def assert_activation_off_contract() -> None:
         )
 
 
-def run_dormant_scheduled_tick() -> OrchestrationOutcome:
-    """Scheduler entrypoint: always no-op for live work under W3-P02."""
-    enabled = weekly_orchestrator_enabled()
-    if not enabled:
+def run_dormant_scheduled_tick(
+    db: Any = None,
+    models: Any = None,
+    *,
+    candidates: Optional[Sequence[SourceCandidateDescriptor]] = None,
+    persist_ledger: bool = False,
+    live_http_get: Optional[HttpGet] = None,
+) -> OrchestrationOutcome:
+    """Scheduler entrypoint. W6-P01 fail-closed two-flag activation ladder:
+
+    1. `SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED` off -> DORMANT_NO_OP (no I/O).
+    2. weekly ON, `SEDI_I5_SOURCE_ACTIVATION_ENABLED` off -> SOURCE_ACTIVATION_DISABLED
+       (no I/O). One flag alone is never sufficient to reach the network.
+    3. Both ON -> `run_controlled_scheduled_tick` (only path that may touch a socket).
+    """
+    if not weekly_orchestrator_enabled():
         return OrchestrationOutcome(
             outcome="DORMANT_NO_OP",
             activation_enabled=False,
@@ -196,14 +217,21 @@ def run_dormant_scheduled_tick() -> OrchestrationOutcome:
             network_executed=False,
             detail="weekly orchestrator activation off",
         )
-    # Even if env is forced true, W3-P02 refuses live execution.
-    return OrchestrationOutcome(
-        outcome="ACTIVATION_REFUSED_W3_P02",
-        activation_enabled=True,
-        scheduler_activation=False,
-        production_write=False,
-        network_executed=False,
-        detail=f"live execution deferred to {CONTROLLED_NETWORK_OWNED_BY}",
+    if not source_activation_enabled():
+        return OrchestrationOutcome(
+            outcome="SOURCE_ACTIVATION_DISABLED",
+            activation_enabled=True,
+            scheduler_activation=False,
+            production_write=False,
+            network_executed=False,
+            detail=f"weekly orchestrator on but {SOURCE_ACTIVATION_ENV} off",
+        )
+    return run_controlled_scheduled_tick(
+        db,
+        models,
+        candidates=candidates,
+        persist_ledger=persist_ledger,
+        live_http_get=live_http_get,
     )
 
 
@@ -662,6 +690,72 @@ def _apply_fixture_source(
     return RunSourceResultStatus.EXTRACTED.value, None, handoffs
 
 
+def _apply_live_source(
+    *,
+    work: DiscoveryWorkItem,
+    trust_level: str = "official",
+    review_required: bool = True,
+    max_bytes: int = 2_097_152,
+    timeout: int = 15,
+    http_get: Optional[HttpGet] = None,
+) -> tuple[str, Optional[str], list[HandoffRequest]]:
+    """Controlled live path (W6-P01) — same shape/handoffs as `_apply_fixture_source`
+    but performs (or, under test, simulates via injected `http_get`) a real HTTPS
+    fetch through the resolved adapter's `fetch_live`. Only adapters that expose
+    `fetch_live` (currently `PublicWebFetchAdapter`) support this path; any other
+    adapter mode fails closed rather than silently falling back to a fixture.
+    """
+    handoffs: list[HandoffRequest] = []
+    registry = default_registry()
+    adapter = registry.get(work.adapter_id)
+    fetch_live = getattr(adapter, "fetch_live", None)
+    if fetch_live is None:
+        return RunSourceResultStatus.FAILED.value, "LIVE_ADAPTER_UNSUPPORTED", handoffs
+    try:
+        envelope = fetch_live(
+            request_id=work.work_key[:32],
+            url=work.canonical_url,
+            governance=work.governance,
+            max_bytes=max_bytes,
+            timeout=timeout,
+            trust_level=trust_level,
+            review_required=review_required,
+            http_get=http_get,
+        )
+    except AdapterFrameworkError as exc:
+        return map_discovery_error_to_source_status(exc.category), exc.category, handoffs
+    if envelope.error_category == "NO_MATERIAL_CHANGE" or int(envelope.http_status or 0) == 304:
+        return RunSourceResultStatus.SKIPPED.value, "NO_MATERIAL_CHANGE", handoffs
+    if envelope.error_category:
+        return (
+            map_discovery_error_to_source_status(envelope.error_category),
+            envelope.error_category,
+            handoffs,
+        )
+    body = envelope.body or b""
+    content_sha = hashlib.sha256(body).hexdigest()
+    raw = prepare_raw_evidence_handoff(
+        attempt_id=0,
+        work=work,
+        content_sha256=content_sha,
+        dry_run=True,
+    )
+    prov = prepare_provenance_handoff(
+        attempt_id=0,
+        work=work,
+        raw_request_key=raw.request_key,
+        dry_run=True,
+    )
+    cand = prepare_candidate_handoff(
+        attempt_id=0,
+        work=work,
+        candidate_fingerprint=content_sha,
+        dry_run=True,
+    )
+    handoffs.extend([raw, prov, cand])
+    return RunSourceResultStatus.EXTRACTED.value, None, handoffs
+
+
 def finalize_attempt_counters(attempt, source_rows: Sequence[Any]) -> None:
     attempt.total_sources = len(source_rows)
     attempt.checked_sources = sum(
@@ -796,15 +890,28 @@ def orchestrate_weekly_run(
     dry_run: bool = True,
     persist_ledger: bool = True,
     enforce_activation_off: bool = True,
+    live_network: bool = False,
+    live_http_get: Optional[HttpGet] = None,
 ) -> OrchestrationOutcome:
     """Discovery + ledger orchestration. Default dry_run=True; no production write.
 
     persist_ledger=True writes run/attempt/source/gap rows to the bound test/app DB
     session. Raw/provenance/candidate handoffs are always prepare-only (execute=False).
-    Live network is never performed.
+
+    `live_network` defaults to False (fixture-only; unchanged W3-P02/W6-P02
+    behavior). Setting it True requires `enforce_activation_off=False` from the
+    caller (this function does not itself re-check the env flags — that is the
+    job of `run_dormant_scheduled_tick` / `run_controlled_scheduled_tick`) and
+    routes eligible sources through `_apply_live_source` (real HTTPS fetch,
+    or an injected `live_http_get` fake under test) instead of the fixture path.
     """
     if enforce_activation_off:
         assert_activation_off_contract()
+        if live_network:
+            raise WeeklyOrchestratorError(
+                "LIVE_NETWORK_REQUIRES_ACTIVATION_OFF_FALSE",
+                "enforce_activation_off=True cannot be combined with live_network=True",
+            )
 
     start = planned_window_start or utc_now()
     end = planned_window_end or (start + timedelta(days=7))
@@ -836,7 +943,10 @@ def orchestrate_weekly_run(
         source_summaries: list[dict[str, Any]] = []
         handoffs: list[HandoffRequest] = []
         for item in plan.selected:
-            status, code, item_handoffs = _apply_fixture_source(work=item, transports=transports)
+            if live_network:
+                status, code, item_handoffs = _apply_live_source(work=item, http_get=live_http_get)
+            else:
+                status, code, item_handoffs = _apply_fixture_source(work=item, transports=transports)
             source_summaries.append(
                 {
                     "source_profile_id": item.source_profile_id,
@@ -909,7 +1019,7 @@ def orchestrate_weekly_run(
             activation_enabled=False,
             scheduler_activation=False,
             production_write=False,
-            network_executed=False,
+            network_executed=bool(live_network and plan.selected),
             detail="dry_unit_no_ledger_persist",
             aa_metrics=aa_metrics,
             alert_decisions=alert_decisions,
@@ -940,7 +1050,10 @@ def orchestrate_weekly_run(
     gap_rows = []
 
     for item in plan.selected:
-        status, code, item_handoffs = _apply_fixture_source(work=item, transports=transports)
+        if live_network:
+            status, code, item_handoffs = _apply_live_source(work=item, http_get=live_http_get)
+        else:
+            status, code, item_handoffs = _apply_fixture_source(work=item, transports=transports)
         for h in item_handoffs:
             h.payload["attempt_id"] = attempt.id
             h.payload["dry_run"] = dry_run
@@ -954,7 +1067,11 @@ def orchestrate_weekly_run(
             source_profile_id=item.source_profile_id,
             source_version_id=item.source_version_id,
             result_status=status,
-            fetch_outcome="FIXTURE" if status != RunSourceResultStatus.FAILED.value else None,
+            fetch_outcome=(
+                None
+                if status == RunSourceResultStatus.FAILED.value
+                else ("LIVE" if live_network else "FIXTURE")
+            ),
             extraction_outcome="CANDIDATE_ONLY"
             if status == RunSourceResultStatus.EXTRACTED.value
             else None,
@@ -1099,8 +1216,94 @@ def orchestrate_weekly_run(
         activation_enabled=False,
         scheduler_activation=False,
         production_write=False,
-        network_executed=False,
+        network_executed=bool(live_network and plan.selected),
         detail="ledger_persisted_handoffs_prepare_only",
         aa_metrics=aa_metrics,
         alert_decisions=alert_decisions,
+    )
+
+
+def run_controlled_live_orchestration(
+    db: Any,
+    models: Any,
+    *,
+    candidates: Sequence[SourceCandidateDescriptor],
+    schedule_key: str = WEEKLY_ORCHESTRATOR_SCHEDULE_KEY,
+    trigger_type: str = WeeklyRunTriggerType.SCHEDULED.value,
+    logical_run_key: Optional[str] = None,
+    persist_ledger: bool = False,
+    live_http_get: Optional[HttpGet] = None,
+) -> OrchestrationOutcome:
+    """W6-P01 controlled live orchestration core.
+
+    Does NOT itself re-check `weekly_orchestrator_enabled()` /
+    `source_activation_enabled()` — the caller (`run_dormant_scheduled_tick`)
+    is the fail-closed gate. This split lets an explicitly authorized manual
+    admin action reuse the same controlled-live path with its own db session
+    without going through the scheduler tick.
+
+    - No `candidates` -> NO_ELIGIBLE_SOURCES (no discovery/network attempted).
+    - `persist_ledger=True` with no `db` -> LIVE_PATH_REQUIRES_DB (fail closed;
+      never silently falls back to a dry/no-op run when persistence was asked for).
+    - Otherwise delegates to `orchestrate_weekly_run(..., live_network=True,
+      enforce_activation_off=False)` and marks the result as activation-driven.
+    """
+    if not candidates:
+        return OrchestrationOutcome(
+            outcome="NO_ELIGIBLE_SOURCES",
+            activation_enabled=True,
+            scheduler_activation=True,
+            production_write=False,
+            network_executed=False,
+            detail="no controlled live source candidates supplied",
+        )
+    if persist_ledger and db is None:
+        return OrchestrationOutcome(
+            outcome="LIVE_PATH_REQUIRES_DB",
+            activation_enabled=True,
+            scheduler_activation=True,
+            production_write=False,
+            network_executed=False,
+            detail="controlled live ledger persistence requires a bound db session",
+        )
+    outcome = orchestrate_weekly_run(
+        db,
+        models,
+        candidates=candidates,
+        schedule_key=schedule_key,
+        trigger_type=trigger_type,
+        logical_run_key=logical_run_key,
+        transports={},
+        dry_run=not persist_ledger,
+        persist_ledger=persist_ledger,
+        enforce_activation_off=False,
+        live_network=True,
+        live_http_get=live_http_get,
+    )
+    outcome.activation_enabled = True
+    outcome.scheduler_activation = True
+    return outcome
+
+
+def run_controlled_scheduled_tick(
+    db: Any = None,
+    models: Any = None,
+    *,
+    candidates: Optional[Sequence[SourceCandidateDescriptor]] = None,
+    persist_ledger: bool = False,
+    live_http_get: Optional[HttpGet] = None,
+) -> OrchestrationOutcome:
+    """W6-P01 scheduler-facing controlled-live entrypoint.
+
+    Reached only once both `run_dormant_scheduled_tick` env flags are ON. No
+    implicit DB acquisition is attempted here: a bare scheduler tick with no
+    `db`/`candidates` supplied is a safe structural NO_ELIGIBLE_SOURCES no-op
+    rather than an error, since the scheduler has no admin-selected scope yet.
+    """
+    return run_controlled_live_orchestration(
+        db,
+        models,
+        candidates=list(candidates or ()),
+        persist_ledger=persist_ledger,
+        live_http_get=live_http_get,
     )
