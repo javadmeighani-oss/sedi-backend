@@ -289,7 +289,11 @@ jobs:
           import re
           text = Path(".github/workflows/ci-backend-tests.yml").read_text(encoding="utf-8")
           start = text.index("i5-w6p02-offline-e2e:")
-          body = text[start:]
+          # Bound the scan to THIS job only — later W6-P01 jobs intentionally
+          # run alembic upgrade and must not trip this W6-P02 sentinel.
+          rest = text[start + len("i5-w6p02-offline-e2e:"):]
+          nxt = re.search(r"\n  [A-Za-z0-9_-]+:\s*\n", rest)
+          body = text[start : start + len("i5-w6p02-offline-e2e:") + (nxt.start() if nxt else len(rest))]
           # Fail only on executable alembic upgrade commands in this job (not prose/comments).
           blocked = re.compile(r"(?i)^\s*(?:python\s+-m\s+)?alembic(?:\s+-c\s+\S+)?\s+upgrade\b")
           for line in body.splitlines():
