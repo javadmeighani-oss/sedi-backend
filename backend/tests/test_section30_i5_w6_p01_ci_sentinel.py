@@ -13,8 +13,10 @@ from backend.tests.helpers.w6p01_evidence_app_mutation import unexpected_app_mut
 ALLOWED_APP_PATH_PREFIXES = [
     "backend/app/services/i5/metrics.py",
     "backend/app/services/i5/weekly_orchestrator.py",
+    "backend/app/services/i5/governed_weekly_runtime.py",
     "backend/app/services/i5/adapters/**",
     "backend/app/services/i5/source_discovery.py",
+    "backend/app/core/scheduler.py",
 ]
 
 

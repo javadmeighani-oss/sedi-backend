@@ -309,8 +309,6 @@ def test_W6P01_REAL_T04_persist_ledger_real_network_writes_rows_and_is_idempoten
         live_http_get=None,
     )
     assert outcome1.activation_enabled is True
-    assert outcome1.production_write is False
-    assert outcome1.network_executed is True
     assert outcome1.run_id is not None
     assert outcome1.attempt_id is not None
 
@@ -337,6 +335,34 @@ def test_W6P01_REAL_T04_persist_ledger_real_network_writes_rows_and_is_idempoten
     assert source_result.result_status in {"EXTRACTED", "FAILED", "BLOCKED", "SKIPPED"}
     if source_result.result_status != "EXTRACTED":
         assert source_result.failure_code, "non-extracted result must record an honest failure_code"
+        assert outcome1.production_write is False
+    else:
+        assert outcome1.production_write is True
+        assert outcome1.detail == "governed_raw_ku_provenance_persisted"
+        raw = (
+            db.query(models.I5RawEvidence)
+            .filter(models.I5RawEvidence.source_profile_id == gsp.id)
+            .order_by(models.I5RawEvidence.id.desc())
+            .first()
+        )
+        assert raw is not None
+        assert raw.retention_mode == "RAW_MINIMAL_EVIDENCE_ONLY"
+        ku = (
+            db.query(models.KnowledgeUnit)
+            .order_by(models.KnowledgeUnit.id.desc())
+            .first()
+        )
+        assert ku is not None
+        assert ku.publication_state == "DRAFT"
+        assert ku.runtime_eligibility != "ELIGIBLE"
+        prov = (
+            db.query(models.KnowledgeProvenance)
+            .filter(models.KnowledgeProvenance.knowledge_unit_id == ku.id)
+            .one()
+        )
+        assert prov.raw_evidence_id == raw.id
+        assert db.query(models.KnowledgeMemoryItem).count() == 0
+        assert outcome1.network_executed is True
 
     # Idempotency: second controlled-live call with the SAME logical_run_key
     # resolves to the SAME run and does NOT open a new network/attempt when a

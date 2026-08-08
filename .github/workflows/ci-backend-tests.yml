@@ -680,8 +680,10 @@ jobs:
           ALLOWED_APP_PATH_PREFIXES = [
               "backend/app/services/i5/metrics.py",
               "backend/app/services/i5/weekly_orchestrator.py",
+              "backend/app/services/i5/governed_weekly_runtime.py",
               "backend/app/services/i5/adapters/**",
               "backend/app/services/i5/source_discovery.py",
+              "backend/app/core/scheduler.py",
           ]
           unexpected_app = unexpected_app_mutations(ns.splitlines(), ALLOWED_APP_PATH_PREFIXES)
           write("app-mutation-allowlist.json", {
@@ -929,8 +931,15 @@ jobs:
           set -o pipefail
           EV="${{ runner.temp }}/w6p01_real_network_evidence"
           python -B -m pytest -v --tb=short \
+            backend/tests/test_section30_i5_w6_p01_full_governed_pipeline.py \
             backend/tests/test_section30_i5_w6_p01_real_network_e2e.py \
             2>&1 | tee "$EV/test-output.txt"
+          # Gate law: success requires at least one real network attempt (not all-skipped).
+          if ! grep -E "test_W6P01_REAL_T0[1-4].*PASSED" "$EV/test-output.txt" >/dev/null; then
+            echo "REAL_FETCH_SKIPPED_OR_FAILED: no mandatory REAL node PASSED"
+            exit 1
+          fi
+          echo "REAL_FETCH_SKIPPED=NO" | tee "$EV/real_fetch_skipped.txt"
 
       - name: Write real-network evidence JSON
         if: always()

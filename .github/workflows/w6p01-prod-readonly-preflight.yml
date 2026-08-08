@@ -1,0 +1,168 @@
+# Read-only W6-P01 production preflight (workflow_dispatch only).
+# No env mutation, no DB mutation, no file writes on the host (except optional /tmp on the runner).
+name: W6-P01 Production Readonly Preflight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  readonly-preflight:
+    name: W6-P01 read-only production preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only production preflight
+        id: preflight
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/w6p01_readonly_preflight.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "PREFLIGHT_SUMMARY|$1|$2"; }
+
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+
+          cd "${DEPLOY_PATH}"
+
+          log "=== BACKEND IMAGE (tag / id / digest) ==="
+          BACKEND_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          BACKEND_ID="$(docker inspect sedi-backend --format '{{.Id}}' 2>/dev/null || true)"
+          BACKEND_IMAGE_ID="$(docker inspect sedi-backend --format '{{.Image}}' 2>/dev/null || true)"
+          BACKEND_DIGEST=""
+          if [ -n "${BACKEND_IMAGE_ID}" ]; then
+            BACKEND_DIGEST="$(
+              docker image inspect "${BACKEND_IMAGE_ID}" \
+                --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null \
+                | head -n 1 || true
+            )"
+          fi
+          log "backend_image=${BACKEND_IMAGE:-none}"
+          log "backend_container_id=${BACKEND_ID:-none}"
+          log "backend_image_id=${BACKEND_IMAGE_ID:-none}"
+          log "backend_repo_digest=${BACKEND_DIGEST:-none}"
+          summary "backend_image" "${BACKEND_IMAGE:-none}"
+          summary "backend_image_id" "${BACKEND_IMAGE_ID:-none}"
+          summary "backend_repo_digest" "${BACKEND_DIGEST:-none}"
+
+          log "=== HEALTH LOCAL + EXTERNAL ==="
+          curl -fsS http://127.0.0.1:8000/health
+          echo ""
+          curl -fsS http://127.0.0.1:8000/healthz
+          echo ""
+          curl -fsS https://api.sedi-ai.com/health
+          echo ""
+          curl -fsS https://api.sedi-ai.com/healthz
+          echo ""
+          summary "health" "pass"
+
+          log "=== POSTGRES HEALTH + POSTGRES_DB ==="
+          PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
+          PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          log "POSTGRES_DB=${PD}"
+          summary "postgres_db" "${PD}"
+          summary "postgres_health" "pass"
+
+          log "=== ALEMBIC VERSION (count + revision) ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_REV="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_revision=${ALEMBIC_REV}"
+          summary "alembic_count" "${ALEMBIC_COUNT}"
+          summary "alembic_revision" "${ALEMBIC_REV}"
+
+          log "=== ENV FLAG PRESENCE (boolean only; no values / no secrets) ==="
+          if [ ! -f "${ENV_FILE}" ]; then
+            log "PREFLIGHT_FAILED: missing ${ENV_FILE}"
+            exit 1
+          fi
+          flag_present() {
+            local key="$1"
+            if grep -Eq "^${key}=" "${ENV_FILE}"; then
+              echo "${key}_present=true"
+              summary "${key}_present" "true"
+            else
+              echo "${key}_present=false"
+              summary "${key}_present" "false"
+            fi
+          }
+          flag_present "SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED"
+          flag_present "SEDI_I5_SOURCE_ACTIVATION_ENABLED"
+          flag_present "SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN"
+          # Never print DATABASE_URL or credentials.
+          if grep -Eq "^DATABASE_URL=.+$" "${ENV_FILE}"; then
+            summary "DATABASE_URL_present" "true"
+          else
+            summary "DATABASE_URL_present" "false"
+          fi
+
+          log "=== WORKER / PROCESS TOPOLOGY ==="
+          docker inspect sedi-backend \
+            --format 'status={{.State.Status}} restarting={{.State.Restarting}} pid={{.State.Pid}} cmd={{json .Config.Cmd}} entrypoint={{json .Config.Entrypoint}}' \
+            || true
+          docker top sedi-backend || true
+          docker inspect sedi-postgres \
+            --format 'postgres_status={{.State.Status}} postgres_pid={{.State.Pid}}' \
+            || true
+
+          log "=== SCHEDULER LOG GREP (weekly_international_knowledge_crawler) ==="
+          docker logs --since 24h sedi-backend 2>&1 \
+            | grep -F "weekly_international_knowledge_crawler" \
+            | tail -40 || true
+
+          log "=== BACKUP DIR METADATA (filenames only) ==="
+          BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
+          if [ -d "${BACKUP_DIR}" ]; then
+            summary "backup_dir_exists" "true"
+            log "backup_dir_exists=true"
+            # Metadata only: name, size, mtime — no file contents.
+            ls -lt --time-style=long-iso "${BACKUP_DIR}" 2>/dev/null | head -n 25 || true
+            find "${BACKUP_DIR}" -maxdepth 1 -type f -printf '%f %s %TY-%Tm-%TdT%TH:%TM:%TS\n' 2>/dev/null \
+              | sort -r \
+              | head -n 20 || true
+          else
+            summary "backup_dir_exists" "false"
+            log "backup_dir_exists=false"
+          fi
+
+          log "=== READONLY PREFLIGHT DONE ==="
+          REMOTE_SCRIPT
+
+      - name: Write preflight job summary
+        if: always()
+        run: |
+          {
+            echo "## W6-P01 Production Readonly Preflight"
+            echo ""
+            echo "**Status:** ${{ job.status }}"
+            echo "**Mode:** READ ONLY (no env / DB / host file mutation)"
+            echo ""
+            if [ -f /tmp/w6p01_readonly_preflight.log ]; then
+              echo "### Captured summary markers"
+              grep '^PREFLIGHT_SUMMARY|' /tmp/w6p01_readonly_preflight.log | while IFS='|' read -r _ key val; do
+                echo "- **${key}:** ${val}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -544,27 +544,29 @@ def start_scheduler():
             # Fail-safe: do not break existing notification scheduler if KB wiring fails.
             print(f"[Sedi Scheduler] KB scheduled fetch wiring failed: {e}")
 
-        # I5-IMPL-W3-P02: dormant weekly international knowledge crawler registration.
-        # Job is always registered; body no-ops unless activation env is true, and even
-        # then W3-P02 refuses live network/production write (activation owned by W6-P01).
+        # I5-IMPL-W3-P02 / W6-P01: weekly international knowledge crawler.
+        # Job is always registered; body no-ops unless both activation env flags
+        # are true. Production ticks use the shared governed weekly callable
+        # (DB session + governed source load + advisory lock + deterministic window).
         try:
+            from backend.app.services.i5.governed_weekly_runtime import (
+                run_weekly_scheduled_job,
+                weekly_interval_minutes,
+            )
             from backend.app.services.i5.weekly_orchestrator import (
                 WEEKLY_ORCHESTRATOR_JOB_ID,
-                run_dormant_scheduled_tick,
                 weekly_orchestrator_enabled,
             )
 
             def _weekly_orchestrator_tick():
-                outcome = run_dormant_scheduled_tick()
+                outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
                 print(
                     "[Sedi Scheduler] weekly_international_knowledge_crawler "
-                    f"outcome={outcome.outcome} activation={weekly_orchestrator_enabled()}"
+                    f"outcome={outcome.outcome} activation={weekly_orchestrator_enabled()} "
+                    f"network={outcome.network_executed} detail={outcome.detail}"
                 )
 
-            weekly_interval_min = int(
-                os.getenv("SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN", str(7 * 24 * 60))
-            )
-            weekly_interval_min = max(60, min(14 * 24 * 60, weekly_interval_min))
+            weekly_interval_min = weekly_interval_minutes()
             scheduler.add_job(
                 _weekly_orchestrator_tick,
                 "interval",
@@ -576,7 +578,7 @@ def start_scheduler():
                 misfire_grace_time=60,
             )
             print(
-                "[Sedi Scheduler] weekly_international_knowledge_crawler registered dormant "
+                "[Sedi Scheduler] weekly_international_knowledge_crawler registered "
                 f"interval_min={weekly_interval_min} "
                 f"enabled={weekly_orchestrator_enabled()}"
             )

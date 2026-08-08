@@ -127,7 +127,9 @@ def test_W3P02_T2_activation_off_and_dormant_scheduler_contract() -> None:
     sched_mod = importlib.import_module("backend.app.core.scheduler")
     src = inspect.getsource(sched_mod.start_scheduler)
     assert "weekly_international_knowledge_crawler" in src
-    assert "run_dormant_scheduled_tick" in src
+    # W6-P01 Master Gate: scheduler registers the shared governed weekly callable,
+    # which still fail-closes through run_dormant_scheduled_tick's two-flag ladder.
+    assert "run_weekly_scheduled_job" in src
     orch.assert_activation_off_contract()
 
 

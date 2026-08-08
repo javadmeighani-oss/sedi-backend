@@ -29,6 +29,7 @@ from backend.app.services.i5.adapters.base import (
     default_registry,
 )
 from backend.app.services.i5.adapters.live_transport import HttpGet
+from backend.app.services.i5.conceptual_extraction import extract_candidates
 from backend.app.services.i5.enums import (
     RunGapResultType,
     RunSourceResultStatus,
@@ -43,6 +44,7 @@ from backend.app.services.i5.metrics import (
     build_aa_metrics_from_run_counters,
     observe_weekly_run_metrics,
 )
+from backend.app.services.i5.normalization import normalize_document
 from backend.app.services.i5.source_discovery import (
     DiscoveryPlan,
     DiscoveryWorkItem,
@@ -200,6 +202,11 @@ def run_dormant_scheduled_tick(
     candidates: Optional[Sequence[SourceCandidateDescriptor]] = None,
     persist_ledger: bool = False,
     live_http_get: Optional[HttpGet] = None,
+    logical_run_key: Optional[str] = None,
+    planned_window_start: Optional[datetime] = None,
+    planned_window_end: Optional[datetime] = None,
+    config_version: str = "w3p02-v1",
+    config_hash: Optional[str] = None,
 ) -> OrchestrationOutcome:
     """Scheduler entrypoint. W6-P01 fail-closed two-flag activation ladder:
 
@@ -232,6 +239,11 @@ def run_dormant_scheduled_tick(
         candidates=candidates,
         persist_ledger=persist_ledger,
         live_http_get=live_http_get,
+        logical_run_key=logical_run_key,
+        planned_window_start=planned_window_start,
+        planned_window_end=planned_window_end,
+        config_version=config_version,
+        config_hash=config_hash,
     )
 
 
@@ -341,22 +353,29 @@ def prepare_raw_evidence_handoff(
     work: DiscoveryWorkItem,
     content_sha256: str,
     dry_run: bool,
+    extra_payload: Optional[Mapping[str, Any]] = None,
 ) -> HandoffRequest:
     key = _sha256_hex(f"raw|{attempt_id}|{work.work_key}|{content_sha256}")
+    payload: dict[str, Any] = {
+        "owner_package": RAW_PROVENANCE_OWNED_BY,
+        "attempt_id": attempt_id,
+        "source_profile_id": work.source_profile_id,
+        "source_version_id": work.source_version_id,
+        "adapter_id": work.adapter_id,
+        "adapter_version": work.adapter_version,
+        "canonical_url": work.canonical_url,
+        "content_sha256": content_sha256,
+        "rights_terms_state": work.governance.rights_terms_state,
+        "robots_access_state": work.governance.robots_access_state,
+        "execute": False,
+        "dry_run": dry_run,
+    }
+    if extra_payload:
+        payload.update(dict(extra_payload))
     return HandoffRequest(
         handoff_kind="RAW_EVIDENCE",
         request_key=key,
-        payload={
-            "owner_package": RAW_PROVENANCE_OWNED_BY,
-            "attempt_id": attempt_id,
-            "source_profile_id": work.source_profile_id,
-            "adapter_id": work.adapter_id,
-            "adapter_version": work.adapter_version,
-            "canonical_url": work.canonical_url,
-            "content_sha256": content_sha256,
-            "execute": False,
-            "dry_run": dry_run,
-        },
+        payload=payload,
         execute=False,
     )
 
@@ -367,19 +386,26 @@ def prepare_provenance_handoff(
     work: DiscoveryWorkItem,
     raw_request_key: str,
     dry_run: bool,
+    extra_payload: Optional[Mapping[str, Any]] = None,
 ) -> HandoffRequest:
     key = _sha256_hex(f"prov|{attempt_id}|{work.work_key}|{raw_request_key}")
+    payload: dict[str, Any] = {
+        "owner_package": RAW_PROVENANCE_OWNED_BY,
+        "attempt_id": attempt_id,
+        "source_profile_id": work.source_profile_id,
+        "source_version_id": work.source_version_id,
+        "raw_evidence_request_key": raw_request_key,
+        "canonical_url": work.canonical_url,
+        "retrieval_method": "PUBLIC_WEB_FETCH_HTTPS",
+        "execute": False,
+        "dry_run": dry_run,
+    }
+    if extra_payload:
+        payload.update(dict(extra_payload))
     return HandoffRequest(
         handoff_kind="PROVENANCE",
         request_key=key,
-        payload={
-            "owner_package": RAW_PROVENANCE_OWNED_BY,
-            "attempt_id": attempt_id,
-            "source_profile_id": work.source_profile_id,
-            "raw_evidence_request_key": raw_request_key,
-            "execute": False,
-            "dry_run": dry_run,
-        },
+        payload=payload,
         execute=False,
     )
 
@@ -390,21 +416,25 @@ def prepare_candidate_handoff(
     work: DiscoveryWorkItem,
     candidate_fingerprint: str,
     dry_run: bool,
+    extra_payload: Optional[Mapping[str, Any]] = None,
 ) -> HandoffRequest:
     key = _sha256_hex(f"cand|{attempt_id}|{work.work_key}|{candidate_fingerprint}")
+    payload: dict[str, Any] = {
+        "owner_package": "I5-IMPL-W3-P01",
+        "attempt_id": attempt_id,
+        "source_profile_id": work.source_profile_id,
+        "adapter_id": work.adapter_id,
+        "candidate_fingerprint": candidate_fingerprint,
+        "approved_knowledge": False,
+        "execute": False,
+        "dry_run": dry_run,
+    }
+    if extra_payload:
+        payload.update(dict(extra_payload))
     return HandoffRequest(
         handoff_kind="CANDIDATE",
         request_key=key,
-        payload={
-            "owner_package": "I5-IMPL-W3-P01",
-            "attempt_id": attempt_id,
-            "source_profile_id": work.source_profile_id,
-            "adapter_id": work.adapter_id,
-            "candidate_fingerprint": candidate_fingerprint,
-            "approved_knowledge": False,
-            "execute": False,
-            "dry_run": dry_run,
-        },
+        payload=payload,
         execute=False,
     )
 
@@ -707,11 +737,10 @@ def _apply_live_source(
     timeout: int = 15,
     http_get: Optional[HttpGet] = None,
 ) -> tuple[str, Optional[str], list[HandoffRequest]]:
-    """Controlled live path (W6-P01) — same shape/handoffs as `_apply_fixture_source`
-    but performs (or, under test, simulates via injected `http_get`) a real HTTPS
-    fetch through the resolved adapter's `fetch_live`. Only adapters that expose
-    `fetch_live` (currently `PublicWebFetchAdapter`) support this path; any other
-    adapter mode fails closed rather than silently falling back to a fixture.
+    """Controlled live path (W6-P01) — real HTTPS fetch + conceptual extraction.
+
+    Status is `EXTRACTED` only after `extract_candidates` succeeds. A bare HTTP 200
+    without extraction is never reported as EXTRACTED.
     """
     handoffs: list[HandoffRequest] = []
     registry = default_registry()
@@ -741,24 +770,67 @@ def _apply_live_source(
             handoffs,
         )
     body = envelope.body or b""
-    content_sha = hashlib.sha256(body).hexdigest()
+    if not body:
+        return RunSourceResultStatus.FAILED.value, "EMPTY_BODY", handoffs
+    byte_hash = hashlib.sha256(body).hexdigest()
+    try:
+        candidates = extract_candidates(envelope, mode=work.adapter_mode)
+    except AdapterFrameworkError as exc:
+        return RunSourceResultStatus.FAILED.value, exc.category, handoffs
+    if not candidates:
+        return RunSourceResultStatus.FAILED.value, "EXTRACTION_EMPTY", handoffs
+    primary = candidates[0]
+    try:
+        normalized = normalize_document(
+            raw_text=primary.normalized_text,
+            domain="lifestyle",
+            topic="sleep",
+            population="general",
+            jurisdiction="GB",
+            language=primary.language or "en",
+        )
+    except AdapterFrameworkError as exc:
+        return RunSourceResultStatus.FAILED.value, exc.category, handoffs
+
+    statement = (primary.claim_candidate or normalized.normalized_content_canonical[:500]).strip()
+    candidate_fingerprint = primary.content_hash or normalized.content_hash
+    enrich = {
+        "byte_hash": byte_hash,
+        "normalized_hash": normalized.content_hash,
+        "mime_type": envelope.content_type or "text/html",
+        "language": primary.language or "en",
+        "jurisdiction": "GB",
+        "extraction_count": len(candidates),
+        "extraction_process": primary.extractor_version,
+        "normalization_process": "w3p01-normalize",
+        "normalized_statement": statement,
+        "domain": normalized.domain,
+        "topic": normalized.topic,
+        "dedupe_key": normalized.dedupe_key,
+        "canonical_hash": normalized.content_hash,
+        "candidate_fingerprint": candidate_fingerprint,
+        "candidate_warnings": list(primary.warnings or ()),
+    }
     raw = prepare_raw_evidence_handoff(
         attempt_id=0,
         work=work,
-        content_sha256=content_sha,
+        content_sha256=byte_hash,
         dry_run=True,
+        extra_payload=enrich,
+    )
+    cand = prepare_candidate_handoff(
+        attempt_id=0,
+        work=work,
+        candidate_fingerprint=candidate_fingerprint,
+        dry_run=True,
+        extra_payload=enrich,
     )
     prov = prepare_provenance_handoff(
         attempt_id=0,
         work=work,
         raw_request_key=raw.request_key,
         dry_run=True,
-    )
-    cand = prepare_candidate_handoff(
-        attempt_id=0,
-        work=work,
-        candidate_fingerprint=content_sha,
-        dry_run=True,
+        extra_payload=enrich,
     )
     handoffs.extend([raw, prov, cand])
     return RunSourceResultStatus.EXTRACTED.value, None, handoffs
@@ -1102,11 +1174,21 @@ def orchestrate_weekly_run(
             status, code, item_handoffs = _apply_live_source(work=item, http_get=live_http_get)
         else:
             status, code, item_handoffs = _apply_fixture_source(work=item, transports=transports)
+        content_fp = item.work_key
         for h in item_handoffs:
             h.payload["attempt_id"] = attempt.id
             h.payload["dry_run"] = dry_run
-            # Never execute W1-P02 writes from W3-P02.
-            h.execute = False
+            if live_network and (not dry_run) and persist_ledger:
+                # Authorized W6-P01 Master Gate persistence path.
+                h.execute = True
+                h.payload["execute"] = True
+            else:
+                # W3-P02 / offline dry-run: prepare-only.
+                h.execute = False
+                h.payload["execute"] = False
+            fp = h.payload.get("candidate_fingerprint") or h.payload.get("content_sha256")
+            if fp:
+                content_fp = str(fp)
         handoffs.extend(item_handoffs)
         row, _ = record_source_result(
             db,
@@ -1126,7 +1208,7 @@ def orchestrate_weekly_run(
             failure_code=code,
             failure_reason=code,
             evidence_reference=item.work_key,
-            content_fingerprint=item.work_key,
+            content_fingerprint=content_fp,
             error_count=1 if status == RunSourceResultStatus.FAILED.value else 0,
         )
         source_rows.append(row)
@@ -1191,6 +1273,23 @@ def orchestrate_weekly_run(
         gap_rows.append(grow)
 
     finalize_attempt_counters(attempt, source_rows)
+
+    production_write = False
+    detail = "ledger_persisted_handoffs_prepare_only"
+    if live_network and (not dry_run) and persist_ledger and handoffs:
+        from backend.app.services.i5.governed_weekly_runtime import execute_governed_persistence
+
+        persist_result = execute_governed_persistence(
+            db,
+            models,
+            handoffs=handoffs,
+            run_id=int(run.id),
+            attempt_id=int(attempt.id),
+        )
+        attempt.new_knowledge_count = int(persist_result.new_knowledge_count)
+        production_write = True
+        detail = persist_result.detail or "ledger_persisted_governed_pipeline"
+
     extracted = int(attempt.fetched_sources or 0)
     outcome = classify_run_outcome(
         total_sources=int(attempt.total_sources or 0),
@@ -1263,9 +1362,9 @@ def orchestrate_weekly_run(
         discovery=plan,
         activation_enabled=False,
         scheduler_activation=False,
-        production_write=False,
+        production_write=production_write,
         network_executed=bool(live_network and plan.selected),
-        detail="ledger_persisted_handoffs_prepare_only",
+        detail=detail,
         aa_metrics=aa_metrics,
         alert_decisions=alert_decisions,
     )
@@ -1279,6 +1378,10 @@ def run_controlled_live_orchestration(
     schedule_key: str = WEEKLY_ORCHESTRATOR_SCHEDULE_KEY,
     trigger_type: str = WeeklyRunTriggerType.SCHEDULED.value,
     logical_run_key: Optional[str] = None,
+    planned_window_start: Optional[datetime] = None,
+    planned_window_end: Optional[datetime] = None,
+    config_version: str = "w3p02-v1",
+    config_hash: Optional[str] = None,
     persist_ledger: bool = False,
     live_http_get: Optional[HttpGet] = None,
 ) -> OrchestrationOutcome:
@@ -1321,6 +1424,10 @@ def run_controlled_live_orchestration(
         schedule_key=schedule_key,
         trigger_type=trigger_type,
         logical_run_key=logical_run_key,
+        planned_window_start=planned_window_start,
+        planned_window_end=planned_window_end,
+        config_version=config_version,
+        config_hash=config_hash,
         transports={},
         dry_run=not persist_ledger,
         persist_ledger=persist_ledger,
@@ -1340,13 +1447,17 @@ def run_controlled_scheduled_tick(
     candidates: Optional[Sequence[SourceCandidateDescriptor]] = None,
     persist_ledger: bool = False,
     live_http_get: Optional[HttpGet] = None,
+    logical_run_key: Optional[str] = None,
+    planned_window_start: Optional[datetime] = None,
+    planned_window_end: Optional[datetime] = None,
+    config_version: str = "w3p02-v1",
+    config_hash: Optional[str] = None,
 ) -> OrchestrationOutcome:
     """W6-P01 scheduler-facing controlled-live entrypoint.
 
-    Reached only once both `run_dormant_scheduled_tick` env flags are ON. No
-    implicit DB acquisition is attempted here: a bare scheduler tick with no
-    `db`/`candidates` supplied is a safe structural NO_ELIGIBLE_SOURCES no-op
-    rather than an error, since the scheduler has no admin-selected scope yet.
+    Reached only once both `run_dormant_scheduled_tick` env flags are ON. Prefer
+    `governed_weekly_runtime.run_weekly_scheduled_job` for production ticks so
+    DB candidate loading + advisory lock + deterministic weekly identity apply.
     """
     return run_controlled_live_orchestration(
         db,
@@ -1354,4 +1465,9 @@ def run_controlled_scheduled_tick(
         candidates=list(candidates or ()),
         persist_ledger=persist_ledger,
         live_http_get=live_http_get,
+        logical_run_key=logical_run_key,
+        planned_window_start=planned_window_start,
+        planned_window_end=planned_window_end,
+        config_version=config_version,
+        config_hash=config_hash,
     )
