@@ -63216,3 +63216,69 @@ ONE_NEXT_BLOCKER_CHAIN=
 MARKER=W6P01_PARTIAL_HARD_STOP_AWAITING_MIGRATION_AUTHORING_AND_LIVE_PATH
 
 NOTE=post-§259 final master-log whole-file self-SHA is NOT embedded inside §259.
+
+
+================================================================================
+§260 — I5-IMPL-W6-P01 CRITICAL PREREQUISITES + REAL E2E RE-ENTRY /
+PARTIAL HARD-STOP (DEPLOY BOUNDARY) CONTINUITY RECORD-01
+================================================================================
+RECORDED_AT_UTC=2026-08-08T07:45:00Z
+GATE_ID=I5-IMPL-W6-P01-PREREQ-REAL-E2E
+JAVAD_APPROVAL=EXPLICIT COMPREHENSIVE
+GATE_OUTCOME=PARTIAL_HARD_STOP
+STARTING_HEAD=1f91ac20498a318b4a957a01ed9e4f490b17a588
+FINAL_TECHNICAL_HEAD=a2cea53f26b120bcf36327167f24c7aed1d877ed
+EVIDENCE_ROOT=docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z
+
+--------------------------------------------------------------------------------
+FINDING DISPOSITIONS
+--------------------------------------------------------------------------------
+HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED=CLOSED (053-056 authored + ephemeral parity PASS run 31243699141)
+W6P01-MIGRATION-INVENTORY-COMPLETENESS-01=CLOSED (18 I5 tables / 371 cols / 132 checks accounted)
+HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED=CLOSED (live_transport + fetch_live + fail-closed activation ladder)
+HARD_STOP_NO_ELIGIBLE_REAL_SOURCE=CLOSED (nhs_uk_live_well sleep ELIGIBLE; count=1)
+W6P01-CI-EVIDENCE-SENTINEL-STALE-01=CLOSED (scope-aware allowlist; offline E2E pack Green run 31243486517)
+
+--------------------------------------------------------------------------------
+PHASE RESULTS
+--------------------------------------------------------------------------------
+MIGRATION_AUTHORING=PASS (053..056; head 056_i5_w2_p02_conflict_safety)
+EPHEMERAL_UPGRADE/DOWNGRADE/REUPGRADE=PASS (31243699141)
+LIVE_ACQUISITION=YES; ACTIVATION_REFUSED_W3_P02 removed from live path
+OFFLINE_E2E+EVIDENCE_PACK=PASS (31243486517 on 8765284; reconfirm dispatched on final HEAD)
+CONTROLLED_REAL_FETCH=PASS (31246768390 / artifact 9018739458)
+GOVERNED_DB_WRITE=PASS ephemeral
+IDEMPOTENCY=PASS (ALREADY_SUCCESSFUL_TERMINAL short-circuit)
+W6P03_REAL_OBSERVABILITY=PASS
+PERSISTENT_DB_MIGRATION=NOT_EXECUTED
+DEPLOY=HARD_STOP_DEPLOY_HARNESS_REQUIRED (prod last confirmed alembic=049; no 050-056 prod migrate workflow)
+SOURCE_ACTIVATION=NOT_REACHED (requires deploy)
+SCHEDULER_ACTIVATION=NOT_REACHED
+REAL_PERMANENT_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+AUTO_REMEDIATION_CYCLES=4
+FORMAL_I5=21.79487179% (unchanged; §164.2)
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+
+--------------------------------------------------------------------------------
+COMMITS
+--------------------------------------------------------------------------------
+5a09b69 feat(i5): author W1-W2 persistence migrations
+12366ca feat(i5): enable governed live acquisition
+8765284 ci(i5): make W6 evidence validation scope aware
+4b1995d/42a1a3e fix alembic CI path
+e96790b feat(i5): add W6-P01 controlled real-network E2E proof
+83282a0/a2cea53 fix successful-terminal idempotency
+
+--------------------------------------------------------------------------------
+NEXT CANONICAL DECISION
+--------------------------------------------------------------------------------
+MINIMUM_NEXT_GATE=
+  Prove persistent DB identity + backup/restore + author/execute prod migrate 050→056 harness
+  THEN deploy digest-pinned backend at a2cea53f26b120bcf36327167f24c7aed1d877ed
+  THEN activate NHS GSP + weekly scheduler in authorized env
+  THEN immediate scheduled-path E2E for REAL_PERMANENT_WEEKLY closure
+MARKER=W6P01_TECHNICAL_GREEN_AWAITING_SAFE_PERSISTENT_DEPLOY_ACTIVATION
+
+NOTE=post-§260 final master-log whole-file self-SHA is NOT embedded inside §260.

@@ -568,6 +568,24 @@
       "authoritative_handoff": "v550",
       "recorded_at_utc": "2026-08-08T05:20:00Z",
       "marker": "W6P01_PARTIAL_HARD_STOP_AWAITING_MIGRATION_AUTHORING_AND_LIVE_PATH"
+    },
+    "w6p01_prereq_real_e2e": {
+      "package_id": "I5-IMPL-W6-P01",
+      "gate_outcome": "PARTIAL_HARD_STOP",
+      "technical_prerequisites": "GREEN",
+      "real_controlled_e2e_ephemeral": "GREEN",
+      "production_activation": "HARD_STOP_DEPLOY_HARNESS_REQUIRED",
+      "final_head": "a2cea53f26b120bcf36327167f24c7aed1d877ed",
+      "migration_parity_run": 31243699141,
+      "real_network_run": 31246768390,
+      "offline_e2e_run": 31243486517,
+      "formal_i5_unchanged": "21.79487179%",
+      "program_critical_e2e_crawler_01": "OPEN",
+      "real_permanent_weekly_crawler_e2e": "NOT_SATISFIED",
+      "master_section": "§260",
+      "authoritative_handoff": "v551",
+      "recorded_at_utc": "2026-08-08T07:45:00Z",
+      "marker": "W6P01_TECHNICAL_GREEN_AWAITING_SAFE_PERSISTENT_DEPLOY_ACTIVATION"
     }
   },
   "weight_proof": {
