@@ -503,12 +503,12 @@
     "w6p03_runtime_closure": {
       "package_id": "I5-IMPL-W6-P03",
       "management_alias": "P12",
-      "technical_status": "PASS_DRY_UNIT_GREEN",
+      "technical_status": "PASS_FULLY_RATIFIED",
       "implementation_sha": "1ef81cb8d2389a02f1a828dc891323035044d1df",
       "baseline_sha": "d9efbd22ea4da2f95bc710d76044360b7f0b5de9",
       "aa_metric_count": 17,
       "test_file": "backend/tests/test_section30_i5_w6_metrics.py",
-      "test_nodes_pass": 12,
+      "test_nodes_pass": 14,
       "test_nodes_fail": 0,
       "ci_workflow_assigned": false,
       "ci_runtime_proof": "NOT_REQUIRED_PACKAGE_DRY_UNIT",
@@ -526,9 +526,21 @@
         "W6P02-TEST-PROOF-QUALITY-01": "OPEN_NON_BLOCKING_CARRY_FORWARD"
       },
       "marker": "READY_FOR_W6P01_SEPARATE_JAVAD_APPROVAL",
-      "recorded_at_utc": "2026-08-08T04:30:00Z",
-      "master_section": "§257",
-      "authoritative_handoff": "v548"
+      "recorded_at_utc": "2026-08-08T04:50:00Z",
+      "master_section": "§258",
+      "authoritative_handoff": "v549",
+      "semantic_remediation_sha": "1bf7e0f148130ca77374c407c943b75ee952a2e2",
+      "semantic_remediation_gate": "I5-IMPL-W6-P03-SEMANTIC-AUTHORITY-REMEDIATION-01",
+      "findings": {
+        "W6P03-AUTHORITY-SEMANTICS-01": "CLOSED",
+        "W6P03-METRIC-SEMANTICS-02": "CLOSED"
+      },
+      "authorized_executable_alert_count": 2,
+      "provisional_coverage_formula": "REMOVED",
+      "provisional_freshness_formula": "REMOVED",
+      "unauthorized_policy_threshold": "REMOVED",
+      "w6p03_fully_ratified": true,
+      "ready_for_w6p01": true
     }
   },
   "weight_proof": {

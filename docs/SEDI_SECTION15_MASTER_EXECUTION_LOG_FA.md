@@ -63030,3 +63030,92 @@ DEADLINE_RISK=CRITICAL/HIGH
 MARKER=READY_FOR_W6P01_SEPARATE_JAVAD_APPROVAL
 
 NOTE=post-§257 final master-log whole-file self-SHA is NOT embedded inside §257.
+
+
+================================================================================
+§258 — I5-IMPL-W6-P03 SEMANTIC AUTHORITY REMEDIATION + FINAL RATIFICATION-01
+================================================================================
+RECORDED_AT_UTC=2026-08-08T04:50:00Z
+GATE_ID=I5-IMPL-W6-P03-SEMANTIC-AUTHORITY-REMEDIATION-01
+JAVAD_APPROVAL=EXPLICIT
+PARENT_PACKAGE=I5-IMPL-W6-P03
+PURPOSE=Close W6P03-AUTHORITY-SEMANTICS-01 and W6P03-METRIC-SEMANTICS-02; fully ratify W6-P03
+BASELINE_HEAD=0069353da8ebad847be01e547bdb54223dd93196
+TECHNICAL_REMEDIATION_SHA=1bf7e0f148130ca77374c407c943b75ee952a2e2
+ORIGINAL_IMPLEMENTATION_SHA=1ef81cb8d2389a02f1a828dc891323035044d1df
+
+--------------------------------------------------------------------------------
+FINDING 01 — W6P03-AUTHORITY-SEMANTICS-01
+--------------------------------------------------------------------------------
+ENTRY_STATE=OPEN / BLOCKING
+ROOT_CAUSE=Executable ALERT_POLICY_THRESHOLD_REVIEW used SAFETY_REJECTIONS>=1 OR CONFLICTS>=1 without authority-defined numeric threshold
+SEARCH_TERMS=policy threshold; POLICY_THRESHOLD; SAFETY_REJECTIONS threshold; CONFLICTS threshold; silent zero; high-risk gaps
+AUTHORITY_HITS=
+  target_architecture_map.json#BC-24 FAIL_CLOSED_RULE="alert on silent zero improvement"
+  target_architecture_map.json#BC-24 SAFETY_BOUNDARY="alert high-risk gaps"
+  master §137.24 ON_SOURCE_FAILURE="raise review/alert when policy threshold is crossed" (qualitative; NO numerator/denominator/numeric threshold)
+  package OUT_OF_SCOPE=pagerDuty prod wiring
+CASE=B (no authoritative numeric threshold)
+FIX=Removed executable policy-threshold alert; retained deferred symbolic ALERT_POLICY_THRESHOLD_REVIEW_DEFERRED with POLICY_THRESHOLD_EXECUTABLE=false
+PROOF=test_W6P03_T07_no_unauthorized_policy_threshold_executable_alert; test_W6P03_T14_authorized_executable_alert_count_is_two
+EXIT_STATE=CLOSED
+AUTHORIZED_EXECUTABLE_ALERT_COUNT=2
+
+--------------------------------------------------------------------------------
+FINDING 02 — W6P03-METRIC-SEMANTICS-02
+--------------------------------------------------------------------------------
+ENTRY_STATE=OPEN / BLOCKING
+ROOT_CAUSE=COVERAGE_SCORE/FRESHNESS_SCORE auto-derived via provisional ratios when absent
+SEARCH_TERMS=COVERAGE_SCORE; FRESHNESS_SCORE; coverage formula; freshness formula; measurement formula; numerator; denominator
+AUTHORITY_HITS=
+  safety_security_observability_plan.json#required_metrics includes COVERAGE_SCORE and FRESHNESS_SCORE as NAMES only
+  DEP-17 CLOSURE="measurement law metrics defined/emitted" (no formula body)
+  target_architecture_map BC-08 OBSERVABILITY="freshness_score" (context name; not AA formula)
+  NO exact AA score formula with numerator/denominator/empty-set/unknown semantics found
+CASE=B (no exact authoritative formula)
+FIX=UNFORMULATED_SCORE_METRICS={COVERAGE_SCORE,FRESHNESS_SCORE}; emit only when explicitly supplied; removed provisional derivation; dry-unit emits 15 counters without fabricating scores
+PROOF=test_W6P03_T03; test_W6P03_T13_no_provisional_coverage_or_freshness_derivation; test_W6P03_T11 explicit-score path
+EXIT_STATE=CLOSED
+PROVISIONAL_COVERAGE_FORMULA=REMOVED
+PROVISIONAL_FRESHNESS_FORMULA=REMOVED
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+COMMAND=python -m pytest -v --tb=line --noconftest backend/tests/test_section30_i5_w6_metrics.py
+RESULT=14 passed / 0 failed
+CHANGED_PATHS=backend/app/services/i5/metrics.py; backend/tests/test_section30_i5_w6_metrics.py
+WEEKLY_ORCHESTRATOR_CHANGED=NO (already compatible)
+AUTO_REMEDIATION_CYCLES=0
+INVALID_W6P03_PROOF_PATTERNS=0
+OUT_OF_SCOPE_TECHNICAL_PATHS=0
+
+--------------------------------------------------------------------------------
+COMMIT CHAIN
+--------------------------------------------------------------------------------
+BASELINE=0069353da8ebad847be01e547bdb54223dd93196 docs(i5): record W6-P03 monitoring closure
+REMEDIATION=1bf7e0f148130ca77374c407c943b75ee952a2e2 fix(i5): align W6-P03 metrics semantics with authority
+  PARENT=0069353da8ebad847be01e547bdb54223dd93196
+  PATHS=metrics.py; test_section30_i5_w6_metrics.py
+
+--------------------------------------------------------------------------------
+CARRY-FORWARD / PROGRAM STATE
+--------------------------------------------------------------------------------
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P03-AUTHORITY-SEMANTICS-01=CLOSED
+W6P03-METRIC-SEMANTICS-02=CLOSED
+W6-P03 TECHNICAL RATIFICATION=PASS
+W6-P03 FULLY RATIFIED=YES
+READY_FOR_W6P01=YES
+FORMAL_I5=21.79487179% UNCHANGED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+REAL_PERMANENT_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+NEXT_PACKAGE=I5-IMPL-W6-P01
+W6-P01_EXECUTED=NO
+W6-P01_REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+CRITICAL_PATH_EFFECT=removed semantic blockers before real crawler; W6-P03 safe to consume in W6-P01; remaining blocker=W6-P01 controlled real execution
+V1_DEADLINE_EFFECT=advanced (semantic ratification) without nonessential expansion
+MARKER=READY_FOR_W6P01_SEPARATE_JAVAD_APPROVAL
+
+NOTE=post-§258 final master-log whole-file self-SHA is NOT embedded inside §258.
