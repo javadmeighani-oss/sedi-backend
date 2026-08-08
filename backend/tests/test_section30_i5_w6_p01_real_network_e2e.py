@@ -339,7 +339,8 @@ def test_W6P01_REAL_T04_persist_ledger_real_network_writes_rows_and_is_idempoten
         assert source_result.failure_code, "non-extracted result must record an honest failure_code"
 
     # Idempotency: second controlled-live call with the SAME logical_run_key
-    # against the SAME candidates must resolve to the SAME run row (no duplicate).
+    # resolves to the SAME run and does NOT open a new network/attempt when a
+    # successful terminal already exists.
     outcome2 = orch.run_controlled_live_orchestration(
         db,
         models,
@@ -349,9 +350,23 @@ def test_W6P01_REAL_T04_persist_ledger_real_network_writes_rows_and_is_idempoten
         live_http_get=None,
     )
     assert outcome2.run_id == outcome1.run_id
+    assert outcome2.attempt_id == outcome1.attempt_id
+    assert outcome2.network_executed is False
+    assert outcome2.detail == "ALREADY_SUCCESSFUL_TERMINAL"
     run_count = (
         db.query(models.WeeklyKnowledgeRun)
         .filter(models.WeeklyKnowledgeRun.logical_run_key == _IDEMPOTENCY_LOGICAL_RUN_KEY)
         .count()
     )
     assert run_count == 1
+    success_attempts = (
+        db.query(models.WeeklyKnowledgeRunAttempt)
+        .filter(models.WeeklyKnowledgeRunAttempt.weekly_run_id == outcome1.run_id)
+        .filter(
+            models.WeeklyKnowledgeRunAttempt.status.in_(
+                ("COMPLETED", "COMPLETED_WITH_WARNINGS")
+            )
+        )
+        .count()
+    )
+    assert success_attempts == 1

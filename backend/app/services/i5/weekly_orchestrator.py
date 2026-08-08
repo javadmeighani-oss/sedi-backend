@@ -495,8 +495,14 @@ def create_attempt(
         .filter(models.WeeklyKnowledgeRunAttempt.status.in_(tuple(ATTEMPT_SUCCESS_TERMINAL)))
         .first()
     )
-    if prior_success is not None and retry_of_attempt_id is not None:
-        raise WeeklyOrchestratorError("RETRY_AFTER_SUCCESSFUL_TERMINAL", str(run.id))
+    # Partial unique index uq_wkra_one_successful_terminal: at most one successful
+    # terminal attempt per run. Any new attempt after success is fail-closed —
+    # including an unlabeled "fresh" attempt (retry_of_attempt_id is None).
+    if prior_success is not None:
+        raise WeeklyOrchestratorError(
+            "SUCCESSFUL_TERMINAL_ALREADY_EXISTS",
+            f"run_id={run.id}:attempt_id={prior_success.id}",
+        )
     max_row = (
         db.query(models.WeeklyKnowledgeRunAttempt.attempt_number)
         .filter(models.WeeklyKnowledgeRunAttempt.weekly_run_id == run.id)
@@ -1042,6 +1048,46 @@ def orchestrate_weekly_run(
         config_version=config_version,
         config_hash=cfg_hash,
     )
+    # Idempotent re-entry: if this logical run already has a successful terminal
+    # attempt, return that terminal state without opening a new attempt / network.
+    if run.successful_attempt_id is not None and run.status in {
+        WeeklyRunStatus.COMPLETED.value,
+        WeeklyRunStatus.COMPLETED_WITH_WARNINGS.value,
+    }:
+        existing_sources = (
+            db.query(models.WeeklyRunSourceResult)
+            .filter(models.WeeklyRunSourceResult.attempt_id == run.successful_attempt_id)
+            .all()
+        )
+        aa_metrics, alert_decisions = emit_post_run_aa_observability(
+            logical_run_key=run_key,
+            outcome=run.status,
+            dry_run=False,
+            source_rows=existing_sources,
+            database_write_count=0,
+        )
+        return OrchestrationOutcome(
+            outcome=run.status,
+            run_id=run.id,
+            attempt_id=run.successful_attempt_id,
+            logical_run_key=run_key,
+            source_results=[
+                {
+                    "source_profile_id": r.source_profile_id,
+                    "result_status": r.result_status,
+                    "failure_code": r.failure_code,
+                }
+                for r in existing_sources
+            ],
+            discovery=plan,
+            activation_enabled=False,
+            scheduler_activation=False,
+            production_write=False,
+            network_executed=False,
+            detail="ALREADY_SUCCESSFUL_TERMINAL",
+            aa_metrics=aa_metrics,
+            alert_decisions=alert_decisions,
+        )
     attempt = create_attempt(db, models, run=run, worker_reference=f"{PACKAGE_ID}:orchestrator")
     start_attempt(db, attempt)
 
