@@ -2475,5 +2475,18 @@
       "fix1_matches_crlf_converted_blobs": "7/7",
       "fix2_old_matches_committed_blobs": "7/7"
     }
+  },
+  "w6p01_master_gate_operational_closure": {
+    "recorded_at_utc": "2026-08-08T09:35:00Z",
+    "gate": "I5-W6-P01-MASTER-FULL-GOVERNED-PIPELINE",
+    "operational_result": "PASS",
+    "REAL_PERMANENT_WEEKLY_CRAWLER_E2E": "SATISFIED",
+    "PROGRAM-CRITICAL-E2E-CRAWLER-01": "CLOSED",
+    "FORMAL_I5_CLOSED_AFTER": "21.79487179%",
+    "FORMAL_CREDIT_DELTA": "0",
+    "reason_formal_percent_unchanged": "§164.2 LOCKED; no authorized validation Gate updating formal fraction",
+    "deployed_sha": "65c56c3a20bf012c3cd0ea5419c1d984e9d23f32",
+    "activate_run": "31250816722",
+    "evidence_root": "docs/evidence/section30/w6p01_master_gate_full_pipeline_20260808T093500Z"
   }
 }

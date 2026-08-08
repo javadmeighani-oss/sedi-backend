@@ -63282,3 +63282,93 @@ MINIMUM_NEXT_GATE=
 MARKER=W6P01_TECHNICAL_GREEN_AWAITING_SAFE_PERSISTENT_DEPLOY_ACTIVATION
 
 NOTE=post-§260 final master-log whole-file self-SHA is NOT embedded inside §260.
+
+
+================================================================================
+§261 — I5-W6-P01 MASTER GATE FULL GOVERNED PIPELINE + PROD MIGRATE/DEPLOY/ACTIVATE
+CONTINUITY RECORD-01
+================================================================================
+RECORDED_AT_UTC=2026-08-08T09:35:00Z
+GATE_ID=I5-W6-P01-MASTER-FULL-GOVERNED-PIPELINE
+JAVAD_APPROVAL=EXPLICIT MASTER EXECUTION GATE (this chat)
+GATE_OUTCOME=PASS
+CHATGPT_INDEPENDENT_AUDIT_CORRECTION=YES (Finding A incompleteness + Finding B extraction + Finding C scheduler DB path + Finding D weekly dedupe)
+STARTING_HEAD=76563e6b3e318b77c2f58256c00bfa5cd374d28a
+FINAL_TECH_SHA=65c56c3a20bf012c3cd0ea5419c1d984e9d23f32
+DEPLOYED_SHA=65c56c3a20bf012c3cd0ea5419c1d984e9d23f32
+DEPLOYED_DIGEST=sha256:09f80fc1c9ad216fa2640cb7c67e82aebdbd966d7036078a55035e6e951f9a89
+MAIN_WORKFLOW_SHA=6d3f059dabb5a79d4fed7fd4e23190ae45b5eb91
+FEATURE_HEAD_AT_RECORD=ac80623454684369773f89dd91e07bbeb98adafb
+EVIDENCE_ROOT=docs/evidence/section30/w6p01_master_gate_full_pipeline_20260808T093500Z
+
+--------------------------------------------------------------------------------
+BLOCKERS CLOSED
+--------------------------------------------------------------------------------
+W6P01-REAL-GOVERNED-PIPELINE-COMPLETENESS-01=CLOSED
+HARD_STOP_DEPLOY_HARNESS_REQUIRED=CLOSED
+SEDI_DISABLE_SCHEDULER_BLOCKER=CLOSED (cleared false during activation; was preventing APScheduler registration)
+
+--------------------------------------------------------------------------------
+PHASE RESULTS
+--------------------------------------------------------------------------------
+FULL_GOVERNED_PIPELINE=PASS (fetch→extract→normalize→raw/KU/provenance→gates→ledger→W6P03)
+REAL_FETCH=PASS REAL_FETCH_SKIPPED=NO
+REAL_EXTRACTION=PASS
+RAW_EVIDENCE_PERSISTED=PASS
+KNOWLEDGE_PROVENANCE_PERSISTED=PASS
+GOVERNED_KU_STAGED=PASS (DRAFT/PENDING_REVIEW/NOT_ELIGIBLE; auto_publish=NO; KM write=NO)
+SCHEDULER_DB_SOURCE_LOADING=PASS
+DETERMINISTIC_WEEKLY_RUN_IDENTITY=PASS
+SCHEDULED_DEDUPE_LOCK=PASS (PG advisory 0x57365031 + logical weekly window)
+EPHEMERAL/CI_REAL_NETWORK=PASS run 31248658080 artifact 9019299217
+PROD_PREFLIGHT=PASS run 31248882645 alembic_before=049
+BACKUP=PASS pre-migrate sql.gz
+PERSISTENT_DB_MIGRATION=PASS to 056 (verify run 31249367963)
+DEPLOY=PASS run 31249435562
+SOURCE_ACTIVATION=PASS nhs_uk_live_well only (disabled pre-existing nhs_sleep_live_well_v1 fetch)
+SCHEDULER_ACTIVATION=PASS interval_min=10080 registered enabled=True
+REAL_SCHEDULED_PATH_EXECUTION=PASS (first network FULL_SUCCESS run 31250041916; final activate 31250816722 idempotent ALREADY_SUCCESSFUL_TERMINAL x2)
+SAME_WINDOW_DUPLICATE_FETCH=NO
+NATURAL_7_DAY_TIMER_OCCURRENCE_OBSERVED=NO
+REAL_PERMANENT_WEEKLY_CRAWLER_E2E=SATISFIED (per §260 immediate scheduled-path closure authority)
+PROGRAM-CRITICAL-E2E-CRAWLER-01=CLOSED
+POST_ACTIVATION_HEALTH=PASS
+CRAWLER_REMAINS_ENABLED_AFTER_PROOF=YES
+
+--------------------------------------------------------------------------------
+FORMAL I5
+--------------------------------------------------------------------------------
+FORMAL_I5_BEFORE=21.79487179%
+FORMAL_I5_AFTER=21.79487179%
+FORMAL_CREDIT_DELTA=0
+REASON=§164.2 LOCKED; operational Green does not invent formal credit without authorized validation Gate
+
+--------------------------------------------------------------------------------
+CARRY-FORWARD (UNCHANGED)
+--------------------------------------------------------------------------------
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6-P03=FROZEN (17 AA / 15 emittable; 2 alerts; no fabricated scores)
+
+--------------------------------------------------------------------------------
+AUTO-REMEDIATION
+--------------------------------------------------------------------------------
+AUTO_REMEDIATION_CYCLES=6
+  1=impl FG07 get_current_profile_version keyword
+  2=activate env backup path under deploy backups
+  3=env upsert via docker root bind-mount
+  4=scheduler log verify harden (--tail)
+  5=clear SEDI_DISABLE_SCHEDULER=false
+  6=enforce single NHS fetch-enabled source scope
+
+--------------------------------------------------------------------------------
+NEXT CRITICAL PATH
+--------------------------------------------------------------------------------
+NEXT=
+  Formal I5 validation Gate for §164.2 credit (if/when authorized)
+  Remaining CAP-OPEN product/Iran/EO-C11 / monitoring formal domain
+  THEN I6 → I8 → Frontend Gates 3/4 → pilot
+MARKER=W6P01_MASTER_GATE_PASS_REAL_PERMANENT_WEEKLY_SATISFIED
+OPEN_BLOCKING_FINDINGS=0
+
+NOTE=post-§261 final master-log whole-file self-SHA is NOT embedded inside §261.
