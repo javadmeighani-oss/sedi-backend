@@ -806,6 +806,7 @@ jobs:
 
       - name: Alembic heads single
         run: |
+          python -m alembic -c backend/alembic.ini heads
           python - <<'PY'
           from alembic.script import ScriptDirectory
           heads = ScriptDirectory("backend/alembic").get_heads()

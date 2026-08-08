@@ -66,11 +66,19 @@ def _workspace_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _backend_root() -> Path:
+    return _workspace_root() / "backend"
+
+
 def _alembic_cfg(url: str) -> Config:
-    """Bind Alembic to workspace alembic.ini; env.py still reads DATABASE_URL."""
+    """Bind Alembic to backend/alembic.ini (repository convention)."""
     os.environ["DATABASE_URL"] = url
     os.environ["TEST_DATABASE_URL"] = url
-    cfg = Config(str(_workspace_root() / "alembic.ini"))
+    backend = _backend_root()
+    cfg = Config(str(backend / "alembic.ini"))
+    cfg.set_main_option("script_location", str(backend / "alembic"))
+    # Percent-escape for ConfigParser; env.py also sets URL from env.
+    cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
     return cfg
 
 
@@ -86,7 +94,7 @@ def _current_revision(engine) -> str | None:
 
 
 def test_W6P01_MIG_T01_repository_heads_single() -> None:
-    script = ScriptDirectory(str(_workspace_root() / "backend" / "alembic"))
+    script = ScriptDirectory(str(_backend_root() / "alembic"))
     heads = script.get_heads()
     assert heads == [HEAD], heads
 

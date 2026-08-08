@@ -1,0 +1,5 @@
+MIGRATION_CI_RUN=31243583060
+CONCLUSION=failure
+ROOT_CAUSE=test used nonexistent workspace/alembic.ini; real path is backend/alembic.ini
+REMEDIATION=_alembic_cfg uses backend/alembic.ini + absolute script_location
+CYCLE=2
