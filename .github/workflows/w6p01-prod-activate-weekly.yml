@@ -255,9 +255,13 @@ jobs:
 
           log "=== STEP 2: BACKUP ENV FILE (no contents printed) ==="
           TS="$(date -u +%Y%m%d_%H%M%S)"
-          ENV_BACKUP="/etc/sedi/sedi-backend.env.w6p01_pre_activate_${TS}"
+          ENV_BACKUP_DIR="${DEPLOY_PATH}/backups/env"
+          mkdir -p "${ENV_BACKUP_DIR}"
+          ENV_BACKUP="${ENV_BACKUP_DIR}/sedi-backend.env.w6p01_pre_activate_${TS}"
           cp -a "${ENV_FILE}" "${ENV_BACKUP}"
           chmod 600 "${ENV_BACKUP}"
+          # Preserve ownership when possible; ignore if non-root.
+          chown --reference="${ENV_FILE}" "${ENV_BACKUP}" 2>/dev/null || true
           log "env_backup_path=${ENV_BACKUP}"
           summary "env_backup_path" "${ENV_BACKUP}"
 
