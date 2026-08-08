@@ -1,0 +1,14 @@
+MIGRATION_DESIGN_FREEZE=YES
+ALEMBIC_START_HEAD=052_i5_w5_iran_directory
+NEW_REVISIONS=
+  053_i5_w1_p01_weekly_governance  (MIG-I5-W1-P01: GSP alter + weekly/governance/gap/source-result tables)
+  054_i5_w1_p02_ku_provenance      (MIG-I5-W1-P02: KU/raw/provenance + deferred gap→KU FK)
+  055_i5_w2_p01_knowledge_memory   (MIG-I5-W2-P01)
+  056_i5_w2_p02_conflict_safety    (MIG-I5-W2-P02)
+ALEMBIC_FINAL_HEAD=056_i5_w2_p02_conflict_safety
+PARALLEL_HEADS=NO
+FK_DAG_NOTE=knowledge_gaps.target_knowledge_unit_id FK deferred from 053 to 054
+AUTHORITY=current backend/app/models.py ORM + package ownership W1/W2
+GENERATOR=docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z/02_schema_manifest/_gen_migrations.py
+MANIFEST=docs/evidence/section30/w6p01_prereq_real_e2e_20260808T053706Z/02_schema_manifest/orm_alembic_gap_manifest.json
+W6P01-MIGRATION-INVENTORY-COMPLETENESS-01=CLOSED_BY_MANIFEST

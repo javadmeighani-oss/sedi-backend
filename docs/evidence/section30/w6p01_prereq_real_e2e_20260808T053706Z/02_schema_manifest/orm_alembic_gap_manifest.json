@@ -1,0 +1,4809 @@
+{
+  "generated_at_utc": "2026-08-08T05:40:15Z",
+  "authority": "backend/app/models.py current ORM bytes",
+  "alembic_start_head": "052_i5_w5_iran_directory",
+  "tables": [
+    {
+      "table": "governed_source_profiles",
+      "orm_class": "GovernedSourceProfile",
+      "owner_package": "I5-B2-P1+W1-P01",
+      "existing_in_alembic": "PARTIAL",
+      "created_by_revision": "051_i5b2_governed_source_profile",
+      "missing_table": false,
+      "column_count": 23,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "canonical_key",
+          "type": "VARCHAR(256)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "locator_kind",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "normalized_locator",
+          "type": "VARCHAR(1024)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "legacy_knowledge_source_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "current_profile_version_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "operational_status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "disabled"
+        },
+        {
+          "name": "row_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "1"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "registry_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "DISCOVERED"
+        },
+        {
+          "name": "runtime_eligibility",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NOT_ELIGIBLE"
+        },
+        {
+          "name": "block_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "owner_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "reviewer_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "approver_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "topic_coverage",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "effective_from",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "effective_to",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_discovered_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_checked_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_reviewed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonicalization_version",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "v1"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_gsp_registry_state_vocab",
+          "sql": "registry_state IN ('DISCOVERED', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'DEFERRED', 'BLOCKED', 'REVOKED', 'SUPERSEDED', 'ARCHIVED')"
+        },
+        {
+          "name": "ck_gsp_block_reason_length",
+          "sql": "block_reason IS NULL OR char_length(block_reason) <= 2000"
+        },
+        {
+          "name": "ck_governed_source_profiles_locator_pair",
+          "sql": "(locator_kind IS NULL AND normalized_locator IS NULL) OR (locator_kind IS NOT NULL AND normalized_locator IS NOT NULL)"
+        },
+        {
+          "name": "ck_gsp_effective_window_order",
+          "sql": "effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from"
+        },
+        {
+          "name": "ck_gsp_runtime_eligibility_vocab",
+          "sql": "runtime_eligibility IN ('NOT_ELIGIBLE', 'REVIEW_REQUIRED', 'ELIGIBLE', 'SUSPENDED', 'REVOKED')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_gsp_current_version_same_profile",
+          "columns": [
+            "id",
+            "current_profile_version_id"
+          ],
+          "referred_table": "governed_source_profile_versions",
+          "ondelete": null,
+          "use_alter": true,
+          "deferrable": true
+        },
+        {
+          "name": null,
+          "columns": [
+            "legacy_knowledge_source_id"
+          ],
+          "referred_table": "knowledge_sources",
+          "ondelete": "SET NULL",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_governed_source_profiles_legacy_knowledge_source_id",
+          "columns": [
+            "legacy_knowledge_source_id"
+          ]
+        },
+        {
+          "name": "uq_governed_source_profiles_locator",
+          "columns": [
+            "locator_kind",
+            "normalized_locator"
+          ]
+        },
+        {
+          "name": "uq_governed_source_profiles_canonical_key",
+          "columns": [
+            "canonical_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_gsp_last_reviewed_at",
+          "columns": [
+            "last_reviewed_at"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_gsp_registry_runtime",
+          "columns": [
+            "registry_state",
+            "runtime_eligibility"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_governed_source_profiles_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_gsp_last_checked_at",
+          "columns": [
+            "last_checked_at"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_governed_source_profiles_operational_status",
+          "columns": [
+            "operational_status"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_gsp_registry_state",
+          "columns": [
+            "registry_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_gsp_runtime_eligibility",
+          "columns": [
+            "runtime_eligibility"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": {
+        "051_columns": [
+          "canonical_key",
+          "created_at",
+          "current_profile_version_id",
+          "id",
+          "legacy_knowledge_source_id",
+          "locator_kind",
+          "normalized_locator",
+          "operational_status",
+          "row_version",
+          "updated_at"
+        ],
+        "orm_extra_columns": [
+          "approver_reference",
+          "block_reason",
+          "canonicalization_version",
+          "effective_from",
+          "effective_to",
+          "last_checked_at",
+          "last_discovered_at",
+          "last_reviewed_at",
+          "owner_reference",
+          "registry_state",
+          "reviewer_reference",
+          "runtime_eligibility",
+          "topic_coverage"
+        ],
+        "051_missing_checks": [
+          "ck_gsp_registry_state_vocab",
+          "ck_gsp_block_reason_length",
+          "ck_gsp_effective_window_order",
+          "ck_gsp_runtime_eligibility_vocab"
+        ],
+        "051_missing_indexes": [
+          "ix_gsp_last_reviewed_at",
+          "ix_gsp_registry_runtime",
+          "ix_gsp_last_checked_at",
+          "ix_gsp_registry_state",
+          "ix_gsp_runtime_eligibility"
+        ]
+      }
+    },
+    {
+      "table": "governed_source_profile_versions",
+      "orm_class": "GovernedSourceProfileVersion",
+      "owner_package": "I5-B2-P1",
+      "existing_in_alembic": "YES",
+      "created_by_revision": "051_i5b2_governed_source_profile",
+      "missing_table": false,
+      "column_count": 30,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "profile_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "version_seq",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "supersedes_version_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "snapshot_schema_version",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "snapshot_fingerprint",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "effective_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "publisher_authority_identity",
+          "type": "VARCHAR(512)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_class",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "authority_evidence_tier",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "jurisdiction_scope",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "jurisdiction_country_code",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "jurisdiction_subdivision_code",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "jurisdiction_organization_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "primary_language",
+          "type": "VARCHAR(16)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "specialty_domain",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "license_status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "permitted_use_restriction",
+          "type": "VARCHAR(512)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "storage_permission",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "transformation_permission",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "display_redistribution_permission",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "automation_status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "verification_method",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "freshness_policy_days",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "freshness_status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "fetch_policy",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "iran_first_applicable",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "false"
+        },
+        {
+          "name": "policy_version_reference",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "configuration_version_reference",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_gspv_supersedes_not_self",
+          "sql": "supersedes_version_id IS NULL OR supersedes_version_id <> id"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": null,
+          "columns": [
+            "profile_id"
+          ],
+          "referred_table": "governed_source_profiles",
+          "ondelete": "CASCADE",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_gspv_supersedes_same_profile",
+          "columns": [
+            "profile_id",
+            "supersedes_version_id"
+          ],
+          "referred_table": "governed_source_profile_versions",
+          "ondelete": null,
+          "use_alter": true,
+          "deferrable": true
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_gspv_profile_snapshot_fingerprint",
+          "columns": [
+            "profile_id",
+            "snapshot_fingerprint"
+          ]
+        },
+        {
+          "name": "uq_gspv_profile_id_id",
+          "columns": [
+            "profile_id",
+            "id"
+          ]
+        },
+        {
+          "name": "uq_gspv_profile_version_seq",
+          "columns": [
+            "profile_id",
+            "version_seq"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_governed_source_profile_versions_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_governed_source_profile_versions_profile_id",
+          "columns": [
+            "profile_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "weekly_knowledge_runs",
+      "orm_class": "WeeklyKnowledgeRun",
+      "owner_package": "I5-IMPL-W1-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 28,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "logical_run_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonicalization_version",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "v1"
+        },
+        {
+          "name": "hash_algorithm",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SHA-256"
+        },
+        {
+          "name": "schedule_key",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "run_type",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "WEEKLY_GOVERNED"
+        },
+        {
+          "name": "trigger_type",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "planned_window_start",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "planned_window_end",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "approval_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_scope_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "domain_scope_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "gap_scope_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "config_version",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "config_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_scope",
+          "type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "domain_scope",
+          "type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "gap_scope",
+          "type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "successful_attempt_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "latest_attempt_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_by_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "approved_by_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "approved_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "supersedes_run_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "row_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "1"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_wkr_window_order",
+          "sql": "planned_window_end >= planned_window_start"
+        },
+        {
+          "name": "ck_wkr_trigger_type_vocab",
+          "sql": "trigger_type IN ('SCHEDULED', 'MANUAL', 'RETRY_PARENT', 'AD_HOC')"
+        },
+        {
+          "name": "ck_wkr_supersedes_not_self",
+          "sql": "supersedes_run_id IS NULL OR supersedes_run_id <> id"
+        },
+        {
+          "name": "ck_wkr_run_type_vocab",
+          "sql": "run_type IN ('WEEKLY_GOVERNED')"
+        },
+        {
+          "name": "ck_wkr_approval_state_vocab",
+          "sql": "approval_state IN ('NOT_REQUIRED', 'REQUIRED', 'APPROVED', 'REJECTED', 'EXPIRED')"
+        },
+        {
+          "name": "ck_wkr_status_vocab",
+          "sql": "status IN ('PLANNED', 'APPROVAL_REQUIRED', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'COMPLETED_WITH_WARNINGS', 'FAILED', 'BLOCKED', 'DEFERRED', 'CANCELLED', 'SUPERSEDED')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_wkr_successful_attempt_same_run",
+          "columns": [
+            "id",
+            "successful_attempt_id"
+          ],
+          "referred_table": "weekly_knowledge_run_attempts",
+          "ondelete": "RESTRICT",
+          "use_alter": true,
+          "deferrable": true
+        },
+        {
+          "name": "fk_wkr_supersedes_run_id",
+          "columns": [
+            "supersedes_run_id"
+          ],
+          "referred_table": "weekly_knowledge_runs",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_wkr_latest_attempt_same_run",
+          "columns": [
+            "id",
+            "latest_attempt_id"
+          ],
+          "referred_table": "weekly_knowledge_run_attempts",
+          "ondelete": "RESTRICT",
+          "use_alter": true,
+          "deferrable": true
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_weekly_knowledge_runs_logical_run_key",
+          "columns": [
+            "logical_run_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_wkr_status_window",
+          "columns": [
+            "status",
+            "planned_window_start"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wkr_schedule_window",
+          "columns": [
+            "schedule_key",
+            "planned_window_start"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wkr_approval_state",
+          "columns": [
+            "approval_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wkr_successful_attempt_id",
+          "columns": [
+            "successful_attempt_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wkr_latest_attempt_id",
+          "columns": [
+            "latest_attempt_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_weekly_knowledge_runs_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wkr_supersedes_run_id",
+          "columns": [
+            "supersedes_run_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "weekly_knowledge_run_attempts",
+      "orm_class": "WeeklyKnowledgeRunAttempt",
+      "owner_package": "I5-IMPL-W1-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 33,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "weekly_run_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "attempt_number",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retry_of_attempt_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "started_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "completed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "worker_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "config_snapshot_reference",
+          "type": "VARCHAR(2048)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "run_checksum",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonicalization_version",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "v1"
+        },
+        {
+          "name": "hash_algorithm",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SHA-256"
+        },
+        {
+          "name": "total_sources",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "checked_sources",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "fetched_sources",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "skipped_sources",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "blocked_sources",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "failed_sources",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "new_knowledge_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "updated_knowledge_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "superseded_knowledge_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "rejected_knowledge_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "created_gap_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "resolved_gap_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "warning_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "error_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "failure_code",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "failure_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "block_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_reference",
+          "type": "VARCHAR(2048)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "row_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "1"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_wkra_blocked_sources_nonnegative",
+          "sql": "blocked_sources >= 0"
+        },
+        {
+          "name": "ck_wkra_failed_sources_nonnegative",
+          "sql": "failed_sources >= 0"
+        },
+        {
+          "name": "ck_wkra_new_knowledge_count_nonnegative",
+          "sql": "new_knowledge_count >= 0"
+        },
+        {
+          "name": "ck_wkra_updated_knowledge_count_nonnegative",
+          "sql": "updated_knowledge_count >= 0"
+        },
+        {
+          "name": "ck_wkra_status_vocab",
+          "sql": "status IN ('CREATED', 'STARTED', 'RUNNING', 'COMPLETED', 'COMPLETED_WITH_WARNINGS', 'FAILED', 'BLOCKED', 'DEFERRED', 'CANCELLED', 'SUPERSEDED')"
+        },
+        {
+          "name": "ck_wkra_superseded_knowledge_count_nonnegative",
+          "sql": "superseded_knowledge_count >= 0"
+        },
+        {
+          "name": "ck_wkra_rejected_knowledge_count_nonnegative",
+          "sql": "rejected_knowledge_count >= 0"
+        },
+        {
+          "name": "ck_wkra_attempt_number_pos",
+          "sql": "attempt_number > 0"
+        },
+        {
+          "name": "ck_wkra_created_gap_count_nonnegative",
+          "sql": "created_gap_count >= 0"
+        },
+        {
+          "name": "ck_wkra_retry_not_self",
+          "sql": "retry_of_attempt_id IS NULL OR retry_of_attempt_id <> id"
+        },
+        {
+          "name": "ck_wkra_resolved_gap_count_nonnegative",
+          "sql": "resolved_gap_count >= 0"
+        },
+        {
+          "name": "ck_wkra_completed_after_started",
+          "sql": "completed_at IS NULL OR started_at IS NULL OR completed_at >= started_at"
+        },
+        {
+          "name": "ck_wkra_warning_count_nonnegative",
+          "sql": "warning_count >= 0"
+        },
+        {
+          "name": "ck_wkra_failure_reason_length",
+          "sql": "failure_reason IS NULL OR char_length(failure_reason) <= 2000"
+        },
+        {
+          "name": "ck_wkra_error_count_nonnegative",
+          "sql": "error_count >= 0"
+        },
+        {
+          "name": "ck_wkra_block_reason_length",
+          "sql": "block_reason IS NULL OR char_length(block_reason) <= 2000"
+        },
+        {
+          "name": "ck_wkra_total_sources_nonnegative",
+          "sql": "total_sources >= 0"
+        },
+        {
+          "name": "ck_wkra_checked_sources_nonnegative",
+          "sql": "checked_sources >= 0"
+        },
+        {
+          "name": "ck_wkra_fetched_sources_nonnegative",
+          "sql": "fetched_sources >= 0"
+        },
+        {
+          "name": "ck_wkra_skipped_sources_nonnegative",
+          "sql": "skipped_sources >= 0"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_wkra_retry_same_run",
+          "columns": [
+            "retry_of_attempt_id",
+            "weekly_run_id"
+          ],
+          "referred_table": "weekly_knowledge_run_attempts",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_wkra_weekly_run_id",
+          "columns": [
+            "weekly_run_id"
+          ],
+          "referred_table": "weekly_knowledge_runs",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_wkra_id_weekly_run_id",
+          "columns": [
+            "id",
+            "weekly_run_id"
+          ]
+        },
+        {
+          "name": "uq_wkra_run_attempt",
+          "columns": [
+            "weekly_run_id",
+            "attempt_number"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_wkra_retry_of_attempt_id",
+          "columns": [
+            "retry_of_attempt_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wkra_status_started_at",
+          "columns": [
+            "status",
+            "started_at"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_weekly_knowledge_run_attempts_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "uq_wkra_one_successful_terminal",
+          "columns": [
+            "weekly_run_id"
+          ],
+          "unique": true,
+          "postgresql_where": "status IN ('COMPLETED', 'COMPLETED_WITH_WARNINGS')"
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_gaps",
+      "orm_class": "KnowledgeGap",
+      "owner_package": "I5-IMPL-W1-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 39,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "canonical_gap_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonicalization_version",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "v1"
+        },
+        {
+          "name": "hash_algorithm",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SHA-256"
+        },
+        {
+          "name": "domain",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "subdomain",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "capability_id",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "gap_type",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(512)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_of_gap",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "current_knowledge_state",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "required_knowledge_state",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_need",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "priority",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "P2"
+        },
+        {
+          "name": "severity",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "MEDIUM"
+        },
+        {
+          "name": "urgency",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NORMAL"
+        },
+        {
+          "name": "confidence",
+          "type": "FLOAT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "OPEN"
+        },
+        {
+          "name": "owner_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "reviewer_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "blocker",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "dependencies",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "target_package_id",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "target_source_profile_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "target_knowledge_unit_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "discovered_by",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "discovered_attempt_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "next_action",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "next_review_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retry_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "last_attempt_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "resolution_type",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "resolution_evidence",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "resolved_by_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "resolved_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "row_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "1"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_kg_priority_vocab",
+          "sql": "priority IN ('P0', 'P1', 'P2', 'P3')"
+        },
+        {
+          "name": "ck_kg_confidence_range",
+          "sql": "confidence IS NULL OR (confidence >= 0 AND confidence <= 1)"
+        },
+        {
+          "name": "ck_kg_required_knowledge_state_length",
+          "sql": "required_knowledge_state IS NULL OR char_length(required_knowledge_state) <= 4000"
+        },
+        {
+          "name": "ck_kg_urgency_vocab",
+          "sql": "urgency IN ('LOW', 'NORMAL', 'HIGH', 'IMMEDIATE')"
+        },
+        {
+          "name": "ck_kg_gap_type_vocab",
+          "sql": "gap_type IN ('MISSING', 'STALE', 'LOW_CONFIDENCE', 'CONFLICTING', 'RETRACTED', 'INSUFFICIENT_COVERAGE', 'MISSING_PROVENANCE', 'MISSING_RIGHTS_REVIEW', 'MISSING_SAFETY_REVIEW', 'RUNTIME_RETRIEVAL_FAILURE')"
+        },
+        {
+          "name": "ck_kg_retry_count_nonneg",
+          "sql": "retry_count >= 0"
+        },
+        {
+          "name": "ck_kg_next_action_length",
+          "sql": "next_action IS NULL OR char_length(next_action) <= 2000"
+        },
+        {
+          "name": "ck_kg_status_vocab",
+          "sql": "status IN ('OPEN', 'TRIAGED', 'PLANNED', 'IN_PROGRESS', 'BLOCKED', 'DEFERRED', 'RESOLVED', 'REJECTED', 'REOPENED')"
+        },
+        {
+          "name": "ck_kg_description_length",
+          "sql": "description IS NULL OR char_length(description) <= 8000"
+        },
+        {
+          "name": "ck_kg_blocker_length",
+          "sql": "blocker IS NULL OR char_length(blocker) <= 2000"
+        },
+        {
+          "name": "ck_kg_current_knowledge_state_length",
+          "sql": "current_knowledge_state IS NULL OR char_length(current_knowledge_state) <= 4000"
+        },
+        {
+          "name": "ck_kg_severity_vocab",
+          "sql": "severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_knowledge_gaps_target_knowledge_unit_id",
+          "columns": [
+            "target_knowledge_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_knowledge_gaps_target_source_profile_id",
+          "columns": [
+            "target_source_profile_id"
+          ],
+          "referred_table": "governed_source_profiles",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_knowledge_gaps_discovered_attempt_id",
+          "columns": [
+            "discovered_attempt_id"
+          ],
+          "referred_table": "weekly_knowledge_run_attempts",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_knowledge_gaps_canonical_gap_key",
+          "columns": [
+            "canonical_gap_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_kg_status_priority_severity",
+          "columns": [
+            "status",
+            "priority",
+            "severity"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_discovered_attempt_id",
+          "columns": [
+            "discovered_attempt_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_target_knowledge_unit_id",
+          "columns": [
+            "target_knowledge_unit_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_capability_id",
+          "columns": [
+            "capability_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_target_package_id",
+          "columns": [
+            "target_package_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_domain_subdomain",
+          "columns": [
+            "domain",
+            "subdomain"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_target_source_profile_id",
+          "columns": [
+            "target_source_profile_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kg_next_review_at",
+          "columns": [
+            "next_review_at"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_knowledge_gaps_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "weekly_run_source_results",
+      "orm_class": "WeeklyRunSourceResult",
+      "owner_package": "I5-IMPL-W1-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 21,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "attempt_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_profile_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_version_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "result_status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "checked_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "fetch_outcome",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "extraction_outcome",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "publication_outcome",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "knowledge_new_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "knowledge_updated_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "knowledge_superseded_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "knowledge_rejected_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "gap_created_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "warning_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "error_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "0"
+        },
+        {
+          "name": "failure_code",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "failure_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_reference",
+          "type": "VARCHAR(2048)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "content_fingerprint",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_wrsr_knowledge_superseded_count_nonnegative",
+          "sql": "knowledge_superseded_count >= 0"
+        },
+        {
+          "name": "ck_wrsr_failure_reason_length",
+          "sql": "failure_reason IS NULL OR char_length(failure_reason) <= 2000"
+        },
+        {
+          "name": "ck_wrsr_warning_count_nonnegative",
+          "sql": "warning_count >= 0"
+        },
+        {
+          "name": "ck_wrsr_knowledge_rejected_count_nonnegative",
+          "sql": "knowledge_rejected_count >= 0"
+        },
+        {
+          "name": "ck_wrsr_error_count_nonnegative",
+          "sql": "error_count >= 0"
+        },
+        {
+          "name": "ck_wrsr_knowledge_new_count_nonnegative",
+          "sql": "knowledge_new_count >= 0"
+        },
+        {
+          "name": "ck_wrsr_result_status_vocab",
+          "sql": "result_status IN ('CHECKED', 'FETCHED', 'EXTRACTED', 'PUBLISHED', 'SKIPPED', 'BLOCKED', 'FAILED', 'WARNING')"
+        },
+        {
+          "name": "ck_wrsr_gap_created_count_nonnegative",
+          "sql": "gap_created_count >= 0"
+        },
+        {
+          "name": "ck_wrsr_knowledge_updated_count_nonnegative",
+          "sql": "knowledge_updated_count >= 0"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_wrsr_source_version_id",
+          "columns": [
+            "source_version_id"
+          ],
+          "referred_table": "governed_source_profile_versions",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_wrsr_source_profile_id",
+          "columns": [
+            "source_profile_id"
+          ],
+          "referred_table": "governed_source_profiles",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_wrsr_attempt_id",
+          "columns": [
+            "attempt_id"
+          ],
+          "referred_table": "weekly_knowledge_run_attempts",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_wrsr_attempt_source_profile",
+          "columns": [
+            "attempt_id",
+            "source_profile_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_wrsr_result_status",
+          "columns": [
+            "result_status"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wrsr_source_profile_id",
+          "columns": [
+            "source_profile_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_weekly_run_source_results_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "weekly_run_gap_results",
+      "orm_class": "WeeklyRunGapResult",
+      "owner_package": "I5-IMPL-W1-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 8,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "attempt_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "gap_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "result_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "previous_status",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "new_status",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_reference",
+          "type": "VARCHAR(2048)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_wrgr_result_type_vocab",
+          "sql": "result_type IN ('DISCOVERED', 'UPDATED', 'TRIAGED', 'PLANNED', 'BLOCKED', 'DEFERRED', 'RESOLVED', 'REOPENED', 'REJECTED', 'UNCHANGED')"
+        },
+        {
+          "name": "ck_wrgr_new_status_vocab",
+          "sql": "new_status IS NULL OR (new_status IN ('OPEN', 'TRIAGED', 'PLANNED', 'IN_PROGRESS', 'BLOCKED', 'DEFERRED', 'RESOLVED', 'REJECTED', 'REOPENED'))"
+        },
+        {
+          "name": "ck_wrgr_previous_status_vocab",
+          "sql": "previous_status IS NULL OR (previous_status IN ('OPEN', 'TRIAGED', 'PLANNED', 'IN_PROGRESS', 'BLOCKED', 'DEFERRED', 'RESOLVED', 'REJECTED', 'REOPENED'))"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_wrgr_attempt_id",
+          "columns": [
+            "attempt_id"
+          ],
+          "referred_table": "weekly_knowledge_run_attempts",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_wrgr_gap_id",
+          "columns": [
+            "gap_id"
+          ],
+          "referred_table": "knowledge_gaps",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_wrgr_attempt_gap",
+          "columns": [
+            "attempt_id",
+            "gap_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_weekly_run_gap_results_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wrgr_result_type",
+          "columns": [
+            "result_type"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_wrgr_gap_id",
+          "columns": [
+            "gap_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "i5_governance_decisions",
+      "orm_class": "I5GovernanceDecision",
+      "owner_package": "I5-IMPL-W1-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 20,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "entity_type",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "entity_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "decision_family",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "decision_type",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "decision_request_key",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "from_state",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "to_state",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "outcome",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "reason_code",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "actor_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "actor_reference",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_reference",
+          "type": "VARCHAR(2048)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "decision_metadata",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonical_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonicalization_version",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "v1"
+        },
+        {
+          "name": "hash_algorithm",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SHA-256"
+        },
+        {
+          "name": "supersedes_decision_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_i5gd_entity_id_pos",
+          "sql": "entity_id > 0"
+        },
+        {
+          "name": "ck_i5gd_supersedes_not_self",
+          "sql": "supersedes_decision_id IS NULL OR supersedes_decision_id <> id"
+        },
+        {
+          "name": "ck_i5gd_canonical_hash_format",
+          "sql": "canonical_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_i5gd_decision_request_key_format",
+          "sql": "decision_request_key ~ '^[A-Za-z0-9._:-]{1,128}$'"
+        },
+        {
+          "name": "ck_i5gd_hash_algorithm_constant",
+          "sql": "hash_algorithm = 'SHA-256'"
+        },
+        {
+          "name": "ck_i5gd_canonicalization_version_constant",
+          "sql": "canonicalization_version = 'v1'"
+        },
+        {
+          "name": "ck_i5gd_reason_length",
+          "sql": "reason IS NULL OR char_length(reason) <= 4000"
+        },
+        {
+          "name": "ck_i5gd_supersession_requires_parent",
+          "sql": "(decision_type <> 'SUPERSESSION') OR (supersedes_decision_id IS NOT NULL)"
+        },
+        {
+          "name": "ck_i5gd_decision_type_family_matrix",
+          "sql": "(decision_type = 'SUPERSESSION') OR ((decision_type = 'RIGHTS_REVIEW' AND decision_family = 'RIGHTS') OR (decision_type = 'AUTOMATION_REVIEW' AND decision_family = 'AUTOMATION') OR (decision_type = 'QUALITY_REVIEW' AND decision_family = 'QUALITY') OR (decision_type = 'MEDICAL_SAFETY_REVIEW' AND decision_family = 'MEDICAL_SAFETY') OR (decision_type = 'SECURITY_REVIEW' AND decision_family = 'SECURITY') OR (decision_type = 'APPROVAL' AND decision_family = 'LIFECYCLE') OR (decision_type = 'REJECTION' AND decision_family = 'LIFECYCLE') OR (decision_type = 'ACTIVATION' AND decision_family = 'LIFECYCLE') OR (decision_type = 'SUSPENSION' AND decision_family = 'LIFECYCLE') OR (decision_type = 'REVOCATION' AND decision_family = 'LIFECYCLE') OR (decision_type = 'GAP_RESOLUTION' AND decision_family = 'GAP_LIFECYCLE') OR (decision_type = 'GAP_REOPEN' AND decision_family = 'GAP_LIFECYCLE') OR (decision_type = 'RUN_APPROVAL' AND decision_family = 'RUN_APPROVAL') OR (decision_type = 'RUN_TERMINALIZATION' AND decision_family = 'RUN_TERMINALIZATION'))"
+        },
+        {
+          "name": "ck_i5gd_entity_family_matrix",
+          "sql": "(entity_type IN ('SOURCE_PROFILE', 'SOURCE_PROFILE_VERSION') AND decision_family IN ('RIGHTS', 'AUTOMATION', 'QUALITY', 'MEDICAL_SAFETY', 'SECURITY', 'LIFECYCLE')) OR (entity_type = 'KNOWLEDGE_GAP' AND decision_family IN ('LIFECYCLE', 'GAP_LIFECYCLE')) OR (entity_type = 'WEEKLY_RUN' AND decision_family IN ('LIFECYCLE', 'RUN_APPROVAL')) OR (entity_type = 'WEEKLY_RUN_ATTEMPT' AND decision_family = 'RUN_TERMINALIZATION') OR (entity_type = 'RUN_SOURCE_RESULT' AND decision_family IN ('RIGHTS', 'AUTOMATION', 'QUALITY', 'MEDICAL_SAFETY', 'SECURITY', 'LIFECYCLE')) OR (entity_type = 'RUN_GAP_RESULT' AND decision_family IN ('QUALITY', 'LIFECYCLE'))"
+        },
+        {
+          "name": "ck_i5gd_entity_decision_matrix",
+          "sql": "(entity_type = 'SOURCE_PROFILE' AND decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'ACTIVATION', 'SUSPENSION', 'REVOCATION', 'SUPERSESSION')) OR (entity_type = 'SOURCE_PROFILE_VERSION' AND decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'SUPERSESSION')) OR (entity_type = 'KNOWLEDGE_GAP' AND decision_type IN ('APPROVAL', 'REJECTION', 'GAP_RESOLUTION', 'GAP_REOPEN', 'SUPERSESSION')) OR (entity_type = 'WEEKLY_RUN' AND decision_type IN ('RUN_APPROVAL', 'APPROVAL', 'REJECTION', 'SUSPENSION', 'REVOCATION', 'SUPERSESSION')) OR (entity_type = 'WEEKLY_RUN_ATTEMPT' AND decision_type IN ('RUN_TERMINALIZATION', 'SUPERSESSION')) OR (entity_type = 'RUN_SOURCE_RESULT' AND decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'SUPERSESSION')) OR (entity_type = 'RUN_GAP_RESULT' AND decision_type IN ('QUALITY_REVIEW', 'APPROVAL', 'REJECTION', 'SUPERSESSION'))"
+        },
+        {
+          "name": "ck_i5gd_decision_family_vocab",
+          "sql": "decision_family IN ('RIGHTS', 'AUTOMATION', 'QUALITY', 'MEDICAL_SAFETY', 'SECURITY', 'LIFECYCLE', 'GAP_LIFECYCLE', 'RUN_APPROVAL', 'RUN_TERMINALIZATION')"
+        },
+        {
+          "name": "ck_i5gd_entity_type_vocab",
+          "sql": "entity_type IN ('SOURCE_PROFILE', 'SOURCE_PROFILE_VERSION', 'KNOWLEDGE_GAP', 'WEEKLY_RUN', 'WEEKLY_RUN_ATTEMPT', 'RUN_SOURCE_RESULT', 'RUN_GAP_RESULT')"
+        },
+        {
+          "name": "ck_i5gd_decision_type_vocab",
+          "sql": "decision_type IN ('RIGHTS_REVIEW', 'AUTOMATION_REVIEW', 'QUALITY_REVIEW', 'MEDICAL_SAFETY_REVIEW', 'SECURITY_REVIEW', 'APPROVAL', 'REJECTION', 'ACTIVATION', 'SUSPENSION', 'REVOCATION', 'SUPERSESSION', 'GAP_RESOLUTION', 'GAP_REOPEN', 'RUN_APPROVAL', 'RUN_TERMINALIZATION')"
+        },
+        {
+          "name": "ck_i5gd_actor_type_vocab",
+          "sql": "actor_type IN ('SYSTEM', 'HUMAN', 'SERVICE', 'JAVAD', 'UNKNOWN')"
+        },
+        {
+          "name": "ck_i5gd_outcome_vocab",
+          "sql": "outcome IN ('APPROVED', 'REJECTED', 'DEFERRED', 'BLOCKED', 'SUPERSEDED', 'RECORDED')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_i5gd_supersedes_same_entity_family",
+          "columns": [
+            "supersedes_decision_id",
+            "entity_type",
+            "entity_id",
+            "decision_family"
+          ],
+          "referred_table": "i5_governance_decisions",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_i5gd_decision_request",
+          "columns": [
+            "entity_type",
+            "entity_id",
+            "decision_request_key"
+          ]
+        },
+        {
+          "name": "uq_i5gd_id_entity_family",
+          "columns": [
+            "id",
+            "entity_type",
+            "entity_id",
+            "decision_family"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "uq_i5gd_one_root_per_family",
+          "columns": [
+            "entity_type",
+            "entity_id",
+            "decision_family"
+          ],
+          "unique": true,
+          "postgresql_where": "supersedes_decision_id IS NULL"
+        },
+        {
+          "name": "ix_i5gd_family_history",
+          "columns": [
+            "entity_type",
+            "entity_id",
+            "decision_family",
+            "created_at",
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_i5_governance_decisions_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_i5gd_entity_history",
+          "columns": [
+            "entity_type",
+            "entity_id",
+            "created_at",
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_i5gd_content_hash",
+          "columns": [
+            "hash_algorithm",
+            "canonicalization_version",
+            "canonical_hash"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_i5gd_decision_type",
+          "columns": [
+            "decision_type"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "uq_i5gd_one_superseder",
+          "columns": [
+            "supersedes_decision_id"
+          ],
+          "unique": true,
+          "postgresql_where": "supersedes_decision_id IS NOT NULL"
+        },
+        {
+          "name": "ix_i5gd_outcome",
+          "columns": [
+            "outcome"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "i5_raw_evidence",
+      "orm_class": "I5RawEvidence",
+      "owner_package": "I5-IMPL-W1-P02",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 24,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "source_profile_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_document_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_version_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retrieval_run_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retrieval_timestamp",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonical_url",
+          "type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "content_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "byte_hash",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "normalized_hash",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "hash_algorithm",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SHA-256"
+        },
+        {
+          "name": "mime_type",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(32)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "jurisdiction",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "storage_mode",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NONE"
+        },
+        {
+          "name": "retention_mode",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "rights_terms_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "robots_access_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "redaction_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NONE"
+        },
+        {
+          "name": "prohibited_data_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "expiry_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "ACTIVE"
+        },
+        {
+          "name": "supersedes_raw_evidence_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "created_by_run_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_ire_prohibited_data_state_vocab",
+          "sql": "prohibited_data_state IN ('CLEARED', 'SUSPECTED', 'CONFIRMED_PROHIBITED', 'UNKNOWN')"
+        },
+        {
+          "name": "ck_ire_expiry_state_vocab",
+          "sql": "expiry_state IN ('ACTIVE', 'EXPIRING', 'EXPIRED', 'TOMBSTONED', 'SUPERSEDED')"
+        },
+        {
+          "name": "ck_ire_content_hash_format",
+          "sql": "content_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_ire_byte_hash_format",
+          "sql": "byte_hash IS NULL OR byte_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_ire_normalized_hash_format",
+          "sql": "normalized_hash IS NULL OR normalized_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_ire_storage_mode_vocab",
+          "sql": "storage_mode IN ('OBJECT_STORE', 'DATABASE_INLINE', 'EXTERNAL_REFERENCE', 'NONE')"
+        },
+        {
+          "name": "ck_ire_retention_mode_vocab",
+          "sql": "retention_mode IN ('RAW_FULL_GOVERNED_RETENTION', 'RAW_TRANSIENT_PROCESSING', 'RAW_MINIMAL_EVIDENCE_ONLY', 'RAW_LINK_AND_CITATION_ONLY', 'RAW_EXCLUDED_PROTECTED_ELEMENTS')"
+        },
+        {
+          "name": "ck_ire_hash_algorithm_constant",
+          "sql": "hash_algorithm = 'SHA-256'"
+        },
+        {
+          "name": "ck_ire_canonical_url_nonempty",
+          "sql": "char_length(canonical_url) >= 1"
+        },
+        {
+          "name": "ck_ire_supersedes_not_self",
+          "sql": "supersedes_raw_evidence_id IS NULL OR supersedes_raw_evidence_id <> id"
+        },
+        {
+          "name": "ck_ire_prohibited_requires_excluded_mode",
+          "sql": "(prohibited_data_state <> 'CONFIRMED_PROHIBITED') OR (retention_mode = 'RAW_EXCLUDED_PROTECTED_ELEMENTS')"
+        },
+        {
+          "name": "ck_ire_rights_terms_state_vocab",
+          "sql": "rights_terms_state IN ('UNKNOWN', 'UNDER_REVIEW', 'APPROVED', 'RESTRICTED', 'PROHIBITED', 'EXPIRED')"
+        },
+        {
+          "name": "ck_ire_robots_access_state_vocab",
+          "sql": "robots_access_state IN ('UNKNOWN', 'ALLOWED', 'DISALLOWED', 'CONDITIONAL', 'NOT_APPLICABLE')"
+        },
+        {
+          "name": "ck_ire_redaction_state_vocab",
+          "sql": "redaction_state IN ('NONE', 'PARTIAL', 'FULL', 'REQUIRED')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_ire_source_profile_id",
+          "columns": [
+            "source_profile_id"
+          ],
+          "referred_table": "governed_source_profiles",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_ire_supersedes_raw_evidence_id",
+          "columns": [
+            "supersedes_raw_evidence_id"
+          ],
+          "referred_table": "i5_raw_evidence",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_ire_retrieval_run_id",
+          "columns": [
+            "retrieval_run_id"
+          ],
+          "referred_table": "weekly_knowledge_runs",
+          "ondelete": "SET NULL",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_ire_created_by_run_id",
+          "columns": [
+            "created_by_run_id"
+          ],
+          "referred_table": "weekly_knowledge_runs",
+          "ondelete": "SET NULL",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_ire_content_source_url",
+          "columns": [
+            "content_hash",
+            "source_profile_id",
+            "canonical_url"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ire_content_hash",
+          "columns": [
+            "content_hash"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ire_source_profile_id",
+          "columns": [
+            "source_profile_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_i5_raw_evidence_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ire_retrieval_run_id",
+          "columns": [
+            "retrieval_run_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ire_retention_mode",
+          "columns": [
+            "retention_mode"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_units",
+      "orm_class": "KnowledgeUnit",
+      "owner_package": "I5-IMPL-W1-P02",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 34,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "canonical_unit_id",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "immutable_version_id",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "domain",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "topic_taxonomy",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "disease_or_health_condition",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "manifest_entity_id",
+          "type": "VARCHAR(16)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "manifest_track_id",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "language",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "en"
+        },
+        {
+          "name": "knowledge_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "normalized_statement",
+          "type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "applicability",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "exclusions",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "population",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "jurisdiction",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_strength",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "medical_safety_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "conflict_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NONE"
+        },
+        {
+          "name": "freshness_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "review_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NOT_REVIEWED"
+        },
+        {
+          "name": "publication_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "DRAFT"
+        },
+        {
+          "name": "runtime_eligibility",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NOT_ELIGIBLE"
+        },
+        {
+          "name": "provenance_complete",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "false"
+        },
+        {
+          "name": "deduplication_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "canonical_hash",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "hash_algorithm",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SHA-256"
+        },
+        {
+          "name": "canonicalization_version",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "v1"
+        },
+        {
+          "name": "supersedes_unit_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retraction_reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "valid_from",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "valid_until",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "last_reviewed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_ku_review_state_vocab",
+          "sql": "review_state IN ('NOT_REVIEWED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'DEFERRED')"
+        },
+        {
+          "name": "ck_ku_publication_state_vocab",
+          "sql": "publication_state IN ('DRAFT', 'CANDIDATE', 'PUBLISHED', 'WITHDRAWN', 'SUPERSEDED')"
+        },
+        {
+          "name": "ck_ku_runtime_eligibility_vocab",
+          "sql": "runtime_eligibility IN ('NOT_ELIGIBLE', 'REVIEW_REQUIRED', 'ELIGIBLE', 'SUSPENDED', 'REVOKED')"
+        },
+        {
+          "name": "ck_ku_canonical_hash_format",
+          "sql": "canonical_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_ku_deduplication_key_format",
+          "sql": "deduplication_key ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_ku_hash_algorithm_constant",
+          "sql": "hash_algorithm = 'SHA-256'"
+        },
+        {
+          "name": "ck_ku_canonicalization_version_constant",
+          "sql": "canonicalization_version = 'v1'"
+        },
+        {
+          "name": "ck_ku_normalized_statement_nonempty",
+          "sql": "char_length(normalized_statement) >= 1"
+        },
+        {
+          "name": "ck_ku_supersedes_not_self",
+          "sql": "supersedes_unit_id IS NULL OR supersedes_unit_id <> id"
+        },
+        {
+          "name": "ck_ku_eligible_requires_provenance",
+          "sql": "(runtime_eligibility <> 'ELIGIBLE') OR (provenance_complete = true)"
+        },
+        {
+          "name": "ck_ku_evidence_strength_vocab",
+          "sql": "evidence_strength IN ('UNKNOWN', 'LOW', 'MODERATE', 'HIGH', 'CONFLICTED')"
+        },
+        {
+          "name": "ck_ku_medical_safety_state_vocab",
+          "sql": "medical_safety_state IN ('UNKNOWN', 'PENDING_REVIEW', 'CLEARED', 'RESTRICTED', 'BLOCKED')"
+        },
+        {
+          "name": "ck_ku_freshness_state_vocab",
+          "sql": "freshness_state IN ('UNKNOWN', 'CURRENT', 'STALE', 'EXPIRED')"
+        },
+        {
+          "name": "ck_ku_conflict_state_vocab",
+          "sql": "conflict_state IN ('NONE', 'SUSPECTED', 'CONFIRMED', 'RESOLVED')"
+        },
+        {
+          "name": "ck_ku_knowledge_type_vocab",
+          "sql": "knowledge_type IN ('FACT', 'GUIDELINE', 'RECOMMENDATION', 'WARNING', 'DEFINITION', 'PROCEDURE', 'OTHER')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_ku_supersedes_unit_id",
+          "columns": [
+            "supersedes_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_ku_deduplication_key",
+          "columns": [
+            "deduplication_key"
+          ]
+        },
+        {
+          "name": "uq_ku_canonical_version",
+          "columns": [
+            "canonical_unit_id",
+            "immutable_version_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_knowledge_units_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ku_domain",
+          "columns": [
+            "domain"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ku_runtime_eligibility",
+          "columns": [
+            "runtime_eligibility"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ku_canonical_hash",
+          "columns": [
+            "canonical_hash"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ku_manifest_track_id",
+          "columns": [
+            "manifest_track_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_provenance",
+      "orm_class": "KnowledgeProvenance",
+      "owner_package": "I5-IMPL-W1-P02",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 20,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "knowledge_unit_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_profile_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_document_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_version_id",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "raw_evidence_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retrieval_method",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "access_route",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "content_hash",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "byte_hash",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "normalized_hash",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "extraction_process",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "normalization_process",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "review_decision_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "attribution_data",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "citation_rendering_data",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "conflict_hook",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "supersession_hook",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "retraction_hook",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_kp_retrieval_method_nonempty",
+          "sql": "char_length(retrieval_method) >= 1"
+        },
+        {
+          "name": "ck_kp_normalized_hash_format",
+          "sql": "normalized_hash IS NULL OR normalized_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_kp_byte_hash_format",
+          "sql": "byte_hash IS NULL OR byte_hash ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_kp_content_hash_format",
+          "sql": "content_hash IS NULL OR content_hash ~ '^[0-9a-f]{64}$'"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_kp_raw_evidence_id",
+          "columns": [
+            "raw_evidence_id"
+          ],
+          "referred_table": "i5_raw_evidence",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_kp_knowledge_unit_id",
+          "columns": [
+            "knowledge_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_kp_review_decision_id",
+          "columns": [
+            "review_decision_id"
+          ],
+          "referred_table": "i5_governance_decisions",
+          "ondelete": "SET NULL",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_kp_source_profile_id",
+          "columns": [
+            "source_profile_id"
+          ],
+          "referred_table": "governed_source_profiles",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_kp_knowledge_unit_id",
+          "columns": [
+            "knowledge_unit_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_kp_raw_evidence_id",
+          "columns": [
+            "raw_evidence_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_knowledge_provenance_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kp_source_profile_id",
+          "columns": [
+            "source_profile_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_memory_items",
+      "orm_class": "KnowledgeMemoryItem",
+      "owner_package": "I5-IMPL-W2-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 16,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "memory_item_id",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "knowledge_unit_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "domain",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "topic",
+          "type": "VARCHAR(256)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "knowledge_version",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_ids",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "source_versions",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "evidence_strength",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "freshness_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "conflict_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NONE"
+        },
+        {
+          "name": "medical_safety_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "UNKNOWN"
+        },
+        {
+          "name": "runtime_eligibility",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "NOT_ELIGIBLE"
+        },
+        {
+          "name": "supersession_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "CURRENT"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_kmi_eligible_requires_current",
+          "sql": "(runtime_eligibility <> 'ELIGIBLE') OR (supersession_state = 'CURRENT')"
+        },
+        {
+          "name": "ck_kmi_medical_safety_state_vocab",
+          "sql": "medical_safety_state IN ('UNKNOWN', 'PENDING_REVIEW', 'CLEARED', 'RESTRICTED', 'BLOCKED')"
+        },
+        {
+          "name": "ck_kmi_evidence_strength_vocab",
+          "sql": "evidence_strength IN ('UNKNOWN', 'LOW', 'MODERATE', 'HIGH', 'CONFLICTED')"
+        },
+        {
+          "name": "ck_kmi_runtime_eligibility_vocab",
+          "sql": "runtime_eligibility IN ('NOT_ELIGIBLE', 'REVIEW_REQUIRED', 'ELIGIBLE', 'SUSPENDED', 'REVOKED')"
+        },
+        {
+          "name": "ck_kmi_freshness_state_vocab",
+          "sql": "freshness_state IN ('UNKNOWN', 'CURRENT', 'STALE', 'EXPIRED')"
+        },
+        {
+          "name": "ck_kmi_supersession_state_vocab",
+          "sql": "supersession_state IN ('CURRENT', 'SUPERSEDED', 'STALE', 'WITHDRAWN', 'CONFLICTED', 'UNDER_REVIEW', 'REJECTED', 'RETRACTED')"
+        },
+        {
+          "name": "ck_kmi_conflict_state_vocab",
+          "sql": "conflict_state IN ('NONE', 'SUSPECTED', 'CONFIRMED', 'RESOLVED')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_kmi_knowledge_unit_id",
+          "columns": [
+            "knowledge_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_kmi_knowledge_unit_id",
+          "columns": [
+            "knowledge_unit_id"
+          ]
+        },
+        {
+          "name": "uq_kmi_memory_item_id",
+          "columns": [
+            "memory_item_id"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_knowledge_memory_items_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kmi_domain",
+          "columns": [
+            "domain"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kmi_runtime_eligibility",
+          "columns": [
+            "runtime_eligibility"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kmi_supersession_state",
+          "columns": [
+            "supersession_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_memory_transitions",
+      "orm_class": "KnowledgeMemoryTransition",
+      "owner_package": "I5-IMPL-W2-P01",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 12,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "memory_row_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "memory_item_id",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "from_knowledge_unit_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "to_knowledge_unit_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "transition_kind",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "change_kind",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "diff_json",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "idempotency_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "process_id",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "W2P01_SUPERSESSION_SERVICE"
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_kmt_change_kind_vocab",
+          "sql": "change_kind IN ('NO_MATERIAL_CHANGE', 'CONTENT_CHANGE', 'SOURCE_METADATA_CHANGE', 'PROVENANCE_CHANGE', 'SAFETY_GOVERNANCE_CHANGE', 'RETRACTION_WITHDRAWAL')"
+        },
+        {
+          "name": "ck_kmt_diff_json_object",
+          "sql": "diff_json IS NULL OR (char_length(diff_json) >= 2 AND left(diff_json, 1) = '{' AND right(diff_json, 1) = '}')"
+        },
+        {
+          "name": "ck_kmt_transition_kind_vocab",
+          "sql": "transition_kind IN ('CREATED', 'NO_CHANGE', 'SUPERSEDED', 'RETRACTED', 'WITHDRAWN', 'CURRENT_VERSION_CHANGED')"
+        },
+        {
+          "name": "ck_kmt_idempotency_key_format",
+          "sql": "idempotency_key ~ '^[0-9a-f]{64}$'"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_kmt_memory_item_row_id",
+          "columns": [
+            "memory_row_id"
+          ],
+          "referred_table": "knowledge_memory_items",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_kmt_to_knowledge_unit_id",
+          "columns": [
+            "to_knowledge_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_kmt_from_knowledge_unit_id",
+          "columns": [
+            "from_knowledge_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_kmt_idempotency_key",
+          "columns": [
+            "idempotency_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_knowledge_memory_transitions_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kmt_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kmt_memory_item_id",
+          "columns": [
+            "memory_item_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_conflicts",
+      "orm_class": "KnowledgeConflict",
+      "owner_package": "I5-IMPL-W2-P02",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 10,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "conflict_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "knowledge_unit_id_a",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "knowledge_unit_id_b",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "conflict_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "SUSPECTED"
+        },
+        {
+          "name": "conflict_summary",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "resolution_note",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "idempotency_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_kc_conflict_state_vocab",
+          "sql": "conflict_state IN ('NONE', 'SUSPECTED', 'CONFIRMED', 'RESOLVED')"
+        },
+        {
+          "name": "ck_kc_units_ordered",
+          "sql": "knowledge_unit_id_a < knowledge_unit_id_b"
+        },
+        {
+          "name": "ck_kc_idempotency_key_format",
+          "sql": "idempotency_key ~ '^[0-9a-f]{64}$'"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_kc_ku_a",
+          "columns": [
+            "knowledge_unit_id_a"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_kc_ku_b",
+          "columns": [
+            "knowledge_unit_id_b"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_kc_unit_pair",
+          "columns": [
+            "knowledge_unit_id_a",
+            "knowledge_unit_id_b"
+          ]
+        },
+        {
+          "name": "uq_kc_conflict_key",
+          "columns": [
+            "conflict_key"
+          ]
+        },
+        {
+          "name": "uq_kc_idempotency_key",
+          "columns": [
+            "idempotency_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_kc_ku_a",
+          "columns": [
+            "knowledge_unit_id_a"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_knowledge_conflicts_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kc_ku_b",
+          "columns": [
+            "knowledge_unit_id_b"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_kc_conflict_state",
+          "columns": [
+            "conflict_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "knowledge_safety_reviews",
+      "orm_class": "SafetyReviewQueueItem",
+      "owner_package": "I5-IMPL-W2-P02",
+      "existing_in_alembic": "NO",
+      "created_by_revision": null,
+      "missing_table": true,
+      "column_count": 11,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "queue_item_id",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "knowledge_unit_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "queue_status",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "OPEN"
+        },
+        {
+          "name": "medical_safety_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "high_risk_domain",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "false"
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "decision_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "idempotency_key",
+          "type": "VARCHAR(64)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_ksr_idempotency_key_format",
+          "sql": "idempotency_key ~ '^[0-9a-f]{64}$'"
+        },
+        {
+          "name": "ck_ksr_medical_safety_state_vocab",
+          "sql": "medical_safety_state IN ('UNKNOWN', 'PENDING_REVIEW', 'CLEARED', 'RESTRICTED', 'BLOCKED')"
+        },
+        {
+          "name": "ck_ksr_queue_status_vocab",
+          "sql": "queue_status IN ('OPEN', 'IN_REVIEW', 'CLOSED_CLEARED', 'CLOSED_RESTRICTED', 'CLOSED_BLOCKED', 'CLOSED_REJECTED')"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "fk_ksr_decision_id",
+          "columns": [
+            "decision_id"
+          ],
+          "referred_table": "i5_governance_decisions",
+          "ondelete": "SET NULL",
+          "use_alter": false,
+          "deferrable": null
+        },
+        {
+          "name": "fk_ksr_knowledge_unit_id",
+          "columns": [
+            "knowledge_unit_id"
+          ],
+          "referred_table": "knowledge_units",
+          "ondelete": "RESTRICT",
+          "use_alter": false,
+          "deferrable": null
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "uq_ksr_queue_item_id",
+          "columns": [
+            "queue_item_id"
+          ]
+        },
+        {
+          "name": "uq_ksr_idempotency_key",
+          "columns": [
+            "idempotency_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_ksr_knowledge_unit_id",
+          "columns": [
+            "knowledge_unit_id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_ksr_queue_status",
+          "columns": [
+            "queue_status"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_knowledge_safety_reviews_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "iran_doctors",
+      "orm_class": "IranDoctor",
+      "owner_package": "I5-IMPL-W5-P01",
+      "existing_in_alembic": "YES",
+      "created_by_revision": "052_i5_w5_iran_directory",
+      "missing_table": false,
+      "column_count": 14,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "canonical_directory_key",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "full_name",
+          "type": "VARCHAR(256)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "specialty",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "city",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "province",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "address",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "record_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "ACTIVE"
+        },
+        {
+          "name": "source_system_label",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_verified_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_observed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_iran_doctor_key_nonempty",
+          "sql": "char_length(canonical_directory_key) >= 1"
+        },
+        {
+          "name": "ck_iran_doctor_record_state",
+          "sql": "record_state IN ('ACTIVE', 'INACTIVE')"
+        },
+        {
+          "name": "ck_iran_doctor_name_nonempty",
+          "sql": "char_length(full_name) >= 1"
+        }
+      ],
+      "foreign_keys": [],
+      "unique_constraints": [
+        {
+          "name": "uq_iran_doctor_canonical_key",
+          "columns": [
+            "canonical_directory_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_iran_doctor_specialty",
+          "columns": [
+            "specialty"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_doctor_record_state",
+          "columns": [
+            "record_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_doctor_province",
+          "columns": [
+            "province"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_doctors_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_doctor_city",
+          "columns": [
+            "city"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "iran_laboratories",
+      "orm_class": "IranLaboratory",
+      "owner_package": "I5-IMPL-W5-P01",
+      "existing_in_alembic": "YES",
+      "created_by_revision": "052_i5_w5_iran_directory",
+      "missing_table": false,
+      "column_count": 14,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "canonical_directory_key",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(256)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "city",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "province",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "services_text",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "address",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "record_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "ACTIVE"
+        },
+        {
+          "name": "source_system_label",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_verified_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_observed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_iran_lab_record_state",
+          "sql": "record_state IN ('ACTIVE', 'INACTIVE')"
+        },
+        {
+          "name": "ck_iran_lab_key_nonempty",
+          "sql": "char_length(canonical_directory_key) >= 1"
+        },
+        {
+          "name": "ck_iran_lab_name_nonempty",
+          "sql": "char_length(name) >= 1"
+        }
+      ],
+      "foreign_keys": [],
+      "unique_constraints": [
+        {
+          "name": "uq_iran_lab_canonical_key",
+          "columns": [
+            "canonical_directory_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_iran_laboratories_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_lab_province",
+          "columns": [
+            "province"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_lab_city",
+          "columns": [
+            "city"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_lab_record_state",
+          "columns": [
+            "record_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    },
+    {
+      "table": "iran_hospitals",
+      "orm_class": "IranHospital",
+      "owner_package": "I5-IMPL-W5-P01",
+      "existing_in_alembic": "YES",
+      "created_by_revision": "052_i5_w5_iran_directory",
+      "missing_table": false,
+      "column_count": 14,
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "server_default": "Identity(start=1)"
+        },
+        {
+          "name": "canonical_directory_key",
+          "type": "VARCHAR(128)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(256)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "facility_type",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "HOSPITAL"
+        },
+        {
+          "name": "city",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "province",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(64)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "address",
+          "type": "VARCHAR(512)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "record_state",
+          "type": "VARCHAR(32)",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "ACTIVE"
+        },
+        {
+          "name": "source_system_label",
+          "type": "VARCHAR(128)",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_verified_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "last_observed_at",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "server_default": null
+        },
+        {
+          "name": "created_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "server_default": "now()"
+        }
+      ],
+      "checks": [
+        {
+          "name": "ck_iran_hosp_record_state",
+          "sql": "record_state IN ('ACTIVE', 'INACTIVE')"
+        },
+        {
+          "name": "ck_iran_hosp_key_nonempty",
+          "sql": "char_length(canonical_directory_key) >= 1"
+        },
+        {
+          "name": "ck_iran_hosp_name_nonempty",
+          "sql": "char_length(name) >= 1"
+        },
+        {
+          "name": "ck_iran_hosp_facility_type",
+          "sql": "facility_type IN ('HOSPITAL', 'MEDICAL_CENTER')"
+        }
+      ],
+      "foreign_keys": [],
+      "unique_constraints": [
+        {
+          "name": "uq_iran_hosp_canonical_key",
+          "columns": [
+            "canonical_directory_key"
+          ]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ix_iran_hosp_province",
+          "columns": [
+            "province"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_hosp_city",
+          "columns": [
+            "city"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_hosp_facility_type",
+          "columns": [
+            "facility_type"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_hosp_record_state",
+          "columns": [
+            "record_state"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        },
+        {
+          "name": "ix_iran_hospitals_id",
+          "columns": [
+            "id"
+          ],
+          "unique": false,
+          "postgresql_where": null
+        }
+      ],
+      "gsp_drift": null
+    }
+  ],
+  "summary": {
+    "ORM_I5_TABLE_COUNT": 18,
+    "ORM_I5_RELEVANT_COLUMN_COUNT": 371,
+    "ORM_NAMED_CHECK_COUNT": 132,
+    "ORM_FK_COUNT": 35,
+    "ORM_UQ_COUNT": 29,
+    "ORM_INDEX_COUNT": 84,
+    "MISSING_TABLES": [
+      "weekly_knowledge_runs",
+      "weekly_knowledge_run_attempts",
+      "knowledge_gaps",
+      "weekly_run_source_results",
+      "weekly_run_gap_results",
+      "i5_governance_decisions",
+      "i5_raw_evidence",
+      "knowledge_units",
+      "knowledge_provenance",
+      "knowledge_memory_items",
+      "knowledge_memory_transitions",
+      "knowledge_conflicts",
+      "knowledge_safety_reviews"
+    ],
+    "MISSING_TABLE_COUNT": 13,
+    "GSP_DRIFT_COLUMNS": [
+      "approver_reference",
+      "block_reason",
+      "canonicalization_version",
+      "effective_from",
+      "effective_to",
+      "last_checked_at",
+      "last_discovered_at",
+      "last_reviewed_at",
+      "owner_reference",
+      "registry_state",
+      "reviewer_reference",
+      "runtime_eligibility",
+      "topic_coverage"
+    ],
+    "W6P01-MIGRATION-INVENTORY-COMPLETENESS-01": "CLOSED_BY_MANIFEST"
+  }
+}
