@@ -62905,3 +62905,128 @@ NEXT_REQUIRED_DECISION=SEPARATE JAVAD APPROVAL FOR W6-P03
 MARKER=READY_FOR_W6P03_SEPARATE_JAVAD_APPROVAL
 
 NOTE=post-§256 final master-log whole-file self-SHA is NOT embedded inside §256.
+
+
+================================================================================
+§257 — I5-IMPL-W6-P03 / P12 MONITORING METRICS EMITTERS + ALERTS /
+CONTROLLED DRY-UNIT CLOSURE-01
+================================================================================
+RECORDED_AT_UTC=2026-08-08T04:30:00Z
+GATE_ID=I5-IMPL-W6-P03
+MANAGEMENT_ALIAS=P12
+JAVAD_APPROVAL=EXPLICIT
+PACKAGE_PURPOSE=Monitoring metrics emitters + alerts
+CAPABILITY=CAP-OPEN-26
+MISSING_COMPONENT=MISS-17
+ARCHITECTURE=BC-24
+SERVICE=metrics_emitter
+
+--------------------------------------------------------------------------------
+STARTING BASELINE
+--------------------------------------------------------------------------------
+BASELINE_HEAD=d9efbd22ea4da2f95bc710d76044360b7f0b5de9
+MASTER_TIP_AT_START=§256
+HANDOFF_TIP_AT_START=v547
+W6-P02_TECHNICAL=PASS + GREEN + RATIFIED (unchanged)
+W6-P02_GREEN_SHA=b90b5221fb2d0eed58e519167e2c91c6f209105f
+W6-P02_GREEN_RUN=31167497219
+
+--------------------------------------------------------------------------------
+AUTHORITY SOURCES
+--------------------------------------------------------------------------------
+package_sequence.json#I5-IMPL-W6-P03
+file_allowlist_matrix.json#I5-IMPL-W6-P03
+safety_security_observability_plan.json#required_metrics (17 AA)
+target_architecture_map.json#BC-24
+missing_component_matrix.json#MISS-17
+i5_completion_ledger.json#CAP-OPEN-26
+dependency_and_owner_matrix.json#DEP-07,DEP-17
+
+--------------------------------------------------------------------------------
+FROZEN ALLOWLIST
+--------------------------------------------------------------------------------
+CREATE=backend/app/services/i5/metrics.py
+CREATE=backend/tests/test_section30_i5_w6_metrics.py
+MODIFY=backend/app/services/i5/weekly_orchestrator.py
+WORKFLOW=NONE (not assigned; package STATIC_VALIDATION=[]; CLOSURE=dry unit)
+OUT_OF_SCOPE=pagerDuty prod wiring; migration; network; activation; models; W6-P01
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION SUMMARY
+--------------------------------------------------------------------------------
+AA_METRICS_DEFINED=17 exact names from safety_security_observability_plan.json
+EMITTER=in-memory MetricsEmitter (thread-safe; no third-party platform)
+ORCHESTRATOR_HOOK=emit_post_run_aa_observability on dry-unit and ledger paths
+ALERT_RULES=
+  SILENT_ZERO_IMPROVEMENT (BC-24 fail-closed)
+  HIGH_RISK_GAPS_REMAINING (BC-24 safety boundary)
+  POLICY_THRESHOLD_REVIEW (conservative review when SAFETY_REJECTIONS>=1 or CONFLICTS>=1; no prod paging)
+NO_BUSINESS_BEHAVIOR_MUTATION=YES
+NO_REAL_CRAWLER_NETWORK=YES
+NO_SOURCE_ACTIVATION=YES
+NO_SCHEDULER_ACTIVATION=YES
+NO_SCHEMA_MIGRATION=YES
+
+SYMBOLS_ADDED=
+  backend.app.services.i5.metrics.AA_METRIC_NAMES
+  MetricsEmitter / emit / emit_run_snapshot / evaluate_alerts / observe_weekly_run_metrics
+  build_aa_metrics_from_run_counters
+  weekly_orchestrator.emit_post_run_aa_observability
+  OrchestrationOutcome.aa_metrics / alert_decisions
+
+--------------------------------------------------------------------------------
+TEST / DRY-UNIT PROOF
+--------------------------------------------------------------------------------
+TEST_FILE=backend/tests/test_section30_i5_w6_metrics.py
+NODES=12
+COMMAND=python -m pytest -v --tb=line --noconftest backend/tests/test_section30_i5_w6_metrics.py
+RESULT=12 passed / 0 failed
+NOTE=--noconftest required locally because session autouse conftest requires PostgreSQL; tests are pure dry-unit and do not use db fixture
+CI_WORKFLOW_ASSIGNED=NO
+CI_RUNTIME_PROOF=NOT_REQUIRED (package STATIC_VALIDATION=[]; CLOSURE_CRITERIA=AA metrics defined and emitted in dry unit; CAP-OPEN-26 APPROVAL_BOUNDARY TEST/CI=I5-IMPL-W6-P02)
+GITHUB_ACTIONS_RUNS_ON_IMPL_SHA=0
+AUTO_REMEDIATION_CYCLES_USED=0
+
+--------------------------------------------------------------------------------
+TECHNICAL / REMEDIATION COMMIT CHAIN
+--------------------------------------------------------------------------------
+BASELINE_SHA=d9efbd22ea4da2f95bc710d76044360b7f0b5de9
+IMPLEMENTATION_COMMIT=
+  SHA=1ef81cb8d2389a02f1a828dc891323035044d1df
+  PARENT=d9efbd22ea4da2f95bc710d76044360b7f0b5de9
+  SUBJECT=feat(i5): add W6-P03 monitoring and alerts
+  CHANGED_PATHS=backend/app/services/i5/metrics.py; backend/app/services/i5/weekly_orchestrator.py; backend/tests/test_section30_i5_w6_metrics.py
+  RUN_MAPPING=LOCAL_DRY_UNIT_12_PASS; GITHUB_ACTIONS_RUNS=0
+REMEDIATION_COMMITS=NONE
+FINAL_GREEN_IMPLEMENTATION_SHA=1ef81cb8d2389a02f1a828dc891323035044d1df
+
+--------------------------------------------------------------------------------
+W6-P02 CARRY-FORWARD FINDINGS
+--------------------------------------------------------------------------------
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+  OWNER=.github/workflows/ci-backend-tests.yml evidence generator (W6-P02)
+  WHY_OUT_OF_W6P03_SCOPE=workflow/evidence path not on W6-P03 allowlist
+  FUTURE_CRITERION=evidence packs enumerate every remediation commit SHA/parent/subject/paths/run
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+  OWNER=backend/tests/test_section30_i5_e2e_offline_dryrun.py::test_W6P02_X04 (W6-P02)
+  WHY_OUT_OF_W6P03_SCOPE=owning test path not on W6-P03 allowlist
+  NOTE=new W6-P03 tests obey tautology prohibition
+
+--------------------------------------------------------------------------------
+PROGRAM / FORMAL STATE
+--------------------------------------------------------------------------------
+OPEN_W6P03_IMPLEMENTATION_FINDINGS=0
+FORMAL_I5=21.79487179% UNCHANGED
+CAP-OPEN-26_FORMAL_CLOSURE=NOT_CLAIMED (technical observability progress only)
+CAP-OPEN-27_FORMAL_CLOSURE=NOT_CLAIMED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+REAL_PERMANENT_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+NEXT_PACKAGE=I5-IMPL-W6-P01
+W6-P01_EXECUTED=NO
+W6-P01_REQUIRES_SEPARATE_JAVAD_APPROVAL=YES
+CRITICAL_PATH_EFFECT=removed observability blocker before controlled real crawler; remaining blocker=W6-P01 migration/network/activation/real E2E
+V1_DEADLINE_EFFECT=advanced critical path (observability readiness) without expanding beyond minimum AA emit+alert rules
+DEADLINE_RISK=CRITICAL/HIGH
+MARKER=READY_FOR_W6P01_SEPARATE_JAVAD_APPROVAL
+
+NOTE=post-§257 final master-log whole-file self-SHA is NOT embedded inside §257.
