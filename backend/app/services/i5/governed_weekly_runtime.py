@@ -251,7 +251,7 @@ def load_controlled_weekly_candidates(
     if not gsp_persist.profile_is_fetch_eligible(gsp):
         return []
 
-    version = gsp_persist.get_current_profile_version(db, gsp.id)
+    version = gsp_persist.get_current_profile_version(db, profile_id=int(gsp.id))
     if version is None:
         return []
     # Rights/robots from version + KnowledgeSource robots flag.
