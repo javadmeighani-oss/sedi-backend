@@ -1,0 +1,6 @@
+MIGRATION_CI_RUN=31243485131
+CONCLUSION=failure
+STEP=Alembic heads single
+ERROR=No script_location key found in configuration when using Config(alembic.ini)
+REMEDIATION=use ScriptDirectory(backend/alembic) directly
+CYCLE=1

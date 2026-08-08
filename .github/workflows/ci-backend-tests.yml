@@ -807,10 +807,8 @@ jobs:
       - name: Alembic heads single
         run: |
           python - <<'PY'
-          from alembic.config import Config
           from alembic.script import ScriptDirectory
-          cfg = Config("alembic.ini")
-          heads = ScriptDirectory.from_config(cfg).get_heads()
+          heads = ScriptDirectory("backend/alembic").get_heads()
           assert heads == ["056_i5_w2_p02_conflict_safety"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY

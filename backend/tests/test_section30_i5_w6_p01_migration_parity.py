@@ -86,8 +86,7 @@ def _current_revision(engine) -> str | None:
 
 
 def test_W6P01_MIG_T01_repository_heads_single() -> None:
-    cfg = Config(str(_workspace_root() / "alembic.ini"))
-    script = ScriptDirectory.from_config(cfg)
+    script = ScriptDirectory(str(_workspace_root() / "backend" / "alembic"))
     heads = script.get_heads()
     assert heads == [HEAD], heads
 

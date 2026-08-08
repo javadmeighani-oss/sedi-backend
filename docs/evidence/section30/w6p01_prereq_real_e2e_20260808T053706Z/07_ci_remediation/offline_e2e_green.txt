@@ -1,0 +1,5 @@
+OFFLINE_E2E_RUN=31243486517
+HEAD_SHA=8765284e28f2fba3c8f37666d8d42b78ea3a4d07
+CONCLUSION=success
+NOTE=scope-aware APP_MUTATION allowlist accepted W6-P03 + live acquisition paths; pytest+evidence pack green
+W6P01-CI-EVIDENCE-SENTINEL-STALE-01=CLOSED
