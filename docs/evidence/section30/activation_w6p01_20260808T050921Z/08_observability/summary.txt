@@ -1,0 +1,8 @@
+W6P03_OBSERVABILITY_REGRESSION=PASS
+COMMAND=python -m pytest -q --tb=line --noconftest backend/tests/test_section30_i5_w6_metrics.py
+RESULT=14 passed
+AA_METRIC_INVENTORY=17
+FABRICATED_COVERAGE_SCORE=NO
+FABRICATED_FRESHNESS_SCORE=NO
+AUTHORIZED_EXECUTABLE_ALERTS=2
+NOTE=Real-run observability NOT_REACHED because real network not reached

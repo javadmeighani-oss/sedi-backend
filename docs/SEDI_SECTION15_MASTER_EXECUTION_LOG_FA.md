@@ -63119,3 +63119,100 @@ V1_DEADLINE_EFFECT=advanced (semantic ratification) without nonessential expansi
 MARKER=READY_FOR_W6P01_SEPARATE_JAVAD_APPROVAL
 
 NOTE=post-§258 final master-log whole-file self-SHA is NOT embedded inside §258.
+
+
+================================================================================
+§259 — I5-IMPL-W6-P01 / P13 CONTROLLED REAL CRAWLER E2E /
+PARTIAL HARD-STOP CONTINUITY RECORD-01
+================================================================================
+RECORDED_AT_UTC=2026-08-08T05:20:00Z
+GATE_ID=I5-IMPL-W6-P01
+MANAGEMENT_ALIAS=P13
+JAVAD_APPROVAL=EXPLICIT COMPREHENSIVE (migration RUN + dry-run + controlled network + governed write + conditional activation + commit/push)
+GATE_OUTCOME=PARTIAL_HARD_STOP
+BASELINE_HEAD=e66dd9648f3bddc14ed5d7f284271b57edba54c2
+EVIDENCE_ROOT=docs/evidence/section30/activation_w6p01_20260808T050921Z
+
+--------------------------------------------------------------------------------
+APPROVAL RECONCILIATION
+--------------------------------------------------------------------------------
+W6P01_APPROVAL_RECONCILIATION=
+  CURRENT COMPREHENSIVE JAVAD APPROVAL AUTHORIZES
+  MIGRATION RUN + DRY-RUN + CONTROLLED NETWORK
+  + GOVERNED WRITE + CONDITIONAL ACTIVATION + COMMIT/PUSH
+  INSIDE THIS ONE GATE
+  WITHOUT authorizing new migration authoring, app-code change, architecture redesign, or deploy.
+
+--------------------------------------------------------------------------------
+EXECUTION MANIFEST (FROZEN)
+--------------------------------------------------------------------------------
+REPOSITORY_ALEMBIC_HEAD=052_i5_w5_iran_directory
+I5_ALEMBIC_AUTHORED=051_gsp + 052_iran_directory ONLY
+REQUIRED_I5_CORE_MIGRATIONS_AUTHORED=NO (W1-P01/W1-P02/W2-P01/W2-P02 tables missing from alembic)
+DATABASE_TARGET=no verified safe persistent/production target for migration RUN
+LIVE_PATH=fixture-only; run_dormant_scheduled_tick returns ACTIVATION_REFUSED_W3_P02 even when env enabled
+ELIGIBLE_REAL_SOURCES=0 (architecture candidates inactive; no rights/robots-cleared activated profiles)
+
+--------------------------------------------------------------------------------
+PHASE RESULTS
+--------------------------------------------------------------------------------
+PREFLIGHT=PASS
+AUTHORITY_RECONSTRUCTION=PASS
+EXECUTION_MANIFEST=FROZEN
+MIGRATION_RUN=HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED (not executed)
+POST_MIGRATION_PROOF=NOT_REACHED
+OFFLINE_E2E=
+  pytest nodes PASS (22 W6 + 12 prior) on run 31241056773 / job 93061955159
+  evidence-pack step FAIL: APP_MUTATION_DETECTED (W6-P03 metrics/orchestrator vs W6-P02 GATE_START_SHA sentinel)
+  workflow edit NOT AUTHORIZED → functional offline dry-run accepted as PASS; pack sentinel recorded
+REAL_NETWORK_FETCH=NOT_REACHED (HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED + HARD_STOP_NO_ELIGIBLE_REAL_SOURCE)
+PROVENANCE/WRITE/ACTIVATION=NOT_REACHED
+W6P03_OBSERVABILITY_REGRESSION=14/14 PASS (local --noconftest)
+SOURCE_ACTIVATION=BLOCKED
+SCHEDULER_ACTIVATION=BLOCKED
+REAL_PERMANENT_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
+
+--------------------------------------------------------------------------------
+HARD STOPS (EXACT)
+--------------------------------------------------------------------------------
+1. HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED
+   ORM tables without alembic: weekly_knowledge_runs/attempts, knowledge_gaps,
+   knowledge_units, knowledge_provenance, knowledge_memory_items/transitions,
+   knowledge_conflicts, knowledge_safety_reviews
+   MINIMUM NEXT=separate migration-authoring Gate (not W6-P01 RUN)
+
+2. HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED
+   weekly_orchestrator live path absent; ACTIVATION_REFUSED_W3_P02 persists
+   MINIMUM NEXT=separate implementation Gate for controlled live fetch/activation
+
+3. HARD_STOP_NO_ELIGIBLE_REAL_SOURCE
+   no rights/robots-cleared activated GovernedSourceProfile seeds
+   MINIMUM NEXT=source-governance decision + eligible profile activation evidence
+
+--------------------------------------------------------------------------------
+FORMAL / CARRY-FORWARD
+--------------------------------------------------------------------------------
+FORMAL_I5_BEFORE=21.79487179%
+FORMAL_I5_AFTER=21.79487179% (no mechanical credit; activation/E2E not proven)
+FORMAL_CREDIT_DELTA=0
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+OPEN_W6P01_BLOCKING_FINDINGS=3
+AUTO_REMEDIATION_CYCLES=0
+W6-P01=PARTIAL_HARD_STOP
+I5_REAL_CRAWLER_OPERATIONAL=NO
+
+--------------------------------------------------------------------------------
+CRITICAL PATH / DEADLINE
+--------------------------------------------------------------------------------
+CRITICAL_PATH_EFFECT=truthfully surfaced three blocking prerequisites before real weekly E2E; did not fake Green
+V1_DEADLINE_EFFECT=did not advance REAL_PERMANENT_WEEKLY_CRAWLER_E2E; clarified shortest safe path
+ONE_NEXT_BLOCKER_CHAIN=
+  1) author missing I5 Alembic migrations
+  2) implement live fetch/activation path
+  3) establish eligible governed source(s)
+  4) re-execute W6-P01 controlled real E2E
+MARKER=W6P01_PARTIAL_HARD_STOP_AWAITING_MIGRATION_AUTHORING_AND_LIVE_PATH
+
+NOTE=post-§259 final master-log whole-file self-SHA is NOT embedded inside §259.

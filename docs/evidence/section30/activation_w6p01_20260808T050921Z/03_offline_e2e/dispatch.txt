@@ -1,0 +1,9 @@
+CLAIM=Offline E2E dry-run measurable report for W6-P01
+COMMAND=gh workflow run ci-backend-tests.yml -f validation_target=i5_w6p02
+RUN_ID=31241056773
+REF=feature/section15/backend-continuity-foundation
+HEAD_SHA=e66dd9648f3bddc14ed5d7f284271b57edba54c2
+PRIOR_GREEN_RUN=31167497219 (W6-P02 terminal Green on b90b522)
+NETWORK_EXECUTED=false (job contract)
+ALEMBIC_UPGRADE=false (job contract)
+W6P03_LOCAL_REGRESSION=14 passed (see 08_observability/w6p03_dry_unit.txt)

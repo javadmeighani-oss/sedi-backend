@@ -1,0 +1,20 @@
+REPOSITORY_ALEMBIC_HEAD=052_i5_w5_iran_directory
+I5_ALEMBIC_FILES_PRESENT=
+  051_i5b2_governed_source_profile.py
+  052_i5_w5_iran_directory.py
+ORM_TABLES_WITHOUT_AUTHORED_MIGRATION=
+  weekly_knowledge_runs
+  weekly_knowledge_run_attempts
+  knowledge_gaps
+  knowledge_units
+  knowledge_provenance
+  knowledge_memory_items
+  knowledge_memory_transitions
+  knowledge_conflicts
+  knowledge_safety_reviews
+MIGRATION_RUN=
+  NOT EXECUTED against persistent DB
+  REASON=HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED for core I5 ledger/KU tables
+  NOTE=alembic upgrade head would only apply through 052 (Iran+GSP chain) and cannot create W1-W2 I5 tables
+  NEW_MIGRATION_AUTHORING=PROHIBITED by Gate denylist
+POST_MIGRATION_PROOF=NOT_REACHED

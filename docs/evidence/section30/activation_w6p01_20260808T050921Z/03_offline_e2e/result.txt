@@ -1,0 +1,11 @@
+OFFLINE_E2E_TEST_NODES=PASS
+  Collect+run W6 offline E2E (22 nodes)=success
+  Collect+run prior-unit subset (12 nodes)=success
+RUN_ID=31241056773
+JOB_ID=93061955159
+CONCLUSION_OVERALL=failure
+FAILED_STEP=Build evidence assurance pack
+FAIL_REASON=APP_MUTATION_DETECTED metrics.py + weekly_orchestrator.py (legitimate W6-P03 commits after W6-P02 GATE_START_SHA)
+INTERPRETATION=Functional offline E2E pytest Green; W6-P02 evidence-pack sentinel not compatible with post-W6-P03 HEAD without workflow edit (out of W6-P01 allowlist)
+WORKFLOW_EDIT=NOT AUTHORIZED
+PRIOR_TERMINAL_GREEN_AT_TECHNICAL_SHA=31167497219 @ b90b522

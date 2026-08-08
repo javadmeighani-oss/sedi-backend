@@ -541,6 +541,33 @@
       "unauthorized_policy_threshold": "REMOVED",
       "w6p03_fully_ratified": true,
       "ready_for_w6p01": true
+    },
+    "w6p01_operational_attempt": {
+      "package_id": "I5-IMPL-W6-P01",
+      "management_alias": "P13",
+      "gate_outcome": "PARTIAL_HARD_STOP",
+      "baseline_sha": "e66dd9648f3bddc14ed5d7f284271b57edba54c2",
+      "evidence_root": "docs/evidence/section30/activation_w6p01_20260808T050921Z",
+      "offline_e2e_run_id": 31241056773,
+      "offline_e2e_job_id": 93061955159,
+      "offline_e2e_pytest_nodes": "PASS_22_PLUS_12",
+      "offline_e2e_pack_step": "FAIL_APP_MUTATION_SENTINEL",
+      "migration_run": "HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED",
+      "real_network": "NOT_REACHED",
+      "source_activation": "BLOCKED",
+      "scheduler_activation": "BLOCKED",
+      "real_permanent_weekly_crawler_e2e": "NOT_SATISFIED",
+      "program_critical_e2e_crawler_01": "OPEN",
+      "formal_i5_unchanged": "21.79487179%",
+      "blocking_findings": [
+        "HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED",
+        "HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED",
+        "HARD_STOP_NO_ELIGIBLE_REAL_SOURCE"
+      ],
+      "master_section": "§259",
+      "authoritative_handoff": "v550",
+      "recorded_at_utc": "2026-08-08T05:20:00Z",
+      "marker": "W6P01_PARTIAL_HARD_STOP_AWAITING_MIGRATION_AUTHORING_AND_LIVE_PATH"
     }
   },
   "weight_proof": {

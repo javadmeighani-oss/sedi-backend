@@ -1,0 +1,27 @@
+BASELINE_SHA=e66dd9648f3bddc14ed5d7f284271b57edba54c2
+PACKAGE_ID=I5-IMPL-W6-P01
+MANAGEMENT_ALIAS=P13
+TARGET_EXECUTION_ENVIRONMENT=LOCAL_WORKSTATION + GITHUB_ACTIONS_EPHEMERAL_PG
+DATABASE_TARGET_CLASSIFICATION=ephemeral CI (for offline E2E); no verified persistent/production DB for migration RUN
+DATABASE_URL_SOURCE=TEST_DATABASE_URL / GITHUB Actions service container (name only; no secrets)
+REPOSITORY_ALEMBIC_HEAD=052_i5_w5_iran_directory
+DATABASE_CURRENT_REVISION=NOT_PROBED_NO_SAFE_PERSISTENT_TARGET
+PENDING_MIGRATIONS_TO_HEAD=UNKNOWN_WITHOUT_TARGET_DB
+REQUIRED_I5_MIGRATIONS_AUTHORED=
+  MIG-I5-W5-P01 = YES (052_i5_w5_iran_directory.py)
+  MIG-I5-W1-P01 = NO (knowledge_gaps, weekly_knowledge_runs, attempts, source/gap results)
+  MIG-I5-W1-P02 = NO (knowledge_units, knowledge_provenance)
+  MIG-I5-W2-P01 = NO (knowledge_memory_items)
+  MIG-I5-W2-P02 = NO (knowledge_conflicts, knowledge_safety_reviews)
+  051_i5b2_governed_source_profile = YES (GSP tables)
+SOURCE_CANDIDATES=architecture map WHO/NHS/NIMH/CDC/MedlinePlus/APA labeled inactive; no rights/robots-cleared activated profiles in repo
+ALLOWED_ADAPTERS=PUBLIC_WEB_FETCH / OFFICIAL_API / RSS (fixture path only in current code)
+NETWORK_LIMITS=MAX_NETWORK_RETRIES_PER_SOURCE=2; live path NOT IMPLEMENTED
+ACTIVATION_MECHANISM=SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED / SEDI_I5_SOURCE_ACTIVATION_ENABLED
+SCHEDULER_MECHANISM=weekly_international_knowledge_crawler dormant job
+EVIDENCE_ROOT=docs/evidence/section30/activation_w6p01_20260808T050921Z
+HARD_STOPS_IDENTIFIED=
+  HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED (W1-W2 I5 tables)
+  HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED (live fetch/activation still ACTIVATION_REFUSED_W3_P02)
+  HARD_STOP_NO_ELIGIBLE_REAL_SOURCE
+  HARD_STOP_DEPLOY_REQUIRED (if permanent activation claimed against undeployed runtime)

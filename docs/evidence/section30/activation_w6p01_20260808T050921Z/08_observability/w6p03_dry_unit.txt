@@ -1,0 +1,13 @@
+..............                                                           [100%]
+============================== warnings summary ===============================
+backend/tests/test_section30_i5_w6_metrics.py: 92 warnings
+  D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace\backend\app\services\i5\metrics.py:303: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    emitted_at=datetime.utcnow(),
+
+backend/tests/test_section30_i5_w6_metrics.py::test_W6P03_T09_orchestrator_dry_unit_emits_aa_metrics_without_network_or_activation
+backend/tests/test_section30_i5_w6_metrics.py::test_W6P03_T10_orchestrator_metrics_do_not_change_outcome_classification
+  D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace\backend\app\services\i5\weekly_orchestrator.py:154: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 94 warnings in 1.79s

@@ -1,0 +1,24 @@
+GATE_OUTCOME=PARTIAL_HARD_STOP
+COMPLETED=
+  preflight PASS
+  authority reconstruction PASS
+  execution manifest FROZEN
+  migration inventory documented
+  W6-P03 observability regression 14/14 PASS
+  offline E2E pytest nodes 22+12 PASS (run 31241056773)
+  evidence root created under activation allowlist
+NOT_COMPLETED=
+  migration RUN for W1-W2 I5 tables (not authored)
+  real network fetch (no live code path)
+  governed write of crawler knowledge
+  source/scheduler permanent activation
+  REAL_PERMANENT_WEEKLY_CRAWLER_E2E
+BLOCKERS=
+  HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED
+  HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED
+  HARD_STOP_NO_ELIGIBLE_REAL_SOURCE
+MINIMUM_NEXT_GATE=
+  Author W1-W2 I5 Alembic migrations (separate approval)
+  AND implement W6 live fetch/activation path (separate approval)
+  AND establish rights/robots-cleared eligible source(s)
+  THEN re-run W6-P01 controlled real E2E

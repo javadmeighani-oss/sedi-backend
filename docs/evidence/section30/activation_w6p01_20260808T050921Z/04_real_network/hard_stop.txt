@@ -1,0 +1,12 @@
+REAL_NETWORK_FETCH=NOT_REACHED
+HARD_STOP=HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED
+EVIDENCE=
+  run_dormant_scheduled_tick with SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED=true
+  returns outcome=ACTIVATION_REFUSED_W3_P02
+  detail=live execution deferred to I5-IMPL-W6-P01
+  network_executed=False
+  Application live-fetch path not implemented; fixture transport only
+  Gate denylist forbids application code modification in W6-P01
+ADDITIONAL=HARD_STOP_NO_ELIGIBLE_REAL_SOURCE
+  architecture candidates inactive; GSP operational_status default disabled
+  no rights/robots-cleared activated profiles in repository seeds

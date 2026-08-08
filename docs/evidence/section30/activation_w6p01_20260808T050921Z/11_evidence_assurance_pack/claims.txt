@@ -1,0 +1,18 @@
+CLAIM_ID=W6P01-HS-01
+CLAIM=Core I5 ORM tables lack authored Alembic migrations
+AUTHORITY=migration_test_ci_plan.json MIG-I5-W1-P01/W1-P02/W2-P01/W2-P02; alembic heads=052
+RESULT=HARD_STOP_REQUIRED_MIGRATION_NOT_AUTHORED
+
+CLAIM_ID=W6P01-HS-02
+CLAIM=Live crawler path not implemented; env enable still ACTIVATION_REFUSED_W3_P02
+AUTHORITY=weekly_orchestrator.run_dormant_scheduled_tick; CONTROLLED_NETWORK_OWNED_BY=W6-P01
+RESULT=HARD_STOP_IMPLEMENTATION_CHANGE_REQUIRED
+
+CLAIM_ID=W6P01-HS-03
+CLAIM=No eligible rights/robots-cleared activated real sources in repo
+RESULT=HARD_STOP_NO_ELIGIBLE_REAL_SOURCE
+
+CLAIM_ID=W6P01-OFFLINE-01
+CLAIM=Offline E2E dry-run pytest nodes pass on current HEAD
+RUN=31241056773 steps Collect+run W6 / prior-unit = success
+RESULT=PASS (pack step fail non-blocking for functional dry-run proof; workflow edit out of scope)

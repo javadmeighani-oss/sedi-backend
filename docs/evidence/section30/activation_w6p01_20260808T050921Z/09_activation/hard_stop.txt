@@ -1,0 +1,6 @@
+SOURCE_ACTIVATION=BLOCKED
+SCHEDULER_ACTIVATION=BLOCKED
+REASON=live path refuses execution even when env enable true; code change required; deploy not authorized
+WEEKLY_SCHEDULE_VERIFIED=NO (dormant registration exists; permanent enable not performed)
+REAL_PERMANENT_WEEKLY_CRAWLER_E2E=NOT_SATISFIED
+PROGRAM-CRITICAL-E2E-CRAWLER-01=OPEN
