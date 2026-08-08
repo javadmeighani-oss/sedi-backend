@@ -7,6 +7,13 @@ Authority:
 - file_allowlist_matrix.json → CREATE this module; MODIFY weekly_orchestrator.py
 - OUT_OF_SCOPE → pagerDuty prod wiring unless approved
 
+Semantic laws (W6-P03 remediation):
+- Metric NAME existence ≠ authorized measurement FORMULA.
+- Alert CATEGORY existence ≠ authorized numeric THRESHOLD.
+- COVERAGE_SCORE / FRESHNESS_SCORE emit only when explicitly supplied.
+- Executable alerts = BC-24 only (silent zero; high-risk gaps).
+- Do not invent coverage/freshness ratios or unauthorized policy thresholds.
+
 Observability observes/report; it must not mutate crawler/governance decisions.
 No third-party metrics platform. No secrets / PHI / raw medical text in labels.
 """
@@ -46,6 +53,22 @@ AA_METRIC_NAMES: tuple[str, ...] = (
 )
 AA_METRIC_NAME_SET = frozenset(AA_METRIC_NAMES)
 
+# Names present in AA inventory whose measurement formula is NOT authority-defined.
+# These may only receive numeric emission when an upstream caller supplies an
+# explicitly authorized measured value — never via provisional derivation.
+UNFORMULATED_SCORE_METRICS: frozenset[str] = frozenset(
+    {
+        "COVERAGE_SCORE",
+        "FRESHNESS_SCORE",
+    }
+)
+
+# Counter / duration metrics that dry-unit orchestration may emit from ledger-like counters.
+EMITTABLE_COUNTER_METRICS: tuple[str, ...] = tuple(
+    name for name in AA_METRIC_NAMES if name not in UNFORMULATED_SCORE_METRICS
+)
+EMITTABLE_COUNTER_METRIC_SET = frozenset(EMITTABLE_COUNTER_METRICS)
+
 # Bounded non-sensitive label keys only (no PHI / secrets / raw text).
 ALLOWED_LABEL_KEYS = frozenset(
     {
@@ -56,15 +79,14 @@ ALLOWED_LABEL_KEYS = frozenset(
     }
 )
 
+# BC-24 executable alerts only.
 ALERT_SILENT_ZERO_IMPROVEMENT = "SILENT_ZERO_IMPROVEMENT"
 ALERT_HIGH_RISK_GAPS = "HIGH_RISK_GAPS_REMAINING"
-ALERT_POLICY_THRESHOLD_REVIEW = "POLICY_THRESHOLD_REVIEW"
 
-# Conservative fail-closed review trigger for undefined §137.24 "policy threshold":
-# any safety rejection or conflict count > 0 requires review alert (not paging).
-# Numeric production pager thresholds remain unspecified / not invented here.
-POLICY_REVIEW_SAFETY_REJECTIONS_MIN = 1
-POLICY_REVIEW_CONFLICTS_MIN = 1
+# Deferred symbolic identifier only — §137.24 names "policy threshold" qualitatively
+# with NO numeric rule. Must NOT produce an executable trigger under W6-P03.
+ALERT_POLICY_THRESHOLD_REVIEW_DEFERRED = "POLICY_THRESHOLD_REVIEW"
+POLICY_THRESHOLD_EXECUTABLE = False
 
 
 class MetricsError(ValueError):
@@ -104,7 +126,6 @@ def _sanitize_labels(labels: Optional[Mapping[str, Any]]) -> dict[str, str]:
         text = str(raw)
         if len(text) > 256:
             raise MetricsError("LABEL_VALUE_TOO_LONG", key)
-        # Refuse obvious secret-like payloads.
         lowered = text.lower()
         if any(tok in lowered for tok in ("password", "secret", "token=", "bearer ", "api_key")):
             raise MetricsError("LABEL_SENSITIVE_REFUSED", key)
@@ -112,27 +133,51 @@ def _sanitize_labels(labels: Optional[Mapping[str, Any]]) -> dict[str, str]:
     return out
 
 
-def empty_aa_metric_values() -> dict[str, float]:
-    return {name: 0.0 for name in AA_METRIC_NAMES}
+def _coerce_nonnegative_float(name: str, value: Any) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as exc:
+        raise MetricsError("METRIC_VALUE_NOT_NUMERIC", name) from exc
+    if numeric < 0:
+        raise MetricsError("METRIC_VALUE_NEGATIVE", name)
+    return numeric
 
 
-def normalize_aa_metric_values(values: Mapping[str, Any]) -> dict[str, float]:
-    """Require the full AA set; reject unknown metric names."""
+def empty_counter_metric_values() -> dict[str, float]:
+    return {name: 0.0 for name in EMITTABLE_COUNTER_METRICS}
+
+
+def normalize_emittable_metric_values(values: Mapping[str, Any]) -> dict[str, float]:
+    """Normalize an emission payload.
+
+    - Reject unknown metric names.
+    - Require all counter metrics.
+    - Accept COVERAGE_SCORE / FRESHNESS_SCORE only when explicitly present
+      (authorized upstream measurement). Never invent them.
+    """
     unknown = set(values) - AA_METRIC_NAME_SET
     if unknown:
         raise MetricsError("UNKNOWN_METRIC", ",".join(sorted(unknown)))
-    missing = AA_METRIC_NAME_SET - set(values)
-    if missing:
-        raise MetricsError("MISSING_METRIC", ",".join(sorted(missing)))
+    missing_counters = EMITTABLE_COUNTER_METRIC_SET - set(values)
+    if missing_counters:
+        raise MetricsError("MISSING_METRIC", ",".join(sorted(missing_counters)))
     out: dict[str, float] = {}
-    for name in AA_METRIC_NAMES:
-        try:
-            out[name] = float(values[name])
-        except (TypeError, ValueError) as exc:
-            raise MetricsError("METRIC_VALUE_NOT_NUMERIC", name) from exc
-        if out[name] < 0:
-            raise MetricsError("METRIC_VALUE_NEGATIVE", name)
+    for name in EMITTABLE_COUNTER_METRICS:
+        out[name] = _coerce_nonnegative_float(name, values[name])
+    for name in UNFORMULATED_SCORE_METRICS:
+        if name in values:
+            out[name] = _coerce_nonnegative_float(name, values[name])
     return out
+
+
+# Backward-compatible alias used by older call sites / tests.
+def normalize_aa_metric_values(values: Mapping[str, Any]) -> dict[str, float]:
+    return normalize_emittable_metric_values(values)
+
+
+def empty_aa_metric_values() -> dict[str, float]:
+    """Empty counter baseline only — does not fabricate unformulated scores."""
+    return empty_counter_metric_values()
 
 
 def build_aa_metrics_from_run_counters(
@@ -154,54 +199,42 @@ def build_aa_metrics_from_run_counters(
     freshness_score: Optional[float] = None,
     run_duration: float = 0.0,
     database_write_count: int = 0,
-    total_sources: Optional[int] = None,
+    total_sources: Optional[int] = None,  # retained for call-site compatibility; unused for scores
 ) -> dict[str, float]:
-    """Map ledger-like counters onto the authoritative AA metric names.
+    """Map ledger-like counters onto AA metric names without inventing formulas.
 
-    COVERAGE_SCORE / FRESHNESS_SCORE: when not supplied, derive bounded [0,1]
-    provisional ratios from available counters (measurement-law placeholders
-    until a separate product formula is authorized). No PHI.
+    COVERAGE_SCORE / FRESHNESS_SCORE are included ONLY when explicitly supplied.
+    No provisional ratio derivation. `total_sources` is ignored for scoring
+    (kept so callers need not change signatures).
     """
-    total = int(total_sources) if total_sources is not None else int(sources_checked)
-    if coverage_score is None:
-        coverage_score = (float(sources_checked) / float(total)) if total > 0 else 0.0
-    knowledge_touch = int(new_knowledge_units) + int(updated_units) + int(superseded_units)
-    if freshness_score is None:
-        freshness_score = (
-            float(new_knowledge_units + updated_units) / float(knowledge_touch)
-            if knowledge_touch > 0
-            else 0.0
-        )
-    return normalize_aa_metric_values(
-        {
-            "SOURCES_CHECKED": sources_checked,
-            "NEW_SOURCES": new_sources,
-            "UPDATED_SOURCES": updated_sources,
-            "FAILED_SOURCES": failed_sources,
-            "BLOCKED_SOURCES": blocked_sources,
-            "NEW_KNOWLEDGE_UNITS": new_knowledge_units,
-            "UPDATED_UNITS": updated_units,
-            "SUPERSEDED_UNITS": superseded_units,
-            "REJECTED_UNITS": rejected_units,
-            "KNOWLEDGE_GAPS_CLOSED": knowledge_gaps_closed,
-            "HIGH_RISK_GAPS_REMAINING": high_risk_gaps_remaining,
-            "CONFLICTS": conflicts,
-            "SAFETY_REJECTIONS": safety_rejections,
-            "COVERAGE_SCORE": coverage_score,
-            "FRESHNESS_SCORE": freshness_score,
-            "RUN_DURATION": run_duration,
-            "DATABASE_WRITE_COUNT": database_write_count,
-        }
-    )
+    _ = total_sources  # not an authorized score formula input
+    payload: dict[str, Any] = {
+        "SOURCES_CHECKED": sources_checked,
+        "NEW_SOURCES": new_sources,
+        "UPDATED_SOURCES": updated_sources,
+        "FAILED_SOURCES": failed_sources,
+        "BLOCKED_SOURCES": blocked_sources,
+        "NEW_KNOWLEDGE_UNITS": new_knowledge_units,
+        "UPDATED_UNITS": updated_units,
+        "SUPERSEDED_UNITS": superseded_units,
+        "REJECTED_UNITS": rejected_units,
+        "KNOWLEDGE_GAPS_CLOSED": knowledge_gaps_closed,
+        "HIGH_RISK_GAPS_REMAINING": high_risk_gaps_remaining,
+        "CONFLICTS": conflicts,
+        "SAFETY_REJECTIONS": safety_rejections,
+        "RUN_DURATION": run_duration,
+        "DATABASE_WRITE_COUNT": database_write_count,
+    }
+    if coverage_score is not None:
+        payload["COVERAGE_SCORE"] = coverage_score
+    if freshness_score is not None:
+        payload["FRESHNESS_SCORE"] = freshness_score
+    return normalize_emittable_metric_values(payload)
 
 
 def evaluate_alerts(metrics: Mapping[str, Any]) -> list[AlertDecision]:
-    """Evaluate BC-24 / MISS-17 alert rules against an AA metric snapshot.
-
-    Proves both trigger and no-trigger sides via deterministic predicates.
-    Does not send notifications / PagerDuty.
-    """
-    values = normalize_aa_metric_values(metrics)
+    """Evaluate BC-24 alert rules only. No unauthorized policy-threshold trigger."""
+    values = normalize_emittable_metric_values(metrics)
     decisions: list[AlertDecision] = []
 
     silent = (
@@ -232,23 +265,6 @@ def evaluate_alerts(metrics: Mapping[str, Any]) -> list[AlertDecision]:
             metric_snapshot=values,
         )
     )
-
-    policy = (
-        values["SAFETY_REJECTIONS"] >= POLICY_REVIEW_SAFETY_REJECTIONS_MIN
-        or values["CONFLICTS"] >= POLICY_REVIEW_CONFLICTS_MIN
-    )
-    decisions.append(
-        AlertDecision(
-            alert_id=ALERT_POLICY_THRESHOLD_REVIEW,
-            triggered=policy,
-            reason=(
-                "safety_rejection_or_conflict_requires_review"
-                if policy
-                else "below_review_threshold"
-            ),
-            metric_snapshot=values,
-        )
-    )
     return decisions
 
 
@@ -262,13 +278,13 @@ class MetricsEmitter:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._samples: list[MetricSample] = []
-        self._latest: dict[str, float] = empty_aa_metric_values()
+        self._latest: dict[str, float] = empty_counter_metric_values()
         self._emit_count = 0
 
     def reset(self) -> None:
         with self._lock:
             self._samples.clear()
-            self._latest = empty_aa_metric_values()
+            self._latest = empty_counter_metric_values()
             self._emit_count = 0
 
     def emit(
@@ -279,12 +295,7 @@ class MetricsEmitter:
     ) -> MetricSample:
         if name not in AA_METRIC_NAME_SET:
             raise MetricsError("UNKNOWN_METRIC", name)
-        try:
-            numeric = float(value)
-        except (TypeError, ValueError) as exc:
-            raise MetricsError("METRIC_VALUE_NOT_NUMERIC", name) from exc
-        if numeric < 0:
-            raise MetricsError("METRIC_VALUE_NEGATIVE", name)
+        numeric = _coerce_nonnegative_float(name, value)
         sample = MetricSample(
             name=name,
             value=numeric,
@@ -302,10 +313,13 @@ class MetricsEmitter:
         values: Mapping[str, Any],
         labels: Optional[Mapping[str, Any]] = None,
     ) -> list[MetricSample]:
-        normalized = normalize_aa_metric_values(values)
+        normalized = normalize_emittable_metric_values(values)
         safe_labels = _sanitize_labels(labels)
         samples: list[MetricSample] = []
+        # Emit counters in AA order; emit unformulated scores only if present.
         for name in AA_METRIC_NAMES:
+            if name not in normalized:
+                continue
             samples.append(self.emit(name, normalized[name], labels=safe_labels))
         return samples
 
@@ -326,6 +340,7 @@ class MetricsEmitter:
             return {
                 "package_id": PACKAGE_ID,
                 "metric_names": list(AA_METRIC_NAMES),
+                "unformulated_score_metrics": sorted(UNFORMULATED_SCORE_METRICS),
                 "latest": dict(self._latest),
                 "emit_count": self._emit_count,
                 "sample_count": len(self._samples),
@@ -337,6 +352,7 @@ class MetricsEmitter:
                     }
                     for d in evaluate_alerts(self._latest)
                 ],
+                "policy_threshold_executable": POLICY_THRESHOLD_EXECUTABLE,
             }
 
 
@@ -364,9 +380,9 @@ def observe_weekly_run_metrics(
     labels: Optional[Mapping[str, Any]] = None,
     emitter: Optional[MetricsEmitter] = None,
 ) -> dict[str, Any]:
-    """Emit full AA snapshot + evaluate alerts. Pure observability side-effect on emitter only."""
+    """Emit AA counters (+ optional explicit scores) and evaluate BC-24 alerts."""
     target = emitter or get_metrics_emitter()
-    values = normalize_aa_metric_values(counters)
+    values = normalize_emittable_metric_values(counters)
     samples = target.emit_run_snapshot(values, labels=labels)
     alerts = evaluate_alerts(values)
     return {

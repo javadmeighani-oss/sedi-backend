@@ -5,6 +5,7 @@ Authority:
 - CLOSURE_CRITERIA: AA metrics defined and emitted in dry unit
 - safety_security_observability_plan.json → 17 AA metric names
 - BC-24 → silent zero improvement; high-risk gaps alerts
+- Semantic remediation: no invented policy threshold; no provisional score formulas
 - Proof-quality law: no `or True`, no self-equality, no disposition tautology
 """
 from __future__ import annotations
@@ -81,6 +82,7 @@ def test_W6P03_T01_package_identity_and_aa_metric_set_matches_authority():
     authority = _authority_metric_names()
     assert list(m.AA_METRIC_NAMES) == authority
     assert len(m.AA_METRIC_NAME_SET) == 17
+    assert m.UNFORMULATED_SCORE_METRICS == {"COVERAGE_SCORE", "FRESHNESS_SCORE"}
 
 
 def test_W6P03_T02_emit_rejects_unknown_and_negative_metric():
@@ -94,7 +96,7 @@ def test_W6P03_T02_emit_rejects_unknown_and_negative_metric():
     assert emitter.emit_count() == 0
 
 
-def test_W6P03_T03_emit_run_snapshot_emits_all_seventeen_and_updates_latest():
+def test_W6P03_T03_emit_run_snapshot_emits_counters_without_fabricated_scores():
     emitter = m.get_metrics_emitter()
     values = m.build_aa_metrics_from_run_counters(
         sources_checked=4,
@@ -107,17 +109,21 @@ def test_W6P03_T03_emit_run_snapshot_emits_all_seventeen_and_updates_latest():
         database_write_count=3,
         total_sources=5,
     )
+    assert "COVERAGE_SCORE" not in values
+    assert "FRESHNESS_SCORE" not in values
     samples = emitter.emit_run_snapshot(
         values,
         labels={"logical_run_key": "run-a", "outcome": "COMPLETED", "dry_run": "true"},
     )
-    assert len(samples) == 17
-    assert {s.name for s in samples} == set(m.AA_METRIC_NAMES)
+    assert len(samples) == len(m.EMITTABLE_COUNTER_METRICS)
+    assert {s.name for s in samples} == set(m.EMITTABLE_COUNTER_METRICS)
     latest = emitter.latest()
     assert latest["SOURCES_CHECKED"] == 4.0
     assert latest["NEW_KNOWLEDGE_UNITS"] == 2.0
     assert latest["RUN_DURATION"] == 12.5
-    assert emitter.emit_count() == 17
+    assert "COVERAGE_SCORE" not in latest
+    assert "FRESHNESS_SCORE" not in latest
+    assert emitter.emit_count() == len(m.EMITTABLE_COUNTER_METRICS)
 
 
 def test_W6P03_T04_labels_refuse_disallowed_and_sensitive_keys():
@@ -140,6 +146,7 @@ def test_W6P03_T05_silent_zero_improvement_alert_positive_and_negative():
     )
     decisions = m.evaluate_alerts(silent)
     by_id = {d.alert_id: d for d in decisions}
+    assert set(by_id) == {m.ALERT_SILENT_ZERO_IMPROVEMENT, m.ALERT_HIGH_RISK_GAPS}
     assert by_id[m.ALERT_SILENT_ZERO_IMPROVEMENT].triggered is True
 
     improved = m.build_aa_metrics_from_run_counters(
@@ -160,34 +167,35 @@ def test_W6P03_T05_silent_zero_improvement_alert_positive_and_negative():
 def test_W6P03_T06_high_risk_gap_alert_positive_and_negative():
     hot = m.build_aa_metrics_from_run_counters(high_risk_gaps_remaining=2)
     cold = m.build_aa_metrics_from_run_counters(high_risk_gaps_remaining=0)
-    assert m.triggered_alerts(hot)[0].alert_id == m.ALERT_HIGH_RISK_GAPS or any(
-        d.alert_id == m.ALERT_HIGH_RISK_GAPS and d.triggered for d in m.evaluate_alerts(hot)
-    )
     hot_dec = {d.alert_id: d for d in m.evaluate_alerts(hot)}
     cold_dec = {d.alert_id: d for d in m.evaluate_alerts(cold)}
     assert hot_dec[m.ALERT_HIGH_RISK_GAPS].triggered is True
     assert cold_dec[m.ALERT_HIGH_RISK_GAPS].triggered is False
+    triggered_ids = [d.alert_id for d in m.triggered_alerts(hot) if d.triggered]
+    assert m.ALERT_HIGH_RISK_GAPS in triggered_ids
 
 
-def test_W6P03_T07_policy_threshold_review_alert_positive_and_negative():
-    review = m.build_aa_metrics_from_run_counters(safety_rejections=1)
-    ok = m.build_aa_metrics_from_run_counters(safety_rejections=0, conflicts=0)
-    conflict = m.build_aa_metrics_from_run_counters(conflicts=2)
-    r = {d.alert_id: d for d in m.evaluate_alerts(review)}
-    o = {d.alert_id: d for d in m.evaluate_alerts(ok)}
-    c = {d.alert_id: d for d in m.evaluate_alerts(conflict)}
-    assert r[m.ALERT_POLICY_THRESHOLD_REVIEW].triggered is True
-    assert o[m.ALERT_POLICY_THRESHOLD_REVIEW].triggered is False
-    assert c[m.ALERT_POLICY_THRESHOLD_REVIEW].triggered is True
+def test_W6P03_T07_no_unauthorized_policy_threshold_executable_alert():
+    """§137.24 names policy threshold qualitatively; no numeric rule → not executable."""
+    assert m.POLICY_THRESHOLD_EXECUTABLE is False
+    review = m.build_aa_metrics_from_run_counters(safety_rejections=1, conflicts=2)
+    decisions = m.evaluate_alerts(review)
+    alert_ids = {d.alert_id for d in decisions}
+    assert m.ALERT_POLICY_THRESHOLD_REVIEW_DEFERRED not in alert_ids
+    assert alert_ids == {m.ALERT_SILENT_ZERO_IMPROVEMENT, m.ALERT_HIGH_RISK_GAPS}
+    src = Path(m.__file__).read_text(encoding="utf-8")
+    assert "POLICY_REVIEW_SAFETY_REJECTIONS_MIN" not in src
+    assert "POLICY_REVIEW_CONFLICTS_MIN" not in src
 
 
 def test_W6P03_T08_observe_weekly_run_metrics_idempotent_duplicate_snapshot():
     values = m.build_aa_metrics_from_run_counters(sources_checked=1, new_knowledge_units=1)
+    expected = len(m.EMITTABLE_COUNTER_METRICS)
     first = m.observe_weekly_run_metrics(counters=values, labels={"outcome": "COMPLETED", "dry_run": "true"})
     second = m.observe_weekly_run_metrics(counters=values, labels={"outcome": "COMPLETED", "dry_run": "true"})
-    assert first["samples_emitted"] == 17
-    assert second["samples_emitted"] == 17
-    assert m.get_metrics_emitter().emit_count() == 34
+    assert first["samples_emitted"] == expected
+    assert second["samples_emitted"] == expected
+    assert m.get_metrics_emitter().emit_count() == expected * 2
     assert m.get_metrics_emitter().latest()["NEW_KNOWLEDGE_UNITS"] == 1.0
 
 
@@ -206,18 +214,21 @@ def test_W6P03_T09_orchestrator_dry_unit_emits_aa_metrics_without_network_or_act
     assert result.activation_enabled is False
     assert result.scheduler_activation is False
     assert result.production_write is False
-    assert set(result.aa_metrics) == set(m.AA_METRIC_NAMES)
+    assert set(result.aa_metrics) == set(m.EMITTABLE_COUNTER_METRICS)
+    assert "COVERAGE_SCORE" not in result.aa_metrics
+    assert "FRESHNESS_SCORE" not in result.aa_metrics
     assert result.aa_metrics["SOURCES_CHECKED"] >= 1.0
-    assert len(result.alert_decisions) == 3
-    assert all("alert_id" in d and "triggered" in d for d in result.alert_decisions)
-    # Emitter received a full AA snapshot from the orchestrator hook.
-    assert m.get_metrics_emitter().emit_count() == 17
+    assert len(result.alert_decisions) == 2
+    assert {d["alert_id"] for d in result.alert_decisions} == {
+        m.ALERT_SILENT_ZERO_IMPROVEMENT,
+        m.ALERT_HIGH_RISK_GAPS,
+    }
+    assert m.get_metrics_emitter().emit_count() == len(m.EMITTABLE_COUNTER_METRICS)
     assert m.get_metrics_emitter().latest()["SOURCES_CHECKED"] == result.aa_metrics["SOURCES_CHECKED"]
 
 
 def test_W6P03_T10_orchestrator_metrics_do_not_change_outcome_classification():
     cand = _ok_candidate()
-    # First run with metrics path
     a = orch.orchestrate_weekly_run(
         db=None,
         models=None,
@@ -226,7 +237,6 @@ def test_W6P03_T10_orchestrator_metrics_do_not_change_outcome_classification():
         persist_ledger=False,
         dry_run=True,
     )
-    # Recompute outcome from source rows alone — must match attached outcome.
     extracted = sum(
         1
         for s in a.source_results
@@ -243,7 +253,7 @@ def test_W6P03_T10_orchestrator_metrics_do_not_change_outcome_classification():
     assert a.outcome == recomputed
 
 
-def test_W6P03_T11_normalize_requires_complete_aa_set():
+def test_W6P03_T11_normalize_requires_counters_rejects_unknown_allows_explicit_scores():
     with pytest.raises(m.MetricsError) as missing:
         m.normalize_aa_metric_values({"SOURCES_CHECKED": 1})
     assert missing.value.code == "MISSING_METRIC"
@@ -252,11 +262,23 @@ def test_W6P03_T11_normalize_requires_complete_aa_set():
         full["EXTRA"] = 1
         m.normalize_aa_metric_values(full)
     assert unknown.value.code == "UNKNOWN_METRIC"
+    # Explicit authorized upstream measurement may include scores.
+    with_scores = m.build_aa_metrics_from_run_counters(
+        sources_checked=2,
+        coverage_score=0.5,
+        freshness_score=0.25,
+    )
+    assert with_scores["COVERAGE_SCORE"] == 0.5
+    assert with_scores["FRESHNESS_SCORE"] == 0.25
+    samples = m.get_metrics_emitter().emit_run_snapshot(with_scores)
+    assert {s.name for s in samples} == set(m.EMITTABLE_COUNTER_METRICS) | {
+        "COVERAGE_SCORE",
+        "FRESHNESS_SCORE",
+    }
 
 
 def test_W6P03_T12_no_pagerduty_or_network_side_effects_in_metrics_module():
     src = Path(m.__file__).read_text(encoding="utf-8")
-    # Docstring may mention OUT_OF_SCOPE prod paging; executable surface must not import/call it.
     assert "import pagerduty" not in src.lower()
     assert "from pagerduty" not in src.lower()
     assert "requests." not in src
@@ -264,8 +286,32 @@ def test_W6P03_T12_no_pagerduty_or_network_side_effects_in_metrics_module():
     assert "import urllib" not in src
     assert "import socket" not in src
     assert "urlopen(" not in src
-    # Evaluate alerts must not perform I/O — pure decision objects only.
     values = m.build_aa_metrics_from_run_counters(sources_checked=1, high_risk_gaps_remaining=1)
     decisions = m.evaluate_alerts(values)
     assert all(isinstance(d.triggered, bool) for d in decisions)
     assert any(d.triggered for d in decisions)
+
+
+def test_W6P03_T13_no_provisional_coverage_or_freshness_derivation():
+    """Regression for W6P03-METRIC-SEMANTICS-02."""
+    src = Path(m.__file__).read_text(encoding="utf-8")
+    assert "sources_checked) / float(total)" not in src
+    assert "knowledge_touch" not in src
+    assert "float(sources_checked) / float(total)" not in src
+    assert "new_knowledge_units + updated_units) / float" not in src
+    # Same counter inputs must not invent different score ratios.
+    a = m.build_aa_metrics_from_run_counters(sources_checked=4, total_sources=8, new_knowledge_units=1)
+    b = m.build_aa_metrics_from_run_counters(sources_checked=4, total_sources=100, new_knowledge_units=1)
+    assert "COVERAGE_SCORE" not in a and "COVERAGE_SCORE" not in b
+    assert "FRESHNESS_SCORE" not in a and "FRESHNESS_SCORE" not in b
+    assert a["SOURCES_CHECKED"] == b["SOURCES_CHECKED"] == 4.0
+
+
+def test_W6P03_T14_authorized_executable_alert_count_is_two():
+    values = m.build_aa_metrics_from_run_counters(sources_checked=1)
+    decisions = m.evaluate_alerts(values)
+    assert len(decisions) == 2
+    assert {d.alert_id for d in decisions} == {
+        m.ALERT_SILENT_ZERO_IMPROVEMENT,
+        m.ALERT_HIGH_RISK_GAPS,
+    }
