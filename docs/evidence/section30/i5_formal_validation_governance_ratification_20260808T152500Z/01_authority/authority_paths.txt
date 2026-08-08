@@ -1,0 +1,5 @@
+§164.2 LOCKED formula (1+4/13)/6=17/78=21.79487179%
+ledger formal_completion_rules; thirteen_package_reconciliation; capability_matrix.capabilities
+package_sequence.json; i5_completion_impact_model.json
+CAP-OPEN FORMAL_CLOSURE_CREDIT=0 PACKAGE_NOT_CAPABILITY
+I5_B remaining 9/13 via packages WITHOUT published subunit identity map

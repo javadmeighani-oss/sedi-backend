@@ -63372,3 +63372,112 @@ MARKER=W6P01_MASTER_GATE_PASS_REAL_PERMANENT_WEEKLY_SATISFIED
 OPEN_BLOCKING_FINDINGS=0
 
 NOTE=post-§261 final master-log whole-file self-SHA is NOT embedded inside §261.
+
+
+================================================================================
+§262 — I5 FORMAL VALIDATION + W6-P01 GOVERNANCE RATIFICATION CONTINUITY RECORD-01
+================================================================================
+RECORDED_AT_UTC=2026-08-08T11:59:16Z
+GATE_ID=I5-W6-P01-GOVERNANCE-RATIFICATION-EVIDENCE-RECONCILIATION-SECTION1642-FORMAL-VALIDATION-MASTER-GATE-01
+JAVAD_APPROVAL=EXPLICIT MASTER GATE (this chat)
+GATE_OUTCOME=PASS
+STARTING_HEAD=430859735c06a476cce970e09734f9d05a114fc8
+W6P01_PRIOR_FINAL_DOCS_SHA=430859735c06a476cce970e09734f9d05a114fc8
+DEPLOYED_SHA=65c56c3a20bf012c3cd0ea5419c1d984e9d23f32
+DEPLOYED_DIGEST=sha256:09f80fc1c9ad216fa2640cb7c67e82aebdbd966d7036078a55035e6e951f9a89
+EVIDENCE_ROOT=docs/evidence/section30/i5_formal_validation_governance_ratification_20260808T152500Z
+AUTO_REMEDIATION_CYCLES_THIS_GATE=1
+AUTO_REMEDIATION_CYCLE_1=capability_matrix schema path fix (capabilities list)
+
+--------------------------------------------------------------------------------
+GOVERNANCE RATIFICATION
+--------------------------------------------------------------------------------
+ORIGINAL_W6P01_AUTO_REMEDIATION_CAP_EXCEEDED=YES
+RECORDED_CYCLES=6
+RETROSPECTIVE_RATIFICATION=EXPLICIT_THIS_GATE
+RATIFIED_CYCLES=5,6
+CYCLE_5=SEDI_DISABLE_SCHEDULER=false
+CYCLE_6=enforce exactly one NHS fetch-enabled source
+TECHNICAL_SIDE_EFFECTS_ROLLED_BACK=NO
+REASON_NO_ROLLBACK=final production independently verified Green
+PRECEDENT_FOR_FUTURE_CAP_OVERRUN=NO
+FUTURE_AUTO_REMEDIATION_CAPS_REMAIN_HARD_LIMITS=YES
+W6P01-AUTO-REMEDIATION-CAP-EXCEEDED-01=CLOSED_BY_JAVAD_RATIFICATION
+HISTORY_PRESERVED=YES (§261 not rewritten)
+
+--------------------------------------------------------------------------------
+W6-P01 EVIDENCE CORRECTIONS
+--------------------------------------------------------------------------------
+MIGRATION_EXECUTION_RUN_ID=31249059730
+MIGRATION_FINAL_VERIFICATION_RUN_ID=31249367963
+W6P01_PRIOR_FINAL_DOCS_SHA=430859735c06a476cce970e09734f9d05a114fc8
+EVIDENCE_PACK_SELF_CONSISTENCY=PASS
+FIRST_REAL_SCHEDULED_FETCH_RUN=31250041916 (substep PASS; workflow OVERALL FAILURE + fail-closed)
+FINAL_ACTIVATION_RUN=31250816722 SUCCESS
+
+--------------------------------------------------------------------------------
+PRODUCTION READ-ONLY SANITY
+--------------------------------------------------------------------------------
+READONLY_RUN=31255965119
+PROD_HEALTH=PASS
+PROD_ALEMBIC=056_i5_w2_p02_conflict_safety
+RUNNING_IMAGE_SHA=65c56c3a20bf012c3cd0ea5419c1d984e9d23f32
+RUNNING_IMAGE_DIGEST=sha256:09f80fc1c9ad216fa2640cb7c67e82aebdbd966d7036078a55035e6e951f9a89
+SCHEDULER_LOG=registered interval_min=10080 enabled=True
+I5_FLAG_KEYS_PRESENT=true
+HARNESS_LIMITATION=flag VALUES not printed; enabled/interval proven via scheduler log + prior activate Green
+PRODUCTION_READONLY_SANITY=PASS_WITH_DOCUMENTED_HARNESS_LIMITATION
+
+--------------------------------------------------------------------------------
+FORMAL I5 VALIDATION
+--------------------------------------------------------------------------------
+FORMAL_VALIDATION_AUTHORITY=§164.2 + i5_completion_ledger.json
+FORMAL_I5_BEFORE=21.79487179%
+FORMAL_I5_AFTER=21.79487179%
+FORMAL_CREDIT_DELTA=0
+FORMAL_CLOSED=17/78
+FORMAL_CLOSED_NUMERATOR=17
+FORMAL_DENOMINATOR=78
+FORMAL_REMAINING=78.20512821%
+PACKAGE_RECONCILIATION_RESULT=COMPLETE_NO_FORMAL_INCREMENT
+CAPABILITY_RECONCILIATION_RESULT=COMPLETE_NO_FORMAL_INCREMENT
+REASON=remaining 9/13 I5_B subunit identities unpublished; CAP-OPEN credits=0; no invented fraction
+
+--------------------------------------------------------------------------------
+REMAINING I5 (exact IDs)
+--------------------------------------------------------------------------------
+STILL_REQUIRED_V1=
+  CAP-OPEN-12,13,15,16,17,18,19,20,21,22,23,24,25,26,27
+DEFERRED_WITH_EXPLICIT_AUTHORITY=
+  CAP-OPEN-28 (EO-C11)
+NOT_FORMALLY_CREDITABLE_YET=
+  CAP-OPEN-01..11,14 (tech/ops closed or migration-present; §164.2 fraction unmapped)
+PRODUCT_DECISION_REQUIRED=
+  CAP-OPEN-17; CAP-OPEN-28
+LOCAL_IRAN_DIRECTORY_REQUIRED=
+  CAP-OPEN-23,24,25
+FORMAL_VALIDATION_REMAINDER=
+  publish I5_B remaining 9/13 subunit map OR close I5_C–I5_F under §164.2
+
+--------------------------------------------------------------------------------
+W6-P02 CARRY-FORWARD
+--------------------------------------------------------------------------------
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+W6P02-TEST-PROOF-QUALITY-01=OPEN_NON_BLOCKING_CARRY_FORWARD
+
+--------------------------------------------------------------------------------
+CRITICAL PATH / DEADLINE EFFECT
+--------------------------------------------------------------------------------
+I5_FORMAL_STATUS=PARTIALLY_OPEN (21.79487179% unchanged)
+I5_PRODUCTION_OPERATIONAL_STATUS=W6P01_REAL_PERMANENT_WEEKLY_GREEN
+I5_FULLY_COMPLETE=NO
+NEXT_CRITICAL_PATH=
+  Remaining I5 V1 CAP packages: prefer W4 (CAP-OPEN-15..19) and/or W5 Iran directory
+  (CAP-OPEN-23..25), then EO-C11 (CAP-OPEN-28) when authorized, then I6→I8→Frontend 3/4→pilot.
+V1_DEADLINE_EFFECT=
+  W6-P01 ops no longer blocks; formal % freeze is honesty not crawler debt;
+  proceed to remaining I5 CAP implementation/product work.
+MARKER=I5_FORMAL_VALIDATION_PASS_NO_PERCENT_CHANGE_GOVERNANCE_RATIFIED
+OPEN_BLOCKING_FINDINGS=0
+
+NOTE=post-§262 final master-log whole-file self-SHA is NOT embedded inside §262.

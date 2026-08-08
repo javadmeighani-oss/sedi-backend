@@ -54,3 +54,12 @@ GATE_RESULT=PASS
 
 ## Explicit non-secrets policy
 No passwords, tokens, full env, DB credentials, or NHS page body stored.
+
+
+## Evidence reconciliation (post-W6-P01 formal-validation Gate)
+
+- W6P01_PRIOR_FINAL_DOCS_SHA=430859735c06a476cce970e09734f9d05a114fc8
+- MIGRATION_EXECUTION_RUN_ID=31249059730 (actual 049→056 side effect; post-assert failed)
+- MIGRATION_FINAL_VERIFICATION_RUN_ID=31249367963 (verification PASS; DB already at 056)
+- FIRST_REAL_SCHEDULED_FETCH_RUN=31250041916 (substep FULL_SUCCESS network=True; workflow overall FAILURE + fail-closed)
+- FINAL_ACTIVATION_RUN=31250816722 SUCCESS (idempotent replay)

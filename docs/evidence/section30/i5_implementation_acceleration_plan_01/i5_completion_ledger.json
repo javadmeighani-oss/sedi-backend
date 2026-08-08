@@ -586,6 +586,24 @@
       "authoritative_handoff": "v551",
       "recorded_at_utc": "2026-08-08T07:45:00Z",
       "marker": "W6P01_TECHNICAL_GREEN_AWAITING_SAFE_PERSISTENT_DEPLOY_ACTIVATION"
+    },
+    "i5_formal_validation_gate_20260808": {
+      "gate_id": "I5-W6-P01-GOVERNANCE-RATIFICATION-EVIDENCE-RECONCILIATION-SECTION1642-FORMAL-VALIDATION-MASTER-GATE-01",
+      "javad_approval": "EXPLICIT_THIS_GATE",
+      "recorded_at_utc": "2026-08-08T11:59:16Z",
+      "FORMAL_I5_BEFORE": "21.79487179%",
+      "FORMAL_I5_AFTER": "21.79487179%",
+      "FORMAL_CREDIT_DELTA": "0",
+      "FORMAL_CLOSED_FRACTION": "17/78",
+      "FORMAL_CLOSED_NUMERATOR": "17",
+      "FORMAL_DENOMINATOR": "78",
+      "FORMAL_REMAINING": "78.20512821%",
+      "I5_A_CREDIT": "1/1",
+      "I5_B_CREDIT": "4/13",
+      "I5_C_THROUGH_I5_F": "0/1 each",
+      "reason_no_formal_increment": "§164.2 locked fraction remains (1+4/13)/6=17/78. CAP-OPEN rows are PACKAGE_NOT_CAPABILITY with FORMAL_CLOSURE_CREDIT=0. Remaining 9/13 I5_B subunits lack authoritative per-subunit identity mapping; inventing +N/13 would violate proof-quality rules.",
+      "w6p01_operational_validated": true,
+      "next_formal_credit_requires": "authoritative publication of remaining I5_B 9/13 subunit identities and/or I5_C–I5_F unit closure criteria mapping, then a validation Gate updating §164.2 fractions"
     }
   },
   "weight_proof": {
@@ -992,7 +1010,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "ORCHESTRATION",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P02",
         "MANAGEMENT_ALIAS": "P07",
-        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_ACTIVATION_OFF",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W3-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=8.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=6.25641026%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1002,12 +1020,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Technical impl/runtime closed; source/scheduler activation + controlled network/dry-run gated to I5-IMPL-W6-P01; formal §164.2 credit not awarded",
+        "BLOCKER": "Formal §164.2 fraction mapping unpublished; FORMAL_CLOSURE_CREDIT=0",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W3-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "WEEKLY_ORCHESTRATOR_WIRED_ACTIVATION_OFF",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W3-P02 weekly orchestrator + discovery wiring technically closed 2026-08-06; dormant job registered; activation OFF; controlled network DEFERRED W6-P01; formal % credit not awarded under §164.2 lock; green technical 0ea1efb7f46ccae6596ca17ed0a42e127aea97c9 workflow_dispatch run 31116784670; 20/20 nodes; artifact 8973831189. | §247 evidence assurance: bounce commit 0ea1efb classified EMPTY/COSMETIC INFRA-BOUNCE (process deviation); technical 20/20 PASS preserved; false full process PASS prohibited; v538 recorded."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | W3-P02 weekly orchestrator + discovery wiring technically closed 2026-08-06; dormant job registered; activation OFF; controlled network DEFERRED W6-P01; formal % credit not awarded under §164.2 lock; green technical 0ea1efb7f46ccae6596ca17ed0a42e127aea97c9 workflow_dispatch run 31116784670; 20/20 nodes; artifact 8973831189. | §247 evidence assurance: bounce commit 0ea1efb classified EMPTY/COSMETIC INFRA-BOUNCE (process deviation); technical 20/20 PASS preserved; false full process PASS prohibited; v538 recorded. | W6-P01 activated weekly scheduler + NHS source 2026-08-08; FORMAL_CLOSURE_CREDIT remains 0.00000000"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-15",
@@ -1268,7 +1286,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "OPS",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P03",
         "MANAGEMENT_ALIAS": "P12",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "PARTIAL_SCHEDULER_ACTIVE_MONITORING_FORMAL_DOMAIN_OPEN",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P03 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=3.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=2.34615385%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1278,12 +1296,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "DEVOPS",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "Formal §164.2 fraction mapping unpublished; FORMAL_CLOSURE_CREDIT=0",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P03; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining.",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | scheduler registered interval_min=10080 enabled=True (readonly 31255965119)",
         "W6P03_TECHNICAL_STATUS": "PASS_DRY_UNIT_GREEN",
         "W6P03_FORMAL_DOMAIN_CLOSURE": "NOT_CLAIMED"
       },
@@ -1293,7 +1311,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "VALIDATION",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P02",
         "MANAGEMENT_ALIAS": "P11",
-        "CURRENT_STATE": "NOT_STARTED",
+        "CURRENT_STATE": "PARTIAL_MIGRATION_DEPLOY_ACTIVATION_DONE_TEST_PROOF_CARRY_FORWARD",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=4.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.12820513%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1303,12 +1321,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "CI",
-        "BLOCKER": "Formal package implementation and separate approval gates pending",
+        "BLOCKER": "Formal §164.2 fraction mapping unpublished; FORMAL_CLOSURE_CREDIT=0",
         "CLOSURE_CRITERIA": "Separate test/CI/migration-run/dry-run/activation/deploy Gates",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
         "RUNTIME_STATUS": "NOT_WIRED",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining.",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | persistent migrate+deploy+activation Green via W6-P01; W6P02 findings remain OPEN_NON_BLOCKING_CARRY_FORWARD",
         "W6P02_TECHNICAL_VALIDATION": "PASS_GREEN_OFFLINE_E2E_AND_CI",
         "W6P02_FORMAL_DOMAIN_CLOSURE": "NOT_CLAIMED",
         "W6P02_CONTINUITY_CORRECTION": "COMPLETED"
@@ -1382,7 +1400,8 @@
         "TECHNICAL_RUNTIME_CLOSURE": "YES",
         "TECHNICAL_CLOSURE_EVIDENCE": "commit aec0df4f94d5493d8c328fc19113d104cedb7b86 run 31081741681; docs closure 04ddb308794e6c32dcdeaf606733e629bb696010",
         "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
-        "NOTES": "ORM foundation + PostgreSQL 105/105 green closed; remaining plan points 8.0 retained until §164.2 validation Gate awards formal credit; migration RUN still W6-P01"
+        "NOTES": "ORM foundation + PostgreSQL 105/105 green closed; remaining plan points 8.0 retained until §164.2 validation Gate awards formal credit; migration RUN still W6-P01 | migration RUN evidence present via W6-P01; formal credit still blocked by unpublished §164.2 subunit mapping",
+        "MIGRATION_RUN_EVIDENCE": "W6-P01 persistent DB at 056 (exec 31249059730 / verify 31249367963)"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W1-P02",
@@ -1413,7 +1432,8 @@
         "TECHNICAL_RUNTIME_CLOSURE": "YES",
         "TECHNICAL_CLOSURE_EVIDENCE": "impl ebfd6694fef448d955ea19a7441c3a383c41962d; green technical fe02728fc25ae2a974c2fb136712bfe74c53d8cb workflow_dispatch run 31100477952; registration push run 31100232265; 40/40 nodes; artifact 8967253911",
         "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
-        "NOTES": "Raw retention + KU + provenance ORM/services/static+PG runtime + focused workflow GREEN; remaining plan points 10.0 retained until §164.2 validation Gate; migration RUN still W6-P01; D20 content deferred"
+        "NOTES": "Raw retention + KU + provenance ORM/services/static+PG runtime + focused workflow GREEN; remaining plan points 10.0 retained until §164.2 validation Gate; migration RUN still W6-P01; D20 content deferred | migration RUN evidence present via W6-P01; formal credit still blocked by unpublished §164.2 subunit mapping",
+        "MIGRATION_RUN_EVIDENCE": "W6-P01 persistent DB at 056 (exec 31249059730 / verify 31249367963)"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P01",
@@ -1443,7 +1463,8 @@
         "TECHNICAL_RUNTIME_CLOSURE": "YES",
         "TECHNICAL_CLOSURE_EVIDENCE": "impl b96165fdae3d09ce6f5a04d80b58abcd6d5087b1; green technical 4b1003c8b86a51c3f81039620caac93670228203 workflow_dispatch run 31104415506; registration push run 31104222164; 36/36 nodes; artifact 8968894012",
         "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
-        "NOTES": "KnowledgeMemoryItem + transitions + supersession/diff services; reused KU supersedes_unit_id; remaining plan points 8.0 retained until §164.2 validation; migration RUN still W6-P01"
+        "NOTES": "KnowledgeMemoryItem + transitions + supersession/diff services; reused KU supersedes_unit_id; remaining plan points 8.0 retained until §164.2 validation; migration RUN still W6-P01 | migration RUN evidence present via W6-P01; formal credit still blocked by unpublished §164.2 subunit mapping",
+        "MIGRATION_RUN_EVIDENCE": "W6-P01 persistent DB at 056 (exec 31249059730 / verify 31249367963)"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P02",
@@ -1473,7 +1494,8 @@
         "TECHNICAL_RUNTIME_CLOSURE": "YES",
         "TECHNICAL_CLOSURE_EVIDENCE": "impl c859a6555f6a0d58203c5ab74234650dc814dd8c; green technical 0e18938fb845e7508939735c0b9e894347aa67ed workflow_dispatch run 31107469313; registration push run 31107140819; 40/40 nodes; artifact 8970203992",
         "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
-        "NOTES": "Conflict + safety queue tables; freshness/evidence/conflict/safety/eligibility gates; remaining plan points 8.0 retained until §164.2; migration RUN W6-P01"
+        "NOTES": "Conflict + safety queue tables; freshness/evidence/conflict/safety/eligibility gates; remaining plan points 8.0 retained until §164.2; migration RUN W6-P01 | migration RUN evidence present via W6-P01; formal credit still blocked by unpublished §164.2 subunit mapping",
+        "MIGRATION_RUN_EVIDENCE": "W6-P01 persistent DB at 056 (exec 31249059730 / verify 31249367963)"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W2-P03",
@@ -1502,7 +1524,8 @@
         "TECHNICAL_RUNTIME_CLOSURE": "YES",
         "TECHNICAL_CLOSURE_EVIDENCE": "impl dc3dd9175ef70f7ea64212f33554fd60831ff9f9; green technical 6a19593d5220aeea41589946286ef40346a018cd workflow_dispatch run 31110341672; registration push run 31110156607; 19/19 nodes; artifact 8971405692",
         "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
-        "NOTES": "Admin review APIs over SafetyReviewQueueItem/KnowledgeConflict/KnowledgeGap; P05=management alias; §194 source-governance label stale; remaining plan points 3.0 retained until §164.2; migration RUN W6-P01"
+        "NOTES": "Admin review APIs over SafetyReviewQueueItem/KnowledgeConflict/KnowledgeGap; P05=management alias; §194 source-governance label stale; remaining plan points 3.0 retained until §164.2; migration RUN W6-P01 | migration RUN evidence present via W6-P01; formal credit still blocked by unpublished §164.2 subunit mapping",
+        "MIGRATION_RUN_EVIDENCE": "W6-P01 persistent DB at 056 (exec 31249059730 / verify 31249367963)"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W3-P01",
@@ -1559,11 +1582,12 @@
         ],
         "REMAINING_PLAN_POINTS": "8.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_ACTIVATION_OFF",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "REMAINING_WEIGHT_PERCENT_DISPLAY": "6.25641026%",
         "TECHNICAL_RUNTIME_CLOSURE": "YES",
         "TECHNICAL_CLOSURE_EVIDENCE": "impl 2dd906aaaf4b35b71c3357c7132ced7967796243; green technical 0ea1efb7f46ccae6596ca17ed0a42e127aea97c9 workflow_dispatch run 31116784670 job 92668288031; registration push run 31115910417; infra-failed dispatch 31116309555; 20/20 nodes; artifact 8973831189 size 13281; whole_manifest_sha256 16cfe3f20876942777e2d847f809bc6fabb69c712cebaddddd5cc2f72eb1f9f0; network validation NOT_OWNED; activation OFF; PROCESS_DEVIATION=bounce_commit_0ea1efb_EMPTY_COSMETIC_INFRA_BOUNCE recorded_§247/v538",
-        "FORMAL_§164.2_CREDIT": "NOT_AWARDED"
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
+        "NOTES": " | activation ON after W6-P01; formal credit not awarded"
       },
       {
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
@@ -1717,8 +1741,13 @@
         ],
         "REMAINING_PLAN_POINTS": "15.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
-        "REMAINING_WEIGHT_PERCENT_DISPLAY": "11.73076921%"
+        "CURRENT_STATE": "OPERATIONAL_PASS_FORMAL_FRACTION_UNMAPPED_AWAITING_§164.2_SUBUNIT_IDENTITY",
+        "REMAINING_WEIGHT_PERCENT_DISPLAY": "11.73076921%",
+        "TECHNICAL_RUNTIME_CLOSURE": "YES",
+        "OPERATIONAL_ACTIVATION": "YES",
+        "FORMAL_§164.2_CREDIT": "NOT_AWARDED",
+        "TECHNICAL_CLOSURE_EVIDENCE": "tech 65c56c3a20bf012c3cd0ea5419c1d984e9d23f32; activate 31250816722; first fetch 31250041916; migrate exec 31249059730 verify 31249367963; deploy 31249435562",
+        "NOTES": "Operational PASS validated; formal % unchanged — remaining 9/13 I5_B subunit identities not published as mappable CAP/package credits"
       }
     ],
     "management_to_planning_map": [
@@ -2488,5 +2517,28 @@
     "deployed_sha": "65c56c3a20bf012c3cd0ea5419c1d984e9d23f32",
     "activate_run": "31250816722",
     "evidence_root": "docs/evidence/section30/w6p01_master_gate_full_pipeline_20260808T093500Z"
+  },
+  "w6p01_auto_remediation_cap_ratification": {
+    "finding_id": "W6P01-AUTO-REMEDIATION-CAP-EXCEEDED-01",
+    "ORIGINAL_EXECUTION_CAP_EXCEEDED": "YES",
+    "RECORDED_CYCLES": 6,
+    "RATIFIED_CYCLES": [
+      5,
+      6
+    ],
+    "CYCLE_5": "SEDI_DISABLE_SCHEDULER=false",
+    "CYCLE_6": "enforce exactly one NHS fetch-enabled source",
+    "TECHNICAL_SIDE_EFFECTS_ROLLED_BACK": "NO",
+    "REASON_NO_ROLLBACK": "final production state independently verified safe/Green; cycles 5–6 narrowed or enabled the already-approved operational target",
+    "JAVAD_RETROSPECTIVE_RATIFICATION": "EXPLICIT_THIS_GATE",
+    "RETROSPECTIVE_SCOPE": "W6-P01 cycles 5 and 6 only",
+    "PRECEDENT_FOR_FUTURE_CAP_OVERRUN": "NO",
+    "FUTURE_AUTO_REMEDIATION_CAPS_REMAIN_HARD_LIMITS": "YES",
+    "STATUS": "CLOSED_BY_JAVAD_RATIFICATION"
+  },
+  "w6p02_carry_forward_after_formal_validation": {
+    "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
+    "W6P02-TEST-PROOF-QUALITY-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
+    "reason": "No independent mechanical closure evidence for these finding IDs"
   }
 }
