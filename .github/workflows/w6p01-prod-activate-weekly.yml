@@ -222,7 +222,7 @@ jobs:
           }
 
           fail_closed_dormant() {
-            log "=== FAIL-CLOSED: DISABLE FLAGS + DEACTIVATE NHS FETCH ==="
+            log "=== FAIL-CLOSED: DISABLE FLAGS + DEACTIVATE ALL FETCH-ENABLED SOURCES ==="
             upsert_env_kv "${FLAG_ORCH}" "false"
             upsert_env_kv "${FLAG_SRC}" "false"
             # Keep interval key present but do not leave orchestrator enabled.
@@ -236,8 +236,17 @@ jobs:
           db = next(get_db())
           try:
               deactivate_nhs_sleep_fetch(db, models)
+              # Also clear any non-NHS fetch-enabled rows so fail-closed is complete.
+              others = (
+                  db.query(models.KnowledgeSource)
+                  .filter(models.KnowledgeSource.source_fetch_enabled.is_(True))
+                  .all()
+              )
+              for ks in others:
+                  print(f"fail_closed_disable_fetch id={ks.id} slug={ks.slug}")
+                  ks.source_fetch_enabled = False
               db.commit()
-              print("deactivate_nhs_sleep_fetch=ok")
+              print("deactivate_all_fetch_enabled=ok")
           except Exception:
               db.rollback()
               raise
@@ -324,20 +333,44 @@ jobs:
           docker exec -i sedi-backend python - <<'PY'
           from backend.app.database import get_db
           import backend.app.models as models
-          from backend.app.services.i5.governed_weekly_runtime import activate_nhs_sleep_source
+          from backend.app.services.i5.governed_weekly_runtime import (
+              NHS_SOURCE_KEY,
+              activate_nhs_sleep_source,
+          )
 
           db = next(get_db())
           try:
               result = activate_nhs_sleep_source(db, models)
+              # Gate scope: exactly one fetch-enabled source (NHS sleep).
+              # Disable any pre-existing Gate3/other fetch-enabled rows.
+              others = (
+                  db.query(models.KnowledgeSource)
+                  .filter(models.KnowledgeSource.source_fetch_enabled.is_(True))
+                  .filter(models.KnowledgeSource.slug != NHS_SOURCE_KEY)
+                  .all()
+              )
+              for ks in others:
+                  print(f"scope_disable_non_nhs_fetch id={ks.id} slug={ks.slug}")
+                  ks.source_fetch_enabled = False
               db.commit()
+              enabled = (
+                  db.query(models.KnowledgeSource)
+                  .filter(models.KnowledgeSource.source_fetch_enabled.is_(True))
+                  .all()
+              )
+              enabled_slugs = ",".join(sorted(str(ks.slug) for ks in enabled))
               print(
                   "nhs_activation="
                   f"ks={result.knowledge_source_id},"
                   f"gsp={result.governed_source_profile_id},"
                   f"fetch_enabled={result.source_fetch_enabled},"
                   f"created_source={result.created_source},"
-                  f"created_profile={result.created_profile}"
+                  f"created_profile={result.created_profile},"
+                  f"enabled_count={len(enabled)},"
+                  f"enabled_slugs={enabled_slugs}"
               )
+              if len(enabled) != 1 or enabled[0].slug != NHS_SOURCE_KEY:
+                  raise SystemExit(f"activation_scope_failed:{enabled_slugs}")
           except Exception:
               db.rollback()
               raise
@@ -470,10 +503,14 @@ jobs:
 
           SRC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c \
             "SELECT COUNT(*) FROM knowledge_sources WHERE source_fetch_enabled IS TRUE;")"
+          SRC_SLUGS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c \
+            "SELECT COALESCE(string_agg(slug, ',' ORDER BY slug), '') FROM knowledge_sources WHERE source_fetch_enabled IS TRUE;")"
           log "enabled_source_count=${SRC_COUNT}"
+          log "enabled_source_slugs=${SRC_SLUGS}"
           summary "enabled_source_count" "${SRC_COUNT}"
-          if [ "${SRC_COUNT}" != "1" ]; then
-            log "VERIFY_FAILED: expected exactly 1 fetch-enabled knowledge source"
+          summary "enabled_source_slugs" "${SRC_SLUGS}"
+          if [ "${SRC_COUNT}" != "1" ] || [ "${SRC_SLUGS}" != "nhs_uk_live_well" ]; then
+            log "VERIFY_FAILED: expected exactly 1 fetch-enabled source nhs_uk_live_well"
             fail_closed_dormant
             exit 52
           fi
