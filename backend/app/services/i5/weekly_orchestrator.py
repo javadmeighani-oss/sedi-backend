@@ -29,6 +29,11 @@ from backend.app.services.i5.enums import (
     WeeklyRunTriggerType,
     WeeklyRunType,
 )
+from backend.app.services.i5.metrics import (
+    PACKAGE_ID as METRICS_PACKAGE_ID,
+    build_aa_metrics_from_run_counters,
+    observe_weekly_run_metrics,
+)
 from backend.app.services.i5.source_discovery import (
     DiscoveryPlan,
     DiscoveryWorkItem,
@@ -140,6 +145,9 @@ class OrchestrationOutcome:
     production_write: bool = False
     network_executed: bool = False
     detail: str = ""
+    # W6-P03 observability only — does not alter crawler/governance decisions.
+    aa_metrics: dict[str, float] = field(default_factory=dict)
+    alert_decisions: list[dict[str, Any]] = field(default_factory=list)
 
 
 def utc_now() -> datetime:
@@ -683,6 +691,94 @@ def finalize_attempt_counters(attempt, source_rows: Sequence[Any]) -> None:
     attempt.created_gap_count = sum(int(r.gap_created_count or 0) for r in source_rows)
 
 
+def _count_source_statuses(source_rows: Sequence[Any]) -> dict[str, int]:
+    """Count source result statuses from ORM rows or dry-unit summary dicts."""
+    def _status(row: Any) -> str:
+        if isinstance(row, Mapping):
+            return str(row.get("result_status") or "")
+        return str(getattr(row, "result_status", "") or "")
+
+    statuses = [_status(r) for r in source_rows]
+    checked = sum(1 for s in statuses if s != RunSourceResultStatus.SKIPPED.value)
+    failed = sum(1 for s in statuses if s == RunSourceResultStatus.FAILED.value)
+    blocked = sum(1 for s in statuses if s == RunSourceResultStatus.BLOCKED.value)
+    return {
+        "total": len(statuses),
+        "checked": checked,
+        "failed": failed,
+        "blocked": blocked,
+    }
+
+
+def emit_post_run_aa_observability(
+    *,
+    logical_run_key: Optional[str],
+    outcome: str,
+    dry_run: bool,
+    source_rows: Sequence[Any],
+    gap_results: Sequence[Any] = (),
+    new_knowledge_count: int = 0,
+    updated_knowledge_count: int = 0,
+    superseded_knowledge_count: int = 0,
+    rejected_knowledge_count: int = 0,
+    resolved_gap_count: int = 0,
+    high_risk_gaps_remaining: int = 0,
+    conflicts: int = 0,
+    safety_rejections: int = 0,
+    run_duration: float = 0.0,
+    database_write_count: int = 0,
+    new_sources: int = 0,
+    updated_sources: int = 0,
+) -> tuple[dict[str, float], list[dict[str, Any]]]:
+    """Emit AA metrics + alerts after orchestration. Does not alter outcome semantics."""
+    counts = _count_source_statuses(source_rows)
+    closed_gaps = int(resolved_gap_count)
+    if not closed_gaps and gap_results:
+        closed_gaps = 0
+        for g in gap_results:
+            result_type = (
+                g.get("result_type") if isinstance(g, Mapping) else getattr(g, "result_type", None)
+            )
+            if result_type == RunGapResultType.RESOLVED.value:
+                closed_gaps += 1
+    metrics = build_aa_metrics_from_run_counters(
+        sources_checked=counts["checked"],
+        new_sources=new_sources,
+        updated_sources=updated_sources,
+        failed_sources=counts["failed"],
+        blocked_sources=counts["blocked"],
+        new_knowledge_units=new_knowledge_count,
+        updated_units=updated_knowledge_count,
+        superseded_units=superseded_knowledge_count,
+        rejected_units=rejected_knowledge_count,
+        knowledge_gaps_closed=closed_gaps,
+        high_risk_gaps_remaining=high_risk_gaps_remaining,
+        conflicts=conflicts,
+        safety_rejections=safety_rejections,
+        run_duration=run_duration,
+        database_write_count=database_write_count,
+        total_sources=counts["total"],
+    )
+    observed = observe_weekly_run_metrics(
+        counters=metrics,
+        labels={
+            "logical_run_key": logical_run_key or "",
+            "outcome": outcome,
+            "dry_run": "true" if dry_run else "false",
+            "package_id": METRICS_PACKAGE_ID,
+        },
+    )
+    alert_payload = [
+        {
+            "alert_id": d.alert_id,
+            "triggered": d.triggered,
+            "reason": d.reason,
+        }
+        for d in observed["alerts"]
+    ]
+    return metrics, alert_payload
+
+
 def orchestrate_weekly_run(
     db,
     models,
@@ -797,6 +893,13 @@ def orchestrate_weekly_run(
             warning_count=0,
             extracted_or_fetched=extracted,
         )
+        aa_metrics, alert_decisions = emit_post_run_aa_observability(
+            logical_run_key=run_key,
+            outcome=outcome,
+            dry_run=True,
+            source_rows=source_summaries,
+            database_write_count=0,
+        )
         return OrchestrationOutcome(
             outcome=outcome,
             logical_run_key=run_key,
@@ -808,6 +911,8 @@ def orchestrate_weekly_run(
             production_write=False,
             network_executed=False,
             detail="dry_unit_no_ledger_persist",
+            aa_metrics=aa_metrics,
+            alert_decisions=alert_decisions,
         )
 
     run, _created = create_or_get_weekly_run(
@@ -953,6 +1058,20 @@ def orchestrate_weekly_run(
     run.updated_at = utc_now()
     db.flush()
 
+    aa_metrics, alert_decisions = emit_post_run_aa_observability(
+        logical_run_key=run.logical_run_key,
+        outcome=outcome,
+        dry_run=bool(dry_run),
+        source_rows=source_rows,
+        gap_results=gap_rows,
+        new_knowledge_count=int(attempt.new_knowledge_count or 0),
+        updated_knowledge_count=int(attempt.updated_knowledge_count or 0),
+        superseded_knowledge_count=int(attempt.superseded_knowledge_count or 0),
+        rejected_knowledge_count=int(attempt.rejected_knowledge_count or 0),
+        resolved_gap_count=int(attempt.resolved_gap_count or 0),
+        database_write_count=len(source_rows) + len(gap_rows) + 2,  # run+attempt rows observed
+    )
+
     return OrchestrationOutcome(
         outcome=outcome,
         run_id=run.id,
@@ -982,4 +1101,6 @@ def orchestrate_weekly_run(
         production_write=False,
         network_executed=False,
         detail="ledger_persisted_handoffs_prepare_only",
+        aa_metrics=aa_metrics,
+        alert_decisions=alert_decisions,
     )
