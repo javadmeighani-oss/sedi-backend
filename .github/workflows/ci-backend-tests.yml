@@ -19,13 +19,14 @@ on:
   workflow_dispatch:
     inputs:
       validation_target:
-        description: Validation target (default preserves legacy acceptance; i5_w6p02 isolates W6-P02 offline E2E without alembic upgrade)
+        description: Validation target (default preserves legacy acceptance; i5_w6p02 isolates W6-P02 offline E2E without alembic upgrade; i5_w6p01_migrations proves 053-056 upgrade/downgrade/reupgrade)
         required: true
         default: default
         type: choice
         options:
           - default
           - i5_w6p02
+          - i5_w6p01_migrations
 
 jobs:
   backend-acceptance:
@@ -498,7 +499,7 @@ jobs:
           EV="${{ runner.temp }}/w6p02_evidence"
           GREEN_SHA="${GITHUB_SHA}"
           python - <<'PY'
-          import hashlib, json, os, re, subprocess, textwrap
+          import hashlib, json, os, re, subprocess, sys, textwrap
           from datetime import datetime, timezone
           from pathlib import Path
 
@@ -558,7 +559,9 @@ jobs:
           write("scope-ownership-matrix.md", textwrap.dedent("""
           # Scope ownership
           OWNED=expanded tests, offline E2E, CI isolation, unit-subset green
-          NOT_OWNED=migration RUN, live network dry-run, activation, production, monitoring (W6-P03), backend/app/**
+          NOT_OWNED=migration RUN, live network dry-run (this job), production, monitoring (W6-P03)
+          BACKEND_APP_SCOPE=backend/app/** blocked EXCEPT the I5-IMPL-W6-P01 allowlist
+            in app-mutation-allowlist.json (controlled live acquisition surface only)
           """))
           write("ci-design-freeze.md", textwrap.dedent("""
           # CI design freeze
@@ -588,7 +591,13 @@ jobs:
 
           write("offline-network-proof.md", "W6 offline E2E uses FixtureTransportResponse + dry_run; socket sentinel in X03; no live source fetch.\n")
           write("migration-not-run-proof.md", "W6-P02 isolated job does not invoke Alembic; MIGRATION_RUN_EXECUTED=False; create_all schema only.\n")
-          write("no-app-mutation-proof.md", "git diff gate..green contains no backend/app/** paths.\n")
+          write("no-app-mutation-proof.md", textwrap.dedent("""
+          # No unauthorized app mutation proof (scope-aware, I5-IMPL-W6-P01)
+          git diff gate..green backend/app/** paths are checked against an explicit
+          allowlist (see app-mutation-allowlist.json). Any backend/app/** path outside
+          that allowlist fails this gate (APP_MUTATION_DETECTED); alembic/ and
+          backend/tests/** are unrestricted by this sentinel.
+          """))
           write("no-activation-proof.md", "weekly_orchestrator activation off; source_activation_enabled=False.\n")
           write("no-production-write-proof.md", "dry_run persist_ledger=False; production_write=False.\n")
           write("w5p01-sawarning-validation.md", textwrap.dedent("""
@@ -653,10 +662,30 @@ jobs:
           Formal I5 unchanged at 21.79487179%.
           """))
 
-          # app mutation sentinel
-          dirty_app = [l for l in ns.splitlines() if "\tbackend/app/" in l or l.endswith("backend/app") or "/backend/app/" in l]
-          if dirty_app:
-              raise SystemExit(f"APP_MUTATION_DETECTED:{dirty_app}")
+          # Scope-aware backend/app/** mutation sentinel (I5-IMPL-W6-P01).
+          # The prior sentinel failed on ANY backend/app/** change since GATE_START_SHA
+          # (GATE_START_SHA remains the W6-P02 package start boundary; it is not moved).
+          # W6-P01 authorizes a small, explicit set of application paths (the controlled
+          # live acquisition surface); every other backend/app/** path still fails the
+          # gate. Logic lives in a pure, unit-tested helper so it never needs a GH runner
+          # to validate — see backend/tests/test_section30_i5_w6_p01_ci_sentinel.py.
+          sys.path.insert(0, str(ws))
+          from backend.tests.helpers.w6p01_evidence_app_mutation import unexpected_app_mutations
+
+          ALLOWED_APP_PATH_PREFIXES = [
+              "backend/app/services/i5/metrics.py",
+              "backend/app/services/i5/weekly_orchestrator.py",
+              "backend/app/services/i5/adapters/**",
+              "backend/app/services/i5/source_discovery.py",
+          ]
+          unexpected_app = unexpected_app_mutations(ns.splitlines(), ALLOWED_APP_PATH_PREFIXES)
+          write("app-mutation-allowlist.json", {
+              "gate": "I5-IMPL-W6-P01",
+              "allowlist_prefixes": ALLOWED_APP_PATH_PREFIXES,
+              "unexpected_app_mutations": unexpected_app,
+          })
+          if unexpected_app:
+              raise SystemExit(f"APP_MUTATION_DETECTED:{unexpected_app}")
 
           # required set before manifest
           required = [
@@ -668,7 +697,7 @@ jobs:
             "selected-prior-unit-nodes.txt","collected-prior-unit-nodes.txt","executed-prior-unit-nodes.txt","prior-unit-accounting.json",
             "test-output-w6.txt","test-output-prior-unit-subset.txt","warning-summary.json","warning-details.txt",
             "w5p01-sawarning-validation.md","offline-network-proof.md","migration-not-run-proof.md",
-            "no-app-mutation-proof.md","no-activation-proof.md","no-production-write-proof.md",
+            "no-app-mutation-proof.md","app-mutation-allowlist.json","no-activation-proof.md","no-production-write-proof.md",
             "ci-workflow-identity.json","run-job-step-summary.json","runtime-environment.txt",
             "findings-ledger.md","limitations.md",
           ]
@@ -723,3 +752,83 @@ jobs:
           path: ${{ runner.temp }}/w6p02_evidence
           if-no-files-found: error
           retention-days: 14
+
+  # -------------------------------------------------------------------------
+  # W6-P01 — ephemeral PostgreSQL Alembic parity (053–056)
+  # upgrade 052 → head → downgrade 052 → re-upgrade head. No live network.
+  # -------------------------------------------------------------------------
+  i5-w6p01-migration-parity:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.validation_target == 'i5_w6p01_migrations' }}
+    name: W6-P01 Migration Parity (053-056)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sedi_w6p01_test
+          POSTGRES_PASSWORD: sedi_w6p01_test_password
+          POSTGRES_DB: sedi_w6p01_mig
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_w6p01_test -d sedi_w6p01_mig"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_w6p01_test:sedi_w6p01_test_password@127.0.0.1:5432/sedi_w6p01_mig
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w6p01_test:sedi_w6p01_test_password@127.0.0.1:5432/sedi_w6p01_mig
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      OPENAI_API_KEY: w6p01-test-placeholder-not-used
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Alembic heads single
+        run: |
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("alembic.ini")
+          heads = ScriptDirectory.from_config(cfg).get_heads()
+          assert heads == ["056_i5_w2_p02_conflict_safety"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+
+      - name: Migration parity pytest (upgrade/downgrade/reupgrade)
+        run: |
+          python -B -m pytest \
+            --noconftest \
+            -p no:cacheprovider \
+            -q \
+            backend/tests/test_section30_i5_w6_p01_migration_parity.py
+
+      - name: Live acquisition + CI sentinel unit (no network)
+        run: |
+          python -B -m pytest \
+            --noconftest \
+            -p no:cacheprovider \
+            -q \
+            backend/tests/test_section30_i5_w6_p01_live_acquisition.py \
+            backend/tests/test_section30_i5_w6_p01_ci_sentinel.py \
+            backend/tests/test_section30_i5_w6_metrics.py
