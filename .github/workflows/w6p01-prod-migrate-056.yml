@@ -1,0 +1,469 @@
+# Guarded production Alembic migration to 056_i5_w2_p02_conflict_safety (workflow_dispatch only).
+# Backup + digest-pinned one-off alembic upgrade. Does not deploy/restart the running backend.
+name: W6-P01 Production Migration 056
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type MIGRATE_TO_056 to authorize the guarded production migration."
+        required: true
+      expected_before_revision:
+        description: "Exact alembic_version expected before migration (or already 056 for verify-only)."
+        required: true
+      migration_image_sha:
+        description: "40-character lowercase Git commit SHA image tag used for the one-off migration container."
+        required: true
+      migration_image_digest:
+        description: "Expected migration image digest in sha256:<64 hex> format."
+        required: true
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-056:
+    name: Migrate / verify 056_i5_w2_p02_conflict_safety on production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Validate migration inputs
+        id: validate_inputs
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          INPUT_EXPECTED_BEFORE: ${{ github.event.inputs.expected_before_revision }}
+          INPUT_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          INPUT_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          if [ "${INPUT_CONFIRMATION}" != "MIGRATE_TO_056" ]; then
+            echo "Confirmation input must be exactly MIGRATE_TO_056."
+            exit 1
+          fi
+          case "${INPUT_EXPECTED_BEFORE}" in
+            049_section10_kb_embeddings_memory_governance|\
+            050_gate4_event_idem|\
+            051_i5b2_governed_source_profile|\
+            052_i5_w5_iran_directory|\
+            053_i5_w1_p01_weekly_governance|\
+            054_i5_w1_p02_ku_provenance|\
+            055_i5_w2_p01_knowledge_memory|\
+            056_i5_w2_p02_conflict_safety)
+              ;;
+            *)
+              echo "expected_before_revision is not in the accepted set."
+              exit 1
+              ;;
+          esac
+          if ! echo "${INPUT_MIGRATION_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "migration_image_sha must be a 40-character lowercase hex Git commit SHA."
+            exit 1
+          fi
+          if ! echo "${INPUT_MIGRATION_DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "migration_image_digest must match sha256:<64 hex>."
+            exit 1
+          fi
+          echo "Migration inputs validated."
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run guarded production migration / verification
+        id: migrate
+        env:
+          INPUT_EXPECTED_BEFORE: ${{ github.event.inputs.expected_before_revision }}
+          INPUT_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          INPUT_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          EXPECTED_BEFORE_Q="$(printf '%q' "${INPUT_EXPECTED_BEFORE}")"
+          MIGRATION_SHA_Q="$(printf '%q' "${INPUT_MIGRATION_SHA}")"
+          MIGRATION_DIGEST_Q="$(printf '%q' "${INPUT_MIGRATION_DIGEST}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=${EXPECTED_BEFORE_Q} MIGRATION_SHA=${MIGRATION_SHA_Q} MIGRATION_DIGEST=${MIGRATION_DIGEST_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/w6p01_migration_056_run.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "MIGRATION_SUMMARY|$1|$2"; }
+
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          TARGET_REV="056_i5_w2_p02_conflict_safety"
+          MIGRATION_IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${MIGRATION_SHA}"
+          MIGRATION_IMAGE_REF="ghcr.io/javadmeighani-oss/sedi-backend@${MIGRATION_DIGEST}"
+
+          check_database_target_alignment() {
+            log "=== DATABASE TARGET ALIGNMENT ==="
+            POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+            POSTGRES_CONTAINER_IP="$(
+              docker inspect sedi-postgres \
+                --format '{{with index .NetworkSettings.Networks "sedi-net"}}{{.IPAddress}}{{end}}'
+            )"
+            RUNNING_BACKEND_IMAGE_ID="$(
+              docker inspect sedi-backend --format '{{.Image}}'
+            )"
+
+            if [ -z "${POSTGRES_DB_NAME}" ] || [ -z "${POSTGRES_CONTAINER_IP}" ] || [ -z "${RUNNING_BACKEND_IMAGE_ID}" ]; then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: missing container metadata"
+              exit 9
+            fi
+
+            if ! docker run --rm \
+              --network sedi-net \
+              --env-file "${ENV_FILE}" \
+              --env TEST_DATABASE_URL= \
+              --env EXPECTED_DB_IP="${POSTGRES_CONTAINER_IP}" \
+              --env EXPECTED_DB_NAME="${POSTGRES_DB_NAME}" \
+              --entrypoint python \
+              "${RUNNING_BACKEND_IMAGE_ID}" - <<'PY'
+          import os
+          import socket
+
+          from sqlalchemy.engine import make_url
+
+          raw_url = os.environ.get("DATABASE_URL", "")
+          expected_ip = os.environ.get("EXPECTED_DB_IP", "")
+          expected_db = os.environ.get("EXPECTED_DB_NAME", "")
+
+          if not raw_url or not expected_ip or not expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing required value")
+
+          url = make_url(raw_url)
+          base_driver = url.drivername.split("+", 1)[0].lower()
+
+          if base_driver not in {"postgresql", "postgres"}:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: non-PostgreSQL driver")
+
+          host = url.host
+          port = url.port or 5432
+          database = url.database or ""
+
+          if not host:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing host")
+
+          try:
+              resolved_ips = {
+                  item[4][0]
+                  for item in socket.getaddrinfo(
+                      host,
+                      port,
+                      type=socket.SOCK_STREAM,
+                  )
+              }
+          except socket.gaierror:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: host resolution failed")
+
+          if expected_ip not in resolved_ips:
+              raise SystemExit(
+                  "DATABASE_TARGET_ALIGNMENT_FAILED: host does not resolve to sedi-postgres"
+              )
+
+          if port != 5432:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: unexpected port")
+
+          if database != expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: database name mismatch")
+
+          print("database_target_alignment=pass")
+          print(f"database_driver={base_driver}")
+          print("database_host_resolution=matched_sedi_postgres")
+          print(f"database_port={port}")
+          print("database_name_match=yes")
+          PY
+            then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED: parser exit non-zero"
+              exit 9
+            fi
+            summary "database_target_alignment" "pass"
+          }
+
+          assert_table() {
+            local tbl="$1"
+            local reg
+            reg="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('\''public.${tbl}'\'');")"
+            if [ -z "${reg}" ] || [ "${reg}" = "" ]; then
+              log "SCHEMA_ASSERT_FAILED: missing table ${tbl}"
+              exit 30
+            fi
+            log "schema_table_ok=${tbl}"
+          }
+
+          post_schema_assertions() {
+            log "=== POST-CHECK: SCHEMA ASSERTIONS ==="
+            assert_table "weekly_knowledge_runs"
+            assert_table "i5_raw_evidence"
+            assert_table "knowledge_units"
+            assert_table "knowledge_provenance"
+            assert_table "knowledge_memory_items"
+            assert_table "interaction_events"
+            UQ_CNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM pg_constraint WHERE conrelid='\''interaction_events'\''::regclass AND contype='\''u'\'';")"
+            if [ "${UQ_CNT}" -lt 1 ]; then
+              log "SCHEMA_ASSERT_FAILED: missing unique/idempotency constraint on interaction_events"
+              exit 31
+            fi
+            log "interaction_events_unique_constraints=${UQ_CNT}"
+            summary "schema_assertions" "pass"
+          }
+
+          post_alembic_checks() {
+            local image_ref="$1"
+            log "=== POST-CHECK: DIRECT ALEMBIC VERSION ==="
+            ALEMBIC_AFTER_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+            ALEMBIC_AFTER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+            log "alembic_after_count=${ALEMBIC_AFTER_COUNT}"
+            log "alembic_after=${ALEMBIC_AFTER}"
+            summary "post_revision" "${ALEMBIC_AFTER}"
+            if [ "${ALEMBIC_AFTER_COUNT}" != "1" ] || [ "${ALEMBIC_AFTER}" != "${TARGET_REV}" ]; then
+              log "MIGRATION_FAILED: alembic_version after check is invalid"
+              exit 20
+            fi
+
+            log "=== POST-CHECK: ONE-OFF ALEMBIC CURRENT/HEADS ==="
+            ALEMBIC_CURRENT_OUT="$(docker run --rm --network sedi-net --env-file "${ENV_FILE}" --env TEST_DATABASE_URL= "${image_ref}" python -m alembic -c backend/alembic.ini current 2>&1 || true)"
+            ALEMBIC_HEADS_OUT="$(docker run --rm --network sedi-net --env-file "${ENV_FILE}" --env TEST_DATABASE_URL= "${image_ref}" python -m alembic -c backend/alembic.ini heads 2>&1 || true)"
+            log "${ALEMBIC_CURRENT_OUT}"
+            log "${ALEMBIC_HEADS_OUT}"
+            echo "${ALEMBIC_CURRENT_OUT}" | grep -Fq "${TARGET_REV}" || { log "MIGRATION_FAILED: alembic current missing target"; exit 21; }
+            echo "${ALEMBIC_HEADS_OUT}" | grep -Fq "${TARGET_REV}" || { log "MIGRATION_FAILED: alembic heads missing target"; exit 22; }
+            HEADS_COUNT="$(echo "${ALEMBIC_HEADS_OUT}" | grep -c "(head)" || true)"
+            if [ "${HEADS_COUNT}" != "1" ]; then
+              log "MIGRATION_FAILED: expected exactly one alembic head"
+              exit 23
+            fi
+            summary "alembic_current_heads" "pass"
+          }
+
+          cd "${DEPLOY_PATH}"
+
+          log "=== PREFLIGHT: RUNNING IMAGE (record only; no hard fail on SHA) ==="
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          CURRENT_IMAGE_ID="$(docker inspect sedi-backend --format '{{.Image}}' 2>/dev/null || true)"
+          CURRENT_DIGEST=""
+          if [ -n "${CURRENT_IMAGE_ID}" ]; then
+            CURRENT_DIGEST="$(
+              docker image inspect "${CURRENT_IMAGE_ID}" \
+                --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null \
+                | head -n 1 || true
+            )"
+          fi
+          log "running_image=${CURRENT_IMAGE:-none}"
+          log "running_image_id=${CURRENT_IMAGE_ID:-none}"
+          log "running_repo_digest=${CURRENT_DIGEST:-none}"
+          summary "pre_running_image" "${CURRENT_IMAGE:-none}"
+          summary "pre_running_digest" "${CURRENT_DIGEST:-none}"
+
+          log "=== PREFLIGHT: POSTGRES HEALTH ==="
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+
+          log "=== PREFLIGHT: ENV FILE ==="
+          if [ ! -f "${ENV_FILE}" ]; then
+            log "PRECHECK_FAILED: missing ${ENV_FILE}"
+            exit 3
+          fi
+          if ! grep -E "^DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "PRECHECK_FAILED: DATABASE_URL missing or empty in ${ENV_FILE}"
+            exit 4
+          fi
+          if grep -E "^TEST_DATABASE_URL=.+$" "${ENV_FILE}" >/dev/null; then
+            log "PRECHECK_FAILED: TEST_DATABASE_URL must not be set in production env file"
+            exit 5
+          fi
+
+          check_database_target_alignment
+
+          log "=== PREFLIGHT: DIRECT ALEMBIC VERSION ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_BEFORE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_before=${ALEMBIC_BEFORE}"
+          summary "pre_revision" "${ALEMBIC_BEFORE}"
+          if [ "${ALEMBIC_COUNT}" != "1" ]; then
+            log "PRECHECK_FAILED: alembic_version row count is not 1"
+            exit 6
+          fi
+
+          VERIFY_ONLY=0
+          if [ "${ALEMBIC_BEFORE}" = "${TARGET_REV}" ]; then
+            VERIFY_ONLY=1
+            log "Already at ${TARGET_REV}: verification-only (no re-migrate)."
+            summary "mode" "verification_only"
+          else
+            summary "mode" "migrate"
+            if [ "${ALEMBIC_BEFORE}" != "${EXPECTED_BEFORE}" ]; then
+              log "PRECHECK_FAILED: alembic current is not ${EXPECTED_BEFORE} (got ${ALEMBIC_BEFORE})"
+              exit 7
+            fi
+          fi
+
+          log "=== PREFLIGHT: HEALTH BASELINE ==="
+          curl -fsS http://127.0.0.1:8000/health >/dev/null
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null
+          curl -fsS https://api.sedi-ai.com/health >/dev/null
+          curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+
+          BACKUP_FILE=""
+          if [ "${VERIFY_ONLY}" = "0" ]; then
+            log "=== PREFLIGHT: DISK CAPACITY ==="
+            DB_SIZE_BYTES="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT pg_database_size(current_database());")"
+            BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
+            mkdir -p "${BACKUP_DIR}"
+            AVAIL_BYTES="$(df -B1 "${BACKUP_DIR}" | awk "NR==2 {print \$4}")"
+            TWO_GIB=$((2 * 1024 * 1024 * 1024))
+            REQUIRED_BYTES=$((DB_SIZE_BYTES * 3))
+            if [ "${REQUIRED_BYTES}" -lt "${TWO_GIB}" ]; then
+              REQUIRED_BYTES="${TWO_GIB}"
+            fi
+            log "database_size_bytes=${DB_SIZE_BYTES}"
+            log "available_bytes=${AVAIL_BYTES}"
+            log "required_bytes=${REQUIRED_BYTES}"
+            if [ "${AVAIL_BYTES}" -lt "${REQUIRED_BYTES}" ]; then
+              log "PRECHECK_FAILED: insufficient disk space"
+              exit 8
+            fi
+            log "disk_guard=pass"
+
+            log "=== BACKUP ==="
+            TS="$(date -u +%Y%m%d_%H%M%S)"
+            BACKUP_FILE="${BACKUP_DIR}/sedi_db_pre_w6p01_056_${TS}.sql.gz"
+            log "backup_file=${BACKUP_FILE}"
+            if ! docker exec sedi-postgres \
+              pg_dump \
+              -U "${PU}" \
+              -d "${PD}" |
+              gzip > "${BACKUP_FILE}"
+            then
+              rm -f "${BACKUP_FILE}"
+              log "BACKUP_FAILED: pg_dump or gzip pipeline failed"
+              exit 10
+            fi
+            if [ ! -s "${BACKUP_FILE}" ]; then
+              log "BACKUP_FAILED: empty backup file"
+              exit 11
+            fi
+            if ! gzip -t "${BACKUP_FILE}"; then
+              log "BACKUP_FAILED: gzip integrity check failed"
+              exit 12
+            fi
+            BACKUP_SHA256="$(sha256sum "${BACKUP_FILE}" | awk "{print \$1}")"
+            BACKUP_SIZE="$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
+            log "backup_size_bytes=${BACKUP_SIZE}"
+            log "backup_sha256=${BACKUP_SHA256}"
+            summary "backup_path" "${BACKUP_FILE}"
+            summary "backup_size" "${BACKUP_SIZE}"
+            summary "backup_sha256" "${BACKUP_SHA256}"
+
+            log "=== RECOVERY PLAN (manual only; do not auto-restore) ==="
+            log "recovery_command: gunzip -c ${BACKUP_FILE} | docker exec -i sedi-postgres psql -U ${PU} -d ${PD}"
+            summary "recovery_auto" "NO"
+            summary "recovery_plan_recorded" "YES"
+
+            MIGRATION_START_TS="$(date -Is)"
+            log "migration_start_ts=${MIGRATION_START_TS}"
+            summary "migration_start_ts" "${MIGRATION_START_TS}"
+
+            log "=== PULL MIGRATION IMAGE (DIGEST PINNED) ==="
+            docker pull "${MIGRATION_IMAGE_REF}"
+            PULLED_DIGEST="$(docker image inspect "${MIGRATION_IMAGE_REF}" --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+            log "pulled_repo_digest=${PULLED_DIGEST}"
+            summary "migration_digest" "${MIGRATION_DIGEST}"
+            summary "migration_image_tag" "${MIGRATION_IMAGE_TAG}"
+            if ! echo "${PULLED_DIGEST}" | grep -Fq "${MIGRATION_DIGEST}"; then
+              log "PRECHECK_FAILED: pulled image digest mismatch"
+              exit 13
+            fi
+
+            check_database_target_alignment
+
+            log "=== MIGRATE TO ${TARGET_REV} (ONE-OFF CONTAINER) ==="
+            docker run --rm \
+              --network sedi-net \
+              --env-file "${ENV_FILE}" \
+              --env TEST_DATABASE_URL= \
+              "${MIGRATION_IMAGE_REF}" \
+              python -m alembic -c backend/alembic.ini upgrade "${TARGET_REV}"
+
+            check_database_target_alignment
+          else
+            log "=== VERIFICATION IMAGE PULL (DIGEST PINNED; no upgrade) ==="
+            docker pull "${MIGRATION_IMAGE_REF}"
+            PULLED_DIGEST="$(docker image inspect "${MIGRATION_IMAGE_REF}" --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+            log "pulled_repo_digest=${PULLED_DIGEST}"
+            summary "migration_digest" "${MIGRATION_DIGEST}"
+            summary "migration_image_tag" "${MIGRATION_IMAGE_TAG}"
+            if ! echo "${PULLED_DIGEST}" | grep -Fq "${MIGRATION_DIGEST}"; then
+              log "PRECHECK_FAILED: pulled image digest mismatch"
+              exit 13
+            fi
+            summary "backup_path" "skipped_verification_only"
+            summary "recovery_auto" "NO"
+          fi
+
+          post_alembic_checks "${MIGRATION_IMAGE_REF}"
+          post_schema_assertions
+
+          log "=== POST-CHECK: RUNNING IMAGE UNCHANGED (record) ==="
+          POST_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          log "post_running_image=${POST_IMAGE:-none}"
+          summary "post_running_image" "${POST_IMAGE:-none}"
+          if [ "${POST_IMAGE}" = "${CURRENT_IMAGE}" ]; then
+            summary "backend_image_unchanged" "YES"
+          else
+            summary "backend_image_unchanged" "NO"
+            log "NOTE: running backend image differs from preflight record (not a hard failure for one-off migrate)."
+          fi
+
+          log "=== POST-CHECK: HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health >/dev/null
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null
+          curl -fsS https://api.sedi-ai.com/health >/dev/null
+          curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+          summary "health" "pass"
+
+          summary "target_revision" "${TARGET_REV}"
+          summary "deployment_performed" "NO"
+          log "Production backend deployment performed: NO"
+          log "=== MIGRATION / VERIFY 056 DONE ==="
+          REMOTE_SCRIPT
+
+      - name: Write migration job summary
+        if: always()
+        env:
+          SUMMARY_EXPECTED_BEFORE: ${{ github.event.inputs.expected_before_revision }}
+          SUMMARY_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          SUMMARY_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          {
+            echo "## W6-P01 Production Migration 056"
+            echo ""
+            echo "**Status:** ${{ job.status }}"
+            echo "**Confirmation validation:** ${{ steps.validate_inputs.outcome }}"
+            echo "**Required confirmation:** MIGRATE_TO_056"
+            echo "**Target revision:** 056_i5_w2_p02_conflict_safety"
+            printf '%s\n' "**Expected before:** ${SUMMARY_EXPECTED_BEFORE}"
+            printf '%s\n' "**Migration image SHA:** ${SUMMARY_MIGRATION_SHA}"
+            printf '%s\n' "**Migration image digest:** ${SUMMARY_MIGRATION_DIGEST}"
+            echo "**Production backend deployment performed:** NO"
+            echo "**Recovery:** manual gunzip|psql only (never auto-restore)"
+            echo ""
+            if [ -f /tmp/w6p01_migration_056_run.log ]; then
+              echo "### Captured summary markers"
+              grep '^MIGRATION_SUMMARY|' /tmp/w6p01_migration_056_run.log | while IFS='|' read -r _ key val; do
+                echo "- **${key}:** ${val}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
