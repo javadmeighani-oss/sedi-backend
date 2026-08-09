@@ -1,0 +1,16 @@
+COMMITS_THIS_GATE=
+544b441ea42f0de062f37b86da74ac73700411d8 fix(i5): Gate-02 CAP23 session, CDC/NIMH URLs, CAP25 SBMU federation
+78cad61013d00af79fe78a7d6702bfd8d80251d3 fix(i5): allowlist Gate-02 federation modules in W6-P02 mutation sentinel
+848cab5847b6f4e757ecb4dd37c3e76522d65b81 fix(i5): include source URL in weekly logical identity; reject stale PARTIAL proof
+KEY_FILES=
+backend/scripts/iran_directory_prod_apply.py
+backend/tests/test_section30_i5_iran_directory_prod_apply_session.py
+backend/app/services/i5/source_governance_decisions.py
+backend/app/services/i5/iran_directory_federation.py
+backend/scripts/acquire_sbmu_federated_hospitals.py
+backend/app/services/i5/iran_directory_source_manifest.py
+backend/config/i5/multisource_activation_allowlist_v1.yaml
+backend/app/services/i5/adapters/live_transport.py
+backend/app/services/i5/governed_weekly_runtime.py
+.github/workflows/w6p01-prod-activate-weekly.yml (terminal proof hardening)
+MODELS_PY=UNCHANGED

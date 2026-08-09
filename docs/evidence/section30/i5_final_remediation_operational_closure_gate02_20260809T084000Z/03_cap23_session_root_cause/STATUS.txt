@@ -1,0 +1,7 @@
+ROOT_CAUSE=SessionLocal() in database.py is generator-style; iran_directory_prod_apply.py called SessionLocal() as if Session → AttributeError: generator has no attribute query
+FIX=open_script_session via SessionFactory() with commit/rollback/close lifecycle
+FILE=backend/scripts/iran_directory_prod_apply.py
+REGRESSION_TEST=backend/tests/test_section30_i5_iran_directory_prod_apply_session.py
+MODELS_PY_CHANGE=NO
+SCHEMA_CHANGE=NO
+MIGRATION=NO

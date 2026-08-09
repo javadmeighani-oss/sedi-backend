@@ -1,0 +1,13 @@
+CORRECTION_SCOPE=append-only; NO rewrite of historical §266
+PRIOR_MISIDENTIFICATION=workflow run 31299159248 acquisition job_id 93209030858 was incorrectly labeled as artifact_id
+CORRECT_IDENTITIES=
+workflow_run=31299159248
+workflow_conclusion=FAILURE (apply job failed; acquisition job succeeded)
+acquisition_job_id=93209030858
+acquisition_job=SUCCESS
+production_apply_job_id=93209684796
+production_apply_job=FAILURE
+normalized_payload_artifact_id=9034019330
+artifact_name=iran-directory-normalized-payload
+artifact_digest=sha256:6f54cefd726f63a9f070a9390647212815f6a38305b21a268f963287ee4687d0
+RULE=Do not confuse workflow_run_id with job_id with artifact_id

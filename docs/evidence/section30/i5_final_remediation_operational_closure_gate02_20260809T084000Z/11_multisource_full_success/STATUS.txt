@@ -1,0 +1,20 @@
+FIRST_WEEKLY_JOB=1
+network_executed=true
+outcome=FULL_SUCCESS
+run_id=3
+detail=governed_raw_ku_provenance_persisted
+production_write=true
+source_result_count=9
+source_results=all EXTRACTED failure_code=null
+source_profile_ids_observed=1,2,3,4
+SAME_WINDOW_REPLAY_JOB=2
+network_executed=false
+outcome=COMPLETED
+detail=ALREADY_SUCCESSFUL_TERMINAL
+run_id=3
+source_results=EXTRACTED for profiles 1,2,3,4 failure_code=null
+MULTISOURCE_ACTIVATE_SUMMARY=activation|SUCCESS
+CDC=PASS_EXTRACTED
+NIMH=PASS_EXTRACTED
+MULTISOURCE_PRODUCTION=FULL_SUCCESS
+STALE_PARTIAL_FALSE_GREEN=REJECTED_BY_HARDENED_PROOF

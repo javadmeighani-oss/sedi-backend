@@ -1,0 +1,6 @@
+CDC_ROOT_CAUSE=allowlisted URL 301 to relative Location /physical-activity/... rejected as UNSAFE_URL before same-host urljoin
+CDC_FIX=retarget exact_url to https://www.cdc.gov/physical-activity/php/about/index.html + pattern; same-host relative redirect join in live_transport.py
+NIMH_ROOT_CAUSE=configured /health/publications/coping-with-stress hard HTTP 404
+NIMH_FIX=retarget to https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet
+SSRF_WEAKENED=NO
+WILDCARD_BYPASS=NO

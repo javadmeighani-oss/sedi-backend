@@ -1,0 +1,8 @@
+CAP24=BLOCKED_SOURCE_AUTHORITY
+FEDERATED_WEB_SOURCE_MODE=AUTHORIZED_BUT_NO_ADMISSIBLE_CLINICAL_LAB_MEMBER
+SEARCHED=central registry + federated official provider-web candidates
+MISSING=independently verified official clinical laboratory facility member source with CRAWLER_ACCESS_ADMISSIBLE + CONTENT_USE_ADMISSIBLE for V1 factual directory fields
+AGGREGATORS=NOT used as authority
+PRODUCTION_POPULATION=0
+COVERAGE_CLAIM=NONE
+MANUFACTURED_GREEN=NO

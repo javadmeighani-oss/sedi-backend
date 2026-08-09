@@ -1219,7 +1219,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
         "MANAGEMENT_ALIAS": "P10",
-        "CURRENT_STATE": "PARTIAL_SOURCE_ACQUISITION_PRODUCT_CLOSED_AWAITING_PRODUCTION_POPULATION",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1229,13 +1229,13 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "REAL SOURCE/DATA/PRODUCT path advanced; PRODUCTION DIRECTORY POPULATION pending (no harness this Gate) + FORMAL §164.2 MAPPING NOT YET AWARDED. W6-P01/W6-P02 debt MUST NOT be resurrected.",
+        "BLOCKER": "FORMAL §164.2 MAPPING NOT YET AWARDED (technical/operational population CLOSED this Gate).",
         "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
-        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
-        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
-        "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP23 PARTIAL: IRIMC Tier-1 admissible; acquisition/import/router/CI green; live sample 307 ephemeral; PRODUCTION_APPLY=DENIED_BY_FAIL_CLOSED; formal credit 0; CI 31296899909/31296901586. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e.",
-        "STATE_CLASS": "STILL_REQUIRED_V1"
+        "APPROVAL_BOUNDARY": "I5-FINAL-REMEDIATION-AND-OPERATIONAL-CLOSURE-MASTER-GATE-02",
+        "RUNTIME_STATUS": "PRODUCTION_POPULATED_SEARCHABLE",
+        "PRODUCTION_READINESS": "YES_DIRECTORY_ONLY_NON_CLINICAL",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP23 PARTIAL: IRIMC Tier-1 admissible; acquisition/import/router/CI green; live sample 307 ephemeral; PRODUCTION_APPLY=DENIED_BY_FAIL_CLOSED; formal credit 0; CI 31296899909/31296901586. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e. | §267 GATE-02: CAP23 CLOSED; SessionLocal fix; apply run 31302475075 SUCCESS; doctors=404; replay 0/0/0; formal credit 0; tip 848cab5.",
+        "STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-24",
@@ -1253,12 +1253,12 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "BLOCKED_SOURCE_AUTHORITY — no admissible clinical laboratory FACILITY source for V1 population; W6-P01/W6-P02 debt MUST NOT be resurrected; FORMAL §164.2 MAPPING NOT YET AWARDED.",
+        "BLOCKER": "BLOCKED_SOURCE_AUTHORITY — no admissible clinical laboratory FACILITY source for V1 population under federated official provider-web controls; FORMAL §164.2 MAPPING NOT YET AWARDED.",
         "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
-        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
+        "APPROVAL_BOUNDARY": "I5-FINAL-REMEDIATION-AND-OPERATIONAL-CLOSURE-MASTER-GATE-02",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP24 BLOCKED_SOURCE_AUTHORITY after discovery; IRIMC≠facilities; ISIRI=calibration; aggregators Tier-3 only; formal credit 0. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e.",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP24 BLOCKED_SOURCE_AUTHORITY after discovery; IRIMC≠facilities; ISIRI=calibration; aggregators Tier-3 only; formal credit 0. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e. | §267 GATE-02: CAP24 still BLOCKED_SOURCE_AUTHORITY after federated official provider-web authority; no admissible clinical-lab facility member; labs=0; formal credit 0.",
         "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
@@ -1267,7 +1267,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
         "MANAGEMENT_ALIAS": "P10",
-        "CURRENT_STATE": "BLOCKED_SOURCE_AUTHORITY",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1277,13 +1277,13 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "BLOCKED_SOURCE_AUTHORITY — no admissible hospital/medical-center facility source for V1 population; W6-P01/W6-P02 debt MUST NOT be resurrected; FORMAL §164.2 MAPPING NOT YET AWARDED.",
+        "BLOCKER": "FORMAL §164.2 MAPPING NOT YET AWARDED (federated SBMU seed CLOSED this Gate; not nationwide-complete).",
         "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
-        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
-        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
-        "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP25 BLOCKED_SOURCE_AUTHORITY after discovery; TUMS 403; behdasht/data.gov no usable bulk feed; aggregators Tier-3 only; formal credit 0. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e.",
-        "STATE_CLASS": "STILL_REQUIRED_V1"
+        "APPROVAL_BOUNDARY": "I5-FINAL-REMEDIATION-AND-OPERATIONAL-CLOSURE-MASTER-GATE-02",
+        "RUNTIME_STATUS": "PRODUCTION_POPULATED_SEARCHABLE_FEDERATED_SEED",
+        "PRODUCTION_READINESS": "YES_DIRECTORY_ONLY_NON_CLINICAL_FEDERATED_SEED",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP25 BLOCKED_SOURCE_AUTHORITY after discovery; TUMS 403; behdasht/data.gov no usable bulk feed; aggregators Tier-3 only; formal credit 0. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e. | §267 GATE-02: CAP25 CLOSED via GOVERNED_FEDERATED_OFFICIAL_PROVIDER_WEB_SOURCE SBMU seed (fed_sbmu_affiliated_hospitals); hospitals=21; coverage=OFFICIAL_FEDERATED_SEED not nationwide; formal credit 0.",
+        "STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-26",
@@ -2603,6 +2603,42 @@
       "formal_i5": "17/78=21.79487179%",
       "evidence_root": "docs/evidence/section30/i5_final_v1_operational_directory_multisource_closure_20260809T064740Z",
       "head": "80b8b523e766a343f52e4839f6210be2621d6a3e"
+    },
+    "§267": {
+      "recorded_at_utc": "2026-08-09T08:40:00Z",
+      "outcome": "PARTIAL_HARD_STOP",
+      "formal_i5": "17/78=21.79487179%",
+      "evidence_root": "docs/evidence/section30/i5_final_remediation_operational_closure_gate02_20260809T084000Z",
+      "head": "848cab5847b6f4e757ecb4dd37c3e76522d65b81",
+      "cap23": "CLOSED",
+      "cap24": "BLOCKED_SOURCE_AUTHORITY",
+      "cap25": "CLOSED_OFFICIAL_FEDERATED_SEED",
+      "multisource": "FULL_SUCCESS",
+      "remediation_cycles": 2,
+      "remaining_still_required_v1": [
+        "CAP-OPEN-24"
+      ]
     }
+  },
+  "i5_final_remediation_gate02": {
+    "gate_id": "I5-FINAL-REMEDIATION-AND-OPERATIONAL-CLOSURE-MASTER-GATE-02",
+    "GATE_RESULT": "PARTIAL_HARD_STOP",
+    "CAP23_CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
+    "CAP24_CURRENT_STATE": "BLOCKED_SOURCE_AUTHORITY",
+    "CAP25_CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
+    "CAP23_PRODUCTION_POPULATION": 404,
+    "CAP24_PRODUCTION_POPULATION": 0,
+    "CAP25_PRODUCTION_POPULATION": 21,
+    "MULTISOURCE_PRODUCTION": "FULL_SUCCESS",
+    "ACTIVATE_RUN": 31303772413,
+    "WEEKLY_RUN_ID": 3,
+    "FORMAL_I5_BEFORE": "21.79487179%",
+    "FORMAL_I5_AFTER": "21.79487179%",
+    "FORMAL_CREDIT_DELTA": "0",
+    "auto_remediation_cycles": 2,
+    "I5_REMAINING_STILL_REQUIRED_V1": [
+      "CAP-OPEN-24"
+    ],
+    "evidence_root": "docs/evidence/section30/i5_final_remediation_operational_closure_gate02_20260809T084000Z"
   }
 }

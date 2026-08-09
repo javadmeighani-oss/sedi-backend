@@ -63887,3 +63887,126 @@ V1_DEADLINE_EFFECT=I5 operational debt remains on critical path; I6 not yet star
 OPEN_BLOCKING_FINDINGS=4
 MARKER=I5_FINAL_V1_OPERATIONAL_PARTIAL_HARD_STOP_FORMAL_PERCENT_UNCHANGED
 NOTE=post-§266 final master-log whole-file self-SHA is NOT embedded inside §266.
+
+
+================================================================================
+§267 - I5 FINAL REMEDIATION AND OPERATIONAL CLOSURE MASTER GATE-02
+================================================================================
+RECORDED_AT_UTC=2026-08-09T08:40:00Z
+GATE_ID=I5-FINAL-REMEDIATION-AND-OPERATIONAL-CLOSURE-MASTER-GATE-02
+JAVAD_APPROVAL=EXPLICITLY GRANTED (fresh MAX_REMEDIATION_CYCLES=5)
+GATE_OUTCOME=PARTIAL_HARD_STOP
+STARTING_HEAD=9564a3b205be0b19e510a06131fadb007f5061fa
+TECHNICAL_HEADS=544b441ea42f0de062f37b86da74ac73700411d8;78cad61013d00af79fe78a7d6702bfd8d80251d3;848cab5847b6f4e757ecb4dd37c3e76522d65b81
+EVIDENCE_ROOT=docs/evidence/section30/i5_final_remediation_operational_closure_gate02_20260809T084000Z
+AUTO_REMEDIATION_CYCLES_THIS_GATE=2
+AUTO_REMEDIATION_CAP=5
+MIGRATION_THIS_GATE=NO
+MODEL_SCHEMA_CHANGE_THIS_GATE=NO
+FORCE_PUSH=NO
+CLINICAL_KU_FROM_DIRECTORY=FORBIDDEN
+PROVIDER_RANKING=NOT_IMPLEMENTED
+
+--------------------------------------------------------------------------------
+§267.A - BASELINE + PRIOR EVIDENCE CORRECTION
+--------------------------------------------------------------------------------
+BRANCH=feature/section15/backend-continuity-foundation
+AHEAD_BEHIND_AT_START=0/0
+WORKTREE_AT_START=CLEAN
+MASTER_PRIOR_TIP=§266
+MASTER_PRIOR_SIZE=2843079
+MASTER_PRIOR_WHOLE_FILE_SHA256=5D0595A86792F3BC3085C10ECB15B23BD5B8F87FA6AAB46FDFE751832811496A
+MASTER_PRIOR_EOL=CRLF_ONLY
+HANDOFF_PREDECESSOR=v557
+HANDOFF_PREDECESSOR_SIZE=3664245
+HANDOFF_PREDECESSOR_SHA256=778DD24C32F489C535DDF66AB06E412E1520CC701510923A96E8B4E52C37A97F
+HANDOFF_EOL=LF_ONLY
+V557_EXACT_PREFIX_OF_V556=YES
+PRIOR_EVIDENCE_CORRECTION=workflow 31299159248; acquisition_job_id=93209030858 (NOT artifact); production_apply_job_id=93209684796 FAILURE; normalized_payload_artifact_id=9034019330 digest=sha256:6f54cefd726f63a9f070a9390647212815f6a38305b21a268f963287ee4687d0
+HISTORICAL_§266_BYTES=PRESERVED_APPEND_ONLY
+
+--------------------------------------------------------------------------------
+§267.B - PERMANENT SOURCE GOVERNANCE DECISIONS (JAVAD)
+--------------------------------------------------------------------------------
+DIRECT_PUBLISHER_PERMISSION_IS_NOT_A_UNIVERSAL_PREREQUISITE=RATIFIED
+PUBLIC_WEB_INTERNAL_FACT_EVIDENCE_DISTILLATION=ALLOWED_WITH_GOVERNANCE
+FEDERATED_OFFICIAL_PROVIDER_WEB_SOURCE=ALLOWED_WITH_GOVERNANCE (factual directory only; no clinical authority)
+DUAL_EVAL=CRAWLER_ACCESS_ADMISSIBLE + CONTENT_USE_ADMISSIBLE
+MODULE=backend/app/services/i5/source_governance_decisions.py
+
+--------------------------------------------------------------------------------
+§267.C - CAP23 PRODUCTION APPLY CLOSURE
+--------------------------------------------------------------------------------
+ROOT_CAUSE=SessionLocal() generator misuse in iran_directory_prod_apply.py
+FIX=SessionFactory open_script_session lifecycle (acquire/commit/rollback/close)
+REGRESSION_TEST=test_section30_i5_iran_directory_prod_apply_session.py
+APPLY_RUN=31302475075 SUCCESS
+BACKUP=PASS sha256=2a79fd79c966ddfe9eac71a655a89b0b9eec52a059813a5102dfc149b2d1790c size=23167
+DRY_RUN=PASS
+PRODUCTION_APPLY=PASS
+REPLAY=PASS inserts=0 material_updates=0 deletes=0
+SEARCH=PASS (clinical_authority_any=false ku_any=false)
+POST_COUNTS=iran_doctors=404 iran_laboratories=0 iran_hospitals=21
+NO_DELETE=PASS
+NO_IR_TO_KU=PASS
+CAP23=CLOSED
+CAP23_PRODUCTION_POPULATION=404
+
+--------------------------------------------------------------------------------
+§267.D - CAP24 / CAP25 FEDERATED OFFICIAL PROVIDER-WEB
+--------------------------------------------------------------------------------
+CAP24=BLOCKED_SOURCE_AUTHORITY
+CAP24_MISSING=admissible official clinical-laboratory facility member (CRAWLER+CONTENT use both admissible)
+CAP24_PRODUCTION_POPULATION=0
+CAP25=CLOSED
+CAP25_SOURCE_MODE=GOVERNED_FEDERATED_OFFICIAL_PROVIDER_WEB_SOURCE
+CAP25_MEMBER=SBMU affiliated hospitals/medical centers (official Virtual Tour)
+CAP25_SOURCE_KEY=fed_sbmu_affiliated_hospitals
+CAP25_COVERAGE=OFFICIAL_FEDERATED_SEED (NOT NATIONWIDE_COMPLETE)
+CAP25_PRODUCTION_POPULATION=21
+FEDERATED_WEB_SOURCE_MODE=AUTHORIZED_IN_USE_FOR_CAP25_ONLY
+
+--------------------------------------------------------------------------------
+§267.E - MULTI-SOURCE CDC / NIMH + FULL_SUCCESS
+--------------------------------------------------------------------------------
+CDC_ROOT_CAUSE=relative 301 Location treated UNSAFE_URL before same-host join
+CDC_FIX=canonical physical-activity URL + relative redirect join (no SSRF weaken)
+NIMH_ROOT_CAUSE=hard HTTP 404 on prior coping-with-stress URL
+NIMH_FIX=retarget so-stressed-out-fact-sheet
+STALE_WINDOW_FINDING=activate 31303141347 false-green on run_id=2 PARTIAL
+STALE_WINDOW_FIX=URL in weekly logical identity (848cab5) + activate terminal hardening
+STANDALONE_DEPLOY_848cab5=31303734896 FAILURE (GHCR TLS handshake timeout)
+ACTIVATE_RUN=31303772413 SUCCESS job=93220688985 image=848cab5 digest=sha256:189de4f4e0c0976aaeb0f9f3a7a24a77075e274fb2944335e971b2cb62d2ca2e
+WEEKLY_JOB1=FULL_SUCCESS network_executed=true run_id=3 all EXTRACTED (profiles 1/2/3/4)
+SAME_WINDOW_REPLAY=ALREADY_SUCCESSFUL_TERMINAL network_executed=false run_id=3
+CDC=PASS
+NIMH=PASS
+MULTISOURCE_PRODUCTION=FULL_SUCCESS
+
+--------------------------------------------------------------------------------
+§267.F - CAP / FORMAL STATE AFTER
+--------------------------------------------------------------------------------
+CAP23=CLOSED
+CAP24=BLOCKED_SOURCE_AUTHORITY
+CAP25=CLOSED (OFFICIAL_FEDERATED_SEED)
+CAP28=DEFERRED_WITH_EXPLICIT_AUTHORITY
+FORMAL_I5_BEFORE=21.79487179%
+FORMAL_I5_AFTER=21.79487179%
+FORMAL_CREDIT_DELTA=0
+FORMAL_CLOSED=17/78
+I5_FORMAL_STATUS=PARTIALLY_OPEN
+I5_V1_TECHNICAL_OPERATIONAL_COMPLETE=NO
+I5_REMAINING_STILL_REQUIRED_V1=CAP-OPEN-24
+REMEDIATION_CYCLES_USED=2
+
+--------------------------------------------------------------------------------
+§267.G - NEXT CRITICAL PATH / DEADLINE
+--------------------------------------------------------------------------------
+NEXT_CRITICAL_PATH=CAP24 admissible clinical-laboratory official/federated facility source authority + population
+NEXT_AFTER_CAP24_GREEN=I6 MEMORY / GOVERNANCE V1 CLOSURE MASTER GATE-01
+NEXT_GATE_PROPOSED=I5 CAP24 LABORATORY SOURCE AUTHORITY CLOSURE (then I6)
+ROADMAP_PRESERVED=I6→I7→I8→Frontend Gate3/4→integration→Android pilot→release
+V1_DEADLINE_EFFECT=CAP24 remains sole open I5 V1 technical/operational directory blocker; multisource weekly FULL_SUCCESS proven; CAP23/25 operationally closed
+OPEN_BLOCKING_FINDINGS=1
+MARKER=I5_FINAL_REMEDIATION_GATE02_PARTIAL_HARD_STOP_CAP24_ONLY_FORMAL_PERCENT_UNCHANGED
+NOTE=post-§267 final master-log whole-file self-SHA is NOT embedded inside §267.

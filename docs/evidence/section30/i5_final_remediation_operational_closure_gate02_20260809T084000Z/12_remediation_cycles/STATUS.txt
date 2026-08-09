@@ -1,0 +1,6 @@
+BUDGET=5
+USED=2
+CYCLE_1=finding=W6-P02 APP_MUTATION_DETECTED on new federation/governance modules; root=mutation sentinel allowlist incomplete; fix=allowlist iran_directory_federation.py + source_governance_decisions.py; commit=78cad61; result=W6-P02 GREEN
+CYCLE_2=finding=stale PARTIAL window treated as activate SUCCESS; root=URL omitted from weekly logical identity; fix=source_scope URL identity + activate terminal hardening; commit=848cab5; result=run_id=3 FULL_SUCCESS + replay PASS
+INFRA_NON_CYCLE=deploy GHCR TLS timeout 31303734896 (activate pin path recovered)
+CYCLE_6=NOT_USED

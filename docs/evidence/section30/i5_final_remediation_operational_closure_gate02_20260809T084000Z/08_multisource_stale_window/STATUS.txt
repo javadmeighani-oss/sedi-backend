@@ -1,0 +1,5 @@
+FINDING=activate 31303141347 reported SUCCESS but weekly was ALREADY_SUCCESSFUL_TERMINAL on stale run_id=2 with CDC UNSAFE_URL + NIMH NOT_FOUND (PARTIAL) — not truthful FULL_SUCCESS
+ROOT_CAUSE=weekly source_scope omitted URL/canonical_key so URL remediations did not open new logical run
+FIX=governed_weekly_runtime.py include url/canonical_key in source_scope; activate workflow reject PARTIAL/FAILED terminals as FULL_SUCCESS proof
+COMMIT=848cab5847b6f4e757ecb4dd37c3e76522d65b81
+REMEDIATION_CYCLE=2

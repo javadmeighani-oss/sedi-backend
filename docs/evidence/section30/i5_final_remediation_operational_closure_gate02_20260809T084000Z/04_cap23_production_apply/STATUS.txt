@@ -1,0 +1,14 @@
+APPLY_RUN=31302475075
+APPLY_CONCLUSION=SUCCESS
+HEAD_SHA=78cad61013d00af79fe78a7d6702bfd8d80251d3
+BACKUP=PASS size=23167 sha256=2a79fd79c966ddfe9eac71a655a89b0b9eec52a059813a5102dfc149b2d1790c
+DRY_RUN=PASS (doctor unchanged=404; hospital unchanged=21; laboratory=0)
+APPLY=PASS
+REPLAY=PASS inserts=0 updates=0 deletes=0
+SEARCH_PROOF_DOCTOR=PASS clinical_authority_any=false ku_any=false
+SEARCH_PROOF_HOSPITAL=PASS
+POST_COUNTS=iran_doctors=404 iran_laboratories=0 iran_hospitals=21
+NO_DELETE=PASS
+NO_IR_TO_KU=PASS
+NOTE=This SUCCESS run observed already-matching rows (idempotent). Population counts mechanically verified. SessionLocal generator failure from Gate-01 is remediated.
+CAP23=CLOSED
