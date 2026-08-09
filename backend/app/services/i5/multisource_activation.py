@@ -6,6 +6,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import yaml
@@ -27,7 +28,6 @@ from backend.app.services.i5.governed_weekly_runtime import (
     CONTROLLED_FETCH_METHOD,
     CONFIG_VERSION,
     GovernedWeeklyRuntimeError,
-    utc_now,
 )
 from backend.app.services.i5.source_discovery import (
     SourceCandidateDescriptor,
@@ -116,7 +116,7 @@ def _governance_evidence(row: dict[str, Any]) -> dict[str, Any]:
         "iran_first_applicable": False,
         "policy_version_reference": f"multisource_activation_allowlist_v1/{row['source_key']}",
         "configuration_version_reference": CONFIG_VERSION,
-        "effective_at": utc_now(),
+        "effective_at": datetime.now(timezone.utc),
     }
 
 
@@ -225,8 +225,8 @@ def activate_multisource_allowlist(db: Any, models: Any) -> MultisourceActivatio
         profile.operational_status = SourceOperationalStatus.ENABLED_IDLE.value
         profile.owner_reference = "Javad"
         profile.topic_coverage = ",".join(row.get("knowledge_domains") or [])[:240]
-        profile.last_reviewed_at = utc_now()
-        profile.updated_at = utc_now()
+        profile.last_reviewed_at = datetime.now(timezone.utc)
+        profile.updated_at = datetime.now(timezone.utc)
         db.flush()
         if not gsp_persist.profile_is_fetch_eligible(profile):
             raise GovernedWeeklyRuntimeError("PROFILE_NOT_FETCH_ELIGIBLE", key)
