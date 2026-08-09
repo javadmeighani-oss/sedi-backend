@@ -1,0 +1,4 @@
+BEFORE_CURRENT_STATE=PARTIAL
+BEFORE_RUNTIME_STATUS=PARTIAL_INTERIM
+BEFORE_STATE_CLASS=STILL_REQUIRED_V1
+GAP=post-eligibility safe user-context relevance missing beyond language/domain filters

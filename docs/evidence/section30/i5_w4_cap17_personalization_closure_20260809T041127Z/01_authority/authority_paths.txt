@@ -1,0 +1,5 @@
+§164.2 LOCKED
+§250 W4-P01
+§262 prior formal validation
+i5_completion_ledger.json CAP-OPEN-17
+file_allowlist_matrix.json I5-IMPL-W4-P01

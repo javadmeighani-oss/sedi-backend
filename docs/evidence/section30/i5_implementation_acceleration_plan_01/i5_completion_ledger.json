@@ -1079,7 +1079,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "RUNTIME",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W4-P01",
         "MANAGEMENT_ALIAS": "P08",
-        "CURRENT_STATE": "PARTIAL",
+        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W4-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=12.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=9.38461539%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1089,12 +1089,14 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "BACKEND_IMPLEMENTATION",
-        "BLOCKER": "Formal §164.2 credit not awarded; W4-P02 synthesis/references and W6-P01 migration/network/activation remain separate",
+        "BLOCKER": "Formal §164.2 fraction mapping unpublished; FORMAL_CLOSURE_CREDIT=0",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+GROUNDING+PERSONALIZATION+REFERENCE+MEDICAL_SAFETY+PRODUCTION_ACTIVATION",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W4-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "PARTIAL_INTERIM",
+        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged. | §250 W4-P01 runtime closure: green f18bbd7 run 31151031730 job 92780521239 artifact 8983294371; 19/19/19; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §249 repeated runnerless hard-stop on exact HEAD 11d0f68 run 31124170273 job 92691184040; code authoring present; CI executable validation not obtained; formal % unchanged. | §250 W4-P01 runtime closure: green f18bbd7 run 31151031730 job 92780521239 artifact 8983294371; 19/19/19; formal % unchanged. | CAP17 personalization technical-runtime closed 2026-08-09; CI run 31293882158 job 93195675039 artifact 9032303745; formal % unchanged.",
+        "CAP17_TECHNICAL_RUNTIME_CLOSURE": "PASS",
+        "CAP17_STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-18",

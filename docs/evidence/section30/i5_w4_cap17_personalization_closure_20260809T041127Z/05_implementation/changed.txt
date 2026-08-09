@@ -1,0 +1,16 @@
+FILES=
+backend/app/services/i5/runtime_knowledge_retrieval.py
+backend/app/services/gate3/care_intelligence.py
+backend/tests/test_section30_i5_w4_cap17_personalization.py
+backend/tests/helpers/w4p01_cap17_personalization_runtime.py
+backend/tests/helpers/w4p01_cap17_postgres_runtime_plugin.py
+backend/tests/helpers/w4p01_postgres_runtime.py
+.github/workflows/w4p01-cap17-personalization-runtime.yml
+.github/workflows/w4p01-postgresql-knowledge-retrieval-runtime.yml
+SYMBOLS=
+RetrievalPersonalizationContext
+normalize_personalization_context
+build_personalization_context_from_memory
+_personalization_relevance
+retrieve_knowledge_context(+personalization)
+build_care_context(personalization wiring)

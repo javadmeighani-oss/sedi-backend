@@ -1,0 +1,7 @@
+CONTRACT=RetrievalPersonalizationContext
+FIELDS=language,goal_terms,preference_terms,lifestyle_terms,restriction_terms,routine_terms,domain_hints
+SOURCE=build_personalization_context_from_memory(CARE memory context)
+BOUNDS=8 terms/category, 48 chars/term, 64 total tokens
+RANKING=evidence_strength > query_token_overlap > personalization_score <=999
+QUERY_FLOOR=overlap>=1 required when query tokens present
+SAFETY=hard eligibility/provenance/version/medical-safety unchanged

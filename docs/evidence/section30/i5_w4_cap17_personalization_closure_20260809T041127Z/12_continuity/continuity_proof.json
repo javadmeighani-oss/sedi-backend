@@ -1,0 +1,21 @@
+{
+  "master_prior_size": 2821141,
+  "master_prior_sha256": "0C31F4E88318DA13100177774FF6BE6524865CC9E7077A257ECEEB89BCDB2B32",
+  "master_appended_bytes": 4231,
+  "master_final_size": 2825372,
+  "master_final_sha256": "E96AE16F57CE0E78A5C47115B47AEC8AD3D10AB8AED7BB52532EC0525C2B77CA",
+  "master_eol": "CRLF_ONLY",
+  "master_exact_prefix": true,
+  "master_section": "\u00a7263",
+  "handoff_predecessor": "v553",
+  "handoff_predecessor_size": 3656126,
+  "handoff_predecessor_sha256": "8BED78EF83D77ED93BA7D25E82A4DA5119979B8E9C38AA35D149A75818707BEB",
+  "handoff_appended_bytes": 1414,
+  "handoff_final_size": 3657540,
+  "handoff_final_sha256": "6A93580158C02E48F771A8CBD8E9811443EBEBDB0954D3B2BDB1E5ABA18C26E3",
+  "handoff_eol": "LF_ONLY",
+  "handoff_exact_prefix": true,
+  "handoff_path": "Sedi_Master_Handoff_Section62_I5_CAP17_PersonalizationClosure_v554_FA.md",
+  "tip_self_reference_not_embedded": true,
+  "evidence_content_covers_through_sha": "461024e1b22aeb710d65a48888f12c6629cc202b"
+}
