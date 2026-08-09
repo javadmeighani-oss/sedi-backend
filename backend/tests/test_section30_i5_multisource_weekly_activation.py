@@ -99,8 +99,8 @@ def test_activate_multisource_and_load_candidates_offline(db, monkeypatch):
 
 
 def test_allowlist_file_exists_and_matches_loader():
-    root = Path(__file__).resolve().parents[2]
-    path = root / "config" / "i5" / "multisource_activation_allowlist_v1.yaml"
+    root = Path(__file__).resolve().parents[2]  # repo root
+    path = root / "backend" / "config" / "i5" / "multisource_activation_allowlist_v1.yaml"
     assert path.is_file()
     data = load_multisource_allowlist()
     assert data["allowlist_version"] == "i5-multisource-v1"
