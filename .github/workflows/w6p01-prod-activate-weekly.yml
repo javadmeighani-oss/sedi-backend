@@ -1,13 +1,15 @@
 # Activate W6-P01 weekly orchestrator on production (workflow_dispatch only).
-# Env flag upsert + digest-pinned backend recreate + NHS source activation + scheduled proof.
-# Fail-closed: disable flags + deactivate NHS fetch + restart if scheduled proof fails.
+# Dual confirmation tokens:
+#   ACTIVATE_W6P01_WEEKLY       → NHS-only historical weekly activation
+#   ACTIVATE_I5_MULTISOURCE_V1  → I5 multi-source weekly activation
+# Fail-closed paths differ per job (see job bodies).
 name: W6-P01 Production Activate Weekly
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type ACTIVATE_W6P01_WEEKLY to authorize weekly activation."
+        description: "Accepted tokens: ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1"
         required: true
       deployed_image_sha:
         description: "40-character lowercase Git commit SHA of the deployed backend image."
@@ -30,6 +32,7 @@ permissions:
 jobs:
   activate-weekly:
     name: Activate W6-P01 weekly orchestrator on production
+    if: github.event.inputs.confirmation == 'ACTIVATE_W6P01_WEEKLY'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -542,6 +545,603 @@ jobs:
             if [ -f /tmp/w6p01_activate_weekly_run.log ]; then
               echo "### Captured summary markers"
               grep '^ACTIVATE_SUMMARY|' /tmp/w6p01_activate_weekly_run.log | while IFS='|' read -r _ key val; do
+                echo "- **${key}:** ${val}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  activate-multisource:
+    name: Activate I5 multi-source weekly on production
+    if: github.event.inputs.confirmation == 'ACTIVATE_I5_MULTISOURCE_V1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Validate activation inputs
+        id: validate_inputs
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          INPUT_IMAGE_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_IMAGE_DIGEST: ${{ github.event.inputs.deployed_image_digest }}
+          INPUT_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          if [ "${INPUT_CONFIRMATION}" != "ACTIVATE_I5_MULTISOURCE_V1" ]; then
+            echo "Confirmation input must be exactly ACTIVATE_I5_MULTISOURCE_V1."
+            exit 1
+          fi
+          if ! echo "${INPUT_IMAGE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "deployed_image_sha must be a 40-character lowercase hex Git commit SHA."
+            exit 1
+          fi
+          if ! echo "${INPUT_IMAGE_DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "deployed_image_digest must match sha256:<64 hex>."
+            exit 1
+          fi
+          if ! echo "${INPUT_EXPECTED_REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'; then
+            echo "expected_alembic_revision must be a safe Alembic identifier."
+            exit 1
+          fi
+          echo "Activation inputs validated."
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Activate multi-source weekly orchestrator (guarded)
+        id: activate
+        env:
+          INPUT_IMAGE_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_IMAGE_DIGEST: ${{ github.event.inputs.deployed_image_digest }}
+          INPUT_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_IMAGE_SHA}")"
+          IMAGE_DIGEST_Q="$(printf '%q' "${INPUT_IMAGE_DIGEST}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_EXPECTED_REV}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} IMAGE_DIGEST=${IMAGE_DIGEST_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_multisource_activate_weekly_run.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "MULTISOURCE_ACTIVATE_SUMMARY|$1|$2"; }
+
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          IMAGE_REF="ghcr.io/javadmeighani-oss/sedi-backend@${IMAGE_DIGEST}"
+          FLAG_ORCH="SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED"
+          FLAG_SRC="SEDI_I5_SOURCE_ACTIVATION_ENABLED"
+          FLAG_INT="SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN"
+          FLAG_DISABLE_SCHED="SEDI_DISABLE_SCHEDULER"
+          FLAG_MULTISOURCE="SEDI_I5_MULTISOURCE_ENABLED"
+          NHS_SLUG="nhs_uk_live_well"
+
+          install_env_file() {
+            local src="$1"
+            local dest_dir dest_base owner group mode
+            dest_dir="$(dirname "${ENV_FILE}")"
+            dest_base="$(basename "${ENV_FILE}")"
+            owner="$(stat -c '%u' "${ENV_FILE}")"
+            group="$(stat -c '%g' "${ENV_FILE}")"
+            mode="$(stat -c '%a' "${ENV_FILE}" 2>/dev/null || echo 600)"
+            if [ -w "${ENV_FILE}" ] && [ -w "${dest_dir}" ]; then
+              mv "${src}" "${ENV_FILE}"
+              chmod "${mode}" "${ENV_FILE}" || chmod 600 "${ENV_FILE}"
+              return 0
+            fi
+            docker run --rm \
+              --entrypoint sh \
+              -v "${src}:/tmp/new.env:ro" \
+              -v "${dest_dir}:/mnt/sedi_env" \
+              "${IMAGE_REF}" \
+              -c "cp /tmp/new.env /mnt/sedi_env/${dest_base}.i5mstmp && chown ${owner}:${group} /mnt/sedi_env/${dest_base}.i5mstmp && chmod ${mode} /mnt/sedi_env/${dest_base}.i5mstmp && mv /mnt/sedi_env/${dest_base}.i5mstmp /mnt/sedi_env/${dest_base}"
+            rm -f "${src}"
+          }
+
+          upsert_env_kv() {
+            local key="$1"
+            local val="$2"
+            local tmp
+            tmp="$(mktemp /tmp/sedi_env_upsert.XXXXXX)"
+            chmod 600 "${tmp}"
+            if grep -Eq "^${key}=" "${ENV_FILE}"; then
+              awk -v k="${key}" -v v="${val}" '
+                BEGIN { FS=OFS="=" }
+                $1 == k { print k "=" v; next }
+                { print }
+              ' "${ENV_FILE}" > "${tmp}"
+            else
+              cat "${ENV_FILE}" > "${tmp}"
+              printf '%s=%s\n' "${key}" "${val}" >> "${tmp}"
+            fi
+            install_env_file "${tmp}"
+          }
+
+          env_flag_equals() {
+            local key="$1"
+            local expect="$2"
+            local line
+            line="$(grep -E "^${key}=" "${ENV_FILE}" | tail -n 1 || true)"
+            if [ "${line}" = "${key}=${expect}" ]; then
+              return 0
+            fi
+            return 1
+          }
+
+          wait_health() {
+            local ok=0
+            local i
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then
+                ok=1
+                break
+              fi
+              log "Waiting for backend health... attempt ${i}/30"
+              sleep 2
+            done
+            if [ "${ok}" != "1" ]; then
+              log "HEALTH_FAILED: /healthz did not become ready"
+              return 1
+            fi
+            curl -fsS http://127.0.0.1:8000/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+            return 0
+          }
+
+          current_digest() {
+            local image_id
+            image_id="$(docker inspect sedi-backend --format '{{.Image}}' 2>/dev/null || true)"
+            if [ -z "${image_id}" ]; then
+              echo ""
+              return 0
+            fi
+            docker image inspect "${image_id}" \
+              --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null \
+              | head -n 1 || true
+          }
+
+          recreate_backend_pinned() {
+            log "=== PULL + RECREATE BACKEND @ DIGEST ==="
+            if ! docker pull "${IMAGE_REF}"; then
+              log "WARN: digest pull failed; attempting local digest/tag verification"
+            fi
+            LOCAL_DIGEST_REF="$(docker image inspect "${IMAGE_REF}" --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+            if ! echo "${LOCAL_DIGEST_REF}" | grep -Fq "${IMAGE_DIGEST}"; then
+              LOCAL_TAG_ID="$(docker image inspect "${IMAGE_TAG}" --format '{{.Id}}' 2>/dev/null || true)"
+              LOCAL_TAG_DIGEST="$(
+                docker image inspect "${IMAGE_TAG}" \
+                  --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null \
+                  | head -n 1 || true
+              )"
+              if ! echo "${LOCAL_TAG_DIGEST}" | grep -Fq "${IMAGE_DIGEST}"; then
+                log "DEPLOY_FAILED: neither digest pull nor local tag matches ${IMAGE_DIGEST}"
+                exit 13
+              fi
+              log "using_local_tag=${IMAGE_TAG} id=${LOCAL_TAG_ID}"
+            else
+              docker tag "${IMAGE_REF}" "${IMAGE_TAG}"
+            fi
+            cd "${DEPLOY_PATH}"
+            SEDI_IMAGE_TAG="${IMAGE_SHA}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+            wait_health
+            POST_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+            POST_IMAGE_ID="$(docker inspect sedi-backend --format '{{.Image}}' 2>/dev/null || true)"
+            POST_DIGEST="$(
+              docker image inspect "${POST_IMAGE_ID}" \
+                --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null \
+                | head -n 1 || true
+            )"
+            log "post_image=${POST_IMAGE}"
+            log "post_digest=${POST_DIGEST}"
+            if [ "${POST_IMAGE}" != "${IMAGE_TAG}" ]; then
+              log "DEPLOY_FAILED: running image tag mismatch (expected ${IMAGE_TAG})"
+              exit 14
+            fi
+            if ! echo "${POST_DIGEST}" | grep -Fq "${IMAGE_DIGEST}"; then
+              log "DEPLOY_FAILED: running image digest mismatch"
+              exit 15
+            fi
+          }
+
+          recreate_same_image_for_env() {
+            # Digest already matches expected; recreate only to pick up env_file changes.
+            log "=== RECREATE BACKEND (same digest; env reload) ==="
+            cd "${DEPLOY_PATH}"
+            SEDI_IMAGE_TAG="${IMAGE_SHA}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+            wait_health
+          }
+
+          fail_closed_recover_nhs() {
+            log "=== FAIL-CLOSED: MULTISOURCE OFF + DISABLE NON-NHS FETCH (NHS recoverable) ==="
+            upsert_env_kv "${FLAG_MULTISOURCE}" "false"
+            # Keep weekly orchestrator recoverable for NHS-only path.
+            upsert_env_kv "${FLAG_ORCH}" "true"
+            upsert_env_kv "${FLAG_SRC}" "true"
+            upsert_env_kv "${FLAG_INT}" "10080"
+            upsert_env_kv "${FLAG_DISABLE_SCHED}" "false"
+            if echo "$(current_digest)" | grep -Fq "${IMAGE_DIGEST}"; then
+              recreate_same_image_for_env || true
+            else
+              recreate_backend_pinned || true
+            fi
+            docker exec -i sedi-backend python - <<'PY'
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.governed_weekly_runtime import (
+              NHS_SOURCE_KEY,
+              activate_nhs_sleep_source,
+          )
+
+          db = next(get_db())
+          try:
+              # Disable every non-NHS fetch-enabled source.
+              others = (
+                  db.query(models.KnowledgeSource)
+                  .filter(models.KnowledgeSource.source_fetch_enabled.is_(True))
+                  .filter(models.KnowledgeSource.slug != NHS_SOURCE_KEY)
+                  .all()
+              )
+              for ks in others:
+                  print(f"fail_closed_disable_non_nhs id={ks.id} slug={ks.slug}")
+                  ks.source_fetch_enabled = False
+              db.commit()
+              # Ensure NHS path remains recoverable.
+              result = activate_nhs_sleep_source(db, models)
+              print(
+                  "nhs_recoverable="
+                  f"ks={result.knowledge_source_id},"
+                  f"fetch_enabled={result.source_fetch_enabled},"
+                  f"slug={NHS_SOURCE_KEY}"
+              )
+              enabled = (
+                  db.query(models.KnowledgeSource)
+                  .filter(models.KnowledgeSource.source_fetch_enabled.is_(True))
+                  .all()
+              )
+              slugs = ",".join(sorted(str(ks.slug) for ks in enabled))
+              print(f"fail_closed_enabled_slugs={slugs}")
+              if not any(ks.slug == NHS_SOURCE_KEY for ks in enabled):
+                  raise SystemExit("fail_closed_nhs_not_recoverable")
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+            env_flag_equals "${FLAG_MULTISOURCE}" "false"
+            log "fail_closed_multisource=false nhs_path=recoverable"
+            summary "fail_closed" "YES"
+          }
+
+          cd "${DEPLOY_PATH}"
+
+          log "=== STEP 1: VERIFY ALEMBIC + RECORD IMAGE ==="
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          CURRENT_DIGEST="$(current_digest)"
+          log "running_image=${CURRENT_IMAGE:-none}"
+          log "running_digest=${CURRENT_DIGEST:-none}"
+          summary "pre_image" "${CURRENT_IMAGE:-none}"
+          summary "pre_digest" "${CURRENT_DIGEST:-none}"
+
+          DIGEST_MATCH=0
+          if [ "${CURRENT_IMAGE}" = "${IMAGE_TAG}" ] && echo "${CURRENT_DIGEST}" | grep -Fq "${IMAGE_DIGEST}"; then
+            DIGEST_MATCH=1
+            log "image_digest_match=yes"
+          else
+            log "image_digest_match=no (will recreate pinned)"
+          fi
+          summary "digest_match" "${DIGEST_MATCH}"
+
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_current=${ALEMBIC_CURRENT}"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "PRECHECK_FAILED: alembic revision mismatch (expected ${EXPECTED_REV})"
+            exit 5
+          fi
+          if [ ! -f "${ENV_FILE}" ]; then
+            log "PRECHECK_FAILED: missing ${ENV_FILE}"
+            exit 3
+          fi
+
+          log "=== STEP 2: BACKUP ENV FILE (no contents printed) ==="
+          TS="$(date -u +%Y%m%d_%H%M%S)"
+          ENV_BACKUP_DIR="${DEPLOY_PATH}/backups/env"
+          mkdir -p "${ENV_BACKUP_DIR}"
+          ENV_BACKUP="${ENV_BACKUP_DIR}/sedi-backend.env.i5_multisource_pre_activate_${TS}"
+          cp -a "${ENV_FILE}" "${ENV_BACKUP}"
+          chmod 600 "${ENV_BACKUP}"
+          chown --reference="${ENV_FILE}" "${ENV_BACKUP}" 2>/dev/null || true
+          log "env_backup_path=${ENV_BACKUP}"
+          summary "env_backup_path" "${ENV_BACKUP}"
+
+          log "=== STEP 3: UPSERT WEEKLY + MULTISOURCE FLAGS ==="
+          upsert_env_kv "${FLAG_ORCH}" "true"
+          upsert_env_kv "${FLAG_SRC}" "true"
+          upsert_env_kv "${FLAG_INT}" "10080"
+          upsert_env_kv "${FLAG_DISABLE_SCHED}" "false"
+          upsert_env_kv "${FLAG_MULTISOURCE}" "true"
+          env_flag_equals "${FLAG_ORCH}" "true" || { log "ENV_UPSERT_FAILED: ${FLAG_ORCH}"; exit 16; }
+          env_flag_equals "${FLAG_SRC}" "true" || { log "ENV_UPSERT_FAILED: ${FLAG_SRC}"; exit 16; }
+          env_flag_equals "${FLAG_INT}" "10080" || { log "ENV_UPSERT_FAILED: ${FLAG_INT}"; exit 16; }
+          env_flag_equals "${FLAG_DISABLE_SCHED}" "false" || { log "ENV_UPSERT_FAILED: ${FLAG_DISABLE_SCHED}"; exit 16; }
+          env_flag_equals "${FLAG_MULTISOURCE}" "true" || { log "ENV_UPSERT_FAILED: ${FLAG_MULTISOURCE}"; exit 16; }
+          summary "flags_upserted" "true"
+
+          log "=== STEP 4: RECREATE BACKEND ONLY IF DIGEST MISMATCH (else env reload) ==="
+          if [ "${DIGEST_MATCH}" = "1" ]; then
+            recreate_same_image_for_env
+            summary "backend_recreated" "ENV_RELOAD_SAME_DIGEST"
+          else
+            recreate_backend_pinned
+            summary "backend_recreated" "YES_DIGEST_MISMATCH"
+          fi
+
+          log "=== STEP 5: ACTIVATE MULTISOURCE ALLOWLIST (>=4) ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.multisource_activation import (
+              activate_multisource_allowlist,
+              active_allowlist_rows,
+              multisource_enabled,
+          )
+
+          if not multisource_enabled():
+              raise SystemExit("MULTISOURCE_ENV_NOT_ENABLED_IN_CONTAINER")
+
+          allow_slugs = sorted(str(r["source_key"]) for r in active_allowlist_rows())
+          db = next(get_db())
+          try:
+              result = activate_multisource_allowlist(db, models)
+              db.commit()
+              enabled = (
+                  db.query(models.KnowledgeSource)
+                  .filter(models.KnowledgeSource.source_fetch_enabled.is_(True))
+                  .all()
+              )
+              enabled_slugs = sorted(str(ks.slug) for ks in enabled)
+              print(json.dumps({
+                  "activated_source_keys": sorted(result.activated_source_keys),
+                  "created_sources": result.created_sources,
+                  "created_profiles": result.created_profiles,
+                  "fetch_enabled_count": result.fetch_enabled_count,
+                  "enabled_slugs": enabled_slugs,
+                  "allowlist_slugs": allow_slugs,
+              }, ensure_ascii=False, sort_keys=True))
+              if result.fetch_enabled_count < 4:
+                  raise SystemExit(f"fetch_enabled_count_below_floor:{result.fetch_enabled_count}")
+              if set(enabled_slugs) != set(allow_slugs):
+                  raise SystemExit(
+                      f"enabled_slugs_mismatch:enabled={enabled_slugs}:allow={allow_slugs}"
+                  )
+              if set(result.activated_source_keys) != set(allow_slugs):
+                  raise SystemExit("activated_keys_mismatch_allowlist")
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+
+          log "=== STEP 6: INVOKE run_weekly_scheduled_job (x2; capture per-source metrics) ==="
+          PROOF_OK=1
+          if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+
+          def redact_source_results(rows):
+              out = []
+              for r in rows or []:
+                  if not isinstance(r, dict):
+                      continue
+                  out.append({
+                      "source_profile_id": r.get("source_profile_id"),
+                      "result_status": r.get("result_status"),
+                      "failure_code": r.get("failure_code"),
+                  })
+              return out
+
+          outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          metrics = {
+              "job": 1,
+              "outcome": outcome.outcome,
+              "network_executed": outcome.network_executed,
+              "production_write": outcome.production_write,
+              "detail": outcome.detail,
+              "run_id": outcome.run_id,
+              "source_result_count": len(outcome.source_results or []),
+              "source_results": redact_source_results(outcome.source_results),
+              "gap_result_count": len(outcome.gap_results or []),
+          }
+          print(json.dumps({"weekly_job_metrics": metrics}, ensure_ascii=False, sort_keys=True))
+          if outcome.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit(f"weekly_job_1_failed:{outcome.outcome}:{outcome.detail}")
+          if outcome.network_executed:
+              if outcome.outcome != "FULL_SUCCESS":
+                  raise SystemExit(f"weekly_job_1_expected_FULL_SUCCESS:{outcome.outcome}")
+          else:
+              if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+                  raise SystemExit(f"weekly_job_1_unexpected_no_network:{outcome.detail}")
+              db = next(get_db())
+              try:
+                  raw_n = db.query(models.I5RawEvidence).count()
+                  ku_n = db.query(models.KnowledgeUnit).count()
+                  prov_n = db.query(models.KnowledgeProvenance).count()
+                  run_n = db.query(models.WeeklyKnowledgeRun).count()
+                  print(json.dumps({
+                      "idempotent_db_counts": {
+                          "raw": raw_n, "ku": ku_n, "prov": prov_n, "runs": run_n,
+                      }
+                  }, ensure_ascii=False))
+                  if min(raw_n, ku_n, prov_n, run_n) < 1:
+                      raise SystemExit("weekly_job_1_idempotent_missing_governed_rows")
+              finally:
+                  db.close()
+          PY
+          then
+            PROOF_OK=0
+          fi
+
+          if [ "${PROOF_OK}" = "1" ]; then
+            if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+
+          outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          metrics = {
+              "job": 2,
+              "outcome": outcome.outcome,
+              "network_executed": outcome.network_executed,
+              "production_write": outcome.production_write,
+              "detail": outcome.detail,
+              "run_id": outcome.run_id,
+              "source_result_count": len(outcome.source_results or []),
+              "source_results": [
+                  {
+                      "source_profile_id": r.get("source_profile_id"),
+                      "result_status": r.get("result_status"),
+                      "failure_code": r.get("failure_code"),
+                  }
+                  for r in (outcome.source_results or [])
+                  if isinstance(r, dict)
+              ],
+          }
+          print(json.dumps({"weekly_job_metrics": metrics}, ensure_ascii=False, sort_keys=True))
+          if outcome.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit(f"weekly_job_2_failed:{outcome.outcome}:{outcome.detail}")
+          if outcome.network_executed:
+              raise SystemExit("weekly_job_2_unexpected_second_fetch")
+          if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit(f"weekly_job_2_expected_ALREADY_SUCCESSFUL_TERMINAL:{outcome.detail}")
+          PY
+            then
+              PROOF_OK=0
+            fi
+          fi
+
+          if [ "${PROOF_OK}" != "1" ]; then
+            log "SCHEDULED_PROOF_FAILED: entering fail-closed path"
+            fail_closed_recover_nhs
+            exit 50
+          fi
+          summary "scheduled_proof" "pass"
+
+          log "=== STEP 7: VERIFY FLAGS / SCHEDULER / SOURCES / HEALTH ==="
+          env_flag_equals "${FLAG_ORCH}" "true" || { log "VERIFY_FAILED: orchestrator flag"; exit 17; }
+          env_flag_equals "${FLAG_SRC}" "true" || { log "VERIFY_FAILED: source activation flag"; exit 17; }
+          env_flag_equals "${FLAG_INT}" "10080" || { log "VERIFY_FAILED: interval flag"; exit 17; }
+          env_flag_equals "${FLAG_DISABLE_SCHED}" "false" || { log "VERIFY_FAILED: scheduler disable flag"; exit 17; }
+          env_flag_equals "${FLAG_MULTISOURCE}" "true" || { log "VERIFY_FAILED: multisource flag"; exit 17; }
+          summary "flags_verified" "true"
+
+          if grep -Eq '^SEDI_DISABLE_SCHEDULER=(1|true|yes|on)$' "${ENV_FILE}"; then
+            log "VERIFY_FAILED: SEDI_DISABLE_SCHEDULER is enabled"
+            fail_closed_recover_nhs
+            exit 51
+          fi
+
+          LOG_TAIL="$(docker logs --tail 500 sedi-backend 2>&1 || true)"
+          SCHED_LINES="$(printf '%s\n' "${LOG_TAIL}" | grep -aF '[Sedi Scheduler]' | tail -n 60 || true)"
+          log "scheduler_log_line_count=$(printf '%s\n' "${SCHED_LINES}" | grep -c . || true)"
+          printf '%s\n' "${SCHED_LINES}" || true
+
+          REGISTERED_LINE="$(printf '%s\n' "${SCHED_LINES}" | grep -aF 'weekly_international_knowledge_crawler registered' | tail -n 1 || true)"
+          if [ -z "${REGISTERED_LINE}" ]; then
+            for _i in 1 2 3 4 5; do
+              sleep 2
+              LOG_TAIL="$(docker logs --tail 500 sedi-backend 2>&1 || true)"
+              SCHED_LINES="$(printf '%s\n' "${LOG_TAIL}" | grep -aF '[Sedi Scheduler]' | tail -n 60 || true)"
+              REGISTERED_LINE="$(printf '%s\n' "${SCHED_LINES}" | grep -aF 'weekly_international_knowledge_crawler registered' | tail -n 1 || true)"
+              if [ -n "${REGISTERED_LINE}" ]; then
+                break
+              fi
+            done
+          fi
+
+          if [ -z "${REGISTERED_LINE}" ]; then
+            if printf '%s\n' "${SCHED_LINES}" | grep -aqF 'weekly orchestrator dormant wiring failed'; then
+              log "VERIFY_FAILED: weekly orchestrator wiring failed at startup"
+            elif printf '%s\n' "${SCHED_LINES}" | grep -aqF 'Background scheduler started successfully'; then
+              log "VERIFY_FAILED: scheduler started but weekly job registration line missing"
+            else
+              log "VERIFY_FAILED: no weekly registration line in docker logs --tail 500"
+            fi
+            fail_closed_recover_nhs
+            exit 51
+          fi
+          log "scheduler_registered_line=${REGISTERED_LINE}"
+          if ! printf '%s\n' "${REGISTERED_LINE}" | grep -Eq 'interval_min=10080'; then
+            log "VERIFY_FAILED: registered weekly interval is not 10080"
+            fail_closed_recover_nhs
+            exit 51
+          fi
+          summary "scheduler_registered" "true"
+
+          SRC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c \
+            "SELECT COUNT(*) FROM knowledge_sources WHERE source_fetch_enabled IS TRUE;")"
+          SRC_SLUGS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c \
+            "SELECT COALESCE(string_agg(slug, ',' ORDER BY slug), '') FROM knowledge_sources WHERE source_fetch_enabled IS TRUE;")"
+          log "enabled_source_count=${SRC_COUNT}"
+          log "enabled_source_slugs=${SRC_SLUGS}"
+          summary "enabled_source_count" "${SRC_COUNT}"
+          summary "enabled_source_slugs" "${SRC_SLUGS}"
+          if [ "${SRC_COUNT}" -lt 4 ]; then
+            log "VERIFY_FAILED: expected fetch_enabled_count >= 4 (got ${SRC_COUNT})"
+            fail_closed_recover_nhs
+            exit 52
+          fi
+          # Must include NHS for recoverable historical path.
+          echo ",${SRC_SLUGS}," | grep -Fq ",${NHS_SLUG}," || {
+            log "VERIFY_FAILED: nhs_uk_live_well missing from enabled set"
+            fail_closed_recover_nhs
+            exit 52
+          }
+
+          wait_health
+          summary "health" "pass"
+          summary "activation" "SUCCESS"
+          log "=== I5 MULTISOURCE WEEKLY ACTIVATION DONE ==="
+          REMOTE_SCRIPT
+
+      - name: Write activation job summary
+        if: always()
+        env:
+          SUMMARY_IMAGE_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          SUMMARY_IMAGE_DIGEST: ${{ github.event.inputs.deployed_image_digest }}
+          SUMMARY_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          {
+            echo "## I5 Production Multi-Source Weekly Activation"
+            echo ""
+            echo "**Status:** ${{ job.status }}"
+            echo "**Confirmation validation:** ${{ steps.validate_inputs.outcome }}"
+            echo "**Required confirmation:** ACTIVATE_I5_MULTISOURCE_V1"
+            printf '%s\n' "**Deployed image SHA:** ${SUMMARY_IMAGE_SHA}"
+            printf '%s\n' "**Deployed image digest:** ${SUMMARY_IMAGE_DIGEST}"
+            printf '%s\n' "**Expected alembic revision:** ${SUMMARY_EXPECTED_REV}"
+            echo "**Fail-closed:** MULTISOURCE=false + non-NHS fetch disabled; NHS recoverable"
+            echo ""
+            if [ -f /tmp/i5_multisource_activate_weekly_run.log ]; then
+              echo "### Captured summary markers"
+              grep '^MULTISOURCE_ACTIVATE_SUMMARY|' /tmp/i5_multisource_activate_weekly_run.log | while IFS='|' read -r _ key val; do
                 echo "- **${key}:** ${val}"
               done || true
             fi
