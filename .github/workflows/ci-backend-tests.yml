@@ -671,9 +671,11 @@ jobs:
           # The prior sentinel failed on ANY backend/app/** change since GATE_START_SHA
           # (GATE_START_SHA remains the W6-P02 package start boundary; it is not moved).
           # W6-P01 authorizes a small, explicit set of application paths (the controlled
-          # live acquisition surface); every other backend/app/** path still fails the
-          # gate. Logic lives in a pure, unit-tested helper so it never needs a GH runner
-          # to validate — see backend/tests/test_section30_i5_w6_p01_ci_sentinel.py.
+          # live acquisition surface). CAP-OPEN-17 later authorized two additional
+          # personalization surface paths; they remain allowlisted here so W6-P02
+          # evidence-pack rebuilds after CAP17 do not falsely fail the sentinel.
+          # Every other backend/app/** path still fails the gate. Logic lives in a
+          # pure, unit-tested helper — see backend/tests/test_section30_i5_w6_p01_ci_sentinel.py.
           sys.path.insert(0, str(ws))
           from backend.tests.helpers.w6p01_evidence_app_mutation import unexpected_app_mutations
 
@@ -684,6 +686,8 @@ jobs:
               "backend/app/services/i5/adapters/**",
               "backend/app/services/i5/source_discovery.py",
               "backend/app/core/scheduler.py",
+              "backend/app/services/i5/runtime_knowledge_retrieval.py",
+              "backend/app/services/gate3/care_intelligence.py",
           ]
           unexpected_app = unexpected_app_mutations(ns.splitlines(), ALLOWED_APP_PATH_PREFIXES)
           write("app-mutation-allowlist.json", {

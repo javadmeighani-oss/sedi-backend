@@ -17,6 +17,9 @@ ALLOWED_APP_PATH_PREFIXES = [
     "backend/app/services/i5/adapters/**",
     "backend/app/services/i5/source_discovery.py",
     "backend/app/core/scheduler.py",
+    # CAP-OPEN-17 personalization surface (post-W6-P02 GATE_START_SHA; keep allowlisted).
+    "backend/app/services/i5/runtime_knowledge_retrieval.py",
+    "backend/app/services/gate3/care_intelligence.py",
 ]
 
 
@@ -73,3 +76,12 @@ def test_W6P01_CI07_directory_prefix_without_glob_suffix() -> None:
     # "**" suffix matches the whole subtree, including the directory itself as a file boundary.
     assert unexpected_app_mutations(lines, ["backend/app/services/i5/adapters/**"]) == []
     assert unexpected_app_mutations(lines, ["backend/app/services/i5/adapters/"]) == []
+
+
+def test_W6P01_CI08_cap17_personalization_paths_pass() -> None:
+    lines = [
+        "M\tbackend/app/services/i5/runtime_knowledge_retrieval.py",
+        "M\tbackend/app/services/gate3/care_intelligence.py",
+        "M\tbackend/app/services/i5/metrics.py",
+    ]
+    assert unexpected_app_mutations(lines, ALLOWED_APP_PATH_PREFIXES) == []
