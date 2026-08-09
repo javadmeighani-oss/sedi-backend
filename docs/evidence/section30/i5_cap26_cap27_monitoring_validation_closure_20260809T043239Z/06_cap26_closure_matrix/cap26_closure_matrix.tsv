@@ -1,0 +1,16 @@
+CRITERION|STATUS|EVIDENCE
+CAP26-C01 scheduler permanently registered|PASS|W6P01 SCHEDULER_ACTIVATION; readonly 31255965119
+CAP26-C02 scheduler enabled|PASS|31255965119 enabled=True
+CAP26-C03 interval=10080|PASS|W6P01 + readonly 31255965119
+CAP26-C04 same production callable|PASS|weekly orchestrator emit_post_run_aa_observability
+CAP26-C05 weekly run ledger observable|PASS|GOVERNED_RUN_LEDGER_WRITE=PASS
+CAP26-C06 metric emitter receives real run/ledger state|PASS|W6P03_REAL_OBSERVABILITY=PASS
+CAP26-C07 authorized normal counters available|PASS|EMITTABLE_COUNTER_METRICS=15
+CAP26-C08 exactly two executable alerts|PASS|SILENT_ZERO_IMPROVEMENT; HIGH_RISK_GAPS_REMAINING
+CAP26-C09 no fabricated COVERAGE_SCORE|PASS|UNFORMULATED_SCORE_METRICS; FABRICATED_COVERAGE_SCORE=NO
+CAP26-C10 no fabricated FRESHNESS_SCORE|PASS|FABRICATED_FRESHNESS_SCORE=NO
+CAP26-C11 no unauthorized threshold invented|PASS|POLICY_THRESHOLD_EXECUTABLE=False
+CAP26-C12 real successful governed run|PASS|31250041916 + 31250816722
+CAP26-C13 idempotent same-window replay|PASS|ALREADY_SUCCESSFUL_TERMINAL; SAME_WINDOW_DUPLICATE_FETCH=NO
+CAP26-C14 monitoring failure does not authorize unsafe medical action|PASS|observe-only; KU PENDING_REVIEW; no KM write
+CAP26-C15 no hidden external paging claim|PASS|pagerDuty out of scope

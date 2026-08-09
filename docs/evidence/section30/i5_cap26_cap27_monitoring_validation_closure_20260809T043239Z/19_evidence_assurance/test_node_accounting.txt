@@ -1,0 +1,2 @@
+W6: expected=22 collected=22 executed=22 pass=22 fail=0 skip=0 missing=0 duplicate=0 unexpected=0
+PRIOR: expected=12 collected=12 executed=12 pass=12 fail=0 skip=0 missing=0 unexpected=0

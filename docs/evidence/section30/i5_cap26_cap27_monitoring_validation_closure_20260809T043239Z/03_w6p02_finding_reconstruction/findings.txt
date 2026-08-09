@@ -1,0 +1,12 @@
+W6P02-EVIDENCE-REMEDIATION-CHAIN-01=CLOSED
+ROOT_CAUSE=prior evidence pack omitted complete remediation SHA/parent/subject/paths/run map
+REMEDIATION=this pack 03_w6p02_finding_reconstruction/commit-chain.json enumerates cycles 1-5 + proof-quality + allowlist remediation
+VERIFICATION=git show of each SHA; §255 cycle ledger; historical green run 31167497219; this-Gate green run 31295001111
+COMMIT_CHAIN_FILE=03_w6p02_finding_reconstruction/commit-chain.json
+
+W6P02-TEST-PROOF-QUALITY-01=CLOSED
+ROOT_CAUSE=test_W6P02_X04 used assert ... or True tautology; disposition string self-check; X05 self-equality
+REMEDIATION=commit 1a21b9ae9f3cef5dc59cb71d33b129dc5178c777 removes or True; requires evidence-pack classifier semantics; X05 uniqueness checks
+VERIFICATION=W6 offline E2E 22/22/22 PASS + prior-unit 12/12/12 PASS on CI run 31295001111 job 93198549592 artifact 9032658803
+FAILED_INTERIM_RUN=31294715058 (evidence-pack APP_MUTATION_DETECTED on CAP17 paths; tests already green)
+REMEDIATION_CYCLE_1_COMMIT=cbd9afb0fbdfce947d544ee23fca0dee4a31d9c1 (allowlist CAP17 paths in W6-P02 evidence sentinel)

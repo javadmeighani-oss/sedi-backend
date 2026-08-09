@@ -1,0 +1,6 @@
+test_W6P02_X04_sawarning_cleanup_justified_non_material
+test_W6P02_X05_package_boundary_no_activation
+test_W6P01_CI08_cap17_personalization_paths_pass
+ALLOWED_APP_PATH_PREFIXES (+CAP17 paths)
+CAP-OPEN-26 CURRENT_STATE/STATE_CLASS/closure flags
+CAP-OPEN-27 CURRENT_STATE/STATE_CLASS/closure flags

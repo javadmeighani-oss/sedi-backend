@@ -446,8 +446,8 @@
       "continuity_correction_section": "§255",
       "findings": {
         "W6P02-CONTINUITY-EVENT-COVERAGE-01": "CLOSED",
-        "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
-        "W6P02-TEST-PROOF-QUALITY-01": "OPEN_NON_BLOCKING_CARRY_FORWARD"
+        "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "CLOSED",
+        "W6P02-TEST-PROOF-QUALITY-01": "CLOSED"
       },
       "warning_elimination_proven": false,
       "program_critical_e2e_crawler_01": "OPEN",
@@ -492,8 +492,8 @@
       "technical_green_preserved": true,
       "findings": {
         "W6P02-CONTINUITY-EVENT-COVERAGE-01": "CLOSED",
-        "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
-        "W6P02-TEST-PROOF-QUALITY-01": "OPEN_NON_BLOCKING_CARRY_FORWARD"
+        "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "CLOSED",
+        "W6P02-TEST-PROOF-QUALITY-01": "CLOSED"
       },
       "warning_elimination_proven": false,
       "formal_i5_unchanged": "21.79487179%",
@@ -522,8 +522,8 @@
       "next_package": "I5-IMPL-W6-P01",
       "next_package_executed": false,
       "carry_forward": {
-        "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
-        "W6P02-TEST-PROOF-QUALITY-01": "OPEN_NON_BLOCKING_CARRY_FORWARD"
+        "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "CLOSED",
+        "W6P02-TEST-PROOF-QUALITY-01": "CLOSED"
       },
       "marker": "READY_FOR_W6P01_SEPARATE_JAVAD_APPROVAL",
       "recorded_at_utc": "2026-08-08T04:50:00Z",
@@ -1288,7 +1288,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "OPS",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P03",
         "MANAGEMENT_ALIAS": "P12",
-        "CURRENT_STATE": "PARTIAL_SCHEDULER_ACTIVE_MONITORING_FORMAL_DOMAIN_OPEN",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P03 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=3.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=2.34615385%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1301,11 +1301,13 @@
         "BLOCKER": "Formal §164.2 fraction mapping unpublished; FORMAL_CLOSURE_CREDIT=0",
         "CLOSURE_CRITERIA": "CODE_COMPLETE+TEST_PASS+CI_PASS+CONTROLLED_DRY_RUN+INGESTION_VERIFICATION+SCHEDULER_ACTIVATION+MONITORING",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P03; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "NOT_WIRED",
+        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | scheduler registered interval_min=10080 enabled=True (readonly 31255965119)",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | scheduler registered interval_min=10080 enabled=True (readonly 31255965119) | §264 CAP26 monitoring formal-domain technical/operational closed; W6-P03 contract preserved (17 AA / 15 counters / 2 alerts); W6-P01 production reuse; formal credit 0; CI 31295001111.",
         "W6P03_TECHNICAL_STATUS": "PASS_DRY_UNIT_GREEN",
-        "W6P03_FORMAL_DOMAIN_CLOSURE": "NOT_CLAIMED"
+        "W6P03_FORMAL_DOMAIN_CLOSURE": "TECHNICAL_OPERATIONAL_CLOSED_AWAITING_§164.2",
+        "CAP26_TECHNICAL_OPERATIONAL_CLOSURE": "PASS",
+        "CAP26_STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-27",
@@ -1313,7 +1315,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "VALIDATION",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W6-P02",
         "MANAGEMENT_ALIAS": "P11",
-        "CURRENT_STATE": "PARTIAL_MIGRATION_DEPLOY_ACTIVATION_DONE_TEST_PROOF_CARRY_FORWARD",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W6-P02 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=4.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=3.12820513%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1326,12 +1328,14 @@
         "BLOCKER": "Formal §164.2 fraction mapping unpublished; FORMAL_CLOSURE_CREDIT=0",
         "CLOSURE_CRITERIA": "Separate test/CI/migration-run/dry-run/activation/deploy Gates",
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W6-P02; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
-        "RUNTIME_STATUS": "NOT_WIRED",
+        "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | persistent migrate+deploy+activation Green via W6-P01; W6P02 findings remain OPEN_NON_BLOCKING_CARRY_FORWARD",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. [FIX3] inherits PERMANENT_CONTINUOUS_LEARNING_LAW + WEEKLY_GOVERNED_KNOWLEDGE_LOOP + measurement + dual-reference + no autonomous base-model retraining. | persistent migrate+deploy+activation Green via W6-P01; W6P02 findings remain OPEN_NON_BLOCKING_CARRY_FORWARD | §264 CAP27 validation domain technical/operational closed; W6P02-EVIDENCE-REMEDIATION-CHAIN-01=CLOSED; W6P02-TEST-PROOF-QUALITY-01=CLOSED; CI 31295001111 artifact 9032658803; formal credit 0.",
         "W6P02_TECHNICAL_VALIDATION": "PASS_GREEN_OFFLINE_E2E_AND_CI",
-        "W6P02_FORMAL_DOMAIN_CLOSURE": "NOT_CLAIMED",
-        "W6P02_CONTINUITY_CORRECTION": "COMPLETED"
+        "W6P02_FORMAL_DOMAIN_CLOSURE": "TECHNICAL_OPERATIONAL_CLOSED_AWAITING_§164.2",
+        "W6P02_CONTINUITY_CORRECTION": "COMPLETED",
+        "CAP27_TECHNICAL_OPERATIONAL_CLOSURE": "PASS",
+        "CAP27_STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-28",
@@ -1693,7 +1697,7 @@
         ],
         "REMAINING_PLAN_POINTS": "4.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "REMAINING_WEIGHT_PERCENT_DISPLAY": "3.12820513%"
       },
       {
@@ -1718,7 +1722,7 @@
         ],
         "REMAINING_PLAN_POINTS": "3.0",
         "FORMAL_CREDIT_RULE": "Package points are remaining-relative only; formal % changes only under §164.2 evolution after authorized closure evidence",
-        "CURRENT_STATE": "PLANNED_OR_PARTIAL_FOUNDATION",
+        "CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
         "REMAINING_WEIGHT_PERCENT_DISPLAY": "2.34615385%"
       },
       {
@@ -2539,8 +2543,25 @@
     "STATUS": "CLOSED_BY_JAVAD_RATIFICATION"
   },
   "w6p02_carry_forward_after_formal_validation": {
-    "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
-    "W6P02-TEST-PROOF-QUALITY-01": "OPEN_NON_BLOCKING_CARRY_FORWARD",
-    "reason": "No independent mechanical closure evidence for these finding IDs"
+    "W6P02-EVIDENCE-REMEDIATION-CHAIN-01": "CLOSED",
+    "W6P02-TEST-PROOF-QUALITY-01": "CLOSED",
+    "reason": "Mechanical closure this Gate; CI 31295001111; commits 1a21b9ae9f3cef5dc59cb71d33b129dc5178c777,cbd9afb0fbdfce947d544ee23fca0dee4a31d9c1",
+    "closed_at_utc": "2026-08-09T04:46:04Z",
+    "master_section": "§264"
+  },
+  "cap26_cap27_monitoring_validation_closure": {
+    "gate_id": "I5-CAP26-CAP27-MONITORING-VALIDATION-W6P02-PROOF-CLOSURE-MASTER-GATE-01",
+    "recorded_at_utc": "2026-08-09T04:46:04Z",
+    "CAP26_CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
+    "CAP27_CURRENT_STATE": "TECHNICAL_AND_OPERATIONAL_CLOSED_AWAITING_§164.2_FRACTION_MAPPING",
+    "CAP26_STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET",
+    "CAP27_STATE_CLASS": "NOT_FORMALLY_CREDITABLE_YET",
+    "FORMAL_I5_BEFORE": "21.79487179%",
+    "FORMAL_I5_AFTER": "21.79487179%",
+    "FORMAL_CREDIT_DELTA": "0",
+    "ci_green_run": 31295001111,
+    "ci_artifact": 9032658803,
+    "evidence_root": "docs/evidence/section30/i5_cap26_cap27_monitoring_validation_closure_20260809T043239Z",
+    "auto_remediation_cycles": 1
   }
 }

@@ -1,0 +1,20 @@
+{
+  "green_run_id": 31295001111,
+  "failed_interim_run_id": 31294715058,
+  "head_sha": "cbd9afb0fbdfce947d544ee23fca0dee4a31d9c1",
+  "job_id": 93198549592,
+  "artifact_id": 9032658803,
+  "artifact_digest": "sha256:c5f63d80a6882ea9b28daae344195692754b2619cbc922012a060b267512c2a1",
+  "w6": {
+    "expected": 22,
+    "collected": 22,
+    "executed": 22,
+    "pass": 22
+  },
+  "prior": {
+    "expected": 12,
+    "collected": 12,
+    "executed": 12,
+    "pass": 12
+  }
+}

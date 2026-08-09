@@ -1,0 +1,104 @@
+{
+  "finding": "W6P02-EVIDENCE-REMEDIATION-CHAIN-01",
+  "original_gap": "commit-chain.json incomplete vs actual remediation SHAs; git-show-remediation-commits.txt incomplete",
+  "future_criterion": "Evidence packs must enumerate every remediation commit with SHA/parent/subject/paths/run map",
+  "commits": [
+    {
+      "sha": "e840ff031cd956b5ad0061f349f64d361ca797f6",
+      "parent": "174ad636c9365a4eda9e7198696a9f5a9d57a7de",
+      "subject": "test(i5): add W6-P02 offline E2E validation",
+      "paths": [
+        ".github/workflows/ci-backend-tests.yml",
+        "backend/tests/test_section30_i5_e2e_offline_dryrun.py"
+      ],
+      "run_id": 31166787412,
+      "job_id": 92829330622,
+      "conclusion": "failure",
+      "cycle": 1
+    },
+    {
+      "sha": "5d34eb7ac883d0bc244ab3844412c47738a85ed2",
+      "parent": "e840ff031cd956b5ad0061f349f64d361ca797f6",
+      "subject": "fix(i5): tighten W6-P02 alembic sentinel pattern",
+      "paths": [
+        ".github/workflows/ci-backend-tests.yml"
+      ],
+      "run_id": 31166896078,
+      "job_id": 92829694932,
+      "conclusion": "failure",
+      "cycle": 2
+    },
+    {
+      "sha": "0cd1417d609c3150067400a35430f118818bdcc5",
+      "parent": "5d34eb7ac883d0bc244ab3844412c47738a85ed2",
+      "subject": "fix(i5): exclude prose from W6-P02 alembic sentinel",
+      "paths": [
+        ".github/workflows/ci-backend-tests.yml"
+      ],
+      "run_id": 31167005282,
+      "job_id": 92830056434,
+      "conclusion": "failure",
+      "cycle": 3
+    },
+    {
+      "sha": "dd7158aca715f0cbf6b40fc23e07b7dca3e45ab7",
+      "parent": "0cd1417d609c3150067400a35430f118818bdcc5",
+      "subject": "fix(i5): correct W6-P02 Z08 projection and Z16 sentinel",
+      "paths": [
+        "backend/tests/test_section30_i5_e2e_offline_dryrun.py"
+      ],
+      "run_id": 31167270915,
+      "job_id": 92830879420,
+      "conclusion": "success",
+      "terminal_green": false,
+      "cycle": 4,
+      "artifact_id": 8989502627
+    },
+    {
+      "sha": "b90b5221fb2d0eed58e519167e2c91c6f209105f",
+      "parent": "dd7158aca715f0cbf6b40fc23e07b7dca3e45ab7",
+      "subject": "fix(i5): purge W6-P02 evidence pack transient file",
+      "paths": [
+        ".github/workflows/ci-backend-tests.yml"
+      ],
+      "run_id": 31167497219,
+      "job_id": 92831601154,
+      "conclusion": "success",
+      "terminal_green": true,
+      "cycle": 5,
+      "artifact_id": 8989595136,
+      "artifact_digest": "sha256:b8444802128eb43121950e1ecde306bc6d366e6223aa33cfd612d60873d383e0"
+    },
+    {
+      "sha": "1a21b9ae9f3cef5dc59cb71d33b129dc5178c777",
+      "parent": "3911f71b637fff5f7c210b74705c28a2b51fb8b3",
+      "subject": "test(i5): close W6-P02 proof-quality carry-forward",
+      "paths": [
+        "backend/tests/test_section30_i5_e2e_offline_dryrun.py"
+      ],
+      "run_id": 31294715058,
+      "job_id": 93197814115,
+      "conclusion": "failure",
+      "cycle": "proof_quality_closure",
+      "note": "X04 tautology removal; tests green; evidence-pack APP_MUTATION_DETECTED on CAP17 paths"
+    },
+    {
+      "sha": "cbd9afb0fbdfce947d544ee23fca0dee4a31d9c1",
+      "parent": "1a21b9ae9f3cef5dc59cb71d33b129dc5178c777",
+      "subject": "ci(i5): allowlist CAP17 paths in W6-P02 evidence sentinel",
+      "paths": [
+        ".github/workflows/ci-backend-tests.yml",
+        "backend/tests/test_section30_i5_w6_p01_ci_sentinel.py"
+      ],
+      "run_id": 31295001111,
+      "job_id": 93198549592,
+      "conclusion": "success",
+      "terminal_green": true,
+      "cycle": "cap26_cap27_gate_remediation_1",
+      "artifact_id": 9032658803,
+      "artifact_digest": "sha256:c5f63d80a6882ea9b28daae344195692754b2619cbc922012a060b267512c2a1"
+    }
+  ],
+  "final_disposition": "CLOSED",
+  "verification": "git log/show of each SHA + master §255 cycle ledger + this pack commit-chain.json + CI 31295001111"
+}

@@ -1,0 +1,11 @@
+DIMENSION|HISTORICALLY_MISSING_IN_W6P02|LATER_SATISFIED_BY_W6P01|STILL_MISSING_TODAY|STATUS
+migration|RUN not executed|31249059730+31249367963 to 056|NO|PASS
+schema/revision|authored only|PROD_ALEMBIC=056|NO|PASS
+test|22/22 offline green|plus later gates|NO|PASS
+CI|31167497219|plus 31295001111 X04+allowlist Green|NO|PASS
+network|deferred|31250041916 real fetch|NO|PASS
+activation|deferred|31250816722|NO|PASS
+idempotency|partial|SAME_WINDOW_DUPLICATE_FETCH=NO|NO|PASS
+fail-closed|partial|31250041916 fail-closed path|NO|PASS
+Evidence Assurance|commit-chain incomplete|this Gate commit-chain.json|NO|PASS
+proof-quality|X04 or True| 1a21b9ae9f3cef5dc59cb71d33b129dc5178c777 fix + CI 31295001111|NO|PASS
