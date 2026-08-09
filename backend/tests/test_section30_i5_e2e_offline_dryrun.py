@@ -540,18 +540,23 @@ def test_W6P02_X04_sawarning_cleanup_justified_non_material():
     """W5P01-SAWARNING-CLEANUP-01 — justified non-material under W6-P02 evidence.
 
     Helper is READ-ONLY in this package; warning is harness cleanup, not mapper/FK/security.
+    Proof-quality law: no `or True`, no self-equality, no locally assigned disposition tautology.
     """
     helper = REPO_ROOT / "backend" / "tests" / "helpers" / "w5p01_postgres_runtime.py"
     pack = REPO_ROOT / "backend" / "tests" / "helpers" / "w5p01_build_evidence_assurance_pack.py"
     assert helper.is_file()
+    assert pack.is_file()
     helper_src = helper.read_text(encoding="utf-8")
+    pack_src = pack.read_text(encoding="utf-8")
     assert "outer_transaction.rollback" in helper_src
-    assert "transaction already deassociated" not in helper_src.lower() or True
-    # evidence pack classifier lists the warning as known non-material
-    if pack.is_file():
-        pack_src = pack.read_text(encoding="utf-8")
-        assert "transaction_already_deassociated" in pack_src
-        assert "known_non_material" in pack_src
+    # Semantic: helper source must not embed the SAWarning message text as active cleanup logic.
+    assert "transaction already deassociated" not in helper_src.lower()
+    # Justification lives in the evidence-pack classifier (not an in-test string assignment).
+    assert "transaction_already_deassociated" in pack_src
+    assert "known_non_material" in pack_src
+    assert "SQLAlchemy.SAWarning.transaction_already_deassociated" in pack_src
+    # Explicit non-claim: justified classification ≠ warning elimination proof.
+    assert "WARNING_ELIMINATED" not in pack_src
     # product services must not globally suppress SAWarning
     for rel in (
         "backend/app/services/i5/iran_directory_service.py",
@@ -560,10 +565,9 @@ def test_W6P02_X04_sawarning_cleanup_justified_non_material():
     ):
         src = (REPO_ROOT / rel).read_text(encoding="utf-8")
         assert "filterwarnings" not in src
-        assert "SAWarning" not in src or "ignore" not in src.lower()
-    # disposition for this Gate (route B — justified non-material; helper not writable)
-    disposition = "CLOSED_AS_JUSTIFIED_NON_MATERIAL_UNDER_W6P02_EXPANDED_EVIDENCE"
-    assert disposition.startswith("CLOSED_AS_JUSTIFIED_NON_MATERIAL")
+        lowered = src.lower()
+        if "sawarning" in lowered:
+            assert "ignore" not in lowered
 
 
 def test_W6P02_X05_package_boundary_no_activation():
@@ -574,6 +578,7 @@ def test_W6P02_X05_package_boundary_no_activation():
     assert orch.weekly_orchestrator_enabled() is False
     assert NO_LIVE_IR_SOURCE_FETCH is True
     assert MIGRATION_RUN_EXECUTED is False
-    # Z matrix completeness
-    assert list(Z_LAYERS) == list(Z_LAYERS)
-    assert Z_LAYER_COUNT == 17
+    # Z matrix completeness (no self-equality tautology)
+    assert isinstance(Z_LAYERS, (list, tuple))
+    assert Z_LAYER_COUNT == len(Z_LAYERS) == 17
+    assert len(set(Z_LAYERS)) == len(Z_LAYERS)
