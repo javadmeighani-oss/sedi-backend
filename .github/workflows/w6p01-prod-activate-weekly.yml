@@ -980,6 +980,17 @@ jobs:
           else:
               if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
                   raise SystemExit(f"weekly_job_1_unexpected_no_network:{outcome.detail}")
+              # Reject stale PARTIAL windows that previously short-circuited as terminal.
+              if str(outcome.outcome) not in {"FULL_SUCCESS", "COMPLETED"}:
+                  raise SystemExit(f"weekly_job_1_terminal_not_full_success:{outcome.outcome}")
+              bad = [
+                  r for r in (outcome.source_results or [])
+                  if isinstance(r, dict) and (
+                      r.get("result_status") in {"FAILED", "BLOCKED"} or r.get("failure_code")
+                  )
+              ]
+              if bad:
+                  raise SystemExit(f"weekly_job_1_terminal_has_failures:{bad}")
               db = next(get_db())
               try:
                   raw_n = db.query(models.I5RawEvidence).count()
@@ -1031,6 +1042,8 @@ jobs:
               raise SystemExit("weekly_job_2_unexpected_second_fetch")
           if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
               raise SystemExit(f"weekly_job_2_expected_ALREADY_SUCCESSFUL_TERMINAL:{outcome.detail}")
+          if str(outcome.outcome) not in {"FULL_SUCCESS", "COMPLETED"}:
+              raise SystemExit(f"weekly_job_2_terminal_not_full_success:{outcome.outcome}")
           PY
             then
               PROOF_OK=0

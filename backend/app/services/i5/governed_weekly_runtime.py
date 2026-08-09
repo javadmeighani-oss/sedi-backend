@@ -714,7 +714,16 @@ def build_scheduled_logical_identity(
 ) -> tuple[str, datetime, datetime, str]:
     start, end = deterministic_weekly_window(now)
     source_scope = json.dumps(
-        [{"source_profile_id": c.source_profile_id, "adapter_mode": c.adapter_mode} for c in candidates],
+        [
+            {
+                "source_profile_id": c.source_profile_id,
+                "adapter_mode": c.adapter_mode,
+                # Exact endpoint identity — URL remediations must open a new logical run.
+                "url": getattr(c, "url", None),
+                "canonical_key": getattr(c, "canonical_key", None),
+            }
+            for c in candidates
+        ],
         sort_keys=True,
     )
     import hashlib
