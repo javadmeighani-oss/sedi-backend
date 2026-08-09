@@ -688,6 +688,12 @@ jobs:
               "backend/app/core/scheduler.py",
               "backend/app/services/i5/runtime_knowledge_retrieval.py",
               "backend/app/services/gate3/care_intelligence.py",
+              # CAP23-25 Iran directory acquisition/import + router mount (this Gate).
+              "backend/app/services/i5/iran_directory_source_manifest.py",
+              "backend/app/services/i5/iran_directory_acquisition.py",
+              "backend/app/services/i5/iran_directory_normalization.py",
+              "backend/app/services/i5/iran_directory_import.py",
+              "backend/app/main.py",
           ]
           unexpected_app = unexpected_app_mutations(ns.splitlines(), ALLOWED_APP_PATH_PREFIXES)
           write("app-mutation-allowlist.json", {

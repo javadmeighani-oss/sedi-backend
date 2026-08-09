@@ -20,6 +20,12 @@ ALLOWED_APP_PATH_PREFIXES = [
     # CAP-OPEN-17 personalization surface (post-W6-P02 GATE_START_SHA; keep allowlisted).
     "backend/app/services/i5/runtime_knowledge_retrieval.py",
     "backend/app/services/gate3/care_intelligence.py",
+    # CAP23-25 Iran directory acquisition/import + router mount.
+    "backend/app/services/i5/iran_directory_source_manifest.py",
+    "backend/app/services/i5/iran_directory_acquisition.py",
+    "backend/app/services/i5/iran_directory_normalization.py",
+    "backend/app/services/i5/iran_directory_import.py",
+    "backend/app/main.py",
 ]
 
 
