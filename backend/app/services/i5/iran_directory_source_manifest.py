@@ -67,12 +67,16 @@ SOURCE_MANIFEST: dict[str, dict[str, Any]] = {
         "ALLOWED_FOR_V1_POPULATION": False,
         "AUTOMATION_PROHIBITION_FOUND": True,
         "REASON": (
-            "No admissible bulk official hospital facility source obtained: "
-            "TUMS portals HTTP 403; parvaneh.behdasht.gov.ir timeout; "
-            "data.gov.ir national list not freely downloadable as structured facility directory; "
-            "commercial aggregators Tier-3 discovery-only."
+            "Broader Gate discovery still unresolved for V1 population: "
+            "behdasht.gov.ir presents CAPTCHA/anti-bot gate; "
+            "AVAB (avab.behdasht.gov.ir) requires authenticated login (not public directory); "
+            "data.gov.ir/behdasht lacks free national structured hospital facility feed; "
+            "TUMS/SUMS robots or portals HTTP 403; "
+            "SBMU robots Allow:/ but no admissible structured public hospital registry endpoint proven; "
+            "paid commercial datasets and aggregators remain Tier-3 discovery-only."
         ),
-        "notes": "CAP25 BLOCKED_SOURCE_AUTHORITY until official facility feed is admissible.",
+        "notes": "CAP25 BLOCKED_SOURCE_AUTHORITY; federation policy authorized but no admissible member source yet.",
+        "CHECKED_AT_UTC": "2026-08-09T06:10:00Z",
     },
     "iran_laboratory_official_pending": {
         "SOURCE_KEY": "iran_laboratory_official_pending",
@@ -85,12 +89,14 @@ SOURCE_MANIFEST: dict[str, dict[str, Any]] = {
         "ALLOWED_FOR_V1_POPULATION": False,
         "AUTOMATION_PROHIBITION_FOUND": False,
         "REASON": (
-            "No admissible clinical laboratory FACILITY directory found. "
-            "IRIMC lists laboratory-science persons, not facilities. "
-            "ISIRI 17025 lists are calibration labs, not clinical IranLaboratory entities. "
-            "Commercial lab portals are Tier-3 discovery-only."
+            "Broader Gate discovery still unresolved for clinical laboratory FACILITIES: "
+            "IRIMC = professional persons (not facilities); "
+            "ISIRI 17025 = calibration/testing labs (not clinical iran_laboratories); "
+            "MoH laboratory office portals (e.g. ircme.ir continuing-education lists) are not clinical facility directories; "
+            "commercial lab portals (e-teb/avval/irindex) are Tier-3 discovery-only."
         ),
         "notes": "CAP24 BLOCKED_SOURCE_AUTHORITY; do not map IRIMC persons into iran_laboratories.",
+        "CHECKED_AT_UTC": "2026-08-09T06:10:00Z",
     },
 }
 

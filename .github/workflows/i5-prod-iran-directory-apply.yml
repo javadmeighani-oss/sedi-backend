@@ -1,0 +1,325 @@
+# Guarded production Iran directory apply (workflow_dispatch only).
+# Bounded IRIMC acquisition → artifact → SSH table backup → dry-run/apply/replay/search-proof.
+# Fail-closed on backup failure. Prints counts JSON only (no secrets / full PII dumps).
+name: I5 Production Iran Directory Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type APPLY_IRAN_DIRECTORY_V1 to authorize the guarded Iran directory apply."
+        required: true
+      expected_alembic_revision:
+        description: "Exact production alembic_version required before apply."
+        required: true
+        default: 056_i5_w2_p02_conflict_safety
+      payload_artifact_name:
+        description: "Artifact name for the normalized Iran directory payload."
+        required: true
+        default: iran-directory-normalized-payload
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  acquire-payload:
+    name: Bounded IRIMC acquisition → artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Validate confirmation
+        id: validate_inputs
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          INPUT_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+          INPUT_ARTIFACT: ${{ github.event.inputs.payload_artifact_name }}
+        run: |
+          set -Eeuo pipefail
+          if [ "${INPUT_CONFIRMATION}" != "APPLY_IRAN_DIRECTORY_V1" ]; then
+            echo "Confirmation input must be exactly APPLY_IRAN_DIRECTORY_V1."
+            exit 1
+          fi
+          if ! echo "${INPUT_EXPECTED_REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'; then
+            echo "expected_alembic_revision must be a safe Alembic identifier."
+            exit 1
+          fi
+          if ! echo "${INPUT_ARTIFACT}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'; then
+            echo "payload_artifact_name must be a safe artifact identifier."
+            exit 1
+          fi
+          echo "Inputs validated."
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install acquisition dependencies
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          # Backend package imports from checkout (manifest/normalization) + requests transport.
+          pip install -r backend/requirements.txt
+          pip install "requests>=2.31.0"
+
+      - name: Run bounded IRIMC acquisition
+        id: acquire
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="${GITHUB_WORKSPACE}${PYTHONPATH:+:${PYTHONPATH}}"
+          mkdir -p "${GITHUB_WORKSPACE}/artifacts/iran-directory"
+          OUT="${GITHUB_WORKSPACE}/artifacts/iran-directory/iran_doctors_normalized.json"
+          python backend/scripts/acquire_irimc_doctors_bounded.py "${OUT}"
+          # Also stage the canonical /tmp path name for remote docker cp consistency.
+          cp -a "${OUT}" /tmp/iran_doctors_normalized.json
+          test -s /tmp/iran_doctors_normalized.json
+          BYTES="$(wc -c < /tmp/iran_doctors_normalized.json | tr -d ' ')"
+          SHA="$(sha256sum /tmp/iran_doctors_normalized.json | awk '{print $1}')"
+          echo "payload_bytes=${BYTES}"
+          echo "payload_sha256=${SHA}"
+          # Count-only peek (no PII): meta.normalized_count via python.
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("/tmp/iran_doctors_normalized.json").read_text(encoding="utf-8"))
+          assert isinstance(data, dict) and "records" in data and "meta" in data
+          meta = data["meta"]
+          print(json.dumps({
+              "schema_ok": True,
+              "record_count": len(data["records"]),
+              "normalized_count": meta.get("normalized_count"),
+              "rejected_count": meta.get("rejected_count"),
+              "records_key_sha256": meta.get("records_key_sha256"),
+          }, ensure_ascii=False))
+          PY
+
+      - name: Upload normalized payload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.payload_artifact_name }}
+          path: /tmp/iran_doctors_normalized.json
+          if-no-files-found: error
+          retention-days: 14
+
+  prod-apply:
+    name: Production apply (SSH guarded)
+    needs: acquire-payload
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Validate confirmation
+        id: validate_inputs
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          INPUT_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          if [ "${INPUT_CONFIRMATION}" != "APPLY_IRAN_DIRECTORY_V1" ]; then
+            echo "Confirmation input must be exactly APPLY_IRAN_DIRECTORY_V1."
+            exit 1
+          fi
+          if ! echo "${INPUT_EXPECTED_REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'; then
+            echo "expected_alembic_revision must be a safe Alembic identifier."
+            exit 1
+          fi
+          echo "Apply inputs validated."
+
+      - name: Download normalized payload artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.inputs.payload_artifact_name }}
+          path: /tmp/iran-directory-payload
+
+      - name: Stage payload path
+        run: |
+          set -Eeuo pipefail
+          SRC="$(find /tmp/iran-directory-payload -type f -name 'iran_doctors_normalized.json' | head -n 1)"
+          if [ -z "${SRC}" ]; then
+            SRC="$(find /tmp/iran-directory-payload -type f | head -n 1)"
+          fi
+          if [ -z "${SRC}" ] || [ ! -s "${SRC}" ]; then
+            echo "ARTIFACT_MISSING: normalized payload not found"
+            exit 1
+          fi
+          cp -a "${SRC}" /tmp/iran_doctors_normalized.json
+          BYTES="$(wc -c < /tmp/iran_doctors_normalized.json | tr -d ' ')"
+          SHA="$(sha256sum /tmp/iran_doctors_normalized.json | awk '{print $1}')"
+          echo "local_payload_bytes=${BYTES}"
+          echo "local_payload_sha256=${SHA}"
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: SCP payload to production host
+        env:
+          DEPLOY_PATH: ${{ secrets.SEDI_DEPLOY_PATH }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${DEPLOY_PATH}/tmp")"
+          scp -i ~/.ssh/sedi_deploy_key \
+            -P "${{ secrets.SEDI_PORT }}" \
+            /tmp/iran_doctors_normalized.json \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${DEPLOY_PATH}/tmp/iran_doctors_normalized.json"
+
+      - name: Production apply (guarded remote)
+        id: apply
+        env:
+          INPUT_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_EXPECTED_REV}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_iran_directory_apply_run.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "IRAN_DIR_SUMMARY|$1|$2"; }
+
+          cd "${DEPLOY_PATH}"
+          PAYLOAD_HOST="${DEPLOY_PATH}/tmp/iran_doctors_normalized.json"
+          PAYLOAD_CTR="/tmp/iran_doctors_normalized.json"
+
+          log "=== PREFLIGHT: POSTGRES HEALTH ==="
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+
+          log "=== PREFLIGHT: ALEMBIC REVISION ==="
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          log "alembic_count=${ALEMBIC_COUNT}"
+          log "alembic_current=${ALEMBIC_CURRENT}"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "PRECHECK_FAILED: alembic revision mismatch (expected ${EXPECTED_REV})"
+            exit 5
+          fi
+
+          if [ ! -s "${PAYLOAD_HOST}" ]; then
+            log "PRECHECK_FAILED: missing payload at ${PAYLOAD_HOST}"
+            exit 6
+          fi
+          PAYLOAD_SHA="$(sha256sum "${PAYLOAD_HOST}" | awk '{print $1}')"
+          PAYLOAD_SIZE="$(stat -c%s "${PAYLOAD_HOST}" 2>/dev/null || wc -c < "${PAYLOAD_HOST}")"
+          log "payload_size_bytes=${PAYLOAD_SIZE}"
+          log "payload_sha256=${PAYLOAD_SHA}"
+          summary "payload_size" "${PAYLOAD_SIZE}"
+          summary "payload_sha256" "${PAYLOAD_SHA}"
+
+          log "=== BACKUP (iran directory tables only) ==="
+          BACKUP_DIR="${DEPLOY_PATH}/backups/iran_directory"
+          mkdir -p "${BACKUP_DIR}"
+          TS="$(date -u +%Y%m%d_%H%M%S)"
+          BACKUP_FILE="${BACKUP_DIR}/iran_directory_pre_apply_${TS}.sql.gz"
+          log "backup_file=${BACKUP_FILE}"
+          if ! docker exec sedi-postgres \
+            pg_dump \
+            -U "${PU}" \
+            -d "${PD}" \
+            -t iran_doctors \
+            -t iran_laboratories \
+            -t iran_hospitals |
+            gzip > "${BACKUP_FILE}"
+          then
+            rm -f "${BACKUP_FILE}"
+            log "BACKUP_FAILED: pg_dump or gzip pipeline failed"
+            exit 10
+          fi
+          if [ ! -s "${BACKUP_FILE}" ]; then
+            rm -f "${BACKUP_FILE}"
+            log "BACKUP_FAILED: empty backup file"
+            exit 11
+          fi
+          if ! gzip -t "${BACKUP_FILE}"; then
+            rm -f "${BACKUP_FILE}"
+            log "BACKUP_FAILED: gzip integrity check failed"
+            exit 12
+          fi
+          BACKUP_SHA256="$(sha256sum "${BACKUP_FILE}" | awk '{print $1}')"
+          BACKUP_SIZE="$(stat -c%s "${BACKUP_FILE}" 2>/dev/null || wc -c < "${BACKUP_FILE}")"
+          log "backup_size_bytes=${BACKUP_SIZE}"
+          log "backup_sha256=${BACKUP_SHA256}"
+          summary "backup_path" "${BACKUP_FILE}"
+          summary "backup_size" "${BACKUP_SIZE}"
+          summary "backup_sha256" "${BACKUP_SHA256}"
+          log "recovery_command: gunzip -c ${BACKUP_FILE} | docker exec -i sedi-postgres psql -U ${PU} -d ${PD}"
+          summary "recovery_auto" "NO"
+
+          log "=== DOCKER CP PAYLOAD INTO sedi-backend ==="
+          docker cp "${PAYLOAD_HOST}" "sedi-backend:${PAYLOAD_CTR}"
+
+          log "=== DRY-RUN ==="
+          DRY_JSON="$(docker exec sedi-backend python -m backend.scripts.iran_directory_prod_apply dry-run --payload "${PAYLOAD_CTR}")"
+          echo "${DRY_JSON}"
+          summary "dry_run" "ok"
+
+          log "=== APPLY ==="
+          APPLY_JSON="$(docker exec sedi-backend python -m backend.scripts.iran_directory_prod_apply apply --payload "${PAYLOAD_CTR}")"
+          echo "${APPLY_JSON}"
+          summary "apply" "ok"
+
+          log "=== REPLAY (idempotency) ==="
+          REPLAY_JSON="$(docker exec sedi-backend python -m backend.scripts.iran_directory_prod_apply replay --payload "${PAYLOAD_CTR}")"
+          echo "${REPLAY_JSON}"
+          summary "replay" "ok"
+
+          log "=== SEARCH-PROOF (DOCTOR) ==="
+          PROOF_JSON="$(docker exec sedi-backend python -m backend.scripts.iran_directory_prod_apply search-proof --family DOCTOR)"
+          echo "${PROOF_JSON}"
+          summary "search_proof" "ok"
+
+          log "=== POST TABLE COUNTS (no PII) ==="
+          DOC_N="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM iran_doctors;")"
+          LAB_N="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM iran_laboratories;")"
+          HOS_N="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM iran_hospitals;")"
+          echo "{\"iran_doctors\":${DOC_N},\"iran_laboratories\":${LAB_N},\"iran_hospitals\":${HOS_N}}"
+          summary "count_doctors" "${DOC_N}"
+          summary "count_laboratories" "${LAB_N}"
+          summary "count_hospitals" "${HOS_N}"
+          summary "apply_status" "SUCCESS"
+          log "=== IRAN DIRECTORY APPLY DONE ==="
+          REMOTE_SCRIPT
+
+      - name: Write apply job summary
+        if: always()
+        env:
+          SUMMARY_EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
+          SUMMARY_ARTIFACT: ${{ github.event.inputs.payload_artifact_name }}
+        run: |
+          {
+            echo "## I5 Production Iran Directory Apply"
+            echo ""
+            echo "**Status:** ${{ job.status }}"
+            echo "**Confirmation validation:** ${{ steps.validate_inputs.outcome }}"
+            echo "**Required confirmation:** APPLY_IRAN_DIRECTORY_V1"
+            printf '%s\n' "**Expected alembic revision:** ${SUMMARY_EXPECTED_REV}"
+            printf '%s\n' "**Payload artifact:** ${SUMMARY_ARTIFACT}"
+            echo "**Backup scope:** iran_doctors, iran_laboratories, iran_hospitals only"
+            echo "**Fail-closed on backup failure:** YES"
+            echo ""
+            if [ -f /tmp/i5_iran_directory_apply_run.log ]; then
+              echo "### Captured summary markers"
+              grep '^IRAN_DIR_SUMMARY|' /tmp/i5_iran_directory_apply_run.log | while IFS='|' read -r _ key val; do
+                echo "- **${key}:** ${val}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

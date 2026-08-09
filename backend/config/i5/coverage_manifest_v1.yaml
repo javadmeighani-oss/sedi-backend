@@ -1,0 +1,141 @@
+# I5 Coverage Manifest V1 — bootstrap from Master §194 freeze
+# AUTHORITATIVE_BOOTSTRAP_SOURCE for machine-readable coverage mapping.
+# Formal % credit unchanged; this file does not invent §164.2 fractions.
+manifest_version: "i5-coverage-v1"
+authority: "Master §194.5–§194.8"
+entity_count: 19
+neurology_note: "Neurology is parent taxonomy for D18/D19, not a separate Manifest entity ID."
+
+entities:
+  - id: D01
+    name_en: Oncology and supportive cancer care
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: oncology
+  - id: D02
+    name_en: Respiratory health and diseases
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: respiratory
+  - id: D03
+    name_en: Kidney and urinary tract health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: renal
+  - id: D04
+    name_en: Gastroenterology and digestive health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P2-STANDARD
+    parent_taxonomy: gastroenterology
+  - id: D05
+    name_en: Musculoskeletal health and pain
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P2-STANDARD
+    parent_taxonomy: musculoskeletal
+  - id: D06
+    name_en: Dermatology and skin health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P2-STANDARD
+    parent_taxonomy: dermatology
+  - id: D07
+    name_en: Ophthalmology and vision
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P2-STANDARD
+    parent_taxonomy: ophthalmology
+  - id: D08
+    name_en: Ear, hearing and vestibular health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P3-EXPANSION
+    parent_taxonomy: ent
+  - id: D09
+    name_en: Oral and dental health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P3-EXPANSION
+    parent_taxonomy: dental
+  - id: D10
+    name_en: Women's health and reproductive health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: womens_health
+  - id: D11
+    name_en: Pediatrics and adolescent health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: pediatrics
+  - id: D12
+    name_en: Geriatrics and healthy aging
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: geriatrics
+  - id: D13
+    name_en: Infectious diseases beyond hepatitis
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: infectious
+  - id: D14
+    name_en: Rare diseases
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P2-STANDARD
+    parent_taxonomy: rare_disease
+  - id: D15
+    name_en: Rehabilitation and functional recovery
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: rehabilitation
+  - id: D16
+    name_en: Palliative care
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P1-HIGH
+    parent_taxonomy: palliative
+  - id: D17
+    name_en: Environmental and occupational health
+    entity_type: BROAD_DOMAIN_FAMILY
+    priority: P3-EXPANSION
+    parent_taxonomy: environmental
+  - id: D18
+    name_en: Amyotrophic Lateral Sclerosis
+    alias: ALS
+    track: ALS-TRACK
+    entity_type: DISEASE_PRIORITY_TRACK
+    priority: P0-CRITICAL
+    parent_taxonomy: neurology
+  - id: D19
+    name_en: Multiple Sclerosis
+    alias: MS
+    track: MS-TRACK
+    entity_type: DISEASE_PRIORITY_TRACK
+    priority: P0-HIGH
+    parent_taxonomy: neurology
+
+# Source mapping for V1 multi-source closure (publisher diversity >= 4 families).
+# Mapping = SOURCE-MAPPED planning identity; runtime eligibility remains governed.
+source_mapping:
+  D01: [medlineplus_consumer_health]
+  D02: [medlineplus_consumer_health]
+  D03: [medlineplus_consumer_health]
+  D04: [medlineplus_consumer_health]
+  D05: [medlineplus_consumer_health, cdc_health_lifestyle]
+  D06: [medlineplus_consumer_health]
+  D07: [medlineplus_consumer_health]
+  D08: [medlineplus_consumer_health]
+  D09: [medlineplus_consumer_health]
+  D10: [medlineplus_consumer_health]
+  D11: [medlineplus_consumer_health]
+  D12: [medlineplus_consumer_health, nhs_uk_live_well]
+  D13: [medlineplus_consumer_health, cdc_health_lifestyle]
+  D14: [medlineplus_consumer_health]
+  D15: [medlineplus_consumer_health, cdc_health_lifestyle]
+  D16: [medlineplus_consumer_health]
+  D17: [cdc_health_lifestyle]
+  D18: [medlineplus_consumer_health]
+  D19: [medlineplus_consumer_health]
+
+knowledge_domain_coverage:
+  disease_clinical: [medlineplus_consumer_health]
+  neurology_als_ms: [medlineplus_consumer_health]
+  cardiovascular: [medlineplus_consumer_health, cdc_health_lifestyle]
+  diabetes_metabolic: [medlineplus_consumer_health]
+  mental_health_psychology: [nimh_nih_mental_health, nhs_uk_live_well]
+  nutrition: [medlineplus_consumer_health, cdc_health_lifestyle]
+  physical_activity_exercise: [cdc_health_lifestyle, nhs_uk_live_well]
+  lifestyle_prevention_routines: [nhs_uk_live_well, cdc_health_lifestyle, medlineplus_consumer_health]

@@ -1,0 +1,89 @@
+# Frozen multi-source activation allowlist for I5 Final V1 Operational Gate.
+# Only listed exact endpoints may become fetch-enabled. No wildcard activation.
+allowlist_version: "i5-multisource-v1"
+gate_id: "I5-FINAL-V1-OPERATIONAL-CLOSURE-CAP23-25-DIRECTORY-PLUS-REAL-MULTISOURCE-WEEKLY-KNOWLEDGE-EXPANSION-MASTER-GATE-01"
+publisher_diversity_floor: 4
+historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
+
+sources:
+  - source_key: nhs_uk_live_well
+    publisher: NHS UK
+    publisher_family: nhs.uk
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nhs.uk/live-well/sleep-and-tiredness/
+    additional_urls:
+      - https://www.nhs.uk/live-well/exercise/
+    allowed_domain: nhs.uk
+    allowed_url_patterns:
+      - "^https://www\\.nhs\\.uk/live-well/.*"
+    rights_terms_state: OGL
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_2_urls"
+    entity_coverage: [D12]
+    knowledge_domains: [lifestyle_prevention_routines, physical_activity_exercise, mental_health_psychology]
+    activation: YES
+    license_notes: "OGL v3.0 — attribution required; refresh <=7 days"
+
+  - source_key: medlineplus_consumer_health
+    publisher: NIH/NLM MedlinePlus
+    publisher_family: medlineplus.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://medlineplus.gov/amyotrophiclateralsclerosis.html
+    additional_urls:
+      - https://medlineplus.gov/multiplesclerosis.html
+      - https://medlineplus.gov/heartdiseases.html
+      - https://medlineplus.gov/diabetes.html
+      - https://medlineplus.gov/healthyliving.html
+    allowed_domain: medlineplus.gov
+    allowed_url_patterns:
+      - "^https://medlineplus\\.gov/.*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_5_urls"
+    entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19]
+    knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
+    activation: YES
+    license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
+
+  - source_key: cdc_health_lifestyle
+    publisher: CDC / HHS
+    publisher_family: cdc.gov
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.cdc.gov/physicalactivity/basics/index.htm
+    additional_urls: []
+    allowed_domain: cdc.gov
+    allowed_url_patterns:
+      - "^https://www\\.cdc\\.gov/physicalactivity/.*"
+      - "^https://www\\.cdc\\.gov/healthyliving/.*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_1_url"
+    entity_coverage: [D05, D13, D15, D17]
+    knowledge_domains: [physical_activity_exercise, nutrition, lifestyle_prevention_routines, cardiovascular]
+    activation: YES
+    license_notes: "CDC public domain — attribute CDC/HHS; non-endorsement disclaimer"
+
+  - source_key: nimh_nih_mental_health
+    publisher: NIMH / NIH
+    publisher_family: nimh.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nimh.nih.gov/health/publications/coping-with-stress
+    additional_urls: []
+    allowed_domain: nimh.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nimh\\.nih\\.gov/health/.*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_1_url"
+    entity_coverage: []
+    knowledge_domains: [mental_health_psychology]
+    activation: YES
+    license_notes: "NIMH public-domain text; cite NIMH; non-diagnostic; no crisis content as KB answers"

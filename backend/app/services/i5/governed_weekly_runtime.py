@@ -780,9 +780,13 @@ def run_weekly_scheduled_job(
                     detail="weekly advisory lock held by another worker",
                 )
 
-        resolved = list(candidates) if candidates is not None else load_controlled_weekly_candidates(
-            session, loaded_models
-        )
+        if candidates is not None:
+            resolved = list(candidates)
+        else:
+            # Multisource when SEDI_I5_MULTISOURCE_ENABLED; else historical NHS-only path.
+            from backend.app.services.i5.multisource_activation import resolve_weekly_candidates
+
+            resolved = resolve_weekly_candidates(session, loaded_models)
         run_key, start, end, cfg_hash = build_scheduled_logical_identity(
             candidates=resolved, now=now
         )
