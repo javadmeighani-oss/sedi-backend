@@ -44,6 +44,12 @@ STATUS_INSUFFICIENT_CONTEXT = "INSUFFICIENT_CONTEXT"
 
 NO_BASE_MODEL_FALLBACK = True
 
+# CAP-OPEN-17 personalization bounds (relevance only; never clinical authority).
+MAX_PERSONALIZATION_TERMS_PER_CATEGORY = 8
+MAX_PERSONALIZATION_TERM_LEN = 48
+MAX_PERSONALIZATION_TOTAL_TOKENS = 64
+MAX_PERSONALIZATION_SCORE = 999
+
 _EVIDENCE_RANK: dict[str, int] = {
     EvidenceStrength.HIGH.value: 3,
     EvidenceStrength.MODERATE.value: 2,
@@ -52,6 +58,17 @@ _EVIDENCE_RANK: dict[str, int] = {
 
 _PUNCT_RE = re.compile(r"[^\w\s]+", re.UNICODE)
 _WS_RE = re.compile(r"\s+", re.UNICODE)
+_ALLOWED_REASON_TAGS = frozenset(
+    {
+        "goal_relevance",
+        "preference_relevance",
+        "lifestyle_relevance",
+        "restriction_relevance",
+        "routine_relevance",
+        "domain_hint_match",
+        "language_match",
+    }
+)
 
 
 class RuntimeKnowledgeRetrievalError(ValueError):
@@ -70,6 +87,45 @@ class ExclusionRecord:
     knowledge_unit_id: Optional[int]
     canonical_unit_id: Optional[str]
     reason: str
+
+
+@dataclass(frozen=True)
+class RetrievalPersonalizationContext:
+    """Bounded safe user-context relevance features for CAP-OPEN-17.
+
+    Never authoritative for clinical truth. Never persists onto KU/Memory rows.
+    """
+
+    language: Optional[str] = None
+    goal_terms: tuple[str, ...] = ()
+    preference_terms: tuple[str, ...] = ()
+    lifestyle_terms: tuple[str, ...] = ()
+    restriction_terms: tuple[str, ...] = ()
+    routine_terms: tuple[str, ...] = ()
+    domain_hints: tuple[str, ...] = ()
+
+    def is_empty(self) -> bool:
+        return not (
+            self.language
+            or self.goal_terms
+            or self.preference_terms
+            or self.lifestyle_terms
+            or self.restriction_terms
+            or self.routine_terms
+            or self.domain_hints
+        )
+
+    def to_audit_dict(self) -> dict[str, Any]:
+        """Category sizes only — no raw user term values."""
+        return {
+            "language_set": bool(self.language),
+            "goal_term_count": len(self.goal_terms),
+            "preference_term_count": len(self.preference_terms),
+            "lifestyle_term_count": len(self.lifestyle_terms),
+            "restriction_term_count": len(self.restriction_terms),
+            "routine_term_count": len(self.routine_terms),
+            "domain_hint_count": len(self.domain_hints),
+        }
 
 
 @dataclass
@@ -93,6 +149,8 @@ class RetrievedKnowledgeItem:
     runtime_eligibility: str
     rank_score: int
     inclusion_reasons: list[str] = field(default_factory=list)
+    personalization_score: int = 0
+    personalization_reasons: list[str] = field(default_factory=list)
 
     def as_care_snippet(self) -> dict[str, Any]:
         """CARE_CONTEXT-compatible snippet; citation rendering owned by W4-P02."""
@@ -110,6 +168,8 @@ class RetrievedKnowledgeItem:
             },
             "evidence_strength": self.evidence_strength,
             "inclusion_reasons": list(self.inclusion_reasons),
+            "personalization_score": int(self.personalization_score),
+            "personalization_reasons": list(self.personalization_reasons),
         }
 
     def w4p02_handoff(self) -> dict[str, Any]:
@@ -145,6 +205,8 @@ class RetrievalResult:
     no_base_model_fallback: bool = NO_BASE_MODEL_FALLBACK
     clarification_required: bool = False
     escalation_required: bool = False
+    personalization_applied: bool = False
+    personalization_audit: dict[str, Any] = field(default_factory=dict)
     safe_user_facing_intent: str = (
         "No safe governed knowledge is available for this query; "
         "do not invent medical content."
@@ -161,6 +223,8 @@ class RetrievalResult:
             "user_id_scope": self.user_id_scope,
             "language_filter": self.language_filter,
             "domain_filter": self.domain_filter,
+            "personalization_applied": self.personalization_applied,
+            "personalization_audit": dict(self.personalization_audit),
             "retrieved_count": len(self.items),
             "items": [
                 {
@@ -183,6 +247,8 @@ class RetrievalResult:
                     "runtime_eligibility": i.runtime_eligibility,
                     "rank_score": i.rank_score,
                     "inclusion_reasons": list(i.inclusion_reasons),
+                    "personalization_score": int(i.personalization_score),
+                    "personalization_reasons": list(i.personalization_reasons),
                     "w4p02_handoff": i.w4p02_handoff(),
                 }
                 for i in self.items
@@ -246,11 +312,268 @@ def _token_overlap_score(tokens: Sequence[str], text: str) -> int:
     return sum(1 for t in tokens if t in hay_tokens)
 
 
-def _rank_score(evidence_strength: str, overlap: int, knowledge_unit_id: int) -> int:
-    """Deterministic ranking key component (higher better). Tie-break by -id later."""
+def _rank_score(
+    evidence_strength: str,
+    overlap: int,
+    personalization_score: int = 0,
+) -> int:
+    """Deterministic ranking: evidence > query overlap > personalization.
+
+    Personalization never exceeds the query-overlap bucket (max 999).
+    """
     strength = _EVIDENCE_RANK.get(str(evidence_strength), 0)
-    # Pack into single int: strength dominates, then overlap, then inverse id via sort
-    return strength * 1_000_000 + overlap * 1_000
+    pers = max(0, min(int(personalization_score), MAX_PERSONALIZATION_SCORE))
+    return strength * 1_000_000 + overlap * 1_000 + pers
+
+
+def _normalize_term_token(raw: Any) -> Optional[str]:
+    if raw is None:
+        return None
+    if not isinstance(raw, (str, int, float)):
+        return None
+    try:
+        text = str(raw)
+    except Exception:
+        return None
+    if not text or not text.strip():
+        return None
+    nq = normalize_query(text)
+    if not nq.normalized_query:
+        return None
+    # Prefer first meaningful token for bounded term lists.
+    token = nq.tokens[0] if nq.tokens else nq.normalized_query
+    if len(token) > MAX_PERSONALIZATION_TERM_LEN:
+        token = token[:MAX_PERSONALIZATION_TERM_LEN]
+    return token or None
+
+
+def _expand_raw_to_terms(raw: Any) -> tuple[str, ...]:
+    """Expand a title/phrase into normalized tokens (bounded later by caller)."""
+    if raw is None:
+        return ()
+    if not isinstance(raw, (str, int, float)):
+        return ()
+    nq = normalize_query(str(raw))
+    out: list[str] = []
+    for tok in nq.tokens:
+        if len(tok) > MAX_PERSONALIZATION_TERM_LEN:
+            tok = tok[:MAX_PERSONALIZATION_TERM_LEN]
+        if tok:
+            out.append(tok)
+    return tuple(out)
+
+
+def _bounded_unique_terms(values: Sequence[Any], *, limit: int) -> tuple[str, ...]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        for tok in _expand_raw_to_terms(raw):
+            if not tok or tok in seen:
+                continue
+            seen.add(tok)
+            out.append(tok)
+            if len(out) >= limit:
+                return tuple(out)
+    return tuple(out)
+
+
+def normalize_personalization_context(
+    personalization: Optional[RetrievalPersonalizationContext | Mapping[str, Any]],
+) -> Optional[RetrievalPersonalizationContext]:
+    """Deterministic bounded normalization; malformed optional context → None."""
+    if personalization is None:
+        return None
+    try:
+        if isinstance(personalization, RetrievalPersonalizationContext):
+            src = personalization
+            language = src.language
+            goal_terms = src.goal_terms
+            preference_terms = src.preference_terms
+            lifestyle_terms = src.lifestyle_terms
+            restriction_terms = src.restriction_terms
+            routine_terms = src.routine_terms
+            domain_hints = src.domain_hints
+        elif isinstance(personalization, Mapping):
+            language = personalization.get("language")
+            goal_terms = personalization.get("goal_terms") or ()
+            preference_terms = personalization.get("preference_terms") or ()
+            lifestyle_terms = personalization.get("lifestyle_terms") or ()
+            restriction_terms = personalization.get("restriction_terms") or ()
+            routine_terms = personalization.get("routine_terms") or ()
+            domain_hints = personalization.get("domain_hints") or ()
+        else:
+            return None
+
+        lang = None
+        if language is not None and str(language).strip():
+            lang = str(language).strip().casefold()[:16]
+
+        ctx = RetrievalPersonalizationContext(
+            language=lang,
+            goal_terms=_bounded_unique_terms(
+                list(goal_terms), limit=MAX_PERSONALIZATION_TERMS_PER_CATEGORY
+            ),
+            preference_terms=_bounded_unique_terms(
+                list(preference_terms), limit=MAX_PERSONALIZATION_TERMS_PER_CATEGORY
+            ),
+            lifestyle_terms=_bounded_unique_terms(
+                list(lifestyle_terms), limit=MAX_PERSONALIZATION_TERMS_PER_CATEGORY
+            ),
+            restriction_terms=_bounded_unique_terms(
+                list(restriction_terms), limit=MAX_PERSONALIZATION_TERMS_PER_CATEGORY
+            ),
+            routine_terms=_bounded_unique_terms(
+                list(routine_terms), limit=MAX_PERSONALIZATION_TERMS_PER_CATEGORY
+            ),
+            domain_hints=_bounded_unique_terms(
+                list(domain_hints), limit=MAX_PERSONALIZATION_TERMS_PER_CATEGORY
+            ),
+        )
+        total = (
+            len(ctx.goal_terms)
+            + len(ctx.preference_terms)
+            + len(ctx.lifestyle_terms)
+            + len(ctx.restriction_terms)
+            + len(ctx.routine_terms)
+            + len(ctx.domain_hints)
+            + (1 if ctx.language else 0)
+        )
+        if total > MAX_PERSONALIZATION_TOTAL_TOKENS:
+            # Cap by truncating softer categories first while remaining deterministic.
+            ctx = RetrievalPersonalizationContext(
+                language=ctx.language,
+                goal_terms=ctx.goal_terms[:4],
+                preference_terms=ctx.preference_terms[:4],
+                lifestyle_terms=ctx.lifestyle_terms[:4],
+                restriction_terms=ctx.restriction_terms[:4],
+                routine_terms=ctx.routine_terms[:4],
+                domain_hints=ctx.domain_hints[:4],
+            )
+        if ctx.is_empty():
+            return None
+        return ctx
+    except Exception:
+        return None
+
+
+def build_personalization_context_from_memory(
+    memory_context: Optional[Mapping[str, Any]],
+    *,
+    language: Optional[str] = None,
+) -> Optional[RetrievalPersonalizationContext]:
+    """Derive minimal safe personalization features from CARE memory context.
+
+    Excludes medications, conditions, doctor phones, and other high-risk PHI.
+    """
+    if not isinstance(memory_context, Mapping):
+        memory_context = {}
+    try:
+        goals = memory_context.get("goals") or []
+        habits = memory_context.get("habits") or []
+        restrictions = memory_context.get("restrictions") or []
+        memory_facts = memory_context.get("memory_facts") or {}
+        lifestyle_summary = memory_context.get("lifestyle_summary")
+        profile = memory_context.get("profile_core") or {}
+
+        goal_raw: list[Any] = []
+        for g in goals if isinstance(goals, list) else []:
+            if isinstance(g, Mapping):
+                goal_raw.append(g.get("title") or g.get("category"))
+            else:
+                goal_raw.append(g)
+
+        habit_raw: list[Any] = []
+        for h in habits if isinstance(habits, list) else []:
+            if isinstance(h, Mapping):
+                habit_raw.append(h.get("name"))
+            else:
+                habit_raw.append(h)
+
+        restriction_raw: list[Any] = []
+        for r in restrictions if isinstance(restrictions, list) else []:
+            if isinstance(r, Mapping):
+                restriction_raw.append(r.get("title") or r.get("restriction_type"))
+            else:
+                restriction_raw.append(r)
+
+        pref_raw: list[Any] = []
+        lifestyle_raw: list[Any] = []
+        routine_raw: list[Any] = []
+        if isinstance(memory_facts, Mapping):
+            for item in memory_facts.get("preferences") or []:
+                if isinstance(item, Mapping):
+                    pref_raw.append(item.get("key"))
+            for item in memory_facts.get("lifestyle") or []:
+                if isinstance(item, Mapping):
+                    lifestyle_raw.append(item.get("key"))
+            for item in memory_facts.get("routines") or []:
+                if isinstance(item, Mapping):
+                    routine_raw.append(item.get("key"))
+            for item in memory_facts.get("goals") or []:
+                if isinstance(item, Mapping):
+                    goal_raw.append(item.get("key"))
+
+        if lifestyle_summary:
+            lifestyle_raw.extend(normalize_query(str(lifestyle_summary)).tokens[:8])
+
+        lang = language or (profile.get("language") if isinstance(profile, Mapping) else None)
+        return normalize_personalization_context(
+            {
+                "language": lang,
+                "goal_terms": goal_raw,
+                "preference_terms": pref_raw,
+                "lifestyle_terms": lifestyle_raw + habit_raw,
+                "restriction_terms": restriction_raw,
+                "routine_terms": routine_raw,
+                "domain_hints": [],
+            }
+        )
+    except Exception:
+        return None
+
+
+def _personalization_relevance(
+    *,
+    ku_language: str,
+    ku_domain: str,
+    haystack: str,
+    ctx: Optional[RetrievalPersonalizationContext],
+) -> tuple[int, list[str]]:
+    """Compute bounded personalization score + non-sensitive reason tags."""
+    if ctx is None or ctx.is_empty():
+        return 0, []
+    score = 0
+    reasons: list[str] = []
+    hay_tokens = set(normalize_query(haystack).tokens)
+
+    def _add_category(terms: Sequence[str], tag: str, weight: int) -> None:
+        nonlocal score
+        if not terms:
+            return
+        hits = sum(1 for t in terms if t in hay_tokens)
+        if hits:
+            score += hits * weight
+            if tag in _ALLOWED_REASON_TAGS and tag not in reasons:
+                reasons.append(tag)
+
+    _add_category(ctx.goal_terms, "goal_relevance", 12)
+    _add_category(ctx.preference_terms, "preference_relevance", 8)
+    _add_category(ctx.lifestyle_terms, "lifestyle_relevance", 8)
+    _add_category(ctx.restriction_terms, "restriction_relevance", 6)
+    _add_category(ctx.routine_terms, "routine_relevance", 6)
+    _add_category(ctx.domain_hints, "domain_hint_match", 10)
+
+    if ctx.language and str(ku_language).casefold() == ctx.language:
+        score += 10
+        reasons.append("language_match")
+    if ctx.domain_hints and str(ku_domain).casefold() in set(ctx.domain_hints):
+        if "domain_hint_match" not in reasons:
+            reasons.append("domain_hint_match")
+        score += 8
+
+    score = max(0, min(score, MAX_PERSONALIZATION_SCORE))
+    reasons = [r for r in reasons if r in _ALLOWED_REASON_TAGS]
+    return score, reasons
 
 
 def _bump(counts: dict[str, int], reason: str) -> None:
@@ -389,11 +712,14 @@ def retrieve_knowledge_context(
     limit: Optional[int] = None,
     enqueue_gap_on_empty: bool = True,
     require_query_tokens: bool = False,
+    personalization: Optional[RetrievalPersonalizationContext | Mapping[str, Any]] = None,
 ) -> RetrievalResult:
     """Knowledge-DB-first retrieval with fail-closed eligibility filters.
 
-    Personalization boundary: language + domain filters only. user_id is audit
-    scope only and must not override eligibility or leak cross-user PHI into KU.
+    Personalization (CAP-OPEN-17) is a post-eligibility relevance/tie-break signal
+    only. It cannot alter hard eligibility, provenance, version, or medical-safety
+    decisions. user_id remains audit scope only and must not leak cross-user PHI
+    into shared KU/Memory rows.
     """
     from backend.app import models
 
@@ -401,6 +727,7 @@ def retrieve_knowledge_context(
     lim = clamp_limit(limit)
     trace_id = str(uuid.uuid4())
     query_id = _sha256_hex(f"{trace_id}|{nq.normalized_query}")[:32]
+    pers_ctx = normalize_personalization_context(personalization)
 
     result = RetrievalResult(
         status=STATUS_OK,
@@ -412,6 +739,8 @@ def retrieve_knowledge_context(
         language_filter=(language.strip() if language else None),
         domain_filter=(domain.strip() if domain else None),
         no_base_model_fallback=NO_BASE_MODEL_FALLBACK,
+        personalization_applied=False,
+        personalization_audit=pers_ctx.to_audit_dict() if pers_ctx else {},
     )
 
     if require_query_tokens and not nq.tokens:
@@ -594,6 +923,7 @@ def retrieve_knowledge_context(
             ),
         )
         # Empty query tokens: allow eligible CURRENT items (browse/filter mode).
+        # Query relevance floor: personalization cannot admit zero-overlap matches.
         if nq.tokens and overlap < 1:
             _exclude(
                 result.exclusions,
@@ -604,7 +934,31 @@ def retrieve_knowledge_context(
             )
             continue
 
-        score = _rank_score(str(ku.evidence_strength), overlap, ku.id)
+        haystack = " ".join(
+            [
+                str(ku.normalized_statement or ""),
+                str(ku.topic_taxonomy or ""),
+                str(ku.domain or ""),
+            ]
+        )
+        pers_score, pers_reasons = _personalization_relevance(
+            ku_language=str(ku.language),
+            ku_domain=str(ku.domain),
+            haystack=haystack,
+            ctx=pers_ctx,
+        )
+        score = _rank_score(str(ku.evidence_strength), overlap, pers_score)
+        inclusion = [
+            "CURRENT_MEMORY",
+            "KU_ELIGIBLE_MATRIX",
+            "MEMORY_ELIGIBLE",
+            "PROVENANCE_COMPLETE",
+            "PROVENANCE_ROW_PRESENT",
+            f"TOKEN_OVERLAP:{overlap}",
+        ]
+        if pers_score:
+            inclusion.append(f"PERSONALIZATION_SCORE:{pers_score}")
+            result.personalization_applied = True
         candidates.append(
             RetrievedKnowledgeItem(
                 knowledge_unit_id=ku.id,
@@ -625,14 +979,9 @@ def retrieve_knowledge_context(
                 medical_safety_state=str(ku.medical_safety_state),
                 runtime_eligibility=str(ku.runtime_eligibility),
                 rank_score=score,
-                inclusion_reasons=[
-                    "CURRENT_MEMORY",
-                    "KU_ELIGIBLE_MATRIX",
-                    "MEMORY_ELIGIBLE",
-                    "PROVENANCE_COMPLETE",
-                    "PROVENANCE_ROW_PRESENT",
-                    f"TOKEN_OVERLAP:{overlap}",
-                ],
+                inclusion_reasons=inclusion,
+                personalization_score=pers_score,
+                personalization_reasons=list(pers_reasons),
             )
         )
 

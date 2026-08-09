@@ -44,13 +44,22 @@ def build_care_context(db: Session, user_id: int, language: str = "fa", query_hi
     Medical knowledge context uses KU/Memory filters via runtime_knowledge_retrieval.
     Interim Gate3 search_knowledge is not used as an ungoverned medical substitute.
     Final answer synthesis / reference rendering remain outside this function (W4-P02).
+    CAP-OPEN-17: derive bounded personalization from existing care memory and pass
+    it explicitly into retrieval (post-eligibility ranking only).
     """
+    from backend.app.services.i5.runtime_knowledge_retrieval import (
+        build_personalization_context_from_memory,
+    )
+
     base = build_memory_context(db, user_id)
     base["vitals_summary"] = get_vitals_summary(db, user_id)
     base["care_plan_interpretation"] = interpret_care_plan(db, user_id)
     if query_hint:
         # Risk classification retained for care policy surfaces; not a knowledge substitute.
         RiskClassifier().classify(query_hint, language)
+        personalization = build_personalization_context_from_memory(
+            base, language=language
+        )
         retrieval = retrieve_knowledge_context(
             db,
             query_hint,
@@ -58,6 +67,7 @@ def build_care_context(db: Session, user_id: int, language: str = "fa", query_hi
             language=language,
             limit=3,
             enqueue_gap_on_empty=True,
+            personalization=personalization,
         )
         envelope = retrieval.to_dict()
         base["i5_knowledge_retrieval"] = envelope
@@ -65,6 +75,9 @@ def build_care_context(db: Session, user_id: int, language: str = "fa", query_hi
         base["i5_retrieval_status"] = retrieval.status
         base["no_base_model_fallback"] = True
         base["knowledge_db_first_package"] = W4P01_PACKAGE_ID
+        base["personalization_applied"] = bool(envelope.get("personalization_applied"))
+        # Audit sizes only — never echo raw personalization term values into CARE_CONTEXT.
+        base["personalization_audit"] = envelope.get("personalization_audit") or {}
     return base
 
 
