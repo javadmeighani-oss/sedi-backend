@@ -13,4 +13,4 @@ sqlalchemy
 pytz
 psycopg2-binary
 google-auth>=2.0.0,<3
-alembic>=1.13.0
+alembic>=1.13.0PyYAML>=6.0.1
