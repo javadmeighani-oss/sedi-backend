@@ -1,0 +1,2 @@
+SEDI_I5_MULTISOURCE_ENABLED path + allowlist + coverage manifest
+HISTORICAL_NHS_ONLY_PRESERVED=YES

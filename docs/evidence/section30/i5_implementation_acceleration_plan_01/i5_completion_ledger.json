@@ -1234,7 +1234,7 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP23 PARTIAL: IRIMC Tier-1 admissible; acquisition/import/router/CI green; live sample 307 ephemeral; PRODUCTION_APPLY=DENIED_BY_FAIL_CLOSED; formal credit 0; CI 31296899909/31296901586.",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP23 PARTIAL: IRIMC Tier-1 admissible; acquisition/import/router/CI green; live sample 307 ephemeral; PRODUCTION_APPLY=DENIED_BY_FAIL_CLOSED; formal credit 0; CI 31296899909/31296901586. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e.",
         "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
@@ -1258,7 +1258,7 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP24 BLOCKED_SOURCE_AUTHORITY after discovery; IRIMC≠facilities; ISIRI=calibration; aggregators Tier-3 only; formal credit 0.",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP24 BLOCKED_SOURCE_AUTHORITY after discovery; IRIMC≠facilities; ISIRI=calibration; aggregators Tier-3 only; formal credit 0. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e.",
         "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
@@ -1282,7 +1282,7 @@
         "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP25 BLOCKED_SOURCE_AUTHORITY after discovery; TUMS 403; behdasht/data.gov no usable bulk feed; aggregators Tier-3 only; formal credit 0.",
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP25 BLOCKED_SOURCE_AUTHORITY after discovery; TUMS 403; behdasht/data.gov no usable bulk feed; aggregators Tier-3 only; formal credit 0. | §266 PARTIAL_HARD_STOP: CAP23 acquire via GHA PASS run 31299159248; apply FAIL SessionLocal generator HARD_STOP auto-remediation-cap; CAP24/25 still BLOCKED after broader search; multisource code/CI/deploy PASS; activate 31299468101 FAIL_CLOSED PARTIAL_SUCCESS; formal % unchanged; tip through 80b8b523e766a343f52e4839f6210be2621d6a3e.",
         "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
@@ -2595,5 +2595,14 @@
       "CAP-OPEN-25"
     ],
     "NEXT_CRITICAL_PATH": "I5 IRAN DIRECTORY FACILITY-SOURCE AUTHORITY + CAP23 PRODUCTION DIRECTORY APPLY GATE"
+  },
+  "gate_stamps": {
+    "§266": {
+      "recorded_at_utc": "2026-08-09T06:47:40Z",
+      "outcome": "PARTIAL_HARD_STOP",
+      "formal_i5": "17/78=21.79487179%",
+      "evidence_root": "docs/evidence/section30/i5_final_v1_operational_directory_multisource_closure_20260809T064740Z",
+      "head": "80b8b523e766a343f52e4839f6210be2621d6a3e"
+    }
   }
 }

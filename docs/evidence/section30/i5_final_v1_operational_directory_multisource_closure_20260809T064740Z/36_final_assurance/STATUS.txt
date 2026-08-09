@@ -1,0 +1,4 @@
+GATE_RESULT=PARTIAL_HARD_STOP
+OPEN_BLOCKING_FINDINGS=4
+MANUFACTURED_GREEN=NO
+NEXT=I5 apply-fix + facility-source + multisource endpoint remediation THEN I6

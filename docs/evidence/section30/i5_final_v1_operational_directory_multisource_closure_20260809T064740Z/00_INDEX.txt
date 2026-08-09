@@ -1,0 +1,3 @@
+EVIDENCE_ROOT=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace/docs/evidence/section30/i5_final_v1_operational_directory_multisource_closure_20260809T064740Z
+OUTCOME=PARTIAL_HARD_STOP
+RECORDED_AT_UTC=2026-08-09T06:47:40Z

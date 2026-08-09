@@ -1,0 +1,2 @@
+SELECTED=nhs_uk_live_well,medlineplus_consumer_health,cdc_health_lifestyle,nimh_nih_mental_health
+PUBLISHER_DIVERSITY=4
