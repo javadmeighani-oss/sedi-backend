@@ -1,5 +1,5 @@
 # W4-P01 Focused PostgreSQL Knowledge Retrieval Runtime — GitHub workflow.
-# Frozen contract: helper W4P01_RUNTIME_SELECTORS (16 -> 19).
+# Frozen contract: helper W4P01_RUNTIME_SELECTORS (16 -> 19 -> 34 with CAP17).
 # Controlled real-source validation: NOT OWNED (W6-P01). No live network.
 # Source activation / weekly scheduler activation: OFF. No production write.
 name: W4-P01 Focused PostgreSQL Knowledge Retrieval Runtime
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   w4p01-postgresql-knowledge-retrieval-runtime:
-    name: W4-P01 PostgreSQL knowledge retrieval runtime (19 nodes)
+    name: W4-P01 PostgreSQL knowledge retrieval + CAP17 runtime (34 nodes)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -127,13 +127,14 @@ jobs:
               Path("backend/app/services/gate3/care_intelligence.py"),
               Path("backend/app/core/conversation/brain.py"),
               Path("backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py"),
+              Path("backend/tests/test_section30_i5_w4_cap17_personalization.py"),
           ]
           for path in paths:
               ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
               print("ast_ok", path)
           PY
 
-      - name: Process 1 — collect-only manifest (19 nodes)
+      - name: Process 1 — collect-only manifest (34 nodes)
         run: |
           set -o pipefail
           python -B -m pytest \
@@ -158,6 +159,21 @@ jobs:
             backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T14_care_context_kb_first \
             backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T15_multiple_current_fail_closed \
             backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T16_w4p02_handoff_fields \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T00_malformed_personalization_degrades \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T01_baseline_empty_personalization \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T02_goal_relevance_ranking \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T03_query_relevance_precedes_personalization \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T04_safety_precedence_not_eligible \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T05_provenance_precedence \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T06_superseded_not_selected \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T07_language_personalization_soft_boost \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T08_restriction_relevance_metadata \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T09_cross_user_isolation \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T10_no_user_phi_on_shared_knowledge \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T11_no_base_model_fallback \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T12_care_context_personalization_wiring \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T13_w4p02_handoff_compatibility \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T14_determinism \
             | tee "${{ runner.temp }}/sedi_w4p01_evidence_assurance_pack/collected-nodes.txt"
 
       - name: Process 2 — focused PostgreSQL knowledge retrieval runtime
@@ -185,6 +201,21 @@ jobs:
             backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T14_care_context_kb_first \
             backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T15_multiple_current_fail_closed \
             backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py::test_W4P01_T16_w4p02_handoff_fields \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T00_malformed_personalization_degrades \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T01_baseline_empty_personalization \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T02_goal_relevance_ranking \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T03_query_relevance_precedes_personalization \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T04_safety_precedence_not_eligible \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T05_provenance_precedence \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T06_superseded_not_selected \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T07_language_personalization_soft_boost \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T08_restriction_relevance_metadata \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T09_cross_user_isolation \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T10_no_user_phi_on_shared_knowledge \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T11_no_base_model_fallback \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T12_care_context_personalization_wiring \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T13_w4p02_handoff_compatibility \
+            backend/tests/test_section30_i5_w4_cap17_personalization.py::test_P17_T14_determinism \
             | tee "${{ runner.temp }}/sedi_w4p01_evidence_assurance_pack/test-output.txt"
 
       - name: Build Evidence Assurance Pack
@@ -210,7 +241,7 @@ jobs:
           if collected_path.exists():
               for line in collected_path.read_text(encoding="utf-8").splitlines():
                   line = line.strip()
-                  if "::test_W4P01_" in line:
+                  if "::test_W4P01_" in line or "::test_P17_" in line:
                       # pytest -q collect lines like "test_section30...::test_..."
                       if line.startswith("backend/") or "test_section30" in line:
                           collected_ids.append(line.replace("\\", "/"))
@@ -252,14 +283,14 @@ jobs:
               "manifest_equality_pass": evidence.get("manifest_equality_pass"),
           }
           green_ok = (
-              len(expected) == 19
-              and len(set(collected_ids)) == 19
-              and node_accounting["executed_count"] == 19
+              len(expected) == 34
+              and len(set(collected_ids)) == 34
+              and node_accounting["executed_count"] == 34
               and not missing
               and not unexpected
               and skip_count == 0
               and fail_count == 0
-              and pass_count == 19
+              and pass_count == 34
           )
           node_accounting["green_contract_pass"] = green_ok
           (pack / "node-accounting.json").write_text(json.dumps(node_accounting, indent=2) + "\n", encoding="utf-8")
@@ -498,7 +529,7 @@ jobs:
           if not green_ok:
               raise SystemExit(
                   "SENTINEL_W4P01_NODE_CONTRACT_NOT_GREEN "
-                  f"expected=19 collected={node_accounting['collected_count']} "
+                  f"expected=34 collected={node_accounting['collected_count']} "
                   f"executed={node_accounting['executed_count']} "
                   f"pass={pass_count} fail={fail_count} skip={skip_count} "
                   f"missing={len(missing)} unexpected={len(unexpected)}"

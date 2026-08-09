@@ -62,6 +62,7 @@ W4P01_EXPECTED_SCHEMA_TABLES: tuple[str, ...] = (
 )
 
 _W4P01_TEST = "backend/tests/test_section30_i5_w4_p01_runtime_kb_first.py"
+_CAP17_TEST = "backend/tests/test_section30_i5_w4_cap17_personalization.py"
 
 W4P01_RUNTIME_SELECTORS: tuple[str, ...] = (
     f"{_W4P01_TEST}::test_W4P01_T1_package_identity",
@@ -80,6 +81,21 @@ W4P01_RUNTIME_SELECTORS: tuple[str, ...] = (
     f"{_W4P01_TEST}::test_W4P01_T14_care_context_kb_first",
     f"{_W4P01_TEST}::test_W4P01_T15_multiple_current_fail_closed",
     f"{_W4P01_TEST}::test_W4P01_T16_w4p02_handoff_fields",
+    f"{_CAP17_TEST}::test_P17_T00_malformed_personalization_degrades",
+    f"{_CAP17_TEST}::test_P17_T01_baseline_empty_personalization",
+    f"{_CAP17_TEST}::test_P17_T02_goal_relevance_ranking",
+    f"{_CAP17_TEST}::test_P17_T03_query_relevance_precedes_personalization",
+    f"{_CAP17_TEST}::test_P17_T04_safety_precedence_not_eligible",
+    f"{_CAP17_TEST}::test_P17_T05_provenance_precedence",
+    f"{_CAP17_TEST}::test_P17_T06_superseded_not_selected",
+    f"{_CAP17_TEST}::test_P17_T07_language_personalization_soft_boost",
+    f"{_CAP17_TEST}::test_P17_T08_restriction_relevance_metadata",
+    f"{_CAP17_TEST}::test_P17_T09_cross_user_isolation",
+    f"{_CAP17_TEST}::test_P17_T10_no_user_phi_on_shared_knowledge",
+    f"{_CAP17_TEST}::test_P17_T11_no_base_model_fallback",
+    f"{_CAP17_TEST}::test_P17_T12_care_context_personalization_wiring",
+    f"{_CAP17_TEST}::test_P17_T13_w4p02_handoff_compatibility",
+    f"{_CAP17_TEST}::test_P17_T14_determinism",
 )
 
 W4P01_EXPECTED_RUNTIME_NODE_IDS: frozenset[str] = frozenset(
@@ -103,11 +119,26 @@ W4P01_EXPECTED_RUNTIME_NODE_IDS: frozenset[str] = frozenset(
         f"{_W4P01_TEST}::test_W4P01_T14_care_context_kb_first",
         f"{_W4P01_TEST}::test_W4P01_T15_multiple_current_fail_closed",
         f"{_W4P01_TEST}::test_W4P01_T16_w4p02_handoff_fields",
+        f"{_CAP17_TEST}::test_P17_T00_malformed_personalization_degrades",
+        f"{_CAP17_TEST}::test_P17_T01_baseline_empty_personalization",
+        f"{_CAP17_TEST}::test_P17_T02_goal_relevance_ranking",
+        f"{_CAP17_TEST}::test_P17_T03_query_relevance_precedes_personalization",
+        f"{_CAP17_TEST}::test_P17_T04_safety_precedence_not_eligible",
+        f"{_CAP17_TEST}::test_P17_T05_provenance_precedence",
+        f"{_CAP17_TEST}::test_P17_T06_superseded_not_selected",
+        f"{_CAP17_TEST}::test_P17_T07_language_personalization_soft_boost",
+        f"{_CAP17_TEST}::test_P17_T08_restriction_relevance_metadata",
+        f"{_CAP17_TEST}::test_P17_T09_cross_user_isolation",
+        f"{_CAP17_TEST}::test_P17_T10_no_user_phi_on_shared_knowledge",
+        f"{_CAP17_TEST}::test_P17_T11_no_base_model_fallback",
+        f"{_CAP17_TEST}::test_P17_T12_care_context_personalization_wiring",
+        f"{_CAP17_TEST}::test_P17_T13_w4p02_handoff_compatibility",
+        f"{_CAP17_TEST}::test_P17_T14_determinism",
     )
 )
 
-EXPECTED_RUNTIME_NODE_COUNT = 19
-EXPECTED_SELECTOR_COUNT = 16
+EXPECTED_RUNTIME_NODE_COUNT = 34
+EXPECTED_SELECTOR_COUNT = 31
 
 _IMPORT_GUARD_COMPLETE = False
 _ENGINE_REGISTRY: list[Any] = []
