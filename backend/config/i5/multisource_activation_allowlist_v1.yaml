@@ -54,10 +54,12 @@ sources:
     publisher_family: cdc.gov
     authority_class: OFFICIAL_NATIONAL
     adapter: PUBLIC_WEB_FETCH
-    exact_url: https://www.cdc.gov/physicalactivity/basics/index.htm
+    # Canonical live 200 page after CDC redesign (old /physicalactivity/ 301s to hyphenated path).
+    exact_url: https://www.cdc.gov/physical-activity/php/about/index.html
     additional_urls: []
     allowed_domain: cdc.gov
     allowed_url_patterns:
+      - "^https://www\\.cdc\\.gov/physical-activity/.*"
       - "^https://www\\.cdc\\.gov/physicalactivity/.*"
       - "^https://www\\.cdc\\.gov/healthyliving/.*"
     rights_terms_state: PUBLIC_DOMAIN
@@ -74,7 +76,8 @@ sources:
     publisher_family: nimh.nih.gov
     authority_class: OFFICIAL_NATIONAL_INSTITUTE
     adapter: PUBLIC_WEB_FETCH
-    exact_url: https://www.nimh.nih.gov/health/publications/coping-with-stress
+    # Prior /health/publications/coping-with-stress returns hard HTTP 404 (2026-08).
+    exact_url: https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet
     additional_urls: []
     allowed_domain: nimh.nih.gov
     allowed_url_patterns:

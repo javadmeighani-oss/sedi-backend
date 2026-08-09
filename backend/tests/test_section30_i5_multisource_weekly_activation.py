@@ -38,6 +38,16 @@ def test_multisource_allowlist_publisher_diversity_and_exact_urls():
     assert len(rows) >= 4
     families = {r["publisher_family"] for r in rows}
     assert len(families) >= 4
+    by_key = {r["source_key"]: r for r in rows}
+    assert "cdc_health_lifestyle" in by_key
+    assert "nimh_nih_mental_health" in by_key
+    cdc = by_key["cdc_health_lifestyle"]
+    nimh = by_key["nimh_nih_mental_health"]
+    assert "physical-activity" in cdc["exact_url"]
+    assert "coping-with-stress" not in nimh["exact_url"]
+    assert "so-stressed-out" in nimh["exact_url"] or "caring-for-your-mental-health" in nimh["exact_url"]
+    patterns = " ".join(cdc.get("allowed_url_patterns") or [])
+    assert "physical-activity" in patterns
     for row in rows:
         assert row["exact_url"].startswith("https://")
         assert row["activation"] in {True, "YES", "Yes", "true"}

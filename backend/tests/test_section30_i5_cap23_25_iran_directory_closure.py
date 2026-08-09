@@ -54,6 +54,13 @@ def test_manifest_and_robots_fail_closed():
     assert robots_path_allowed("unknown", "/") is False
     with pytest.raises(SourceNotAuthorizedError):
         get_authorized_source("iran_hospital_official_pending")
+    with pytest.raises(SourceNotAuthorizedError):
+        get_authorized_source("iran_laboratory_official_pending")
+    # CAP25 federated SBMU member is authorized; CAP24 pending remains blocked.
+    sbmu = get_authorized_source("fed_sbmu_affiliated_hospitals")
+    assert sbmu["ALLOWED_FOR_V1_POPULATION"] is True
+    assert sbmu["COVERAGE_CLASS"] == "OFFICIAL_FEDERATED_SEED"
+    assert sbmu["NATIONWIDE_COMPLETE"] is False
 
 
 def test_injected_transport_fetches_token_and_result():

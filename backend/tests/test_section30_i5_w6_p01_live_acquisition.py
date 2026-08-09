@@ -304,6 +304,33 @@ def test_W6P01_T9b_redirect_to_same_registered_host_succeeds(monkeypatch: pytest
     assert len(calls) == 2
 
 
+def test_W6P01_T9c_relative_same_host_redirect_joined_and_followed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CDC-style relative Location must not raise UNSAFE_URL:scheme."""
+    _patch_dns(monkeypatch)
+    _patch_robots(monkeypatch, allow=True)
+    calls: list[str] = []
+
+    def _get(url: str, **_k: Any) -> Any:
+        calls.append(url)
+        if len(calls) == 1:
+            return _FakeResponse(301, b"", {"Location": "/physical-activity/php/about/index.html"})
+        return _FakeResponse(200, _HTML_BODY, {"Content-Type": "text/html; charset=utf-8"})
+
+    resp = live_transport.fetch_live_https(
+        url="https://example.org/physicalactivity/basics/index.htm",
+        allowed_domain="example.org",
+        http_get=_get,
+    )
+    assert resp.status_code == 200
+    assert resp.final_url == "https://example.org/physical-activity/php/about/index.html"
+    assert calls == [
+        "https://example.org/physicalactivity/basics/index.htm",
+        "https://example.org/physical-activity/php/about/index.html",
+    ]
+
+
 # ---------------------------------------------------------------------------
 # 6. Valid controlled source -> live transport invoked; content hash deterministic.
 # ---------------------------------------------------------------------------

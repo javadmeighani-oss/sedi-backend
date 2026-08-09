@@ -233,6 +233,8 @@ jobs:
           # Do NOT use w5p01_postgres_runtime_plugin — it freezes the W5 24-node manifest.
           python -B -m pytest --collect-only -q \
             backend/tests/test_section30_i5_cap23_25_iran_directory_closure.py \
+            backend/tests/test_section30_i5_cap24_25_federation.py \
+            backend/tests/test_section30_i5_iran_directory_prod_apply_session.py \
             | tee "$EV/collected.txt"
           COLLECTED=$(grep -c '::test_' "$EV/collected.txt")
           echo "COLLECTED=$COLLECTED" | tee "$EV/node_accounting.txt"
@@ -243,6 +245,8 @@ jobs:
           EV="${{ runner.temp }}/cap2325_closure_evidence"
           python -B -m pytest -q --maxfail=1 \
             backend/tests/test_section30_i5_cap23_25_iran_directory_closure.py \
+            backend/tests/test_section30_i5_cap24_25_federation.py \
+            backend/tests/test_section30_i5_iran_directory_prod_apply_session.py \
             | tee "$EV/run.txt"
           PASSED=$(grep -Eo '[0-9]+ passed' "$EV/run.txt" | head -1 | awk '{print $1}')
           FAILED=$(grep -Eo '[0-9]+ failed' "$EV/run.txt" | head -1 | awk '{print $1}' || true)

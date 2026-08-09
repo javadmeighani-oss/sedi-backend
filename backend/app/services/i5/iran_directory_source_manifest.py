@@ -5,6 +5,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 IRIMC_SOURCE = "irimc_member_search"
+SBMU_FED_HOSPITAL_SOURCE = "fed_sbmu_affiliated_hospitals"
 MAX_CONCURRENT_SEARCHES = 1
 # IRIMC publishes max 10 searches / 10 minutes → >=60s between searches.
 MIN_SEARCH_INTERVAL_SECONDS = 60
@@ -56,27 +57,80 @@ SOURCE_MANIFEST: dict[str, dict[str, Any]] = {
         "REASON": "Tier-1 official statutory member search; robots allow; rate limit honored",
         "notes": "Members are people, never laboratory/hospital facilities.",
     },
+    SBMU_FED_HOSPITAL_SOURCE: {
+        "SOURCE_KEY": SBMU_FED_HOSPITAL_SOURCE,
+        "PUBLISHER": "Shahid Beheshti University of Medical Sciences (SBMU)",
+        "OFFICIAL_DOMAIN": "sbmu.ac.ir",
+        "SOURCE_URL": (
+            "https://sbmu.ac.ir/Virtual_Tour/"
+            "%D8%A8%DB%8C%D9%85%D8%A7%D8%B1%D8%B3%D8%AA%D8%A7%D9%86"
+        ),
+        "entity_family": "HOSPITAL",
+        "ENTITY_FAMILIES": ("HOSPITAL", "MEDICAL_CENTER"),
+        "AUTHORITY_CLASS": "TIER1B_OFFICIAL_MEDICAL_UNIVERSITY_FEDERATED_PROVIDER_WEB",
+        "ACCESS_METHOD": "public_web_fact_distillation",
+        "PUBLIC_ACCESS": True,
+        "AUTHENTICATION_REQUIRED": False,
+        "CAPTCHA_PRESENT": False,
+        "PAYWALL_PRESENT": False,
+        "TERMS_URL": "https://www.sbmu.ac.ir/",
+        "TERMS_CHECK_RESULT": "NO_EXPRESS_AUTOMATION_BAN_FOUND_ON_PUBLIC_LANDING; ABSENCE_NOT_PERMISSION",
+        "ROBOTS_URL": "https://www.sbmu.ac.ir/robots.txt",
+        "ROBOTS_CHECK_RESULT": "User-agent:* Allow:/",
+        "AUTOMATION_PROHIBITION_FOUND": False,
+        "RIGHTS_BASIS": (
+            "Official university public facility affiliation facts; "
+            "INTERNAL_FACT_EVIDENCE_DISTILLATION + attribution via source_system_label; "
+            "no clinical authority"
+        ),
+        "FACTS_ONLY_EXTRACTION": True,
+        "CONTENT_USE_MODE": "FACTS_PLUS_REWRITTEN_STRUCTURED_KNOWLEDGE_PLUS_PROVENANCE",
+        "ATTRIBUTION_REQUIRED": True,
+        "RATE_LIMIT_PUBLISHED": "none published; conservative single GET per acquisition",
+        "CONSERVATIVE_REQUEST_POLICY": "single concurrency; official-domain host lock",
+        "STABLE_EXTERNAL_RECORD_ID_AVAILABLE": False,
+        "PAGINATION_METHOD": "single_page_affiliated_list",
+        "FIELDS_AVAILABLE": (
+            "name",
+            "facility_type",
+            "city",
+            "province",
+            "source_page_url",
+        ),
+        "PROVIDER_DATA_TYPE": "official_affiliated_facility_directory_facts",
+        "PERSONAL_DATA_RISK": "none_facility_names_only",
+        "PATIENT_DATA_PRESENT": False,
+        "ALLOWED_FOR_SAMPLE_FETCH": True,
+        "ALLOWED_FOR_V1_POPULATION": True,
+        "base_url": "https://sbmu.ac.ir",
+        "allowed_paths": ("/", "/Virtual_Tour", "/bimarestan"),
+        "COVERAGE_CLASS": "OFFICIAL_FEDERATED_SEED",
+        "NATIONWIDE_COMPLETE": False,
+        "REASON": (
+            "Gate-02 federated official provider-web member: SBMU Virtual Tour lists "
+            "affiliated hospitals/medical centers; robots Allow:/; public access; "
+            "facts-only distillation; coverage is university-affiliated seed not nationwide."
+        ),
+        "notes": "CAP25 GOVERNED_FEDERATED_OFFICIAL_PROVIDER_WEB_SOURCE; IR→KU forbidden.",
+        "CHECKED_AT_UTC": "2026-08-09T07:30:00Z",
+    },
     "iran_hospital_official_pending": {
         "SOURCE_KEY": "iran_hospital_official_pending",
         "entity_family": "HOSPITAL",
         "ENTITY_FAMILIES": ("HOSPITAL", "MEDICAL_CENTER"),
-        "AUTHORITY_CLASS": "UNRESOLVED",
+        "AUTHORITY_CLASS": "SUPERSEDED_BY_FEDERATION_MEMBER",
         "base_url": None,
         "allowed_paths": (),
         "ALLOWED_FOR_SAMPLE_FETCH": False,
         "ALLOWED_FOR_V1_POPULATION": False,
         "AUTOMATION_PROHIBITION_FOUND": True,
         "REASON": (
-            "Broader Gate discovery still unresolved for V1 population: "
-            "behdasht.gov.ir presents CAPTCHA/anti-bot gate; "
-            "AVAB (avab.behdasht.gov.ir) requires authenticated login (not public directory); "
-            "data.gov.ir/behdasht lacks free national structured hospital facility feed; "
-            "TUMS/SUMS robots or portals HTTP 403; "
-            "SBMU robots Allow:/ but no admissible structured public hospital registry endpoint proven; "
-            "paid commercial datasets and aggregators remain Tier-3 discovery-only."
+            "Central national registry still unresolved (behdasht CAPTCHA; AVAB auth; "
+            "TUMS/SUMS 403; aggregators Tier-3). CAP25 V1 population uses "
+            f"{SBMU_FED_HOSPITAL_SOURCE} federated member instead."
         ),
-        "notes": "CAP25 BLOCKED_SOURCE_AUTHORITY; federation policy authorized but no admissible member source yet.",
-        "CHECKED_AT_UTC": "2026-08-09T06:10:00Z",
+        "notes": "Placeholder retained for audit; not a population source.",
+        "CHECKED_AT_UTC": "2026-08-09T07:30:00Z",
     },
     "iran_laboratory_official_pending": {
         "SOURCE_KEY": "iran_laboratory_official_pending",
@@ -89,14 +143,14 @@ SOURCE_MANIFEST: dict[str, dict[str, Any]] = {
         "ALLOWED_FOR_V1_POPULATION": False,
         "AUTOMATION_PROHIBITION_FOUND": False,
         "REASON": (
-            "Broader Gate discovery still unresolved for clinical laboratory FACILITIES: "
-            "IRIMC = professional persons (not facilities); "
-            "ISIRI 17025 = calibration/testing labs (not clinical iran_laboratories); "
-            "MoH laboratory office portals (e.g. ircme.ir continuing-education lists) are not clinical facility directories; "
-            "commercial lab portals (e-teb/avval/irindex) are Tier-3 discovery-only."
+            "Gate-02 federated official provider-web authorized, but no admissible "
+            "clinical laboratory FACILITY member verified: IRIMC=persons; ISIRI=calibration; "
+            "SBMU Virtual Tour hospital list contains zero clinical laboratories; "
+            "individual lab-owned sites SSL/timeout from acquisition path; "
+            "commercial portals remain Tier-3 discovery-only."
         ),
-        "notes": "CAP24 BLOCKED_SOURCE_AUTHORITY; do not map IRIMC persons into iran_laboratories.",
-        "CHECKED_AT_UTC": "2026-08-09T06:10:00Z",
+        "notes": "CAP24 BLOCKED_SOURCE_AUTHORITY; federation mode ON but zero admissible lab members.",
+        "CHECKED_AT_UTC": "2026-08-09T07:30:00Z",
     },
 }
 

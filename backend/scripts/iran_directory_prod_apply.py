@@ -4,7 +4,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
+
+from sqlalchemy.orm import Session
 
 
 def _load_records(path: Path) -> list[dict]:
@@ -18,6 +22,28 @@ def _load_records(path: Path) -> list[dict]:
     return records
 
 
+@contextmanager
+def open_script_session(*, commit: bool = False) -> Iterator[Session]:
+    """Acquire a real SQLAlchemy Session for scripts.
+
+    `SessionLocal` in `backend.app.database` is generator-style (FastAPI `Depends`
+    / `next(SessionLocal())`). Scripts must use `SessionFactory()` — the same
+    pattern as `seed_medical_data.py` / `seed_i5b2_p1_l1_legacy_companions.py`.
+    """
+    from backend.app.database import SessionFactory
+
+    db = SessionFactory()
+    try:
+        yield db
+        if commit:
+            db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Iran directory dry-run / apply / replay")
     parser.add_argument("mode", choices=["dry-run", "apply", "replay", "search-proof"])
@@ -25,8 +51,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--family", default="DOCTOR", choices=["DOCTOR", "LABORATORY", "HOSPITAL"])
     args = parser.parse_args(argv)
 
-    from backend.app.database import SessionLocal
-    from backend.app import models
     from backend.app.services.i5.iran_directory_import import apply_plan, dry_run_plan
     from backend.app.services.i5.iran_directory_service import (
         search_doctors,
@@ -34,8 +58,8 @@ def main(argv: list[str] | None = None) -> int:
         search_laboratories,
     )
 
-    db = SessionLocal()
-    try:
+    write_modes = {"apply", "replay"}
+    with open_script_session(commit=args.mode in write_modes) as db:
         if args.mode == "search-proof":
             if args.family == "DOCTOR":
                 rows = search_doctors(db, limit=5)
@@ -62,13 +86,11 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.mode == "apply":
             plan = apply_plan(db, records)
-            db.commit()
             print(json.dumps({"mode": "apply", "plan": plan}, ensure_ascii=False))
             return 0
         # replay
         before = dry_run_plan(records, db)
         plan = apply_plan(db, records)
-        db.commit()
         after = dry_run_plan(records, db)
         print(json.dumps({
             "mode": "replay",
@@ -81,11 +103,6 @@ def main(argv: list[str] | None = None) -> int:
             if counts.get("insert", 0) != 0:
                 raise SystemExit(f"REPLAY_NOT_IDEMPOTENT_INSERT:{family}")
         return 0
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
 
 
 if __name__ == "__main__":

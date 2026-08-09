@@ -523,34 +523,59 @@ jobs:
           pip install -r backend/requirements.txt
           pip install "requests>=2.31.0"
 
-      - name: Run bounded IRIMC acquisition
+      - name: Run bounded IRIMC + SBMU federation acquisition
         id: acquire
         run: |
           set -Eeuo pipefail
           export PYTHONPATH="${GITHUB_WORKSPACE}${PYTHONPATH:+:${PYTHONPATH}}"
           mkdir -p "${GITHUB_WORKSPACE}/artifacts/iran-directory"
-          OUT="${GITHUB_WORKSPACE}/artifacts/iran-directory/iran_doctors_normalized.json"
-          python backend/scripts/acquire_irimc_doctors_bounded.py "${OUT}"
-          # Also stage the canonical /tmp path name for remote docker cp consistency.
-          cp -a "${OUT}" /tmp/iran_doctors_normalized.json
+          OUT_DOC="${GITHUB_WORKSPACE}/artifacts/iran-directory/iran_doctors_normalized.json"
+          OUT_HOS="${GITHUB_WORKSPACE}/artifacts/iran-directory/iran_hospitals_sbmu_normalized.json"
+          COMBINED="${GITHUB_WORKSPACE}/artifacts/iran-directory/iran_directory_combined_normalized.json"
+          python backend/scripts/acquire_irimc_doctors_bounded.py "${OUT_DOC}"
+          python backend/scripts/acquire_sbmu_federated_hospitals.py --out "${OUT_HOS}"
+          python -c "
+          import json
+          from pathlib import Path
+          out_doc = Path('${OUT_DOC}')
+          out_hos = Path('${OUT_HOS}')
+          combined = Path('${COMBINED}')
+          doc = json.loads(out_doc.read_text(encoding='utf-8'))
+          hos = json.loads(out_hos.read_text(encoding='utf-8'))
+          doc_records = doc['records'] if isinstance(doc, dict) else doc
+          hos_records = hos['records'] if isinstance(hos, dict) else hos
+          payload = {
+            'records': list(doc_records) + list(hos_records),
+            'meta': {
+              'doctor_count': len(doc_records),
+              'hospital_count': len(hos_records),
+              'cap24_laboratories': 0,
+              'coverage_hospitals': hos.get('coverage_class') if isinstance(hos, dict) else None,
+              'nationwide_complete': False,
+            },
+          }
+          combined.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+          print(json.dumps(payload['meta'], ensure_ascii=False))
+          "
+          cp -a "${COMBINED}" /tmp/iran_doctors_normalized.json
           test -s /tmp/iran_doctors_normalized.json
           BYTES="$(wc -c < /tmp/iran_doctors_normalized.json | tr -d ' ')"
           SHA="$(sha256sum /tmp/iran_doctors_normalized.json | awk '{print $1}')"
           echo "payload_bytes=${BYTES}"
           echo "payload_sha256=${SHA}"
-          # Count-only peek (no PII): meta.normalized_count via python.
           python - <<'PY'
           import json
           from pathlib import Path
           data = json.loads(Path("/tmp/iran_doctors_normalized.json").read_text(encoding="utf-8"))
           assert isinstance(data, dict) and "records" in data and "meta" in data
           meta = data["meta"]
+          assert int(meta.get("hospital_count") or 0) > 0
           print(json.dumps({
               "schema_ok": True,
               "record_count": len(data["records"]),
-              "normalized_count": meta.get("normalized_count"),
-              "rejected_count": meta.get("rejected_count"),
-              "records_key_sha256": meta.get("records_key_sha256"),
+              "doctor_count": meta.get("doctor_count"),
+              "hospital_count": meta.get("hospital_count"),
+              "cap24_laboratories": meta.get("cap24_laboratories"),
           }, ensure_ascii=False))
           PY
 
@@ -740,7 +765,12 @@ jobs:
           log "=== SEARCH-PROOF (DOCTOR) ==="
           PROOF_JSON="$(docker exec sedi-backend python -m backend.scripts.iran_directory_prod_apply search-proof --family DOCTOR)"
           echo "${PROOF_JSON}"
-          summary "search_proof" "ok"
+          summary "search_proof_doctor" "ok"
+
+          log "=== SEARCH-PROOF (HOSPITAL) ==="
+          PROOF_H_JSON="$(docker exec sedi-backend python -m backend.scripts.iran_directory_prod_apply search-proof --family HOSPITAL)"
+          echo "${PROOF_H_JSON}"
+          summary "search_proof_hospital" "ok"
 
           log "=== POST TABLE COUNTS (no PII) ==="
           DOC_N="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM iran_doctors;")"

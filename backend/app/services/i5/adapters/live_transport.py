@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, Callable, Optional, Sequence
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -151,7 +152,13 @@ def fetch_live_https(
         if not loc:
             raise AdapterFrameworkError("NETWORK_ERROR", "redirect_missing_location")
         try:
-            redirect_safe = assert_safe_public_https_url(loc, allowed_domain=allowed_domain)
+            # Same-host relative Location headers (e.g. CDC `/physical-activity/...`)
+            # must be joined against the current absolute target before SSRF checks.
+            # Cross-host / private / non-https targets still fail closed below.
+            redirect_candidate = loc if urlparse(loc).scheme else urljoin(target, loc)
+            redirect_safe = assert_safe_public_https_url(
+                redirect_candidate, allowed_domain=allowed_domain
+            )
             target = validate_redirect_url(redirect_safe, source)
         except (AdapterFrameworkError, FetchSecurityError) as exc:
             raise AdapterFrameworkError("UNSAFE_URL", f"redirect:{exc}") from exc
