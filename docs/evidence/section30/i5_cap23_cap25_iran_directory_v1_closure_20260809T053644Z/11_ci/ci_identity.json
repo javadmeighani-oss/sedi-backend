@@ -1,0 +1,18 @@
+{
+  ""gate_head_sha"": ""3b59bc89e0d84a2738b4b03eee97f8ac672d0590"",
+  ""w5_run_id"": 31296899909,
+  ""w5_url"": ""https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31296899909"",
+  ""w5_conclusion"": ""success"",
+  ""w5_job_frozen24"": 93203381319,
+  ""w5_job_cap2325"": 93203381291,
+  ""w5_artifact_frozen"": {""id"": 9033240978, ""name"": ""w5p01-postgresql-iran-directory-evidence"", ""digest"": ""sha256:27659694502e471d93b10fb5e41d3864c688503a806de04a17d5c7e479b1402d""},
+  ""w5_artifact_cap2325"": {""id"": 9033241632, ""name"": ""cap23-25-iran-directory-closure-evidence"", ""digest"": ""sha256:908ced3ed3c232fe6484d7668918da528b7647f2f2207332213711592b728513""},
+  ""w6_run_id"": 31296901586,
+  ""w6_url"": ""https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31296901586"",
+  ""w6_conclusion"": ""success"",
+  ""w6_job"": 93203385322,
+  ""w6_artifact"": {""id"": 9033244646, ""name"": ""w6p02-i5-expanded-offline-e2e-evidence"", ""digest"": ""sha256:c7a59eef8a7aca0c785416f9d5f22c38d8a5aad6c1aa54183a7f4c2bcdc39da8""},
+  ""prior_failed_w5"": 31296804188,
+  ""prior_failed_w6"": 31296598516,
+  ""auto_remediation_cycles"": 2
+}

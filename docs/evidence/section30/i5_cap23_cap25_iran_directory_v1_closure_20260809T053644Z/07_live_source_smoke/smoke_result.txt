@@ -1,0 +1,12 @@
+SOURCE_KEY=irimc_member_search
+DOMAIN=membersearch.irimc.org
+REQUEST_IDENTITY=bounded POST /searchresult with cookie jar + antiforgery token
+BOUNDED_QUERIES=5
+HTTP_STATUS=200 for all bounded queries
+CONTENT_TYPE=text/html; charset=utf-8
+VALID_UNIQUE_DOCTOR_RECORDS=307
+REJECTED=0
+EPHEMERAL_PAYLOAD_SHA256_AT_ACQUIRE=d2f5435eeb6e43555f7741c7685e0009a4a0f93b12acfeb0db07c411a083b6ad
+EPHEMERAL_NOT_COMMITTED=TRUE
+COVERAGE_SCOPE=SOURCE-LIMITED (bounded name/code queries; NOT nationwide completeness claim)
+FULL_HTML_BODIES_NOT_STORED_IN_EVIDENCE=TRUE

@@ -1,0 +1,13 @@
+backend/app/services/i5/iran_directory_source_manifest.py
+backend/app/services/i5/iran_directory_acquisition.py
+backend/app/services/i5/iran_directory_normalization.py
+backend/app/services/i5/iran_directory_import.py
+backend/app/main.py
+backend/tests/test_section30_i5_cap23_25_iran_directory_closure.py
+.github/workflows/w5p01-postgresql-iran-directory-runtime.yml
+.github/workflows/cap23-25-iran-directory-closure.yml
+.github/workflows/ci-backend-tests.yml
+backend/tests/test_section30_i5_w6_p01_ci_sentinel.py
+docs/evidence/section30/i5_implementation_acceleration_plan_01/i5_completion_ledger.json
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+docs/evidence/section30/i5_cap23_cap25_iran_directory_v1_closure_20260809T053644Z/**

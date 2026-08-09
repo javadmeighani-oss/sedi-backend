@@ -1,0 +1,4 @@
+MAX_AUTO_REMEDIATION_CYCLES=5
+CYCLES_USED=2
+CYCLE_1=finding=W5 CAP23-25 collect SENTINEL_RUNTIME_NODE_MANIFEST_MISMATCH via w5p01 plugin; root=plugin freezes 24-node manifest; fix=plain pytest without W5 plugin + drop PYTEST_DISABLE_PLUGIN_AUTOLOAD on CAP job; commit=3b59bc8; verify=CI 31296899909 CAP job success
+CYCLE_2=finding=W6-P02 APP_MUTATION_DETECTED on main.py + iran_directory_*.py; root=evidence allowlist incomplete; fix=allowlist CAP23-25 paths in ci-backend-tests.yml + sentinel mirror; commit=3b59bc8; verify=CI 31296901586 success

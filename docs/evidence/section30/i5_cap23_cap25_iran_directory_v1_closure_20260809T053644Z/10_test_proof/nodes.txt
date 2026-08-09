@@ -1,0 +1,14 @@
+W5P01_FROZEN=24 EXPECTED=COLLECTED=EXECUTED=PASSED=24 FAILED=0 SKIPPED=0
+CAP23_25_SUITE=9 nodes:
+test_manifest_and_robots_fail_closed
+test_injected_transport_fetches_token_and_result
+test_parse_normalize_canonical_key_and_dedupe
+test_normalization_clamps_display_fields_and_rejects_malformed_profile
+test_facility_normalization_paths_accept_structured_fixtures
+test_dry_run_and_knowledge_unit_refusal
+test_import_has_no_ranking_or_destructive_operations
+test_postgres_apply_update_idempotency_and_active_search
+test_router_is_mounted_and_keeps_admin_gate
+W6P02_OFFLINE_E2E=22/22/22
+W6P02_PRIOR_UNIT=12/12/12
+ANTI_PATTERN_AUDIT=no or True / assert X==X / hardcoded disposition self-assert in new suite

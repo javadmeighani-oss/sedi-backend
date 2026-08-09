@@ -1,0 +1,18 @@
+Master §164.2
+Master §252 (W5-P01)
+Master §255–§264
+docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md §264 tip
+docs/evidence/section30/i5_implementation_acceleration_plan_01/i5_completion_ledger.json
+docs/evidence/section30/i5_cap26_cap27_monitoring_validation_closure_20260809T043239Z/10_capability_reconciliation/capability_matrix.tsv
+backend/app/services/i5/iran_directory_service.py (NO_LIVE_IR_SOURCE_FETCH preserved)
+backend/app/services/i5/iran_directory_source_manifest.py
+backend/app/services/i5/iran_directory_acquisition.py
+backend/app/services/i5/iran_directory_normalization.py
+backend/app/services/i5/iran_directory_import.py
+backend/app/routers/i5_iran_directory.py
+backend/app/main.py (router mount)
+backend/tests/test_section30_i5_w5_iran_directory.py (frozen 24)
+backend/tests/test_section30_i5_cap23_25_iran_directory_closure.py (9 nodes)
+.github/workflows/w5p01-postgresql-iran-directory-runtime.yml
+authoritative handoff v555
+JAVAD_APPROVAL=EXPLICIT MASTER GATE THIS CHAT

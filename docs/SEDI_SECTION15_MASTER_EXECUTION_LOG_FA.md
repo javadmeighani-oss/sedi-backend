@@ -63674,3 +63674,122 @@ PROGRAM-CRITICAL-E2E-CRAWLER-01=CLOSED (unchanged)
 MARKER=I5_CAP26_CAP27_TECHNICAL_OPERATIONAL_CLOSED_FORMAL_PERCENT_UNCHANGED
 OPEN_BLOCKING_FINDINGS=0
 NOTE=post-§264 final master-log whole-file self-SHA is NOT embedded inside §264.
+
+================================================================================
+§265 — I5 CAP23–CAP25 IRAN DIRECTORY SOURCE / DATA / PRODUCT / LOCAL-PROVIDER V1 CLOSURE
+================================================================================
+RECORDED_AT_UTC=2026-08-09T05:36:44Z
+GATE_ID=I5-CAP23-CAP25-IRAN-DIRECTORY-SOURCE-DATA-PRODUCT-LOCAL-PROVIDER-V1-CLOSURE-MASTER-GATE-01
+JAVAD_APPROVAL=EXPLICIT MASTER GATE (this chat)
+GATE_OUTCOME=PARTIAL_HARD_STOP
+STARTING_HEAD=b8122232d5fd925f598917c7a75a9b6bc448354a
+TECHNICAL_HEADS=4331817b66e6042ac021e9ff611cbc770325134b;6dd4a255b9eee5701ddd88f1925d3d092b435645;3b59bc89e0d84a2738b4b03eee97f8ac672d0590
+EVIDENCE_ROOT=docs/evidence/section30/i5_cap23_cap25_iran_directory_v1_closure_20260809T053644Z
+AUTO_REMEDIATION_CYCLES_THIS_GATE=2
+PRODUCTION_MUTATION_THIS_GATE=NO
+PRODUCTION_APPLY=DENIED_BY_FAIL_CLOSED
+DEPLOY_THIS_GATE=NO
+MIGRATION_THIS_GATE=NO
+MODEL_SCHEMA_CHANGE_THIS_GATE=NO
+CLINICAL_KU_WRITE_THIS_GATE=NO
+
+--------------------------------------------------------------------------------
+§265.A — BASELINE
+--------------------------------------------------------------------------------
+BRANCH=feature/section15/backend-continuity-foundation
+STARTING_HEAD=b8122232d5fd925f598917c7a75a9b6bc448354a
+AHEAD_BEHIND=0/0
+WORKTREE_AT_START=CLEAN
+MASTER_PRIOR_SIZE=2831249
+MASTER_PRIOR_SHA256=3B33C76559AF689C081891AFB2A2B1AF0D5CF91E851474642DFDA68EADE804C4
+HANDOFF_PREDECESSOR=v555
+HANDOFF_PRIOR_SIZE=3659596
+HANDOFF_PRIOR_SHA256=8E538308BB786E046689353A3DA41D6E73EFF96848A3D6F6FAFB2DE683E5EF3C
+
+--------------------------------------------------------------------------------
+§265.B — STALE CONTINUITY RECONCILIATION
+--------------------------------------------------------------------------------
+STALE_CAP23_25_BLOCKER_TEXT_IMPLIED_W6P01_W6P02=YES (pre-Gate ledger)
+CORRECTION=W6-P01 migration/network/activation debt and W6-P02 proof debt MUST NOT be resurrected after §264
+CORRECTED_BLOCKER=REAL SOURCE / DATA / PRODUCT / POPULATION / LOCAL-PROVIDER OPERATIONAL CLOSURE + FORMAL §164.2 MAPPING NOT YET AWARDED
+HISTORICAL_MASTER_SECTIONS_REWRITTEN=NO
+
+--------------------------------------------------------------------------------
+§265.C — SOURCE AUTHORITY
+--------------------------------------------------------------------------------
+CAP23_PRIMARY=irimc_member_search (Tier-1 IRIMC membersearch.irimc.org)
+CAP23_ROBOTS=Disallow:/admin/ only; search allowed
+CAP23_RATE_LIMIT=10 searches/10 min; max 100 results; policy sleep>=60s single concurrency
+CAP23_LIVE_SMOKE=PASS VALID=307 REJECTED=0 COVERAGE=SOURCE-LIMITED
+CAP24_PRIMARY=NONE → BLOCKED_SOURCE_AUTHORITY
+CAP25_PRIMARY=NONE → BLOCKED_SOURCE_AUTHORITY
+NO_AGGREGATOR_POPULATION=TRUE
+NO_CAPTCHA_AUTH_PAYWALL_BYPASS=TRUE
+
+--------------------------------------------------------------------------------
+§265.D — IMPLEMENTATION / PRODUCT
+--------------------------------------------------------------------------------
+MODULES=iran_directory_source_manifest|acquisition|normalization|import
+SEARCH_SERVICE_NETWORK=NO (NO_LIVE_IR_SOURCE_FETCH preserved)
+ROUTER_MOUNTED_IN_MAIN=YES (ADMIN_TOKEN / X-Admin-Token preserved)
+PROVIDER_RANKING=NOT_IMPLEMENTED
+IRAN_DIRECTORY_TO_CLINICAL_KU=FORBIDDEN
+PRODUCTION_HTTP_ROUTE_PROOF=NOT_CLAIMED (DEPLOY=NO)
+
+--------------------------------------------------------------------------------
+§265.E — TESTS / CI
+--------------------------------------------------------------------------------
+W5P01_FROZEN_24=24/24/24 PASS
+CAP23_25_SUITE=9/9/9 PASS
+W6P02_E2E=22/22/22 PASS
+W6P02_PRIOR=12/12/12 PASS
+CI_W5_GREEN=31296899909 HEAD=3b59bc89e0d84a2738b4b03eee97f8ac672d0590
+CI_W5_JOB_FROZEN=93203381319 ARTIFACT=9033240978 DIGEST=sha256:27659694502e471d93b10fb5e41d3864c688503a806de04a17d5c7e479b1402d
+CI_W5_JOB_CAP=93203381291 ARTIFACT=9033241632 DIGEST=sha256:908ced3ed3c232fe6484d7668918da528b7647f2f2207332213711592b728513
+CI_W6_GREEN=31296901586 JOB=93203385322 ARTIFACT=9033244646 DIGEST=sha256:c7a59eef8a7aca0c785416f9d5f22c38d8a5aad6c1aa54183a7f4c2bcdc39da8
+AUTO_REMEDIATION=2 (plugin isolation + W6 allowlist) commit=3b59bc8
+
+--------------------------------------------------------------------------------
+§265.F — PRODUCTION
+--------------------------------------------------------------------------------
+PRODUCTION_PREFLIGHT=NOT_EXECUTED
+BACKUP=NOT_EXECUTED
+DRY_RUN_PRODUCTION=NOT_EXECUTED
+APPLY=DENIED_BY_FAIL_CLOSED (PRODUCTION_DATABASE_URL_ABSENT)
+IDEMPOTENT_REPLAY_PRODUCTION=NOT_APPLICABLE
+CI_POSTGRES_IDEMPOTENCY=PASS
+
+--------------------------------------------------------------------------------
+§265.G — CAP STATE AFTER
+--------------------------------------------------------------------------------
+CAP23_STATE_CLASS=STILL_REQUIRED_V1
+CAP23_CURRENT_STATE=PARTIAL_SOURCE_ACQUISITION_PRODUCT_CLOSED_AWAITING_PRODUCTION_POPULATION
+CAP23_FORMAL_CREDIT=0.00000000
+CAP24_STATE_CLASS=STILL_REQUIRED_V1
+CAP24_CURRENT_STATE=BLOCKED_SOURCE_AUTHORITY
+CAP24_FORMAL_CREDIT=0.00000000
+CAP25_STATE_CLASS=STILL_REQUIRED_V1
+CAP25_CURRENT_STATE=BLOCKED_SOURCE_AUTHORITY
+CAP25_FORMAL_CREDIT=0.00000000
+CAP28=DEFERRED_WITH_EXPLICIT_AUTHORITY (unchanged)
+
+--------------------------------------------------------------------------------
+§265.H — FORMAL STATE
+--------------------------------------------------------------------------------
+FORMAL_I5_BEFORE=21.79487179%
+FORMAL_I5_AFTER=21.79487179%
+FORMAL_CREDIT_DELTA=0
+FORMAL_CLOSED=17/78
+I5_FORMAL_STATUS=PARTIALLY_OPEN
+I5_REMAINING_STILL_REQUIRED_V1=CAP-OPEN-23,24,25
+I5_V1_TECHNICAL_OPERATIONAL_CAPABILITY_DEBT=CAP23_PRODUCTION_POPULATION + CAP24_SOURCE + CAP25_SOURCE
+
+--------------------------------------------------------------------------------
+§265.I — NEXT CRITICAL PATH
+--------------------------------------------------------------------------------
+NEXT_CRITICAL_PATH=I5 IRAN DIRECTORY FACILITY-SOURCE AUTHORITY + CAP23 PRODUCTION DIRECTORY APPLY GATE
+NOTE=I6 Memory/Governance Master Gate remains next AFTER CAP23-25 full Green; not authorized to skip facility-source debt
+ROADMAP_PRESERVED=I6→I7→I8→Frontend Gate3/4→integration→Android pilot→release
+MARKER=I5_CAP23_25_PARTIAL_HARD_STOP_FORMAL_PERCENT_UNCHANGED
+OPEN_BLOCKING_FINDINGS=3
+NOTE=post-§265 final master-log whole-file self-SHA is NOT embedded inside §265.

@@ -1,0 +1,2 @@
+PRODUCTION_REPLAY=NOT_APPLICABLE
+CI_POSTGRES_IDEMPOTENCY=PASS (suite node test_postgres_apply_update_idempotency_and_active_search)

@@ -1,0 +1,12 @@
+SCHEMA_CHANGE=NO
+MODELS_PY_EDIT=NO
+DOCTOR_FIELDS=canonical_directory_key,full_name,specialty,city,province,phone,address,record_state,source_system_label,last_verified_at,last_observed_at
+LAB_FIELDS=existing schema unused for population this Gate
+HOSPITAL_FIELDS=existing schema unused for population this Gate
+source_system_label=irimc_member_search
+canonical_key=SOURCE_KEY:STABLE_UUID
+NO_TRANSLATION=TRUE
+NO_SPECIALTY_INFERENCE=TRUE
+NO_PROVINCE_INVENTION_FROM_COMBINED_CITY=TRUE (city may retain source province-city string when not split)
+LENGTH_CLAMP=YES
+DEDUP=by canonical_directory_key

@@ -1,0 +1,11 @@
+CANDIDATES_EVALUATED=
+1) membersearch.irimc.org — Tier-1 IRIMC member search (DOCTOR persons)
+2) tums.ac.ir / hospital portals — HTTP 403 automation blocked
+3) parvaneh.behdasht.gov.ir — timeout / no usable bulk facility feed
+4) data.gov.ir — no free national structured clinical facility directory obtained
+5) commercial aggregators / review portals — Tier-3 discovery-only (not population)
+6) ISIRI 17025 lists — calibration labs, NOT clinical iran_laboratories entities
+RESULT=
+CAP23_PRIMARY=irimc_member_search ADMISSIBLE
+CAP24_PRIMARY=NONE → BLOCKED_SOURCE_AUTHORITY
+CAP25_PRIMARY=NONE → BLOCKED_SOURCE_AUTHORITY

@@ -1219,7 +1219,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
         "MANAGEMENT_ALIAS": "P10",
-        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "CURRENT_STATE": "PARTIAL_SOURCE_ACQUISITION_PRODUCT_CLOSED_AWAITING_PRODUCTION_POPULATION",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1229,12 +1229,13 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "Formal §164.2 credit not awarded; W6-P02 CI expansion and W6-P01 migration/network/activation remain separate",
+        "BLOCKER": "REAL SOURCE/DATA/PRODUCT path advanced; PRODUCTION DIRECTORY POPULATION pending (no harness this Gate) + FORMAL §164.2 MAPPING NOT YET AWARDED. W6-P01/W6-P02 debt MUST NOT be resurrected.",
         "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
-        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W5-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP23 PARTIAL: IRIMC Tier-1 admissible; acquisition/import/router/CI green; live sample 307 ephemeral; PRODUCTION_APPLY=DENIED_BY_FAIL_CLOSED; formal credit 0; CI 31296899909/31296901586.",
+        "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-24",
@@ -1242,7 +1243,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
         "MANAGEMENT_ALIAS": "P10",
-        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "CURRENT_STATE": "BLOCKED_SOURCE_AUTHORITY",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1252,12 +1253,13 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "Formal §164.2 credit not awarded; W6-P02 CI expansion and W6-P01 migration/network/activation remain separate",
+        "BLOCKER": "BLOCKED_SOURCE_AUTHORITY — no admissible clinical laboratory FACILITY source for V1 population; W6-P01/W6-P02 debt MUST NOT be resurrected; FORMAL §164.2 MAPPING NOT YET AWARDED.",
         "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
-        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W5-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP24 BLOCKED_SOURCE_AUTHORITY after discovery; IRIMC≠facilities; ISIRI=calibration; aggregators Tier-3 only; formal credit 0.",
+        "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-25",
@@ -1265,7 +1267,7 @@
         "SUBDOMAIN_OR_CAPABILITY_GROUP": "IRAN_DIRECTORY",
         "PLANNING_PACKAGE_ID": "I5-IMPL-W5-P01",
         "MANAGEMENT_ALIAS": "P10",
-        "CURRENT_STATE": "TECHNICAL_RUNTIME_CLOSED_AWAITING_§164.2_VALIDATION",
+        "CURRENT_STATE": "BLOCKED_SOURCE_AUTHORITY",
         "FORMAL_WEIGHT_OR_AUTHORITATIVE_WEIGHT_REFERENCE": "FORMAL_CREDIT=0; remaining work referenced via package I5-IMPL-W5-P01 remaining-points (not a per-capability formal % invent)",
         "FORMAL_CLOSURE_CREDIT": "0.00000000",
         "REMAINING_PLAN_POINTS_OR_POINT_REFERENCE": "PACKAGE_POINTS=6.0; PACKAGE_REMAINING_WEIGHT_DISPLAY=4.69230769%; allocation_level=PACKAGE_NOT_CAPABILITY",
@@ -1275,12 +1277,13 @@
           "CAP-CLOSED-I5A"
         ],
         "OWNER": "PRODUCT",
-        "BLOCKER": "Formal §164.2 credit not awarded; W6-P02 CI expansion and W6-P01 migration/network/activation remain separate",
+        "BLOCKER": "BLOCKED_SOURCE_AUTHORITY — no admissible hospital/medical-center facility source for V1 population; W6-P01/W6-P02 debt MUST NOT be resurrected; FORMAL §164.2 MAPPING NOT YET AWARDED.",
         "CLOSURE_CRITERIA": "Directory searchable; IRAN_DIRECTORY_RECORD→CLINICAL_KU forbidden; Javad source decision",
-        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-IMPL-W5-P01; MIGRATION_RUN=I5-IMPL-W6-P01; TEST/CI=I5-IMPL-W6-P02; NETWORK/DRY_RUN/ACTIVATION=I5-IMPL-W6-P01 where applicable",
+        "APPROVAL_BOUNDARY": "IMPLEMENTATION=I5-CAP23-CAP25-MASTER-GATE-01; PRODUCTION_APPLY=SEPARATE_WHEN_HARNESS_GREEN; NO_SCHEMA/MIGRATE/DEPLOY THIS GATE",
         "RUNTIME_STATUS": "TECHNICAL_RUNTIME_CLOSED_CI_GREEN",
         "PRODUCTION_READINESS": "NO",
-        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged."
+        "NOTES": "Partial inventory ≠ formal closure. Docs/design/code-authored alone = no formal % increase. | §252 W5-P01 runtime closure: green 7e42c48 run 31159890811 job 92807593572 artifact 8986634001; 24/24/24; formal % unchanged. | §265 CAP25 BLOCKED_SOURCE_AUTHORITY after discovery; TUMS 403; behdasht/data.gov no usable bulk feed; aggregators Tier-3 only; formal credit 0.",
+        "STATE_CLASS": "STILL_REQUIRED_V1"
       },
       {
         "CAPABILITY_ID": "CAP-OPEN-26",
@@ -2563,5 +2566,34 @@
     "ci_artifact": 9032658803,
     "evidence_root": "docs/evidence/section30/i5_cap26_cap27_monitoring_validation_closure_20260809T043239Z",
     "auto_remediation_cycles": 1
+  },
+  "cap23_cap25_iran_directory_v1_closure": {
+    "gate_id": "I5-CAP23-CAP25-IRAN-DIRECTORY-SOURCE-DATA-PRODUCT-LOCAL-PROVIDER-V1-CLOSURE-MASTER-GATE-01",
+    "recorded_at_utc": "2026-08-09T05:36:44Z",
+    "GATE_RESULT": "PARTIAL_HARD_STOP",
+    "CAP23_CURRENT_STATE": "PARTIAL_SOURCE_ACQUISITION_PRODUCT_CLOSED_AWAITING_PRODUCTION_POPULATION",
+    "CAP24_CURRENT_STATE": "BLOCKED_SOURCE_AUTHORITY",
+    "CAP25_CURRENT_STATE": "BLOCKED_SOURCE_AUTHORITY",
+    "CAP23_STATE_CLASS": "STILL_REQUIRED_V1",
+    "CAP24_STATE_CLASS": "STILL_REQUIRED_V1",
+    "CAP25_STATE_CLASS": "STILL_REQUIRED_V1",
+    "FORMAL_I5_BEFORE": "21.79487179%",
+    "FORMAL_I5_AFTER": "21.79487179%",
+    "FORMAL_CREDIT_DELTA": "0",
+    "SELECTED_SOURCE_CAP23": "irimc_member_search",
+    "LIVE_SAMPLE_VALID_DOCTORS": 307,
+    "PRODUCTION_APPLY": "DENIED_BY_FAIL_CLOSED",
+    "ci_w5_run": 31296899909,
+    "ci_w6_run": 31296901586,
+    "ci_head_sha": "3b59bc89e0d84a2738b4b03eee97f8ac672d0590",
+    "evidence_root": "docs/evidence/section30/i5_cap23_cap25_iran_directory_v1_closure_20260809T053644Z",
+    "auto_remediation_cycles": 2,
+    "stale_blocker_reconciliation": "W6-P01/W6-P02 debt text removed from CAP23-25 blockers",
+    "I5_REMAINING_STILL_REQUIRED_V1": [
+      "CAP-OPEN-23",
+      "CAP-OPEN-24",
+      "CAP-OPEN-25"
+    ],
+    "NEXT_CRITICAL_PATH": "I5 IRAN DIRECTORY FACILITY-SOURCE AUTHORITY + CAP23 PRODUCTION DIRECTORY APPLY GATE"
   }
 }
