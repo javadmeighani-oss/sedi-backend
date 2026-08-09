@@ -25,6 +25,8 @@ ALLOWED_APP_PATH_PREFIXES = [
     "backend/app/services/i5/iran_directory_acquisition.py",
     "backend/app/services/i5/iran_directory_normalization.py",
     "backend/app/services/i5/iran_directory_import.py",
+    "backend/app/services/i5/iran_directory_federation.py",
+    "backend/app/services/i5/source_governance_decisions.py",
     "backend/app/services/i5/multisource_activation.py",
     "backend/app/services/i5/coverage_manifest_loader.py",
     "backend/app/main.py",
