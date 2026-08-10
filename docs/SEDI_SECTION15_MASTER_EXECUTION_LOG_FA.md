@@ -64010,3 +64010,1449 @@ V1_DEADLINE_EFFECT=CAP24 remains sole open I5 V1 technical/operational directory
 OPEN_BLOCKING_FINDINGS=1
 MARKER=I5_FINAL_REMEDIATION_GATE02_PARTIAL_HARD_STOP_CAP24_ONLY_FORMAL_PERCENT_UNCHANGED
 NOTE=post-§267 final master-log whole-file self-SHA is NOT embedded inside §267.
+
+
+================================================================================
+§268 - DB-01 DATABASE & DATA-PLATFORM REALITY AUDIT
+================================================================================
+RECORDED_AT_UTC=2026-08-10T04:00:00Z
+GATE_ID=SEDI-V1-DATABASE-DATA-PLATFORM-REALITY-AUDIT-THREE-DOMAIN-RECONCILIATION-ENGAGEMENT-CARE-CONTINUITY-RAG-KNOWLEDGE-READINESS-DBEAVER-INSPECTABILITY-READONLY-01
+SHORT_NAME=DB-01
+JAVAD_APPROVAL=EXPLICITLY GRANTED (AUTHORIZED=YES)
+GATE_OUTCOME=PASS_WITH_GAPS (audit execution complete; readiness domains PARTIAL/GAP; no schema mutation)
+IMPLEMENTATION=FORBIDDEN
+DATABASE_MUTATION=NO
+SOURCE_CODE_MUTATION=NO
+MIGRATION_AUTHORED=NO
+MIGRATION_EXECUTED=NO
+STAGE=NO
+COMMIT=NO
+PUSH=NO
+
+--------------------------------------------------------------------------------
+§268.A - PREFLIGHT / AUTHORITY RECONSTRUCTION
+--------------------------------------------------------------------------------
+SEDI_ROOT=D:\Rimiya Design Studio\Sedi\software\Sedi-v-1
+AUTHORITATIVE_WORKTREE=D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\workspace
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=ad5979505ed291d435851f321013cf7adf86c49d
+UPSTREAM=origin/feature/section15/backend-continuity-foundation @ ad5979505ed291d435851f321013cf7adf86c49d
+AHEAD_BEHIND_UPSTREAM=0/0
+REMOTE_MAIN=origin/main @ 6d3f059dabb5a79d4fed7fd4e23190ae45b5eb91
+AHEAD_BEHIND_MAIN=169/8 (feature branch diverged; not treated as authority override)
+WORKTREES=workspace(ad59795 tip); git-root(a78bd7e section10; dubious ownership); archive clean-review/worktree copies
+DIRTY_PATHS_AT_START=NONE (clean before continuity docs)
+MASTER_LOG_PATH=workspace/docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+MASTER_LOG_PRIOR_TIP=§267
+MASTER_LOG_PRIOR_SIZE=2849862
+MASTER_LOG_PRIOR_SHA256=ba9c4f082e1ca315b90fcf836dd1cce90f1b4869a59c97dd70a4b7d41be309aa
+MASTER_LOG_PRIOR_EOL=CRLF_ONLY
+CURSOR_HANDOFF_PREDECESSOR=references\authoritative/Sedi_Master_Handoff_Section66_I5_FinalRemediation_OperationalClosure_Gate02_PartialHardStop_v558_FA.md
+HANDOFF_PREDECESSOR_VERSION=v558
+HANDOFF_PREDECESSOR_SIZE=3666667
+HANDOFF_PREDECESSOR_SHA256=0422ca8b70ff47e393edb1783eee2538421c47cad90a231bee4adac8f2153863
+HANDOFF_PREDECESSOR_EOL=LF_ONLY
+CHATGPT_EXTERNAL_REF=Sedi_Master_Handoff_Section38_DataPlatform_RAG_CriticalPath_ContinuityLaw_v562_FA.md
+CHATGPT_EXTERNAL_SHA256_CLAIMED=79e44646a46c5b83b64c8d8218e679373a56a4a0fdc900afa276cc255de3f2eb
+CHATGPT_FILE_IN_REPO=ABSENT (reconcile: Cursor authority remains v558→v559; ChatGPT v562 does NOT override repo facts)
+CONTINUITY_LAW_HEADING_IN_CURSOR_HANDOFF=\"SEDI CONTINUITY / REFERENCE SYNCHRONIZATION LAW\"=ABSENT
+DATABASE_FIRST_CRITICAL_PATH_IN_CURSOR_HANDOFF=PRESENT historically as KNOWLEDGE_DATABASE_FIRST laws; DB-platform-first critical path for DB-01/DB-02 NOT previously tip-current (I5 CAP24 was tip critical path)
+ALEMBIC_REPO_HEAD=056_i5_w2_p02_conflict_safety (linear 56 revisions; no branches/merges)
+HISTORICAL_PROD_ALEMBIC=056_i5_w2_p02_conflict_safety (master-log §260+/W6P01 evidence; NOT re-verified live in DB-01)
+
+--------------------------------------------------------------------------------
+§268.B - INVENTORY COUNTS
+--------------------------------------------------------------------------------
+ORM_MODEL_COUNT=74
+ORM_AUTHORITY_MODULE=workspace/backend/app/models.py
+ORM_PHYSICAL_SCHEMA=public/default (no model schema=)
+ALEMBIC_REVISION_COUNT=56
+ALEMBIC_HEAD=056_i5_w2_p02_conflict_safety
+SQL_ONLY_NON_ORM_TABLE=rag_embeddings (deployment/migrations/008_stage17_6_pgvector.sql; NOT in Alembic chain)
+NON_ORM_DTO_MODULES=decision_engine/models.py; behavior/models.py (not persisted)
+
+--------------------------------------------------------------------------------
+§268.C - PRODUCTION POSTGRESQL READONLY AUDIT
+--------------------------------------------------------------------------------
+PRODUCTION_DB_READONLY_AUDIT=BLOCKED
+REASON=no local DATABASE_URL/TEST_DATABASE_URL/PROD_DATABASE_URL; no .env with DB keys present; Gate forbids requesting/creating credentials or exposing secrets
+SAFE_METADATA_QUERIES_EXECUTED=NONE
+LIVE_ROWCOUNTS=NOT_AVAILABLE
+LIVE_EXTENSIONS=NOT_AVAILABLE
+LIVE_ALEMBIC_VERSION=NOT_REVERIFIED_THIS_GATE
+HISTORICAL_AUTHORITY_ONLY=PROD_ALEMBIC=056 (prior master-log); PRODUCTION_READONLY_SANITY historical PASS_WITH_DOCUMENTED_HARNESS_LIMITATION (handoff v553 area) — NOT promoted to DB-01 live PASS
+
+--------------------------------------------------------------------------------
+§268.D - THREE-WAY RECONCILIATION (ORM ↔ ALEMBIC ↔ POSTGRES)
+--------------------------------------------------------------------------------
+ORM_ALEMBIC_RECONCILIATION=PASS_FOR_74_TABLES (Alembic 001..056 create/alter the ORM tables; I5 053-056 use SQL with ORM-parity CHECKs)
+ORM_DB_RECONCILIATION=UNKNOWN (live DB blocked)
+ALEMBIC_DB_RECONCILIATION=UNKNOWN (live DB blocked)
+KNOWN_STATIC_DRIFT=
+  DRIFT-01: rag_embeddings + pgvector extension exist in deployment SQL only; absent from Alembic + ORM
+  DRIFT-02: indexes declared only in migrations may exist beyond ORM __table_args__ (expected; not a defect alone)
+SCHEMA_DRIFT_LIVE=UNKNOWN
+DUPLICATE_AUTHORITIES=5
+  DA-01 user facts: user_memory_facts / user_facts / kc_user_facts / user_profile_facts (+ candidates + user_profile_knowledge blob)
+  DA-02 sources: knowledge_sources vs governed_source_profiles(+versions)
+  DA-03 embeddings: knowledge_chunk_embeddings (JSON Text) vs rag_embeddings (pgvector SQL-only) vs I5 KU retrieval (non-vector)
+  DA-04 vitals: health_data vs device_events(heart_rate) vs raw_signal_batches(+features) vs user_memory_facts vitals keys
+  DA-05 doctors: user_doctors (user-owned) vs iran_doctors (directory; intentionally separate — classify DUPLICATE_SURFACE not same authority)
+
+--------------------------------------------------------------------------------
+§268.E - DOMAIN READINESS VERDICT
+--------------------------------------------------------------------------------
+IDENTITY_READINESS=PARTIAL (canonical users + profile_core + device attach OK; durable Consent MISSING; deletion/erasure API MISSING; language/timezone duplicated across stores)
+MEMORY_READINESS=PARTIAL (raw memory + daily_memory_summaries + multi fact stacks; STM not tabled; I7 weekly/monthly/yearly MISSING; consent-aware writes NOT_CONNECTED)
+HEART_RATE_TELEMETRY_READINESS=PARTIAL (Device default heart_rate; DeviceEvent recorded_at/received_at/dedupe; DeviceSensor; RawSignalBatch; heartbeat fields; measured_at column MISSING; ECG scaffolding separate via signal_type)
+5000_USER_5MIN_SCALE_READINESS=GAP (≈525.6M device_events/year upper bound; Integer PK capacity OK for years but no time partitioning; device_events indexes are single-column user_id/device_id/event_type — composite (user_id,recorded_at)/(device_id,recorded_at) MISSING; health_data String HR unsuitable as TS authority)
+FUTURE_GADGET_EXTENSIBILITY=PARTIAL (Device.device_type + DeviceSensor.capabilities_json + multi-device per user; capability registry incomplete; one active hub/user constraint)
+SMART_NOTIFICATION_DATA_READINESS=PARTIAL (notifications+feedback+interaction_events+prefs+guard+intents; ACK_THANKS etc as action strings; no first-class opened_at; TRIGGER→RESOLUTION not a single auditable state machine table)
+GOLDEN_WINDOW_DATA_READINESS=GAP (no care continuity timestamp set; no versioned clinical response-window policy entity beyond escalation.policy_version string)
+CAREGIVER_ESCALATION_DATA_READINESS=PARTIAL (emergency_escalation_records + voice_call_requests + caregiver intents/relationships; consent/relationship gates incomplete; immutable escalation event ledger incomplete)
+CARE_CONTINUITY_READINESS=GAP (no CareEpisode / equivalent unifying telemetry+notif+reaction+escalation+conversation)
+I5_SOURCE_DATA_READINESS=PARTIAL (GSP/versions/weekly runs/gaps/governance/KU/provenance strong; RawEvidence durable locator columns MISSING)
+RAW_ARTIFACT_DURABLE_STORAGE=GAP (I5RawEvidence has storage_mode/retention/hashes/URL — no storage_locator/object_key/durable_path; RawSignalBatch.object_storage_key is telemetry-only)
+KNOWLEDGE_DATA_READINESS=PARTIAL (KU versioning/safety/conflict/memory strong; taxonomy D01-D19 in manifest; D20 absent; disease≠separate table OK)
+RAG_DATABASE_READINESS=PARTIAL (chunks+JSON embeddings+optional pgvector daily-summary path; dual stacks; Alembic gap; not unified governed RAG index authority)
+DBEAVER_INSPECTABILITY=PARTIAL (public schema flat; names mostly clear; zero SQLAlchemy comment=; no operator views; ER discoverable via FKs but dense; dedicated RO role NOT created)
+
+--------------------------------------------------------------------------------
+§268.F - GAP REGISTER (MATERIAL)
+--------------------------------------------------------------------------------
+DB01-FINDING-001 | P0 | governance/privacy | no Consent* persisted model while caregiver notify/escalation exists | durable consent required for escalation | MISSING | unsafe escalation authorization | designed as runtime ConsentState only | DB-02: Consent entity + FK refs | MIGRATION=YES | blocks RAG freeze=NO | blocks I5=NO | blocks V1=YES
+DB01-FINDING-002 | P0 | source/integrity | I5RawEvidence storage_mode without durable locator columns | recoverable raw artifact location | GAP | provenance cannot prove bytes recoverability | storage designed in kb_lifecycle_mapping only | DB-02: add locator fields OR forbid OBJECT_STORE until present | MIGRATION=YES | blocks RAG freeze=YES | blocks I5=YES | blocks V1=YES
+DB01-FINDING-003 | P1 | memory | four+ user fact authorities | single canonical LTM fact authority (I6) | DUPLICATE | inconsistent memory writes/reads | incremental Gate1/KC/profile stacks | DB-02: designate AUTHORITATIVE + deprecate path | MIGRATION=LIKELY | blocks RAG freeze=NO | blocks I5=NO | blocks V1=YES (I6)
+DB01-FINDING-004 | P1 | memory/I7 | weekly/monthly/yearly user summaries absent | I7 longitudinal reconstructable profile | MISSING | cannot meet I7 ownership | only DailyMemorySummary + I5 weekly knowledge runs | DB-02: I7 summary tables decision | MIGRATION=YES | blocks RAG freeze=PARTIAL | blocks I5=NO | blocks V1=YES (I7)
+DB01-FINDING-005 | P1 | engagement/care | Golden Response Window timestamps absent | auditable signal→resolve latencies + versioned policy | GAP | cannot audit care latency | only scattered created_at/sent_at/resolved_at | DB-02: continuity episode + policy refs | MIGRATION=YES | blocks RAG freeze=NO | blocks I5=NO | blocks V1=YES (notifications)
+DB01-FINDING-006 | P1 | care | CareEpisode equivalent absent | unify telemetry+notif+reaction+escalation+chat | MISSING | fragmented soft links only | Notification.source_* / InteractionEvent / VoiceCallRequest.escalation_id | DB-02 architecture decision | MIGRATION=YES | blocks RAG freeze=NO | blocks I5=NO | blocks V1=YES
+DB01-FINDING-007 | P1 | telemetry/scale | device_events lacks composite time indexes + partition strategy | 5k×288/day HR query readiness | GAP | insert/query amplification risk at upper bound | baseline ix_user_id/event_type + ux_dedupe_key only | DB-02: composite indexes + partition/retention decision | MIGRATION=YES | blocks RAG freeze=NO | blocks I5=NO | blocks V1=YES (gadget)
+DB01-FINDING-008 | P1 | telemetry | measured_at absent; HR authority split health_data/device_events/raw batches | single HR measurement authority with measured_at/received_at/unit/quality | PARTIAL/DUPLICATE | ambiguous HR source of truth | Gate5 + legacy HealthData | DB-02: designate DeviceEvent or measurement table as V1 HR authority | MIGRATION=LIKELY | blocks RAG freeze=NO | blocks I5=NO | blocks V1=YES
+DB01-FINDING-009 | P1 | retrieval | rag_embeddings outside Alembic/ORM; dual embedding stacks | single governed RAG readiness path | PARTIAL/DRIFT | RAG freeze unsafe | Stage17 SQL + 049 JSON embeddings + I5 retrieval | DB-02: unify or formally separate with ownership | MIGRATION=YES/UNKNOWN | blocks RAG freeze=YES | blocks I5=NO | blocks V1=YES (RAG design)
+DB01-FINDING-010 | P1 | source | Gate3 knowledge_sources vs I5 governed_source_profiles | one source registry authority for crawler | DUPLICATE | dual ingestion control planes | legacy bridge legacy_knowledge_source_id | DB-02: AUTHORITATIVE=GSP; legacy KEEP_AND_HARDEN or DEPRECATE | MIGRATION=MAYBE | blocks RAG freeze=YES | blocks I5=PARTIAL | blocks V1=PARTIAL
+DB01-FINDING-011 | P2 | engagement | notification opened_at / reaction_at first-class columns absent | open/react latency | PARTIAL | Golden window math incomplete | feedback.created_at / interaction_events.created_at only | DB-02: extend notification or episode timeline | MIGRATION=YES | blocks RAG freeze=NO | blocks I5=NO | blocks V1=PARTIAL
+DB01-FINDING-012 | P2 | privacy | push_devices.fcm_token stored plaintext unique | hashed/segmented token hygiene | PARTIAL | token leakage risk in DBeaver dumps | Stage16.6 design | DB-02 harden | MIGRATION=LIKELY | blocks RAG freeze=NO | blocks I5=NO | blocks V1=NO
+DB01-FINDING-013 | P2 | dbeaver | no PostgreSQL COMMENTs; flat public schema; no RO views/role | inspectability | PARTIAL | operator cognitive load | models comment= none | DB-02: comments/views/RO role decision (no forced physical schemas) | MIGRATION=OPTIONAL | blocks RAG freeze=NO | blocks I5=NO | blocks V1=NO
+DB01-FINDING-014 | P2 | knowledge | D20 Diabetes/Glycemic track absent from coverage_manifest entity_count=19 | D01..D20 coverage | PARTIAL | taxonomy gap | D01-D19 present | DB-02/I5 content — may be non-schema | MIGRATION=NO | blocks RAG freeze=NO | blocks I5=PARTIAL | blocks V1=PARTIAL
+DB01-FINDING-015 | P3 | platform | eight logical domains ≠ eight physical schemas | organizational clarity | UNKNOWN/DEFERRED | migration risk if forced now | all tables public | DB-02: prefer logical ownership + comments/views for V1 | MIGRATION=NO_FOR_V1 | blocks RAG freeze=NO | blocks I5=NO | blocks V1=NO
+P0_FINDINGS=2
+P1_FINDINGS=8
+P2_FINDINGS=4
+P3_FINDINGS=1
+
+--------------------------------------------------------------------------------
+§268.G - SCALE / QUERY-PATTERN (SUMMARY)
+--------------------------------------------------------------------------------
+HR_LATEST_BY_USER=PARTIAL (ix_device_events_user_id; no (user_id, recorded_at DESC))
+HR_USER_TIME_RANGE=MISSING_COMPOSITE
+HR_DEVICE_TIME_RANGE=MISSING_COMPOSITE
+HR_DAILY_AGG=MISSING (no aggregate table)
+HR_MISSING_INTERVALS=MISSING (no gap ledger)
+MEMORY_ACTIVE_FACTS=PARTIAL (fact_status on user_memory_facts; other stacks lack unified effective-version query)
+NOTIF_OPEN_EPISODE=MISSING (no episode)
+NOTIF_PENDING_REACTION=PARTIAL (feedback/interaction only)
+KU_RUNTIME_ELIGIBLE=GOOD (ix_ku_runtime_eligibility + CHECKs)
+CRAWLER_LATEST_RUNS=GOOD (weekly run indexes)
+PARTITION_CANDIDATES=device_events; raw_signal_batches; interaction_events; notifications (hot)
+TIMESCALE_OR_EXTENSION=OPTION / NOT CURRENTLY PROVEN INFRASTRUCTURE (live extensions UNKNOWN)
+
+--------------------------------------------------------------------------------
+§268.H - DB-02 DECISION BACKLOG (DESIGN ONLY; NOT AUTHORIZED)
+--------------------------------------------------------------------------------
+A_MUST_FIX_BEFORE_RAG_DESIGN=
+  A1 unify RAG/index ownership (rag_embeddings vs knowledge_chunk_embeddings vs I5 eligibility)
+  A2 RawEvidence durable locator decision
+  A3 source authority GSP vs knowledge_sources
+B_MUST_FIX_BEFORE_I5_COMPLETION=
+  B1 RawEvidence storage recoverability
+  B2 CAP24 remains separate product/source blocker (outside DB-01 schema)
+C_MUST_FIX_BEFORE_I6_I7_I8=
+  C1 canonical user memory fact authority
+  C2 Consent + deletion/retention semantics
+  C3 I7 daily/weekly/monthly/yearly summary model
+D_MUST_FIX_BEFORE_SMART_NOTIFICATIONS=
+  D1 CareEpisode / Golden Window timeline + versioned policy refs (no clinical numbers invented)
+  D2 opened_at/reaction_at/ack_due/escalation_due fields or episode equivalent
+  D3 escalation immutability/event ledger + consent gates
+E_PERFORMANCE_HARDENING=
+  E1 HR composite indexes; partitioning/retention for device_events/raw_signal_batches
+  E2 aggregate strategy for daily HR
+F_DBEAVER_READABILITY=
+  F1 COMMENT ON TABLE/COLUMN
+  F2 optional RO views (examples only; do not create in DB-01)
+  F3 dedicated read-only role requirements (do not create in DB-01)
+G_FUTURE_COMPAT_DEFERRED=
+  G1 physical schema split decision
+  G2 Timescale/extension OPTION evaluation after proven infra
+  G3 multi-gadget capability registry expansion
+PHYSICAL_SCHEMA_SEPARATION_NOW=NOT_REQUIRED_BY_EVIDENCE (logical ownership sufficient for V1 pending DB-02)
+DB02_READY=YES
+NEXT_PROPOSED_GATE=SEDI-V1 DATA-PLATFORM FINAL ARCHITECTURE SCHEMA / TABLE / RELATIONSHIP DESIGN FREEZE-01
+NEXT_GATE_AUTHORIZED=NO
+
+--------------------------------------------------------------------------------
+§268.I - CRITICAL-PATH IMPACT
+--------------------------------------------------------------------------------
+DB01_ADVANCES_DB02=YES (inventory+gap register+backlog complete)
+V1_CRITICAL_PATH_BLOCKERS_EXPOSED=
+  OWNER_I5=CAP24 laboratory source authority (unchanged from §267; not a DB schema invent)
+  OWNER_DB02=CareEpisode/GoldenWindow + Consent + HR scale indexes/authority + memory canonicalization + RawEvidence locators + RAG stack unification
+  OWNER_I6=canonical memory after DB-02 freeze
+  OWNER_I7=longitudinal summaries after DB-02 freeze
+RAG_DESIGN_RISK=YES (dual stacks + Alembic drift + RawEvidence gap)
+I5_COMPLETION_RISK=YES for durable raw artifact recoverability; CAP24 remains non-DB product blocker
+END_OF_MORDAD_V1_TARGET_RISK=YES — DB-02 must freeze continuity/memory/telemetry authorities before Smart Notifications/I6/I7/RAG implementation; CAP24 still blocks I5 formal/operational complete
+PRIOR_§267_NEXT_GATE=NOT_SUPERSEDED_FOR_I5_CAP24 — DB-01 inserts DATA-PLATFORM FREEZE as parallel prerequisite before engagement/memory buildout
+MARKER=DB01_READONLY_AUDIT_PASS_WITH_GAPS_DB02_READY_NO_MUTATION
+NOTE=post-§268 final master-log whole-file self-SHA is NOT embedded inside §268.
+
+================================================================================
+§269 - DB-01P PRODUCTION POSTGRESQL STRICT READ-ONLY REALITY AUDIT
+================================================================================
+RECORDED_AT_UTC=2026-08-10T04:40:00Z
+GATE_ID=SEDI-V1-PRODUCTION-POSTGRESQL-STRICT-READ-ONLY-REALITY-ORM-ALEMBIC-DB-RECONCILIATION-SCALE-DRIFT-AUDIT-01
+SHORT_NAME=DB-01P
+JAVAD_APPROVAL=EXPLICITLY GRANTED (AUTHORIZED=YES)
+GATE_OUTCOME=PASS_WITH_GAPS
+DATABASE_MUTATION=NO
+SOURCE_CODE_MUTATION=NO
+MIGRATION_AUTHORED=NO
+MIGRATION_EXECUTED=NO
+STAGE=NO
+COMMIT=NO
+PUSH=NO
+RESTARTS=NO
+
+--------------------------------------------------------------------------------
+§269.A - PREFLIGHT / CONTINUITY
+--------------------------------------------------------------------------------
+WORKTREE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=ad5979505ed291d435851f321013cf7adf86c49d
+UPSTREAM_AHEAD_BEHIND=0/0
+DIRTY_AT_START=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (uncommitted §268 from DB-01)
+DB01_BASELINE_UNCHANGED=YES (HEAD/ORM74/ALEMBIC056 unchanged)
+MASTER_PRIOR_TIP=§268
+MASTER_PRIOR_SIZE=2868045
+MASTER_PRIOR_SHA256=173f8ef8cf174ff9c2fb01f1b2304c8664f4f1764271301ca7837f781f2b56b8
+HANDOFF_PRIOR=v559
+HANDOFF_PRIOR_SHA256=89c5dccd7f592eb85f13e9b35ddf6a62e88b52c0bd4fef4d5973d1ef9a79f599
+CONTINUITY_LAW_AUTHORITATIVE_SECTION_BEFORE=ABSENT (only ABSENT mention in §268/v559 tip)
+CURSOR_CONTINUITY_LAW_SYNC_REQUIRED=YES
+CONTINUITY_LAW_DEPOSITED_THIS_GATE=YES (documentation closure; see §269.L / handoff v560)
+
+--------------------------------------------------------------------------------
+§269.B - SERVER / DATABASE IDENTITY (SANITIZED)
+--------------------------------------------------------------------------------
+SSH_HOST_ALIAS=sedi-cloudir
+HOSTNAME=Sedi
+OS=Linux 6.8.0-124-generic x86_64 Ubuntu
+SSH_USER=sedi-deploy
+BACKEND_CONTAINER=sedi-backend
+BACKEND_IMAGE=ghcr.io/javadmeighani-oss/sedi-backend:848cab5847b6f4e757ecb4dd37c3e76522d65b81
+BACKEND_STATUS=running/healthy
+POSTGRES_CONTAINER=sedi-postgres
+POSTGRES_IMAGE=postgres:16-alpine
+POSTGRES_STATUS=running/healthy (Up ~7 weeks)
+SERVER_IDENTITY_VERIFIED=YES
+TARGET_ENVIRONMENT=production
+DB_NAME=sedi_db
+DB_USER=sedi_user
+SESSION_USER=sedi_user
+POSTGRESQL_VERSION=PostgreSQL 16.14 (x86_64-pc-linux-musl)
+SERVER_ADDR_CLASSIFICATION=local_docker_unix_socket (inet_server_addr NULL)
+SERVER_PORT=NULL (socket)
+SSL=off
+TRANSACTION_READ_ONLY=on (BEGIN READ ONLY verified)
+DEFAULT_TRANSACTION_READ_ONLY=off
+PRODUCTION_DATABASE_IDENTITY_VERIFIED=YES
+STATEMENT_TIMEOUT=15s
+LOCK_TIMEOUT=3s
+SESSION_CLOSURE=ROLLBACK
+
+--------------------------------------------------------------------------------
+§269.C - ALEMBIC / EXTENSIONS / SCHEMA SHAPE
+--------------------------------------------------------------------------------
+REPOSITORY_ALEMBIC_HEAD=056_i5_w2_p02_conflict_safety
+PRODUCTION_ALEMBIC_HEAD=056_i5_w2_p02_conflict_safety
+ALEMBIC_MATCH=YES
+ALEMBIC_ROW_COUNT=1
+EXTENSIONS=plpgsql|1.0 ONLY
+PGVECTOR_INSTALLED=NO
+PGVECTOR_VERSION=N/A
+PRODUCTION_SCHEMA_COUNT=1 (public)
+VIEWS=0
+MATERIALIZED_VIEWS=0
+PARTITIONED_TABLES=NONE
+HEART_RATE_PARTITIONED=NO
+SEQUENCES≈70
+ENUM_TYPES=NONE (vocab via CHECK + varchar)
+PRODUCTION_TABLE_COUNT=75
+TOTAL_PRODUCTION_RELATION_SIZE=5185536 bytes (~4.94 MiB)
+TABLE_COMMENTS=0
+COLUMN_COMMENTS=0
+
+--------------------------------------------------------------------------------
+§269.D - THREE-WAY RECONCILIATION COUNTS
+--------------------------------------------------------------------------------
+ORM_MODEL_COUNT=74
+ORM_TABLES_IN_PROD=74
+ORM_ONLY=[]
+DB_EXTRA=[alembic_version] (expected meta)
+MATCH_COUNT=74
+DRIFT_COUNT=3
+EXTRA_DB_OBJECT_COUNT=1
+MISSING_DB_OBJECT_COUNT=0
+SQL_ONLY_COUNT=1
+UNKNOWN_COUNT=0
+SCHEMA_DRIFT=FOUND
+ORM_ALEMBIC_DB_RECONCILIATION=PARTIAL
+
+DRIFT-01=medications has DUPLICATE FKs on condition_id: fk_medications_condition_id AND medications_condition_id_fkey (both ON DELETE SET NULL)
+DRIFT-02=memory.user_id ON DELETE CASCADE in Production; ORM ForeignKey(users.id) omits ondelete (SQLAlchemy default NO ACTION)
+DRIFT-03=deployment/migrations/008_stage17_6_pgvector.sql defines rag_embeddings+vector; Production has NEITHER extension NOR table
+SQL_ONLY=rag_embeddings EXPECTED_BY_REPO_SQL / MISSING_IN_PRODUCTION
+
+FK_COUNT=110
+CHECK_COUNT=132
+UQ_CONSTRAINT_COUNT=39
+NO_PK_TABLES=0
+
+--------------------------------------------------------------------------------
+§269.E - RAG / PGVECTOR PRODUCTION REALITY
+--------------------------------------------------------------------------------
+PGVECTOR_INSTALLED=NO
+RAG_EMBEDDINGS_TABLE_EXISTS=NO
+knowledge_chunk_embeddings=EXISTS (emptyish)
+knowledge_units=EXISTS n_live_tup≈9
+knowledge_provenance=EXISTS n_live_tup≈9
+i5_raw_evidence=EXISTS n_live_tup≈9
+RAG_STACK_REALITY=MULTIPLE_IN_REPO / PARTIAL_IN_PROD
+RAG_PRODUCTION_REALITY=PARTIAL
+RAG_EMBEDDINGS_VECTOR_INDEX_TYPE=NONE
+
+--------------------------------------------------------------------------------
+§269.F - MEMORY / IDENTITY / CONSENT
+--------------------------------------------------------------------------------
+Competing fact tables ALL EXIST in Production (user_memory_facts, user_facts, kc_user_facts, user_profile_facts + candidates)
+memory(chat) n_live≈43; user_profile_core n_live≈3
+DURABLE_CONSENT_AUTHORITY=NO
+MEMORY_PRODUCTION_REALITY=PARTIAL
+
+--------------------------------------------------------------------------------
+§269.G - HEART RATE / TELEMETRY
+--------------------------------------------------------------------------------
+devices n_live≈5; device_events emptyish with recorded_at/received_at/dedupe; NO measured_at
+device_events indexes lack (user_id,recorded_at) composite; NOT partitioned
+health_data LEGACY n_live≈2; raw_signal_batches have object_storage_key
+HEART_RATE_PRODUCTION_REALITY=PARTIAL
+5000_USER_5MIN_SCALE_READINESS=GAP
+CANONICAL_LOOKING_HR_PATH=device_events + devices/device_sensors
+
+--------------------------------------------------------------------------------
+§269.H - NOTIFICATION / CARE CONTINUITY
+--------------------------------------------------------------------------------
+notifications n_live≈48 with sent_at/status/provider fields; NO opened_at/reaction_at/ack_due_at
+escalation ledger PARTIAL (emergency_escalation_records + voice_call_requests)
+GOLDEN_WINDOW_DATA_REALITY=GAP
+CARE_EPISODE_EQUIVALENT=NO
+CAREGIVER_ESCALATION_LEDGER=PARTIAL
+
+--------------------------------------------------------------------------------
+§269.I - I5 / KNOWLEDGE / DOCTORS
+--------------------------------------------------------------------------------
+Dual source registries CONFIRMED (knowledge_sources + governed_source_profiles)
+i5_raw_evidence has storage_mode WITHOUT storage_locator/object_key/durable_path
+RAW_ARTIFACT_DURABLE_STORAGE_METADATA=GAP
+KU→provenance→raw_evidence→source_profile TRACE EXISTS
+iran_doctors=404 directory; user_doctors=user relationship
+DOCTOR_AUTHORITY_CLASSIFICATION=INTENTIONALLY_SEPARATE
+DB01_DUPLICATE_AUTHORITIES_CORRECTED=4
+
+--------------------------------------------------------------------------------
+§269.J - DBEAVER / ROLES
+--------------------------------------------------------------------------------
+DBEAVER_INSPECTABILITY=PARTIAL
+DBEAVER_READONLY_ROLE_EXISTS=NO
+SEDI_USER_IS_SUPERUSER=YES (do not use for routine DBeaver)
+
+--------------------------------------------------------------------------------
+§269.K - FINDING REGISTER
+--------------------------------------------------------------------------------
+DB01P-FINDING-001 | P0 | privacy/ops | sedi_user SUPERUSER login | dedicated RO role | overreach | bootstrap | future ops Gate | blocks DB-02=NO | blocks V1=NO
+DB01P-FINDING-002 | P0 | source | RawEvidence no durable locator in prod | recoverability | GAP | design gap | DB-02 | blocks RAG=YES | blocks I5=YES | blocks V1=YES
+DB01P-FINDING-003 | P0 | privacy | no Consent authority in prod | durable consent | NO | confirms DB01 | DB-02 | blocks V1=YES
+DB01P-FINDING-004 | P1 | retrieval | pgvector/rag_embeddings ABSENT | RAG freeze | SQL_ONLY missing | never applied | DB-02 choose path | blocks RAG=YES
+DB01P-FINDING-005 | P1 | telemetry | HR composite indexes/partition missing | 5k scale | GAP | baseline indexes | DB-02 | blocks V1=YES
+DB01P-FINDING-006 | P1 | care | Golden Window/CareEpisode absent | continuity | GAP | confirms DB01 | DB-02 | blocks V1=YES
+DB01P-FINDING-007 | P1 | memory | four fact authorities in prod | canonical LTM | DUPLICATE | incremental | DB-02 | blocks I6=YES
+DB01P-FINDING-008 | P1 | source | dual source registries in prod | single authority | DUPLICATE | bridge field | DB-02 GSP authoritative | blocks RAG=PARTIAL
+DB01P-FINDING-009 | P2 | schema | duplicate medications FKs | single FK | DRIFT | mig 003 | drop dup | blocks=NO
+DB01P-FINDING-010 | P2 | schema | memory ON DELETE CASCADE vs ORM | align ORM | DRIFT | baseline | annotate ORM | blocks=NO
+DB01P-FINDING-011 | P2 | dbeaver | 0 comments/0 views | inspectability | PARTIAL | never authored | comments/views/RO | blocks=NO
+DB01P-FINDING-012 | P3 | scale | ~5MB total; telemetry empty | early prod | OK now | greenfield | partition later | blocks=NO
+P0_FINDINGS=3
+P1_FINDINGS=5
+P2_FINDINGS=3
+P3_FINDINGS=1
+
+--------------------------------------------------------------------------------
+§269.L - SEDI CONTINUITY / REFERENCE SYNCHRONIZATION LAW
+--------------------------------------------------------------------------------
+HEADING=SEDI CONTINUITY / REFERENCE SYNCHRONIZATION LAW
+LAW=After every material Gate, Cursor authoritative handoff and ChatGPT independent reference MUST be synchronized via an explicit CHATGPT_REFERENCE_SYNC_PAYLOAD; repository master-log append is mandatory continuity; neither ChatGPT nor Cursor may silently override newer verified repository execution facts; documentation-only continuity updates remain uncommitted until an authorized docs Gate.
+CURSOR_CONTINUITY_LAW_SYNC_REQUIRED_AFTER=NO
+
+--------------------------------------------------------------------------------
+§269.M - DB-02 READINESS / CRITICAL PATH
+--------------------------------------------------------------------------------
+PRODUCTION_ARCHITECTURE_KNOWN=YES
+DB02_READY=YES
+DB02_MUST_FREEZE=Consent; CareEpisode+GoldenWindow; canonical memory facts; HR authority+indexes/partition/retention; RawEvidence locators; RAG path (pgvector NOT current infra); GSP vs knowledge_sources; DBeaver RO role+comments; drop dup medications FK; align Memory ORM ondelete
+NEXT_PROPOSED_GATE=SEDI-V1 DATA-PLATFORM FINAL ARCHITECTURE CURRENT→TARGET RECONCILIATION + SCHEMA/TABLE/RELATIONSHIP DESIGN FREEZE-01
+NEXT_GATE_AUTHORIZED=NO
+CAP24_STILL_OPEN=YES
+END_OF_MORDAD_BLOCKERS=CAP24 + DB-02 freeze items before Smart Notifications/I6/I7/RAG implementation
+MARKER=DB01P_PROD_RO_AUDIT_PASS_WITH_GAPS_ALEMBIC_MATCH_PGVECTOR_ABSENT_DB02_READY
+NOTE=post-§269 final master-log whole-file self-SHA is NOT embedded inside §269.
+
+================================================================================
+§270 - DB-02 FINAL DATA PLATFORM ARCHITECTURE DESIGN FREEZE
+================================================================================
+RECORDED_AT_UTC=2026-08-10T05:10:00Z
+GATE_ID=SEDI-V1-DATA-PLATFORM-FINAL-ARCHITECTURE-CURRENT-TARGET-RECONCILIATION-SCHEMA-TABLE-RELATIONSHIP-DESIGN-FREEZE-01
+SHORT_NAME=DB-02
+JAVAD_APPROVAL=EXPLICITLY GRANTED (AUTHORIZED=YES)
+GATE_CLASS=ARCHITECTURE/DESIGN/DOCUMENTATION FREEZE
+GATE_OUTCOME=PASS
+IMPLEMENTATION=FORBIDDEN
+DATABASE_MUTATION=NO
+SOURCE_CODE_MUTATION=NO
+ORM_MUTATION=NO
+MIGRATION_AUTHORED=NO
+MIGRATION_EXECUTED=NO
+TEST_MUTATION=NO
+STAGE=NO
+COMMIT=NO
+PUSH=NO
+DEPLOY=NO
+
+--------------------------------------------------------------------------------
+§270.0 - GOVERNANCE REVALIDATION
+--------------------------------------------------------------------------------
+LATEST_PROJECT_AUTHORITY_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_DB01_DB01P_EVIDENCE_REVIEWED=YES (§268/§269; handoff v559/v560)
+APPROVAL_SCOPE_RECONCILED=YES (docs-only design freeze)
+SPEED_LAW_APPLIED=YES
+AUTO_REMEDIATION_BOUNDARY_REVIEWED=YES (design-scope only)
+EVIDENCE_ASSURANCE_REQUIRED=YES
+CONTINUITY_RULE_APPLIED=YES
+CRITICAL_PATH_TRACKING_REQUIRED=YES
+RULES_IN_FORCE_CHECK=PASS
+RAPID_CONTROLLED_EXECUTION_PROMPT_LAW=APPLIED
+SEDI_CONTINUITY_REFERENCE_SYNCHRONIZATION_LAW=IN_FORCE (deposited §269.L/v560)
+MEDICAL_SAFETY_GT_SPEED=YES
+SECURITY_GT_SPEED=YES
+PROVENANCE_GT_SPEED=YES
+MIGRATION_SAFETY_GT_SPEED=YES
+NO_FORCE_PUSH=YES
+NO_FAKE_PASS=YES
+
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD=ad5979505ed291d435851f321013cf7adf86c49d
+AHEAD_BEHIND=0/0
+DIRTY=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (uncommitted §268+§269)
+MASTER_PRIOR_TIP=§269
+MASTER_PRIOR_SIZE=2879228
+MASTER_PRIOR_SHA256=3e13544e72987d3c374434ee5b3f75b7199e1060b23fe17f292d9642db8c9486
+HANDOFF_PRIOR=v560
+HANDOFF_PRIOR_SHA256=2c756d2aa6e062d5b40a4fbe4940534b38b65c6c4a4549aec48a8190b8010602
+DB01P_BASELINE_CONFIRMED=YES (sedi_db/PG16.14/75 tables/Alembic056/pgvector NO)
+
+--------------------------------------------------------------------------------
+§270.A - EXECUTIVE ARCHITECTURE DECISION
+--------------------------------------------------------------------------------
+PHYSICAL_SCHEMA_STRATEGY=KEEP public FOR V1
+LOGICAL_DOMAIN_SEPARATION=YES (identity|memory|telemetry|engagement|source|knowledge|retrieval|governance)
+PHYSICAL_8_SCHEMA_SPLIT=NO (cosmetic migration risk outweighs benefit; DBeaver clarity via comments/views/roles)
+THREE_INTELLIGENCE_PLANES=
+  1 USER_INTELLIGENCE (identity+memory+I7+care context)
+  2 DEVICE_TELEMETRY_INTELLIGENCE (devices+measurements+signals)
+  3 GLOBAL_SEDI_KNOWLEDGE (source→raw→KU→governance→retrieval)
+INVARIANTS_FROZEN=
+  USER_MEMORY != GLOBAL_MEDICAL_KNOWLEDGE
+  DEVICE_TELEMETRY != USER_MEMORY
+  DEVICE_TELEMETRY != MEDICAL_KNOWLEDGE
+  RAW_CRAWLER != GOVERNED_KNOWLEDGE
+  RAG_INDEX != SOURCE_OF_TRUTH
+  Authorized fusion at context-assembly time only
+
+CANONICAL_SELECTIONS=
+  USER_IDENTITY = users.id
+  DURABLE_CONSENT = NEW user_consents (+ optional user_consent_scopes)
+  LTM_FACTS = EXTEND user_memory_facts (merge competing stacks)
+  I7_SUMMARIES = NEW user_period_summaries (replace daily_memory_summaries)
+  HR_MEASUREMENTS = NEW physiological_measurements (device_events remains lifecycle events)
+  CARE_EPISODE = NEW care_episodes
+  RESPONSE_POLICY = NEW care_response_policies (versioned; NO clinical durations invented)
+  SOURCE_GOVERNANCE = governed_source_profiles (knowledge_sources DEPRECATE for crawler authority)
+  RAW_EVIDENCE = EXTEND i5_raw_evidence (durable locator fields)
+  KNOWLEDGE = knowledge_units + knowledge_provenance (KEEP)
+  RETRIEVAL_METADATA = EXTEND knowledge_chunk_embeddings (Stage17 rag_embeddings DEPRECATE)
+  DOCTORS = INTENTIONALLY_SEPARATE (user_doctors vs iran_doctors)
+
+--------------------------------------------------------------------------------
+§270.B - CURRENT PRODUCTION ARCHITECTURE (FACT from DB-01P)
+--------------------------------------------------------------------------------
+FACT: public only; 75 tables; 74 ORM + alembic_version; 0 views; 0 comments; 0 partitions; PGVECTOR=NO; rag_embeddings ABSENT; Alembic=056 MATCH; ~5MB total; small row counts in most domains.
+
+--------------------------------------------------------------------------------
+§270.C - FINAL TARGET LOGICAL ARCHITECTURE
+--------------------------------------------------------------------------------
+identity: users, profile_core, otp, refresh, consents, caregivers, relationships
+memory: memory(chat), user_memory_facts(canonical LTM), candidates, habits/goals/lifestyle, user_period_summaries(I7)
+telemetry: devices, device_sensors, device_events(lifecycle), physiological_measurements(canonical HR), raw_signal_*(foundation), baselines/derived signals
+engagement: care_episodes, care_response_policies, notifications(+delivery fields), feedback(reactions), interaction_events, prefs/guard/intents, escalation, voice
+source: GSP(+versions), i5_raw_evidence(+locators), weekly run family; knowledge_sources legacy
+knowledge: knowledge_units/provenance/memory/conflicts/safety; Gate3 docs/chunks retained for editorial corpus
+retrieval: knowledge_chunks + knowledge_chunk_embeddings (canonical retrieval metadata; vector backend deferred)
+governance: i5_governance_decisions, gaps, weekly ledgers
+care catalogs: meds/conditions/plans/symptoms (KEEP)
+directory: iran_* (KEEP separate)
+
+--------------------------------------------------------------------------------
+§270.D - FINAL TARGET PHYSICAL ARCHITECTURE
+--------------------------------------------------------------------------------
+PHYSICAL=public (V1)
+NEW_TABLES_DB03=
+  user_consents
+  user_consent_scopes (OPTIONAL if scope child needed; FREEZE: YES include child for grantee/purpose granularity)
+  user_period_summaries
+  physiological_measurements
+  physiological_baselines
+  derived_health_signals
+  care_episodes
+  care_response_policies
+  care_episode_links (OPTIONAL junction for multi-evidence; FREEZE: YES thin link table for 1:N evidence types)
+TIMESTAMP_STANDARD=TIMESTAMPTZ UTC preferred for NEW/EXTEND columns; existing timestamp without time zone migrate opportunistically in Wave 4 (not blocking)
+PK_STRATEGY=Integer/Identity for most; BigInteger Identity for physiological_measurements (525M/yr capacity)
+NAMING_FUTURE=pk_/fk_/uq_/ck_/ix_ conventions for NEW objects only; no mass rename
+
+--------------------------------------------------------------------------------
+§270.E - COMPLETE CURRENT TABLE MATRIX (75/75)
+--------------------------------------------------------------------------------
+FORMAT=TABLE|DISPOSITION|DOMAIN|TARGET_AUTHORITY|MIG|BACKFILL|CUTOVER|DEPRECATE
+alembic_version|META_KEEP|meta|META|n|n|n|n
+users|KEEP_AND_HARDEN|identity|users|n|n|n|n
+otp_codes|KEEP|identity|otp_codes|n|n|n|n
+refresh_tokens|KEEP_AND_HARDEN|identity|refresh_tokens|n|n|n|n
+user_profile_core|KEEP_AND_HARDEN|identity|user_profile_core|n|n|n|n
+user_profile_knowledge|KEEP_AND_HARDEN|memory|user_profile_knowledge|n|n|n|n
+user_profile_facts|MERGE|identity|user_memory_facts|y|y|y|y
+user_caregivers|KEEP_AND_HARDEN|care|user_caregivers|n|n|n|n
+user_care_relationships|KEEP_AND_HARDEN|care|user_care_relationships|n|n|n|n
+memory|KEEP_AND_HARDEN|memory|memory|n|n|n|n
+daily_memory_summaries|REPLACE|memory|user_period_summaries|y|y|y|y
+user_memory_facts|EXTEND|memory|user_memory_facts|y|n|y|n
+user_facts|MERGE|memory|user_memory_facts|y|y|y|y
+user_fact_candidates|MERGE|memory|user_memory_facts (candidate path)|y|y|y|delayed
+kc_user_facts|MERGE|memory|user_memory_facts|y|y|y|y
+kc_fact_candidates|MERGE|memory|user_memory_facts (candidate path)|y|y|y|delayed
+user_habits|KEEP|memory|user_habits|n|n|n|n
+user_goals|KEEP|memory|user_goals|n|n|n|n
+user_restrictions|KEEP|care|user_restrictions|n|n|n|n
+user_lifestyle_events|KEEP|memory|user_lifestyle_events|n|n|n|n
+user_behavior_profiles|KEEP|engagement|user_behavior_profiles|n|n|n|n
+kc_question_policy_state|KEEP|engagement|kc_question_policy_state|n|n|n|n
+devices|KEEP_AND_HARDEN|telemetry|devices|n|n|n|n
+device_sensors|KEEP_AND_HARDEN|telemetry|device_sensors|n|n|n|n
+device_events|KEEP_AND_HARDEN|telemetry|device_events|n|n|n|n
+health_data|DEPRECATE|telemetry|physiological_measurements|y|y|y|y
+raw_signal_batches|KEEP|telemetry|raw_signal_batches|n|n|n|n
+raw_signal_batch_features|KEEP|telemetry|raw_signal_batch_features|n|n|n|n
+ml_model_registry|KEEP|telemetry|ml_model_registry|n|n|n|n
+ml_inference_records|KEEP|telemetry|ml_inference_records|n|n|n|n
+notifications|EXTEND|engagement|notifications|y|n|y|n
+notification_feedback|KEEP_AND_HARDEN|engagement|notification_feedback|n|n|n|n
+interaction_events|KEEP_AND_HARDEN|engagement|interaction_events|n|n|n|n
+notification_guard_state|KEEP|engagement|notification_guard_state|n|n|n|n
+notification_prefs|KEEP_AND_HARDEN|engagement|notification_prefs|n|n|n|n
+push_devices|KEEP_AND_HARDEN|engagement|push_devices|y|n|n|n
+caregiver_notification_intents|KEEP_AND_HARDEN|engagement|caregiver_notification_intents|n|n|n|n
+emergency_escalation_records|EXTEND|engagement|emergency_escalation_records|y|n|y|n
+voice_call_requests|KEEP|engagement|voice_call_requests|n|n|n|n
+medical_conditions|KEEP|care|medical_conditions|n|n|n|n
+medications|KEEP_AND_HARDEN|care|medications|y|n|n|n
+user_conditions|KEEP|care|user_conditions|n|n|n|n
+user_medications|KEEP|care|user_medications|n|n|n|n
+user_medication_schedules|KEEP|care|user_medication_schedules|n|n|n|n
+user_doctors|KEEP|care|user_doctors|n|n|n|n
+user_events|KEEP|care|user_events|n|n|n|n
+user_care_plan_items|KEEP|care|user_care_plan_items|n|n|n|n
+care_risk_assessments|KEEP|care|care_risk_assessments|n|n|n|n
+care_recommendations|KEEP|care|care_recommendations|n|n|n|n
+care_follow_up_tasks|KEEP|care|care_follow_up_tasks|n|n|n|n
+health_questions|KEEP|care|health_questions|n|n|n|n
+health_symptom_reports|KEEP|care|health_symptom_reports|n|n|n|n
+knowledge_sources|DEPRECATE|source|governed_source_profiles|y|bridge|y|delayed
+knowledge_documents|KEEP_AND_HARDEN|knowledge|knowledge_documents|n|n|n|n
+knowledge_chunks|KEEP_AND_HARDEN|retrieval|knowledge_chunks|n|n|n|n
+knowledge_ingestion_runs|KEEP|source|knowledge_ingestion_runs|n|n|n|n
+knowledge_chunk_embeddings|EXTEND|retrieval|knowledge_chunk_embeddings|y|n|y|n
+governed_source_profiles|KEEP_AND_HARDEN|source|governed_source_profiles|n|n|n|n
+governed_source_profile_versions|KEEP|source|governed_source_profile_versions|n|n|n|n
+weekly_knowledge_runs|KEEP|governance|weekly_knowledge_runs|n|n|n|n
+weekly_knowledge_run_attempts|KEEP|governance|weekly_knowledge_run_attempts|n|n|n|n
+knowledge_gaps|KEEP|governance|knowledge_gaps|n|n|n|n
+weekly_run_source_results|KEEP|governance|weekly_run_source_results|n|n|n|n
+weekly_run_gap_results|KEEP|governance|weekly_run_gap_results|n|n|n|n
+i5_governance_decisions|KEEP|governance|i5_governance_decisions|n|n|n|n
+i5_raw_evidence|EXTEND|source|i5_raw_evidence|y|n|y|n
+knowledge_units|KEEP_AND_HARDEN|knowledge|knowledge_units|n|n|n|n
+knowledge_provenance|KEEP|knowledge|knowledge_provenance|n|n|n|n
+knowledge_memory_items|KEEP|knowledge|knowledge_memory_items|n|n|n|n
+knowledge_memory_transitions|KEEP|knowledge|knowledge_memory_transitions|n|n|n|n
+knowledge_conflicts|KEEP|governance|knowledge_conflicts|n|n|n|n
+knowledge_safety_reviews|KEEP|governance|knowledge_safety_reviews|n|n|n|n
+iran_doctors|KEEP|other|iran_doctors|n|n|n|n
+iran_laboratories|KEEP|other|iran_laboratories|n|n|n|n
+iran_hospitals|KEEP|other|iran_hospitals|n|n|n|n
+PRODUCTION_TABLES_CLASSIFIED=75/75
+ORM_MODELS_RECONCILED=74/74
+DISP_COUNTS=META_KEEP1 KEEP41 KEEP_AND_HARDEN20 EXTEND5 MERGE5 REPLACE1 DEPRECATE2
+
+--------------------------------------------------------------------------------
+§270.F - TARGET ENTITY MATRIX (NEW + MATERIAL EXTENDS)
+--------------------------------------------------------------------------------
+user_consents|NEW|identity|PII|PK id Identity|subject_user_id FK users|consent_type,purpose,scope_summary,grantee_type,grantee_id,relationship_id NULL,status CHECK pending/active/revoked/expired,policy_version,granted_at,effective_from,effective_until,revoked_at,revocation_reason,source,provenance,created_at,updated_at|UQ (subject,consent_type,purpose,grantee,effective_from) partial active|SCALE small|COMMENT YES
+user_consent_scopes|NEW|identity|PII|PK id|consent_id FK CASCADE|permission_key,allowed bool,metadata|SCALE small
+user_period_summaries|NEW|memory|PHI|PK id|user_id|summary_type CHECK DAILY/WEEKLY/MONTHLY/YEARLY|period_start,period_end|version|structured_summary_json|narrative_summary NULL|evidence_range|generated_at|status|superseded_at|UQ (user,type,period_start,version)|SCALE medium
+physiological_measurements|NEW|telemetry|PHI|PK BIGINT Identity|user_id,device_id FK devices,sensor_id FK device_sensors NULL|measurement_type CHECK heart_rate(+future)|numeric_value|unit|measured_at TIMESTAMPTZ|received_at TIMESTAMPTZ|quality_state|idempotency_key UQ|source_sequence NULL|ingestion_status|created_at|IX (user_id,measured_at DESC) REQUIRED|(device_id,measured_at DESC) REQUIRED|idempotency UQ REQUIRED|SCALE HIGH|partition-ready by measured_at RANGE
+physiological_baselines|NEW|telemetry|PHI|user_id|measurement_type|window_start/end|coverage|quality|baseline_version|derived_at|source_range|SCALE small
+derived_health_signals|NEW|telemetry/engagement|PHI|user_id|signal_type|severity_band NONDIAGNOSTIC|evidence_measurement_ids|policy_ref|detected_at|status|NOT a diagnosis|SCALE medium
+care_episodes|NEW|engagement|PHI|PK id|user_id|origin_type|origin_ref|category|policy_id/version|opened_at|current_state|resolved_at|resolution_reason|ack_due_at|escalation_due_at|expired_at|created_at|updated_at|SCALE medium
+care_episode_links|NEW|engagement|PHI|episode_id|link_type|link_table|link_id|created_at|UQ episode+type+id
+care_response_policies|NEW|governance|CLINICAL_GOVERNANCE|policy_id|policy_version|risk_category|ack_window_seconds NULLABLE (NO invented values)|escalation_window_seconds NULLABLE|expiry_behavior|recipient_rules_json|effective_from/until|status|approval_metadata|SCALE tiny
+i5_raw_evidence EXTEND columns|storage_locator TEXT NULL|object_key TEXT NULL|durable_path TEXT NULL|byte_size BIGINT NULL|integrity_state|recoverability_state CHECK RECOVERABLE/ABSENCE_GOVERNED/UNKNOWN
+user_memory_facts EXTEND|consent_id FK NULL|sensitivity_class|human_readable_value NULL|provenance_class CHECK USER_STATED/USER_CONFIRMED/CONVERSATION_DERIVED/DEVICE_DERIVED/SYSTEM_DERIVED/CAREGIVER_PROVIDED/CLINICIAN_PROVIDED|soft_invalidated_at|invalidation_reason
+notifications EXTEND|care_episode_id FK NULL|queued_at|delivered_at|opened_at|decision_at NULL
+emergency_escalation_records EXTEND|care_episode_id FK|step_no|from_recipient|to_recipient|consent_evidence_id|scheduled_at|executed_at|cancelled_at
+knowledge_chunk_embeddings EXTEND|knowledge_unit_id NULL|immutable_version_id NULL|source_profile_id NULL|raw_evidence_id NULL|index_generation|backend_kind CHECK JSON_INLINE/EXTERNAL_VECTOR_DEFERRED|runtime_eligibility_snapshot|retracted_at
+
+--------------------------------------------------------------------------------
+§270.G - RELATIONSHIP MATRIX (CARDINALITY / DELETE)
+--------------------------------------------------------------------------------
+User 1:1 UserProfileCore CASCADE
+User 1:N UserConsent RESTRICT soft-revoke preferred; hard delete policy-controlled
+User 1:N UserCaregiver CASCADE
+UserCareRelationship N:1 User caregiver + N:1 dependent; UQ pair; CASCADE
+User 1:N Device CASCADE; Device 1:N DeviceSensor CASCADE
+User/Device 1:N PhysiologicalMeasurement RESTRICT on device optional SET NULL sensor
+User 1:N Memory(chat) CASCADE (raw turns)
+User 1:N UserMemoryFact — soft-invalidate on account close; hard delete after retention
+User 1:N UserPeriodSummary CASCADE after soft archive
+User 1:N CareEpisode RESTRICT while open else CASCADE after resolve+retention
+CareEpisode 1:N Notifications SET NULL on episode delete forbidden while open
+CareEpisode 1:N Escalation CASCADE
+Notification 1:N Feedback CASCADE; InteractionEvent SET NULL source_notification
+GSP 1:N GSPVersion CASCADE; GSP 1:N I5RawEvidence RESTRICT
+I5RawEvidence N:1 WeeklyRun SET NULL; KU 1:1 Provenance RESTRICT to raw+GSP
+KU 1:N KnowledgeMemoryItem; Chunk 1:N ChunkEmbedding CASCADE
+DO NOT merge user_doctors with iran_doctors
+
+--------------------------------------------------------------------------------
+§270.H - TARGET ERD (EXECUTIVE)
+--------------------------------------------------------------------------------
+```mermaid
+erDiagram
+  users ||--o| user_profile_core : has
+  users ||--o{ user_consents : grants
+  users ||--o{ user_care_relationships : relates
+  users ||--o{ devices : owns
+  devices ||--o{ device_sensors : has
+  users ||--o{ physiological_measurements : measured
+  devices ||--o{ physiological_measurements : reports
+  users ||--o{ memory : chats
+  users ||--o{ user_memory_facts : remembers
+  users ||--o{ user_period_summaries : summarizes
+  users ||--o{ care_episodes : opens
+  care_response_policies ||--o{ care_episodes : governs
+  care_episodes ||--o{ notifications : notifies
+  care_episodes ||--o{ emergency_escalation_records : escalates
+  notifications ||--o{ notification_feedback : reacts
+  governed_source_profiles ||--o{ governed_source_profile_versions : versions
+  governed_source_profiles ||--o{ i5_raw_evidence : acquires
+  i5_raw_evidence ||--o{ knowledge_provenance : evidences
+  knowledge_units ||--|| knowledge_provenance : proven
+  knowledge_chunks ||--o{ knowledge_chunk_embeddings : indexed
+```
+
+--------------------------------------------------------------------------------
+§270.I - CURRENT TO TARGET TRANSFORMATION
+--------------------------------------------------------------------------------
+user_facts/kc_user_facts/user_profile_facts (+candidates) → MERGE → user_memory_facts
+daily_memory_summaries → REPLACE → user_period_summaries (DAILY first, then WEEKLY/MONTHLY/YEARLY)
+health_data → DEPRECATE → physiological_measurements
+device_events HR payloads → dual-write then cutover → physiological_measurements; device_events remains lifecycle
+knowledge_sources crawler authority → DEPRECATE → governed_source_profiles
+Stage17 rag_embeddings SQL → DEPRECATE/NONCANONICAL → knowledge_chunk_embeddings EXTEND
+Missing Consent/CareEpisode/GoldenWindow/locators → ADD new authorities as above
+medications duplicate FK → keep fk_medications_condition_id; DROP medications_condition_id_fkey
+memory.user_id CASCADE → KEEP Production CASCADE for chat memory; document product rule (see §270.P)
+
+--------------------------------------------------------------------------------
+§270.J - DUPLICATE AUTHORITY RESOLUTION
+--------------------------------------------------------------------------------
+DA-facts → CANONICAL user_memory_facts | OTHERS MERGE/DEPRECATE
+DA-sources → CANONICAL governed_source_profiles | knowledge_sources DEPRECATE (bridge retained until Wave5)
+DA-embeddings → CANONICAL knowledge_chunk_embeddings | Stage17 DEPRECATE
+DA-vitals → CANONICAL physiological_measurements | health_data DEPRECATE | device_events lifecycle | raw_signal foundation
+DA-doctors → INTENTIONALLY_SEPARATE (not a conflict)
+DUPLICATE_AUTHORITY_DESIGN_CONFLICTS=0
+
+--------------------------------------------------------------------------------
+§270.K - P0/P1 RESOLUTION MATRIX
+--------------------------------------------------------------------------------
+P0 Consent → DESIGN user_consents+scopes FROZEN | impl DB-03
+P0 RawEvidence locators → DESIGN EXTEND i5_raw_evidence FROZEN | invariant: URL alone != durable evidence
+P0 sedi_user SUPERUSER → DESIGN roles APPLICATION_RUNTIME / MIGRATION_ADMIN / sedi_dbeaver_readonly FROZEN | impl later ops/DB-03 Wave6
+P1 Memory canonical → FROZEN user_memory_facts
+P1 I7 → FROZEN user_period_summaries
+P1 Golden Window → FROZEN care_episodes timestamps + care_response_policies (no clinical numbers)
+P1 CareEpisode → FROZEN care_episodes + links
+P1 HR scale/time → FROZEN physiological_measurements + indexes + partition deferral triggers
+P1 Source → FROZEN GSP canonical
+P1 RAG path → FROZEN relational contract on knowledge_chunk_embeddings; RAG_FINAL=NO
+P0_DESIGN_GAPS_OPEN=0
+P1_DESIGN_GAPS_OPEN=0
+
+--------------------------------------------------------------------------------
+§270.L - TELEMETRY SCALE PLAN
+--------------------------------------------------------------------------------
+CANONICAL_HR=physiological_measurements
+measured_at != received_at FROZEN
+IDEMPOTENCY=UQ(idempotency_key) derived from device_id+sensor+measurement_type+measured_at_bucket_or_sequence (NOT received_at alone)
+INDEX_REQUIRED=(user_id, measured_at DESC); (device_id, measured_at DESC); UQ idempotency
+INDEX_OPTIONAL=(measurement_type, measured_at) if multi-type grows
+INDEX_REJECTED=per-column embedding_id style noise on measurement table
+PARTITION_STRATEGY=DEFER_PARTITIONING_WITH_MANDATORY_SCALE_TRIGGER
+PARTITION_TRIGGERS_ANY=
+  active_devices >= 1000 OR
+  physiological_measurements rows >= 50_000_000 OR
+  p95 user/time range query latency SLO breach (to be set in ops Gate)
+PARTITION_KEY_WHEN_ACTIVATED=RANGE(measured_at) monthly
+RETENTION=
+  HOT raw scalar 90d (policy-controlled; duration NOT legally frozen)
+  WARM 90d-365d
+  ARCHIVED >365d or object store
+  DERIVED daily/hourly aggregates retained longer
+AGGREGATION=hourly/daily rollup tables MAY be added in DB-03 Wave4 as physiological_measurement_rollups (DESIGN: include)
+BASELINE=physiological_baselines
+DERIVED_SIGNALS=derived_health_signals (nondiagnostic)
+device_events CLASS=DEVICE_LIFECYCLE_EVENT
+raw_signal_* CLASS=FOUNDATION/FUTURE_SCAFFOLD (ECG/high-rate); NOT V1 HR scalar path
+health_data CLASS=LEGACY DEPRECATE
+PK=BIGINT Identity for measurements
+
+--------------------------------------------------------------------------------
+§270.M - MEMORY / I7 PLAN
+--------------------------------------------------------------------------------
+LAYERING_FROZEN=
+  Conversation(memory) → Working/STM(service) → Candidate → Canonical user_memory_facts → Version/Supersession → LTM → I7 user_period_summaries → derived longitudinal view
+PROVENANCE_CLASSES=USER_STATED|USER_CONFIRMED|CONVERSATION_DERIVED|DEVICE_DERIVED|SYSTEM_DERIVED|CAREGIVER_PROVIDED|CLINICIAN_PROVIDED
+NO silent overwrite; supersedes_fact_id + fact_status + soft_invalidated_at
+I7 one generic summary authority DAILY/WEEKLY/MONTHLY/YEARLY versioned
+Longitudinal profile = DERIVED view/service from facts+summaries+telemetry trends+episodes; NOT new SoT table
+I6 owns writes/consent/correction; I7 owns summaries; I8 consumes safely later
+
+--------------------------------------------------------------------------------
+§270.N - ENGAGEMENT / CARE PLAN
+--------------------------------------------------------------------------------
+care_episodes canonical spine for trigger→notify→react→escalate→resolve
+Golden window reconstructable via episode timestamps + notification delivery fields + feedback.created_at/reaction mapping
+care_response_policies versioned; ack/escalation windows NULL until product policy authorized (NO invention)
+Reactions ACK_THANKS|NOT_NOW|TALK_LATER|OPEN_CHAT preserved in notification_feedback.action (+ CHECK vocab)
+Escalation EXTEND emergency_escalation_records with episode/step/consent evidence
+Quiet hours/fatigue KEEP prefs+guard; risk override via policy
+Delivery: EXTEND notifications with queued_at/delivered_at/opened_at; separate delivery ledger NOT required for V1 if attempt_no stored in context_json or metadata (FREEZE: V1 use notifications fields + interaction_events; revisit if multi-provider fanout)
+
+--------------------------------------------------------------------------------
+§270.O - SOURCE / KNOWLEDGE / RAG DATA CONTRACT
+--------------------------------------------------------------------------------
+GSP canonical source governance; knowledge_sources DEPRECATE for new crawler authority (bridge legacy_knowledge_source_id until Wave5)
+RawEvidence EXTEND locators; bytes outside PG by default; recoverability_state required
+KU path KEEP; D01-D20 taxonomy via manifest fields (D20 content hardening = I5 content Gate, not new table)
+knowledge_chunk_embeddings = ONE CANONICAL RETRIEVAL METADATA AUTHORITY (EXTEND lineage columns)
+Stage17 rag_embeddings = DEPRECATE / NONCANONICAL HISTORICAL (do not apply; cleanup later)
+RAG_DATABASE_PREREQUISITES_FROZEN=YES
+RAG_FINAL_ARCHITECTURE_FROZEN=NO
+VECTOR_BACKEND=DEFERRED (no pgvector install in DB-03 unless separate RAG Gate)
+
+--------------------------------------------------------------------------------
+§270.P - SECURITY / ROLE / DBEAVER / DRIFT
+--------------------------------------------------------------------------------
+ROLES_TARGET=
+  sedi_app_runtime = CONNECT/USAGE/DML on app tables; NO SUPERUSER; NO DDL
+  sedi_migration_admin = DDL/DML for migrations only
+  sedi_dbeaver_readonly = CONNECT/USAGE/SELECT + catalog; NO WRITE/DDL
+SEDI_USER_SUPERUSER_REMEDIATION_DESIGNED=YES (cutover Wave6; dual-role period)
+DBEAVER comments on all material NEW/EXTEND tables; prioritize purpose/provenance/safety
+VIEWS_REQUIRED (inspection only)=
+  vw_user_memory_overview (no raw PHI values beyond counts/status)
+  vw_user_heart_rate_daily (aggregates only)
+  vw_notification_reaction_timeline
+  vw_open_care_episodes
+  vw_knowledge_runtime_status
+  vw_crawler_latest_runs
+Masking: no phone/body/payload in views
+DRIFT_MED_FK: DROP medications_condition_id_fkey; KEEP fk_medications_condition_id
+DRIFT_MEMORY_CASCADE: KEEP ON DELETE CASCADE for memory(chat) — raw turns deleted with account hard-delete AFTER retention/consent workflow; LTM facts soft-invalidate first; document in deletion matrix. Align ORM ondelete=CASCADE to match intended Production behavior (product-reasoned, not blind match).
+
+SENSITIVITY_CLASSES=PUBLIC|INTERNAL|PII|PHI|SENSITIVE_SECURITY|CLINICAL_GOVERNANCE
+
+--------------------------------------------------------------------------------
+§270.Q - MIGRATION WAVES (DESIGN ONLY)
+--------------------------------------------------------------------------------
+WAVE0 Drift: drop dup medications FK; align Memory ORM ondelete; mark Stage17 path noncanonical in docs/CI deny-list
+WAVE1 Additive: user_consents(+scopes), care_response_policies, care_episodes(+links), physiological_measurements(+baselines,+derived_health_signals), user_period_summaries; EXTEND columns on i5_raw_evidence, user_memory_facts, notifications, escalation, knowledge_chunk_embeddings
+WAVE2 Backfill: merge fact stacks → user_memory_facts; daily→period summaries; health_data→physiological_measurements; dual-write device_events HR→measurements
+WAVE3 Cutover: services read/write canonical authorities; stop writes to deprecated
+WAVE4 Constraints/indexes/scale: REQUIRED HR indexes; optional rollups; TIMESTAMPTZ opportunism; partition prep CHECK only
+WAVE5 Deprecation: stop legacy tables from writes; delayed DROP after verification window
+WAVE6 DBeaver comments/views; create RO role; begin superuser remediation
+SMALL_DATA_ADVANTAGE=YES for fact/summary/HR backfills (verify still)
+
+--------------------------------------------------------------------------------
+§270.R - BACKFILL / CUTOVER / ROLLBACK
+--------------------------------------------------------------------------------
+Fact merge: SOURCE user_facts/kc_user_facts/user_profile_facts → TARGET user_memory_facts; preserve ids in provenance; dedupe by (user,domain,key,effective); conflict → lower confidence becomes superseded; NO silent loss
+Daily summaries → user_period_summaries type=DAILY version=1
+health_data → measurements measurement_type=heart_rate measured_at=created_at received_at=created_at quality=legacy_import
+HR dual-write period then cutover
+ROLLBACK: WAVE0-1 FULLY_REVERSIBLE (drop new cols/tables); WAVE2 LOGICALLY_REVERSIBLE (keep source tables); WAVE3 FORWARD_FIX with dual-read fallback; WAVE5 DROP FORWARD_FIX_ONLY after signoff
+DATA_LOSS_PROTECTION=mandatory for memory history, reactions, relationships, measurements, I5 evidence, KU provenance, governance
+
+--------------------------------------------------------------------------------
+§270.S - DB-03 IMPLEMENTATION SCOPE (PROPOSAL; UNAUTHORIZED)
+--------------------------------------------------------------------------------
+ADD_MODELS=UserConsent,UserConsentScope,UserPeriodSummary,PhysiologicalMeasurement,PhysiologicalBaseline,DerivedHealthSignal,CareEpisode,CareEpisodeLink,CareResponsePolicy
+MODIFY_MODELS=UserMemoryFact,I5RawEvidence,Notification,EmergencyEscalationRecord,KnowledgeChunkEmbedding,Memory(ondelete),Medication(constraint cleanup)
+DEPRECATE_PATH=HealthData,UserFact,KcUserFact,UserProfileFact (after merge),DailyMemorySummary (after replace),KnowledgeSource crawler authority
+MIGRATIONS≈ several Alembic revisions across waves 0-6 (exact count DB-03)
+SERVICES_LIKELY=device_ingestion,vitals,notification_engine,gate4,emergency_escalation,user_context,memory routers,i5 raw retention,kb_embedding,auth deletion
+TESTS=ORM contracts, Alembic graph, fresh migrate, upgrade rehearsal, memory merge, HR index EXPLAIN, care lifecycle, I5 locator, role grants
+CI=migration rehearsal workflow; deny Stage17 pgvector apply
+PROD_PREREQS=backup, head reverify, drift reverify, rehearsal Green, rollback plan, security review
+
+--------------------------------------------------------------------------------
+§270.T - CRITICAL PATH / DEADLINE
+--------------------------------------------------------------------------------
+DB02_CRITICAL_PATH_EFFECT=ADVANCES
+DB03_READY=YES (design freeze complete; Gate NOT authorized)
+DATA_PLATFORM_GREEN_PATH=CLEAR (pending DB-03 implementation)
+RAG_PHASE_READY_AFTER_DB03=YES (relational prerequisites); RAG_FINAL still separate Gate
+I5_IMPACT=RawEvidence locator EXTEND unblocks durable storage design; CAP24 remains separate product blocker
+END_OF_MORDAD_RISK=HIGH (DB-03 + CAP24 + I6/I7 still ahead; design no longer blocks)
+BLOCKERS_NAMED=
+  1) DB-03 implementation unauthorized until Javad approves
+  2) CAP24 laboratory source (I5)
+  3) care_response_policies durations require future product/clinical policy Gate (schema ready; values NULL)
+
+--------------------------------------------------------------------------------
+§270.U - EVIDENCE ASSURANCE PACK
+--------------------------------------------------------------------------------
+FACT DB-01P: sedi_db PG16.14 tables75 Alembic056 pgvectorNO rag_embeddingsABSENT comments0 partitions0
+FACT ORM: models.py 74 classes; user_memory_facts has supersession; device_events lacks measured_at column name (uses recorded_at)
+FACT: duplicate medications FKs; memory CASCADE in prod
+DESIGN DECISIONS: all canonical selections in §270.A-O
+INFERENCE: small row counts still enable safer merges — reverify at DB-03
+DEFERRED IMPLEMENTATION: all DDL/DML/roles/views/comments to DB-03+
+
+--------------------------------------------------------------------------------
+§270.V - DESIGN FREEZE DECISION LOG (MATERIAL)
+--------------------------------------------------------------------------------
+D-01 PHYSICAL public V1 | evidence no multi-schema need | REJECT 8-schema split | migration risk
+D-02 Consent NEW tables | evidence DURABLE_CONSENT=NO | REJECT prefs-as-consent
+D-03 LTM=user_memory_facts EXTEND | best provenance/supersession fit | REJECT new 5th fact table
+D-04 I7=user_period_summaries REPLACE daily | one generic authority | REJECT 4 near-duplicate tables
+D-05 HR=physiological_measurements NEW | device_events overloaded JSON bucket | REJECT forcing device_events as SoT
+D-06 Partition DEFER with triggers | empty telemetry now | REJECT Timescale; REJECT partition-now cost
+D-07 CareEpisode NEW | CARE_EPISODE=NO | REJECT soft-link only
+D-08 Policy table without durations | clinical invention forbidden | REJECT hardcoded windows
+D-09 GSP canonical source | dual registries | DEPRECATE knowledge_sources authority
+D-10 RawEvidence EXTEND locators | GAP confirmed | REJECT URL-only evidence
+D-11 Retrieval metadata=knowledge_chunk_embeddings EXTEND | pgvector ABSENT | DEPRECATE Stage17
+D-12 Roles design | sedi_user superuser | REJECT status-quo
+D-13 memory CASCADE keep for chat | account hard-delete semantics | align ORM
+D-14 Drop dup medications FK | identical semantics | keep named fk_medications_condition_id
+
+TARGET_ARCHITECTURE_FROZEN=YES
+MARKER=DB02_DESIGN_FREEZE_PASS_PUBLIC_V1_CANONICALS_SELECTED_DB03_READY_UNAUTHORIZED
+NOTE=post-§270 final master-log whole-file self-SHA is NOT embedded inside §270.
+
+================================================================================
+§271 - DB-03 CONTROLLED DATA-PLATFORM IMPLEMENTATION (ORM/ALEMBIC/CI/REHEARSAL)
+================================================================================
+RECORDED_AT_UTC=2026-08-10T05:35:00Z
+GATE_ID=SEDI-V1 DATA-PLATFORM CONTROLLED ORM / SCHEMA / ALEMBIC MIGRATION IMPLEMENTATION + CI + MIGRATION REHEARSAL-01
+SHORT_NAME=DB-03
+JAVAD_APPROVAL=EXPLICITLY GRANTED (AUTHORIZED=YES)
+GATE_CLASS=IMPLEMENTATION + CI + MIGRATION REHEARSAL
+GATE_OUTCOME=PASS
+PRODUCTION_APPLY=NO
+PRODUCTION_DB_MUTATION=NO
+PRODUCTION_MIGRATION_EXECUTED=NO
+PRODUCTION_ROLE_MUTATION=NO
+PRODUCTION_DEPLOY=NO
+PRODUCTION_FEATURE_ACTIVATION=NO
+
+--------------------------------------------------------------------------------
+§271.0 - GOVERNANCE REVALIDATION
+--------------------------------------------------------------------------------
+RULES_IN_FORCE_CHECK=PASS
+DB02_AUTHORITY=§270 / handoff v561
+DB02_AUTHORITY_RECONSTRUCTED=YES
+DB03_EXACT_ALLOWLIST_RECONSTRUCTED=YES
+PHYSICAL_SCHEMA=public
+CANONICAL_SELECTIONS_PRESERVED=YES
+PGVECTOR_INTRODUCED=NO
+RAG_EMBEDDINGS_INTRODUCED=NO
+CLINICAL_WINDOW_VALUES_INVENTED=NO
+PARTITIONING_ACTIVATED=NO
+PARTITION_TRIGGER_SEMANTICS=ANY (OR) per §270.L
+
+--------------------------------------------------------------------------------
+§271.A - BASELINE
+--------------------------------------------------------------------------------
+REPO_ROOT=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+BASELINE_HEAD=ad5979505ed291d435851f321013cf7adf86c49d
+FINAL_HEAD=40818daa5f814d308df352065576e487f244af50
+PARENT_IMPL_COMMIT=fe69de478d7e4e431a9517645e94f4993e59af5f
+TREE_IMPL=3f4a489d22dce60c6834ea4c52a902755040a2ab
+AHEAD_BEHIND=0/0
+DIRTY_CONTINUITY=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (uncommitted; intentional)
+ALEMBIC_PRIOR_HEAD=056_i5_w2_p02_conflict_safety
+ALEMBIC_FINAL_HEAD=060_db03_w4_w6_scale_inspect_roles
+ALEMBIC_SINGLE_HEAD=YES
+
+--------------------------------------------------------------------------------
+§271.B - IMPLEMENTATION SCOPE DELIVERED
+--------------------------------------------------------------------------------
+REVISIONS=
+  057_db03_w0_drift_normalization
+  058_db03_w1_additive_foundations
+  059_db03_w2_backfill_consolidation
+  060_db03_w4_w6_scale_inspect_roles
+MODELS_ADDED=UserConsent,UserConsentScope,UserPeriodSummary,PhysiologicalMeasurement,PhysiologicalBaseline,DerivedHealthSignal,CareEpisode,CareEpisodeLink,CareResponsePolicy,PhysiologicalMeasurementRollup
+MODELS_EXTENDED=UserMemoryFact,I5RawEvidence,Notification,EmergencyEscalationRecord,KnowledgeChunkEmbedding,Memory(ondelete=CASCADE)
+TABLES_ADDED=user_consents,user_consent_scopes,user_period_summaries,physiological_measurements,physiological_baselines,derived_health_signals,care_episodes,care_episode_links,care_response_policies,physiological_measurement_rollups,db03_migration_conflicts
+BACKFILLS=memory_fact_merge; daily→period DAILY v1; health_data→physiological_measurements
+SERVICE_CUTOVER=device_ingestion dual-write HR; vitals_summary prefer physiological_measurements
+STAGE17=008_stage17_6_pgvector.sql marked NONCANONICAL/DO NOT APPLY
+ROLES_ARTIFACT=backend/ops/db03/roles_sedi_v1.sql (no passwords; not applied to Production)
+PROD_READINESS_PKG=backend/ops/db03/PRODUCTION_MIGRATION_READINESS.md
+VIEWS=vw_user_memory_overview,vw_user_heart_rate_daily,vw_notification_reaction_timeline,vw_open_care_episodes,vw_knowledge_runtime_status,vw_crawler_latest_runs
+
+--------------------------------------------------------------------------------
+§271.C - TESTS / CI EVIDENCE
+--------------------------------------------------------------------------------
+FOCUSED_TESTS=19 passed (backend/tests/test_db03_contracts.py) CI
+W1P01_PROTECTED_SMOKE=1 passed (--noconftest)
+FRESH_DB_UPGRADE=PASS (CI)
+BASELINE_056_TO_HEAD=PASS (CI; synthetic seed; PM_ROWS>=1 UPS_ROWS>=1)
+UNAPPROVED_CLINICAL_WINDOW_VALUES=0
+UNEXPLAINED_DATA_LOSS=0 (backfill helpers + tests)
+CI_WORKFLOW=.github/workflows/db03-migration-rehearsal.yml
+CI_RUN_FAIL=31358677234 (teardown views vs drop_all)
+CI_RUN_GREEN=31358824108
+CI_JOB_ID=93363466777
+CI_ARTIFACT=db03-migration-rehearsal-evidence id=9051591558
+AUTO_REMEDIATION_CYCLES=1
+CI=GREEN
+
+--------------------------------------------------------------------------------
+§271.D - PRODUCTION SAFETY
+--------------------------------------------------------------------------------
+PRODUCTION_DB_MUTATION=NO
+PRODUCTION_MIGRATION_EXECUTED=NO
+PRODUCTION_ROLE_MUTATION=NO
+PRODUCTION_ALEMBIC_EXPECTED_STILL=056 (read-only revalidation optional; not required for Green)
+DATA_PLATFORM_IMPLEMENTATION_GREEN=YES
+PRODUCTION_DATA_PLATFORM_GREEN=NOT_YET_APPLIED
+PRODUCTION_MIGRATION_READY=YES (package prepared; execution unauthorized)
+P0_IMPLEMENTATION_GAPS_OPEN=0
+P1_IMPLEMENTATION_GAPS_OPEN=0
+
+--------------------------------------------------------------------------------
+§271.E - CRITICAL PATH
+--------------------------------------------------------------------------------
+DB03_CRITICAL_PATH_EFFECT=ADVANCES
+PRODUCTION_MIGRATION_READINESS=ADVANCES (ready package; not applied)
+DATA_PLATFORM_GREEN=ADVANCES (implementation Green; Production pending)
+FINAL_RAG_ARCHITECTURE=NO_EFFECT (relational prerequisites only; RAG_FINAL still separate)
+I5=ADVANCES (RawEvidence locator contract implemented)
+I6=ADVANCES (canonical LTM path implemented)
+I7=ADVANCES (user_period_summaries implemented)
+I8=NO_EFFECT
+END_OF_MORDAD_RISK=MODERATE (CAP24 + Production migration + I6/I7 runtime still ahead; design+impl no longer block)
+
+--------------------------------------------------------------------------------
+§271.F - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_PROPOSED_GATE=SEDI-V1 DATA-PLATFORM PRODUCTION MIGRATION + ROLE HARDENING + POST-APPLY VERIFICATION CONTROLLED AUTO-REMEDIATION TO GREEN-01
+NEXT_GATE_AUTHORIZED=NO
+
+MARKER=DB03_IMPLEMENTATION_PASS_CI_GREEN_PROD_NOT_APPLIED
+NOTE=post-§271 final master-log whole-file self-SHA is NOT embedded inside §271.
+
+================================================================================
+§272 - DB-PROD-01 PRODUCTION DATA PLATFORM MIGRATION + ROLE HARDENING
+================================================================================
+RECORDED_AT_UTC=2026-08-10T06:25:00Z
+GATE_ID=SEDI-V1 DATA-PLATFORM PRODUCTION MIGRATION + ROLE HARDENING + POST-APPLY VERIFICATION CONTROLLED AUTO-REMEDIATION TO GREEN-01
+SHORT_NAME=DB-PROD-01
+JAVAD_APPROVAL=EXPLICITLY GRANTED (AUTHORIZED=YES)
+GATE_CLASS=PRODUCTION MIGRATION + ROLE HARDENING + RUNTIME CUTOVER
+GATE_OUTCOME=PASS_WITH_GAPS
+PRODUCTION_DB_MUTATION=YES
+PRODUCTION_MIGRATION_EXECUTED=YES (056→060)
+PRODUCTION_ROLE_MUTATION=YES (roles created/proven; runtime credential cutover NOT completed)
+PRODUCTION_DEPLOY=NO
+UNRELATED_CODE_DEPLOY=NO
+CRAWLER_ACTIVATED=NO
+RAG_ACTIVATED=NO
+CAREGIVER_ESCALATION_ACTIVATED=NO
+
+--------------------------------------------------------------------------------
+§272.0 - GOVERNANCE / RULES-IN-FORCE
+--------------------------------------------------------------------------------
+RULES_IN_FORCE_CHECK=PASS
+DB02_FREEZE_REVIEWED=YES (§270)
+DB03_CLOSURE_REVIEWED=YES (§271 / v562)
+DB03_PRODUCTION_READINESS_PACKAGE_REVIEWED=YES
+ROLE_MODEL_AMBIGUITY=CLOSED (DIRECT_LOGIN)
+ERROR_SWALLOWING=REMOVED (apply_roles_sedi_v1.py fail-closed)
+ROLE_SCRIPT_ISOLATED_REHEARSAL=PASS (CI run 31360010949 / artifact 9052011705)
+MAX_PRODUCTION_REMEDIATION_CYCLES=2 (HARD CAP REACHED — no further Production dispatch in this Gate)
+
+--------------------------------------------------------------------------------
+§272.A - REPOSITORY / CI
+--------------------------------------------------------------------------------
+BRANCH=feature/section15/backend-continuity-foundation
+ROLE_FIX_COMMIT=9f71e73e96ff639d49b1f8357e27b803c3c6de74
+MIGRATION_IMAGE_DIGEST=sha256:710c2016aabc2018908535cb2ef0e24ce0d43a7132cf8d08c18d693903607f7e
+MIGRATION_IMAGE_BUILD_RUN=31360099139
+WORKFLOW_COMMITS=1c633cd; c68156a; 71d72ba; 2896700; e8202fd (+ pending python3 host cutover fix local)
+REPO_HEAD_AT_CLOSE=e8202fd (plus local uncommitted: python3 cutover fix + continuity docs)
+ROLE_REHEARSAL_CI=GREEN run=31360010949 artifact=9052011705
+DISPATCH_PATH=W6-P01 Production Migration 056 confirmation=MIGRATE_TO_060 (new workflow not dispatchable until on default branch)
+
+--------------------------------------------------------------------------------
+§272.B - PRODUCTION IDENTITY / BACKUP
+--------------------------------------------------------------------------------
+SERVER=Sedi / sedi-cloudir
+POSTGRES_CONTAINER=sedi-postgres
+DATABASE=sedi_db
+PG_VERSION=16.14
+PRODUCTION_IDENTITY_VERIFIED=YES
+PRODUCTION_ALEMBIC_BEFORE=056_i5_w2_p02_conflict_safety
+PREAPPLY_DRIFT=NONE (pgvector=NO; rag_embeddings=NO; alembic single-row 056)
+BACKUP_CREATED=YES
+BACKUP_SIZE=75604
+BACKUP_SHA256=e9b07530c13766e010c87b6aba36a47f35c0c11649cc0afa0b1efa18e620bcb9
+BACKUP_RESTORE_TEST=PASS (restore_table_count=75; restored alembic=056)
+FINAL_CUTOVER_BACKUP=YES
+FINAL_BACKUP_SIZE=75609
+FINAL_BACKUP_SHA256=582d6c9292f56812709c9df933b2a737442bbc3510eae32e8f802c7aa5ab393e
+WRITERS_FROZEN=YES (during migrate run 31360645435)
+
+--------------------------------------------------------------------------------
+§272.C - MIGRATION APPLY EVIDENCE
+--------------------------------------------------------------------------------
+PROD_RUN_MIGRATE=31360645435 (partial — schema PASS; role env write FAIL)
+PROD_RUN_REMEDIATE_1=31361395283 (availability restored; ROLE_APPLY PASS; bool proof format FAIL)
+PROD_RUN_REMEDIATE_2=31361537470 (role proofs PASS; runtime cutover FAIL — host python missing)
+MIGRATION_057=PASS
+MIGRATION_058=PASS
+MIGRATION_059=PASS
+MIGRATION_060=PASS
+PRODUCTION_ALEMBIC_AFTER=060_db03_w4_w6_scale_inspect_roles
+PRODUCTION_ALEMBIC_060=YES
+TABLE_COUNT_BEFORE=75
+TABLE_COUNT_AFTER=86
+TARGET_SCHEMA_CONTRACT=PASS
+HEART_RATE_INDEX_CONTRACT=PASS (ix_pm_user_measured_at / ix_pm_device_measured_at / uq_pm_idempotency_key verified in procedure)
+PARTITIONING_ACTIVATED=NO
+PGVECTOR_INSTALLED=NO
+RAG_EMBEDDINGS_EXISTS=NO
+UNAPPROVED_CLINICAL_WINDOW_VALUES=0
+CONSENT_PRODUCTION=PASS (tables present)
+RAW_EVIDENCE_LOCATOR_PRODUCTION=PASS (extended columns via 058+)
+CARE_EPISODE_PRODUCTION=PASS
+DBEAVER_VIEWS=PASS (six vw_* present)
+
+--------------------------------------------------------------------------------
+§272.D - BACKFILL / CONFLICTS
+--------------------------------------------------------------------------------
+MEMORY: src_user_facts=1 mapped_umf_merge=1
+I7: src_daily_summaries=2 mapped_period_daily_v1=1 i7_distinct_days=1 (same-day collapse explainable)
+HEALTH: src_health_data=2 mapped_pm_legacy=1 health_rows_no_hr=0
+MIGRATION_CONFLICTS=1 class=health_data:unmap:1 (device-less HR retained as legacy; explained)
+UNEXPLAINED_DATA_LOSS=0
+MIGRATION_CONFLICTS_CRITICAL_OPEN=0
+
+--------------------------------------------------------------------------------
+§272.E - ROLE / RUNTIME CUTOVER
+--------------------------------------------------------------------------------
+ROLE_CONNECTION_MODEL=DIRECT_LOGIN
+ROLE_SCRIPT_FAIL_CLOSED=YES
+APP_RUNTIME_ROLE=sedi_app_runtime (created; LOGIN; SUPERUSER=NO proven in remediate_2)
+MIGRATION_ROLE=sedi_migration_admin (created; LOGIN; SUPERUSER=NO)
+DBEAVER_ROLE=sedi_dbeaver_readonly (created; readonly proofs PASS in remediate_2)
+DBEAVER_ROLE_READONLY=YES
+APP_RUNTIME_SUPERUSER=NO
+APP_RUNTIME_DDL_PRIVILEGE=NO (CREATE on public=false proven)
+RUNTIME_CONFIG_CUTOVER=FAIL (host `python` not found at cutover; `python3` fix staged locally — NOT re-dispatched; remediation cap reached)
+APPLICATION_RUNTIME_ROLE_VERIFIED=NO
+BACKEND_RESTARTED=YES (availability restore PASS on remediate_1; public /health ok at close)
+BACKEND_HEALTH=PASS ({"ok":true,"db":"ok"} via https://api.sedi-ai.com/health)
+ROUTINE_APP_USES_SUPERUSER=UNKNOWN (cutover not completed; app still on pre-cutover DATABASE_URL identity)
+LEGACY_SEDI_USER_SUPERUSER=N/A (sedi_user absent in restore ACL noise; NOSUPERUSER step not reached)
+FUTURE_MIGRATION_PATH_PROVEN=PARTIAL (sedi_migration_admin created; ownership path not fully exercised post-cutover)
+ROLE_HARDENING=PARTIAL
+
+--------------------------------------------------------------------------------
+§272.F - AUTO-REMEDIATION / HARD CAP
+--------------------------------------------------------------------------------
+AUTO_REMEDIATION_CYCLES=2
+CYCLE_1=writable roles path + availability restore (31361395283)
+CYCLE_2=bool true/false role proof (31361537470) then blocked on host python for env rewrite
+FURTHER_PRODUCTION_DISPATCH_IN_THIS_GATE=NO (MAX_PRODUCTION_REMEDIATION_CYCLES reached)
+POST_APPLY_SCHEMA_DRIFT=NONE (for DB-03 target objects at 060)
+
+--------------------------------------------------------------------------------
+§272.G - GREEN VERDICT
+--------------------------------------------------------------------------------
+PRODUCTION_DATA_PLATFORM_GREEN=NO
+REASON=runtime credential cutover incomplete; routine app least-privilege identity not verified
+P0_PRODUCTION_GAPS_OPEN=1 (RUNTIME_DB_CREDENTIAL_CUTOVER_INCOMPLETE)
+P1_PRODUCTION_GAPS_OPEN=1 (LEGACY_OWNERSHIP_NOSUPERUSER_PATH_NOT_CLOSED)
+SCHEMA_SUBSTRATE_GREEN=YES (056→060 applied + proofs)
+DATA_PLATFORM_IMPLEMENTATION_GREEN=YES (unchanged)
+
+--------------------------------------------------------------------------------
+§272.H - CRITICAL PATH
+--------------------------------------------------------------------------------
+DB_PROD_CRITICAL_PATH_EFFECT=ADVANCES (schema on Production; Green blocked on cutover)
+FINAL_RAG_ARCHITECTURE=BLOCKS_UNTIL_GREEN (do not start Final RAG Design Freeze while Production Data Platform Green=NO)
+I5=ADVANCES (substrate present)
+I6=ADVANCES (canonical LTM tables present)
+I7=ADVANCES (user_period_summaries present)
+I8=NO_EFFECT
+BACKEND_INTEGRATION=PARTIAL (healthy on legacy DB identity)
+END_OF_MORDAD_RISK=HIGH (cutover gap + CAP24 + RAG freeze still ahead)
+
+--------------------------------------------------------------------------------
+§272.I - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_PROPOSED_GATE=SEDI-V1 DB-PROD-01B RUNTIME DB CREDENTIAL CUTOVER + LEAST-PRIVILEGE VERIFICATION TO GREEN-01
+NEXT_GATE_AUTHORIZED=NO
+BLOCKER=complete DATABASE_URL cutover to sedi_app_runtime using python3/sudo-safe rewrite; verify session role; optional legacy NOSUPERUSER; then claim PRODUCTION_DATA_PLATFORM_GREEN
+ALTERNATE_IF_GREEN_WERE_YES=SEDI-V1 FINAL PROFESSIONAL RAG ARCHITECTURE DESIGN FREEZE-01
+
+MARKER=DB_PROD_01_PASS_WITH_GAPS_SCHEMA_060_ROLE_PARTIAL_CUTOVER_BLOCKED
+NOTE=post-§272 final master-log whole-file self-SHA is NOT embedded inside §272.
+SIZE_BEFORE_APPEND=2918489
+SHA256_BEFORE_APPEND=00D7E883DDC3DCB2E6C1794469F1B585489792AC5C7A892881FD3748269EA4F6
+
+================================================================================
+§273 - DB-PROD-01B RUNTIME CREDENTIAL CUTOVER + LEAST-PRIVILEGE GREEN CLOSURE
+================================================================================
+RECORDED_AT_UTC=2026-08-10T07:12:00Z
+GATE_ID=SEDI-V1 DB-PROD-01B RUNTIME DB CREDENTIAL CUTOVER + LEAST-PRIVILEGE VERIFICATION TO GREEN-01
+SHORT_NAME=DB-PROD-01B
+JAVAD_APPROVAL=EXPLICITLY GRANTED (AUTHORIZED=YES)
+GATE_CLASS=NARROW PRODUCTION SECURITY / RUNTIME CLOSURE
+GATE_OUTCOME=PASS
+PRODUCTION_SCHEMA_MIGRATION=FORBIDDEN / NOT EXECUTED
+MIGRATION_REAPPLIED=NO
+RUNTIME_DATABASE_CREDENTIAL_CUTOVER=YES
+CONTROLLED_BACKEND_RECREATE=YES
+UNRELATED_DEPLOY=NO
+FEATURE_ACTIVATION=NO
+
+--------------------------------------------------------------------------------
+§273.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+RULES_IN_FORCE_CHECK=PASS
+DB02_FREEZE_REVIEWED=YES (§270)
+DB03_CLOSURE_REVIEWED=YES (§271)
+DB_PROD_01_CLOSURE_REVIEWED=YES (§272 / v563)
+CUTOVER_ONLY_GUARD=PASS (dedicated db_prod_01b_cutover.sh; workflow confirmation CUTOVER_ONLY_060; no alembic apply path)
+MIGRATION_REAPPLY_PATH_DISABLED=YES
+
+--------------------------------------------------------------------------------
+§273.A - REPOSITORY
+--------------------------------------------------------------------------------
+BRANCH=feature/section15/backend-continuity-foundation
+REPO_HEAD_BEFORE=a7e6d68aa6b86520b78274aee8ba2af15569874c
+REPO_HEAD_AFTER=9163767 (cutover script + env-install remediation)
+REMOTE_HEAD=9163767
+CUTOVER_COMMIT=37f0710
+REMEDIATE_COMMIT=9163767
+DISPATCH_CONFIRMATION=CUTOVER_ONLY_060
+PROD_RUN_FAIL=31364302530 (sudo install denied)
+PROD_RUN_GREEN=31364568502 job=93380115622
+ARTIFACT=db-prod-01b-cutover-evidence
+AUTO_REMEDIATION_CYCLES=1
+
+--------------------------------------------------------------------------------
+§273.B - PREFLIGHT
+--------------------------------------------------------------------------------
+HOST_PYTHON3_AVAILABLE=YES (Python 3.12.3)
+SERVER=Sedi
+POSTGRES=sedi-postgres
+DATABASE=sedi_db
+PG_VERSION=16.14
+PRODUCTION_ALEMBIC_BEFORE=060_db03_w4_w6_scale_inspect_roles
+PRODUCTION_ALEMBIC_AFTER=060_db03_w4_w6_scale_inspect_roles
+PRODUCTION_ALEMBIC_060=YES
+TABLE_COUNT=86
+TARGET_SCHEMA_STILL_GREEN=YES
+PGVECTOR=NO
+RAG_EMBEDDINGS=NO
+UNAPPROVED_CLINICAL_WINDOW_VALUES=0
+TARGET_ROLES_PRESENT=YES
+APP_RUNTIME_PRIVILEGE_MODEL=PASS
+DBEAVER_ROLE_READONLY=YES
+
+--------------------------------------------------------------------------------
+§273.C - CUTOVER
+--------------------------------------------------------------------------------
+ENV_BACKUP_CREATED=YES
+ENV_BACKUP_SIZE=1211
+ENV_BACKUP_SHA256=df99248db2d4ba0e021eec10b8b408eb17a5430f60d9c4feb391cb6f197c58ed
+ENV_BACKUP_MODE=640
+ENV_ORIG_OWNER=0:1000
+ENV_INSTALL_METHOD=docker_root_bind (sudo install/tee insufficient; alpine root bind-mount used)
+DATABASE_USERNAME_BEFORE=sedi_user
+DATABASE_USERNAME_AFTER=sedi_app_runtime
+RUNTIME_CONFIG_CUTOVER=PASS
+DATABASE_TARGET_ALIGNMENT=PASS
+BACKEND_RECREATED=YES
+BACKEND_IMAGE_UNCHANGED=YES (ghcr.io/javadmeighani-oss/sedi-backend:848cab58…)
+BACKEND_HEALTH=PASS
+DATABASE_HEALTH=PASS
+PUBLIC_HEALTH=PASS (api.sedi-ai.com/health ok=true db=ok)
+
+--------------------------------------------------------------------------------
+§273.D - SESSION / SUPERUSER INVARIANT
+--------------------------------------------------------------------------------
+APPLICATION_RUNTIME_ROLE=sedi_app_runtime
+APPLICATION_RUNTIME_ROLE_VERIFIED=YES (pg_stat_activity usenames=sedi_app_runtime)
+ROUTINE_APP_USES_SUPERUSER=NO
+APP_RUNTIME_SUPERUSER=NO
+APP_RUNTIME_DDL_PRIVILEGE=NO
+LEGACY_SEDI_USER_SUPERUSER=YES (retained)
+LEGACY_SEDI_USER_RUNTIME_USED=NO
+POSTGRES_USER_ROLE=sedi_user (cluster break-glass / former object owner; SUPERUSER retained intentionally)
+NOTE=Routine app SUPERUSER usage eliminated; administrative SUPERUSER retained for controlled cluster admin per Gate §48.
+
+--------------------------------------------------------------------------------
+§273.E - MIGRATION PATH / OWNERSHIP
+--------------------------------------------------------------------------------
+MIGRATION_ROLE=sedi_migration_admin
+MIGRATION_ROLE_SUPERUSER=NO
+OWNERSHIP_TRANSFER=APPLIED (173 public objects + public schema → sedi_migration_admin)
+FUTURE_MIGRATION_PATH_PROVEN=YES (transactional CREATE/ALTER/DROP probe as sedi_migration_admin; ROLLBACK; probe absent)
+DEFAULT_PRIVILEGES=PASS
+PRODUCTION_ROLE_OR_OWNERSHIP_MUTATION=YES
+PRODUCTION_SCHEMA_MUTATION=NO
+PRODUCTION_DATA_MUTATION=NO
+
+--------------------------------------------------------------------------------
+§273.F - GREEN VERDICT
+--------------------------------------------------------------------------------
+POST_CUTOVER_SCHEMA_DRIFT=NONE
+P0_PRODUCTION_GAPS_OPEN=0
+P1_PRODUCTION_GAPS_OPEN=0
+PRODUCTION_DATA_PLATFORM_GREEN=YES
+CRAWLER_ACTIVATED=NO
+RAG_ACTIVATED=NO
+CAREGIVER_ESCALATION_ACTIVATED=NO
+
+--------------------------------------------------------------------------------
+§273.G - CRITICAL PATH
+--------------------------------------------------------------------------------
+DB_PROD_01B_CRITICAL_PATH_EFFECT=ADVANCES
+END_OF_MORDAD_RISK=MODERATE (Data Platform Green closed; Final RAG Design Freeze + CAP24/I6/I7 runtime remain)
+PATH=DB-01✅ DB-01P✅ DB-02✅ DB-03✅ DB-PROD-01⚠closed DB-PROD-01B✅ → PRODUCTION DATA PLATFORM GREEN → FINAL PROFESSIONAL RAG ARCHITECTURE DESIGN FREEZE → I5 → I6 → I7 → I8
+
+--------------------------------------------------------------------------------
+§273.H - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_PROPOSED_GATE=SEDI-V1 FINAL PROFESSIONAL RAG ARCHITECTURE DESIGN FREEZE-01
+NEXT_GATE_AUTHORIZED=NO
+
+MARKER=DB_PROD_01B_PASS_PRODUCTION_DATA_PLATFORM_GREEN
+NOTE=post-§273 final master-log whole-file self-SHA is NOT embedded inside §273.
+SIZE_BEFORE_APPEND=2927399
+SHA256_BEFORE_APPEND=CE76D839B690E0D367C18BBD53F14FE24EE7D8546C87E584FE14378D8B9F0417
+
+--------------------------------------------------------------------------------
+§274 - SEDI-V1 FINAL PROFESSIONAL RAG ARCHITECTURE DESIGN FREEZE-01
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 FINAL PROFESSIONAL RAG ARCHITECTURE DESIGN FREEZE-01
+STATUS=AUTHORIZED / EXECUTED
+MODE=DESIGN FREEZE ONLY (NO IMPLEMENTATION)
+RECORDED_AT_UTC=2026-08-10T16:55:00Z
+APPROVAL=Javad explicit authorization
+GATE_RESULT=PASS
+FINAL_RAG_ARCHITECTURE=FROZEN
+
+--------------------------------------------------------------------------------
+§274.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+SPEED_LAW_APPLIED=YES
+HARD_STOPS_DEFINED=YES
+SELF_HEALING_DEFINED=YES
+EVIDENCE_REQUIREMENTS_DEFINED=YES
+CONTINUITY_CLOSURE_DEFINED=YES
+CRITICAL_PATH_IMPACT_REQUIRED=YES
+DEADLINE_IMPACT_REQUIRED=YES
+RULES_IN_FORCE_CHECK=PASS
+MAX_AUTO_REMEDIATION_CYCLES=5
+AUTO_REMEDIATION_USED=0
+PRODUCTION_CHANGED=NO
+RAG_ACTIVATED=NO
+CRAWLER_ACTIVATED=NO
+SCHEMA_CHANGED=NO
+MIGRATION_CREATED=NO
+PGVECTOR_INSTALLED=NO
+
+--------------------------------------------------------------------------------
+§274.A - AUTHORITY RECONSTRUCTION
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+LOCAL_HEAD_AT_START=91637678bfc5ef5867a7402a113b97eee9189e88
+REMOTE_HEAD_AT_START=91637678bfc5ef5867a7402a113b97eee9189e88
+AHEAD_BEHIND=0/0
+DIRTY_AT_START=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md (append-only continuity)
+MASTER_LOG_PREDECESSOR=§273
+MASTER_LOG_PREDECESSOR_SIZE=2933546
+MASTER_LOG_PREDECESSOR_SHA256=D4AF47604B79F362DC1A9E7A727362E6026F21A60AAF126C3EE2879FA09B35AB
+CURSOR_HANDOFF_PREDECESSOR=v564
+CURSOR_HANDOFF_PREDECESSOR_PATH=references/authoritative/Sedi_Master_Handoff_Section72_DBPROD01B_RuntimeCutoverGreen_v564_FA.md
+CURSOR_HANDOFF_PREDECESSOR_SIZE=2179
+CURSOR_HANDOFF_PREDECESSOR_SHA256=C08B6750A08F4ABDF7697B6357123AE1516E574F02AE615DF88D31C754FE9C40
+CHATGPT_CONTINUITY_BASELINE=v574
+V574_CONTRADICTION=NO
+DATA_PLATFORM_BASELINE_PRESERVED=YES
+PRODUCTION_DATA_PLATFORM_GREEN=YES
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+APP_DB_RUNTIME=sedi_app_runtime
+FUTURE_MIGRATION_IDENTITY=sedi_migration_admin
+DBEAVER_IDENTITY=sedi_dbeaver_readonly
+ROUTINE_APP_USES_SUPERUSER=NO
+PGVECTOR=NO
+RAG_EMBEDDINGS=NO
+
+--------------------------------------------------------------------------------
+§274.B - ARCHITECTURE FREEZE SUMMARY
+--------------------------------------------------------------------------------
+SCIS_NAME=SEDI CONTEXT INTELLIGENCE STACK
+PERSONAL_GLOBAL_PLANES=SEPARATED
+FUSION=LABELED_EPISTEMIC
+SAFETY_ROUTING=PRE_RETRIEVAL_REQUIRED
+SEARCH_VECTOR_BACKEND=PostgreSQL16 + pgvector + FTS + RRF (install deferred to SCIS-01)
+EMBEDDING_PRIMARY=Cohere embed-multilingual-v3.0 @1024 (global plane)
+EMBEDDING_ALTERNATE=OpenAI text-embedding-3-large dimensions=1024
+PERSONAL_EXTERNAL_EMBED=NO_BY_DEFAULT
+HYBRID_RETRIEVAL=REQUIRED
+RERANKING=DEFERRED_OPTIONAL
+CHUNKING=KU_AND_SECTION_AWARE
+MULTILINGUAL=EN/FA/AR same-lang prefer + multilingual embeds
+I5_CONTRACT=FROZEN
+I6_CONTRACT=FROZEN
+I7_CONTRACT=FROZEN
+I8_CONTRACT=FROZEN
+SMART_NOTIFICATION_CONTRACT=FROZEN
+TELEMETRY_HR_BOUNDARY=FROZEN
+EVALUATION_FRAMEWORK=FROZEN
+SECURITY_PRIVACY_BOUNDARY=FROZEN
+STAGE17_RAG_EMBEDDINGS=DEPRECATE_NONCANONICAL
+ADR_PACK=ADR-RAG-001..020
+
+--------------------------------------------------------------------------------
+§274.C - ARTIFACT PATHS
+--------------------------------------------------------------------------------
+FREEZE_DOC=docs/architecture/rag-freeze-01/SEDI_V1_FINAL_PROFESSIONAL_RAG_ARCHITECTURE_DESIGN_FREEZE_01.md
+ADR_DOC=docs/architecture/rag-freeze-01/ADR_RAG_001_TO_020.md
+TECH_RESEARCH=docs/architecture/rag-freeze-01/TECH_RESEARCH_PRIMARY_SOURCES.md
+NEXT_GATE_SPEC=docs/architecture/rag-freeze-01/NEXT_IMPLEMENTATION_GATE_SCIS_01.md
+
+--------------------------------------------------------------------------------
+§274.D - IMPLEMENTATION WAVES / CRITICAL PATH
+--------------------------------------------------------------------------------
+WAVES=A(core retrieval/pgvector/hybrid) B(personal/I6) C(I7) D(eval/safety/obs) E(I5 publish) F(I8) G(notifications) H(frontend/E2E)
+CRITICAL_PATH_BEFORE=RAG undefined after Data Platform Green
+CRITICAL_PATH_AFTER=A -> B -> E -> D-green -> F/G -> H
+END_OF_MORDAD_RISK_BEFORE=HIGH (architecture undefined)
+END_OF_MORDAD_RISK_AFTER=MODERATE (architecture frozen; implementation remains)
+PARALLELIZATION_GAIN=QUALITATIVE (B/C/D parallelizable after A contracts)
+
+--------------------------------------------------------------------------------
+§274.E - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_PROPOSED_GATE=SEDI-V1 SCIS-01 CORE RETRIEVAL CONTRACTS + CHUNK/EMBED PIPELINE + PGVECTOR ENABLEMENT + HYBRID RRF + EVAL HARNESS SKELETON-01
+NEXT_GATE_AUTHORIZED=NO
+NEXT_GATE_SPEC=docs/architecture/rag-freeze-01/NEXT_IMPLEMENTATION_GATE_SCIS_01.md
+
+--------------------------------------------------------------------------------
+§274.F - OPEN FINDINGS
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=2
+NF1=exact global embedding vendor pin pending secrets/billing confirmation + optional embed-v4.0 eval in Wave A
+NF2=FA/AR FTS dictionary quality TO_BE_BASELINED
+
+--------------------------------------------------------------------------------
+§274.G - VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+DATA_PLATFORM_BASELINE_PRESERVED=YES
+FINAL_RAG_ARCHITECTURE=FROZEN
+PERSONAL_CONTEXT_ARCHITECTURE=FROZEN
+GLOBAL_KNOWLEDGE_ARCHITECTURE=FROZEN
+USER_KNOWLEDGE_FUSION=FROZEN
+MEDICAL_SAFETY_ARCHITECTURE=FROZEN
+MULTILINGUAL_ARCHITECTURE=FROZEN
+PROVENANCE_ARCHITECTURE=FROZEN
+I5_RAG_CONTRACT=FROZEN
+I6_RAG_CONTRACT=FROZEN
+I7_RAG_CONTRACT=FROZEN
+I8_RAG_CONTRACT=FROZEN
+SMART_NOTIFICATION_RAG_CONTRACT=FROZEN
+TELEMETRY_CONTEXT_BOUNDARY=FROZEN
+EVALUATION_FRAMEWORK=FROZEN
+SECURITY_PRIVACY_BOUNDARY=FROZEN
+TECHNOLOGY_STACK_FROZEN=YES
+IMPLEMENTATION_WAVES_DEFINED=YES
+NEXT_IMPLEMENTATION_GATE_DEFINED=YES
+RAG_ACTIVATED=NO
+CRAWLER_ACTIVATED=NO
+PRODUCTION_CHANGED=NO
+END_OF_MORDAD_RISK=MODERATE
+GATE_RESULT=PASS
+MARKER=RAG_ARCHITECTURE_DESIGN_FREEZE_01_PASS
+
+NOTE=post-§274 final master-log whole-file self-SHA is NOT embedded inside §274.
+SIZE_BEFORE_APPEND=2933546
+SHA256_BEFORE_APPEND=D4AF47604B79F362DC1A9E7A727362E6026F21A60AAF126C3EE2879FA09B35AB
