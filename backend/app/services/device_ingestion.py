@@ -17,7 +17,7 @@ import time
 from collections import deque
 from sqlalchemy.orm import Session
 
-from backend.app.models import DeviceEvent, User, UserMemoryFact
+from backend.app.models import DeviceEvent, User, UserMemoryFact, Device, PhysiologicalMeasurement
 from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
 from backend.app.decision_engine.service import evaluate_event
 from backend.app.services.memory.memory_repository import MemoryRepository
@@ -28,6 +28,7 @@ from backend.app.services.notifications.behavior_guard_d2 import (
     record_health_alert_sent,
 )
 from backend.app.services.vitals.vital_registry import validate_event, map_to_memory_facts, build_dedupe_key, VitalValidationError
+from backend.app.services.db03.physiological_idempotency import build_physiological_idempotency_key
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +199,23 @@ def ingest_event(
         "[DEVICE_INGEST] CREATED user=%s type=%s dedupe=%s event_id=%s trace=%s",
         user_id, event_type, dedupe_key, event.id, trace_id,
     )
+
+    # DB-03 Wave 3 dual-write: heart_rate → physiological_measurements (best-effort).
+    if event_type == "heart_rate":
+        try:
+            _dual_write_physiological_measurement(
+                db=db,
+                user_id=user_id,
+                logical_device_id=device_id,
+                normalized=normalized,
+                measured_at=recorded_at,
+                received_at=received_at,
+                source_sequence=dedupe_key,
+            )
+        except Exception as e:  # noqa: BLE001 — never break lifecycle event path
+            logger.exception(
+                "[DEVICE_INGEST] physiological dual-write failed: %s trace=%s", e, trace_id
+            )
     
     # Map to memory facts (schema-driven)
     try:
@@ -338,6 +356,73 @@ def _execute_d1_actions(
         except Exception as e:
             logger.exception("[DEVICE_INGEST] Failed to execute action %s: %s trace=%s", type(a).__name__, e, trace_id)
     return created, skipped_reason
+
+
+def _dual_write_physiological_measurement(
+    *,
+    db: Session,
+    user_id: int,
+    logical_device_id: Optional[str],
+    normalized: Dict[str, Any],
+    measured_at: datetime,
+    received_at: datetime,
+    source_sequence: str,
+) -> None:
+    """Best-effort dual-write into canonical physiological_measurements (§270 Wave3)."""
+    bpm = normalized.get("bpm")
+    if bpm is None:
+        bpm = normalized.get("heart_rate")
+    if bpm is None:
+        return
+    device_row = None
+    if logical_device_id:
+        device_row = (
+            db.query(Device)
+            .filter(Device.device_id == logical_device_id)
+            .first()
+        )
+    if device_row is None:
+        device_row = (
+            db.query(Device)
+            .filter(Device.user_id == user_id)
+            .order_by(Device.id.asc())
+            .first()
+        )
+    if device_row is None:
+        return
+
+    measured = measured_at if measured_at.tzinfo else measured_at.replace(tzinfo=timezone.utc)
+    received = received_at if received_at.tzinfo else received_at.replace(tzinfo=timezone.utc)
+    idem = build_physiological_idempotency_key(
+        device_id=device_row.id,
+        measurement_type="heart_rate",
+        measured_at=measured,
+        source_sequence=source_sequence,
+    )
+    existing = (
+        db.query(PhysiologicalMeasurement)
+        .filter(PhysiologicalMeasurement.idempotency_key == idem)
+        .first()
+    )
+    if existing:
+        return
+    db.add(
+        PhysiologicalMeasurement(
+            user_id=user_id,
+            device_id=device_row.id,
+            sensor_id=None,
+            measurement_type="heart_rate",
+            numeric_value=float(bpm),
+            unit="bpm",
+            measured_at=measured,
+            received_at=received,
+            quality_state="device_ingest",
+            idempotency_key=idem,
+            source_sequence=source_sequence,
+            ingestion_status="accepted",
+        )
+    )
+    db.commit()
 
 
 ## Legacy C1 hardcoded mapping/alerts removed in Release C3 (now registry-driven)

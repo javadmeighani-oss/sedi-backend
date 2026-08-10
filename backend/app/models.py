@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
@@ -81,7 +81,8 @@ class Memory(Base):
     __tablename__ = "memory"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # DB-03 / §270.P: align ORM with Production ON DELETE CASCADE for chat turns.
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     user_message = Column(String, nullable=False)
     sedi_response = Column(String, nullable=True)
     language = Column(String, default="en")
@@ -133,6 +134,17 @@ class Notification(Base):
     context_json = Column(Text, nullable=True)
     risk_level = Column(String(16), nullable=True)
     template_key = Column(String(100), nullable=True)
+    # DB-03 / §270.F — Golden Window delivery fields + care episode linkage
+    care_episode_id = Column(
+        Integer,
+        ForeignKey("care_episodes.id", ondelete="SET NULL", name="fk_notifications_care_episode_id"),
+        nullable=True,
+        index=True,
+    )
+    queued_at = Column(DateTime(timezone=True), nullable=True)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+    opened_at = Column(DateTime(timezone=True), nullable=True)
+    decision_at = Column(DateTime(timezone=True), nullable=True)
 
 
 # -------------------- PushDevice (Stage 16.6) --------------------
@@ -325,7 +337,17 @@ class DailyMemorySummary(Base):
 
 # -------------------- UserMemoryFact --------------------
 class UserMemoryFact(Base):
+    """Canonical LTM fact authority (DB-02/DB-03). Competing stacks merge here."""
+
     __tablename__ = "user_memory_facts"
+    __table_args__ = (
+        CheckConstraint(
+            "provenance_class IS NULL OR provenance_class IN ("
+            "'USER_STATED', 'USER_CONFIRMED', 'CONVERSATION_DERIVED', 'DEVICE_DERIVED', "
+            "'SYSTEM_DERIVED', 'CAREGIVER_PROVIDED', 'CLINICIAN_PROVIDED')",
+            name="ck_umf_provenance_class_vocab",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -346,6 +368,18 @@ class UserMemoryFact(Base):
     fact_status = Column(String(32), nullable=False, default="active", server_default="active")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    # DB-03 / §270.F canonical LTM extensions
+    consent_id = Column(
+        Integer,
+        ForeignKey("user_consents.id", ondelete="SET NULL", name="fk_umf_consent_id"),
+        nullable=True,
+        index=True,
+    )
+    sensitivity_class = Column(String(32), nullable=True)
+    human_readable_value = Column(Text, nullable=True)
+    provenance_class = Column(String(32), nullable=True)
+    soft_invalidated_at = Column(DateTime(timezone=True), nullable=True)
+    invalidation_reason = Column(Text, nullable=True)
 
 
 # -------------------- DeviceEvent --------------------
@@ -1132,6 +1166,25 @@ class EmergencyEscalationRecord(Base):
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    # DB-03 / §270.F escalation ledger extensions
+    care_episode_id = Column(
+        Integer,
+        ForeignKey("care_episodes.id", ondelete="CASCADE", name="fk_eer_care_episode_id"),
+        nullable=True,
+        index=True,
+    )
+    step_no = Column(Integer, nullable=True)
+    from_recipient = Column(String(128), nullable=True)
+    to_recipient = Column(String(128), nullable=True)
+    consent_evidence_id = Column(
+        Integer,
+        ForeignKey("user_consents.id", ondelete="SET NULL", name="fk_eer_consent_evidence_id"),
+        nullable=True,
+        index=True,
+    )
+    scheduled_at = Column(DateTime(timezone=True), nullable=True)
+    executed_at = Column(DateTime(timezone=True), nullable=True)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
 
 
 # -------------------- Section 10: Voice call requests (provider-neutral) --------------------
@@ -1155,9 +1208,15 @@ class VoiceCallRequest(Base):
 
 # -------------------- Section 10: KB chunk embedding metadata (no pgvector required) --------------------
 class KnowledgeChunkEmbedding(Base):
+    """Canonical retrieval metadata authority (DB-02). No pgvector / rag_embeddings."""
+
     __tablename__ = "knowledge_chunk_embeddings"
     __table_args__ = (
         UniqueConstraint("chunk_id", "model_identifier", name="uq_kb_chunk_embeddings_chunk_model"),
+        CheckConstraint(
+            "backend_kind IS NULL OR backend_kind IN ('JSON_INLINE', 'EXTERNAL_VECTOR_DEFERRED')",
+            name="ck_kce_backend_kind_vocab",
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -1172,6 +1231,30 @@ class KnowledgeChunkEmbedding(Base):
     generated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    # DB-03 / §270.F retrieval lineage metadata (vector backend deferred)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="SET NULL", name="fk_kce_knowledge_unit_id"),
+        nullable=True,
+        index=True,
+    )
+    immutable_version_id = Column(String(64), nullable=True)
+    source_profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="SET NULL", name="fk_kce_source_profile_id"),
+        nullable=True,
+        index=True,
+    )
+    raw_evidence_id = Column(
+        Integer,
+        ForeignKey("i5_raw_evidence.id", ondelete="SET NULL", name="fk_kce_raw_evidence_id"),
+        nullable=True,
+        index=True,
+    )
+    index_generation = Column(Integer, nullable=False, default=1, server_default="1")
+    backend_kind = Column(String(32), nullable=False, default="JSON_INLINE", server_default="JSON_INLINE")
+    runtime_eligibility_snapshot = Column(Text, nullable=True)
+    retracted_at = Column(DateTime(timezone=True), nullable=True)
 
 
 # -------------------- Section 15 I5-B2-P1: Governed source identity + immutable versions --------------------
@@ -1723,6 +1806,10 @@ class I5RawEvidence(Base):
             "(prohibited_data_state <> 'CONFIRMED_PROHIBITED') OR (retention_mode = 'RAW_EXCLUDED_PROTECTED_ELEMENTS')",
             name="ck_ire_prohibited_requires_excluded_mode",
         ),
+        CheckConstraint(
+            "recoverability_state IS NULL OR recoverability_state IN ('RECOVERABLE', 'ABSENCE_GOVERNED', 'UNKNOWN')",
+            name="ck_ire_recoverability_state_vocab",
+        ),
         UniqueConstraint("content_hash", "source_profile_id", "canonical_url", name="uq_ire_content_source_url"),
         Index("ix_ire_source_profile_id", "source_profile_id"),
         Index("ix_ire_retrieval_run_id", "retrieval_run_id"),
@@ -1754,6 +1841,13 @@ class I5RawEvidence(Base):
     supersedes_raw_evidence_id = Column(Integer, ForeignKey("i5_raw_evidence.id", ondelete="RESTRICT", name="fk_ire_supersedes_raw_evidence_id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now(), nullable=False)
     created_by_run_id = Column(Integer, ForeignKey("weekly_knowledge_runs.id", ondelete="SET NULL", name="fk_ire_created_by_run_id"), nullable=True)
+    # DB-03 / §270.F durable locator / recoverability contract
+    storage_locator = Column(Text, nullable=True)
+    object_key = Column(Text, nullable=True)
+    durable_path = Column(Text, nullable=True)
+    byte_size = Column(BigInteger, nullable=True)
+    integrity_state = Column(String(32), nullable=True)
+    recoverability_state = Column(String(32), nullable=True)
 
 
 class KnowledgeUnit(Base):
@@ -2195,3 +2289,332 @@ class IranHospital(Base):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+# ---------------------------------------------------------------------------
+# DB-03 / §270 — Additive canonical authorities (Wave 1)
+# Zero relationship() declarations (I5 / DB-03 convention for new tables).
+# ---------------------------------------------------------------------------
+
+
+class UserConsent(Base):
+    """Durable consent authority. Caregiver relationship != medical notify authorization."""
+
+    __tablename__ = "user_consents"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'active', 'revoked', 'expired')",
+            name="ck_user_consents_status_vocab",
+        ),
+        Index(
+            "uq_user_consents_active_grant",
+            "subject_user_id",
+            "consent_type",
+            "purpose",
+            "grantee_type",
+            "grantee_id",
+            "effective_from",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),
+        ),
+        Index("ix_user_consents_subject_user_id", "subject_user_id"),
+        Index("ix_user_consents_status", "status"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    subject_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="RESTRICT", name="fk_user_consents_subject_user_id"),
+        nullable=False,
+    )
+    consent_type = Column(String(64), nullable=False)
+    purpose = Column(String(128), nullable=False)
+    scope_summary = Column(Text, nullable=True)
+    grantee_type = Column(String(64), nullable=False)
+    grantee_id = Column(String(128), nullable=False)
+    relationship_id = Column(Integer, nullable=True)
+    status = Column(String(16), nullable=False, default="pending", server_default="pending")
+    policy_version = Column(String(32), nullable=True)
+    granted_at = Column(DateTime(timezone=True), nullable=True)
+    effective_from = Column(DateTime(timezone=True), nullable=False)
+    effective_until = Column(DateTime(timezone=True), nullable=True)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    revocation_reason = Column(Text, nullable=True)
+    source = Column(String(64), nullable=True)
+    provenance = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class UserConsentScope(Base):
+    __tablename__ = "user_consent_scopes"
+    __table_args__ = (
+        UniqueConstraint("consent_id", "permission_key", name="uq_user_consent_scopes_consent_permission"),
+        Index("ix_user_consent_scopes_consent_id", "consent_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    consent_id = Column(
+        Integer,
+        ForeignKey("user_consents.id", ondelete="CASCADE", name="fk_user_consent_scopes_consent_id"),
+        nullable=False,
+    )
+    permission_key = Column(String(128), nullable=False)
+    allowed = Column(Boolean, nullable=False, default=False, server_default="false")
+    metadata_json = Column("metadata", Text, nullable=True)
+
+
+class UserPeriodSummary(Base):
+    """I7 canonical period summary authority (DAILY/WEEKLY/MONTHLY/YEARLY)."""
+
+    __tablename__ = "user_period_summaries"
+    __table_args__ = (
+        CheckConstraint(
+            "summary_type IN ('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY')",
+            name="ck_ups_summary_type_vocab",
+        ),
+        UniqueConstraint(
+            "user_id",
+            "summary_type",
+            "period_start",
+            "version",
+            name="uq_ups_user_type_period_version",
+        ),
+        Index("ix_ups_user_id", "user_id"),
+        Index("ix_ups_summary_type", "summary_type"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_ups_user_id"),
+        nullable=False,
+    )
+    summary_type = Column(String(16), nullable=False)
+    period_start = Column(DateTime(timezone=True), nullable=False)
+    period_end = Column(DateTime(timezone=True), nullable=False)
+    version = Column(Integer, nullable=False, default=1, server_default="1")
+    structured_summary_json = Column(Text, nullable=True)
+    narrative_summary = Column(Text, nullable=True)
+    evidence_range = Column(Text, nullable=True)
+    generated_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    superseded_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class PhysiologicalMeasurement(Base):
+    """Canonical scalar physiological measurement authority (HR). device_events = lifecycle only."""
+
+    __tablename__ = "physiological_measurements"
+    __table_args__ = (
+        CheckConstraint(
+            "measurement_type IN ('heart_rate')",
+            name="ck_pm_measurement_type_vocab",
+        ),
+        UniqueConstraint("idempotency_key", name="uq_pm_idempotency_key"),
+        # DESC ordering applied in Alembic DDL for (user_id, measured_at DESC).
+        Index("ix_pm_user_measured_at", "user_id", "measured_at"),
+        Index("ix_pm_device_measured_at", "device_id", "measured_at"),
+        Index("ix_pm_idempotency_key", "idempotency_key"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_pm_user_id"),
+        nullable=False,
+    )
+    device_id = Column(
+        Integer,
+        ForeignKey("devices.id", ondelete="RESTRICT", name="fk_pm_device_id"),
+        nullable=False,
+    )
+    sensor_id = Column(
+        Integer,
+        ForeignKey("device_sensors.id", ondelete="SET NULL", name="fk_pm_sensor_id"),
+        nullable=True,
+    )
+    measurement_type = Column(String(32), nullable=False)
+    numeric_value = Column(Float, nullable=False)
+    unit = Column(String(32), nullable=False, default="bpm", server_default="bpm")
+    measured_at = Column(DateTime(timezone=True), nullable=False)
+    received_at = Column(DateTime(timezone=True), nullable=False)
+    quality_state = Column(String(32), nullable=True)
+    idempotency_key = Column(String(255), nullable=False)
+    source_sequence = Column(String(128), nullable=True)
+    ingestion_status = Column(String(32), nullable=False, default="accepted", server_default="accepted")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class PhysiologicalBaseline(Base):
+    __tablename__ = "physiological_baselines"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "measurement_type",
+            "baseline_version",
+            "window_start",
+            name="uq_pb_user_type_version_window",
+        ),
+        Index("ix_pb_user_id", "user_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_pb_user_id"),
+        nullable=False,
+    )
+    measurement_type = Column(String(32), nullable=False)
+    window_start = Column(DateTime(timezone=True), nullable=False)
+    window_end = Column(DateTime(timezone=True), nullable=False)
+    coverage = Column(Float, nullable=True)
+    quality = Column(String(32), nullable=True)
+    baseline_version = Column(Integer, nullable=False, default=1, server_default="1")
+    derived_at = Column(DateTime(timezone=True), nullable=False)
+    source_range = Column(Text, nullable=True)
+    baseline_value = Column(Float, nullable=True)
+
+
+class DerivedHealthSignal(Base):
+    """Nondiagnostic derived signal; not a diagnosis authority."""
+
+    __tablename__ = "derived_health_signals"
+    __table_args__ = (
+        Index("ix_dhs_user_id", "user_id"),
+        Index("ix_dhs_detected_at", "detected_at"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_dhs_user_id"),
+        nullable=False,
+    )
+    signal_type = Column(String(64), nullable=False)
+    severity_band = Column(String(32), nullable=True)
+    evidence_measurement_ids = Column(Text, nullable=True)
+    policy_ref = Column(String(128), nullable=True)
+    detected_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(32), nullable=False, default="open", server_default="open")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class CareResponsePolicy(Base):
+    """Versioned care response policy. Clinical windows MUST remain NULL until authorized."""
+
+    __tablename__ = "care_response_policies"
+    __table_args__ = (
+        UniqueConstraint("policy_id", "policy_version", name="uq_crp_policy_id_version"),
+        Index("ix_crp_status", "status"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    policy_id = Column(String(64), nullable=False)
+    policy_version = Column(String(32), nullable=False)
+    risk_category = Column(String(64), nullable=False)
+    # CRITICAL: no server_default / no seed — clinical timing unapproved
+    ack_window_seconds = Column(Integer, nullable=True)
+    escalation_window_seconds = Column(Integer, nullable=True)
+    expiry_behavior = Column(String(64), nullable=True)
+    recipient_rules_json = Column(Text, nullable=True)
+    effective_from = Column(DateTime(timezone=True), nullable=False)
+    effective_until = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(32), nullable=False, default="draft", server_default="draft")
+    approval_metadata = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class CareEpisode(Base):
+    """Care continuity spine (trigger→notify→react→escalate→resolve). Not a diagnosis."""
+
+    __tablename__ = "care_episodes"
+    __table_args__ = (
+        Index("ix_ce_user_id", "user_id"),
+        Index("ix_ce_current_state", "current_state"),
+        Index("ix_ce_opened_at", "opened_at"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="RESTRICT", name="fk_ce_user_id"),
+        nullable=False,
+    )
+    origin_type = Column(String(64), nullable=False)
+    origin_ref = Column(String(255), nullable=True)
+    category = Column(String(64), nullable=True)
+    policy_id = Column(String(64), nullable=True)
+    policy_version = Column(String(32), nullable=True)
+    opened_at = Column(DateTime(timezone=True), nullable=False)
+    current_state = Column(String(64), nullable=False, default="open", server_default="open")
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolution_reason = Column(Text, nullable=True)
+    ack_due_at = Column(DateTime(timezone=True), nullable=True)
+    escalation_due_at = Column(DateTime(timezone=True), nullable=True)
+    expired_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class CareEpisodeLink(Base):
+    __tablename__ = "care_episode_links"
+    __table_args__ = (
+        UniqueConstraint("episode_id", "link_type", "link_id", name="uq_cel_episode_type_id"),
+        Index("ix_cel_episode_id", "episode_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    episode_id = Column(
+        Integer,
+        ForeignKey("care_episodes.id", ondelete="CASCADE", name="fk_cel_episode_id"),
+        nullable=False,
+    )
+    link_type = Column(String(64), nullable=False)
+    link_table = Column(String(128), nullable=False)
+    link_id = Column(String(128), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class PhysiologicalMeasurementRollup(Base):
+    """Optional Wave-4 hourly/daily rollup (DESIGN:include). Partitioning still deferred."""
+
+    __tablename__ = "physiological_measurement_rollups"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "measurement_type",
+            "bucket_start",
+            "bucket_kind",
+            name="uq_pmr_user_type_bucket",
+        ),
+        Index("ix_pmr_user_bucket", "user_id", "bucket_start"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_pmr_user_id"),
+        nullable=False,
+    )
+    measurement_type = Column(String(32), nullable=False)
+    bucket_kind = Column(String(16), nullable=False)  # hourly | daily
+    bucket_start = Column(DateTime(timezone=True), nullable=False)
+    bucket_end = Column(DateTime(timezone=True), nullable=False)
+    sample_count = Column(Integer, nullable=False, default=0, server_default="0")
+    avg_value = Column(Float, nullable=True)
+    min_value = Column(Float, nullable=True)
+    max_value = Column(Float, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)

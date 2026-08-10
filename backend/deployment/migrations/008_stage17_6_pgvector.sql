@@ -1,6 +1,15 @@
+-- ============================================================================
+-- DB-03 / §270.O / §270.Q WAVE0 — NONCANONICAL HISTORICAL ARCHITECTURE
+-- STATUS: DEPRECATE / DO NOT APPLY
+-- Canonical retrieval metadata authority = knowledge_chunk_embeddings (EXTENDED)
+-- Do NOT install pgvector via this path.
+-- Do NOT create rag_embeddings as a production Alembic/ORM authority.
+-- Retained as historical evidence only. CI denies treating this as active migration.
+-- ============================================================================
 -- Migration: Stage 17.6 Vector RAG - pgvector extension and rag_embeddings table
 -- Idempotent: CREATE EXTENSION IF NOT EXISTS, CREATE TABLE IF NOT EXISTS
 -- Dimension 1536 matches text-embedding-3-small (configurable in code)
+-- DB-03: This file is ARCHIVED NONCANONICAL. Prefer knowledge_chunk_embeddings.
 
 BEGIN;
 

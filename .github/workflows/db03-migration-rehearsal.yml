@@ -1,0 +1,173 @@
+# DB-03 Migration Rehearsal — isolated PostgreSQL 16 (NO Production)
+name: DB-03 Migration Rehearsal
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/alembic/**"
+      - "backend/app/models.py"
+      - "backend/app/services/db03/**"
+      - "backend/tests/test_db03_*.py"
+      - "backend/ops/db03/**"
+      - ".github/workflows/db03-migration-rehearsal.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db03-migration-rehearsal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  db03-migration-rehearsal:
+    name: Fresh + 056→head + focused tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sedi_db03_test
+          POSTGRES_PASSWORD: sedi_db03_test_password
+          POSTGRES_DB: sedi_db03_rehearsal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_db03_test -d sedi_db03_rehearsal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_db03_test:sedi_db03_test_password@127.0.0.1:5432/sedi_db03_rehearsal
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_db03_test:sedi_db03_test_password@127.0.0.1:5432/sedi_db03_rehearsal
+      DB03_REHEARSAL_DATABASE_URL: postgresql+psycopg2://sedi_db03_test:sedi_db03_test_password@127.0.0.1:5432/sedi_db03_rehearsal
+      DB03_ALLOW_DESTRUCTIVE_REHEARSAL: "YES"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: db03-test-placeholder-not-used
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Deny Stage17 / pgvector / rag_embeddings in Alembic
+        run: |
+          if rg -n -i "create\s+extension\s+.*vector|create\s+table\s+.*rag_embeddings|USING ivfflat" backend/alembic/versions; then
+            echo "FORBIDDEN_ALEMBIC_VECTOR_OR_RAG"
+            exit 1
+          fi
+          echo "STAGE17_ALEMBIC_DENY=PASS"
+
+      - name: Alembic graph single head
+        run: |
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          print("HEADS", heads)
+          assert heads == ["060_db03_w4_w6_scale_inspect_roles"], heads
+          PY
+
+      - name: Fresh upgrade to head
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              print("ALEMBIC_HEAD", head)
+              assert head == "060_db03_w4_w6_scale_inspect_roles"
+          PY
+
+      - name: 056 synthetic baseline then upgrade head
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "056_i5_w2_p02_conflict_safety")
+          from backend.scripts.db03_seed_056_synthetic import main as seed_main
+          rc = seed_main()
+          assert rc == 0, rc
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              print("ALEMBIC_HEAD_AFTER_056", head)
+              assert head == "060_db03_w4_w6_scale_inspect_roles"
+              pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
+              ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
+              print("PM_ROWS", pm, "UPS_ROWS", ups)
+              assert pm >= 1 and ups >= 1
+              seeded = c.execute(text(
+                  "SELECT count(*) FROM care_response_policies "
+                  "WHERE ack_window_seconds IS NOT NULL OR escalation_window_seconds IS NOT NULL"
+              )).scalar()
+              assert seeded == 0
+          PY
+
+      - name: Focused DB-03 pytest
+        run: |
+          mkdir -p "${{ runner.temp }}/db03_evidence"
+          python -B -m pytest backend/tests/test_db03_contracts.py -q --tb=short | tee "${{ runner.temp }}/db03_evidence/pytest_db03.txt"
+
+      - name: W1-P01 protected smoke
+        run: |
+          python -B -m pytest backend/tests/test_db03_contracts.py::test_w1p01_protected_i5_checks_still_present -q --tb=short
+
+      - name: Write evidence summary
+        if: always()
+        run: |
+          {
+            echo "ALEMBIC_HEAD=060_db03_w4_w6_scale_inspect_roles"
+            echo "PGVECTOR_INTRODUCED=NO"
+            echo "RAG_EMBEDDINGS_INTRODUCED=NO"
+            echo "PRODUCTION_APPLY=NO"
+            ls backend/alembic/versions/05*.py backend/alembic/versions/06*.py 2>/dev/null | tail -20
+          } > "${{ runner.temp }}/db03_evidence/summary.txt"
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db03-migration-rehearsal-evidence
+          path: ${{ runner.temp }}/db03_evidence/
+          retention-days: 14

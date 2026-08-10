@@ -182,9 +182,32 @@ def _compute_monitoring_state(
 
 
 def build_vitals_summary_v1(db: Session, user_id: int) -> Dict[str, Any]:
-    """Build stable V1 vitals response with legacy keys preserved."""
+    """Build stable V1 vitals response with legacy keys preserved.
+
+    DB-03: prefer physiological_measurements for heart_rate, then device_events/health_data.
+    """
     thresholds = _freshness_thresholds()
     out: Dict[str, Any] = {"sources": [], "vitals_v1": {}}
+
+    latest_pm = (
+        db.query(models.PhysiologicalMeasurement)
+        .filter(
+            models.PhysiologicalMeasurement.user_id == user_id,
+            models.PhysiologicalMeasurement.measurement_type == "heart_rate",
+        )
+        .order_by(models.PhysiologicalMeasurement.measured_at.desc())
+        .first()
+    )
+    pm_hr = None
+    pm_rec = None
+    pm_recv = None
+    pm_device_id = None
+    if latest_pm:
+        pm_hr = latest_pm.numeric_value
+        pm_rec = latest_pm.measured_at.isoformat() if latest_pm.measured_at else None
+        pm_recv = latest_pm.received_at.isoformat() if latest_pm.received_at else None
+        pm_device_id = str(latest_pm.device_id)
+        out["sources"].append("physiological_measurements")
 
     latest_health = (
         db.query(models.HealthData)
@@ -229,20 +252,30 @@ def build_vitals_summary_v1(db: Session, user_id: int) -> Dict[str, Any]:
         device_payload = _parse_device_payload(latest_device.payload_json)
 
     hub_status = build_hub_status_payload(db, user_id)
-    latest_dt = _parse_dt(device_recv_at) or _parse_dt(legacy_health.get("recorded_at"))
+    latest_dt = (
+        _parse_dt(pm_recv)
+        or _parse_dt(device_recv_at)
+        or _parse_dt(legacy_health.get("recorded_at"))
+    )
     monitoring_state = _compute_monitoring_state(hub_status, latest_dt, thresholds)
 
-    hr = device_payload.get("heart_rate") or legacy_health.get("heart_rate")
+    hr = pm_hr if pm_hr is not None else (device_payload.get("heart_rate") or legacy_health.get("heart_rate"))
     spo2 = device_payload.get("spo2") or legacy_health.get("spo2")
     temp = device_payload.get("temperature") or legacy_health.get("temperature")
     bp = device_payload.get("blood_pressure")
     rr = device_payload.get("respiratory_rate")
     ecg = device_payload.get("ecg")
 
-    src = "device_events" if device_payload else ("health_data" if legacy_health else "none")
-    rec = device_rec_at or legacy_health.get("recorded_at")
-    recv = device_recv_at or legacy_health.get("recorded_at")
-    dev_id = latest_device.device_id if latest_device else None
+    if pm_hr is not None:
+        src = "physiological_measurements"
+        rec = pm_rec
+        recv = pm_recv
+        dev_id = pm_device_id
+    else:
+        src = "device_events" if device_payload else ("health_data" if legacy_health else "none")
+        rec = device_rec_at or legacy_health.get("recorded_at")
+        recv = device_recv_at or legacy_health.get("recorded_at")
+        dev_id = latest_device.device_id if latest_device else None
 
     vitals: Dict[str, Any] = {
         "heart_rate": _vital_object(
