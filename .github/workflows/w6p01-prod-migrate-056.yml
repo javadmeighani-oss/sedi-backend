@@ -2,6 +2,7 @@
 # Confirmation tokens:
 #   MIGRATE_TO_056           → digest-pinned one-off alembic upgrade to 056 (no backend deploy)
 #   MIGRATE_TO_060           → DB-PROD-01: 056→060 + role hardening + runtime cutover
+#   CUTOVER_ONLY_060         → DB-PROD-01B: runtime credential cutover only (NO alembic)
 #   APPLY_IRAN_DIRECTORY_V1  → bounded IRIMC acquire + guarded prod apply
 name: W6-P01 Production Migration 056
 
@@ -9,16 +10,16 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Accepted tokens: MIGRATE_TO_056 | MIGRATE_TO_060 | APPLY_IRAN_DIRECTORY_V1"
+        description: "Accepted tokens: MIGRATE_TO_056 | MIGRATE_TO_060 | CUTOVER_ONLY_060 | APPLY_IRAN_DIRECTORY_V1"
         required: true
       expected_before_revision:
         description: "For MIGRATE_TO_056/060: exact alembic_version expected before migration."
         required: false
       migration_image_sha:
-        description: "For MIGRATE_TO_056/060: 40-character lowercase Git commit SHA image tag."
+        description: "For MIGRATE_TO_056/060/CUTOVER_ONLY_060: 40-character lowercase Git commit SHA image tag."
         required: false
       migration_image_digest:
-        description: "For MIGRATE_TO_056/060: expected migration image digest sha256:<64 hex>."
+        description: "For MIGRATE_TO_056/060/CUTOVER_ONLY_060: expected migration image digest sha256:<64 hex>."
         required: false
       expected_alembic_revision:
         description: "For APPLY_IRAN_DIRECTORY_V1: exact production alembic_version required before apply."
@@ -887,6 +888,89 @@ jobs:
             echo "Target: 060_db03_w4_w6_scale_inspect_roles"
             if [ -f /tmp/db_prod_01_run.log ]; then
               grep '^MIGRATION_SUMMARY|' /tmp/db_prod_01_run.log | while IFS='|' read -r _ k v; do
+                echo "- **${k}:** ${v}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  cutover-only-060:
+    name: DB-PROD-01B runtime cutover only
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event.inputs.confirmation == 'CUTOVER_ONLY_060'
+
+    steps:
+      - name: Validate cutover-only inputs
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          INPUT_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          INPUT_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          [ "${INPUT_CONFIRMATION}" = "CUTOVER_ONLY_060" ] || { echo "bad confirmation"; exit 1; }
+          echo "${INPUT_MIGRATION_SHA}" | grep -Eq '^[0-9a-f]{40}$' || { echo "bad sha"; exit 1; }
+          echo "${INPUT_MIGRATION_DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$' || { echo "bad digest"; exit 1; }
+          echo "cutover_only_inputs_ok"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Guard — cutover script must not contain migration apply
+        run: |
+          set -Eeuo pipefail
+          ! grep -Ei 'alembic[[:space:]]+upgrade|[[:space:]]upgrade[[:space:]]+head|python[[:space:]]+-m[[:space:]]+alembic' backend/ops/db03/db_prod_01b_cutover.sh
+          grep -q 'CUTOVER_ONLY' backend/ops/db03/db_prod_01b_cutover.sh
+          echo "MIGRATION_REAPPLY_PATH_DISABLED=YES"
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload and execute DB-PROD-01B cutover-only procedure
+        env:
+          INPUT_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          INPUT_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_01b_cutover.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_01b_cutover.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_01b_cutover.sh") && \
+             CUTOVER_ONLY=YES \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             MIGRATION_SHA=$(printf '%q' "${INPUT_MIGRATION_SHA}") \
+             MIGRATION_DIGEST=$(printf '%q' "${INPUT_MIGRATION_DIGEST}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_01b_cutover.sh")" \
+            2>&1 | tee /tmp/db_prod_01b_run.log
+
+      - name: Upload cutover evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-prod-01b-cutover-evidence
+          path: /tmp/db_prod_01b_run.log
+          retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## DB-PROD-01B Runtime Cutover Only"
+            echo "Status: ${{ job.status }}"
+            echo "MIGRATION_REAPPLIED: NO"
+            if [ -f /tmp/db_prod_01b_run.log ]; then
+              grep '^MIGRATION_SUMMARY|' /tmp/db_prod_01b_run.log | while IFS='|' read -r _ k v; do
                 echo "- **${k}:** ${v}"
               done || true
             fi
