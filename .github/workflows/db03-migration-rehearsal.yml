@@ -144,6 +144,13 @@ jobs:
               assert seeded == 0
           PY
 
+      - name: Isolated role hardening rehearsal
+        run: |
+          mkdir -p "${{ runner.temp }}/db03_evidence"
+          python -B -m pytest backend/tests/test_db03_roles_hardening.py -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/db03_evidence/pytest_roles.txt"
+          # Static fail-closed proofs always run; isolated rehearsal needs env flags (already set).
+
       - name: Reset schema for ORM create_all tests
         run: |
           python - <<'PY'
@@ -174,6 +181,8 @@ jobs:
             echo "ALEMBIC_HEAD=060_db03_w4_w6_scale_inspect_roles"
             echo "PGVECTOR_INTRODUCED=NO"
             echo "RAG_EMBEDDINGS_INTRODUCED=NO"
+            echo "ROLE_CONNECTION_MODEL=DIRECT_LOGIN"
+            echo "ROLE_SCRIPT_FAIL_CLOSED=YES"
             echo "PRODUCTION_APPLY=NO"
             ls backend/alembic/versions/05*.py backend/alembic/versions/06*.py 2>/dev/null | tail -20
           } > "${{ runner.temp }}/db03_evidence/summary.txt"
