@@ -864,10 +864,48 @@ jobs:
           summary() { echo "MIGRATION_SUMMARY|$1|$2"; }
 
           ENV_FILE="/etc/sedi/sedi-backend.env"
-          ROLES_ENV="/etc/sedi/sedi-db-roles.env"
+          ROLES_ENV="${DEPLOY_PATH}/secrets/sedi-db-roles.env"
           TARGET_REV="060_db03_w4_w6_scale_inspect_roles"
           MIGRATION_IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${MIGRATION_SHA}"
           MIGRATION_IMAGE_REF="ghcr.io/javadmeighani-oss/sedi-backend@${MIGRATION_DIGEST}"
+          WRITERS_FROZEN_FLAG=0
+          CUTOVER_DONE=0
+
+          restore_backend_availability() {
+            log "=== AVAILABILITY RESTORE (backend) ==="
+            cd "${DEPLOY_PATH}"
+            CURRENT_TAG="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+            if [ -n "${CURRENT_TAG}" ]; then
+              IMAGE_TAG="${CURRENT_TAG##*:}"
+            else
+              IMAGE_TAG="${MIGRATION_SHA}"
+            fi
+            if [ -f compose.production.yml ]; then
+              SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps sedi-backend
+            else
+              docker start sedi-backend
+            fi
+            sleep 3
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then
+                summary "availability_restore" "PASS"
+                return 0
+              fi
+              sleep 2
+            done
+            summary "availability_restore" "FAIL"
+            return 1
+          }
+
+          on_script_exit() {
+            rc=$?
+            if [ "${WRITERS_FROZEN_FLAG}" = "1" ] && [ "${CUTOVER_DONE}" != "1" ]; then
+              log "EXIT_TRAP: restoring backend after incomplete cutover (rc=${rc})"
+              restore_backend_availability || true
+            fi
+            exit "${rc}"
+          }
+          trap on_script_exit EXIT
 
           check_database_target_alignment() {
             POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
@@ -951,6 +989,10 @@ jobs:
           if [ "${ALEMBIC_BEFORE}" = "${TARGET_REV}" ]; then
             VERIFY_ONLY=1
             summary "mode" "verification_only"
+            # Prior failed cutover may have left writers frozen — restore first.
+            if ! docker inspect sedi-backend --format '{{.State.Running}}' 2>/dev/null | grep -q true; then
+              restore_backend_availability
+            fi
           else
             summary "mode" "migrate"
             [ "${ALEMBIC_BEFORE}" = "${EXPECTED_BEFORE}" ] || {
@@ -1003,6 +1045,7 @@ jobs:
             docker stop sedi-backend
             sleep 2
             docker inspect sedi-backend --format '{{.State.Running}}' | grep -q false
+            WRITERS_FROZEN_FLAG=1
             summary "writers_frozen" "YES"
 
             log "=== FINAL CUTOVER BACKUP ==="
@@ -1082,8 +1125,32 @@ jobs:
           summary "src_health_data" "${HD}"
           summary "mapped_pm_legacy" "${PM}"
           summary "migration_conflicts" "${CONF}"
-          # Unexplained loss heuristics (aggregate only): mapped merge rows should cover sources when devices exist for HR
-          summary "unexplained_data_loss" "0"
+          CONF_CLASSES="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT source_table||':'||conflict_kind||':'||COUNT(*) FROM db03_migration_conflicts GROUP BY source_table, conflict_kind ORDER BY 1;")"
+          summary "migration_conflict_classes" "${CONF_CLASSES:-none}"
+          I7_DISTINCT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM (SELECT user_id, date_trunc('day', COALESCE(created_at, now()) AT TIME ZONE 'UTC') AS d FROM daily_memory_summaries GROUP BY 1,2) t;")"
+          HD_NO_HR="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM health_data WHERE heart_rate IS NULL OR btrim(heart_rate)='';")"
+          I7_UNMAP="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM db03_migration_conflicts WHERE source_table='daily_memory_summaries';")"
+          HD_UNMAP="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM db03_migration_conflicts WHERE source_table='health_data';")"
+          MEM_UNMAP="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM db03_migration_conflicts WHERE source_table='memory_fact_stacks';")"
+          summary "i7_distinct_days" "${I7_DISTINCT}"
+          summary "health_rows_no_hr" "${HD_NO_HR}"
+          UNEXPLAINED=0
+          # Distinct user/day authorities must land in UPS (duplicate same-day sources are explainable collapse)
+          if [ "${UPS}" -lt "${I7_DISTINCT}" ]; then
+            if [ "${I7_UNMAP}" -lt 1 ]; then UNEXPLAINED=$((UNEXPLAINED + I7_DISTINCT - UPS)); fi
+          fi
+          # Health rows without HR are intentionally skipped; device-less HR rows require conflict ledger
+          HD_EXPECT_PM=$((HD - HD_NO_HR))
+          if [ "${HD_EXPECT_PM}" -lt 0 ]; then HD_EXPECT_PM=0; fi
+          if [ "${PM}" -lt "${HD_EXPECT_PM}" ]; then
+            NEED=$((HD_EXPECT_PM - PM))
+            if [ "${HD_UNMAP}" -lt 1 ]; then UNEXPLAINED=$((UNEXPLAINED + NEED)); fi
+          fi
+          if [ "$((UF + KC + PF))" -gt 0 ] && [ "${UMF}" -lt 1 ] && [ "${MEM_UNMAP}" -lt 1 ]; then
+            UNEXPLAINED=$((UNEXPLAINED + 1))
+          fi
+          summary "unexplained_data_loss" "${UNEXPLAINED}"
+          [ "${UNEXPLAINED}" = "0" ] || { log "UNEXPLAINED_DATA_LOSS=${UNEXPLAINED}"; exit 35; }
 
           TABLE_COUNT_AFTER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")"
           summary "table_count_after" "${TABLE_COUNT_AFTER}"
@@ -1091,7 +1158,7 @@ jobs:
           summary "unapproved_clinical_windows" "0"
 
           log "=== ROLE HARDENING ==="
-          mkdir -p /etc/sedi
+          mkdir -p "$(dirname "${ROLES_ENV}")"
           APP_PW="$(openssl rand -base64 24 | tr -d '\n=/+' | cut -c1-24)"
           MIG_PW="$(openssl rand -base64 24 | tr -d '\n=/+' | cut -c1-24)"
           RO_PW="$(openssl rand -base64 24 | tr -d '\n=/+' | cut -c1-24)"
@@ -1129,12 +1196,12 @@ jobs:
           ENV_BAK_DIR="${DEPLOY_PATH}/backups/env"
           mkdir -p "${ENV_BAK_DIR}"
           cp -a "${ENV_FILE}" "${ENV_BAK_DIR}/sedi-backend.env.pre_dbprod01_$(date -u +%Y%m%d_%H%M%S)"
-          python - <<'PY'
-          import os, re
+          ROLES_ENV_PATH="${ROLES_ENV}" python - <<'PY'
+          import os, tempfile
           from pathlib import Path
           from urllib.parse import urlsplit, urlunsplit, quote
           env_path = Path("/etc/sedi/sedi-backend.env")
-          roles_path = Path("/etc/sedi/sedi-db-roles.env")
+          roles_path = Path(os.environ["ROLES_ENV_PATH"])
           roles = {}
           for line in roles_path.read_text().splitlines():
               if "=" in line and not line.startswith("#"):
@@ -1146,11 +1213,9 @@ jobs:
           for line in lines:
               if line.startswith("DATABASE_URL="):
                   raw=line.split("=",1)[1]
-                  # strip sqlalchemy driver
                   u=raw.replace("postgresql+psycopg2://","postgresql://",1)
                   parts=urlsplit(u)
                   before_user=parts.username
-                  # rebuild with new user/password; keep host/path/query
                   host=parts.hostname or ""
                   port=f":{parts.port}" if parts.port else ""
                   auth=f"sedi_app_runtime:{quote(app_pw, safe='')}"
@@ -1159,10 +1224,20 @@ jobs:
                   out.append("DATABASE_URL="+new)
               else:
                   out.append(line)
-          env_path.write_text("\n".join(out)+"\n")
+          payload = "\n".join(out)+"\n"
+          try:
+              env_path.write_text(payload)
+          except PermissionError:
+              tmp = Path(tempfile.gettempdir()) / "sedi-backend.env.dbprod01"
+              tmp.write_text(payload)
+              print(f"ENV_WRITE_NEEDS_SUDO={tmp}")
           print(f"database_username_before={before_user}")
           print("database_username_after=sedi_app_runtime")
           PY
+          if [ -f /tmp/sedi-backend.env.dbprod01 ]; then
+            sudo install -m 600 /tmp/sedi-backend.env.dbprod01 /etc/sedi/sedi-backend.env
+            rm -f /tmp/sedi-backend.env.dbprod01
+          fi
           summary "runtime_config_cutover" "PASS"
 
           log "=== BACKEND RECREATE (credential cutover only) ==="
@@ -1188,6 +1263,8 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8000/health >/dev/null
           curl -fsS http://127.0.0.1:8000/healthz >/dev/null || true
+          CUTOVER_DONE=1
+          WRITERS_FROZEN_FLAG=0
           summary "backend_restarted" "YES"
           summary "backend_health" "PASS"
 
