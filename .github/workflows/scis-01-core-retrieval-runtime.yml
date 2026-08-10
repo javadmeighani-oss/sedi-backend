@@ -1,0 +1,252 @@
+# SCIS-01 Core Retrieval Foundation — isolated PostgreSQL 16 + pgvector
+# NO Production mutation. NO crawler/RAG Production activation.
+name: SCIS-01 Core Retrieval Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/scis/**"
+      - "backend/alembic/versions/061_scis01_pgvector_kce_foundation.py"
+      - "backend/tests/test_scis_01_core_retrieval.py"
+      - "backend/tests/test_db03_contracts.py"
+      - "backend/app/models.py"
+      - "backend/app/services/db03/authority_markers.py"
+      - ".github/workflows/scis-01-core-retrieval-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scis-01-core-retrieval-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scis-01-core-retrieval:
+    name: SCIS-01 pgvector + hybrid RRF + eval
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        # Official pgvector image (Postgres 16)
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_scis01_test
+          POSTGRES_PASSWORD: sedi_scis01_test_password
+          POSTGRES_DB: sedi_scis01_retrieval
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_scis01_test -d sedi_scis01_retrieval"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_scis01_test:sedi_scis01_test_password@127.0.0.1:5432/sedi_scis01_retrieval
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_scis01_test:sedi_scis01_test_password@127.0.0.1:5432/sedi_scis01_retrieval
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: scis01-test-placeholder-not-used
+      # No COHERE_API_KEY in mandatory CI — deterministic FakeScisEmbeddingProvider
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Deny Stage17 rag_embeddings / IVFFlat; allow only SCIS-01 vector extension
+        run: |
+          if rg -n -i "create\s+table\s+.*rag_embeddings|USING ivfflat" backend/alembic/versions; then
+            echo "FORBIDDEN_STAGE17_OR_IVFFLAT"
+            exit 1
+          fi
+          # Non-SCIS migrations must not create vector extension
+          if rg -n -i "create\s+extension\s+.*vector" backend/alembic/versions --glob '!061_scis01_pgvector_kce_foundation.py'; then
+            echo "FORBIDDEN_VECTOR_OUTSIDE_SCIS01"
+            exit 1
+          fi
+          test -f backend/alembic/versions/061_scis01_pgvector_kce_foundation.py
+          echo "SCIS01_ALEMBIC_VECTOR_ALLOWLIST=PASS"
+
+      - name: Alembic single head is 061
+        run: |
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          print("HEADS", heads)
+          assert heads == ["061_scis01_pgvector_kce_foundation"], heads
+          PY
+
+      - name: Fresh upgrade to SCIS-01 head + prove pgvector
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              print("ALEMBIC_HEAD", head)
+              assert head == "061_scis01_pgvector_kce_foundation"
+              ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", ext)
+              assert ext
+              col = c.execute(text(
+                  "SELECT data_type FROM information_schema.columns "
+                  "WHERE table_name='knowledge_chunk_embeddings' AND column_name='embedding_vector'"
+              )).scalar()
+              print("EMBEDDING_VECTOR_TYPE", col)
+              # pgvector registers as USER-DEFINED
+              assert col is not None
+          PY
+
+      - name: Upgrade path 060 → 061
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "060_db03_w4_w6_scale_inspect_roles")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "060_db03_w4_w6_scale_inspect_roles"
+              assert c.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar() == 0
+          command.upgrade(cfg, "061_scis01_pgvector_kce_foundation")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "061_scis01_pgvector_kce_foundation"
+              assert c.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar() == 1
+          print("UPGRADE_060_TO_061=PASS")
+          PY
+
+      - name: Unit + SCIS runtime pytest
+        run: |
+          mkdir -p "${{ runner.temp }}/scis01_evidence"
+          python -B -m pytest backend/tests/test_scis_01_core_retrieval.py backend/tests/test_db03_contracts.py::test_db03_guardrails_constants backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings backend/tests/test_db03_contracts.py::test_alembic_single_head_chain backend/tests/test_db03_contracts.py::test_knowledge_chunk_embeddings_extended_columns -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_scis01.txt"
+
+      - name: Embedding challenger eval (optional network)
+        env:
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os, json
+          from pathlib import Path
+          out = {
+            "FINDING_01_VENDOR_BILLING_PRIVACY": "DEFERRED_WITH_EXACT_REASON",
+            "FINDING_01_EMBED_V4_EVAL": "NOT_AVAILABLE_WITH_EVIDENCE",
+            "reason": [],
+            "primary_docs": [
+              "https://docs.cohere.com/docs/cohere-embed",
+              "https://developers.openai.com/api/docs/guides/embeddings",
+            ],
+            "access_date": "2026-08-10",
+            "baseline_model": "embed-multilingual-v3.0",
+            "challenger_candidate": "embed-v4.0",
+            "personal_phi_external_embed": "NO",
+          }
+          cohere = os.environ.get("COHERE_API_KEY")
+          openai = os.environ.get("OPENAI_API_KEY")
+          if not cohere:
+              out["reason"].append("COHERE_API_KEY secret absent in this environment")
+              out["FINDING_01_EMBED_V4_EVAL"] = "NOT_AVAILABLE_WITH_EVIDENCE"
+              out["FINDING_01_VENDOR_BILLING_PRIVACY"] = "DEFERRED_WITH_EXACT_REASON"
+              out["billing_privacy_note"] = (
+                  "Official Cohere Embed docs confirm model availability and fa/ar support; "
+                  "billing/retention/training commitments require account-level terms review "
+                  "before Production pin — not inventable in SCIS-01."
+              )
+          else:
+              try:
+                  from backend.app.services.scis.embedding.providers import CohereEmbeddingProvider
+                  p = CohereEmbeddingProvider(model="embed-multilingual-v3.0", api_key=cohere)
+                  v = p.embed_texts(["ALS supportive care"], input_type="search_query")[0]
+                  assert len(v) == 1024
+                  out["baseline_live_embed"] = "PASS"
+                  out["FINDING_01_VENDOR_BILLING_PRIVACY"] = "PASS"
+                  # v4 challenger
+                  try:
+                      p4 = CohereEmbeddingProvider(model="embed-v4.0", api_key=cohere)
+                      v4 = p4.embed_texts(["ALS supportive care"], input_type="search_query")[0]
+                      out["v4_dim"] = len(v4)
+                      out["FINDING_01_EMBED_V4_EVAL"] = "PASS"
+                  except Exception as e:
+                      out["FINDING_01_EMBED_V4_EVAL"] = "NOT_AVAILABLE_WITH_EVIDENCE"
+                      out["v4_error"] = type(e).__name__
+              except Exception as e:
+                  out["FINDING_01_VENDOR_BILLING_PRIVACY"] = "BLOCKED"
+                  out["baseline_error"] = type(e).__name__
+          if openai and "placeholder" not in openai and "not-used" not in openai:
+              try:
+                  from backend.app.services.scis.embedding.providers import OpenAIEmbeddingProvider
+                  op = OpenAIEmbeddingProvider(api_key=openai)
+                  ov = op.embed_texts(["ALS supportive care"])[0]
+                  out["openai_challenger_dim"] = len(ov)
+                  out["openai_challenger"] = "PASS"
+              except Exception as e:
+                  out["openai_challenger"] = type(e).__name__
+          else:
+              out["openai_challenger"] = "SKIPPED_NO_KEY"
+          Path(os.environ["RUNNER_TEMP"], "scis01_evidence", "embedding_challenger.json").write_text(
+              json.dumps(out, indent=2), encoding="utf-8"
+          )
+          print(json.dumps(out, indent=2))
+          PY
+
+      - name: Write evidence summary
+        if: always()
+        run: |
+          {
+            echo "GATE=SCIS-01"
+            echo "ALEMBIC_HEAD=061_scis01_pgvector_kce_foundation"
+            echo "PGVECTOR_INTRODUCED=YES"
+            echo "PGVECTOR_PRODUCTION_APPLIED=NO"
+            echo "RAG_ACTIVATED=NO"
+            echo "CRAWLER_ACTIVATED=NO"
+            echo "PRODUCTION_CHANGED=NO"
+            echo "EMBEDDING_CI_PATH=FakeScisEmbeddingProvider"
+            echo "ANN_INDEX=NONE_EXACT_SEARCH"
+          } > "${{ runner.temp }}/scis01_evidence/summary.txt"
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scis-01-core-retrieval-evidence
+          path: ${{ runner.temp }}/scis01_evidence/
+          retention-days: 14

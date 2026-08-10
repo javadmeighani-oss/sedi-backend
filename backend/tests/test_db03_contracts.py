@@ -28,7 +28,8 @@ WORKSPACE = ROOT.parent
 
 def test_db03_guardrails_constants():
     assert PARTITIONING_ACTIVATED is False
-    assert PGVECTOR_INTRODUCED is False
+    # SCIS-01 introduces pgvector schema path; Stage17 rag_embeddings remains forbidden.
+    assert PGVECTOR_INTRODUCED is True
     assert RAG_EMBEDDINGS_INTRODUCED is False
     assert any("1000" in t for t in PARTITION_TRIGGERS_ANY)
     assert any("50_000_000" in t or "50M" in t or "50000000" in t for t in PARTITION_TRIGGERS_ANY)
@@ -52,12 +53,18 @@ def test_alembic_versions_deny_pgvector_and_rag_embeddings():
     import re
 
     versions = ROOT / "alembic" / "versions"
+    scis_allowed = {"061_scis01_pgvector_kce_foundation.py"}
     for path in versions.glob("*.py"):
         body = path.read_text(encoding="utf-8")
-        # Allow documentary mentions; forbid DDL/extension activation.
-        assert not re.search(r"(?i)create\s+extension\s+.*vector", body)
+        # Stage17 rag_embeddings + IVFFlat remain forbidden everywhere.
         assert not re.search(r"(?i)create\s+table\s+.*rag_embeddings", body)
         assert "USING ivfflat" not in body.lower()
+        # pgvector extension allowed only on SCIS-01 KCE foundation migration.
+        if path.name in scis_allowed:
+            assert re.search(r"(?i)create\s+extension\s+.*vector", body)
+            assert "rag_embeddings" not in body.lower() or "noncanonical" in body.lower()
+            continue
+        assert not re.search(r"(?i)create\s+extension\s+.*vector", body)
 
 
 def test_alembic_single_head_chain():
@@ -68,14 +75,15 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["060_db03_w4_w6_scale_inspect_roles"]
-    rev = script.get_revision("060_db03_w4_w6_scale_inspect_roles")
+    assert heads == ["061_scis01_pgvector_kce_foundation"]
+    rev = script.get_revision("061_scis01_pgvector_kce_foundation")
     chain = []
     while rev:
         chain.append(rev.revision)
         if not rev.down_revision:
             break
         rev = script.get_revision(rev.down_revision)
+    assert "060_db03_w4_w6_scale_inspect_roles" in chain
     assert "056_i5_w2_p02_conflict_safety" in chain
     assert "057_db03_w0_drift_normalization" in chain
     assert "058_db03_w1_additive_foundations" in chain
@@ -405,6 +413,13 @@ def test_knowledge_chunk_embeddings_extended_columns():
         "backend_kind",
         "runtime_eligibility_snapshot",
         "retracted_at",
+        "embedding_provider",
+        "embedding_model_version",
+        "chunker_version",
+        "chunk_version",
+        "section_path",
+        "content_language",
+        "search_document",
     } <= cols
 
 

@@ -27,7 +27,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        # SCIS-01 requires pgvector; keep DB-03 rehearsal compatible with extension DDL at head.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: sedi_db03_test
           POSTGRES_PASSWORD: sedi_db03_test_password
@@ -67,10 +68,14 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest
 
-      - name: Deny Stage17 / pgvector / rag_embeddings in Alembic
+      - name: Deny Stage17 rag_embeddings / IVFFlat; allow SCIS-01 vector only
         run: |
-          if rg -n -i "create\s+extension\s+.*vector|create\s+table\s+.*rag_embeddings|USING ivfflat" backend/alembic/versions; then
-            echo "FORBIDDEN_ALEMBIC_VECTOR_OR_RAG"
+          if rg -n -i "create\s+table\s+.*rag_embeddings|USING ivfflat" backend/alembic/versions; then
+            echo "FORBIDDEN_ALEMBIC_RAG_OR_IVFFLAT"
+            exit 1
+          fi
+          if rg -n -i "create\s+extension\s+.*vector" backend/alembic/versions --glob '!061_scis01_pgvector_kce_foundation.py'; then
+            echo "FORBIDDEN_VECTOR_OUTSIDE_SCIS01"
             exit 1
           fi
           echo "STAGE17_ALEMBIC_DENY=PASS"
@@ -84,7 +89,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["060_db03_w4_w6_scale_inspect_roles"], heads
+          assert heads == ["061_scis01_pgvector_kce_foundation"], heads
           PY
 
       - name: Fresh upgrade to head
@@ -106,7 +111,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "060_db03_w4_w6_scale_inspect_roles"
+              assert head == "061_scis01_pgvector_kce_foundation"
           PY
 
       - name: 056 synthetic baseline then upgrade head
@@ -132,7 +137,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD_AFTER_056", head)
-              assert head == "060_db03_w4_w6_scale_inspect_roles"
+              assert head == "061_scis01_pgvector_kce_foundation"
               pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
               ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
               print("PM_ROWS", pm, "UPS_ROWS", ups)
@@ -142,6 +147,7 @@ jobs:
                   "WHERE ack_window_seconds IS NOT NULL OR escalation_window_seconds IS NOT NULL"
               )).scalar()
               assert seeded == 0
+              assert c.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar() == 1
           PY
 
       - name: Isolated role hardening rehearsal
@@ -178,8 +184,9 @@ jobs:
         if: always()
         run: |
           {
-            echo "ALEMBIC_HEAD=060_db03_w4_w6_scale_inspect_roles"
-            echo "PGVECTOR_INTRODUCED=NO"
+            echo "ALEMBIC_HEAD=061_scis01_pgvector_kce_foundation"
+            echo "PGVECTOR_INTRODUCED=YES"
+            echo "PGVECTOR_PRODUCTION_APPLIED=NO"
             echo "RAG_EMBEDDINGS_INTRODUCED=NO"
             echo "ROLE_CONNECTION_MODEL=DIRECT_LOGIN"
             echo "ROLE_SCRIPT_FAIL_CLOSED=YES"

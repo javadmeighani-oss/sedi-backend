@@ -41,7 +41,7 @@ def test_fresh_upgrade_to_db03_head():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "060_db03_w4_w6_scale_inspect_roles"
+        assert head == "061_scis01_pgvector_kce_foundation"
         tables = {
             r[0]
             for r in conn.execute(
@@ -59,6 +59,7 @@ def test_fresh_upgrade_to_db03_head():
         ):
             assert required in tables
         assert "rag_embeddings" not in tables
+        assert conn.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar() == 1
         # Required HR indexes
         idx = {
             r[0]
@@ -115,9 +116,10 @@ def test_upgrade_from_056_with_synthetic_seed():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "060_db03_w4_w6_scale_inspect_roles"
+        assert head == "061_scis01_pgvector_kce_foundation"
         ups = conn.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
         assert ups >= 1
         # health_data backfill may map if device present
         pm = conn.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
         assert pm >= 1
+        assert conn.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar() == 1

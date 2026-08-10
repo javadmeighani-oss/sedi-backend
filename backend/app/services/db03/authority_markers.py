@@ -18,5 +18,8 @@ PARTITION_TRIGGERS_ANY = (
 )
 
 PARTITIONING_ACTIVATED = False
-PGVECTOR_INTRODUCED = False
+# SCIS-01 introduces pgvector schema path (rehearsal/CI). Production install remains a later Gate.
+PGVECTOR_INTRODUCED = True
 RAG_EMBEDDINGS_INTRODUCED = False
+SCIS_01_PGVECTOR_PRODUCTION_APPLIED = False
+

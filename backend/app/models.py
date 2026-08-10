@@ -1206,15 +1206,16 @@ class VoiceCallRequest(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-# -------------------- Section 10: KB chunk embedding metadata (no pgvector required) --------------------
+# -------------------- Section 10 / SCIS-01: KB chunk embedding metadata --------------------
 class KnowledgeChunkEmbedding(Base):
-    """Canonical retrieval metadata authority (DB-02). No pgvector / rag_embeddings."""
+    """Canonical retrieval metadata authority (DB-02/SCIS-01). Index rebuildable; not SoT."""
 
     __tablename__ = "knowledge_chunk_embeddings"
     __table_args__ = (
         UniqueConstraint("chunk_id", "model_identifier", name="uq_kb_chunk_embeddings_chunk_model"),
         CheckConstraint(
-            "backend_kind IS NULL OR backend_kind IN ('JSON_INLINE', 'EXTERNAL_VECTOR_DEFERRED')",
+            "backend_kind IS NULL OR backend_kind IN "
+            "('JSON_INLINE', 'EXTERNAL_VECTOR_DEFERRED', 'PGVECTOR')",
             name="ck_kce_backend_kind_vocab",
         ),
     )
@@ -1231,7 +1232,7 @@ class KnowledgeChunkEmbedding(Base):
     generated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    # DB-03 / §270.F retrieval lineage metadata (vector backend deferred)
+    # DB-03 / §270.F retrieval lineage metadata
     knowledge_unit_id = Column(
         Integer,
         ForeignKey("knowledge_units.id", ondelete="SET NULL", name="fk_kce_knowledge_unit_id"),
@@ -1255,6 +1256,15 @@ class KnowledgeChunkEmbedding(Base):
     backend_kind = Column(String(32), nullable=False, default="JSON_INLINE", server_default="JSON_INLINE")
     runtime_eligibility_snapshot = Column(Text, nullable=True)
     retracted_at = Column(DateTime(timezone=True), nullable=True)
+    # SCIS-01 — pgvector + FTS (embedding_vector typed in DB as vector(1024); ORM opaque)
+    embedding_provider = Column(String(64), nullable=True)
+    embedding_model_version = Column(String(64), nullable=True)
+    chunker_version = Column(String(64), nullable=True)
+    chunk_version = Column(Integer, nullable=False, default=1, server_default="1")
+    section_path = Column(Text, nullable=True)
+    content_language = Column(String(16), nullable=True)
+    search_document = Column(Text, nullable=True)
+    # search_tsv / embedding_vector maintained via SQL in SCIS indexing pipeline
 
 
 # -------------------- Section 15 I5-B2-P1: Governed source identity + immutable versions --------------------
