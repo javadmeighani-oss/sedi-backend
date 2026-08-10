@@ -338,7 +338,7 @@ log "=== RUNTIME CREDENTIAL CUTOVER ==="
 ENV_BAK_DIR="${DEPLOY_PATH}/backups/env"
 mkdir -p "${ENV_BAK_DIR}"
 cp -a "${ENV_FILE}" "${ENV_BAK_DIR}/sedi-backend.env.pre_dbprod01_$(date -u +%Y%m%d_%H%M%S)"
-ROLES_ENV_PATH="${ROLES_ENV}" python - <<'PY'
+  ROLES_ENV_PATH="${ROLES_ENV}" python3 - <<'PY'
 import os, tempfile
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit, quote
