@@ -321,14 +321,14 @@ docker run --rm --network sedi-net \
   --env TEST_DATABASE_URL= \
   "${MIGRATION_IMAGE_REF}" \
   python backend/ops/db03/apply_roles_sedi_v1.py
-for role in sedi_app_runtime sedi_migration_admin sedi_dbeaver_readonly; do
-  row="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT rolcanlogin||','||rolsuper FROM pg_roles WHERE rolname='${role}';")"
-  echo "${row}" | grep -q '^t,f$' || { log "role invariant fail ${role}=${row}"; exit 40; }
-done
-APP_CREATE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_schema_privilege('sedi_app_runtime','public','CREATE');")"
-RO_INS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_table_privilege('sedi_dbeaver_readonly','users','INSERT');")"
-[ "${APP_CREATE}" = "f" ] || { log "app has CREATE"; exit 41; }
-[ "${RO_INS}" = "f" ] || { log "dbeaver can INSERT"; exit 42; }
+  for role in sedi_app_runtime sedi_migration_admin sedi_dbeaver_readonly; do
+    row="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT rolcanlogin||','||rolsuper FROM pg_roles WHERE rolname='${role}';")"
+    echo "${row}" | grep -Eq '^(t|true),(f|false)$' || { log "role invariant fail ${role}=${row}"; exit 40; }
+  done
+  APP_CREATE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_schema_privilege('sedi_app_runtime','public','CREATE');")"
+  RO_INS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_table_privilege('sedi_dbeaver_readonly','users','INSERT');")"
+  echo "${APP_CREATE}" | grep -Eq '^(f|false)$' || { log "app has CREATE=${APP_CREATE}"; exit 41; }
+  echo "${RO_INS}" | grep -Eq '^(f|false)$' || { log "dbeaver can INSERT=${RO_INS}"; exit 42; }
 summary "role_connection_model" "DIRECT_LOGIN"
 summary "role_script_fail_closed" "YES"
 summary "app_runtime_superuser" "NO"
