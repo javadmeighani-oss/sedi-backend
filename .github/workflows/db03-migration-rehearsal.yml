@@ -144,6 +144,20 @@ jobs:
               assert seeded == 0
           PY
 
+      - name: Reset schema for ORM create_all tests
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          print("SCHEMA_RESET_FOR_ORM_TESTS=OK")
+          PY
+
       - name: Focused DB-03 pytest
         run: |
           mkdir -p "${{ runner.temp }}/db03_evidence"
@@ -151,7 +165,7 @@ jobs:
 
       - name: W1-P01 protected smoke
         run: |
-          python -B -m pytest backend/tests/test_db03_contracts.py::test_w1p01_protected_i5_checks_still_present -q --tb=short
+          python -B -m pytest backend/tests/test_db03_contracts.py::test_w1p01_protected_i5_checks_still_present -q --noconftest --tb=short
 
       - name: Write evidence summary
         if: always()
