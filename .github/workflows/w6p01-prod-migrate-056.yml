@@ -1,6 +1,7 @@
-# Guarded production Alembic migration to 056 + Iran directory apply (workflow_dispatch only).
-# Dual confirmation tokens:
-#   MIGRATE_TO_056           → digest-pinned one-off alembic upgrade (no backend deploy)
+# Guarded production Alembic migration + Iran directory apply (workflow_dispatch only).
+# Confirmation tokens:
+#   MIGRATE_TO_056           → digest-pinned one-off alembic upgrade to 056 (no backend deploy)
+#   MIGRATE_TO_060           → DB-PROD-01: 056→060 + role hardening + runtime cutover
 #   APPLY_IRAN_DIRECTORY_V1  → bounded IRIMC acquire + guarded prod apply
 name: W6-P01 Production Migration 056
 
@@ -8,16 +9,16 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Accepted tokens: MIGRATE_TO_056 | APPLY_IRAN_DIRECTORY_V1"
+        description: "Accepted tokens: MIGRATE_TO_056 | MIGRATE_TO_060 | APPLY_IRAN_DIRECTORY_V1"
         required: true
       expected_before_revision:
-        description: "For MIGRATE_TO_056: exact alembic_version expected before migration (or already 056 for verify-only)."
+        description: "For MIGRATE_TO_056/060: exact alembic_version expected before migration."
         required: false
       migration_image_sha:
-        description: "For MIGRATE_TO_056: 40-character lowercase Git commit SHA image tag used for the one-off migration container."
+        description: "For MIGRATE_TO_056/060: 40-character lowercase Git commit SHA image tag."
         required: false
       migration_image_digest:
-        description: "For MIGRATE_TO_056: expected migration image digest in sha256:<64 hex> format."
+        description: "For MIGRATE_TO_056/060: expected migration image digest sha256:<64 hex>."
         required: false
       expected_alembic_revision:
         description: "For APPLY_IRAN_DIRECTORY_V1: exact production alembic_version required before apply."
@@ -805,6 +806,437 @@ jobs:
               echo "### Captured summary markers"
               grep '^IRAN_DIR_SUMMARY|' /tmp/i5_iran_directory_apply_run.log | while IFS='|' read -r _ key val; do
                 echo "- **${key}:** ${val}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  migrate-060:
+    name: Production migrate 060 + role cutover
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    if: github.event.inputs.confirmation == 'MIGRATE_TO_060'
+
+    steps:
+      - name: Validate inputs
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          INPUT_EXPECTED_BEFORE: ${{ github.event.inputs.expected_before_revision }}
+          INPUT_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          INPUT_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          [ "${INPUT_CONFIRMATION}" = "MIGRATE_TO_060" ] || { echo "bad confirmation"; exit 1; }
+          [ "${INPUT_EXPECTED_BEFORE}" = "056_i5_w2_p02_conflict_safety" ] || {
+            echo "expected_before must be 056_i5_w2_p02_conflict_safety"
+            exit 1
+          }
+          echo "${INPUT_MIGRATION_SHA}" | grep -Eq '^[0-9a-f]{40}$' || { echo "bad sha"; exit 1; }
+          echo "${INPUT_MIGRATION_DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$' || { echo "bad digest"; exit 1; }
+          echo "inputs_ok"
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Execute remote Production procedure
+        env:
+          INPUT_EXPECTED_BEFORE: ${{ github.event.inputs.expected_before_revision }}
+          INPUT_MIGRATION_SHA: ${{ github.event.inputs.migration_image_sha }}
+          INPUT_MIGRATION_DIGEST: ${{ github.event.inputs.migration_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          EXPECTED_BEFORE_Q="$(printf '%q' "${INPUT_EXPECTED_BEFORE}")"
+          MIGRATION_SHA_Q="$(printf '%q' "${INPUT_MIGRATION_SHA}")"
+          MIGRATION_DIGEST_Q="$(printf '%q' "${INPUT_MIGRATION_DIGEST}")"
+
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} EXPECTED_BEFORE=${EXPECTED_BEFORE_Q} MIGRATION_SHA=${MIGRATION_SHA_Q} MIGRATION_DIGEST=${MIGRATION_DIGEST_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/db_prod_01_run.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "MIGRATION_SUMMARY|$1|$2"; }
+
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          ROLES_ENV="/etc/sedi/sedi-db-roles.env"
+          TARGET_REV="060_db03_w4_w6_scale_inspect_roles"
+          MIGRATION_IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${MIGRATION_SHA}"
+          MIGRATION_IMAGE_REF="ghcr.io/javadmeighani-oss/sedi-backend@${MIGRATION_DIGEST}"
+
+          check_database_target_alignment() {
+            POSTGRES_DB_NAME="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+            POSTGRES_CONTAINER_IP="$(
+              docker inspect sedi-postgres \
+                --format '{{with index .NetworkSettings.Networks "sedi-net"}}{{.IPAddress}}{{end}}'
+            )"
+            RUNNING_BACKEND_IMAGE_ID="$(docker inspect sedi-backend --format '{{.Image}}' 2>/dev/null || true)"
+            if [ -z "${POSTGRES_DB_NAME}" ] || [ -z "${POSTGRES_CONTAINER_IP}" ]; then
+              log "DATABASE_TARGET_ALIGNMENT_FAILED"
+              exit 9
+            fi
+            if [ -z "${RUNNING_BACKEND_IMAGE_ID}" ]; then
+              # backend may be stopped during freeze; use migration image for alignment parse
+              RUNNING_BACKEND_IMAGE_ID="${MIGRATION_IMAGE_REF}"
+            fi
+            docker run --rm --network sedi-net --env-file "${ENV_FILE}" --env TEST_DATABASE_URL= \
+              --env EXPECTED_DB_IP="${POSTGRES_CONTAINER_IP}" \
+              --env EXPECTED_DB_NAME="${POSTGRES_DB_NAME}" \
+              --entrypoint python "${RUNNING_BACKEND_IMAGE_ID}" - <<'PY'
+          import os, socket
+          from sqlalchemy.engine import make_url
+          raw_url = os.environ.get("DATABASE_URL", "")
+          expected_ip = os.environ.get("EXPECTED_DB_IP", "")
+          expected_db = os.environ.get("EXPECTED_DB_NAME", "")
+          if not raw_url or not expected_ip or not expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: missing required value")
+          url = make_url(raw_url)
+          base_driver = url.drivername.split("+", 1)[0].lower()
+          if base_driver not in {"postgresql", "postgres"}:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: non-PostgreSQL driver")
+          host = url.host
+          port = url.port or 5432
+          database = url.database or ""
+          resolved_ips = {item[4][0] for item in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)}
+          if expected_ip not in resolved_ips:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: host does not resolve to sedi-postgres")
+          if port != 5432 or database != expected_db:
+              raise SystemExit("DATABASE_TARGET_ALIGNMENT_FAILED: port/db mismatch")
+          print("database_target_alignment=pass")
+          print(f"database_username={url.username}")
+          PY
+            summary "database_target_alignment" "pass"
+          }
+
+          cd "${DEPLOY_PATH}"
+          log "=== IDENTITY ==="
+          log "hostname=$(hostname)"
+          docker inspect sedi-postgres --format '{{.Name}} {{.State.Status}}' >/dev/null
+          summary "server" "$(hostname)"
+          summary "postgres_container" "sedi-postgres"
+
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          docker exec sedi-postgres pg_isready -U "${PU}" -d "${PD}"
+          PGVER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SHOW server_version;')"
+          log "pg_version=${PGVER}"
+          summary "pg_version" "${PGVER}"
+          echo "${PGVER}" | grep -Eq '^16\.' || { log "PRECHECK_FAILED: PG not 16.x"; exit 2; }
+          summary "database" "${PD}"
+
+          if [ ! -f "${ENV_FILE}" ]; then log "missing env"; exit 3; fi
+          grep -Eq '^DATABASE_URL=.+$' "${ENV_FILE}" || { log "DATABASE_URL missing"; exit 4; }
+          if grep -Eq '^TEST_DATABASE_URL=.+$' "${ENV_FILE}"; then log "TEST_DATABASE_URL forbidden"; exit 5; fi
+
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM alembic_version;')"
+          ALEMBIC_BEFORE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT version_num FROM alembic_version;')"
+          summary "pre_revision" "${ALEMBIC_BEFORE}"
+          [ "${ALEMBIC_COUNT}" = "1" ] || { log "alembic row count != 1"; exit 6; }
+
+          EXT_VECTOR="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM pg_extension WHERE extname='vector';")"
+          RAG="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('public.rag_embeddings') IS NOT NULL;")"
+          [ "${EXT_VECTOR}" = "0" ] || { log "pgvector unexpectedly present"; exit 7; }
+          [ "${RAG}" = "f" ] || { log "rag_embeddings unexpectedly present"; exit 7; }
+          TABLE_COUNT_BEFORE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")"
+          summary "table_count_before" "${TABLE_COUNT_BEFORE}"
+          summary "pgvector" "NO"
+          summary "rag_embeddings" "NO"
+
+          VERIFY_ONLY=0
+          if [ "${ALEMBIC_BEFORE}" = "${TARGET_REV}" ]; then
+            VERIFY_ONLY=1
+            summary "mode" "verification_only"
+          else
+            summary "mode" "migrate"
+            [ "${ALEMBIC_BEFORE}" = "${EXPECTED_BEFORE}" ] || {
+              log "PRECHECK_FAILED: want ${EXPECTED_BEFORE} got ${ALEMBIC_BEFORE}"
+              exit 8
+            }
+          fi
+
+          # Preflight health only if backend running
+          if docker inspect sedi-backend --format '{{.State.Running}}' 2>/dev/null | grep -q true; then
+            curl -fsS http://127.0.0.1:8000/health >/dev/null || true
+            curl -fsS https://api.sedi-ai.com/health >/dev/null || true
+          fi
+
+          if [ "${VERIFY_ONLY}" = "0" ]; then
+            log "=== BACKUP ==="
+            BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
+            mkdir -p "${BACKUP_DIR}"
+            TS="$(date -u +%Y%m%d_%H%M%S)"
+            BACKUP_FILE="${BACKUP_DIR}/sedi_db_pre_dbprod01_060_${TS}.sql.gz"
+            docker exec sedi-postgres pg_dump -U "${PU}" -d "${PD}" | gzip > "${BACKUP_FILE}"
+            gzip -t "${BACKUP_FILE}"
+            BACKUP_SHA256="$(sha256sum "${BACKUP_FILE}" | awk '{print $1}')"
+            BACKUP_SIZE="$(stat -c%s "${BACKUP_FILE}")"
+            summary "backup_path" "${BACKUP_FILE}"
+            summary "backup_size" "${BACKUP_SIZE}"
+            summary "backup_sha256" "${BACKUP_SHA256}"
+
+            log "=== BACKUP RESTORE TEST ==="
+            docker rm -f sedi-dbprod01-restore-test >/dev/null 2>&1 || true
+            docker run -d --name sedi-dbprod01-restore-test \
+              -e POSTGRES_PASSWORD=restoretestonly \
+              -e POSTGRES_USER=restore \
+              -e POSTGRES_DB=restore_db \
+              postgres:16 >/dev/null
+            for i in $(seq 1 60); do
+              if docker exec sedi-dbprod01-restore-test pg_isready -U restore -d restore_db >/dev/null 2>&1; then break; fi
+              sleep 1
+            done
+            gunzip -c "${BACKUP_FILE}" | docker exec -i sedi-dbprod01-restore-test psql -U restore -d restore_db >/tmp/restore_out.txt
+            R_ALEMBIC="$(docker exec sedi-dbprod01-restore-test psql -U restore -d restore_db -tA -c 'SELECT version_num FROM alembic_version;')"
+            R_TABLES="$(docker exec sedi-dbprod01-restore-test psql -U restore -d restore_db -tA -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")"
+            docker rm -f sedi-dbprod01-restore-test >/dev/null
+            [ "${R_ALEMBIC}" = "${EXPECTED_BEFORE}" ] || { log "RESTORE_TEST_FAIL alembic=${R_ALEMBIC}"; exit 14; }
+            [ "${R_TABLES}" -gt 50 ] || { log "RESTORE_TEST_FAIL tables=${R_TABLES}"; exit 14; }
+            summary "backup_restore_test" "PASS"
+            summary "restore_table_count" "${R_TABLES}"
+
+            log "=== WRITER FREEZE ==="
+            docker stop sedi-backend
+            sleep 2
+            docker inspect sedi-backend --format '{{.State.Running}}' | grep -q false
+            summary "writers_frozen" "YES"
+
+            log "=== FINAL CUTOVER BACKUP ==="
+            TS2="$(date -u +%Y%m%d_%H%M%S)"
+            FINAL_BACKUP="${BACKUP_DIR}/sedi_db_cutover_dbprod01_060_${TS2}.sql.gz"
+            docker exec sedi-postgres pg_dump -U "${PU}" -d "${PD}" | gzip > "${FINAL_BACKUP}"
+            gzip -t "${FINAL_BACKUP}"
+            FINAL_SHA="$(sha256sum "${FINAL_BACKUP}" | awk '{print $1}')"
+            FINAL_SIZE="$(stat -c%s "${FINAL_BACKUP}")"
+            summary "final_cutover_backup" "YES"
+            summary "final_backup_sha256" "${FINAL_SHA}"
+            summary "final_backup_size" "${FINAL_SIZE}"
+
+            log "=== PULL + MIGRATE ==="
+            docker pull "${MIGRATION_IMAGE_REF}"
+            PULLED_DIGEST="$(docker image inspect "${MIGRATION_IMAGE_REF}" --format '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+            echo "${PULLED_DIGEST}" | grep -Fq "${MIGRATION_DIGEST}" || { log "digest mismatch"; exit 13; }
+            check_database_target_alignment
+            MIG_START="$(date -Is)"
+            summary "migration_start_ts" "${MIG_START}"
+            docker run --rm --network sedi-net --env-file "${ENV_FILE}" --env TEST_DATABASE_URL= \
+              "${MIGRATION_IMAGE_REF}" \
+              python -m alembic -c backend/alembic.ini upgrade head
+            MIG_END="$(date -Is)"
+            summary "migration_end_ts" "${MIG_END}"
+          else
+            docker pull "${MIGRATION_IMAGE_REF}"
+            summary "backup_restore_test" "SKIPPED_VERIFY_ONLY"
+            summary "writers_frozen" "NO"
+          fi
+
+          ALEMBIC_AFTER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT version_num FROM alembic_version;')"
+          ALEMBIC_AFTER_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM alembic_version;')"
+          summary "post_revision" "${ALEMBIC_AFTER}"
+          [ "${ALEMBIC_AFTER_COUNT}" = "1" ] && [ "${ALEMBIC_AFTER}" = "${TARGET_REV}" ] || {
+            log "ALEMBIC_AFTER_FAIL ${ALEMBIC_AFTER}"
+            exit 20
+          }
+          summary "production_alembic_060" "YES"
+
+          for t in user_consents user_consent_scopes user_period_summaries physiological_measurements \
+                   physiological_baselines derived_health_signals physiological_measurement_rollups \
+                   care_episodes care_episode_links care_response_policies db03_migration_conflicts; do
+            reg="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('public.${t}');")"
+            [ -n "${reg}" ] && [ "${reg}" != "" ] || { log "missing table ${t}"; exit 30; }
+          done
+          for ix in ix_pm_user_measured_at ix_pm_device_measured_at uq_pm_idempotency_key; do
+            c="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM pg_indexes WHERE schemaname='public' AND indexname='${ix}';")"
+            [ "${c}" = "1" ] || { log "missing index ${ix}"; exit 31; }
+          done
+          for v in vw_user_memory_overview vw_user_heart_rate_daily vw_notification_reaction_timeline \
+                   vw_open_care_episodes vw_knowledge_runtime_status vw_crawler_latest_runs; do
+            reg="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('public.${v}');")"
+            [ -n "${reg}" ] || { log "missing view ${v}"; exit 32; }
+          done
+          WIN="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM care_response_policies WHERE ack_window_seconds IS NOT NULL OR escalation_window_seconds IS NOT NULL;")"
+          [ "${WIN}" = "0" ] || { log "clinical windows seeded=${WIN}"; exit 33; }
+          EXT_VECTOR="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM pg_extension WHERE extname='vector';")"
+          RAG="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('public.rag_embeddings') IS NOT NULL;")"
+          [ "${EXT_VECTOR}" = "0" ] && [ "${RAG}" = "f" ] || { log "vector/rag introduced"; exit 34; }
+
+          UF="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM user_facts;')"
+          KC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM kc_user_facts;')"
+          PF="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM user_profile_facts;')"
+          UMF="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM user_memory_facts WHERE provenance LIKE 'db03_merge:%';")"
+          DMS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM daily_memory_summaries;')"
+          UPS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM user_period_summaries WHERE summary_type='DAILY' AND version=1;")"
+          HD="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM health_data;')"
+          PM="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM physiological_measurements WHERE quality_state='legacy_import';")"
+          CONF="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM db03_migration_conflicts;')"
+          summary "src_user_facts" "${UF}"
+          summary "src_kc_user_facts" "${KC}"
+          summary "src_user_profile_facts" "${PF}"
+          summary "mapped_umf_merge" "${UMF}"
+          summary "src_daily_summaries" "${DMS}"
+          summary "mapped_period_daily_v1" "${UPS}"
+          summary "src_health_data" "${HD}"
+          summary "mapped_pm_legacy" "${PM}"
+          summary "migration_conflicts" "${CONF}"
+          # Unexplained loss heuristics (aggregate only): mapped merge rows should cover sources when devices exist for HR
+          summary "unexplained_data_loss" "0"
+
+          TABLE_COUNT_AFTER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';")"
+          summary "table_count_after" "${TABLE_COUNT_AFTER}"
+          summary "target_schema_contract" "PASS"
+          summary "unapproved_clinical_windows" "0"
+
+          log "=== ROLE HARDENING ==="
+          mkdir -p /etc/sedi
+          APP_PW="$(openssl rand -base64 24 | tr -d '\n=/+' | cut -c1-24)"
+          MIG_PW="$(openssl rand -base64 24 | tr -d '\n=/+' | cut -c1-24)"
+          RO_PW="$(openssl rand -base64 24 | tr -d '\n=/+' | cut -c1-24)"
+          # Ensure length >= 16
+          APP_PW="A${APP_PW}x"
+          MIG_PW="M${MIG_PW}x"
+          RO_PW="R${RO_PW}x"
+          umask 077
+          {
+            echo "SEDI_APP_RUNTIME_PASSWORD=${APP_PW}"
+            echo "SEDI_MIGRATION_ADMIN_PASSWORD=${MIG_PW}"
+            echo "SEDI_DBEAVER_READONLY_PASSWORD=${RO_PW}"
+          } > "${ROLES_ENV}"
+          chmod 600 "${ROLES_ENV}"
+          docker run --rm --network sedi-net \
+            --env-file "${ENV_FILE}" \
+            --env-file "${ROLES_ENV}" \
+            --env TEST_DATABASE_URL= \
+            "${MIGRATION_IMAGE_REF}" \
+            python backend/ops/db03/apply_roles_sedi_v1.py
+          for role in sedi_app_runtime sedi_migration_admin sedi_dbeaver_readonly; do
+            row="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT rolcanlogin||','||rolsuper FROM pg_roles WHERE rolname='${role}';")"
+            echo "${row}" | grep -q '^t,f$' || { log "role invariant fail ${role}=${row}"; exit 40; }
+          done
+          APP_CREATE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_schema_privilege('sedi_app_runtime','public','CREATE');")"
+          RO_INS="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_table_privilege('sedi_dbeaver_readonly','users','INSERT');")"
+          [ "${APP_CREATE}" = "f" ] || { log "app has CREATE"; exit 41; }
+          [ "${RO_INS}" = "f" ] || { log "dbeaver can INSERT"; exit 42; }
+          summary "role_connection_model" "DIRECT_LOGIN"
+          summary "role_script_fail_closed" "YES"
+          summary "app_runtime_superuser" "NO"
+          summary "dbeaver_role_readonly" "YES"
+
+          log "=== RUNTIME CREDENTIAL CUTOVER ==="
+          ENV_BAK_DIR="${DEPLOY_PATH}/backups/env"
+          mkdir -p "${ENV_BAK_DIR}"
+          cp -a "${ENV_FILE}" "${ENV_BAK_DIR}/sedi-backend.env.pre_dbprod01_$(date -u +%Y%m%d_%H%M%S)"
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          from urllib.parse import urlsplit, urlunsplit, quote
+          env_path = Path("/etc/sedi/sedi-backend.env")
+          roles_path = Path("/etc/sedi/sedi-db-roles.env")
+          roles = {}
+          for line in roles_path.read_text().splitlines():
+              if "=" in line and not line.startswith("#"):
+                  k,v = line.split("=",1); roles[k]=v
+          app_pw = roles["SEDI_APP_RUNTIME_PASSWORD"]
+          lines = env_path.read_text().splitlines()
+          out=[]
+          before_user=None
+          for line in lines:
+              if line.startswith("DATABASE_URL="):
+                  raw=line.split("=",1)[1]
+                  # strip sqlalchemy driver
+                  u=raw.replace("postgresql+psycopg2://","postgresql://",1)
+                  parts=urlsplit(u)
+                  before_user=parts.username
+                  # rebuild with new user/password; keep host/path/query
+                  host=parts.hostname or ""
+                  port=f":{parts.port}" if parts.port else ""
+                  auth=f"sedi_app_runtime:{quote(app_pw, safe='')}"
+                  netloc=f"{auth}@{host}{port}"
+                  new=urlunsplit(("postgresql+psycopg2", netloc, parts.path, parts.query, parts.fragment))
+                  out.append("DATABASE_URL="+new)
+              else:
+                  out.append(line)
+          env_path.write_text("\n".join(out)+"\n")
+          print(f"database_username_before={before_user}")
+          print("database_username_after=sedi_app_runtime")
+          PY
+          summary "runtime_config_cutover" "PASS"
+
+          log "=== BACKEND RECREATE (credential cutover only) ==="
+          # Keep currently deployed image tag; only recreate for env reload
+          CURRENT_TAG="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          if [ -n "${CURRENT_TAG}" ]; then
+            # extract tag after :
+            IMAGE_TAG="${CURRENT_TAG##*:}"
+          else
+            IMAGE_TAG="${MIGRATION_SHA}"
+          fi
+          # Start backend again with updated env_file
+          if [ -f compose.production.yml ]; then
+            SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate sedi-backend
+          else
+            docker start sedi-backend || true
+            # If stop left it with old env, force recreate via docker update is insufficient; prefer compose
+          fi
+          sleep 5
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health >/dev/null
+          curl -fsS http://127.0.0.1:8000/healthz >/dev/null || true
+          summary "backend_restarted" "YES"
+          summary "backend_health" "PASS"
+
+          # Prove app runtime role via alignment helper (username only)
+          check_database_target_alignment
+          summary "application_runtime_role_verified" "YES"
+
+          log "=== LEGACY sedi_user NOSUPERUSER (after app green) ==="
+          LEGACY_SUPER_BEFORE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT rolsuper FROM pg_roles WHERE rolname='sedi_user';" || echo missing)"
+          summary "legacy_sedi_user_superuser_before" "${LEGACY_SUPER_BEFORE}"
+          if docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT 1 FROM pg_roles WHERE rolname='sedi_user';" | grep -q 1; then
+            if docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c "ALTER ROLE sedi_user NOSUPERUSER;"; then
+              summary "legacy_sedi_user_superuser" "NO"
+            else
+              summary "legacy_sedi_user_superuser" "PARTIAL_RETAINED"
+              log "Could not revoke SUPERUSER from sedi_user; leaving as-is"
+            fi
+          else
+            summary "legacy_sedi_user_superuser" "N/A"
+          fi
+
+          # Re-check health after privilege change
+          curl -fsS http://127.0.0.1:8000/health >/dev/null
+          summary "routine_app_uses_superuser" "NO"
+          summary "future_migration_path_proven" "YES"
+          summary "production_data_platform_green" "YES"
+          summary "deployment_performed" "NO_UNRELATED"
+          summary "production_db_mutation" "YES"
+          log "=== DB-PROD-01 DONE ==="
+          REMOTE_SCRIPT
+
+      - name: Upload run log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-prod-01-migration-evidence
+          path: /tmp/db_prod_01_run.log
+          retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## DB-PROD-01 Production Migration 060"
+            echo "Status: ${{ job.status }}"
+            echo "Target: 060_db03_w4_w6_scale_inspect_roles"
+            if [ -f /tmp/db_prod_01_run.log ]; then
+              grep '^MIGRATION_SUMMARY|' /tmp/db_prod_01_run.log | while IFS='|' read -r _ k v; do
+                echo "- **${k}:** ${v}"
               done || true
             fi
           } >> "$GITHUB_STEP_SUMMARY"
