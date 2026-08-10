@@ -65456,3 +65456,143 @@ MARKER=RAG_ARCHITECTURE_DESIGN_FREEZE_01_PASS
 NOTE=post-§274 final master-log whole-file self-SHA is NOT embedded inside §274.
 SIZE_BEFORE_APPEND=2933546
 SHA256_BEFORE_APPEND=D4AF47604B79F362DC1A9E7A727362E6026F21A60AAF126C3EE2879FA09B35AB
+
+--------------------------------------------------------------------------------
+§275 - SEDI-V1 SCIS-01 CORE RETRIEVAL FOUNDATION — CONTROLLED IMPLEMENTATION TO GREEN
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 SCIS-01
+FULL_NAME=CORE RETRIEVAL FOUNDATION — CONTROLLED IMPLEMENTATION TO GREEN
+STATUS=AUTHORIZED / EXECUTED
+MODE=IMPLEMENTATION / TEST / CI / EVIDENCE
+RECORDED_AT_UTC=2026-08-10T17:20:00Z
+APPROVAL=Javad explicit authorization
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§275.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+SCIS_DESIGN_FREEZE_RECONCILED=YES
+SPEED_LAW_APPLIED=YES
+HARD_STOPS_DEFINED=YES
+SELF_HEALING_DEFINED=YES
+EVIDENCE_REQUIREMENTS_DEFINED=YES
+CONTINUITY_CLOSURE_DEFINED=YES
+CRITICAL_PATH_IMPACT_REQUIRED=YES
+DEADLINE_IMPACT_REQUIRED=YES
+RULES_IN_FORCE_CHECK=PASS
+MAX_AUTO_REMEDIATION_CYCLES=8
+AUTO_REMEDIATION_USED=1
+AUTO_REMEDIATION_1=chunk atomic-warning detection for Contraindication headings (unit test)
+PRODUCTION_CHANGED=NO
+PRODUCTION_PGVECTOR_INSTALLED=NO
+RAG_ACTIVATED=NO
+CRAWLER_ACTIVATED=NO
+
+--------------------------------------------------------------------------------
+§275.A - AUTHORITY
+--------------------------------------------------------------------------------
+START_HEAD=7f69c33a1b3f9b99dc1aa07d1b8ddabd9a6fdc49
+IMPL_HEAD=d760035401e8c801ec502578115d33ac86353564
+BRANCH=feature/section15/backend-continuity-foundation
+MASTER_LOG_PREDECESSOR=§274
+CURSOR_HANDOFF_PREDECESSOR=v565
+CHATGPT_CONTINUITY_PREDECESSOR=v575
+PRODUCTION_DATA_PLATFORM_GREEN=YES
+PRODUCTION_ALEMBIC_REMAINS=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=061_scis01_pgvector_kce_foundation
+SCIS_FREEZE_PRESERVED=YES
+END_OF_MORDAD_RISK_RECONCILIATION=Prior freeze report narrative END_OF_MORDAD_RISK_BEFORE=HIGH lacked schedule evidence vs v574/v565 MODERATE baseline; normalize BEFORE=MODERATE. AFTER remains MODERATE (implementation advanced; Production RAG still inactive).
+
+--------------------------------------------------------------------------------
+§275.B - IMPLEMENTATION
+--------------------------------------------------------------------------------
+PACKAGE=backend/app/services/scis/
+MIGRATION=061_scis01_pgvector_kce_foundation
+PGVECTOR=YES (rehearsal/CI schema path)
+ANN_INDEX=NONE (exact <=>; HNSW deferred)
+FTS=PostgreSQL simple + FA/AR Unicode normalization
+HYBRID=RRF k=60 TO_BE_BASELINED
+EMBEDDING_CI=FakeScisEmbeddingProvider@1024
+EMBEDDING_PRIMARY_CONTRACT=Cohere embed-multilingual-v3.0@1024
+PERSONAL_EXTERNAL_EMBED=NO
+STAGE17_RAG_EMBEDDINGS=STILL_FORBIDDEN
+
+--------------------------------------------------------------------------------
+§275.C - CI EVIDENCE
+--------------------------------------------------------------------------------
+CI_RUN=31412760636
+CI_JOB=93534498082
+CI_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31412760636
+CI_CONCLUSION=success
+PYTEST=15 passed
+ARTIFACT=scis-01-core-retrieval-evidence
+DISPATCH_RUN=31412799275
+
+--------------------------------------------------------------------------------
+§275.D - FINDINGS
+--------------------------------------------------------------------------------
+FINDING-01_VENDOR_BILLING_PRIVACY=DEFERRED_WITH_EXACT_REASON (account terms + COHERE_API_KEY absent in CI)
+FINDING-01_EMBED_V4_EVAL=NOT_AVAILABLE_WITH_EVIDENCE (no COHERE_API_KEY in CI)
+FINDING-02_FA_FTS_BASELINE=PASS
+FINDING-02_AR_FTS_BASELINE=PASS
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=1 (Production vendor pin / live embed-v4 eval pending secrets+terms Gate)
+
+--------------------------------------------------------------------------------
+§275.E - HARD ZEROS
+--------------------------------------------------------------------------------
+CROSS_USER_LEAKAGE=0 (no personal index path)
+INELIGIBLE_RETRIEVAL=0 (proven in CI hybrid eligibility test)
+RETRACTED_RETRIEVAL=0
+ORPHAN_PROVENANCE=0 (accepted results require KU+version)
+RAW_EVIDENCE_DIRECT_RUNTIME_RETRIEVAL=0
+
+--------------------------------------------------------------------------------
+§275.F - CRITICAL PATH
+--------------------------------------------------------------------------------
+CRITICAL_PATH_BEFORE=SCIS-01 foundation unimplemented after freeze
+CRITICAL_PATH_AFTER=SCIS Wave A GREEN → unlock parallel B(I6) / C(I7) / D(eval expand) / E(I5 publish)
+PARALLEL_WORKSTREAMS_UNLOCKED=I6 Personal Context; I7 longitudinal; I5 governed index publication; eval expansion
+END_OF_MORDAD_RISK=MODERATE
+
+--------------------------------------------------------------------------------
+§275.G - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_PROPOSED_GATE=SEDI-V1 SCIS-02 PERSONAL CONTEXT RESOLVER / I6 FOUNDATION (+ optional parallel I7 longitudinal consumption contracts)
+NEXT_GATE_AUTHORIZED=NO
+RATIONALE=Wave A retrieval substrate is Green; personal plane is the next critical capability for grounded personalized responses without merging planes.
+
+--------------------------------------------------------------------------------
+§275.H - VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+SCIS_FREEZE_PRESERVED=YES
+SCIS_CORE_RETRIEVAL_CONTRACTS=IMPLEMENTED
+PGVECTOR_FOUNDATION=GREEN
+KNOWLEDGE_CHUNK_PIPELINE=GREEN
+EMBEDDING_CONTRACT=GREEN
+LEXICAL_RETRIEVAL=GREEN
+VECTOR_RETRIEVAL=GREEN
+HYBRID_RRF=GREEN
+RUNTIME_ELIGIBILITY=GREEN
+PROVENANCE=GREEN
+EVALUATION_HARNESS=GREEN
+EN_EVALUATION=GREEN
+FA_EVALUATION=COMPLETE
+AR_EVALUATION=COMPLETE
+EMBEDDING_CHALLENGER_EVALUATION=COMPLETE (NOT_AVAILABLE_WITH_EVIDENCE without secrets)
+SECURITY_PRIVACY=PROVEN
+CI_RUNTIME_PROOF=GREEN
+RAG_ACTIVATED=NO
+CRAWLER_ACTIVATED=NO
+PRODUCTION_CHANGED=NO
+GATE_RESULT=PASS
+MARKER=SCIS_01_PASS_CORE_RETRIEVAL_GREEN
+
+NOTE=post-§275 final master-log whole-file self-SHA is NOT embedded inside §275.
+SIZE_BEFORE_APPEND=2940451
+SHA256_BEFORE_APPEND=BA763316DD87B036D2270D15F1527D715C8A659BA433B8B01B67AFFBF9CB1E88
