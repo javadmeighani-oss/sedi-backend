@@ -96,9 +96,11 @@ def test_know02_foundation_universality_multi_evidence_queries():
             .all()
         ):
             db.delete(ku)
+        # Probe KNOW-03 presence without aborting the outer transaction on missing relation.
         know03_present = False
         try:
-            know03_present = db.query(models.I5ClinicalStudy).count() > 0
+            with db.begin_nested():
+                know03_present = db.query(models.I5ClinicalStudy).count() > 0
         except Exception:
             know03_present = False
         if not know03_present:

@@ -76,7 +76,7 @@ jobs:
           echo "GATE=I5-KNOW-02" > "${{ runner.temp }}/know02_evidence/gate_id.txt"
           echo "COMMIT_SHA=${{ github.sha }}" > "${{ runner.temp }}/know02_evidence/commit.txt"
 
-      - name: Alembic single head is 063
+      - name: Alembic single head is 065
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -124,9 +124,9 @@ jobs:
                   ), {"t": t}).scalar(), t
           print("FRESH_065=PASS")
           PY
-          echo "FRESH_065=PASS" > "${{ runner.temp }}/know02_evidence/fresh_063.txt"
+          echo "FRESH_065=PASS" > "${{ runner.temp }}/know02_evidence/fresh_065.txt"
 
-      - name: Upgrade path 062 → 063
+      - name: Upgrade path 062 → 063 → 065
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -154,9 +154,16 @@ jobs:
               assert c.execute(text(
                   "SELECT 1 FROM information_schema.tables WHERE table_name='i5_scientific_artifacts'"
               )).scalar() == 1
-          print("UPGRADE_062_TO_063=PASS")
+          # Leave DB at repo head so KNOW-02/KNOW-01 pytest matches current models (064+ tables).
+          command.upgrade(cfg, "065_i5_know04_connectors_change_intelligence")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "065_i5_know04_connectors_change_intelligence"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_clinical_studies'"
+              )).scalar() == 1
+          print("UPGRADE_062_063_065=PASS")
           PY
-          echo "UPGRADE_062_TO_063=PASS" > "${{ runner.temp }}/know02_evidence/upgrade_062_063.txt"
+          echo "UPGRADE_062_063_065=PASS" > "${{ runner.temp }}/know02_evidence/upgrade_062_063_065.txt"
 
       - name: KNOW-02 + KNOW-01 regression pytest
         run: |
