@@ -280,19 +280,17 @@ def test_pg_f1_registry_source_of_truth_fixtures():
         trial_crawl = [s for s in trial_sels if s.selected_for_crawl]
         assert not any(s.connector_key == "clinicaltrials_gov_api_v2" for s in trial_crawl)
 
-        # Fixture D — role with zero registry rows → NO_ELIGIBLE
-        # Use BIOMEDICAL_TERMINOLOGY if no such ACTIVE source
+        # Fixture D — terminology role only (no DIAGNOSIS dimension side-roles)
         term_item = CoveragePrioritizationItem(
             cell_id=3,
             concept_id=3,
-            dimension_code="DIAGNOSIS",
+            dimension_code="TERMINOLOGY_ONLY",
             evidence_class="TERMINOLOGY",
             cell_state="MISSING",
             priority="P2",
             p0_overlay=False,
             gap_key="term-gap",
         )
-        # Demote any terminology sources if present
         for role_row in db.query(models.I5SourceRegistryRole).filter_by(
             role=SourceRole.BIOMEDICAL_TERMINOLOGY.value
         ).all():
@@ -300,6 +298,14 @@ def test_pg_f1_registry_source_of_truth_fixtures():
             if g:
                 g.registry_state = "DISCOVERED"
                 g.runtime_eligibility = "NOT_ELIGIBLE"
+            ext = (
+                db.query(models.I5SourceRegistryExtension)
+                .filter_by(source_profile_id=role_row.source_profile_id)
+                .first()
+            )
+            if ext is not None:
+                ext.automation_right = "UNKNOWN"
+                ext.access_right = "UNKNOWN"
         db.commit()
         term_sels = select_connectors_for_gap(db, term_item)
         assert any(s.connector_key == NO_ELIGIBLE_GOVERNED_SOURCE for s in term_sels)
@@ -405,6 +411,7 @@ def test_pg_f3_durable_unsupported_format_gap_requery():
             authority_class=SourceAuthorityClass.REFERENCE_BOOK_PUBLISHER.value,
             publisher_family="Format Gap Press",
         )
+        gsp_id = gsp.id
         db.commit()
 
         false_success = 0
@@ -415,7 +422,7 @@ def test_pg_f3_durable_unsupported_format_gap_requery():
             assert "UNSUPPORTED_FORMAT" in str(exc)
             gap, created = persist_unsupported_format_gap(
                 db,
-                source_profile_id=gsp.id,
+                source_profile_id=gsp_id,
                 resource_ref="https://example.org/monograph.epub",
                 format_id="EPUB",
             )
@@ -429,21 +436,21 @@ def test_pg_f3_durable_unsupported_format_gap_requery():
         db2 = Session()
         again = requery_unsupported_format_gap(
             db2,
-            source_profile_id=gsp.id,
+            source_profile_id=gsp_id,
             resource_ref="https://example.org/monograph.epub",
             format_id="EPUB",
         )
         assert again is not None
         assert again.id == gap_id
         assert again.canonical_gap_key == key
-        assert again.target_source_profile_id == gsp.id
+        assert again.target_source_profile_id == gsp_id
         assert (again.blocker or "").startswith("UNSUPPORTED_FORMAT")
         assert again.gap_type == "RUNTIME_RETRIEVAL_FAILURE"
 
         # Dedupe / version on repeat
         gap2, created2 = persist_unsupported_format_gap(
             db2,
-            source_profile_id=gsp.id,
+            source_profile_id=gsp_id,
             resource_ref="https://example.org/monograph.epub",
             format_id="EPUB",
         )

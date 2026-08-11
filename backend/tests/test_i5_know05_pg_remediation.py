@@ -379,7 +379,36 @@ def test_nf20_weekly_rehearsal_selection_and_ingestion():
         db.commit()
         assert result.source_selections
         assert any(s.get("p0_overlay") for s in result.source_selections)
-        assert any(not s.get("p0_overlay") for s in result.source_selections)
+        # Registry SoT: CT.gov eligible for trial gaps; WHO UNKNOWN never crawl-eligible.
+        assert any(
+            s.get("selected_connector") == "clinicaltrials_gov_api_v2"
+            and s.get("automation_decision") == "AUTOMATION_ALLOWED"
+            for s in result.source_selections
+        )
+        who_sels = [s for s in result.source_selections if s.get("selected_connector") == "who_guideline_catalogue"]
+        for s in who_sels:
+            assert s.get("automation_decision") == "BLOCKED"
+        # Non-P0 hypertension gap remains classifiable via direct selection even if
+        # weekly budget truncates prioritized cells to P0-only.
+        from backend.app.services.i5.know05.coverage_engine import CoveragePrioritizationItem
+        from backend.app.services.i5.know05.source_selection import select_connectors_for_gap
+
+        ht = db.query(models.I5ClinicalConcept).filter_by(concept_key="HYPERTENSION").one()
+        ht_sels = select_connectors_for_gap(
+            db,
+            CoveragePrioritizationItem(
+                cell_id=0,
+                concept_id=ht.id,
+                dimension_code="PHARMACOLOGICAL_TREATMENT",
+                evidence_class="GUIDELINE",
+                cell_state=CoverageCellState.MISSING.value,
+                priority="P1",
+                p0_overlay=False,
+                gap_key="htn-direct",
+            ),
+        )
+        assert ht_sels
+        assert all(s.p0_overlay is False for s in ht_sels)
         assert any(s["status"] in {"STORED", "FETCHED", "BLOCKED"} for s in result.source_results)
         assert "READY_FOR_BOUNDED_FETCH" not in {s["status"] for s in result.source_results}
         assert result.weekly_run_id is not None

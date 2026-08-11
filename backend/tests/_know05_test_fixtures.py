@@ -110,6 +110,8 @@ def seed_canonical_source_with_rights(
     *,
     connector_key: str = "clinicaltrials_gov_api_v2",
     rights_mode: str = "ALLOWED",
+    roles: tuple[str, ...] | None = None,
+    authority_class: str | None = None,
 ) -> models.GovernedSourceProfile:
     """Explicit test fixture. Product path must not call this."""
     key = canonical_key_for_connector(connector_key)
@@ -129,6 +131,9 @@ def seed_canonical_source_with_rights(
             robots_state="ALLOWED",
             processing_permission_mode=ProcessingPermissionMode.METADATA_ABSTRACT_ONLY.value,
             notes="TEST_FIXTURE_EXPLICIT_RIGHTS_ALLOWED",
+            supported_formats="JSON,HTML",
+            api_endpoint="https://example.org/api",
+            canonical_home="https://example.org",
         )
     elif rights_mode == "DENIED":
         fields = dict(
@@ -142,6 +147,9 @@ def seed_canonical_source_with_rights(
             robots_state="DISALLOWED",
             processing_permission_mode=ProcessingPermissionMode.FULLTEXT_AUTOMATION_BLOCKED.value,
             notes="TEST_FIXTURE_EXPLICIT_RIGHTS_DENIED",
+            supported_formats="JSON,HTML",
+            api_endpoint="https://example.org/api",
+            canonical_home="https://example.org",
         )
     else:
         fields = dict(
@@ -155,14 +163,27 @@ def seed_canonical_source_with_rights(
             robots_state="UNKNOWN",
             processing_permission_mode=ProcessingPermissionMode.FULLTEXT_AUTOMATION_BLOCKED.value,
             notes="TEST_FIXTURE_EXPLICIT_RIGHTS_UNKNOWN",
+            supported_formats="JSON,HTML",
+            api_endpoint="https://example.org/api",
+            canonical_home="https://example.org",
         )
+    if roles is None:
+        if "who" in connector_key:
+            roles = ("CLINICAL_GUIDELINE",)
+            authority_class = authority_class or SourceAuthorityClass.GLOBAL_INTERGOVERNMENTAL.value
+        elif "pubmed" in connector_key:
+            roles = ("SCIENTIFIC_LITERATURE",)
+            authority_class = authority_class or SourceAuthorityClass.NATIONAL_MEDICAL_LIBRARY.value
+        else:
+            roles = ("CLINICAL_TRIAL",)
+            authority_class = authority_class or SourceAuthorityClass.CLINICAL_TRIAL_REGISTRY.value
     upsert_registry_extension(
         db,
         source_profile_id=gsp.id,
         source_universe=SourceUniverse.GLOBAL_KNOWLEDGE.value,
-        authority_class=SourceAuthorityClass.CLINICAL_TRIAL_REGISTRY.value,
-        publisher_family="ClinicalTrials.gov",
-        roles=("CLINICAL_TRIAL",),
+        authority_class=authority_class or SourceAuthorityClass.CLINICAL_TRIAL_REGISTRY.value,
+        publisher_family="ClinicalTrials.gov" if "clinicaltrials" in connector_key else "TEST",
+        roles=roles,
         **fields,
     )
     db.flush()
