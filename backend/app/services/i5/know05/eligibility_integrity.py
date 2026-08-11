@@ -1,4 +1,4 @@
-"""Knowledge eligibility integrity counters — derived from DB (NF23)."""
+"""Knowledge eligibility integrity counters — derived from DB (NF23/NF25)."""
 
 from __future__ import annotations
 
@@ -40,6 +40,36 @@ class EligibilityIntegrityReport:
                 raise AssertionError(f"ELIGIBILITY_INTEGRITY_VIOLATION:{k}={v}")
 
 
+def ku_lacks_real_source_governance(db: Session, *, knowledge_unit_id: int) -> bool:
+    """True when a KU has no proven SOURCE_PROFILE APPROVED governance decision."""
+    prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=knowledge_unit_id).first()
+    if prov is None:
+        return True
+    return not source_has_approved_governance(db, source_profile_id=prov.source_profile_id)
+
+
+def count_synthetic_governance_auto_promotions(db: Session) -> int:
+    """Count runtime-ELIGIBLE KUs promoted without real source governance evidence.
+
+    Exact semantic equivalence (NF25 Strategy B, proven identical):
+      synthetic_governance_auto_promotion_count
+        == ELIGIBLE_WITHOUT_REAL_GOVERNANCE
+        == count of KnowledgeUnit.runtime_eligibility == ELIGIBLE
+           lacking KnowledgeProvenance→SOURCE_PROFILE APPROVED I5GovernanceDecision.
+
+    This is not a constant: each ELIGIBLE row is inspected against persisted governance.
+    """
+    n = 0
+    for ku in (
+        db.query(models.KnowledgeUnit)
+        .filter(models.KnowledgeUnit.runtime_eligibility == "ELIGIBLE")
+        .all()
+    ):
+        if ku_lacks_real_source_governance(db, knowledge_unit_id=ku.id):
+            n += 1
+    return n
+
+
 def audit_eligibility_integrity(db: Session) -> EligibilityIntegrityReport:
     unk_safety = 0
     no_gov = 0
@@ -66,12 +96,9 @@ def audit_eligibility_integrity(db: Session) -> EligibilityIntegrityReport:
             unk_rights += 1
         if rights == "RIGHTS_BLOCKED":
             blocked_rights += 1
-        # Governance: require approved decision on linked source when provenance exists
-        prov = db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku.id).first()
-        if prov is None or not source_has_approved_governance(db, source_profile_id=prov.source_profile_id):
+        if ku_lacks_real_source_governance(db, knowledge_unit_id=ku.id):
             no_gov += 1
 
-    # Trial registry artifacts linked to ELIGIBLE KUs as treatment recommendations
     if hasattr(models, "I5KnowledgeUnitEvidenceLink"):
         for link in db.query(models.I5KnowledgeUnitEvidenceLink).all():
             ku = db.query(models.KnowledgeUnit).filter_by(id=link.knowledge_unit_id).first()
@@ -87,8 +114,15 @@ def audit_eligibility_integrity(db: Session) -> EligibilityIntegrityReport:
                 elif str(ku.knowledge_type or "").upper() in {"RECOMMENDATION", "GUIDELINE"}:
                     trial_as_rec += 1
                 else:
-                    # ELIGIBLE trial-registry-backed KU is itself a violation
                     trial_as_rec += 1
+
+    # NF25: derive from the same DB inspection — never a literal constant.
+    synthetic_auto = count_synthetic_governance_auto_promotions(db)
+    if synthetic_auto != no_gov:
+        # Invariant self-check: counters must stay exact equivalents.
+        raise AssertionError(
+            f"NF25_COUNTER_DIVERGENCE:synthetic={synthetic_auto} eligible_without_gov={no_gov}"
+        )
 
     return EligibilityIntegrityReport(
         eligible_with_unknown_safety=unk_safety,
@@ -98,5 +132,11 @@ def audit_eligibility_integrity(db: Session) -> EligibilityIntegrityReport:
         eligible_with_blocked_rights=blocked_rights,
         trial_registry_as_treatment_recommendation=trial_as_rec,
         synthetic_product_rights_source_count=count_synthetic_product_rights_sources(db),
-        synthetic_governance_auto_promotion_count=0,  # product path no longer auto-promotes; counter reserved
+        synthetic_governance_auto_promotion_count=synthetic_auto,
+        computation_basis=(
+            "DB_DERIVED:"
+            "ELIGIBLE_KU_LACKING_SOURCE_PROFILE_APPROVED_I5GovernanceDecision"
+            "==synthetic_governance_auto_promotion_count"
+            "==eligible_without_real_governance"
+        ),
     )
