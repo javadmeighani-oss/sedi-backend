@@ -1,5 +1,10 @@
 # I5-KNOW-01 Trusted Source Registry + Rights + Multiformat Foundation
 # PostgreSQL 16 + pgvector image (inherits SCIS-01 chain). NO Production mutation.
+#
+# CI integrity (FGI remediation):
+# - set -o pipefail on every pytest|tee pipeline
+# - activation guard is Python fail-closed (scanner error ≠ PASS)
+# - W3-P02 uses canonical backend/tests/conftest.py db fixture (no --noconftest)
 name: I5-KNOW-01 Source Registry Runtime
 
 on:
@@ -11,7 +16,11 @@ on:
       - "backend/app/services/i5/enums.py"
       - "backend/alembic/versions/062_i5_know01_source_registry_rights.py"
       - "backend/tests/test_i5_know01_source_registry.py"
+      - "backend/tests/test_i5_know01_activation_guard.py"
+      - "backend/tests/helpers/know01_activation_guard.py"
       - "backend/tests/test_section30_i5_w3_p01_adapters_extract.py"
+      - "backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py"
+      - "backend/tests/conftest.py"
       - "backend/tests/test_db03_contracts.py"
       - "backend/app/models.py"
       - ".github/workflows/i5-know01-source-registry-runtime.yml"
@@ -52,6 +61,7 @@ jobs:
       ENVIRONMENT: test_isolated
       ENV: test_isolated
       PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: know01-test-placeholder-not-used
 
     steps:
       - name: Checkout
@@ -64,21 +74,45 @@ jobs:
 
       - name: Install backend dependencies
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install pytest
 
-      - name: Deny Production activation markers in KNOW-01 package
+      - name: Prepare evidence directory
         run: |
-          if rg -n -i "PRODUCTION_CRAWLER_ACTIVATED\s*=\s*True|RAG_ACTIVATED\s*=\s*True" backend/app/services/i5/know01; then
-            echo "FORBIDDEN_PRODUCTION_ACTIVATION"
-            exit 1
-          fi
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/know01_evidence"
+          echo "GATE=I5-KNOW-01-CI-FALSE-GREEN-INTEGRITY-REMEDIATION" > "${{ runner.temp }}/know01_evidence/gate_id.txt"
+          echo "COMMIT_SHA=${{ github.sha }}" > "${{ runner.temp }}/know01_evidence/commit.txt"
+
+      - name: Activation guard — clean control (fail-closed Python scanner)
+        run: |
+          set -euo pipefail
+          python -B -m backend.tests.helpers.know01_activation_guard \
+            --root backend/app/services/i5/know01 \
+            --label clean \
+            | tee "${{ runner.temp }}/know01_evidence/activation_guard_clean.txt"
           test -f backend/alembic/versions/062_i5_know01_source_registry_rights.py
-          echo "KNOW01_PACKAGE_GUARD=PASS"
+          echo "ACTIVATION_GUARD_CLEAN_CONTROL=PASS" | tee -a "${{ runner.temp }}/know01_evidence/activation_guard_clean.txt"
+
+      - name: Activation guard — negative control (must reject forbidden fixture)
+        run: |
+          set -euo pipefail
+          FIXTURE_DIR="${{ runner.temp }}/know01_forbidden_fixture"
+          mkdir -p "${FIXTURE_DIR}"
+          printf '%s\n' 'PRODUCTION_CRAWLER_ACTIVATED = True' > "${FIXTURE_DIR}/forbidden_marker.py"
+          python -B -m backend.tests.helpers.know01_activation_guard \
+            --root "${FIXTURE_DIR}/forbidden_marker.py" \
+            --label negative \
+            --expect-fail \
+            | tee "${{ runner.temp }}/know01_evidence/activation_guard_negative.txt"
+          rm -rf "${FIXTURE_DIR}"
+          echo "ACTIVATION_GUARD_NEGATIVE_CONTROL=PASS" | tee -a "${{ runner.temp }}/know01_evidence/activation_guard_negative.txt"
 
       - name: Alembic head is 062
         run: |
+          set -euo pipefail
           python - <<'PY'
           from alembic.config import Config
           from alembic.script import ScriptDirectory
@@ -86,10 +120,12 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           assert heads == ["062_i5_know01_source_registry_rights"], heads
+          print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
 
       - name: Fresh upgrade to 062
         run: |
+          set -euo pipefail
           python - <<'PY'
           import os
           from sqlalchemy import create_engine, text
@@ -120,9 +156,11 @@ jobs:
                   ), {"t": t}).scalar(), t
           print("FRESH_062=PASS")
           PY
+          echo "FRESH_062=PASS" > "${{ runner.temp }}/know01_evidence/fresh_062.txt"
 
       - name: Upgrade path 061 → 062
         run: |
+          set -euo pipefail
           python - <<'PY'
           import os
           from sqlalchemy import create_engine, text
@@ -150,30 +188,41 @@ jobs:
               )).scalar() == 1
           print("UPGRADE_061_TO_062=PASS")
           PY
+          echo "UPGRADE_061_TO_062=PASS" > "${{ runner.temp }}/know01_evidence/upgrade_061_062.txt"
 
       - name: KNOW-01 + adapter regression pytest
         run: |
-          mkdir -p "${{ runner.temp }}/know01_evidence"
+          set -euo pipefail
+          set -o pipefail
           python -B -m pytest \
             backend/tests/test_i5_know01_source_registry.py \
+            backend/tests/test_i5_know01_activation_guard.py \
             backend/tests/test_section30_i5_w3_p01_adapters_extract.py \
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
             -q --tb=short --noconftest \
-            | tee "${{ runner.temp }}/know01_evidence/pytest_know01.txt"
+            | tee "${{ runner.temp }}/know01_evidence/pytest_know01_targeted.txt"
+          echo "KNOW01_TARGETED_EXIT=0" > "${{ runner.temp }}/know01_evidence/pytest_know01_targeted_exit.txt"
 
-      - name: I5 adapter + discovery smoke regression
+      - name: W3-P02 full regression (canonical conftest db fixture)
         run: |
+          set -euo pipefail
+          set -o pipefail
+          # Do NOT use --noconftest: DB nodes require backend/tests/conftest.py::db
           python -B -m pytest \
             backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py \
-            -q --tb=short --noconftest \
-            | tee -a "${{ runner.temp }}/know01_evidence/pytest_know01.txt"
+            -q --tb=short \
+            | tee "${{ runner.temp }}/know01_evidence/pytest_w3p02.txt"
+          echo "W3P02_EXIT=0" > "${{ runner.temp }}/know01_evidence/pytest_w3p02_exit.txt"
 
-      - name: Write evidence summary
+      - name: Write evidence summary + raw-log audit helpers
         if: always()
         run: |
+          set -euo pipefail
+          EVID="${{ runner.temp }}/know01_evidence"
           {
-            echo "GATE=I5-KNOW-01"
+            echo "GATE=I5-KNOW-01-CI-FALSE-GREEN-INTEGRITY-REMEDIATION"
+            echo "COMMIT_SHA=${{ github.sha }}"
             echo "ALEMBIC_HEAD=062_i5_know01_source_registry_rights"
             echo "PRODUCTION_MIGRATION_RUN=NO"
             echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
@@ -181,12 +230,55 @@ jobs:
             echo "DIABETES_D20_RUNTIME_MUTATION=NO"
             echo "CAP24_STATUS=BLOCKED_WITH_EXACT_EVIDENCE"
             echo "UNKNOWN_RIGHTS_FAIL_CLOSED=YES"
-          } > "${{ runner.temp }}/know01_evidence/summary.txt"
+            echo "PIPEFAIL_INTEGRITY=YES"
+            echo "FGI_01_FIXED=YES"
+            echo "FGI_02_FIXED=YES"
+          } > "${EVID}/summary.txt"
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          evid = Path(os.environ["RUNNER_TEMP"]) / "know01_evidence"
+          texts = []
+          for name in (
+              "pytest_know01_targeted.txt",
+              "pytest_w3p02.txt",
+              "activation_guard_clean.txt",
+              "activation_guard_negative.txt",
+          ):
+              p = evid / name
+              if p.exists():
+                  texts.append(p.read_text(encoding="utf-8", errors="replace"))
+          blob = "\n".join(texts)
+          # Fail audit markers (exclude activation-guard negative-control expected FAIL_FORBIDDEN line)
+          bad = []
+          if re.search(r"(?m)^E\s+fixture 'db' not found", blob):
+              bad.append("fixture_db_not_found")
+          if "rg: command not found" in blob:
+              bad.append("rg_command_not_found")
+          if re.search(r"(?m)^\d+ failed", blob):
+              bad.append("pytest_failed_summary")
+          if re.search(r"(?m)^\d+ error", blob):
+              bad.append("pytest_error_summary")
+          # W3-P02 must not be greened with errors
+          w3 = evid / "pytest_w3p02.txt"
+          if w3.exists():
+              w3t = w3.read_text(encoding="utf-8", errors="replace")
+              if "error" in w3t.lower() and re.search(r"\d+ error", w3t):
+                  bad.append("w3p02_errors")
+          (evid / "raw_log_audit.txt").write_text(
+              "RAW_LOG_AUDIT=" + ("PASS" if not bad else "FAIL") + "\n"
+              + ("FINDINGS=" + ",".join(bad) if bad else "FINDINGS=NONE") + "\n",
+              encoding="utf-8",
+          )
+          if bad:
+              raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
+          print("RAW_LOG_AUDIT=PASS")
+          PY
 
       - name: Upload evidence artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: i5-know01-source-registry-evidence
+          name: i5-know01-ci-integrity-evidence
           path: ${{ runner.temp }}/know01_evidence/
           retention-days: 14
