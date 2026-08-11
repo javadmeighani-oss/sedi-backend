@@ -96,7 +96,16 @@ def _persist_ctgov_trial_registry(
     title: str,
     content_hash: str,
 ) -> tuple[int, int]:
-    """Persist trial-registry metadata. Never clinical-runtime ELIGIBLE."""
+    """Persist trial-registry metadata. Never clinical-runtime ELIGIBLE.
+
+    Versioning: same content_hash → reuse version; changed content → new version
+    via know02.add_artifact_version (no silent overwrite of immutable version rows).
+    """
+    from backend.app.services.i5.know02.artifacts import add_artifact_version, link_evidence
+    from backend.app.services.i5.know05.acquisition_boundary import (
+        record_acquisition_evidence_boundary,
+    )
+
     artifact_key = f"nct:{nct_id}"
     art = db.query(models.I5ScientificArtifact).filter_by(artifact_key=artifact_key).first()
     if art is None:
@@ -109,25 +118,56 @@ def _persist_ctgov_trial_registry(
         )
         db.add(art)
         db.flush()
+
     ver = (
         db.query(models.I5ScientificArtifactVersion)
-        .filter_by(artifact_id=art.id, version_label="v1")
+        .filter_by(artifact_id=art.id, content_hash=content_hash)
         .first()
     )
     if ver is None:
-        ver = models.I5ScientificArtifactVersion(
-            artifact_id=art.id,
-            version_label="v1",
-            content_hash=content_hash,
-            version_state="PUBLISHED",
+        prior_n = (
+            db.query(models.I5ScientificArtifactVersion)
+            .filter_by(artifact_id=art.id)
+            .count()
         )
-        db.add(ver)
-        db.flush()
+        version_label = f"v{prior_n + 1}"
+        prior = (
+            db.query(models.I5ScientificArtifactVersion)
+            .filter_by(artifact_id=art.id)
+            .order_by(models.I5ScientificArtifactVersion.id.desc())
+            .first()
+        )
+        ver = add_artifact_version(
+            db,
+            artifact_id=art.id,
+            version_label=version_label,
+            content_hash=content_hash,
+            title_at_version=title[:2000] if title else nct_id,
+            supersedes_version_id=prior.id if prior is not None else None,
+        )
+
+    raw_id = record_acquisition_evidence_boundary(
+        db,
+        source_profile_id=source.id,
+        canonical_url=f"https://clinicaltrials.gov/study/{nct_id}",
+        content_hash=content_hash,
+        rights_decision="RIGHTS_ALLOWED",
+        connector_key="clinicaltrials_gov_api_v2",
+        mime_type="application/json",
+    )
 
     dedupe = hashlib.sha256(f"know05:ctgov:{nct_id}".encode()).hexdigest()
     canonical = hashlib.sha256(f"ku:ctgov:{nct_id}".encode()).hexdigest()[:32]
     existing = db.query(models.KnowledgeUnit).filter_by(deduplication_key=dedupe).first()
     if existing is not None:
+        if hasattr(models, "I5KnowledgeUnitEvidenceLink"):
+            link_evidence(
+                db,
+                knowledge_unit_id=existing.id,
+                artifact_version_id=ver.id,
+                support_direction="NEUTRAL",
+                evidence_role="TRIAL_REGISTRY_IDENTITY",
+            )
         return art.id, existing.id
 
     statement = (
@@ -136,7 +176,7 @@ def _persist_ctgov_trial_registry(
     )
     ku = models.KnowledgeUnit(
         canonical_unit_id=canonical,
-        immutable_version_id="v1",
+        immutable_version_id=ver.version_label,
         domain="clinical_trials",
         knowledge_type=KnowledgeType.FACT.value,
         normalized_statement=statement,
@@ -160,24 +200,24 @@ def _persist_ctgov_trial_registry(
         knowledge_unit_id=ku.id,
         source_profile_id=source.id,
         source_document_id=nct_id,
-        source_version_id="v1",
+        source_version_id=ver.version_label,
         retrieval_method="clinicaltrials_gov_api_v2_bounded",
         access_route="OFFICIAL_API",
         content_hash=content_hash,
         extraction_process="connector_normalize",
         normalization_process="know05_bounded_ingestion",
+        raw_evidence_id=raw_id,
     )
     db.add(prov)
     db.flush()
     if hasattr(models, "I5KnowledgeUnitEvidenceLink"):
-        link = models.I5KnowledgeUnitEvidenceLink(
+        link_evidence(
+            db,
             knowledge_unit_id=ku.id,
             artifact_version_id=ver.id,
             support_direction="NEUTRAL",
             evidence_role="TRIAL_REGISTRY_IDENTITY",
         )
-        db.add(link)
-        db.flush()
     # Provenance now exists — mark complete from verified relationship
     if verify_provenance_complete(db, knowledge_unit_id=ku.id):
         ku.provenance_complete = True

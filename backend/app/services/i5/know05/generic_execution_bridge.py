@@ -75,6 +75,7 @@ class GenericBridgeResult:
     external_ids: list[str] = field(default_factory=list)
     publication_stages: list[str] = field(default_factory=list)
     knowledge_unit_id: Optional[int] = None
+    raw_evidence_id: Optional[int] = None
     specialized_handler: bool = False
     content_hash: Optional[str] = None
     diagnostics: dict[str, str] = field(default_factory=dict)
@@ -98,11 +99,14 @@ class GenericBridgeResult:
             "storage_decision": self.storage_decision,
             "transient_raw_residue": self.transient_raw_residue,
             "knowledge_unit_id": self.knowledge_unit_id,
+            "raw_evidence_id": self.raw_evidence_id,
+            "source_profile_id": self.source_profile_id,
             "publication_stages": list(self.publication_stages),
             "adapter_mode": self.adapter_mode,
             "adapter_id": self.adapter_id,
             "specialized_handler": self.specialized_handler,
             "diagnostics": dict(self.diagnostics),
+            "publication_outcome": "NOT_PUBLISHED",
         }
 
 
@@ -445,6 +449,24 @@ def execute_generic_registry_source(
     # Truthful fetch terminal — no KU publication / clinical runtime fabrication.
     ok = envelope.error_category is None and envelope.http_status == 200
     status = "GOVERNED_FETCH_COMPLETED" if ok else "BLOCKED"
+    raw_evidence_id: Optional[int] = None
+    write_path = "DEFERRED"
+    if ok and rights.rights_state == "RIGHTS_ALLOWED":
+        from backend.app.services.i5.know05.acquisition_boundary import (
+            record_acquisition_evidence_boundary,
+        )
+
+        raw_evidence_id = record_acquisition_evidence_boundary(
+            db,
+            source_profile_id=gsp.id,
+            canonical_url=safe_url,
+            content_hash=envelope.content_hash,
+            rights_decision=rights.rights_state,
+            connector_key=connector_key,
+            mime_type="application/json",
+        )
+        if raw_evidence_id is not None:
+            write_path = "ACQUISITION_BOUNDARY"
     return GenericBridgeResult(
         connector_key=connector_key,
         status=status,
@@ -465,12 +487,16 @@ def execute_generic_registry_source(
         rights_decision=rights.rights_state,
         storage_decision="NO_STORE",
         transient_raw_residue=0,
+        knowledge_unit_id=None,
+        raw_evidence_id=raw_evidence_id,
         content_hash=envelope.content_hash,
         specialized_handler=False,
         diagnostics={
             "GENERIC_ADAPTER_EXECUTION_BRIDGE": "PASS" if ok else "BLOCKED",
-            "WRITE_PATH": "DEFERRED",
+            "WRITE_PATH": write_path,
             "CLINICAL_RUNTIME": "NOT_FABRICATED",
+            "GOVERNED_FETCH_NOT_EQUAL_PUBLICATION": "PASS",
+            "ACQUISITION_RAW_EVIDENCE_ID": str(raw_evidence_id or ""),
         },
     )
 

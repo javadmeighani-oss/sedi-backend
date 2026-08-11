@@ -104,6 +104,7 @@ jobs:
             backend/tests/test_i5_know01_foundation_gate.py \
             backend/tests/test_i5_know01_registry_sot_closure.py \
             backend/tests/test_i5_know05_generic_adapter_bridge.py \
+            backend/tests/test_i5_know05_write_path_lineage.py \
             backend/tests/test_i5_know05_pg.py \
             backend/tests/test_i5_know05_pg_remediation.py \
             backend/tests/test_i5_know04_connectors.py \
@@ -129,6 +130,21 @@ jobs:
           exit_marker = Path(os.environ["RUNNER_TEMP"]) / "know05_pytest_exit.txt"
           if not exit_marker.exists():
               bad.append("pytest_exit_marker_missing")
+          required = [
+              "WRITE_PATH_REGRESSION_GUARD=PASS",
+              "NEGATIVE_CONTROL_UNAUTHORIZED_WRITER_DETECTED=PASS",
+              "LINEAGE_QUERY_BACK=PASS",
+              "GOVERNED_FETCH_NOT_EQUAL_PUBLICATION=PASS",
+              "LEDGER_FETCH_COUNT_TRUTHFUL=PASS",
+              "FETCH_PUBLICATION_CONFLATION_COUNT=0",
+              "MULTI_SOURCE_LINEAGE_PRESERVED=PASS",
+              "IDEMPOTENT_RERUN=PASS",
+              "RIGHTS_DENIED_PERSISTED_RAW_BYTES=0",
+              "I5_LINEAGE_ASSURANCE_STATUS=GREEN",
+          ]
+          for marker in required:
+              if marker not in blob:
+                  bad.append("missing:" + marker)
           if bad:
               raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
           print("RAW_LOG_AUDIT=PASS")

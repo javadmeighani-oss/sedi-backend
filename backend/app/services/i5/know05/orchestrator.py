@@ -28,9 +28,109 @@ from backend.app.services.i5.know05.coverage_engine import ensure_gaps_from_cove
 from backend.app.services.i5.know05.modes import Know05Mode, assert_mode_authorized, production_activation_flags
 from backend.app.services.i5.know05.ncbi_identity import load_ncbi_operational_identity
 from backend.app.services.i5.know05.source_selection import select_sources_for_coverage
+from backend.app.services.i5.know05.write_path_ledger import (
+    count_fetched_sources,
+    count_knowledge_accepted,
+    count_publication_outcomes,
+    fetch_publication_conflation_count,
+    map_to_wrsr_status,
+)
 
 
 SCHEDULE_KEY = "weekly_international_knowledge_crawler"
+
+
+def _source_profile_id_for_connector(db: Session, connector_key: str) -> Optional[int]:
+    from backend.app.services.i5.know05.canonical_rights import resolve_canonical_source
+
+    gsp, _, _ = resolve_canonical_source(db, connector_key)
+    return int(gsp.id) if gsp is not None else None
+
+
+def _append_specialized_result(
+    db: Session,
+    source_results: list[dict[str, Any]],
+    *,
+    r: Any,
+) -> None:
+    sp_id = getattr(r, "source_profile_id", None)
+    if sp_id is None:
+        sp_id = _source_profile_id_for_connector(db, r.connector_key)
+    source_results.append(
+        {
+            "connector_key": r.connector_key,
+            "status": r.status,
+            "block_reason": r.block_reason,
+            "http_status": r.http_status,
+            "bytes_received": r.bytes_received,
+            "request_count": r.request_count,
+            "page_count": r.page_count,
+            "external_ids": list(r.external_ids),
+            "records_discovered": r.records_discovered,
+            "records_normalized": r.records_normalized,
+            "records_accepted": r.records_accepted,
+            "records_rejected": r.records_rejected,
+            "records_changed": r.records_changed,
+            "rights_decision": r.rights_decision,
+            "storage_decision": r.storage_decision,
+            "transient_raw_residue": r.transient_raw_residue,
+            "knowledge_unit_id": r.knowledge_unit_id,
+            "source_profile_id": sp_id,
+            "publication_stages": list(r.publication_stages),
+            "specialized_handler": True,
+            "publication_outcome": "NOT_PUBLISHED",
+        }
+    )
+
+
+def _persist_weekly_source_results(
+    db: Session,
+    *,
+    attempt_id: int,
+    source_results: list[dict[str, Any]],
+) -> None:
+    """Write WeeklyRunSourceResult with truthful fetch≠publish vocabulary."""
+    for s in source_results:
+        sp_id = s.get("source_profile_id")
+        if sp_id is None:
+            continue
+        wrsr_status = map_to_wrsr_status(str(s.get("status") or ""))
+        if wrsr_status is None:
+            continue
+        existing = (
+            db.query(models.WeeklyRunSourceResult)
+            .filter_by(attempt_id=attempt_id, source_profile_id=int(sp_id))
+            .first()
+        )
+        if existing is not None:
+            continue
+        pub_out = "NOT_PUBLISHED"
+        if wrsr_status == "PUBLISHED":
+            pub_out = "PUBLISHED"
+        row = models.WeeklyRunSourceResult(
+            attempt_id=attempt_id,
+            source_profile_id=int(sp_id),
+            result_status=wrsr_status,
+            checked_at=datetime.utcnow(),
+            fetch_outcome=str(s.get("status") or ""),
+            extraction_outcome="STORED" if str(s.get("status")) == "STORED" else None,
+            publication_outcome=pub_out,
+            knowledge_new_count=int(s.get("records_accepted") or 0),
+            knowledge_updated_count=0,
+            knowledge_superseded_count=0,
+            knowledge_rejected_count=int(s.get("records_rejected") or 0),
+            gap_created_count=0,
+            warning_count=1 if str(s.get("status")) == "BLOCKED" else 0,
+            error_count=1 if str(s.get("status")) == "FAILED" else 0,
+            failure_code=s.get("block_reason"),
+            failure_reason=s.get("block_reason"),
+            evidence_reference=f"know05:{s.get('connector_key')}",
+            content_fingerprint=(s.get("diagnostics") or {}).get("ACQUISITION_RAW_EVIDENCE_ID")
+            if isinstance(s.get("diagnostics"), dict)
+            else None,
+        )
+        db.add(row)
+    db.flush()
 
 
 @dataclass
@@ -147,81 +247,15 @@ def run_know05_cycle(
             executed.add(ck)
             if ck.startswith("pubmed"):
                 r = ingest_pubmed_bounded_or_block(mode=m, db=db)
-                source_results.append(
-                    {
-                        "connector_key": r.connector_key,
-                        "status": r.status,
-                        "block_reason": r.block_reason,
-                        "http_status": r.http_status,
-                        "bytes_received": r.bytes_received,
-                        "request_count": r.request_count,
-                        "page_count": r.page_count,
-                        "external_ids": list(r.external_ids),
-                        "records_discovered": r.records_discovered,
-                        "records_normalized": r.records_normalized,
-                        "records_accepted": r.records_accepted,
-                        "records_rejected": r.records_rejected,
-                        "records_changed": r.records_changed,
-                        "rights_decision": r.rights_decision,
-                        "storage_decision": r.storage_decision,
-                        "transient_raw_residue": r.transient_raw_residue,
-                        "knowledge_unit_id": r.knowledge_unit_id,
-                        "publication_stages": list(r.publication_stages),
-                        "specialized_handler": True,
-                    }
-                )
+                _append_specialized_result(db, source_results, r=r)
             elif ck == "clinicaltrials_gov_api_v2":
                 r = ingest_clinicaltrials_bounded(
                     db, mode=m, query="diabetes", http_get=http_get, max_records=2
                 )
-                source_results.append(
-                    {
-                        "connector_key": r.connector_key,
-                        "status": r.status,
-                        "block_reason": r.block_reason,
-                        "http_status": r.http_status,
-                        "bytes_received": r.bytes_received,
-                        "request_count": r.request_count,
-                        "page_count": r.page_count,
-                        "external_ids": list(r.external_ids),
-                        "records_discovered": r.records_discovered,
-                        "records_normalized": r.records_normalized,
-                        "records_accepted": r.records_accepted,
-                        "records_rejected": r.records_rejected,
-                        "records_changed": r.records_changed,
-                        "rights_decision": r.rights_decision,
-                        "storage_decision": r.storage_decision,
-                        "transient_raw_residue": r.transient_raw_residue,
-                        "knowledge_unit_id": r.knowledge_unit_id,
-                        "publication_stages": list(r.publication_stages),
-                        "specialized_handler": True,
-                    }
-                )
+                _append_specialized_result(db, source_results, r=r)
             elif ck == "who_guideline_catalogue":
                 r = ingest_who_catalogue_bounded(db, mode=m, http_get=http_get, max_records=1)
-                source_results.append(
-                    {
-                        "connector_key": r.connector_key,
-                        "status": r.status,
-                        "block_reason": r.block_reason,
-                        "http_status": r.http_status,
-                        "bytes_received": r.bytes_received,
-                        "request_count": r.request_count,
-                        "page_count": r.page_count,
-                        "external_ids": list(r.external_ids),
-                        "records_discovered": r.records_discovered,
-                        "records_normalized": r.records_normalized,
-                        "records_accepted": r.records_accepted,
-                        "records_rejected": r.records_rejected,
-                        "records_changed": r.records_changed,
-                        "rights_decision": r.rights_decision,
-                        "storage_decision": r.storage_decision,
-                        "transient_raw_residue": r.transient_raw_residue,
-                        "knowledge_unit_id": r.knowledge_unit_id,
-                        "publication_stages": list(r.publication_stages),
-                        "specialized_handler": True,
-                    }
-                )
+                _append_specialized_result(db, source_results, r=r)
             else:
                 # Generic Registry → AdapterRegistry bridge (no source-key handler required).
                 from backend.app.services.i5.know05.generic_execution_bridge import (
@@ -290,7 +324,10 @@ def run_know05_cycle(
             db.flush()
         else:
             next_n = 1 if existing_attempt is None else int(existing_attempt.attempt_number) + 1
-            fetched = sum(1 for s in source_results if s["status"] in {"FETCHED", "PUBLISHED"})
+            fetched = count_fetched_sources(source_results)
+            accepted = count_knowledge_accepted(source_results)
+            published = count_publication_outcomes(source_results)
+            assert fetch_publication_conflation_count(source_results) == 0
             blocked = sum(1 for s in source_results if s["status"] == "BLOCKED")
             failed = sum(1 for s in source_results if s["status"] == "FAILED")
             attempt = models.WeeklyKnowledgeRunAttempt(
@@ -303,13 +340,16 @@ def run_know05_cycle(
                 skipped_sources=0,
                 blocked_sources=blocked,
                 failed_sources=failed,
-                new_knowledge_count=sum(int(s.get("records_accepted") or 0) for s in source_results),
+                new_knowledge_count=accepted,
                 updated_knowledge_count=0,
                 created_gap_count=gap_stats["gaps_created"],
                 resolved_gap_count=0,
                 warning_count=blocked + failed,
                 error_count=failed,
-                evidence_reference=f"know05:{m.value}:{logical}",
+                evidence_reference=(
+                    f"know05:{m.value}:{logical}:fetched={fetched}:"
+                    f"accepted={accepted}:published={published}"
+                ),
             )
             db.add(attempt)
             db.flush()
@@ -317,9 +357,9 @@ def run_know05_cycle(
             run.latest_attempt_id = attempt.id
             run.successful_attempt_id = attempt.id
             db.flush()
-            # Per-source detail lives on Know05RunResult.source_results (attempt counters above).
-            # WeeklyRunSourceResult requires governed source_profile_id FK — filled when
-            # bounded ingestion creates rehearsal GSP rows; not fabricated here.
+            _persist_weekly_source_results(
+                db, attempt_id=attempt.id, source_results=source_results
+            )
 
     return Know05RunResult(
         mode=m.value,
