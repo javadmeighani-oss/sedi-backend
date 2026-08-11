@@ -66247,3 +66247,147 @@ MARKER=I5_KNOW02_ARTIFACTS_CLAIMS_UNIVERSAL_TAXONOMY_PASS
 NOTE=post-§280 final master-log whole-file self-SHA is NOT embedded inside §280.
 SIZE_BEFORE_APPEND=2970288
 SHA256_BEFORE_APPEND=28F3265F1A81EB337923F6EBF9003DD7BE51F999FBD7489D202E131E2C69B460
+
+--------------------------------------------------------------------------------
+§281 - SEDI-V1 I5-KNOW-03 DATA-INTEGRITY HARDENING + STRUCTURED CLINICAL STUDIES + PICO + EFFECTS + RECOMMENDATIONS + TERMINOLOGY FOUNDATION
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 I5-KNOW-03 DATA-INTEGRITY HARDENING + STRUCTURED CLINICAL STUDIES + POPULATIONS/PICO + INTERVENTIONS/COMPARATORS + OUTCOMES/EFFECT ESTIMATES + CLINICAL RECOMMENDATIONS + TERMINOLOGY EXPANSION FOUNDATION CONTROLLED IMPLEMENTATION TO GREEN
+STATUS=AUTHORIZED / EXECUTED
+MODE=W0→W5 COMPREHENSIVE IMPLEMENTATION + TEST + CI + CONTROLLED AUTO-REMEDIATION TO GREEN
+RECORDED_AT_UTC=2026-08-11T06:40:00Z
+APPROVAL=Javad Master Gate authorization
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§281.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+RULES_IN_FORCE_CHECK=PASS
+KNOW01_CLOSURE_PRESERVED=YES
+KNOW02_CLOSURE_PRESERVED=YES
+ORM_CHANGED=YES (additive KNOW-03 + W0)
+ENUM_CHANGED=YES
+MIGRATION_CREATED=YES (064_i5_know03_studies_effects_recs)
+MIGRATION_RUN=CI_ONLY
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+ICD11_FULL_IMPORT=NEXT_TERMINOLOGY_WAVE
+P0_SPECIFIC_BRANCHING_IN_CORE_STUDY_MODEL=0
+SILENT_CONTENT_DRIFT=0
+USER_PERSONALIZATION_TABLES=0
+
+--------------------------------------------------------------------------------
+§281.A - AUTHORITY
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=e293bfffbb83c99af9868bc6fb109c29dbef4b48
+IMPL_COMMIT=253e5f946ad123ccef75dbad0e444373e96b82c4
+REMEDIATION_COMMITS=3e091b938c25d1bf8e23854e0f3fa86c14c9dbf6;d779a2a3ff18469388dde4ae0d866dbb6809c6a9
+HEAD_AT_GREEN=d779a2a3ff18469388dde4ae0d866dbb6809c6a9
+MASTER_LOG_PREDECESSOR=§280
+MASTER_LOG_PREDECESSOR_SIZE=2979070
+MASTER_LOG_PREDECESSOR_SHA256=C0C4D5BC9C961A5CF27B00FF55317001F5DF3AA90E8F96F2E7CFFBA22B3592F4
+CURSOR_HANDOFF_PREDECESSOR=v571
+CHATGPT_CONTINUITY_PREDECESSOR=v581
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=064_i5_know03_studies_effects_recs
+
+--------------------------------------------------------------------------------
+§281.B - W0 NF5/NF6
+--------------------------------------------------------------------------------
+NF5_REPRODUCED=YES (same label + different hash previously returned existing version silently)
+NF5_FIXED=YES (ContentDriftConflict + i5_artifact_version_content_drift_events; no overwrite)
+NF6_REPRODUCED=YES (nullable UNIQUE bypass; missing supersedes FK)
+NF6_FIXED=YES (UNIQUE NULLS NOT DISTINCT; supersedes FK + self-check + same-artifact trigger)
+SAME_LABEL_SAME_HASH=IDEMPOTENT_PASS
+SAME_LABEL_DIFFERENT_HASH=CONFLICT_PASS
+SILENT_CONTENT_DRIFT=0
+SUPERSESSION_FK_INTEGRITY=PASS
+SELF_SUPERSESSION_BLOCKED=PASS
+NULLABLE_UNIQUENESS_HARDENED=PASS
+
+--------------------------------------------------------------------------------
+§281.C - PROOFS
+--------------------------------------------------------------------------------
+ALEMBIC_SINGLE_HEAD=PASS (064)
+FRESH_064=PASS
+UPGRADE_063_TO_064=PASS
+PYTEST=21 passed / 0 failed / 0 errors
+RAW_LOG_AUDIT=PASS
+PIPEFAIL=YES
+POSTGRESQL=16
+CI_RUN=31465407639
+CI_JOB=93697189645
+CI_CONCLUSION=success
+ARTIFACT_ID=9091333184
+ARTIFACT_DIGEST=sha256:465e9354a14c5b0febebcc498c75b43a5d6ca27744ba486bbc6d174a59a5d292
+CI_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31465407639
+AUTO_REMEDIATION_CYCLES=2 (hex content_hash; KNOW-02 cleanup vs RESTRICT FKs)
+
+--------------------------------------------------------------------------------
+§281.D - MODEL SURFACE
+--------------------------------------------------------------------------------
+CLINICAL_STUDIES=GREEN
+STUDY_ARTIFACT_LINKS=GREEN
+STUDY_POPULATIONS=GREEN
+PICO_FOUNDATION=GREEN
+INTERVENTIONS=GREEN (drug + non-drug)
+COMPARATORS=GREEN
+OUTCOMES=GREEN
+EFFECT_ESTIMATES=GREEN
+HARMS_SUPPORT=GREEN
+CLINICAL_RECOMMENDATIONS=GREEN
+RECOMMENDATION_EVIDENCE_LINKS=GREEN
+STATISTICAL_VS_CLINICAL_SIGNIFICANCE_SEPARATED=YES
+ICD11_FOUNDATION=GREEN (contract; full import deferred)
+MESH_FOUNDATION=GREEN
+RXNORM_FOUNDATION=GREEN
+LOINC_FOUNDATION=GREEN
+ICF_FOUNDATION=GREEN
+ICHI_FOUNDATION=GREEN
+ALS_SUPPORT=YES
+MS_SUPPORT=YES
+DIABETES_SUPPORT=YES
+NON_P0_SUPPORT=YES
+clinical_trials_bulk_schema=DEFERRED_KNOW04
+
+--------------------------------------------------------------------------------
+§281.E - OPEN FINDINGS
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=4
+NF1=CAP24 BLOCKED_WITH_EXACT_EVIDENCE (preserved)
+NF2=Per-source TDM REVIEW_REQUIRED (preserved)
+NF3=Clinic entity model NEXT_SCHEMA_GATE_REQUIRED (preserved)
+NF4=ICD11_FULL_IMPORT=NEXT_TERMINOLOGY_WAVE (preserved; NF5/NF6 closed)
+
+--------------------------------------------------------------------------------
+§281.F - CRITICAL PATH
+--------------------------------------------------------------------------------
+BEFORE=KNOW-02 closed @ 063; Production 060; crawler/RAG NO
+AFTER=Repo head 064; W0+studies/PICO/effects/recs Green; Production unchanged
+UNLOCKS=structured evidence representation SOURCE→STUDY→PICO→EFFECT→RECOMMENDATION for all diseases
+PARALLEL_NEXT=KNOW-04 official connectors (PubMed/CT.gov/guidelines/terminology ingest) — unauthorized
+END_OF_MORDAD_RISK=MODERATE (structure Green; mass connectors still ahead)
+
+--------------------------------------------------------------------------------
+§281.G - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_GATE=SEDI-V1 I5-KNOW-04 OFFICIAL SCIENTIFIC CONNECTORS + PUBMED/PMC + CLINICALTRIALS.GOV + GUIDELINE FEEDS + TERMINOLOGY INGESTION + CHANGE/RETRACTION INTELLIGENCE
+NEXT_GATE_AUTHORIZED=NO
+
+--------------------------------------------------------------------------------
+§281.H - FINAL VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+GATE_RESULT=PASS
+MARKER=I5_KNOW03_STUDIES_EFFECTS_RECS_W0_INTEGRITY_PASS
+
+NOTE=post-§281 final master-log whole-file self-SHA is NOT embedded inside §281.
+SIZE_BEFORE_APPEND=2979070
+SHA256_BEFORE_APPEND=C0C4D5BC9C961A5CF27B00FF55317001F5DF3AA90E8F96F2E7CFFBA22B3592F4
