@@ -1,0 +1,26 @@
+# DESIGN_ONLY — NOT_RUNTIME_LOADED — NOT_ACTIVATION_AUTHORITY
+DESIGN_ONLY: true
+NOT_RUNTIME_LOADED: true
+NOT_ACTIVATION_AUTHORITY: true
+matrix_version: p0-coverage-matrix-v1
+note: "Does not mutate backend/config/i5/coverage_manifest_v1.yaml"
+
+p0_tracks:
+  ALS:
+    manifest_id_today: D18
+    priority: P0-CRITICAL
+    action: KEEP
+  MS:
+    manifest_id_today: D19
+    priority_today: P0-HIGH
+    priority_frozen_target: P0-CRITICAL
+    action: ELEVATE_IN_FUTURE_MANIFEST_GATE
+  DIABETES:
+    manifest_id_today: null
+    proposed_id: D20
+    track: DIABETES-TRACK
+    priority: P0-CRITICAL
+    action: ADD_IN_FUTURE_MANIFEST_GATE
+    subtypes: [T1, T2, GESTATIONAL, LADA, MODY, SECONDARY, PREDIABETES]
+
+cell_states: [COVERED_CURRENT, COVERED_STALE, PARTIAL, CONFLICTED, MISSING, NOT_APPLICABLE]

@@ -1,0 +1,47 @@
+# DESIGN_ONLY — NOT_RUNTIME_LOADED — NOT_ACTIVATION_AUTHORITY
+DESIGN_ONLY: true
+NOT_RUNTIME_LOADED: true
+NOT_ACTIVATION_AUTHORITY: true
+registry_version: trusted-source-registry-seed-v1
+note: "Seed candidates for future rights-reviewed activation. Listing ≠ authorization."
+
+candidates:
+  - key: clinicaltrials_gov_api_v2
+    publisher: NLM ClinicalTrials.gov
+    authority_tier: GOVERNMENT_REGISTRY
+    preferred_route: OFFICIAL_API
+    api_endpoint: https://clinicaltrials.gov/api/v2
+    rights_state: UNKNOWN_PENDING_REVIEW
+    automation_state: BLOCKED_UNTIL_RIGHTS_REVIEW
+  - key: pubmed_ncbi_eutils
+    publisher: NCBI/NLM
+    authority_tier: GOVERNMENT_LITERATURE
+    preferred_route: OFFICIAL_API
+    api_endpoint: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+    rights_state: UNKNOWN_PENDING_REVIEW
+    automation_state: BLOCKED_UNTIL_RIGHTS_REVIEW
+  - key: medlineplus_consumer_health
+    publisher: NLM MedlinePlus
+    note: already in multisource allowlist — still governed
+  - key: nhs_uk
+    publisher: NHS UK
+  - key: cdc_gov
+    publisher: CDC
+  - key: nimh_nih
+    publisher: NIMH
+  - key: who
+    publisher: WHO
+  - key: nice_uk
+    publisher: NICE
+  - key: cochrane
+    publisher: Cochrane
+  - key: ada_diabetes
+    publisher: American Diabetes Association
+  - key: aan
+    publisher: American Academy of Neurology
+  - key: ectrims
+    publisher: ECTRIMS
+  - key: ean
+    publisher: EAN
+  - key: fda_openfda
+    publisher: FDA/openFDA
