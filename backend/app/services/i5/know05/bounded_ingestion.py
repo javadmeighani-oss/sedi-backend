@@ -149,7 +149,7 @@ def _persist_ctgov_record(
     if art is None:
         art = models.I5ScientificArtifact(
             artifact_key=artifact_key,
-            artifact_type="CLINICAL_TRIAL",
+            artifact_type="CLINICAL_TRIAL_RECORD",
             title=title[:2000] if title else nct_id,
             source_profile_id=source.id,
             nct_id=nct_id,
