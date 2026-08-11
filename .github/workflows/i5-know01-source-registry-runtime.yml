@@ -198,6 +198,29 @@ jobs:
           PY
           echo "UPGRADE_061_TO_062=PASS" > "${{ runner.temp }}/know01_evidence/upgrade_061_062.txt"
 
+      - name: Restore fresh Alembic 065 before pytest
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              assert head == "065_i5_know04_connectors_change_intelligence", head
+          print("RESTORE_FRESH_065_BEFORE_PYTEST=PASS")
+          PY
+
       - name: KNOW-01 + adapter regression pytest
         run: |
           set -euo pipefail
