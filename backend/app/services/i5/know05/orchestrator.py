@@ -43,7 +43,7 @@ SCHEDULE_KEY = "weekly_international_knowledge_crawler"
 def _source_profile_id_for_connector(db: Session, connector_key: str) -> Optional[int]:
     from backend.app.services.i5.know05.canonical_rights import resolve_canonical_source
 
-    gsp, _, _ = resolve_canonical_source(db, connector_key)
+    gsp = resolve_canonical_source(db, connector_key)
     return int(gsp.id) if gsp is not None else None
 
 

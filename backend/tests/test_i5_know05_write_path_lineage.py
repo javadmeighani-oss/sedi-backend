@@ -57,10 +57,10 @@ def _json_transport(payload: dict | None = None):
         def __call__(self, url: str) -> FixtureTransportResponse:
             self.calls["n"] += 1
             return FixtureTransportResponse(
-                url=url,
                 status_code=200,
-                headers={"Content-Type": "application/json"},
                 body=body,
+                content_type="application/json",
+                final_url=url,
             )
 
     return _T()
