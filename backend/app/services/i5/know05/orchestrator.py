@@ -88,7 +88,7 @@ def run_know05_cycle(
             continue
         if sel.block_reason and sel.connector_key.startswith("pubmed"):
             continue
-        if sel.automation_state != "AUTOMATION_ALLOWED" and m != Know05Mode.DRY_RUN:
+        if sel.automation_decision != "AUTOMATION_ALLOWED" and m != Know05Mode.DRY_RUN:
             # Still record blocked pubmed explicitly
             if sel.connector_key.startswith("pubmed") and sel.connector_key not in chosen_keys:
                 chosen_keys.append(sel.connector_key)
@@ -130,7 +130,7 @@ def run_know05_cycle(
                 continue
             executed.add(ck)
             if ck.startswith("pubmed"):
-                r = ingest_pubmed_bounded_or_block(mode=m)
+                r = ingest_pubmed_bounded_or_block(mode=m, db=db)
             elif ck == "clinicaltrials_gov_api_v2":
                 r = ingest_clinicaltrials_bounded(
                     db, mode=m, query="diabetes", http_get=http_get, max_records=2
@@ -178,7 +178,7 @@ def run_know05_cycle(
         if identity.weekly_operation_status != "LIVE_READY" and not any(
             s["connector_key"].startswith("pubmed") for s in source_results
         ):
-            pb = ingest_pubmed_bounded_or_block(mode=m)
+            pb = ingest_pubmed_bounded_or_block(mode=m, db=db)
             source_results.append(
                 {
                     "connector_key": pb.connector_key,
@@ -189,6 +189,7 @@ def run_know05_cycle(
                     "records_rejected": 0,
                     "records_changed": 0,
                     "transient_raw_residue": 0,
+                    "rights_decision": pb.rights_decision,
                 }
             )
 

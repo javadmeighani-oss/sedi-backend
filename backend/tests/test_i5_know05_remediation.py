@@ -127,6 +127,9 @@ def test_nf20_source_selection_p0_and_non_p0():
     assert any(s.connector_key == "clinicaltrials_gov_api_v2" and s.gap_key == "ms-trials" for s in sels)
     assert any(s.connector_key.startswith("pubmed") and s.gap_key == "dm-lit" for s in sels)
     assert any(s.gap_key == "htn-guideline" and s.p0_overlay is False for s in sels)
-    pubmed = [s for s in sels if s.connector_key.startswith("pubmed")]
-    assert pubmed
-    assert all(s.block_reason or s.automation_state == "AUTOMATION_ALLOWED" for s in pubmed)
+    # Without canonical GSP, automation must be blocked (not inferred from connector key)
+    for s in sels:
+        if s.connector_capability_state == "CONNECTOR_READY":
+            assert s.automation_decision == "BLOCKED"
+            assert s.rights_state in {"RIGHTS_UNKNOWN", "RIGHTS_BLOCKED"}
+            assert s.block_reason

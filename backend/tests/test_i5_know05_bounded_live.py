@@ -1,4 +1,4 @@
-"""I5-KNOW-05 live bounded ingestion — CT.gov positive path (no Production persistence)."""
+"""I5-KNOW-05 live bounded ingestion — CT.gov read-only canary (no clinical runtime claim)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from backend.app.services.i5.know05.modes import Know05Mode
 
 
 def test_nf19_live_ctgov_bounded_beyond_ready_for_fetch():
-    """Real network CT.gov bounded path; PubMed remains exact-blocked without NCBI identity."""
+    """Real network CT.gov fetch; network success ≠ clinical runtime eligibility."""
     pubmed = ingest_pubmed_bounded_or_block(mode=Know05Mode.BOUNDED_INGESTION)
     assert pubmed.status == "BLOCKED"
     assert pubmed.block_reason
@@ -23,7 +23,6 @@ def test_nf19_live_ctgov_bounded_beyond_ready_for_fetch():
         max_records=1,
         persist=False,
     )
-    # Exact fail-closed on network/SSL issues (local); CI ubuntu must get FETCHED
     if result.status == "FAILED" and result.block_reason and "NETWORK_OR_CONNECTOR_ERROR" in result.block_reason:
         import pytest
 
@@ -37,5 +36,5 @@ def test_nf19_live_ctgov_bounded_beyond_ready_for_fetch():
     assert result.external_ids
     assert result.transient_raw_residue == 0
     assert result.storage_decision == "NO_STORE"
-    assert "RUNTIME_ELIGIBILITY" in result.publication_stages
+    assert result.clinical_runtime_eligible is False
     assert result.status != "READY_FOR_BOUNDED_FETCH"

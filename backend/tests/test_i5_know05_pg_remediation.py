@@ -26,7 +26,7 @@ from backend.app.services.i5.enums import (
 )
 from backend.app.services.i5.know02.taxonomy import ensure_dimension, upsert_coverage_cell
 from backend.app.services.i5.know05.authority_audit import audit_knowledge_authority
-from backend.app.services.i5.know05.availability import derive_ku_availability, assert_runtime_eligible_has_retrieval
+from backend.app.services.i5.know05.availability import derive_ku_availability
 from backend.app.services.i5.know05.bounded_ingestion import ingest_clinicaltrials_bounded
 from backend.app.services.i5.know05.modes import Know05Mode
 from backend.app.services.i5.know05.orchestrator import run_know05_cycle
@@ -232,6 +232,8 @@ def test_nf19_bounded_ingestion_mock_e2e_beyond_ready():
     Session = sessionmaker(bind=engine)
     db = Session()
 
+    from backend.tests._know05_test_fixtures import seed_canonical_source_with_rights
+
     class _Resp:
         def __init__(self, payload: dict, status=200):
             self.status_code = status
@@ -254,6 +256,8 @@ def test_nf19_bounded_ingestion_mock_e2e_beyond_ready():
         return _Resp({"totalCount": 1, "studies": [study], "nextPageToken": None})
 
     try:
+        seed_canonical_source_with_rights(db, rights_mode="ALLOWED")
+        db.flush()
         result = ingest_clinicaltrials_bounded(
             db,
             mode=Know05Mode.BOUNDED_INGESTION,
@@ -262,20 +266,21 @@ def test_nf19_bounded_ingestion_mock_e2e_beyond_ready():
             max_records=1,
         )
         db.commit()
-        assert result.block_reason is None, f"block_reason={result.block_reason!r} status={result.status} rejected={result.records_rejected} stages={result.publication_stages}"
-        assert result.status == "PUBLISHED"
+        assert result.block_reason is None, f"block_reason={result.block_reason!r} status={result.status}"
+        assert result.status == "STORED"
         assert result.request_count >= 1
         assert result.bytes_received > 0
         assert result.http_status == 200
         assert result.records_accepted >= 1
         assert result.knowledge_unit_id is not None
         assert result.transient_raw_residue == 0
-        assert "RUNTIME_ELIGIBILITY" in result.publication_stages
+        assert result.clinical_runtime_eligible is False
+        assert result.synthetic_product_rights_source is False
         assert result.status != "READY_FOR_BOUNDED_FETCH"
 
         ku = db.query(models.KnowledgeUnit).filter_by(id=result.knowledge_unit_id).first()
         assert ku is not None
-        assert ku.runtime_eligibility == "ELIGIBLE"
+        assert ku.runtime_eligibility != "ELIGIBLE"
         assert db.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku.id).first()
         rights = resolve_ku_rights_state(db, knowledge_unit_id=ku.id)
         view = derive_ku_availability(
@@ -288,13 +293,8 @@ def test_nf19_bounded_ingestion_mock_e2e_beyond_ready():
             has_structured_links=True,
             rights_state=rights,
         )
-        assert view.runtime_eligible is True
-        assert view.rag_eligible is True
-        assert_runtime_eligible_has_retrieval(view)
-
-        # Clean coherence for this isolated positive object when no bad KCE rows remain from other tests
-        # (this test commits; subsequent negative test rolls back — use fresh assertion on KU only)
-        assert rights == "RIGHTS_ALLOWED"
+        assert view.runtime_eligible is False
+        assert view.rag_eligible is False
     finally:
         db.close()
 
@@ -362,6 +362,12 @@ def test_nf20_weekly_rehearsal_selection_and_ingestion():
             )
         db.flush()
 
+        from backend.tests._know05_test_fixtures import seed_canonical_source_with_rights
+
+        seed_canonical_source_with_rights(db, connector_key="clinicaltrials_gov_api_v2", rights_mode="ALLOWED")
+        seed_canonical_source_with_rights(db, connector_key="who_guideline_catalogue", rights_mode="UNKNOWN")
+        db.flush()
+
         result = run_know05_cycle(
             db,
             mode=Know05Mode.BOUNDED_INGESTION,
@@ -374,11 +380,8 @@ def test_nf20_weekly_rehearsal_selection_and_ingestion():
         assert result.source_selections
         assert any(s.get("p0_overlay") for s in result.source_selections)
         assert any(not s.get("p0_overlay") for s in result.source_selections)
-        statuses = {s["status"] for s in result.source_results}
-        assert "READY_FOR_BOUNDED_FETCH" not in statuses or any(
-            s["status"] in {"PUBLISHED", "FETCHED", "BLOCKED"} for s in result.source_results
-        )
-        assert any(s["status"] in {"PUBLISHED", "FETCHED", "BLOCKED"} for s in result.source_results)
+        assert any(s["status"] in {"STORED", "FETCHED", "BLOCKED"} for s in result.source_results)
+        assert "READY_FOR_BOUNDED_FETCH" not in {s["status"] for s in result.source_results}
         assert result.weekly_run_id is not None
 
         auth = audit_knowledge_authority(db)
