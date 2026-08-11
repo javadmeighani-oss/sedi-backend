@@ -352,10 +352,12 @@ def test_nf14_verified_guideline_classification_fixture():
     html = b"""
     <html><body>
     <a href="https://www.who.int/publications/i/item/9789240121744">WHO guideline</a>
+    <a href="/publications/i/item/guidelines-for-malaria">relative</a>
     </body></html>
     """
-    records = WhoGuidelineCatalogueConnector().parse_catalogue_html(html, max_records=1)
-    assert len(records) == 1
+    records = WhoGuidelineCatalogueConnector().parse_catalogue_html(html, max_records=2)
+    assert len(records) == 2
+    assert records[1]["canonical_locator"].endswith("/guidelines-for-malaria")
     rec = WhoGuidelineCatalogueConnector().normalize(records[0])
     assert rec.resource_type == "WHO_GUIDELINE_CATALOGUE_ENTRY"
     assert rec.payload["authority_stage"] == STAGE_VERIFIED_ARTIFACT_POINTER

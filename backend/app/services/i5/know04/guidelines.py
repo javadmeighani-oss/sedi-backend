@@ -31,8 +31,13 @@ WHO_ALLOWED = ("www.who.int", "who.int")
 
 # GRC-approved guideline publication item pattern (official WHO publications portal).
 _GUIDELINE_PUBLICATION_HREF = re.compile(
-    r"https?://(?:www\.)?who\.int/publications/i/item/[^\s\"'<>]+",
+    r"(?:https?://(?:www\.)?who\.int)?/publications/i/item/[^\s\"'<>#]+",
     re.I,
+)
+
+# Stable official GRC item slugs for bounded live canary when listing HTML is JS-rendered.
+_WHO_CATALOGUE_PROBE_ITEMS: tuple[str, ...] = (
+    "https://www.who.int/publications/i/item/guidelines-for-malaria",
 )
 
 
@@ -237,7 +242,34 @@ class WhoGuidelineCatalogueConnector:
             self.catalogue_url,
             expect_content_types={"text/html", "application/xhtml+xml", "text/plain"},
         )
-        return self.parse_catalogue_html(resp.content, max_records=max_records)
+        records = self.parse_catalogue_html(resp.content, max_records=max_records)
+        if records:
+            return records
+        return self._discover_via_canonical_item_probe(client, max_records=max_records)
+
+    def _discover_via_canonical_item_probe(
+        self, client: HardenedHttpClient, *, max_records: int = 1
+    ) -> list[dict[str, Any]]:
+        """Fallback when catalogue listing HTML is client-rendered — probe stable GRC item URLs."""
+        out: list[dict[str, Any]] = []
+        for url in _WHO_CATALOGUE_PROBE_ITEMS[:max_records]:
+            probe = client.get(
+                url,
+                expect_content_types={"text/html", "application/xhtml+xml", "text/plain"},
+            )
+            if getattr(probe, "status_code", 200) >= 400:
+                continue
+            slug = url.rsplit("/", 1)[-1]
+            out.append(
+                {
+                    "canonical_locator": url,
+                    "external_identifier": slug,
+                    "who_artifact_kind": "WHO_GUIDELINE_CATALOGUE_ENTRY",
+                    "catalogue_probe_fallback": True,
+                    "synthetic_fixture": False,
+                }
+            )
+        return out
 
     def parse_catalogue_html(self, content: bytes, *, max_records: int = 10) -> list[dict[str, Any]]:
         text = content.decode("utf-8", errors="replace")
@@ -245,13 +277,14 @@ class WhoGuidelineCatalogueConnector:
         seen: set[str] = set()
         records: list[dict[str, Any]] = []
         for href in hrefs:
-            if href in seen:
+            locator = href if href.startswith("http") else f"https://www.who.int{href}"
+            if locator in seen:
                 continue
-            seen.add(href)
+            seen.add(locator)
             records.append(
                 {
-                    "canonical_locator": href,
-                    "external_identifier": href.rsplit("/", 1)[-1],
+                    "canonical_locator": locator,
+                    "external_identifier": locator.rsplit("/", 1)[-1],
                     "who_artifact_kind": "WHO_GUIDELINE_CATALOGUE_ENTRY",
                     "synthetic_fixture": False,
                 }
