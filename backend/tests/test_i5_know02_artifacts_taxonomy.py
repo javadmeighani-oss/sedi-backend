@@ -120,6 +120,7 @@ def test_know02_foundation_universality_multi_evidence_queries():
                 db.delete(c)
         else:
             # KNOW-03 owns RESTRICT FKs into shared taxonomy/artifacts — reseed upsert-only
+            # KNOW-04 change events also RESTRICT-reference artifacts — do not delete those.
             for art in (
                 db.query(models.I5ScientificArtifact)
                 .filter(
@@ -135,6 +136,13 @@ def test_know02_foundation_universality_multi_evidence_queries():
                 )
                 if referenced:
                     continue
+                if hasattr(models, "I5ScientificChangeEvent"):
+                    if (
+                        db.query(models.I5ScientificChangeEvent)
+                        .filter(models.I5ScientificChangeEvent.artifact_id == art.id)
+                        .count()
+                    ):
+                        continue
                 db.delete(art)
         db.commit()
 
