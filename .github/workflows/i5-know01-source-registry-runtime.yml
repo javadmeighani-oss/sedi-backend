@@ -17,6 +17,7 @@ on:
       - "backend/alembic/versions/062_i5_know01_source_registry_rights.py"
       - "backend/tests/test_i5_know01_source_registry.py"
       - "backend/tests/test_i5_know01_activation_guard.py"
+      - "backend/tests/test_i5_know01_foundation_gate.py"
       - "backend/tests/helpers/know01_activation_guard.py"
       - "backend/tests/test_section30_i5_w3_p01_adapters_extract.py"
       - "backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py"
@@ -113,7 +114,7 @@ jobs:
           rm -rf "${FIXTURE_DIR}"
           echo "ACTIVATION_GUARD_NEGATIVE_CONTROL=PASS" | tee -a "${{ runner.temp }}/know01_evidence/activation_guard_negative.txt"
 
-      - name: Alembic head is 064 (KNOW-01 preserved under KNOW-03 head)
+      - name: Alembic head is 065 (KNOW-01 preserved under KNOW-04 head)
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -122,13 +123,13 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["064_i5_know03_studies_effects_recs"], heads
-          rev = script.get_revision("064_i5_know03_studies_effects_recs")
-          assert rev.down_revision == "063_i5_know02_artifacts_claims_taxonomy"
+          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
+          rev = script.get_revision("065_i5_know04_connectors_change_intelligence")
+          assert rev.down_revision == "064_i5_know03_studies_effects_recs"
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
 
-      - name: Fresh upgrade to head (064) proving KNOW-01 tables
+      - name: Fresh upgrade to head (065) proving KNOW-01 tables
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -147,7 +148,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "064_i5_know03_studies_effects_recs", head
+              assert head == "065_i5_know04_connectors_change_intelligence", head
               for t in (
                   "i5_source_registry_extensions",
                   "i5_source_registry_roles",
@@ -159,9 +160,11 @@ jobs:
                   assert c.execute(text(
                       "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
                   ), {"t": t}).scalar(), t
-          print("FRESH_HEAD_KNOW01_TABLES=PASS")
+              print("FRESH_065=PASS")
+              print("FRESH_HEAD_KNOW01_TABLES=PASS")
           PY
-          echo "FRESH_HEAD_KNOW01_TABLES=PASS" > "${{ runner.temp }}/know01_evidence/fresh_062.txt"
+          echo "FRESH_065=PASS" > "${{ runner.temp }}/know01_evidence/fresh_065.txt"
+          echo "FRESH_HEAD_KNOW01_TABLES=PASS" >> "${{ runner.temp }}/know01_evidence/fresh_065.txt"
 
       - name: Upgrade path 061 → 062
         run: |
@@ -202,10 +205,11 @@ jobs:
           python -B -m pytest \
             backend/tests/test_i5_know01_source_registry.py \
             backend/tests/test_i5_know01_activation_guard.py \
+            backend/tests/test_i5_know01_foundation_gate.py \
             backend/tests/test_section30_i5_w3_p01_adapters_extract.py \
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
-            -q --tb=short --noconftest \
+            -q -s --tb=short --noconftest \
             | tee "${{ runner.temp }}/know01_evidence/pytest_know01_targeted.txt"
           echo "KNOW01_TARGETED_EXIT=0" > "${{ runner.temp }}/know01_evidence/pytest_know01_targeted_exit.txt"
 

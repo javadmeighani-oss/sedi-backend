@@ -296,11 +296,7 @@ def test_know01_registry_seed_roles_iran_p0_taxonomy_books():
         for p in profiles:
             db.delete(p)
         db.query(models.I5ReferenceBookEdition).delete(synchronize_session=False)
-        db.query(models.I5ReferenceBook).filter(
-            models.I5ReferenceBook.book_key.in_(
-                ["ncbi_bookshelf_open_example", "commercial_medical_reference_metadata_only"]
-            )
-        ).delete(synchronize_session=False)
+        db.query(models.I5ReferenceBook).delete(synchronize_session=False)
         db.query(models.I5SourceCoverageGap).delete(synchronize_session=False)
         db.commit()
 
@@ -308,6 +304,7 @@ def test_know01_registry_seed_roles_iran_p0_taxonomy_books():
         db.commit()
         assert summary["automation_approved_count"] == 0
         assert summary["diabetes_d20_runtime_mutation"] is False
+        assert summary["v1_authoritative_catalog"]["catalog_count"] >= 12
 
         physicians = query_iran_directory_sources(db, role=SourceRole.IRAN_PHYSICIAN_DIRECTORY.value)
         assert physicians
@@ -342,10 +339,12 @@ def test_know01_registry_seed_roles_iran_p0_taxonomy_books():
         assert als_tags and ms_tags and dm_tags
 
         books = db.query(models.I5ReferenceBook).all()
-        assert len(books) >= 2
+        assert len(books) >= 12
         hi = next(b for b in books if b.book_key == "commercial_medical_reference_metadata_only")
         assert hi.fulltext_automation_permission == RightDecision.DENIED.value
         assert "HIGH" in (hi.medical_authority_note or "")
+        named = [b for b in books if "example" not in b.book_key and "metadata_only" not in b.book_key]
+        assert any(b.book_key == "harrisons_principles_internal_medicine" for b in named)
 
         eds = db.query(models.I5ReferenceBookEdition).filter_by(book_id=hi.id).all()
         assert len(eds) >= 2

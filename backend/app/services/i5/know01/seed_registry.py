@@ -18,6 +18,7 @@ from backend.app.services.i5.enums import (
 from backend.app.services.i5.know01.book_registry import add_edition, upsert_reference_book
 from backend.app.services.i5.know01.coverage_gaps import detect_p0_foundation_gaps
 from backend.app.services.i5.know01.registry_service import ensure_gsp, upsert_registry_extension
+from backend.app.services.i5.know01.v1_reference_catalog import seed_v1_authoritative_reference_catalog
 
 _U = RightDecision.UNKNOWN.value
 _BLOCKED = ProcessingPermissionMode.FULLTEXT_AUTOMATION_BLOCKED.value
@@ -57,6 +58,22 @@ GLOBAL_SEEDS: Sequence[Dict[str, Any]] = (
             "DIABETES": P0DiseaseRelevance.IMPORTANT.value,
         },
         "knowledge_domains": "public_health,guidelines,prevention",
+    },
+    {
+        # Alias identity for KNOW-04/05 connector key (registry bootstrap ≠ activation).
+        "key": "who_guideline_catalogue",
+        "publisher_family": "WHO",
+        "authority_class": SourceAuthorityClass.GLOBAL_INTERGOVERNMENTAL.value,
+        "roles": [SourceRole.CLINICAL_GUIDELINE.value],
+        "canonical_home": "https://www.who.int",
+        "supported_formats": "HTML,RSS,ATOM",
+        "p0_tags": {
+            "ALS": P0DiseaseRelevance.SUPPORTING.value,
+            "MS": P0DiseaseRelevance.SUPPORTING.value,
+            "DIABETES": P0DiseaseRelevance.IMPORTANT.value,
+        },
+        "knowledge_domains": "guidelines",
+        "notes": "REGISTRY_ALIAS_FOR_KNOW04_CONNECTOR; REGISTRY_ENTRY!=AUTOMATION_APPROVED",
     },
     {
         "key": "nih_nlm",
@@ -424,11 +441,14 @@ def seed_know01_registry(db: Session) -> Dict[str, Any]:
     add_edition(db, book_id=commercial.id, edition_label="latest", is_current=True)
     add_edition(db, book_id=commercial.id, edition_label="prior", is_current=False)
 
+    catalog = seed_v1_authoritative_reference_catalog(db)
+
     gaps = detect_p0_foundation_gaps(db)
     db.flush()
     return {
         "seeded_source_keys": seeded_keys,
-        "books": [open_book.book_key, commercial.book_key],
+        "books": [open_book.book_key, commercial.book_key] + list(catalog["book_keys"]),
+        "v1_authoritative_catalog": catalog,
         "coverage_gaps": len(gaps),
         "automation_approved_count": 0,
         "diabetes_d20_runtime_mutation": False,

@@ -189,3 +189,82 @@ def queue_for_rights_review(candidates: Sequence[DiscoveryCandidateRecord]) -> L
             )
         )
     return queued
+
+
+@dataclass(frozen=True)
+class CandidateIngestionAssessment:
+    """Governed qualification result — discovery never implies ingestion eligibility."""
+
+    eligible_for_ingestion: bool
+    eligible_for_activation: bool
+    lifecycle: str
+    blocking_reasons: List[str]
+    auto_trust: bool = False
+    auto_activate: bool = False
+
+
+def assess_candidate_ingestion_eligibility(
+    *,
+    identity_verified: bool,
+    authority_verified: bool,
+    rights_state: str,
+    format_supported: bool,
+    lifecycle: str = "DISCOVERED",
+    domain_trusted_by_name_alone: bool = False,
+    trial_registry_semantics_only: bool = False,
+) -> CandidateIngestionAssessment:
+    """Fail-closed qualification. NEVER auto-trust or auto-activate."""
+    rights = (rights_state or "UNKNOWN").upper()
+    blockers: List[str] = []
+    if domain_trusted_by_name_alone:
+        blockers.append("DOMAIN_NAME_ALONE_INSUFFICIENT")
+    if not identity_verified:
+        blockers.append("IDENTITY_UNVERIFIED")
+    if not authority_verified:
+        blockers.append("AUTHORITY_UNVERIFIED")
+    if rights in {"UNKNOWN", "REVIEW_REQUIRED", ""}:
+        blockers.append("RIGHTS_UNKNOWN_OR_REVIEW")
+    if rights in {"DENIED", "BLOCKED", "REJECTED"}:
+        blockers.append("RIGHTS_DENIED")
+    if not format_supported:
+        blockers.append("UNSUPPORTED_FORMAT")
+    if trial_registry_semantics_only:
+        blockers.append("TRIAL_REGISTRY_NOT_CLINICAL_RUNTIME")
+    if lifecycle in {"BLOCKED", "REVOKED", "DEFERRED"}:
+        blockers.append(f"LIFECYCLE_{lifecycle}")
+
+    # Activation requires explicit ACTIVE lifecycle AND zero blockers.
+    can_activate = (not blockers) and lifecycle == "ACTIVE"
+    # Ingestion requires APPROVED or ACTIVE plus acceptable rights and supported format.
+    can_ingest = (
+        (not blockers)
+        and lifecycle in {"APPROVED", "ACTIVE"}
+        and rights in {"ALLOWED", "ACCEPTABLE", "APPROVED", "OGL", "PUBLIC_DOMAIN"}
+    )
+    if lifecycle in {"APPROVED", "ACTIVE"} and blockers:
+        # Force demotion for reporting — discovery/qualification cannot keep ACTIVE with blockers.
+        out_lifecycle = "RIGHTS_REVIEW"
+    else:
+        out_lifecycle = lifecycle
+
+    return CandidateIngestionAssessment(
+        eligible_for_ingestion=bool(can_ingest),
+        eligible_for_activation=bool(can_activate and can_ingest),
+        lifecycle=out_lifecycle,
+        blocking_reasons=blockers,
+        auto_trust=False,
+        auto_activate=False,
+    )
+
+
+def fake_medical_hostname_must_not_activate(hostname: str) -> CandidateIngestionAssessment:
+    """Negative control: authoritative-looking hostname → DISCOVERED/REVIEW only."""
+    assert_domain_not_trusted_by_name_alone(hostname)
+    return assess_candidate_ingestion_eligibility(
+        identity_verified=False,
+        authority_verified=False,
+        rights_state="UNKNOWN",
+        format_supported=True,
+        lifecycle="DISCOVERED",
+        domain_trusted_by_name_alone=True,
+    )
