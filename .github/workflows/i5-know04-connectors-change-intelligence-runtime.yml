@@ -1,0 +1,259 @@
+# I5-KNOW-04 Official connectors + W0 NF7–NF11 + change intelligence
+# PostgreSQL 16 + pgvector. NO Production mutation. Hardened pipefail.
+name: I5-KNOW-04 Connectors Change Intelligence Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/know04/**"
+      - "backend/app/services/i5/know03/**"
+      - "backend/app/services/i5/know02/**"
+      - "backend/app/services/i5/know01/**"
+      - "backend/alembic/versions/065_i5_know04_connectors_change_intelligence.py"
+      - "backend/alembic/versions/064_i5_know03_studies_effects_recs.py"
+      - "backend/tests/test_i5_know04_connectors.py"
+      - "backend/tests/test_i5_know03_studies_effects.py"
+      - "backend/tests/test_i5_know02_artifacts_taxonomy.py"
+      - "backend/tests/test_i5_know01_source_registry.py"
+      - "backend/tests/test_db03_contracts.py"
+      - "backend/app/models.py"
+      - "backend/app/services/i5/enums.py"
+      - ".github/workflows/i5-know04-connectors-change-intelligence-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-know04-connectors-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i5-know04-connectors:
+    name: KNOW-04 connectors + W0 integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_know04_test
+          POSTGRES_PASSWORD: sedi_know04_test_password
+          POSTGRES_DB: sedi_know04_connectors
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_know04_test -d sedi_know04_connectors"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_know04_test:sedi_know04_test_password@127.0.0.1:5432/sedi_know04_connectors
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_know04_test:sedi_know04_test_password@127.0.0.1:5432/sedi_know04_connectors
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: know04-test-placeholder-not-used
+      SEDI_KNOW04_LIVE_CANARIES: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Prepare evidence directory
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/know04_evidence"
+          echo "GATE=I5-KNOW-04" > "${{ runner.temp }}/know04_evidence/gate_id.txt"
+          echo "COMMIT_SHA=${{ github.sha }}" > "${{ runner.temp }}/know04_evidence/commit.txt"
+
+      - name: Alembic single head is 065
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
+          rev = script.get_revision("065_i5_know04_connectors_change_intelligence")
+          assert rev.down_revision == "064_i5_know03_studies_effects_recs"
+          print("ALEMBIC_SINGLE_HEAD=PASS")
+          PY
+
+      - name: Fresh upgrade to 065
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              assert head == "065_i5_know04_connectors_change_intelligence", head
+              for t in (
+                  "i5_clinical_studies",
+                  "i5_study_effect_estimates",
+                  "i5_connector_profiles",
+                  "i5_scientific_change_events",
+                  "i5_terminology_mapping_conflict_events",
+                  "i5_terminology_import_runs",
+                  "i5_source_ingestion_audit",
+              ):
+                  assert c.execute(text(
+                      "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
+                  ), {"t": t}).scalar(), t
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='user_clinical_feature_index'"
+              )).scalar() is None
+          print("FRESH_065=PASS")
+          PY
+          echo "FRESH_065=PASS" > "${{ runner.temp }}/know04_evidence/fresh_065.txt"
+
+      - name: Upgrade path 064 → 065
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "064_i5_know03_studies_effects_recs")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "064_i5_know03_studies_effects_recs"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_connector_profiles'"
+              )).scalar() is None
+          command.upgrade(cfg, "065_i5_know04_connectors_change_intelligence")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "065_i5_know04_connectors_change_intelligence"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_connector_profiles'"
+              )).scalar() == 1
+              assert c.execute(text(
+                  "SELECT 1 FROM pg_constraint WHERE conname='ck_see_p_value'"
+              )).scalar() == 1
+              assert c.execute(text(
+                  "SELECT 1 FROM pg_constraint WHERE conname='ck_crel_target_xor'"
+              )).scalar() == 1
+              assert c.execute(text(
+                  "SELECT 1 FROM pg_constraint WHERE conname='fk_see_so_study'"
+              )).scalar() == 1
+          print("UPGRADE_064_TO_065=PASS")
+          PY
+          echo "UPGRADE_064_TO_065=PASS" > "${{ runner.temp }}/know04_evidence/upgrade_064_065.txt"
+
+      - name: KNOW-04 + regression pytest (deterministic)
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          python -B -m pytest \
+            backend/tests/test_i5_know04_connectors.py \
+            backend/tests/test_i5_know03_studies_effects.py \
+            backend/tests/test_i5_know02_claims_taxonomy.py \
+            backend/tests/test_i5_know01_source_registry.py \
+            backend/tests/test_i5_know01_activation_guard.py \
+            backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
+            backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
+            -q --tb=short --noconftest \
+            -k "not test_live_canaries_bounded" \
+            | tee "${{ runner.temp }}/know04_evidence/pytest_know04.txt"
+          echo "KNOW04_PYTEST_EXIT=0" > "${{ runner.temp }}/know04_evidence/pytest_exit.txt"
+
+      - name: Raw log audit
+        if: always()
+        run: |
+          set -euo pipefail
+          EVID="${{ runner.temp }}/know04_evidence"
+          {
+            echo "GATE=I5-KNOW-04"
+            echo "COMMIT_SHA=${{ github.sha }}"
+            echo "ALEMBIC_HEAD=065_i5_know04_connectors_change_intelligence"
+            echo "PRODUCTION_MIGRATION_RUN=NO"
+            echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
+            echo "PRODUCTION_SCHEDULER_ACTIVATED=NO"
+            echo "PRODUCTION_RAG_ACTIVATED=NO"
+            echo "MASS_INGESTION_EXECUTED=NO"
+            echo "P0_SPECIFIC_BRANCHING=0"
+            echo "SILENT_TERMINOLOGY_REMAP=0"
+            echo "MASTER_LOG_PREFIX_MUTATION=0"
+          } > "${EVID}/summary.txt"
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          evid = Path(os.environ["RUNNER_TEMP"]) / "know04_evidence"
+          blob = ""
+          p = evid / "pytest_know04.txt"
+          if p.exists():
+              blob = p.read_text(encoding="utf-8", errors="replace")
+          bad = []
+          if re.search(r"(?m)^E\s+fixture 'db' not found", blob):
+              bad.append("fixture_db_not_found")
+          if "rg: command not found" in blob:
+              bad.append("rg_command_not_found")
+          if re.search(r"(?m)^\d+ failed(,|$)", blob):
+              bad.append("pytest_failed")
+          if re.search(r"(?m)^\d+ errors?(,|$)", blob):
+              bad.append("pytest_errors")
+          if "Traceback (most recent call last)" in blob and re.search(r"(?m)^\d+ failed", blob):
+              bad.append("traceback_with_failures")
+          if "ALEMBIC" in blob and "FAILED" in blob:
+              bad.append("migration_failure_signal")
+          # unexpected skip of entire targeted file is not auto-PASS
+          if "no tests ran" in blob.lower():
+              bad.append("no_tests_ran")
+          exit_marker = evid / "pytest_exit.txt"
+          if not exit_marker.exists() or "KNOW04_PYTEST_EXIT=0" not in exit_marker.read_text(encoding="utf-8", errors="replace"):
+              bad.append("pytest_exit_marker_missing")
+          (evid / "raw_log_audit.txt").write_text(
+              "RAW_LOG_AUDIT=" + ("PASS" if not bad else "FAIL") + "\n"
+              + ("FINDINGS=" + ",".join(bad) if bad else "FINDINGS=NONE") + "\n",
+              encoding="utf-8",
+          )
+          if bad:
+              raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
+          print("RAW_LOG_AUDIT=PASS")
+          PY
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know04-connectors-change-intelligence-evidence
+          path: ${{ runner.temp }}/know04_evidence/
+          retention-days: 14

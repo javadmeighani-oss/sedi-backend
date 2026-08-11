@@ -12,7 +12,34 @@ from backend.app.services.i5.enums import (
     EffectMeasure,
     StatisticalSignificanceLabel,
 )
-from backend.app.services.i5.know03.validation import validate_effect_payload
+from backend.app.services.i5.know03.validation import EffectValidationError, validate_effect_payload
+
+
+def _assert_same_study_ownership(
+    db: Session,
+    *,
+    study_id: int,
+    population_id: Optional[int],
+    study_intervention_id: Optional[int],
+    study_comparator_id: Optional[int],
+    study_outcome_id: int,
+) -> None:
+    """Service-layer guard; DB composite FKs remain authoritative."""
+    outcome = db.query(models.I5StudyOutcome).filter_by(id=study_outcome_id).first()
+    if outcome is None or outcome.study_id != study_id:
+        raise EffectValidationError("CROSS_STUDY_OUTCOME")
+    if population_id is not None:
+        pop = db.query(models.I5StudyPopulation).filter_by(id=population_id).first()
+        if pop is None or pop.study_id != study_id:
+            raise EffectValidationError("CROSS_STUDY_POPULATION")
+    if study_intervention_id is not None:
+        si = db.query(models.I5StudyIntervention).filter_by(id=study_intervention_id).first()
+        if si is None or si.study_id != study_id:
+            raise EffectValidationError("CROSS_STUDY_INTERVENTION")
+    if study_comparator_id is not None:
+        sc = db.query(models.I5StudyIntervention).filter_by(id=study_comparator_id).first()
+        if sc is None or sc.study_id != study_id:
+            raise EffectValidationError("CROSS_STUDY_COMPARATOR")
 
 
 def add_effect_estimate(
@@ -47,6 +74,14 @@ def add_effect_estimate(
         StatisticalSignificanceLabel(statistical_significance)
     if clinical_significance:
         ClinicalSignificanceLabel(clinical_significance)
+    _assert_same_study_ownership(
+        db,
+        study_id=study_id,
+        population_id=population_id,
+        study_intervention_id=study_intervention_id,
+        study_comparator_id=study_comparator_id,
+        study_outcome_id=study_outcome_id,
+    )
     cleaned = validate_effect_payload(
         effect_value=effect_value,
         ci_lower=ci_lower,

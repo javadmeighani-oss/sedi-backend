@@ -93,12 +93,25 @@ def add_mapping(
         .first()
     )
     if existing:
-        existing.concept_id = concept_id
-        existing.is_primary = is_primary
-        existing.mapping_status = mapping_status
-        existing.provenance_note = provenance_note
-        db.flush()
-        return existing
+        if existing.concept_id == concept_id:
+            existing.is_primary = is_primary
+            existing.mapping_status = mapping_status
+            if provenance_note is not None:
+                existing.provenance_note = provenance_note
+            db.flush()
+            return existing
+        from backend.app.services.i5.know04.terminology_remap import record_mapping_conflict
+
+        raise record_mapping_conflict(
+            db,
+            mapping_kind="CLINICAL_CONCEPT",
+            terminology_system=terminology_system,
+            external_code=external_code,
+            release_version=release_version,
+            existing_target_id=existing.concept_id,
+            incoming_target_id=concept_id,
+            existing_mapping_id=existing.id,
+        )
     row = models.I5ClinicalConceptMapping(
         concept_id=concept_id,
         terminology_system=terminology_system,

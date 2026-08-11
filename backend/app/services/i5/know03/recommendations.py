@@ -95,6 +95,35 @@ def link_recommendation_condition(
     return row
 
 
+def _enforce_recommendation_evidence_target_xor(
+    *,
+    target_kind: str,
+    knowledge_unit_id: Optional[int],
+    artifact_version_id: Optional[int],
+    study_id: Optional[int],
+) -> tuple[Optional[int], Optional[int], Optional[int]]:
+    """Exactly one evidence target column may be populated, matching target_kind."""
+    populated = sum(x is not None for x in (knowledge_unit_id, artifact_version_id, study_id))
+    if populated != 1:
+        raise ValueError("MULTI_TARGET_RECOMMENDATION_EVIDENCE")
+    if target_kind == RecommendationEvidenceTargetKind.KNOWLEDGE_UNIT.value:
+        if knowledge_unit_id is None or artifact_version_id is not None or study_id is not None:
+            raise ValueError("TARGET_KIND_MISMATCH")
+        return knowledge_unit_id, None, None
+    if target_kind in {
+        RecommendationEvidenceTargetKind.ARTIFACT_VERSION.value,
+        RecommendationEvidenceTargetKind.SYSTEMATIC_REVIEW_ARTIFACT.value,
+    }:
+        if artifact_version_id is None or knowledge_unit_id is not None or study_id is not None:
+            raise ValueError("TARGET_KIND_MISMATCH")
+        return None, artifact_version_id, None
+    if target_kind == RecommendationEvidenceTargetKind.CLINICAL_STUDY.value:
+        if study_id is None or knowledge_unit_id is not None or artifact_version_id is not None:
+            raise ValueError("TARGET_KIND_MISMATCH")
+        return None, None, study_id
+    raise ValueError("ORPHAN_RECOMMENDATION_EVIDENCE")
+
+
 def link_recommendation_evidence(
     db: Session,
     *,
@@ -108,15 +137,12 @@ def link_recommendation_evidence(
 ) -> models.I5ClinicalRecommendationEvidenceLink:
     RecommendationEvidenceTargetKind(target_kind)
     EvidenceSupportDirection(support_direction)
-    if target_kind == RecommendationEvidenceTargetKind.KNOWLEDGE_UNIT.value and knowledge_unit_id is None:
-        raise ValueError("ORPHAN_RECOMMENDATION_EVIDENCE")
-    if target_kind in {
-        RecommendationEvidenceTargetKind.ARTIFACT_VERSION.value,
-        RecommendationEvidenceTargetKind.SYSTEMATIC_REVIEW_ARTIFACT.value,
-    } and artifact_version_id is None:
-        raise ValueError("ORPHAN_RECOMMENDATION_EVIDENCE")
-    if target_kind == RecommendationEvidenceTargetKind.CLINICAL_STUDY.value and study_id is None:
-        raise ValueError("ORPHAN_RECOMMENDATION_EVIDENCE")
+    knowledge_unit_id, artifact_version_id, study_id = _enforce_recommendation_evidence_target_xor(
+        target_kind=target_kind,
+        knowledge_unit_id=knowledge_unit_id,
+        artifact_version_id=artifact_version_id,
+        study_id=study_id,
+    )
     row = models.I5ClinicalRecommendationEvidenceLink(
         recommendation_id=recommendation_id,
         target_kind=target_kind,

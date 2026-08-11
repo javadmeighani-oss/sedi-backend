@@ -71,6 +71,7 @@ def test_know02_foundation_universality_multi_evidence_queries():
         if head not in {
             "063_i5_know02_artifacts_claims_taxonomy",
             "064_i5_know03_studies_effects_recs",
+            "065_i5_know04_connectors_change_intelligence",
         }:
             pytest.skip(f"alembic head {head} not in KNOW-02+ chain")
         for t in (

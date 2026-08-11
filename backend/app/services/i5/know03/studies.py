@@ -217,10 +217,23 @@ def map_intervention(
         .first()
     )
     if existing:
-        existing.intervention_id = intervention_id
-        existing.provenance_note = provenance_note
-        db.flush()
-        return existing
+        if existing.intervention_id == intervention_id:
+            if provenance_note is not None:
+                existing.provenance_note = provenance_note
+            db.flush()
+            return existing
+        from backend.app.services.i5.know04.terminology_remap import record_mapping_conflict
+
+        raise record_mapping_conflict(
+            db,
+            mapping_kind="INTERVENTION",
+            terminology_system=terminology_system,
+            external_code=external_code,
+            release_version=release_version,
+            existing_target_id=existing.intervention_id,
+            incoming_target_id=intervention_id,
+            existing_mapping_id=existing.id,
+        )
     row = models.I5InterventionMapping(
         intervention_id=intervention_id,
         terminology_system=terminology_system,

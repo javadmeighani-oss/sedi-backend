@@ -3411,3 +3411,143 @@ class I5TerminologyImportContract(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
+
+class I5TerminologyMappingConflictEvent(Base):
+    __tablename__ = "i5_terminology_mapping_conflict_events"
+    __table_args__ = (Index("ix_tmc_lookup", "terminology_system", "external_code", "release_version"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    mapping_kind = Column(String(32), nullable=False)
+    terminology_system = Column(String(32), nullable=False)
+    external_code = Column(String(128), nullable=False)
+    release_version = Column(String(64), nullable=True)
+    existing_target_id = Column(BigInteger, nullable=False)
+    incoming_target_id = Column(BigInteger, nullable=False)
+    existing_mapping_id = Column(BigInteger, nullable=True)
+    conflict_code = Column(String(64), nullable=False, default="SILENT_REMAP_BLOCKED", server_default="SILENT_REMAP_BLOCKED")
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5ConnectorProfile(Base):
+    __tablename__ = "i5_connector_profiles"
+    __table_args__ = (UniqueConstraint("connector_key", name="uq_icp_key"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    connector_key = Column(String(128), nullable=False)
+    source_profile_key = Column(String(128), nullable=True)
+    source_role = Column(String(64), nullable=False)
+    access_mechanism = Column(String(64), nullable=False)
+    official_authority_note = Column(Text, nullable=False)
+    base_url = Column(String(1024), nullable=True)
+    connector_state = Column(String(64), nullable=False, default="CONNECTOR_READY", server_default="CONNECTOR_READY")
+    rights_blocker = Column(Text, nullable=True)
+    live_status = Column(String(64), nullable=False, default="NOT_EXECUTED", server_default="NOT_EXECUTED")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ConnectorCursor(Base):
+    __tablename__ = "i5_connector_cursors"
+    __table_args__ = (UniqueConstraint("connector_key", "cursor_name", name="uq_icc_key_name"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    connector_key = Column(String(128), ForeignKey("i5_connector_profiles.connector_key", ondelete="RESTRICT", name="fk_icc_connector"), nullable=False)
+    cursor_name = Column(String(128), nullable=False)
+    cursor_value = Column(Text, nullable=True)
+    page_token = Column(Text, nullable=True)
+    last_success_at = Column(DateTime(timezone=True), nullable=True)
+    last_error = Column(Text, nullable=True)
+    rate_limit_state = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ConnectorRunEvent(Base):
+    __tablename__ = "i5_connector_run_events"
+    __table_args__ = (Index("ix_icre_connector", "connector_key", "started_at"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    connector_key = Column(String(128), ForeignKey("i5_connector_profiles.connector_key", ondelete="RESTRICT", name="fk_icre_connector"), nullable=False)
+    request_type = Column(String(64), nullable=False)
+    started_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    result = Column(String(32), nullable=False, default="STARTED", server_default="STARTED")
+    http_status_class = Column(String(16), nullable=True)
+    records_discovered = Column(Integer, nullable=False, default=0, server_default="0")
+    records_processed = Column(Integer, nullable=False, default=0, server_default="0")
+    records_blocked_by_rights = Column(Integer, nullable=False, default=0, server_default="0")
+    records_changed = Column(Integer, nullable=False, default=0, server_default="0")
+    retractions_detected = Column(Integer, nullable=False, default=0, server_default="0")
+    retry_count = Column(Integer, nullable=False, default=0, server_default="0")
+    error_summary = Column(Text, nullable=True)
+    cursor_snapshot = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5ScientificChangeEvent(Base):
+    __tablename__ = "i5_scientific_change_events"
+    __table_args__ = (
+        Index("ix_sce_kind", "change_kind", "created_at"),
+        Index("ix_sce_ext", "external_identifier"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    change_kind = Column(String(64), nullable=False)
+    source_connector_key = Column(String(128), nullable=True)
+    external_identifier = Column(String(256), nullable=True)
+    artifact_id = Column(BigInteger, ForeignKey("i5_scientific_artifacts.id", ondelete="RESTRICT", name="fk_sce_artifact"), nullable=True)
+    artifact_version_id = Column(BigInteger, ForeignKey("i5_scientific_artifact_versions.id", ondelete="RESTRICT", name="fk_sce_version"), nullable=True)
+    study_id = Column(BigInteger, ForeignKey("i5_clinical_studies.id", ondelete="RESTRICT", name="fk_sce_study"), nullable=True)
+    recommendation_id = Column(BigInteger, ForeignKey("i5_clinical_recommendations.id", ondelete="RESTRICT", name="fk_sce_rec"), nullable=True)
+    related_notice_external_id = Column(String(256), nullable=True)
+    content_hash = Column(String(128), nullable=True)
+    previous_content_hash = Column(String(128), nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5TerminologyImportRun(Base):
+    __tablename__ = "i5_terminology_import_runs"
+    __table_args__ = (UniqueConstraint("terminology_system", "release_version", name="uq_tir_system_release"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    terminology_system = Column(String(32), nullable=False)
+    release_version = Column(String(64), nullable=False)
+    release_date = Column(Date, nullable=True)
+    source_note = Column(Text, nullable=False)
+    retrieved_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    content_hash = Column(String(128), nullable=True)
+    previous_release_version = Column(String(64), nullable=True)
+    import_status = Column(String(64), nullable=False)
+    change_count = Column(Integer, nullable=False, default=0, server_default="0")
+    new_codes = Column(Integer, nullable=False, default=0, server_default="0")
+    changed_codes = Column(Integer, nullable=False, default=0, server_default="0")
+    deprecated_codes = Column(Integer, nullable=False, default=0, server_default="0")
+    replaced_codes = Column(Integer, nullable=False, default=0, server_default="0")
+    mapping_conflicts = Column(Integer, nullable=False, default=0, server_default="0")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5SourceIngestionAudit(Base):
+    __tablename__ = "i5_source_ingestion_audit"
+    __table_args__ = (
+        UniqueConstraint("connector_key", "external_identifier", "content_hash", name="uq_sia_connector_ext"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    connector_key = Column(String(128), nullable=False)
+    external_identifier = Column(String(256), nullable=False)
+    resource_type = Column(String(64), nullable=False)
+    canonical_locator = Column(Text, nullable=True)
+    content_hash = Column(String(128), nullable=True)
+    rights_decision = Column(String(64), nullable=False)
+    processing_decision = Column(String(64), nullable=False)
+    storage_decision = Column(String(64), nullable=False)
+    transient_raw_deleted = Column(Boolean, nullable=False, default=False, server_default="false")
+    retrieved_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+

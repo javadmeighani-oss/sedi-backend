@@ -40,6 +40,8 @@ def validate_effect_payload(
     ci_upper = _reject_nonfinite("ci_upper", ci_upper)
     confidence_level = _reject_nonfinite("confidence_level", confidence_level)
     p_value = _reject_nonfinite("p_value", p_value)
+    if p_value is not None and not (0.0 <= p_value <= 1.0):
+        raise EffectValidationError("P_VALUE_OUT_OF_DOMAIN")
 
     if ci_lower is not None and ci_upper is not None and ci_lower > ci_upper:
         raise EffectValidationError("CI_LOWER_GT_UPPER")

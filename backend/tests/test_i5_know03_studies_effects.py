@@ -63,8 +63,8 @@ def test_know03_w0_and_studies_foundation():
     engine = create_engine(url)
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        if head != "064_i5_know03_studies_effects_recs":
-            pytest.skip(f"alembic head {head} != 064")
+        if head != "064_i5_know03_studies_effects_recs" and head != "065_i5_know04_connectors_change_intelligence":
+            pytest.skip(f"alembic head {head} not in {{064,065}}")
         for t in (
             "i5_clinical_studies",
             "i5_study_populations",

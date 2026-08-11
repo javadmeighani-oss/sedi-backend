@@ -270,6 +270,7 @@ def test_know01_registry_seed_roles_iran_p0_taxonomy_books():
             "062_i5_know01_source_registry_rights",
             "063_i5_know02_artifacts_claims_taxonomy",
             "064_i5_know03_studies_effects_recs",
+            "065_i5_know04_connectors_change_intelligence",
         }:
             pytest.skip(f"alembic head {head} not in KNOW-01+ chain")
         for t in (
