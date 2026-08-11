@@ -216,26 +216,21 @@ def test_multi_source_canonical_evidence_lineage_pg():
         )
         assert link_a.id != link_b.id
 
-        # provenance rows keep source identities distinct
-        prov_a = models.KnowledgeProvenance(
+        # KnowledgeProvenance is 1:1 with KU (uq_kp_knowledge_unit_id).
+        # Multi-source identity is carried by evidence links → artifact versions → artifacts → GSP.
+        # Optional single provenance tip records the fixture aggregate without collapsing sources.
+        prov_tip = models.KnowledgeProvenance(
             knowledge_unit_id=ku.id,
             source_profile_id=gsp_a.id,
-            source_document_id="doc-a",
+            source_document_id="msrc-topic-x",
             source_version_id="v1",
-            retrieval_method="fixture_multisource_a",
+            retrieval_method="fixture_multisource_canonical",
             access_route="OFFICIAL_API",
             content_hash=hash_a,
+            extraction_process="multi_source_evidence_links",
+            normalization_process="know02_link_evidence",
         )
-        prov_b = models.KnowledgeProvenance(
-            knowledge_unit_id=ku.id,
-            source_profile_id=gsp_b.id,
-            source_document_id="doc-b",
-            source_version_id="v1",
-            retrieval_method="fixture_multisource_b",
-            access_route="OFFICIAL_API",
-            content_hash=hash_b,
-        )
-        db.add_all([prov_a, prov_b])
+        db.add(prov_tip)
         db.commit()
         ku_id = ku.id
         link_a_id, link_b_id = link_a.id, link_b.id
@@ -269,12 +264,11 @@ def test_multi_source_canonical_evidence_lineage_pg():
             .all()
         )
         source_ids = {a.source_profile_id for a in artifacts if a.source_profile_id is not None}
-        # Also recover provenance source identities
-        provs = db2.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku_id).all()
-        prov_sources = {p.source_profile_id for p in provs}
-        assert len(source_ids | prov_sources) >= 2
-        assert gsp_a_id in (source_ids | prov_sources)
-        assert gsp_b_id in (source_ids | prov_sources)
+        assert len(source_ids) == 2
+        assert gsp_a_id in source_ids
+        assert gsp_b_id in source_ids
+        # Provenance tip exists but does not replace plural evidence sources
+        assert db2.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku_id).count() == 1
 
         print("MULTI_SOURCE_CANONICAL_EVIDENCE_LINEAGE=PASS")
         print(f"CANONICAL_TARGET_MODEL=KnowledgeUnit")
@@ -282,7 +276,7 @@ def test_multi_source_canonical_evidence_lineage_pg():
         print(f"CANONICAL_TARGET_COUNT=1")
         print(f"EVIDENCE_LINK_COUNT={len(links)}")
         print(f"EVIDENCE_SOURCE_COUNT=2")
-        print(f"DISTINCT_SOURCE_PROFILE_COUNT={len(source_ids | prov_sources)}")
+        print(f"DISTINCT_SOURCE_PROFILE_COUNT={len(source_ids)}")
         print(f"DISTINCT_ARTIFACT_VERSION_COUNT={len(version_ids)}")
         print(f"SOURCE_A_PROFILE_ID={gsp_a_id}")
         print(f"SOURCE_A_ARTIFACT_ID={art_a_id}")

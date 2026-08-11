@@ -89,7 +89,7 @@ jobs:
           heads = script.get_heads()
           assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
           rev = script.get_revision("065_i5_know04_connectors_change_intelligence")
-          assert rev.down_revision == "063_i5_know02_artifacts_claims_taxonomy"
+          assert rev.down_revision == "064_i5_know03_studies_effects_recs"
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
 
