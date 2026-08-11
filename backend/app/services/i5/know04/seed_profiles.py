@@ -59,12 +59,12 @@ PROFILES = [
         "connector_key": "who_guideline_catalogue",
         "source_profile_key": "who_guideline_catalogue",
         "source_role": "CLINICAL_GUIDELINE",
-        "access_mechanism": "OFFICIAL_HTML_CATALOGUE",
+        "access_mechanism": "OFFICIAL_HTML_ONLY",
         "official_authority_note": "WHO GRC publications catalogue — guideline pointer (NOT recommendation parser)",
         "base_url": "https://www.who.int/publications/who-guidelines",
         "connector_state": "CONNECTOR_READY",
         "live_status": "NOT_EXECUTED",
-        "notes": "OFFICIAL_HTML_CATALOGUE; recommendation_extraction=NOT_EXERCISED at canary",
+        "notes": "catalogue_semantics=OFFICIAL_HTML_CATALOGUE; recommendation_extraction=NOT_EXERCISED at canary",
     },
 ]
 

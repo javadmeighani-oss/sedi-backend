@@ -303,7 +303,8 @@ def test_ctgov_normalize_not_recommendation():
 
 def test_guideline_framework_classifications_and_rss_parse():
     assert GUIDELINE_SOURCE_CLASSIFICATIONS["who_news"]["who_artifact_kind"] == "WHO_NEWS"
-    assert GUIDELINE_SOURCE_CLASSIFICATIONS["who_guideline_catalogue"]["access_mechanism"] == "OFFICIAL_HTML_CATALOGUE"
+    assert GUIDELINE_SOURCE_CLASSIFICATIONS["who_guideline_catalogue"]["access_mechanism"] == "OFFICIAL_HTML_ONLY"
+    assert GUIDELINE_SOURCE_CLASSIFICATIONS["who_guideline_catalogue"]["catalogue_semantics"] == "OFFICIAL_HTML_CATALOGUE"
     assert GUIDELINE_SOURCE_CLASSIFICATIONS["aan_guidelines"]["access_mechanism"] == "OFFICIAL_HTML_ONLY"
     rss = b"""<?xml version='1.0'?><rss><channel>
       <item><title>SYNTHETIC WHO diabetes guidance fixture</title><link>https://www.who.int/fixture</link>

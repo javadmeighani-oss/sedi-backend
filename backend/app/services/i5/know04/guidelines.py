@@ -45,11 +45,12 @@ GUIDELINE_SOURCE_CLASSIFICATIONS: dict[str, dict[str, str]] = {
         "canary_url": WHO_NEWS_FEED,
     },
     "who_guideline_catalogue": {
-        "access_mechanism": "OFFICIAL_HTML_CATALOGUE",
+        "access_mechanism": "OFFICIAL_HTML_ONLY",
         "authority": "World Health Organization / GRC",
         "who_artifact_kind": "WHO_GUIDELINE_CATALOGUE",
         "blocker": "",
         "canary_url": WHO_GUIDELINE_CATALOGUE_URL,
+        "catalogue_semantics": "OFFICIAL_HTML_CATALOGUE",
     },
     "nice_guidelines": {
         "access_mechanism": "OFFICIAL_API",
