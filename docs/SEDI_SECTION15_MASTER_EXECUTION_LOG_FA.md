@@ -66549,3 +66549,132 @@ MARKER=I5_KNOW04_CONNECTORS_CHANGE_INTELLIGENCE_W0_INTEGRITY_PASS
 NOTE=post-§282 final master-log whole-file self-SHA is NOT embedded inside §282.
 SIZE_BEFORE_APPEND=2985943
 SHA256_BEFORE_APPEND=C060F6472AC6BC389BC066DDC508C8C1EE10A118EAF0DCAA7A35E9B828340FF1
+
+--------------------------------------------------------------------------------
+§283 - SEDI-V1 I5-KNOW-04 NF14/NF15 INDEPENDENT AUDIT REMEDIATION + MANDATORY LIVE CANARIES
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 I5-KNOW-04 NF14 WHO AUTHORITY SEMANTICS + NF15 MANDATORY BOUNDED LIVE CONNECTOR CANARIES REMEDIATION
+STATUS=AUTHORIZED / EXECUTED
+MODE=NARROW CLOSURE CORRECTION + TEST + CI + CONTROLLED AUTO-REMEDIATION TO GREEN
+RECORDED_AT_UTC=2026-08-11T08:10:00Z
+APPROVAL=Javad Master Gate remediation authorization (NF14/NF15 only; no migration 066; no KNOW-05)
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§283.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES (NF14/NF15 only)
+SPEED_LAW_APPLIED=YES
+HARD_STOPS_DEFINED=YES
+SELF_HEALING_DEFINED=YES
+EVIDENCE_REQUIREMENTS_DEFINED=YES
+CONTINUITY_CLOSURE_DEFINED=YES
+§282_PRESERVED=YES (append-only; not rewritten)
+ORM_CHANGED=NO
+MIGRATION_CREATED=NO (065 unchanged)
+MIGRATION_RUN=NONE
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_SCHEDULER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+PRODUCTION_WRITE=NO
+MASS_INGESTION_EXECUTED=NO
+P0_SPECIFIC_BRANCHING_IN_CORE=0
+
+--------------------------------------------------------------------------------
+§283.A - AUTHORITY
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=cf663996d67b9a0ad2a9872611a6e58e79967bff
+REMEDIATION_COMMITS=b74e63a711c1de2a5fc0f17fb4f93cdeee1a90b0;c4ba6ee;253b359352e5ca1fb825ff72e563c456098185f5
+HEAD_AT_GREEN=253b359352e5ca1fb825ff72e563c456098185f5
+MASTER_LOG_PREDECESSOR=§282
+MASTER_LOG_PREDECESSOR_SIZE=2993841
+MASTER_LOG_PREDECESSOR_SHA256=63EA2FC8DC8D5172378E97B235F2F2786AB6DC4FC15E00487A09132E8243DF00
+CURSOR_HANDOFF_PREDECESSOR=v573
+CHATGPT_CONTINUITY_PREDECESSOR=v583
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=065_i5_know04_connectors_change_intelligence
+
+--------------------------------------------------------------------------------
+§283.B - NF14 WHO AUTHORITY REMEDIATION
+--------------------------------------------------------------------------------
+NF14_WHO_NEWS_NOT_GUIDELINE=PASS (WhoNewsDiscoveryConnector; NEWS_OR_DISCOVERY_SIGNAL; recommendation_text=None)
+NF14_CATALOGUE_NOT_RECOMMENDATION=PASS (WhoGuidelineCatalogueConnector; WHO_GUIDELINE_CATALOGUE_ENTRY; recommendation_extraction=NOT_EXERCISED)
+NF14_AUTHORITY_PROMOTION_GUARDS=PASS (DISCOVERED→VERIFIED_ARTIFACT_POINTER→VERIFIED_GUIDELINE→PARSED_RECOMMENDATION; illegal jumps rejected)
+WHO_NEWS_AS_GUIDELINE=0 (live canary control)
+SEED_PROFILES_SPLIT=YES (who_news_discovery + who_guideline_catalogue)
+CK_ICP_MECH_COMPLIANCE=PASS (catalogue uses OFFICIAL_HTML_ONLY; semantics in notes/catalogue_semantics)
+
+--------------------------------------------------------------------------------
+§283.C - NF15 MANDATORY LIVE CANARIES
+--------------------------------------------------------------------------------
+CI_JOB_SPLIT=YES (deterministic job + mandatory live-canary job)
+LIVE_CANARIES_DESELECTED=NO
+PUBMED_LIVE_CANARY=LIVE_VERIFIED (SEDI_NCBI_TOOL/SEDI_NCBI_EMAIL in CI job 2)
+PMC_OAI_LIVE_CANARY=LIVE_VERIFIED (bounded ListRecords + OA license check)
+CLINICALTRIALS_GOV_LIVE_CANARY=LIVE_VERIFIED (API v2 version + bounded search)
+WHO_GUIDELINE_AUTHORITY_LIVE_CANARY=LIVE_VERIFIED (GRC item probe + news_as_guideline=0)
+BOUNDED_RECORD_LIMIT=1-3
+PRODUCTION_PERSISTENCE=NO
+STORAGE_DECISION=NO_STORE
+
+--------------------------------------------------------------------------------
+§283.D - PROOFS
+--------------------------------------------------------------------------------
+ALEMBIC_SINGLE_HEAD=PASS (065 unchanged)
+FRESH_065=PASS
+UPGRADE_064_TO_065=PASS
+PYTEST_DETERMINISTIC=40 passed / 0 failed
+PYTEST_LIVE_CANARIES=5 passed / 0 failed
+RAW_LOG_AUDIT=PASS (both jobs)
+PIPEFAIL=YES
+POSTGRESQL=16
+CI_RUN=31471622698
+CI_JOB_DETERMINISTIC=93715996161
+CI_JOB_LIVE_CANARIES=93716180832
+CI_ATTEMPT=1
+CI_CONCLUSION=success
+ARTIFACT_ID_DETERMINISTIC=9093572895
+ARTIFACT_DIGEST_DETERMINISTIC=sha256:4513c07b757f4d910390612abb7df3303b1a11b2ab164507e15682d6354026a0
+ARTIFACT_ID_LIVE_CANARIES=9093587264
+ARTIFACT_DIGEST_LIVE_CANARIES=sha256:2fceae9e87d42a7beaaada65673375691ebcd3b2ddf928f823e187e8492a3a86
+CI_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31471622698
+AUTO_REMEDIATION_CYCLES=2 (ck_icp_mech OFFICIAL_HTML_CATALOGUE; WHO JS-rendered catalogue probe fallback)
+
+--------------------------------------------------------------------------------
+§283.E - OPEN FINDINGS
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+NF13=CLOSED (mandatory live canaries now executed in CI job 2)
+NF14=CLOSED (WHO news ≠ guideline authority)
+NF15=CLOSED (bounded live canaries mandatory)
+OPEN_NONCRITICAL_FINDINGS=5 (NF1-NF4,NF12 preserved from §282)
+
+--------------------------------------------------------------------------------
+§283.F - CRITICAL PATH
+--------------------------------------------------------------------------------
+BEFORE=§282 Green with NF13/NF14 audit gaps (news misclassified; live canaries opt-out)
+AFTER=NF14/NF15 remediated; mandatory live canaries Green; Production unchanged
+UNLOCKS=KNOW-04 audit-clean closure; KNOW-05 still unauthorized
+
+--------------------------------------------------------------------------------
+§283.G - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_GATE=SEDI-V1 I5-KNOW-05 GOVERNED WEEKLY CRAWLER ORCHESTRATION + COVERAGE-DRIVEN SOURCE DISCOVERY + CONTROLLED MASS KNOWLEDGE INGESTION + ALS/MS/DIABETES P0 DEEP COVERAGE + UNIVERSAL DISEASE COVERAGE EXPANSION + QUALITY/SAFETY PUBLICATION PIPELINE
+NEXT_GATE_AUTHORIZED=NO
+
+--------------------------------------------------------------------------------
+§283.H - FINAL VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+GATE_RESULT=PASS
+MARKER=I5_KNOW04_NF14_NF15_REMEDIATION_PASS
+
+NOTE=post-§283 final master-log whole-file self-SHA is NOT embedded inside §283.
+SIZE_BEFORE_APPEND=2993841
+SHA256_BEFORE_APPEND=63EA2FC8DC8D5172378E97B235F2F2786AB6DC4FC15E00487A09132E8243DF00
