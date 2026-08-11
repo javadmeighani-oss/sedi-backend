@@ -1,12 +1,11 @@
-"""Knowledge availability state model — derived from canonical tables (no duplicate SoT)."""
+"""Knowledge availability — SUPERSEDED/WITHDRAWN/RETRACTED/RIGHTS force runtime/RAG false."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Optional
 
 
-# Availability vocabulary (string-driven; not a single DB enum).
 AVAILABILITY_STATES = frozenset(
     {
         "DISCOVERED",
@@ -22,6 +21,7 @@ AVAILABILITY_STATES = frozenset(
         "CONFLICTED",
         "RETRACTED",
         "SUPERSEDED",
+        "WITHDRAWN",
         "RUNTIME_ELIGIBLE",
         "STRUCTURED_SEARCHABLE",
         "RAG_ELIGIBLE",
@@ -33,7 +33,6 @@ AVAILABILITY_STATES = frozenset(
         "COVERAGE_GAP",
     }
 )
-
 
 RETRIEVAL_STRATEGIES = frozenset(
     {
@@ -55,6 +54,7 @@ class KnowledgeAvailabilityView:
     retrieval_strategies: tuple[str, ...]
     rag_eligible: bool
     runtime_eligible: bool
+    rights_state: str = "RIGHTS_UNKNOWN"
     notes: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -66,6 +66,7 @@ class KnowledgeAvailabilityView:
             "retrieval_strategies": list(self.retrieval_strategies),
             "rag_eligible": self.rag_eligible,
             "runtime_eligible": self.runtime_eligible,
+            "rights_state": self.rights_state,
             "notes": self.notes,
         }
 
@@ -81,28 +82,47 @@ def derive_ku_availability(
     has_structured_links: bool = False,
     rag_indexed: bool = False,
     rag_retracted_at_set: bool = False,
+    rights_state: str = "RIGHTS_ALLOWED",
 ) -> KnowledgeAvailabilityView:
     states: list[str] = ["STORED"]
     if provenance_complete:
         states.append("PROVENANCE_VERIFIED")
+        states.append("GOVERNED")
+
+    pub = str(publication_state or "").upper()
+    superseded_or_withdrawn = pub in {"SUPERSEDED", "WITHDRAWN"}
     if retraction_reason:
         states.append("RETRACTED")
-    if publication_state and str(publication_state).upper() in {"SUPERSEDED", "WITHDRAWN"}:
+    if pub == "SUPERSEDED":
         states.append("SUPERSEDED")
+    if pub == "WITHDRAWN":
+        states.append("WITHDRAWN")
+
     if freshness_state and str(freshness_state).upper() in {"STALE", "COVERED_STALE"}:
         states.append("STALE")
-    else:
+    elif not retraction_reason and not superseded_or_withdrawn:
         states.append("CURRENT")
 
-    runtime_ok = str(runtime_eligibility).upper() == "ELIGIBLE" and not retraction_reason
+    rights = (rights_state or "RIGHTS_UNKNOWN").upper()
+    if rights in {"RIGHTS_BLOCKED", "RIGHTS_UNKNOWN"}:
+        states.append("BLOCKED_RIGHTS")
+
+    # Hard rule: retracted / superseded / withdrawn / rights-blocked cannot be runtime eligible
+    claimed_eligible = str(runtime_eligibility).upper() == "ELIGIBLE"
+    runtime_ok = (
+        claimed_eligible
+        and not retraction_reason
+        and not superseded_or_withdrawn
+        and rights == "RIGHTS_ALLOWED"
+        and provenance_complete
+    )
     if runtime_ok:
         states.append("RUNTIME_ELIGIBLE")
         states.append("STRUCTURED_SEARCHABLE")
-    else:
-        if retraction_reason:
-            states.append("BLOCKED_SAFETY")
+    elif retraction_reason or superseded_or_withdrawn:
+        states.append("BLOCKED_SAFETY")
 
-    rag_eligible = runtime_ok and provenance_complete and not rag_retracted_at_set
+    rag_eligible = runtime_ok and not rag_retracted_at_set
     if rag_eligible:
         states.append("RAG_ELIGIBLE")
     if rag_indexed and rag_eligible:
@@ -110,11 +130,16 @@ def derive_ku_availability(
     if rag_indexed and not rag_eligible:
         states.append("RAG_INVALIDATED")
 
-    strategies: list[str] = ["STRUCTURED_SQL"]
-    if has_structured_links:
-        strategies.append("STRUCTURED_CONCEPT_LOOKUP")
-    if rag_eligible:
-        strategies.extend(["LEXICAL_FTS", "SCIS_RAG_SEMANTIC", "COMBINED_HYBRID"])
+    strategies: list[str] = []
+    if runtime_ok:
+        strategies.append("STRUCTURED_SQL")
+        if has_structured_links:
+            strategies.append("STRUCTURED_CONCEPT_LOOKUP")
+        if rag_eligible:
+            strategies.extend(["LEXICAL_FTS", "SCIS_RAG_SEMANTIC", "COMBINED_HYBRID"])
+    elif provenance_complete:
+        # Still queryable for audit but not runtime-serving
+        strategies.append("STRUCTURED_SQL")
 
     return KnowledgeAvailabilityView(
         object_kind="KNOWLEDGE_UNIT",
@@ -124,6 +149,7 @@ def derive_ku_availability(
         retrieval_strategies=tuple(dict.fromkeys(strategies)),
         rag_eligible=rag_eligible,
         runtime_eligible=runtime_ok,
+        rights_state=rights,
     )
 
 

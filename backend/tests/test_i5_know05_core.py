@@ -65,8 +65,9 @@ def test_modes_production_weekly_forbidden():
 def test_budgets_bounded_no_unbounded():
     plan = plan_bounded_ingestion(Know05Mode.BOUNDED_INGESTION)
     assert plan.as_dict()["unbounded_crawl"] is False
-    assert plan.budget.max_records <= 100
-    assert_within_budget(records=10, requests=5, pages=1, budget=plan.budget)
+    assert plan.budget.max_records <= 5
+    assert plan.budget.max_sources <= 2
+    assert_within_budget(records=3, requests=5, pages=1, budget=plan.budget)
     with pytest.raises(ValueError, match="RECORD_BUDGET"):
         assert_within_budget(records=9999, requests=1, pages=1, budget=plan.budget)
 
@@ -104,6 +105,7 @@ def test_availability_runtime_requires_retrieval():
         provenance_complete=True,
         has_structured_links=True,
         rag_indexed=False,
+        rights_state="RIGHTS_ALLOWED",
     )
     assert view.runtime_eligible is True
     assert "STRUCTURED_SQL" in view.retrieval_strategies

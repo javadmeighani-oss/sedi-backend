@@ -28,11 +28,23 @@ class IngestionBudget:
         }
 
 
+# CI Gate max (do not exceed without Javad approval):
+# MAX_CONNECTORS=2, MAX_REQUESTS_PER_CONNECTOR=3, MAX_PAGES=1,
+# MAX_RECORDS_PER_CONNECTOR=5, MAX_TOTAL_ACCEPTED=5
+CI_BOUNDED_BUDGET = IngestionBudget(
+    max_sources=2,
+    max_records=5,
+    max_bytes=512_000,
+    max_pages=1,
+    max_requests=6,
+    timeout_seconds=30,
+)
+
 BUDGETS: dict[Know05Mode, IngestionBudget] = {
     Know05Mode.DRY_RUN: IngestionBudget(0, 0, 0, 0, 0, 5),
-    Know05Mode.LIVE_CANARY: IngestionBudget(4, 3, 512_000, 1, 8, 20),
-    Know05Mode.BOUNDED_INGESTION: IngestionBudget(4, 25, 2_000_000, 2, 40, 60),
-    Know05Mode.WEEKLY_REHEARSAL: IngestionBudget(8, 100, 8_000_000, 5, 120, 180),
+    Know05Mode.LIVE_CANARY: IngestionBudget(2, 3, 512_000, 1, 6, 20),
+    Know05Mode.BOUNDED_INGESTION: CI_BOUNDED_BUDGET,
+    Know05Mode.WEEKLY_REHEARSAL: IngestionBudget(2, 5, 512_000, 1, 6, 60),
 }
 
 

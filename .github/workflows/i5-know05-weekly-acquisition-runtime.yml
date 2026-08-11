@@ -99,7 +99,9 @@ jobs:
           set -o pipefail
           python -B -m pytest \
             backend/tests/test_i5_know05_core.py \
+            backend/tests/test_i5_know05_remediation.py \
             backend/tests/test_i5_know05_pg.py \
+            backend/tests/test_i5_know05_pg_remediation.py \
             backend/tests/test_i5_know04_connectors.py \
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             -q --tb=short --noconftest \
@@ -162,6 +164,7 @@ jobs:
           set -o pipefail
           python -B -m pytest \
             backend/tests/test_i5_know04_live_canaries.py \
+            backend/tests/test_i5_know05_bounded_live.py \
             -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/know05_live.txt"
           echo "KNOW05_LIVE_EXIT=0" > "${{ runner.temp }}/know05_live_exit.txt"

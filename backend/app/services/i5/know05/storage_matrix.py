@@ -136,16 +136,24 @@ WEEKLY_GOVERNANCE_REUSE_MATRIX: list[dict[str, str]] = [
 ]
 
 
-def matrices_summary() -> dict[str, Any]:
-    classes = [r["class"] for r in KNOWLEDGE_AUTHORITY_MATRIX]
+def matrices_summary(db=None) -> dict[str, Any]:
+    """Combine documentation matrices with NF21 introspected authority audit."""
+    from backend.app.services.i5.know05.authority_audit import audit_knowledge_authority
+
+    audit = audit_knowledge_authority(db)
+    classes = [r.authority_class for r in audit.rows]
     return {
-        "authority_rows": len(KNOWLEDGE_AUTHORITY_MATRIX),
+        "authority_rows": len(audit.rows),
         "storage_rows": len(KNOWLEDGE_STORAGE_MATRIX),
         "weekly_reuse_rows": len(WEEKLY_GOVERNANCE_REUSE_MATRIX),
-        "duplicate_knowledge_authority": 0,
+        "duplicate_knowledge_authority": audit.duplicate_knowledge_authority,
+        "duplicate_findings": list(audit.duplicate_findings),
         "canonical_count": classes.count("CANONICAL"),
         "index_count": classes.count("INDEX"),
-        "legacy_count": sum(1 for c in classes if c.startswith("LEGACY")),
+        "legacy_count": classes.count("LEGACY_DEPRECATED"),
+        "unclassified_knowledgeish": list(audit.unclassified_knowledgeish),
         "new_migration": "NO",
         "alembic_head": "065_i5_know04_connectors_change_intelligence",
+        "computation_basis": audit.computation_basis,
+        "static_doc_matrix_rows": len(KNOWLEDGE_AUTHORITY_MATRIX),
     }
