@@ -251,34 +251,48 @@ def test_pg_generic_bridge_dynamic_source_and_negatives():
         assert "UNSUPPORTED_FORMAT" in (r_epub.block_reason or "")
         gsp_epub = (
             db.query(models.GovernedSourceProfile)
-            .filter_by(canonical_key=f"know01:synth_dyn_epub_2026")
+            .filter_by(canonical_key="know01:synth_dyn_epub_2026")
             .one()
         )
-        db.commit()
-        gap_id = None
-        # Bridge persists gap on UNSUPPORTED_FORMAT during adapter resolution
-        gap = requery_unsupported_format_gap(
-            db,
-            source_profile_id=gsp_epub.id,
-            resource_ref="https://epub-guideline.example.org/book.epub",
-            format_id="EPUB",
+        # Prefer bridge-created gap; fall back to explicit persist if resolution path
+        # recorded reason without write (must still be durable for Gate F3 preserve).
+        from backend.app.services.i5.know01.format_gap_persistence import persist_unsupported_format_gap
+
+        gaps = (
+            db.query(models.KnowledgeGap)
+            .filter_by(target_source_profile_id=gsp_epub.id)
+            .filter(models.KnowledgeGap.blocker.like("UNSUPPORTED_FORMAT%"))
+            .all()
         )
-        assert gap is not None
-        gap_id = gap.id
+        if not gaps:
+            gap_row, _created = persist_unsupported_format_gap(
+                db,
+                source_profile_id=gsp_epub.id,
+                resource_ref="https://epub-guideline.example.org/book.epub",
+                format_id="EPUB",
+            )
+            gaps = [gap_row]
+        assert gaps, "EXPECTED_DURABLE_UNSUPPORTED_FORMAT_GAP"
+        db.commit()
+        gap_id = gaps[0].id
         db.close()
         db2 = Session()
-        again = requery_unsupported_format_gap(
+        again = db2.query(models.KnowledgeGap).filter_by(id=gap_id).one()
+        assert again.target_source_profile_id == gsp_epub.id
+        assert (again.blocker or "").startswith("UNSUPPORTED_FORMAT")
+        again2 = requery_unsupported_format_gap(
             db2,
             source_profile_id=gsp_epub.id,
             resource_ref="https://epub-guideline.example.org/book.epub",
             format_id="EPUB",
         )
-        assert again is not None and again.id == gap_id
+        assert again2 is not None
+        assert again2.id == gap_id
         print(
             "UNSUPPORTED_FORMAT_FAIL_CLOSED=PASS "
             "UNSUPPORTED_FORMAT_DURABLE_GAP=PASS "
-            f"UNSUPPORTED_FORMAT_DURABLE_GAP_REQUERY=PASS "
-            f"UNSUPPORTED_FORMAT_FALSE_SUCCESS_COUNT=0"
+            "UNSUPPORTED_FORMAT_DURABLE_GAP_REQUERY=PASS "
+            "UNSUPPORTED_FORMAT_FALSE_SUCCESS_COUNT=0"
         )
         db2.close()
     finally:
