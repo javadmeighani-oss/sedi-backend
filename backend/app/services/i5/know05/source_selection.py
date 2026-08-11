@@ -157,6 +157,10 @@ def _roles_for_gap(item: CoveragePrioritizationItem) -> list[str]:
 
 
 def _connector_capability(connector_key: str, ext: Optional[models.I5SourceRegistryExtension] = None) -> str:
+    """CONNECTOR_READY requires an executable adapter contract (or known specialized handler).
+
+    Route presence alone must NOT imply CONNECTOR_READY.
+    """
     if connector_key.startswith("terminology:"):
         return "CONTRACT_PENDING"
     if connector_key.startswith("iran_") or "iran" in connector_key.lower():
@@ -164,7 +168,14 @@ def _connector_capability(connector_key: str, ext: Optional[models.I5SourceRegis
     if ext is not None:
         if (ext.source_universe or "") == SourceUniverse.IRAN_LOCAL_DIRECTORY.value:
             return "DIRECTORY_ONLY"
-        formats = (ext.supported_formats or "").strip()
+        # Specialized KNOW-05 handlers remain executable by key (dispatch, not eligibility universe).
+        if connector_key in _KNOWN_ADAPTER_HANDLERS:
+            return "CONNECTOR_READY"
+        from backend.app.services.i5.know05.generic_execution_bridge import adapter_contract_resolvable
+
+        ok, _mode, reason = adapter_contract_resolvable(ext)
+        if ok:
+            return "CONNECTOR_READY"
         has_route = any(
             [
                 (ext.api_endpoint or "").strip(),
@@ -177,9 +188,9 @@ def _connector_capability(connector_key: str, ext: Optional[models.I5SourceRegis
                 (ext.canonical_home or "").strip(),
             ]
         )
-        if formats or has_route:
-            return "CONNECTOR_READY"
-    # Handler implementation knowledge only (not eligibility universe).
+        if has_route or (ext.supported_formats or "").strip():
+            return "ROUTE_PRESENT_BUT_ADAPTER_UNRESOLVED"
+        return "UNKNOWN_CONNECTOR"
     return "CONNECTOR_READY" if connector_key in _KNOWN_ADAPTER_HANDLERS else "UNKNOWN_CONNECTOR"
 
 
@@ -200,6 +211,8 @@ def resolve_selection_automation(
         )
     if cap == "UNKNOWN_CONNECTOR":
         return ("UNKNOWN", "RIGHTS_UNKNOWN", "BLOCKED", "NO_VERIFIED_CONNECTOR_CONTRACT")
+    if cap == "ROUTE_PRESENT_BUT_ADAPTER_UNRESOLVED":
+        return ("UNKNOWN", "RIGHTS_UNKNOWN", "BLOCKED", "NO_VERIFIED_ADAPTER_CONTRACT")
     if cap == "CONTRACT_PENDING":
         return ("CONTRACT_READY", "RIGHTS_UNKNOWN", "BLOCKED", "TERMINOLOGY_CREDENTIALS_OR_LICENSE_PENDING")
 

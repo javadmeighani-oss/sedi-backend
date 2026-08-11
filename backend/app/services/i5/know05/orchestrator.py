@@ -147,49 +147,101 @@ def run_know05_cycle(
             executed.add(ck)
             if ck.startswith("pubmed"):
                 r = ingest_pubmed_bounded_or_block(mode=m, db=db)
+                source_results.append(
+                    {
+                        "connector_key": r.connector_key,
+                        "status": r.status,
+                        "block_reason": r.block_reason,
+                        "http_status": r.http_status,
+                        "bytes_received": r.bytes_received,
+                        "request_count": r.request_count,
+                        "page_count": r.page_count,
+                        "external_ids": list(r.external_ids),
+                        "records_discovered": r.records_discovered,
+                        "records_normalized": r.records_normalized,
+                        "records_accepted": r.records_accepted,
+                        "records_rejected": r.records_rejected,
+                        "records_changed": r.records_changed,
+                        "rights_decision": r.rights_decision,
+                        "storage_decision": r.storage_decision,
+                        "transient_raw_residue": r.transient_raw_residue,
+                        "knowledge_unit_id": r.knowledge_unit_id,
+                        "publication_stages": list(r.publication_stages),
+                        "specialized_handler": True,
+                    }
+                )
             elif ck == "clinicaltrials_gov_api_v2":
                 r = ingest_clinicaltrials_bounded(
                     db, mode=m, query="diabetes", http_get=http_get, max_records=2
                 )
-            elif ck == "who_guideline_catalogue":
-                r = ingest_who_catalogue_bounded(db, mode=m, http_get=http_get, max_records=1)
-            else:
-                r = None
                 source_results.append(
                     {
-                        "connector_key": ck,
-                        "status": "BLOCKED",
-                        "block_reason": "NO_BOUNDED_HANDLER",
-                        "records_discovered": 0,
-                        "records_accepted": 0,
-                        "records_rejected": 0,
-                        "records_changed": 0,
-                        "transient_raw_residue": 0,
+                        "connector_key": r.connector_key,
+                        "status": r.status,
+                        "block_reason": r.block_reason,
+                        "http_status": r.http_status,
+                        "bytes_received": r.bytes_received,
+                        "request_count": r.request_count,
+                        "page_count": r.page_count,
+                        "external_ids": list(r.external_ids),
+                        "records_discovered": r.records_discovered,
+                        "records_normalized": r.records_normalized,
+                        "records_accepted": r.records_accepted,
+                        "records_rejected": r.records_rejected,
+                        "records_changed": r.records_changed,
+                        "rights_decision": r.rights_decision,
+                        "storage_decision": r.storage_decision,
+                        "transient_raw_residue": r.transient_raw_residue,
+                        "knowledge_unit_id": r.knowledge_unit_id,
+                        "publication_stages": list(r.publication_stages),
+                        "specialized_handler": True,
                     }
                 )
+            elif ck == "who_guideline_catalogue":
+                r = ingest_who_catalogue_bounded(db, mode=m, http_get=http_get, max_records=1)
+                source_results.append(
+                    {
+                        "connector_key": r.connector_key,
+                        "status": r.status,
+                        "block_reason": r.block_reason,
+                        "http_status": r.http_status,
+                        "bytes_received": r.bytes_received,
+                        "request_count": r.request_count,
+                        "page_count": r.page_count,
+                        "external_ids": list(r.external_ids),
+                        "records_discovered": r.records_discovered,
+                        "records_normalized": r.records_normalized,
+                        "records_accepted": r.records_accepted,
+                        "records_rejected": r.records_rejected,
+                        "records_changed": r.records_changed,
+                        "rights_decision": r.rights_decision,
+                        "storage_decision": r.storage_decision,
+                        "transient_raw_residue": r.transient_raw_residue,
+                        "knowledge_unit_id": r.knowledge_unit_id,
+                        "publication_stages": list(r.publication_stages),
+                        "specialized_handler": True,
+                    }
+                )
+            else:
+                # Generic Registry → AdapterRegistry bridge (no source-key handler required).
+                from backend.app.services.i5.know05.generic_execution_bridge import (
+                    execute_generic_registry_source,
+                )
+
+                bridge = execute_generic_registry_source(
+                    db, connector_key=ck, http_get=http_get
+                )
+                # Preserve truthful NO_BOUNDED_HANDLER only when no adapter contract exists.
+                if (
+                    bridge.status == "BLOCKED"
+                    and (bridge.block_reason or "").startswith("NO_VERIFIED_ADAPTER_CONTRACT")
+                ):
+                    # Keep vocabulary distinguishable from supported-dynamic miss.
+                    pass
+                elif bridge.status == "BLOCKED" and bridge.block_reason == "NO_BOUNDED_TRANSPORT":
+                    bridge.block_reason = "NO_BOUNDED_HANDLER"
+                source_results.append(bridge.as_orchestrator_dict())
                 continue
-            source_results.append(
-                {
-                    "connector_key": r.connector_key,
-                    "status": r.status,
-                    "block_reason": r.block_reason,
-                    "http_status": r.http_status,
-                    "bytes_received": r.bytes_received,
-                    "request_count": r.request_count,
-                    "page_count": r.page_count,
-                    "external_ids": list(r.external_ids),
-                    "records_discovered": r.records_discovered,
-                    "records_normalized": r.records_normalized,
-                    "records_accepted": r.records_accepted,
-                    "records_rejected": r.records_rejected,
-                    "records_changed": r.records_changed,
-                    "rights_decision": r.rights_decision,
-                    "storage_decision": r.storage_decision,
-                    "transient_raw_residue": r.transient_raw_residue,
-                    "knowledge_unit_id": r.knowledge_unit_id,
-                    "publication_stages": list(r.publication_stages),
-                }
-            )
         # Do not inject pubmed/WHO/CT.gov when Registry selection yielded nothing.
 
     weekly_run_id = None

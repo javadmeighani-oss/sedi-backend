@@ -19,8 +19,10 @@ on:
       - "backend/tests/test_i5_know01_activation_guard.py"
       - "backend/tests/test_i5_know01_foundation_gate.py"
       - "backend/tests/test_i5_know01_registry_sot_closure.py"
+      - "backend/tests/test_i5_know05_generic_adapter_bridge.py"
       - "backend/app/services/i5/know05/source_selection.py"
       - "backend/app/services/i5/know05/orchestrator.py"
+      - "backend/app/services/i5/know05/generic_execution_bridge.py"
       - "backend/tests/helpers/know01_activation_guard.py"
       - "backend/tests/test_section30_i5_w3_p01_adapters_extract.py"
       - "backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py"
@@ -233,6 +235,7 @@ jobs:
             backend/tests/test_i5_know01_activation_guard.py \
             backend/tests/test_i5_know01_foundation_gate.py \
             backend/tests/test_i5_know01_registry_sot_closure.py \
+            backend/tests/test_i5_know05_generic_adapter_bridge.py \
             backend/tests/test_section30_i5_w3_p01_adapters_extract.py \
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
