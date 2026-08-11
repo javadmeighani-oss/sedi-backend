@@ -89,8 +89,8 @@ def _make_source(db, *, key: str, rights_allowed: bool = True):
     if rights_allowed:
         ext = models.I5SourceRegistryExtension(
             source_profile_id=gsp.id,
-            source_universe="GLOBAL_SCIENTIFIC",
-            authority_class="OFFICIAL_PUBLIC_REGISTRY",
+            source_universe="GLOBAL_KNOWLEDGE",
+            authority_class="CLINICAL_TRIAL_REGISTRY",
             access_right=RightDecision.ALLOWED.value,
             automation_right=RightDecision.ALLOWED.value,
             tdm_right=RightDecision.ALLOWED.value,
@@ -104,8 +104,8 @@ def _make_source(db, *, key: str, rights_allowed: bool = True):
     else:
         ext = models.I5SourceRegistryExtension(
             source_profile_id=gsp.id,
-            source_universe="GLOBAL_SCIENTIFIC",
-            authority_class="OFFICIAL_PUBLIC_REGISTRY",
+            source_universe="GLOBAL_KNOWLEDGE",
+            authority_class="CLINICAL_TRIAL_REGISTRY",
             access_right=RightDecision.DENIED.value,
             automation_right=RightDecision.DENIED.value,
             tdm_right=RightDecision.DENIED.value,
