@@ -65596,3 +65596,94 @@ MARKER=SCIS_01_PASS_CORE_RETRIEVAL_GREEN
 NOTE=post-§275 final master-log whole-file self-SHA is NOT embedded inside §275.
 SIZE_BEFORE_APPEND=2940451
 SHA256_BEFORE_APPEND=BA763316DD87B036D2270D15F1527D715C8A659BA433B8B01B67AFFBF9CB1E88
+
+--------------------------------------------------------------------------------
+§276 - SECTION 39 SCIS / I5 / I6 / I7 / I8 RESPONSIBILITY + ROADMAP FREEZE
+--------------------------------------------------------------------------------
+GATE=SECTION-39-ARCHITECTURE-ROADMAP-DECISION
+STATUS=APPROVED / RECORDED (NO IMPLEMENTATION)
+DECISION_OWNER=Javad
+RECORDED_AT_UTC=2026-08-11T04:10:00Z
+MODE=DOCUMENTATION / CONTINUITY ONLY
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§276.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+RULES_IN_FORCE_CHECK=PASS
+PRODUCTION_CHANGED=NO
+RAG_ACTIVATED=NO
+CRAWLER_ACTIVATED=NO
+SCHEMA_CHANGED=NO
+IMPLEMENTATION_EXECUTED=NO
+
+--------------------------------------------------------------------------------
+§276.A - AUTHORITY BASELINE
+--------------------------------------------------------------------------------
+REPO_HEAD=4d0e380d023f0c5263d8d604e110ad9f60a4a68a
+BRANCH=feature/section15/backend-continuity-foundation
+MASTER_LOG_PREDECESSOR=§275
+CURSOR_HANDOFF_PREDECESSOR=v566
+CHATGPT_CONTINUITY_PREDECESSOR=v576
+SCIS_DESIGN_FREEZE=CLOSED/PASS
+SCIS_01=CLOSED/PASS
+PRODUCTION_DATA_PLATFORM_GREEN=YES
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=061_scis01_pgvector_kce_foundation
+PGVECTOR_PRODUCTION_APPLIED=NO
+
+--------------------------------------------------------------------------------
+§276.B - RESPONSIBILITY FREEZE
+--------------------------------------------------------------------------------
+I5=Sedi knows the world (governed knowledge acquisition + governance)
+SCIS_RAG=retrieve the right eligible knowledge/context (infrastructure)
+I6=Sedi knows me (canonical user memory / personal context)
+I7=Sedi understands my history over time (user_period_summaries DAILY/WEEKLY/MONTHLY/YEARLY)
+I8=Sedi helps me using me + history + governed knowledge (personalized recommendation intelligence)
+I8_IS_RAG=NO
+RAG_ROLE=RETRIEVAL + EVIDENCE + CONTEXT INFRASTRUCTURE
+I8_ROLE=GROUNDED PERSONALIZED RECOMMENDATION / ASSISTANCE INTELLIGENCE
+
+INVARIANTS=
+USER MEMORY != GLOBAL MEDICAL KNOWLEDGE;
+DEVICE DATA != MEDICAL TRUTH;
+RAW CRAWLER DATA != GOVERNED KNOWLEDGE;
+RAG INDEX != SOURCE OF TRUTH;
+PERSONALIZATION SIGNAL != MEDICAL EVIDENCE
+
+--------------------------------------------------------------------------------
+§276.C - ROADMAP ORDER (SUPERSEDES SCIS-02 AS IMMEDIATE NEXT)
+--------------------------------------------------------------------------------
+SCIS_DIRECT_DEVELOPMENT_AFTER_SCIS01=DEFERRED
+SCIS_02_PERSONAL_CONTEXT_RESOLVER_I6=DEFERRED (not cancelled; resumes at I6 phase unless proven narrow I5 dependency)
+NEXT_DEVELOPMENT_PRIORITY=COMPLETE_REMAINING_I5
+THEN=I6
+THEN=I7
+THEN=I8
+THEN=SCIS_CONTEXT_FUSION_AS_REQUIRED
+THEN=SMART_NOTIFICATIONS_CARE_PROACTIVE
+THEN=FRONTEND_DEVICE_E2E
+
+--------------------------------------------------------------------------------
+§276.D - NEXT GATE BOUNDARY
+--------------------------------------------------------------------------------
+NEXT_PROPOSED_GATE=SEDI-V1 I5 GOVERNED KNOWLEDGE / CRAWLER COMPLETION (exact title/scope TO BE RECONSTRUCTED from I5 remaining-work authority)
+NEXT_GATE_AUTHORIZED=NO
+REQUIRED_FIRST_ACTION_OF_NEXT_GATE=
+reconstruct exactly WHAT IN I5 IS COMPLETE / REMAINS / DESIGN-ONLY / IMPLEMENTED / RUNTIME-CI-PROVEN / INACTIVE / REQUIRED FOR I5 PRODUCT CLOSURE
+NOT_AUTHORIZED_BY_THIS_DECISION=
+crawler activation; RAG Production activation; Production migration 061; I5/I6/I7/I8/SCIS-02 implementation; Production deployment
+
+--------------------------------------------------------------------------------
+§276.E - ARTIFACT
+--------------------------------------------------------------------------------
+DECISION_DOC=docs/architecture/section39/SCIS_I5_I6_I7_I8_RESPONSIBILITY_ROADMAP_FREEZE.md
+MARKER=SECTION39_RESPONSIBILITY_ROADMAP_FREEZE_APPROVED
+
+NOTE=post-§276 final master-log whole-file self-SHA is NOT embedded inside §276.
+SIZE_BEFORE_APPEND=2946767
+SHA256_BEFORE_APPEND=E337E88230FE0A15E652AA85AFF8B9EE830C897BF7667F8EFF84393780300B59
