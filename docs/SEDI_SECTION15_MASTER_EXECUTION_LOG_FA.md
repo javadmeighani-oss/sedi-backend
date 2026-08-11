@@ -65979,3 +65979,104 @@ MARKER=I5_KNOW01_TRUSTED_SOURCE_REGISTRY_RIGHTS_MULTIFORMAT_PASS
 NOTE=post-§278 final master-log whole-file self-SHA is NOT embedded inside §278.
 SIZE_BEFORE_APPEND=2957666
 SHA256_BEFORE_APPEND=59AE98157A426DB829FB7CC59F744D7AFAA2A8CFD004E4FF92223F1A5396A320
+
+--------------------------------------------------------------------------------
+§279 - SEDI-V1 I5-KNOW-01 CI FALSE-GREEN INTEGRITY REMEDIATION + REGRESSION PROOF + CONTINUITY CORRECTION
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 I5-KNOW-01 CI FALSE-GREEN INTEGRITY REMEDIATION + REGRESSION PROOF + CONTINUITY CORRECTION CONTROLLED AUTO-REMEDIATION TO GREEN-01
+STATUS=AUTHORIZED / EXECUTED
+MODE=FOCUSED CI/HARNESS REMEDIATION + TEST + GITHUB ACTIONS + EVIDENCE + CONTINUITY CORRECTION
+RECORDED_AT_UTC=2026-08-11T05:35:00Z
+APPROVAL=Javad Master Gate authorization (false-green remediation)
+GATE_RESULT=PASS
+KNOW01_FINAL_STATUS=PASS / CLOSED
+
+--------------------------------------------------------------------------------
+§279.0 - SUPERSESSION OF §278 CI PROOF (APPEND-ONLY; §278 NOT REWRITTEN)
+--------------------------------------------------------------------------------
+§278 originally recorded KNOW-01 PASS based on GitHub success conclusion for RUN_ID=31460890460 / JOB_ID=93684002080.
+Independent ChatGPT audit subsequently discovered:
+FGI-01 pytest/tee false-green (W3-P02: 10 passed, 10 errors; fixture db not found under --noconftest; tee masked non-zero pytest exit)
+FGI-02 missing-rg false-pass guard (rg: command not found → KNOW01_PACKAGE_GUARD=PASS)
+Therefore §278 CI_RUNTIME_PROOF / final PASS was temporarily superseded pending remediation.
+This Gate remediated and re-proved the closure.
+§278 historical narrative remains intact as append-only predecessor.
+
+--------------------------------------------------------------------------------
+§279.A - AUTHORITY
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=7ddf938ffa74344c2cc1915e013003b86ac40d1b
+REMEDIATION_COMMIT_1=86337264024e830cfb6a542eeb8325652333e716
+REMEDIATION_COMMIT_2=134fc210caaae36a47a503e4588d6be0c8144fac
+FALSE_GREEN_RUN=31460890460
+GREEN_RUN=31461914114
+GREEN_JOB=93686964293
+ARTIFACT_ID=9090097668
+ARTIFACT_DIGEST=sha256:afa7b95a4637c503a8b0445800c7d2e1e60c657f23ab604fccb14a6e1977b85d
+MASTER_LOG_PREDECESSOR=§278
+MASTER_LOG_PREDECESSOR_SIZE=2965018
+MASTER_LOG_PREDECESSOR_SHA256=625678D50186C5F0C93C0BC232C80055C70B7042BB06C512FA34531DE7461E07
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=062_i5_know01_source_registry_rights
+
+--------------------------------------------------------------------------------
+§279.B - FINDINGS / ROOT CAUSE / FIX
+--------------------------------------------------------------------------------
+FGI_01=CRITICAL CI INTEGRITY — pytest|tee without pipefail masked ERROR exit; W3-P02 invoked with --noconftest without plugin db fixture
+FGI_01_FIXED=YES (set -o pipefail; W3-P02 uses canonical w3p02_postgres_runtime_plugin::db after schema reset)
+FGI_02=CRITICAL CI GUARD INTEGRITY — rg missing interpreted as PASS
+FGI_02_FIXED=YES (Python fail-closed scanner; clean + negative controls)
+
+--------------------------------------------------------------------------------
+§279.C - PROOFS
+--------------------------------------------------------------------------------
+PIPEFAIL_INTEGRITY=YES
+ACTIVATION_GUARD_EXECUTED=YES
+ACTIVATION_GUARD_CLEAN_CONTROL=PASS
+ACTIVATION_GUARD_NEGATIVE_CONTROL=PASS
+FRESH_062=PASS
+UPGRADE_061_TO_062=PASS
+KNOW01_TARGETED_TESTS=38 passed / 0 failed / 0 errors
+W3_P02_FULL_REGRESSION=20 passed / 0 failed / 0 errors
+RAW_LOG_AUDIT=PASS
+UNKNOWN_RIGHTS_AUTOMATION=0
+UNAUTHORIZED_RAW_RETENTION=0
+TRANSIENT_RAW_RESIDUE=0
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+WARNINGS=NONCRITICAL/DEFERRED (datetime.utcnow + Alembic path_separator; no correctness impact)
+
+--------------------------------------------------------------------------------
+§279.D - OPEN FINDINGS (UNCHANGED)
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=3
+NF1=CAP24 BLOCKED_WITH_EXACT_EVIDENCE
+NF2=Per-source TDM/legal terms REVIEW_REQUIRED
+NF3=Clinic entity model NEXT_SCHEMA_GATE_REQUIRED
+
+--------------------------------------------------------------------------------
+§279.E - NEXT GATE
+--------------------------------------------------------------------------------
+I5_KNOW_02_READY=YES
+I5_KNOW_02_AUTHORIZED=NO
+NEXT_IMPLEMENTATION_GATE=SEDI-V1 I5-KNOW-02 SCIENTIFIC ARTIFACTS + ARTIFACT VERSIONING + MULTI-EVIDENCE LINKS + STRUCTURED CLAIM DETAILS
+END_OF_MORDAD_RISK=MODERATE
+
+--------------------------------------------------------------------------------
+§279.F - VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+FALSE_GREEN_FINDINGS_REPRODUCED=YES
+FGI_01_FIXED=YES
+FGI_02_FIXED=YES
+KNOW01_FINAL_STATUS=PASS / CLOSED
+GATE_RESULT=PASS
+MARKER=I5_KNOW01_CI_FALSE_GREEN_INTEGRITY_REMEDIATION_PASS
+
+NOTE=post-§279 final master-log whole-file self-SHA is NOT embedded inside §279.
+SIZE_BEFORE_APPEND=2965018
+SHA256_BEFORE_APPEND=625678D50186C5F0C93C0BC232C80055C70B7042BB06C512FA34531DE7461E07
