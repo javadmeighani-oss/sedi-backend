@@ -1,4 +1,4 @@
-"""Scientific artifact + multi-evidence + claim services."""
+"""Scientific artifact + multi-evidence + claim services (KNOW-02 + W0 integrity)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,30 @@ from sqlalchemy.orm import Session
 from backend.app import models
 from backend.app.services.i5.enums import ArtifactType, ArtifactVersionState, ClaimClass, EvidenceSupportDirection
 from backend.app.services.i5.know02.eligibility import runtime_evidence_allowed
+
+
+class ContentDriftConflict(ValueError):
+    """Same artifact + version label + different content hash — never silent overwrite."""
+
+    def __init__(
+        self,
+        *,
+        artifact_id: int,
+        version_label: str,
+        existing_version_id: int,
+        existing_content_hash: Optional[str],
+        incoming_content_hash: Optional[str],
+    ):
+        self.artifact_id = artifact_id
+        self.version_label = version_label
+        self.existing_version_id = existing_version_id
+        self.existing_content_hash = existing_content_hash
+        self.incoming_content_hash = incoming_content_hash
+        super().__init__(
+            "CONTENT_DRIFT_CONFLICT:"
+            f" artifact={artifact_id} label={version_label}"
+            f" existing={existing_content_hash} incoming={incoming_content_hash}"
+        )
 
 
 def upsert_artifact(
@@ -49,6 +73,30 @@ def upsert_artifact(
     return row
 
 
+def _record_content_drift(
+    db: Session,
+    *,
+    existing: models.I5ScientificArtifactVersion,
+    incoming_content_hash: Optional[str],
+    locator: Optional[str],
+) -> None:
+    art = db.query(models.I5ScientificArtifact).filter_by(id=existing.artifact_id).one()
+    db.add(
+        models.I5ArtifactVersionContentDriftEvent(
+            artifact_id=existing.artifact_id,
+            version_label=existing.version_label,
+            existing_version_id=existing.id,
+            existing_content_hash=existing.content_hash,
+            incoming_content_hash=incoming_content_hash,
+            source_profile_id=art.source_profile_id,
+            locator=locator or existing.locator,
+            publisher_family=art.publisher_family,
+            retrieval_note="CONTENT_DRIFT_CONFLICT detected; historical version not mutated",
+        )
+    )
+    db.flush()
+
+
 def add_artifact_version(
     db: Session,
     *,
@@ -63,14 +111,40 @@ def add_artifact_version(
     locator: Optional[str] = None,
 ) -> models.I5ScientificArtifactVersion:
     ArtifactVersionState(version_state)
+    if supersedes_version_id is not None:
+        if supersedes_version_id == 0:
+            raise ValueError("ORPHAN_SUPERSESSION")
+        parent = (
+            db.query(models.I5ScientificArtifactVersion)
+            .filter_by(id=supersedes_version_id)
+            .first()
+        )
+        if parent is None:
+            raise ValueError("ORPHAN_SUPERSESSION")
+        if parent.artifact_id != artifact_id:
+            raise ValueError("CROSS_ARTIFACT_SUPERSESSION_FORBIDDEN")
+
     existing = (
         db.query(models.I5ScientificArtifactVersion)
         .filter_by(artifact_id=artifact_id, version_label=version_label)
         .first()
     )
     if existing:
-        # Immutable: do not overwrite content/state in place — return existing
-        return existing
+        # IDEMPOTENT: same label + same hash (including both None)
+        if existing.content_hash == content_hash:
+            return existing
+        # NF5: same label + different hash → conflict; never silent overwrite
+        _record_content_drift(
+            db, existing=existing, incoming_content_hash=content_hash, locator=locator
+        )
+        raise ContentDriftConflict(
+            artifact_id=artifact_id,
+            version_label=version_label,
+            existing_version_id=existing.id,
+            existing_content_hash=existing.content_hash,
+            incoming_content_hash=content_hash,
+        )
+
     row = models.I5ScientificArtifactVersion(
         artifact_id=artifact_id,
         version_label=version_label,
@@ -85,6 +159,8 @@ def add_artifact_version(
     )
     db.add(row)
     db.flush()
+    if supersedes_version_id is not None and supersedes_version_id == row.id:
+        raise ValueError("SELF_SUPERSESSION_BLOCKED")
     return row
 
 
@@ -107,6 +183,7 @@ def link_evidence(
     support_direction: str,
     evidence_role: Optional[str] = None,
     locator: Optional[str] = None,
+    study_id: Optional[int] = None,
     enforce_runtime_support: bool = False,
 ) -> models.I5KnowledgeUnitEvidenceLink:
     EvidenceSupportDirection(support_direction)
@@ -127,6 +204,9 @@ def link_evidence(
         .first()
     )
     if existing:
+        if study_id is not None and existing.study_id is None:
+            existing.study_id = study_id
+            db.flush()
         return existing
     row = models.I5KnowledgeUnitEvidenceLink(
         knowledge_unit_id=knowledge_unit_id,
@@ -134,6 +214,7 @@ def link_evidence(
         support_direction=support_direction,
         evidence_role=evidence_role,
         locator=locator,
+        study_id=study_id,
         retrieved_at=datetime.utcnow(),
     )
     db.add(row)

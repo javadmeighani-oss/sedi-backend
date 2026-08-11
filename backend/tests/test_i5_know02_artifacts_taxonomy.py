@@ -68,8 +68,11 @@ def test_know02_foundation_universality_multi_evidence_queries():
     engine = create_engine(url)
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        if head != "063_i5_know02_artifacts_claims_taxonomy":
-            pytest.skip(f"alembic head {head} != 063")
+        if head not in {
+            "063_i5_know02_artifacts_claims_taxonomy",
+            "064_i5_know03_studies_effects_recs",
+        }:
+            pytest.skip(f"alembic head {head} not in KNOW-02+ chain")
         for t in (
             "i5_scientific_artifacts",
             "i5_scientific_artifact_versions",
@@ -228,13 +231,21 @@ def test_know02_foundation_universality_multi_evidence_queries():
         # Claim details exist
         assert db.query(models.I5KnowledgeClaimDetail).count() >= 5
 
-        # Artifact version immutability: same label returns same row
-        from backend.app.services.i5.know02.artifacts import add_artifact_version
+        # Artifact version immutability: same label+hash idempotent; different hash conflicts
+        from backend.app.services.i5.know02.artifacts import ContentDriftConflict, add_artifact_version
 
         art = db.query(models.I5ScientificArtifact).filter_by(artifact_key="fixture:rct:ms_exercise").one()
-        v1 = add_artifact_version(db, artifact_id=art.id, version_label="1", content_hash="a" * 64)
-        v1b = add_artifact_version(db, artifact_id=art.id, version_label="1", content_hash="b" * 64)
-        assert v1.id == v1b.id
+        existing = (
+            db.query(models.I5ScientificArtifactVersion)
+            .filter_by(artifact_id=art.id, version_label="1")
+            .one()
+        )
+        v1b = add_artifact_version(
+            db, artifact_id=art.id, version_label="1", content_hash=existing.content_hash
+        )
+        assert existing.id == v1b.id
+        with pytest.raises(ContentDriftConflict):
+            add_artifact_version(db, artifact_id=art.id, version_label="1", content_hash="b" * 64)
 
         # Source → artifact → version → evidence → KU → concept → dimension
         assert art.source_profile_id is not None
