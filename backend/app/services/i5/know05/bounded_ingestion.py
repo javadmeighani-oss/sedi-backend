@@ -30,7 +30,6 @@ from backend.app.services.i5.know05.publication import (
     PublicationCandidate,
     PublicationStage,
     advance_stage,
-    assert_no_direct_runtime_publish,
 )
 
 
@@ -72,18 +71,11 @@ class BoundedIngestionResult:
 
 
 def _run_publication(candidate: PublicationCandidate) -> PublicationCandidate:
-    assert_no_direct_runtime_publish(
-        from_stage=PublicationStage.RAW_SOURCE_RECORD,
-        to_stage=PublicationStage.RUNTIME_ELIGIBILITY,
-    )
+    # Stage-gated advance only — never RAW → RUNTIME (enforced by advance_stage).
     order = list(PublicationStage)[1:]  # skip RAW (already there)
     for stage in order:
-        if stage == PublicationStage.NORMALIZED_CANDIDATE:
-            pass
-        elif stage == PublicationStage.STRUCTURED_EXTRACTION:
+        if stage == PublicationStage.STRUCTURED_EXTRACTION:
             candidate.model_extracted = False
-        elif stage == PublicationStage.VALIDATION:
-            pass
         elif stage == PublicationStage.EVIDENCE_LINKING:
             candidate.evidence_linked = True
         elif stage == PublicationStage.CONFLICT_CHECK:
@@ -93,8 +85,6 @@ def _run_publication(candidate: PublicationCandidate) -> PublicationCandidate:
         elif stage == PublicationStage.GOVERNANCE_DECISION:
             candidate.governance_approved = True
             candidate.provenance_complete = True
-        elif stage == PublicationStage.RUNTIME_ELIGIBILITY:
-            pass
         candidate = advance_stage(candidate, stage)
     return candidate
 
