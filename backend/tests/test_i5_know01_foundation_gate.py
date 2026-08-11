@@ -166,18 +166,8 @@ def test_pg_v1_reference_catalog_rights_and_placeholders_insufficient():
     Session = sessionmaker(bind=engine)
     db = Session()
     try:
-        db.query(models.I5ReferenceBookEdition).delete(synchronize_session=False)
-        db.query(models.I5ReferenceBook).delete(synchronize_session=False)
-        profiles = (
-            db.query(models.GovernedSourceProfile)
-            .filter(models.GovernedSourceProfile.canonical_key.like("know01:%"))
-            .all()
-        )
-        for p in profiles:
-            db.delete(p)
-        db.query(models.I5SourceCoverageGap).delete(synchronize_session=False)
-        db.commit()
-
+        # Do not delete shared GovernedSourceProfile rows — KNOW-05 suite may retain
+        # KnowledgeProvenance FKs in the same fresh DB. Seeds are upsert-idempotent.
         summary = seed_know01_registry(db)
         db.commit()
         assert summary["automation_approved_count"] == 0
