@@ -66678,3 +66678,148 @@ MARKER=I5_KNOW04_NF14_NF15_REMEDIATION_PASS
 NOTE=post-§283 final master-log whole-file self-SHA is NOT embedded inside §283.
 SIZE_BEFORE_APPEND=2993841
 SHA256_BEFORE_APPEND=63EA2FC8DC8D5172378E97B235F2F2786AB6DC4FC15E00487A09132E8243DF00
+
+--------------------------------------------------------------------------------
+§284 - SEDI-V1 I5-KNOW-05 GOVERNED WEEKLY KNOWLEDGE ACQUISITION + COVERAGE-DRIVEN DISCOVERY + DB↔SCIS/RAG COHERENCE
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 I5-KNOW-05 GOVERNED WEEKLY KNOWLEDGE ACQUISITION + COVERAGE-DRIVEN SOURCE DISCOVERY + CONTROLLED SCIENTIFIC INGESTION + UNIVERSAL HUMAN HEALTH COVERAGE + ALS/MS/DIABETES P0 DEEP COVERAGE + KNOWLEDGE STORAGE/AVAILABILITY COHERENCE + DB↔SCIS/RAG↔SEDI KNOWLEDGE COHERENCE + QUALITY/SAFETY PUBLICATION PIPELINE
+STATUS=AUTHORIZED / EXECUTED
+MODE=W0→W10 REHEARSAL IMPLEMENTATION + TEST + CI + CONTROLLED AUTO-REMEDIATION TO GREEN
+RECORDED_AT_UTC=2026-08-11T08:45:00Z
+APPROVAL=Javad Master Gate authorization (explicit comprehensive Gate approval)
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§284.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+ORM_CHANGED=NO
+MIGRATION_CREATED=NO (065 reused; NEW_MIGRATION=NO)
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_SCHEDULER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+PRODUCTION_WRITE=NO
+MASS_INGESTION_EXECUTED=NO
+PRODUCTION_WEEKLY=NOT_AUTHORIZED
+P0_SPECIFIC_SCHEMA_BRANCHING=0
+MODEL_INVENTED_COVERAGE=0
+DUPLICATE_KNOWLEDGE_AUTHORITY=0
+REFERENCE_DRIFT=0
+MASTER_LOG_PREFIX_MUTATION=0
+
+--------------------------------------------------------------------------------
+§284.A - AUTHORITY
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=79e61f05efce2c740e45f3cde7e0ae27a5857b23
+IMPL_COMMIT=dec755a
+REMEDIATION_COMMITS=820e7f7
+HEAD_AT_GREEN=820e7f7
+MASTER_LOG_PREDECESSOR=§283
+MASTER_LOG_PREDECESSOR_SIZE=3000540
+MASTER_LOG_PREDECESSOR_SHA256=208253D391A25AB73B405C0EB7919EF5E8A74FF57A869403B8EBF8F5644D6CD9
+CURSOR_HANDOFF_PREDECESSOR=v574
+CHATGPT_CONTINUITY_PREDECESSOR=v584
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=065_i5_know04_connectors_change_intelligence
+
+--------------------------------------------------------------------------------
+§284.B - NF16/NF17
+--------------------------------------------------------------------------------
+NF16=CLOSED_WITH_EXACT_EXTERNAL_HARD_STOP_OR_READY (reject .test/example operational emails; weekly ops BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY without secrets.SEDI_NCBI_EMAIL; no invented contact)
+NF17=PASS (ObservingHttpGet; LIVE_VERIFIED requires observed http_status 2xx + bytes_received>0 + request_count>=1)
+HARDCODED_HTTP_SUCCESS_EVIDENCE=0
+HARDCODED_BYTES_RECEIVED_EVIDENCE=0
+
+--------------------------------------------------------------------------------
+§284.C - DB / AVAILABILITY / WEEKLY REUSE
+--------------------------------------------------------------------------------
+DB_KNOWLEDGE_AUTHORITY_AUDIT=PASS (storage_matrix.py)
+DUPLICATE_KNOWLEDGE_AUTHORITY=0
+KNOWLEDGE_STORAGE_MATRIX=PASS
+KNOWLEDGE_AVAILABILITY_MODEL=PASS (availability.py derived states)
+WEEKLY_ORCHESTRATOR=PASS (know05.orchestrator extends WeeklyKnowledgeRun ledger)
+EXISTING_WEEKLY_GOVERNANCE_REUSED=YES
+COVERAGE_DRIVEN_DISCOVERY=PASS (coverage_engine cell→KnowledgeGap)
+KNOWLEDGE_GAP_AUTOMATION=PASS (MISSING→gap; no model invention)
+BOUNDED_INGESTION=PASS (budgets + modes)
+WEEKLY_REHEARSAL=AUTHORIZED (DRY_RUN proven in CI PG)
+PRODUCTION_WEEKLY=NOT_AUTHORIZED
+
+--------------------------------------------------------------------------------
+§284.D - COVERAGE / CHANGE / RAG
+--------------------------------------------------------------------------------
+ALS_P0_COVERAGE=ENGINE_GREEN (priority overlay; cells→gaps)
+MS_P0_COVERAGE=ENGINE_GREEN
+DIABETES_P0_COVERAGE=ENGINE_GREEN (taxonomy subclasses via concept_key; no schema fork)
+NON_P0_UNIVERSAL_COVERAGE=ENGINE_GREEN (universal dimensions + cells)
+CHANGE_INTELLIGENCE=PASS (preserved + KCE retracted_at propagation)
+RETRACTION_PROPAGATION=PASS (invalidate_rag_for_knowledge_unit)
+STRUCTURED_RETRIEVAL=PASS
+RUNTIME_ELIGIBLE_NO_RETRIEVAL_PATH=0
+DB_SCIS_RAG_COHERENCE=PASS (rag_coherence audit zeroes)
+ORPHAN_RAG_RECORD=0
+RAG_RECORD_WITHOUT_DB_AUTHORITY=0
+RETRACTED_RAG_RUNTIME_ELIGIBLE=0
+RAG_ACTIVATED=NO
+RAG_INDEXED_COUNT=NOT_APPLICABLE / NOT_ACTIVATED
+RIGHTS_ENGINE=PRESERVED
+TRANSIENT_RAW_RESIDUE=0
+USER_PHI_EXTERNAL_DISCLOSURE=0
+
+--------------------------------------------------------------------------------
+§284.E - PROOFS
+--------------------------------------------------------------------------------
+ALEMBIC_SINGLE_HEAD=PASS (065)
+FRESH_065=PASS
+PYTEST_DETERMINISTIC=31 passed / 0 failed
+PYTEST_LIVE=5 passed / 0 failed
+RAW_LOG_AUDIT=PASS
+CI_RUN=31474268371
+CI_JOB_DETERMINISTIC=93724245918
+CI_JOB_LIVE=93724406767
+CI_CONCLUSION=success
+ARTIFACT_ID_DETERMINISTIC=9094584890
+ARTIFACT_DIGEST_DETERMINISTIC=sha256:f464236be5f624f69831c3dc85959a43c3a671f718e753bdc4e6aa1d17075a15
+ARTIFACT_ID_LIVE=9094600137
+ARTIFACT_DIGEST_LIVE=sha256:3929b7bd51271d4939f7ef43dcfc88d4c77c01580bcdcfaa464553299ef26a82
+CI_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31474268371
+KNOW04_REGRESSION_CI=31473978529 success
+AUTO_REMEDIATION_CYCLES=1 (idempotent weekly attempt reuse)
+
+--------------------------------------------------------------------------------
+§284.F - OPEN FINDINGS
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=6
+NF1=CAP24 BLOCKED_WITH_EXACT_EVIDENCE (preserved)
+NF2=Per-source TDM REVIEW_REQUIRED (preserved)
+NF3=Clinic entity model NEXT_SCHEMA_GATE_REQUIRED (preserved)
+NF4=ICD11 credentials/live pending (preserved)
+NF12=RxNorm/LOINC LICENSE_ACCEPTANCE_REQUIRED (preserved)
+NF16_OPERATIONAL=awaiting secrets.SEDI_NCBI_EMAIL for LIVE_READY weekly PubMed (honest hard-stop when absent)
+
+--------------------------------------------------------------------------------
+§284.G - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_GATE=SEDI-V1 I5 PRODUCTION DATA-PLATFORM ALIGNMENT + MIGRATIONS 061→CURRENT + GOVERNED WEEKLY CRAWLER ACTIVATION + KNOWLEDGE AVAILABILITY VERIFICATION + DB↔SCIS/RAG PRODUCTION COHERENCE + POST-ACTIVATION OBSERVABILITY
+NEXT_GATE_AUTHORIZED=NO
+I5_TECHNICAL_CLOSURE_READY=PARTIAL (KNOW-05 rehearsal Green; Production activation separate)
+PRODUCTION_ACTIVATION_READY=NO
+
+--------------------------------------------------------------------------------
+§284.H - FINAL VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+GATE_RESULT=PASS
+MARKER=I5_KNOW05_WEEKLY_ACQUISITION_REHEARSAL_PASS
+END_OF_MORDAD_RISK=MODERATE (technical rehearsal Green; Production weekly still ahead)
+
+NOTE=post-§284 final master-log whole-file self-SHA is NOT embedded inside §284.
+SIZE_BEFORE_APPEND=3000540
+SHA256_BEFORE_APPEND=208253D391A25AB73B405C0EB7919EF5E8A74FF57A869403B8EBF8F5644D6CD9
