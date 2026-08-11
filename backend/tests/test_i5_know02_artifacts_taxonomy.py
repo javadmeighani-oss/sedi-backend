@@ -88,29 +88,53 @@ def test_know02_foundation_universality_multi_evidence_queries():
     Session = sessionmaker(bind=engine)
     db = Session()
     try:
-        # clean prior know02 fixture keys
+        # clean prior know02-owned rows; do not CASCADE-break KNOW-03 RESTRICT graph
         for ku in (
             db.query(models.KnowledgeUnit)
             .filter(models.KnowledgeUnit.canonical_unit_id.like("know02:%"))
             .all()
         ):
             db.delete(ku)
-        for art in (
-            db.query(models.I5ScientificArtifact)
-            .filter(models.I5ScientificArtifact.artifact_key.like("fixture:%"))
-            .all()
-        ):
-            db.delete(art)
-        for c in (
-            db.query(models.I5ClinicalConcept)
-            .filter(
-                (models.I5ClinicalConcept.concept_key.like("disease:%"))
-                | (models.I5ClinicalConcept.concept_key.like("family:%"))
-                | (models.I5ClinicalConcept.concept_key.like("population:%"))
-            )
-            .all()
-        ):
-            db.delete(c)
+        know03_present = False
+        try:
+            know03_present = db.query(models.I5ClinicalStudy).count() > 0
+        except Exception:
+            know03_present = False
+        if not know03_present:
+            for art in (
+                db.query(models.I5ScientificArtifact)
+                .filter(models.I5ScientificArtifact.artifact_key.like("fixture:%"))
+                .all()
+            ):
+                db.delete(art)
+            for c in (
+                db.query(models.I5ClinicalConcept)
+                .filter(
+                    (models.I5ClinicalConcept.concept_key.like("disease:%"))
+                    | (models.I5ClinicalConcept.concept_key.like("family:%"))
+                    | (models.I5ClinicalConcept.concept_key.like("population:%"))
+                )
+                .all()
+            ):
+                db.delete(c)
+        else:
+            # KNOW-03 owns RESTRICT FKs into shared taxonomy/artifacts — reseed upsert-only
+            for art in (
+                db.query(models.I5ScientificArtifact)
+                .filter(
+                    models.I5ScientificArtifact.artifact_key.like("fixture:%"),
+                    ~models.I5ScientificArtifact.artifact_key.like("fixture:know03:%"),
+                )
+                .all()
+            ):
+                referenced = (
+                    db.query(models.I5ClinicalStudy)
+                    .filter(models.I5ClinicalStudy.primary_artifact_id == art.id)
+                    .count()
+                )
+                if referenced:
+                    continue
+                db.delete(art)
         db.commit()
 
         summary = seed_know02_foundation(db)
