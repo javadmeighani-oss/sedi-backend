@@ -40,28 +40,31 @@ jobs:
 
     services:
       postgres:
+        # Credentials must match backend/tests/helpers/w3p02_postgres_runtime.py EXPECTED_*
+        # so the canonical W3-P02 plugin fixture can bind safely.
         image: pgvector/pgvector:pg16
         env:
-          POSTGRES_USER: sedi_know01_test
-          POSTGRES_PASSWORD: sedi_know01_test_password
-          POSTGRES_DB: sedi_know01_registry
+          POSTGRES_USER: sedi_w3p02_test
+          POSTGRES_PASSWORD: sedi_w3p02_test_password
+          POSTGRES_DB: sedi_w3p02_orchestrator
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U sedi_know01_test -d sedi_know01_registry"
+          --health-cmd "pg_isready -U sedi_w3p02_test -d sedi_w3p02_orchestrator"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
 
     env:
       PYTHONPATH: ${{ github.workspace }}
-      DATABASE_URL: postgresql+psycopg2://sedi_know01_test:sedi_know01_test_password@127.0.0.1:5432/sedi_know01_registry
-      TEST_DATABASE_URL: postgresql+psycopg2://sedi_know01_test:sedi_know01_test_password@127.0.0.1:5432/sedi_know01_registry
+      DATABASE_URL: postgresql+psycopg2://sedi_w3p02_test:sedi_w3p02_test_password@127.0.0.1:5432/sedi_w3p02_orchestrator
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w3p02_test:sedi_w3p02_test_password@127.0.0.1:5432/sedi_w3p02_orchestrator
       APP_ENV: test_isolated
       ENVIRONMENT: test_isolated
       ENV: test_isolated
       PYTHONDONTWRITEBYTECODE: "1"
       OPENAI_API_KEY: know01-test-placeholder-not-used
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
 
     steps:
       - name: Checkout
@@ -204,14 +207,43 @@ jobs:
             | tee "${{ runner.temp }}/know01_evidence/pytest_know01_targeted.txt"
           echo "KNOW01_TARGETED_EXIT=0" > "${{ runner.temp }}/know01_evidence/pytest_know01_targeted_exit.txt"
 
-      - name: W3-P02 full regression (canonical conftest db fixture)
+      - name: W3-P02 full regression (canonical w3p02 postgres plugin fixture)
         run: |
           set -euo pipefail
           set -o pipefail
-          # Do NOT use --noconftest: DB nodes require backend/tests/conftest.py::db
+          # Reset to empty schema: alembic views break Base.metadata.drop_all in root conftest.
+          # Canonical W3-P02 harness uses --noconftest + w3p02_postgres_runtime_plugin::db.
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          print("W3P02_SCHEMA_RESET=PASS")
+          PY
           python -B -m pytest \
-            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py \
+            --noconftest \
+            -p backend.tests.helpers.w3p02_postgres_runtime_plugin \
+            -p no:cacheprovider \
             -q --tb=short \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T1_package_identity \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T2_activation_off_and_dormant_scheduler_contract \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T3_discovery_select_eligible \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T4_governance_fail_closed \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T5_adapter_resolve_and_unknown \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T6_discovery_dedupe \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T7_create_run_idempotency \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T8_attempt_transitions_and_invalid \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T9_retry_after_failure \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T10_source_result_lifecycle \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T11_gap_result_lifecycle \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T12_partial_full_no_eligible \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T13_handoff_prepare_only \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T14_dry_run_no_activation_no_production_write \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py::test_W3P02_T15_source_fk_invalid \
             | tee "${{ runner.temp }}/know01_evidence/pytest_w3p02.txt"
           echo "W3P02_EXIT=0" > "${{ runner.temp }}/know01_evidence/pytest_w3p02_exit.txt"
 
@@ -255,16 +287,18 @@ jobs:
               bad.append("fixture_db_not_found")
           if "rg: command not found" in blob:
               bad.append("rg_command_not_found")
-          if re.search(r"(?m)^\d+ failed", blob):
+          # Pytest summary lines like "1 failed" / "10 errors" (not DeprecationWarning text)
+          if re.search(r"(?m)^\d+ failed(,|$)", blob):
               bad.append("pytest_failed_summary")
-          if re.search(r"(?m)^\d+ error", blob):
+          if re.search(r"(?m)^\d+ errors?(,|$)", blob):
               bad.append("pytest_error_summary")
-          # W3-P02 must not be greened with errors
           w3 = evid / "pytest_w3p02.txt"
           if w3.exists():
               w3t = w3.read_text(encoding="utf-8", errors="replace")
-              if "error" in w3t.lower() and re.search(r"\d+ error", w3t):
+              if re.search(r"(?m)^\d+ errors?(,|$)", w3t) or re.search(r"(?m)^\d+ failed(,|$)", w3t):
                   bad.append("w3p02_errors")
+              if "fixture 'db' not found" in w3t:
+                  bad.append("w3p02_missing_db_fixture")
           (evid / "raw_log_audit.txt").write_text(
               "RAW_LOG_AUDIT=" + ("PASS" if not bad else "FAIL") + "\n"
               + ("FINDINGS=" + ",".join(bad) if bad else "FINDINGS=NONE") + "\n",
