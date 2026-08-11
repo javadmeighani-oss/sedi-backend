@@ -507,36 +507,44 @@ def test_know04_w0_and_connectors_pg():
             add_mapping(db, concept_id=ms.id, terminology_system="MESH", external_code="FIX-KNOW04-MAP", release_version="2026")
         assert db.query(models.I5TerminologyMappingConflictEvent).count() >= 1
 
-        # Retraction scenarios A/B
+        # Retraction scenarios A/B — isolated KU so other seeded evidence cannot pollute reassessment
         a1 = upsert_artifact(db, artifact_key="fixture:know04:art1", artifact_type="ARTICLE", title="a1", pmid="SYNTH1")
         a2 = upsert_artifact(db, artifact_key="fixture:know04:art2", artifact_type="ARTICLE", title="a2", pmid="SYNTH2")
         a3 = upsert_artifact(db, artifact_key="fixture:know04:art3", artifact_type="ARTICLE", title="a3", pmid="SYNTH3")
         v1 = add_artifact_version(db, artifact_id=a1.id, version_label="1", content_hash="11" * 32)
         v2 = add_artifact_version(db, artifact_id=a2.id, version_label="1", content_hash="22" * 32)
         v3 = add_artifact_version(db, artifact_id=a3.id, version_label="1", content_hash="33" * 32)
-        ku = db.query(models.KnowledgeUnit).first()
-        if ku is not None:
-            for vv in (v1, v2, v3):
-                link_evidence(
-                    db,
-                    knowledge_unit_id=ku.id,
-                    artifact_version_id=vv.id,
-                    support_direction=EvidenceSupportDirection.SUPPORTS.value,
-                )
-            db.flush()
-            apply_artifact_change(db, artifact_version_id=v1.id, change_kind="RETRACTED", source_connector_key="pubmed_ncbi_eutils")
-            assert not runtime_evidence_allowed(db.query(models.I5ScientificArtifactVersion).get(v1.id))
-            result = reassess_claim_runtime_support(db, knowledge_unit_id=ku.id)
-            assert result["retracted_positive_runtime_evidence"] == 0
-            assert result["claim_deleted"] is False
-            assert result["eligible_support_links"] >= 2
+        from backend.app.services.i5.know02.seed_fixtures import _make_ku
 
-            # Scenario A alone: retract remaining
-            apply_artifact_change(db, artifact_version_id=v2.id, change_kind="RETRACTED")
-            apply_artifact_change(db, artifact_version_id=v3.id, change_kind="RETRACTED")
-            result2 = reassess_claim_runtime_support(db, knowledge_unit_id=ku.id)
-            assert result2["claim_unsupported_if_no_other_valid_support"] is True
-            assert result2["claim_deleted"] is False
+        ku = _make_ku(
+            db,
+            canonical="know04:claim:retraction_canary",
+            statement="SYNTHETIC FIXTURE claim for retraction propagation - NOT PRODUCTION",
+            domain="clinical",
+            knowledge_type="FACT",
+        )
+        for vv in (v1, v2, v3):
+            link_evidence(
+                db,
+                knowledge_unit_id=ku.id,
+                artifact_version_id=vv.id,
+                support_direction=EvidenceSupportDirection.SUPPORTS.value,
+            )
+        db.flush()
+        apply_artifact_change(db, artifact_version_id=v1.id, change_kind="RETRACTED", source_connector_key="pubmed_ncbi_eutils")
+        assert not runtime_evidence_allowed(db.get(models.I5ScientificArtifactVersion, v1.id))
+        result = reassess_claim_runtime_support(db, knowledge_unit_id=ku.id)
+        assert result["retracted_positive_runtime_evidence"] == 0
+        assert result["claim_deleted"] is False
+        assert result["eligible_support_links"] >= 2
+
+        # Scenario A: retract remaining supports
+        apply_artifact_change(db, artifact_version_id=v2.id, change_kind="RETRACTED")
+        apply_artifact_change(db, artifact_version_id=v3.id, change_kind="RETRACTED")
+        result2 = reassess_claim_runtime_support(db, knowledge_unit_id=ku.id)
+        assert result2["claim_unsupported_if_no_other_valid_support"] is True
+        assert result2["claim_deleted"] is False
+        assert result2["eligible_support_links"] == 0
 
         # Scenario C supersession
         art = upsert_artifact(db, artifact_key="fixture:know04:recsrc", artifact_type="GUIDELINE", title="g")
@@ -565,7 +573,7 @@ def test_know04_w0_and_connectors_pg():
         # Scenario D expression of concern != retraction
         v_eoc = add_artifact_version(db, artifact_id=a1.id, version_label="2", content_hash="44" * 32)
         apply_artifact_change(db, artifact_version_id=v_eoc.id, change_kind="EXPRESSION_OF_CONCERN")
-        v_eoc = db.query(models.I5ScientificArtifactVersion).get(v_eoc.id)
+        v_eoc = db.get(models.I5ScientificArtifactVersion, v_eoc.id)
         assert v_eoc.version_state == ArtifactVersionState.EXPRESSION_OF_CONCERN.value
         assert runtime_evidence_allowed(v_eoc) is True  # not auto-blocked as retraction
 
