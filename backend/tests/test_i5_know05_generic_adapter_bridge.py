@@ -254,20 +254,19 @@ def test_pg_generic_bridge_dynamic_source_and_negatives():
             .filter_by(canonical_key="know01:synth_dyn_epub_2026")
             .one()
         )
-        # Prefer bridge-created gap; fall back to explicit persist if resolution path
-        # recorded reason without write (must still be durable for Gate F3 preserve).
+        gsp_epub_id = gsp_epub.id
         from backend.app.services.i5.know01.format_gap_persistence import persist_unsupported_format_gap
 
         gaps = (
             db.query(models.KnowledgeGap)
-            .filter_by(target_source_profile_id=gsp_epub.id)
+            .filter_by(target_source_profile_id=gsp_epub_id)
             .filter(models.KnowledgeGap.blocker.like("UNSUPPORTED_FORMAT%"))
             .all()
         )
         if not gaps:
             gap_row, _created = persist_unsupported_format_gap(
                 db,
-                source_profile_id=gsp_epub.id,
+                source_profile_id=gsp_epub_id,
                 resource_ref="https://epub-guideline.example.org/book.epub",
                 format_id="EPUB",
             )
@@ -278,11 +277,11 @@ def test_pg_generic_bridge_dynamic_source_and_negatives():
         db.close()
         db2 = Session()
         again = db2.query(models.KnowledgeGap).filter_by(id=gap_id).one()
-        assert again.target_source_profile_id == gsp_epub.id
+        assert again.target_source_profile_id == gsp_epub_id
         assert (again.blocker or "").startswith("UNSUPPORTED_FORMAT")
         again2 = requery_unsupported_format_gap(
             db2,
-            source_profile_id=gsp_epub.id,
+            source_profile_id=gsp_epub_id,
             resource_ref="https://epub-guideline.example.org/book.epub",
             format_id="EPUB",
         )
