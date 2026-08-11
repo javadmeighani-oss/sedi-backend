@@ -67806,3 +67806,21 @@ END_OF_MORDAD_EFFECT=Repo-wide write-path + multi-source evidence closed; Produc
 NOTE=post-§293 final master-log whole-file self-SHA is NOT embedded inside §293.
 SIZE_BEFORE_APPEND=3050182
 SHA256_BEFORE_APPEND=2BC05B12C1A6355BAEA22F26596CF6F960A214E0DED0A71FC97A8FC88CB72C22
+
+--------------------------------------------------------------------------------
+§293.E - AUTO-REMEDIATION CYCLE 2 (KNOW-02 CI LEAVE-AT-065)
+--------------------------------------------------------------------------------
+CYCLE=2/4
+FINDING=KNOW-02 pytest InFailedSqlTransaction after upgrade-path left DB at 063
+ROOT_CAUSE=Upgrade path 062→063 DROPped schema and left alembic at 063; models expected i5_clinical_studies (064+)
+CLASSIFICATION=CI_FIXTURE / TEST_HARDENING
+FILES_CHANGED=.github/workflows/i5-know02-artifacts-taxonomy-runtime.yml; backend/tests/test_i5_know02_artifacts_taxonomy.py
+SYMBOLS_CHANGED=upgrade path ends at 065; begin_nested probe for I5ClinicalStudy
+COMMIT_SHA=d80cb3c1c15e65351b2b4ecc3f2d36912423cdca
+KNOW02_CI=31523625186=PASS
+KNOW02_CI_DISPATCH=31523624996=PASS
+RESULT=PASS
+TECHNICAL_GREEN_HEAD=d80cb3c1c15e65351b2b4ecc3f2d36912423cdca
+FINDING_CLOSURE_TECH_HEAD=5db1f508d70f20816a349b7e7a441b5fb202749e
+AUTO_REMEDIATION_CYCLES=2/4
+STALE_KNOW02_LEAVE_AT_063=CORRECTED
