@@ -69,10 +69,18 @@ def test_W3P01_T1_package_identity() -> None:
 def test_W3P01_T2_registry_register_and_resolve() -> None:
     registry = default_registry()
     ids = set(registry.list_ids())
-    assert ids == {"i5.public_web_fetch", "i5.official_api", "i5.rss_feed"}
+    assert ids == {
+        "i5.public_web_fetch",
+        "i5.official_api",
+        "i5.rss_feed",
+        "i5.pdf_text",
+        "i5.jats_xml",
+    }
     assert registry.resolve_by_mode("PUBLIC_WEB_FETCH").metadata().adapter_id == "i5.public_web_fetch"
     assert registry.resolve_by_mode("OFFICIAL_API").metadata().adapter_id == "i5.official_api"
     assert registry.resolve_by_mode("RSS_OR_FEED").metadata().adapter_id == "i5.rss_feed"
+    assert registry.resolve_by_mode("PDF_TEXT").metadata().adapter_id == "i5.pdf_text"
+    assert registry.resolve_by_mode("OFFICIAL_XML").metadata().adapter_id == "i5.jats_xml"
     with pytest.raises(AdapterFrameworkError, match="DUPLICATE_ADAPTER"):
         registry.register(registry.get("i5.public_web_fetch"))
     with pytest.raises(AdapterFrameworkError, match="ADAPTER_UNKNOWN"):

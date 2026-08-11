@@ -1,0 +1,192 @@
+# I5-KNOW-01 Trusted Source Registry + Rights + Multiformat Foundation
+# PostgreSQL 16 + pgvector image (inherits SCIS-01 chain). NO Production mutation.
+name: I5-KNOW-01 Source Registry Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/know01/**"
+      - "backend/app/services/i5/adapters/**"
+      - "backend/app/services/i5/enums.py"
+      - "backend/alembic/versions/062_i5_know01_source_registry_rights.py"
+      - "backend/tests/test_i5_know01_source_registry.py"
+      - "backend/tests/test_section30_i5_w3_p01_adapters_extract.py"
+      - "backend/tests/test_db03_contracts.py"
+      - "backend/app/models.py"
+      - ".github/workflows/i5-know01-source-registry-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-know01-source-registry-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i5-know01-source-registry:
+    name: KNOW-01 registry + rights + adapters
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_know01_test
+          POSTGRES_PASSWORD: sedi_know01_test_password
+          POSTGRES_DB: sedi_know01_registry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_know01_test -d sedi_know01_registry"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_know01_test:sedi_know01_test_password@127.0.0.1:5432/sedi_know01_registry
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_know01_test:sedi_know01_test_password@127.0.0.1:5432/sedi_know01_registry
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Deny Production activation markers in KNOW-01 package
+        run: |
+          if rg -n -i "PRODUCTION_CRAWLER_ACTIVATED\s*=\s*True|RAG_ACTIVATED\s*=\s*True" backend/app/services/i5/know01; then
+            echo "FORBIDDEN_PRODUCTION_ACTIVATION"
+            exit 1
+          fi
+          test -f backend/alembic/versions/062_i5_know01_source_registry_rights.py
+          echo "KNOW01_PACKAGE_GUARD=PASS"
+
+      - name: Alembic head is 062
+        run: |
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["062_i5_know01_source_registry_rights"], heads
+          PY
+
+      - name: Fresh upgrade to 062
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              assert head == "062_i5_know01_source_registry_rights", head
+              for t in (
+                  "i5_source_registry_extensions",
+                  "i5_source_registry_roles",
+                  "i5_source_p0_tags",
+                  "i5_source_coverage_gaps",
+                  "i5_reference_books",
+                  "i5_reference_book_editions",
+              ):
+                  assert c.execute(text(
+                      "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
+                  ), {"t": t}).scalar(), t
+          print("FRESH_062=PASS")
+          PY
+
+      - name: Upgrade path 061 → 062
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "061_scis01_pgvector_kce_foundation")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "061_scis01_pgvector_kce_foundation"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_source_registry_extensions'"
+              )).scalar() is None
+          command.upgrade(cfg, "062_i5_know01_source_registry_rights")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "062_i5_know01_source_registry_rights"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_source_registry_extensions'"
+              )).scalar() == 1
+          print("UPGRADE_061_TO_062=PASS")
+          PY
+
+      - name: KNOW-01 + adapter regression pytest
+        run: |
+          mkdir -p "${{ runner.temp }}/know01_evidence"
+          python -B -m pytest \
+            backend/tests/test_i5_know01_source_registry.py \
+            backend/tests/test_section30_i5_w3_p01_adapters_extract.py \
+            backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
+            backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/know01_evidence/pytest_know01.txt"
+
+      - name: I5 adapter + discovery smoke regression
+        run: |
+          python -B -m pytest \
+            backend/tests/test_section30_i5_w3_p02_weekly_orchestrator.py \
+            -q --tb=short --noconftest \
+            | tee -a "${{ runner.temp }}/know01_evidence/pytest_know01.txt"
+
+      - name: Write evidence summary
+        if: always()
+        run: |
+          {
+            echo "GATE=I5-KNOW-01"
+            echo "ALEMBIC_HEAD=062_i5_know01_source_registry_rights"
+            echo "PRODUCTION_MIGRATION_RUN=NO"
+            echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
+            echo "PRODUCTION_RAG_ACTIVATED=NO"
+            echo "DIABETES_D20_RUNTIME_MUTATION=NO"
+            echo "CAP24_STATUS=BLOCKED_WITH_EXACT_EVIDENCE"
+            echo "UNKNOWN_RIGHTS_FAIL_CLOSED=YES"
+          } > "${{ runner.temp }}/know01_evidence/summary.txt"
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know01-source-registry-evidence
+          path: ${{ runner.temp }}/know01_evidence/
+          retention-days: 14

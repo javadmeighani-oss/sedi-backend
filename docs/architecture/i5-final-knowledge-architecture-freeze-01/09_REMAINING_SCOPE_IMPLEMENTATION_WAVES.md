@@ -23,7 +23,24 @@ W1–W6 technical packages largely CI-proven; GSP/KU/provenance/memory/conflict/
 10. CAP24 labs source authority (ops blocker)  
 11. Formal §164.2 credit mapping / EO-C11 as separate governance  
 
-## Waves (implementation — unauthorized)
+## Waves (implementation)
+
+```text
+I5 = GLOBAL GOVERNED KNOWLEDGE
+I6 = CANONICAL PERSONAL MEMORY / PERSONAL CONTEXT
+I7 = LONGITUDINAL USER INTELLIGENCE
+I8 = PERSONALIZED EVIDENCE APPLICABILITY + GROUNDED RECOMMENDATION INTELLIGENCE
+```
+
+Permanent boundary (roadmap correction):
+
+```text
+user_clinical_feature_index
+user_evidence_matches
+personal applicability runtime
+```
+
+remain DESIGN CONTRACT only under I5 docs. Implementation ownership is I6/I7/I8 integration — not I5 KNOW closure.
 
 ```text
 I5-KNOW-01  Trusted Source Registry + Rights Engine + Multiformat foundation
@@ -31,7 +48,7 @@ I5-KNOW-02  Scientific artifacts + multi-evidence links + claim details
 I5-KNOW-03  Structured studies/effects/recommendations + terminology
 I5-KNOW-04  PubMed E-utilities + ClinicalTrials.gov API v2 connectors
 I5-KNOW-05  P0 coverage matrix runtime + Diabetes D20 manifest + gap generation
-I5-KNOW-06  Patient feature projection + applicability (coord I6)
+I5-KNOW-06  Patient feature projection + applicability (coord I6) — NOT I5-owned user intelligence
 I5-KNOW-07  Evidence-aware SCIS publication + eval harness clinical suites
 ```
 

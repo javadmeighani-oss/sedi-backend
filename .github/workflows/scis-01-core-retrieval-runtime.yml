@@ -83,7 +83,7 @@ jobs:
           test -f backend/alembic/versions/061_scis01_pgvector_kce_foundation.py
           echo "SCIS01_ALEMBIC_VECTOR_ALLOWLIST=PASS"
 
-      - name: Alembic single head is 061
+      - name: Alembic single head is 062 (SCIS-01 + KNOW-01 chain)
         run: |
           python - <<'PY'
           from alembic.config import Config
@@ -92,10 +92,12 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["061_scis01_pgvector_kce_foundation"], heads
+          assert heads == ["062_i5_know01_source_registry_rights"], heads
+          rev = script.get_revision("062_i5_know01_source_registry_rights")
+          assert rev.down_revision == "061_scis01_pgvector_kce_foundation"
           PY
 
-      - name: Fresh upgrade to SCIS-01 head + prove pgvector
+      - name: Fresh upgrade to head + prove pgvector + KNOW-01 tables
         run: |
           python - <<'PY'
           import os
@@ -114,7 +116,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "061_scis01_pgvector_kce_foundation"
+              assert head == "062_i5_know01_source_registry_rights"
               ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
               print("PGVECTOR_VERSION", ext)
               assert ext
@@ -125,9 +127,17 @@ jobs:
               print("EMBEDDING_VECTOR_TYPE", col)
               # pgvector registers as USER-DEFINED
               assert col is not None
+              for t in (
+                  "i5_source_registry_extensions",
+                  "i5_reference_books",
+                  "i5_source_coverage_gaps",
+              ):
+                  assert c.execute(text(
+                      "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
+                  ), {"t": t}).scalar()
           PY
 
-      - name: Upgrade path 060 → 061
+      - name: Upgrade path 060 → 061 → 062
         run: |
           python - <<'PY'
           import os
@@ -150,7 +160,10 @@ jobs:
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "061_scis01_pgvector_kce_foundation"
               assert c.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar() == 1
-          print("UPGRADE_060_TO_061=PASS")
+          command.upgrade(cfg, "062_i5_know01_source_registry_rights")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "062_i5_know01_source_registry_rights"
+          print("UPGRADE_060_TO_062=PASS")
           PY
 
       - name: Unit + SCIS runtime pytest
@@ -233,7 +246,8 @@ jobs:
         run: |
           {
             echo "GATE=SCIS-01"
-            echo "ALEMBIC_HEAD=061_scis01_pgvector_kce_foundation"
+            echo "ALEMBIC_HEAD=062_i5_know01_source_registry_rights"
+            echo "SCIS01_REVISION=061_scis01_pgvector_kce_foundation"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
             echo "RAG_ACTIVATED=NO"

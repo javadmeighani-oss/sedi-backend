@@ -10,6 +10,7 @@ from backend.app.services.i5.adapters.base import (
     default_registry,
 )
 from backend.app.services.i5.adapters.official_api import OfficialApiAdapter
+from backend.app.services.i5.adapters.pdf_jats import JatsXmlAdapter, PdfTextAdapter
 from backend.app.services.i5.adapters.public_web_fetch import PublicWebFetchAdapter
 from backend.app.services.i5.adapters.rss_feed import RssFeedAdapter
 
@@ -20,7 +21,9 @@ __all__ = [
     "AdapterFrameworkError",
     "AdapterRegistry",
     "FixtureTransportResponse",
+    "JatsXmlAdapter",
     "OfficialApiAdapter",
+    "PdfTextAdapter",
     "PublicWebFetchAdapter",
     "RssFeedAdapter",
     "SourceAdapter",

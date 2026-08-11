@@ -29,6 +29,7 @@ ADAPTER_MODES: frozenset[str] = frozenset(
         "OFFICIAL_JSON",
         "RSS_OR_FEED",
         "PUBLIC_WEB_FETCH",
+        "PDF_TEXT",
         "MANUAL_OR_LINK_ONLY",
         "BLOCKED_OR_EXCLUDED",
     }
@@ -320,6 +321,7 @@ def public_web_fetcher_substrate_symbol() -> str:
 
 def default_registry() -> AdapterRegistry:
     from backend.app.services.i5.adapters.official_api import OfficialApiAdapter
+    from backend.app.services.i5.adapters.pdf_jats import JatsXmlAdapter, PdfTextAdapter
     from backend.app.services.i5.adapters.public_web_fetch import PublicWebFetchAdapter
     from backend.app.services.i5.adapters.rss_feed import RssFeedAdapter
 
@@ -327,4 +329,6 @@ def default_registry() -> AdapterRegistry:
     registry.register(PublicWebFetchAdapter())
     registry.register(OfficialApiAdapter())
     registry.register(RssFeedAdapter())
+    registry.register(PdfTextAdapter())
+    registry.register(JatsXmlAdapter())
     return registry

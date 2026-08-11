@@ -75,14 +75,15 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["061_scis01_pgvector_kce_foundation"]
-    rev = script.get_revision("061_scis01_pgvector_kce_foundation")
+    assert heads == ["062_i5_know01_source_registry_rights"]
+    rev = script.get_revision("062_i5_know01_source_registry_rights")
     chain = []
     while rev:
         chain.append(rev.revision)
         if not rev.down_revision:
             break
         rev = script.get_revision(rev.down_revision)
+    assert "061_scis01_pgvector_kce_foundation" in chain
     assert "060_db03_w4_w6_scale_inspect_roles" in chain
     assert "056_i5_w2_p02_conflict_safety" in chain
     assert "057_db03_w0_drift_normalization" in chain

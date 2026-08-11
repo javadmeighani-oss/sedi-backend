@@ -2628,3 +2628,162 @@ class PhysiologicalMeasurementRollup(Base):
     min_value = Column(Float, nullable=True)
     max_value = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+# -------------------- I5-KNOW-01 Trusted Source Registry / Rights / Books --------------------
+
+
+class I5SourceRegistryExtension(Base):
+    """Trusted Source Registry overlay (listing ≠ authorization)."""
+
+    __tablename__ = "i5_source_registry_extensions"
+
+    source_profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="CASCADE", name="fk_sre_source_profile"),
+        primary_key=True,
+    )
+    source_universe = Column(String(32), nullable=False, index=True)
+    publisher_family = Column(String(128), nullable=True)
+    authority_class = Column(String(64), nullable=False, index=True)
+    country = Column(String(64), nullable=True)
+    jurisdiction = Column(String(64), nullable=True)
+    languages = Column(String(128), nullable=True)
+    knowledge_domains = Column(Text, nullable=True)
+    specialty_domains = Column(Text, nullable=True)
+    canonical_home = Column(Text, nullable=True)
+    canonical_discovery_endpoint = Column(Text, nullable=True)
+    api_endpoint = Column(Text, nullable=True)
+    rss_endpoint = Column(Text, nullable=True)
+    atom_endpoint = Column(Text, nullable=True)
+    sitemap_endpoint = Column(Text, nullable=True)
+    oai_endpoint = Column(Text, nullable=True)
+    bulk_endpoint = Column(Text, nullable=True)
+    supported_formats = Column(Text, nullable=True)
+    access_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    automation_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN", index=True)
+    tdm_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    transform_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    retain_raw_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    retain_derived_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    redistribution_right = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    attribution_requirement = Column(Text, nullable=True)
+    robots_state = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    rate_limit_policy = Column(Text, nullable=True)
+    freshness_policy = Column(Text, nullable=True)
+    processing_permission_mode = Column(
+        String(64), nullable=False, default="FULLTEXT_AUTOMATION_BLOCKED", server_default="FULLTEXT_AUTOMATION_BLOCKED"
+    )
+    review_stage = Column(String(32), nullable=False, default="NONE", server_default="NONE")
+    credential_authority = Column(Boolean, nullable=False, default=False, server_default="false")
+    current_rights_review = Column(Text, nullable=True)
+    rights_reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    last_authority_verification = Column(DateTime(timezone=True), nullable=True)
+    last_successful_acquisition = Column(DateTime(timezone=True), nullable=True)
+    last_observed_change = Column(DateTime(timezone=True), nullable=True)
+    registry_status = Column(String(32), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5SourceRegistryRole(Base):
+    __tablename__ = "i5_source_registry_roles"
+    __table_args__ = (
+        UniqueConstraint("source_profile_id", "role", name="uq_srr_profile_role"),
+        Index("ix_srr_role", "role"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    source_profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="CASCADE", name="fk_srr_source_profile"),
+        nullable=False,
+    )
+    role = Column(String(64), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5SourceP0Tag(Base):
+    __tablename__ = "i5_source_p0_tags"
+    __table_args__ = (
+        UniqueConstraint("source_profile_id", "disease", name="uq_sp0_profile_disease"),
+        Index("ix_sp0_disease", "disease"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    source_profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="CASCADE", name="fk_sp0_source_profile"),
+        nullable=False,
+    )
+    disease = Column(String(32), nullable=False)
+    relevance = Column(String(32), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5SourceCoverageGap(Base):
+    __tablename__ = "i5_source_coverage_gaps"
+    __table_args__ = (
+        Index("ix_scg_disease_dim", "disease_or_domain", "knowledge_dimension"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    disease_or_domain = Column(String(128), nullable=False)
+    knowledge_dimension = Column(String(128), nullable=False)
+    evidence_class = Column(String(64), nullable=True)
+    status = Column(String(64), nullable=False)
+    detail = Column(Text, nullable=True)
+    knowledge_gap_id = Column(
+        Integer,
+        ForeignKey("knowledge_gaps.id", ondelete="SET NULL", name="fk_scg_knowledge_gap"),
+        nullable=True,
+    )
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ReferenceBook(Base):
+    __tablename__ = "i5_reference_books"
+    __table_args__ = (UniqueConstraint("book_key", name="uq_irb_book_key"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    book_key = Column(String(256), nullable=False)
+    title = Column(String(512), nullable=False)
+    publisher = Column(String(256), nullable=True)
+    publisher_source_profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="SET NULL", name="fk_irb_publisher_gsp"),
+        nullable=True,
+    )
+    authors_editors = Column(Text, nullable=True)
+    isbn = Column(String(32), nullable=True)
+    specialty = Column(String(128), nullable=True)
+    disease_coverage = Column(Text, nullable=True)
+    rights_class = Column(String(64), nullable=False, default="UNKNOWN_RIGHTS", server_default="UNKNOWN_RIGHTS")
+    medical_authority_note = Column(Text, nullable=True)
+    automation_tdm_permission = Column(String(32), nullable=False, default="UNKNOWN", server_default="UNKNOWN")
+    fulltext_automation_permission = Column(String(32), nullable=False, default="DENIED", server_default="DENIED")
+    retention_policy = Column(Text, nullable=True)
+    canonical_access_route = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ReferenceBookEdition(Base):
+    __tablename__ = "i5_reference_book_editions"
+    __table_args__ = (UniqueConstraint("book_id", "edition_label", name="uq_irbe_book_edition"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    book_id = Column(
+        BigInteger,
+        ForeignKey("i5_reference_books.id", ondelete="CASCADE", name="fk_irbe_book"),
+        nullable=False,
+    )
+    edition_label = Column(String(128), nullable=False)
+    volume = Column(String(64), nullable=True)
+    publication_year = Column(Integer, nullable=True)
+    is_current = Column(Boolean, nullable=False, default=False, server_default="false")
+    superseded_by_edition_id = Column(BigInteger, nullable=True)
+    access_route = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
