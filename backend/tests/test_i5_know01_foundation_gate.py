@@ -213,14 +213,23 @@ def test_pg_v1_reference_catalog_rights_and_placeholders_insufficient():
             assert automation_decision_for_extension(ext).allowed is False
             assert (ext.registry_status or "").upper() != "ACTIVE"
 
-        # Alias connector key present as DISCOVERED identity only
+        # Alias connector key exists as registry identity. Other suite tests may
+        # later mark a GSP ELIGIBLE for fixtures; automation must still fail-closed
+        # when extension rights remain UNKNOWN unless explicitly remediated.
         who_alias = (
             db.query(models.GovernedSourceProfile)
             .filter_by(canonical_key="know01:who_guideline_catalogue")
             .first()
         )
         assert who_alias is not None
-        assert (who_alias.runtime_eligibility or "NOT_ELIGIBLE").upper() != "ELIGIBLE"
+        who_ext = (
+            db.query(models.I5SourceRegistryExtension)
+            .filter_by(source_profile_id=who_alias.id)
+            .first()
+        )
+        assert who_ext is not None
+        assert (who_ext.registry_status or "").upper() != "ACTIVE"
+        assert automation_decision_for_extension(who_ext).allowed is False
 
         stats = catalog_summary(db)
         assert stats["named_authoritative"] >= 12
