@@ -119,13 +119,13 @@ def test_know02_foundation_universality_multi_evidence_queries():
             ):
                 db.delete(c)
         else:
-            # KNOW-03 owns RESTRICT FKs into shared taxonomy/artifacts — reseed upsert-only
-            # KNOW-04 change events also RESTRICT-reference artifacts — do not delete those.
+            # KNOW-03/KNOW-04 own RESTRICT FKs into shared taxonomy/artifacts — reseed upsert-only.
             for art in (
                 db.query(models.I5ScientificArtifact)
                 .filter(
                     models.I5ScientificArtifact.artifact_key.like("fixture:%"),
                     ~models.I5ScientificArtifact.artifact_key.like("fixture:know03:%"),
+                    ~models.I5ScientificArtifact.artifact_key.like("fixture:know04:%"),
                 )
                 .all()
             ):
@@ -136,13 +136,32 @@ def test_know02_foundation_universality_multi_evidence_queries():
                 )
                 if referenced:
                     continue
-                if hasattr(models, "I5ScientificChangeEvent"):
+                version_ids = [
+                    v.id
+                    for v in db.query(models.I5ScientificArtifactVersion).filter_by(artifact_id=art.id).all()
+                ]
+                if version_ids:
                     if (
-                        db.query(models.I5ScientificChangeEvent)
-                        .filter(models.I5ScientificChangeEvent.artifact_id == art.id)
+                        db.query(models.I5ClinicalRecommendation)
+                        .filter(models.I5ClinicalRecommendation.source_artifact_version_id.in_(version_ids))
                         .count()
                     ):
                         continue
+                    if hasattr(models, "I5ScientificChangeEvent") and (
+                        db.query(models.I5ScientificChangeEvent)
+                        .filter(
+                            (models.I5ScientificChangeEvent.artifact_id == art.id)
+                            | (models.I5ScientificChangeEvent.artifact_version_id.in_(version_ids))
+                        )
+                        .count()
+                    ):
+                        continue
+                elif hasattr(models, "I5ScientificChangeEvent") and (
+                    db.query(models.I5ScientificChangeEvent)
+                    .filter(models.I5ScientificChangeEvent.artifact_id == art.id)
+                    .count()
+                ):
+                    continue
                 db.delete(art)
         db.commit()
 
