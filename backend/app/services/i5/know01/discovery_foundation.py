@@ -213,7 +213,13 @@ def assess_candidate_ingestion_eligibility(
     domain_trusted_by_name_alone: bool = False,
     trial_registry_semantics_only: bool = False,
 ) -> CandidateIngestionAssessment:
-    """Fail-closed qualification. NEVER auto-trust or auto-activate."""
+    """Fail-closed qualification. NEVER auto-trust or auto-activate.
+
+    ``authority_verified`` is an *enforcement input* only. Prefer
+    ``assess_authority_from_registry_evidence`` / ``assess_authority_for_source_profile``
+    to derive that boolean from persisted evidence — do not treat a caller True
+    as complete authority assessment by itself.
+    """
     rights = (rights_state or "UNKNOWN").upper()
     blockers: List[str] = []
     if domain_trusted_by_name_alone:

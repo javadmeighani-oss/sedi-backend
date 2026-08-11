@@ -102,6 +102,7 @@ jobs:
             backend/tests/test_i5_know05_remediation.py \
             backend/tests/test_i5_know05_nf23_nf24.py \
             backend/tests/test_i5_know01_foundation_gate.py \
+            backend/tests/test_i5_know01_registry_sot_closure.py \
             backend/tests/test_i5_know05_pg.py \
             backend/tests/test_i5_know05_pg_remediation.py \
             backend/tests/test_i5_know04_connectors.py \

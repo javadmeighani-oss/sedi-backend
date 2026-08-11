@@ -27,9 +27,9 @@ from backend.app.services.i5.know01.format_contracts import FUTURE_ADAPTER_CONTR
 from backend.app.services.i5.know01.seed_registry import seed_know01_registry
 from backend.app.services.i5.know01.v1_reference_catalog import (
     ACQ_DENIED,
+    ACQ_FULLTEXT_ALLOWED,
     ACQ_METADATA_ONLY,
     ACQ_REVIEW_REQUIRED,
-    ACQ_UNKNOWN,
     PLACEHOLDER_BOOK_KEYS,
     V1_AUTHORITATIVE_REFERENCE_CATALOG,
     acquisition_state_for_book,
@@ -234,7 +234,10 @@ def test_pg_v1_reference_catalog_rights_and_placeholders_insufficient():
         stats = catalog_summary(db)
         assert stats["named_authoritative"] >= 12
         assert stats["placeholders"] >= 1
-        assert ACQ_UNKNOWN not in stats["acquisition_distribution"] or True
+        # No tautological escape: named catalog must not claim automated fulltext.
+        assert stats["acquisition_distribution"].get(ACQ_FULLTEXT_ALLOWED, 0) == 0
+        for b in named:
+            assert acquisition_state_for_book(b) != ACQ_FULLTEXT_ALLOWED
         print(
             f"CATALOG_NAMED={stats['named_authoritative']} "
             f"PLACEHOLDERS={stats['placeholders']} "

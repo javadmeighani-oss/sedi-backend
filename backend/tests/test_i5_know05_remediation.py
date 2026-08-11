@@ -65,15 +65,26 @@ def test_nf18_availability_superseded_withdrawn_rights_block():
     assert missing_prov.runtime_eligible is False
 
 
-def test_nf20_source_selection_p0_and_non_p0():
+def test_nf20_source_selection_p0_and_non_p0_registry_fail_closed():
+    """Without Registry rows, selection must fail closed (no hardcoded WHO/PubMed/CT.gov)."""
+
     class _FakeDB:
         def query(self, *_a, **_k):
             class _Q:
                 def filter_by(self, **_kw):
                     return self
 
+                def join(self, *a, **k):
+                    return self
+
+                def filter(self, *a, **k):
+                    return self
+
                 def first(self):
                     return None
+
+                def all(self):
+                    return []
 
             return _Q()
 
@@ -119,17 +130,22 @@ def test_nf20_source_selection_p0_and_non_p0():
             gap_key="htn-guideline",
         ),
     ]
+    from backend.app.services.i5.know05.source_selection import NO_ELIGIBLE_GOVERNED_SOURCE
+
     db = _FakeDB()
     sels = []
     for it in items:
         sels.extend(select_connectors_for_gap(db, it))
-    assert any(s.connector_key == "who_guideline_catalogue" and s.gap_key == "als-guideline" for s in sels)
-    assert any(s.connector_key == "clinicaltrials_gov_api_v2" and s.gap_key == "ms-trials" for s in sels)
-    assert any(s.connector_key.startswith("pubmed") and s.gap_key == "dm-lit" for s in sels)
+    assert any(s.gap_key == "als-guideline" and s.connector_key == NO_ELIGIBLE_GOVERNED_SOURCE for s in sels)
+    assert any(s.gap_key == "ms-trials" and s.connector_key == NO_ELIGIBLE_GOVERNED_SOURCE for s in sels)
+    assert any(s.gap_key == "dm-lit" and s.connector_key == NO_ELIGIBLE_GOVERNED_SOURCE for s in sels)
     assert any(s.gap_key == "htn-guideline" and s.p0_overlay is False for s in sels)
-    # Without canonical GSP, automation must be blocked (not inferred from connector key)
+    assert not any(s.connector_key in {
+        "who_guideline_catalogue",
+        "clinicaltrials_gov_api_v2",
+        "pubmed_ncbi_eutils",
+        "pubmed_central",
+    } for s in sels)
     for s in sels:
-        if s.connector_capability_state == "CONNECTOR_READY":
-            assert s.automation_decision == "BLOCKED"
-            assert s.rights_state in {"RIGHTS_UNKNOWN", "RIGHTS_BLOCKED"}
-            assert s.block_reason
+        assert s.automation_decision == "BLOCKED"
+        assert s.block_reason

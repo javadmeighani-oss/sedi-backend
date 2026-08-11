@@ -125,15 +125,26 @@ def test_nf23_trial_registry_never_clinical_runtime():
     assert "TRIAL_REGISTRATION" in reason
 
 
-def test_nf20_selection_does_not_infer_rights_from_connector_key_alone():
+def test_nf20_selection_without_registry_fails_closed_no_hardcoded_keys():
+    """Registry is source-of-truth; empty Registry must not inject CT.gov/PubMed/WHO keys."""
+
     class _FakeDB:
         def query(self, model):
             class _Q:
                 def filter_by(self, **_kw):
                     return self
 
+                def join(self, *a, **k):
+                    return self
+
+                def filter(self, *a, **k):
+                    return self
+
                 def first(self):
                     return None
+
+                def all(self):
+                    return []
 
             return _Q()
 
@@ -147,14 +158,19 @@ def test_nf20_selection_does_not_infer_rights_from_connector_key_alone():
         p0_overlay=True,
         gap_key="ms-trials",
     )
+    from backend.app.services.i5.know05.source_selection import (
+        HARDCODED_SOURCE_KEY_ELIGIBILITY_FALLBACK_COUNT,
+        NO_ELIGIBLE_GOVERNED_SOURCE,
+        assert_no_hardcoded_source_key_eligibility_fallbacks,
+    )
+
+    assert HARDCODED_SOURCE_KEY_ELIGIBILITY_FALLBACK_COUNT == 0
+    assert_no_hardcoded_source_key_eligibility_fallbacks()
     sels = select_connectors_for_gap(_FakeDB(), item)
     assert sels
-    ct = [s for s in sels if s.connector_key == "clinicaltrials_gov_api_v2"][0]
-    assert ct.connector_capability_state == "CONNECTOR_READY"
-    assert ct.rights_state in {"RIGHTS_UNKNOWN", "RIGHTS_BLOCKED"}
-    assert ct.automation_decision == "BLOCKED"
-    assert ct.block_reason
-
+    assert any(s.connector_key == NO_ELIGIBLE_GOVERNED_SOURCE for s in sels)
+    assert not any(s.connector_key == "clinicaltrials_gov_api_v2" for s in sels)
+    assert all(s.automation_decision == "BLOCKED" for s in sels)
 
 @pytest.mark.skipif(not _db_url(), reason="TEST_DATABASE_URL not set")
 def test_t1_unknown_rights_blocks_persist_no_synthetic_gsp():

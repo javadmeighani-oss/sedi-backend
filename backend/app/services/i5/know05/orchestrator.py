@@ -81,26 +81,42 @@ def run_know05_cycle(
     gap_stats = ensure_gaps_from_coverage(db, items=prioritized, limit=plan.budget.max_records or 10)
     selections = select_sources_for_coverage(db, items=prioritized, limit=plan.budget.max_records or 10)
 
-    # Prefer unblocked connectors within CI budget (max 2 connectors)
+    # Prefer Registry-selected unblocked connectors within CI budget (max 2).
+    # Never fall back to plan.connectors / hardcoded PubMed/WHO/CT.gov keys.
+    from backend.app.services.i5.know05.source_selection import NO_ELIGIBLE_GOVERNED_SOURCE
+
     chosen_keys: list[str] = []
     for sel in selections:
         if sel.connector_key in chosen_keys:
             continue
+        if sel.connector_key == NO_ELIGIBLE_GOVERNED_SOURCE:
+            continue
         if sel.block_reason and sel.connector_key.startswith("pubmed"):
             continue
         if sel.automation_decision != "AUTOMATION_ALLOWED" and m != Know05Mode.DRY_RUN:
-            # Still record blocked pubmed explicitly
+            # Record blocked pubmed only when Registry selected it
             if sel.connector_key.startswith("pubmed") and sel.connector_key not in chosen_keys:
                 chosen_keys.append(sel.connector_key)
             continue
         chosen_keys.append(sel.connector_key)
         if len(chosen_keys) >= min(2, plan.budget.max_sources or 2):
             break
-    if not chosen_keys:
-        chosen_keys = list(plan.connectors[:2])
 
     source_results: list[dict[str, Any]] = []
-    if m == Know05Mode.DRY_RUN or not execute_ingestion:
+    if not chosen_keys:
+        source_results.append(
+            {
+                "connector_key": NO_ELIGIBLE_GOVERNED_SOURCE,
+                "status": "BLOCKED",
+                "block_reason": NO_ELIGIBLE_GOVERNED_SOURCE,
+                "records_discovered": 0,
+                "records_accepted": 0,
+                "records_rejected": 0,
+                "records_changed": 0,
+                "transient_raw_residue": 0,
+            }
+        )
+    elif m == Know05Mode.DRY_RUN or not execute_ingestion:
         for ck in chosen_keys[:2]:
             blocked = False
             block_reason = None
@@ -174,24 +190,7 @@ def run_know05_cycle(
                     "publication_stages": list(r.publication_stages),
                 }
             )
-        # Always include pubmed blocked evidence when identity missing
-        if identity.weekly_operation_status != "LIVE_READY" and not any(
-            s["connector_key"].startswith("pubmed") for s in source_results
-        ):
-            pb = ingest_pubmed_bounded_or_block(mode=m, db=db)
-            source_results.append(
-                {
-                    "connector_key": pb.connector_key,
-                    "status": pb.status,
-                    "block_reason": pb.block_reason,
-                    "records_discovered": 0,
-                    "records_accepted": 0,
-                    "records_rejected": 0,
-                    "records_changed": 0,
-                    "transient_raw_residue": 0,
-                    "rights_decision": pb.rights_decision,
-                }
-            )
+        # Do not inject pubmed/WHO/CT.gov when Registry selection yielded nothing.
 
     weekly_run_id = None
     attempt_id = None

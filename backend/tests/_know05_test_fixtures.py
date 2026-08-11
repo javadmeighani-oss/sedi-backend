@@ -24,6 +24,87 @@ from backend.app.services.i5.know01.registry_service import ensure_gsp, upsert_r
 from backend.app.services.i5.know05.canonical_rights import canonical_key_for_connector
 
 
+def seed_governed_role_source(
+    db: Session,
+    *,
+    connector_key: str,
+    roles: tuple[str, ...],
+    rights_mode: str = "ALLOWED",
+    authority_class: str = SourceAuthorityClass.SPECIALTY_GUIDELINE_BODY.value,
+    publisher_family: str = "TEST_PUBLISHER",
+    canonical_home: str = "https://example.org/guidelines",
+    supported_formats: str = "HTML,JSON",
+    api_endpoint: str = "https://example.org/api",
+    mark_authority_verified: bool = True,
+) -> models.GovernedSourceProfile:
+    """Persist a Registry-eligible (or rights-blocked) source for selection fixtures."""
+    from datetime import datetime as _dt
+
+    key = canonical_key_for_connector(connector_key)
+    gsp = ensure_gsp(db, canonical_key=key, locator=canonical_home)
+    gsp.registry_state = "ACTIVE"
+    gsp.runtime_eligibility = "ELIGIBLE" if rights_mode == "ALLOWED" else "NOT_ELIGIBLE"
+    gsp.operational_status = "active"
+    if rights_mode == "ALLOWED":
+        fields = dict(
+            access_right=RightDecision.ALLOWED.value,
+            automation_right=RightDecision.ALLOWED.value,
+            tdm_right=RightDecision.ALLOWED.value,
+            transform_right=RightDecision.ALLOWED.value,
+            retain_raw_right=RightDecision.DENIED.value,
+            retain_derived_right=RightDecision.ALLOWED.value,
+            redistribution_right=RightDecision.DENIED.value,
+            robots_state="ALLOWED",
+            processing_permission_mode=ProcessingPermissionMode.METADATA_ABSTRACT_ONLY.value,
+            notes="TEST_FIXTURE_REGISTRY_SOT",
+        )
+    elif rights_mode == "DENIED":
+        fields = dict(
+            access_right=RightDecision.DENIED.value,
+            automation_right=RightDecision.DENIED.value,
+            tdm_right=RightDecision.DENIED.value,
+            transform_right=RightDecision.DENIED.value,
+            retain_raw_right=RightDecision.DENIED.value,
+            retain_derived_right=RightDecision.DENIED.value,
+            redistribution_right=RightDecision.DENIED.value,
+            robots_state="DISALLOWED",
+            processing_permission_mode=ProcessingPermissionMode.FULLTEXT_AUTOMATION_BLOCKED.value,
+            notes="TEST_FIXTURE_RIGHTS_DENIED",
+        )
+    else:
+        fields = dict(
+            access_right=RightDecision.UNKNOWN.value,
+            automation_right=RightDecision.UNKNOWN.value,
+            tdm_right=RightDecision.UNKNOWN.value,
+            transform_right=RightDecision.UNKNOWN.value,
+            retain_raw_right=RightDecision.UNKNOWN.value,
+            retain_derived_right=RightDecision.UNKNOWN.value,
+            redistribution_right=RightDecision.UNKNOWN.value,
+            robots_state="UNKNOWN",
+            processing_permission_mode=ProcessingPermissionMode.FULLTEXT_AUTOMATION_BLOCKED.value,
+            notes="TEST_FIXTURE_RIGHTS_UNKNOWN",
+        )
+    fields.update(
+        canonical_home=canonical_home,
+        supported_formats=supported_formats,
+        api_endpoint=api_endpoint,
+        registry_status="ACTIVE",
+        review_stage="NONE",
+        last_authority_verification=_dt.utcnow() if mark_authority_verified else None,
+    )
+    upsert_registry_extension(
+        db,
+        source_profile_id=gsp.id,
+        source_universe=SourceUniverse.GLOBAL_KNOWLEDGE.value,
+        authority_class=authority_class,
+        publisher_family=publisher_family,
+        roles=roles,
+        **fields,
+    )
+    db.flush()
+    return gsp
+
+
 def seed_canonical_source_with_rights(
     db: Session,
     *,
