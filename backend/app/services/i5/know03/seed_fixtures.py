@@ -527,7 +527,7 @@ def seed_know03_foundation(db: Session) -> Dict[str, Any]:
         source_profile_id=gsp.id,
         pmid="8800004",
     )
-    t2_v = add_artifact_version(db, artifact_id=t2_art.id, version_label="1", content_hash="g" * 64)
+    t2_v = add_artifact_version(db, artifact_id=t2_art.id, version_label="1", content_hash="1" * 64)
     t2_study = upsert_clinical_study(
         db,
         study_key="study:know03:t2dm_nutrition",
@@ -582,7 +582,7 @@ def seed_know03_foundation(db: Session) -> Dict[str, Any]:
         source_profile_id=gsp.id,
         guideline_id="FIX-DM-NUT",
     )
-    t2_gl_v = add_artifact_version(db, artifact_id=t2_gl.id, version_label="1", content_hash="h" * 64)
+    t2_gl_v = add_artifact_version(db, artifact_id=t2_gl.id, version_label="1", content_hash="2" * 64)
     t2_rec = upsert_recommendation(
         db,
         recommendation_key="rec:t2dm:nutrition",
@@ -640,7 +640,7 @@ def seed_know03_foundation(db: Session) -> Dict[str, Any]:
         source_profile_id=gsp.id,
         pmid="8800099",
     )
-    ret_v = add_artifact_version(db, artifact_id=ret_art.id, version_label="1", content_hash="i" * 64)
+    ret_v = add_artifact_version(db, artifact_id=ret_art.id, version_label="1", content_hash="3" * 64)
     mark_version_state(db, version_id=ret_v.id, version_state=ArtifactVersionState.RETRACTED.value)
     ret_study = upsert_clinical_study(
         db,
