@@ -110,7 +110,9 @@ def run_know05_cycle(
     attempt_id = None
     if persist_ledger:
         run = db.query(models.WeeklyKnowledgeRun).filter_by(logical_run_key=logical).first()
+        created_new_run = False
         if run is None:
+            created_new_run = True
             run = models.WeeklyKnowledgeRun(
                 logical_run_key=logical,
                 schedule_key=SCHEDULE_KEY,
@@ -136,30 +138,45 @@ def run_know05_cycle(
             db.add(run)
             db.flush()
         weekly_run_id = run.id
-        attempt = models.WeeklyKnowledgeRunAttempt(
-            weekly_run_id=run.id,
-            attempt_number=1,
-            status=WeeklyRunAttemptStatus.COMPLETED.value,
-            total_sources=len(plan.connectors),
-            checked_sources=len(plan.connectors),
-            fetched_sources=0,
-            skipped_sources=0,
-            blocked_sources=sum(1 for s in source_results if s["status"] == "BLOCKED"),
-            failed_sources=0,
-            new_knowledge_count=0,
-            updated_knowledge_count=0,
-            created_gap_count=gap_stats["gaps_created"],
-            resolved_gap_count=0,
-            warning_count=0,
-            error_count=0,
-            evidence_reference=f"know05:{m.value}:{logical}",
+        existing_attempt = (
+            db.query(models.WeeklyKnowledgeRunAttempt)
+            .filter_by(weekly_run_id=run.id)
+            .order_by(models.WeeklyKnowledgeRunAttempt.attempt_number.desc())
+            .first()
         )
-        db.add(attempt)
-        db.flush()
-        attempt_id = attempt.id
-        run.latest_attempt_id = attempt.id
-        run.successful_attempt_id = attempt.id
-        db.flush()
+        if existing_attempt is not None and not created_new_run:
+            # Idempotent rehearsal: reuse successful terminal attempt for same logical run
+            attempt_id = existing_attempt.id
+            existing_attempt.created_gap_count = max(
+                existing_attempt.created_gap_count or 0, gap_stats["gaps_created"]
+            )
+            db.flush()
+        else:
+            next_n = 1 if existing_attempt is None else int(existing_attempt.attempt_number) + 1
+            attempt = models.WeeklyKnowledgeRunAttempt(
+                weekly_run_id=run.id,
+                attempt_number=next_n,
+                status=WeeklyRunAttemptStatus.COMPLETED.value,
+                total_sources=len(plan.connectors),
+                checked_sources=len(plan.connectors),
+                fetched_sources=0,
+                skipped_sources=0,
+                blocked_sources=sum(1 for s in source_results if s["status"] == "BLOCKED"),
+                failed_sources=0,
+                new_knowledge_count=0,
+                updated_knowledge_count=0,
+                created_gap_count=gap_stats["gaps_created"],
+                resolved_gap_count=0,
+                warning_count=0,
+                error_count=0,
+                evidence_reference=f"know05:{m.value}:{logical}",
+            )
+            db.add(attempt)
+            db.flush()
+            attempt_id = attempt.id
+            run.latest_attempt_id = attempt.id
+            run.successful_attempt_id = attempt.id
+            db.flush()
 
     return Know05RunResult(
         mode=m.value,
