@@ -65825,3 +65825,157 @@ MARKER=I5_FINAL_KNOWLEDGE_ARCHITECTURE_DESIGN_FREEZE_01_PASS
 NOTE=post-§277 final master-log whole-file self-SHA is NOT embedded inside §277.
 SIZE_BEFORE_APPEND=2951078
 SHA256_BEFORE_APPEND=13D4D1BF91EAD5199E012FAF05F8A64ACDA5FA9A96FEC850373AEED4EEF3AD0C
+
+--------------------------------------------------------------------------------
+§278 - SEDI-V1 I5-KNOW-01 TRUSTED SOURCE REGISTRY + RIGHTS ENGINE + MULTIFORMAT + IRAN DIRECTORY SOURCE REGISTRY
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 I5-KNOW-01 TRUSTED SOURCE REGISTRY + RIGHTS ENGINE + MULTIFORMAT ADAPTER FOUNDATION + IRAN LOCAL HEALTHCARE DIRECTORY SOURCE REGISTRY-01
+STATUS=AUTHORIZED / EXECUTED
+MODE=COMPREHENSIVE IMPLEMENTATION + TEST + CI + CONTROLLED AUTO-REMEDIATION TO GREEN
+RECORDED_AT_UTC=2026-08-11T05:15:00Z
+APPROVAL=Javad Master Gate authorization + permanent product requirements (living registry; Iran directory separate; rights fail-closed; ALS/MS/Diabetes P0)
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§278.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+DESIGN_FREEZE_RECONCILED=YES
+RULES_IN_FORCE_CHECK=PASS
+ROADMAP_I5_I6_I7_I8_BOUNDARY=RECONCILED (patient applicability NOT I5-owned)
+ORM_CHANGED=YES (additive KNOW-01 tables only)
+ENUM_CHANGED=YES (additive KNOW-01 vocabularies)
+MIGRATION_CREATED=YES (062_i5_know01_source_registry_rights)
+MIGRATION_RUN=CI_ONLY
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_WRITE=NO
+CRAWLER_ACTIVATED=NO
+SCHEDULER_ACTIVATED=NO
+RUNTIME_MANIFEST_MUTATED=NO
+DIABETES_D20_RUNTIME_MUTATION=NO
+RAG_ACTIVATED=NO
+SCIS_INDEX_PUBLISHED=NO
+UNKNOWN_RIGHTS_AUTOMATION=0
+UNAUTHORIZED_RAW_RETENTION=0
+TRANSIENT_RAW_RESIDUE=0
+
+--------------------------------------------------------------------------------
+§278.A - AUTHORITY
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+LOCAL_HEAD_AT_GATE_START=d544f6b824a0e9179db9f5b191fcdacf83acd93f
+IMPL_COMMIT=e4453022041c22c49937c82a1d99f3b1fa0d980d
+MASTER_LOG_PREDECESSOR=§277
+MASTER_LOG_PREDECESSOR_SIZE=2957666
+MASTER_LOG_PREDECESSOR_SHA256=59AE98157A426DB829FB7CC59F744D7AFAA2A8CFD004E4FF92223F1A5396A320
+CURSOR_HANDOFF_PREDECESSOR=v568
+CHATGPT_CONTINUITY_PREDECESSOR=v578
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=062_i5_know01_source_registry_rights
+SCIS_01_REVISION=061_scis01_pgvector_kce_foundation
+PGVECTOR_PRODUCTION=NO
+
+--------------------------------------------------------------------------------
+§278.B - ROADMAP RECONCILIATION
+--------------------------------------------------------------------------------
+I5=GLOBAL_GOVERNED_KNOWLEDGE
+I6=CANONICAL_PERSONAL_MEMORY
+I7=LONGITUDINAL_USER_INTELLIGENCE
+I8=PERSONALIZED_EVIDENCE_APPLICABILITY
+user_clinical_feature_index=NOT_I5_IMPLEMENTATION
+user_evidence_matches=NOT_I5_IMPLEMENTATION
+DOC_UPDATE=docs/architecture/i5-final-knowledge-architecture-freeze-01/09_REMAINING_SCOPE_IMPLEMENTATION_WAVES.md
+
+--------------------------------------------------------------------------------
+§278.C - IMPLEMENTATION
+--------------------------------------------------------------------------------
+TRUSTED_SOURCE_REGISTRY=GREEN (i5_source_registry_extensions + roles + p0 tags)
+RIGHTS_ENGINE=GREEN (fail-closed multi-dimension; maps to RawRetentionMode)
+TRANSIENT_PROCESSING=GREEN (temp residue 0)
+REFERENCE_BOOK_REGISTRY=GREEN (books + editions foundation)
+SOURCE_DISCOVERY_FOUNDATION=GREEN (bounded seed endpoint discovery; no auto-activate)
+HTML_ADAPTER=GREEN (existing)
+JSON_XML_ADAPTER=GREEN (existing Official API)
+PDF_TEXT_ADAPTER=GREEN (i5.pdf_text + fixture path)
+JATS_XML_ADAPTER=GREEN (i5.jats_xml + XXE guard)
+FUTURE_FORMAT_CONTRACTS=YES (stubs only)
+GLOBAL_VS_IRAN_DIRECTORY_SEPARATION=GREEN
+IRAN_PHYSICIAN_SOURCE_REGISTRY=IMPLEMENTED
+IRAN_HOSPITAL_SOURCE_REGISTRY=IMPLEMENTED
+IRAN_CLINIC_SOURCE_REGISTRY=IMPLEMENTED (NEXT_SCHEMA_GATE_REQUIRED entity table)
+IRAN_LAB_SOURCE_REGISTRY=IMPLEMENTED_OR_BLOCKED_WITH_EVIDENCE
+CAP24_STATUS=BLOCKED_WITH_EXACT_EVIDENCE
+ALS_MS_DIABETES_SOURCE_TAGGING=GREEN
+SOURCE_COVERAGE_GAP_FOUNDATION=GREEN
+TAXONOMY_EXPORT=DB_AUTHORITY (know01-taxonomy-v1)
+EVIDENCE_PACK=docs/architecture/i5-know01-trusted-source-registry/EVIDENCE_PACK.md
+
+--------------------------------------------------------------------------------
+§278.D - CI
+--------------------------------------------------------------------------------
+WORKFLOW=i5-know01-source-registry-runtime.yml
+RUN_ID=31460890460
+JOB_ID=93684002080
+CONCLUSION=success
+URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31460890460
+FRESH_062=PASS
+UPGRADE_061_TO_062=PASS
+AUTO_REMEDIATION_CYCLES=1 (adapter mode PDF_TEXT; oversized test; locator uniqueness)
+
+--------------------------------------------------------------------------------
+§278.E - OPEN FINDINGS
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=3
+NF1=CAP24 Iran laboratories nationwide machine-readable authority still BLOCKED_WITH_EXACT_EVIDENCE
+NF2=Per-source TDM/legal terms remain REVIEW_REQUIRED before any automation approval
+NF3=Clinic/outpatient canonical facility entity model = NEXT_SCHEMA_GATE_REQUIRED
+HARD_STOPS=0
+
+--------------------------------------------------------------------------------
+§278.F - CRITICAL PATH
+--------------------------------------------------------------------------------
+CRITICAL_PATH_BEFORE=I5-KNOW-01 unauthorized after design freeze
+CRITICAL_PATH_AFTER=I5-KNOW-02 scientific artifacts + multi-evidence links + structured claim details
+END_OF_MORDAD_RISK=MODERATE (KNOW-01 green; KNOW-02..07 volume remains)
+
+--------------------------------------------------------------------------------
+§278.G - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_IMPLEMENTATION_GATE=SEDI-V1 I5-KNOW-02 SCIENTIFIC ARTIFACTS + ARTIFACT VERSIONING + MULTI-EVIDENCE LINKS + STRUCTURED CLAIM DETAILS
+NEXT_GATE_AUTHORIZED=NO
+
+--------------------------------------------------------------------------------
+§278.H - VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+DESIGN_FREEZE_PRESERVED=YES
+TRUSTED_SOURCE_REGISTRY=GREEN
+RIGHTS_ENGINE=GREEN
+REFERENCE_BOOK_REGISTRY=GREEN
+SOURCE_DISCOVERY_FOUNDATION=GREEN
+HTML_ADAPTER=GREEN
+JSON_XML_ADAPTER=GREEN
+PDF_TEXT_ADAPTER=GREEN
+JATS_XML_ADAPTER=GREEN
+ALS_SOURCE_COVERAGE_FOUNDATION=GREEN
+MS_SOURCE_COVERAGE_FOUNDATION=GREEN
+DIABETES_SOURCE_COVERAGE_FOUNDATION=GREEN
+IRAN_PHYSICIAN_SOURCE_REGISTRY=IMPLEMENTED
+IRAN_HOSPITAL_SOURCE_REGISTRY=IMPLEMENTED
+IRAN_CLINIC_SOURCE_REGISTRY=IMPLEMENTED
+IRAN_LAB_SOURCE_REGISTRY=IMPLEMENTED_OR_BLOCKED_WITH_EVIDENCE
+CAP24_STATUS=BLOCKED_WITH_EXACT_EVIDENCE
+CI_RUNTIME_PROOF=GREEN
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+GATE_RESULT=PASS
+MARKER=I5_KNOW01_TRUSTED_SOURCE_REGISTRY_RIGHTS_MULTIFORMAT_PASS
+
+NOTE=post-§278 final master-log whole-file self-SHA is NOT embedded inside §278.
+SIZE_BEFORE_APPEND=2957666
+SHA256_BEFORE_APPEND=59AE98157A426DB829FB7CC59F744D7AFAA2A8CFD004E4FF92223F1A5396A320
