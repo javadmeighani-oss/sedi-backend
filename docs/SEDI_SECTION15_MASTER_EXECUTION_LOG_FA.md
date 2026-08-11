@@ -67090,3 +67090,141 @@ END_OF_MORDAD_DEADLINE_IMPACT=REDUCED for KNOW-05 technical closure; Production 
 NOTE=post-§286 final master-log whole-file self-SHA is NOT embedded inside §286.
 SIZE_BEFORE_APPEND=3014940
 SHA256_BEFORE_APPEND=B18B9D3A1778B8227D9EFD065B1DB1D1275563C558E0481A435B2183A35AE2C4
+
+================================================================================
+§287 - SEDI-V1 I5-KNOW-05 NF25 GOVERNANCE INTEGRITY COUNTER REAL COMPUTATION GREEN
+================================================================================
+RECORDED_AT_UTC=2026-08-11T14:20:00Z
+GATE=SEDI-V1 I5-KNOW05-NF25-GOVERNANCE-INTEGRITY-COUNTER-REAL-COMPUTATION-CLOSURE-01
+GATE_OUTCOME=PASS / CLOSED
+MARKER=I5_KNOW05_NF25_COUNTER_REAL_COMPUTATION_PASS
+
+--------------------------------------------------------------------------------
+§287.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+SPEED_LAW_APPLIED=YES
+HARD_STOPS_DEFINED=YES
+SELF_HEALING_DEFINED=YES
+EVIDENCE_REQUIREMENTS_DEFINED=YES
+CONTINUITY_CLOSURE_DEFINED=YES
+CRITICAL_PATH_IMPACT_REQUIRED=YES
+DEADLINE_IMPACT_REQUIRED=YES
+RULES_IN_FORCE_CHECK=PASS
+MASTER_LOG_APPEND_ONLY=YES
+PREVIOUS_FILE_EXACT_PREFIX_PRESERVED=YES
+MASTER_LOG_PREFIX_MUTATION=0
+MASTER_LOG_286_REWRITTEN=NO
+CRLF_ONLY=YES
+
+--------------------------------------------------------------------------------
+§287.A - AUTHORITY / APPEND-ONLY CORRECTION OF §286 EVIDENCE OVERSTATEMENT
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=af3383862e27915109563fa641618351d0f65c4d
+IMPL_COMMIT_NF25=1969d6a2d76a88618ddd09c1f36f9a3d0501d281
+IMPL_COMMIT_EVIDENCE_EMIT=7f1a473765d5a220b13df695b568b8ba79d13c4e
+TECHNICAL_GREEN_HEAD=7f1a473765d5a220b13df695b568b8ba79d13c4e
+LINEAGE=af33838→1969d6a→7f1a473
+MASTER_LOG_PREDECESSOR=§286
+MASTER_LOG_PREDECESSOR_SIZE=3020946
+MASTER_LOG_PREDECESSOR_SHA256=1BECA4B2250CF876F8D293F409FFDB06EF2853B434C6E8F253EC2C78AF1AFB30
+CURSOR_HANDOFF_PREDECESSOR=v577
+CURSOR_HANDOFF_SUCCESSOR=v578
+CHATGPT_REFERENCE_PREDECESSOR=v589
+CHATGPT_REFERENCE_SUCCESSOR=v590
+DROPBOX_REFERENCE_SUCCESSOR_REQUIRED=YES
+DROPBOX_REFERENCE_SAVED=NO
+DROPBOX_BLOCKER=no Dropbox MCP / continuity sync mechanism available in this Cursor environment
+
+NF25_PREVIOUS_EVIDENCE_OVERSTATEMENT=CORRECTED_APPEND_ONLY
+NOTE_ON_§286=§286 correctly reported the observed numerical zero for synthetic_governance_auto_promotion_count at that time, but overstated COMPUTATION_BASIS as DB_DERIVED+CANONICAL_RIGHTS+GATE_EVIDENCE for that counter because eligibility_integrity.py still returned literal hardcoded 0. §286 is preserved untouched; this §287 corrects the evidence claim append-only.
+
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=065_i5_know04_connectors_change_intelligence
+NEW_MIGRATION=NO
+
+--------------------------------------------------------------------------------
+§287.B - ROOT CAUSE / IMPLEMENTATION
+--------------------------------------------------------------------------------
+ROOT_CAUSE=synthetic_governance_auto_promotion_count assigned literal 0 with comment reservation; violated hard-zero-from-evidence rule (NF25).
+OLD_BEHAVIOR=EligibilityIntegrityReport(..., synthetic_governance_auto_promotion_count=0, ...) constant
+NEW_BEHAVIOR=count_synthetic_governance_auto_promotions(db) counts ELIGIBLE KnowledgeUnit rows lacking SOURCE_PROFILE APPROVED I5GovernanceDecision via ku_lacks_real_source_governance; exact Strategy-B equivalence to eligible_without_real_governance with divergence AssertionError.
+CHANGED_FILES=backend/app/services/i5/know05/eligibility_integrity.py; backend/tests/test_i5_know05_nf23_nf24.py; .github/workflows/i5-know05-weekly-acquisition-runtime.yml
+CHANGED_SYMBOLS=ku_lacks_real_source_governance; count_synthetic_governance_auto_promotions; audit_eligibility_integrity; test_nf25_negative_bypass_eligible_without_governance_detected; test_nf25_positive_governed_zero_from_actual_audit
+COMPUTATION_BASIS=DB_DERIVED:ELIGIBLE_KU_LACKING_SOURCE_PROFILE_APPROVED_I5GovernanceDecision==synthetic_governance_auto_promotion_count==eligible_without_real_governance
+
+--------------------------------------------------------------------------------
+§287.C - FINDINGS
+--------------------------------------------------------------------------------
+NF25=CLOSED
+NF23_PRIMARY_BEHAVIOR=PRESERVED
+NF24=PRESERVED
+NF18_NF21=PRESERVED
+NF16_IMPLEMENTATION=CLOSED
+NF16_OPERATIONAL_LIVE_READY=NO
+NF16_BLOCKER=valid secrets.SEDI_NCBI_EMAIL not currently available
+
+--------------------------------------------------------------------------------
+§287.D - NEGATIVE / POSITIVE AUDIT PROOF (RUNTIME)
+--------------------------------------------------------------------------------
+NEGATIVE_FIXTURE=ELIGIBLE KU + provenance to source WITHOUT APPROVED I5GovernanceDecision (connector nf25_bypass_fixture_source)
+NEGATIVE_OUTPUT=SYNTHETIC_GOVERNANCE_AUTO_PROMOTION_COUNT=1 ELIGIBLE_WITHOUT_REAL_GOVERNANCE=1
+POSITIVE_T7_OUTPUT=SYNTHETIC_GOVERNANCE_AUTO_PROMOTION_COUNT=0 (governed ELIGIBLE)
+POSITIVE_NF25_OUTPUT=SYNTHETIC_GOVERNANCE_AUTO_PROMOTION_COUNT=0 DELTA_FROM_GOVERNED_FIXTURE=0
+TEST_NODES=test_nf25_negative_bypass_eligible_without_governance_detected; test_nf25_positive_governed_zero_from_actual_audit; test_t7_real_governed_positive_non_trial_fixture
+HARDCODED_ZERO_REMOVED=YES
+
+--------------------------------------------------------------------------------
+§287.E - PROOFS
+--------------------------------------------------------------------------------
+CI_RUN=31499800860
+CI_ATTEMPT=1
+CI_CONCLUSION=success
+DETERMINISTIC_JOB=93806524691
+LIVE_JOB=93806753462
+PYTEST_DETERMINISTIC=47 passed
+PYTEST_LIVE=6 passed
+FAILED=0
+ERRORS=0
+UNEXPECTED=0
+KNOW05_PYTEST_EXIT=0
+RAW_LOG_AUDIT=PASS
+POSTGRESQL_VERSION=16.14
+ALEMBIC_TARGET=065_i5_know04_connectors_change_intelligence
+FRESH_065=PASS
+ARTIFACT_DETERMINISTIC_ID=9104525970
+ARTIFACT_DETERMINISTIC_DIGEST=sha256:b7e46016c4f927362981843d00bb3e4baf8b13381d8f7e5b4d7e94c6c1089ff2
+ARTIFACT_DETERMINISTIC_SIZE=2027
+ARTIFACT_LIVE_ID=9104552465
+ARTIFACT_LIVE_DIGEST=sha256:8501e2751173012b741d38bb12a55ded5e3e29fb4ad851b2637239dec0fb16e7
+ARTIFACT_LIVE_SIZE=675
+CI_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31499800860
+PRIOR_IMPL_GREEN_RUN=31499221383 (1969d6a; 47 passed; audit prints not visible under -q)
+AUTO_REMEDIATION_CYCLES=1 (pytest -s so NF25 counter lines appear in raw log)
+FORCE_PUSH=NO
+
+--------------------------------------------------------------------------------
+§287.F - PRODUCTION / NEXT
+--------------------------------------------------------------------------------
+PRODUCTION_WRITE=NO
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_SCHEDULER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+I5_KNOW05_STATUS=GREEN
+I5_TECHNICAL_IMPLEMENTATION_CLOSURE_READY=YES
+PRODUCTION_ALIGNMENT_GATE_READY=YES
+PRODUCTION_ACTIVATION_READY=NO
+NEXT_GATE=SEDI-V1 I5 PRODUCTION DATA-PLATFORM ALIGNMENT + MIGRATIONS 061→CURRENT + GOVERNED WEEKLY/SCIS ACTIVATION
+NEXT_GATE_AUTHORIZED=NO
+CRITICAL_PATH_IMPACT=KNOW-05 integrity blocker NF25 removed; technical KNOW-05 closure restored
+END_OF_MORDAD_DEADLINE_IMPACT=REDUCED for KNOW-05 technical integrity; Production activation still unauthorized and remains the dominant critical-path risk
+
+NOTE=post-§287 final master-log whole-file self-SHA is NOT embedded inside §287.
+SIZE_BEFORE_APPEND=3020946
+SHA256_BEFORE_APPEND=1BECA4B2250CF876F8D293F409FFDB06EF2853B434C6E8F253EC2C78AF1AFB30
