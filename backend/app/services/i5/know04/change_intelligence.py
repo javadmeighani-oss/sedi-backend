@@ -89,6 +89,25 @@ def apply_artifact_change(
         related_notice_external_id=related_notice_external_id,
         details=details,
     )
+    # KNOW-05: propagate retraction/withdrawal to SCIS index eligibility (rehearsal-safe).
+    if change_kind in {
+        "RETRACTED",
+        "PARTIALLY_RETRACTED",
+        "WITHDRAWN",
+        "RETRACTION_NOTICE",
+        "SUPERSEDED",
+    }:
+        from backend.app.services.i5.know05.rag_coherence import invalidate_rag_for_knowledge_unit
+
+        ku_ids = [
+            r[0]
+            for r in db.query(models.I5KnowledgeUnitEvidenceLink.knowledge_unit_id)
+            .filter_by(artifact_version_id=ver.id)
+            .distinct()
+            .all()
+        ]
+        for ku_id in ku_ids:
+            invalidate_rag_for_knowledge_unit(db, knowledge_unit_id=ku_id, reason=change_kind)
     db.flush()
     return ver
 

@@ -35,7 +35,7 @@ class PubMedConnectorConfig:
     api_key: Optional[str] = None
 
     @classmethod
-    def from_env(cls) -> "PubMedConnectorConfig":
+    def from_env(cls, *, allow_disallowed_email: bool = False) -> "PubMedConnectorConfig":
         tool = os.environ.get("SEDI_NCBI_TOOL", "").strip()
         email = os.environ.get("SEDI_NCBI_EMAIL", "").strip()
         api_key = os.environ.get("SEDI_NCBI_API_KEY", "").strip() or None
@@ -43,6 +43,11 @@ class PubMedConnectorConfig:
             raise EnvironmentError("NOT_EXECUTED_MISSING_CREDENTIALS:SEDI_NCBI_TOOL/SEDI_NCBI_EMAIL")
         if " " in tool:
             raise ValueError("NCBI_TOOL_MUST_HAVE_NO_SPACES")
+        if not allow_disallowed_email:
+            from backend.app.services.i5.know05.ncbi_identity import is_disallowed_operational_email
+
+            if is_disallowed_operational_email(email):
+                raise EnvironmentError("BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY")
         return cls(tool=tool, email=email, api_key=api_key)
 
     @property

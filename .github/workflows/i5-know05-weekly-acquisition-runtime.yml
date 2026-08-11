@@ -1,0 +1,193 @@
+# I5-KNOW-05 Governed weekly knowledge acquisition (rehearsal) — no Production activation
+name: I5-KNOW-05 Weekly Acquisition Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/know05/**"
+      - "backend/app/services/i5/know04/**"
+      - "backend/app/services/i5/weekly_orchestrator.py"
+      - "backend/app/services/scis/**"
+      - "backend/tests/test_i5_know05_*.py"
+      - "backend/tests/test_i5_know04_live_canaries.py"
+      - "backend/tests/test_i5_know04_connectors.py"
+      - ".github/workflows/i5-know05-weekly-acquisition-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-know05-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i5-know05-deterministic:
+    name: KNOW-05 deterministic + matrices
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_know05_test
+          POSTGRES_PASSWORD: sedi_know05_test_password
+          POSTGRES_DB: sedi_know05
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_know05_test -d sedi_know05"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_know05_test:sedi_know05_test_password@127.0.0.1:5432/sedi_know05
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_know05_test:sedi_know05_test_password@127.0.0.1:5432/sedi_know05
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: know05-test-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+      - name: Alembic head remains 065
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
+          print("ALEMBIC_SINGLE_HEAD=PASS")
+          PY
+      - name: Fresh upgrade to 065
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "065_i5_know04_connectors_change_intelligence"
+          print("FRESH_065=PASS")
+          PY
+      - name: KNOW-05 + KNOW-04 regression pytest
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          python -B -m pytest \
+            backend/tests/test_i5_know05_core.py \
+            backend/tests/test_i5_know05_pg.py \
+            backend/tests/test_i5_know04_connectors.py \
+            backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/know05_pytest.txt"
+          echo "KNOW05_PYTEST_EXIT=0" > "${{ runner.temp }}/know05_pytest_exit.txt"
+      - name: Raw log audit
+        if: always()
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          blob = Path(os.environ["RUNNER_TEMP"]).joinpath("know05_pytest.txt").read_text(encoding="utf-8", errors="replace") if Path(os.environ["RUNNER_TEMP"]).joinpath("know05_pytest.txt").exists() else ""
+          bad = []
+          if re.search(r"(?m)^\d+ failed(,|$)", blob):
+              bad.append("pytest_failed")
+          if re.search(r"(?m)^\d+ errors?(,|$)", blob):
+              bad.append("pytest_errors")
+          if "no tests ran" in blob.lower():
+              bad.append("no_tests_ran")
+          exit_marker = Path(os.environ["RUNNER_TEMP"]) / "know05_pytest_exit.txt"
+          if not exit_marker.exists():
+              bad.append("pytest_exit_marker_missing")
+          if bad:
+              raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
+          print("RAW_LOG_AUDIT=PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i5-know05-deterministic-evidence
+          path: ${{ runner.temp }}/know05_pytest*.txt
+          retention-days: 14
+
+  i5-know05-live-observability:
+    name: KNOW-05 live canaries NF16/NF17
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: i5-know05-deterministic
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      APP_ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      SEDI_NCBI_TOOL: ${{ vars.SEDI_NCBI_TOOL || 'sedi-know05-ci' }}
+      SEDI_NCBI_EMAIL: ${{ secrets.SEDI_NCBI_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest requests
+      - name: Live canaries with observed evidence
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          python -B -m pytest \
+            backend/tests/test_i5_know04_live_canaries.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/know05_live.txt"
+          echo "KNOW05_LIVE_EXIT=0" > "${{ runner.temp }}/know05_live_exit.txt"
+      - name: Live raw log audit
+        if: always()
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          p = Path(os.environ["RUNNER_TEMP"]) / "know05_live.txt"
+          blob = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+          bad = []
+          if re.search(r"(?m)^\d+ failed(,|$)", blob):
+              bad.append("pytest_failed")
+          if re.search(r"(?m)^\d+ skipped(,|$)", blob):
+              bad.append("pytest_skipped_live")
+          if "know04-ci@sedi.test" in blob:
+              bad.append("ncbi_test_email_leaked")
+          if bad:
+              raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
+          print("RAW_LOG_AUDIT=PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i5-know05-live-evidence
+          path: ${{ runner.temp }}/know05_live*.txt
+          retention-days: 14

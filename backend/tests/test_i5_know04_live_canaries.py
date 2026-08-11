@@ -1,4 +1,4 @@
-"""I5-KNOW-04 NF15 — mandatory bounded live connector canaries (read-only, no Production writes)."""
+"""I5-KNOW-04/05 live canaries — NF15 + NF16/NF17 observability."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from backend.app.services.i5.know04.live_canaries import (
     run_pubmed_live_canary,
     run_who_guideline_authority_live_canary,
 )
+from backend.app.services.i5.know05.ncbi_identity import is_disallowed_operational_email
 
 
 _ALLOWED_STATUSES = frozenset(
@@ -23,6 +24,7 @@ _ALLOWED_STATUSES = frozenset(
         "NOT_EXECUTED_NETWORK_POLICY",
         "FAILED",
         "NOT_EXECUTED",
+        "BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY",
     }
 )
 
@@ -34,17 +36,22 @@ def _assert_bounded_evidence(ev) -> None:
     assert ev.storage_decision == "NO_STORE"
     assert ev.transient_residue == 0
     assert ev.record_count <= 3
+    if ev.status == "LIVE_VERIFIED":
+        assert ev.http_status >= 200 and ev.http_status < 300
+        assert ev.bytes_received > 0
+        assert ev.request_count >= 1
 
 
 def test_pubmed_live_canary_bounded():
-    if not os.environ.get("SEDI_NCBI_TOOL") or not os.environ.get("SEDI_NCBI_EMAIL"):
-        pytest.skip("SEDI_NCBI_TOOL/SEDI_NCBI_EMAIL required for PubMed live canary")
     ev = run_pubmed_live_canary(max_records=2)
     _assert_bounded_evidence(ev)
+    assert ev.official_host == "eutils.ncbi.nlm.nih.gov"
+    if ev.status == "BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY":
+        assert ev.network_executed is False
+        return
     assert ev.network_executed is True
     assert ev.status == "LIVE_VERIFIED"
     assert ev.record_count >= 1
-    assert ev.official_host == "eutils.ncbi.nlm.nih.gov"
 
 
 def test_pmc_live_canary_bounded():
@@ -76,11 +83,18 @@ def test_who_guideline_authority_live_canary_nf14():
 
 
 def test_mandatory_live_canaries_suite():
-    """NF15 — all four bounded official connectors must live-verify in CI job 2."""
-    if not os.environ.get("SEDI_NCBI_TOOL") or not os.environ.get("SEDI_NCBI_EMAIL"):
-        pytest.skip("SEDI_NCBI_TOOL/SEDI_NCBI_EMAIL required for full mandatory suite")
+    """NF15 — PMC/CT.gov/WHO must live-verify; PubMed may honest-block on NF16."""
     results = run_all_mandatory_live_canaries()
     assert set(results.keys()) == {"pubmed", "pmc", "ctgov", "who_guideline_authority"}
     for name, ev in results.items():
         _assert_bounded_evidence(ev)
-        assert ev.status == "LIVE_VERIFIED", f"{name} status={ev.status} parser={ev.parser_result}"
+        if name == "pubmed":
+            assert ev.status in {
+                "LIVE_VERIFIED",
+                "BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY",
+            }, f"pubmed status={ev.status}"
+            email = os.environ.get("SEDI_NCBI_EMAIL", "")
+            if email and is_disallowed_operational_email(email):
+                assert ev.status == "BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY"
+        else:
+            assert ev.status == "LIVE_VERIFIED", f"{name} status={ev.status} parser={ev.parser_result}"

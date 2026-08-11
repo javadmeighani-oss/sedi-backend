@@ -269,8 +269,8 @@ jobs:
       ENVIRONMENT: test_isolated
       ENV: test_isolated
       PYTHONDONTWRITEBYTECODE: "1"
-      SEDI_NCBI_TOOL: sedi-know04-ci
-      SEDI_NCBI_EMAIL: know04-ci@sedi.test
+      SEDI_NCBI_TOOL: ${{ vars.SEDI_NCBI_TOOL || 'sedi-know04-ci' }}
+      SEDI_NCBI_EMAIL: ${{ secrets.SEDI_NCBI_EMAIL }}
 
     steps:
       - name: Checkout
