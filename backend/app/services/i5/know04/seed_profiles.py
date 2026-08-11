@@ -45,14 +45,26 @@ PROFILES = [
         "notes": "TRIAL_REGISTRATION != PROVEN_TREATMENT",
     },
     {
-        "connector_key": "who_guidelines_feed",
-        "source_profile_key": "who_guidelines",
-        "source_role": "CLINICAL_GUIDELINE",
+        "connector_key": "who_news_discovery",
+        "source_profile_key": "who_news",
+        "source_role": "NEWS_OR_DISCOVERY_SIGNAL",
         "access_mechanism": "OFFICIAL_FEED",
-        "official_authority_note": "WHO public RSS/news syndication canary",
+        "official_authority_note": "WHO official news RSS — discovery signal only (NOT guideline authority)",
         "base_url": "https://www.who.int/rss-feeds/news-english.xml",
         "connector_state": "CONNECTOR_READY",
         "live_status": "NOT_EXECUTED",
+        "notes": "NEWS != GUIDELINE; NF14 semantics",
+    },
+    {
+        "connector_key": "who_guideline_catalogue",
+        "source_profile_key": "who_guideline_catalogue",
+        "source_role": "CLINICAL_GUIDELINE",
+        "access_mechanism": "OFFICIAL_HTML_CATALOGUE",
+        "official_authority_note": "WHO GRC publications catalogue — guideline pointer (NOT recommendation parser)",
+        "base_url": "https://www.who.int/publications/who-guidelines",
+        "connector_state": "CONNECTOR_READY",
+        "live_status": "NOT_EXECUTED",
+        "notes": "OFFICIAL_HTML_CATALOGUE; recommendation_extraction=NOT_EXERCISED at canary",
     },
 ]
 
@@ -75,10 +87,13 @@ def seed_know04_connector_profiles(db: Session) -> dict[str, Any]:
             row = models.I5ConnectorProfile(connector_key=ck)
             db.add(row)
         row.source_profile_key = key
-        row.source_role = "CLINICAL_GUIDELINE"
+        if key == "who_news":
+            row.source_role = "NEWS_OR_DISCOVERY_SIGNAL"
+        else:
+            row.source_role = "CLINICAL_GUIDELINE"
         row.access_mechanism = meta["access_mechanism"]
         row.official_authority_note = meta["authority"]
-        row.base_url = meta.get("canary_feed") or None
+        row.base_url = meta.get("canary_url") or meta.get("canary_feed") or None
         row.rights_blocker = meta.get("blocker") or None
         if meta["access_mechanism"] in {"MANUAL_REVIEW_REQUIRED", "NO_SUPPORTED_AUTOMATION"}:
             row.connector_state = "BLOCKED_BY_RIGHTS"

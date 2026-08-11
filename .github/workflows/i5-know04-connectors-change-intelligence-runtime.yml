@@ -1,5 +1,6 @@
 # I5-KNOW-04 Official connectors + W0 NF7–NF11 + change intelligence
 # PostgreSQL 16 + pgvector. NO Production mutation. Hardened pipefail.
+# Job 1: deterministic DB + pytest. Job 2: mandatory bounded live canaries (NF15).
 name: I5-KNOW-04 Connectors Change Intelligence Runtime
 
 on:
@@ -13,6 +14,7 @@ on:
       - "backend/alembic/versions/065_i5_know04_connectors_change_intelligence.py"
       - "backend/alembic/versions/064_i5_know03_studies_effects_recs.py"
       - "backend/tests/test_i5_know04_connectors.py"
+      - "backend/tests/test_i5_know04_live_canaries.py"
       - "backend/tests/test_i5_know03_studies_effects.py"
       - "backend/tests/test_i5_know02_artifacts_taxonomy.py"
       - "backend/tests/test_i5_know01_source_registry.py"
@@ -29,8 +31,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  i5-know04-connectors:
-    name: KNOW-04 connectors + W0 integrity
+  i5-know04-deterministic:
+    name: KNOW-04 deterministic + W0 integrity
     runs-on: ubuntu-24.04
     timeout-minutes: 60
 
@@ -58,7 +60,6 @@ jobs:
       ENV: test_isolated
       PYTHONDONTWRITEBYTECODE: "1"
       OPENAI_API_KEY: know04-test-placeholder-not-used
-      SEDI_KNOW04_LIVE_CANARIES: "0"
 
     steps:
       - name: Checkout
@@ -191,7 +192,6 @@ jobs:
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
             -q --tb=short --noconftest \
-            -k "not test_live_canaries_bounded" \
             | tee "${{ runner.temp }}/know04_evidence/pytest_know04.txt"
           echo "KNOW04_PYTEST_EXIT=0" > "${{ runner.temp }}/know04_evidence/pytest_exit.txt"
 
@@ -234,7 +234,6 @@ jobs:
               bad.append("traceback_with_failures")
           if "ALEMBIC" in blob and "FAILED" in blob:
               bad.append("migration_failure_signal")
-          # unexpected skip of entire targeted file is not auto-PASS
           if "no tests ran" in blob.lower():
               bad.append("no_tests_ran")
           exit_marker = evid / "pytest_exit.txt"
@@ -256,4 +255,93 @@ jobs:
         with:
           name: i5-know04-connectors-change-intelligence-evidence
           path: ${{ runner.temp }}/know04_evidence/
+          retention-days: 14
+
+  i5-know04-live-canaries:
+    name: KNOW-04 mandatory live canaries (NF15)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: i5-know04-deterministic
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      SEDI_NCBI_TOOL: sedi-know04-ci
+      SEDI_NCBI_EMAIL: know04-ci@sedi.test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest requests
+
+      - name: Prepare live canary evidence directory
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/know04_live_evidence"
+
+      - name: Mandatory bounded live canaries (NF15)
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          python -B -m pytest \
+            backend/tests/test_i5_know04_live_canaries.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/know04_live_evidence/pytest_live_canaries.txt"
+          echo "KNOW04_LIVE_CANARIES_EXIT=0" > "${{ runner.temp }}/know04_live_evidence/pytest_exit.txt"
+
+      - name: Live canary raw log audit
+        if: always()
+        run: |
+          set -euo pipefail
+          EVID="${{ runner.temp }}/know04_live_evidence"
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          evid = Path(os.environ["RUNNER_TEMP"]) / "know04_live_evidence"
+          blob = ""
+          p = evid / "pytest_live_canaries.txt"
+          if p.exists():
+              blob = p.read_text(encoding="utf-8", errors="replace")
+          bad = []
+          if re.search(r"(?m)^\d+ failed(,|$)", blob):
+              bad.append("pytest_failed")
+          if re.search(r"(?m)^\d+ errors?(,|$)", blob):
+              bad.append("pytest_errors")
+          if re.search(r"(?m)^\d+ skipped(,|$)", blob):
+              bad.append("pytest_skipped_live_canaries")
+          if "no tests ran" in blob.lower():
+              bad.append("no_tests_ran")
+          exit_marker = evid / "pytest_exit.txt"
+          if not exit_marker.exists():
+              bad.append("pytest_exit_marker_missing")
+          (evid / "raw_log_audit.txt").write_text(
+              "RAW_LOG_AUDIT=" + ("PASS" if not bad else "FAIL") + "\n"
+              + ("FINDINGS=" + ",".join(bad) if bad else "FINDINGS=NONE") + "\n",
+              encoding="utf-8",
+          )
+          if bad:
+              raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
+          print("RAW_LOG_AUDIT=PASS")
+          PY
+
+      - name: Upload live canary evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know04-live-canaries-evidence
+          path: ${{ runner.temp }}/know04_live_evidence/
           retention-days: 14

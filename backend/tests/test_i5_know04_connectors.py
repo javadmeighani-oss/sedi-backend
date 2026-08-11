@@ -31,7 +31,19 @@ from backend.app.services.i5.know04.change_intelligence import (
     reassess_claim_runtime_support,
 )
 from backend.app.services.i5.know04.clinicaltrials import ClinicalTrialsGovConnector
-from backend.app.services.i5.know04.guidelines import GUIDELINE_SOURCE_CLASSIFICATIONS, GuidelineFeedConnector
+from backend.app.services.i5.know04.guidelines import (
+    GUIDELINE_SOURCE_CLASSIFICATIONS,
+    WhoGuidelineCatalogueConnector,
+    WhoNewsDiscoveryConnector,
+)
+from backend.app.services.i5.know04.authority_promotion import (
+    AuthorityPromotionError,
+    STAGE_DISCOVERED,
+    STAGE_PARSED_RECOMMENDATION,
+    STAGE_VERIFIED_ARTIFACT_POINTER,
+    STAGE_VERIFIED_GUIDELINE,
+    validate_promotion,
+)
 from backend.app.services.i5.know04.http_client import ConnectorHttpError, HardenedHttpClient
 from backend.app.services.i5.know04.master_log_guard import (
     MasterLogPrefixMutationError,
@@ -290,16 +302,74 @@ def test_ctgov_normalize_not_recommendation():
 
 
 def test_guideline_framework_classifications_and_rss_parse():
+    assert GUIDELINE_SOURCE_CLASSIFICATIONS["who_news"]["who_artifact_kind"] == "WHO_NEWS"
+    assert GUIDELINE_SOURCE_CLASSIFICATIONS["who_guideline_catalogue"]["access_mechanism"] == "OFFICIAL_HTML_CATALOGUE"
     assert GUIDELINE_SOURCE_CLASSIFICATIONS["aan_guidelines"]["access_mechanism"] == "OFFICIAL_HTML_ONLY"
     rss = b"""<?xml version='1.0'?><rss><channel>
       <item><title>SYNTHETIC WHO diabetes guidance fixture</title><link>https://www.who.int/fixture</link>
       <guid>who-fixture-1</guid><pubDate>Mon, 01 Jan 2026 00:00:00 GMT</pubDate>
       <description>test-only</description></item></channel></rss>"""
-    items = GuidelineFeedConnector().parse_rss(rss)
+    items = WhoNewsDiscoveryConnector().parse_rss(rss)
     assert items[0]["guid"] == "who-fixture-1"
-    rec = GuidelineFeedConnector().normalize({**items[0], "synthetic_fixture": True, "original_grade": "A"})
-    assert rec.payload["original_grade"] == "A"
-    assert rec.payload["preserve_original_grading"] if False else rec.provenance["preserve_original_grading"] is True
+    rec = WhoNewsDiscoveryConnector().normalize({**items[0], "synthetic_fixture": True})
+    assert rec.source_role == "NEWS_OR_DISCOVERY_SIGNAL"
+    assert rec.resource_type == "NEWS_ITEM"
+    assert rec.payload["clinical_guideline"] is False
+    assert rec.payload["clinical_recommendation"] is False
+    assert rec.payload["runtime_medical_authority"] is False
+    assert rec.payload.get("recommendation_text") is None
+    assert rec.provenance["discovery_only"] is True
+
+
+def test_nf14_who_news_not_guideline_or_recommendation():
+    rss = b"""<?xml version='1.0'?><rss><channel>
+      <item><title>New WHO guideline announced</title><link>https://www.who.int/news/item/x</link>
+      <guid>who-news-nf14</guid><description>Press release only</description></item></channel></rss>"""
+    rec = WhoNewsDiscoveryConnector().normalize({**WhoNewsDiscoveryConnector().parse_rss(rss)[0], "synthetic_fixture": True})
+    assert rec.source_role != "CLINICAL_GUIDELINE"
+    assert rec.payload["clinical_guideline"] is False
+    assert rec.payload["clinical_recommendation"] is False
+    assert rec.payload.get("recommendation_text") is None
+    assert rec.payload["who_artifact_kind"] == "WHO_NEWS"
+
+
+def test_nf14_catalogue_entry_not_recommendation():
+    raw = {
+        "canonical_locator": "https://www.who.int/publications/i/item/9789240121744",
+        "external_identifier": "9789240121744",
+        "who_artifact_kind": "WHO_GUIDELINE_CATALOGUE_ENTRY",
+        "synthetic_fixture": True,
+    }
+    rec = WhoGuidelineCatalogueConnector().normalize(raw)
+    assert rec.payload["clinical_recommendation"] is False
+    assert rec.payload.get("recommendation_text") is None
+    assert rec.payload["recommendation_extraction"] == "NOT_EXERCISED"
+    assert rec.payload["guideline_catalogue_pointer"] is True
+
+
+def test_nf14_verified_guideline_classification_fixture():
+    html = b"""
+    <html><body>
+    <a href="https://www.who.int/publications/i/item/9789240121744">WHO guideline</a>
+    </body></html>
+    """
+    records = WhoGuidelineCatalogueConnector().parse_catalogue_html(html, max_records=1)
+    assert len(records) == 1
+    rec = WhoGuidelineCatalogueConnector().normalize(records[0])
+    assert rec.resource_type == "WHO_GUIDELINE_CATALOGUE_ENTRY"
+    assert rec.payload["authority_stage"] == STAGE_VERIFIED_ARTIFACT_POINTER
+
+
+def test_nf14_illegal_authority_promotion_jumps():
+    with pytest.raises(AuthorityPromotionError):
+        validate_promotion(from_stage=STAGE_DISCOVERED, to_stage=STAGE_PARSED_RECOMMENDATION)
+    with pytest.raises(AuthorityPromotionError):
+        validate_promotion(from_stage=STAGE_DISCOVERED, to_stage=STAGE_VERIFIED_GUIDELINE)
+    with pytest.raises(AuthorityPromotionError):
+        validate_promotion(from_stage=STAGE_VERIFIED_ARTIFACT_POINTER, to_stage=STAGE_PARSED_RECOMMENDATION)
+    validate_promotion(from_stage=STAGE_DISCOVERED, to_stage=STAGE_VERIFIED_ARTIFACT_POINTER)
+    validate_promotion(from_stage=STAGE_VERIFIED_ARTIFACT_POINTER, to_stage=STAGE_VERIFIED_GUIDELINE)
+    validate_promotion(from_stage=STAGE_VERIFIED_GUIDELINE, to_stage=STAGE_PARSED_RECOMMENDATION)
 
 
 def test_terminology_statuses_honest():
@@ -612,69 +682,4 @@ def test_know04_w0_and_connectors_pg():
         db.close()
 
 
-@pytest.mark.skipif(os.environ.get("SEDI_KNOW04_LIVE_CANARIES") != "1", reason="live canaries opt-in")
-def test_live_canaries_bounded():
-    """Bounded live read-only canaries — never mass download. Honest statuses."""
-    statuses = {}
-    # PubMed
-    try:
-        cfg = PubMedConnectorConfig.from_env()
-    except EnvironmentError as e:
-        statuses["PUBMED"] = "NOT_EXECUTED_MISSING_CREDENTIALS"
-    else:
-        import requests
-
-        def http_get(url, headers=None, timeout=None):
-            r = requests.get(url, headers=headers, timeout=timeout)
-            return r
-
-        conn = PubMedConnector(config=cfg, http_get=http_get, sleep_fn=lambda s: None)
-        try:
-            discovered = conn.discover("amyotrophic lateral sclerosis[tiab]", retmax=1)
-            assert discovered["ids"]
-            statuses["PUBMED"] = "LIVE_VERIFIED"
-            statuses["ALS_CONNECTOR_CANARY"] = "LIVE_VERIFIED"
-        except Exception:
-            statuses["PUBMED"] = "FAILED"
-
-    # ClinicalTrials.gov — no credentials required
-    try:
-        import requests
-
-        def http_get(url, headers=None, timeout=None):
-            return requests.get(url, headers=headers, timeout=timeout)
-
-        ct = ClinicalTrialsGovConnector(http_get=http_get)
-        d = ct.discover("diabetes", page_size=1)
-        assert d.get("ids") is not None
-        statuses["CLINICALTRIALS_GOV"] = "LIVE_VERIFIED"
-        statuses["DIABETES_CONNECTOR_CANARY"] = "LIVE_VERIFIED"
-    except Exception:
-        statuses["CLINICALTRIALS_GOV"] = "FAILED"
-
-    # WHO feed
-    try:
-        import requests
-
-        def http_get(url, headers=None, timeout=None):
-            return requests.get(url, headers=headers, timeout=timeout)
-
-        items = GuidelineFeedConnector(http_get=http_get).discover()
-        assert isinstance(items, list)
-        statuses["WHO_GUIDELINE_FEED"] = "LIVE_VERIFIED"
-        statuses["OFFICIAL_GUIDELINE_LIVE_CANARY"] = "LIVE_VERIFIED"
-    except Exception:
-        statuses["WHO_GUIDELINE_FEED"] = "FAILED"
-
-    statuses["ICD11"] = icd11_status().live_status
-    # Never convert NOT_EXECUTED to PASS
-    for k, v in statuses.items():
-        assert v != "PASS"
-        assert v in {
-            "LIVE_VERIFIED",
-            "NOT_EXECUTED_MISSING_CREDENTIALS",
-            "NOT_EXECUTED_RIGHTS_BLOCK",
-            "NOT_EXECUTED_NETWORK_POLICY",
-            "FAILED",
-            "NOT_EXECUTED",
-        }
+# Live canaries moved to test_i5_know04_live_canaries.py (mandatory CI job 2)
