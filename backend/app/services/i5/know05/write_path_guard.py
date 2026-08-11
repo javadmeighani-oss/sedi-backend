@@ -34,6 +34,7 @@ ALLOWED_WRITER_FILES = frozenset(
         "know05/acquisition_boundary.py",
         "know05/orchestrator.py",
         "know05/coverage_engine.py",
+        "know05/publication.py",
         "know01/format_gap_persistence.py",
         "know01/coverage_gaps.py",
         "know01/registry_service.py",
