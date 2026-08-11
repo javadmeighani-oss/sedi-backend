@@ -289,6 +289,7 @@ def ingest_clinicaltrials_bounded(
     rejected = 0
     ku_id = None
     art_id = None
+    last_error: Optional[str] = None
 
     if not ids:
         return BoundedIngestionResult(
@@ -345,14 +346,16 @@ def ingest_clinicaltrials_bounded(
             stages = [s.value for s in PublicationStage]
             if not cand.runtime_eligible:
                 rejected += 1
+                last_error = "PUBLICATION_NOT_RUNTIME_ELIGIBLE"
                 continue
             if persist and source is not None and db is not None:
                 art_id, ku_id = _persist_ctgov_record(
                     db, source=source, nct_id=nct, title=title, content_hash=content_hash
                 )
             accepted += 1
-        except Exception:
+        except Exception as exc:
             rejected += 1
+            last_error = f"{type(exc).__name__}:{exc}"
 
     status = "PUBLISHED" if (accepted and persist) else ("FETCHED" if accepted else ("REJECTED" if rejected else "FAILED"))
     if accepted and not persist:
@@ -380,6 +383,7 @@ def ingest_clinicaltrials_bounded(
         publication_stages=stages,
         knowledge_unit_id=ku_id,
         artifact_id=art_id,
+        block_reason=None if accepted else last_error,
     )
 
 

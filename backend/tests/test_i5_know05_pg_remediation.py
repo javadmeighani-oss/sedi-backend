@@ -262,7 +262,7 @@ def test_nf19_bounded_ingestion_mock_e2e_beyond_ready():
             max_records=1,
         )
         db.commit()
-        assert result.status == "PUBLISHED"
+        assert result.status == "PUBLISHED", result.as_dict()
         assert result.request_count >= 1
         assert result.bytes_received > 0
         assert result.http_status == 200
