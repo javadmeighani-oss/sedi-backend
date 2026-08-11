@@ -44,6 +44,20 @@ PRODUCTION_CRAWLER / RAG / SCIS = NO
 - Tests: `backend/tests/test_i5_know02_artifacts_taxonomy.py`
 - CI: `.github/workflows/i5-know02-artifacts-taxonomy-runtime.yml` (pipefail, PG16, fresh→063, 062→063, KNOW-01 regression, raw-log audit)
 
+### CI Green proof (FACT)
+
+```text
+RUN_ID = 31463374732
+JOB_ID = 93691216765
+CONCLUSION = success
+HEAD_SHA = bc9ff1d78890a4f1cc2774308adf1990de4adf1e
+PYTEST = 18 passed / 0 failed / 0 errors
+RAW_LOG_AUDIT = PASS
+ARTIFACT_ID = 9090619854
+ARTIFACT_DIGEST = sha256:14cfa2888e09c039aa62abd3cb054767f793b349d6f86a0fc011db92629b484c
+URL = https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31463374732
+```
+
 ## Completeness distinction
 
 ```text

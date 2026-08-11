@@ -66080,3 +66080,170 @@ MARKER=I5_KNOW01_CI_FALSE_GREEN_INTEGRITY_REMEDIATION_PASS
 NOTE=post-§279 final master-log whole-file self-SHA is NOT embedded inside §279.
 SIZE_BEFORE_APPEND=2965018
 SHA256_BEFORE_APPEND=625678D50186C5F0C93C0BC232C80055C70B7042BB06C512FA34531DE7461E07
+
+--------------------------------------------------------------------------------
+§280 - SEDI-V1 I5-KNOW-02 SCIENTIFIC ARTIFACTS + ARTIFACT VERSIONING + MULTI-EVIDENCE LINKS + STRUCTURED CLAIM DETAILS + UNIVERSAL HUMAN HEALTH TAXONOMY FOUNDATION
+--------------------------------------------------------------------------------
+GATE=SEDI-V1 I5-KNOW-02 SCIENTIFIC ARTIFACTS + ARTIFACT VERSIONING + MULTI-EVIDENCE LINKS + STRUCTURED CLAIM DETAILS + UNIVERSAL HUMAN HEALTH TAXONOMY FOUNDATION CONTROLLED IMPLEMENTATION TO GREEN
+STATUS=AUTHORIZED / EXECUTED
+MODE=COMPREHENSIVE IMPLEMENTATION + TEST + CI + CONTROLLED AUTO-REMEDIATION TO GREEN
+RECORDED_AT_UTC=2026-08-11T06:05:00Z
+APPROVAL=Javad Master Gate authorization + permanent product requirement (ALL human diseases/health conditions share one universal taxonomy; ALS/MS/Diabetes = P0 overlays not parallel systems; care/prevention/nutrition/exercise/lifestyle/sleep/routine = structured knowledge dimensions)
+GATE_RESULT=PASS
+
+--------------------------------------------------------------------------------
+§280.0 - GOVERNANCE
+--------------------------------------------------------------------------------
+LATEST_REFERENCE_REVIEWED=YES
+PERMANENT_LAWS_REVIEWED=YES
+CURRENT_AUTHORITY_RECONCILED=YES
+APPROVAL_SCOPE_RECONCILED=YES
+SPEED_LAW_APPLIED=YES
+HARD_STOPS_DEFINED=YES
+SELF_HEALING_DEFINED=YES
+EVIDENCE_REQUIREMENTS_DEFINED=YES
+CONTINUITY_CLOSURE_DEFINED=YES
+RULES_IN_FORCE_CHECK=PASS
+KNOW01_CLOSURE_PRESERVED=YES
+ORM_CHANGED=YES (additive KNOW-02 tables only)
+ENUM_CHANGED=YES (additive KNOW-02 vocabularies)
+MIGRATION_CREATED=YES (063_i5_know02_artifacts_claims_taxonomy)
+MIGRATION_RUN=CI_ONLY
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_WRITE=NO
+CRAWLER_ACTIVATED=NO
+SCHEDULER_ACTIVATED=NO
+RAG_ACTIVATED=NO
+SCIS_PRODUCTION=NO
+ICD11_FULL_IMPORT=NEXT_TERMINOLOGY_WAVE
+ALL_HUMAN_MEDICAL_KNOWLEDGE_INGESTED=NO
+UNIVERSAL_TAXONOMY_FOUNDATION=GREEN
+P0_SPECIFIC_BRANCHING_IN_CORE_SCHEMA=0
+
+PERMANENT_PRODUCT_REQUIREMENT_RECORDED=YES
+TEXT=ALL HUMAN DISEASES AND HEALTH CONDITIONS MUST SHARE ONE UNIVERSAL TAXONOMY FOUNDATION. ALS/MS/DIABETES ARE P0 PRIORITIES INSIDE IT. TREATMENT/CARE/PREVENTION/NUTRITION/EXERCISE/LIFESTYLE/SLEEP/DAILY-ROUTINE KNOWLEDGE MUST BE CLASSIFIED AS STRUCTURED KNOWLEDGE DIMENSIONS LINKED TO CONDITIONS OR HEALTHY POPULATIONS.
+
+--------------------------------------------------------------------------------
+§280.A - AUTHORITY
+--------------------------------------------------------------------------------
+WORKSPACE=D:/Rimiya Design Studio/Sedi/software/Sedi-v-1/workspace
+BRANCH=feature/section15/backend-continuity-foundation
+LOCAL_HEAD_AT_GATE_START=ae0b2a0d450b754a44b3bb4a0b9521471d2b60e8
+IMPL_COMMIT=bc9ff1d78890a4f1cc2774308adf1990de4adf1e
+IMPL_PARENT=ae0b2a0d450b754a44b3bb4a0b9521471d2b60e8
+IMPL_TREE=6b9332d2dae1b5cdd51e96408d005b0d2d9f8ae6
+MASTER_LOG_PREDECESSOR=§279
+MASTER_LOG_PREDECESSOR_SIZE=2970288
+MASTER_LOG_PREDECESSOR_SHA256=28F3265F1A81EB337923F6EBF9003DD7BE51F999FBD7489D202E131E2C69B460
+CURSOR_HANDOFF_PREDECESSOR=v570
+CHATGPT_CONTINUITY_PREDECESSOR=v580
+PRODUCTION_ALEMBIC=060_db03_w4_w6_scale_inspect_roles
+REPO_ALEMBIC_HEAD=063_i5_know02_artifacts_claims_taxonomy
+SCIS_01_REVISION=061_scis01_pgvector_kce_foundation
+PGVECTOR_PRODUCTION=NO
+DESIGN_FREEZE_AUTHORITY=docs/architecture/i5-final-knowledge-architecture-freeze-01/05_STRUCTURED_CLINICAL_EVIDENCE_DATA_MODEL.md
+EVIDENCE_PACK=docs/architecture/i5-know02-artifacts-taxonomy/EVIDENCE_PACK.md
+
+--------------------------------------------------------------------------------
+§280.B - DELIVERABLES
+--------------------------------------------------------------------------------
+MIGRATION=backend/alembic/versions/063_i5_know02_artifacts_claims_taxonomy.py
+PACKAGE=backend/app/services/i5/know02/
+TABLES=i5_terminology_releases;i5_knowledge_dimensions;i5_clinical_concepts;i5_clinical_concept_labels;i5_clinical_concept_mappings;i5_sedi_priority_overlays;i5_scientific_artifacts;i5_scientific_artifact_versions;i5_knowledge_unit_evidence_links;i5_knowledge_claim_details;i5_knowledge_unit_concepts;i5_knowledge_unit_dimensions;i5_knowledge_coverage_cells
+CI_WORKFLOW=.github/workflows/i5-know02-artifacts-taxonomy-runtime.yml
+TESTS=backend/tests/test_i5_know02_artifacts_taxonomy.py
+HEAD_CONTRACTS_UPDATED=test_db03_contracts;test_db03_migration_rehearsal;i5-know01 workflow;scis-01 workflow;db03-migration-rehearsal workflow
+
+--------------------------------------------------------------------------------
+§280.C - PROOFS
+--------------------------------------------------------------------------------
+ALEMBIC_SINGLE_HEAD=PASS (063)
+FRESH_063=PASS
+UPGRADE_062_TO_063=PASS
+KNOW02_PLUS_KNOW01_REGRESSION=18 passed / 0 failed / 0 errors
+RAW_LOG_AUDIT=PASS
+POSTGRESQL=16 (pgvector/pgvector:pg16 service)
+PIPEFAIL=YES
+CI_RUN=31463374732
+CI_JOB=93691216765
+CI_CONCLUSION=success
+ARTIFACT_ID=9090619854
+ARTIFACT_DIGEST=sha256:14cfa2888e09c039aa62abd3cb054767f793b349d6f86a0fc011db92629b484c
+CI_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/31463374732
+ORPHAN_ARTIFACT_VERSION=0
+ORPHAN_EVIDENCE_LINK=0
+ORPHAN_CLAIM=0
+RETRACTED_ONLY_RUNTIME_SUPPORT_BLOCKED=YES
+P0_SPECIFIC_BRANCHING_IN_CORE_SCHEMA=0
+PRODUCTION_MIGRATION_RUN=NO
+PRODUCTION_CRAWLER_ACTIVATED=NO
+PRODUCTION_RAG_ACTIVATED=NO
+
+--------------------------------------------------------------------------------
+§280.D - TAXONOMY / ARTIFACT VERDICT SURFACE
+--------------------------------------------------------------------------------
+UNIVERSAL_HUMAN_HEALTH_TAXONOMY=GREEN
+DISEASE_CONDITION_TAXONOMY=GREEN
+KNOWLEDGE_DIMENSION_TAXONOMY=GREEN
+ICD11_COMPATIBILITY=GREEN (schema/API + provisional mapping slots; full import deferred)
+MESH_MAPPING_FOUNDATION=GREEN
+ICF_COMPATIBILITY=GREEN (foundation release metadata; no full ingestion)
+ICHI_COMPATIBILITY=GREEN (foundation release metadata; no full ingestion)
+P0_OVERLAY_MODEL=GREEN
+ALS_IN_UNIVERSAL_TAXONOMY=YES
+MS_IN_UNIVERSAL_TAXONOMY=YES
+DIABETES_IN_UNIVERSAL_TAXONOMY=YES
+NON_P0_DISEASE_SUPPORT=YES (fixtures: hypertension/influenza/breast_cancer/depression/asthma/ckd/osa/obesity)
+SCIENTIFIC_ARTIFACTS=GREEN
+ARTIFACT_VERSIONING=GREEN
+MULTI_EVIDENCE_LINKS=GREEN
+STRUCTURED_CLAIM_DETAILS=GREEN
+CROSS_DISEASE_CLAIMS=GREEN
+HEALTHY_POPULATION_KNOWLEDGE=GREEN
+TREATMENT_CLASSIFICATION=GREEN (dimension vocabulary)
+CARE_CLASSIFICATION=GREEN
+PREVENTION_CLASSIFICATION=GREEN
+NUTRITION_CLASSIFICATION=GREEN
+EXERCISE_CLASSIFICATION=GREEN
+LIFESTYLE_CLASSIFICATION=GREEN
+SLEEP_CLASSIFICATION=GREEN
+DAILY_ROUTINE_CLASSIFICATION=GREEN
+SOURCE_TO_ARTIFACT_TO_KU_TRACE=GREEN
+
+--------------------------------------------------------------------------------
+§280.E - OPEN FINDINGS
+--------------------------------------------------------------------------------
+OPEN_CRITICAL_FINDINGS=0
+OPEN_NONCRITICAL_FINDINGS=4
+NF1=CAP24 BLOCKED_WITH_EXACT_EVIDENCE (preserved)
+NF2=Per-source TDM/legal terms REVIEW_REQUIRED (preserved)
+NF3=Clinic entity model NEXT_SCHEMA_GATE_REQUIRED (preserved)
+NF4=ICD11_FULL_IMPORT=NEXT_TERMINOLOGY_WAVE (explicit KNOW-02 deferral)
+
+--------------------------------------------------------------------------------
+§280.F - CRITICAL PATH
+--------------------------------------------------------------------------------
+BEFORE=KNOW-01 closed; repo head 062; Production 060; crawler/RAG NO; I5-KNOW-02 authorized
+AFTER=Repo head 063; universal taxonomy + artifacts/claims Green; Production unchanged; KNOW-03 unauthorized
+UNLOCKS=precise disease×dimension×evidence retrieval path for SCIS; multi-evidence claim governance; coverage cells for gap analysis
+PARALLELIZABLE=KNOW-03 structured studies/PICO/effects ∥ KNOW-04 terminology expansion wave (both require separate Javad approval)
+I5_CLOSURE_EFFECT=structural prerequisite for evidence-aware SCIS complete; knowledge acquisition still continuous
+END_OF_MORDAD_RISK=MODERATE (schema Green; mass knowledge ingest + KNOW-03 still ahead)
+
+--------------------------------------------------------------------------------
+§280.G - NEXT GATE
+--------------------------------------------------------------------------------
+NEXT_GATE=SEDI-V1 I5-KNOW-03 STRUCTURED CLINICAL STUDIES + POPULATIONS + INTERVENTIONS + OUTCOMES + EFFECT ESTIMATES + CLINICAL RECOMMENDATIONS + TERMINOLOGY EXPANSION
+NEXT_GATE_AUTHORIZED=NO
+
+--------------------------------------------------------------------------------
+§280.H - FINAL VERDICT
+--------------------------------------------------------------------------------
+AUTHORITY_RECONCILED=YES
+KNOW01_CLOSURE_PRESERVED=YES
+GATE_RESULT=PASS
+MARKER=I5_KNOW02_ARTIFACTS_CLAIMS_UNIVERSAL_TAXONOMY_PASS
+
+NOTE=post-§280 final master-log whole-file self-SHA is NOT embedded inside §280.
+SIZE_BEFORE_APPEND=2970288
+SHA256_BEFORE_APPEND=28F3265F1A81EB337923F6EBF9003DD7BE51F999FBD7489D202E131E2C69B460
