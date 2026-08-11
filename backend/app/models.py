@@ -2787,3 +2787,316 @@ class I5ReferenceBookEdition(Base):
     superseded_by_edition_id = Column(BigInteger, nullable=True)
     access_route = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+# -------------------- I5-KNOW-02 Scientific Artifacts / Taxonomy / Claims --------------------
+
+
+class I5TerminologyRelease(Base):
+    __tablename__ = "i5_terminology_releases"
+    __table_args__ = (UniqueConstraint("terminology_system", "release_version", name="uq_term_rel_system_version"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    terminology_system = Column(String(32), nullable=False)
+    release_version = Column(String(64), nullable=False)
+    status = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
+    official_source_note = Column(Text, nullable=True)
+    rights_note = Column(Text, nullable=True)
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    valid_to = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5KnowledgeDimension(Base):
+    __tablename__ = "i5_knowledge_dimensions"
+
+    code = Column(String(64), primary_key=True)
+    label = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5ClinicalConcept(Base):
+    __tablename__ = "i5_clinical_concepts"
+    __table_args__ = (
+        UniqueConstraint("concept_key", name="uq_cc_concept_key"),
+        Index("ix_cc_root_category", "root_category"),
+        Index("ix_cc_parent", "parent_concept_id"),
+        Index("ix_cc_type", "concept_type"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    concept_key = Column(String(256), nullable=False)
+    preferred_name = Column(String(512), nullable=False)
+    normalized_name = Column(String(512), nullable=False)
+    concept_type = Column(String(64), nullable=False)
+    root_category = Column(String(64), nullable=True)
+    parent_concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="SET NULL", name="fk_cc_parent"),
+        nullable=True,
+    )
+    rare_disease_flag = Column(Boolean, nullable=True)
+    genetic_condition_flag = Column(Boolean, nullable=True)
+    communicable_flag = Column(Boolean, nullable=True)
+    chronic_flag = Column(Boolean, nullable=True)
+    pediatric_relevance = Column(Boolean, nullable=True)
+    adult_relevance = Column(Boolean, nullable=True)
+    sex_specific_relevance = Column(String(32), nullable=True)
+    status = Column(String(32), nullable=False, default="ACTIVE", server_default="ACTIVE")
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    valid_to = Column(DateTime(timezone=True), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ClinicalConceptLabel(Base):
+    __tablename__ = "i5_clinical_concept_labels"
+    __table_args__ = (Index("ix_ccl_concept", "concept_id"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="CASCADE", name="fk_ccl_concept"),
+        nullable=False,
+    )
+    language = Column(String(16), nullable=False)
+    label_kind = Column(String(32), nullable=False)
+    label_text = Column(String(512), nullable=False)
+    provenance_note = Column(Text, nullable=True)
+    verified = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5ClinicalConceptMapping(Base):
+    __tablename__ = "i5_clinical_concept_mappings"
+    __table_args__ = (
+        UniqueConstraint("terminology_system", "external_code", "release_version", name="uq_ccm_system_code_release"),
+        Index("ix_ccm_concept", "concept_id"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="CASCADE", name="fk_ccm_concept"),
+        nullable=False,
+    )
+    terminology_system = Column(String(32), nullable=False)
+    external_code = Column(String(128), nullable=False)
+    release_version = Column(String(64), nullable=True)
+    mapping_status = Column(String(32), nullable=False, default="PROVISIONAL", server_default="PROVISIONAL")
+    is_primary = Column(Boolean, nullable=False, default=False, server_default="false")
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    valid_to = Column(DateTime(timezone=True), nullable=True)
+    provenance_note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5SediPriorityOverlay(Base):
+    __tablename__ = "i5_sedi_priority_overlays"
+    __table_args__ = (UniqueConstraint("concept_id", "track_key", name="uq_spo_concept_track"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="CASCADE", name="fk_spo_concept"),
+        nullable=False,
+    )
+    priority_class = Column(String(32), nullable=False)
+    track_key = Column(String(64), nullable=True)
+    rationale = Column(Text, nullable=True)
+    active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ScientificArtifact(Base):
+    __tablename__ = "i5_scientific_artifacts"
+    __table_args__ = (UniqueConstraint("artifact_key", name="uq_sa_artifact_key"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    artifact_key = Column(String(256), nullable=False)
+    artifact_type = Column(String(64), nullable=False)
+    title = Column(Text, nullable=True)
+    publisher_family = Column(String(256), nullable=True)
+    source_profile_id = Column(
+        Integer,
+        ForeignKey("governed_source_profiles.id", ondelete="SET NULL", name="fk_sa_source_profile"),
+        nullable=True,
+    )
+    doi = Column(String(256), nullable=True)
+    pmid = Column(String(64), nullable=True)
+    pmcid = Column(String(64), nullable=True)
+    isbn = Column(String(32), nullable=True)
+    nct_id = Column(String(64), nullable=True)
+    guideline_id = Column(String(128), nullable=True)
+    publisher_identifier = Column(String(256), nullable=True)
+    canonical_url = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5ScientificArtifactVersion(Base):
+    __tablename__ = "i5_scientific_artifact_versions"
+    __table_args__ = (
+        UniqueConstraint("artifact_id", "version_label", name="uq_sav_artifact_version"),
+        Index("ix_sav_artifact", "artifact_id"),
+        Index("ix_sav_state", "version_state"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    artifact_id = Column(
+        BigInteger,
+        ForeignKey("i5_scientific_artifacts.id", ondelete="CASCADE", name="fk_sav_artifact"),
+        nullable=False,
+    )
+    version_label = Column(String(128), nullable=False)
+    version_state = Column(String(32), nullable=False, default="PUBLISHED", server_default="PUBLISHED")
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    content_hash = Column(String(64), nullable=True)
+    title_at_version = Column(Text, nullable=True)
+    abstract_or_summary = Column(Text, nullable=True)
+    supersedes_version_id = Column(BigInteger, nullable=True)
+    raw_evidence_id = Column(
+        Integer,
+        ForeignKey("i5_raw_evidence.id", ondelete="SET NULL", name="fk_sav_raw_evidence"),
+        nullable=True,
+    )
+    locator = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5KnowledgeUnitEvidenceLink(Base):
+    __tablename__ = "i5_knowledge_unit_evidence_links"
+    __table_args__ = (
+        UniqueConstraint("knowledge_unit_id", "artifact_version_id", "support_direction", name="uq_kuel_ku_sav_dir"),
+        Index("ix_kuel_ku", "knowledge_unit_id"),
+        Index("ix_kuel_sav", "artifact_version_id"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="CASCADE", name="fk_kuel_ku"),
+        nullable=False,
+    )
+    artifact_version_id = Column(
+        BigInteger,
+        ForeignKey("i5_scientific_artifact_versions.id", ondelete="RESTRICT", name="fk_kuel_sav"),
+        nullable=False,
+    )
+    support_direction = Column(String(32), nullable=False)
+    evidence_role = Column(String(64), nullable=True)
+    locator = Column(Text, nullable=True)
+    directness = Column(String(32), nullable=True)
+    certainty = Column(String(32), nullable=True)
+    quality = Column(String(32), nullable=True)
+    support_score = Column(Float, nullable=True)
+    retrieved_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5KnowledgeClaimDetail(Base):
+    __tablename__ = "i5_knowledge_claim_details"
+    __table_args__ = (UniqueConstraint("knowledge_unit_id", name="uq_kcd_ku"),)
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="CASCADE", name="fk_kcd_ku"),
+        nullable=False,
+    )
+    claim_class = Column(String(64), nullable=False)
+    subject_concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="SET NULL", name="fk_kcd_subject"),
+        nullable=True,
+    )
+    predicate = Column(String(256), nullable=True)
+    object_concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="SET NULL", name="fk_kcd_object"),
+        nullable=True,
+    )
+    population_context = Column(Text, nullable=True)
+    intervention_text = Column(Text, nullable=True)
+    comparator_text = Column(Text, nullable=True)
+    outcome_text = Column(Text, nullable=True)
+    effect_direction = Column(String(64), nullable=True)
+    recommendation_status = Column(String(64), nullable=True)
+    experimental_status = Column(String(64), nullable=True)
+    certainty_note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
+
+
+class I5KnowledgeUnitConcept(Base):
+    __tablename__ = "i5_knowledge_unit_concepts"
+    __table_args__ = (
+        UniqueConstraint("knowledge_unit_id", "concept_id", "relation_role", name="uq_kuc_ku_concept_role"),
+        Index("ix_kuc_concept", "concept_id"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="CASCADE", name="fk_kuc_ku"),
+        nullable=False,
+    )
+    concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="CASCADE", name="fk_kuc_concept"),
+        nullable=False,
+    )
+    relation_role = Column(String(64), nullable=False, default="ABOUT", server_default="ABOUT")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5KnowledgeUnitDimension(Base):
+    __tablename__ = "i5_knowledge_unit_dimensions"
+    __table_args__ = (
+        UniqueConstraint("knowledge_unit_id", "dimension_code", name="uq_kud_ku_dim"),
+        Index("ix_kud_dim", "dimension_code"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    knowledge_unit_id = Column(
+        Integer,
+        ForeignKey("knowledge_units.id", ondelete="CASCADE", name="fk_kud_ku"),
+        nullable=False,
+    )
+    dimension_code = Column(
+        String(64),
+        ForeignKey("i5_knowledge_dimensions.code", ondelete="RESTRICT", name="fk_kud_dim"),
+        nullable=False,
+    )
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class I5KnowledgeCoverageCell(Base):
+    __tablename__ = "i5_knowledge_coverage_cells"
+    __table_args__ = (
+        UniqueConstraint("concept_id", "dimension_code", "evidence_class", name="uq_kcc_cell"),
+        Index("ix_kcc_concept_dim", "concept_id", "dimension_code"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    concept_id = Column(
+        BigInteger,
+        ForeignKey("i5_clinical_concepts.id", ondelete="CASCADE", name="fk_kcc_concept"),
+        nullable=False,
+    )
+    dimension_code = Column(
+        String(64),
+        ForeignKey("i5_knowledge_dimensions.code", ondelete="RESTRICT", name="fk_kcc_dim"),
+        nullable=False,
+    )
+    evidence_class = Column(String(64), nullable=True)
+    cell_state = Column(String(32), nullable=False)
+    freshness_note = Column(Text, nullable=True)
+    detail = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), onupdate=datetime.utcnow, nullable=False)

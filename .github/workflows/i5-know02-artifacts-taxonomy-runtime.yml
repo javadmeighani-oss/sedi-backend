@@ -1,0 +1,223 @@
+# I5-KNOW-02 Scientific Artifacts + Taxonomy Foundation
+# PostgreSQL 16 + pgvector. NO Production mutation. Hardened pipefail (see §279).
+name: I5-KNOW-02 Artifacts Taxonomy Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/know02/**"
+      - "backend/alembic/versions/063_i5_know02_artifacts_claims_taxonomy.py"
+      - "backend/tests/test_i5_know02_artifacts_taxonomy.py"
+      - "backend/tests/test_i5_know01_source_registry.py"
+      - "backend/tests/test_db03_contracts.py"
+      - "backend/app/models.py"
+      - "backend/app/services/i5/enums.py"
+      - ".github/workflows/i5-know02-artifacts-taxonomy-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-know02-artifacts-taxonomy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i5-know02-artifacts-taxonomy:
+    name: KNOW-02 artifacts + taxonomy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_know02_test
+          POSTGRES_PASSWORD: sedi_know02_test_password
+          POSTGRES_DB: sedi_know02_taxonomy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_know02_test -d sedi_know02_taxonomy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_know02_test:sedi_know02_test_password@127.0.0.1:5432/sedi_know02_taxonomy
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_know02_test:sedi_know02_test_password@127.0.0.1:5432/sedi_know02_taxonomy
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: know02-test-placeholder-not-used
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Prepare evidence directory
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/know02_evidence"
+          echo "GATE=I5-KNOW-02" > "${{ runner.temp }}/know02_evidence/gate_id.txt"
+          echo "COMMIT_SHA=${{ github.sha }}" > "${{ runner.temp }}/know02_evidence/commit.txt"
+
+      - name: Alembic single head is 063
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["063_i5_know02_artifacts_claims_taxonomy"], heads
+          print("ALEMBIC_SINGLE_HEAD=PASS")
+          PY
+
+      - name: Fresh upgrade to 063
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              assert head == "063_i5_know02_artifacts_claims_taxonomy", head
+              for t in (
+                  "i5_scientific_artifacts",
+                  "i5_scientific_artifact_versions",
+                  "i5_knowledge_unit_evidence_links",
+                  "i5_clinical_concepts",
+                  "i5_clinical_concept_mappings",
+                  "i5_knowledge_claim_details",
+                  "i5_knowledge_dimensions",
+                  "i5_sedi_priority_overlays",
+              ):
+                  assert c.execute(text(
+                      "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
+                  ), {"t": t}).scalar(), t
+          print("FRESH_063=PASS")
+          PY
+          echo "FRESH_063=PASS" > "${{ runner.temp }}/know02_evidence/fresh_063.txt"
+
+      - name: Upgrade path 062 → 063
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "062_i5_know01_source_registry_rights")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "062_i5_know01_source_registry_rights"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_scientific_artifacts'"
+              )).scalar() is None
+          command.upgrade(cfg, "063_i5_know02_artifacts_claims_taxonomy")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "063_i5_know02_artifacts_claims_taxonomy"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='i5_scientific_artifacts'"
+              )).scalar() == 1
+          print("UPGRADE_062_TO_063=PASS")
+          PY
+          echo "UPGRADE_062_TO_063=PASS" > "${{ runner.temp }}/know02_evidence/upgrade_062_063.txt"
+
+      - name: KNOW-02 + KNOW-01 regression pytest
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          python -B -m pytest \
+            backend/tests/test_i5_know02_artifacts_taxonomy.py \
+            backend/tests/test_i5_know01_source_registry.py \
+            backend/tests/test_i5_know01_activation_guard.py \
+            backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
+            backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/know02_evidence/pytest_know02.txt"
+          echo "KNOW02_PYTEST_EXIT=0" > "${{ runner.temp }}/know02_evidence/pytest_exit.txt"
+
+      - name: Raw log audit
+        if: always()
+        run: |
+          set -euo pipefail
+          EVID="${{ runner.temp }}/know02_evidence"
+          {
+            echo "GATE=I5-KNOW-02"
+            echo "COMMIT_SHA=${{ github.sha }}"
+            echo "ALEMBIC_HEAD=063_i5_know02_artifacts_claims_taxonomy"
+            echo "PRODUCTION_MIGRATION_RUN=NO"
+            echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
+            echo "PRODUCTION_RAG_ACTIVATED=NO"
+            echo "ICD11_FULL_IMPORT=NEXT_TERMINOLOGY_WAVE"
+            echo "P0_SPECIFIC_BRANCHING_IN_CORE_SCHEMA=0"
+          } > "${EVID}/summary.txt"
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          evid = Path(os.environ["RUNNER_TEMP"]) / "know02_evidence"
+          blob = ""
+          p = evid / "pytest_know02.txt"
+          if p.exists():
+              blob = p.read_text(encoding="utf-8", errors="replace")
+          bad = []
+          if re.search(r"(?m)^E\s+fixture 'db' not found", blob):
+              bad.append("fixture_db_not_found")
+          if "rg: command not found" in blob:
+              bad.append("rg_command_not_found")
+          if re.search(r"(?m)^\d+ failed(,|$)", blob):
+              bad.append("pytest_failed")
+          if re.search(r"(?m)^\d+ errors?(,|$)", blob):
+              bad.append("pytest_errors")
+          (evid / "raw_log_audit.txt").write_text(
+              "RAW_LOG_AUDIT=" + ("PASS" if not bad else "FAIL") + "\n"
+              + ("FINDINGS=" + ",".join(bad) if bad else "FINDINGS=NONE") + "\n",
+              encoding="utf-8",
+          )
+          if bad:
+              raise SystemExit("RAW_LOG_AUDIT_FAIL:" + ",".join(bad))
+          print("RAW_LOG_AUDIT=PASS")
+          PY
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know02-artifacts-taxonomy-evidence
+          path: ${{ runner.temp }}/know02_evidence/
+          retention-days: 14

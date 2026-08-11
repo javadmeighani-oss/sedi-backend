@@ -83,7 +83,7 @@ jobs:
           test -f backend/alembic/versions/061_scis01_pgvector_kce_foundation.py
           echo "SCIS01_ALEMBIC_VECTOR_ALLOWLIST=PASS"
 
-      - name: Alembic single head is 062 (SCIS-01 + KNOW-01 chain)
+      - name: Alembic single head is 063 (SCIS-01 + KNOW-01 + KNOW-02 chain)
         run: |
           python - <<'PY'
           from alembic.config import Config
@@ -92,12 +92,14 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["062_i5_know01_source_registry_rights"], heads
-          rev = script.get_revision("062_i5_know01_source_registry_rights")
-          assert rev.down_revision == "061_scis01_pgvector_kce_foundation"
+          assert heads == ["063_i5_know02_artifacts_claims_taxonomy"], heads
+          rev062 = script.get_revision("062_i5_know01_source_registry_rights")
+          assert rev062.down_revision == "061_scis01_pgvector_kce_foundation"
+          rev063 = script.get_revision("063_i5_know02_artifacts_claims_taxonomy")
+          assert rev063.down_revision == "062_i5_know01_source_registry_rights"
           PY
 
-      - name: Fresh upgrade to head + prove pgvector + KNOW-01 tables
+      - name: Fresh upgrade to head + prove pgvector + KNOW-01/KNOW-02 tables
         run: |
           python - <<'PY'
           import os
@@ -116,7 +118,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "062_i5_know01_source_registry_rights"
+              assert head == "063_i5_know02_artifacts_claims_taxonomy"
               ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
               print("PGVECTOR_VERSION", ext)
               assert ext
@@ -131,13 +133,15 @@ jobs:
                   "i5_source_registry_extensions",
                   "i5_reference_books",
                   "i5_source_coverage_gaps",
+                  "i5_scientific_artifacts",
+                  "i5_clinical_concepts",
               ):
                   assert c.execute(text(
                       "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
                   ), {"t": t}).scalar()
           PY
 
-      - name: Upgrade path 060 → 061 → 062
+      - name: Upgrade path 060 → 061 → 062 → 063
         run: |
           python - <<'PY'
           import os
@@ -163,7 +167,10 @@ jobs:
           command.upgrade(cfg, "062_i5_know01_source_registry_rights")
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "062_i5_know01_source_registry_rights"
-          print("UPGRADE_060_TO_062=PASS")
+          command.upgrade(cfg, "063_i5_know02_artifacts_claims_taxonomy")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "063_i5_know02_artifacts_claims_taxonomy"
+          print("UPGRADE_060_TO_063=PASS")
           PY
 
       - name: Unit + SCIS runtime pytest
@@ -246,7 +253,7 @@ jobs:
         run: |
           {
             echo "GATE=SCIS-01"
-            echo "ALEMBIC_HEAD=062_i5_know01_source_registry_rights"
+            echo "ALEMBIC_HEAD=063_i5_know02_artifacts_claims_taxonomy"
             echo "SCIS01_REVISION=061_scis01_pgvector_kce_foundation"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"

@@ -113,7 +113,7 @@ jobs:
           rm -rf "${FIXTURE_DIR}"
           echo "ACTIVATION_GUARD_NEGATIVE_CONTROL=PASS" | tee -a "${{ runner.temp }}/know01_evidence/activation_guard_negative.txt"
 
-      - name: Alembic head is 062
+      - name: Alembic head is 063 (KNOW-01 preserved under KNOW-02 head)
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -122,11 +122,13 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["062_i5_know01_source_registry_rights"], heads
+          assert heads == ["063_i5_know02_artifacts_claims_taxonomy"], heads
+          rev = script.get_revision("063_i5_know02_artifacts_claims_taxonomy")
+          assert rev.down_revision == "062_i5_know01_source_registry_rights"
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
 
-      - name: Fresh upgrade to 062
+      - name: Fresh upgrade to head (063) proving KNOW-01 tables
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -145,7 +147,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "062_i5_know01_source_registry_rights", head
+              assert head == "063_i5_know02_artifacts_claims_taxonomy", head
               for t in (
                   "i5_source_registry_extensions",
                   "i5_source_registry_roles",
@@ -157,9 +159,9 @@ jobs:
                   assert c.execute(text(
                       "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
                   ), {"t": t}).scalar(), t
-          print("FRESH_062=PASS")
+          print("FRESH_HEAD_KNOW01_TABLES=PASS")
           PY
-          echo "FRESH_062=PASS" > "${{ runner.temp }}/know01_evidence/fresh_062.txt"
+          echo "FRESH_HEAD_KNOW01_TABLES=PASS" > "${{ runner.temp }}/know01_evidence/fresh_062.txt"
 
       - name: Upgrade path 061 → 062
         run: |
@@ -255,7 +257,7 @@ jobs:
           {
             echo "GATE=I5-KNOW-01-CI-FALSE-GREEN-INTEGRITY-REMEDIATION"
             echo "COMMIT_SHA=${{ github.sha }}"
-            echo "ALEMBIC_HEAD=062_i5_know01_source_registry_rights"
+            echo "ALEMBIC_HEAD=063_i5_know02_artifacts_claims_taxonomy"
             echo "PRODUCTION_MIGRATION_RUN=NO"
             echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
             echo "PRODUCTION_RAG_ACTIVATED=NO"

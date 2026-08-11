@@ -265,8 +265,12 @@ def test_know01_registry_seed_roles_iran_p0_taxonomy_books():
     engine = create_engine(url)
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        if head != "062_i5_know01_source_registry_rights":
-            pytest.skip(f"alembic head {head} != 062")
+        # KNOW-01 tables exist at 062+; repo head after KNOW-02 is 063.
+        if head not in {
+            "062_i5_know01_source_registry_rights",
+            "063_i5_know02_artifacts_claims_taxonomy",
+        }:
+            pytest.skip(f"alembic head {head} not in KNOW-01+ chain")
         for t in (
             "i5_source_registry_extensions",
             "i5_source_registry_roles",

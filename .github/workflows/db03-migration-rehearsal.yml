@@ -89,7 +89,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["061_scis01_pgvector_kce_foundation"], heads
+          assert heads == ["063_i5_know02_artifacts_claims_taxonomy"], heads
           PY
 
       - name: Fresh upgrade to head
@@ -111,7 +111,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "061_scis01_pgvector_kce_foundation"
+              assert head == "063_i5_know02_artifacts_claims_taxonomy"
           PY
 
       - name: 056 synthetic baseline then upgrade head
@@ -184,7 +184,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "ALEMBIC_HEAD=061_scis01_pgvector_kce_foundation"
+            echo "ALEMBIC_HEAD=063_i5_know02_artifacts_claims_taxonomy"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
             echo "RAG_EMBEDDINGS_INTRODUCED=NO"
