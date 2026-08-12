@@ -80,9 +80,11 @@ jobs:
           docker pull "${REF}"
           docker run --rm --entrypoint sh "${REF}" -lc '
             set -e
-            test -f /usr/local/share/postgresql/extension/vector.control
-            test -f /usr/local/lib/postgresql/vector.so
-            grep -E "^default_version" /usr/local/share/postgresql/extension/vector.control
+            CTRL="$(ls /usr/local/share/postgresql/extension/vector.control /usr/share/postgresql/*/extension/vector.control 2>/dev/null | head -1)"
+            SO="$(ls /usr/local/lib/postgresql/vector.so /usr/lib/postgresql*/vector.so /usr/lib/postgresql/*/vector.so 2>/dev/null | head -1)"
+            test -n "$CTRL"
+            test -n "$SO"
+            grep -E "^default_version" "$CTRL"
             id -u postgres
             cat /etc/alpine-release
           '

@@ -12,22 +12,33 @@ LABEL sedi.packaging.path="A_alpine_same_lineage"
 
 USER root
 RUN set -eux; \
-    apk add --no-cache --virtual .build-deps \
-      build-base \
-      clang15 \
-      llvm15-dev \
-      git \
-      postgresql-dev; \
-    git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
-    cd /tmp/pgvector; \
-    make OPTFLAGS=""; \
-    make install; \
-    cd /; \
-    rm -rf /tmp/pgvector; \
-    apk del .build-deps; \
+    # Prefer distro package when present (minimum drift); else compile pinned pgvector.
+    if apk add --no-cache postgresql16-pgvector 2>/dev/null \
+       || apk add --no-cache postgresql-pgvector 2>/dev/null; then \
+      echo "PGVECTOR_INSTALL=apk_package"; \
+    else \
+      echo "PGVECTOR_INSTALL=source_${PGVECTOR_VERSION}"; \
+      apk add --no-cache --virtual .build-deps \
+        build-base \
+        clang \
+        llvm-dev \
+        git \
+        postgresql-dev; \
+      git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
+      cd /tmp/pgvector; \
+      make OPTFLAGS=""; \
+      make install; \
+      cd /; \
+      rm -rf /tmp/pgvector; \
+      apk del .build-deps; \
+    fi; \
     # Packaging proof (extension files present; not installed into a cluster yet)
-    test -f /usr/local/share/postgresql/extension/vector.control; \
-    test -f /usr/local/lib/postgresql/vector.so; \
-    grep -E '^default_version' /usr/local/share/postgresql/extension/vector.control
+    CTRL="$(ls /usr/local/share/postgresql/extension/vector.control /usr/share/postgresql/*/extension/vector.control 2>/dev/null | head -1)"; \
+    test -n "${CTRL}"; \
+    SO="$(ls /usr/local/lib/postgresql/vector.so /usr/lib/postgresql*/vector.so /usr/lib/postgresql/*/vector.so 2>/dev/null | head -1)"; \
+    test -n "${SO}"; \
+    grep -E '^default_version' "${CTRL}"; \
+    echo "VECTOR_CONTROL=${CTRL}"; \
+    echo "VECTOR_SO=${SO}"
 
 # Keep default postgres entrypoint/user from base image.

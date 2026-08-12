@@ -22,8 +22,8 @@ summary "postgres_image_id" "$(docker inspect sedi-postgres --format '{{.Image}}
 # RepoDigests may be empty for locally-tagged images
 DIGESTS="$(docker inspect sedi-postgres --format '{{range .RepoDigests}}{{.}} {{end}}' 2>/dev/null || true)"
 summary "postgres_repo_digests" "${DIGESTS:-NONE}"
-summary "container_arch" "$(docker inspect sedi-postgres --format '{{.Architecture}}')"
-summary "container_os" "$(docker inspect sedi-postgres --format '{{.Os}}')"
+summary "container_arch" "$(docker exec sedi-postgres sh -lc 'uname -m' 2>/dev/null || echo UNKNOWN)"
+summary "container_os" "$(docker exec sedi-postgres sh -lc 'uname -s' 2>/dev/null || echo UNKNOWN)"
 summary "restart_policy" "$(docker inspect sedi-postgres --format '{{.HostConfig.RestartPolicy.Name}}')"
 
 # Base OS / Alpine version inside container (best-effort)
@@ -46,7 +46,7 @@ echo "${PGVER}" | grep -Eq '^16\.' || { summary "postgresql_major" "FAIL"; exit 
 summary "postgresql_major" "16"
 
 ENC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SHOW server_encoding;')"
-LOC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SHOW lc_collate;')"
+LOC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT datcollate FROM pg_database WHERE datname=current_database();")"
 summary "server_encoding" "${ENC}"
 summary "lc_collate" "${LOC}"
 
