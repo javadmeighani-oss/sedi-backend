@@ -19,6 +19,7 @@ on:
     paths:
       - "backend/ops/db03/db_prod_post065_*.sh"
       - "backend/ops/db03/post065_capacity_bench.py"
+      - "backend/ops/db03/post065_app_capacity_bench.py"
       - ".github/workflows/db-prod-post065-readiness.yml"
       - "docs/architecture/db03/MIGRATION_061_VECTOR_EXTENSION_GOVERNANCE.md"
 
@@ -120,14 +121,14 @@ jobs:
           retention-days: 14
 
   capacity:
-    name: Isolated >=5000-user + pgvector + FTS capacity
+    name: Isolated DB microbench + app HTTP >=5000 capacity
     if: >-
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' &&
        github.event.inputs.confirmation == 'POST065_READINESS_ONLY' &&
        (github.event.inputs.phase == 'CAPACITY' || github.event.inputs.phase == 'ALL'))
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
@@ -144,9 +145,8 @@ jobs:
           fi
           IMG="ghcr.io/javadmeighani-oss/sedi-postgres@${CAND_D}"
           docker pull "${IMG}"
-          docker network create sedi-cap-net || true
           docker rm -f sedi-cap-pg >/dev/null 2>&1 || true
-          docker run -d --name sedi-cap-pg --network sedi-cap-net \
+          docker run -d --name sedi-cap-pg \
             -e POSTGRES_USER=cap \
             -e POSTGRES_PASSWORD=cap \
             -e POSTGRES_DB=cap_db \
@@ -157,24 +157,89 @@ jobs:
             sleep 2
           done
           docker exec sedi-cap-pg pg_isready -U cap -d cap_db
+          docker exec sedi-cap-pg psql -U cap -d cap_db -c 'CREATE EXTENSION IF NOT EXISTS vector;'
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install deps + run capacity bench
+      - name: Install deps
         run: |
           set -Eeuo pipefail
-          pip install 'sqlalchemy>=2' psycopg2-binary
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install 'httpx>=0.27'
+      - name: DB-level microbenchmark (preserve separate evidence)
+        run: |
+          set -Eeuo pipefail
           export DATABASE_URL='postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db'
-          python backend/ops/db03/post065_capacity_bench.py 2>&1 | tee /tmp/post065_capacity.log
-          grep -Fq 'CAPACITY_SUMMARY|measured_5000_user_load_proof|PASS' /tmp/post065_capacity.log
-          grep -Fq 'CAPACITY_SUMMARY|pgvector_capacity_benchmark|PASS' /tmp/post065_capacity.log
-          grep -Fq 'CAPACITY_SUMMARY|fts_gin_functional_capacity_proof|PASS' /tmp/post065_capacity.log
-          grep -Fq 'CAPACITY_SUMMARY|db_connection_budget_proof|PASS' /tmp/post065_capacity.log
+          python backend/ops/db03/post065_capacity_bench.py 2>&1 | tee /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|db_level_capacity_microbenchmark|PASS' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|pgvector_capacity_benchmark|PASS' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|fts_gin_index_usage_proof|PASS' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|fts_functional_query_proof|PASS' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|db_connection_budget_proof|PASS' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|exact_search_v1_decision|REVIEW_REQUIRED' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|ann_required_now|NO' /tmp/post065_capacity_db.log
+          grep -Fq 'CAPACITY_SUMMARY|ann_review_required_before_scaled_rag|YES' /tmp/post065_capacity_db.log
+      - name: Alembic upgrade to 065 on isolated DB
+        run: |
+          set -Eeuo pipefail
+          export DATABASE_URL='postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db'
+          export TEST_DATABASE_URL="${DATABASE_URL}"
+          alembic -c backend/alembic.ini upgrade head
+          python - <<'PY'
+          from sqlalchemy import create_engine, text
+          e = create_engine("postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db")
+          with e.connect() as c:
+              rev = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+              print("ALEMBIC_HEAD", rev)
+              assert "065" in rev
+          PY
+      - name: Start uvicorn (Production-equivalent app path)
+        run: |
+          set -Eeuo pipefail
+          export DATABASE_URL='postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db'
+          export SECRET_KEY='cycle4-post065-capacity-secret-key-32b-min!!!!!!!!!!!!'
+          export DEBUG=true
+          export ENV=dev
+          export SMS_DISABLED=true
+          export SEDI_DISABLE_SCHEDULER=1
+          nohup python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 \
+            >/tmp/post065_uvicorn.log 2>&1 &
+          echo $! > /tmp/post065_uvicorn.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/healthz >/dev/null; then
+              echo "uvicorn_ready"
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/healthz
+      - name: Application-level HTTP capacity (>=5000 registered, sustained)
+        run: |
+          set -Eeuo pipefail
+          export DATABASE_URL='postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db'
+          export SECRET_KEY='cycle4-post065-capacity-secret-key-32b-min!!!!!!!!!!!!'
+          export DEBUG=true
+          export SEDI_DISABLE_SCHEDULER=1
+          export APP_BASE_URL='http://127.0.0.1:8000'
+          export SUSTAINED_SECONDS=900
+          export PYTHONPATH="${GITHUB_WORKSPACE}"
+          python backend/ops/db03/post065_app_capacity_bench.py 2>&1 | tee /tmp/post065_capacity_app.log
+          grep -Fq 'APP_CAPACITY_SUMMARY|application_level_5000_user_capacity_proof|PASS' /tmp/post065_capacity_app.log
+          grep -Fq 'APP_CAPACITY_SUMMARY|registered_user_scale_tested|5000' /tmp/post065_capacity_app.log
+          cat /tmp/post065_capacity_db.log /tmp/post065_capacity_app.log > /tmp/post065_capacity.log
       - if: always()
-        run: docker rm -f sedi-cap-pg >/dev/null 2>&1 || true
+        run: |
+          if [ -f /tmp/post065_uvicorn.pid ]; then kill "$(cat /tmp/post065_uvicorn.pid)" || true; fi
+          docker rm -f sedi-cap-pg >/dev/null 2>&1 || true
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: post065-capacity
-          path: /tmp/post065_capacity.log
+          path: |
+            /tmp/post065_capacity.log
+            /tmp/post065_capacity_db.log
+            /tmp/post065_capacity_app.log
+            /tmp/post065_uvicorn.log
           retention-days: 14
+          if-no-files-found: warn
