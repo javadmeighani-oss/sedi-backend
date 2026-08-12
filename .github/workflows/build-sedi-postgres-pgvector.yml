@@ -79,18 +79,21 @@ jobs:
           REF="${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           docker pull "${REF}"
           docker run --rm --entrypoint sh "${REF}" -lc '
-            set -e
+            set -eu
             PKGLIB="$(pg_config --pkglibdir)"
             SHARE="$(pg_config --sharedir)"
             test -f "${PKGLIB}/vector.so"
             test -f "${SHARE}/extension/vector.control"
             ls "${SHARE}/extension"/vector--*.sql >/dev/null
             grep -E "^default_version" "${SHARE}/extension/vector.control"
-            ldd "${PKGLIB}/vector.so" || true
-            if ldd "${PKGLIB}/vector.so" 2>/dev/null | grep -E '=>[[:space:]]+not found'; then
+            # Capture ldd without failing on musl reloc diagnostics (exit 127).
+            set +e
+            ldd "${PKGLIB}/vector.so" > /tmp/vector_ldd.txt 2>&1
+            set -e
+            cat /tmp/vector_ldd.txt
+            if grep -E "=>[[:space:]]+not found" /tmp/vector_ldd.txt; then
               echo "MISSING_SHARED_LIB"; exit 1
             fi
-            # Undefined postgres symbols via musl "Error relocating" are expected for extensions.
             id -u postgres
             cat /etc/alpine-release
             pg_config --version
