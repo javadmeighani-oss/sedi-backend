@@ -60,7 +60,8 @@ summary "backup_size_bytes" "$(stat -c%s "${LATEST_BACKUP}")"
 summary "backup_sha256" "$(sha256sum "${LATEST_BACKUP}" | awk '{print $1}')"
 
 log "=== ISOLATED RESTORE ENVIRONMENT ==="
-docker network create "${REHEARSE_NET}" >/dev/null
+# Leftover network from a prior interrupted run must not abort rehearse.
+docker network inspect "${REHEARSE_NET}" >/dev/null 2>&1 || docker network create "${REHEARSE_NET}" >/dev/null
 docker rm -f "${REHEARSE_NAME}" >/dev/null 2>&1 || true
 docker run -d --name "${REHEARSE_NAME}" --network "${REHEARSE_NET}" \
   -e POSTGRES_USER="${REHEARSE_USER}" \
@@ -68,10 +69,28 @@ docker run -d --name "${REHEARSE_NAME}" --network "${REHEARSE_NET}" \
   -e POSTGRES_DB="${REHEARSE_DB}" \
   "${CANDIDATE_IMAGE_REF}" >/dev/null
 
-for i in $(seq 1 90); do
-  if docker exec "${REHEARSE_NAME}" pg_isready -U "${REHEARSE_USER}" -d "${REHEARSE_DB}" >/dev/null 2>&1; then break; fi
+# Official image restarts once during first init; a single pg_isready can race.
+# Require 3 consecutive ready+query successes before proceeding.
+ready_streak=0
+for i in $(seq 1 120); do
+  if docker exec "${REHEARSE_NAME}" pg_isready -U "${REHEARSE_USER}" -d "${REHEARSE_DB}" >/dev/null 2>&1 \
+    && docker exec "${REHEARSE_NAME}" psql -U "${REHEARSE_USER}" -d "${REHEARSE_DB}" -tAc 'SELECT 1' >/dev/null 2>&1; then
+    ready_streak=$((ready_streak + 1))
+    if [ "${ready_streak}" -ge 3 ]; then
+      break
+    fi
+  else
+    ready_streak=0
+  fi
   sleep 1
 done
+if ! docker exec "${REHEARSE_NAME}" psql -U "${REHEARSE_USER}" -d "${REHEARSE_DB}" -tAc 'SELECT 1' >/dev/null 2>&1; then
+  log "REHEARSE_PG_NOT_READY"
+  summary "isolated_postgres_ready" "FAIL"
+  docker logs "${REHEARSE_NAME}" 2>&1 | tail -n 50 || true
+  exit 5
+fi
+summary "isolated_postgres_ready" "PASS"
 docker exec "${REHEARSE_NAME}" pg_isready -U "${REHEARSE_USER}" -d "${REHEARSE_DB}"
 
 log "=== RESTORE (private; no dump echo) ==="
