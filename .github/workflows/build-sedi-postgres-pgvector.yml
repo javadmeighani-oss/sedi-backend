@@ -80,13 +80,15 @@ jobs:
           docker pull "${REF}"
           docker run --rm --entrypoint sh "${REF}" -lc '
             set -e
-            CTRL="$(ls /usr/local/share/postgresql/extension/vector.control /usr/share/postgresql/*/extension/vector.control 2>/dev/null | head -1)"
-            SO="$(ls /usr/local/lib/postgresql/vector.so /usr/lib/postgresql*/vector.so /usr/lib/postgresql/*/vector.so 2>/dev/null | head -1)"
+            CTRL="$(find /usr -name vector.control 2>/dev/null | head -1)"
+            SO="$(find /usr -name vector.so 2>/dev/null | head -1)"
             test -n "$CTRL"
             test -n "$SO"
             grep -E "^default_version" "$CTRL"
             id -u postgres
             cat /etc/alpine-release
+            echo "VECTOR_CONTROL=$CTRL"
+            echo "VECTOR_SO=$SO"
           '
           echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage"
           echo "CANDIDATE_IMAGE=${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"

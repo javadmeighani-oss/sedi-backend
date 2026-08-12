@@ -1,6 +1,7 @@
 # SEDI Production PostgreSQL 16 + pgvector — Alpine same-lineage packaging (Path A).
 # Retains postgres:16-alpine UID/GID and PGDATA compatibility.
 # Pin base digest at build time via POSTGRES_BASE build-arg.
+# Exact pgvector version is compiled from source (not floating apk minor).
 ARG POSTGRES_BASE=postgres:16-alpine
 FROM ${POSTGRES_BASE}
 
@@ -8,37 +9,30 @@ ARG PGVECTOR_VERSION=v0.8.6
 LABEL org.opencontainers.image.title="sedi-postgres"
 LABEL org.opencontainers.image.description="PostgreSQL 16 Alpine + pinned pgvector for SEDI Production"
 LABEL sedi.pgvector.version="${PGVECTOR_VERSION}"
-LABEL sedi.packaging.path="A_alpine_same_lineage"
+LABEL sedi.packaging.path="A_alpine_same_lineage_source_pin"
 
 USER root
 RUN set -eux; \
-    # Prefer distro package when present (minimum drift); else compile pinned pgvector.
-    if apk add --no-cache postgresql16-pgvector 2>/dev/null \
-       || apk add --no-cache postgresql-pgvector 2>/dev/null; then \
-      echo "PGVECTOR_INSTALL=apk_package"; \
-    else \
-      echo "PGVECTOR_INSTALL=source_${PGVECTOR_VERSION}"; \
-      apk add --no-cache --virtual .build-deps \
-        build-base \
-        clang \
-        llvm-dev \
-        git \
-        postgresql-dev; \
-      git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
-      cd /tmp/pgvector; \
-      make OPTFLAGS=""; \
-      make install; \
-      cd /; \
-      rm -rf /tmp/pgvector; \
-      apk del .build-deps; \
-    fi; \
-    # Packaging proof (extension files present; not installed into a cluster yet)
-    CTRL="$(ls /usr/local/share/postgresql/extension/vector.control /usr/share/postgresql/*/extension/vector.control 2>/dev/null | head -1)"; \
+    apk add --no-cache --virtual .build-deps \
+      build-base \
+      clang \
+      llvm-dev \
+      git \
+      postgresql-dev; \
+    git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
+    cd /tmp/pgvector; \
+    make OPTFLAGS=""; \
+    make install; \
+    cd /; \
+    rm -rf /tmp/pgvector; \
+    apk del .build-deps; \
+    CTRL="$(find /usr -name 'vector.control' 2>/dev/null | head -1)"; \
+    SO="$(find /usr -name 'vector.so' 2>/dev/null | head -1)"; \
     test -n "${CTRL}"; \
-    SO="$(ls /usr/local/lib/postgresql/vector.so /usr/lib/postgresql*/vector.so /usr/lib/postgresql/*/vector.so 2>/dev/null | head -1)"; \
     test -n "${SO}"; \
     grep -E '^default_version' "${CTRL}"; \
     echo "VECTOR_CONTROL=${CTRL}"; \
-    echo "VECTOR_SO=${SO}"
+    echo "VECTOR_SO=${SO}"; \
+    echo "PGVECTOR_INSTALL=source_${PGVECTOR_VERSION}"
 
 # Keep default postgres entrypoint/user from base image.
