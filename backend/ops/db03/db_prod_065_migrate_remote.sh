@@ -77,6 +77,59 @@ summary "vector_extension_precreated_by_bootstrap" "YES"
 summary "vector_extension_version_pre_alembic" "${EXT_PRE}"
 [ "${EXT_PRE}" = "0.8.6" ] || { log "unexpected vector version ${EXT_PRE}"; exit 6; }
 
+# DB03 canonical path: public objects must be owned by sedi_migration_admin for DDL.
+TRANSFER_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c \
+  "SELECT COUNT(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','S','v','m') AND pg_get_userbyid(c.relowner) <> 'sedi_migration_admin';")"
+summary "objects_needing_owner_transfer" "${TRANSFER_COUNT}"
+OWN_SQL="${DEPLOY_PATH}/ops/db03/_owner_transfer_065.sql"
+umask 077
+cat > "${OWN_SQL}" <<'SQL'
+DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN
+    SELECT c.relname, c.relkind
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind IN ('r','S','v','m')
+      AND pg_get_userbyid(c.relowner) <> 'sedi_migration_admin'
+  LOOP
+    IF r.relkind = 'S' THEN
+      EXECUTE format('ALTER SEQUENCE public.%I OWNER TO sedi_migration_admin', r.relname);
+    ELSIF r.relkind = 'm' THEN
+      EXECUTE format('ALTER MATERIALIZED VIEW public.%I OWNER TO sedi_migration_admin', r.relname);
+    ELSIF r.relkind = 'v' THEN
+      EXECUTE format('ALTER VIEW public.%I OWNER TO sedi_migration_admin', r.relname);
+    ELSE
+      EXECUTE format('ALTER TABLE public.%I OWNER TO sedi_migration_admin', r.relname);
+    END IF;
+  END LOOP;
+  EXECUTE 'ALTER SCHEMA public OWNER TO sedi_migration_admin';
+END $$;
+ALTER DEFAULT PRIVILEGES FOR ROLE sedi_migration_admin IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO sedi_app_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE sedi_migration_admin IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO sedi_app_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE sedi_migration_admin IN SCHEMA public
+  GRANT SELECT ON TABLES TO sedi_dbeaver_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE sedi_migration_admin IN SCHEMA public
+  GRANT SELECT ON SEQUENCES TO sedi_dbeaver_readonly;
+SQL
+if [ "${TRANSFER_COUNT}" -gt 0 ]; then
+  docker exec -i sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 < "${OWN_SQL}"
+  summary "ownership_transfer" "APPLIED"
+else
+  # Still ensure default privileges even when ownership already correct
+  docker exec -i sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 < "${OWN_SQL}"
+  summary "ownership_transfer" "VERIFIED_OR_APPLIED"
+fi
+rm -f "${OWN_SQL}"
+KCE_OWNER="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c \
+  "SELECT pg_get_userbyid(c.relowner) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='knowledge_chunk_embeddings' AND c.relkind='r';")"
+summary "kce_owner" "${KCE_OWNER}"
+[ "${KCE_OWNER}" = "sedi_migration_admin" ] || { log "kce owner not migration_admin"; exit 8; }
+
 docker pull "${MIGRATION_IMAGE_REF}"
 summary "migration_image_ref" "${MIGRATION_IMAGE_REF}"
 
