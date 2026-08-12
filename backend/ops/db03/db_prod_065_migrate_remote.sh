@@ -68,6 +68,15 @@ docker stop sedi-backend
 WRITERS_FROZEN=1
 summary "writers_frozen" "YES"
 
+# CREATE EXTENSION vector requires bootstrap superuser (POSTGRES_USER).
+# sedi_migration_admin is intentionally non-superuser — create before Alembic.
+docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 \
+  -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+EXT_PRE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT extversion FROM pg_extension WHERE extname='vector';")"
+summary "vector_extension_precreated_by_bootstrap" "YES"
+summary "vector_extension_version_pre_alembic" "${EXT_PRE}"
+[ "${EXT_PRE}" = "0.8.6" ] || { log "unexpected vector version ${EXT_PRE}"; exit 6; }
+
 docker pull "${MIGRATION_IMAGE_REF}"
 summary "migration_image_ref" "${MIGRATION_IMAGE_REF}"
 
@@ -106,6 +115,14 @@ sys.exit(rc)
 PY
 chmod 600 "${MIG_PY}"
 
+# Overlay fixed 061 so older migration images skip CREATE when vector pre-exists.
+OVERRIDE_061="${DEPLOY_PATH}/ops/db03/_061_scis01_pgvector_kce_foundation.py"
+[ -f "${OVERRIDE_061}" ] || {
+  log "missing 061 override at ${OVERRIDE_061} (workflow must scp it)"
+  exit 7
+}
+summary "alembic_061_override_mounted" "YES"
+
 MIG_START="$(date -Is)"
 summary "migration_start_ts" "${MIG_START}"
 set +e
@@ -115,6 +132,7 @@ docker run --rm --network sedi-net \
   --env TEST_DATABASE_URL= \
   --env MIGRATION_IMAGE_REF="${MIGRATION_IMAGE_REF}" \
   -v "${MIG_PY}:/tmp/_migrate_065_once.py:ro" \
+  -v "${OVERRIDE_061}:/app/backend/alembic/versions/061_scis01_pgvector_kce_foundation.py:ro" \
   --entrypoint python \
   "${MIGRATION_IMAGE_REF}" /tmp/_migrate_065_once.py
 MIG_RC=$?

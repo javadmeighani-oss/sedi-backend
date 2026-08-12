@@ -22,7 +22,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    # CREATE EXTENSION requires superuser. Production path pre-creates as bootstrap
+    # (POSTGRES_USER) then runs Alembic as sedi_migration_admin. Skip CREATE when
+    # already present so non-superuser migration role is not denied.
+    op.execute(
+        """
+DO $sedi_vector_ext$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    CREATE EXTENSION vector;
+  END IF;
+END
+$sedi_vector_ext$;
+"""
+    )
 
     op.execute(
         "ALTER TABLE knowledge_chunk_embeddings DROP CONSTRAINT IF EXISTS ck_kce_backend_kind_vocab"

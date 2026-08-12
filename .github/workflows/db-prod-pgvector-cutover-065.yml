@@ -219,10 +219,13 @@ jobs:
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/db03/db_prod_065_migrate_remote.sh \
-            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_065_migrate_remote.sh"
+            backend/alembic/versions/061_scis01_pgvector_kce_foundation.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_065_migrate_remote.sh") && \
+             cp $(printf '%q' "${REMOTE_DIR}/061_scis01_pgvector_kce_foundation.py") \
+                $(printf '%q' "${REMOTE_DIR}/_061_scis01_pgvector_kce_foundation.py") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
              MIGRATION_IMAGE_REF=$(printf '%q' "${MIG_REF}") \
              bash $(printf '%q' "${REMOTE_DIR}/db_prod_065_migrate_remote.sh")" \
