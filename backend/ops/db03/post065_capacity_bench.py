@@ -93,7 +93,7 @@ def main() -> int:
             text(
                 """
                 INSERT INTO bench_users (username, profile_json)
-                SELECT 'syn_user_' || g, $${"synthetic":true}$$
+                SELECT 'syn_user_' || g, 'synthetic_profile'
                 FROM generate_series(1, 5000) g
                 """
             )
@@ -113,7 +113,7 @@ def main() -> int:
         with engine.begin() as c:
             c.execute(
                 text("UPDATE bench_users SET profile_json = :p WHERE id = :i"),
-                {"p": '{"synthetic":true,"touch":1}', "i": 100},
+                {"p": "synthetic_profile_touch", "i": 100},
             )
 
     def mixed() -> None:
@@ -242,7 +242,7 @@ def main() -> int:
                     """
                     INSERT INTO bench_kce (embedding)
                     SELECT (
-                      SELECT ARRAY_AGG( ((i::float8 * 0.001) + (gs::float8 * 0.00001))::float4 ORDER BY gs )::vector
+                      SELECT ARRAY_AGG( CAST( (CAST(i AS float8) * 0.001) + (CAST(gs AS float8) * 0.00001) AS float4 ) ORDER BY gs )::vector
                       FROM generate_series(1, 1024) AS gs
                     )
                     FROM generate_series(1, :n) AS i
