@@ -1,0 +1,82 @@
+# DB-PROD-065 — Read-only Production preflight for Alembic 060→065
+# NO Production write. NO alembic upgrade. workflow_dispatch only.
+name: DB-PROD-065 Production Preflight Read-Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Must be exactly PREFLIGHT_060_TO_065"
+        required: true
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-065:
+    name: Production 060→065 read-only preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event.inputs.confirmation == 'PREFLIGHT_060_TO_065'
+
+    steps:
+      - name: Validate confirmation
+        env:
+          INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+        run: |
+          set -Eeuo pipefail
+          [ "${INPUT_CONFIRMATION}" = "PREFLIGHT_060_TO_065" ] || exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload and execute read-only preflight
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_065_preflight_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_065_preflight_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_065_preflight_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_065_preflight_remote.sh")" \
+            2>&1 | tee /tmp/db_prod_065_preflight.log
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-prod-065-preflight-evidence
+          path: /tmp/db_prod_065_preflight.log
+          retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## DB-PROD-065 Read-Only Preflight"
+            echo "Status: ${{ job.status }}"
+            if [ -f /tmp/db_prod_065_preflight.log ]; then
+              grep '^PREFLIGHT_SUMMARY|' /tmp/db_prod_065_preflight.log | while IFS='|' read -r _ k v; do
+                echo "- **${k}:** ${v}"
+              done || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

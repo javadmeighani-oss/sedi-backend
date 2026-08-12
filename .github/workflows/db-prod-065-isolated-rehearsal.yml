@@ -1,0 +1,181 @@
+# Isolated PostgreSQL 16 rehearsal: exact Alembic path 060→065
+# NO Production write. Uses pgvector/pg16 (required for revision 061).
+name: DB-PROD-065 Isolated PG16 Rehearsal 060to065
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/alembic/versions/06[1-5]_*.py"
+      - ".github/workflows/db-prod-065-isolated-rehearsal.yml"
+      - "backend/ops/db03/db_prod_065_*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-prod-065-rehearsal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rehearse-060-to-065:
+    name: Isolated PG16 upgrade 060→065
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_rehearse
+          POSTGRES_PASSWORD: sedi_rehearse_password
+          POSTGRES_DB: sedi_rehearse_060_065
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_rehearse -d sedi_rehearse_060_065"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_rehearse:sedi_rehearse_password@127.0.0.1:5432/sedi_rehearse_060_065
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_rehearse:sedi_rehearse_password@127.0.0.1:5432/sedi_rehearse_060_065
+      APP_ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: rehearse-placeholder-not-used
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+      - name: Alembic single head + no 066
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
+          assert list(Path("backend/alembic/versions").glob("066*")) == []
+          chain = [
+              "060_db03_w4_w6_scale_inspect_roles",
+              "061_scis01_pgvector_kce_foundation",
+              "062_i5_know01_source_registry_rights",
+              "063_i5_know02_chunks_claims_taxonomy",
+              "064_i5_know03_studies_effects_recs",
+              "065_i5_know04_connectors_change_intelligence",
+          ]
+          for i, rev in enumerate(chain):
+              sc = script.get_revision(rev)
+              assert sc is not None, rev
+              if i == 0:
+                  continue
+              assert sc.down_revision == chain[i - 1], (rev, sc.down_revision)
+          print("ALEMBIC_SINGLE_HEAD=PASS")
+          print("CHAIN_060_TO_065_CONTIGUOUS=PASS")
+          print("NO_MIGRATION_066=YES")
+          PY
+      - name: Rehearse upgrade 060 → 065 with schema checks
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/rehearse_065"
+          python - <<'PY' | tee "${{ runner.temp }}/rehearse_065/rehearsal.txt"
+          import os, hashlib
+          from pathlib import Path
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+
+          steps = [
+              ("060_db03_w4_w6_scale_inspect_roles", 0),
+              ("061_scis01_pgvector_kce_foundation", 1),
+              ("062_i5_know01_source_registry_rights", 1),
+              ("063_i5_know02_chunks_claims_taxonomy", 1),
+              ("064_i5_know03_studies_effects_recs", 1),
+              ("065_i5_know04_connectors_change_intelligence", 1),
+          ]
+          for rev, expect_vector in steps:
+              command.upgrade(cfg, rev)
+              with eng.connect() as c:
+                  head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+                  assert head == rev, head
+                  vec = c.execute(text("SELECT count(*) FROM pg_extension WHERE extname='vector'")).scalar()
+                  assert int(vec) == expect_vector, (rev, vec)
+                  print(f"STEP_OK|{rev}|vector={vec}")
+
+          with eng.connect() as c:
+              assert c.execute(text("SELECT to_regclass('public.rag_embeddings')")).scalar() is None
+              for t in (
+                  "knowledge_chunk_embeddings",
+                  "i5_source_registry_extensions",
+                  "i5_scientific_artifacts",
+                  "i5_clinical_studies",
+                  "i5_study_effect_estimates",
+                  "i5_clinical_recommendations",
+                  "i5_connector_profiles",
+                  "i5_scientific_change_events",
+              ):
+                  assert c.execute(text("SELECT to_regclass('public.'||:t)"), {"t": t}).scalar(), t
+              col = c.execute(text(
+                  "SELECT 1 FROM information_schema.columns "
+                  "WHERE table_name='knowledge_chunk_embeddings' AND column_name='embedding_vector'"
+              )).scalar()
+              assert col == 1
+              ck = c.execute(text(
+                  "SELECT 1 FROM pg_constraint WHERE conname='ck_crel_target_xor'"
+              )).scalar()
+              assert ck == 1
+
+          for p in sorted(Path("backend/alembic/versions").glob("06[1-5]_*.py")):
+              h = hashlib.sha256(p.read_bytes()).hexdigest().upper()
+              print(f"MIG_SHA256|{p.name}|{h}")
+
+          print("FRESH_OR_PRODUCTION_EQUIVALENT_060_BASELINE=PASS")
+          print("UPGRADE_060_TO_065=PASS")
+          print("FINAL_ALEMBIC=065")
+          print("SCHEMA_VALIDATION=PASS")
+          print("NO_RAG_EMBEDDINGS_TABLE=YES")
+          print("PGVECTOR_AFTER_061=YES")
+          print("UNCLASSIFIED_POSTGRES_ERROR_COUNT=0")
+          print("PG16_REHEARSAL=PASS")
+          PY
+      - name: Raw log audit
+        if: always()
+        run: |
+          set -euo pipefail
+          blob="$(cat "${{ runner.temp }}/rehearse_065/rehearsal.txt" 2>/dev/null || true)"
+          bad=()
+          for m in UPGRADE_060_TO_065=PASS FINAL_ALEMBIC=065 SCHEMA_VALIDATION=PASS PG16_REHEARSAL=PASS NO_MIGRATION_066=YES; do
+            echo "$blob" | grep -Fq "$m" || bad+=("missing:$m")
+          done
+          if [ ${#bad[@]} -gt 0 ]; then
+            echo "RAW_LOG_AUDIT_FAIL:${bad[*]}"
+            exit 1
+          fi
+          echo "RAW_LOG_AUDIT=PASS"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-prod-065-isolated-rehearsal-evidence
+          path: ${{ runner.temp }}/rehearse_065/
+          retention-days: 14
