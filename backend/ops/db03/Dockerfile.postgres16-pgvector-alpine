@@ -1,43 +1,42 @@
-# SEDI Production PostgreSQL 16 + pgvector — Alpine same-lineage packaging (Path A).
-# Retains postgres:16-alpine UID/GID and PGDATA compatibility.
-# Exact pgvector v0.8.6 compiled from source; extension files installed without PGXS bitcode.
+# SEDI Production PostgreSQL 16 + pgvector — Alpine same-lineage (Path A).
+# Canonical PGXS install with LLVM bitcode disabled (with_llvm=0).
 ARG POSTGRES_BASE=postgres:16-alpine
 FROM ${POSTGRES_BASE}
 
 ARG PGVECTOR_VERSION=v0.8.6
 LABEL org.opencontainers.image.title="sedi-postgres"
-LABEL org.opencontainers.image.description="PostgreSQL 16 Alpine + pinned pgvector for SEDI Production"
+LABEL org.opencontainers.image.description="PostgreSQL 16 Alpine + pinned pgvector (canonical PGXS, no LLVM bitcode)"
 LABEL sedi.pgvector.version="${PGVECTOR_VERSION}"
-LABEL sedi.packaging.path="A_alpine_same_lineage_source_pin"
+LABEL sedi.packaging.path="A_alpine_same_lineage_canonical_pgxs_no_llvm"
 
 USER root
 RUN set -eux; \
     apk add --no-cache --virtual .build-deps \
       build-base \
-      clang \
-      llvm-dev \
       git \
       postgresql-dev; \
     git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
     cd /tmp/pgvector; \
-    make OPTFLAGS=""; \
-    test -f vector.so; \
-    PKGLIB="$(pg_config --pkglibdir)"; \
-    SHARE="$(pg_config --sharedir)/extension"; \
-    mkdir -p "${PKGLIB}" "${SHARE}"; \
-    cp -f vector.so "${PKGLIB}/vector.so"; \
-    cp -f vector.control "${SHARE}/vector.control"; \
-    cp -f sql/vector--*.sql "${SHARE}/"; \
+    make OPTFLAGS="" with_llvm=0; \
+    make install with_llvm=0; \
     cd /; \
     rm -rf /tmp/pgvector; \
     apk del .build-deps; \
-    CTRL="$(find /usr -name 'vector.control' 2>/dev/null | head -1)"; \
-    SO="$(find /usr -name 'vector.so' 2>/dev/null | head -1)"; \
-    test -n "${CTRL}"; \
-    test -n "${SO}"; \
-    grep -E '^default_version' "${CTRL}"; \
-    echo "VECTOR_CONTROL=${CTRL}"; \
-    echo "VECTOR_SO=${SO}"; \
-    echo "PGVECTOR_INSTALL=source_${PGVECTOR_VERSION}_manual_ext_install"
+    PKGLIB="$(pg_config --pkglibdir)"; \
+    SHARE="$(pg_config --sharedir)"; \
+    echo "PG_CONFIG_VERSION=$(pg_config --version)"; \
+    echo "PG_CONFIG_PKGLIBDIR=${PKGLIB}"; \
+    echo "PG_CONFIG_SHAREDIR=${SHARE}"; \
+    test -f "${PKGLIB}/vector.so"; \
+    test -f "${SHARE}/extension/vector.control"; \
+    test -n "$(ls "${SHARE}/extension"/vector--*.sql 2>/dev/null | head -1)"; \
+    grep -E '^default_version' "${SHARE}/extension/vector.control"; \
+    # Shared-library dependency proof (no missing libs)
+    ldd "${PKGLIB}/vector.so" | tee /tmp/vector_ldd.txt; \
+    ! grep -Eq 'not found' /tmp/vector_ldd.txt; \
+    echo "PGVECTOR_CANONICAL_PGXS_INSTALL=PASS"; \
+    echo "PGVECTOR_LLVM_BITCODE_DISABLED=YES"; \
+    echo "VECTOR_SO_PATH=${PKGLIB}/vector.so"; \
+    echo "VECTOR_CONTROL_PATH=${SHARE}/extension/vector.control"
 
 # Keep default postgres entrypoint/user from base image.

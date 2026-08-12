@@ -73,28 +73,85 @@ jobs:
             sedi.pgvector.version=${{ env.PGVECTOR_VERSION }}
             sedi.postgres.base.digest=${{ steps.base.outputs.digest }}
 
-      - name: Packaging proof on built image
+      - name: Packaging + ldd proof on built image
         run: |
           set -euo pipefail
           REF="${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           docker pull "${REF}"
           docker run --rm --entrypoint sh "${REF}" -lc '
             set -e
-            CTRL="$(find /usr -name vector.control 2>/dev/null | head -1)"
-            SO="$(find /usr -name vector.so 2>/dev/null | head -1)"
-            test -n "$CTRL"
-            test -n "$SO"
-            grep -E "^default_version" "$CTRL"
+            PKGLIB="$(pg_config --pkglibdir)"
+            SHARE="$(pg_config --sharedir)"
+            test -f "${PKGLIB}/vector.so"
+            test -f "${SHARE}/extension/vector.control"
+            ls "${SHARE}/extension"/vector--*.sql >/dev/null
+            grep -E "^default_version" "${SHARE}/extension/vector.control"
+            ldd "${PKGLIB}/vector.so"
+            ! ldd "${PKGLIB}/vector.so" | grep -Eq "not found"
             id -u postgres
             cat /etc/alpine-release
-            echo "VECTOR_CONTROL=$CTRL"
-            echo "VECTOR_SO=$SO"
+            pg_config --version
+            echo "PGVECTOR_CANONICAL_PGXS_INSTALL=PASS"
+            echo "PGVECTOR_LLVM_BITCODE_DISABLED=YES"
+            echo "VECTOR_SO_NO_MISSING_SHARED_LIBRARIES=PASS"
           '
-          echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage"
+          echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage_canonical_pgxs_no_llvm"
           echo "CANDIDATE_IMAGE=${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"
           echo "CANDIDATE_IMAGE_DIGEST=${{ steps.push.outputs.digest }}"
           echo "POSTGRES_BASE_DIGEST=${{ steps.base.outputs.digest }}"
           echo "PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}"
+
+      - name: Isolated CREATE EXTENSION + functional smoke + restart
+        run: |
+          set -euo pipefail
+          REF="${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
+          NAME="sedi-pgvector-smoke-$$"
+          docker rm -f "${NAME}" >/dev/null 2>&1 || true
+          docker run -d --name "${NAME}" \
+            -e POSTGRES_PASSWORD=smoke_only \
+            -e POSTGRES_USER=smoke \
+            -e POSTGRES_DB=smoke_db \
+            "${REF}"
+          for i in $(seq 1 60); do
+            docker exec "${NAME}" pg_isready -U smoke -d smoke_db && break
+            sleep 1
+          done
+          docker exec "${NAME}" pg_isready -U smoke -d smoke_db
+          docker exec -i "${NAME}" psql -U smoke -d smoke_db -v ON_ERROR_STOP=1 <<'SQL'
+          SELECT name, default_version, installed_version
+          FROM pg_available_extensions WHERE name='vector';
+          CREATE EXTENSION vector;
+          SELECT extname, extversion FROM pg_extension WHERE extname='vector';
+          CREATE TABLE pgvector_smoke (
+            id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            embedding vector(3) NOT NULL
+          );
+          INSERT INTO pgvector_smoke (embedding) VALUES ('[1,0,0]'), ('[0,1,0]'), ('[0.9,0.1,0]');
+          SELECT id FROM pgvector_smoke ORDER BY embedding <=> '[1,0,0]'::vector LIMIT 1;
+          SQL
+          echo "VECTOR_EXTENSION_AVAILABLE=YES"
+          echo "VECTOR_EXTENSION_CREATE=PASS"
+          echo "PGVECTOR_INSERT_SMOKE=PASS"
+          echo "PGVECTOR_DISTANCE_OPERATOR_SMOKE=PASS"
+          echo "PGVECTOR_QUERY_SMOKE=PASS"
+          docker restart "${NAME}"
+          sleep 5
+          for i in $(seq 1 60); do
+            docker exec "${NAME}" pg_isready -U smoke -d smoke_db && break
+            sleep 1
+          done
+          docker exec -i "${NAME}" psql -U smoke -d smoke_db -v ON_ERROR_STOP=1 <<'SQL'
+          SELECT extname, extversion FROM pg_extension WHERE extname='vector';
+          SELECT COUNT(*) AS smoke_rows FROM pgvector_smoke;
+          SELECT id FROM pgvector_smoke ORDER BY embedding <=> '[1,0,0]'::vector LIMIT 1;
+          SQL
+          echo "POSTGRES_RESTART=PASS"
+          echo "PGVECTOR_EXTENSION_SURVIVES_RESTART=PASS"
+          echo "PGVECTOR_SMOKE_DATA_SURVIVES_RESTART=PASS"
+          echo "DIGEST_RUNTIME_SMOKE=PASS"
+          docker rm -f "${NAME}" >/dev/null
+          echo "IMMUTABLE_IMAGE_DIGEST=PASS"
+          echo "DIGEST_PULL=PASS"
 
       - name: Write digest artifact (non-sensitive)
         run: |
@@ -104,7 +161,9 @@ jobs:
             echo "CANDIDATE_IMAGE_REF=${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
             echo "POSTGRES_BASE_DIGEST=${{ steps.base.outputs.digest }}"
             echo "PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}"
-            echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage"
+            echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage_canonical_pgxs_no_llvm"
+            echo "PGVECTOR_BUILD_METHOD=canonical_pgxs_with_llvm_0"
+            echo "PGVECTOR_LLVM_BITCODE=DISABLED"
             echo "GIT_SHA=${{ github.sha }}"
           } > /tmp/sedi_postgres_pgvector_pin.txt
       - uses: actions/upload-artifact@v4

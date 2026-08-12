@@ -79,13 +79,48 @@ IP="$(docker inspect sedi-postgres --format '{{with index .NetworkSettings.Netwo
 summary "postgres_ip" "${IP}"
 summary "network" "sedi-net"
 
-# Compose render (safe)
+# Compose render — service-specific postgres image (do not match depends_on keys)
 if [ -f compose.production.yml ]; then
   summary "compose_file" "compose.production.yml"
-  COMPOSE_IMG="$(docker compose -f compose.production.yml config 2>/dev/null | awk '/sedi-postgres:/{f=1} f&&/image:/{print $2; exit}')"
+  COMPOSE_SVCS="$(docker compose -f compose.production.yml config --services 2>/dev/null | tr '\n' ',' )"
+  summary "compose_services" "${COMPOSE_SVCS}"
+  # Extract only the sedi-postgres service image from rendered config
+  COMPOSE_IMG="$(
+    docker compose -f compose.production.yml config 2>/dev/null | python3 - <<'PY'
+import sys
+text = sys.stdin.read().splitlines()
+in_pg = False
+indent_pg = None
+for line in text:
+    if not in_pg:
+        if line.startswith("  sedi-postgres:") or line == "  sedi-postgres:":
+            in_pg = True
+            indent_pg = 2
+            continue
+        continue
+    # leave service block when next top-level service starts
+    if line.startswith("  ") and not line.startswith("   ") and line.strip().endswith(":") and "sedi-postgres" not in line:
+        break
+    if "image:" in line:
+        print(line.split("image:", 1)[1].strip().strip('"').strip("'"))
+        break
+PY
+  )"
+  summary "compose_postgres_service_name" "sedi-postgres"
   summary "compose_postgres_image" "${COMPOSE_IMG:-UNRESOLVED}"
+  RUNNING_IMG="$(docker inspect sedi-postgres --format '{{.Config.Image}}')"
+  summary "running_postgres_image" "${RUNNING_IMG}"
+  # Recreate safety: rendered postgres image must be postgres lineage or digest-pinned sedi-postgres — never backend
+  case "${COMPOSE_IMG}" in
+    *sedi-backend*) summary "compose_postgres_image_identity_resolved" "FAIL_BACKEND_IMAGE"; exit 11 ;;
+    postgres:*|*/postgres:*|*sedi-postgres*|ghcr.io/*/sedi-postgres*) summary "compose_postgres_image_identity_resolved" "PASS" ;;
+    UNRESOLVED|"") summary "compose_postgres_image_identity_resolved" "FAIL_UNRESOLVED"; exit 12 ;;
+    *) summary "compose_postgres_image_identity_resolved" "UNEXPECTED"; exit 13 ;;
+  esac
+  summary "recreate_behavior_understood" "PASS"
 else
   summary "compose_file" "MISSING"
+  exit 14
 fi
 
 # Alembic / roles / vector packaging
