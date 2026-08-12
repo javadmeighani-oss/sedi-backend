@@ -197,12 +197,15 @@ jobs:
       - name: Start uvicorn (Production-equivalent app path)
         run: |
           set -Eeuo pipefail
+          export PYTHONPATH="${GITHUB_WORKSPACE}"
           export DATABASE_URL='postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db'
           export SECRET_KEY='cycle4-post065-capacity-secret-key-32b-min!!!!!!!!!!!!'
           export DEBUG=true
           export ENV=dev
           export SMS_DISABLED=true
           export SEDI_DISABLE_SCHEDULER=1
+          # Import-time guard in prompts.py; capacity paths do not call GPT.
+          export OPENAI_API_KEY='sk-capacity-harness-unused'
           nohup python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 \
             >/tmp/post065_uvicorn.log 2>&1 &
           echo $! > /tmp/post065_uvicorn.pid
@@ -213,17 +216,22 @@ jobs:
             fi
             sleep 2
           done
-          curl -fsS http://127.0.0.1:8000/healthz
+          if ! curl -fsS http://127.0.0.1:8000/healthz; then
+            echo "===== uvicorn log ====="
+            cat /tmp/post065_uvicorn.log || true
+            exit 1
+          fi
       - name: Application-level HTTP capacity (>=5000 registered, sustained)
         run: |
           set -Eeuo pipefail
+          export PYTHONPATH="${GITHUB_WORKSPACE}"
           export DATABASE_URL='postgresql+psycopg2://cap:cap@127.0.0.1:55432/cap_db'
           export SECRET_KEY='cycle4-post065-capacity-secret-key-32b-min!!!!!!!!!!!!'
           export DEBUG=true
           export SEDI_DISABLE_SCHEDULER=1
+          export OPENAI_API_KEY='sk-capacity-harness-unused'
           export APP_BASE_URL='http://127.0.0.1:8000'
           export SUSTAINED_SECONDS=900
-          export PYTHONPATH="${GITHUB_WORKSPACE}"
           python backend/ops/db03/post065_app_capacity_bench.py 2>&1 | tee /tmp/post065_capacity_app.log
           grep -Fq 'APP_CAPACITY_SUMMARY|application_level_5000_user_capacity_proof|PASS' /tmp/post065_capacity_app.log
           grep -Fq 'APP_CAPACITY_SUMMARY|registered_user_scale_tested|5000' /tmp/post065_capacity_app.log
