@@ -1,0 +1,33 @@
+# SEDI Production PostgreSQL 16 + pgvector — Alpine same-lineage packaging (Path A).
+# Retains postgres:16-alpine UID/GID and PGDATA compatibility.
+# Pin base digest at build time via POSTGRES_BASE build-arg.
+ARG POSTGRES_BASE=postgres:16-alpine
+FROM ${POSTGRES_BASE}
+
+ARG PGVECTOR_VERSION=v0.8.6
+LABEL org.opencontainers.image.title="sedi-postgres"
+LABEL org.opencontainers.image.description="PostgreSQL 16 Alpine + pinned pgvector for SEDI Production"
+LABEL sedi.pgvector.version="${PGVECTOR_VERSION}"
+LABEL sedi.packaging.path="A_alpine_same_lineage"
+
+USER root
+RUN set -eux; \
+    apk add --no-cache --virtual .build-deps \
+      build-base \
+      clang15 \
+      llvm15-dev \
+      git \
+      postgresql-dev; \
+    git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
+    cd /tmp/pgvector; \
+    make OPTFLAGS=""; \
+    make install; \
+    cd /; \
+    rm -rf /tmp/pgvector; \
+    apk del .build-deps; \
+    # Packaging proof (extension files present; not installed into a cluster yet)
+    test -f /usr/local/share/postgresql/extension/vector.control; \
+    test -f /usr/local/lib/postgresql/vector.so; \
+    grep -E '^default_version' /usr/local/share/postgresql/extension/vector.control
+
+# Keep default postgres entrypoint/user from base image.

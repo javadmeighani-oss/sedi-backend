@@ -1,0 +1,110 @@
+# Build + push SEDI PostgreSQL 16 Alpine + pinned pgvector (Path A).
+name: Build Sedi Postgres PGVector Alpine Image
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/ops/db03/Dockerfile.postgres16-pgvector-alpine"
+      - ".github/workflows/build-sedi-postgres-pgvector.yml"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-sedi-postgres-pgvector-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ghcr.io/javadmeighani-oss/sedi-postgres
+  PGVECTOR_VERSION: v0.8.6
+
+jobs:
+  build-and-push:
+    name: Build pinned PG16 Alpine + pgvector
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      image_digest: ${{ steps.push.outputs.digest }}
+      image_tag: ${{ steps.meta.outputs.tag }}
+      base_digest: ${{ steps.base.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve immutable postgres:16-alpine base digest
+        id: base
+        run: |
+          set -euo pipefail
+          docker pull postgres:16-alpine
+          DIGEST="$(docker inspect postgres:16-alpine --format '{{index .RepoDigests 0}}' | awk -F@ '{print $2}')"
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "BASE_DIGEST=${DIGEST}"
+          echo "postgres:16-alpine@${DIGEST}" > /tmp/base_ref.txt
+
+      - name: Image tag meta
+        id: meta
+        run: |
+          TAG="16-alpine-pgvector-0.8.6-${GITHUB_SHA:0:12}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend/ops/db03/Dockerfile.postgres16-pgvector-alpine
+          push: true
+          build-args: |
+            POSTGRES_BASE=postgres:16-alpine@${{ steps.base.outputs.digest }}
+            PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_NAME }}:16-alpine-pgvector-0.8.6
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            sedi.pgvector.version=${{ env.PGVECTOR_VERSION }}
+            sedi.postgres.base.digest=${{ steps.base.outputs.digest }}
+
+      - name: Packaging proof on built image
+        run: |
+          set -euo pipefail
+          REF="${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
+          docker pull "${REF}"
+          docker run --rm --entrypoint sh "${REF}" -lc '
+            set -e
+            test -f /usr/local/share/postgresql/extension/vector.control
+            test -f /usr/local/lib/postgresql/vector.so
+            grep -E "^default_version" /usr/local/share/postgresql/extension/vector.control
+            id -u postgres
+            cat /etc/alpine-release
+          '
+          echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage"
+          echo "CANDIDATE_IMAGE=${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"
+          echo "CANDIDATE_IMAGE_DIGEST=${{ steps.push.outputs.digest }}"
+          echo "POSTGRES_BASE_DIGEST=${{ steps.base.outputs.digest }}"
+          echo "PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}"
+
+      - name: Write digest artifact (non-sensitive)
+        run: |
+          {
+            echo "CANDIDATE_IMAGE=${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"
+            echo "CANDIDATE_IMAGE_DIGEST=${{ steps.push.outputs.digest }}"
+            echo "CANDIDATE_IMAGE_REF=${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
+            echo "POSTGRES_BASE_DIGEST=${{ steps.base.outputs.digest }}"
+            echo "PGVECTOR_VERSION=${{ env.PGVECTOR_VERSION }}"
+            echo "PGVECTOR_PACKAGING_PATH=A_alpine_same_lineage"
+            echo "GIT_SHA=${{ github.sha }}"
+          } > /tmp/sedi_postgres_pgvector_pin.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sedi-postgres-pgvector-pin
+          path: /tmp/sedi_postgres_pgvector_pin.txt
+          retention-days: 30

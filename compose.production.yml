@@ -21,7 +21,8 @@ services:
       - sedi-net
 
   sedi-postgres:
-    image: postgres:16-alpine
+    # Override with digest-pinned GHCR image after pgvector packaging Gate (SEDI_POSTGRES_IMAGE).
+    image: ${SEDI_POSTGRES_IMAGE:-postgres:16-alpine}
     container_name: sedi-postgres
     restart: unless-stopped
     env_file:
