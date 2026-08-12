@@ -31,9 +31,11 @@ RUN set -eux; \
     test -f "${SHARE}/extension/vector.control"; \
     test -n "$(ls "${SHARE}/extension"/vector--*.sql 2>/dev/null | head -1)"; \
     grep -E '^default_version' "${SHARE}/extension/vector.control"; \
-    # Shared-library dependency proof (no missing libs)
-    ldd "${PKGLIB}/vector.so" | tee /tmp/vector_ldd.txt; \
-    ! grep -Eq 'not found' /tmp/vector_ldd.txt; \
+    # Musl ldd reports postgres host symbols as "Error relocating ... not found" — expected for PG extensions.
+    # Fail only if a shared library file itself is missing.
+    ldd "${PKGLIB}/vector.so" | tee /tmp/vector_ldd.txt || true; \
+    if grep -E '=>[[:space:]]+not found' /tmp/vector_ldd.txt; then echo "MISSING_SHARED_LIB"; exit 1; fi; \
+    echo "VECTOR_SO_NO_MISSING_SHARED_LIBRARIES=PASS"; \
     echo "PGVECTOR_CANONICAL_PGXS_INSTALL=PASS"; \
     echo "PGVECTOR_LLVM_BITCODE_DISABLED=YES"; \
     echo "VECTOR_SO_PATH=${PKGLIB}/vector.so"; \

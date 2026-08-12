@@ -86,8 +86,11 @@ jobs:
             test -f "${SHARE}/extension/vector.control"
             ls "${SHARE}/extension"/vector--*.sql >/dev/null
             grep -E "^default_version" "${SHARE}/extension/vector.control"
-            ldd "${PKGLIB}/vector.so"
-            ! ldd "${PKGLIB}/vector.so" | grep -Eq "not found"
+            ldd "${PKGLIB}/vector.so" || true
+            if ldd "${PKGLIB}/vector.so" 2>/dev/null | grep -E '=>[[:space:]]+not found'; then
+              echo "MISSING_SHARED_LIB"; exit 1
+            fi
+            # Undefined postgres symbols via musl "Error relocating" are expected for extensions.
             id -u postgres
             cat /etc/alpine-release
             pg_config --version
@@ -122,6 +125,8 @@ jobs:
           FROM pg_available_extensions WHERE name='vector';
           CREATE EXTENSION vector;
           SELECT extname, extversion FROM pg_extension WHERE extname='vector';
+          SELECT CASE WHEN extversion = '0.8.6' THEN 'VECTOR_EXTENSION_VERSION_OK' ELSE 'VECTOR_EXTENSION_VERSION_BAD' END
+          FROM pg_extension WHERE extname='vector';
           CREATE TABLE pgvector_smoke (
             id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
             embedding vector(3) NOT NULL
@@ -129,11 +134,14 @@ jobs:
           INSERT INTO pgvector_smoke (embedding) VALUES ('[1,0,0]'), ('[0,1,0]'), ('[0.9,0.1,0]');
           SELECT id FROM pgvector_smoke ORDER BY embedding <=> '[1,0,0]'::vector LIMIT 1;
           SQL
+          docker exec "${NAME}" psql -U smoke -d smoke_db -tA -c "SELECT extversion FROM pg_extension WHERE extname='vector';" | grep -Fx '0.8.6'
+          echo "VECTOR_EXTENSION_VERSION=0.8.6"
           echo "VECTOR_EXTENSION_AVAILABLE=YES"
           echo "VECTOR_EXTENSION_CREATE=PASS"
           echo "PGVECTOR_INSERT_SMOKE=PASS"
           echo "PGVECTOR_DISTANCE_OPERATOR_SMOKE=PASS"
           echo "PGVECTOR_QUERY_SMOKE=PASS"
+          echo "PGVECTOR_FUNCTIONAL_SMOKE=PASS"
           docker restart "${NAME}"
           sleep 5
           for i in $(seq 1 60); do
