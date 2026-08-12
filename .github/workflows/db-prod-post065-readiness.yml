@@ -153,10 +153,13 @@ jobs:
             -p 55432:5432 \
             "${IMG}"
           for i in $(seq 1 90); do
-            docker exec sedi-cap-pg pg_isready -U cap -d cap_db && break
+            if docker exec sedi-cap-pg psql -U cap -d cap_db -c 'SELECT 1' >/dev/null 2>&1; then
+              echo "postgres_ready"
+              break
+            fi
             sleep 2
           done
-          docker exec sedi-cap-pg pg_isready -U cap -d cap_db
+          docker exec sedi-cap-pg psql -U cap -d cap_db -c 'SELECT 1'
           docker exec sedi-cap-pg psql -U cap -d cap_db -c 'CREATE EXTENSION IF NOT EXISTS vector;'
       - uses: actions/setup-python@v5
         with:
