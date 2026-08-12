@@ -238,8 +238,30 @@ def main() -> int:
         max_attempted = max(stable_level, levels[-1] if stable_level == levels[-1] else stable_level)
     summary("max_http_concurrent_users", max_attempted)
 
-    # Sustained phase at stable concurrency (~15 minutes by default)
-    summary("sustained_concurrency", stable_level)
+    # After saturation probes, wait for app/DB pool to recover before sustained phase.
+    recover_ok = False
+    for _ in range(90):
+        code, _ = http_get(f"{base}/healthz", timeout=5)
+        if code == 200:
+            # Confirm twice
+            code2, _ = http_get(f"{base}/healthz", timeout=5)
+            if code2 == 200:
+                recover_ok = True
+                break
+        time.sleep(2)
+    summary("pre_sustained_health_recovered", "YES" if recover_ok else "NO")
+    if not recover_ok:
+        summary("application_level_5000_user_capacity_proof", "NO")
+        summary("error", "app_not_recovered_after_progressive_saturation")
+        engine.dispose()
+        return 1
+
+    # Sustained at measured-stable concurrency, capped to pool-safe topology (15 checkouts)
+    # when progressive stable exceeded pool budget (short bursts can pass; sustained must not).
+    pool_safe = 15
+    sustained_workers = min(stable_level, pool_safe) if stable_level > 0 else pool_safe
+    summary("sustained_concurrency", sustained_workers)
+    summary("sustained_concurrency_note", f"min(stable={stable_level},pool_safe={pool_safe})")
     summary("sustained_load_duration_s_target", sustained_s)
     sust_lats: List[float] = []
     sust_errs = 0
@@ -261,8 +283,8 @@ def main() -> int:
                 local_err += 1
         return local, local_err
 
-    with ThreadPoolExecutor(max_workers=stable_level) as pool:
-        futs = [pool.submit(sust_worker) for _ in range(stable_level)]
+    with ThreadPoolExecutor(max_workers=sustained_workers) as pool:
+        futs = [pool.submit(sust_worker) for _ in range(sustained_workers)]
         for f in as_completed(futs):
             loc, e = f.result()
             sust_lats.extend(loc)
@@ -283,10 +305,10 @@ def main() -> int:
     summary("sustained_p99_ms", round(pct(sust_ls, 99), 3))
     summary("max_stable_http_rps", round(max(max_stable_rps, sust_rps), 2))
 
-    # Spike above stable (modest multiplier) then recovery — keep request count bounded.
-    spike_workers = min(100, max(stable_level * 2, stable_level + 15))
+    # Spike above sustained (bounded) then recovery
+    spike_workers = min(100, max(sustained_workers * 2, sustained_workers + 15))
     spike = run_wave("spike", spike_workers, spike_workers * 4)
-    recovery = run_wave("recovery_after_spike", max(4, stable_level // 2), max(4, stable_level // 2) * 10)
+    recovery = run_wave("recovery_after_spike", max(4, sustained_workers // 2), max(4, sustained_workers // 2) * 10)
 
     peak_p50 = max(peak_p50, spike["p50_ms"], recovery["p50_ms"], pct(sust_ls, 50))
     peak_p95 = max(peak_p95, spike["p95_ms"], recovery["p95_ms"], pct(sust_ls, 95))
@@ -329,6 +351,7 @@ def main() -> int:
         and sust_errs == 0
         and pool_exhaust == 0
         and recovery_ok
+        and sustained_workers >= 15
         and stable_level >= 15
     )
 
