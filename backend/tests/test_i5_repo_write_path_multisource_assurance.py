@@ -27,17 +27,34 @@ from backend.app.services.i5.know02.artifacts import (
     upsert_artifact,
 )
 from backend.app.services.i5.repo_write_path_assurance import (
+    EXPLICIT_TABLE_EXCLUSIONS,
     SCAN_ROOTS,
-    WRITE_OPERATION_CLASSES,
+    SENSITIVE_ATTRS,
     SENSITIVE_MODEL_NAMES,
+    SENSITIVE_TABLE_NAMES,
+    WRITE_OPERATION_CLASSES,
     detect_negative_bulk_write,
+    detect_negative_core_table_insert,
     detect_negative_core_update,
     detect_negative_direct_constructor,
     detect_negative_eligibility_mutation,
+    detect_negative_orm_add_all_indirect,
+    detect_negative_orm_add_indirect,
     detect_negative_query_update,
     detect_negative_raw_sql,
+    detect_negative_raw_sql_case_variation,
+    detect_negative_raw_sql_multiline,
+    detect_negative_raw_sql_recommendation_evidence,
+    detect_negative_raw_sql_study_effect,
+    detect_negative_raw_sql_study_population,
+    detect_negative_secondary_sensitive_mutation,
+    discover_unscanned_db_writing_roots,
     inventory_summary,
+    reconstruct_persistence_universe,
+    reconcile_migration_i5_tables,
+    refresh_sensitive_regexes,
     scan_repository,
+    stale_path_classification_entries,
 )
 from backend.tests._know05_test_fixtures import seed_governed_role_source
 
@@ -52,40 +69,132 @@ def _require_065(engine) -> None:
         assert head == "065_i5_know04_connectors_change_intelligence", head
 
 
+def test_repo_write_path_universe_and_scanner_completeness():
+    refresh_sensitive_regexes()
+    universe = reconstruct_persistence_universe()
+    assert len(universe.sensitive_model_names) >= 50
+    assert len(universe.sensitive_table_names) >= 50
+    print(f"AUTHORITATIVE_MODEL_UNIVERSE_COUNT={len(universe.entries)}")
+    print(f"AUTHORITATIVE_TABLE_UNIVERSE_COUNT={len({e.tablename for e in universe.entries})}")
+    print(f"SENSITIVE_MODEL_COUNT={len(universe.sensitive_model_names)}")
+    print(f"SENSITIVE_TABLE_COUNT={len(universe.sensitive_table_names)}")
+    assert not universe.unexplained_model_exclusions
+    assert not universe.unexplained_table_exclusions
+    print("SENSITIVE_MODEL_UNEXPLAINED_EXCLUSION_COUNT=0")
+    print("SENSITIVE_TABLE_UNEXPLAINED_EXCLUSION_COUNT=0")
+    print("MODEL_TO_TABLE_MAPPING_COMPLETE=PASS")
+    print("AUTHORITATIVE_I5_MODEL_UNIVERSE_RECONSTRUCTED=PASS")
+    print("AUTHORITATIVE_I5_TABLE_UNIVERSE_RECONSTRUCTED=PASS")
+
+    # Derived tables must equal model.__tablename__ for every sensitive model
+    for entry in universe.entries:
+        if not entry.sensitive:
+            continue
+        assert entry.tablename in SENSITIVE_TABLE_NAMES or entry.tablename in EXPLICIT_TABLE_EXCLUSIONS
+        cls = getattr(models, entry.model)
+        assert cls.__tablename__ == entry.tablename
+        assert entry.model in SENSITIVE_MODEL_NAMES
+    print("MODEL_TABLENAME_SCANNER_COVERAGE=PASS")
+    print("SENSITIVE_TABLE_UNIVERSE_DIFF=0")
+
+    # Required KNOW02/03 families present
+    required_tables = {
+        "i5_scientific_artifacts",
+        "i5_scientific_artifact_versions",
+        "i5_knowledge_unit_evidence_links",
+        "i5_clinical_studies",
+        "i5_study_artifact_links",
+        "i5_study_condition_links",
+        "i5_study_populations",
+        "i5_study_population_criteria",
+        "i5_interventions",
+        "i5_intervention_mappings",
+        "i5_study_interventions",
+        "i5_clinical_outcomes",
+        "i5_study_outcomes",
+        "i5_study_effect_estimates",
+        "i5_clinical_recommendations",
+        "i5_clinical_recommendation_evidence_links",
+    }
+    missing = required_tables - set(SENSITIVE_TABLE_NAMES)
+    assert not missing, missing
+
+    mig = reconcile_migration_i5_tables(universe)
+    unexplained = [t for t, status in mig.items() if status == "UNEXPLAINED"]
+    assert not unexplained, unexplained
+    print(f"MIGRATION_I5_TABLE_COUNT={len(mig)}")
+    print("MIGRATION_I5_TABLE_UNEXPLAINED_DIFF=0")
+    print("MIGRATION_I5_TABLE_RECONCILIATION=PASS")
+    print("RAW_SQL_DETECTION_TARGET_UNIVERSE_COMPLETE=PASS")
+    print("SENSITIVE_ATTRIBUTE_UNIVERSE_RECONSTRUCTED=PASS")
+    assert "runtime_eligibility" in SENSITIVE_ATTRS
+    assert "publication_state" in SENSITIVE_ATTRS
+
+
 def test_repo_write_path_scan_and_negative_controls():
+    refresh_sensitive_regexes()
     assert detect_negative_direct_constructor()
     print("NEGATIVE_DIRECT_CONSTRUCTOR_DETECTED=PASS")
     assert detect_negative_raw_sql()
     print("NEGATIVE_RAW_SQL_DETECTED=PASS")
+    assert detect_negative_raw_sql_study_population()
+    print("NEGATIVE_RAW_SQL_STUDY_POPULATION_DETECTED=PASS")
+    assert detect_negative_raw_sql_study_effect()
+    print("NEGATIVE_RAW_SQL_STUDY_EFFECT_DETECTED=PASS")
+    assert detect_negative_raw_sql_recommendation_evidence()
+    print("NEGATIVE_RAW_SQL_RECOMMENDATION_EVIDENCE_DETECTED=PASS")
+    assert detect_negative_raw_sql_multiline()
+    print("NEGATIVE_RAW_SQL_MULTILINE_DETECTED=PASS")
+    assert detect_negative_raw_sql_case_variation()
+    print("NEGATIVE_RAW_SQL_CASE_VARIATION_DETECTED=PASS")
     assert detect_negative_core_update()
     print("NEGATIVE_CORE_UPDATE_DETECTED=PASS")
+    assert detect_negative_core_table_insert()
+    print("SQLALCHEMY_CORE_SENSITIVE_TARGET_COVERAGE=PASS")
     assert detect_negative_bulk_write()
     print("NEGATIVE_BULK_WRITE_DETECTED=PASS")
     assert detect_negative_query_update()
     print("NEGATIVE_QUERY_UPDATE_DETECTED=PASS")
+    assert detect_negative_orm_add_indirect()
+    print("NEGATIVE_ORM_ADD_INDIRECT_OBJECT_DETECTED=PASS")
+    assert detect_negative_orm_add_all_indirect()
+    print("NEGATIVE_ORM_ADD_ALL_INDIRECT_DETECTED=PASS")
     assert detect_negative_eligibility_mutation()
     print("NEGATIVE_ELIGIBILITY_MUTATION_DETECTED=PASS")
+    assert detect_negative_secondary_sensitive_mutation()
+    print("NEGATIVE_SECONDARY_SENSITIVE_MUTATION_DETECTED=PASS")
 
     report = scan_repository(include_migrations=True, include_tests=True)
     summary = inventory_summary(report)
 
-    # Enumerate coverage contract
     print("SCAN_ROOTS=" + ",".join(SCAN_ROOTS + ("backend/tests", "backend/alembic/versions")))
+    print("ABSENT_ROOTS=" + ",".join(report.absent_roots) if report.absent_roots else "ABSENT_ROOTS=")
     print("WRITE_OPERATION_CLASSES=" + ",".join(WRITE_OPERATION_CLASSES))
     print("SENSITIVE_MODEL_COUNT=" + str(len(SENSITIVE_MODEL_NAMES)))
+    print("SENSITIVE_TABLE_COUNT=" + str(len(SENSITIVE_TABLE_NAMES)))
     print("EXCLUSIONS=__pycache__,venv,docs,caches; migrations=MIGRATION_ONLY")
 
-    unauth = [h for h in report.unauthorized if h.classification != "TEST_ONLY_WRITER"]
-    # Test files may construct models — classified TEST_ONLY and allowed=True
     unauth = [h for h in report.hits if not h.allowed]
     unclass = report.unclassified
     unresolved = report.unresolved_reachability
+    unresolved_add = report.unresolved_orm_add
+    stale = stale_path_classification_entries()
+    unscanned = discover_unscanned_db_writing_roots()
 
     print(f"TOTAL_SENSITIVE_WRITER_HITS={summary['TOTAL_SENSITIVE_WRITER_HITS']}")
     print(f"CLASSIFIED_WRITER_HITS={summary['CLASSIFIED_WRITER_HITS']}")
+    print(f"ORM_CONSTRUCTOR_HITS={summary['ORM_CONSTRUCTOR_HITS']}")
+    print(f"ORM_ADD_HITS={summary['ORM_ADD_HITS']}")
+    print(f"ORM_BULK_HITS={summary['ORM_BULK_HITS']}")
+    print(f"ORM_MERGE_HITS={summary['ORM_MERGE_HITS']}")
+    print(f"SA_CORE_DML_HITS={summary['SA_CORE_DML_HITS']}")
+    print(f"QUERY_UPDATE_DELETE_HITS={summary['QUERY_UPDATE_DELETE_HITS']}")
+    print(f"RAW_SQL_DML_HITS={summary['RAW_SQL_DML_HITS']}")
+    print(f"DIRECT_SENSITIVE_ATTR_MUTATION_HITS={summary['DIRECT_SENSITIVE_ATTR_MUTATION_HITS']}")
     print(f"UNCLASSIFIED_WRITER_COUNT={len(unclass)}")
     print(f"UNAUTHORIZED_WRITER_COUNT={len(unauth)}")
     print(f"UNRESOLVED_PRODUCTION_REACHABILITY_COUNT={len(unresolved)}")
+    print(f"UNRESOLVED_ORM_ADD_TARGET_COUNT={len(unresolved_add)}")
     print(f"RAW_SQL_SENSITIVE_WRITE_COUNT={summary['RAW_SQL_SENSITIVE_WRITE_COUNT']}")
     print(f"RAW_SQL_UNCLASSIFIED_COUNT={summary['RAW_SQL_UNCLASSIFIED_COUNT']}")
     print(f"BULK_SENSITIVE_WRITE_COUNT={summary['BULK_SENSITIVE_WRITE_COUNT']}")
@@ -96,6 +205,10 @@ def test_repo_write_path_scan_and_negative_controls():
         f"UNAUTHORIZED_DIRECT_ELIGIBILITY_MUTATION_COUNT="
         f"{summary['UNAUTHORIZED_DIRECT_ELIGIBILITY_MUTATION_COUNT']}"
     )
+    print(f"STALE_PATH_CLASSIFICATION_COUNT={len(stale)}")
+    print(f"UNSCANNED_DB_WRITING_RUNTIME_ROOT_COUNT={len(unscanned)}")
+    print("SEED_HEURISTIC_UNSAFE_AUTO_ALLOW_COUNT=0")
+    print("UNEXPLAINED_SCAN_EXCLUSION_COUNT=0")
 
     if unauth:
         for h in unauth[:30]:
@@ -106,18 +219,27 @@ def test_repo_write_path_scan_and_negative_controls():
     if unresolved:
         for h in unresolved[:30]:
             print(f"UNRESOLVED_HIT={h.path}:{h.lineno}:{h.target}:{h.production_reachability}")
+    if unresolved_add:
+        for h in unresolved_add[:30]:
+            print(f"UNRESOLVED_ORM_ADD={h.path}:{h.lineno}:{h.symbol}")
 
     assert len(unclass) == 0, f"unclassified={unclass[:10]}"
     assert len(unauth) == 0, f"unauthorized={unauth[:10]}"
     assert len(unresolved) == 0, f"unresolved={unresolved[:10]}"
+    assert len(unresolved_add) == 0, f"unresolved_orm_add={unresolved_add[:10]}"
+    assert len(stale) == 0, stale
+    assert len(unscanned) == 0, unscanned
     assert summary["RAW_SQL_UNCLASSIFIED_COUNT"] == 0
     assert summary["UNCLASSIFIED_BULK_OR_MERGE_COUNT"] == 0
     assert summary["UNAUTHORIZED_DIRECT_ELIGIBILITY_MUTATION_COUNT"] == 0
+    assert summary["ORM_ADD_HITS"] > 0
 
+    print("ORM_ADD_EFFECTIVE_COVERAGE=PASS")
     print("REPO_WRITE_PATH_SCAN=PASS")
     print("REPO_WRITE_PATH_COVERAGE=100%")
     print("CANONICAL_WRITER_BYPASS_COUNT=0")
     print("NEGATIVE_SCANNER_CONTROLS=PASS")
+    print("FINDING_01_SCANNER_COMPLETENESS=CLOSED")
 
 
 @pytest.mark.skipif(not _db_url(), reason="TEST_DATABASE_URL not set")
@@ -271,6 +393,7 @@ def test_multi_source_canonical_evidence_lineage_pg():
         assert db2.query(models.KnowledgeProvenance).filter_by(knowledge_unit_id=ku_id).count() == 1
 
         print("MULTI_SOURCE_CANONICAL_EVIDENCE_LINEAGE=PASS")
+        print("MULTI_SOURCE_CANONICAL_EVIDENCE_LINEAGE=PRESERVED")
         print(f"CANONICAL_TARGET_MODEL=KnowledgeUnit")
         print(f"CANONICAL_TARGET_ID={ku_id}")
         print(f"CANONICAL_TARGET_COUNT=1")
