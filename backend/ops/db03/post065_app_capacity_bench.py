@@ -36,7 +36,7 @@ def pct(sorted_vals: Sequence[float], p: float) -> float:
     return float(sorted_vals[idx])
 
 
-def http_get(url: str, headers: Optional[Dict[str, str]] = None, timeout: float = 30.0) -> Tuple[int, float]:
+def http_get(url: str, headers: Optional[Dict[str, str]] = None, timeout: float = 10.0) -> Tuple[int, float]:
     req = urllib.request.Request(url, headers=headers or {}, method="GET")
     t0 = time.perf_counter()
     try:
@@ -146,14 +146,14 @@ def main() -> int:
         # Mix: 70% healthz (auth-like DB ping path), 30% JWT /auth/me
         if i % 10 < 7:
             path = "healthz"
-            code, ms = http_get(f"{base}/healthz", timeout=20)
+            code, ms = http_get(f"{base}/healthz", timeout=8)
         else:
             path = "auth_me"
             tok = tokens[i % len(tokens)]
             code, ms = http_get(
                 f"{base}/auth/me",
                 headers={"Authorization": f"Bearer {tok}"},
-                timeout=20,
+                timeout=8,
             )
         if code == 0:
             with lock:
@@ -209,8 +209,8 @@ def main() -> int:
     saturation_at: Optional[int] = None
 
     for lvl in levels:
-        # Short probe: ~3s-ish worth of work
-        per = max(20, 40)
+        # Short probe only — avoid multi-minute hangs when pool saturates.
+        per = 8 if lvl <= 50 else 4
         total = lvl * per
         wave = run_wave(f"progressive_{lvl}", lvl, total)
         progressive_errors += int(wave["error_count"])
@@ -283,10 +283,10 @@ def main() -> int:
     summary("sustained_p99_ms", round(pct(sust_ls, 99), 3))
     summary("max_stable_http_rps", round(max(max_stable_rps, sust_rps), 2))
 
-    # Spike above stable (2x, capped) then recovery
-    spike_workers = min(250, max(stable_level * 2, stable_level + 15))
-    spike = run_wave("spike", spike_workers, spike_workers * 15)
-    recovery = run_wave("recovery_after_spike", max(4, stable_level // 2), max(4, stable_level // 2) * 30)
+    # Spike above stable (modest multiplier) then recovery — keep request count bounded.
+    spike_workers = min(100, max(stable_level * 2, stable_level + 15))
+    spike = run_wave("spike", spike_workers, spike_workers * 4)
+    recovery = run_wave("recovery_after_spike", max(4, stable_level // 2), max(4, stable_level // 2) * 10)
 
     peak_p50 = max(peak_p50, spike["p50_ms"], recovery["p50_ms"], pct(sust_ls, 50))
     peak_p95 = max(peak_p95, spike["p95_ms"], recovery["p95_ms"], pct(sust_ls, 95))
