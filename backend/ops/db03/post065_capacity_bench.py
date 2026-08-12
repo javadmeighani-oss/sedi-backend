@@ -93,7 +93,7 @@ def main() -> int:
             text(
                 """
                 INSERT INTO bench_users (username, profile_json)
-                SELECT 'syn_user_' || g, '{"synthetic":true}'
+                SELECT 'syn_user_' || g, $${"synthetic":true}$$
                 FROM generate_series(1, 5000) g
                 """
             )

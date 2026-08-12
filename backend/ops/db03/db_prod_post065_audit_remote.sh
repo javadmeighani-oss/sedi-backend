@@ -80,24 +80,22 @@ summary "mig_schema_create" "$(docker exec sedi-postgres psql -U "${PU}" -d "${P
 summary "mig_kce_owner" "$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT pg_get_userbyid(c.relowner) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='knowledge_chunk_embeddings' AND c.relkind='r';")"
 
 # Negative: runtime CREATE TABLE should fail (transaction rolled back)
+# Do NOT use docker exec heredoc stdin (may not attach). Use -c statements.
 set +e
-NEG="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 -tA <<'SQL' 2>/tmp/neg_runtime_ddl.err
-SET ROLE sedi_app_runtime;
-CREATE TABLE __sedi_neg_runtime_ddl_probe(id int);
-SQL
-)"
+NEG_OUT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 -tA \
+  -c "SET ROLE sedi_app_runtime; CREATE TABLE __sedi_neg_runtime_ddl_probe(id int);" \
+  2>&1)"
 NEG_RC=$?
 set -e
-if [ "${NEG_RC}" != "0" ] && grep -qiE 'permission denied|must be owner|InsufficientPrivilege' /tmp/neg_runtime_ddl.err 2>/dev/null; then
-  summary "neg_runtime_create_table" "DENIED_AS_EXPECTED"
-elif [ "${NEG_RC}" != "0" ]; then
+summary "neg_runtime_create_table_rc" "${NEG_RC}"
+if [ "${NEG_RC}" != "0" ]; then
   summary "neg_runtime_create_table" "DENIED_AS_EXPECTED"
 else
   summary "neg_runtime_create_table" "UNEXPECTED_SUCCESS"
   docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c 'DROP TABLE IF EXISTS __sedi_neg_runtime_ddl_probe;' >/dev/null 2>&1 || true
   exit 5
 fi
-docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c 'DROP TABLE IF EXISTS __sedi_neg_runtime_ddl_probe;' >/dev/null 2>&1 || true
+docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c 'RESET ROLE; DROP TABLE IF EXISTS __sedi_neg_runtime_ddl_probe;' >/dev/null 2>&1 || true
 
 # Runtime must NOT have CREATE on public
 RTC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT has_schema_privilege('sedi_app_runtime','public','CREATE');")"
