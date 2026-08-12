@@ -93,6 +93,16 @@ fi
 summary "isolated_postgres_ready" "PASS"
 docker exec "${REHEARSE_NAME}" pg_isready -U "${REHEARSE_USER}" -d "${REHEARSE_DB}"
 
+# Production pg_dump OWNER/GRANT statements reference these roles.
+# Create them as NOLOGIN stubs in the isolated clone (no Production secrets).
+log "=== PRECREATE PRODUCTION-EQUIVALENT ROLES (isolated stubs) ==="
+for role in sedi_user sedi_app_runtime sedi_migration_admin sedi_dbeaver_readonly postgres; do
+  docker exec "${REHEARSE_NAME}" psql -U "${REHEARSE_USER}" -d "${REHEARSE_DB}" -v ON_ERROR_STOP=1 -tAc \
+    "DO \$\$ BEGIN CREATE ROLE ${role} NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;" \
+    >/dev/null
+done
+summary "precreate_production_roles" "PASS"
+
 log "=== RESTORE (private; no dump echo) ==="
 set +e
 gunzip -c "${LATEST_BACKUP}" | docker exec -i "${REHEARSE_NAME}" \
@@ -102,13 +112,28 @@ RESTORE_RC=$?
 set -e
 summary "restore_executed" "YES"
 summary "restore_exit_code" "${RESTORE_RC}"
-# Safe error classification only (no row dumps)
+# Safe error classification only (no row dumps / no PHI)
 ERR_LINES="$(wc -l </tmp/sedi_rehearse_restore.err | tr -d ' ')"
 summary "restore_stderr_line_count" "${ERR_LINES}"
 if [ "${RESTORE_RC}" != "0" ]; then
-  # Print only ERROR/FATAL keywords counts — not content with PHI
   ERR_N="$(grep -cE 'ERROR:|FATAL:' /tmp/sedi_rehearse_restore.err 2>/dev/null || echo 0)"
   summary "restore_error_marker_count" "${ERR_N}"
+  # Classify without emitting dump content
+  if grep -qE 'role ".+" does not exist' /tmp/sedi_rehearse_restore.err 2>/dev/null; then
+    summary "restore_error_class" "MISSING_ROLE"
+  elif grep -qE 'permission denied' /tmp/sedi_rehearse_restore.err 2>/dev/null; then
+    summary "restore_error_class" "PERMISSION"
+  elif grep -qE 'already exists' /tmp/sedi_rehearse_restore.err 2>/dev/null; then
+    summary "restore_error_class" "ALREADY_EXISTS"
+  elif grep -qE 'extension ".+" is not available|could not open extension control file' /tmp/sedi_rehearse_restore.err 2>/dev/null; then
+    summary "restore_error_class" "EXTENSION"
+  else
+    summary "restore_error_class" "OTHER_SQL"
+  fi
+  # Emit SQLSTATE tokens only (safe)
+  grep -oE 'SQLSTATE=[0-9A-Z]+' /tmp/sedi_rehearse_restore.err 2>/dev/null | sort -u | while read -r s; do
+    summary "restore_sqlstate" "${s}"
+  done || true
   summary "restore_capability_proof" "FAIL"
   exit 6
 fi
