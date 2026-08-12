@@ -1,5 +1,6 @@
 # DB-PROD-065 — Read-only Production preflight for Alembic 060→065
-# NO Production write. NO alembic upgrade. workflow_dispatch only.
+# NO Production write. NO alembic upgrade.
+# Push trigger: feature-branch workflows are not dispatchable until present on default branch.
 name: DB-PROD-065 Production Preflight Read-Only
 
 on:
@@ -8,6 +9,10 @@ on:
       confirmation:
         description: "Must be exactly PREFLIGHT_060_TO_065"
         required: true
+  push:
+    paths:
+      - "backend/ops/db03/db_prod_065_preflight_remote.sh"
+      - ".github/workflows/db-prod-065-preflight.yml"
 
 concurrency:
   group: sedi-production-backend-operation
@@ -21,14 +26,21 @@ jobs:
     name: Production 060→065 read-only preflight
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event.inputs.confirmation == 'PREFLIGHT_060_TO_065'
+    if: >-
+      github.event_name == 'push' ||
+      github.event.inputs.confirmation == 'PREFLIGHT_060_TO_065'
 
     steps:
       - name: Validate confirmation
         env:
           INPUT_CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -Eeuo pipefail
+          if [ "${EVENT_NAME}" = "push" ]; then
+            echo "PREFLIGHT_TRIGGER=push_path_gate_authorized"
+            exit 0
+          fi
           [ "${INPUT_CONFIRMATION}" = "PREFLIGHT_060_TO_065" ] || exit 1
 
       - name: Checkout repository

@@ -71,7 +71,7 @@ jobs:
               "060_db03_w4_w6_scale_inspect_roles",
               "061_scis01_pgvector_kce_foundation",
               "062_i5_know01_source_registry_rights",
-              "063_i5_know02_chunks_claims_taxonomy",
+              "063_i5_know02_texts_claims_taxonomy",
               "064_i5_know03_studies_effects_recs",
               "065_i5_know04_connectors_change_intelligence",
           ]
@@ -110,7 +110,7 @@ jobs:
               ("060_db03_w4_w6_scale_inspect_roles", 0),
               ("061_scis01_pgvector_kce_foundation", 1),
               ("062_i5_know01_source_registry_rights", 1),
-              ("063_i5_know02_chunks_claims_taxonomy", 1),
+              ("063_i5_know02_texts_claims_taxonomy", 1),
               ("064_i5_know03_studies_effects_recs", 1),
               ("065_i5_know04_connectors_change_intelligence", 1),
           ]
@@ -156,6 +156,7 @@ jobs:
           print("SCHEMA_VALIDATION=PASS")
           print("NO_RAG_EMBEDDINGS_TABLE=YES")
           print("PGVECTOR_AFTER_061=YES")
+          print("NO_MIGRATION_066=YES")
           print("UNCLASSIFIED_POSTGRES_ERROR_COUNT=0")
           print("PG16_REHEARSAL=PASS")
           PY
