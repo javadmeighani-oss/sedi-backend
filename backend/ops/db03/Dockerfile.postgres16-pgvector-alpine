@@ -19,6 +19,12 @@ RUN set -eux; \
       llvm-dev \
       git \
       postgresql-dev; \
+    # PGXS bitcode step may call clang-N; symlink whatever clang apk provides.
+    CLANG_BIN="$(command -v clang)"; \
+    test -n "${CLANG_BIN}"; \
+    CLANG_VER="$("${CLANG_BIN}" --version | head -1 | sed -n 's/.*clang version \([0-9]*\).*/\1/p')"; \
+    ln -sf "${CLANG_BIN}" "/usr/bin/clang-${CLANG_VER}"; \
+    ln -sf "${CLANG_BIN}" /usr/bin/clang-21; \
     git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
     cd /tmp/pgvector; \
     make OPTFLAGS=""; \
