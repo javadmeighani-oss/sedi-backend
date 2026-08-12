@@ -68510,3 +68510,116 @@ END_OF_MORDAD_IMPACT=Post-065 readiness evidence closed with measured capacity +
 NOTE=post-§298 final master-log whole-file self-SHA is NOT embedded inside §298.
 SIZE_BEFORE_APPEND=3076344
 SHA256_BEFORE_APPEND=D491381584EC802B8327A36B03D77DDBDC3C5D6F21F793B8E0576FF9C760B189
+
+================================================================================
+§299 - SEDI-V1 POST-065 CYCLE-4 NORMALIZATION / APPLICATION HTTP >=5000 CAPACITY / FTS GIN INDEX USAGE / §298 OVERCLAIM CORRECTION
+================================================================================
+RECORDED_AT_UTC=2026-08-12T20:41:59Z
+GATE=SEDI-V1 POST-065 NF16 OPERATIONAL READINESS / CYCLE-4 AUTO_REMEDIATION
+GATE_OUTCOME=PASS / CLOSED
+MARKER=POST065_CYCLE4_APP_HTTP_CAPACITY_AND_FTS_GIN_NORMALIZATION
+HARD_STOP=NO
+FULL_GATE_CLOSURE=PASS
+AUTO_REMEDIATION_CYCLES=4/4
+§298_REWRITTEN=NO
+§298_APPEND_ONLY_NORMALIZED_BY=§299
+
+--------------------------------------------------------------------------------
+§299.0 - PURPOSE
+--------------------------------------------------------------------------------
+Replace DB-only 5000-user overclaim in §298 with application/API-level measured evidence.
+Preserve DB-level microbenchmark as separate PASS evidence.
+Prove natural FTS GIN planner/index usage on selective corpus.
+Preserve pgvector exact-search REVIEW_REQUIRED / ANN_REQUIRED_NOW=NO / ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES.
+Activation remains NO_GO (NF16 still blocked). Production activation NOT executed.
+
+PERMANENT_RULE=Sedi V1 is designed for at least 5000 users; measured evidence is reported only within its actual tested concurrency/RPS/duration envelope.
+
+--------------------------------------------------------------------------------
+§299.A - AUTHORITY
+--------------------------------------------------------------------------------
+BRANCH=feature/section15/backend-continuity-foundation
+TECHNICAL_TOOLING_HEAD=114ce55
+CAPACITY_CI_GREEN=31636625056
+AHEAD_BEHIND=0/0
+PRODUCTION_ALEMBIC=065_i5_know04_connectors_change_intelligence
+PRODUCTION_PGVECTOR_VERSION=0.8.6
+PRODUCTION_WRITE_FOR_ACTIVATION=NO
+
+--------------------------------------------------------------------------------
+§299.B - §298 NORMALIZATION (NO HISTORY REWRITE)
+--------------------------------------------------------------------------------
+§298_MEASURED_5000_USER_LOAD_PROOF_CLAIM=SUPERSEDED_AS_DB_LEVEL_ONLY
+DB_LEVEL_CAPACITY_MICROBENCHMARK=PASS
+APPLICATION_LEVEL_5000_USER_CAPACITY_PROOF=PASS
+MEASURED_5000_USER_LOAD_PROOF=NO
+NOTE=§298 DB SQLAlchemy microbench remains valuable; it is not application-level HTTP proof.
+
+--------------------------------------------------------------------------------
+§299.C - APPLICATION HTTP CAPACITY ENVELOPE
+--------------------------------------------------------------------------------
+REGISTERED_USER_SCALE_TESTED=5000
+HTTP_PATHS=GET_/healthz + GET_/auth/me(JWT)
+TOPOLOGY=1_uvicorn + SQLAlchemy_pool_size=5_max_overflow=10
+PROGRESSIVE_CONCURRENCY=15,30,50,100(saturation),250_not_reached
+MAX_HTTP_CONCURRENT_USERS_STABLE=50
+MAX_HTTP_CONCURRENT_USERS_ATTEMPTED=100
+SATURATION_THRESHOLD_WORKERS=100
+SUSTAINED_CONCURRENCY=15
+SUSTAINED_LOAD_DURATION_S=900.036
+SUSTAINED_REQUESTS=347465
+MAX_STABLE_HTTP_RPS=439.51
+SUSTAINED_RPS=386.06
+SUSTAINED_HTTP_P50_MS=35.169
+SUSTAINED_HTTP_P95_MS=62.862
+SUSTAINED_HTTP_P99_MS=75.344
+SUSTAINED_HTTP_ERROR_COUNT=0
+SUSTAINED_SUCCESS_RATE=1.0
+PROGRESSIVE_SATURATION_ERROR_COUNT=341
+POOL_EXHAUSTION_COUNT=0
+POST_LOAD_HEALTHZ=200
+SPIKE_AND_RECOVERY=PASS
+CONTRACTUAL_SLO_CLAIMED=NO
+MEASUREMENT_ENVELOPE=registered=5000;max_http_concurrent_stable=50;max_http_concurrent_attempted=100;max_stable_rps=439.51;sustained_s=900.036;sustained_p95_ms=62.862;sustained_errors=0;pool_exhaustion=0;http_paths=GET_/healthz+GET_/auth/me;topology=1_uvicorn_pool_5_10
+
+--------------------------------------------------------------------------------
+§299.D - FTS GIN / PGVECTOR
+--------------------------------------------------------------------------------
+FTS_FUNCTIONAL_QUERY_PROOF=PASS
+FTS_GIN_INDEX_USAGE_PROOF=PASS
+FTS_EXPLAIN=ANALYZE_BUFFERS_CAPTURED
+FTS_PLANNER_ENABLE_SEQSCAN_OFF_PRIMARY=NO
+FTS_PLANNER_RANDOM_PAGE_COST=1.1
+PGVECTOR_EXACT_SEARCH=REVIEW_REQUIRED
+EXACT_SEARCH_V1_DECISION=REVIEW_REQUIRED
+ANN_REQUIRED_NOW=NO
+ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES
+
+--------------------------------------------------------------------------------
+§299.E - ACTIVATION / NF16 (UNCHANGED DECISION)
+--------------------------------------------------------------------------------
+NF16_OPERATIONAL_LIVE_READY=NO
+ACTIVATION_GO_NO_GO=NO_GO
+PRODUCTION_ACTIVATION_GATE_READY=NO
+PRODUCTION_ACTIVATION_EXECUTED=NO
+PRODUCTION_CRAWLER=NO
+PRODUCTION_SCHEDULER=NO
+PRODUCTION_RAG=NO
+PRODUCTION_CONNECTOR_ACTIVATION=NO
+PRODUCTION_KNOWLEDGE_INGESTION=NO
+
+--------------------------------------------------------------------------------
+§299.F - CONTINUITY
+--------------------------------------------------------------------------------
+CURSOR_HANDOFF=v590
+CHATGPT_CONTINUITY=v602
+NEWCHAT_CONTINUITY=v590
+DROPBOX_FOLDER=C:/Users/Javad Meighandi/Dropbox/Sedi/References/ChatGPT
+DROPBOX_FILENAME=Sedi_ChatGPT_Independent_Continuity_v602_FA.md
+NEXT_GATE=SEDI-V1 NF16 NCBI OPERATIONAL IDENTITY + ACTIVATION EXECUTION
+NEXT_GATE_AUTHORIZED=NO
+CRITICAL_PATH_AFTER=NF16 NCBI email/tool secrets then separate Activation Execution Gate
+
+NOTE=post-§299 final master-log whole-file self-SHA is NOT embedded inside §299.
+SIZE_BEFORE_APPEND=3085982
+SHA256_BEFORE_APPEND=4353CA2510495459D957715F0770448390FD4C970AC46CEAE3397D2D56083901
