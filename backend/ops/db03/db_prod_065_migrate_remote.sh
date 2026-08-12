@@ -71,17 +71,13 @@ summary "writers_frozen" "YES"
 docker pull "${MIGRATION_IMAGE_REF}"
 summary "migration_image_ref" "${MIGRATION_IMAGE_REF}"
 
-# Build migration-admin URL inside one-off container without printing password
-MIG_START="$(date -Is)"
-summary "migration_start_ts" "${MIG_START}"
-set +e
-docker run --rm --network sedi-net \
-  --env-file "${ENV_FILE}" \
-  --env-file "${ROLES_ENV}" \
-  --env TEST_DATABASE_URL= \
-  --env MIGRATION_IMAGE_REF="${MIGRATION_IMAGE_REF}" \
-  --entrypoint python \
-  "${MIGRATION_IMAGE_REF}" - <<'PY'
+# Build migration-admin URL inside one-off container without printing password.
+# NOTE: do NOT feed the script via `docker run ... python - <<EOF` — Docker may
+# not attach the heredoc to the container, yielding empty stdin / exit 0 no-op.
+MIG_PY="${DEPLOY_PATH}/ops/db03/_migrate_065_once.py"
+umask 077
+mkdir -p "$(dirname "${MIG_PY}")"
+cat > "${MIG_PY}" <<'PY'
 import os, subprocess, sys
 from urllib.parse import urlsplit, urlunsplit, quote
 from sqlalchemy.engine import make_url
@@ -108,8 +104,22 @@ rc = subprocess.call(
 )
 sys.exit(rc)
 PY
+chmod 600 "${MIG_PY}"
+
+MIG_START="$(date -Is)"
+summary "migration_start_ts" "${MIG_START}"
+set +e
+docker run --rm --network sedi-net \
+  --env-file "${ENV_FILE}" \
+  --env-file "${ROLES_ENV}" \
+  --env TEST_DATABASE_URL= \
+  --env MIGRATION_IMAGE_REF="${MIGRATION_IMAGE_REF}" \
+  -v "${MIG_PY}:/tmp/_migrate_065_once.py:ro" \
+  --entrypoint python \
+  "${MIGRATION_IMAGE_REF}" /tmp/_migrate_065_once.py
 MIG_RC=$?
 set -e
+rm -f "${MIG_PY}"
 MIG_END="$(date -Is)"
 summary "migration_end_ts" "${MIG_END}"
 summary "production_migration_exit_code" "${MIG_RC}"
