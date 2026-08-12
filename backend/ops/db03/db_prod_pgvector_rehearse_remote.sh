@@ -52,12 +52,38 @@ fi
 summary "uid_compatibility" "PASS"
 
 LATEST_BACKUP="$(ls -1t "${BACKUP_DIR}"/*.sql.gz 2>/dev/null | head -1 || true)"
-[ -n "${LATEST_BACKUP}" ] || { log "no backup"; exit 5; }
+[ -n "${LATEST_BACKUP}" ] || { log "no archival backup"; exit 5; }
 gzip -t "${LATEST_BACKUP}"
+summary "archival_backup_file_integrity" "PASS"
+summary "archival_backup_basename" "$(basename "${LATEST_BACKUP}")"
+summary "archival_backup_size_bytes" "$(stat -c%s "${LATEST_BACKUP}")"
+summary "archival_backup_sha256" "$(sha256sum "${LATEST_BACKUP}" | awk '{print $1}')"
+
+# Live Production must be 060; archival file may be stale/misnamed (observed: filename 060, content 056).
+PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
+PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+LIVE_ALEMBIC="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT version_num FROM alembic_version;')"
+LIVE_N="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c 'SELECT COUNT(*) FROM alembic_version;')"
+summary "live_production_alembic" "${LIVE_ALEMBIC}"
+summary "live_production_alembic_row_count" "${LIVE_N}"
+[ "${LIVE_N}" = "1" ] && [ "${LIVE_ALEMBIC}" = "060_db03_w4_w6_scale_inspect_roles" ] || {
+  summary "live_production_060" "FAIL"
+  exit 5
+}
+summary "live_production_060" "YES"
+
+log "=== FRESH PRIVATE LIVE-060 DUMP (never uploaded to GitHub) ==="
+mkdir -p "${BACKUP_DIR}"
+TS="$(date -u +%Y%m%d_%H%M%S)"
+FRESH_BACKUP="${BACKUP_DIR}/sedi_db_rehearse_live_060_${TS}.sql.gz"
+docker exec sedi-postgres pg_dump -U "${PU}" -d "${PD}" | gzip > "${FRESH_BACKUP}"
+gzip -t "${FRESH_BACKUP}"
+LATEST_BACKUP="${FRESH_BACKUP}"
 summary "backup_file_integrity" "PASS"
 summary "backup_basename" "$(basename "${LATEST_BACKUP}")"
 summary "backup_size_bytes" "$(stat -c%s "${LATEST_BACKUP}")"
 summary "backup_sha256" "$(sha256sum "${LATEST_BACKUP}" | awk '{print $1}')"
+summary "backup_source" "LIVE_PRODUCTION_PG_DUMP_060"
 
 log "=== ISOLATED RESTORE ENVIRONMENT ==="
 # Leftover network from a prior interrupted run must not abort rehearse.
