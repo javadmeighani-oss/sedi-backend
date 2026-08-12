@@ -1,7 +1,6 @@
 # SEDI Production PostgreSQL 16 + pgvector — Alpine same-lineage packaging (Path A).
 # Retains postgres:16-alpine UID/GID and PGDATA compatibility.
-# Pin base digest at build time via POSTGRES_BASE build-arg.
-# Exact pgvector version is compiled from source (not floating apk minor).
+# Exact pgvector v0.8.6 compiled from source; extension files installed without PGXS bitcode.
 ARG POSTGRES_BASE=postgres:16-alpine
 FROM ${POSTGRES_BASE}
 
@@ -19,16 +18,16 @@ RUN set -eux; \
       llvm-dev \
       git \
       postgresql-dev; \
-    # PGXS bitcode step may call clang-N; symlink whatever clang apk provides.
-    CLANG_BIN="$(command -v clang)"; \
-    test -n "${CLANG_BIN}"; \
-    CLANG_VER="$("${CLANG_BIN}" --version | head -1 | sed -n 's/.*clang version \([0-9]*\).*/\1/p')"; \
-    ln -sf "${CLANG_BIN}" "/usr/bin/clang-${CLANG_VER}"; \
-    ln -sf "${CLANG_BIN}" /usr/bin/clang-21; \
     git clone --branch "${PGVECTOR_VERSION}" --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector; \
     cd /tmp/pgvector; \
     make OPTFLAGS=""; \
-    make install; \
+    test -f vector.so; \
+    PKGLIB="$(pg_config --pkglibdir)"; \
+    SHARE="$(pg_config --sharedir)/extension"; \
+    mkdir -p "${PKGLIB}" "${SHARE}"; \
+    cp -f vector.so "${PKGLIB}/vector.so"; \
+    cp -f vector.control "${SHARE}/vector.control"; \
+    cp -f sql/vector--*.sql "${SHARE}/"; \
     cd /; \
     rm -rf /tmp/pgvector; \
     apk del .build-deps; \
@@ -39,6 +38,6 @@ RUN set -eux; \
     grep -E '^default_version' "${CTRL}"; \
     echo "VECTOR_CONTROL=${CTRL}"; \
     echo "VECTOR_SO=${SO}"; \
-    echo "PGVECTOR_INSTALL=source_${PGVECTOR_VERSION}"
+    echo "PGVECTOR_INSTALL=source_${PGVECTOR_VERSION}_manual_ext_install"
 
 # Keep default postgres entrypoint/user from base image.
