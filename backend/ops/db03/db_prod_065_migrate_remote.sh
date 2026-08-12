@@ -87,24 +87,52 @@ cat > "${OWN_SQL}" <<'SQL'
 DO $$
 DECLARE r RECORD;
 BEGIN
+  -- Tables first so IDENTITY sequences follow table ownership.
   FOR r IN
     SELECT c.relname, c.relkind
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'public'
-      AND c.relkind IN ('r','S','v','m')
+      AND c.relkind = 'r'
       AND pg_get_userbyid(c.relowner) <> 'sedi_migration_admin'
+    ORDER BY c.relname
   LOOP
-    IF r.relkind = 'S' THEN
-      EXECUTE format('ALTER SEQUENCE public.%I OWNER TO sedi_migration_admin', r.relname);
-    ELSIF r.relkind = 'm' THEN
+    EXECUTE format('ALTER TABLE public.%I OWNER TO sedi_migration_admin', r.relname);
+  END LOOP;
+
+  FOR r IN
+    SELECT c.relname, c.relkind
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind IN ('v','m')
+      AND pg_get_userbyid(c.relowner) <> 'sedi_migration_admin'
+    ORDER BY c.relname
+  LOOP
+    IF r.relkind = 'm' THEN
       EXECUTE format('ALTER MATERIALIZED VIEW public.%I OWNER TO sedi_migration_admin', r.relname);
-    ELSIF r.relkind = 'v' THEN
-      EXECUTE format('ALTER VIEW public.%I OWNER TO sedi_migration_admin', r.relname);
     ELSE
-      EXECUTE format('ALTER TABLE public.%I OWNER TO sedi_migration_admin', r.relname);
+      EXECUTE format('ALTER VIEW public.%I OWNER TO sedi_migration_admin', r.relname);
     END IF;
   END LOOP;
+
+  -- Remaining sequences (skip identity-owned failures safely)
+  FOR r IN
+    SELECT c.relname
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind = 'S'
+      AND pg_get_userbyid(c.relowner) <> 'sedi_migration_admin'
+    ORDER BY c.relname
+  LOOP
+    BEGIN
+      EXECUTE format('ALTER SEQUENCE public.%I OWNER TO sedi_migration_admin', r.relname);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'skip_sequence_owner_transfer:%', r.relname;
+    END;
+  END LOOP;
+
   EXECUTE 'ALTER SCHEMA public OWNER TO sedi_migration_admin';
 END $$;
 ALTER DEFAULT PRIVILEGES FOR ROLE sedi_migration_admin IN SCHEMA public
