@@ -97,11 +97,16 @@ WRITERS_FROZEN=1
 summary "writers_frozen" "YES"
 summary "active_writer_safety" "PASS"
 
-# Ensure no crawler/scheduler
+# Ensure no crawler/scheduler/rag containers are running (container inspect only —
+# plain `docker inspect` can match networks/volumes and yield empty Running).
 for svc in sedi-crawler sedi-scheduler sedi-rag; do
-  st="$(docker inspect "${svc}" --format '{{.State.Running}}' 2>/dev/null || echo absent)"
-  summary "service_${svc}" "${st}"
-  [ "${st}" = "absent" ] || [ "${st}" = "false" ] || { log "unexpected writer ${svc}"; exit 5; }
+  st="$(docker container inspect "${svc}" --format '{{.State.Running}}' 2>/dev/null || echo absent)"
+  st="$(printf '%s' "${st}" | tr -d '\r\n')"
+  summary "service_${svc}" "${st:-absent}"
+  if [ "${st}" = "true" ]; then
+    log "unexpected writer ${svc}"
+    exit 5
+  fi
 done
 
 log "=== WRITE IMAGE PIN + RECREATE POSTGRES (same volume) ==="

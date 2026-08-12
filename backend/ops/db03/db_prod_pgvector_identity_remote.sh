@@ -159,7 +159,9 @@ summary "long_running_tx_gt_5m" "${LONG_TX}"
 BACKEND_RUNNING="$(docker inspect sedi-backend --format '{{.State.Running}}' 2>/dev/null || echo missing)"
 summary "backend_running" "${BACKEND_RUNNING}"
 for svc in sedi-crawler sedi-scheduler sedi-rag sedi-worker; do
-  summary "service_${svc}" "$(docker inspect "${svc}" --format '{{.State.Running}}' 2>/dev/null || echo absent)"
+  st="$(docker container inspect "${svc}" --format '{{.State.Running}}' 2>/dev/null || echo absent)"
+  st="$(printf '%s' "${st}" | tr -d '\r\n')"
+  summary "service_${svc}" "${st:-absent}"
 done
 
 BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
