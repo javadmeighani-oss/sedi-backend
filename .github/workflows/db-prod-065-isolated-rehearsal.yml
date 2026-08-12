@@ -71,7 +71,7 @@ jobs:
               "060_db03_w4_w6_scale_inspect_roles",
               "061_scis01_pgvector_kce_foundation",
               "062_i5_know01_source_registry_rights",
-              "063_i5_know02_texts_claims_taxonomy",
+              "063_i5_know02_artifacts_claims_taxonomy",
               "064_i5_know03_studies_effects_recs",
               "065_i5_know04_connectors_change_intelligence",
           ]
