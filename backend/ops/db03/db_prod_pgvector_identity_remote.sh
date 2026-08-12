@@ -85,26 +85,24 @@ if [ -f compose.production.yml ]; then
   COMPOSE_SVCS="$(docker compose -f compose.production.yml config --services 2>/dev/null | tr '\n' ',' )"
   summary "compose_services" "${COMPOSE_SVCS}"
   # Extract only the sedi-postgres service image from rendered config
+  # NOTE: must use python -c (not heredoc) so stdin is the compose config pipe.
   COMPOSE_IMG="$(
-    docker compose -f compose.production.yml config 2>/dev/null | python3 - <<'PY'
+    docker compose -f compose.production.yml config 2>/dev/null | python3 -c '
 import sys
-text = sys.stdin.read().splitlines()
+lines = sys.stdin.read().splitlines()
 in_pg = False
-indent_pg = None
-for line in text:
+for line in lines:
     if not in_pg:
-        if line.startswith("  sedi-postgres:") or line == "  sedi-postgres:":
+        if line.startswith("  sedi-postgres:"):
             in_pg = True
-            indent_pg = 2
-            continue
         continue
-    # leave service block when next top-level service starts
-    if line.startswith("  ") and not line.startswith("   ") and line.strip().endswith(":") and "sedi-postgres" not in line:
+    if line.startswith("  ") and not line.startswith("   ") and line.strip().endswith(":"):
         break
-    if "image:" in line:
-        print(line.split("image:", 1)[1].strip().strip('"').strip("'"))
+    s = line.strip()
+    if s.startswith("image:"):
+        print(s.split("image:", 1)[1].strip().strip("\"'\''"))
         break
-PY
+'
   )"
   summary "compose_postgres_service_name" "sedi-postgres"
   summary "compose_postgres_image" "${COMPOSE_IMG:-UNRESOLVED}"

@@ -31,15 +31,15 @@ summary "candidate_image_ref" "${CANDIDATE_IMAGE_REF}"
 summary "migration_image_ref" "${MIGRATION_IMAGE_REF}"
 
 # Packaging proof inside candidate
-VEC_CTRL="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'ls /usr/local/share/postgresql/extension/vector.control 2>/dev/null | head -1')"
-VEC_SO="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'ls /usr/local/lib/postgresql/vector.so 2>/dev/null | head -1')"
-VEC_DEF="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'grep -E "^default_version" /usr/local/share/postgresql/extension/vector.control | head -1')"
+VEC_CTRL="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'echo "$(pg_config --sharedir)/extension/vector.control"')"
+VEC_SO="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'echo "$(pg_config --pkglibdir)/vector.so"')"
+VEC_DEF="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'grep -E "^default_version" "$(pg_config --sharedir)/extension/vector.control" | head -1')"
 CAND_UID="$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'id -u postgres')"
-summary "vector_control_present" "$([ -n "${VEC_CTRL}" ] && echo YES || echo NO)"
-summary "vector_shared_library_present" "$([ -n "${VEC_SO}" ] && echo YES || echo NO)"
+summary "vector_control_present" "$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'test -f "$(pg_config --sharedir)/extension/vector.control" && echo YES || echo NO')"
+summary "vector_shared_library_present" "$(docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'test -f "$(pg_config --pkglibdir)/vector.so" && echo YES || echo NO')"
 summary "vector_default_version_line" "${VEC_DEF}"
 summary "candidate_postgres_uid" "${CAND_UID}"
-[ -n "${VEC_CTRL}" ] && [ -n "${VEC_SO}" ] || { log "PACKAGING_PROOF_FAIL"; exit 3; }
+docker run --rm --entrypoint sh "${CANDIDATE_IMAGE_REF}" -lc 'test -f "$(pg_config --sharedir)/extension/vector.control" && test -f "$(pg_config --pkglibdir)/vector.so"' || { log "PACKAGING_PROOF_FAIL"; exit 3; }
 
 # Compare UID to Production (Alpine lineage)
 PROD_UID="$(docker exec sedi-postgres sh -lc 'id -u postgres')"
