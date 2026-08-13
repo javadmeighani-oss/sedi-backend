@@ -130,6 +130,10 @@ def test_correction_invalidates_profile(db):
     correct_fact(db, user.id, "lifestyle", "diet_notes", "pescatarian", commit=True)
     db.refresh(profile)
     assert profile.status == "stale"
+    rebuilt = rebuild_lifelong_profile(db, user.id, commit=True)
+    assert rebuilt.status == "active"
+    assert rebuilt.version == profile.version + 1
+    assert rebuilt.id != profile.id
     delete_fact(db, user.id, "lifestyle", "diet_notes", commit=True)
 
 

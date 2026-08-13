@@ -119,14 +119,31 @@ try:
     except LegacyFactStackFrozen:
         s("legacy_freeze_service", "PASS")
 
+    def cleanup_user(uid):
+        db.query(models.UserMemoryExportJob).filter(models.UserMemoryExportJob.user_id == uid).delete()
+        db.query(models.UserLifelongProfile).filter(models.UserLifelongProfile.user_id == uid).delete()
+        db.query(models.UserMemoryFact).filter(models.UserMemoryFact.user_id == uid).delete()
+        db.query(models.Memory).filter(
+            models.Memory.user_id == uid, models.Memory.user_message == "s47 synthetic memory"
+        ).delete()
+        cons = db.query(models.UserConsent).filter(models.UserConsent.subject_user_id == uid).all()
+        for c in cons:
+            db.query(models.UserConsentScope).filter(models.UserConsentScope.consent_id == c.id).delete()
+            db.delete(c)
+        u = db.query(models.User).filter(models.User.id == uid).one_or_none()
+        if u is not None:
+            db.delete(u)
+        db.commit()
+
     def ensure_user(name, lang="en"):
         row = db.query(models.User).filter(models.User.name == name).first()
-        if row is None:
-            row = models.User(name=name, secret_key="s47-no-login", preferred_language=lang, account_type="normal")
-            db.add(row)
-            db.commit()
-            db.refresh(row)
-            s(f"user_created_{name.replace(' ', '_')}", str(row.id))
+        if row is not None:
+            cleanup_user(row.id)
+        row = models.User(name=name, secret_key="s47-no-login", preferred_language=lang, account_type="normal")
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        s(f"user_created_{name.replace(' ', '_')}", str(row.id))
         return row
 
     ua = ensure_user(NAME_A, "en")

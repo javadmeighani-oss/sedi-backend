@@ -45,7 +45,7 @@ def rebuild_lifelong_profile(
     }
     structured = json.dumps(payload, sort_keys=True)
     source_ids = json.dumps([f.id for f in facts], sort_keys=True)
-    prior = (
+    prior_active = (
         db.query(models.UserLifelongProfile)
         .filter(
             models.UserLifelongProfile.user_id == user_id,
@@ -54,12 +54,18 @@ def rebuild_lifelong_profile(
         .order_by(models.UserLifelongProfile.version.desc())
         .first()
     )
-    if prior is not None and prior.structured_profile_json == structured:
-        return prior
-    version = 1 if prior is None else int(prior.version) + 1
-    if prior is not None:
-        prior.status = "superseded"
-        prior.superseded_at = datetime.now(timezone.utc)
+    if prior_active is not None and prior_active.structured_profile_json == structured:
+        return prior_active
+    latest_any = (
+        db.query(models.UserLifelongProfile)
+        .filter(models.UserLifelongProfile.user_id == user_id)
+        .order_by(models.UserLifelongProfile.version.desc())
+        .first()
+    )
+    version = 1 if latest_any is None else int(latest_any.version) + 1
+    if prior_active is not None:
+        prior_active.status = "superseded"
+        prior_active.superseded_at = datetime.now(timezone.utc)
     consent = (
         db.query(models.UserConsent)
         .filter(
