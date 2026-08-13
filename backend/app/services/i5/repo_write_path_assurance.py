@@ -254,6 +254,11 @@ PATH_CLASSIFICATION: dict[str, tuple[str, str, str]] = {
         "PRODUCTION_REACHABLE",
         "CT.gov bounded persist via know05 cycle",
     ),
+    "app/services/i5/know05/catalog12_bounded_ingest.py": (
+        "SPECIALIZED_CANONICAL_WRITER",
+        "PRODUCTION_REACHABLE",
+        "Catalog-12 derived-knowledge one-shot persist; weekly not joined",
+    ),
     "app/services/i5/know05/acquisition_boundary.py": (
         "CANONICAL_RUNTIME_WRITER",
         "PRODUCTION_REACHABLE",

@@ -31,6 +31,7 @@ SENSITIVE_MODEL_NAMES = frozenset(
 ALLOWED_WRITER_FILES = frozenset(
     {
         "know05/bounded_ingestion.py",
+        "know05/catalog12_bounded_ingest.py",
         "know05/acquisition_boundary.py",
         "know05/orchestrator.py",
         "know05/coverage_engine.py",
