@@ -26,7 +26,7 @@ DIGEST="$(docker image inspect "${BACKEND_IMAGE}" --format '{{index .RepoDigests
 s "backend_image_digest" "${DIGEST:-NONE}"
 
 log "=== STATIC IMPORT / FREEZE / I7 OFF ==="
-docker run --rm --entrypoint python "${BACKEND_IMAGE}" - <<'PY'
+docker run --rm -i --entrypoint python "${BACKEND_IMAGE}" - <<'PY'
 from backend.app.services.i6.legacy_fact_freeze import (
     assert_legacy_write_allowed, legacy_fact_writes_frozen, LegacyFactStackFrozen, CANONICAL_OWNER,
 )
@@ -110,9 +110,18 @@ done
 [ "${HEALTH}" = "1" ] || { docker logs "${BE_NAME}" | tail -n 80; s "health" "FAIL"; exit 8; }
 s "health" "PASS"
 
-docker exec "${BE_NAME}" python - <<'PY'
+docker exec -i "${BE_NAME}" python - <<'PY'
 from backend.app.database import get_db
+from backend.app.services.i6.legacy_fact_freeze import (
+    assert_legacy_write_allowed, legacy_fact_writes_frozen, LegacyFactStackFrozen,
+)
 from backend.app.services.i7.jobs import period_summary_jobs_enabled, run_period_summary_sweep
+assert legacy_fact_writes_frozen() is True
+try:
+    assert_legacy_write_allowed("user_facts")
+    raise SystemExit("freeze_failed_to_block")
+except LegacyFactStackFrozen:
+    print("S47_REHEARSE|legacy_freeze_default|PASS")
 db = next(get_db())
 try:
     assert period_summary_jobs_enabled() is False
