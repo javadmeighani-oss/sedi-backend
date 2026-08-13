@@ -85,13 +85,19 @@ def main() -> int:
 
     last = {"t": 0.0}
 
-    def paced_get(url, headers=None, timeout=None, params=None):
+    def paced_get(url, headers=None, timeout=None, params=None, **kwargs):
         now = time.monotonic()
         wait = 1.05 - (now - last["t"])
         if wait > 0:
             time.sleep(wait)
         last["t"] = time.monotonic()
-        return requests.get(url, headers=headers or {}, params=params, timeout=timeout or 20)
+        return requests.get(
+            url,
+            headers=headers or {},
+            params=params,
+            timeout=timeout or 20,
+            **kwargs,
+        )
 
     # NCBI E-utilities canary: 1 esearch + 1 esummary, <=10 records, ~1 RPS, no store.
     t0 = time.monotonic()
@@ -245,10 +251,10 @@ def main() -> int:
             headers = {"Retry-After": "1", "Content-Type": "application/json"}
             text = '{"error":"rate"}'
 
-        def fake_429(url, headers=None, timeout=None, params=None):
+        def fake_429(url, headers=None, timeout=None, params=None, **kwargs):
             return Fake429()
 
-        def fake_timeout(url, headers=None, timeout=None, params=None):
+        def fake_timeout(url, headers=None, timeout=None, params=None, **kwargs):
             raise TimeoutError("synthetic_timeout")
 
         f429 = run_controlled_live_orchestration(
