@@ -177,6 +177,15 @@ def upsert_fact(
     db: Session = Depends(get_db),
 ):
     """Upsert a fact by key for the authenticated user. Requires Bearer JWT."""
+    from backend.app.services.i6.legacy_fact_freeze import (
+        LegacyFactStackFrozen,
+        assert_legacy_write_allowed,
+    )
+
+    try:
+        assert_legacy_write_allowed("user_facts")
+    except LegacyFactStackFrozen as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     user_id = auth_user.id
     source = (payload.source or "manual").strip()
     if source not in ("chat", "manual", "device"):

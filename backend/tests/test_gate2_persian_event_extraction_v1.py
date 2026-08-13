@@ -52,6 +52,7 @@ def test_persian_event_promotes_to_user_events(client, db, monkeypatch):
         value_json=json.dumps(ev.fact_value, ensure_ascii=False),
         confidence=ev.confidence,
     )
+    monkeypatch.setenv("SEDI_LEGACY_FACT_WRITES_ENABLED", "true")
     accept_candidate(db, cand.id, verified_by="user")
     db.refresh(cand)
     result = promote_kc_candidate(db, cand)

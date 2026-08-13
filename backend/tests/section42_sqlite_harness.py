@@ -21,6 +21,8 @@ def db():
             models.UserConsentScope.__table__,
             models.UserMemoryFact.__table__,
             models.UserPeriodSummary.__table__,
+            models.UserLifelongProfile.__table__,
+            models.UserMemoryExportJob.__table__,
         ],
     )
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)

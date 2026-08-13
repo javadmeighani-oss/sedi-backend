@@ -59,9 +59,9 @@ def _finish(db: Session, commit: bool) -> None:
 
 
 def _invalidate_i7(db: Session, user_id: int, *, reason: str, commit: bool) -> None:
-    from backend.app.services.i7.period_summaries import invalidate_summaries_for_user
+    from backend.app.services.i7.derived_invalidation import invalidate_derived_memory_state
 
-    invalidate_summaries_for_user(db, user_id, reason=reason, commit=commit)
+    invalidate_derived_memory_state(db, user_id, reason=reason, commit=commit)
 
 
 def write_fact(

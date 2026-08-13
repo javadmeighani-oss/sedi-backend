@@ -60,6 +60,7 @@ def test_candidate_promotion_lifestyle_scalar(client, db, monkeypatch):
         value_json=json.dumps("poor"),
         confidence=0.9,
     )
+    monkeypatch.setenv("SEDI_LEGACY_FACT_WRITES_ENABLED", "true")
     accept_candidate(db, cand.id, verified_by="system")
     db.refresh(cand)
     result = promote_kc_candidate(db, cand)

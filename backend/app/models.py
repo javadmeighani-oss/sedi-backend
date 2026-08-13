@@ -1,7 +1,7 @@
 # app/models.py
 from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timedelta, timezone as dt_timezone
 from backend.app.database import Base
 
 # Section 15-I5-IMPL-W1-P01 — persisted-vocabulary enums (documentation/constants only;
@@ -76,6 +76,10 @@ class User(Base):
     account_type = Column(String(16), nullable=False, default="normal", server_default="normal")
 
 
+def _default_memory_retain_until():
+    return datetime.now(dt_timezone.utc) + timedelta(days=30)
+
+
 # -------------------- Memory --------------------
 class Memory(Base):
     __tablename__ = "memory"
@@ -87,6 +91,7 @@ class Memory(Base):
     sedi_response = Column(String, nullable=True)
     language = Column(String, default="en")
     created_at = Column(DateTime, default=datetime.utcnow)
+    retain_until = Column(DateTime(timezone=True), nullable=True, default=_default_memory_retain_until)
 
 
 # -------------------- HealthData --------------------
@@ -2416,6 +2421,91 @@ class UserPeriodSummary(Base):
     status = Column(String(32), nullable=False, default="active", server_default="active")
     superseded_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class UserLifelongProfile(Base):
+    """I7 derived compact profile. Not canonical truth. Not diagnosis."""
+
+    __tablename__ = "user_lifelong_profiles"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'superseded', 'stale', 'invalidated')",
+            name="ck_ulp_status_vocab",
+        ),
+        UniqueConstraint("user_id", "version", name="uq_ulp_user_version"),
+        Index("ix_ulp_user_status", "user_id", "status"),
+        Index("ix_ulp_user_id", "user_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_ulp_user_id"),
+        nullable=False,
+    )
+    version = Column(Integer, nullable=False)
+    status = Column(String(32), nullable=False)
+    structured_profile_json = Column(Text, nullable=False)
+    narrative_compact = Column(Text, nullable=True)
+    source_fact_ids_json = Column(Text, nullable=False)
+    source_event_refs_json = Column(Text, nullable=False)
+    consent_id = Column(
+        Integer,
+        ForeignKey("user_consents.id", ondelete="SET NULL", name="fk_ulp_consent_id"),
+        nullable=True,
+    )
+    generator_version = Column(Text, nullable=False)
+    built_from_period_start = Column(DateTime(timezone=True), nullable=False)
+    built_from_period_end = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    superseded_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class UserMemoryExportJob(Base):
+    """I7 export control-plane. Artifact is derived; not source of truth."""
+
+    __tablename__ = "user_memory_export_jobs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued', 'running', 'ready', 'expired', 'revoked', 'failed')",
+            name="ck_umej_status_vocab",
+        ),
+        CheckConstraint(
+            "content_class IN ('MEMORY_BUNDLE')",
+            name="ck_umej_content_class_vocab",
+        ),
+        Index("ix_umej_user_status_expires", "user_id", "status", "expires_at"),
+        Index("ix_umej_user_id", "user_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_umej_user_id"),
+        nullable=False,
+    )
+    status = Column(String(32), nullable=False)
+    schema_version = Column(Text, nullable=False)
+    generator_version = Column(Text, nullable=False)
+    artifact_uri = Column(Text, nullable=True)
+    artifact_sha256 = Column(String(64), nullable=True)
+    artifact_bytes = Column("bytes", Integer, nullable=True)
+    content_class = Column(String(32), nullable=False, default="MEMORY_BUNDLE", server_default="MEMORY_BUNDLE")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    downloaded_at = Column(DateTime(timezone=True), nullable=True)
+    consent_id = Column(
+        Integer,
+        ForeignKey("user_consents.id", ondelete="SET NULL", name="fk_umej_consent_id"),
+        nullable=True,
+    )
+    actor_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_umej_actor_user_id"),
+        nullable=True,
+    )
+    error_code = Column(Text, nullable=True)
 
 
 class PhysiologicalMeasurement(Base):

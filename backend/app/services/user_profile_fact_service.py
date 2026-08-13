@@ -64,6 +64,9 @@ def list_profile_facts(db: Session, user_id: int) -> List[dict]:
 
 
 def create_profile_fact(db: Session, user_id: int, body: ProfileFactCreateIn) -> dict:
+    from backend.app.services.i6.legacy_fact_freeze import assert_legacy_write_allowed
+
+    assert_legacy_write_allowed("user_profile_facts")
     now = datetime.utcnow()
     row = models.UserProfileFact(
         user_id=user_id,
@@ -87,6 +90,9 @@ def update_profile_fact(
     fact_id: int,
     body: ProfileFactUpdateIn,
 ) -> dict:
+    from backend.app.services.i6.legacy_fact_freeze import assert_legacy_write_allowed
+
+    assert_legacy_write_allowed("user_profile_facts")
     row = (
         db.query(models.UserProfileFact)
         .filter(

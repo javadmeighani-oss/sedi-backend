@@ -68,6 +68,9 @@ def accept_candidate(
     Accept a pending candidate: insert into kc_user_facts, close previous valid_to
     for same (user_id, fact_type). Returns new KcUserFact or None if not found/invalid.
     """
+    from backend.app.services.i6.legacy_fact_freeze import assert_legacy_write_allowed
+
+    assert_legacy_write_allowed("kc_user_facts")
     cand = db.query(models.KcFactCandidate).filter(models.KcFactCandidate.id == candidate_id).first()
     if not cand:
         return None

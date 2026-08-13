@@ -39,6 +39,9 @@ def test_no_rag_embeddings_in_orm_metadata():
     assert "rag_embeddings" not in models.Base.metadata.tables
     assert "physiological_measurements" in models.Base.metadata.tables
     assert "user_consents" in models.Base.metadata.tables
+    assert "user_lifelong_profiles" in models.Base.metadata.tables
+    assert "user_memory_export_jobs" in models.Base.metadata.tables
+    assert "066_i7" not in "".join(p.name for p in (ROOT / "alembic" / "versions").glob("066*"))
     assert "care_episodes" in models.Base.metadata.tables
 
 
@@ -75,7 +78,9 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["065_i5_know04_connectors_change_intelligence"]
+    assert heads == ["067_i7_lifelong_memory_foundation"]
+    rev = script.get_revision("067_i7_lifelong_memory_foundation")
+    assert rev.down_revision == "065_i5_know04_connectors_change_intelligence"
     rev = script.get_revision("065_i5_know04_connectors_change_intelligence")
     chain = []
     while rev:

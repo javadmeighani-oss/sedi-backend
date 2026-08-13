@@ -22,22 +22,39 @@ class PeriodSummaryError(ValueError):
     pass
 
 
-def period_bounds(summary_type: str, *, now: Optional[datetime] = None) -> tuple[datetime, datetime]:
+def resolve_week_start(preferred_language: Optional[str] = None) -> int:
+    """0=Monday … 6=Sunday. fa-IR / fa default Saturday (5); else Monday."""
+    lang = (preferred_language or "").strip().lower().replace("_", "-")
+    if lang.startswith("fa"):
+        return 5
+    return 0
+
+
+def period_bounds(
+    summary_type: str,
+    *,
+    now: Optional[datetime] = None,
+    week_start: int = 0,
+    tz=None,
+) -> tuple[datetime, datetime]:
     if summary_type not in SUMMARY_TYPES:
         raise PeriodSummaryError("INVALID_SUMMARY_TYPE")
-    tz = SUMMARY_TZ
+    if week_start not in range(7):
+        raise PeriodSummaryError("INVALID_WEEK_START")
+    zone = tz or SUMMARY_TZ
     if now is None:
-        aware = datetime.now(tz)
+        aware = datetime.now(zone)
     elif now.tzinfo is None:
-        aware = tz.localize(now)
+        aware = zone.localize(now) if hasattr(zone, "localize") else now.replace(tzinfo=zone)
     else:
-        aware = now.astimezone(tz)
+        aware = now.astimezone(zone)
     start_local = aware.replace(hour=0, minute=0, second=0, microsecond=0)
     if summary_type == "DAILY":
         start = start_local
         end = start + timedelta(days=1)
     elif summary_type == "WEEKLY":
-        start = start_local - timedelta(days=start_local.weekday())
+        delta = (start_local.weekday() - week_start) % 7
+        start = start_local - timedelta(days=delta)
         end = start + timedelta(days=7)
     elif summary_type == "MONTHLY":
         start = start_local.replace(day=1)

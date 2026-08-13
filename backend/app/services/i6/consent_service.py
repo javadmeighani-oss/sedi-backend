@@ -145,6 +145,9 @@ def revoke_memory_consent(
         db.commit()
     else:
         db.flush()
+    from backend.app.services.i7.derived_invalidation import invalidate_derived_memory_state
+
+    invalidate_derived_memory_state(db, user_id, reason=reason, commit=commit)
     return True
 
 

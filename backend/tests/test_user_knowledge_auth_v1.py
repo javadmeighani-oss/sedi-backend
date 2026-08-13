@@ -112,10 +112,8 @@ def test_user_facts_post_works_without_user_id_in_body(client, db):
         json=_fact_body(),
         headers=_auth_header(u.id),
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data.get("user_id") == u.id
-    assert data.get("key") == "diet"
+    assert response.status_code == 409
+    assert "LEGACY_FACT_STACK_FROZEN" in str(response.json())
 
 
 def test_user_facts_post_rejects_legacy_user_id_in_body(client, db):

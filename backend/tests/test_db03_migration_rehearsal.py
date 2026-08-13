@@ -41,7 +41,7 @@ def test_fresh_upgrade_to_db03_head():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "065_i5_know04_connectors_change_intelligence"
+        assert head == "067_i7_lifelong_memory_foundation"
         tables = {
             r[0]
             for r in conn.execute(
@@ -65,6 +65,8 @@ def test_fresh_upgrade_to_db03_head():
             "i5_clinical_recommendations",
             "i5_connector_profiles",
             "i5_scientific_change_events",
+            "user_lifelong_profiles",
+            "user_memory_export_jobs",
         ):
             assert required in tables
         assert "rag_embeddings" not in tables
@@ -125,7 +127,7 @@ def test_upgrade_from_056_with_synthetic_seed():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "065_i5_know04_connectors_change_intelligence"
+        assert head == "067_i7_lifelong_memory_foundation"
         ups = conn.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
         assert ups >= 1
         # health_data backfill may map if device present

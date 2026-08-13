@@ -23,6 +23,7 @@ def _user_id(client, db, monkeypatch, phone: str) -> int:
 
 def test_rag_includes_profile_facts_not_caregiver_phones(client, db, monkeypatch):
     uid = _user_id(client, db, monkeypatch, "+989146006001")
+    monkeypatch.setenv("SEDI_LEGACY_FACT_WRITES_ENABLED", "true")
     create_profile_fact(
         db,
         uid,

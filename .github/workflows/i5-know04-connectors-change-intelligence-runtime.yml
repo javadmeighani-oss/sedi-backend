@@ -14,6 +14,7 @@ on:
       - "backend/app/services/i5/know02/**"
       - "backend/app/services/i5/know01/**"
       - "backend/alembic/versions/065_i5_know04_connectors_change_intelligence.py"
+      - "backend/alembic/versions/067_i7_lifelong_memory_foundation.py"
       - "backend/alembic/versions/064_i5_know03_studies_effects_recs.py"
       - "backend/tests/test_i5_know04_connectors.py"
       - "backend/tests/test_i5_weekly_calendar_lock.py"
@@ -23,6 +24,7 @@ on:
       - "backend/tests/test_i7_period_summary_jobs.py"
       - "backend/tests/test_i7_section44_storage_model.py"
       - "backend/tests/test_i7_section44_design_contracts.py"
+      - "backend/tests/test_i7_section45_memory_foundation.py"
       - "backend/app/services/i7/storage_capacity_model.py"
       - "docs/architecture/section44/**"
       - "backend/tests/section42_sqlite_harness.py"
@@ -96,7 +98,7 @@ jobs:
           echo "GATE=I5-KNOW-04" > "${{ runner.temp }}/know04_evidence/gate_id.txt"
           echo "COMMIT_SHA=${{ github.sha }}" > "${{ runner.temp }}/know04_evidence/commit.txt"
 
-      - name: Alembic single head is 065
+      - name: Alembic single head is 067
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -105,13 +107,14 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
-          rev = script.get_revision("065_i5_know04_connectors_change_intelligence")
-          assert rev.down_revision == "064_i5_know03_studies_effects_recs"
+          assert heads == ["067_i7_lifelong_memory_foundation"], heads
+          rev = script.get_revision("067_i7_lifelong_memory_foundation")
+          assert rev.down_revision == "065_i5_know04_connectors_change_intelligence"
+          assert not any(r.revision.startswith("066") for r in script.walk_revisions())
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
 
-      - name: Fresh upgrade to 065
+      - name: Fresh upgrade to 067
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -130,7 +133,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "065_i5_know04_connectors_change_intelligence", head
+              assert head == "067_i7_lifelong_memory_foundation", head
               for t in (
                   "i5_clinical_studies",
                   "i5_study_effect_estimates",
@@ -139,16 +142,24 @@ jobs:
                   "i5_terminology_mapping_conflict_events",
                   "i5_terminology_import_runs",
                   "i5_source_ingestion_audit",
+                  "user_lifelong_profiles",
+                  "user_memory_export_jobs",
               ):
                   assert c.execute(text(
                       "SELECT 1 FROM information_schema.tables WHERE table_name=:t"
                   ), {"t": t}).scalar(), t
               assert c.execute(text(
+                  "SELECT 1 FROM information_schema.columns WHERE table_name='memory' AND column_name='retain_until'"
+              )).scalar() == 1
+              assert c.execute(text(
                   "SELECT 1 FROM information_schema.tables WHERE table_name='user_clinical_feature_index'"
               )).scalar() is None
-          print("FRESH_065=PASS")
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.views WHERE table_name='user_lifelong_timeline'"
+              )).scalar() is None
+          print("FRESH_067=PASS")
           PY
-          echo "FRESH_065=PASS" > "${{ runner.temp }}/know04_evidence/fresh_065.txt"
+          echo "FRESH_067=PASS" > "${{ runner.temp }}/know04_evidence/fresh_067.txt"
 
       - name: Upgrade path 064 → 065
         run: |
@@ -191,6 +202,50 @@ jobs:
           PY
           echo "UPGRADE_064_TO_065=PASS" > "${{ runner.temp }}/know04_evidence/upgrade_064_065.txt"
 
+      - name: Upgrade path 065 → 067
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "065_i5_know04_connectors_change_intelligence")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "065_i5_know04_connectors_change_intelligence"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='user_lifelong_profiles'"
+              )).scalar() is None
+          command.upgrade(cfg, "067_i7_lifelong_memory_foundation")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "067_i7_lifelong_memory_foundation"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='user_lifelong_profiles'"
+              )).scalar() == 1
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='user_memory_export_jobs'"
+              )).scalar() == 1
+          command.downgrade(cfg, "065_i5_know04_connectors_change_intelligence")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "065_i5_know04_connectors_change_intelligence"
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='user_lifelong_profiles'"
+              )).scalar() is None
+          command.upgrade(cfg, "067_i7_lifelong_memory_foundation")
+          with eng.connect() as c:
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "067_i7_lifelong_memory_foundation"
+          print("UPGRADE_065_TO_067_DOWNGRADE_REUPGRADE=PASS")
+          PY
+          echo "UPGRADE_065_TO_067=PASS" > "${{ runner.temp }}/know04_evidence/upgrade_065_067.txt"
+
       - name: KNOW-04 + regression pytest (deterministic)
         run: |
           set -euo pipefail
@@ -204,6 +259,7 @@ jobs:
             backend/tests/test_i7_period_summary_jobs.py \
             backend/tests/test_i7_section44_storage_model.py \
             backend/tests/test_i7_section44_design_contracts.py \
+            backend/tests/test_i7_section45_memory_foundation.py \
             backend/tests/test_i5_know03_studies_effects.py \
             backend/tests/test_i5_know02_artifacts_taxonomy.py \
             backend/tests/test_i5_know01_source_registry.py \
@@ -222,7 +278,7 @@ jobs:
           {
             echo "GATE=I5-KNOW-04"
             echo "COMMIT_SHA=${{ github.sha }}"
-            echo "ALEMBIC_HEAD=065_i5_know04_connectors_change_intelligence"
+            echo "ALEMBIC_HEAD=067_i7_lifelong_memory_foundation"
             echo "PRODUCTION_MIGRATION_RUN=NO"
             echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
             echo "PRODUCTION_SCHEDULER_ACTIVATED=NO"

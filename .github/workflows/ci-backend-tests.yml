@@ -217,6 +217,7 @@ jobs:
             backend/tests/test_i7_period_summary_jobs.py \
             backend/tests/test_i7_section44_storage_model.py \
             backend/tests/test_i7_section44_design_contracts.py \
+            backend/tests/test_i7_section45_memory_foundation.py \
             --tb=short
 
   # -------------------------------------------------------------------------
