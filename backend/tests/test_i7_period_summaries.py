@@ -53,8 +53,12 @@ def test_i7_rebuild_is_compression_not_authority(db):
     write_fact(db, user.id, "lifestyle", "diet_notes", "vegetarian", commit=True)
     summary = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert "I6_FACTS_ARE_SOT" in summary.structured_summary_json
+    assert "generator_version" in summary.structured_summary_json
     assert "not source of truth" in summary.narrative_summary.lower()
     assert summary.status == "active"
+    same = rebuild_summary(db, user.id, "DAILY", commit=True)
+    assert same.id == summary.id
+    write_fact(db, user.id, "lifestyle", "mood", "calm day", commit=True)
     again = rebuild_summary(db, user.id, "DAILY", commit=True)
     db.refresh(summary)
     assert again.version == summary.version + 1
@@ -86,12 +90,16 @@ def test_i7_correction_and_deletion_invalidate(db):
     assert daily2.status == "stale"
 
 
-def test_i7_retry_rebuild_increments_version(db):
+def test_i7_retry_rebuild_is_idempotent_until_facts_change(db):
     user = _user(db, "i7-retry")
     grant_memory_consent(db, user.id, commit=True)
     a = rebuild_summary(db, user.id, "DAILY", commit=True)
     b = rebuild_summary(db, user.id, "DAILY", commit=True)
-    assert b.version == a.version + 1
+    assert b.id == a.id
+    write_fact(db, user.id, "lifestyle", "mood", "calm day", commit=True)
+    c = rebuild_summary(db, user.id, "DAILY", commit=True)
+    assert c.id != a.id
+    assert c.version == a.version + 1
 
 
 def test_i7_isolation(db):

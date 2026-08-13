@@ -601,6 +601,61 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] weekly orchestrator dormant wiring failed: {e}")
 
+        # Section43: I7 lifelong period-summary jobs (dormant unless flag on).
+        try:
+            from backend.app.database import get_db as _i7_get_db
+            from backend.app.services.i7.jobs import (
+                DAILY_JOB_ID,
+                MONTHLY_JOB_ID,
+                WEEKLY_JOB_ID,
+                YEARLY_JOB_ID,
+                period_summary_cron_kwargs,
+                period_summary_jobs_enabled,
+                run_period_summary_sweep,
+            )
+
+            def _i7_summary_tick(summary_type: str):
+                if not period_summary_jobs_enabled():
+                    print(
+                        f"[Sedi Scheduler] {summary_type} period summary "
+                        "outcome=DORMANT_FLAG_OFF",
+                        flush=True,
+                    )
+                    return
+                with next(_i7_get_db()) as db:
+                    result = run_period_summary_sweep(db, summary_type)
+                    print(
+                        f"[Sedi Scheduler] i7_period_summary_{summary_type.lower()} "
+                        f"enabled={result.enabled} users={result.users_seen} "
+                        f"rebuilt={result.rebuilt} skipped={result.skipped} "
+                        f"failed={result.failed} detail={result.detail}",
+                        flush=True,
+                    )
+
+            for _kind, _job_id in (
+                ("DAILY", DAILY_JOB_ID),
+                ("WEEKLY", WEEKLY_JOB_ID),
+                ("MONTHLY", MONTHLY_JOB_ID),
+                ("YEARLY", YEARLY_JOB_ID),
+            ):
+                scheduler.add_job(
+                    _i7_summary_tick,
+                    id=_job_id,
+                    replace_existing=True,
+                    misfire_grace_time=3600,
+                    kwargs={"summary_type": _kind},
+                    **period_summary_cron_kwargs(_kind),
+                )
+            print(
+                "[Sedi Scheduler] i7 period summary jobs registered "
+                f"enabled={period_summary_jobs_enabled()} "
+                "daily=00:10 weekly=Mon 00:20 monthly=1st 00:30 "
+                "yearly=Jan1 00:40 timezone=Asia/Tehran",
+                flush=True,
+            )
+        except Exception as e:
+            print(f"[Sedi Scheduler] i7 period summary job wiring failed: {e}")
+
         # Gate 5-D: Optional raw signal processing (disabled by default)
         try:
             from backend.app.services.gate5.raw_signal_processing_flags import (

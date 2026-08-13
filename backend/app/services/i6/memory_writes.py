@@ -220,6 +220,53 @@ def list_facts(db: Session, user_id: int, domain: Optional[str] = None) -> list[
     return out
 
 
+def list_fact_history(
+    db: Session, user_id: int, domain: str, key: str
+) -> list[models.UserMemoryFact]:
+    """Current + superseded/rejected rows. History is retained; active row is current truth."""
+    require_permission(db, user_id, PERM_READ)
+    return (
+        db.query(models.UserMemoryFact)
+        .filter(
+            models.UserMemoryFact.user_id == user_id,
+            models.UserMemoryFact.domain == domain,
+            models.UserMemoryFact.key == key,
+        )
+        .order_by(models.UserMemoryFact.id.asc())
+        .all()
+    )
+
+
+def export_memory_bundle(db: Session, user_id: int) -> dict[str, Any]:
+    """Export preparation only. No new table. Caller owns delivery."""
+    require_permission(db, user_id, PERM_READ)
+    facts = (
+        db.query(models.UserMemoryFact)
+        .filter(models.UserMemoryFact.user_id == user_id)
+        .order_by(models.UserMemoryFact.id.asc())
+        .all()
+    )
+    return {
+        "owner_user_id": user_id,
+        "authority": "I6_FACTS_ARE_SOT",
+        "export_is_not_diagnosis": True,
+        "facts": [
+            {
+                "id": row.id,
+                "domain": row.domain,
+                "key": row.key,
+                "value_json": row.value_json,
+                "fact_status": row.fact_status,
+                "valid_from": row.valid_from.isoformat() if row.valid_from else None,
+                "valid_until": row.valid_until.isoformat() if row.valid_until else None,
+                "supersedes_fact_id": row.supersedes_fact_id,
+                "source": row.source,
+            }
+            for row in facts
+        ],
+    }
+
+
 def assert_user_isolation(db: Session, user_id: int, fact_id: int) -> models.UserMemoryFact:
     row = db.query(models.UserMemoryFact).filter(models.UserMemoryFact.id == fact_id).first()
     if row is None or row.user_id != user_id:

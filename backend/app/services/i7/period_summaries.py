@@ -15,6 +15,7 @@ from backend.app.services.i6.memory_writes import list_facts
 
 SUMMARY_TZ = pytz.timezone("Asia/Tehran")
 SUMMARY_TYPES = ("DAILY", "WEEKLY", "MONTHLY", "YEARLY")
+GENERATOR_VERSION = "i7-v1-lifelong-foundation"
 
 
 class PeriodSummaryError(ValueError):
@@ -64,9 +65,12 @@ def rebuild_summary(
     payload = {
         "authority": "I6_FACTS_ARE_SOT",
         "summary_is_compression_only": True,
+        "generator_version": GENERATOR_VERSION,
+        "not_diagnosis": True,
         "fact_count": len(facts),
         "keys": sorted(f"{f.domain}.{f.key}" for f in facts),
     }
+    blob = json.dumps(payload, sort_keys=True)
     prior = (
         db.query(models.UserPeriodSummary)
         .filter(
@@ -77,6 +81,8 @@ def rebuild_summary(
         .order_by(models.UserPeriodSummary.version.desc())
         .first()
     )
+    if prior is not None and prior.status == "active" and prior.structured_summary_json == blob:
+        return prior
     version = 1 if prior is None else int(prior.version) + 1
     if prior is not None and prior.status == "active":
         prior.status = "superseded"
@@ -87,7 +93,7 @@ def rebuild_summary(
         period_start=start,
         period_end=end,
         version=version,
-        structured_summary_json=json.dumps(payload, sort_keys=True),
+        structured_summary_json=blob,
         narrative_summary=f"{summary_type} compression of {len(facts)} I6 facts; not source of truth.",
         evidence_range=json.dumps({"start": start.isoformat(), "end": end.isoformat()}),
         generated_at=datetime.now(timezone.utc),
