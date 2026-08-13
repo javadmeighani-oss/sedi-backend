@@ -17,13 +17,15 @@ s "manual_tick_invoked" "NO"
 
 IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
 DIG="$(docker inspect sedi-backend --format '{{.Image}}')"
+REPO_DIGESTS="$(docker inspect sedi-backend --format '{{range .RepoDigests}}{{println .}}{{end}}')"
 s "backend_image" "${IMG}"
 s "backend_image_id" "${DIG}"
+s "backend_repo_digests" "$(echo "${REPO_DIGESTS}" | tr '\n' ' ')"
 if [ -n "${EXPECTED_TAG}" ]; then
   echo "${IMG}" | grep -Fq "${EXPECTED_TAG}" || { s "deployed_image_matches_reviewed_code" "FAIL_TAG"; exit 2; }
 fi
 if [ -n "${EXPECTED_DIGEST}" ]; then
-  echo "${DIG}" | grep -Fq "${EXPECTED_DIGEST#sha256:}" || echo "${IMG}" | grep -Fq "${EXPECTED_DIGEST}" \
+  echo "${REPO_DIGESTS}${DIG}${IMG}" | grep -Fq "${EXPECTED_DIGEST#sha256:}" \
     || { s "deployed_image_matches_reviewed_code" "FAIL_DIGEST"; exit 2; }
 fi
 s "deployed_image_matches_reviewed_code" "PASS"
