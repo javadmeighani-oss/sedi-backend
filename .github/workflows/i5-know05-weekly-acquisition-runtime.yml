@@ -108,6 +108,7 @@ jobs:
             backend/tests/test_i5_repo_write_path_multisource_assurance.py \
             backend/tests/test_i5_know05_pg.py \
             backend/tests/test_i5_know05_pg_remediation.py \
+            backend/tests/test_i5_know05_pubmed_persist.py \
             backend/tests/test_i5_know04_connectors.py \
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             -q -s --tb=short --noconftest \

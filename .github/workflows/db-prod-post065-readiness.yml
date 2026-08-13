@@ -5,16 +5,24 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL"
+        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY"
         required: true
         default: "ALL"
       confirmation:
-        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT"
+        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN"
         required: true
       candidate_image_digest:
         description: "sha256:... sedi-postgres digest"
         required: true
         default: "sha256:c48c0b16319b2eff51665e3435a5712e93b28b011ee1d879d14738ca4166fc31"
+      backend_image_tag:
+        description: "40-char commit SHA backend image tag (KNOW05 rehearsal/canary)"
+        required: false
+        default: ""
+      backend_image_digest:
+        description: "sha256:... backend image digest (KNOW05 rehearsal/canary)"
+        required: false
+        default: ""
   push:
     paths:
       - "backend/ops/db03/db_prod_post065_*.sh"
@@ -403,6 +411,154 @@ jobs:
           path: |
             /tmp/i5_oneshot.log
             /tmp/gh_ncbi_presence.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_know05_rehearsal:
+    name: Isolated KNOW05 backend image rehearsal
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_KNOW05_IMAGE_ALIGN' &&
+      github.event.inputs.phase == 'I5_KNOW05_REHEARSAL'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate backend digest
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+      - name: Isolated rehearsal
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+          PG_D: ${{ github.event.inputs.candidate_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          chmod 700 backend/ops/i5/i5_know05_image_rehearsal.sh
+          BACKEND_IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${TAG}"
+          PG_IMAGE="ghcr.io/javadmeighani-oss/sedi-postgres@${PG_D}"
+          BACKEND_IMAGE="${BACKEND_IMAGE}" PG_IMAGE="${PG_IMAGE}" \
+            bash backend/ops/i5/i5_know05_image_rehearsal.sh \
+            2>&1 | tee /tmp/i5_know05_rehearsal.log
+          grep -Fq 'I5_REHEARSE|know05_import_proof|PASS' /tmp/i5_know05_rehearsal.log
+          grep -Fq 'I5_REHEARSE|pubmed_persist_import_proof|PASS' /tmp/i5_know05_rehearsal.log
+          grep -Fq 'I5_REHEARSE|isolated_new_image_rehearsal|PASS' /tmp/i5_know05_rehearsal.log
+          grep -Fq "${DIG}" /tmp/i5_know05_rehearsal.log || docker image inspect "ghcr.io/javadmeighani-oss/sedi-backend:${TAG}" --format '{{json .RepoDigests}}'
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_know05_rehearsal.log; then
+            echo "SECRET_LEAK: NCBI email in rehearsal log"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know05-rehearsal
+          path: /tmp/i5_know05_rehearsal.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_know05_preflight:
+    name: Production KNOW05 image-alignment preflight (read-only)
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_KNOW05_IMAGE_ALIGN' &&
+      github.event.inputs.phase == 'I5_KNOW05_PREFLIGHT'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH preflight
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_know05_prod_preflight_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_know05_prod_preflight_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_know05_prod_preflight_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_know05_prod_preflight_remote.sh")" \
+            2>&1 | tee /tmp/i5_know05_preflight.log
+          grep -Fq 'I5_PREFLIGHT|preflight_complete|YES' /tmp/i5_know05_preflight.log
+          grep -Fq 'I5_PREFLIGHT|backend_health_local|PASS' /tmp/i5_know05_preflight.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_know05_preflight.log; then
+            echo "SECRET_LEAK: NCBI email in preflight log"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know05-preflight
+          path: /tmp/i5_know05_preflight.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_know05_pubmed_canary:
+    name: Production PubMed derived persist canary
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_KNOW05_IMAGE_ALIGN' &&
+      github.event.inputs.phase == 'I5_KNOW05_CANARY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH PubMed canary
+        env:
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_know05_pubmed_canary_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_know05_pubmed_canary_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_know05_pubmed_canary_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             EXPECTED_DIGEST=$(printf '%q' "${DIG}") \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_know05_pubmed_canary_remote.sh")" \
+            2>&1 | tee /tmp/i5_know05_canary.log
+          grep -Fq 'I5_KNOW05|know05_import_proof|PASS' /tmp/i5_know05_canary.log
+          grep -Fq 'I5_KNOW05|pubmed_persist_import_proof|PASS' /tmp/i5_know05_canary.log
+          grep -Fq 'I5_PUBMED|pubmed_derived_knowledge_persistence|PASS' /tmp/i5_know05_canary.log
+          grep -Fq 'I5_PUBMED|pubmed_idempotent_rerun|PASS' /tmp/i5_know05_canary.log
+          grep -Fq 'I5_PUBMED|canary_complete|YES' /tmp/i5_know05_canary.log
+          grep -Fq 'I5_KNOW05|production_i5_weekly_unattended_scheduler|NO' /tmp/i5_know05_canary.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_know05_canary.log; then
+            echo "SECRET_LEAK: NCBI email in canary log"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know05-pubmed-canary
+          path: /tmp/i5_know05_canary.log
           retention-days: 14
           if-no-files-found: warn
 

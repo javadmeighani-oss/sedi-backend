@@ -33,6 +33,7 @@ class PubMedConnectorConfig:
     tool: str
     email: str
     api_key: Optional[str] = None
+    max_rps: Optional[float] = None
 
     @classmethod
     def from_env(cls, *, allow_disallowed_email: bool = False) -> "PubMedConnectorConfig":
@@ -48,10 +49,12 @@ class PubMedConnectorConfig:
 
             if is_disallowed_operational_email(email):
                 raise EnvironmentError("BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY")
-        return cls(tool=tool, email=email, api_key=api_key)
+        return cls(tool=tool, email=email, api_key=api_key, max_rps=None)
 
     @property
     def max_per_second(self) -> float:
+        if self.max_rps is not None and self.max_rps > 0:
+            return float(self.max_rps)
         return 10.0 if self.api_key else 3.0
 
 
@@ -222,6 +225,12 @@ class PubMedConnector:
             m = d.findtext("Month")
             day = d.findtext("Day")
             dates["pub_date"] = "-".join(x for x in (y, m, day) if x)
+        article_ids: dict[str, str] = {}
+        for aid in root.findall(".//ArticleId"):
+            idtype = (aid.get("IdType") or "").strip().lower()
+            if idtype and aid.text:
+                article_ids[idtype] = aid.text.strip()
+        journal = (root.findtext(".//Journal/Title") or root.findtext(".//MedlineTA") or "").strip()
         # Comments/Corrections relations
         relations = []
         for cc in root.findall(".//CommentsCorrections"):
@@ -239,6 +248,10 @@ class PubMedConnector:
             "publication_types": pub_types,
             "mesh_terms": mesh,
             "dates": dates,
+            "doi": article_ids.get("doi") or "",
+            "pmcid": article_ids.get("pmc") or "",
+            "journal": journal,
+            "article_ids": article_ids,
             "relations": relations,
             "change_kinds": classify_pubmed_publication_types(pub_types),
         }
