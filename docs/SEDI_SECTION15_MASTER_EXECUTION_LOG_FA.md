@@ -69449,3 +69449,159 @@ CRITICAL_PATH_AFTER=catalog-12 specialty content (12 PARTIAL cells remain) → R
 SIZE_BEFORE_APPEND=3117109
 SHA256_BEFORE_APPEND=345437B16F3D531CFBC7E99ABB804C4234A4AFA497E977F528C13B9F07424F8B
 NOTE=post-§303 final master-log whole-file self-SHA is NOT embedded inside §303.
+
+================================================================================
+§304 - SEDI-V1 I5 CATALOG-12 GLOBAL SPECIALTY AUTHORITY / TRUSTED-SOURCE COVERAGE / GOVERNED KNOWLEDGE ACQUISITION / 12-CELL CLOSURE
+================================================================================
+GATE=SEDI-V1 I5 CATALOG-12 GLOBAL SPECIALTY AUTHORITY / TRUSTED-SOURCE COVERAGE / GOVERNED KNOWLEDGE ACQUISITION / 12-CELL CLOSURE MASTER GATE-01
+JAVAD_APPROVAL=ALREADY_GRANTED
+EXECUTION_AUTHORIZED=YES
+NEXT_GATE_AUTHORIZED=NO
+GATE_RESULT=PASS
+FULL_GATE_CLOSURE=PASS
+HARD_STOP=NO
+AUTO_REMEDIATION_CYCLES=3/4
+AUTHORITY_HEAD_START=70fd27bda25c036cae1f13185839674127386676
+AUTHORITY_HEAD_FINAL=d902b2edd1cf5cf60cfddeb5eb268544ebc1da0d
+TECHNICAL_IMAGE_COMMIT=e31d948f26c9eeec8415e37626f87b3a08d03548
+PRODUCTION_BACKEND_IMAGE=e31d948f26c9eeec8415e37626f87b3a08d03548
+PRODUCTION_BACKEND_DIGEST=sha256:2889a0566a996339dd7f4ec6dc24d3c6cd31f63c2bf3c02825d25a4c10787b9b
+PRODUCTION_IMAGE_OVERLAY=YES
+NOTE=canaries ran via docker-cp overlay of Catalog-12 modules onto the live e31d948 image. Weekly flags untouched. No backend rebuild/redeploy. No migration 066.
+
+--------------------------------------------------------------------------------
+§304.A - START AUTHORITY / BOUNDARIES PRESERVED
+--------------------------------------------------------------------------------
+MASTER_LOG_START=§303
+CURSOR_HANDOFF_START=v594
+CHATGPT_CONTINUITY_START=v607
+PRODUCTION_ALEMBIC=065_i5_know04_connectors_change_intelligence
+PRODUCTION_PGVECTOR_VERSION=0.8.6
+WEEKLY_UNATTENDED_ENABLED=YES
+CURRENT_WEEKLY_SOURCE_SCOPE=NHS_ONLY_BOUNDED
+SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED=true
+SEDI_I5_SOURCE_ACTIVATION_ENABLED=true
+SEDI_I5_MULTISOURCE_ENABLED=false
+WEEKLY_MULTISOURCE_EXPANSION=NO
+SOURCE_PROFILES_UNATTENDED_ENABLED=0
+PRODUCTION_RAG=NO
+ANN_REQUIRED_NOW=NO
+HNSW_CREATED=NO
+IVFFLAT_CREATED=NO
+MIGRATION_066=NO
+§303_REVERIFICATION=PASS
+§303_RERUN=NO
+NEW_WEEKLY_FIRE_THIS_GATE=NO
+
+--------------------------------------------------------------------------------
+§304.B - KNOW01 CLOSURE CRITERION + AUTHORITIES
+--------------------------------------------------------------------------------
+ORIGINAL_CRITERION=specialty PRIMARY reference in V1_AUTHORITATIVE_REFERENCE_CATALOG (not BROAD_ONLY / SUPPORTING-only / MedlinePlus mention / PubMed article / scrape convenience)
+CATALOG_PARTIAL_START=12
+CATALOG_CLOSED_THIS_GATE=12
+CATALOG_PARTIAL_AFTER=0
+MATRIX_STATUS_AFTER=METADATA_ONLY_REFERENCE_AVAILABLE + authority_coverage=COVERED + match_strength=PRIMARY
+NOTE=fulltext automation remains REVIEW_REQUIRED; derived-knowledge one-shot is allowed; raw HTML/PDF denied.
+
+D01 Oncology / NCI PDQ Cancer Information Summaries / cancer.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / nci_pdq_oncology
+D02 Respiratory / NHLBI Lung Health Information / nhlbi.nih.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / nhlbi_respiratory
+D03 Kidney / NIDDK Kidney Disease Health Information / niddk.nih.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / niddk_kidney
+D05 MSK-pain / NIAMS Arthritis and Musculoskeletal Health Topics / niams.nih.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / niams_msk
+D06 Dermatology / NIAMS Skin Diseases Health Topics / niams.nih.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / niams_dermatology
+D07 Ophthalmology / NEI Eye Health Information / nei.nih.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / nei_ophthalmology
+D09 Oral-dental / NIDCR Oral and Craniofacial Health Information / nidcr.nih.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / nidcr_oral_health
+D10 Women's-reproductive / HHS Office on Women's Health / womenshealth.gov / NATIONAL_HEALTH_AUTHORITY / SECONDARY=NONE / owh_womens_health
+D11 Pediatrics / CDC Child Development / cdc.gov / NATIONAL_PUBLIC_HEALTH_AUTHORITY / SECONDARY=NONE / cdc_child_development
+D13 Infectious beyond hepatitis / CDC NCEZID Infectious Disease Topics / cdc.gov / NATIONAL_SPECIALTY_CENTER / SECONDARY=cdc_yellow_book / cdc_ncezid_infectious
+D16 Palliative / NCI PDQ Supportive and Palliative Care Summaries / cancer.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / nci_pdq_palliative
+D17 Occupational-environmental / NIOSH Workplace Safety and Health / cdc.gov / NATIONAL_SPECIALTY_INSTITUTE / SECONDARY=NONE / niosh_occupational
+
+LIVE_AUTHORITY_NOTE=NICHD and NIAID were evaluated as candidate specialty institutes; current live machine-access from this Gate's verification path was WAF-rejected or timed out. CDC Child Development and CDC NCEZID were selected as the best currently fetchable official specialty authorities. OWH menopause page carries an explicit public-domain notice (verified 2026-08-13). NIAMS/CDC/NCI text is US federal public-domain; raw HTML not retained.
+
+--------------------------------------------------------------------------------
+§304.C - RIGHTS / ACCESS
+--------------------------------------------------------------------------------
+ACCESS_ROUTE=OFFICIAL_PUBLIC_WEB
+AUTOMATION_STATE=ONE_SHOT_CANARY_ALLOWED
+RIGHTS_STATE=US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES
+RAW_RETENTION=DENIED
+DERIVED_RETENTION=ALLOWED
+PROCESSING_MODE=DERIVED_KNOWLEDGE_ONLY
+DIRECT_PUBLISHER_APPROVAL_UNIVERSAL_PREREQUISITE=NO
+PAYWALL_BYPASS=NO
+CAPTCHA_BYPASS=NO
+ROBOTS_BYPASS=NO
+RATE_LIMIT_EVASION=NO
+IDENTITY_DECEPTION=NO
+UNATTENDED_WEEKLY_ENABLED_FOR_NEW_SOURCES=NO
+
+--------------------------------------------------------------------------------
+§304.D - STATIC / CI
+--------------------------------------------------------------------------------
+FOCUSED_LOCAL_PYTEST=13 passed, 5 skipped (no TEST_DATABASE_URL)
+KNOW01_CI=31700377079 PASS
+KNOW05_CI_FIRST=31700377096 FAIL write-path allowlist (cycle 1/4)
+KNOW05_CI_REMEDIATED=31700601215 PASS
+WRITE_PATH_ALLOWLIST=catalog12_bounded_ingest.py SPECIALIZED_CANONICAL_WRITER
+
+--------------------------------------------------------------------------------
+§304.E - LIVE WAVES
+--------------------------------------------------------------------------------
+WAVE_1_RUN=31700997760 PASS cells=D01,D02,D03,D10 fetch=4/4
+WAVE_2_RUN_FIRST=31701293631 FAIL GSP locator unique (cancer.gov shared by D01/D16) — cycle 2/4
+WAVE_2_RUN=31701551341 PASS cells=D11,D13,D16,D05 fetch=4/4
+WAVE_3_RUN_FIRST=31701820383 FAIL D07 nei.nih.gov Network unreachable abort — cycle 3/4
+WAVE_3_RUN=31702265012 PASS cells=D06,D07,D09,D17 fetch=4/4
+LIVE_CANARY_CELL_COUNT=12
+LIVE_CANARY_FETCH_SUCCESS=12
+LIVE_CANARY_FETCH_FAILURE=0
+POOL_EXHAUSTION_COUNT=0
+USER_TRAFFIC_CAPACITY_REGRESSION=NO
+BACKGROUND_I5_RESOURCE_IMPACT=ACCEPTABLE
+PG_ACTIVITY_STABLE=11
+
+START_COUNTS raw=10 artifact=1 ku=10 prov=10 memory=0 kce=0 eligible=0
+FINAL_COUNTS raw=22 artifact=13 ku=22 prov=22 memory=0 kce=0 eligible=0
+RAW_EVIDENCE_DELTA=12
+SCIENTIFIC_ARTIFACT_DELTA=12
+KU_DELTA=12
+PROVENANCE_DELTA=12
+KNOWLEDGE_MEMORY_DELTA=0
+KCE_DELTA=0
+NEW_RUNTIME_ELIGIBLE_KU_COUNT=0
+NOTE=raw rows are hash/link ABSENCE_GOVERNED (storage_mode=NONE); no HTML/PDF/verbatim body stored.
+
+PER_CELL=all 12 STORED HTTP 200; publication=DRAFT; review=NOT_REVIEWED; runtime_eligibility=REVIEW_REQUIRED; idempotent=PASS; weekly=NO
+
+--------------------------------------------------------------------------------
+§304.F - MEDICAL SAFETY / 5000-USER / RAG
+--------------------------------------------------------------------------------
+NEW_RUNTIME_ELIGIBLE_KU_COUNT=0
+NEW_KNOWLEDGE_MEMORY_AUTO_PROMOTION_COUNT=0
+NEW_KCE_COUNT=0
+NO_DIRECT_PATIENT_ADVICE_MUTATION=YES
+SEDI_V1_5000_USER_SCALE_LAW=IN_FORCE
+§299_RERUN=NO
+PRODUCTION_RAG=NO
+PGVECTOR_EXACT_SEARCH=REVIEW_REQUIRED
+ANN_REQUIRED_NOW=NO
+ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES
+HNSW_CREATED=NO
+IVFFLAT_CREATED=NO
+MIGRATION_066=NO
+
+--------------------------------------------------------------------------------
+§304.G - COMPLETION / CONTINUITY
+--------------------------------------------------------------------------------
+I5_V1_COMPLETION_ESTIMATE=98
+I5_V1_REMAINING_ESTIMATE=2
+CURSOR_HANDOFF=v595
+CHATGPT_CONTINUITY=v608
+NEWCHAT_CONTINUITY=v595
+DROPBOX_FILENAME=Sedi_ChatGPT_Independent_Continuity_v608_FA.md
+NEXT_GATE=SEDI-V1 I5 RAG / ANN REVIEW-REQUIRED DECISION (SEPARATE GATE)
+NEXT_GATE_AUTHORIZED=NO
+CRITICAL_PATH_AFTER=RAG/ANN remain later; weekly unattended stays NHS-only; Catalog-12 sources stay REGISTERED/GOVERNED/ONE_SHOT only
+SIZE_BEFORE_APPEND=3130976
+SHA256_BEFORE_APPEND=A468C192CDA4F4DF9DDBA036C811A690E98C9C067BB9D56B46BA9A5E4A364994
+NOTE=post-§304 final master-log whole-file self-SHA is NOT embedded inside §304.
