@@ -286,6 +286,12 @@ GLOBAL_SEEDS: Sequence[Dict[str, Any]] = (
     },
 )
 
+from backend.app.services.i5.know01.catalog12_specialty_authorities import (  # noqa: E402
+    catalog12_registry_seeds,
+)
+
+GLOBAL_SEEDS = tuple(GLOBAL_SEEDS) + catalog12_registry_seeds()
+
 IRAN_SEEDS: Sequence[Dict[str, Any]] = (
     {
         "key": "iran_irimc_physician_licensing",

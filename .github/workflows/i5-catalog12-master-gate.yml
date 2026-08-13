@@ -1,0 +1,151 @@
+# Catalog-12 specialty authority closure — CI then bounded Production waves.
+# Does not enable weekly multisource. Does not rebuild/redeploy the backend image.
+name: I5 Catalog-12 Master Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "CI | WAVE1 | WAVE2 | WAVE3 | ALL_WAVES"
+        required: true
+        default: "CI"
+      confirmation:
+        description: "CATALOG12_MASTER_GATE"
+        required: true
+      cells:
+        description: "Comma-separated cell ids (WAVE jobs). Leave empty to use default wave set."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Catalog-12 static CI
+    if: >-
+      github.event.inputs.confirmation == 'CATALOG12_MASTER_GATE' &&
+      (github.event.inputs.phase == 'CI' || github.event.inputs.phase == 'ALL_WAVES')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_w3p02_test
+          POSTGRES_PASSWORD: sedi_w3p02_test_password
+          POSTGRES_DB: sedi_w3p02_orchestrator
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_w3p02_test -d sedi_w3p02_orchestrator"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_w3p02_test:sedi_w3p02_test_password@127.0.0.1:5432/sedi_w3p02_orchestrator
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_w3p02_test:sedi_w3p02_test_password@127.0.0.1:5432/sedi_w3p02_orchestrator
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+      - name: Alembic 065
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          PY
+      - name: Catalog-12 pytest
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          python -B -m pytest \
+            backend/tests/test_i5_catalog12_specialty_closure.py \
+            backend/tests/test_i5_know01_registry_sot_closure.py \
+            backend/tests/test_i5_know01_foundation_gate.py \
+            -q -s --tb=short --noconftest
+
+  wave:
+    name: Production Catalog-12 wave
+    if: >-
+      github.event.inputs.confirmation == 'CATALOG12_MASTER_GATE' &&
+      (github.event.inputs.phase == 'WAVE1' || github.event.inputs.phase == 'WAVE2' || github.event.inputs.phase == 'WAVE3')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve cells
+        id: cells
+        run: |
+          set -euo pipefail
+          PHASE="${{ github.event.inputs.phase }}"
+          INPUT="${{ github.event.inputs.cells }}"
+          if [ -n "${INPUT}" ]; then
+            CELLS="${INPUT}"
+          elif [ "${PHASE}" = "WAVE1" ]; then
+            CELLS="D01,D02,D03,D10"
+          elif [ "${PHASE}" = "WAVE2" ]; then
+            CELLS="D11,D13,D16,D05"
+          else
+            CELLS="D06,D07,D09,D17"
+          fi
+          echo "cells=${CELLS}" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${PHASE} cells=${CELLS}"
+      - name: SSH overlay + canary
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          REMOTE_STAGE="/tmp/sedi_catalog12_overlay"
+          REMOTE_OPS="${{ secrets.SEDI_DEPLOY_PATH }}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_STAGE}") $(printf '%q' "${REMOTE_OPS}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/app/services/i5/know01/catalog12_specialty_authorities.py \
+            backend/app/services/i5/know05/catalog12_bounded_ingest.py \
+            backend/app/services/i5/know01/v1_reference_catalog.py \
+            backend/app/services/i5/know01/seed_registry.py \
+            backend/config/i5/coverage_manifest_v1.yaml \
+            backend/ops/i5/i5_catalog12_canary_inproc.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_STAGE}/"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_catalog12_canary_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_OPS}/i5_catalog12_canary_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod +x $(printf '%q' "${REMOTE_OPS}/i5_catalog12_canary_remote.sh"); \
+             STAGE_DIR=$(printf '%q' "${REMOTE_STAGE}") \
+             CATALOG12_CELLS=$(printf '%q' "${{ steps.cells.outputs.cells }}") \
+             $(printf '%q' "${REMOTE_OPS}/i5_catalog12_canary_remote.sh")"

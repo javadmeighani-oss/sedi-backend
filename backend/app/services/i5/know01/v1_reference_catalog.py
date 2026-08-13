@@ -435,6 +435,12 @@ V1_AUTHORITATIVE_REFERENCE_CATALOG: Sequence[V1ReferenceBookSpec] = (
     ),
 )
 
+from backend.app.services.i5.know01.catalog12_specialty_authorities import (  # noqa: E402
+    catalog12_book_specs,
+)
+
+V1_AUTHORITATIVE_REFERENCE_CATALOG = tuple(V1_AUTHORITATIVE_REFERENCE_CATALOG) + catalog12_book_specs()
+
 
 def acquisition_state_for_book(book: models.I5ReferenceBook) -> str:
     """Map existing rights fields → governed acquisition state (fail-closed)."""

@@ -12,6 +12,7 @@ on:
       - "backend/tests/test_i5_know05_*.py"
       - "backend/tests/test_i5_know04_live_canaries.py"
       - "backend/tests/test_i5_know04_connectors.py"
+      - "backend/tests/test_i5_catalog12_specialty_closure.py"
       - ".github/workflows/i5-know05-weekly-acquisition-runtime.yml"
 
 permissions:
@@ -103,6 +104,7 @@ jobs:
             backend/tests/test_i5_know05_nf23_nf24.py \
             backend/tests/test_i5_know01_foundation_gate.py \
             backend/tests/test_i5_know01_registry_sot_closure.py \
+            backend/tests/test_i5_catalog12_specialty_closure.py \
             backend/tests/test_i5_know05_generic_adapter_bridge.py \
             backend/tests/test_i5_know05_write_path_lineage.py \
             backend/tests/test_i5_repo_write_path_multisource_assurance.py \
