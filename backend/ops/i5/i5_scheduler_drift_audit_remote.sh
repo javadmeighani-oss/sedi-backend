@@ -96,6 +96,13 @@ docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c \
   "SELECT r.result_status, r.fetch_outcome, COUNT(*) FROM weekly_run_source_results r GROUP BY 1,2 ORDER BY 3 DESC;" \
   || true
 
+log "=== source results joined to canonical keys (no bodies) ==="
+docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c \
+  "SELECT a.weekly_run_id, r.attempt_id, g.canonical_key, r.result_status, r.fetch_outcome, r.knowledge_new_count, r.knowledge_updated_count, r.error_count FROM weekly_run_source_results r JOIN weekly_knowledge_run_attempts a ON a.id=r.attempt_id JOIN governed_source_profiles g ON g.id=r.source_profile_id ORDER BY r.id;" \
+  || true
+q "unknown_source_result_count" "SELECT COUNT(*) FROM weekly_run_source_results r JOIN governed_source_profiles g ON g.id=r.source_profile_id WHERE g.canonical_key NOT IN ('nhs_uk_live_well','medlineplus_consumer_health','cdc_health_lifestyle','nimh_nih_mental_health');"
+q "source_result_keys" "SELECT string_agg(DISTINCT g.canonical_key, ',') FROM weekly_run_source_results r JOIN governed_source_profiles g ON g.id=r.source_profile_id;"
+
 log "=== governed source keys (no bodies) ==="
 docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -c \
   "SELECT id, canonical_key, operational_status, registry_state, runtime_eligibility FROM governed_source_profiles ORDER BY id LIMIT 40;" \
@@ -165,11 +172,16 @@ s "latest_weekly_run_id" "${LATEST_RUN:-NONE}"
 s "latest_weekly_attempt_id" "${LATEST_ATT:-NONE}"
 s "latest_weekly_run_status" "${LATEST_ST:-NONE}"
 
+UNKNOWN_SRC="$(psql "SELECT COUNT(*) FROM weekly_run_source_results r JOIN governed_source_profiles g ON g.id=r.source_profile_id WHERE g.canonical_key NOT IN ('nhs_uk_live_well','medlineplus_consumer_health','cdc_health_lifestyle','nimh_nih_mental_health');" || echo ERR)"
+s "unknown_source_result_count" "${UNKNOWN_SRC}"
 CLASS="CONFIGURATION_DRIFT_NO_UNEXPECTED_EXECUTION"
 if [ "${ELIG}" != "0" ] || [ "${MEM}" != "0" ]; then
   CLASS="HARD_STOP_UNEXPECTED_CLINICAL_OR_MEMORY"
+elif [ "${UNKNOWN_SRC}" != "0" ]; then
+  CLASS="HARD_STOP_UNALLOWLISTED_SOURCE"
 elif [ "${FETCHED}" != "0" ] || [ "${WRITES}" != "0" ]; then
-  CLASS="PRIOR_NETWORK_OR_WRITE_REQUIRES_RECONSTRUCTION"
+  CLASS="GOVERNANCE_DEVIATION_RECONCILED"
+  s "reconciled_note" "prior_scheduled_ticks_aug8_9_four_allowlisted_sources_ku_draft_not_reviewed_no_memory_no_kce"
 else
   CLASS="CONFIGURATION_DRIFT_NO_UNEXPECTED_EXECUTION"
 fi

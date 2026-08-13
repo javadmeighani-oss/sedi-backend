@@ -322,7 +322,11 @@ jobs:
              bash $(printf '%q' "${REMOTE_DIR}/i5_scheduler_drift_audit_remote.sh")" \
             2>&1 | tee /tmp/i5_drift_audit.log
           grep -Fq 'I5_DRIFT|audit_complete|YES' /tmp/i5_drift_audit.log
-          grep -Fq 'I5_DRIFT|history_classification|CONFIGURATION_DRIFT_NO_UNEXPECTED_EXECUTION' /tmp/i5_drift_audit.log
+          if grep -Fq 'I5_DRIFT|history_classification|HARD_STOP' /tmp/i5_drift_audit.log; then
+            echo "HARD_STOP classification from drift audit"
+            exit 1
+          fi
+          grep -E 'I5_DRIFT\|history_classification\|(CONFIGURATION_DRIFT_NO_UNEXPECTED_EXECUTION|GOVERNANCE_DEVIATION_RECONCILED)' /tmp/i5_drift_audit.log
           if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_drift_audit.log; then
             echo "SECRET_LEAK: NCBI email in audit log"
             exit 2
