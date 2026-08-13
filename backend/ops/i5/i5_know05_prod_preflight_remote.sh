@@ -36,16 +36,17 @@ s "ncbi_tool_present" "$([ -n "$(flag_val SEDI_NCBI_TOOL)" ] && echo YES || echo
 s "ncbi_email_present" "$([ -n "$(flag_val SEDI_NCBI_EMAIL)" ] && echo YES || echo NO)"
 s "ncbi_email_domain" "sedi-ai.com"
 
-docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA <<'SQL' | tee /tmp/i5_preflight_counts.txt
-SELECT 'raw='||COUNT(*) FROM i5_raw_evidence;
-SELECT 'artifact='||COUNT(*) FROM i5_scientific_artifacts;
-SELECT 'ku='||COUNT(*) FROM knowledge_units;
-SELECT 'prov='||COUNT(*) FROM knowledge_provenance;
-SELECT 'memory='||COUNT(*) FROM knowledge_memory_items;
-SELECT 'kce='||COUNT(*) FROM knowledge_chunk_embeddings;
-SELECT 'cells='||COUNT(*) FROM i5_knowledge_coverage_cells;
-SELECT 'cells_partial='||COUNT(*) FROM i5_knowledge_coverage_cells WHERE cell_state='PARTIAL';
-SELECT 'eligible='||COUNT(*) FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE';
-SQL
+for q in \
+  "SELECT 'raw='||COUNT(*) FROM i5_raw_evidence" \
+  "SELECT 'artifact='||COUNT(*) FROM i5_scientific_artifacts" \
+  "SELECT 'ku='||COUNT(*) FROM knowledge_units" \
+  "SELECT 'prov='||COUNT(*) FROM knowledge_provenance" \
+  "SELECT 'memory='||COUNT(*) FROM knowledge_memory_items" \
+  "SELECT 'kce='||COUNT(*) FROM knowledge_chunk_embeddings" \
+  "SELECT 'cells='||COUNT(*) FROM i5_knowledge_coverage_cells" \
+  "SELECT 'cells_partial='||COUNT(*) FROM i5_knowledge_coverage_cells WHERE cell_state='PARTIAL'" \
+  "SELECT 'eligible='||COUNT(*) FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE'"; do
+  docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "${q}"
+done
 
 s "preflight_complete" "YES"

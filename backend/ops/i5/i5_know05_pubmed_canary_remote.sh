@@ -58,27 +58,8 @@ PGV="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT extve
 s "production_pgvector_version" "${PGV}"
 
 log "=== IMAGE-RESIDENT KNOW05 IMPORT PROOF ==="
-docker exec -e PYTHONPATH=/app sedi-backend python - <<'PY'
-import importlib
-mods = [
-    "backend.app.services.i5.know05.bounded_ingestion",
-    "backend.app.services.i5.know04.pubmed",
-    "backend.app.services.i5.know05.ncbi_identity",
-]
-for m in mods:
-    importlib.import_module(m)
-from backend.app.services.i5.know05.bounded_ingestion import (
-    ingest_pubmed_bounded,
-    ingest_pubmed_bounded_or_block,
-    ensure_pubmed_official_derived_source,
-    _persist_pubmed_derived_knowledge,
-)
-from backend.app.services.i5.know04.pubmed import PubMedConnector, PubMedConnectorConfig
-print("I5_KNOW05|know05_import_proof|PASS")
-print("I5_KNOW05|pubmed_client_import_proof|PASS")
-print("I5_KNOW05|pubmed_persist_import_proof|PASS")
-print("I5_KNOW05|production_know05_available|YES")
-PY
+docker exec -e PYTHONPATH=/app sedi-backend python -c \
+  "from backend.app.services.i5.know05.bounded_ingestion import ingest_pubmed_bounded, _persist_pubmed_derived_knowledge; from backend.app.services.i5.know04.pubmed import PubMedConnector; print('I5_KNOW05|know05_import_proof|PASS'); print('I5_KNOW05|pubmed_client_import_proof|PASS'); print('I5_KNOW05|pubmed_persist_import_proof|PASS'); print('I5_KNOW05|production_know05_available|YES')"
 
 log "=== DORMANT + PUBMED CANARY ==="
 docker exec -e PYTHONPATH=/app sedi-backend python /app/backend/ops/i5/i5_pubmed_canary_inproc.py

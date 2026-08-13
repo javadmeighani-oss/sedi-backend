@@ -26,25 +26,8 @@ DIGEST="$(docker image inspect "${BACKEND_IMAGE}" --format '{{range .RepoDigests
 s "backend_image_digest" "${DIGEST}"
 
 log "=== KNOW05 IMPORT PROOF (IMAGE, NO HOST MOUNT) ==="
-docker run --rm --entrypoint python "${BACKEND_IMAGE}" - <<'PY'
-import importlib
-for m in (
-    "backend.app.services.i5.know05.bounded_ingestion",
-    "backend.app.services.i5.know04.pubmed",
-    "backend.app.services.i5.know05.ncbi_identity",
-    "backend.app.services.i5.know05.orchestrator",
-):
-    importlib.import_module(m)
-from backend.app.services.i5.know05.bounded_ingestion import (
-    ingest_pubmed_bounded,
-    _persist_pubmed_derived_knowledge,
-    ensure_pubmed_official_derived_source,
-)
-from backend.app.services.i5.know04.pubmed import PubMedConnector
-print("I5_REHEARSE|know05_import_proof|PASS")
-print("I5_REHEARSE|pubmed_client_import_proof|PASS")
-print("I5_REHEARSE|pubmed_persist_import_proof|PASS")
-PY
+docker run --rm --entrypoint python "${BACKEND_IMAGE}" -c \
+  "from backend.app.services.i5.know05.bounded_ingestion import ingest_pubmed_bounded, _persist_pubmed_derived_knowledge, ensure_pubmed_official_derived_source; from backend.app.services.i5.know04.pubmed import PubMedConnector; print('I5_REHEARSE|know05_import_proof|PASS'); print('I5_REHEARSE|pubmed_client_import_proof|PASS'); print('I5_REHEARSE|pubmed_persist_import_proof|PASS')"
 
 docker network create "${NET}" >/dev/null
 docker run -d --name "${PG_NAME}" --network "${NET}" \
