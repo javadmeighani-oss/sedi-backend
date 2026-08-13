@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "AUDIT | BACKUP_DR | CAPACITY | ALL"
+        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL"
         required: true
         default: "ALL"
       confirmation:
-        description: "POST065_READINESS_ONLY"
+        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT"
         required: true
       candidate_image_digest:
         description: "sha256:... sedi-postgres digest"
@@ -20,7 +20,6 @@ on:
       - "backend/ops/db03/db_prod_post065_*.sh"
       - "backend/ops/db03/post065_capacity_bench.py"
       - "backend/ops/db03/post065_app_capacity_bench.py"
-      - ".github/workflows/db-prod-post065-readiness.yml"
       - "docs/architecture/db03/MIGRATION_061_VECTOR_EXTENSION_GOVERNANCE.md"
 
 permissions:
@@ -161,10 +160,9 @@ jobs:
   capacity:
     name: Isolated DB microbench + app HTTP >=5000 capacity
     if: >-
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' &&
-       github.event.inputs.confirmation == 'POST065_READINESS_ONLY' &&
-       (github.event.inputs.phase == 'CAPACITY' || github.event.inputs.phase == 'ALL'))
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'POST065_READINESS_ONLY' &&
+      (github.event.inputs.phase == 'CAPACITY' || github.event.inputs.phase == 'ALL')
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -292,3 +290,114 @@ jobs:
             /tmp/post065_uvicorn.log
           retention-days: 14
           if-no-files-found: warn
+
+  i5_drift_audit:
+    name: I5 scheduler drift audit (read-only)
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_FAILCLOSE_NF16_ONESHOT' &&
+      (github.event.inputs.phase == 'I5_DRIFT_AUDIT' || github.event.inputs.phase == 'I5_ALL')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH I5 drift audit
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_scheduler_drift_audit_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_scheduler_drift_audit_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_scheduler_drift_audit_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_scheduler_drift_audit_remote.sh")" \
+            2>&1 | tee /tmp/i5_drift_audit.log
+          grep -Fq 'I5_DRIFT|audit_complete|YES' /tmp/i5_drift_audit.log
+          grep -Fq 'I5_DRIFT|history_classification|CONFIGURATION_DRIFT_NO_UNEXPECTED_EXECUTION' /tmp/i5_drift_audit.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_drift_audit.log; then
+            echo "SECRET_LEAK: NCBI email in audit log"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-drift-audit
+          path: /tmp/i5_drift_audit.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_failclose_nf16_oneshot:
+    name: I5 fail-close + NF16 + NCBI canary + one-shot E2E
+    needs: [i5_drift_audit]
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_FAILCLOSE_NF16_ONESHOT' &&
+      (github.event.inputs.phase == 'I5_FAILCLOSE_ONESHOT' || github.event.inputs.phase == 'I5_ALL')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require NCBI email secret (presence only)
+        env:
+          NCBI_EMAIL: ${{ secrets.SEDI_NCBI_EMAIL }}
+          NCBI_TOOL: ${{ vars.SEDI_NCBI_TOOL }}
+        run: |
+          set -Eeuo pipefail
+          echo "GH_NCBI|tool_present|$([ -n "${NCBI_TOOL:-}" ] && echo YES || echo NO)" | tee /tmp/gh_ncbi_presence.log
+          echo "GH_NCBI|email_present|$([ -n "${NCBI_EMAIL:-}" ] && echo YES || echo NO)" | tee -a /tmp/gh_ncbi_presence.log
+          test -n "${NCBI_EMAIL:-}"
+          test -n "${NCBI_TOOL:-}"
+      - name: SSH fail-close + NF16 + one-shot
+        env:
+          NCBI_EMAIL: ${{ secrets.SEDI_NCBI_EMAIL }}
+          NCBI_TOOL: ${{ vars.SEDI_NCBI_TOOL }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          TOOL_Q="$(printf '%q' "${NCBI_TOOL:-sedi}")"
+          EMAIL_Q="$(printf '%q' "${NCBI_EMAIL}")"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_failclose_nf16_oneshot_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_failclose_nf16_oneshot_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_failclose_nf16_oneshot_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             NCBI_TOOL_VALUE=${TOOL_Q} NCBI_EMAIL_VALUE=${EMAIL_Q} \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_failclose_nf16_oneshot_remote.sh")" \
+            2>&1 | tee /tmp/i5_oneshot.log
+          grep -Fq 'I5_ONESHOT|i5_scheduler_fail_closed|PASS' /tmp/i5_oneshot.log
+          grep -Fq 'I5_ONESHOT|ncbi_connectivity_canary|PASS' /tmp/i5_oneshot.log
+          grep -Fq 'I5_ONESHOT|first_one_shot_governed_e2e|PASS' /tmp/i5_oneshot.log
+          grep -Fq 'I5_ONESHOT|idempotent_rerun|PASS' /tmp/i5_oneshot.log
+          grep -Fq 'I5_ONESHOT|production_i5_weekly_unattended_scheduler|NO' /tmp/i5_oneshot.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_oneshot.log; then
+            echo "SECRET_LEAK: NCBI email in oneshot log"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-failclose-nf16-oneshot
+          path: |
+            /tmp/i5_oneshot.log
+            /tmp/gh_ncbi_presence.log
+          retention-days: 14
+          if-no-files-found: warn
+
