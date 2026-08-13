@@ -91,11 +91,18 @@ try:
     if run is not None:
         att = (
             db.query(models.WeeklyKnowledgeRunAttempt)
-            .filter(models.WeeklyKnowledgeRunAttempt.run_id == run.id)
+            .filter(models.WeeklyKnowledgeRunAttempt.weekly_run_id == run.id)
             .order_by(models.WeeklyKnowledgeRunAttempt.id.desc())
             .first()
         )
     print(f"I5_WEEKLY|attempt_id|{getattr(att,'id',None)}")
+    print(f"I5_WEEKLY|attempt_status|{getattr(att,'status',None)}")
+    print(f"I5_WEEKLY|attempt_fetched|{getattr(att,'fetched_sources',None)}")
+    print(f"I5_WEEKLY|attempt_failed|{getattr(att,'failed_sources',None)}")
+    print(f"I5_WEEKLY|attempt_blocked|{getattr(att,'blocked_sources',None)}")
+    print(f"I5_WEEKLY|attempt_new_knowledge|{getattr(att,'new_knowledge_count',None)}")
+    print(f"I5_WEEKLY|planned_window_start|{getattr(run,'planned_window_start',None)}")
+    print(f"I5_WEEKLY|planned_window_end|{getattr(run,'planned_window_end',None)}")
     srcs = []
     if att is not None:
         srcs = (
@@ -104,6 +111,7 @@ try:
             .all()
         )
     print(f"I5_WEEKLY|live_e2e_source_count|{len(srcs)}")
+    print(f"I5_WEEKLY|source_statuses|{','.join(sorted(str(r.result_status) for r in srcs))}")
     ok = sum(1 for r in srcs if (r.result_status or "") in {"FETCHED","EXTRACTED","COMPLETED","SUCCESS"})
     fail = sum(1 for r in srcs if (r.result_status or "") in {"FAILED","ERROR"})
     blocked = sum(1 for r in srcs if (r.result_status or "") in {"BLOCKED","REJECTED"})
