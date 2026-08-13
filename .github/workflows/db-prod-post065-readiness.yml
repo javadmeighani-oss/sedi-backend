@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH"
+        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH | I5_CATALOG12_WAVE1 | I5_CATALOG12_WAVE2 | I5_CATALOG12_WAVE3"
         required: true
         default: "ALL"
       confirmation:
-        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE"
+        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE or CATALOG12_MASTER_GATE"
         required: true
       candidate_image_digest:
         description: "sha256:... sedi-postgres digest"
@@ -714,6 +714,75 @@ jobs:
         with:
           name: i5-weekly-kill-switch
           path: /tmp/i5_weekly_kill.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_catalog12_canary:
+    name: Catalog-12 bounded one-shot canary (no weekly expansion)
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'CATALOG12_MASTER_GATE' &&
+      (github.event.inputs.phase == 'I5_CATALOG12_WAVE1' ||
+       github.event.inputs.phase == 'I5_CATALOG12_WAVE2' ||
+       github.event.inputs.phase == 'I5_CATALOG12_WAVE3')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH Catalog-12 overlay canary
+        run: |
+          set -Eeuo pipefail
+          PHASE="${{ github.event.inputs.phase }}"
+          if [ "${PHASE}" = "I5_CATALOG12_WAVE1" ]; then
+            CELLS="D01,D02,D03,D10"
+          elif [ "${PHASE}" = "I5_CATALOG12_WAVE2" ]; then
+            CELLS="D11,D13,D16,D05"
+          else
+            CELLS="D06,D07,D09,D17"
+          fi
+          echo "${CELLS}" | grep -Eq '^(D[0-9]{2})(,(D[0-9]{2})){0,3}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          REMOTE_STAGE="/tmp/sedi_catalog12_overlay"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}") $(printf '%q' "${REMOTE_STAGE}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/app/services/i5/know01/catalog12_specialty_authorities.py \
+            backend/app/services/i5/know05/catalog12_bounded_ingest.py \
+            backend/app/services/i5/know01/v1_reference_catalog.py \
+            backend/app/services/i5/know01/seed_registry.py \
+            backend/config/i5/coverage_manifest_v1.yaml \
+            backend/ops/i5/i5_catalog12_canary_inproc.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_STAGE}/"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_catalog12_canary_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_catalog12_canary_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_catalog12_canary_remote.sh") && \
+             STAGE_DIR=$(printf '%q' "${REMOTE_STAGE}") \
+             CATALOG12_CELLS=$(printf '%q' "${CELLS}") \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_catalog12_canary_remote.sh")" \
+            2>&1 | tee /tmp/i5_catalog12_canary.log
+          grep -Fq 'I5_C12|weekly_multisource_expansion|NO' /tmp/i5_catalog12_canary.log
+          grep -Fq 'I5_C12|multisource_guard|PASS' /tmp/i5_catalog12_canary.log
+          grep -Fq 'I5_C12|canary_complete|YES' /tmp/i5_catalog12_canary.log
+          grep -Fq 'I5_C12|live_fetch_failure|0' /tmp/i5_catalog12_canary.log
+          grep -Fq 'I5_C12|eligible_delta|0' /tmp/i5_catalog12_canary.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_catalog12_canary.log; then
+            echo "SECRET_LEAK"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-catalog12-canary
+          path: /tmp/i5_catalog12_canary.log
           retention-days: 14
           if-no-files-found: warn
 
