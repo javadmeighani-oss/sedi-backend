@@ -205,15 +205,6 @@ def test_http_retry_429_and_permanent_4xx():
         return {"status_code": 200, "headers": {"content-type": "application/json"}, "content": b"{}", "url": url}
 
     client = HardenedHttpClient(
-        allowed_domains=("example.com",),
-        http_get=http_get,
-        sleep_fn=lambda s: None,
-        max_retries=3,
-    )
-    # example.com may fail SSRF domain allow — use a fixture that bypasses by mocking assert? 
-    # Instead test permanent 4xx without SSRF via injecting already-validated path:
-    # Use clinicaltrials.gov allowed domain with fake http_get
-    client = HardenedHttpClient(
         allowed_domains=("clinicaltrials.gov",),
         http_get=http_get,
         sleep_fn=lambda s: None,
@@ -229,6 +220,154 @@ def test_http_retry_429_and_permanent_4xx():
     client2 = HardenedHttpClient(allowed_domains=("clinicaltrials.gov",), http_get=bad, sleep_fn=lambda s: None)
     with pytest.raises(ConnectorHttpError, match="PERMANENT_HTTP_4XX"):
         client2.get("https://clinicaltrials.gov/api/v2/studies/NCT0")
+
+
+def test_http_429_then_success_uses_retry_after_bound():
+    from backend.app.services.i5.know04.http_client import HTTP_429_EXHAUSTED, parse_retry_after_seconds
+
+    sleeps: list[float] = []
+    calls = {"n": 0}
+
+    def http_get(url, headers=None, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return {
+                "status_code": 429,
+                "headers": {"Retry-After": "3"},
+                "content": b"retry later",
+                "url": url,
+            }
+        return {
+            "status_code": 200,
+            "headers": {"content-type": "application/json"},
+            "content": b'{"ok":true}',
+            "url": url,
+        }
+
+    client = HardenedHttpClient(
+        allowed_domains=("clinicaltrials.gov",),
+        http_get=http_get,
+        sleep_fn=sleeps.append,
+        max_retries=3,
+    )
+    r = client.get("https://clinicaltrials.gov/api/v2/studies")
+    assert r.status_code == 200
+    assert r.json()["ok"] is True
+    assert calls["n"] == 2
+    assert sleeps == [3.0]
+    assert parse_retry_after_seconds({"Retry-After": "99"}, attempt=1) == 8.0
+    assert parse_retry_after_seconds({"Retry-After": "not-a-number"}, attempt=1) == 1.0
+    assert HTTP_429_EXHAUSTED == "HTTP_429_EXHAUSTED"
+
+
+def test_http_429_exhaustion_does_not_return_or_parse_body():
+    from backend.app.services.i5.know04.http_client import HTTP_429_EXHAUSTED, HttpResponse
+
+    calls = {"n": 0}
+    json_calls = {"n": 0}
+    orig_json = HttpResponse.json
+
+    def tracking_json(self):
+        json_calls["n"] += 1
+        return orig_json(self)
+
+    HttpResponse.json = tracking_json  # type: ignore[method-assign]
+    try:
+        def http_get(url, headers=None, timeout=None):
+            calls["n"] += 1
+            return {
+                "status_code": 429,
+                "headers": {"Retry-After": "1", "content-type": "text/plain"},
+                "content": b"retry later",
+                "url": url,
+            }
+
+        client = HardenedHttpClient(
+            allowed_domains=("clinicaltrials.gov",),
+            http_get=http_get,
+            sleep_fn=lambda s: None,
+            max_retries=3,
+        )
+        with pytest.raises(ConnectorHttpError) as ei:
+            resp = client.get("https://clinicaltrials.gov/api/v2/studies")
+            resp.json()
+        assert ei.value.code == HTTP_429_EXHAUSTED
+        assert ei.value.status == 429
+        assert calls["n"] == 4  # first try + max_retries=3
+        assert json_calls["n"] == 0
+    finally:
+        HttpResponse.json = orig_json  # type: ignore[method-assign]
+
+
+def test_http_429_malformed_retry_after_uses_bounded_backoff():
+    sleeps: list[float] = []
+
+    def http_get(url, headers=None, timeout=None):
+        return {
+            "status_code": 429,
+            "headers": {"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"},
+            "content": b"x",
+            "url": url,
+        }
+
+    client = HardenedHttpClient(
+        allowed_domains=("clinicaltrials.gov",),
+        http_get=http_get,
+        sleep_fn=sleeps.append,
+        max_retries=2,
+    )
+    with pytest.raises(ConnectorHttpError, match="HTTP_429_EXHAUSTED"):
+        client.get("https://clinicaltrials.gov/api/v2/studies")
+    assert sleeps == [1.0, 2.0]
+    assert all(s <= 8.0 for s in sleeps)
+
+
+def test_http_5xx_exhaustion_separate_from_429():
+    from backend.app.services.i5.know04.http_client import HTTP_5XX_EXHAUSTED
+
+    def http_get(url, headers=None, timeout=None):
+        return {"status_code": 503, "headers": {}, "content": b"down", "url": url}
+
+    client = HardenedHttpClient(
+        allowed_domains=("clinicaltrials.gov",),
+        http_get=http_get,
+        sleep_fn=lambda s: None,
+        max_retries=2,
+    )
+    with pytest.raises(ConnectorHttpError) as ei:
+        client.get("https://clinicaltrials.gov/api/v2/studies")
+    assert ei.value.code == HTTP_5XX_EXHAUSTED
+    assert ei.value.status == 503
+
+
+def test_http_timeout_and_malformed_2xx_remain_separate():
+    def boom(url, headers=None, timeout=None):
+        raise TimeoutError("SYNTHETIC_TIMEOUT")
+
+    client = HardenedHttpClient(
+        allowed_domains=("clinicaltrials.gov",),
+        http_get=boom,
+        sleep_fn=lambda s: None,
+    )
+    with pytest.raises(TimeoutError, match="SYNTHETIC_TIMEOUT"):
+        client.get("https://clinicaltrials.gov/api/v2/studies")
+
+    def ok_bad_json(url, headers=None, timeout=None):
+        return {
+            "status_code": 200,
+            "headers": {"content-type": "application/json"},
+            "content": b"not-json",
+            "url": url,
+        }
+
+    client2 = HardenedHttpClient(
+        allowed_domains=("clinicaltrials.gov",),
+        http_get=ok_bad_json,
+        sleep_fn=lambda s: None,
+    )
+    resp = client2.get("https://clinicaltrials.gov/api/v2/studies")
+    with pytest.raises(ConnectorHttpError, match="MALFORMED_JSON"):
+        resp.json()
 
 
 def test_xxe_and_malformed_xml_blocked():

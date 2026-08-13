@@ -1103,6 +1103,24 @@ def ingest_pubmed_bounded(
             canonical_source_key=rights_persist.canonical_key if rights_persist else None,
         )
     except Exception as exc:
+        from backend.app.services.i5.know04.http_client import (
+            HTTP_429_EXHAUSTED,
+            HTTP_5XX_EXHAUSTED,
+            ConnectorHttpError,
+        )
+
+        if isinstance(exc, ConnectorHttpError) and exc.code == HTTP_429_EXHAUSTED:
+            reason = f"RATE_LIMIT_429:{exc}"
+        elif isinstance(exc, ConnectorHttpError) and exc.code == HTTP_5XX_EXHAUSTED:
+            reason = f"SERVER_5XX:{exc}"
+        elif isinstance(exc, ConnectorHttpError) and exc.code == "PERMANENT_HTTP_4XX":
+            reason = f"PERMANENT_4XX:{exc}"
+        elif isinstance(exc, ConnectorHttpError) and exc.code == "MALFORMED_JSON":
+            reason = f"MALFORMED_PAYLOAD:{exc}"
+        elif isinstance(exc, TimeoutError):
+            reason = f"TIMEOUT:{exc}"
+        else:
+            reason = f"NETWORK_OR_CONNECTOR_ERROR:{type(exc).__name__}:{exc}"
         return BoundedIngestionResult(
             mode=m.value,
             connector_key=PUBMED_CONNECTOR_KEY,
@@ -1120,7 +1138,7 @@ def ingest_pubmed_bounded(
             rights_decision=(rights_fetch.rights_state if rights_fetch else "NOT_EVALUATED"),
             storage_decision="NO_STORE",
             transient_raw_residue=0,
-            block_reason=f"NETWORK_OR_CONNECTOR_ERROR:{type(exc).__name__}:{exc}",
+            block_reason=reason,
             canonical_source_key=rights_fetch.canonical_key if rights_fetch else None,
         )
 

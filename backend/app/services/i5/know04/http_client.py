@@ -12,7 +12,11 @@ from backend.app.services.i5.adapters.base import assert_safe_public_https_url
 
 MAX_RESPONSE_BYTES = 2_097_152
 DEFAULT_TIMEOUT = 15.0
-RETRYABLE = {429, 500, 502, 503, 504}
+MAX_RETRY_AFTER_SECONDS = 8.0
+RETRYABLE_5XX = {500, 502, 503, 504}
+RETRYABLE = {429, *RETRYABLE_5XX}
+HTTP_429_EXHAUSTED = "HTTP_429_EXHAUSTED"
+HTTP_5XX_EXHAUSTED = "HTTP_5XX_EXHAUSTED"
 
 
 class ConnectorHttpError(RuntimeError):
@@ -43,6 +47,32 @@ class HttpResponse:
 def _header_get(headers: Mapping[str, str], name: str) -> Optional[str]:
     lower = {k.lower(): v for k, v in headers.items()}
     return lower.get(name.lower())
+
+
+def parse_retry_after_seconds(
+    headers: Mapping[str, str],
+    *,
+    attempt: int,
+    max_seconds: float = MAX_RETRY_AFTER_SECONDS,
+) -> float:
+    """Fail-safe Retry-After: numeric seconds only, always capped.
+
+    HTTP-date / garbage / negative / NaN fall back to exponential backoff.
+    """
+    fallback = min(float(2 ** max(attempt - 1, 0)), float(max_seconds))
+    raw = _header_get(headers, "retry-after")
+    if raw is None:
+        return fallback
+    text = str(raw).strip()
+    if not text:
+        return fallback
+    try:
+        secs = float(text)
+    except (TypeError, ValueError):
+        return fallback
+    if secs < 0.0 or secs != secs or secs == float("inf"):
+        return fallback
+    return min(secs, float(max_seconds))
 
 
 class HardenedHttpClient:
@@ -117,13 +147,25 @@ class HardenedHttpClient:
 
             if len(content) > self.max_bytes:
                 raise ConnectorHttpError("CONTENT_TOO_LARGE", str(len(content)), status=status)
-            if status in RETRYABLE and attempt <= self.max_retries:
-                self.sleep_fn(min(2 ** (attempt - 1), 8))
-                continue
-            if 400 <= status < 500 and status != 429:
+            if status == 429:
+                if attempt <= self.max_retries:
+                    self.sleep_fn(parse_retry_after_seconds(hdrs, attempt=attempt))
+                    continue
+                # Never return a 429 HttpResponse — callers must not JSON/XML-parse it.
+                raise ConnectorHttpError(
+                    HTTP_429_EXHAUSTED,
+                    f"attempts={attempt}",
+                    status=429,
+                )
+            if status in RETRYABLE_5XX:
+                if attempt <= self.max_retries:
+                    self.sleep_fn(min(2 ** (attempt - 1), MAX_RETRY_AFTER_SECONDS))
+                    continue
+                raise ConnectorHttpError(HTTP_5XX_EXHAUSTED, str(status), status=status)
+            if 400 <= status < 500:
                 raise ConnectorHttpError("PERMANENT_HTTP_4XX", str(status), status=status)
             if status >= 500:
-                raise ConnectorHttpError("HTTP_5XX_EXHAUSTED", str(status), status=status)
+                raise ConnectorHttpError(HTTP_5XX_EXHAUSTED, str(status), status=status)
             if expect_content_types:
                 ctype = (_header_get(hdrs, "content-type") or "").split(";")[0].strip().lower()
                 if ctype and ctype not in expect_content_types:

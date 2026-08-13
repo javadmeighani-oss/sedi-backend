@@ -225,7 +225,15 @@ def main() -> int:
             and r1.knowledge_unit_id == r2.knowledge_unit_id
         )
         ok_safety = after2["eligible"] == before["eligible"] and after2["memory"] == before["memory"] and after2["kce"] == before["kce"]
-        ok_fail = r429.status in {"FAILED", "BLOCKED"} and rto.status in {"FAILED", "BLOCKED"}
+        r429_reason = r429.block_reason or ""
+        rto_reason = rto.block_reason or ""
+        ok_fail = (
+            r429.status in {"FAILED", "BLOCKED"}
+            and rto.status in {"FAILED", "BLOCKED"}
+            and "HTTP_429_EXHAUSTED" in r429_reason
+            and "MALFORMED_JSON" not in r429_reason
+            and ("TIMEOUT" in rto_reason or "TimeoutError" in rto_reason)
+        )
         _log("pubmed_derived_knowledge_persistence", "PASS" if ok_persist else "NO")
         _log("pubmed_idempotent_rerun", "PASS" if ok_idemp else "NO")
         _log("medical_safety", "PASS" if ok_safety else "NO")
