@@ -210,6 +210,10 @@ jobs:
             backend/tests/test_section15_i5b2_a1_adapters.py \
             backend/tests/test_section15_i5b2_p1_source_profile.py \
             backend/tests/test_section15_i5b2_p1_l1_legacy_companion_seed.py \
+            backend/tests/test_i5_weekly_calendar_lock.py \
+            backend/tests/test_i6_memory_consent.py \
+            backend/tests/test_i7_period_summaries.py \
+            backend/tests/test_i8_nutrition_failclose.py \
             --tb=short
 
   # -------------------------------------------------------------------------

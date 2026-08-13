@@ -8,12 +8,15 @@ on:
   push:
     paths:
       - "backend/app/services/i5/know04/**"
+      - "backend/app/services/i5/governed_weekly_runtime.py"
+      - "backend/app/core/scheduler.py"
       - "backend/app/services/i5/know03/**"
       - "backend/app/services/i5/know02/**"
       - "backend/app/services/i5/know01/**"
       - "backend/alembic/versions/065_i5_know04_connectors_change_intelligence.py"
       - "backend/alembic/versions/064_i5_know03_studies_effects_recs.py"
       - "backend/tests/test_i5_know04_connectors.py"
+      - "backend/tests/test_i5_weekly_calendar_lock.py"
       - "backend/tests/test_i5_know04_live_canaries.py"
       - "backend/tests/test_i5_know03_studies_effects.py"
       - "backend/tests/test_i5_know02_artifacts_taxonomy.py"
@@ -185,6 +188,7 @@ jobs:
           set -o pipefail
           python -B -m pytest \
             backend/tests/test_i5_know04_connectors.py \
+            backend/tests/test_i5_weekly_calendar_lock.py \
             backend/tests/test_i5_know03_studies_effects.py \
             backend/tests/test_i5_know02_artifacts_taxonomy.py \
             backend/tests/test_i5_know01_source_registry.py \

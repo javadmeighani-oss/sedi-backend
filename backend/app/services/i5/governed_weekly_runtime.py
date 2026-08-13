@@ -861,11 +861,53 @@ def weekly_first_run_delay_seconds() -> Optional[int]:
 
 
 WEEKLY_SCHEDULER_TIMEZONE_NAME = "Asia/Tehran"
+WEEKLY_CRON_DAY_OF_WEEK = "fri"
+WEEKLY_CRON_HOUR = 3
+WEEKLY_CRON_MINUTE = 30
+WEEKLY_CRON_UTC_HOUR = 0
+WEEKLY_CRON_UTC_MINUTE = 0
 
 
 def weekly_scheduler_tz():
     """APScheduler timezone for the weekly job. Must match scheduler.py."""
     return pytz.timezone(WEEKLY_SCHEDULER_TIMEZONE_NAME)
+
+
+def weekly_calendar_trigger_kwargs() -> dict[str, object]:
+    """Fixed Friday 03:30 Asia/Tehran cron (= Friday 00:00 UTC). Restart-invariant."""
+    return {
+        "trigger": "cron",
+        "day_of_week": WEEKLY_CRON_DAY_OF_WEEK,
+        "hour": WEEKLY_CRON_HOUR,
+        "minute": WEEKLY_CRON_MINUTE,
+        "timezone": WEEKLY_SCHEDULER_TIMEZONE_NAME,
+        "max_instances": 1,
+        "coalesce": True,
+    }
+
+
+def next_weekly_calendar_fire(*, now: Optional[datetime] = None) -> datetime:
+    """Next Friday 03:30 Asia/Tehran strictly after `now`. Independent of process start."""
+    tz = weekly_scheduler_tz()
+    if now is None:
+        aware_now = datetime.now(tz)
+    elif now.tzinfo is None:
+        aware_now = tz.localize(now)
+    else:
+        aware_now = now.astimezone(tz)
+    # Friday = 4 in Python weekday()
+    days_ahead = (4 - aware_now.weekday()) % 7
+    candidate = aware_now.replace(
+        hour=WEEKLY_CRON_HOUR, minute=WEEKLY_CRON_MINUTE, second=0, microsecond=0
+    ) + timedelta(days=days_ahead)
+    if candidate <= aware_now:
+        candidate = candidate + timedelta(days=7)
+    utc = candidate.astimezone(pytz.UTC)
+    if utc.weekday() != 4 or utc.hour != WEEKLY_CRON_UTC_HOUR or utc.minute != WEEKLY_CRON_UTC_MINUTE:
+        raise RuntimeError(
+            f"CALENDAR_UTC_MISMATCH tehran={candidate.isoformat()} utc={utc.isoformat()}"
+        )
+    return candidate
 
 
 def weekly_first_run_at(delay_sec: int, *, now: Optional[datetime] = None) -> datetime:
@@ -908,6 +950,11 @@ __all__ = [
     "weekly_interval_minutes",
     "weekly_first_run_delay_seconds",
     "WEEKLY_SCHEDULER_TIMEZONE_NAME",
+    "WEEKLY_CRON_DAY_OF_WEEK",
+    "WEEKLY_CRON_HOUR",
+    "WEEKLY_CRON_MINUTE",
     "weekly_scheduler_tz",
+    "weekly_calendar_trigger_kwargs",
+    "next_weekly_calendar_fire",
     "weekly_first_run_at",
 ]

@@ -549,13 +549,10 @@ def start_scheduler():
         # are true. Production ticks use the shared governed weekly callable
         # (DB session + governed source load + advisory lock + deterministic window).
         try:
-            from datetime import datetime, timedelta
-
             from backend.app.services.i5.governed_weekly_runtime import (
+                next_weekly_calendar_fire,
                 run_weekly_scheduled_job,
-                weekly_first_run_at,
-                weekly_first_run_delay_seconds,
-                weekly_interval_minutes,
+                weekly_calendar_trigger_kwargs,
             )
             from backend.app.services.i5.weekly_orchestrator import (
                 WEEKLY_ORCHESTRATOR_JOB_ID,
@@ -580,30 +577,25 @@ def start_scheduler():
                     )
                     raise
 
-            weekly_interval_min = weekly_interval_minutes()
-            first_delay_sec = weekly_first_run_delay_seconds()
-            add_kwargs = {}
-            first_at = None
-            if first_delay_sec is not None and weekly_orchestrator_enabled():
-                first_at = weekly_first_run_at(first_delay_sec)
-                add_kwargs["next_run_time"] = first_at
+            cron_kwargs = weekly_calendar_trigger_kwargs()
+            next_fire = next_weekly_calendar_fire()
             scheduler.add_job(
                 _weekly_orchestrator_tick,
-                "interval",
-                minutes=weekly_interval_min,
                 id=WEEKLY_ORCHESTRATOR_JOB_ID,
                 replace_existing=True,
-                max_instances=1,
-                coalesce=True,
-                misfire_grace_time=max(60, first_delay_sec or 60),
-                **add_kwargs,
+                misfire_grace_time=3600,
+                **cron_kwargs,
             )
             print(
                 "[Sedi Scheduler] weekly_international_knowledge_crawler registered "
-                f"interval_min={weekly_interval_min} "
+                f"trigger=cron day_of_week={cron_kwargs['day_of_week']} "
+                f"hour={cron_kwargs['hour']} minute={cron_kwargs['minute']} "
+                f"timezone={cron_kwargs['timezone']} "
+                f"max_instances={cron_kwargs['max_instances']} "
+                f"coalesce={cron_kwargs['coalesce']} "
                 f"enabled={weekly_orchestrator_enabled()} "
-                f"first_run_delay_sec={first_delay_sec if first_delay_sec is not None else 'none'} "
-                f"first_run_at={first_at.isoformat() if first_at is not None else 'none'}",
+                f"next_calendar_fire={next_fire.isoformat()} "
+                f"first_run_delay_sec=ignored",
                 flush=True,
             )
         except Exception as e:

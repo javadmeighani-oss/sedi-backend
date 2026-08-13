@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bounded NHS-only weekly canary enablement. Does NOT invoke the weekly job.
-# Scheduler (APScheduler) must fire the first run via FIRST_RUN_DELAY_SEC.
+# Calendar lock: Friday 03:30 Asia/Tehran (= Friday 00:00 UTC). FIRST_RUN_DELAY ignored.
 set -Eeuo pipefail
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 s() { echo "I5_WEEKLY|$1|$2"; }
@@ -9,7 +9,6 @@ ENV_FILE="/etc/sedi/sedi-backend.env"
 DEPLOY_PATH="${DEPLOY_PATH:-/var/www/sedi/backend}"
 IMAGE_SHA="${IMAGE_SHA:-}"
 IMAGE_DIGEST="${IMAGE_DIGEST:-}"
-DELAY_SEC="${DELAY_SEC:-240}"
 
 log "=== I5 WEEKLY CANARY ENABLE (NHS-ONLY, NO MANUAL TICK) ==="
 s "production_rag" "NO"
@@ -105,12 +104,15 @@ upsert_env_kv "SEDI_I5_SOURCE_ACTIVATION_ENABLED" "true"
 upsert_env_kv "SEDI_I5_MULTISOURCE_ENABLED" "false"
 upsert_env_kv "SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN" "10080"
 upsert_env_kv "SEDI_DISABLE_SCHEDULER" "false"
-upsert_env_kv "SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC" "${DELAY_SEC}"
+upsert_env_kv "SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC" ""
 env_flag_equals "SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED" "true"
 env_flag_equals "SEDI_I5_SOURCE_ACTIVATION_ENABLED" "true"
 env_flag_equals "SEDI_I5_MULTISOURCE_ENABLED" "false"
-env_flag_equals "SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC" "${DELAY_SEC}"
 s "flags_upserted" "YES"
+s "calendar_trigger" "cron"
+s "calendar_local" "Friday 03:30 Asia/Tehran"
+s "calendar_utc" "Friday 00:00 UTC"
+s "first_run_delay" "ignored"
 
 IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
 IMAGE_REF="ghcr.io/javadmeighani-oss/sedi-backend@${IMAGE_DIGEST}"
@@ -168,9 +170,14 @@ PY
 LOG="$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler registered' | tail -n1 || true)"
 s "scheduler_register_line" "${LOG}"
 echo "${LOG}" | grep -Fq "enabled=True" || echo "${LOG}" | grep -Fq "enabled=true"
-echo "${LOG}" | grep -Eq "first_run_delay_sec=${DELAY_SEC}"
-echo "${LOG}" | grep -Eq "interval_min=10080"
-echo "${LOG}" | grep -Eq "first_run_at=.*\+0[34]:30" || echo "${LOG}" | grep -Eq "first_run_at=.*\+03:30"
+echo "${LOG}" | grep -Eq "trigger=cron"
+echo "${LOG}" | grep -Eq "day_of_week=fri"
+echo "${LOG}" | grep -Eq "hour=3"
+echo "${LOG}" | grep -Eq "minute=30"
+echo "${LOG}" | grep -Eq "timezone=Asia/Tehran"
+echo "${LOG}" | grep -Eq "max_instances=1"
+echo "${LOG}" | grep -Eq "coalesce=True|coalesce=true"
+echo "${LOG}" | grep -Eq "first_run_delay_sec=ignored"
 s "scheduled_job_registered" "YES"
 s "scheduled_job_enabled" "YES"
 s "manual_tick_invoked" "NO"

@@ -90,7 +90,7 @@ if [ "${REENABLE}" != "YES" ]; then
   exit 0
 fi
 
-log "=== RE-ENABLE BOUNDED WEEKLY (NO FIRST-RUN DELAY; INTERVAL 10080) ==="
+log "=== RE-ENABLE BOUNDED WEEKLY (CALENDAR CRON; FIRST-RUN DELAY IGNORED) ==="
 upsert_env_kv "SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED" "true"
 upsert_env_kv "SEDI_I5_SOURCE_ACTIVATION_ENABLED" "true"
 upsert_env_kv "SEDI_I5_MULTISOURCE_ENABLED" "false"
@@ -101,8 +101,11 @@ recreate
 s "backend_health_local" "PASS"
 LOG="$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler registered' | tail -n1 || true)"
 s "reenable_register_line" "${LOG}"
-echo "${LOG}" | grep -Eq 'first_run_delay_sec=none'
-echo "${LOG}" | grep -Eq 'interval_min=10080'
+echo "${LOG}" | grep -Eq 'trigger=cron'
+echo "${LOG}" | grep -Eq 'day_of_week=fri'
+echo "${LOG}" | grep -Eq 'hour=3'
+echo "${LOG}" | grep -Eq 'minute=30'
+echo "${LOG}" | grep -Eq 'first_run_delay_sec=ignored'
 s "weekly_unattended_enabled" "YES"
 s "production_i5_weekly_orchestrator_enabled" "true"
 s "production_i5_source_activation_enabled" "true"

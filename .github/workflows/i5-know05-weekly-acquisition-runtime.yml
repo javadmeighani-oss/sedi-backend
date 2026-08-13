@@ -8,10 +8,13 @@ on:
       - "backend/app/services/i5/know05/**"
       - "backend/app/services/i5/know04/**"
       - "backend/app/services/i5/weekly_orchestrator.py"
+      - "backend/app/services/i5/governed_weekly_runtime.py"
+      - "backend/app/core/scheduler.py"
       - "backend/app/services/scis/**"
       - "backend/tests/test_i5_know05_*.py"
       - "backend/tests/test_i5_know04_live_canaries.py"
       - "backend/tests/test_i5_know04_connectors.py"
+      - "backend/tests/test_i5_weekly_calendar_lock.py"
       - "backend/tests/test_i5_catalog12_specialty_closure.py"
       - "backend/tests/test_i5_catalog12_rights_normalization.py"
       - ".github/workflows/i5-know05-weekly-acquisition-runtime.yml"
@@ -114,6 +117,7 @@ jobs:
             backend/tests/test_i5_know05_pg_remediation.py \
             backend/tests/test_i5_know05_pubmed_persist.py \
             backend/tests/test_i5_know04_connectors.py \
+            backend/tests/test_i5_weekly_calendar_lock.py \
             backend/tests/test_db03_contracts.py::test_alembic_single_head_chain \
             -q -s --tb=short --noconftest \
             | tee "${{ runner.temp }}/know05_pytest.txt"
