@@ -17,6 +17,10 @@ on:
       - "backend/alembic/versions/064_i5_know03_studies_effects_recs.py"
       - "backend/tests/test_i5_know04_connectors.py"
       - "backend/tests/test_i5_weekly_calendar_lock.py"
+      - "backend/tests/test_i6_memory_consent.py"
+      - "backend/tests/test_i7_period_summaries.py"
+      - "backend/tests/test_i8_nutrition_failclose.py"
+      - "backend/tests/section42_sqlite_harness.py"
       - "backend/tests/test_i5_know04_live_canaries.py"
       - "backend/tests/test_i5_know03_studies_effects.py"
       - "backend/tests/test_i5_know02_artifacts_taxonomy.py"
@@ -189,6 +193,9 @@ jobs:
           python -B -m pytest \
             backend/tests/test_i5_know04_connectors.py \
             backend/tests/test_i5_weekly_calendar_lock.py \
+            backend/tests/test_i6_memory_consent.py \
+            backend/tests/test_i7_period_summaries.py \
+            backend/tests/test_i8_nutrition_failclose.py \
             backend/tests/test_i5_know03_studies_effects.py \
             backend/tests/test_i5_know02_artifacts_taxonomy.py \
             backend/tests/test_i5_know01_source_registry.py \
