@@ -549,8 +549,11 @@ def start_scheduler():
         # are true. Production ticks use the shared governed weekly callable
         # (DB session + governed source load + advisory lock + deterministic window).
         try:
+            from datetime import datetime, timedelta
+
             from backend.app.services.i5.governed_weekly_runtime import (
                 run_weekly_scheduled_job,
+                weekly_first_run_delay_seconds,
                 weekly_interval_minutes,
             )
             from backend.app.services.i5.weekly_orchestrator import (
@@ -567,6 +570,10 @@ def start_scheduler():
                 )
 
             weekly_interval_min = weekly_interval_minutes()
+            first_delay_sec = weekly_first_run_delay_seconds()
+            add_kwargs = {}
+            if first_delay_sec is not None and weekly_orchestrator_enabled():
+                add_kwargs["next_run_time"] = datetime.now() + timedelta(seconds=first_delay_sec)
             scheduler.add_job(
                 _weekly_orchestrator_tick,
                 "interval",
@@ -575,12 +582,14 @@ def start_scheduler():
                 replace_existing=True,
                 max_instances=1,
                 coalesce=True,
-                misfire_grace_time=60,
+                misfire_grace_time=max(60, first_delay_sec or 60),
+                **add_kwargs,
             )
             print(
                 "[Sedi Scheduler] weekly_international_knowledge_crawler registered "
                 f"interval_min={weekly_interval_min} "
-                f"enabled={weekly_orchestrator_enabled()}"
+                f"enabled={weekly_orchestrator_enabled()} "
+                f"first_run_delay_sec={first_delay_sec if first_delay_sec is not None else 'none'}"
             )
         except Exception as e:
             print(f"[Sedi Scheduler] weekly orchestrator dormant wiring failed: {e}")

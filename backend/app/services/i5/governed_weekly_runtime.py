@@ -840,6 +840,25 @@ def weekly_interval_minutes() -> int:
     return max(60, min(14 * 24 * 60, value))
 
 
+def weekly_first_run_delay_seconds() -> Optional[int]:
+    """Optional one-shot first-fire delay after process start.
+
+    Unset/invalid → None (APScheduler uses interval only).
+    Bounded 30–600s so a canary scheduler tick can be proven without
+    lowering the weekly cadence.
+    """
+    raw = os.getenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if value <= 0:
+        return None
+    return max(30, min(600, value))
+
+
 __all__ = [
     "PACKAGE_ID",
     "NHS_SOURCE_KEY",
@@ -861,4 +880,5 @@ __all__ = [
     "build_scheduled_logical_identity",
     "run_weekly_scheduled_job",
     "weekly_interval_minutes",
+    "weekly_first_run_delay_seconds",
 ]

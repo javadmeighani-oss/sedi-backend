@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY"
+        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH"
         required: true
         default: "ALL"
       confirmation:
-        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN"
+        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE"
         required: true
       candidate_image_digest:
         description: "sha256:... sedi-postgres digest"
@@ -559,6 +559,160 @@ jobs:
         with:
           name: i5-know05-pubmed-canary
           path: /tmp/i5_know05_canary.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_weekly_canary_enable:
+    name: Bounded I5 weekly canary enable (NHS-only, no manual tick)
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_WEEKLY_CANARY_ACTIVATE' &&
+      github.event.inputs.phase == 'I5_WEEKLY_CANARY_ENABLE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH weekly canary enable
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_weekly_canary_enable_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_weekly_canary_enable_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_enable_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             IMAGE_SHA=$(printf '%q' "${TAG}") \
+             IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             DELAY_SEC=120 \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_enable_remote.sh")" \
+            2>&1 | tee /tmp/i5_weekly_enable.log
+          grep -Fq 'I5_WEEKLY|enable_complete|YES' /tmp/i5_weekly_enable.log
+          grep -Fq 'I5_WEEKLY|manual_tick_invoked|NO' /tmp/i5_weekly_enable.log
+          grep -Fq 'I5_WEEKLY|scheduled_job_registered|YES' /tmp/i5_weekly_enable.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_weekly_enable.log; then
+            echo "SECRET_LEAK"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-weekly-canary-enable
+          path: /tmp/i5_weekly_enable.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_weekly_canary_observe:
+    name: Observe first scheduler weekly tick + soak
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_WEEKLY_CANARY_ACTIVATE' &&
+      github.event.inputs.phase == 'I5_WEEKLY_CANARY_OBSERVE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH weekly observe
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_weekly_canary_observe_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             WAIT_SEC=420 \
+             SOAK_SEC=480 \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh")" \
+            2>&1 | tee /tmp/i5_weekly_observe.log
+          grep -Fq 'I5_WEEKLY|first_scheduled_weekly_run|PASS' /tmp/i5_weekly_observe.log
+          grep -Fq 'I5_WEEKLY|trigger_source|SCHEDULER' /tmp/i5_weekly_observe.log
+          grep -Fq 'I5_WEEKLY|idempotent_rerun|PASS' /tmp/i5_weekly_observe.log
+          grep -Fq 'I5_WEEKLY|scheduler_duplicate_run_count|0' /tmp/i5_weekly_observe.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_weekly_observe.log; then
+            echo "SECRET_LEAK"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-weekly-canary-observe
+          path: /tmp/i5_weekly_observe.log
+          retention-days: 14
+          if-no-files-found: warn
+
+  i5_weekly_kill_switch:
+    name: I5 weekly kill-switch then bounded re-enable
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.confirmation == 'I5_WEEKLY_CANARY_ACTIVATE' &&
+      github.event.inputs.phase == 'I5_WEEKLY_KILL_SWITCH'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH kill-switch
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/i5_weekly_kill_switch_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_weekly_kill_switch_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_weekly_kill_switch_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             IMAGE_SHA=$(printf '%q' "${TAG}") \
+             IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             REENABLE=YES \
+             bash $(printf '%q' "${REMOTE_DIR}/i5_weekly_kill_switch_remote.sh")" \
+            2>&1 | tee /tmp/i5_weekly_kill.log
+          grep -Fq 'I5_WEEKLY|i5_scheduler_kill_switch_proof|PASS' /tmp/i5_weekly_kill.log
+          grep -Fq 'I5_WEEKLY|i5_weekly_tick_outcome|DORMANT_NO_OP' /tmp/i5_weekly_kill.log
+          grep -Fq 'I5_WEEKLY|kill_then_reenable_complete|YES' /tmp/i5_weekly_kill.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/i5_weekly_kill.log; then
+            echo "SECRET_LEAK"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-weekly-kill-switch
+          path: /tmp/i5_weekly_kill.log
           retention-days: 14
           if-no-files-found: warn
 

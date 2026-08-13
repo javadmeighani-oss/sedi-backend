@@ -370,6 +370,23 @@ def test_http_timeout_and_malformed_2xx_remain_separate():
         resp.json()
 
 
+def test_weekly_first_run_delay_seconds_bounded(monkeypatch):
+    from backend.app.services.i5.governed_weekly_runtime import weekly_first_run_delay_seconds
+
+    monkeypatch.delenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", raising=False)
+    assert weekly_first_run_delay_seconds() is None
+    monkeypatch.setenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", "bogus")
+    assert weekly_first_run_delay_seconds() is None
+    monkeypatch.setenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", "0")
+    assert weekly_first_run_delay_seconds() is None
+    monkeypatch.setenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", "5")
+    assert weekly_first_run_delay_seconds() == 30
+    monkeypatch.setenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", "120")
+    assert weekly_first_run_delay_seconds() == 120
+    monkeypatch.setenv("SEDI_I5_WEEKLY_FIRST_RUN_DELAY_SEC", "9999")
+    assert weekly_first_run_delay_seconds() == 600
+
+
 def test_xxe_and_malformed_xml_blocked():
     with pytest.raises(ConnectorHttpError, match="XXE"):
         safe_parse_xml(b'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><a>&xxe;</a>')
