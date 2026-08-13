@@ -39,7 +39,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_USER: sedi_user
           POSTGRES_PASSWORD: sedi_pass
