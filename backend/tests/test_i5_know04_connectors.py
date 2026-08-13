@@ -238,6 +238,18 @@ def test_xxe_and_malformed_xml_blocked():
         safe_parse_xml(b"<not><closed>")
 
 
+def test_ncbi_external_doctype_stripped_without_loading_dtd():
+    xml = (
+        b'<?xml version="1.0"?>'
+        b'<!DOCTYPE PubmedArticleSet PUBLIC "-//NLM//DTD PubMedArticle, 1st January 2024//EN" '
+        b'"https://dtd.nlm.nih.gov/ncbi/pubmed/out/pubmed_240101.dtd">'
+        b"<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>1</PMID></MedlineCitation>"
+        b"</PubmedArticle></PubmedArticleSet>"
+    )
+    root = safe_parse_xml(xml)
+    assert root.find(".//PMID").text == "1"
+
+
 def test_pubmed_parser_retraction_and_mesh_synthetic():
     xml = b"""<?xml version='1.0'?>
     <PubmedArticleSet>
