@@ -187,7 +187,7 @@ if [ ! -f "${HOST_PY}" ]; then
 fi
 docker cp "${HOST_PY}" sedi-backend:/tmp/i5_oneshot_inproc.py
 set +e
-docker exec sedi-backend python /tmp/i5_oneshot_inproc.py
+docker exec -e PYTHONPATH=/app sedi-backend python /tmp/i5_oneshot_inproc.py
 rc=$?
 set -e
 if [ "${rc}" != "0" ]; then
