@@ -43,6 +43,18 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: GitHub NCBI secret presence (no values)
+        env:
+          NCBI_EMAIL: ${{ secrets.SEDI_NCBI_EMAIL }}
+          NCBI_TOOL: ${{ vars.SEDI_NCBI_TOOL }}
+          NCBI_KEY: ${{ secrets.SEDI_NCBI_API_KEY }}
+        run: |
+          set -Eeuo pipefail
+          {
+            echo "GH_NCBI|tool_present|$([ -n "${NCBI_TOOL:-}" ] && echo YES || echo NO)"
+            echo "GH_NCBI|email_present|$([ -n "${NCBI_EMAIL:-}" ] && echo YES || echo NO)"
+            echo "GH_NCBI|api_key_present|$([ -n "${NCBI_KEY:-}" ] && echo YES || echo NO)"
+          } | tee /tmp/gh_ncbi_presence.log
       - name: SSH audit
         run: |
           set -Eeuo pipefail
@@ -65,12 +77,38 @@ jobs:
             2>&1 | tee /tmp/post065_audit.log
           grep -Fq 'AUDIT_SUMMARY|production_role_invariants|PASS' /tmp/post065_audit.log
           grep -Fq 'AUDIT_SUMMARY|ownership_model_final|PASS' /tmp/post065_audit.log
+      - name: SSH NF16 identity probe (read-only)
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/i5/nf16_ncbi_identity_probe_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/nf16_ncbi_identity_probe_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/nf16_ncbi_identity_probe_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/nf16_ncbi_identity_probe_remote.sh")" \
+            2>&1 | tee /tmp/nf16_probe.log
+          grep -Fq 'NF16_PROBE|ncbi_email_redacted_in_evidence|YES' /tmp/nf16_probe.log
+          grep -Fq 'NF16_PROBE|production_write|NO' /tmp/nf16_probe.log
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: post065-audit
-          path: /tmp/post065_audit.log
+          path: |
+            /tmp/post065_audit.log
+            /tmp/nf16_probe.log
+            /tmp/gh_ncbi_presence.log
           retention-days: 14
+          if-no-files-found: warn
 
   backup_dr:
     name: Quarantine + canonical 065 backup + private restore
