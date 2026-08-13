@@ -597,7 +597,7 @@ jobs:
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
              IMAGE_SHA=$(printf '%q' "${TAG}") \
              IMAGE_DIGEST=$(printf '%q' "${DIG}") \
-             DELAY_SEC=120 \
+             DELAY_SEC=240 \
              bash $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_enable_remote.sh")" \
             2>&1 | tee /tmp/i5_weekly_enable.log
           grep -Fq 'I5_WEEKLY|enable_complete|YES' /tmp/i5_weekly_enable.log
@@ -622,7 +622,7 @@ jobs:
       github.event.inputs.confirmation == 'I5_WEEKLY_CANARY_ACTIVATE' &&
       github.event.inputs.phase == 'I5_WEEKLY_CANARY_OBSERVE'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: SSH weekly observe
@@ -644,7 +644,7 @@ jobs:
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
-             WAIT_SEC=180 \
+             WAIT_SEC=360 \
              SOAK_SEC=180 \
              bash $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh")" \
             2>&1 | tee /tmp/i5_weekly_observe.log

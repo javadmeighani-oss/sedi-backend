@@ -5,14 +5,15 @@ set -Eeuo pipefail
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 s() { echo "I5_WEEKLY|$1|$2"; }
 
-WAIT_SEC="${WAIT_SEC:-180}"
+WAIT_SEC="${WAIT_SEC:-360}"
 SOAK_SEC="${SOAK_SEC:-180}"
 MARK="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 s "observe_mark" "${MARK}"
 s "planned_window_note" "deterministic Mon-UTC week bucket"
 s "wait_sec" "${WAIT_SEC}"
 s "soak_sec" "${SOAK_SEC}"
-# Enable may have already scheduled first fire ~120s earlier; search a 20m window.
+s "container_started_at" "$(docker inspect sedi-backend --format '{{.State.StartedAt}}' 2>/dev/null || echo unknown)"
+s "pre_wait_weekly_log_tail" "$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler|Sedi Scheduler' | tail -n 8 | tr '\n' ' ' || true)"
 
 docker exec -i sedi-backend python - <<'PY'
 from backend.app.database import get_db
@@ -41,7 +42,7 @@ PY
 FOUND=0
 ELAPSED_WAIT=0
 while [ "${ELAPSED_WAIT}" -lt "${WAIT_SEC}" ]; do
-  LINE="$(docker logs sedi-backend --since 30m 2>&1 | grep -E 'weekly_international_knowledge_crawler outcome=' | tail -n1 || true)"
+  LINE="$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler outcome=' | tail -n1 || true)"
   if [ -n "${LINE}" ]; then
     s "scheduler_tick_line" "${LINE}"
     FOUND=1
@@ -53,6 +54,23 @@ done
 if [ "${FOUND}" != "1" ]; then
   s "first_scheduled_weekly_run" "NO"
   s "trigger_source" "NONE"
+  s "diag_weekly_logs" "$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler' | tail -n 20 | tr '\n' ' ; ' || true)"
+  docker exec -i sedi-backend python - <<'PY' || true
+from backend.app.database import get_db
+import backend.app.models as models
+db = next(get_db())
+try:
+    rows = db.query(models.WeeklyKnowledgeRun).order_by(models.WeeklyKnowledgeRun.id.desc()).limit(8).all()
+    for r in rows:
+        print(
+            "I5_WEEKLY|diag_run|"
+            f"id={getattr(r,'id',None)} status={getattr(r,'status',None)} "
+            f"key={getattr(r,'logical_run_key',None)} trigger={getattr(r,'trigger_type',None)} "
+            f"started={getattr(r,'started_at',None)}"
+        )
+finally:
+    db.close()
+PY
   exit 20
 fi
 s "first_scheduled_weekly_run" "PASS"

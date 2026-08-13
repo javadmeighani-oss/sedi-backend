@@ -387,6 +387,40 @@ def test_weekly_first_run_delay_seconds_bounded(monkeypatch):
     assert weekly_first_run_delay_seconds() == 600
 
 
+def test_weekly_first_run_at_is_tehran_aware_and_future():
+    from datetime import datetime
+
+    from backend.app.services.i5.governed_weekly_runtime import (
+        weekly_first_run_at,
+        weekly_scheduler_tz,
+    )
+
+    tz = weekly_scheduler_tz()
+    target = weekly_first_run_at(120)
+    assert target.tzinfo is not None
+    assert getattr(target.tzinfo, "zone", None) == "Asia/Tehran"
+    delta = (target - datetime.now(tz)).total_seconds()
+    assert 100 <= delta <= 140
+
+
+def test_weekly_first_run_at_naive_now_localized_as_tehran_not_utc():
+    from datetime import datetime, timezone
+
+    from backend.app.services.i5.governed_weekly_runtime import weekly_first_run_at
+
+    naive = datetime(2026, 8, 13, 8, 56, 0)
+    target = weekly_first_run_at(120, now=naive)
+    assert target.tzinfo is not None
+    assert target.hour == 8
+    assert target.minute == 58
+    offset = target.utcoffset()
+    assert offset is not None
+    assert offset.total_seconds() in {3.5 * 3600, 4.5 * 3600}
+    utc_misread = datetime(2026, 8, 13, 8, 58, 0, tzinfo=timezone.utc)
+    assert target != utc_misread
+    assert target.utcoffset() != utc_misread.utcoffset()
+
+
 def test_xxe_and_malformed_xml_blocked():
     with pytest.raises(ConnectorHttpError, match="XXE"):
         safe_parse_xml(b'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><a>&xxe;</a>')

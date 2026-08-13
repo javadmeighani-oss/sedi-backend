@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
 
+import pytz
 from sqlalchemy import text
 
 from backend.app.services.governance import kb_b2_source_profile_persistence as gsp_persist
@@ -859,6 +860,31 @@ def weekly_first_run_delay_seconds() -> Optional[int]:
     return max(30, min(600, value))
 
 
+WEEKLY_SCHEDULER_TIMEZONE_NAME = "Asia/Tehran"
+
+
+def weekly_scheduler_tz():
+    """APScheduler timezone for the weekly job. Must match scheduler.py."""
+    return pytz.timezone(WEEKLY_SCHEDULER_TIMEZONE_NAME)
+
+
+def weekly_first_run_at(delay_sec: int, *, now: Optional[datetime] = None) -> datetime:
+    """Return a timezone-aware first-fire instant in the weekly scheduler TZ.
+
+    Naive datetimes are localized as Asia/Tehran, never treated as UTC.
+    A UTC-container datetime.now() passed to APScheduler(Asia/Tehran) as naive
+    next_run_time is ~3.5h in the past and is misfire-skipped.
+    """
+    tz = weekly_scheduler_tz()
+    if now is None:
+        aware_now = datetime.now(tz)
+    elif now.tzinfo is None:
+        aware_now = tz.localize(now)
+    else:
+        aware_now = now.astimezone(tz)
+    return aware_now + timedelta(seconds=int(delay_sec))
+
+
 __all__ = [
     "PACKAGE_ID",
     "NHS_SOURCE_KEY",
@@ -881,4 +907,7 @@ __all__ = [
     "run_weekly_scheduled_job",
     "weekly_interval_minutes",
     "weekly_first_run_delay_seconds",
+    "WEEKLY_SCHEDULER_TIMEZONE_NAME",
+    "weekly_scheduler_tz",
+    "weekly_first_run_at",
 ]

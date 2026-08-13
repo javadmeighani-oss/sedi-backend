@@ -553,6 +553,7 @@ def start_scheduler():
 
             from backend.app.services.i5.governed_weekly_runtime import (
                 run_weekly_scheduled_job,
+                weekly_first_run_at,
                 weekly_first_run_delay_seconds,
                 weekly_interval_minutes,
             )
@@ -562,18 +563,30 @@ def start_scheduler():
             )
 
             def _weekly_orchestrator_tick():
-                outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
-                print(
-                    "[Sedi Scheduler] weekly_international_knowledge_crawler "
-                    f"outcome={outcome.outcome} activation={weekly_orchestrator_enabled()} "
-                    f"network={outcome.network_executed} detail={outcome.detail}"
-                )
+                try:
+                    outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+                    print(
+                        "[Sedi Scheduler] weekly_international_knowledge_crawler "
+                        f"outcome={outcome.outcome} activation={weekly_orchestrator_enabled()} "
+                        f"network={outcome.network_executed} detail={outcome.detail}",
+                        flush=True,
+                    )
+                except Exception as exc:
+                    print(
+                        "[Sedi Scheduler] weekly_international_knowledge_crawler "
+                        f"outcome=TICK_ERROR activation={weekly_orchestrator_enabled()} "
+                        f"network=false detail={type(exc).__name__}",
+                        flush=True,
+                    )
+                    raise
 
             weekly_interval_min = weekly_interval_minutes()
             first_delay_sec = weekly_first_run_delay_seconds()
             add_kwargs = {}
+            first_at = None
             if first_delay_sec is not None and weekly_orchestrator_enabled():
-                add_kwargs["next_run_time"] = datetime.now() + timedelta(seconds=first_delay_sec)
+                first_at = weekly_first_run_at(first_delay_sec)
+                add_kwargs["next_run_time"] = first_at
             scheduler.add_job(
                 _weekly_orchestrator_tick,
                 "interval",
@@ -589,7 +602,9 @@ def start_scheduler():
                 "[Sedi Scheduler] weekly_international_knowledge_crawler registered "
                 f"interval_min={weekly_interval_min} "
                 f"enabled={weekly_orchestrator_enabled()} "
-                f"first_run_delay_sec={first_delay_sec if first_delay_sec is not None else 'none'}"
+                f"first_run_delay_sec={first_delay_sec if first_delay_sec is not None else 'none'} "
+                f"first_run_at={first_at.isoformat() if first_at is not None else 'none'}",
+                flush=True,
             )
         except Exception as e:
             print(f"[Sedi Scheduler] weekly orchestrator dormant wiring failed: {e}")
