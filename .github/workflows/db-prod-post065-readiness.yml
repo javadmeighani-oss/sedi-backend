@@ -639,12 +639,13 @@ jobs:
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/i5/i5_weekly_canary_observe_remote.sh \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh"
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=40 \
+            -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
-             WAIT_SEC=420 \
-             SOAK_SEC=480 \
+             WAIT_SEC=180 \
+             SOAK_SEC=180 \
              bash $(printf '%q' "${REMOTE_DIR}/i5_weekly_canary_observe_remote.sh")" \
             2>&1 | tee /tmp/i5_weekly_observe.log
           grep -Fq 'I5_WEEKLY|first_scheduled_weekly_run|PASS' /tmp/i5_weekly_observe.log

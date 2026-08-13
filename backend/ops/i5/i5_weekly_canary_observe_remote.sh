@@ -5,8 +5,8 @@ set -Eeuo pipefail
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 s() { echo "I5_WEEKLY|$1|$2"; }
 
-WAIT_SEC="${WAIT_SEC:-420}"
-SOAK_SEC="${SOAK_SEC:-480}"
+WAIT_SEC="${WAIT_SEC:-180}"
+SOAK_SEC="${SOAK_SEC:-180}"
 MARK="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 s "observe_mark" "${MARK}"
 s "planned_window_note" "deterministic Mon-UTC week bucket"
@@ -39,14 +39,16 @@ finally:
 PY
 
 FOUND=0
-for i in $(seq 1 "${WAIT_SEC}"); do
-  LINE="$(docker logs sedi-backend --since 20m 2>&1 | grep -E 'weekly_international_knowledge_crawler outcome=' | tail -n1 || true)"
+ELAPSED_WAIT=0
+while [ "${ELAPSED_WAIT}" -lt "${WAIT_SEC}" ]; do
+  LINE="$(docker logs sedi-backend --since 30m 2>&1 | grep -E 'weekly_international_knowledge_crawler outcome=' | tail -n1 || true)"
   if [ -n "${LINE}" ]; then
     s "scheduler_tick_line" "${LINE}"
     FOUND=1
     break
   fi
-  sleep 1
+  sleep 5
+  ELAPSED_WAIT=$((ELAPSED_WAIT + 5))
 done
 if [ "${FOUND}" != "1" ]; then
   s "first_scheduled_weekly_run" "NO"
