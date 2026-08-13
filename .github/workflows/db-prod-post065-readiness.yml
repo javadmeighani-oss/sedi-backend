@@ -378,7 +378,8 @@ jobs:
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/i5/i5_failclose_nf16_oneshot_remote.sh \
-            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/i5_failclose_nf16_oneshot_remote.sh"
+            backend/ops/i5/i5_oneshot_inproc.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/i5_failclose_nf16_oneshot_remote.sh") && \
