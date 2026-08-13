@@ -102,7 +102,7 @@ def distill_official_html(html: str, *, cell: Catalog12CellAuthority) -> dict[st
 def ensure_catalog12_source(db: Session, cell_id: str) -> models.GovernedSourceProfile:
     cell = cell_by_id(cell_id)
     key = f"know01:{cell.source_key}"
-    gsp = ensure_gsp(db, canonical_key=key, locator=cell.canonical_home)
+    gsp = ensure_gsp(db, canonical_key=key, locator=cell.canary_url)
     gsp.registry_state = "ACTIVE"
     gsp.operational_status = "active"
     gsp.runtime_eligibility = "REVIEW_REQUIRED"
