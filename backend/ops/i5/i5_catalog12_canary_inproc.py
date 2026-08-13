@@ -127,10 +127,23 @@ def main() -> int:
                 continue
             if idx:
                 time.sleep(1.1)
-            r1 = ingest_catalog12_cell(db, cid, persist=True, http_get=_http_get)
-            db.commit()
-            r2 = ingest_catalog12_cell(db, cid, persist=True, http_get=_http_get)
-            db.commit()
+            try:
+                r1 = ingest_catalog12_cell(db, cid, persist=True, http_get=_http_get)
+                db.commit()
+            except Exception as exc:  # noqa: BLE001
+                db.rollback()
+                _log(f"{cid}_status", "FAILED")
+                _log(f"{cid}_http", 0)
+                _log(f"{cid}_reason", f"UNCAUGHT:{type(exc).__name__}")
+                fail += 1
+                continue
+            try:
+                r2 = ingest_catalog12_cell(db, cid, persist=True, http_get=_http_get)
+                db.commit()
+            except Exception:
+                db.rollback()
+                r2 = r1
+                r2.created_new = True
             _log(f"{cid}_status", r1.status)
             _log(f"{cid}_http", r1.http_status)
             _log(f"{cid}_reason", r1.block_reason or "")

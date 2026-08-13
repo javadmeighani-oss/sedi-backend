@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from html import unescape
 from typing import Any, Callable, Optional
@@ -319,12 +320,28 @@ def ingest_catalog12_cell(
         result.block_reason = "SCHEME_NOT_HTTPS"
         return result
 
-    raw = http_get(
-        cell.canary_url,
-        headers={"User-Agent": "SediKB/1.0 (+https://sedi.health; curated-knowledge-fetch)"},
-        timeout=15.0,
-    )
-    result.request_count = 1
+    last_exc: Optional[str] = None
+    raw = None
+    for attempt in range(1, 4):
+        try:
+            raw = http_get(
+                cell.canary_url,
+                headers={"User-Agent": "SediKB/1.0 (+https://sedi.health; curated-knowledge-fetch)"},
+                timeout=15.0,
+            )
+            last_exc = None
+            result.request_count = attempt
+            break
+        except Exception as exc:  # noqa: BLE001 — bounded canary; classify, do not crash the wave
+            last_exc = f"{type(exc).__name__}:{exc}"[:240]
+            result.request_count = attempt
+            if attempt < 3:
+                time.sleep(1.0)
+                continue
+    if raw is None:
+        result.status = "FAILED"
+        result.block_reason = f"NETWORK_{last_exc or 'UNREACHABLE'}"
+        return result
     if isinstance(raw, dict):
         status = int(raw.get("status_code", 0))
         content = raw.get("content", b"")
