@@ -678,7 +678,6 @@ def ensure_pubmed_official_derived_source(db: Session) -> models.GovernedSourceP
         locator="https://pubmed.ncbi.nlm.nih.gov",
     )
     gsp.registry_state = "ACTIVE"
-    gsp.runtime_eligibility = "ELIGIBLE"
     gsp.operational_status = "active"
     upsert_registry_extension(
         db,
