@@ -68623,3 +68623,135 @@ CRITICAL_PATH_AFTER=NF16 NCBI email/tool secrets then separate Activation Execut
 NOTE=post-§299 final master-log whole-file self-SHA is NOT embedded inside §299.
 SIZE_BEFORE_APPEND=3085982
 SHA256_BEFORE_APPEND=4353CA2510495459D957715F0770448390FD4C970AC46CEAE3397D2D56083901
+
+================================================================================
+§300 - SEDI-V1 I5 NF16 NCBI OPERATIONAL IDENTITY / CANARY-FIRST ACTIVATION GATE-01 HARD STOP
+================================================================================
+RECORDED_AT_UTC=2026-08-13T05:24:15Z
+GATE=SEDI-V1 I5 NF16 NCBI OPERATIONAL IDENTITY / CANARY-FIRST CONTROLLED PRODUCTION ACTIVATION / FIRST GOVERNED LIVE E2E PROOF GATE-01
+GATE_OUTCOME=HARD_STOP / CLOSED_AS_HARD_STOP
+MARKER=NF16_NO_VALID_REAL_NCBI_IDENTITY_NO_INVENTED_EMAIL
+HARD_STOP=YES
+FULL_GATE_CLOSURE=PASS
+TECHNICAL_GREEN=NO
+REFERENCE_CONTINUITY_GREEN=YES
+AUTO_REMEDIATION_CYCLES=0/4
+PRODUCTION_ACTIVATION_EXECUTED=NO
+PRODUCTION_WRITE_FOR_ACTIVATION=NO
+
+--------------------------------------------------------------------------------
+§300.0 - HARD STOP REASON
+--------------------------------------------------------------------------------
+NF16_OPERATIONAL_LIVE_READY=NO
+NCBI_OPERATIONAL_IDENTITY_STATUS=BLOCKED_MISSING_VALID_OPERATIONAL_IDENTITY
+NCBI_CONNECTIVITY_CANARY=NO
+NCBI_SECRET_LEAK_COUNT=0
+STAGE_A=STOPPED
+STAGE_B=NOT_ENTERED
+EMAIL_INVENTED=NO
+GITHUB_SEDI_NCBI_EMAIL_PRESENT=NO
+GITHUB_SEDI_NCBI_TOOL_PRESENT=NO
+GITHUB_SEDI_NCBI_API_KEY_PRESENT=NO
+PRODUCTION_SEDI_NCBI_EMAIL_PRESENT=NO
+PRODUCTION_SEDI_NCBI_TOOL_PRESENT=NO
+PRODUCTION_OTHER_REUSABLE_OPERATIONAL_EMAIL_KEYS=NONE
+AUTHORITY=backend/app/services/i5/know05/ncbi_identity.py forbids .test/example/noreply/invented contacts
+ACTION_NOT_TAKEN=did_not_invent_email; did_not_activate_crawler/RAG/ANN/ingestion
+
+--------------------------------------------------------------------------------
+§300.A - AUTHORITY
+--------------------------------------------------------------------------------
+BRANCH=feature/section15/backend-continuity-foundation
+HEAD_AT_STOP=2be72b9
+PREDECESSOR_MASTER_LOG=§299
+PREDECESSOR_CURSOR=v590
+PREDECESSOR_CHATGPT=v602
+AHEAD_BEHIND_START=0/0
+PROBE_CI=31669417630
+AUTHORITY_RECONSTRUCTION=PASS
+PRODUCTION_ALEMBIC=065_i5_know04_connectors_change_intelligence
+PRODUCTION_PGVECTOR_VERSION=0.8.6
+PRODUCTION_POSTGRES_IMAGE=ghcr.io/javadmeighani-oss/sedi-postgres@sha256:c48c0b16319b2eff51665e3435a5712e93b28b011ee1d879d14738ca4166fc31
+BACKEND_IMAGE=ghcr.io/javadmeighani-oss/sedi-backend:848cab5847b6f4e757ecb4dd37c3e76522d65b81
+BACKEND_DIGEST=sha256:189de4f4e0c0976aaeb0f9f3a7a24a77075e274fb2944335e971b2cb62d2ca2e
+BACKEND_HEALTH_LOCAL=PASS
+BACKEND_HEALTH_PUBLIC=PASS
+KCE_COUNT=0
+USERS_COUNT=6
+PRODUCTION_ROLE_INVARIANTS=PASS
+CANONICAL_065_DR_STILL_VALID=YES (prior §298/§299 evidence; not re-run this Gate)
+
+--------------------------------------------------------------------------------
+§300.B - §299 CAPACITY ENVELOPE PRESERVED
+--------------------------------------------------------------------------------
+APPLICATION_LEVEL_5000_USER_CAPACITY_PROOF=PASS_WITH_MEASURED_ENVELOPE
+REGISTERED_USER_SCALE_TESTED=5000
+MAX_HTTP_CONCURRENT_USERS_STABLE=50
+MAX_HTTP_CONCURRENT_USERS_ATTEMPTED=100
+SUSTAINED_CONCURRENCY=15
+SUSTAINED_LOAD_DURATION_S=900.036
+SUSTAINED_RPS=386.06
+SUSTAINED_P95_MS=62.862
+SUSTAINED_ERRORS=0
+PGVECTOR_EXACT_SEARCH=REVIEW_REQUIRED
+ANN_REQUIRED_NOW=NO
+ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES
+
+--------------------------------------------------------------------------------
+§300.C - ACTIVATION FLAG DRIFT (OBSERVED, NOT MUTATED)
+--------------------------------------------------------------------------------
+FLAG_SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED=true
+FLAG_SEDI_I5_SOURCE_ACTIVATION_ENABLED=true
+FLAG_SEDI_I5_MULTISOURCE_ENABLED=true
+FLAG_SEDI_DISABLE_SCHEDULER=false
+SERVICE_sedi-crawler=absent
+SERVICE_sedi-scheduler=absent
+SERVICE_sedi-rag=absent
+NOTE=In-process APScheduler may be live inside sedi-backend because SEDI_DISABLE_SCHEDULER=false; named crawler/scheduler/rag containers are absent. This Gate did not enable, disable, or fail-close these flags (HARD_STOP before Stage B). Next Gate must reconcile flag drift vs §299 PRODUCTION_SCHEDULER=NO claim.
+
+--------------------------------------------------------------------------------
+§300.D - WHAT WAS NOT DONE
+--------------------------------------------------------------------------------
+CONTROLLED_CANARY_ACTIVATION=NO
+FIRST_GOVERNED_LIVE_E2E=NO
+PRODUCTION_CONNECTOR_ACTIVATION=NO
+PRODUCTION_CRAWLER=NO
+PRODUCTION_KNOWLEDGE_INGESTION=NO
+PRODUCTION_SCHEDULER=NO
+PRODUCTION_RAG=NO
+HNSW_CREATED=NO
+IVFFLAT_CREATED=NO
+MIGRATION_066=NO
+FORCE_PUSH=NO
+
+--------------------------------------------------------------------------------
+§300.E - REQUIRED NEXT INPUT (NOT A NEW GATE AUTHORIZATION)
+--------------------------------------------------------------------------------
+REQUIRED_SECRET=Production and/or GitHub secrets.SEDI_NCBI_EMAIL = real monitored Sedi/Javad-controlled mailbox (not .test/example/noreply)
+REQUIRED_TOOL=SEDI_NCBI_TOOL=sedi (or other stable no-space Sedi identifier)
+OPTIONAL=SEDI_NCBI_API_KEY (not mandatory under current contract)
+THEN=re-enter this Gate from Stage A (identity validate + NCBI connectivity canary) then Stage B bounded canary
+
+--------------------------------------------------------------------------------
+§300.E2 - I5 COMPLETION
+--------------------------------------------------------------------------------
+I5_V1_COMPLETION_ESTIMATE=88
+I5_V1_REMAINING_ESTIMATE=12
+CATALOG_CONTENT_PARTIAL_CELLS=12
+NOTE=implementation/schema/capacity remain closed; operational NF16+bounded live E2E+scheduler reconciliation remain; RAG/ANN are a separate later gate
+
+--------------------------------------------------------------------------------
+§300.F - CONTINUITY
+--------------------------------------------------------------------------------
+CURSOR_HANDOFF=v591
+CHATGPT_CONTINUITY=v603
+NEWCHAT_CONTINUITY=v591
+DROPBOX_FOLDER=C:/Users/Javad Meighandi/Dropbox/Sedi/References/ChatGPT
+DROPBOX_FILENAME=Sedi_ChatGPT_Independent_Continuity_v603_FA.md
+NEXT_GATE=SEDI-V1 I5 NF16 NCBI OPERATIONAL IDENTITY RE-ENTRY + CANARY-FIRST ACTIVATION (SAME SCOPE; REQUIRES REAL EMAIL)
+NEXT_GATE_AUTHORIZED=NO
+CRITICAL_PATH_AFTER=install real SEDI_NCBI_EMAIL+TOOL via established secret path → NF16 LIVE_READY → NCBI canary → reconcile weekly flag drift → bounded canary E2E (RAG/ANN still NO)
+
+NOTE=post-§300 final master-log whole-file self-SHA is NOT embedded inside §300.
+SIZE_BEFORE_APPEND=3091364
+SHA256_BEFORE_APPEND=5F2638872A60DFC48BD530B9B64B3AE5C6CC104F5224373E372F05D8D8324B9C
