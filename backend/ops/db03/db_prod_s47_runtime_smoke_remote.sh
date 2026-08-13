@@ -120,19 +120,33 @@ try:
         s("legacy_freeze_service", "PASS")
 
     def cleanup_user(uid):
-        db.query(models.UserMemoryExportJob).filter(models.UserMemoryExportJob.user_id == uid).delete()
-        db.query(models.UserLifelongProfile).filter(models.UserLifelongProfile.user_id == uid).delete()
-        db.query(models.UserMemoryFact).filter(models.UserMemoryFact.user_id == uid).delete()
+        db.query(models.UserMemoryExportJob).filter(
+            models.UserMemoryExportJob.user_id == uid
+        ).delete(synchronize_session=False)
+        db.query(models.UserLifelongProfile).filter(
+            models.UserLifelongProfile.user_id == uid
+        ).delete(synchronize_session=False)
+        db.query(models.UserMemoryFact).filter(
+            models.UserMemoryFact.user_id == uid
+        ).delete(synchronize_session=False)
         db.query(models.Memory).filter(
             models.Memory.user_id == uid, models.Memory.user_message == "s47 synthetic memory"
-        ).delete()
-        cons = db.query(models.UserConsent).filter(models.UserConsent.subject_user_id == uid).all()
-        for c in cons:
-            db.query(models.UserConsentScope).filter(models.UserConsentScope.consent_id == c.id).delete()
-            db.delete(c)
-        u = db.query(models.User).filter(models.User.id == uid).one_or_none()
-        if u is not None:
-            db.delete(u)
+        ).delete(synchronize_session=False)
+        cons_ids = [
+            c.id
+            for c in db.query(models.UserConsent)
+            .filter(models.UserConsent.subject_user_id == uid)
+            .all()
+        ]
+        if cons_ids:
+            db.query(models.UserConsentScope).filter(
+                models.UserConsentScope.consent_id.in_(cons_ids)
+            ).delete(synchronize_session=False)
+            db.query(models.UserConsent).filter(
+                models.UserConsent.subject_user_id == uid
+            ).delete(synchronize_session=False)
+        db.commit()
+        db.query(models.User).filter(models.User.id == uid).delete(synchronize_session=False)
         db.commit()
 
     def ensure_user(name, lang="en"):
@@ -284,19 +298,8 @@ try:
     s("security_privacy_regression", "NO")
     s("no_phi_in_test_artifacts", "PASS")
 
-    # Cleanup synthetic 067 artifacts + users (S47 only).
-    for uid in (ua.id, ub.id):
-        db.query(models.UserMemoryExportJob).filter(models.UserMemoryExportJob.user_id == uid).delete()
-        db.query(models.UserLifelongProfile).filter(models.UserLifelongProfile.user_id == uid).delete()
-        db.query(models.UserMemoryFact).filter(models.UserMemoryFact.user_id == uid).delete()
-        db.query(models.Memory).filter(models.Memory.user_id == uid, models.Memory.user_message == "s47 synthetic memory").delete()
-        cons = db.query(models.UserConsent).filter(models.UserConsent.subject_user_id == uid).all()
-        for c in cons:
-            db.query(models.UserConsentScope).filter(models.UserConsentScope.consent_id == c.id).delete()
-            db.delete(c)
-        u = db.query(models.User).filter(models.User.id == uid).one()
-        db.delete(u)
-    db.commit()
+    cleanup_user(ua.id)
+    cleanup_user(ub.id)
     s("synthetic_cleanup", "PASS")
 finally:
     db.close()
