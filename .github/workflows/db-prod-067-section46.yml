@@ -1,0 +1,211 @@
+# SECTION46 — Production 067 identity/drift + backup/restore + controlled apply + verify.
+# Sensitive dumps NEVER uploaded. Summary markers only.
+name: DB-PROD-067 Section46 Lifelong Memory
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "IDENTITY_DRIFT | BACKUP_DR | APPLY | VERIFY"
+        required: true
+      confirmation:
+        description: "Phase confirmation token"
+        required: true
+      candidate_image_digest:
+        description: "sha256:... digest of sedi-postgres (BACKUP_DR/VERIFY)"
+        required: false
+        default: "sha256:c48c0b16319b2eff51665e3435a5712e93b28b011ee1d879d14738ca4166fc31"
+      post_067_backup:
+        description: "YES to create post-067 canonical backup+restore during VERIFY"
+        required: false
+        default: "YES"
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  identity_drift:
+    name: Production 067 identity + schema drift (read-only)
+    if: github.event.inputs.phase == 'IDENTITY_DRIFT' && github.event.inputs.confirmation == 'SECTION46_IDENTITY_ONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH identity/drift
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_067_identity_drift_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_067_identity_drift_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_067_identity_drift_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_067_identity_drift_remote.sh")" \
+            2>&1 | tee /tmp/s46_identity.log
+          grep -Fq 'S46|production_identity|PASS' /tmp/s46_identity.log
+          grep -Fq 'S46|production_alembic|065_i5_know04_connectors_change_intelligence' /tmp/s46_identity.log
+          grep -Fq 'S46|identity_drift_complete|YES' /tmp/s46_identity.log
+          if grep -Fq 'S46|production_schema_drift|BLOCKING' /tmp/s46_identity.log; then
+            echo "BLOCKING schema drift"
+            exit 1
+          fi
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s46_identity.log; then
+            echo "SECRET_LEAK"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s46-identity-drift
+          path: /tmp/s46_identity.log
+          retention-days: 14
+
+  backup_dr:
+    name: Canonical pre-067 backup + isolated restore
+    if: github.event.inputs.phase == 'BACKUP_DR' && github.event.inputs.confirmation == 'SECTION46_BACKUP_DR'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate digest
+        env:
+          CAND_D: ${{ github.event.inputs.candidate_image_digest }}
+        run: echo "${CAND_D}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+      - name: SSH backup+DR
+        env:
+          CAND_D: ${{ github.event.inputs.candidate_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          CAND_REF="ghcr.io/javadmeighani-oss/sedi-postgres@${CAND_D}"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_067_backup_dr_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_067_backup_dr_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_067_backup_dr_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             CANDIDATE_IMAGE_REF=$(printf '%q' "${CAND_REF}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_067_backup_dr_remote.sh")" \
+            2>&1 | tee /tmp/s46_dr.log
+          grep -Fq 'S46_DR|canonical_pre_067_backup_created|PASS' /tmp/s46_dr.log
+          grep -Fq 'S46_DR|pre_067_restore_proof|PASS' /tmp/s46_dr.log
+          grep -Fq 'S46_DR|restore_target_is_not_production|YES' /tmp/s46_dr.log
+          grep -Fq 'S46_DR|restored_alembic|065_i5_know04_connectors_change_intelligence' /tmp/s46_dr.log
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s46-pre067-dr
+          path: /tmp/s46_dr.log
+          retention-days: 14
+
+  apply:
+    name: Production migrate 065→067
+    if: github.event.inputs.phase == 'APPLY' && github.event.inputs.confirmation == 'SECTION46_APPLY_065_TO_067'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH apply 067
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_067_migrate_remote.sh \
+            backend/alembic/versions/067_i7_lifelong_memory_foundation.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_067_migrate_remote.sh") && \
+             cp $(printf '%q' "${REMOTE_DIR}/067_i7_lifelong_memory_foundation.py") \
+                $(printf '%q' "${REMOTE_DIR}/_067_i7_lifelong_memory_foundation.py") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_067_migrate_remote.sh")" \
+            2>&1 | tee /tmp/s46_migrate.log
+          grep -Fq 'S46_MIG|production_migration_067|PASS' /tmp/s46_migrate.log
+          grep -Fq 'S46_MIG|production_alembic_after|067_i7_lifelong_memory_foundation' /tmp/s46_migrate.log
+          grep -Fq 'S46_MIG|no_user_row_deletion|PASS' /tmp/s46_migrate.log
+          grep -Fq 'S46_MIG|migration_066|NO' /tmp/s46_migrate.log
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s46-migrate-067
+          path: /tmp/s46_migrate.log
+          retention-days: 14
+
+  verify:
+    name: Post-067 schema/data/health/DR
+    if: github.event.inputs.phase == 'VERIFY' && github.event.inputs.confirmation == 'SECTION46_VERIFY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate digest
+        env:
+          CAND_D: ${{ github.event.inputs.candidate_image_digest }}
+        run: echo "${CAND_D}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+      - name: SSH verify
+        env:
+          CAND_D: ${{ github.event.inputs.candidate_image_digest }}
+          POST_B: ${{ github.event.inputs.post_067_backup }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          CAND_REF="ghcr.io/javadmeighani-oss/sedi-postgres@${CAND_D}"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_067_post_verify_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_067_post_verify_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_067_post_verify_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             CANDIDATE_IMAGE_REF=$(printf '%q' "${CAND_REF}") \
+             POST_067_BACKUP=$(printf '%q' "${POST_B}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_067_post_verify_remote.sh")" \
+            2>&1 | tee /tmp/s46_verify.log
+          grep -Fq 'S46_VER|expected_schema_only|PASS' /tmp/s46_verify.log
+          grep -Fq 'S46_VER|production_alembic_after|067_i7_lifelong_memory_foundation' /tmp/s46_verify.log
+          grep -Fq 'S46_VER|production_health|PASS' /tmp/s46_verify.log
+          grep -Fq 'S46_VER|i8_tables|ABSENT' /tmp/s46_verify.log
+          grep -Fq 'S46_VER|manual_tick_invoked|NO' /tmp/s46_verify.log
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s46-verify-067
+          path: /tmp/s46_verify.log
+          retention-days: 14
