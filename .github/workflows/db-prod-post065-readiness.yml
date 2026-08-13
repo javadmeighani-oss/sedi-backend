@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH | I5_CATALOG12_WAVE1 | I5_CATALOG12_WAVE2 | I5_CATALOG12_WAVE3 | I5_G305_AUDIT | I5_G305_OVERLAY_RECREATE | S46_IDENTITY_DRIFT | S46_BACKUP_DR | S46_APPLY | S46_VERIFY"
+        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH | I5_CATALOG12_WAVE1 | I5_CATALOG12_WAVE2 | I5_CATALOG12_WAVE3 | I5_G305_AUDIT | I5_G305_OVERLAY_RECREATE | S46_IDENTITY_DRIFT | S46_BACKUP_DR | S46_APPLY | S46_VERIFY | S47_REHEARSE | S47_SMOKE"
         required: true
         default: "ALL"
       confirmation:
-        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE or CATALOG12_MASTER_GATE or I5_FINAL_CLOSURE_GATE or SECTION46_IDENTITY_ONLY or SECTION46_BACKUP_DR or SECTION46_APPLY_065_TO_067 or SECTION46_VERIFY"
+        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE or CATALOG12_MASTER_GATE or I5_FINAL_CLOSURE_GATE or SECTION46_IDENTITY_ONLY or SECTION46_BACKUP_DR or SECTION46_APPLY_065_TO_067 or SECTION46_VERIFY or SECTION47_REHEARSE or SECTION47_SMOKE"
         required: true
       candidate_image_digest:
         description: "sha256:... sedi-postgres digest"
@@ -1055,5 +1055,100 @@ jobs:
         with:
           name: s46-verify-067
           path: /tmp/s46_verify.log
+          retention-days: 14
+
+  s47_rehearse:
+    name: Section47 isolated 067 runtime image rehearsal
+    if: github.event.inputs.phase == 'S47_REHEARSE' && github.event.inputs.confirmation == 'SECTION47_REHEARSE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate backend identity
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+      - name: Isolated 067 rehearsal
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+          PG_D: ${{ github.event.inputs.candidate_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          chmod 700 backend/ops/db03/db_prod_s47_image_rehearse.sh
+          BACKEND_IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${TAG}"
+          PG_IMAGE="ghcr.io/javadmeighani-oss/sedi-postgres@${PG_D}"
+          BACKEND_IMAGE="${BACKEND_IMAGE}" PG_IMAGE="${PG_IMAGE}" \
+            bash backend/ops/db03/db_prod_s47_image_rehearse.sh \
+            2>&1 | tee /tmp/s47_rehearse.log
+          grep -Fq 'S47_REHEARSE|image_with_067|PASS' /tmp/s47_rehearse.log
+          grep -Fq 'S47_REHEARSE|i7_jobs_off_proof|PASS' /tmp/s47_rehearse.log
+          grep -Fq 'S47_REHEARSE|legacy_freeze_default|PASS' /tmp/s47_rehearse.log
+          grep -Fq 'S47_REHEARSE|isolated_new_image_rehearsal|PASS' /tmp/s47_rehearse.log
+          grep -Fq "${DIG}" /tmp/s47_rehearse.log || docker image inspect "ghcr.io/javadmeighani-oss/sedi-backend:${TAG}" --format '{{json .RepoDigests}}'
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s47-rehearse
+          path: /tmp/s47_rehearse.log
+          retention-days: 14
+
+  s47_smoke:
+    name: Section47 production runtime smoke
+    if: github.event.inputs.phase == 'S47_SMOKE' && github.event.inputs.confirmation == 'SECTION47_SMOKE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH runtime smoke
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_s47_runtime_smoke_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_s47_runtime_smoke_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_s47_runtime_smoke_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             EXPECTED_IMAGE_TAG=$(printf '%q' "${TAG}") \
+             EXPECTED_IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_s47_runtime_smoke_remote.sh")" \
+            2>&1 | tee /tmp/s47_smoke.log
+          grep -Fq 'S47_SMOKE|production_runtime_alignment|PASS' /tmp/s47_smoke.log
+          grep -Fq 'S47_SMOKE|legacy_fact_write_freeze_live|PASS' /tmp/s47_smoke.log
+          grep -Fq 'S47_SMOKE|two_user_runtime_isolation|PASS' /tmp/s47_smoke.log
+          grep -Fq 'S47_SMOKE|i7_off_fail_closed_proof|PASS' /tmp/s47_smoke.log
+          grep -Fq 'S47_SMOKE|i7_jobs_env_off|PASS' /tmp/s47_smoke.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s47_smoke.log; then
+            echo "SECRET_LEAK"
+            exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s47-smoke
+          path: /tmp/s47_smoke.log
           retention-days: 14
 
