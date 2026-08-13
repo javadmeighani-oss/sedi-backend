@@ -71,6 +71,128 @@ _PD = BookRightsClass.PUBLIC_DOMAIN.value
 _ALLOWED = RightDecision.ALLOWED.value
 _REVIEW = RightDecision.REVIEW_REQUIRED.value
 
+# Action-specific rights. U.S. federal sites are generally U.S. Government works
+# (17 U.S.C. §105) but MAY contain third-party / licensed / trademarked material.
+# Official policy URLs verified 2026-08-13. Do not claim blanket public domain.
+
+
+@dataclass(frozen=True)
+class Catalog12RightsProfile:
+    family: str
+    rights_class: str
+    official_policy_url: str
+    official_policy_org: str
+    third_party_exception_check: str
+    raw_html_retention: str
+    raw_full_text_retention: str
+    derived_knowledge_distillation: str
+    provenance_required: str
+    attribution_requirement: str
+    no_endorsement_implication: str
+    rights_state: str
+
+
+RIGHTS_NCI = Catalog12RightsProfile(
+    family="NCI",
+    rights_class="US_FEDERAL_GOV_CONTENT_GENERALLY_PUBLIC_DOMAIN_WITH_POSSIBLE_THIRD_PARTY_EXCEPTIONS",
+    official_policy_url="https://www.cancer.gov/policies/copyright-reuse",
+    official_policy_org="National Cancer Institute",
+    third_party_exception_check="REQUIRED",
+    raw_html_retention="DENIED_BY_SEDI_CANARY_POLICY",
+    raw_full_text_retention="RIGHTS_DEPENDENT",
+    derived_knowledge_distillation="ALLOWED_WHEN_LAWFUL",
+    provenance_required="YES",
+    attribution_requirement="CREDIT_NCI_AS_SOURCE_AS_APPLICABLE",
+    no_endorsement_implication="YES",
+    rights_state=(
+        "NCI_TEXT_GENERALLY_FREE_OF_COPYRIGHT_UNLESS_OTHERWISE_INDICATED;"
+        "GRAPHICS_MIXED_THIRD_PARTY_POSSIBLE; PDQ_TRADEMARK_RESTRICTED;"
+        "THIRD_PARTY_EXCEPTION_CHECK=REQUIRED; RAW_HTML=DENIED; DERIVED=ALLOWED_WHEN_LAWFUL"
+    ),
+)
+
+RIGHTS_NIH_INSTITUTE = Catalog12RightsProfile(
+    family="NIH_INSTITUTE",
+    rights_class="US_FEDERAL_GOV_CONTENT_GENERALLY_PUBLIC_DOMAIN_WITH_POSSIBLE_THIRD_PARTY_EXCEPTIONS",
+    official_policy_url="https://www.usa.gov/government-copyright",
+    official_policy_org="USAGov / U.S. Government works (17 U.S.C. 105)",
+    third_party_exception_check="REQUIRED",
+    raw_html_retention="DENIED_BY_SEDI_CANARY_POLICY",
+    raw_full_text_retention="RIGHTS_DEPENDENT",
+    derived_knowledge_distillation="ALLOWED_WHEN_LAWFUL",
+    provenance_required="YES",
+    attribution_requirement="AS_APPLICABLE",
+    no_endorsement_implication="YES",
+    rights_state=(
+        "US_GOVERNMENT_WORK_GENERALLY_NOT_SUBJECT_TO_US_COPYRIGHT;"
+        "FEDERAL_SITES_MAY_CONTAIN_THIRD_PARTY_IP_LOGOS_OR_LICENSED_MEDIA;"
+        "THIRD_PARTY_EXCEPTION_CHECK=REQUIRED; RAW_HTML=DENIED; DERIVED=ALLOWED_WHEN_LAWFUL"
+    ),
+)
+
+RIGHTS_CDC = Catalog12RightsProfile(
+    family="CDC",
+    rights_class="US_FEDERAL_GOV_CONTENT_GENERALLY_PUBLIC_DOMAIN_WITH_POSSIBLE_THIRD_PARTY_EXCEPTIONS",
+    official_policy_url="https://www.cdc.gov/other/agencymaterials.html",
+    official_policy_org="Centers for Disease Control and Prevention",
+    third_party_exception_check="REQUIRED",
+    raw_html_retention="DENIED_BY_SEDI_CANARY_POLICY",
+    raw_full_text_retention="RIGHTS_DEPENDENT",
+    derived_knowledge_distillation="ALLOWED_WHEN_LAWFUL",
+    provenance_required="YES",
+    attribution_requirement="SOURCE_CDC_OR_ATSDR_OR_HHS_AS_APPLICABLE",
+    no_endorsement_implication="YES",
+    rights_state=(
+        "CDC_ATSDR_WEBSITE_CONTENT_GENERALLY_PUBLIC_DOMAIN;"
+        "EXCEPTIONS_CONTRACTOR_GRANTEE_LICENSED_THIRD_PARTY_STATE_LOCAL_INTERNATIONAL;"
+        "ATTRIBUTION_AND_NO_ENDORSEMENT_REQUIRED;"
+        "THIRD_PARTY_EXCEPTION_CHECK=REQUIRED; RAW_HTML=DENIED; DERIVED=ALLOWED_WHEN_LAWFUL"
+    ),
+)
+
+RIGHTS_OWH = Catalog12RightsProfile(
+    family="OWH",
+    rights_class="US_FEDERAL_GOV_CONTENT_GENERALLY_PUBLIC_DOMAIN_WITH_POSSIBLE_THIRD_PARTY_EXCEPTIONS",
+    official_policy_url="https://womenshealth.gov/about-us/work-us/collaborate-us",
+    official_policy_org="HHS Office on Women's Health",
+    third_party_exception_check="REQUIRED",
+    raw_html_retention="DENIED_BY_SEDI_CANARY_POLICY",
+    raw_full_text_retention="RIGHTS_DEPENDENT",
+    derived_knowledge_distillation="ALLOWED_WHEN_LAWFUL",
+    provenance_required="YES",
+    attribution_requirement="CITE_WOMENSHEALTH_GOV_APPRECIATED",
+    no_endorsement_implication="YES",
+    rights_state=(
+        "OWH_FEDERAL_HEALTH_TEXT_PUBLIC_DOMAIN;"
+        "NONFEDERAL_LINKED_PUBLICATIONS_NOT_PD; PHOTOGRAPHS_LICENSED_NOT_REUSABLE;"
+        "THIRD_PARTY_EXCEPTION_CHECK=REQUIRED; RAW_HTML=DENIED; DERIVED=ALLOWED_WHEN_LAWFUL"
+    ),
+)
+
+_RIGHTS_BY_FAMILY = {
+    "NCI": RIGHTS_NCI,
+    "NIH_INSTITUTE": RIGHTS_NIH_INSTITUTE,
+    "CDC": RIGHTS_CDC,
+    "OWH": RIGHTS_OWH,
+}
+
+
+def rights_family_for(cell: "Catalog12CellAuthority") -> str:
+    domain = (cell.primary_domain or "").strip().lower()
+    if domain == "cancer.gov":
+        return "NCI"
+    if domain == "womenshealth.gov":
+        return "OWH"
+    if domain == "cdc.gov" or domain.endswith(".cdc.gov"):
+        return "CDC"
+    if domain.endswith(".nih.gov") or domain == "nih.gov":
+        return "NIH_INSTITUTE"
+    raise ValueError(f"no_rights_family_for_domain:{domain}")
+
+
+def rights_profile_for(cell: "Catalog12CellAuthority") -> Catalog12RightsProfile:
+    return _RIGHTS_BY_FAMILY[rights_family_for(cell)]
+
 
 CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
     Catalog12CellAuthority(
@@ -86,7 +208,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.cancer.gov/publications/pdq",
@@ -113,7 +235,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.nhlbi.nih.gov/health/lungs/lung-health",
@@ -140,7 +262,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.niddk.nih.gov/health-information/kidney-disease",
@@ -167,7 +289,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.niams.nih.gov/health-topics/arthritis",
@@ -194,7 +316,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.niams.nih.gov/health-topics/skin-diseases",
@@ -221,7 +343,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.nei.nih.gov/learn-about-eye-health",
@@ -248,7 +370,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.nidcr.nih.gov/health-info",
@@ -275,7 +397,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.womenshealth.gov/menopause",
@@ -302,7 +424,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.cdc.gov/child-development/index.html",
@@ -329,7 +451,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="cdc_yellow_book",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.cdc.gov/ncezid/topics-programs/index.html",
@@ -356,7 +478,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.cancer.gov/publications/pdq/information-summaries/supportive-care",
@@ -383,7 +505,7 @@ CATALOG12_CELLS: Sequence[Catalog12CellAuthority] = (
         secondary_authority="NONE",
         access_route="OFFICIAL_PUBLIC_WEB",
         automation_state="ONE_SHOT_CANARY_ALLOWED",
-        rights_state="US_GOV_PUBLIC_DOMAIN_TEXT; RAW_HTML=NO; DERIVED=YES",
+        rights_state="ACTION_SPECIFIC_SEE_RIGHTS_PROFILE",
         raw_retention="DENIED",
         derived_retention="ALLOWED",
         canary_url="https://www.cdc.gov/niosh/",
@@ -457,7 +579,8 @@ def catalog12_registry_seeds() -> Tuple[Dict[str, object], ...]:
                 },
                 "notes": (
                     f"CATALOG12_{cell.cell_id}; UNATTENDED_WEEKLY_ENABLED=NO; "
-                    "ONE_SHOT_CANARY_ALLOWED=YES; RAW_HTML=DENIED; DERIVED=ALLOWED"
+                    "ONE_SHOT_CANARY_ALLOWED=YES; RAW_HTML=DENIED; "
+                    "DERIVED=ALLOWED_WHEN_LAWFUL; THIRD_PARTY_EXCEPTION_CHECK=REQUIRED"
                 ),
             }
         )
@@ -465,6 +588,7 @@ def catalog12_registry_seeds() -> Tuple[Dict[str, object], ...]:
 
 
 def scorecard(cell: Catalog12CellAuthority) -> Dict[str, str]:
+    profile = rights_profile_for(cell)
     return {
         "CELL_ID": cell.cell_id,
         "CELL_NAME": cell.cell_name,
@@ -476,7 +600,17 @@ def scorecard(cell: Catalog12CellAuthority) -> Dict[str, str]:
         "SECONDARY_AUTHORITY": cell.secondary_authority,
         "ACCESS_ROUTE": cell.access_route,
         "AUTOMATION_STATE": cell.automation_state,
-        "RIGHTS_STATE": cell.rights_state,
+        "RIGHTS_STATE": profile.rights_state,
+        "RIGHTS_CLASS": profile.rights_class,
+        "RIGHTS_FAMILY": profile.family,
+        "OFFICIAL_POLICY_URL": profile.official_policy_url,
+        "THIRD_PARTY_EXCEPTION_CHECK": profile.third_party_exception_check,
+        "RAW_HTML_RETENTION": profile.raw_html_retention,
+        "RAW_FULL_TEXT_RETENTION": profile.raw_full_text_retention,
+        "DERIVED_KNOWLEDGE_DISTILLATION": profile.derived_knowledge_distillation,
+        "PROVENANCE_REQUIRED": profile.provenance_required,
+        "ATTRIBUTION_REQUIREMENT": profile.attribution_requirement,
+        "NO_ENDORSEMENT_IMPLICATION": profile.no_endorsement_implication,
         "RAW_RETENTION": cell.raw_retention,
         "DERIVED_RETENTION": cell.derived_retention,
         "UNATTENDED_WEEKLY_ENABLED": "NO",
@@ -485,8 +619,10 @@ def scorecard(cell: Catalog12CellAuthority) -> Dict[str, str]:
         "CURRENT_SPECIALTY_AUTHORITY": cell.primary_authority,
         "CURRENT_CONTENT_STATUS": "LIVE_OFFICIAL_PUBLIC_PAGES_VERIFIED_2026_08_13",
         "CURRENT_API_FEED_DATASET_STATE": "PUBLIC_HTML_OFFICIAL_PAGES",
-        "CURRENT_TERMS": "US_FEDERAL_PUBLIC_DOMAIN_TEXT_ATTRIBUTION_APPRECIATED",
+        "CURRENT_TERMS": profile.rights_state,
         "CURRENT_AUTOMATION_STATE": "BOUNDED_ONE_SHOT_ONLY",
-        "CURRENT_RIGHTS_STATE": cell.rights_state,
+        "CURRENT_RIGHTS_STATE": profile.rights_state,
         "CURRENT_UPDATE_STATE": "LIVING_FEDERAL_HEALTH_INFORMATION",
+        "CATALOG12_DATA_REPAIR_REQUIRED": "NO",
+        "SOURCE_REFETCH_REQUIRED": "NO",
     }
