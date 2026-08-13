@@ -21,6 +21,10 @@ on:
       - "backend/tests/test_i7_period_summaries.py"
       - "backend/tests/test_i8_nutrition_failclose.py"
       - "backend/tests/test_i7_period_summary_jobs.py"
+      - "backend/tests/test_i7_section44_storage_model.py"
+      - "backend/tests/test_i7_section44_design_contracts.py"
+      - "backend/app/services/i7/storage_capacity_model.py"
+      - "docs/architecture/section44/**"
       - "backend/tests/section42_sqlite_harness.py"
       - "backend/tests/test_i5_know04_live_canaries.py"
       - "backend/tests/test_i5_know03_studies_effects.py"
@@ -198,6 +202,8 @@ jobs:
             backend/tests/test_i7_period_summaries.py \
             backend/tests/test_i8_nutrition_failclose.py \
             backend/tests/test_i7_period_summary_jobs.py \
+            backend/tests/test_i7_section44_storage_model.py \
+            backend/tests/test_i7_section44_design_contracts.py \
             backend/tests/test_i5_know03_studies_effects.py \
             backend/tests/test_i5_know02_artifacts_taxonomy.py \
             backend/tests/test_i5_know01_source_registry.py \
