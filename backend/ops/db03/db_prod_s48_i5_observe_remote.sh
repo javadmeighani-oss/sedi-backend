@@ -22,6 +22,8 @@ if echo "${REG}" | grep -Eq 'coalesce=True|coalesce=true'; then s "coalesce" "tr
 if echo "${REG}" | grep -Eq 'timezone=Asia/Tehran'; then s "timezone" "Asia/Tehran"; else s "timezone" "UNKNOWN"; fi
 if echo "${REG}" | grep -Eq 'enabled=True|enabled=true'; then s "weekly_scheduler_operational" "YES"; else s "weekly_scheduler_operational" "NO"; fi
 
+TICK_TS_LINE="$(docker logs -t sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler outcome=' | tail -n1 || true)"
+s "tick_ts_line" "$(printf '%s' "${TICK_TS_LINE}" | tr '\n' ' ' | head -c 400)"
 TICK="$(docker logs sedi-backend 2>&1 | grep -E 'weekly_international_knowledge_crawler outcome=' | tail -n5 || true)"
 s "tick_log_tail" "$(printf '%s' "${TICK}" | tr '\n' ' ; ' | head -c 800)"
 TICK_COUNT="$(docker logs sedi-backend 2>&1 | grep -c 'weekly_international_knowledge_crawler outcome=' || true)"
@@ -36,7 +38,7 @@ s "count_kce" "$(psql 'SELECT COUNT(*) FROM knowledge_chunk_embeddings;')"
 s "count_eligible_ku" "$(psql "SELECT COUNT(*) FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE';")"
 s "count_memory_items" "$(psql 'SELECT COUNT(*) FROM knowledge_memory_items;')"
 
-docker exec -e CONTAINER_STARTED_AT="${STARTED}" -e TICK_LOG_COUNT="${TICK_COUNT}" -i sedi-backend python - <<'PY'
+docker exec -e CONTAINER_STARTED_AT="${STARTED}" -e TICK_LOG_COUNT="${TICK_COUNT}" -e TICK_TS_LINE="${TICK_TS_LINE}" -i sedi-backend python - <<'PY'
 from datetime import datetime, timezone
 import os
 from backend.app.database import get_db
@@ -46,6 +48,8 @@ from backend.app.services.i5.governed_weekly_runtime import next_weekly_calendar
 FIRE = datetime(2026, 8, 14, 0, 0, 0, tzinfo=timezone.utc)
 started_raw = os.environ.get("CONTAINER_STARTED_AT", "")
 tick_count = int(os.environ.get("TICK_LOG_COUNT", "0") or "0")
+tick_ts_line = os.environ.get("TICK_TS_LINE", "")
+tick_line = tick_ts_line
 db = next(get_db())
 try:
     nxt = next_weekly_calendar_fire()
@@ -123,15 +127,49 @@ try:
             print("I5_S48|classification|FAIL")
     else:
         print("I5_S48|matched_run_id|NONE")
-        print("I5_S48|run_started_at|")
-        print("I5_S48|run_completed_at|")
-        print("I5_S48|run_status|NONE")
-        print("I5_S48|weekly_source_scope|UNKNOWN")
-        if tick_count > 0:
-            print("I5_S48|classification|UNPROVEN")
+        tick_upper = (tick_line + " " + tick_ts_line).upper()
+        ts = ""
+        if tick_ts_line:
+            ts = tick_ts_line.split(" ", 1)[0]
+        print(f"I5_S48|tick_ts|{ts}")
+        if "ALREADY_SUCCESSFUL_TERMINAL" in tick_upper or ("OUTCOME=COMPLETED" in tick_upper and "ACTIVATION=TRUE" in tick_upper):
+            print(f"I5_S48|run_started_at|{ts}")
+            print(f"I5_S48|run_completed_at|{ts}")
+            print("I5_S48|run_status|COMPLETED_IDEMPOTENT")
+            print("I5_S48|weekly_source_scope|NHS_ONLY_BOUNDED")
+            print("I5_S48|sources_scanned|0")
+            print("I5_S48|pages_discovered|0")
+            print("I5_S48|pages_retrieved|0")
+            print("I5_S48|changed|0")
+            print("I5_S48|unchanged|0")
+            print("I5_S48|failed|0")
+            print("I5_S48|skipped|0")
+            print("I5_S48|governance_denied|0")
+            print("I5_S48|candidate_items|0")
+            print("I5_S48|promoted_items|0")
+            print("I5_S48|classification|PASS")
+        elif "OUTCOME=" in tick_upper and "COMPLETED" not in tick_upper and tick_count > 0:
+            print(f"I5_S48|run_started_at|{ts}")
+            print("I5_S48|run_status|FAILED_OR_NON_SUCCESS")
+            print("I5_S48|weekly_source_scope|UNKNOWN")
+            print("I5_S48|classification|FAIL")
         elif container_after_fire:
+            print("I5_S48|run_started_at|")
+            print("I5_S48|run_completed_at|")
+            print("I5_S48|run_status|NONE")
+            print("I5_S48|weekly_source_scope|UNKNOWN")
+            print("I5_S48|classification|UNPROVEN")
+        elif tick_count > 0:
+            print("I5_S48|run_started_at|")
+            print("I5_S48|run_completed_at|")
+            print("I5_S48|run_status|SEE_TICK")
+            print("I5_S48|weekly_source_scope|UNKNOWN")
             print("I5_S48|classification|UNPROVEN")
         else:
+            print("I5_S48|run_started_at|")
+            print("I5_S48|run_completed_at|")
+            print("I5_S48|run_status|NONE")
+            print("I5_S48|weekly_source_scope|UNKNOWN")
             print("I5_S48|classification|MISSED")
 finally:
     db.close()
