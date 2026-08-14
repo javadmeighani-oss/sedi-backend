@@ -19,6 +19,7 @@ from backend.app.services.i7.jobs import (
     REQUIRED_OBS_FIELDS,
     closed_period_anchor,
     format_i7_run_log,
+    next_cron_fire,
     period_summary_cron_kwargs,
     period_summary_jobs_enabled,
     run_period_summary_sweep,
@@ -95,6 +96,11 @@ def test_i7_closed_period_is_previous_window():
     assert anchor.day == 13
 
 
+def test_i7_next_cron_fire_daily_tehran():
+    nxt = next_cron_fire("DAILY", now=datetime(2026, 8, 14, 13, 0, 0))
+    assert nxt == "2026-08-14T20:40:00Z"
+
+
 def test_i6_history_and_export_are_not_diagnosis(db):
     user = _user(db, "i6-hist")
     grant_memory_consent(db, user.id, commit=True)
@@ -120,7 +126,9 @@ def test_scheduler_registers_i7_jobs():
     assert "i7 period summary jobs registered" in src
     assert "I7_JOB_REGISTERED" in src
     assert "format_i7_run_log" in src
+    assert "next_cron_fire" in src
     assert "misfire_grace_time=3600" in src
+    assert "job.next_run_time" not in src
 
 
 def test_i7_idempotent_rebuild_same_payload(db):

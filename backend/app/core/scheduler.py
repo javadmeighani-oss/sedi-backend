@@ -612,6 +612,7 @@ def start_scheduler():
                 WEEKLY_JOB_ID,
                 YEARLY_JOB_ID,
                 format_i7_run_log,
+                next_cron_fire,
                 period_summary_cron_kwargs,
                 period_summary_jobs_enabled,
                 run_period_summary_sweep,
@@ -620,10 +621,8 @@ def start_scheduler():
             def _i7_summary_tick(summary_type: str):
                 job_id = JOB_IDS[summary_type]
                 job = scheduler.get_job(job_id)
-                next_run = ""
+                next_run = next_cron_fire(summary_type)
                 scheduled = ""
-                if job is not None and job.next_run_time is not None:
-                    next_run = job.next_run_time.isoformat()
                 if job is not None and getattr(job, "trigger", None) is not None:
                     scheduled = str(job.trigger)
                 if not period_summary_jobs_enabled():
@@ -674,7 +673,7 @@ def start_scheduler():
                     kwargs={"summary_type": _kind},
                     **period_summary_cron_kwargs(_kind),
                 )
-                nxt = job.next_run_time.isoformat() if job.next_run_time else ""
+                nxt = next_cron_fire(_kind)
                 print(
                     "I7_JOB_REGISTERED "
                     f"job_id={job.id} trigger=cron timezone={JOB_TIMEZONE} "

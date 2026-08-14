@@ -87,6 +87,32 @@ def period_summary_cron_kwargs(summary_type: str) -> dict[str, object]:
     }
 
 
+def next_cron_fire(summary_type: str, *, now: Optional[datetime] = None) -> str:
+    """Next cron fire as UTC ISO. Does not use APScheduler Job.next_run_time."""
+    from apscheduler.triggers.cron import CronTrigger
+
+    kw = period_summary_cron_kwargs(summary_type)
+    trigger_kw = {
+        k: v
+        for k, v in kw.items()
+        if k in {"hour", "minute", "day_of_week", "day", "month", "timezone"}
+    }
+    trigger = CronTrigger(**trigger_kw)
+    tz = SUMMARY_TZ
+    if now is None:
+        aware = datetime.now(tz)
+    elif now.tzinfo is None:
+        aware = tz.localize(now)
+    else:
+        aware = now.astimezone(tz)
+    nxt = trigger.get_next_fire_time(None, aware)
+    if nxt is None:
+        return ""
+    if nxt.tzinfo is None:
+        nxt = tz.localize(nxt)
+    return nxt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def closed_period_anchor(summary_type: str, *, now: Optional[datetime] = None) -> datetime:
     """Instant inside the just-closed period so rebuild targets completed windows."""
     tz = SUMMARY_TZ
