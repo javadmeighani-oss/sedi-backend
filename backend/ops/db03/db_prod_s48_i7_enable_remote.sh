@@ -125,7 +125,14 @@ else
   s "sedi_i7_period_summary_jobs_enabled" "OFF"
 fi
 
-sleep 3
+sleep 2
+for i in $(seq 1 30); do
+  REG_COUNT="$(docker logs sedi-backend 2>&1 | grep -c 'I7_JOB_REGISTERED ' || true)"
+  if [ "${REG_COUNT}" -ge 4 ]; then
+    break
+  fi
+  sleep 2
+done
 for kind in daily weekly monthly yearly; do
   LINE="$(docker logs sedi-backend 2>&1 | grep -E "I7_JOB_REGISTERED .*job_id=i7_period_summary_${kind}" | tail -n1 || true)"
   s "job_${kind}" "${LINE:-MISSING}"
@@ -135,6 +142,11 @@ for kind in daily weekly monthly yearly; do
   echo "${LINE}" | grep -Fq "max_instances=1"
   echo "${LINE}" | grep -Eq "coalesce=true"
 done
+if docker logs sedi-backend 2>&1 | grep -Fq 'i7 period summary job wiring failed'; then
+  s "i7_wiring" "FAIL"
+  docker logs sedi-backend 2>&1 | grep -E 'i7 period summary|I7_JOB' | tail -n 20 | sed 's/^/S48_I7|sched_log|/'
+  exit 18
+fi
 s "scheduler_registration" "PASS"
 s "manual_tick_invoked" "NO"
 s "enable_complete" "YES"

@@ -8,6 +8,7 @@ s "manual_tick_invoked" "NO"
 s "backend_started_at" "$(docker inspect sedi-backend --format '{{.State.StartedAt}}')"
 EFFECTIVE="$(docker exec sedi-backend printenv SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED || true)"
 s "effective_runtime_flag" "${EFFECTIVE:-UNSET}"
+s "sched_log_tail" "$(docker logs sedi-backend 2>&1 | grep -E 'Sedi Scheduler|I7_JOB_REGISTERED|^I7_RUN |wiring failed' | tail -n 30 | tr '\n' ' ; ' | head -c 1200)"
 
 for kind in daily weekly monthly yearly; do
   LINE="$(docker logs sedi-backend 2>&1 | grep -E "I7_JOB_REGISTERED .*job_id=i7_period_summary_${kind}" | tail -n1 || true)"
