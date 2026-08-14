@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH | I5_CATALOG12_WAVE1 | I5_CATALOG12_WAVE2 | I5_CATALOG12_WAVE3 | I5_G305_AUDIT | I5_G305_OVERLAY_RECREATE | S46_IDENTITY_DRIFT | S46_BACKUP_DR | S46_APPLY | S46_VERIFY | S47_REHEARSE | S47_SMOKE"
+        description: "AUDIT | BACKUP_DR | CAPACITY | ALL | I5_DRIFT_AUDIT | I5_FAILCLOSE_ONESHOT | I5_ALL | I5_KNOW05_REHEARSAL | I5_KNOW05_PREFLIGHT | I5_KNOW05_CANARY | I5_WEEKLY_CANARY_ENABLE | I5_WEEKLY_CANARY_OBSERVE | I5_WEEKLY_KILL_SWITCH | I5_CATALOG12_WAVE1 | I5_CATALOG12_WAVE2 | I5_CATALOG12_WAVE3 | I5_G305_AUDIT | I5_G305_OVERLAY_RECREATE | S46_IDENTITY_DRIFT | S46_BACKUP_DR | S46_APPLY | S46_VERIFY | S47_REHEARSE | S47_SMOKE | S48_PREFLIGHT | S48_I5_OBSERVE | S48_REHEARSE | S48_I7_ENABLE | S48_I7_DISABLE | S48_I7_OBSERVE"
         required: true
         default: "ALL"
       confirmation:
-        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE or CATALOG12_MASTER_GATE or I5_FINAL_CLOSURE_GATE or SECTION46_IDENTITY_ONLY or SECTION46_BACKUP_DR or SECTION46_APPLY_065_TO_067 or SECTION46_VERIFY or SECTION47_REHEARSE or SECTION47_SMOKE"
+        description: "POST065_READINESS_ONLY or I5_FAILCLOSE_NF16_ONESHOT or I5_KNOW05_IMAGE_ALIGN or I5_WEEKLY_CANARY_ACTIVATE or CATALOG12_MASTER_GATE or I5_FINAL_CLOSURE_GATE or SECTION46_IDENTITY_ONLY or SECTION46_BACKUP_DR or SECTION46_APPLY_065_TO_067 or SECTION46_VERIFY or SECTION47_REHEARSE or SECTION47_SMOKE or SECTION48_PREFLIGHT or SECTION48_I5_OBSERVE or SECTION48_REHEARSE or SECTION48_I7_ENABLE or SECTION48_I7_DISABLE or SECTION48_I7_OBSERVE"
         required: true
       candidate_image_digest:
         description: "sha256:... sedi-postgres digest"
@@ -1151,4 +1151,246 @@ jobs:
           name: s47-smoke
           path: /tmp/s47_smoke.log
           retention-days: 14
+
+  s48_preflight:
+    name: Section48 production read-only preflight
+    if: github.event.inputs.phase == 'S48_PREFLIGHT' && github.event.inputs.confirmation == 'SECTION48_PREFLIGHT'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH preflight
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_s48_preflight_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_s48_preflight_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_s48_preflight_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_s48_preflight_remote.sh")" \
+            2>&1 | tee /tmp/s48_preflight.log
+          grep -Fq 'S48_PREFLIGHT|production_alembic|067_i7_lifelong_memory_foundation' /tmp/s48_preflight.log
+          grep -Fq 'S48_PREFLIGHT|api_health|PASS' /tmp/s48_preflight.log
+          grep -Fq 'S48_PREFLIGHT|preflight_complete|YES' /tmp/s48_preflight.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s48_preflight.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s48-preflight
+          path: /tmp/s48_preflight.log
+          retention-days: 14
+
+  s48_i5_observe:
+    name: Section48 I5 historical weekly fire observe
+    if: github.event.inputs.phase == 'S48_I5_OBSERVE' && github.event.inputs.confirmation == 'SECTION48_I5_OBSERVE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH I5 observe
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_s48_i5_observe_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_s48_i5_observe_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i5_observe_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i5_observe_remote.sh")" \
+            2>&1 | tee /tmp/s48_i5.log
+          grep -Fq 'I5_S48|manual_tick_invoked|NO' /tmp/s48_i5.log
+          grep -Eq 'I5_S48\|classification\|(PASS|FAIL|MISSED|UNPROVEN)' /tmp/s48_i5.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s48_i5.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s48-i5-observe
+          path: /tmp/s48_i5.log
+          retention-days: 14
+
+  s48_rehearse:
+    name: Section48 isolated I7 observability/retry rehearsal
+    if: github.event.inputs.phase == 'S48_REHEARSE' && github.event.inputs.confirmation == 'SECTION48_REHEARSE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Isolated rehearsal
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+          PG_D: ${{ github.event.inputs.candidate_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          chmod 700 backend/ops/db03/db_prod_s48_i7_rehearse.sh
+          BACKEND_IMAGE="ghcr.io/javadmeighani-oss/sedi-backend:${TAG}"
+          PG_IMAGE="ghcr.io/javadmeighani-oss/sedi-postgres@${PG_D}"
+          BACKEND_IMAGE="${BACKEND_IMAGE}" PG_IMAGE="${PG_IMAGE}" \
+            bash backend/ops/db03/db_prod_s48_i7_rehearse.sh \
+            2>&1 | tee /tmp/s48_rehearse.log
+          grep -Fq 'S48_REHEARSE|observability_fields|PASS' /tmp/s48_rehearse.log
+          grep -Fq 'S48_REHEARSE|i7_off_fail_closed|PASS' /tmp/s48_rehearse.log
+          grep -Fq 'S48_REHEARSE|retry_behavior|PASS' /tmp/s48_rehearse.log
+          grep -Fq 'S48_REHEARSE|idempotency|PASS' /tmp/s48_rehearse.log
+          grep -Fq 'S48_REHEARSE|isolated_rehearsal|PASS' /tmp/s48_rehearse.log
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s48-rehearse
+          path: /tmp/s48_rehearse.log
+          retention-days: 14
+
+  s48_i7_enable:
+    name: Section48 I7 controlled enable
+    if: github.event.inputs.phase == 'S48_I7_ENABLE' && github.event.inputs.confirmation == 'SECTION48_I7_ENABLE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH I7 enable
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_s48_i7_enable_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_s48_i7_enable_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i7_enable_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             IMAGE_SHA=$(printf '%q' "${TAG}") \
+             IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             I7_TARGET=true \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i7_enable_remote.sh")" \
+            2>&1 | tee /tmp/s48_i7_enable.log
+          grep -Fq 'S48_I7|sedi_i7_period_summary_jobs_enabled|ON' /tmp/s48_i7_enable.log
+          grep -Fq 'S48_I7|scheduler_registration|PASS' /tmp/s48_i7_enable.log
+          grep -Fq 'S48_I7|manual_tick_invoked|NO' /tmp/s48_i7_enable.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s48_i7_enable.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s48-i7-enable
+          path: /tmp/s48_i7_enable.log
+          retention-days: 14
+
+  s48_i7_disable:
+    name: Section48 I7 fail-closed disable
+    if: github.event.inputs.phase == 'S48_I7_DISABLE' && github.event.inputs.confirmation == 'SECTION48_I7_DISABLE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH I7 disable
+        env:
+          TAG: ${{ github.event.inputs.backend_image_tag }}
+          DIG: ${{ github.event.inputs.backend_image_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIG}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_s48_i7_enable_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_s48_i7_enable_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i7_enable_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             IMAGE_SHA=$(printf '%q' "${TAG}") \
+             IMAGE_DIGEST=$(printf '%q' "${DIG}") \
+             I7_TARGET=false \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i7_enable_remote.sh")" \
+            2>&1 | tee /tmp/s48_i7_disable.log
+          grep -Fq 'S48_I7|sedi_i7_period_summary_jobs_enabled|OFF' /tmp/s48_i7_disable.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s48_i7_disable.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s48-i7-disable
+          path: /tmp/s48_i7_disable.log
+          retention-days: 14
+
+  s48_i7_observe:
+    name: Section48 I7 registration/first-run observe
+    if: github.event.inputs.phase == 'S48_I7_OBSERVE' && github.event.inputs.confirmation == 'SECTION48_I7_OBSERVE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH I7 observe
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_s48_i7_observe_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_s48_i7_observe_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i7_observe_remote.sh") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_s48_i7_observe_remote.sh")" \
+            2>&1 | tee /tmp/s48_i7_obs.log
+          grep -Fq 'S48_I7_OBS|manual_tick_invoked|NO' /tmp/s48_i7_obs.log
+          grep -Fq 'S48_I7_OBS|observe_complete|YES' /tmp/s48_i7_obs.log
+          if grep -Eiq 'info@sedi-ai\.com' /tmp/s48_i7_obs.log; then echo SECRET_LEAK; exit 2; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: s48-i7-observe
+          path: /tmp/s48_i7_obs.log
+          retention-days: 14
+
 

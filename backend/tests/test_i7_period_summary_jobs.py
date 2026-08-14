@@ -11,11 +11,14 @@ from backend.app import models
 from backend.app.services.i6.consent_service import grant_memory_consent
 from backend.app.services.i6.memory_writes import (
     export_memory_bundle,
+    forget_all,
     list_fact_history,
     write_fact,
 )
 from backend.app.services.i7.jobs import (
+    REQUIRED_OBS_FIELDS,
     closed_period_anchor,
+    format_i7_run_log,
     period_summary_cron_kwargs,
     period_summary_jobs_enabled,
     run_period_summary_sweep,
@@ -115,6 +118,9 @@ def test_scheduler_registers_i7_jobs():
     assert "period_summary_cron_kwargs" in src
     assert "period_summary_jobs_enabled" in src
     assert "i7 period summary jobs registered" in src
+    assert "I7_JOB_REGISTERED" in src
+    assert "format_i7_run_log" in src
+    assert "misfire_grace_time=3600" in src
 
 
 def test_i7_idempotent_rebuild_same_payload(db):
@@ -124,3 +130,99 @@ def test_i7_idempotent_rebuild_same_payload(db):
     a = rebuild_summary(db, user.id, "DAILY", commit=True)
     b = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert a.id == b.id
+
+
+def test_i7_structured_observability_fields(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "on")
+    user = _user(db, "i7-obs")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(db, user.id, "lifestyle", "diet_notes", "secret-phi-marker", commit=True)
+    result = run_period_summary_sweep(
+        db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
+    )
+    line = format_i7_run_log(result)
+    for field in REQUIRED_OBS_FIELDS:
+        assert f"{field}=" in line
+    assert "secret-phi-marker" not in line
+    assert user.name not in line
+    assert result.status in {"SUCCESS", "SUCCESSFUL_NO_OP"}
+    assert result.users_eligible == 1
+    assert result.users_skipped_no_consent >= 0
+    assert result.summaries_created >= 1
+
+
+def test_i7_no_consent_no_summary(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "i7-noconsent")
+    result = run_period_summary_sweep(
+        db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
+    )
+    assert result.users_eligible == 0
+    assert result.summaries_created == 0
+    assert result.status == "SUCCESSFUL_NO_OP"
+    assert db.query(models.UserPeriodSummary).filter_by(user_id=user.id).count() == 0
+
+
+def test_i7_retry_then_success(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "i7-retry")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(db, user.id, "goals", "health_goals", "walk daily", commit=True)
+    calls = {"n": 0}
+    real = rebuild_summary
+
+    def flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("injected_failure")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr("backend.app.services.i7.jobs.rebuild_summary", flaky)
+    result = run_period_summary_sweep(
+        db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
+    )
+    assert result.retry_count == 1
+    assert result.failures == 0
+    assert result.summaries_created + result.summaries_rebuilt >= 1
+    assert db.query(models.UserPeriodSummary).filter_by(user_id=user.id).count() == 1
+
+
+def test_i7_retry_exhausted_records_failure(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "i7-fail")
+    grant_memory_consent(db, user.id, commit=True)
+    monkeypatch.setattr(
+        "backend.app.services.i7.jobs.rebuild_summary",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("injected_failure")),
+    )
+    result = run_period_summary_sweep(
+        db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
+    )
+    assert result.failures == 1
+    assert result.retry_count == 1
+    assert result.status == "PARTIAL_FAILURES"
+    assert db.query(models.UserPeriodSummary).filter_by(user_id=user.id).count() == 0
+
+
+def test_i7_forgotten_memory_does_not_resurface(db, monkeypatch):
+    monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
+    user = _user(db, "i7-forget")
+    grant_memory_consent(db, user.id, commit=True)
+    write_fact(db, user.id, "lifestyle", "diet_notes", "secret-meal-pattern", commit=True)
+    first = run_period_summary_sweep(
+        db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
+    )
+    assert first.summaries_created >= 1
+    forget_all(db, user.id, commit=True)
+    second = run_period_summary_sweep(
+        db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
+    )
+    assert second.failures == 0
+    active = (
+        db.query(models.UserPeriodSummary)
+        .filter_by(user_id=user.id, status="active")
+        .all()
+    )
+    for row in active:
+        assert "secret-meal-pattern" not in (row.structured_summary_json or "")
+        assert "lifestyle.diet_notes" not in (row.structured_summary_json or "")

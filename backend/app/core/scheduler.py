@@ -601,21 +601,42 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] weekly orchestrator dormant wiring failed: {e}")
 
-        # Section43: I7 lifelong period-summary jobs (dormant unless flag on).
+        # Section43/48: I7 lifelong period-summary jobs (dormant unless flag on).
         try:
             from backend.app.database import get_db as _i7_get_db
             from backend.app.services.i7.jobs import (
                 DAILY_JOB_ID,
+                JOB_IDS,
+                JOB_TIMEZONE,
                 MONTHLY_JOB_ID,
                 WEEKLY_JOB_ID,
                 YEARLY_JOB_ID,
+                format_i7_run_log,
                 period_summary_cron_kwargs,
                 period_summary_jobs_enabled,
                 run_period_summary_sweep,
             )
 
             def _i7_summary_tick(summary_type: str):
+                job_id = JOB_IDS[summary_type]
+                job = scheduler.get_job(job_id)
+                next_run = ""
+                scheduled = ""
+                if job is not None and job.next_run_time is not None:
+                    next_run = job.next_run_time.isoformat()
+                if job is not None and getattr(job, "trigger", None) is not None:
+                    scheduled = str(job.trigger)
                 if not period_summary_jobs_enabled():
+                    with next(_i7_get_db()) as db:
+                        result = run_period_summary_sweep(
+                            db,
+                            summary_type,
+                            persist=False,
+                            job_id=job_id,
+                            scheduled_time=scheduled,
+                            next_run_time=next_run,
+                        )
+                    print(format_i7_run_log(result), flush=True)
                     print(
                         f"[Sedi Scheduler] {summary_type} period summary "
                         "outcome=DORMANT_FLAG_OFF",
@@ -623,7 +644,14 @@ def start_scheduler():
                     )
                     return
                 with next(_i7_get_db()) as db:
-                    result = run_period_summary_sweep(db, summary_type)
+                    result = run_period_summary_sweep(
+                        db,
+                        summary_type,
+                        job_id=job_id,
+                        scheduled_time=scheduled,
+                        next_run_time=next_run,
+                    )
+                    print(format_i7_run_log(result), flush=True)
                     print(
                         f"[Sedi Scheduler] i7_period_summary_{summary_type.lower()} "
                         f"enabled={result.enabled} users={result.users_seen} "
@@ -638,13 +666,22 @@ def start_scheduler():
                 ("MONTHLY", MONTHLY_JOB_ID),
                 ("YEARLY", YEARLY_JOB_ID),
             ):
-                scheduler.add_job(
+                job = scheduler.add_job(
                     _i7_summary_tick,
                     id=_job_id,
                     replace_existing=True,
                     misfire_grace_time=3600,
                     kwargs={"summary_type": _kind},
                     **period_summary_cron_kwargs(_kind),
+                )
+                nxt = job.next_run_time.isoformat() if job.next_run_time else ""
+                print(
+                    "I7_JOB_REGISTERED "
+                    f"job_id={job.id} trigger=cron timezone={JOB_TIMEZONE} "
+                    f"next_run_time={nxt} max_instances=1 coalesce=true "
+                    f"misfire_grace_time=3600 period_type={_kind} "
+                    f"enabled={period_summary_jobs_enabled()}",
+                    flush=True,
                 )
             print(
                 "[Sedi Scheduler] i7 period summary jobs registered "

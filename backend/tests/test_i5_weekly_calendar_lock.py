@@ -113,7 +113,7 @@ def test_scheduler_registers_cron_not_interval_and_ignores_first_run_delay():
     assert "first_run_delay_sec=ignored" in src
     assert "trigger=cron" in src
     start = src.find("cron_kwargs = weekly_calendar_trigger_kwargs")
-    end = src.find("Gate 5-D", start)
+    end = src.find("I7 lifelong", start)
     assert start != -1 and end != -1
     weekly_chunk = src[start:end]
     assert "weekly_interval_minutes" not in weekly_chunk
