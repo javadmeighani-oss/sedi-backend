@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import hashlib
 import os
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -65,6 +65,37 @@ def db():
 
 def _canonical_hash(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def _seed_lineage_fixtures(db) -> tuple[int, int]:
+    from backend.app import models
+
+    gsp = models.GovernedSourceProfile(
+        canonical_key=f"s49-gsp-{_canonical_hash('gsp')[:16]}",
+        operational_status="ACTIVE",
+        registry_state="ACTIVE",
+        runtime_eligibility="ELIGIBLE",
+        canonicalization_version="v1",
+    )
+    db.add(gsp)
+    db.flush()
+    raw = models.I5RawEvidence(
+        source_profile_id=gsp.id,
+        retrieval_timestamp=datetime.utcnow(),
+        canonical_url="https://www.nhs.uk/live-well/exercise/",
+        content_hash=_canonical_hash("raw-evidence"),
+        hash_algorithm="SHA-256",
+        storage_mode="NONE",
+        retention_mode="RAW_MINIMAL_EVIDENCE_ONLY",
+        rights_terms_state="UNKNOWN",
+        robots_access_state="UNKNOWN",
+        redaction_state="NONE",
+        prohibited_data_state="UNKNOWN",
+        expiry_state="ACTIVE",
+    )
+    db.add(raw)
+    db.flush()
+    return int(gsp.id), int(raw.id)
 
 
 def _make_ku(db, *, domain: str, dedupe_key: str):
@@ -228,10 +259,13 @@ def test_lexical_only_indexing_zero_vector_generation(db):
     ku.runtime_eligibility = elig.value
     db.flush()
 
+    source_profile_id, raw_evidence_id = _seed_lineage_fixtures(db)
     with patch(
         "backend.app.services.scis.embedding.providers.FakeScisEmbeddingProvider.embed_texts"
     ) as mock_embed:
-        rows = index_eligible_knowledge_unit_if_ready(db, ku, source_profile_id=1, raw_evidence_id=1)
+        rows = index_eligible_knowledge_unit_if_ready(
+            db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id
+        )
         mock_embed.assert_not_called()
 
     assert len(rows) >= 1
@@ -239,6 +273,8 @@ def test_lexical_only_indexing_zero_vector_generation(db):
         assert row.model_identifier == LEXICAL_ONLY_MODEL_ID
         assert row.backend_kind == LEXICAL_ONLY_BACKEND_KIND
         assert row.embedding_json is None
+        assert row.source_profile_id == source_profile_id
+        assert row.raw_evidence_id == raw_evidence_id
         vec = db.execute(
             text("SELECT embedding_vector FROM knowledge_chunk_embeddings WHERE id = :id"),
             {"id": row.id},
@@ -256,7 +292,10 @@ def test_ku_to_kce_lexical_retrieval_with_provenance(db):
     ku.runtime_eligibility = elig.value
     db.flush()
 
-    rows = index_eligible_knowledge_unit_if_ready(db, ku, source_profile_id=1, raw_evidence_id=1)
+    source_profile_id, raw_evidence_id = _seed_lineage_fixtures(db)
+    rows = index_eligible_knowledge_unit_if_ready(
+        db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id
+    )
     assert len(rows) >= 1
 
     resp = retrieve(
