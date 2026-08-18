@@ -289,6 +289,16 @@ PATH_CLASSIFICATION: dict[str, tuple[str, str, str]] = {
         "PRODUCTION_REACHABLE",
         "RAW→KU→provenance persistence + GSP activation helpers",
     ),
+    "app/services/i5/governed_low_risk_eligibility.py": (
+        "CANONICAL_RUNTIME_WRITER",
+        "PRODUCTION_REACHABLE",
+        "manifest-governed low-risk KU eligibility field transitions",
+    ),
+    "app/services/i5/trusted_source_manifest.py": (
+        "CANONICAL_SERVICE_HELPER",
+        "PRODUCTION_REACHABLE",
+        "canonical trusted-source manifest loader/validator (read-only)",
+    ),
     "app/services/i5/runtime_knowledge_retrieval.py": (
         "CANONICAL_RUNTIME_WRITER",
         "PRODUCTION_REACHABLE",
@@ -424,6 +434,16 @@ PATH_CLASSIFICATION: dict[str, tuple[str, str, str]] = {
         "LEGACY_SUPPORTED_WRITER",
         "PRODUCTION_REACHABLE",
         "SCIS RAG indexing writer for knowledge_* tables",
+    ),
+    "app/services/scis/lexical_indexing.py": (
+        "CANONICAL_RUNTIME_WRITER",
+        "PRODUCTION_REACHABLE",
+        "I5-S49 lexical-only FTS indexing (no vector generation)",
+    ),
+    "app/services/scis/serving_bridge.py": (
+        "CANONICAL_RUNTIME_WRITER",
+        "PRODUCTION_REACHABLE",
+        "eligible KU → lexical KCE bridge",
     ),
     "app/services/i5/adapters/live_transport.py": (
         "LEGACY_SUPPORTED_WRITER",
@@ -918,6 +938,7 @@ def _eligibility_mutation_unauthorized(target: str, path: str, lineno: int, sour
         return False
     allow_paths = {
         "app/services/i5/governed_weekly_runtime.py",
+        "app/services/i5/governed_low_risk_eligibility.py",
         "app/services/i5/multisource_activation.py",
     }
     return path.replace("\\", "/") not in allow_paths
