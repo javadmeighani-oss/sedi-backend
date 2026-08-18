@@ -325,7 +325,7 @@ def test_ku_to_kce_lexical_retrieval_with_provenance(db):
         ScisRetrievalRequest(
             query_text="NHS live well exercise",
             top_k=5,
-            mode=RetrievalMode.LEXICAL_ONLY,
+            retrieval_mode=RetrievalMode.LEXICAL,
             allowed_knowledge_classes=["GLOBAL_GOVERNED_KNOWLEDGE"],
         ),
     )
