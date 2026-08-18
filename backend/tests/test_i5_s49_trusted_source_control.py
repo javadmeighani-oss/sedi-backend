@@ -329,7 +329,7 @@ def test_ku_to_kce_lexical_retrieval_with_provenance(db):
             allowed_knowledge_classes=["GLOBAL_GOVERNED_KNOWLEDGE"],
         ),
     )
-    if resp.evidence_items:
-        item = resp.evidence_items[0]
+    if resp.evidence:
+        item = resp.evidence[0]
         assert item.provenance.knowledge_unit_id == int(ku.id)
         assert item.provenance.chunk_id is not None
