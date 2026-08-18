@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import hashlib
 import os
+import uuid
+from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -67,11 +69,12 @@ def _canonical_hash(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def _seed_lineage_fixtures(db) -> tuple[int, int]:
+def _seed_lineage_fixtures(db, *, suffix: str | None = None) -> tuple[int, int]:
     from backend.app import models
 
+    token = suffix or uuid.uuid4().hex
     gsp = models.GovernedSourceProfile(
-        canonical_key=f"s49-gsp-{_canonical_hash('gsp')[:16]}",
+        canonical_key=f"s49-gsp-{_canonical_hash(token)[:24]}",
         operational_status="ACTIVE",
         registry_state="ACTIVE",
         runtime_eligibility="ELIGIBLE",
@@ -82,8 +85,8 @@ def _seed_lineage_fixtures(db) -> tuple[int, int]:
     raw = models.I5RawEvidence(
         source_profile_id=gsp.id,
         retrieval_timestamp=datetime.utcnow(),
-        canonical_url="https://www.nhs.uk/live-well/exercise/",
-        content_hash=_canonical_hash("raw-evidence"),
+        canonical_url=f"https://www.nhs.uk/live-well/exercise/{token}/",
+        content_hash=_canonical_hash(f"raw-evidence-{token}"),
         hash_algorithm="SHA-256",
         storage_mode="NONE",
         retention_mode="RAW_MINIMAL_EVIDENCE_ONLY",
@@ -96,6 +99,22 @@ def _seed_lineage_fixtures(db) -> tuple[int, int]:
     db.add(raw)
     db.flush()
     return int(gsp.id), int(raw.id)
+
+
+def _link_ku_provenance(db, ku, *, source_profile_id: int, raw_evidence_id: int) -> None:
+    from backend.app import models
+
+    db.add(
+        models.KnowledgeProvenance(
+            knowledge_unit_id=ku.id,
+            source_profile_id=source_profile_id,
+            raw_evidence_id=raw_evidence_id,
+            retrieval_method="TEST_FIXTURE",
+            access_route="TEST",
+            content_hash=_canonical_hash(f"prov-{ku.id}"),
+        )
+    )
+    db.flush()
 
 
 def _make_ku(db, *, domain: str, dedupe_key: str):
@@ -259,10 +278,11 @@ def test_lexical_only_indexing_zero_vector_generation(db):
     ku.runtime_eligibility = elig.value
     db.flush()
 
-    source_profile_id, raw_evidence_id = _seed_lineage_fixtures(db)
+    source_profile_id, raw_evidence_id = _seed_lineage_fixtures(db, suffix="s49-lexical-only")
+    _link_ku_provenance(db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id)
     with patch(
         "backend.app.services.scis.embedding.providers.FakeScisEmbeddingProvider.embed_texts"
-    ) as mock_embed:
+    ) as mock_embed, patch.object(db, "commit", db.flush):
         rows = index_eligible_knowledge_unit_if_ready(
             db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id
         )
@@ -292,10 +312,12 @@ def test_ku_to_kce_lexical_retrieval_with_provenance(db):
     ku.runtime_eligibility = elig.value
     db.flush()
 
-    source_profile_id, raw_evidence_id = _seed_lineage_fixtures(db)
-    rows = index_eligible_knowledge_unit_if_ready(
-        db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id
-    )
+    source_profile_id, raw_evidence_id = _seed_lineage_fixtures(db, suffix="s49-scis")
+    _link_ku_provenance(db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id)
+    with patch.object(db, "commit", db.flush):
+        rows = index_eligible_knowledge_unit_if_ready(
+            db, ku, source_profile_id=source_profile_id, raw_evidence_id=raw_evidence_id
+        )
     assert len(rows) >= 1
 
     resp = retrieve(
