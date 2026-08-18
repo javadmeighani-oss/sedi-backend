@@ -1,0 +1,40 @@
+# SEDI Cursor Authoritative Handoff - v609
+
+> Complete successor to v608. I5-S49 remediation-04: existing-KU governed re-evaluation + idempotent lexical indexing. Master Log §318.
+
+```text
+VERSION=v609
+STATUS=CURRENT
+PREDECESSOR=v608
+RECORDED_AT_UTC=2026-08-18T05:55:00Z
+MASTER_LOG=§318
+CURSOR_HANDOFF=v609
+CHATGPT_CONTINUITY=v623
+GATE_OUTCOME=PASS
+FULL_GATE_CLOSURE=PASS
+HARD_STOP=NO
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+I5_S49_REMEDIATION_04=PASS
+EXISTING_KU_REEVALUATION=YES
+SAME_SOURCE_PROVENANCE_ENFORCED=YES
+CROSS_SOURCE_PROMOTION=FORBIDDEN
+IDEMPOTENT_LEXICAL_INDEX=YES
+LEXICAL_ONLY_SERVING=PRESERVED
+VECTOR_GENERATION=0
+FINAL_HEAD=0121eb36fd3dbe7f59664573ce843997923762c2
+CI_KNOW05=PASS
+CI_KNOW01=PASS
+PRODUCTION_MUTATION=NO
+NEW_MIGRATION=NO
+
+NEXT_GATE=SEDI-V1 I5-S49 PRODUCTION OBSERVE-02 POST-2026-08-21 WEEKLY FIRE (PROPOSED ONLY)
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Key paths
+
+- `backend/app/services/i5/governed_ku_serving.py` — shared finalize + lexical index for new/existing KU
+- `backend/app/services/i5/governed_weekly_runtime.py` — existing-prov branch now always re-evaluates via helper
+- `backend/tests/test_i5_s49_trusted_source_control.py` — existing-KU regression suite
