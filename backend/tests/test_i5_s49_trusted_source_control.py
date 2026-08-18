@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 from backend.app.services.i5.enums import (
     ConflictState,
@@ -36,6 +38,27 @@ from backend.app.services.i5.trusted_source_manifest import (
 from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
 from backend.app.services.scis.lexical_indexing import LEXICAL_ONLY_BACKEND_KIND, LEXICAL_ONLY_MODEL_ID
 from backend.app.services.scis.retrieval import retrieve
+
+
+def _db_url() -> str | None:
+    return os.environ.get("TEST_DATABASE_URL") or os.environ.get("DATABASE_URL")
+
+
+@pytest.fixture()
+def db():
+    """Local DB fixture for workflows running pytest with --noconftest."""
+    url = _db_url()
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+    engine = create_engine(url)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+        engine.dispose()
 
 
 def _make_ku(db, *, domain, dedupe_key):
