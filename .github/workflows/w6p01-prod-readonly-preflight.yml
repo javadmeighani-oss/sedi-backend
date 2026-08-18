@@ -93,6 +93,57 @@ jobs:
           summary "alembic_count" "${ALEMBIC_COUNT}"
           summary "alembic_revision" "${ALEMBIC_REV}"
 
+          log "=== I5 PREFIRE BASELINE (SELECT only) ==="
+          psql_ro() { docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "$1" | tr -d '\r'; }
+          KU_TOTAL="$(psql_ro 'SELECT COUNT(*) FROM knowledge_units;')"
+          KU_ELIGIBLE="$(psql_ro "SELECT COUNT(*) FROM knowledge_units WHERE runtime_eligibility='ELIGIBLE';")"
+          LEXICAL_KCE_TOTAL="$(psql_ro "SELECT COUNT(*) FROM knowledge_chunk_embeddings WHERE model_identifier='scis-lexical-fts-v1';")"
+          LEXICAL_KCE_VEC_NULL="$(psql_ro "SELECT COUNT(*) FROM knowledge_chunk_embeddings WHERE model_identifier='scis-lexical-fts-v1' AND embedding_vector IS NULL;")"
+          LEXICAL_KCE_VEC_NONNULL="$(psql_ro "SELECT COUNT(*) FROM knowledge_chunk_embeddings WHERE model_identifier='scis-lexical-fts-v1' AND embedding_vector IS NOT NULL;")"
+          log "knowledge_units_total=${KU_TOTAL}"
+          log "knowledge_units_eligible=${KU_ELIGIBLE}"
+          log "lexical_kce_total=${LEXICAL_KCE_TOTAL}"
+          log "lexical_kce_vector_null=${LEXICAL_KCE_VEC_NULL}"
+          log "lexical_kce_vector_nonnull=${LEXICAL_KCE_VEC_NONNULL}"
+          summary "knowledge_units_total" "${KU_TOTAL}"
+          summary "knowledge_units_eligible" "${KU_ELIGIBLE}"
+          summary "lexical_kce_total" "${LEXICAL_KCE_TOTAL}"
+          summary "lexical_kce_vector_null" "${LEXICAL_KCE_VEC_NULL}"
+          summary "lexical_kce_vector_nonnull" "${LEXICAL_KCE_VEC_NONNULL}"
+          for src in nhs_uk_live_well cdc_health_lifestyle; do
+            KU_SRC="$(psql_ro "SELECT COUNT(*) FROM knowledge_units ku JOIN knowledge_provenance kp ON kp.knowledge_unit_id=ku.id JOIN governed_source_profiles g ON g.id=kp.source_profile_id WHERE g.canonical_key='${src}' AND ku.runtime_eligibility='ELIGIBLE';")"
+            KCE_SRC="$(psql_ro "SELECT COUNT(*) FROM knowledge_chunk_embeddings kce JOIN governed_source_profiles g ON g.id=kce.source_profile_id WHERE g.canonical_key='${src}' AND kce.model_identifier='scis-lexical-fts-v1';")"
+            log "low_risk_ku_eligible_${src}=${KU_SRC}"
+            log "low_risk_lexical_kce_${src}=${KCE_SRC}"
+            summary "low_risk_ku_eligible_${src}" "${KU_SRC}"
+            summary "low_risk_lexical_kce_${src}" "${KCE_SRC}"
+          done
+          LATEST_RUN_ID="$(psql_ro 'SELECT id FROM weekly_knowledge_runs ORDER BY id DESC LIMIT 1;')"
+          if [ -n "${LATEST_RUN_ID}" ]; then
+            LATEST_RUN_STATUS="$(psql_ro "SELECT status FROM weekly_knowledge_runs WHERE id=${LATEST_RUN_ID};")"
+            LATEST_RUN_STARTED="$(psql_ro "SELECT a.started_at FROM weekly_knowledge_runs r LEFT JOIN weekly_knowledge_run_attempts a ON a.id=r.latest_attempt_id WHERE r.id=${LATEST_RUN_ID};")"
+            LATEST_RUN_FINISHED="$(psql_ro "SELECT a.completed_at FROM weekly_knowledge_runs r LEFT JOIN weekly_knowledge_run_attempts a ON a.id=r.latest_attempt_id WHERE r.id=${LATEST_RUN_ID};")"
+          else
+            LATEST_RUN_STATUS=""
+            LATEST_RUN_STARTED=""
+            LATEST_RUN_FINISHED=""
+          fi
+          log "latest_weekly_run_id=${LATEST_RUN_ID:-none}"
+          log "latest_weekly_run_status=${LATEST_RUN_STATUS:-none}"
+          log "latest_weekly_run_started_at=${LATEST_RUN_STARTED:-none}"
+          log "latest_weekly_run_finished_at=${LATEST_RUN_FINISHED:-none}"
+          summary "latest_weekly_run_id" "${LATEST_RUN_ID:-none}"
+          summary "latest_weekly_run_status" "${LATEST_RUN_STATUS:-none}"
+          summary "latest_weekly_run_started_at" "${LATEST_RUN_STARTED:-none}"
+          summary "latest_weekly_run_finished_at" "${LATEST_RUN_FINISHED:-none}"
+          docker exec -i sedi-backend python - <<'PY'
+          from datetime import timezone
+          from backend.app.services.i5.governed_weekly_runtime import next_weekly_calendar_fire
+          nxt = next_weekly_calendar_fire()
+          utc = nxt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          print(f"PREFLIGHT_SUMMARY|next_genuine_i5_fire_utc|{utc}")
+          PY
+
           log "=== ENV FLAG PRESENCE (boolean only; no values / no secrets) ==="
           if [ ! -f "${ENV_FILE}" ]; then
             log "PREFLIGHT_FAILED: missing ${ENV_FILE}"
@@ -110,7 +161,45 @@ jobs:
           }
           flag_present "SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED"
           flag_present "SEDI_I5_SOURCE_ACTIVATION_ENABLED"
+          flag_present "SEDI_I5_MULTISOURCE_ENABLED"
           flag_present "SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN"
+          flag_present "SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED"
+
+          log "=== I5/I7 EFFECTIVE FLAG STATE (approved keys only; ON/OFF/UNSET) ==="
+          normalize_on_off() {
+            local v="$1"
+            case "$(printf '%s' "${v}" | tr '[:upper:]' '[:lower:]')" in
+              1|true|yes|on) echo "ON" ;;
+              0|false|no|off) echo "OFF" ;;
+              ""|unset) echo "UNSET" ;;
+              *) echo "UNKNOWN" ;;
+            esac
+          }
+          effective_flag() {
+            local key="$1"
+            local file_val runtime_val effective
+            file_val="$(grep -E "^${key}=" "${ENV_FILE}" | tail -n1 | cut -d= -f2- || true)"
+            runtime_val="$(docker exec sedi-backend printenv "${key}" 2>/dev/null || true)"
+            if [ -n "${runtime_val}" ]; then
+              effective="${runtime_val}"
+            else
+              effective="${file_val:-unset}"
+            fi
+            echo "${key}=$(normalize_on_off "${effective}")"
+            summary "${key}_effective" "$(normalize_on_off "${effective}")"
+          }
+          effective_flag "SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED"
+          effective_flag "SEDI_I5_SOURCE_ACTIVATION_ENABLED"
+          effective_flag "SEDI_I5_MULTISOURCE_ENABLED"
+          effective_flag "SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED"
+          interval_val="$(grep -E '^SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN=' "${ENV_FILE}" | tail -n1 | cut -d= -f2- || true)"
+          runtime_interval="$(docker exec sedi-backend printenv SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN 2>/dev/null || true)"
+          if [ -n "${runtime_interval}" ]; then interval_val="${runtime_interval}"; fi
+          if [ -n "${interval_val}" ]; then
+            summary "SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN_effective" "${interval_val}"
+          else
+            summary "SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN_effective" "UNSET"
+          fi
           # Never print DATABASE_URL or credentials.
           if grep -Eq "^DATABASE_URL=.+$" "${ENV_FILE}"; then
             summary "DATABASE_URL_present" "true"
@@ -131,6 +220,41 @@ jobs:
           docker logs --since 24h sedi-backend 2>&1 \
             | grep -F "weekly_international_knowledge_crawler" \
             | tail -40 || true
+
+          log "=== I7 SCHEDULER STATE (read-only log grep) ==="
+          I7_DAILY="$(docker logs sedi-backend 2>&1 | grep -E 'I7_JOB_REGISTERED .*job_id=i7_period_summary_daily' | tail -n1 || true)"
+          I7_WEEKLY="$(docker logs sedi-backend 2>&1 | grep -E 'I7_JOB_REGISTERED .*job_id=i7_period_summary_weekly' | tail -n1 || true)"
+          I7_MONTHLY="$(docker logs sedi-backend 2>&1 | grep -E 'I7_JOB_REGISTERED .*job_id=i7_period_summary_monthly' | tail -n1 || true)"
+          I7_YEARLY="$(docker logs sedi-backend 2>&1 | grep -E 'I7_JOB_REGISTERED .*job_id=i7_period_summary_yearly' | tail -n1 || true)"
+          I7_CADENCE="$(docker logs sedi-backend 2>&1 | grep -F 'i7 period summary jobs registered' | tail -n1 || true)"
+          if [ -n "${I7_DAILY}${I7_WEEKLY}${I7_MONTHLY}${I7_YEARLY}" ]; then
+            summary "i7_scheduler_job_present" "YES"
+          else
+            summary "i7_scheduler_job_present" "NO"
+          fi
+          log "i7_job_daily=${I7_DAILY:-MISSING}"
+          log "i7_job_weekly=${I7_WEEKLY:-MISSING}"
+          log "i7_job_monthly=${I7_MONTHLY:-MISSING}"
+          log "i7_job_yearly=${I7_YEARLY:-MISSING}"
+          log "i7_cadence=${I7_CADENCE:-MISSING}"
+          for kind in daily weekly monthly yearly; do
+            case "${kind}" in
+              daily) LINE="${I7_DAILY}" ;;
+              weekly) LINE="${I7_WEEKLY}" ;;
+              monthly) LINE="${I7_MONTHLY}" ;;
+              yearly) LINE="${I7_YEARLY}" ;;
+            esac
+            JOB_ID="i7_period_summary_${kind}"
+            if echo "${LINE}" | grep -Fq "job_id=${JOB_ID}"; then
+              summary "i7_job_id_${kind}" "${JOB_ID}"
+              NXT="$(echo "${LINE}" | sed -n 's/.*next_run_time=\([^ ]*\).*/\1/p' | head -n1)"
+              summary "i7_next_run_utc_${kind}" "${NXT:-unknown}"
+            else
+              summary "i7_job_id_${kind}" "MISSING"
+              summary "i7_next_run_utc_${kind}" "unknown"
+            fi
+          done
+          summary "i7_schedule_cadence" "daily=00:10 weekly=Mon_00:20 monthly=1st_00:30 yearly=Jan1_00:40 Asia/Tehran"
 
           log "=== BACKUP DIR METADATA (filenames only) ==="
           BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
