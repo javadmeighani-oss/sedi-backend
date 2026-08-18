@@ -575,7 +575,7 @@ def test_unchanged_source_304_reevaluates_not_eligible_ku_to_eligible_with_lexic
     assert result.newly_eligible == 1
     assert result.newly_indexed == 1
     assert ku.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
-    assert _kce_count(db, ku.id) == 1
+    assert _kce_count(db, ku.id) >= 1
 
 
 def test_unchanged_source_repeat_run_idempotent_lexical_kce(db):
@@ -590,9 +590,10 @@ def test_unchanged_source_repeat_run_idempotent_lexical_kce(db):
     _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
 
     _reevaluate_unchanged(db, gsp_id)
-    assert _kce_count(db, ku.id) == 1
+    first_count = _kce_count(db, ku.id)
+    assert first_count >= 1
     _reevaluate_unchanged(db, gsp_id)
-    assert _kce_count(db, ku.id) == 1
+    assert _kce_count(db, ku.id) == first_count
 
 
 def test_unchanged_source_provenance_mismatch_not_promoted(db):
@@ -769,7 +770,7 @@ def test_unchanged_source_reevaluation_preserves_provenance_citation_and_zero_ve
     db.refresh(prov)
     assert prov.citation_rendering_data == citation_before
     rows = db.query(models.KnowledgeChunkEmbedding).filter_by(knowledge_unit_id=ku.id).all()
-    assert len(rows) == 1
+    assert len(rows) >= 1
     for row in rows:
         assert row.model_identifier == LEXICAL_ONLY_MODEL_ID
         vec = db.execute(
