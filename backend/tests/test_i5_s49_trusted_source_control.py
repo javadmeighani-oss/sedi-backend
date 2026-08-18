@@ -79,15 +79,23 @@ def _seed_lineage_fixtures(
 
     token = suffix or uuid.uuid4().hex
     gsp_key = canonical_key or f"s49-gsp-{_canonical_hash(token)[:24]}"
-    gsp = models.GovernedSourceProfile(
-        canonical_key=gsp_key,
-        operational_status="ACTIVE",
-        registry_state="ACTIVE",
-        runtime_eligibility="ELIGIBLE",
-        canonicalization_version="v1",
+    existing_gsp = (
+        db.query(models.GovernedSourceProfile).filter_by(canonical_key=gsp_key).one_or_none()
+        if canonical_key
+        else None
     )
-    db.add(gsp)
-    db.flush()
+    if existing_gsp is not None:
+        gsp = existing_gsp
+    else:
+        gsp = models.GovernedSourceProfile(
+            canonical_key=gsp_key,
+            operational_status="ACTIVE",
+            registry_state="ACTIVE",
+            runtime_eligibility="ELIGIBLE",
+            canonicalization_version="v1",
+        )
+        db.add(gsp)
+        db.flush()
     raw = models.I5RawEvidence(
         source_profile_id=gsp.id,
         retrieval_timestamp=datetime.utcnow(),
