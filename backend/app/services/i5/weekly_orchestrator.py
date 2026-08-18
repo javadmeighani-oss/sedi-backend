@@ -1190,6 +1190,20 @@ def orchestrate_weekly_run(
             if fp:
                 content_fp = str(fp)
         handoffs.extend(item_handoffs)
+        if (
+            code == "NO_MATERIAL_CHANGE"
+            and persist_ledger
+            and (not dry_run)
+            and db is not None
+        ):
+            from backend.app.services.i5.governed_ku_serving import (
+                reevaluate_existing_kus_for_unchanged_source,
+            )
+
+            reevaluate_existing_kus_for_unchanged_source(
+                db,
+                source_profile_id=int(item.source_profile_id),
+            )
         row, _ = record_source_result(
             db,
             models,
