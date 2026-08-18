@@ -1,4 +1,10 @@
-"""I5-KNOW-01 initial Trusted Source Registry seeds (listing ≠ automation approval)."""
+"""I5-KNOW-01 initial Trusted Source Registry seeds (listing ≠ automation approval).
+
+BOOTSTRAP ONLY: runtime crawler activation authority is
+``backend/config/i5/multisource_activation_allowlist_v1.yaml`` (trusted_source_manifest).
+This module seeds GSP/registry overlay for discovery; it MUST NOT independently
+enable fetch or runtime eligibility.
+"""
 
 from __future__ import annotations
 

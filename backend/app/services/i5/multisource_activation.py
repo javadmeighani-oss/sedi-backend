@@ -1,15 +1,11 @@
-"""Multi-source weekly activation allowlist (exact endpoints only)."""
+"""Multi-source weekly activation — runtime authority is trusted_source_manifest only."""
 from __future__ import annotations
 
 import json
 import os
 from dataclasses import dataclass
-from functools import lru_cache
-from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Optional
-
-import yaml
 
 from backend.app.services.governance import kb_b2_source_profile_persistence as gsp_persist
 from backend.app.services.governance.contracts import (
@@ -33,9 +29,16 @@ from backend.app.services.i5.source_discovery import (
     SourceCandidateDescriptor,
     map_gsp_row_to_descriptor,
 )
+from backend.app.services.i5.trusted_source_manifest import (
+    MANIFEST_RELATIVE,
+    active_manifest_rows,
+    assert_runtime_activation_key_allowed,
+    load_trusted_source_manifest,
+    manifest_attribution,
+)
 
 PACKAGE_ID = "I5-MULTISOURCE-ACTIVATION-V1"
-ALLOWLIST_RELATIVE = Path("backend/config/i5/multisource_activation_allowlist_v1.yaml")
+ALLOWLIST_RELATIVE = MANIFEST_RELATIVE
 MULTISOURCE_ENV = "SEDI_I5_MULTISOURCE_ENABLED"
 
 
@@ -47,19 +50,9 @@ class MultisourceActivationResult:
     fetch_enabled_count: int
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
-
-
-@lru_cache(maxsize=1)
 def load_multisource_allowlist() -> dict[str, Any]:
-    path = _repo_root() / ALLOWLIST_RELATIVE
-    if not path.is_file():
-        raise GovernedWeeklyRuntimeError("MULTISOURCE_ALLOWLIST_MISSING", str(path))
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not data.get("sources"):
-        raise GovernedWeeklyRuntimeError("MULTISOURCE_ALLOWLIST_INVALID")
-    return data
+    """Back-compat alias — canonical loader is trusted_source_manifest."""
+    return load_trusted_source_manifest()
 
 
 def multisource_enabled() -> bool:
@@ -74,19 +67,7 @@ def _activation_yes(value: Any) -> bool:
 
 
 def active_allowlist_rows() -> list[dict[str, Any]]:
-    rows = []
-    for row in load_multisource_allowlist().get("sources") or []:
-        if not _activation_yes(row.get("activation")):
-            continue
-        if not row.get("exact_url") or not row.get("source_key"):
-            raise GovernedWeeklyRuntimeError("ALLOWLIST_ROW_INCOMPLETE", str(row.get("source_key")))
-        rows.append(row)
-    if len(rows) < 2:
-        raise GovernedWeeklyRuntimeError("ALLOWLIST_TOO_SMALL", str(len(rows)))
-    families = {str(r.get("publisher_family") or r.get("allowed_domain")) for r in rows}
-    if len(families) < 4:
-        raise GovernedWeeklyRuntimeError("PUBLISHER_DIVERSITY_BELOW_FLOOR", str(sorted(families)))
-    return rows
+    return active_manifest_rows()
 
 
 def _governance_evidence(row: dict[str, Any]) -> dict[str, Any]:
@@ -131,6 +112,7 @@ def activate_multisource_allowlist(db: Any, models: Any) -> MultisourceActivatio
 
     for row in rows:
         key = str(row["source_key"])
+        assert_runtime_activation_key_allowed(key)
         primary_url = str(row["exact_url"]).strip()
         extra = [str(u).strip() for u in (row.get("additional_urls") or []) if str(u).strip()]
         controlled_urls = [primary_url] + [u for u in extra if u != primary_url]

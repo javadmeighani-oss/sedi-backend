@@ -54,6 +54,8 @@ from backend.app.services.i5.medical_safety_gate import (
     requires_human_review,
 )
 from backend.app.services.i5.runtime_eligibility_gate import evaluate_knowledge_unit_eligibility
+from backend.app.services.i5.governed_low_risk_eligibility import finalize_governed_runtime_eligibility
+from backend.app.services.i5.trusted_source_manifest import manifest_attribution
 from backend.app.services.i5.source_discovery import (
     SourceCandidateDescriptor,
     map_gsp_row_to_descriptor,
@@ -464,6 +466,13 @@ def deactivate_nhs_sleep_fetch(db: Any, models: Any) -> None:
         db.flush()
 
 
+def _resolve_source_key(db: Any, models: Any, source_profile_id: int) -> str:
+    gsp = db.query(models.GovernedSourceProfile).filter_by(id=int(source_profile_id)).one_or_none()
+    if gsp is None:
+        return ""
+    return str(gsp.canonical_key or "")
+
+
 def execute_governed_persistence(
     db: Any,
     models: Any,
@@ -635,9 +644,26 @@ def execute_governed_persistence(
             result.provenance_ids.append(int(existing_prov.id))
             if not ku.provenance_complete:
                 ku.provenance_complete = True
-                elig = evaluate_knowledge_unit_eligibility(ku)
+                elig = finalize_governed_runtime_eligibility(
+                    ku,
+                    source_key=_resolve_source_key(
+                        db,
+                        models,
+                        int(payload.get("source_profile_id") or raw.source_profile_id),
+                    ),
+                    domain=str(ku.domain or "lifestyle"),
+                )
                 ku.runtime_eligibility = elig.value
                 db.flush()
+                if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
+                    from backend.app.services.scis.serving_bridge import index_eligible_knowledge_unit_if_ready
+
+                    index_eligible_knowledge_unit_if_ready(
+                        db,
+                        ku,
+                        source_profile_id=int(payload.get("source_profile_id") or raw.source_profile_id),
+                        raw_evidence_id=int(raw.id),
+                    )
             continue
 
         lineage = prov_svc.attach_hash_lineage(
@@ -654,9 +680,15 @@ def execute_governed_persistence(
             **lineage,
         }
         prov_svc.require_provenance_complete(prov_payload)
-        attribution = {
+        source_key = _resolve_source_key(db, models, int(prov_payload["source_profile_id"]))
+        attr = manifest_attribution(source_key) if source_key else {
             "required_text": NHS_ATTRIBUTION,
             "license": "OGL-v3.0",
+            "publisher": "NHS UK",
+        }
+        attribution = {
+            "required_text": attr["required_text"],
+            "license": attr["license"],
             "source_url": str(payload.get("canonical_url") or raw.canonical_url),
         }
         prov = models.KnowledgeProvenance(
@@ -673,7 +705,7 @@ def execute_governed_persistence(
             normalization_process=str(payload.get("normalization_process") or "w3p01-normalize"),
             attribution_data=json.dumps(attribution, sort_keys=True),
             citation_rendering_data=json.dumps(
-                {"attribution": NHS_ATTRIBUTION, "url": raw.canonical_url},
+                {"attribution": attr["required_text"], "url": raw.canonical_url},
                 sort_keys=True,
             ),
         )
@@ -682,20 +714,34 @@ def execute_governed_persistence(
         result.provenance_ids.append(int(prov.id))
 
         ku.provenance_complete = True
-        elig = evaluate_knowledge_unit_eligibility(ku)
+        elig = finalize_governed_runtime_eligibility(
+            ku,
+            source_key=source_key,
+            domain=str(ku.domain or "lifestyle"),
+        )
         ku.runtime_eligibility = elig.value
         db.flush()
 
-        # Never write unapproved / non-ELIGIBLE candidates into Knowledge Memory.
+        if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
+            from backend.app.services.scis.serving_bridge import index_eligible_knowledge_unit_if_ready
+
+            index_eligible_knowledge_unit_if_ready(
+                db,
+                ku,
+                source_profile_id=int(prov_payload["source_profile_id"]),
+                raw_evidence_id=int(raw.id),
+            )
+
+        # Never write unapproved candidates into Knowledge Memory (I7/I8 boundary).
         mem_probe = {
             "supersession_state": "CURRENT",
             "runtime_eligibility": ku.runtime_eligibility,
         }
         mem_elig = mem_svc.evaluate_memory_eligibility(mem_probe)
         if mem_elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
-            # Defensive: current fail-closed matrix should not reach here for NHS candidates.
-            raise GovernedWeeklyRuntimeError("UNEXPECTED_MEMORY_ELIGIBLE_CANDIDATE")
-        result.knowledge_memory_writes = 0
+            result.knowledge_memory_writes = 0
+        else:
+            result.knowledge_memory_writes = 0
 
     result.detail = "governed_raw_ku_provenance_persisted"
     for h in handoffs:

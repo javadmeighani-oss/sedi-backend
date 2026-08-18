@@ -1,5 +1,9 @@
-# Frozen multi-source activation allowlist for I5 Final V1 Operational Gate.
-# Only listed exact endpoints may become fetch-enabled. No wildcard activation.
+# CANONICAL TRUSTED SOURCE CONTROL MANIFEST (Javad-editable)
+# Runtime crawler activation derives ONLY from activation:YES entries below.
+# PostgreSQL GSP/registry tables are runtime audit state.
+# seed_registry.py is bootstrap-only — NOT runtime activation authority.
+manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
+manifest_version: "i5-trusted-source-control-v2"
 allowlist_version: "i5-multisource-v1"
 gate_id: "I5-FINAL-V1-OPERATIONAL-CLOSURE-CAP23-25-DIRECTORY-PLUS-REAL-MULTISOURCE-WEEKLY-KNOWLEDGE-EXPANSION-MASTER-GATE-01"
 publisher_diversity_floor: 4
@@ -24,6 +28,8 @@ sources:
     entity_coverage: [D12]
     knowledge_domains: [lifestyle_prevention_routines, physical_activity_exercise, mental_health_psychology]
     activation: YES
+    governed_low_risk_eligibility: YES
+    eligibility_evidence_strength: LOW
     license_notes: "OGL v3.0 — attribution required; refresh <=7 days"
 
   - source_key: medlineplus_consumer_health
@@ -47,6 +53,7 @@ sources:
     entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
     activation: YES
+    governed_low_risk_eligibility: NO
     license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
 
   - source_key: cdc_health_lifestyle
@@ -69,6 +76,8 @@ sources:
     entity_coverage: [D05, D13, D15, D17]
     knowledge_domains: [physical_activity_exercise, nutrition, lifestyle_prevention_routines, cardiovascular]
     activation: YES
+    governed_low_risk_eligibility: YES
+    eligibility_evidence_strength: LOW
     license_notes: "CDC public domain — attribute CDC/HHS; non-endorsement disclaimer"
 
   - source_key: nimh_nih_mental_health
@@ -89,4 +98,5 @@ sources:
     entity_coverage: []
     knowledge_domains: [mental_health_psychology]
     activation: YES
+    governed_low_risk_eligibility: NO
     license_notes: "NIMH public-domain text; cite NIMH; non-diagnostic; no crisis content as KB answers"
