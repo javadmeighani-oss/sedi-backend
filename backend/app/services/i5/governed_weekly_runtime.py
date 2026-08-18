@@ -54,10 +54,7 @@ from backend.app.services.i5.medical_safety_gate import (
     requires_human_review,
 )
 from backend.app.services.i5.runtime_eligibility_gate import evaluate_knowledge_unit_eligibility
-from backend.app.services.i5.governed_low_risk_eligibility import (
-    finalize_governed_runtime_eligibility,
-    normalize_eligibility_domain,
-)
+from backend.app.services.i5.governed_ku_serving import apply_governed_finalize_and_lexical_index
 from backend.app.services.i5.trusted_source_manifest import manifest_attribution
 from backend.app.services.i5.source_discovery import (
     SourceCandidateDescriptor,
@@ -645,28 +642,17 @@ def execute_governed_persistence(
         )
         if existing_prov is not None:
             result.provenance_ids.append(int(existing_prov.id))
-            if not ku.provenance_complete:
-                ku.provenance_complete = True
-                elig = finalize_governed_runtime_eligibility(
-                    ku,
-                    source_key=_resolve_source_key(
-                        db,
-                        models,
-                        int(payload.get("source_profile_id") or raw.source_profile_id),
-                    ),
-                    domain=normalize_eligibility_domain(ku.domain),
-                )
-                ku.runtime_eligibility = elig.value
-                db.flush()
-                if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
-                    from backend.app.services.scis.serving_bridge import index_eligible_knowledge_unit_if_ready
-
-                    index_eligible_knowledge_unit_if_ready(
-                        db,
-                        ku,
-                        source_profile_id=int(payload.get("source_profile_id") or raw.source_profile_id),
-                        raw_evidence_id=int(raw.id),
-                    )
+            incoming_source_profile_id = int(payload.get("source_profile_id") or raw.source_profile_id)
+            source_key = _resolve_source_key(db, models, incoming_source_profile_id)
+            apply_governed_finalize_and_lexical_index(
+                db,
+                ku,
+                source_key=source_key,
+                source_profile_id=incoming_source_profile_id,
+                raw_evidence_id=int(raw.id),
+                authoritative_provenance=existing_prov,
+                incoming_source_profile_id=incoming_source_profile_id,
+            )
             continue
 
         lineage = prov_svc.attach_hash_lineage(
@@ -717,23 +703,15 @@ def execute_governed_persistence(
         result.provenance_ids.append(int(prov.id))
 
         ku.provenance_complete = True
-        elig = finalize_governed_runtime_eligibility(
+        apply_governed_finalize_and_lexical_index(
+            db,
             ku,
             source_key=source_key,
-            domain=normalize_eligibility_domain(ku.domain),
+            source_profile_id=int(prov_payload["source_profile_id"]),
+            raw_evidence_id=int(raw.id),
+            authoritative_provenance=prov,
+            incoming_source_profile_id=int(prov_payload["source_profile_id"]),
         )
-        ku.runtime_eligibility = elig.value
-        db.flush()
-
-        if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
-            from backend.app.services.scis.serving_bridge import index_eligible_knowledge_unit_if_ready
-
-            index_eligible_knowledge_unit_if_ready(
-                db,
-                ku,
-                source_profile_id=int(prov_payload["source_profile_id"]),
-                raw_evidence_id=int(raw.id),
-            )
 
         # Never write unapproved candidates into Knowledge Memory (I7/I8 boundary).
         mem_probe = {

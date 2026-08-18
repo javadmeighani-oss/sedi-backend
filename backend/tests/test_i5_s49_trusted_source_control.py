@@ -69,12 +69,18 @@ def _canonical_hash(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def _seed_lineage_fixtures(db, *, suffix: str | None = None) -> tuple[int, int]:
+def _seed_lineage_fixtures(
+    db,
+    *,
+    suffix: str | None = None,
+    canonical_key: str | None = None,
+) -> tuple[int, int]:
     from backend.app import models
 
     token = suffix or uuid.uuid4().hex
+    gsp_key = canonical_key or f"s49-gsp-{_canonical_hash(token)[:24]}"
     gsp = models.GovernedSourceProfile(
-        canonical_key=f"s49-gsp-{_canonical_hash(token)[:24]}",
+        canonical_key=gsp_key,
         operational_status="ACTIVE",
         registry_state="ACTIVE",
         runtime_eligibility="ELIGIBLE",
@@ -101,20 +107,45 @@ def _seed_lineage_fixtures(db, *, suffix: str | None = None) -> tuple[int, int]:
     return int(gsp.id), int(raw.id)
 
 
-def _link_ku_provenance(db, ku, *, source_profile_id: int, raw_evidence_id: int) -> None:
+def _link_ku_provenance(db, ku, *, source_profile_id: int, raw_evidence_id: int):
     from backend.app import models
 
-    db.add(
-        models.KnowledgeProvenance(
-            knowledge_unit_id=ku.id,
-            source_profile_id=source_profile_id,
-            raw_evidence_id=raw_evidence_id,
-            retrieval_method="TEST_FIXTURE",
-            access_route="TEST",
-            content_hash=_canonical_hash(f"prov-{ku.id}"),
-        )
+    prov = models.KnowledgeProvenance(
+        knowledge_unit_id=ku.id,
+        source_profile_id=source_profile_id,
+        raw_evidence_id=raw_evidence_id,
+        retrieval_method="TEST_FIXTURE",
+        access_route="TEST",
+        content_hash=_canonical_hash(f"prov-{ku.id}"),
     )
+    db.add(prov)
     db.flush()
+    return prov
+
+
+def _kce_count(db, ku_id: int) -> int:
+    from backend.app import models
+
+    return (
+        db.query(models.KnowledgeChunkEmbedding)
+        .filter(models.KnowledgeChunkEmbedding.knowledge_unit_id == int(ku_id))
+        .count()
+    )
+
+
+def _apply_existing_ku_path(db, ku, *, source_key: str, gsp_id: int, raw_id: int, prov):
+    from backend.app.services.i5.governed_ku_serving import apply_governed_finalize_and_lexical_index
+
+    with patch.object(db, "commit", db.flush):
+        return apply_governed_finalize_and_lexical_index(
+            db,
+            ku,
+            source_key=source_key,
+            source_profile_id=gsp_id,
+            raw_evidence_id=raw_id,
+            authoritative_provenance=prov,
+            incoming_source_profile_id=gsp_id,
+        )
 
 
 def _make_ku(db, *, domain: str, dedupe_key: str):
@@ -333,3 +364,169 @@ def test_ku_to_kce_lexical_retrieval_with_provenance(db):
         item = resp.evidence[0]
         assert item.provenance.knowledge_unit_id == int(ku.id)
         assert item.provenance.chunk_id is not None
+
+
+def test_existing_ku_provenance_complete_reevaluated_eligible_and_indexed(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-existing-reeval")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-reeval", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+
+    elig = _apply_existing_ku_path(
+        db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov
+    )
+    assert elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE
+    first_count = _kce_count(db, ku.id)
+    assert first_count >= 1
+
+
+def test_existing_ku_lexical_index_idempotent(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-existing-idempotent")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-idempotent", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+
+    _apply_existing_ku_path(db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov)
+    first_count = _kce_count(db, ku.id)
+    _apply_existing_ku_path(db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov)
+    assert _kce_count(db, ku.id) == first_count
+
+
+def test_existing_ku_provenance_source_mismatch_not_promoted(db):
+    from backend.app.services.i5.governed_ku_serving import apply_governed_finalize_and_lexical_index
+
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-existing-mismatch")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    auth_gsp_id, auth_raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-auth-pubmed", canonical_key="pubmed_ncbi_eutils"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=auth_gsp_id, raw_evidence_id=auth_raw_id)
+    incoming_gsp_id, incoming_raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-incoming-nhs", canonical_key="nhs_uk_live_well"
+    )
+
+    with patch.object(db, "commit", db.flush):
+        elig = apply_governed_finalize_and_lexical_index(
+            db,
+            ku,
+            source_key="nhs_uk_live_well",
+            source_profile_id=incoming_gsp_id,
+            raw_evidence_id=incoming_raw_id,
+            authoritative_provenance=prov,
+            incoming_source_profile_id=incoming_gsp_id,
+        )
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
+    assert _kce_count(db, ku.id) == 0
+
+
+def test_existing_ku_high_risk_domain_not_promoted(db):
+    ku = _make_ku(db, domain="diabetes", dedupe_key="s49-existing-diabetes")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-diabetes", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+    elig = _apply_existing_ku_path(
+        db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov
+    )
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
+    assert _kce_count(db, ku.id) == 0
+
+
+def test_existing_ku_pubmed_connector_not_promoted(db):
+    ku = _make_ku(db, domain="neurology", dedupe_key="s49-existing-pubmed")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-pubmed", canonical_key="pubmed_ncbi_eutils"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+    elig = _apply_existing_ku_path(
+        db, ku, source_key="pubmed_ncbi_eutils", gsp_id=gsp_id, raw_id=raw_id, prov=prov
+    )
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
+    assert _kce_count(db, ku.id) == 0
+
+
+def test_existing_ku_unknown_domain_not_promoted(db):
+    ku = _make_ku(db, domain="unknown", dedupe_key="s49-existing-unknown-domain")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-unknown-domain", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+    elig = _apply_existing_ku_path(
+        db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov
+    )
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
+    assert _kce_count(db, ku.id) == 0
+
+
+def test_existing_ku_already_eligible_indexed_no_duplicate(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-existing-already-indexed")
+    apply_governed_low_risk_fields(ku, source_key="nhs_uk_live_well", domain="lifestyle")
+    elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="lifestyle")
+    ku.runtime_eligibility = elig.value
+    ku.provenance_complete = True
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-already-indexed", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+    _apply_existing_ku_path(db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov)
+    first_count = _kce_count(db, ku.id)
+    _apply_existing_ku_path(db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov)
+    assert _kce_count(db, ku.id) == first_count
+
+    from backend.app import models
+    from backend.app.services.scis.lexical_indexing import LEXICAL_ONLY_MODEL_ID
+
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-existing-zero-vector")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-existing-zero-vector", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+
+    with patch(
+        "backend.app.services.scis.embedding.providers.FakeScisEmbeddingProvider.embed_texts"
+    ) as mock_embed:
+        _apply_existing_ku_path(
+            db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov
+        )
+        mock_embed.assert_not_called()
+
+    rows = db.query(models.KnowledgeChunkEmbedding).filter_by(knowledge_unit_id=ku.id).all()
+    assert rows
+    for row in rows:
+        assert row.model_identifier == LEXICAL_ONLY_MODEL_ID
+        vec = db.execute(
+            text("SELECT embedding_vector FROM knowledge_chunk_embeddings WHERE id = :id"),
+            {"id": row.id},
+        ).scalar()
+        assert vec is None

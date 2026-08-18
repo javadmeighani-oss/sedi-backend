@@ -294,6 +294,11 @@ PATH_CLASSIFICATION: dict[str, tuple[str, str, str]] = {
         "PRODUCTION_REACHABLE",
         "manifest-governed low-risk KU eligibility field transitions",
     ),
+    "app/services/i5/governed_ku_serving.py": (
+        "CANONICAL_RUNTIME_WRITER",
+        "PRODUCTION_REACHABLE",
+        "shared governed KU finalize + idempotent lexical index path",
+    ),
     "app/services/i5/trusted_source_manifest.py": (
         "CANONICAL_SERVICE_HELPER",
         "PRODUCTION_REACHABLE",
@@ -939,6 +944,7 @@ def _eligibility_mutation_unauthorized(target: str, path: str, lineno: int, sour
     allow_paths = {
         "app/services/i5/governed_weekly_runtime.py",
         "app/services/i5/governed_low_risk_eligibility.py",
+        "app/services/i5/governed_ku_serving.py",
         "app/services/i5/multisource_activation.py",
     }
     return path.replace("\\", "/") not in allow_paths
