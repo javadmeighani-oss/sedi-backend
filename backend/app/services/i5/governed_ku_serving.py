@@ -27,6 +27,33 @@ class UnchangedSourceReevaluationResult:
     skipped_fail_closed: int = 0
 
 
+def merge_unchanged_source_reevaluation_results(
+    *results: UnchangedSourceReevaluationResult,
+) -> UnchangedSourceReevaluationResult:
+    examined = 0
+    newly_eligible = 0
+    already_eligible = 0
+    newly_indexed = 0
+    skipped_fail_closed = 0
+    for result in results:
+        examined += int(result.examined)
+        newly_eligible += int(result.newly_eligible)
+        already_eligible += int(result.already_eligible)
+        newly_indexed += int(result.newly_indexed)
+        skipped_fail_closed += int(result.skipped_fail_closed)
+    return UnchangedSourceReevaluationResult(
+        examined=examined,
+        newly_eligible=newly_eligible,
+        already_eligible=already_eligible,
+        newly_indexed=newly_indexed,
+        skipped_fail_closed=skipped_fail_closed,
+    )
+
+
+def knowledge_mutation_from_unchanged_source(result: UnchangedSourceReevaluationResult) -> bool:
+    return int(result.newly_eligible) > 0 or int(result.newly_indexed) > 0
+
+
 def provenance_source_identity_matches(
     *,
     authoritative_source_profile_id: int,

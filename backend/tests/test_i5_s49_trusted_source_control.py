@@ -778,3 +778,162 @@ def test_unchanged_source_reevaluation_preserves_provenance_citation_and_zero_ve
             {"id": row.id},
         ).scalar()
         assert vec is None
+
+
+def _orchestrate_fixture_304(db, *, gsp_id: int, url: str, logical_run_key: str):
+    import importlib
+
+    from backend.app.services.i5 import weekly_orchestrator as orch
+    from backend.app.services.i5.adapters.base import FixtureTransportResponse
+    from backend.app.services.i5.source_discovery import SourceCandidateDescriptor
+
+    models = importlib.import_module("backend.app.models")
+    candidate = SourceCandidateDescriptor(
+        source_profile_id=gsp_id,
+        adapter_mode="PUBLIC_WEB_FETCH",
+        url=url,
+        registry_state="ACTIVE",
+        runtime_eligibility="ELIGIBLE",
+        rights_terms_state="ACCEPTABLE",
+        robots_access_state="ALLOWED",
+        rate_limit_policy="DEFINED",
+        allowed_domain="nhs.uk",
+        canonical_key="nhs_uk_live_well",
+    )
+    with patch.object(db, "commit", db.flush):
+        return orch.orchestrate_weekly_run(
+            db,
+            models,
+            candidates=[candidate],
+            transports={
+                gsp_id: FixtureTransportResponse(status_code=304, body=b"", etag='"same"'),
+            },
+            dry_run=False,
+            persist_ledger=True,
+            logical_run_key=logical_run_key,
+        )
+
+
+def test_unchanged_source_no_mutation_production_write_false(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-r06-no-mutation")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-r06-no-mutation", canonical_key="nhs_uk_live_well"
+    )
+    prov = _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+    _apply_existing_ku_path(db, ku, source_key="nhs_uk_live_well", gsp_id=gsp_id, raw_id=raw_id, prov=prov)
+    assert ku.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+    assert _kce_count(db, ku.id) >= 1
+
+    outcome = _orchestrate_fixture_304(
+        db,
+        gsp_id=gsp_id,
+        url="https://www.nhs.uk/live-well/exercise/s49-r06-no-mutation/",
+        logical_run_key=f"s49-r06-no-mutation-{uuid.uuid4().hex}",
+    )
+    assert outcome.production_write is False
+    assert outcome.unchanged_source_examined >= 1
+    assert outcome.unchanged_source_newly_eligible == 0
+    assert outcome.unchanged_source_newly_indexed == 0
+
+
+def test_unchanged_source_newly_eligible_production_write_true(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-r06-newly-eligible")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-r06-newly-eligible", canonical_key="nhs_uk_live_well"
+    )
+    _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+
+    outcome = _orchestrate_fixture_304(
+        db,
+        gsp_id=gsp_id,
+        url="https://www.nhs.uk/live-well/exercise/s49-r06-newly-eligible/",
+        logical_run_key=f"s49-r06-newly-eligible-{uuid.uuid4().hex}",
+    )
+    assert outcome.production_write is True
+    assert outcome.unchanged_source_newly_eligible >= 1
+    assert ku.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+
+
+def test_unchanged_source_newly_indexed_production_write_true(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-r06-newly-indexed")
+    apply_governed_low_risk_fields(ku, source_key="nhs_uk_live_well", domain="lifestyle")
+    elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="lifestyle")
+    ku.runtime_eligibility = elig.value
+    ku.provenance_complete = True
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-r06-newly-indexed", canonical_key="nhs_uk_live_well"
+    )
+    _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+    assert _kce_count(db, ku.id) == 0
+
+    outcome = _orchestrate_fixture_304(
+        db,
+        gsp_id=gsp_id,
+        url="https://www.nhs.uk/live-well/exercise/s49-r06-newly-indexed/",
+        logical_run_key=f"s49-r06-newly-indexed-{uuid.uuid4().hex}",
+    )
+    assert outcome.production_write is True
+    assert outcome.unchanged_source_newly_indexed >= 1
+    assert _kce_count(db, ku.id) >= 1
+
+
+def test_unchanged_source_idempotent_repeat_production_write_false(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-r06-idempotent-write")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-r06-idempotent-write", canonical_key="nhs_uk_live_well"
+    )
+    _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+
+    first = _orchestrate_fixture_304(
+        db,
+        gsp_id=gsp_id,
+        url="https://www.nhs.uk/live-well/exercise/s49-r06-idempotent-write/",
+        logical_run_key=f"s49-r06-idempotent-write-a-{uuid.uuid4().hex}",
+    )
+    assert first.production_write is True
+    kce_count = _kce_count(db, ku.id)
+
+    second = _orchestrate_fixture_304(
+        db,
+        gsp_id=gsp_id,
+        url="https://www.nhs.uk/live-well/exercise/s49-r06-idempotent-write/",
+        logical_run_key=f"s49-r06-idempotent-write-b-{uuid.uuid4().hex}",
+    )
+    assert second.production_write is False
+    assert _kce_count(db, ku.id) == kce_count
+
+
+def test_unchanged_source_governance_blocked_production_write_false(db):
+    ku = _make_ku(db, domain="diabetes", dedupe_key="s49-r06-governance-blocked")
+    ku.provenance_complete = True
+    ku.runtime_eligibility = KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value
+    db.flush()
+
+    gsp_id, raw_id = _seed_lineage_fixtures(
+        db, suffix="s49-r06-governance-blocked", canonical_key="nhs_uk_live_well"
+    )
+    _link_ku_provenance(db, ku, source_profile_id=gsp_id, raw_evidence_id=raw_id)
+
+    outcome = _orchestrate_fixture_304(
+        db,
+        gsp_id=gsp_id,
+        url="https://www.nhs.uk/live-well/exercise/s49-r06-governance-blocked/",
+        logical_run_key=f"s49-r06-governance-blocked-{uuid.uuid4().hex}",
+    )
+    assert outcome.production_write is False
+    assert outcome.unchanged_source_skipped_fail_closed >= 1
+    assert ku.runtime_eligibility == KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value

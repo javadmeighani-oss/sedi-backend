@@ -156,6 +156,11 @@ class OrchestrationOutcome:
     production_write: bool = False
     network_executed: bool = False
     detail: str = ""
+    unchanged_source_examined: int = 0
+    unchanged_source_newly_eligible: int = 0
+    unchanged_source_already_eligible: int = 0
+    unchanged_source_newly_indexed: int = 0
+    unchanged_source_skipped_fail_closed: int = 0
     # W6-P03 observability only — does not alter crawler/governance decisions.
     aa_metrics: dict[str, float] = field(default_factory=dict)
     alert_decisions: list[dict[str, Any]] = field(default_factory=list)
@@ -1168,6 +1173,7 @@ def orchestrate_weekly_run(
     source_rows = []
     handoffs: list[HandoffRequest] = []
     gap_rows = []
+    unchanged_reeval_results: list[Any] = []
 
     for item in plan.selected:
         if live_network:
@@ -1200,9 +1206,11 @@ def orchestrate_weekly_run(
                 reevaluate_existing_kus_for_unchanged_source,
             )
 
-            reevaluate_existing_kus_for_unchanged_source(
-                db,
-                source_profile_id=int(item.source_profile_id),
+            unchanged_reeval_results.append(
+                reevaluate_existing_kus_for_unchanged_source(
+                    db,
+                    source_profile_id=int(item.source_profile_id),
+                )
             )
         row, _ = record_source_result(
             db,
@@ -1288,6 +1296,13 @@ def orchestrate_weekly_run(
 
     finalize_attempt_counters(attempt, source_rows)
 
+    from backend.app.services.i5.governed_ku_serving import (
+        knowledge_mutation_from_unchanged_source,
+        merge_unchanged_source_reevaluation_results,
+    )
+
+    unchanged_totals = merge_unchanged_source_reevaluation_results(*unchanged_reeval_results)
+    handoff_write = False
     production_write = False
     detail = "ledger_persisted_handoffs_prepare_only"
     if live_network and (not dry_run) and persist_ledger and handoffs:
@@ -1301,8 +1316,14 @@ def orchestrate_weekly_run(
             attempt_id=int(attempt.id),
         )
         attempt.new_knowledge_count = int(persist_result.new_knowledge_count)
-        production_write = True
+        handoff_write = True
         detail = persist_result.detail or "ledger_persisted_governed_pipeline"
+    if knowledge_mutation_from_unchanged_source(unchanged_totals):
+        production_write = True
+        if not handoff_write:
+            detail = "unchanged_source_knowledge_mutation"
+    elif handoff_write:
+        production_write = True
 
     extracted = int(attempt.fetched_sources or 0)
     outcome = classify_run_outcome(
@@ -1379,6 +1400,11 @@ def orchestrate_weekly_run(
         production_write=production_write,
         network_executed=bool(live_network and plan.selected),
         detail=detail,
+        unchanged_source_examined=int(unchanged_totals.examined),
+        unchanged_source_newly_eligible=int(unchanged_totals.newly_eligible),
+        unchanged_source_already_eligible=int(unchanged_totals.already_eligible),
+        unchanged_source_newly_indexed=int(unchanged_totals.newly_indexed),
+        unchanged_source_skipped_fail_closed=int(unchanged_totals.skipped_fail_closed),
         aa_metrics=aa_metrics,
         alert_decisions=alert_decisions,
     )
