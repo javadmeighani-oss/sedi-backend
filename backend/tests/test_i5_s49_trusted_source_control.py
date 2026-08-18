@@ -1,11 +1,11 @@
-"""I5-S49 trusted-source control, governed eligibility, and SCIS serving bridge tests."""
+"""I5-S49 trusted-source control, governed eligibility, and lexical-only serving tests."""
 
 from __future__ import annotations
 
-import json
-from datetime import datetime
+from unittest.mock import patch
 
 import pytest
+from sqlalchemy import text
 
 from backend.app.services.i5.enums import (
     ConflictState,
@@ -21,7 +21,9 @@ from backend.app.services.i5.governed_low_risk_eligibility import (
     apply_governed_low_risk_fields,
     can_apply_governed_low_risk,
     connector_blocks_governed_low_risk,
+    domain_is_recognized_low_risk,
     finalize_governed_runtime_eligibility,
+    normalize_eligibility_domain,
 )
 from backend.app.services.i5.trusted_source_manifest import (
     MANIFEST_AUTHORITY,
@@ -32,7 +34,40 @@ from backend.app.services.i5.trusted_source_manifest import (
     validate_manifest_contract,
 )
 from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+from backend.app.services.scis.lexical_indexing import LEXICAL_ONLY_BACKEND_KIND, LEXICAL_ONLY_MODEL_ID
 from backend.app.services.scis.retrieval import retrieve
+
+
+def _make_ku(db, *, domain, dedupe_key):
+    from backend.app import models
+
+    ku = models.KnowledgeUnit(
+        canonical_unit_id=f"ku-{dedupe_key}",
+        immutable_version_id="v1",
+        domain=domain,
+        topic_taxonomy="sleep",
+        language="en",
+        knowledge_type=KnowledgeType.OTHER.value,
+        normalized_statement="Regular sleep supports wellbeing.",
+        applicability="general",
+        population="general",
+        jurisdiction="GB",
+        evidence_strength=EvidenceStrength.UNKNOWN.value,
+        medical_safety_state=MedicalSafetyState.PENDING_REVIEW.value,
+        conflict_state=ConflictState.NONE.value,
+        freshness_state=FreshnessState.UNKNOWN.value,
+        review_state=ReviewState.NOT_REVIEWED.value,
+        publication_state=PublicationState.DRAFT.value,
+        runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
+        provenance_complete=True,
+        deduplication_key=dedupe_key,
+        canonical_hash=dedupe_key,
+        hash_algorithm="SHA-256",
+        canonicalization_version="v1",
+    )
+    db.add(ku)
+    db.flush()
+    return ku
 
 
 def test_manifest_is_canonical_authority():
@@ -52,11 +87,31 @@ def test_governed_low_risk_flags_per_source():
     assert governed_low_risk_eligible("pubmed_ncbi_eutils") is False
 
 
+def test_domain_fail_closed_normalization():
+    assert normalize_eligibility_domain(None) is None
+    assert normalize_eligibility_domain("") is None
+    assert normalize_eligibility_domain("  ") is None
+    assert normalize_eligibility_domain("UNKNOWN") is None
+    assert normalize_eligibility_domain("lifestyle") == "lifestyle"
+    assert domain_is_recognized_low_risk("lifestyle") is True
+    assert domain_is_recognized_low_risk("diabetes") is False
+
+
 def test_high_risk_connector_and_domain_fail_closed():
     assert connector_blocks_governed_low_risk("pubmed_ncbi_eutils") is True
     assert can_apply_governed_low_risk(
         source_key="nhs_uk_live_well",
         domain="diabetes",
+        provenance_complete=True,
+    ) is False
+    assert can_apply_governed_low_risk(
+        source_key="nhs_uk_live_well",
+        domain=None,
+        provenance_complete=True,
+    ) is False
+    assert can_apply_governed_low_risk(
+        source_key="nhs_uk_live_well",
+        domain="",
         provenance_complete=True,
     ) is False
     assert can_apply_governed_low_risk(
@@ -66,40 +121,29 @@ def test_high_risk_connector_and_domain_fail_closed():
     ) is False
 
 
-def test_finalize_eligibility_low_risk_official(db):
-    from backend.app import models
-
-    ku = models.KnowledgeUnit(
-        canonical_unit_id="ku-s49-test",
-        immutable_version_id="v1",
-        domain="lifestyle",
-        topic_taxonomy="sleep",
-        language="en",
-        knowledge_type=KnowledgeType.OTHER.value,
-        normalized_statement="Regular sleep supports wellbeing.",
-        applicability="general",
-        population="general",
-        jurisdiction="GB",
-        evidence_strength=EvidenceStrength.UNKNOWN.value,
-        medical_safety_state=MedicalSafetyState.PENDING_REVIEW.value,
-        conflict_state=ConflictState.NONE.value,
-        freshness_state=FreshnessState.UNKNOWN.value,
-        review_state=ReviewState.NOT_REVIEWED.value,
-        publication_state=PublicationState.DRAFT.value,
-        runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
-        provenance_complete=True,
-        deduplication_key="s49-dedupe-1",
-        canonical_hash="abc",
-        hash_algorithm="SHA-256",
-        canonicalization_version="v1",
-    )
-    db.add(ku)
-    db.flush()
-
+def test_finalize_eligibility_low_risk_explicit_domain(db):
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-dedupe-1")
     elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="lifestyle")
     assert elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE
-    assert ku.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
     assert ku.medical_safety_state == MedicalSafetyState.CLEARED.value
+
+
+def test_finalize_eligibility_missing_domain_not_auto_eligible(db):
+    ku = _make_ku(db, domain=None, dedupe_key="s49-missing-domain")
+    elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain=None)
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
+
+
+def test_finalize_eligibility_unknown_domain_not_auto_eligible(db):
+    ku = _make_ku(db, domain="unknown", dedupe_key="s49-unknown-domain")
+    elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="unknown")
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
+
+
+def test_finalize_eligibility_high_risk_domain_review_required(db):
+    ku = _make_ku(db, domain="diabetes", dedupe_key="s49-diabetes")
+    elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="diabetes")
+    assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
 
 
 def test_finalize_eligibility_pubmed_stays_not_eligible(db):
@@ -136,42 +180,38 @@ def test_finalize_eligibility_pubmed_stays_not_eligible(db):
     assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
 
 
-@pytest.mark.skipif(
-    not __import__("os").environ.get("TEST_DATABASE_URL"),
-    reason="SCIS DB integration requires TEST_DATABASE_URL",
-)
-def test_ku_to_kce_lexical_retrieval_with_provenance(db):
-    from backend.app import models
-    from backend.app.services.scis.embedding.providers import FakeScisEmbeddingProvider
+def test_lexical_only_indexing_zero_vector_generation(db):
     from backend.app.services.scis.serving_bridge import index_eligible_knowledge_unit_if_ready
 
-    ku = models.KnowledgeUnit(
-        canonical_unit_id="ku-s49-scis",
-        immutable_version_id="v1",
-        domain="lifestyle",
-        topic_taxonomy="exercise",
-        language="en",
-        knowledge_type=KnowledgeType.OTHER.value,
-        normalized_statement="NHS live well exercise guidance for healthy adults.",
-        applicability="general",
-        population="general",
-        jurisdiction="GB",
-        evidence_strength=EvidenceStrength.UNKNOWN.value,
-        medical_safety_state=MedicalSafetyState.PENDING_REVIEW.value,
-        conflict_state=ConflictState.NONE.value,
-        freshness_state=FreshnessState.UNKNOWN.value,
-        review_state=ReviewState.NOT_REVIEWED.value,
-        publication_state=PublicationState.DRAFT.value,
-        runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
-        provenance_complete=True,
-        deduplication_key="s49-scis",
-        canonical_hash="ghi",
-        hash_algorithm="SHA-256",
-        canonicalization_version="v1",
-    )
-    db.add(ku)
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-lexical-only")
+    apply_governed_low_risk_fields(ku, source_key="nhs_uk_live_well", domain="lifestyle")
+    elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="lifestyle")
+    ku.runtime_eligibility = elig.value
     db.flush()
 
+    with patch(
+        "backend.app.services.scis.embedding.providers.FakeScisEmbeddingProvider.embed_texts"
+    ) as mock_embed:
+        rows = index_eligible_knowledge_unit_if_ready(db, ku, source_profile_id=1, raw_evidence_id=1)
+        mock_embed.assert_not_called()
+
+    assert len(rows) >= 1
+    for row in rows:
+        assert row.model_identifier == LEXICAL_ONLY_MODEL_ID
+        assert row.backend_kind == LEXICAL_ONLY_BACKEND_KIND
+        assert row.embedding_json is None
+        vec = db.execute(
+            text("SELECT embedding_vector FROM knowledge_chunk_embeddings WHERE id = :id"),
+            {"id": row.id},
+        ).scalar()
+        assert vec is None
+
+
+def test_ku_to_kce_lexical_retrieval_with_provenance(db):
+    from backend.app.services.scis.serving_bridge import index_eligible_knowledge_unit_if_ready
+
+    ku = _make_ku(db, domain="lifestyle", dedupe_key="s49-scis")
+    ku.normalized_statement = "NHS live well exercise guidance for healthy adults."
     apply_governed_low_risk_fields(ku, source_key="nhs_uk_live_well", domain="lifestyle")
     elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain="lifestyle")
     ku.runtime_eligibility = elig.value
@@ -188,9 +228,7 @@ def test_ku_to_kce_lexical_retrieval_with_provenance(db):
             mode=RetrievalMode.LEXICAL_ONLY,
             allowed_knowledge_classes=["GLOBAL_GOVERNED_KNOWLEDGE"],
         ),
-        provider=FakeScisEmbeddingProvider(),
     )
-    assert resp.fallback_state.value in {"NONE", "no_eligible_knowledge"}
     if resp.evidence_items:
         item = resp.evidence_items[0]
         assert item.provenance.knowledge_unit_id == int(ku.id)

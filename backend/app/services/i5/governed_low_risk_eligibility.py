@@ -36,6 +36,34 @@ _HIGH_RISK_CONNECTOR_PREFIXES = (
     "know01:",
 )
 
+RECOGNIZED_LOW_RISK_DOMAINS = frozenset(
+    {
+        "lifestyle",
+        "lifestyle_prevention",
+        "lifestyle_prevention_routines",
+        "physical_activity_exercise",
+        "nutrition",
+        "sleep",
+        "wellbeing",
+    }
+)
+
+
+def normalize_eligibility_domain(domain: Optional[str]) -> Optional[str]:
+    if domain is None:
+        return None
+    value = str(domain).strip().casefold()
+    if not value or value in {"unknown", "none", "null", "n/a", "na"}:
+        return None
+    return value
+
+
+def domain_is_recognized_low_risk(domain: Optional[str]) -> bool:
+    norm = normalize_eligibility_domain(domain)
+    if norm is None:
+        return False
+    return norm in RECOGNIZED_LOW_RISK_DOMAINS
+
 
 def connector_blocks_governed_low_risk(connector_or_source_key: Optional[str]) -> bool:
     if not connector_or_source_key:
@@ -47,7 +75,7 @@ def connector_blocks_governed_low_risk(connector_or_source_key: Optional[str]) -
 def can_apply_governed_low_risk(
     *,
     source_key: str,
-    domain: str,
+    domain: Optional[str],
     connector_key: Optional[str] = None,
     provenance_complete: bool,
 ) -> bool:
@@ -57,7 +85,10 @@ def can_apply_governed_low_risk(
         return False
     if not governed_low_risk_eligible(source_key):
         return False
-    if domain_is_high_risk(domain):
+    if not domain_is_recognized_low_risk(domain):
+        return False
+    norm = normalize_eligibility_domain(domain)
+    if norm is None or domain_is_high_risk(norm):
         return False
     return True
 
@@ -66,7 +97,7 @@ def apply_governed_low_risk_fields(
     ku: Any,
     *,
     source_key: str,
-    domain: str,
+    domain: Optional[str],
 ) -> bool:
     """Mutate KU governance fields for manifest low-risk path. Returns True if applied."""
     if not can_apply_governed_low_risk(
@@ -97,7 +128,7 @@ def finalize_governed_runtime_eligibility(
     ku: Union[Any, dict],
     *,
     source_key: str,
-    domain: str,
+    domain: Optional[str],
     connector_key: Optional[str] = None,
 ) -> KnowledgeUnitRuntimeEligibility:
     if isinstance(ku, dict):

@@ -54,7 +54,10 @@ from backend.app.services.i5.medical_safety_gate import (
     requires_human_review,
 )
 from backend.app.services.i5.runtime_eligibility_gate import evaluate_knowledge_unit_eligibility
-from backend.app.services.i5.governed_low_risk_eligibility import finalize_governed_runtime_eligibility
+from backend.app.services.i5.governed_low_risk_eligibility import (
+    finalize_governed_runtime_eligibility,
+    normalize_eligibility_domain,
+)
 from backend.app.services.i5.trusted_source_manifest import manifest_attribution
 from backend.app.services.i5.source_discovery import (
     SourceCandidateDescriptor,
@@ -651,7 +654,7 @@ def execute_governed_persistence(
                         models,
                         int(payload.get("source_profile_id") or raw.source_profile_id),
                     ),
-                    domain=str(ku.domain or "lifestyle"),
+                    domain=normalize_eligibility_domain(ku.domain),
                 )
                 ku.runtime_eligibility = elig.value
                 db.flush()
@@ -717,7 +720,7 @@ def execute_governed_persistence(
         elig = finalize_governed_runtime_eligibility(
             ku,
             source_key=source_key,
-            domain=str(ku.domain or "lifestyle"),
+            domain=normalize_eligibility_domain(ku.domain),
         )
         ku.runtime_eligibility = elig.value
         db.flush()

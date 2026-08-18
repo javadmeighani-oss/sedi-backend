@@ -83,7 +83,7 @@ jobs:
           test -f backend/alembic/versions/061_scis01_pgvector_kce_foundation.py
           echo "SCIS01_ALEMBIC_VECTOR_ALLOWLIST=PASS"
 
-      - name: Alembic single head is 064 (SCIS-01 + KNOW chain)
+      - name: Alembic single head is 067 (SCIS-01 + KNOW chain)
         run: |
           python - <<'PY'
           from alembic.config import Config
@@ -92,7 +92,9 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["064_i5_know03_studies_effects_recs"], heads
+          assert heads == ["067_i7_lifelong_memory_foundation"], heads
+          rev067 = script.get_revision("067_i7_lifelong_memory_foundation")
+          assert rev067.down_revision == "065_i5_know04_connectors_change_intelligence"
           rev062 = script.get_revision("062_i5_know01_source_registry_rights")
           assert rev062.down_revision == "061_scis01_pgvector_kce_foundation"
           rev064 = script.get_revision("064_i5_know03_studies_effects_recs")
@@ -118,7 +120,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "064_i5_know03_studies_effects_recs"
+              assert head == "067_i7_lifelong_memory_foundation"
               ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
               print("PGVECTOR_VERSION", ext)
               assert ext
@@ -179,7 +181,7 @@ jobs:
       - name: Unit + SCIS runtime pytest
         run: |
           mkdir -p "${{ runner.temp }}/scis01_evidence"
-          python -B -m pytest backend/tests/test_scis_01_core_retrieval.py backend/tests/test_db03_contracts.py::test_db03_guardrails_constants backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings backend/tests/test_db03_contracts.py::test_alembic_single_head_chain backend/tests/test_db03_contracts.py::test_knowledge_chunk_embeddings_extended_columns -q --tb=short --noconftest \
+          python -B -m pytest backend/tests/test_scis_01_core_retrieval.py backend/tests/test_i5_s49_trusted_source_control.py backend/tests/test_db03_contracts.py::test_db03_guardrails_constants backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings backend/tests/test_db03_contracts.py::test_alembic_single_head_chain backend/tests/test_db03_contracts.py::test_knowledge_chunk_embeddings_extended_columns -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_scis01.txt"
 
       - name: Embedding challenger eval (optional network)
@@ -256,7 +258,7 @@ jobs:
         run: |
           {
             echo "GATE=SCIS-01"
-            echo "ALEMBIC_HEAD=064_i5_know03_studies_effects_recs"
+            echo "ALEMBIC_HEAD=067_i7_lifelong_memory_foundation"
             echo "SCIS01_REVISION=061_scis01_pgvector_kce_foundation"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
