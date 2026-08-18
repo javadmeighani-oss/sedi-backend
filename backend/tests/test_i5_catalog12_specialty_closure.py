@@ -110,7 +110,7 @@ def test_catalog12_fixture_ingest_idempotent_and_safe():
     engine = create_engine(_db_url())
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "065_i5_know04_connectors_change_intelligence", head
+        assert head == "067_i7_lifelong_memory_foundation", head
     Session = sessionmaker(bind=engine)
     db = Session()
     html = (

@@ -56,7 +56,7 @@ def _db_url():
 def _require_065(engine):
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        if head != "065_i5_know04_connectors_change_intelligence":
+        if head != "067_i7_lifelong_memory_foundation":
             pytest.skip(f"alembic head {head} != 065")
 
 

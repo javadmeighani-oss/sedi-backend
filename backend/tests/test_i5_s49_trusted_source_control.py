@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -61,7 +63,11 @@ def db():
         engine.dispose()
 
 
-def _make_ku(db, *, domain, dedupe_key):
+def _canonical_hash(key: str) -> str:
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def _make_ku(db, *, domain: str, dedupe_key: str):
     from backend.app import models
 
     ku = models.KnowledgeUnit(
@@ -84,7 +90,7 @@ def _make_ku(db, *, domain, dedupe_key):
         runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
         provenance_complete=True,
         deduplication_key=dedupe_key,
-        canonical_hash=dedupe_key,
+        canonical_hash=_canonical_hash(dedupe_key),
         hash_algorithm="SHA-256",
         canonicalization_version="v1",
     )
@@ -151,8 +157,18 @@ def test_finalize_eligibility_low_risk_explicit_domain(db):
     assert ku.medical_safety_state == MedicalSafetyState.CLEARED.value
 
 
-def test_finalize_eligibility_missing_domain_not_auto_eligible(db):
-    ku = _make_ku(db, domain=None, dedupe_key="s49-missing-domain")
+def test_finalize_eligibility_missing_domain_not_auto_eligible():
+    ku = SimpleNamespace(
+        provenance_complete=True,
+        evidence_strength=EvidenceStrength.UNKNOWN.value,
+        medical_safety_state=MedicalSafetyState.PENDING_REVIEW.value,
+        conflict_state=ConflictState.NONE.value,
+        freshness_state=FreshnessState.UNKNOWN.value,
+        review_state=ReviewState.NOT_REVIEWED.value,
+        publication_state=PublicationState.DRAFT.value,
+        runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
+        retraction_reason=None,
+    )
     elig = finalize_governed_runtime_eligibility(ku, source_key="nhs_uk_live_well", domain=None)
     assert elig != KnowledgeUnitRuntimeEligibility.ELIGIBLE
 
@@ -187,7 +203,7 @@ def test_finalize_eligibility_pubmed_stays_not_eligible(db):
         runtime_eligibility=KnowledgeUnitRuntimeEligibility.NOT_ELIGIBLE.value,
         provenance_complete=True,
         deduplication_key="s49-pubmed",
-        canonical_hash="def",
+        canonical_hash=hashlib.sha256(b"s49-pubmed").hexdigest(),
         hash_algorithm="SHA-256",
         canonicalization_version="v1",
     )

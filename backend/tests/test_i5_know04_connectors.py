@@ -624,7 +624,7 @@ def test_know04_w0_and_connectors_pg():
     engine = create_engine(url)
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        if head != "065_i5_know04_connectors_change_intelligence":
+        if head != "067_i7_lifelong_memory_foundation":
             pytest.skip(f"alembic head {head} != 065")
         for t in (
             "i5_connector_profiles",

@@ -151,7 +151,7 @@ def test_pubmed_derived_persist_and_idempotent(monkeypatch):
     engine = create_engine(url)
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        if head != "065_i5_know04_connectors_change_intelligence":
+        if head != "067_i7_lifelong_memory_foundation":
             pytest.skip(f"alembic head {head} != 065")
 
     monkeypatch.setenv("SEDI_NCBI_TOOL", "sedi")
