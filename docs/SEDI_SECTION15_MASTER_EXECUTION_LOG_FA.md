@@ -71737,7 +71737,7 @@ RULES_IN_FORCE_CHECK=PASS
 TOKEN_EFFICIENCY_CHECK=PASS
 
 START_HEAD=a112594339382dda8b93046a7bb02b9feb4b65c6
-FINAL_HEAD=<set at commit>
+FINAL_HEAD=a8a9fbb2c4e51f2767d029455f6779bfa912c6cc
 
 TEST_HARNESS_FIX=backend/tests/conftest.py drops Alembic migration-created views (incl. vw_user_heart_rate_daily) before session teardown drop_all; test-only, no schema/migration change
 I6_MINIMAL_APP_FIX=backend/app/services/i6/memory_writes.py consent-before-poison; typed scalar facts exempt from poison heuristic
