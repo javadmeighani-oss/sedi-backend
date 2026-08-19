@@ -1295,6 +1295,8 @@ def submit_notification_feedback(
     if is_morning_brief:
         # Handle morning_summary feedback
         from backend.app.services.memory import MemoryRepository
+        from backend.app.services.i6.consent_service import ConsentDenied
+        from backend.app.services.i6.memory_writes import write_fact
         import json
         
         memory_repo = MemoryRepository(db)
@@ -1334,14 +1336,18 @@ def submit_notification_feedback(
         }
         
         try:
-            memory_repo.upsert_fact(
-                user_id=user_id,
-                domain="preferences",
-                key="morning_notification_feedback",
-                value=feedback_data,
-                confidence=0.8,
-                source="manual"
+            write_fact(
+                db,
+                user_id,
+                "preferences",
+                "morning_notification_feedback",
+                feedback_data,
+                source="manual",
+                provenance_class="USER_STATED",
+                commit=True,
             )
+        except ConsentDenied:
+            pass
         except Exception as e:
             print(f"[Feedback] Error storing feedback fact: {e}")
         
@@ -1372,15 +1378,19 @@ def submit_notification_feedback(
             
             if new_hour != current_hour:
                 try:
-                    memory_repo.upsert_fact(
-                        user_id=user_id,
-                        domain="preferences",
-                        key="morning_notification_time",
-                        value={"hour": new_hour, "minute": current_minute},
-                        confidence=0.7,
-                        source="manual"
+                    write_fact(
+                        db,
+                        user_id,
+                        "preferences",
+                        "morning_notification_time",
+                        {"hour": new_hour, "minute": current_minute},
+                        source="manual",
+                        provenance_class="USER_STATED",
+                        commit=True,
                     )
                     print(f"[Feedback] Adjusted morning time for user {user_id} from {current_hour}:{current_minute:02d} to {new_hour}:{current_minute:02d} (reason: {negatives} negative feedbacks)")
+                except ConsentDenied:
+                    pass
                 except Exception as e:
                     print(f"[Feedback] Error adjusting morning time for user {user_id}: {e}")
     

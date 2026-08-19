@@ -193,12 +193,12 @@ def store_candidates_and_auto_commit(
     Returns {stored: N, auto_committed: N}.
     """
     from backend.app.models import UserFactCandidate
-    from backend.app.services.memory import MemoryRepository
+    from backend.app.services.i6.consent_service import ConsentDenied
+    from backend.app.services.i6.memory_writes import MemoryWriteError, write_fact
     from backend.app.services.memory.memory_contract import MemoryContract
 
     stored = 0
     auto_committed = 0
-    repo = MemoryRepository(db)
 
     for c in candidates:
         if c.domain not in ALLOWED_DOMAINS_V1:
@@ -222,17 +222,19 @@ def store_candidates_and_auto_commit(
             valid, _ = MemoryContract.validate_fact(c.fact_domain, c.fact_key)
             if valid:
                 try:
-                    repo.upsert_fact(
-                        user_id=user_id,
-                        domain=c.fact_domain,
-                        key=c.fact_key,
-                        value=c.value,
-                        confidence=c.confidence,
+                    write_fact(
+                        db,
+                        user_id,
+                        c.fact_domain,
+                        c.fact_key,
+                        c.value,
                         source="chat",
+                        provenance_class="USER_STATED",
+                        commit=False,
                     )
                     cand.status = "accepted"
                     auto_committed += 1
-                except Exception:
+                except (ConsentDenied, MemoryWriteError):
                     pass
 
     db.commit()

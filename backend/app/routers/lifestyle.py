@@ -8,8 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.app.database import get_db
 from backend.app import models
 from backend.app.schemas import APIResponse, ErrorInfo
-from backend.app.services.memory import MemoryRepository, build_memory_context
+from backend.app.services.memory import build_memory_context
 from backend.app.services.lifestyle.summary_service import generate_summary
+from backend.app.services.i6.consent_service import ConsentDenied
+from backend.app.services.i6.memory_writes import MemoryWriteError, write_fact
 from backend.app.routers.auth_otp import get_current_user
 
 
@@ -60,26 +62,29 @@ def update_lifestyle(
     Requires Bearer JWT. user_id is derived from the token only.
     """
     user_id = auth_user.id
-    repo = MemoryRepository(db)
     updated_facts = []
     errors = []
 
     for entry in request.entries:
         try:
-            fact = repo.upsert_fact(
-                user_id=user_id,
-                domain=entry.domain,
-                key=entry.key,
-                value=entry.value,
-                confidence=entry.confidence,
+            fact = write_fact(
+                db,
+                user_id,
+                entry.domain,
+                entry.key,
+                entry.value,
                 source=entry.source,
+                provenance_class="USER_STATED",
+                commit=True,
             )
             updated_facts.append({
                 "domain": fact.domain,
                 "key": fact.key,
                 "fact_id": fact.id,
             })
-        except ValueError as e:
+        except ConsentDenied:
+            errors.append(f"Consent denied ({entry.domain}/{entry.key})")
+        except MemoryWriteError as e:
             errors.append(f"Invalid entry ({entry.domain}/{entry.key}): {str(e)}")
         except Exception as e:
             errors.append(f"Error updating {entry.domain}/{entry.key}: {str(e)}")
@@ -189,20 +194,46 @@ def admin_candidate_decision(
     cand = db.query(models.UserFactCandidate).filter(models.UserFactCandidate.id == candidate_id).first()
     if not cand:
         return APIResponse(ok=False, error=ErrorInfo(code="NOT_FOUND", message="Candidate not found."))
+    if body.status == "accepted":
+        from backend.app.services.memory.memory_contract import MemoryContract
+
+        valid, err = MemoryContract.validate_fact(cand.domain, cand.key)
+        if not valid:
+            return APIResponse(
+                ok=False,
+                error=ErrorInfo(code="INVALID_FACT", message=err or "Invalid fact"),
+            )
+        try:
+            import json
+
+            val = json.loads(cand.value_json)
+            write_fact(
+                db,
+                cand.user_id,
+                cand.domain,
+                cand.key,
+                val,
+                source="chat",
+                provenance_class="USER_CONFIRMED",
+                commit=False,
+            )
+        except ConsentDenied:
+            return APIResponse(
+                ok=False,
+                error=ErrorInfo(code="CONSENT_DENIED", message="Memory consent required."),
+            )
+        except MemoryWriteError as e:
+            return APIResponse(
+                ok=False,
+                error=ErrorInfo(code="MEMORY_WRITE_ERROR", message=str(e)),
+            )
+        except Exception as e:
+            return APIResponse(
+                ok=False,
+                error=ErrorInfo(code="WRITE_ERROR", message=str(e)),
+            )
     cand.status = body.status
     db.add(cand)
-    if body.status == "accepted":
-        from backend.app.services.memory import MemoryRepository
-        from backend.app.services.memory.memory_contract import MemoryContract
-        valid, err = MemoryContract.validate_fact(cand.domain, cand.key)
-        if valid:
-            try:
-                import json
-                val = json.loads(cand.value_json)
-                repo = MemoryRepository(db)
-                repo.upsert_fact(user_id=cand.user_id, domain=cand.domain, key=cand.key, value=val, confidence=cand.confidence, source="chat")
-            except Exception:
-                pass
     db.commit()
     return APIResponse(ok=True, data={"id": candidate_id, "status": body.status})
 

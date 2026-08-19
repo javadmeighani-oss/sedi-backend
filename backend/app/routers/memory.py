@@ -24,6 +24,11 @@ from backend.app.services.gate4.policy_prefs_bridge import (
     get_local_now,
     resolve_validated_user_timezone,
 )
+from backend.app.services.i6.consent_service import (
+    get_memory_consent_status,
+    grant_memory_consent,
+    revoke_memory_consent,
+)
 
 router = APIRouter()
 
@@ -83,6 +88,36 @@ def _current_group_key(now_utc: datetime, group: GroupKind, tz_name: str) -> str
     """Current grouping bucket key from UTC now converted to user timezone."""
     local_now = get_local_now(now_utc, tz_name)
     return _group_key_local(local_now, group)
+
+
+@router.get("/consent", response_model=APIResponse)
+def get_memory_consent(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Current memory-consent status for the authenticated user (JWT only)."""
+    return APIResponse(ok=True, data=get_memory_consent_status(db, auth_user.id))
+
+
+@router.post("/consent/grant", response_model=APIResponse)
+def grant_memory_consent_endpoint(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Grant memory consent for the authenticated user (JWT only)."""
+    grant_memory_consent(db, auth_user.id, commit=True)
+    return APIResponse(ok=True, data=get_memory_consent_status(db, auth_user.id))
+
+
+@router.post("/consent/revoke", response_model=APIResponse)
+def revoke_memory_consent_endpoint(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke memory consent for the authenticated user (JWT only)."""
+    revoked = revoke_memory_consent(db, auth_user.id, commit=True)
+    status = get_memory_consent_status(db, auth_user.id)
+    return APIResponse(ok=True, data={"revoked": revoked, **status})
 
 
 @router.get("/history", response_model=HistoryResponse)

@@ -18,8 +18,9 @@ from backend.app.schemas.gate2 import (
     RestrictionCreateIn,
 )
 from backend.app.services.gate2_data_service import create_event, create_goal, create_habit, create_restriction
-from backend.app.services.memory import MemoryRepository
 from backend.app.services.memory.memory_contract import MemoryContract
+from backend.app.services.i6.consent_service import ConsentDenied
+from backend.app.services.i6.memory_writes import write_fact
 from backend.app.services.user_profile_fact_service import create_profile_fact
 
 logger = logging.getLogger(__name__)
@@ -85,15 +86,19 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
         if not valid:
             logger.debug("promote skip invalid memory fact %s/%s: %s", domain, key, err)
             return {"target": "skipped", "reason": err}
-        repo = MemoryRepository(db)
-        repo.upsert_fact(
-            user_id=user_id,
-            domain=domain,
-            key=key,
-            value=value,
-            confidence=candidate.confidence,
-            source="chat",
-        )
+        try:
+            write_fact(
+                db,
+                user_id,
+                domain,
+                key,
+                value,
+                source="chat",
+                provenance_class="USER_CONFIRMED",
+                commit=True,
+            )
+        except ConsentDenied:
+            return {"target": "skipped", "reason": "CONSENT_DENIED"}
         return {"target": "user_memory_facts", "domain": domain, "key": key}
 
     if fact_type in ("habit", "user_habit"):
@@ -166,10 +171,19 @@ def promote_kc_candidate(db: Session, candidate: models.KcFactCandidate) -> Dict
         domain, key = "goals", fact_type
         valid, _ = MemoryContract.validate_fact(domain, key)
         if valid:
-            MemoryRepository(db).upsert_fact(
-                user_id=user_id, domain=domain, key=key, value=value,
-                confidence=candidate.confidence, source="chat",
-            )
+            try:
+                write_fact(
+                    db,
+                    user_id,
+                    domain,
+                    key,
+                    value,
+                    source="chat",
+                    provenance_class="USER_CONFIRMED",
+                    commit=True,
+                )
+            except ConsentDenied:
+                return {"target": "skipped", "reason": "CONSENT_DENIED"}
             return {"target": "user_memory_facts", "domain": domain, "key": key}
 
     logger.info("promote_kc_candidate unmapped fact_type=%s user_id=%s", fact_type, user_id)

@@ -151,6 +151,21 @@ def revoke_memory_consent(
     return True
 
 
+def get_memory_consent_status(db: Session, user_id: int) -> dict:
+    """Non-sensitive consent status for the authenticated user."""
+    consent = _active_consent(db, user_id=user_id)
+    return {
+        "granted": consent is not None,
+        "status": consent.status if consent is not None else "none",
+        "permissions": {
+            PERM_WRITE: has_permission(db, user_id, PERM_WRITE),
+            PERM_READ: has_permission(db, user_id, PERM_READ),
+            PERM_FORGET: has_permission(db, user_id, PERM_FORGET),
+        },
+        "policy_version": consent.policy_version if consent is not None else None,
+    }
+
+
 def expire_due_consents(
     db: Session, user_id: Optional[int] = None, *, commit: bool = True
 ) -> int:

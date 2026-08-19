@@ -7,6 +7,7 @@ import json
 from backend.app.core.security import create_access_token
 from backend.app.models import User, UserFactCandidate, UserMemoryFact
 from backend.app.services.memory import MemoryRepository
+from backend.app.services.i6.consent_service import grant_memory_consent
 
 _TEST_ADMIN_TOKEN = "test-lifestyle-admin-token"
 
@@ -64,6 +65,7 @@ def test_lifestyle_summary_requires_auth(client, db):
 
 def test_lifestyle_update_works_without_user_id_in_body(client, db):
     u = _create_user(db, "LifeUpOwner")
+    grant_memory_consent(db, u.id, commit=True)
     response = client.post(
         "/lifestyle/update",
         json=_update_body(),
@@ -133,6 +135,7 @@ def test_lifestyle_cross_user_isolation(client, db):
     ctx = (response.json().get("data") or {})
     assert ctx.get("sleep_duration_hours") != 99.0
 
+    grant_memory_consent(db, user_a.id, commit=True)
     write = client.post(
         "/lifestyle/update",
         json=_update_body(),

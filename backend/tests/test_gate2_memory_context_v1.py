@@ -11,6 +11,7 @@ from backend.app.services import auth_otp_service as svc
 from backend.app.services.knowledge.service import create_candidate, accept_candidate
 from backend.app.services.candidate_promotion_service import promote_kc_candidate
 from backend.app.services.rag_context.rag_context_builder import build_rag_context_pack
+from backend.app.services.i6.consent_service import grant_memory_consent
 
 
 def _token(client, db, monkeypatch, phone: str) -> str:
@@ -63,6 +64,7 @@ def test_candidate_promotion_lifestyle_scalar(client, db, monkeypatch):
     monkeypatch.setenv("SEDI_LEGACY_FACT_WRITES_ENABLED", "true")
     accept_candidate(db, cand.id, verified_by="system")
     db.refresh(cand)
+    grant_memory_consent(db, user_id, commit=True)
     result = promote_kc_candidate(db, cand)
     assert result["target"] == "user_memory_facts"
 

@@ -18,6 +18,7 @@ from backend.app.models import DeviceEvent, User, UserMemoryFact
 from backend.app.services.device_ingestion import ingest_event
 from backend.app.services.vitals.dedupe import build_dedupe_key
 from backend.app.services.memory.memory_repository import MemoryRepository
+from backend.app.services.i6.consent_service import grant_memory_consent
 
 
 @pytest.fixture
@@ -32,6 +33,7 @@ def test_user(db: Session):
     db.add(user)
     db.commit()
     db.refresh(user)
+    grant_memory_consent(db, user.id, commit=True)
     yield user
     # Cleanup
     db.delete(user)

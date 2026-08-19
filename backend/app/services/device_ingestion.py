@@ -20,7 +20,8 @@ from sqlalchemy.orm import Session
 from backend.app.models import DeviceEvent, User, UserMemoryFact, Device, PhysiologicalMeasurement
 from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
 from backend.app.decision_engine.service import evaluate_event
-from backend.app.services.memory.memory_repository import MemoryRepository
+from backend.app.services.i6.consent_service import ConsentDenied
+from backend.app.services.i6.memory_writes import write_fact
 from backend.app.models import Notification
 from backend.app.services.notification_engine import persist_health_alert_d1
 from backend.app.services.notifications.behavior_guard_d2 import (
@@ -219,7 +220,6 @@ def ingest_event(
     
     # Map to memory facts (schema-driven)
     try:
-        repo = MemoryRepository(db)
         updates = map_to_memory_facts(
             user_id=user_id,
             event_type=event_type,  # type: ignore[arg-type]
@@ -228,14 +228,26 @@ def ingest_event(
             recorded_at=recorded_at,
         )
         for u in updates:
-            repo.upsert_fact(
-                user_id=user_id,
-                domain=u.domain,
-                key=u.key,
-                value=u.value,
-                confidence=u.confidence,
-                source=u.source,
-            )
+            try:
+                write_fact(
+                    db,
+                    user_id,
+                    u.domain,
+                    u.key,
+                    u.value,
+                    source=u.source,
+                    provenance_class="DEVICE_MEASURED",
+                    commit=False,
+                )
+            except ConsentDenied:
+                logger.info(
+                    "[DEVICE_INGEST] Memory write skipped (no consent) user=%s domain=%s key=%s trace=%s",
+                    user_id,
+                    u.domain,
+                    u.key,
+                    trace_id,
+                )
+        db.commit()
         logger.info(
             "[DEVICE_INGEST] Mapped to memory user=%s type=%s facts=%s trace=%s",
             user_id, event_type, len(updates), trace_id,
