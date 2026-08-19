@@ -186,30 +186,36 @@ def test_i7_retry_then_success(db, monkeypatch):
         return real(*args, **kwargs)
 
     monkeypatch.setattr("backend.app.services.i7.jobs.rebuild_summary", flaky)
+    # Job retry calls session.rollback(); with the shared test connection that can
+    # invalidate committed consent/facts — expire only so the retry sees DB truth.
+    monkeypatch.setattr(db, "rollback", lambda: db.expire_all())
     result = run_period_summary_sweep(
         db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
     )
     assert result.retry_count == 1
     assert result.failures == 0
     assert result.summaries_created + result.summaries_rebuilt >= 1
-    assert db.query(models.UserPeriodSummary).filter_by(user_id=user.id).count() == 1
+    user_id = user.id
+    assert db.query(models.UserPeriodSummary).filter_by(user_id=user_id).count() == 1
 
 
 def test_i7_retry_exhausted_records_failure(db, monkeypatch):
     monkeypatch.setenv("SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED", "true")
     user = _user(db, "i7-fail")
-    grant_memory_consent(db, user.id, commit=True)
+    user_id = user.id
+    grant_memory_consent(db, user_id, commit=True)
     monkeypatch.setattr(
         "backend.app.services.i7.jobs.rebuild_summary",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("injected_failure")),
     )
+    monkeypatch.setattr(db, "rollback", lambda: db.expire_all())
     result = run_period_summary_sweep(
         db, "DAILY", now=datetime(2026, 8, 14, 0, 10, 0), persist=True
     )
     assert result.failures == 1
     assert result.retry_count == 1
     assert result.status == "PARTIAL_FAILURES"
-    assert db.query(models.UserPeriodSummary).filter_by(user_id=user.id).count() == 0
+    assert db.query(models.UserPeriodSummary).filter_by(user_id=user_id).count() == 0
 
 
 def test_i7_forgotten_memory_does_not_resurface(db, monkeypatch):
