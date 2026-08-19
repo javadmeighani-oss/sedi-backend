@@ -71426,3 +71426,198 @@ NEXT_GATE_AUTHORIZED=NO
 CURSOR_HANDOFF=v614
 CHATGPT_CONTINUITY=v628
 NOTE=post-§323 final master-log whole-file self-SHA is NOT embedded inside §323.
+
+§324 - SEDI-V1 COMPLETE REMAINING-SCOPE AUTHORITATIVE RECONSTRUCTION / GAP AUDIT / CRITICAL-PATH TO V1 PILOT-01
+---------------------------------------------------------------------------------------------------------------
+GATE=SEDI-V1 COMPLETE REMAINING-SCOPE AUTHORITATIVE RECONSTRUCTION / GAP AUDIT / CRITICAL-PATH TO V1 PILOT-01
+APPROVED_BY=Javad Meighandi
+RECORDED_AT_UTC=2026-08-19T03:50:00Z
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+MODE=STATIC_AUDIT_ONLY
+IMPLEMENTATION_EXECUTED=NO
+TEST_CI_BUILD_DEPLOY=NO
+PRODUCTION_ACTION=NO
+
+AUTHORITY_BASELINE
+START_HEAD=8366ca8a10ef9f7e65ed900a316f04c95a2b8b6c
+CURSOR_HANDOFF_IN=v614
+MASTER_LOG_IN=§323
+CHATGPT_CONTINUITY=v630
+PRODUCTION_IMAGE=d9fc7ec007e5a29aa1d84301c509d416364ca26b
+PRODUCTION_DIGEST=sha256:40b64399b3eb504214b0d68b03721e9f999ec0b690928e2c15aa090b275dc060
+PRODUCTION_ALEMBIC=067_i7_lifelong_memory_foundation
+I5_NEXT_GENUINE_FIRE_UTC=2026-08-21T00:00:00Z
+OBSERVE02_AUTHORIZED=NO
+I5_OPERATIONAL_CLOSURE=NO
+
+A_AUTHORITY_BASELINE=PASS (HEAD/upstream 0/0; §323 tip; v614 current; prod evidence §322/§323)
+
+B_V1_CURRENT_SYSTEM_MAP (classification summary)
+BACKEND_FOUNDATION=IMPLEMENTED_BUT_NOT_OPERATIONALLY_CLOSED
+PRODUCTION_RUNTIME=GREEN (health/alembic/deploy PASS)
+I5_FOUNDATION=IMPLEMENTED_BUT_NOT_OPERATIONALLY_CLOSED
+I5_OPERATIONAL=OPEN (OBSERVE-02 pending)
+I6_SERVICE=IMPLEMENTED_BUT_NOT_OPERATIONALLY_CLOSED
+I6_PRODUCT_API=OPEN
+I7_FOUNDATION=CLOSED (code+067)
+I7_OPERATIONAL=IMPLEMENTED_BUT_NOT_OPERATIONALLY_CLOSED
+I8=PARTIAL (service-only ephemeral)
+I9_SERVER=PARTIAL
+I9_MOBILE_OFFLINE=OPEN
+I10_BACKEND=IMPLEMENTED_BUT_NOT_OPERATIONALLY_CLOSED
+I10_MOBILE_ASSET=OPEN (sedi_alarm.wav missing)
+I11=PARTIAL (Gate3/ChatPage split; fake empty-state chat)
+VECTOR_RAG=DEFERRED_FOR_POST_V1
+PGVECTOR_ANN=DEFERRED_FOR_POST_V1
+
+C_I5_STATUS_AND_REMAINDER
+FOUNDATION_COMPLETED=YES (registry SoT, orchestrator, RawEvidence/KU/KCE, 304 reevaluation, production_write, lexical-only, governance fail-closed, REMEDIATION-05/06 deployed)
+PRODUCTION_DEPLOYED=YES (d9fc7ec0 digest-verified)
+GENUINE_FIRE_PENDING=YES (2026-08-21T00:00:00Z)
+OBSERVE02_PENDING=YES (read-only lineage/KU/KCE post-fire; NOT authorized early)
+MULTISOURCE_OFF=YES (prod SEDI_I5_MULTISOURCE_ENABLED=OFF; manifest supports 4 sources when authorized)
+GLOBAL_HEALTH_KNOWLEDGE_PROGRAM_NOT_FULLY_COMPLETE=YES (NHS-controlled prod path ≠ full international catalog unattended expansion)
+A_OPERATIONAL_CLOSE_I5=OBSERVE-02 after genuine fire + lineage evidence
+B_V1_MULTISOURCE=manifest+code ready; prod enablement separate authorization (not required before pilot if NHS path sufficient)
+C_DEFER_POST_V1=catalog-12 unattended expansion, RAG/ANN/066, vector embeddings
+
+D_I6_STATUS_AND_REMAINDER
+SERVICE_LAYER=CLOSED (consent_service, memory_writes, legacy_fact_freeze; test_i6_memory_consent.py)
+HTTP_CONSENT_API=OPEN (no router endpoints)
+BYPASS_PATHS=OPEN (lifestyle/notifications MemoryRepository direct writes without consent)
+V1_BLOCKER=YES (consent boundaries must wire product write paths before pilot claims CONSENT_BOUNDARIES_GREEN)
+DEFER_POST_V1=chat auto-promotion to facts; large-scale legacy reconciliation
+
+E_I7_STATUS_AND_REMAINDER
+IMPLEMENTATION_CLOSURE=YES (067 schema, period_summaries, lifelong_profile, export_jobs control-plane, derived_invalidation, scheduler job registration)
+RUNTIME_CLOSURE=NO (SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED default OFF; no production I7_RUN sweep evidenced)
+HOT_WARM_ARCHIVE=DEFERRED_FOR_POST_V1 (logical design only; DCR02 physical tiers)
+Genuine calendar evidence=UNKNOWN_REQUIRES_EVIDENCE until flag enablement authorized + observe
+V1_BLOCKER=PARTIAL (memory foundation usable; period-summary operational evidence + optional flag enablement gate)
+DEFER_POST_V1=object-store export blobs, SQL timeline view, migration 066, bulk prune automation
+
+F_I8_STATUS_AND_REMAINDER
+I8_V1_MINIMUM_SCOPE=ephemeral plan_nutrition fail-closed via I6 facts + I5 retrieve_knowledge_context; no persisted meal plans
+CURRENT=service-only backend/app/services/i8/nutrition_planner.py; no router; I3 intent does not call I8
+I8_REMAINING_WORK=wire orchestrator/intent → plan_nutrition; optional thin API; FE surface if in pilot scope
+I8_MIGRATION_REQUIRED=NO (V1 ephemeral minimum per I8_PERSISTENCE_DECISION.md)
+FULL_I8_PERSISTENCE=DEFERRED_FOR_POST_V1 (DCR schema change YES when pursued)
+
+G_I9_STATUS_AND_REMAINDER
+SERVER_INGEST=CLOSED (POST /device/ingest, deterministic decision_engine/rules.py, dedupe, health_alert notifications)
+CONTRACT_GAPS=OPEN offline local vital alert, BLE/pairing, local event queue+reconnect sync, FE threshold alignment, dedicated vitals read API
+LLM_RAG_I5_VITAL_DECISION=NO (verified)
+V1_BLOCKER=YES (I9_OFFLINE_LOCAL_VITAL_ALERT required)
+MIGRATION_REQUIRED=NO (existing 058+ tables)
+
+H_I10_STATUS_AND_REMAINDER
+POLICY_DELIVERY=IMPLEMENTED_BUT_NOT_OPERATIONALLY_CLOSED (Gate4 policy, inbox, FCM, local sync; flags default OFF)
+sedi_alarm.wav=OPEN (code references; only readme_sound.txt in res/raw/)
+LEGACY_DUPLICATE=notification vs notifications FE stacks; gate4_notifications placeholder
+V1_BLOCKER=PARTIAL (core path strong; custom vital sound asset + FE consolidation + Gate3 nav access)
+
+I_I11_STATUS_AND_REMAINDER
+CANONICAL_TREE=workspace/frontend (not backend/frontend duplicate)
+AUTH=CLOSED (OTP Gate2)
+GATE3_HOME=PARTIAL (Gate3InteractivePage routed; ChatPage richer but unrouted)
+P0=Gate3/ChatPage split; fake sample chat empty state; notifications unreachable from Gate3; release signing debug; prod google-services.json
+P1=HR via notification proxy; EN-only on lifestyle/vitals/devices/inbox; gadgets Connect disabled; voice local-only
+ANDROID_BUILD=PARTIAL (CI APK path exists; release keystore not configured)
+
+J_ALIGNMENT_FINDINGS
+FE_GATE3_NOT_CONSUMING_CHATPAGE_FEATURES=YES
+HR_HISTORY_VIA_INBOX_PROXY_NOT_DEVICE_API=YES
+I6_BYPASS_ON_LIFESTYLE_WRITES=YES
+I8_NOT_WIRED_TO_INTENT=YES
+I7_JOBS_REGISTERED_BUT_DORMANT=YES
+THRESHOLD_TRIPLES=D1 rules vs FE 50/110 vs orphan rule_alerts.py
+KNOWLEDGE_MEMORY_ISOLATION=YES (by design)
+DUPLICATE_TRUTH_RISK=vitals cache-as-truth on server failure; local prefs session/profile
+
+K_LEGACY_DUPLICATE_DEFERRED (registry excerpt; DELETE_NOW=NO)
+workspace/backend/frontend=OBSOLETE_OR_LEGACY→workspace/frontend
+ChatPage vs Gate3InteractivePage=OBSOLETE_OR_LEGACY partial→unify Gate3
+features/notification vs features/notifications=OBSOLETE_OR_LEGACY→Gate4 inbox canonical
+rule_alerts.py=OBSOLETE_OR_LEGACY→decision_engine/rules.py
+gate4_notifications_placeholder=OBSOLETE_OR_LEGACY→notification_inbox_page
+OnboardingPage/UserVerificationPage=OBSOLETE_OR_LEGACY→OtpLoginPage
+pgvector/066/RAG=DEFERRED_FOR_POST_V1
+
+L_V1_DEFINITION_OF_DONE (22 items; evidence required each)
+SATISFIED=3
+1 ALEMBIC_SINGLE_HEAD=PASS (067 single head)
+2 CANONICAL_DB_STATE_GREEN=PASS (prod alembic+health §322)
+3 BACKEND_RUNTIME_GREEN=PASS (prod deploy health PASS)
+OPEN_OR_PARTIAL=19
+4 CRITICAL_API_CONTRACTS_GREEN=PARTIAL (OpenAPI exists; FE mismatches HR/history)
+5 I5_GROUNDED_KNOWLEDGE_SERVING_GREEN=PARTIAL (code yes; OBSERVE-02 pending)
+6 I5_PROVENANCE_CITATION_GREEN=PARTIAL (code/tests yes; prod fire evidence pending)
+7 I7_MEMORY_GREEN=PARTIAL (067+services; operational jobs dormant)
+8 CONSENT_BOUNDARIES_GREEN=OPEN (API bypass)
+9 I8_V1_SCOPE_GREEN=OPEN (not wired)
+10 I9_VITAL_DEVICE_PATH_GREEN=OPEN (server yes; mobile/offline no)
+11 OFFLINE_VITAL_ALERT_GREEN=OPEN
+12 I10_NOTIFICATION_GREEN=PARTIAL (backend+inbox; asset/nav gaps)
+13 LOCAL_PUSH_INBOX_CONSISTENCY_GREEN=PARTIAL
+14 FRONTEND_CANONICAL_FLOWS_GREEN=OPEN
+15 AUTH_IDENTITY_GREEN=PARTIAL→near CLOSED (OTP+JWT)
+16 EN_FA_AR_GREEN=PARTIAL (Gate2/3 strong; feature pages weak)
+17 RTL_LTR_GREEN=PARTIAL (app.dart one-shot RTL)
+18 OFFLINE_LOADING_ERROR_GREEN=PARTIAL
+19 ANDROID_BUILD_INSTALL_DEVICE_QA_GREEN=OPEN
+20 FINAL_E2E_GREEN=OPEN
+21 NO_OPEN_P0_V1_BLOCKER=OPEN (5 P0s)
+22 NO_OPEN_P1_V1_BLOCKER=OPEN
+
+M_CRITICAL_PATH
+1 I11 Gate3 canonical home unification + remove fake empty-state chat (parallel-safe)
+2 I9 mobile offline local vital safety path + event queue/sync (parallel-safe)
+3 I6 consent/API wire for all user write surfaces (parallel-safe)
+4 I10 sedi_alarm.wav + notification nav/consolidation (parallel-safe)
+5 I8 ephemeral nutrition wire (parallel-safe)
+6 I5 calendar wait → OBSERVE-02 read-only (BLOCKED until 2026-08-21; NOT authorized early)
+7 I7 flag enablement + observe (parallel after authorization; not blocking I8/I9/I10/I11)
+8 Android release signing + prod FCM + device QA
+9 FINAL_E2E pilot harness
+
+N_SAFE_PARALLEL_TRACKS
+I11-GATE3-UNIFY
+I9-OFFLINE-VITAL-LOCAL
+I6-CONSENT-PRODUCT-WIRE
+I10-NOTIFICATION-FINALIZATION
+I8-EPHEMERAL-WIRE
+ANDROID-RELEASE-QA
+I7-ENABLE-OBSERVE (post separate authorization)
+
+O_BLOCKERS_AND_RISKS
+P0_COUNT=5
+P0_1=I9 offline local vital alert path missing
+P0_2=Gate3/ChatPage split + fake sample chat (FAKE_CITATION policy violation risk)
+P0_3=Notifications unreachable from active Gate3 home
+P0_4=Android release signing still debug + prod FCM config
+P0_5=I5 operational closure calendar-bound (OBSERVE-02)
+P1_COUNT=6+ (i18n gaps, HR proxy, I6 bypass, I8 unwired, threshold drift, caregiver delivery dormant)
+RISK=equating NHS-only prod path with global knowledge completion; local cache-as-truth on vitals
+
+P_EXACT_NEXT_GATES_PRIORITY
+1 SEDI-V1 I5-S49 PRODUCTION OBSERVE-02 POST-2026-08-21 WEEKLY FIRE (read-only; NOT authorized before fire)
+2 SEDI-V1 I11 GATE3-CANONICAL-HOME-UNIFICATION (proposed)
+3 SEDI-V1 I9 OFFLINE-LOCAL-VITAL-SAFETY-PATH (proposed)
+4 SEDI-V1 I6 CONSENT-PRODUCT-API-WIRE (proposed)
+5 SEDI-V1 I10 NOTIFICATION-FINALIZATION-ASSET-NAV (proposed)
+6 SEDI-V1 I8 EPHEMERAL-NUTRITION-WIRE (proposed)
+7 SEDI-V1 ANDROID RELEASE-SIGNING-DEVICE-QA (proposed)
+8 SEDI-V1 FINAL-E2E-PILOT-HARNESS (proposed)
+
+Q_FASTEST_SAFE_ROUTE_TO_V1_PILOT
+Parallelize I11+I9+I6+I10+I8+Android while calendar-waiting I5 OBSERVE-02; do NOT enable multisource/RAG/vectors; do NOT manual fire; critical path bottleneck=I9 offline vital + I11 Gate3 truthfulness + Android device QA; I5 OBSERVE-02 required for knowledge operational closure but not blocking all parallel implementation.
+
+NEW_MIGRATION_CURRENTLY_REQUIRED=NO
+VECTOR_RAG_REQUIRED_FOR_V1=NO
+MULTISOURCE_REQUIRED_BEFORE_PILOT=NO (prod NHS path; multisource is expansion not pilot blocker if scope accepted)
+
+GATE_RESULT=PASS
+CURSOR_HANDOFF=v615
+CHATGPT_CONTINUITY=v630
+NOTE=post-§324 final master-log whole-file self-SHA is NOT embedded inside §324.
