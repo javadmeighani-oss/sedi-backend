@@ -71737,13 +71737,15 @@ RULES_IN_FORCE_CHECK=PASS
 TOKEN_EFFICIENCY_CHECK=PASS
 
 START_HEAD=a112594339382dda8b93046a7bb02b9feb4b65c6
-FINAL_HEAD=a8a9fbb2c4e51f2767d029455f6779bfa912c6cc
+FINAL_HEAD=d478686b1e010eee24581d978d43cda13dec9c9a
 
 TEST_HARNESS_FIX=backend/tests/conftest.py drops Alembic migration-created views (incl. vw_user_heart_rate_daily) before session teardown drop_all; test-only, no schema/migration change
 I6_MINIMAL_APP_FIX=backend/app/services/i6/memory_writes.py consent-before-poison; typed scalar facts exempt from poison heuristic
 I6_CI_SELECTOR=ci-backend-tests.yml interact stabilization + Section 15 backend foundation steps include backend/tests/test_i6_product_write_closure.py
+CI_BACKEND_V1=32220304979 PASS
 
 CI_BACKEND_V1_PRIOR_RUN=32217738536
+CI_BACKEND_V1_CLOSURE02=32220304979 PASS
 PREVIOUS_FAILURE_CLASS=TEST_HARNESS_TEARDOWN
 PRE_EXISTING=NOT_INDEPENDENTLY_PROVEN
 
