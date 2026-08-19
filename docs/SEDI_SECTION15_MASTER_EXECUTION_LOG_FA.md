@@ -71783,3 +71783,179 @@ GATE_RESULT=PASS
 CURSOR_HANDOFF=v618
 CHATGPT_CONTINUITY=v634
 NOTE=post-§327 final master-log whole-file self-SHA is NOT embedded inside §327.
+
+§328 - SEDI-V1 I6 DATA OWNERSHIP / READ GOVERNANCE / MEMORY CONTRACT RECONCILIATION-01
+--------------------------------------------------------------------------------------
+GATE=SEDI-V1 I6 DATA OWNERSHIP / READ GOVERNANCE / MEMORY CONTRACT RECONCILIATION-01
+APPROVED_BY=Javad Meighani
+PRODUCT_OWNER=Javad Meighani
+RECORDED_AT_UTC=2026-08-19T17:00:53Z
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+MODE=IMPLEMENTATION
+COMMIT_CREATED=NO
+PUSH_PERFORMED=NO
+CHATGPT_CONTINUITY=v636
+CURSOR_HANDOFF=v619
+PREDECESSOR_HANDOFF=v618 SUPERSEDED (STATUS pointer only; §327/v618 historical I6 write-closure evidence not rewritten)
+
+START_HEAD=8a53ce2ece66e2d0644675c567417fdb52ea31b3
+FINAL_HEAD=8a53ce2ece66e2d0644675c567417fdb52ea31b3
+CURRENT_TESTED_I6_IMPLEMENTATION_HEAD=d478686b1e010eee24581d978d43cda13dec9c9a
+BASELINE_MATCH=YES
+AHEAD_BEHIND=0/0 vs origin/feature/section15/backend-continuity-foundation
+HISTORICAL_I6_WRITE_CLOSURE_PRESERVED=YES
+I6_FULL_CLOSURE=PASS
+THIS_GATE=SUPPLEMENTARY_READ_OWNERSHIP_VOCABULARY
+
+OWNERSHIP=
+User/UserProfileCore=identity,language,timezone
+NotificationPrefs+UserProfileCore=quiet_hours/engagement
+UserCondition=conditions
+UserMedication=medications
+UserProfileFact fact_type allergy=structured allergy owner (no dedicated allergy table)
+Gate2 UserGoal etc=structured goals/habits/events
+DeviceEvent/PhysiologicalMeasurement/I9=raw vitals
+I6=governed stable personal long-term facts only
+I6_WRITE_BLOCKED=timezone,quiet_hours,medical.conditions,medical.medications,vitals.*
+I6_LEGACY_COMPAT_WRITABLE_NOT_CONTEXT=medical.allergies; goals.*; leftover timezone/quiet_hours reads only as fallback
+VOCAB=preferences.language aliases to language_preference; language_preference not projected to LLM (User/profile first)
+PHONE_TO_LLM=NO
+
+CANONICAL_READ=i6.memory_writes.list_facts (PERM_READ+active+soft_invalidated_at IS NULL+expiry); get_readable_fact; ConsentDenied on list_facts_or_empty/get_readable_fact_or_none -> empty/None
+CANONICAL_WRITE=write_fact then MemoryContract.validate_fact including i6_write_permitted
+REPO=MemoryRepository get/upsert/delete all go through I6 helpers
+CONTEXT=memory_context, memory_context_service, user_context_service, local_rag, lifestyle summary: governed reads + is_i6_context_projectable
+CHAT_WRITERS=timezone->UserProfileCore; quiet_hours->NotificationPrefs; no I6 write_fact
+DEVICE=skip I6 when i6_write_permitted false (all current vital mappings)
+EXTRACTOR=does not auto-commit medical domain to I6
+
+ACTIVE_I6_READERS_AUDITED=23
+ACTIVE_I6_WRITERS_AUDITED=10
+ACTIVE_READ_BYPASS_COUNT=0
+ACTIVE_WRITE_BYPASS_COUNT=0
+COMPETING_LEGACY_MEMORY_KEY_WRITERS=0
+DUPLICATE_CANONICAL_OWNERSHIP=PROFILE=0 HEALTH=0 MEDICATION=0 RAW_VITALS=0 STRUCTURED_GOALS=0
+NON_CONTEXT_DIRECT_ORM=GET /lifestyle/admin/source_preview; i7/fact_reconciliation.py; db03/memory_fact_merge.py (ops/admin, not V1 LLM context)
+
+TESTS_ADDED=backend/tests/test_i6_read_governance.py (14 cases: perm, active, superseded/rejected/expired/soft-invalidated, vocab, profile, health/med, vitals, isolation, repo bypass, quiet hours owner, write-governance non-regression)
+CI_SELECTOR=ci-backend-tests.yml interact stabilization + Section 15 steps include test_i6_read_governance.py (workflow_dispatch; no redesign)
+LOCAL_PG=UNAVAILABLE (127.0.0.1:5432 refused); sqlite create_all fails PG regex CHECKs
+LOCAL_CONTRACT_UNIT=PASS
+LOCAL_CHAT_CMD_UNIT=PASS
+TARGETED_TESTS=NOT_PROVEN_ON_THIS_TREE
+POSTGRESQL_BACKED_CI=NOT_PROVEN_ON_THIS_TREE
+NOTE=dispatching approved workflow against origin would test START_HEAD 8a53ce2e, not this delta; commit/push not authorized
+
+SELF_HEAL=circular import memory_writes/memory_governance (lazy I6 import in store_governed_fact/list_active_facts); chat_commands _validate_hhmm restore; behavior _user_local_date restore; lifestyle_auth isolation upsert restore; chat_commands tests patch persist helpers; device_ingestion tests assert I6 vitals absence
+
+NEW_MIGRATION=NO
+SCHEMA_CHANGE=NO
+BREAKING_API_CHANGE=NO
+PRODUCTION_ACTION=NONE
+I7_I8_I9_VECTOR=NOT_IMPLEMENTED
+
+OPEN_FINDINGS=
+1 local PG missing + no-commit blocks CI proof of this working tree
+2 allergy dedicated table not created (forbidden); UserProfileFact allergy remains structured owner
+3 I6 goals writes remain compatibility for I7 tests; not Sedi-context-projected
+4 notifications morning_notification_feedback/time still call write_fact; MemoryContract rejects (pre-existing invalid keys)
+
+I6_READ_GOVERNANCE=PASS (implementation)
+I6_WRITE_GOVERNANCE_REGRESSION=PASS (implementation)
+I6_DATA_OWNERSHIP_RECONCILIATION=PASS (implementation)
+I6_MEMORY_VOCABULARY_RECONCILIATION=PASS (implementation)
+I6_FINAL_PRODUCT_FREEZE=NOT_READY
+NEXT_GATE_PROPOSED=SEDI-V1 I6 RECONCILIATION-01 COMMIT / PUSH / POSTGRESQL CI PROOF
+NEXT_PRODUCT_PHASE=I6 until freeze; then I7
+
+GATE_RESULT=FAIL
+CURSOR_HANDOFF=v619
+CHATGPT_CONTINUITY=v636
+NOTE=post-§328 final master-log whole-file self-SHA is NOT embedded inside §328.
+
+§329 - SEDI-V1 I6 RECONCILIATION-01 GOVERNANCE REMEDIATION / AUTHORITY SYNC / COMMIT-PUSH / POSTGRESQL CI FINAL PROOF-01
+-------------------------------------------------------------------------------------------------------------------------
+GATE=SEDI-V1 I6 RECONCILIATION-01 GOVERNANCE REMEDIATION / AUTHORITY SYNC / COMMIT-PUSH / POSTGRESQL CI FINAL PROOF-01
+APPROVED_BY=Javad Meighani
+PRODUCT_OWNER=Javad Meighani
+RECORDED_AT_UTC=2026-08-19T17:41:00Z
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+CHATGPT_CONTINUITY=v637
+CURSOR_MODEL_USED=Claude Sonnet 5
+PREDECESSOR_GATE=§328 SEDI-V1 I6 DATA OWNERSHIP / READ GOVERNANCE / MEMORY CONTRACT RECONCILIATION-01 (GATE_RESULT=FAIL, not rewritten)
+
+START_HEAD=8a53ce2ece66e2d0644675c567417fdb52ea31b3
+UPSTREAM=origin/feature/section15/backend-continuity-foundation
+AHEAD_BEHIND_AT_START=0/0
+BASELINE_MATCH=YES
+
+V618_REMEDIATION=v618 diff at START_HEAD showed only STATUS=CURRENT to SUPERSEDED mutated by the failed section-328 Gate; restored exactly via git restore --source=8a53ce2ece66e2d0644675c567417fdb52ea31b3; post-restore diff=empty; V618_PREDECESSOR_MUTATION=0
+V619_PRESERVED=YES (append-only failed-Gate record; not modified, not deleted)
+
+CI_WORKFLOW_DIFF_ADJUDICATION=RETAINED_MINIMAL_TEST_SELECTOR_ONLY (.github/workflows/ci-backend-tests.yml: 2-line diff adding backend/tests/test_i6_read_governance.py to the two existing interact-stabilization and Section-15 pytest selector lists only; no trigger/permission/secret/PG-config/action-version/job change)
+
+DIRECT_RAW_OPS_READERS_AUDITED=3 (existing authority, not context bypass)
+1=backend/app/routers/lifestyle.py:262 admin_source_preview: fail-closed ADMIN_TOKEN + X-Admin-Token guard already used by sibling admin endpoints in same router; raw by-id preview only, not user-context assembly
+2=backend/app/services/i7/fact_reconciliation.py census_legacy_stacks/reconcile_legacy_facts: consent-fail-closed, nondestructive legacy-to-UMF reconciliation explicitly documented as not inside Alembic 067; not wired into any router/scheduler; test-invoked only
+3=backend/app/services/db03/memory_fact_merge.py merge_legacy_facts_into_user_memory_facts: invoked directly from already-applied Alembic migration 059_db03_w2_backfill_consolidation.py (migration-time backfill, pre-existing authority)
+DIRECT_I6_READERS_RECONCILED=PASS (all 3 documented with existing authority; none feed Sedi/LLM context assembly, which remains governed via i6.memory_writes canonical read helpers)
+
+NOTIFICATION_INVALID_VOCABULARY_ADJUDICATION=CASE_A_AND_CASE_B
+CASE_A=preferences.morning_notification_time routed to canonical owner NotificationPrefs.daily_notification_time (already used by gate4/scheduler_timing.py); backend/app/routers/notifications.py submit_notification_feedback morning-time-shift path now calls upsert_prefs with NotificationPrefsUpdate(daily_notification_time=...) instead of write_fact; no new schema
+CASE_B=preferences.morning_notification_feedback (raw positives/negatives counters): no existing canonical owner; write_fact call for this key had always raised MemoryWriteError (key never in MemoryContract ALLOWED_KEYS) so persistence never actually occurred; removed the dead invalid-vocabulary write attempt; counters now computed request-scoped only (documented, not redesigned, no new field/table/migration invented)
+ACTIVE_INVALID_I6_VOCABULARY_WRITER_COUNT=0 (post-fix; verified by grep, MemoryContract.validate_fact unit check, and green CI)
+
+I6_READ_GOVERNANCE=PASS
+I6_WRITE_GOVERNANCE_NO_REGRESSION=PASS
+I6_DATA_OWNERSHIP_RECONCILIATION=PASS
+I6_MEMORY_VOCABULARY_RECONCILIATION=PASS
+ACTIVE_READ_BYPASS_COUNT=0
+ACTIVE_WRITE_BYPASS_COUNT=0
+SUPERSEDED_REENTRY=0
+REJECTED_REENTRY=0
+EXPIRED_REENTRY=0
+SOFT_INVALIDATED_REENTRY=0
+UNAUTHORIZED_READ=0
+PROFILE_DUPLICATE_CANONICAL_OWNERSHIP=0
+HEALTH_DUPLICATE_CANONICAL_OWNERSHIP=0
+MEDICATION_DUPLICATE_CANONICAL_OWNERSHIP=0
+RAW_VITAL_I6_CANONICAL_OWNERSHIP=0
+STRUCTURED_GOAL_I6_CANONICAL_OWNERSHIP=0
+
+FILES_CHANGED_IMPLEMENTATION_COMMIT=.github/workflows/ci-backend-tests.yml; backend/app/behavior/service.py; backend/app/routers/notifications.py; backend/app/services/chat_commands.py; backend/app/services/device_ingestion.py; backend/app/services/gate4/scheduler_timing.py; backend/app/services/i6/__init__.py; backend/app/services/i6/memory_writes.py; backend/app/services/interaction/memory_governance.py; backend/app/services/lifestyle/fact_extractor.py; backend/app/services/lifestyle/summary_service.py; backend/app/services/local_rag/local_provider.py; backend/app/services/memory/memory_context.py; backend/app/services/memory/memory_contract.py; backend/app/services/memory/memory_repository.py; backend/app/services/memory_context_service.py; backend/app/services/notification_runtime/quiet_hours.py; backend/app/services/user_context/user_context_service.py; backend/tests/test_chat_commands.py; backend/tests/test_device_ingestion_c1.py; backend/tests/test_gate4d5_scheduler_daily_time.py; backend/tests/test_lifestyle_auth_v1.py; backend/tests/test_lifestyle_summary.py; backend/tests/test_memory_history_timezone_v1.py; backend/tests/test_user_context_service.py; backend/tests/test_i6_read_governance.py (new)
+
+PRE_EXISTING_DIRTY_PATHS_TOUCHED=NONE (v595-v601, v608-v615 continuity/handoff copies and tmp/ left untouched throughout)
+
+LOCAL_TESTS=py_compile syntax check PASS on all touched files; MemoryContract.validate_fact unit check PASS (incl. morning_notification_feedback/time now correctly INVALID; timezone/quiet_hours/conditions/medications/vitals correctly write-blocked); local PostgreSQL physically re-verified unavailable (socket connect to 127.0.0.1:5432 timed out) so no local pytest run attempted per Gate instruction
+
+IMPLEMENTATION_COMMIT=SHA=38c8fe108f061104f51d74494db41aede585b5fc PARENT=8a53ce2ece66e2d0644675c567417fdb52ea31b3 TREE=46b95a5ba07214030f071c4609a3f61da183268d SUBJECT=fix(backend): close I6 read governance reconciliation
+PUSH_1=NORMAL_NON_FORCE fast-forward 8a53ce2e..38c8fe10 origin/feature/section15/backend-continuity-foundation
+
+CI_RUN_1=32282069210 HEAD_SHA=38c8fe108f061104f51d74494db41aede585b5fc RESULT=failure (1 failed, 171 passed in Run interact stabilization tests step)
+CI_RUN_1_FAILURE=backend/tests/test_i6_read_governance.py::test_condition_and_medication_writes_are_not_i6_truth AssertionError: assert Hypertension in [I6ReadGov Hypertension] -- TEST_REGRESSION (own new test asserted unqualified substring against a deliberately unique MedicalCondition catalog fixture name)
+
+SELF_HEAL_ROUND_1=DETECT(CI log) then ROOT_CAUSE(test assertion mismatched fixture value, not a code defect) then MINIMAL_FIX(assert exact fixture string I6ReadGov Hypertension) then VERIFY(py_compile) then COMMIT then PUSH then RERUN_CI
+
+SELF_HEAL_COMMIT=SHA=7a6a54797609159348e2f4ed9f3a228a3277e5ff PARENT=38c8fe108f061104f51d74494db41aede585b5fc TREE=8347a6923e56bf0f588cf095ef6b1fd9d1ee952e SUBJECT=fix(tests): correct condition catalog name assertion in I6 read governance test
+PUSH_2=NORMAL_NON_FORCE fast-forward 38c8fe10..7a6a5479 origin/feature/section15/backend-continuity-foundation
+
+CI_RUN_2=32282762256 HEAD_SHA=7a6a54797609159348e2f4ed9f3a228a3277e5ff RESULT=success WORKFLOW=Backend V1 freeze tests (.github/workflows/ci-backend-tests.yml) EVENT=workflow_dispatch
+CI_RUN_2_EVIDENCE=interact stabilization step 172 passed 5 warnings; Section 15 backend foundation step 1040 passed 4 warnings; all 14 backend/tests/test_i6_read_governance.py cases individually PASSED
+CI_HEAD_MATCH=YES
+
+FINAL_STATIC_AUDIT=PASS (post-CI-green re-grep: 0 invalid-vocabulary write_fact callers; 0 new UserMemoryFact context-path readers beyond the 3 documented existing-authority ops/admin readers; v618 re-diffed clean)
+
+PROTECTED_ACTIONS_TAKEN=NONE (no migration, no schema/model/enum/check change, no breaking API change, no production action, no I7/I8/I9/vector/ANN implementation, no force-push, no history rewrite, no merge, no branch/worktree delete)
+
+I6_FINAL_PRODUCT_FREEZE=PASS
+NEXT_PRODUCT_PHASE=I7 (subject to a separate future Gate; not executed here)
+
+TESTED_IMPLEMENTATION_HEAD=7a6a54797609159348e2f4ed9f3a228a3277e5ff
+NEXT_GATE_PROPOSED=SEDI-V1 I7 DERIVED LONGITUDINAL MEMORY -01 (not executed; proposal only)
+
+GATE_RESULT=PASS
+CURSOR_HANDOFF=v620
+CHATGPT_CONTINUITY=v637
+NOTE=post-section-329 final master-log whole-file self-SHA is NOT embedded inside section 329; CLOSURE_HEAD (docs-only commit containing this section, v619, and v620) is recorded by the immediately following closure commit, not inside section 329 itself.
