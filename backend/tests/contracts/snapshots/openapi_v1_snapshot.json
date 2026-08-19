@@ -1412,6 +1412,60 @@
         "title": "DevicesListResponse",
         "type": "object"
       },
+      "DirectorySearchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "endorsement_disclaimer": {
+            "title": "Endorsement Disclaimer",
+            "type": "string"
+          },
+          "entity_family": {
+            "title": "Entity Family",
+            "type": "string"
+          },
+          "is_clinical_knowledge": {
+            "default": false,
+            "title": "Is Clinical Knowledge",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "management_alias": {
+            "title": "Management Alias",
+            "type": "string"
+          },
+          "no_ir_to_ku": {
+            "default": true,
+            "title": "No Ir To Ku",
+            "type": "boolean"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "endorsement_disclaimer",
+          "entity_family",
+          "items",
+          "management_alias",
+          "package_id"
+        ],
+        "title": "DirectorySearchResponse",
+        "type": "object"
+      },
       "DoctorCreateIn": {
         "additionalProperties": false,
         "properties": {
@@ -9336,6 +9390,374 @@
         ]
       }
     },
+    "/i5/directory/doctors": {
+      "get": {
+        "operationId": "search_doctors_i5_directory_doctors_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "province",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Province"
+            }
+          },
+          {
+            "in": "query",
+            "name": "specialty",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Specialty"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorySearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Doctors",
+        "tags": [
+          "i5-iran-directory"
+        ]
+      }
+    },
+    "/i5/directory/hospitals": {
+      "get": {
+        "operationId": "search_hospitals_i5_directory_hospitals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
+            "in": "query",
+            "name": "facility_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Facility Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "province",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Province"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorySearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Hospitals",
+        "tags": [
+          "i5-iran-directory"
+        ]
+      }
+    },
+    "/i5/directory/laboratories": {
+      "get": {
+        "operationId": "search_laboratories_i5_directory_laboratories_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "City"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "province",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Province"
+            }
+          },
+          {
+            "in": "query",
+            "name": "service",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Service"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectorySearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Laboratories",
+        "tags": [
+          "i5-iran-directory"
+        ]
+      }
+    },
+    "/i5/directory/meta": {
+      "get": {
+        "operationId": "directory_meta_i5_directory_meta_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Directory Meta I5 Directory Meta Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Directory Meta",
+        "tags": [
+          "i5-iran-directory"
+        ]
+      }
+    },
     "/interact/chat": {
       "post": {
         "description": "Chat endpoint - Thin API layer.\nAll conversation logic handled by Conversation Brain.\n\nCRITICAL VALIDATION:\n- message: Required, non-empty (from JSON body)\n- user_id: Optional in body; JWT is source of truth when omitted\n- Language: Detected ONLY from message content (no query params)\n- Name: Retrieved from memory/context (no query params)",
@@ -10950,6 +11372,87 @@
         "summary": "Update Lifestyle",
         "tags": [
           "Lifestyle Data"
+        ]
+      }
+    },
+    "/memory/consent": {
+      "get": {
+        "description": "Current memory-consent status for the authenticated user (JWT only).",
+        "operationId": "get_memory_consent_memory_consent_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Memory Consent",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/consent/grant": {
+      "post": {
+        "description": "Grant memory consent for the authenticated user (JWT only).",
+        "operationId": "grant_memory_consent_endpoint_memory_consent_grant_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Grant Memory Consent Endpoint",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/consent/revoke": {
+      "post": {
+        "description": "Revoke memory consent for the authenticated user (JWT only).",
+        "operationId": "revoke_memory_consent_endpoint_memory_consent_revoke_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Memory Consent Endpoint",
+        "tags": [
+          "Memory"
         ]
       }
     },
