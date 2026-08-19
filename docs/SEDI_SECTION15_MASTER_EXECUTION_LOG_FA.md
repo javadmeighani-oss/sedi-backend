@@ -71727,3 +71727,57 @@ GATE_RESULT=PASS
 CURSOR_HANDOFF=v617
 CHATGPT_CONTINUITY=v633
 NOTE=post-§326 final master-log whole-file self-SHA is NOT embedded inside §326.
+
+§327 - SEDI-V1 I6 CLOSURE-02 TARGETED CI EVIDENCE / TEST-HARNESS TEARDOWN / DATA-CONTROL BOUNDARY FREEZE
+---------------------------------------------------------------------------------------------------------
+GATE=SEDI-V1 I6 CLOSURE-02
+APPROVED_BY=Javad Meighani
+RECORDED_AT_UTC=2026-08-19T05:45:00Z
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+START_HEAD=a112594339382dda8b93046a7bb02b9feb4b65c6
+FINAL_HEAD=<set at commit>
+
+TEST_HARNESS_FIX=backend/tests/conftest.py drops Alembic migration-created views (incl. vw_user_heart_rate_daily) before session teardown drop_all; test-only, no schema/migration change
+I6_MINIMAL_APP_FIX=backend/app/services/i6/memory_writes.py consent-before-poison; typed scalar facts exempt from poison heuristic
+I6_CI_SELECTOR=ci-backend-tests.yml interact stabilization + Section 15 backend foundation steps include backend/tests/test_i6_product_write_closure.py
+
+CI_BACKEND_V1_PRIOR_RUN=32217738536
+PREVIOUS_FAILURE_CLASS=TEST_HARNESS_TEARDOWN
+PRE_EXISTING=NOT_INDEPENDENTLY_PROVEN
+
+I6_PRODUCT_CLOSURE_TESTS=PASS (10/10 test_i6_product_write_closure.py)
+LIFESTYLE_AUTH_TESTS=PASS (16/16 test_lifestyle_auth_v1.py via interact stabilization)
+OPENAPI_CONTRACT=PASS (test_v1_openapi_snapshot.py in Section 10 step)
+TEST_HARNESS_TEARDOWN=PASS (Section 10 91 passed; no drop_all view dependency error)
+I6_ASSERTION_FAILURE=NO
+
+REVOKE_BLOCKS_NEW_WRITES=YES
+EXPIRY_BLOCKS_NEW_WRITES=YES
+JWT_IDENTITY_ONLY=YES
+CROSS_USER_ISOLATION=YES
+I7_INVALIDATION_PRESERVED=YES
+LIFESTYLE_BYPASS_REMAINING=0
+OTHER_V1_I6_BYPASS_REMAINING=0
+
+POST_REVOKE_OWNER_EXPORT_ALLOWED=RECORDED_FOR_I7
+POST_REVOKE_OWNER_DELETE_FORGET_ALLOWED=RECORDED_FOR_I7
+POST_REVOKE_NEW_MEMORY_WRITE_ALLOWED=NO
+I7_SUMMARY_WRITES_MUST_RESPECT_I6_CONSENT_BOUNDARY=RECORDED
+POST_REVOKE_DATA_CONTROL_NOTE=after revoke block new long-term memory writes and consent-required processing; invalidate appropriate derived memory state; authenticated owner export/delete-forget of already-held data remains allowed (I7 implementation)
+
+NEW_MIGRATION=NO
+SCHEMA_CHANGE=NO
+BREAKING_API_CHANGE=NO
+PRODUCTION_ACTION=NONE
+
+I6_CLOSURE01_IMPLEMENTATION=PASS
+I6_CLOSURE02_RUNTIME_PROOF=PASS
+I6_FULL_CLOSURE=PASS
+NEXT_PRODUCT_PHASE=I7
+
+GATE_RESULT=PASS
+CURSOR_HANDOFF=v618
+CHATGPT_CONTINUITY=v634
+NOTE=post-§327 final master-log whole-file self-SHA is NOT embedded inside §327.

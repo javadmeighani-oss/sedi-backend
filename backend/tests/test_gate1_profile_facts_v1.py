@@ -3,9 +3,17 @@
 import os
 from unittest.mock import patch
 
+import pytest
+
 os.environ["SMS_DISABLED"] = "true"
 
 from backend.app.services import auth_otp_service as svc
+
+
+@pytest.fixture(autouse=True)
+def _enable_legacy_profile_fact_writes(monkeypatch):
+    """Legacy user_profile_facts stack is frozen by default (I6); gate1 tests exercise that API."""
+    monkeypatch.setenv("SEDI_LEGACY_FACT_WRITES_ENABLED", "true")
 
 
 def _token(client, db, monkeypatch, phone: str) -> str:
