@@ -83,10 +83,10 @@ def write_fact(
     ok, err = MemoryContract.validate_fact(domain, key)
     if not ok:
         raise MemoryWriteError(err or "INVALID_FACT")
-    blob = json.dumps(value, ensure_ascii=False, default=str)
-    if is_poison_candidate(blob):
-        raise MemoryWriteError("POISON_REJECTED")
     consent = require_permission(db, user_id, PERM_WRITE)
+    blob = json.dumps(value, ensure_ascii=False, default=str)
+    if not isinstance(value, (int, float, bool)) and is_poison_candidate(blob):
+        raise MemoryWriteError("POISON_REJECTED")
     now = _utcnow()
     existing = _active_fact(db, user_id, domain, key)
     if existing is not None and existing.value_json == blob:
