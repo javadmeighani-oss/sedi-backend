@@ -191,7 +191,7 @@ def test_condition_and_medication_writes_are_not_i6_truth(db):
     db.add(UserCondition(user_id=user.id, condition_id=cond.id))
     db.commit()
     unified = build_unified_memory_context(db, user.id)
-    assert "Hypertension" in unified["conditions"]
+    assert "I6ReadGov Hypertension" in unified["conditions"]
     assert unified.get("memory_facts", {}).get("medical") in (None, {})
     assert MemoryContract.classify_ownership("medical", "conditions") == "CANONICAL_HEALTH"
     assert MemoryContract.classify_ownership("medical", "medications") == "CANONICAL_MEDICATION"
