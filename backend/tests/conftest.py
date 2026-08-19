@@ -17,7 +17,7 @@ _legacy_app_path = str(_repo / "app")
 sys.path = [p for p in sys.path if p != _legacy_app_path]
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
@@ -68,6 +68,25 @@ _TestSession = sessionmaker(
     future=True,
 )
 
+# Alembic 060+ views depend on ORM tables but are not on Base.metadata; drop before drop_all.
+_MIGRATION_CREATED_VIEWS = (
+    "vw_crawler_latest_runs",
+    "vw_knowledge_runtime_status",
+    "vw_open_care_episodes",
+    "vw_notification_reaction_timeline",
+    "vw_user_heart_rate_daily",
+    "vw_user_memory_overview",
+)
+
+
+def _drop_migration_created_views(engine) -> None:
+    """Drop migration-created views so session teardown can drop underlying tables."""
+    if engine.dialect.name != "postgresql":
+        return
+    with engine.begin() as conn:
+        for view_name in _MIGRATION_CREATED_VIEWS:
+            conn.execute(text(f'DROP VIEW IF EXISTS "{view_name}" CASCADE'))
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _create_drop_all():
@@ -81,6 +100,7 @@ def _create_drop_all():
     try:
         yield
     finally:
+        _drop_migration_created_views(_TEST_ENGINE)
         Base.metadata.drop_all(bind=_TEST_ENGINE)
 
 
