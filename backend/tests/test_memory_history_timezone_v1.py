@@ -8,8 +8,8 @@ from unittest.mock import patch
 import pytest
 
 from backend.app.core.security import create_access_token
-from backend.app.models import Memory, User, UserProfileCore
-from backend.app.services.memory import MemoryRepository
+from backend.app.models import Memory, User, UserMemoryFact, UserProfileCore
+from backend.app.services.i6.consent_service import grant_memory_consent
 
 
 def _auth_header(user_id: int) -> dict[str, str]:
@@ -32,14 +32,19 @@ def _set_profile_timezone(db, user_id: int, tz: str) -> None:
 
 
 def _set_memory_timezone(db, user_id: int, tz: str) -> None:
-    repo = MemoryRepository(db)
-    repo.upsert_fact(
-        user_id=user_id,
-        domain="preferences",
-        key="timezone",
-        value={"tz": tz},
-        confidence=1.0,
-        source="test",
+    """Leftover I6 timezone row (compatibility read). New I6 timezone writes are blocked."""
+    import json
+
+    grant_memory_consent(db, user_id, commit=True)
+    db.add(
+        UserMemoryFact(
+            user_id=user_id,
+            domain="preferences",
+            key="timezone",
+            value_json=json.dumps({"tz": tz}),
+            confidence=1.0,
+            source="test",
+        )
     )
     db.commit()
 

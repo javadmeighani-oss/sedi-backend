@@ -17,6 +17,7 @@ from backend.app.services.gate4.scheduler_timing import (
     resolve_user_timezone_for_scheduler,
     should_run_daily_notification_gate4,
 )
+from backend.app.services.i6.consent_service import grant_memory_consent
 from backend.app.services.memory import MemoryRepository
 
 
@@ -71,6 +72,7 @@ def test_gate4_daily_time_uses_prefs(db, sched_user):
 
 
 def test_gate4_daily_time_uses_memory_when_no_prefs(db, sched_user):
+    grant_memory_consent(db, sched_user.id, commit=True)
     db.add(
         UserMemoryFact(
             user_id=sched_user.id,
@@ -86,6 +88,7 @@ def test_gate4_daily_time_uses_memory_when_no_prefs(db, sched_user):
 
 
 def test_prefs_daily_time_preferred_over_memory(db, sched_user):
+    grant_memory_consent(db, sched_user.id, commit=True)
     db.add(
         NotificationPrefs(user_id=sched_user.id, daily_notification_time="10:00")
     )
@@ -110,6 +113,7 @@ def test_timezone_prefers_user_profile_core(db, sched_user):
 
 
 def test_timezone_falls_back_to_memory_fact(db, sched_user):
+    grant_memory_consent(db, sched_user.id, commit=True)
     db.add(
         UserMemoryFact(
             user_id=sched_user.id,

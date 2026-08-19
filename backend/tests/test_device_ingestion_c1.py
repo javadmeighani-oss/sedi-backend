@@ -182,8 +182,8 @@ def test_ingest_event_deduplication(db: Session, test_user):
     assert count == 2
 
 
-def test_ingest_event_maps_to_memory_fact(db: Session, test_user):
-    """Test that device event maps to UserMemoryFact with source='device'"""
+def test_ingest_event_does_not_write_i6_vitals(db: Session, test_user):
+    """Raw device vitals are canonical on DeviceEvent / physiological store, not I6."""
     event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
@@ -193,27 +193,17 @@ def test_ingest_event_maps_to_memory_fact(db: Session, test_user):
     )
     
     assert event is not None
-    
-    # Check memory fact was created
     repo = MemoryRepository(db)
     fact = repo.get_fact(
         user_id=test_user.id,
         domain="vitals",
         key="heart_rate_bpm"
     )
-    
-    assert fact is not None
-    assert fact.source == "device"
-    assert fact.domain == "vitals"
-    assert fact.key == "heart_rate_bpm"
-    
-    import json
-    value = json.loads(fact.value_json)
-    assert value["bpm"] == 82
-    assert value.get("device_id") == "Sedi001"
+    assert fact is None
+    assert db.query(DeviceEvent).filter(DeviceEvent.id == event.id).first() is not None
 
 
-def test_ingest_blood_pressure_creates_memory_facts(db: Session, test_user):
+def test_ingest_blood_pressure_does_not_write_i6_vitals(db: Session, test_user):
     event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
@@ -225,13 +215,11 @@ def test_ingest_blood_pressure_creates_memory_facts(db: Session, test_user):
     assert event is not None
 
     repo = MemoryRepository(db)
-    sys_fact = repo.get_fact(test_user.id, "vitals", "blood_pressure_sys")
-    dia_fact = repo.get_fact(test_user.id, "vitals", "blood_pressure_dia")
-    assert sys_fact is not None
-    assert dia_fact is not None
+    assert repo.get_fact(test_user.id, "vitals", "blood_pressure_sys") is None
+    assert repo.get_fact(test_user.id, "vitals", "blood_pressure_dia") is None
 
 
-def test_ingest_glucose_normalizes_and_creates_memory_fact(db: Session, test_user):
+def test_ingest_glucose_normalizes_without_i6_vital_fact(db: Session, test_user):
     event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
@@ -242,11 +230,10 @@ def test_ingest_glucose_normalizes_and_creates_memory_fact(db: Session, test_use
     )
     assert event is not None
     repo = MemoryRepository(db)
-    fact = repo.get_fact(test_user.id, "vitals", "glucose_mg_dl")
-    assert fact is not None
+    assert repo.get_fact(test_user.id, "vitals", "glucose_mg_dl") is None
 
 
-def test_ingest_temperature_normalizes_and_creates_memory_fact(db: Session, test_user):
+def test_ingest_temperature_normalizes_without_i6_vital_fact(db: Session, test_user):
     event, _, __ = ingest_event(
         db=db,
         user_id=test_user.id,
@@ -257,8 +244,7 @@ def test_ingest_temperature_normalizes_and_creates_memory_fact(db: Session, test
     )
     assert event is not None
     repo = MemoryRepository(db)
-    fact = repo.get_fact(test_user.id, "vitals", "temperature_c")
-    assert fact is not None
+    assert repo.get_fact(test_user.id, "vitals", "temperature_c") is None
 
 
 def test_ingest_endpoint_requires_token(client: TestClient, device_token):

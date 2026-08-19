@@ -123,7 +123,7 @@ def _gather_stable_facts(db: Session, user_id: int, lang: str) -> Tuple[List[str
             sources.append({"type": "user_profile_knowledge", "id": str(profile.id), "label": "preferences", "ts": profile.updated_at.isoformat() if profile.updated_at else None})
 
     # UserMemoryFact lifestyle
-    for domain in ("lifestyle", "routines", "goals"):
+    for domain in ("lifestyle", "routines"):
         facts = repo.get_facts_by_domain(user_id, domain)
         for f in facts:
             try:

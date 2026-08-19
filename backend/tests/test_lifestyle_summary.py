@@ -8,6 +8,7 @@ import pytest
 from datetime import datetime, timedelta
 
 from backend.app.models import User, UserProfileKnowledge, UserMemoryFact, DailyMemorySummary, UserFact
+from backend.app.services.i6.consent_service import grant_memory_consent
 from backend.app.services.lifestyle.summary_service import generate_summary
 
 
@@ -46,6 +47,7 @@ def test_summary_what_i_know_has_sources_when_profile_exists(db, test_user):
 
 def test_summary_what_i_know_has_sources_when_memory_facts_exist(db, test_user):
     """When UserMemoryFact exists, What I know section has sources."""
+    grant_memory_consent(db, test_user.id, commit=True)
     fact = UserMemoryFact(
         user_id=test_user.id,
         domain="lifestyle",

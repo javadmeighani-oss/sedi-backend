@@ -87,29 +87,22 @@ def store_governed_fact(
     value_str = json.dumps(value, ensure_ascii=False)
     if is_poison_candidate(value_str):
         return None
+    from backend.app.services.i6.consent_service import ConsentDenied
+    from backend.app.services.i6.memory_writes import write_fact
 
-    supersede_conflicting_facts(db, user_id, domain, key)
-    now = datetime.utcnow()
-    status = "needs_confirmation" if requires_confirmation or domain == "medical" else "active"
-    row = models.UserMemoryFact(
-        user_id=user_id,
-        domain=domain,
-        key=key,
-        value_json=value_str,
-        confidence=confidence,
-        source=provenance,
-        provenance=provenance,
-        source_interaction_id=source_interaction_id,
-        extracted_at=now,
-        valid_from=now,
-        fact_status=status,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
+    try:
+        return write_fact(
+            db,
+            user_id,
+            domain,
+            key,
+            value,
+            source=provenance,
+            provenance_class="USER_STATED",
+            commit=True,
+        )
+    except (ConsentDenied, Exception):
+        return None
 
 
 def invalidate_fact(db: Session, user_id: int, fact_id: int) -> bool:
@@ -128,13 +121,9 @@ def invalidate_fact(db: Session, user_id: int, fact_id: int) -> bool:
 
 
 def list_active_facts(db: Session, user_id: int, domain: Optional[str] = None) -> List[dict]:
-    q = db.query(models.UserMemoryFact).filter(
-        models.UserMemoryFact.user_id == user_id,
-        models.UserMemoryFact.fact_status == "active",
-    )
-    if domain:
-        q = q.filter(models.UserMemoryFact.domain == domain)
-    rows = q.order_by(models.UserMemoryFact.updated_at.desc()).all()
+    from backend.app.services.i6.memory_writes import list_facts_or_empty
+
+    rows = list_facts_or_empty(db, user_id, domain=domain)
     return [
         {
             "id": r.id,

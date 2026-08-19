@@ -79,6 +79,7 @@ def test_lifestyle_update_works_without_user_id_in_body(client, db):
 
 def test_lifestyle_context_works_without_user_id_query(client, db):
     u = _create_user(db, "LifeCtxOwner")
+    grant_memory_consent(db, u.id, commit=True)
     repo = MemoryRepository(db)
     repo.upsert_fact(
         user_id=u.id,
@@ -120,6 +121,7 @@ def test_lifestyle_cross_user_isolation(client, db):
     user_a = _create_user(db, "LifeUserA")
     user_b = _create_user(db, "LifeUserB")
 
+    grant_memory_consent(db, user_b.id, commit=True)
     repo = MemoryRepository(db)
     repo.upsert_fact(
         user_id=user_b.id,
@@ -252,6 +254,7 @@ def test_admin_source_preview_requires_admin_token(client, db, monkeypatch):
 def test_admin_source_preview_works_with_correct_admin_token(client, db, monkeypatch):
     monkeypatch.setenv("ADMIN_TOKEN", _TEST_ADMIN_TOKEN)
     u = _create_user(db, "AdminPreview")
+    grant_memory_consent(db, u.id, commit=True)
     repo = MemoryRepository(db)
     fact = repo.upsert_fact(
         user_id=u.id,

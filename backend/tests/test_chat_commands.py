@@ -53,7 +53,7 @@ def test_validate_hhmm():
 def test_set_timezone_command_en():
     """English: set timezone Asia/Tehran -> stores and returns success."""
     db = MagicMock(spec=Session)
-    with patch("backend.app.services.chat_commands.write_fact") as write_fact:
+    with patch("backend.app.services.chat_commands._persist_profile_timezone") as persist_tz:
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="set timezone Asia/Tehran",
@@ -63,17 +63,13 @@ def test_set_timezone_command_en():
     assert result is not None
     assert isinstance(result, ChatResponseOverride)
     assert "Asia/Tehran" in result.assistant_message
-    write_fact.assert_called_once()
-    call_args = write_fact.call_args
-    assert call_args[0][2] == "preferences"
-    assert call_args[0][3] == "timezone"
-    assert call_args[0][4] == {"tz": "Asia/Tehran"}
+    persist_tz.assert_called_once_with(db, 1, "Asia/Tehran")
 
 
 def test_set_timezone_invalid_returns_message():
     """Invalid timezone -> returns error message, no upsert."""
     db = MagicMock(spec=Session)
-    with patch("backend.app.services.chat_commands.write_fact") as write_fact:
+    with patch("backend.app.services.chat_commands._persist_profile_timezone") as persist_tz:
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="set timezone NotATimezone",
@@ -82,13 +78,13 @@ def test_set_timezone_invalid_returns_message():
         )
     assert result is not None
     assert "not valid" in result.assistant_message.lower() or "invalid" in result.assistant_message.lower()
-    write_fact.assert_not_called()
+    persist_tz.assert_not_called()
 
 
 def test_set_quiet_hours_command():
     """quiet hours 22:00-08:00 -> stores and returns success."""
     db = MagicMock(spec=Session)
-    with patch("backend.app.services.chat_commands.write_fact") as write_fact:
+    with patch("backend.app.services.chat_commands._persist_quiet_hours") as persist_qh:
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="quiet hours 22:00-08:00",
@@ -97,17 +93,17 @@ def test_set_quiet_hours_command():
         )
     assert result is not None
     assert "22:00" in result.assistant_message or "08:00" in result.assistant_message
-    write_fact.assert_called_once()
-    assert write_fact.call_args[0][3] == "quiet_hours"
-    assert write_fact.call_args[0][4]["enabled"] is True
-    assert write_fact.call_args[0][4]["start"] == "22:00"
-    assert write_fact.call_args[0][4]["end"] == "08:00"
+    persist_qh.assert_called_once()
+    kwargs = persist_qh.call_args.kwargs
+    assert kwargs["enabled"] is True
+    assert kwargs["start"] == "22:00"
+    assert kwargs["end"] == "08:00"
 
 
 def test_disable_quiet_hours_command():
     """disable quiet hours -> stores enabled=False."""
     db = MagicMock(spec=Session)
-    with patch("backend.app.services.chat_commands.write_fact") as write_fact:
+    with patch("backend.app.services.chat_commands._persist_quiet_hours") as persist_qh:
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="disable quiet hours",
@@ -116,9 +112,8 @@ def test_disable_quiet_hours_command():
         )
     assert result is not None
     assert "disabled" in result.assistant_message.lower()
-    write_fact.assert_called_once()
-    assert write_fact.call_args[0][3] == "quiet_hours"
-    assert write_fact.call_args[0][4]["enabled"] is False
+    persist_qh.assert_called_once()
+    assert persist_qh.call_args.kwargs["enabled"] is False
 
 
 def test_normal_message_returns_none():
@@ -136,7 +131,7 @@ def test_normal_message_returns_none():
 def test_persian_timezone_command():
     """Persian: تایم زون: Asia/Tehran -> stores."""
     db = MagicMock(spec=Session)
-    with patch("backend.app.services.chat_commands.write_fact") as write_fact:
+    with patch("backend.app.services.chat_commands._persist_profile_timezone") as persist_tz:
         result = detect_and_handle_user_settings_command(
             user_id=1,
             text="تایم زون: Asia/Tehran",
@@ -145,7 +140,7 @@ def test_persian_timezone_command():
         )
     assert result is not None
     assert "Asia/Tehran" in result.assistant_message
-    write_fact.assert_called_once()
+    persist_tz.assert_called_once()
 
 
 if __name__ == "__main__":

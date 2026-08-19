@@ -140,18 +140,28 @@ def legacy_should_run_morning_notification(
         except (json.JSONDecodeError, KeyError, TypeError):
             pass
 
-    timezone_fact = memory_repo.get_fact(
-        user_id=user.id,
-        domain="preferences",
-        key="timezone",
+    from backend.app.models import UserProfileCore
+
+    profile_core = (
+        memory_repo.db.query(UserProfileCore).filter(UserProfileCore.user_id == user.id).first()
+        if getattr(memory_repo, "db", None) is not None
+        else None
     )
     tz_str = DEFAULT_TIMEZONE
-    if timezone_fact:
-        try:
-            tz_data = json.loads(timezone_fact.value_json)
-            tz_str = tz_data.get("tz", DEFAULT_TIMEZONE) if isinstance(tz_data, dict) else str(tz_data)
-        except (json.JSONDecodeError, TypeError):
-            pass
+    if profile_core and profile_core.timezone:
+        tz_str = str(profile_core.timezone).strip() or DEFAULT_TIMEZONE
+    else:
+        timezone_fact = memory_repo.get_fact(
+            user_id=user.id,
+            domain="preferences",
+            key="timezone",
+        )
+        if timezone_fact:
+            try:
+                tz_data = json.loads(timezone_fact.value_json)
+                tz_str = tz_data.get("tz", DEFAULT_TIMEZONE) if isinstance(tz_data, dict) else str(tz_data)
+            except (json.JSONDecodeError, TypeError):
+                pass
     try:
         user_tz = pytz.timezone(tz_str)
     except pytz.exceptions.UnknownTimeZoneError:

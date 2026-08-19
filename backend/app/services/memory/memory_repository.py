@@ -2,15 +2,22 @@
 """
 Memory Repository - CRUD operations for UserMemoryFact.
 
-Handles upsert logic (update if exists, insert if not).
+Active reads/writes go through canonical I6 semantics (consent, active status,
+soft-invalidation, expiry, vocabulary canonicalization). Direct ORM access is
+not used for product paths.
 """
 
 from sqlalchemy.orm import Session
-from typing import Optional, Dict, Any, List
-from datetime import datetime
-import json
+from typing import Optional, Any, List
 
 from backend.app.models import UserMemoryFact
+from backend.app.services.i6.consent_service import ConsentDenied
+from backend.app.services.i6.memory_writes import (
+    delete_fact as i6_delete_fact,
+    get_readable_fact_or_none,
+    list_facts_or_empty,
+    write_fact,
+)
 from backend.app.services.memory.memory_contract import MemoryContract
 
 
@@ -30,67 +37,19 @@ class MemoryRepository:
         source: str = "manual"
     ) -> UserMemoryFact:
         """
-        Upsert a memory fact (update if exists, insert if not).
-        
-        Args:
-            user_id: User ID
-            domain: Memory domain (e.g., "lifestyle")
-            key: Fact key (e.g., "sleep_duration_hours")
-            value: Fact value (will be stored as JSON)
-            confidence: Confidence score (0.0 to 1.0)
-            source: Source of fact ("chat" | "device" | "manual")
-        
-        Returns:
-            UserMemoryFact object
+        Upsert a memory fact through canonical I6 write_fact (consent-gated).
         """
-        # Validate domain and key
-        is_valid, error_msg = MemoryContract.validate_fact(domain, key)
-        if not is_valid:
-            raise ValueError(error_msg)
-        
-        # Convert value to JSON string
-        value_json = json.dumps(value)
-        
-        # Check if fact already exists
-        existing = (
-            self.db.query(UserMemoryFact)
-            .filter(
-                UserMemoryFact.user_id == user_id,
-                UserMemoryFact.domain == domain,
-                UserMemoryFact.key == key
-            )
-            .first()
+        domain, key = MemoryContract.canonicalize_key(domain, key)
+        return write_fact(
+            self.db,
+            user_id,
+            domain,
+            key,
+            value,
+            source=source,
+            provenance_class="USER_STATED",
+            commit=True,
         )
-        
-        if existing:
-            # Update existing fact
-            existing.value_json = value_json
-            existing.confidence = confidence
-            existing.source = source
-            existing.last_seen_at = datetime.utcnow()
-            existing.updated_at = datetime.utcnow()
-            self.db.add(existing)
-            self.db.commit()
-            self.db.refresh(existing)
-            return existing
-        else:
-            # Create new fact
-            new_fact = UserMemoryFact(
-                user_id=user_id,
-                domain=domain,
-                key=key,
-                value_json=value_json,
-                confidence=confidence,
-                source=source,
-                last_seen_at=datetime.utcnow(),
-                embedding_id=None,  # RAG-ready, not active
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            self.db.add(new_fact)
-            self.db.commit()
-            self.db.refresh(new_fact)
-            return new_fact
     
     def get_fact(
         self,
@@ -98,42 +57,23 @@ class MemoryRepository:
         domain: str,
         key: str
     ) -> Optional[UserMemoryFact]:
-        """Get a specific memory fact"""
-        return (
-            self.db.query(UserMemoryFact)
-            .filter(
-                UserMemoryFact.user_id == user_id,
-                UserMemoryFact.domain == domain,
-                UserMemoryFact.key == key
-            )
-            .first()
-        )
+        """Get a specific memory fact using canonical I6 read semantics."""
+        return get_readable_fact_or_none(self.db, user_id, domain, key)
     
     def get_facts_by_domain(
         self,
         user_id: int,
         domain: str
     ) -> List[UserMemoryFact]:
-        """Get all facts for a user in a specific domain"""
-        return (
-            self.db.query(UserMemoryFact)
-            .filter(
-                UserMemoryFact.user_id == user_id,
-                UserMemoryFact.domain == domain
-            )
-            .all()
-        )
+        """Get active, unexpired, non-invalidated facts for a domain."""
+        return list_facts_or_empty(self.db, user_id, domain=domain)
     
     def get_all_facts(
         self,
         user_id: int
     ) -> List[UserMemoryFact]:
-        """Get all memory facts for a user"""
-        return (
-            self.db.query(UserMemoryFact)
-            .filter(UserMemoryFact.user_id == user_id)
-            .all()
-        )
+        """Get all canonical-readable memory facts for a user."""
+        return list_facts_or_empty(self.db, user_id)
     
     def delete_fact(
         self,
@@ -141,10 +81,8 @@ class MemoryRepository:
         domain: str,
         key: str
     ) -> bool:
-        """Delete a memory fact"""
-        fact = self.get_fact(user_id, domain, key)
-        if fact:
-            self.db.delete(fact)
-            self.db.commit()
-            return True
-        return False
+        """Forget a memory fact through canonical I6 delete (PERM_FORGET)."""
+        try:
+            return i6_delete_fact(self.db, user_id, domain, key, commit=True)
+        except ConsentDenied:
+            return False

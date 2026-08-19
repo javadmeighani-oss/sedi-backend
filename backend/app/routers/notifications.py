@@ -19,7 +19,7 @@ import logging
 import os
 
 from backend.app.database import get_db
-from backend.app.models import Notification, User, PushDevice, NotificationFeedback, DeviceEvent
+from backend.app.models import Notification, NotificationPrefs, User, PushDevice, NotificationFeedback, DeviceEvent
 from backend.app.schemas import APIResponse, ErrorInfo, ApiResponseV1, NotificationResponse
 from backend.app.schemas.notification import (
     NotificationCreate,
@@ -265,15 +265,11 @@ def _mask_token(t: str) -> str:
 
 def _get_user_tz_for_log(db: Session, user_id: int) -> str:
     """Resolve user timezone string for structured logs."""
-    from backend.app.services.memory import MemoryRepository
-    repo = MemoryRepository(db)
-    tz_fact = repo.get_fact(user_id=user_id, domain="preferences", key="timezone")
-    if not tz_fact or not tz_fact.value_json:
-        return "Asia/Tehran"
+    from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
+
     try:
-        tz_data = _json.loads(tz_fact.value_json)
-        return tz_data.get("tz", "Asia/Tehran") if isinstance(tz_data, dict) else "Asia/Tehran"
-    except (_json.JSONDecodeError, TypeError):
+        return resolve_validated_user_timezone(db, user_id)
+    except Exception:
         return "Asia/Tehran"
 
 
@@ -1293,106 +1289,44 @@ def submit_notification_feedback(
     )
     
     if is_morning_brief:
-        # Handle morning_summary feedback
-        from backend.app.services.memory import MemoryRepository
-        from backend.app.services.i6.consent_service import ConsentDenied
-        from backend.app.services.i6.memory_writes import write_fact
-        import json
-        
-        memory_repo = MemoryRepository(db)
-        
-        # Get existing feedback fact
-        feedback_fact = memory_repo.get_fact(
-            user_id=notification.user_id,
-            domain="preferences",
-            key="morning_notification_feedback"
-        )
-        
-        # Initialize or update feedback counters
-        if feedback_fact:
-            try:
-                feedback_data = _json.loads(feedback_fact.value_json)
-                positives = feedback_data.get("positives", feedback_data.get("likes", 0))  # Support old format
-                negatives = feedback_data.get("negatives", feedback_data.get("dislikes", 0))  # Support old format
-            except (_json.JSONDecodeError, KeyError, TypeError):
-                positives = 0
-                negatives = 0
-        else:
-            positives = 0
-            negatives = 0
-        
-        # Update counters based on new standardized feedback
-        if feedback_request.feedback == "positive":
-            positives += 1
-        elif feedback_request.feedback == "negative":
-            negatives += 1
-        # "neutral" doesn't affect counters
-        
-        # Store feedback
-        feedback_data = {
-            "positives": positives,
-            "negatives": negatives,
-            "last_feedback_at": datetime.utcnow().isoformat()
-        }
-        
-        try:
-            write_fact(
-                db,
-                user_id,
-                "preferences",
-                "morning_notification_feedback",
-                feedback_data,
-                source="manual",
-                provenance_class="USER_STATED",
-                commit=True,
-            )
-        except ConsentDenied:
-            pass
-        except Exception as e:
-            print(f"[Feedback] Error storing feedback fact: {e}")
-        
+        # v637 I6 vocabulary reconciliation: "morning_notification_feedback" and
+        # "morning_notification_time" are not MemoryContract keys and have no I6
+        # canonical ownership. Raw like/dislike counters have no existing canonical
+        # owner (not invented here); the actual morning time is canonically owned by
+        # NotificationPrefs.daily_notification_time and is adjusted there directly.
+        # Counters are request-scoped only (no cross-request persistence attempted).
+        positives = 1 if feedback_request.feedback == "positive" else 0
+        negatives = 1 if feedback_request.feedback == "negative" else 0
+
         # Adjust morning time if many negatives (safe, with logging)
         if negatives >= 3 and negatives > positives:
-            # Get current morning time
-            morning_time_fact = memory_repo.get_fact(
-                user_id=notification.user_id,
-                domain="preferences",
-                key="morning_notification_time"
+            prefs_row = (
+                db.query(NotificationPrefs)
+                .filter(NotificationPrefs.user_id == notification.user_id)
+                .first()
             )
-            
-            current_hour = 9  # Default
-            current_minute = 0
-            
-            if morning_time_fact:
+            current_time = getattr(prefs_row, "daily_notification_time", None) if prefs_row else None
+            current_hour, current_minute = 9, 0
+            if current_time:
                 try:
-                    time_data = _json.loads(morning_time_fact.value_json)
-                    current_hour = time_data.get("hour", 9)
-                    current_minute = time_data.get("minute", 0)
-                except (_json.JSONDecodeError, KeyError, TypeError):
+                    current_hour, current_minute = (int(p) for p in str(current_time).split(":")[:2])
+                except (ValueError, TypeError):
                     pass
-            
+
             # Shift +1 hour (cap between 6 and 11)
             new_hour = min(current_hour + 1, 11)
             if new_hour < 6:
                 new_hour = 6
-            
+
             if new_hour != current_hour:
-                try:
-                    write_fact(
-                        db,
-                        user_id,
-                        "preferences",
-                        "morning_notification_time",
-                        {"hour": new_hour, "minute": current_minute},
-                        source="manual",
-                        provenance_class="USER_STATED",
-                        commit=True,
-                    )
-                    print(f"[Feedback] Adjusted morning time for user {user_id} from {current_hour}:{current_minute:02d} to {new_hour}:{current_minute:02d} (reason: {negatives} negative feedbacks)")
-                except ConsentDenied:
-                    pass
-                except Exception as e:
-                    print(f"[Feedback] Error adjusting morning time for user {user_id}: {e}")
+                upsert_prefs(
+                    db,
+                    notification.user_id,
+                    NotificationPrefsUpdate(
+                        daily_notification_time=f"{new_hour:02d}:{current_minute:02d}"
+                    ),
+                )
+                print(f"[Feedback] Adjusted morning time for user {user_id} from {current_hour}:{current_minute:02d} to {new_hour}:{current_minute:02d} (reason: {negatives} negative feedbacks)")
     
     response_data = {
             "feedback_received": True,

@@ -41,21 +41,11 @@ def _get_models():
 
 
 def _get_memory_fact_value(db: Session, user_id: int, domain: str, key: str) -> Optional[Any]:
-    """Get value from UserMemoryFact if model exists; return None on missing/error."""
+    """Canonical I6 read (PERM_READ + active + not invalidated + not expired)."""
     try:
-        models = _get_models()
-        UserMemoryFact = getattr(models, "UserMemoryFact", None)
-        if UserMemoryFact is None:
-            return None
-        row = (
-            db.query(UserMemoryFact)
-            .filter(
-                UserMemoryFact.user_id == user_id,
-                UserMemoryFact.domain == domain,
-                UserMemoryFact.key == key,
-            )
-            .first()
-        )
+        from backend.app.services.i6.memory_writes import get_readable_fact_or_none
+
+        row = get_readable_fact_or_none(db, user_id, domain, key)
         if row and row.value_json:
             return _safe_json(row.value_json)
     except Exception as e:
@@ -63,21 +53,46 @@ def _get_memory_fact_value(db: Session, user_id: int, domain: str, key: str) -> 
     return None
 
 
+def _hhmm(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    hour = getattr(value, "hour", None)
+    minute = getattr(value, "minute", None)
+    if hour is None or minute is None:
+        return None
+    return f"{int(hour):02d}:{int(minute):02d}"
+
+
 def _get_quiet_hours_from_facts(db: Session, user_id: int) -> QuietHours:
-    """Prefer UserMemoryFact preferences.quiet_hours (JSON {start, end}); else quiet_start/quiet_end keys."""
+    """NotificationPrefs / UserProfileCore are canonical; governed I6 is compatibility only."""
+    try:
+        models = _get_models()
+        NotificationPrefs = getattr(models, "NotificationPrefs", None)
+        if NotificationPrefs is not None:
+            prefs = db.query(NotificationPrefs).filter(NotificationPrefs.user_id == user_id).first()
+            if prefs is not None and getattr(prefs, "quiet_hours_enabled", False):
+                start = _hhmm(getattr(prefs, "quiet_start", None))
+                end = _hhmm(getattr(prefs, "quiet_end", None))
+                if start is not None or end is not None:
+                    return QuietHours(start=start, end=end)
+        UserProfileCore = getattr(models, "UserProfileCore", None)
+        if UserProfileCore is not None:
+            core = db.query(UserProfileCore).filter(UserProfileCore.user_id == user_id).first()
+            if core is not None:
+                start = _hhmm(getattr(core, "quiet_start", None))
+                end = _hhmm(getattr(core, "quiet_end", None))
+                if start is not None or end is not None:
+                    return QuietHours(start=start, end=end)
+    except Exception as e:
+        logger.debug("%s canonical quiet-hours lookup failed: %s", _LOG_PREFIX, e)
     qh = _get_memory_fact_value(db, user_id, "preferences", "quiet_hours")
     if isinstance(qh, dict):
         start = qh.get("start") if isinstance(qh.get("start"), str) else None
         end = qh.get("end") if isinstance(qh.get("end"), str) else None
         if start is not None or end is not None:
             return QuietHours(start=start, end=end)
-    start = _get_memory_fact_value(db, user_id, "preferences", "quiet_start")
-    end = _get_memory_fact_value(db, user_id, "preferences", "quiet_end")
-    if isinstance(start, str) or isinstance(end, str):
-        return QuietHours(
-            start=start if isinstance(start, str) else None,
-            end=end if isinstance(end, str) else None,
-        )
     return QuietHours()
 
 
@@ -191,35 +206,6 @@ class UserContextService:
         except Exception as e:
             logger.debug("%s UserProfileKnowledge load failed: %s", _LOG_PREFIX, e)
 
-        if preferred_name is None or language is None or timezone is None:
-            try:
-                models = _get_models()
-                UserMemoryFact = getattr(models, "UserMemoryFact", None)
-                if UserMemoryFact is not None:
-                    facts = (
-                        self.db.query(UserMemoryFact)
-                        .filter(UserMemoryFact.user_id == user_id)
-                        .all()
-                    )
-                    for f in facts:
-                        if f.domain == "preferences" or f.key in ("preferred_name", "language", "timezone", "engagement_level"):
-                            val = _safe_json(f.value_json)
-                            if f.key == "preferred_name" and preferred_name is None and isinstance(val, str):
-                                preferred_name = val.strip()
-                            elif f.key == "language" and language is None and isinstance(val, str):
-                                language = val.strip()
-                            elif f.key == "timezone" and timezone is None:
-                                if isinstance(val, dict) and val.get("tz"):
-                                    timezone = str(val["tz"]).strip()
-                                elif isinstance(val, str):
-                                    timezone = val.strip()
-                            elif f.key == "engagement_level" and engagement_level is None and isinstance(val, str):
-                                engagement_level = val.strip()
-                    if UserMemoryFact is not None and facts:
-                        source_meta["memory_facts"] = True
-            except Exception as e:
-                logger.debug("%s UserMemoryFact fallback failed: %s", _LOG_PREFIX, e)
-
         if language is None:
             try:
                 models = _get_models()
@@ -265,6 +251,8 @@ class UserContextService:
                         addressing_preference = str(core.addressing_preference).strip()
                     if getattr(core, "timezone", None) and str(core.timezone).strip():
                         timezone = str(core.timezone).strip()
+                    if language is None and getattr(core, "language", None) and str(core.language).strip():
+                        language = str(core.language).strip()
                     # Same loaded UserProfileCore row — no extra query (Section 15-I3).
                     raw_height = getattr(core, "height_cm", None)
                     if raw_height is not None:
@@ -290,9 +278,20 @@ class UserContextService:
                 timezone = tz_val.strip()
 
         if engagement_level is None:
-            engagement_level = _get_memory_fact_value(self.db, user_id, "preferences", "engagement_level")
-            if not isinstance(engagement_level, str):
-                engagement_level = None
+            try:
+                models = _get_models()
+                NotificationPrefs = getattr(models, "NotificationPrefs", None)
+                if NotificationPrefs is not None:
+                    prefs = (
+                        self.db.query(NotificationPrefs)
+                        .filter(NotificationPrefs.user_id == user_id)
+                        .first()
+                    )
+                    if prefs is not None:
+                        level = getattr(prefs, "engagement_level", None)
+                        engagement_level = {0: "low", 1: "normal", 2: "high"}.get(level)
+            except Exception as e:
+                logger.debug("%s NotificationPrefs engagement lookup failed: %s", _LOG_PREFIX, e)
 
         quiet_hours = _get_quiet_hours_from_facts(self.db, user_id)
         daily_memory_summary = _get_daily_memory_summary_text(self.db, user_id)

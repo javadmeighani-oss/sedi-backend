@@ -219,6 +219,8 @@ def store_candidates_and_auto_commit(
         stored += 1
 
         if c.is_explicit and c.confidence >= 0.85:
+            if c.fact_domain == "medical":
+                continue
             valid, _ = MemoryContract.validate_fact(c.fact_domain, c.fact_key)
             if valid:
                 try:

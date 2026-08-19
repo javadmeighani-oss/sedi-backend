@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from backend.app.models import DeviceEvent, User, UserMemoryFact, Device, PhysiologicalMeasurement
 from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
 from backend.app.decision_engine.service import evaluate_event
+from backend.app.services.memory.memory_contract import MemoryContract
 from backend.app.services.i6.consent_service import ConsentDenied
 from backend.app.services.i6.memory_writes import write_fact
 from backend.app.models import Notification
@@ -228,6 +229,17 @@ def ingest_event(
             recorded_at=recorded_at,
         )
         for u in updates:
+            permitted, owner_err = MemoryContract.i6_write_permitted(u.domain, u.key)
+            if not permitted:
+                logger.info(
+                    "[DEVICE_INGEST] I6 skip (canonical owner is not I6) user=%s domain=%s key=%s reason=%s trace=%s",
+                    user_id,
+                    u.domain,
+                    u.key,
+                    owner_err,
+                    trace_id,
+                )
+                continue
             try:
                 write_fact(
                     db,

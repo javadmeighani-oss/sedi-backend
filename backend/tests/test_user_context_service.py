@@ -7,6 +7,7 @@ import pytest
 from datetime import datetime, timedelta
 
 from backend.app.models import User, UserProfileKnowledge, UserMemoryFact, DailyMemorySummary
+from backend.app.services.i6.consent_service import grant_memory_consent
 from backend.app.services.user_context import UserContextService, UserContextPack
 
 
@@ -45,7 +46,8 @@ def test_get_user_context_empty_data_does_not_crash(db, test_user):
 
 
 def test_get_user_context_quiet_hours_from_user_memory_fact(db, test_user):
-    """When UserMemoryFact has preferences.quiet_hours, pack contains quiet_hours."""
+    """Leftover I6 quiet_hours remains readable as compatibility when consent is granted."""
+    grant_memory_consent(db, test_user.id, commit=True)
     fact = UserMemoryFact(
         user_id=test_user.id,
         domain="preferences",

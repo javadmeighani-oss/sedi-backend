@@ -92,9 +92,13 @@ class LocalRAGProvider:
             chunks.append((text, src))
         # 2) UserMemoryFact (lifestyle, preferences)
         repo = MemoryRepository(self.db)
-        for domain in ("lifestyle", "routines", "goals", "preferences"):
+        from backend.app.services.memory.memory_contract import MemoryContract
+
+        for domain in ("lifestyle", "routines", "preferences"):
             facts = repo.get_facts_by_domain(user_id, domain)
             for f in facts[:10]:
+                if not MemoryContract.is_i6_context_projectable(f.domain, f.key):
+                    continue
                 try:
                     val = json.loads(f.value_json or "null")
                     text = f"{f.key}: {str(val)[:120]}"

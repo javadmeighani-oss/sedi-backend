@@ -29,17 +29,9 @@ def _today_utc(now: datetime) -> date:
 def _user_local_date(db: Session, user_id: int, utc_dt: datetime) -> date:
     """Return calendar date of utc_dt in user's local timezone (same logic as quiet_hours)."""
     try:
-        from backend.app.services.memory import MemoryRepository
-        repo = MemoryRepository(db)
-        tz_fact = repo.get_fact(user_id=user_id, domain="preferences", key="timezone")
-        tz_str = "Asia/Tehran"
-        if tz_fact and tz_fact.value_json:
-            import json
-            try:
-                tz_data = json.loads(tz_fact.value_json)
-                tz_str = tz_data.get("tz", tz_str) if isinstance(tz_data, dict) else str(tz_data)
-            except (TypeError, ValueError):
-                pass
+        from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
+
+        tz_str = resolve_validated_user_timezone(db, user_id)
         user_tz = pytz.timezone(tz_str)
     except Exception:
         user_tz = pytz.timezone("Asia/Tehran")

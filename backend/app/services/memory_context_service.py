@@ -17,6 +17,7 @@ from backend.app.services.gate2_data_service import (
     list_restrictions,
 )
 from backend.app.services.memory import MemoryRepository
+from backend.app.services.memory.memory_contract import MemoryContract
 from backend.app.services.user_context import UserContextService
 from backend.app.services.user_profile_fact_service import list_profile_facts
 
@@ -50,12 +51,14 @@ def _medications_summary(db: Session, user_id: int, limit: int = 10) -> List[str
 def _memory_facts_summary(db: Session, user_id: int, limit_per_domain: int = 5) -> Dict[str, Any]:
     repo = MemoryRepository(db)
     out: Dict[str, Any] = {}
-    for domain in ("lifestyle", "routines", "preferences", "goals"):
+    for domain in ("lifestyle", "routines", "preferences"):
         facts = repo.get_facts_by_domain(user_id, domain)[:limit_per_domain]
         if not facts:
             continue
         domain_items = []
         for f in facts:
+            if not MemoryContract.is_i6_context_projectable(f.domain, f.key):
+                continue
             try:
                 import json
                 val = json.loads(f.value_json)

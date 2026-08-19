@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 import json
 
+from backend.app.services.memory.memory_contract import MemoryContract
 from backend.app.services.memory.memory_repository import MemoryRepository
 
 
@@ -116,6 +117,8 @@ def build_memory_context(db: Session, user_id: int) -> MemoryContext:
 
     context.preferences = {}
     for fact in repo.get_facts_by_domain(user_id, "preferences"):
+        if not MemoryContract.is_i6_context_projectable(fact.domain, fact.key):
+            continue
         try:
             context.preferences[fact.key] = json.loads(fact.value_json)
         except Exception:

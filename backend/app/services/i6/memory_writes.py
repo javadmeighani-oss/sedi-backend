@@ -78,6 +78,7 @@ def write_fact(
     valid_until: Optional[datetime] = None,
     commit: bool = True,
 ) -> models.UserMemoryFact:
+    domain, key = MemoryContract.canonicalize_key(domain, key)
     if any(tok in key.lower() for tok in UNSUPPORTED_MEDICAL_INFERENCE):
         raise MemoryWriteError("UNSUPPORTED_MEDICAL_INFERENCE")
     ok, err = MemoryContract.validate_fact(domain, key)
@@ -163,6 +164,7 @@ def delete_fact(
     reason: str = "user_deleted",
     commit: bool = True,
 ) -> bool:
+    domain, key = MemoryContract.canonicalize_key(domain, key)
     require_permission(db, user_id, PERM_FORGET)
     row = _active_fact(db, user_id, domain, key)
     if row is None:
@@ -218,6 +220,39 @@ def list_facts(db: Session, user_id: int, domain: Optional[str] = None) -> list[
                 continue
         out.append(row)
     return out
+
+
+def get_readable_fact(
+    db: Session,
+    user_id: int,
+    domain: str,
+    key: str,
+) -> Optional[models.UserMemoryFact]:
+    """Single-fact canonical read: PERM_READ + active + not invalidated + not expired."""
+    domain, key = MemoryContract.canonicalize_key(domain, key)
+    for row in list_facts(db, user_id, domain=domain):
+        if row.key == key:
+            return row
+    return None
+
+
+def list_facts_or_empty(
+    db: Session, user_id: int, domain: Optional[str] = None
+) -> list[models.UserMemoryFact]:
+    """Context-assembly helper: missing/revoked read permission yields no I6 facts."""
+    try:
+        return list_facts(db, user_id, domain=domain)
+    except ConsentDenied:
+        return []
+
+
+def get_readable_fact_or_none(
+    db: Session, user_id: int, domain: str, key: str
+) -> Optional[models.UserMemoryFact]:
+    try:
+        return get_readable_fact(db, user_id, domain, key)
+    except ConsentDenied:
+        return None
 
 
 def list_fact_history(

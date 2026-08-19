@@ -3,7 +3,7 @@
 Chat command parser for notification preferences (Stage 16.6.5).
 
 Detects and handles user settings commands via chat text.
-Stores values in UserMemoryFact (domain=preferences).
+Stores values in UserProfileCore.timezone and NotificationPrefs quiet hours.
 """
 
 import re
@@ -18,8 +18,9 @@ except ImportError:
 
 from sqlalchemy.orm import Session
 
-from backend.app.services.i6.consent_service import ConsentDenied
-from backend.app.services.i6.memory_writes import write_fact
+from backend.app.services.knowledge.service import ensure_profile_core
+from backend.app.schemas.notification_prefs import NotificationPrefsUpdate, QuietHoursUpdate
+from backend.app.services.notifications.prefs_service import upsert_prefs
 
 
 @dataclass
@@ -44,6 +45,39 @@ def _validate_iana_timezone(tz_str: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def _norm_hhmm(s: str) -> str:
+    h, m = s.strip().split(":")[:2]
+    return f"{int(h):02d}:{int(m):02d}"
+
+
+def _persist_profile_timezone(db: Session, user_id: int, tz_str: str) -> None:
+    row = ensure_profile_core(db, user_id)
+    row.timezone = tz_str
+    db.add(row)
+    db.commit()
+
+
+def _persist_quiet_hours(
+    db: Session,
+    user_id: int,
+    *,
+    enabled: bool,
+    start: str = "22:00",
+    end: str = "08:00",
+) -> None:
+    upsert_prefs(
+        db,
+        user_id,
+        NotificationPrefsUpdate(
+            quiet_hours=QuietHoursUpdate(
+                enabled=enabled,
+                start=_norm_hhmm(start),
+                end=_norm_hhmm(end),
+            )
+        ),
+    )
 
 
 def _validate_hhmm(s: str) -> bool:
@@ -150,9 +184,6 @@ def detect_and_handle_user_settings_command(
     if lang not in ("en", "fa", "ar"):
         lang = "en"
 
-    def _consent_denied_message() -> str:
-        return _CONSENT_REQUIRED.get(lang, _CONSENT_REQUIRED["en"])
-
     # 1) Try timezone
     for pat, _ in _TZ_PATTERNS:
         m = re.search(pat, t, re.IGNORECASE)
@@ -166,22 +197,11 @@ def detect_and_handle_user_settings_command(
                     msg = "Invalid timezone. Example: Asia/Tehran"
                 return ChatResponseOverride(assistant_message=msg)
             try:
-                write_fact(
-                    db,
-                    user_id,
-                    "preferences",
-                    "timezone",
-                    {"tz": tz_str},
-                    source="chat",
-                    provenance_class="USER_STATED",
-                    commit=True,
-                )
+                _persist_profile_timezone(db, user_id, tz_str)
                 return ChatResponseOverride(
                     assistant_message=_TZ_OK.get(lang, _TZ_OK["en"]).format(tz=tz_str),
                     updated_facts=[("timezone", {"tz": tz_str})],
                 )
-            except ConsentDenied:
-                return ChatResponseOverride(assistant_message=_consent_denied_message())
             except Exception:
                 return ChatResponseOverride(
                     assistant_message=_TZ_INVALID.get(lang, _TZ_INVALID["en"]).format(tz=tz_str)
@@ -191,22 +211,11 @@ def detect_and_handle_user_settings_command(
     for pat, _ in _QH_OFF_PATTERNS:
         if re.search(pat, t, re.IGNORECASE):
             try:
-                write_fact(
-                    db,
-                    user_id,
-                    "preferences",
-                    "quiet_hours",
-                    {"enabled": False, "start": "22:00", "end": "08:00"},
-                    source="chat",
-                    provenance_class="USER_STATED",
-                    commit=True,
-                )
+                _persist_quiet_hours(db, user_id, enabled=False)
                 return ChatResponseOverride(
                     assistant_message=_QH_OFF_OK.get(lang, _QH_OFF_OK["en"]),
                     updated_facts=[("quiet_hours", {"enabled": False})],
                 )
-            except ConsentDenied:
-                return ChatResponseOverride(assistant_message=_consent_denied_message())
             except Exception:
                 return ChatResponseOverride(
                     assistant_message=_QH_OFF_OK.get(lang, _QH_OFF_OK["en"]),
@@ -223,25 +232,16 @@ def detect_and_handle_user_settings_command(
                     assistant_message=_QH_INVALID.get(lang, _QH_INVALID["en"])
                 )
             try:
-                val = {"enabled": True, "start": start_str, "end": end_str}
-                write_fact(
-                    db,
-                    user_id,
-                    "preferences",
-                    "quiet_hours",
-                    val,
-                    source="chat",
-                    provenance_class="USER_STATED",
-                    commit=True,
+                val = {"enabled": True, "start": _norm_hhmm(start_str), "end": _norm_hhmm(end_str)}
+                _persist_quiet_hours(
+                    db, user_id, enabled=True, start=start_str, end=end_str
                 )
                 return ChatResponseOverride(
                     assistant_message=_QH_OK.get(lang, _QH_OK["en"]).format(
-                        start=start_str, end=end_str
+                        start=val["start"], end=val["end"]
                     ),
                     updated_facts=[("quiet_hours", val)],
                 )
-            except ConsentDenied:
-                return ChatResponseOverride(assistant_message=_consent_denied_message())
             except Exception:
                 return ChatResponseOverride(
                     assistant_message=_QH_INVALID.get(lang, _QH_INVALID["en"])

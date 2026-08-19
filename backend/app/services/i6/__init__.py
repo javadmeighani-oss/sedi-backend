@@ -10,6 +10,7 @@ from backend.app.services.i6.memory_writes import (
     correct_fact,
     delete_fact,
     forget_all,
+    list_facts,
     write_fact,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "forget_all",
     "grant_memory_consent",
     "revoke_memory_consent",
+    "list_facts",
     "write_fact",
 ]
