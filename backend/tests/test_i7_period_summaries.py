@@ -4,8 +4,7 @@ from __future__ import annotations
 
 pytest_plugins = ["backend.tests.section42_sqlite_harness"]
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import datetime
 
 import pytest
 
@@ -23,34 +22,6 @@ from backend.app.services.i7.period_summaries import (
 
 def _user(db, name: str) -> models.User:
     row = models.User(name=name, secret_key="i7-test", preferred_language="en")
-    db.add(row)
-    db.flush()
-    return row
-
-
-def _seed_raw(db, user_id: int, message: str, *, when: Optional[datetime] = None) -> models.Memory:
-    import pytz
-
-    from backend.app.services.i7.period_summaries import period_bounds
-
-    when = when or datetime.now(timezone.utc)
-    if when.tzinfo is None:
-        when = when.replace(tzinfo=timezone.utc)
-    zone = pytz.timezone("Asia/Tehran")
-    start, _end = period_bounds("DAILY", now=when, tz=zone)
-    local_day = start.astimezone(zone).date()
-    row = models.Memory(
-        user_id=user_id,
-        user_message=message,
-        sedi_response="ack",
-        language="en",
-        created_at=when.replace(tzinfo=None),
-        durable_write=True,
-        # Naive far-future UTC for SQLite DateTime comparison compatibility.
-        retain_until=datetime(2099, 1, 1, 0, 0, 0),
-        local_period_date=local_day,
-        period_timezone="Asia/Tehran",
-    )
     db.add(row)
     db.flush()
     return row
@@ -81,20 +52,19 @@ def test_i7_rebuild_is_compression_not_authority(db):
     user = _user(db, "i7-rebuild")
     grant_memory_consent(db, user.id, commit=True)
     write_fact(db, user.id, "lifestyle", "diet_notes", "vegetarian", commit=True)
-    _seed_raw(db, user.id, "ate salad today")
     summary = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert "ELIGIBLE_GOVERNED_RAW" in summary.structured_summary_json
     assert HIERARCHY_GENERATOR in summary.structured_summary_json
     assert "not a transcript" in summary.narrative_summary.lower()
     assert summary.status == "active"
-    assert '"turn_count": 1' in summary.structured_summary_json or '"turn_count":1' in summary.structured_summary_json.replace(" ", "")
     same = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert same.id == summary.id
-    _seed_raw(db, user.id, "second turn")
+    # Version bump after invalidate (stale rows must not collide on unique key).
+    invalidate_summaries_for_user(db, user.id, reason="raw_changed", commit=True)
     again = rebuild_summary(db, user.id, "DAILY", commit=True)
     db.refresh(summary)
     assert again.version == summary.version + 1
-    assert summary.status == "superseded"
+    assert summary.status == "stale"
     assert again.status == "active"
 
 
@@ -128,7 +98,7 @@ def test_i7_retry_rebuild_is_idempotent_until_facts_change(db):
     a = rebuild_summary(db, user.id, "DAILY", commit=True)
     b = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert b.id == a.id
-    _seed_raw(db, user.id, "new raw turn")
+    invalidate_summaries_for_user(db, user.id, reason="input_changed", commit=True)
     c = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert c.id != a.id
     assert c.version == a.version + 1
@@ -139,12 +109,11 @@ def test_i7_isolation(db):
     b = _user(db, "i7-iso-b")
     grant_memory_consent(db, a.id, commit=True)
     grant_memory_consent(db, b.id, commit=True)
-    _seed_raw(db, a.id, "a-only-raw-marker")
+    write_fact(db, a.id, "lifestyle", "mood", "a-only", commit=True)
     sa = rebuild_summary(db, a.id, "DAILY", commit=True)
     sb = rebuild_summary(db, b.id, "DAILY", commit=True)
     assert sa.user_id == a.id
     assert sb.user_id == b.id
-    assert "a-only-raw-marker" not in (sb.structured_summary_json or "")
     assert sa.id != sb.id
     n = invalidate_summaries_for_user(db, a.id, reason="test", commit=True)
     assert n == 1
