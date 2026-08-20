@@ -26,7 +26,7 @@ def test_know05_dry_run_coverage_gaps_and_rag_zeroes():
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
         if head != "068_i7_wave2_governed_memory_lifecycle":
-            pytest.skip(f"alembic head {head} != 067")
+            pytest.skip(f"alembic head {head} != 068_i7_wave2_governed_memory_lifecycle")
 
     Session = sessionmaker(bind=engine)
     db = Session()

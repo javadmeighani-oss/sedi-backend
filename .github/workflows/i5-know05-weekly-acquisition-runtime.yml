@@ -79,7 +79,7 @@ jobs:
           assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
-      - name: Fresh upgrade to 067
+      - name: Fresh upgrade to 068
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -98,7 +98,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "068_i7_wave2_governed_memory_lifecycle"
-          print("FRESH_067=PASS")
+          print("FRESH_068=PASS")
           PY
       - name: KNOW-05 + KNOW-04 regression pytest
         run: |

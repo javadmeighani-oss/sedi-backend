@@ -258,6 +258,8 @@ def get_period_summary(
             "structured_summary_json": row.structured_summary_json,
             "period_start": row.period_start.isoformat() if row.period_start else None,
             "period_end": row.period_end.isoformat() if row.period_end else None,
+            "period_timezone": row.period_timezone,
+            "period_week_start": row.period_week_start,
             "finalized_at": row.finalized_at.isoformat() if row.finalized_at else None,
             "not_transcript": True,
         },

@@ -66,7 +66,7 @@ def test_no_066_migration_file():
     assert (versions / "068_i7_wave2_governed_memory_lifecycle.py").is_file()
 
 
-def test_alembic_head_is_067():
+def test_alembic_head_is_068():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 

@@ -98,7 +98,7 @@ jobs:
           echo "GATE=I5-KNOW-04" > "${{ runner.temp }}/know04_evidence/gate_id.txt"
           echo "COMMIT_SHA=${{ github.sha }}" > "${{ runner.temp }}/know04_evidence/commit.txt"
 
-      - name: Alembic single head is 067
+      - name: Alembic single head is 068
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -116,7 +116,7 @@ jobs:
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
 
-      - name: Fresh upgrade to 067
+      - name: Fresh upgrade to 068
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -159,9 +159,9 @@ jobs:
               assert c.execute(text(
                   "SELECT 1 FROM information_schema.views WHERE table_name='user_lifelong_timeline'"
               )).scalar() is None
-          print("FRESH_067=PASS")
+          print("FRESH_068=PASS")
           PY
-          echo "FRESH_067=PASS" > "${{ runner.temp }}/know04_evidence/fresh_067.txt"
+          echo "FRESH_068=PASS" > "${{ runner.temp }}/know04_evidence/fresh_068.txt"
 
       - name: Upgrade path 064 → 065
         run: |

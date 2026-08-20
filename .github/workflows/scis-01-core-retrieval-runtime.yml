@@ -71,19 +71,10 @@ jobs:
 
       - name: Deny Stage17 rag_embeddings / IVFFlat; allow only SCIS-01 vector extension
         run: |
-          if rg -n -i "create\s+table\s+.*rag_embeddings|USING ivfflat" backend/alembic/versions; then
-            echo "FORBIDDEN_STAGE17_OR_IVFFLAT"
-            exit 1
-          fi
-          # Non-SCIS migrations must not create vector extension
-          if rg -n -i "create\s+extension\s+.*vector" backend/alembic/versions --glob '!061_scis01_pgvector_kce_foundation.py'; then
-            echo "FORBIDDEN_VECTOR_OUTSIDE_SCIS01"
-            exit 1
-          fi
-          test -f backend/alembic/versions/061_scis01_pgvector_kce_foundation.py
-          echo "SCIS01_ALEMBIC_VECTOR_ALLOWLIST=PASS"
+          set -euo pipefail
+          python backend/scripts/ci_alembic_stage17_deny_guard.py --versions-dir backend/alembic/versions
 
-      - name: Alembic single head is 067 (SCIS-01 + KNOW chain)
+      - name: Alembic single head is 068 (SCIS-01 + KNOW + I7 chain)
         run: |
           python - <<'PY'
           from alembic.config import Config
