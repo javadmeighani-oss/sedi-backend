@@ -97,22 +97,15 @@ def _get_quiet_hours_from_facts(db: Session, user_id: int) -> QuietHours:
 
 
 def _get_daily_memory_summary_text(db: Session, user_id: int) -> Optional[str]:
-    """Latest DailyMemorySummary by created_at; return summary text or None."""
+    """Latest canonical UserPeriodSummary DAILY narrative; legacy DMS is non-canonical."""
     try:
-        models = _get_models()
-        DailyMemorySummary = getattr(models, "DailyMemorySummary", None)
-        if DailyMemorySummary is None:
-            return None
-        row = (
-            db.query(DailyMemorySummary)
-            .filter(DailyMemorySummary.user_id == user_id)
-            .order_by(DailyMemorySummary.created_at.desc())
-            .first()
-        )
-        if row and getattr(row, "summary", None) and str(row.summary).strip():
-            return str(row.summary).strip()
+        from backend.app.services.i7.hierarchy import get_canonical_daily
+
+        row = get_canonical_daily(db, user_id)
+        if row and getattr(row, "narrative_summary", None) and str(row.narrative_summary).strip():
+            return str(row.narrative_summary).strip()
     except Exception as e:
-        logger.debug("%s DailyMemorySummary lookup failed: %s", _LOG_PREFIX, e)
+        logger.debug("%s UserPeriodSummary DAILY lookup failed: %s", _LOG_PREFIX, e)
     return None
 
 

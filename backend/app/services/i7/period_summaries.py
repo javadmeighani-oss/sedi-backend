@@ -76,53 +76,19 @@ def rebuild_summary(
     now: Optional[datetime] = None,
     commit: bool = True,
 ) -> models.UserPeriodSummary:
-    require_permission(db, user_id, PERM_READ)
-    start, end = period_bounds(summary_type, now=now)
-    facts = list_facts(db, user_id)
-    payload = {
-        "authority": "I6_FACTS_ARE_SOT",
-        "summary_is_compression_only": True,
-        "generator_version": GENERATOR_VERSION,
-        "not_diagnosis": True,
-        "fact_count": len(facts),
-        "keys": sorted(f"{f.domain}.{f.key}" for f in facts),
-    }
-    blob = json.dumps(payload, sort_keys=True)
-    prior = (
-        db.query(models.UserPeriodSummary)
-        .filter(
-            models.UserPeriodSummary.user_id == user_id,
-            models.UserPeriodSummary.summary_type == summary_type,
-            models.UserPeriodSummary.period_start == start,
+    """Wave-2: build from RAW/lower finalized summaries using user-local timezone."""
+    from backend.app.services.i7.hierarchy import (
+        build_daily_from_raw,
+        build_higher_from_lower,
+    )
+
+    if summary_type == "DAILY":
+        return build_daily_from_raw(db, user_id, now=now, finalize=True, commit=commit)
+    if summary_type in ("WEEKLY", "MONTHLY", "YEARLY"):
+        return build_higher_from_lower(
+            db, user_id, summary_type, now=now, finalize=True, commit=commit
         )
-        .order_by(models.UserPeriodSummary.version.desc())
-        .first()
-    )
-    if prior is not None and prior.status == "active" and prior.structured_summary_json == blob:
-        return prior
-    version = 1 if prior is None else int(prior.version) + 1
-    if prior is not None and prior.status == "active":
-        prior.status = "superseded"
-        prior.superseded_at = datetime.now(timezone.utc)
-    row = models.UserPeriodSummary(
-        user_id=user_id,
-        summary_type=summary_type,
-        period_start=start,
-        period_end=end,
-        version=version,
-        structured_summary_json=blob,
-        narrative_summary=f"{summary_type} compression of {len(facts)} I6 facts; not source of truth.",
-        evidence_range=json.dumps({"start": start.isoformat(), "end": end.isoformat()}),
-        generated_at=datetime.now(timezone.utc),
-        status="active",
-    )
-    db.add(row)
-    if commit:
-        db.commit()
-    else:
-        db.flush()
-    db.refresh(row)
-    return row
+    raise PeriodSummaryError("INVALID_SUMMARY_TYPE")
 
 
 def invalidate_summaries_for_user(

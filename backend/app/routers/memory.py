@@ -136,13 +136,9 @@ def get_chat_history(
     tz_name = resolve_validated_user_timezone(db, auth_user.id)
     now_utc = datetime.now(timezone.utc)
 
-    rows = (
-        db.query(models.Memory)
-        .filter(models.Memory.user_id == auth_user.id)
-        .order_by(models.Memory.created_at.desc())
-        .limit(_HISTORY_FETCH_CAP)
-        .all()
-    )
+    from backend.app.services.i7.retention import query_eligible_raw
+
+    rows = query_eligible_raw(db, auth_user.id, now=now_utc, limit=_HISTORY_FETCH_CAP)
 
     rows_asc = list(reversed(rows))
     buckets = defaultdict(list)
@@ -182,22 +178,28 @@ def save_memory(
     db: Session = Depends(get_db),
 ):
     """
-    Save daily memory summary for the authenticated user.
-    Requires Bearer JWT. user_id is derived from the token only.
+    Retire new product writes to legacy DailyMemorySummary.
+    Canonical daily owner is UserPeriodSummary DAILY (I7-DEC-06).
     """
-    memory_summary = models.DailyMemorySummary(
-        user_id=auth_user.id,
-        summary=body.summary or "",
-        mood=body.mood,
-        context=body.context,
-        last_interaction=datetime.utcnow(),
-        created_at=datetime.utcnow(),
-    )
-    db.add(memory_summary)
-    db.commit()
-    db.refresh(memory_summary)
+    from backend.app.services.i7.hierarchy import build_daily_from_raw
 
-    return APIResponse(ok=True, data={"memory_id": memory_summary.id})
+    try:
+        row = build_daily_from_raw(db, auth_user.id, finalize=False, commit=True)
+    except Exception as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    # Optional narrative overlay when client still posts a summary string
+    if body.summary:
+        row.narrative_summary = body.summary
+        db.commit()
+        db.refresh(row)
+    return APIResponse(
+        ok=True,
+        data={
+            "memory_id": row.id,
+            "canonical_owner": "UserPeriodSummary.DAILY",
+            "legacy_dms_write": False,
+        },
+    )
 
 
 @router.get("/latest", response_model=APIResponse)
@@ -206,25 +208,150 @@ def get_latest_memory(
     _: None = Depends(_reject_legacy_user_id_query),
     db: Session = Depends(get_db),
 ):
-    """
-    Return the latest daily memory summary for the authenticated user.
-    Requires Bearer JWT. user_id is derived from the token only.
-    """
-    record = (
-        db.query(models.DailyMemorySummary)
-        .filter(models.DailyMemorySummary.user_id == auth_user.id)
-        .order_by(models.DailyMemorySummary.created_at.desc())
-        .first()
-    )
+    """Return the latest canonical UPS DAILY summary for the authenticated user."""
+    from backend.app.services.i7.hierarchy import get_canonical_daily
 
+    record = get_canonical_daily(db, auth_user.id)
     if not record:
         return APIResponse(ok=False, error=ErrorInfo(code="NO_MEMORY", message="No memory record found."))
 
     data = {
-        "summary": record.summary,
-        "mood": record.mood,
-        "context": record.context,
-        "last_interaction": record.last_interaction.isoformat() if record.last_interaction else None,
+        "summary": record.narrative_summary,
+        "mood": None,
+        "context": record.structured_summary_json,
+        "last_interaction": record.generated_at.isoformat() if record.generated_at else None,
+        "canonical_owner": "UserPeriodSummary.DAILY",
+        "period_start": record.period_start.isoformat() if record.period_start else None,
+        "finalized_at": record.finalized_at.isoformat() if record.finalized_at else None,
     }
-
     return APIResponse(ok=True, data=data)
+
+
+@router.get("/period-summary", response_model=APIResponse)
+def get_period_summary(
+    auth_user: models.User = Depends(get_current_user),
+    summary_type: str = Query("DAILY"),
+    db: Session = Depends(get_db),
+):
+    """JWT-scoped historical period summary recall (summary != transcript)."""
+    st = (summary_type or "DAILY").upper()
+    if st not in ("DAILY", "WEEKLY", "MONTHLY", "YEARLY"):
+        raise HTTPException(status_code=422, detail="Invalid summary_type")
+    row = (
+        db.query(models.UserPeriodSummary)
+        .filter(
+            models.UserPeriodSummary.user_id == auth_user.id,
+            models.UserPeriodSummary.summary_type == st,
+            models.UserPeriodSummary.status == "active",
+        )
+        .order_by(models.UserPeriodSummary.period_start.desc())
+        .first()
+    )
+    if row is None:
+        return APIResponse(ok=False, error=ErrorInfo(code="NO_SUMMARY", message="No period summary found."))
+    return APIResponse(
+        ok=True,
+        data={
+            "id": row.id,
+            "summary_type": row.summary_type,
+            "narrative_summary": row.narrative_summary,
+            "structured_summary_json": row.structured_summary_json,
+            "period_start": row.period_start.isoformat() if row.period_start else None,
+            "period_end": row.period_end.isoformat() if row.period_end else None,
+            "finalized_at": row.finalized_at.isoformat() if row.finalized_at else None,
+            "not_transcript": True,
+        },
+    )
+
+
+@router.get("/lifelong", response_model=APIResponse)
+def get_lifelong_recall(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row = (
+        db.query(models.UserLifelongProfile)
+        .filter(
+            models.UserLifelongProfile.user_id == auth_user.id,
+            models.UserLifelongProfile.status == "active",
+        )
+        .order_by(models.UserLifelongProfile.version.desc())
+        .first()
+    )
+    if row is None:
+        return APIResponse(ok=False, error=ErrorInfo(code="NO_LIFELONG", message="No lifelong profile found."))
+    return APIResponse(
+        ok=True,
+        data={
+            "id": row.id,
+            "version": row.version,
+            "narrative_compact": row.narrative_compact,
+            "structured_profile_json": row.structured_profile_json,
+            "not_transcript": True,
+        },
+    )
+
+
+@router.post("/export", response_model=APIResponse)
+def create_memory_export(
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.i7.export_jobs import create_export_job
+
+    job = create_export_job(db, auth_user.id, actor_user_id=auth_user.id, commit=True)
+    return APIResponse(ok=True, data={"job_id": job.id, "status": job.status})
+
+
+@router.post("/forget", response_model=APIResponse)
+def forget_memory_turn(
+    memory_id: int = Query(...),
+    auth_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Ownership-scoped delete/forget; purge when eligible, else explicit user forget."""
+    import json
+    from datetime import datetime, timezone
+
+    from backend.app.services.i6.consent_service import PERM_FORGET, require_permission
+    from backend.app.services.i7.purge import purge_expired_raw_turn
+
+    require_permission(db, auth_user.id, PERM_FORGET)
+    owned = (
+        db.query(models.Memory)
+        .filter(models.Memory.id == memory_id, models.Memory.user_id == auth_user.id)
+        .first()
+    )
+    result = purge_expired_raw_turn(db, user_id=auth_user.id, memory_id=memory_id, commit=True)
+    if result.purged:
+        return APIResponse(ok=True, data={"forgotten": True, "reason": result.reason})
+    if owned is None:
+        raise HTTPException(status_code=404, detail="Memory not found for user")
+    if result.reason in (
+        "NOT_EXPIRED",
+        "DAILY_NOT_FINALIZED",
+        "PROVENANCE_MISSING",
+        "NOT_DURABLE_GOVERNED",
+    ):
+        key = f"purge:user:{auth_user.id}:memory:{memory_id}"
+        existing = (
+            db.query(models.UserMemoryPurgeReceipt)
+            .filter(models.UserMemoryPurgeReceipt.purge_key == key)
+            .first()
+        )
+        if existing is None:
+            receipt = models.UserMemoryPurgeReceipt(
+                user_id=auth_user.id,
+                memory_id=memory_id,
+                local_period_date=owned.local_period_date,
+                purge_key=key,
+                purged_at=datetime.now(timezone.utc),
+                reason="USER_FORGET",
+                integrity_sha256=None,
+                provenance_json=owned.provenance_json or json.dumps({"reason": "USER_FORGET"}),
+            )
+            db.delete(owned)
+            db.add(receipt)
+            db.commit()
+        return APIResponse(ok=True, data={"forgotten": True, "reason": "USER_FORGET"})
+    raise HTTPException(status_code=409, detail=result.reason)

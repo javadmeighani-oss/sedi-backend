@@ -92,6 +92,14 @@ class Memory(Base):
     language = Column(String, default="en")
     created_at = Column(DateTime, default=datetime.utcnow)
     retain_until = Column(DateTime(timezone=True), nullable=True, default=_default_memory_retain_until)
+    # I7 Wave-2 governed raw fields (additive; legacy rows remain non-durable)
+    consent_id = Column(Integer, ForeignKey("user_consents.id", ondelete="SET NULL"), nullable=True)
+    provenance_json = Column(Text, nullable=True)
+    idempotency_key = Column(String(128), nullable=True)
+    period_timezone = Column(String(64), nullable=True)
+    period_week_start = Column(Integer, nullable=True)
+    local_period_date = Column(Date, nullable=True)
+    durable_write = Column(Boolean, nullable=False, default=False, server_default="false")
 
 
 # -------------------- HealthData --------------------
@@ -2421,6 +2429,63 @@ class UserPeriodSummary(Base):
     status = Column(String(32), nullable=False, default="active", server_default="active")
     superseded_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    # I7 Wave-2 finalization / lineage / period identity
+    finalized_at = Column(DateTime(timezone=True), nullable=True)
+    source_complete = Column(Boolean, nullable=False, default=False, server_default="false")
+    integrity_sha256 = Column(String(64), nullable=True)
+    lineage_json = Column(Text, nullable=True)
+    period_timezone = Column(String(64), nullable=True)
+    period_week_start = Column(Integer, nullable=True)
+    consent_id = Column(Integer, ForeignKey("user_consents.id", ondelete="SET NULL"), nullable=True)
+    provenance_json = Column(Text, nullable=True)
+
+
+class UserMemoryPurgeReceipt(Base):
+    """Independent I7 purge receipt; repeated purge is idempotent by purge_key."""
+
+    __tablename__ = "user_memory_purge_receipts"
+    __table_args__ = (
+        UniqueConstraint("purge_key", name="uq_umpr_purge_key"),
+        Index("ix_umpr_user_id", "user_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    memory_id = Column(Integer, nullable=True)
+    local_period_date = Column(Date, nullable=True)
+    purge_key = Column(String(160), nullable=False)
+    purged_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    reason = Column(String(64), nullable=False)
+    integrity_sha256 = Column(String(64), nullable=True)
+    daily_summary_id = Column(
+        Integer,
+        ForeignKey("user_period_summaries.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    provenance_json = Column(Text, nullable=True)
+
+
+class UserI7DerivedPattern(Base):
+    """I7 patterns derived from I9 vitals with explicit source provenance."""
+
+    __tablename__ = "user_i7_derived_patterns"
+    __table_args__ = (
+        CheckConstraint("source_system IN ('I9')", name="ck_uidp_source_system"),
+        CheckConstraint("status IN ('active', 'superseded', 'invalidated')", name="ck_uidp_status"),
+        Index("ix_uidp_user_status", "user_id", "status"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    pattern_key = Column(String(128), nullable=False)
+    pattern_json = Column(Text, nullable=False)
+    source_system = Column(String(32), nullable=False)
+    source_refs_json = Column(Text, nullable=False)
+    provenance_json = Column(Text, nullable=False)
+    consent_id = Column(Integer, ForeignKey("user_consents.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(32), nullable=False, default="active", server_default="active")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    superseded_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class UserLifelongProfile(Base):

@@ -107,31 +107,28 @@ class LocalRAGProvider:
                 ts = f.updated_at or f.created_at
                 src = _make_source("user_memory_fact", f.id, f"{domain}/{f.key}", ts)
                 chunks.append((text, src))
-        # 3) DailyMemorySummary (last 7 days)
-        cutoff = datetime.utcnow() - timedelta(days=7)
+        # 3) Canonical UPS DAILY (legacy DMS is non-canonical)
         for r in (
-            self.db.query(models.DailyMemorySummary)
+            self.db.query(models.UserPeriodSummary)
             .filter(
-                models.DailyMemorySummary.user_id == user_id,
-                models.DailyMemorySummary.created_at >= cutoff,
+                models.UserPeriodSummary.user_id == user_id,
+                models.UserPeriodSummary.summary_type == "DAILY",
+                models.UserPeriodSummary.status == "active",
+                models.UserPeriodSummary.finalized_at.isnot(None),
             )
-            .order_by(models.DailyMemorySummary.created_at.desc())
+            .order_by(models.UserPeriodSummary.period_start.desc())
             .limit(7)
             .all()
         ):
-            if r.summary and r.summary.strip():
-                text = r.summary.strip()[:200]
-                label = f"day_{r.created_at.strftime('%Y-%m-%d')}" if r.created_at else f"id_{r.id}"
-                src = _make_source("daily_summary", r.id, label, r.created_at)
+            text = (r.narrative_summary or "").strip()[:200]
+            if text:
+                label = f"ups_daily_{r.id}"
+                src = _make_source("ups_daily", r.id, label, r.generated_at)
                 chunks.append((text, src))
-        # 4) Memory turns (last 10, user messages only)
-        for m in (
-            self.db.query(models.Memory)
-            .filter(models.Memory.user_id == user_id)
-            .order_by(models.Memory.created_at.desc())
-            .limit(10)
-            .all()
-        ):
+        # 4) Eligible governed Memory turns only (retention fail-closed)
+        from backend.app.services.i7.retention import query_eligible_raw
+
+        for m in query_eligible_raw(self.db, user_id, limit=10):
             if m.user_message and m.user_message.strip():
                 text = m.user_message.strip()[:180]
                 src = _make_source("memory_turn", m.id, "turn", m.created_at)
@@ -153,7 +150,7 @@ class LocalRAGProvider:
                     s = str(val).strip()[:180]
                     src = _make_source("user_profile_knowledge", profile.id, label, profile.updated_at)
                     chunks.append((s, src))
-        # 6) Accepted candidates (optional)
+        # 6) Accepted candidates only (exclude unaccepted)
         for c in (
             self.db.query(models.UserFactCandidate)
             .filter(
@@ -171,6 +168,21 @@ class LocalRAGProvider:
                 except json.JSONDecodeError:
                     text = f"{c.domain}/{c.key}: (value)"
                 src = _make_source("candidate_fact", c.id, f"{c.domain}/{c.key}", c.created_at)
+                chunks.append((text, src))
+        # 7) Active I9-derived I7 patterns (explicit provenance)
+        if hasattr(models, "UserI7DerivedPattern"):
+            for p in (
+                self.db.query(models.UserI7DerivedPattern)
+                .filter(
+                    models.UserI7DerivedPattern.user_id == user_id,
+                    models.UserI7DerivedPattern.status == "active",
+                )
+                .order_by(models.UserI7DerivedPattern.created_at.desc())
+                .limit(5)
+                .all()
+            ):
+                text = f"pattern:{p.pattern_key}:{str(p.pattern_json)[:120]}"
+                src = _make_source("i7_i9_pattern", p.id, p.pattern_key, p.created_at)
                 chunks.append((text, src))
 
         # Score and rank

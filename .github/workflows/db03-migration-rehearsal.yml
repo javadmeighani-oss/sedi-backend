@@ -89,7 +89,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["064_i5_know03_studies_effects_recs"], heads
+          assert heads == ["068_i7_wave2_governed_memory_lifecycle"], heads
           PY
 
       - name: Fresh upgrade to head
@@ -111,7 +111,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "064_i5_know03_studies_effects_recs"
+              assert head == "068_i7_wave2_governed_memory_lifecycle"
           PY
 
       - name: 056 synthetic baseline then upgrade head
@@ -137,7 +137,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD_AFTER_056", head)
-              assert head == "061_scis01_pgvector_kce_foundation"
+              assert head == "068_i7_wave2_governed_memory_lifecycle"
               pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
               ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
               print("PM_ROWS", pm, "UPS_ROWS", ups)
@@ -171,6 +171,14 @@ jobs:
           print("SCHEMA_RESET_FOR_ORM_TESTS=OK")
           PY
 
+      - name: I7 Wave-2 067↔068 structural roundtrip
+        run: |
+          python -B -m pytest backend/tests/test_db03_migration_rehearsal.py::test_i7_wave2_067_068_roundtrip -q --tb=short
+
+      - name: Focused I7 Wave-2 unit tests
+        run: |
+          python -B -m pytest backend/tests/test_i7_wave2_governed_memory_lifecycle.py -q --tb=short
+
       - name: Focused DB-03 pytest
         run: |
           mkdir -p "${{ runner.temp }}/db03_evidence"
@@ -184,7 +192,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "ALEMBIC_HEAD=064_i5_know03_studies_effects_recs"
+            echo "ALEMBIC_HEAD=068_i7_wave2_governed_memory_lifecycle"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
             echo "RAG_EMBEDDINGS_INTRODUCED=NO"

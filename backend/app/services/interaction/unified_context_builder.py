@@ -86,16 +86,10 @@ def build_unified_context(
         pack.truncated_layers.append("recent_turns")
 
     try:
-        from backend.app import models as _models
-        from datetime import datetime as _dt
-        today = _dt.utcnow().date()
-        dms = (
-            db.query(_models.DailyMemorySummary)
-            .filter(_models.DailyMemorySummary.user_id == user_id)
-            .order_by(_models.DailyMemorySummary.id.desc())
-            .first()
-        )
-        summary = dms.summary if dms and dms.summary else ""
+        from backend.app.services.i7.hierarchy import get_canonical_daily
+
+        ups = get_canonical_daily(db, user_id)
+        summary = ups.narrative_summary if ups and ups.narrative_summary else ""
     except Exception:
         summary = ""
     if summary:

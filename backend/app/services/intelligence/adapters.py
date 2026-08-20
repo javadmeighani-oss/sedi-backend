@@ -612,18 +612,13 @@ class CurrentMemoryContextAdapter:
                 )
             )
         else:
-            from backend.app.models import DailyMemorySummary
+            from backend.app.services.i7.hierarchy import get_canonical_daily
 
-            dms = (
-                db.query(DailyMemorySummary)
-                .filter(DailyMemorySummary.user_id == authenticated_user_id)
-                .order_by(DailyMemorySummary.created_at.desc())
-                .first()
-            )
-            if dms is not None and getattr(dms, "summary", None):
-                summary = str(dms.summary).strip()[:150]
+            ups = get_canonical_daily(db, authenticated_user_id)
+            if ups is not None and getattr(ups, "narrative_summary", None):
+                summary = str(ups.narrative_summary).strip()[:150]
                 if summary:
-                    daily_observed = getattr(dms, "created_at", None)
+                    daily_observed = getattr(ups, "generated_at", None)
                     items.append(
                         _item(
                             canonical_key="memory.daily_summary",
@@ -632,7 +627,7 @@ class CurrentMemoryContextAdapter:
                             value=summary,
                             display_text=f"recent={summary}",
                             owner_user_id=authenticated_user_id,
-                            query_label="DailyMemorySummary.latest",
+                            query_label="UserPeriodSummary.DAILY.latest",
                             observed_at=daily_observed,
                             sensitivity="medium",
                         )

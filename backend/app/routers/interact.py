@@ -41,16 +41,19 @@ def introduce_user(
 ):
     """
     Introduce user with secret key.
-    If user_id provided, upgrade anonymous user to authenticated.
+    AUTH-LEGACY-01: existing-user secret_key mutation requires authentication;
+    unauthenticated callers may only create a new user.
     """
     user = None
-    
-    if user_id:
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            user.secret_key = secret_key
-            db.commit()
-    
+
+    if user_id is not None:
+        existing = db.query(User).filter(User.id == user_id).first()
+        if existing is not None:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required to introduce an existing user",
+            )
+
     if not user:
         new_user = User(
             secret_key=secret_key,
@@ -60,10 +63,10 @@ def introduce_user(
         db.commit()
         db.refresh(new_user)
         user = new_user
-    
+
     brain = ConversationBrain(db, language=lang)
     greeting = brain.get_greeting(user.id)
-    
+
     return InteractionResponse(
         message=greeting,
         language=lang,
@@ -691,14 +694,10 @@ def get_user_history(
             detail="user_id does not match authenticated user",
         )
 
-    memories = (
-        db.query(Memory)
-        .filter(Memory.user_id == user.id)
-        .order_by(Memory.created_at.desc())
-        .limit(limit)
-        .all()
-    )
-    
+    from backend.app.services.i7.retention import query_eligible_raw
+
+    memories = query_eligible_raw(db, user.id, limit=limit)
+
     return {
         "user_id": user.id,
         "messages": [

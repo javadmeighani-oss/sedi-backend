@@ -33,16 +33,11 @@ class ConversationMemory:
         return None
     
     def get_recent_messages(self, user_id: int, limit: int = 10) -> List[Memory]:
-        """Get recent conversation messages"""
-        memories = (
-            self.db.query(Memory)
-            .filter(Memory.user_id == user_id)
-            .order_by(Memory.created_at.desc())
-            .limit(limit)
-            .all()
-        )
-        # TEMP DEBUG: Log memory load
-        print(f"[MEMORY DEBUG] Loaded {len(memories)} recent messages for user_id={user_id}")
+        """Get recent eligible governed conversation messages (retention-aware)."""
+        from backend.app.services.i7.retention import query_eligible_raw
+
+        memories = query_eligible_raw(self.db, user_id, limit=limit)
+        print(f"[MEMORY DEBUG] Loaded {len(memories)} recent eligible messages for user_id={user_id}")
         return memories
     
     def extract_memory_facts(self, user_id: int) -> Dict[str, any]:
@@ -378,30 +373,41 @@ class ConversationMemory:
         user_id: int,
         user_message: str,
         sedi_response: str,
-        language: str = "en"
-    ) -> Memory:
-        """Save a conversation exchange to memory"""
-        # TEMP DEBUG: Log before save
+        language: str = "en",
+        *,
+        actor_user_id: Optional[int] = None,
+        idempotency_key: Optional[str] = None,
+    ) -> Optional[Memory]:
+        """
+        Persist a conversation exchange only when I7 durable raw governance passes.
+        Without consent: no durable raw write (transient processing may continue upstream).
+        """
+        from backend.app.services.i7.governed_raw import try_durable_raw_write
+
         memory_count_before = self.get_conversation_count(user_id)
         print(f"[MEMORY DEBUG] Saving conversation - user_id={user_id}, count_before={memory_count_before}")
         print(f"[MEMORY DEBUG] Message snippet: {user_message[:50]}...")
-        
-        memory = Memory(
+
+        result = try_durable_raw_write(
+            self.db,
             user_id=user_id,
             user_message=user_message,
             sedi_response=sedi_response,
             language=language,
-            created_at=datetime.utcnow()
+            actor_user_id=actor_user_id if actor_user_id is not None else user_id,
+            idempotency_key=idempotency_key,
+            commit=True,
         )
-        self.db.add(memory)
-        self.db.commit()
-        self.db.refresh(memory)
-        
-        # TEMP DEBUG: Log after save
+        if not result.durable:
+            print(f"[MEMORY DEBUG] Durable raw write skipped reason={result.reason}")
+            return None
+
         memory_count_after = self.get_conversation_count(user_id)
-        print(f"[MEMORY DEBUG] Memory saved - user_id={user_id}, count_after={memory_count_after}, memory_id={memory.id}")
-        
-        return memory
+        print(
+            f"[MEMORY DEBUG] Memory saved - user_id={user_id}, count_after={memory_count_after}, "
+            f"memory_id={result.memory.id if result.memory else None}, replayed={result.replayed}"
+        )
+        return result.memory
     
     def get_conversation_count(self, user_id: int) -> int:
         """Get total number of conversation exchanges"""
