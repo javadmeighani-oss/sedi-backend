@@ -1,4 +1,8 @@
-"""daily_memory_summaries → user_period_summaries DAILY version=1 (§270.R)."""
+"""daily_memory_summaries → user_period_summaries DAILY version=1 (§270.R).
+
+Uses explicit Core inserts for the 058-era column set so Wave-2 ORM columns
+do not break mid-chain Alembic backfill (059) before migration 068 exists.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +10,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
 from backend.app import models
@@ -28,6 +33,7 @@ def backfill_daily_memory_summaries(db: Session) -> PeriodBackfillCounts:
     counts = PeriodBackfillCounts()
     rows = db.query(models.DailyMemorySummary).order_by(models.DailyMemorySummary.id).all()
     counts.source_rows_expected = len(rows)
+    ups = models.UserPeriodSummary.__table__
 
     for row in rows:
         try:
@@ -40,16 +46,14 @@ def backfill_daily_memory_summaries(db: Session) -> PeriodBackfillCounts:
                 )
             period_end = period_start.replace(hour=23, minute=59, second=59)
 
-            existing = (
-                db.query(models.UserPeriodSummary)
-                .filter(
-                    models.UserPeriodSummary.user_id == row.user_id,
-                    models.UserPeriodSummary.summary_type == "DAILY",
-                    models.UserPeriodSummary.period_start == period_start,
-                    models.UserPeriodSummary.version == 1,
+            existing = db.execute(
+                select(ups.c.id).where(
+                    ups.c.user_id == row.user_id,
+                    ups.c.summary_type == "DAILY",
+                    ups.c.period_start == period_start,
+                    ups.c.version == 1,
                 )
-                .first()
-            )
+            ).first()
             if existing:
                 counts.conflict_rows += 1
                 continue
@@ -60,8 +64,10 @@ def backfill_daily_memory_summaries(db: Session) -> PeriodBackfillCounts:
                 "context": row.context,
                 "last_interaction": row.last_interaction.isoformat() if row.last_interaction else None,
             }
-            db.add(
-                models.UserPeriodSummary(
+            generated_at = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+            # Explicit 058-compatible columns only (no Wave-2 governance fields).
+            db.execute(
+                insert(ups).values(
                     user_id=row.user_id,
                     summary_type="DAILY",
                     period_start=period_start,
@@ -70,7 +76,7 @@ def backfill_daily_memory_summaries(db: Session) -> PeriodBackfillCounts:
                     structured_summary_json=json.dumps(structured),
                     narrative_summary=row.summary,
                     evidence_range=json.dumps({"source": "daily_memory_summaries", "id": row.id}),
-                    generated_at=created if created.tzinfo else created.replace(tzinfo=timezone.utc),
+                    generated_at=generated_at,
                     status="active",
                 )
             )

@@ -161,7 +161,7 @@ def test_pg_v1_reference_catalog_rights_and_placeholders_insufficient():
     engine = create_engine(_db_url())
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "067_i7_lifelong_memory_foundation", head
+        assert head == "068_i7_wave2_governed_memory_lifecycle", head
 
     Session = sessionmaker(bind=engine)
     db = Session()

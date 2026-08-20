@@ -63,6 +63,7 @@ def test_no_066_migration_file():
     versions = Path(__file__).resolve().parents[1] / "alembic" / "versions"
     assert list(versions.glob("066*.py")) == []
     assert (versions / "067_i7_lifelong_memory_foundation.py").is_file()
+    assert (versions / "068_i7_wave2_governed_memory_lifecycle.py").is_file()
 
 
 def test_alembic_head_is_067():
@@ -73,7 +74,9 @@ def test_alembic_head_is_067():
     cfg = Config(str(root / "alembic.ini"))
     cfg.set_main_option("script_location", str(root / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["067_i7_lifelong_memory_foundation"]
+    assert script.get_heads() == ["068_i7_wave2_governed_memory_lifecycle"]
+    rev = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
+    assert rev.down_revision == "067_i7_lifelong_memory_foundation"
     rev = script.get_revision("067_i7_lifelong_memory_foundation")
     assert rev.down_revision == "065_i5_know04_connectors_change_intelligence"
 

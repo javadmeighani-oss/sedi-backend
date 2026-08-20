@@ -52,7 +52,7 @@ def _db_url():
 def _require_065(engine) -> None:
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "067_i7_lifelong_memory_foundation", head
+        assert head == "068_i7_wave2_governed_memory_lifecycle", head
 
 
 def _guideline_item(gap_key: str = "guideline-gap") -> CoveragePrioritizationItem:

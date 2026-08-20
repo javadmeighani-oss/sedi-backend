@@ -9951,7 +9951,7 @@
     },
     "/interact/introduce": {
       "post": {
-        "description": "Introduce user with secret key.\nIf user_id provided, upgrade anonymous user to authenticated.",
+        "description": "Introduce user with secret key.\nAUTH-LEGACY-01: existing-user secret_key mutation requires authentication;\nunauthenticated callers may only create a new user.",
         "operationId": "introduce_user_interact_introduce_post",
         "parameters": [
           {
@@ -11456,6 +11456,80 @@
         ]
       }
     },
+    "/memory/export": {
+      "post": {
+        "operationId": "create_memory_export_memory_export_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Memory Export",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/forget": {
+      "post": {
+        "description": "Ownership-scoped delete/forget; purge when eligible, else explicit user forget.",
+        "operationId": "forget_memory_turn_memory_forget_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "memory_id",
+            "required": true,
+            "schema": {
+              "title": "Memory Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Forget Memory Turn",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
     "/memory/history": {
       "get": {
         "description": "Fetch chat history from Memory table, grouped by day/week/month/year.\nRequires Bearer JWT; user identity is derived from the token only.",
@@ -11542,7 +11616,7 @@
     },
     "/memory/latest": {
       "get": {
-        "description": "Return the latest daily memory summary for the authenticated user.\nRequires Bearer JWT. user_id is derived from the token only.",
+        "description": "Return the latest canonical UPS DAILY summary for the authenticated user.",
         "operationId": "get_latest_memory_memory_latest_get",
         "responses": {
           "200": {
@@ -11567,9 +11641,84 @@
         ]
       }
     },
+    "/memory/lifelong": {
+      "get": {
+        "operationId": "get_lifelong_recall_memory_lifelong_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Lifelong Recall",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
+    "/memory/period-summary": {
+      "get": {
+        "description": "JWT-scoped historical period summary recall (summary != transcript).",
+        "operationId": "get_period_summary_memory_period_summary_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "summary_type",
+            "required": false,
+            "schema": {
+              "default": "DAILY",
+              "title": "Summary Type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Period Summary",
+        "tags": [
+          "Memory"
+        ]
+      }
+    },
     "/memory/save": {
       "post": {
-        "description": "Save daily memory summary for the authenticated user.\nRequires Bearer JWT. user_id is derived from the token only.",
+        "description": "Retire new product writes to legacy DailyMemorySummary.\nCanonical daily owner is UserPeriodSummary DAILY (I7-DEC-06).",
         "operationId": "save_memory_memory_save_post",
         "requestBody": {
           "content": {

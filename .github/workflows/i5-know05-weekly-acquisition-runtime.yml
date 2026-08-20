@@ -74,7 +74,9 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["067_i7_lifelong_memory_foundation"], heads
+          assert heads == ["068_i7_wave2_governed_memory_lifecycle"], heads
+          rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
+          assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           print("ALEMBIC_SINGLE_HEAD=PASS")
           PY
       - name: Fresh upgrade to 067
@@ -95,7 +97,7 @@ jobs:
           cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
           command.upgrade(cfg, "head")
           with eng.connect() as c:
-              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "067_i7_lifelong_memory_foundation"
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "068_i7_wave2_governed_memory_lifecycle"
           print("FRESH_067=PASS")
           PY
       - name: KNOW-05 + KNOW-04 regression pytest

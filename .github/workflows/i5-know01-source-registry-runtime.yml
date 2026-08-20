@@ -136,7 +136,9 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["067_i7_lifelong_memory_foundation"], heads
+          assert heads == ["068_i7_wave2_governed_memory_lifecycle"], heads
+          rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
+          assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           rev = script.get_revision("067_i7_lifelong_memory_foundation")
           assert rev.down_revision == "065_i5_know04_connectors_change_intelligence"
           rev065 = script.get_revision("065_i5_know04_connectors_change_intelligence")
@@ -163,7 +165,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "067_i7_lifelong_memory_foundation", head
+              assert head == "068_i7_wave2_governed_memory_lifecycle", head
               for t in (
                   "i5_source_registry_extensions",
                   "i5_source_registry_roles",
@@ -232,7 +234,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "067_i7_lifelong_memory_foundation", head
+              assert head == "068_i7_wave2_governed_memory_lifecycle", head
           print("RESTORE_FRESH_065_BEFORE_PYTEST=PASS")
           PY
 
@@ -306,7 +308,7 @@ jobs:
           {
             echo "GATE=I5-KNOW-01-CI-FALSE-GREEN-INTEGRITY-REMEDIATION"
             echo "COMMIT_SHA=${{ github.sha }}"
-            echo "ALEMBIC_HEAD=067_i7_lifelong_memory_foundation"
+            echo "ALEMBIC_HEAD=068_i7_wave2_governed_memory_lifecycle"
             echo "PRODUCTION_MIGRATION_RUN=NO"
             echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
             echo "PRODUCTION_RAG_ACTIVATED=NO"
