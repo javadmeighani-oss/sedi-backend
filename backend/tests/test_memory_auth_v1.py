@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from backend.app.core.security import create_access_token
 from backend.app.models import DailyMemorySummary, Memory, User
@@ -19,6 +19,10 @@ def _create_user(db, name: str) -> User:
     db.commit()
     db.refresh(u)
     return u
+
+
+def _retain_until():
+    return datetime.now(timezone.utc) + timedelta(days=30)
 
 
 def _save_body(**overrides) -> dict:
@@ -50,7 +54,11 @@ def test_memory_history_requires_auth(client, db):
 
 
 def test_memory_save_works_without_user_id_in_body(client, db):
+    from backend.app.services.i6.consent_service import grant_memory_consent
+    from backend.app.models import UserPeriodSummary
+
     u = _create_user(db, "MemSaveOwner")
+    grant_memory_consent(db, u.id, commit=True)
     response = client.post(
         "/memory/save",
         json=_save_body(),
@@ -60,10 +68,16 @@ def test_memory_save_works_without_user_id_in_body(client, db):
     data = response.json()
     assert data.get("ok") is True
     assert data.get("data", {}).get("memory_id") is not None
+    assert data.get("data", {}).get("legacy_dms_write") is False
 
-    row = db.query(DailyMemorySummary).filter(DailyMemorySummary.user_id == u.id).first()
+    row = (
+        db.query(UserPeriodSummary)
+        .filter(UserPeriodSummary.user_id == u.id, UserPeriodSummary.summary_type == "DAILY")
+        .order_by(UserPeriodSummary.id.desc())
+        .first()
+    )
     assert row is not None
-    assert row.summary == _save_body()["summary"]
+    assert _save_body()["summary"] in (row.narrative_summary or "")
 
 
 def test_memory_save_rejects_legacy_user_id_in_body(client, db):
@@ -77,15 +91,23 @@ def test_memory_save_rejects_legacy_user_id_in_body(client, db):
 
 
 def test_memory_latest_works_without_user_id_query(client, db):
+    from backend.app.models import UserPeriodSummary
+
     u = _create_user(db, "MemLatestOwner")
+    now = datetime.now(timezone.utc)
     db.add(
-        DailyMemorySummary(
+        UserPeriodSummary(
             user_id=u.id,
-            summary="Latest summary",
-            mood="happy",
-            context="good day",
-            last_interaction=datetime.utcnow(),
-            created_at=datetime.utcnow(),
+            summary_type="DAILY",
+            period_start=now.replace(hour=0, minute=0, second=0, microsecond=0),
+            period_end=now.replace(hour=23, minute=59, second=59),
+            version=1,
+            structured_summary_json="{}",
+            narrative_summary="Latest summary",
+            evidence_range="{}",
+            generated_at=now,
+            status="active",
+            source_complete=False,
         )
     )
     db.commit()
@@ -95,7 +117,7 @@ def test_memory_latest_works_without_user_id_query(client, db):
     payload = response.json()
     assert payload.get("ok") is True
     assert payload.get("data", {}).get("summary") == "Latest summary"
-    assert payload.get("data", {}).get("mood") == "happy"
+    assert payload.get("data", {}).get("canonical_owner") == "UserPeriodSummary.DAILY"
 
 
 def test_memory_latest_rejects_legacy_user_id_query(client, db):
@@ -115,6 +137,8 @@ def test_memory_history_works_without_user_id_query(client, db):
             user_message="hello",
             sedi_response="hi",
             language="en",
+            durable_write=True,
+            retain_until=_retain_until(),
         )
     )
     db.commit()
@@ -170,6 +194,7 @@ def test_memory_history_cross_user_isolation(client, db):
             user_message="secret",
             sedi_response="hidden",
             language="en",
+            retain_until=_retain_until(),
         )
     )
     db.commit()

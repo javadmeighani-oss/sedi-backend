@@ -36,9 +36,13 @@ def is_raw_visible(row: models.Memory, *, now: Optional[datetime] = None) -> boo
 
 
 def eligible_raw_filter(query: Query, *, now: Optional[datetime] = None) -> Query:
+    """Retention fail-closed: retain_until must be set and in the future.
+
+    durable_write gates I7 derivation/source selection separately; visibility
+    uses retain_until so legacy rows with a retention bound remain readable.
+    """
     when = now or utcnow()
     return query.filter(
-        models.Memory.durable_write.is_(True),
         models.Memory.retain_until.isnot(None),
         models.Memory.retain_until > when,
     )
@@ -67,6 +71,7 @@ def query_eligible_raw_for_local_day(
     local_period_date,
     *,
     now: Optional[datetime] = None,
+    require_durable: bool = True,
 ) -> list[models.Memory]:
     q = (
         eligible_raw_filter(db.query(models.Memory), now=now)
@@ -76,4 +81,6 @@ def query_eligible_raw_for_local_day(
         )
         .order_by(models.Memory.created_at.asc())
     )
+    if require_durable:
+        q = q.filter(models.Memory.durable_write.is_(True))
     return list(q.all())

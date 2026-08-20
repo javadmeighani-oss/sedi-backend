@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from backend.app.core.security import create_access_token
 from backend.app.models import Memory, User
+
+
+def _retain_until():
+    return datetime.now(timezone.utc) + timedelta(days=30)
 
 
 def test_interact_history_requires_bearer_token(client, db):
@@ -41,6 +47,8 @@ def test_interact_history_returns_own_messages(client, db):
             user_message="hello",
             sedi_response="hi",
             language="en",
+            durable_write=True,
+            retain_until=_retain_until(),
         )
     )
     db.commit()
@@ -92,6 +100,8 @@ def test_memory_history_returns_own_groups(client, db):
             user_message="ping",
             sedi_response="pong",
             language="en",
+            durable_write=True,
+            retain_until=_retain_until(),
         )
     )
     db.commit()

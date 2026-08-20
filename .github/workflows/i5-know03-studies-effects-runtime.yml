@@ -87,7 +87,9 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["065_i5_know04_connectors_change_intelligence"], heads
+          assert heads == ["068_i7_wave2_governed_memory_lifecycle"], heads
+          rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
+          assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           rev = script.get_revision("065_i5_know04_connectors_change_intelligence")
           assert rev.down_revision == "064_i5_know03_studies_effects_recs"
           print("ALEMBIC_SINGLE_HEAD=PASS")

@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from backend.app import models
 from backend.app.services.gate4.policy_prefs_bridge import resolve_validated_user_timezone
 from backend.app.services.i6.consent_service import PERM_READ, require_permission, _active_consent
-from backend.app.services.i6.memory_writes import write_fact
 from backend.app.services.i7.lifelong_profile import rebuild_lifelong_profile
 from backend.app.services.i7.period_summaries import (
     PeriodSummaryError,
@@ -268,6 +267,8 @@ def reconcile_stable_fact_via_i6(
     commit: bool = True,
 ) -> models.UserMemoryFact:
     """I7 must not insert UserMemoryFact directly — always I6 governance."""
+    from backend.app.services.i6.memory_writes import write_fact
+
     return write_fact(
         db,
         user_id,

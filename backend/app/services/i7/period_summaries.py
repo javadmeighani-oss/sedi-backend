@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.services.i6.consent_service import PERM_READ, require_permission
-from backend.app.services.i6.memory_writes import list_facts
 
 SUMMARY_TZ = pytz.timezone("Asia/Tehran")
 SUMMARY_TYPES = ("DAILY", "WEEKLY", "MONTHLY", "YEARLY")
