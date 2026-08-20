@@ -41,10 +41,15 @@ def eligible_raw_filter(query: Query, *, now: Optional[datetime] = None) -> Quer
     durable_write gates I7 derivation/source selection separately; visibility
     uses retain_until so legacy rows with a retention bound remain readable.
     """
-    when = now or utcnow()
+    when = as_utc(now or utcnow())
+    # SQLite often stores DateTime without tz; compare naive UTC wall-clock too.
+    when_naive = when.replace(tzinfo=None)
     return query.filter(
         models.Memory.retain_until.isnot(None),
-        models.Memory.retain_until > when,
+        or_(
+            models.Memory.retain_until > when,
+            models.Memory.retain_until > when_naive,
+        ),
     )
 
 

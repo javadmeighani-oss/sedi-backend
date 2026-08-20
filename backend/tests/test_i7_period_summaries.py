@@ -31,11 +31,14 @@ def _user(db, name: str) -> models.User:
 def _seed_raw(db, user_id: int, message: str, *, when: Optional[datetime] = None) -> models.Memory:
     import pytz
 
+    from backend.app.services.i7.period_summaries import period_bounds
+
     when = when or datetime.now(timezone.utc)
     if when.tzinfo is None:
         when = when.replace(tzinfo=timezone.utc)
     zone = pytz.timezone("Asia/Tehran")
-    local_day = when.astimezone(zone).date()
+    start, _end = period_bounds("DAILY", now=when, tz=zone)
+    local_day = start.astimezone(zone).date()
     row = models.Memory(
         user_id=user_id,
         user_message=message,
@@ -43,7 +46,8 @@ def _seed_raw(db, user_id: int, message: str, *, when: Optional[datetime] = None
         language="en",
         created_at=when.replace(tzinfo=None),
         durable_write=True,
-        retain_until=when + timedelta(days=30),
+        # Naive far-future UTC for SQLite DateTime comparison compatibility.
+        retain_until=datetime(2099, 1, 1, 0, 0, 0),
         local_period_date=local_day,
         period_timezone="Asia/Tehran",
     )
@@ -83,6 +87,7 @@ def test_i7_rebuild_is_compression_not_authority(db):
     assert HIERARCHY_GENERATOR in summary.structured_summary_json
     assert "not a transcript" in summary.narrative_summary.lower()
     assert summary.status == "active"
+    assert '"turn_count": 1' in summary.structured_summary_json or '"turn_count":1' in summary.structured_summary_json.replace(" ", "")
     same = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert same.id == summary.id
     _seed_raw(db, user.id, "second turn")
