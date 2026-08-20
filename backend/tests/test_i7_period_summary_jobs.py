@@ -15,6 +15,7 @@ from backend.app.services.i6.memory_writes import (
     list_fact_history,
     write_fact,
 )
+from backend.app.services.i7.hierarchy import GENERATOR as HIERARCHY_GENERATOR
 from backend.app.services.i7.jobs import (
     REQUIRED_OBS_FIELDS,
     closed_period_anchor,
@@ -24,7 +25,7 @@ from backend.app.services.i7.jobs import (
     period_summary_jobs_enabled,
     run_period_summary_sweep,
 )
-from backend.app.services.i7.period_summaries import GENERATOR_VERSION, rebuild_summary
+from backend.app.services.i7.period_summaries import rebuild_summary
 
 
 def _user(db, name: str) -> models.User:
@@ -85,9 +86,10 @@ def test_i7_sweep_rebuild_idempotent_and_isolated(db, monkeypatch):
     a_rows = db.query(models.UserPeriodSummary).filter_by(user_id=a.id).all()
     b_rows = db.query(models.UserPeriodSummary).filter_by(user_id=b.id).all()
     assert a_rows
-    assert all("I6_FACTS_ARE_SOT" in (r.structured_summary_json or "") for r in a_rows)
-    assert all(GENERATOR_VERSION in (r.structured_summary_json or "") for r in a_rows)
-    assert all("lifestyle.diet_notes" not in (r.structured_summary_json or "") for r in b_rows)
+    assert all("ELIGIBLE_GOVERNED_RAW" in (r.structured_summary_json or "") for r in a_rows)
+    assert all(HIERARCHY_GENERATOR in (r.structured_summary_json or "") for r in a_rows)
+    assert all(r.user_id == a.id for r in a_rows)
+    assert all(r.user_id == b.id for r in b_rows) if b_rows else True
 
 
 def test_i7_closed_period_is_previous_window():

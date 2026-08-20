@@ -13,18 +13,22 @@ from backend.app.database import Base
 @pytest.fixture()
 def db():
     engine = create_engine("sqlite:///:memory:", future=True)
-    Base.metadata.create_all(
-        engine,
-        tables=[
-            models.User.__table__,
-            models.UserConsent.__table__,
-            models.UserConsentScope.__table__,
-            models.UserMemoryFact.__table__,
-            models.UserPeriodSummary.__table__,
-            models.UserLifelongProfile.__table__,
-            models.UserMemoryExportJob.__table__,
-        ],
-    )
+    tables = [
+        models.User.__table__,
+        models.UserConsent.__table__,
+        models.UserConsentScope.__table__,
+        models.UserMemoryFact.__table__,
+        models.UserPeriodSummary.__table__,
+        models.UserLifelongProfile.__table__,
+        models.UserMemoryExportJob.__table__,
+        models.Memory.__table__,
+        models.UserProfileCore.__table__,
+    ]
+    if hasattr(models, "UserMemoryPurgeReceipt"):
+        tables.append(models.UserMemoryPurgeReceipt.__table__)
+    if hasattr(models, "UserI7DerivedPattern"):
+        tables.append(models.UserI7DerivedPattern.__table__)
+    Base.metadata.create_all(engine, tables=tables)
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     session = SessionLocal()
     try:

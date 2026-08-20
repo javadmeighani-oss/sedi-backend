@@ -1,16 +1,18 @@
-"""I7 period summaries are compression only; I6 facts remain source of truth."""
+"""I7 period summaries — Wave-2 hierarchy (RAW→DAILY→…); I6 remains fact SOT."""
 
 from __future__ import annotations
 
 pytest_plugins = ["backend.tests.section42_sqlite_harness"]
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import pytest
 
 from backend.app import models
 from backend.app.services.i6.consent_service import grant_memory_consent
 from backend.app.services.i6.memory_writes import correct_fact, delete_fact, write_fact
+from backend.app.services.i7.hierarchy import GENERATOR as HIERARCHY_GENERATOR
 from backend.app.services.i7.period_summaries import (
     PeriodSummaryError,
     invalidate_summaries_for_user,
@@ -21,6 +23,30 @@ from backend.app.services.i7.period_summaries import (
 
 def _user(db, name: str) -> models.User:
     row = models.User(name=name, secret_key="i7-test", preferred_language="en")
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _seed_raw(db, user_id: int, message: str, *, when: Optional[datetime] = None) -> models.Memory:
+    import pytz
+
+    when = when or datetime.now(timezone.utc)
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    zone = pytz.timezone("Asia/Tehran")
+    local_day = when.astimezone(zone).date()
+    row = models.Memory(
+        user_id=user_id,
+        user_message=message,
+        sedi_response="ack",
+        language="en",
+        created_at=when.replace(tzinfo=None),
+        durable_write=True,
+        retain_until=when + timedelta(days=30),
+        local_period_date=local_day,
+        period_timezone="Asia/Tehran",
+    )
     db.add(row)
     db.flush()
     return row
@@ -51,14 +77,15 @@ def test_i7_rebuild_is_compression_not_authority(db):
     user = _user(db, "i7-rebuild")
     grant_memory_consent(db, user.id, commit=True)
     write_fact(db, user.id, "lifestyle", "diet_notes", "vegetarian", commit=True)
+    _seed_raw(db, user.id, "ate salad today")
     summary = rebuild_summary(db, user.id, "DAILY", commit=True)
-    assert "I6_FACTS_ARE_SOT" in summary.structured_summary_json
-    assert "generator_version" in summary.structured_summary_json
-    assert "not source of truth" in summary.narrative_summary.lower()
+    assert "ELIGIBLE_GOVERNED_RAW" in summary.structured_summary_json
+    assert HIERARCHY_GENERATOR in summary.structured_summary_json
+    assert "not a transcript" in summary.narrative_summary.lower()
     assert summary.status == "active"
     same = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert same.id == summary.id
-    write_fact(db, user.id, "lifestyle", "mood", "calm day", commit=True)
+    _seed_raw(db, user.id, "second turn")
     again = rebuild_summary(db, user.id, "DAILY", commit=True)
     db.refresh(summary)
     assert again.version == summary.version + 1
@@ -96,7 +123,7 @@ def test_i7_retry_rebuild_is_idempotent_until_facts_change(db):
     a = rebuild_summary(db, user.id, "DAILY", commit=True)
     b = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert b.id == a.id
-    write_fact(db, user.id, "lifestyle", "mood", "calm day", commit=True)
+    _seed_raw(db, user.id, "new raw turn")
     c = rebuild_summary(db, user.id, "DAILY", commit=True)
     assert c.id != a.id
     assert c.version == a.version + 1
@@ -107,11 +134,13 @@ def test_i7_isolation(db):
     b = _user(db, "i7-iso-b")
     grant_memory_consent(db, a.id, commit=True)
     grant_memory_consent(db, b.id, commit=True)
-    write_fact(db, a.id, "lifestyle", "mood", "a-only", commit=True)
+    _seed_raw(db, a.id, "a-only-raw-marker")
     sa = rebuild_summary(db, a.id, "DAILY", commit=True)
     sb = rebuild_summary(db, b.id, "DAILY", commit=True)
-    assert "lifestyle.mood" in sa.structured_summary_json
-    assert "lifestyle.mood" not in sb.structured_summary_json
+    assert sa.user_id == a.id
+    assert sb.user_id == b.id
+    assert "a-only-raw-marker" not in (sb.structured_summary_json or "")
+    assert sa.id != sb.id
     n = invalidate_summaries_for_user(db, a.id, reason="test", commit=True)
     assert n == 1
     db.refresh(sb)

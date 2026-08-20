@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.app import models
@@ -61,13 +62,27 @@ def _active_for_period(
     )
 
 
-def _supersede(prior: Optional[models.UserPeriodSummary]) -> int:
-    if prior is None:
-        return 1
-    if prior.status == "active":
+def _next_version(
+    db: Session,
+    user_id: int,
+    summary_type: str,
+    period_start: datetime,
+    prior: Optional[models.UserPeriodSummary],
+) -> int:
+    """Allocate version after max(existing) so stale/superseded rows cannot collide."""
+    if prior is not None and prior.status == "active":
         prior.status = "superseded"
         prior.superseded_at = _utcnow()
-    return int(prior.version) + 1
+    max_v = (
+        db.query(func.max(models.UserPeriodSummary.version))
+        .filter(
+            models.UserPeriodSummary.user_id == user_id,
+            models.UserPeriodSummary.summary_type == summary_type,
+            models.UserPeriodSummary.period_start == period_start,
+        )
+        .scalar()
+    )
+    return int(max_v or 0) + 1
 
 
 def get_canonical_daily(
@@ -122,7 +137,7 @@ def build_daily_from_raw(
         and (prior.finalized_at is not None) == finalize
     ):
         return prior
-    version = _supersede(prior)
+    version = _next_version(db, user_id, "DAILY", start, prior)
     row = models.UserPeriodSummary(
         user_id=user_id,
         summary_type="DAILY",
@@ -196,7 +211,14 @@ def build_higher_from_lower(
     integrity = _integrity(payload)
     consent = _active_consent(db, user_id=user_id)
     prior = _active_for_period(db, user_id, summary_type, start)
-    version = _supersede(prior)
+    if (
+        prior is not None
+        and prior.integrity_sha256 == integrity
+        and bool(prior.source_complete) == bool(parents)
+        and (prior.finalized_at is not None) == (finalize and bool(parents))
+    ):
+        return prior
+    version = _next_version(db, user_id, summary_type, start, prior)
     row = models.UserPeriodSummary(
         user_id=user_id,
         summary_type=summary_type,

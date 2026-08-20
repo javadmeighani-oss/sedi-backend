@@ -78,11 +78,24 @@ def resolve_validated_user_timezone(
 
     Invalid IANA values fall back to ``DEFAULT_TIMEZONE`` (same policy as scheduler/quiet hours).
     """
-    profile_core = (
-        db.query(UserProfileCore).filter(UserProfileCore.user_id == user_id).first()
-    )
+    from sqlalchemy import inspect as sa_inspect
+
+    profile_core = None
+    bind = db.get_bind()
+    try:
+        if sa_inspect(bind).has_table("user_profile_core"):
+            profile_core = (
+                db.query(UserProfileCore).filter(UserProfileCore.user_id == user_id).first()
+            )
+    except Exception:
+        profile_core = None
     user = db.query(User).filter(User.id == user_id).first()
-    memory_tz = _load_memory_json_fact(db, user_id, "timezone")
+    memory_tz = None
+    try:
+        if sa_inspect(bind).has_table("user_memory_facts"):
+            memory_tz = _load_memory_json_fact(db, user_id, "timezone")
+    except Exception:
+        memory_tz = None
     tz_candidate = resolve_user_timezone(
         user=user,
         profile_core=profile_core,
