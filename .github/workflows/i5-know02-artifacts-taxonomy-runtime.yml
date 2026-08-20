@@ -110,7 +110,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "065_i5_know04_connectors_change_intelligence", head
+              assert head == "068_i7_wave2_governed_memory_lifecycle", head
               for t in (
                   "i5_scientific_artifacts",
                   "i5_scientific_artifact_versions",
@@ -157,9 +157,9 @@ jobs:
                   "SELECT 1 FROM information_schema.tables WHERE table_name='i5_scientific_artifacts'"
               )).scalar() == 1
           # Leave DB at repo head so KNOW-02/KNOW-01 pytest matches current models (064+ tables).
-          command.upgrade(cfg, "065_i5_know04_connectors_change_intelligence")
+          command.upgrade(cfg, "068_i7_wave2_governed_memory_lifecycle")
           with eng.connect() as c:
-              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "065_i5_know04_connectors_change_intelligence"
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "068_i7_wave2_governed_memory_lifecycle"
               assert c.execute(text(
                   "SELECT 1 FROM information_schema.tables WHERE table_name='i5_clinical_studies'"
               )).scalar() == 1
@@ -189,7 +189,7 @@ jobs:
           {
             echo "GATE=I5-KNOW-02"
             echo "COMMIT_SHA=${{ github.sha }}"
-            echo "ALEMBIC_HEAD=065_i5_know04_connectors_change_intelligence"
+            echo "ALEMBIC_HEAD=068_i7_wave2_governed_memory_lifecycle"
             echo "PRODUCTION_MIGRATION_RUN=NO"
             echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
             echo "PRODUCTION_RAG_ACTIVATED=NO"
