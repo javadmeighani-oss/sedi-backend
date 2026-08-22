@@ -1,4 +1,4 @@
-"""I8 nutrition planning — ephemeral, fail-closed, no new tables, no diagnosis."""
+"""I8 nutrition domain adapter — legacy ephemeral path delegates to unified core."""
 
 from __future__ import annotations
 
@@ -7,23 +7,16 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
-from backend.app.services.i5.runtime_knowledge_retrieval import (
-    STATUS_OK,
-    retrieve_knowledge_context,
-)
+from backend.app.services.i5.runtime_knowledge_retrieval import STATUS_OK
 from backend.app.services.i6.consent_service import PERM_READ, ConsentDenied, has_permission
 from backend.app.services.i6.memory_writes import list_facts
+from backend.app.services.i8.constants import THERAPEUTIC_TOKENS, UNSAFE_DIAGNOSIS_TOKENS
+from backend.app.services.i8.unified_core import generate_operational_action
 
-UNSAFE_TOKENS = (
-    "diagnose",
-    "diagnosis",
-    "prescribe",
-    "prescription",
-    "change my medication",
-    "stop taking",
-    "increase dose",
-    "decrease dose",
-)
+
+def _is_unsafe(request: str) -> bool:
+    text = (request or "").casefold()
+    return any(tok in text for tok in UNSAFE_DIAGNOSIS_TOKENS + THERAPEUTIC_TOKENS)
 
 
 @dataclass(frozen=True)
@@ -34,11 +27,6 @@ class NutritionPlanResult:
     eligible_knowledge_count: int
     message: str
     plan: Optional[dict[str, Any]] = None
-
-
-def _is_unsafe(request: str) -> bool:
-    text = (request or "").casefold()
-    return any(tok in text for tok in UNSAFE_TOKENS)
 
 
 def _readiness_keys(facts) -> set[str]:
@@ -52,6 +40,7 @@ def plan_nutrition(
     *,
     iran_first: bool = True,
 ) -> NutritionPlanResult:
+    """Legacy nutrition entrypoint — unified core, ephemeral only (no persistence)."""
     if _is_unsafe(request):
         return NutritionPlanResult(
             status="UNSAFE_REQUEST_BLOCKED",
@@ -60,7 +49,7 @@ def plan_nutrition(
             eligible_knowledge_count=0,
             message="Sedi will not diagnose, replace a physician, or modify medication.",
         )
-    if not has_permission(db, user_id, PERM_READ):
+    if db is None or not has_permission(db, user_id, PERM_READ):
         return NutritionPlanResult(
             status="CONSENT_REQUIRED",
             iran_first=iran_first,
@@ -88,27 +77,35 @@ def plan_nutrition(
             eligible_knowledge_count=0,
             message="Not enough confirmed lifestyle facts for a personalized meal plan.",
         )
-    retrieval = retrieve_knowledge_context(db, request, enqueue_gap_on_empty=False)
-    eligible = len(list(getattr(retrieval, "items", None) or []))
-    status = getattr(retrieval, "status", None)
-    if eligible == 0 or status != STATUS_OK:
-        code = "STALE_OR_INELIGIBLE_KNOWLEDGE" if status and status != STATUS_OK else "MISSING_ELIGIBLE_KNOWLEDGE"
-        return NutritionPlanResult(
-            status=code,
-            iran_first=iran_first,
-            grounded=False,
-            eligible_knowledge_count=eligible,
-            message="Approved governed knowledge is unavailable; fail-closed. No personalized clinical nutrition plan.",
-        )
+
+    result = generate_operational_action(
+        db,
+        user_id=user_id,
+        actor_user_id=user_id,
+        request=request,
+        domain="nutrition",
+        persist=False,
+    )
+    status = result.status
+    if status == "MISSING_ELIGIBLE_KNOWLEDGE":
+        status = "STALE_OR_INELIGIBLE_KNOWLEDGE"
+    if status == "UNSUPPORTED_CLINICAL_APPLICABILITY":
+        status = "STALE_OR_INELIGIBLE_KNOWLEDGE"
+    grounded = status in {"GROUNDED_EPHEMERAL", "ACTION_PERSISTED", "ACTION_READY"}
+    if status == "ACTION_READY":
+        status = "GROUNDED_EPHEMERAL"
     return NutritionPlanResult(
-        status="GROUNDED_EPHEMERAL",
+        status=status,
         iran_first=iran_first,
-        grounded=True,
-        eligible_knowledge_count=eligible,
-        message="Ephemeral suggestion only; not stored; not a medical diet.",
+        grounded=grounded,
+        eligible_knowledge_count=len(result.knowledge_refs),
+        message=result.summary or result.rationale or status,
         plan={
-            "iran_first": iran_first,
+            "domain": result.domain,
             "persistence": "NONE",
             "clinical": False,
-        },
+            "suggestions": [{"label": s.label, "detail": s.detail} for s in result.suggestions],
+        }
+        if grounded
+        else None,
     )

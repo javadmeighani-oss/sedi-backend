@@ -187,6 +187,29 @@ jobs:
           print("SCHEMA_RESET_AFTER_I8=OK")
           PY
 
+      - name: I8 PD-I8-03 unified runtime tests
+        run: |
+          python - <<'PY'
+          import os, subprocess
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          subprocess.check_call([
+              "python", "-B", "-m", "pytest",
+              "backend/tests/test_i8_unified_runtime_pd_i8_03.py",
+              "-q", "--tb=short", "--noconftest",
+          ])
+          PY
+
       - name: Focused I7 Wave-2 unit tests
         run: |
           python -B -m pytest backend/tests/test_i7_wave2_governed_memory_lifecycle.py -q --tb=short

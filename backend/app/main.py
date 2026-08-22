@@ -29,6 +29,7 @@ from backend.app.routers import (
     health_care,
     system,
     i5_iran_directory,
+    i8_actions,
 )
 from backend.app.routers import ops
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
@@ -84,6 +85,7 @@ app.include_router(care_gate3.router, prefix="/care", tags=["Care Intelligence"]
 app.include_router(health_care.router, prefix="/health", tags=["Health Care"])
 app.include_router(ops.router)
 app.include_router(i5_iran_directory.router)
+app.include_router(i8_actions.router)
 
 # ------------------ Activate Scheduler ------------------
 def _should_start_scheduler() -> bool:

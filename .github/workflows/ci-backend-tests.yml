@@ -218,6 +218,7 @@ jobs:
             backend/tests/test_i6_read_governance.py \
             backend/tests/test_i7_period_summaries.py \
             backend/tests/test_i8_nutrition_failclose.py \
+            backend/tests/test_i8_unified_runtime_pd_i8_03.py \
             backend/tests/test_i7_period_summary_jobs.py \
             backend/tests/test_i7_section44_storage_model.py \
             backend/tests/test_i7_section44_design_contracts.py \

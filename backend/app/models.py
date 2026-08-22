@@ -2488,6 +2488,112 @@ class UserI7DerivedPattern(Base):
     superseded_at = Column(DateTime(timezone=True), nullable=True)
 
 
+# -------------------- I8 Operational Plan State (PD-I8-01 / migration 069) --------------------
+class I8OperationalPlan(Base):
+    """Same-day I8 operational plan header. Alembic 069 is schema authority."""
+
+    __tablename__ = "i8_operational_plans"
+    __table_args__ = (
+        UniqueConstraint("user_id", "plan_idempotency_key", name="uq_i8_plan_user_idempotency"),
+        UniqueConstraint("id", "user_id", name="uq_i8_plan_id_user"),
+        CheckConstraint(
+            "status IN ('ACTIVE', 'COMPLETED', 'SUPERSEDED', 'EXPIRED', 'CANCELLED')",
+            name="ck_i8_plan_status",
+        ),
+        CheckConstraint(
+            "generation_mode IN ('reactive', 'proactive')",
+            name="ck_i8_plan_generation_mode",
+        ),
+        Index("ix_i8_plan_user_local_date", "user_id", "user_local_date"),
+        Index("ix_i8_plan_expires_at", "expires_at"),
+        Index(
+            "uq_i8_plan_user_local_active",
+            "user_id",
+            "user_local_date",
+            unique=True,
+            postgresql_where=text("status = 'ACTIVE'"),
+        ),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_local_date = Column(Date, nullable=False)
+    timezone_snapshot = Column(String(64), nullable=False)
+    status = Column(String(32), nullable=False)
+    generation_mode = Column(String(16), nullable=False)
+    plan_idempotency_key = Column(String(128), nullable=False)
+    proactive_evaluation_key = Column(String(128), nullable=True)
+    valid_from = Column(DateTime(timezone=True), nullable=False)
+    valid_until = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    superseded_by_plan_id = Column(
+        BigInteger,
+        ForeignKey("i8_operational_plans.id", ondelete="SET NULL", name="fk_i8_plan_superseded_by"),
+        nullable=True,
+    )
+    trace_id = Column(String(64), nullable=True)
+    row_version = Column(Integer, nullable=False, default=1, server_default="1")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now(), nullable=False)
+
+    actions = relationship("I8OperationalPlanAction", back_populates="plan", cascade="all, delete-orphan")
+    superseded_by = relationship("I8OperationalPlan", remote_side=[id], foreign_keys=[superseded_by_plan_id])
+
+
+class I8OperationalPlanAction(Base):
+    """Same-day I8 operational action item."""
+
+    __tablename__ = "i8_operational_plan_actions"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["plan_id", "user_id"],
+            ["i8_operational_plans.id", "i8_operational_plans.user_id"],
+            name="fk_i8_action_plan_user",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("plan_id", "action_idempotency_key", name="uq_i8_action_plan_idempotency"),
+        CheckConstraint(
+            "status IN ('ACTIVE', 'COMPLETED', 'SUPERSEDED', 'EXPIRED', 'CANCELLED', 'FAILED')",
+            name="ck_i8_action_status",
+        ),
+        CheckConstraint(
+            "action_domain IN ('nutrition', 'exercise', 'routine', 'lifestyle', 'wellbeing', 'cross_domain')",
+            name="ck_i8_action_domain",
+        ),
+        CheckConstraint(
+            "safety_state IN ('SAFE', 'BLOCKED', 'CLARIFY')",
+            name="ck_i8_action_safety_state",
+        ),
+        Index("ix_i8_action_user_status", "user_id", "status"),
+        Index("ix_i8_action_expires_at", "expires_at"),
+        Index("ix_i8_action_plan_id", "plan_id"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    plan_id = Column(BigInteger, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    action_domain = Column(String(32), nullable=False)
+    action_type = Column(String(64), nullable=False)
+    status = Column(String(32), nullable=False)
+    action_idempotency_key = Column(String(128), nullable=False)
+    summary_text = Column(String(512), nullable=False)
+    presentation_json = Column(Text, nullable=False)
+    advisory_importance = Column(String(16), nullable=True)
+    safety_state = Column(String(32), nullable=False)
+    clarification_required = Column(Boolean, nullable=False, default=False, server_default="false")
+    knowledge_refs_json = Column(Text, nullable=False)
+    context_refs_json = Column(Text, nullable=True)
+    proactive_evaluation_key = Column(String(128), nullable=True)
+    valid_from = Column(DateTime(timezone=True), nullable=False)
+    valid_until = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    trace_id = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now(), nullable=False)
+
+    plan = relationship("I8OperationalPlan", back_populates="actions", foreign_keys=[plan_id])
+
+
 class UserLifelongProfile(Base):
     """I7 derived compact profile. Not canonical truth. Not diagnosis."""
 
