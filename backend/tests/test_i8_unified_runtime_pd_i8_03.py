@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+import os
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
 
 from backend.app import models
 from backend.app.services.i5.runtime_knowledge_retrieval import STATUS_OK, RetrievedKnowledgeItem
@@ -58,13 +60,38 @@ def _grant_and_seed(db, user_id: int) -> None:
     write_fact(db, user_id, "lifestyle", "diet_notes", "home cooking", commit=True)
 
 
-@pytest.fixture(autouse=True)
-def _skip_without_i8_tables(db):
-    bind = db.get_bind()
-    if bind.dialect.name == "postgresql":
-        insp = __import__("sqlalchemy").inspect(bind)
-        if not insp.has_table("i8_operational_plans"):
+@pytest.fixture(scope="session")
+def _i8_tables_present():
+    url = os.environ.get("TEST_DATABASE_URL") or os.environ.get("DB03_REHEARSAL_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+    engine = create_engine(url)
+    try:
+        if engine.dialect.name == "postgresql" and not inspect(engine).has_table("i8_operational_plans"):
             pytest.skip("i8_operational_plans not present (alembic 069 required)")
+    finally:
+        engine.dispose()
+
+
+@pytest.fixture()
+def db(_i8_tables_present):
+    url = os.environ.get("TEST_DATABASE_URL") or os.environ.get("DB03_REHEARSAL_DATABASE_URL")
+    engine = create_engine(url)
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = sessionmaker(bind=connection, autoflush=False, autocommit=False)()
+    try:
+        yield session
+    finally:
+        session.close()
+        transaction.rollback()
+        connection.close()
+        engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _require_i8_tables(_i8_tables_present):
+    return True
 
 
 def test_orm_tables_registered():
