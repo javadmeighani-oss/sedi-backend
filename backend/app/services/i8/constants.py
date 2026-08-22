@@ -8,6 +8,8 @@ SUMMARY_TEXT_MAX_LEN = 512
 
 PLAN_STATUSES = frozenset({"ACTIVE", "COMPLETED", "SUPERSEDED", "EXPIRED", "CANCELLED"})
 ACTION_STATUSES = frozenset({"ACTIVE", "COMPLETED", "SUPERSEDED", "EXPIRED", "CANCELLED", "FAILED"})
+REPLAYABLE_PLAN_STATUSES = frozenset({"ACTIVE"})
+REPLAYABLE_ACTION_STATUSES = frozenset({"ACTIVE", "COMPLETED"})
 GENERATION_MODES = frozenset({"reactive", "proactive"})
 ACTION_DOMAINS = frozenset(
     {"nutrition", "exercise", "routine", "lifestyle", "wellbeing", "cross_domain"}

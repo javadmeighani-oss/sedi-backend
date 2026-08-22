@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -14,6 +15,8 @@ from backend.app import models
 from backend.app.services.i8.constants import (
     ACTION_DOMAINS,
     PRESENTATION_JSON_MAX_BYTES,
+    REPLAYABLE_ACTION_STATUSES,
+    REPLAYABLE_PLAN_STATUSES,
     SUMMARY_TEXT_MAX_LEN,
 )
 from backend.app.services.i8.context import load_trusted_context
@@ -82,7 +85,14 @@ def _candidate_text(suggestions) -> str:
     return " ".join(f"{s.label} {s.detail}" for s in suggestions)
 
 
-_REPLAYABLE_ACTION_STATUSES = frozenset({"ACTIVE", "COMPLETED"})
+def _replay_now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _parse_knowledge_refs_json(raw: str | None) -> list[dict]:
@@ -97,11 +107,55 @@ def _parse_knowledge_refs_json(raw: str | None) -> list[dict]:
     return [entry for entry in parsed if isinstance(entry, dict)]
 
 
+def _replay_ineligibility_reason(
+    *,
+    plan: models.I8OperationalPlan,
+    action: models.I8OperationalPlanAction,
+    now_utc: datetime | None = None,
+) -> str | None:
+    if plan.user_id != action.user_id:
+        return "ownership_mismatch"
+    if plan.status not in REPLAYABLE_PLAN_STATUSES:
+        return f"plan_status_{plan.status}"
+    if action.status not in REPLAYABLE_ACTION_STATUSES:
+        return f"action_status_{action.status}"
+    now = _as_utc(now_utc or _replay_now_utc())
+    for boundary in (plan.valid_until, action.valid_until):
+        if boundary is not None and now > _as_utc(boundary):
+            return "past_valid_until"
+    return None
+
+
+def _build_replay_not_eligible_result(
+    *,
+    plan: models.I8OperationalPlan,
+    action: models.I8OperationalPlanAction,
+    generation_mode: str,
+    refs: list[dict],
+    reason: str,
+) -> I8OperationalActionResult:
+    return I8OperationalActionResult(
+        status="ACTION_NOT_REPLAYABLE",
+        domain=action.action_domain,
+        action_mode=generation_mode,
+        safety_state=action.safety_state,
+        clarification_required=True,
+        summary=f"Persisted operational action is not replayable ({reason}).",
+        knowledge_refs=refs,
+        valid_from=action.valid_from.isoformat() if action.valid_from else None,
+        valid_until=action.valid_until.isoformat() if action.valid_until else None,
+        plan_id=int(plan.id),
+        action_id=int(action.id),
+        persisted=True,
+    )
+
+
 def _build_replay_result(
     *,
     plan: models.I8OperationalPlan,
     action: models.I8OperationalPlanAction,
     generation_mode: str,
+    now_utc: datetime | None = None,
 ) -> I8OperationalActionResult:
     refs = _parse_knowledge_refs_json(action.knowledge_refs_json)
     if not refs:
@@ -116,20 +170,14 @@ def _build_replay_result(
             action_id=int(action.id),
             persisted=True,
         )
-    if action.status not in _REPLAYABLE_ACTION_STATUSES:
-        return I8OperationalActionResult(
-            status="ACTION_NOT_REPLAYABLE",
-            domain=action.action_domain,
-            action_mode=generation_mode,
-            safety_state=action.safety_state,
-            clarification_required=True,
-            summary=f"Persisted action is not replayable in status {action.status}.",
-            knowledge_refs=refs,
-            valid_from=action.valid_from.isoformat() if action.valid_from else None,
-            valid_until=action.valid_until.isoformat() if action.valid_until else None,
-            plan_id=int(plan.id),
-            action_id=int(action.id),
-            persisted=True,
+    ineligible = _replay_ineligibility_reason(plan=plan, action=action, now_utc=now_utc)
+    if ineligible is not None:
+        return _build_replay_not_eligible_result(
+            plan=plan,
+            action=action,
+            generation_mode=generation_mode,
+            refs=refs,
+            reason=ineligible,
         )
     summary = action.summary_text
     return I8OperationalActionResult(

@@ -611,6 +611,144 @@ def test_cross_user_idempotent_replay_isolated(db, monkeypatch):
     assert db.query(models.I8OperationalPlanAction).filter_by(user_id=user_b.id).count() == 1
 
 
+def test_superseded_plan_replay_rejected(db, monkeypatch):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    retrieval_calls = {"n": 0}
+
+    def _fake(*a, **k):
+        retrieval_calls["n"] += 1
+        return SimpleNamespace(status=STATUS_OK, items=[_ok_item()])
+
+    monkeypatch.setattr("backend.app.services.i8.unified_core.retrieve_governed_knowledge", _fake)
+    first = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="first lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="P1",
+        action_idempotency_key="A1",
+    )
+    second = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="second lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="P2",
+        action_idempotency_key="A2",
+    )
+    third = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="first lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="P1",
+        action_idempotency_key="A1",
+    )
+    plan1 = db.query(models.I8OperationalPlan).filter_by(id=first.plan_id).one()
+    assert plan1.status == "SUPERSEDED"
+    assert third.status == "ACTION_NOT_REPLAYABLE"
+    assert third.action_id == first.action_id
+    assert third.plan_id == first.plan_id
+    assert retrieval_calls["n"] == 2
+    assert db.query(models.I8OperationalPlan).filter_by(user_id=user.id, status="ACTIVE").count() == 1
+    assert db.query(models.I8OperationalPlan).filter_by(user_id=user.id).count() == 2
+    assert db.query(models.I8OperationalPlanAction).filter_by(user_id=user.id).count() == 2
+
+
+def test_past_valid_until_replay_rejected(db, monkeypatch):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    retrieval_calls = {"n": 0}
+
+    def _fake(*a, **k):
+        retrieval_calls["n"] += 1
+        return SimpleNamespace(status=STATUS_OK, items=[_ok_item()])
+
+    monkeypatch.setattr("backend.app.services.i8.unified_core.retrieve_governed_knowledge", _fake)
+    first = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="valid-plan",
+        action_idempotency_key="valid-act",
+    )
+    now = datetime.now(timezone.utc)
+    action = db.query(models.I8OperationalPlanAction).filter_by(id=first.action_id).one()
+    plan = db.query(models.I8OperationalPlan).filter_by(id=first.plan_id).one()
+    action.valid_until = now - timedelta(hours=1)
+    action.expires_at = now + timedelta(hours=24)
+    plan.valid_until = action.valid_until
+    plan.expires_at = action.expires_at
+    db.flush()
+    second = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="valid-plan",
+        action_idempotency_key="valid-act",
+    )
+    assert db.query(models.I8OperationalPlanAction).filter_by(id=first.action_id).count() == 1
+    assert second.status == "ACTION_NOT_REPLAYABLE"
+    assert retrieval_calls["n"] == 1
+
+
+@pytest.mark.parametrize("plan_status", ["CANCELLED", "EXPIRED"])
+def test_non_replayable_plan_status_rejected(db, monkeypatch, plan_status):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    retrieval_calls = {"n": 0}
+
+    def _fake(*a, **k):
+        retrieval_calls["n"] += 1
+        return SimpleNamespace(status=STATUS_OK, items=[_ok_item()])
+
+    monkeypatch.setattr("backend.app.services.i8.unified_core.retrieve_governed_knowledge", _fake)
+    first = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key=f"plan-{plan_status}",
+        action_idempotency_key=f"act-{plan_status}",
+    )
+    plan = db.query(models.I8OperationalPlan).filter_by(id=first.plan_id).one()
+    plan.status = plan_status
+    db.flush()
+    second = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key=f"plan-{plan_status}",
+        action_idempotency_key=f"act-{plan_status}",
+    )
+    assert second.status == "ACTION_NOT_REPLAYABLE"
+    assert retrieval_calls["n"] == 1
+
+
 def test_cross_user_action_rejected(db):
     user_a = _user(db, "a")
     user_b = _user(db, "b")
