@@ -10,6 +10,8 @@ on:
       - "backend/app/services/db03/**"
       - "backend/tests/test_db03_*.py"
       - "backend/tests/test_i8_operational_plan_state_foundation.py"
+      - "backend/tests/test_i8_unified_runtime_pd_i8_03.py"
+      - "backend/app/services/i8/**"
       - "backend/ops/db03/**"
       - ".github/workflows/db03-migration-rehearsal.yml"
 
