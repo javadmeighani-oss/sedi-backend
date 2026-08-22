@@ -171,7 +171,7 @@ jobs:
 
       - name: I8 068↔069 operational plan state rehearsal
         run: |
-          python -B -m pytest backend/tests/test_i8_operational_plan_state_foundation.py::test_i8_068_069_rehearsal -q --tb=short
+          python -B -m pytest backend/tests/test_i8_operational_plan_state_foundation.py::test_i8_068_069_rehearsal -q --tb=short --noconftest
 
       - name: Focused I7 Wave-2 unit tests
         run: |

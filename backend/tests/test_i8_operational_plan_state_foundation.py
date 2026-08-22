@@ -12,7 +12,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -247,9 +247,9 @@ def test_i8_068_069_rehearsal():
             conn.commit()
         conn.rollback()
 
-        # summary_text DB bound (512)
+        # summary_text DB bound (512) — PostgreSQL raises DataError on truncation
         long_summary = "x" * 513
-        with pytest.raises(IntegrityError):
+        with pytest.raises(DataError):
             conn.execute(
                 text(
                     """
