@@ -3,18 +3,39 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
+from backend.app.services.i5.reference_renderer import extract_handoffs_from_retrieval
 from backend.app.services.i5.runtime_knowledge_retrieval import (
     RetrievalPersonalizationContext,
     RetrievalResult,
     RetrievedKnowledgeItem,
     retrieve_knowledge_context,
+    STATUS_OK,
 )
-from backend.app.services.i8.constants import MAX_KNOWLEDGE_REFS
+from backend.app.services.i8.constants import MAX_KNOWLEDGE_REFS, SUMMARY_TEXT_MAX_LEN
 from backend.app.services.i8.context import I8TrustedContext
+from backend.app.services.i8.contracts import I8ActionSuggestion
+
+
+@dataclass(frozen=True)
+class GroundedComposition:
+    suggestions: list[I8ActionSuggestion]
+    used_items: list[RetrievedKnowledgeItem]
+    rationale: str
+
+
+_DOMAIN_LABELS: dict[str, str] = {
+    "nutrition": "Nutrition action",
+    "exercise": "Activity action",
+    "routine": "Routine action",
+    "lifestyle": "Lifestyle action",
+    "wellbeing": "Wellbeing action",
+    "cross_domain": "Cross-domain action",
+}
 
 
 def build_personalization(ctx: I8TrustedContext, *, domain: str) -> RetrievalPersonalizationContext:
@@ -57,3 +78,43 @@ def knowledge_refs_payload(items: list[RetrievedKnowledgeItem]) -> str:
             }
         )
     return json.dumps(refs)
+
+
+def compose_grounded_action(
+    retrieval: RetrievalResult,
+    *,
+    domain: str,
+) -> Optional[GroundedComposition]:
+    """Derive bounded action content only from eligible retrieved I5 knowledge."""
+    if retrieval.status != STATUS_OK or not retrieval.items:
+        return None
+
+    handoffs = extract_handoffs_from_retrieval(retrieval)
+    if not handoffs:
+        return None
+
+    primary = handoffs[0]
+    statement = (primary.normalized_statement or "").strip()
+    if not statement:
+        return None
+
+    used_items = [
+        item
+        for item in retrieval.items
+        if item.knowledge_unit_id == primary.knowledge_unit_id
+    ]
+    if not used_items:
+        used_items = [retrieval.items[0]]
+
+    label = _DOMAIN_LABELS.get(domain, "Health action")
+    detail = statement[:SUMMARY_TEXT_MAX_LEN]
+    suggestions = [I8ActionSuggestion(label=label, detail=detail)]
+    rationale = (
+        f"Action derived from governed knowledge "
+        f"{primary.canonical_unit_id}:{primary.immutable_version_id}."
+    )
+    return GroundedComposition(
+        suggestions=suggestions,
+        used_items=used_items[:1],
+        rationale=rationale,
+    )

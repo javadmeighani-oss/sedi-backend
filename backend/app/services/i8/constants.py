@@ -39,3 +39,6 @@ DISEASE_AWARE_HINTS = (
 )
 
 MAX_KNOWLEDGE_REFS = 8
+
+# KNOW-06 governed person-specific disease applicability — not runtime-ready.
+GOVERNED_DISEASE_APPLICABILITY_AVAILABLE = False

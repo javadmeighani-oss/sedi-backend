@@ -16,11 +16,19 @@ from backend.app.services.i8.constants import (
     SUMMARY_TEXT_MAX_LEN,
 )
 from backend.app.services.i8.context import load_trusted_context
-from backend.app.services.i8.contracts import I8ActionSuggestion, I8OperationalActionResult
-from backend.app.services.i8.knowledge_bridge import knowledge_refs_payload, retrieve_governed_knowledge
+from backend.app.services.i8.contracts import I8OperationalActionResult
+from backend.app.services.i8.knowledge_bridge import (
+    compose_grounded_action,
+    knowledge_refs_payload,
+    retrieve_governed_knowledge,
+)
 from backend.app.services.i8.lifecycle import I8OperationalLifecycle
-from backend.app.services.i8.local_day import resolve_local_day_window
-from backend.app.services.i8.safety import evaluate_safety
+from backend.app.services.i8.local_day import (
+    I8InvalidTimezoneError,
+    I8TimezoneRequiredError,
+    resolve_local_day_window,
+)
+from backend.app.services.i8.safety import evaluate_composed_safety, evaluate_safety
 
 
 _DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -55,22 +63,6 @@ def _default_action_type(domain: str) -> str:
     }[domain]
 
 
-def _compose_suggestions(domain: str, request: str, ctx) -> list[I8ActionSuggestion]:
-    goal_hint = ctx.goals[0] if ctx.goals else "your health goal"
-    if domain == "nutrition":
-        return [I8ActionSuggestion(label="Balanced meal", detail=f"Plan a balanced meal aligned with {goal_hint}.")]
-    if domain == "exercise":
-        return [I8ActionSuggestion(label="Light activity", detail="Choose a moderate activity you can complete today.")]
-    if domain == "routine":
-        return [I8ActionSuggestion(label="Daily routine", detail="Block a consistent time for your priority routine.")]
-    if domain == "cross_domain":
-        return [
-            I8ActionSuggestion(label="Morning routine", detail="Combine hydration, light movement, and a balanced breakfast."),
-            I8ActionSuggestion(label="Goal check-in", detail=f"Review progress toward {goal_hint} this evening."),
-        ]
-    return [I8ActionSuggestion(label="Wellbeing step", detail="Take one small wellbeing action you can finish today.")]
-
-
 def _validate_presentation(payload: dict) -> None:
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     if len(encoded.encode("utf-8")) > PRESENTATION_JSON_MAX_BYTES:
@@ -80,6 +72,10 @@ def _validate_presentation(payload: dict) -> None:
 def _idempotency_key(*parts: str) -> str:
     raw = "|".join(parts)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:64]
+
+
+def _candidate_text(suggestions) -> str:
+    return " ".join(f"{s.label} {s.detail}" for s in suggestions)
 
 
 def generate_operational_action(
@@ -128,9 +124,31 @@ def generate_operational_action(
     retrieval = retrieve_governed_knowledge(
         db, user_id=user_id, query=request, domain=resolved_domain, ctx=ctx
     )
-    post_safety = evaluate_safety(
+    retrieval_safety = evaluate_safety(
         request=request, ctx=ctx, retrieval=retrieval, domain=resolved_domain
     )
+    if not retrieval_safety.allowed:
+        return I8OperationalActionResult(
+            status=retrieval_safety.status,
+            domain=resolved_domain,
+            safety_state=retrieval_safety.safety_state,
+            clarification_required=retrieval_safety.clarification_required,
+            summary=retrieval_safety.message,
+        )
+
+    composition = compose_grounded_action(retrieval, domain=resolved_domain)
+    if composition is None:
+        return I8OperationalActionResult(
+            status="MISSING_GROUNDED_ACTION_CONTENT",
+            domain=resolved_domain,
+            safety_state="CLARIFY",
+            clarification_required=True,
+            summary="No usable grounded action could be formed from governed knowledge.",
+        )
+
+    suggestions = composition.suggestions
+    candidate = _candidate_text(suggestions)
+    post_safety = evaluate_composed_safety(candidate_text=candidate, ctx=ctx)
     if not post_safety.allowed:
         return I8OperationalActionResult(
             status=post_safety.status,
@@ -140,15 +158,15 @@ def generate_operational_action(
             summary=post_safety.message,
         )
 
-    suggestions = _compose_suggestions(resolved_domain, request, ctx)
     summary = suggestions[0].detail[:SUMMARY_TEXT_MAX_LEN]
-    refs = json.loads(knowledge_refs_payload(retrieval.items))
+    refs = json.loads(knowledge_refs_payload(composition.used_items))
     presentation = {
         "domain": resolved_domain,
         "action_type": _default_action_type(resolved_domain),
-        "rationale": "Governed I5-grounded same-day operational suggestion.",
+        "rationale": composition.rationale,
         "suggestions": [{"label": s.label, "detail": s.detail} for s in suggestions],
         "request_fingerprint": _idempotency_key(request.strip().casefold())[:16],
+        "grounded_knowledge_unit_ids": [r["knowledge_unit_id"] for r in refs],
     }
     try:
         _validate_presentation(presentation)
@@ -160,7 +178,25 @@ def generate_operational_action(
             summary="Presentation payload exceeds allowed bound.",
         )
 
-    window = resolve_local_day_window(db, user_id)
+    try:
+        window = resolve_local_day_window(db, user_id)
+    except I8TimezoneRequiredError:
+        return I8OperationalActionResult(
+            status="TIMEZONE_REQUIRED",
+            domain=resolved_domain,
+            safety_state="CLARIFY",
+            clarification_required=True,
+            summary="UserProfileCore.timezone is required for I8 operational plans.",
+        )
+    except I8InvalidTimezoneError:
+        return I8OperationalActionResult(
+            status="TIMEZONE_INVALID",
+            domain=resolved_domain,
+            safety_state="CLARIFY",
+            clarification_required=True,
+            summary="UserProfileCore.timezone must be a valid IANA timezone.",
+        )
+
     trace_id = str(uuid.uuid4())
     result = I8OperationalActionResult(
         status="ACTION_READY",
@@ -168,7 +204,7 @@ def generate_operational_action(
         action_mode=generation_mode,
         summary=summary,
         suggestions=suggestions,
-        rationale=presentation["rationale"],
+        rationale=composition.rationale,
         safety_state="SAFE",
         knowledge_refs=refs,
         valid_from=window.valid_from.isoformat(),
@@ -205,7 +241,7 @@ def generate_operational_action(
             action_idempotency_key=action_key,
             summary_text=summary,
             presentation_json=json.dumps(presentation, ensure_ascii=False, separators=(",", ":")),
-            knowledge_refs_json=knowledge_refs_payload(retrieval.items),
+            knowledge_refs_json=knowledge_refs_payload(composition.used_items),
             safety_state="SAFE",
             context_refs_json=json.dumps(ctx.context_refs[:8]),
             trace_id=trace_id,
