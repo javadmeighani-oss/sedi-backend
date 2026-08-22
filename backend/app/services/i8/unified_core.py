@@ -10,13 +10,14 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend.app.services.i6.consent_service import PERM_READ, ConsentDenied, has_permission
+from backend.app import models
 from backend.app.services.i8.constants import (
     ACTION_DOMAINS,
     PRESENTATION_JSON_MAX_BYTES,
     SUMMARY_TEXT_MAX_LEN,
 )
 from backend.app.services.i8.context import load_trusted_context
-from backend.app.services.i8.contracts import I8OperationalActionResult
+from backend.app.services.i8.contracts import I8ActionSuggestion, I8OperationalActionResult
 from backend.app.services.i8.knowledge_bridge import (
     build_persisted_operational_snapshot,
     compose_grounded_action,
@@ -27,8 +28,10 @@ from backend.app.services.i8.lifecycle import I8OperationalLifecycle
 from backend.app.services.i8.local_day import (
     I8InvalidTimezoneError,
     I8TimezoneRequiredError,
+    local_day_utc_span_seconds,
     resolve_local_day_window,
 )
+from backend.app.services.i8.repository import I8OperationalRepository
 from backend.app.services.i8.safety import evaluate_composed_safety, evaluate_safety
 
 
@@ -79,6 +82,99 @@ def _candidate_text(suggestions) -> str:
     return " ".join(f"{s.label} {s.detail}" for s in suggestions)
 
 
+_REPLAYABLE_ACTION_STATUSES = frozenset({"ACTIVE", "COMPLETED"})
+
+
+def _parse_knowledge_refs_json(raw: str | None) -> list[dict]:
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [entry for entry in parsed if isinstance(entry, dict)]
+
+
+def _build_replay_result(
+    *,
+    plan: models.I8OperationalPlan,
+    action: models.I8OperationalPlanAction,
+    generation_mode: str,
+) -> I8OperationalActionResult:
+    refs = _parse_knowledge_refs_json(action.knowledge_refs_json)
+    if not refs:
+        return I8OperationalActionResult(
+            status="ACTION_PROVENANCE_INTEGRITY",
+            domain=action.action_domain,
+            action_mode=generation_mode,
+            safety_state="CLARIFY",
+            clarification_required=True,
+            summary="Persisted knowledge references are unavailable for replay.",
+            plan_id=int(plan.id),
+            action_id=int(action.id),
+            persisted=True,
+        )
+    if action.status not in _REPLAYABLE_ACTION_STATUSES:
+        return I8OperationalActionResult(
+            status="ACTION_NOT_REPLAYABLE",
+            domain=action.action_domain,
+            action_mode=generation_mode,
+            safety_state=action.safety_state,
+            clarification_required=True,
+            summary=f"Persisted action is not replayable in status {action.status}.",
+            knowledge_refs=refs,
+            valid_from=action.valid_from.isoformat() if action.valid_from else None,
+            valid_until=action.valid_until.isoformat() if action.valid_until else None,
+            plan_id=int(plan.id),
+            action_id=int(action.id),
+            persisted=True,
+        )
+    summary = action.summary_text
+    return I8OperationalActionResult(
+        status="ACTION_PERSISTED",
+        domain=action.action_domain,
+        action_mode=generation_mode,
+        summary=summary,
+        suggestions=[
+            I8ActionSuggestion(
+                label=summary,
+                detail="Persisted operational action reference.",
+            )
+        ],
+        rationale="Idempotent replay from persisted operational state.",
+        safety_state=action.safety_state,
+        clarification_required=bool(action.clarification_required),
+        knowledge_refs=refs,
+        valid_from=action.valid_from.isoformat() if action.valid_from else None,
+        valid_until=action.valid_until.isoformat() if action.valid_until else None,
+        plan_id=int(plan.id),
+        action_id=int(action.id),
+        persisted=True,
+    )
+
+
+def _try_idempotent_replay(
+    db: Session,
+    *,
+    user_id: int,
+    generation_mode: str,
+    plan_idempotency_key: str,
+    action_idempotency_key: str,
+) -> I8OperationalActionResult | None:
+    repo = I8OperationalRepository()
+    plan, action = repo.get_idempotent_replay(
+        db,
+        user_id=user_id,
+        plan_idempotency_key=plan_idempotency_key,
+        action_idempotency_key=action_idempotency_key,
+    )
+    if action is None:
+        return None
+    return _build_replay_result(plan=plan, action=action, generation_mode=generation_mode)
+
+
 def generate_operational_action(
     db: Session,
     *,
@@ -110,6 +206,46 @@ def generate_operational_action(
             clarification_required=True,
             summary="Memory consent is required before personalized actions.",
         )
+
+    if persist:
+        try:
+            window = resolve_local_day_window(db, user_id)
+        except I8TimezoneRequiredError:
+            return I8OperationalActionResult(
+                status="TIMEZONE_REQUIRED",
+                domain=resolved_domain,
+                safety_state="CLARIFY",
+                clarification_required=True,
+                summary="UserProfileCore.timezone is required for I8 operational plans.",
+            )
+        except I8InvalidTimezoneError:
+            return I8OperationalActionResult(
+                status="TIMEZONE_INVALID",
+                domain=resolved_domain,
+                safety_state="CLARIFY",
+                clarification_required=True,
+                summary="UserProfileCore.timezone must be a valid IANA timezone.",
+            )
+
+        plan_key = plan_idempotency_key or _idempotency_key(
+            str(user_id), window.user_local_date.isoformat(), generation_mode, resolved_domain
+        )
+        action_key = action_idempotency_key or _idempotency_key(
+            plan_key, request.strip().casefold()
+        )
+        replay = _try_idempotent_replay(
+            db,
+            user_id=user_id,
+            generation_mode=generation_mode,
+            plan_idempotency_key=plan_key,
+            action_idempotency_key=action_key,
+        )
+        if replay is not None:
+            return replay
+    else:
+        window = None
+        plan_key = None
+        action_key = None
 
     ctx = load_trusted_context(db, user_id)
     pre_safety = evaluate_safety(request=request, ctx=ctx, retrieval=None, domain=resolved_domain)
@@ -198,7 +334,8 @@ def generate_operational_action(
         )
 
     try:
-        window = resolve_local_day_window(db, user_id)
+        if window is None:
+            window = resolve_local_day_window(db, user_id)
     except I8TimezoneRequiredError:
         return I8OperationalActionResult(
             status="TIMEZONE_REQUIRED",
@@ -236,10 +373,12 @@ def generate_operational_action(
         return result
 
     lifecycle = I8OperationalLifecycle()
-    plan_key = plan_idempotency_key or _idempotency_key(
-        str(user_id), window.user_local_date.isoformat(), generation_mode, resolved_domain
-    )
-    action_key = action_idempotency_key or _idempotency_key(plan_key, request.strip().casefold())
+    if plan_key is None:
+        plan_key = plan_idempotency_key or _idempotency_key(
+            str(user_id), window.user_local_date.isoformat(), generation_mode, resolved_domain
+        )
+    if action_key is None:
+        action_key = action_idempotency_key or _idempotency_key(plan_key, request.strip().casefold())
 
     try:
         plan, _ = lifecycle.ensure_active_plan(

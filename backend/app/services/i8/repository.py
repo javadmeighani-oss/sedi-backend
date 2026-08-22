@@ -155,6 +155,27 @@ class I8OperationalRepository:
         db.flush()
         return row
 
+    def get_idempotent_replay(
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        plan_idempotency_key: str,
+        action_idempotency_key: str,
+    ) -> tuple[Optional[models.I8OperationalPlan], Optional[models.I8OperationalPlanAction]]:
+        """User-scoped idempotent plan/action lookup for replay (no cross-user access)."""
+        plan = self.get_plan_by_idempotency(
+            db, user_id=user_id, plan_idempotency_key=plan_idempotency_key
+        )
+        if plan is None:
+            return None, None
+        action = self.get_action_by_idempotency(
+            db, plan_id=plan.id, action_idempotency_key=action_idempotency_key
+        )
+        if action is None or action.user_id != user_id or plan.user_id != user_id:
+            return plan, None
+        return plan, action
+
     def mark_plan_status(
         self,
         db: Session,

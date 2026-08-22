@@ -473,10 +473,13 @@ def test_idempotency_no_duplicate(db, monkeypatch):
     _profile_tz(db, user.id)
     db.commit()
     _grant_and_seed(db, user.id)
-    monkeypatch.setattr(
-        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
-        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[_ok_item()]),
-    )
+    called = {"n": 0}
+
+    def _fake(*a, **k):
+        called["n"] += 1
+        return SimpleNamespace(status=STATUS_OK, items=[_ok_item()])
+
+    monkeypatch.setattr("backend.app.services.i8.unified_core.retrieve_governed_knowledge", _fake)
     kwargs = dict(
         user_id=user.id,
         actor_user_id=user.id,
@@ -490,8 +493,122 @@ def test_idempotency_no_duplicate(db, monkeypatch):
     second = generate_operational_action(db, **kwargs)
     assert first.plan_id == second.plan_id
     assert first.action_id == second.action_id
+    assert called["n"] == 1
     assert db.query(models.I8OperationalPlan).filter_by(user_id=user.id).count() == 1
     assert db.query(models.I8OperationalPlanAction).filter_by(user_id=user.id).count() == 1
+
+
+I8_KU_V1_SENTINEL = "I8_KU_V1_SENTINEL"
+I8_KU_V2_SENTINEL = "I8_KU_V2_SENTINEL"
+
+
+def _ku_item(*, ku_id: int, version: str, sentinel: str) -> RetrievedKnowledgeItem:
+    return RetrievedKnowledgeItem(
+        knowledge_unit_id=ku_id,
+        canonical_unit_id=f"KU-{ku_id}",
+        immutable_version_id=version,
+        memory_item_id=f"m{ku_id}",
+        memory_row_id=ku_id,
+        source_profile_id=1,
+        provenance_id=ku_id,
+        raw_evidence_id=None,
+        domain="nutrition",
+        language="en",
+        topic_taxonomy=None,
+        normalized_statement=f"{sentinel} choose a balanced meal",
+        evidence_strength="MODERATE",
+        freshness_state="fresh",
+        conflict_state="none",
+        medical_safety_state="SAFE",
+        runtime_eligibility="eligible",
+        rank_score=10,
+    )
+
+
+def test_idempotent_replay_provenance_ku_v1_not_v2(db, monkeypatch):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    retrieval_calls = {"n": 0}
+
+    def _fake(db, **kwargs):
+        retrieval_calls["n"] += 1
+        if retrieval_calls["n"] == 1:
+            return SimpleNamespace(status=STATUS_OK, items=[_ku_item(ku_id=101, version="v1", sentinel=I8_KU_V1_SENTINEL)])
+        return SimpleNamespace(status=STATUS_OK, items=[_ku_item(ku_id=202, version="v2", sentinel=I8_KU_V2_SENTINEL)])
+
+    monkeypatch.setattr("backend.app.services.i8.unified_core.retrieve_governed_knowledge", _fake)
+    kwargs = dict(
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="healthy lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="replay-plan-P",
+        action_idempotency_key="replay-act-A",
+    )
+    first = generate_operational_action(db, **kwargs)
+    assert first.status == "ACTION_PERSISTED"
+    assert I8_KU_V1_SENTINEL in first.summary
+    assert I8_KU_V2_SENTINEL not in first.summary
+    assert first.knowledge_refs[0]["knowledge_unit_id"] == 101
+    assert first.knowledge_refs[0]["immutable_version_id"] == "v1"
+
+    row = db.query(models.I8OperationalPlanAction).filter_by(id=first.action_id).one()
+    assert "101" in row.knowledge_refs_json
+    assert "v1" in row.knowledge_refs_json
+    assert I8_KU_V1_SENTINEL not in row.summary_text
+    assert I8_KU_V2_SENTINEL not in row.knowledge_refs_json
+
+    second = generate_operational_action(db, **kwargs)
+    assert retrieval_calls["n"] == 1
+    assert second.plan_id == first.plan_id
+    assert second.action_id == first.action_id
+    assert second.knowledge_refs[0]["knowledge_unit_id"] == 101
+    assert second.knowledge_refs[0]["immutable_version_id"] == "v1"
+    assert I8_KU_V2_SENTINEL not in second.summary
+    assert I8_KU_V2_SENTINEL not in json.dumps(second.knowledge_refs)
+    assert I8_KU_V1_SENTINEL not in second.summary
+    assert db.query(models.I8OperationalPlan).filter_by(user_id=user.id).count() == 1
+    assert db.query(models.I8OperationalPlanAction).filter_by(user_id=user.id).count() == 1
+
+
+def test_cross_user_idempotent_replay_isolated(db, monkeypatch):
+    user_a = _user(db, "replay-a")
+    user_b = _user(db, "replay-b")
+    _profile_tz(db, user_a.id)
+    _profile_tz(db, user_b.id)
+    db.commit()
+    _grant_and_seed(db, user_a.id)
+    _grant_and_seed(db, user_b.id)
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[_ku_item(ku_id=101, version="v1", sentinel=I8_KU_V1_SENTINEL)]),
+    )
+    first = generate_operational_action(
+        db,
+        user_id=user_a.id,
+        actor_user_id=user_a.id,
+        request="lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="shared-P",
+        action_idempotency_key="shared-A",
+    )
+    second = generate_operational_action(
+        db,
+        user_id=user_b.id,
+        actor_user_id=user_b.id,
+        request="lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="shared-P",
+        action_idempotency_key="shared-A",
+    )
+    assert first.action_id != second.action_id
+    assert first.plan_id != second.plan_id
+    assert db.query(models.I8OperationalPlanAction).filter_by(user_id=user_b.id).count() == 1
 
 
 def test_cross_user_action_rejected(db):
