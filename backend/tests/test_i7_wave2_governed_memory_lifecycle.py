@@ -148,6 +148,19 @@ def test_migration_068_is_single_successor():
     assert re.search(r"down_revision.*=.*067_i7_lifelong_memory_foundation", text)
 
 
+def test_migration_069_is_single_successor():
+    from pathlib import Path
+    import re
+
+    versions = Path(__file__).resolve().parents[1] / "alembic" / "versions"
+    files = list(versions.glob("069*.py"))
+    assert len(files) == 1
+    text = files[0].read_text(encoding="utf-8")
+    assert "069_i8_operational_plan_state_foundation" in text
+    assert "068_i7_wave2_governed_memory_lifecycle" in text
+    assert re.search(r"down_revision.*068_i7_wave2_governed_memory_lifecycle", text)
+
+
 def test_i9_pattern_requires_source_refs():
     from backend.app.services.i7.i9_patterns import upsert_i9_derived_pattern
 

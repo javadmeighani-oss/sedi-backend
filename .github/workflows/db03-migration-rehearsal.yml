@@ -173,6 +173,20 @@ jobs:
         run: |
           python -B -m pytest backend/tests/test_i8_operational_plan_state_foundation.py::test_i8_068_069_rehearsal -q --tb=short --noconftest
 
+      - name: Reset schema after I8 Alembic rehearsal
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          print("SCHEMA_RESET_AFTER_I8=OK")
+          PY
+
       - name: Focused I7 Wave-2 unit tests
         run: |
           python -B -m pytest backend/tests/test_i7_wave2_governed_memory_lifecycle.py -q --tb=short
