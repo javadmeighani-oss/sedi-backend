@@ -33,6 +33,9 @@ class I8OperationalLifecycle:
         active = self._repo.get_active_plan(
             db, user_id=user_id, user_local_date=window.user_local_date
         )
+        prior_active_id = active.id if active is not None else None
+        if active is not None:
+            self._repo.mark_plan_status(db, active, "SUPERSEDED")
         plan = self._repo.create_plan(
             db,
             user_id=user_id,
@@ -45,10 +48,11 @@ class I8OperationalLifecycle:
             expires_at=window.expires_at,
             trace_id=trace_id,
         )
-        if active is not None and active.id != plan.id:
+        if prior_active_id is not None and prior_active_id != plan.id:
+            prior = db.query(models.I8OperationalPlan).filter_by(id=prior_active_id).one()
             self._repo.mark_plan_status(
                 db,
-                active,
+                prior,
                 "SUPERSEDED",
                 superseded_by_plan_id=plan.id,
             )

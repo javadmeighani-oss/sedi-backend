@@ -72,7 +72,8 @@ def evaluate_safety(
         )
 
     for restriction in ctx.restrictions:
-        if restriction and restriction.casefold() in req_lower:
+        r = restriction.casefold()
+        if r and (r in req_lower or any(tok in req_lower for tok in r.split() if len(tok) > 3)):
             return SafetyDecision(
                 allowed=False,
                 safety_state="BLOCKED",
