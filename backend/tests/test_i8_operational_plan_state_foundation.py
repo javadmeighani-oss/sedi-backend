@@ -38,6 +38,8 @@ def test_migration_069_static_audit():
     assert re.search(r"down_revision.*068_i7_wave2_governed_memory_lifecycle", body)
     assert "i8_operational_plans" in body
     assert "i8_operational_plan_actions" in body
+    assert "uq_i8_plan_id_user" in body
+    assert "fk_i8_action_plan_user" in body
     assert "notifications" not in body
     assert "user_care_plan_items" not in body
     assert not re.search(r"(?i)create\s+extension\s+.*vector", body)
@@ -196,7 +198,7 @@ def test_i8_068_069_rehearsal():
             )
         }
         assert "uq_i8_plan_user_local_active" in idx
-        assert "uq_i8_plan_user_idempotency" in {
+        plan_constraints = {
             r[0]
             for r in conn.execute(
                 text(
@@ -205,6 +207,8 @@ def test_i8_068_069_rehearsal():
                 )
             )
         }
+        assert "uq_i8_plan_id_user" in plan_constraints
+        assert "uq_i8_plan_user_idempotency" in plan_constraints
 
         user_id = _seed_user(conn)
         conn.commit()
@@ -244,6 +248,14 @@ def test_i8_068_069_rehearsal():
         # invalid FK plan
         with pytest.raises(IntegrityError):
             _insert_action(conn, plan_id=999999, user_id=user_id, idem="act-orphan")
+            conn.commit()
+        conn.rollback()
+
+        # cross-user plan/action mismatch must be rejected (composite FK)
+        user_b = _seed_user(conn)
+        conn.commit()
+        with pytest.raises(IntegrityError):
+            _insert_action(conn, plan_id=plan_id, user_id=user_b, idem="act-cross-user")
             conn.commit()
         conn.rollback()
 

@@ -40,6 +40,7 @@ CREATE TABLE i8_operational_plans (
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT uq_i8_plan_user_idempotency UNIQUE (user_id, plan_idempotency_key),
+    CONSTRAINT uq_i8_plan_id_user UNIQUE (id, user_id),
     CONSTRAINT ck_i8_plan_status CHECK (
         status IN ('ACTIVE', 'COMPLETED', 'SUPERSEDED', 'EXPIRED', 'CANCELLED')
     ),
@@ -114,8 +115,8 @@ CREATE TABLE i8_operational_plan_actions (
     CONSTRAINT ck_i8_action_safety_state CHECK (
         safety_state IN ('SAFE', 'BLOCKED', 'CLARIFY')
     ),
-    CONSTRAINT fk_i8_action_plan_id FOREIGN KEY (plan_id)
-        REFERENCES i8_operational_plans(id) ON DELETE CASCADE,
+    CONSTRAINT fk_i8_action_plan_user FOREIGN KEY (plan_id, user_id)
+        REFERENCES i8_operational_plans(id, user_id) ON DELETE CASCADE,
     CONSTRAINT fk_i8_action_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 """
