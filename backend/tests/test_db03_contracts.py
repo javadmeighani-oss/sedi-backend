@@ -78,9 +78,11 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["068_i7_wave2_governed_memory_lifecycle"]
-    rev = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
-    assert rev.down_revision == "067_i7_lifelong_memory_foundation"
+    assert heads == ["069_i8_operational_plan_state_foundation"]
+    rev = script.get_revision("069_i8_operational_plan_state_foundation")
+    assert rev.down_revision == "068_i7_wave2_governed_memory_lifecycle"
+    rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
+    assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
     rev067 = script.get_revision("067_i7_lifelong_memory_foundation")
     assert rev067.down_revision == "065_i5_know04_connectors_change_intelligence"
     rev = script.get_revision("065_i5_know04_connectors_change_intelligence")

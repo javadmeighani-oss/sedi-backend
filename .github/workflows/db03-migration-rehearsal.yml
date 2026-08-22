@@ -9,6 +9,7 @@ on:
       - "backend/app/models.py"
       - "backend/app/services/db03/**"
       - "backend/tests/test_db03_*.py"
+      - "backend/tests/test_i8_operational_plan_state_foundation.py"
       - "backend/ops/db03/**"
       - ".github/workflows/db03-migration-rehearsal.yml"
 
@@ -82,7 +83,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["068_i7_wave2_governed_memory_lifecycle"], heads
+          assert heads == ["069_i8_operational_plan_state_foundation"], heads
           PY
 
       - name: Fresh upgrade to head
@@ -104,7 +105,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "068_i7_wave2_governed_memory_lifecycle"
+              assert head == "069_i8_operational_plan_state_foundation"
           PY
 
       - name: 056 synthetic baseline then upgrade head
@@ -130,7 +131,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD_AFTER_056", head)
-              assert head == "068_i7_wave2_governed_memory_lifecycle"
+              assert head == "069_i8_operational_plan_state_foundation"
               pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
               ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
               print("PM_ROWS", pm, "UPS_ROWS", ups)
@@ -168,6 +169,10 @@ jobs:
         run: |
           python -B -m pytest backend/tests/test_db03_migration_rehearsal.py::test_i7_wave2_067_068_roundtrip -q --tb=short
 
+      - name: I8 068↔069 operational plan state rehearsal
+        run: |
+          python -B -m pytest backend/tests/test_i8_operational_plan_state_foundation.py::test_i8_068_069_rehearsal -q --tb=short
+
       - name: Focused I7 Wave-2 unit tests
         run: |
           python -B -m pytest backend/tests/test_i7_wave2_governed_memory_lifecycle.py -q --tb=short
@@ -185,7 +190,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "ALEMBIC_HEAD=068_i7_wave2_governed_memory_lifecycle"
+            echo "ALEMBIC_HEAD=069_i8_operational_plan_state_foundation"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
             echo "RAG_EMBEDDINGS_INTRODUCED=NO"
