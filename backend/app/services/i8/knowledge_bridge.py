@@ -16,7 +16,7 @@ from backend.app.services.i5.runtime_knowledge_retrieval import (
     retrieve_knowledge_context,
     STATUS_OK,
 )
-from backend.app.services.i8.constants import MAX_KNOWLEDGE_REFS, SUMMARY_TEXT_MAX_LEN
+from backend.app.services.i8.constants import MAX_KNOWLEDGE_REFS, OPERATIONAL_SUMMARY_LABELS, SUMMARY_TEXT_MAX_LEN
 from backend.app.services.i8.context import I8TrustedContext
 from backend.app.services.i8.contracts import I8ActionSuggestion
 
@@ -118,3 +118,29 @@ def compose_grounded_action(
         used_items=used_items[:1],
         rationale=rationale,
     )
+
+
+def operational_summary_label(domain: str) -> str:
+    return OPERATIONAL_SUMMARY_LABELS.get(domain, "Governed health action")
+
+
+def build_persisted_operational_snapshot(
+    *,
+    domain: str,
+    action_type: str,
+    used_items: list[RetrievedKnowledgeItem],
+    request_fingerprint: str,
+    safety_state: str = "SAFE",
+) -> tuple[str, dict]:
+    """Sanitized durable I8 state: metadata and ID-only refs, no I5 statement text."""
+    refs = json.loads(knowledge_refs_payload(used_items))
+    summary_text = operational_summary_label(domain)
+    presentation = {
+        "domain": domain,
+        "action_type": action_type,
+        "grounding": "governed_i5_reference",
+        "knowledge_unit_ids": [r["knowledge_unit_id"] for r in refs],
+        "request_fingerprint": request_fingerprint,
+        "safety_state": safety_state,
+    }
+    return summary_text, presentation

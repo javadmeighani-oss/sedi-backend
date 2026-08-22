@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 import pytz
 from sqlalchemy.orm import Session
@@ -47,6 +47,17 @@ def _local_now_from_utc(now_utc: datetime, tz_name: str) -> datetime:
     return aware.astimezone(pytz.timezone(tz_name))
 
 
+def _local_midnight(tz: pytz.BaseTzInfo, local_date: date) -> datetime:
+    """DST-safe local calendar midnight via independent localization."""
+    return tz.localize(datetime.combine(local_date, time.min), is_dst=None)
+
+
+def local_day_utc_span_seconds(window: LocalDayWindow) -> float:
+    """Seconds from valid_from through end of local day (exclusive next midnight)."""
+    next_midnight = window.valid_until + timedelta(microseconds=1)
+    return (next_midnight - window.valid_from).total_seconds()
+
+
 def resolve_local_day_window(
     db: Session,
     user_id: int,
@@ -54,15 +65,21 @@ def resolve_local_day_window(
     now_utc: datetime | None = None,
 ) -> LocalDayWindow:
     tz_name = resolve_i8_strict_timezone(db, user_id)
+    tz = pytz.timezone(tz_name)
     now = now_utc or datetime.now(timezone.utc)
     local_now = _local_now_from_utc(now, tz_name)
-    start_local = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_local = start_local + timedelta(days=1) - timedelta(microseconds=1)
+    local_date = local_now.date()
+
+    start_local = _local_midnight(tz, local_date)
+    next_local_date = local_date + timedelta(days=1)
+    next_start_local = _local_midnight(tz, next_local_date)
+
     valid_from = start_local.astimezone(timezone.utc)
-    valid_until = end_local.astimezone(timezone.utc)
+    next_day_start_utc = next_start_local.astimezone(timezone.utc)
+    valid_until = next_day_start_utc - timedelta(microseconds=1)
     expires_at = valid_until + timedelta(hours=CLEANUP_GRACE_HOURS)
     return LocalDayWindow(
-        user_local_date=start_local.date(),
+        user_local_date=local_date,
         timezone_snapshot=tz_name,
         valid_from=valid_from,
         valid_until=valid_until,

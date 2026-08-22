@@ -42,3 +42,12 @@ MAX_KNOWLEDGE_REFS = 8
 
 # KNOW-06 governed person-specific disease applicability — not runtime-ready.
 GOVERNED_DISEASE_APPLICABILITY_AVAILABLE = False
+
+OPERATIONAL_SUMMARY_LABELS: dict[str, str] = {
+    "nutrition": "Governed nutrition action",
+    "exercise": "Governed activity action",
+    "routine": "Governed routine action",
+    "lifestyle": "Governed lifestyle action",
+    "wellbeing": "Governed wellbeing action",
+    "cross_domain": "Governed cross-domain action",
+}

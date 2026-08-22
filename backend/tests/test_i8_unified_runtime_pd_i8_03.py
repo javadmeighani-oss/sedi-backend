@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -19,6 +20,7 @@ from backend.app.services.i8.constants import PRESENTATION_JSON_MAX_BYTES
 from backend.app.services.i8.local_day import (
     I8InvalidTimezoneError,
     I8TimezoneRequiredError,
+    local_day_utc_span_seconds,
     resolve_local_day_window,
 )
 from backend.app.services.i8.repository import I8OperationalRepository
@@ -139,6 +141,39 @@ def test_local_day_invalid_timezone_fail_closed(db):
     db.commit()
     with pytest.raises(I8InvalidTimezoneError):
         resolve_local_day_window(db, user.id)
+
+
+def test_local_day_dst_spring_forward_23h(db):
+    user = _user(db)
+    _profile_tz(db, user.id, "America/New_York")
+    db.commit()
+    now_utc = datetime(2026, 3, 8, 17, 0, tzinfo=timezone.utc)
+    window = resolve_local_day_window(db, user.id, now_utc=now_utc)
+    assert window.timezone_snapshot == "America/New_York"
+    assert window.user_local_date.isoformat() == "2026-03-08"
+    assert local_day_utc_span_seconds(window) == 23 * 3600
+    assert window.expires_at == window.valid_until + timedelta(hours=36)
+
+
+def test_local_day_dst_fall_back_25h(db):
+    user = _user(db)
+    _profile_tz(db, user.id, "America/New_York")
+    db.commit()
+    now_utc = datetime(2026, 11, 1, 16, 0, tzinfo=timezone.utc)
+    window = resolve_local_day_window(db, user.id, now_utc=now_utc)
+    assert window.user_local_date.isoformat() == "2026-11-01"
+    assert local_day_utc_span_seconds(window) == 25 * 3600
+    assert window.expires_at == window.valid_until + timedelta(hours=36)
+
+
+def test_local_day_normal_24h(db):
+    user = _user(db)
+    _profile_tz(db, user.id, "America/New_York")
+    db.commit()
+    now_utc = datetime(2026, 6, 15, 16, 0, tzinfo=timezone.utc)
+    window = resolve_local_day_window(db, user.id, now_utc=now_utc)
+    assert window.user_local_date.isoformat() == "2026-06-15"
+    assert local_day_utc_span_seconds(window) == 24 * 3600
 
 
 def test_timezone_required_blocks_plan_persist(db, monkeypatch):
@@ -355,6 +390,51 @@ def test_i5_gateway_used_grounded_refs_aligned(db, monkeypatch):
     assert "Governed I5-grounded" not in result.rationale
     assert "Action derived from governed knowledge" in result.rationale
     assert "normalized_statement" not in json.dumps(result.knowledge_refs)
+    row = db.query(models.I8OperationalPlanAction).filter_by(id=result.action_id).one()
+    persisted_blob = json.dumps(
+        {
+            "summary_text": row.summary_text,
+            "presentation_json": row.presentation_json,
+            "knowledge_refs_json": row.knowledge_refs_json,
+            "context_refs_json": row.context_refs_json,
+        }
+    )
+    assert item.normalized_statement not in persisted_blob
+    assert row.summary_text == "Governed nutrition action"
+
+
+I8_RAW_I5_SENTINEL = "I8_RAW_I5_SENTINEL_REPAIR02"
+
+
+def test_raw_i5_sentinel_ephemeral_yes_db_no(db, monkeypatch):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    statement = f"{I8_RAW_I5_SENTINEL} choose vegetables for lunch"
+    item = _ok_item(statement=statement)
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[item]),
+    )
+    result = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="healthy lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="sentinel-plan",
+        action_idempotency_key="sentinel-act",
+    )
+    assert result.status == "ACTION_PERSISTED"
+    assert I8_RAW_I5_SENTINEL in result.summary
+    assert result.knowledge_refs[0]["knowledge_unit_id"] == item.knowledge_unit_id
+    row = db.query(models.I8OperationalPlanAction).filter_by(id=result.action_id).one()
+    db_fields = f"{row.summary_text}|{row.presentation_json}|{row.knowledge_refs_json}|{row.context_refs_json or ''}"
+    assert I8_RAW_I5_SENTINEL not in db_fields
+    assert str(item.knowledge_unit_id) in row.knowledge_refs_json
+    assert item.immutable_version_id in row.knowledge_refs_json
 
 
 def test_reactive_domains(db, monkeypatch):

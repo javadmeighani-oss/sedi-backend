@@ -18,6 +18,7 @@ from backend.app.services.i8.constants import (
 from backend.app.services.i8.context import load_trusted_context
 from backend.app.services.i8.contracts import I8OperationalActionResult
 from backend.app.services.i8.knowledge_bridge import (
+    build_persisted_operational_snapshot,
     compose_grounded_action,
     knowledge_refs_payload,
     retrieve_governed_knowledge,
@@ -160,22 +161,40 @@ def generate_operational_action(
 
     summary = suggestions[0].detail[:SUMMARY_TEXT_MAX_LEN]
     refs = json.loads(knowledge_refs_payload(composition.used_items))
-    presentation = {
+    request_fingerprint = _idempotency_key(request.strip().casefold())[:16]
+    response_presentation = {
         "domain": resolved_domain,
         "action_type": _default_action_type(resolved_domain),
         "rationale": composition.rationale,
         "suggestions": [{"label": s.label, "detail": s.detail} for s in suggestions],
-        "request_fingerprint": _idempotency_key(request.strip().casefold())[:16],
+        "request_fingerprint": request_fingerprint,
         "grounded_knowledge_unit_ids": [r["knowledge_unit_id"] for r in refs],
     }
     try:
-        _validate_presentation(presentation)
+        _validate_presentation(response_presentation)
     except ValueError:
         return I8OperationalActionResult(
             status="PRESENTATION_TOO_LARGE",
             domain=resolved_domain,
             safety_state="BLOCKED",
             summary="Presentation payload exceeds allowed bound.",
+        )
+
+    persisted_summary, persisted_presentation = build_persisted_operational_snapshot(
+        domain=resolved_domain,
+        action_type=_default_action_type(resolved_domain),
+        used_items=composition.used_items,
+        request_fingerprint=request_fingerprint,
+        safety_state="SAFE",
+    )
+    try:
+        _validate_presentation(persisted_presentation)
+    except ValueError:
+        return I8OperationalActionResult(
+            status="PRESENTATION_TOO_LARGE",
+            domain=resolved_domain,
+            safety_state="BLOCKED",
+            summary="Persisted presentation payload exceeds allowed bound.",
         )
 
     try:
@@ -239,8 +258,8 @@ def generate_operational_action(
             action_domain=resolved_domain,
             action_type=_default_action_type(resolved_domain),
             action_idempotency_key=action_key,
-            summary_text=summary,
-            presentation_json=json.dumps(presentation, ensure_ascii=False, separators=(",", ":")),
+            summary_text=persisted_summary,
+            presentation_json=json.dumps(persisted_presentation, ensure_ascii=False, separators=(",", ":")),
             knowledge_refs_json=knowledge_refs_payload(composition.used_items),
             safety_state="SAFE",
             context_refs_json=json.dumps(ctx.context_refs[:8]),
