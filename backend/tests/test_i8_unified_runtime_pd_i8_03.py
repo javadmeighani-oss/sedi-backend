@@ -353,7 +353,7 @@ def test_i5_gateway_used_grounded_refs_aligned(db, monkeypatch):
     assert result.knowledge_refs[0]["knowledge_unit_id"] == item.knowledge_unit_id
     assert item.normalized_statement in result.summary
     assert "Governed I5-grounded" not in result.rationale
-    assert "Derived from governed knowledge" in result.rationale
+    assert "Action derived from governed knowledge" in result.rationale
     assert "normalized_statement" not in json.dumps(result.knowledge_refs)
 
 
