@@ -751,9 +751,11 @@ def start_scheduler():
 
         # PD-I8-04B: I8 proactive schedule scan (always registered; body no-ops unless flag ON).
         # Default OFF. Scheduler is trigger producer only — no I8 decision logic here.
+        # Cadence is env-configurable (not a hard-coded product cadence).
         try:
             from backend.app.services.i8.feature_flags import (
                 I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG,
+                i8_proactive_schedule_scan_interval_minutes,
                 i8_proactive_schedule_trigger_enabled,
             )
             from backend.app.services.i8.schedule_scan import (
@@ -761,10 +763,11 @@ def start_scheduler():
                 run_i8_proactive_schedule_scan_job,
             )
 
+            i8_scan_interval_min = i8_proactive_schedule_scan_interval_minutes()
             scheduler.add_job(
                 run_i8_proactive_schedule_scan_job,
                 "interval",
-                minutes=15,
+                minutes=i8_scan_interval_min,
                 id=I8_SCHEDULE_SCAN_JOB_ID,
                 replace_existing=True,
                 max_instances=1,
@@ -774,9 +777,10 @@ def start_scheduler():
             print(
                 "[Sedi Scheduler] I8 proactive schedule scan job registered "
                 f"id={I8_SCHEDULE_SCAN_JOB_ID} "
+                f"interval_min={i8_scan_interval_min} "
                 f"flag={I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG} "
                 f"enabled={i8_proactive_schedule_trigger_enabled()} "
-                "(default OFF; producer-only)"
+                "(default OFF; producer-only; fair in-process cursor)"
             )
         except Exception as e:
             print(f"[Sedi Scheduler] I8 proactive schedule scan wiring failed: {e}")

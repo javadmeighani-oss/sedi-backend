@@ -11,8 +11,10 @@ import pytest
 
 from backend.app.services.i8.evaluation_identity import build_evaluation_identity_key
 from backend.app.services.i8.feature_flags import (
+    I8_PROACTIVE_SCHEDULE_SCAN_INTERVAL_ENV,
     I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG,
     i8_proactive_schedule_scan_batch_size,
+    i8_proactive_schedule_scan_interval_minutes,
     i8_proactive_schedule_trigger_enabled,
 )
 from backend.app.services.i8.schedule_adapter import adapt_trusted_schedule_trigger
@@ -24,7 +26,10 @@ from backend.app.services.i8.schedule_rules import (
 )
 from backend.app.services.i8.schedule_scan import (
     I8_SCHEDULE_SCAN_JOB_ID,
+    apply_schedule_scan_cursor_progression,
+    get_schedule_scan_cursor,
     iter_eligible_schedule_user_ids,
+    reset_schedule_scan_cursors,
     run_i8_proactive_schedule_scan,
 )
 from backend.app.services.i8.trusted_trigger import (
@@ -52,6 +57,19 @@ def test_batch_size_bounds(monkeypatch):
     assert i8_proactive_schedule_scan_batch_size() == 200
     monkeypatch.setenv("SEDI_I8_PROACTIVE_SCHEDULE_SCAN_BATCH_SIZE", "0")
     assert i8_proactive_schedule_scan_batch_size() == 1
+
+
+def test_cadence_config_bounds_and_fallback(monkeypatch):
+    monkeypatch.delenv(I8_PROACTIVE_SCHEDULE_SCAN_INTERVAL_ENV, raising=False)
+    assert i8_proactive_schedule_scan_interval_minutes() == 15
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_SCAN_INTERVAL_ENV, "30")
+    assert i8_proactive_schedule_scan_interval_minutes() == 30
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_SCAN_INTERVAL_ENV, "1")
+    assert i8_proactive_schedule_scan_interval_minutes() == 5
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_SCAN_INTERVAL_ENV, "99999")
+    assert i8_proactive_schedule_scan_interval_minutes() == 1440
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_SCAN_INTERVAL_ENV, "abc")
+    assert i8_proactive_schedule_scan_interval_minutes() == 15
 
 
 def test_schedule_rule_allowlist():
@@ -233,8 +251,13 @@ def test_scheduler_registers_i8_schedule_job():
     assert "max_instances=1" in src
     assert "coalesce=True" in src
     assert "I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG" in src
+    assert "i8_proactive_schedule_scan_interval_minutes" in src
     assert I8_SCHEDULE_SCAN_JOB_ID == "i8_proactive_schedule_scan_v1"
     assert I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG == "SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED"
+    # I8 job must not hard-code product cadence.
+    i8_block = src.split("PD-I8-04B", 1)[1].split("scheduler.start()", 1)[0]
+    assert "minutes=15" not in i8_block
+    assert "minutes=i8_scan_interval_min" in i8_block
 
 
 def test_adapter_source_has_no_decision_engine():
@@ -245,3 +268,156 @@ def test_adapter_source_has_no_decision_engine():
         assert "generate_operational_action" not in src
         assert "retrieve_governed_knowledge" not in src
         assert "notification_title" not in src
+
+
+def test_multi_tick_fair_progression_and_wrap(monkeypatch):
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG, "1")
+    reset_schedule_scan_cursors()
+    rule = SCHEDULE_RULE_DAILY_WELLBEING_CHECK
+    pages = {
+        0: [1, 2],
+        2: [3, 4],
+        4: [5],
+        5: [],
+    }
+    seen_pages: list[list[int]] = []
+
+    def _iter(_db, *, after_user_id=0, limit=2):
+        page = list(pages.get(int(after_user_id), []))
+        seen_pages.append(page)
+        assert len(page) <= limit
+        return page
+
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.iter_eligible_schedule_user_ids",
+        _iter,
+    )
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.resolve_local_day_window",
+        lambda *_a, **_k: SimpleNamespace(
+            user_local_date=date(2026, 8, 22),
+            timezone_snapshot="Asia/Tehran",
+        ),
+    )
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.adapt_trusted_schedule_trigger",
+        lambda *_a, **_k: SimpleNamespace(
+            status="NO_ACTION", outcome="NO_ACTION", reused=False
+        ),
+    )
+
+    ticks = []
+    for _ in range(4):
+        cursor = get_schedule_scan_cursor(rule)
+        stats = run_i8_proactive_schedule_scan(
+            MagicMock(), after_user_id=cursor, batch_size=2, schedule_rule_id=rule
+        )
+        stats = apply_schedule_scan_cursor_progression(schedule_rule_id=rule, stats=stats)
+        ticks.append(
+            (
+                list(seen_pages[-1]),
+                stats.cursor_after,
+                stats.cursor_wrapped,
+                stats.eligible_scanned,
+            )
+        )
+
+    assert ticks[0][0] == [1, 2] and ticks[0][1] == 2 and ticks[0][2] is False
+    assert ticks[1][0] == [3, 4] and ticks[1][1] == 4 and ticks[1][2] is False
+    assert ticks[2][0] == [5] and ticks[2][1] == 5 and ticks[2][2] is False
+    assert ticks[3][0] == [] and ticks[3][1] == 0 and ticks[3][2] is True
+    reachable = {u for page, *_ in ticks for u in page}
+    assert reachable == {1, 2, 3, 4, 5}
+    assert seen_pages[0] != seen_pages[1]
+    assert get_schedule_scan_cursor(rule) == 0
+
+
+def test_flag_off_does_not_move_cursor(monkeypatch):
+    monkeypatch.delenv(I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG, raising=False)
+    reset_schedule_scan_cursors()
+    rule = SCHEDULE_RULE_DAILY_WELLBEING_CHECK
+    from backend.app.services.i8.schedule_scan import set_schedule_scan_cursor
+
+    set_schedule_scan_cursor(rule, 42)
+    stats = run_i8_proactive_schedule_scan(
+        MagicMock(), after_user_id=42, schedule_rule_id=rule
+    )
+    stats = apply_schedule_scan_cursor_progression(schedule_rule_id=rule, stats=stats)
+    assert stats.flag_enabled is False
+    assert stats.cursor_unchanged is True
+    assert stats.cursor_advanced is False
+    assert get_schedule_scan_cursor(rule) == 42
+
+
+def test_partial_failure_still_advances_page(monkeypatch):
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG, "1")
+    reset_schedule_scan_cursors()
+    rule = SCHEDULE_RULE_DAILY_WELLBEING_CHECK
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.iter_eligible_schedule_user_ids",
+        lambda *_a, **_k: [10, 20],
+    )
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.resolve_local_day_window",
+        lambda *_a, **_k: SimpleNamespace(
+            user_local_date=date(2026, 8, 22),
+            timezone_snapshot="Asia/Tehran",
+        ),
+    )
+
+    def _adapt(_db, trigger):
+        if trigger.user_id == 10:
+            raise RuntimeError("isolated")
+        return SimpleNamespace(status="NO_ACTION", outcome="NO_ACTION", reused=False)
+
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.adapt_trusted_schedule_trigger",
+        _adapt,
+    )
+    stats = run_i8_proactive_schedule_scan(
+        MagicMock(), after_user_id=0, batch_size=2, schedule_rule_id=rule
+    )
+    stats = apply_schedule_scan_cursor_progression(schedule_rule_id=rule, stats=stats)
+    assert stats.isolated_failures == 1
+    assert stats.evaluation_success == 1
+    assert stats.cursor_after == 20
+    assert get_schedule_scan_cursor(rule) == 20
+
+
+def test_catastrophic_query_failure_does_not_advance(monkeypatch):
+    monkeypatch.setenv(I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG, "1")
+    reset_schedule_scan_cursors()
+    rule = SCHEDULE_RULE_DAILY_WELLBEING_CHECK
+    from backend.app.services.i8.schedule_scan import set_schedule_scan_cursor
+
+    set_schedule_scan_cursor(rule, 7)
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(
+        "backend.app.services.i8.schedule_scan.iter_eligible_schedule_user_ids",
+        _boom,
+    )
+    with pytest.raises(RuntimeError):
+        run_i8_proactive_schedule_scan(
+            MagicMock(), after_user_id=7, schedule_rule_id=rule
+        )
+    assert get_schedule_scan_cursor(rule) == 7
+
+
+def test_retry_same_schedule_identity_stable():
+    d = date(2026, 8, 22)
+    a = build_evaluation_identity_key(
+        trigger_family="schedule",
+        user_id=9,
+        schedule_rule_id=SCHEDULE_RULE_DAILY_WELLBEING_CHECK,
+        user_local_date=d,
+    )
+    b = build_evaluation_identity_key(
+        trigger_family="schedule",
+        user_id=9,
+        schedule_rule_id=SCHEDULE_RULE_DAILY_WELLBEING_CHECK,
+        user_local_date=d,
+    )
+    assert a == b

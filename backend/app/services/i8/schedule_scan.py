@@ -1,6 +1,8 @@
 """Flag-gated bounded eligible-user schedule scan (PD-I8-04B).
 
 Scheduler role: trusted trigger producer only. I8 owns the decision.
+
+Fair progression: in-process keyset cursor per schedule_rule_id (no DB schema).
 """
 
 from __future__ import annotations
@@ -36,6 +38,22 @@ logger = logging.getLogger(__name__)
 
 I8_SCHEDULE_SCAN_JOB_ID = "i8_proactive_schedule_scan_v1"
 
+# In-process fair-scan cursors keyed by schedule_rule_id (single-process scheduler).
+_scan_cursors: dict[str, int] = {}
+
+
+def get_schedule_scan_cursor(schedule_rule_id: str) -> int:
+    return int(_scan_cursors.get(schedule_rule_id, 0))
+
+
+def set_schedule_scan_cursor(schedule_rule_id: str, after_user_id: int) -> None:
+    _scan_cursors[schedule_rule_id] = int(after_user_id)
+
+
+def reset_schedule_scan_cursors() -> None:
+    """Test helper: clear in-process progression state."""
+    _scan_cursors.clear()
+
 
 @dataclass
 class ScheduleScanRunStats:
@@ -52,6 +70,12 @@ class ScheduleScanRunStats:
     completed: bool = False
     after_user_id: Optional[int] = None
     next_after_user_id: Optional[int] = None
+    cursor_before: Optional[int] = None
+    cursor_after: Optional[int] = None
+    cursor_advanced: bool = False
+    cursor_wrapped: bool = False
+    cursor_unchanged: bool = True
+    catastrophic_failure: bool = False
     failure_samples: list[str] = field(default_factory=list)
 
     def to_log_dict(self) -> dict:
@@ -69,6 +93,12 @@ class ScheduleScanRunStats:
             "completed": self.completed,
             "after_user_id": self.after_user_id,
             "next_after_user_id": self.next_after_user_id,
+            "cursor_before": self.cursor_before,
+            "cursor_after": self.cursor_after,
+            "cursor_advanced": self.cursor_advanced,
+            "cursor_wrapped": self.cursor_wrapped,
+            "cursor_unchanged": self.cursor_unchanged,
+            "catastrophic_failure": self.catastrophic_failure,
         }
 
 
@@ -107,21 +137,35 @@ def run_i8_proactive_schedule_scan(
     schedule_rule_id: str = DEFAULT_V1_SCHEDULE_RULE_ID,
     now_utc: datetime | None = None,
 ) -> ScheduleScanRunStats:
-    """One bounded scan tick. Flag OFF → zero work."""
+    """One bounded scan tick. Flag OFF → zero work (no query)."""
     enabled = i8_proactive_schedule_trigger_enabled()
     size = int(batch_size) if batch_size is not None else i8_proactive_schedule_scan_batch_size()
     stats = ScheduleScanRunStats(
         flag_enabled=enabled,
         batch_size=size,
         after_user_id=int(after_user_id),
+        cursor_before=int(after_user_id),
+        cursor_after=int(after_user_id),
     )
     if not enabled:
         stats.completed = True
+        stats.cursor_unchanged = True
         logger.info("i8_schedule_scan_skipped_flag_off %s", stats.to_log_dict())
         return stats
 
     scan_batch_id = str(uuid.uuid4())
-    user_ids = iter_eligible_schedule_user_ids(db, after_user_id=after_user_id, limit=size)
+    try:
+        user_ids = iter_eligible_schedule_user_ids(db, after_user_id=after_user_id, limit=size)
+    except Exception:
+        stats.catastrophic_failure = True
+        stats.completed = False
+        stats.cursor_unchanged = True
+        logger.exception(
+            "i8_schedule_scan_catastrophic_query_failure after_user_id=%s",
+            after_user_id,
+        )
+        raise
+
     stats.eligible_scanned = len(user_ids)
     if user_ids:
         stats.next_after_user_id = user_ids[-1]
@@ -182,9 +226,74 @@ def run_i8_proactive_schedule_scan(
     return stats
 
 
-def run_i8_proactive_schedule_scan_job() -> ScheduleScanRunStats:
-    """APScheduler entrypoint: opens a DB session for one bounded tick."""
+def apply_schedule_scan_cursor_progression(
+    *,
+    schedule_rule_id: str,
+    stats: ScheduleScanRunStats,
+) -> ScheduleScanRunStats:
+    """Advance / wrap in-process cursor from a completed scan result.
+
+    Rules:
+    - flag OFF / incomplete / catastrophic → no change
+    - empty page → wrap to 0
+    - non-empty page → advance to last scanned user_id (partial failures OK)
+    """
+    before = get_schedule_scan_cursor(schedule_rule_id)
+    stats.cursor_before = before
+    if (
+        not stats.flag_enabled
+        or not stats.completed
+        or stats.catastrophic_failure
+    ):
+        stats.cursor_after = before
+        stats.cursor_unchanged = True
+        stats.cursor_advanced = False
+        stats.cursor_wrapped = False
+        return stats
+
+    if stats.eligible_scanned == 0:
+        set_schedule_scan_cursor(schedule_rule_id, 0)
+        stats.cursor_after = 0
+        stats.cursor_wrapped = True
+        stats.cursor_advanced = before != 0
+        stats.cursor_unchanged = before == 0
+        return stats
+
+    nxt = int(stats.next_after_user_id or before)
+    set_schedule_scan_cursor(schedule_rule_id, nxt)
+    stats.cursor_after = nxt
+    stats.cursor_advanced = nxt != before
+    stats.cursor_wrapped = False
+    stats.cursor_unchanged = nxt == before
+    return stats
+
+
+def run_i8_proactive_schedule_scan_job(
+    *,
+    schedule_rule_id: str = DEFAULT_V1_SCHEDULE_RULE_ID,
+) -> ScheduleScanRunStats:
+    """APScheduler entrypoint: fair bounded tick using in-process cursor."""
     from backend.app.database import get_db
 
-    with next(get_db()) as db:
-        return run_i8_proactive_schedule_scan(db, now_utc=datetime.now(timezone.utc))
+    cursor_before = get_schedule_scan_cursor(schedule_rule_id)
+    try:
+        with next(get_db()) as db:
+            stats = run_i8_proactive_schedule_scan(
+                db,
+                after_user_id=cursor_before,
+                schedule_rule_id=schedule_rule_id,
+                now_utc=datetime.now(timezone.utc),
+            )
+    except Exception:
+        # Catastrophic failure: do not advance cursor.
+        logger.exception(
+            "i8_schedule_scan_job_catastrophic_failure cursor_before=%s rule=%s",
+            cursor_before,
+            schedule_rule_id,
+        )
+        raise
+
+    return apply_schedule_scan_cursor_progression(
+        schedule_rule_id=schedule_rule_id,
+        stats=stats,
+    )
