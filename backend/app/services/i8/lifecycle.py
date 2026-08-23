@@ -22,6 +22,7 @@ class I8OperationalLifecycle:
         generation_mode: str,
         plan_idempotency_key: str,
         trace_id: str | None = None,
+        proactive_evaluation_key: str | None = None,
     ) -> tuple[models.I8OperationalPlan, bool]:
         """Return (plan, created). Idempotent on plan_idempotency_key."""
         existing = self._repo.get_plan_by_idempotency(
@@ -47,6 +48,7 @@ class I8OperationalLifecycle:
             valid_until=window.valid_until,
             expires_at=window.expires_at,
             trace_id=trace_id,
+            proactive_evaluation_key=proactive_evaluation_key,
         )
         if prior_active_id is not None and prior_active_id != plan.id:
             prior = db.query(models.I8OperationalPlan).filter_by(id=prior_active_id).one()
@@ -75,6 +77,7 @@ class I8OperationalLifecycle:
         clarification_required: bool = False,
         context_refs_json: str | None = None,
         trace_id: str | None = None,
+        proactive_evaluation_key: str | None = None,
     ) -> tuple[models.I8OperationalPlanAction, bool]:
         existing = self._repo.get_action_by_idempotency(
             db, plan_id=plan.id, action_idempotency_key=action_idempotency_key
@@ -98,5 +101,6 @@ class I8OperationalLifecycle:
             valid_until=window.valid_until,
             expires_at=window.expires_at,
             trace_id=trace_id,
+            proactive_evaluation_key=proactive_evaluation_key,
         )
         return action, True

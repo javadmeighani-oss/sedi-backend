@@ -85,7 +85,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["069_i8_operational_plan_state_foundation"], heads
+          assert heads == ["070_i8_proactive_evaluation_ledger"], heads
           PY
 
       - name: Fresh upgrade to head
@@ -107,7 +107,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "069_i8_operational_plan_state_foundation"
+              assert head == "070_i8_proactive_evaluation_ledger"
           PY
 
       - name: 056 synthetic baseline then upgrade head
@@ -133,7 +133,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD_AFTER_056", head)
-              assert head == "069_i8_operational_plan_state_foundation"
+              assert head == "070_i8_proactive_evaluation_ledger"
               pm = c.execute(text("SELECT count(*) FROM physiological_measurements")).scalar()
               ups = c.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
               print("PM_ROWS", pm, "UPS_ROWS", ups)
@@ -208,6 +208,7 @@ jobs:
           subprocess.check_call([
               "python", "-B", "-m", "pytest",
               "backend/tests/test_i8_unified_runtime_pd_i8_03.py",
+              "backend/tests/test_i8_proactive_evaluation_pd_i8_04a.py",
               "-q", "--tb=short", "--noconftest",
           ])
           PY
@@ -229,7 +230,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "ALEMBIC_HEAD=069_i8_operational_plan_state_foundation"
+            echo "ALEMBIC_HEAD=070_i8_proactive_evaluation_ledger"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
             echo "RAG_EMBEDDINGS_INTRODUCED=NO"

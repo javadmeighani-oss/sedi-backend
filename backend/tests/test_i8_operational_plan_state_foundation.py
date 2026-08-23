@@ -47,14 +47,16 @@ def test_migration_069_static_audit():
     assert "USING hnsw" not in body.lower()
 
 
-def test_alembic_single_head_is_069():
+def test_alembic_single_head_is_070():
     from alembic.config import Config as AlembicConfig
     from alembic.script import ScriptDirectory
 
     cfg = AlembicConfig(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["069_i8_operational_plan_state_foundation"]
+    assert script.get_heads() == ["070_i8_proactive_evaluation_ledger"]
+    rev070 = script.get_revision("070_i8_proactive_evaluation_ledger")
+    assert rev070.down_revision == "069_i8_operational_plan_state_foundation"
     rev = script.get_revision("069_i8_operational_plan_state_foundation")
     assert rev.down_revision == "068_i7_wave2_governed_memory_lifecycle"
 

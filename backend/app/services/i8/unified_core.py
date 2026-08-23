@@ -234,6 +234,7 @@ def generate_operational_action(
     plan_idempotency_key: Optional[str] = None,
     action_idempotency_key: Optional[str] = None,
     generation_mode: str = "reactive",
+    proactive_evaluation_key: Optional[str] = None,
 ) -> I8OperationalActionResult:
     if actor_user_id != user_id:
         return I8OperationalActionResult(
@@ -436,6 +437,7 @@ def generate_operational_action(
             generation_mode=generation_mode,
             plan_idempotency_key=plan_key,
             trace_id=trace_id,
+            proactive_evaluation_key=proactive_evaluation_key,
         )
         action, _ = lifecycle.ensure_action(
             db,
@@ -451,6 +453,7 @@ def generate_operational_action(
             safety_state="SAFE",
             context_refs_json=json.dumps(ctx.context_refs[:8]),
             trace_id=trace_id,
+            proactive_evaluation_key=proactive_evaluation_key,
         )
         db.commit()
     except ConsentDenied:

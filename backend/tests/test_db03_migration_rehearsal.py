@@ -41,7 +41,7 @@ def test_fresh_upgrade_to_db03_head():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "069_i8_operational_plan_state_foundation"
+        assert head == "070_i8_proactive_evaluation_ledger"
         tables = {
             r[0]
             for r in conn.execute(
@@ -69,6 +69,9 @@ def test_fresh_upgrade_to_db03_head():
             "user_memory_export_jobs",
             "user_memory_purge_receipts",
             "user_i7_derived_patterns",
+            "i8_operational_plans",
+            "i8_operational_plan_actions",
+            "i8_proactive_evaluations",
         ):
             assert required in tables
         cols = {
@@ -149,7 +152,7 @@ def test_upgrade_from_056_with_synthetic_seed():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "069_i8_operational_plan_state_foundation"
+        assert head == "070_i8_proactive_evaluation_ledger"
         ups = conn.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
         assert ups >= 1
         # health_data backfill may map if device present

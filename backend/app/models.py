@@ -2540,6 +2540,50 @@ class I8OperationalPlan(Base):
     superseded_by = relationship("I8OperationalPlan", remote_side=[id], foreign_keys=[superseded_by_plan_id])
 
 
+class I8ProactiveEvaluation(Base):
+    """I8 proactive evaluation ledger row (PD-I8-04A / migration 070)."""
+
+    __tablename__ = "i8_proactive_evaluations"
+    __table_args__ = (
+        UniqueConstraint("user_id", "evaluation_identity_key", name="uq_i8_eval_user_identity"),
+        CheckConstraint(
+            "trigger_family IN ('event', 'schedule', 'future_i9')",
+            name="ck_i8_eval_trigger_family",
+        ),
+        CheckConstraint(
+            "lifecycle_status IN ("
+            "'IN_PROGRESS', 'COMPLETED', 'FAILED_RETRYABLE', 'FAILED_TERMINAL')",
+            name="ck_i8_eval_lifecycle",
+        ),
+        CheckConstraint(
+            "outcome IS NULL OR outcome IN ('ACTION_CREATED', 'NO_ACTION')",
+            name="ck_i8_eval_outcome",
+        ),
+        Index("ix_i8_eval_user_lifecycle", "user_id", "lifecycle_status"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    trigger_family = Column(String(32), nullable=False)
+    evaluation_identity_key = Column(String(128), nullable=False)
+    lifecycle_status = Column(String(32), nullable=False)
+    outcome = Column(String(32), nullable=True)
+    plan_id = Column(
+        BigInteger,
+        ForeignKey("i8_operational_plans.id", ondelete="SET NULL", name="fk_i8_eval_plan_id"),
+        nullable=True,
+    )
+    action_id = Column(
+        BigInteger,
+        ForeignKey("i8_operational_plan_actions.id", ondelete="SET NULL", name="fk_i8_eval_action_id"),
+        nullable=True,
+    )
+    trace_id = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now(), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
 class I8OperationalPlanAction(Base):
     """Same-day I8 operational action item."""
 
