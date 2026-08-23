@@ -382,6 +382,52 @@ def test_retryable_reopens_same_identity(db):
     assert result.lifecycle_status in {"FAILED_RETRYABLE", "COMPLETED", "FAILED_TERMINAL"}
 
 
+def test_pd_i8_04b_schedule_adapter_reaches_ledger(db, monkeypatch):
+    """PD-I8-04B: TrustedTrigger schedule adapter → existing orchestrator → 070 ledger."""
+    from backend.app.services.i8.schedule_adapter import adapt_trusted_schedule_trigger
+    from backend.app.services.i8.schedule_rules import SCHEDULE_RULE_DAILY_WELLBEING_CHECK
+    from backend.app.services.i8.trusted_trigger import (
+        TRUSTED_PRODUCER_I8_SCHEDULE_SCAN_V1,
+        TrustedTriggerV1,
+    )
+
+    user = _user(db, "sched04b")
+    _profile_tz(db, user.id)
+    _grant_and_seed(db, user.id)
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        _empty_retrieval,
+    )
+    trigger = TrustedTriggerV1(
+        producer_id=TRUSTED_PRODUCER_I8_SCHEDULE_SCAN_V1,
+        user_id=user.id,
+        trigger_family="schedule",
+        schedule_rule_id=SCHEDULE_RULE_DAILY_WELLBEING_CHECK,
+        user_local_date=date(2026, 8, 22),
+        producer_attempt_id="ci-attempt-1",
+    )
+    first = adapt_trusted_schedule_trigger(db, trigger)
+    assert first.outcome == "NO_ACTION"
+    assert first.lifecycle_status == "COMPLETED"
+    assert db.query(models.I8ProactiveEvaluation).filter_by(user_id=user.id).count() == 1
+    second = adapt_trusted_schedule_trigger(db, trigger)
+    assert second.reused is True
+    assert db.query(models.I8ProactiveEvaluation).filter_by(user_id=user.id).count() == 1
+
+
+def test_pd_i8_04b_flag_off_scan_zero_evaluation(monkeypatch, db):
+    from backend.app.services.i8.feature_flags import I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG
+    from backend.app.services.i8.schedule_scan import run_i8_proactive_schedule_scan
+
+    monkeypatch.delenv(I8_PROACTIVE_SCHEDULE_TRIGGER_FLAG, raising=False)
+    before = db.query(models.I8ProactiveEvaluation).count()
+    stats = run_i8_proactive_schedule_scan(db)
+    assert stats.flag_enabled is False
+    assert stats.trigger_attempts == 0
+    assert stats.evaluation_success == 0
+    assert db.query(models.I8ProactiveEvaluation).count() == before
+
+
 @pytest.mark.skipif(not _db_url(), reason="No TEST_DATABASE_URL")
 def test_069_to_070_upgrade_rehearsal():
     if os.environ.get("DB03_ALLOW_DESTRUCTIVE_REHEARSAL") != "YES":

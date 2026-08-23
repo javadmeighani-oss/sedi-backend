@@ -73536,3 +73536,148 @@ READY_FOR_JAVAD_REVIEW=YES
 NOTE=post-§352 final master-log whole-file self-SHA is NOT embedded inside §352.
 NOTE=Cursor handoff v643 exists external-only under LAW-10; not tracked in Git workspace.
 NOTE=§§350/351 meaning preserved; incident recorded without concealment.
+
+
+§353 - PD-I8-04B-ARCH-01 PROACTIVE TRIGGER ADAPTERS / SCHEDULER BOUNDARY + V1 SCOPE FREEZE
+---------------------------------------------------------------------------------------------------------------
+GATE=PD-I8-04B-ARCH-01
+TITLE=PROACTIVE TRIGGER ADAPTERS / SCHEDULER BOUNDARY + V1 SCOPE FREEZE
+APPROVED_BY=Javad
+PRODUCT_OWNER_APPROVAL=YES
+RECORDED_AT_UTC=2026-08-23T06:07:32Z
+CURSOR_MODEL_MODE=AUTO
+GATE_TYPE=DCR / ARCHITECTURE FREEZE ONLY
+IMPLEMENTATION_AUTHORIZED=NO
+GATE_RESULT=PASS
+HARD_STOP_REASON=NONE
+
+START_HEAD=d1ddc41d98c03a6c3ba0c726b247ba25dbe328c8
+FINAL_HEAD=d1ddc41d98c03a6c3ba0c726b247ba25dbe328c8
+AHEAD_BEHIND=0/0
+BASELINE_DRIFT=NO
+MASTER_LOG_IN=§352
+CURSOR_HANDOFF_IN=v643
+CHATGPT_CONTINUITY=v672
+ALEMBIC_HEAD=070_i8_proactive_evaluation_ledger
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+SCHEDULE_TRIGGER_V1=IMPLEMENT_IN_04B
+GATE2_EVENT_TRIGGER_V1=DEFER_TO_LATER_GATE
+I9_SIGNAL_TRIGGER_V1=DEFER_TO_LATER_GATE
+
+SCHEDULER_OWNERSHIP=PRODUCER_ONLY
+SCHEDULER_CADENCE_MODEL=BROAD_PERIODIC_USER_SCAN
+SCHEDULER_ROLE=trigger producer only; I8 = decision owner; no health/lifestyle decision logic in scheduler
+
+TRIGGER_PAYLOAD_CONTRACT=TrustedTrigger_V1
+TRIGGER_TRUST_MODEL=IN_PROCESS_TRUSTED_PRODUCER_ONLY
+ASYNC_BOUNDARY=PRODUCER_EMIT_THEN_I8_EVALUATE
+RETRY_OWNER_MODEL=PRODUCER_REEMIT_SAME_IDENTITY + I8_FAILED_RETRYABLE_SAME_IDENTITY + SN_OUT_OF_SCOPE
+RUNTIME_FEATURE_FLAG_REQUIRED=YES
+DEFAULT_PROACTIVE_RUNTIME_STATE=OFF
+
+SECOND_DECISION_ENGINE=NO
+SMART_NOTIFICATION_BOUNDARY=PASS
+
+PD-I8-04B_IMPLEMENTATION_SCOPE=TrustedTrigger contract + schedule thin adapter + one flag-gated APScheduler broad user-scan job + minimal schedule_rule_id allowlist + focused tests; EXCLUDE Gate2/I9/SN/Gate4/schema/070/activation
+PD-I8-04B_IMPLEMENTATION_READY=YES
+
+EVIDENCE=APScheduler BackgroundScheduler in backend/app/core/scheduler.py; Section10 flag-gated reminder pattern; Gate2 UserEvent durable but no I8 producer; future_i9 identity frozen without producer; evaluate_proactive_trigger callable foundation
+DCR_RECORD=Sedi_I8_Proactive_Trigger_Adapters_Scheduler_Boundary_V1_Scope_Freeze_DCR_PD-I8-04B-ARCH-01_FA.md
+DCR_EXTERNAL_ONLY=YES
+
+PRODUCTION_ACTIONS=NONE
+NO_COMMIT_PUSH=YES
+NO_CODE_MUTATION=YES
+NO_SCHEDULER_MUTATION=YES
+NO_GATE2_I9_WIRING=YES
+NO_MIGRATION=YES
+070_UNCHANGED=YES
+
+OPEN_P0=0
+OPEN_P1=0
+OPEN_P2=Gate4 i8_operational_action source enum deferred; KNOW-06 runtime not implemented; LAW-10 legacy tracked-reference residue; Gate2/I9 proactive producers deferred
+
+CURSOR_HANDOFF=v644
+CURSOR_HANDOFF_EXTERNAL_ONLY=YES
+NEXT_PROPOSED_GATE=PD-I8-04B implementation (schedule adapter + flag-gated scan job only)
+NEXT_GATE_AUTHORIZED=NO
+READY_FOR_JAVAD_REVIEW=YES
+NOTE=post-§353 final master-log whole-file self-SHA is NOT embedded inside §353.
+NOTE=Cursor handoff v644 and DCR exist external-only under LAW-10; not tracked in Git workspace.
+NOTE=COMMIT/PUSH explicitly forbidden by this architecture Gate; Master Log local append only.
+
+
+§354 - PD-I8-04B-IMPL-01 TRUSTED SCHEDULE TRIGGER + FLAG-GATED BOUNDED USER-SCAN FOUNDATION
+---------------------------------------------------------------------------------------------------------------
+GATE=PD-I8-04B-IMPL-01
+TITLE=TRUSTED SCHEDULE TRIGGER + FLAG-GATED BOUNDED USER-SCAN FOUNDATION
+APPROVED_BY=Javad
+PRODUCT_OWNER_APPROVAL=YES
+RECORDED_AT_UTC=2026-08-23T06:40:38Z
+CURSOR_MODEL_MODE=AUTO
+GATE_TYPE=IMPLEMENTATION
+IMPLEMENTATION_AUTHORIZED=YES
+GATE_RESULT=PASS
+HARD_STOP_REASON=NONE
+
+START_HEAD=d1ddc41d98c03a6c3ba0c726b247ba25dbe328c8
+MASTER_LOG_IN=§353
+CURSOR_HANDOFF_IN=v644
+CHATGPT_CONTINUITY=v673
+ALEMBIC_HEAD=070_i8_proactive_evaluation_ledger
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+BASELINE_DRIFT=NO
+
+V1_TRIGGER_SCOPE=SCHEDULE_ONLY
+SCHEDULE_TRIGGER_V1=IMPLEMENTED
+GATE2_EVENT_TRIGGER_V1=DEFERRED
+I9_SIGNAL_TRIGGER_V1=DEFERRED
+
+TRUSTED_TRIGGER_V1=PASS
+SCHEDULE_RULE_ALLOWLIST=PASS
+SCHEDULE_RULES=daily_wellbeing_check
+SCHEDULE_ADAPTER=PASS
+SCHEDULER_JOB=i8_proactive_schedule_scan_v1
+FEATURE_FLAG=SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED
+FEATURE_FLAG_DEFAULT=OFF
+FLAG_OFF_ZERO_EVALUATION=PASS
+
+SCAN_MODEL=BROAD_PERIODIC_BOUNDED_ELIGIBLE_KEYSET
+BATCH_OR_PAGE_BOUND=SEDI_I8_PROACTIVE_SCHEDULE_SCAN_BATCH_SIZE default 50 max 200
+ELIGIBILITY_FILTER=UserProfileCore.timezone non-empty
+UNBOUNDED_ALL_USERS_SCAN=NO
+TIMEZONE_CONTRACT=resolve_local_day_window / UserProfileCore.timezone
+LOCAL_DATE_IDENTITY=user+schedule_rule_id+user_local_date
+OVERLAP_CONTROL=max_instances=1 coalesce misfire_grace_time=60
+FAILURE_ISOLATION=PASS
+RETRY_IDENTITY=same schedule identity / FAILED_RETRYABLE same evaluation identity
+
+UNIFIED_I8_CORE_REUSE=PASS
+SECOND_DECISION_ENGINE=NO
+069_UNCHANGED=YES
+070_UNCHANGED=YES
+NEW_MIGRATION=NO
+GATE2_WIRING=NO
+I9_WIRING=NO
+SMART_NOTIFICATION_BOUNDARY=PASS
+WORKFLOW_MUTATION=NO
+
+TARGETED_TESTS=PASS (test_i8_proactive_schedule_trigger_pd_i8_04b + 04A schedule adapter ledger smoke)
+RUNTIME_VALIDATION=PENDING_PUSH_DB03
+CI_WORKFLOW=DB-03 Migration Rehearsal
+CI_RESULT=PENDING_PUSH
+
+CHANGED_PATHS=i8 feature_flags/trusted_trigger/schedule_rules/schedule_adapter/schedule_scan; scheduler registration; focused tests; Master Log §354
+CURSOR_HANDOFF=v645
+CURSOR_HANDOFF_EXTERNAL_ONLY=YES
+NEXT_PROPOSED_GATE=Gate2/I9 adapters or production flag activation (separate authorization)
+NEXT_GATE_AUTHORIZED=NO
+READY_FOR_JAVAD_REVIEW=YES
+NOTE=§353 architecture record preserved; §354 append-only.
+NOTE=Runtime activation remains OFF; no production flag enablement.
+NOTE=post-§354 final master-log whole-file self-SHA is NOT embedded inside §354.
