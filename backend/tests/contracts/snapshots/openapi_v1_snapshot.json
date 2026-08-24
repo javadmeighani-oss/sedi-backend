@@ -2739,6 +2739,81 @@
         "title": "HubStatusResponse",
         "type": "object"
       },
+      "I8GenerateActionRequest": {
+        "properties": {
+          "action_idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Idempotency Key"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "nutrition|exercise|routine|lifestyle|wellbeing|cross_domain",
+            "title": "Domain"
+          },
+          "persist": {
+            "default": true,
+            "title": "Persist",
+            "type": "boolean"
+          },
+          "plan_idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Idempotency Key"
+          },
+          "request": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Request",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "title": "I8GenerateActionRequest",
+        "type": "object"
+      },
+      "I8GenerateActionResponse": {
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "I8GenerateActionResponse",
+        "type": "object"
+      },
       "IngestionRejectIn": {
         "additionalProperties": false,
         "properties": {
@@ -9755,6 +9830,52 @@
         "summary": "Directory Meta",
         "tags": [
           "i5-iran-directory"
+        ]
+      }
+    },
+    "/i8/actions/generate": {
+      "post": {
+        "operationId": "generate_i8_action_i8_actions_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/I8GenerateActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/I8GenerateActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate I8 Action",
+        "tags": [
+          "I8 Operational Actions"
         ]
       }
     },
