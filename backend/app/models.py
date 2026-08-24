@@ -1,5 +1,5 @@
 # app/models.py
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
+from sqlalchemy import Column, Integer, BigInteger, SmallInteger, String, DateTime, Time, Date, ForeignKey, Boolean, Float, Text, UniqueConstraint, ForeignKeyConstraint, CheckConstraint, JSON, Index, text, func, Identity
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, timezone as dt_timezone
 from backend.app.database import Base
@@ -83,6 +83,17 @@ def _default_memory_retain_until():
 # -------------------- Memory --------------------
 class Memory(Base):
     __tablename__ = "memory"
+    __table_args__ = (
+        # Alembic 068 authority — partial unique + period lookup
+        Index(
+            "uq_memory_user_idempotency",
+            "user_id",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("idempotency_key IS NOT NULL"),
+        ),
+        Index("ix_memory_user_local_period", "user_id", "local_period_date"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     # DB-03 / §270.P: align ORM with Production ON DELETE CASCADE for chat turns.
@@ -97,7 +108,7 @@ class Memory(Base):
     provenance_json = Column(Text, nullable=True)
     idempotency_key = Column(String(128), nullable=True)
     period_timezone = Column(String(64), nullable=True)
-    period_week_start = Column(Integer, nullable=True)
+    period_week_start = Column(SmallInteger, nullable=True)
     local_period_date = Column(Date, nullable=True)
     durable_write = Column(Boolean, nullable=False, default=False, server_default="false")
 
@@ -2410,6 +2421,8 @@ class UserPeriodSummary(Base):
         ),
         Index("ix_ups_user_id", "user_id"),
         Index("ix_ups_summary_type", "summary_type"),
+        # Alembic 068 authority
+        Index("ix_ups_user_type_finalized", "user_id", "summary_type", "finalized_at"),
     )
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
@@ -2435,7 +2448,7 @@ class UserPeriodSummary(Base):
     integrity_sha256 = Column(String(64), nullable=True)
     lineage_json = Column(Text, nullable=True)
     period_timezone = Column(String(64), nullable=True)
-    period_week_start = Column(Integer, nullable=True)
+    period_week_start = Column(SmallInteger, nullable=True)
     consent_id = Column(Integer, ForeignKey("user_consents.id", ondelete="SET NULL"), nullable=True)
     provenance_json = Column(Text, nullable=True)
 
@@ -2513,6 +2526,17 @@ class I8OperationalPlan(Base):
             unique=True,
             postgresql_where=text("status = 'ACTIVE'"),
         ),
+        # Alembic 069 authority — partial unique for proactive eval identity
+        Index(
+            "uq_i8_plan_proactive_eval",
+            "user_id",
+            "user_local_date",
+            "proactive_evaluation_key",
+            unique=True,
+            postgresql_where=text(
+                "proactive_evaluation_key IS NOT NULL AND status IN ('ACTIVE', 'COMPLETED')"
+            ),
+        ),
     )
 
     id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
@@ -2560,6 +2584,12 @@ class I8ProactiveEvaluation(Base):
             name="ck_i8_eval_outcome",
         ),
         Index("ix_i8_eval_user_lifecycle", "user_id", "lifecycle_status"),
+        # Alembic 070 authority
+        Index(
+            "ix_i8_eval_completed_at",
+            "completed_at",
+            postgresql_where=text("completed_at IS NOT NULL"),
+        ),
     )
 
     id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
