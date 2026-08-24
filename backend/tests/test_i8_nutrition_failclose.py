@@ -26,6 +26,11 @@ def _user(db, name: str) -> models.User:
     return row
 
 
+def _profile_tz(db, user_id: int, timezone: str = "Asia/Tehran") -> None:
+    db.add(models.UserProfileCore(user_id=user_id, timezone=timezone))
+    db.flush()
+
+
 def _ok_item(*, statement: str = "Choose vegetables and whole grains for lunch") -> RetrievedKnowledgeItem:
     return RetrievedKnowledgeItem(
         knowledge_unit_id=1,
@@ -97,6 +102,7 @@ def test_i8_stale_knowledge_fail_close(db, monkeypatch):
 
 def test_i8_sufficient_data_ephemeral_grounded(db, monkeypatch):
     user = _user(db, "i8-ok")
+    _profile_tz(db, user.id)
     grant_memory_consent(db, user.id, commit=True)
     write_fact(db, user.id, "lifestyle", "diet_notes", "iranian home cooking", commit=True)
     write_fact(db, user.id, "goals", "health_goals", "more vegetables", commit=True)
@@ -112,6 +118,7 @@ def test_i8_sufficient_data_ephemeral_grounded(db, monkeypatch):
 
 def test_i8_user_correction_uses_current_facts(db, monkeypatch):
     user = _user(db, "i8-corr")
+    _profile_tz(db, user.id)
     grant_memory_consent(db, user.id, commit=True)
     write_fact(db, user.id, "lifestyle", "diet_notes", "vegetarian", commit=True)
     monkeypatch.setattr(_RETRIEVAL_PATH, _ok_retrieval)
