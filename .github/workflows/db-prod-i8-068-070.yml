@@ -1,0 +1,226 @@
+# PD-I8-04D-PROD-OPS-MIGRATE-01 — Governed production Alembic 068→069→070.
+# workflow_dispatch only. Executes EXACT source_sha checkout (not silent main app code).
+# NO deploy. NO flag/env mutation. NO downgrade. NO arbitrary revision.
+name: DB-PROD I8 068 to 070 Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "PREFLIGHT | BACKUP | APPLY"
+        required: true
+      confirmation:
+        description: "Phase token"
+        required: true
+      source_sha:
+        description: "Exact approved 40-char feature commit SHA providing ops script + migration files"
+        required: true
+      expected_before_revision:
+        description: "Must be 068_i7_wave2_governed_memory_lifecycle for BACKUP/APPLY"
+        required: true
+        default: 068_i7_wave2_governed_memory_lifecycle
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Production 068 preflight (read-only)
+    if: >-
+      github.event.inputs.phase == 'PREFLIGHT' &&
+      github.event.inputs.confirmation == 'I8_068_070_PREFLIGHT_ONLY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validate source_sha
+        env:
+          SHA: ${{ github.event.inputs.source_sha }}
+        run: echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_sha }}
+      - name: SSH preflight
+        env:
+          SRC_SHA: ${{ github.event.inputs.source_sha }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_i8_068_to_070_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh") && \
+             printf '%s\n' $(printf '%q' "${SRC_SHA}") > $(printf '%q' "${REMOTE_DIR}/_source_sha.txt") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             PHASE=PREFLIGHT \
+             EXPECTED_SOURCE_SHA=$(printf '%q' "${SRC_SHA}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh")" \
+            2>&1 | tee /tmp/i8mig_preflight.log
+          grep -Fq 'I8MIG|phase_preflight|PASS' /tmp/i8mig_preflight.log
+          grep -Fq 'I8MIG|alembic_head|068_i7_wave2_governed_memory_lifecycle' /tmp/i8mig_preflight.log
+          grep -Fq 'I8MIG|alembic_row_count|1' /tmp/i8mig_preflight.log
+          grep -Fq 'I8MIG|database_target_alignment|PASS' /tmp/i8mig_preflight.log
+          grep -Fq 'I8MIG|i8_flag_effective|OFF' /tmp/i8mig_preflight.log
+          grep -Fq 'I8MIG|i8_flag_guard|PASS' /tmp/i8mig_preflight.log
+          if grep -Eiq 'info@sedi-ai\.com|SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres' /tmp/i8mig_preflight.log; then
+            echo "SECRET_LEAK"; exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i8mig-preflight
+          path: /tmp/i8mig_preflight.log
+          retention-days: 14
+
+  backup:
+    name: Fresh canonical backup at 068
+    if: >-
+      github.event.inputs.phase == 'BACKUP' &&
+      github.event.inputs.confirmation == 'I8_068_070_BACKUP_AT_068' &&
+      github.event.inputs.expected_before_revision == '068_i7_wave2_governed_memory_lifecycle'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Validate source_sha
+        env:
+          SHA: ${{ github.event.inputs.source_sha }}
+        run: echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_sha }}
+      - name: SSH backup
+        env:
+          SRC_SHA: ${{ github.event.inputs.source_sha }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_i8_068_to_070_remote.sh \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh") && \
+             printf '%s\n' $(printf '%q' "${SRC_SHA}") > $(printf '%q' "${REMOTE_DIR}/_source_sha.txt") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             PHASE=BACKUP \
+             EXPECTED_SOURCE_SHA=$(printf '%q' "${SRC_SHA}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh")" \
+            2>&1 | tee /tmp/i8mig_backup.log
+          grep -Fq 'I8MIG|fresh_backup|PASS' /tmp/i8mig_backup.log
+          grep -Fq 'I8MIG|backup_integrity|PASS' /tmp/i8mig_backup.log
+          grep -Fq 'I8MIG|alembic_head|068_i7_wave2_governed_memory_lifecycle' /tmp/i8mig_backup.log
+          grep -Fq 'I8MIG|i8_flag_effective|OFF' /tmp/i8mig_backup.log
+          grep -E 'I8MIG\|backup_size\|[1-9][0-9]*' /tmp/i8mig_backup.log
+          grep -E 'I8MIG\|backup_sha256\|[0-9a-f]{64}' /tmp/i8mig_backup.log
+          if grep -Eiq 'info@sedi-ai\.com|SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres' /tmp/i8mig_backup.log; then
+            echo "SECRET_LEAK"; exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i8mig-backup
+          path: /tmp/i8mig_backup.log
+          retention-days: 14
+
+  apply:
+    name: Controlled 068→069→070 apply
+    if: >-
+      github.event.inputs.phase == 'APPLY' &&
+      github.event.inputs.confirmation == 'I8_068_070_APPLY_069_THEN_070' &&
+      github.event.inputs.expected_before_revision == '068_i7_wave2_governed_memory_lifecycle'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Validate source_sha
+        env:
+          SHA: ${{ github.event.inputs.source_sha }}
+        run: echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_sha }}
+      - name: Static migration identity guard
+        run: |
+          set -Eeuo pipefail
+          test -f backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+          test -f backend/alembic/versions/069_i8_operational_plan_state_foundation.py
+          test -f backend/alembic/versions/070_i8_proactive_evaluation_ledger.py
+          grep -Fq '069_i8_operational_plan_state_foundation' backend/alembic/versions/069_i8_operational_plan_state_foundation.py
+          grep -Fq '070_i8_proactive_evaluation_ledger' backend/alembic/versions/070_i8_proactive_evaluation_ledger.py
+          grep -Fq 'down_revision' backend/alembic/versions/069_i8_operational_plan_state_foundation.py
+          grep -Fq '068_i7_wave2_governed_memory_lifecycle' backend/alembic/versions/069_i8_operational_plan_state_foundation.py
+          grep -Fq '069_i8_operational_plan_state_foundation' backend/alembic/versions/070_i8_proactive_evaluation_ledger.py
+          # Fail closed: script must not offer arbitrary revision / downgrade / deploy
+          ! grep -Eiq 'downgrade|docker compose .*pull|SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED=1' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+          ! grep -Eiq 'alembic[[:space:]]+upgrade[[:space:]]+head' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+      - name: SSH apply 069 then 070
+        env:
+          SRC_SHA: ${{ github.event.inputs.source_sha }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/ops/db03/db_prod_i8_068_to_070_remote.sh \
+            backend/alembic/versions/069_i8_operational_plan_state_foundation.py \
+            backend/alembic/versions/070_i8_proactive_evaluation_ledger.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh") && \
+             cp $(printf '%q' "${REMOTE_DIR}/069_i8_operational_plan_state_foundation.py") \
+                $(printf '%q' "${REMOTE_DIR}/_069_i8_operational_plan_state_foundation.py") && \
+             cp $(printf '%q' "${REMOTE_DIR}/070_i8_proactive_evaluation_ledger.py") \
+                $(printf '%q' "${REMOTE_DIR}/_070_i8_proactive_evaluation_ledger.py") && \
+             printf '%s\n' $(printf '%q' "${SRC_SHA}") > $(printf '%q' "${REMOTE_DIR}/_source_sha.txt") && \
+             DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
+             PHASE=APPLY \
+             EXPECTED_SOURCE_SHA=$(printf '%q' "${SRC_SHA}") \
+             bash $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh")" \
+            2>&1 | tee /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|migration_069|PASS' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|alembic_head_after_069|069_i8_operational_plan_state_foundation' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|schema_069_verify|PASS' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|migration_070|PASS' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|alembic_head_after_070|070_i8_proactive_evaluation_ledger' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|schema_070_verify|PASS' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|i8_flag_effective|OFF' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|backend_health_local|PASS' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|backend_health_external|PASS' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|deploy|NO' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|activation|NO' /tmp/i8mig_apply.log
+          grep -Fq 'I8MIG|production_migration_068_to_070|PASS' /tmp/i8mig_apply.log
+          if grep -Eiq 'info@sedi-ai\.com|SEDI_MIGRATION_ADMIN_PASSWORD=|DATABASE_URL=postgres' /tmp/i8mig_apply.log; then
+            echo "SECRET_LEAK"; exit 2
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i8mig-apply
+          path: /tmp/i8mig_apply.log
+          retention-days: 14
