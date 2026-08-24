@@ -33,6 +33,7 @@ TARGET_070="070_i8_proactive_evaluation_ledger"
 EXPECTED_DB="sedi_db"
 
 OVERLAY_DIR="${DEPLOY_PATH}/ops/db03"
+OVERLAY_068="${OVERLAY_DIR}/_068_i7_wave2_governed_memory_lifecycle.py"
 OVERLAY_069="${OVERLAY_DIR}/_069_i8_operational_plan_state_foundation.py"
 OVERLAY_070="${OVERLAY_DIR}/_070_i8_proactive_evaluation_ledger.py"
 
@@ -227,6 +228,7 @@ run_alembic_upgrade() {
   local TARGET="$1"
   local RUNNING_IMAGE MIG_PY
   [ -f "${ROLES_ENV}" ] || { log "missing roles env"; exit 3; }
+  [ -f "${OVERLAY_068}" ] || { log "missing 068 overlay"; exit 7; }
   [ -f "${OVERLAY_069}" ] || { log "missing 069 overlay"; exit 7; }
   [ -f "${OVERLAY_070}" ] || { log "missing 070 overlay"; exit 7; }
   RUNNING_IMAGE="$(docker inspect sedi-backend --format '{{.Image}}')"
@@ -264,12 +266,13 @@ PY
   chmod 600 "${MIG_PY}"
 
   set +e
-  # Mount BOTH 069 and 070 so Alembic script directory can resolve the linear chain.
+  # Mount 068+069+070 so Alembic can resolve the linear chain from live 068.
   docker run --rm --network sedi-net \
     --env-file "${ENV_FILE}" \
     --env-file "${ROLES_ENV}" \
     --env TEST_DATABASE_URL= \
     -v "${MIG_PY}:/tmp/_migrate_once.py:ro" \
+    -v "${OVERLAY_068}:/app/backend/alembic/versions/068_i7_wave2_governed_memory_lifecycle.py:ro" \
     -v "${OVERLAY_069}:/app/backend/alembic/versions/069_i8_operational_plan_state_foundation.py:ro" \
     -v "${OVERLAY_070}:/app/backend/alembic/versions/070_i8_proactive_evaluation_ledger.py:ro" \
     --entrypoint python \
@@ -284,6 +287,7 @@ phase_apply() {
   s "phase" "APPLY"
   trap on_exit EXIT
   [ -f "${ROLES_ENV}" ] || { log "missing roles env"; exit 3; }
+  [ -f "${OVERLAY_068}" ] || { log "missing 068 overlay"; exit 7; }
   [ -f "${OVERLAY_069}" ] || { log "missing 069 overlay"; exit 7; }
   [ -f "${OVERLAY_070}" ] || { log "missing 070 overlay"; exit 7; }
 

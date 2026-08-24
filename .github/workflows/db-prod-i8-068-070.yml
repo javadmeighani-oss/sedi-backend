@@ -162,16 +162,18 @@ jobs:
         run: |
           set -Eeuo pipefail
           test -f backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+          test -f backend/alembic/versions/068_i7_wave2_governed_memory_lifecycle.py
           test -f backend/alembic/versions/069_i8_operational_plan_state_foundation.py
           test -f backend/alembic/versions/070_i8_proactive_evaluation_ledger.py
           grep -Fq '069_i8_operational_plan_state_foundation' backend/alembic/versions/069_i8_operational_plan_state_foundation.py
           grep -Fq '070_i8_proactive_evaluation_ledger' backend/alembic/versions/070_i8_proactive_evaluation_ledger.py
-          grep -Fq 'down_revision' backend/alembic/versions/069_i8_operational_plan_state_foundation.py
           grep -Fq '068_i7_wave2_governed_memory_lifecycle' backend/alembic/versions/069_i8_operational_plan_state_foundation.py
           grep -Fq '069_i8_operational_plan_state_foundation' backend/alembic/versions/070_i8_proactive_evaluation_ledger.py
-          # Fail closed: script must not offer arbitrary revision / downgrade / deploy
-          ! grep -Eiq 'downgrade|docker compose .*pull|SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED=1' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+          grep -Fq 'OVERLAY_068' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+          # Fail closed: no deploy / flag activation / unbounded upgrade head
+          ! grep -Eiq 'docker compose .*pull|SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED=1' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
           ! grep -Eiq 'alembic[[:space:]]+upgrade[[:space:]]+head' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
+          ! grep -Eiq 'alembic[[:space:]]+downgrade' backend/ops/db03/db_prod_i8_068_to_070_remote.sh
       - name: SSH apply 069 then 070
         env:
           SRC_SHA: ${{ github.event.inputs.source_sha }}
@@ -187,12 +189,15 @@ jobs:
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/db03/db_prod_i8_068_to_070_remote.sh \
+            backend/alembic/versions/068_i7_wave2_governed_memory_lifecycle.py \
             backend/alembic/versions/069_i8_operational_plan_state_foundation.py \
             backend/alembic/versions/070_i8_proactive_evaluation_ledger.py \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
           ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_068_to_070_remote.sh") && \
+             cp $(printf '%q' "${REMOTE_DIR}/068_i7_wave2_governed_memory_lifecycle.py") \
+                $(printf '%q' "${REMOTE_DIR}/_068_i7_wave2_governed_memory_lifecycle.py") && \
              cp $(printf '%q' "${REMOTE_DIR}/069_i8_operational_plan_state_foundation.py") \
                 $(printf '%q' "${REMOTE_DIR}/_069_i8_operational_plan_state_foundation.py") && \
              cp $(printf '%q' "${REMOTE_DIR}/070_i8_proactive_evaluation_ledger.py") \
