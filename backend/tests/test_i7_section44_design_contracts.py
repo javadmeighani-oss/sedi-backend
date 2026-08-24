@@ -56,7 +56,8 @@ def test_i7_jobs_remain_dormant_monday_tehran_and_four_types(monkeypatch):
 
 def test_i8_planner_is_ephemeral_and_uses_retrieval_service():
     src = inspect.getsource(plan_nutrition)
-    assert "retrieve_knowledge_context" in src
+    assert "generate_operational_action" in src
+    assert "persist=False" in src
     assert "knowledge_chunk_embeddings" not in src
     assert '"persistence": "NONE"' in src or "'persistence': 'NONE'" in src
 
