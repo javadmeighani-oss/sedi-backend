@@ -165,8 +165,9 @@ jobs:
           flag_present "SEDI_I5_MULTISOURCE_ENABLED"
           flag_present "SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN"
           flag_present "SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED"
+          flag_present "SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED"
 
-          log "=== I5/I7 EFFECTIVE FLAG STATE (approved keys only; ON/OFF/UNSET) ==="
+          log "=== I5/I7/I8 EFFECTIVE FLAG STATE (approved keys only; ON/OFF/UNSET) ==="
           normalize_on_off() {
             local v="$1"
             case "$(printf '%s' "${v}" | tr '[:upper:]' '[:lower:]')" in
@@ -188,11 +189,32 @@ jobs:
             fi
             echo "${key}=$(normalize_on_off "${effective}")"
             summary "${key}_effective" "$(normalize_on_off "${effective}")"
+            summary "${key}_file_state" "$(normalize_on_off "${file_val:-unset}")"
+            summary "${key}_runtime_state" "$(normalize_on_off "${runtime_val:-unset}")"
           }
           effective_flag "SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED"
           effective_flag "SEDI_I5_SOURCE_ACTIVATION_ENABLED"
           effective_flag "SEDI_I5_MULTISOURCE_ENABLED"
           effective_flag "SEDI_I7_PERIOD_SUMMARY_JOBS_ENABLED"
+          effective_flag "SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED"
+          # Fail-closed product default: UNSET == OFF for I8 proactive schedule.
+          I8_FILE_RAW="$(grep -E '^SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED=' "${ENV_FILE}" | tail -n1 | cut -d= -f2- || true)"
+          I8_FILE_STATE="$(normalize_on_off "${I8_FILE_RAW:-unset}")"
+          I8_RUNTIME_RAW="$(docker exec sedi-backend printenv SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED 2>/dev/null || true)"
+          I8_RUNTIME_STATE="$(normalize_on_off "${I8_RUNTIME_RAW:-unset}")"
+          if [ -n "${I8_RUNTIME_RAW}" ]; then
+            I8_EFFECTIVE="$(normalize_on_off "${I8_RUNTIME_RAW}")"
+          else
+            I8_EFFECTIVE="$(normalize_on_off "${I8_FILE_RAW:-unset}")"
+          fi
+          if [ "${I8_EFFECTIVE}" = "UNSET" ]; then I8_EFFECTIVE="OFF"; fi
+          summary "I8_FLAG_FILE_STATE" "${I8_FILE_STATE}"
+          summary "I8_FLAG_RUNTIME_STATE" "${I8_RUNTIME_STATE}"
+          summary "I8_FLAG_EFFECTIVE" "${I8_EFFECTIVE}"
+          if [ "${I8_EFFECTIVE}" != "OFF" ]; then
+            log "PREFLIGHT_FAILED: I8 proactive flag effective must be OFF (got ${I8_EFFECTIVE})"
+            exit 20
+          fi
           interval_val="$(grep -E '^SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN=' "${ENV_FILE}" | tail -n1 | cut -d= -f2- || true)"
           runtime_interval="$(docker exec sedi-backend printenv SEDI_I5_WEEKLY_ORCHESTRATOR_INTERVAL_MIN 2>/dev/null || true)"
           if [ -n "${runtime_interval}" ]; then interval_val="${runtime_interval}"; fi
@@ -256,6 +278,41 @@ jobs:
             fi
           done
           summary "i7_schedule_cadence" "daily=00:10 weekly=Mon_00:20 monthly=1st_00:30 yearly=Jan1_00:40 Asia/Tehran"
+
+          log "=== I8 PROACTIVE SCHEDULER STATE (read-only log grep; flag-off expected) ==="
+          I8_REG="$(docker logs sedi-backend 2>&1 | grep -F 'I8 proactive schedule scan job registered' | tail -n1 || true)"
+          I8_SCAN="$(docker logs --since 2h sedi-backend 2>&1 | grep -E 'i8_proactive_schedule_scan|run_i8_proactive_schedule_scan' | tail -n20 || true)"
+          log "i8_registration=${I8_REG:-MISSING_OR_PRE_I8_IMAGE}"
+          if echo "${I8_REG}" | grep -Fq 'enabled=False'; then
+            summary "i8_scheduler_registered_enabled" "False"
+          elif echo "${I8_REG}" | grep -Fq 'enabled=True'; then
+            summary "i8_scheduler_registered_enabled" "True"
+            log "PREFLIGHT_FAILED: I8 scheduler registered enabled=True while flag must remain OFF"
+            exit 21
+          else
+            summary "i8_scheduler_registered_enabled" "ABSENT_OR_PRE_I8"
+          fi
+          if echo "${I8_SCAN}" | grep -Eiq 'actionable|ACTION_PERSISTED|proactive evaluation created|Smart Notification'; then
+            summary "i8_recent_scan_actionable" "YES"
+            log "PREFLIGHT_FAILED: recent I8 scan evidence suggests actionable proactive activity"
+            exit 22
+          else
+            summary "i8_recent_scan_actionable" "NO"
+          fi
+
+          log "=== I8 LEDGER COUNTS (read-only; zero-activity baseline) ==="
+          if docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT to_regclass('public.i8_proactive_evaluations') IS NOT NULL;" | grep -Fq t; then
+            EVAL_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM i8_proactive_evaluations;")"
+            EVAL_RECENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM i8_proactive_evaluations WHERE created_at > NOW() - INTERVAL '2 hours';")"
+            PLAN_PROACTIVE="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM i8_operational_plans WHERE generation_mode='proactive';" 2>/dev/null || echo 0)"
+            summary "i8_proactive_evaluations_total" "${EVAL_COUNT}"
+            summary "i8_proactive_evaluations_recent_2h" "${EVAL_RECENT}"
+            summary "i8_operational_plans_proactive_total" "${PLAN_PROACTIVE}"
+          else
+            summary "i8_proactive_evaluations_total" "TABLE_ABSENT"
+            summary "i8_proactive_evaluations_recent_2h" "TABLE_ABSENT"
+            summary "i8_operational_plans_proactive_total" "TABLE_ABSENT"
+          fi
 
           log "=== BACKUP DIR METADATA (filenames only) ==="
           BACKUP_DIR="${DEPLOY_PATH}/backups/postgres"
