@@ -497,8 +497,10 @@ jobs:
             exit 51
           fi
           log "scheduler_registered_line=${REGISTERED_LINE}"
-          if ! printf '%s\n' "${REGISTERED_LINE}" | grep -Eq 'interval_min=10080'; then
-            log "VERIFY_FAILED: registered weekly interval is not 10080"
+          # Governed production contract is APScheduler cron (fri 03:30 Asia/Tehran),
+          # not an interval trigger. FLAG_INT=10080 remains env compatibility only.
+          if ! printf '%s\n' "${REGISTERED_LINE}" | grep -Eq 'weekly_international_knowledge_crawler registered.*trigger=cron.*day_of_week=fri.*hour=3.*minute=30.*timezone=Asia/Tehran.*max_instances=1.*coalesce=True.*enabled=True'; then
+            log "VERIFY_FAILED: registered weekly cron contract mismatch (expect fri 03:30 Asia/Tehran)"
             fail_closed_dormant
             exit 51
           fi
@@ -1101,8 +1103,10 @@ jobs:
             exit 51
           fi
           log "scheduler_registered_line=${REGISTERED_LINE}"
-          if ! printf '%s\n' "${REGISTERED_LINE}" | grep -Eq 'interval_min=10080'; then
-            log "VERIFY_FAILED: registered weekly interval is not 10080"
+          # Governed production contract is APScheduler cron (fri 03:30 Asia/Tehran),
+          # not an interval trigger. FLAG_INT=10080 remains env compatibility only.
+          if ! printf '%s\n' "${REGISTERED_LINE}" | grep -Eq 'weekly_international_knowledge_crawler registered.*trigger=cron.*day_of_week=fri.*hour=3.*minute=30.*timezone=Asia/Tehran.*max_instances=1.*coalesce=True.*enabled=True'; then
+            log "VERIFY_FAILED: registered weekly cron contract mismatch (expect fri 03:30 Asia/Tehran)"
             fail_closed_recover_nhs
             exit 51
           fi
