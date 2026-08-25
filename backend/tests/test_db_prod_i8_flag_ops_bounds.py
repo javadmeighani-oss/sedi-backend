@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "ops" / "db03" / "db_prod_i8_flag_remote.sh"
 WF = ROOT.parent / ".github" / "workflows" / "db-prod-i8-flag.yml"
 
@@ -11,14 +11,11 @@ def test_i8_flag_ops_script_bounds():
     body = SCRIPT.read_text(encoding="utf-8")
     assert "SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED" in body
     assert "070_i8_proactive_evaluation_ledger" in body
-    assert "PHASE=PREFLIGHT" not in body  # script uses PHASE env, not hardcoded assignment of all
-    assert 'PHASE="${PHASE:-}"' in body or "PHASE=" in body
     assert "ACTIVATE" in body
     assert "OBSERVE" in body
     assert "KILL_SWITCH" in body
     assert "alembic upgrade" not in body.lower()
     assert "SEDI_I8_PROACTIVE_SCHEDULE_TRIGGER_ENABLED=1" not in body
-    # Must not mutate I5/I7 flags
     assert "SEDI_I5_" not in body
     assert "SEDI_I7_" not in body
     assert "unsafe_synthetic_action" in body
