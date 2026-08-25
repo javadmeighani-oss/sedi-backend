@@ -312,9 +312,12 @@ phase_observe() {
   runtime="$(docker exec sedi-backend printenv "${I8_FLAG}" || true)"
   echo "${runtime}" | grep -Eiq '^(1|true|yes|on)$' || { s "observe_requires_on" "FAIL"; exit 50; }
   s "observe_requires_on" "PASS"
-  local started_at eval_before plans_before actions_before
+  local started_at eval_before plans_before actions_before since_opt
   started_at="$(docker inspect sedi-backend --format '{{.State.StartedAt}}')"
+  # Docker --since rejects some nanosecond timestamps; truncate to seconds.
+  since_opt="$(printf '%s' "${started_at}" | sed -E 's/\.[0-9]+Z$/Z/')"
   s "backend_started_at" "${started_at}"
+  s "docker_logs_since" "${since_opt}"
   eval_before="$(psql_prod "SELECT COUNT(*) FROM i8_proactive_evaluations;")"
   plans_before="$(psql_prod "SELECT COUNT(*) FROM i8_operational_plans WHERE generation_mode='proactive';")"
   actions_before="$(psql_prod "SELECT COUNT(*) FROM i8_operational_plan_actions a JOIN i8_operational_plans p ON p.id=a.plan_id WHERE p.generation_mode='proactive';")"
@@ -322,15 +325,15 @@ phase_observe() {
   s "observe_plans_before" "${plans_before}"
   s "observe_actions_before" "${actions_before}"
 
-  local deadline now saw_scan=0 saw_skip_off=0
+  local deadline saw_scan=0 saw_skip_off=0
   deadline=$(( $(date +%s) + OBSERVE_WAIT_SEC ))
   while [ "$(date +%s)" -lt "${deadline}" ]; do
-    if docker logs --since "${started_at}" sedi-backend 2>&1 | grep -Eq 'i8_schedule_scan_completed|i8_schedule_trigger_ok'; then
+    if docker logs --since "${since_opt}" sedi-backend 2>&1 | grep -Eq 'i8_schedule_scan_completed|i8_schedule_trigger_ok'; then
       saw_scan=1
       break
     fi
     # Detect accidental OFF no-op dominance after start (should not be the only evidence while ON)
-    if docker logs --since "${started_at}" sedi-backend 2>&1 | grep -Fq 'i8_schedule_scan_skipped_flag_off'; then
+    if docker logs --since "${since_opt}" sedi-backend 2>&1 | grep -Fq 'i8_schedule_scan_skipped_flag_off'; then
       saw_skip_off=1
     fi
     sleep 20
@@ -378,7 +381,7 @@ phase_observe() {
   s "ledger_contract" "PASS"
 
   # Smart Notification / unauthorized notification grep (bounded)
-  if docker logs --since "${started_at}" sedi-backend 2>&1 | grep -Eiq 'Smart Notification|smart_notification|I8.*push|proactive.*notif'; then
+  if docker logs --since "${since_opt}" sedi-backend 2>&1 | grep -Eiq 'Smart Notification|smart_notification|I8.*push|proactive.*notif'; then
     s "smart_notification_bypass_suspect" "YES"
     exit 55
   fi

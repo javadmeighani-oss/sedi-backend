@@ -66,12 +66,12 @@ jobs:
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
           DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
           REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/db03/db_prod_i8_flag_remote.sh \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i8_flag_remote.sh"
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_flag_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
@@ -135,13 +135,13 @@ jobs:
           ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
           DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
           REMOTE_DIR="${DEPLOY_PATH}/ops/db03"
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/db03/db_prod_i8_flag_remote.sh \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i8_flag_remote.sh"
           set +e
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_flag_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
@@ -154,7 +154,7 @@ jobs:
           set -e
           if [ "${RC}" != "0" ]; then
             echo "ACTIVATE_FAILED rc=${RC}; fail-closed KILL_SWITCH"
-            ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
               "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
               "DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
                PHASE=KILL_SWITCH \
@@ -217,7 +217,7 @@ jobs:
             backend/ops/db03/db_prod_i8_flag_remote.sh \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i8_flag_remote.sh"
           set +e
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_flag_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
@@ -231,7 +231,7 @@ jobs:
           set -e
           if [ "${RC}" != "0" ]; then
             echo "OBSERVE_FAILED rc=${RC}; fail-closed KILL_SWITCH"
-            ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
               "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
               "DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
                PHASE=KILL_SWITCH \
@@ -293,7 +293,7 @@ jobs:
           scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
             backend/ops/db03/db_prod_i8_flag_remote.sh \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/db_prod_i8_flag_remote.sh"
-          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+          ssh -i ~/.ssh/sedi_deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
             "chmod 700 $(printf '%q' "${REMOTE_DIR}/db_prod_i8_flag_remote.sh") && \
              DEPLOY_PATH=$(printf '%q' "${DEPLOY_PATH}") \
