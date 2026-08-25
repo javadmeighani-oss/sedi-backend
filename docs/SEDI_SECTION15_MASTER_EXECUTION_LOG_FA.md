@@ -74337,3 +74337,63 @@ CURSOR_HANDOFF=v655
 CURSOR_HANDOFF_EXTERNAL_ONLY=YES
 NOTE=§362 preserved unchanged; §363 append-only closure.
 NOTE=post-§363 final master-log whole-file self-SHA is NOT embedded inside §363.
+
+
+§364 - PD-I8-04D-PROD-DEPLOY-SMOKE-GOV-REPAIR-01 MASTER LOG BYTE-EXACT FORWARD GOVERNANCE REPAIR
+------------------------------------------------------------------------------------------------------------------
+GATE=PD-I8-04D-PROD-DEPLOY-SMOKE-GOV-REPAIR-01
+TITLE=MASTER LOG BYTE-EXACT FORWARD GOVERNANCE REPAIR
+APPROVED_BY=Javad
+PRODUCT_OWNER_APPROVAL=YES
+RECORDED_AT_UTC=2026-08-25T03:45:00Z
+CURSOR_MODEL_MODE=AUTO
+GATE_TYPE=GOVERNANCE REPAIR (DOCUMENTATION ONLY)
+IMPLEMENTATION_AUTHORIZED=YES (Master Log forward corrective commit only)
+GATE_RESULT=PASS
+HARD_STOP_REASON=NONE
+
+MASTER_LOG_IN=§363
+CURSOR_HANDOFF_IN=v655
+CHATGPT_CONTINUITY=v679
+CHATGPT_MUTATED=NO
+
+INCIDENT=§363 closure commit caused historical byte/EOL drift
+BAD_CLOSURE_COMMIT=18f8bd0e897d9ea91d5e3b1cd233571d41c300a9
+PRE_REPAIR_GOOD_PREFIX_SOURCE=11ac3087b7c85f2b38a47aab14a79d44abf88dfc
+REPAIR_MODE=FORWARD_CORRECTIVE_COMMIT
+HISTORY_REWRITE=NO
+FORCE_PUSH=NO
+
+AUDIT_COMMON_PREFIX_LEN=3290840
+AUDIT_FIRST_DIFF_CONTEXT=section boundary near §343/§344 (CRLF+LF+LF vs CRLF+CRLF)
+HISTORICAL_PREFIX_THROUGH_§362_BYTE_EXACT=PASS
+HISTORICAL_BYTE_DRIFT=0
+HISTORICAL_EOL_DRIFT=0
+
+REPAIR_ACTIONS=restore exact 11ac3087 Master Log bytes through §362; re-append verified §363 deploy-smoke facts; append §364 repair record
+§363_FACTS_PRESERVED=YES (SOURCE_SHA b1990e61; IMAGE_DIGEST sha256:68f71154...; DEPLOY_RUN 32695394180; TLS attempts 32694925891/32695228501; Alembic 070; I8 flag OFF; zero proactive activity; activation NO; notification NO)
+
+PRODUCTION_MUTATION=NO
+DEPLOY=NO
+DB_MUTATION=NO
+I8_FLAG_CHANGE=NO
+ACTIVATION=NO
+NOTIFICATION=NO
+
+PRODUCTION_IMAGE=ghcr.io/javadmeighani-oss/sedi-backend:b1990e61ab7bdeb94befb575f27ee3d5bf0d3568
+IMAGE_DIGEST=sha256:68f71154e0850e5cf070c07c71ff40483137f1ec36bfecd14fe19a7f18893634
+PRODUCTION_ALEMBIC_HEAD=070_i8_proactive_evaluation_ledger
+I8_PROACTIVE_FLAG=OFF
+PRODUCTION_TECHNICAL_RESULT=PASS (unchanged by this repair)
+
+OPEN_P0=0
+OPEN_P1=0
+OPEN_P2=controlled I8 proactive activation readiness/execution gate (NOT authorized)
+
+NEXT_PROPOSED_GATE=controlled I8 proactive activation readiness/execution gate
+NEXT_GATE_AUTHORIZED=NO
+
+CURSOR_HANDOFF=v656
+CURSOR_HANDOFF_EXTERNAL_ONLY=YES
+NOTE=§362/§363 preserved as intended append-only sequence after historical-byte restore; §364 documents forward repair.
+NOTE=post-§364 final master-log whole-file self-SHA is NOT embedded inside §364.
