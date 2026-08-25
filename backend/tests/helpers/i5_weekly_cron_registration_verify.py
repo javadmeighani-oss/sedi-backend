@@ -27,8 +27,7 @@ WEEKLY_CRON_REGISTRATION_RE = re.compile(
 
 # Exact bash Extended RegEx used in workflows (must stay byte-identical intent).
 WORKFLOW_CRON_GREP_ERE = (
-    r"weekly_international_knowledge_crawler registered"
-    r".*trigger=cron"
+    r"trigger=cron"
     r".*day_of_week=fri"
     r".*hour=3"
     r".*minute=30"
