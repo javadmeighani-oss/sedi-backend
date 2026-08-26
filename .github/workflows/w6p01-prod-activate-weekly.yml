@@ -232,6 +232,10 @@ jobs:
                       als_ku += 1
                   if "multiple sclerosis" in text:
                       ms_ku += 1
+              print(json.dumps({
+                  "phase": "after", "ku": ku, "eligible": elig, "kce": kce,
+                  "als_raw": als_raw, "ms_raw": ms_raw, "als_ku": als_ku, "ms_ku": ms_ku,
+              }, ensure_ascii=False, sort_keys=True))
               proofs = {}
               for label, query in (
                   ("general_sleep", "sleep tiredness rest healthy habits"),
@@ -240,12 +244,14 @@ jobs:
                   ("ms", "multiple sclerosis MS"),
               ):
                   res = retrieve_knowledge_context(db, query, limit=5, enqueue_gap_on_empty=False, require_query_tokens=True)
-                  proofs[label] = {"status": res.status, "hit_count": len(res.evidence or [])}
-              print(json.dumps({
-                  "phase": "after", "ku": ku, "eligible": elig, "kce": kce,
-                  "als_raw": als_raw, "ms_raw": ms_raw, "als_ku": als_ku, "ms_ku": ms_ku,
-                  "retrieval_proofs": proofs,
-              }, ensure_ascii=False, sort_keys=True))
+                  items = list(getattr(res, "items", None) or [])
+                  proofs[label] = {
+                      "status": res.status,
+                      "hit_count": len(items),
+                      "sample_ku_ids": [getattr(i, "knowledge_unit_id", None) for i in items[:3]],
+                      "sample_prov": [getattr(i, "provenance_id", None) for i in items[:3]],
+                  }
+              print(json.dumps({"retrieval_proofs": proofs}, ensure_ascii=False, sort_keys=True))
           finally:
               db.close()
           PY
