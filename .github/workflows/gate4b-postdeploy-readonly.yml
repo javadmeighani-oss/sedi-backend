@@ -11,7 +11,7 @@ jobs:
   readonly-check:
     name: Post-deploy read-only safety check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Prepare SSH key
@@ -31,6 +31,7 @@ jobs:
              cd "${{ secrets.SEDI_DEPLOY_PATH }}"
              echo "=== IMAGE ==="
              docker inspect sedi-backend --format "{{.Config.Image}}"
+             docker inspect sedi-backend --format "RepoDigests={{json .RepoDigests}}" || true
              echo "=== ALEMBIC CURRENT ==="
              docker exec sedi-backend python -m alembic -c backend/alembic.ini current
              echo "=== ALEMBIC HEADS ==="
@@ -50,44 +51,157 @@ jobs:
              docker logs --since 30m sedi-backend 2>&1 \
                | grep -E "\[Sedi Scheduler\]|\[NOTIF\]|\[GATE4|Traceback|ERROR|Exception" \
                | tail -120 || true
-             echo "=== GHCR CONNECTIVITY PRECHECK (read-only; no pull) ==="
+
+             echo "=== GHCR TLS PATH DIAGNOSIS (read-only; no pull/recreate) ==="
              FAIL=0
+             HAS_AAAA=0
+             IPV4_TLS=0
+             IPV6_TLS=0
+             PROXY_SET=0
+
+             echo "--- SYSTEM TIME ---"
+             date -u
+             timedatectl status 2>/dev/null | head -20 || true
+             echo "SYSTEM_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+             echo "--- CA BUNDLE ---"
+             ls -la /etc/ssl/certs/ca-certificates.crt 2>/dev/null || ls -la /etc/pki/tls/certs/ca-bundle.crt 2>/dev/null || echo "CA_BUNDLE=NOT_FOUND"
+             if [ -f /etc/ssl/certs/ca-certificates.crt ]; then echo "CA_STATUS=PRESENT path=/etc/ssl/certs/ca-certificates.crt"; elif [ -f /etc/pki/tls/certs/ca-bundle.crt ]; then echo "CA_STATUS=PRESENT path=/etc/pki/tls/certs/ca-bundle.crt"; else echo "CA_STATUS=MISSING"; FAIL=1; fi
+
+             echo "--- PROXY ENV (host) ---"
+             env | grep -Ei "^(http|https|all|no)_proxy=" || echo "PROXY_ENV=UNSET"
+             if env | grep -Eiq "^(http|https|all)_proxy=."; then PROXY_SET=1; echo "PROXY_STATUS=SET"; else echo "PROXY_STATUS=UNSET"; fi
+             echo "--- DOCKER PROXY FILES (existence only) ---"
+             ls -la /etc/systemd/system/docker.service.d 2>/dev/null || echo "docker.service.d=absent"
+             ls -la ~/.docker/config.json 2>/dev/null || echo "docker_config=absent"
+             if [ -f /etc/docker/daemon.json ]; then echo "daemon.json=present"; python3 - <<PY || true
+import json
+p="/etc/docker/daemon.json"
+try:
+  d=json.load(open(p))
+  print("daemon_keys", sorted(d.keys()))
+  print("insecure-registries", d.get("insecure-registries"))
+except Exception as e:
+  print("daemon_parse", type(e).__name__)
+PY
+             else echo "daemon.json=absent"; fi
+
+             echo "--- DNS A/AAAA ghcr.io ---"
+             getent ahosts ghcr.io 2>/tmp/ghcr_ahosts.txt || true
+             cat /tmp/ghcr_ahosts.txt || true
+             if getent ahostsv4 ghcr.io >/tmp/ghcr_a.txt 2>/dev/null; then echo "GHCR_A=PASS"; cat /tmp/ghcr_a.txt; else echo "GHCR_A=UNKNOWN"; fi
+             if getent ahostsv6 ghcr.io >/tmp/ghcr_aaaa.txt 2>/dev/null; then
+               if [ -s /tmp/ghcr_aaaa.txt ]; then HAS_AAAA=1; echo "GHCR_AAAA=PRESENT"; cat /tmp/ghcr_aaaa.txt; else echo "GHCR_AAAA=EMPTY"; fi
+             else echo "GHCR_AAAA=NONE_OR_UNSUPPORTED"; fi
              if getent hosts ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null || host ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null || nslookup ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null; then
-               echo "GHCR_DNS=PASS"
-               cat /tmp/ghcr_dns.txt || true
+               echo "GHCR_DNS=PASS"; cat /tmp/ghcr_dns.txt || true
              else
                echo "GHCR_DNS=FAIL"; FAIL=1
              fi
+
+             echo "--- TCP 443 ---"
              if (command -v nc >/dev/null && nc -z -w 8 ghcr.io 443) || (timeout 8 bash -c "echo >/dev/tcp/ghcr.io/443"); then
                echo "GHCR_TCP443=PASS"
              else
                echo "GHCR_TCP443=FAIL"; FAIL=1
              fi
-             if echo | timeout 20 openssl s_client -connect ghcr.io:443 -servername ghcr.io >/tmp/ghcr_tls.txt 2>&1; then
-               grep -E "Verify return code|Protocol|Cipher" /tmp/ghcr_tls.txt | head -20 || true
-               if grep -q "Verify return code: 0" /tmp/ghcr_tls.txt || grep -qiE "SSL-Session:|Cipher is" /tmp/ghcr_tls.txt; then
-                 echo "GHCR_TLS=PASS"
+
+             echo "--- curl -4 https://ghcr.io/v2/ ---"
+             set +e
+             CURL4="$(curl -4 -sS -o /tmp/ghcr_v2_4.body -w "%{http_code}|%{ssl_verify_result}|%{time_total}|%{errormsg}" --connect-timeout 15 --max-time 30 https://ghcr.io/v2/ 2>/tmp/ghcr_v2_4.err)"
+             RC4=$?
+             set -e
+             echo "curl4_rc=${RC4} result=${CURL4}"
+             head -c 200 /tmp/ghcr_v2_4.body 2>/dev/null; echo
+             cat /tmp/ghcr_v2_4.err 2>/dev/null || true
+             if [ "${RC4}" -eq 0 ] || echo "${CURL4}" | grep -Eq "^(401|403|200)"; then
+               IPV4_TLS=1; echo "GHCR_IPV4_TLS=PASS"
+             else
+               echo "GHCR_IPV4_TLS=FAIL"; FAIL=1
+             fi
+
+             echo "--- curl -6 https://ghcr.io/v2/ (if AAAA) ---"
+             if [ "${HAS_AAAA}" = "1" ]; then
+               set +e
+               CURL6="$(curl -6 -sS -o /tmp/ghcr_v2_6.body -w "%{http_code}|%{ssl_verify_result}|%{time_total}|%{errormsg}" --connect-timeout 15 --max-time 30 https://ghcr.io/v2/ 2>/tmp/ghcr_v2_6.err)"
+               RC6=$?
+               set -e
+               echo "curl6_rc=${RC6} result=${CURL6}"
+               cat /tmp/ghcr_v2_6.err 2>/dev/null || true
+               if [ "${RC6}" -eq 0 ] || echo "${CURL6}" | grep -Eq "^(401|403|200)"; then
+                 IPV6_TLS=1; echo "GHCR_IPV6_TLS=PASS"
                else
-                 echo "GHCR_TLS=FAIL"; FAIL=1
+                 echo "GHCR_IPV6_TLS=FAIL"
                fi
              else
-               echo "GHCR_TLS=FAIL"; FAIL=1
+               echo "GHCR_IPV6_TLS=SKIP_NO_AAAA"
              fi
+
+             echo "--- openssl s_client SNI ghcr.io ---"
+             set +e
+             echo | timeout 25 openssl s_client -connect ghcr.io:443 -servername ghcr.io -showcerts >/tmp/ghcr_tls.txt 2>&1
+             OSSL_RC=$?
+             set -e
+             echo "openssl_rc=${OSSL_RC}"
+             grep -E "Verify return code|Protocol|Cipher|depth=|subject=|issuer=|CONNECTED|error:" /tmp/ghcr_tls.txt | head -40 || true
+             if grep -q "Verify return code: 0" /tmp/ghcr_tls.txt; then echo "GHCR_OPENSSL_VERIFY=PASS"; elif grep -qiE "SSL-Session:|Cipher is" /tmp/ghcr_tls.txt; then echo "GHCR_OPENSSL_HANDSHAKE=PARTIAL"; else echo "GHCR_OPENSSL=FAIL"; FAIL=1; fi
+
+             echo "--- CONTROL: curl -4 https://github.com ---"
+             set +e
+             C_GH="$(curl -4 -sS -o /dev/null -w "%{http_code}|%{ssl_verify_result}|%{time_total}" --connect-timeout 15 --max-time 25 https://github.com 2>/tmp/ctrl_gh.err)"
+             RC_GH=$?
+             set -e
+             echo "github_rc=${RC_GH} result=${C_GH}"
+             cat /tmp/ctrl_gh.err 2>/dev/null || true
+             if [ "${RC_GH}" -eq 0 ]; then echo "CTRL_GITHUB_TLS=PASS"; else echo "CTRL_GITHUB_TLS=FAIL"; fi
+
+             echo "--- CONTROL: curl -4 https://api.sedi-ai.com/healthz ---"
+             set +e
+             C_SEDI="$(curl -4 -sS -o /dev/null -w "%{http_code}|%{ssl_verify_result}|%{time_total}" --connect-timeout 10 --max-time 20 https://api.sedi-ai.com/healthz 2>/tmp/ctrl_sedi.err)"
+             RC_SEDI=$?
+             set -e
+             echo "sedi_rc=${RC_SEDI} result=${C_SEDI}"
+             if [ "${RC_SEDI}" -eq 0 ]; then echo "CTRL_SEDI_TLS=PASS"; else echo "CTRL_SEDI_TLS=FAIL"; fi
+
+             echo "--- MANIFEST HEAD (no docker pull) ---"
              MANIFEST_URL="https://ghcr.io/v2/javadmeighani-oss/sedi-backend/manifests/d039988844b61860caa504d275881237623352f8"
              set +e
-             CURL_OUT="$(curl -sS -I -o /tmp/ghcr_manifest_headers.txt -w "%{http_code}" --connect-timeout 15 --max-time 30 "${MANIFEST_URL}" 2>/tmp/ghcr_manifest_err.txt)"
+             CURL_OUT="$(curl -4 -sS -I -o /tmp/ghcr_manifest_headers.txt -w "%{http_code}|%{ssl_verify_result}|%{time_total}" --connect-timeout 15 --max-time 30 "${MANIFEST_URL}" 2>/tmp/ghcr_manifest_err.txt)"
              CURL_RC=$?
              set -e
-             echo "manifest_curl_rc=${CURL_RC} http=${CURL_OUT}"
-             head -n 15 /tmp/ghcr_manifest_headers.txt || true
+             echo "manifest_curl_rc=${CURL_RC} result=${CURL_OUT}"
+             head -n 20 /tmp/ghcr_manifest_headers.txt 2>/dev/null || true
+             cat /tmp/ghcr_manifest_err.txt 2>/dev/null || true
              if [ "${CURL_RC}" -ne 0 ]; then
-               cat /tmp/ghcr_manifest_err.txt || true
-               echo "GHCR_MANIFEST=FAIL"; FAIL=1
-             elif echo "${CURL_OUT}" | grep -Eq "^(200|401|403|404)$"; then
+               echo "GHCR_MANIFEST=FAIL"
+               FAIL=1
+             elif echo "${CURL_OUT}" | cut -d"|" -f1 | grep -Eq "^(200|401|403|404)$"; then
                echo "GHCR_MANIFEST=PASS"
              else
                echo "GHCR_MANIFEST=FAIL"; FAIL=1
              fi
+
+             echo "--- DOCKER REGISTRY PATH (info only; no pull) ---"
+             docker info 2>/dev/null | grep -Ei "Registry|Proxy|HTTP Proxy|HTTPS Proxy|No Proxy|Name:" | head -30 || true
+             echo "DOCKER_REGISTRY_PATH=ghcr.io/javadmeighani-oss/sedi-backend (pull not executed)"
+
+             echo "--- ROOT CAUSE CLASSIFICATION ---"
+             # Prefer specific classes from observed symptoms
+             CLASS=UNKNOWN
+             if [ "${PROXY_SET}" = "1" ]; then CLASS=PROXY
+             elif [ "${HAS_AAAA}" = "1" ] && [ "${IPV6_TLS}" = "0" ] && [ "${IPV4_TLS}" = "1" ]; then CLASS=IPV6_PATH
+             elif [ "${IPV4_TLS}" = "0" ] && [ "${RC_GH}" -eq 0 ]; then CLASS=PROVIDER_EGRESS_FILTER
+             elif [ "${IPV4_TLS}" = "0" ] && [ "${RC_GH}" -ne 0 ]; then CLASS=TLS/CA
+             elif [ "${IPV4_TLS}" = "0" ]; then CLASS=TLS/CA
+             elif [ "${FAIL}" -ne 0 ]; then CLASS=UNKNOWN
+             else CLASS=TRANSIENT_OR_CLEAR
+             fi
+             # If TCP works but TLS handshake times out repeatedly vs github OK -> egress filter to ghcr
+             if [ "${FAIL}" -ne 0 ] && [ "${IPV4_TLS}" = "0" ] && [ "${RC_GH}" -eq 0 ]; then CLASS=PROVIDER_EGRESS_FILTER; fi
+             echo "ROOT_CAUSE_CLASS=${CLASS}"
+             echo "GHCR_IPV4_TLS=$([ "${IPV4_TLS}" = "1" ] && echo PASS || echo FAIL)"
+             echo "GHCR_IPV6_TLS=$([ "${HAS_AAAA}" = "1" ] && { [ "${IPV6_TLS}" = "1" ] && echo PASS || echo FAIL; } || echo SKIP_NO_AAAA)"
+
              if [ "${FAIL}" -ne 0 ]; then
                echo "GHCR_CONNECTIVITY=FAIL"
                exit 20
