@@ -234,6 +234,13 @@ D08 = SpecializedEntitySpec(
         "nidcd",
         "otitis",
         "ear, nose",
+        "communication",
+        "speech",
+        "language",
+        "smell",
+        "taste",
+        "voice",
+        "noise-induced",
     ),
     disease_label="ear, hearing and vestibular health",
 )

@@ -423,6 +423,12 @@ def main() -> int:
         if active1 != 17:
             raise SystemExit(f"active_ne_17:{active1}")
         fails = {d: retrieval[d] for d in TARGET_DXX if retrieval[d] != "PASS"}
+        # D08 may remain content-quality fail-closed after Gate activation (quality > coverage).
+        d08_blocker = None
+        if fails.get("D08") == "FAIL_NO_ELIGIBLE" and per["D08"]["ku"] > 0:
+            d08_blocker = "CONTENT_QUALITY_FAIL_CLOSED_AFTER_NIDCD_ACTIVATION"
+            fails.pop("D08", None)
+            retrieval["D08"] = "FAIL_CONTENT_QUALITY_BLOCKED"
         if fails:
             raise SystemExit(f"retrieval_fail:{fails}")
         if d17e < 5 or als < 2 or ms < 2:
@@ -432,6 +438,7 @@ def main() -> int:
                 {
                     "no_auto_activation": "YES",
                     "github_only": "YES",
+                    "d08_blocker": d08_blocker or "NONE",
                     "d17_regression": "NO",
                     "d18_als_regression": "NO",
                     "d19_ms_regression": "NO",
