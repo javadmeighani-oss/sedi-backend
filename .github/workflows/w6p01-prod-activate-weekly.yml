@@ -28,7 +28,9 @@ on:
         default: 056_i5_w2_p02_conflict_safety
 
 concurrency:
-  group: sedi-production-backend-operation
+  # Dedicated group: avoids ghost locks on shared sedi-production-backend-operation
+  # that left QUALIFIED_SOURCE_ACTIVATION_WAVE01 runs queued with nothing in_progress.
+  group: sedi-w6p01-production-activate
   cancel-in-progress: false
 
 permissions:
