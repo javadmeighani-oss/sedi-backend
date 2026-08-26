@@ -3,13 +3,13 @@
 # PostgreSQL GSP/registry tables are runtime audit state.
 # seed_registry.py is bootstrap-only — NOT runtime activation authority.
 #
-# Qualification Gate (PD-I5-V1-GOVERNED-SOURCE-QUALIFICATION-D17-NIOSH-AND-CANDIDATE-REGISTRY-WAVE01-01):
-# NIOSH D17 activated as separate source_key (does NOT broaden cdc_health_lifestyle patterns).
-# MedlinePlus/NIMH global low-risk remains NO. Candidate registry QUALIFIED != ACTIVE.
+# Qualification Gate (PD-I5-V1-QUALIFIED-SOURCE-ACTIVATION-AND-SPECIALIZED-SERVING-WAVE01-01):
+# Activate LIVE_PASS NIH institute families (NCI/NHLBI/NIDDK/NIAMS/NEI/NIDCR) + specialized serving.
+# OWH / CDC Child / CDC NCEZID remain inactive. No global low-risk enablement.
 manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
 manifest_version: "i5-trusted-source-control-v2"
-allowlist_version: "i5-multisource-v1-niosh-d17-q01"
-gate_id: "PD-I5-V1-GOVERNED-SOURCE-QUALIFICATION-D17-NIOSH-AND-CANDIDATE-REGISTRY-WAVE01-01"
+allowlist_version: "i5-multisource-v1-qualified-activation-wave01"
+gate_id: "PD-I5-V1-QUALIFIED-SOURCE-ACTIVATION-AND-SPECIALIZED-SERVING-WAVE01-01"
 publisher_diversity_floor: 4
 historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
 wave02_targets:
@@ -188,3 +188,148 @@ sources:
     activation: YES
     governed_low_risk_eligibility: NO
     license_notes: "NIMH public-domain text; cite NIMH; non-diagnostic; no crisis content as KB answers"
+
+  - source_key: nci_cancer_gov
+    publisher: NCI / NIH
+    publisher_family: cancer.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.cancer.gov/publications/pdq
+    additional_urls:
+      - https://www.cancer.gov/about-cancer/treatment/types
+      - https://www.cancer.gov/about-cancer/coping
+      - https://www.cancer.gov/about-cancer/advanced-cancer/care-choices
+    allowed_domain: cancer.gov
+    allowed_url_patterns:
+      - "^https://www\\.cancer\\.gov/(publications/pdq|about-cancer/|types/).*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_4_urls"
+    entity_coverage: [D01, D16]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D01, D16]
+    license_notes: "NCI/NIH public domain — attribute NCI; consumer education not diagnosis"
+    live_qualification: PASS
+
+  - source_key: nhlbi_health
+    publisher: NHLBI / NIH
+    publisher_family: nhlbi.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nhlbi.nih.gov/health
+    additional_urls:
+      - https://www.nhlbi.nih.gov/health/asthma
+      - https://www.nhlbi.nih.gov/health/copd
+      - https://www.nhlbi.nih.gov/health/lungs
+    allowed_domain: nhlbi.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nhlbi\\.nih\\.gov/health(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_4_urls"
+    entity_coverage: [D02]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D02]
+    license_notes: "NHLBI/NIH public domain — attribute NHLBI; consumer education not diagnosis"
+    live_qualification: PASS
+
+  - source_key: niddk_health
+    publisher: NIDDK / NIH
+    publisher_family: niddk.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.niddk.nih.gov/health-information/kidney-disease
+    additional_urls:
+      - https://www.niddk.nih.gov/health-information/liver-disease
+      - https://www.niddk.nih.gov/health-information/digestive-diseases
+    allowed_domain: niddk.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.niddk\\.nih\\.gov/health-information/(kidney-disease|liver-disease|digestive-diseases).*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D03, D04]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D03, D04]
+    license_notes: "NIDDK/NIH public domain — attribute NIDDK; consumer education not diagnosis"
+    live_qualification: PASS
+
+  - source_key: niams_health
+    publisher: NIAMS / NIH
+    publisher_family: niams.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.niams.nih.gov/health-topics/arthritis
+    additional_urls:
+      - https://www.niams.nih.gov/health-topics/skin-diseases
+    allowed_domain: niams.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.niams\\.nih\\.gov/health-topics/(arthritis|skin-diseases).*"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_2_urls"
+    entity_coverage: [D05, D06]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D05, D06]
+    license_notes: "NIAMS/NIH public domain — attribute NIAMS; consumer education not diagnosis"
+    live_qualification: PASS
+
+  - source_key: nei_eye_health
+    publisher: NEI / NIH
+    publisher_family: nei.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nei.nih.gov/learn-about-eye-health
+    additional_urls:
+      - https://www.nei.nih.gov/learn-about-eye-health/eye-conditions-and-diseases
+      - https://www.nei.nih.gov/learn-about-eye-health/healthy-vision
+    allowed_domain: nei.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nei\\.nih\\.gov/learn-about-eye-health(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D07]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D07]
+    license_notes: "NEI/NIH public domain — attribute NEI; consumer education not diagnosis"
+    live_qualification: PASS
+
+  - source_key: nidcr_oral_health
+    publisher: NIDCR / NIH
+    publisher_family: nidcr.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nidcr.nih.gov/health-info
+    additional_urls:
+      - https://www.nidcr.nih.gov/health-info/oral-hygiene
+      - https://www.nidcr.nih.gov/health-info/tooth-decay
+    allowed_domain: nidcr.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nidcr\\.nih\\.gov/health-info(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D09]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D09]
+    license_notes: "NIDCR/NIH public domain — attribute NIDCR; consumer education not diagnosis"
+    live_qualification: PASS

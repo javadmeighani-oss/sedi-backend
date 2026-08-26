@@ -116,7 +116,121 @@ D17 = SpecializedEntitySpec(
     disease_label="environmental and occupational health",
 )
 
-SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (D17, D18, D19)
+# More-specific URL needles first (resolve_specialized_entity_from_url is first-match).
+D16 = SpecializedEntitySpec(
+    entity_id="D16",
+    alias="PALLIATIVE",
+    track_id="D16-TRACK",
+    domain="palliative",
+    topic="palliative_care",
+    url_needles=("advanced-cancer/care-choices", "about-cancer/coping"),
+    clinical_tokens=("palliative", "hospice", "advanced cancer", "end of life", "coping", "supportive care"),
+    disease_label="palliative care",
+)
+
+D01 = SpecializedEntitySpec(
+    entity_id="D01",
+    alias="ONCOLOGY",
+    track_id="D01-TRACK",
+    domain="oncology",
+    topic="cancer",
+    url_needles=("cancer.gov/publications/pdq", "about-cancer/treatment", "cancer.gov/types/"),
+    clinical_tokens=("cancer", "tumor", "oncology", "pdq", "chemotherapy", "radiation"),
+    disease_label="oncology and supportive cancer care",
+)
+
+D06 = SpecializedEntitySpec(
+    entity_id="D06",
+    alias="DERM",
+    track_id="D06-TRACK",
+    domain="dermatology",
+    topic="skin_health",
+    url_needles=("health-topics/skin-diseases", "skin-diseases"),
+    clinical_tokens=("skin", "dermatology", "rash", "eczema", "psoriasis"),
+    disease_label="dermatology and skin health",
+)
+
+D05 = SpecializedEntitySpec(
+    entity_id="D05",
+    alias="MSK",
+    track_id="D05-TRACK",
+    domain="musculoskeletal",
+    topic="arthritis_msk",
+    url_needles=("health-topics/arthritis", "niams.nih.gov/health-topics"),
+    clinical_tokens=("arthritis", "joint", "musculoskeletal", "bone", "rheumat"),
+    disease_label="musculoskeletal health and pain",
+)
+
+D03 = SpecializedEntitySpec(
+    entity_id="D03",
+    alias="KIDNEY",
+    track_id="D03-TRACK",
+    domain="renal",
+    topic="kidney",
+    url_needles=("kidney-disease",),
+    clinical_tokens=("kidney", "renal", "dialysis", "urine", "nephro"),
+    disease_label="kidney and urinary tract health",
+)
+
+D04 = SpecializedEntitySpec(
+    entity_id="D04",
+    alias="GI_LIVER",
+    track_id="D04-TRACK",
+    domain="gastroenterology",
+    topic="digestive_liver",
+    url_needles=("liver-disease", "digestive-diseases"),
+    clinical_tokens=("liver", "digestive", "hepatitis", "gastro", "bowel"),
+    disease_label="gastroenterology and digestive health",
+)
+
+D02 = SpecializedEntitySpec(
+    entity_id="D02",
+    alias="RESP",
+    track_id="D02-TRACK",
+    domain="respiratory",
+    topic="lung_health",
+    url_needles=("nhlbi.nih.gov/health",),
+    clinical_tokens=("asthma", "copd", "lung", "respiratory", "breathing", "airway"),
+    disease_label="respiratory health and diseases",
+)
+
+D07 = SpecializedEntitySpec(
+    entity_id="D07",
+    alias="EYE",
+    track_id="D07-TRACK",
+    domain="ophthalmology",
+    topic="eye_health",
+    url_needles=("nei.nih.gov/learn-about-eye-health",),
+    clinical_tokens=("eye", "vision", "ophthalm", "retina", "glaucoma", "cataract"),
+    disease_label="ophthalmology and vision",
+)
+
+D09 = SpecializedEntitySpec(
+    entity_id="D09",
+    alias="ORAL",
+    track_id="D09-TRACK",
+    domain="dental",
+    topic="oral_health",
+    url_needles=("nidcr.nih.gov/health-info",),
+    clinical_tokens=("oral", "dental", "tooth", "teeth", "gum", "cavity", "decay"),
+    disease_label="oral and dental health",
+)
+
+# Specific-first ordering for URL first-match.
+SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
+    D16,
+    D01,
+    D06,
+    D05,
+    D03,
+    D04,
+    D02,
+    D07,
+    D09,
+    D17,
+    D18,
+    D19,
+)
 SPECIALIZED_BY_ID = {s.entity_id: s for s in SPECIALIZED_SPECS}
 
 
@@ -361,6 +475,15 @@ __all__ = [
     "PACKAGE_ID",
     "SPECIALIZED_SOURCE_KEY",
     "NIOSH_SOURCE_KEY",
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06",
+    "D07",
+    "D09",
+    "D16",
     "D17",
     "D18",
     "D19",
