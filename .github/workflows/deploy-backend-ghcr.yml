@@ -574,7 +574,10 @@ jobs:
             exit 13
           fi
           RUNNER_IMAGE_ID="$(docker image inspect "${DIGEST_REF}" --format '{{.Id}}')"
+          RUNNER_ROOTFS_JSON="$(docker image inspect "${DIGEST_REF}" --format '{{json .RootFS.Layers}}')"
+          RUNNER_ROOTFS_SHA256="$(printf '%s' "${RUNNER_ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
           echo "RUNNER_IMAGE_ID=${RUNNER_IMAGE_ID}"
+          echo "RUNNER_ROOTFS_SHA256=${RUNNER_ROOTFS_SHA256}"
           # Preserve exact TARGET_TAG for compose.
           docker tag "${DIGEST_REF}" "${TAG_REF}"
           ARCHIVE="/tmp/sedi-backend-${IMAGE_TAG}.tar"
@@ -585,10 +588,12 @@ jobs:
           echo "ARCHIVE_SHA256=${ARCHIVE_SHA256}"
           echo "ARCHIVE_BYTES=${ARCHIVE_BYTES}"
           echo "runner_image_id=${RUNNER_IMAGE_ID}" >> "$GITHUB_OUTPUT"
+          echo "runner_rootfs_sha256=${RUNNER_ROOTFS_SHA256}" >> "$GITHUB_OUTPUT"
           echo "archive_sha256=${ARCHIVE_SHA256}" >> "$GITHUB_OUTPUT"
           echo "archive_path=${ARCHIVE}" >> "$GITHUB_OUTPUT"
           echo "SOURCE_REGISTRY_DIGEST=${EXPECTED_DIGEST}" >> "$GITHUB_STEP_SUMMARY"
           echo "RUNNER_IMAGE_ID=${RUNNER_IMAGE_ID}" >> "$GITHUB_STEP_SUMMARY"
+          echo "RUNNER_ROOTFS_SHA256=${RUNNER_ROOTFS_SHA256}" >> "$GITHUB_STEP_SUMMARY"
           echo "ARCHIVE_SHA256=${ARCHIVE_SHA256}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Prepare SSH key
@@ -669,6 +674,7 @@ jobs:
           EXPECTED_REV: ${{ github.event.inputs.expected_alembic_revision }}
           EXPECTED_DIGEST: ${{ github.event.inputs.expected_image_digest }}
           RUNNER_IMAGE_ID: ${{ steps.pull_save.outputs.runner_image_id }}
+          RUNNER_ROOTFS_SHA256: ${{ steps.pull_save.outputs.runner_rootfs_sha256 }}
           ARCHIVE_SHA256: ${{ steps.pull_save.outputs.archive_sha256 }}
         run: |
           set -Eeuo pipefail
@@ -676,13 +682,14 @@ jobs:
           EXPECTED_REV_Q="$(printf '%q' "${EXPECTED_REV}")"
           EXPECTED_DIGEST_Q="$(printf '%q' "${EXPECTED_DIGEST}")"
           RUNNER_ID_Q="$(printf '%q' "${RUNNER_IMAGE_ID}")"
+          RUNNER_ROOTFS_Q="$(printf '%q' "${RUNNER_ROOTFS_SHA256}")"
           ARCHIVE_SHA_Q="$(printf '%q' "${ARCHIVE_SHA256}")"
           DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
           IMAGE_NAME_Q="$(printf '%q' "${IMAGE_NAME}")"
           ssh -i ~/.ssh/sedi_deploy_key \
             -p "${{ secrets.SEDI_PORT }}" \
             "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
-            "IMAGE_TAG=${IMAGE_TAG_Q} EXPECTED_REV=${EXPECTED_REV_Q} EXPECTED_DIGEST=${EXPECTED_DIGEST_Q} RUNNER_IMAGE_ID=${RUNNER_ID_Q} ARCHIVE_SHA256=${ARCHIVE_SHA_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_NAME=${IMAGE_NAME_Q} bash -s" <<'REMOTE_SCRIPT'
+            "IMAGE_TAG=${IMAGE_TAG_Q} EXPECTED_REV=${EXPECTED_REV_Q} EXPECTED_DIGEST=${EXPECTED_DIGEST_Q} RUNNER_IMAGE_ID=${RUNNER_ID_Q} RUNNER_ROOTFS_SHA256=${RUNNER_ROOTFS_Q} ARCHIVE_SHA256=${ARCHIVE_SHA_Q} DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_NAME=${IMAGE_NAME_Q} bash -s" <<'REMOTE_SCRIPT'
           set -Eeuo pipefail
           log() { echo "[$(date -Is)] $*"; }
           ENV_FILE="/etc/sedi/sedi-backend.env"
@@ -716,14 +723,28 @@ jobs:
           LOAD_OUT="$(docker load -i "${ARCHIVE}")"
           log "${LOAD_OUT}"
           SERVER_LOADED_IMAGE_ID="$(docker image inspect "${TAG_REF}" --format '{{.Id}}')"
+          SERVER_ROOTFS_JSON="$(docker image inspect "${TAG_REF}" --format '{{json .RootFS.Layers}}')"
+          SERVER_ROOTFS_SHA256="$(printf '%s' "${SERVER_ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
           log "SERVER_LOADED_IMAGE_ID=${SERVER_LOADED_IMAGE_ID}"
-          if [ "${SERVER_LOADED_IMAGE_ID}" != "${RUNNER_IMAGE_ID}" ]; then
-            log "IMAGE_ID_MISMATCH runner=${RUNNER_IMAGE_ID} server=${SERVER_LOADED_IMAGE_ID}"
+          log "SERVER_ROOTFS_SHA256=${SERVER_ROOTFS_SHA256}"
+          log "RUNNER_IMAGE_ID=${RUNNER_IMAGE_ID}"
+          log "RUNNER_ROOTFS_SHA256=${RUNNER_ROOTFS_SHA256}"
+          if [ "${SERVER_ROOTFS_SHA256}" != "${RUNNER_ROOTFS_SHA256}" ]; then
+            log "ROOTFS_LAYER_MISMATCH"
             rm -f "${ARCHIVE}"
             exit 16
           fi
-          log "IMAGE_ID_MATCH=PASS"
+          log "ROOTFS_LAYER_MATCH=PASS"
+          if [ "${SERVER_LOADED_IMAGE_ID}" = "${RUNNER_IMAGE_ID}" ]; then
+            log "IMAGE_ID_MATCH=PASS"
+            log "STORAGE_BACKEND_ID_DIVERGENCE=NO"
+          else
+            # Overlay2 vs containerd image-store may rewrite local Id while layers stay identical.
+            log "IMAGE_ID_MATCH=DIVERGED_STORAGE_BACKEND"
+            log "STORAGE_BACKEND_ID_DIVERGENCE=YES"
+          fi
           log "SOURCE_REGISTRY_DIGEST=${EXPECTED_DIGEST}"
+          log "IDENTITY_CONTRACT=REGISTRY_DIGEST+ARCHIVE_SHA256+ROOTFS_LAYERS"
 
           ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
           ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
@@ -737,14 +758,20 @@ jobs:
           SEDI_IMAGE_TAG="${IMAGE_TAG}" docker compose -f compose.production.yml up -d --no-deps --force-recreate --pull never sedi-backend
           docker inspect sedi-backend --format 'container_image={{.Config.Image}} image_id={{.Image}}' || true
           RUNNING_ID="$(docker inspect sedi-backend --format '{{.Image}}')"
-          if [ "${RUNNING_ID}" != "${RUNNER_IMAGE_ID}" ]; then
-            log "RUNNING_IMAGE_ID_MISMATCH got=${RUNNING_ID}"
+          if [ "${RUNNING_ID}" != "${SERVER_LOADED_IMAGE_ID}" ]; then
+            log "RUNNING_IMAGE_ID_MISMATCH expected_server_loaded=${SERVER_LOADED_IMAGE_ID} got=${RUNNING_ID}"
             exit 17
           fi
           RUNNING_TAG_IMG="$(docker inspect sedi-backend --format '{{.Config.Image}}')"
           if [ "${RUNNING_TAG_IMG}" != "${TAG_REF}" ]; then
             log "RUNNING_TAG_MISMATCH got=${RUNNING_TAG_IMG}"
             exit 18
+          fi
+          RUNNING_ROOTFS_JSON="$(docker image inspect "${RUNNING_ID}" --format '{{json .RootFS.Layers}}')"
+          RUNNING_ROOTFS_SHA256="$(printf '%s' "${RUNNING_ROOTFS_JSON}" | sha256sum | awk '{print $1}')"
+          if [ "${RUNNING_ROOTFS_SHA256}" != "${RUNNER_ROOTFS_SHA256}" ]; then
+            log "RUNNING_ROOTFS_MISMATCH"
+            exit 19
           fi
 
           HEALTH_OK=0
@@ -771,8 +798,11 @@ jobs:
           echo ""
           log "RUNNING_TAG=${IMAGE_TAG}"
           log "RUNNING_IMAGE_ID=${RUNNING_ID}"
+          log "SERVER_LOADED_IMAGE_ID=${SERVER_LOADED_IMAGE_ID}"
+          log "RUNNER_IMAGE_ID=${RUNNER_IMAGE_ID}"
           log "SOURCE_REGISTRY_DIGEST=${EXPECTED_DIGEST}"
           log "ARCHIVE_SHA256=${ARCHIVE_SHA256}"
+          log "ROOTFS_SHA256=${RUNNER_ROOTFS_SHA256}"
           log "=== REMOVE TEMP ARCHIVE ==="
           rm -f "${ARCHIVE}"
           rmdir "${REMOTE_DIR}" 2>/dev/null || true
