@@ -204,84 +204,119 @@ jobs:
           from backend.app.services.i5.governed_specialized_entity_eligibility import resolve_specialized_entity_from_url
           from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
           from backend.app.services.scis.retrieval import retrieve as scis_retrieve
-          before=json.loads(open('/tmp/qwave01_before.json',encoding='utf-8').read())
-          TARGETS=['D01','D02','D03','D04','D05','D06','D07','D09','D16']
-              TOKEN={'D01':('cancer','oncology'),'D02':('asthma','lung'),'D03':('kidney','renal'),'D04':('liver','digestive'),'D05':('arthritis','joint'),'D06':('skin','dermatology'),'D07':('vision','eye'),'D09':('dental','tooth'),'D16':('coping','advanced','care')}
-              db=next(get_db())
-              try:
-                  ku=db.query(models.KnowledgeUnit).count()
-                  elig_rows=db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.runtime_eligibility==KnowledgeUnitRuntimeEligibility.ELIGIBLE.value).all()
-                  elig=len(elig_rows); kce=db.query(models.KnowledgeChunkEmbedding).count()
-                  active_fetch=db.query(models.KnowledgeSource).filter(models.KnowledgeSource.source_fetch_enabled.is_(True)).count()
-                  from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest, active_manifest_rows
-                  load_trusted_source_manifest.cache_clear()
-                  fams=sorted({r.get('publisher_family') for r in active_manifest_rows()})
-                  per={d:{'ku':0,'eligible':0,'kce':0} for d in TARGETS+['D17','D18','D19']}
-                  als=ms=d17e=0
-                  for p in db.query(models.KnowledgeProvenance).all():
-                      rid=getattr(p,'raw_evidence_id',None)
-                      raw=db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
-                      u=''
-                      if raw is not None: u=((raw.canonical_url or '')+' '+(getattr(raw,'final_url',None) or '')).lower()
-                      ku_row=db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
-                      if ku_row is None: continue
-                      is_elig=str(ku_row.runtime_eligibility)==KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
-                      entity=str(getattr(ku_row,'manifest_entity_id',None) or '')
-                      spec=resolve_specialized_entity_from_url(u)
-                      if spec is not None and not entity: entity=spec.entity_id
-                      kce_n=db.query(models.KnowledgeChunkEmbedding).filter(models.KnowledgeChunkEmbedding.knowledge_unit_id==int(ku_row.id)).count()
-                      if entity in per:
-                          per[entity]['ku']+=1
-                          if is_elig: per[entity]['eligible']+=1
-                          per[entity]['kce']+=kce_n
-                      if is_elig and 'amyotrophiclateralsclerosis' in u: als+=1
-                      if is_elig and 'multiplesclerosis' in u: ms+=1
-                      if is_elig and (entity=='D17' or '/niosh/' in u): d17e+=1
-                  retrieval={}
-                  for d in TARGETS:
-                      if per[d]['eligible']<=0:
-                          retrieval[d]='N/A_NO_ELIGIBLE'
-                          continue
-                      hit=False
-                      used=''
-                      for q in TOKEN[d]:
-                          req=ScisRetrievalRequest(query_text=q, query_language='en', retrieval_mode=RetrievalMode.LEXICAL, top_k=5)
-                          resp=scis_retrieve(db, req)
-                          ev=list(getattr(resp,'evidence',None) or getattr(resp,'items',None) or [])
-                          if len(ev)>0:
-                              hit=True; used=q; break
-                      if not hit:
-                          # Statement-derived fallback from eligible KU in this domain
-                          for r in elig_rows:
-                              if str(getattr(r,'manifest_entity_id',None) or '')!=d: continue
-                              words=[w for w in str(r.normalized_statement or '').lower().split() if len(w)>4 and w.isalpha()][:2]
-                              if not words: continue
-                              q=' '.join(words)
-                              req=ScisRetrievalRequest(query_text=q, query_language='en', retrieval_mode=RetrievalMode.LEXICAL, top_k=5)
-                              resp=scis_retrieve(db, req)
-                              ev=list(getattr(resp,'evidence',None) or getattr(resp,'items',None) or [])
-                              if len(ev)>0:
-                                  hit=True; used=q; break
-                      retrieval[d]='PASS' if hit else 'FAIL'
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest, active_manifest_rows
+          before = json.loads(open('/tmp/qwave01_before.json', encoding='utf-8').read())
+          TARGETS = ['D01','D02','D03','D04','D05','D06','D07','D09','D16']
+          TOKEN = {
+              'D01': ('cancer', 'oncology'),
+              'D02': ('asthma', 'lung'),
+              'D03': ('kidney', 'renal'),
+              'D04': ('liver', 'digestive'),
+              'D05': ('arthritis', 'joint'),
+              'D06': ('skin', 'dermatology'),
+              'D07': ('vision', 'eye'),
+              'D09': ('dental', 'tooth'),
+              'D16': ('coping', 'advanced', 'care'),
+          }
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig_rows = db.query(models.KnowledgeUnit).filter(
+                  models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+              ).all()
+              elig = len(elig_rows)
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              active_fetch = db.query(models.KnowledgeSource).filter(
+                  models.KnowledgeSource.source_fetch_enabled.is_(True)
+              ).count()
+              load_trusted_source_manifest.cache_clear()
+              fams = sorted({r.get('publisher_family') for r in active_manifest_rows()})
+              per = {d: {'ku': 0, 'eligible': 0, 'kce': 0} for d in TARGETS + ['D17', 'D18', 'D19']}
+              als = ms = d17e = 0
+              for p in db.query(models.KnowledgeProvenance).all():
+                  rid = getattr(p, 'raw_evidence_id', None)
+                  raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
+                  u = ''
+                  if raw is not None:
+                      u = ((raw.canonical_url or '') + ' ' + (getattr(raw, 'final_url', None) or '')).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if ku_row is None:
+                      continue
+                  is_elig = str(ku_row.runtime_eligibility) == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+                  entity = str(getattr(ku_row, 'manifest_entity_id', None) or '')
+                  spec = resolve_specialized_entity_from_url(u)
+                  if spec is not None and not entity:
+                      entity = spec.entity_id
+                  kce_n = db.query(models.KnowledgeChunkEmbedding).filter(
+                      models.KnowledgeChunkEmbedding.knowledge_unit_id == int(ku_row.id)
+                  ).count()
+                  if entity in per:
+                      per[entity]['ku'] += 1
+                      if is_elig:
+                          per[entity]['eligible'] += 1
+                      per[entity]['kce'] += kce_n
+                  if is_elig and 'amyotrophiclateralsclerosis' in u:
+                      als += 1
+                  if is_elig and 'multiplesclerosis' in u:
+                      ms += 1
+                  if is_elig and (entity == 'D17' or '/niosh/' in u):
+                      d17e += 1
+              retrieval = {}
+              for d in TARGETS:
+                  if per[d]['eligible'] <= 0:
+                      retrieval[d] = 'N/A_NO_ELIGIBLE'
+                      continue
+                  hit = False
+                  for q in TOKEN[d]:
+                      req = ScisRetrievalRequest(query_text=q, query_language='en', retrieval_mode=RetrievalMode.LEXICAL, top_k=5)
+                      resp = scis_retrieve(db, req)
+                      ev = list(getattr(resp, 'evidence', None) or getattr(resp, 'items', None) or [])
+                      if len(ev) > 0:
+                          hit = True
+                          break
+                  if not hit:
+                      for r in elig_rows:
+                          if str(getattr(r, 'manifest_entity_id', None) or '') != d:
+                              continue
+                          words = [w for w in str(r.normalized_statement or '').lower().split() if len(w) > 4 and w.isalpha()][:2]
+                          if not words:
+                              continue
+                          q = ' '.join(words)
+                          req = ScisRetrievalRequest(query_text=q, query_language='en', retrieval_mode=RetrievalMode.LEXICAL, top_k=5)
+                          resp = scis_retrieve(db, req)
+                          ev = list(getattr(resp, 'evidence', None) or getattr(resp, 'items', None) or [])
+                          if len(ev) > 0:
+                              hit = True
+                              break
+                  retrieval[d] = 'PASS' if hit else 'FAIL'
               print(json.dumps({
-                  'phase':'after','ku':ku,'eligible':elig,'kce':kce,'active_fetch':active_fetch,
-                  'publisher_diversity':len(fams),'publisher_families':fams,
-                  'per_dxx':per,'retrieval':retrieval,
-                  'd17_elig':d17e,'d18_als_eligible':als,'d19_ms_eligible':ms,
-                  'd17_regression':'NO' if d17e>=int(before.get('d17_elig') or 0) else 'YES',
-                  'd18_als_regression':'NO' if als>=int(before.get('d18_als_eligible') or 0) else 'YES',
-                  'd19_ms_regression':'NO' if ms>=int(before.get('d19_ms_eligible') or 0) else 'YES',
-              },ensure_ascii=False,sort_keys=True))
-              if active_fetch!=11: raise SystemExit(f'active_ne_11:{active_fetch}')
-              if ku<=72 or elig<=21 or kce<=42: raise SystemExit(f'growth_fail ku={ku} elig={elig} kce={kce}')
-              if d17e<int(before.get('d17_elig') or 0): raise SystemExit('d17_regression')
-              if als<int(before.get('d18_als_eligible') or 0): raise SystemExit('d18_regression')
-              if ms<int(before.get('d19_ms_eligible') or 0): raise SystemExit('d19_regression')
-              # At least half of target domains with eligible must retrieve
-              checked=[v for v in retrieval.values() if v!='N/A_NO_ELIGIBLE']
-              if not checked: raise SystemExit('no_target_eligible')
-              if any(v=='FAIL' for v in checked): raise SystemExit(f'retrieval_fail:{retrieval}')
-              print(json.dumps({'eligibility_gate':'PASS','provenance':'PASS','source_attribution':'PASS','no_dense_ann_dependency':'YES'},sort_keys=True))
+                  'phase': 'after', 'ku': ku, 'eligible': elig, 'kce': kce, 'active_fetch': active_fetch,
+                  'publisher_diversity': len(fams), 'publisher_families': fams,
+                  'per_dxx': per, 'retrieval': retrieval,
+                  'd17_elig': d17e, 'd18_als_eligible': als, 'd19_ms_eligible': ms,
+                  'd17_regression': 'NO' if d17e >= int(before.get('d17_elig') or 0) else 'YES',
+                  'd18_als_regression': 'NO' if als >= int(before.get('d18_als_eligible') or 0) else 'YES',
+                  'd19_ms_regression': 'NO' if ms >= int(before.get('d19_ms_eligible') or 0) else 'YES',
+              }, ensure_ascii=False, sort_keys=True))
+              if active_fetch != 11:
+                  raise SystemExit(f'active_ne_11:{active_fetch}')
+              if ku <= 72 or elig <= 21 or kce <= 42:
+                  raise SystemExit(f'growth_fail ku={ku} elig={elig} kce={kce}')
+              if d17e < int(before.get('d17_elig') or 0):
+                  raise SystemExit('d17_regression')
+              if als < int(before.get('d18_als_eligible') or 0):
+                  raise SystemExit('d18_regression')
+              if ms < int(before.get('d19_ms_eligible') or 0):
+                  raise SystemExit('d19_regression')
+              checked = [v for v in retrieval.values() if v != 'N/A_NO_ELIGIBLE']
+              if not checked:
+                  raise SystemExit('no_target_eligible')
+              if any(v == 'FAIL' for v in checked):
+                  raise SystemExit(f'retrieval_fail:{retrieval}')
+              print(json.dumps({
+                  'eligibility_gate': 'PASS', 'provenance': 'PASS',
+                  'source_attribution': 'PASS', 'no_dense_ann_dependency': 'YES',
+              }, sort_keys=True))
           finally:
               db.close()
           PY
