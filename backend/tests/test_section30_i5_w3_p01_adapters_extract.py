@@ -75,6 +75,8 @@ def test_W3P01_T2_registry_register_and_resolve() -> None:
         "i5.rss_feed",
         "i5.pdf_text",
         "i5.jats_xml",
+        "i5.csv_tsv",
+        "i5.docx",
     }
     assert registry.resolve_by_mode("PUBLIC_WEB_FETCH").metadata().adapter_id == "i5.public_web_fetch"
     assert registry.resolve_by_mode("OFFICIAL_API").metadata().adapter_id == "i5.official_api"

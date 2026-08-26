@@ -30,6 +30,8 @@ ADAPTER_MODES: frozenset[str] = frozenset(
         "RSS_OR_FEED",
         "PUBLIC_WEB_FETCH",
         "PDF_TEXT",
+        "CSV_TSV",
+        "DOCX",
         "MANUAL_OR_LINK_ONLY",
         "BLOCKED_OR_EXCLUDED",
     }
@@ -69,6 +71,7 @@ ERROR_CATEGORIES: frozenset[str] = frozenset(
         "ADAPTER_UNKNOWN",
         "ADAPTER_DISABLED",
         "DUPLICATE_ADAPTER",
+        "REVIEW_REQUIRED",
     }
 )
 
@@ -324,6 +327,7 @@ def default_registry() -> AdapterRegistry:
     from backend.app.services.i5.adapters.pdf_jats import JatsXmlAdapter, PdfTextAdapter
     from backend.app.services.i5.adapters.public_web_fetch import PublicWebFetchAdapter
     from backend.app.services.i5.adapters.rss_feed import RssFeedAdapter
+    from backend.app.services.i5.adapters.tabular_docx import CsvTsvAdapter, DocxAdapter
 
     registry = AdapterRegistry()
     registry.register(PublicWebFetchAdapter())
@@ -331,4 +335,6 @@ def default_registry() -> AdapterRegistry:
     registry.register(RssFeedAdapter())
     registry.register(PdfTextAdapter())
     registry.register(JatsXmlAdapter())
+    registry.register(CsvTsvAdapter())
+    registry.register(DocxAdapter())
     return registry

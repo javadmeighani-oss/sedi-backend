@@ -13,6 +13,7 @@ from backend.app.services.i5.adapters.official_api import OfficialApiAdapter
 from backend.app.services.i5.adapters.pdf_jats import JatsXmlAdapter, PdfTextAdapter
 from backend.app.services.i5.adapters.public_web_fetch import PublicWebFetchAdapter
 from backend.app.services.i5.adapters.rss_feed import RssFeedAdapter
+from backend.app.services.i5.adapters.tabular_docx import CsvTsvAdapter, DocxAdapter
 
 __all__ = [
     "ADAPTER_CAPABILITIES",
@@ -20,6 +21,8 @@ __all__ = [
     "ERROR_CATEGORIES",
     "AdapterFrameworkError",
     "AdapterRegistry",
+    "CsvTsvAdapter",
+    "DocxAdapter",
     "FixtureTransportResponse",
     "JatsXmlAdapter",
     "OfficialApiAdapter",

@@ -1,10 +1,8 @@
 """I5-IMPL-W3-P01/W6-P01 — PUBLIC_WEB_FETCH adapter.
 
 `fetch_fixture` wraps the Gate3 fetcher symbol and remains fixture-only (no
-live network). `fetch_live` (W6-P01) is the only adapter method in this
-package that may perform a real HTTPS request — it is a thin governance +
-envelope wrapper around `adapters.live_transport.fetch_live_https`.
-OFFICIAL_API / RSS_OR_FEED adapters intentionally remain fixture-only.
+live network). `fetch_live` (W6-P01) is the controlled HTTPS path. Sibling
+format adapters (API/RSS/PDF/JATS/CSV/DOCX) share the same live transport helper.
 """
 from __future__ import annotations
 

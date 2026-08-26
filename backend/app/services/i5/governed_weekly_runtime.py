@@ -679,7 +679,12 @@ def execute_governed_persistence(
             "required_text": attr["required_text"],
             "license": attr["license"],
             "source_url": str(payload.get("canonical_url") or raw.canonical_url),
+            "adapter_id": payload.get("adapter_id"),
+            "adapter_version": payload.get("adapter_version"),
+            "representation": payload.get("representation") or payload.get("content_format"),
         }
+        # Drop null provenance keys to keep attribution compact
+        attribution = {k: v for k, v in attribution.items() if v is not None}
         prov = models.KnowledgeProvenance(
             knowledge_unit_id=int(ku.id),
             source_profile_id=int(prov_payload["source_profile_id"]),

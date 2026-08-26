@@ -176,12 +176,92 @@ def extract_from_rss(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]
     return tuple(items)
 
 
+def extract_from_jats(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]:
+    from backend.app.services.i5.adapters.pdf_jats import extract_jats_xml
+
+    if envelope.error_category is not None:
+        raise AdapterFrameworkError("EXTRACTION_FAILED", envelope.error_category)
+    text = extract_jats_xml(envelope.body)
+    return (
+        _candidate(
+            title="jats-document",
+            text=text,
+            source_location=envelope.canonical_url,
+            confidence=0.65,
+            warnings=("candidate_only_not_approved_knowledge", "jats"),
+            claim=canonicalize_text(text)[:240] or None,
+        ),
+    )
+
+
+def extract_from_pdf(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]:
+    from backend.app.services.i5.adapters.pdf_jats import extract_pdf_text
+
+    if envelope.error_category is not None:
+        raise AdapterFrameworkError("EXTRACTION_FAILED", envelope.error_category)
+    text = extract_pdf_text(envelope.body)
+    return (
+        _candidate(
+            title="pdf-document",
+            text=text,
+            source_location=envelope.canonical_url,
+            confidence=0.55,
+            warnings=("candidate_only_not_approved_knowledge", "pdf_text"),
+            claim=canonicalize_text(text)[:240] or None,
+        ),
+    )
+
+
+def extract_from_csv_tsv(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]:
+    from backend.app.services.i5.adapters.tabular_docx import extract_csv_tsv_text
+
+    if envelope.error_category is not None:
+        raise AdapterFrameworkError("EXTRACTION_FAILED", envelope.error_category)
+    text = extract_csv_tsv_text(envelope.body)
+    return (
+        _candidate(
+            title="tabular-document",
+            text=text,
+            source_location=envelope.canonical_url,
+            confidence=0.5,
+            warnings=("candidate_only_not_approved_knowledge", "csv_tsv"),
+            claim=canonicalize_text(text)[:240] or None,
+        ),
+    )
+
+
+def extract_from_docx(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...]:
+    from backend.app.services.i5.adapters.tabular_docx import extract_docx_text
+
+    if envelope.error_category is not None:
+        raise AdapterFrameworkError("EXTRACTION_FAILED", envelope.error_category)
+    text = extract_docx_text(envelope.body)
+    return (
+        _candidate(
+            title="docx-document",
+            text=text,
+            source_location=envelope.canonical_url,
+            confidence=0.5,
+            warnings=("candidate_only_not_approved_knowledge", "docx"),
+            claim=canonicalize_text(text)[:240] or None,
+        ),
+    )
+
+
 def extract_candidates(envelope: FetchEnvelope, *, mode: str) -> tuple[ExtractionCandidate, ...]:
     """Route extraction by adapter mode. Never marks candidates as approved knowledge."""
     if mode == "PUBLIC_WEB_FETCH":
         return extract_from_html(envelope)
     if mode in {"OFFICIAL_API", "OFFICIAL_JSON"}:
         return extract_from_json_api(envelope)
-    if mode in {"RSS_OR_FEED", "OFFICIAL_XML"}:
+    if mode == "RSS_OR_FEED":
         return extract_from_rss(envelope)
+    if mode == "OFFICIAL_XML":
+        return extract_from_jats(envelope)
+    if mode == "PDF_TEXT":
+        return extract_from_pdf(envelope)
+    if mode == "CSV_TSV":
+        return extract_from_csv_tsv(envelope)
+    if mode == "DOCX":
+        return extract_from_docx(envelope)
     raise AdapterFrameworkError("UNSUPPORTED_FORMAT", mode)

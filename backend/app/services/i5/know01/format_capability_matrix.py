@@ -102,7 +102,23 @@ def build_format_capability_matrix(
             "adapters/pdf_jats.py::PdfTextAdapter",
             "know01 pdf oversized + extract tests",
             "PMC/open PDFs with extractable text when rights allow",
-            "CONTENT_TOO_LARGE / EXTRACTION_FAILED",
+            "CONTENT_TOO_LARGE / EXTRACTION_FAILED / REVIEW_REQUIRED(image-only)",
+            "YES",
+        ),
+        "CSV_TSV": (
+            "IMPLEMENTED" if "CSV_TSV" in implemented_modes else "UNSUPPORTED",
+            "adapters/tabular_docx.py::CsvTsvAdapter",
+            "test_i5_source_format_resilience",
+            "Governed tabular datasets",
+            "CONTENT_TOO_LARGE / PARSING_FAILED",
+            "YES",
+        ),
+        "DOCX": (
+            "IMPLEMENTED" if "DOCX" in implemented_modes else "UNSUPPORTED",
+            "adapters/tabular_docx.py::DocxAdapter",
+            "test_i5_source_format_resilience",
+            "Governed OOXML text documents",
+            "UNSUPPORTED_FORMAT macros / CONTENT_TOO_LARGE",
             "YES",
         ),
         "MANUAL_OR_LINK_ONLY": (
@@ -163,6 +179,24 @@ def build_format_capability_matrix(
         "PARSING_FAILED",
         "YES",
     )
+    add(
+        "CSV_TSV_ALIAS",
+        "IMPLEMENTED" if "CSV_TSV" in implemented_modes else "UNSUPPORTED",
+        "adapters/tabular_docx.py::CsvTsvAdapter",
+        "format resilience suite",
+        "Governed CSV/TSV",
+        "CONTENT_TOO_LARGE",
+        "YES",
+    )
+    add(
+        "DOCX_ALIAS",
+        "IMPLEMENTED" if "DOCX" in implemented_modes else "UNSUPPORTED",
+        "adapters/tabular_docx.py::DocxAdapter",
+        "format resilience suite",
+        "Governed DOCX text",
+        "UNSUPPORTED_FORMAT",
+        "YES",
+    )
 
     for fmt in FUTURE_FORMATS:
         # Runtime RSS/ATOM exist under RSS_OR_FEED; KNOW-01 FUTURE contracts remain fail-closed stubs.
@@ -186,13 +220,31 @@ def build_format_capability_matrix(
             prod = "NO"
             status = "NOT_CURRENTLY_REQUIRED"
         elif fmt in {"PDF_SCANNED", "OCR", "IMAGE"}:
-            need = "Conservative — no unsafe OCR for V1 completeness claims"
+            need = "Conservative — image-only PDF detection + REVIEW_REQUIRED; OCR deferred"
             prod = "NO"
             status = "NOT_CURRENTLY_REQUIRED"
         elif fmt in {"CSV", "TSV"}:
-            need = "Not required by current approved connector universe"
-            prod = "NO"
-            status = "NOT_CURRENTLY_REQUIRED"
+            add(
+                f"FUTURE_CONTRACT:{fmt}",
+                "CONTRACT_ONLY",
+                "know01/format_contracts.py (stub) — runtime via CSV_TSV",
+                "test_know01_future_format_contracts",
+                "Runtime covered by CSV_TSV adapter; stub proves insertion point",
+                "UNSUPPORTED_FORMAT from FUTURE contract",
+                "NO",
+            )
+            continue
+        elif fmt == "DOCX":
+            add(
+                "FUTURE_CONTRACT:DOCX",
+                "CONTRACT_ONLY",
+                "know01/format_contracts.py (stub) — runtime via DOCX adapter",
+                "test_know01_future_format_contracts",
+                "Runtime covered by DOCX adapter; stub proves insertion point",
+                "UNSUPPORTED_FORMAT from FUTURE contract",
+                "NO",
+            )
+            continue
         elif fmt == "EPUB":
             need = "Not required by current approved V1 sources"
             prod = "NO"
@@ -221,7 +273,18 @@ def matrix_as_dicts() -> List[Dict[str, Any]]:
 def assert_v1_required_formats_covered(rows: Optional[Sequence[FormatCapabilityRow]] = None) -> None:
     rows = list(rows or build_format_capability_matrix())
     by_id = {r.format_id: r for r in rows}
-    required = ("OFFICIAL_API", "OFFICIAL_XML", "RSS_OR_FEED", "PUBLIC_WEB_FETCH", "PDF_TEXT", "HTML", "JSON", "JATS_XML")
+    required = (
+        "OFFICIAL_API",
+        "OFFICIAL_XML",
+        "RSS_OR_FEED",
+        "PUBLIC_WEB_FETCH",
+        "PDF_TEXT",
+        "CSV_TSV",
+        "DOCX",
+        "HTML",
+        "JSON",
+        "JATS_XML",
+    )
     for fmt in required:
         row = by_id[fmt]
         if row.status != "IMPLEMENTED":
@@ -236,80 +299,31 @@ def select_adapter_mode(
     payload_prefix: Optional[bytes] = None,
 ) -> str:
     """Adaptive mode selection — Content-Type / payload / declared format over extension alone."""
-    ctype = (content_type or "").split(";", 1)[0].strip().lower()
+    from backend.app.services.i5.adapters.representation_classifier import classify_representation
+
+    # Preserve fail-closed for formats that remain unsupported for auto-ingest
     declared = (declared_format or "").strip().upper()
+    if declared in {"OCR", "BITS_XML", "EPUB", "ZIP_DATASET", "IMAGE"}:
+        raise AdapterFrameworkError("UNSUPPORTED_FORMAT", declared)
     name = (filename_hint or "").lower()
-    prefix = payload_prefix or b""
+    if name.endswith(".epub"):
+        raise AdapterFrameworkError("UNSUPPORTED_FORMAT", "EPUB")
 
-    # Declared registry/source format wins when explicit and known
-    declared_map = {
-        "JSON": "OFFICIAL_API",
-        "OFFICIAL_JSON": "OFFICIAL_API",
-        "OFFICIAL_API": "OFFICIAL_API",
-        "XML": "OFFICIAL_XML",
-        "JATS": "OFFICIAL_XML",
-        "JATS_XML": "OFFICIAL_XML",
-        "OFFICIAL_XML": "OFFICIAL_XML",
-        "RSS": "RSS_OR_FEED",
-        "ATOM": "RSS_OR_FEED",
-        "RSS_OR_FEED": "RSS_OR_FEED",
-        "HTML": "PUBLIC_WEB_FETCH",
-        "PUBLIC_WEB_FETCH": "PUBLIC_WEB_FETCH",
-        "PDF": "PDF_TEXT",
-        "PDF_TEXT": "PDF_TEXT",
-        "BITS_XML": "UNSUPPORTED",
-        "EPUB": "UNSUPPORTED",
-        "OCR": "UNSUPPORTED",
-        "PDF_SCANNED": "UNSUPPORTED",
-    }
-    if declared in declared_map:
-        mode = declared_map[declared]
-        if mode == "UNSUPPORTED":
-            raise AdapterFrameworkError("UNSUPPORTED_FORMAT", declared)
-        return mode
+    try:
+        decision = classify_representation(
+            content_type=content_type,
+            payload=payload_prefix,
+            filename_hint=filename_hint,
+            declared_format=declared_format,
+            allow_mime_only_when_empty_body=True,
+        )
+    except AdapterFrameworkError:
+        raise
 
-    if ctype in {"application/json", "text/json"}:
-        return "OFFICIAL_API"
-    if ctype in {"application/xml", "text/xml", "application/jats+xml"}:
-        return "OFFICIAL_XML"
-    if ctype in {"application/rss+xml", "application/atom+xml", "application/feed+json"}:
-        return "RSS_OR_FEED"
-    if ctype in {"text/html", "application/xhtml+xml"}:
-        return "PUBLIC_WEB_FETCH"
-    if ctype == "application/pdf":
+    if decision.representation == "PDF_IMAGE_ONLY":
+        # Mode still PDF_TEXT adapter; extraction fail-closes to REVIEW_REQUIRED
         return "PDF_TEXT"
-
-    # Payload sniff (safe, bounded)
-    head = prefix[:256].lstrip()
-    if head.startswith(b"{") or head.startswith(b"["):
-        return "OFFICIAL_API"
-    if head.startswith(b"%PDF"):
-        return "PDF_TEXT"
-    if head.startswith(b"<?xml") or head.startswith(b"<"):
-        low = head[:200].lower()
-        if b"<rss" in low or b"<feed" in low or b"atom" in low:
-            return "RSS_OR_FEED"
-        if b"<article" in low or b"jats" in low:
-            return "OFFICIAL_XML"
-        if b"<html" in low:
-            return "PUBLIC_WEB_FETCH"
-        return "OFFICIAL_XML"
-
-    # Filename is last resort — must not override contradictory content-type already handled
-    if name.endswith(".json"):
-        return "OFFICIAL_API"
-    if name.endswith(".pdf"):
-        return "PDF_TEXT"
-    if name.endswith((".rss", ".atom", ".xml")) and "sitemap" not in name:
-        if name.endswith((".rss", ".atom")):
-            return "RSS_OR_FEED"
-        return "OFFICIAL_XML"
-    if name.endswith((".html", ".htm")):
-        return "PUBLIC_WEB_FETCH"
-    if name.endswith((".epub", ".docx", ".zip")):
-        raise AdapterFrameworkError("UNSUPPORTED_FORMAT", name.rsplit(".", 1)[-1].upper())
-
-    raise AdapterFrameworkError("UNSUPPORTED_FORMAT", "undetermined")
+    return decision.adapter_mode
 
 
 def resolve_adapter_for_resource(
