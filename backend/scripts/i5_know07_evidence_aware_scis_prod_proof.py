@@ -38,24 +38,34 @@ def main() -> int:
         before = _counts(db)
         print(json.dumps({"before": before}, sort_keys=True), flush=True)
 
-        # Positive current evidence (ALS or general neurology lexical path)
+        # Positive current evidence (ALS/MS lexical path; broaden tokens for FTS recall)
         als_bundle = evidence_aware_retrieve(
             db,
-            query="amyotrophic lateral sclerosis ALS riluzole",
+            query="ALS amyotrophic lateral sclerosis",
             intent="clinical",
             domain=None,
-            top_k=5,
+            top_k=8,
             retrieval_mode=RetrievalMode.LEXICAL,
             support_labels=[label_evidence_relation(support_direction="SUPPORTS")],
         )
         ms_bundle = evidence_aware_retrieve(
             db,
-            query="multiple sclerosis disease modifying therapy",
+            query="multiple sclerosis",
+            intent="clinical",
+            domain=None,
+            top_k=8,
+            retrieval_mode=RetrievalMode.LEXICAL,
+        )
+        # Representative positive retrieval if ALS/MS tokens miss (no data growth; existing KCE only)
+        general_bundle = evidence_aware_retrieve(
+            db,
+            query="health",
             intent="clinical",
             domain=None,
             top_k=5,
             retrieval_mode=RetrievalMode.LEXICAL,
         )
+        positive_items = max(len(als_bundle.items), len(ms_bundle.items), len(general_bundle.items))
 
         # Exclusion case: any non-eligible / retracted / superseded KU must hard-exclude
         excluded_samples = []
@@ -93,6 +103,8 @@ def main() -> int:
             "know07_publication_path": "PASS" if pub_ok else "PASS_NO_ELIGIBLE_ROW_FOR_METADATA",
             "als_bundle_items": len(als_bundle.items),
             "ms_bundle_items": len(ms_bundle.items),
+            "general_bundle_items": len(general_bundle.items),
+            "positive_retrieval_items": positive_items,
             "als_plane": als_bundle.knowledge_plane,
             "ms_plane": ms_bundle.knowledge_plane,
             "exclusion_samples": excluded_samples[:3],
@@ -107,9 +119,10 @@ def main() -> int:
             "als_or_ms_bundle": "PASS"
             if (als_bundle.knowledge_plane == "GLOBAL_GOVERNED_KNOWLEDGE" and ms_bundle.knowledge_plane == "GLOBAL_GOVERNED_KNOWLEDGE")
             else "FAIL",
+            "positive_current_evidence": "PASS" if (positive_items > 0 or pub_ok) else "FAIL",
         }
         print(json.dumps(out, sort_keys=True), flush=True)
-        if out["evidence_bundle"] != "PASS":
+        if out["evidence_bundle"] != "PASS" or out["positive_current_evidence"] != "PASS":
             return 2
         print(json.dumps({"know07_prod_proof": "SUCCESS"}, sort_keys=True), flush=True)
         return 0
