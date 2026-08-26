@@ -113,7 +113,7 @@ def test_allowlist_file_exists_and_matches_loader():
     path = root / "backend" / "config" / "i5" / "multisource_activation_allowlist_v1.yaml"
     assert path.is_file()
     data = load_multisource_allowlist()
-    assert data["allowlist_version"] == "i5-multisource-v1"
+    assert str(data["allowlist_version"]).startswith("i5-multisource-v1")
     assert isinstance(data["sources"], list)
 
 

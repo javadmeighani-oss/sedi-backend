@@ -2,12 +2,27 @@
 # Runtime crawler activation derives ONLY from activation:YES entries below.
 # PostgreSQL GSP/registry tables are runtime audit state.
 # seed_registry.py is bootstrap-only — NOT runtime activation authority.
+#
+# Wave01 (PD-I5-V1-D01-D19-GOVERNED-KNOWLEDGE-EXPANSION-WAVE01-01):
+# bounded additional_urls only inside existing allowed_url_patterns / rights / robots.
+# No new publisher activation. DISCOVERY != AUTHORIZATION preserved.
 manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
 manifest_version: "i5-trusted-source-control-v2"
-allowlist_version: "i5-multisource-v1"
-gate_id: "I5-FINAL-V1-OPERATIONAL-CLOSURE-CAP23-25-DIRECTORY-PLUS-REAL-MULTISOURCE-WEEKLY-KNOWLEDGE-EXPANSION-MASTER-GATE-01"
+allowlist_version: "i5-multisource-v1-wave01"
+gate_id: "PD-I5-V1-D01-D19-GOVERNED-KNOWLEDGE-EXPANSION-WAVE01-01"
 publisher_diversity_floor: 4
 historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
+wave01_targets:
+  - D12
+  - D15
+  - D18
+  - D19
+  - knowledge_domain:cardiovascular
+  - knowledge_domain:diabetes_metabolic
+  - knowledge_domain:mental_health_psychology
+  - knowledge_domain:nutrition
+  - knowledge_domain:physical_activity_exercise
+  - knowledge_domain:lifestyle_prevention_routines
 
 sources:
   - source_key: nhs_uk_live_well
@@ -18,15 +33,17 @@ sources:
     exact_url: https://www.nhs.uk/live-well/sleep-and-tiredness/
     additional_urls:
       - https://www.nhs.uk/live-well/exercise/
+      - https://www.nhs.uk/live-well/eat-well/
+      - https://www.nhs.uk/live-well/mental-health/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/live-well/.*"
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_2_urls"
-    entity_coverage: [D12]
-    knowledge_domains: [lifestyle_prevention_routines, physical_activity_exercise, mental_health_psychology]
+    rate_limit: "weekly_controlled_max_4_urls"
+    entity_coverage: [D12, D15]
+    knowledge_domains: [lifestyle_prevention_routines, physical_activity_exercise, mental_health_psychology, nutrition]
     activation: YES
     governed_low_risk_eligibility: YES
     eligibility_evidence_strength: LOW
@@ -43,13 +60,15 @@ sources:
       - https://medlineplus.gov/heartdiseases.html
       - https://medlineplus.gov/diabetes.html
       - https://medlineplus.gov/healthyliving.html
+      - https://medlineplus.gov/nutrition.html
+      - https://medlineplus.gov/sleepdisorders.html
     allowed_domain: medlineplus.gov
     allowed_url_patterns:
       - "^https://medlineplus\\.gov/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_5_urls"
+    rate_limit: "weekly_controlled_max_7_urls"
     entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
     activation: YES
@@ -63,7 +82,8 @@ sources:
     adapter: PUBLIC_WEB_FETCH
     # Canonical live 200 page after CDC redesign (old /physicalactivity/ 301s to hyphenated path).
     exact_url: https://www.cdc.gov/physical-activity/php/about/index.html
-    additional_urls: []
+    additional_urls:
+      - https://www.cdc.gov/healthyliving/index.html
     allowed_domain: cdc.gov
     allowed_url_patterns:
       - "^https://www\\.cdc\\.gov/physical-activity/.*"
@@ -72,7 +92,7 @@ sources:
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_1_url"
+    rate_limit: "weekly_controlled_max_2_urls"
     entity_coverage: [D05, D13, D15, D17]
     knowledge_domains: [physical_activity_exercise, nutrition, lifestyle_prevention_routines, cardiovascular]
     activation: YES
@@ -87,14 +107,15 @@ sources:
     adapter: PUBLIC_WEB_FETCH
     # Prior /health/publications/coping-with-stress returns hard HTTP 404 (2026-08).
     exact_url: https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet
-    additional_urls: []
+    additional_urls:
+      - https://www.nimh.nih.gov/health/topics/depression
     allowed_domain: nimh.nih.gov
     allowed_url_patterns:
       - "^https://www\\.nimh\\.nih\\.gov/health/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_1_url"
+    rate_limit: "weekly_controlled_max_2_urls"
     entity_coverage: []
     knowledge_domains: [mental_health_psychology]
     activation: YES
