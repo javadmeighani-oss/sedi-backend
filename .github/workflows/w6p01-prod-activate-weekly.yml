@@ -183,18 +183,33 @@ jobs:
                   "medlineplus_low_risk": False,
               }
               proofs = {}
-              for label, q in (
-                  ("als", "amyotrophic lateral sclerosis ALS muscles"),
-                  ("ms", "multiple sclerosis demyelination"),
-              ):
+              # Prefer statement-derived tokens from eligible stamped KUs (plainto_tsquery AND semantics).
+              for eid, label in (("D18", "als"), ("D19", "ms")):
+                  elig_row = (
+                      db.query(models.KnowledgeUnit)
+                      .filter(
+                          models.KnowledgeUnit.manifest_entity_id == eid,
+                          models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value,
+                      )
+                      .first()
+                  )
+                  if elig_row is not None:
+                      words = [w for w in str(elig_row.normalized_statement or "").lower().split() if len(w) > 4][:5]
+                      q = " ".join(words) if words else ("amyotrophic lateral sclerosis" if eid == "D18" else "multiple sclerosis")
+                  else:
+                      q = "amyotrophic lateral sclerosis" if eid == "D18" else "multiple sclerosis"
                   resp = scis_retrieve(db, ScisRetrievalRequest(
                       query_text=q, query_language="en", retrieval_mode=RetrievalMode.LEXICAL, top_k=5,
                   ))
                   ev = list(resp.evidence or [])
                   proofs[label] = {
+                      "query": q,
                       "hit_count": len(ev),
                       "ku_ids": [getattr(e, "knowledge_unit_id", None) for e in ev[:3]],
                       "fallback": str(resp.fallback_state),
+                      "source_attribution": [
+                          getattr(getattr(e, "provenance", None), "source_profile_id", None) for e in ev[:3]
+                      ],
                   }
               out["retrieval"] = proofs
               print(json.dumps(out, ensure_ascii=False, sort_keys=True))
@@ -202,6 +217,8 @@ jobs:
                   raise SystemExit("D18_ELIGIBLE_TARGET_MISS")
               if out["d19"]["eligible"] < 1:
                   raise SystemExit("D19_ELIGIBLE_TARGET_MISS")
+              if out["d18"]["ku"] < 1 or out["d19"]["ku"] < 2:
+                  raise SystemExit("D18_D19_KU_TARGET_MISS")
               if out["eligible"] <= 4:
                   raise SystemExit("ELIGIBLE_TOTAL_TARGET_MISS")
               if proofs["als"]["hit_count"] < 1 or proofs["ms"]["hit_count"] < 1:
