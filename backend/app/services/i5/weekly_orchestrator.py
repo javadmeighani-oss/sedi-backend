@@ -785,7 +785,8 @@ def _apply_live_source(
     if not candidates:
         return RunSourceResultStatus.FAILED.value, "EXTRACTION_EMPTY", handoffs
     primary = candidates[0]
-    # URL-scoped domain/topic (D18/D19 specialized identity); default lifestyle/sleep preserved.
+    # URL-scoped domain/topic: D18/D19 specialized first; Wave02 D01–D17 coverage
+    # identity next (acquisition only — not specialized eligibility); else lifestyle/sleep.
     domain = "lifestyle"
     topic = "sleep"
     jurisdiction = "GB"
@@ -795,6 +796,9 @@ def _apply_live_source(
     try:
         from backend.app.services.i5.governed_specialized_entity_eligibility import (
             resolve_specialized_entity_from_url,
+        )
+        from backend.app.services.i5.wave02_coverage_identity import (
+            resolve_wave02_coverage_from_url,
         )
 
         entity_url = str(getattr(envelope, "canonical_url", None) or getattr(work, "url", None) or "")
@@ -806,6 +810,14 @@ def _apply_live_source(
             entity_id = spec.entity_id
             track_id = spec.track_id
             disease_label = spec.disease_label
+        else:
+            cov = resolve_wave02_coverage_from_url(entity_url)
+            if cov is not None:
+                domain = cov.domain
+                topic = cov.topic
+                jurisdiction = cov.jurisdiction
+                entity_id = cov.entity_id or None
+                disease_label = cov.disease_or_condition
     except Exception:  # noqa: BLE001 — fail closed to historical lifestyle defaults
         domain = "lifestyle"
         topic = "sleep"

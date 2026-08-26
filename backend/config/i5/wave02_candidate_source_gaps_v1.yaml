@@ -1,0 +1,178 @@
+# Wave02 candidate-only source gap list (DISCOVERY != AUTHORIZATION).
+# ACTIVATION=NO for every row. Do not use as runtime crawler authority.
+manifest_version: "i5-wave02-candidate-source-gaps-v1"
+gate_id: "PD-I5-V1-D01-D17-GOVERNED-KNOWLEDGE-EXPANSION-WAVE02-01"
+activation_policy: CANDIDATE_ONLY_NO_RUNTIME
+notes: >
+  Domains where the active 4 publishers cannot safely provide authoritative depth.
+  Qualification required in a future Gate before any activation.
+
+candidates:
+  - dxx: D01
+    domain: Oncology and supportive cancer care
+    missing_authority_type: OFFICIAL_NATIONAL_INSTITUTE_ONCOLOGY
+    candidate_publisher: NCI PDQ
+    candidate_url_or_family: https://www.cancer.gov/publications/pdq
+    why_needed: MedlinePlus cancer overview is shallow; PDQ is guideline-grade consumer/professional oncology
+    expected_coverage: D01 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D02
+    domain: Respiratory health and diseases
+    missing_authority_type: OFFICIAL_NATIONAL_HEART_LUNG_BLOOD
+    candidate_publisher: NHLBI
+    candidate_url_or_family: https://www.nhlbi.nih.gov/health
+    why_needed: Active CDC profile patterns exclude respiratory program paths
+    expected_coverage: D02 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D03
+    domain: Kidney and urinary tract health
+    missing_authority_type: OFFICIAL_NATIONAL_DIABETES_DIGESTIVE_KIDNEY
+    candidate_publisher: NIDDK
+    candidate_url_or_family: https://www.niddk.nih.gov/health-information
+    why_needed: Kidney depth beyond MedlinePlus consumer summary
+    expected_coverage: D03 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D05
+    domain: Musculoskeletal health and pain
+    missing_authority_type: OFFICIAL_NATIONAL_ARTHRITIS_MSK
+    candidate_publisher: NIAMS
+    candidate_url_or_family: https://www.niams.nih.gov/health-topics
+    why_needed: MSK/arthritis authority beyond MedlinePlus arthritis overview
+    expected_coverage: D05 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D06
+    domain: Dermatology and skin health
+    missing_authority_type: OFFICIAL_NATIONAL_ARTHRITIS_MSK_DERM
+    candidate_publisher: NIAMS Dermatology
+    candidate_url_or_family: https://www.niams.nih.gov/health-topics/skin-diseases
+    why_needed: Skin-disease depth; MedlinePlus skin cancer only is incomplete for D06
+    expected_coverage: D06 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D07
+    domain: Ophthalmology and vision
+    missing_authority_type: OFFICIAL_NATIONAL_EYE
+    candidate_publisher: NEI
+    candidate_url_or_family: https://www.nei.nih.gov/learn-about-eye-health
+    why_needed: Vision authority beyond MedlinePlus eye diseases overview
+    expected_coverage: D07 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D09
+    domain: Oral and dental health
+    missing_authority_type: OFFICIAL_NATIONAL_DENTAL_CRANIOFACIAL
+    candidate_publisher: NIDCR
+    candidate_url_or_family: https://www.nidcr.nih.gov/health-info
+    why_needed: Oral health primary authority
+    expected_coverage: D09 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D10
+    domain: Women's health and reproductive health
+    missing_authority_type: OFFICIAL_NATIONAL_WOMENS_HEALTH
+    candidate_publisher: OWH / HHS
+    candidate_url_or_family: https://www.womenshealth.gov
+    why_needed: Reproductive/maternal depth beyond MedlinePlus women's health hub
+    expected_coverage: D10 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D11
+    domain: Pediatrics and adolescent health
+    missing_authority_type: OFFICIAL_NATIONAL_CHILD_DEVELOPMENT
+    candidate_publisher: CDC Child Development / AAP consumer (CDC preferred)
+    candidate_url_or_family: https://www.cdc.gov/ncbddd/childdevelopment/
+    why_needed: Active CDC lifestyle profile patterns exclude child-development paths
+    expected_coverage: D11 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D13
+    domain: Infectious diseases beyond hepatitis
+    missing_authority_type: OFFICIAL_NATIONAL_INFECTIOUS
+    candidate_publisher: CDC NCEZID
+    candidate_url_or_family: https://www.cdc.gov/ncezid/
+    why_needed: Infectious disease depth; current CDC activation limited to physical-activity/healthyliving patterns
+    expected_coverage: D13 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D16
+    domain: Palliative care
+    missing_authority_type: OFFICIAL_NATIONAL_CANCER_PALLIATIVE
+    candidate_publisher: NCI PDQ Supportive/Palliative
+    candidate_url_or_family: https://www.cancer.gov/about-cancer/advanced-cancer/care-choices
+    why_needed: Palliative authority beyond MedlinePlus palliative overview
+    expected_coverage: D16 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D17
+    domain: Environmental and occupational health
+    missing_authority_type: OFFICIAL_NATIONAL_OCCUPATIONAL
+    candidate_publisher: NIOSH / CDC
+    candidate_url_or_family: https://www.cdc.gov/niosh/
+    why_needed: Occupational/environmental depth; not inside active CDC lifestyle URL patterns
+    expected_coverage: D17 primary
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"
+
+  - dxx: D04
+    domain: Gastroenterology and digestive health / hepatitis-liver
+    missing_authority_type: OFFICIAL_NATIONAL_LIVER_DIGESTIVE
+    candidate_publisher: NIDDK Digestive / Liver
+    candidate_url_or_family: https://www.niddk.nih.gov/health-information/liver-disease
+    why_needed: Hepatitis/liver depth beyond MedlinePlus digestive hub
+    expected_coverage: D04 + hepatitis/liver KD
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    activation: "NO"
+    qualification_status: "CANDIDATE_ONLY"

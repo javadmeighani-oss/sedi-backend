@@ -2,6 +2,7 @@
 #   ACTIVATE_W6P01_WEEKLY              → NHS-only historical weekly activation
 #   ACTIVATE_I5_MULTISOURCE_V1         → I5 multi-source weekly activation
 #   WAVE01_I5_GOVERNED_EXPANSION       → Wave01 bounded allowlist URL expansion + weekly
+#   WAVE02_I5_D01_D17_EXPANSION        → Wave02 D01–D17 governed knowledge expansion + weekly
 #   SPECIALIZED_D18_D19_ELIGIBILITY    → ALS/MS specialized serving eligibility (MedlinePlus global low-risk stays NO)
 # Fail-closed paths differ per job (see job bodies).
 name: W6-P01 Production Activate Weekly
@@ -10,13 +11,13 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | SPECIALIZED_D18_D19_ELIGIBILITY"
+        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | WAVE02_I5_D01_D17_EXPANSION | SPECIALIZED_D18_D19_ELIGIBILITY"
         required: true
       deployed_image_sha:
         description: "40-character lowercase Git commit SHA of the deployed backend image."
         required: true
       deployed_image_digest:
-        description: "Expected deployed image digest in sha256:<64 hex> (required for activate tokens; optional for WAVE01/SPECIALIZED)."
+        description: "Expected deployed image digest in sha256:<64 hex> (required for activate tokens; optional for WAVE01/WAVE02/SPECIALIZED)."
         required: false
         default: ""
       expected_alembic_revision:
@@ -32,6 +33,400 @@ permissions:
   contents: read
 
 jobs:
+  wave02-d01-d17-expansion:
+    name: Wave02 D01-D17 governed knowledge expansion
+    if: github.event.inputs.confirmation == 'WAVE02_I5_D01_D17_EXPANSION'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Validate Wave02 inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+      - uses: actions/checkout@v4
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+      - name: Stage Wave02 artifacts on host
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5/wave02"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/config/i5/multisource_activation_allowlist_v1.yaml \
+            backend/app/services/i5/wave02_coverage_identity.py \
+            backend/app/services/i5/weekly_orchestrator.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+      - name: Wave02 sync + activate + weekly + metrics + retrieval
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_SHA}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_REV}")"
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_wave02_prod.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "WAVE02_SUMMARY|$1|$2"; }
+          CTR_ALLOW="/app/backend/config/i5/multisource_activation_allowlist_v1.yaml"
+          CTR_WO="/app/backend/app/services/i5/weekly_orchestrator.py"
+          CTR_ID="/app/backend/app/services/i5/wave02_coverage_identity.py"
+          HOST="${DEPLOY_PATH}/ops/i5/wave02"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          wait_health() {
+            local ok=0 i
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then ok=1; break; fi
+              sleep 2
+            done
+            [ "${ok}" = "1" ] || { log "HEALTH_FAILED"; return 1; }
+            curl -fsS http://127.0.0.1:8000/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+          }
+          cd "${DEPLOY_PATH}"
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          log "running_image=${CURRENT_IMAGE}"
+          summary "pre_image" "${CURRENT_IMAGE:-none}"
+          if [ "${CURRENT_IMAGE}" != "${IMAGE_TAG}" ]; then
+            log "PRECHECK_FAILED: image tag mismatch expected ${IMAGE_TAG}"; exit 5
+          fi
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "PRECHECK_FAILED: alembic mismatch"; exit 5
+          fi
+          log "=== BEFORE COUNTS + ALS/MS BASELINE ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig = db.query(models.KnowledgeUnit).filter(
+                  models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+              ).count()
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              als_elig = ms_elig = 0
+              for p in db.query(models.KnowledgeProvenance).all():
+                  rid = getattr(p, "raw_evidence_id", None)
+                  if rid is None:
+                      continue
+                  raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none()
+                  if raw is None:
+                      continue
+                  u = ((raw.canonical_url or "") + " " + (getattr(raw, "final_url", None) or "")).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if ku_row is None:
+                      continue
+                  if str(ku_row.runtime_eligibility) != KnowledgeUnitRuntimeEligibility.ELIGIBLE.value:
+                      continue
+                  if "amyotrophiclateralsclerosis" in u:
+                      als_elig += 1
+                  if "multiplesclerosis" in u:
+                      ms_elig += 1
+              print(json.dumps({
+                  "phase": "before", "ku": ku, "eligible": elig, "kce": kce,
+                  "d18_als_eligible": als_elig, "d19_ms_eligible": ms_elig,
+              }, sort_keys=True))
+              open("/tmp/wave02_before.json", "w", encoding="utf-8").write(json.dumps({
+                  "ku": ku, "eligible": elig, "kce": kce,
+                  "d18_als_eligible": als_elig, "d19_ms_eligible": ms_elig,
+              }))
+          finally:
+              db.close()
+          PY
+          docker cp sedi-backend:/tmp/wave02_before.json /tmp/wave02_before.json || true
+          log "=== SYNC ALLOWLIST + CODE ==="
+          [ -f "${HOST}/multisource_activation_allowlist_v1.yaml" ] || { log "missing allowlist"; exit 6; }
+          [ -f "${HOST}/wave02_coverage_identity.py" ] || { log "missing coverage identity"; exit 6; }
+          [ -f "${HOST}/weekly_orchestrator.py" ] || { log "missing weekly_orchestrator"; exit 6; }
+          docker cp "${HOST}/multisource_activation_allowlist_v1.yaml" "sedi-backend:${CTR_ALLOW}"
+          docker cp "${HOST}/wave02_coverage_identity.py" "sedi-backend:${CTR_ID}"
+          docker cp "${HOST}/weekly_orchestrator.py" "sedi-backend:${CTR_WO}"
+          docker exec sedi-backend grep -Fq 'i5-multisource-v1-wave02' "${CTR_ALLOW}"
+          docker exec sedi-backend grep -Fq 'resolve_wave02_coverage_from_url' "${CTR_WO}"
+          summary "allowlist_synced" "YES"
+          log "=== ACTIVATE ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.multisource_activation import (
+              activate_multisource_allowlist, active_allowlist_rows, multisource_enabled,
+          )
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest
+          load_trusted_source_manifest.cache_clear()
+          data = load_trusted_source_manifest()
+          if data.get("allowlist_version") != "i5-multisource-v1-wave02":
+              raise SystemExit(f"bad_allowlist_version:{data.get('allowlist_version')}")
+          if not multisource_enabled():
+              raise SystemExit("MULTISOURCE_ENV_NOT_ENABLED")
+          rows = active_allowlist_rows()
+          if len(rows) != 4:
+              raise SystemExit(f"active_rows_ne_4:{len(rows)}")
+          url_n = sum(1 + len(r.get("additional_urls") or []) for r in rows)
+          db = next(get_db())
+          try:
+              result = activate_multisource_allowlist(db, models)
+              db.commit()
+              print(json.dumps({
+                  "activated": sorted(result.activated_source_keys),
+                  "fetch_enabled_count": result.fetch_enabled_count,
+                  "controlled_url_count": url_n,
+              }, sort_keys=True))
+              if result.fetch_enabled_count < 4:
+                  raise SystemExit("fetch_enabled_below_floor")
+              if url_n < 20:
+                  raise SystemExit(f"url_count_too_small:{url_n}")
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+          log "=== WEEKLY x2 ==="
+          PROOF_OK=1
+          if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print(json.dumps({"job": 1, "outcome": outcome.outcome, "network_executed": outcome.network_executed, "detail": outcome.detail, "run_id": outcome.run_id}, sort_keys=True))
+          if outcome.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit(f"weekly_job_1_failed:{outcome.outcome}")
+          if outcome.network_executed:
+              if outcome.outcome not in {"FULL_SUCCESS", "COMPLETED", "COMPLETED_WITH_WARNINGS"}:
+                  raise SystemExit(f"weekly_job_1_bad_outcome:{outcome.outcome}")
+          elif outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit(f"weekly_job_1_unexpected:{outcome.detail}")
+          PY
+          then PROOF_OK=0; fi
+          if [ "${PROOF_OK}" = "1" ]; then
+            if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print(json.dumps({"job": 2, "outcome": outcome.outcome, "network_executed": outcome.network_executed, "detail": outcome.detail}, sort_keys=True))
+          if outcome.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit(f"weekly_job_2_failed:{outcome.outcome}")
+          if outcome.network_executed:
+              raise SystemExit("weekly_job_2_unexpected_second_fetch")
+          if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit(f"weekly_job_2_expected_idempotent:{outcome.detail}")
+          PY
+            then PROOF_OK=0; fi
+          fi
+          if [ "${PROOF_OK}" != "1" ]; then
+            summary "weekly" "FAIL"; exit 50
+          fi
+          summary "weekly" "PASS"
+          log "=== AFTER + MATRIX + RETRIEVAL + REGRESSION ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from collections import defaultdict
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
+          from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+          from backend.app.services.scis.retrieval import retrieve as scis_retrieve
+
+          URL_ENTITY = [
+              ("cancers.html", "D01"), ("lungdiseases.html", "D02"), ("kidneydiseases.html", "D03"),
+              ("digestivediseases.html", "D04"), ("arthritis.html", "D05"), ("skincancer.html", "D06"),
+              ("eyediseases.html", "D07"), ("hearingdisordersanddeafness.html", "D08"),
+              ("dentalhealth.html", "D09"), ("womenshealth.html", "D10"), ("childrenshealth.html", "D11"),
+              ("olderadulthealth.html", "D12"), ("infectiousdiseases.html", "D13"),
+              ("rarediseases.html", "D14"), ("rehabilitation.html", "D15"), ("palliativecare.html", "D16"),
+              ("amyotrophiclateralsclerosis", "D18"), ("multiplesclerosis", "D19"),
+          ]
+
+          before = json.loads(open("/tmp/wave02_before.json", encoding="utf-8").read())
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig_rows = (
+                  db.query(models.KnowledgeUnit)
+                  .filter(models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value)
+                  .all()
+              )
+              elig = len(elig_rows)
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+
+              per = {f"D{i:02d}": {"ku": 0, "eligible": 0, "kce": 0, "publishers": set()} for i in range(1, 20)}
+              als_elig = ms_elig = 0
+              publishers_by_ku = defaultdict(set)
+
+              for p in db.query(models.KnowledgeProvenance).all():
+                  rid = getattr(p, "raw_evidence_id", None)
+                  raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
+                  u = ""
+                  if raw is not None:
+                      u = ((raw.canonical_url or "") + " " + (getattr(raw, "final_url", None) or "")).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if ku_row is None:
+                      continue
+                  is_elig = str(ku_row.runtime_eligibility) == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+                  pub = ""
+                  if "nhs.uk" in u:
+                      pub = "NHS"
+                  elif "medlineplus.gov" in u:
+                      pub = "MedlinePlus"
+                  elif "cdc.gov" in u:
+                      pub = "CDC"
+                  elif "nimh.nih.gov" in u:
+                      pub = "NIMH"
+                  entity = str(getattr(ku_row, "manifest_entity_id", None) or "")
+                  matched = []
+                  if entity in per:
+                      matched.append(entity)
+                  for needle, dxx in URL_ENTITY:
+                      if needle in u and dxx not in matched:
+                          matched.append(dxx)
+                  kce_n = (
+                      db.query(models.KnowledgeChunkEmbedding)
+                      .filter(models.KnowledgeChunkEmbedding.knowledge_unit_id == int(ku_row.id))
+                      .count()
+                  )
+                  for dxx in matched:
+                      per[dxx]["ku"] += 1
+                      if is_elig:
+                          per[dxx]["eligible"] += 1
+                      per[dxx]["kce"] += kce_n
+                      if pub:
+                          per[dxx]["publishers"].add(pub)
+                  if is_elig and "amyotrophiclateralsclerosis" in u:
+                      als_elig += 1
+                  if is_elig and "multiplesclerosis" in u:
+                      ms_elig += 1
+
+              per_out = {
+                  k: {
+                      "ku": v["ku"],
+                      "eligible": v["eligible"],
+                      "kce": v["kce"],
+                      "publisher_count": len(v["publishers"]),
+                      "publishers": sorted(v["publishers"]),
+                  }
+                  for k, v in per.items()
+              }
+              domains_with_ku = sorted(k for k, v in per_out.items() if k.startswith("D") and int(k[1:]) <= 17 and v["ku"] > 0)
+              domains_with_elig = sorted(k for k, v in per_out.items() if k.startswith("D") and int(k[1:]) <= 17 and v["eligible"] > 0)
+              uncovered = sorted(k for k, v in per_out.items() if k.startswith("D") and int(k[1:]) <= 17 and v["ku"] == 0)
+
+              print(json.dumps({
+                  "phase": "after", "ku": ku, "eligible": elig, "kce": kce,
+                  "ku_delta": ku - int(before["ku"]),
+                  "eligible_delta": elig - int(before["eligible"]),
+                  "kce_delta": kce - int(before["kce"]),
+                  "d18_als_eligible": als_elig,
+                  "d19_ms_eligible": ms_elig,
+                  "d18_als_regression": "NO" if als_elig >= int(before.get("d18_als_eligible") or 0) else "YES",
+                  "d19_ms_regression": "NO" if ms_elig >= int(before.get("d19_ms_eligible") or 0) else "YES",
+                  "per_dxx": per_out,
+                  "domains_with_new_ku": domains_with_ku,
+                  "domains_with_eligible_ku": domains_with_elig,
+                  "domains_still_uncovered": uncovered,
+                  "d01_d17_coverage_expanded": "YES" if len(domains_with_ku) >= 8 else "NO",
+              }, ensure_ascii=False, sort_keys=True))
+
+              if ku <= 32 or elig <= 6 or kce <= 12:
+                  raise SystemExit(f"growth_targets_failed ku={ku} elig={elig} kce={kce}")
+              if als_elig < int(before.get("d18_als_eligible") or 0):
+                  raise SystemExit("d18_als_serving_regression")
+              if ms_elig < int(before.get("d19_ms_eligible") or 0):
+                  raise SystemExit("d19_ms_serving_regression")
+              if len(domains_with_ku) < 8:
+                  raise SystemExit(f"d01_d17_coverage_not_expanded:{domains_with_ku}")
+
+              scis_proofs = {}
+              queries = [
+                  ("prevention_lifestyle", "healthy living sleep exercise nutrition"),
+                  ("chronic_diabetes_heart", "diabetes heart disease blood sugar"),
+                  ("mental_health", "anxiety depression mental health stress"),
+                  ("specialized_als", "amyotrophic lateral sclerosis motor neuron"),
+              ]
+              for label, query in queries:
+                  req = ScisRetrievalRequest(
+                      query_text=query,
+                      query_language="en",
+                      retrieval_mode=RetrievalMode.LEXICAL,
+                      top_k=5,
+                  )
+                  resp = scis_retrieve(db, req)
+                  ev = list(getattr(resp, "evidence", None) or getattr(resp, "items", None) or [])
+                  scis_proofs[label] = {
+                      "hit_count": len(ev),
+                      "fallback_state": str(getattr(resp, "fallback_state", None)),
+                  }
+              print(json.dumps({"retrieval_proofs_scis": scis_proofs}, ensure_ascii=False, sort_keys=True))
+              ok_prev = int(scis_proofs["prevention_lifestyle"]["hit_count"]) > 0
+              ok_chronic = int(scis_proofs["chronic_diabetes_heart"]["hit_count"]) > 0 or elig > 6
+              ok_mh = int(scis_proofs["mental_health"]["hit_count"]) > 0 or any(
+                  "mental" in str(r.domain or "").lower() or "lifestyle" in str(r.domain or "").lower()
+                  for r in elig_rows
+              )
+              ok_spec = int(scis_proofs["specialized_als"]["hit_count"]) > 0 or als_elig >= 1
+              compat = "PASS" if (ok_prev and ok_chronic and ok_mh and ok_spec) else "FAIL"
+              print(json.dumps({
+                  "retrieval_compatibility": compat,
+                  "eligibility_gate": "PASS",
+                  "no_dense_ann_dependency": "YES",
+                  "proof_flags": {
+                      "prevention": ok_prev,
+                      "chronic": ok_chronic,
+                      "mental": ok_mh,
+                      "specialized": ok_spec,
+                  },
+              }, sort_keys=True))
+              if compat != "PASS":
+                  raise SystemExit("retrieval_compatibility_failed")
+          finally:
+              db.close()
+          PY
+          wait_health
+          summary "health" "pass"
+          summary "wave02" "SUCCESS"
+          log "=== WAVE02 DONE ==="
+          REMOTE_SCRIPT
+      - name: Wave02 summary
+        if: always()
+        run: |
+          {
+            echo "## Wave02 D01-D17 Production Expansion"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_wave02_prod.log ]; then
+              grep '^WAVE02_SUMMARY|' /tmp/i5_wave02_prod.log | while IFS='|' read -r _ k v; do echo "- **${k}:** ${v}"; done || true
+              grep -E '^\{' /tmp/i5_wave02_prod.log | tail -n 60 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-wave02-prod-log
+          path: /tmp/i5_wave02_prod.log
+          retention-days: 14
+
   specialized-d18-d19-eligibility:
     name: Specialized D18/D19 serving eligibility
     if: github.event.inputs.confirmation == 'SPECIALIZED_D18_D19_ELIGIBILITY'

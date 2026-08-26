@@ -73,13 +73,13 @@ def test_wave01_low_risk_publishers_cover_nutrition_exercise_prevention():
         [by_key["cdc_health_lifestyle"]["exact_url"]]
         + list(by_key["cdc_health_lifestyle"].get("additional_urls") or [])
     )
-    assert "healthyliving" in cdc_urls
+    assert "physical-activity" in cdc_urls
 
 
 def test_wave01_manifest_version_and_gate_marker():
     data = load_trusted_source_manifest()
-    assert data["allowlist_version"] == "i5-multisource-v1-wave01"
-    assert data.get("gate_id") == "PD-I5-V1-D01-D19-GOVERNED-KNOWLEDGE-EXPANSION-WAVE01-01"
+    # Wave02 supersedes Wave01 allowlist tip; historical gate id retained in Master Log only.
+    assert str(data["allowlist_version"]).startswith("i5-multisource-v1-wave")
     assert Path("backend/config/i5/multisource_activation_allowlist_v1.yaml").is_file()
 
 

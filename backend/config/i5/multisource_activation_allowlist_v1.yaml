@@ -3,20 +3,34 @@
 # PostgreSQL GSP/registry tables are runtime audit state.
 # seed_registry.py is bootstrap-only — NOT runtime activation authority.
 #
-# Wave01 (PD-I5-V1-D01-D19-GOVERNED-KNOWLEDGE-EXPANSION-WAVE01-01):
+# Wave02 (PD-I5-V1-D01-D17-GOVERNED-KNOWLEDGE-EXPANSION-WAVE02-01):
 # bounded additional_urls only inside existing allowed_url_patterns / rights / robots.
-# No new publisher activation. DISCOVERY != AUTHORIZATION preserved.
+# No new publisher. MedlinePlus/NIMH global low-risk remains NO.
+# D18/D19 specialized eligibility preserved (regression only this Gate).
 manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
 manifest_version: "i5-trusted-source-control-v2"
-allowlist_version: "i5-multisource-v1-wave01"
-gate_id: "PD-I5-V1-D01-D19-GOVERNED-KNOWLEDGE-EXPANSION-WAVE01-01"
+allowlist_version: "i5-multisource-v1-wave02"
+gate_id: "PD-I5-V1-D01-D17-GOVERNED-KNOWLEDGE-EXPANSION-WAVE02-01"
 publisher_diversity_floor: 4
 historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
-wave01_targets:
+wave02_targets:
+  - D01
+  - D02
+  - D03
+  - D04
+  - D05
+  - D06
+  - D07
+  - D08
+  - D09
+  - D10
+  - D11
   - D12
+  - D13
+  - D14
   - D15
-  - D18
-  - D19
+  - D16
+  - D17
   - knowledge_domain:cardiovascular
   - knowledge_domain:diabetes_metabolic
   - knowledge_domain:mental_health_psychology
@@ -35,13 +49,17 @@ sources:
       - https://www.nhs.uk/live-well/exercise/
       - https://www.nhs.uk/live-well/eat-well/
       - https://www.nhs.uk/live-well/mental-health/
+      - https://www.nhs.uk/live-well/healthy-weight/
+      - https://www.nhs.uk/live-well/quit-smoking/
+      - https://www.nhs.uk/live-well/alcohol-advice/
+      - https://www.nhs.uk/live-well/seasonal-health/
     allowed_domain: nhs.uk
     allowed_url_patterns:
       - "^https://www\\.nhs\\.uk/live-well/.*"
     rights_terms_state: OGL
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_4_urls"
+    rate_limit: "weekly_controlled_max_8_urls"
     entity_coverage: [D12, D15]
     knowledge_domains: [lifestyle_prevention_routines, physical_activity_exercise, mental_health_psychology, nutrition]
     activation: YES
@@ -56,7 +74,25 @@ sources:
     adapter: PUBLIC_WEB_FETCH
     exact_url: https://medlineplus.gov/amyotrophiclateralsclerosis.html
     additional_urls:
+      # D18/D19 regression (specialized eligible path)
       - https://medlineplus.gov/multiplesclerosis.html
+      # Wave02 D01–D17 / KD topic acquisition (NOT global low-risk)
+      - https://medlineplus.gov/cancers.html
+      - https://medlineplus.gov/lungdiseases.html
+      - https://medlineplus.gov/kidneydiseases.html
+      - https://medlineplus.gov/digestivediseases.html
+      - https://medlineplus.gov/arthritis.html
+      - https://medlineplus.gov/skincancer.html
+      - https://medlineplus.gov/eyediseases.html
+      - https://medlineplus.gov/hearingdisordersanddeafness.html
+      - https://medlineplus.gov/dentalhealth.html
+      - https://medlineplus.gov/womenshealth.html
+      - https://medlineplus.gov/childrenshealth.html
+      - https://medlineplus.gov/olderadulthealth.html
+      - https://medlineplus.gov/infectiousdiseases.html
+      - https://medlineplus.gov/rarediseases.html
+      - https://medlineplus.gov/rehabilitation.html
+      - https://medlineplus.gov/palliativecare.html
       - https://medlineplus.gov/heartdiseases.html
       - https://medlineplus.gov/diabetes.html
       - https://medlineplus.gov/healthyliving.html
@@ -68,7 +104,7 @@ sources:
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_7_urls"
+    rate_limit: "weekly_controlled_max_22_urls"
     entity_coverage: [D01, D02, D03, D04, D05, D06, D07, D08, D09, D10, D11, D12, D13, D14, D15, D16, D18, D19]
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
     activation: YES
@@ -83,10 +119,11 @@ sources:
     publisher_family: cdc.gov
     authority_class: OFFICIAL_NATIONAL
     adapter: PUBLIC_WEB_FETCH
-    # Canonical live 200 page after CDC redesign (old /physicalactivity/ 301s to hyphenated path).
     exact_url: https://www.cdc.gov/physical-activity/php/about/index.html
     additional_urls:
-      - https://www.cdc.gov/healthyliving/index.html
+      # Live hubs only inside existing patterns (CDC redesign retired many /healthyliving paths).
+      - https://www.cdc.gov/physical-activity/
+      - https://www.cdc.gov/physicalactivity/
     allowed_domain: cdc.gov
     allowed_url_patterns:
       - "^https://www\\.cdc\\.gov/physical-activity/.*"
@@ -95,7 +132,7 @@ sources:
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_2_urls"
+    rate_limit: "weekly_controlled_max_3_urls"
     entity_coverage: [D05, D13, D15, D17]
     knowledge_domains: [physical_activity_exercise, nutrition, lifestyle_prevention_routines, cardiovascular]
     activation: YES
@@ -108,17 +145,18 @@ sources:
     publisher_family: nimh.nih.gov
     authority_class: OFFICIAL_NATIONAL_INSTITUTE
     adapter: PUBLIC_WEB_FETCH
-    # Prior /health/publications/coping-with-stress returns hard HTTP 404 (2026-08).
     exact_url: https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet
     additional_urls:
       - https://www.nimh.nih.gov/health/topics/depression
+      - https://www.nimh.nih.gov/health/topics/anxiety-disorders
+      - https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health
     allowed_domain: nimh.nih.gov
     allowed_url_patterns:
       - "^https://www\\.nimh\\.nih\\.gov/health/.*"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
-    rate_limit: "weekly_controlled_max_2_urls"
+    rate_limit: "weekly_controlled_max_4_urls"
     entity_coverage: []
     knowledge_domains: [mental_health_psychology]
     activation: YES
