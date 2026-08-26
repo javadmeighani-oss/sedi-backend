@@ -73,6 +73,9 @@ sources:
     knowledge_domains: [disease_clinical, neurology_als_ms, cardiovascular, diabetes_metabolic, nutrition, lifestyle_prevention_routines]
     activation: YES
     governed_low_risk_eligibility: NO
+    specialized_serving_eligibility:
+      - D18
+      - D19
     license_notes: "Public-domain topic summaries with MedlinePlus/NLM attribution; exclude A.D.A.M./drug monograph sections"
 
   - source_key: cdc_health_lifestyle

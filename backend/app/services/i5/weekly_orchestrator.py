@@ -785,13 +785,37 @@ def _apply_live_source(
     if not candidates:
         return RunSourceResultStatus.FAILED.value, "EXTRACTION_EMPTY", handoffs
     primary = candidates[0]
+    # URL-scoped domain/topic (D18/D19 specialized identity); default lifestyle/sleep preserved.
+    domain = "lifestyle"
+    topic = "sleep"
+    jurisdiction = "GB"
+    entity_id = None
+    track_id = None
+    disease_label = None
+    try:
+        from backend.app.services.i5.governed_specialized_entity_eligibility import (
+            resolve_specialized_entity_from_url,
+        )
+
+        entity_url = str(getattr(envelope, "canonical_url", None) or getattr(work, "url", None) or "")
+        spec = resolve_specialized_entity_from_url(entity_url)
+        if spec is not None:
+            domain = spec.domain
+            topic = spec.topic
+            jurisdiction = "US"
+            entity_id = spec.entity_id
+            track_id = spec.track_id
+            disease_label = spec.disease_label
+    except Exception:  # noqa: BLE001 — fail closed to historical lifestyle defaults
+        domain = "lifestyle"
+        topic = "sleep"
     try:
         normalized = normalize_document(
             raw_text=primary.normalized_text,
-            domain="lifestyle",
-            topic="sleep",
+            domain=domain,
+            topic=topic,
             population="general",
-            jurisdiction="GB",
+            jurisdiction=jurisdiction,
             language=primary.language or "en",
         )
     except AdapterFrameworkError as exc:
@@ -804,7 +828,7 @@ def _apply_live_source(
         "normalized_hash": normalized.content_hash,
         "mime_type": envelope.content_type or "text/html",
         "language": primary.language or "en",
-        "jurisdiction": "GB",
+        "jurisdiction": jurisdiction,
         "extraction_count": len(candidates),
         "extraction_process": primary.extractor_version,
         "normalization_process": "w3p01-normalize",
@@ -815,6 +839,10 @@ def _apply_live_source(
         "canonical_hash": normalized.content_hash,
         "candidate_fingerprint": candidate_fingerprint,
         "candidate_warnings": list(primary.warnings or ()),
+        "manifest_entity_id": entity_id,
+        "manifest_track_id": track_id,
+        "disease_or_health_condition": disease_label,
+        "canonical_url": str(getattr(envelope, "canonical_url", None) or ""),
     }
     raw = prepare_raw_evidence_handoff(
         attempt_id=0,

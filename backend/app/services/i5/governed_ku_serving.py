@@ -86,6 +86,7 @@ def apply_governed_finalize_and_lexical_index(
     raw_evidence_id: Optional[int] = None,
     authoritative_provenance: Optional[models.KnowledgeProvenance] = None,
     incoming_source_profile_id: Optional[int] = None,
+    canonical_url: Optional[str] = None,
 ) -> KnowledgeUnitRuntimeEligibility:
     """Governed re-evaluation and lexical-only indexing for new and existing KU rows."""
     incoming_id = int(incoming_source_profile_id if incoming_source_profile_id is not None else source_profile_id)
@@ -109,10 +110,23 @@ def apply_governed_finalize_and_lexical_index(
     if gsp is not None and gsp.canonical_key:
         resolved_key = str(gsp.canonical_key)
 
+    resolved_url = canonical_url
+    if resolved_url is None and authoritative_provenance is not None:
+        from backend.app.services.i5.governed_specialized_entity_eligibility import (
+            provenance_canonical_url,
+        )
+
+        resolved_url = provenance_canonical_url(authoritative_provenance)
+    if resolved_url is None and raw_evidence_id is not None:
+        raw = db.query(models.I5RawEvidence).filter_by(id=int(raw_evidence_id)).one_or_none()
+        if raw is not None:
+            resolved_url = str(raw.canonical_url or "")
+
     elig = finalize_governed_runtime_eligibility(
         ku,
         source_key=resolved_key,
         domain=normalize_eligibility_domain(getattr(ku, "domain", None)),
+        canonical_url=resolved_url,
     )
     ku.runtime_eligibility = elig.value
     db.flush()

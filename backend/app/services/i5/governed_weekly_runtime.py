@@ -558,10 +558,11 @@ def execute_governed_persistence(
         ku_svc.validate_no_pii_markers(statement)
         domain = str(payload.get("domain") or "lifestyle")
         topic = str(payload.get("topic") or "sleep")
+        jurisdiction = str(payload.get("jurisdiction") or "GB")
         knowledge_type = KnowledgeType.OTHER.value
         dedupe = str(
             payload.get("dedupe_key")
-            or ku_svc.build_deduplication_key(domain, topic, "general", "GB", statement)
+            or ku_svc.build_deduplication_key(domain, topic, "general", jurisdiction, statement)
         )
         canon = str(
             payload.get("canonical_hash")
@@ -594,12 +595,15 @@ def execute_governed_persistence(
             immutable_version_id="v1",
             domain=domain,
             topic_taxonomy=topic,
+            disease_or_health_condition=str(payload.get("disease_or_health_condition") or "") or None,
+            manifest_entity_id=str(payload.get("manifest_entity_id") or "") or None,
+            manifest_track_id=str(payload.get("manifest_track_id") or "") or None,
             language=str(payload.get("language") or "en"),
             knowledge_type=knowledge_type,
             normalized_statement=statement,
             applicability="candidate_only_not_approved_knowledge",
             population="general",
-            jurisdiction="GB",
+            jurisdiction=jurisdiction,
             evidence_strength=EvidenceStrength.UNKNOWN.value,
             medical_safety_state=medical,
             conflict_state=conflict,
@@ -652,6 +656,7 @@ def execute_governed_persistence(
                 raw_evidence_id=int(raw.id),
                 authoritative_provenance=existing_prov,
                 incoming_source_profile_id=incoming_source_profile_id,
+                canonical_url=str(raw.canonical_url or ""),
             )
             continue
 
@@ -716,6 +721,7 @@ def execute_governed_persistence(
             raw_evidence_id=int(raw.id),
             authoritative_provenance=prov,
             incoming_source_profile_id=int(prov_payload["source_profile_id"]),
+            canonical_url=str(raw.canonical_url or ""),
         )
 
         # Never write unapproved candidates into Knowledge Memory (I7/I8 boundary).

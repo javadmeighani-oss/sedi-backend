@@ -130,6 +130,7 @@ def finalize_governed_runtime_eligibility(
     source_key: str,
     domain: Optional[str],
     connector_key: Optional[str] = None,
+    canonical_url: Optional[str] = None,
 ) -> KnowledgeUnitRuntimeEligibility:
     if isinstance(ku, dict):
         prov_complete = bool(ku.get("provenance_complete"))
@@ -144,4 +145,15 @@ def finalize_governed_runtime_eligibility(
     ):
         if not isinstance(ku, dict):
             apply_governed_low_risk_fields(ku, source_key=source_key, domain=domain)
+    elif not isinstance(ku, dict):
+        # Specialized D18/D19 path — does NOT require global MedlinePlus low-risk.
+        from backend.app.services.i5.governed_specialized_entity_eligibility import (
+            apply_specialized_entity_fields,
+        )
+
+        apply_specialized_entity_fields(
+            ku,
+            source_key=source_key,
+            canonical_url=canonical_url,
+        )
     return evaluate_knowledge_unit_eligibility(ku)

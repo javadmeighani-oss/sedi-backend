@@ -1,8 +1,8 @@
-# Activate W6-P01 weekly orchestrator on production (workflow_dispatch only).
 # Confirmation tokens:
-#   ACTIVATE_W6P01_WEEKLY         → NHS-only historical weekly activation
-#   ACTIVATE_I5_MULTISOURCE_V1    → I5 multi-source weekly activation
-#   WAVE01_I5_GOVERNED_EXPANSION  → Wave01 bounded allowlist URL expansion + weekly
+#   ACTIVATE_W6P01_WEEKLY              → NHS-only historical weekly activation
+#   ACTIVATE_I5_MULTISOURCE_V1         → I5 multi-source weekly activation
+#   WAVE01_I5_GOVERNED_EXPANSION       → Wave01 bounded allowlist URL expansion + weekly
+#   SPECIALIZED_D18_D19_ELIGIBILITY    → ALS/MS specialized serving eligibility (MedlinePlus global low-risk stays NO)
 # Fail-closed paths differ per job (see job bodies).
 name: W6-P01 Production Activate Weekly
 
@@ -10,13 +10,13 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION"
+        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | SPECIALIZED_D18_D19_ELIGIBILITY"
         required: true
       deployed_image_sha:
         description: "40-character lowercase Git commit SHA of the deployed backend image."
         required: true
       deployed_image_digest:
-        description: "Expected deployed image digest in sha256:<64 hex> (required for activate tokens; optional for WAVE01)."
+        description: "Expected deployed image digest in sha256:<64 hex> (required for activate tokens; optional for WAVE01/SPECIALIZED)."
         required: false
         default: ""
       expected_alembic_revision:
@@ -32,6 +32,188 @@ permissions:
   contents: read
 
 jobs:
+  specialized-d18-d19-eligibility:
+    name: Specialized D18/D19 serving eligibility
+    if: github.event.inputs.confirmation == 'SPECIALIZED_D18_D19_ELIGIBILITY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+      - uses: actions/checkout@v4
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+      - name: Stage modules + ops script
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5/specialized_d18_d19"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/config/i5/multisource_activation_allowlist_v1.yaml \
+            backend/app/services/i5/governed_specialized_entity_eligibility.py \
+            backend/app/services/i5/governed_low_risk_eligibility.py \
+            backend/app/services/i5/governed_ku_serving.py \
+            backend/app/services/i5/conceptual_extraction.py \
+            backend/app/services/i5/weekly_orchestrator.py \
+            backend/app/services/i5/governed_weekly_runtime.py \
+            backend/ops/i5/i5_specialized_d18_d19_eligibility_inproc.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+      - name: Sync code + reprocess ALS/MS + retrieval proof
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_SHA}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_REV}")"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_specialized_d18_d19.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "SPECIALIZED_SUMMARY|$1|$2"; }
+          HOST="${DEPLOY_PATH}/ops/i5/specialized_d18_d19"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          [ "${CURRENT_IMAGE}" = "${IMAGE_TAG}" ] || { log "image mismatch"; exit 5; }
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          [ "${ALEMBIC_CURRENT}" = "${EXPECTED_REV}" ] || { log "alembic mismatch"; exit 5; }
+          summary "alembic" "${ALEMBIC_CURRENT}"
+
+          docker cp "${HOST}/multisource_activation_allowlist_v1.yaml" sedi-backend:/app/backend/config/i5/multisource_activation_allowlist_v1.yaml
+          docker cp "${HOST}/governed_specialized_entity_eligibility.py" sedi-backend:/app/backend/app/services/i5/governed_specialized_entity_eligibility.py
+          docker cp "${HOST}/governed_low_risk_eligibility.py" sedi-backend:/app/backend/app/services/i5/governed_low_risk_eligibility.py
+          docker cp "${HOST}/governed_ku_serving.py" sedi-backend:/app/backend/app/services/i5/governed_ku_serving.py
+          docker cp "${HOST}/conceptual_extraction.py" sedi-backend:/app/backend/app/services/i5/conceptual_extraction.py
+          docker cp "${HOST}/weekly_orchestrator.py" sedi-backend:/app/backend/app/services/i5/weekly_orchestrator.py
+          docker cp "${HOST}/governed_weekly_runtime.py" sedi-backend:/app/backend/app/services/i5/governed_weekly_runtime.py
+          docker cp "${HOST}/i5_specialized_d18_d19_eligibility_inproc.py" sedi-backend:/app/backend/ops/i5/i5_specialized_d18_d19_eligibility_inproc.py
+          summary "code_synced" "YES"
+
+          log "=== BEFORE ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          from backend.app.services.i5.trusted_source_manifest import governed_low_risk_eligible, load_trusted_source_manifest
+          load_trusted_source_manifest.cache_clear()
+          db = next(get_db())
+          try:
+              print(json.dumps({
+                  "phase": "before",
+                  "ku": db.query(models.KnowledgeUnit).count(),
+                  "eligible": db.query(models.KnowledgeUnit).filter(
+                      models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+                  ).count(),
+                  "kce": db.query(models.KnowledgeChunkEmbedding).count(),
+                  "medlineplus_low_risk": governed_low_risk_eligible("medlineplus_consumer_health"),
+              }, sort_keys=True))
+          finally:
+              db.close()
+          PY
+
+          log "=== SPECIALIZED REPROCESS ==="
+          docker exec -i sedi-backend python -m backend.ops.i5.i5_specialized_d18_d19_eligibility_inproc
+
+          log "=== AFTER + RETRIEVAL ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          from backend.app.services.i5.trusted_source_manifest import governed_low_risk_eligible, load_trusted_source_manifest
+          from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+          from backend.app.services.scis.retrieval import retrieve as scis_retrieve
+          load_trusted_source_manifest.cache_clear()
+          assert governed_low_risk_eligible("medlineplus_consumer_health") is False
+          db = next(get_db())
+          try:
+              def entity_stats(eid):
+                  rows = db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.manifest_entity_id == eid).all()
+                  return {
+                      "ku": len(rows),
+                      "eligible": sum(1 for r in rows if r.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value),
+                      "sample": [
+                          {"id": int(r.id), "elig": r.runtime_eligibility, "stmt": (r.normalized_statement or "")[:120]}
+                          for r in rows[:3]
+                      ],
+                  }
+              out = {
+                  "phase": "after",
+                  "ku": db.query(models.KnowledgeUnit).count(),
+                  "eligible": db.query(models.KnowledgeUnit).filter(
+                      models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+                  ).count(),
+                  "kce": db.query(models.KnowledgeChunkEmbedding).count(),
+                  "d18": entity_stats("D18"),
+                  "d19": entity_stats("D19"),
+                  "medlineplus_low_risk": False,
+              }
+              proofs = {}
+              for label, q in (
+                  ("als", "amyotrophic lateral sclerosis ALS muscles"),
+                  ("ms", "multiple sclerosis demyelination"),
+              ):
+                  resp = scis_retrieve(db, ScisRetrievalRequest(
+                      query_text=q, query_language="en", retrieval_mode=RetrievalMode.LEXICAL, top_k=5,
+                  ))
+                  ev = list(resp.evidence or [])
+                  proofs[label] = {
+                      "hit_count": len(ev),
+                      "ku_ids": [getattr(e, "knowledge_unit_id", None) for e in ev[:3]],
+                      "fallback": str(resp.fallback_state),
+                  }
+              out["retrieval"] = proofs
+              print(json.dumps(out, ensure_ascii=False, sort_keys=True))
+              if out["d18"]["eligible"] < 1:
+                  raise SystemExit("D18_ELIGIBLE_TARGET_MISS")
+              if out["d19"]["eligible"] < 1:
+                  raise SystemExit("D19_ELIGIBLE_TARGET_MISS")
+              if out["eligible"] <= 4:
+                  raise SystemExit("ELIGIBLE_TOTAL_TARGET_MISS")
+              if proofs["als"]["hit_count"] < 1 or proofs["ms"]["hit_count"] < 1:
+                  raise SystemExit("RETRIEVAL_PROOF_FAIL")
+          finally:
+              db.close()
+          PY
+          summary "specialized" "SUCCESS"
+          REMOTE_SCRIPT
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Specialized D18/D19 Eligibility"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_specialized_d18_d19.log ]; then
+              grep '^SPECIALIZED_SUMMARY|' /tmp/i5_specialized_d18_d19.log || true
+              grep -E '^\{' /tmp/i5_specialized_d18_d19.log | tail -n 30 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-specialized-d18-d19-log
+          path: /tmp/i5_specialized_d18_d19.log
+          retention-days: 14
+
   wave01-governed-expansion:
     name: Wave01 governed knowledge expansion
     if: github.event.inputs.confirmation == 'WAVE01_I5_GOVERNED_EXPANSION'

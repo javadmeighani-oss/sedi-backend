@@ -11,7 +11,7 @@ from backend.app.schemas.i5_adapters import ExtractionCandidate, FetchEnvelope
 from backend.app.services.i5.adapters.base import AdapterFrameworkError, sha256_hex
 from backend.app.services.i5.normalization import canonicalize_text
 
-EXTRACTOR_VERSION = "w3p01-conceptual-1.0.0"
+EXTRACTOR_VERSION = "w3p01-conceptual-1.0.1"
 
 
 class _TextExtractor(HTMLParser):
@@ -85,8 +85,17 @@ def extract_from_html(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...
     except Exception as exc:  # noqa: BLE001 — map to taxonomy
         raise AdapterFrameworkError("PARSING_FAILED", type(exc).__name__) from exc
     text = parser.text()
+    # Bounded chrome self-heal (Format Resilience compatible; no parser redesign).
+    from backend.app.services.i5.governed_specialized_entity_eligibility import (
+        strip_html_nav_chrome,
+    )
+
+    text = strip_html_nav_chrome(text)
     if len(canonicalize_text(text)) < 20:
         raise AdapterFrameworkError("EXTRACTION_FAILED", "too_short")
+    claim_src = canonicalize_text(text)
+    # Prefer a clinically meaningful claim window when available.
+    claim = claim_src[:480] if claim_src else None
     return (
         _candidate(
             title=parser.title or "html-document",
@@ -94,7 +103,7 @@ def extract_from_html(envelope: FetchEnvelope) -> tuple[ExtractionCandidate, ...
             source_location=envelope.canonical_url,
             confidence=0.55,
             warnings=("candidate_only_not_approved_knowledge",),
-            claim=canonicalize_text(text)[:240] or None,
+            claim=claim,
         ),
     )
 
