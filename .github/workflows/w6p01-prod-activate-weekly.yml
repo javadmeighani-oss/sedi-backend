@@ -131,7 +131,8 @@ jobs:
           PY
 
           log "=== SPECIALIZED REPROCESS ==="
-          docker exec -i sedi-backend python -m backend.ops.i5.i5_specialized_d18_d19_eligibility_inproc
+          # IMPORTANT: do not leave stdin attached — otherwise python -m consumes the rest of REMOTE_SCRIPT.
+          docker exec sedi-backend python -m backend.ops.i5.i5_specialized_d18_d19_eligibility_inproc </dev/null
 
           log "=== AFTER + RETRIEVAL ==="
           docker exec -i sedi-backend python - <<'PY'
@@ -146,13 +147,27 @@ jobs:
           assert governed_low_risk_eligible("medlineplus_consumer_health") is False
           db = next(get_db())
           try:
-              def entity_stats(eid):
-                  rows = db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.manifest_entity_id == eid).all()
+              def entity_stats(eid, needles):
+                  stamped = db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.manifest_entity_id == eid).all()
+                  # Also count provenance→raw URL linked KUs (Wave01 acquisition without stamp).
+                  url_kus = set()
+                  for p in db.query(models.KnowledgeProvenance).all():
+                      raw = None
+                      if p.raw_evidence_id is not None:
+                          raw = db.query(models.I5RawEvidence).filter_by(id=int(p.raw_evidence_id)).one_or_none()
+                      u = ((raw.canonical_url if raw else "") or "").lower()
+                      if any(n in u for n in needles):
+                          url_kus.add(int(p.knowledge_unit_id))
+                  for r in stamped:
+                      url_kus.add(int(r.id))
+                  rows = db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.id.in_(list(url_kus) or [-1])).all()
                   return {
                       "ku": len(rows),
                       "eligible": sum(1 for r in rows if r.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value),
+                      "stamped_ku": len(stamped),
+                      "stamped_eligible": sum(1 for r in stamped if r.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value),
                       "sample": [
-                          {"id": int(r.id), "elig": r.runtime_eligibility, "stmt": (r.normalized_statement or "")[:120]}
+                          {"id": int(r.id), "elig": r.runtime_eligibility, "entity": r.manifest_entity_id, "stmt": (r.normalized_statement or "")[:120]}
                           for r in rows[:3]
                       ],
                   }
@@ -163,8 +178,8 @@ jobs:
                       models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
                   ).count(),
                   "kce": db.query(models.KnowledgeChunkEmbedding).count(),
-                  "d18": entity_stats("D18"),
-                  "d19": entity_stats("D19"),
+                  "d18": entity_stats("D18", ["amyotrophiclateralsclerosis"]),
+                  "d19": entity_stats("D19", ["multiplesclerosis"]),
                   "medlineplus_low_risk": False,
               }
               proofs = {}
