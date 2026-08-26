@@ -50,5 +50,48 @@ jobs:
              docker logs --since 30m sedi-backend 2>&1 \
                | grep -E "\[Sedi Scheduler\]|\[NOTIF\]|\[GATE4|Traceback|ERROR|Exception" \
                | tail -120 || true
+             echo "=== GHCR CONNECTIVITY PRECHECK (read-only; no pull) ==="
+             FAIL=0
+             if getent hosts ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null || host ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null || nslookup ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null; then
+               echo "GHCR_DNS=PASS"
+               cat /tmp/ghcr_dns.txt || true
+             else
+               echo "GHCR_DNS=FAIL"; FAIL=1
+             fi
+             if (command -v nc >/dev/null && nc -z -w 8 ghcr.io 443) || (timeout 8 bash -c "echo >/dev/tcp/ghcr.io/443"); then
+               echo "GHCR_TCP443=PASS"
+             else
+               echo "GHCR_TCP443=FAIL"; FAIL=1
+             fi
+             if echo | timeout 20 openssl s_client -connect ghcr.io:443 -servername ghcr.io >/tmp/ghcr_tls.txt 2>&1; then
+               grep -E "Verify return code|Protocol|Cipher" /tmp/ghcr_tls.txt | head -20 || true
+               if grep -q "Verify return code: 0" /tmp/ghcr_tls.txt || grep -qiE "SSL-Session:|Cipher is" /tmp/ghcr_tls.txt; then
+                 echo "GHCR_TLS=PASS"
+               else
+                 echo "GHCR_TLS=FAIL"; FAIL=1
+               fi
+             else
+               echo "GHCR_TLS=FAIL"; FAIL=1
+             fi
+             MANIFEST_URL="https://ghcr.io/v2/javadmeighani-oss/sedi-backend/manifests/d039988844b61860caa504d275881237623352f8"
+             set +e
+             CURL_OUT="$(curl -sS -I -o /tmp/ghcr_manifest_headers.txt -w "%{http_code}" --connect-timeout 15 --max-time 30 "${MANIFEST_URL}" 2>/tmp/ghcr_manifest_err.txt)"
+             CURL_RC=$?
+             set -e
+             echo "manifest_curl_rc=${CURL_RC} http=${CURL_OUT}"
+             head -n 15 /tmp/ghcr_manifest_headers.txt || true
+             if [ "${CURL_RC}" -ne 0 ]; then
+               cat /tmp/ghcr_manifest_err.txt || true
+               echo "GHCR_MANIFEST=FAIL"; FAIL=1
+             elif echo "${CURL_OUT}" | grep -Eq "^(200|401|403|404)$"; then
+               echo "GHCR_MANIFEST=PASS"
+             else
+               echo "GHCR_MANIFEST=FAIL"; FAIL=1
+             fi
+             if [ "${FAIL}" -ne 0 ]; then
+               echo "GHCR_CONNECTIVITY=FAIL"
+               exit 20
+             fi
+             echo "GHCR_CONNECTIVITY=PASS"
              echo "=== CHECK DONE ==="
             '
