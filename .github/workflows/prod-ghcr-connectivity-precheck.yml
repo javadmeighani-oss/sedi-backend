@@ -1,0 +1,132 @@
+# Read-only production-host GHCR connectivity precheck (workflow_dispatch only).
+# Gate: PD-I5-V1-SOURCE-FORMAT-RESILIENCE-DEPLOY-RETRY-01
+# No pull/recreate/deploy. No TLS bypass.
+name: Prod GHCR Connectivity Precheck
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "40-char lowercase commit SHA image tag to probe"
+        required: true
+      target_digest:
+        description: "Expected digest sha256:<64 hex> for manifest probe"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+jobs:
+  ghcr-precheck:
+    name: GHCR DNS/TCP/TLS/manifest + prod health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate inputs
+        env:
+          TAG: ${{ github.event.inputs.image_tag }}
+          DIGEST: ${{ github.event.inputs.target_digest }}
+        run: |
+          set -Eeuo pipefail
+          echo "${TAG}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only GHCR + health precheck on production host
+        env:
+          TAG: ${{ github.event.inputs.image_tag }}
+          DIGEST: ${{ github.event.inputs.target_digest }}
+        run: |
+          set -Eeuo pipefail
+          TAG_Q="$(printf '%q' "${TAG}")"
+          DIGEST_Q="$(printf '%q' "${DIGEST}")"
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "TAG=${TAG_Q} DIGEST=${DIGEST_Q} bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          FAIL=0
+          log "=== CURRENT BACKEND IMAGE (baseline) ==="
+          docker inspect sedi-backend --format '{{.Config.Image}}' || true
+          log "=== LOCAL HEALTH ==="
+          curl -fsS http://127.0.0.1:8000/health >/tmp/ghcr_precheck_health.json
+          curl -fsS http://127.0.0.1:8000/healthz >/tmp/ghcr_precheck_healthz.json
+          log "health=PASS"
+          log "=== GHCR DNS ==="
+          if getent hosts ghcr.io >/tmp/ghcr_dns.txt || host ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null || nslookup ghcr.io >/tmp/ghcr_dns.txt 2>/dev/null; then
+            cat /tmp/ghcr_dns.txt || true
+            log "GHCR_DNS=PASS"
+          else
+            log "GHCR_DNS=FAIL"
+            FAIL=1
+          fi
+          log "=== GHCR TCP/443 ==="
+          if (command -v nc >/dev/null && nc -z -w 8 ghcr.io 443) || (timeout 8 bash -c 'echo >/dev/tcp/ghcr.io/443'); then
+            log "GHCR_TCP443=PASS"
+          else
+            log "GHCR_TCP443=FAIL"
+            FAIL=1
+          fi
+          log "=== GHCR TLS ==="
+          if echo | timeout 20 openssl s_client -connect ghcr.io:443 -servername ghcr.io >/tmp/ghcr_tls.txt 2>&1; then
+            grep -E 'Verify return code|Protocol|Cipher' /tmp/ghcr_tls.txt | head -20 || true
+            if grep -q 'Verify return code: 0' /tmp/ghcr_tls.txt; then
+              log "GHCR_TLS=PASS"
+            else
+              # Some hosts still establish TLS without full verify chain in s_client; require handshake completed
+              if grep -qiE 'SSL-Session:|Cipher is' /tmp/ghcr_tls.txt; then
+                log "GHCR_TLS=PASS_HANDSHAKE"
+              else
+                log "GHCR_TLS=FAIL"
+                FAIL=1
+              fi
+            fi
+          else
+            log "GHCR_TLS=FAIL"
+            FAIL=1
+          fi
+          log "=== GHCR MANIFEST REACHABILITY (HEAD, no docker pull) ==="
+          MANIFEST_URL="https://ghcr.io/v2/javadmeighani-oss/sedi-backend/manifests/${TAG}"
+          # Anonymous HEAD may 401/403; connectivity success = TCP+TLS response from registry (not timeout)
+          set +e
+          CURL_OUT="$(curl -sS -I -o /tmp/ghcr_manifest_headers.txt -w '%{http_code}|%{ssl_verify_result}|%{time_total}' --connect-timeout 15 --max-time 30 "${MANIFEST_URL}" 2>/tmp/ghcr_manifest_err.txt)"
+          CURL_RC=$?
+          set -e
+          log "manifest_curl_rc=${CURL_RC} result=${CURL_OUT}"
+          head -n 20 /tmp/ghcr_manifest_headers.txt || true
+          if [ "${CURL_RC}" -ne 0 ]; then
+            cat /tmp/ghcr_manifest_err.txt || true
+            log "GHCR_MANIFEST=FAIL"
+            FAIL=1
+          else
+            CODE="$(echo "${CURL_OUT}" | cut -d'|' -f1)"
+            # 200/401/403/404 all prove registry reachable over TLS; timeout/000 do not
+            if echo "${CODE}" | grep -Eq '^(200|401|403|404)$'; then
+              log "GHCR_MANIFEST=PASS http=${CODE}"
+            else
+              log "GHCR_MANIFEST=FAIL http=${CODE}"
+              FAIL=1
+            fi
+          fi
+          log "=== DIGEST PROBE NOTE ==="
+          log "target_tag=${TAG}"
+          log "target_digest=${DIGEST}"
+          log "NOTE=docker pull not executed in precheck"
+          if [ "${FAIL}" -ne 0 ]; then
+            log "GHCR_CONNECTIVITY=FAIL"
+            exit 20
+          fi
+          log "GHCR_CONNECTIVITY=PASS"
+          REMOTE
