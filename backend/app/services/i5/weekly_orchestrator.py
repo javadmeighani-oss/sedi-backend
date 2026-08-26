@@ -1518,9 +1518,10 @@ def run_controlled_live_orchestration(
     )
     outcome.activation_enabled = True
     outcome.scheduler_activation = True
-    # Optional governance side-stage (discover→qualify→monitor). Default OFF.
-    # Does not change Friday cron registration; never auto-activates sources.
-    if os.environ.get("I5_AUTONOMOUS_GOVERNANCE_SIDE_STAGE", "").strip() == "1":
+    # Continuous weekly governance side-stage (discover→qualify→monitor→gap report).
+    # Default ON. Does not change Friday 03:30 Asia/Tehran cron. Never auto-activates.
+    side_raw = os.environ.get("I5_AUTONOMOUS_GOVERNANCE_SIDE_STAGE", "1").strip().lower()
+    if side_raw not in {"0", "false", "no", "off"}:
         from backend.app.services.i5.autonomous_source_governance import (
             run_foundation_pipeline,
             write_ledger,
@@ -1528,7 +1529,9 @@ def run_controlled_live_orchestration(
 
         side = run_foundation_pipeline(live=False, include_wave02_gaps=False)
         write_ledger(side, Path("/tmp/i5_autonomous_governance_side_stage.json"))
-        outcome.detail = (outcome.detail or "") + "|autonomous_governance_side_stage=YES"
+        outcome.detail = (outcome.detail or "") + "|autonomous_governance_side_stage=ON"
+    else:
+        outcome.detail = (outcome.detail or "") + "|autonomous_governance_side_stage=OFF"
     return outcome
 
 

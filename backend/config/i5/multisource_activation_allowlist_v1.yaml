@@ -3,13 +3,14 @@
 # PostgreSQL GSP/registry tables are runtime audit state.
 # seed_registry.py is bootstrap-only — NOT runtime activation authority.
 #
-# Qualification Gate (PD-I5-V1-QUALIFIED-SOURCE-ACTIVATION-AND-SPECIALIZED-SERVING-WAVE01-01):
-# Activate LIVE_PASS NIH institute families (NCI/NHLBI/NIDDK/NIAMS/NEI/NIDCR) + specialized serving.
-# OWH / CDC Child / CDC NCEZID remain inactive. No global low-risk enablement.
+# Qualification Gate (PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01):
+# Enable continuous weekly autonomous side-stage + activate live-PASS gap sources for
+# D08/D10/D11/D13/D14/D15. AUTO_ACTIVATION remains NO. WHO stays inactive (robots).
+# CDC Child / NCEZID use dedicated profiles (no cdc_health_lifestyle broaden).
 manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
 manifest_version: "i5-trusted-source-control-v2"
-allowlist_version: "i5-multisource-v1-qualified-activation-wave01"
-gate_id: "PD-I5-V1-QUALIFIED-SOURCE-ACTIVATION-AND-SPECIALIZED-SERVING-WAVE01-01"
+allowlist_version: "i5-multisource-v1-coverage-closure-gap01"
+gate_id: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
 publisher_diversity_floor: 4
 historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
 wave02_targets:
@@ -333,3 +334,153 @@ sources:
     specialized_serving_eligibility: [D09]
     license_notes: "NIDCR/NIH public domain — attribute NIDCR; consumer education not diagnosis"
     live_qualification: PASS
+
+  - source_key: nidcd_hearing_balance
+    publisher: NIDCD / NIH
+    publisher_family: nidcd.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nidcd.nih.gov/health
+    additional_urls:
+      - https://www.nidcd.nih.gov/health/hearing-ear-infections
+      - https://www.nidcd.nih.gov/health/balance-disorders
+    allowed_domain: nidcd.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nidcd\\.nih\\.gov/health(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D08]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D08]
+    license_notes: "NIDCD/NIH public domain — attribute NIDCD; consumer education not diagnosis"
+    live_qualification: PASS
+    gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+
+  - source_key: owh_womens_health
+    publisher: OWH / HHS
+    publisher_family: womenshealth.gov
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.womenshealth.gov/
+    additional_urls:
+      - https://www.womenshealth.gov/a-z-topics
+      - https://www.womenshealth.gov/pregnancy
+    allowed_domain: womenshealth.gov
+    allowed_url_patterns:
+      - "^https://(www\\.)?womenshealth\\.gov(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D10]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D10]
+    license_notes: "HHS/OWH public domain — attribute OWH/HHS; consumer education not diagnosis"
+    live_qualification: PASS
+    gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+
+  - source_key: cdc_child_development
+    publisher: CDC Child Development
+    publisher_family: cdc.gov/child-development
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.cdc.gov/child-development/
+    additional_urls:
+      - https://www.cdc.gov/child-development/about/
+      - https://www.cdc.gov/ncbddd/childdevelopment/
+    allowed_domain: cdc.gov
+    allowed_url_patterns:
+      - "^https://www\\.cdc\\.gov/child-development(/.*)?$"
+      - "^https://www\\.cdc\\.gov/ncbddd/childdevelopment(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D11]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D11]
+    license_notes: "CDC public domain — attribute CDC/HHS; dedicated child-development profile (NOT lifestyle broaden)"
+    live_qualification: PASS
+    gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+    no_silent_cdc_lifestyle_broaden: YES
+
+  - source_key: cdc_ncezid_infectious
+    publisher: CDC NCEZID
+    publisher_family: cdc.gov/ncezid
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.cdc.gov/ncezid/
+    additional_urls:
+      - https://www.cdc.gov/ncezid/php/about/index.html
+    allowed_domain: cdc.gov
+    allowed_url_patterns:
+      - "^https://www\\.cdc\\.gov/ncezid(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D13]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D13]
+    license_notes: "CDC/NCEZID public domain — attribute CDC/HHS; dedicated NCEZID profile (NOT lifestyle broaden); WHO not activated (robots DISALLOW)"
+    live_qualification: PASS
+    gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+    no_silent_cdc_lifestyle_broaden: YES
+
+  - source_key: gard_rare_diseases
+    publisher: GARD / NCATS / NIH
+    publisher_family: rarediseases.info.nih.gov
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://rarediseases.info.nih.gov
+    additional_urls:
+      - https://rarediseases.info.nih.gov/diseases
+    allowed_domain: rarediseases.info.nih.gov
+    allowed_url_patterns:
+      - "^https://rarediseases\\.info\\.nih\\.gov(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D14]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D14]
+    license_notes: "NIH/NCATS GARD public domain — attribute GARD/NIH; consumer education not diagnosis"
+    live_qualification: PASS
+    gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"
+
+  - source_key: nichd_rehabilitation
+    publisher: NICHD / NIH
+    publisher_family: nichd.nih.gov
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.nichd.nih.gov/health
+    additional_urls:
+      - https://www.nichd.nih.gov/health/topics
+    allowed_domain: nichd.nih.gov
+    allowed_url_patterns:
+      - "^https://www\\.nichd\\.nih\\.gov/health(/.*)?$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_3_urls"
+    entity_coverage: [D15]
+    knowledge_domains: [disease_clinical]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility: [D15]
+    license_notes: "NICHD/NIH public domain — attribute NICHD; consumer education not diagnosis"
+    live_qualification: PASS_PENDING_PRODUCTION_TLS
+    gate_authorized_activation: "PD-I5-V1-CONTINUOUS-AUTONOMOUS-GOVERNANCE-AND-REMAINING-COVERAGE-CLOSURE-01"

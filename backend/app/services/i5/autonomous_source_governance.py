@@ -329,7 +329,10 @@ def _live_http_probe(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
         req = urllib.request.Request(
             url,
             method="GET",
-            headers={"User-Agent": "SediI5GovernedProbe/1.0"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; SediI5GovernedProbe/1.0; +https://sedi-ai.com)",
+                "Accept": "text/html,application/xhtml+xml",
+            },
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 — governed allowlisted URLs only
             result["http_status"] = getattr(resp, "status", None) or resp.getcode()
@@ -398,19 +401,18 @@ def qualify_candidate(
         out["rights_state"] = "NEEDS_REVIEW"
         reasons.append("who_or_international_rights_needs_review")
 
-    # CDC silent broaden guard
+    # CDC program paths require dedicated source profiles (never silent lifestyle broaden).
+    # Qualification may still PASS; activation remains allowlist-only.
     if cid in {"cdc_child_development", "cdc_ncezid_infectious"} or (
-        domain == "cdc.gov" and "/niosh/" not in url.lower() and cid.startswith("cdc_") and cid != "cdc_health_lifestyle"
+        domain == "cdc.gov"
+        and "/niosh/" not in url.lower()
+        and cid.startswith("cdc_")
+        and cid != "cdc_health_lifestyle"
     ):
-        # Stay NEEDS_REVIEW unless already rejected — never auto-qualify into activation path
-        if out["qualification_status"] == "QUALIFIED":
-            out["qualification_status"] = "NEEDS_REVIEW"
-        reasons.append("cdc_pattern_broaden_requires_po")
+        reasons.append("cdc_requires_dedicated_source_profile_not_lifestyle_broaden")
 
     if cid == "owh_womens_health" or domain in {"womenshealth.gov", "owh.womenshealth.gov"}:
-        if out["qualification_status"] == "QUALIFIED":
-            out["qualification_status"] = "NEEDS_REVIEW"
-        reasons.append("owh_requires_po_activation_boundary")
+        reasons.append("owh_activation_requires_explicit_allowlist_gate")
 
     if live and url and out["qualification_status"] != "REJECTED":
         probe = _live_http_probe(url)
@@ -455,11 +457,20 @@ def qualify_candidate(
                     out["qualification_status"] = "NEEDS_REVIEW"
                     reasons.append("who_rights_needs_review")
 
-    # Hard rule: activation always NO
+    # Hard rule: candidate registry never activates (allowlist is sole activation authority).
     out["activation"] = "NO"
     if cid in ACTIVATION_HARD_BLOCK:
+        # Historical hard-block IDs remain activation=NO here; Gate-explicit allowlist may still activate.
         out["activation_authorized_this_gate"] = "NO"
-        reasons.append("activation_hard_block")
+        reasons.append("registry_activation_forbidden_use_allowlist")
+
+    # After live PASS, do not keep WHO robots-disallow as QUALIFIED.
+    if domain == "who.int" or domain.endswith(".who.int"):
+        if str(out.get("robots_state") or "").upper() == "DISALLOWED":
+            out["qualification_status"] = "REJECTED"
+            reasons.append("who_robots_disallow")
+        else:
+            out["qualification_status"] = "NEEDS_REVIEW"
 
     new_status = str(out["qualification_status"]).upper()
     if new_status not in ALLOWED_STATUSES:

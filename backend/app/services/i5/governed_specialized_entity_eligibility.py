@@ -216,6 +216,72 @@ D09 = SpecializedEntitySpec(
     disease_label="oral and dental health",
 )
 
+D08 = SpecializedEntitySpec(
+    entity_id="D08",
+    alias="HEARING",
+    track_id="D08-TRACK",
+    domain="ent_hearing",
+    topic="hearing_balance",
+    url_needles=("nidcd.nih.gov/health",),
+    clinical_tokens=("hearing", "ear", "vestibular", "balance", "deaf", "tinnitus", "audiolog"),
+    disease_label="ear, hearing and vestibular health",
+)
+
+D10 = SpecializedEntitySpec(
+    entity_id="D10",
+    alias="WOMENS_HEALTH",
+    track_id="D10-TRACK",
+    domain="womens_health",
+    topic="womens_reproductive",
+    url_needles=("womenshealth.gov",),
+    clinical_tokens=("women", "pregnancy", "maternal", "reproductive", "menopause", "breast"),
+    disease_label="women's health and reproductive health",
+)
+
+D11 = SpecializedEntitySpec(
+    entity_id="D11",
+    alias="CHILD_DEV",
+    track_id="D11-TRACK",
+    domain="pediatrics",
+    topic="child_development",
+    url_needles=("cdc.gov/child-development", "ncbddd/childdevelopment", "childdevelopment"),
+    clinical_tokens=("child", "infant", "toddler", "development", "milestone", "pediatric"),
+    disease_label="pediatrics and adolescent health",
+)
+
+D13 = SpecializedEntitySpec(
+    entity_id="D13",
+    alias="INFECTIOUS",
+    track_id="D13-TRACK",
+    domain="infectious",
+    topic="infectious_diseases",
+    url_needles=("cdc.gov/ncezid", "/ncezid/"),
+    clinical_tokens=("infect", "virus", "bacteria", "outbreak", "disease", "pathogen", "ncezid"),
+    disease_label="infectious diseases beyond hepatitis",
+)
+
+D14 = SpecializedEntitySpec(
+    entity_id="D14",
+    alias="RARE",
+    track_id="D14-TRACK",
+    domain="rare_disease",
+    topic="rare_diseases",
+    url_needles=("rarediseases.info.nih.gov",),
+    clinical_tokens=("rare", "genetic", "orphan", "gard", "inherited", "disorder"),
+    disease_label="rare diseases",
+)
+
+D15 = SpecializedEntitySpec(
+    entity_id="D15",
+    alias="REHAB",
+    track_id="D15-TRACK",
+    domain="rehabilitation",
+    topic="rehabilitation",
+    url_needles=("nichd.nih.gov/health",),
+    clinical_tokens=("rehabilit", "recovery", "function", "therapy", "disability", "child health"),
+    disease_label="rehabilitation and functional recovery",
+)
+
 # Specific-first ordering for URL first-match.
 SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
     D16,
@@ -227,6 +293,12 @@ SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (
     D02,
     D07,
     D09,
+    D08,
+    D10,
+    D11,
+    D13,
+    D14,
+    D15,
     D17,
     D18,
     D19,

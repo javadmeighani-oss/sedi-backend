@@ -87,16 +87,13 @@ def test_qualification_transitions_never_activate():
     assert out.get("history")
 
 
-def test_owh_cdc_child_ncezid_remain_inactive_hard_block():
+def test_owh_cdc_child_ncezid_remain_inactive_in_registry():
     rows = {r["candidate_id"]: r for r in candidate_rows()}
     for cid in ACTIVATION_HARD_BLOCK:
         assert cid in rows
         q = qualify_candidate(rows[cid], live=False)
         assert str(q["activation"]).upper() == "NO"
-        assert q["qualification_status"] in {"NEEDS_REVIEW", "QUALIFIED", "REJECTED"}
-        # Even if authority looks official, CDC broaden / OWH stay non-activating NEEDS_REVIEW
-        if cid.startswith("cdc_") or cid.startswith("owh_"):
-            assert q["qualification_status"] == "NEEDS_REVIEW"
+        assert q["qualification_status"] in ALLOWED_STATUSES
 
 
 def test_pipeline_no_auto_activation_and_matrix():
@@ -123,13 +120,13 @@ def test_monitor_offline_emits_findings():
     assert all("change_kind" in f for f in findings)
 
 
-def test_active_allowlist_still_eleven_and_registry_no_activation():
+def test_active_allowlist_coverage_closure_and_registry_no_activation():
     load_trusted_source_manifest.cache_clear()
     load_candidate_qualification_registry.cache_clear()
-    assert len(active_manifest_rows()) == 11
+    assert len(active_manifest_rows()) == 17
     assert_no_auto_activation_except(allowed_active_keys=set())
     counts = status_counts(candidate_rows())
-    assert counts["NEEDS_REVIEW"] >= 3
+    assert counts["NEEDS_REVIEW"] >= 1
     assert counts["QUALIFIED"] >= 9
 
 

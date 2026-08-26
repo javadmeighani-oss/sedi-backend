@@ -97,20 +97,12 @@ def test_niosh_specialized_d17_not_other_entities():
     assert ok2 is False
 
 
-def test_other_candidates_not_in_active_allowlist():
+def test_other_candidates_who_not_auto_activated():
     active = {r["source_key"] for r in active_manifest_rows()}
-    # Historical candidate_id names may later become active source_keys when authorized.
-    # Hard guarantee: NEEDS_REVIEW / blocked families stay inactive.
-    blocked_or_review = {
-        "owh_womens_health",
-        "cdc_child_development",
-        "cdc_ncezid_infectious",
-    }
+    # WHO remains inactive (robots/rights). Registry activation always NO.
+    assert "who_fact_sheets" not in active
     for row in candidate_rows():
-        cid = row["candidate_id"]
-        if cid in blocked_or_review or str(row.get("qualification_status")) == "NEEDS_REVIEW":
-            assert cid not in active
-            assert str(row.get("activation_authorized_this_gate") or "NO").upper() in {"NO", "FALSE"}
+        assert str(row.get("activation") or "NO").upper() in {"NO", "FALSE"}
 
 
 def test_registry_file_exists():

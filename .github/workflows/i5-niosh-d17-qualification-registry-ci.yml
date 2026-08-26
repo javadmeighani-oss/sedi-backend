@@ -15,10 +15,12 @@ on:
       - "backend/app/services/i5/wave02_coverage_identity.py"
       - "backend/tests/test_i5_niosh_d17_qualification_registry.py"
       - "backend/tests/test_i5_autonomous_source_governance_foundation.py"
+      - "backend/tests/test_i5_coverage_closure_autonomous_governance.py"
       - "backend/tests/test_i5_qualified_source_activation_wave01.py"
       - "backend/tests/test_i5_specialized_d18_d19_serving_eligibility.py"
       - "backend/tests/test_i5_wave02_governed_knowledge_expansion.py"
       - "backend/tests/test_i5_source_format_resilience.py"
+      - "backend/app/services/i5/weekly_orchestrator.py"
       - ".github/workflows/i5-niosh-d17-qualification-registry-ci.yml"
 
 permissions:
@@ -60,6 +62,7 @@ jobs:
             -p no:cacheprovider \
             -q --tb=short \
             backend/tests/test_i5_autonomous_source_governance_foundation.py \
+            backend/tests/test_i5_coverage_closure_autonomous_governance.py \
             backend/tests/test_i5_qualified_source_activation_wave01.py \
             backend/tests/test_i5_niosh_d17_qualification_registry.py \
             backend/tests/test_i5_specialized_d18_d19_serving_eligibility.py \

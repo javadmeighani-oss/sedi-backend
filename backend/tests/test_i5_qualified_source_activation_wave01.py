@@ -22,22 +22,27 @@ AUTHORIZED_NEW = {
     "nei_eye_health",
     "nidcr_oral_health",
 }
-BLOCKED = {
+COVERAGE_CLOSURE = {
+    "nidcd_hearing_balance",
     "owh_womens_health",
     "cdc_child_development",
     "cdc_ncezid_infectious",
+    "gard_rare_diseases",
+    "nichd_rehabilitation",
 }
+WHO_INACTIVE = {"who_fact_sheets"}
 
 
 def test_allowlist_wave01_qualified_activation_version_and_count():
     data = load_trusted_source_manifest()
-    assert data["allowlist_version"] == "i5-multisource-v1-qualified-activation-wave01"
+    assert str(data["allowlist_version"]).startswith("i5-multisource-v1")
     rows = active_manifest_rows()
     keys = {r["source_key"] for r in rows}
-    assert len(rows) == 11
+    assert len(rows) == 17
     assert AUTHORIZED_NEW.issubset(keys)
-    assert not (keys & BLOCKED)
-    for key in AUTHORIZED_NEW:
+    assert COVERAGE_CLOSURE.issubset(keys)
+    assert not (keys & WHO_INACTIVE)
+    for key in AUTHORIZED_NEW | COVERAGE_CLOSURE:
         assert governed_low_risk_eligible(key) is False
 
 
@@ -98,9 +103,8 @@ def test_specialized_entities_bound_to_source_families():
     assert "D19" in specialized_allowed_entities_for_source("medlineplus_consumer_health")
 
 
-def test_needs_review_candidates_remain_inactive():
+def test_who_remains_inactive_and_registry_activation_no():
     active = {r["source_key"] for r in active_manifest_rows()}
+    assert "who_fact_sheets" not in active
     for row in candidate_rows():
-        if row["candidate_id"] in BLOCKED or row.get("qualification_status") == "NEEDS_REVIEW":
-            assert row["candidate_id"] not in active
-            assert str(row["activation"]).upper() in {"NO", "FALSE"}
+        assert str(row["activation"]).upper() in {"NO", "FALSE"}
