@@ -175,19 +175,44 @@ def main() -> int:
         load_trusted_source_manifest.cache_clear()
         rows = [r for r in active_manifest_rows() if r.get("source_key") in GAP_KEYS]
         applied = 0
+        reject_reasons: dict[str, int] = {}
         for p in db.query(models.KnowledgeProvenance).all():
             rid = getattr(p, "raw_evidence_id", None)
             raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
             if raw is None:
                 continue
-            url = raw.canonical_url or ""
+            url = raw.canonical_url or getattr(raw, "final_url", None) or ""
             source_key = _source_key_for_url(url, rows)
+            if not source_key:
+                # Fallback: GSP canonical_key when URL patterns miss trailing slash/redirect variants.
+                gsp = (
+                    db.query(models.GovernedSourceProfile)
+                    .filter_by(id=int(p.source_profile_id))
+                    .one_or_none()
+                )
+                ck = str(getattr(gsp, "canonical_key", None) or "")
+                if ck in GAP_KEYS:
+                    source_key = ck
             if not source_key:
                 continue
             ku = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
             if ku is None:
                 continue
             ku.provenance_complete = True
+            from backend.app.services.i5.governed_specialized_entity_eligibility import (
+                can_apply_specialized_entity_eligibility,
+                strip_html_nav_chrome,
+            )
+
+            healed = strip_html_nav_chrome(str(ku.normalized_statement or ""))
+            if healed:
+                ku.normalized_statement = healed
+            ok, reason, _spec = can_apply_specialized_entity_eligibility(
+                source_key=source_key, ku=ku, canonical_url=url
+            )
+            if not ok:
+                reject_reasons[reason] = reject_reasons.get(reason, 0) + 1
+                continue
             elig = apply_governed_finalize_and_lexical_index(
                 db,
                 ku,
@@ -201,7 +226,10 @@ def main() -> int:
             if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
                 applied += 1
         db.commit()
-        print(json.dumps({"specialized_eligible": applied}, sort_keys=True), flush=True)
+        print(
+            json.dumps({"specialized_eligible": applied, "reject_reasons": reject_reasons}, sort_keys=True),
+            flush=True,
+        )
 
         per, als, ms, d17e = _per_dxx(db)
         ku1, elig1, kce1, active1 = _counts(db)

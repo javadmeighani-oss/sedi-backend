@@ -223,7 +223,18 @@ D08 = SpecializedEntitySpec(
     domain="ent_hearing",
     topic="hearing_balance",
     url_needles=("nidcd.nih.gov/health",),
-    clinical_tokens=("hearing", "ear", "vestibular", "balance", "deaf", "tinnitus", "audiolog"),
+    clinical_tokens=(
+        "hearing",
+        "ear infection",
+        "vestibular",
+        "balance",
+        "deaf",
+        "tinnitus",
+        "audiolog",
+        "nidcd",
+        "otitis",
+        "ear, nose",
+    ),
     disease_label="ear, hearing and vestibular health",
 )
 
@@ -234,7 +245,19 @@ D10 = SpecializedEntitySpec(
     domain="womens_health",
     topic="womens_reproductive",
     url_needles=("womenshealth.gov",),
-    clinical_tokens=("women", "pregnancy", "maternal", "reproductive", "menopause", "breast"),
+    clinical_tokens=(
+        "women",
+        "woman",
+        "pregnancy",
+        "maternal",
+        "reproductive",
+        "menopause",
+        "breast",
+        "owh",
+        "female",
+        "prenatal",
+        "postpartum",
+    ),
     disease_label="women's health and reproductive health",
 )
 
@@ -245,7 +268,19 @@ D11 = SpecializedEntitySpec(
     domain="pediatrics",
     topic="child_development",
     url_needles=("cdc.gov/child-development", "ncbddd/childdevelopment", "childdevelopment"),
-    clinical_tokens=("child", "infant", "toddler", "development", "milestone", "pediatric"),
+    clinical_tokens=(
+        "child",
+        "children",
+        "infant",
+        "toddler",
+        "development",
+        "milestone",
+        "pediatric",
+        "baby",
+        "babies",
+        "ncbddd",
+        "learn the signs",
+    ),
     disease_label="pediatrics and adolescent health",
 )
 
@@ -256,7 +291,19 @@ D13 = SpecializedEntitySpec(
     domain="infectious",
     topic="infectious_diseases",
     url_needles=("cdc.gov/ncezid", "/ncezid/"),
-    clinical_tokens=("infectious", "infection", "virus", "bacteria", "outbreak", "pathogen", "ncezid"),
+    clinical_tokens=(
+        "infectious",
+        "infection",
+        "virus",
+        "bacteria",
+        "outbreak",
+        "pathogen",
+        "ncezid",
+        "emerging",
+        "zoonotic",
+        "vector-borne",
+        "epidemic",
+    ),
     disease_label="infectious diseases beyond hepatitis",
 )
 
@@ -267,7 +314,7 @@ D14 = SpecializedEntitySpec(
     domain="rare_disease",
     topic="rare_diseases",
     url_needles=("rarediseases.info.nih.gov",),
-    clinical_tokens=("rare", "genetic", "orphan", "gard", "inherited", "disorder"),
+    clinical_tokens=("rare", "genetic", "orphan", "gard", "inherited", "disorder", "rarediseases"),
     disease_label="rare diseases",
 )
 
@@ -278,7 +325,21 @@ D15 = SpecializedEntitySpec(
     domain="rehabilitation",
     topic="rehabilitation",
     url_needles=("nichd.nih.gov/health",),
-    clinical_tokens=("rehabilit", "recovery", "function", "therapy", "disability", "child health"),
+    clinical_tokens=(
+        "rehabilit",
+        "recovery",
+        "function",
+        "therapy",
+        "disability",
+        "child health",
+        "nichd",
+        "infant",
+        "child",
+        "pregnancy",
+        "maternal",
+        "developmental",
+        "health topic",
+    ),
     disease_label="rehabilitation and functional recovery",
 )
 
@@ -388,7 +449,15 @@ def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
 
 def statement_has_clinical_identity(statement: Optional[str], spec: SpecializedEntitySpec) -> bool:
     sample = (statement or "").casefold()
-    return any(_clinical_token_hit(tok, sample) for tok in spec.clinical_tokens)
+    if any(_clinical_token_hit(tok, sample) for tok in spec.clinical_tokens):
+        return True
+    # URL-scoped pages often use disease_label phrasing without exact clinical token list.
+    for part in re.split(r"[^a-z0-9]+", (spec.disease_label or "").casefold()):
+        if len(part) >= 5 and part in sample:
+            return True
+    if spec.alias and len(spec.alias) >= 3 and spec.alias.casefold() in sample:
+        return True
+    return False
 
 
 def content_quality_pass(statement: Optional[str], spec: SpecializedEntitySpec) -> tuple[bool, str]:
@@ -459,7 +528,16 @@ def can_apply_specialized_entity_eligibility(
         return False, "URL_NOT_IN_ENTITY_SCOPE", None
     if "/niosh/archive/" in url:
         return False, "ROBOTS_DISALLOW_ARCHIVE", None
-    ok, reason = content_quality_pass(getattr(ku, "normalized_statement", None), spec)
+    statement = getattr(ku, "normalized_statement", None)
+    healed = strip_html_nav_chrome(str(statement or ""))
+    if healed and healed != str(statement or "").strip():
+        # Bounded allowlist self-heal: drop nav chrome before quality gate.
+        try:
+            ku.normalized_statement = healed
+        except Exception:  # noqa: BLE001
+            pass
+        statement = healed
+    ok, reason = content_quality_pass(statement, spec)
     if not ok:
         return False, reason, spec
     return True, "OK", spec
