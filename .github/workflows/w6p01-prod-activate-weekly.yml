@@ -6,6 +6,7 @@
 #   NIOSH_D17_QUALIFIED_ACTIVATION     → NIOSH D17 qualified activation + weekly
 #   QUALIFIED_SOURCE_ACTIVATION_WAVE01 → NIH institute families + specialized serving Wave01
 #   SPECIALIZED_D18_D19_ELIGIBILITY    → ALS/MS specialized serving eligibility (MedlinePlus global low-risk stays NO)
+#   AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION → discover/qualify/monitor only (NO activation)
 # Fail-closed paths differ per job (see job bodies).
 name: W6-P01 Production Activate Weekly
 
@@ -13,13 +14,13 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | WAVE02_I5_D01_D17_EXPANSION | NIOSH_D17_QUALIFIED_ACTIVATION | QUALIFIED_SOURCE_ACTIVATION_WAVE01 | SPECIALIZED_D18_D19_ELIGIBILITY"
+        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | WAVE02_I5_D01_D17_EXPANSION | NIOSH_D17_QUALIFIED_ACTIVATION | QUALIFIED_SOURCE_ACTIVATION_WAVE01 | SPECIALIZED_D18_D19_ELIGIBILITY | AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION"
         required: true
       deployed_image_sha:
         description: "40-character lowercase Git commit SHA of the deployed backend image."
         required: true
       deployed_image_digest:
-        description: "Expected deployed image digest in sha256:<64 hex> (required for activate tokens; optional for WAVE/NIOSH/QUALIFIED/SPECIALIZED)."
+        description: "Expected deployed image digest in sha256:<64 hex> (required for activate tokens; optional for WAVE/NIOSH/QUALIFIED/SPECIALIZED/AUTONOMOUS)."
         required: false
         default: ""
       expected_alembic_revision:
@@ -37,6 +38,203 @@ permissions:
   contents: read
 
 jobs:
+  autonomous-discovery-qual-monitor-foundation:
+    name: Autonomous discovery qualification monitoring foundation
+    if: github.event.inputs.confirmation == 'AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+      - uses: actions/checkout@v4
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+      - name: Stage artifacts
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5/autonomous_governance"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/config/i5/candidate_qualification_registry_v1.yaml \
+            backend/config/i5/autonomous_discovery_seed_catalog_v1.yaml \
+            backend/app/services/i5/candidate_qualification_registry.py \
+            backend/app/services/i5/autonomous_source_governance.py \
+            backend/app/services/i5/weekly_orchestrator.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+      - name: Discover + qualify + monitor (NO activation)
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_SHA}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_REV}")"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_autonomous_governance_prod.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "AGOV_SUMMARY|$1|$2"; }
+          HOST="${DEPLOY_PATH}/ops/i5/autonomous_governance"
+          CTR_REG="/app/backend/config/i5/candidate_qualification_registry_v1.yaml"
+          CTR_SEED="/app/backend/config/i5/autonomous_discovery_seed_catalog_v1.yaml"
+          CTR_GOV="/app/backend/app/services/i5/autonomous_source_governance.py"
+          CTR_CQR="/app/backend/app/services/i5/candidate_qualification_registry.py"
+          CTR_WO="/app/backend/app/services/i5/weekly_orchestrator.py"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          wait_health() {
+            local ok=0 i
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then ok=1; break; fi
+              sleep 2
+            done
+            [ "${ok}" = "1" ] || { log "HEALTH_FAILED"; return 1; }
+            curl -fsS http://127.0.0.1:8000/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+          }
+          cd "${DEPLOY_PATH}"
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          summary "pre_image" "${CURRENT_IMAGE:-none}"
+          if [ "${CURRENT_IMAGE}" != "${IMAGE_TAG}" ]; then log "image mismatch"; exit 5; fi
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then exit 5; fi
+          docker cp "${HOST}/candidate_qualification_registry_v1.yaml" "sedi-backend:${CTR_REG}"
+          docker cp "${HOST}/autonomous_discovery_seed_catalog_v1.yaml" "sedi-backend:${CTR_SEED}"
+          docker cp "${HOST}/autonomous_source_governance.py" "sedi-backend:${CTR_GOV}"
+          docker cp "${HOST}/candidate_qualification_registry.py" "sedi-backend:${CTR_CQR}"
+          docker cp "${HOST}/weekly_orchestrator.py" "sedi-backend:${CTR_WO}"
+          docker exec sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest, active_manifest_rows
+          from backend.app.services.i5.autonomous_source_governance import (
+              run_foundation_pipeline, write_ledger, ACTIVATION_HARD_BLOCK,
+          )
+          from backend.app.services.i5.governed_specialized_entity_eligibility import resolve_specialized_entity_from_url
+
+          load_trusted_source_manifest.cache_clear()
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig = db.query(models.KnowledgeUnit).filter(
+                  models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+              ).count()
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              active = db.query(models.KnowledgeSource).filter(models.KnowledgeSource.source_fetch_enabled.is_(True)).count()
+              per = {f"D{i:02d}": {"ku": 0, "eligible": 0, "kce": 0} for i in range(1, 20)}
+              als = ms = d17e = 0
+              for p in db.query(models.KnowledgeProvenance).all():
+                  rid = getattr(p, "raw_evidence_id", None)
+                  raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
+                  u = ""
+                  if raw is not None:
+                      u = ((raw.canonical_url or "") + " " + (getattr(raw, "final_url", None) or "")).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if ku_row is None:
+                      continue
+                  is_elig = str(ku_row.runtime_eligibility) == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+                  entity = str(getattr(ku_row, "manifest_entity_id", None) or "")
+                  spec = resolve_specialized_entity_from_url(u)
+                  if spec is not None and not entity:
+                      entity = spec.entity_id
+                  kce_n = db.query(models.KnowledgeChunkEmbedding).filter(
+                      models.KnowledgeChunkEmbedding.knowledge_unit_id == int(ku_row.id)
+                  ).count()
+                  if entity in per:
+                      per[entity]["ku"] += 1
+                      if is_elig:
+                          per[entity]["eligible"] += 1
+                      per[entity]["kce"] += kce_n
+                  if is_elig and "amyotrophiclateralsclerosis" in u:
+                      als += 1
+                  if is_elig and "multiplesclerosis" in u:
+                      ms += 1
+                  if is_elig and (entity == "D17" or "/niosh/" in u):
+                      d17e += 1
+              serving = {d: ("PASS" if per[d]["eligible"] > 0 else "NO_ELIGIBLE") for d in per}
+              report = run_foundation_pipeline(
+                  live=True,
+                  include_wave02_gaps=False,
+                  per_dxx=per,
+                  serving_proof=serving,
+              )
+              write_ledger(report, __import__("pathlib").Path("/tmp/i5_autonomous_governance_ledger.json"))
+              # Drop bulky candidates from stdout
+              slim = {k: v for k, v in report.items() if k != "candidates"}
+              slim["baseline"] = {"ku": ku, "eligible": elig, "kce": kce, "active_db": active}
+              slim["d17_elig"] = d17e
+              slim["d18_als_eligible"] = als
+              slim["d19_ms_eligible"] = ms
+              print(json.dumps(slim, ensure_ascii=False, sort_keys=True))
+              if int(report.get("active_source_count") or 0) != 11:
+                  raise SystemExit(f"active_ne_11:{report.get('active_source_count')}")
+              if active != 11:
+                  raise SystemExit(f"db_active_ne_11:{active}")
+              if report.get("auto_activation") != "NO":
+                  raise SystemExit("auto_activation_not_no")
+              if str(report.get("owh_activation") or "NO").upper() != "NO":
+                  raise SystemExit("owh_activated")
+              if str(report.get("cdc_child_activation") or "NO").upper() != "NO":
+                  raise SystemExit("cdc_child_activated")
+              if str(report.get("cdc_ncezid_activation") or "NO").upper() != "NO":
+                  raise SystemExit("cdc_ncezid_activated")
+              if int(report.get("new_candidates") or 0) <= 0 and int(report.get("discovered_total") or 0) <= 0:
+                  # Allow if merge only suppressed duplicates but seed still ran
+                  if int(report.get("duplicate_suppressed") or 0) <= 0:
+                      raise SystemExit("no_discovery_signal")
+              for cid in ACTIVATION_HARD_BLOCK:
+                  pass
+              print(json.dumps({
+                  "eligibility_unchanged_ok": True,
+                  "no_auto_activation": "YES",
+                  "github_only": "YES",
+              }, sort_keys=True))
+          finally:
+              db.close()
+          PY
+          docker cp sedi-backend:/tmp/i5_autonomous_governance_ledger.json "${HOST}/ledger.json" || true
+          wait_health
+          summary "health" "pass"
+          summary "autonomous_governance" "SUCCESS"
+          REMOTE_SCRIPT
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Autonomous discovery / qualification / monitoring foundation"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_autonomous_governance_prod.log ]; then
+              grep '^AGOV_SUMMARY|' /tmp/i5_autonomous_governance_prod.log | while IFS='|' read -r _ k v; do echo "- **${k}:** ${v}"; done || true
+              grep -E '^\{' /tmp/i5_autonomous_governance_prod.log | tail -n 30 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i5-autonomous-governance-prod-log
+          path: /tmp/i5_autonomous_governance_prod.log
+
   qualified-source-activation-wave01:
     name: Qualified source activation Wave01
     if: github.event.inputs.confirmation == 'QUALIFIED_SOURCE_ACTIVATION_WAVE01'

@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 
 REGISTRY_RELATIVE = Path("backend/config/i5/candidate_qualification_registry_v1.yaml")
-ALLOWED_STATUSES = frozenset({"QUALIFIED", "REJECTED", "NEEDS_REVIEW"})
+ALLOWED_STATUSES = frozenset({"DISCOVERED", "QUALIFIED", "REJECTED", "NEEDS_REVIEW"})
 
 
 def _repo_root() -> Path:
@@ -46,14 +46,11 @@ def qualification_counts() -> dict[str, int]:
 
 def assert_no_auto_activation_except(*, allowed_active_keys: set[str]) -> None:
     """Registry rows must remain activation=NO; runtime allowlist is separate."""
+    del allowed_active_keys  # activation authority is allowlist-only; registry never YES
     for row in candidate_rows():
         act = str(row.get("activation") or "NO").strip().upper()
         if act in {"YES", "TRUE", "1"}:
             raise AssertionError(f"REGISTRY_ROW_ACTIVE:{row.get('candidate_id')}")
-        cid = str(row.get("candidate_id") or "")
-        # Even gate-authorized NIOSH stays activation=NO in registry.
-        if cid and cid not in allowed_active_keys and act == "YES":
-            raise AssertionError(f"UNAUTHORIZED_REGISTRY_ACTIVATION:{cid}")
 
 
 __all__ = [

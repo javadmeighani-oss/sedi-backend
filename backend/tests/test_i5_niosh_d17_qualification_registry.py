@@ -34,7 +34,7 @@ def test_candidate_registry_statuses_and_no_auto_activation():
     assert_no_auto_activation_except(allowed_active_keys=set())
     for row in candidate_rows():
         assert str(row["activation"]).upper() in {"NO", "FALSE"}
-        assert row["qualification_status"] in {"QUALIFIED", "REJECTED", "NEEDS_REVIEW"}
+        assert row["qualification_status"] in {"DISCOVERED", "QUALIFIED", "REJECTED", "NEEDS_REVIEW"}
 
 
 def test_niosh_allowlist_activation_boundary():

@@ -1,0 +1,96 @@
+# I5 Autonomous Discovery Seed Catalog v1
+# DISCOVERY != AUTHORIZATION. Seeds only; never runtime crawler authority.
+# AUTO_ACTIVATION=NO. QUALIFIED != ACTIVE.
+manifest_version: "i5-autonomous-discovery-seed-catalog-v1"
+gate_id: "PD-I5-V1-AUTONOMOUS-SOURCE-DISCOVERY-QUALIFICATION-MONITORING-FOUNDATION-01"
+activation_policy: DISCOVERY_ONLY_NO_ACTIVATION
+notes: >
+  Bounded authoritative seeds for coverage-gap / thin-depth discovery.
+  PubMed is an evidence index hint only (not automatic truth).
+  ALS/MS remain independent MedlinePlus specialized tracks (no new seed required here).
+
+seeds:
+  - candidate_id: nidcd_hearing_balance
+    publisher: NIDCD
+    canonical_domain: nidcd.nih.gov
+    candidate_url_family: https://www.nidcd.nih.gov/health
+    target_dxx_kd: D08
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    discovery_reason: THIN_DEPTH_D08_HEARING_VESTIBULAR
+    discovery_method: GOVERNED_SEED_CATALOG
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    access_state: UNKNOWN
+    format: HTML_PUBLIC_WEB
+    freshness_signal: AGENCY_HEALTH_PAGES
+
+  - candidate_id: nia_aging_health
+    publisher: NIA
+    canonical_domain: nia.nih.gov
+    candidate_url_family: https://www.nia.nih.gov/health
+    target_dxx_kd: D12
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    discovery_reason: THIN_DEPTH_D12_GERIATRICS
+    discovery_method: GOVERNED_SEED_CATALOG
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    access_state: UNKNOWN
+    format: HTML_PUBLIC_WEB
+    freshness_signal: AGENCY_HEALTH_PAGES
+
+  - candidate_id: gard_rare_diseases
+    publisher: GARD / NCATS
+    canonical_domain: rarediseases.info.nih.gov
+    candidate_url_family: https://rarediseases.info.nih.gov
+    target_dxx_kd: D14
+    authority_class: OFFICIAL_NATIONAL
+    discovery_reason: THIN_DEPTH_D14_RARE_DISEASES
+    discovery_method: GOVERNED_SEED_CATALOG
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    access_state: UNKNOWN
+    format: HTML_PUBLIC_WEB
+    freshness_signal: NIH_RARE_DISEASE_PORTAL
+
+  - candidate_id: nichd_rehabilitation
+    publisher: NICHD
+    canonical_domain: nichd.nih.gov
+    candidate_url_family: https://www.nichd.nih.gov/health
+    target_dxx_kd: D15
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    discovery_reason: THIN_DEPTH_D15_REHABILITATION
+    discovery_method: GOVERNED_SEED_CATALOG
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    access_state: UNKNOWN
+    format: HTML_PUBLIC_WEB
+    freshness_signal: AGENCY_HEALTH_PAGES
+
+  - candidate_id: who_fact_sheets
+    publisher: WHO
+    canonical_domain: who.int
+    candidate_url_family: https://www.who.int/news-room/fact-sheets
+    target_dxx_kd: D13
+    authority_class: OFFICIAL_INTERNATIONAL
+    discovery_reason: AUTHORITY_REDUNDANCY_INFECTIOUS_INTERNATIONAL
+    discovery_method: GOVERNED_SEED_CATALOG
+    rights_state: NEEDS_REVIEW
+    robots_state: UNKNOWN_PENDING_QUALIFICATION
+    access_state: UNKNOWN
+    format: HTML_PUBLIC_WEB
+    freshness_signal: WHO_FACT_SHEETS
+
+  # Alias/dedupe probes (must not create second identity for known NCI family)
+  - candidate_id: nci_pdq_oncology_alias
+    publisher: NCI PDQ
+    canonical_domain: www.cancer.gov
+    candidate_url_family: https://www.cancer.gov/publications/pdq/
+    target_dxx_kd: D01
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    discovery_reason: DEDUPE_ALIAS_PROBE
+    discovery_method: GOVERNED_SEED_CATALOG
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness_signal: PDQ_VERSIONED

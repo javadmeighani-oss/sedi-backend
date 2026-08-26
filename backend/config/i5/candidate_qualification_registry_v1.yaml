@@ -1,12 +1,15 @@
 # I5 Candidate Qualification Registry v1
 # DISCOVERY != AUTHORIZATION; CANDIDATE != QUALIFIED; QUALIFIED != ACTIVE.
+# Status model: DISCOVERED | QUALIFIED | REJECTED | NEEDS_REVIEW
+# ACTIVE is allowlist/source-registry authority only — never a candidate status.
 # Runtime crawler authority remains multisource_activation_allowlist_v1.yaml only.
 manifest_version: "i5-candidate-qualification-registry-v1"
-gate_id: "PD-I5-V1-GOVERNED-SOURCE-QUALIFICATION-D17-NIOSH-AND-CANDIDATE-REGISTRY-WAVE01-01"
+gate_id: "PD-I5-V1-AUTONOMOUS-SOURCE-DISCOVERY-QUALIFICATION-MONITORING-FOUNDATION-01"
 activation_policy: QUALIFIED_DOES_NOT_AUTO_ACTIVATE
 notes: >
-  Wave01 qualification pass over §379 candidate list. Only NIOSH D17 may activate
-  under this Gate when NIOSH_QUALIFICATION=PASS. All other rows stay activation=NO.
+  Evolved under autonomous discovery/qualification/monitoring foundation.
+  Historical Wave01 rows preserved. DISCOVERED may appear via governed ledger merge.
+  OWH / CDC Child / CDC NCEZID remain activation=NO even if re-qualified.
 
 candidates:
   - candidate_id: niosh_occupational

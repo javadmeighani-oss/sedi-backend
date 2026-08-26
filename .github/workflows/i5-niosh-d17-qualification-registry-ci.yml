@@ -7,11 +7,14 @@ on:
     paths:
       - "backend/config/i5/multisource_activation_allowlist_v1.yaml"
       - "backend/config/i5/candidate_qualification_registry_v1.yaml"
+      - "backend/config/i5/autonomous_discovery_seed_catalog_v1.yaml"
       - "backend/config/i5/wave02_candidate_source_gaps_v1.yaml"
       - "backend/app/services/i5/candidate_qualification_registry.py"
+      - "backend/app/services/i5/autonomous_source_governance.py"
       - "backend/app/services/i5/governed_specialized_entity_eligibility.py"
       - "backend/app/services/i5/wave02_coverage_identity.py"
       - "backend/tests/test_i5_niosh_d17_qualification_registry.py"
+      - "backend/tests/test_i5_autonomous_source_governance_foundation.py"
       - "backend/tests/test_i5_qualified_source_activation_wave01.py"
       - "backend/tests/test_i5_specialized_d18_d19_serving_eligibility.py"
       - "backend/tests/test_i5_wave02_governed_knowledge_expansion.py"
@@ -56,6 +59,7 @@ jobs:
             --noconftest \
             -p no:cacheprovider \
             -q --tb=short \
+            backend/tests/test_i5_autonomous_source_governance_foundation.py \
             backend/tests/test_i5_qualified_source_activation_wave01.py \
             backend/tests/test_i5_niosh_d17_qualification_registry.py \
             backend/tests/test_i5_specialized_d18_d19_serving_eligibility.py \
