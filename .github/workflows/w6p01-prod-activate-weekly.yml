@@ -212,10 +212,19 @@ jobs:
           db = next(get_db())
           try:
               ku = db.query(models.KnowledgeUnit).count()
-              elig = db.query(models.KnowledgeUnit).filter(
-                  models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
-              ).count()
+              elig_rows = (
+                  db.query(models.KnowledgeUnit)
+                  .filter(models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value)
+                  .all()
+              )
+              elig = len(elig_rows)
               kce = db.query(models.KnowledgeChunkEmbedding).count()
+              mem_current = (
+                  db.query(models.KnowledgeMemoryItem)
+                  .filter(models.KnowledgeMemoryItem.supersession_state == "CURRENT")
+                  .count()
+              )
+
               def url_hits(needle):
                   n = 0
                   for r in db.query(models.I5RawEvidence).all():
@@ -223,26 +232,61 @@ jobs:
                       if needle in u:
                           n += 1
                   return n
+
               als_raw = url_hits("amyotrophiclateralsclerosis")
               ms_raw = url_hits("multiplesclerosis")
+
+              # KU linked via provenance→raw URL (authoritative acquisition count)
               als_ku = ms_ku = 0
-              for u in db.query(models.KnowledgeUnit).all():
-                  text = " ".join(str(getattr(u, a, "") or "") for a in ("normalized_statement", "title", "topic", "domain") if hasattr(u, a)).lower()
-                  if "amyotrophic" in text or "motor neurone" in text or "motor neuron" in text:
+              als_elig = ms_elig = 0
+              for p in db.query(models.KnowledgeProvenance).all():
+                  raw = None
+                  rid = getattr(p, "raw_evidence_id", None)
+                  if rid is not None:
+                      raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none()
+                  u = ""
+                  if raw is not None:
+                      u = ((raw.canonical_url or "") + " " + (getattr(raw, "final_url", None) or "")).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if "amyotrophiclateralsclerosis" in u:
                       als_ku += 1
-                  if "multiple sclerosis" in text:
+                      if ku_row and str(ku_row.runtime_eligibility) == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value:
+                          als_elig += 1
+                  if "multiplesclerosis" in u:
                       ms_ku += 1
+                      if ku_row and str(ku_row.runtime_eligibility) == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value:
+                          ms_elig += 1
+
               print(json.dumps({
                   "phase": "after", "ku": ku, "eligible": elig, "kce": kce,
-                  "als_raw": als_raw, "ms_raw": ms_raw, "als_ku": als_ku, "ms_ku": ms_ku,
+                  "memory_current": mem_current,
+                  "als_raw": als_raw, "ms_raw": ms_raw,
+                  "als_ku": als_ku, "ms_ku": ms_ku,
+                  "als_eligible": als_elig, "ms_eligible": ms_elig,
+                  "eligible_samples": [
+                      {
+                          "id": int(r.id),
+                          "domain": str(r.domain),
+                          "statement": str(r.normalized_statement or "")[:160],
+                      }
+                      for r in elig_rows[:6]
+                  ],
               }, ensure_ascii=False, sort_keys=True))
+
               proofs = {}
-              for label, query in (
-                  ("general_sleep", "sleep tiredness rest healthy habits"),
-                  ("exercise", "physical activity exercise adults"),
-                  ("als", "amyotrophic lateral sclerosis ALS"),
-                  ("ms", "multiple sclerosis MS"),
-              ):
+              # Compatibility: derive query from an eligible statement (token overlap floor).
+              derived = []
+              for r in elig_rows[:2]:
+                  words = [w for w in str(r.normalized_statement or "").lower().split() if len(w) > 3][:8]
+                  if words:
+                      derived.append(("eligible_derived_%s" % r.id, " ".join(words)))
+              queries = derived + [
+                  ("general_sleep", "sleep tiredness rest"),
+                  ("exercise", "exercise activity"),
+                  ("als", "amyotrophic lateral sclerosis"),
+                  ("ms", "multiple sclerosis"),
+              ]
+              for label, query in queries:
                   res = retrieve_knowledge_context(db, query, limit=5, enqueue_gap_on_empty=False, require_query_tokens=True)
                   items = list(getattr(res, "items", None) or [])
                   proofs[label] = {
@@ -250,8 +294,19 @@ jobs:
                       "hit_count": len(items),
                       "sample_ku_ids": [getattr(i, "knowledge_unit_id", None) for i in items[:3]],
                       "sample_prov": [getattr(i, "provenance_id", None) for i in items[:3]],
+                      "exclusion_counts": dict(getattr(res, "exclusion_counts", None) or {}),
                   }
               print(json.dumps({"retrieval_proofs": proofs}, ensure_ascii=False, sort_keys=True))
+              ok_derived = any(
+                  v.get("status") == "OK" and int(v.get("hit_count") or 0) > 0
+                  for k, v in proofs.items() if k.startswith("eligible_derived_")
+              )
+              print(json.dumps({
+                  "retrieval_compatibility": "PASS" if ok_derived else "FAIL",
+                  "note": "lexical RetrievalResult.items; no ANN required",
+              }, sort_keys=True))
+              if not ok_derived:
+                  raise SystemExit("retrieval_compatibility_failed")
           finally:
               db.close()
           PY
