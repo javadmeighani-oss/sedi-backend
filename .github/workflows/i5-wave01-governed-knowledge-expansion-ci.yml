@@ -59,5 +59,8 @@ jobs:
             -p no:cacheprovider \
             -q --tb=short \
             backend/tests/test_i5_wave01_governed_knowledge_expansion.py \
-            backend/tests/test_section30_i5_multisource_weekly_activation.py \
+            backend/tests/test_section30_i5_multisource_weekly_activation.py::test_coverage_manifest_19_entities_including_als_ms \
+            backend/tests/test_section30_i5_multisource_weekly_activation.py::test_multisource_allowlist_publisher_diversity_and_exact_urls \
+            backend/tests/test_section30_i5_multisource_weekly_activation.py::test_multisource_env_default_off \
+            backend/tests/test_section30_i5_multisource_weekly_activation.py::test_allowlist_file_exists_and_matches_loader \
             backend/tests/test_i5_source_format_resilience.py

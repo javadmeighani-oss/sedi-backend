@@ -1,6 +1,7 @@
 # Activate I5 multi-source weekly orchestrator on production (workflow_dispatch only).
 # Env flag upsert (incl. SEDI_I5_MULTISOURCE_ENABLED) + conditional digest recreate +
 # allowlist activation (>=4 sources) + scheduled proof x2.
+# Also: WAVE01_I5_GOVERNED_EXPANSION — sync Wave01 allowlist from checkout, activate, weekly x2, metrics.
 # Fail-closed: MULTISOURCE=false + disable non-NHS fetch; keep NHS path recoverable.
 name: I5 Production Multi-Source Weekly Activation
 
@@ -8,14 +9,15 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type ACTIVATE_I5_MULTISOURCE_V1 to authorize multi-source weekly activation."
+        description: "ACTIVATE_I5_MULTISOURCE_V1 or WAVE01_I5_GOVERNED_EXPANSION."
         required: true
       deployed_image_sha:
         description: "40-character lowercase Git commit SHA of the deployed backend image."
         required: true
       deployed_image_digest:
-        description: "Expected deployed image digest in sha256:<64 hex> format."
-        required: true
+        description: "Expected deployed image digest in sha256:<64 hex> (required for ACTIVATE_I5_MULTISOURCE_V1)."
+        required: false
+        default: ""
       expected_alembic_revision:
         description: "Expected exact production alembic_version before activation."
         required: true
@@ -29,8 +31,257 @@ permissions:
   contents: read
 
 jobs:
+  wave01-governed-expansion:
+    name: Wave01 governed knowledge expansion
+    if: github.event.inputs.confirmation == 'WAVE01_I5_GOVERNED_EXPANSION'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Validate Wave01 inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+
+      - uses: actions/checkout@v4
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Stage allowlist on host
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5/wave01"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/config/i5/multisource_activation_allowlist_v1.yaml \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/multisource_activation_allowlist_v1.yaml"
+
+      - name: Wave01 sync + activate + weekly + metrics
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_SHA}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_REV}")"
+          ssh -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_wave01_prod.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "WAVE01_SUMMARY|$1|$2"; }
+          CTR_ALLOW="/app/backend/config/i5/multisource_activation_allowlist_v1.yaml"
+          HOST_ALLOW="${DEPLOY_PATH}/ops/i5/wave01/multisource_activation_allowlist_v1.yaml"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          wait_health() {
+            local ok=0 i
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then ok=1; break; fi
+              sleep 2
+            done
+            [ "${ok}" = "1" ] || { log "HEALTH_FAILED"; return 1; }
+            curl -fsS http://127.0.0.1:8000/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+          }
+          cd "${DEPLOY_PATH}"
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          log "running_image=${CURRENT_IMAGE}"
+          summary "pre_image" "${CURRENT_IMAGE:-none}"
+          if [ "${CURRENT_IMAGE}" != "${IMAGE_TAG}" ]; then
+            log "PRECHECK_FAILED: image tag mismatch expected ${IMAGE_TAG}"
+            exit 5
+          fi
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then
+            log "PRECHECK_FAILED: alembic mismatch"
+            exit 5
+          fi
+          log "=== BEFORE COUNTS ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig = db.query(models.KnowledgeUnit).filter(
+                  models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+              ).count()
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              print(json.dumps({"phase": "before", "ku": ku, "eligible": elig, "kce": kce}, sort_keys=True))
+          finally:
+              db.close()
+          PY
+          log "=== SYNC ALLOWLIST ==="
+          [ -f "${HOST_ALLOW}" ] || { log "missing host allowlist"; exit 6; }
+          docker cp "${HOST_ALLOW}" "sedi-backend:${CTR_ALLOW}"
+          docker exec sedi-backend grep -Fq 'i5-multisource-v1-wave01' "${CTR_ALLOW}"
+          summary "allowlist_synced" "YES"
+          log "=== ACTIVATE ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.multisource_activation import (
+              activate_multisource_allowlist, active_allowlist_rows, multisource_enabled,
+          )
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest
+          load_trusted_source_manifest.cache_clear()
+          data = load_trusted_source_manifest()
+          if data.get("allowlist_version") != "i5-multisource-v1-wave01":
+              raise SystemExit(f"bad_allowlist_version:{data.get('allowlist_version')}")
+          if not multisource_enabled():
+              raise SystemExit("MULTISOURCE_ENV_NOT_ENABLED")
+          rows = active_allowlist_rows()
+          if len(rows) != 4:
+              raise SystemExit(f"active_rows_ne_4:{len(rows)}")
+          url_n = sum(1 + len(r.get("additional_urls") or []) for r in rows)
+          db = next(get_db())
+          try:
+              result = activate_multisource_allowlist(db, models)
+              db.commit()
+              print(json.dumps({
+                  "activated": sorted(result.activated_source_keys),
+                  "fetch_enabled_count": result.fetch_enabled_count,
+                  "controlled_url_count": url_n,
+              }, sort_keys=True))
+              if result.fetch_enabled_count < 4:
+                  raise SystemExit("fetch_enabled_below_floor")
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+          log "=== WEEKLY x2 ==="
+          PROOF_OK=1
+          if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print(json.dumps({"job": 1, "outcome": outcome.outcome, "network_executed": outcome.network_executed, "detail": outcome.detail, "run_id": outcome.run_id}, sort_keys=True))
+          if outcome.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit(f"weekly_job_1_failed:{outcome.outcome}")
+          if outcome.network_executed:
+              if outcome.outcome not in {"FULL_SUCCESS", "COMPLETED", "COMPLETED_WITH_WARNINGS"}:
+                  raise SystemExit(f"weekly_job_1_bad_outcome:{outcome.outcome}")
+          elif outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit(f"weekly_job_1_unexpected:{outcome.detail}")
+          PY
+          then PROOF_OK=0; fi
+          if [ "${PROOF_OK}" = "1" ]; then
+            if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          outcome = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print(json.dumps({"job": 2, "outcome": outcome.outcome, "network_executed": outcome.network_executed, "detail": outcome.detail}, sort_keys=True))
+          if outcome.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit(f"weekly_job_2_failed:{outcome.outcome}")
+          if outcome.network_executed:
+              raise SystemExit("weekly_job_2_unexpected_second_fetch")
+          if outcome.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit(f"weekly_job_2_expected_idempotent:{outcome.detail}")
+          PY
+            then PROOF_OK=0; fi
+          fi
+          if [ "${PROOF_OK}" != "1" ]; then
+            summary "weekly" "FAIL"
+            exit 50
+          fi
+          summary "weekly" "PASS"
+          log "=== AFTER + RETRIEVAL ==="
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          from backend.app.services.i5.runtime_knowledge_retrieval import retrieve_knowledge_context
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig = db.query(models.KnowledgeUnit).filter(
+                  models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+              ).count()
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              def url_hits(needle):
+                  n = 0
+                  for r in db.query(models.I5RawEvidence).all():
+                      u = ((getattr(r, "canonical_url", None) or "") + " " + (getattr(r, "final_url", None) or "")).lower()
+                      if needle in u:
+                          n += 1
+                  return n
+              als_raw = url_hits("amyotrophiclateralsclerosis")
+              ms_raw = url_hits("multiplesclerosis")
+              als_ku = ms_ku = 0
+              for u in db.query(models.KnowledgeUnit).all():
+                  text = " ".join(str(getattr(u, a, "") or "") for a in ("normalized_statement", "title", "topic", "domain") if hasattr(u, a)).lower()
+                  if "amyotrophic" in text or "motor neurone" in text or "motor neuron" in text:
+                      als_ku += 1
+                  if "multiple sclerosis" in text:
+                      ms_ku += 1
+              proofs = {}
+              for label, query in (
+                  ("general_sleep", "sleep tiredness rest healthy habits"),
+                  ("exercise", "physical activity exercise adults"),
+                  ("als", "amyotrophic lateral sclerosis ALS"),
+                  ("ms", "multiple sclerosis MS"),
+              ):
+                  res = retrieve_knowledge_context(db, query, limit=5, enqueue_gap_on_empty=False, require_query_tokens=True)
+                  proofs[label] = {"status": res.status, "hit_count": len(res.evidence or [])}
+              print(json.dumps({
+                  "phase": "after", "ku": ku, "eligible": elig, "kce": kce,
+                  "als_raw": als_raw, "ms_raw": ms_raw, "als_ku": als_ku, "ms_ku": ms_ku,
+                  "retrieval_proofs": proofs,
+              }, ensure_ascii=False, sort_keys=True))
+          finally:
+              db.close()
+          PY
+          wait_health
+          summary "health" "pass"
+          summary "wave01" "SUCCESS"
+          log "=== WAVE01 DONE ==="
+          REMOTE_SCRIPT
+
+      - name: Wave01 summary
+        if: always()
+        run: |
+          {
+            echo "## Wave01 Production Expansion"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_wave01_prod.log ]; then
+              grep '^WAVE01_SUMMARY|' /tmp/i5_wave01_prod.log | while IFS='|' read -r _ k v; do echo "- **${k}:** ${v}"; done || true
+              grep -E '^\{' /tmp/i5_wave01_prod.log | tail -n 40 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-wave01-prod-log
+          path: /tmp/i5_wave01_prod.log
+          retention-days: 14
+
   activate-multisource-weekly:
     name: Activate I5 multi-source weekly on production
+    if: github.event.inputs.confirmation == 'ACTIVATE_I5_MULTISOURCE_V1'
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -46,6 +297,10 @@ jobs:
           set -Eeuo pipefail
           if [ "${INPUT_CONFIRMATION}" != "ACTIVATE_I5_MULTISOURCE_V1" ]; then
             echo "Confirmation input must be exactly ACTIVATE_I5_MULTISOURCE_V1."
+            exit 1
+          fi
+          if [ -z "${INPUT_IMAGE_DIGEST}" ]; then
+            echo "deployed_image_digest required for ACTIVATE_I5_MULTISOURCE_V1."
             exit 1
           fi
           if ! echo "${INPUT_IMAGE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
