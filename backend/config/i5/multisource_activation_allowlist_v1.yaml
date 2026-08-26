@@ -340,9 +340,9 @@ sources:
     publisher_family: nidcd.nih.gov
     authority_class: OFFICIAL_NATIONAL_INSTITUTE
     adapter: PUBLIC_WEB_FETCH
-    exact_url: https://www.nidcd.nih.gov/health
+    exact_url: https://www.nidcd.nih.gov/health/noise-induced-hearing-loss
     additional_urls:
-      - https://www.nidcd.nih.gov/health/hearing-ear-infections
+      - https://www.nidcd.nih.gov/health/ear-infections-children
       - https://www.nidcd.nih.gov/health/balance-disorders
     allowed_domain: nidcd.nih.gov
     allowed_url_patterns:

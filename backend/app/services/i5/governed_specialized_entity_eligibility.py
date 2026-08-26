@@ -45,6 +45,28 @@ _NAV_CHROME_MARKERS = (
     "share this page",
     "page last updated",
     "get email updates",
+    # NIDCD / NIH consumer-health chrome (bounded Format Resilience markers).
+    "nidcd employee intranet",
+    "a-z index",
+    "a–z index",
+    "en español",
+    "información en español",
+    "informacion en espanol",
+    "health info health info",
+    "statistics health resources",
+    "clinical studies adult hearing",
+)
+
+# NIDCD article-body anchors (claim-window refinement; not a permissive parser).
+_NIDCD_BODY_MARKERS = (
+    "on this page:",
+    "what is noise-induced hearing loss",
+    "what is a balance disorder",
+    "what is an ear infection",
+    "otitis media",
+    "noise-induced hearing loss",
+    "balance disorders",
+    "ear infections in children",
 )
 
 
@@ -451,7 +473,94 @@ def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     head_chrome = sum(1 for marker in _NAV_CHROME_MARKERS if marker in head)
     if head_chrome >= 2 and clinical_hits == 0:
         return True
+    # NIDCD hub/nav menus pack clinical tokens into chrome; treat dense chrome-head as dominated.
+    nidcd_nav = sum(
+        1
+        for marker in (
+            "nidcd employee intranet",
+            "a-z index",
+            "a–z index",
+            "health info health info",
+            "en español",
+            "información en español",
+        )
+        if marker in head
+    )
+    if nidcd_nav >= 2 and "on this page:" not in sample and "otitis" not in sample:
+        return True
     return False
+
+
+def select_clinical_claim_window(text: str, *, canonical_url: Optional[str] = None) -> str:
+    """Prefer clinically meaningful body window over leading chrome (Format Resilience)."""
+    raw = re.sub(r"\s+", " ", (text or "").strip())
+    if not raw:
+        return raw
+    sample = raw.casefold()
+    url = (canonical_url or "").casefold()
+    is_nidcd = "nidcd.nih.gov" in url or "nidcd employee intranet" in sample
+    if is_nidcd:
+        for marker in _NIDCD_BODY_MARKERS:
+            idx = sample.find(marker)
+            if idx < 0:
+                continue
+            # Skip early false positives inside the global nav band.
+            if idx < 200:
+                continue
+            start = max(0, idx - 80) if marker == "on this page:" else idx
+            window = raw[start : start + 520].strip()
+            if len(window) >= 80 and not statement_dominated_by_nav_chrome(window):
+                return window
+        # Fall through: strip chrome then take first non-chrome clinical span.
+    cleaned = strip_html_nav_chrome(raw)
+    if cleaned and not statement_dominated_by_nav_chrome(cleaned[:520]):
+        return cleaned[:520]
+    return cleaned[:520] if cleaned else raw[:520]
+
+
+def strip_html_nav_chrome(text: str) -> str:
+    """Bounded self-heal: drop leading chrome; keep first clinical-bearing window."""
+    raw = re.sub(r"\s+", " ", (text or "").strip())
+    if not raw:
+        return raw
+    sample = raw.casefold()
+    cut = 0
+    for marker in _NAV_CHROME_MARKERS:
+        idx = sample.find(marker)
+        if idx == 0 or (0 <= idx <= 40):
+            cut = max(cut, idx + len(marker))
+        # NIDCD chrome often spans the first ~150 chars as a menu band.
+        if marker.startswith("nidcd") and 0 <= idx <= 120:
+            cut = max(cut, idx + len(marker))
+
+    # Prefer clinical tokens that appear after the nav band (>= 400 chars).
+    clinical_start = None
+    clinical_start_late = None
+    for spec in SPECIALIZED_SPECS:
+        for tok in spec.clinical_tokens:
+            t = (tok or "").casefold().strip()
+            if not t:
+                continue
+            idx = sample.find(t)
+            while idx >= 0:
+                if idx >= 400:
+                    clinical_start_late = (
+                        idx if clinical_start_late is None else min(clinical_start_late, idx)
+                    )
+                    break
+                if clinical_start is None or idx < clinical_start:
+                    clinical_start = idx
+                idx = sample.find(t, idx + len(t))
+    chosen = clinical_start_late if clinical_start_late is not None else clinical_start
+    if chosen is not None and chosen > 0:
+        cleaned = raw[chosen:].strip()
+        if len(cleaned) >= 80:
+            return cleaned
+    if cut > 0 and cut < len(raw):
+        cleaned = raw[cut:].strip(" -:|")
+        if len(cleaned) >= 80:
+            return cleaned
+    return raw
 
 
 def statement_has_clinical_identity(statement: Optional[str], spec: SpecializedEntitySpec) -> bool:
@@ -536,9 +645,8 @@ def can_apply_specialized_entity_eligibility(
     if "/niosh/archive/" in url:
         return False, "ROBOTS_DISALLOW_ARCHIVE", None
     statement = getattr(ku, "normalized_statement", None)
-    healed = strip_html_nav_chrome(str(statement or ""))
+    healed = select_clinical_claim_window(str(statement or ""), canonical_url=canonical_url)
     if healed and healed != str(statement or "").strip():
-        # Bounded allowlist self-heal: drop nav chrome before quality gate.
         try:
             ku.normalized_statement = healed
         except Exception:  # noqa: BLE001
@@ -586,34 +694,6 @@ def apply_specialized_entity_fields(
     return True, "OK"
 
 
-def strip_html_nav_chrome(text: str) -> str:
-    """Bounded self-heal: drop leading chrome; keep first clinical-bearing window."""
-    raw = re.sub(r"\s+", " ", (text or "").strip())
-    if not raw:
-        return raw
-    sample = raw.casefold()
-    cut = 0
-    for marker in _NAV_CHROME_MARKERS:
-        idx = sample.find(marker)
-        if idx == 0 or (0 <= idx <= 40):
-            cut = max(cut, idx + len(marker))
-    clinical_start = None
-    for spec in SPECIALIZED_SPECS:
-        for tok in spec.clinical_tokens:
-            idx = sample.find(tok)
-            if idx >= 0:
-                clinical_start = idx if clinical_start is None else min(clinical_start, idx)
-    if clinical_start is not None and clinical_start > 0:
-        cleaned = raw[clinical_start:].strip()
-        if len(cleaned) >= 80:
-            return cleaned
-    if cut > 0 and cut < len(raw):
-        cleaned = raw[cut:].strip(" -:|")
-        if len(cleaned) >= 80:
-            return cleaned
-    return raw
-
-
 def provenance_canonical_url(prov: Any) -> Optional[str]:
     if prov is None:
         return None
@@ -649,7 +729,13 @@ __all__ = [
     "D05",
     "D06",
     "D07",
+    "D08",
     "D09",
+    "D10",
+    "D11",
+    "D13",
+    "D14",
+    "D15",
     "D16",
     "D17",
     "D18",
@@ -661,6 +747,7 @@ __all__ = [
     "specialized_allowed_entities_for_source",
     "statement_dominated_by_nav_chrome",
     "content_quality_pass",
+    "select_clinical_claim_window",
     "infer_specialized_spec_for_ku",
     "specialized_source_authorized",
     "can_apply_specialized_entity_eligibility",
