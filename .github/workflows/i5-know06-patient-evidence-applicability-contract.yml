@@ -1,0 +1,60 @@
+# I5-KNOW-06 Patient↔Evidence Applicability Contract Closure
+# Contract/tests only. NO Production mutation. NO Alembic. NO personal SoT writes.
+name: I5-KNOW-06 Patient Evidence Applicability Contract
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/know06/**"
+      - "backend/tests/test_i5_know06_patient_evidence_applicability_contract.py"
+      - "docs/architecture/i5-final-knowledge-architecture-freeze-01/07_PATIENT_EVIDENCE_APPLICABILITY.md"
+      - "docs/architecture/i5-final-knowledge-architecture-freeze-01/09_REMAINING_SCOPE_IMPLEMENTATION_WAVES.md"
+      - "backend/app/services/i8/constants.py"
+      - "backend/app/services/i8/safety.py"
+      - "backend/config/i5/coverage_manifest_v1.yaml"
+      - "backend/app/services/i5/governed_weekly_runtime.py"
+      - "backend/tests/test_i5_coverage_closure_autonomous_governance.py"
+      - ".github/workflows/i5-know06-patient-evidence-applicability-contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-know06-contract-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  know06-contract:
+    name: KNOW-06 contract + ownership boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: pip install pytest
+      - name: KNOW-06 contract suite + weekly governance regression
+        run: |
+          set -o pipefail
+          python -B -m pytest \
+            --noconftest \
+            -p no:cacheprovider \
+            -q --tb=short \
+            backend/tests/test_i5_know06_patient_evidence_applicability_contract.py \
+            backend/tests/test_i5_coverage_closure_autonomous_governance.py \
+            | tee know06_pytest.log
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know06-contract-pytest
+          path: know06_pytest.log
