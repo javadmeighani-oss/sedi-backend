@@ -25,6 +25,7 @@ from backend.app.services.i5.autonomous_source_governance import (
 )
 from backend.app.services.i5.governed_specialized_entity_eligibility import (
     resolve_specialized_entity_from_url,
+    strip_html_nav_chrome,
 )
 from backend.app.services.i5.governed_ku_serving import apply_governed_finalize_and_lexical_index
 from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
@@ -38,6 +39,14 @@ GAP_KEYS = {
     "cdc_ncezid_infectious",
     "gard_rare_diseases",
     "nichd_rehabilitation",
+}
+GAP_ENTITY_TO_KEY = {
+    "D08": "nidcd_hearing_balance",
+    "D10": "owh_womens_health",
+    "D11": "cdc_child_development",
+    "D13": "cdc_ncezid_infectious",
+    "D14": "gard_rare_diseases",
+    "D15": "nichd_rehabilitation",
 }
 TARGET_DXX = ["D08", "D10", "D11", "D13", "D14", "D15"]
 TOKEN = {
@@ -103,6 +112,10 @@ def _source_key_for_url(url: str, rows: list[dict]) -> str | None:
         patterns = [re.compile(p) for p in (r.get("allowed_url_patterns") or [])]
         if any(p.match(url or "") for p in patterns):
             return str(r["source_key"])
+    # Pattern miss (www / trailing slash): resolve entity → gap source_key.
+    spec = resolve_specialized_entity_from_url(url)
+    if spec is not None and spec.entity_id in GAP_ENTITY_TO_KEY:
+        return GAP_ENTITY_TO_KEY[spec.entity_id]
     return None
 
 
@@ -176,6 +189,12 @@ def main() -> int:
         rows = [r for r in active_manifest_rows() if r.get("source_key") in GAP_KEYS]
         applied = 0
         reject_reasons: dict[str, int] = {}
+        profile_healed = 0
+        gsp_by_key = {
+            str(g.canonical_key): g
+            for g in db.query(models.GovernedSourceProfile).all()
+            if str(getattr(g, "canonical_key", None) or "") in GAP_KEYS
+        }
         for p in db.query(models.KnowledgeProvenance).all():
             rid = getattr(p, "raw_evidence_id", None)
             raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
@@ -184,7 +203,6 @@ def main() -> int:
             url = raw.canonical_url or getattr(raw, "final_url", None) or ""
             source_key = _source_key_for_url(url, rows)
             if not source_key:
-                # Fallback: GSP canonical_key when URL patterns miss trailing slash/redirect variants.
                 gsp = (
                     db.query(models.GovernedSourceProfile)
                     .filter_by(id=int(p.source_profile_id))
@@ -198,10 +216,14 @@ def main() -> int:
             ku = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
             if ku is None:
                 continue
+            target_gsp = gsp_by_key.get(source_key)
+            if target_gsp is not None and int(p.source_profile_id) != int(target_gsp.id):
+                p.source_profile_id = int(target_gsp.id)
+                profile_healed += 1
+            profile_id = int(p.source_profile_id)
             ku.provenance_complete = True
             from backend.app.services.i5.governed_specialized_entity_eligibility import (
                 can_apply_specialized_entity_eligibility,
-                strip_html_nav_chrome,
             )
 
             healed = strip_html_nav_chrome(str(ku.normalized_statement or ""))
@@ -217,19 +239,110 @@ def main() -> int:
                 db,
                 ku,
                 source_key=source_key,
-                source_profile_id=int(p.source_profile_id),
+                source_profile_id=profile_id,
                 raw_evidence_id=int(raw.id),
                 authoritative_provenance=p,
-                incoming_source_profile_id=int(p.source_profile_id),
+                incoming_source_profile_id=profile_id,
                 canonical_url=url,
             )
             if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
                 applied += 1
         db.commit()
         print(
-            json.dumps({"specialized_eligible": applied, "reject_reasons": reject_reasons}, sort_keys=True),
+            json.dumps(
+                {
+                    "specialized_eligible": applied,
+                    "reject_reasons": reject_reasons,
+                    "profile_healed": profile_healed,
+                },
+                sort_keys=True,
+            ),
             flush=True,
         )
+
+        # If gap domains still lack eligible KU (weekly already terminal), force
+        # bounded gap-only controlled live with unique logical identity.
+        per_probe, _, _, _ = _per_dxx(db)
+        missing = [d for d in TARGET_DXX if per_probe[d]["eligible"] <= 0]
+        if missing:
+            from backend.app.services.i5.multisource_activation import load_multisource_weekly_candidates
+            from backend.app.services.i5.weekly_orchestrator import run_controlled_live_orchestration
+            from datetime import datetime, timezone
+
+            all_cands = load_multisource_weekly_candidates(db, models)
+            gap_cands = [
+                c
+                for c in all_cands
+                if str(getattr(c, "canonical_key", None) or "") in GAP_KEYS
+            ]
+            if gap_cands:
+                now = datetime.now(timezone.utc)
+                forced = run_controlled_live_orchestration(
+                    db,
+                    models,
+                    candidates=gap_cands,
+                    persist_ledger=True,
+                    logical_run_key=f"coverage-closure-gap-force-{now.strftime('%Y%m%d%H%M%S')}",
+                    planned_window_start=now,
+                    planned_window_end=now,
+                    config_version="coverage-closure-gap01",
+                    config_hash="coverage-closure-gap01",
+                )
+                db.commit()
+                print(
+                    json.dumps(
+                        {
+                            "gap_force": {
+                                "missing_before": missing,
+                                "candidates": len(gap_cands),
+                                "outcome": forced.outcome,
+                                "network_executed": forced.network_executed,
+                                "detail": forced.detail,
+                            }
+                        },
+                        sort_keys=True,
+                    ),
+                    flush=True,
+                )
+                # Re-apply specialized after forced fetch
+                applied2 = 0
+                for p in db.query(models.KnowledgeProvenance).all():
+                    rid = getattr(p, "raw_evidence_id", None)
+                    raw = (
+                        db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none()
+                        if rid is not None
+                        else None
+                    )
+                    if raw is None:
+                        continue
+                    url = raw.canonical_url or getattr(raw, "final_url", None) or ""
+                    source_key = _source_key_for_url(url, rows)
+                    if not source_key:
+                        continue
+                    ku = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                    if ku is None:
+                        continue
+                    target_gsp = gsp_by_key.get(source_key)
+                    if target_gsp is not None and int(p.source_profile_id) != int(target_gsp.id):
+                        p.source_profile_id = int(target_gsp.id)
+                    ku.provenance_complete = True
+                    healed = strip_html_nav_chrome(str(ku.normalized_statement or ""))
+                    if healed:
+                        ku.normalized_statement = healed
+                    elig = apply_governed_finalize_and_lexical_index(
+                        db,
+                        ku,
+                        source_key=source_key,
+                        source_profile_id=int(p.source_profile_id),
+                        raw_evidence_id=int(raw.id),
+                        authoritative_provenance=p,
+                        incoming_source_profile_id=int(p.source_profile_id),
+                        canonical_url=url,
+                    )
+                    if elig == KnowledgeUnitRuntimeEligibility.ELIGIBLE:
+                        applied2 += 1
+                db.commit()
+                print(json.dumps({"specialized_eligible_after_force": applied2}, sort_keys=True), flush=True)
 
         per, als, ms, d17e = _per_dxx(db)
         ku1, elig1, kce1, active1 = _counts(db)

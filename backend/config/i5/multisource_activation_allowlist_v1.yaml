@@ -346,7 +346,7 @@ sources:
       - https://www.nidcd.nih.gov/health/balance-disorders
     allowed_domain: nidcd.nih.gov
     allowed_url_patterns:
-      - "^https://www\\.nidcd\\.nih\\.gov/health(/.*)?$"
+      - "^https://(www\\.)?nidcd\\.nih\\.gov/health(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
@@ -396,8 +396,8 @@ sources:
       - https://www.cdc.gov/ncbddd/childdevelopment/
     allowed_domain: cdc.gov
     allowed_url_patterns:
-      - "^https://www\\.cdc\\.gov/child-development(/.*)?$"
-      - "^https://www\\.cdc\\.gov/ncbddd/childdevelopment(/.*)?$"
+      - "^https://(www\\.)?cdc\\.gov/child-development(/.*)?$"
+      - "^https://(www\\.)?cdc\\.gov/ncbddd/childdevelopment(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
@@ -422,7 +422,7 @@ sources:
       - https://www.cdc.gov/ncezid/php/about/index.html
     allowed_domain: cdc.gov
     allowed_url_patterns:
-      - "^https://www\\.cdc\\.gov/ncezid(/.*)?$"
+      - "^https://(www\\.)?cdc\\.gov/ncezid(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
@@ -447,7 +447,7 @@ sources:
       - https://rarediseases.info.nih.gov/diseases
     allowed_domain: rarediseases.info.nih.gov
     allowed_url_patterns:
-      - "^https://rarediseases\\.info\\.nih\\.gov(/.*)?$"
+      - "^https://(www\\.)?rarediseases\\.info\\.nih\\.gov(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
@@ -471,7 +471,7 @@ sources:
       - https://www.nichd.nih.gov/health/topics
     allowed_domain: nichd.nih.gov
     allowed_url_patterns:
-      - "^https://www\\.nichd\\.nih\\.gov/health(/.*)?$"
+      - "^https://(www\\.)?nichd\\.nih\\.gov/health(/.*)?$"
     rights_terms_state: PUBLIC_DOMAIN
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
