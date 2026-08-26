@@ -1,7 +1,8 @@
-"""Governed specialized D18/D19 serving eligibility (not global MedlinePlus low-risk).
+"""Governed specialized entity serving eligibility (not global source low-risk).
 
 Granularity: source_key + entity identity (URL / manifest_entity_id / clinical tokens)
 + content-quality gate. MedlinePlus ``governed_low_risk_eligibility`` remains NO.
+NIOSH D17 uses the same specialized pattern with low-risk NO.
 """
 
 from __future__ import annotations
@@ -26,7 +27,9 @@ from backend.app.services.i5.trusted_source_manifest import (
 )
 
 PACKAGE_ID = "I5-SPECIALIZED-ENTITY-ELIGIBILITY-V1"
+# Historical alias — MedlinePlus remains the D18/D19 specialized source.
 SPECIALIZED_SOURCE_KEY = "medlineplus_consumer_health"
+NIOSH_SOURCE_KEY = "niosh_occupational"
 
 _NAV_CHROME_MARKERS = (
     "skip to main content",
@@ -92,7 +95,28 @@ D19 = SpecializedEntitySpec(
     disease_label="multiple sclerosis",
 )
 
-SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (D18, D19)
+D17 = SpecializedEntitySpec(
+    entity_id="D17",
+    alias="ENV_OCC",
+    track_id="D17-TRACK",
+    domain="environmental_occupational",
+    topic="occupational_health",
+    url_needles=("cdc.gov/niosh", "/niosh/"),
+    clinical_tokens=(
+        "niosh",
+        "occupational",
+        "workplace",
+        "worker",
+        "exposure",
+        "chemical",
+        "noise",
+        "outdoor",
+        "safety and health",
+    ),
+    disease_label="environmental and occupational health",
+)
+
+SPECIALIZED_SPECS: tuple[SpecializedEntitySpec, ...] = (D17, D18, D19)
 SPECIALIZED_BY_ID = {s.entity_id: s for s in SPECIALIZED_SPECS}
 
 
@@ -119,6 +143,35 @@ def _activation_yes(value: Any) -> bool:
     return str(value or "").strip().upper() in {"YES", "TRUE", "1"}
 
 
+def specialized_allowed_entities_for_source(source_key: str) -> set[str]:
+    row = manifest_row_for_key(source_key)
+    if row is None or not _activation_yes(row.get("activation")):
+        return set()
+    rights = str(row.get("rights_terms_state") or "").upper()
+    robots = str(row.get("robots_access_state") or "").upper()
+    if rights not in {"PUBLIC_DOMAIN", "OGL", "APPROVED", "ACCEPTABLE"}:
+        return set()
+    if robots != "ALLOWED":
+        return set()
+    low = str(row.get("governed_low_risk_eligibility") or "NO").strip().upper()
+    if low in {"YES", "TRUE", "1"}:
+        # Specialized path must not coexist with global low-risk YES.
+        return set()
+    explicit = {
+        str(e).strip().upper()
+        for e in (row.get("specialized_serving_eligibility") or [])
+        if str(e).strip()
+    }
+    if explicit:
+        return explicit
+    # Backward-compatible MedlinePlus fallback.
+    if source_key == SPECIALIZED_SOURCE_KEY:
+        entities = {str(e).strip().upper() for e in (row.get("entity_coverage") or [])}
+        if "D18" in entities and "D19" in entities:
+            return {"D18", "D19"}
+    return set()
+
+
 def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     text = (statement or "").strip()
     if len(text) < 40:
@@ -128,10 +181,8 @@ def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     clinical_hits = 0
     for spec in SPECIALIZED_SPECS:
         clinical_hits += sum(1 for tok in spec.clinical_tokens if tok in sample)
-    # Chrome-heavy and lacking clinical identity → reject for serving.
     if chrome_hits >= 2 and clinical_hits == 0:
         return True
-    # Leading chrome prefix without clinical tokens in first 180 chars.
     head = sample[:180]
     head_chrome = sum(1 for marker in _NAV_CHROME_MARKERS if marker in head)
     if head_chrome >= 2 and clinical_hits == 0:
@@ -152,7 +203,6 @@ def content_quality_pass(statement: Optional[str], spec: SpecializedEntitySpec) 
         return False, "NAV_CHROME_DOMINATED"
     if not statement_has_clinical_identity(text, spec):
         return False, "MISSING_CLINICAL_IDENTITY"
-    # Fail closed on prescription/diagnosis expansion cues in serving statement.
     banned = ("take this medication", "you have als", "you have ms", "i diagnose", "prescribe ")
     low = text.casefold()
     if any(b in low for b in banned):
@@ -184,24 +234,7 @@ def infer_specialized_spec_for_ku(
 
 
 def specialized_source_authorized(source_key: str) -> bool:
-    if source_key != SPECIALIZED_SOURCE_KEY:
-        return False
-    row = manifest_row_for_key(source_key)
-    if row is None or not _activation_yes(row.get("activation")):
-        return False
-    rights = str(row.get("rights_terms_state") or "").upper()
-    robots = str(row.get("robots_access_state") or "").upper()
-    if rights not in {"PUBLIC_DOMAIN", "OGL", "APPROVED", "ACCEPTABLE"}:
-        return False
-    if robots != "ALLOWED":
-        return False
-    # Global low-risk must remain NO for this source.
-    low = str(row.get("governed_low_risk_eligibility") or "NO").strip().upper()
-    if low in {"YES", "TRUE", "1"}:
-        # Hard fail-closed: specialized path must not coexist with global YES.
-        return False
-    entities = {str(e).strip().upper() for e in (row.get("entity_coverage") or [])}
-    return "D18" in entities and "D19" in entities
+    return bool(specialized_allowed_entities_for_source(source_key))
 
 
 def can_apply_specialized_entity_eligibility(
@@ -210,7 +243,8 @@ def can_apply_specialized_entity_eligibility(
     ku: Any,
     canonical_url: Optional[str] = None,
 ) -> tuple[bool, str, Optional[SpecializedEntitySpec]]:
-    if not specialized_source_authorized(source_key):
+    allowed_entities = specialized_allowed_entities_for_source(source_key)
+    if not allowed_entities:
         return False, "SOURCE_NOT_AUTHORIZED_FOR_SPECIALIZED", None
     if not bool(getattr(ku, "provenance_complete", False)):
         return False, "PROVENANCE_INCOMPLETE", None
@@ -222,10 +256,13 @@ def can_apply_specialized_entity_eligibility(
     spec = infer_specialized_spec_for_ku(ku, canonical_url=canonical_url)
     if spec is None:
         return False, "ENTITY_IDENTITY_MISSING", None
+    if spec.entity_id not in allowed_entities:
+        return False, "ENTITY_NOT_AUTHORIZED_FOR_SOURCE", None
     url = (canonical_url or "").casefold()
     if url and not any(n in url for n in spec.url_needles):
-        # URL present but not the disease page — fail closed (prevent heart/diabetes pages).
         return False, "URL_NOT_IN_ENTITY_SCOPE", None
+    if "/niosh/archive/" in url:
+        return False, "ROBOTS_DISALLOW_ARCHIVE", None
     ok, reason = content_quality_pass(getattr(ku, "normalized_statement", None), spec)
     if not ok:
         return False, reason, spec
@@ -247,7 +284,6 @@ def apply_specialized_entity_fields(
         return False, reason
 
     prior_medical = getattr(ku, "medical_safety_state", None) or MedicalSafetyState.UNKNOWN.value
-    # Allowed path: UNKNOWN→PENDING_REVIEW→CLEARED or PENDING_REVIEW→CLEARED.
     if str(prior_medical) == MedicalSafetyState.UNKNOWN.value:
         assert_allowed_medical_safety_transition(prior_medical, MedicalSafetyState.PENDING_REVIEW)
         ku.medical_safety_state = MedicalSafetyState.PENDING_REVIEW.value
@@ -280,7 +316,6 @@ def strip_html_nav_chrome(text: str) -> str:
         idx = sample.find(marker)
         if idx == 0 or (0 <= idx <= 40):
             cut = max(cut, idx + len(marker))
-    # Prefer start at first clinical token when present.
     clinical_start = None
     for spec in SPECIALIZED_SPECS:
         for tok in spec.clinical_tokens:
@@ -288,9 +323,7 @@ def strip_html_nav_chrome(text: str) -> str:
             if idx >= 0:
                 clinical_start = idx if clinical_start is None else min(clinical_start, idx)
     if clinical_start is not None and clinical_start > 0:
-        # Include a little left context but skip pure chrome heads.
-        start = clinical_start
-        cleaned = raw[start:].strip()
+        cleaned = raw[clinical_start:].strip()
         if len(cleaned) >= 80:
             return cleaned
     if cut > 0 and cut < len(raw):
@@ -303,7 +336,6 @@ def strip_html_nav_chrome(text: str) -> str:
 def provenance_canonical_url(prov: Any) -> Optional[str]:
     if prov is None:
         return None
-    # attribution_data may embed source_url
     blob = getattr(prov, "attribution_data", None)
     if blob:
         try:
@@ -328,12 +360,15 @@ def provenance_canonical_url(prov: Any) -> Optional[str]:
 __all__ = [
     "PACKAGE_ID",
     "SPECIALIZED_SOURCE_KEY",
+    "NIOSH_SOURCE_KEY",
+    "D17",
     "D18",
     "D19",
     "SPECIALIZED_SPECS",
     "SpecializedEntitySpec",
     "SpecializedEligibilityError",
     "resolve_specialized_entity_from_url",
+    "specialized_allowed_entities_for_source",
     "statement_dominated_by_nav_chrome",
     "content_quality_pass",
     "infer_specialized_spec_for_ku",

@@ -3,14 +3,13 @@
 # PostgreSQL GSP/registry tables are runtime audit state.
 # seed_registry.py is bootstrap-only — NOT runtime activation authority.
 #
-# Wave02 (PD-I5-V1-D01-D17-GOVERNED-KNOWLEDGE-EXPANSION-WAVE02-01):
-# bounded additional_urls only inside existing allowed_url_patterns / rights / robots.
-# No new publisher. MedlinePlus/NIMH global low-risk remains NO.
-# D18/D19 specialized eligibility preserved (regression only this Gate).
+# Qualification Gate (PD-I5-V1-GOVERNED-SOURCE-QUALIFICATION-D17-NIOSH-AND-CANDIDATE-REGISTRY-WAVE01-01):
+# NIOSH D17 activated as separate source_key (does NOT broaden cdc_health_lifestyle patterns).
+# MedlinePlus/NIMH global low-risk remains NO. Candidate registry QUALIFIED != ACTIVE.
 manifest_authority: CANONICAL_TRUSTED_SOURCE_CONTROL
 manifest_version: "i5-trusted-source-control-v2"
-allowlist_version: "i5-multisource-v1-wave02"
-gate_id: "PD-I5-V1-D01-D17-GOVERNED-KNOWLEDGE-EXPANSION-WAVE02-01"
+allowlist_version: "i5-multisource-v1-niosh-d17-q01"
+gate_id: "PD-I5-V1-GOVERNED-SOURCE-QUALIFICATION-D17-NIOSH-AND-CANDIDATE-REGISTRY-WAVE01-01"
 publisher_diversity_floor: 4
 historical_w6p01_single_nhs_contract: "PRESERVED via activate_nhs_sleep_source + require_exact_nhs_sleep path"
 wave02_targets:
@@ -133,12 +132,39 @@ sources:
     robots_access_state: ALLOWED
     retention: RAW_MINIMAL_EVIDENCE_ONLY
     rate_limit: "weekly_controlled_max_3_urls"
-    entity_coverage: [D05, D13, D15, D17]
+    entity_coverage: [D05, D13, D15]
     knowledge_domains: [physical_activity_exercise, nutrition, lifestyle_prevention_routines, cardiovascular]
     activation: YES
     governed_low_risk_eligibility: YES
     eligibility_evidence_strength: LOW
     license_notes: "CDC public domain — attribute CDC/HHS; non-endorsement disclaimer"
+
+  - source_key: niosh_occupational
+    publisher: NIOSH / CDC
+    publisher_family: cdc.gov/niosh
+    authority_class: OFFICIAL_NATIONAL
+    adapter: PUBLIC_WEB_FETCH
+    exact_url: https://www.cdc.gov/niosh/
+    additional_urls:
+      - https://www.cdc.gov/niosh/about/index.html
+      - https://www.cdc.gov/niosh/chemicals/
+      - https://www.cdc.gov/niosh/topics/noise/
+      - https://www.cdc.gov/niosh/topics/outdoor/
+    allowed_domain: cdc.gov
+    allowed_url_patterns:
+      # Archive paths disallowed by robots; keep patterns to public NIOSH pages only.
+      - "^https://www\\.cdc\\.gov/niosh/(?!archive/).*$"
+    rights_terms_state: PUBLIC_DOMAIN
+    robots_access_state: ALLOWED
+    retention: RAW_MINIMAL_EVIDENCE_ONLY
+    rate_limit: "weekly_controlled_max_5_urls"
+    entity_coverage: [D17]
+    knowledge_domains: [environmental_occupational]
+    activation: YES
+    governed_low_risk_eligibility: NO
+    specialized_serving_eligibility:
+      - D17
+    license_notes: "CDC/NIOSH public domain — attribute NIOSH/CDC/HHS; non-endorsement; exclude /niosh/archive/"
 
   - source_key: nimh_nih_mental_health
     publisher: NIMH / NIH

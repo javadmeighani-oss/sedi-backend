@@ -1,0 +1,273 @@
+# I5 Candidate Qualification Registry v1
+# DISCOVERY != AUTHORIZATION; CANDIDATE != QUALIFIED; QUALIFIED != ACTIVE.
+# Runtime crawler authority remains multisource_activation_allowlist_v1.yaml only.
+manifest_version: "i5-candidate-qualification-registry-v1"
+gate_id: "PD-I5-V1-GOVERNED-SOURCE-QUALIFICATION-D17-NIOSH-AND-CANDIDATE-REGISTRY-WAVE01-01"
+activation_policy: QUALIFIED_DOES_NOT_AUTO_ACTIVATE
+notes: >
+  Wave01 qualification pass over §379 candidate list. Only NIOSH D17 may activate
+  under this Gate when NIOSH_QUALIFICATION=PASS. All other rows stay activation=NO.
+
+candidates:
+  - candidate_id: niosh_occupational
+    publisher: NIOSH / CDC
+    target_dxx_kd: D17
+    authority_class: OFFICIAL_NATIONAL
+    canonical_domain: cdc.gov
+    url_family: https://www.cdc.gov/niosh/
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED
+    access_state: ALLOWED
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT_AGENCY_PAGES
+    scientific_relevance: HIGH_D17_PRIMARY
+    retention_feasibility: YES_RAW_MINIMAL
+    monitoring_feasibility: YES_URL_SCOPE_HASH
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: >
+      Official CDC/NIOSH identity verified; USG public-domain reuse with attribution;
+      robots allow /niosh/ (Disallow /niosh/archive/ only); HTML fetch compatible;
+      occupational/environmental relevance to D17; separate source_key from cdc_health_lifestyle.
+    activation: "NO"
+    activation_authorized_this_gate: "YES"
+
+  - candidate_id: nci_pdq_oncology
+    publisher: NCI PDQ
+    target_dxx_kd: D01
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: cancer.gov
+    url_family: https://www.cancer.gov/publications/pdq
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: PDQ_VERSIONED
+    scientific_relevance: HIGH_D01
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: Official NCI PDQ oncology authority; USG public domain; not activated this Gate.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: nhlbi_respiratory
+    publisher: NHLBI
+    target_dxx_kd: D02
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: nhlbi.nih.gov
+    url_family: https://www.nhlbi.nih.gov/health
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D02
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: Official NHLBI consumer health authority; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: niddk_kidney
+    publisher: NIDDK
+    target_dxx_kd: D03
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: niddk.nih.gov
+    url_family: https://www.niddk.nih.gov/health-information
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D03
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: Official NIDDK kidney authority; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: niddk_digestive_liver
+    publisher: NIDDK Digestive / Liver
+    target_dxx_kd: D04
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: niddk.nih.gov
+    url_family: https://www.niddk.nih.gov/health-information/liver-disease
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D04
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: DUPLICATE_PUBLISHER_FAMILY_OF_niddk_kidney
+    qualification_status: QUALIFIED
+    qualification_reason: Same NIDDK publisher family as kidney; qualify URL family separately; do not activate this Gate.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: niams_msk
+    publisher: NIAMS
+    target_dxx_kd: D05
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: niams.nih.gov
+    url_family: https://www.niams.nih.gov/health-topics
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D05
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: Official NIAMS MSK authority; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: niams_dermatology
+    publisher: NIAMS Dermatology
+    target_dxx_kd: D06
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: niams.nih.gov
+    url_family: https://www.niams.nih.gov/health-topics/skin-diseases
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D06
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: DUPLICATE_PUBLISHER_FAMILY_OF_niams_msk
+    qualification_status: QUALIFIED
+    qualification_reason: Same NIAMS publisher; dermatology URL family qualified; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: nei_ophthalmology
+    publisher: NEI
+    target_dxx_kd: D07
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: nei.nih.gov
+    url_family: https://www.nei.nih.gov/learn-about-eye-health
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D07
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: Official NEI eye-health authority; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: nidcr_oral_health
+    publisher: NIDCR
+    target_dxx_kd: D09
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: nidcr.nih.gov
+    url_family: https://www.nidcr.nih.gov/health-info
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D09
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: NO
+    qualification_status: QUALIFIED
+    qualification_reason: Official NIDCR oral-health authority; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: owh_womens_health
+    publisher: OWH / HHS
+    target_dxx_kd: D10
+    authority_class: OFFICIAL_NATIONAL
+    canonical_domain: womenshealth.gov
+    url_family: https://www.womenshealth.gov
+    rights_state: PUBLIC_DOMAIN_CANDIDATE
+    robots_state: NEEDS_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: UNKNOWN
+    scientific_relevance: HIGH_D10
+    retention_feasibility: YES
+    monitoring_feasibility: NEEDS_CONFIRM
+    duplicate_obsolete: NO
+    qualification_status: NEEDS_REVIEW
+    qualification_reason: Authority plausible but robots/rights not independently confirmed this Gate; MedlinePlus women's health already provides shallow acquisition.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: cdc_child_development
+    publisher: CDC Child Development
+    target_dxx_kd: D11
+    authority_class: OFFICIAL_NATIONAL
+    canonical_domain: cdc.gov
+    url_family: https://www.cdc.gov/ncbddd/childdevelopment/
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_PATTERN_SCOPE
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D11
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: WOULD_BROADEN_CDC_LIFESTYLE_PATTERNS
+    qualification_status: NEEDS_REVIEW
+    qualification_reason: Valid CDC program path but activation requires new source/profile or pattern expansion beyond cdc_health_lifestyle; blocked this Gate (no silent CDC broaden).
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: cdc_ncezid_infectious
+    publisher: CDC NCEZID
+    target_dxx_kd: D13
+    authority_class: OFFICIAL_NATIONAL
+    canonical_domain: cdc.gov
+    url_family: https://www.cdc.gov/ncezid/
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_PATTERN_SCOPE
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D13
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: WOULD_BROADEN_CDC_LIFESTYLE_PATTERNS
+    qualification_status: NEEDS_REVIEW
+    qualification_reason: Infectious program authority exists; activating would broaden CDC beyond lifestyle patterns; require dedicated future source Gate.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"
+
+  - candidate_id: nci_pdq_palliative
+    publisher: NCI PDQ Supportive/Palliative
+    target_dxx_kd: D16
+    authority_class: OFFICIAL_NATIONAL_INSTITUTE
+    canonical_domain: cancer.gov
+    url_family: https://www.cancer.gov/about-cancer/advanced-cancer/care-choices
+    rights_state: PUBLIC_DOMAIN
+    robots_state: ALLOWED_PENDING_RUNTIME_CONFIRM
+    access_state: PUBLIC
+    format: HTML_PUBLIC_WEB
+    freshness: CURRENT
+    scientific_relevance: HIGH_D16
+    retention_feasibility: YES
+    monitoring_feasibility: YES
+    duplicate_obsolete: DUPLICATE_PUBLISHER_FAMILY_OF_nci_pdq_oncology
+    qualification_status: QUALIFIED
+    qualification_reason: NCI palliative/supportive family; qualify separately from oncology PDQ; activation deferred.
+    activation: "NO"
+    activation_authorized_this_gate: "NO"

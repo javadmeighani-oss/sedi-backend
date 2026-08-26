@@ -38,6 +38,8 @@ _WAVE02_URL_COVERAGE: tuple[tuple[str, Wave02CoverageIdentity], ...] = (
     ("rarediseases.html", Wave02CoverageIdentity("D14", "disease_clinical", "rare_disease", "rare diseases")),
     ("rehabilitation.html", Wave02CoverageIdentity("D15", "disease_clinical", "rehabilitation", "rehabilitation")),
     ("palliativecare.html", Wave02CoverageIdentity("D16", "disease_clinical", "palliative", "palliative care")),
+    ("cdc.gov/niosh", Wave02CoverageIdentity("D17", "environmental_occupational", "occupational_health", "environmental and occupational health")),
+    ("/niosh/", Wave02CoverageIdentity("D17", "environmental_occupational", "occupational_health", "environmental and occupational health")),
     ("heartdiseases.html", Wave02CoverageIdentity("", "cardiovascular", "heart", "heart disease")),
     ("diabetes.html", Wave02CoverageIdentity("", "diabetes_metabolic", "diabetes", "diabetes")),
     ("nutrition.html", Wave02CoverageIdentity("", "nutrition", "nutrition", "nutrition")),
