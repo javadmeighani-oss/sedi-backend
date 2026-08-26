@@ -185,7 +185,19 @@ def retrieve(db: Session, request: ScisRetrievalRequest, *, provider: Optional[S
                 embedding_model=payload.get("model_identifier"),
                 embedding_version=None,
                 provenance=build_provenance(payload),
-                metadata={"ku_domain": payload.get("ku_domain"), "branches": branches},
+                metadata={
+                    "ku_domain": payload.get("ku_domain"),
+                    "branches": branches,
+                    "ku_provenance_complete": payload.get("ku_provenance_complete"),
+                    "ku_evidence_strength": payload.get("ku_evidence_strength"),
+                    "ku_freshness_state": payload.get("ku_freshness_state"),
+                    "ku_conflict_state": payload.get("ku_conflict_state"),
+                    "ku_medical_safety_state": payload.get("ku_medical_safety_state"),
+                    "ku_publication_state": payload.get("ku_publication_state"),
+                    "ku_retraction_reason": payload.get("ku_retraction_reason"),
+                    "retracted_at": payload.get("retracted_at"),
+                    "knowledge_type": payload.get("ku_knowledge_type"),
+                },
             )
         )
     timings["fusion_ms"] = (time.perf_counter() - t0) * 1000

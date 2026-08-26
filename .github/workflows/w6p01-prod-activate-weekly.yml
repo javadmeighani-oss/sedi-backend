@@ -9,6 +9,7 @@
 #   AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION → discover/qualify/monitor only (NO activation)
 #   COVERAGE_CLOSURE_AUTONOMOUS_GOVERNANCE → weekly side-stage ON + D08/D10/D11/D13/D14/D15 Gate activation
 #   D08_NIDCD_EXTRACTION_CONTENT_QUALITY_HARDENING → D08-only NIDCD claim-window/content-quality harden
+#   KNOW07_EVIDENCE_AWARE_SCIS_PUBLICATION_EVAL → evidence-aware SCIS publication/retrieval + clinical eval proof
 # Fail-closed paths differ per job (see job bodies).
 name: W6-P01 Production Activate Weekly
 
@@ -16,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | WAVE02_I5_D01_D17_EXPANSION | NIOSH_D17_QUALIFIED_ACTIVATION | QUALIFIED_SOURCE_ACTIVATION_WAVE01 | SPECIALIZED_D18_D19_ELIGIBILITY | AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION | COVERAGE_CLOSURE_AUTONOMOUS_GOVERNANCE | D08_NIDCD_EXTRACTION_CONTENT_QUALITY_HARDENING"
+        description: "ACTIVATE_W6P01_WEEKLY | ACTIVATE_I5_MULTISOURCE_V1 | WAVE01_I5_GOVERNED_EXPANSION | WAVE02_I5_D01_D17_EXPANSION | NIOSH_D17_QUALIFIED_ACTIVATION | QUALIFIED_SOURCE_ACTIVATION_WAVE01 | SPECIALIZED_D18_D19_ELIGIBILITY | AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION | COVERAGE_CLOSURE_AUTONOMOUS_GOVERNANCE | D08_NIDCD_EXTRACTION_CONTENT_QUALITY_HARDENING | KNOW07_EVIDENCE_AWARE_SCIS_PUBLICATION_EVAL"
         required: true
       deployed_image_sha:
         description: "40-character lowercase Git commit SHA of the deployed backend image."
@@ -402,6 +403,125 @@ jobs:
         with:
           name: i5-d08-nidcd-prod-log
           path: /tmp/i5_d08_nidcd_prod.log
+          retention-days: 14
+
+  know07-evidence-aware-scis-publication-eval:
+    name: KNOW-07 evidence-aware SCIS publication eval
+    if: github.event.inputs.confirmation == 'KNOW07_EVIDENCE_AWARE_SCIS_PUBLICATION_EVAL'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+      - uses: actions/checkout@v4
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+      - name: Stage artifacts
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5/know07_scis"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")/know07"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/app/services/i5/know07/__init__.py \
+            backend/app/services/i5/know07/exclusions.py \
+            backend/app/services/i5/know07/conflict.py \
+            backend/app/services/i5/know07/publication.py \
+            backend/app/services/i5/know07/evidence_bundle.py \
+            backend/app/services/i5/know07/living_knowledge.py \
+            backend/app/services/i5/know07/clinical_eval.py \
+            backend/app/services/scis/retrieval.py \
+            backend/scripts/i5_know07_evidence_aware_scis_prod_proof.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "cd $(printf '%q' "${REMOTE_DIR}") && mv __init__.py exclusions.py conflict.py publication.py evidence_bundle.py living_knowledge.py clinical_eval.py know07/"
+      - name: KNOW-07 production retrieval + clinical eval proof
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_SHA}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_REV}")"
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_know07_prod.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "KNOW07_SUMMARY|$1|$2"; }
+          HOST="${DEPLOY_PATH}/ops/i5/know07_scis"
+          CTR_K07="/app/backend/app/services/i5/know07"
+          CTR_RET="/app/backend/app/services/scis/retrieval.py"
+          CTR_PROOF="/app/backend/scripts/i5_know07_evidence_aware_scis_prod_proof.py"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          wait_health() {
+            local ok=0 i
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then ok=1; break; fi
+              sleep 2
+            done
+            [ "${ok}" = "1" ] || { log "HEALTH_FAILED"; return 1; }
+            curl -fsS http://127.0.0.1:8000/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+          }
+          cd "${DEPLOY_PATH}"
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          summary "pre_image" "${CURRENT_IMAGE:-none}"
+          if [ "${CURRENT_IMAGE}" != "${IMAGE_TAG}" ]; then log "image mismatch"; exit 5; fi
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then exit 5; fi
+          docker exec sedi-backend mkdir -p "${CTR_K07}" /app/backend/scripts /app/backend/app/services/scis
+          docker cp "${HOST}/know07/." "sedi-backend:${CTR_K07}/"
+          docker cp "${HOST}/retrieval.py" "sedi-backend:${CTR_RET}"
+          docker cp "${HOST}/i5_know07_evidence_aware_scis_prod_proof.py" "sedi-backend:${CTR_PROOF}"
+          docker exec sedi-backend grep -Fq 'PURE_VECTOR_ONLY_RAG_ALLOWED' "${CTR_K07}/__init__.py"
+          docker exec sedi-backend grep -Fq 'ku_freshness_state' "${CTR_RET}"
+          docker exec \
+            -e PYTHONUNBUFFERED=1 \
+            -e PYTHONPATH=/app \
+            -e SEDI_I5_MULTISOURCE_ENABLED=1 \
+            -e I5_AUTONOMOUS_GOVERNANCE_SIDE_STAGE=1 \
+            -w /app sedi-backend python "${CTR_PROOF}"
+          wait_health
+          summary "health" "pass"
+          summary "know07_proof" "SUCCESS"
+          REMOTE_SCRIPT
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## KNOW-07 evidence-aware SCIS publication eval"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_know07_prod.log ]; then
+              grep '^KNOW07_SUMMARY|' /tmp/i5_know07_prod.log | while IFS='|' read -r _ k v; do echo "- **${k}:** ${v}"; done || true
+              grep -E '^\{' /tmp/i5_know07_prod.log | tail -n 40 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i5-know07-prod-log
+          path: /tmp/i5_know07_prod.log
           retention-days: 14
 
   qualified-source-activation-wave01:

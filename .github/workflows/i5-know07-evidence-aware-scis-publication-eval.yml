@@ -1,0 +1,62 @@
+# I5-KNOW-07 Evidence-Aware SCIS Publication + Clinical Eval
+# Offline contract/eval suite. NO Production mutation in this workflow.
+name: I5-KNOW-07 Evidence-Aware SCIS Publication Eval
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/know07/**"
+      - "backend/app/services/scis/retrieval.py"
+      - "backend/app/services/scis/eligibility.py"
+      - "backend/app/services/scis/serving_bridge.py"
+      - "backend/tests/test_i5_know07_evidence_aware_scis_publication_eval.py"
+      - "backend/tests/test_i5_know06_patient_evidence_applicability_contract.py"
+      - "docs/architecture/i5-final-knowledge-architecture-freeze-01/08_EVIDENCE_AWARE_RAG_SCIS_CONTRACT.md"
+      - "backend/scripts/i5_know07_evidence_aware_scis_prod_proof.py"
+      - ".github/workflows/i5-know07-evidence-aware-scis-publication-eval.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-know07-eval-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  know07-eval:
+    name: KNOW-07 publication + clinical eval
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+      - name: KNOW-07 + KNOW-06 boundary regression
+        run: |
+          set -o pipefail
+          python -B -m pytest \
+            --noconftest \
+            -p no:cacheprovider \
+            -q --tb=short \
+            backend/tests/test_i5_know07_evidence_aware_scis_publication_eval.py \
+            backend/tests/test_i5_know06_patient_evidence_applicability_contract.py \
+            | tee know07_pytest.log
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-know07-eval-pytest
+          path: know07_pytest.log
