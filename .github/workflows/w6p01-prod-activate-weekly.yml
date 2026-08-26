@@ -122,7 +122,7 @@ jobs:
           docker cp "${HOST}/autonomous_source_governance.py" "sedi-backend:${CTR_GOV}"
           docker cp "${HOST}/candidate_qualification_registry.py" "sedi-backend:${CTR_CQR}"
           docker cp "${HOST}/weekly_orchestrator.py" "sedi-backend:${CTR_WO}"
-          docker exec sedi-backend python - <<'PY'
+          docker exec -i sedi-backend python - <<'PY'
           import json
           from backend.app.database import get_db
           import backend.app.models as models
