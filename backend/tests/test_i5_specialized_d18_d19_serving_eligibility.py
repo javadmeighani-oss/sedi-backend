@@ -146,7 +146,12 @@ def test_heart_disease_url_not_specialized_eligible():
         canonical_url="https://medlineplus.gov/heartdiseases.html",
     )
     assert allowed is False
-    assert reason in {"URL_NOT_IN_ENTITY_SCOPE", "ENTITY_IDENTITY_MISSING", "MISSING_CLINICAL_IDENTITY"}
+    assert reason in {
+        "URL_NOT_IN_ENTITY_SCOPE",
+        "ENTITY_IDENTITY_MISSING",
+        "MISSING_CLINICAL_IDENTITY",
+        "ENTITY_NOT_AUTHORIZED_FOR_SOURCE",
+    }
 
 
 def test_strip_html_nav_chrome_keeps_clinical():

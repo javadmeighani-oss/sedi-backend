@@ -256,7 +256,7 @@ D13 = SpecializedEntitySpec(
     domain="infectious",
     topic="infectious_diseases",
     url_needles=("cdc.gov/ncezid", "/ncezid/"),
-    clinical_tokens=("infect", "virus", "bacteria", "outbreak", "disease", "pathogen", "ncezid"),
+    clinical_tokens=("infectious", "infection", "virus", "bacteria", "outbreak", "pathogen", "ncezid"),
     disease_label="infectious diseases beyond hepatitis",
 )
 
@@ -358,6 +358,16 @@ def specialized_allowed_entities_for_source(source_key: str) -> set[str]:
     return set()
 
 
+def _clinical_token_hit(tok: str, sample: str) -> bool:
+    """Avoid short-token false positives (e.g. 'ear' inside 'search')."""
+    t = (tok or "").casefold().strip()
+    if not t:
+        return False
+    if " " in t or len(t) >= 5:
+        return t in sample
+    return re.search(rf"(?<![a-z0-9]){re.escape(t)}(?![a-z0-9])", sample) is not None
+
+
 def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     text = (statement or "").strip()
     if len(text) < 40:
@@ -366,7 +376,7 @@ def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
     chrome_hits = sum(1 for marker in _NAV_CHROME_MARKERS if marker in sample)
     clinical_hits = 0
     for spec in SPECIALIZED_SPECS:
-        clinical_hits += sum(1 for tok in spec.clinical_tokens if tok in sample)
+        clinical_hits += sum(1 for tok in spec.clinical_tokens if _clinical_token_hit(tok, sample))
     if chrome_hits >= 2 and clinical_hits == 0:
         return True
     head = sample[:180]
@@ -378,7 +388,7 @@ def statement_dominated_by_nav_chrome(statement: Optional[str]) -> bool:
 
 def statement_has_clinical_identity(statement: Optional[str], spec: SpecializedEntitySpec) -> bool:
     sample = (statement or "").casefold()
-    return any(tok in sample for tok in spec.clinical_tokens)
+    return any(_clinical_token_hit(tok, sample) for tok in spec.clinical_tokens)
 
 
 def content_quality_pass(statement: Optional[str], spec: SpecializedEntitySpec) -> tuple[bool, str]:
@@ -412,7 +422,7 @@ def infer_specialized_spec_for_ku(
     topic = str(getattr(ku, "topic_taxonomy", None) or "").casefold()
     blob = f"{disease} {statement} {topic}"
     for spec in SPECIALIZED_SPECS:
-        if any(tok in blob for tok in spec.clinical_tokens):
+        if any(_clinical_token_hit(tok, blob) for tok in spec.clinical_tokens):
             return spec
         if any(needle in blob for needle in spec.url_needles):
             return spec
