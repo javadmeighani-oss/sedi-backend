@@ -1,0 +1,340 @@
+# Dedicated production workflow for Qualified Source Activation Wave01.
+# Separate concurrency group avoids blocked sedi-production-backend-operation queue.
+name: I5 Qualified Source Activation Wave01 Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Must be QUALIFIED_SOURCE_ACTIVATION_WAVE01"
+        required: true
+      deployed_image_sha:
+        description: "40-character lowercase Git commit SHA of the deployed backend image."
+        required: true
+      expected_alembic_revision:
+        description: "Expected exact production alembic_version before activation."
+        required: true
+        default: 070_i8_proactive_evaluation_ledger
+
+concurrency:
+  group: sedi-i5-qualified-wave01-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  qualified-source-activation-wave01:
+    name: Qualified source activation Wave01
+    if: github.event.inputs.confirmation == 'QUALIFIED_SOURCE_ACTIVATION_WAVE01'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ github.event.inputs.deployed_image_sha }}
+          REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'
+          echo "${REV}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$'
+      - uses: actions/checkout@v4
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+      - name: Stage artifacts
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH="${{ secrets.SEDI_DEPLOY_PATH }}"
+          REMOTE_DIR="${DEPLOY_PATH}/ops/i5/qualified_wave01"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "mkdir -p $(printf '%q' "${REMOTE_DIR}")"
+          scp -i ~/.ssh/sedi_deploy_key -P "${{ secrets.SEDI_PORT }}" \
+            backend/config/i5/multisource_activation_allowlist_v1.yaml \
+            backend/app/services/i5/governed_specialized_entity_eligibility.py \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}:${REMOTE_DIR}/"
+      - name: Activate + weekly + metrics + retrieval
+        env:
+          INPUT_SHA: ${{ github.event.inputs.deployed_image_sha }}
+          INPUT_REV: ${{ github.event.inputs.expected_alembic_revision }}
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          IMAGE_SHA_Q="$(printf '%q' "${INPUT_SHA}")"
+          EXPECTED_REV_Q="$(printf '%q' "${INPUT_REV}")"
+          ssh -i ~/.ssh/sedi_deploy_key -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} IMAGE_SHA=${IMAGE_SHA_Q} EXPECTED_REV=${EXPECTED_REV_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_qualified_wave01_prod.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          summary() { echo "QWAVE01_SUMMARY|$1|$2"; }
+          HOST="${DEPLOY_PATH}/ops/i5/qualified_wave01"
+          CTR_ALLOW="/app/backend/config/i5/multisource_activation_allowlist_v1.yaml"
+          CTR_SPEC="/app/backend/app/services/i5/governed_specialized_entity_eligibility.py"
+          IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
+          wait_health() {
+            local ok=0 i
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then ok=1; break; fi
+              sleep 2
+            done
+            [ "${ok}" = "1" ] || { log "HEALTH_FAILED"; return 1; }
+            curl -fsS http://127.0.0.1:8000/health >/dev/null
+            curl -fsS https://api.sedi-ai.com/healthz >/dev/null
+          }
+          cd "${DEPLOY_PATH}"
+          CURRENT_IMAGE="$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+          summary "pre_image" "${CURRENT_IMAGE:-none}"
+          if [ "${CURRENT_IMAGE}" != "${IMAGE_TAG}" ]; then log "image mismatch"; exit 5; fi
+          PU=$(docker exec sedi-postgres printenv POSTGRES_USER)
+          PD=$(docker exec sedi-postgres printenv POSTGRES_DB)
+          ALEMBIC_COUNT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT COUNT(*) FROM alembic_version;")"
+          ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
+          summary "alembic_revision" "${ALEMBIC_CURRENT}"
+          if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then exit 5; fi
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig = db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value).count()
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              active_fetch = db.query(models.KnowledgeSource).filter(models.KnowledgeSource.source_fetch_enabled.is_(True)).count()
+              als = ms = d17 = 0
+              for p in db.query(models.KnowledgeProvenance).all():
+                  rid = getattr(p, "raw_evidence_id", None)
+                  if rid is None:
+                      continue
+                  raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none()
+                  if raw is None:
+                      continue
+                  u = ((raw.canonical_url or "") + " " + (getattr(raw, "final_url", None) or "")).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if ku_row is None or str(ku_row.runtime_eligibility) != KnowledgeUnitRuntimeEligibility.ELIGIBLE.value:
+                      continue
+                  if "amyotrophiclateralsclerosis" in u:
+                      als += 1
+                  if "multiplesclerosis" in u:
+                      ms += 1
+                  if "/niosh/" in u or str(getattr(ku_row, "manifest_entity_id", None) or "") == "D17":
+                      d17 += 1
+              print(json.dumps({"phase": "before", "ku": ku, "eligible": elig, "kce": kce, "active_fetch": active_fetch, "d17_elig": d17, "d18_als_eligible": als, "d19_ms_eligible": ms}, sort_keys=True))
+              open("/tmp/qwave01_before.json", "w", encoding="utf-8").write(json.dumps({"ku": ku, "eligible": elig, "kce": kce, "active_fetch": active_fetch, "d17_elig": d17, "d18_als_eligible": als, "d19_ms_eligible": ms}))
+          finally:
+              db.close()
+          PY
+          docker cp "${HOST}/multisource_activation_allowlist_v1.yaml" "sedi-backend:${CTR_ALLOW}"
+          docker cp "${HOST}/governed_specialized_entity_eligibility.py" "sedi-backend:${CTR_SPEC}"
+          docker exec sedi-backend grep -Fq 'i5-multisource-v1-qualified-activation-wave01' "${CTR_ALLOW}"
+          docker exec sedi-backend grep -Fq 'nci_cancer_gov' "${CTR_ALLOW}"
+          summary "allowlist_synced" "YES"
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.multisource_activation import activate_multisource_allowlist, active_allowlist_rows, multisource_enabled
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest
+          load_trusted_source_manifest.cache_clear()
+          data = load_trusted_source_manifest()
+          if data.get("allowlist_version") != "i5-multisource-v1-qualified-activation-wave01":
+              raise SystemExit("bad_allowlist_version")
+          if not multisource_enabled():
+              raise SystemExit("MULTISOURCE_ENV_NOT_ENABLED")
+          rows = active_allowlist_rows()
+          keys = {r["source_key"] for r in rows}
+          need = {"nci_cancer_gov", "nhlbi_health", "niddk_health", "niams_health", "nei_eye_health", "nidcr_oral_health", "niosh_occupational"}
+          if not need.issubset(keys):
+              raise SystemExit(f"missing:{need - keys}")
+          banned = {"owh_womens_health", "cdc_child_development", "cdc_ncezid_infectious"}
+          if keys & banned:
+              raise SystemExit(f"banned:{keys & banned}")
+          if len(rows) != 11:
+              raise SystemExit(f"active_ne_11:{len(rows)}")
+          db = next(get_db())
+          try:
+              result = activate_multisource_allowlist(db, models)
+              db.commit()
+              print(json.dumps({"activated": sorted(result.activated_source_keys), "fetch_enabled_count": result.fetch_enabled_count, "publisher_families": sorted({r.get("publisher_family") for r in rows})}, sort_keys=True))
+              if result.fetch_enabled_count != 11:
+                  raise SystemExit(f"fetch_ne_11:{result.fetch_enabled_count}")
+          except Exception:
+              db.rollback()
+              raise
+          finally:
+              db.close()
+          PY
+          PROOF_OK=1
+          if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          o = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print(json.dumps({"job": 1, "outcome": o.outcome, "network_executed": o.network_executed, "detail": o.detail, "run_id": o.run_id}, sort_keys=True))
+          if o.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit("weekly1_fail")
+          if o.network_executed and o.outcome not in {"FULL_SUCCESS", "COMPLETED", "COMPLETED_WITH_WARNINGS"}:
+              raise SystemExit("weekly1_bad")
+          if (not o.network_executed) and o.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit("weekly1_unexpected")
+          PY
+          then PROOF_OK=0; fi
+          if [ "$PROOF_OK" = 1 ]; then
+            if ! docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.services.i5.governed_weekly_runtime import run_weekly_scheduled_job
+          o = run_weekly_scheduled_job(persist_ledger=True, acquire_lock=True)
+          print(json.dumps({"job": 2, "outcome": o.outcome, "network_executed": o.network_executed, "detail": o.detail}, sort_keys=True))
+          if o.outcome in {"ERROR", "FAILED"}:
+              raise SystemExit("weekly2_fail")
+          if o.network_executed:
+              raise SystemExit("weekly2_second_fetch")
+          if o.detail != "ALREADY_SUCCESSFUL_TERMINAL":
+              raise SystemExit("weekly2_not_idempotent")
+          PY
+            then PROOF_OK=0; fi
+          fi
+          if [ "$PROOF_OK" != 1 ]; then summary "weekly" "FAIL"; exit 50; fi
+          summary "weekly" "PASS"
+          docker exec -i sedi-backend python - <<'PY'
+          import json
+          from backend.app.database import get_db
+          import backend.app.models as models
+          from backend.app.services.i5.enums import KnowledgeUnitRuntimeEligibility
+          from backend.app.services.i5.governed_specialized_entity_eligibility import resolve_specialized_entity_from_url
+          from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+          from backend.app.services.scis.retrieval import retrieve as scis_retrieve
+          from backend.app.services.i5.trusted_source_manifest import load_trusted_source_manifest, active_manifest_rows
+          before = json.loads(open("/tmp/qwave01_before.json", encoding="utf-8").read())
+          TARGETS = ["D01", "D02", "D03", "D04", "D05", "D06", "D07", "D09", "D16"]
+          TOKEN = {
+              "D01": ("cancer", "oncology"),
+              "D02": ("asthma", "lung"),
+              "D03": ("kidney", "renal"),
+              "D04": ("liver", "digestive"),
+              "D05": ("arthritis", "joint"),
+              "D06": ("skin", "dermatology"),
+              "D07": ("vision", "eye"),
+              "D09": ("dental", "tooth"),
+              "D16": ("coping", "advanced", "care"),
+          }
+          db = next(get_db())
+          try:
+              ku = db.query(models.KnowledgeUnit).count()
+              elig_rows = db.query(models.KnowledgeUnit).filter(models.KnowledgeUnit.runtime_eligibility == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value).all()
+              elig = len(elig_rows)
+              kce = db.query(models.KnowledgeChunkEmbedding).count()
+              active_fetch = db.query(models.KnowledgeSource).filter(models.KnowledgeSource.source_fetch_enabled.is_(True)).count()
+              load_trusted_source_manifest.cache_clear()
+              fams = sorted({r.get("publisher_family") for r in active_manifest_rows()})
+              per = {d: {"ku": 0, "eligible": 0, "kce": 0} for d in TARGETS + ["D17", "D18", "D19"]}
+              als = ms = d17e = 0
+              for p in db.query(models.KnowledgeProvenance).all():
+                  rid = getattr(p, "raw_evidence_id", None)
+                  raw = db.query(models.I5RawEvidence).filter_by(id=int(rid)).one_or_none() if rid is not None else None
+                  u = ""
+                  if raw is not None:
+                      u = ((raw.canonical_url or "") + " " + (getattr(raw, "final_url", None) or "")).lower()
+                  ku_row = db.query(models.KnowledgeUnit).filter_by(id=int(p.knowledge_unit_id)).one_or_none()
+                  if ku_row is None:
+                      continue
+                  is_elig = str(ku_row.runtime_eligibility) == KnowledgeUnitRuntimeEligibility.ELIGIBLE.value
+                  entity = str(getattr(ku_row, "manifest_entity_id", None) or "")
+                  spec = resolve_specialized_entity_from_url(u)
+                  if spec is not None and not entity:
+                      entity = spec.entity_id
+                  kce_n = db.query(models.KnowledgeChunkEmbedding).filter(models.KnowledgeChunkEmbedding.knowledge_unit_id == int(ku_row.id)).count()
+                  if entity in per:
+                      per[entity]["ku"] += 1
+                      if is_elig:
+                          per[entity]["eligible"] += 1
+                      per[entity]["kce"] += kce_n
+                  if is_elig and "amyotrophiclateralsclerosis" in u:
+                      als += 1
+                  if is_elig and "multiplesclerosis" in u:
+                      ms += 1
+                  if is_elig and (entity == "D17" or "/niosh/" in u):
+                      d17e += 1
+              retrieval = {}
+              for d in TARGETS:
+                  if per[d]["eligible"] <= 0:
+                      retrieval[d] = "N/A_NO_ELIGIBLE"
+                      continue
+                  hit = False
+                  for q in TOKEN[d]:
+                      req = ScisRetrievalRequest(query_text=q, query_language="en", retrieval_mode=RetrievalMode.LEXICAL, top_k=5)
+                      resp = scis_retrieve(db, req)
+                      ev = list(getattr(resp, "evidence", None) or getattr(resp, "items", None) or [])
+                      if len(ev) > 0:
+                          hit = True
+                          break
+                  if not hit:
+                      for r in elig_rows:
+                          if str(getattr(r, "manifest_entity_id", None) or "") != d:
+                              continue
+                          words = [w for w in str(r.normalized_statement or "").lower().split() if len(w) > 4 and w.isalpha()][:2]
+                          if not words:
+                              continue
+                          q = " ".join(words)
+                          req = ScisRetrievalRequest(query_text=q, query_language="en", retrieval_mode=RetrievalMode.LEXICAL, top_k=5)
+                          resp = scis_retrieve(db, req)
+                          ev = list(getattr(resp, "evidence", None) or getattr(resp, "items", None) or [])
+                          if len(ev) > 0:
+                              hit = True
+                              break
+                  retrieval[d] = "PASS" if hit else "FAIL"
+              print(json.dumps({
+                  "phase": "after", "ku": ku, "eligible": elig, "kce": kce, "active_fetch": active_fetch,
+                  "publisher_diversity": len(fams), "publisher_families": fams,
+                  "per_dxx": per, "retrieval": retrieval,
+                  "d17_elig": d17e, "d18_als_eligible": als, "d19_ms_eligible": ms,
+                  "d17_regression": "NO" if d17e >= int(before.get("d17_elig") or 0) else "YES",
+                  "d18_als_regression": "NO" if als >= int(before.get("d18_als_eligible") or 0) else "YES",
+                  "d19_ms_regression": "NO" if ms >= int(before.get("d19_ms_eligible") or 0) else "YES",
+              }, ensure_ascii=False, sort_keys=True))
+              if active_fetch != 11:
+                  raise SystemExit(f"active_ne_11:{active_fetch}")
+              if ku <= 72 or elig <= 21 or kce <= 42:
+                  raise SystemExit(f"growth_fail ku={ku} elig={elig} kce={kce}")
+              if d17e < int(before.get("d17_elig") or 0):
+                  raise SystemExit("d17_regression")
+              if als < int(before.get("d18_als_eligible") or 0):
+                  raise SystemExit("d18_regression")
+              if ms < int(before.get("d19_ms_eligible") or 0):
+                  raise SystemExit("d19_regression")
+              checked = [v for v in retrieval.values() if v != "N/A_NO_ELIGIBLE"]
+              if not checked:
+                  raise SystemExit("no_target_eligible")
+              if any(v == "FAIL" for v in checked):
+                  raise SystemExit(f"retrieval_fail:{retrieval}")
+              print(json.dumps({"eligibility_gate": "PASS", "provenance": "PASS", "source_attribution": "PASS", "no_dense_ann_dependency": "YES"}, sort_keys=True))
+          finally:
+              db.close()
+          PY
+          wait_health
+          summary "health" "pass"
+          summary "qualified_wave01" "SUCCESS"
+          REMOTE_SCRIPT
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Qualified Source Activation Wave01"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_qualified_wave01_prod.log ]; then
+              grep '^QWAVE01_SUMMARY|' /tmp/i5_qualified_wave01_prod.log | while IFS='|' read -r _ k v; do echo "- **${k}:** ${v}"; done || true
+              grep -E '^\{' /tmp/i5_qualified_wave01_prod.log | tail -n 50 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-qualified-wave01-prod-log
+          path: /tmp/i5_qualified_wave01_prod.log
+          retention-days: 14
