@@ -11,9 +11,9 @@ on:
       - "backend/app/services/scis/eligibility.py"
       - "backend/app/services/scis/serving_bridge.py"
       - "backend/tests/test_i5_know07_evidence_aware_scis_publication_eval.py"
-      - "backend/tests/test_i5_know06_patient_evidence_applicability_contract.py"
-      - "docs/architecture/i5-final-knowledge-architecture-freeze-01/08_EVIDENCE_AWARE_RAG_SCIS_CONTRACT.md"
+      - "backend/tests/test_i5_final_readiness_answer_path.py"
       - "backend/scripts/i5_know07_evidence_aware_scis_prod_proof.py"
+      - "backend/scripts/i5_final_readiness_prod_proof.py"
       - ".github/workflows/i5-know07-evidence-aware-scis-publication-eval.yml"
 
 permissions:
@@ -52,6 +52,7 @@ jobs:
             -p no:cacheprovider \
             -q --tb=short \
             backend/tests/test_i5_know07_evidence_aware_scis_publication_eval.py \
+            backend/tests/test_i5_final_readiness_answer_path.py \
             backend/tests/test_i5_know06_patient_evidence_applicability_contract.py \
             | tee know07_pytest.log
       - name: Upload log
