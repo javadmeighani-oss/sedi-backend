@@ -309,7 +309,7 @@ def merge_discovered_into_registry(
     return base, {"new_candidates": new_count, "duplicate_suppressed": dup_suppressed}
 
 
-def _live_http_probe(url: str, *, timeout: float = 8.0) -> dict[str, Any]:
+def _live_http_probe(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
     """Bounded live probe. Fail-closed on ambiguity."""
     import urllib.error
     import urllib.request
@@ -801,7 +801,7 @@ def run_foundation_pipeline(
     )
     assert_no_auto_activation(qualified_rows)
     after_counts = status_counts(qualified_rows)
-    findings = monitor_active_and_qualified(qualified_rows, live=live)
+    findings = monitor_active_and_qualified(qualified_rows, live=live, max_subjects=8 if live else 16)
     matrix = build_d01_d19_matrix(per_dxx=per_dxx, serving_proof=serving_proof)
 
     active_fetch = len(list(active_manifest_rows()))
