@@ -98,7 +98,7 @@ jobs:
           CTR_GOV="/app/backend/app/services/i5/autonomous_source_governance.py"
           CTR_CQR="/app/backend/app/services/i5/candidate_qualification_registry.py"
           CTR_WO="/app/backend/app/services/i5/weekly_orchestrator.py"
-          CTR_PROOF="/tmp/i5_autonomous_governance_prod_proof.py"
+          CTR_PROOF="/app/backend/scripts/i5_autonomous_governance_prod_proof.py"
           IMAGE_TAG="ghcr.io/javadmeighani-oss/sedi-backend:${IMAGE_SHA}"
           wait_health() {
             local ok=0 i
@@ -120,6 +120,7 @@ jobs:
           ALEMBIC_CURRENT="$(docker exec sedi-postgres psql -U "${PU}" -d "${PD}" -tA -c "SELECT version_num FROM alembic_version;")"
           summary "alembic_revision" "${ALEMBIC_CURRENT}"
           if [ "${ALEMBIC_COUNT}" != "1" ] || [ "${ALEMBIC_CURRENT}" != "${EXPECTED_REV}" ]; then exit 5; fi
+          docker exec sedi-backend mkdir -p /app/backend/scripts
           docker cp "${HOST}/candidate_qualification_registry_v1.yaml" "sedi-backend:${CTR_REG}"
           docker cp "${HOST}/autonomous_discovery_seed_catalog_v1.yaml" "sedi-backend:${CTR_SEED}"
           docker cp "${HOST}/autonomous_source_governance.py" "sedi-backend:${CTR_GOV}"
@@ -127,7 +128,7 @@ jobs:
           docker cp "${HOST}/weekly_orchestrator.py" "sedi-backend:${CTR_WO}"
           docker cp "${HOST}/i5_autonomous_governance_prod_proof.py" "sedi-backend:${CTR_PROOF}"
           # Do NOT use docker exec -i with nested heredoc (consumes REMOTE_SCRIPT stdin).
-          docker exec -e PYTHONUNBUFFERED=1 sedi-backend python "${CTR_PROOF}"
+          docker exec -e PYTHONUNBUFFERED=1 -e PYTHONPATH=/app -w /app sedi-backend python "${CTR_PROOF}"
           docker cp sedi-backend:/tmp/i5_autonomous_governance_ledger.json "${HOST}/ledger.json"
           wait_health
           summary "health" "pass"
