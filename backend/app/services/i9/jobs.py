@@ -592,6 +592,17 @@ def run_aggregation_baseline_sweep(
             batch_size=batch,
             after_subject_id=cursor_before,
         )
+        if not subject_ids and cursor_before > 0:
+            cursor_stats.cursor_wrapped = True
+            set_i9_sweep_cursor(bucket_kind, 0)
+            cursor_before = 0
+            cursor_stats.cursor_before = 0
+            subject_ids = eligible_health_subject_ids(
+                db,
+                activity_since=activity_since,
+                batch_size=batch,
+                after_subject_id=0,
+            )
     except Exception:
         cursor_stats.catastrophic_failure = True
         cursor_stats.completed = False

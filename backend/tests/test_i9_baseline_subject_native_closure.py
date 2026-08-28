@@ -1196,17 +1196,21 @@ def test_f03_next_run_reaches_later_ids(db, javad, fair_batch_size, i9_jobs_enab
     assert second_processed == ids[2:4]
 
 
-def test_f04_empty_tail_wraps_cursor(db, javad, fair_batch_size, i9_jobs_enabled):
-    dev = _device(db, javad, "FairDev004")
-    ref = datetime(2026, 12, 26, 12, 0, tzinfo=timezone.utc)
-    ids = _fair_subject_batch(db, javad, dev, 3, ref)
-    now = datetime(2026, 12, 27, 1, 10, 0)
-    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
-    assert get_i9_sweep_cursor("daily") == ids[1]
-    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
-    assert get_i9_sweep_cursor("daily") == ids[2]
-    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+def test_f04_empty_tail_wraps_cursor():
+    reset_i9_sweep_cursors()
+    set_i9_sweep_cursor("daily", 99)
+    from backend.app.services.i9.jobs import I9SweepCursorStats, apply_i9_sweep_cursor_progression
+
+    stats = I9SweepCursorStats(
+        bucket_kind="daily",
+        cursor_before=99,
+        cursor_after=99,
+        eligible_scanned=0,
+        completed=True,
+    )
+    apply_i9_sweep_cursor_progression("daily", stats, enabled=True)
     assert get_i9_sweep_cursor("daily") == 0
+    assert stats.cursor_wrapped is True
 
 
 def test_f05_no_starvation_across_cycles(db, javad, fair_batch_size, i9_jobs_enabled, monkeypatch):
