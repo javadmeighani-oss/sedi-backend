@@ -81,3 +81,38 @@ class HubStatusResponse(BaseModel):
     data: Optional[dict] = None
     error: Optional[dict] = None
 
+
+class DeviceProvisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str = Field(..., description="Logical device id for unclaimed platform identity")
+    device_type: Optional[str] = Field("heart_rate", description="Device type")
+
+
+class DeviceClaimRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str
+    health_subject_id: int
+    possession_proof: str = Field(..., description="COMMISSIONING_READY / per-device credential proof")
+    gateway_install_id: Optional[str] = Field(None, description="Optional stable mobile gateway install id")
+
+
+class DeviceTransferRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    health_subject_id: int
+    possession_proof: str = Field(..., description="Governed commissioning proof for new assignment")
+
+
+class DeviceGatewayPairRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    gateway_install_id: str = Field(..., min_length=8, max_length=128)
+
+
+class DeviceGatewayDisconnectRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    gateway_install_id: str = Field(..., min_length=8, max_length=128)
+

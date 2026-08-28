@@ -46,6 +46,7 @@ from backend.app.core.device_auth import (
     authorize_operational_device,
     reject_legacy_user_id_query,
     resolve_device_from_token,
+    resolve_device_credential_status,
 )
 from backend.app.services.vitals.vital_registry import VitalValidationError
 
@@ -248,12 +249,17 @@ def ingest_device_packet_route(
 ):
     """
     Canonical I9 device packet ingest. Subject attribution resolved server-side from binding.
-    Idempotent on device + client_packet_id.
+    Idempotent on device + client_packet_id. ACK contract for store-and-forward.
     """
     try:
-        device = resolve_device_from_token(db=db, token=token)
-        if device is None:
-            raise HTTPException(status_code=401, detail="Invalid device token")
+        device, auth_reject = resolve_device_credential_status(db=db, token=token)
+        if device is None or auth_reject:
+            ack = auth_reject or "AUTH_FAILURE"
+            return DevicePacketIngestResponse(
+                ok=False,
+                error={"code": ack, "message": "Device authentication failed"},
+                data={"ack_status": ack},
+            )
 
         trace_id = http_request.headers.get("X-TRACE-ID") or uuid.uuid4().hex
         packet_in = DevicePacketIngestInput(
@@ -278,14 +284,25 @@ def ingest_device_packet_route(
                 for o in body.observations
             ],
         )
-        result = ingest_device_packet(db, device=device, packet_in=packet_in, trace_id=trace_id)
+        try:
+            result = ingest_device_packet(db, device=device, packet_in=packet_in, trace_id=trace_id)
+        except ValueError as exc:
+            if str(exc) == "NO_ACTIVE_DEVICE_SUBJECT_BINDING":
+                return DevicePacketIngestResponse(
+                    ok=False,
+                    error={"code": "REJECTED_NO_BINDING", "message": str(exc)},
+                    data={"ack_status": "REJECTED_NO_BINDING"},
+                )
+            raise
         packet = result.packet
+        ack_status = "DUPLICATE" if result.dedupe_hit else "ACCEPTED"
         return DevicePacketIngestResponse(
             ok=True,
             data={
                 "packet_id": packet.id if packet else None,
                 "client_packet_id": body.client_packet_id,
                 "dedupe_hit": result.dedupe_hit,
+                "ack_status": ack_status,
                 "health_subject_id": result.health_subject_id,
                 "binding_id": result.binding_id,
                 "physiological_measurement_ids": result.physiological_measurement_ids,
@@ -296,7 +313,11 @@ def ingest_device_packet_route(
     except VitalValidationError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
     except ValueError as e:
-        return DevicePacketIngestResponse(ok=False, error={"code": "VALIDATION_ERROR", "message": str(e)})
+        return DevicePacketIngestResponse(
+            ok=False,
+            error={"code": "VALIDATION_ERROR", "message": str(e)},
+            data={"ack_status": "REJECTED"},
+        )
     except HTTPException:
         raise
     except Exception:

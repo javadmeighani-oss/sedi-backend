@@ -5,12 +5,18 @@ from datetime import datetime
 
 from backend.app.database import get_db
 from backend.app.models import Device, User, HealthSubject
-from backend.app.core.device_auth import generate_device_token, hash_device_token
+from backend.app.core.device_token_crypto import generate_device_token, hash_device_token
+from backend.app.services.i9.device_credential_verifier import credential_fingerprint_from_hash
 from backend.app.schemas.devices import (
     DeviceRegisterRequest,
     DeviceRegisterResponse,
     DevicesListResponse,
     HubStatusResponse,
+    DeviceClaimRequest,
+    DeviceTransferRequest,
+    DeviceGatewayPairRequest,
+    DeviceGatewayDisconnectRequest,
+    DeviceProvisionRequest,
 )
 from backend.app.schemas.health_subject import DeviceRebindRequest
 from backend.app.routers.auth_otp import get_current_user
@@ -21,6 +27,22 @@ from backend.app.services.gate5.gadget_hub_status import (
     build_hub_status_payload,
 )
 from backend.app.services.i9.device_binding_service import bind_device_to_subject, rebind_device
+from backend.app.services.i9.device_claim_service import (
+    DeviceClaimError,
+    claim_device_to_health_subject,
+    provision_unclaimed_device_platform,
+)
+from backend.app.services.i9.device_gateway_service import (
+    DeviceGatewayError,
+    authorize_mobile_gateway,
+    disconnect_mobile_gateway,
+)
+from backend.app.services.i9.device_lifecycle_service import (
+    DeviceLifecycleError,
+    release_device,
+    revoke_device_lifecycle,
+    transfer_device,
+)
 from backend.app.services.i9.health_subject_service import (
     account_can_access_subject,
     ensure_self_subject_for_account,
@@ -121,7 +143,11 @@ def register_device(
             )
         token = generate_device_token()
         existing.token_hash = hash_device_token(token)
+        existing.credential_fingerprint = credential_fingerprint_from_hash(existing.token_hash)
+        existing.credential_kind = "per_device_symmetric"
         existing.status = "active"
+        existing.claim_lifecycle_status = "claimed"
+        existing.owner_account_user_id = user_id
         existing.revoked_at = None
         existing.subject_user_id = _legacy_subject_user_id(
             db, body=body, account_user_id=user_id, health_subject_id=health_subject_id
@@ -147,16 +173,21 @@ def register_device(
         )
 
     token = generate_device_token()
+    token_hash = hash_device_token(token)
     legacy_subject_id = _legacy_subject_user_id(
         db, body=body, account_user_id=user_id, health_subject_id=health_subject_id
     )
     device = Device(
         user_id=user_id,
+        owner_account_user_id=user_id,
         subject_user_id=legacy_subject_id,
         device_id=body.device_id,
         device_type=requested_type or "heart_rate",
         status="active",
-        token_hash=hash_device_token(token),
+        claim_lifecycle_status="claimed",
+        credential_kind="per_device_symmetric",
+        credential_fingerprint=credential_fingerprint_from_hash(token_hash),
+        token_hash=token_hash,
         created_at=datetime.utcnow(),
         revoked_at=None,
         last_seen_at=None,
@@ -220,6 +251,188 @@ def get_gadget_hub_status(
     return HubStatusResponse(ok=True, data=payload)
 
 
+@router.post("/provision", response_model=DeviceRegisterResponse)
+def provision_device_platform(
+    body: DeviceProvisionRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Provision unclaimed device platform identity (factory/pilot)."""
+    try:
+        device, token = provision_unclaimed_device_platform(
+            db,
+            device_id=body.device_id,
+            device_type=body.device_type or "heart_rate",
+        )
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": device.device_id,
+                "token": token,
+                "claim_lifecycle_status": device.claim_lifecycle_status,
+            },
+        )
+    except DeviceClaimError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
+
+
+@router.post("/claim", response_model=DeviceRegisterResponse)
+def claim_device_route(
+    body: DeviceClaimRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Claim unclaimed/released device to authorized health subject with possession proof."""
+    device = db.query(Device).filter(Device.device_id == body.device_id).first()
+    if not device:
+        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+    try:
+        binding = claim_device_to_health_subject(
+            db,
+            device=device,
+            account_user_id=auth_user.id,
+            health_subject_id=body.health_subject_id,
+            possession_proof=body.possession_proof,
+            gateway_install_id=body.gateway_install_id,
+        )
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": device.device_id,
+                "health_subject_id": device.health_subject_id,
+                "binding_id": binding.id,
+                "claim_lifecycle_status": device.claim_lifecycle_status,
+            },
+        )
+    except DeviceClaimError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
+
+
+@router.post("/{device_id}/release", response_model=DeviceRegisterResponse)
+def release_device_route(
+    device_id: str,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Release device from active health subject binding; history preserved."""
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+    try:
+        prior = release_device(db, device=device, account_user_id=auth_user.id)
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": device.device_id,
+                "claim_lifecycle_status": device.claim_lifecycle_status,
+                "released_binding_id": prior.id if prior else None,
+            },
+        )
+    except DeviceLifecycleError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
+
+
+@router.post("/{device_id}/transfer", response_model=DeviceRegisterResponse)
+def transfer_device_route(
+    device_id: str,
+    body: DeviceTransferRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Transfer device to new health subject; old data stays on prior subject."""
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+    try:
+        binding = transfer_device(
+            db,
+            device=device,
+            account_user_id=auth_user.id,
+            new_health_subject_id=body.health_subject_id,
+            possession_proof=body.possession_proof,
+        )
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": device.device_id,
+                "health_subject_id": device.health_subject_id,
+                "binding_id": binding.id,
+            },
+        )
+    except DeviceLifecycleError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
+
+
+@router.post("/{device_id}/gateway/pair", response_model=DeviceRegisterResponse)
+def pair_gateway_route(
+    device_id: str,
+    body: DeviceGatewayPairRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Authorize mobile gateway relay; does not change health subject binding."""
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+    if device.owner_account_user_id is not None and device.owner_account_user_id != auth_user.id:
+        if device.user_id != auth_user.id:
+            return DeviceRegisterResponse(
+                ok=False,
+                error={"code": "DEVICE_ACCESS_DENIED", "message": "Not allowed to pair gateway for this device"},
+            )
+    try:
+        row = authorize_mobile_gateway(
+            db,
+            device=device,
+            gateway_install_id=body.gateway_install_id,
+            account_user_id=auth_user.id,
+        )
+        return DeviceRegisterResponse(
+            ok=True,
+            data={
+                "device_id": device.device_id,
+                "gateway_install_id": row.gateway_install_id,
+                "health_subject_id": device.health_subject_id,
+            },
+        )
+    except DeviceGatewayError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
+
+
+@router.post("/{device_id}/gateway/disconnect", response_model=DeviceRegisterResponse)
+def disconnect_gateway_route(
+    device_id: str,
+    body: DeviceGatewayDisconnectRequest,
+    auth_user: User = Depends(get_current_user),
+    _: None = Depends(_reject_legacy_user_id_query),
+    db: Session = Depends(get_db),
+):
+    """Disconnect gateway only; device binding unchanged."""
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if not device:
+        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+    disconnected = disconnect_mobile_gateway(
+        db,
+        device=device,
+        gateway_install_id=body.gateway_install_id,
+        account_user_id=auth_user.id,
+    )
+    return DeviceRegisterResponse(
+        ok=True,
+        data={
+            "device_id": device.device_id,
+            "gateway_install_id": body.gateway_install_id,
+            "disconnected": disconnected,
+            "health_subject_id": device.health_subject_id,
+        },
+    )
+
+
 @router.post("/{device_id}/rebind", response_model=DeviceRegisterResponse)
 def rebind_device_route(
     device_id: str,
@@ -260,18 +473,15 @@ def revoke_device(
     _: None = Depends(_reject_legacy_user_id_query),
     db: Session = Depends(get_db),
 ):
-    """Revoke a device owned by the authenticated user."""
-    user_id = auth_user.id
-    device = db.query(Device).filter(Device.device_id == device_id, Device.user_id == user_id).first()
+    """Revoke a device; future authentication rejected; history preserved."""
+    device = db.query(Device).filter(Device.device_id == device_id).first()
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
-
-    device.status = "revoked"
-    device.revoked_at = datetime.utcnow()
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-    return DeviceRegisterResponse(ok=True, data={"device_id": device.device_id, "status": device.status})
+    try:
+        revoke_device_lifecycle(db, device=device, account_user_id=auth_user.id)
+        return DeviceRegisterResponse(ok=True, data={"device_id": device.device_id, "status": device.status})
+    except DeviceLifecycleError as exc:
+        return DeviceRegisterResponse(ok=False, error={"code": exc.code, "message": exc.message})
 
 
 @router.post("/{device_id}/rotate-token", response_model=DeviceRegisterResponse)
@@ -288,7 +498,9 @@ def rotate_device_token(
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
 
     token = generate_device_token()
-    device.token_hash = hash_device_token(token)
+    token_hash = hash_device_token(token)
+    device.token_hash = token_hash
+    device.credential_fingerprint = credential_fingerprint_from_hash(token_hash)
     device.status = "active"
     device.revoked_at = None
     db.add(device)

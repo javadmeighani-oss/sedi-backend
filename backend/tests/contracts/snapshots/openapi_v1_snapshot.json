@@ -1067,6 +1067,75 @@
         "title": "DeviceAcknowledgeRequest",
         "type": "object"
       },
+      "DeviceClaimRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "gateway_install_id": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Optional stable mobile gateway install id",
+            "title": "Gateway Install Id"
+          },
+          "health_subject_id": {
+            "title": "Health Subject Id",
+            "type": "integer"
+          },
+          "possession_proof": {
+            "description": "COMMISSIONING_READY / per-device credential proof",
+            "title": "Possession Proof",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "health_subject_id",
+          "possession_proof"
+        ],
+        "title": "DeviceClaimRequest",
+        "type": "object"
+      },
+      "DeviceGatewayDisconnectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "gateway_install_id": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Gateway Install Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gateway_install_id"
+        ],
+        "title": "DeviceGatewayDisconnectRequest",
+        "type": "object"
+      },
+      "DeviceGatewayPairRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "gateway_install_id": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Gateway Install Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gateway_install_id"
+        ],
+        "title": "DeviceGatewayPairRequest",
+        "type": "object"
+      },
       "DeviceHeartbeatRequest": {
         "additionalProperties": false,
         "description": "Firmware heartbeat payload (device identity from X-DEVICE-TOKEN).",
@@ -1449,6 +1518,7 @@
         "type": "object"
       },
       "DevicePacketIngestResponse": {
+        "additionalProperties": false,
         "properties": {
           "data": {
             "anyOf": [
@@ -1483,6 +1553,34 @@
           "ok"
         ],
         "title": "DevicePacketIngestResponse",
+        "type": "object"
+      },
+      "DeviceProvisionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "description": "Logical device id for unclaimed platform identity",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "heart_rate",
+            "description": "Device type",
+            "title": "Device Type"
+          }
+        },
+        "required": [
+          "device_id"
+        ],
+        "title": "DeviceProvisionRequest",
         "type": "object"
       },
       "DeviceRebindRequest": {
@@ -1587,6 +1685,26 @@
           "ok"
         ],
         "title": "DeviceRegisterResponse",
+        "type": "object"
+      },
+      "DeviceTransferRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "health_subject_id": {
+            "title": "Health Subject Id",
+            "type": "integer"
+          },
+          "possession_proof": {
+            "description": "Governed commissioning proof for new assignment",
+            "title": "Possession Proof",
+            "type": "string"
+          }
+        },
+        "required": [
+          "health_subject_id",
+          "possession_proof"
+        ],
+        "title": "DeviceTransferRequest",
         "type": "object"
       },
       "DevicesListResponse": {
@@ -8994,7 +9112,7 @@
     },
     "/device/packet": {
       "post": {
-        "description": "Canonical I9 device packet ingest. Subject attribution resolved server-side from binding.\nIdempotent on device + client_packet_id.",
+        "description": "Canonical I9 device packet ingest. Subject attribution resolved server-side from binding.\nIdempotent on device + client_packet_id. ACK contract for store-and-forward.",
         "operationId": "ingest_device_packet_route_device_packet_post",
         "parameters": [
           {
@@ -9231,6 +9349,53 @@
         ]
       }
     },
+    "/devices/claim": {
+      "post": {
+        "description": "Claim unclaimed/released device to authorized health subject with possession proof.",
+        "operationId": "claim_device_route_devices_claim_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Claim Device Route",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
     "/devices/hub-status": {
       "get": {
         "description": "Return Gadget Hub operational status and registered sensors for the authenticated user.",
@@ -9253,6 +9418,53 @@
           }
         ],
         "summary": "Get Gadget Hub Status",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/provision": {
+      "post": {
+        "description": "Provision unclaimed device platform identity (factory/pilot).",
+        "operationId": "provision_device_platform_devices_provision_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceProvisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Provision Device Platform",
         "tags": [
           "Devices"
         ]
@@ -9300,6 +9512,122 @@
           }
         ],
         "summary": "Register Device",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{device_id}/gateway/disconnect": {
+      "post": {
+        "description": "Disconnect gateway only; device binding unchanged.",
+        "operationId": "disconnect_gateway_route_devices__device_id__gateway_disconnect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceGatewayDisconnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Disconnect Gateway Route",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{device_id}/gateway/pair": {
+      "post": {
+        "description": "Authorize mobile gateway relay; does not change health subject binding.",
+        "operationId": "pair_gateway_route_devices__device_id__gateway_pair_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceGatewayPairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Pair Gateway Route",
         "tags": [
           "Devices"
         ]
@@ -9363,9 +9691,57 @@
         ]
       }
     },
+    "/devices/{device_id}/release": {
+      "post": {
+        "description": "Release device from active health subject binding; history preserved.",
+        "operationId": "release_device_route_devices__device_id__release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Release Device Route",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
     "/devices/{device_id}/revoke": {
       "post": {
-        "description": "Revoke a device owned by the authenticated user.",
+        "description": "Revoke a device; future authentication rejected; history preserved.",
         "operationId": "revoke_device_devices__device_id__revoke_post",
         "parameters": [
           {
@@ -9454,6 +9830,64 @@
           }
         ],
         "summary": "Rotate Device Token",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{device_id}/transfer": {
+      "post": {
+        "description": "Transfer device to new health subject; old data stays on prior subject.",
+        "operationId": "transfer_device_route_devices__device_id__transfer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceTransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Transfer Device Route",
         "tags": [
           "Devices"
         ]

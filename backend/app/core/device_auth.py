@@ -11,16 +11,15 @@ Header name remains: X-DEVICE-TOKEN
 """
 
 import os
-import hashlib
 import logging
 from typing import Optional, Literal, Tuple
 from datetime import datetime
-import secrets
 
 from fastapi import Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.models import Device
+from backend.app.core.device_token_crypto import generate_device_token, hash_device_token
 
 logger = logging.getLogger(__name__)
 
@@ -37,21 +36,7 @@ def _get_legacy_token() -> str:
 
 
 def _hash_token(token: str) -> str:
-    # Minimal, no external deps: sha256 hex digest
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-def generate_device_token() -> str:
-    """
-    Generate a random device token (shown only once to caller).
-    token_urlsafe(32) produces ~43 chars (>=32 requirement).
-    """
-    return secrets.token_urlsafe(32)
-
-
-def hash_device_token(token: str) -> str:
-    """Public helper for hashing device tokens (sha256 hex)."""
-    return _hash_token(token)
+    return hash_device_token(token)
 
 
 def _token_snippet(token: str) -> str:
@@ -230,23 +215,68 @@ def authorize_operational_device(
 
 
 def resolve_device_from_token(db: Session, token: str) -> Optional[Device]:
-    """Resolve active device row from bearer token hash (db_only operational path)."""
+    """Resolve active device row from bearer token via credential verifier abstraction."""
+    from backend.app.services.i9.device_credential_verifier import get_device_credential_verifier
+
     token = (token or "").strip()
     if not token:
         return None
     token_hash = _hash_token(token)
     device = (
         db.query(Device)
-        .filter(Device.token_hash == token_hash, Device.status == "active")
+        .filter(Device.token_hash == token_hash)
         .order_by(Device.id.desc())
         .first()
     )
     if device is None:
         return None
+
+    verifier = get_device_credential_verifier()
+    result = verifier.verify(device, token)
+    if not result.verified:
+        return None
+
+    if device.status != "active":
+        return None
+
     device.last_seen_at = datetime.utcnow()
     db.add(device)
     db.flush()
     return device
+
+
+def resolve_device_credential_status(db: Session, token: str) -> Tuple[Optional[Device], Optional[str]]:
+    """Resolve device with explicit reject reason for ACK contract."""
+    from backend.app.services.i9.device_credential_verifier import CredentialStatus, get_device_credential_verifier
+
+    token = (token or "").strip()
+    if not token:
+        return None, "MISSING_TOKEN"
+    token_hash = _hash_token(token)
+    device = (
+        db.query(Device)
+        .filter(Device.token_hash == token_hash)
+        .order_by(Device.id.desc())
+        .first()
+    )
+    if device is None:
+        return None, "AUTH_FAILURE"
+    verifier = get_device_credential_verifier()
+    result = verifier.verify(device, token)
+    if not result.verified:
+        if result.status == CredentialStatus.REVOKED:
+            return device, "REJECTED_REVOKED"
+        if result.status == CredentialStatus.SUSPENDED:
+            return device, "REJECTED_SUSPENDED"
+        if result.reject_reason == "PIN_NOT_RUNTIME_AUTH":
+            return device, "REJECTED_AUTH"
+        return device, "AUTH_FAILURE"
+    if device.status != "active":
+        return device, "REJECTED_REVOKED"
+    device.last_seen_at = datetime.utcnow()
+    db.add(device)
+    db.flush()
+    return device, None
 
 
 def reject_legacy_user_id_query(request: Request) -> None:

@@ -437,11 +437,30 @@ class Device(Base):
     __tablename__ = "devices"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     subject_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    owner_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_devices_owner_account_user_id"),
+        nullable=True,
+        index=True,
+    )
     device_id = Column(String(255), nullable=False, unique=True)  # logical device id (e.g. "Sedi001")
     device_type = Column(String(50), nullable=False, default="heart_rate")
     status = Column(String(20), nullable=False, default="active")  # active | revoked
+    claim_lifecycle_status = Column(
+        String(32),
+        nullable=False,
+        default="claimed",
+        server_default="claimed",
+    )  # unclaimed | claimed | suspended | revoked | released
+    credential_kind = Column(
+        String(64),
+        nullable=False,
+        default="per_device_symmetric",
+        server_default="per_device_symmetric",
+    )
+    credential_fingerprint = Column(String(64), nullable=True, index=True)
     token_hash = Column(String(255), nullable=False)  # sha256 hex digest; never store raw token
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     revoked_at = Column(DateTime, nullable=True)
@@ -644,6 +663,62 @@ class DeviceReportedCardiacEvent(Base):
     hardware_version = Column(String(64), nullable=True)
     algorithm_version = Column(String(64), nullable=True)
     provenance_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class DeviceMobileGatewayAuthorization(Base):
+    """Mobile gateway relay authorization; does not own health data."""
+
+    __tablename__ = "device_mobile_gateway_authorizations"
+    __table_args__ = (
+        Index("ix_dmga_gateway_install_id", "gateway_install_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    device_row_id = Column(
+        Integer,
+        ForeignKey("devices.id", ondelete="CASCADE", name="fk_dmga_device_row_id"),
+        nullable=False,
+    )
+    gateway_install_id = Column(String(128), nullable=False)
+    authorized_by_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_dmga_authorized_by"),
+        nullable=False,
+    )
+    authorized_at = Column(DateTime(timezone=True), nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class DeviceLifecycleAuditLog(Base):
+    """Auditable device claim/gateway/release/transfer/revoke operations."""
+
+    __tablename__ = "device_lifecycle_audit_log"
+    __table_args__ = (
+        Index("ix_dla_device_created", "device_row_id", "created_at"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    device_row_id = Column(
+        Integer,
+        ForeignKey("devices.id", ondelete="CASCADE", name="fk_dla_device_row_id"),
+        nullable=False,
+    )
+    operation = Column(String(64), nullable=False)
+    actor_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_dla_actor"),
+        nullable=True,
+    )
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_dla_health_subject"),
+        nullable=True,
+    )
+    gateway_install_id = Column(String(128), nullable=True)
+    detail_json = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
 

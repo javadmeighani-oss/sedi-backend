@@ -80,7 +80,9 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["071_i9_health_subject_device_packet_foundation"]
+    assert heads == ["072_i9_device_claim_gateway_lifecycle_foundation"]
+    rev072 = script.get_revision("072_i9_device_claim_gateway_lifecycle_foundation")
+    assert rev072.down_revision == "071_i9_health_subject_device_packet_foundation"
     rev071 = script.get_revision("071_i9_health_subject_device_packet_foundation")
     assert rev071.down_revision == "070_i8_proactive_evaluation_ledger"
     rev070 = script.get_revision("070_i8_proactive_evaluation_ledger")

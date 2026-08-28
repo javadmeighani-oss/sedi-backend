@@ -44,3 +44,5 @@ class DevicePacketIngestResponse(BaseModel):
     ok: bool
     data: Optional[dict] = None
     error: Optional[dict] = None
+
+    model_config = ConfigDict(extra="forbid")

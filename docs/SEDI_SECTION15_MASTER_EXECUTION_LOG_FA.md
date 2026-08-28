@@ -77615,3 +77615,66 @@ CURSOR_HANDOFF_TIP=v681
 NEXT_PROPOSED_GATE=PD-I9-V1-INGEST-CONTRACT-AND-READ-API-01
 NEXT_GATE_AUTHORIZED=NO
 NOTE=§388 preserved unchanged; §389 append-only PASS_CLOSED.
+
+§390 - PD-I9-V1-DEVICE-CLAIM-TRUST-INGEST-RUNTIME-01 PASS CLOSED
+
+GATE=PD-I9-V1-DEVICE-CLAIM-TRUST-INGEST-RUNTIME-01
+GATE_TYPE=I9 CLAIM / GATEWAY / INGEST RUNTIME
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+PARENT=§389
+MASTER_LOG_IN=§389
+IMPLEMENTATION_AUTHORIZED=YES
+GATE_RESULT=PASS
+PRODUCTION_DEPLOY=NO
+PRODUCTION_DB_MIGRATION=NO
+
+REPO=javadmeighani-oss/sedi-backend
+BRANCH=feature/section15/backend-continuity-foundation
+BASE_HEAD=f4e52c9d52220b432ea184316d8ef0642ed53bbf
+ALEMBIC_BEFORE=071_i9_health_subject_device_packet_foundation
+ALEMBIC_AFTER=072_i9_device_claim_gateway_lifecycle_foundation
+SINGLE_HEAD=PASS
+
+DEVICE_CLAIM=PASS
+MANAGED_SUBJECT_CLAIM=PASS
+ANTI_RECLAIM=PASS
+GATEWAY_PAIR_REPAIR=PASS
+SIGNOUT_RELEASE_SEPARATION=PASS
+DEVICE_RELEASE=PASS
+DEVICE_TRANSFER=PASS
+DEVICE_REVOKE=PASS
+CREDENTIAL_ABSTRACTION=PASS
+PIN_RUNTIME_AUTH=NO
+SHARED_FLEET_SECRET=NO
+HARDWARE_CRYPTO_SELECTED=NO_OR_EVIDENCE_BASED
+DEVICE_AUTH=PASS
+DEVICE_BINDING_RESOLUTION=PASS
+MULTI_SUBJECT_ONE_GATEWAY=PASS
+PACKET_IDEMPOTENCY=PASS
+ACK_CONTRACT=PASS
+MEASURED_AT_PRESERVATION=PASS
+DEVICE_REPORTED_CARDIAC_RUNTIME=PASS
+I5_RAG_BOUNDARY=PASS
+
+MIGRATION_FILE=backend/alembic/versions/072_i9_device_claim_gateway_lifecycle_foundation.py
+TEST_FILE=backend/tests/test_i9_device_claim_trust_ingest_runtime.py
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v682_FA.md
+
+I9_RUNTIME_TABLES=device_mobile_gateway_authorizations;device_lifecycle_audit_log
+I9_RUNTIME_COLUMNS=devices.claim_lifecycle_status;devices.credential_kind;devices.credential_fingerprint;devices.owner_account_user_id
+I9_API_ROUTES=/devices/provision;/devices/claim;/devices/{device_id}/release;/devices/{device_id}/transfer;/devices/{device_id}/gateway/pair;/devices/{device_id}/gateway/disconnect
+
+I5_I6_I7_I8_REGRESSION=NO
+FRONTEND_MUTATION=NO
+BLE_FIRMWARE_HARDWARE=NO
+
+P0_OPEN=(none for this gate scope)
+P1_OPEN=authenticated longitudinal vitals read API; I9->I7 producer wiring; aggregation workers
+P2_DEFERRED=BLE/mobile durable queue; frontend gadget UX; I8 I9 runtime wiring
+
+MASTER_LOG_TIP=§390
+CURSOR_HANDOFF_TIP=v682
+NEXT_PROPOSED_GATE=PD-I9-V1-INGEST-CONTRACT-AND-READ-API-01
+NEXT_GATE_AUTHORIZED=NO
+NOTE=§389 preserved unchanged; §390 append-only PASS_CLOSED.
