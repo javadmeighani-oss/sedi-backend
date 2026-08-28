@@ -785,6 +785,76 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] I8 proactive schedule scan wiring failed: {e}")
 
+        # I9: aggregation + personal baseline scheduled sweeps (always registered; dormant unless flag ON).
+        try:
+            from backend.app.database import get_db as _i9_get_db
+            from backend.app.services.i9.jobs import (
+                BUCKET_KINDS,
+                I9_AGGREGATION_BASELINE_JOBS_FLAG,
+                JOB_IDS,
+                JOB_TIMEZONE,
+                aggregation_baseline_cron_kwargs,
+                format_i9_run_log,
+                i9_aggregation_baseline_jobs_enabled,
+                next_cron_fire,
+                run_aggregation_baseline_sweep,
+            )
+
+            def _i9_agg_baseline_tick(bucket_kind: str):
+                job_id = JOB_IDS[bucket_kind]
+                job = scheduler.get_job(job_id)
+                scheduled = ""
+                if job is not None and getattr(job, "trigger", None) is not None:
+                    scheduled = str(job.trigger)
+                nxt = next_cron_fire(bucket_kind)
+                persist = i9_aggregation_baseline_jobs_enabled()
+                with next(_i9_get_db()) as db:
+                    result = run_aggregation_baseline_sweep(
+                        db,
+                        bucket_kind,
+                        persist=persist,
+                        job_id=job_id,
+                        scheduled_time=scheduled,
+                        next_run_time=nxt,
+                    )
+                print(format_i9_run_log(result), flush=True)
+                print(
+                    f"[Sedi Scheduler] i9_aggregation_baseline_{bucket_kind} "
+                    f"enabled={result.enabled} status={result.status} "
+                    f"subjects={result.subjects_processed}/{result.subjects_eligible} "
+                    f"lock_acquired={result.lock_acquired} detail={result.detail}",
+                    flush=True,
+                )
+
+            for _kind in BUCKET_KINDS:
+                job = scheduler.add_job(
+                    _i9_agg_baseline_tick,
+                    id=JOB_IDS[_kind],
+                    replace_existing=True,
+                    misfire_grace_time=3600,
+                    kwargs={"bucket_kind": _kind},
+                    **aggregation_baseline_cron_kwargs(_kind),
+                )
+                nxt = next_cron_fire(_kind)
+                print(
+                    "I9_JOB_REGISTERED "
+                    f"job_id={job.id} trigger=cron timezone={JOB_TIMEZONE} "
+                    f"next_run_time={nxt} max_instances=1 coalesce=true "
+                    f"misfire_grace_time=3600 bucket_kind={_kind} "
+                    f"flag={I9_AGGREGATION_BASELINE_JOBS_FLAG} "
+                    f"enabled={i9_aggregation_baseline_jobs_enabled()}",
+                    flush=True,
+                )
+            print(
+                "[Sedi Scheduler] i9 aggregation/baseline jobs registered "
+                f"enabled={i9_aggregation_baseline_jobs_enabled()} "
+                "daily=01:10 weekly=Mon 01:20 calendar_month=1st 01:30 "
+                "yearly=Jan1 01:40 timezone=Asia/Tehran",
+                flush=True,
+            )
+        except Exception as e:
+            print(f"[Sedi Scheduler] i9 aggregation/baseline job wiring failed: {e}")
+
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:

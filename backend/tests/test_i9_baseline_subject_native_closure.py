@@ -18,7 +18,7 @@ from sqlalchemy import create_engine, inspect, text
 from backend.app import models
 from backend.app.core.device_auth import hash_device_token
 from backend.app.services.i6.consent_service import PERM_WRITE, grant_memory_consent
-from backend.app.services.i9.aggregation_service import rebuild_daily_bucket, upsert_rollup, compute_bucket_stats_from_measurements, find_rollup_row
+from backend.app.services.i9.aggregation_service import rebuild_daily_bucket, rebuild_higher_bucket_from_daily_rollups, upsert_rollup, compute_bucket_stats_from_measurements, find_rollup_row
 from backend.app.services.i9.baseline_service import (
     BASELINE_METHOD,
     BASELINE_SCOPE_V1,
@@ -822,3 +822,297 @@ def test_r24_trusted_fleet_and_packet_ack_regressions_delegate():
     )
     for rel in siblings:
         assert (repo / rel).is_file(), rel
+
+
+# ---------------------------------------------------------------------------
+# Scheduled aggregation/baseline runtime (PD-I9-V1-SCHEDULED-AGGREGATION-BASELINE-RUNTIME-CLOSURE-01)
+# ---------------------------------------------------------------------------
+
+import inspect
+
+from backend.app.services.i6.consent_service import grant_memory_consent
+from backend.app.services.i9.jobs import (
+    I9_SCHEDULED_RUNTIME_ADVISORY_LOCK_KEY,
+    REQUIRED_OBS_FIELDS,
+    aggregation_baseline_cron_kwargs,
+    format_i9_run_log,
+    i9_aggregation_baseline_jobs_enabled,
+    run_aggregation_baseline_sweep,
+)
+
+
+@pytest.fixture
+def i9_jobs_enabled(monkeypatch):
+    monkeypatch.setenv("SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED", "true")
+
+
+def test_j01_i9_jobs_flag_default_off(monkeypatch):
+    monkeypatch.delenv("SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED", raising=False)
+    assert i9_aggregation_baseline_jobs_enabled() is False
+
+
+def test_j02_i9_sweep_dormant_without_flag(db, family, monkeypatch):
+    monkeypatch.delenv("SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED", raising=False)
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 1, 12, 0, tzinfo=timezone.utc)
+    _pm(db, subject=subj, device=dev, value=80.0, measured_at=ref, key="j02")
+    db.commit()
+    before = db.query(models.PhysiologicalMeasurementRollup).count()
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 2, 1, 10, 0), persist=True
+    )
+    assert result.status == "DORMANT_FLAG_OFF"
+    assert result.rollups_created == 0
+    assert db.query(models.PhysiologicalMeasurementRollup).count() == before
+
+
+def test_j03_scheduler_registers_i9_jobs():
+    from backend.app.core import scheduler as sched_mod
+
+    src = inspect.getsource(sched_mod.start_scheduler)
+    assert "i9_aggregation_baseline_daily" in src
+    assert "I9_JOB_REGISTERED" in src
+    assert "SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED" in src
+    assert "run_aggregation_baseline_sweep" in src
+
+
+def test_j04_i9_cron_specs_timezone():
+    daily = aggregation_baseline_cron_kwargs("daily")
+    weekly = aggregation_baseline_cron_kwargs("weekly")
+    monthly = aggregation_baseline_cron_kwargs("calendar_month")
+    yearly = aggregation_baseline_cron_kwargs("yearly")
+    for kw in (daily, weekly, monthly, yearly):
+        assert kw["trigger"] == "cron"
+        assert kw["timezone"] == "Asia/Tehran"
+        assert kw["max_instances"] == 1
+        assert kw["coalesce"] is True
+    assert daily["hour"] == 1 and daily["minute"] == 10
+
+
+def test_j05_daily_sweep_persists_rollup_and_baseline(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 5, 12, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {i: [70.0 + i] for i in range(7)})
+    db.commit()
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 6, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert result.enabled is True
+    assert result.subjects_processed >= 1
+    assert result.rollups_created + result.rollups_rebuilt >= 1
+    assert result.baselines_created + result.baselines_rebuilt >= 1
+    row = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="daily",
+        bucket_start=bucket_bounds("daily", ref=ref)[0],
+    )
+    assert row is not None
+
+
+def test_j06_managed_subject_null_linked_user_persists(db, family, i9_jobs_enabled):
+    father = family["father"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 6, 12, 0, tzinfo=timezone.utc)
+    assert father.linked_user_id is None
+    _seed_daily_hr(db, father, dev, ref, {i: [62.0 + i] for i in range(7)})
+    db.commit()
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 7, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert result.subjects_processed >= 1
+    row = find_rollup_row(
+        db,
+        health_subject_id=father.id,
+        measurement_type="heart_rate",
+        bucket_kind="daily",
+        bucket_start=bucket_bounds("daily", ref=ref)[0],
+    )
+    assert row is not None
+    assert row.user_id is None
+    baseline = (
+        db.query(models.PhysiologicalBaseline)
+        .filter(models.PhysiologicalBaseline.health_subject_id == father.id)
+        .first()
+    )
+    assert baseline is not None
+    assert baseline.user_id is None
+
+
+def test_j07_weekly_weighted_aggregation_not_average_of_averages(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 14, 12, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {0: [60.0, 60.0], 1: [100.0, 100.0]})
+    for offset in (0, 1):
+        d_start, _ = bucket_bounds("daily", ref=ref - timedelta(days=offset))
+        rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=d_start)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    weekly = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="weekly",
+        bucket_start=bucket_bounds("weekly", ref=ref)[0],
+    )
+    assert weekly is not None
+    assert weekly.sample_count == 4
+    assert weekly.avg_value == 80.0
+
+
+def test_j08_idempotent_scheduled_rerun(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 8, 12, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {i: [71.0] for i in range(7)})
+    db.commit()
+    now = datetime(2026, 12, 9, 1, 10, 0)
+    first = run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    count_after_first = db.query(models.PhysiologicalMeasurementRollup).filter_by(health_subject_id=subj.id).count()
+    second = run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    count_after_second = db.query(models.PhysiologicalMeasurementRollup).filter_by(health_subject_id=subj.id).count()
+    assert first.subjects_processed >= 1
+    assert second.rollups_created == 0
+    assert count_after_second == count_after_first
+
+
+def test_j09_late_data_refreshes_bounded_bucket(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 10, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _pm(db, subject=subj, device=dev, value=70.0, measured_at=d_start + timedelta(hours=1), key="j09-early")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 11, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    before = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="daily",
+        bucket_start=d_start,
+    )
+    assert before.avg_value == 70.0
+    _pm(db, subject=subj, device=dev, value=90.0, measured_at=d_start + timedelta(hours=3), key="j09-late")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 11, 1, 15, 0), persist=True, acquire_lock=False
+    )
+    after = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="daily",
+        bucket_start=d_start,
+    )
+    assert after.avg_value == 80.0
+
+
+def test_j10_i9_i7_producer_on_scheduled_sweep(db, family, i9_jobs_enabled):
+    from backend.app.services.i9.aggregation_service import rebuild_higher_bucket_from_daily_rollups
+
+    user = family["javad"]
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 12, 12, 0, tzinfo=timezone.utc)
+    grant_memory_consent(db, user.id, permissions=(PERM_WRITE,), commit=True)
+    _seed_daily_hr(db, subj, dev, ref, {i: [77.0] for i in range(7)})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    db.commit()
+    result = run_aggregation_baseline_sweep(
+        db, "weekly", now=datetime(2026, 12, 13, 1, 20, 0), persist=True, acquire_lock=False
+    )
+    assert result.i7_written >= 1
+    pattern = (
+        db.query(models.UserI7DerivedPattern)
+        .filter(models.UserI7DerivedPattern.user_id == user.id)
+        .first()
+    )
+    assert pattern is not None
+
+
+def test_j11_observability_fields_no_phi(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 15, 12, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {i: [72.0] for i in range(7)})
+    db.commit()
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 16, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    line = format_i9_run_log(result)
+    for field in REQUIRED_OBS_FIELDS:
+        assert f"{field}=" in line
+    assert family["javad"].name not in line
+
+
+def test_j12_advisory_lock_contention_fail_closed(db, i9_jobs_enabled):
+    if db.bind.dialect.name != "postgresql":
+        pytest.skip("PostgreSQL required for advisory lock contention")
+    result_holder = {}
+
+    def _blocked_sweep():
+        r = run_aggregation_baseline_sweep(
+            db,
+            "daily",
+            now=datetime(2026, 12, 17, 1, 10, 0),
+            persist=True,
+            acquire_lock=True,
+        )
+        result_holder["r"] = r
+
+    with db.connection() as conn:
+        conn.execute(
+            text("SELECT pg_advisory_lock(:key)"),
+            {"key": I9_SCHEDULED_RUNTIME_ADVISORY_LOCK_KEY},
+        )
+        try:
+            result = run_aggregation_baseline_sweep(
+                db,
+                "daily",
+                now=datetime(2026, 12, 17, 1, 10, 0),
+                persist=True,
+                acquire_lock=True,
+            )
+            assert result.status == "LOCK_NOT_ACQUIRED"
+            assert result.lock_acquired is False
+        finally:
+            conn.execute(
+                text("SELECT pg_advisory_unlock(:key)"),
+                {"key": I9_SCHEDULED_RUNTIME_ADVISORY_LOCK_KEY},
+            )
+
+
+def test_j13_partial_failure_isolation(db, family, i9_jobs_enabled, monkeypatch):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2026, 12, 18, 12, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {i: [68.0] for i in range(7)})
+    father = family["father"]
+    _seed_daily_hr(db, father, dev, ref, {i: [55.0] for i in range(7)})
+    db.commit()
+    real = __import__("backend.app.services.i9.jobs", fromlist=["_process_one_subject"])._process_one_subject
+    calls = {"n": 0}
+
+    def flaky(db, *, subject_id, bucket_kind, ref, persist):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("injected_failure")
+        return real(db, subject_id=subject_id, bucket_kind=bucket_kind, ref=ref, persist=persist)
+
+    monkeypatch.setattr("backend.app.services.i9.jobs._process_one_subject", flaky)
+    monkeypatch.setattr(db, "rollback", lambda: db.expire_all())
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 19, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert result.retry_count >= 1
+    assert result.subjects_processed >= 1
