@@ -506,8 +506,8 @@ def _mig073_seed_caregiver_user(conn) -> int:
     return conn.execute(
         text(
             """
-            INSERT INTO users (name, secret_key, preferred_language, phone)
-            VALUES ('Mig073Caregiver', 'k-mig073', 'en', '+989100009999')
+            INSERT INTO users (name, secret_key, preferred_language, phone, created_at)
+            VALUES ('Mig073Caregiver', 'k-mig073', 'en', '+989100009999', NOW())
             RETURNING id
             """
         )
@@ -518,8 +518,8 @@ def _mig073_seed_managed_subject(conn) -> int:
     return conn.execute(
         text(
             """
-            INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status)
-            VALUES ('ManagedFather', NULL, 'managed', 'active')
+            INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status, created_at, updated_at)
+            VALUES ('ManagedFather', NULL, 'managed', 'active', NOW(), NOW())
             RETURNING id
             """
         )
@@ -530,8 +530,8 @@ def _mig073_seed_linked_subject(conn, user_id: int) -> int:
     return conn.execute(
         text(
             """
-            INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status)
-            VALUES ('LinkedSelf', :user_id, 'self', 'active')
+            INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status, created_at, updated_at)
+            VALUES ('LinkedSelf', :user_id, 'self', 'active', NOW(), NOW())
             RETURNING id
             """
         ),
