@@ -229,6 +229,26 @@ def authorize_operational_device(
     return validated
 
 
+def resolve_device_from_token(db: Session, token: str) -> Optional[Device]:
+    """Resolve active device row from bearer token hash (db_only operational path)."""
+    token = (token or "").strip()
+    if not token:
+        return None
+    token_hash = _hash_token(token)
+    device = (
+        db.query(Device)
+        .filter(Device.token_hash == token_hash, Device.status == "active")
+        .order_by(Device.id.desc())
+        .first()
+    )
+    if device is None:
+        return None
+    device.last_seen_at = datetime.utcnow()
+    db.add(device)
+    db.flush()
+    return device
+
+
 def reject_legacy_user_id_query(request: Request) -> None:
     """Reject legacy user_id query param; identity comes from device token."""
     if request.query_params.get("user_id") is not None:

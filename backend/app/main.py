@@ -27,6 +27,7 @@ from backend.app.routers import (
     knowledge_base,
     care_gate3,
     health_care,
+    health_subjects,
     system,
     i5_iran_directory,
     i8_actions,
@@ -70,6 +71,7 @@ app.include_router(ai_core.router, prefix="/ai_core", tags=["AI Core"])
 app.include_router(conditions.router, prefix="/conditions", tags=["Medical Conditions"])
 app.include_router(device.router, prefix="/device", tags=["Device"])
 app.include_router(devices.router, prefix="/devices", tags=["Devices"])
+app.include_router(health_subjects.router, prefix="/health-subjects", tags=["Health Subjects"])
 app.include_router(decision.router)
 app.include_router(memory.router, prefix="/memory", tags=["Memory"])
 app.include_router(user_knowledge.router, prefix="/user", tags=["User"])

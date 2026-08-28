@@ -22,7 +22,15 @@ from backend.app.schemas.device import (
     RawSignalBatchResponse,
     RawSignalBatchData,
 )
+from backend.app.schemas.device_packet import DevicePacketIngestRequest, DevicePacketIngestResponse
 from backend.app.services.device_ingestion import ingest_event, DeviceRateLimitExceeded
+from backend.app.services.i9.device_binding_service import resolve_subject_for_device, DeviceBindingError
+from backend.app.services.i9.device_packet_service import (
+    DevicePacketIngestInput,
+    PacketObservationIn,
+    ingest_device_packet,
+)
+from backend.app.services.i9.health_subject_service import resolve_linked_user_id_for_subject
 from backend.app.services.gate5.gadget_hub_status import (
     apply_heartbeat_metadata,
     is_gadget_hub,
@@ -37,6 +45,7 @@ from backend.app.core.device_auth import (
     authorize_device_or_legacy,
     authorize_operational_device,
     reject_legacy_user_id_query,
+    resolve_device_from_token,
 )
 from backend.app.services.vitals.vital_registry import VitalValidationError
 
@@ -230,6 +239,74 @@ def ingest_raw_signal_batch_endpoint(
     return RawSignalBatchResponse(ok=True, data=data)
 
 
+@router.post("/packet", response_model=DevicePacketIngestResponse)
+def ingest_device_packet_route(
+    body: DevicePacketIngestRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+    token: str = Depends(get_device_token),
+):
+    """
+    Canonical I9 device packet ingest. Subject attribution resolved server-side from binding.
+    Idempotent on device + client_packet_id.
+    """
+    try:
+        device = resolve_device_from_token(db=db, token=token)
+        if device is None:
+            raise HTTPException(status_code=401, detail="Invalid device token")
+
+        trace_id = http_request.headers.get("X-TRACE-ID") or uuid.uuid4().hex
+        packet_in = DevicePacketIngestInput(
+            client_packet_id=body.client_packet_id,
+            measured_at=body.measured_at,
+            sequence_number=body.sequence_number,
+            measured_interval_start=body.measured_interval_start,
+            measured_interval_end=body.measured_interval_end,
+            gateway_received_at=body.gateway_received_at,
+            transport=body.transport,
+            firmware_version=body.firmware_version,
+            hardware_version=body.hardware_version,
+            algorithm_version=body.algorithm_version,
+            quality_metadata=body.quality_metadata,
+            provenance=body.provenance,
+            observations=[
+                PacketObservationIn(
+                    observation_type=o.observation_type,
+                    payload=o.payload,
+                    detected_at=o.detected_at,
+                )
+                for o in body.observations
+            ],
+        )
+        result = ingest_device_packet(db, device=device, packet_in=packet_in, trace_id=trace_id)
+        packet = result.packet
+        return DevicePacketIngestResponse(
+            ok=True,
+            data={
+                "packet_id": packet.id if packet else None,
+                "client_packet_id": body.client_packet_id,
+                "dedupe_hit": result.dedupe_hit,
+                "health_subject_id": result.health_subject_id,
+                "binding_id": result.binding_id,
+                "physiological_measurement_ids": result.physiological_measurement_ids,
+                "cardiac_event_ids": result.cardiac_event_ids,
+                "trace_id": trace_id,
+            },
+        )
+    except VitalValidationError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+    except ValueError as e:
+        return DevicePacketIngestResponse(ok=False, error={"code": "VALIDATION_ERROR", "message": str(e)})
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to ingest device packet")
+        return JSONResponse(
+            status_code=500,
+            content={"ok": False, "code": "INTERNAL_ERROR", "message": "Failed to ingest device packet"},
+        )
+
+
 @router.post("/ingest", response_model=DeviceIngestResponse)
 def ingest_device_event(
     request: DeviceIngestRequest,
@@ -256,14 +333,22 @@ def ingest_device_event(
         )
 
         effective_user_id = request.user_id
+        health_subject_id = None
         if device is not None:
-            if request.user_id != device.user_id:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="user_id does not match device owner",
-                )
             request.device_id = device.device_id
-            effective_user_id = device.user_id
+            try:
+                health_subject_id, _binding = resolve_subject_for_device(
+                    db, device, measured_at=request.recorded_at
+                )
+                linked = resolve_linked_user_id_for_subject(db, health_subject_id)
+                effective_user_id = linked if linked is not None else device.user_id
+            except DeviceBindingError:
+                if request.user_id != device.user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="user_id does not match device owner and no subject binding",
+                    )
+                effective_user_id = device.user_id
 
         user = db.query(models.User).filter(models.User.id == effective_user_id).first()
         if not user:
@@ -287,6 +372,8 @@ def ingest_device_event(
             device_id=request.device_id,
             recorded_at=request.recorded_at,
             trace_id=trace_id,
+            health_subject_id=health_subject_id,
+            device_row_id=device.id if device is not None else None,
         )
 
         if event is None:

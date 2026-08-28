@@ -419,6 +419,17 @@ class DeviceEvent(Base):
     received_at = Column(DateTime, default=datetime.utcnow, nullable=False)  # Server timestamp
     dedupe_key = Column(String(255), nullable=True)  # Deduplication key
     embedding_id = Column(String(255), nullable=True)  # For RAG integration - vector embedding ID
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_device_events_health_subject_id"),
+        nullable=True,
+        index=True,
+    )
+    device_packet_id = Column(
+        BigInteger,
+        ForeignKey("device_packets.id", ondelete="SET NULL", name="fk_device_events_device_packet_id"),
+        nullable=True,
+    )
 
 
 # -------------------- Device --------------------
@@ -449,6 +460,191 @@ class Device(Base):
         cascade="all, delete-orphan",
         foreign_keys="DeviceSensor.hub_device_id",
     )
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_devices_health_subject_id"),
+        nullable=True,
+        index=True,
+    )
+    current_binding_id = Column(
+        Integer,
+        ForeignKey(
+            "device_subject_bindings.id",
+            ondelete="SET NULL",
+            name="fk_devices_current_binding_id",
+            use_alter=True,
+        ),
+        nullable=True,
+    )
+
+
+# -------------------- I9 Health Subject foundation --------------------
+class HealthSubject(Base):
+    """Canonical physiological data subject; may exist without a Sedi account."""
+
+    __tablename__ = "health_subjects"
+    __table_args__ = (
+        CheckConstraint("subject_kind IN ('self', 'managed', 'legacy_user')", name="ck_hs_subject_kind"),
+        CheckConstraint("status IN ('active', 'inactive')", name="ck_hs_status"),
+        Index("ix_health_subjects_linked_user_id", "linked_user_id"),
+        Index("ix_health_subjects_status", "status"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    display_name = Column(String(255), nullable=True)
+    linked_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_hs_linked_user_id"),
+        nullable=True,
+    )
+    subject_kind = Column(String(32), nullable=False, default="managed", server_default="managed")
+    status = Column(String(16), nullable=False, default="active", server_default="active")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class AccountHealthSubjectAccess(Base):
+    """Account-to-subject access foundation (SELF / CAREGIVER / MANAGER)."""
+
+    __tablename__ = "account_health_subject_access"
+    __table_args__ = (
+        CheckConstraint(
+            "access_role IN ('SELF', 'CAREGIVER', 'MANAGER')",
+            name="ck_ahsa_access_role",
+        ),
+        Index("ix_ahsa_health_subject_id", "health_subject_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_ahsa_account_user_id"),
+        nullable=False,
+    )
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="CASCADE", name="fk_ahsa_health_subject_id"),
+        nullable=False,
+    )
+    access_role = Column(String(32), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class DeviceSubjectBinding(Base):
+    """Historical device-to-health-subject binding (immutable observation attribution)."""
+
+    __tablename__ = "device_subject_bindings"
+    __table_args__ = (
+        Index("ix_dsb_device_row_id_bound_at", "device_row_id", "bound_at"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    device_row_id = Column(
+        Integer,
+        ForeignKey("devices.id", ondelete="CASCADE", name="fk_dsb_device_row_id"),
+        nullable=False,
+    )
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_dsb_health_subject_id"),
+        nullable=False,
+    )
+    bound_at = Column(DateTime(timezone=True), nullable=False)
+    unbound_at = Column(DateTime(timezone=True), nullable=True)
+    bound_by_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_dsb_bound_by_account_user_id"),
+        nullable=True,
+    )
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class DevicePacket(Base):
+    """Canonical device packet with durable client_packet_id idempotency."""
+
+    __tablename__ = "device_packets"
+    __table_args__ = (
+        UniqueConstraint("device_row_id", "client_packet_id", name="uq_device_packets_device_client_packet"),
+        CheckConstraint(
+            "ingestion_status IN ('accepted', 'duplicate', 'rejected')",
+            name="ck_dp_ingestion_status",
+        ),
+        Index("ix_device_packets_subject_measured", "health_subject_id", "measured_at"),
+        Index("ix_device_packets_device_logical_id", "device_logical_id"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    device_row_id = Column(
+        Integer,
+        ForeignKey("devices.id", ondelete="RESTRICT", name="fk_dp_device_row_id"),
+        nullable=False,
+    )
+    device_logical_id = Column(String(255), nullable=False)
+    client_packet_id = Column(String(128), nullable=False)
+    sequence_number = Column(BigInteger, nullable=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_dp_health_subject_id"),
+        nullable=False,
+    )
+    binding_id = Column(
+        Integer,
+        ForeignKey("device_subject_bindings.id", ondelete="SET NULL", name="fk_dp_binding_id"),
+        nullable=True,
+    )
+    measured_at = Column(DateTime(timezone=True), nullable=False)
+    measured_interval_start = Column(DateTime(timezone=True), nullable=True)
+    measured_interval_end = Column(DateTime(timezone=True), nullable=True)
+    server_received_at = Column(DateTime(timezone=True), nullable=False)
+    gateway_received_at = Column(DateTime(timezone=True), nullable=True)
+    transport = Column(String(32), nullable=True)
+    firmware_version = Column(String(64), nullable=True)
+    hardware_version = Column(String(64), nullable=True)
+    algorithm_version = Column(String(64), nullable=True)
+    quality_metadata_json = Column(Text, nullable=True)
+    provenance_json = Column(Text, nullable=True)
+    ingestion_status = Column(String(32), nullable=False, default="accepted", server_default="accepted")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
+class DeviceReportedCardiacEvent(Base):
+    """Device-processed cardiac finding; DEVICE_REPORTED only (not Sedi AI diagnosis)."""
+
+    __tablename__ = "device_reported_cardiac_events"
+    __table_args__ = (
+        CheckConstraint("source_class IN ('DEVICE_REPORTED')", name="ck_drc_source_class"),
+        Index("ix_drc_subject_detected", "health_subject_id", "detected_at"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    device_packet_id = Column(
+        BigInteger,
+        ForeignKey("device_packets.id", ondelete="CASCADE", name="fk_drc_device_packet_id"),
+        nullable=False,
+    )
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_drc_health_subject_id"),
+        nullable=False,
+    )
+    event_code = Column(String(128), nullable=False)
+    event_value_numeric = Column(Float, nullable=True)
+    event_value_json = Column(Text, nullable=True)
+    detected_at = Column(DateTime(timezone=True), nullable=False)
+    source_class = Column(String(32), nullable=False, default="DEVICE_REPORTED", server_default="DEVICE_REPORTED")
+    firmware_version = Column(String(64), nullable=True)
+    hardware_version = Column(String(64), nullable=True)
+    algorithm_version = Column(String(64), nullable=True)
+    provenance_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
 
 # -------------------- DeviceSensor (Gate 5-A) --------------------
@@ -2759,7 +2955,7 @@ class PhysiologicalMeasurement(Base):
     __tablename__ = "physiological_measurements"
     __table_args__ = (
         CheckConstraint(
-            "measurement_type IN ('heart_rate')",
+            "measurement_type IN ('heart_rate', 'blood_pressure', 'glucose', 'temperature', 'spo2')",
             name="ck_pm_measurement_type_vocab",
         ),
         UniqueConstraint("idempotency_key", name="uq_pm_idempotency_key"),
@@ -2767,13 +2963,14 @@ class PhysiologicalMeasurement(Base):
         Index("ix_pm_user_measured_at", "user_id", "measured_at"),
         Index("ix_pm_device_measured_at", "device_id", "measured_at"),
         Index("ix_pm_idempotency_key", "idempotency_key"),
+        Index("ix_pm_health_subject_measured_at", "health_subject_id", "measured_at"),
     )
 
     id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_pm_user_id"),
-        nullable=False,
+        nullable=True,
     )
     device_id = Column(
         Integer,
@@ -2795,6 +2992,11 @@ class PhysiologicalMeasurement(Base):
     source_sequence = Column(String(128), nullable=True)
     ingestion_status = Column(String(32), nullable=False, default="accepted", server_default="accepted")
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_pm_health_subject_id"),
+        nullable=True,
+    )
 
 
 class PhysiologicalBaseline(Base):
@@ -2825,6 +3027,11 @@ class PhysiologicalBaseline(Base):
     derived_at = Column(DateTime(timezone=True), nullable=False)
     source_range = Column(Text, nullable=True)
     baseline_value = Column(Float, nullable=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_pb_health_subject_id"),
+        nullable=True,
+    )
 
 
 class DerivedHealthSignal(Base):
@@ -2849,6 +3056,11 @@ class DerivedHealthSignal(Base):
     detected_at = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(32), nullable=False, default="open", server_default="open")
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_dhs_health_subject_id"),
+        nullable=True,
+    )
 
 
 class CareResponsePolicy(Base):
@@ -2945,6 +3157,10 @@ class PhysiologicalMeasurementRollup(Base):
             "bucket_kind",
             name="uq_pmr_user_type_bucket",
         ),
+        CheckConstraint(
+            "bucket_kind IN ('hourly', 'daily', 'weekly', 'calendar_month', 'yearly')",
+            name="ck_pmr_bucket_kind_vocab",
+        ),
         Index("ix_pmr_user_bucket", "user_id", "bucket_start"),
     )
 
@@ -2955,7 +3171,7 @@ class PhysiologicalMeasurementRollup(Base):
         nullable=False,
     )
     measurement_type = Column(String(32), nullable=False)
-    bucket_kind = Column(String(16), nullable=False)  # hourly | daily
+    bucket_kind = Column(String(16), nullable=False)  # hourly | daily | weekly | calendar_month | yearly
     bucket_start = Column(DateTime(timezone=True), nullable=False)
     bucket_end = Column(DateTime(timezone=True), nullable=False)
     sample_count = Column(Integer, nullable=False, default=0, server_default="0")
@@ -2963,6 +3179,14 @@ class PhysiologicalMeasurementRollup(Base):
     min_value = Column(Float, nullable=True)
     max_value = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_pmr_health_subject_id"),
+        nullable=True,
+    )
+    coverage = Column(Float, nullable=True)
+    arrhythmia_event_count = Column(Integer, nullable=True)
+    critical_event_count = Column(Integer, nullable=True)
 
 
 # -------------------- I5-KNOW-01 Trusted Source Registry / Rights / Books --------------------

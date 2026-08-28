@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 from backend.app.services.vitals.dedupe import build_dedupe_key as _build_dedupe_key_5m
 
 
-SupportedVital = Literal["heart_rate", "blood_pressure", "glucose", "temperature"]
+SupportedVital = Literal["heart_rate", "blood_pressure", "glucose", "temperature", "spo2"]
 
 
 class VitalValidationError(ValueError):
@@ -55,9 +55,9 @@ def validate_event(event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
 
     Returns normalized_payload (units normalized).
     """
-    if event_type not in ("heart_rate", "blood_pressure", "glucose", "temperature"):
+    if event_type not in ("heart_rate", "blood_pressure", "glucose", "temperature", "spo2"):
         raise VitalValidationError(
-            f"Unsupported event_type '{event_type}'. Supported: heart_rate, blood_pressure, glucose, temperature"
+            f"Unsupported event_type '{event_type}'. Supported: heart_rate, blood_pressure, glucose, temperature, spo2"
         )
     if not payload:
         raise VitalValidationError("Payload must not be empty")
@@ -91,15 +91,24 @@ def validate_event(event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             raise VitalValidationError("Glucose payload must include either 'mg_dl' or 'mmol_l'")
         return {"glucose_mg_dl": float(mg_dl)}
 
-    # temperature
-    if "c" in payload and payload["c"] is not None:
-        c = float(payload["c"])
-    elif "f" in payload and payload["f"] is not None:
-        f = float(payload["f"])
-        c = (f - 32.0) * (5.0 / 9.0)
-    else:
-        raise VitalValidationError("Temperature payload must include either 'c' or 'f'")
-    return {"temperature_c": float(c)}
+    if event_type == "temperature":
+        if "c" in payload and payload["c"] is not None:
+            c = float(payload["c"])
+        elif "f" in payload and payload["f"] is not None:
+            f = float(payload["f"])
+            c = (f - 32.0) * (5.0 / 9.0)
+        else:
+            raise VitalValidationError("Temperature payload must include either 'c' or 'f'")
+        return {"temperature_c": float(c)}
+
+    if event_type == "spo2":
+        percent = _require_int(payload, "percent") if "percent" in payload else _require_int(payload, "spo2_percent")
+        norm = {"spo2_percent": percent}
+        if "quality" in payload and payload["quality"] is not None:
+            norm["quality"] = str(payload["quality"])
+        return norm
+
+    raise VitalValidationError(f"Unsupported event_type '{event_type}'")
 
 
 def map_to_memory_facts(

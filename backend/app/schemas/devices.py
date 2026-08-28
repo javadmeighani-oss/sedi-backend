@@ -15,7 +15,11 @@ class DeviceRegisterRequest(BaseModel):
     device_type: Optional[str] = Field("heart_rate", description="Device type (v1 default: heart_rate; use gadget_hub for Gadget Hub)")
     subject_user_id: Optional[int] = Field(
         None,
-        description="User whose health data this device represents; defaults to authenticated user",
+        description="Legacy: User whose health data this device represents; prefer health_subject_id",
+    )
+    health_subject_id: Optional[int] = Field(
+        None,
+        description="I9 health subject for device binding (managed or self)",
     )
 
 

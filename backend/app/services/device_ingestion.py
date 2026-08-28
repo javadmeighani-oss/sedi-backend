@@ -17,7 +17,7 @@ import time
 from collections import deque
 from sqlalchemy.orm import Session
 
-from backend.app.models import DeviceEvent, User, UserMemoryFact, Device, PhysiologicalMeasurement
+from backend.app.models import DeviceEvent, User, UserMemoryFact, Device, PhysiologicalMeasurement, DevicePacket
 from backend.app.decision_engine.models import EventDto, CreateHealthAlertAction
 from backend.app.decision_engine.service import evaluate_event
 from backend.app.services.memory.memory_contract import MemoryContract
@@ -119,6 +119,9 @@ def ingest_event(
     device_id: Optional[str] = None,
     recorded_at: Optional[datetime] = None,
     trace_id: str = "",
+    health_subject_id: Optional[int] = None,
+    device_row_id: Optional[int] = None,
+    client_packet_id: Optional[str] = None,
 ) -> Tuple[Optional[DeviceEvent], Optional[str], Dict[str, Any]]:
     """
     Ingest a device event with deduplication and memory mapping.
@@ -149,14 +152,36 @@ def ingest_event(
     if recorded_at is None:
         recorded_at = received_at
     
-    # Build dedupe key via registry (use recorded_at if present, else received_at)
-    # Dedupe is intentionally independent of device_id to avoid circular imports and keep deterministic bucketing.
-    dedupe_key = build_dedupe_key(
-        user_id=user_id,
-        event_type=event_type,  # type: ignore[arg-type]
-        recorded_at=recorded_at,
-        received_at=received_at,
-    )
+    # Packet-id idempotency when client_packet_id provided (I9 foundation).
+    if client_packet_id and device_row_id is not None:
+        existing_packet = (
+            db.query(DevicePacket)
+            .filter(
+                DevicePacket.device_row_id == device_row_id,
+                DevicePacket.client_packet_id == client_packet_id.strip(),
+            )
+            .first()
+        )
+        if existing_packet is not None:
+            return None, f"packet:{client_packet_id}", {
+                "device_event_id": None,
+                "device_event_dedupe_hit": True,
+                "actions_created": 0,
+                "decision_outcome": "no_rule",
+                "skipped_reason": "packet_duplicate",
+                "trace_id": trace_id,
+            }
+
+    # Build dedupe key via registry (legacy 5-minute bucket when no packet id)
+    if client_packet_id and device_row_id is not None:
+        dedupe_key = f"packet:{device_row_id}:{client_packet_id.strip()}"
+    else:
+        dedupe_key = build_dedupe_key(
+            user_id=user_id,
+            event_type=event_type,  # type: ignore[arg-type]
+            recorded_at=recorded_at,
+            received_at=received_at,
+        )
     
     # Check for existing event with same dedupe_key
     existing = (
@@ -190,7 +215,8 @@ def ingest_event(
         recorded_at=recorded_at,
         received_at=received_at,
         dedupe_key=dedupe_key,
-        embedding_id=None  # RAG-ready, not active
+        embedding_id=None,  # RAG-ready, not active
+        health_subject_id=health_subject_id,
     )
     
     db.add(event)
@@ -212,7 +238,9 @@ def ingest_event(
                 normalized=normalized,
                 measured_at=recorded_at,
                 received_at=received_at,
-                source_sequence=dedupe_key,
+                source_sequence=client_packet_id or dedupe_key,
+                health_subject_id=health_subject_id,
+                device_row_id=device_row_id,
             )
         except Exception as e:  # noqa: BLE001 — never break lifecycle event path
             logger.exception(
@@ -391,6 +419,8 @@ def _dual_write_physiological_measurement(
     measured_at: datetime,
     received_at: datetime,
     source_sequence: str,
+    health_subject_id: Optional[int] = None,
+    device_row_id: Optional[int] = None,
 ) -> None:
     """Best-effort dual-write into canonical physiological_measurements (§270 Wave3)."""
     bpm = normalized.get("bpm")
@@ -399,7 +429,9 @@ def _dual_write_physiological_measurement(
     if bpm is None:
         return
     device_row = None
-    if logical_device_id:
+    if device_row_id is not None:
+        device_row = db.query(Device).filter(Device.id == device_row_id).first()
+    if device_row is None and logical_device_id:
         device_row = (
             db.query(Device)
             .filter(Device.device_id == logical_device_id)
@@ -432,7 +464,8 @@ def _dual_write_physiological_measurement(
         return
     db.add(
         PhysiologicalMeasurement(
-            user_id=user_id,
+            user_id=user_id if user_id else None,
+            health_subject_id=health_subject_id,
             device_id=device_row.id,
             sensor_id=None,
             measurement_type="heart_rate",
