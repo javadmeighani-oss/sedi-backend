@@ -145,13 +145,15 @@ def test_f5_claim_never_auto_provisions_unknown_device(client, db, monkeypatch, 
 
 
 def test_f6_preprovisioned_unclaimed_device_can_be_claimed(client, db, monkeypatch, account_user):
+    account_user.phone = "+989190030006"
+    db.commit()
     admin = client.post(
         "/devices/provision",
         json={"device_id": "FleetClaim001"},
         headers=_admin_headers(monkeypatch),
     )
     factory_token = admin.json()["data"]["token"]
-    user_token = _user_token(client, db, monkeypatch, "+989190030006")
+    user_token = _user_token(client, db, monkeypatch, account_user.phone)
     subject = ensure_self_subject_for_account(db, account_user.id)
     claim = client.post(
         "/devices/claim",

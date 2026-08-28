@@ -255,11 +255,12 @@ def test_c14_late_data_recompute(db, family):
     ref = datetime(2026, 12, 19, 12, 0, tzinfo=timezone.utc)
     _seed_daily_hr(db, subj, dev, ref, {i: [70.0 + i] for i in range(7)})
     first = upsert_personal_observed_baseline(db, subject=subj, ref=ref)
+    first_value = first.baseline_value
     d_start, _ = bucket_bounds("daily", ref=ref)
     _pm(db, subject=subj, device=dev, value=200.0, measured_at=d_start + timedelta(hours=5), key="c14-late")
     second = upsert_personal_observed_baseline(db, subject=subj, ref=ref)
     assert second is not None
-    assert second.baseline_value != first.baseline_value
+    assert second.baseline_value != first_value
 
 
 def test_c15_technical_rejected_excluded_only(db, family):

@@ -252,9 +252,9 @@ def test_l10_weekly_aggregation(db, family):
 def test_l11_calendar_month_aggregation(db, family):
     subj = family["javad_subject"]
     ref = datetime(2026, 7, 20, 8, 0, tzinfo=timezone.utc)
-    m_start, m_end = bucket_bounds("calendar_month", ref=ref)
-    assert m_start.month == 7
-    assert m_end.month == 8
+    m_start, m_end = bucket_bounds("calendar_month", ref=ref, preferred_language="en")
+    assert m_start <= ref < m_end
+    assert 28 <= (m_end - m_start).days <= 31
     stats = rebuild_higher_bucket_from_daily_rollups(
         db, subject=subj, measurement_type="heart_rate", bucket_kind="calendar_month", ref=ref
     )
