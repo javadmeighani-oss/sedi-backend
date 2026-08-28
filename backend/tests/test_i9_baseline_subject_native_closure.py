@@ -873,7 +873,7 @@ def test_j03_scheduler_registers_i9_jobs():
     src = stdlib_inspect.getsource(sched_mod.start_scheduler)
     assert "JOB_IDS" in src
     assert "I9_JOB_REGISTERED" in src
-    assert "SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED" in src
+    assert "I9_AGGREGATION_BASELINE_JOBS_FLAG" in src
     assert "run_aggregation_baseline_sweep" in src
     assert "i9 aggregation/baseline jobs registered" in src
 
