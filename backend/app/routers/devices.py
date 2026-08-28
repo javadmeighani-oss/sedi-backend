@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from backend.app.database import get_db
-from backend.app.models import Device, User
+from backend.app.models import Device, User, HealthSubject
 from backend.app.core.device_auth import generate_device_token, hash_device_token
 from backend.app.schemas.devices import (
     DeviceRegisterRequest,
@@ -67,6 +67,22 @@ def _resolve_registration_health_subject(
     return self_subject.id
 
 
+def _legacy_subject_user_id(
+    db: Session,
+    *,
+    body: DeviceRegisterRequest,
+    account_user_id: int,
+    health_subject_id: int,
+) -> int | None:
+    """Transitional legacy field: mirror linked user when present."""
+    if body.subject_user_id is not None:
+        return body.subject_user_id
+    hs = db.query(HealthSubject).filter(HealthSubject.id == health_subject_id).first()
+    if hs is not None and hs.linked_user_id is not None:
+        return hs.linked_user_id
+    return account_user_id
+
+
 @router.post("/register", response_model=DeviceRegisterResponse)
 def register_device(
     body: DeviceRegisterRequest,
@@ -107,7 +123,9 @@ def register_device(
         existing.token_hash = hash_device_token(token)
         existing.status = "active"
         existing.revoked_at = None
-        existing.subject_user_id = body.subject_user_id
+        existing.subject_user_id = _legacy_subject_user_id(
+            db, body=body, account_user_id=user_id, health_subject_id=health_subject_id
+        )
         bind_device_to_subject(
             db,
             device=existing,
@@ -129,9 +147,12 @@ def register_device(
         )
 
     token = generate_device_token()
+    legacy_subject_id = _legacy_subject_user_id(
+        db, body=body, account_user_id=user_id, health_subject_id=health_subject_id
+    )
     device = Device(
         user_id=user_id,
-        subject_user_id=body.subject_user_id,
+        subject_user_id=legacy_subject_id,
         device_id=body.device_id,
         device_type=requested_type or "heart_rate",
         status="active",
