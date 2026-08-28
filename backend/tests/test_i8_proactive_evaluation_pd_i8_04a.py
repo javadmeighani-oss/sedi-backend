@@ -68,7 +68,7 @@ def test_alembic_single_head_is_070():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["070_i8_proactive_evaluation_ledger"]
+    assert script.get_heads() == ["071_i9_health_subject_device_packet_foundation"]
 
 
 def test_evaluation_identity_families():

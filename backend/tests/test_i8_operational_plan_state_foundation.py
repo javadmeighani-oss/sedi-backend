@@ -54,7 +54,9 @@ def test_alembic_single_head_is_070():
     cfg = AlembicConfig(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["070_i8_proactive_evaluation_ledger"]
+    assert script.get_heads() == ["071_i9_health_subject_device_packet_foundation"]
+    rev071 = script.get_revision("071_i9_health_subject_device_packet_foundation")
+    assert rev071.down_revision == "070_i8_proactive_evaluation_ledger"
     rev070 = script.get_revision("070_i8_proactive_evaluation_ledger")
     assert rev070.down_revision == "069_i8_operational_plan_state_foundation"
     rev = script.get_revision("069_i8_operational_plan_state_foundation")

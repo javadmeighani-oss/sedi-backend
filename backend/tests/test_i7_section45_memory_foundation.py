@@ -66,7 +66,7 @@ def test_no_066_migration_file():
     assert (versions / "068_i7_wave2_governed_memory_lifecycle.py").is_file()
 
 
-def test_alembic_head_is_070():
+def test_alembic_head_is_071():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
@@ -74,7 +74,9 @@ def test_alembic_head_is_070():
     cfg = Config(str(root / "alembic.ini"))
     cfg.set_main_option("script_location", str(root / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["070_i8_proactive_evaluation_ledger"]
+    assert script.get_heads() == ["071_i9_health_subject_device_packet_foundation"]
+    rev = script.get_revision("071_i9_health_subject_device_packet_foundation")
+    assert rev.down_revision == "070_i8_proactive_evaluation_ledger"
     rev = script.get_revision("070_i8_proactive_evaluation_ledger")
     assert rev.down_revision == "069_i8_operational_plan_state_foundation"
     rev = script.get_revision("069_i8_operational_plan_state_foundation")
