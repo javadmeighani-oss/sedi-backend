@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 import pytest
-from sqlalchemy import inspect
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect, text
 
 from backend.app import models
 from backend.app.core.device_auth import hash_device_token
@@ -377,3 +382,431 @@ def test_c21_i7_consent_and_managed_skip(db, family):
     written = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
     assert written["status"] == "WRITTEN"
     assert produce_i7_pattern_from_latest_rollup(db, health_subject_id=family["father"].id)["status"] == "SKIPPED_NO_LINKED_ACCOUNT"
+
+
+# ---------------------------------------------------------------------------
+# Migration 073 rollback safety contract (PD-I9-V1-MIGRATION-073-ROLLBACK-SAFETY-CONTRACT-01)
+# Uses an isolated PostgreSQL database so downgrade rehearsal cannot mutate the shared test DB.
+# ---------------------------------------------------------------------------
+
+_MIG073_ROOT = Path(__file__).resolve().parents[1]
+_MIG073_MARKER = "I9_073_DOWNGRADE_BLOCKED_SUBJECT_NATIVE_NULL_USER_ROWS"
+_REV_072 = "072_i9_device_claim_gateway_lifecycle_foundation"
+_REV_073 = "073_i9_subject_native_rollup_baseline"
+
+
+def _mig073_test_url() -> str | None:
+    return os.environ.get("TEST_DATABASE_URL")
+
+
+def _mig073_alembic_cfg(url: str) -> Config:
+    cfg = Config(str(_MIG073_ROOT / "alembic.ini"))
+    cfg.set_main_option("script_location", str(_MIG073_ROOT / "alembic"))
+    cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+    return cfg
+
+
+def _mig073_admin_and_rehearsal_urls(base_url: str) -> tuple[str, str, str]:
+    parsed = urlparse(base_url)
+    base_db = parsed.path.lstrip("/")
+    rehearsal_db = f"{base_db}_mig073_{uuid.uuid4().hex[:8]}"
+    admin_url = urlunparse(parsed._replace(path="/postgres"))
+    rehearsal_url = urlunparse(parsed._replace(path=f"/{rehearsal_db}"))
+    return admin_url, rehearsal_url, rehearsal_db
+
+
+class _Mig073IsolatedDb:
+    def __init__(self) -> None:
+        base_url = _mig073_test_url()
+        if not base_url:
+            pytest.skip("TEST_DATABASE_URL required for migration 073 rollback rehearsal")
+        self.admin_url, self.url, self.db_name = _mig073_admin_and_rehearsal_urls(base_url)
+        self.admin_engine = create_engine(self.admin_url, isolation_level="AUTOCOMMIT")
+        with self.admin_engine.connect() as conn:
+            conn.execute(text(f'CREATE DATABASE "{self.db_name}"'))
+        self.engine = create_engine(self.url)
+        self.cfg = _mig073_alembic_cfg(self.url)
+
+    def close(self) -> None:
+        self.engine.dispose()
+        with self.admin_engine.connect() as conn:
+            conn.execute(text(f'DROP DATABASE IF EXISTS "{self.db_name}" WITH (FORCE)'))
+        self.admin_engine.dispose()
+
+
+@pytest.fixture()
+def mig073_db():
+    isolated = _Mig073IsolatedDb()
+    try:
+        yield isolated
+    finally:
+        isolated.close()
+
+
+def _mig073_head(conn) -> str:
+    return conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+
+
+def _mig073_user_id_nullable(conn, table: str) -> bool:
+    row = conn.execute(
+        text(
+            """
+            SELECT is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = :table
+              AND column_name = 'user_id'
+            """
+        ),
+        {"table": table},
+    ).scalar_one()
+    return row == "YES"
+
+
+def _mig073_column_exists(conn, table: str, column: str) -> bool:
+    return (
+        conn.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = :table
+                  AND column_name = :column
+                """
+            ),
+            {"table": table, "column": column},
+        ).scalar_one()
+        > 0
+    )
+
+
+def _mig073_index_exists(conn, index_name: str) -> bool:
+    return (
+        conn.execute(
+            text("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname = :name"),
+            {"name": index_name},
+        ).scalar_one()
+        > 0
+    )
+
+
+def _mig073_schema_at_073(conn) -> None:
+    assert _mig073_head(conn) == _REV_073
+    assert _mig073_column_exists(conn, "physiological_baselines", "baseline_method")
+    assert _mig073_column_exists(conn, "physiological_baselines", "dispersion_value")
+    assert _mig073_column_exists(conn, "physiological_baselines", "valid_day_count")
+    assert _mig073_index_exists(conn, "uq_pmr_subject_type_bucket")
+    assert _mig073_index_exists(conn, "uq_pb_subject_type_version_window")
+
+
+def _mig073_seed_caregiver_user(conn) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO users (name, secret_key, preferred_language, phone)
+            VALUES ('Mig073Caregiver', 'k-mig073', 'en', '+989100009999')
+            RETURNING id
+            """
+        )
+    ).scalar_one()
+
+
+def _mig073_seed_managed_subject(conn) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status)
+            VALUES ('ManagedFather', NULL, 'managed', 'active')
+            RETURNING id
+            """
+        )
+    ).scalar_one()
+
+
+def _mig073_seed_linked_subject(conn, user_id: int) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status)
+            VALUES ('LinkedSelf', :user_id, 'self', 'active')
+            RETURNING id
+            """
+        ),
+        {"user_id": user_id},
+    ).scalar_one()
+
+
+def _mig073_seed_legacy_rollup(conn, *, user_id: int, subject_id: int) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO physiological_measurement_rollups (
+                user_id, health_subject_id, measurement_type, bucket_kind,
+                bucket_start, bucket_end, sample_count, avg_value
+            )
+            VALUES (
+                :user_id, :subject_id, 'heart_rate', 'daily',
+                TIMESTAMPTZ '2026-01-01 00:00:00+00', TIMESTAMPTZ '2026-01-02 00:00:00+00',
+                1, 72.0
+            )
+            RETURNING id
+            """
+        ),
+        {"user_id": user_id, "subject_id": subject_id},
+    ).scalar_one()
+
+
+def _mig073_seed_null_user_rollup(conn, *, subject_id: int) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO physiological_measurement_rollups (
+                user_id, health_subject_id, measurement_type, bucket_kind,
+                bucket_start, bucket_end, sample_count, avg_value
+            )
+            VALUES (
+                NULL, :subject_id, 'heart_rate', 'daily',
+                TIMESTAMPTZ '2026-02-01 00:00:00+00', TIMESTAMPTZ '2026-02-02 00:00:00+00',
+                1, 65.0
+            )
+            RETURNING id
+            """
+        ),
+        {"subject_id": subject_id},
+    ).scalar_one()
+
+
+def _mig073_seed_legacy_baseline(conn, *, user_id: int, subject_id: int) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO physiological_baselines (
+                user_id, health_subject_id, measurement_type, window_start, window_end,
+                baseline_version, derived_at, baseline_value, baseline_method,
+                dispersion_value, valid_day_count
+            )
+            VALUES (
+                :user_id, :subject_id, 'heart_rate',
+                TIMESTAMPTZ '2026-01-01 00:00:00+00', TIMESTAMPTZ '2026-01-29 00:00:00+00',
+                1, TIMESTAMPTZ '2026-01-29 12:00:00+00', 70.0,
+                'PERSONAL_OBSERVED_BASELINE_V1', 5.0, 14
+            )
+            RETURNING id
+            """
+        ),
+        {"user_id": user_id, "subject_id": subject_id},
+    ).scalar_one()
+
+
+def _mig073_seed_null_user_baseline(conn, *, subject_id: int) -> int:
+    return conn.execute(
+        text(
+            """
+            INSERT INTO physiological_baselines (
+                user_id, health_subject_id, measurement_type, window_start, window_end,
+                baseline_version, derived_at, baseline_value, baseline_method,
+                dispersion_value, valid_day_count
+            )
+            VALUES (
+                NULL, :subject_id, 'heart_rate',
+                TIMESTAMPTZ '2026-02-01 00:00:00+00', TIMESTAMPTZ '2026-03-01 00:00:00+00',
+                1, TIMESTAMPTZ '2026-03-01 12:00:00+00', 60.0,
+                'PERSONAL_OBSERVED_BASELINE_V1', 4.0, 7
+            )
+            RETURNING id
+            """
+        ),
+        {"subject_id": subject_id},
+    ).scalar_one()
+
+
+def _mig073_rollup_snapshot(conn, row_id: int) -> dict:
+    row = conn.execute(
+        text(
+            """
+            SELECT id, user_id, health_subject_id, avg_value, sample_count
+            FROM physiological_measurement_rollups
+            WHERE id = :row_id
+            """
+        ),
+        {"row_id": row_id},
+    ).mappings().one()
+    return dict(row)
+
+
+def _mig073_baseline_snapshot(conn, row_id: int) -> dict:
+    row = conn.execute(
+        text(
+            """
+            SELECT id, user_id, health_subject_id, baseline_value, valid_day_count
+            FROM physiological_baselines
+            WHERE id = :row_id
+            """
+        ),
+        {"row_id": row_id},
+    ).mappings().one()
+    return dict(row)
+
+
+def test_r01_migration_072_to_073_upgrade(mig073_db):
+    """R1: structural upgrade 072 -> 073 PASS."""
+    command.upgrade(mig073_db.cfg, _REV_072)
+    command.upgrade(mig073_db.cfg, _REV_073)
+    with mig073_db.engine.connect() as conn:
+        _mig073_schema_at_073(conn)
+        assert _mig073_user_id_nullable(conn, "physiological_measurement_rollups")
+        assert _mig073_user_id_nullable(conn, "physiological_baselines")
+
+
+def test_r02_safe_073_to_072_downgrade_representable_rows(mig073_db):
+    """R2/R15/R16: downgrade PASS when all rows have non-null user_id."""
+    command.upgrade(mig073_db.cfg, _REV_073)
+    with mig073_db.engine.begin() as conn:
+        caregiver_id = _mig073_seed_caregiver_user(conn)
+        subject_id = _mig073_seed_linked_subject(conn, caregiver_id)
+        legacy_rollup_id = _mig073_seed_legacy_rollup(conn, user_id=caregiver_id, subject_id=subject_id)
+        legacy_baseline_id = _mig073_seed_legacy_baseline(conn, user_id=caregiver_id, subject_id=subject_id)
+        rollup_before = _mig073_rollup_snapshot(conn, legacy_rollup_id)
+        baseline_before = _mig073_baseline_snapshot(conn, legacy_baseline_id)
+
+    command.downgrade(mig073_db.cfg, _REV_072)
+
+    with mig073_db.engine.connect() as conn:
+        assert _mig073_head(conn) == _REV_072
+        assert not _mig073_user_id_nullable(conn, "physiological_measurement_rollups")
+        assert not _mig073_user_id_nullable(conn, "physiological_baselines")
+        assert not _mig073_column_exists(conn, "physiological_baselines", "baseline_method")
+        assert not _mig073_column_exists(conn, "physiological_baselines", "dispersion_value")
+        assert not _mig073_column_exists(conn, "physiological_baselines", "valid_day_count")
+        assert not _mig073_index_exists(conn, "uq_pmr_subject_type_bucket")
+        assert not _mig073_index_exists(conn, "uq_pb_subject_type_version_window")
+        rollup_after = _mig073_rollup_snapshot(conn, legacy_rollup_id)
+        baseline_after = _mig073_baseline_snapshot(conn, legacy_baseline_id)
+        assert rollup_after["user_id"] == caregiver_id
+        assert rollup_after["avg_value"] == rollup_before["avg_value"]
+        assert baseline_after["user_id"] == caregiver_id
+        assert baseline_after["baseline_value"] == baseline_before["baseline_value"]
+
+
+def test_r17_reupgrade_072_to_073_after_safe_downgrade(mig073_db):
+    """R17: re-upgrade 072 -> 073 after safe downgrade."""
+    command.upgrade(mig073_db.cfg, _REV_073)
+    with mig073_db.engine.begin() as conn:
+        user_id = _mig073_seed_caregiver_user(conn)
+        subject_id = _mig073_seed_linked_subject(conn, user_id)
+        _mig073_seed_legacy_rollup(conn, user_id=user_id, subject_id=subject_id)
+    command.downgrade(mig073_db.cfg, _REV_072)
+    command.upgrade(mig073_db.cfg, _REV_073)
+    with mig073_db.engine.connect() as conn:
+        _mig073_schema_at_073(conn)
+
+
+@pytest.mark.parametrize(
+    "seed_fn",
+    [
+        "rollup",
+        "baseline",
+        "both",
+    ],
+    ids=["null_rollup", "null_baseline", "null_both"],
+)
+def test_r03_r05_blocked_downgrade_subject_native_null_user_rows(mig073_db, seed_fn):
+    """R3-R14: blocked downgrade fail-closed before DDL; schema/data preserved at 073."""
+    command.upgrade(mig073_db.cfg, _REV_073)
+    with mig073_db.engine.begin() as conn:
+        caregiver_id = _mig073_seed_caregiver_user(conn)
+        managed_subject_id = _mig073_seed_managed_subject(conn)
+        linked_subject_id = _mig073_seed_linked_subject(conn, caregiver_id)
+        legacy_rollup_id = _mig073_seed_legacy_rollup(
+            conn, user_id=caregiver_id, subject_id=linked_subject_id
+        )
+        legacy_baseline_id = _mig073_seed_legacy_baseline(
+            conn, user_id=caregiver_id, subject_id=linked_subject_id
+        )
+        null_rollup_id = None
+        null_baseline_id = None
+        if seed_fn in ("rollup", "both"):
+            null_rollup_id = _mig073_seed_null_user_rollup(conn, subject_id=managed_subject_id)
+        if seed_fn in ("baseline", "both"):
+            null_baseline_id = _mig073_seed_null_user_baseline(conn, subject_id=managed_subject_id)
+        rollup_count_before = conn.execute(text("SELECT COUNT(*) FROM physiological_measurement_rollups")).scalar_one()
+        baseline_count_before = conn.execute(text("SELECT COUNT(*) FROM physiological_baselines")).scalar_one()
+        user_count_before = conn.execute(text("SELECT COUNT(*) FROM users")).scalar_one()
+        null_rollup_before = (
+            _mig073_rollup_snapshot(conn, null_rollup_id) if null_rollup_id is not None else None
+        )
+        null_baseline_before = (
+            _mig073_baseline_snapshot(conn, null_baseline_id) if null_baseline_id is not None else None
+        )
+        legacy_rollup_before = _mig073_rollup_snapshot(conn, legacy_rollup_id)
+        legacy_baseline_before = _mig073_baseline_snapshot(conn, legacy_baseline_id)
+
+    with pytest.raises(RuntimeError) as exc:
+        command.downgrade(mig073_db.cfg, _REV_072)
+    assert _MIG073_MARKER in str(exc.value)
+
+    with mig073_db.engine.connect() as conn:
+        _mig073_schema_at_073(conn)  # R6-R10
+        assert _mig073_head(conn) == _REV_073  # R6
+        assert conn.execute(text("SELECT COUNT(*) FROM physiological_measurement_rollups")).scalar_one() == rollup_count_before  # R12
+        assert conn.execute(text("SELECT COUNT(*) FROM physiological_baselines")).scalar_one() == baseline_count_before  # R12
+        assert conn.execute(text("SELECT COUNT(*) FROM users")).scalar_one() == user_count_before  # R13/R14
+        assert _mig073_rollup_snapshot(conn, legacy_rollup_id) == legacy_rollup_before  # R11/R16
+        assert _mig073_baseline_snapshot(conn, legacy_baseline_id) == legacy_baseline_before  # R11/R16
+        if null_rollup_before is not None:
+            snap = _mig073_rollup_snapshot(conn, null_rollup_id)
+            assert snap == null_rollup_before
+            assert snap["user_id"] is None  # R13/R14
+            assert snap["health_subject_id"] == managed_subject_id
+        if null_baseline_before is not None:
+            snap = _mig073_baseline_snapshot(conn, null_baseline_id)
+            assert snap == null_baseline_before
+            assert snap["user_id"] is None  # R13/R14
+            assert snap["health_subject_id"] == managed_subject_id
+
+
+def test_r18_single_head_remains_073():
+    """R18: Alembic single-head remains 073 (alias of C01)."""
+    test_c01_alembic_single_head_073()
+
+
+def test_r19_personal_observed_baseline_regression(db, family):
+    """R19: PERSONAL_OBSERVED_BASELINE regression (alias of C05/C08)."""
+    test_c05_linked_subject_baseline_persistence(db, family)
+    test_c08_7_days_provisional(db, family)
+
+
+def test_r20_managed_no_account_persistence_regression(db, family):
+    """R20: managed no-account persistence regression (alias of C04/C06)."""
+    test_c04_managed_no_account_rollup_persistence(db, family)
+    test_c06_managed_no_account_baseline_persistence(db, family)
+
+
+def test_r21_weighted_aggregation_regression(db, family):
+    """R21: weighted aggregation regression (alias of C03/C15)."""
+    test_c03_linked_subject_rollup_persistence(db, family)
+    test_c15_technical_rejected_excluded_only(db, family)
+
+
+def test_r22_longitudinal_read_regression(db, family):
+    """R22: longitudinal read path uses persisted rollups (C03 + internal rebuild)."""
+    test_c03_linked_subject_rollup_persistence(db, family)
+    test_c20_internal_rebuild_service(db, family)
+
+
+def test_r23_i9_i7_consent_provenance_regression(db, family):
+    """R23: I9->I7 consent/provenance regression (alias of C21)."""
+    test_c21_i7_consent_and_managed_skip(db, family)
+
+
+def test_r24_trusted_fleet_and_packet_ack_regressions_delegate():
+    """R24: trusted fleet / claim / packet ACK covered by sibling modules in the same CI step."""
+    repo = Path(__file__).resolve().parents[2]
+    siblings = (
+        "backend/tests/test_i9_device_claim_trust_ingest_runtime.py",
+        "backend/tests/test_i9_trusted_fleet_provisioning_claim_hardening.py",
+        "backend/tests/test_i9_health_subject_device_packet_foundation.py",
+    )
+    for rel in siblings:
+        assert (repo / rel).is_file(), rel

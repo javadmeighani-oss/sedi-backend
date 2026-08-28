@@ -7,6 +7,11 @@ Revises: 072_i9_device_claim_gateway_lifecycle_foundation
 from typing import Sequence, Union
 
 from alembic import op
+from sqlalchemy import text
+
+I9_073_DOWNGRADE_BLOCKED_SUBJECT_NATIVE_NULL_USER_ROWS = (
+    "I9_073_DOWNGRADE_BLOCKED_SUBJECT_NATIVE_NULL_USER_ROWS"
+)
 
 revision: str = "073_i9_subject_native_rollup_baseline"
 down_revision: Union[str, None] = "072_i9_device_claim_gateway_lifecycle_foundation"
@@ -39,7 +44,26 @@ WHERE health_subject_id IS NOT NULL;
     )
 
 
+def _assert_073_downgrade_representable() -> None:
+    """Fail closed before any DDL when 072 cannot represent subject-native NULL user_id rows."""
+    bind = op.get_bind()
+    rollup_null = bind.execute(
+        text("SELECT COUNT(*) FROM physiological_measurement_rollups WHERE user_id IS NULL")
+    ).scalar_one()
+    baseline_null = bind.execute(
+        text("SELECT COUNT(*) FROM physiological_baselines WHERE user_id IS NULL")
+    ).scalar_one()
+    if rollup_null > 0 or baseline_null > 0:
+        raise RuntimeError(
+            f"{I9_073_DOWNGRADE_BLOCKED_SUBJECT_NATIVE_NULL_USER_ROWS} "
+            f"physiological_measurement_rollups_null_user_count={rollup_null} "
+            f"physiological_baselines_null_user_count={baseline_null}"
+        )
+
+
 def downgrade() -> None:
+    _assert_073_downgrade_representable()
+
     op.execute("""DROP INDEX IF EXISTS uq_pb_subject_type_version_window;""")
     op.execute("""ALTER TABLE physiological_baselines DROP COLUMN IF EXISTS valid_day_count;""")
     op.execute("""ALTER TABLE physiological_baselines DROP COLUMN IF EXISTS dispersion_value;""")
