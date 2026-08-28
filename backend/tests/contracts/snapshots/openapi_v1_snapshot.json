@@ -33,6 +33,38 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "AggregateRebuildRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "bucket_kind": {
+            "default": "daily",
+            "enum": [
+              "calendar_month",
+              "daily",
+              "hourly",
+              "weekly",
+              "yearly"
+            ],
+            "title": "Bucket Kind",
+            "type": "string"
+          },
+          "measurement_type": {
+            "default": "heart_rate",
+            "title": "Measurement Type",
+            "type": "string"
+          },
+          "ref": {
+            "format": "date-time",
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref"
+        ],
+        "title": "AggregateRebuildRequest",
+        "type": "object"
+      },
       "ApiError": {
         "description": "V1 error payload inside ApiResponse.error.",
         "properties": {
@@ -9977,6 +10009,429 @@
           }
         ],
         "summary": "Ensure Self Health Subject",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/vitals/aggregates": {
+      "get": {
+        "operationId": "get_subject_vitals_aggregates_health_subjects__health_subject_id__vitals_aggregates_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bucket_kind",
+            "required": true,
+            "schema": {
+              "title": "Bucket Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "title": "End",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measurement_type",
+            "required": true,
+            "schema": {
+              "title": "Measurement Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "title": "Start",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Vitals Aggregates",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/vitals/aggregates/rebuild": {
+      "post": {
+        "operationId": "rebuild_subject_vitals_aggregate_health_subjects__health_subject_id__vitals_aggregates_rebuild_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AggregateRebuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rebuild Subject Vitals Aggregate",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/vitals/baselines": {
+      "get": {
+        "operationId": "get_subject_vitals_baselines_health_subjects__health_subject_id__vitals_baselines_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measurement_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Measurement Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Vitals Baselines",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/vitals/events": {
+      "get": {
+        "operationId": "get_subject_vitals_events_health_subjects__health_subject_id__vitals_events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Start"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Vitals Events",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/vitals/observations": {
+      "get": {
+        "operationId": "get_subject_vitals_observations_health_subjects__health_subject_id__vitals_observations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measurement_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Measurement Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Start"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Vitals Observations",
         "tags": [
           "Health Subjects"
         ]

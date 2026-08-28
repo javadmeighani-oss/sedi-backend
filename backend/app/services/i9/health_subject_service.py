@@ -119,5 +119,26 @@ def resolve_linked_user_id_for_subject(db: Session, health_subject_id: int) -> O
     return subject.linked_user_id if subject else None
 
 
+def require_account_subject_access(
+    db: Session,
+    account_user_id: int,
+    health_subject_id: int,
+) -> models.HealthSubject:
+    """Fail-closed subject resolution for longitudinal reads."""
+    if not account_can_access_subject(db, account_user_id, health_subject_id):
+        raise HealthSubjectAccessDenied()
+    subject = db.query(models.HealthSubject).filter(models.HealthSubject.id == health_subject_id).first()
+    if subject is None or subject.status != "active":
+        raise HealthSubjectAccessDenied()
+    return subject
+
+
+def preferred_language_for_subject(db: Session, subject: models.HealthSubject) -> Optional[str]:
+    if subject.linked_user_id is None:
+        return None
+    user = db.query(models.User).filter(models.User.id == subject.linked_user_id).first()
+    return user.preferred_language if user else None
+
+
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
