@@ -51,6 +51,18 @@ from backend.app.services.i9.health_subject_service import (
 router = APIRouter()
 
 
+def _device_for_account(db: Session, device_id: str, account_user_id: int) -> Device | None:
+    """Return device only when account may manage it; else None (caller maps to NOT_FOUND)."""
+    device = db.query(Device).filter(Device.device_id == device_id).first()
+    if device is None:
+        return None
+    allowed = {device.owner_account_user_id, device.user_id}
+    allowed.discard(None)
+    if allowed and account_user_id not in allowed:
+        return None
+    return device
+
+
 def _reject_legacy_user_id_query(request: Request) -> None:
     """Reject legacy user_id query param; identity comes from JWT only."""
     if request.query_params.get("user_id") is not None:
@@ -318,7 +330,7 @@ def release_device_route(
     db: Session = Depends(get_db),
 ):
     """Release device from active health subject binding; history preserved."""
-    device = db.query(Device).filter(Device.device_id == device_id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
     try:
@@ -344,7 +356,7 @@ def transfer_device_route(
     db: Session = Depends(get_db),
 ):
     """Transfer device to new health subject; old data stays on prior subject."""
-    device = db.query(Device).filter(Device.device_id == device_id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
     try:
@@ -376,15 +388,9 @@ def pair_gateway_route(
     db: Session = Depends(get_db),
 ):
     """Authorize mobile gateway relay; does not change health subject binding."""
-    device = db.query(Device).filter(Device.device_id == device_id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
-    if device.owner_account_user_id is not None and device.owner_account_user_id != auth_user.id:
-        if device.user_id != auth_user.id:
-            return DeviceRegisterResponse(
-                ok=False,
-                error={"code": "DEVICE_ACCESS_DENIED", "message": "Not allowed to pair gateway for this device"},
-            )
     try:
         row = authorize_mobile_gateway(
             db,
@@ -413,7 +419,7 @@ def disconnect_gateway_route(
     db: Session = Depends(get_db),
 ):
     """Disconnect gateway only; device binding unchanged."""
-    device = db.query(Device).filter(Device.device_id == device_id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
     disconnected = disconnect_mobile_gateway(
@@ -442,7 +448,7 @@ def rebind_device_route(
     db: Session = Depends(get_db),
 ):
     """Rebind device to a different health subject; historical data stays on prior binding."""
-    device = db.query(Device).filter(Device.device_id == device_id, Device.user_id == auth_user.id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
     if not account_can_access_subject(db, auth_user.id, body.health_subject_id):
@@ -474,7 +480,7 @@ def revoke_device(
     db: Session = Depends(get_db),
 ):
     """Revoke a device; future authentication rejected; history preserved."""
-    device = db.query(Device).filter(Device.device_id == device_id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
     try:
@@ -492,8 +498,7 @@ def rotate_device_token(
     db: Session = Depends(get_db),
 ):
     """Rotate device token for a device owned by the authenticated user."""
-    user_id = auth_user.id
-    device = db.query(Device).filter(Device.device_id == device_id, Device.user_id == user_id).first()
+    device = _device_for_account(db, device_id, auth_user.id)
     if not device:
         return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
 
