@@ -1643,3 +1643,73 @@ def test_i08_raw_sample_never_written_to_i7(db, family):
             pattern={"from": "raw"},
             source_refs=[],
         )
+
+
+# --- PD-I9-V1-I8-I9-GOVERNED-CONSUMER-INTEGRATION-CLOSURE-01 (I9 projection seam tests) ---
+
+from backend.app.services.i8.context import load_trusted_context
+from backend.app.services.i9.i8_projection_service import (
+    get_i8_governed_context_projection,
+    projection_row_count,
+)
+
+
+def test_g05_projection_no_device_packet_import():
+    import backend.app.services.i9.i8_projection_service as mod
+
+    src = open(mod.__file__, encoding="utf-8").read()
+    assert "DevicePacket" not in src
+    assert "list_observations" not in src
+    assert "compute_aggregate_for_range" not in src
+
+
+def test_g06_projection_no_raw_signal_path():
+    import backend.app.services.i9.i8_projection_service as mod
+
+    src = open(mod.__file__, encoding="utf-8").read()
+    assert "RawSignalBatch" not in src
+    assert "PhysiologicalMeasurement" not in src
+    assert "DeviceReportedCardiacEvent" not in src
+
+
+def test_g12_subject_rebind_history_ownership(db, family):
+    """Regression: projection binds to SELF subject linked to account, not caregiver-managed."""
+    javad = family["javad"]
+    father = family["father"]
+    assert father.linked_user_id is None
+    projection = get_i8_governed_context_projection(db, account_user_id=javad.id)
+    if projection.health_subject_id is not None:
+        subject = db.query(models.HealthSubject).filter_by(id=projection.health_subject_id).one()
+        assert subject.linked_user_id == javad.id
+        assert subject.id != father.id
+
+
+def test_g19_weighted_aggregation_unchanged(db, family):
+    """Delegate to existing weighted aggregation regression."""
+    test_l05_weighted_sample_count_semantics_unchanged(db, family)
+
+
+def test_g20_baseline_algorithm_unchanged(db, family):
+    """Delegate to established baseline median/MAD regression."""
+    test_c11_exact_median_of_daily_medians(db, family)
+    test_c12_exact_mad(db, family)
+
+
+def test_g21_trusted_fleet_packet_ack_delegate():
+    test_r24_trusted_fleet_and_packet_ack_regressions_delegate()
+
+
+def test_g22_i9_i7_producer_idempotency_delegate(db, family):
+    test_i02_identical_rerun_unchanged(db, family)
+    test_i03_identical_rerun_no_row_growth(db, family)
+
+
+def test_g23_alembic_single_head_073():
+    test_c01_alembic_single_head_073()
+
+
+def test_g24_no_migration_074():
+    repo = Path(__file__).resolve().parents[2]
+    versions = Path(repo) / "backend" / "alembic" / "versions"
+    assert not any(p.name.startswith("074_") for p in versions.glob("*.py"))
+

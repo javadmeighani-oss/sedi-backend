@@ -9,6 +9,11 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
+from backend.app.services.i9.i8_projection_service import (
+    I8GovernedPhysiologicalContext,
+    get_i8_governed_context_projection,
+    projection_context_refs,
+)
 
 
 @dataclass
@@ -20,6 +25,7 @@ class I8TrustedContext:
     goals: list[str] = field(default_factory=list)
     conditions: list[str] = field(default_factory=list)
     medications: list[str] = field(default_factory=list)
+    physiological_context: I8GovernedPhysiologicalContext | None = None
     context_refs: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -93,5 +99,8 @@ def load_trusted_context(db: Session, user_id: int) -> I8TrustedContext:
     ):
         _um, med = row
         ctx.medications.append(med.name[:128])
+
+    ctx.physiological_context = get_i8_governed_context_projection(db, account_user_id=user_id)
+    ctx.context_refs.extend(projection_context_refs(ctx.physiological_context))
 
     return ctx

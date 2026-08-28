@@ -836,3 +836,377 @@ def test_no_direct_vector_imports_in_i8_services():
         assert "ivfflat" not in src.lower()
         assert "local_rag" not in src
         assert "vector_provider" not in src
+
+
+# --- PD-I9-V1-I8-I9-GOVERNED-CONSUMER-INTEGRATION-CLOSURE-01 (I8 consumer tests) ---
+
+from backend.app.core.device_auth import hash_device_token
+from backend.app.services.i8.context import load_trusted_context
+from backend.app.services.i8.knowledge_bridge import build_personalization
+from backend.app.services.i9.aggregation_service import rebuild_daily_bucket, rebuild_higher_bucket_from_daily_rollups
+from backend.app.services.i9.baseline_service import BASELINE_METHOD, upsert_personal_observed_baseline
+from backend.app.services.i9.health_subject_service import (
+    create_managed_subject_without_account,
+    ensure_self_subject_for_account,
+)
+from backend.app.services.i9.i8_projection_service import get_i8_governed_context_projection, projection_row_count
+from backend.app.services.i9.time_buckets import bucket_bounds
+
+
+def _i9_device(db, owner: models.User, device_id: str) -> models.Device:
+    dev = models.Device(
+        user_id=owner.id,
+        device_id=device_id,
+        device_type="heart_rate",
+        status="active",
+        token_hash=hash_device_token(f"tok-{device_id}"),
+    )
+    db.add(dev)
+    db.flush()
+    return dev
+
+
+def _i9_pm(db, *, subject, device, value, measured_at, key):
+    row = models.PhysiologicalMeasurement(
+        health_subject_id=subject.id,
+        user_id=subject.linked_user_id,
+        device_id=device.id,
+        measurement_type="heart_rate",
+        numeric_value=value,
+        unit="bpm",
+        measured_at=measured_at,
+        received_at=datetime.now(timezone.utc),
+        idempotency_key=key,
+        ingestion_status="accepted",
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _i9_seed_hr(db, subject, device, ref, days_values: dict[int, list[float]]):
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    for offset, values in days_values.items():
+        day_start = d_start - timedelta(days=offset)
+        for i, v in enumerate(values):
+            _i9_pm(
+                db,
+                subject=subject,
+                device=device,
+                value=v,
+                measured_at=day_start + timedelta(hours=10, minutes=i),
+                key=f"i8-gate-{offset}-{i}-{v}",
+            )
+
+
+@pytest.fixture
+def i9_family(db):
+    user = _user(db, "i8-i9-user")
+    user.phone = "+989100000201"
+    subject = ensure_self_subject_for_account(db, user.id)
+    father = create_managed_subject_without_account(
+        db, account_user_id=user.id, display_name="Father", access_role="CAREGIVER"
+    )
+    device = _i9_device(db, user, "I8I9Dev001")
+    return {"user": user, "subject": subject, "father": father, "device": device}
+
+
+def test_g01_daily_hr_rollup_in_i8_context(db, i9_family, monkeypatch):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 1, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=subj, device=dev, value=82.0, measured_at=d_start + timedelta(hours=1), key="g01")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    ctx = load_trusted_context(db, user.id)
+    assert ctx.physiological_context is not None
+    assert ctx.physiological_context.daily_rollup is not None
+    assert ctx.physiological_context.daily_rollup.avg_value == 82.0
+    assert ctx.physiological_context.daily_rollup.bucket_kind == "daily"
+
+
+def test_g02_weekly_hr_rollup_in_i8_context(db, i9_family):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 8, 12, 0, tzinfo=timezone.utc)
+    _i9_seed_hr(db, subj, dev, ref, {i: [70.0 + i] for i in range(7)})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    ctx = load_trusted_context(db, user.id)
+    assert ctx.physiological_context.weekly_rollup is not None
+    assert ctx.physiological_context.weekly_rollup.bucket_kind == "weekly"
+
+
+def test_g03_personal_observed_baseline_in_i8_context(db, i9_family):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 10, 12, 0, tzinfo=timezone.utc)
+    _i9_seed_hr(db, subj, dev, ref, {i: [70.0 + i] for i in range(7)})
+    upsert_personal_observed_baseline(db, subject=subj, ref=ref)
+    ctx = load_trusted_context(db, user.id)
+    bl = ctx.physiological_context.personal_observed_baseline
+    assert bl is not None
+    assert bl.baseline_method == BASELINE_METHOD
+    assert bl.valid_day_count == 7
+
+
+def test_g04_no_raw_measurement_in_projection(db, i9_family):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 1, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=subj, device=dev, value=99.0, measured_at=d_start + timedelta(hours=1), key="g04")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    projection = get_i8_governed_context_projection(db, account_user_id=user.id)
+    blob = repr(projection)
+    assert "PhysiologicalMeasurement" not in blob
+    assert "idempotency_key" not in blob
+    assert "DevicePacket" not in blob
+
+
+def test_g07_projection_bounded_max_rows(db, i9_family):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 15, 12, 0, tzinfo=timezone.utc)
+    _i9_seed_hr(db, subj, dev, ref, {i: [68.0 + i] for i in range(7)})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    upsert_personal_observed_baseline(db, subject=subj, ref=ref)
+    projection = get_i8_governed_context_projection(db, account_user_id=user.id)
+    assert projection_row_count(projection) <= 3
+
+
+def test_g08_i6_consent_blocks_personalized_action(db, i9_family, monkeypatch):
+    user = i9_family["user"]
+    _profile_tz(db, user.id)
+    db.commit()
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[_ok_item()]),
+    )
+    result = generate_operational_action(
+        db, user_id=user.id, actor_user_id=user.id, request="healthy lunch", domain="nutrition", persist=True
+    )
+    assert result.status == "CONSENT_REQUIRED"
+    assert result.persisted is False
+
+
+def test_g09_multi_user_subject_isolation(db):
+    u1 = _user(db, "iso-u1")
+    u2 = _user(db, "iso-u2")
+    s1 = ensure_self_subject_for_account(db, u1.id)
+    s2 = ensure_self_subject_for_account(db, u2.id)
+    d1 = _i9_device(db, u1, "IsoDev1")
+    d2 = _i9_device(db, u2, "IsoDev2")
+    ref = datetime(2026, 12, 5, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=s1, device=d1, value=60.0, measured_at=d_start + timedelta(hours=1), key="iso1")
+    _i9_pm(db, subject=s2, device=d2, value=90.0, measured_at=d_start + timedelta(hours=1), key="iso2")
+    rebuild_daily_bucket(db, subject=s1, measurement_type="heart_rate", ref=ref)
+    rebuild_daily_bucket(db, subject=s2, measurement_type="heart_rate", ref=ref)
+    p1 = get_i8_governed_context_projection(db, account_user_id=u1.id)
+    p2 = get_i8_governed_context_projection(db, account_user_id=u2.id)
+    assert p1.daily_rollup.avg_value == 60.0
+    assert p2.daily_rollup.avg_value == 90.0
+    assert p1.health_subject_id == s1.id
+    assert p2.health_subject_id == s2.id
+
+
+def test_g10_caregiver_no_managed_subject_physiology_in_i8_context(db, i9_family):
+    user = i9_family["user"]
+    father = i9_family["father"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 6, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=father, device=dev, value=55.0, measured_at=d_start + timedelta(hours=1), key="g10")
+    rebuild_daily_bucket(db, subject=father, measurement_type="heart_rate", ref=ref)
+    projection = get_i8_governed_context_projection(db, account_user_id=user.id)
+    assert projection.daily_rollup is None or projection.health_subject_id != father.id
+
+
+def test_g11_caregiver_user_id_never_substituted(db, i9_family):
+    user = i9_family["user"]
+    father = i9_family["father"]
+    assert father.linked_user_id is None
+    projection = get_i8_governed_context_projection(db, account_user_id=user.id)
+    if projection.health_subject_id is not None:
+        assert projection.health_subject_id != father.id
+        subj = db.query(models.HealthSubject).filter_by(id=projection.health_subject_id).one()
+        assert subj.linked_user_id == user.id
+
+
+def test_g13_context_refs_contain_i9_provenance(db, i9_family, monkeypatch):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 7, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=subj, device=dev, value=75.0, measured_at=d_start + timedelta(hours=1), key="g13")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[_ok_item()]),
+    )
+    result = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="healthy lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="g13-plan",
+        action_idempotency_key="g13-act",
+    )
+    assert result.status == "ACTION_PERSISTED"
+    row = db.query(models.I8OperationalPlanAction).filter_by(id=result.action_id).one()
+    refs = json.loads(row.context_refs_json or "[]")
+    rollup_refs = [r for r in refs if r.get("ref_type") == "physiological_measurement_rollup"]
+    assert len(rollup_refs) >= 1
+    assert rollup_refs[0]["health_subject_id"] == subj.id
+    assert rollup_refs[0]["measurement_type"] == "heart_rate"
+
+
+def test_g14_persisted_context_refs_no_raw_arrays(db, i9_family, monkeypatch):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 9, 12, 0, tzinfo=timezone.utc)
+    _i9_seed_hr(db, subj, dev, ref, {i: [70.0 + i] for i in range(7)})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    upsert_personal_observed_baseline(db, subject=subj, ref=ref)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[_ok_item()]),
+    )
+    result = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="wellbeing tips",
+        domain="wellbeing",
+        persist=True,
+        plan_idempotency_key="g14-plan",
+        action_idempotency_key="g14-act",
+    )
+    row = db.query(models.I8OperationalPlanAction).filter_by(id=result.action_id).one()
+    blob = row.context_refs_json or ""
+    assert "daily_medians" not in blob
+    assert "idempotency_key" not in blob
+    assert "DevicePacket" not in blob
+
+
+def test_g15_presentation_no_raw_physiological_history(db, i9_family, monkeypatch):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 11, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=subj, device=dev, value=88.0, measured_at=d_start + timedelta(hours=1), key="g15")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    monkeypatch.setattr(
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
+        lambda *a, **k: SimpleNamespace(status=STATUS_OK, items=[_ok_item()]),
+    )
+    result = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="lunch ideas",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="g15-plan",
+        action_idempotency_key="g15-act",
+    )
+    row = db.query(models.I8OperationalPlanAction).filter_by(id=result.action_id).one()
+    assert "88.0" not in (row.presentation_json or "")
+    assert "physiological_measurement_rollup" not in (row.presentation_json or "")
+
+
+def test_g16_knowledge_rag_path_excludes_i9_observations(db, i9_family):
+    user = i9_family["user"]
+    subj = i9_family["subject"]
+    dev = i9_family["device"]
+    ref = datetime(2026, 12, 12, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _i9_pm(db, subject=subj, device=dev, value=77.0, measured_at=d_start + timedelta(hours=1), key="g16")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    ctx = load_trusted_context(db, user.id)
+    pers = build_personalization(ctx, domain="nutrition")
+    assert pers.is_empty() is False or not ctx.goals
+    blob = repr(pers)
+    assert "physiological" not in blob.lower()
+    assert "rollup" not in blob.lower()
+    assert "baseline_value" not in blob
+
+
+def test_g17_existing_safety_therapeutic_unchanged(db, monkeypatch):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    result = generate_operational_action(
+        db,
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="increase dose of my medication",
+        domain="wellbeing",
+        persist=False,
+    )
+    assert result.status == "THERAPEUTIC_FAIL_CLOSED"
+
+
+def test_g18_idempotent_replay_unchanged(db, monkeypatch):
+    user = _user(db)
+    _profile_tz(db, user.id)
+    db.commit()
+    _grant_and_seed(db, user.id)
+    called = {"n": 0}
+
+    def _fake(*a, **k):
+        called["n"] += 1
+        return SimpleNamespace(status=STATUS_OK, items=[_ok_item()])
+
+    monkeypatch.setattr("backend.app.services.i8.unified_core.retrieve_governed_knowledge", _fake)
+    kwargs = dict(
+        user_id=user.id,
+        actor_user_id=user.id,
+        request="same lunch",
+        domain="nutrition",
+        persist=True,
+        plan_idempotency_key="g18-plan",
+        action_idempotency_key="g18-act",
+    )
+    first = generate_operational_action(db, **kwargs)
+    second = generate_operational_action(db, **kwargs)
+    assert first.plan_id == second.plan_id
+    assert first.action_id == second.action_id
+    assert called["n"] == 1
+
+
+def test_g25_future_i9_trigger_not_activated():
+    from backend.app.services.i8 import constants as i8_constants
+    from backend.app.services.i8 import trusted_trigger as tt
+
+    assert "future_i9" in i8_constants.TRIGGER_FAMILIES
+    src = open(tt.__file__, encoding="utf-8").read()
+    assert "physiological_context" not in src
+    assert "i8_projection" not in src
+
