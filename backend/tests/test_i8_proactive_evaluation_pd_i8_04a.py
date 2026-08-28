@@ -68,7 +68,7 @@ def test_alembic_single_head_is_070():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["072_i9_device_claim_gateway_lifecycle_foundation"]
+    assert script.get_heads() == ["073_i9_subject_native_rollup_baseline"]
 
 
 def test_evaluation_identity_families():

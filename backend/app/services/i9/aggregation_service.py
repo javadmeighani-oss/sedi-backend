@@ -59,8 +59,13 @@ class BucketStats:
 
 
 def _rollup_storage_user_id(subject: models.HealthSubject) -> Optional[int]:
-    """Rollup table requires user_id FK; only persist when linked account exists."""
+    """Legacy user_id compatibility when subject has linked account."""
     return subject.linked_user_id
+
+
+def _technically_valid_pm_filter(q):
+    """Only exclude measurements rejected by existing ingestion contract."""
+    return q.filter(models.PhysiologicalMeasurement.ingestion_status == "accepted")
 
 
 def compute_bucket_stats_from_measurements(
@@ -72,12 +77,13 @@ def compute_bucket_stats_from_measurements(
     bucket_end: datetime,
 ) -> BucketStats:
     rows = (
-        db.query(models.PhysiologicalMeasurement.numeric_value)
-        .filter(
-            models.PhysiologicalMeasurement.health_subject_id == health_subject_id,
-            models.PhysiologicalMeasurement.measurement_type == measurement_type,
-            models.PhysiologicalMeasurement.measured_at >= bucket_start,
-            models.PhysiologicalMeasurement.measured_at < bucket_end,
+        _technically_valid_pm_filter(
+            db.query(models.PhysiologicalMeasurement.numeric_value).filter(
+                models.PhysiologicalMeasurement.health_subject_id == health_subject_id,
+                models.PhysiologicalMeasurement.measurement_type == measurement_type,
+                models.PhysiologicalMeasurement.measured_at >= bucket_start,
+                models.PhysiologicalMeasurement.measured_at < bucket_end,
+            )
         )
         .all()
     )
@@ -129,7 +135,7 @@ def upsert_rollup(
     stats: BucketStats,
     commit: bool = True,
 ) -> Tuple[Optional[models.PhysiologicalMeasurementRollup], bool]:
-    """Idempotent upsert; returns (row, created). Skips DB persist if no linked user."""
+    """Idempotent subject-native upsert; user_id optional for legacy compatibility."""
     storage_user_id = _rollup_storage_user_id(subject)
     existing = find_rollup_row(
         db,
@@ -138,7 +144,7 @@ def upsert_rollup(
         bucket_kind=bucket_kind,
         bucket_start=bucket_start,
     )
-    if storage_user_id is None:
+    if subject.id is None:
         return existing, False
 
     coverage = float(stats.sample_count) / max(1.0, float((bucket_end - bucket_start).total_seconds() / 60.0))

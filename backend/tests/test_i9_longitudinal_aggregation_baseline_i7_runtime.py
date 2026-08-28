@@ -459,13 +459,29 @@ def test_l20_event_provenance_preserved(db, family):
     assert events[0]["algorithm_version"] == "algo-prov"
 
 
-def test_l21_baseline_no_governed_algorithm(db, family):
+def test_l21_baseline_governed_algorithm(db, family):
     from backend.app.services.i9.longitudinal_read_service import list_baselines
 
     payload = list_baselines(
         db, account_user_id=family["javad"].id, health_subject_id=family["javad_subject"].id
     )
-    assert payload["baseline_computation"] == "NEEDS_PRODUCT_DECISION"
+    assert payload["baseline_method"] == "PERSONAL_OBSERVED_BASELINE_V1"
+
+
+def test_l21b_managed_subject_rollup_persists(db, family):
+    father = family["father"]
+    dev = family["device"]
+    ref = datetime(2026, 11, 4, 10, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _pm(db, subject=father, device=dev, value=66.0, measured_at=d_start + timedelta(hours=1), key="l21b")
+    rebuild_daily_bucket(db, subject=father, measurement_type="heart_rate", ref=ref)
+    row = (
+        db.query(models.PhysiologicalMeasurementRollup)
+        .filter(models.PhysiologicalMeasurementRollup.health_subject_id == father.id)
+        .first()
+    )
+    assert row is not None
+    assert row.user_id is None
 
 
 def test_l22_decision_engine_thresholds_unchanged():
@@ -568,13 +584,8 @@ def test_l30_packet_ack_regression_import():
     assert hasattr(mod, "test_t7_packet_retry_idempotent")
 
 
-def test_l31_alembic_single_head_072():
-    from pathlib import Path
+def test_l31_alembic_single_head_073():
+    from alembic.script import ScriptDirectory
 
-    versions = Path(__file__).resolve().parents[1] / "alembic" / "versions"
-    heads = []
-    for p in versions.glob("*.py"):
-        text = p.read_text(encoding="utf-8")
-        if "down_revision" in text and "072_i9" in p.name:
-            heads.append(p.name)
-    assert any("072_i9_device_claim_gateway_lifecycle_foundation" in h for h in heads)
+    heads = ScriptDirectory("backend/alembic").get_heads()
+    assert heads == ["073_i9_subject_native_rollup_baseline"]

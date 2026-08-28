@@ -33,38 +33,6 @@
         "title": "APIResponse",
         "type": "object"
       },
-      "AggregateRebuildRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "bucket_kind": {
-            "default": "daily",
-            "enum": [
-              "calendar_month",
-              "daily",
-              "hourly",
-              "weekly",
-              "yearly"
-            ],
-            "title": "Bucket Kind",
-            "type": "string"
-          },
-          "measurement_type": {
-            "default": "heart_rate",
-            "title": "Measurement Type",
-            "type": "string"
-          },
-          "ref": {
-            "format": "date-time",
-            "title": "Ref",
-            "type": "string"
-          }
-        },
-        "required": [
-          "ref"
-        ],
-        "title": "AggregateRebuildRequest",
-        "type": "object"
-      },
       "ApiError": {
         "description": "V1 error payload inside ApiResponse.error.",
         "properties": {
@@ -10092,63 +10060,6 @@
           }
         ],
         "summary": "Get Subject Vitals Aggregates",
-        "tags": [
-          "Health Subjects"
-        ]
-      }
-    },
-    "/health-subjects/{health_subject_id}/vitals/aggregates/rebuild": {
-      "post": {
-        "operationId": "rebuild_subject_vitals_aggregate_health_subjects__health_subject_id__vitals_aggregates_rebuild_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "health_subject_id",
-            "required": true,
-            "schema": {
-              "title": "Health Subject Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AggregateRebuildRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Rebuild Subject Vitals Aggregate",
         "tags": [
           "Health Subjects"
         ]

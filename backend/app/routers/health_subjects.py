@@ -10,17 +10,10 @@ from backend.app.schemas.health_subject import (
     HealthSubjectApiResponse,
     ManagedHealthSubjectCreate,
 )
-from backend.app.schemas.longitudinal import AggregateRebuildRequest
-from backend.app.services.i9.aggregation_service import (
-    rebuild_daily_bucket,
-    rebuild_higher_bucket_from_daily_rollups,
-)
 from backend.app.services.i9.health_subject_service import (
     HealthSubjectAccessDenied,
     create_managed_subject_without_account,
     ensure_self_subject_for_account,
-    preferred_language_for_subject,
-    require_account_subject_access,
 )
 from backend.app.services.i9.longitudinal_read_service import (
     list_aggregates,
@@ -185,53 +178,3 @@ def get_subject_vitals_baselines(
     except HealthSubjectAccessDenied:
         raise _access_denied()
     return HealthSubjectApiResponse(ok=True, data=payload)
-
-
-@router.post("/{health_subject_id}/vitals/aggregates/rebuild", response_model=HealthSubjectApiResponse)
-def rebuild_subject_vitals_aggregate(
-    health_subject_id: int,
-    body: AggregateRebuildRequest,
-    auth_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    try:
-        subject = require_account_subject_access(db, auth_user.id, health_subject_id)
-    except HealthSubjectAccessDenied:
-        raise _access_denied()
-    lang = preferred_language_for_subject(db, subject)
-    if body.bucket_kind == "daily":
-        stats = rebuild_daily_bucket(
-            db,
-            subject=subject,
-            measurement_type=body.measurement_type,
-            ref=body.ref,
-            preferred_language=lang,
-        )
-    elif body.bucket_kind in ("weekly", "calendar_month", "yearly"):
-        rebuild_daily_bucket(
-            db,
-            subject=subject,
-            measurement_type=body.measurement_type,
-            ref=body.ref,
-            preferred_language=lang,
-        )
-        stats = rebuild_higher_bucket_from_daily_rollups(
-            db,
-            subject=subject,
-            measurement_type=body.measurement_type,
-            bucket_kind=body.bucket_kind,
-            ref=body.ref,
-            preferred_language=lang,
-        )
-    else:
-        raise HTTPException(status_code=400, detail={"ok": False, "error": {"code": "UNSUPPORTED_BUCKET"}})
-    return HealthSubjectApiResponse(
-        ok=True,
-        data={
-            "bucket_kind": body.bucket_kind,
-            "sample_count": stats.sample_count,
-            "avg_value": stats.avg_value,
-            "min_value": stats.min_value,
-            "max_value": stats.max_value,
-        },
-    )

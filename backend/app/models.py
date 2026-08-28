@@ -3085,13 +3085,14 @@ class PhysiologicalBaseline(Base):
             name="uq_pb_user_type_version_window",
         ),
         Index("ix_pb_user_id", "user_id"),
+        Index("ix_pb_health_subject_id", "health_subject_id"),
     )
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_pb_user_id"),
-        nullable=False,
+        nullable=True,
     )
     measurement_type = Column(String(32), nullable=False)
     window_start = Column(DateTime(timezone=True), nullable=False)
@@ -3107,6 +3108,9 @@ class PhysiologicalBaseline(Base):
         ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_pb_health_subject_id"),
         nullable=True,
     )
+    baseline_method = Column(String(64), nullable=True)
+    dispersion_value = Column(Float, nullable=True)
+    valid_day_count = Column(Integer, nullable=True)
 
 
 class DerivedHealthSignal(Base):
@@ -3243,7 +3247,7 @@ class PhysiologicalMeasurementRollup(Base):
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE", name="fk_pmr_user_id"),
-        nullable=False,
+        nullable=True,
     )
     measurement_type = Column(String(32), nullable=False)
     bucket_kind = Column(String(16), nullable=False)  # hourly | daily | weekly | calendar_month | yearly

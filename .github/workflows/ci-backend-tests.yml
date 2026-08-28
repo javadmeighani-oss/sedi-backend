@@ -225,6 +225,16 @@ jobs:
             backend/tests/test_i7_section45_memory_foundation.py \
             --tb=short
 
+      - name: I9 longitudinal baseline closure (PostgreSQL)
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i9_longitudinal_aggregation_baseline_i7_runtime.py \
+            backend/tests/test_i9_baseline_subject_native_closure.py \
+            backend/tests/test_i9_device_claim_trust_ingest_runtime.py \
+            backend/tests/test_i9_trusted_fleet_provisioning_claim_hardening.py \
+            backend/tests/test_i9_health_subject_device_packet_foundation.py \
+            --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.

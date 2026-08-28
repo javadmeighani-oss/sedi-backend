@@ -169,12 +169,16 @@ def list_baselines(
         q = q.filter(models.PhysiologicalBaseline.measurement_type == measurement_type)
     rows = q.order_by(models.PhysiologicalBaseline.derived_at.desc()).limit(20).all()
     return {
-        "baseline_computation": "NEEDS_PRODUCT_DECISION",
+        "baseline_method": "PERSONAL_OBSERVED_BASELINE_V1",
+        "baseline_scope_v1": "heart_rate_only",
         "stored_baselines": [
             {
                 "id": r.id,
                 "measurement_type": r.measurement_type,
                 "baseline_value": r.baseline_value,
+                "dispersion_value": r.dispersion_value,
+                "valid_day_count": r.valid_day_count,
+                "baseline_method": r.baseline_method,
                 "window_start": r.window_start,
                 "window_end": r.window_end,
                 "derived_at": r.derived_at,

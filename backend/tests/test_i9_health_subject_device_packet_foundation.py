@@ -391,7 +391,7 @@ def test_t14_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["072_i9_device_claim_gateway_lifecycle_foundation"]
+    assert heads == ["073_i9_subject_native_rollup_baseline"]
 
 
 def test_managed_subject_api(client, db, monkeypatch):
