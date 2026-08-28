@@ -29,6 +29,8 @@ def upsert_i9_derived_pattern(
     if not source_refs:
         raise ValueError("I9_SOURCE_REFS_REQUIRED")
     consent = _active_consent(db, user_id=user_id)
+    new_pattern_json = json.dumps(pattern, sort_keys=True)
+    new_source_refs_json = json.dumps(source_refs, sort_keys=True)
     prior = (
         db.query(models.UserI7DerivedPattern)
         .filter(
@@ -39,14 +41,19 @@ def upsert_i9_derived_pattern(
         .first()
     )
     if prior is not None:
+        if (
+            prior.pattern_json == new_pattern_json
+            and prior.source_refs_json == new_source_refs_json
+        ):
+            return prior
         prior.status = "superseded"
         prior.superseded_at = datetime.now(timezone.utc)
     row = models.UserI7DerivedPattern(
         user_id=user_id,
         pattern_key=pattern_key,
-        pattern_json=json.dumps(pattern, sort_keys=True),
+        pattern_json=new_pattern_json,
         source_system="I9",
-        source_refs_json=json.dumps(source_refs, sort_keys=True),
+        source_refs_json=new_source_refs_json,
         provenance_json=json.dumps(
             {"generator": GENERATOR, "source_system": "I9", "pattern_key": pattern_key},
             sort_keys=True,

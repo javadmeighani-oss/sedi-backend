@@ -1113,3 +1113,529 @@ def test_j13_partial_failure_isolation(db, family, i9_jobs_enabled, monkeypatch)
     )
     assert result.retry_count >= 1
     assert result.subjects_processed >= 1
+
+
+# ---------------------------------------------------------------------------
+# Post-audit hardening (PD-I9-V1-SCHEDULED-RUNTIME-FAIRNESS-LATE-DATA-I7-IDEMPOTENCY-HARDENING-01)
+# ---------------------------------------------------------------------------
+
+from backend.app.services.i9.jobs import (
+    _rebuild_rollups_for_subject,
+    get_i9_sweep_cursor,
+    reset_i9_sweep_cursors,
+    set_i9_sweep_cursor,
+)
+
+
+def _fair_subject_batch(db, account_user, device, count, measured_at):
+    subjects = [ensure_self_subject_for_account(db, account_user.id)]
+    _pm(db, subject=subjects[0], device=device, value=70.0, measured_at=measured_at, key="fair-0")
+    for i in range(1, count):
+        subj = create_managed_subject_without_account(
+            db,
+            account_user_id=account_user.id,
+            display_name=f"Fair{i}",
+            access_role="CAREGIVER",
+        )
+        _pm(db, subject=subj, device=device, value=70.0 + i, measured_at=measured_at, key=f"fair-{i}")
+        subjects.append(subj)
+    db.commit()
+    return sorted(s.id for s in subjects)
+
+
+@pytest.fixture
+def fair_batch_size(monkeypatch):
+    monkeypatch.setenv("SEDI_I9_AGGREGATION_BASELINE_SUBJECT_BATCH", "2")
+    reset_i9_sweep_cursors()
+
+
+def test_f01_more_than_batch_eligible_subjects(db, javad, fair_batch_size, i9_jobs_enabled):
+    dev = _device(db, javad, "FairDev001")
+    ref = datetime(2026, 12, 20, 12, 0, tzinfo=timezone.utc)
+    ids = _fair_subject_batch(db, javad, dev, 5, ref)
+    assert len(ids) > 2
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 21, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert result.subjects_eligible == 2
+    assert result.subjects_processed == 2
+    assert get_i9_sweep_cursor("daily") == ids[1]
+
+
+def test_f02_first_run_processes_first_page(db, javad, fair_batch_size, i9_jobs_enabled, monkeypatch):
+    dev = _device(db, javad, "FairDev002")
+    ref = datetime(2026, 12, 22, 12, 0, tzinfo=timezone.utc)
+    ids = _fair_subject_batch(db, javad, dev, 4, ref)
+    processed = []
+
+    def _track(db, *, subject_id, bucket_kind, ref, persist):
+        processed.append(subject_id)
+        return (0, 0, 0, 0, 0, 0, 1)
+
+    monkeypatch.setattr("backend.app.services.i9.jobs._process_one_subject", _track)
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 23, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert processed == ids[:2]
+
+
+def test_f03_next_run_reaches_later_ids(db, javad, fair_batch_size, i9_jobs_enabled, monkeypatch):
+    dev = _device(db, javad, "FairDev003")
+    ref = datetime(2026, 12, 24, 12, 0, tzinfo=timezone.utc)
+    ids = _fair_subject_batch(db, javad, dev, 4, ref)
+    now = datetime(2026, 12, 25, 1, 10, 0)
+    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    second_processed = []
+
+    def _track(db, *, subject_id, bucket_kind, ref, persist):
+        second_processed.append(subject_id)
+        return (0, 0, 0, 0, 0, 0, 1)
+
+    monkeypatch.setattr("backend.app.services.i9.jobs._process_one_subject", _track)
+    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    assert second_processed == ids[2:4]
+
+
+def test_f04_empty_tail_wraps_cursor(db, javad, fair_batch_size, i9_jobs_enabled):
+    dev = _device(db, javad, "FairDev004")
+    ref = datetime(2026, 12, 26, 12, 0, tzinfo=timezone.utc)
+    ids = _fair_subject_batch(db, javad, dev, 3, ref)
+    now = datetime(2026, 12, 27, 1, 10, 0)
+    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    assert get_i9_sweep_cursor("daily") == ids[1]
+    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    assert get_i9_sweep_cursor("daily") == ids[2]
+    run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+    assert get_i9_sweep_cursor("daily") == 0
+
+
+def test_f05_no_starvation_across_cycles(db, javad, fair_batch_size, i9_jobs_enabled, monkeypatch):
+    dev = _device(db, javad, "FairDev005")
+    ref = datetime(2026, 12, 28, 12, 0, tzinfo=timezone.utc)
+    ids = _fair_subject_batch(db, javad, dev, 5, ref)
+    now = datetime(2026, 12, 29, 1, 10, 0)
+    seen = set()
+    for _ in range(4):
+        tick = []
+
+        def _track(db, *, subject_id, bucket_kind, ref, persist):
+            tick.append(subject_id)
+            return (0, 0, 0, 0, 0, 0, 1)
+
+        monkeypatch.setattr("backend.app.services.i9.jobs._process_one_subject", _track)
+        run_aggregation_baseline_sweep(db, "daily", now=now, persist=True, acquire_lock=False)
+        seen.update(tick)
+    assert seen == set(ids)
+
+
+def test_f06_flag_off_cursor_unchanged(db, javad, fair_batch_size, monkeypatch):
+    monkeypatch.delenv("SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED", raising=False)
+    set_i9_sweep_cursor("daily", 99)
+    dev = _device(db, javad, "FairDev006")
+    ref = datetime(2026, 12, 30, 12, 0, tzinfo=timezone.utc)
+    _fair_subject_batch(db, javad, dev, 3, ref)
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2026, 12, 31, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert get_i9_sweep_cursor("daily") == 99
+
+
+def test_f07_lock_contention_cursor_unchanged(db, javad, fair_batch_size, i9_jobs_enabled):
+    if db.bind.dialect.name != "postgresql":
+        pytest.skip("PostgreSQL required for advisory lock contention")
+    from backend.tests.test_db_config import get_test_database_url
+
+    set_i9_sweep_cursor("daily", 12)
+    dev = _device(db, javad, "FairDev007")
+    ref = datetime(2027, 1, 1, 12, 0, tzinfo=timezone.utc)
+    _fair_subject_batch(db, javad, dev, 2, ref)
+    holder = create_engine(get_test_database_url()).connect()
+    try:
+        holder.execute(
+            text("SELECT pg_advisory_lock(:key)"),
+            {"key": I9_SCHEDULED_RUNTIME_ADVISORY_LOCK_KEY},
+        )
+        holder.commit()
+        result = run_aggregation_baseline_sweep(
+            db, "daily", now=datetime(2027, 1, 2, 1, 10, 0), persist=True, acquire_lock=True
+        )
+        assert result.status == "LOCK_NOT_ACQUIRED"
+        assert get_i9_sweep_cursor("daily") == 12
+    finally:
+        holder.execute(
+            text("SELECT pg_advisory_unlock(:key)"),
+            {"key": I9_SCHEDULED_RUNTIME_ADVISORY_LOCK_KEY},
+        )
+        holder.commit()
+        holder.close()
+
+
+def test_f08_catastrophic_failure_cursor_unchanged(db, javad, fair_batch_size, i9_jobs_enabled, monkeypatch):
+    set_i9_sweep_cursor("daily", 7)
+    monkeypatch.setattr(
+        "backend.app.services.i9.jobs.eligible_health_subject_ids",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("query_failed")),
+    )
+    result = run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2027, 1, 3, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert result.status == "CATASTROPHIC_FAILURE"
+    assert get_i9_sweep_cursor("daily") == 7
+
+
+def test_f09_partial_failure_still_advances_fair_cursor(db, javad, fair_batch_size, i9_jobs_enabled, monkeypatch):
+    dev = _device(db, javad, "FairDev009")
+    ref = datetime(2027, 1, 4, 12, 0, tzinfo=timezone.utc)
+    ids = _fair_subject_batch(db, javad, dev, 3, ref)
+    real = __import__("backend.app.services.i9.jobs", fromlist=["_process_one_subject"])._process_one_subject
+    calls = {"n": 0}
+
+    def flaky(db, *, subject_id, bucket_kind, ref, persist):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("injected_failure")
+        return real(db, subject_id=subject_id, bucket_kind=bucket_kind, ref=ref, persist=persist)
+
+    monkeypatch.setattr("backend.app.services.i9.jobs._process_one_subject", flaky)
+    monkeypatch.setattr(db, "rollback", lambda: db.expire_all())
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2027, 1, 5, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    assert get_i9_sweep_cursor("daily") == ids[1]
+
+
+def test_l01_daily_late_data_refresh_hardening(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 1, 6, 12, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _pm(db, subject=subj, device=dev, value=68.0, measured_at=d_start + timedelta(hours=2), key="l01-a")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2027, 1, 7, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    _pm(db, subject=subj, device=dev, value=92.0, measured_at=d_start + timedelta(hours=4), key="l01-late")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2027, 1, 7, 1, 15, 0), persist=True, acquire_lock=False
+    )
+    row = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="daily",
+        bucket_start=d_start,
+    )
+    assert row.avg_value == 80.0
+
+
+def test_l02_weekly_late_data_updates_prior_overlapping_week(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 1, 20, 12, 0, tzinfo=timezone.utc)
+    week_start, _ = bucket_bounds("weekly", ref=ref)
+    prior_week_ref = week_start - timedelta(days=3)
+    prior_week_start, _ = bucket_bounds("weekly", ref=prior_week_ref)
+    _pm(
+        db,
+        subject=subj,
+        device=dev,
+        value=60.0,
+        measured_at=prior_week_start + timedelta(days=1, hours=10),
+        key="l02-early",
+    )
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "weekly", now=datetime(2027, 1, 21, 1, 20, 0), persist=True, acquire_lock=False
+    )
+    before = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="weekly",
+        bucket_start=prior_week_start,
+    )
+    assert before.avg_value == 60.0
+    _pm(
+        db,
+        subject=subj,
+        device=dev,
+        value=100.0,
+        measured_at=prior_week_start + timedelta(days=2, hours=10),
+        key="l02-late",
+    )
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "weekly", now=datetime(2027, 1, 21, 1, 25, 0), persist=True, acquire_lock=False
+    )
+    after = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="weekly",
+        bucket_start=prior_week_start,
+    )
+    assert after.avg_value == 80.0
+
+
+def test_l03_calendar_month_boundary_late_data(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 2, 5, 12, 0, tzinfo=timezone.utc)
+    prev_month_ref = datetime(2027, 1, 31, 10, 0, tzinfo=timezone.utc)
+    m_start, _ = bucket_bounds("calendar_month", ref=prev_month_ref)
+    _pm(db, subject=subj, device=dev, value=70.0, measured_at=m_start + timedelta(days=5), key="l03-a")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "calendar_month", now=datetime(2027, 2, 1, 1, 30, 0), persist=True, acquire_lock=False
+    )
+    _pm(db, subject=subj, device=dev, value=90.0, measured_at=m_start + timedelta(days=20), key="l03-late")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "calendar_month", now=datetime(2027, 2, 1, 1, 35, 0), persist=True, acquire_lock=False
+    )
+    row = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="calendar_month",
+        bucket_start=m_start,
+    )
+    assert row.avg_value == 80.0
+
+
+def test_l04_yearly_boundary_late_data(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    y_ref = datetime(2026, 12, 15, 10, 0, tzinfo=timezone.utc)
+    y_start, _ = bucket_bounds("yearly", ref=y_ref)
+    _pm(db, subject=subj, device=dev, value=65.0, measured_at=y_start + timedelta(days=30), key="l04-a")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "yearly", now=datetime(2027, 1, 1, 1, 40, 0), persist=True, acquire_lock=False
+    )
+    _pm(db, subject=subj, device=dev, value=85.0, measured_at=y_start + timedelta(days=60), key="l04-late")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "yearly", now=datetime(2027, 1, 1, 1, 45, 0), persist=True, acquire_lock=False
+    )
+    row = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="yearly",
+        bucket_start=y_start,
+    )
+    assert row.avg_value == 75.0
+
+
+def test_l05_weighted_sample_count_semantics_unchanged(db, family):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 2, 10, 12, 0, tzinfo=timezone.utc)
+    week_start, _ = bucket_bounds("weekly", ref=ref)
+    for i, avg in enumerate((60.0, 100.0)):
+        day_ref = week_start + timedelta(days=i + 1, hours=12)
+        _pm(db, subject=subj, device=dev, value=avg, measured_at=day_ref, key=f"l05-{i}-a")
+        _pm(db, subject=subj, device=dev, value=avg, measured_at=day_ref + timedelta(minutes=1), key=f"l05-{i}-b")
+    lang = "en"
+    anchor = week_start + timedelta(days=3)
+    _rebuild_rollups_for_subject(
+        db,
+        subject=subj,
+        bucket_kind="weekly",
+        ref=anchor,
+        preferred_language=lang,
+        persist=True,
+    )
+    weekly = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="weekly",
+        bucket_start=week_start,
+    )
+    assert weekly.avg_value == 80.0
+    assert weekly.sample_count == 4
+
+
+def test_l06_higher_bucket_rerun_idempotent(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 2, 12, 12, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {i: [72.0] for i in range(14)})
+    db.commit()
+    now = datetime(2027, 2, 13, 1, 20, 0)
+    first = run_aggregation_baseline_sweep(db, "weekly", now=now, persist=True, acquire_lock=False)
+    count_first = db.query(models.PhysiologicalMeasurementRollup).filter_by(health_subject_id=subj.id).count()
+    second = run_aggregation_baseline_sweep(db, "weekly", now=now, persist=True, acquire_lock=False)
+    count_second = db.query(models.PhysiologicalMeasurementRollup).filter_by(health_subject_id=subj.id).count()
+    assert first.subjects_processed >= 1
+    assert second.rollups_created == 0
+    assert count_second == count_first
+
+
+def test_l07_no_out_of_lookback_rebuild(db, family, i9_jobs_enabled):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 2, 20, 12, 0, tzinfo=timezone.utc)
+    old_day = ref - timedelta(days=30)
+    old_start, _ = bucket_bounds("daily", ref=old_day)
+    _pm(db, subject=subj, device=dev, value=55.0, measured_at=old_start + timedelta(hours=1), key="l07-old")
+    db.commit()
+    run_aggregation_baseline_sweep(
+        db, "daily", now=datetime(2027, 2, 21, 1, 10, 0), persist=True, acquire_lock=False
+    )
+    row = find_rollup_row(
+        db,
+        health_subject_id=subj.id,
+        measurement_type="heart_rate",
+        bucket_kind="daily",
+        bucket_start=old_start,
+    )
+    assert row is None
+
+
+def test_i01_first_scheduled_producer_write(db, family):
+    user = family["javad"]
+    subj = family["javad_subject"]
+    dev = family["device"]
+    grant_memory_consent(db, user.id, permissions=(PERM_WRITE,), commit=True)
+    ref = datetime(2027, 3, 1, 10, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {0: [77.0]})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    result = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    assert result["status"] == "WRITTEN"
+
+
+def test_i02_identical_rerun_unchanged(db, family):
+    user = family["javad"]
+    subj = family["javad_subject"]
+    dev = family["device"]
+    grant_memory_consent(db, user.id, permissions=(PERM_WRITE,), commit=True)
+    ref = datetime(2027, 3, 2, 10, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {0: [77.0]})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    first = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    second = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    assert first["status"] == "WRITTEN"
+    assert second["status"] == "UNCHANGED"
+    assert second["pattern_id"] == first["pattern_id"]
+
+
+def test_i03_identical_rerun_no_row_growth(db, family):
+    user = family["javad"]
+    subj = family["javad_subject"]
+    dev = family["device"]
+    grant_memory_consent(db, user.id, permissions=(PERM_WRITE,), commit=True)
+    ref = datetime(2027, 3, 3, 10, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {0: [77.0]})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    count_after_first = db.query(models.UserI7DerivedPattern).filter_by(user_id=user.id).count()
+    produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    count_after_second = db.query(models.UserI7DerivedPattern).filter_by(user_id=user.id).count()
+    active = (
+        db.query(models.UserI7DerivedPattern)
+        .filter(models.UserI7DerivedPattern.user_id == user.id, models.UserI7DerivedPattern.status == "active")
+        .count()
+    )
+    superseded = (
+        db.query(models.UserI7DerivedPattern)
+        .filter(
+            models.UserI7DerivedPattern.user_id == user.id,
+            models.UserI7DerivedPattern.status == "superseded",
+        )
+        .count()
+    )
+    assert count_after_second == count_after_first
+    assert active == 1
+    assert superseded == 0
+
+
+def test_i04_changed_rollup_versions_prior(db, family):
+    user = family["javad"]
+    subj = family["javad_subject"]
+    dev = family["device"]
+    grant_memory_consent(db, user.id, permissions=(PERM_WRITE,), commit=True)
+    ref = datetime(2027, 3, 4, 10, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {0: [77.0]})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    first = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _pm(db, subject=subj, device=dev, value=99.0, measured_at=d_start + timedelta(hours=5), key="i04-change")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    second = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    assert first["status"] == "WRITTEN"
+    assert second["status"] == "WRITTEN"
+    assert second["pattern_id"] != first["pattern_id"]
+    prior = db.query(models.UserI7DerivedPattern).filter_by(id=first["pattern_id"]).first()
+    assert prior.status == "superseded"
+
+
+def test_i05_consent_missing_skipped(db, family):
+    subj = family["javad_subject"]
+    dev = family["device"]
+    ref = datetime(2027, 3, 5, 10, 0, tzinfo=timezone.utc)
+    _seed_daily_hr(db, subj, dev, ref, {0: [77.0]})
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=ref)
+    rebuild_higher_bucket_from_daily_rollups(
+        db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
+    )
+    result = produce_i7_pattern_from_latest_rollup(db, health_subject_id=subj.id)
+    assert result["status"] == "SKIPPED_NO_I6_WRITE_CONSENT"
+
+
+def test_i06_managed_no_account_skipped(db, family):
+    father = family["father"]
+    dev = family["device"]
+    ref = datetime(2027, 3, 6, 10, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _pm(db, subject=father, device=dev, value=66.0, measured_at=d_start + timedelta(hours=1), key="i06")
+    rebuild_daily_bucket(db, subject=father, measurement_type="heart_rate", ref=ref)
+    result = produce_i7_pattern_from_latest_rollup(db, health_subject_id=father.id)
+    assert result["status"] == "SKIPPED_NO_LINKED_ACCOUNT"
+
+
+def test_i07_caregiver_user_never_substituted(db, family):
+    father = family["father"]
+    dev = family["device"]
+    ref = datetime(2027, 3, 7, 10, 0, tzinfo=timezone.utc)
+    d_start, _ = bucket_bounds("daily", ref=ref)
+    _pm(db, subject=father, device=dev, value=66.0, measured_at=d_start + timedelta(hours=1), key="i07")
+    rebuild_daily_bucket(db, subject=father, measurement_type="heart_rate", ref=ref)
+    produce_i7_pattern_from_latest_rollup(db, health_subject_id=father.id)
+    patterns = db.query(models.UserI7DerivedPattern).filter(
+        models.UserI7DerivedPattern.user_id == family["javad"].id
+    ).count()
+    assert patterns == 0
+
+
+def test_i08_raw_sample_never_written_to_i7(db, family):
+    from backend.app.services.i7.i9_patterns import upsert_i9_derived_pattern
+
+    user = family["javad"]
+    grant_memory_consent(db, user.id, permissions=(PERM_WRITE,), commit=True)
+    with pytest.raises(ValueError, match="I9_SOURCE_REFS_REQUIRED"):
+        upsert_i9_derived_pattern(
+            db,
+            user_id=user.id,
+            pattern_key="raw-bypass-hardening",
+            pattern={"from": "raw"},
+            source_refs=[],
+        )

@@ -43,6 +43,24 @@ _I9_ADVISORY_LOCK_KEY = 0x49394A31  # dedicated I9 scheduled-runtime key ('I9J1'
 I9_SCHEDULED_RUNTIME_ADVISORY_LOCK_KEY = _I9_ADVISORY_LOCK_KEY
 MAX_ATTEMPTS_PER_SUBJECT = 2
 DEFAULT_SUBJECT_BATCH_SIZE = 500
+
+# In-process fair-scan cursors keyed by bucket_kind (single-process scheduler owner).
+_sweep_cursors: dict[str, int] = {}
+
+
+def get_i9_sweep_cursor(bucket_kind: str) -> int:
+    return int(_sweep_cursors.get(bucket_kind, 0))
+
+
+def set_i9_sweep_cursor(bucket_kind: str, after_subject_id: int) -> None:
+    _sweep_cursors[bucket_kind] = int(after_subject_id)
+
+
+def reset_i9_sweep_cursors() -> None:
+    """Test helper: clear in-process fair-progression state."""
+    _sweep_cursors.clear()
+
+
 LATE_DATA_LOOKBACK_DAYS: dict[str, int] = {
     "daily": 7,
     "weekly": 14,
@@ -168,13 +186,16 @@ def eligible_health_subject_ids(
     *,
     activity_since: datetime,
     batch_size: int,
+    after_subject_id: int = 0,
 ) -> list[int]:
+    """Keyset page of health subjects with recent accepted measurements."""
     rows = (
         db.query(models.PhysiologicalMeasurement.health_subject_id)
         .filter(
             models.PhysiologicalMeasurement.ingestion_status == "accepted",
             models.PhysiologicalMeasurement.measured_at >= activity_since,
             models.PhysiologicalMeasurement.health_subject_id.isnot(None),
+            models.PhysiologicalMeasurement.health_subject_id > int(after_subject_id),
         )
         .distinct()
         .order_by(models.PhysiologicalMeasurement.health_subject_id.asc())
@@ -182,6 +203,59 @@ def eligible_health_subject_ids(
         .all()
     )
     return [int(r[0]) for r in rows]
+
+
+@dataclass
+class I9SweepCursorStats:
+    bucket_kind: str
+    cursor_before: int
+    cursor_after: int
+    eligible_scanned: int
+    next_after_subject_id: Optional[int] = None
+    completed: bool = False
+    catastrophic_failure: bool = False
+    cursor_advanced: bool = False
+    cursor_wrapped: bool = False
+    cursor_unchanged: bool = True
+
+
+def apply_i9_sweep_cursor_progression(
+    bucket_kind: str,
+    stats: I9SweepCursorStats,
+    *,
+    enabled: bool,
+) -> I9SweepCursorStats:
+    """Advance / wrap in-process cursor from a completed sweep page.
+
+    Rules:
+    - flag OFF / incomplete / catastrophic → no change
+    - empty page → wrap to 0
+    - non-empty page → advance to last scanned subject_id (partial failures OK)
+    """
+    before = get_i9_sweep_cursor(bucket_kind)
+    stats.cursor_before = before
+    if not enabled or not stats.completed or stats.catastrophic_failure:
+        stats.cursor_after = before
+        stats.cursor_unchanged = True
+        stats.cursor_advanced = False
+        stats.cursor_wrapped = False
+        return stats
+
+    if stats.eligible_scanned == 0:
+        set_i9_sweep_cursor(bucket_kind, 0)
+        stats.cursor_after = 0
+        stats.cursor_wrapped = True
+        stats.cursor_advanced = before != 0
+        stats.cursor_unchanged = before == 0
+        return stats
+
+    nxt = int(stats.next_after_subject_id or before)
+    set_i9_sweep_cursor(bucket_kind, nxt)
+    stats.cursor_after = nxt
+    stats.cursor_advanced = nxt != before
+    stats.cursor_wrapped = False
+    stats.cursor_unchanged = nxt == before
+    return stats
 
 
 @dataclass(frozen=True)
@@ -335,26 +409,32 @@ def _rebuild_rollups_for_subject(
             rebuilt += 1
 
     if bucket_kind != "daily":
-        had_higher = find_rollup_row(
-            db,
-            health_subject_id=subject.id,
-            measurement_type=BASELINE_SCOPE_V1,
-            bucket_kind=bucket_kind,
-            bucket_start=bucket_bounds(bucket_kind, ref=ref, preferred_language=preferred_language)[0],
-        )
-        rebuild_higher_bucket_from_daily_rollups(
-            db,
-            subject=subject,
-            measurement_type=BASELINE_SCOPE_V1,
-            bucket_kind=bucket_kind,  # type: ignore[arg-type]
-            ref=ref,
+        for h_start, _h_end in iter_bucket_starts(
+            bucket_kind,  # type: ignore[arg-type]
+            range_start=range_start,
+            range_end=range_end,
             preferred_language=preferred_language,
-            commit=False,
-        )
-        if had_higher is None:
-            created += 1
-        else:
-            rebuilt += 1
+        ):
+            had_higher = find_rollup_row(
+                db,
+                health_subject_id=subject.id,
+                measurement_type=BASELINE_SCOPE_V1,
+                bucket_kind=bucket_kind,
+                bucket_start=h_start,
+            )
+            rebuild_higher_bucket_from_daily_rollups(
+                db,
+                subject=subject,
+                measurement_type=BASELINE_SCOPE_V1,
+                bucket_kind=bucket_kind,  # type: ignore[arg-type]
+                ref=h_start + timedelta(hours=12),
+                preferred_language=preferred_language,
+                commit=False,
+            )
+            if had_higher is None:
+                created += 1
+            else:
+                rebuilt += 1
 
     if persist:
         db.commit()
@@ -428,7 +508,7 @@ def _process_one_subject(
         commit=persist,
     )
     i7_written = 1 if i7.get("status") == "WRITTEN" else 0
-    i7_skipped = 0 if i7_written else 1
+    i7_skipped = 1 if i7_written == 0 else 0
     return r_created, r_rebuilt, bl_created, bl_rebuilt, bl_unchanged, i7_written, i7_skipped
 
 
@@ -499,7 +579,54 @@ def run_aggregation_baseline_sweep(
     activity_since = anchor - timedelta(days=lookback_days)
     batch = subject_batch_size()
     subjects_scanned = int(db.query(models.HealthSubject).count())
-    subject_ids = eligible_health_subject_ids(db, activity_since=activity_since, batch_size=batch)
+    cursor_before = get_i9_sweep_cursor(bucket_kind)
+    cursor_stats = I9SweepCursorStats(
+        bucket_kind=bucket_kind,
+        cursor_before=cursor_before,
+        cursor_after=cursor_before,
+    )
+    try:
+        subject_ids = eligible_health_subject_ids(
+            db,
+            activity_since=activity_since,
+            batch_size=batch,
+            after_subject_id=cursor_before,
+        )
+    except Exception:
+        cursor_stats.catastrophic_failure = True
+        cursor_stats.completed = False
+        if acquire_lock and lock_acquired and db.bind is not None and db.bind.dialect.name == "postgresql":
+            _advisory_unlock(db)
+        completed = datetime.now(timezone.utc)
+        return AggregationBaselineSweepResult(
+            bucket_kind=bucket_kind,
+            job_id=resolved_job_id,
+            enabled=True,
+            scheduled_time=scheduled_time,
+            started_at=_iso(started),
+            completed_at=_iso(completed),
+            status="CATASTROPHIC_FAILURE",
+            subjects_scanned=subjects_scanned,
+            subjects_eligible=0,
+            subjects_processed=0,
+            subjects_failed=0,
+            rollups_created=0,
+            rollups_rebuilt=0,
+            baselines_created=0,
+            baselines_rebuilt=0,
+            baselines_unchanged=0,
+            i7_written=0,
+            i7_skipped=0,
+            lock_acquired=lock_acquired,
+            failures=1,
+            retry_count=0,
+            duration=f"{max(0.0, time.monotonic() - t0):.3f}s",
+            next_run_time=next_run_time,
+            detail="ELIGIBLE_QUERY_FAILED",
+        )
+    cursor_stats.eligible_scanned = len(subject_ids)
+    if subject_ids:
+        cursor_stats.next_after_subject_id = subject_ids[-1]
     subjects_eligible = len(subject_ids)
 
     rollups_created = rollups_rebuilt = 0
@@ -538,6 +665,8 @@ def run_aggregation_baseline_sweep(
                     failures += 1
             if not ok:
                 continue
+        cursor_stats.completed = True
+        apply_i9_sweep_cursor_progression(bucket_kind, cursor_stats, enabled=True)
     finally:
         if acquire_lock and lock_acquired and db.bind is not None and db.bind.dialect.name == "postgresql":
             _advisory_unlock(db)

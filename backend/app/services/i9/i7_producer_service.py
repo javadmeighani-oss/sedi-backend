@@ -53,6 +53,16 @@ def produce_i7_pattern_from_latest_rollup(
             "health_subject_id": health_subject_id,
         }
     ]
+    prior_active = (
+        db.query(models.UserI7DerivedPattern)
+        .filter(
+            models.UserI7DerivedPattern.user_id == user_id,
+            models.UserI7DerivedPattern.pattern_key == key,
+            models.UserI7DerivedPattern.status == "active",
+        )
+        .first()
+    )
+    prior_active_id = prior_active.id if prior_active is not None else None
     row = upsert_i9_derived_pattern(
         db,
         user_id=user_id,
@@ -63,4 +73,6 @@ def produce_i7_pattern_from_latest_rollup(
     )
     if row is None:
         return {"status": "SKIPPED_NO_I6_WRITE_CONSENT"}
+    if prior_active_id is not None and row.id == prior_active_id and row.status == "active":
+        return {"status": "UNCHANGED", "pattern_id": row.id, "user_id": user_id}
     return {"status": "WRITTEN", "pattern_id": row.id, "user_id": user_id}
