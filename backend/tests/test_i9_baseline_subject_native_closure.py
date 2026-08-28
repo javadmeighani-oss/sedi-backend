@@ -637,6 +637,20 @@ def _mig073_rollup_snapshot(conn, row_id: int) -> dict:
     return dict(row)
 
 
+def _mig073_baseline_core_snapshot(conn, row_id: int) -> dict:
+    row = conn.execute(
+        text(
+            """
+            SELECT id, user_id, health_subject_id, baseline_value
+            FROM physiological_baselines
+            WHERE id = :row_id
+            """
+        ),
+        {"row_id": row_id},
+    ).mappings().one()
+    return dict(row)
+
+
 def _mig073_baseline_snapshot(conn, row_id: int) -> dict:
     row = conn.execute(
         text(
@@ -684,7 +698,7 @@ def test_r02_safe_073_to_072_downgrade_representable_rows(mig073_db):
         assert not _mig073_index_exists(conn, "uq_pmr_subject_type_bucket")
         assert not _mig073_index_exists(conn, "uq_pb_subject_type_version_window")
         rollup_after = _mig073_rollup_snapshot(conn, legacy_rollup_id)
-        baseline_after = _mig073_baseline_snapshot(conn, legacy_baseline_id)
+        baseline_after = _mig073_baseline_core_snapshot(conn, legacy_baseline_id)
         assert rollup_after["user_id"] == caregiver_id
         assert rollup_after["avg_value"] == rollup_before["avg_value"]
         assert baseline_after["user_id"] == caregiver_id
