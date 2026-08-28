@@ -1298,6 +1298,208 @@
         "title": "DeviceIngestResponse",
         "type": "object"
       },
+      "DevicePacketIngestRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Algorithm Version"
+          },
+          "client_packet_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Client Packet Id",
+            "type": "string"
+          },
+          "firmware_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Firmware Version"
+          },
+          "gateway_received_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gateway Received At"
+          },
+          "hardware_version": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Hardware Version"
+          },
+          "measured_at": {
+            "format": "date-time",
+            "title": "Measured At",
+            "type": "string"
+          },
+          "measured_interval_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Interval End"
+          },
+          "measured_interval_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Interval Start"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/PacketObservationSchema"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance"
+          },
+          "quality_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Metadata"
+          },
+          "sequence_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence Number"
+          },
+          "transport": {
+            "anyOf": [
+              {
+                "enum": [
+                  "bluetooth",
+                  "cellular",
+                  "unknown",
+                  "wifi"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport"
+          }
+        },
+        "required": [
+          "client_packet_id",
+          "measured_at"
+        ],
+        "title": "DevicePacketIngestRequest",
+        "type": "object"
+      },
+      "DevicePacketIngestResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "DevicePacketIngestResponse",
+        "type": "object"
+      },
+      "DeviceRebindRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "health_subject_id": {
+            "description": "Target health subject for device binding",
+            "title": "Health Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "health_subject_id"
+        ],
+        "title": "DeviceRebindRequest",
+        "type": "object"
+      },
       "DeviceRegisterRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1319,6 +1521,18 @@
             "description": "Device type (v1 default: heart_rate; use gadget_hub for Gadget Hub)",
             "title": "Device Type"
           },
+          "health_subject_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "I9 health subject for device binding (managed or self)",
+            "title": "Health Subject Id"
+          },
           "subject_user_id": {
             "anyOf": [
               {
@@ -1328,7 +1542,7 @@
                 "type": "null"
               }
             ],
-            "description": "User whose health data this device represents; defaults to authenticated user",
+            "description": "Legacy: User whose health data this device represents; prefer health_subject_id",
             "title": "Subject User Id"
           }
         },
@@ -2598,6 +2812,43 @@
           "question"
         ],
         "title": "HealthQuestionIn",
+        "type": "object"
+      },
+      "HealthSubjectApiResponse": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "HealthSubjectApiResponse",
         "type": "object"
       },
       "HistoryGroupItem": {
@@ -4170,6 +4421,31 @@
         "title": "LifestyleUpdateRequest",
         "type": "object"
       },
+      "ManagedHealthSubjectCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "access_role": {
+            "default": "CAREGIVER",
+            "enum": [
+              "CAREGIVER",
+              "MANAGER"
+            ],
+            "title": "Access Role",
+            "type": "string"
+          },
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "ManagedHealthSubjectCreate",
+        "type": "object"
+      },
       "MeUpdateIn": {
         "additionalProperties": false,
         "description": "PATCH /auth/me – partial update; at least one field required.",
@@ -5319,6 +5595,41 @@
           "phone"
         ],
         "title": "OtpVerifyIn",
+        "type": "object"
+      },
+      "PacketObservationSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "detected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Observation time; defaults to packet measured_at",
+            "title": "Detected At"
+          },
+          "observation_type": {
+            "description": "heart_rate | blood_pressure | glucose | temperature | spo2 | device_reported_cardiac_event",
+            "title": "Observation Type",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "description": "Type-specific observation payload",
+            "title": "Payload",
+            "type": "object"
+          }
+        },
+        "required": [
+          "observation_type",
+          "payload"
+        ],
+        "title": "PacketObservationSchema",
         "type": "object"
       },
       "ProfileFactCreateIn": {
@@ -8681,6 +8992,59 @@
         ]
       }
     },
+    "/device/packet": {
+      "post": {
+        "description": "Canonical I9 device packet ingest. Subject attribution resolved server-side from binding.\nIdempotent on device + client_packet_id.",
+        "operationId": "ingest_device_packet_route_device_packet_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-DEVICE-TOKEN",
+            "required": true,
+            "schema": {
+              "title": "X-Device-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePacketIngestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePacketIngestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Device Packet Route",
+        "tags": [
+          "Device"
+        ]
+      }
+    },
     "/device/pending-commands": {
       "get": {
         "description": "Fetch pending audio commands for the device's owner.\n\nRequires X-DEVICE-TOKEN and device_id query. user_id is derived from the device row.",
@@ -8941,6 +9305,64 @@
         ]
       }
     },
+    "/devices/{device_id}/rebind": {
+      "post": {
+        "description": "Rebind device to a different health subject; historical data stays on prior binding.",
+        "operationId": "rebind_device_route_devices__device_id__rebind_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRebindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rebind Device Route",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
     "/devices/{device_id}/revoke": {
       "post": {
         "description": "Revoke a device owned by the authenticated user.",
@@ -9054,6 +9476,80 @@
         "summary": "Get Health",
         "tags": [
           "System"
+        ]
+      }
+    },
+    "/health-subjects/managed": {
+      "post": {
+        "description": "Create a managed health subject without a linked Sedi account.",
+        "operationId": "create_managed_health_subject_health_subjects_managed_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagedHealthSubjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Managed Health Subject",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/self": {
+      "post": {
+        "description": "Ensure account holder has a SELF health subject.",
+        "operationId": "ensure_self_health_subject_health_subjects_self_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ensure Self Health Subject",
+        "tags": [
+          "Health Subjects"
         ]
       }
     },
