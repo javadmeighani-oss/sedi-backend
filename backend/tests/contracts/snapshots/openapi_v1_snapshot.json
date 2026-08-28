@@ -9425,7 +9425,7 @@
     },
     "/devices/provision": {
       "post": {
-        "description": "Provision unclaimed device platform identity (factory/pilot).",
+        "description": "Trusted fleet provisioning only. Requires ADMIN_TOKEN + X-Admin-Token; not available to ordinary users.",
         "operationId": "provision_device_platform_devices_provision_post",
         "requestBody": {
           "content": {
@@ -9459,11 +9459,6 @@
             "description": "Validation Error"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Provision Device Platform",
         "tags": [
           "Devices"

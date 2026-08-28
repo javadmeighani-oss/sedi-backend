@@ -5,6 +5,7 @@ from datetime import datetime
 
 from backend.app.database import get_db
 from backend.app.models import Device, User, HealthSubject
+from backend.app.core.admin_auth import require_admin_token_fail_closed
 from backend.app.core.device_token_crypto import generate_device_token, hash_device_token
 from backend.app.services.i9.device_credential_verifier import credential_fingerprint_from_hash
 from backend.app.schemas.devices import (
@@ -266,11 +267,12 @@ def get_gadget_hub_status(
 @router.post("/provision", response_model=DeviceRegisterResponse)
 def provision_device_platform(
     body: DeviceProvisionRequest,
-    auth_user: User = Depends(get_current_user),
+    request: Request,
     _: None = Depends(_reject_legacy_user_id_query),
     db: Session = Depends(get_db),
 ):
-    """Provision unclaimed device platform identity (factory/pilot)."""
+    """Trusted fleet provisioning only. Requires ADMIN_TOKEN + X-Admin-Token; not available to ordinary users."""
+    require_admin_token_fail_closed(request)
     try:
         device, token = provision_unclaimed_device_platform(
             db,
@@ -299,7 +301,10 @@ def claim_device_route(
     """Claim unclaimed/released device to authorized health subject with possession proof."""
     device = db.query(Device).filter(Device.device_id == body.device_id).first()
     if not device:
-        return DeviceRegisterResponse(ok=False, error={"code": "DEVICE_NOT_FOUND", "message": "Device not found"})
+        return DeviceRegisterResponse(
+            ok=False,
+            error={"code": "DEVICE_NOT_REGISTERED", "message": "Device is not registered in the trusted fleet"},
+        )
     try:
         binding = claim_device_to_health_subject(
             db,
