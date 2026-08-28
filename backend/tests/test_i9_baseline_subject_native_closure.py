@@ -869,13 +869,13 @@ def test_j02_i9_sweep_dormant_without_flag(db, family, monkeypatch):
 
 def test_j03_scheduler_registers_i9_jobs():
     from backend.app.core import scheduler as sched_mod
-    from backend.app.services.i9.jobs import DAILY_JOB_ID
 
     src = stdlib_inspect.getsource(sched_mod.start_scheduler)
-    assert DAILY_JOB_ID in src
+    assert "JOB_IDS" in src
     assert "I9_JOB_REGISTERED" in src
     assert "SEDI_I9_AGGREGATION_BASELINE_JOBS_ENABLED" in src
     assert "run_aggregation_baseline_sweep" in src
+    assert "i9 aggregation/baseline jobs registered" in src
 
 
 def test_j04_i9_cron_specs_timezone():
@@ -947,11 +947,13 @@ def test_j07_weekly_weighted_aggregation_not_average_of_averages(db, family, i9_
     subj = family["javad_subject"]
     dev = family["device"]
     ref = datetime(2026, 12, 14, 12, 0, tzinfo=timezone.utc)
-    _seed_daily_hr(db, subj, dev, ref, {0: [60.0, 60.0], 1: [100.0, 100.0]})
-    d0, _ = bucket_bounds("daily", ref=ref)
-    d1, _ = bucket_bounds("daily", ref=ref - timedelta(days=1))
-    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=d0)
-    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=d1)
+    week_start, _ = bucket_bounds("weekly", ref=ref)
+    for i, avg in enumerate((60.0, 100.0)):
+        day_ref = week_start + timedelta(days=i + 1, hours=12)
+        _pm(db, subject=subj, device=dev, value=avg, measured_at=day_ref, key=f"j07-{i}-a")
+        _pm(db, subject=subj, device=dev, value=avg, measured_at=day_ref + timedelta(minutes=1), key=f"j07-{i}-b")
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=week_start + timedelta(days=1, hours=12))
+    rebuild_daily_bucket(db, subject=subj, measurement_type="heart_rate", ref=week_start + timedelta(days=2, hours=12))
     rebuild_higher_bucket_from_daily_rollups(
         db, subject=subj, measurement_type="heart_rate", bucket_kind="weekly", ref=ref
     )
@@ -960,11 +962,11 @@ def test_j07_weekly_weighted_aggregation_not_average_of_averages(db, family, i9_
         health_subject_id=subj.id,
         measurement_type="heart_rate",
         bucket_kind="weekly",
-        bucket_start=bucket_bounds("weekly", ref=ref)[0],
+        bucket_start=week_start,
     )
     assert weekly is not None
     assert weekly.avg_value == 80.0
-    assert weekly.sample_count >= 2
+    assert weekly.sample_count == 4
 
 
 def test_j08_idempotent_scheduled_rerun(db, family, i9_jobs_enabled):
@@ -1060,7 +1062,9 @@ def test_j11_observability_fields_no_phi(db, family, i9_jobs_enabled):
 def test_j12_advisory_lock_contention_fail_closed(db, i9_jobs_enabled):
     if db.bind.dialect.name != "postgresql":
         pytest.skip("PostgreSQL required for advisory lock contention")
-    holder = db.bind.connect()
+    from backend.tests.test_db_config import get_test_database_url
+
+    holder = create_engine(get_test_database_url()).connect()
     try:
         holder.execute(
             text("SELECT pg_advisory_lock(:key)"),
