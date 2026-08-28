@@ -210,7 +210,7 @@ class I9SweepCursorStats:
     bucket_kind: str
     cursor_before: int
     cursor_after: int
-    eligible_scanned: int
+    eligible_scanned: int = 0
     next_after_subject_id: Optional[int] = None
     completed: bool = False
     catastrophic_failure: bool = False
