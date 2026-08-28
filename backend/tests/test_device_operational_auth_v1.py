@@ -192,11 +192,15 @@ def test_ingest_happy_path_still_works(client, db):
     assert response.json().get("ok") is True
 
 
-def test_ingest_rejects_user_id_mismatch(client, db):
+def test_ingest_ignores_mobile_user_id_for_subject_attribution(client, db):
+    """I9: device token + binding are authoritative; mobile user_id is not data owner."""
+    from backend.app.models import PhysiologicalMeasurement
+
     u = _create_user(db, "IngestOwner")
     other = _create_user(db, "IngestOther")
     device_id = "IngestMismatch001"
     device_token = _register_device(client, db, u, device_id)
+    device = db.query(Device).filter(Device.device_id == device_id).first()
 
     response = client.post(
         "/device/ingest",
@@ -208,7 +212,12 @@ def test_ingest_rejects_user_id_mismatch(client, db):
             "payload": {"bpm": 82},
         },
     )
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    pm = db.query(PhysiologicalMeasurement).order_by(PhysiologicalMeasurement.id.desc()).first()
+    assert pm is not None
+    assert pm.health_subject_id == device.health_subject_id
+    assert pm.user_id == u.id
 
 
 def test_pending_commands_cross_user_isolation(client, db):
