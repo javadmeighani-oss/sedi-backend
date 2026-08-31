@@ -78757,3 +78757,149 @@ HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v696_FA.md
 MASTER_LOG_TIP=§404
 CURSOR_HANDOFF_TIP=v696
 NEXT_PROPOSED_GATE=I10-B07_CARE_SEMANTIC_PRODUCERS_OR_FRONTEND
+
+
+§405 - I10-B07R EXPANDED SMART NOTIFICATION PRODUCER INVENTORY + SOURCE OF TRUTH POLICY MAP
+
+GATE=I10-B07R
+MODE=READ_ONLY_ARCHITECTURE_AUDIT
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+GATE_RESULT=PASS
+
+PRE_405_SHA256=0EAB7A7D8747D4E641E0EE47BB643D1421715BB1ECF47D1F1A25DD80C9D398B9
+BASELINE_HEAD=867f88be0ca27798c51c925e72bbc8c4a6bcdde9
+B06_CONTINUITY=§404 caregiver delivery foundation reused as audit baseline
+
+--------------------------------
+AUDIT SCOPE
+--------------------------------
+
+EXPANDED_I10_DEFINITION=12 notification families + 8 interaction surfaces + 10 policy surfaces + SELF/CAREGIVER matrix
+SOURCE_CHANGED=NO
+TEST_CHANGED=NO
+SCHEMA_CHANGED=NO
+DOCUMENTATION_COMMIT=NO
+
+--------------------------------
+PATH INVENTORY
+--------------------------------
+
+CANONICAL_I10_INTAKE=enqueue_i10_notification (i10/intake.py)
+CANONICAL_I10_PRODUCER=caregiver_delivery_worker only (B06)
+LEGACY_DIRECT_WRITERS=DecisionEngine.create_* via NotificationBuilder; behavior/service companion ping; section10 event/lifestyle schedulers; medication_stock_notification; gate4 user_chat_reminder; device_ingestion health_alert; knowledge KC notify; gate5 ml_care_bridge; admin_test_push
+DORMANT_PATHS=section10 event/lifestyle schedulers (flags OFF); medication stock (unwired); legacy caregiver_notification_intent_service (phone-pref resolver, no I10); build_notification_from_template (no callers)
+PARALLEL_RISK=HIGH until legacy producers migrate to I10 intake
+
+--------------------------------
+FAMILY STATUS SUMMARY
+--------------------------------
+
+PRESENCE_REENGAGEMENT=IMPLEMENTED_LEGACY (connection_ping, engagement_nudge, companion_ping)
+CONTEXTUAL_CHAT_FOLLOW_UP=PARTIAL (NOTIFICATION_FOLLOW_UP intent + CareFollowUpTask CRUD; no due-time notification producer)
+MEDICATION_ADHERENCE=PARTIAL (UserMedication schedules + medication_reminders scheduler; no taken/missed/unknown adherence state)
+APPOINTMENT_LAB_DOCTOR=PARTIAL (UserEvent model; generic event_reminder_scheduler DORMANT; lab/doctor not separated in reminders)
+DAILY_HEALTH_WELLNESS_DIGEST=PARTIAL (morning_brief legacy + I7 period summaries; no bounded I9 digest producer; NO_DATA!=NORMAL enforced in audit only)
+LIFESTYLE_ROUTINE_COACHING=PARTIAL (lifestyle_reminder_scheduler DORMANT; I8 proactive scan DORMANT)
+NUTRITION_PLAN_FOLLOW_UP=PARTIAL (I8 nutrition_planner persists I8OperationalPlan; no I10 follow-up producer)
+EXERCISE_PLAN_FOLLOW_UP=PARTIAL (I8 activity_suggestion domain; no dedicated persisted exercise plan reminder)
+CARE_STATUS_DIGEST=MISSING (legacy intent vocabulary only)
+CARE_DATA_GAP=MISSING
+CARE_ACTION=FOUNDATION_ONLY (I10 scope + worker body; I8 managed HealthSubject unsupported)
+CARE_SAFETY_ESCALATION=PARTIAL (emergency_escalation_service + I4 safety; no I10 governed producer)
+
+--------------------------------
+INTERACTION + POLICY
+--------------------------------
+
+ACK=IMPLEMENTED_CANONICAL (ACK_THANKS)
+LIKE_DISLIKE=IMPLEMENTED_LEGACY (maps to ACK_THANKS/NOT_NOW)
+DISLIKE_REASON=PARTIAL (reason field too_frequent|irrelevant|unclear)
+SNOOZE=PARTIAL (NOT_NOW 24h / TALK_LATER 4h defer; no SNOOZE enum)
+TALK_TO_SEDI=PARTIAL (OPEN_CHAT + source_notification_id continuity)
+SOURCE_NOTIFICATION_ID=IMPLEMENTED_CANONICAL (interact -> I1 -> SafeNotificationContextAdapter)
+POLICY_DUPLICATION=send_guard_v1 + adaptive_policy_v1 + behavior_guard_d2 + Gate4 policy_resolver overlap; I10 intake uses foundation policy only; fatigue/bundling deferred
+
+--------------------------------
+PROGRESS (MILESTONE-WEIGHTED)
+--------------------------------
+
+BACKEND_I10_PROGRESS_PERCENT=57
+BACKEND_I10_REMAINING_PERCENT=43
+TOTAL_I10_PROGRESS_PERCENT=49
+TOTAL_I10_REMAINING_PERCENT=51
+FOUNDATION_COMPLETE=YES (B01-B06)
+FEATURE_COMPLETE=NO
+PRODUCTION_ACTIVE=NO
+
+--------------------------------
+ROADMAP (REBUILT)
+--------------------------------
+
+NEXT_RECOMMENDED_GATE=I10-B08_SELF_LEGACY_TO_I10_PRODUCER_ADAPTER
+SEQUENCE=B08 SELF adapter -> B09 medication adherence+I10 -> B10 appointments -> B11 daily digest bounded -> B12 contextual follow-up producer -> B13 I8 coaching producers -> B14 CARE_STATUS+CARE_DATA_GAP -> B15 CARE_ACTION (I8 managed subject) -> B16 CARE_SAFETY routing -> B17 interaction vocab -> B18 policy canonicalization -> B19 legacy retirement freeze
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v697_FA.md
+MASTER_LOG_TIP=§405
+CURSOR_HANDOFF_TIP=v697
+NEXT_PROPOSED_GATE=I10-B08_SELF_LEGACY_TO_I10_PRODUCER_ADAPTER
+
+
+§406 - I10-B08 SELF LEGACY TO I10 PRODUCER ADAPTER (PRESENCE / ENGAGEMENT / MORNING)
+
+GATE=I10-B08
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+GATE_RESULT=PASS
+
+PRE_406_SHA256=F31E3840436D258D04DE74D4D27DB19515D531F933CA35596B8E37458D4DD4AC
+BASELINE_HEAD=867f88be0ca27798c51c925e72bbc8c4a6bcdde9
+B07R_CONTINUITY=§405 inventory + v697 preserved
+
+--------------------------------
+ADAPTED PRODUCERS
+--------------------------------
+
+MORNING=morning_notifications -> create_morning_brief -> I10 MORNING_CHECK_IN
+INACTIVITY=inactivity_notifications -> create_connection_ping -> I10 PRESENCE_REENGAGEMENT
+ENGAGEMENT=engagement_nudge -> create_engagement_nudge -> I10 ENGAGEMENT_NUDGE
+ADAPTER=backend/app/services/i10/self_producer_adapter.py
+INTAKE=enqueue_i10_notification()
+
+--------------------------------
+PARALLEL WRITE RETIREMENT
+--------------------------------
+
+MORNING_PARALLEL_WRITE_PATH=NO
+INACTIVITY_PARALLEL_WRITE_PATH=NO
+ENGAGEMENT_PARALLEL_WRITE_PATH=NO
+B08_DIRECT_NOTIFICATION_ORM_WRITES=0
+B08_DIRECT_FCM_CALLS=0
+
+--------------------------------
+BOUNDARIES
+--------------------------------
+
+SCHEMA_CHANGE=NO
+MIGRATION=NO
+INACTIVITY_MEDICAL_INFERENCE=NO
+MORNING_UNSUPPORTED_HEALTH_CLAIMS=NONE_FOUND
+DIRECT_RAG_TO_I10=NO
+POLICY_REDESIGN=NO
+PRODUCTION_ACTIVATION=NO
+
+--------------------------------
+TESTS / CI
+--------------------------------
+
+B08_TEST_COUNT=22
+CI_RUN_ID=33389103628
+CI_RESULT=PASS
+COMMIT_SHA=56fb1ead
+DOCS_COMMIT_SHA=PENDING
+FINAL_HEAD=56fb1ead
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v698_FA.md
+MASTER_LOG_TIP=§406
+CURSOR_HANDOFF_TIP=v698
+NEXT_PROPOSED_GATE=I10-B09_MEDICATION_ADHERENCE_I10
