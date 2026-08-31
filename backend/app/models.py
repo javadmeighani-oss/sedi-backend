@@ -169,6 +169,27 @@ class Notification(Base):
     delivered_at = Column(DateTime(timezone=True), nullable=True)
     opened_at = Column(DateTime(timezone=True), nullable=True)
     decision_at = Column(DateTime(timezone=True), nullable=True)
+    # I10-B01: subject-aware attribution (nullable for legacy rows; never backfilled from user_id)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_notifications_health_subject_id"),
+        nullable=True,
+        index=True,
+    )
+    semantic_family = Column(String(64), nullable=True)
+    recipient_kind = Column(String(32), nullable=True)
+    privacy_class = Column(String(32), nullable=True)
+    i10_policy_decision_id = Column(
+        BigInteger,
+        ForeignKey(
+            "i10_notification_decisions.id",
+            ondelete="SET NULL",
+            name="fk_notifications_i10_policy_decision_id",
+            use_alter=True,
+        ),
+        nullable=True,
+        index=True,
+    )
 
 
 # -------------------- PushDevice (Stage 16.6) --------------------
@@ -1028,6 +1049,127 @@ class NotificationPrefs(Base):
     daily_notification_time = Column(String(5), nullable=True)  # HH:MM; Gate 4D canonical daily time
     engagement_level = Column(Integer, nullable=False, default=1)  # 0=low, 1=normal, 2=high
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False, onupdate=datetime.utcnow)
+
+
+# -------------------- I10 Notification domain foundation (B01) --------------------
+class I10NotificationDecision(Base):
+    """Bounded I10 policy decision ledger — evidence refs only, no health/RAG/chat content."""
+
+    __tablename__ = "i10_notification_decisions"
+    __table_args__ = (
+        CheckConstraint(
+            "decision IN ('SEND', 'DEFER', 'SUPPRESS', 'BUNDLE', 'ESCALATE', 'EXPIRE')",
+            name="ck_i10_decision_value",
+        ),
+        UniqueConstraint(
+            "candidate_key",
+            "recipient_user_id",
+            "health_subject_id",
+            name="uq_i10_decision_occurrence",
+        ),
+        Index("ix_i10_decision_subject_recipient", "health_subject_id", "recipient_user_id"),
+        Index("ix_i10_decision_notification_id", "notification_id"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True)
+    candidate_key = Column(String(255), nullable=False)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_i10_dec_health_subject_id"),
+        nullable=True,
+    )
+    recipient_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_i10_dec_recipient_user_id"),
+        nullable=False,
+    )
+    source_owner = Column(String(64), nullable=False)
+    source_type = Column(String(64), nullable=False)
+    source_id = Column(String(255), nullable=False)
+    source_version = Column(String(64), nullable=True)
+    semantic_family = Column(String(64), nullable=True)
+    decision = Column(String(32), nullable=False)
+    reason_code = Column(String(128), nullable=False)
+    priority = Column(String(16), nullable=True)
+    privacy_class = Column(String(32), nullable=True)
+    provenance_refs_json = Column(Text, nullable=True)
+    valid_from = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    notification_id = Column(
+        Integer,
+        ForeignKey("notifications.id", ondelete="SET NULL", name="fk_i10_dec_notification_id"),
+        nullable=True,
+    )
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class HealthSubjectNotificationGrant(Base):
+    """Subject-scoped notification authorization — distinct from AccountHealthSubjectAccess."""
+
+    __tablename__ = "health_subject_notification_grants"
+    __table_args__ = (
+        CheckConstraint(
+            "notification_scope IN ("
+            "'GENERAL_STATUS', 'DEVICE_STATUS', 'CARE_ACTION', "
+            "'SAFETY_ESCALATION', 'SENSITIVE_HEALTH_DETAIL'"
+            ")",
+            name="ck_hsng_notification_scope",
+        ),
+        CheckConstraint(
+            "authorization_source IN ('MANUAL', 'CAREGIVER_PROFILE_LINK', 'SELF_DEFAULT', 'SYSTEM')",
+            name="ck_hsng_authorization_source",
+        ),
+        Index(
+            "uq_hsng_active_subject_recipient_scope",
+            "health_subject_id",
+            "recipient_user_id",
+            "notification_scope",
+            unique=True,
+            postgresql_where=text("is_active = true AND revoked_at IS NULL"),
+        ),
+        Index("ix_hsng_user_caregiver_id", "user_caregiver_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="CASCADE", name="fk_hsng_health_subject_id"),
+        nullable=False,
+    )
+    recipient_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_hsng_recipient_user_id"),
+        nullable=False,
+    )
+    notification_scope = Column(String(64), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    authorization_source = Column(String(64), nullable=False)
+    user_caregiver_id = Column(
+        Integer,
+        ForeignKey("user_caregivers.id", ondelete="SET NULL", name="fk_hsng_user_caregiver_id"),
+        nullable=True,
+    )
+    granted_by_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_hsng_granted_by_account_user_id"),
+        nullable=True,
+    )
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
 
 
 # -------------------- RefreshToken (Stage 25 – Persistent refresh tokens) --------------------

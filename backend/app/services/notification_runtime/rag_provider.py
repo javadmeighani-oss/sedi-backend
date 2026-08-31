@@ -4,6 +4,10 @@ RAG Provider (Stage 16.6, Stage 23 Step 5)
 
 Clean interface for RAG integration. V1: facts-anchored RagContextPack summary
 for companion_* templates only; fail-open. No RAG for health_alert or high-risk.
+
+I10-B01 architecture guard: I10 Smart Notifications MUST NOT call this provider
+for notification policy or medical composition. Governed knowledge_refs only via
+approved upstream semantic contracts (e.g. I8 envelope).
 """
 
 from typing import Optional, List, Dict, Any

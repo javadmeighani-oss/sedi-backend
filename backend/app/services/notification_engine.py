@@ -576,6 +576,11 @@ class NotificationBuilder:
             context_json=trace["context_json"],
             risk_level=trace["risk_level"],
             template_key=trace["template_key"],
+            health_subject_id=payload.health_subject_id,
+            semantic_family=payload.semantic_family,
+            recipient_kind=payload.recipient_kind,
+            privacy_class=payload.privacy_class,
+            i10_policy_decision_id=payload.i10_policy_decision_id,
         )
         
         self.db.add(notification)

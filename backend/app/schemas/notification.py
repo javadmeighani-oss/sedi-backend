@@ -92,6 +92,12 @@ class NotificationPayload(BaseModel):
     context: Optional[Dict[str, Any]] = Field(None, description="Gate 4-B allowlisted context (sanitized at persist)")
     risk_level: Optional[str] = Field(None, description="Gate 4-B risk level")
     template_key: Optional[str] = Field(None, description="Gate 4-B template key")
+    # I10-B01 subject-aware attribution (optional; required for I10 intake path)
+    health_subject_id: Optional[int] = Field(None, description="Target HealthSubject (not recipient identity)")
+    semantic_family: Optional[str] = Field(None, description="I10 semantic family")
+    recipient_kind: Optional[str] = Field(None, description="I10 recipient kind: SELF | CAREGIVER | MANAGER")
+    privacy_class: Optional[str] = Field(None, description="I10 privacy class")
+    i10_policy_decision_id: Optional[int] = Field(None, description="I10 decision ledger reference")
 
 
 # -------------------- Release B2: Feedback Schema --------------------

@@ -78281,3 +78281,101 @@ CURSOR_HANDOFF_TIP=v690
 NEXT_GATE_AUTHORIZED=NO
 NOTE=§391-§397 preserved unchanged; §398 append-only PASS_CLOSED.
 NOTE=post-§398 final master-log whole-file self-SHA is NOT embedded inside §398.
+
+
+Â§399 - I10-B01 CANONICAL DOMAIN + SUBJECT-AWARE PERSISTENCE FOUNDATION
+
+GATE=I10-B01
+TITLE=CANONICAL DOMAIN + SUBJECT-AWARE PERSISTENCE FOUNDATION AUTHORING-01
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+GATE_RESULT=PASS_AUTHORED
+IMPLEMENTATION_AUTHORIZED=YES
+RUNTIME_VALIDATION=NOT_EXECUTED
+PRODUCTION_ACTIVATION=NO
+
+PRE_399_SHA256=B52EB93273EA3B906AACB1EDBC31823F5461F06366FE44028BC57252C305DDF0
+BASE_HEAD=528227fd6c321ad3dabccb3be82dff31c9809c39
+
+--------------------------------
+SCOPE
+--------------------------------
+
+I10_B01_OBJECTIVE=subject-aware notification persistence + decision ledger + subject-scoped notification grants + canonical intake seam
+I10_RUNTIME_PRODUCERS=NOT_IMPLEMENTED
+CAREGIVER_DELIVERY_WORKER=NOT_IMPLEMENTED
+I8_MANAGED_SUBJECT_EXTENSION=NOT_IMPLEMENTED
+
+--------------------------------
+SCHEMA / ORM
+--------------------------------
+
+MIGRATION=074_i10_notification_domain_foundation
+ALEMBIC_HEAD_AUTHORED=074_i10_notification_domain_foundation
+MIGRATION_EXECUTED=NO
+NOTIFICATION_EXTENDED=health_subject_id,semantic_family,recipient_kind,privacy_class,i10_policy_decision_id
+I10_NOTIFICATION_DECISIONS=CREATED
+HEALTH_SUBJECT_NOTIFICATION_GRANTS=CREATED
+LEGACY_NOTIFICATION_BACKFILL=NO
+CAREGIVER_SUBSTITUTION=NO
+
+--------------------------------
+PROFILE / CARE NETWORK
+--------------------------------
+
+USER_CAREGIVER_REUSED=YES
+PROFILE_LINK_AUTHORIZES=NO
+PHONE_MATCH_AUTHORIZES=NO
+ACCOUNT_HEALTH_SUBJECT_ACCESS_REQUIRED=YES
+NOTIFICATION_GRANT_REQUIRED_NON_SELF=YES
+MULTI_CAREGIVER_GRANTS_SUPPORTED=YES
+
+--------------------------------
+BOUNDARIES
+--------------------------------
+
+RAW_I9_TO_I10=NO
+DIRECT_RAG_TO_I10=NO
+RAG_PROVIDER_WIRED=NO
+I8_OWNS_ACTION_MEANING=YES
+I10_OWNS_INTERRUPTION_POLICY=YES
+MEDICAL_THRESHOLD_CHANGE=NO
+DEVICE_REPORTED_RELABEL=NO
+
+--------------------------------
+FILES CHANGED
+--------------------------------
+
+backend/app/models.py
+backend/app/schemas/notification.py
+backend/app/services/notification_engine.py
+backend/app/services/notification_runtime/rag_provider.py
+backend/app/services/i10/__init__.py
+backend/app/services/i10/contracts.py
+backend/app/services/i10/policy_types.py
+backend/app/services/i10/authorization.py
+backend/app/services/i10/decision_ledger.py
+backend/app/services/i10/intake.py
+backend/alembic/versions/074_i10_notification_domain_foundation.py
+backend/tests/test_i10_b01_foundation.py
+
+--------------------------------
+TESTS
+--------------------------------
+
+TESTS_AUTHORED=test_i10_b01_foundation.py
+TESTS_EXECUTED_LOCALLY=NO
+CI_TRIGGERED=NO
+
+--------------------------------
+REMAINING / NEXT
+--------------------------------
+
+P0_REMAINING=canonicalize legacy direct Notification ORM writers; caregiver delivery worker; Gate4 enforce in prod
+P1_REMAINING=I8 managed-subject extension; CARE_* producers; bundling; AR templates
+NEXT_PROPOSED_GATE=I10-B02_RUNTIME_VALIDATION_CI
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v691_FA.md
+MASTER_LOG_TIP=Â§399
+CURSOR_HANDOFF_TIP=v691
+CHATGPT_CONTINUITY_AUTHORITY=v698_OWNER_SUPPLIED_NOT_IN_REPO
