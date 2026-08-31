@@ -1,19 +1,17 @@
-"""I10-B01 domain + persistence foundation tests (authored; runtime not executed in B01)."""
+"""I10-B01 domain + persistence foundation tests (PostgreSQL runtime via B04 harness)."""
 
 from __future__ import annotations
 
 import ast
 import inspect
-from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import create_engine, inspect as sa_inspect
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.exc import IntegrityError
 
 from backend.app import models
-from backend.app.database import Base
 from backend.app.schemas.notification import NotificationPayload
 from backend.app.services.i10.authorization import (
     I10AuthorizationError,
@@ -24,6 +22,7 @@ from backend.app.services.i10.authorization import (
 )
 from backend.app.services.i10.contracts import (
     I10NotificationCandidate,
+    I10_RAG_IMPORT_BLOCKLIST,
     assert_no_live_rag_import,
     reject_forbidden_candidate_fields,
 )
@@ -40,27 +39,7 @@ from backend.app.services.i9.health_subject_service import (
     ensure_self_subject_for_account,
 )
 
-
-@pytest.fixture()
-def db():
-    engine = create_engine("sqlite:///:memory:", future=True)
-    tables = [
-        models.User.__table__,
-        models.HealthSubject.__table__,
-        models.AccountHealthSubjectAccess.__table__,
-        models.UserCaregiver.__table__,
-        models.Notification.__table__,
-        models.I10NotificationDecision.__table__,
-        models.HealthSubjectNotificationGrant.__table__,
-    ]
-    Base.metadata.create_all(engine, tables=tables)
-    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        engine.dispose()
+pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
 
 
 def _user(db, name: str) -> models.User:
@@ -143,6 +122,7 @@ def test_subject_attributed_notification_preserves_subject_not_recipient(db):
     assert notif.health_subject_id == managed.id
     assert notif.user_id == caregiver.id
     assert notif.health_subject_id != notif.user_id
+    assert notif.user_id != owner.id
 
 
 def test_caregiver_never_substituted_as_target_subject(db):
@@ -245,6 +225,36 @@ def test_duplicate_active_grant_returns_existing(db):
     assert first.id == second.id
 
 
+def test_different_scopes_same_subject_recipient_allowed(db):
+    owner = _user(db, "owner-scopes")
+    caregiver = _user(db, "cg-scopes")
+    subject = create_managed_subject_without_account(db, account_user_id=owner.id, display_name="ScopePatient")
+    db.add(
+        models.AccountHealthSubjectAccess(
+            account_user_id=caregiver.id,
+            health_subject_id=subject.id,
+            access_role="CAREGIVER",
+            is_active=True,
+        )
+    )
+    db.commit()
+    g1 = create_notification_grant(
+        db,
+        health_subject_id=subject.id,
+        recipient_user_id=caregiver.id,
+        notification_scope=I10NotificationScope.GENERAL_STATUS,
+        authorization_source="MANUAL",
+    )
+    g2 = create_notification_grant(
+        db,
+        health_subject_id=subject.id,
+        recipient_user_id=caregiver.id,
+        notification_scope=I10NotificationScope.CARE_ACTION,
+        authorization_source="MANUAL",
+    )
+    assert g1.id != g2.id
+
+
 def test_user_caregiver_link_does_not_authorize_without_grant(db):
     owner = _user(db, "owner-profile")
     caregiver = _user(db, "cg-profile")
@@ -319,6 +329,44 @@ def test_access_without_notification_grant_rejected(db):
     assert exc.value.code == "RECIPIENT_LACKS_NOTIFICATION_GRANT"
 
 
+def test_grant_without_access_rejected(db):
+    owner = _user(db, "owner-gonly")
+    stranger = _user(db, "stranger-gonly")
+    subject = create_managed_subject_without_account(db, account_user_id=owner.id, display_name="GrantOnly")
+    db.add(
+        models.HealthSubjectNotificationGrant(
+            health_subject_id=subject.id,
+            recipient_user_id=stranger.id,
+            notification_scope=I10NotificationScope.GENERAL_STATUS.value,
+            is_active=True,
+            authorization_source="MANUAL",
+        )
+    )
+    db.commit()
+    with pytest.raises(I10AuthorizationError) as exc:
+        validate_recipient_notification_authorization(
+            db,
+            health_subject_id=subject.id,
+            recipient_user_id=stranger.id,
+            notification_scope=I10NotificationScope.GENERAL_STATUS,
+        )
+    assert exc.value.code == "RECIPIENT_LACKS_SUBJECT_ACCESS"
+
+
+def test_no_access_no_grant_rejected(db):
+    owner = _user(db, "owner-none")
+    stranger = _user(db, "stranger-none")
+    subject = create_managed_subject_without_account(db, account_user_id=owner.id, display_name="NoAccessNoGrant")
+    with pytest.raises(I10AuthorizationError) as exc:
+        validate_recipient_notification_authorization(
+            db,
+            health_subject_id=subject.id,
+            recipient_user_id=stranger.id,
+            notification_scope=I10NotificationScope.GENERAL_STATUS,
+        )
+    assert exc.value.code == "RECIPIENT_LACKS_SUBJECT_ACCESS"
+
+
 def test_grant_plus_access_passes_authorization(db):
     owner = _user(db, "owner-ok")
     caregiver = _user(db, "cg-ok")
@@ -362,13 +410,121 @@ def test_decision_ledger_records_without_raw_content(db):
     assert row.reason_code == "QUIET_HOURS"
     assert row.provenance_refs_json is not None
     assert "numeric_value" not in (row.provenance_refs_json or "")
-    for value in (I10DecisionValue.SEND, I10DecisionValue.SUPPRESS, I10DecisionValue.EXPIRE):
-        record_notification_decision(
+    forbidden = ("raw_packet", "rag_chunk", "transcript", "packet_body")
+    for token in forbidden:
+        assert token not in (row.provenance_refs_json or "")
+
+
+def test_decision_ledger_all_states_persist(db):
+    owner = _user(db, "owner-ledger-all")
+    subject = ensure_self_subject_for_account(db, owner.id)
+    states = (
+        I10DecisionValue.SEND,
+        I10DecisionValue.DEFER,
+        I10DecisionValue.SUPPRESS,
+        I10DecisionValue.BUNDLE,
+        I10DecisionValue.ESCALATE,
+        I10DecisionValue.EXPIRE,
+    )
+    for state in states:
+        row = record_notification_decision(
             db,
-            candidate=_candidate(subject_id=subject.id, recipient_id=owner.id, key=f"ledger-{value.value}"),
-            decision=value,
-            reason_code=f"TEST_{value.value}",
+            candidate=_candidate(subject_id=subject.id, recipient_id=owner.id, key=f"ledger-{state.value}"),
+            decision=state,
+            reason_code=f"TEST_{state.value}",
+            privacy_class=I10PrivacyClass.HEALTH_SENSITIVE,
         )
+        assert row.decision == state.value
+        assert row.health_subject_id == subject.id
+        assert row.recipient_user_id == owner.id
+        assert row.semantic_family == I10SemanticFamily.GENERAL_STATUS.value
+        assert row.privacy_class == I10PrivacyClass.HEALTH_SENSITIVE.value
+        assert row.notification_id is None
+
+
+def test_same_occurrence_duplicate_blocked(db):
+    owner = _user(db, "owner-occ-dup")
+    subject = ensure_self_subject_for_account(db, owner.id)
+    key = "daily-care:2026-08-30"
+    candidate = _candidate(subject_id=subject.id, recipient_id=owner.id, key=key)
+    first = record_notification_decision(
+        db,
+        candidate=candidate,
+        decision=I10DecisionValue.SEND,
+        reason_code="FIRST",
+    )
+    second = record_notification_decision(
+        db,
+        candidate=candidate,
+        decision=I10DecisionValue.DEFER,
+        reason_code="SECOND",
+    )
+    assert first.id == second.id
+    assert second.decision == "DEFER"
+    count = (
+        db.query(models.I10NotificationDecision)
+        .filter(
+            models.I10NotificationDecision.candidate_key == key,
+            models.I10NotificationDecision.recipient_user_id == owner.id,
+            models.I10NotificationDecision.health_subject_id == subject.id,
+        )
+        .count()
+    )
+    assert count == 1
+
+
+def test_new_occurrence_allowed_same_semantic_family(db):
+    owner = _user(db, "owner-occ-new")
+    subject = ensure_self_subject_for_account(db, owner.id)
+    first = record_notification_decision(
+        db,
+        candidate=_candidate(subject_id=subject.id, recipient_id=owner.id, key="daily-care:2026-08-30"),
+        decision=I10DecisionValue.SEND,
+        reason_code="DAY_ONE",
+    )
+    second = record_notification_decision(
+        db,
+        candidate=_candidate(subject_id=subject.id, recipient_id=owner.id, key="daily-care:2026-08-31"),
+        decision=I10DecisionValue.SEND,
+        reason_code="DAY_TWO",
+    )
+    assert first.id != second.id
+
+
+def test_db_constraint_blocks_duplicate_occurrence_insert(db):
+    owner = _user(db, "owner-occ-db")
+    subject = ensure_self_subject_for_account(db, owner.id)
+    key = "daily-care:2026-08-30-db"
+    row1 = models.I10NotificationDecision(
+        candidate_key=key,
+        health_subject_id=subject.id,
+        recipient_user_id=owner.id,
+        source_owner="I10_TEST",
+        source_type="foundation",
+        source_id="1",
+        semantic_family=I10SemanticFamily.GENERAL_STATUS.value,
+        decision="SEND",
+        reason_code="ONE",
+        privacy_class=I10PrivacyClass.PRIVATE.value,
+    )
+    db.add(row1)
+    db.commit()
+    row2 = models.I10NotificationDecision(
+        candidate_key=key,
+        health_subject_id=subject.id,
+        recipient_user_id=owner.id,
+        source_owner="I10_TEST",
+        source_type="foundation",
+        source_id="2",
+        semantic_family=I10SemanticFamily.GENERAL_STATUS.value,
+        decision="DEFER",
+        reason_code="TWO",
+        privacy_class=I10PrivacyClass.PRIVATE.value,
+    )
+    db.add(row2)
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
 
 
 def test_candidate_rejects_forbidden_fields():
@@ -381,6 +537,9 @@ def test_candidate_rejects_forbidden_fields():
 def test_i10_package_has_no_live_rag_imports():
     i10_dir = Path(__file__).resolve().parents[1] / "app" / "services" / "i10"
     forbidden_tokens = ("rag_provider", "runtime_knowledge_retrieval", "RAGService", "scis.retrieval")
+    for blocked in I10_RAG_IMPORT_BLOCKLIST:
+        with pytest.raises(ImportError):
+            assert_no_live_rag_import(blocked)
     for path in i10_dir.glob("*.py"):
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source)
@@ -388,8 +547,7 @@ def test_i10_package_has_no_live_rag_imports():
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     assert "rag_provider" not in alias.name
-                    with pytest.raises(ImportError):
-                        assert_no_live_rag_import(alias.name)
+                    assert alias.name not in I10_RAG_IMPORT_BLOCKLIST
             if isinstance(node, ast.ImportFrom):
                 mod = node.module or ""
                 for token in forbidden_tokens:
@@ -399,8 +557,6 @@ def test_i10_package_has_no_live_rag_imports():
 
 
 def test_i10_has_no_physiological_measurement_dependency():
-    from backend.app.services import i10 as i10_pkg
-
     for mod_name in ("authorization", "contracts", "decision_ledger", "intake", "policy_types"):
         mod = __import__(f"backend.app.services.i10.{mod_name}", fromlist=["*"])
         src = inspect.getsource(mod)
