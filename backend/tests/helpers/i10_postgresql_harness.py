@@ -18,7 +18,7 @@ _ALEMBIC_ROOT = Path(__file__).resolve().parents[2]
 _REV_073 = "073_i9_subject_native_rollup_baseline"
 _REV_074 = "074_i10_notification_domain_foundation"
 _REV_075 = "075_i10_care_network_identity_grants"
-_REV_076 = "077_i10_medication_adherence_foundation"
+_REV_076 = "076_i10_care_network_delivery_foundation"
 _REV_077 = "077_i10_medication_adherence_foundation"
 
 
