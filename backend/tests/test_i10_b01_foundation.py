@@ -129,14 +129,6 @@ def test_caregiver_never_substituted_as_target_subject(db):
     caregiver = _user(db, "caregiver")
     self_subject = ensure_self_subject_for_account(db, caregiver.id)
     managed = create_managed_subject_without_account(db, account_user_id=caregiver.id, display_name="Mother")
-    db.add(
-        models.AccountHealthSubjectAccess(
-            account_user_id=caregiver.id,
-            health_subject_id=managed.id,
-            access_role="CAREGIVER",
-            is_active=True,
-        )
-    )
     db.commit()
     create_notification_grant(
         db,
