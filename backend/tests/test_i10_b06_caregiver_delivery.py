@@ -33,6 +33,10 @@ _GATE4_PATCH = patch(
     "backend.app.services.gate4.policy_resolver.evaluate_enqueue_with_gate4_policy",
     return_value=(True, {}),
 )
+_FLAG_PATCH = patch(
+    "backend.app.services.section10.feature_flags.i10_care_network_delivery_enabled",
+    return_value=True,
+)
 _FCM_PATCH = patch(
     "backend.app.services.notifications.delivery_service.FCMAdapter.send",
     return_value=True,
@@ -204,12 +208,12 @@ def test_unrelated_subject_caregiver_excluded(db):
 
 def test_phone_only_profile_excluded(db):
     owner, cg1, _, subject = _setup_chain(db)
-    profile = create_caregiver(db, owner.id, CaregiverCreateIn(name="PhoneOnly", phone="+989121111111"))
+    create_caregiver(db, owner.id, CaregiverCreateIn(name="PhoneOnly", phone="+989121111111"))
     rows = resolve_care_network_recipients(
         db, health_subject_id=subject.id, notification_scope=I10NotificationScope.GENERAL_STATUS
     )
-    assert profile["id"] is not None
-    assert all(r.recipient_user_id == cg1.id for r in rows)
+    assert len(rows) == 1
+    assert rows[0].recipient_user_id == cg1.id
 
 
 def test_linked_account_without_access_excluded(db):
@@ -227,7 +231,16 @@ def test_linked_account_without_access_excluded(db):
 
 def test_profile_drift_fail_closed(db):
     owner, cg1, _, subject = _setup_chain(db)
+    other = _user(db, "other-link")
     profile = create_caregiver(db, owner.id, CaregiverCreateIn(name="Drift"))
+    from backend.app.services.i10.care_network_identity import link_caregiver_to_account
+
+    link_caregiver_to_account(
+        db,
+        owner_user_id=owner.id,
+        user_caregiver_id=profile["id"],
+        recipient_account_user_id=other.id,
+    )
     ev = evaluate_delivery_eligibility(
         db,
         health_subject_id=subject.id,
@@ -315,6 +328,7 @@ def test_language_preference_resolved(db):
 # Worker
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_worker_uses_canonical_intake_not_direct_orm(db):
     from backend.app.services.i10.intake import enqueue_i10_notification
@@ -332,6 +346,7 @@ def test_worker_uses_canonical_intake_not_direct_orm(db):
     assert intent.notification_id is not None
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_worker_no_direct_fcm(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -341,6 +356,7 @@ def test_worker_no_direct_fcm(db):
         mock_fcm.assert_not_called()
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_worker_idempotent(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -352,6 +368,7 @@ def test_worker_idempotent(db):
     assert intent.notification_id == first_notif
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_expired_request_not_enqueued(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -365,6 +382,7 @@ def test_expired_request_not_enqueued(db):
     assert intent.status == "expired"
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_revoked_grant_at_worker_time_suppresses(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -383,6 +401,7 @@ def test_revoked_grant_at_worker_time_suppresses(db):
     assert outcome["status"] == "suppressed"
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_revoked_access_at_worker_time_suppresses(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -397,6 +416,7 @@ def test_revoked_access_at_worker_time_suppresses(db):
 # Multi-caregiver
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_caregivers_ab_same_occurrence(db):
     owner, cg1, cg2, subject = _setup_chain(db, with_cg2=True)
@@ -409,6 +429,7 @@ def test_caregivers_ab_same_occurrence(db):
     assert i1.notification_id != i2.notification_id
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_suppression_of_a_not_b(db):
     owner, cg1, cg2, subject = _setup_chain(db, with_cg2=True)
@@ -427,6 +448,7 @@ def test_suppression_of_a_not_b(db):
     assert i2.status == "processed"
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_duplicate_same_recipient_occurrence_blocked(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -435,6 +457,7 @@ def test_duplicate_same_recipient_occurrence_blocked(db):
     assert i1.id == i2.id
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_new_occurrence_same_recipient_allowed(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -448,6 +471,7 @@ def test_new_occurrence_same_recipient_allowed(db):
 # Privacy / boundaries
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_privacy_class_persisted(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -472,6 +496,7 @@ def test_b06_no_rag_imports():
         assert "rag" not in dumped
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_caregiver_not_substituted_as_subject(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -497,6 +522,7 @@ def test_phone_not_push_token(db):
 # Lifecycle
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_decision_linkage_valid(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -509,6 +535,7 @@ def test_decision_linkage_valid(db):
     assert decision.notification_id == intent.notification_id
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_suppressed_not_marked_delivered(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -520,6 +547,7 @@ def test_suppressed_not_marked_delivered(db):
     assert intent.notification_id is None
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_delivery_service_mock_recorded(db):
     owner, cg1, _, subject = _setup_chain(db)
@@ -532,10 +560,10 @@ def test_delivery_service_mock_recorded(db):
     assert sent >= 0
 
 
+@_FLAG_PATCH
 @_GATE4_PATCH
 def test_batch_worker_processes_pending(db):
     owner, cg1, _, subject = _setup_chain(db)
     _intent(db, owner, subject, cg1, "occ-batch")
-    with patch.dict("os.environ", {"SEDI_I10_CARE_NETWORK_DELIVERY_ENABLED": "true"}, clear=False):
-        summary = process_pending_caregiver_delivery_intents(db, limit=10)
+    summary = process_pending_caregiver_delivery_intents(db, limit=10)
     assert summary["processed"] >= 1

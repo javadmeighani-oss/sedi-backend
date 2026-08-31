@@ -121,9 +121,11 @@ def resolve_care_network_recipients(
             recipient_user_id=rid,
             notification_scope=notification_scope,
         )
-        if ev.eligible and (ev.delivery_ready or include_non_delivery_ready):
-            results.append(ev)
-        elif not ev.eligible or (ev.eligible and not ev.delivery_ready and include_non_delivery_ready):
+        if not ev.eligible:
+            if include_non_delivery_ready:
+                results.append(ev)
+            continue
+        if ev.delivery_ready or include_non_delivery_ready:
             results.append(ev)
     return results
 
