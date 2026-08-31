@@ -14798,6 +14798,54 @@
         ]
       }
     },
+    "/notifications/{notification_id}/medication/confirm-taken": {
+      "post": {
+        "description": "Explicit authenticated confirmation that a scheduled dose was taken.",
+        "operationId": "confirm_medication_taken_notifications__notification_id__medication_confirm_taken_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "title": "Notification Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Medication Taken",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/notifications/{notification_id}/mark-read": {
       "post": {
         "description": "Mark a notification as read (Release B2). Requires Bearer JWT.",
