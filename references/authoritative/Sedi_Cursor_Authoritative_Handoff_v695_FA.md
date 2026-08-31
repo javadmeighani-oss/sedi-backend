@@ -1,0 +1,61 @@
+# SEDI Cursor Authoritative Handoff - v695
+
+```text
+VERSION=v695
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v694
+v694_MODIFIED=NO
+SUCCESSOR_MODE=APPEND_ONLY
+MASTER_LOG=§403
+GATE=I10-B05
+GATE_TYPE=CARE_NETWORK_IDENTITY_ACCESS_GRANT_API + PROFILE_TO_SEDI_ACCOUNT_RESOLUTION_FOUNDATION
+IMPLEMENTATION_AUTHORIZED=YES
+GATE_RESULT=PASS
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+BASE_HEAD=eb0314893f5e62f1346ff91d773d0cf489f3702d
+FINAL_HEAD=49405aaf
+CURSOR_MODEL_MODE=AUTO
+CHATGPT_CONTINUITY_AUTHORITY=v698_OWNER_SUPPLIED_NOT_IN_REPO
+CHATGPT_MUTATED=NO
+CURSOR_REFERENCE_ROOT=D:\Rimiya Design Studio\Sedi\software\Sedi-v-1\references\authoritative
+```
+
+```text
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+B04_CONTINUITY=§402 preserved; B01 PG harness reused
+MIGRATION=075_i10_care_network_identity_grants
+ALEMBIC_HEAD=075_i10_care_network_identity_grants
+
+USER_CAREGIVER_ACCOUNT_LINK=linked_account_user_id + link_provenance (explicit only)
+PHONE_AUTO_LINK=NO
+PHONE_ONLY_AUTHORIZATION=NO
+
+PROFILE_ACCOUNT_RESOLUTION=/user/caregivers/{id}/account-candidates|link-account|confirm-phone-candidate
+HEALTH_SUBJECT_CAREGIVER_ACCESS=/health-subjects/{id}/caregivers
+NOTIFICATION_GRANT_API=/health-subjects/{id}/notification-grants
+RECIPIENT_ELIGIBILITY=CareNetworkRecipientEligibility (evaluate_recipient_eligibility)
+
+I6_BOUNDARY=NotificationPrefs read for metadata only; no parallel consent system
+I9_BOUNDARY=AccountHealthSubjectAccess reused; no raw PhysiologicalMeasurement
+I10_BOUNDARY=HealthSubjectNotificationGrant is notification-scope authority
+
+NOTIFICATIONS_CREATED_BY_B05=0
+CAREGIVER_DELIVERY=NO
+FRONTEND_CHANGED=NO
+PRODUCTION_MIGRATION=NO
+
+B05_TEST_COUNT=28
+B05_LOCAL_PG=SKIPPED (no local PostgreSQL)
+CI_RUN_ID=PENDING
+CI_RESULT=PENDING
+
+MASTER_LOG_TIP=§403
+CURSOR_HANDOFF=v695
+NEXT_GATE_PROPOSED=I10-B06_CAREGIVER_DELIVERY_FOUNDATION
+NEXT_GATE_AUTHORIZED=NO
+READY_FOR_JAVAD_REVIEW=YES
+```

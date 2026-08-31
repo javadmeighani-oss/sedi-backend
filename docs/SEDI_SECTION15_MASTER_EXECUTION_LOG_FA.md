@@ -78607,3 +78607,90 @@ HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v694_FA.md
 MASTER_LOG_TIP=§402
 CURSOR_HANDOFF_TIP=v694
 NEXT_PROPOSED_GATE=I10-B05_GRANT_API_AND_CAREGIVER_DELIVERY_FOUNDATION
+
+
+§403 - I10-B05 CARE NETWORK IDENTITY / ACCESS / GRANT FOUNDATION
+
+GATE=I10-B05
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+GATE_RESULT=PASS
+
+PRE_403_SHA256=34C4D3910F235A94940545C1C2C000134DFC33411F02308BD1CE42D4D5A09DC0
+BASELINE_HEAD=eb0314893f5e62f1346ff91d773d0cf489f3702d
+B04_CONTINUITY=§402 PostgreSQL harness reused
+
+--------------------------------
+IDENTITY / RESOLUTION ARCHITECTURE
+--------------------------------
+
+CANONICAL_CHAIN=UserCaregiver -> linked Sedi Account -> HealthSubject -> AccountHealthSubjectAccess -> HealthSubjectNotificationGrant -> Eligibility
+USER_CAREGIVER_REUSE=YES (user_caregivers table; no parallel contact table)
+LINK_FIELD=linked_account_user_id (nullable FK users.id)
+LINK_PROVENANCE=EXPLICIT_ACCOUNT_ID | PHONE_CANDIDATE_CONFIRMED | UNLINKED
+PHONE_AUTO_LINK=NO
+PHONE_ONLY_AUTHORIZATION=NO
+PROFILE_SUBJECT_METADATA=user_caregivers.health_subject_id (metadata only)
+
+--------------------------------
+MIGRATION
+--------------------------------
+
+MIGRATION_REQUIRED=YES
+MIGRATION_FILE=075_i10_care_network_identity_grants.py
+MIGRATION_REVISION=075_i10_care_network_identity_grants
+MIGRATION_DOWN_REVISION=074_i10_notification_domain_foundation
+SCHEMA_CHANGE=additive user_caregivers columns only
+NO_BACKFILL=YES
+
+--------------------------------
+API SURFACE
+--------------------------------
+
+PROFILE_RESOLUTION=POST /user/caregivers/{id}/account-candidates; POST link-account; POST confirm-phone-candidate; DELETE link-account
+PROFILE_SUBJECT=PATCH /user/caregivers/{id}/health-subject
+SUBJECT_ACCESS=POST|GET|DELETE /health-subjects/{id}/caregivers
+NOTIFICATION_GRANTS=POST|GET|DELETE /health-subjects/{id}/notification-grants; PATCH revoke-by-scope
+GRANT_SCOPES=GENERAL_STATUS,DEVICE_STATUS,CARE_ACTION,SAFETY_ESCALATION,SENSITIVE_HEALTH_DETAIL
+RECIPIENT_ELIGIBILITY=evaluate_recipient_eligibility -> CareNetworkRecipientEligibility
+
+--------------------------------
+AUTHORIZATION / BOUNDARIES
+--------------------------------
+
+ACTOR_MANAGEMENT=MANAGER or SELF owner only (CAREGIVER cannot add caregivers)
+I6_BOUNDARY=NotificationPrefs compatibility metadata only; no parallel consent domain
+I9_BOUNDARY=AccountHealthSubjectAccess authority reused; no raw measurement access
+I10_BOUNDARY=HealthSubjectNotificationGrant is notification authorization object
+RAW_I9_TO_I10=NO
+DIRECT_RAG_TO_I10=NO
+CAREGIVER_ID_SUBSTITUTION=BLOCKED
+NOTIFICATIONS_CREATED_BY_B05=0
+CAREGIVER_DELIVERY=NO
+FRONTEND_CHANGED=NO
+
+--------------------------------
+TESTS / CI
+--------------------------------
+
+B05_TEST_FILE=test_i10_b05_identity_access_grants.py
+B05_MIGRATION_CYCLE=test_i10_b05_migration_075_cycle.py
+B05_TEST_COUNT=28
+CI_WORKFLOW=ci-backend-tests.yml I10 B05 step added
+CI_RUN_ID=PENDING
+CI_RESULT=PENDING
+
+--------------------------------
+REMAINING
+--------------------------------
+
+P0=CAREGIVER delivery worker; canonicalize legacy Notification writers; Gate4 prod enforce; production migration 071-075
+P1=Grant management UI; recipient resolution UI
+P2=PushDevice readiness metadata in eligibility
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v695_FA.md
+MASTER_LOG_TIP=§403
+CURSOR_HANDOFF_TIP=v695
+NEXT_PROPOSED_GATE=I10-B06_CAREGIVER_DELIVERY_FOUNDATION
+PRODUCTION_MIGRATION=NO
+PRODUCTION_DEPLOY=NO
