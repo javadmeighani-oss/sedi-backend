@@ -60,6 +60,8 @@ class I10IsolatedPgDb:
         cfg = i10_alembic_cfg(url)
         target = revision or _REV_074
         command.upgrade(cfg, target)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM alembic_version"))
         return cls(
             url=url,
             db_name=db_name,
@@ -95,10 +97,10 @@ def i10_pg_db_module():
 
 @pytest.fixture()
 def db(i10_pg_db_module):
-    SessionLocal, _isolated = i10_pg_db_module
-    connection = SessionLocal.bind.connect()
+    SessionLocal, isolated = i10_pg_db_module
+    connection = isolated.engine.connect()
     transaction = connection.begin()
-    session = Session(bind=connection, autoflush=False, autocommit=False, future=True)
+    session = SessionLocal(bind=connection)
     try:
         yield session
     finally:
