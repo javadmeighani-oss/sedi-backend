@@ -113,7 +113,7 @@ def test_c01_alembic_single_head_073():
         text=True,
         check=True,
     )
-    assert "075_i10_care_network_identity_grants (head)" in result.stdout
+    assert "076_i10_care_network_delivery_foundation (head)" in result.stdout
 
 
 def test_c02_migration_073_columns_present(db):
@@ -1737,4 +1737,12 @@ def test_g25_migration_075_i10_care_network_identity_exists():
     matches = [p for p in versions.glob("*.py") if p.name.startswith("075_i10_")]
     assert len(matches) == 1
     assert matches[0].name == "075_i10_care_network_identity_grants.py"
+
+
+def test_g26_migration_076_i10_care_network_delivery_exists():
+    repo = Path(__file__).resolve().parents[2]
+    versions = Path(repo) / "backend" / "alembic" / "versions"
+    matches = [p for p in versions.glob("*.py") if p.name.startswith("076_i10_")]
+    assert len(matches) == 1
+    assert matches[0].name == "076_i10_care_network_delivery_foundation.py"
 

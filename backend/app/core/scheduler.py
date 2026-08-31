@@ -855,6 +855,37 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] i9 aggregation/baseline job wiring failed: {e}")
 
+        try:
+            from backend.app.database import get_db as _i10_care_get_db
+            from backend.app.services.i10.caregiver_delivery_worker import process_pending_caregiver_delivery_intents
+            from backend.app.services.section10.feature_flags import i10_care_network_delivery_enabled
+
+            def _i10_caregiver_delivery_tick():
+                with next(_i10_care_get_db()) as db:
+                    summary = process_pending_caregiver_delivery_intents(db, limit=50)
+                print(f"[Sedi Scheduler] i10_caregiver_delivery summary={summary}", flush=True)
+
+            i10_interval = int(os.getenv("SEDI_I10_CARE_NETWORK_DELIVERY_INTERVAL_MIN", "15"))
+            scheduler.add_job(
+                _i10_caregiver_delivery_tick,
+                "interval",
+                minutes=max(5, i10_interval),
+                id="i10_caregiver_delivery_worker",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=300,
+            )
+            print(
+                "[Sedi Scheduler] I10 caregiver delivery worker registered "
+                f"enabled={i10_care_network_delivery_enabled()} "
+                f"flag=SEDI_I10_CARE_NETWORK_DELIVERY_ENABLED "
+                f"interval_min={max(5, i10_interval)}",
+                flush=True,
+            )
+        except Exception as e:
+            print(f"[Sedi Scheduler] I10 caregiver delivery worker wiring failed: {e}")
+
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:

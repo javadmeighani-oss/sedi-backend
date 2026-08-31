@@ -29,6 +29,10 @@ def caregiver_care_summary_enabled() -> bool:
     return _env_flag_enabled("SEDI_CAREGIVER_CARE_SUMMARY_ENABLED")
 
 
+def i10_care_network_delivery_enabled() -> bool:
+    return _env_flag_enabled("SEDI_I10_CARE_NETWORK_DELIVERY_ENABLED")
+
+
 # Emergency escalation
 def emergency_escalation_enabled() -> bool:
     return _env_flag_enabled("SEDI_EMERGENCY_ESCALATION_ENABLED")

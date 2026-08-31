@@ -1587,7 +1587,7 @@ class CaregiverNotificationIntent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    caregiver_id = Column(Integer, ForeignKey("user_caregivers.id", ondelete="CASCADE"), nullable=False, index=True)
+    caregiver_id = Column(Integer, ForeignKey("user_caregivers.id", ondelete="CASCADE"), nullable=True, index=True)
     notification_type = Column(String(64), nullable=False)
     source_entity_type = Column(String(64), nullable=True)
     source_entity_id = Column(Integer, nullable=True)
@@ -1598,6 +1598,33 @@ class CaregiverNotificationIntent(Base):
     scheduled_at = Column(DateTime, nullable=True)
     processed_at = Column(DateTime, nullable=True)
     failure_reason = Column(Text, nullable=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="CASCADE", name="fk_cni_health_subject_id"),
+        nullable=True,
+        index=True,
+    )
+    notification_scope = Column(String(64), nullable=True)
+    occurrence_key = Column(String(255), nullable=True)
+    semantic_family = Column(String(64), nullable=True)
+    privacy_class = Column(String(32), nullable=True)
+    recipient_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_cni_recipient_user_id"),
+        nullable=True,
+        index=True,
+    )
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    i10_decision_id = Column(
+        Integer,
+        ForeignKey("i10_notification_decisions.id", ondelete="SET NULL", name="fk_cni_i10_decision_id"),
+        nullable=True,
+    )
+    notification_id = Column(
+        Integer,
+        ForeignKey("notifications.id", ondelete="SET NULL", name="fk_cni_notification_id"),
+        nullable=True,
+    )
 
 
 # -------------------- Section 10: Emergency escalation --------------------

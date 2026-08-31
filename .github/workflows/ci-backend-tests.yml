@@ -249,6 +249,13 @@ jobs:
             backend/tests/test_i10_b05_migration_075_cycle.py \
             --noconftest --tb=short
 
+      - name: I10 B06 caregiver delivery + migration 076 cycle
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i10_b06_caregiver_delivery.py \
+            backend/tests/test_i10_b06_migration_076_cycle.py \
+            --noconftest --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.

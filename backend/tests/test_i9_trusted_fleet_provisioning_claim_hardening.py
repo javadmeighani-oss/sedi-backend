@@ -362,4 +362,4 @@ def test_f17_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["075_i10_care_network_identity_grants"]
+    assert heads == ["076_i10_care_network_delivery_foundation"]
