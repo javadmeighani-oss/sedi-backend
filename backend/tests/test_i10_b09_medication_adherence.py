@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import os
 from datetime import datetime, time
 from pathlib import Path
 from unittest.mock import patch
@@ -12,8 +13,12 @@ import pytz
 from fastapi.testclient import TestClient
 from sqlalchemy import func
 
+os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
+
 from backend.app import models
 from backend.app.core.security import create_access_token
+from backend.app.database import get_db as _app_get_db
+from backend.app.main import app as sedi_app
 from backend.app.services.i10.medication_adherence import (
     MedicationAdherenceState,
     confirm_dose_taken_by_notification,
@@ -34,6 +39,21 @@ _GATE4_PATCH = patch(
 def gate4_patch():
     with _GATE4_PATCH:
         yield
+
+
+@pytest.fixture()
+def client(db):
+    """HTTP client bound to the same PostgreSQL session as the test (noconftest-safe)."""
+
+    def _get_db_override():
+        yield db
+
+    sedi_app.dependency_overrides[_app_get_db] = _get_db_override
+    try:
+        with TestClient(sedi_app) as c:
+            yield c
+    finally:
+        sedi_app.dependency_overrides.pop(_app_get_db, None)
 
 
 def _user(db, name: str = "med-user") -> models.User:
