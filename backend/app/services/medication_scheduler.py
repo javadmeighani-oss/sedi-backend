@@ -81,6 +81,13 @@ def process_medication_reminders(db: Session, decision_engine, now_utc: Optional
                 if not _is_schedule_due(local_now, sch.time_of_day):
                     continue
                 slot = format_time_of_day(sch.time_of_day)
+                scheduled_local = local_now.replace(
+                    hour=sch.time_of_day.hour,
+                    minute=sch.time_of_day.minute,
+                    second=0,
+                    microsecond=0,
+                )
+                scheduled_for_utc = scheduled_local.astimezone(pytz.UTC).replace(tzinfo=None)
                 result = decision_engine.create_medication_reminder(
                     user_id=um.user_id,
                     medication_name=med.name,
@@ -89,6 +96,7 @@ def process_medication_reminders(db: Session, decision_engine, now_utc: Optional
                     schedule_time=slot,
                     user_medication_id=um.id,
                     schedule_id=sch.id,
+                    scheduled_for_utc=scheduled_for_utc,
                 )
                 if result:
                     created += 1
@@ -98,6 +106,8 @@ def process_medication_reminders(db: Session, decision_engine, now_utc: Optional
                 medication_name=med.name,
                 dosage=dosage,
                 medication_id=med.id,
+                scheduled_for_utc=now_utc,
+                user_medication_id=um.id,
             )
             if result:
                 created += 1

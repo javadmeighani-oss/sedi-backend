@@ -1,0 +1,86 @@
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from backend.app.services.i5.master_log_byte_append import append_bytes, sha256_hex, read_exact
+
+path = Path("docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md")
+pre = read_exact(path)
+pre_sha = sha256_hex(pre)
+assert b"\xc2\xa7405" not in pre
+
+sec = (
+    "\r\n\r\n"
+    "§405 - I10-B07R EXPANDED SMART NOTIFICATION PRODUCER INVENTORY + SOURCE OF TRUTH POLICY MAP\r\n\r\n"
+    "GATE=I10-B07R\r\n"
+    "MODE=READ_ONLY_ARCHITECTURE_AUDIT\r\n"
+    "PRODUCT_OWNER_APPROVAL=YES\r\n"
+    "APPROVED_BY=JAVAD\r\n"
+    "GATE_RESULT=PASS\r\n\r\n"
+    f"PRE_405_SHA256={pre_sha}\r\n"
+    "BASELINE_HEAD=867f88be0ca27798c51c925e72bbc8c4a6bcdde9\r\n"
+    "B06_CONTINUITY=§404 caregiver delivery foundation reused as audit baseline\r\n\r\n"
+    "--------------------------------\r\n"
+    "AUDIT SCOPE\r\n"
+    "--------------------------------\r\n\r\n"
+    "EXPANDED_I10_DEFINITION=12 notification families + 8 interaction surfaces + 10 policy surfaces + SELF/CAREGIVER matrix\r\n"
+    "SOURCE_CHANGED=NO\r\n"
+    "TEST_CHANGED=NO\r\n"
+    "SCHEMA_CHANGED=NO\r\n"
+    "DOCUMENTATION_COMMIT=NO\r\n\r\n"
+    "--------------------------------\r\n"
+    "PATH INVENTORY\r\n"
+    "--------------------------------\r\n\r\n"
+    "CANONICAL_I10_INTAKE=enqueue_i10_notification (i10/intake.py)\r\n"
+    "CANONICAL_I10_PRODUCER=caregiver_delivery_worker only (B06)\r\n"
+    "LEGACY_DIRECT_WRITERS=DecisionEngine.create_* via NotificationBuilder; behavior/service companion ping; section10 event/lifestyle schedulers; medication_stock_notification; gate4 user_chat_reminder; device_ingestion health_alert; knowledge KC notify; gate5 ml_care_bridge; admin_test_push\r\n"
+    "DORMANT_PATHS=section10 event/lifestyle schedulers (flags OFF); medication stock (unwired); legacy caregiver_notification_intent_service (phone-pref resolver, no I10); build_notification_from_template (no callers)\r\n"
+    "PARALLEL_RISK=HIGH until legacy producers migrate to I10 intake\r\n\r\n"
+    "--------------------------------\r\n"
+    "FAMILY STATUS SUMMARY\r\n"
+    "--------------------------------\r\n\r\n"
+    "PRESENCE_REENGAGEMENT=IMPLEMENTED_LEGACY (connection_ping, engagement_nudge, companion_ping)\r\n"
+    "CONTEXTUAL_CHAT_FOLLOW_UP=PARTIAL (NOTIFICATION_FOLLOW_UP intent + CareFollowUpTask CRUD; no due-time notification producer)\r\n"
+    "MEDICATION_ADHERENCE=PARTIAL (UserMedication schedules + medication_reminders scheduler; no taken/missed/unknown adherence state)\r\n"
+    "APPOINTMENT_LAB_DOCTOR=PARTIAL (UserEvent model; generic event_reminder_scheduler DORMANT; lab/doctor not separated in reminders)\r\n"
+    "DAILY_HEALTH_WELLNESS_DIGEST=PARTIAL (morning_brief legacy + I7 period summaries; no bounded I9 digest producer; NO_DATA!=NORMAL enforced in audit only)\r\n"
+    "LIFESTYLE_ROUTINE_COACHING=PARTIAL (lifestyle_reminder_scheduler DORMANT; I8 proactive scan DORMANT)\r\n"
+    "NUTRITION_PLAN_FOLLOW_UP=PARTIAL (I8 nutrition_planner persists I8OperationalPlan; no I10 follow-up producer)\r\n"
+    "EXERCISE_PLAN_FOLLOW_UP=PARTIAL (I8 activity_suggestion domain; no dedicated persisted exercise plan reminder)\r\n"
+    "CARE_STATUS_DIGEST=MISSING (legacy intent vocabulary only)\r\n"
+    "CARE_DATA_GAP=MISSING\r\n"
+    "CARE_ACTION=FOUNDATION_ONLY (I10 scope + worker body; I8 managed HealthSubject unsupported)\r\n"
+    "CARE_SAFETY_ESCALATION=PARTIAL (emergency_escalation_service + I4 safety; no I10 governed producer)\r\n\r\n"
+    "--------------------------------\r\n"
+    "INTERACTION + POLICY\r\n"
+    "--------------------------------\r\n\r\n"
+    "ACK=IMPLEMENTED_CANONICAL (ACK_THANKS)\r\n"
+    "LIKE_DISLIKE=IMPLEMENTED_LEGACY (maps to ACK_THANKS/NOT_NOW)\r\n"
+    "DISLIKE_REASON=PARTIAL (reason field too_frequent|irrelevant|unclear)\r\n"
+    "SNOOZE=PARTIAL (NOT_NOW 24h / TALK_LATER 4h defer; no SNOOZE enum)\r\n"
+    "TALK_TO_SEDI=PARTIAL (OPEN_CHAT + source_notification_id continuity)\r\n"
+    "SOURCE_NOTIFICATION_ID=IMPLEMENTED_CANONICAL (interact -> I1 -> SafeNotificationContextAdapter)\r\n"
+    "POLICY_DUPLICATION=send_guard_v1 + adaptive_policy_v1 + behavior_guard_d2 + Gate4 policy_resolver overlap; I10 intake uses foundation policy only; fatigue/bundling deferred\r\n\r\n"
+    "--------------------------------\r\n"
+    "PROGRESS (MILESTONE-WEIGHTED)\r\n"
+    "--------------------------------\r\n\r\n"
+    "BACKEND_I10_PROGRESS_PERCENT=57\r\n"
+    "BACKEND_I10_REMAINING_PERCENT=43\r\n"
+    "TOTAL_I10_PROGRESS_PERCENT=49\r\n"
+    "TOTAL_I10_REMAINING_PERCENT=51\r\n"
+    "FOUNDATION_COMPLETE=YES (B01-B06)\r\n"
+    "FEATURE_COMPLETE=NO\r\n"
+    "PRODUCTION_ACTIVE=NO\r\n\r\n"
+    "--------------------------------\r\n"
+    "ROADMAP (REBUILT)\r\n"
+    "--------------------------------\r\n\r\n"
+    "NEXT_RECOMMENDED_GATE=I10-B08_SELF_LEGACY_TO_I10_PRODUCER_ADAPTER\r\n"
+    "SEQUENCE=B08 SELF adapter -> B09 medication adherence+I10 -> B10 appointments -> B11 daily digest bounded -> B12 contextual follow-up producer -> B13 I8 coaching producers -> B14 CARE_STATUS+CARE_DATA_GAP -> B15 CARE_ACTION (I8 managed subject) -> B16 CARE_SAFETY routing -> B17 interaction vocab -> B18 policy canonicalization -> B19 legacy retirement freeze\r\n\r\n"
+    "HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v697_FA.md\r\n"
+    "MASTER_LOG_TIP=§405\r\n"
+    "CURSOR_HANDOFF_TIP=v697\r\n"
+    "NEXT_PROPOSED_GATE=I10-B08_SELF_LEGACY_TO_I10_PRODUCER_ADAPTER\r\n"
+)
+
+append_bytes(path, sec.encode("utf-8"))
+print(f"Appended §405 pre_sha={pre_sha}")

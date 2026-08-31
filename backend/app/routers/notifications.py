@@ -1342,6 +1342,53 @@ def submit_notification_feedback(
     )
 
 
+# ------------------ POST /notifications/{notification_id}/medication/confirm-taken (I10-B09) ------------------
+@router.post("/{notification_id}/medication/confirm-taken", response_model=ApiResponseV1)
+def confirm_medication_taken(
+    notification_id: int,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Explicit authenticated confirmation that a scheduled dose was taken."""
+    from backend.app.services.i10.medication_adherence import (
+        MedicationAdherenceError,
+        MedicationAdherenceState,
+        confirm_dose_taken_by_notification,
+    )
+
+    notification = db.query(Notification).filter(Notification.id == notification_id).first()
+    if not notification:
+        return APIResponse(
+            ok=False,
+            error=ErrorInfo(code="NOTIFICATION_NOT_FOUND", message="Notification not found."),
+        )
+    if notification.user_id != auth_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized for this notification.")
+    try:
+        occurrence = confirm_dose_taken_by_notification(
+            db,
+            user_id=auth_user.id,
+            notification_id=notification_id,
+        )
+    except MedicationAdherenceError as exc:
+        if exc.code == "MEDICATION_OCCURRENCE_NOT_FOUND":
+            return APIResponse(
+                ok=False,
+                error=ErrorInfo(code=exc.code, message="No medication dose occurrence for this notification."),
+            )
+        raise
+    return APIResponse(
+        ok=True,
+        data={
+            "occurrence_id": occurrence.id,
+            "state": occurrence.state,
+            "confirmed_at": occurrence.confirmed_at.isoformat() if occurrence.confirmed_at else None,
+            "confirmation_source": occurrence.confirmation_source,
+            "idempotent": occurrence.state == MedicationAdherenceState.CONFIRMED_TAKEN.value,
+        },
+    )
+
+
 # ------------------ POST /notifications/deliver_pending (admin/dev) ------------------
 @router.post("/deliver_pending", response_model=ApiResponseV1)
 def deliver_pending_notifications(

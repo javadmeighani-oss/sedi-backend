@@ -1,0 +1,87 @@
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from backend.app.services.i5.master_log_byte_append import append_bytes, sha256_hex, read_exact
+
+path = Path("docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md")
+pre = read_exact(path)
+pre_sha = sha256_hex(pre)
+assert b"\xc2\xa7403" not in pre
+
+sec = (
+    "\r\n\r\n"
+    "§403 - I10-B05 CARE NETWORK IDENTITY / ACCESS / GRANT FOUNDATION\r\n\r\n"
+    "GATE=I10-B05\r\n"
+    "PRODUCT_OWNER_APPROVAL=YES\r\n"
+    "APPROVED_BY=JAVAD\r\n"
+    "GATE_RESULT=PASS\r\n\r\n"
+    f"PRE_403_SHA256={pre_sha}\r\n"
+    "BASELINE_HEAD=eb0314893f5e62f1346ff91d773d0cf489f3702d\r\n"
+    "B04_CONTINUITY=§402 PostgreSQL harness reused\r\n\r\n"
+    "--------------------------------\r\n"
+    "IDENTITY / RESOLUTION ARCHITECTURE\r\n"
+    "--------------------------------\r\n\r\n"
+    "CANONICAL_CHAIN=UserCaregiver -> linked Sedi Account -> HealthSubject -> AccountHealthSubjectAccess -> HealthSubjectNotificationGrant -> Eligibility\r\n"
+    "USER_CAREGIVER_REUSE=YES (user_caregivers table; no parallel contact table)\r\n"
+    "LINK_FIELD=linked_account_user_id (nullable FK users.id)\r\n"
+    "LINK_PROVENANCE=EXPLICIT_ACCOUNT_ID | PHONE_CANDIDATE_CONFIRMED | UNLINKED\r\n"
+    "PHONE_AUTO_LINK=NO\r\n"
+    "PHONE_ONLY_AUTHORIZATION=NO\r\n"
+    "PROFILE_SUBJECT_METADATA=user_caregivers.health_subject_id (metadata only)\r\n\r\n"
+    "--------------------------------\r\n"
+    "MIGRATION\r\n"
+    "--------------------------------\r\n\r\n"
+    "MIGRATION_REQUIRED=YES\r\n"
+    "MIGRATION_FILE=075_i10_care_network_identity_grants.py\r\n"
+    "MIGRATION_REVISION=075_i10_care_network_identity_grants\r\n"
+    "MIGRATION_DOWN_REVISION=074_i10_notification_domain_foundation\r\n"
+    "SCHEMA_CHANGE=additive user_caregivers columns only\r\n"
+    "NO_BACKFILL=YES\r\n\r\n"
+    "--------------------------------\r\n"
+    "API SURFACE\r\n"
+    "--------------------------------\r\n\r\n"
+    "PROFILE_RESOLUTION=POST /user/caregivers/{id}/account-candidates; POST link-account; POST confirm-phone-candidate; DELETE link-account\r\n"
+    "PROFILE_SUBJECT=PATCH /user/caregivers/{id}/health-subject\r\n"
+    "SUBJECT_ACCESS=POST|GET|DELETE /health-subjects/{id}/caregivers\r\n"
+    "NOTIFICATION_GRANTS=POST|GET|DELETE /health-subjects/{id}/notification-grants; PATCH revoke-by-scope\r\n"
+    "GRANT_SCOPES=GENERAL_STATUS,DEVICE_STATUS,CARE_ACTION,SAFETY_ESCALATION,SENSITIVE_HEALTH_DETAIL\r\n"
+    "RECIPIENT_ELIGIBILITY=evaluate_recipient_eligibility -> CareNetworkRecipientEligibility\r\n\r\n"
+    "--------------------------------\r\n"
+    "AUTHORIZATION / BOUNDARIES\r\n"
+    "--------------------------------\r\n\r\n"
+    "ACTOR_MANAGEMENT=MANAGER or SELF owner only (CAREGIVER cannot add caregivers)\r\n"
+    "I6_BOUNDARY=NotificationPrefs compatibility metadata only; no parallel consent domain\r\n"
+    "I9_BOUNDARY=AccountHealthSubjectAccess authority reused; no raw measurement access\r\n"
+    "I10_BOUNDARY=HealthSubjectNotificationGrant is notification authorization object\r\n"
+    "RAW_I9_TO_I10=NO\r\n"
+    "DIRECT_RAG_TO_I10=NO\r\n"
+    "CAREGIVER_ID_SUBSTITUTION=BLOCKED\r\n"
+    "NOTIFICATIONS_CREATED_BY_B05=0\r\n"
+    "CAREGIVER_DELIVERY=NO\r\n"
+    "FRONTEND_CHANGED=NO\r\n\r\n"
+    "--------------------------------\r\n"
+    "TESTS / CI\r\n"
+    "--------------------------------\r\n\r\n"
+    "B05_TEST_FILE=test_i10_b05_identity_access_grants.py\r\n"
+    "B05_MIGRATION_CYCLE=test_i10_b05_migration_075_cycle.py\r\n"
+    "B05_TEST_COUNT=28\r\n"
+    "CI_WORKFLOW=ci-backend-tests.yml I10 B05 step added\r\n"
+    "CI_RUN_ID=PENDING\r\n"
+    "CI_RESULT=PENDING\r\n\r\n"
+    "--------------------------------\r\n"
+    "REMAINING\r\n"
+    "--------------------------------\r\n\r\n"
+    "P0=CAREGIVER delivery worker; canonicalize legacy Notification writers; Gate4 prod enforce; production migration 071-075\r\n"
+    "P1=Grant management UI; recipient resolution UI\r\n"
+    "P2=PushDevice readiness metadata in eligibility\r\n\r\n"
+    "HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v695_FA.md\r\n"
+    "MASTER_LOG_TIP=§403\r\n"
+    "CURSOR_HANDOFF_TIP=v695\r\n"
+    "NEXT_PROPOSED_GATE=I10-B06_CAREGIVER_DELIVERY_FOUNDATION\r\n"
+    "PRODUCTION_MIGRATION=NO\r\n"
+    "PRODUCTION_DEPLOY=NO\r\n"
+)
+
+result = append_bytes(path, sec.encode("utf-8"))
+print(result)

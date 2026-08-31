@@ -18,7 +18,8 @@ _ALEMBIC_ROOT = Path(__file__).resolve().parents[2]
 _REV_073 = "073_i9_subject_native_rollup_baseline"
 _REV_074 = "074_i10_notification_domain_foundation"
 _REV_075 = "075_i10_care_network_identity_grants"
-_REV_076 = "076_i10_care_network_delivery_foundation"
+_REV_076 = "077_i10_medication_adherence_foundation"
+_REV_077 = "077_i10_medication_adherence_foundation"
 
 
 def i10_test_database_url() -> str | None:
@@ -62,7 +63,7 @@ class I10IsolatedPgDb:
         cfg = i10_alembic_cfg(url)
         os.environ["DATABASE_URL"] = url
         os.environ["TEST_DATABASE_URL"] = url
-        target = revision or _REV_076
+        target = revision or _REV_077
         command.upgrade(cfg, target)
         return cls(
             url=url,
@@ -89,7 +90,7 @@ class I10IsolatedPgDb:
 @pytest.fixture(scope="module")
 def i10_pg_db_module():
     """Module-scoped Alembic-head PostgreSQL DB for I10 B01 runtime tests."""
-    isolated = I10IsolatedPgDb.create(suffix="i10b01", revision=_REV_076)
+    isolated = I10IsolatedPgDb.create(suffix="i10b01", revision=_REV_077)
     SessionLocal = isolated.session_factory()
     try:
         yield SessionLocal, isolated

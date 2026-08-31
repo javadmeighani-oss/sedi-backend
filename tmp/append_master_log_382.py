@@ -1,0 +1,123 @@
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from backend.app.services.i5.master_log_byte_append import append_bytes, sha256_hex, read_exact
+
+path = Path("docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md")
+pre = read_exact(path)
+pre_sha = sha256_hex(pre)
+assert pre_sha == "9F84029A2AE3A9F2A5AEF13C58451F5382CF059DD3F8D0554786E5AC47B3DD24"
+assert "§382".encode("utf-8") not in pre
+assert pre.endswith(
+    "NOTE=post-§381 final master-log whole-file self-SHA is NOT embedded inside §381.\n".encode("utf-8")
+)
+
+ts = "2026-08-26T17:15:00Z"
+sec = f"""
+
+§382 - PD-I5-V1-AUTONOMOUS-SOURCE-DISCOVERY-QUALIFICATION-MONITORING-FOUNDATION-01 PASS CLOSED
+---------------------------------------------------------------------------------------------
+GATE=PD-I5-V1-AUTONOMOUS-SOURCE-DISCOVERY-QUALIFICATION-MONITORING-FOUNDATION-01
+TITLE=AUTONOMOUS DISCOVERY + CANDIDATE QUALIFICATION + SOURCE MONITORING FOUNDATION
+GATE_TYPE=I5 GOVERNANCE FOUNDATION + CI + GITHUB-ONLY PRODUCTION PROOF (NO ACTIVATION) + DOCS
+PRODUCT_OWNER_APPROVAL=YES
+CURSOR_MODEL_MODE=AUTO
+TIMESTAMP={ts}
+PARENT=§381
+FEATURE_BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=6f27756f28b9d218aa258abfe74bb908ee88e986
+FINAL_HEAD=recorded in Cursor handoff v674 REPO_HEAD after docs commit
+MASTER_LOG_IN=§381
+CURSOR_HANDOFF_IN=v673
+CHATGPT_CONTINUITY=v687
+CHATGPT_MUTATED=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+LAW13_CHECK=PASS
+
+GATE_RESULT=PASS
+GITHUB_ONLY_EXECUTION=PASS
+NEXT_GATE_AUTHORIZED=NO
+
+DISCOVERY_NE_AUTHORIZATION=YES
+CANDIDATE_NE_QUALIFIED=YES
+QUALIFIED_NE_ACTIVE=YES
+AUTO_ACTIVATION=NO
+NEW_SOURCE_ACTIVATION=NO
+
+CAPABILITY_DELTA=
+  AUTONOMOUS_DISCOVERY_BEFORE=PARTIAL (know01/know05/seed discovery; not integrated candidate registry)
+  CANDIDATE_REGISTRY_BEFORE=STATIC QUALIFIED|REJECTED|NEEDS_REVIEW
+  QUALIFICATION_BEFORE=STATIC YAML
+  MONITORING_BEFORE=WEEKLY_HASH_304 + format_drift helpers
+  AUTO_ACTIVATION_BEFORE=NO
+  REMAINING_GAPS_CLOSED_THIS_GATE=integrated discover→dedupe→qualify→monitor→report; DISCOVERED state; D01-D19 matrix
+
+IMPLEMENTATION=
+  SEED_CATALOG=backend/config/i5/autonomous_discovery_seed_catalog_v1.yaml
+  SERVICE=backend/app/services/i5/autonomous_source_governance.py
+  REGISTRY_STATUS_MODEL=DISCOVERED|QUALIFIED|REJECTED|NEEDS_REVIEW
+  WEEKLY_SIDE_STAGE=optional env I5_AUTONOMOUS_GOVERNANCE_SIDE_STAGE=1 (default OFF; cron unchanged)
+  PROOF_SCRIPT=backend/scripts/i5_autonomous_governance_prod_proof.py
+
+STAGE_NEEDS_REVIEW_REEVAL=
+  OWH=NEEDS_REVIEW activation=NO
+  CDC_CHILD=NEEDS_REVIEW activation=NO (no CDC pattern broaden)
+  CDC_NCEZID=NEEDS_REVIEW activation=NO (no CDC pattern broaden)
+
+STAGE_CI=
+  WORKFLOW=I5 NIOSH D17 Qualification Registry CI (includes foundation suite)
+  PASS_RUN=32989102585
+
+STAGE_PRODUCTION=
+  WORKFLOW=W6-P01 Production Activate Weekly
+  CONFIRMATION=AUTONOMOUS_DISCOVERY_QUAL_MONITOR_FOUNDATION
+  PROOF_RUN=32990862513 SUCCESS
+  IMAGE_TAG_UNCHANGED=d039988844b61860caa504d275881237623352f8
+  ALEMBIC=070_i8_proactive_evaluation_ledger
+  CANDIDATE_BEFORE=13 CANDIDATE_AFTER=18 NEW_CANDIDATES=5
+  QUALIFIED_TOTAL=12 REJECTED_TOTAL=0 NEEDS_REVIEW_TOTAL=6
+  ACTIVE_SOURCE_COUNT=11 (unchanged)
+  KU=103 ELIGIBLE=42 KCE=84 (unchanged; growth not required)
+  MONITOR_FINDINGS_COUNT=10
+  D17_ELIG=5 D18_ALS_ELIG=2 D19_MS_ELIG=2 regression=NO
+
+D01_D19_MATRIX=
+  STRONG=D02,D07,D09,D17
+  MODERATE=D01,D03,D04,D05,D06,D12,D16,D18,D19
+  THIN=D08,D14,D15
+  UNCOVERED=D10,D11,D13
+
+HARD_STOPS_HONORED=
+  NO_ALEMBIC_071=YES
+  NO_SCHEMA_ENUM_CHANGE=YES
+  NO_NEW_SOURCE_ACTIVATION=YES
+  NO_OWH_CDC_CHILD_NCEZID_ACTIVATION=YES
+  NO_RIGHTS_ROBOTS_BYPASS=YES
+  NO_SCHEDULER_ARCHITECTURE_CHANGE=YES
+  NO_RAG_ANN=YES
+  NO_FORCE_PUSH=YES
+  NO_MANUAL_DEPLOY=YES
+
+FINDING_DB01=DEFERRED
+FINDING_MEMORY_CURRENT_WRITE_STUB=DEFERRED
+FINDING_LEGACY_ONBOARDING=DEFERRED
+FINDING_IMAGE_ID_PROVENANCE_NOTE=DEFERRED
+
+MASTER_LOG_TIP=§382
+CURSOR_HANDOFF_TIP=v674
+NOTE=§381 preserved unchanged; §382 append-only PASS_CLOSED.
+NOTE=post-§382 final master-log whole-file self-SHA is NOT embedded inside §382.
+"""
+
+suffix = sec.replace("\r\n", "\n").encode("utf-8")
+result = append_bytes(path, suffix)
+post = read_exact(path)
+assert post.startswith(pre)
+assert sha256_hex(post[: len(pre)]) == pre_sha
+assert "§382".encode("utf-8") in post
+print("PRE_SHA", pre_sha)
+print("POST_SHA", sha256_hex(post))
+print(result)

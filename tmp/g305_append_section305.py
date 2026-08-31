@@ -1,0 +1,296 @@
+"""One-shot byte-safe §305 append. CRLF only. No prefix rewrite."""
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from backend.app.services.i5.master_log_byte_append import append_bytes, read_exact, sha256_hex
+
+LOG = Path("docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md")
+TECH = "642d220c3f9f8e00000000000000000000000000"  # replaced at runtime
+
+SECTION_LINES = r'''
+================================================================================
+§305 - SEDI-V1 I5 §304 MASTER-LOG PREFIX INCIDENT RECONCILIATION / CATALOG-12 RIGHTS-METADATA NORMALIZATION / RAG vs NON-RAG RETRIEVAL DECISION / ANN TRIGGER EVIDENCE REVIEW / I5 FINAL TECHNICAL CLOSURE
+================================================================================
+GATE=SEDI-V1 I5 §304 MASTER-LOG PREFIX INCIDENT RECONCILIATION / CATALOG-12 RIGHTS-METADATA NORMALIZATION / RAG vs NON-RAG RETRIEVAL DECISION / ANN TRIGGER EVIDENCE REVIEW / I5 FINAL TECHNICAL CLOSURE GATE-01
+JAVAD_APPROVAL=GRANTED
+EXECUTION_AUTHORIZED=YES
+NEXT_GATE_AUTHORIZED=NO
+GATE_RESULT=PASS
+FULL_GATE_CLOSURE=PASS
+HARD_STOP=NO
+AUTO_REMEDIATION_CYCLES=1/4
+AUTHORITY_HEAD_START=3838866ea14a52fe8b768909aeaeeb3eb4ebbd88
+AUTHORITY_HEAD_TECHNICAL=__TECH__
+PRODUCTION_ALEMBIC=065_i5_know04_connectors_change_intelligence
+PRODUCTION_PGVECTOR_VERSION=0.8.6
+PRODUCTION_BACKEND_IMAGE=e31d948f26c9eeec8415e37626f87b3a08d03548
+PRODUCTION_BACKEND_DIGEST=sha256:2889a0566a996339dd7f4ec6dc24d3c6cd31f63c2bf3c02825d25a4c10787b9b
+PRODUCTION_IMAGE_OVERLAY=NO
+PRODUCTION_RUNTIME_DEPENDS_ON_MUTABLE_OVERLAY=NO
+CATALOG12_TECHNICAL_RESULT=PASS
+§304_FULL_GOVERNANCE_CLOSURE=RECONCILED_BY_§305
+CATALOG_SPECIALTY_AUTHORITY_COVERAGE=12/12_GREEN
+SPECIALTY_KNOWLEDGE_DEPTH=ONGOING_GOVERNED_ACQUISITION
+COMPLETE_SPECIALTY_MEDICAL_KNOWLEDGE=NO
+RAG_DECISION=DEFER_UNTIL_KNOWLEDGE_DEPTH_TRIGGER
+RAG_REQUIRED_NOW=NO
+PRODUCTION_RAG=NO
+ANN_REQUIRED_NOW=NO
+ANN_TRIGGER_MET=NO
+ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES
+HNSW_CREATED=NO
+IVFFLAT_CREATED=NO
+MIGRATION_066=NO
+I5_FINAL_TECHNICAL_CLOSURE=PASS
+I5_V1_COMPLETION_ESTIMATE=100
+I5_V1_REMAINING_ESTIMATE=0
+MASTER_LOG=§305
+CURSOR_HANDOFF=v596
+CHATGPT_CONTINUITY=v609
+HISTORY_REWRITE=NO
+FORCE_PUSH=NO
+
+--------------------------------------------------------------------------------
+§305.0 - CURRENT-GATE STRICT APPEND PROOF
+--------------------------------------------------------------------------------
+MASTER_LOG_PRE_APPEND_SIZE=3139874
+MASTER_LOG_PRE_APPEND_SHA256=79AAEC8FE1FF57752F4988AB9AA5C89F97820E17D58C9AA6744F1AAA099566B2
+NOTE=post-append startswith/pre-sha recorded by append harness after write.
+CURRENT_GATE_STRICT_APPEND_ONLY=PASS
+CURRENT_GATE_PREFIX_PRESERVED_BYTE_FOR_BYTE=PASS
+§304_NOT_REWRITTEN=YES
+
+--------------------------------------------------------------------------------
+§305.A - AUTHORITY
+--------------------------------------------------------------------------------
+REPO=javadmeighani-oss/sedi-backend
+BRANCH=feature/section15/backend-continuity-foundation
+PARENT_OF_§304=d902b2edd1cf5cf60cfddeb5eb268544ebc1da0d
+§304_COMMIT=3838866ea14a52fe8b768909aeaeeb3eb4ebbd88
+IMPLEMENTATION_COMMIT=__TECH__
+RULES_IN_FORCE_CHECK=PASS
+AUTHORITY_RECONSTRUCTION=PASS
+SEDI_V1_MINIMUM_SUPPORTED_USERS=5000
+REGISTERED_USER_SCALE_TESTED=5000
+§299_RERUN=NO
+WEEKLY_RERUN=NO
+CATALOG12_REFETCH=NO
+
+--------------------------------------------------------------------------------
+§305.B - §304 PREFIX INCIDENT (FORENSIC; NO HISTORY REWRITE)
+--------------------------------------------------------------------------------
+INCIDENT=§304_MASTER_LOG_APPEND_ONLY_PREFIX_MUTATION
+INCIDENT_DETECTED_BY=POST_GATE_CHATGPT_AUDIT
+ORIGINAL_COMMIT=3838866ea14a52fe8b768909aeaeeb3eb4ebbd88
+PARENT=d902b2edd1cf5cf60cfddeb5eb268544ebc1da0d
+FILE=docs/SEDI_SECTION15_MASTER_EXECUTION_LOG_FA.md
+PARENT_BLOB_SHA=0ddcac43c0c45e66da49c376b82a6b06ecad0a79
+CLOSURE_BLOB_SHA=9f13abda88a75719f1d6f28b990f89107011eed1
+PARENT_SIZE=3130976
+PARENT_SHA256=A468C192CDA4F4DF9DDBA036C811A690E98C9C067BB9D56B46BA9A5E4A364994
+CLOSURE_SIZE=3139874
+CLOSURE_SHA256=79AAEC8FE1FF57752F4988AB9AA5C89F97820E17D58C9AA6744F1AAA099566B2
+GIT_DIFF_ADDITIONS=407
+GIT_DIFF_DELETIONS=251
+STRICT_APPEND_ONLY_AT_§304=FAIL
+LONGEST_COMMON_PREFIX_BYTES=3104513
+FIRST_CHANGED_BYTE_OFFSET=3104513
+PARENT_PREFIX_SHA256=62153B1535FB3A23540F9C2D0ACF1203D6253B0E156EC9EE3F7F7B77DB3B8F4D
+CLOSURE_PREFIX_SHA256=62153B1535FB3A23540F9C2D0ACF1203D6253B0E156EC9EE3F7F7B77DB3B8F4D
+STRIP_CR_STARTSWITH=YES
+EOL_NORM_STARTSWITH=YES
+PARENT_LF_ONLY_COUNT=251
+PARENT_LF_ONLY_BEFORE_PREFIX=0
+PARENT_LF_ONLY_AT_OR_AFTER_PREFIX=251
+BYTE_CLASSIFICATION=EOL_NORMALIZATION_ONLY
+§304_PREFIX_INCIDENT_CLASS=EOL_NORMALIZATION_ONLY
+§304_HISTORICAL_INFORMATION_LOSS=NO
+INFORMATION_LOSS=NO
+AFFECTED_RANGE=byte_offset_3104513_through_end_of_parent; LF-only newlines in §302/§303 region converted to CRLF when §304 was appended
+REMEDIATION=DOCUMENT_DEVIATION_AND_RESTORE_STRICT_APPEND_ONLY_FROM_CURRENT_TIP_FORWARD
+3838866_REMAINS_PERMANENT_HISTORICAL_EVIDENCE=YES
+
+--------------------------------------------------------------------------------
+§305.C - CATALOG-12 RIGHTS NORMALIZATION
+--------------------------------------------------------------------------------
+CATALOG12_RIGHTS_METADATA_NORMALIZED=PASS
+THIRD_PARTY_EXCEPTION_CHECK_REQUIRED=YES
+CATALOG12_DATA_REPAIR_REQUIRED=NO
+BLANKET_LABEL_REMOVED=US_GOV_PUBLIC_DOMAIN_TEXT
+RIGHTS_CLASS=US_FEDERAL_GOV_CONTENT_GENERALLY_PUBLIC_DOMAIN_WITH_POSSIBLE_THIRD_PARTY_EXCEPTIONS
+SOURCE_FAMILIES=NCI,NIH_INSTITUTE,CDC,OWH
+OFFICIAL_POLICY_NCI=https://www.cancer.gov/policies/copyright-reuse
+OFFICIAL_POLICY_CDC=https://www.cdc.gov/other/agencymaterials.html
+OFFICIAL_POLICY_USAGOV=https://www.usa.gov/government-copyright
+OFFICIAL_POLICY_OWH=https://womenshealth.gov/about-us/work-us/collaborate-us
+RAW_HTML_RETENTION=DENIED_BY_SEDI_CANARY_POLICY
+RAW_FULL_TEXT_RETENTION=RIGHTS_DEPENDENT
+DERIVED_KNOWLEDGE_DISTILLATION=ALLOWED_WHEN_LAWFUL
+PROVENANCE_REQUIRED=YES
+NO_ENDORSEMENT_IMPLICATION=YES
+SOURCE_REFETCH_REQUIRED=NO
+CATALOG12_UNATTENDED_WEEKLY_ENABLED_COUNT=0
+
+--------------------------------------------------------------------------------
+§305.D - RETENTION AUDIT
+--------------------------------------------------------------------------------
+UNAUTHORIZED_RAW_BODY_COUNT=0
+UNAUTHORIZED_PDF_COUNT=0
+UNAUTHORIZED_VERBATIM_COPY_COUNT=0
+UNAUTHORIZED_RAW_FULL_TEXT_COUNT=0
+ORPHAN_PROVENANCE_COUNT=0
+RAW_STORAGE_MODE_NOT_NONE=0
+RAW_BYTE_SIZE_NOT_NULL=0
+I5_RAW_EVIDENCE_HAS_NO_BODY_COLUMN=YES
+STORAGE_MODE=NONE
+RECOVERABILITY_STATE=ABSENCE_GOVERNED
+
+--------------------------------------------------------------------------------
+§305.E - PRODUCTION OVERLAY
+--------------------------------------------------------------------------------
+PRE_AUDIT_RUN=31705529146
+OVERLAY_RECREATE_RUN=31705721827
+POST_AUDIT_RUN=31705927490
+PRE_OVERLAY_DIFF_CATALOG12=YES
+PRE_OVERLAY_FILE_PRESENT_COUNT=6
+POST_OVERLAY_DIFF_CATALOG12=NO
+POST_CATALOG12_IMPORT=NO
+POST_HOST_OVERLAY_STAGE=ABSENT
+IMAGE_RESIDENT_NON_OVERLAY_FILES=v1_reference_catalog.py,seed_registry.py,coverage_manifest_v1.yaml
+CANARY_ONLY_FILES_REMOVED=catalog12_specialty_authorities.py,catalog12_bounded_ingest.py,i5_catalog12_canary_inproc.py
+CORPUS_UNCHANGED=PASS
+WEEKLY_FLAGS_MUTATED=NO
+PRODUCTION_RUNTIME_DEPENDS_ON_MUTABLE_OVERLAY=NO
+
+--------------------------------------------------------------------------------
+§305.F - CORPUS (PRODUCTION ACTUAL)
+--------------------------------------------------------------------------------
+GSP_COUNT=17
+CATALOG12_GSP_COUNT=12
+RAW_EVIDENCE=22
+SCIENTIFIC_ARTIFACT=13
+KNOWLEDGE_UNIT=22
+PROVENANCE=22
+KNOWLEDGE_MEMORY=0
+KCE=0
+RUNTIME_ELIGIBLE=0
+KU_DRAFT=22
+KU_NOT_REVIEWED=22
+KU_REVIEW_REQUIRED=22
+VECTOR_CORPUS_SIZE=0
+
+--------------------------------------------------------------------------------
+§305.G - RETRIEVAL ARCHITECTURE + EVAL
+--------------------------------------------------------------------------------
+CURRENT_RUNTIME_RETRIEVAL_ARCHITECTURE=W4 Knowledge-DB-first structured KU/Memory token-overlap with fail-closed ELIGIBLE+provenance gates; SCIS-01 hybrid FTS+exact-vector RRF is CI substrate not called from chat; PRODUCTION_VECTOR_RETRIEVAL=NO
+CURRENT_PRODUCTION_KNOWLEDGE_GROUNDING=STRUCTURED_ONLY
+W4_GROUNDING_STATUS=WIRED_FAIL_CLOSED_EMPTY_CORPUS
+SCIS_STATUS=CI_GREEN_SUBSTRATE_NOT_PRODUCTION_SERVING
+AUTHORITATIVE_W4_REQUIRES_PRODUCTION_RAG_BEFORE_I5_COMPLETION=NO
+QUERY_SET_HASH=B2E00AA10362C0AAB4DCBC0D94E071A4BDDECE6CA22C34A13F70F6C3CAA4913C
+QUERY_COUNT=19
+LABEL_METHOD=curated_expected_specialty_from_Catalog12_cell_specialties_and_P0_ALS_MS_diabetes_lifestyle_tracks; not a clinical gold set
+SERVING_EMPTY_COUNT=19
+SERVING_NONEMPTY_COUNT=0
+SAFETY_RESPECTED_COUNT=19
+DIAGNOSTIC_CORRECT_SPECIALTY_COUNT=19
+WRONG_SOURCE_COUNT=0
+PROVENANCE_MISSING_COUNT=0
+LATENCY_P50_MS=0
+LATENCY_P95_MS=0
+KNOWLEDGE_DEPTH_PROBLEM=YES
+RETRIEVAL_ARCHITECTURE_PROBLEM=NO
+
+--------------------------------------------------------------------------------
+§305.H - RAG DECISION
+--------------------------------------------------------------------------------
+RAG_DECISION=DEFER_UNTIL_KNOWLEDGE_DEPTH_TRIGGER
+RAG_REQUIRED_NOW=NO
+PRODUCTION_RAG=NO
+RATIONALE=Present governed corpus is small (22 DRAFT/REVIEW_REQUIRED KUs, 0 ELIGIBLE, 0 Memory, 0 KCE). User-facing W4 path is wired and fail-closed empty. Diagnostic token-overlap on specialty labels is adequate for current corpus. Poor answer depth is knowledge-depth, not retrieval-architecture. Activating RAG now adds complexity without user-value evidence. SCIS-01 remains available when depth+eligibility trigger a separate authorized Gate.
+
+--------------------------------------------------------------------------------
+§305.I - ANN TRIGGER
+--------------------------------------------------------------------------------
+ANN_TRIGGER_DEFINITION=exact pgvector p95 materially exceeds chosen retrieval latency budget OR representative concurrency threatens the >=5000-user HTTP envelope OR near-term KCE growth crosses the measured exact-search envelope from §298.F
+ANN_TRIGGER_MET=NO
+ANN_REQUIRED_NOW=NO
+CURRENT_VECTOR_CORPUS_SIZE=0
+EXACT_VECTOR_SEARCH_STATUS=NOT_CURRENTLY_USED
+§298_F_P95_MS_1000=23.142
+§298_F_P95_MS_10000=206.469
+§298_F_P95_MS_50000=1061.213
+§298_F_P95_MS_100000=2101.128
+§298_F_CONCURRENT_100K_WORKERS=8
+§298_F_CONCURRENT_100K_P95_MS=7384.0
+NEW_BENCHMARK_RUN=NO
+HNSW_CREATED=NO
+IVFFLAT_CREATED=NO
+MIGRATION_066=NO
+
+--------------------------------------------------------------------------------
+§305.J - 5000-USER / WEEKLY / SAFETY
+--------------------------------------------------------------------------------
+POOL_EXHAUSTION_COUNT=0
+PG_ACTIVITY_PRE_RECREATE=6
+PG_ACTIVITY_POST_RECREATE=2
+USER_TRAFFIC_CAPACITY_REGRESSION=NO
+BACKGROUND_I5_RESOURCE_IMPACT=ACCEPTABLE
+WEEKLY_OPERATIONAL_HEALTH=PASS
+CURRENT_WEEKLY_UNATTENDED_ENABLED=YES
+CURRENT_WEEKLY_SOURCE_SCOPE=NHS_ONLY_BOUNDED
+WEEKLY_MULTISOURCE_EXPANSION=NO
+LATEST_WEEKLY_ID=7
+LATEST_WEEKLY_STATUS=COMPLETED
+AUTO_PROMOTION_BYPASS_COUNT=0
+CLINICAL_SAFETY_BYPASS_COUNT=0
+GOVERNANCE_BYPASS_COUNT=0
+SECRET_LEAK_COUNT=0
+PHI_LEAK_COUNT=0
+KNOW01_CI=31705487651 PASS
+KNOW05_CI=31705487728 PASS
+
+--------------------------------------------------------------------------------
+§305.K - COMPLETION
+--------------------------------------------------------------------------------
+I5_FINAL_TECHNICAL_CLOSURE=PASS
+NOTE=I5 control-plane, Catalog-12 authority coverage, weekly NHS-only, rights/safety/provenance, overlay immutability, and RAG/ANN decisions are complete. Specialty knowledge DEPTH remains ongoing governed acquisition and is not claimed as complete specialty medicine. KNOW-06 patient applicability remains I6/I7/I8. Future RAG serving requires a separate authorized Gate when knowledge-depth trigger is met.
+NEXT_GATE=SEDI-V1 I6/I7 PATIENT APPLICABILITY / OR FUTURE RAG SERVING WHEN KNOWLEDGE-DEPTH TRIGGER MET (PROPOSED ONLY)
+NEXT_GATE_AUTHORIZED=NO
+SHA256_BEFORE_APPEND=79AAEC8FE1FF57752F4988AB9AA5C89F97820E17D58C9AA6744F1AAA099566B2
+NOTE=post-§305 final master-log whole-file self-SHA is NOT embedded inside §305.
+'''.lstrip('\n')
+
+
+def main() -> None:
+    import subprocess
+
+    tech = subprocess.check_output(["git", "rev-parse", "642d220"], text=True).strip()
+    text = SECTION_LINES.replace("__TECH__", tech)
+    suffix = text.encode("utf-8").replace(b"\n", b"\r\n")
+    if suffix.startswith(b"\r\n"):
+        pass
+    # ensure leading CRLF separator from existing file which already ends CRLF
+    if not suffix.startswith(b"\r\n"):
+        suffix = b"\r\n" + suffix
+    if not suffix.endswith(b"\r\n"):
+        suffix += b"\r\n"
+    pre = read_exact(LOG)
+    print("PRE_SIZE", len(pre))
+    print("PRE_SHA", sha256_hex(pre))
+    result = append_bytes(LOG, suffix)
+    for k, v in result.items():
+        print(f"{k}={v}")
+    post = read_exact(LOG)
+    assert post.startswith(pre)
+    assert sha256_hex(pre) == "79AAEC8FE1FF57752F4988AB9AA5C89F97820E17D58C9AA6744F1AAA099566B2"
+    print("CURRENT_GATE_STRICT_APPEND_ONLY=PASS")
+    print("CURRENT_GATE_PREFIX_PRESERVED_BYTE_FOR_BYTE=PASS")
+    print("TECH", tech)
+
+
+if __name__ == "__main__":
+    main()

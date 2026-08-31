@@ -1449,12 +1449,47 @@ class DecisionEngine:
         schedule_time: Optional[str] = None,
         user_medication_id: Optional[int] = None,
         schedule_id: Optional[int] = None,
+        scheduled_for_utc: Optional[datetime] = None,
     ) -> Optional[Notification]:
         """
-        Create a medication reminder notification (Release B2.1 + V1.1B schedules).
-        Dedupe: per medication per schedule_time per day when schedule_time set;
-        else legacy 8h bucket per medication.
+        Create a medication reminder notification (Release B2.1 + V1.1B schedules + I10-B09).
+        Dedupe: per dose occurrence via I10 candidate_key + adherence row.
         """
+        if user_medication_id is None:
+            logger.info("[NOTIFICATION] SUPPRESSED medication_reminder user=%s reason=NO_USER_MEDICATION_ID", user_id)
+            return None
+
+        when = scheduled_for_utc or datetime.utcnow()
+        from backend.app.services.i10.medication_adherence import (
+            build_medication_occurrence_key,
+            get_or_create_dose_occurrence,
+            link_occurrence_notification,
+            occurrence_blocks_reminder,
+        )
+
+        occurrence_key = build_medication_occurrence_key(
+            user_id=user_id,
+            user_medication_id=user_medication_id,
+            schedule_id=schedule_id,
+            scheduled_for=when,
+            schedule_time=schedule_time,
+        )
+        occurrence, _created = get_or_create_dose_occurrence(
+            self.db,
+            user_id=user_id,
+            user_medication_id=user_medication_id,
+            schedule_id=schedule_id,
+            scheduled_for=when,
+            occurrence_key=occurrence_key,
+        )
+        if occurrence_blocks_reminder(occurrence):
+            logger.info(
+                "[NOTIFICATION] SUPPRESSED medication_reminder user=%s occurrence=%s reason=OCCURRENCE_BLOCKED",
+                user_id,
+                occurrence_key,
+            )
+            return None
+
         title = "Medication Reminder"
         body = f"Time to take {medication_name}"
         if dosage:
@@ -1524,21 +1559,26 @@ class DecisionEngine:
                 "context": sanitize_notification_context(med_context),
             }
         )
-        
-        check_dedupe = medication_id is not None
-        if schedule_time:
-            time_window_hours = 24
-        else:
-            time_window_hours = 8 if medication_id is not None else 24
-        result = self.builder.persist(payload, check_dedupe=check_dedupe, time_window_hours=time_window_hours)
+
+        from backend.app.services.i10.medication_i10_adapter import enqueue_medication_reminder_notification
+
+        result = enqueue_medication_reminder_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            occurrence_key=occurrence_key,
+            user_medication_id=user_medication_id,
+            occurrence_id=int(occurrence.id),
+        )
         if result:
+            link_occurrence_notification(self.db, occurrence, result.id)
             logger.info(
                 f"[NOTIFICATION] type=health_alert user={user_id} medication_reminder "
-                f"medication_id={medication_id} dedupe={payload.dedupe_key}"
+                f"medication_id={medication_id} dedupe={occurrence_key}"
             )
         else:
             logger.info(
-                f"[NOTIFICATION] SUPPRESSED medication_reminder user={user_id} medication_id={medication_id} reason=dedupe"
+                f"[NOTIFICATION] SUPPRESSED medication_reminder user={user_id} medication_id={medication_id} reason=i10_intake"
             )
         return result
     

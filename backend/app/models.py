@@ -367,6 +367,30 @@ class UserMedicationSchedule(Base):
     user_medication = relationship("UserMedication", back_populates="schedules")
 
 
+class MedicationDoseOccurrence(Base):
+    """Per-dose adherence occurrence — schedule-owned; I10 owns interruption state only."""
+    __tablename__ = "medication_dose_occurrences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_medication_id = Column(
+        Integer, ForeignKey("user_medications.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    schedule_id = Column(
+        Integer, ForeignKey("user_medication_schedules.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    scheduled_for = Column(DateTime(timezone=True), nullable=False)
+    occurrence_key = Column(String(255), nullable=False)
+    state = Column(String(32), nullable=False, default="DUE", server_default="DUE")
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    confirmation_source = Column(String(64), nullable=True)
+    source_notification_id = Column(
+        Integer, ForeignKey("notifications.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 # -------------------- DailyMemorySummary --------------------
 class DailyMemorySummary(Base):
     __tablename__ = "daily_memory_summaries"

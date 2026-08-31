@@ -1,0 +1,95 @@
+# SEDI ChatGPT Independent Continuity - v603
+
+> Complete successor to v602. NF16 NCBI operational identity / canary-first activation Gate HARD_STOP.
+> No valid real NCBI email in GitHub or Production. Email not invented. Stage B not entered.
+> Master Log §300. Cursor handoff v591.
+
+```text
+VERSION=v603
+STATUS=CURRENT
+PREDECESSOR=v602
+PREDECESSOR_CHAIN=v600->v601->v602->v603
+RECORDED_AT_UTC=2026-08-13T05:25:00Z
+REPO=javadmeighani-oss/sedi-backend
+BRANCH=feature/section15/backend-continuity-foundation
+TECHNICAL_TOOLING_HEAD=2be72b9
+PROBE_CI=31669417630
+MASTER_LOG=§300
+CURSOR_HANDOFF=v591
+NEWCHAT_CONTINUITY=v591
+CHATGPT_CONTINUITY=v603
+
+GATE_OUTCOME=HARD_STOP
+HARD_STOP=YES
+FULL_GATE_CLOSURE=PASS
+AUTO_REMEDIATION_CYCLES=0/4
+PRODUCTION_ACTIVATION_EXECUTED=NO
+PRODUCTION_WRITE_FOR_ACTIVATION=NO
+
+SEDI_V1_MINIMUM_TARGET_USERS=5000
+SEDI_V1_5000_USER_SCALE_LAW=IN_FORCE
+PERMANENT_RULE=designed_for_at_least_5000_users;evidence_only_within_measured_envelope
+APPLICATION_LEVEL_5000_USER_CAPACITY_PROOF=PASS_WITH_MEASURED_ENVELOPE
+REGISTERED_USER_SCALE_TESTED=5000
+MAX_HTTP_CONCURRENT_USERS_STABLE=50
+MAX_HTTP_CONCURRENT_USERS_ATTEMPTED=100
+SUSTAINED_CONCURRENCY=15
+SUSTAINED_LOAD_DURATION_S=900.036
+SUSTAINED_RPS=386.06
+SUSTAINED_P95_MS=62.862
+SUSTAINED_ERRORS=0
+PGVECTOR_EXACT_SEARCH=REVIEW_REQUIRED
+ANN_REQUIRED_NOW=NO
+ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES
+KCE_COUNT_FINAL=0
+CATALOG_CONTENT_PARTIAL_CELLS=12
+
+PRODUCTION_ALEMBIC=065_i5_know04_connectors_change_intelligence
+PRODUCTION_PGVECTOR_VERSION=0.8.6
+
+NF16_OPERATIONAL_LIVE_READY=NO
+NCBI_OPERATIONAL_IDENTITY_STATUS=BLOCKED
+NCBI_CONNECTIVITY_CANARY=NO
+NCBI_SECRET_LEAK_COUNT=0
+GITHUB_SEDI_NCBI_EMAIL_PRESENT=NO
+GITHUB_SEDI_NCBI_TOOL_PRESENT=NO
+GITHUB_SEDI_NCBI_API_KEY_PRESENT=NO
+PRODUCTION_SEDI_NCBI_EMAIL_PRESENT=NO
+PRODUCTION_SEDI_NCBI_TOOL_PRESENT=NO
+PRODUCTION_OTHER_REUSABLE_OPERATIONAL_EMAIL_KEYS=NONE
+EMAIL_INVENTED=NO
+
+CONTROLLED_CANARY_ACTIVATION=NO
+FIRST_GOVERNED_LIVE_E2E=NO
+PRODUCTION_CONNECTOR_ACTIVATION=NO
+PRODUCTION_CRAWLER=NO
+PRODUCTION_KNOWLEDGE_INGESTION=NO
+PRODUCTION_SCHEDULER=NO
+PRODUCTION_RAG=NO
+
+FLAG_DRIFT_OBSERVED=SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED=true;SOURCE_ACTIVATION=true;MULTISOURCE=true;DISABLE_SCHEDULER=false
+FLAG_DRIFT_MUTATED=NO
+NOTE=named sedi-crawler/sedi-scheduler/sedi-rag containers absent; in-process APScheduler may be live
+
+I5_V1_COMPLETION_ESTIMATE=88
+I5_V1_REMAINING_ESTIMATE=12
+
+DROPBOX_SUCCESSOR=PASS
+NEXT_GATE=SEDI-V1 I5 NF16 NCBI OPERATIONAL IDENTITY RE-ENTRY + CANARY-FIRST ACTIVATION
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Decision record
+
+- HARD_STOP is the honest NF16 outcome. A real monitored Sedi/Javad-controlled NCBI email does not exist in the approved secret paths.
+- Do not invent .test / example / noreply contacts. Do not print any email into GitHub logs.
+- Stage B bounded canary / live E2E / RAG / ANN / HNSW / IVFFlat / migration 066 were not entered.
+- Weekly env flags are already true on Production; this Gate did not fail-close them. Next Gate must reconcile that drift after identity exists.
+- >=5000-user measured envelope from §299 remains in force and was not re-benchmarked this Gate.
+
+## Remaining critical path
+
+- Install real `SEDI_NCBI_EMAIL` + `SEDI_NCBI_TOOL` via established Production secret path (optional API key).
+- Re-validate `load_ncbi_operational_identity(require_for_weekly=True)` → LIVE_READY.
+- NCBI connectivity canary, then canary-first activation (RAG remains NO).
+- Reconcile weekly-orchestrator / scheduler flag drift vs claimed PRODUCTION_SCHEDULER=NO.

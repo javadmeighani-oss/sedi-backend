@@ -74,8 +74,8 @@ def test_alembic_head_is_071():
     cfg = Config(str(root / "alembic.ini"))
     cfg.set_main_option("script_location", str(root / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["076_i10_care_network_delivery_foundation"]
-    rev076 = script.get_revision("076_i10_care_network_delivery_foundation")
+    assert script.get_heads() == ["077_i10_medication_adherence_foundation"]
+    rev076 = script.get_revision("077_i10_medication_adherence_foundation")
     assert rev076.down_revision == "075_i10_care_network_identity_grants"
     rev075 = script.get_revision("075_i10_care_network_identity_grants")
     assert rev075.down_revision == "074_i10_notification_domain_foundation"

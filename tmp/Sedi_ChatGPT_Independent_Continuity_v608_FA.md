@@ -1,0 +1,125 @@
+# SEDI ChatGPT Independent Continuity - v608
+
+> Complete successor to v607. Catalog-12 twelve specialty cells closed with PRIMARY national authorities and bounded derived-knowledge one-shot canaries. Weekly remains NHS-only.
+> Master Log §304. Cursor handoff v595. Independent of Cursor session memory.
+
+```text
+VERSION=v608
+STATUS=CURRENT
+PREDECESSOR=v607
+PREDECESSOR_CHAIN=v602->v603->v604->v605->v606->v607->v608
+RECORDED_AT_UTC=2026-08-13T13:00:00Z
+REPO=javadmeighani-oss/sedi-backend
+BRANCH=feature/section15/backend-continuity-foundation
+AUTHORITY_HEAD_START=70fd27bda25c036cae1f13185839674127386676
+AUTHORITY_HEAD_FINAL=3838866ea14a52fe8b768909aeaeeb3eb4ebbd88
+TECHNICAL_IMAGE_COMMIT=e31d948f26c9eeec8415e37626f87b3a08d03548
+PRODUCTION_BACKEND_IMAGE=e31d948f26c9eeec8415e37626f87b3a08d03548
+PRODUCTION_BACKEND_DIGEST=sha256:2889a0566a996339dd7f4ec6dc24d3c6cd31f63c2bf3c02825d25a4c10787b9b
+PRODUCTION_IMAGE_OVERLAY=YES
+MASTER_LOG=§304
+CURSOR_HANDOFF=v595
+CHATGPT_CONTINUITY=v608
+JAVAD_APPROVAL=ALREADY_GRANTED
+
+GATE_OUTCOME=PASS
+HARD_STOP=NO
+FULL_GATE_CLOSURE=PASS
+AUTO_REMEDIATION_CYCLES=3/4
+
+CATALOG_PARTIAL_START=12
+CATALOG_CLOSED_THIS_GATE=12
+CATALOG_PARTIAL_AFTER=0
+D01_RESULT=CLOSED
+D02_RESULT=CLOSED
+D03_RESULT=CLOSED
+D05_RESULT=CLOSED
+D06_RESULT=CLOSED
+D07_RESULT=CLOSED
+D09_RESULT=CLOSED
+D10_RESULT=CLOSED
+D11_RESULT=CLOSED
+D13_RESULT=CLOSED
+D16_RESULT=CLOSED
+D17_RESULT=CLOSED
+PRIMARY_SPECIALTY_AUTHORITIES_SELECTED=12
+SOURCE_PROFILES_ADDED=12
+SOURCE_PROFILES_UNATTENDED_ENABLED=0
+
+D01=NCI PDQ oncology cancer.gov
+D02=NHLBI lung nhlbi.nih.gov
+D03=NIDDK kidney niddk.nih.gov
+D05=NIAMS arthritis niams.nih.gov
+D06=NIAMS skin niams.nih.gov
+D07=NEI eye nei.nih.gov
+D09=NIDCR oral nidcr.nih.gov
+D10=OWH menopause womenshealth.gov
+D11=CDC child-development cdc.gov
+D13=CDC NCEZID infectious cdc.gov SECONDARY=cdc_yellow_book
+D16=NCI PDQ palliative cancer.gov
+D17=NIOSH cdc.gov
+
+LIVE_CANARY_CELL_COUNT=12
+LIVE_CANARY_FETCH_SUCCESS=12
+LIVE_CANARY_FETCH_FAILURE=0
+WAVE_1=31700997760
+WAVE_2=31701551341
+WAVE_3=31702265012
+PUBLICATION_STATE=DRAFT
+REVIEW_STATE=NOT_REVIEWED
+RUNTIME_ELIGIBILITY=REVIEW_REQUIRED
+IDEMPOTENCY=PASS
+RAW_RETENTION=DENIED
+DERIVED_RETENTION=ALLOWED
+
+RAW_EVIDENCE_DELTA=12
+SCIENTIFIC_ARTIFACT_DELTA=12
+KU_DELTA=12
+PROVENANCE_DELTA=12
+KNOWLEDGE_MEMORY_DELTA=0
+KCE_DELTA=0
+NEW_RUNTIME_ELIGIBLE_KU_COUNT=0
+
+PRODUCTION_ALEMBIC=065_i5_know04_connectors_change_intelligence
+PRODUCTION_PGVECTOR_VERSION=0.8.6
+CURRENT_WEEKLY_UNATTENDED_ENABLED=YES
+CURRENT_WEEKLY_SOURCE_SCOPE=NHS_ONLY_BOUNDED
+WEEKLY_MULTISOURCE_EXPANSION=NO
+SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED=true
+SEDI_I5_SOURCE_ACTIVATION_ENABLED=true
+SEDI_I5_MULTISOURCE_ENABLED=false
+USER_TRAFFIC_CAPACITY_REGRESSION=NO
+BACKGROUND_I5_RESOURCE_IMPACT=ACCEPTABLE
+POOL_EXHAUSTION_COUNT=0
+
+PRODUCTION_RAG=NO
+ANN_REQUIRED_NOW=NO
+ANN_REVIEW_REQUIRED_BEFORE_SCALED_RAG=YES
+HNSW_CREATED=NO
+IVFFLAT_CREATED=NO
+MIGRATION_066=NO
+SEDI_V1_MINIMUM_TARGET_USERS=5000
+I5_V1_COMPLETION_ESTIMATE=98
+I5_V1_REMAINING_ESTIMATE=2
+
+DROPBOX_SUCCESSOR=PASS
+DROPBOX_FILENAME=Sedi_ChatGPT_Independent_Continuity_v608_FA.md
+NEXT_GATE=SEDI-V1 I5 RAG / ANN REVIEW-REQUIRED DECISION (SEPARATE GATE)
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Decision record
+
+- §303 weekly NHS-only unattended remains live. This Gate did not re-fire weekly and did not set MULTISOURCE=true.
+- Catalog-12 closure required PRIMARY specialty authorities in the V1 catalog plus bounded live derived persist. BROAD MedlinePlus/Harrison mentions were not accepted as closure.
+- NICHD and NIAID were considered; live machine-access was WAF-blocked or timed out. CDC Child Development and CDC NCEZID were selected as currently fetchable official specialty authorities.
+- All 12 live canaries stored DRAFT / NOT_REVIEWED / REVIEW_REQUIRED KUs with provenance. Raw HTML/PDF not stored. New runtime-eligible KU = 0. KCE = 0. Knowledge memory = 0.
+- Remediation 3/4: write-path allowlist; unique GSP locator=canary URL; per-cell network retry/isolation.
+- Production image remains e31d948; Catalog-12 modules were overlayed for canary. Image rebuild is a separate Gate.
+- Remaining I5 critical path: RAG/ANN review. Next Gate NOT authorized.
+
+## Cycles (3/4)
+
+1. a9702d5 write-path allowlist for catalog12_bounded_ingest.py
+2. dfc9ef1 GSP locator keyed to canary URL (D01/D16 cancer.gov collision)
+3. d902b2e per-cell network retry/isolation (D07 transient unreachable)
