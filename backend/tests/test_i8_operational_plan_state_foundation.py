@@ -54,7 +54,9 @@ def test_alembic_single_head_is_070():
     cfg = AlembicConfig(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["073_i9_subject_native_rollup_baseline"]
+    assert script.get_heads() == ["074_i10_notification_domain_foundation"]
+    rev074 = script.get_revision("074_i10_notification_domain_foundation")
+    assert rev074.down_revision == "073_i9_subject_native_rollup_baseline"
     rev073 = script.get_revision("073_i9_subject_native_rollup_baseline")
     assert rev073.down_revision == "072_i9_device_claim_gateway_lifecycle_foundation"
     rev072 = script.get_revision("072_i9_device_claim_gateway_lifecycle_foundation")

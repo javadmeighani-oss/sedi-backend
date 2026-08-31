@@ -80,7 +80,9 @@ def test_alembic_single_head_chain():
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["073_i9_subject_native_rollup_baseline"]
+    assert heads == ["074_i10_notification_domain_foundation"]
+    rev074 = script.get_revision("074_i10_notification_domain_foundation")
+    assert rev074.down_revision == "073_i9_subject_native_rollup_baseline"
     rev073 = script.get_revision("073_i9_subject_native_rollup_baseline")
     assert rev073.down_revision == "072_i9_device_claim_gateway_lifecycle_foundation"
     rev072 = script.get_revision("072_i9_device_claim_gateway_lifecycle_foundation")

@@ -113,7 +113,7 @@ def test_c01_alembic_single_head_073():
         text=True,
         check=True,
     )
-    assert "073_i9_subject_native_rollup_baseline (head)" in result.stdout
+    assert "074_i10_notification_domain_foundation (head)" in result.stdout
 
 
 def test_c02_migration_073_columns_present(db):

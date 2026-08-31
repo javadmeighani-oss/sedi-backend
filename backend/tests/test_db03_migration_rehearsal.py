@@ -41,7 +41,7 @@ def test_fresh_upgrade_to_db03_head():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "073_i9_subject_native_rollup_baseline"
+        assert head == "074_i10_notification_domain_foundation"
         tables = {
             r[0]
             for r in conn.execute(
@@ -152,7 +152,7 @@ def test_upgrade_from_056_with_synthetic_seed():
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-        assert head == "073_i9_subject_native_rollup_baseline"
+        assert head == "074_i10_notification_domain_foundation"
         ups = conn.execute(text("SELECT count(*) FROM user_period_summaries")).scalar()
         assert ups >= 1
         # health_data backfill may map if device present

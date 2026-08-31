@@ -588,4 +588,4 @@ def test_l31_alembic_single_head_073():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["073_i9_subject_native_rollup_baseline"]
+    assert heads == ["074_i10_notification_domain_foundation"]
