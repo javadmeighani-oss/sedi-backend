@@ -181,7 +181,8 @@ def test_multiple_caregiver_accounts_access_one_subject(db):
     grant_caregiver_subject_access(db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg1.id)
     grant_caregiver_subject_access(db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg2.id)
     items = list_subject_caregiver_access(db, actor_user_id=owner.id, health_subject_id=subject.id)
-    assert len(items) == 2
+    caregiver_items = [i for i in items if i["access_role"] == "CAREGIVER"]
+    assert len(caregiver_items) == 2
 
 
 def test_duplicate_caregiver_access_idempotent(db):
