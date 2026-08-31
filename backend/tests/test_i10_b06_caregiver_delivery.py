@@ -43,6 +43,12 @@ _FCM_PATCH = patch(
 )
 
 
+@pytest.fixture
+def worker_patches():
+    with _GATE4_PATCH, _FLAG_PATCH:
+        yield
+
+
 def _user(db, name: str, *, lang: str = "en") -> models.User:
     row = models.User(name=name, secret_key=f"sk-{name}", preferred_language=lang)
     db.add(row)
@@ -328,9 +334,7 @@ def test_language_preference_resolved(db):
 # Worker
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_worker_uses_canonical_intake_not_direct_orm(db):
+def test_worker_uses_canonical_intake_not_direct_orm(db, worker_patches):
     from backend.app.services.i10.intake import enqueue_i10_notification
 
     owner, cg1, _, subject = _setup_chain(db)
@@ -346,9 +350,7 @@ def test_worker_uses_canonical_intake_not_direct_orm(db):
     assert intent.notification_id is not None
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_worker_no_direct_fcm(db):
+def test_worker_no_direct_fcm(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-fcm")
     with patch("backend.app.services.notifications.delivery_service.FCMAdapter.send") as mock_fcm:
@@ -356,9 +358,7 @@ def test_worker_no_direct_fcm(db):
         mock_fcm.assert_not_called()
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_worker_idempotent(db):
+def test_worker_idempotent(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-idem")
     process_caregiver_delivery_intent(db, intent)
@@ -368,9 +368,7 @@ def test_worker_idempotent(db):
     assert intent.notification_id == first_notif
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_expired_request_not_enqueued(db):
+def test_expired_request_not_enqueued(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-exp")
     intent.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
@@ -382,9 +380,7 @@ def test_expired_request_not_enqueued(db):
     assert intent.status == "expired"
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_revoked_grant_at_worker_time_suppresses(db):
+def test_revoked_grant_at_worker_time_suppresses(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-revoke-grant")
     revoke_subject_notification_grant_by_scope(
@@ -401,9 +397,7 @@ def test_revoked_grant_at_worker_time_suppresses(db):
     assert outcome["status"] == "suppressed"
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_revoked_access_at_worker_time_suppresses(db):
+def test_revoked_access_at_worker_time_suppresses(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-revoke-access")
     revoke_caregiver_subject_access(
@@ -416,9 +410,7 @@ def test_revoked_access_at_worker_time_suppresses(db):
 # Multi-caregiver
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_caregivers_ab_same_occurrence(db):
+def test_caregivers_ab_same_occurrence(db, worker_patches):
     owner, cg1, cg2, subject = _setup_chain(db, with_cg2=True)
     i1 = _intent(db, owner, subject, cg1, "occ-multi")
     i2 = _intent(db, owner, subject, cg2, "occ-multi")
@@ -429,9 +421,7 @@ def test_caregivers_ab_same_occurrence(db):
     assert i1.notification_id != i2.notification_id
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_suppression_of_a_not_b(db):
+def test_suppression_of_a_not_b(db, worker_patches):
     owner, cg1, cg2, subject = _setup_chain(db, with_cg2=True)
     i1 = _intent(db, owner, subject, cg1, "occ-split")
     i2 = _intent(db, owner, subject, cg2, "occ-split")
@@ -448,18 +438,14 @@ def test_suppression_of_a_not_b(db):
     assert i2.status == "processed"
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_duplicate_same_recipient_occurrence_blocked(db):
+def test_duplicate_same_recipient_occurrence_blocked(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     i1 = _intent(db, owner, subject, cg1, "occ-dup")
     i2 = _intent(db, owner, subject, cg1, "occ-dup")
     assert i1.id == i2.id
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_new_occurrence_same_recipient_allowed(db):
+def test_new_occurrence_same_recipient_allowed(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     i1 = _intent(db, owner, subject, cg1, "occ-a")
     i2 = _intent(db, owner, subject, cg1, "occ-b")
@@ -471,9 +457,7 @@ def test_new_occurrence_same_recipient_allowed(db):
 # Privacy / boundaries
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_privacy_class_persisted(db):
+def test_privacy_class_persisted(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-privacy")
     process_caregiver_delivery_intent(db, intent)
@@ -496,9 +480,7 @@ def test_b06_no_rag_imports():
         assert "rag" not in dumped
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_caregiver_not_substituted_as_subject(db):
+def test_caregiver_not_substituted_as_subject(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-subj")
     process_caregiver_delivery_intent(db, intent)
@@ -522,9 +504,7 @@ def test_phone_not_push_token(db):
 # Lifecycle
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_decision_linkage_valid(db):
+def test_decision_linkage_valid(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-dec")
     process_caregiver_delivery_intent(db, intent)
@@ -535,9 +515,7 @@ def test_decision_linkage_valid(db):
     assert decision.notification_id == intent.notification_id
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_suppressed_not_marked_delivered(db):
+def test_suppressed_not_marked_delivered(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-sup")
     db.query(models.PushDevice).filter(models.PushDevice.user_id == cg1.id).delete()
@@ -547,9 +525,7 @@ def test_suppressed_not_marked_delivered(db):
     assert intent.notification_id is None
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_delivery_service_mock_recorded(db):
+def test_delivery_service_mock_recorded(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     intent = _intent(db, owner, subject, cg1, "occ-deliver")
     process_caregiver_delivery_intent(db, intent)
@@ -560,9 +536,7 @@ def test_delivery_service_mock_recorded(db):
     assert sent >= 0
 
 
-@_FLAG_PATCH
-@_GATE4_PATCH
-def test_batch_worker_processes_pending(db):
+def test_batch_worker_processes_pending(db, worker_patches):
     owner, cg1, _, subject = _setup_chain(db)
     _intent(db, owner, subject, cg1, "occ-batch")
     summary = process_pending_caregiver_delivery_intents(db, limit=10)
