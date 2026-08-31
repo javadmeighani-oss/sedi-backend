@@ -458,6 +458,26 @@
         "title": "CarePlanItemUpdateIn",
         "type": "object"
       },
+      "CaregiverAccountLinkIn": {
+        "additionalProperties": false,
+        "properties": {
+          "recipient_account_user_id": {
+            "minimum": 1.0,
+            "title": "Recipient Account User Id",
+            "type": "integer"
+          },
+          "replace_existing": {
+            "default": false,
+            "title": "Replace Existing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "recipient_account_user_id"
+        ],
+        "title": "CaregiverAccountLinkIn",
+        "type": "object"
+      },
       "CaregiverCreateIn": {
         "additionalProperties": false,
         "properties": {
@@ -554,6 +574,55 @@
           "name"
         ],
         "title": "CaregiverCreateIn",
+        "type": "object"
+      },
+      "CaregiverHealthSubjectAssociateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "health_subject_id": {
+            "minimum": 1.0,
+            "title": "Health Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "health_subject_id"
+        ],
+        "title": "CaregiverHealthSubjectAssociateIn",
+        "type": "object"
+      },
+      "CaregiverPhoneCandidateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "title": "CaregiverPhoneCandidateIn",
+        "type": "object"
+      },
+      "CaregiverPhoneConfirmIn": {
+        "additionalProperties": false,
+        "properties": {
+          "recipient_account_user_id": {
+            "minimum": 1.0,
+            "title": "Recipient Account User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recipient_account_user_id"
+        ],
+        "title": "CaregiverPhoneConfirmIn",
         "type": "object"
       },
       "CaregiverUpdateIn": {
@@ -3107,6 +3176,17 @@
         ],
         "title": "HubStatusResponse",
         "type": "object"
+      },
+      "I10NotificationScope": {
+        "enum": [
+          "CARE_ACTION",
+          "DEVICE_STATUS",
+          "GENERAL_STATUS",
+          "SAFETY_ESCALATION",
+          "SENSITIVE_HEALTH_DETAIL"
+        ],
+        "title": "I10NotificationScope",
+        "type": "string"
       },
       "I8GenerateActionRequest": {
         "properties": {
@@ -6826,6 +6906,89 @@
         "title": "SensorSyncResponse",
         "type": "object"
       },
+      "SubjectCaregiverAccessGrantIn": {
+        "additionalProperties": false,
+        "properties": {
+          "access_role": {
+            "default": "CAREGIVER",
+            "enum": [
+              "CAREGIVER",
+              "MANAGER"
+            ],
+            "title": "Access Role",
+            "type": "string"
+          },
+          "recipient_account_user_id": {
+            "minimum": 1.0,
+            "title": "Recipient Account User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recipient_account_user_id"
+        ],
+        "title": "SubjectCaregiverAccessGrantIn",
+        "type": "object"
+      },
+      "SubjectNotificationGrantCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_source": {
+            "default": "MANUAL",
+            "enum": [
+              "CAREGIVER_PROFILE_LINK",
+              "MANUAL"
+            ],
+            "title": "Authorization Source",
+            "type": "string"
+          },
+          "notification_scope": {
+            "$ref": "#/components/schemas/I10NotificationScope"
+          },
+          "recipient_user_id": {
+            "minimum": 1.0,
+            "title": "Recipient User Id",
+            "type": "integer"
+          },
+          "user_caregiver_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Caregiver Id"
+          }
+        },
+        "required": [
+          "notification_scope",
+          "recipient_user_id"
+        ],
+        "title": "SubjectNotificationGrantCreateIn",
+        "type": "object"
+      },
+      "SubjectNotificationGrantRevokeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "notification_scope": {
+            "$ref": "#/components/schemas/I10NotificationScope"
+          },
+          "recipient_user_id": {
+            "minimum": 1.0,
+            "title": "Recipient User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notification_scope",
+          "recipient_user_id"
+        ],
+        "title": "SubjectNotificationGrantRevokeIn",
+        "type": "object"
+      },
       "SymptomReportIn": {
         "additionalProperties": false,
         "properties": {
@@ -9977,6 +10140,395 @@
           }
         ],
         "summary": "Ensure Self Health Subject",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/caregivers": {
+      "get": {
+        "operationId": "get_subject_caregiver_access_health_subjects__health_subject_id__caregivers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Caregiver Access",
+        "tags": [
+          "Health Subjects"
+        ]
+      },
+      "post": {
+        "operationId": "post_subject_caregiver_access_health_subjects__health_subject_id__caregivers_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectCaregiverAccessGrantIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Subject Caregiver Access",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/caregivers/{recipient_account_user_id}": {
+      "delete": {
+        "operationId": "delete_subject_caregiver_access_health_subjects__health_subject_id__caregivers__recipient_account_user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "recipient_account_user_id",
+            "required": true,
+            "schema": {
+              "title": "Recipient Account User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Subject Caregiver Access",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/notification-grants": {
+      "get": {
+        "operationId": "get_subject_notification_grants_health_subjects__health_subject_id__notification_grants_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "recipient_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Recipient User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Notification Grants",
+        "tags": [
+          "Health Subjects"
+        ]
+      },
+      "post": {
+        "operationId": "post_subject_notification_grant_health_subjects__health_subject_id__notification_grants_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectNotificationGrantCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Subject Notification Grant",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/notification-grants/revoke-by-scope": {
+      "patch": {
+        "operationId": "patch_revoke_notification_grant_by_scope_health_subjects__health_subject_id__notification_grants_revoke_by_scope_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectNotificationGrantRevokeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Revoke Notification Grant By Scope",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/notification-grants/{grant_id}": {
+      "delete": {
+        "operationId": "delete_subject_notification_grant_health_subjects__health_subject_id__notification_grants__grant_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "title": "Grant Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Subject Notification Grant",
         "tags": [
           "Health Subjects"
         ]
@@ -15533,6 +16085,280 @@
           }
         ],
         "summary": "Patch Caregiver",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/caregivers/{caregiver_id}/account-candidates": {
+      "post": {
+        "description": "Locate candidate Sedi account by phone — does not authorize or link.",
+        "operationId": "post_caregiver_account_candidates_user_caregivers__caregiver_id__account_candidates_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaregiverPhoneCandidateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Caregiver Account Candidates",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/caregivers/{caregiver_id}/confirm-phone-candidate": {
+      "post": {
+        "operationId": "post_caregiver_confirm_phone_candidate_user_caregivers__caregiver_id__confirm_phone_candidate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaregiverPhoneConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Caregiver Confirm Phone Candidate",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/caregivers/{caregiver_id}/health-subject": {
+      "patch": {
+        "operationId": "patch_caregiver_health_subject_user_caregivers__caregiver_id__health_subject_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaregiverHealthSubjectAssociateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Caregiver Health Subject",
+        "tags": [
+          "User"
+        ]
+      }
+    },
+    "/user/caregivers/{caregiver_id}/link-account": {
+      "delete": {
+        "operationId": "delete_caregiver_link_account_user_caregivers__caregiver_id__link_account_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Caregiver Link Account",
+        "tags": [
+          "User"
+        ]
+      },
+      "post": {
+        "operationId": "post_caregiver_link_account_user_caregivers__caregiver_id__link_account_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "caregiver_id",
+            "required": true,
+            "schema": {
+              "title": "Caregiver Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaregiverAccountLinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Caregiver Link Account",
         "tags": [
           "User"
         ]
