@@ -526,4 +526,4 @@ def test_t21_single_alembic_head():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["074_i10_notification_domain_foundation"]
+    assert heads == ["075_i10_care_network_identity_grants"]

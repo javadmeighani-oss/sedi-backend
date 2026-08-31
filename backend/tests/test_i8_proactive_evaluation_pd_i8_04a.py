@@ -68,7 +68,7 @@ def test_alembic_single_head_is_070():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["074_i10_notification_domain_foundation"]
+    assert script.get_heads() == ["075_i10_care_network_identity_grants"]
 
 
 def test_evaluation_identity_families():
