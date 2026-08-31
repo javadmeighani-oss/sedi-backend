@@ -781,18 +781,33 @@ class DecisionEngine:
                 ),
             }
         )
-        
-        # Persist with dedupe check (Rate limit: 1 per day per user)
-        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
+
+        from backend.app.services.i10.policy_types import I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        when = scheduled_for or datetime.utcnow()
+        occurrence_key = build_self_occurrence_key("morning", user_id=user_id, scheduled_for=when)
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.MORNING_CHECK_IN,
+            candidate_key=occurrence_key,
+            source_type="morning_notifications",
+            source_id=when.strftime("%Y-%m-%d"),
+        )
         if result is None:
             logger.info(
                 f"[NOTIFICATION] SUPPRESSED type=morning_brief user={user_id} "
-                f"lang={effective_language} reason=dedupe"
+                f"lang={effective_language} reason=i10_intake"
             )
         else:
             logger.info(
                 f"[NOTIFICATION] type=morning_brief user={user_id} "
-                f"lang={effective_language} dedupe={payload.dedupe_key}"
+                f"lang={effective_language} dedupe={occurrence_key}"
             )
         return result
     
@@ -860,18 +875,36 @@ class DecisionEngine:
                 ),
             }
         )
-        
-        # Persist with dedupe check (Rate limit: 1 per user per 4-hour window)
-        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=4)
+
+        from backend.app.services.i10.policy_types import I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        when = scheduled_for or datetime.utcnow()
+        hour_bucket = (when.hour // 4) * 4
+        occurrence_key = build_self_occurrence_key(
+            "inactivity", user_id=user_id, scheduled_for=when, bucket=hour_bucket
+        )
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.PRESENCE_REENGAGEMENT,
+            candidate_key=occurrence_key,
+            source_type="inactivity_notifications",
+            source_id=f"{when.strftime('%Y-%m-%d')}:{hour_bucket:02d}",
+        )
         if result is None:
             logger.info(
                 f"[NOTIFICATION] SUPPRESSED type=connection_ping user={user_id} "
-                f"lang={effective_language} reason=dedupe"
+                f"lang={effective_language} reason=i10_intake"
             )
         else:
             logger.info(
                 f"[NOTIFICATION] type=connection_ping user={user_id} "
-                f"lang={effective_language} dedupe={payload.dedupe_key}"
+                f"lang={effective_language} dedupe={occurrence_key}"
             )
         return result
 
@@ -940,11 +973,29 @@ class DecisionEngine:
                 ),
             }
         )
-        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=24)
+
+        from backend.app.services.i10.policy_types import I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        occurrence_key = build_self_occurrence_key(
+            "engagement", user_id=user_id, scheduled_for=now, bucket=bucket
+        )
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.ENGAGEMENT_NUDGE,
+            candidate_key=occurrence_key,
+            source_type="engagement_nudge",
+            source_id=f"{date_str}:{bucket:02d}",
+        )
         if result:
             logger.info(
                 f"[NOTIFICATION] type=engagement_nudge user={user_id} "
-                f"dedupe={payload.dedupe_key}"
+                f"dedupe={occurrence_key}"
             )
         return result
 
