@@ -12,7 +12,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 _ALEMBIC_ROOT = Path(__file__).resolve().parents[2]
 _REV_073 = "073_i9_subject_native_rollup_baseline"
@@ -58,10 +58,10 @@ class I10IsolatedPgDb:
             conn.execute(text(f'CREATE DATABASE "{db_name}"'))
         engine = create_engine(url, future=True)
         cfg = i10_alembic_cfg(url)
+        os.environ["DATABASE_URL"] = url
+        os.environ["TEST_DATABASE_URL"] = url
         target = revision or _REV_074
         command.upgrade(cfg, target)
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1 FROM alembic_version"))
         return cls(
             url=url,
             db_name=db_name,

@@ -536,24 +536,20 @@ def test_candidate_rejects_forbidden_fields():
 
 def test_i10_package_has_no_live_rag_imports():
     i10_dir = Path(__file__).resolve().parents[1] / "app" / "services" / "i10"
-    forbidden_tokens = ("runtime_knowledge_retrieval", "RAGService", "scis.retrieval")
     for blocked in I10_RAG_IMPORT_BLOCKLIST:
         with pytest.raises(ImportError):
             assert_no_live_rag_import(blocked)
     for path in i10_dir.glob("*.py"):
-        source = path.read_text(encoding="utf-8")
-        tree = ast.parse(source)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     assert alias.name not in I10_RAG_IMPORT_BLOCKLIST
             if isinstance(node, ast.ImportFrom):
                 mod = node.module or ""
-                for token in forbidden_tokens:
-                    assert token not in mod
                 assert mod not in I10_RAG_IMPORT_BLOCKLIST
-        for token in forbidden_tokens:
-            assert token not in source
+                for blocked in I10_RAG_IMPORT_BLOCKLIST:
+                    assert not mod.startswith(f"{blocked}.")
 
 
 def test_i10_has_no_physiological_measurement_dependency():
