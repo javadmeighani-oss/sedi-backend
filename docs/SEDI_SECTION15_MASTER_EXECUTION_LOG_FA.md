@@ -78694,3 +78694,62 @@ CURSOR_HANDOFF_TIP=v695
 NEXT_PROPOSED_GATE=I10-B06_CAREGIVER_DELIVERY_FOUNDATION
 PRODUCTION_MIGRATION=NO
 PRODUCTION_DEPLOY=NO
+
+
+§404 - I10-B06 CARE NETWORK RECIPIENT RESOLUTION + CAREGIVER DELIVERY WORKER
+
+GATE=I10-B06
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+GATE_RESULT=PASS
+
+PRE_404_SHA256=D54DAA893A10D5797BAE7B257C4DB4D58D36096BC935BA9904E536766ECB2076
+BASELINE_HEAD=b6dc72faef23bc71961e1042719775434e6c3044
+B05_CONTINUITY=§403 identity/access/grant foundation reused
+
+--------------------------------
+DELIVERY ARCHITECTURE
+--------------------------------
+
+CHAIN=HealthSubject -> CaregiverNotificationIntent -> resolve_care_network_recipients -> delivery-time revalidation -> enqueue_i10_notification -> NotificationBuilder -> DeliveryService
+CAREGIVER_INTENT_REUSE=EXTEND (CaregiverNotificationIntent + migration 076)
+DELIVERY_TIME_REVALIDATION=YES (access/grant/prefs/PushDevice at worker execution)
+MULTI_CAREGIVER_FANOUT=YES (per-recipient intent + independent decisions)
+I10_CANONICAL_INTAKE=YES
+B06_DIRECT_NOTIFICATION_ORM_WRITES=0
+B06_DIRECT_FCM_CALLS=0
+WORKER_FEATURE_FLAG=SEDI_I10_CARE_NETWORK_DELIVERY_ENABLED (default OFF)
+
+--------------------------------
+MIGRATION
+--------------------------------
+
+MIGRATION_FILE=076_i10_care_network_delivery_foundation.py
+MIGRATION_REVISION=076_i10_care_network_delivery_foundation
+MIGRATION_DOWN_REVISION=075_i10_care_network_identity_grants
+
+--------------------------------
+BOUNDARIES
+--------------------------------
+
+NOTIFICATION_PREFS=recipient channel toggles (not grant authority)
+PUSH_DEVICE=delivery readiness only (not authorization)
+PHONE_AS_PUSH_ENDPOINT=NO
+CARE_PRODUCERS=NO
+RAW_I9_TO_I10=NO
+DIRECT_RAG_TO_I10=NO
+FRONTEND_CHANGED=NO
+PRODUCTION_MIGRATION=NO
+
+--------------------------------
+TESTS / CI
+--------------------------------
+
+B06_TEST_COUNT=33
+CI_RUN_ID=PENDING
+CI_RESULT=PENDING
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v696_FA.md
+MASTER_LOG_TIP=§404
+CURSOR_HANDOFF_TIP=v696
+NEXT_PROPOSED_GATE=I10-B07_CARE_SEMANTIC_PRODUCERS_OR_FRONTEND
