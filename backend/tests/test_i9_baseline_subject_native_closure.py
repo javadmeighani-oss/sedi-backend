@@ -1723,8 +1723,10 @@ def test_g23_alembic_single_head_073():
     test_c01_alembic_single_head_073()
 
 
-def test_g24_no_migration_074():
+def test_g24_migration_074_i10_foundation_exists():
     repo = Path(__file__).resolve().parents[2]
     versions = Path(repo) / "backend" / "alembic" / "versions"
-    assert not any(p.name.startswith("074_") for p in versions.glob("*.py"))
+    matches = [p for p in versions.glob("*.py") if p.name.startswith("074_i10_")]
+    assert len(matches) == 1
+    assert matches[0].name == "074_i10_notification_domain_foundation.py"
 
