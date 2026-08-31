@@ -25,6 +25,7 @@ class CaregiverValidationError(Exception):
 
 
 def _row_to_dict(row: models.UserCaregiver) -> dict:
+    link_status = "LINKED" if row.linked_account_user_id is not None else "UNLINKED"
     return {
         "id": row.id,
         "owner_user_id": row.owner_user_id,
@@ -40,6 +41,11 @@ def _row_to_dict(row: models.UserCaregiver) -> dict:
         "can_manage_profile": row.can_manage_profile,
         "preferred_language": row.preferred_language,
         "is_active": row.is_active,
+        "linked_account_user_id": row.linked_account_user_id,
+        "linked_at": row.linked_at,
+        "link_provenance": row.link_provenance,
+        "link_status": link_status,
+        "health_subject_id": row.health_subject_id,
         "created_at": row.created_at,
         "updated_at": row.updated_at,
     }

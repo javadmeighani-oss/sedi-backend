@@ -242,6 +242,13 @@ jobs:
             backend/tests/test_i10_b04_migration_074_cycle.py \
             --noconftest --tb=short
 
+      - name: I10 B05 identity/access/grant foundation + migration 075 cycle
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i10_b05_identity_access_grants.py \
+            backend/tests/test_i10_b05_migration_075_cycle.py \
+            --noconftest --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.

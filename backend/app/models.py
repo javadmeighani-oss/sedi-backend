@@ -1224,6 +1224,20 @@ class UserCaregiver(Base):
     can_manage_profile = Column(Boolean, nullable=False, default=False)
     preferred_language = Column(String(16), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    linked_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_uc_linked_account_user_id"),
+        nullable=True,
+        index=True,
+    )
+    linked_at = Column(DateTime(timezone=True), nullable=True)
+    link_provenance = Column(String(64), nullable=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="SET NULL", name="fk_uc_health_subject_id"),
+        nullable=True,
+        index=True,
+    )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
