@@ -952,6 +952,37 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] I10 care digest producer wiring failed: {e}")
 
+        try:
+            from backend.app.database import get_db as _i10_care_action_get_db
+            from backend.app.services.i10.care_action_producer_worker import run_care_action_producer_scan
+            from backend.app.services.section10.feature_flags import i10_care_action_producer_enabled
+
+            def _i10_care_action_producer_tick():
+                with next(_i10_care_action_get_db()) as db:
+                    summary = run_care_action_producer_scan(db, deliver=False, limit=100)
+                print(f"[Sedi Scheduler] i10_care_action_producer summary={summary}", flush=True)
+
+            action_interval = int(os.getenv("SEDI_I10_CARE_ACTION_PRODUCER_INTERVAL_MIN", "60"))
+            scheduler.add_job(
+                _i10_care_action_producer_tick,
+                "interval",
+                minutes=max(15, action_interval),
+                id="i10_care_action_producer",
+                replace_existing=True,
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=600,
+            )
+            print(
+                "[Sedi Scheduler] I10 care action producer registered "
+                f"enabled={i10_care_action_producer_enabled()} "
+                f"flag=SEDI_I10_CARE_ACTION_PRODUCER_ENABLED "
+                f"interval_min={max(15, action_interval)}",
+                flush=True,
+            )
+        except Exception as e:
+            print(f"[Sedi Scheduler] I10 care action producer wiring failed: {e}")
+
         scheduler.start()
         print("[Sedi Scheduler] Background scheduler started successfully ✅")
     except SchedulerAlreadyRunningError:

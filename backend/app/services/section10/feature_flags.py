@@ -81,6 +81,10 @@ def i10_care_digest_producer_enabled() -> bool:
     return _env_flag_enabled("SEDI_I10_CARE_DIGEST_PRODUCER_ENABLED")
 
 
+def i10_care_action_producer_enabled() -> bool:
+    return _env_flag_enabled("SEDI_I10_CARE_ACTION_PRODUCER_ENABLED")
+
+
 def inactivity_policy_enabled() -> bool:
     return _env_flag_enabled("SEDI_INACTIVITY_POLICY_ENABLED")
 

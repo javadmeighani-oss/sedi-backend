@@ -25,6 +25,7 @@ _MAX_TITLE_CHARS = 200
 _SEMANTIC_TO_SCOPE: dict[str, I10NotificationScope] = {
     I10SemanticFamily.CARE_STATUS_DIGEST.value: I10NotificationScope.GENERAL_STATUS,
     I10SemanticFamily.CARE_DATA_GAP.value: I10NotificationScope.DEVICE_STATUS,
+    I10SemanticFamily.CARE_ACTION.value: I10NotificationScope.CARE_ACTION,
     I10SemanticFamily.GENERAL_STATUS.value: I10NotificationScope.GENERAL_STATUS,
     I10SemanticFamily.DEVICE_STATUS.value: I10NotificationScope.DEVICE_STATUS,
 }
