@@ -281,6 +281,12 @@ jobs:
             backend/tests/test_i10_b11_daily_wellness_digest.py \
             --noconftest --tb=short
 
+      - name: I10 B12 contextual follow-up CareFollowUpTask
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i10_b12_contextual_followup.py \
+            --noconftest --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.

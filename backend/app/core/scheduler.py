@@ -758,6 +758,32 @@ def start_scheduler():
         except Exception as e:
             print(f"[Sedi Scheduler] Section 10 reminder scheduler wiring failed: {e}")
 
+        try:
+            from backend.app.services.section10 import feature_flags as s10_flags
+            from backend.app.services.i10.contextual_followup_worker import process_due_follow_up_tasks
+
+            if s10_flags.contextual_followup_enabled():
+
+                def _contextual_followup_tick():
+                    with next(get_db()) as db:
+                        count = process_due_follow_up_tasks(db)
+                        if count:
+                            print(f"[Sedi Scheduler] Contextual follow-ups processed: {count}")
+
+                scheduler.add_job(
+                    _contextual_followup_tick,
+                    "interval",
+                    minutes=10,
+                    id="i10_contextual_followup_worker",
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                    misfire_grace_time=60,
+                )
+                print("[Sedi Scheduler] I10 contextual follow-up worker wired (flag controls execution)")
+        except Exception as e:
+            print(f"[Sedi Scheduler] I10 contextual follow-up wiring failed: {e}")
+
         # PD-I8-04B: I8 proactive schedule scan (always registered; body no-ops unless flag ON).
         # Default OFF. Scheduler is trigger producer only — no I8 decision logic here.
         # Cadence is env-configurable (not a hard-coded product cadence).

@@ -69,6 +69,10 @@ def proactive_followup_enabled() -> bool:
     return _env_flag_enabled("SEDI_PROACTIVE_FOLLOWUP_ENABLED")
 
 
+def contextual_followup_enabled() -> bool:
+    return _env_flag_enabled("SEDI_I10_CONTEXTUAL_FOLLOWUP_ENABLED")
+
+
 def inactivity_policy_enabled() -> bool:
     return _env_flag_enabled("SEDI_INACTIVITY_POLICY_ENABLED")
 
