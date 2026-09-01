@@ -297,3 +297,25 @@ def run_i8_proactive_schedule_scan_job(
         schedule_rule_id=schedule_rule_id,
         stats=stats,
     )
+
+
+def run_i8_proactive_schedule_scan_job_with_coaching(
+    *,
+    schedule_rule_id: str = DEFAULT_V1_SCHEDULE_RULE_ID,
+) -> ScheduleScanRunStats:
+    """APScheduler entry: scan tick + optional B13 coaching follow-up pass."""
+    stats = run_i8_proactive_schedule_scan_job(schedule_rule_id=schedule_rule_id)
+    from backend.app.services.section10.feature_flags import coaching_followup_enabled
+
+    if coaching_followup_enabled():
+        from backend.app.database import get_db
+        from backend.app.services.i10.coaching_worker import process_i8_coaching_followups
+
+        try:
+            with next(get_db()) as db:
+                count = process_i8_coaching_followups(db)
+                if count:
+                    logger.info("i8_coaching_followups_processed count=%s", count)
+        except Exception:
+            logger.exception("i8_coaching_followup_tick_failed")
+    return stats

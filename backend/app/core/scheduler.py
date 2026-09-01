@@ -795,12 +795,12 @@ def start_scheduler():
             )
             from backend.app.services.i8.schedule_scan import (
                 I8_SCHEDULE_SCAN_JOB_ID,
-                run_i8_proactive_schedule_scan_job,
+                run_i8_proactive_schedule_scan_job_with_coaching,
             )
 
             i8_scan_interval_min = i8_proactive_schedule_scan_interval_minutes()
             scheduler.add_job(
-                run_i8_proactive_schedule_scan_job,
+                run_i8_proactive_schedule_scan_job_with_coaching,
                 "interval",
                 minutes=i8_scan_interval_min,
                 id=I8_SCHEDULE_SCAN_JOB_ID,
