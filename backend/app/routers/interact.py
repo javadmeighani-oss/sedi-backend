@@ -204,7 +204,11 @@ async def chat(
                 detail="Notification does not belong to user",
             )
 
-        notification_context = build_safe_chat_context(notification)
+        notification_context = build_safe_chat_context(
+            notification,
+            db=db,
+            viewer_user_id=user_id,
+        )
         create_chat_message_event(
             db,
             user_id=user_id,

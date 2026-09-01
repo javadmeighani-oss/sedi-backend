@@ -113,20 +113,35 @@ def _baseline_entry(row: models.PhysiologicalBaseline) -> I9BaselineContextEntry
     )
 
 
-def get_i8_governed_context_projection(
+def get_bounded_context_projection_for_subject(
     db: Session,
     *,
-    account_user_id: int,
+    health_subject_id: int,
     measurement_type: str = V1_MEASUREMENT_TYPE,
 ) -> I8GovernedPhysiologicalContext:
-    """Read persisted rollup/baseline rows for the account's SELF-linked subject only."""
-    subject = _resolve_self_linked_subject_for_account(db, account_user_id)
+    """Read persisted rollup/baseline rows for an active HealthSubject (managed or self)."""
+    subject = (
+        db.query(models.HealthSubject)
+        .filter(
+            models.HealthSubject.id == health_subject_id,
+            models.HealthSubject.status == "active",
+        )
+        .first()
+    )
     if subject is None:
         return I8GovernedPhysiologicalContext(
             health_subject_id=None,
             measurement_type=measurement_type,
         )
+    return _load_bounded_projection_for_subject_row(db, subject=subject, measurement_type=measurement_type)
 
+
+def _load_bounded_projection_for_subject_row(
+    db: Session,
+    *,
+    subject: models.HealthSubject,
+    measurement_type: str,
+) -> I8GovernedPhysiologicalContext:
     daily_row = (
         db.query(models.PhysiologicalMeasurementRollup)
         .filter(
@@ -168,6 +183,22 @@ def get_i8_governed_context_projection(
         weekly_rollup=_rollup_entry(weekly_row) if weekly_row else None,
         personal_observed_baseline=_baseline_entry(baseline_row) if baseline_row else None,
     )
+
+
+def get_i8_governed_context_projection(
+    db: Session,
+    *,
+    account_user_id: int,
+    measurement_type: str = V1_MEASUREMENT_TYPE,
+) -> I8GovernedPhysiologicalContext:
+    """Read persisted rollup/baseline rows for the account's SELF-linked subject only."""
+    subject = _resolve_self_linked_subject_for_account(db, account_user_id)
+    if subject is None:
+        return I8GovernedPhysiologicalContext(
+            health_subject_id=None,
+            measurement_type=measurement_type,
+        )
+    return _load_bounded_projection_for_subject_row(db, subject=subject, measurement_type=measurement_type)
 
 
 def projection_context_refs(projection: I8GovernedPhysiologicalContext) -> list[dict[str, Any]]:

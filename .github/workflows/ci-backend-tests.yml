@@ -293,6 +293,12 @@ jobs:
             backend/tests/test_i10_b13_coaching_followup.py \
             --noconftest --tb=short
 
+      - name: I10 B14 caregiver status digest + data gap
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i10_b14_caregiver_status_digest.py \
+            --noconftest --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.

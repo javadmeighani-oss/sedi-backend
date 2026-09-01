@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.schemas.notification import NotificationPayload
+from backend.app.services.gate4.notification_context import (
+    NotificationCategory,
+    NotificationRiskLevel,
+    NotificationSourceType,
+    sanitize_notification_context,
+)
 from backend.app.services.i10.caregiver_delivery_intent import build_i10_occurrence_dedupe_key
 from backend.app.services.i10.contracts import I10NotificationCandidate
 from backend.app.services.i10.intake import enqueue_i10_notification
@@ -51,6 +58,57 @@ def _parse_privacy(value: str | None) -> I10PrivacyClass:
     if value:
         return I10PrivacyClass(value)
     return I10PrivacyClass.PRIVATE
+
+
+def _load_payload_metadata(intent: models.CaregiverNotificationIntent) -> dict[str, Any]:
+    raw = intent.payload_metadata_json
+    if not raw:
+        return {}
+    try:
+        loaded = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _build_delivery_payload(
+    intent: models.CaregiverNotificationIntent,
+    *,
+    candidate_key: str,
+    scope: I10NotificationScope,
+    candidate: I10NotificationCandidate,
+) -> NotificationPayload:
+    metadata = _load_payload_metadata(intent)
+    body = str(metadata.get("body") or "").strip()
+    if not body:
+        body = _PRIVACY_SAFE_BODIES.get(scope, "A care network notification is available.")
+    title = str(metadata.get("title") or "Care update").strip()[:200]
+    context_raw = metadata.get("context")
+    context = sanitize_notification_context(context_raw if isinstance(context_raw, dict) else None) or {}
+    template_key = metadata.get("template_key") or intent.source_entity_type or "i10_care_network"
+    source_type = intent.source_entity_type or "caregiver_delivery"
+    source_id = str(intent.source_entity_id or intent.id)
+    return NotificationPayload(
+        user_id=intent.recipient_user_id,
+        type="health_alert",
+        title=title,
+        body=body,
+        priority="normal",
+        dedupe_key=candidate_key,
+        health_subject_id=intent.health_subject_id,
+        semantic_family=candidate.semantic_family.value,
+        privacy_class=candidate.privacy_hint.value,
+        metadata={
+            "data_status": metadata.get("data_status"),
+            "trigger_reason": metadata.get("trigger_reason"),
+        },
+        category=NotificationCategory.DAILY_STATUS.value,
+        source_type=NotificationSourceType.DAILY_ROUTINE.value,
+        source_id=source_id[:255],
+        risk_level=NotificationRiskLevel.INFORMATIONAL.value,
+        template_key=str(template_key)[:100],
+        context=context,
+    )
 
 
 def process_caregiver_delivery_intent(
@@ -127,17 +185,11 @@ def process_caregiver_delivery_intent(
         expires_at=intent.expires_at,
         user_caregiver_id=intent.caregiver_id,
     )
-    body = _PRIVACY_SAFE_BODIES.get(scope, "A care network notification is available.")
-    payload = NotificationPayload(
-        user_id=intent.recipient_user_id,
-        type="health_alert",
-        title="Care update",
-        body=body,
-        priority="normal",
-        dedupe_key=candidate_key,
-        health_subject_id=intent.health_subject_id,
-        semantic_family=candidate.semantic_family.value,
-        privacy_class=candidate.privacy_hint.value,
+    payload = _build_delivery_payload(
+        intent,
+        candidate_key=candidate_key,
+        scope=scope,
+        candidate=candidate,
     )
 
     result = enqueue_i10_notification(db, candidate=candidate, payload=payload, check_dedupe=True)
