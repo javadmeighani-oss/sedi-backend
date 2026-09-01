@@ -60,7 +60,7 @@ def create_structured_follow_up_task(
     user_event_id: Optional[int] = None,
     source_notification_id: Optional[int] = None,
 ) -> models.CareFollowUpTask:
-    """Persist governed follow-up task with bounded metadata — no transcript."""
+    """Persist governed follow-up task with bounded metadata."""
     now = datetime.utcnow()
     meta = BoundedFollowUpMeta(
         follow_up_kind=follow_up_kind,
@@ -160,7 +160,7 @@ def process_due_follow_up_tasks(db: Session, *, now: Optional[datetime] = None) 
         try:
             if process_single_follow_up_task(db, task, now=when):
                 processed += 1
-            db.commit()
+            db.flush()
         except Exception:
             db.rollback()
             logger.exception("[I10-B12] task=%s processing failed", task.id)

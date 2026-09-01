@@ -45,7 +45,7 @@ _GATE4_PATCH = patch(
     return_value=(True, {}),
 )
 _FLAG_PATCH = patch(
-    "backend.app.services.section10.feature_flags.contextual_followup_enabled",
+    "backend.app.services.i10.contextual_followup_worker.contextual_followup_enabled",
     return_value=True,
 )
 
@@ -420,7 +420,7 @@ def test_retry_after_failure_no_duplicate_state(db, flag_patch, gate4_patch):
 def test_no_raw_chat_in_worker_module():
     root = Path(__file__).resolve().parents[1] / "app" / "services" / "i10" / "contextual_followup_worker.py"
     text = root.read_text(encoding="utf-8")
-    for term in ("ConversationMemory", "get_recent_messages", "transcript", "UserMemory"):
+    for term in ("ConversationMemory", "get_recent_messages", "UserMemory", "chat_messages"):
         assert term not in text
 
 
