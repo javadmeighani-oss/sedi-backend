@@ -88,6 +88,9 @@ def _user(db, name: str = "coach-user") -> models.User:
 
 
 def _profile_tz(db, user_id: int, tz: str = "UTC") -> None:
+    existing = db.query(models.UserProfileCore).filter(models.UserProfileCore.user_id == user_id).first()
+    if existing:
+        return
     row = models.UserProfileCore(user_id=user_id, timezone=tz)
     db.add(row)
     db.flush()
