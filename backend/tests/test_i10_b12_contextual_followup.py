@@ -321,7 +321,7 @@ def test_safe_notification_context_reconstruction(db, flag_patch, gate4_patch):
 
     user = _user(db)
     when = _now()
-    _task(db, user, due_at=when - timedelta(minutes=1))
+    task = _task(db, user, due_at=when - timedelta(minutes=1))
     db.commit()
     process_due_follow_up_tasks(db, now=when)
     notif = db.query(models.Notification).one()
