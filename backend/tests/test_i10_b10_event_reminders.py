@@ -178,8 +178,8 @@ def test_different_stage_allowed(gate4_patch, db):
 
 def test_different_event_allowed(gate4_patch, db):
     user = _user(db)
-    _event(db, user, title="Visit A")
-    _event(db, user, title="Visit B", starts_in_min=90)
+    _event(db, user, title="Visit A", starts_in_min=60)
+    _event(db, user, title="Visit B", starts_in_min=60)
     assert process_event_reminders(db) == 2
 
 
