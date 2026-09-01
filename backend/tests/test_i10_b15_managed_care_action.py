@@ -442,9 +442,39 @@ def test_same_action_same_recipient_once(db, b15_patches):
 def test_next_action_occurrence_allowed(db, b15_patches):
     owner, cg_a, _, subject = _setup_caregivers(db)
     when = _when()
-    _managed_action(db, owner, subject, when=when, action_key="act-1")
-    _run_pipeline(db, subject, when)
-    _managed_action(db, owner, subject, when=when, action_key="act-2", summary="Morning routine")
+    _profile_tz(db, owner.id)
+    window = resolve_local_day_window(db, owner.id, now_utc=when)
+    repo = I8OperationalRepository()
+    plan = repo.create_plan(
+        db,
+        user_id=owner.id,
+        user_local_date=window.user_local_date,
+        timezone_snapshot=window.timezone_snapshot,
+        generation_mode="proactive",
+        plan_idempotency_key=f"plan-{subject.id}-multi",
+        valid_from=window.valid_from,
+        valid_until=window.valid_until,
+        expires_at=window.expires_at,
+    )
+    refs = build_health_subject_context_refs_json(subject.id)
+    for key, summary in (("act-1", "Morning routine"), ("act-2", "Evening check")):
+        repo.create_action(
+            db,
+            user_id=owner.id,
+            plan_id=plan.id,
+            action_domain="routine",
+            action_type="routine_care_item",
+            action_idempotency_key=key,
+            summary_text=summary,
+            presentation_json="{}",
+            knowledge_refs_json="[]",
+            context_refs_json=refs,
+            safety_state="SAFE",
+            valid_from=window.valid_from,
+            valid_until=window.valid_until,
+            expires_at=window.expires_at,
+        )
+    db.commit()
     _run_pipeline(db, subject, when)
     assert db.query(models.Notification).filter(models.Notification.user_id == cg_a.id).count() == 2
 
