@@ -1,4 +1,4 @@
-"""Event reminder scheduler foundation — default off, Gate 4 notification creation."""
+"""Event reminder scheduler foundation — default off, canonical I10 intake (B10)."""
 
 from __future__ import annotations
 
@@ -11,15 +11,6 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.services.section10 import feature_flags
-
-MEDICAL_EVENT_TYPES = frozenset({
-    "doctor_visit",
-    "lab_test",
-    "medical_follow_up",
-    "imaging",
-    "surgery",
-    "care_followup",
-})
 
 
 def _parse_offsets(reminder_offsets_json: Optional[str]) -> List[int]:
@@ -50,6 +41,12 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
     if not feature_flags.event_reminder_scheduler_enabled():
         return 0
 
+    from backend.app.services.i10.event_reminder_i10_adapter import (
+        build_event_occurrence_key,
+        enqueue_event_reminder_notification,
+        is_medical_remindable_event,
+    )
+
     now = now or datetime.utcnow()
     created = 0
     rows = (
@@ -61,7 +58,7 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
         .all()
     )
     for event in rows:
-        if event.event_type not in MEDICAL_EVENT_TYPES and event.event_domain not in {"medical", "care"}:
+        if not is_medical_remindable_event(event):
             continue
         starts_utc = _event_local_starts_at(event)
         if starts_utc is None or starts_utc <= now:
@@ -70,26 +67,16 @@ def process_event_reminders(db: Session, now: Optional[datetime] = None) -> int:
             fire_at = starts_utc - timedelta(minutes=offset_min)
             if fire_at > now or (now - fire_at) > timedelta(minutes=30):
                 continue
-            dedupe = f"event_reminder:{event.user_id}:{event.id}:{offset_min}"
-            existing = (
-                db.query(models.Notification)
-                .filter(models.Notification.dedupe_key == dedupe)
-                .first()
+            occurrence_key = build_event_occurrence_key(
+                user_id=event.user_id, event_id=event.id, offset_min=offset_min
             )
-            if existing:
-                continue
-            notif = models.Notification(
+            result = enqueue_event_reminder_notification(
+                db,
+                event=event,
                 user_id=event.user_id,
-                type="event_reminder",
-                title=event.title,
-                body=f"Reminder: {event.title}",
-                template_key="event_reminder",
-                dedupe_key=dedupe,
-                status="queued",
-                created_at=now,
+                occurrence_key=occurrence_key,
+                offset_min=offset_min,
             )
-            db.add(notif)
-            created += 1
-    if created:
-        db.commit()
+            if result is not None:
+                created += 1
     return created

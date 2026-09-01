@@ -269,6 +269,12 @@ jobs:
             backend/tests/test_i10_b09_migration_077_cycle.py \
             --noconftest --tb=short
 
+      - name: I10 B10 event reminders canonical I10
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i10_b10_event_reminders.py \
+            --noconftest --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.
