@@ -172,10 +172,10 @@ def run_morning_notifications():
                 ):
                     continue
 
-            # Dedupe: Check if we already sent morning_summary today
+            # Dedupe: morning_brief only — daily digest has separate I10 occurrence key
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             # Release B2.1: Check for morning_brief type instead of legacy INSIGHT
-            today_notifications = (
+            today_morning_notifications = (
                 db.query(Notification)
                 .filter(
                     Notification.user_id == user.id,
@@ -185,27 +185,36 @@ def run_morning_notifications():
                 .all()
             )
             
-            if len(today_notifications) > 0:
-                continue  # Already sent today
+            morning_already_sent = len(today_morning_notifications) > 0
             
-            # Build memory context for personalized message
-            try:
-                memory_context = build_memory_context(db, user.id)
-            except Exception as e:
-                print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
-                memory_context = None
-            
-            # Create morning notification using new contract (Release B - Part B1)
-            notif = decision_engine.create_morning_brief(
+            if not morning_already_sent:
+                # Build memory context for personalized message
+                try:
+                    memory_context = build_memory_context(db, user.id)
+                except Exception as e:
+                    print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
+                    memory_context = None
+                
+                # Create morning notification using new contract (Release B - Part B1)
+                notif = decision_engine.create_morning_brief(
+                    user_id=user.id,
+                    memory_context=memory_context,
+                    scheduled_for=now
+                )
+                
+                if notif:
+                    print(f"[Sedi Scheduler] Morning brief created for user {user.id}")
+                else:
+                    print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
+
+            digest_notif = decision_engine.create_daily_wellness_digest(
                 user_id=user.id,
-                memory_context=memory_context,
-                scheduled_for=now
+                scheduled_for=now,
             )
-            
-            if notif:
-                print(f"[Sedi Scheduler] Morning brief created for user {user.id}")
+            if digest_notif:
+                print(f"[Sedi Scheduler] Daily wellness digest created for user {user.id}")
             else:
-                print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
+                print(f"[Sedi Scheduler] Daily wellness digest skipped for user {user.id}")
     
 # -------------------------------
 # Save notification to database

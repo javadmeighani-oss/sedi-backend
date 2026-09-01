@@ -811,6 +811,56 @@ class DecisionEngine:
             )
         return result
     
+    def create_daily_wellness_digest(
+        self,
+        user_id: int,
+        scheduled_for: Optional[datetime] = None,
+    ) -> Optional[Notification]:
+        """I10-B11 factual daily wellness digest — bounded I9 projection, canonical intake."""
+        when = scheduled_for or datetime.utcnow()
+
+        if is_within_quiet_hours(self.db, user_id, "morning", "normal"):
+            logger.info(
+                "[NOTIF] suppressed channel=daily_digest user_id=%s reason=quiet_hours", user_id
+            )
+            return None
+
+        from backend.app.services.i10.daily_wellness_digest import (
+            assemble_daily_wellness_digest_facts,
+            build_daily_digest_occurrence_key,
+            enqueue_daily_wellness_digest,
+        )
+
+        facts = assemble_daily_wellness_digest_facts(self.db, user_id=user_id, when=when)
+        occurrence_key = build_daily_digest_occurrence_key(
+            user_id=user_id,
+            period_date=facts.observation_period_start.date(),
+        )
+        user = self.db.query(User).filter(User.id == user_id).first()
+        lang = (user.preferred_language if user and user.preferred_language else "en")
+        if lang not in ("en", "fa", "ar"):
+            lang = "en"
+
+        result = enqueue_daily_wellness_digest(
+            self.db,
+            facts=facts,
+            occurrence_key=occurrence_key,
+            language=lang,
+        )
+        if result is None:
+            logger.info(
+                "[NOTIFICATION] SUPPRESSED type=daily_wellness_digest user=%s reason=i10_intake",
+                user_id,
+            )
+        else:
+            logger.info(
+                "[NOTIFICATION] type=daily_wellness_digest user=%s dedupe=%s status=%s",
+                user_id,
+                occurrence_key,
+                facts.data_status.value,
+            )
+        return result
+    
     def create_connection_ping(
         self,
         user_id: int,
