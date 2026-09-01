@@ -141,15 +141,15 @@ def run_care_action_producer_for_subject(
     db: Session,
     *,
     health_subject_id: int,
-    now: Optional[datetime] = None,
+    when: Optional[datetime] = None,
     deliver: bool = False,
     commit: bool = True,
 ) -> dict:
     if not feature_flags.i10_care_action_producer_enabled():
         return {"status": "dormant", "actions": 0, "intents": 0}
 
-    when = now or datetime.now(timezone.utc)
-    actions = list_eligible_managed_care_actions(db, health_subject_id=health_subject_id, now=when)
+    now = when or datetime.now(timezone.utc)
+    actions = list_eligible_managed_care_actions(db, health_subject_id=health_subject_id, now=now)
     intents: list[models.CaregiverNotificationIntent] = []
     for action, _plan in actions:
         intents.extend(
