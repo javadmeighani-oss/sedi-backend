@@ -216,8 +216,37 @@ def test_same_occurrence_duplicate_blocked(db, flag_patch, gate4_patch):
 def test_different_plan_item_allowed(db, flag_patch, gate4_patch):
     user = _user(db)
     when = _when()
-    _plan_action(db, user, domain="nutrition", summary="Breakfast", when=when, action_key="a1")
-    _plan_action(db, user, domain="nutrition", summary="Dinner", when=when, action_key="a2")
+    _profile_tz(db, user.id)
+    window = resolve_local_day_window(db, user.id, now_utc=when)
+    repo = I8OperationalRepository()
+    plan = repo.create_plan(
+        db,
+        user_id=user.id,
+        user_local_date=window.user_local_date,
+        timezone_snapshot=window.timezone_snapshot,
+        generation_mode="proactive",
+        plan_idempotency_key="multi-meal-plan",
+        valid_from=window.valid_from,
+        valid_until=window.valid_until,
+        expires_at=window.expires_at,
+    )
+    for key, summary in (("a1", "Breakfast"), ("a2", "Dinner")):
+        repo.create_action(
+            db,
+            user_id=user.id,
+            plan_id=plan.id,
+            action_domain="nutrition",
+            action_type="meal",
+            action_idempotency_key=key,
+            summary_text=summary,
+            presentation_json="{}",
+            knowledge_refs_json="[]",
+            safety_state="SAFE",
+            valid_from=window.valid_from,
+            valid_until=window.valid_until,
+            expires_at=window.expires_at,
+        )
+    db.commit()
     assert process_i8_coaching_followups(db, now=when, force=True) == 2
 
 
