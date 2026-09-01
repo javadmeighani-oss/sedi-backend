@@ -39,11 +39,11 @@ def render_care_data_gap_body(facts: CareSubjectStatusFacts) -> str:
     if facts.data_status == CareSubjectDataStatus.STALE_DATA:
         return (
             "Device-reported data for your care recipient appears stale according to the latest "
-            "daily rollup. This is a data continuity notice, not a medical emergency assessment."
+            "daily rollup. This is a data continuity notice only, not a clinical or urgency assessment."
         )
     return (
         "No recent device-reported samples were recorded in the daily rollup for your care recipient. "
-        "This is a data continuity notice, not a medical emergency assessment."
+        "This is a data continuity notice only, not a clinical or urgency assessment."
     )
 
 

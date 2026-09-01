@@ -79,9 +79,7 @@ def build_revoked_caregiver_chat_context(notification: Notification) -> dict[str
         "source_type": notification.source_type or "caregiver_delivery",
         "source_id": str(notification.source_id or notification.id)[:255],
         "notification_title": "Care notification",
-        "context_hints": sanitize_notification_context(
-            {"subject_context_available": "false"}
-        ),
+        "subject_context_available": "false",
     }
 
 

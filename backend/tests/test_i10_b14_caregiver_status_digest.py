@@ -126,7 +126,9 @@ def _baseline(db, owner, subject, when, *, baseline_value: float = 72.0):
         baseline_value=baseline_value,
         window_start=start,
         window_end=end,
+        derived_at=when,
         coverage=0.8,
+        valid_day_count=10,
     )
     db.add(row)
     db.commit()
@@ -297,6 +299,7 @@ def test_stale_data_gap_created(db, b14_patches):
     assert gap_intent.notification_scope == I10NotificationScope.DEVICE_STATUS.value
     notif = db.query(models.Notification).filter(models.Notification.id == gap_intent.notification_id).one()
     assert "medical emergency" not in notif.body.lower()
+    assert "urgency assessment" in notif.body.lower()
     assert notif.semantic_family == I10SemanticFamily.CARE_DATA_GAP.value
 
 
@@ -589,8 +592,8 @@ def test_revoked_chat_context_fail_closed(db, b14_patches):
     )
     ctx = build_safe_chat_context(notif, db=db, viewer_user_id=cg_a.id)
     assert ctx["template_key"] == "care_notification_generic"
+    assert ctx.get("subject_context_available") == "false"
     hints = ctx.get("context_hints") or {}
-    assert hints.get("subject_context_available") == "false"
     assert "data_status" not in hints
 
 
