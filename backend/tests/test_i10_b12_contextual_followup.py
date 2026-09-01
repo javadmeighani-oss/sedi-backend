@@ -327,7 +327,8 @@ def test_safe_notification_context_reconstruction(db, flag_patch, gate4_patch):
     notif = db.query(models.Notification).one()
     ctx = build_safe_chat_context(notif)
     assert ctx["category"] == "care_follow_up"
-    assert "follow_up_task" in str(notif.source_id)
+    assert notif.source_type == "care_follow_up_task"
+    assert notif.source_id == str(task.id)
     assert "SECRET TRANSCRIPT" not in str(ctx)
 
 
