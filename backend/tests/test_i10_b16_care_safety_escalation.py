@@ -512,8 +512,11 @@ def test_pref_on_delivers(db, b16_patches):
 
 def test_pref_off_suppressed(db, b16_patches):
     owner, cg_a, _, subject = _setup_caregivers(db)
-    _prefs(db, cg_a.id, reminder_system=False)
     _authoritative_escalation(db, owner, subject)
+    db.query(models.NotificationPrefs).filter(models.NotificationPrefs.user_id == cg_a.id).update(
+        {"reminder_system_enabled": False}
+    )
+    db.commit()
     run_care_safety_producer_for_subject(db, health_subject_id=subject.id, deliver=False)
     intent = db.query(models.CaregiverNotificationIntent).one()
     process_caregiver_delivery_intent(db, intent)
