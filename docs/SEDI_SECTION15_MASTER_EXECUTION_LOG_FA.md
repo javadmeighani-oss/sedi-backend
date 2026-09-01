@@ -79234,3 +79234,85 @@ HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v703_FA.md
 MASTER_LOG_TIP=§411
 CURSOR_HANDOFF_TIP=v703
 NEXT_PROPOSED_GATE=I10-B14_CAREGIVER_DIGEST
+
+
+§412 - I10-B14 CAREGIVER STATUS DIGEST + CARE DATA GAP BOUNDED I9 TO CARE NETWORK
+
+GATE=I10-B14
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+GATE_RESULT=PASS
+
+PRE_412_SHA256=PENDING
+BASELINE_HEAD=57d422168cac62c41f2653fd4985ac3f88651f5d
+B13_CONTINUITY=§411 I8 coaching adapter pattern; B06 delivery reused
+
+--------------------------------
+I9 BOUNDED FACTS
+--------------------------------
+
+PROJECTION=get_bounded_context_projection_for_subject
+FACTS=care_subject_status_facts.assemble_care_subject_status_facts
+COVERAGE=PhysiologicalMeasurementRollup.coverage
+RECENCY=PhysiologicalMeasurementRollup.bucket_end
+BASELINE=PhysiologicalBaseline PERSONAL_OBSERVED_BASELINE_V1
+EXPECTED_SOURCE=DeviceSubjectBinding active OR historical rollup
+RAW_MEASUREMENT_QUERY=NO
+
+--------------------------------
+B14 SEMANTIC FAMILIES
+--------------------------------
+
+CARE_STATUS_DIGEST scope=GENERAL_STATUS privacy=HEALTH_SENSITIVE
+OCCURRENCE=i10:care:status_digest:{health_subject_id}:{period_date}
+CARE_DATA_GAP scope=DEVICE_STATUS privacy=HEALTH_SENSITIVE
+TRIGGERS=STALE_DATA,NO_DATA (not PARTIAL_DATA)
+OCCURRENCE=i10:care:data_gap:{health_subject_id}:{gap_state}:{episode_end}
+PRODUCER=run_care_digest_producer_for_subject
+INTENT=create_i10_caregiver_delivery_intent
+WORKER=process_caregiver_delivery_intent
+INTAKE=enqueue_i10_notification()
+PRODUCER_FLAG=SEDI_I10_CARE_DIGEST_PRODUCER_ENABLED (default OFF)
+
+--------------------------------
+TRUTHFULNESS / BOUNDARIES
+--------------------------------
+
+NO_DATA_EQUALS_NORMAL=NO
+NO_ALERT_EQUALS_HEALTHY=NO
+DATA_GAP_EQUALS_MEDICAL_RISK=NO
+CARE_SAFETY=NOT_IMPLEMENTED
+CARE_ACTION=NOT_IMPLEMENTED
+PHONE_ONLY_AUTHORIZATION=NO
+CAREGIVER_ID_SUBSTITUTION=NO
+B14_DIRECT_NOTIFICATION_ORM=0
+B14_DIRECT_FCM=0
+
+--------------------------------
+CHAT CONTINUATION
+--------------------------------
+
+SOURCE_NOTIFICATION_ID=/interact/chat compatible
+REVALIDATION=build_safe_chat_context viewer_user_id + health_subject_id
+REVOKED_FAIL_CLOSED=care_notification_generic subject_context_available=false
+
+--------------------------------
+REAL CROSS-SECTION TESTS / CI
+--------------------------------
+
+REAL_POSTGRESQL=PASS
+REAL_I9_TO_CARE_NETWORK=PASS
+REAL_MULTI_CAREGIVER=PASS
+REAL_REVOKED_CHAT=PASS
+B14_TEST_COUNT=31
+CI_RUN_ID=33478506719
+CI_RESULT=PASS
+COMMIT_SHA=75baf0db
+SELF_HEAL_COMMITS=fcf99e60
+FINAL_HEAD=fcf99e60
+DOCS_COMMIT_SHA=PENDING
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v704_FA.md
+MASTER_LOG_TIP=§412
+CURSOR_HANDOFF_TIP=v704
+NEXT_PROPOSED_GATE=I10-B15
