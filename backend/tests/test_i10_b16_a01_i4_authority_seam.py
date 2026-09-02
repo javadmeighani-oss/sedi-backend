@@ -573,16 +573,15 @@ def test_transaction_retry_does_not_duplicate(db, a01_patches):
     calls = {"n": 0}
     real = persist_i4_emergency_escalation
 
-    def _post_commit_fail(*args, **kwargs):
-        rec = real(*args, **kwargs)
+    def _fail_once_then_persist(*args, **kwargs):
         calls["n"] += 1
         if calls["n"] == 1:
-            raise RuntimeError("post_commit_retry")
-        return rec
+            raise RuntimeError("bounded_failure")
+        return real(*args, **kwargs)
 
     with patch(
         "backend.app.services.section10.i4_emergency_escalation.persist_i4_emergency_escalation",
-        side_effect=_post_commit_fail,
+        side_effect=_fail_once_then_persist,
     ):
         from backend.app.services.section10.i4_emergency_escalation import (
             attempt_i4_emergency_escalation_from_interact,
