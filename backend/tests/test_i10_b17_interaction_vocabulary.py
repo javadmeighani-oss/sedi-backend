@@ -37,7 +37,7 @@ from backend.app.services.i10.medication_adherence import MedicationAdherenceSta
 from backend.app.services.i10.policy_types import I10NotificationScope, I10SemanticFamily
 from backend.app.services.i8.local_day import resolve_local_day_window
 from backend.app.services.i8.repository import I8OperationalRepository
-from backend.app.services.i9.health_subject_service import ensure_self_subject_for_account
+from backend.app.services.i9.health_subject_service import create_managed_subject_without_account, ensure_self_subject_for_account
 from backend.app.services.medication_scheduler import process_medication_reminders
 from backend.app.services.notification_engine import DecisionEngine
 from backend.app.services.section10.event_reminder_scheduler import process_event_reminders
@@ -354,7 +354,10 @@ def test_coaching_ack_does_not_complete_i8_action(client, db, b17_patches):
 def _care_action_notification(db):
     owner = _user(db, "ca-owner")
     cg = _user(db, "ca-cg")
-    subject = ensure_self_subject_for_account(db, owner.id, commit=True)
+    subject = create_managed_subject_without_account(
+        db, account_user_id=owner.id, display_name="Parent", access_role="MANAGER"
+    )
+    assert subject.linked_user_id is None
     grant_caregiver_subject_access(
         db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg.id
     )
@@ -628,6 +631,7 @@ def test_interaction_failure_rolls_back_without_partial_feedback(db, b17_patches
     db.add(notif)
     db.commit()
     db.refresh(notif)
+    notif_id = notif.id
 
     with patch(
         "backend.app.services.i10.interaction_recorder.create_interaction_event",
@@ -635,7 +639,7 @@ def test_interaction_failure_rolls_back_without_partial_feedback(db, b17_patches
     ):
         with pytest.raises(RuntimeError):
             submit_notification_feedback(
-                notification_id=notif.id,
+                notification_id=notif_id,
                 payload={"reaction": "like"},
                 auth_user=user,
                 user_id=None,
@@ -643,8 +647,8 @@ def test_interaction_failure_rolls_back_without_partial_feedback(db, b17_patches
             )
         db.rollback()
 
-    assert db.query(models.NotificationFeedback).filter_by(notification_id=notif.id).count() == 0
-    assert db.query(models.InteractionEvent).filter_by(source_notification_id=notif.id).count() == 0
+    assert db.query(models.NotificationFeedback).filter_by(notification_id=notif_id).count() == 0
+    assert db.query(models.InteractionEvent).filter_by(source_notification_id=notif_id).count() == 0
 
 
 # Static vocabulary / authority constants
