@@ -102,7 +102,6 @@ def enqueue_i10_notification(
             candidate=candidate,
             payload_metadata=payload.metadata,
             notification_type=payload.type,
-            channel=str((payload.metadata or {}).get("channel") or "push"),
         )
         decision = policy_outcome.decision
         reason = policy_outcome.reason_code

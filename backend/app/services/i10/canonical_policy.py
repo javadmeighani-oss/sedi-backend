@@ -17,6 +17,7 @@ from backend.app.services.i10.b14_overlap_policy import evaluate_b14_overlap
 from backend.app.services.i10.contracts import I10NotificationCandidate
 from backend.app.services.i10.delivery_readiness import notification_prefs_allow_scope
 from backend.app.services.i10.policy_types import I10DecisionValue, I10SemanticFamily
+from backend.app.services.notification_engine import _channel_for_type
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ def evaluate_i10_canonical_policy(
     candidate: I10NotificationCandidate,
     payload_metadata: Mapping[str, Any] | None = None,
     notification_type: str = "health_alert",
-    channel: str = "push",
+    channel: str | None = None,
     now_utc: Optional[datetime] = None,
 ) -> I10CanonicalPolicyOutcome:
     """
@@ -157,6 +158,7 @@ def evaluate_i10_canonical_policy(
         {**metadata, "category": metadata.get("category")},
     )
     template_key = metadata.get("template_key")
+    effective_channel = _channel_for_type(notification_type) or str(metadata.get("channel") or "push")
 
     try:
         resolved = resolve_notification_policy(
@@ -164,7 +166,7 @@ def evaluate_i10_canonical_policy(
             user_id=candidate.recipient_user_id,
             risk=risk,
             category=str(category).strip().lower(),
-            channel=channel,
+            channel=effective_channel,
             now_utc=effective_now,
             template_key=str(template_key) if template_key else None,
             is_user_active_conversation=False,
