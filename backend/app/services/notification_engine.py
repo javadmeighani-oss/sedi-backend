@@ -532,19 +532,24 @@ class NotificationBuilder:
         )
 
         existing_should_enqueue = True
-        from backend.app.services.gate4.policy_resolver import evaluate_enqueue_with_gate4_policy
+        meta = payload.metadata or {}
+        if meta.get("i10_canonical_policy_applied"):
+            should_enqueue = existing_should_enqueue
+            _policy = None
+        else:
+            from backend.app.services.gate4.policy_resolver import evaluate_enqueue_with_gate4_policy
 
-        should_enqueue, _policy = evaluate_enqueue_with_gate4_policy(
-            self.db,
-            user_id=payload.user_id,
-            existing_should_enqueue=existing_should_enqueue,
-            notification_type=payload.type,
-            priority=payload.priority or "normal",
-            channel=channel,
-            metadata=payload.metadata,
-            source_type=payload.source_type,
-            template_key=payload.template_key or trace.get("template_key"),
-        )
+            should_enqueue, _policy = evaluate_enqueue_with_gate4_policy(
+                self.db,
+                user_id=payload.user_id,
+                existing_should_enqueue=existing_should_enqueue,
+                notification_type=payload.type,
+                priority=payload.priority or "normal",
+                channel=channel,
+                metadata=payload.metadata,
+                source_type=payload.source_type,
+                template_key=payload.template_key or trace.get("template_key"),
+            )
         if not should_enqueue:
             logger.info(
                 "[NOTIF] suppressed by gate4 policy type=%s user=%s",

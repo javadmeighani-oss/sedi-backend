@@ -15,6 +15,7 @@ from backend.app.services.i10.authorization import (
     validate_recipient_notification_authorization,
 )
 from backend.app.services.i10.contracts import I10NotificationCandidate
+from backend.app.services.i10.canonical_policy import evaluate_i10_canonical_policy
 from backend.app.services.i10.decision_ledger import link_decision_to_notification, record_notification_decision
 from backend.app.services.i10.policy_types import I10DecisionValue, I10PrivacyClass, I10RecipientKind
 from backend.app.services.notification_engine import NotificationBuilder
@@ -36,7 +37,7 @@ def evaluate_foundation_policy(
     candidate: I10NotificationCandidate,
     authorized: bool,
 ) -> tuple[I10DecisionValue, str]:
-    """B01 minimal policy — full timing/fatigue deferred to later gates."""
+    """Legacy B01 hook — authorization-only; canonical policy runs in enqueue."""
     if not authorized:
         return I10DecisionValue.SUPPRESS, "AUTHORIZATION_DENIED"
     if candidate.expires_at is not None:
@@ -95,6 +96,19 @@ def enqueue_i10_notification(
         )
 
     decision, reason = evaluate_foundation_policy(candidate=candidate, authorized=authorized)
+    if decision == I10DecisionValue.SEND:
+        policy_outcome = evaluate_i10_canonical_policy(
+            db,
+            candidate=candidate,
+            payload_metadata=payload.metadata,
+            notification_type=payload.type,
+            channel=str((payload.metadata or {}).get("channel") or "push"),
+        )
+        decision = policy_outcome.decision
+        reason = policy_outcome.reason_code
+        if policy_outcome.defer_until is not None:
+            payload.scheduled_for = policy_outcome.defer_until.replace(tzinfo=None)
+
     decision_row = record_notification_decision(
         db,
         candidate=candidate,
@@ -105,7 +119,7 @@ def enqueue_i10_notification(
         commit=True,
     )
 
-    if decision != I10DecisionValue.SEND:
+    if decision not in (I10DecisionValue.SEND, I10DecisionValue.DEFER):
         return I10IntakeResult(
             decision=decision,
             reason_code=reason,
@@ -122,6 +136,11 @@ def enqueue_i10_notification(
     payload.recipient_kind = recipient_kind.value if recipient_kind else I10RecipientKind.SELF.value
     payload.privacy_class = candidate.privacy_hint.value
     payload.i10_policy_decision_id = int(decision_row.id)
+    payload.metadata = {
+        **(payload.metadata or {}),
+        "i10_canonical_policy_applied": True,
+        "i10_policy_reason": reason,
+    }
 
     builder = NotificationBuilder(db)
     notification = builder.persist(payload, check_dedupe=check_dedupe)
