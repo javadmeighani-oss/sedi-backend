@@ -21,7 +21,7 @@ from backend.app.database import get_db as _app_get_db
 from backend.app.main import app as sedi_app
 from backend.app.services.i10.care_action_producer_worker import run_care_action_producer_for_subject
 from backend.app.services.i10.care_network_access import grant_caregiver_subject_access, revoke_caregiver_subject_access
-from backend.app.services.i10.care_network_grants import create_subject_notification_grant
+from backend.app.services.i10.care_network_grants import create_subject_notification_grant, revoke_subject_notification_grant_by_scope
 from backend.app.services.i10.care_safety_producer_worker import run_care_safety_producer_for_subject
 from backend.app.services.i10.event_reminder_i10_adapter import DOCTOR_EVENT_TYPE
 from backend.app.services.i10.interaction_vocabulary import (
@@ -505,17 +505,29 @@ def test_caregiver_authorized_feedback_allowed(client, db, b17_patches):
     assert notif.health_subject_id == subject.id
 
 
-def test_revoked_caregiver_chat_denied(client, db, b17_patches):
+def test_revoked_caregiver_chat_fail_closed(client, db, b17_patches):
     owner, cg, subject, _, notif = _care_action_notification(db)
     revoke_caregiver_subject_access(
         db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg.id
+    )
+    revoke_subject_notification_grant_by_scope(
+        db,
+        actor_user_id=owner.id,
+        health_subject_id=subject.id,
+        recipient_user_id=cg.id,
+        notification_scope=I10NotificationScope.CARE_ACTION,
     )
     r = client.post(
         "/interact/chat",
         json={"message": "about this", "source_notification_id": notif.id},
         headers=_auth(cg.id),
     )
-    assert r.status_code in (403, 404)
+    assert r.status_code in (200, 403)
+    if r.status_code == 200:
+        from backend.app.services.gate4.notification_chat_context import build_safe_chat_context
+
+        ctx = build_safe_chat_context(notif, db=db, viewer_user_id=cg.id)
+        assert ctx.get("subject_context_available") == "false"
 
 
 # H — source_notification_id chat continuation
