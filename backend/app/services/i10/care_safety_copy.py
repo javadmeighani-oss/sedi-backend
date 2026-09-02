@@ -7,6 +7,10 @@ from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFa
 
 PRODUCER_OWNER = "I10_CARE_SAFETY"
 
+# Source-owned interruption policy risk (not clinical I4 classification).
+CARE_SAFETY_INTERRUPTION_POLICY_RISK = "critical"
+CARE_SAFETY_POLICY_RISK_SOURCE = "I10_CARE_SAFETY_I4_ESCALATION"
+
 
 def build_care_safety_occurrence_key(
     *,
@@ -57,6 +61,8 @@ def build_care_safety_metadata(
         "source_entity_id": str(record.id),
         "health_subject_id": health_subject_id,
         "bounded_detail_included": include_bounded_detail,
+        "policy_risk_level": CARE_SAFETY_INTERRUPTION_POLICY_RISK,
+        "policy_risk_source": CARE_SAFETY_POLICY_RISK_SOURCE,
     }
     if include_bounded_detail and record.reason_category:
         bounded_reason = str(record.reason_category).strip()[:64]

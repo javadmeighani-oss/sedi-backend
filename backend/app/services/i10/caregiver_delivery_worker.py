@@ -88,6 +88,23 @@ def _build_delivery_payload(
     template_key = metadata.get("template_key") or intent.source_entity_type or "i10_care_network"
     source_type = intent.source_entity_type or "caregiver_delivery"
     source_id = str(intent.source_entity_id or intent.id)
+    policy_risk = metadata.get("policy_risk_level")
+    policy_risk_source = metadata.get("policy_risk_source")
+    payload_meta = {
+        "data_status": metadata.get("data_status"),
+        "trigger_reason": metadata.get("trigger_reason"),
+        "schedule_label": metadata.get("schedule_label"),
+        "gap_episode_end": metadata.get("gap_episode_end"),
+    }
+    if policy_risk:
+        payload_meta["policy_risk_level"] = policy_risk
+    if policy_risk_source:
+        payload_meta["policy_risk_source"] = policy_risk_source
+    effective_risk = (
+        str(policy_risk).strip().lower()
+        if policy_risk
+        else NotificationRiskLevel.INFORMATIONAL.value
+    )
     return NotificationPayload(
         user_id=intent.recipient_user_id,
         type="health_alert",
@@ -98,16 +115,11 @@ def _build_delivery_payload(
         health_subject_id=intent.health_subject_id,
         semantic_family=candidate.semantic_family.value,
         privacy_class=candidate.privacy_hint.value,
-        metadata={
-            "data_status": metadata.get("data_status"),
-            "trigger_reason": metadata.get("trigger_reason"),
-            "schedule_label": metadata.get("schedule_label"),
-            "gap_episode_end": metadata.get("gap_episode_end"),
-        },
+        metadata=payload_meta,
         category=NotificationCategory.DAILY_STATUS.value,
         source_type=NotificationSourceType.DAILY_ROUTINE.value,
         source_id=source_id[:255],
-        risk_level=NotificationRiskLevel.INFORMATIONAL.value,
+        risk_level=effective_risk,
         template_key=str(template_key)[:100],
         context=context,
     )

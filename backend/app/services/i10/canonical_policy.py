@@ -14,6 +14,7 @@ from backend.app.services.gate4.notification_context import map_notification_typ
 from backend.app.services.gate4.notification_policy import GATE4D_POLICY_VERSION
 from backend.app.services.gate4.policy_resolver import resolve_notification_policy
 from backend.app.services.i10.b14_overlap_policy import evaluate_b14_overlap
+from backend.app.services.i10.care_safety_copy import CARE_SAFETY_POLICY_RISK_SOURCE
 from backend.app.services.i10.contracts import I10NotificationCandidate
 from backend.app.services.i10.delivery_readiness import notification_prefs_allow_scope
 from backend.app.services.i10.policy_types import I10DecisionValue, I10SemanticFamily
@@ -21,7 +22,7 @@ from backend.app.services.notification_engine import _channel_for_type
 
 logger = logging.getLogger(__name__)
 
-I10_CANONICAL_POLICY_VERSION = "i10.b18.1"
+I10_CANONICAL_POLICY_VERSION = "i10.b18.2"
 
 _REASON_ALIASES = {
     "quiet_hours": "QUIET_HOURS_DEFER",
@@ -37,18 +38,38 @@ _REASON_ALIASES = {
     "resolver_fail_open": "POLICY_FAIL_OPEN_ALLOW",
 }
 
-_SAFETY_FAMILIES = frozenset(
-    {
-        I10SemanticFamily.CARE_SAFETY_ESCALATION.value,
-        I10SemanticFamily.SAFETY_ESCALATION.value,
-    }
-)
+def _authorized_critical_policy_risk(metadata: Mapping[str, Any]) -> Optional[str]:
+    """Accept CRITICAL only when B16 source contract explicitly provides it."""
+    policy_risk = metadata.get("policy_risk_level")
+    if not policy_risk:
+        return None
+    risk = str(policy_risk).strip().lower()
+    if risk != SmartNotificationRisk.CRITICAL.value:
+        return risk
+    source = str(metadata.get("policy_risk_source") or "").strip()
+    if source == CARE_SAFETY_POLICY_RISK_SOURCE:
+        return risk
+    return None
 
-_B14_GAP_FAMILIES = frozenset(
-    {
-        I10SemanticFamily.CARE_DATA_GAP.value,
-    }
-)
+
+def resolve_i10_policy_risk(
+    candidate: I10NotificationCandidate,
+    payload_metadata: Mapping[str, Any] | None,
+) -> str:
+    """Consume explicit upstream interruption policy risk only — no semantic inference."""
+    metadata = payload_metadata or {}
+    authorized_critical = _authorized_critical_policy_risk(metadata)
+    if authorized_critical is not None:
+        return authorized_critical
+    explicit = metadata.get("risk_level") or metadata.get("risk")
+    if explicit:
+        return str(explicit).strip().lower()
+    priority = candidate.priority_hint or metadata.get("priority")
+    if priority:
+        from backend.app.services.gate4.policy_resolver import map_priority_to_risk
+
+        return map_priority_to_risk(str(priority))
+    return SmartNotificationRisk.NORMAL.value
 
 
 @dataclass(frozen=True)
@@ -65,25 +86,6 @@ def _ensure_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
-
-
-def resolve_i10_policy_risk(
-    candidate: I10NotificationCandidate,
-    payload_metadata: Mapping[str, Any] | None,
-) -> str:
-    """Consume existing risk labels only — no inference from I9/RAG/LLM."""
-    metadata = payload_metadata or {}
-    explicit = metadata.get("risk_level") or metadata.get("risk")
-    if explicit:
-        return str(explicit).strip().lower()
-    if candidate.semantic_family.value in _SAFETY_FAMILIES:
-        return SmartNotificationRisk.CRITICAL.value
-    priority = candidate.priority_hint or metadata.get("priority")
-    if priority:
-        from backend.app.services.gate4.policy_resolver import map_priority_to_risk
-
-        return map_priority_to_risk(str(priority))
-    return SmartNotificationRisk.NORMAL.value
 
 
 def _normalize_reason(reason: str) -> str:

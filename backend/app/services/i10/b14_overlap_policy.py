@@ -11,8 +11,7 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.services.i10.caregiver_data_gap import DATA_GAP_TRIGGER_STATES
-from backend.app.services.i10.authorization import get_active_notification_grant
-from backend.app.services.i10.policy_types import I10NotificationScope, I10SemanticFamily
+from backend.app.services.i10.policy_types import I10SemanticFamily
 
 B14_OVERLAP_REASON_STATUS_REDUNDANT = "B14_STATUS_REDUNDANT_WITH_GAP"
 B14_OVERLAP_REASON_KEEP_BOTH = "B14_KEEP_BOTH"
@@ -69,8 +68,7 @@ def _has_gap_intent_or_notification(
     )
     for intent in intents:
         meta = _metadata_dict(intent.payload_metadata_json)
-        key = _episode_key(meta)
-        if key == episode_key:
+        if _episode_keys_equivalent(episode_key, meta):
             return True
     notifications = (
         db.query(models.Notification)
@@ -83,9 +81,27 @@ def _has_gap_intent_or_notification(
     )
     for notif in notifications:
         ctx = _metadata_dict(notif.context_json)
-        meta = {**ctx, "data_status": (notif.metadata_json and _metadata_dict(notif.metadata_json).get("data_status"))}
-        key = _episode_key(meta)
-        if key == episode_key:
+        meta = {**ctx}
+        if notif.metadata_json:
+            meta.update(_metadata_dict(notif.metadata_json))
+        if _episode_keys_equivalent(episode_key, meta):
+            return True
+    return False
+
+
+def _episode_keys_equivalent(status_episode: str, gap_meta: Mapping[str, Any]) -> bool:
+    gap_key = _episode_key(gap_meta)
+    if gap_key == status_episode:
+        return True
+    if not status_episode or ":" not in status_episode:
+        return False
+    data_status, period = status_episode.split(":", 1)
+    gap_ds = str(gap_meta.get("data_status") or "").strip().upper()
+    if gap_ds != data_status.upper():
+        return False
+    for period_key in ("gap_episode_end", "schedule_label"):
+        val = gap_meta.get(period_key)
+        if val and str(val) == period:
             return True
     return False
 
@@ -102,8 +118,8 @@ def evaluate_b14_overlap(
     Deterministic B14 overlap for same subject/recipient/window.
 
     Never merges semantic truth — only suppresses redundant status interruption
-    when bounded metadata shows the digest adds no independent information beyond
-    an existing or imminent CARE_DATA_GAP episode.
+    when a matching CARE_DATA_GAP intent or notification is proven for the same
+    subject, recipient, and bounded episode.
     """
     if semantic_family == I10SemanticFamily.CARE_SAFETY_ESCALATION:
         return B14OverlapDecision(
@@ -131,20 +147,6 @@ def evaluate_b14_overlap(
             classification_available=True,
         )
 
-    device_grant = get_active_notification_grant(
-        db,
-        health_subject_id=health_subject_id,
-        recipient_user_id=recipient_user_id,
-        notification_scope=I10NotificationScope.DEVICE_STATUS,
-    )
-    if device_grant is None:
-        return B14OverlapDecision(
-            applies=True,
-            suppress_status_digest=False,
-            reason_code=B14_OVERLAP_REASON_KEEP_BOTH,
-            classification_available=True,
-        )
-
     trigger = str(metadata.get("trigger_reason") or "").strip()
     if trigger != "care_status_digest":
         return B14OverlapDecision(
@@ -163,13 +165,12 @@ def evaluate_b14_overlap(
             classification_available=False,
         )
 
-    gap_pending = _has_gap_intent_or_notification(
+    if _has_gap_intent_or_notification(
         db,
         health_subject_id=health_subject_id,
         recipient_user_id=recipient_user_id,
         episode_key=episode,
-    )
-    if gap_pending:
+    ):
         return B14OverlapDecision(
             applies=True,
             suppress_status_digest=True,
@@ -179,7 +180,7 @@ def evaluate_b14_overlap(
 
     return B14OverlapDecision(
         applies=True,
-        suppress_status_digest=True,
-        reason_code=B14_OVERLAP_REASON_STATUS_REDUNDANT,
+        suppress_status_digest=False,
+        reason_code=B14_OVERLAP_REASON_KEEP_BOTH,
         classification_available=True,
     )

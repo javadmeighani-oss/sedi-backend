@@ -17,6 +17,10 @@ from backend.app.database import get_db as _app_get_db
 from backend.app.main import app as sedi_app
 from backend.app.services.gate4.notification_contract import SmartNotificationRisk
 from backend.app.services.i10.b14_overlap_policy import B14_OVERLAP_REASON_STATUS_REDUNDANT
+from backend.app.services.i10.care_safety_copy import (
+    CARE_SAFETY_INTERRUPTION_POLICY_RISK,
+    CARE_SAFETY_POLICY_RISK_SOURCE,
+)
 from backend.app.services.i10.canonical_policy import (
     I10_CANONICAL_POLICY_VERSION,
     evaluate_i10_canonical_policy,
@@ -93,6 +97,15 @@ def _feedback(client, user: models.User, notification_id: int, payload: dict):
         json=payload,
         headers=_auth(user),
     )
+
+
+def _safety_policy_meta(**extra) -> dict:
+    meta = {
+        "policy_risk_level": CARE_SAFETY_INTERRUPTION_POLICY_RISK,
+        "policy_risk_source": CARE_SAFETY_POLICY_RISK_SOURCE,
+    }
+    meta.update(extra)
+    return meta
 
 
 def _candidate(**kwargs) -> I10NotificationCandidate:
@@ -278,8 +291,8 @@ def test_critical_safety_bypasses_quiet_hours(db, b18_env):
         semantic_family=I10SemanticFamily.CARE_SAFETY_ESCALATION,
         candidate_key="i10:safety:1",
     )
-    assert resolve_i10_policy_risk(cand, {}) == SmartNotificationRisk.CRITICAL.value
-    outcome = evaluate_i10_canonical_policy(db, candidate=cand, now_utc=now_utc)
+    assert resolve_i10_policy_risk(cand, _safety_policy_meta()) == SmartNotificationRisk.CRITICAL.value
+    outcome = evaluate_i10_canonical_policy(db, candidate=cand, payload_metadata=_safety_policy_meta(), now_utc=now_utc)
     assert outcome.decision == I10DecisionValue.SEND
     assert outcome.reason_code == "CRITICAL_ALLOWED"
 
@@ -313,7 +326,7 @@ def test_critical_pref_off_still_suppressed(db, b18_env):
         semantic_family=I10SemanticFamily.CARE_SAFETY_ESCALATION,
         candidate_key="i10:safety:2",
     )
-    outcome = evaluate_i10_canonical_policy(db, candidate=cand)
+    outcome = evaluate_i10_canonical_policy(db, candidate=cand, payload_metadata=_safety_policy_meta())
     assert outcome.decision == I10DecisionValue.SUPPRESS
     assert "PREFS" in outcome.reason_code
 
@@ -383,6 +396,7 @@ def test_recipient_isolation_not_now(db, b18_env, client):
 
 
 def test_b14_overlap_suppresses_redundant_status(db, b18_env):
+    """Same producer run keeps both when gap is not proven before status evaluation."""
     owner = _user(db, "b14-owner")
     cg = _user(db, "b14-cg")
     subject = ensure_self_subject_for_account(db, owner.id, commit=True)
@@ -443,13 +457,13 @@ def test_b14_overlap_suppresses_redundant_status(db, b18_env):
         .count()
     )
     assert gap_notifs == 1
-    assert status_notifs == 0
-    suppressed = (
+    assert status_notifs == 1
+    assert (
         db.query(models.I10NotificationDecision)
         .filter(models.I10NotificationDecision.reason_code == B14_OVERLAP_REASON_STATUS_REDUNDANT)
         .count()
+        == 0
     )
-    assert suppressed >= 1
 
 
 def test_care_action_not_mutated_by_policy_suppress(db, b18_env):
@@ -514,4 +528,4 @@ def test_care_action_not_mutated_by_policy_suppress(db, b18_env):
 
 
 def test_vocabulary_constants():
-    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.1"
+    assert I10_CANONICAL_POLICY_VERSION == "i10.b18.2"
