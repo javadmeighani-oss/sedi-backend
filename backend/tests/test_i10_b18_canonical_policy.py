@@ -83,15 +83,15 @@ def _user(db, name: str) -> models.User:
     return row
 
 
-def _token(user: models.User) -> str:
-    return create_access_token({"sub": str(user.id)})
+def _auth(user: models.User) -> dict[str, str]:
+    return {"Authorization": f"Bearer {create_access_token({'user_id': user.id})}"}
 
 
 def _feedback(client, user: models.User, notification_id: int, payload: dict):
     return client.post(
         f"/notifications/{notification_id}/feedback",
         json=payload,
-        headers={"Authorization": f"Bearer {_token(user)}"},
+        headers=_auth(user),
     )
 
 
@@ -188,7 +188,8 @@ def test_active_conversation_defer(db, b18_env):
         models.InteractionEvent(
             user_id=user.id,
             event_type="chat_message",
-            channel="text",
+            source="chat",
+            interaction_channel="text",
             created_at=now.replace(tzinfo=None),
         )
     )
@@ -238,7 +239,7 @@ def test_not_now_suppresses_later_candidate(db, b18_env, client):
         db,
         candidate=cand,
         payload_metadata={"template_key": "companion_ping", "category": "companion"},
-        channel="companion",
+        notification_type="companion_ping",
     )
     assert outcome.decision == I10DecisionValue.SUPPRESS
     assert "FEEDBACK" in outcome.reason_code
@@ -367,8 +368,18 @@ def test_recipient_isolation_not_now(db, b18_env, client):
         notification_scope=I10NotificationScope.GENERAL_STATUS,
     )
     meta = {"template_key": "companion_ping", "category": "companion"}
-    assert evaluate_i10_canonical_policy(db, candidate=cand_a, payload_metadata=meta, channel="companion").decision == I10DecisionValue.SUPPRESS
-    assert evaluate_i10_canonical_policy(db, candidate=cand_b, payload_metadata=meta, channel="companion").decision == I10DecisionValue.SEND
+    assert (
+        evaluate_i10_canonical_policy(
+            db, candidate=cand_a, payload_metadata=meta, notification_type="companion_ping"
+        ).decision
+        == I10DecisionValue.SUPPRESS
+    )
+    assert (
+        evaluate_i10_canonical_policy(
+            db, candidate=cand_b, payload_metadata=meta, notification_type="companion_ping"
+        ).decision
+        == I10DecisionValue.SEND
+    )
 
 
 def test_b14_overlap_suppresses_redundant_status(db, b18_env):
@@ -465,7 +476,7 @@ def test_care_action_not_mutated_by_policy_suppress(db, b18_env):
         )
     )
     when = datetime(2026, 8, 31, 18, 0, tzinfo=timezone.utc)
-    window = resolve_local_day_window(when, "Asia/Tehran")
+    window = resolve_local_day_window(db, owner.id, now_utc=when)
     repo = I8OperationalRepository(db)
     plan = repo.create_plan(user_id=owner.id, health_subject_id=subject.id, plan_type="routine", status="ACTIVE")
     action = repo.create_action(

@@ -101,6 +101,8 @@ def _build_delivery_payload(
         metadata={
             "data_status": metadata.get("data_status"),
             "trigger_reason": metadata.get("trigger_reason"),
+            "schedule_label": metadata.get("schedule_label"),
+            "gap_episode_end": metadata.get("gap_episode_end"),
         },
         category=NotificationCategory.DAILY_STATUS.value,
         source_type=NotificationSourceType.DAILY_ROUTINE.value,
