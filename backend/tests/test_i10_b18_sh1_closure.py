@@ -763,8 +763,8 @@ def test_intake_transaction_failure_retry_safe(db, sh1_env):
     with patch("backend.app.services.notification_engine.NotificationBuilder.persist", _fail_once):
         with pytest.raises(RuntimeError):
             enqueue_i10_notification(db, candidate=cand, payload=payload)
-        db.rollback()
 
+    db.expire_all()
     result = enqueue_i10_notification(db, candidate=cand, payload=payload)
     assert result.decision == I10DecisionValue.SEND
     assert result.notification_id is not None
