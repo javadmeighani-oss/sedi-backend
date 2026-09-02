@@ -438,6 +438,7 @@ def _emergency_assessment() -> RiskAssessment:
     )
 
 
+def test_safety_escalation_ack_no_i4_mutation(client, db, b17_patches):
     owner = _user(db, "safety-owner")
     cg = _user(db, "safety-cg")
     subject = ensure_self_subject_for_account(db, owner.id, commit=True)
