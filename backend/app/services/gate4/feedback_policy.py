@@ -61,12 +61,17 @@ def _normalize_channel(channel: Optional[str], notification: Any = None) -> str:
     if channel:
         return str(channel).strip().lower()[:50]
     if notification is not None:
+        notif_type = getattr(notification, "type", None)
+        if notif_type:
+            from backend.app.services.notification_engine import _channel_for_type
+
+            mapped = _channel_for_type(str(notif_type))
+            if mapped:
+                return mapped[:50]
+            return _category_from_notification_type(str(notif_type))[:50]
         notif_channel = getattr(notification, "channel", None)
         if notif_channel:
             return str(notif_channel).strip().lower()[:50]
-        notif_type = getattr(notification, "type", None)
-        if notif_type:
-            return _category_from_notification_type(str(notif_type))[:50]
     return "push"
 
 

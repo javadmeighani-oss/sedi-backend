@@ -476,10 +476,24 @@ def test_care_action_not_mutated_by_policy_suppress(db, b18_env):
         )
     )
     when = datetime(2026, 8, 31, 18, 0, tzinfo=timezone.utc)
+    db.add(models.UserProfileCore(user_id=owner.id, timezone="UTC"))
+    db.commit()
     window = resolve_local_day_window(db, owner.id, now_utc=when)
-    repo = I8OperationalRepository(db)
-    plan = repo.create_plan(user_id=owner.id, health_subject_id=subject.id, plan_type="routine", status="ACTIVE")
+    repo = I8OperationalRepository()
+    plan = repo.create_plan(
+        db,
+        user_id=owner.id,
+        user_local_date=window.user_local_date,
+        timezone_snapshot=window.timezone_snapshot,
+        generation_mode="proactive",
+        plan_idempotency_key=f"plan-{subject.id}",
+        valid_from=window.valid_from,
+        valid_until=window.valid_until,
+        expires_at=window.expires_at,
+    )
     action = repo.create_action(
+        db,
+        user_id=owner.id,
         plan_id=plan.id,
         action_domain="routine",
         action_type="routine_care_item",
