@@ -17,8 +17,10 @@ from backend.app.core.security import create_access_token
 from backend.app.database import get_db as _app_get_db
 from backend.app.main import app as sedi_app
 from backend.app.schemas.notification import NotificationPayload
+from backend.app.services.gate4.feedback_policy import apply_feedback_policy
 from backend.app.services.gate4.notification_contract import (
     NOT_NOW_SUPPRESS_HOURS,
+    SmartNotificationAction,
     SmartNotificationRisk,
 )
 from backend.app.services.i10.b14_overlap_policy import (
@@ -512,7 +514,16 @@ def test_feedback_expiry_restores_eligibility(db, sh1_env, client):
     db.commit()
     db.refresh(notif)
     base = datetime(2026, 7, 2, 12, 0, tzinfo=timezone.utc)
-    _feedback(client, user, notif.id, {"reaction": "interact", "action_id": "NOT_NOW"})
+    apply_feedback_policy(
+        db,
+        user_id=user.id,
+        notification=notif,
+        canonical_action=SmartNotificationAction.NOT_NOW.value,
+        now_utc=base,
+        template_key="companion_ping",
+        category="companion",
+    )
+    db.commit()
     cand = _candidate(
         health_subject_id=subject.id,
         recipient_user_id=user.id,
@@ -630,8 +641,13 @@ def test_critical_caregiver_pref_off_blocks_delivery(db, sh1_env):
     _authoritative_escalation(db, owner, subject)
     run_care_safety_producer_for_subject(db, health_subject_id=subject.id, deliver=True, commit=True)
     assert db.query(models.Notification).filter(models.Notification.user_id == cg.id).count() == 0
-    decision = db.query(models.I10NotificationDecision).one()
-    assert decision.decision == "SUPPRESS"
+    intent = (
+        db.query(models.CaregiverNotificationIntent)
+        .filter(models.CaregiverNotificationIntent.recipient_user_id == cg.id)
+        .one()
+    )
+    assert intent.status == "suppressed"
+    assert "PREFS" in (intent.failure_reason or "")
 
 
 def test_duplicate_same_occurrence_one_outcome(db, sh1_env):
@@ -646,7 +662,7 @@ def test_duplicate_same_occurrence_one_outcome(db, sh1_env):
     first = process_caregiver_delivery_intent(db, intent, commit=True)
     second = process_caregiver_delivery_intent(db, intent, commit=True)
     assert first["status"] == "processed"
-    assert second["status"] == "processed"
+    assert second["status"] == "idempotent"
     assert db.query(models.Notification).filter(models.Notification.user_id == cg.id).count() == 1
 
 
@@ -696,21 +712,23 @@ def test_notification_to_chat_preserves_context(db, sh1_env, client):
 
 
 def test_intake_transaction_failure_retry_safe(db, sh1_env):
-    owner = _user(db, "tx-fail")
+    owner = _user(db, "tx-fail-owner")
+    cg = _user(db, "tx-fail-cg")
     subject = ensure_self_subject_for_account(db, owner.id, commit=True)
     grant_caregiver_subject_access(
-        db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=owner.id
+        db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg.id
     )
     create_subject_notification_grant(
         db,
         actor_user_id=owner.id,
         health_subject_id=subject.id,
-        recipient_user_id=owner.id,
+        recipient_user_id=cg.id,
         notification_scope=I10NotificationScope.GENERAL_STATUS,
     )
+    db.add(models.PushDevice(user_id=cg.id, platform="android", fcm_token="fcm-tx", is_active=True))
     db.add(
         models.NotificationPrefs(
-            user_id=owner.id,
+            user_id=cg.id,
             companion_enabled=True,
             health_alert_enabled=True,
         )
@@ -719,11 +737,11 @@ def test_intake_transaction_failure_retry_safe(db, sh1_env):
     cand = _candidate(
         candidate_key="i10:tx:fail:1",
         health_subject_id=subject.id,
-        recipient_user_id=owner.id,
+        recipient_user_id=cg.id,
         notification_scope=I10NotificationScope.GENERAL_STATUS,
     )
     payload = NotificationPayload(
-        user_id=owner.id,
+        user_id=cg.id,
         type="health_alert",
         title="T",
         body="B",
@@ -750,4 +768,4 @@ def test_intake_transaction_failure_retry_safe(db, sh1_env):
     result = enqueue_i10_notification(db, candidate=cand, payload=payload)
     assert result.decision == I10DecisionValue.SEND
     assert result.notification_id is not None
-    assert db.query(models.Notification).filter(models.Notification.user_id == owner.id).count() == 1
+    assert db.query(models.Notification).filter(models.Notification.user_id == cg.id).count() == 1
