@@ -143,8 +143,10 @@ def attempt_i4_emergency_escalation_from_interact(
 
     occurrence_id = new_occurrence_id()
     record: Optional[models.EmergencyEscalationRecord] = None
-    for attempt in range(2):
+    for idx in range(2):
+        nested = None
         try:
+            nested = db.begin_nested()
             subject = ensure_self_subject_for_account(
                 db, authenticated_user_id, commit=False
             )
@@ -154,16 +156,19 @@ def attempt_i4_emergency_escalation_from_interact(
                 health_subject_id=int(subject.id),
                 risk_assessment=risk_assessment,
                 occurrence_id=occurrence_id,
-                commit=True,
+                commit=False,
             )
+            nested.commit()
+            db.commit()
             break
         except Exception:
             logger.exception("I4_ESCALATION_PERSIST_FAILED")
-            try:
-                db.rollback()
-            except Exception:
-                logger.exception("I4_ESCALATION_PERSIST_ROLLBACK_FAILED")
-            if attempt == 0:
+            if nested is not None:
+                try:
+                    nested.rollback()
+                except Exception:
+                    logger.exception("I4_ESCALATION_PERSIST_ROLLBACK_FAILED")
+            if idx == 0:
                 continue
             return
 
@@ -187,7 +192,3 @@ def attempt_i4_emergency_escalation_from_interact(
             )
     except Exception:
         logger.exception("I4_ESCALATION_PRODUCER_FAILED")
-        try:
-            db.rollback()
-        except Exception:
-            logger.exception("I4_ESCALATION_PRODUCER_ROLLBACK_FAILED")
