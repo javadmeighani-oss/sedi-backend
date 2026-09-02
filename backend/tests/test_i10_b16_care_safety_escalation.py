@@ -28,11 +28,20 @@ from backend.app.services.i10.managed_i8_action_binding import build_health_subj
 from backend.app.services.i10.policy_types import I10NotificationScope, I10SemanticFamily
 from backend.app.services.i8.local_day import resolve_local_day_window
 from backend.app.services.i8.repository import I8OperationalRepository
-from backend.app.services.i9.health_subject_service import create_managed_subject_without_account
+from backend.app.services.i9.health_subject_service import ensure_self_subject_for_account
+from backend.app.services.intelligence.contracts import (
+    RiskAssessment,
+    RiskDomain,
+    RiskLevel,
+    SafetyAction,
+)
+from backend.app.services.intelligence.safety_risk import REGISTRY_VERSION
 from backend.app.services.section10.emergency_escalation_service import (
     create_escalation_record,
     transition_escalation_state,
 )
+from backend.app.services.section10.i4_emergency_escalation import persist_i4_emergency_escalation
+from backend.app.services.section10.i4_escalation_provenance import new_occurrence_id
 
 pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
 
@@ -107,6 +116,17 @@ def _rollup(db, owner, subject, when):
     db.commit()
 
 
+def _emergency_assessment() -> RiskAssessment:
+    return RiskAssessment(
+        registry_version=REGISTRY_VERSION,
+        level=RiskLevel.EMERGENCY,
+        action=SafetyAction.RETURN_EMERGENCY_RESPONSE,
+        domain=RiskDomain.MEDICAL_EMERGENCY,
+        rule_id="i4.rule.emergency.medical.v1",
+        language="en",
+    )
+
+
 def _authoritative_escalation(
     db,
     owner: models.User,
@@ -115,9 +135,20 @@ def _authoritative_escalation(
     reason: str = "no_ack",
     state: str = AUTHORITATIVE_ESCALATION_STATE,
 ) -> models.EmergencyEscalationRecord:
-    rec = create_escalation_record(db, owner.id, reason)
-    rec = bind_escalation_health_subject_metadata(db, rec, health_subject_id=subject.id)
-    if state != "monitoring":
+    if state == "monitoring":
+        rec = create_escalation_record(db, owner.id, reason)
+        rec = bind_escalation_health_subject_metadata(db, rec, health_subject_id=subject.id)
+        return rec
+    rec = persist_i4_emergency_escalation(
+        db,
+        authenticated_user_id=owner.id,
+        health_subject_id=subject.id,
+        risk_assessment=_emergency_assessment(),
+        occurrence_id=new_occurrence_id(),
+        commit=True,
+    )
+    assert rec is not None
+    if state != AUTHORITATIVE_ESCALATION_STATE:
         rec = transition_escalation_state(db, rec, state)
     return rec
 
@@ -133,10 +164,10 @@ def _setup_caregivers(
     owner = _user(db, "owner")
     cg_a = _user(db, "cg-a")
     cg_b = _user(db, "cg-b")
-    subject = create_managed_subject_without_account(
-        db, account_user_id=owner.id, display_name="Parent", access_role="MANAGER"
+    subject = ensure_self_subject_for_account(
+        db, owner.id, display_name="Parent", commit=True
     )
-    assert subject.linked_user_id is None
+    assert subject.linked_user_id == owner.id
     for cg in (cg_a, cg_b):
         grant_caregiver_subject_access(
             db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg.id
@@ -391,8 +422,8 @@ def test_generic_alert_without_escalation_no_care_safety(db, b16_patches):
 def test_scope_matrix(db, b16_patches, scope, should_notify):
     owner = _user(db, "owner-scope")
     cg = _user(db, "cg-scope")
-    subject = create_managed_subject_without_account(
-        db, account_user_id=owner.id, display_name="ScopeParent", access_role="MANAGER"
+    subject = ensure_self_subject_for_account(
+        db, owner.id, display_name="ScopeParent", commit=True
     )
     grant_caregiver_subject_access(
         db, actor_user_id=owner.id, health_subject_id=subject.id, recipient_account_user_id=cg.id
@@ -424,6 +455,11 @@ def test_minimal_alert_without_sensitive_grant(db, b16_patches):
     assert "governed safety escalation" in body
     assert "78" not in body
     assert "bpm" not in body
+    assert "reason_category" not in body
+    intent = db.query(models.CaregiverNotificationIntent).one()
+    payload = json.loads(intent.payload_metadata_json or "{}")
+    assert "reason_category" not in payload
+    assert "reason_category" not in (payload.get("context") or {})
 
 
 def test_bounded_detail_with_sensitive_grant(db, b16_patches):
@@ -431,16 +467,20 @@ def test_bounded_detail_with_sensitive_grant(db, b16_patches):
     _authoritative_escalation(db, owner, subject, reason="no_ack")
     _run_pipeline(db, subject)
     notif = db.query(models.Notification).filter(models.Notification.user_id == cg_a.id).one()
-    assert "no_ack" in (notif.body or "")
+    assert "medical_emergency" in (notif.body or "")
+    intent = db.query(models.CaregiverNotificationIntent).one()
+    payload = json.loads(intent.payload_metadata_json or "{}")
+    assert payload.get("reason_category") == "medical_emergency"
 
 
 def test_protected_clinical_values_absent(db, b16_patches):
     owner, cg_a, _, subject = _setup_caregivers(db)
-    meta = {"health_subject_id": subject.id, "raw_hr": 180, "sample_value": 99.9}
-    rec = create_escalation_record(db, owner.id, "no_ack")
+    rec = _authoritative_escalation(db, owner, subject)
+    meta = json.loads(rec.metadata_json or "{}")
+    meta["raw_hr"] = 180
+    meta["sample_value"] = 99.9
     rec.metadata_json = json.dumps(meta)
     db.commit()
-    rec = transition_escalation_state(db, rec, AUTHORITATIVE_ESCALATION_STATE)
     _run_pipeline(db, subject)
     notif = db.query(models.Notification).filter(models.Notification.user_id == cg_a.id).one()
     body = notif.body or ""

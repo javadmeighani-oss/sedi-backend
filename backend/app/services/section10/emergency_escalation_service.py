@@ -123,6 +123,13 @@ def transition_escalation_state(
 ) -> models.EmergencyEscalationRecord:
     if new_state not in ESCALATION_STATES:
         raise ValueError(f"Invalid escalation state: {new_state}")
+    if new_state == "caregiver_escalation_ready":
+        from backend.app.services.section10.i4_escalation_provenance import (
+            record_has_valid_i4_provenance,
+        )
+
+        if not record_has_valid_i4_provenance(record):
+            raise ValueError("ready_state_requires_i4_provenance")
     record.current_state = new_state
     record.updated_at = datetime.utcnow()
     if new_state in {"resolved", "cancelled", "expired", "failed"}:

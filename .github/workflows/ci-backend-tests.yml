@@ -309,6 +309,7 @@ jobs:
         run: |
           python -m pytest -v \
             backend/tests/test_i10_b16_care_safety_escalation.py \
+            backend/tests/test_i10_b16_a01_i4_authority_seam.py \
             --noconftest --tb=short
 
   # -------------------------------------------------------------------------

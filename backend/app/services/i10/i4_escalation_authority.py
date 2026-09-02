@@ -14,12 +14,18 @@ TERMINAL_NON_ESCALATION_STATES = frozenset({"resolved", "cancelled", "expired", 
 
 
 def is_authoritative_care_safety_escalation(record: models.EmergencyEscalationRecord) -> bool:
-    """True only when Section-10 escalation is ready for governed caregiver notification."""
+    """True only when Section-10 escalation is ready with valid I4 provenance."""
+    from backend.app.services.section10.i4_escalation_provenance import (
+        record_has_valid_i4_provenance,
+    )
+
     if record.current_state != AUTHORITATIVE_ESCALATION_STATE:
         return False
     if record.current_state in TERMINAL_NON_ESCALATION_STATES:
         return False
     if record.resolved_at is not None:
+        return False
+    if not record_has_valid_i4_provenance(record):
         return False
     return True
 

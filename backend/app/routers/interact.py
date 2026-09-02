@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Request, Response
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
+import logging
 import os
 import uuid
 
@@ -24,6 +25,7 @@ from backend.app.schemas.onboarding import OnboardingRequest
 from backend.app.routers.auth_otp import get_current_user
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _legacy_onboarding_enabled() -> bool:
@@ -141,6 +143,22 @@ async def chat(
             safety_resp = build_fail_closed_response(
                 language=response_language  # type: ignore[arg-type]
             )
+        try:
+            from backend.app.services.section10.i4_emergency_escalation import (
+                attempt_i4_emergency_escalation_from_interact,
+            )
+
+            attempt_i4_emergency_escalation_from_interact(
+                db,
+                authenticated_user_id=user_id,
+                risk_assessment=safety_assessment,
+            )
+        except Exception:
+            logger.exception("I4_ESCALATION_SEAM_FAILED")
+            try:
+                db.rollback()
+            except Exception:
+                logger.exception("I4_ESCALATION_SEAM_ROLLBACK_FAILED")
         return InteractionResponse(
             message=safety_resp.localized_message,
             language=response_language,

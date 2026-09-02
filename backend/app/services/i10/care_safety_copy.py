@@ -44,15 +44,11 @@ def build_care_safety_metadata(
         "escalation_state": record.current_state,
         "source_summary_key": f"emergency_escalation:{record.id}",
     }
-    if include_bounded_detail and record.reason_category:
-        context["reason_category"] = str(record.reason_category).strip()[:64]
-
-    return {
+    payload: dict = {
         "title": "Safety escalation",
         "body": body,
         "template_key": "care_safety_escalation",
         "trigger_reason": "i4_escalation_occurrence",
-        "reason_category": str(record.reason_category).strip()[:64] if record.reason_category else None,
         "escalation_id": int(record.id),
         "context": context,
         "semantic_family": I10SemanticFamily.CARE_SAFETY_ESCALATION.value,
@@ -62,3 +58,8 @@ def build_care_safety_metadata(
         "health_subject_id": health_subject_id,
         "bounded_detail_included": include_bounded_detail,
     }
+    if include_bounded_detail and record.reason_category:
+        bounded_reason = str(record.reason_category).strip()[:64]
+        context["reason_category"] = bounded_reason
+        payload["reason_category"] = bounded_reason
+    return payload
