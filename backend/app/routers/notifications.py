@@ -1025,16 +1025,22 @@ def mark_notification_read(
             detail="You do not have permission to modify this notification.",
         )
     
-    # Mark as read (idempotent - safe to call multiple times)
-    notification.is_read = True
+    from backend.app.services.i10.interaction_recorder import record_notification_read
+
+    read_record = record_notification_read(
+        db,
+        notification=notification,
+        recipient_user_id=auth_user.id,
+    )
     db.commit()
     db.refresh(notification)
-    
-    # Return success response
-    return APIResponse(
-        ok=True,
-        data={"ok": True, "notification_id": notification_id, "is_read": True}
-    )
+
+    data = {"ok": True, "notification_id": notification_id, "is_read": True}
+    if read_record is not None:
+        data["interaction_event_id"] = read_record.interaction_event_id
+        data["canonical_verb"] = read_record.canonical_verb
+
+    return APIResponse(ok=True, data=data)
 
 
 # ------------------ POST /notifications/push/register (Stage 16.6) ------------------
@@ -1213,73 +1219,31 @@ def submit_notification_feedback(
             status_code=422,
             detail="action_id is required when reaction is 'interact'"
         )
-    event_type, eff_reaction, reason, feedback_text, timestamp, action_id = _normalize_feedback_payload(payload)
-    meta = {}
-    if reason:
-        meta["reason"] = reason
-    if feedback_text is not None:
-        meta["feedback_text"] = feedback_text
-    if timestamp:
-        meta["client_timestamp"] = timestamp
-    if action_id:
-        meta["action_id"] = action_id
-    if payload.get("meta"):
-        meta["legacy_meta"] = payload.get("meta")
-    meta_json = _json.dumps(meta) if meta else None
-    feedback_row = NotificationFeedback(
-        notification_id=notification_id,
-        user_id=user_id,
-        action=event_type,
-        meta_json=meta_json,
-    )
-    db.add(feedback_row)
-    from backend.app.services.gate4.interaction_event_service import (
-        create_notification_action_event_from_feedback,
-    )
+    from backend.app.services.i10.interaction_recorder import record_notification_interaction
 
-    create_notification_action_event_from_feedback(
+    record_result = record_notification_interaction(
         db,
-        user_id=user_id,
-        notification_id=notification_id,
+        notification=notification,
+        recipient_user_id=user_id,
         payload=payload,
-        legacy_event_type=event_type,
     )
-
-    gate4_feedback_summary = None
-    try:
-        from backend.app.services.gate4.feedback_policy import apply_feedback_policy
-        from backend.app.services.gate4.notification_contract import normalize_legacy_action
-
-        canonical_action = None
-        if action_id:
-            try:
-                canonical_action = normalize_legacy_action(str(action_id))
-            except ValueError:
-                canonical_action = None
-        elif eff_reaction:
-            try:
-                canonical_action = normalize_legacy_action(str(eff_reaction))
-            except ValueError:
-                canonical_action = None
-        if canonical_action:
-            gate4_feedback_summary = apply_feedback_policy(
-                db,
-                user_id=user_id,
-                notification=notification,
-                canonical_action=canonical_action,
-                template_key=getattr(notification, "template_key", None),
-                category=getattr(notification, "category", None),
-            )
-    except Exception:
-        _log.exception(
-            "[GATE4D6] feedback_policy_failed notification_id=%s user_id=%s",
-            notification_id,
-            user_id,
-        )
+    gate4_feedback_summary = record_result.gate4_feedback_summary
 
     db.commit()
     # B2 morning_brief path: need feedback_request (positive/negative/neutral)
-    feedback_type = "positive" if eff_reaction == "like" else ("negative" if eff_reaction == "dislike" else "neutral")
+    canonical = record_result.canonical_verb
+    feedback_type = (
+        "positive"
+        if canonical in ("LIKE",)
+        else ("negative" if canonical in ("DISLIKE", "DISLIKE_REASON") else "neutral")
+    )
+    reason = payload.get("reason")
+    eff_reaction = {
+        "LIKE": "like",
+        "DISLIKE": "dislike",
+        "DISLIKE_REASON": "dislike",
+        "NOT_NOW": "dismiss",
+    }.get(canonical, "open")
     feedback_request = type("FB", (), {"feedback": feedback_type, "reason": reason, "action": payload.get("action")})()
     # Check if this is a morning_brief notification
     is_morning_brief = (

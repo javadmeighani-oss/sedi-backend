@@ -454,7 +454,9 @@ def test_feedback_creates_interaction_event(db, user_a, notification_for_a):
         .filter(InteractionEvent.source_notification_id == notification_for_a.id)
         .one()
     )
-    assert evt.event_type == "notification_ack"
+    assert evt.event_type == "notification_like"
+    meta = json.loads(evt.metadata_json)
+    assert meta["canonical_verb"] == "LIKE"
 
 
 def test_feedback_open_chat_legacy_creates_open_chat_event(db, user_a, notification_for_a):

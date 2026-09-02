@@ -312,6 +312,12 @@ jobs:
             backend/tests/test_i10_b16_a01_i4_authority_seam.py \
             --noconftest --tb=short
 
+      - name: I10 B17 interaction vocabulary
+        run: |
+          python -m pytest -v \
+            backend/tests/test_i10_b17_interaction_vocabulary.py \
+            --noconftest --tb=short
+
   # -------------------------------------------------------------------------
   # W6-P02 / P11 isolated offline E2E + prior-package unit subset
   # Javad-authorized workflow edit of ONE existing workflow.
