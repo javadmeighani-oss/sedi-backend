@@ -185,12 +185,11 @@ def test_medication_stock_writer_retired():
     from types import SimpleNamespace
 
     from backend.app.services.section10.medication_stock_notification import (
-        maybe_create_medication_stock_notification,
+        maybe_create_stock_notification,
     )
-    from backend.app.services.section10.medication_stock_state import StockLevel
 
-    um = SimpleNamespace(user_id=1, id=1)
-    assert maybe_create_medication_stock_notification(None, um, StockLevel.LOW, bucket="2026-09-03") is None
+    um = SimpleNamespace(user_id=1, id=1, remaining_quantity=None, refill_threshold=None)
+    assert maybe_create_stock_notification(None, um, bucket="2026-09-03") is None
 
 
 def test_alembic_head_unchanged():

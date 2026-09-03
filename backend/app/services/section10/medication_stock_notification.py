@@ -14,28 +14,26 @@ from sqlalchemy.orm import Session
 
 from backend.app import models
 from backend.app.services.section10 import feature_flags
-from backend.app.services.section10.medication_stock_state import StockLevel
 
 logger = logging.getLogger(__name__)
 
 
-def _dedupe_key(user_id: int, medication_id: int, level: str, bucket: str) -> str:
-    return f"med_stock:{user_id}:{medication_id}:{level}:{bucket}"
+def _dedupe_key(user_id: int, medication_id: int, stock_level: str, bucket: str) -> str:
+    return f"med_stock:{user_id}:{medication_id}:{stock_level}:{bucket}"
 
 
-def maybe_create_medication_stock_notification(
+def maybe_create_stock_notification(
     db: Session,
     um: models.UserMedication,
-    level: StockLevel,
     *,
     bucket: str,
 ) -> Optional[models.Notification]:
     """Quarantined — I10-B19 RETIRED writer. No Notification ORM write."""
     logger.info(
-        "[I10-B19] medication_stock_notification retired user=%s med=%s level=%s flag=%s",
-        um.user_id,
-        um.id,
-        level.value,
+        "[I10-B19] medication_stock_notification retired user=%s med=%s bucket=%s flag=%s",
+        getattr(um, "user_id", None),
+        getattr(um, "id", None),
+        bucket,
         feature_flags.medication_stock_notifications_enabled(),
     )
     return None
