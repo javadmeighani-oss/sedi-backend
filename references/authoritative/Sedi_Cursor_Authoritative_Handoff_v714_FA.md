@@ -1,0 +1,63 @@
+# SEDI Cursor Authoritative Handoff - v714
+
+```text
+VERSION=v714
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v713
+v713_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§421
+GATE=SEDI-V1-BE-FINAL-ALS-E2E_SYSTEM_VALIDATION-01
+GATE_TYPE=INTEGRATED_AUDIT_PLUS_REAL_RUNTIME_VALIDATION
+GATE_RESULT=PASS
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+BASE_HEAD=a3fc5b1223b5e2086a9d1d8270b5ccbebd487e5f
+RUNTIME_TESTED_HEAD=fd2b066a
+FINAL_HEAD=2a942de66299ba0607f6ba1c9e171ed21cf1f5d1
+```
+
+```text
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+ALS_E2E_SYSTEM_RESULT=PASS
+READY_FOR_FRONTEND_REDESIGN=YES
+ALS_CONDITION_MODEL_GAP=YES
+TOKEN_TELEMETRY_GAP=YES
+PRODUCTION_KB_STATE=UNVERIFIED
+
+REAL_KEYWORD_RETRIEVAL=YES
+REAL_VECTOR_RETRIEVAL=NO
+REAL_HYBRID_RETRIEVAL=NO
+TEST_DB_KB_EMPTY=YES
+I4_I8_SUBJECT_KIND_SPLIT=YES
+
+SCHEMA_CHANGE=NO
+MIGRATION_CHANGE=NO
+PRODUCT_RUNTIME_CODE_CHANGE=NO
+ALEMBIC_HEAD=077_i10_medication_adherence_foundation
+
+TEST_COMMITS=540de68b,30b8465b,2a942de6
+FINAL_CI_RUN_ID=33791036454
+FINAL_CI_RESULT=PASS
+
+v713_MODIFIED=NO
+v714_CREATE_ONLY=YES
+
+NEXT_GATE_AUTHORIZED=NO
+MASTER_LOG_TIP=§421
+CURSOR_HANDOFF=v714
+READY_FOR_JAVAD_REVIEW=YES
+```
+
+## Gate snapshot (TEST/DOCS only)
+
+Integrated ALS-family scenario executed on ephemeral CI PostgreSQL (`pgvector/pgvector:pg15`) + real FastAPI TestClient + Alembic 077 isolated DB.
+
+Synthetic identities: ALS_USER_A / ALS_SUBJECT_A (SELF) / SPOUSE_ACCOUNT / DAUGHTER_ACCOUNT. I8 CARE_ACTION proven on sibling managed subject ALS_MANAGED_I8 because `is_managed_health_subject` requires `linked_user_id IS NULL`.
+
+I5/RAG audit of **test DB actual state**: 0 sources / 0 documents / 0 chunks; Persian I5 `retrieve_knowledge_context` returned `NO_ELIGIBLE_KNOWLEDGE`; KB embedding/vector/hybrid flags default OFF. Do not call this hybrid/vector RAG.
+
+Frontend must continue to honor v713 frozen contract; do not assume production KB contents or vector retrieval.
