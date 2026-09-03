@@ -227,7 +227,7 @@ def run_care_action_producer_scan(
     summary = {"processed": 0, "actions": 0, "intents": 0, "delivered": 0}
     for (subject_id,) in rows:
         outcome = run_care_action_producer_for_subject(
-            db, health_subject_id=int(subject_id), now=now, deliver=deliver, commit=True
+            db, health_subject_id=int(subject_id), when=now, deliver=deliver, commit=True
         )
         summary["processed"] += 1
         summary["actions"] += outcome.get("actions", 0)
