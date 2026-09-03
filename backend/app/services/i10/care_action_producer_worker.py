@@ -1,4 +1,8 @@
-"""I10-B15 managed-subject I8 CARE_ACTION producer → CaregiverNotificationIntent → B06."""
+"""I10-B15 I8 CARE_ACTION producer → CaregiverNotificationIntent → B06.
+
+Produces caregiver CARE_ACTION for MANAGED (unlinked) and SELF HealthSubjects
+when a governed I8 action is explicitly bound via context_refs.
+"""
 
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ from backend.app.services.i10.care_digest_producer_worker import resolve_subject
 from backend.app.services.i10.caregiver_delivery_intent import create_i10_caregiver_delivery_intent
 from backend.app.services.i10.caregiver_delivery_worker import process_caregiver_delivery_intent
 from backend.app.services.i10.managed_i8_action_binding import (
-    is_managed_health_subject,
+    load_active_care_action_subject,
     resolve_action_health_subject_id,
 )
 from backend.app.services.i10.policy_types import I10NotificationScope, I10PrivacyClass, I10SemanticFamily
@@ -67,13 +71,28 @@ def _authorized_care_action_recipients(
     return recipients
 
 
+def _plan_user_authorized_for_subject(
+    db: Session,
+    *,
+    plan: models.I8OperationalPlan,
+    subject: models.HealthSubject,
+) -> bool:
+    """I8 plan Account must be the SELF linked user or the MANAGED subject's owner."""
+    if subject.linked_user_id is not None:
+        return int(plan.user_id) == int(subject.linked_user_id)
+    owner_id = resolve_subject_owner_user_id(db, subject.id)
+    return owner_id is not None and int(plan.user_id) == int(owner_id)
+
+
 def list_eligible_managed_care_actions(
     db: Session,
     *,
     health_subject_id: int,
     now: datetime,
 ) -> list[tuple[models.I8OperationalPlanAction, models.I8OperationalPlan]]:
-    if not is_managed_health_subject(db, health_subject_id):
+    """Eligible governed I8 actions bound to this HealthSubject (SELF or MANAGED)."""
+    subject = load_active_care_action_subject(db, health_subject_id)
+    if subject is None:
         return []
     when = now if now.tzinfo else now.replace(tzinfo=timezone.utc)
     rows = (
@@ -93,6 +112,8 @@ def list_eligible_managed_care_actions(
     for action, plan in rows:
         bound_subject = resolve_action_health_subject_id(db, action)
         if bound_subject != health_subject_id:
+            continue
+        if not _plan_user_authorized_for_subject(db, plan=plan, subject=subject):
             continue
         if is_managed_care_action_eligible(action, plan, now=when):
             eligible.append((action, plan))
@@ -194,7 +215,6 @@ def run_care_action_producer_scan(
         )
         .filter(
             models.HealthSubject.status == "active",
-            models.HealthSubject.linked_user_id.is_(None),
             models.AccountHealthSubjectAccess.access_role == "CAREGIVER",
             models.AccountHealthSubjectAccess.is_active.is_(True),
             models.AccountHealthSubjectAccess.revoked_at.is_(None),

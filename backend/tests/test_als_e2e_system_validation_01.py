@@ -257,31 +257,12 @@ def _setup_als_family(db):
     ):
         _grant(db, patient.id, subject.id, daughter.id, scope)
 
-    # Managed sibling for I8 CARE_ACTION (self subjects are ineligible by design)
-    managed = create_managed_subject_without_account(
-        db,
-        account_user_id=patient.id,
-        display_name="ALS_MANAGED_I8",
-        access_role="MANAGER",
-    )
-    for cg in (spouse, daughter):
-        grant_caregiver_subject_access(
-            db,
-            actor_user_id=patient.id,
-            health_subject_id=managed.id,
-            recipient_account_user_id=cg.id,
-        )
-        _grant(db, patient.id, managed.id, cg.id, I10NotificationScope.CARE_ACTION)
-        _grant(db, patient.id, managed.id, cg.id, I10NotificationScope.GENERAL_STATUS)
-    _grant(db, patient.id, managed.id, spouse.id, I10NotificationScope.SAFETY_ESCALATION)
-
     return {
         "patient": patient,
         "spouse": spouse,
         "daughter": daughter,
         "stranger": stranger,
         "subject": subject,
-        "managed": managed,
     }
 
 
@@ -634,32 +615,32 @@ def test_f_i9_device_pipeline(db, gate_patches):
 
 
 # ---------------------------------------------------------------------------
-# G. I8 CARE_ACTION (managed subject only)
+# G. I8 CARE_ACTION on the SAME SELF ALS_SUBJECT_A
 # ---------------------------------------------------------------------------
 
 
 def test_g_i8_care_action(db, gate_patches):
     fam = _setup_als_family(db)
-    patient, spouse, daughter, managed, subject = (
+    patient, spouse, daughter, subject = (
         fam["patient"],
         fam["spouse"],
         fam["daughter"],
-        fam["managed"],
         fam["subject"],
     )
     when = _when()
-    assert is_managed_health_subject(db, managed.id) is True
+    assert fam.get("managed") is None
     assert is_managed_health_subject(db, subject.id) is False
+    assert db.query(models.HealthSubject).filter(models.HealthSubject.display_name == "ALS_MANAGED_I8").count() == 0
 
-    # Self ALS_SUBJECT_A must not invent CARE_ACTION without managed binding
-    outcome_self = run_care_action_producer_for_subject(
+    # No I8 action → no CARE_ACTION
+    outcome_empty = run_care_action_producer_for_subject(
         db, health_subject_id=subject.id, when=when, deliver=True, commit=True
     )
-    assert outcome_self.get("intents", 0) == 0
+    assert outcome_empty.get("intents", 0) == 0
 
-    action = _managed_i8_action(db, patient, managed, when)
+    action = _managed_i8_action(db, patient, subject, when)
     outcome = run_care_action_producer_for_subject(
-        db, health_subject_id=managed.id, when=when, deliver=True, commit=True
+        db, health_subject_id=subject.id, when=when, deliver=True, commit=True
     )
     assert outcome.get("intents", 0) >= 1
     spouse_n = (
@@ -667,7 +648,7 @@ def test_g_i8_care_action(db, gate_patches):
         .filter(
             models.Notification.user_id == spouse.id,
             models.Notification.semantic_family == I10SemanticFamily.CARE_ACTION.value,
-            models.Notification.health_subject_id == managed.id,
+            models.Notification.health_subject_id == subject.id,
         )
         .count()
     )
@@ -676,7 +657,7 @@ def test_g_i8_care_action(db, gate_patches):
         .filter(
             models.Notification.user_id == daughter.id,
             models.Notification.semantic_family == I10SemanticFamily.CARE_ACTION.value,
-            models.Notification.health_subject_id == managed.id,
+            models.Notification.health_subject_id == subject.id,
         )
         .count()
     )
@@ -685,16 +666,14 @@ def test_g_i8_care_action(db, gate_patches):
     db.refresh(action)
     assert action.status == "ACTIVE"
 
-    # RAG / raw I9 must not create CARE_ACTION
     before = db.query(models.Notification).filter(
         models.Notification.semantic_family == I10SemanticFamily.CARE_ACTION.value
     ).count()
-    _rollup(db, patient, managed, when)
+    _rollup(db, patient, subject, when)
     retrieve_knowledge_context(db, "ALS care", language="en", limit=3)
     run_care_action_producer_for_subject(
-        db, health_subject_id=managed.id, when=when + timedelta(hours=1), deliver=True, commit=True
+        db, health_subject_id=subject.id, when=when + timedelta(hours=1), deliver=True, commit=True
     )
-    # idempotent / no duplicate from RAG
     after = db.query(models.Notification).filter(
         models.Notification.semantic_family == I10SemanticFamily.CARE_ACTION.value
     ).count()
@@ -702,10 +681,7 @@ def test_g_i8_care_action(db, gate_patches):
 
     RESULTS["I8_OPERATIONAL_ACTION"] = "PASS"
     RESULTS["CARE_ACTION"] = "PASS"
-    RESULTS["FINDING_I4_I8_SUBJECT_KIND_SPLIT"] = (
-        "YES: I4 CARE_SAFETY requires SELF; I8 CARE_ACTION requires managed "
-        "(linked_user_id IS NULL). ALS_SUBJECT_A=SELF; ALS_MANAGED_I8 for I8."
-    )
+    RESULTS["NO_SECOND_ALS_HEALTHSUBJECT_WORKAROUND"] = "PASS"
 
 
 # ---------------------------------------------------------------------------

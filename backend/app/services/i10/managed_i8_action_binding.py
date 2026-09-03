@@ -1,4 +1,4 @@
-"""I10-B15 managed-subject binding for persisted I8OperationalPlanAction."""
+"""I10-B15 I8 action ↔ HealthSubject binding (managed and SELF)."""
 
 from __future__ import annotations
 
@@ -59,6 +59,7 @@ def resolve_action_health_subject_id(
 
 
 def is_managed_health_subject(db: Session, health_subject_id: int) -> bool:
+    """True only for an active unlinked (no Sedi Account) HealthSubject."""
     subject = (
         db.query(models.HealthSubject)
         .filter(
@@ -70,3 +71,18 @@ def is_managed_health_subject(db: Session, health_subject_id: int) -> bool:
     if subject is None:
         return False
     return subject.linked_user_id is None
+
+
+def load_active_care_action_subject(
+    db: Session,
+    health_subject_id: int,
+) -> Optional[models.HealthSubject]:
+    """Active HealthSubject eligible as a CARE_ACTION binding target (SELF or MANAGED)."""
+    return (
+        db.query(models.HealthSubject)
+        .filter(
+            models.HealthSubject.id == health_subject_id,
+            models.HealthSubject.status == "active",
+        )
+        .first()
+    )
