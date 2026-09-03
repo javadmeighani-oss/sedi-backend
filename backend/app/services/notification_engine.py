@@ -1105,18 +1105,39 @@ class DecisionEngine:
         
         # Enhance with AI (safe wrapper)
         payload = enhance_with_ai(payload)
-        
-        # Persist with dedupe check (Rate limit: dedupe by alert_code + time bucket)
-        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=1)
+
+        from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        when = scheduled_for or datetime.utcnow()
+        occurrence_key = build_self_occurrence_key(
+            "health_alert",
+            user_id=user_id,
+            scheduled_for=when,
+            extra=alert_code,
+        )
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.DEVICE_STATUS,
+            candidate_key=occurrence_key,
+            source_type="health_alert",
+            source_id=alert_code,
+            privacy_class=I10PrivacyClass.HEALTH_SENSITIVE,
+        )
         if result is None:
             logger.info(
                 f"[NOTIFICATION] SUPPRESSED type=health_alert user={user_id} "
-                f"lang={effective_language} alert_code={alert_code} reason=dedupe"
+                f"lang={effective_language} alert_code={alert_code} reason=i10_intake"
             )
         else:
             logger.info(
                 f"[NOTIFICATION] type=health_alert user={user_id} "
-                f"lang={effective_language} dedupe={payload.dedupe_key}"
+                f"lang={effective_language} dedupe={occurrence_key}"
             )
         return result
     
@@ -1175,17 +1196,39 @@ class DecisionEngine:
                 ),
             }
         )
-        # Once per 6 hours per device (dedupe key includes 6h bucket)
-        result = self.builder.persist(payload, check_dedupe=True, time_window_hours=6)
+        from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+        from backend.app.services.i10.self_producer_adapter import (
+            build_self_occurrence_key,
+            enqueue_self_scheduler_notification,
+        )
+
+        when = scheduled_for or datetime.utcnow()
+        occurrence_key = build_self_occurrence_key(
+            "device_disconnected",
+            user_id=user_id,
+            scheduled_for=when,
+            bucket=(when.hour // 6) * 6,
+            extra=str(device_id),
+        )
+        result = enqueue_self_scheduler_notification(
+            self.db,
+            user_id=user_id,
+            payload=payload,
+            semantic_family=I10SemanticFamily.DEVICE_STATUS,
+            candidate_key=occurrence_key,
+            source_type="device_disconnected_check",
+            source_id=str(device_id),
+            privacy_class=I10PrivacyClass.PRIVATE,
+        )
         if result is None:
             logger.info(
                 f"[NOTIFICATION] SUPPRESSED type=device_disconnected user={user_id} "
-                f"device_id={device_id} reason=dedupe"
+                f"device_id={device_id} reason=i10_intake"
             )
         else:
             logger.info(
                 f"[NOTIFICATION] type=device_disconnected user={user_id} "
-                f"device_id={device_id} dedupe={payload.dedupe_key}"
+                f"device_id={device_id} dedupe={occurrence_key}"
             )
         return result
 
@@ -1837,6 +1880,7 @@ def persist_health_alert_d1(
     """
     Create a health_alert notification row with given title, body, dedupe_key.
     Caller must ensure no duplicate dedupe_key exists (app-level dedupe).
+    I10-B19: routes through canonical I10 intake (no direct builder bypass).
     """
     if not body or not body.strip():
         body = "هشدار سلامت ثبت شد."
@@ -1848,7 +1892,19 @@ def persist_health_alert_d1(
         priority=priority,
         scheduled_for=None,
         dedupe_key=dedupe_key,
-        metadata={"language": "fa"},
+        metadata={"language": "fa", "trace_id": trace_id},
+        template_key="health_alert",
     )
-    builder = NotificationBuilder(db)
-    return builder.persist(payload, check_dedupe=False, trace_id=trace_id)
+    from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+    from backend.app.services.i10.self_producer_adapter import enqueue_self_scheduler_notification
+
+    return enqueue_self_scheduler_notification(
+        db,
+        user_id=user_id,
+        payload=payload,
+        semantic_family=I10SemanticFamily.DEVICE_STATUS,
+        candidate_key=f"i10:self:health_alert_d1:{user_id}:{dedupe_key}",
+        source_type="device_ingestion_health_alert",
+        source_id=dedupe_key[:120],
+        privacy_class=I10PrivacyClass.HEALTH_SENSITIVE,
+    )

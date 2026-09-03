@@ -178,48 +178,57 @@ def try_create_companion_ping_notification(
     )
     if existing:
         return None
+    from backend.app.schemas.notification import NotificationPayload
     from backend.app.services.gate4.notification_context import (
         NotificationCategory,
         NotificationRiskLevel,
         NotificationSourceType,
         build_scheduler_context,
-        resolve_traceability_fields,
     )
-    trace = resolve_traceability_fields(
-        notification_type=_COMPANION_PING_TYPE,
+    from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+    from backend.app.services.i10.self_producer_adapter import (
+        build_self_occurrence_key,
+        enqueue_self_scheduler_notification,
+    )
+
+    payload = NotificationPayload(
+        user_id=user_id,
+        type=_COMPANION_PING_TYPE,
+        title=title,
+        body=body,
         priority="normal",
+        scheduled_for=now,
+        dedupe_key=dedupe_key,
+        metadata={"language": lang, "legacy_type": "companion_ping"},
         category=NotificationCategory.ENGAGEMENT_CHECKIN.value,
         source_type=NotificationSourceType.SYSTEM_SCHEDULER.value,
         template_key="companion_ping",
+        risk_level=NotificationRiskLevel.NORMAL.value,
         context=build_scheduler_context(
             job_id="companion_ping",
             template_key="companion_ping",
             trigger_reason="engagement_checkin",
         ),
     )
-    notif = models.Notification(
+    occurrence_key = build_self_occurrence_key("companion", user_id=user_id, scheduled_for=now)
+    notif = enqueue_self_scheduler_notification(
+        db,
         user_id=user_id,
-        type=_COMPANION_PING_TYPE,
-        title=title,
-        body=body,
-        priority="normal",
-        is_read=False,
-        is_sent=False,
-        scheduled_for=now,
-        dedupe_key=dedupe_key,
-        channel=_COMPANION_PING_CHANNEL,
-        language=lang,
-        status="queued",
-        actions_json='[{"id":"open_chat","type":"OPEN_CHAT"}]',
-        deeplink_url=_DEEPLINK_TEMPLATE,
-        provider=None,
-        category=trace["category"],
-        source_type=trace["source_type"],
-        source_id=trace["source_id"],
-        context_json=trace["context_json"],
-        risk_level=trace["risk_level"] or NotificationRiskLevel.NORMAL.value,
-        template_key=trace["template_key"],
+        payload=payload,
+        semantic_family=I10SemanticFamily.ENGAGEMENT_NUDGE,
+        candidate_key=occurrence_key,
+        source_type="companion_ping",
+        source_id=date_str,
+        privacy_class=I10PrivacyClass.PUBLIC_SAFE,
     )
+    if notif is None:
+        return None
+    # Preserve Behavior V1 deeplink/actions contract after canonical intake.
+    notif.deeplink_url = _DEEPLINK_TEMPLATE
+    notif.actions_json = '[{"id":"open_chat","type":"OPEN_CHAT"}]'
+    notif.channel = _COMPANION_PING_CHANNEL
+    notif.language = lang
+    notif.type = _COMPANION_PING_TYPE
     db.add(notif)
     db.commit()
     db.refresh(notif)

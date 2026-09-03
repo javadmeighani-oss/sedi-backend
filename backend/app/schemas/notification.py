@@ -63,7 +63,13 @@ class NotificationResponse(NotificationBase):
 # -------------------- Release B: Notification Contract (B1) --------------------
 
 # Strict contract for notification types
-NotificationType = Literal["morning_brief", "connection_ping", "health_alert", "device_disconnected"]
+NotificationType = Literal[
+    "morning_brief",
+    "connection_ping",
+    "health_alert",
+    "device_disconnected",
+    "companion_ping",
+]
 NotificationPriority = Literal["low", "normal", "high", "critical"]
 
 

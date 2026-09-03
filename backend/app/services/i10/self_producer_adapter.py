@@ -62,6 +62,7 @@ def build_self_occurrence_key(
     user_id: int,
     scheduled_for: datetime,
     bucket: Optional[int] = None,
+    extra: Optional[str] = None,
 ) -> str:
     """Stable per-occurrence identity aligned with legacy dedupe windows."""
     date_str = scheduled_for.strftime("%Y-%m-%d")
@@ -73,6 +74,18 @@ def build_self_occurrence_key(
     if producer == "engagement":
         hour_bucket = bucket if bucket is not None else (scheduled_for.hour // 3) * 3
         return f"i10:self:engagement:{user_id}:{date_str}:{hour_bucket:02d}"
+    if producer == "companion":
+        return f"i10:self:companion:{user_id}:{date_str}"
+    if producer == "device_disconnected":
+        device_id = extra or "unknown"
+        hour_bucket = bucket if bucket is not None else (scheduled_for.hour // 6) * 6
+        return f"i10:self:device_disconnected:{user_id}:{device_id}:{date_str}:{hour_bucket:02d}"
+    if producer == "health_alert":
+        alert_code = extra or "generic"
+        hour_str = scheduled_for.strftime("%H")
+        return f"i10:self:health_alert:{user_id}:{alert_code}:{date_str}T{hour_str}"
+    if producer == "user_chat_reminder":
+        return f"i10:self:user_chat_reminder:{user_id}:{extra or date_str}"
     raise ValueError(f"I10_SELF_UNKNOWN_PRODUCER:{producer}")
 
 

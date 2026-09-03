@@ -23,7 +23,6 @@ from backend.app.services.gate2_data_service import create_event
 from backend.app.services.gate4.notification_context import NotificationSourceType
 from backend.app.services.gate4.policy_prefs_bridge import resolve_user_timezone
 from backend.app.services.memory import MemoryRepository
-from backend.app.services.notification_engine import NotificationBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -239,7 +238,7 @@ def create_user_chat_reminder(
         dedupe_key=dedupe_key,
         category="reminder",
         source_type=NotificationSourceType.USER_EVENT.value,
-        source_id=event.get("id"),
+        source_id=str(event.get("id")),
         template_key="user_chat_reminder",
         metadata={
             "language": "en",
@@ -247,8 +246,28 @@ def create_user_chat_reminder(
             "user_event_id": event.get("id"),
         },
     )
-    builder = NotificationBuilder(db)
-    notification = builder.persist(payload, check_dedupe=True)
+    from backend.app.services.i10.policy_types import I10PrivacyClass, I10SemanticFamily
+    from backend.app.services.i10.self_producer_adapter import (
+        build_self_occurrence_key,
+        enqueue_self_scheduler_notification,
+    )
+
+    occurrence_key = build_self_occurrence_key(
+        "user_chat_reminder",
+        user_id=user_id,
+        scheduled_for=scheduled_naive,
+        extra=str(event.get("id")),
+    )
+    notification = enqueue_self_scheduler_notification(
+        db,
+        user_id=user_id,
+        payload=payload,
+        semantic_family=I10SemanticFamily.GENERAL_CONTEXTUAL_FOLLOW_UP,
+        candidate_key=occurrence_key,
+        source_type="user_chat_reminder",
+        source_id=str(event.get("id")),
+        privacy_class=I10PrivacyClass.PRIVATE,
+    )
     return {
         "created": notification is not None,
         "user_event_id": event.get("id"),
