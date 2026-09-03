@@ -391,7 +391,7 @@ def test_b_identity_and_als_gap(db, gate_patches):
     assert subject.display_name == "ALS_SUBJECT_A"
 
     # No HealthSubject ALS/diagnosis column
-    cols = {c["name"] for c in models.HealthSubject.__table__.columns}
+    cols = {c.name for c in models.HealthSubject.__table__.columns}
     als_cols = {c for c in cols if "als" in c.lower() or "diagnos" in c.lower() or "condition" in c.lower()}
     assert not als_cols
     RESULTS["ALS_CONDITION_MODEL_GAP"] = "YES"
@@ -1080,12 +1080,12 @@ def test_m_n_negatives_and_frontend_contract(client, db, gate_patches):
     forged = _chat(client, spouse, "x", source_notification_id=99999999)
     assert forged.status_code in (403, 404)
 
-    # OpenAPI-ish route presence for medication confirm + interact chat
-    from fastapi.routing import APIRoute
-
-    route_paths = {r.path for r in sedi_app.routes if isinstance(r, APIRoute)}
-    assert any("medication/confirm-taken" in p for p in route_paths)
-    assert any(p.endswith("/interact/chat") or p == "/interact/chat" for p in route_paths)
+    # Route presence via OpenAPI (mounted prefixes included)
+    spec = client.get("/openapi.json")
+    assert spec.status_code == 200
+    oa_paths = spec.json().get("paths", {})
+    assert any("medication/confirm-taken" in p for p in oa_paths)
+    assert any(p.rstrip("/").endswith("/interact/chat") for p in oa_paths)
 
     RESULTS["NEGATIVE_SECURITY_MATRIX"] = "PASS"
     RESULTS["BACKEND_FRONTEND_CONTRACT"] = "PASS"
