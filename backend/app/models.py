@@ -319,6 +319,67 @@ class UserCondition(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+# -------------------- HealthSubjectCondition (C04) --------------------
+class HealthSubjectCondition(Base):
+    """Patient-specific governed clinical condition bound to HealthSubject (not Account)."""
+
+    __tablename__ = "health_subject_conditions"
+    __table_args__ = (
+        CheckConstraint(
+            "source_class IN ('SELF_REPORTED', 'CAREGIVER_REPORTED', 'CLINICAL', 'IMPORTED', 'SYSTEM_SUGGESTED')",
+            name="ck_hsc_source_class",
+        ),
+        CheckConstraint(
+            "verification_state IN ('REPORTED_UNVERIFIED', 'VERIFIED', 'DISPUTED', 'UNKNOWN')",
+            name="ck_hsc_verification_state",
+        ),
+        CheckConstraint("status IN ('active', 'retracted')", name="ck_hsc_status"),
+        Index(
+            "uq_hsc_active_subject_condition",
+            "health_subject_id",
+            "condition_id",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),
+        ),
+        Index("ix_hsc_health_subject_id", "health_subject_id"),
+        Index("ix_hsc_reported_by_account_user_id", "reported_by_account_user_id"),
+    )
+
+    id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="CASCADE", name="fk_hsc_health_subject_id"),
+        nullable=False,
+    )
+    condition_id = Column(
+        Integer,
+        ForeignKey("medical_conditions.id", ondelete="RESTRICT", name="fk_hsc_condition_id"),
+        nullable=False,
+    )
+    reported_by_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_hsc_reported_by_account_user_id"),
+        nullable=True,
+    )
+    source_class = Column(String(32), nullable=False)
+    verification_state = Column(
+        String(32), nullable=False, default="REPORTED_UNVERIFIED", server_default="REPORTED_UNVERIFIED"
+    )
+    status = Column(String(16), nullable=False, default="active", server_default="active")
+    severity = Column(String(64), nullable=True)
+    notes = Column(Text, nullable=True)
+    diagnosed_date = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
 # -------------------- UserMedication --------------------
 class UserMedication(Base):
     """User medication assignment with personal dosage, reminders, and schedule."""
@@ -552,6 +613,14 @@ class HealthSubject(Base):
         CheckConstraint("status IN ('active', 'inactive')", name="ck_hs_status"),
         Index("ix_health_subjects_linked_user_id", "linked_user_id"),
         Index("ix_health_subjects_status", "status"),
+        Index(
+            "uq_hs_creator_idempotency",
+            "created_by_account_user_id",
+            "creation_idempotency_key",
+            unique=True,
+            postgresql_where=text("creation_idempotency_key IS NOT NULL"),
+            sqlite_where=text("creation_idempotency_key IS NOT NULL"),
+        ),
     )
 
     id = Column(Integer, Identity(start=1), primary_key=True, autoincrement=True, index=True)
@@ -563,6 +632,12 @@ class HealthSubject(Base):
     )
     subject_kind = Column(String(32), nullable=False, default="managed", server_default="managed")
     status = Column(String(16), nullable=False, default="active", server_default="active")
+    created_by_account_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_hs_created_by_account_user_id"),
+        nullable=True,
+    )
+    creation_idempotency_key = Column(String(128), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),

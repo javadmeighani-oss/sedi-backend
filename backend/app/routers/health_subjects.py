@@ -1,4 +1,4 @@
-"""Health Subject management routes (I9 foundation)."""
+"""Health Subject management routes (I9 foundation + C04 managed person / conditions)."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -8,12 +8,21 @@ from backend.app.models import User
 from backend.app.routers.auth_otp import get_current_user
 from backend.app.schemas.health_subject import (
     HealthSubjectApiResponse,
+    HealthSubjectConditionReportIn,
     ManagedHealthSubjectCreate,
+    ManagedHealthSubjectUpdate,
 )
 from backend.app.schemas.i10_care_network import (
     SubjectCaregiverAccessGrantIn,
     SubjectNotificationGrantCreateIn,
     SubjectNotificationGrantRevokeIn,
+)
+from backend.app.services.health_subject_condition_service import (
+    HealthSubjectConditionError,
+    condition_payload,
+    list_active_subject_conditions,
+    report_subject_condition,
+    retract_subject_condition,
 )
 from backend.app.services.i10.care_network_access import (
     CareNetworkAccessError,
@@ -31,7 +40,6 @@ from backend.app.services.i10.care_network_grants import (
 )
 from backend.app.services.i9.health_subject_service import (
     HealthSubjectAccessDenied,
-    create_managed_subject_without_account,
     ensure_self_subject_for_account,
 )
 from backend.app.services.i9.longitudinal_read_service import (
@@ -39,6 +47,15 @@ from backend.app.services.i9.longitudinal_read_service import (
     list_baselines,
     list_cardiac_events,
     list_observations,
+)
+from backend.app.services.managed_person_service import (
+    ManagedPersonError,
+    archive_managed_person,
+    create_managed_person,
+    get_accessible_health_subject,
+    list_accessible_health_subjects,
+    subject_public_dict,
+    update_managed_person_profile,
 )
 
 router = APIRouter()
@@ -48,6 +65,16 @@ def _access_denied() -> HTTPException:
     return HTTPException(status_code=403, detail={"ok": False, "error": {"code": "HEALTH_SUBJECT_ACCESS_DENIED"}})
 
 
+def _managed_error(exc: ManagedPersonError | HealthSubjectConditionError) -> HTTPException:
+    code = exc.code
+    status = 404 if code.endswith("_NOT_FOUND") else 422
+    if code in ("NOT_MANAGED_SUBJECT", "ACCOUNTLESS_REQUIRED", "HEALTH_SUBJECT_INACTIVE"):
+        status = 409
+    if code in ("VERIFICATION_ELEVATION_FORBIDDEN", "SOURCE_NOT_ALLOWED_FOR_ACTOR"):
+        status = 422
+    return HTTPException(status_code=status, detail={"ok": False, "error": {"code": code}})
+
+
 def _care_network_error(exc: CareNetworkAccessError | CareNetworkGrantError | CareNetworkAuthorizationError) -> HTTPException:
     if isinstance(exc, CareNetworkAuthorizationError):
         return HTTPException(status_code=403, detail={"ok": False, "error": {"code": exc.code}})
@@ -55,6 +82,20 @@ def _care_network_error(exc: CareNetworkAccessError | CareNetworkGrantError | Ca
     if exc.code in ("RECIPIENT_LACKS_SUBJECT_ACCESS", "SELF_GRANT_NOT_REQUIRED", "CAREGIVER_SUBSTITUTION_BLOCKED"):
         status = 422
     return HTTPException(status_code=status, detail={"ok": False, "error": {"code": exc.code}})
+
+
+@router.get("", response_model=HealthSubjectApiResponse)
+@router.get("/", response_model=HealthSubjectApiResponse)
+def list_health_subjects(
+    include_inactive: bool = Query(default=False),
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List HealthSubjects accessible to the authenticated Account (SELF + managed)."""
+    items = list_accessible_health_subjects(
+        db, account_user_id=auth_user.id, include_inactive=include_inactive
+    )
+    return HealthSubjectApiResponse(ok=True, data={"health_subjects": items})
 
 
 @router.post("/self", response_model=HealthSubjectApiResponse)
@@ -71,6 +112,8 @@ def ensure_self_health_subject(
             "display_name": subject.display_name,
             "linked_user_id": subject.linked_user_id,
             "subject_kind": subject.subject_kind,
+            "status": subject.status,
+            "access_role": "SELF",
         },
     )
 
@@ -82,22 +125,146 @@ def create_managed_health_subject(
     db: Session = Depends(get_db),
 ):
     """Create a managed health subject without a linked Sedi account."""
-    subject = create_managed_subject_without_account(
+    subject, created = create_managed_person(
         db,
         account_user_id=auth_user.id,
         display_name=body.display_name,
         access_role=body.access_role,
+        idempotency_key=body.idempotency_key,
     )
+    data = subject_public_dict(subject, access_role=body.access_role)
+    data["created"] = created
+    return HealthSubjectApiResponse(ok=True, data=data)
+
+
+@router.get("/{health_subject_id}", response_model=HealthSubjectApiResponse)
+def get_health_subject(
+    health_subject_id: int,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        data = get_accessible_health_subject(
+            db, account_user_id=auth_user.id, health_subject_id=health_subject_id
+        )
+    except HealthSubjectAccessDenied:
+        raise _access_denied()
+    return HealthSubjectApiResponse(ok=True, data=data)
+
+
+@router.patch("/{health_subject_id}", response_model=HealthSubjectApiResponse)
+def patch_managed_health_subject(
+    health_subject_id: int,
+    body: ManagedHealthSubjectUpdate,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        subject = update_managed_person_profile(
+            db,
+            account_user_id=auth_user.id,
+            health_subject_id=health_subject_id,
+            display_name=body.display_name,
+        )
+        data = get_accessible_health_subject(
+            db, account_user_id=auth_user.id, health_subject_id=subject.id
+        )
+    except HealthSubjectAccessDenied:
+        raise _access_denied()
+    except ManagedPersonError as exc:
+        raise _managed_error(exc) from exc
+    return HealthSubjectApiResponse(ok=True, data=data)
+
+
+@router.post("/{health_subject_id}/archive", response_model=HealthSubjectApiResponse)
+def archive_health_subject(
+    health_subject_id: int,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Soft-deactivate managed HealthSubject; preserve historical records."""
+    try:
+        subject = archive_managed_person(
+            db, account_user_id=auth_user.id, health_subject_id=health_subject_id
+        )
+    except HealthSubjectAccessDenied:
+        raise _access_denied()
+    except ManagedPersonError as exc:
+        raise _managed_error(exc) from exc
     return HealthSubjectApiResponse(
         ok=True,
         data={
             "health_subject_id": subject.id,
-            "display_name": subject.display_name,
-            "linked_user_id": subject.linked_user_id,
-            "subject_kind": subject.subject_kind,
-            "access_role": body.access_role,
+            "status": subject.status,
+            "archived": subject.status == "inactive",
         },
     )
+
+
+@router.get("/{health_subject_id}/conditions", response_model=HealthSubjectApiResponse)
+def get_subject_conditions(
+    health_subject_id: int,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        rows = list_active_subject_conditions(
+            db, actor_account_user_id=auth_user.id, health_subject_id=health_subject_id
+        )
+    except HealthSubjectAccessDenied:
+        raise _access_denied()
+    return HealthSubjectApiResponse(
+        ok=True,
+        data={"conditions": [condition_payload(db, r) for r in rows]},
+    )
+
+
+@router.post("/{health_subject_id}/conditions", response_model=HealthSubjectApiResponse)
+def post_subject_condition(
+    health_subject_id: int,
+    body: HealthSubjectConditionReportIn,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        row = report_subject_condition(
+            db,
+            actor_account_user_id=auth_user.id,
+            health_subject_id=health_subject_id,
+            condition_id=body.condition_id,
+            severity=body.severity,
+            notes=body.notes,
+            diagnosed_date=body.diagnosed_date,
+        )
+    except HealthSubjectAccessDenied:
+        raise _access_denied()
+    except HealthSubjectConditionError as exc:
+        raise _managed_error(exc) from exc
+    return HealthSubjectApiResponse(ok=True, data=condition_payload(db, row))
+
+
+@router.delete("/{health_subject_id}/conditions/{condition_id}", response_model=HealthSubjectApiResponse)
+def delete_subject_condition(
+    health_subject_id: int,
+    condition_id: int,
+    auth_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        removed = retract_subject_condition(
+            db,
+            actor_account_user_id=auth_user.id,
+            health_subject_id=health_subject_id,
+            condition_id=condition_id,
+        )
+    except HealthSubjectAccessDenied:
+        raise _access_denied()
+    if not removed:
+        return HealthSubjectApiResponse(
+            ok=False,
+            error={"code": "CONDITION_NOT_ASSIGNED", "message": "Condition is not active on this subject."},
+        )
+    return HealthSubjectApiResponse(ok=True, data={"retracted": True, "condition_id": condition_id})
 
 
 @router.get("/{health_subject_id}/vitals/observations", response_model=HealthSubjectApiResponse)
