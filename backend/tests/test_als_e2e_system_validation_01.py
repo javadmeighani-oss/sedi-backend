@@ -343,7 +343,7 @@ def _chat(client, user, message: str, **extra):
 def test_a_backend_baseline(client, db, i10_pg_db_module):
     _, isolated = i10_pg_db_module
     head = isolated.head()
-    assert head == "077_i10_medication_adherence_foundation"
+    assert head == "078_health_subject_condition_foundation"
     r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
