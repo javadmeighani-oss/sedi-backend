@@ -315,7 +315,7 @@ def test_c04_son_mother_managed_person_condition_i8_i10_e2e(db, c04_patches):
         actor_user_id=son.id,
         health_subject_id=mother.id,
         recipient_user_id=son.id,
-        notification_scope=I10NotificationScope.CARE_ACTION.value,
+        notification_scope=I10NotificationScope.CARE_ACTION,
     )
     _i8_action(db, son, mother, when)
     outcome = run_care_action_producer_for_subject(
@@ -346,7 +346,7 @@ def test_c04_son_mother_managed_person_condition_i8_i10_e2e(db, c04_patches):
         actor_user_id=son.id,
         health_subject_id=mother.id,
         recipient_user_id=son.id,
-        notification_scope=I10NotificationScope.CARE_ACTION.value,
+        notification_scope=I10NotificationScope.CARE_ACTION,
     )
     before = db.query(models.Notification).filter(models.Notification.user_id == son.id).count()
     # New action key for a fresh intent attempt later same day may still be blocked by grant
