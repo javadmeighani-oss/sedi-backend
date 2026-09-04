@@ -119,7 +119,7 @@ pytestmark_db = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="module")
-def scis_db():
+def scis_engine():
     url = _pg_url()
     if not url:
         pytest.skip("TEST_DATABASE_URL not set")
@@ -132,11 +132,20 @@ def scis_db():
         if head != "061_scis01_pgvector_kce_foundation":
             # allow if migration applied under alias
             pass
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    yield session
-    session.close()
+    yield engine
     engine.dispose()
+
+
+@pytest.fixture
+def scis_db(scis_engine):
+    """Function-scoped session so one IntegrityError cannot poison later PG tests."""
+    Session = sessionmaker(bind=scis_engine)
+    session = Session()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
 
 
 def _make_eligible_ku(db, *, canonical: str, statement: str, language: str, domain: str = "neurology", **overrides):
@@ -568,7 +577,7 @@ def test_k03_ms_genericity_topk_empty_retracted_provenance(scis_db):
         canonical=f"k03-noprov-{ts}",
         statement="Amyotrophic lateral sclerosis ALS without usable version metadata.",
         language="en",
-        provenance_complete=False,
+        # Keep KU DB-valid (ELIGIBLE + provenance_complete). Invalidate KCE lineage only.
         deduplication_key=hashlib.sha256(f"noprov-{ts}".encode()).hexdigest(),
         canonical_hash=hashlib.sha256(f"noprov-{ts}".encode()).hexdigest(),
     )
