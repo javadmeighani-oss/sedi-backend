@@ -67,6 +67,39 @@ def retrieve_governed_knowledge(
     )
 
 
+def retrieve_governed_knowledge_for_subject(
+    db: Session,
+    *,
+    actor_account_user_id: int,
+    health_subject_id: int,
+    query: str,
+    domain: str = "cross_domain",
+) -> RetrievalResult:
+    """Subject-aware I8 knowledge: actor Account ≠ patient HealthSubject.
+
+    Authorizes AccountHealthSubjectAccess, loads Mother/managed conditions into
+    personalization, retrieves governed SCIS evidence. Does not require linked_user_id.
+    """
+    from backend.app.services.i8.subject_context import (
+        load_subject_trusted_context,
+        to_i8_trusted_context_compat,
+    )
+
+    subject_ctx = load_subject_trusted_context(
+        db,
+        actor_account_user_id=actor_account_user_id,
+        health_subject_id=health_subject_id,
+    )
+    ctx = to_i8_trusted_context_compat(subject_ctx)
+    return retrieve_governed_knowledge(
+        db,
+        user_id=actor_account_user_id,
+        query=query,
+        domain=domain,
+        ctx=ctx,
+    )
+
+
 def knowledge_refs_payload(items: list[RetrievedKnowledgeItem]) -> str:
     refs: list[dict[str, Any]] = []
     for item in items[:MAX_KNOWLEDGE_REFS]:

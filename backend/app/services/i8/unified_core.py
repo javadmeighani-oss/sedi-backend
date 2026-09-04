@@ -235,6 +235,7 @@ def generate_operational_action(
     action_idempotency_key: Optional[str] = None,
     generation_mode: str = "reactive",
     proactive_evaluation_key: Optional[str] = None,
+    health_subject_id: Optional[int] = None,
 ) -> I8OperationalActionResult:
     if actor_user_id != user_id:
         return I8OperationalActionResult(
@@ -296,7 +297,31 @@ def generate_operational_action(
         plan_key = None
         action_key = None
 
-    ctx = load_trusted_context(db, user_id)
+    # Subject-aware path: actor Account remains gateway; patient = health_subject_id.
+    if health_subject_id is not None:
+        from backend.app.services.i8.subject_context import (
+            load_subject_trusted_context,
+            to_i8_trusted_context_compat,
+        )
+        from backend.app.services.i9.health_subject_service import HealthSubjectAccessDenied
+
+        try:
+            subject_ctx = load_subject_trusted_context(
+                db,
+                actor_account_user_id=actor_user_id,
+                health_subject_id=health_subject_id,
+            )
+        except HealthSubjectAccessDenied:
+            return I8OperationalActionResult(
+                status="SUBJECT_ACCESS_DENIED",
+                domain=resolved_domain,
+                safety_state="BLOCKED",
+                clarification_required=True,
+                summary="Actor Account is not authorized for the target HealthSubject.",
+            )
+        ctx = to_i8_trusted_context_compat(subject_ctx)
+    else:
+        ctx = load_trusted_context(db, user_id)
     pre_safety = evaluate_safety(request=request, ctx=ctx, retrieval=None, domain=resolved_domain)
     if not pre_safety.allowed:
         return I8OperationalActionResult(
