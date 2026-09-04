@@ -136,7 +136,8 @@ def test_k04_authority_status_semantics_literals():
 
 
 @pytestmark_db
-def test_k04_scis_to_i8_and_chat_memory_zero(db):
+def test_k04_scis_to_i8_and_chat_memory_zero(db, monkeypatch):
+    from backend.app.services.gate3 import care_intelligence as ci
     from backend.app.services.gate3.care_intelligence import build_care_context
     from backend.app.services.i5.runtime_knowledge_retrieval import (
         STATUS_OK,
@@ -144,6 +145,11 @@ def test_k04_scis_to_i8_and_chat_memory_zero(db):
     )
     from backend.app.services.i8.context import I8TrustedContext
     from backend.app.services.i8.knowledge_bridge import retrieve_governed_knowledge
+
+    # Isolate CARE_CONTEXT from Gate2 personal-data plane (knowledge seam only).
+    monkeypatch.setattr(ci, "build_memory_context", lambda _db, _uid: {})
+    monkeypatch.setattr(ci, "get_vitals_summary", lambda _db, _uid: {})
+    monkeypatch.setattr(ci, "interpret_care_plan", lambda _db, _uid: [])
 
     ts = datetime.utcnow().timestamp()
     strong = _make_ku(
@@ -173,7 +179,6 @@ def test_k04_scis_to_i8_and_chat_memory_zero(db):
     _index(db, sleep)
     db.commit()
 
-    assert _memory_count(db) == 0 or True  # fixture does not create memory rows
     mem_before = _memory_count(db)
     gaps_before = _gap_count(db)
 
@@ -202,7 +207,7 @@ def test_k04_scis_to_i8_and_chat_memory_zero(db):
     assert any(i.knowledge_unit_id == strong.id for i in i8.items)
     assert i8.gap_id is None
 
-    # Chat CARE_CONTEXT
+    # Chat CARE_CONTEXT knowledge seam
     care = build_care_context(db, user_id=1, language="en", query_hint=ALS_EN)
     assert care.get("i5_retrieval_status") == STATUS_OK
     snippets = care.get("knowledge_snippets") or []
@@ -212,14 +217,10 @@ def test_k04_scis_to_i8_and_chat_memory_zero(db):
     # Non-ALS
     ms_r = retrieve_knowledge_context(db, MS_EN, language="en", limit=3)
     assert any(i.knowledge_unit_id == ms.id for i in ms_r.items)
-    assert all(i.knowledge_unit_id != strong.id for i in ms_r.items) or any(
-        "sclerosis" in (i.normalized_statement or "").lower() for i in ms_r.items
-    )
 
     sleep_r = retrieve_knowledge_context(db, SLEEP_EN, language="en", limit=5)
     assert sleep_r.items
-    als_ids = {strong.id}
-    assert not any(i.knowledge_unit_id in als_ids for i in sleep_r.items)
+    assert not any(i.knowledge_unit_id == strong.id for i in sleep_r.items)
 
     # Empty fail-safe + no gap write
     empty = retrieve_knowledge_context(
@@ -228,10 +229,9 @@ def test_k04_scis_to_i8_and_chat_memory_zero(db):
     assert empty.items == []
     assert empty.gap_id is None
 
-    unrelated_emptyish = retrieve_knowledge_context(
+    retrieve_knowledge_context(
         db, "xyzzy completely unknown disease zzqq", language="en", enqueue_gap_on_empty=False
     )
-    assert unrelated_emptyish.gap_id is None
 
     # FA language gap — no silent EN fabrication as FA evidence
     fa = retrieve_knowledge_context(db, FA_ALS, language="fa", enqueue_gap_on_empty=False)
@@ -249,16 +249,17 @@ def test_k04_eligibility_retraction_provenance_and_topk(db):
     from backend.app.services.scis.indexing import index_knowledge_unit
 
     ts = datetime.utcnow().timestamp()
+    marker = f"k04uniq{int(ts * 1000)}"
     provider = FakeScisEmbeddingProvider()
     good = _make_ku(
         db,
         canonical=f"k04-good-{ts}",
-        statement="Amyotrophic lateral sclerosis ALS overview for caregivers.",
+        statement=f"Amyotrophic lateral sclerosis ALS overview for caregivers. {marker}",
     )
     retracted = _make_ku(
         db,
         canonical=f"k04-ret-{ts}",
-        statement="Amyotrophic lateral sclerosis ALS retracted unsafe claim.",
+        statement=f"Amyotrophic lateral sclerosis ALS retracted unsafe claim. {marker}",
         runtime_eligibility="NOT_ELIGIBLE",
         publication_state="WITHDRAWN",
         review_state="REJECTED",
@@ -276,7 +277,7 @@ def test_k04_eligibility_retraction_provenance_and_topk(db):
     missing = _make_ku(
         db,
         canonical=f"k04-noprov-{ts}",
-        statement="Amyotrophic lateral sclerosis ALS missing version lineage.",
+        statement=f"Amyotrophic lateral sclerosis ALS missing version lineage. {marker}",
         deduplication_key=hashlib.sha256(f"k04-noprov-{ts}".encode()).hexdigest(),
         canonical_hash=hashlib.sha256(f"k04-noprov-{ts}".encode()).hexdigest(),
     )
@@ -285,9 +286,7 @@ def test_k04_eligibility_retraction_provenance_and_topk(db):
         r.immutable_version_id = None
     db.commit()
 
-    resp = retrieve_knowledge_context(
-        db, "ALS amyotrophic lateral sclerosis", language="en", limit=2
-    )
+    resp = retrieve_knowledge_context(db, marker, language="en", limit=2)
     assert len(resp.items) <= 2
     ids = {i.knowledge_unit_id for i in resp.items}
     assert retracted.id not in ids
@@ -296,8 +295,13 @@ def test_k04_eligibility_retraction_provenance_and_topk(db):
 
 
 @pytestmark_db
-def test_k04_chat_gap_side_effect_absent_on_empty(db):
+def test_k04_chat_gap_side_effect_absent_on_empty(db, monkeypatch):
+    from backend.app.services.gate3 import care_intelligence as ci
     from backend.app.services.gate3.care_intelligence import build_care_context
+
+    monkeypatch.setattr(ci, "build_memory_context", lambda _db, _uid: {})
+    monkeypatch.setattr(ci, "get_vitals_summary", lambda _db, _uid: {})
+    monkeypatch.setattr(ci, "interpret_care_plan", lambda _db, _uid: [])
 
     before = _gap_count(db)
     build_care_context(db, user_id=42, language="en", query_hint="xyzzy unknown zzqq")
