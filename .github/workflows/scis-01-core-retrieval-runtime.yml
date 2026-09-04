@@ -174,6 +174,24 @@ jobs:
           print("UPGRADE_060_TO_064=PASS")
           PY
 
+      - name: Restore Alembic head 078 for runtime pytest
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          eng = create_engine(url)
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              print("PYTEST_DB_ALEMBIC_HEAD", head)
+              assert head == "078_health_subject_condition_foundation", head
+          PY
+
       - name: Unit + SCIS runtime pytest
         run: |
           set -euo pipefail
