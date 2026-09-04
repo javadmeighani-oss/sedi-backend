@@ -335,7 +335,9 @@ def test_c04_son_mother_managed_person_condition_i8_i10_e2e(db, c04_patches):
     # No CARE_SAFETY from raw I9
     assert (
         db.query(models.Notification)
-        .filter(models.Notification.semantic_family == I10SemanticFamily.CARE_SAFETY.value)
+        .filter(
+            models.Notification.semantic_family == I10SemanticFamily.CARE_SAFETY_ESCALATION.value
+        )
         .count()
         == 0
     )
