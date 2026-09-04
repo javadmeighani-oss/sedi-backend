@@ -3038,6 +3038,57 @@
         "title": "HealthSubjectApiResponse",
         "type": "object"
       },
+      "HealthSubjectConditionReportIn": {
+        "additionalProperties": false,
+        "properties": {
+          "condition_id": {
+            "minimum": 1.0,
+            "title": "Condition Id",
+            "type": "integer"
+          },
+          "diagnosed_date": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnosed Date"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Severity"
+          }
+        },
+        "required": [
+          "condition_id"
+        ],
+        "title": "HealthSubjectConditionReportIn",
+        "type": "object"
+      },
       "HistoryGroupItem": {
         "description": "One group (day/week/month/year) with its turns.",
         "properties": {
@@ -4623,7 +4674,7 @@
         "additionalProperties": false,
         "properties": {
           "access_role": {
-            "default": "CAREGIVER",
+            "default": "MANAGER",
             "enum": [
               "CAREGIVER",
               "MANAGER"
@@ -4636,12 +4687,45 @@
             "minLength": 1,
             "title": "Display Name",
             "type": "string"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "required": [
           "display_name"
         ],
         "title": "ManagedHealthSubjectCreate",
+        "type": "object"
+      },
+      "ManagedHealthSubjectUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "title": "ManagedHealthSubjectUpdate",
         "type": "object"
       },
       "MeUpdateIn": {
@@ -10071,6 +10155,104 @@
         ]
       }
     },
+    "/health-subjects": {
+      "get": {
+        "description": "List HealthSubjects accessible to the authenticated Account (SELF + managed).",
+        "operationId": "list_health_subjects_health_subjects_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Health Subjects",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/": {
+      "get": {
+        "description": "List HealthSubjects accessible to the authenticated Account (SELF + managed).",
+        "operationId": "list_health_subjects_health_subjects__get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Health Subjects",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
     "/health-subjects/managed": {
       "post": {
         "description": "Create a managed health subject without a linked Sedi account.",
@@ -10140,6 +10322,156 @@
           }
         ],
         "summary": "Ensure Self Health Subject",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}": {
+      "get": {
+        "operationId": "get_health_subject_health_subjects__health_subject_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Health Subject",
+        "tags": [
+          "Health Subjects"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_managed_health_subject_health_subjects__health_subject_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagedHealthSubjectUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Managed Health Subject",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/archive": {
+      "post": {
+        "description": "Soft-deactivate managed HealthSubject; preserve historical records.",
+        "operationId": "archive_health_subject_health_subjects__health_subject_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Health Subject",
         "tags": [
           "Health Subjects"
         ]
@@ -10298,6 +10630,164 @@
           }
         ],
         "summary": "Delete Subject Caregiver Access",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/conditions": {
+      "get": {
+        "operationId": "get_subject_conditions_health_subjects__health_subject_id__conditions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subject Conditions",
+        "tags": [
+          "Health Subjects"
+        ]
+      },
+      "post": {
+        "operationId": "post_subject_condition_health_subjects__health_subject_id__conditions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HealthSubjectConditionReportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Subject Condition",
+        "tags": [
+          "Health Subjects"
+        ]
+      }
+    },
+    "/health-subjects/{health_subject_id}/conditions/{condition_id}": {
+      "delete": {
+        "operationId": "delete_subject_condition_health_subjects__health_subject_id__conditions__condition_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "condition_id",
+            "required": true,
+            "schema": {
+              "title": "Condition Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "health_subject_id",
+            "required": true,
+            "schema": {
+              "title": "Health Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSubjectApiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Subject Condition",
         "tags": [
           "Health Subjects"
         ]
