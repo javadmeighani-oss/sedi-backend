@@ -80370,3 +80370,121 @@ MASTER_LOG_TIP=§426
 CURSOR_HANDOFF_TIP=v719
 DOCS_CLOSURE_COMMIT=
 SELF_REFERENTIAL_NOT_RECORDED_BY_DESIGN=YES
+
+§427 - SEDI-V1-BE-S02 GOVERNED DEVICE/I9 → I4 SAFETY AUTHORITY CONTRACT DESIGN FREEZE-01
+
+GATE=SEDI-V1-BE-S02
+GATE_RESULT=PASS
+MODE=AUDIT_AND_DESIGN_FREEZE_ONLY
+AUTHORIZATION=APPROVED_BY_JAVAD
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+CODE_IMPLEMENTATION=NO
+THRESHOLD_INVENTED=NO
+CLINICAL_DEVICE_RULE_CREATED=NO
+
+AUTHORITY=
+I4_IS_SAFETY_AUTHORITY=YES
+I9_IS_SAFETY_AUTHORITY=NO
+I5_IS_SAFETY_AUTHORITY=NO
+I8_IS_SAFETY_AUTHORITY=NO
+I10_IS_SAFETY_AUTHORITY=NO
+LLM_IS_RISK_DECISION_OWNER=NO
+RAW_I9_TO_I10_SAFETY=NO
+NO_DATA_NE_NORMAL=YES
+INACTIVITY_ALONE_IMPLIES_RISK=NO
+
+I9_SAFE_EVIDENCE_OUTPUTS=
+PhysiologicalMeasurement(health_subject_id,measurement_type,numeric_value,unit,measured_at,received_at,quality_state,device_id)
+DeviceReportedCardiacEvent(health_subject_id,event_code,detected_at,source_class,provenance_json)
+DevicePacket+DeviceSubjectBinding(subject-native)
+Rollup/Baseline subject-keyed aggregates (no safety authority)
+I8GovernedPhysiologicalContext subject-native projection (context only)
+
+I4_CURRENT_CONTRACT=
+RiskAssessment(registry_version,level,action,domain,rule_id,language)
+RiskLevel={none,caution,high,emergency}
+SafetyAction includes return_emergency_response + fail_closed_response
+assess_safety_risk(*,message,language) chat-text only today
+REGISTRY_VERSION=sedi.safety.risk.v1
+fail_closed_assessment / assess_safety_risk_safe
+
+B16_REQUIRED_INPUT=
+EmergencyEscalationRecord caregiver_escalation_ready + unresolved
+metadata provenance SECTION15_I4 / I4_ESCALATION_PROVENANCE_V1
+EMERGENCY + RETURN_EMERGENCY_RESPONSE + registry_version + rule_id + health_subject_id
+B16_REUSE_COMPATIBLE=YES (ledger reuse; device ingress missing)
+
+FROZEN_DEVICE_SAFETY_INPUT_CONTRACT=I4DeviceSafetyInput
+FIELDS_FROM_EXISTING_I9=
+health_subject_id
+evidence_type (<=measurement_type|event_code)
+normalized_value|semantic_state
+unit?
+observed_at (<=measured_at|detected_at)
+received_at?
+source_class
+quality_state
+freshness_state (evaluation-time derived; not an I9 column)
+device_id/binding_id/evidence_ref/provenance_ref
+PATIENT_IDENTITY=canonical HealthSubject only
+ACTOR_ACCOUNT_NOT_REQUIRED_FOR_ASSESSMENT=YES
+DEVICE_ONLY_PATIENT_ACCOUNT_REQUIRED=NO
+
+RAW_I9_TO_I4_ALLOWED=NO
+NORMALIZED_I9_EVIDENCE_TO_I4_ALLOWED=YES (after acceptance firewall)
+
+DEVICE_SAFETY_REGISTRY_OWNER=I4
+REGISTRY_STORAGE_DECISION=CODE_GOVERNED_VERSIONED_REGISTRY (mirror chat I4 pattern)
+SCHEMA_REQUIRED=NO
+MIGRATION_REQUIRED=NO
+RATIONALE=chat I4 already uses code REGISTRY_VERSION + rule_id; device registry can parallel without DB until clinical rules need durable approval ledger
+
+ACTIVE_CLINICAL_DEVICE_RULES_IN_S02=ZERO
+DEVICE_SAFETY_INFRASTRUCTURE_VS_CLINICAL_RULES=SEPARATED
+CLINICAL_RULE_GATE_REQUIRED=YES
+
+FAIL_CLOSED_ACCEPTANCE_REJECTS=
+unbound_device,wrong_subject,revoked_binding,unsupported_evidence_type,unknown/missing_unit,stale,low_quality,missing_provenance/timestamp/subject,raw_unnormalized_packet,inactivity_only,no_data
+NONE_BECOME_NORMAL_OR_EMERGENCY_BY_DEFAULT=YES
+PREFERRED_RESULT=fail_closed_assessment / SafetyAction.fail_closed_response (reuse existing)
+
+DEVICE_SAFETY_EVALUATOR_SEAM=
+assess_device_safety_risk_safe(*, input: I4DeviceSafetyInput) -> RiskAssessment
+deterministic; no DB required for V1 infra; no network; no LLM; no RAG; no B06/I10 call from I4
+
+B16_BRIDGE_RULE=
+ONLY RiskLevel.EMERGENCY AND SafetyAction.RETURN_EMERGENCY_RESPONSE AND valid I4 device-registry provenance
+HIGH/CAUTION/NONE/FAIL_CLOSED do not create caregiver SAFETY_ESCALATION
+No B16 redesign
+
+V1_RECOMMENDED_OPTION=OPTION_A
+RATIONALE=I9 evidence sufficiently subject-native for normalized input mapping; no proven existing non-chat clinical rule for OPTION_B; OPTION_C not selected because PM/cardiac already carry value+unit+time+quality+subject
+
+S02_IMPL_SCOPE=
+NEW backend/app/services/intelligence/device_safety_input.py (I4DeviceSafetyInput + acceptance)
+NEW backend/app/services/intelligence/device_safety_registry.py (empty active physiological rules; versioned shell)
+NEW/EXTEND backend/app/services/intelligence/device_safety_risk.py (assess_device_safety_risk_safe)
+REUSE persist_i4_emergency_escalation + B16 unchanged when EMERGENCY
+TESTS test_s02_device_i4_safety_contract.py (fail-closed matrix; zero clinical emergencies until rule gate)
+CI extend SCIS-01 or Backend freeze / existing I4-related workflow — prefer existing
+SCHEMA_CHANGE_EXPECTED=NO
+MIGRATION_EXPECTED=NO
+
+PRODUCTION_MUTATION=NO
+DEPLOY=NO
+
+NEXT_GATE_PROPOSAL=S02-IMPL (infrastructure only; zero active physiological rules)
+NEXT_GATE_AUTHORIZED=NO
+
+v719_MODIFIED=NO
+v720_CREATE_ONLY=YES
+
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v720_FA.md
+MASTER_LOG_TIP=§427
+CURSOR_HANDOFF_TIP=v720
+DOCS_CLOSURE_COMMIT=
+SELF_REFERENTIAL_NOT_RECORDED_BY_DESIGN=YES
