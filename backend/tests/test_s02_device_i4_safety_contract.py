@@ -356,6 +356,7 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
     from backend.app.services.section10.i4_emergency_escalation import persist_i4_emergency_escalation
 
     db = pg_db
+    wall = datetime.now(timezone.utc)
     son = models.User(
         name=f"Son-{uuid4().hex[:8]}",
         secret_key=f"sk-{uuid4().hex[:8]}",
@@ -384,16 +385,19 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
     )
     db.add(device)
     db.flush()
+    bound_at = wall - timedelta(hours=1)
     binding = bind_device_to_subject(
         db,
         device=device,
         health_subject_id=mother.id,
         bound_by_account_user_id=son.id,
+        bound_at=bound_at,
         commit=False,
     )
     assert device.health_subject_id == mother.id
 
-    measured = _now() - timedelta(minutes=2)
+    measured = wall - timedelta(minutes=5)
+    received = wall - timedelta(minutes=4)
     pm = models.PhysiologicalMeasurement(
         health_subject_id=mother.id,
         user_id=None,
@@ -402,7 +406,7 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
         numeric_value=74.0,
         unit="bpm",
         measured_at=measured,
-        received_at=_now(),
+        received_at=received,
         quality_state="ok",
         idempotency_key=f"s02-{uuid4().hex}",
         ingestion_status="accepted",
@@ -432,7 +436,7 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
         provenance_ref=f"device_subject_binding:{binding.id}",
         unit=pm.unit,
         normalized_value=float(pm.numeric_value),
-        now=_now(),
+        now=wall,
     )
     result = assess_device_safety_risk_safe(input=inp)
     assert result.level is RiskLevel.NONE
@@ -460,7 +464,7 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
         provenance_ref=f"device_subject_binding:{binding.id}",
         unit=pm.unit,
         normalized_value=float(pm.numeric_value),
-        now=_now(),
+        now=wall,
     )
     wrong_r = assess_device_safety_risk_safe(input=wrong)
     assert wrong_r.action is SafetyAction.FAIL_CLOSED_RESPONSE
@@ -479,12 +483,12 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
 
     # Test-only EMERGENCY assessment is authoritative for B16 gate
     synth = assess_device_safety_risk_safe(
-        input=_valid_input(
+        input=build_i4_device_safety_input(
             health_subject_id=son_hs.id,
             evidence_type="test_synthetic",
-            unit=None,
-            normalized_value=None,
-            semantic_state="test_force_emergency",
+            observed_at=wall - timedelta(minutes=1),
+            source_class="DEVICE_REPORTED",
+            quality_state="ok",
             device_id=None,
             binding=DeviceBindingFacts(
                 device_id=None,
@@ -494,6 +498,10 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
             ),
             evidence_ref="test:1",
             provenance_ref="test:prov",
+            unit=None,
+            normalized_value=None,
+            semantic_state="test_force_emergency",
+            now=wall,
         ),
         rules=(TEST_ONLY_SYNTHETIC_EMERGENCY_RULE,),
     )
@@ -534,6 +542,7 @@ def test_revoked_binding_pg_fail_closed(pg_db):
     )
 
     db = pg_db
+    wall = datetime.now(timezone.utc)
     son = models.User(
         name=f"SonR-{uuid4().hex[:8]}",
         secret_key=f"sk-{uuid4().hex[:8]}",
@@ -558,14 +567,19 @@ def test_revoked_binding_pg_fail_closed(pg_db):
     db.add(device)
     db.flush()
     first = bind_device_to_subject(
-        db, device=device, health_subject_id=mother.id, bound_by_account_user_id=son.id, commit=False
+        db,
+        device=device,
+        health_subject_id=mother.id,
+        bound_by_account_user_id=son.id,
+        bound_at=wall - timedelta(hours=2),
+        commit=False,
     )
     rebind_device(
         db,
         device=device,
         new_health_subject_id=other.id,
         bound_by_account_user_id=son.id,
-        bound_at=_now(),
+        bound_at=wall - timedelta(minutes=30),
         commit=False,
     )
     db.refresh(first)
@@ -574,7 +588,7 @@ def test_revoked_binding_pg_fail_closed(pg_db):
     inp = build_i4_device_safety_input(
         health_subject_id=mother.id,
         evidence_type="heart_rate",
-        observed_at=_now() - timedelta(minutes=1),
+        observed_at=wall - timedelta(minutes=1),
         source_class="DEVICE_REPORTED",
         quality_state="ok",
         device_id=device.id,
@@ -588,7 +602,7 @@ def test_revoked_binding_pg_fail_closed(pg_db):
         provenance_ref=f"device_subject_binding:{first.id}",
         unit="bpm",
         normalized_value=70.0,
-        now=_now(),
+        now=wall,
     )
     r = assess_device_safety_risk_safe(input=inp)
     assert r.action is SafetyAction.FAIL_CLOSED_RESPONSE
