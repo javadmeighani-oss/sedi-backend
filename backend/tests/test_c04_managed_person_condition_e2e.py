@@ -342,7 +342,7 @@ def test_c04_son_mother_managed_person_condition_i8_i10_e2e(db, c04_patches):
         == 0
     )
 
-    # Revoke grant → suppress further delivery
+    # Revoke grant → suppress further delivery (next local day = new I8 plan)
     revoke_subject_notification_grant_by_scope(
         db,
         actor_user_id=son.id,
@@ -351,19 +351,20 @@ def test_c04_son_mother_managed_person_condition_i8_i10_e2e(db, c04_patches):
         notification_scope=I10NotificationScope.CARE_ACTION,
     )
     before = db.query(models.Notification).filter(models.Notification.user_id == son.id).count()
-    # New action key for a fresh intent attempt later same day may still be blocked by grant
-    window = resolve_local_day_window(db, son.id, now_utc=when)
+    when2 = when + timedelta(days=1)
+    _profile_tz(db, son.id)
+    window2 = resolve_local_day_window(db, son.id, now_utc=when2)
     repo = I8OperationalRepository()
     plan2 = repo.create_plan(
         db,
         user_id=son.id,
-        user_local_date=window.user_local_date,
-        timezone_snapshot=window.timezone_snapshot,
+        user_local_date=window2.user_local_date,
+        timezone_snapshot=window2.timezone_snapshot,
         generation_mode="proactive",
         plan_idempotency_key=f"c04-plan2-{mother.id}",
-        valid_from=window.valid_from,
-        valid_until=window.valid_until,
-        expires_at=window.expires_at,
+        valid_from=window2.valid_from,
+        valid_until=window2.valid_until,
+        expires_at=window2.expires_at,
     )
     repo.create_action(
         db,
@@ -377,12 +378,13 @@ def test_c04_son_mother_managed_person_condition_i8_i10_e2e(db, c04_patches):
         knowledge_refs_json="[]",
         context_refs_json=build_health_subject_context_refs_json(mother.id),
         safety_state="SAFE",
-        valid_from=window.valid_from,
-        valid_until=window.valid_until,
-        expires_at=window.expires_at,
+        valid_from=window2.valid_from,
+        valid_until=window2.valid_until,
+        expires_at=window2.expires_at,
     )
+    db.commit()
     run_care_action_producer_for_subject(
-        db, health_subject_id=mother.id, when=when + timedelta(minutes=5), deliver=True, commit=True
+        db, health_subject_id=mother.id, when=when2, deliver=True, commit=True
     )
     after = db.query(models.Notification).filter(models.Notification.user_id == son.id).count()
     assert after == before
