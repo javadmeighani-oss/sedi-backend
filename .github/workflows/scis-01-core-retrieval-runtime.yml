@@ -12,6 +12,10 @@ on:
       - "backend/tests/test_scis_01_core_retrieval.py"
       - "backend/tests/test_i5_k04_scis_governed_serving.py"
       - "backend/tests/test_s01_managed_subject_knowledge_e2e.py"
+      - "backend/tests/test_s02_device_i4_safety_contract.py"
+      - "backend/app/services/intelligence/device_safety_input.py"
+      - "backend/app/services/intelligence/device_safety_registry.py"
+      - "backend/app/services/intelligence/device_safety_risk.py"
       - "backend/tests/test_db03_contracts.py"
       - "backend/app/models.py"
       - "backend/app/services/db03/authority_markers.py"
@@ -196,7 +200,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${{ runner.temp }}/scis01_evidence"
-          python -B -m pytest backend/tests/test_scis_01_core_retrieval.py backend/tests/test_i5_k04_scis_governed_serving.py backend/tests/test_s01_managed_subject_knowledge_e2e.py backend/tests/test_i5_s49_trusted_source_control.py backend/tests/test_db03_contracts.py::test_db03_guardrails_constants backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings backend/tests/test_db03_contracts.py::test_alembic_single_head_chain backend/tests/test_db03_contracts.py::test_knowledge_chunk_embeddings_extended_columns -q --tb=short --noconftest \
+          python -B -m pytest backend/tests/test_scis_01_core_retrieval.py backend/tests/test_i5_k04_scis_governed_serving.py backend/tests/test_s01_managed_subject_knowledge_e2e.py backend/tests/test_s02_device_i4_safety_contract.py backend/tests/test_i5_s49_trusted_source_control.py backend/tests/test_db03_contracts.py::test_db03_guardrails_constants backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings backend/tests/test_db03_contracts.py::test_alembic_single_head_chain backend/tests/test_db03_contracts.py::test_knowledge_chunk_embeddings_extended_columns -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_scis01.txt"
 
       - name: Embedding challenger eval (optional network)
