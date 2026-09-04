@@ -80551,3 +80551,299 @@ v721_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v721_FA.md
 MASTER_LOG_TIP=§428
 CURSOR_HANDOFF_TIP=v721
+
+§429 - SEDI-V1-BE-REFSYNC-01 FULL BACKEND V1 AUTHORITATIVE STATUS + REAL-LIFE I1-I10 MASTER E2E ACCEPTANCE ROADMAP SYNC-01
+
+GATE=SEDI-V1-BE-REFSYNC-01
+GATE_RESULT=PASS
+MODE=AUDIT_AND_DOCUMENTATION_ONLY
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=6cb9308556fc4c2ea47f61a1f31a670caf2e2938
+REPO_HEAD=6cb9308556fc4c2ea47f61a1f31a670caf2e2938
+REMOTE_HEAD=6cb9308556fc4c2ea47f61a1f31a670caf2e2938
+ALEMBIC_HEAD=078_health_subject_condition_foundation
+PRIOR_MASTER_LOG_TIP=§428
+PRIOR_CURSOR_HANDOFF_TIP=v721
+CODE_CHANGE=NO
+TEST_CHANGE=NO
+WORKFLOW_CHANGE=NO
+RUNTIME_TEST_RERUN=NO
+
+============================================================
+A. CURRENT BASELINE (EVIDENCE)
+============================================================
+
+CLOSED_GATES_RECENT=
+C04=PASS (§423) managed person + HealthSubjectCondition + subject-aware I8 + real PG
+K03(+A/B)=PASS (§424) SCIS lexical query formulation; SCIS-01 CI true-green
+K04=PASS (§425) SCIS lexical → I8/Chat governed serving (memory fallback)
+S01_TRACK_A=PASS (§426) managed/accountless Mother knowledge E2E
+S01_TRACK_B=HARD_STOP (§426) then superseded by S02 design+impl
+S02_DESIGN=PASS (§427) device/I9→I4 contract freeze OPTION_A
+S02_IMPL=PASS (§428) device safety infrastructure; CI 33897248160 = 92 passed
+
+S02_IMPL_CORE_INFRASTRUCTURE=PASS
+DEVICE_SAFETY_INFRASTRUCTURE_COMPLETE=YES
+CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0
+
+ACCOUNT_NE_HEALTH_SUBJECT=YES
+MOTHER_MANAGED_LINKED_USER_ID_NULL_PROVEN=YES (C04/S01)
+GATEWAY_NOT_DATA_OWNER=YES (device may relay via Son Account; health attribution = Mother HS)
+
+============================================================
+B. OPEN FINDINGS (NOT CLOSED BY THIS GATE)
+============================================================
+
+FINDING_S02_TEST_RULE_PRODUCTION_SEAM=OPEN
+EVIDENCE=
+TEST_ONLY_SYNTHETIC_EMERGENCY_RULE defined in production module backend/app/services/intelligence/device_safety_registry.py
+test_synthetic accepted in production SUPPORTED_EVIDENCE_TYPES (device_safety_input.py)
+assess_device_safety_risk / assess_device_safety_risk_safe accept optional rules: Optional[Sequence[DeviceSafetyRule]]
+Caller-supplied rules bypass empty ACTIVE_CLINICAL_DEVICE_RULES production registry
+PRODUCTION_ACTIVE_RULE_LEAK=NO (ACTIVE_CLINICAL_DEVICE_RULES still empty; count=0)
+AUTHORITY_BYPASS_SEAM=YES (optional rules= injection + test artifact on production import path)
+REPAIR_REQUIRED_BEFORE_FINAL_CLOSURE=YES
+NOTE=S02-IMPL recorded TEST_ONLY_RULE_PRODUCTION_LEAK=NO meaning not in ACTIVE list; REFSYNC reclassifies importable test rule + rules= seam as OPEN authority defect
+
+FINDING_S02_FRESHNESS_POLICY=OPEN
+DEFAULT_INFRA_FRESHNESS_MAX_AGE=24h (infrastructure eligibility only; NOT a physiological threshold)
+CLINICAL_RULE_SPECIFIC_FRESHNESS_GOVERNANCE_REQUIRED_BEFORE_ACTIVE_CLINICAL_DEVICE_RULES=YES
+
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E=OPEN
+ACCOUNTLESS_MOTHER_I4_ASSESSMENT=PROVEN (§428)
+persist_i4_emergency_escalation=SELF-linked Account path only (unchanged)
+ACCOUNTLESS_MOTHER_I4→B16→CAREGIVER_REAL_E2E=NOT_YET_PROVEN
+
+FINDING_B15A01_OWNER_PROVENANCE_01=OPEN
+CODE=resolve_subject_owner_user_id (care_digest_producer_worker.py) prefers MANAGER access then first active access
+SEMANTIC=manager-preference owner resolution may diverge from canonical subject ownership / one-human-one-subject expectations
+REPAIR_REQUIRED_BEFORE_PRODUCTION_ACTIVATION=YES
+PROPOSED_FOLLOWUP_LABEL=B15-A02 provenance semantic repair (NOT AUTHORIZED HERE)
+
+FINDING_RAG_REAL_RUNTIME=OPEN
+RAG_REAL_RUNTIME_VERIFIED=NO
+RAG_USER_FACING_E2E_VERIFIED=NO
+VECTOR_HYBRID_PRODUCTION_SERVING_VERIFIED=NO
+EVIDENCE_BASE=§421 flags default off; §424/§425 VECTOR_USED=NO HYBRID_USED=NO; FakeScisEmbeddingProvider in CI; live provider not proven
+
+FINDING_FULL_I1_I10_FAMILY_E2E=OPEN
+SEDI-V1-REAL-FAMILY-CARE-E2E-01=NOT_RUN
+
+============================================================
+C. I1→I10 ACTUAL STATUS MATRIX (REPOSITORY EVIDENCE)
+============================================================
+
+I1_OWNER=backend/app/services/intelligence/orchestrator.py (IntelligenceOrchestrator)
+I1_IMPLEMENTATION_STATUS=IMPLEMENTED (structured+compatibility modes)
+I1_POSTGRESQL_TEST_STATUS=PARTIAL (via Section15 backend CI suites; not family E2E)
+I1_INTEGRATION_TEST_STATUS=PASS_COMPONENT (test_section15_i1*)
+I1_REAL_E2E_STATUS=NOT_PROVEN_FOR_MASTER_FAMILY_SCENARIO
+I1_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I1_OPEN_FINDINGS=master family orchestration path unverified end-to-end
+
+I2_OWNER=assembler.py + adapters.py + context_types.py (AuthorizedContextAssembler)
+I2_IMPLEMENTATION_STATUS=IMPLEMENTED
+I2_POSTGRESQL_TEST_STATUS=PARTIAL
+I2_INTEGRATION_TEST_STATUS=PASS_COMPONENT (test_section15_i2*)
+I2_REAL_E2E_STATUS=NOT_PROVEN_FOR_MASTER_FAMILY_SCENARIO
+I2_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I2_OPEN_FINDINGS=managed Mother vs SELF context switching in live chat E2E unverified
+
+I3_OWNER=intent_registry.py + missing_information.py
+I3_IMPLEMENTATION_STATUS=IMPLEMENTED
+I3_POSTGRESQL_TEST_STATUS=PARTIAL
+I3_INTEGRATION_TEST_STATUS=PASS_COMPONENT (test_section15_i3*)
+I3_REAL_E2E_STATUS=NOT_PROVEN_FOR_MASTER_FAMILY_SCENARIO
+I3_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I3_OPEN_FINDINGS=none beyond master E2E gap
+
+I4_OWNER=safety_risk.py (chat) + device_safety_*.py (device infra) + contracts RiskAssessment
+I4_IMPLEMENTATION_STATUS=IMPLEMENTED_CHAT + DEVICE_INFRASTRUCTURE
+I4_POSTGRESQL_TEST_STATUS=PASS_FOR_DEVICE_INFRA_AND_B16_SEAM_COMPONENT (§428)
+I4_INTEGRATION_TEST_STATUS=PASS_COMPONENT
+I4_REAL_E2E_STATUS=CHAT_PATH_COMPONENT_PROVEN; DEVICE_CLINICAL_RULES_INACTIVE; MANAGED_B16_E2E_UNPROVEN
+I4_PRODUCTION_STATUS=CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+I4_OPEN_FINDINGS=FINDING_S02_TEST_RULE_PRODUCTION_SEAM; FINDING_S02_FRESHNESS_POLICY; managed B16 E2E
+
+I5_OWNER=i5/* + scis/* + runtime_knowledge_retrieval.py
+I5_IMPLEMENTATION_STATUS=GOVERNED_SCIS_LEXICAL_SERVING_IMPLEMENTED
+I5_POSTGRESQL_TEST_STATUS=PASS (SCIS-01 / K03 / K04 / S01)
+I5_INTEGRATION_TEST_STATUS=PASS_SCIS_TO_I8_CHAT
+I5_REAL_E2E_STATUS=LEXICAL_PATH_PROVEN; RAG_VECTOR_HYBRID_NOT_VERIFIED
+I5_PRODUCTION_STATUS=PRODUCTION_KNOWLEDGE_SERVING_ACTIVE=NO (§425)
+I5_OPEN_FINDINGS=FINDING_RAG_REAL_RUNTIME; live embedding provider unverified
+
+I6_OWNER=i6/consent_service.py + memory_writes.py
+I6_IMPLEMENTATION_STATUS=IMPLEMENTED_FOUNDATION
+I6_POSTGRESQL_TEST_STATUS=PARTIAL (test_i6_* in backend CI)
+I6_INTEGRATION_TEST_STATUS=PASS_COMPONENT
+I6_REAL_E2E_STATUS=NOT_PROVEN_IN_MASTER_FAMILY_SCENARIO
+I6_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I6_OPEN_FINDINGS=consent/grants interaction with managed Mother chat+notify E2E unverified as one chain
+
+I7_OWNER=i7/* governed memory / period summaries / lifecycle
+I7_IMPLEMENTATION_STATUS=IMPLEMENTED_FOUNDATION
+I7_POSTGRESQL_TEST_STATUS=PASS_COMPONENT (i7 wave/migration suites)
+I7_INTEGRATION_TEST_STATUS=PASS_COMPONENT
+I7_REAL_E2E_STATUS=NOT_PROVEN_IN_MASTER_FAMILY_SCENARIO
+I7_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I7_OPEN_FINDINGS=subject-native memory isolation in family E2E unverified
+
+I8_OWNER=i8/* unified_core + subject_context + knowledge_bridge
+I8_IMPLEMENTATION_STATUS=IMPLEMENTED + SUBJECT_AWARE_MANAGED_KNOWLEDGE
+I8_POSTGRESQL_TEST_STATUS=PASS (S01 managed knowledge; C04 subject context)
+I8_INTEGRATION_TEST_STATUS=PASS_COMPONENT
+I8_REAL_E2E_STATUS=PARTIAL (knowledge path proven; full chat+action+notify family chain unproven)
+I8_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I8_OPEN_FINDINGS=CARE_ACTION managed→caregiver real chain depends on I10; B15 owner provenance open
+
+I9_OWNER=i9/* device binding/packet/aggregation/baseline/HS services
+I9_IMPLEMENTATION_STATUS=IMPLEMENTED_SUBJECT_NATIVE
+I9_POSTGRESQL_TEST_STATUS=PASS (device packet/baseline/longitudinal suites; C04)
+I9_INTEGRATION_TEST_STATUS=PASS_COMPONENT
+I9_REAL_E2E_STATUS=PARTIAL (ingest+attribution proven; clinical I4 rules inactive)
+I9_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I9_OPEN_FINDINGS=I9≠safety; normalized→I4 infra only
+
+I10_OWNER=i10/* + section10 emergency/B06 delivery
+I10_IMPLEMENTATION_STATUS=IMPLEMENTED_CARE_NETWORK_STACK (B01–B19 component gates historically PASS)
+I10_POSTGRESQL_TEST_STATUS=PASS_COMPONENT (B06/B15/B16 suites)
+I10_INTEGRATION_TEST_STATUS=PASS_COMPONENT
+I10_REAL_E2E_STATUS=PARTIAL; MASTER_FAMILY_NOTIFY_CHAIN_NOT_PROVEN_AS_ONE
+I10_PRODUCTION_STATUS=NOT_ACTIVATED_AS_V1_FINAL
+I10_OPEN_FINDINGS=FINDING_B15A01_OWNER_PROVENANCE_01; managed Mother I4→B16→caregiver E2E open
+
+============================================================
+D. MASTER REAL-LIFE V1 SCENARIO (FROZEN ACCEPTANCE TARGET)
+============================================================
+
+SCENARIO_ID=SEDI-V1-REAL-FAMILY-CARE-E2E-01
+STATUS=RECORDED_NOT_EXECUTED
+
+ACTORS=
+SON_ACCOUNT
+SON_SELF_HEALTH_SUBJECT
+MOTHER_MANAGED_HEALTH_SUBJECT (linked_user_id=NULL; condition e.g. ALS)
+MOTHER_SEDI_GADGET
+SON_PHONE_OR_APP_MAY_ACT_AS_GATEWAY
+
+IDENTITY_LAW=
+PHONE/GATEWAY_OWNER=SON_ACCOUNT
+HEALTH_DATA_OWNER=MOTHER_HEALTH_SUBJECT
+SON_ACCOUNT!=MOTHER_HS
+SON_SELF_HS!=MOTHER_HS
+NO_ACCOUNT_SUBSTITUTION
+NO_FAKE_MOTHER_USER
+NO_DUPLICATE_MOTHER_HEALTHSUBJECT
+
+AUTHORIZATION=
+Son Account → AccountHealthSubjectAccess → Mother HS + consent/grants/prefs as applicable
+
+REQUIRED_FLOWS=
+1) Gadget→gateway→I9 normalized Mother evidence→rollup/baseline
+2) Son Chat authenticated → SELF or MOTHER context → I1-I3 → I4 → I5 → I6 → I7 → I8 → I9 if authorized → I10
+3) No cross-subject leakage
+
+CHAT_ACCEPTANCE=
+SELF context isolation; Mother managed path; unauthorized fail-closed
+RAG_DIAGNOSIS_AUTHORITY=NO
+RAG_SAFETY_AUTHORITY=NO
+RAG_DIRECT_I8_ACTION_AUTHORITY=NO
+RAG_DIRECT_I10_AUTHORITY=NO
+
+============================================================
+E. KNOWLEDGE / RAG STATUS
+============================================================
+
+GOVERNED_KNOWLEDGE_EXISTS=YES
+SCIS_LEXICAL_REAL_POSTGRESQL_TESTED=YES
+SCIS_TO_I8_TESTED=YES
+SCIS_TO_CHAT_TESTED=YES
+MANAGED_SUBJECT_KNOWLEDGE_TESTED=YES
+PGVECTOR_STRUCTURAL_PATH_TESTED=YES
+PGVECTOR_NE_RAG_VERIFIED=YES (do not equate)
+
+RAG_REAL_RUNTIME_VERIFIED=NO
+RAG_USER_FACING_E2E_VERIFIED=NO
+VECTOR_HYBRID_PRODUCTION_SERVING_VERIFIED=NO
+SMART_RAG_FINAL_VALIDATION_REQUIRED=YES
+
+FUTURE_RAG_ACCEPTANCE_MUST_COVER=
+ALS natural; non-ALS; unrelated; retracted/ineligible; missing provenance; empty;
+FA; EN; top-k; citation lineage; fallback; lexical vs hybrid comparison;
+live embedding provider or exact credential blocker (no fabricated PASS)
+
+============================================================
+F. DEVICE / I4 / NOTIFICATION / DB REQUIREMENTS
+============================================================
+
+DEVICE→I9=IMPLEMENTED
+NORMALIZED_I9→I4_INFRASTRUCTURE=IMPLEMENTED
+RAW_I9_TO_I4_ALLOWED=NO
+I9_SAFETY_AUTHORITY=NO
+I4_SAFETY_AUTHORITY=YES
+ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0
+CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+
+NOTIFICATION_E2E_REQUIRED_FUTURE=
+Mother HS → owning semantic → I10 → access → grant → eligibility → B06 revalidation → prefs → PushDevice → Son Account
+GENERAL_STATUS / DEVICE_STATUS / CARE_ACTION / SAFETY_ESCALATION
+revoke fail-closed; unrelated blocked; multi-caregiver independence; prefs; idempotency; rollback;
+recipient Account != target HS; no account substitution
+NOTIFICATION_E2E_STATUS=NOT_PROVEN_AS_SINGLE_MASTER_CHAIN
+
+FULL_DATABASE_INTEGRATION_REQUIRED_FUTURE=
+Alembic single head; fresh upgrade; FK/UNIQUE/CHECK; Account/HS/access/condition/device/I7/I8/I9/I10;
+txn failure/rollback/idempotency/concurrency/isolation/revocation/no orphan authority/no fake patient Account
+FULL_DATABASE_INTEGRATION_STATUS=PARTIAL_COMPONENT_SUITES_ONLY
+
+============================================================
+G. DEFECT POLICY + FRONTEND ORDER
+============================================================
+
+DEFECT_POLICY=AUDIT→REAL TEST→FIND→CLASSIFY OWNER→FIX OWNING LAYER→RETEST→TRUE GREEN
+FAST_CLOSURE_SAME_SCOPE_OK=YES
+NEW_APPROVAL_REQUIRED_FOR=schema/migration architecture; authority model; clinical threshold/rule; access redesign; production; force push
+
+FINAL_FRONTEND_REDESIGN_BEFORE_BACKEND_E2E_CLOSURE=NO
+FRONTEND_FINAL_REDESIGN_ALLOWED_NOW=NO
+NOTE=§421 READY_FOR_FRONTEND_REDESIGN=YES is SUPERSEDED by post-§421 knowledge/device gaps + this REFSYNC PO order
+
+REQUIRED_ORDER=
+1 known-blocker repair
+2 full real-life I1-I10 integrated validation
+3 Knowledge + real RAG validation
+4 device/accountless/caregiver validation
+5 notification validation
+6 Backend freeze regression
+7 Backend V1 Final Closure
+8 Production/Staging readiness
+9 Frontend V1 redesign/completion
+
+============================================================
+H. REMAINING BACKEND ROADMAP (RECORDED; NONE AUTHORIZED)
+============================================================
+
+1. S02 test-only production seam / registry-authority repair (rules= + test_synthetic + TEST_ONLY rule module placement)
+2. S02 freshness governance before any active clinical device rule
+3. managed/accountless Mother → B16 → caregiver E2E closure
+4. B15-A02 provenance semantic repair (resolve_subject_owner_user_id manager-preference)
+5. remaining I1-I10 cross-section blocker audit
+6. REAL-LIFE I1-I10 E2E validation (SEDI-V1-REAL-FAMILY-CARE-E2E-01)
+7. real RAG / smart-RAG runtime verification
+8. full DB/integration regression
+9. Backend V1 Final Closure
+10. Production/Staging readiness/deploy
+11. Frontend V1 redesign/completion
+
+NEXT_GATE_PROPOSAL=S02 registry-authority / test-seam repair OR PO-chosen next from roadmap
+NEXT_GATE_AUTHORIZED=NO
+
+v721_MODIFIED=NO
+v722_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v722_FA.md
+MASTER_LOG_TIP=§429
+CURSOR_HANDOFF_TIP=v722
