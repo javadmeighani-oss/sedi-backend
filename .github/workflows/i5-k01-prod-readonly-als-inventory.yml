@@ -1,0 +1,491 @@
+# GATE=SEDI-V1-BE-I5-K01-A
+# Safe production read-only ALS lexical inventory + SCIS FA/EN lexical sample.
+# Shape: GitHub runner -> SSH -> inline stdin -> stdout only.
+# No remote file copy/mkdir/temp/chmod on production. No DB/knowledge/host writes.
+name: I5-K01 Production Readonly ALS Inventory
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Must be I5_K01_READONLY_ALS_INVENTORY"
+        required: true
+
+concurrency:
+  group: sedi-production-backend-operation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  k01-readonly-als:
+    name: I5-K01 read-only ALS inventory + SCIS sample
+    if: github.event.inputs.confirmation == 'I5_K01_READONLY_ALS_INVENTORY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Fail-closed confirmation guard
+        env:
+          CONF: ${{ github.event.inputs.confirmation }}
+        run: |
+          set -Eeuo pipefail
+          if [ "${CONF}" != "I5_K01_READONLY_ALS_INVENTORY" ]; then
+            echo "CONFIRMATION_GUARD_FAIL"
+            exit 1
+          fi
+          echo "CONFIRMATION_GUARD=PASS"
+
+      - name: Prepare SSH key (runner only)
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SEDI_SSH_PRIVATE_KEY_B64 }}" | base64 -d > ~/.ssh/sedi_deploy_key
+          chmod 600 ~/.ssh/sedi_deploy_key
+          ssh-keyscan -p "${{ secrets.SEDI_PORT }}" "${{ secrets.SEDI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run read-only ALS inventory + SCIS lexical sample
+        run: |
+          set -Eeuo pipefail
+          DEPLOY_PATH_Q="$(printf '%q' "${{ secrets.SEDI_DEPLOY_PATH }}")"
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            -i ~/.ssh/sedi_deploy_key \
+            -p "${{ secrets.SEDI_PORT }}" \
+            "${{ secrets.SEDI_USER }}@${{ secrets.SEDI_HOST }}" \
+            "DEPLOY_PATH=${DEPLOY_PATH_Q} bash -s" \
+            2>&1 <<'REMOTE_SCRIPT' | tee /tmp/i5_k01_readonly_als.log
+          set -Eeuo pipefail
+          log() { echo "[$(date -Is)] $*"; }
+          s() { echo "K01|$1|$2"; }
+
+          s "production_write" "NO"
+          s "host_mutation" "NO"
+          s "remote_file_copy" "NO"
+          s "temp_file_on_production" "NO"
+          s "mkdir_on_production" "NO"
+
+          cd "${DEPLOY_PATH}"
+          PU="$(docker exec sedi-postgres printenv POSTGRES_USER)"
+          PD="$(docker exec sedi-postgres printenv POSTGRES_DB)"
+          s "backend_image" "$(docker inspect sedi-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+
+          log "=== A. ALS SQL INVENTORY (BEGIN READ ONLY) ==="
+          docker exec -i sedi-postgres psql -U "${PU}" -d "${PD}" -v ON_ERROR_STOP=1 -P pager=off <<'SQL'
+          BEGIN READ ONLY;
+          SELECT 'K01|transaction_read_only|' || current_setting('transaction_read_only');
+
+          SELECT 'K01|alembic|' || version_num FROM alembic_version;
+
+          SELECT 'K01|SIDE_BEFORE|knowledge_gaps|' || count(*)::text FROM knowledge_gaps;
+          SELECT 'K01|SIDE_BEFORE|knowledge_units|' || count(*)::text FROM knowledge_units;
+          SELECT 'K01|SIDE_BEFORE|knowledge_chunk_embeddings|' || count(*)::text FROM knowledge_chunk_embeddings;
+          SELECT 'K01|SIDE_BEFORE|knowledge_memory_items|' || count(*)::text FROM knowledge_memory_items;
+
+          -- Taxonomy-only: label fields match, content statement does not.
+          SELECT 'K01|ALS_TAXONOMY_HITS|' || count(*)::text
+          FROM knowledge_units ku
+          WHERE (
+              coalesce(ku.disease_or_health_condition,'') ILIKE '%amyotrophic%'
+              OR coalesce(ku.disease_or_health_condition,'') ILIKE '%als%'
+              OR coalesce(ku.topic_taxonomy,'') ILIKE '%amyotrophic%'
+              OR coalesce(ku.topic_taxonomy,'') ILIKE '%als%'
+              OR coalesce(ku.disease_or_health_condition,'') ILIKE '%اسکلروز%'
+              OR coalesce(ku.topic_taxonomy,'') ILIKE '%اسکلروز%'
+            )
+            AND NOT (
+              ku.normalized_statement ILIKE '%amyotrophic%'
+              OR ku.normalized_statement ILIKE '%motor neuron%'
+              OR ku.normalized_statement ILIKE '%motor neurone%'
+              OR ku.normalized_statement ILIKE '%اسکلروز%'
+              OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+              OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+            );
+
+          SELECT 'K01|ALS_KU_CONTENT_HITS|' || count(*)::text
+          FROM knowledge_units ku
+          WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+             OR ku.normalized_statement ILIKE '%motor neuron%'
+             OR ku.normalized_statement ILIKE '%motor neurone%'
+             OR ku.normalized_statement ILIKE '%اسکلروز%'
+             OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+             OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)';
+
+          SELECT 'K01|ALS_ELIGIBLE_APPROVED_PUBLISHED_HITS|' || count(*)::text
+          FROM knowledge_units ku
+          WHERE ku.runtime_eligibility = 'ELIGIBLE'
+            AND ku.review_state = 'APPROVED'
+            AND ku.publication_state = 'PUBLISHED'
+            AND (
+              ku.normalized_statement ILIKE '%amyotrophic%'
+              OR ku.normalized_statement ILIKE '%motor neuron%'
+              OR ku.normalized_statement ILIKE '%motor neurone%'
+              OR ku.normalized_statement ILIKE '%اسکلروز%'
+              OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+              OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+            );
+
+          SELECT 'K01|ALS_KU_ROW|' || ku.id || '|' || ku.runtime_eligibility || '|' || ku.review_state || '|' ||
+                 ku.publication_state || '|' || ku.language || '|' || ku.provenance_complete::text || '|' ||
+                 coalesce(g.canonical_key,'') || '|' ||
+                 coalesce(left(ku.disease_or_health_condition,80),'') || '|' ||
+                 left(ku.normalized_statement, 140)
+          FROM knowledge_units ku
+          LEFT JOIN knowledge_provenance kp ON kp.knowledge_unit_id = ku.id
+          LEFT JOIN governed_source_profiles g ON g.id = kp.source_profile_id
+          WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+             OR ku.normalized_statement ILIKE '%motor neuron%'
+             OR ku.normalized_statement ILIKE '%motor neurone%'
+             OR ku.normalized_statement ILIKE '%اسکلروز%'
+             OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+             OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+          ORDER BY ku.id
+          LIMIT 80;
+
+          SELECT 'K01|ALS_KCE_CONTENT_HITS|' || count(*)::text
+          FROM knowledge_chunk_embeddings kce
+          LEFT JOIN knowledge_chunks kc ON kc.id = kce.chunk_id
+          WHERE coalesce(kce.search_document,'') ILIKE '%amyotrophic%'
+             OR coalesce(kce.search_document,'') ILIKE '%motor neuron%'
+             OR coalesce(kce.search_document,'') ILIKE '%motor neurone%'
+             OR coalesce(kce.search_document,'') ILIKE '%اسکلروز%'
+             OR coalesce(kce.search_document,'') ILIKE '%آمیوتروفیک%'
+             OR coalesce(kce.search_document,'') ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+             OR coalesce(kc.content,'') ILIKE '%amyotrophic%'
+             OR coalesce(kc.content,'') ILIKE '%motor neuron%'
+             OR coalesce(kc.content,'') ILIKE '%motor neurone%'
+             OR coalesce(kc.content,'') ILIKE '%اسکلروز%'
+             OR coalesce(kc.content,'') ILIKE '%آمیوتروفیک%'
+             OR coalesce(kc.content,'') ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)';
+
+          SELECT 'K01|ALS_KCE_ROW|' || kce.id || '|' || coalesce(kce.knowledge_unit_id::text,'') || '|' ||
+                 coalesce(kce.chunk_id::text,'') || '|' || coalesce(kce.content_language,'') || '|' ||
+                 coalesce(g.canonical_key,'') || '|' ||
+                 left(coalesce(kce.search_document, kc.content, ''), 120)
+          FROM knowledge_chunk_embeddings kce
+          LEFT JOIN knowledge_chunks kc ON kc.id = kce.chunk_id
+          LEFT JOIN governed_source_profiles g ON g.id = kce.source_profile_id
+          WHERE coalesce(kce.search_document,'') ILIKE '%amyotrophic%'
+             OR coalesce(kce.search_document,'') ILIKE '%motor neuron%'
+             OR coalesce(kce.search_document,'') ILIKE '%motor neurone%'
+             OR coalesce(kce.search_document,'') ILIKE '%اسکلروز%'
+             OR coalesce(kce.search_document,'') ILIKE '%آمیوتروفیک%'
+             OR coalesce(kce.search_document,'') ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+             OR coalesce(kc.content,'') ILIKE '%amyotrophic%'
+             OR coalesce(kc.content,'') ILIKE '%motor neuron%'
+             OR coalesce(kc.content,'') ILIKE '%motor neurone%'
+             OR coalesce(kc.content,'') ILIKE '%اسکلروز%'
+             OR coalesce(kc.content,'') ILIKE '%آمیوتروفیک%'
+             OR coalesce(kc.content,'') ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+          ORDER BY kce.id
+          LIMIT 50;
+
+          SELECT 'K01|ALS_SOURCE|' || g.canonical_key || '|' || count(DISTINCT ku.id)::text
+          FROM knowledge_units ku
+          JOIN knowledge_provenance kp ON kp.knowledge_unit_id = ku.id
+          JOIN governed_source_profiles g ON g.id = kp.source_profile_id
+          WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+             OR ku.normalized_statement ILIKE '%motor neuron%'
+             OR ku.normalized_statement ILIKE '%motor neurone%'
+             OR ku.normalized_statement ILIKE '%اسکلروز%'
+             OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+             OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+          GROUP BY g.canonical_key
+          ORDER BY g.canonical_key;
+
+          SELECT 'K01|ALS_SOURCE_COUNT|' || count(*)::text FROM (
+            SELECT DISTINCT g.canonical_key
+            FROM knowledge_units ku
+            JOIN knowledge_provenance kp ON kp.knowledge_unit_id = ku.id
+            JOIN governed_source_profiles g ON g.id = kp.source_profile_id
+            WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+               OR ku.normalized_statement ILIKE '%motor neuron%'
+               OR ku.normalized_statement ILIKE '%motor neurone%'
+               OR ku.normalized_statement ILIKE '%اسکلروز%'
+               OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+               OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)'
+          ) s;
+
+          SELECT 'K01|ALS_LANGUAGES|' || coalesce(string_agg(DISTINCT language, ',' ORDER BY language), '')
+          FROM knowledge_units ku
+          WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+             OR ku.normalized_statement ILIKE '%motor neuron%'
+             OR ku.normalized_statement ILIKE '%motor neurone%'
+             OR ku.normalized_statement ILIKE '%اسکلروز%'
+             OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+             OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)';
+
+          SELECT 'K01|ALS_PROVENANCE_COMPLETE|' ||
+            (count(*) FILTER (WHERE provenance_complete IS TRUE))::text || '/' || count(*)::text
+          FROM knowledge_units ku
+          WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+             OR ku.normalized_statement ILIKE '%motor neuron%'
+             OR ku.normalized_statement ILIKE '%motor neurone%'
+             OR ku.normalized_statement ILIKE '%اسکلروز%'
+             OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+             OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)';
+
+          SELECT 'K01|ALS_CITATION_LINEAGE|' ||
+            CASE WHEN count(*) = 0 THEN 'N/A'
+                 WHEN count(*) FILTER (
+                   WHERE kp.id IS NOT NULL AND kp.source_profile_id IS NOT NULL AND ku.provenance_complete IS TRUE
+                 ) = count(*) THEN 'YES'
+                 WHEN count(*) FILTER (
+                   WHERE kp.id IS NOT NULL AND kp.source_profile_id IS NOT NULL
+                 ) > 0 THEN 'PARTIAL'
+                 ELSE 'NO'
+            END
+          FROM knowledge_units ku
+          LEFT JOIN knowledge_provenance kp ON kp.knowledge_unit_id = ku.id
+          WHERE ku.normalized_statement ILIKE '%amyotrophic%'
+             OR ku.normalized_statement ILIKE '%motor neuron%'
+             OR ku.normalized_statement ILIKE '%motor neurone%'
+             OR ku.normalized_statement ILIKE '%اسکلروز%'
+             OR ku.normalized_statement ILIKE '%آمیوتروفیک%'
+             OR ku.normalized_statement ~* '(^|[^[:alnum:]])als([^[:alnum:]]|$)';
+
+          SELECT 'K01|LATEST_WEEKLY_RUN_ID|' || coalesce((SELECT id::text FROM weekly_knowledge_runs ORDER BY id DESC LIMIT 1), '');
+          SELECT 'K01|LATEST_WEEKLY_STATUS|' || coalesce((SELECT status FROM weekly_knowledge_runs ORDER BY id DESC LIMIT 1), '');
+          SELECT 'K01|LATEST_NEW_KNOWLEDGE_COUNT|' || coalesce((
+            SELECT a.new_knowledge_count::text
+            FROM weekly_knowledge_runs r
+            LEFT JOIN weekly_knowledge_run_attempts a ON a.id = r.latest_attempt_id
+            ORDER BY r.id DESC LIMIT 1
+          ), '0');
+
+          SELECT 'K01|SIDE_AFTER|knowledge_gaps|' || count(*)::text FROM knowledge_gaps;
+          SELECT 'K01|SIDE_AFTER|knowledge_units|' || count(*)::text FROM knowledge_units;
+          SELECT 'K01|SIDE_AFTER|knowledge_chunk_embeddings|' || count(*)::text FROM knowledge_chunk_embeddings;
+          SELECT 'K01|SIDE_AFTER|knowledge_memory_items|' || count(*)::text FROM knowledge_memory_items;
+
+          COMMIT;
+          SQL
+
+          ENV_FILE="/etc/sedi/sedi-backend.env"
+          if [ -f "${ENV_FILE}" ]; then
+            I5W="$(grep -E '^SEDI_I5_WEEKLY_ORCHESTRATOR_ENABLED=' "${ENV_FILE}" | head -n1 | cut -d= -f2- | tr -d '\r' || true)"
+            s "I5_WEEKLY_ENABLED" "${I5W:-UNSET}"
+          else
+            s "I5_WEEKLY_ENABLED" "ENV_ABSENT"
+          fi
+          s "NEXT_GENUINE_WEEKLY_FIRE" "2026-09-11T00:00:00Z"
+
+          log "=== B. SCIS LEXICAL FA/EN SAMPLE (READ ONLY SESSION) ==="
+          docker exec -i \
+            -e PYTHONUNBUFFERED=1 \
+            -e PYTHONPATH=/app \
+            -w /app sedi-backend python - <<'PY'
+          import json
+          from sqlalchemy import text
+          from backend.app.database import SessionFactory
+          from backend.app.services.scis.contracts import RetrievalMode, ScisRetrievalRequest
+          from backend.app.services.scis.retrieval import retrieve as scis_retrieve
+
+          LABEL = "GLOBAL_GOVERNED_KNOWLEDGE"
+          db = SessionFactory()
+          try:
+              if db.in_transaction():
+                  db.rollback()
+              db.execute(text("BEGIN READ ONLY"))
+              ro = db.execute(text("SHOW transaction_read_only")).scalar()
+              print(f"K01|SCIS_transaction_read_only|{ro}")
+              if str(ro).lower() not in {"on", "true", "1"}:
+                  print("K01|SCIS_READONLY_SESSION|NO")
+                  print("K01|HARD_STOP|SCIS_READONLY_TRANSACTION_NOT_ON")
+                  raise SystemExit(3)
+              print("K01|SCIS_READONLY_SESSION|YES")
+
+              before = {
+                  "knowledge_gaps": db.execute(text("SELECT COUNT(*) FROM knowledge_gaps")).scalar(),
+                  "knowledge_units": db.execute(text("SELECT COUNT(*) FROM knowledge_units")).scalar(),
+                  "knowledge_chunk_embeddings": db.execute(text("SELECT COUNT(*) FROM knowledge_chunk_embeddings")).scalar(),
+                  "knowledge_memory_items": db.execute(text("SELECT COUNT(*) FROM knowledge_memory_items")).scalar(),
+              }
+              print("K01|SCIS_SIDE_BEFORE|" + json.dumps(before, sort_keys=True))
+
+              queries = [
+                  ("FA", "fa", "برای مراقبت روزانه فرد مبتلا به ALS چه مواردی باید تحت نظر باشد؟"),
+                  ("EN", "en", "What should be monitored in the daily care of a person with ALS?"),
+              ]
+              for label, lang, q in queries:
+                  req = ScisRetrievalRequest(
+                      query_text=q,
+                      query_language=lang,
+                      target_domain=None,
+                      intent="als_care",
+                      safety_classification="clinical_governed",
+                      top_k=5,
+                      retrieval_mode=RetrievalMode.LEXICAL,
+                      allowed_knowledge_classes=(LABEL,),
+                  )
+                  # Explicit: SCIS lexical retrieve only (no gap-enqueue runtime path).
+                  resp = scis_retrieve(db, req)
+                  items = []
+                  ctx_chars = 0
+                  source_keys = []
+                  langs = []
+                  lineage_ok = 0
+                  for ev in (resp.evidence or [])[:5]:
+                      content = ev.content or ""
+                      ctx_chars += len(content)
+                      langs.append(ev.language or "")
+                      prov = ev.provenance
+                      sp = getattr(prov, "source_profile_id", None) if prov else None
+                      sk = None
+                      if sp is not None:
+                          sk = db.execute(
+                              text("SELECT canonical_key FROM governed_source_profiles WHERE id=:i"),
+                              {"i": int(sp)},
+                          ).scalar()
+                          if sk:
+                              source_keys.append(str(sk))
+                      if ev.knowledge_unit_id and sp is not None:
+                          lineage_ok += 1
+                      cl = content.lower()
+                      als_hit = any(
+                          t in cl
+                          for t in (
+                              "amyotrophic",
+                              "motor neuron",
+                              "motor neurone",
+                              "اسکلروز",
+                              "آمیوتروفیک",
+                          )
+                      ) or ((" als " in f" {cl} ") or cl.startswith("als ") or cl.endswith(" als") or cl == "als")
+                      care_hit = any(
+                          t in cl
+                          for t in (
+                              "care",
+                              "monitor",
+                              "symptom",
+                              "breath",
+                              "swallow",
+                              "daily",
+                              "مراقبت",
+                              "تحت نظر",
+                              "تنفس",
+                              "بلع",
+                          )
+                      )
+                      if als_hit and care_hit:
+                          rel, reason = "HIGH", "ALS + care/monitor terms in excerpt"
+                      elif als_hit:
+                          rel, reason = "MEDIUM", "ALS terms present; weak care/monitor terms"
+                      else:
+                          rel, reason = "LOW", "no clear ALS content terms in excerpt"
+                      items.append(
+                          {
+                              "ku_id": ev.knowledge_unit_id,
+                              "kce_chunk_id": ev.chunk_id,
+                              "language": ev.language,
+                              "source_profile_id": sp,
+                              "source_key": sk,
+                              "lexical_rank": ev.lexical_rank,
+                              "fusion_score": ev.fusion_score,
+                              "excerpt": content[:120],
+                              "relevance": rel,
+                              "relevance_reason": reason,
+                          }
+                      )
+                  after = {
+                      "knowledge_gaps": db.execute(text("SELECT COUNT(*) FROM knowledge_gaps")).scalar(),
+                      "knowledge_units": db.execute(text("SELECT COUNT(*) FROM knowledge_units")).scalar(),
+                      "knowledge_chunk_embeddings": db.execute(text("SELECT COUNT(*) FROM knowledge_chunk_embeddings")).scalar(),
+                      "knowledge_memory_items": db.execute(text("SELECT COUNT(*) FROM knowledge_memory_items")).scalar(),
+                  }
+                  if after != before:
+                      print("K01|MUTATION_DETECTED|" + json.dumps({"before": before, "after": after}, sort_keys=True))
+                      raise SystemExit(4)
+                  print(
+                      "K01|SCIS_QUERY|"
+                      + json.dumps(
+                          {
+                              "label": label,
+                              "language": lang,
+                              "result_count": len(items),
+                              "source_keys": sorted(set(source_keys)),
+                              "languages": sorted({x for x in langs if x}),
+                              "context_chars": ctx_chars,
+                              "citation_lineage": (
+                                  "YES"
+                                  if items and lineage_ok == len(items)
+                                  else ("PARTIAL" if lineage_ok else ("N/A" if not items else "NO"))
+                              ),
+                              "mode": resp.mode,
+                              "fallback_state": getattr(resp.fallback_state, "value", str(resp.fallback_state)),
+                              "items": items,
+                              "mutation": "NO",
+                          },
+                          ensure_ascii=False,
+                      )
+                  )
+
+              after_final = {
+                  "knowledge_gaps": db.execute(text("SELECT COUNT(*) FROM knowledge_gaps")).scalar(),
+                  "knowledge_units": db.execute(text("SELECT COUNT(*) FROM knowledge_units")).scalar(),
+                  "knowledge_chunk_embeddings": db.execute(text("SELECT COUNT(*) FROM knowledge_chunk_embeddings")).scalar(),
+                  "knowledge_memory_items": db.execute(text("SELECT COUNT(*) FROM knowledge_memory_items")).scalar(),
+              }
+              print("K01|SCIS_SIDE_AFTER|" + json.dumps(after_final, sort_keys=True))
+              if after_final != before:
+                  raise SystemExit(4)
+              db.execute(text("COMMIT"))
+              print("K01|SCIS_READONLY_RUNTIME|YES")
+          finally:
+              try:
+                  db.close()
+              except Exception:
+                  pass
+          PY
+
+          s "audit_complete" "YES"
+          log "=== I5-K01 READONLY DONE ==="
+          REMOTE_SCRIPT
+
+          grep -Fq 'K01|audit_complete|YES' /tmp/i5_k01_readonly_als.log
+          grep -Fq 'K01|transaction_read_only|on' /tmp/i5_k01_readonly_als.log
+          grep -Fq 'K01|SCIS_READONLY_SESSION|YES' /tmp/i5_k01_readonly_als.log
+          if grep -Eqi 'MUTATION_DETECTED|HARD_STOP|CONFIRMATION_GUARD_FAIL' /tmp/i5_k01_readonly_als.log; then
+            echo "K01_RUNTIME_GUARD_FAIL"
+            exit 2
+          fi
+
+          # Side-effect equality (SQL section)
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path("/tmp/i5_k01_readonly_als.log").read_text(encoding="utf-8", errors="replace")
+          def grab(prefix):
+              rows = [ln.split("|", 3)[-1].strip() for ln in text.splitlines() if ln.startswith(prefix)]
+              return rows[-1] if rows else None
+          pairs = [
+              ("knowledge_gaps", "K01|SIDE_BEFORE|knowledge_gaps|", "K01|SIDE_AFTER|knowledge_gaps|"),
+              ("knowledge_units", "K01|SIDE_BEFORE|knowledge_units|", "K01|SIDE_AFTER|knowledge_units|"),
+              ("knowledge_chunk_embeddings", "K01|SIDE_BEFORE|knowledge_chunk_embeddings|", "K01|SIDE_AFTER|knowledge_chunk_embeddings|"),
+              ("knowledge_memory_items", "K01|SIDE_BEFORE|knowledge_memory_items|", "K01|SIDE_AFTER|knowledge_memory_items|"),
+          ]
+          for name, b, a in pairs:
+              bv = grab(b); av = grab(a)
+              print(f"K01|SIDE_CHECK|{name}|{bv}|{av}")
+              if bv is None or av is None or bv != av:
+                  raise SystemExit(f"side_effect_mismatch:{name}:{bv}:{av}")
+          print("K01|SIDE_EFFECT_BEFORE_AFTER|EQUAL")
+          PY
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## I5-K01 Readonly ALS Inventory"
+            echo "**Status:** ${{ job.status }}"
+            if [ -f /tmp/i5_k01_readonly_als.log ]; then
+              grep -E '^K01\|' /tmp/i5_k01_readonly_als.log | head -n 250 || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i5-k01-readonly-als
+          path: /tmp/i5_k01_readonly_als.log
+          retention-days: 14
+          if-no-files-found: warn
