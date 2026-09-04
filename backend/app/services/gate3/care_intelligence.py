@@ -66,7 +66,7 @@ def build_care_context(db: Session, user_id: int, language: str = "fa", query_hi
             user_id=user_id,
             language=language,
             limit=3,
-            enqueue_gap_on_empty=True,
+            enqueue_gap_on_empty=False,
             personalization=personalization,
         )
         envelope = retrieval.to_dict()

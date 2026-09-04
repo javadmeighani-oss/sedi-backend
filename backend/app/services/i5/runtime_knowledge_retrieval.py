@@ -154,6 +154,13 @@ class RetrievedKnowledgeItem:
 
     def as_care_snippet(self) -> dict[str, Any]:
         """CARE_CONTEXT-compatible snippet; citation rendering owned by W4-P02."""
+        retrieval_mode = "scis_lexical" if str(self.memory_item_id).startswith("SCIS_KCE:") else "memory"
+        chunk_id = None
+        if retrieval_mode == "scis_lexical":
+            try:
+                chunk_id = int(str(self.memory_item_id).split(":", 1)[1])
+            except (IndexError, ValueError, TypeError):
+                chunk_id = None
         return {
             "content": self.normalized_statement,
             "knowledge_unit_id": self.knowledge_unit_id,
@@ -162,9 +169,17 @@ class RetrievedKnowledgeItem:
             "memory_item_id": self.memory_item_id,
             "provenance_id": self.provenance_id,
             "source_profile_id": self.source_profile_id,
+            "raw_evidence_id": self.raw_evidence_id,
+            "language": self.language,
+            "domain": self.domain,
+            "retrieval_mode": retrieval_mode,
+            "chunk_id": chunk_id,
+            "rank_score": self.rank_score,
             "citation": {
                 "label": f"KU:{self.canonical_unit_id}:{self.immutable_version_id}",
                 "handoff": "W4-P02",
+                "chunk_id": chunk_id,
+                "source_profile_id": self.source_profile_id,
             },
             "evidence_strength": self.evidence_strength,
             "inclusion_reasons": list(self.inclusion_reasons),
@@ -710,21 +725,25 @@ def retrieve_knowledge_context(
     language: Optional[str] = None,
     domain: Optional[str] = None,
     limit: Optional[int] = None,
-    enqueue_gap_on_empty: bool = True,
+    enqueue_gap_on_empty: bool = False,
     require_query_tokens: bool = False,
     personalization: Optional[RetrievalPersonalizationContext | Mapping[str, Any]] = None,
 ) -> RetrievalResult:
     """Knowledge-DB-first retrieval with fail-closed eligibility filters.
 
-    Personalization (CAP-OPEN-17) is a post-eligibility relevance/tie-break signal
-    only. It cannot alter hard eligibility, provenance, version, or medical-safety
-    decisions. user_id remains audit scope only and must not leak cross-user PHI
-    into shared KU/Memory rows.
+    K04: prefer governed SCIS lexical evidence (no KnowledgeMemoryItem required).
+    Memory plane is fallback only when SCIS returns nothing — paths are not merged.
+    Personalization (CAP-OPEN-17) is post-eligibility ranking only.
+    Default enqueue_gap_on_empty=False — normal serving is side-effect free.
     """
     from backend.app import models
+    from backend.app.services.scis.governed_runtime_adapter import (
+        retrieve_scis_lexical_runtime_items,
+    )
 
     nq = normalize_query(query)
     lim = clamp_limit(limit)
+    serving_lim = min(lim, 5)
     trace_id = str(uuid.uuid4())
     query_id = _sha256_hex(f"{trace_id}|{nq.normalized_query}")[:32]
     pers_ctx = normalize_personalization_context(personalization)
@@ -761,7 +780,63 @@ def retrieve_knowledge_context(
             result.gap_id = gap.id
         return result
 
-    # Load CURRENT memory candidates (version resolution entry point).
+    # K04 primary path: governed SCIS lexical (works with knowledge_memory_items=0).
+    try:
+        scis_items = retrieve_scis_lexical_runtime_items(
+            db,
+            nq.original_query,
+            language=result.language_filter,
+            domain=result.domain_filter,
+            limit=serving_lim,
+        )
+    except Exception:  # noqa: BLE001 — SCIS unavailable → memory fallback
+        scis_items = []
+
+    if scis_items:
+        ranked: list[RetrievedKnowledgeItem] = []
+        for item in scis_items:
+            pers_score, pers_reasons = _personalization_relevance(
+                ku_language=item.language,
+                ku_domain=item.domain,
+                haystack=item.normalized_statement,
+                ctx=pers_ctx,
+            )
+            if pers_score:
+                result.personalization_applied = True
+            ranked.append(
+                RetrievedKnowledgeItem(
+                    knowledge_unit_id=item.knowledge_unit_id,
+                    canonical_unit_id=item.canonical_unit_id,
+                    immutable_version_id=item.immutable_version_id,
+                    memory_item_id=item.memory_item_id,
+                    memory_row_id=item.memory_row_id,
+                    source_profile_id=item.source_profile_id,
+                    provenance_id=item.provenance_id,
+                    raw_evidence_id=item.raw_evidence_id,
+                    domain=item.domain,
+                    language=item.language,
+                    topic_taxonomy=item.topic_taxonomy,
+                    normalized_statement=item.normalized_statement,
+                    evidence_strength=item.evidence_strength,
+                    freshness_state=item.freshness_state,
+                    conflict_state=item.conflict_state,
+                    medical_safety_state=item.medical_safety_state,
+                    runtime_eligibility=item.runtime_eligibility,
+                    rank_score=item.rank_score + pers_score,
+                    inclusion_reasons=list(item.inclusion_reasons)
+                    + ([f"PERSONALIZATION_SCORE:{pers_score}"] if pers_score else []),
+                    personalization_score=pers_score,
+                    personalization_reasons=list(pers_reasons),
+                )
+            )
+        ranked.sort(key=lambda i: (-i.rank_score, i.canonical_unit_id, i.knowledge_unit_id))
+        result.items = ranked[:serving_lim]
+        result.safe_user_facing_intent = (
+            "Governed SCIS lexical knowledge matched this query after eligibility filters."
+        )
+        return result
+
+    # Fallback: CURRENT KnowledgeMemoryItem plane (historical path; not required for K04).
     q = db.query(models.KnowledgeMemoryItem).filter(
         models.KnowledgeMemoryItem.supersession_state == SupersessionState.CURRENT.value
     )
@@ -1006,8 +1081,8 @@ def retrieve_knowledge_context(
         seen_canon.add(item.canonical_unit_id)
         deduped.append(item)
 
-    result.items = deduped[:lim]
-    for dropped in deduped[lim:]:
+    result.items = deduped[:serving_lim]
+    for dropped in deduped[serving_lim:]:
         _exclude(
             result.exclusions,
             result.exclusion_counts,
@@ -1018,10 +1093,20 @@ def retrieve_knowledge_context(
 
     if not result.items:
         result.status = status_override or STATUS_NO_ELIGIBLE_KNOWLEDGE
-        result.safe_user_facing_intent = (
-            "No safe governed knowledge matched this query after eligibility "
-            "and version filters; do not invent medical content."
-        )
+        lang = (result.language_filter or "").lower()
+        if lang.startswith("fa") or lang.startswith("ar"):
+            result.safe_user_facing_intent = (
+                "LANGUAGE_GAP: no governed evidence in the requested language after "
+                "eligibility filters; do not silently translate or invent medical content."
+            )
+            result.exclusion_counts["LANGUAGE_GAP"] = (
+                result.exclusion_counts.get("LANGUAGE_GAP", 0) + 1
+            )
+        else:
+            result.safe_user_facing_intent = (
+                "No safe governed knowledge matched this query after eligibility "
+                "and version filters; do not invent medical content."
+            )
         if enqueue_gap_on_empty:
             gap = enqueue_runtime_retrieval_gap(
                 db,

@@ -55,11 +55,13 @@ def retrieve_governed_knowledge(
     domain: str,
     ctx: I8TrustedContext,
 ) -> RetrievalResult:
+    # I8 operational domains are not KU taxonomy keys — do not hard-filter SCIS by them.
+    # Domain remains a personalization hint only. Serving is query-driven and side-effect free.
     return retrieve_knowledge_context(
         db,
         query,
         user_id=user_id,
-        domain=domain if domain != "cross_domain" else None,
+        domain=None,
         enqueue_gap_on_empty=False,
         personalization=build_personalization(ctx, domain=domain),
     )
