@@ -117,7 +117,7 @@ def _load_habits(db: Session, user_id: int, ctx: I8TrustedContext) -> None:
         .filter(
             models.UserHabit.user_id == user_id,
             (models.UserHabit.valid_to.is_(None)) | (models.UserHabit.valid_to > now),
-            ~models.UserHabit.status.in_(tuple(_HABIT_EXCLUDED_STATUSES)),
+            models.UserHabit.status.notin_(tuple(_HABIT_EXCLUDED_STATUSES)),
         )
         .order_by(models.UserHabit.updated_at.desc())
         .all()

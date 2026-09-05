@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m alembic -c backend/alembic.ini upgrade head
-      - name: Focused bridge tests (isolated PG harness)
+      - name: Focused bridge tests
         run: |
           set -euo pipefail
           mkdir -p /tmp/i8_bridge_evidence
@@ -104,6 +104,11 @@ jobs:
           python -B -m pytest -v --tb=short --noconftest \
             backend/tests/test_i8_unified_runtime_pd_i8_03.py \
             | tee /tmp/i8_bridge_evidence/unified_pytest.txt
+      - name: Summarize counts
+        run: |
+          set -euo pipefail
+          echo "=== BRIDGE ===" && tail -n 5 /tmp/i8_bridge_evidence/bridge_pytest.txt
+          echo "=== UNIFIED ===" && tail -n 5 /tmp/i8_bridge_evidence/unified_pytest.txt
       - name: Upload pytest evidence
         if: always()
         uses: actions/upload-artifact@v4

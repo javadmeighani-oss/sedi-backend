@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy import create_engine, inspect
+from sqlalchemy.orm import sessionmaker
 
 from backend.app import models
 from backend.app.services.i5.runtime_knowledge_retrieval import STATUS_OK, RetrievedKnowledgeItem
@@ -22,20 +25,50 @@ from backend.app.services.i8.knowledge_bridge import (
 )
 from backend.app.services.i8.unified_core import generate_operational_action
 
-pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
+
+@pytest.fixture(scope="session")
+def _bridge_tables_present():
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+    engine = create_engine(url)
+    try:
+        insp = inspect(engine)
+        if engine.dialect.name != "postgresql":
+            pytest.skip("PostgreSQL required")
+        for table in ("user_habits", "user_lifestyle_events", "i8_operational_plans"):
+            if not insp.has_table(table):
+                pytest.skip(f"{table} not present (alembic head required)")
+    finally:
+        engine.dispose()
+
+
+@pytest.fixture()
+def db(_bridge_tables_present):
+    url = os.environ["TEST_DATABASE_URL"]
+    engine = create_engine(url)
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = sessionmaker(bind=connection, autoflush=False, autocommit=False)()
+    try:
+        yield session
+    finally:
+        session.close()
+        transaction.rollback()
+        connection.close()
+        engine.dispose()
 
 
 def _user(db, name: str) -> models.User:
     row = models.User(name=name, secret_key=f"sk-{name}", preferred_language="en")
     db.add(row)
-    db.commit()
-    db.refresh(row)
+    db.flush()
     return row
 
 
 def _profile_tz(db, user_id: int) -> None:
     db.add(models.UserProfileCore(user_id=user_id, timezone="UTC"))
-    db.commit()
+    db.flush()
 
 
 def _habit(
@@ -63,8 +96,7 @@ def _habit(
         updated_at=updated_at or now,
     )
     db.add(row)
-    db.commit()
-    db.refresh(row)
+    db.flush()
     return row
 
 
@@ -88,8 +120,7 @@ def _lifestyle(
         created_at=now,
     )
     db.add(row)
-    db.commit()
-    db.refresh(row)
+    db.flush()
     return row
 
 
@@ -202,13 +233,21 @@ def test_h_cross_user_lifestyle_excluded(db):
 def test_i_lifestyle_bound_and_order(db):
     son = _user(db, "son-bound")
     base = datetime.utcnow()
+    rows = []
     for i in range(GATE2_LIFESTYLE_EVENT_LIST_LIMIT + 5):
-        _lifestyle(
-            db,
-            son.id,
-            event_type=f"evt-{i}",
-            occurred_at=base - timedelta(minutes=i),
+        rows.append(
+            models.UserLifestyleEvent(
+                user_id=son.id,
+                event_type=f"evt-{i}",
+                value_json=None,
+                occurred_at=base - timedelta(minutes=i),
+                source="manual",
+                notes=None,
+                created_at=base,
+            )
         )
+    db.add_all(rows)
+    db.flush()
     ctx = load_trusted_context(db, son.id)
     assert len(ctx.lifestyle_events) == GATE2_LIFESTYLE_EVENT_LIST_LIMIT
     assert ctx.lifestyle_events[0].event_type == "evt-0"
@@ -355,7 +394,7 @@ def test_s_goals_restrictions_preserved(db):
             updated_at=datetime.utcnow(),
         )
     )
-    db.commit()
+    db.flush()
     _habit(db, son.id, name="walk")
     ctx = load_trusted_context(db, son.id)
     assert "sleep earlier" in ctx.goals
