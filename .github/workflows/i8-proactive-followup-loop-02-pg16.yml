@@ -92,7 +92,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/i8_loop02_evidence
           set +e
-          python -B -m pytest -v --tb=short \
+          python -B -m pytest -v --tb=short -x \
             backend/tests/test_i8_proactive_followup_loop_02.py \
             > /tmp/i8_loop02_evidence/loop02_pytest.txt 2>&1
           rc=$?
@@ -103,14 +103,14 @@ jobs:
           lines = text.splitlines()
           chunk = []
           for i, line in enumerate(lines):
-              if "FAILED" in line or "ERROR" in line or "AssertionError" in line:
-                  chunk = lines[max(0, i) : min(len(lines), i + 25)]
+              if line.startswith("E ") or "AssertionError" in line or "Error:" in line or line.startswith("FAILED"):
+                  chunk = lines[max(0, i - 5) : min(len(lines), i + 20)]
                   break
           if not chunk:
-              chunk = lines[-40:]
-          msg = " | ".join(c.replace("\r", "") for c in chunk)[:900]
+              chunk = lines[-50:]
+          msg = " | ".join(c.replace("\r", "") for c in chunk)[:1100]
           print(f"::error title=loop02-pytest::{msg}")
-          print(text[-2500:])
+          print(text[-3500:])
           PY
           echo "## Loop02 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
