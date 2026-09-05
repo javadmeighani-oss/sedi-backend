@@ -1,0 +1,154 @@
+# Stage A individual I1–I10 acceptance — ephemeral PostgreSQL 16 only.
+# NO production mutation. NO deploy. NO clinical/RAG activation.
+# GATE=SEDI-V1-BE-STAGE-A-INDIVIDUAL-I1-I10-ACCEPTANCE-01
+name: Stage A Individual I1-I10 Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/tests/test_stage_a_individual_i_acceptance_contracts.py"
+      - "backend/tests/test_section15_i1_intelligence_orchestrator.py"
+      - "backend/tests/test_section15_i2_context_adapters.py"
+      - "backend/tests/test_section15_i3_intent_missing_info.py"
+      - "backend/tests/test_section15_i4_safety_risk.py"
+      - "backend/tests/test_s02_device_i4_safety_contract.py"
+      - "backend/tests/test_s01_managed_subject_knowledge_e2e.py"
+      - "backend/tests/test_i6_*.py"
+      - "backend/tests/test_i7_*.py"
+      - "backend/tests/test_i8_*.py"
+      - "backend/tests/test_i9_*.py"
+      - "backend/tests/test_i10_b06_caregiver_delivery.py"
+      - "backend/tests/test_i10_b14_caregiver_status_digest.py"
+      - "backend/tests/test_i10_b15_*.py"
+      - "backend/tests/test_i10_b16_*.py"
+      - ".github/workflows/stage-a-individual-i1-i10-acceptance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage-a-i1-i10-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stage-a-individual:
+    name: Stage A I1-I10 PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_stage_a
+          POSTGRES_PASSWORD: sedi_stage_a_pass
+          POSTGRES_DB: sedi_stage_a
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_stage_a -d sedi_stage_a"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_stage_a:sedi_stage_a_pass@127.0.0.1:5432/sedi_stage_a
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_stage_a:sedi_stage_a_pass@127.0.0.1:5432/sedi_stage_a
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: stage-a-placeholder-not-used
+      DEVICE_AUTH_MODE: db_only
+      DEVICE_INGEST_TOKEN: stage-a-ingest-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079 + upgrade
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Stage A contract + I1-I4 section15
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stage_a_evidence
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_stage_a_individual_i_acceptance_contracts.py \
+            backend/tests/test_section15_i1_intelligence_orchestrator.py \
+            backend/tests/test_section15_i2_context_adapters.py \
+            backend/tests/test_section15_i3_intent_missing_info.py \
+            backend/tests/test_section15_i4_safety_risk.py \
+            | tee /tmp/stage_a_evidence/i1_i4.txt
+      - name: I4 S02 + I5 managed knowledge + SCIS subset
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_s02_device_i4_safety_contract.py \
+            backend/tests/test_s01_managed_subject_knowledge_e2e.py \
+            backend/tests/test_scis_01_core_retrieval.py \
+            backend/tests/test_i5_k04_scis_governed_serving.py \
+            | tee /tmp/stage_a_evidence/i4_i5.txt
+      - name: I6 consent + I7 memory + I8 ops/proactive
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_i6_memory_consent.py \
+            backend/tests/test_i6_product_write_closure.py \
+            backend/tests/test_i6_read_governance.py \
+            backend/tests/test_i7_period_summaries.py \
+            backend/tests/test_i7_section45_memory_foundation.py \
+            backend/tests/test_i7_wave2_governed_memory_lifecycle.py \
+            backend/tests/test_i8_nutrition_failclose.py \
+            backend/tests/test_i8_unified_runtime_pd_i8_03.py \
+            backend/tests/test_i8_proactive_evaluation_pd_i8_04a.py \
+            backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
+            | tee /tmp/stage_a_evidence/i6_i8.txt
+      - name: I9 device/HS + I10 care-network
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i9_health_subject_device_packet_foundation.py \
+            backend/tests/test_i9_device_claim_trust_ingest_runtime.py \
+            backend/tests/test_i9_baseline_subject_native_closure.py \
+            backend/tests/test_i10_b06_caregiver_delivery.py \
+            backend/tests/test_i10_b14_caregiver_status_digest.py \
+            backend/tests/test_i10_b15_managed_care_action.py \
+            backend/tests/test_i10_b15_a01_self_care_action.py \
+            backend/tests/test_i10_b15_a02_owner_provenance.py \
+            backend/tests/test_i10_b16_care_safety_escalation.py \
+            backend/tests/test_i10_b16_a01_i4_authority_seam.py \
+            | tee /tmp/stage_a_evidence/i9_i10.txt
+      - name: Upload Stage A evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-a-i1-i10-pytest
+          path: /tmp/stage_a_evidence/
