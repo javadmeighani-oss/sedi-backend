@@ -210,8 +210,8 @@ def evaluate_nonclinical_heart_rate_stability(
     limit_dec = _RAW_MAD_MULTIPLIER_DEC * Decimal(str(float(dispersion)))
     delta = float(delta_dec)
     limit = float(limit_dec)
-    # EQUAL_TO_THRESHOLD ⇒ STABLE; tiny Decimal/IEEE residue treated as equal (not a clinical band).
-    _eq_eps = Decimal("1e-9")
+    # EQUAL_TO_THRESHOLD ⇒ STABLE; sub-micro BPM IEEE/PG residue is equality, not a product band.
+    _eq_eps = Decimal("1e-6")
     if delta_dec <= limit_dec or abs(delta_dec - limit_dec) <= _eq_eps:
         status = NonclinicalVitalMonitoringStatus.NONCLINICAL_STABLE
         reason = "within_mad_band"
