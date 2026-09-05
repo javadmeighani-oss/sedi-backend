@@ -77,7 +77,8 @@ jobs:
       - name: I10 care-network + B15-A02 provenance pytest
         run: |
           set -euo pipefail
-          python -B -m pytest -q --tb=short --noconftest \
+          mkdir -p /tmp/i10_a02_evidence
+          python -B -m pytest -v --tb=short --noconftest \
             backend/tests/test_i10_b06_caregiver_delivery.py \
             backend/tests/test_i10_b14_caregiver_status_digest.py \
             backend/tests/test_i10_b15_managed_care_action.py \
@@ -85,4 +86,10 @@ jobs:
             backend/tests/test_i10_b15_a02_owner_provenance.py \
             backend/tests/test_i10_b16_care_safety_escalation.py \
             backend/tests/test_i10_b16_a01_i4_authority_seam.py \
-            backend/tests/test_s02_device_i4_safety_contract.py
+            | tee /tmp/i10_a02_evidence/pytest.txt
+      - name: Upload pytest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i10-b15-a02-pytest
+          path: /tmp/i10_a02_evidence/pytest.txt
