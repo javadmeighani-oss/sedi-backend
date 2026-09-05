@@ -282,7 +282,8 @@ def test_h_provenance_mismatch_fail_closed(client, db, patches):
     _prefs(db, son.id)
     _, a1, when = _seed_routine_action(db, son.id, when=when, key="p1")
     _, a2, when = _seed_routine_action(db, son.id, when=when, key="p2", summary="B")
-    n1 = _deliver(db, son.id, when)
+    n1 = _deliver(db, son.id, when, expected=2)
+    # n1 is lowest action id notification (a1); tamper source_id toward a2
     n1.source_id = str(a2.id)
     db.commit()
     r = _feedback(client, son.id, n1.id, {"reaction": "interact", "action_id": "done"})
