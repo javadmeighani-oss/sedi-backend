@@ -97,13 +97,28 @@ jobs:
             > /tmp/i8_loop02_evidence/loop02_pytest.txt 2>&1
           rc=$?
           set -e
+          python - <<'PY'
+          from pathlib import Path
+          text = Path("/tmp/i8_loop02_evidence/loop02_pytest.txt").read_text(encoding="utf-8", errors="replace")
+          lines = text.splitlines()
+          chunk = []
+          for i, line in enumerate(lines):
+              if "FAILED" in line or "ERROR" in line or "AssertionError" in line:
+                  chunk = lines[max(0, i) : min(len(lines), i + 25)]
+                  break
+          if not chunk:
+              chunk = lines[-40:]
+          msg = " | ".join(c.replace("\r", "") for c in chunk)[:900]
+          print(f"::error title=loop02-pytest::{msg}")
+          print(text[-2500:])
+          PY
           echo "## Loop02 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 80 /tmp/i8_loop02_evidence/loop02_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          tail -n 100 /tmp/i8_loop02_evidence/loop02_pytest.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           if [ "$rc" -ne 0 ]; then
             echo "::error::loop02 pytest failed"
-            tail -n 80 /tmp/i8_loop02_evidence/loop02_pytest.txt
+            tail -n 100 /tmp/i8_loop02_evidence/loop02_pytest.txt
             exit "$rc"
           fi
       - name: Critical coaching + interaction regressions

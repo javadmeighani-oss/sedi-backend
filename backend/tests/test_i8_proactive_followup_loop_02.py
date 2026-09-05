@@ -121,6 +121,7 @@ def _seed_routine_action(db, user_id: int, *, when, key: str = "walk-1", summary
 
 
 def _deliver(db, user_id: int, when) -> models.Notification:
+    db.commit()
     assert process_i8_coaching_followups(db, now=when, user_id=user_id, force=True) == 1
     return db.query(models.Notification).filter_by(user_id=user_id).order_by(models.Notification.id.desc()).first()
 
@@ -138,7 +139,7 @@ def test_scenario_id():
 
 
 def test_a_happy_path_done_completes_exact_action(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _plan, action, when = _seed_routine_action(db, fam.son.id, when=when)
@@ -159,7 +160,7 @@ def test_a_happy_path_done_completes_exact_action(client, db, patches):
 
 
 def test_b_repeated_done_idempotent(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when)
@@ -172,7 +173,7 @@ def test_b_repeated_done_idempotent(client, db, patches):
 
 
 def test_c_completed_not_redelivered(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when)
@@ -185,7 +186,7 @@ def test_c_completed_not_redelivered(client, db, patches):
 
 
 def test_d_future_same_domain_action_not_suppressed(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, a1, when = _seed_routine_action(db, fam.son.id, when=when, key="walk-1")
@@ -199,7 +200,7 @@ def test_d_future_same_domain_action_not_suppressed(client, db, patches):
 
 
 def test_e_cross_user_blocked(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when)
@@ -211,7 +212,7 @@ def test_e_cross_user_blocked(client, db, patches):
 
 
 def test_f_wrong_client_action_id_redirect_blocked(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, a1, when = _seed_routine_action(db, fam.son.id, when=when, key="a1")
@@ -233,7 +234,7 @@ def test_f_wrong_client_action_id_redirect_blocked(client, db, patches):
 
 
 def test_g_unrelated_notification_cannot_complete(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when)
@@ -256,7 +257,7 @@ def test_g_unrelated_notification_cannot_complete(client, db, patches):
 
 
 def test_h_provenance_mismatch_fail_closed(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, a1, when = _seed_routine_action(db, fam.son.id, when=when, key="p1")
@@ -272,7 +273,7 @@ def test_h_provenance_mismatch_fail_closed(client, db, patches):
 
 
 def test_i_invalid_lifecycle_fail_closed(db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when)
     action.status = "SUPERSEDED"
@@ -298,7 +299,7 @@ def test_i_invalid_lifecycle_fail_closed(db, patches):
     ],
 )
 def test_j_q_non_done_verbs_do_not_mutate_i8(client, db, patches, payload, expect_active):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when, key=f"v-{hash(str(payload)) % 10000}")
@@ -310,7 +311,7 @@ def test_j_q_non_done_verbs_do_not_mutate_i8(client, db, patches, payload, expec
 
 
 def test_r_mother_isolation(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
+    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
     assert fam.mother_hs.linked_user_id is None
     assert fam.mother_hs.subject_kind == "managed"
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)

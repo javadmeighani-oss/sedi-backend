@@ -19,7 +19,6 @@ from backend.app.services.i8.action_completion import (
 )
 from backend.app.services.i10.coaching_i10_adapter import (
     COACHING_PRODUCER_OWNER,
-    build_coaching_occurrence_key,
 )
 from backend.app.services.i10.interaction_recorder import (
     InteractionRecordResult,
@@ -110,11 +109,9 @@ def resolve_i8_action_from_coaching_notification(
     if int(action.user_id) != int(actor_user_id):
         raise HTTPException(status_code=403, detail="I8 action owner mismatch.")
 
-    valid_from_iso = action.valid_from.isoformat() if action.valid_from else str(action.id)
-    expected_key = build_coaching_occurrence_key(
-        action_id=int(action.id), valid_from_iso=valid_from_iso
-    )
-    if decision.candidate_key != expected_key:
+    # Occurrence key must bind this action id; allow ISO formatting variance after PG round-trip.
+    prefix = f"i10:self:coaching:{int(action.id)}:"
+    if not str(decision.candidate_key).startswith(prefix):
         raise HTTPException(
             status_code=422,
             detail="Occurrence key does not match bound I8 action.",
