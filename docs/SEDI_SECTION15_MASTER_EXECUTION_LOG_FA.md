@@ -81332,3 +81332,108 @@ v727_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v727_FA.md
 MASTER_LOG_TIP=§434
 CURSOR_HANDOFF_TIP=v727
+## §435 — MANAGED-SUBJECT INTERACTIVE CONTINUITY DESIGN
+
+GATE=SEDI-V1-BE-MANAGED-SUBJECT-INTERACTIVE-CONTINUITY-DESIGN-01
+GATE_RESULT=PASS
+MODE=READ_ONLY_TARGETED_DESIGN_AUDIT
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=eb9f875065e1bfd5ec52c7dfdcd604e20685ed08
+FINAL_HEAD=eb9f875065e1bfd5ec52c7dfdcd604e20685ed08
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+SOURCE_MUTATION=NO
+TEST_MUTATION=NO
+SCHEMA_MUTATION=NO
+CI_TRIGGERED=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+
+FROZEN_STAGE_B=
+I1=PARTIAL I2=PARTIAL I7=PARTIAL I8=PARTIAL
+MOTHER_CHAT_HEALTH_SUBJECT_TARGET_SUPPORT=PARTIAL
+MOTHER_ACCOUNTLESS_I7_SUPPORT=NOT_IMPLEMENTED
+
+CHAT_IDENTITY_CURRENT=
+CHAT_ACTOR_ID_SOURCE=JWT user.id (interact.get_current_user)
+CHAT_TARGET_SUBJECT_FIELD=NONE (ChatRequest extra=forbid; no health_subject_id)
+CHAT_CONVERSATION_OWNER=authenticated Account (Memory.user_id / InteractionEvent.user_id)
+CHAT_CONVERSATION_SUBJECT=IMPLICIT_EQ_ACTOR_ACCOUNT
+ASSUMPTION_ACCOUNT_EQ_SUBJECT=YES at interact.py + ChatRequest + I1.process + I2.assemble + adapters + Memory
+SELF_HS_RESOLUTION=ensure_self_subject_for_account (NOT on chat path)
+MANAGED_HS_RESOLUTION=NOT on chat path
+NOTIFICATION_CONTINUATION=source_notification_id + recipient Account; Notification.health_subject_id used for access revalidation only; does NOT become chat target identity (gate4/notification_chat_context.py)
+
+I1_I2=
+I1=orchestration only; process(*,authenticated_user_id); no HS target
+I2=assemble(*,authenticated_user_id); owner_user_id=actor; adapters Profile/Lifestyle/Health/Memory are user_id-keyed; no managed HS adapters on chat path
+AHSA=sufficient ACCESS for authorizing Son→Mother subject ops; NOT sufficient alone for durable Mother I7 memory
+REVOKE=revalidate every request (notif path already builds revoked generic context)
+
+CONVERSATION_SCHEMA=
+NO Conversation/ChatSession table
+Persistence=memory keyed by user_id NOT NULL
+TARGET_HEALTH_SUBJECT_COLUMN_EXISTS=NO on Memory/I7 tables
+ACTOR_ACCOUNT_SEPARATE_FROM_SUBJECT=NO
+SCHEMA_CHANGE_REQUIRED=YES for truthful managed chat history
+BACKFILL_REQUIRED=YES for SELF legacy Memory rows if HS column added (map via linked_user_id SELF HS)
+
+I7=
+ALL I7 durable models keyed by user_id/subject_user_id NOT NULL
+NO health_subject_id in i7 package
+MOTHER linked_user_id=NULL BLOCKED by schema+API+UserConsent+jobs
+user_id nullable OR dual-key CHECK required for accountless HS memory
+NEVER Son user_id as Mother memory owner
+NEVER fake Mother Account
+
+I6=
+ACCESS=AccountHealthSubjectAccess
+MEMORY_CONSENT=UserConsent(subject_user_id) — Account-only today
+PREFS=NotificationPrefs — delivery only; ≠ consent ≠ access
+Managed interactive chat ACCESS can reuse AHSA; MEMORY_CONSENT needs HS-scoped extension for Mother durable memory
+
+I8=
+operational generate_operational_action: MIXED (user_id plan + optional health_subject_id context)
+knowledge_bridge/subject_context: HEALTH_SUBJECT_NATIVE for governed Mother knowledge
+proactive: USER_ACCOUNT_NATIVE
+risk=Mother personalized from Son lifestyle if target HS not propagated into I2/I8 context
+
+OPTIONS=
+OPTION_A=MINIMAL explicit target_health_subject_id on Chat + I1/I2 authorize via AHSA; SELF omit=compat
+  RISK=if history still writes Memory.user_id=Son, Mother chat becomes Son memory → FORBIDDEN unless durable write fail-closed for managed until I7 HS-native
+OPTION_B=explicit conversation subject + HealthSubject-native I7 (Memory.health_subject_id additive; actor Account separate; consent HS-scoped)
+OPTION_C=hybrid V1: GateA chat/context target HS with fail-closed durable I7 for managed; GateB I7 HS-native; GateC I8 residual; GateD regression
+
+RECOMMENDED_DESIGN=OPTION_C_SPLIT (hybrid)
+RECOMMENDED_REASON=lowest-risk V1; prevents Mother↔Son memory contamination; reuses AHSA; avoids fake Account; defers I7 schema complexity
+
+AUTHORITY_MODEL_CHANGE_REQUIRED=NO (reuse AHSA; I1/I2 do not mint access)
+ACCESS_MODEL_CHANGE_REQUIRED=NO (AHSA sufficient for chat access)
+IDENTITY_MODEL_CHANGE_REQUIRED=YES (conversation/target subject first-class)
+SCHEMA_CHANGE_REQUIRED=YES (ChatRequest + Memory/I7 HS ownership for durable managed)
+MIGRATION_REQUIRED=YES for I7 HS-native Gate; Chat schema additive field only for GateA
+API_CHANGE_REQUIRED=YES (optional target_health_subject_id)
+BACKFILL_REQUIRED=YES for SELF Memory→SELF HS when I7 HS column lands
+
+IMPL_GATE_SEQUENCE=
+A=HS-targeted Chat/I1/I2 + notif continuation target survival + fail-closed managed durable write
+B=I7 HealthSubject-native memory + HS consent seam
+C=I8 remaining managed-subject compatibility (no Son lifestyle bleed)
+D=PG16 cross-I regression Stage B family + isolation
+
+OPEN_FINDINGS unchanged:
+FINDING_S02_FRESHNESS_POLICY
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E
+FINDING_RAG_REAL_RUNTIME
+FINDING_FULL_I1_I10_FAMILY_E2E
+CLOSED preserved: S02_TEST_RULE_SEAM; B15A01_OWNER_PROVENANCE
+
+NEXT_GATE_PROPOSAL=SEDI-V1-BE-HS-TARGETED-CHAT-I1-I2-01
+NEXT_GATE_AUTHORIZED=NO
+
+v727_MODIFIED=NO
+v728_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v728_FA.md
+MASTER_LOG_TIP=§435
+CURSOR_HANDOFF_TIP=v728
