@@ -138,14 +138,14 @@ def _seed_routine_action(db, user_id: int, *, when, key: str = "walk-1", summary
     return plan, action, when
 
 
-def _deliver(db, user_id: int, when) -> models.Notification:
+def _deliver(db, user_id: int, when, *, expected: int = 1) -> models.Notification:
     n = process_i8_coaching_followups(db, now=when, user_id=user_id, force=True)
-    assert n == 1, f"expected 1 coaching delivery, got {n}"
+    assert n == expected, f"expected {expected} coaching delivery, got {n}"
     db.commit()
     return (
         db.query(models.Notification)
         .filter_by(user_id=user_id)
-        .order_by(models.Notification.id.desc())
+        .order_by(models.Notification.id.asc())
         .first()
     )
 
@@ -239,8 +239,7 @@ def test_f_wrong_client_action_id_redirect_blocked(client, db, patches):
     _prefs(db, son.id)
     _, a1, when = _seed_routine_action(db, son.id, when=when, key="a1")
     _, a2, when = _seed_routine_action(db, son.id, when=when, key="a2", summary="Other")
-    n1 = _deliver(db, son.id, when)
-    assert process_i8_coaching_followups(db, now=when, user_id=son.id, force=True) == 1
+    n1 = _deliver(db, son.id, when, expected=2)
     r = _feedback(
         client,
         son.id,
