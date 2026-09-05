@@ -305,13 +305,16 @@ def test_e_equal_to_threshold_stable(db, patches):
     _rollup(db, mother, when)
     mad = 2.0
     baseline = 100.0
-    limit = RAW_MAD_MULTIPLIER * mad
+    from decimal import Decimal
+
+    limit = float(Decimal("4.4478") * Decimal(str(mad)))
     _established_baseline(db, mother, when, baseline_value=baseline, dispersion_value=mad)
     target = baseline + limit
     _seed_current_day_hr(db, mother, device, when, [target, target, target])
     result = evaluate_nonclinical_heart_rate_stability(db, health_subject_id=mother.id, when=when)
     assert result.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_STABLE
-    assert result.delta is not None and abs(result.delta - limit) < 1e-9
+    assert result.delta is not None
+    assert abs(result.delta - limit) < 1e-9
 
 
 def test_f_just_above_band_changed(db, patches):

@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
@@ -28,6 +29,7 @@ MAD_SCALE = 1.4826
 CHANGE_THRESHOLD_SIGMA = 3
 RAW_MAD_MULTIPLIER = 4.4478  # 3 * 1.4826
 SIGNAL_SCOPE = BASELINE_SCOPE_V1
+_RAW_MAD_MULTIPLIER_DEC = Decimal("4.4478")
 
 
 class NonclinicalVitalMonitoringStatus(str, Enum):
@@ -204,9 +206,13 @@ def evaluate_nonclinical_heart_rate_stability(
             baseline_id=baseline.baseline_id,
         )
 
-    delta = abs(float(daily_median) - float(baseline_value))
-    limit = RAW_MAD_MULTIPLIER * float(dispersion)
-    if delta <= limit:
+    delta_dec = abs(Decimal(str(float(daily_median))) - Decimal(str(float(baseline_value))))
+    limit_dec = _RAW_MAD_MULTIPLIER_DEC * Decimal(str(float(dispersion)))
+    delta = float(delta_dec)
+    limit = float(limit_dec)
+    # EQUAL_TO_THRESHOLD ⇒ STABLE; tiny Decimal/IEEE residue treated as equal (not a clinical band).
+    _eq_eps = Decimal("1e-9")
+    if delta_dec <= limit_dec or abs(delta_dec - limit_dec) <= _eq_eps:
         status = NonclinicalVitalMonitoringStatus.NONCLINICAL_STABLE
         reason = "within_mad_band"
     else:
