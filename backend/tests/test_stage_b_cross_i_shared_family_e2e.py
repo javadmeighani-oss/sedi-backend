@@ -237,7 +237,7 @@ def test_flow_a_son_daily_cross_i(db, stage_b_patches, monkeypatch):
     # I8 operational semantic (knowledge mocked — not Smart-RAG proof)
     _profile_tz(db, son.id)
     monkeypatch.setattr(
-        "backend.app.services.i8.unified_core.retrieve_knowledge_context",
+        "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
         _ok_retrieval,
     )
     action = generate_operational_action(
@@ -248,7 +248,7 @@ def test_flow_a_son_daily_cross_i(db, stage_b_patches, monkeypatch):
         domain="nutrition",
         persist=True,
     )
-    assert action.status in ("ACTION_PERSISTED", "CONSENT_REQUIRED", "TIMEZONE_REQUIRED") or action is not None
+    assert action.status == "ACTION_PERSISTED"
 
     # I8 proactive semantic evaluation (delivery remains I10)
     from backend.app.services.i8 import proactive_orchestrator as po
