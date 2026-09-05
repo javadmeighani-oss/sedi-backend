@@ -81822,3 +81822,95 @@ v732_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v732_FA.md
 MASTER_LOG_TIP=§439
 CURSOR_HANDOFF_TIP=v732
+
+## §440 — I8 ROUTINE/LIFESTYLE SEMANTIC BRIDGE
+
+GATE=SEDI-V1-BE-I8-ROUTINE-LIFESTYLE-SEMANTIC-BRIDGE-01
+GATE_RESULT=PASS_TRUE_GREEN
+MODE=IMPLEMENT_TEST_TRUE_GREEN
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=59df19f9db581bb576a5c0fb4806f653b5d8f279
+FINAL_HEAD=dfd9cde8693a908faa7a8e3b3fb14889a7a7648b
+DOC_COMMIT_FOLLOWS=YES
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ALEMBIC_FINAL_HEAD=079_i10_cni_owner_provenance_nullable
+SCHEMA_MUTATION=NO
+MIGRATION=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+### Context fields (exact)
+I8TrustedContext.habits: list[I8HabitContextFact]
+  - habit_id, name, frequency, target_compact, status
+I8TrustedContext.lifestyle_events: list[I8LifestyleEventContextFact]
+  - event_id, event_type, value_compact, occurred_at, source
+No raw notes / no unbounded JSON dump.
+
+### Filter / bound policy
+HABIT_FILTER=Gate2 valid_to (null or > now) + exclude status inactive|completed; owner user_id; order updated_at.desc()
+LIFESTYLE_BOUND=reuse Gate2 list_lifestyle_events limit=50; owner user_id; order occurred_at.desc()
+COMPACT_VALUE_MAX=64; habit name≤128; event_type≤64; term slice I8_PERSONAL_CONTEXT_TERM_SLICE=8
+CONTEXT_PROVENANCE=context_refs ref_type user_habit|user_lifestyle_event + ref_id (no semantic authority transfer)
+
+### Consumption
+build_personalization: habit names→routine_terms; event_types(+conditions)→lifestyle_terms
+compose_grounded_action(ctx=): routine|lifestyle append non-clinical Personal context note; I5 grounding still required
+unified_core passes ctx into compose
+subject_context compat: habits=[] / lifestyle_events=[] (managed HS must not inherit Son Gate2 rows)
+
+### Authority preserved
+I5_KNOWLEDGE_AUTHORITY=YES (empty retrieval → MISSING_ELIGIBLE_KNOWLEDGE; personal facts cannot mint)
+GOALS_RESTRICTIONS=YES
+I8_ACTION_AUTHORITY=YES
+I10_DELIVERY_AUTHORITY=YES (seam unchanged)
+SAFE_FALLBACK_WITHOUT_PERSONAL_DATA=YES
+NO_ADHERENCE_RULE_INVENTED=YES
+NO_CLINICAL_INTERPRETATION=YES
+NO_IDENTITY_SUBSTITUTION=YES (SON user_id owner; SELF HS separate)
+
+### Tests / CI
+TESTS_ADDED=backend/tests/test_i8_routine_lifestyle_semantic_bridge.py (23; A–X)
+TESTS_REUSED=test_i8_unified_runtime_pd_i8_03.py
+CI_WORKFLOW=.github/workflows/i8-routine-lifestyle-semantic-bridge-pg16.yml
+CI_RUN=33971039860
+CI_RESULT=SUCCESS
+POSTGRESQL=16 (pgvector/pgvector:pg16; SHOW server_version assert 16.*)
+BRIDGE_PYTEST=23 passed / 0 failed / 0 skipped
+UNIFIED_PYTEST=46 collected; step SUCCESS (0 failed)
+FALSE_GREEN_CHECK=PASS (hard-fail pytest exit; alembic single-head 079; ephemeral migrate)
+SELF_HEAL_ITERATIONS=3 (shared PG fixture; CI failure surfacing; test_r status align)
+
+### Source files
+backend/app/services/i8/context.py
+backend/app/services/i8/knowledge_bridge.py
+backend/app/services/i8/unified_core.py
+backend/app/services/i8/subject_context.py
+backend/tests/test_i8_routine_lifestyle_semantic_bridge.py
+.github/workflows/i8-routine-lifestyle-semantic-bridge-pg16.yml
+
+### Status
+PRIMARY_USER_I8_ROUTINE_LIFESTYLE_STATUS=BRIDGED_TRUE_GREEN (first personal-context seam)
+REMAINING_PRIMARY_USER_I8_GAPS=
+1. I7→I8 bounded personalization seam
+2. I8 proactive/follow-up loop
+3. Primary-user I8 PG16 cross-I acceptance
+
+PRESERVED_CLOSED=
+I9_I10_NONCLINICAL_VITAL_STABILITY=PASS
+MOTHER_MONITORING_HR=TRUE_GREEN
+
+OPEN_FINDINGS= unchanged (S02 freshness; managed Mother I4 B16; Smart-RAG; clinical; family E2E)
+
+NEXT_RECOMMENDED_GATE=SEDI-V1-BE-I7-I8-BOUNDED-PERSONALIZATION-SEAM-01
+NEXT_GATE_AUTHORIZED=NO
+
+v732_MODIFIED=NO
+v733_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v733_FA.md
+MASTER_LOG_TIP=§440
+CURSOR_HANDOFF_TIP=v733
