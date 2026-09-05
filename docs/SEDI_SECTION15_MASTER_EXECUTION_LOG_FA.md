@@ -81516,3 +81516,85 @@ v729_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v729_FA.md
 MASTER_LOG_TIP=§436
 CURSOR_HANDOFF_TIP=v729
+## §437 — I9/I10 NONCLINICAL VITAL STABILITY CONTRACT (SEMANTIC HARD-STOP)
+
+GATE=SEDI-V1-BE-I9-I10-NONCLINICAL-VITAL-STABILITY-CONTRACT-01
+GATE_RESULT=HARD_STOP_SEMANTIC_RULE_REAPPROVAL_REQUIRED
+MODE=AUTHORIZED_MULTI_STAGE (Stage0–2 only; Stage3+ NOT entered)
+APPROVED_BY=JAVAD
+DECISION=B
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=37f2cfb94061b55699370d483567fb47b3f8a39c
+SOURCE_MUTATION=NO
+TEST_MUTATION=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+TEST_EXECUTED=NO
+CI_TRIGGERED=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+### Stage 1 — dependency truth (compact)
+
+SIGNAL_SCOPE=heart_rate_only (BASELINE_SCOPE_V1 / V1_MEASUREMENT_TYPE)
+DAILY_COMPARISON_STATISTIC=PhysiologicalMeasurementRollup.avg_value (daily bucket) via bounded I9 projection
+BASELINE_VALUE_AVAILABLE=YES (personal_observed_baseline.baseline_value; median-of-daily-medians)
+DISPERSION_AVAILABLE=YES (dispersion_value = MAD over daily medians; exposed on I8/I9 projection)
+BASELINE_QUALITY_AVAILABLE=YES (NONE|PROVISIONAL|ESTABLISHED; quality on projection)
+EXISTING_CHANGE_RULE=NO deterministic NONCLINICAL_STABLE/CHANGED rule
+  — only prose above/below/equal vs baseline_value in care_subject_status_facts._baseline_comparison_phrase
+  — Gate law forbids avg>baseline ⇒ UNSTABLE / avg<baseline ⇒ UNSTABLE
+  — no N×MAD / % / BPM band exists in repo or prior approved product decision
+NEW_ARBITRARY_THRESHOLD_REQUIRED=YES (any tiny-deviation-safe STABLE/CHANGED needs Product Owner boundary, e.g. N×MAD)
+MANAGER_FLEET_SCAN_GAP=YES (run_care_digest_producer_scan filters access_role==CAREGIVER only; for_subject recipients already CAREGIVER+MANAGER)
+SCHEMA_CHANGE_REQUIRED=NO (app-level semantic vocabulary sufficient if rule approved; no DB enum needed for Decision A path)
+
+FAIL_CLOSED_FACTS_ALREADY=
+- CareSubjectDataStatus: SUFFICIENT_OBSERVED_DATA|PARTIAL_DATA|STALE_DATA|NO_DATA
+- CARE_DATA_GAP producer for STALE/NO_DATA (and related) candidates
+- STALE_DATA_HOURS=48; PARTIAL_COVERAGE_THRESHOLD=0.5 (data sufficiency, not stability band)
+- Baseline NONE when <7 valid days; PROVISIONAL 7–13; ESTABLISHED 14+
+
+### Stage 2 — Decision B
+
+BLOCKING_SEMANTIC_DECISION=
+Cannot implement NONCLINICAL_STABLE / NONCLINICAL_CHANGED without inventing a product boundary that prevents tiny deviations from becoming CHANGED. Direction-only comparison is explicitly forbidden as instability. MAD is stored but unused for change detection. Cursor must not select N, %, or BPM.
+
+AVAILABLE_BASELINE_FACTS=
+daily.avg_value; baseline_value; dispersion_value(MAD); quality; valid_day_count; coverage; CareSubjectDataStatus; expected device binding signal
+
+MINIMUM_RULE_OPTIONS_FOR_PRODUCT_OWNER=
+1. MAD_BAND_ESTABLISHED_ONLY — |daily_stat − baseline| ≤ N×MAD ⇒ NONCLINICAL_STABLE; > N×MAD ⇒ NONCLINICAL_CHANGED; MAD=0 ⇒ exact equality only OR DATA_INSUFFICIENT (PO chooses); PROVISIONAL/NONE/STALE/NO_DATA/PARTIAL ⇒ never STABLE (DATA_INSUFFICIENT / existing CARE_DATA_GAP). PO must approve N and daily_stat (avg vs daily median).
+2. DEFER_STABLE_CHANGED — keep factual digest + DATA_GAP only; no STABLE/CHANGED vocabulary until MAD band approved; optionally authorize MANAGER fleet-scan fix alone as separate tiny Gate.
+3. EXACT_EQUALITY_ONLY_STABLE — STABLE only when daily_stat == baseline_value and ESTABLISHED+SUFFICIENT; any nonzero delta ⇒ DATA_INSUFFICIENT (not CHANGED). Avoids multiplier invention but almost never emits STABLE; weak product UX.
+
+RECOMMENDED_NONCLINICAL_OPTION=Option 1 (MAD_BAND_ESTABLISHED_ONLY) — Cursor does NOT select N or daily_stat; Product Owner must approve before implementation Gate reopens.
+CLINICAL_THRESHOLD_REQUIRED=NO
+
+NOT_IMPLEMENTED=
+- STABLE/CHANGED enums or I9 stability service
+- MANAGER fleet-scan fix (deferred with Decision B source freeze; threshold-free but same Gate Stage3 not entered)
+- schema/migration 080
+- any clinical HR/SpO2/ALS rule
+
+REMAINING_AFTER_PO_DECISION=
+- Implement approved MAD-band (or chosen option) in I9 → bounded I10 facts
+- MANAGER+CAREGIVER fleet scan
+- Tests + PG16 CI for seam
+- Son I8 routine/lifestyle PARTIAL remains primary-user gap
+- Clinical danger remains SEPARATE_CLINICAL_GOVERNANCE
+
+NEXT_GATE_PROPOSAL=SEDI-V1-BE-I9-I10-NONCLINICAL-VITAL-STABILITY-CONTRACT-02 (after PO selects rule option + N/daily_stat if Option 1)
+ALT_TINY_GATE=SEDI-V1-BE-I10-DIGEST-FLEET-SCAN-MANAGER-01 (MANAGER scan only; no stability semantics)
+NEXT_GATE_AUTHORIZED=NO
+
+v729_MODIFIED=NO
+v730_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v730_FA.md
+MASTER_LOG_TIP=§437
+CURSOR_HANDOFF_TIP=v730
