@@ -156,15 +156,21 @@ jobs:
             backend/tests/test_i8_proactive_evaluation_pd_i8_04a.py \
             backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
             | tee /tmp/stage_a_evidence/i6_i8.txt
-      - name: I9 device/HS + I10 care-network
+      - name: I9 device/HS (conftest isolation)
         run: |
           set -euo pipefail
-          # I9/I10 harnesses create isolated DBs from TEST_DATABASE_URL; base PG must be up.
           python /tmp/stage_a_fresh_migrate.py
-          python -B -m pytest -v --tb=short --noconftest \
+          python -B -m pytest -v --tb=short \
             backend/tests/test_i9_health_subject_device_packet_foundation.py \
             backend/tests/test_i9_device_claim_trust_ingest_runtime.py \
             backend/tests/test_i9_baseline_subject_native_closure.py \
+            | tee /tmp/stage_a_evidence/i9.txt
+      - name: I10 care-network (isolated harness)
+        run: |
+          set -euo pipefail
+          # I10 harnesses create disposable DBs; base PG must remain reachable.
+          python /tmp/stage_a_fresh_migrate.py
+          python -B -m pytest -v --tb=short --noconftest \
             backend/tests/test_i10_b06_caregiver_delivery.py \
             backend/tests/test_i10_b14_caregiver_status_digest.py \
             backend/tests/test_i10_b15_managed_care_action.py \
@@ -172,7 +178,7 @@ jobs:
             backend/tests/test_i10_b15_a02_owner_provenance.py \
             backend/tests/test_i10_b16_care_safety_escalation.py \
             backend/tests/test_i10_b16_a01_i4_authority_seam.py \
-            | tee /tmp/stage_a_evidence/i9_i10.txt
+            | tee /tmp/stage_a_evidence/i10.txt
       - name: Upload Stage A evidence
         if: always()
         uses: actions/upload-artifact@v4
