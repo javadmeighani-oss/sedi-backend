@@ -103,17 +103,21 @@ def _seed_routine_action(db, user_id: int, *, when, key: str = "walk-1", summary
     ensure_self_subject_for_account(db, user_id, display_name="SELF", commit=False)
     window = resolve_local_day_window(db, user_id, now_utc=when)
     repo = I8OperationalRepository()
-    plan = repo.create_plan(
-        db,
-        user_id=user_id,
-        user_local_date=window.user_local_date,
-        timezone_snapshot=window.timezone_snapshot,
-        generation_mode="proactive",
-        plan_idempotency_key=f"plan-{user_id}-{key}-{uuid4().hex[:4]}",
-        valid_from=window.valid_from,
-        valid_until=window.valid_until,
-        expires_at=window.expires_at,
+    plan = repo.get_active_plan(
+        db, user_id=user_id, user_local_date=window.user_local_date
     )
+    if plan is None:
+        plan = repo.create_plan(
+            db,
+            user_id=user_id,
+            user_local_date=window.user_local_date,
+            timezone_snapshot=window.timezone_snapshot,
+            generation_mode="proactive",
+            plan_idempotency_key=f"plan-{user_id}-{key}-{uuid4().hex[:4]}",
+            valid_from=window.valid_from,
+            valid_until=window.valid_until,
+            expires_at=window.expires_at,
+        )
     action = repo.create_action(
         db,
         user_id=user_id,
