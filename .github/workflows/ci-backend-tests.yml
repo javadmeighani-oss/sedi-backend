@@ -311,6 +311,7 @@ jobs:
           python -m pytest -v \
             backend/tests/test_i10_b15_managed_care_action.py \
             backend/tests/test_i10_b15_a01_self_care_action.py \
+            backend/tests/test_i10_b15_a02_owner_provenance.py \
             --noconftest --tb=short
 
       - name: I10 B16 care safety escalation

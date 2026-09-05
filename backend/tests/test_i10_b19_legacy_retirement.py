@@ -199,4 +199,4 @@ def test_alembic_head_unchanged():
     cfg = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["078_health_subject_condition_foundation"]
+    assert heads == ["079_i10_cni_owner_provenance_nullable"]

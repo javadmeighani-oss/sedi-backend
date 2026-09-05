@@ -68,7 +68,7 @@ def test_alembic_single_head_is_070():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["078_health_subject_condition_foundation"]
+    assert script.get_heads() == ["079_i10_cni_owner_provenance_nullable"]
 
 
 def test_evaluation_identity_families():

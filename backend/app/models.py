@@ -1685,7 +1685,9 @@ class CaregiverNotificationIntent(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Optional Account provenance for the target HealthSubject (SELF linked_user_id).
+    # NULL for accountless MANAGED subjects — NOT manager/access substitution.
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     caregiver_id = Column(Integer, ForeignKey("user_caregivers.id", ondelete="CASCADE"), nullable=True, index=True)
     notification_type = Column(String(64), nullable=False)
     source_entity_type = Column(String(64), nullable=True)

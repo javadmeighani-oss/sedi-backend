@@ -20,6 +20,7 @@ from backend.app.services.i10.care_action_copy import (
 )
 from backend.app.services.i10.care_action_eligibility import is_managed_care_action_eligible
 from backend.app.services.i10.care_digest_producer_worker import resolve_subject_owner_user_id
+from backend.app.services.i10.care_network_actor import get_active_subject_access
 from backend.app.services.i10.caregiver_delivery_intent import create_i10_caregiver_delivery_intent
 from backend.app.services.i10.caregiver_delivery_worker import process_caregiver_delivery_intent
 from backend.app.services.i10.managed_i8_action_binding import (
@@ -77,11 +78,19 @@ def _plan_user_authorized_for_subject(
     plan: models.I8OperationalPlan,
     subject: models.HealthSubject,
 ) -> bool:
-    """I8 plan Account must be the SELF linked user or the MANAGED subject's owner."""
+    """I8 plan Account must be SELF linked user or hold managed-subject access.
+
+    MANAGER/CAREGIVER access authorizes plan ownership for accountless MANAGED
+    subjects. Access is NOT treated as HealthSubject owner provenance.
+    """
     if subject.linked_user_id is not None:
         return int(plan.user_id) == int(subject.linked_user_id)
-    owner_id = resolve_subject_owner_user_id(db, subject.id)
-    return owner_id is not None and int(plan.user_id) == int(owner_id)
+    access = get_active_subject_access(
+        db,
+        account_user_id=int(plan.user_id),
+        health_subject_id=int(subject.id),
+    )
+    return access is not None and access.access_role in ("CAREGIVER", "MANAGER")
 
 
 def list_eligible_managed_care_actions(
@@ -128,8 +137,6 @@ def create_care_action_intents_for_action(
     commit: bool = True,
 ) -> list[models.CaregiverNotificationIntent]:
     owner_id = resolve_subject_owner_user_id(db, health_subject_id)
-    if owner_id is None:
-        return []
     body = render_care_action_body(action)
     metadata = build_care_action_metadata(action, health_subject_id=health_subject_id, body=body)
     valid_from_iso = action.valid_from.isoformat() if action.valid_from else str(action.id)

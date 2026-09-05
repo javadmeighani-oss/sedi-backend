@@ -35,31 +35,23 @@ def _utc_now() -> datetime:
 
 
 def resolve_subject_owner_user_id(db: Session, health_subject_id: int) -> Optional[int]:
-    manager = (
-        db.query(models.AccountHealthSubjectAccess)
-        .filter(
-            models.AccountHealthSubjectAccess.health_subject_id == health_subject_id,
-            models.AccountHealthSubjectAccess.access_role == "MANAGER",
-            models.AccountHealthSubjectAccess.is_active.is_(True),
-            models.AccountHealthSubjectAccess.revoked_at.is_(None),
-        )
-        .order_by(models.AccountHealthSubjectAccess.id.asc())
-        .first()
-    )
-    if manager is not None:
-        return manager.account_user_id
-    access = (
-        db.query(models.AccountHealthSubjectAccess)
-        .filter(
-            models.AccountHealthSubjectAccess.health_subject_id == health_subject_id,
-            models.AccountHealthSubjectAccess.is_active.is_(True),
-            models.AccountHealthSubjectAccess.revoked_at.is_(None),
-        )
-        .order_by(models.AccountHealthSubjectAccess.id.asc())
-        .first()
-    )
-    return access.account_user_id if access is not None else None
+    """Return canonical Account provenance for a HealthSubject, if any.
 
+    SELF / linked subject: HealthSubject.linked_user_id.
+    MANAGED accountless: None (do NOT substitute MANAGER/CAREGIVER access as owner).
+
+    Access/management/recipient eligibility are separate from owner provenance.
+    """
+    subject = (
+        db.query(models.HealthSubject)
+        .filter(models.HealthSubject.id == health_subject_id)
+        .first()
+    )
+    if subject is None:
+        return None
+    if subject.linked_user_id is None:
+        return None
+    return int(subject.linked_user_id)
 
 def _authorized_recipients(
     db: Session,
@@ -109,8 +101,6 @@ def create_care_status_digest_intents_for_subject(
 ) -> list[models.CaregiverNotificationIntent]:
     facts = assemble_care_subject_status_facts(db, health_subject_id=health_subject_id, when=when)
     owner_id = resolve_subject_owner_user_id(db, health_subject_id)
-    if owner_id is None:
-        return []
     body = render_care_status_digest_body(facts)
     metadata = build_care_status_digest_metadata(facts, body=body)
     occurrence = build_care_status_digest_occurrence_key(
@@ -152,8 +142,6 @@ def create_care_data_gap_intents_for_subject(
     if not is_care_data_gap_candidate(facts):
         return []
     owner_id = resolve_subject_owner_user_id(db, health_subject_id)
-    if owner_id is None:
-        return []
     body = render_care_data_gap_body(facts)
     metadata = build_care_data_gap_metadata(facts, body=body)
     occurrence = data_gap_occurrence_key_for_facts(facts)

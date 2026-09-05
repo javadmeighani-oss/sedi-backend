@@ -30,7 +30,7 @@ def build_i10_occurrence_dedupe_key(
 def create_i10_caregiver_delivery_intent(
     db: Session,
     *,
-    owner_user_id: int,
+    owner_user_id: Optional[int],
     health_subject_id: int,
     recipient_user_id: int,
     notification_scope: I10NotificationScope,

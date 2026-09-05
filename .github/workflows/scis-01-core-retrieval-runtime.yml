@@ -81,7 +81,7 @@ jobs:
           set -euo pipefail
           python backend/scripts/ci_alembic_stage17_deny_guard.py --versions-dir backend/alembic/versions
 
-      - name: Alembic single head is 078 (SCIS-01 + KNOW + I7 chain)
+      - name: Alembic single head is 079 (SCIS-01 + KNOW + I7 chain)
         run: |
           python - <<'PY'
           from alembic.config import Config
@@ -90,7 +90,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["078_health_subject_condition_foundation"], heads
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
           rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
           assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           rev067 = script.get_revision("067_i7_lifelong_memory_foundation")
@@ -120,7 +120,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "078_health_subject_condition_foundation"
+              assert head == "079_i10_cni_owner_provenance_nullable"
               ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
               print("PGVECTOR_VERSION", ext)
               assert ext
@@ -178,7 +178,7 @@ jobs:
           print("UPGRADE_060_TO_064=PASS")
           PY
 
-      - name: Restore Alembic head 078 for runtime pytest
+      - name: Restore Alembic head 079 for runtime pytest
         run: |
           python - <<'PY'
           import os
@@ -193,7 +193,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("PYTEST_DB_ALEMBIC_HEAD", head)
-              assert head == "078_health_subject_condition_foundation", head
+              assert head == "079_i10_cni_owner_provenance_nullable", head
           PY
 
       - name: Unit + SCIS runtime pytest
@@ -277,7 +277,7 @@ jobs:
         run: |
           {
             echo "GATE=SCIS-01"
-            echo "ALEMBIC_HEAD=078_health_subject_condition_foundation"
+            echo "ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable"
             echo "SCIS01_REVISION=061_scis01_pgvector_kce_foundation"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"

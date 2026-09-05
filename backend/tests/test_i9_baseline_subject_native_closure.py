@@ -113,7 +113,7 @@ def test_c01_alembic_single_head_073():
         text=True,
         check=True,
     )
-    assert "078_health_subject_condition_foundation (head)" in result.stdout
+    assert "079_i10_cni_owner_provenance_nullable (head)" in result.stdout
 
 
 def test_c02_migration_073_columns_present(db):
@@ -1761,4 +1761,12 @@ def test_g28_migration_078_health_subject_condition_exists():
     matches = [p for p in versions.glob("*.py") if p.name.startswith("078_health_subject_")]
     assert len(matches) == 1
     assert matches[0].name == "078_health_subject_condition_foundation.py"
+
+
+def test_g29_migration_079_cni_owner_provenance_nullable_exists():
+    repo = Path(__file__).resolve().parents[2]
+    versions = Path(repo) / "backend" / "alembic" / "versions"
+    matches = [p for p in versions.glob("*.py") if p.name.startswith("079_i10_cni_")]
+    assert len(matches) == 1
+    assert matches[0].name == "079_i10_cni_owner_provenance_nullable.py"
 

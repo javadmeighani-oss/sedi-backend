@@ -98,8 +98,6 @@ def create_care_safety_intents_for_occurrence(
         return []
 
     owner_id = resolve_subject_owner_user_id(db, health_subject_id)
-    if owner_id is None:
-        return []
 
     occurrence = build_care_safety_occurrence_key(
         health_subject_id=health_subject_id,
