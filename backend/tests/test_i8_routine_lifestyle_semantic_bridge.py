@@ -367,8 +367,10 @@ def test_r_personal_facts_cannot_replace_i5(db):
             domain="routine",
             persist=False,
         )
-    assert result.status == "MISSING_GROUNDED_ACTION_CONTENT"
+    # Safety fail-closes on non-OK retrieval before compose (I5 authority preserved).
+    assert result.status in {"MISSING_ELIGIBLE_KNOWLEDGE", "MISSING_GROUNDED_ACTION_CONTENT"}
     assert not result.suggestions
+    assert result.persisted is False
 
 
 def test_s_goals_restrictions_preserved(db):
