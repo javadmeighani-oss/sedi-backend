@@ -80991,3 +80991,126 @@ v723_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v723_FA.md
 MASTER_LOG_TIP=§430
 CURSOR_HANDOFF_TIP=v723
+§431 - SEDI-V1-BE-PRE-E2E-BLOCKER-CLOSURE-01 (S02 registry seam CLOSED; B15 provenance HARD_STOP)
+
+GATE=SEDI-V1-BE-PRE-E2E-BLOCKER-CLOSURE-01
+GATE_RESULT=PASS
+MODE=TARGETED_IMPLEMENTATION_TEST_CLOSURE
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=649972e0fef4fcf87d998947ee8f11dcb5d8e404
+IMPL_HEAD=0c5d5729832aff96918dc1c83927d3dc3e68cc2d
+PRIOR_MASTER_LOG_TIP=§430
+PRIOR_CURSOR_HANDOFF_TIP=v723
+ALEMBIC_HEAD=078_health_subject_condition_foundation
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+AUTHORITY_FREEZE=
+I4=SOLE_SAFETY_RISK_AUTHORITY
+I9!=SAFETY_AUTHORITY
+LLM!=RISK_AUTHORITY
+I10=NOTIFICATION/CARE_NETWORK_DELIVERY
+MANAGER!=HEALTH_SUBJECT_OWNER
+ACCOUNT!=HEALTH_SUBJECT
+ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0
+CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+
+============================================================
+A. WORKSTREAM A — FINDING_S02_TEST_RULE_PRODUCTION_SEAM
+============================================================
+
+A_PRECHECK=
+A1 TEST_ONLY_SYNTHETIC_EMERGENCY_RULE importable from production registry=YES (pre-repair)
+A2 test_synthetic in production SUPPORTED_EVIDENCE_TYPES=YES (pre-repair)
+A3 public assess_* accepted rules= Optional=YES (pre-repair)
+A4 caller rules bypassed ACTIVE_CLINICAL_DEVICE_RULES=YES (pre-repair)
+A_DEFECT_CONFIRMED=YES
+
+A_REPAIR=
+Removed TEST_ONLY_SYNTHETIC_EMERGENCY_RULE from device_safety_registry.py
+Removed test_synthetic from production SUPPORTED_EVIDENCE_TYPES
+Removed public rules= from assess_device_safety_risk / assess_device_safety_risk_safe
+select_matching_rules uses ACTIVE registry only
+Test-only emergency fixture lives in test_s02_device_i4_safety_contract.py; activation via monkeypatch only
+
+A_FILES_CHANGED=
+backend/app/services/intelligence/device_safety_registry.py
+backend/app/services/intelligence/device_safety_input.py
+backend/app/services/intelligence/device_safety_risk.py
+backend/tests/test_s02_device_i4_safety_contract.py
+
+A_TESTS_REUSED=existing S02 fail-closed / accountless Mother / revoked binding / chat I4 / B16 gate suite
+A_TESTS_ADDED_OR_CHANGED=public rules= rejection; test_synthetic fail-closed; production module symbol absence; monkeypatch-isolated emergency
+A_LOCAL_UNIT=31 passed (non-PG)
+A_CI_RUN=33957997784
+A_CI_RESULT=96 passed (SCIS-01 incl. PG S02)
+A_SELF_HEAL_ITERATIONS=1
+FINDING_S02_TEST_RULE_PRODUCTION_SEAM=CLOSED
+PRODUCTION_ARBITRARY_RULE_INJECTION=NO
+TEST_ONLY_RULE_RUNTIME_AUTHORITY=NO
+ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0
+CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+SCHEMA_CHANGE=NO
+CLINICAL_RULE_ADDED=NO
+
+============================================================
+B. WORKSTREAM B — FINDING_B15A01_OWNER_PROVENANCE_01
+============================================================
+
+B_PRECHECK=
+B1 SELF canonical provenance field=HealthSubject.linked_user_id (nullable)
+B2 MANAGED accountless linked_user_id=NULL representable on HS=YES
+B3 resolve_subject_owner_user_id prefers MANAGER then first active access=YES (current)
+B4 Consumers=care_digest_producer_worker / care_action_producer_worker / care_safety_producer_worker → CaregiverNotificationIntent.owner_user_id
+B5 Truthful accountless owner requires nullable intent owner or actor≠owner redesign=YES
+
+B_DEFECT_CONFIRMED=YES
+B_EVIDENCE=
+CaregiverNotificationIntent.owner_user_id nullable=False
+Returning None for accountless Mother skips all digest/care-action intents (current early-return)
+Returning MANAGER as owner_user_id = owner substitution (forbidden semantic)
+Fixing without schema/access-model redesign would either regress B14/B15 delivery or continue the lie
+
+B_RESULT=HARD_STOP_B_REAPPROVAL_REQUIRED
+B_FILES_CHANGED=NONE
+B_TESTS_REUSED=existing B14/B15/B06 suites not re-executed (no B code change; defect is semantic/schema-bound)
+B_TESTS_ADDED_OR_CHANGED=NONE (would fail-green or lock incorrect semantics)
+B_SELF_HEAL_ITERATIONS=0
+FINDING_B15A01_OWNER_PROVENANCE_01=OPEN
+MANAGER_AS_OWNER_SUBSTITUTION=YES (current code)
+ACCOUNTLESS_MANAGED_SUBJECT_SUPPORTED=YES (HS linked_user_id=NULL valid; intent owner provenance NOT truthful)
+NO_FAKE_OWNER_ACCOUNT=NOT_SATISFIED_BY_CURRENT_RESOLVER
+NO_ACCOUNT_SUBSTITUTION=NOT_SATISFIED_BY_CURRENT_RESOLVER
+PROPOSED_FOLLOWUP=B15-A02 provenance semantic repair (nullable owner_user_id and/or actor≠owner split) — NOT AUTHORIZED HERE
+
+============================================================
+C. REGRESSION / OPEN TRUTH
+============================================================
+
+REGRESSION_RESULT=SCIS-01 TRUE_GREEN run 33957997784 = 96 passed
+POSTGRESQL_REAL_RUNTIME_USED=YES (SCIS-01 workflow)
+FALSE_GREEN_CHECK=PASS (exit success; pytest 96 passed visible)
+
+UNCHANGED_OPEN=
+FINDING_S02_FRESHNESS_POLICY=OPEN
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E=OPEN
+FINDING_RAG_REAL_RUNTIME=OPEN
+FINDING_FULL_I1_I10_FAMILY_E2E=OPEN
+FINDING_B15A01_OWNER_PROVENANCE_01=OPEN
+
+PRODUCTION_MUTATION=NO
+DEPLOY=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+AUTHORITY_REASSIGNED=NO
+
+NEXT_GATE_PROPOSAL=INDIVIDUAL_I1_I10_ACCEPTANCE OR B15-A02 reapproval for owner provenance schema/semantics
+NEXT_GATE_AUTHORIZED=NO
+
+v723_MODIFIED=NO
+v724_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v724_FA.md
+MASTER_LOG_TIP=§431
+CURSOR_HANDOFF_TIP=v724
