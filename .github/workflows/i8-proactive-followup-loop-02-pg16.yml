@@ -1,0 +1,138 @@
+# I8 proactive follow-up loop 02 — DONE → exact action completion (PG16)
+# GATE=SEDI-V1-BE-I8-PROACTIVE-FOLLOWUP-LOOP-02
+name: I8 Proactive Followup Loop 02 PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i8/action_completion.py"
+      - "backend/app/services/i10/coaching_done.py"
+      - "backend/app/services/i10/interaction_recorder.py"
+      - "backend/app/services/i10/coaching_worker.py"
+      - "backend/app/services/i10/coaching_i10_adapter.py"
+      - "backend/app/routers/notifications.py"
+      - "backend/tests/test_i8_proactive_followup_loop_02.py"
+      - "backend/tests/test_i10_b13_coaching_followup.py"
+      - "backend/tests/test_i10_b17_interaction_vocabulary.py"
+      - ".github/workflows/i8-proactive-followup-loop-02-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i8-proactive-followup-02-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i8-proactive-followup-02:
+    name: I8 proactive follow-up loop 02 PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_i8_loop
+          POSTGRES_PASSWORD: sedi_i8_loop_pass
+          POSTGRES_DB: sedi_i8_loop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_i8_loop -d sedi_i8_loop"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_i8_loop:sedi_i8_loop_pass@127.0.0.1:5432/sedi_i8_loop
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_i8_loop:sedi_i8_loop_pass@127.0.0.1:5432/sedi_i8_loop
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Focused loop-02 tests
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/i8_loop02_evidence
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_i8_proactive_followup_loop_02.py \
+            > /tmp/i8_loop02_evidence/loop02_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Loop02 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/i8_loop02_evidence/loop02_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::loop02 pytest failed"
+            tail -n 80 /tmp/i8_loop02_evidence/loop02_pytest.txt
+            exit "$rc"
+          fi
+      - name: Critical coaching + interaction regressions
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_i10_b13_coaching_followup.py \
+            backend/tests/test_i10_b17_interaction_vocabulary.py \
+            > /tmp/i8_loop02_evidence/regress_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Regressions (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 60 /tmp/i8_loop02_evidence/regress_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::regression pytest failed"
+            tail -n 60 /tmp/i8_loop02_evidence/regress_pytest.txt
+            exit "$rc"
+          fi
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          echo "=== LOOP02 ===" && tail -n 5 /tmp/i8_loop02_evidence/loop02_pytest.txt
+          echo "=== REGRESS ===" && tail -n 5 /tmp/i8_loop02_evidence/regress_pytest.txt
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i8-proactive-followup-loop-02-pytest
+          path: /tmp/i8_loop02_evidence/

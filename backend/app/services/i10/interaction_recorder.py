@@ -92,25 +92,37 @@ def record_notification_interaction(
     notification: Notification,
     recipient_user_id: int,
     payload: dict[str, Any],
+    domain_completion_authorized: bool = False,
 ) -> InteractionRecordResult:
     """
     Persist NotificationFeedback + InteractionEvent without domain mutation.
 
     Domain completion (medication taken, I8 action completed, etc.) remains on
-    authorized source-domain endpoints only.
+    authorized source-domain endpoints only. Pass domain_completion_authorized=True
+    only after an I8-owned (or other domain-owner) completion command has succeeded.
     """
     resolved = resolve_interaction_verb(payload)
-    try:
-        assert_generic_verb_cannot_complete_domain(notification, resolved.verb)
-    except ValueError as exc:
-        if str(exc) == "done_requires_domain_authority":
+    if resolved.verb is CanonicalInteractionVerb.DONE:
+        if not domain_completion_authorized:
             raise HTTPException(
                 status_code=422,
                 detail="DONE requires an authorized domain completion endpoint.",
-            ) from exc
-        raise
+            )
+    else:
+        try:
+            assert_generic_verb_cannot_complete_domain(notification, resolved.verb)
+        except ValueError as exc:
+            if str(exc) == "done_requires_domain_authority":
+                raise HTTPException(
+                    status_code=422,
+                    detail="DONE requires an authorized domain completion endpoint.",
+                ) from exc
+            raise
 
     meta = _bounded_feedback_meta(payload, resolved)
+    if domain_completion_authorized and resolved.verb is CanonicalInteractionVerb.DONE:
+        meta["domain_completion_authorized"] = True
+        meta["completion_authority"] = "I8_OPERATIONAL_PLAN_ACTION_DOMAIN"
     feedback_row = NotificationFeedback(
         notification_id=notification.id,
         user_id=recipient_user_id,
@@ -135,6 +147,7 @@ def record_notification_interaction(
     gate4_summary = None
     if resolved.gate4_policy_action:
         gate4_summary = _apply_gate4_policy(
+
             db,
             user_id=recipient_user_id,
             notification=notification,

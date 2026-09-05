@@ -1220,13 +1220,27 @@ def submit_notification_feedback(
             detail="action_id is required when reaction is 'interact'"
         )
     from backend.app.services.i10.interaction_recorder import record_notification_interaction
-
-    record_result = record_notification_interaction(
-        db,
-        notification=notification,
-        recipient_user_id=user_id,
-        payload=payload,
+    from backend.app.services.i10.interaction_vocabulary import (
+        CanonicalInteractionVerb,
+        resolve_interaction_verb,
     )
+
+    if resolve_interaction_verb(payload).verb is CanonicalInteractionVerb.DONE:
+        from backend.app.services.i10.coaching_done import handle_coaching_done_for_notification
+
+        record_result = handle_coaching_done_for_notification(
+            db,
+            notification=notification,
+            actor_user_id=user_id,
+            payload=payload,
+        ).interaction
+    else:
+        record_result = record_notification_interaction(
+            db,
+            notification=notification,
+            recipient_user_id=user_id,
+            payload=payload,
+        )
     gate4_feedback_summary = record_result.gate4_feedback_summary
 
     db.commit()
@@ -1243,6 +1257,7 @@ def submit_notification_feedback(
         "DISLIKE": "dislike",
         "DISLIKE_REASON": "dislike",
         "NOT_NOW": "dismiss",
+        "DONE": "done",
     }.get(canonical, "open")
     feedback_request = type("FB", (), {"feedback": feedback_type, "reason": reason, "action": payload.get("action")})()
     # Check if this is a morning_brief notification
