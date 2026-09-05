@@ -81669,3 +81669,156 @@ v731_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v731_FA.md
 MASTER_LOG_TIP=§438
 CURSOR_HANDOFF_TIP=v731
+
+## §439 — I8 PRIMARY-USER ROUTINE/LIFESTYLE CLOSURE AUDIT
+
+GATE=SEDI-V1-BE-I8-PRIMARY-USER-ROUTINE-LIFESTYLE-CLOSURE-AUDIT-01
+GATE_RESULT=PASS
+MODE=READ_ONLY_TARGETED_AUDIT
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=d29feef7bb2b34506f34aa77c6f7b0487abb498d
+FINAL_HEAD=d29feef7bb2b34506f34aa77c6f7b0487abb498d
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+SOURCE_MUTATION=NO
+TEST_MUTATION=NO
+SCHEMA_MUTATION=NO
+TEST_EXECUTED=NO
+CI_TRIGGERED=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+SCOPE_FREEZE=
+PRIMARY_USER=SON_ACCOUNT + canonical SELF HS
+MOTHER_MONITORING=OUT_OF_SCOPE (already TRUE_GREEN; do not reopen)
+OUT_OF_SCOPE=Mother Chat/I7; clinical danger; Smart-RAG; frontend; production
+
+### Authority map (preserved)
+I7=memory | I8=operational semantics/actions | I10=delivery | I5=external knowledge | I4=safety
+I8≠I10 delivery; I8≠I4 safety; I8≠I7 memory authority; I8≠I5 medical invent
+
+### Primary-user data map (compact)
+
+| Surface | Model/Service | Owner key | I8 consumed | Status |
+|---|---|---|---|---|
+| Habits | UserHabit / gate2_data_service | user_id | NO | LEGACY_DATA_ONLY |
+| Lifestyle events | UserLifestyleEvent / gate2 | user_id | NO (I7 timeline YES) | LEGACY_DATA_ONLY |
+| Calendar events | UserEvent / gate2 | user_id | NO | LEGACY_DATA_ONLY |
+| Goals | UserGoal / i8.context | user_id | YES | OPERATIONAL_I8_INPUT |
+| Restrictions | UserRestriction / i8.context | user_id | YES | OPERATIONAL_I8_INPUT |
+| Profile facts (allergy) | UserProfileFact / i8.context | user_id | YES | OPERATIONAL_I8_INPUT |
+| Unverified allergy | KcUserFact / i8.context | user_id | PARTIAL (signal only) | CONTEXT_ONLY |
+| Care-plan items | UserCarePlanItem | user_id | NO | LEGACY_DATA_ONLY |
+| I6 memory facts | memory_writes.list_facts | user_id+consent | PARTIAL (nutrition readiness) | PARTIAL |
+| I7 period/timeline | i7/* | user_id | NO direct I8 | IMPLEMENTED data; not I8 input |
+| I9 physio projection | i8_projection / context | SELF HS | YES bounded | IMPLEMENTED |
+| I8 plans/actions | i8_operational_* | user_id (+ optional HS refs) | N/A owner | IMPLEMENTED foundation |
+| Proactive ledger | i8_proactive_evaluations | user_id | owner | PARTIAL (callable+scan) |
+| Coaching follow-up | i10 coaching_worker | user_id→SELF HS | consumes I8 actions | PARTIAL |
+
+### Routine / lifestyle truth
+ROUTINE_DATA=YES (UserHabit CRUD Gate2; frequency/target_json; user_id)
+ROUTINE_I8_SEMANTIC=PARTIAL — domain keyword infer + I5-grounded routine_suggestion; **does not read UserHabit**; no recurring/disruption/adherence/missed-habit detector from habit rows
+LIFESTYLE_DATA=YES (UserLifestyleEvent freeform event_type; UserEvent calendar types)
+LIFESTYLE_I8_SEMANTIC=PARTIAL — lifestyle/sleep/hydration keywords + I5; **no lifestyle-event series semantics** in I8
+MISSING_SEAM=I8TrustedContext does not load habits/lifestyle events; no temporal pattern engine over those rows
+
+### Nutrition / exercise
+NUTRITION=PARTIAL — nutrition_planner→unified_core(domain=nutrition); I6 fact readiness (diet_notes/food_habits/goals); I5 governed knowledge; ephemeral default; persist path exists; I10 NUTRITION_PLAN_FOLLOW_UP wired for persisted actions; Son daily proactive E2E unproven; not habit-adherence based
+EXERCISE_ACTIVITY=PARTIAL — unified_core domain exercise/activity_suggestion only (no dedicated planner); same I5+context pattern; EXERCISE_PLAN_FOLLOW_UP exists; no activity sensor/adherence loop from UserHabit
+
+### Goals / restrictions / profile
+UserGoal/UserRestriction/UserProfileFact(allergy)=OPERATIONAL_I8_INPUT
+UserCondition/UserMedication(legacy)=CONTEXT for SELF via load_trusted_context; HS conditions via subject_context for HS path
+DUPLICATE_CONSTRAINT_SOURCES=UserCondition vs HealthSubjectCondition (SELF prefers HS; legacy fallback) — MIXED_WITH_CONFLICT_RISK if both diverge; V1 Son SELF acceptable if writes stay consistent
+
+### I7→I8 personalization
+I7_TO_I8_DIRECT_SEAM=NO (no period_summary / lifelong profile import into I8)
+I6_FACTS_USED=YES (nutrition readiness; consent-gated)
+RAW_MEMORY_USED_DIRECTLY=NO in unified_core (I5 retrieval + trusted context)
+LIFELONG_PROFILE_USED_BY_I8=NO
+PERIOD_SUMMARY_USED_BY_I8=NO
+MEMORY_CONSENT_GOVERNED=YES (PERM_READ)
+FALLBACK_WHEN_MEMORY_MISSING=CONSENT_REQUIRED / INSUFFICIENT_DATA / MISSING_ELIGIBLE_KNOWLEDGE
+I7_TO_I8_PERSONALIZATION=PARTIAL
+
+### I8 plan / action / proactive / I10
+I8_OPERATIONAL_PLAN=IMPLEMENTED foundation (ACTIVE/SUPERSEDED/EXPIRED; local-day; idempotency; domains nutrition|exercise|routine|lifestyle|wellbeing|cross_domain; user_id owner)
+I8_OPERATIONAL_ACTION=IMPLEMENTED foundation (persist/replay; safety states; optional health_subject_id; not minted by raw RAG/I9/I10)
+I8_PROACTIVE_EVALUATION=PARTIAL — ledger+orchestrator+flag-gated schedule_scan; GENERIC request→I5 action; ROUTINE/LIFESTYLE_DATA_USED=NO; I9 future_i9 family reserved unused
+I8_TO_I10_SEMANTIC=PARTIAL — coaching_worker (LIFESTYLE_ROUTINE_COACHING / NUTRITION_PLAN_FOLLOW_UP / EXERCISE_PLAN_FOLLOW_UP); care_action for HS-bound actions; intake future_i8_semantic_envelope_to_candidate=placeholder; I8≠delivery owner confirmed Stage A
+
+### Engagement / follow-up
+ENGAGEMENT_EVENT_CAPTURE=YES (I10 interaction_recorder + InteractionEvent/NotificationFeedback)
+ENGAGEMENT_TO_I10=PARTIAL (Gate4 feedback_policy prefs/fatigue)
+ENGAGEMENT_TO_I8=NO default closed-loop (domain completion authority remains I8 action domain; recorder does not mutate plans)
+ENGAGEMENT_TO_I7=NO
+CLOSED_LOOP_PERSONALIZATION=MISSING
+ENGAGEMENT_FOLLOWUP_LOOP=PARTIAL
+
+### Identity (Son)
+ACCOUNT_NATIVE=I8 plans/actions/proactive; goals/restrictions/habits/lifestyle Gate2
+SELF_HS_NATIVE=I9 physio projection; I10 SELF resolution for coaching delivery; optional I8 subject_context
+LEGACY_USER_NATIVE_BUT_SAFE_FOR_SELF=habits/lifestyle/goals for Son Account==SELF linked_user_id
+PRIMARY_USER_IDENTITY_RISKS=LOW for V1 if Son SELF remains 1:1 Account↔linked_user; no migration mandatory solely for elegance; conflict risk if HS conditions diverge from UserCondition; NO manager-as-owner substitution in this surface
+SCHEMA_CHANGE_REQUIRED=NO for first bridge (read existing user_id tables into I8 context)
+MIGRATION_REQUIRED=NO for minimum V1 bridge
+AUTHORITY_MODEL_CHANGE_REQUIRED=NO
+ACCESS_MODEL_CHANGE_REQUIRED=NO
+IDENTITY_MODEL_CHANGE_REQUIRED=NO (defer HS-native habits unless product forces)
+
+### UX matrix (primary user)
+CHAT=IMPLEMENTED (I1; family E2E rebaseline separate)
+MEMORY=PARTIAL (I7 user_id OK; not I8 input)
+ROUTINE=PARTIAL (data YES; I8 semantic NO consumption)
+LIFESTYLE=PARTIAL (data YES; I8 semantic NO consumption)
+NUTRITION=PARTIAL
+EXERCISE=PARTIAL
+GOALS_RESTRICTIONS=IMPLEMENTED as I8 inputs
+PERSONALIZATION=PARTIAL (goals/restrictions/allergies/I5; not I7 lifelong)
+OPERATIONAL_PLAN=IMPLEMENTED foundation
+OPERATIONAL_ACTION=IMPLEMENTED foundation
+PROACTIVE_SUPPORT=PARTIAL
+SMART_NOTIFICATION=PARTIAL (I10 coaching/self producers; full daily loop unproven)
+ENGAGEMENT_FOLLOWUP=PARTIAL
+
+### Duplicated authority risks
+DUPLICATED_AUTHORITY_RISKS=
+1. Gate2 habit/lifestyle DATA vs I8 routine/lifestyle DOMAIN labels (data unused by I8 — authority split OK if not merged incorrectly)
+2. Legacy notification_engine engagement vs I10 coaching path — delivery must stay I10; meaning I8
+3. Chat/LLM must not invent operational actions outside unified_core (boundary tests exist; runtime chat→I8 wiring depth PARTIAL)
+NONE_CONFIRMED for I10 inventing lifestyle meaning when coaching_worker used correctly
+
+### Recommended sequence (UNAUTHORIZED)
+1. SEDI-V1-BE-I8-ROUTINE-LIFESTYLE-SEMANTIC-BRIDGE-01 — load UserHabit/UserLifestyleEvent into I8TrustedContext; bounded routine/lifestyle suggestions without inventing adherence clinical rules; SCHEMA=NO
+2. SEDI-V1-BE-I7-I8-BOUNDED-PERSONALIZATION-SEAM-01 — consent-governed I7/I6 projection into I8 (not raw Memory dump)
+3. SEDI-V1-BE-I8-PROACTIVE-FOLLOWUP-LOOP-01 — schedule_scan→action→I10 coaching→interaction feedback affecting future I8 evaluations
+4. SEDI-V1-BE-PRIMARY-USER-I8-PG16-ACCEPTANCE-01 — Son SELF cross-I TRUE_GREEN
+
+RECOMMENDED_NEXT_GATE=SEDI-V1-BE-I8-ROUTINE-LIFESTYLE-SEMANTIC-BRIDGE-01
+RECOMMENDED_REASON=Largest truthful gap: habit/lifestyle rows exist but I8 never consumes them; smallest closure without schema/identity redesign
+
+PRESERVED_CLOSED=
+I9_I10_NONCLINICAL_VITAL_STABILITY_CONTRACT_02=PASS
+MOTHER_MONITORING_HR=TRUE_GREEN
+MANAGER_FLEET_SCAN=PASS
+
+OPEN_FINDINGS=
+FINDING_S02_FRESHNESS_POLICY=OPEN
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E=OPEN
+RAG_REAL_RUNTIME=SEPARATE_SMART_RAG_GATE
+CLINICAL_DANGER_PATH=SEPARATE_CLINICAL_GOVERNANCE
+FULL_FAMILY_E2E=V1_REQUIRES_REBASELINED_ACCEPTANCE
+PRIMARY_USER_I8_ROUTINE_LIFESTYLE=V1_BLOCKER_OR_PARTIAL (confirmed)
+
+NEXT_GATE_AUTHORIZED=NO
+
+v731_MODIFIED=NO
+v732_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v732_FA.md
+MASTER_LOG_TIP=§439
+CURSOR_HANDOFF_TIP=v732
