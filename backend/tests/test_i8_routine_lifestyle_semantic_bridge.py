@@ -29,16 +29,17 @@ from backend.app.services.i8.unified_core import generate_operational_action
 @pytest.fixture(scope="session")
 def _bridge_tables_present():
     url = os.environ.get("TEST_DATABASE_URL")
-    if not url:
-        pytest.skip("TEST_DATABASE_URL not set")
+    assert url, "TEST_DATABASE_URL required"
     engine = create_engine(url)
     try:
         insp = inspect(engine)
-        if engine.dialect.name != "postgresql":
-            pytest.skip("PostgreSQL required")
-        for table in ("user_habits", "user_lifestyle_events", "i8_operational_plans"):
-            if not insp.has_table(table):
-                pytest.skip(f"{table} not present (alembic head required)")
+        assert engine.dialect.name == "postgresql", engine.dialect.name
+        missing = [
+            table
+            for table in ("user_habits", "user_lifestyle_events", "i8_operational_plans")
+            if not insp.has_table(table)
+        ]
+        assert not missing, f"missing tables after migrate: {missing}"
     finally:
         engine.dispose()
 

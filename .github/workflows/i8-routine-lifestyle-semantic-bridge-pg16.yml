@@ -95,15 +95,39 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/i8_bridge_evidence
+          set +e
           python -B -m pytest -v --tb=short --noconftest \
             backend/tests/test_i8_routine_lifestyle_semantic_bridge.py \
-            | tee /tmp/i8_bridge_evidence/bridge_pytest.txt
+            > /tmp/i8_bridge_evidence/bridge_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Bridge pytest (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/i8_bridge_evidence/bridge_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::bridge pytest failed exit=$rc"
+            tail -n 80 /tmp/i8_bridge_evidence/bridge_pytest.txt
+            exit "$rc"
+          fi
       - name: I8 unified regressions (shared ephemeral head)
         run: |
           set -euo pipefail
+          set +e
           python -B -m pytest -v --tb=short --noconftest \
             backend/tests/test_i8_unified_runtime_pd_i8_03.py \
-            | tee /tmp/i8_bridge_evidence/unified_pytest.txt
+            > /tmp/i8_bridge_evidence/unified_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Unified pytest (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 40 /tmp/i8_bridge_evidence/unified_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::unified pytest failed exit=$rc"
+            tail -n 40 /tmp/i8_bridge_evidence/unified_pytest.txt
+            exit "$rc"
+          fi
       - name: Summarize counts
         run: |
           set -euo pipefail
