@@ -1,0 +1,121 @@
+# Stage B cross-I shared family E2E — ephemeral PostgreSQL 16 only.
+# NO production mutation. NO clinical/RAG activation. NO frontend.
+# GATE=SEDI-V1-BE-STAGE-B-CROSS-I-SHARED-FAMILY-E2E-01
+name: Stage B Cross-I Shared Family E2E
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/tests/test_stage_b_cross_i_shared_family_e2e.py"
+      - "backend/tests/helpers/stage_b_family_fixture.py"
+      - "backend/app/services/i9/device_binding_service.py"
+      - "backend/app/services/i10/**"
+      - "backend/app/services/i8/**"
+      - ".github/workflows/stage-b-cross-i-shared-family-e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage-b-family-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stage-b-family:
+    name: Stage B Family PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_stage_b
+          POSTGRES_PASSWORD: sedi_stage_b_pass
+          POSTGRES_DB: sedi_stage_b
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_stage_b -d sedi_stage_b"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_stage_b:sedi_stage_b_pass@127.0.0.1:5432/sedi_stage_b
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_stage_b:sedi_stage_b_pass@127.0.0.1:5432/sedi_stage_b
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: stage-b-placeholder-not-used
+      DEVICE_AUTH_MODE: db_only
+      DEVICE_INGEST_TOKEN: stage-b-ingest-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + Alembic head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Fresh migrate base DB (harness creates isolated DBs)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from alembic import command
+          from alembic.config import Config
+          from sqlalchemy import create_engine, text
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          print("BASE_MIGRATE_OK")
+          PY
+      - name: Stage B cross-I family pytest
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/stage_b_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_stage_b_cross_i_shared_family_e2e.py \
+            | tee /tmp/stage_b_evidence/pytest.txt
+      - name: Clinical rules remain zero
+        run: |
+          python - <<'PY'
+          from backend.app.services.intelligence.device_safety_registry import active_clinical_device_rule_count
+          assert active_clinical_device_rule_count() == 0
+          print("ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0")
+          PY
+      - name: Upload Stage B evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-b-family-pytest
+          path: /tmp/stage_b_evidence/
