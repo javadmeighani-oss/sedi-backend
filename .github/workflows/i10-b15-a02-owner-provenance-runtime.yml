@@ -1,0 +1,88 @@
+# Focused I10 care-network + B15-A02 owner provenance validation.
+# Ephemeral Postgres only. No production mutation.
+name: I10 B15-A02 Owner Provenance Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i10/care_digest_producer_worker.py"
+      - "backend/app/services/i10/care_action_producer_worker.py"
+      - "backend/app/services/i10/care_safety_producer_worker.py"
+      - "backend/app/services/i10/caregiver_delivery_intent.py"
+      - "backend/alembic/versions/079_i10_cni_owner_provenance_nullable.py"
+      - "backend/tests/test_i10_b15_a02_owner_provenance.py"
+      - "backend/tests/test_i10_b14_caregiver_status_digest.py"
+      - "backend/tests/test_i10_b15_managed_care_action.py"
+      - "backend/tests/test_i10_b16_care_safety_escalation.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - ".github/workflows/i10-b15-a02-owner-provenance-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i10-b15-a02-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i10-b15-a02:
+    name: I10 B06/B14/B15/B16 + A02 provenance
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: sedi_user
+          POSTGRES_PASSWORD: sedi_pass
+          POSTGRES_DB: sedi_i10_a02
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_user -d sedi_i10_a02"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_i10_a02
+      DATABASE_URL: postgresql+psycopg2://sedi_user:sedi_pass@127.0.0.1:5432/sedi_i10_a02
+      PYTHONPATH: ${{ github.workspace }}
+      OPENAI_API_KEY: sk-ci-placeholder-not-used
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Alembic single head is 079
+        run: |
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          rev = script.get_revision("079_i10_cni_owner_provenance_nullable")
+          assert rev.down_revision == "078_health_subject_condition_foundation"
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: python -m alembic -c backend/alembic.ini upgrade head
+      - name: I10 care-network + B15-A02 provenance pytest
+        run: |
+          set -euo pipefail
+          python -B -m pytest -q --tb=short --noconftest \
+            backend/tests/test_i10_b06_caregiver_delivery.py \
+            backend/tests/test_i10_b14_caregiver_status_digest.py \
+            backend/tests/test_i10_b15_managed_care_action.py \
+            backend/tests/test_i10_b15_a01_self_care_action.py \
+            backend/tests/test_i10_b15_a02_owner_provenance.py \
+            backend/tests/test_i10_b16_care_safety_escalation.py \
+            backend/tests/test_i10_b16_a01_i4_authority_seam.py \
+            backend/tests/test_s02_device_i4_safety_contract.py
