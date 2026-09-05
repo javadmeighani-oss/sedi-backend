@@ -38,6 +38,11 @@ def _median(values: List[float]) -> float:
     return float(statistics.median(values))
 
 
+def median_of(values: List[float]) -> float:
+    """Public deterministic median helper for I9 consumers (same as baseline V1)."""
+    return _median(values)
+
+
 def _mad_over_series(series: List[float], center: float) -> float:
     return _median([abs(v - center) for v in series])
 
@@ -61,6 +66,37 @@ def _accepted_measurements_query(
         )
         .all()
     )
+
+
+def compute_daily_median_for_subject(
+    db: Session,
+    *,
+    health_subject_id: int,
+    measurement_type: str = BASELINE_SCOPE_V1,
+    ref: Optional[datetime] = None,
+    preferred_language: Optional[str] = None,
+) -> Optional[float]:
+    """Median of accepted heart-rate samples in the governed daily bucket containing ref.
+
+    Not persisted — computed on demand for nonclinical stability comparison.
+    Returns None when no accepted samples exist in the bucket.
+    """
+    if measurement_type != BASELINE_SCOPE_V1:
+        raise ValueError("BASELINE_SCOPE_V1_HEART_RATE_ONLY")
+    ref = ref or datetime.now(timezone.utc)
+    if ref.tzinfo is None:
+        ref = ref.replace(tzinfo=timezone.utc)
+    bucket_start, bucket_end = bucket_bounds("daily", ref=ref, preferred_language=preferred_language)
+    rows = _accepted_measurements_query(
+        db,
+        health_subject_id=health_subject_id,
+        measurement_type=measurement_type,
+        bucket_start=bucket_start,
+        bucket_end=bucket_end,
+    )
+    if not rows:
+        return None
+    return _median([float(r[0]) for r in rows])
 
 
 def compute_personal_observed_baseline(

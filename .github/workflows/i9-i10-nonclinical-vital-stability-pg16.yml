@@ -1,0 +1,112 @@
+# I9→I10 nonclinical vital stability (PO MAD band) — ephemeral PostgreSQL 16.
+# NO production mutation. NO deploy. NO clinical rule activation.
+# GATE=SEDI-V1-BE-I9-I10-NONCLINICAL-VITAL-STABILITY-CONTRACT-02
+name: I9-I10 Nonclinical Vital Stability PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i9/baseline_service.py"
+      - "backend/app/services/i9/nonclinical_vital_stability.py"
+      - "backend/app/services/i9/i8_projection_service.py"
+      - "backend/app/services/i10/care_subject_status_facts.py"
+      - "backend/app/services/i10/caregiver_status_digest.py"
+      - "backend/app/services/i10/care_digest_producer_worker.py"
+      - "backend/tests/test_i9_i10_nonclinical_vital_stability.py"
+      - "backend/tests/test_i10_b14_caregiver_status_digest.py"
+      - "backend/tests/test_i10_b06_caregiver_delivery.py"
+      - "backend/tests/test_i10_b15_a02_owner_provenance.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - ".github/workflows/i9-i10-nonclinical-vital-stability-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i9-i10-vital-stability-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  nonclinical-vital-stability:
+    name: Nonclinical vital stability PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_vital
+          POSTGRES_PASSWORD: sedi_vital_pass
+          POSTGRES_DB: sedi_vital
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_vital -d sedi_vital"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_vital:sedi_vital_pass@127.0.0.1:5432/sedi_vital
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_vital:sedi_vital_pass@127.0.0.1:5432/sedi_vital
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Focused stability + B14/B06/B15-A02 regressions
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/vital_stability_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i9_i10_nonclinical_vital_stability.py \
+            backend/tests/test_i10_b14_caregiver_status_digest.py \
+            backend/tests/test_i10_b06_caregiver_delivery.py \
+            backend/tests/test_i10_b15_a02_owner_provenance.py \
+            | tee /tmp/vital_stability_evidence/pytest.txt
+      - name: Upload pytest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i9-i10-vital-stability-pytest
+          path: /tmp/vital_stability_evidence/pytest.txt

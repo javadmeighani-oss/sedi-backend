@@ -32,6 +32,8 @@ def render_care_status_digest_body(facts: CareSubjectStatusFacts) -> str:
     parts = [facts.coverage_summary, facts.recency_summary, facts.alert_summary]
     if facts.baseline_comparison:
         parts.append(facts.baseline_comparison)
+    if facts.monitoring_status == "DATA_INSUFFICIENT" and not facts.baseline_comparison:
+        parts.append("Available heart-rate data is not sufficient to determine the monitoring status.")
     if facts.data_status in (CareSubjectDataStatus.PARTIAL_DATA, CareSubjectDataStatus.NO_DATA):
         parts.append("Available information is insufficient for a fuller summary.")
     if facts.data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
@@ -49,11 +51,17 @@ def build_care_status_digest_metadata(facts: CareSubjectStatusFacts, *, body: st
         "trigger_reason": "care_status_digest",
         "schedule_label": facts.observation_period_start.date().isoformat(),
         "data_status": facts.data_status.value,
+        "signal_scope": facts.signal_scope,
+        "monitoring_status": facts.monitoring_status,
+        "baseline_quality": facts.baseline_quality,
         "context": {
             "template_key": "care_status_digest",
             "trigger_reason": "care_status_digest",
             "schedule_label": facts.observation_period_start.date().isoformat(),
             "data_status": facts.data_status.value,
+            "signal_scope": facts.signal_scope,
+            "monitoring_status": facts.monitoring_status,
+            "baseline_quality": facts.baseline_quality,
         },
         "semantic_family": I10SemanticFamily.CARE_STATUS_DIGEST.value,
         "privacy_class": I10PrivacyClass.HEALTH_SENSITIVE.value,

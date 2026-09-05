@@ -14,6 +14,10 @@ from backend.app.services.i9.i8_projection_service import (
     get_bounded_context_projection_for_subject,
     projection_context_refs,
 )
+from backend.app.services.i9.nonclinical_vital_stability import (
+    NonclinicalVitalMonitoringStatus,
+    evaluate_nonclinical_heart_rate_stability,
+)
 
 STALE_DATA_HOURS = 48
 PARTIAL_COVERAGE_THRESHOLD = 0.5
@@ -40,6 +44,10 @@ class CareSubjectStatusFacts:
     baseline_comparison: Optional[str] = None
     latest_bucket_end: Optional[datetime] = None
     has_expected_data_source: bool = False
+    signal_scope: str = "heart_rate"
+    monitoring_status: Optional[str] = None
+    baseline_quality: Optional[str] = None
+    monitoring_reason: Optional[str] = None
 
 
 def _period_bounds(when: datetime) -> tuple[datetime, datetime]:
@@ -84,26 +92,6 @@ def _qualifying_alert_summary(db: Session, health_subject_id: int, period_start:
     if count == 0:
         return "No qualifying alert was recorded during the period."
     return f"{count} qualifying alert(s) were recorded during the period."
-
-
-def _baseline_comparison_phrase(projection) -> Optional[str]:
-    daily = projection.daily_rollup
-    baseline = projection.personal_observed_baseline
-    if daily is None or baseline is None:
-        return None
-    if daily.avg_value is None or baseline.baseline_value is None:
-        return None
-    if daily.avg_value > baseline.baseline_value:
-        return (
-            "Recent observations are above the subject's personal observed baseline "
-            "(not a clinical normal range)."
-        )
-    if daily.avg_value < baseline.baseline_value:
-        return (
-            "Recent observations are below the subject's personal observed baseline "
-            "(not a clinical normal range)."
-        )
-    return "Recent observations are similar to the subject's personal observed baseline pattern."
 
 
 def assemble_care_subject_status_facts(
@@ -152,8 +140,44 @@ def assemble_care_subject_status_facts(
             coverage_summary = "Observed data was received during the period."
             recency_summary = "Latest daily rollup covers the recent observation window."
 
-    baseline_cmp = _baseline_comparison_phrase(projection) if projection.health_subject_id else None
     alert_summary = _qualifying_alert_summary(db, health_subject_id, period_start)
+
+    monitoring_status: Optional[str] = None
+    baseline_quality: Optional[str] = None
+    monitoring_reason: Optional[str] = None
+    baseline_comparison: Optional[str] = None
+
+    # STALE/NO_DATA → CARE_DATA_GAP path; never emit STABLE.
+    if data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
+        monitoring_status = None
+        monitoring_reason = "care_data_gap_path"
+    elif data_status == CareSubjectDataStatus.PARTIAL_DATA:
+        monitoring_status = NonclinicalVitalMonitoringStatus.DATA_INSUFFICIENT.value
+        monitoring_reason = "partial_data"
+        baseline_comparison = (
+            "Available heart-rate data is not sufficient to determine the monitoring status."
+        )
+    elif data_status == CareSubjectDataStatus.SUFFICIENT_OBSERVED_DATA and projection.health_subject_id:
+        stability = evaluate_nonclinical_heart_rate_stability(
+            db, health_subject_id=health_subject_id, when=now
+        )
+        monitoring_status = stability.status.value
+        baseline_quality = stability.baseline_quality
+        monitoring_reason = stability.reason
+        if stability.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_STABLE:
+            baseline_comparison = (
+                "Observed heart-rate pattern remained consistent with the recent "
+                "established personal pattern."
+            )
+        elif stability.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_CHANGED:
+            baseline_comparison = (
+                "Observed heart-rate pattern showed a meaningful change relative to the "
+                "recent established personal pattern."
+            )
+        else:
+            baseline_comparison = (
+                "Available heart-rate data is not sufficient to determine the monitoring status."
+            )
 
     return CareSubjectStatusFacts(
         health_subject_id=health_subject_id,
@@ -165,7 +189,11 @@ def assemble_care_subject_status_facts(
         alert_summary=alert_summary,
         limitations=tuple(limitations),
         provenance_refs=refs,
-        baseline_comparison=baseline_cmp,
+        baseline_comparison=baseline_comparison,
         latest_bucket_end=latest_bucket_end,
         has_expected_data_source=expected_source,
+        signal_scope="heart_rate",
+        monitoring_status=monitoring_status,
+        baseline_quality=baseline_quality,
+        monitoring_reason=monitoring_reason,
     )

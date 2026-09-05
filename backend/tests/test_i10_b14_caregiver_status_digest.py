@@ -268,7 +268,12 @@ def test_baseline_not_clinical_normal(db, b14_patches):
     _baseline(db, owner, subject, when, baseline_value=70.0)
     facts = assemble_care_subject_status_facts(db, health_subject_id=subject.id, when=when)
     body = render_care_status_digest_body(facts)
-    assert "clinical normal" in body.lower()
+    lower = body.lower()
+    assert "healthy" not in lower
+    assert "medically safe" not in lower
+    assert "diagnosis" not in lower
+    # Without ESTABLISHED+MAD+daily_median, status stays insufficient — never false STABLE.
+    assert facts.monitoring_status == "DATA_INSUFFICIENT"
 
 
 def test_bounded_projection_no_raw_measurements(db, b14_patches):

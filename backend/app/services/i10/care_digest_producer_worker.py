@@ -222,7 +222,7 @@ def run_care_digest_producer_scan(
         )
         .filter(
             models.HealthSubject.status == "active",
-            models.AccountHealthSubjectAccess.access_role == "CAREGIVER",
+            models.AccountHealthSubjectAccess.access_role.in_(("CAREGIVER", "MANAGER")),
             models.AccountHealthSubjectAccess.is_active.is_(True),
             models.AccountHealthSubjectAccess.revoked_at.is_(None),
         )
