@@ -123,6 +123,8 @@ def to_i8_trusted_context_compat(subject_ctx: I8SubjectTrustedContext) -> I8Trus
         goals=list(subject_ctx.goals),
         conditions=list(subject_ctx.conditions),
         medications=list(subject_ctx.medications),
+        habits=[],
+        lifestyle_events=[],
         physiological_context=subject_ctx.physiological_context,
         context_refs=list(subject_ctx.context_refs),
     )

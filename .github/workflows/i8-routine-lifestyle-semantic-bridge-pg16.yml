@@ -1,0 +1,112 @@
+# I8 routine/lifestyle semantic bridge — ephemeral PostgreSQL 16.
+# GATE=SEDI-V1-BE-I8-ROUTINE-LIFESTYLE-SEMANTIC-BRIDGE-01
+# NO production mutation. NO deploy. NO clinical/Smart-RAG activation.
+name: I8 Routine Lifestyle Semantic Bridge PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i8/context.py"
+      - "backend/app/services/i8/knowledge_bridge.py"
+      - "backend/app/services/i8/unified_core.py"
+      - "backend/app/services/i8/subject_context.py"
+      - "backend/tests/test_i8_routine_lifestyle_semantic_bridge.py"
+      - "backend/tests/test_i8_unified_runtime_pd_i8_03.py"
+      - "backend/tests/test_i8_nutrition_failclose.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - ".github/workflows/i8-routine-lifestyle-semantic-bridge-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i8-routine-lifestyle-bridge-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i8-routine-lifestyle-bridge:
+    name: I8 routine/lifestyle bridge PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_i8_bridge
+          POSTGRES_PASSWORD: sedi_i8_bridge_pass
+          POSTGRES_DB: sedi_i8_bridge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_i8_bridge -d sedi_i8_bridge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_i8_bridge:sedi_i8_bridge_pass@127.0.0.1:5432/sedi_i8_bridge
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_i8_bridge:sedi_i8_bridge_pass@127.0.0.1:5432/sedi_i8_bridge
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Focused bridge tests (isolated PG harness)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/i8_bridge_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i8_routine_lifestyle_semantic_bridge.py \
+            | tee /tmp/i8_bridge_evidence/bridge_pytest.txt
+      - name: I8 unified regressions (shared ephemeral head)
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i8_unified_runtime_pd_i8_03.py \
+            | tee /tmp/i8_bridge_evidence/unified_pytest.txt
+      - name: Upload pytest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i8-routine-lifestyle-bridge-pytest
+          path: /tmp/i8_bridge_evidence/

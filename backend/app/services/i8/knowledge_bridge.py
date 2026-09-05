@@ -39,10 +39,20 @@ _DOMAIN_LABELS: dict[str, str] = {
 
 
 def build_personalization(ctx: I8TrustedContext, *, domain: str) -> RetrievalPersonalizationContext:
+    from backend.app.services.i8.context import I8_PERSONAL_CONTEXT_TERM_SLICE
+
+    habit_names = tuple(h.name for h in ctx.habits[:I8_PERSONAL_CONTEXT_TERM_SLICE] if h.name)
+    event_types = tuple(
+        e.event_type for e in ctx.lifestyle_events[:I8_PERSONAL_CONTEXT_TERM_SLICE] if e.event_type
+    )
+    # Habit names → routine_terms; lifestyle event types → lifestyle_terms (alongside conditions).
+    # Mirrors I5 build_personalization_context_from_memory habit→lifestyle/routine pattern.
+    lifestyle_terms = tuple(list(ctx.conditions[:4]) + list(event_types))[:I8_PERSONAL_CONTEXT_TERM_SLICE]
     return RetrievalPersonalizationContext(
-        goal_terms=tuple(ctx.goals[:8]),
-        restriction_terms=tuple(ctx.restrictions[:8]),
-        lifestyle_terms=tuple(ctx.conditions[:4]),
+        goal_terms=tuple(ctx.goals[:I8_PERSONAL_CONTEXT_TERM_SLICE]),
+        restriction_terms=tuple(ctx.restrictions[:I8_PERSONAL_CONTEXT_TERM_SLICE]),
+        lifestyle_terms=lifestyle_terms,
+        routine_terms=habit_names,
         domain_hints=(domain,) if domain != "cross_domain" else ("nutrition", "exercise", "routine"),
     )
 
@@ -119,8 +129,12 @@ def compose_grounded_action(
     retrieval: RetrievalResult,
     *,
     domain: str,
+    ctx: Optional[I8TrustedContext] = None,
 ) -> Optional[GroundedComposition]:
-    """Derive bounded action content only from eligible retrieved I5 knowledge."""
+    """Derive bounded action content from eligible I5 knowledge; optional personal context.
+
+    Personal habit/lifestyle facts may annotate relevance only. They never replace I5 grounding.
+    """
     if retrieval.status != STATUS_OK or not retrieval.items:
         return None
 
@@ -143,16 +157,37 @@ def compose_grounded_action(
 
     label = _DOMAIN_LABELS.get(domain, "Health action")
     detail = statement[:SUMMARY_TEXT_MAX_LEN]
+    personal_note = _personal_context_note(domain=domain, ctx=ctx)
+    if personal_note:
+        combined = f"{detail} {personal_note}".strip()
+        detail = combined[:SUMMARY_TEXT_MAX_LEN]
     suggestions = [I8ActionSuggestion(label=label, detail=detail)]
     rationale = (
         f"Action derived from governed knowledge "
         f"{primary.canonical_unit_id}:{primary.immutable_version_id}."
     )
+    if personal_note:
+        rationale = f"{rationale} Personalized with bounded stored personal context (not clinical)."
     return GroundedComposition(
         suggestions=suggestions,
         used_items=used_items[:1],
         rationale=rationale,
     )
+
+
+def _personal_context_note(*, domain: str, ctx: Optional[I8TrustedContext]) -> Optional[str]:
+    """Non-clinical personal-context annotation for routine/lifestyle domains only."""
+    if ctx is None:
+        return None
+    if domain == "routine" and ctx.habits:
+        name = ctx.habits[0].name.strip()
+        if name:
+            return f"(Personal context: stored habit '{name[:64]}'.)"
+    if domain == "lifestyle" and ctx.lifestyle_events:
+        et = ctx.lifestyle_events[0].event_type.strip()
+        if et:
+            return f"(Personal context: recent lifestyle event type '{et[:64]}'.)"
+    return None
 
 
 def operational_summary_label(domain: str) -> str:

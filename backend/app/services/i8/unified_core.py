@@ -347,7 +347,7 @@ def generate_operational_action(
             summary=retrieval_safety.message,
         )
 
-    composition = compose_grounded_action(retrieval, domain=resolved_domain)
+    composition = compose_grounded_action(retrieval, domain=resolved_domain, ctx=ctx)
     if composition is None:
         return I8OperationalActionResult(
             status="MISSING_GROUNDED_ACTION_CONTENT",
