@@ -157,7 +157,13 @@ def test_t6_rebind_does_not_move_old_observation_ownership(db, account_user):
     )
     db.add(device)
     db.flush()
-    bind_device_to_subject(db, device=device, health_subject_id=father.id, bound_by_account_user_id=account_user.id)
+    bind_device_to_subject(
+        db,
+        device=device,
+        health_subject_id=father.id,
+        bound_by_account_user_id=account_user.id,
+        bound_at=datetime(2026, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
+    )
 
     t1 = datetime(2026, 3, 1, 8, 0, 0, tzinfo=timezone.utc)
     r1 = ingest_device_packet(

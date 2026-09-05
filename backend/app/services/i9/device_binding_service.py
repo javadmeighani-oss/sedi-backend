@@ -57,17 +57,31 @@ def bind_device_to_subject(
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
 
-    active = get_active_binding(db, device.id, at_time=now)
-    if active is not None and active.health_subject_id == health_subject_id:
+    # Close any currently-open row (unbound_at IS NULL) so the partial unique
+    # index uq_dsb_device_active_binding cannot be violated when bound_at is
+    # historical relative to wall-clock prior bindings.
+    open_binding = (
+        db.query(models.DeviceSubjectBinding)
+        .filter(
+            models.DeviceSubjectBinding.device_row_id == device.id,
+            models.DeviceSubjectBinding.unbound_at.is_(None),
+        )
+        .order_by(models.DeviceSubjectBinding.bound_at.desc())
+        .first()
+    )
+    if open_binding is not None and open_binding.health_subject_id == health_subject_id:
         device.health_subject_id = health_subject_id
-        device.current_binding_id = active.id
+        device.current_binding_id = open_binding.id
         if commit:
             db.commit()
-        return active
+        return open_binding
 
-    if active is not None:
-        active.unbound_at = now
-        db.add(active)
+    if open_binding is not None:
+        close_at = now
+        if open_binding.bound_at is not None and close_at < open_binding.bound_at:
+            close_at = open_binding.bound_at
+        open_binding.unbound_at = close_at
+        db.add(open_binding)
 
     binding = models.DeviceSubjectBinding(
         device_row_id=device.id,
