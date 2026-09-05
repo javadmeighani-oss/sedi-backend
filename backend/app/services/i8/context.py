@@ -10,6 +10,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from backend.app import models
+from backend.app.services.i6.consent_service import PERM_READ, has_permission
 from backend.app.services.i9.i8_projection_service import (
     I8GovernedPhysiologicalContext,
     get_i8_governed_context_projection,
@@ -23,6 +24,7 @@ I8_PERSONAL_CONTEXT_TERM_SLICE = 8
 _COMPACT_VALUE_MAX = 64
 _HABIT_NAME_MAX = 128
 _EVENT_TYPE_MAX = 64
+_I7_TERM_MAX = 64
 
 # Soft-delete + non-current statuses (Gate2 HabitCreateIn / delete_habit).
 _HABIT_EXCLUDED_STATUSES = frozenset({"inactive", "completed"})
@@ -46,6 +48,17 @@ class I8LifestyleEventContextFact:
     source: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class I8LifelongProfileContextFact:
+    """Bounded I7 derived lifelong profile projection — not raw memory, not SoT."""
+
+    profile_id: int
+    version: int
+    habit_key_terms: tuple[str, ...] = ()
+    preference_terms: tuple[str, ...] = ()
+    goal_key_terms: tuple[str, ...] = ()
+
+
 @dataclass
 class I8TrustedContext:
     user_id: int
@@ -57,6 +70,7 @@ class I8TrustedContext:
     medications: list[str] = field(default_factory=list)
     habits: list[I8HabitContextFact] = field(default_factory=list)
     lifestyle_events: list[I8LifestyleEventContextFact] = field(default_factory=list)
+    lifelong_profile: Optional[I8LifelongProfileContextFact] = None
     physiological_context: I8GovernedPhysiologicalContext | None = None
     context_refs: list[dict[str, Any]] = field(default_factory=list)
 
@@ -165,6 +179,85 @@ def _load_lifestyle_events(db: Session, user_id: int, ctx: I8TrustedContext) -> 
         ctx.context_refs.append({"ref_type": "user_lifestyle_event", "ref_id": int(row.id)})
 
 
+def _compact_i7_term(raw: str) -> Optional[str]:
+    """Compact domain.key → trailing label; never pass raw JSON blobs."""
+    text = (raw or "").strip()
+    if not text or text.startswith("{") or text.startswith("["):
+        return None
+    # Prefer human-readable trailing segment of domain.key
+    if "." in text:
+        text = text.rsplit(".", 1)[-1]
+    text = text.replace("_", " ").strip()
+    if not text:
+        return None
+    return text[:_I7_TERM_MAX]
+
+
+def _bounded_i7_terms(raw_keys: Any, *, limit: int) -> tuple[str, ...]:
+    if not isinstance(raw_keys, list):
+        return ()
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in raw_keys:
+        term = _compact_i7_term(str(item))
+        if not term:
+            continue
+        key = term.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(term)
+        if len(out) >= limit:
+            break
+    return tuple(out)
+
+
+def _load_lifelong_profile(db: Session, user_id: int, ctx: I8TrustedContext) -> None:
+    """Load active I7 lifelong profile projection only when PERM_READ consent holds.
+
+    Does not load raw UserMemoryFact rows or transcripts. Dedup against Gate2
+    goals/habit names is applied later in personalization (no authority rewrite).
+    """
+    if not has_permission(db, user_id, PERM_READ):
+        return
+    row = (
+        db.query(models.UserLifelongProfile)
+        .filter(
+            models.UserLifelongProfile.user_id == user_id,
+            models.UserLifelongProfile.status == "active",
+        )
+        .order_by(models.UserLifelongProfile.version.desc())
+        .first()
+    )
+    if row is None:
+        return
+    try:
+        payload = json.loads(row.structured_profile_json or "{}")
+    except (TypeError, json.JSONDecodeError):
+        return
+    if not isinstance(payload, dict):
+        return
+    slice_n = I8_PERSONAL_CONTEXT_TERM_SLICE
+    fact = I8LifelongProfileContextFact(
+        profile_id=int(row.id),
+        version=int(row.version),
+        habit_key_terms=_bounded_i7_terms(payload.get("habits"), limit=slice_n),
+        preference_terms=_bounded_i7_terms(payload.get("preferences"), limit=slice_n),
+        goal_key_terms=_bounded_i7_terms(payload.get("goals"), limit=slice_n),
+    )
+    # Skip empty projections (metadata-only profiles).
+    if not (fact.habit_key_terms or fact.preference_terms or fact.goal_key_terms):
+        return
+    ctx.lifelong_profile = fact
+    ctx.context_refs.append(
+        {
+            "ref_type": "user_lifelong_profile",
+            "ref_id": int(row.id),
+            "version": int(row.version),
+        }
+    )
+
+
 def load_trusted_context(db: Session, user_id: int) -> I8TrustedContext:
     ctx = I8TrustedContext(user_id=user_id)
 
@@ -223,6 +316,7 @@ def load_trusted_context(db: Session, user_id: int) -> I8TrustedContext:
 
     _load_habits(db, user_id, ctx)
     _load_lifestyle_events(db, user_id, ctx)
+    _load_lifelong_profile(db, user_id, ctx)
 
     ctx.physiological_context = get_i8_governed_context_projection(db, account_user_id=user_id)
     ctx.context_refs.extend(projection_context_refs(ctx.physiological_context))

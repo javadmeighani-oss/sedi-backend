@@ -93,6 +93,7 @@ def seed_stage_b_family(
     with_device: bool = True,
     with_i10_grants: bool = True,
     when: datetime | None = None,
+    commit: bool = True,
 ) -> StageBFamily:
     """Seed one reusable Son/Mother family. Asserts canonical identity law."""
     when = when or datetime(2026, 9, 1, 9, 0, 0, tzinfo=timezone.utc)
@@ -177,7 +178,10 @@ def seed_stage_b_family(
         _prefs(db, son.id, enabled=True)
         _push(db, son.id, f"fcm-stage-b-{suffix}")
 
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     db.refresh(son)
     db.refresh(stranger)
     db.refresh(son_self)

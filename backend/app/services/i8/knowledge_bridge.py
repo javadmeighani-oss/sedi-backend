@@ -41,18 +41,40 @@ _DOMAIN_LABELS: dict[str, str] = {
 def build_personalization(ctx: I8TrustedContext, *, domain: str) -> RetrievalPersonalizationContext:
     from backend.app.services.i8.context import I8_PERSONAL_CONTEXT_TERM_SLICE
 
-    habit_names = tuple(h.name for h in ctx.habits[:I8_PERSONAL_CONTEXT_TERM_SLICE] if h.name)
-    event_types = tuple(
+    habit_names = [h.name for h in ctx.habits[:I8_PERSONAL_CONTEXT_TERM_SLICE] if h.name]
+    event_types = [
         e.event_type for e in ctx.lifestyle_events[:I8_PERSONAL_CONTEXT_TERM_SLICE] if e.event_type
+    ]
+    goal_terms = [g for g in ctx.goals[:I8_PERSONAL_CONTEXT_TERM_SLICE] if g]
+    restriction_terms = [r for r in ctx.restrictions[:I8_PERSONAL_CONTEXT_TERM_SLICE] if r]
+
+    # Smallest safe dedup: skip I7 terms that casefold-match existing Gate2/context strings.
+    # Does not invent authority precedence — Gate2 titles remain as-is; I7 adds complementary terms only.
+    occupied = {t.casefold() for t in habit_names + event_types + goal_terms + restriction_terms + list(ctx.conditions[:4])}
+    i7_extra: list[str] = []
+    if ctx.lifelong_profile is not None:
+        for term in (
+            list(ctx.lifelong_profile.habit_key_terms)
+            + list(ctx.lifelong_profile.preference_terms)
+            + list(ctx.lifelong_profile.goal_key_terms)
+        ):
+            key = term.casefold()
+            if key in occupied:
+                continue
+            occupied.add(key)
+            i7_extra.append(term)
+            if len(i7_extra) >= I8_PERSONAL_CONTEXT_TERM_SLICE:
+                break
+
+    routine_terms = tuple((habit_names + i7_extra)[:I8_PERSONAL_CONTEXT_TERM_SLICE])
+    lifestyle_terms = tuple(
+        (list(ctx.conditions[:4]) + event_types + i7_extra)[:I8_PERSONAL_CONTEXT_TERM_SLICE]
     )
-    # Habit names → routine_terms; lifestyle event types → lifestyle_terms (alongside conditions).
-    # Mirrors I5 build_personalization_context_from_memory habit→lifestyle/routine pattern.
-    lifestyle_terms = tuple(list(ctx.conditions[:4]) + list(event_types))[:I8_PERSONAL_CONTEXT_TERM_SLICE]
     return RetrievalPersonalizationContext(
-        goal_terms=tuple(ctx.goals[:I8_PERSONAL_CONTEXT_TERM_SLICE]),
-        restriction_terms=tuple(ctx.restrictions[:I8_PERSONAL_CONTEXT_TERM_SLICE]),
+        goal_terms=tuple((goal_terms + [t for t in i7_extra if t not in goal_terms])[:I8_PERSONAL_CONTEXT_TERM_SLICE]),
+        restriction_terms=tuple(restriction_terms),
         lifestyle_terms=lifestyle_terms,
-        routine_terms=habit_names,
+        routine_terms=routine_terms,
         domain_hints=(domain,) if domain != "cross_domain" else ("nutrition", "exercise", "routine"),
     )
 
@@ -179,14 +201,24 @@ def _personal_context_note(*, domain: str, ctx: Optional[I8TrustedContext]) -> O
     """Non-clinical personal-context annotation for routine/lifestyle domains only."""
     if ctx is None:
         return None
-    if domain == "routine" and ctx.habits:
-        name = ctx.habits[0].name.strip()
-        if name:
-            return f"(Personal context: stored habit '{name[:64]}'.)"
-    if domain == "lifestyle" and ctx.lifestyle_events:
-        et = ctx.lifestyle_events[0].event_type.strip()
-        if et:
-            return f"(Personal context: recent lifestyle event type '{et[:64]}'.)"
+    if domain == "routine":
+        if ctx.habits:
+            name = ctx.habits[0].name.strip()
+            if name:
+                return f"(Personal context: stored habit '{name[:64]}'.)"
+        if ctx.lifelong_profile is not None:
+            terms = ctx.lifelong_profile.habit_key_terms or ctx.lifelong_profile.preference_terms
+            if terms:
+                return f"(Personal context: I7 profile term '{terms[0][:64]}'.)"
+    if domain == "lifestyle":
+        if ctx.lifestyle_events:
+            et = ctx.lifestyle_events[0].event_type.strip()
+            if et:
+                return f"(Personal context: recent lifestyle event type '{et[:64]}'.)"
+        if ctx.lifelong_profile is not None:
+            terms = ctx.lifelong_profile.preference_terms or ctx.lifelong_profile.habit_key_terms
+            if terms:
+                return f"(Personal context: I7 profile term '{terms[0][:64]}'.)"
     return None
 
 

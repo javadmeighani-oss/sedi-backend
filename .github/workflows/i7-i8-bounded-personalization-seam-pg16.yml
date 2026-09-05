@@ -1,0 +1,140 @@
+# I7→I8 bounded personalization seam — ephemeral PostgreSQL 16.
+# GATE=SEDI-V1-BE-I7-I8-BOUNDED-PERSONALIZATION-SEAM-01
+# NO production mutation. NO deploy. NO Smart-RAG. NO frontend.
+name: I7-I8 Bounded Personalization Seam PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i8/context.py"
+      - "backend/app/services/i8/knowledge_bridge.py"
+      - "backend/app/services/i8/unified_core.py"
+      - "backend/app/services/i8/subject_context.py"
+      - "backend/tests/test_i7_i8_bounded_personalization_seam.py"
+      - "backend/tests/test_i8_routine_lifestyle_semantic_bridge.py"
+      - "backend/tests/helpers/stage_b_family_fixture.py"
+      - ".github/workflows/i7-i8-bounded-personalization-seam-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i7-i8-personalization-seam-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i7-i8-bounded-personalization:
+    name: I7→I8 personalization seam PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_i7i8
+          POSTGRES_PASSWORD: sedi_i7i8_pass
+          POSTGRES_DB: sedi_i7i8
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_i7i8 -d sedi_i7i8"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_i7i8:sedi_i7i8_pass@127.0.0.1:5432/sedi_i7i8
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_i7i8:sedi_i7i8_pass@127.0.0.1:5432/sedi_i7i8
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Focused I7→I8 seam tests
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/i7i8_evidence
+          set +e
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i7_i8_bounded_personalization_seam.py \
+            > /tmp/i7i8_evidence/seam_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Seam pytest (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/i7i8_evidence/seam_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::seam pytest failed"
+            tail -n 60 /tmp/i7i8_evidence/seam_pytest.txt
+            exit "$rc"
+          fi
+      - name: Habit/lifestyle bridge regression
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i8_routine_lifestyle_semantic_bridge.py \
+            > /tmp/i7i8_evidence/bridge_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Bridge regression (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 40 /tmp/i7i8_evidence/bridge_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::bridge regression failed"
+            tail -n 40 /tmp/i7i8_evidence/bridge_pytest.txt
+            exit "$rc"
+          fi
+      - name: Summarize counts
+        run: |
+          set -euo pipefail
+          echo "=== SEAM ===" && tail -n 5 /tmp/i7i8_evidence/seam_pytest.txt
+          echo "=== BRIDGE ===" && tail -n 5 /tmp/i7i8_evidence/bridge_pytest.txt
+      - name: Upload pytest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i7-i8-bounded-personalization-pytest
+          path: /tmp/i7i8_evidence/
