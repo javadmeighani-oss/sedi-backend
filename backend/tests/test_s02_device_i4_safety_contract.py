@@ -24,19 +24,22 @@ from backend.app.services.intelligence.device_safety_input import (
     DeviceBindingFacts,
     I4DeviceSafetyInput,
     RAW_PACKET_KIND,
+    SUPPORTED_EVIDENCE_TYPES,
     accept_device_safety_input,
     build_i4_device_safety_input,
 )
 from backend.app.services.intelligence.device_safety_registry import (
     ACTIVE_CLINICAL_DEVICE_RULES,
     DEVICE_REGISTRY_VERSION,
-    TEST_ONLY_SYNTHETIC_EMERGENCY_RULE,
+    DeviceSafetyRule,
     active_clinical_device_rule_count,
     get_active_clinical_device_rules,
 )
 from backend.app.services.intelligence.device_safety_risk import (
     DEVICE_RISK_LANGUAGE,
     NO_ACTIVE_MATCH_RULE_ID,
+    _public_assess_rejects_rules_parameter,
+    assess_device_safety_risk,
     assess_device_safety_risk_safe,
     fail_closed_device_assessment,
 )
@@ -47,6 +50,36 @@ from backend.app.services.intelligence.safety_risk import (
 from backend.app.services.section10.i4_escalation_provenance import (
     is_authoritative_i4_emergency_assessment,
 )
+import backend.app.services.intelligence.device_safety_registry as device_safety_registry
+import backend.app.services.intelligence.device_safety_risk as device_safety_risk_mod
+
+
+def _test_only_emergency_matches(inp: I4DeviceSafetyInput) -> bool:
+    """Test-scope matcher only — never importable as production registry authority."""
+    return (inp.semantic_state or "").strip().lower() == "test_force_emergency"
+
+
+# Lives ONLY in test module (not production registry).
+TEST_ONLY_SYNTHETIC_EMERGENCY_RULE = DeviceSafetyRule(
+    rule_id="i4.device.rule.test_only.synthetic_emergency.v1",
+    registry_version=DEVICE_REGISTRY_VERSION,
+    evidence_type="heart_rate",
+    required_unit="bpm",
+    required_quality_states=frozenset({"ok", "good", "acceptable", "device_packet", "device_ingest"}),
+    required_freshness_states=frozenset({"FRESH"}),
+    level=RiskLevel.EMERGENCY,
+    action=SafetyAction.RETURN_EMERGENCY_RESPONSE,
+    domain=RiskDomain.GENERAL,
+    matches=_test_only_emergency_matches,
+)
+
+
+def _activate_test_only_rule(monkeypatch):
+    """Isolate test rule via monkeypatch — no public production rules= API."""
+    monkeypatch.setattr(
+        device_safety_registry, "ACTIVE_CLINICAL_DEVICE_RULES", (TEST_ONLY_SYNTHETIC_EMERGENCY_RULE,)
+    )
+    monkeypatch.setattr(device_safety_risk_mod, "assert_production_registry_empty", lambda: None)
 
 
 def _now() -> datetime:
@@ -240,26 +273,68 @@ def test_evaluator_has_no_db_session_param():
 
 
 # ---------------------------------------------------------------------------
-# Test-only EMERGENCY + B16 authority gate (no I10 redesign)
+# Registry authority seam (PRE-E2E-BLOCKER-CLOSURE / FINDING_S02)
+# ---------------------------------------------------------------------------
+
+
+def test_public_assess_rejects_rules_parameter():
+    assert _public_assess_rejects_rules_parameter() is True
+    assert "rules" not in inspect.signature(assess_device_safety_risk).parameters
+    assert "rules" not in inspect.signature(assess_device_safety_risk_safe).parameters
+
+
+def test_test_synthetic_not_production_evidence_authority():
+    assert "test_synthetic" not in SUPPORTED_EVIDENCE_TYPES
+    r = assess_device_safety_risk_safe(
+        input=_valid_input(
+            evidence_type="test_synthetic",
+            unit=None,
+            normalized_value=None,
+            semantic_state="test_force_emergency",
+        )
+    )
+    assert r.action is SafetyAction.FAIL_CLOSED_RESPONSE
+    assert is_authoritative_i4_emergency_assessment(r) is False
+
+
+def test_production_cannot_activate_test_only_rule_without_registry():
+    """Production path with empty ACTIVE registry never yields test-only EMERGENCY."""
+    assert active_clinical_device_rule_count() == 0
+    r = assess_device_safety_risk_safe(
+        input=_valid_input(semantic_state="test_force_emergency")
+    )
+    assert r.level is RiskLevel.NONE
+    assert r.action is SafetyAction.CONTINUE
+    assert r.rule_id == NO_ACTIVE_MATCH_RULE_ID
+    assert is_authoritative_i4_emergency_assessment(r) is False
+
+
+def test_production_registry_module_has_no_test_only_rule_symbol():
+    root = Path(__file__).resolve().parents[1] / "app" / "services" / "intelligence"
+    registry_src = (root / "device_safety_registry.py").read_text(encoding="utf-8")
+    assert "TEST_ONLY_SYNTHETIC_EMERGENCY_RULE" not in registry_src
+    assert "test_synthetic" not in registry_src
+    input_src = (root / "device_safety_input.py").read_text(encoding="utf-8")
+    assert '"test_synthetic"' not in input_src
+    assert "rules" not in inspect.signature(assess_device_safety_risk).parameters
+    assert "rules" not in inspect.signature(assess_device_safety_risk_safe).parameters
+
+
+# ---------------------------------------------------------------------------
+# Test-only EMERGENCY + B16 authority gate (monkeypatch isolation; no I10 redesign)
 # ---------------------------------------------------------------------------
 
 
 def test_test_only_emergency_rule_not_in_production():
     assert TEST_ONLY_SYNTHETIC_EMERGENCY_RULE not in get_active_clinical_device_rules()
     assert TEST_ONLY_SYNTHETIC_EMERGENCY_RULE.rule_id.startswith("i4.device.rule.test_only.")
+    assert active_clinical_device_rule_count() == 0
 
 
-def test_test_only_emergency_enters_b16_authority_gate():
-    inp = _valid_input(
-        evidence_type="test_synthetic",
-        unit=None,
-        normalized_value=None,
-        semantic_state="test_force_emergency",
-    )
-    r = assess_device_safety_risk_safe(
-        input=inp,
-        rules=(TEST_ONLY_SYNTHETIC_EMERGENCY_RULE,),
-    )
+def test_test_only_emergency_enters_b16_authority_gate(monkeypatch):
+    _activate_test_only_rule(monkeypatch)
+    inp = _valid_input(semantic_state="test_force_emergency")
+    r = assess_device_safety_risk_safe(input=inp)
     assert r.level is RiskLevel.EMERGENCY
     assert r.action is SafetyAction.RETURN_EMERGENCY_RESPONSE
     assert r.registry_version == DEVICE_REGISTRY_VERSION
@@ -345,7 +420,7 @@ def pg_db():
 
 
 @pytestmark_pg
-def test_accountless_mother_hs_device_input_pg(pg_db):
+def test_accountless_mother_hs_device_input_pg(pg_db, monkeypatch):
     from backend.app import models
     from backend.app.core.device_auth import hash_device_token
     from backend.app.services.i9.device_binding_service import bind_device_to_subject, get_active_binding
@@ -481,11 +556,12 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
         is None
     )
 
-    # Test-only EMERGENCY assessment is authoritative for B16 gate
+    # Test-only EMERGENCY via monkeypatched registry (not public rules= injection)
+    _activate_test_only_rule(monkeypatch)
     synth = assess_device_safety_risk_safe(
         input=build_i4_device_safety_input(
             health_subject_id=son_hs.id,
-            evidence_type="test_synthetic",
+            evidence_type="heart_rate",
             observed_at=wall - timedelta(minutes=1),
             source_class="DEVICE_REPORTED",
             quality_state="ok",
@@ -498,12 +574,11 @@ def test_accountless_mother_hs_device_input_pg(pg_db):
             ),
             evidence_ref="test:1",
             provenance_ref="test:prov",
-            unit=None,
-            normalized_value=None,
+            unit="bpm",
+            normalized_value=72.0,
             semantic_state="test_force_emergency",
             now=wall,
-        ),
-        rules=(TEST_ONLY_SYNTHETIC_EMERGENCY_RULE,),
+        )
     )
     assert is_authoritative_i4_emergency_assessment(synth) is True
     # Existing persist seam requires SELF-linked subject — prove EMERGENCY can enter for SELF HS

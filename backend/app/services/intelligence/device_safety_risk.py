@@ -2,11 +2,14 @@
 
 Returns governed RiskAssessment only. Does not deliver to caregivers (B06)
 or invoke B16; callers may pass EMERGENCY assessments to existing B16 seam.
+
+Public assessment resolves rules ONLY from ACTIVE_CLINICAL_DEVICE_RULES.
+Caller-supplied rule authority is forbidden.
 """
 
 from __future__ import annotations
 
-from typing import Optional, Sequence
+import inspect
 
 from backend.app.services.intelligence.contracts import (
     LanguageCode,
@@ -21,9 +24,7 @@ from backend.app.services.intelligence.device_safety_input import (
 )
 from backend.app.services.intelligence.device_safety_registry import (
     DEVICE_REGISTRY_VERSION,
-    DeviceSafetyRule,
     assert_production_registry_empty,
-    get_active_clinical_device_rules,
     select_matching_rules,
 )
 
@@ -63,19 +64,17 @@ def no_active_rule_assessment() -> RiskAssessment:
     )
 
 
-def assess_device_safety_risk(
-    *,
-    input: I4DeviceSafetyInput,
-    rules: Optional[Sequence[DeviceSafetyRule]] = None,
-) -> RiskAssessment:
-    """Deterministic device risk assessment. Never logs health values."""
+def assess_device_safety_risk(*, input: I4DeviceSafetyInput) -> RiskAssessment:
+    """Deterministic device risk assessment. Never logs health values.
+
+    Rule authority: ACTIVE_CLINICAL_DEVICE_RULES only. No caller rule injection.
+    """
     assert_production_registry_empty()
     acceptance = accept_device_safety_input(input)
     if not acceptance.ok:
         return fail_closed_device_assessment()
 
-    active = tuple(rules) if rules is not None else get_active_clinical_device_rules()
-    matched = select_matching_rules(input, active)
+    matched = select_matching_rules(input)
     if not matched:
         return no_active_rule_assessment()
 
@@ -100,13 +99,17 @@ def assess_device_safety_risk(
     )
 
 
-def assess_device_safety_risk_safe(
-    *,
-    input: I4DeviceSafetyInput,
-    rules: Optional[Sequence[DeviceSafetyRule]] = None,
-) -> RiskAssessment:
+def assess_device_safety_risk_safe(*, input: I4DeviceSafetyInput) -> RiskAssessment:
     """Public seam: exceptions become FAIL_CLOSED_RESPONSE (never EMERGENCY by default)."""
     try:
-        return assess_device_safety_risk(input=input, rules=rules)
+        return assess_device_safety_risk(input=input)
     except Exception:
         return fail_closed_device_assessment()
+
+
+def _public_assess_rejects_rules_parameter() -> bool:
+    """Static guard helper for tests: public assess APIs must not accept rules=."""
+    for fn in (assess_device_safety_risk, assess_device_safety_risk_safe):
+        if "rules" in inspect.signature(fn).parameters:
+            return False
+    return True

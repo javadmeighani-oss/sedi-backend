@@ -3,12 +3,14 @@
 Production active physiological/clinical rules MUST remain empty until a
 separate clinical-rule gate approves them. This module is NOT a medical
 threshold authority.
+
+Test-only rules and synthetic evidence fixtures MUST NOT live here.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional
 
 from backend.app.services.intelligence.contracts import (
     RiskDomain,
@@ -55,29 +57,6 @@ def assert_production_registry_empty() -> None:
         raise RuntimeError("ACTIVE_CLINICAL_DEVICE_RULE_COUNT_MUST_BE_ZERO")
 
 
-def _test_only_synthetic_emergency_matches(inp: I4DeviceSafetyInput) -> bool:
-    """Test-only matcher: no physiological threshold; explicit synthetic semantic only."""
-    return (
-        inp.evidence_type.strip().lower() == "test_synthetic"
-        and (inp.semantic_state or "").strip().lower() == "test_force_emergency"
-    )
-
-
-# NOT in ACTIVE_CLINICAL_DEVICE_RULES. Tests may inject via monkeypatch.
-TEST_ONLY_SYNTHETIC_EMERGENCY_RULE = DeviceSafetyRule(
-    rule_id="i4.device.rule.test_only.synthetic_emergency.v1",
-    registry_version=DEVICE_REGISTRY_VERSION,
-    evidence_type="test_synthetic",
-    required_unit=None,
-    required_quality_states=frozenset({"ok", "good", "acceptable", "device_packet", "device_ingest"}),
-    required_freshness_states=frozenset({"FRESH"}),
-    level=RiskLevel.EMERGENCY,
-    action=SafetyAction.RETURN_EMERGENCY_RESPONSE,
-    domain=RiskDomain.GENERAL,
-    matches=_test_only_synthetic_emergency_matches,
-)
-
-
 def rule_matches_input(rule: DeviceSafetyRule, inp: I4DeviceSafetyInput) -> bool:
     if rule.evidence_type.strip().lower() != inp.evidence_type.strip().lower():
         return False
@@ -92,9 +71,6 @@ def rule_matches_input(rule: DeviceSafetyRule, inp: I4DeviceSafetyInput) -> bool
     return bool(rule.matches(inp))
 
 
-def select_matching_rules(
-    inp: I4DeviceSafetyInput,
-    rules: Optional[Sequence[DeviceSafetyRule]] = None,
-) -> tuple[DeviceSafetyRule, ...]:
-    active = tuple(rules) if rules is not None else get_active_clinical_device_rules()
-    return tuple(r for r in active if rule_matches_input(r, inp))
+def select_matching_rules(inp: I4DeviceSafetyInput) -> tuple[DeviceSafetyRule, ...]:
+    """Match against the governed ACTIVE registry only (no caller-supplied authority)."""
+    return tuple(r for r in get_active_clinical_device_rules() if rule_matches_input(r, inp))

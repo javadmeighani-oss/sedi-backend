@@ -22,7 +22,7 @@ SUPPORTED_EVIDENCE_TYPES = frozenset(
         "temperature",
         "spo2",
         "device_reported_cardiac_event",
-        "test_synthetic",  # test-only evidence type; no clinical meaning
+        # test_synthetic intentionally absent — not a production evidence authority
     }
 )
 
