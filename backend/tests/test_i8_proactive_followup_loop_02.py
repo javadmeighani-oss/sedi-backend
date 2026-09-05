@@ -60,7 +60,7 @@ def client(db):
 
 
 def _auth(user_id: int) -> dict[str, str]:
-    return {"Authorization": f"Bearer {create_access_token({'sub': str(user_id)})}"}
+    return {"Authorization": f"Bearer {create_access_token({'user_id': user_id})}"}
 
 
 def _user(db, label: str) -> models.User:

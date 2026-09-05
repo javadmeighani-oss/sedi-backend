@@ -92,7 +92,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/i8_loop02_evidence
           set +e
-          python -B -m pytest -v --tb=short -x \
+          python -B -m pytest -v --tb=short \
             backend/tests/test_i8_proactive_followup_loop_02.py \
             > /tmp/i8_loop02_evidence/loop02_pytest.txt 2>&1
           rc=$?
