@@ -81961,3 +81961,72 @@ NEXT_GATE_AUTHORIZED=NO
 
 MASTER_LOG_TIP=§441
 CURSOR_HANDOFF_TIP=v734
+## §442 — I7→I8 BOUNDED PERSONALIZATION SEAM
+
+GATE=SEDI-V1-BE-I7-I8-BOUNDED-PERSONALIZATION-SEAM-01
+GATE_RESULT=PASS_TRUE_GREEN
+MODE=IMPLEMENT_TEST_TRUE_GREEN
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=d47a04c1bc6b93a2f9528127af1a7bf53eda71fd
+TECHNICAL_HEAD=3a6251b2ed772ff199308ddac7674e6aca7e1646
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+SCHEMA_MUTATION=NO
+MIGRATION=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+### Contract audit
+I7_AVAILABLE_GOVERNED_SURFACES=UserLifelongProfile (active); UserPeriodSummary (not consumed this Gate); I6 facts via rebuild only
+BEST_EXISTING_PROJECTION_SOURCE=UserLifelongProfile.status=active structured_profile_json
+CONSENT_CONTRACT=I6 PERM_READ via has_permission; absent/revoked → skip I7 load
+ISOLATION_CONTRACT=user_id owner on lifelong profile; Stage-B Mother MANAGED linked_user_id=NULL
+PROVENANCE_CONTRACT=context_refs ref_type=user_lifelong_profile + ref_id + version
+CURRENT_I8_CONTEXT_LIMITS=I8_PERSONAL_CONTEXT_TERM_SLICE=8; compact term≤64
+DEDUP=smallest safe casefold skip vs existing Gate2 habit/goal/event strings (no authority rewrite)
+
+### Implementation
+I8TrustedContext.lifelong_profile: I8LifelongProfileContextFact
+  - profile_id, version, habit_key_terms, preference_terms, goal_key_terms
+load via _load_lifelong_profile (consent-gated); RAW_MEMORY=NO; RAW_TRANSCRIPT=NO
+build_personalization merges complementary I7 terms into routine/lifestyle/goal slices
+compose _personal_context_note consumes I7 terms for routine/lifestyle when Gate2 habits/events absent
+subject_context compat: lifelong_profile=None (no Son I7 inheritance onto managed HS path)
+
+### Scenario / tests
+SCENARIO_ID=SEDI-V1-REAL-FAMILY-CARE-E2E-01
+TESTS=backend/tests/test_i7_i8_bounded_personalization_seam.py (CASE_1–8)
+CI_WORKFLOW=.github/workflows/i7-i8-bounded-personalization-seam-pg16.yml
+CI_RUN=33973536843
+CI_RESULT=SUCCESS
+POSTGRESQL=16
+SEAM_PYTEST=PASS
+BRIDGE_REGRESSION=PASS
+
+### Authority preserved
+I7_MEMORY_AUTHORITY=YES
+I8_ACTION_AUTHORITY=YES
+I10_DELIVERY_AUTHORITY=YES (unchanged)
+I5_KNOWLEDGE_AUTHORITY=YES
+SAFE_FALLBACK_WITHOUT_I7=YES
+CROSS_USER_LEAKAGE=NO
+MOTHER_ACCOUNT_SUBSTITUTION=NO
+MOTHER_PRIMARY_USER_MEMORY_CREATED=NO
+
+### Remaining (unauthorized)
+1. I8 proactive/follow-up loop
+2. Primary-user I8 PG16 cross-I acceptance
+
+NEXT_RECOMMENDED_GATE=SEDI-V1-BE-I8-PROACTIVE-FOLLOWUP-LOOP-01
+NEXT_GATE_AUTHORIZED=NO
+
+v734_MODIFIED=NO
+v735_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v735_FA.md
+MASTER_LOG_TIP=§442
+CURSOR_HANDOFF_TIP=v735
