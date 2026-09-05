@@ -110,19 +110,21 @@ def _dt_iso(value: Optional[datetime]) -> Optional[str]:
 
 
 def _load_habits(db: Session, user_id: int, ctx: I8TrustedContext) -> None:
-    """Reuse Gate2 list_habits validity (valid_to) + exclude inactive/completed."""
+    """Reuse Gate2 list_habits validity (valid_to); drop inactive/completed in-process."""
     now = datetime.utcnow()
     rows = (
         db.query(models.UserHabit)
         .filter(
             models.UserHabit.user_id == user_id,
             (models.UserHabit.valid_to.is_(None)) | (models.UserHabit.valid_to > now),
-            models.UserHabit.status.notin_(tuple(_HABIT_EXCLUDED_STATUSES)),
         )
         .order_by(models.UserHabit.updated_at.desc())
         .all()
     )
     for row in rows:
+        status = (row.status or "active").strip().lower()
+        if status in _HABIT_EXCLUDED_STATUSES:
+            continue
         name = (row.name or "").strip()[:_HABIT_NAME_MAX]
         if not name:
             continue
@@ -132,7 +134,7 @@ def _load_habits(db: Session, user_id: int, ctx: I8TrustedContext) -> None:
                 name=name,
                 frequency=(row.frequency[:64] if row.frequency else None),
                 target_compact=_compact_json_value(row.target_json),
-                status=(row.status or "active")[:32],
+                status=status[:32] or "active",
             )
         )
         ctx.context_refs.append({"ref_type": "user_habit", "ref_id": int(row.id)})

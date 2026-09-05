@@ -95,21 +95,35 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/i8_bridge_evidence
+          echo "TEST_DATABASE_URL_SET=$([ -n "${TEST_DATABASE_URL:-}" ] && echo yes || echo no)" | tee /tmp/i8_bridge_evidence/env.txt
           set +e
           python -B -m pytest -v --tb=short --noconftest \
             backend/tests/test_i8_routine_lifestyle_semantic_bridge.py \
             > /tmp/i8_bridge_evidence/bridge_pytest.txt 2>&1
           rc=$?
           set -e
+          # Embed first failure lines into an annotation (readable without artifact download)
+          python - <<'PY'
+          from pathlib import Path
+          text = Path("/tmp/i8_bridge_evidence/bridge_pytest.txt").read_text(encoding="utf-8", errors="replace")
+          Path("/tmp/i8_bridge_evidence/bridge_pytest.txt").write_text(text, encoding="utf-8")
+          lines = text.splitlines()
+          chunk = []
+          for i, line in enumerate(lines):
+              if "ERROR" in line or "FAILED" in line or "AssertionError" in line or "Error" in line:
+                  chunk = lines[max(0, i - 2) : min(len(lines), i + 12)]
+                  break
+          if not chunk:
+              chunk = lines[:40]
+          msg = " | ".join(c.replace("\r", "") for c in chunk)[:900]
+          print(f"::error title=bridge-pytest::{msg}")
+          print(text[-2000:])
+          PY
           echo "## Bridge pytest (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 80 /tmp/i8_bridge_evidence/bridge_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          tail -n 100 /tmp/i8_bridge_evidence/bridge_pytest.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          if [ "$rc" -ne 0 ]; then
-            echo "::error::bridge pytest failed exit=$rc"
-            tail -n 80 /tmp/i8_bridge_evidence/bridge_pytest.txt
-            exit "$rc"
-          fi
+          exit "$rc"
       - name: I8 unified regressions (shared ephemeral head)
         run: |
           set -euo pipefail
