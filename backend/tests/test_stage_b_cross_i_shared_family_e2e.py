@@ -193,8 +193,18 @@ def test_flow_a_son_daily_cross_i(db, stage_b_patches, monkeypatch):
     assert "authenticated_user_id" in sig.parameters
 
     def _legacy_ok(**_kwargs):
-        def _gen(*_a, **_k):
-            return "Hello Son — daily continuity ok"
+        def _gen(
+            user_id,
+            user_message,
+            user_name=None,
+            *,
+            notification_context=None,
+            structured_context_projection=None,
+            structured_preferred_name=None,
+            use_structured_context=False,
+            **__kwargs,
+        ):
+            return {"message": f"echo:{user_message}", "language": "en"}
 
         return _gen
 
@@ -205,7 +215,7 @@ def test_flow_a_son_daily_cross_i(db, stage_b_patches, monkeypatch):
         language="en",
     )
     assert result is not None
-    assert result.message
+    assert "echo:" in result.message or result.message
     assert son.id != mother.id
     assert mother.linked_user_id is None
 
