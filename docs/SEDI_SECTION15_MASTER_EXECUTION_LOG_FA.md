@@ -81207,3 +81207,62 @@ v725_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v725_FA.md
 MASTER_LOG_TIP=§432
 CURSOR_HANDOFF_TIP=v725
+
+## §433 — STAGE A INDIVIDUAL I1–I10 ACCEPTANCE
+
+GATE=SEDI-V1-BE-STAGE-A-INDIVIDUAL-I1-I10-ACCEPTANCE-01
+GATE_RESULT=PASS
+APPROVED_BY=JAVAD
+MODE=AUDIT_TEST_REPAIR_TRUE_GREEN
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=c00ae333455cf26012681996273e3134258f88c3
+FINAL_HEAD=ceb31128cb8256a55874f5e9156cf09e9a22bd50
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+AUTHORITY_CHANGED=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+CLINICAL_RULE_ADDED=NO
+SCHEMA_CHANGED=NO
+MIGRATION_CHANGED=NO
+
+I_MATRIX=
+I1=PARTIAL | chat Account-scoped; no HS Mother target API; delegates I2/I3/I4; JWT cross-user blocked
+I2=PARTIAL | Account isolation OK; HS Account≠HS not modeled in chat assembler; not safety/action
+I3=PASS | intent/missing-info only; no I4/I5/I8/I10 authority
+I4=PASS | sole safety; production rules injection NO; ACTIVE_CLINICAL=0; freshness OPEN
+I5=PASS | SCIS lexical/governed serving + managed Mother ALS; RAG_REAL=NO/OPEN
+I6=PASS | MEMORY consent≠NotificationPrefs; revoke fail-closed
+I7=PARTIAL | Son user_id memory OK; MOTHER_ACCOUNTLESS_I7=NOT_IMPLEMENTED
+I8=PARTIAL | nutrition/unified/proactive semantic OK; routine/lifestyle data PARTIAL; I8≠I10 delivery
+I9=PASS | gateway≠HS owner; managed Mother bind/ingest; rebind open-binding close fix
+I10=PASS | B06/B14/B15/A02/B16; NULL Mother owner provenance; Son recipient; revoke/prefs/idempotency
+
+DEFECTS_FOUND=I9 rebind UniqueViolation when historical bound_at vs open wall-clock binding
+FIXES_APPLIED=device_binding_service close unbound_at IS NULL; t6 chronological bound_at; Stage A CI remigrate/split
+SELF_HEAL_ITERATIONS=3
+
+TESTS_ADDED=test_stage_a_individual_i_acceptance_contracts.py
+TESTS_REUSED=section15 I1–I4; S02; S01; SCIS-01; I5-K04; I6*; I7 period/wave2/s45; I8 nutrition/unified/proactive; I9 HS/device/baseline; I10 B06/B14/B15/A02/B16
+CI_RUN_IDS=
+STAGE_A_PG16=33961434460 SUCCESS
+SCIS01_PG16=33960705429 SUCCESS
+I10_A02_PG15=33960707253 SUCCESS
+POSTGRESQL_RUNTIME_VERSIONS=16 (Stage A + SCIS-01); 15 (I10 A02 reuse)
+PG16_CANONICAL_STAGE_A_PROOF=YES
+FALSE_GREEN_CHECK=PASS (pipefail; no required skips; real pytest exit)
+
+CLOSED_FINDINGS=FINDING_S02_TEST_RULE_PRODUCTION_SEAM; FINDING_B15A01_OWNER_PROVENANCE_01
+OPEN_FINDINGS=FINDING_S02_FRESHNESS_POLICY; FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E; FINDING_RAG_REAL_RUNTIME; FINDING_FULL_I1_I10_FAMILY_E2E
+
+SON_DAILY_CAPABILITY_STATUS=PASS_WITH_PARTIAL_I7_I8_SURFACES
+MOTHER_ALS_ACCOUNTLESS_STATUS=PASS_I5_I9_I10_PARTIAL_I1_I2_I7
+
+NEXT_GATE_PROPOSAL=STAGE_B_CROSS_I_SHARED_FAMILY_E2E
+NEXT_GATE_AUTHORIZED=NO
+
+v725_MODIFIED=NO
+v726_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v726_FA.md
+MASTER_LOG_TIP=§433
+CURSOR_HANDOFF_TIP=v726
