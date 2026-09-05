@@ -1,0 +1,56 @@
+# SEDI Cursor Authoritative Handoff - v725
+
+B15-A02 Option A closure. Reuse §431/v724 + §432. Do not reconstruct history.
+
+```
+VERSION=v725
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v724
+v724_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§432
+GATE=SEDI-V1-BE-B15-A02-OWNER-PROVENANCE-NULLABLE-CONTRACT-01
+GATE_RESULT=PASS
+OPTION_DECISION=A_EXECUTE
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=c8b5a56530bb2d496d8c995d761c76c56c7ab483
+IMPL_COMMIT=64517cb45d72f7eaf2d40dca222e0de90d95abe6
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+CI_SCIS01=33958933372 SUCCESS
+CI_I10_A02=33959790068 SUCCESS
+```
+
+## Closed
+
+FINDING_B15A01_OWNER_PROVENANCE_01=CLOSED
+
+Semantics:
+- SELF `owner_user_id` = `HealthSubject.linked_user_id`
+- MANAGED accountless Mother `owner_user_id` = NULL
+- MANAGER/access is NOT owner provenance
+- recipient/auth/prefs/dedupe use HS + recipient + access/grant (independent)
+- NULL owner ≠ no caregiver notification
+
+Migration: `079_i10_cni_owner_provenance_nullable` (078→079)
+
+## Preserved closed
+
+FINDING_S02_TEST_RULE_PRODUCTION_SEAM=CLOSED
+ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0
+CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+
+## Still OPEN
+
+FINDING_S02_FRESHNESS_POLICY
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E
+FINDING_RAG_REAL_RUNTIME
+FINDING_FULL_I1_I10_FAMILY_E2E
+
+Mother ALS freeze unchanged (MANAGED, linked_user_id=NULL, gadget=YES, Son=gateway≠owner).
+
+```
+NEXT_GATE_PROPOSAL=INDIVIDUAL_I1_I10_ACCEPTANCE
+NEXT_GATE_AUTHORIZED=NO
+FRONTEND_FINAL_REDESIGN_ALLOWED_NOW=NO
+```

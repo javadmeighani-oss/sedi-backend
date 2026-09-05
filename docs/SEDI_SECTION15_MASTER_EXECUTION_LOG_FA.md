@@ -81114,3 +81114,96 @@ v724_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v724_FA.md
 MASTER_LOG_TIP=§431
 CURSOR_HANDOFF_TIP=v724
+§432 - SEDI-V1-BE-B15-A02 OWNER PROVENANCE NULLABLE CONTRACT-01 (OPTION A TRUE_GREEN)
+
+GATE=SEDI-V1-BE-B15-A02-OWNER-PROVENANCE-NULLABLE-CONTRACT-01
+GATE_RESULT=PASS
+MODE=CONDITIONAL_TARGETED_DESIGN_IMPLEMENT_TEST_CLOSURE
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=c8b5a56530bb2d496d8c995d761c76c56c7ab483
+IMPL_HEAD=64517cb45d72f7eaf2d40dca222e0de90d95abe6
+CI_HEAD=28627394 (focused I10 A02 workflow)
+PRIOR_MASTER_LOG_TIP=§431
+PRIOR_CURSOR_HANDOFF_TIP=v724
+ALEMBIC_START=078_health_subject_condition_foundation
+ALEMBIC_FINAL=079_i10_cni_owner_provenance_nullable
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+OWNER_USER_ID_ROLE=PROVENANCE_ONLY (post-repair; delivery/auth/prefs/dedupe independent)
+OWNER_USER_ID_DEPENDENCY_MAP=
+CNI.owner_user_id write=P
+resolve_subject_owner_user_id(pre)=A+P (MANAGER/access substitution) → post=P only (linked_user_id)
+producers early-return on NULL(pre)=O gate → removed
+delivery_worker=uses HS+recipient only (not owner)
+dedupe=HS+recipient+occurrence+scope (not owner)
+eligibility/prefs=recipient Account path
+UserCaregiver.owner_user_id / EmergencyEscalationRecord.owner_user_id=separate tables (unchanged)
+
+OPTION_DECISION=A_EXECUTE
+Q1 NULL owner without weakening auth=YES
+Q2 recipient independent=YES
+Q3 prefs from recipient=YES
+Q4 dedupe OK with NULL=YES
+Q5 producers early-returned solely on NULL=YES (pre)
+Q6 FK/CHECK incompatible=NO (nullable FK OK)
+Q7 one additive migration sufficient=YES
+
+REPAIR=
+migration 079 DROP NOT NULL on caregiver_notification_intents.owner_user_id
+ORM nullable=True
+resolve_subject_owner_user_id=linked_user_id or None (no MANAGER fallback)
+producers pass nullable owner; no early-return discard
+care_action plan auth uses access MANAGER/CAREGIVER (not owner provenance)
+
+FILES_CHANGED=
+backend/alembic/versions/079_i10_cni_owner_provenance_nullable.py
+backend/app/models.py
+backend/app/services/i10/care_digest_producer_worker.py
+backend/app/services/i10/care_action_producer_worker.py
+backend/app/services/i10/care_safety_producer_worker.py
+backend/app/services/i10/caregiver_delivery_intent.py
+backend/tests/test_i10_b15_a02_owner_provenance.py
+backend/tests/helpers/i10_postgresql_harness.py
+alembic head pins + SCIS-01 + focused workflow i10-b15-a02-owner-provenance-runtime.yml
+
+TESTS_REUSED=B06/B14/B15/B16 suites
+TESTS_ADDED=test_i10_b15_a02_owner_provenance.py (migration cycle + SELF + Mother NULL owner + revoke)
+CI_RUNS=
+SCIS-01=33958933372 SUCCESS (impl commit; alembic 079)
+I10_B15_A02_FOCUSED=33959790068 SUCCESS (B06/B14/B15/B16/A02)
+BACKEND_FREEZE=33959047741 FAIL (unrelated OTP/Gate3 transaction flake; I10 steps not reached)
+SELF_HEAL_ITERATIONS=2
+
+SEMANTICS=
+SELF owner_user_id=linked_user_id
+MANAGED accountless owner_user_id=NULL
+MANAGER_AS_OWNER_SUBSTITUTION=NO
+AUTHORIZED_SON_CAREGIVER_STILL_WORKS=YES
+REVOKE_FAIL_CLOSED=YES
+NO_FAKE_MOTHER_ACCOUNT=YES
+NO_ACCOUNT_SUBSTITUTION=YES
+NULL_OWNER_PROVENANCE != NO_NOTIFICATION
+
+FINDING_B15A01_OWNER_PROVENANCE_01=CLOSED
+FINDING_S02_TEST_RULE_PRODUCTION_SEAM=CLOSED (preserved)
+FINDING_S02_FRESHNESS_POLICY=OPEN
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E=OPEN
+FINDING_RAG_REAL_RUNTIME=OPEN
+FINDING_FULL_I1_I10_FAMILY_E2E=OPEN
+
+PRODUCTION_MUTATION=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+AUTHORITY_REASSIGNED=NO
+
+NEXT_GATE_PROPOSAL=INDIVIDUAL_I1_I10_ACCEPTANCE
+NEXT_GATE_AUTHORIZED=NO
+
+v724_MODIFIED=NO
+v725_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v725_FA.md
+MASTER_LOG_TIP=§432
+CURSOR_HANDOFF_TIP=v725
