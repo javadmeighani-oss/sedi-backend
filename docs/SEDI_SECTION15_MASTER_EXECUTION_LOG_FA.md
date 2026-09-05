@@ -80847,3 +80847,147 @@ v722_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v722_FA.md
 MASTER_LOG_TIP=§429
 CURSOR_HANDOFF_TIP=v722
+§430 - SEDI-V1-BE-REFSYNC-02 ACCEPTANCE-PROGRAM SYNC-01 (DELTA)
+
+GATE=SEDI-V1-BE-REFSYNC-02-ACCEPTANCE-PROGRAM-SYNC-01
+GATE_RESULT=PASS
+MODE=DELTA_AUDIT_AND_DOCUMENTATION_ONLY
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=56567650d5b49ad74433cf850b9e3aea29e242f9
+REMOTE_HEAD=56567650d5b49ad74433cf850b9e3aea29e242f9
+PRIOR_MASTER_LOG_TIP=§429
+PRIOR_CURSOR_HANDOFF_TIP=v722
+ALEMBIC_HEAD=078_health_subject_condition_foundation
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+CODE_CHANGE=NO
+TEST_CHANGE=NO
+WORKFLOW_CHANGE=NO
+SCHEMA_CHANGE=NO
+MIGRATION_CHANGE=NO
+RUNTIME_TEST_RERUN=NO
+REFSYNC_01_REPEATED=NO
+
+============================================================
+A. REUSED I1-I10 OWNER MAP (§429 BASELINE; NO FULL RE-AUDIT)
+============================================================
+
+I1=IntelligenceOrchestrator (orchestrator.py) — chat orchestration authority
+I2=AuthorizedContextAssembler / context assembly (assembler.py + adapters + context_types)
+I3=intent_registry.py + missing_information.py
+I4=safety/risk (chat safety_risk.py + device_safety_* infra) — ONLY safety decision authority
+I5=governed knowledge/retrieval (i5/* + scis/* + runtime_knowledge_retrieval)
+I6=consent/preferences/access-related governance (consent_service + memory_writes)
+I7=governed long-term memory (i7/*)
+I8=personalized operational semantics/actions (i8/* unified_core + proactive + knowledge_bridge)
+I9=device/physiological evidence + HealthSubject foundation (i9/*)
+I10=notification/interruption/care-network delivery (i10/* + section10 B06 + notification_engine delivery)
+
+NO_DUPLICATED_DECISION_AUTHORITY=YES
+WRONG_LAYER_PATCH_FORBIDDEN=YES
+SHARED_CONSUMPTION_ALLOWED=YES
+SHARED_DECISION_AUTHORITY_FORBIDDEN=YES
+
+============================================================
+B. MOTHER ALS FREEZE (DELTA — CONDITION IS CANONICAL, NOT EXAMPLE)
+============================================================
+
+SCENARIO_ID=SEDI-V1-REAL-FAMILY-CARE-E2E-01
+MOTHER_PRIMARY_CONDITION=ALS
+MOTHER_CONDITION_IS_EXAMPLE=NO
+MOTHER_HEALTH_SUBJECT_TYPE=MANAGED
+MOTHER_LINKED_USER_ID=NULL
+MOTHER_ACCOUNT_REQUIRED=NO
+MOTHER_GADGET=YES
+SON_ACCOUNT=REAL
+SON_SELF_HEALTH_SUBJECT=REAL
+PHONE_GATEWAY_OWNER=SON_ACCOUNT
+HEALTH_DATA_OWNER=MOTHER_HEALTH_SUBJECT
+PHONE_IS_GATEWAY_NOT_DATA_OWNER=YES
+NO_FAKE_MOTHER_USER=YES
+NO_DUPLICATE_MOTHER_HEALTH_SUBJECT=YES
+NO_ACCOUNT_SUBSTITUTION=YES
+
+============================================================
+C. SON SELF CAPABILITY → OWNER MAP (TARGETED INSPECTION)
+============================================================
+
+authentication/account | OWNER=Auth/Account (routers/auth*.py + auth_otp_service) | NOT_I1_I10 | STATUS=IMPLEMENTED | NOTES=shared identity ingress only; no I decision authority
+SELF_HealthSubject | OWNER=I9 (health_subject_service.ensure_self_subject_for_account) + HS/Access models | STATUS=IMPLEMENTED
+SELF_Chat | OWNER=I1 orchestrator via routers/interact.chat; consumes I2/I3/I4 | STATUS=IMPLEMENTED (component); family E2E=NOT_PROVEN
+routine/daily-life_data | OWNER_DATA=legacy user-scoped (routers/lifestyle.py + gate2_data_service UserHabit/UserLifestyleEvent); OWNER_SEMANTICS=I8 domain routine | STATUS=PARTIAL (Account/user-keyed data persists alongside I8 semantics)
+lifestyle | OWNER_DATA=UserLifestyleEvent/gate2; OWNER_SEMANTICS=I8 domain lifestyle | STATUS=PARTIAL (same split)
+nutrition_plan/context | OWNER=I8 (nutrition_planner→unified_core domain nutrition); consumes I5+I6 | STATUS=IMPLEMENTED
+exercise/activity_plan/context | OWNER=I8 (unified_core domain exercise/activity_suggestion); no separate planner module | STATUS=IMPLEMENTED
+proactive/daily_notifications | OWNER_SEMANTIC=I8 (proactive_orchestrator + schedule_scan); OWNER_DELIVERY=I10/notification_engine | STATUS=PARTIAL (components exist; Son daily E2E chain unproven)
+engagement/follow-up | OWNER_SEMANTIC=I8 coaching trigger path; OWNER_DELIVERY=I10 (coaching_worker + notification_engine engagement) | STATUS=PARTIAL
+preferences/feedback | OWNER_PREFS_FEEDBACK=Account NotificationPrefs/NotificationFeedback (routers/notifications); OWNER_CONSENT=I6 | STATUS=IMPLEMENTED (foundation)
+long-term_memory/continuity | OWNER=I7 (period summaries/timeline/lifecycle); gated by I6 consent | STATUS=IMPLEMENTED (foundation); HS-native family E2E=NOT_PROVEN; still largely user_id-keyed in I7 surfaces
+personalized_operational_semantics/actions | OWNER=I8 unified_core (+ subject_context/knowledge_bridge) | STATUS=IMPLEMENTED
+
+AMBIGUOUS_CAPABILITIES=
+routine/lifestyle DATA vs I8 action semantics (two layers; consumption shared; decision authority must not merge)
+proactive evaluation (I8) vs delivery (I10) — boundary clear if respected
+NotificationPrefs (Account delivery prefs) vs I6 consent — distinct authorities
+
+TARGETED_SOURCE_INSPECTIONS=
+i9/health_subject_service.py
+routers/interact.py→IntelligenceOrchestrator
+i8/unified_core.py; nutrition_planner.py; proactive_orchestrator.py; schedule_scan.py; constants.ACTION_DOMAINS
+routers/lifestyle.py; gate2_data_service.py
+routers/notifications.py (prefs/feedback)
+i6/consent_service.py; i7/timeline.py; i7/period_summaries.py
+routers/auth*.py; auth_otp_service.py
+
+============================================================
+D. TWO-STAGE ACCEPTANCE FREEZE (DESIGN ONLY; NOT EXECUTED)
+============================================================
+
+STAGE_A=INDIVIDUAL_I1_I10_ACCEPTANCE
+STAGE_A_RULE=each I proves responsibility + I/O + positive + fail-closed + DB integrity where applicable + Son SELF isolation + Mother MANAGED isolation where applicable + upstream/downstream contract + rollback/idempotency/concurrency where meaningful + explicit PASS criteria; reuse prior valid evidence; new tests only for missing/stale/integration-critical gaps
+
+STAGE_B=CROSS_I_SHARED_FAMILY_E2E
+FLOW_A_SON_DAILY=Son Account→SELF HS→routine/lifestyle→nutrition/exercise→memory/personalization→proactive notification→engagement/follow-up→later continuity
+FLOW_B_MOTHER_ALS_KNOWLEDGE=authorized Son→Mother ALS→I5 governed knowledge→SCIS/future Smart-RAG→I8/Chat→provenance/citation→no authority transfer
+FLOW_C_MOTHER_DEVICE=Mother gadget→Son phone gateway→Mother HS attribution→I9→governed I4→no Son SELF contamination
+FLOW_D_CAREGIVER=Mother HS→authorized owning semantic→I10→access/grant/eligibility→B06 delivery-time revalidation→Son recipient
+FLOW_E_ISOLATION=Son SELF!=Mother; Mother!=Son SELF; unrelated Account/HS blocked; revoke fail-closed
+
+EVIDENCE_REUSE_LAW=REUSE_EXISTING_VALID_EVIDENCE_FIRST; DO_NOT_RERUN_PROVEN_TESTS_WITHOUT_NEED
+
+============================================================
+E. FAST-CLOSURE LAW (FUTURE TEST/IMPL GATES ONLY; NOT EXECUTED)
+============================================================
+
+FAST_CLOSURE_LOOP=AUDIT→REUSE EXISTING EVIDENCE→RUN MISSING TEST→FIND DEFECT→IDENTIFY OWNING I→SAME-SCOPE FIX→RETEST→TRUE_GREEN
+MAX_SAME_SCOPE_SELF_HEAL=3
+ALLOWED_SAME_SCOPE=source bug; mapper/service wiring; retrieval/query bug; transaction/idempotency; isolation; test/fixture; CI/harness; same-architecture integration defect
+HARD_STOP_REQUIRES_NEW_JAVAD_APPROVAL=schema/migration architecture; authority reassignment; new clinical rule/threshold; access-model redesign; production deploy/migration/flag; force push; out-of-scope architecture change
+
+============================================================
+F. OPEN TRUTH CARRIED (NOT CLOSED / NOT RECLASSIFIED)
+============================================================
+
+FINDING_S02_TEST_RULE_PRODUCTION_SEAM=OPEN
+FINDING_S02_FRESHNESS_POLICY=OPEN
+FINDING_MANAGED_ACCOUNTLESS_MOTHER_I4_B16_CAREGIVER_E2E=OPEN
+FINDING_B15A01_OWNER_PROVENANCE_01=OPEN
+FINDING_RAG_REAL_RUNTIME=OPEN
+FINDING_FULL_I1_I10_FAMILY_E2E=OPEN
+
+RAG_REAL_RUNTIME_VERIFIED=NO
+RAG_USER_FACING_E2E_VERIFIED=NO
+VECTOR_HYBRID_PRODUCTION_SERVING_VERIFIED=NO
+CLINICAL_DEVICE_SAFETY_ACTIVE=NO
+ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0
+
+NEXT_GATE_PROPOSAL=PRE-E2E-BLOCKER-CLOSURE-01
+NEXT_GATE_AUTHORIZED=NO
+
+v722_MODIFIED=NO
+v723_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v723_FA.md
+MASTER_LOG_TIP=§430
+CURSOR_HANDOFF_TIP=v723
