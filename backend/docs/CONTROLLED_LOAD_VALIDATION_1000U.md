@@ -18,8 +18,8 @@ Documented before execution:
 |-------:|--------|------|
 | 0.25 | GET | `/auth/me` |
 | 0.15 | GET | `/health-subjects/` |
-| 0.15 | GET | `/notifications/unread` |
-| 0.10 | GET | `/notifications/` |
+| 0.15 | GET | `/notifications/unread?user_id={self}` |
+| 0.10 | GET | `/notifications/?user_id={self}` |
 | 0.10 | GET | `/lifestyle/context` |
 | 0.10 | GET | `/user/habits` |
 | 0.05 | GET | `/memory/latest` |

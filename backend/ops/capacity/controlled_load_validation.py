@@ -278,6 +278,7 @@ def run_mixed_plateau(
     name: str,
     base: str,
     tokens: Sequence[str],
+    user_ids: Sequence[int],
     concurrency: int,
     duration_s: float,
     chat_share: float,
@@ -294,43 +295,48 @@ def run_mixed_plateau(
 
     endpoints_doc = {
         "mix": [
-            ("GET", "/auth/me", 0.25),
-            ("GET", "/health-subjects/", 0.15),
-            ("GET", "/notifications/unread", 0.15),
-            ("GET", "/notifications/", 0.10),
-            ("GET", "/lifestyle/context", 0.10),
-            ("GET", "/user/habits", 0.10),
-            ("GET", "/memory/latest", 0.05),
-            ("POST", "/interact/chat", chat_share),
-        ]
+            ("GET", "/auth/me", 0.25, False),
+            ("GET", "/health-subjects/", 0.15, False),
+            ("GET", "/notifications/unread", 0.15, True),
+            ("GET", "/notifications/", 0.10, True),
+            ("GET", "/lifestyle/context", 0.10, False),
+            ("GET", "/user/habits", 0.10, False),
+            ("GET", "/memory/latest", 0.05, False),
+            ("POST", "/interact/chat", chat_share, False),
+        ],
+        "note": "notification routes require user_id query matching JWT (existing API contract)",
     }
 
-    def pick_action() -> Tuple[str, str]:
-        # Renormalize weights
+    def pick_action() -> Tuple[str, str, bool]:
         items = endpoints_doc["mix"]
         r = random.random()
         acc = 0.0
-        total_w = sum(w for _, _, w in items)
-        for method, path, w in items:
+        total_w = sum(w for _, _, w, _ in items)
+        for method, path, w, needs_uid in items:
             acc += w / total_w
             if r <= acc:
-                return method, path
-        return "GET", "/auth/me"
+                return method, path, needs_uid
+        return "GET", "/auth/me", False
 
     def worker(wid: int) -> None:
         nonlocal cross_user, server_5xx
-        token = tokens[wid % len(tokens)]
-        uid_expected = None
+        idx = wid % len(tokens)
+        token = tokens[idx]
+        uid = int(user_ids[idx % len(user_ids)])
         while not stop.is_set():
-            method, path = pick_action()
+            method, path, needs_uid = pick_action()
             body = None
+            url_path = path
+            if needs_uid:
+                sep = "&" if "?" in path else "?"
+                url_path = f"{path}{sep}user_id={uid}"
             if method == "POST" and path == "/interact/chat":
                 body = {"message": f"capacity ping {wid} lifestyle sleep?"}
             inflight.inc()
             try:
                 code, ms, timed_out = http_json(
                     method,
-                    f"{base}{path}",
+                    f"{base}{url_path}",
                     token=token,
                     body=body,
                     timeout=45.0,
@@ -342,7 +348,6 @@ def run_mixed_plateau(
                     with lock:
                         server_5xx += 1
                 if code == 403 and path == "/interact/chat":
-                    # ownership mismatch should not occur for own token
                     with lock:
                         cross_user += 1
             finally:
@@ -443,8 +448,9 @@ def main() -> int:
         summary("error", f"insufficient_users:{len(user_ids)}")
         return 2
 
-    os.environ.setdefault("SECRET_KEY", os.environ.get("JWT_SECRET", "capacity-test-secret"))
-    tokens = mint_tokens(user_ids[: max(100, min(500, len(user_ids)))])
+    os.environ.setdefault("SECRET_KEY", os.environ.get("JWT_SECRET", "capacity-controlled-load-secret-32b!!"))
+    token_user_ids = user_ids[: max(100, min(500, len(user_ids)))]
+    tokens = mint_tokens(token_user_ids)
     token_pool = tokens
 
     worker_list = [int(x.strip()) for x in args.workers.split(",") if x.strip()]
@@ -537,6 +543,7 @@ def main() -> int:
                     name=f"B_mix_{conc}",
                     base=base,
                     tokens=token_pool,
+                    user_ids=token_user_ids,
                     concurrency=conc,
                     duration_s=args.plateau_s,
                     chat_share=0.10,
@@ -586,6 +593,7 @@ def main() -> int:
                         name="E_bg_mix_50",
                         base=base,
                         tokens=token_pool,
+                        user_ids=token_user_ids,
                         concurrency=50,
                         duration_s=max(15.0, args.plateau_s * 0.8),
                         chat_share=0.08,
