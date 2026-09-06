@@ -20,7 +20,8 @@ on:
       - "backend/tests/test_capacity_hardening_unit.py"
       - "backend/tests/test_capacity_hardening_pg16.py"
       - "backend/tests/test_i7_i8_bounded_personalization_seam.py"
-      - "backend/tests/test_i5_k04_scis_governed_serving.py"
+      - "backend/tests/test_i5_final_readiness_answer_path.py"
+      - "backend/tests/test_i5_g305_retrieval_eval.py"
       - "backend/tests/test_rag_context_pack_v1.py"
       - "backend/tests/test_i10_b13_coaching_followup.py"
       - "backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py"
@@ -176,8 +177,14 @@ jobs:
         run: |
           set -euo pipefail
           set +e
+          # Smallest Alembic-079-compatible I5/RAG critical set:
+          # - final readiness answer path (governed / ungrounded blocked)
+          # - g305 retrieval eval (no Smart-RAG activation)
+          # - rag_context_pack_v1 (bounded context)
+          # User isolation proven by T24 in PG16 capacity suite.
           python -B -m pytest -v --tb=short \
-            backend/tests/test_i5_k04_scis_governed_serving.py \
+            backend/tests/test_i5_final_readiness_answer_path.py \
+            backend/tests/test_i5_g305_retrieval_eval.py \
             backend/tests/test_rag_context_pack_v1.py \
             > /tmp/cap_evidence/regress_i5_rag_pytest.txt 2>&1
           rc=$?
