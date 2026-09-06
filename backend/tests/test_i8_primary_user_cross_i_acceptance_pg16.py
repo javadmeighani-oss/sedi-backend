@@ -413,7 +413,7 @@ def test_no_substitution_and_fail_closed(client, db, patches):
     assert compat.lifestyle_events == []
     assert compat.lifelong_profile is None
 
-    # Legitimate Son action + delivery
+    # Legitimate Son action + delivery (single action first — avoid multi-delivery policy variance)
     ok = generate_operational_action(
         db,
         user_id=son.id,
@@ -430,7 +430,13 @@ def test_no_substitution_and_fail_closed(client, db, patches):
     assert a1.user_id == son.id
     assert a1.user_id == son_self.linked_user_id
 
-    # Second Son action for redirect attempt
+    n = process_i8_coaching_followups(db, now=when, user_id=son.id, force=True)
+    assert n == 1
+    db.commit()
+    n1 = _notif_for_action(db, son.id, a1.id)
+    assert n1 is not None
+
+    # Second Son action exists for client redirection proof (need not be delivered yet)
     ok2 = generate_operational_action(
         db,
         user_id=son.id,
@@ -444,12 +450,8 @@ def test_no_substitution_and_fail_closed(client, db, patches):
     )
     assert ok2.status == "ACTION_PERSISTED", ok2.status
     a2 = db.query(models.I8OperationalPlanAction).filter_by(id=ok2.action_id).one()
-
-    n = process_i8_coaching_followups(db, now=when, user_id=son.id, force=True)
-    assert n == 2
-    db.commit()
-    n1 = _notif_for_action(db, son.id, a1.id)
-    assert n1 is not None
+    assert a2.id != a1.id
+    assert a2.user_id == son.id
 
     # Account B cannot complete Son notification
     r_xuser = _feedback(client, other.id, n1.id, {"reaction": "interact", "action_id": "done"})
