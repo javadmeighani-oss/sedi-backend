@@ -1,0 +1,169 @@
+# Controlled load MEASUREMENT INTEGRITY repair — NOT PRODUCTION LOAD
+# GATE=SEDI-V1-BE-1000U-100CC-CONTROLLED-LOAD-VALIDATION-01
+# MODE=CHATGPT_INDEPENDENT_AUDIT_MEASUREMENT_INTEGRITY_REPAIR-02
+name: Controlled Load Integrity Repair 1000U PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/ops/capacity/controlled_load_integrity_repair.py"
+      - "backend/ops/capacity/controlled_load_pool_probe.py"
+      - "backend/ops/capacity/controlled_load_asgi.py"
+      - "backend/ops/capacity/controlled_load_api.py"
+      - "backend/ops/capacity/controlled_load_audit_repair.py"
+      - "backend/ops/capacity/controlled_load_resources.py"
+      - ".github/workflows/controlled-load-integrity-repair-1000u-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-load-integrity-1000u-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  integrity-repair:
+    name: Controlled Load Integrity PG16 (NOT PRODUCTION)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_cl
+          POSTGRES_PASSWORD: sedi_cl_pass
+          POSTGRES_DB: sedi_cl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_cl -d sedi_cl"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_cl:sedi_cl_pass@127.0.0.1:5432/sedi_cl
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_cl:sedi_cl_pass@127.0.0.1:5432/sedi_cl
+      SECRET_KEY: capacity-controlled-load-secret-32b!!
+      JWT_SECRET: capacity-controlled-load-secret-32b!!
+      OPENAI_API_KEY: capacity-stub-not-real
+      SEDI_DISABLE_SCHEDULER: "1"
+      SEDI_DB_POOL_SIZE: "5"
+      SEDI_DB_MAX_OVERFLOW: "10"
+      SEDI_CAPACITY_AI_LATENCY_MS: "50"
+      SEDI_CAPACITY_AI_LATENCY_FILE: /tmp/sedi_capacity_ai_latency_ms
+      SEDI_CAPACITY_POOL_STATS_FILE: /tmp/sedi_pool_probe.json
+      FCM_DISABLED: "true"
+      REGISTERED_USERS: "1000"
+      SOAK_SECONDS: "120"
+      BG_API_CONCURRENCY: "50"
+      APP_BASE_URL: http://127.0.0.1:8000
+      APP_PORT: "8000"
+      PYTHONDONTWRITEBYTECODE: "1"
+      RAG_VECTOR_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Notice
+        run: |
+          echo "THIS IS NOT PRODUCTION LOAD — MEASUREMENT INTEGRITY REPAIR-02" >> "$GITHUB_STEP_SUMMARY"
+          echo "Preserves prior 1/2/4 matrix; primary API_WORKERS=4." >> "$GITHUB_STEP_SUMMARY"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + Alembic 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              assert str(ver).startswith("16."), ver
+          heads = ScriptDirectory.from_config(Config("backend/alembic.ini")).get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("OK", ver, heads[0])
+          PY
+      - name: Upgrade ephemeral DB
+        run: python -m alembic -c backend/alembic.ini upgrade head
+      - name: Run integrity repair harness
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/controlled_load_integrity_evidence
+          echo "50" > /tmp/sedi_capacity_ai_latency_ms
+          set +e
+          python -B -m backend.ops.capacity.controlled_load_integrity_repair \
+            --out-dir /tmp/controlled_load_integrity_evidence \
+            --users "$REGISTERED_USERS" \
+            --soak-s "$SOAK_SECONDS" \
+            --workers 4 \
+            --bg-concurrency "$BG_API_CONCURRENCY" \
+            > /tmp/controlled_load_integrity_evidence/harness_stdout.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Integrity repair (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 120 /tmp/controlled_load_integrity_evidence/harness_stdout.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f /tmp/controlled_load_integrity_evidence/controlled_load_integrity_report.json ]; then
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          r=json.loads(Path("/tmp/controlled_load_integrity_evidence/controlled_load_integrity_report.json").read_text()).get("result",{})
+          for k in ["GATE_RESULT","SCHEDULER_DUPLICATES_OBSERVED","SCHEDULER_UNDER_LOAD","CROSS_SUBJECT_DATA_LEAK","DB_POOL_TIMEOUTS","SOAK_MONOTONIC_GROWTH_SIGNAL","RAG_PROVIDER_CONCURRENT_LOAD","RAG_AUTHENTICATED_CHAT_LOAD"]:
+              print(f"- {k}={r.get(k)}")
+          PY
+          fi
+          exit "$rc"
+      - name: Reset ephemeral DB before regressions
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect().execution_options(isolation_level="AUTOCOMMIT") as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.execute(text("GRANT ALL ON SCHEMA public TO sedi_cl"))
+              c.execute(text("GRANT ALL ON SCHEMA public TO public"))
+          print("EPHEMERAL_DB_RESET_OK")
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Correctness regressions (smallest set)
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_capacity_hardening_unit.py \
+            backend/tests/test_capacity_hardening_pg16.py \
+            backend/tests/test_i7_i8_bounded_personalization_seam.py \
+            backend/tests/test_i5_final_readiness_answer_path.py \
+            backend/tests/test_i5_g305_retrieval_eval.py \
+            backend/tests/test_rag_context_pack_v1.py \
+            backend/tests/test_i10_b13_coaching_followup.py \
+            backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
+            > /tmp/controlled_load_integrity_evidence/regress_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Regressions (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          tail -n 40 /tmp/controlled_load_integrity_evidence/regress_pytest.txt >> "$GITHUB_STEP_SUMMARY" || true
+          if [ "$rc" -ne 0 ]; then
+            tail -n 120 /tmp/controlled_load_integrity_evidence/regress_pytest.txt
+            exit "$rc"
+          fi
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-load-integrity-1000u-evidence
+          path: /tmp/controlled_load_integrity_evidence/

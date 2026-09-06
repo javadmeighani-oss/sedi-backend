@@ -17,4 +17,13 @@ _install_ai_stub()
 
 from backend.app.main import app  # noqa: E402
 
+# Harness-only pool probe (QueuePool checkout/timeout counters → shared file)
+try:
+    from backend.app.database import engine as _engine
+    from backend.ops.capacity.controlled_load_pool_probe import install_pool_probe
+
+    install_pool_probe(_engine)
+except Exception as _probe_exc:  # noqa: BLE001
+    print(f"[CAPACITY_POOL_PROBE] install_failed err={type(_probe_exc).__name__}", flush=True)
+
 __all__ = ["app"]

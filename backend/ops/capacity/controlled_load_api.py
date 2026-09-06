@@ -76,28 +76,25 @@ def main() -> None:
 
     import uvicorn
 
+    # Single-worker path also gets pool probe
+    try:
+        from backend.app.database import engine as _engine
+        from backend.ops.capacity.controlled_load_pool_probe import install_pool_probe
+
+        install_pool_probe(_engine)
+    except Exception as _probe_exc:  # noqa: BLE001
+        print(f"[CAPACITY_POOL_PROBE] install_failed err={type(_probe_exc).__name__}", flush=True)
+
     host = os.environ.get("APP_HOST", "127.0.0.1")
     port = int(os.environ.get("APP_PORT", "8000"))
     workers = int(os.environ.get("UVICORN_WORKERS", "1"))
-    # Note: workers>1 re-imports app in children; stub must be installed via
-    # factory or preload. For multi-worker, use --factory path below.
-    if workers <= 1:
-        uvicorn.run(
-            "backend.app.main:app",
-            host=host,
-            port=port,
-            workers=1,
-            log_level=os.environ.get("UVICORN_LOG_LEVEL", "warning"),
-        )
-        return
-
-    # Multi-worker: use import string + sitecustomize-like preload module
+    # Always use probed ASGI entry (harness-only) so pool counters exist for 1..N workers.
     os.environ["SEDI_CAPACITY_AI_STUB"] = "1"
     uvicorn.run(
         "backend.ops.capacity.controlled_load_asgi:app",
         host=host,
         port=port,
-        workers=workers,
+        workers=max(1, workers),
         log_level=os.environ.get("UVICORN_LOG_LEVEL", "warning"),
     )
 
