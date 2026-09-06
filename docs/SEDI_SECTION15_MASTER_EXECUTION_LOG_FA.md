@@ -82293,3 +82293,68 @@ v738_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v738_FA.md
 MASTER_LOG_TIP=§445
 CURSOR_HANDOFF_TIP=v738
+
+## §446 — CAPACITY HARDENING AUDIT VERIFICATION REPAIR
+
+GATE=SEDI-V1-BE-1000U-100CC-CAPACITY-HARDENING-01
+MODE=CHATGPT_INDEPENDENT_AUDIT_VERIFICATION_REPAIR-01
+GATE_RESULT=PASS_TRUE_GREEN
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+CONTINUITY_AUTHORITY=v720
+BRANCH=feature/section15/backend-continuity-foundation
+
+BASELINE_HEAD=31c4c36b6c69a9e25ceb883a67d30de8e4f42d62
+FINAL_TECHNICAL_HEAD=d97951f3bed8116c395a2de493de8e650d2e0269
+CI_HEAD_SHA=d97951f3bed8116c395a2de493de8e650d2e0269
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+POSTGRESQL_MAJOR=16
+
+SCHEMA_CHANGED=NO
+MIGRATION_CREATED=NO
+RAG_ARCHITECTURE_CHANGED=NO
+SMART_RAG=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+HISTORY_REWRITE=NO
+§445_MODIFIED=NO
+v738_MODIFIED=NO
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+API_MULTIWORKER_ARCHITECTURE_READY=YES
+PRODUCTION_MULTIWORKER_ACTIVATED=NO
+FINAL_WORKER_COUNT_SELECTED=NO
+
+### Audit repair delivered
+T24_RAG_USER_ISOLATION=PASS (Son A/B LocalRAG + concurrent to_thread identity + JWT ownership + RAG OFF)
+I7_CRITICAL_REGRESSION=PASS (test_i7_i8_bounded_personalization_seam.py — 9)
+I5_CRITICAL_REGRESSION=PASS (test_i5_final_readiness_answer_path.py + test_i5_g305_retrieval_eval.py + test_rag_context_pack_v1.py — 16)
+I8_CRITICAL_REGRESSION=PASS (test_i8_proactive_schedule_trigger_pd_i8_04b.py retained)
+I10_CRITICAL_REGRESSION=PASS (test_i10_b13_coaching_followup.py retained)
+NOTE=I5-K04 SCIS suite rejected for this Gate (requires embedding_vector beyond Alembic 079); replaced with 079-compatible governed/bounded I5+RAG set. No product defect found.
+
+### Evidence
+FOCUSED_UNIT=PASS (18)
+PG16_RUNTIME=PASS (11 incl T24)
+CI_WORKFLOW=.github/workflows/capacity-hardening-1000u-pg16.yml
+CI_RUN_ID=34030660247
+CI_RUN_URL=https://github.com/javadmeighani-oss/sedi-backend/actions/runs/34030660247
+CI_CONCLUSION=success
+UNRELATED_DIRTY_EXCLUDED=references/authoritative/Sedi_Cursor_Authoritative_Handoff_v725_FA.md; references/authoritative/Sedi_Cursor_Authoritative_Handoff_v733_FA.md
+
+### Remaining (unauthorized)
+1. Controlled load validation toward ~100 concurrent
+2. Frontend final redesign
+
+NEXT_REQUIRED_GATE=SEDI-V1-BE-1000U-100CC-CONTROLLED-LOAD-VALIDATION-01
+NEXT_GATE_AUTHORIZED=NO
+CONTROLLED_LOAD_STARTED=NO
+
+v738_MODIFIED=NO
+v739_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v739_FA.md
+MASTER_LOG_TIP=§446
+CURSOR_HANDOFF_TIP=v739
