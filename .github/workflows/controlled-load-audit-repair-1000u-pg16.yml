@@ -130,6 +130,21 @@ jobs:
           PY
           fi
           exit "$rc"
+      - name: Reset ephemeral DB before regressions
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect().execution_options(isolation_level="AUTOCOMMIT") as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.execute(text("GRANT ALL ON SCHEMA public TO sedi_cl"))
+              c.execute(text("GRANT ALL ON SCHEMA public TO public"))
+          print("EPHEMERAL_DB_RESET_OK")
+          PY
+          python -m alembic -c backend/alembic.ini upgrade head
       - name: Correctness regressions (smallest set)
         run: |
           set -euo pipefail
