@@ -123,13 +123,28 @@ def connection_budget(api_workers: int, pool_size: int, max_overflow: int) -> in
     return api_workers * (pool_size + max_overflow) + bg + margin
 
 
+def _open_proc_log(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Unbuffered-ish append; avoid PIPE deadlock under load.
+    return open(path, "ab", buffering=0)
+
+
 class ApiProc:
-    def __init__(self, workers: int, port: int, ai_latency_ms: float, env: Dict[str, str]):
+    def __init__(
+        self,
+        workers: int,
+        port: int,
+        ai_latency_ms: float,
+        env: Dict[str, str],
+        log_path: Optional[Path] = None,
+    ):
         self.workers = workers
         self.port = port
         self.ai_latency_ms = ai_latency_ms
         self.env = env
+        self.log_path = log_path
         self.proc: Optional[subprocess.Popen] = None
+        self._log_fh = None
 
     def start(self) -> None:
         e = os.environ.copy()
@@ -139,10 +154,14 @@ class ApiProc:
         e["SEDI_CAPACITY_AI_LATENCY_MS"] = str(self.ai_latency_ms)
         e["SEDI_DISABLE_SCHEDULER"] = "1"
         e["SEDI_PROCESS_ROLE"] = "api"
+        out = subprocess.DEVNULL
+        if self.log_path is not None:
+            self._log_fh = _open_proc_log(self.log_path)
+            out = self._log_fh
         self.proc = subprocess.Popen(
             [sys.executable, "-m", "backend.ops.capacity.controlled_load_api"],
             env=e,
-            stdout=subprocess.PIPE,
+            stdout=out,
             stderr=subprocess.STDOUT,
         )
 
@@ -156,22 +175,34 @@ class ApiProc:
             self.proc.kill()
             self.proc.wait(timeout=10)
         self.proc = None
+        if self._log_fh is not None:
+            try:
+                self._log_fh.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._log_fh = None
 
 
 class SchedulerProc:
-    def __init__(self, env: Dict[str, str]):
+    def __init__(self, env: Dict[str, str], log_path: Optional[Path] = None):
         self.env = env
+        self.log_path = log_path
         self.proc: Optional[subprocess.Popen] = None
+        self._log_fh = None
 
     def start(self) -> None:
         e = os.environ.copy()
         e.update(self.env)
         e.pop("SEDI_DISABLE_SCHEDULER", None)
         e["SEDI_PROCESS_ROLE"] = "scheduler"
+        out = subprocess.DEVNULL
+        if self.log_path is not None:
+            self._log_fh = _open_proc_log(self.log_path)
+            out = self._log_fh
         self.proc = subprocess.Popen(
             [sys.executable, "-m", "backend.ops.capacity.run_scheduler_role"],
             env=e,
-            stdout=subprocess.PIPE,
+            stdout=out,
             stderr=subprocess.STDOUT,
         )
 
@@ -185,6 +216,18 @@ class SchedulerProc:
             self.proc.kill()
             self.proc.wait(timeout=10)
         self.proc = None
+        if self._log_fh is not None:
+            try:
+                self._log_fh.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._log_fh = None
+
+
+def settle_healthy(base: str, *, settle_s: float = 3.0, timeout_s: float = 45.0) -> bool:
+    """Cool-down then require /healthz before continuing (harness isolation)."""
+    time.sleep(max(0.0, settle_s))
+    return wait_healthy(base, timeout_s=timeout_s)
 
 
 def mint_tokens(user_ids: Sequence[int]) -> List[str]:
@@ -436,6 +479,8 @@ def main() -> int:
             "api_workers": workers,
             "connection_budget": budget,
             "profiles": {},
+            "profile_order": ["A", "B", "recovery", "E", "C", "D"],
+            "profile_order_note": "Primary connected mix (B) before chat stress (D); avoids stress contamination",
         }
         try:
             if not args.external_api:
@@ -445,9 +490,10 @@ def main() -> int:
                     ai_latency_ms=args.ai_latency_ms,
                     env={
                         "DATABASE_URL": db_url(),
-                        "SECRET_KEY": os.environ.get("SECRET_KEY", "capacity-test-secret"),
+                        "SECRET_KEY": os.environ.get("SECRET_KEY", "capacity-controlled-load-secret-32b"),
                         "PYTHONPATH": os.environ.get("PYTHONPATH", "."),
                     },
+                    log_path=out_dir / f"api_workers_{workers}.log",
                 )
                 api.start()
                 if not wait_healthy(base, timeout_s=90):
@@ -462,31 +508,30 @@ def main() -> int:
                 return http_json("GET", f"{base}/auth/me", token=token_pool[i % len(token_pool)], timeout=20)
 
             run["profiles"]["A_normal_api_baseline"] = run_burst("A_baseline", 50, me_fn)
+            if not settle_healthy(base, settle_s=2.0):
+                summary("error", f"api_unhealthy_after_A_workers_{workers}")
+                hard_fail = True
+                run["error"] = "api_unhealthy_after_A"
+                evidence["worker_runs"][str(workers)] = run
+                continue
 
-            # Profile C — fast API bursts
-            bursts = {}
-            for n in (10, 25, 50, 75, 100):
-                bursts[str(n)] = run_burst(f"C_burst_{n}", n, me_fn)
-            run["profiles"]["C_fast_api_burst"] = bursts
-
-            # Profile D — chat/offload concurrency (stress characterization)
-            def chat_fn(i: int):
-                return http_json(
-                    "POST",
-                    f"{base}/interact/chat",
-                    token=token_pool[i % len(token_pool)],
-                    body={"message": "hello capacity stub lifestyle?"},
-                    timeout=60.0,
-                )
-
-            chats = {}
-            for n in (10, 25, 50, 75, 100):
-                chats[str(n)] = run_burst(f"D_chat_{n}", n, chat_fn, timeout_s=180.0)
-            run["profiles"]["D_chat_offload"] = chats
-
-            # Profile B — realistic connected mix ramp
+            # Profile B — realistic connected mix ramp (PRIMARY product target)
             mix = {}
             for conc in (10, 25, 50, 75, 100):
+                if not settle_healthy(base, settle_s=1.0, timeout_s=30.0):
+                    plate = {
+                        "pass_fail": "FAIL",
+                        "error": "api_unhealthy_before_plateau",
+                        "concurrency": conc,
+                        "classification": "NOT_PROVEN",
+                        "error_rate": 1.0,
+                        "server_5xx": 0,
+                        "p95_ms": None,
+                    }
+                    mix[str(conc)] = plate
+                    hard_fail = True
+                    summary(f"connected_{conc}", "FAIL")
+                    continue
                 st_before = pg_stats(engine)
                 plate = run_mixed_plateau(
                     name=f"B_mix_{conc}",
@@ -512,8 +557,8 @@ def main() -> int:
                     hard_fail = True
             run["profiles"]["B_realistic_mix"] = mix
 
-            # Recovery cool-down
-            time.sleep(5)
+            # Recovery cool-down after peak connected load
+            settle_healthy(base, settle_s=5.0, timeout_s=45.0)
             recovery = run_burst("recovery", 30, me_fn)
             run["profiles"]["recovery_after_peak"] = recovery
             run["recovery_pass"] = "PASS" if recovery["error_rate"] == 0 and recovery["fail"] == 0 else "FAIL"
@@ -521,37 +566,107 @@ def main() -> int:
                 hard_fail = True
 
             # Profile E — background pressure (scheduler once) on middle worker only
+            # Run before chat stress so scheduler evidence is not contaminated.
             if workers == (2 if 2 in worker_list else worker_list[0]):
-                sched = SchedulerProc(
-                    env={
-                        "DATABASE_URL": db_url(),
-                        "SECRET_KEY": os.environ.get("SECRET_KEY", "capacity-test-secret"),
-                        "PYTHONPATH": os.environ.get("PYTHONPATH", "."),
-                        "OPENAI_API_KEY": "capacity-stub-not-real",
+                if settle_healthy(base, settle_s=2.0, timeout_s=30.0):
+                    sched = SchedulerProc(
+                        env={
+                            "DATABASE_URL": db_url(),
+                            "SECRET_KEY": os.environ.get(
+                                "SECRET_KEY", "capacity-controlled-load-secret-32b"
+                            ),
+                            "PYTHONPATH": os.environ.get("PYTHONPATH", "."),
+                            "OPENAI_API_KEY": "capacity-stub-not-real",
+                        },
+                        log_path=out_dir / f"scheduler_workers_{workers}.log",
+                    )
+                    sched.start()
+                    time.sleep(2)
+                    under = run_mixed_plateau(
+                        name="E_bg_mix_50",
+                        base=base,
+                        tokens=token_pool,
+                        concurrency=50,
+                        duration_s=max(15.0, args.plateau_s * 0.8),
+                        chat_share=0.08,
+                        think_time_s=(0.05, 0.2),
+                    )
+                    run["profiles"]["E_background_pressure"] = {
+                        "scheduler_instances_started": 1,
+                        "scheduler_duplicates": 0,
+                        "mix_under_scheduler": under,
+                        "scheduler_under_load": "PASS"
+                        if under.get("server_5xx", 0) == 0 and under.get("error_rate", 1) <= 0.05
+                        else "FAIL",
                     }
-                )
-                sched.start()
-                time.sleep(2)
-                # Confirm single scheduler process (this harness starts one)
-                under = run_mixed_plateau(
-                    name="E_bg_mix_50",
-                    base=base,
-                    tokens=token_pool,
-                    concurrency=50,
-                    duration_s=max(15.0, args.plateau_s * 0.8),
-                    chat_share=0.08,
-                    think_time_s=(0.05, 0.2),
-                )
-                run["profiles"]["E_background_pressure"] = {
-                    "scheduler_instances_started": 1,
-                    "scheduler_duplicates": 0,
-                    "mix_under_scheduler": under,
-                    "scheduler_under_load": "PASS"
-                    if under.get("server_5xx", 0) == 0 and under.get("error_rate", 1) <= 0.05
-                    else "FAIL",
-                }
-                if run["profiles"]["E_background_pressure"]["scheduler_under_load"] == "FAIL":
+                    if run["profiles"]["E_background_pressure"]["scheduler_under_load"] == "FAIL":
+                        hard_fail = True
+                    sched.stop()
+                    sched = None
+                else:
+                    run["profiles"]["E_background_pressure"] = {
+                        "scheduler_under_load": "FAIL",
+                        "error": "api_unhealthy_before_E",
+                    }
                     hard_fail = True
+
+            # Profile C — fast API bursts (independent of model latency)
+            bursts = {}
+            for n in (10, 25, 50, 75, 100):
+                if not settle_healthy(base, settle_s=2.0, timeout_s=40.0):
+                    bursts[str(n)] = {
+                        "name": f"C_burst_{n}",
+                        "classification": "NOT_PROVEN",
+                        "error": "api_unhealthy_before_burst",
+                        "error_rate": 1.0,
+                        "ok": 0,
+                        "fail": n,
+                        "timeout": n,
+                    }
+                    continue
+                bursts[str(n)] = run_burst(f"C_burst_{n}", n, me_fn)
+            run["profiles"]["C_fast_api_burst"] = bursts
+
+            # Profile D — chat/offload concurrency (STRESS; separate from connected-100)
+            def chat_fn(i: int):
+                return http_json(
+                    "POST",
+                    f"{base}/interact/chat",
+                    token=token_pool[i % len(token_pool)],
+                    body={"message": "hello capacity stub lifestyle?"},
+                    timeout=60.0,
+                )
+
+            chats = {}
+            abort_chat_ramp = False
+            for n in (10, 25, 50, 75, 100):
+                if abort_chat_ramp:
+                    chats[str(n)] = {
+                        "name": f"D_chat_{n}",
+                        "classification": "NOT_PROVEN",
+                        "error": "skipped_after_prior_saturation",
+                        "error_rate": 1.0,
+                        "ok": 0,
+                        "fail": n,
+                    }
+                    continue
+                if not settle_healthy(base, settle_s=3.0, timeout_s=45.0):
+                    chats[str(n)] = {
+                        "name": f"D_chat_{n}",
+                        "classification": "SATURATED",
+                        "error": "api_unhealthy_before_chat_burst",
+                        "error_rate": 1.0,
+                        "ok": 0,
+                        "fail": n,
+                        "timeout": n,
+                    }
+                    abort_chat_ramp = True
+                    continue
+                chats[str(n)] = run_burst(f"D_chat_{n}", n, chat_fn, timeout_s=180.0)
+                # If this level fully timed out, stop escalating (characterization complete)
+                if chats[str(n)].get("timeout", 0) >= n and chats[str(n)].get("ok", 0) == 0:
+                    abort_chat_ramp = True
+            run["profiles"]["D_chat_offload"] = chats
 
             # RAG OFF smoke under concurrency (no retrieval work expected)
             os.environ["RAG_LOCAL_ENABLED"] = "false"

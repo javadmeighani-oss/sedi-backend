@@ -4,6 +4,12 @@ GATE: SEDI-V1-BE-1000U-100CC-CONTROLLED-LOAD-VALIDATION-01
 
 **THIS IS NOT PRODUCTION LOAD.**
 
+## Profile execution order (harness)
+
+`A → B (ramp) → recovery → E → C → D`
+
+Primary connected-mix (B) and scheduler-under-load (E) run **before** chat stress (D) so stress saturation cannot contaminate the product-capacity verdict. Chat burst results remain separately classified.
+
 ## Endpoint mix (Profile B)
 
 Documented before execution:

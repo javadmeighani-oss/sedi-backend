@@ -40,8 +40,8 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       DATABASE_URL: postgresql+psycopg2://sedi_cl:sedi_cl_pass@127.0.0.1:5432/sedi_cl
       TEST_DATABASE_URL: postgresql+psycopg2://sedi_cl:sedi_cl_pass@127.0.0.1:5432/sedi_cl
-      SECRET_KEY: capacity-controlled-load-secret
-      JWT_SECRET: capacity-controlled-load-secret
+      SECRET_KEY: capacity-controlled-load-secret-32b!!
+      JWT_SECRET: capacity-controlled-load-secret-32b!!
       OPENAI_API_KEY: capacity-stub-not-real
       SEDI_DISABLE_SCHEDULER: "1"
       SEDI_DB_POOL_SIZE: "5"
