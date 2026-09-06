@@ -292,15 +292,37 @@ def test_h_provenance_mismatch_fail_closed(client, db, patches):
     assert a1.status == "ACTIVE"
 
 
-def test_i_invalid_lifecycle_fail_closed(db, patches):
-    son = _user(db, "son-i")
+@pytest.mark.parametrize(
+    "status,expected_code",
+    [
+        ("CANCELLED", "ACTION_NOT_COMPLETABLE"),  # invalid-for-completion canonical lifecycle
+        ("FAILED", "ACTION_NOT_COMPLETABLE"),
+        ("SUPERSEDED", "ACTION_NOT_COMPLETABLE"),
+        ("EXPIRED", "ACTION_NOT_COMPLETABLE"),
+    ],
+)
+def test_i_non_active_lifecycle_fail_closed(db, patches, status, expected_code):
+    son = _user(db, f"son-i-{status.lower()}")
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _, action, when = _seed_routine_action(db, son.id, when=when)
-    action.status = "SUPERSEDED"
+    action.status = status
     db.commit()
     with pytest.raises(I8ActionCompletionError) as ei:
         complete_exact_operational_action(db, actor_user_id=son.id, action_id=action.id, now=when)
-    assert ei.value.code == "ACTION_NOT_COMPLETABLE"
+    assert ei.value.code == expected_code
+
+
+def test_i_expired_at_fail_closed(db, patches):
+    """ACTIVE action past expires_at fails closed (canonical expiry gate)."""
+    son = _user(db, "son-i-exp")
+    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    _, action, when = _seed_routine_action(db, son.id, when=when)
+    action.status = "ACTIVE"
+    action.expires_at = datetime(2026, 9, 5, 13, 0, 0, tzinfo=timezone.utc)
+    db.commit()
+    with pytest.raises(I8ActionCompletionError) as ei:
+        complete_exact_operational_action(db, actor_user_id=son.id, action_id=action.id, now=when)
+    assert ei.value.code == "ACTION_EXPIRED"
 
 
 @pytest.mark.parametrize(
@@ -330,23 +352,48 @@ def test_j_q_non_done_verbs_do_not_mutate_i8(client, db, patches, payload):
 
 def test_r_mother_isolation(client, db, patches):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
-    assert fam.mother_hs.linked_user_id is None
-    assert fam.mother_hs.subject_kind == "managed"
+    mother = fam.mother_hs
+    assert mother.subject_kind == "managed"
+    assert mother.linked_user_id is None
+    # Mother remains accountless: no User Account row is linked as Mother identity.
+    assert db.query(models.User).filter(models.User.name == "MOTHER_ALS").count() == 0
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
     _prefs(db, fam.son.id)
     _, action, when = _seed_routine_action(db, fam.son.id, when=when)
     notif = _deliver(db, fam.son.id, when)
     _feedback(client, fam.son.id, notif.id, {"reaction": "interact", "action_id": "done"})
     db.refresh(action)
+    db.refresh(mother)
+    # Son Account owns the exact completed action (Account namespace, not HealthSubject id).
     assert action.user_id == fam.son.id
-    assert action.user_id != fam.mother_hs.id
-    assert db.query(models.UserLifelongProfile).filter_by(user_id=fam.mother_hs.id).count() == 0
+    assert action.user_id == fam.son_self_hs.linked_user_id
+    assert mother.subject_kind == "managed"
+    assert mother.linked_user_id is None
+    # No Mother I7 lifelong profile: Mother has no Account to own one.
+    assert (
+        db.query(models.UserLifelongProfile)
+        .filter(models.UserLifelongProfile.user_id.notin_([fam.son.id, fam.stranger.id]))
+        .count()
+        == 0
+    )
+    assert db.query(models.UserLifelongProfile).filter_by(user_id=fam.son.id).count() == 0
 
 
 def test_s_no_score_semantics_in_completion_module():
+    """DONE path must not implement adherence/clinical scoring — comments may negate those words."""
     from pathlib import Path
+    import re
 
     src = Path("backend/app/services/i8/action_completion.py").read_text(encoding="utf-8")
+    # Strip comments / docstrings so explanatory negation ("Not adherence...") is allowed.
+    stripped = re.sub(r'""".*?"""', "", src, flags=re.DOTALL)
+    stripped = re.sub(r"'''.*?'''", "", stripped, flags=re.DOTALL)
+    stripped = re.sub(r"#.*?$", "", stripped, flags=re.MULTILINE)
+    lowered = stripped.lower()
     for bad in ("adherence", "disruption", "improvement_score", "missed_habit", "diagnosis"):
-        assert bad not in src.lower()
+        assert bad not in lowered, f"implementation semantics leak: {bad}"
+    # No scoring / clinical API surface in the completion module.
+    assert "score" not in lowered
+    assert "clinical" not in lowered
+    assert "habit_complete" not in lowered
     assert CanonicalInteractionVerb.DONE.value == "DONE"
