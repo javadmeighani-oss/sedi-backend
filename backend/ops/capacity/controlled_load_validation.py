@@ -283,6 +283,7 @@ def run_mixed_plateau(
     duration_s: float,
     chat_share: float,
     think_time_s: Tuple[float, float],
+    start_stagger_s: float = 0.0,
 ) -> Dict[str, Any]:
     """Realistic connected/mixed concurrency with think time."""
     bucket = LatencyBucket(name=name)
@@ -323,6 +324,8 @@ def run_mixed_plateau(
         idx = wid % len(tokens)
         token = tokens[idx]
         uid = int(user_ids[idx % len(user_ids)])
+        if start_stagger_s > 0:
+            time.sleep(random.uniform(0.0, start_stagger_s))
         while not stop.is_set():
             method, path, needs_uid = pick_action()
             body = None

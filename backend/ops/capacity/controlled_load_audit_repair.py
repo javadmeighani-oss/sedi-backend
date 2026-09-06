@@ -499,8 +499,6 @@ def main() -> int:
 
         # --- Primary soak 100 connected ---
         sampler.set_label("soak_100")
-        # Realistic think time for 100-connected soak (prior 20s characterization
-        # used hotter 50–250ms intervals; that oversubscribes pool 5+10×4).
         soak = run_mixed_plateau(
             name="PRIMARY_SOAK_100",
             base=base,
@@ -510,6 +508,7 @@ def main() -> int:
             duration_s=args.soak_s,
             chat_share=0.08,
             think_time_s=(0.8, 2.5),
+            start_stagger_s=8.0,
         )
         soak_st = pg_stats(engine)
         soak["db_active_peak_observed"] = soak_st["active_connections"]
