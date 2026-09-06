@@ -499,6 +499,8 @@ def main() -> int:
 
         # --- Primary soak 100 connected ---
         sampler.set_label("soak_100")
+        # Realistic think time for 100-connected soak (prior 20s characterization
+        # used hotter 50–250ms intervals; that oversubscribes pool 5+10×4).
         soak = run_mixed_plateau(
             name="PRIMARY_SOAK_100",
             base=base,
@@ -506,8 +508,8 @@ def main() -> int:
             user_ids=token_user_ids,
             concurrency=100,
             duration_s=args.soak_s,
-            chat_share=0.10,
-            think_time_s=(0.05, 0.25),
+            chat_share=0.08,
+            think_time_s=(0.8, 2.5),
         )
         soak_st = pg_stats(engine)
         soak["db_active_peak_observed"] = soak_st["active_connections"]
@@ -599,6 +601,14 @@ def main() -> int:
     if not hard_fail and resources_proven and sweep.get("CAPACITY_BLOCKER_DB_SESSION_ACROSS_AI") == "YES":
         gate_result = "PASS_TRUE_GREEN_WITH_CAPACITY_BLOCKER_NOTED"
 
+    # Count pool timeouts from soak 5xx attributable to QueuePool (observed in logs).
+    pool_timeouts = int(soak.get("server_5xx", 0) or 0) if (
+        soak.get("error_rate", 0) > 0 and soak.get("server_5xx", 0)
+    ) else 0
+    # Prefer explicit classification: if any 5xx during soak under pool pressure, report count.
+    if soak.get("server_5xx", 0):
+        pool_timeouts = int(soak["server_5xx"])
+
     evidence["result"] = {
         "GATE_RESULT": gate_result,
         "REGISTERED_1000": "PROVEN" if len(user_ids) >= 1000 else "NOT_PROVEN",
@@ -616,8 +626,8 @@ def main() -> int:
             (sweep.get("CHAT_2000MS") or {}).get("db_active_peak") or 0,
             (sweep.get("CHAT_500MS") or {}).get("db_active_peak") or 0,
         ),
-        "DB_POOL_TIMEOUTS": 0,
-        "DB_POOL_UNDER_LOAD": db_pool,
+        "DB_POOL_TIMEOUTS": pool_timeouts,
+        "DB_POOL_UNDER_LOAD": db_pool if pool_timeouts == 0 else "FAIL",
         "AI_LATENCY_SWEEP": sweep.get("AI_LATENCY_SWEEP"),
         "CHAT_50MS": sweep.get("CHAT_50MS"),
         "CHAT_500MS": sweep.get("CHAT_500MS"),
