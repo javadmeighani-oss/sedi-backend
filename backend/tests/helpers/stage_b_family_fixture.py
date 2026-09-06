@@ -129,9 +129,8 @@ def seed_stage_b_family(
         commit=False,
     )
 
-    # Identity law
-    assert son.id != mother.id
-    assert son_self.id != mother.id
+    # Identity law (relationships / kinds — never User.id vs HealthSubject.id inequality)
+    assert son_self.id != mother.id  # same HealthSubject namespace
     assert mother.linked_user_id is None
     assert mother.subject_kind == "managed"
     assert son_self.linked_user_id == son.id
