@@ -1,5 +1,6 @@
 # Capacity hardening 1000U/100CC — PostgreSQL 16
 # GATE=SEDI-V1-BE-1000U-100CC-CAPACITY-HARDENING-01
+# MODE=CHATGPT_INDEPENDENT_AUDIT_VERIFICATION_REPAIR-01
 name: Capacity Hardening 1000U PG16
 
 on:
@@ -18,6 +19,11 @@ on:
       - "backend/app/services/medication_scheduler.py"
       - "backend/tests/test_capacity_hardening_unit.py"
       - "backend/tests/test_capacity_hardening_pg16.py"
+      - "backend/tests/test_i7_i8_bounded_personalization_seam.py"
+      - "backend/tests/test_i5_k04_scis_governed_serving.py"
+      - "backend/tests/test_rag_context_pack_v1.py"
+      - "backend/tests/test_i10_b13_coaching_followup.py"
+      - "backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py"
       - ".github/workflows/capacity-hardening-1000u-pg16.yml"
 
 permissions:
@@ -113,7 +119,7 @@ jobs:
             tail -n 120 /tmp/cap_evidence/unit_pytest.txt
             exit "$rc"
           fi
-      - name: PG16 capacity proofs
+      - name: PG16 capacity proofs including T24
         run: |
           set -euo pipefail
           set +e
@@ -122,38 +128,76 @@ jobs:
             > /tmp/cap_evidence/pg16_pytest.txt 2>&1
           rc=$?
           set -e
-          echo "## PG16 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo "## PG16+T24 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 120 /tmp/cap_evidence/pg16_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          tail -n 160 /tmp/cap_evidence/pg16_pytest.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           if [ "$rc" -ne 0 ]; then
-            tail -n 120 /tmp/cap_evidence/pg16_pytest.txt
+            tail -n 160 /tmp/cap_evidence/pg16_pytest.txt
             exit "$rc"
           fi
-      - name: Critical regressions (I8/I10/I7/I5 seams)
+          grep -E "test_t24_rag_context_user_isolation" /tmp/cap_evidence/pg16_pytest.txt | grep -E "PASSED"
+      - name: Critical regressions I8/I10
         run: |
           set -euo pipefail
           set +e
           python -B -m pytest -v --tb=short \
             backend/tests/test_i10_b13_coaching_followup.py \
             backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
-            > /tmp/cap_evidence/regress_pytest.txt 2>&1
+            > /tmp/cap_evidence/regress_i8_i10_pytest.txt 2>&1
           rc=$?
           set -e
-          echo "## Regressions (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo "## I8/I10 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          tail -n 80 /tmp/cap_evidence/regress_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/cap_evidence/regress_i8_i10_pytest.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           if [ "$rc" -ne 0 ]; then
-            tail -n 120 /tmp/cap_evidence/regress_pytest.txt
+            tail -n 120 /tmp/cap_evidence/regress_i8_i10_pytest.txt
+            exit "$rc"
+          fi
+      - name: Critical regression I7 bounded personalization seam
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_i7_i8_bounded_personalization_seam.py \
+            > /tmp/cap_evidence/regress_i7_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## I7 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/cap_evidence/regress_i7_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            tail -n 120 /tmp/cap_evidence/regress_i7_pytest.txt
+            exit "$rc"
+          fi
+      - name: Critical regression I5/RAG governed+bounded
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_i5_k04_scis_governed_serving.py \
+            backend/tests/test_rag_context_pack_v1.py \
+            > /tmp/cap_evidence/regress_i5_rag_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## I5/RAG (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/cap_evidence/regress_i5_rag_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            tail -n 120 /tmp/cap_evidence/regress_i5_rag_pytest.txt
             exit "$rc"
           fi
       - name: Summarize
         run: |
           set -euo pipefail
           echo "=== UNIT ===" && tail -n 5 /tmp/cap_evidence/unit_pytest.txt
-          echo "=== PG16 ===" && tail -n 5 /tmp/cap_evidence/pg16_pytest.txt
-          echo "=== REGRESS ===" && tail -n 5 /tmp/cap_evidence/regress_pytest.txt
+          echo "=== PG16 ===" && tail -n 8 /tmp/cap_evidence/pg16_pytest.txt
+          echo "=== I8/I10 ===" && tail -n 5 /tmp/cap_evidence/regress_i8_i10_pytest.txt
+          echo "=== I7 ===" && tail -n 5 /tmp/cap_evidence/regress_i7_pytest.txt
+          echo "=== I5/RAG ===" && tail -n 5 /tmp/cap_evidence/regress_i5_rag_pytest.txt
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4

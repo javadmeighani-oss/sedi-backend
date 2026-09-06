@@ -256,6 +256,151 @@ def test_t23_rag_off_near_zero(db):
     assert messages == []
 
 
+def test_t24_rag_context_user_isolation_and_concurrent_offload(client, db, monkeypatch):
+    """T24: Son A cannot retrieve Son B RAG/user context; concurrent offload preserves identity.
+
+    No Smart-RAG. Uses existing LocalRAGProvider + chat offload path only.
+    """
+    import asyncio
+
+    from backend.app.services.intelligence.contracts import SafetyAction
+    from backend.app.services.local_rag.local_provider import LocalRAGProvider
+    from backend.app.services.local_rag import provider_router
+
+    monkeypatch.setenv("RAG_LOCAL_ENABLED", "true")
+    monkeypatch.setenv("RAG_VECTOR_ENABLED", "false")
+    # Reload flag used by provider module
+    import backend.app.services.local_rag.local_provider as lp
+
+    monkeypatch.setattr(lp, "RAG_LOCAL_ENABLED", True)
+
+    son_a = models.User(name="CapSonA", secret_key="sk-a-t24", preferred_language="en")
+    son_b = models.User(name="CapSonB", secret_key="sk-b-t24", preferred_language="en")
+    db.add_all([son_a, son_b])
+    db.flush()
+
+    marker_a = "SON_A_PRIVATE_SLEEP_MARKER_ZZA"
+    marker_b = "SON_B_PRIVATE_SLEEP_MARKER_ZZB"
+    db.add(
+        models.UserFact(
+            user_id=son_a.id,
+            key="sleep_habit",
+            value_json=f'"{marker_a}"',
+            source="manual",
+        )
+    )
+    db.add(
+        models.UserFact(
+            user_id=son_b.id,
+            key="sleep_habit",
+            value_json=f'"{marker_b}"',
+            source="manual",
+        )
+    )
+    db.flush()
+
+    # 1) Provider-level isolation
+    ra = LocalRAGProvider(db).retrieve(son_a.id, "sleep habit lifestyle", "en")
+    rb = LocalRAGProvider(db).retrieve(son_b.id, "sleep habit lifestyle", "en")
+    text_a = (ra.combined_text or "") if ra else ""
+    text_b = (rb.combined_text or "") if rb else ""
+    assert marker_a in text_a
+    assert marker_b not in text_a
+    assert marker_b in text_b
+    assert marker_a not in text_b
+
+    # 2) Router retrieve also scoped by user_id
+    routed_a = provider_router.retrieve(db, son_a.id, "sleep habit lifestyle", "en")
+    routed_text = (routed_a.combined_text or "") if routed_a else ""
+    assert marker_a in routed_text
+    assert marker_b not in routed_text
+
+    # 3) Concurrent offloaded orchestration preserves authenticated identity
+    # (do not share one SQLAlchemy Session across threads; record identity only)
+    seen_ids: list[int] = []
+    lock = __import__("threading").Lock()
+    safe = MagicMock()
+    safe.action = SafetyAction.CONTINUE
+
+    def _fake_process(*, authenticated_user_id: int, message: str, **kwargs):
+        with lock:
+            seen_ids.append(authenticated_user_id)
+        mock = MagicMock()
+        # Encode identity into response; caller asserts no cross-swap
+        mock.public_brain_dict.return_value = {
+            "message": f"ok:{authenticated_user_id}",
+            "language": "en",
+            "detected_name": None,
+        }
+        return mock
+
+    with patch(
+        "backend.app.services.intelligence.orchestrator.IntelligenceOrchestrator.precheck_safety_risk",
+        return_value=safe,
+    ), patch(
+        "backend.app.services.intelligence.orchestrator.IntelligenceOrchestrator.process",
+        side_effect=_fake_process,
+    ):
+        async def _both():
+            from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+
+            orch = IntelligenceOrchestrator(db=db)
+
+            def run_a():
+                return orch.process(
+                    authenticated_user_id=son_a.id,
+                    message="sleep habit lifestyle",
+                    language="en",
+                )
+
+            def run_b():
+                return orch.process(
+                    authenticated_user_id=son_b.id,
+                    message="sleep habit lifestyle",
+                    language="en",
+                )
+
+            ra_r, rb_r = await asyncio.gather(
+                asyncio.to_thread(run_a),
+                asyncio.to_thread(run_b),
+            )
+            return ra_r, rb_r
+
+        out_a, out_b = asyncio.run(_both())
+        assert out_a.public_brain_dict()["message"] == f"ok:{son_a.id}"
+        assert out_b.public_brain_dict()["message"] == f"ok:{son_b.id}"
+        assert set(seen_ids) == {son_a.id, son_b.id}
+
+        # HTTP chat path: JWT ownership still enforced under capacity offload
+        r_ok = client.post(
+            "/interact/chat",
+            json={"message": "sleep habit lifestyle", "user_id": son_a.id},
+            headers={**_auth(son_a.id), "Accept-Language": "en"},
+        )
+        assert r_ok.status_code == 200
+        assert r_ok.json()["user_id"] == son_a.id
+        r_bad = client.post(
+            "/interact/chat",
+            json={"message": "sleep habit lifestyle", "user_id": son_b.id},
+            headers={**_auth(son_a.id), "Accept-Language": "en"},
+        )
+        assert r_bad.status_code == 403
+
+    # 4) RAG OFF remains zero/near-zero work (no retrieve)
+    monkeypatch.setenv("RAG_LOCAL_ENABLED", "false")
+    monkeypatch.setattr(lp, "RAG_LOCAL_ENABLED", False)
+    from backend.app.core.conversation import brain as brain_mod
+
+    messages: list = []
+    with patch.object(
+        provider_router,
+        "retrieve",
+        side_effect=AssertionError("RAG must not run when OFF"),
+    ):
+        brain_mod._maybe_append_local_rag_context(messages, db, son_a.id, "sleep", "en")
+    assert messages == []
+
+
 def test_t09_pool_snapshot_defaults():
     from backend.app.database import pool_config_snapshot
 

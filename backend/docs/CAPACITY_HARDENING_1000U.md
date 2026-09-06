@@ -19,7 +19,10 @@ GATE: SEDI-V1-BE-1000U-100CC-CAPACITY-HARDENING-01
 Increasing API worker count must NOT multiply schedulers: always disable scheduler on API workers.
 
 Worker count is configurable via `UVICORN_WORKERS` / `WEB_CONCURRENCY` / `SEDI_API_WORKERS`.
-**FINAL_WORKER_COUNT_SELECTED=NO** — choose after controlled load validation Gate.
+
+- **API_MULTIWORKER_ARCHITECTURE_READY=YES**
+- **PRODUCTION_MULTIWORKER_ACTIVATED=NO**
+- **FINAL_WORKER_COUNT_SELECTED=NO** — choose after controlled load validation Gate.
 
 ## DB connection budget
 

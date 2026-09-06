@@ -54,6 +54,8 @@ def test_t03_multi_worker_config_does_not_imply_scheduler(monkeypatch):
 
     assert uvicorn_workers_configured() == 4
     assert should_start_scheduler() is False
+    # Architecture ready ≠ production activation
+    assert os.getenv("PRODUCTION_MULTIWORKER_ACTIVATED", "NO") == "NO"
 
 
 def test_main_should_start_scheduler_uses_process_role():
