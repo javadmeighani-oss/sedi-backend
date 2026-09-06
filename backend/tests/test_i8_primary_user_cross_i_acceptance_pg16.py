@@ -222,7 +222,8 @@ def test_scenario_id():
 def test_flow_a_routine_lifestyle_cross_i(client, db, patches):
     """Gate2 → I7 → I5 governed knowledge → I8 proactive → I10 → DONE lifecycle."""
     son, _other, son_self, mother = _seed_family(db)
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    # Delivery clock must match generate_operational_action local-day window (uses now).
+    when = datetime.now(timezone.utc)
 
     # Identity
     assert son_self.subject_kind == "self"
@@ -372,7 +373,7 @@ def test_flow_a_routine_lifestyle_cross_i(client, db, patches):
 
 def test_no_substitution_and_fail_closed(client, db, patches):
     son, other, son_self, mother = _seed_family(db)
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = datetime.now(timezone.utc)
     if db.query(models.UserProfileCore).filter_by(user_id=son.id).first() is None:
         db.add(models.UserProfileCore(user_id=son.id, timezone="UTC"))
         db.flush()
