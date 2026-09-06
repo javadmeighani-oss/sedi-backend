@@ -25,8 +25,11 @@ from backend.app.services.i8.local_day import resolve_local_day_window
 from backend.app.services.i8.repository import I8OperationalRepository
 from backend.app.services.i10.coaching_worker import process_i8_coaching_followups
 from backend.app.services.i10.interaction_vocabulary import CanonicalInteractionVerb
-from backend.app.services.i9.health_subject_service import ensure_self_subject_for_account
-from backend.tests.helpers.stage_b_family_fixture import SCENARIO_ID, seed_stage_b_family
+from backend.app.services.i9.health_subject_service import (
+    create_managed_subject_without_account,
+    ensure_self_subject_for_account,
+)
+from backend.tests.helpers.stage_b_family_fixture import SCENARIO_ID
 
 pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
 
@@ -351,32 +354,44 @@ def test_j_q_non_done_verbs_do_not_mutate_i8(client, db, patches, payload):
 
 
 def test_r_mother_isolation(client, db, patches):
-    fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False)
-    mother = fam.mother_hs
+    """Mother is managed/accountless HS; Son Account owns DONE — no cross-namespace id compares."""
+    son = _user(db, "son-r")
+    son_self = ensure_self_subject_for_account(db, son.id, display_name="SON_SELF", commit=False)
+    mother = create_managed_subject_without_account(
+        db,
+        account_user_id=son.id,
+        display_name="MOTHER_ALS",
+        access_role="MANAGER",
+        commit=False,
+    )
+    db.commit()
+    db.refresh(mother)
+    db.refresh(son_self)
     assert mother.subject_kind == "managed"
     assert mother.linked_user_id is None
-    # Mother remains accountless: no User Account row is linked as Mother identity.
+    assert son_self.subject_kind == "self"
+    assert son_self.linked_user_id == son.id
+    # No fake Mother User Account (HS display name is not an Account row).
     assert db.query(models.User).filter(models.User.name == "MOTHER_ALS").count() == 0
     when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
-    _prefs(db, fam.son.id)
-    _, action, when = _seed_routine_action(db, fam.son.id, when=when)
-    notif = _deliver(db, fam.son.id, when)
-    _feedback(client, fam.son.id, notif.id, {"reaction": "interact", "action_id": "done"})
+    _prefs(db, son.id)
+    _, action, when = _seed_routine_action(db, son.id, when=when)
+    notif = _deliver(db, son.id, when)
+    _feedback(client, son.id, notif.id, {"reaction": "interact", "action_id": "done"})
     db.refresh(action)
     db.refresh(mother)
-    # Son Account owns the exact completed action (Account namespace, not HealthSubject id).
-    assert action.user_id == fam.son.id
-    assert action.user_id == fam.son_self_hs.linked_user_id
+    assert action.user_id == son.id
+    assert action.user_id == son_self.linked_user_id
     assert mother.subject_kind == "managed"
     assert mother.linked_user_id is None
-    # No Mother I7 lifelong profile: Mother has no Account to own one.
+    # No Mother I7 lifelong profile — Mother has no Account namespace owner.
+    assert db.query(models.UserLifelongProfile).filter_by(user_id=son.id).count() == 0
     assert (
         db.query(models.UserLifelongProfile)
-        .filter(models.UserLifelongProfile.user_id.notin_([fam.son.id, fam.stranger.id]))
+        .filter(models.UserLifelongProfile.user_id != son.id)
         .count()
         == 0
     )
-    assert db.query(models.UserLifelongProfile).filter_by(user_id=fam.son.id).count() == 0
 
 
 def test_s_no_score_semantics_in_completion_module():
