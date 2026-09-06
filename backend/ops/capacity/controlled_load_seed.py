@@ -7,14 +7,6 @@ import time
 from typing import Any, Dict, List
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-
-from backend.app import models
-from backend.app.services.i9.health_subject_service import (
-    create_managed_subject_without_account,
-    ensure_self_subject_for_account,
-)
-
 
 PREFIX = "syn_cl_"
 
@@ -33,16 +25,16 @@ def seed_registered_users(
     n_users: int = 1000,
     family_subset: int = 20,
 ) -> Dict[str, Any]:
-    """Create n_users Accounts + SELF HS; family_subset with managed Mother HS."""
+    """Create n_users Accounts + SELF HS; family_subset with managed Mother HS.
+
+    Uses bulk SQL for speed on ephemeral CI. Preserves identity law:
+    Son Account != Mother; Mother linked_user_id=NULL; no fake Mother Account.
+    """
     engine = create_engine(_db_url(), pool_pre_ping=True, pool_size=5, max_overflow=5)
-    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     t0 = time.perf_counter()
-    user_ids: List[int] = []
-    family_pairs: List[Dict[str, int]] = []
-    fake_mother_accounts = 0
 
     with engine.begin() as conn:
-        # Best-effort cleanup for harness re-runs on ephemeral DBs.
+        # Best-effort cleanup for harness re-runs.
         try:
             conn.execute(
                 text(
@@ -65,61 +57,144 @@ def seed_registered_users(
             )
             conn.execute(text("DELETE FROM users WHERE name LIKE :pfx"), {"pfx": f"{PREFIX}%"})
         except Exception as exc:  # noqa: BLE001
-            # Fresh ephemeral DB may not need cleanup; continue.
             print(f"[seed] cleanup_warning={type(exc).__name__}", flush=True)
 
-    db = Session()
-    try:
-        for i in range(1, n_users + 1):
-            u = models.User(
-                name=f"{PREFIX}{i:04d}",
-                secret_key=f"synth_secret_{i}",
-                preferred_language="en",
-            )
-            db.add(u)
-            db.flush()
-            ensure_self_subject_for_account(db, u.id, display_name=f"SELF_{i:04d}", commit=False)
-            user_ids.append(int(u.id))
-            if i <= family_subset:
-                mother = create_managed_subject_without_account(
-                    db,
-                    account_user_id=u.id,
-                    display_name=f"{PREFIX}mother_{i:04d}",
-                    access_role="MANAGER",
-                    commit=False,
-                )
-                assert mother.linked_user_id is None
-                family_pairs.append(
-                    {
-                        "son_user_id": int(u.id),
-                        "mother_hs_id": int(mother.id),
-                    }
-                )
-            if i % 100 == 0:
-                db.commit()
-        db.commit()
-
-        # Identity invariant: no Mother Account rows
-        mothers = (
-            db.query(models.User)
-            .filter(models.User.name.like(f"{PREFIX}mother_%"))
-            .count()
+        conn.execute(
+            text(
+                """
+                INSERT INTO users (name, secret_key, preferred_language, created_at, account_type)
+                SELECT
+                  :pfx || lpad(g::text, 4, '0'),
+                  'synth_secret_' || g::text,
+                  'en',
+                  now(),
+                  'normal'
+                FROM generate_series(1, :n) g
+                """
+            ),
+            {"pfx": PREFIX, "n": int(n_users)},
         )
-        fake_mother_accounts = int(mothers)
+
+        # SELF HealthSubjects linked to each account
+        conn.execute(
+            text(
+                """
+                INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status, created_at)
+                SELECT
+                  'SELF_' || lpad(row_number() OVER (ORDER BY u.id)::text, 4, '0'),
+                  u.id,
+                  'self',
+                  'active',
+                  now()
+                FROM users u
+                WHERE u.name LIKE :pfx
+                ORDER BY u.id
+                """
+            ),
+            {"pfx": f"{PREFIX}%"},
+        )
+
+        conn.execute(
+            text(
+                """
+                INSERT INTO account_health_subject_access
+                  (account_user_id, health_subject_id, access_role, is_active, created_at)
+                SELECT
+                  hs.linked_user_id,
+                  hs.id,
+                  'SELF',
+                  true,
+                  now()
+                FROM health_subjects hs
+                JOIN users u ON u.id = hs.linked_user_id
+                WHERE u.name LIKE :pfx AND hs.subject_kind = 'self'
+                """
+            ),
+            {"pfx": f"{PREFIX}%"},
+        )
+
+        # Family subset: managed Mother HS (linked_user_id NULL)
+        conn.execute(
+            text(
+                """
+                WITH sons AS (
+                  SELECT u.id AS son_id, row_number() OVER (ORDER BY u.id) AS rn
+                  FROM users u
+                  WHERE u.name LIKE :pfx
+                  ORDER BY u.id
+                  LIMIT :fam
+                ),
+                mothers AS (
+                  INSERT INTO health_subjects (display_name, linked_user_id, subject_kind, status, created_at)
+                  SELECT :mpfx || lpad(s.rn::text, 4, '0'), NULL, 'managed', 'active', now()
+                  FROM sons s
+                  RETURNING id, display_name
+                )
+                INSERT INTO account_health_subject_access
+                  (account_user_id, health_subject_id, access_role, is_active, created_at)
+                SELECT
+                  s.son_id,
+                  m.id,
+                  'MANAGER',
+                  true,
+                  now()
+                FROM sons s
+                JOIN mothers m
+                  ON m.display_name = :mpfx || lpad(s.rn::text, 4, '0')
+                """
+            ),
+            {"pfx": f"{PREFIX}%", "mpfx": f"{PREFIX}mother_", "fam": int(family_subset)},
+        )
+
+        user_ids = [
+            int(r[0])
+            for r in conn.execute(
+                text("SELECT id FROM users WHERE name LIKE :pfx ORDER BY id"),
+                {"pfx": f"{PREFIX}%"},
+            ).fetchall()
+        ]
+        family_n = int(
+            conn.execute(
+                text(
+                    """
+                    SELECT count(*) FROM health_subjects
+                    WHERE display_name LIKE :mpfx AND linked_user_id IS NULL
+                    """
+                ),
+                {"mpfx": f"{PREFIX}mother_%"},
+            ).scalar_one()
+        )
+        fake_mother_accounts = int(
+            conn.execute(
+                text("SELECT count(*) FROM users WHERE name LIKE :mpfx"),
+                {"mpfx": f"{PREFIX}mother_%"},
+            ).scalar_one()
+        )
         if fake_mother_accounts != 0:
             raise RuntimeError("FAKE_MOTHER_ACCOUNT_CREATED")
+        null_link_ok = int(
+            conn.execute(
+                text(
+                    """
+                    SELECT count(*) FROM health_subjects
+                    WHERE display_name LIKE :mpfx AND linked_user_id IS NOT NULL
+                    """
+                ),
+                {"mpfx": f"{PREFIX}mother_%"},
+            ).scalar_one()
+        )
+        if null_link_ok != 0:
+            raise RuntimeError("MOTHER_LINKED_USER_ID_NOT_NULL")
 
-        maxc = int(db.execute(text("SHOW max_connections")).scalar_one())
-        pgver = str(db.execute(text("SHOW server_version")).scalar_one())
-    finally:
-        db.close()
-        engine.dispose()
+        maxc = int(conn.execute(text("SHOW max_connections")).scalar_one())
+        pgver = str(conn.execute(text("SHOW server_version")).scalar_one())
 
+    engine.dispose()
     return {
         "registered_users_seeded": len(user_ids),
         "user_ids": user_ids,
-        "family_subset": len(family_pairs),
-        "family_pairs": family_pairs,
+        "family_subset": family_n,
+        "family_pairs": [],
         "fake_mother_accounts": fake_mother_accounts,
         "postgres_max_connections": maxc,
         "postgres_server_version": pgver,
@@ -135,7 +210,6 @@ if __name__ == "__main__":
         n_users=int(os.environ.get("REGISTERED_USERS", "1000")),
         family_subset=int(os.environ.get("FAMILY_SUBSET", "20")),
     )
-    # Don't dump all ids to stdout in CI logs by default
     slim = {k: v for k, v in out.items() if k not in ("user_ids", "family_pairs")}
     slim["user_ids_count"] = len(out["user_ids"])
     print(json.dumps(slim, indent=2))
