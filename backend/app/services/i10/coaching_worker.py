@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -17,6 +18,41 @@ from backend.app.services.i10.coaching_i10_adapter import (
 from backend.app.services.section10.feature_flags import coaching_followup_enabled
 
 logger = logging.getLogger(__name__)
+
+# In-process fair cursor for optional scheduler progression mode.
+_coaching_after_action_id: int = 0
+
+
+def reset_coaching_scan_cursor() -> None:
+    """Test helper: clear in-process coaching progression."""
+    global _coaching_after_action_id
+    _coaching_after_action_id = 0
+
+
+def get_coaching_scan_cursor() -> int:
+    return int(_coaching_after_action_id)
+
+
+def coaching_scan_batch_size() -> int:
+    raw = (os.getenv("I10_COACHING_SCAN_BATCH_SIZE") or "").strip()
+    if not raw:
+        return 100
+    try:
+        n = int(raw)
+    except ValueError:
+        return 100
+    return max(1, min(500, n))
+
+
+def coaching_scan_max_per_tick() -> int:
+    raw = (os.getenv("I10_COACHING_SCAN_MAX_PER_TICK") or "").strip()
+    if not raw:
+        return 1000
+    try:
+        n = int(raw)
+    except ValueError:
+        return 1000
+    return max(1, min(5000, n))
 
 
 def _normalize_utc(when: datetime) -> datetime:
@@ -77,7 +113,14 @@ def list_eligible_coaching_actions(
     *,
     now: datetime,
     user_id: Optional[int] = None,
+    after_action_id: int = 0,
+    limit: Optional[int] = None,
 ) -> list[tuple[models.I8OperationalPlanAction, models.I8OperationalPlan]]:
+    """List eligible actions. Optional keyset bound for capacity scans.
+
+    Eligibility predicates unchanged. ``limit=None`` keeps prior behavior for
+    callers that expect a full filtered result set (typically small / tests).
+    """
     when = _normalize_utc(now)
     q = (
         db.query(models.I8OperationalPlanAction, models.I8OperationalPlan)
@@ -93,11 +136,15 @@ def list_eligible_coaching_actions(
             models.I8OperationalPlanAction.valid_from <= when,
             models.I8OperationalPlanAction.valid_until >= when,
             models.I8OperationalPlanAction.expires_at > when,
+            models.I8OperationalPlanAction.id > int(after_action_id),
         )
     )
     if user_id is not None:
         q = q.filter(models.I8OperationalPlanAction.user_id == user_id)
-    rows = q.order_by(models.I8OperationalPlanAction.id.asc()).all()
+    q = q.order_by(models.I8OperationalPlanAction.id.asc())
+    if limit is not None:
+        q = q.limit(int(limit))
+    rows = q.all()
     return [(action, plan) for action, plan in rows if is_action_eligible(action, plan, now=when)]
 
 
@@ -129,19 +176,32 @@ def process_single_coaching_action(
     return notif is not None
 
 
-def process_i8_coaching_followups(
-    db: Session,
-    *,
-    now: Optional[datetime] = None,
-    user_id: Optional[int] = None,
-    force: bool = False,
-) -> int:
-    """Process due persisted I8 plan actions — no plan invention, no raw chat."""
-    if not force and not coaching_followup_enabled():
-        return 0
-    when = now or datetime.now(timezone.utc)
+def _advance_coaching_cursor(*, page_last_id: Optional[int], page_len: int, limit: int) -> None:
+    global _coaching_after_action_id
+    before = _coaching_after_action_id
+    if page_len == 0:
+        _coaching_after_action_id = 0
+        logger.info(
+            "i10_coaching_scan_cursor cursor_before=%s cursor_after=0 cursor_wrapped=true batch_size=%s",
+            before,
+            limit,
+        )
+        return
+    nxt = int(page_last_id or before)
+    _coaching_after_action_id = nxt
+    logger.info(
+        "i10_coaching_scan_cursor cursor_before=%s cursor_after=%s cursor_advanced=%s batch_size=%s page_len=%s",
+        before,
+        nxt,
+        nxt != before,
+        limit,
+        page_len,
+    )
+
+
+def _process_pairs(db: Session, pairs, when: datetime) -> int:
     processed = 0
-    for action, _plan in list_eligible_coaching_actions(db, now=when, user_id=user_id):
+    for action, _plan in pairs:
         try:
             if process_single_coaching_action(db, action, now=when):
                 processed += 1
@@ -149,4 +209,130 @@ def process_i8_coaching_followups(
         except Exception:
             db.rollback()
             logger.exception("[I10-B13] action=%s processing failed", action.id)
+    return processed
+
+
+def process_i8_coaching_followups(
+    db: Session,
+    *,
+    now: Optional[datetime] = None,
+    user_id: Optional[int] = None,
+    force: bool = False,
+    after_action_id: Optional[int] = None,
+    limit: Optional[int] = None,
+    use_inprocess_cursor: bool = False,
+) -> int:
+    """Process due persisted I8 plan actions — no plan invention, no raw chat.
+
+    Default full-population path: same-tick keyset pages up to max_per_tick.
+    Optional ``use_inprocess_cursor=True`` enables cross-tick fair progression
+    (SAFE_ONLY_SINGLE_BACKGROUND_PROCESS).
+    """
+    if not force and not coaching_followup_enabled():
+        return 0
+    when = now or datetime.now(timezone.utc)
+
+    if user_id is not None:
+        pairs = list_eligible_coaching_actions(db, now=when, user_id=user_id)
+        return _process_pairs(db, pairs, when)
+
+    batch = int(limit) if limit is not None else coaching_scan_batch_size()
+    single_page = use_inprocess_cursor or after_action_id is not None or limit is not None
+
+    if single_page:
+        cursor = (
+            int(after_action_id)
+            if after_action_id is not None
+            else (get_coaching_scan_cursor() if use_inprocess_cursor else 0)
+        )
+        when_n = _normalize_utc(when)
+        raw_rows = (
+            db.query(models.I8OperationalPlanAction, models.I8OperationalPlan)
+            .join(
+                models.I8OperationalPlan,
+                models.I8OperationalPlan.id == models.I8OperationalPlanAction.plan_id,
+            )
+            .filter(
+                models.I8OperationalPlanAction.status == "ACTIVE",
+                models.I8OperationalPlan.status == "ACTIVE",
+                models.I8OperationalPlanAction.safety_state == "SAFE",
+                models.I8OperationalPlanAction.clarification_required.is_(False),
+                models.I8OperationalPlanAction.valid_from <= when_n,
+                models.I8OperationalPlanAction.valid_until >= when_n,
+                models.I8OperationalPlanAction.expires_at > when_n,
+                models.I8OperationalPlanAction.id > cursor,
+            )
+            .order_by(models.I8OperationalPlanAction.id.asc())
+            .limit(batch)
+            .all()
+        )
+        raw_page_len = len(raw_rows)
+        page_last_id = int(raw_rows[-1][0].id) if raw_rows else None
+        if use_inprocess_cursor and after_action_id is None:
+            _advance_coaching_cursor(
+                page_last_id=page_last_id,
+                page_len=raw_page_len,
+                limit=batch,
+            )
+        pairs = [
+            (action, plan)
+            for action, plan in raw_rows
+            if is_action_eligible(action, plan, now=when)
+        ]
+        processed = _process_pairs(db, pairs, when)
+        logger.info(
+            "i10_coaching_scan_completed mode=single_page eligible=%s processed=%s raw_page_len=%s",
+            len(pairs),
+            processed,
+            raw_page_len,
+        )
+        return processed
+
+    # Same-tick multi-page (default)
+    after = 0
+    scanned = 0
+    processed = 0
+    max_per_tick = coaching_scan_max_per_tick()
+    while scanned < max_per_tick:
+        page_limit = min(batch, max_per_tick - scanned)
+        when_n = _normalize_utc(when)
+        raw_rows = (
+            db.query(models.I8OperationalPlanAction, models.I8OperationalPlan)
+            .join(
+                models.I8OperationalPlan,
+                models.I8OperationalPlan.id == models.I8OperationalPlanAction.plan_id,
+            )
+            .filter(
+                models.I8OperationalPlanAction.status == "ACTIVE",
+                models.I8OperationalPlan.status == "ACTIVE",
+                models.I8OperationalPlanAction.safety_state == "SAFE",
+                models.I8OperationalPlanAction.clarification_required.is_(False),
+                models.I8OperationalPlanAction.valid_from <= when_n,
+                models.I8OperationalPlanAction.valid_until >= when_n,
+                models.I8OperationalPlanAction.expires_at > when_n,
+                models.I8OperationalPlanAction.id > after,
+            )
+            .order_by(models.I8OperationalPlanAction.id.asc())
+            .limit(page_limit)
+            .all()
+        )
+        if not raw_rows:
+            break
+        scanned += len(raw_rows)
+        after = int(raw_rows[-1][0].id)
+        pairs = [
+            (action, plan)
+            for action, plan in raw_rows
+            if is_action_eligible(action, plan, now=when)
+        ]
+        processed += _process_pairs(db, pairs, when)
+        if len(raw_rows) < page_limit:
+            break
+
+    logger.info(
+        "i10_coaching_scan_completed mode=same_tick scanned=%s processed=%s max_per_tick=%s",
+        scanned,
+        processed,
+        max_per_tick,
+    )
     return processed

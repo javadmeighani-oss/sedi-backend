@@ -1,6 +1,6 @@
 # app/main.py
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from backend.app.routers import (
@@ -33,6 +33,7 @@ from backend.app.routers import (
     i8_actions,
 )
 from backend.app.routers import ops
+from backend.app.core.process_role import should_start_scheduler
 from backend.app.core.scheduler import start_scheduler  # For automatic notifications
 
 # ------------------ Create FastAPI Application ------------------
@@ -58,6 +59,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def capacity_request_observability(request: Request, call_next):
+    """Lightweight request duration + inflight (no body/PHI logging)."""
+    from backend.app.core.capacity_observability import track_request
+
+    route = request.url.path
+    with track_request(route):
+        return await call_next(request)
+
 
 # ------------------ Main Routes (Routers) ------------------
 app.include_router(system.router, tags=["System"])  # GET /health for monitoring (Freeze B1)
@@ -90,14 +102,11 @@ app.include_router(i5_iran_directory.router)
 app.include_router(i8_actions.router)
 
 # ------------------ Activate Scheduler ------------------
+# Capacity: API workers set SEDI_DISABLE_SCHEDULER=1 or SEDI_PROCESS_ROLE=api
+# so only one scheduler/background process runs recurring jobs.
 def _should_start_scheduler() -> bool:
-    """Return False if tests (pytest or SEDI_DISABLE_SCHEDULER); True otherwise. Safe for production."""
-    if "PYTEST_CURRENT_TEST" in os.environ:
-        return False
-    v = os.getenv("SEDI_DISABLE_SCHEDULER", "").strip().lower()
-    if v in ("1", "true", "yes", "on"):
-        return False
-    return True
+    """Return False if tests, API role, or SEDI_DISABLE_SCHEDULER; True otherwise."""
+    return should_start_scheduler()
 
 
 if _should_start_scheduler():

@@ -286,7 +286,19 @@ class DeliveryService:
             .all()
         )
         last_deliver_pending_run_at = now
+        # Capacity: DELIVER_BATCH_SIZE preserved. threading.Lock is
+        # SAFE_ONLY_SINGLE_BACKGROUND_PROCESS (not cross-process protection).
         logger.info("[NOTIF] deliver_pending start batch_size=%s pending_count=%s", batch_size, len(pending))
+        try:
+            from backend.app.core.capacity_observability import log_event
+
+            log_event(
+                "notification_backlog_batch",
+                batch_size=batch_size,
+                pending_count=len(pending),
+            )
+        except Exception:
+            pass
 
         sent_count = 0
         for notification in pending:

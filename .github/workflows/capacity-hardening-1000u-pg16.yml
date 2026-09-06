@@ -1,0 +1,162 @@
+# Capacity hardening 1000U/100CC — PostgreSQL 16
+# GATE=SEDI-V1-BE-1000U-100CC-CAPACITY-HARDENING-01
+name: Capacity Hardening 1000U PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/core/process_role.py"
+      - "backend/app/core/capacity_budget.py"
+      - "backend/app/core/capacity_observability.py"
+      - "backend/app/core/scheduler_user_batch.py"
+      - "backend/app/core/scheduler.py"
+      - "backend/app/database.py"
+      - "backend/app/main.py"
+      - "backend/app/routers/interact.py"
+      - "backend/app/services/i10/coaching_worker.py"
+      - "backend/app/services/medication_scheduler.py"
+      - "backend/tests/test_capacity_hardening_unit.py"
+      - "backend/tests/test_capacity_hardening_pg16.py"
+      - ".github/workflows/capacity-hardening-1000u-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capacity-hardening-1000u-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  capacity-hardening:
+    name: Capacity Hardening PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_cap
+          POSTGRES_PASSWORD: sedi_cap_pass
+          POSTGRES_DB: sedi_cap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_cap -d sedi_cap"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_cap:sedi_cap_pass@127.0.0.1:5432/sedi_cap
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_cap:sedi_cap_pass@127.0.0.1:5432/sedi_cap
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic pytest-asyncio
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Unit capacity proofs
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cap_evidence
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_capacity_hardening_unit.py \
+            > /tmp/cap_evidence/unit_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Unit (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/cap_evidence/unit_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            tail -n 120 /tmp/cap_evidence/unit_pytest.txt
+            exit "$rc"
+          fi
+      - name: PG16 capacity proofs
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_capacity_hardening_pg16.py \
+            > /tmp/cap_evidence/pg16_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## PG16 (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 120 /tmp/cap_evidence/pg16_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            tail -n 120 /tmp/cap_evidence/pg16_pytest.txt
+            exit "$rc"
+          fi
+      - name: Critical regressions (I8/I10/I7/I5 seams)
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_i10_b13_coaching_followup.py \
+            backend/tests/test_i8_proactive_schedule_trigger_pd_i8_04b.py \
+            > /tmp/cap_evidence/regress_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Regressions (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/cap_evidence/regress_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            tail -n 120 /tmp/cap_evidence/regress_pytest.txt
+            exit "$rc"
+          fi
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          echo "=== UNIT ===" && tail -n 5 /tmp/cap_evidence/unit_pytest.txt
+          echo "=== PG16 ===" && tail -n 5 /tmp/cap_evidence/pg16_pytest.txt
+          echo "=== REGRESS ===" && tail -n 5 /tmp/cap_evidence/regress_pytest.txt
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capacity-hardening-1000u-pytest
+          path: /tmp/cap_evidence/

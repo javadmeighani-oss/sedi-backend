@@ -292,17 +292,29 @@ async def chat(
 
         # Section 15-I1/I4: connected orchestration gateway (always invoked).
         # Reuse precomputed I4 assessment — do not classify twice on the product path.
+        # Capacity: offload sync orchestrator+OpenAI to a worker thread so the
+        # async event loop is not blocked by the external AI network call.
+        # Session is not touched on the event-loop thread during the offload.
         try:
-            orch_result = orchestrator.process(
-                authenticated_user_id=user.id,
-                message=message,
-                language=response_language,
-                conversation_id=payload.conversation_id,
-                interaction_source=payload.interaction_source,
-                source_notification_id=response_source_notification_id,
-                notification_context=notification_context,
-                precomputed_assessment=safety_assessment,
-            )
+            import asyncio
+
+            from backend.app.core.capacity_observability import log_event, track_span
+
+            def _run_orchestration():
+                with track_span("gpt_orchestration", route="/interact/chat"):
+                    return orchestrator.process(
+                        authenticated_user_id=user.id,
+                        message=message,
+                        language=response_language,
+                        conversation_id=payload.conversation_id,
+                        interaction_source=payload.interaction_source,
+                        source_notification_id=response_source_notification_id,
+                        notification_context=notification_context,
+                        precomputed_assessment=safety_assessment,
+                    )
+
+            orch_result = await asyncio.to_thread(_run_orchestration)
+            log_event("chat_orchestration_offload", route="/interact/chat", mode="to_thread")
         except OrchestrationError as orch_err:
             raise HTTPException(
                 status_code=500,

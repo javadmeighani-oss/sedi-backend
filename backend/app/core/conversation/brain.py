@@ -545,10 +545,33 @@ class ConversationBrain:
                 print(f"[BRAIN] Messages count: {len(messages)}")
                 print(f"[BRAIN] ===== END BEFORE GPT =====")
                 try:
-                    completion = gpt_client.responses.create(
-                        model="gpt-4o-mini",
-                        input=messages
-                    )
+                    import time as _time
+
+                    from backend.app.core.capacity_observability import log_event
+
+                    _gpt_t0 = _time.perf_counter()
+                    try:
+                        completion = gpt_client.responses.create(
+                            model="gpt-4o-mini",
+                            input=messages
+                        )
+                        log_event(
+                            "gpt_call",
+                            where="process_message.responses_create",
+                            duration_ms=int((_time.perf_counter() - _gpt_t0) * 1000),
+                            status="ok",
+                            model="gpt-4o-mini",
+                        )
+                    except Exception as _gpt_exc:
+                        log_event(
+                            "gpt_call",
+                            where="process_message.responses_create",
+                            duration_ms=int((_time.perf_counter() - _gpt_t0) * 1000),
+                            status="error",
+                            error_class=type(_gpt_exc).__name__,
+                            model="gpt-4o-mini",
+                        )
+                        raise
                     sedi_response = completion.output_text.strip()
                     if not use_intelligence_safety:
                         sedi_response = _gate3_validate_assistant_response(

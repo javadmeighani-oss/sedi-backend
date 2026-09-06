@@ -48,68 +48,91 @@ def process_medication_reminders(db: Session, decision_engine, now_utc: Optional
     Create medication reminder notifications for due schedule times.
     Returns count of notifications created.
     Legacy rows without schedules use 8-hour bucket dedupe (unchanged).
+
+    Capacity: same-tick keyset pages over UserMedication (no unbounded .all()).
     """
     created = 0
     if now_utc is None:
         now_utc = datetime.utcnow()
 
-    rows = (
-        db.query(models.UserMedication, models.Medication)
-        .join(models.Medication, models.UserMedication.medication_id == models.Medication.id)
-        .options(joinedload(models.UserMedication.schedules))
-        .filter(models.UserMedication.reminder_enabled.is_(True))
-        .all()
-    )
+    batch = int(os.getenv("SCHEDULER_MEDICATION_SCAN_BATCH_SIZE", "200"))
+    batch = max(1, min(500, batch))
+    max_per_tick = int(os.getenv("SCHEDULER_MEDICATION_SCAN_MAX_PER_TICK", "1000"))
+    max_per_tick = max(1, min(5000, max_per_tick))
+    after_id = 0
+    scanned = 0
 
-    for um, med in rows:
-        if not _medication_reminders_enabled(db, um.user_id):
-            continue
+    while scanned < max_per_tick:
+        page_limit = min(batch, max_per_tick - scanned)
+        rows = (
+            db.query(models.UserMedication, models.Medication)
+            .join(models.Medication, models.UserMedication.medication_id == models.Medication.id)
+            .options(joinedload(models.UserMedication.schedules))
+            .filter(
+                models.UserMedication.reminder_enabled.is_(True),
+                models.UserMedication.id > after_id,
+            )
+            .order_by(models.UserMedication.id.asc())
+            .limit(page_limit)
+            .all()
+        )
+        if not rows:
+            break
 
-        dosage = um.user_dosage or med.default_dosage
-        tz_name = um.timezone or DEFAULT_TIMEZONE
-        try:
-            tz = pytz.timezone(tz_name)
-        except Exception:
-            tz = pytz.timezone(DEFAULT_TIMEZONE)
-        local_now = now_utc.replace(tzinfo=pytz.UTC).astimezone(tz)
+        for um, med in rows:
+            scanned += 1
+            if not _medication_reminders_enabled(db, um.user_id):
+                continue
 
-        schedules = um.schedules or []
-        if schedules:
-            for sch in schedules:
-                if not _day_matches(local_now, sch.days_of_week):
-                    continue
-                if not _is_schedule_due(local_now, sch.time_of_day):
-                    continue
-                slot = format_time_of_day(sch.time_of_day)
-                scheduled_local = local_now.replace(
-                    hour=sch.time_of_day.hour,
-                    minute=sch.time_of_day.minute,
-                    second=0,
-                    microsecond=0,
-                )
-                scheduled_for_utc = scheduled_local.astimezone(pytz.UTC).replace(tzinfo=None)
+            dosage = um.user_dosage or med.default_dosage
+            tz_name = um.timezone or DEFAULT_TIMEZONE
+            try:
+                tz = pytz.timezone(tz_name)
+            except Exception:
+                tz = pytz.timezone(DEFAULT_TIMEZONE)
+            local_now = now_utc.replace(tzinfo=pytz.UTC).astimezone(tz)
+
+            schedules = um.schedules or []
+            if schedules:
+                for sch in schedules:
+                    if not _day_matches(local_now, sch.days_of_week):
+                        continue
+                    if not _is_schedule_due(local_now, sch.time_of_day):
+                        continue
+                    slot = format_time_of_day(sch.time_of_day)
+                    scheduled_local = local_now.replace(
+                        hour=sch.time_of_day.hour,
+                        minute=sch.time_of_day.minute,
+                        second=0,
+                        microsecond=0,
+                    )
+                    scheduled_for_utc = scheduled_local.astimezone(pytz.UTC).replace(tzinfo=None)
+                    result = decision_engine.create_medication_reminder(
+                        user_id=um.user_id,
+                        medication_name=med.name,
+                        dosage=dosage,
+                        medication_id=med.id,
+                        schedule_time=slot,
+                        user_medication_id=um.id,
+                        schedule_id=sch.id,
+                        scheduled_for_utc=scheduled_for_utc,
+                    )
+                    if result:
+                        created += 1
+            else:
                 result = decision_engine.create_medication_reminder(
                     user_id=um.user_id,
                     medication_name=med.name,
                     dosage=dosage,
                     medication_id=med.id,
-                    schedule_time=slot,
+                    scheduled_for_utc=now_utc,
                     user_medication_id=um.id,
-                    schedule_id=sch.id,
-                    scheduled_for_utc=scheduled_for_utc,
                 )
                 if result:
                     created += 1
-        else:
-            result = decision_engine.create_medication_reminder(
-                user_id=um.user_id,
-                medication_name=med.name,
-                dosage=dosage,
-                medication_id=med.id,
-                scheduled_for_utc=now_utc,
-                user_medication_id=um.id,
-            )
-            if result:
-                created += 1
+
+        after_id = rows[-1][0].id
+        if len(rows) < page_limit:
+            break
 
     return created

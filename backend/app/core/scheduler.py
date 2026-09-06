@@ -49,92 +49,107 @@ def run_inactivity_notifications():
     - User hasn't chatted for 4+ hours
     - Not more than 2 inactive_ping notifications per day
     - Not more than once per 4 hours (cooldown)
+
+    Capacity: same-tick keyset pages (no unbounded User.all()).
     """
-    with next(get_db()) as db:
-        now = datetime.utcnow()
-        memory = ConversationMemory(db)
-        decision_engine = DecisionEngine(db)
-        
-        users = db.query(User).all()
-        
-        for user in users:
-            # Get last interaction time
-            last_chat_time = memory.get_last_interaction_time(user.id)
-            
-            if last_chat_time is None:
-                # Skip users who have never chatted
-                continue
-            
-            # Check if 4+ hours inactive
-            time_since = now - last_chat_time
-            if time_since < timedelta(hours=INACTIVE_HOURS):
-                continue
-            
-            # Dedupe: Check if we already sent inactive_ping today (max 2 per day)
-            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            # Release B2.1: Check for connection_ping type instead of legacy INSIGHT
-            today_notifications = (
-                db.query(Notification)
-                .filter(
-                    Notification.user_id == user.id,
-                    Notification.type == "connection_ping",
-                    Notification.created_at >= today_start
-                )
-                .all()
-            )
-            
-            inactive_count = len(today_notifications)
-            if inactive_count >= 2:
-                continue  # Max 2 per day reached
-            
-            # Cooldown: Check if we sent one in the last 4 hours
-            cooldown_threshold = now - timedelta(hours=INACTIVE_HOURS)
-            recent_notifications = (
-                db.query(Notification)
-                .filter(
-                    Notification.user_id == user.id,
-                    Notification.type == "connection_ping",
-                    Notification.created_at >= cooldown_threshold
-                )
-                .all()
-            )
-            
-            if len(recent_notifications) > 0:
-                continue  # Cooldown active
-            
-            # Create inactive ping notification using new contract (Release B - Part B1)
-            # Build memory context for personalization
-            try:
-                memory_context = build_memory_context(db, user.id)
-            except Exception as e:
-                print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
-                memory_context = None
-            
-            # Use DecisionEngine with new contract
-            notif = decision_engine.create_connection_ping(
-                user_id=user.id,
-                memory_context=memory_context,
-                scheduled_for=now
-            )
-            
-            if notif:
-                hours_since = int(time_since.total_seconds() / 3600)
-                print(f"[Sedi Scheduler] Connection ping created for user {user.id} ({hours_since}h inactive)")
-            else:
-                print(f"[Sedi Scheduler] Connection ping skipped for user {user.id} (duplicate or error)")
+    from backend.app.core.capacity_observability import track_span
+    from backend.app.core.scheduler_user_batch import iter_users_bounded
+
+    with track_span("scheduler_job", job_id="inactivity_notifications") as meta:
+        scanned = 0
+        with next(get_db()) as db:
+            now = datetime.utcnow()
+            memory = ConversationMemory(db)
+            decision_engine = DecisionEngine(db)
+
+            for user in iter_users_bounded(db):
+                scanned += 1
+                try:
+                    # Get last interaction time
+                    last_chat_time = memory.get_last_interaction_time(user.id)
+
+                    if last_chat_time is None:
+                        # Skip users who have never chatted
+                        continue
+
+                    # Check if 4+ hours inactive
+                    time_since = now - last_chat_time
+                    if time_since < timedelta(hours=INACTIVE_HOURS):
+                        continue
+
+                    # Dedupe: Check if we already sent inactive_ping today (max 2 per day)
+                    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # Release B2.1: Check for connection_ping type instead of legacy INSIGHT
+                    today_notifications = (
+                        db.query(Notification)
+                        .filter(
+                            Notification.user_id == user.id,
+                            Notification.type == "connection_ping",
+                            Notification.created_at >= today_start
+                        )
+                        .all()
+                    )
+
+                    inactive_count = len(today_notifications)
+                    if inactive_count >= 2:
+                        continue  # Max 2 per day reached
+
+                    # Cooldown: Check if we sent one in the last 4 hours
+                    cooldown_threshold = now - timedelta(hours=INACTIVE_HOURS)
+                    recent_notifications = (
+                        db.query(Notification)
+                        .filter(
+                            Notification.user_id == user.id,
+                            Notification.type == "connection_ping",
+                            Notification.created_at >= cooldown_threshold
+                        )
+                        .all()
+                    )
+
+                    if len(recent_notifications) > 0:
+                        continue  # Cooldown active
+
+                    # Create inactive ping notification using new contract (Release B - Part B1)
+                    # Build memory context for personalization
+                    try:
+                        memory_context = build_memory_context(db, user.id)
+                    except Exception as e:
+                        print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
+                        memory_context = None
+
+                    # Use DecisionEngine with new contract
+                    notif = decision_engine.create_connection_ping(
+                        user_id=user.id,
+                        memory_context=memory_context,
+                        scheduled_for=now
+                    )
+
+                    if notif:
+                        hours_since = int(time_since.total_seconds() / 3600)
+                        print(f"[Sedi Scheduler] Connection ping created for user {user.id} ({hours_since}h inactive)")
+                    else:
+                        print(f"[Sedi Scheduler] Connection ping skipped for user {user.id} (duplicate or error)")
+                except Exception:
+                    print(f"[Sedi Scheduler] inactivity isolated failure user_id={user.id}")
+                    continue
+        meta["batch_size"] = scanned
+
 
 # -------------------------------
 # Function: Check daily health status
 # -------------------------------
 def check_health_status():
+    from backend.app.core.scheduler_user_batch import iter_users_bounded
+
     with next(get_db()) as db:
-        users = db.query(User).all()
-        for user in users:
+        for user in iter_users_bounded(db):
             # For simple testing, use a fixed health summary
             # Note: Health alerts should be created by health data evaluation, not scheduled checks
             # This function is kept for backward compatibility but does not create notifications
             # to avoid spam. Actual health alerts are created via DecisionEngine.create_health_alert()
+            _ = user.id
             pass
+
 
 # -------------------------------
 # Function: Send morning greeting (UPDATED - Phase 9.4)
@@ -146,75 +161,86 @@ def run_morning_notifications():
     - Current time (in user's timezone) matches user's morning preference (default 9 AM)
     - Only once per calendar day per user (dedupe)
     Stage 16.6: Uses user timezone from UserMemoryFact key "timezone" (e.g. Asia/Tehran); else server default.
+
+    Capacity: same-tick keyset pages (no unbounded User.all()).
     """
-    with next(get_db()) as db:
-        now = datetime.utcnow()
-        memory_repo = MemoryRepository(db)
-        decision_engine = DecisionEngine(db)
-        memory_context = None  # Will be built per user if needed
-        
-        users = db.query(User).all()
-        
-        from backend.app.services.gate4.feature_flags import gate4_daily_0800_enabled
-        from backend.app.services.gate4.scheduler_timing import (
-            legacy_should_run_morning_notification,
-            should_run_daily_notification_gate4,
-        )
+    from backend.app.core.capacity_observability import track_span
+    from backend.app.core.scheduler_user_batch import iter_users_bounded
 
-        for user in users:
-            now_utc = now.replace(tzinfo=pytz.UTC)
-            if gate4_daily_0800_enabled():
-                if not should_run_daily_notification_gate4(db, user, now_utc):
-                    continue
-            else:
-                if not legacy_should_run_morning_notification(
-                    memory_repo, user, now_utc, morning_hour_default=MORNING_HOUR
-                ):
-                    continue
+    with track_span("scheduler_job", job_id="morning_notifications") as meta:
+        scanned = 0
+        with next(get_db()) as db:
+            now = datetime.utcnow()
+            memory_repo = MemoryRepository(db)
+            decision_engine = DecisionEngine(db)
+            memory_context = None  # Will be built per user if needed
 
-            # Dedupe: morning_brief only — daily digest has separate I10 occurrence key
-            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            # Release B2.1: Check for morning_brief type instead of legacy INSIGHT
-            today_morning_notifications = (
-                db.query(Notification)
-                .filter(
-                    Notification.user_id == user.id,
-                    Notification.type == "morning_brief",
-                    Notification.created_at >= today_start
-                )
-                .all()
+            from backend.app.services.gate4.feature_flags import gate4_daily_0800_enabled
+            from backend.app.services.gate4.scheduler_timing import (
+                legacy_should_run_morning_notification,
+                should_run_daily_notification_gate4,
             )
-            
-            morning_already_sent = len(today_morning_notifications) > 0
-            
-            if not morning_already_sent:
-                # Build memory context for personalized message
+
+            for user in iter_users_bounded(db):
+                scanned += 1
                 try:
-                    memory_context = build_memory_context(db, user.id)
-                except Exception as e:
-                    print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
-                    memory_context = None
-                
-                # Create morning notification using new contract (Release B - Part B1)
-                notif = decision_engine.create_morning_brief(
-                    user_id=user.id,
-                    memory_context=memory_context,
-                    scheduled_for=now
-                )
-                
-                if notif:
-                    print(f"[Sedi Scheduler] Morning brief created for user {user.id}")
-                else:
-                    print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
+                    now_utc = now.replace(tzinfo=pytz.UTC)
+                    if gate4_daily_0800_enabled():
+                        if not should_run_daily_notification_gate4(db, user, now_utc):
+                            continue
+                    else:
+                        if not legacy_should_run_morning_notification(
+                            memory_repo, user, now_utc, morning_hour_default=MORNING_HOUR
+                        ):
+                            continue
 
-            digest_notif = decision_engine.create_daily_wellness_digest(
-                user_id=user.id,
-                scheduled_for=now,
-            )
-            if digest_notif:
-                print(f"[Sedi Scheduler] Daily wellness digest created for user {user.id}")
-            else:
-                print(f"[Sedi Scheduler] Daily wellness digest skipped for user {user.id}")
+                    # Dedupe: morning_brief only — daily digest has separate I10 occurrence key
+                    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # Release B2.1: Check for morning_brief type instead of legacy INSIGHT
+                    today_morning_notifications = (
+                        db.query(Notification)
+                        .filter(
+                            Notification.user_id == user.id,
+                            Notification.type == "morning_brief",
+                            Notification.created_at >= today_start
+                        )
+                        .all()
+                    )
+
+                    morning_already_sent = len(today_morning_notifications) > 0
+
+                    if not morning_already_sent:
+                        # Build memory context for personalized message
+                        try:
+                            memory_context = build_memory_context(db, user.id)
+                        except Exception as e:
+                            print(f"[Sedi Scheduler] Failed to build memory context for user {user.id}: {e}")
+                            memory_context = None
+
+                        # Create morning notification using new contract (Release B - Part B1)
+                        notif = decision_engine.create_morning_brief(
+                            user_id=user.id,
+                            memory_context=memory_context,
+                            scheduled_for=now
+                        )
+
+                        if notif:
+                            print(f"[Sedi Scheduler] Morning brief created for user {user.id}")
+                        else:
+                            print(f"[Sedi Scheduler] Morning brief skipped for user {user.id} (duplicate or error)")
+
+                    digest_notif = decision_engine.create_daily_wellness_digest(
+                        user_id=user.id,
+                        scheduled_for=now,
+                    )
+                    if digest_notif:
+                        print(f"[Sedi Scheduler] Daily wellness digest created for user {user.id}")
+                    else:
+                        print(f"[Sedi Scheduler] Daily wellness digest skipped for user {user.id}")
+                except Exception:
+                    print(f"[Sedi Scheduler] morning isolated failure user_id={user.id}")
+                    continue
+        meta["batch_size"] = scanned
     
 # -------------------------------
 # Save notification to database
@@ -263,57 +289,69 @@ def run_engagement_nudge():
     """
     Every 10 min: if user last interaction > 3 hours, enqueue one engagement nudge
     with dedupe_key engagement:{user_id}:{date}:{bucket}. Max 3 per day per user.
+
+    Capacity: same-tick keyset pages (no unbounded User.all()).
     """
-    with next(get_db()) as db:
-        now = datetime.utcnow()
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        memory = ConversationMemory(db)
-        decision_engine = DecisionEngine(db)
-        users = db.query(User).all()
-        for user in users:
-            last_chat_time = memory.get_last_interaction_time(user.id)
-            if last_chat_time is None:
-                continue
-            if now - last_chat_time < timedelta(hours=ENGAGEMENT_NUDGE_INACTIVE_HOURS):
-                continue
-            # Stage 16.6.2: Max engagement nudges per day (channel=engagement for indexed query)
-            today_engagement = (
-                db.query(Notification)
-                .filter(
-                    Notification.user_id == user.id,
-                    Notification.channel == "engagement",
-                    Notification.created_at >= today_start,
-                )
-                .count()
-            )
-            if today_engagement >= ENGAGEMENT_MAX_PER_DAY:
-                continue
-            # Stage 16.6.2: Min hours since last engagement (anti-spam)
-            min_hours_ago = now - timedelta(hours=ENGAGEMENT_MIN_HOURS)
-            last_engagement = (
-                db.query(Notification)
-                .filter(
-                    Notification.user_id == user.id,
-                    Notification.channel == "engagement",
-                    Notification.created_at >= min_hours_ago,
-                )
-                .order_by(Notification.created_at.desc())
-                .first()
-            )
-            if last_engagement:
-                continue
-            try:
-                memory_context = build_memory_context(db, user.id)
-            except Exception as e:
-                print(f"[Sedi Scheduler] Failed memory context user {user.id}: {e}")
-                memory_context = None
-            notif = decision_engine.create_engagement_nudge(
-                user_id=user.id,
-                memory_context=memory_context,
-                scheduled_for=now,
-            )
-            if notif:
-                print(f"[Sedi Scheduler] Engagement nudge created for user {user.id}")
+    from backend.app.core.capacity_observability import track_span
+    from backend.app.core.scheduler_user_batch import iter_users_bounded
+
+    with track_span("scheduler_job", job_id="engagement_nudge") as meta:
+        scanned = 0
+        with next(get_db()) as db:
+            now = datetime.utcnow()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            memory = ConversationMemory(db)
+            decision_engine = DecisionEngine(db)
+            for user in iter_users_bounded(db):
+                scanned += 1
+                try:
+                    last_chat_time = memory.get_last_interaction_time(user.id)
+                    if last_chat_time is None:
+                        continue
+                    if now - last_chat_time < timedelta(hours=ENGAGEMENT_NUDGE_INACTIVE_HOURS):
+                        continue
+                    # Stage 16.6.2: Max engagement nudges per day (channel=engagement for indexed query)
+                    today_engagement = (
+                        db.query(Notification)
+                        .filter(
+                            Notification.user_id == user.id,
+                            Notification.channel == "engagement",
+                            Notification.created_at >= today_start,
+                        )
+                        .count()
+                    )
+                    if today_engagement >= ENGAGEMENT_MAX_PER_DAY:
+                        continue
+                    # Stage 16.6.2: Min hours since last engagement (anti-spam)
+                    min_hours_ago = now - timedelta(hours=ENGAGEMENT_MIN_HOURS)
+                    last_engagement = (
+                        db.query(Notification)
+                        .filter(
+                            Notification.user_id == user.id,
+                            Notification.channel == "engagement",
+                            Notification.created_at >= min_hours_ago,
+                        )
+                        .order_by(Notification.created_at.desc())
+                        .first()
+                    )
+                    if last_engagement:
+                        continue
+                    try:
+                        memory_context = build_memory_context(db, user.id)
+                    except Exception as e:
+                        print(f"[Sedi Scheduler] Failed memory context user {user.id}: {e}")
+                        memory_context = None
+                    notif = decision_engine.create_engagement_nudge(
+                        user_id=user.id,
+                        memory_context=memory_context,
+                        scheduled_for=now,
+                    )
+                    if notif:
+                        print(f"[Sedi Scheduler] Engagement nudge created for user {user.id}")
+                except Exception:
+                    print(f"[Sedi Scheduler] engagement isolated failure user_id={user.id}")
+                    continue
+        meta["batch_size"] = scanned
 
 
 # -------------------------------
@@ -341,26 +379,44 @@ def run_device_disconnected_check():
             cutoff = now - timedelta(minutes=DEVICE_DISCONNECTED_THRESHOLD_MIN)
             decision_engine = DecisionEngine(db)
             # Active devices that have been seen before but not within threshold
-            devices = (
-                db.query(Device)
-                .filter(
-                    Device.status == "active",
-                    Device.last_seen_at.isnot(None),
-                    Device.last_seen_at < cutoff,
-                )
-                .all()
-            )
-            for dev in devices:
-                try:
-                    notif = decision_engine.create_device_disconnected(
-                        user_id=dev.user_id,
-                        device_id=dev.device_id,
-                        scheduled_for=now,
+            # Capacity: keyset pages (no unbounded Device.all()).
+            batch = int(os.getenv("SCHEDULER_DEVICE_SCAN_BATCH_SIZE", "200"))
+            batch = max(1, min(500, batch))
+            max_per_tick = int(os.getenv("SCHEDULER_DEVICE_SCAN_MAX_PER_TICK", "1000"))
+            max_per_tick = max(1, min(5000, max_per_tick))
+            after_id = 0
+            scanned = 0
+            while scanned < max_per_tick:
+                page_limit = min(batch, max_per_tick - scanned)
+                devices = (
+                    db.query(Device)
+                    .filter(
+                        Device.status == "active",
+                        Device.last_seen_at.isnot(None),
+                        Device.last_seen_at < cutoff,
+                        Device.id > after_id,
                     )
-                    if notif:
-                        print(f"[Sedi Scheduler] device_disconnected created for user={dev.user_id} device_id={dev.device_id}")
-                except Exception as e:
-                    print(f"[Sedi Scheduler] device_disconnected failed user={dev.user_id} device_id={dev.device_id}: {e}")
+                    .order_by(Device.id.asc())
+                    .limit(page_limit)
+                    .all()
+                )
+                if not devices:
+                    break
+                for dev in devices:
+                    scanned += 1
+                    try:
+                        notif = decision_engine.create_device_disconnected(
+                            user_id=dev.user_id,
+                            device_id=dev.device_id,
+                            scheduled_for=now,
+                        )
+                        if notif:
+                            print(f"[Sedi Scheduler] device_disconnected created for user={dev.user_id} device_id={dev.device_id}")
+                    except Exception as e:
+                        print(f"[Sedi Scheduler] device_disconnected failed user={dev.user_id} device_id={dev.device_id}: {e}")
+                after_id = devices[-1].id
+                if len(devices) < page_limit:
+                    break
         finally:
             try:
                 db.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": _DEVICE_DISCONNECTED_LOCK_KEY})
@@ -441,14 +497,16 @@ def run_raw_signal_processing():
 # -------------------------------
 def run_deliver_pending():
     """Query unsent notifications, send via adapter, mark is_sent=true. Idempotent."""
-    t0 = time.perf_counter()
-    print("[Sedi Scheduler] deliver_pending job start")
-    from backend.app.services.notifications.delivery_service import DeliveryService
-    with next(get_db()) as db:
-        service = DeliveryService(db=db)
-        sent_count = service.deliver_pending(limit=100)
-    duration_ms = int((time.perf_counter() - t0) * 1000)
-    print(f"[Sedi Scheduler] deliver_pending job end duration_ms={duration_ms} sent_count={sent_count}")
+    from backend.app.core.capacity_observability import track_span
+
+    with track_span("scheduler_job", job_id="deliver_pending") as meta:
+        print("[Sedi Scheduler] deliver_pending job start")
+        from backend.app.services.notifications.delivery_service import DeliveryService
+        with next(get_db()) as db:
+            service = DeliveryService(db=db)
+            sent_count = service.deliver_pending(limit=100)
+        meta["batch_size"] = sent_count
+        print(f"[Sedi Scheduler] deliver_pending job end sent_count={sent_count}")
 
 
 # -------------------------------
@@ -465,6 +523,9 @@ def start_scheduler():
             minutes=MORNING_CHECK_INTERVAL_MIN,
             id="morning_notifications",
             replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60,
         )
 
         # Schedule inactivity notifications check every 15 minutes
@@ -474,6 +535,9 @@ def start_scheduler():
             minutes=INACTIVITY_CHECK_INTERVAL_MIN,
             id="inactivity_notifications",
             replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60,
         )
 
         # Stage 16.6: Engagement nudge every 10 minutes (3h inactive, max 3/day)
@@ -483,6 +547,9 @@ def start_scheduler():
             minutes=ENGAGEMENT_CHECK_INTERVAL_MIN,
             id="engagement_nudge",
             replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60,
         )
 
         # Schedule health status check every 2 hours (keep existing)
