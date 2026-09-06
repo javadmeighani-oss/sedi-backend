@@ -12,8 +12,26 @@ from types import SimpleNamespace
 
 
 def _install_ai_stub() -> None:
-    latency_ms = float(os.environ.get("SEDI_CAPACITY_AI_LATENCY_MS", "50"))
     os.environ.setdefault("OPENAI_API_KEY", "capacity-stub-not-real")
+    latency_file = os.environ.get(
+        "SEDI_CAPACITY_AI_LATENCY_FILE", "/tmp/sedi_capacity_ai_latency_ms"
+    )
+
+    def _latency_s() -> float:
+        # Prefer shared file so multi-worker children see harness sweeps.
+        try:
+            with open(latency_file, "r", encoding="utf-8") as fh:
+                return max(0.0, float(fh.read().strip()) / 1000.0)
+        except Exception:  # noqa: BLE001
+            return max(0.0, float(os.environ.get("SEDI_CAPACITY_AI_LATENCY_MS", "50")) / 1000.0)
+
+    # Seed file from env if missing
+    try:
+        if not os.path.exists(latency_file):
+            with open(latency_file, "w", encoding="utf-8") as fh:
+                fh.write(str(os.environ.get("SEDI_CAPACITY_AI_LATENCY_MS", "50")))
+    except Exception:  # noqa: BLE001
+        pass
 
     class _Resp:
         def __init__(self, text: str):
@@ -21,12 +39,12 @@ def _install_ai_stub() -> None:
 
     class _Responses:
         def create(self, *args, **kwargs):
-            time.sleep(max(0.0, latency_ms) / 1000.0)
+            time.sleep(_latency_s())
             return _Resp("CAPACITY_AI_STUB_OK")
 
     class _Completions:
         def create(self, *args, **kwargs):
-            time.sleep(max(0.0, latency_ms) / 1000.0)
+            time.sleep(_latency_s())
             return SimpleNamespace(
                 choices=[SimpleNamespace(message=SimpleNamespace(content="CAPACITY_AI_STUB_OK"))]
             )
@@ -43,7 +61,8 @@ def _install_ai_stub() -> None:
 
     prompts.client = _Client()
     print(
-        f"[CAPACITY_AI_STUB] installed latency_ms={latency_ms} REAL_OPENAI_CALLED=NO",
+        f"[CAPACITY_AI_STUB] installed file={latency_file} REAL_OPENAI_CALLED=NO "
+        f"initial_ms={os.environ.get('SEDI_CAPACITY_AI_LATENCY_MS', '50')}",
         flush=True,
     )
 
