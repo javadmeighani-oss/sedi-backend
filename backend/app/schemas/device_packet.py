@@ -9,7 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class PacketObservationSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    observation_type: str = Field(..., description="heart_rate | blood_pressure | glucose | temperature | spo2 | device_reported_cardiac_event")
+    observation_type: str = Field(
+        ...,
+        description=(
+            "heart_rate | blood_pressure | glucose | temperature | spo2 | "
+            "device_reported_cardiac_event | device_reported_vital_status"
+        ),
+    )
     payload: Dict[str, Any] = Field(..., description="Type-specific observation payload")
     detected_at: Optional[datetime] = Field(None, description="Observation time; defaults to packet measured_at")
 

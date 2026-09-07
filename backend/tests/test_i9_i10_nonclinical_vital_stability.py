@@ -291,10 +291,13 @@ def test_d_established_inside_band_stable(db, patches):
     _seed_current_day_hr(db, mother, device, when, [102.0, 102.0, 102.0])
     result = evaluate_nonclinical_heart_rate_stability(db, health_subject_id=mother.id, when=when)
     assert result.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_STABLE
+    # MAD retained for analytics; must NOT mint Mother gadget monitoring authority.
     facts = assemble_care_subject_status_facts(db, health_subject_id=mother.id, when=when)
-    assert facts.monitoring_status == "NONCLINICAL_STABLE"
+    assert facts.monitoring_status is None
+    assert facts.monitoring_reason == "awaiting_device_reported_vital_status"
+    assert facts.monitoring_status != "NONCLINICAL_STABLE"
     body = render_care_status_digest_body(facts).lower()
-    assert "consistent with the recent established personal pattern" in body
+    assert "consistent with the recent established personal pattern" not in body
     for phrase in FORBIDDEN_PHRASES:
         assert phrase not in body
 
@@ -329,9 +332,12 @@ def test_f_just_above_band_changed(db, patches):
     _seed_current_day_hr(db, mother, device, when, [target, target, target])
     result = evaluate_nonclinical_heart_rate_stability(db, health_subject_id=mother.id, when=when)
     assert result.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_CHANGED
+    # MAD CHANGED retained as analytics result; gadget authority is DEVICE_REPORTED only.
     facts = assemble_care_subject_status_facts(db, health_subject_id=mother.id, when=when)
-    assert facts.monitoring_status == "NONCLINICAL_CHANGED"
-    assert "meaningful change" in render_care_status_digest_body(facts).lower()
+    assert facts.monitoring_status is None
+    assert facts.monitoring_reason == "awaiting_device_reported_vital_status"
+    assert facts.monitoring_status != "NONCLINICAL_CHANGED"
+    assert "meaningful change" not in render_care_status_digest_body(facts).lower()
 
 
 def test_g_positive_negative_delta_symmetric(db, patches):

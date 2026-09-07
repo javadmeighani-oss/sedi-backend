@@ -84,7 +84,7 @@ jobs:
               print("POSTGRES_SERVER_VERSION", ver)
               assert str(ver).startswith("16."), ver
           PY
-      - name: Alembic single head 079
+      - name: Alembic single head 080
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -93,7 +93,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          assert heads == ["080_i9_device_reported_vital_status"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Fresh migrate helper (conftest drop_all wipes shared schema)
@@ -114,7 +114,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "079_i10_cni_owner_provenance_nullable", head
+              assert head == "080_i9_device_reported_vital_status", head
               print("FRESH_MIGRATE_OK", head)
           PY
       - name: Stage A contract + I1-I4 section15

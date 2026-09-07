@@ -61,7 +61,7 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r backend/requirements.txt
           python -m pip install pytest alembic
-      - name: Prove PostgreSQL 16 + Alembic head 079
+      - name: Prove PostgreSQL 16 + Alembic head 080
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -77,7 +77,7 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          assert heads == ["080_i9_device_reported_vital_status"], heads
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Fresh migrate base DB (harness creates isolated DBs)

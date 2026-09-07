@@ -39,6 +39,7 @@ from backend.tests.helpers.i10_postgresql_harness import (
     I10IsolatedPgDb,
     _REV_078,
     _REV_079,
+    _REV_080,
 )
 
 pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
@@ -296,13 +297,13 @@ def test_managed_mother_null_owner_son_recipient(db, a02_patches):
     )
 
 
-def test_alembic_single_head_is_079():
+def test_alembic_single_head_is_080():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
     cfg = Config("backend/alembic.ini")
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == [_REV_079]
+    assert script.get_heads() == [_REV_080]
 
 
 def test_cni_owner_column_nullable_in_orm():

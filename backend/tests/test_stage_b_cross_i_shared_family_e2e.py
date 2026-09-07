@@ -53,7 +53,7 @@ from backend.app.services.intelligence.orchestrator import IntelligenceOrchestra
 from backend.app.services.notification_engine import DecisionEngine
 from backend.app.services.scis.embedding.providers import FakeScisEmbeddingProvider
 from backend.app.services.scis.indexing import index_knowledge_unit
-from backend.tests.helpers.i10_postgresql_harness import I10IsolatedPgDb, _REV_079
+from backend.tests.helpers.i10_postgresql_harness import I10IsolatedPgDb, _REV_080
 from backend.tests.helpers.stage_b_family_fixture import SCENARIO_ID, seed_stage_b_family
 
 pytest_plugins = ["backend.tests.helpers.i10_postgresql_harness"]
@@ -82,8 +82,8 @@ def stage_b_patches():
 
 @pytest.fixture(scope="module")
 def stage_b_pg():
-    isolated = I10IsolatedPgDb.create(suffix="stageb", revision=_REV_079)
-    assert isolated.head() == _REV_079
+    isolated = I10IsolatedPgDb.create(suffix="stageb", revision=_REV_080)
+    assert isolated.head() == _REV_080
     with isolated.engine.connect() as conn:
         from sqlalchemy import text
 
@@ -642,7 +642,7 @@ def test_stage_b_pg16_and_clinical_rules_invariant(stage_b_pg):
     with isolated.engine.connect() as conn:
         ver = str(conn.execute(text("SHOW server_version")).scalar())
         head = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-    assert head == _REV_079
+    assert head == _REV_080
     # Canonical Stage B prefers 16; CI workflow pins pg16.
     assert ver.startswith("16.") or ver.startswith("15.")
     assert active_clinical_device_rule_count() == 0

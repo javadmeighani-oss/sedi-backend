@@ -199,4 +199,4 @@ def test_alembic_head_unchanged():
     cfg = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["079_i10_cni_owner_provenance_nullable"]
+    assert heads == ["080_i9_device_reported_vital_status"]

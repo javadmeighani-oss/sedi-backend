@@ -14,9 +14,11 @@ from backend.app.services.i9.i8_projection_service import (
     get_bounded_context_projection_for_subject,
     projection_context_refs,
 )
+from backend.app.services.i9.device_reported_vital_status import (
+    get_effective_device_reported_vital_status,
+)
 from backend.app.services.i9.nonclinical_vital_stability import (
     NonclinicalVitalMonitoringStatus,
-    evaluate_nonclinical_heart_rate_stability,
 )
 
 STALE_DATA_HOURS = 48
@@ -147,8 +149,22 @@ def assemble_care_subject_status_facts(
     monitoring_reason: Optional[str] = None
     baseline_comparison: Optional[str] = None
 
-    # STALE/NO_DATA → CARE_DATA_GAP path; never emit STABLE.
-    if data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
+    # Mother gadget status authority = DEVICE_REPORTED only (not MAD/HR recompute).
+    # Silence / no DEVICE_REPORTED row → never infer STABLE/UNSTABLE (CARE_DATA_GAP separate).
+    device_reported = get_effective_device_reported_vital_status(
+        db, health_subject_id=health_subject_id
+    )
+    if device_reported is not None:
+        monitoring_status = device_reported.status
+        monitoring_reason = "device_reported_vital_status"
+        baseline_quality = None
+        if device_reported.status == "STABLE":
+            baseline_comparison = "Gadget reports vital-sign status as stable."
+        else:
+            baseline_comparison = (
+                "Gadget reports vital-sign status as unstable/changed."
+            )
+    elif data_status in (CareSubjectDataStatus.STALE_DATA, CareSubjectDataStatus.NO_DATA):
         monitoring_status = None
         monitoring_reason = "care_data_gap_path"
     elif data_status == CareSubjectDataStatus.PARTIAL_DATA:
@@ -157,27 +173,11 @@ def assemble_care_subject_status_facts(
         baseline_comparison = (
             "Available heart-rate data is not sufficient to determine the monitoring status."
         )
-    elif data_status == CareSubjectDataStatus.SUFFICIENT_OBSERVED_DATA and projection.health_subject_id:
-        stability = evaluate_nonclinical_heart_rate_stability(
-            db, health_subject_id=health_subject_id, when=now
-        )
-        monitoring_status = stability.status.value
-        baseline_quality = stability.baseline_quality
-        monitoring_reason = stability.reason
-        if stability.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_STABLE:
-            baseline_comparison = (
-                "Observed heart-rate pattern remained consistent with the recent "
-                "established personal pattern."
-            )
-        elif stability.status == NonclinicalVitalMonitoringStatus.NONCLINICAL_CHANGED:
-            baseline_comparison = (
-                "Observed heart-rate pattern showed a meaningful change relative to the "
-                "recent established personal pattern."
-            )
-        else:
-            baseline_comparison = (
-                "Available heart-rate data is not sufficient to determine the monitoring status."
-            )
+    elif data_status == CareSubjectDataStatus.SUFFICIENT_OBSERVED_DATA:
+        # Rollups may exist for analytics; MAD must not mint Mother gadget status.
+        monitoring_status = None
+        monitoring_reason = "awaiting_device_reported_vital_status"
+        baseline_comparison = "No gadget-reported vital-sign status is available yet."
 
     return CareSubjectStatusFacts(
         health_subject_id=health_subject_id,
@@ -192,7 +192,7 @@ def assemble_care_subject_status_facts(
         baseline_comparison=baseline_comparison,
         latest_bucket_end=latest_bucket_end,
         has_expected_data_source=expected_source,
-        signal_scope="heart_rate",
+        signal_scope="device_reported_vital_status" if device_reported is not None else "heart_rate",
         monitoring_status=monitoring_status,
         baseline_quality=baseline_quality,
         monitoring_reason=monitoring_reason,

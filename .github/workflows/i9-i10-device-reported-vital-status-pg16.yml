@@ -1,56 +1,54 @@
-# I9→I10 nonclinical vital stability (PO MAD band) — ephemeral PostgreSQL 16.
-# NO production mutation. NO deploy. NO clinical rule activation.
-# GATE=SEDI-V1-BE-I9-I10-NONCLINICAL-VITAL-STABILITY-CONTRACT-02
-name: I9-I10 Nonclinical Vital Stability PG16
+# I9→I10 DeviceReportedVitalStatus canonicalization — ephemeral PostgreSQL 16.
+# NO production mutation. NO deploy. NO clinical rules. NO Smart-RAG. NO Real FCM.
+# GATE=SEDI-V1-BE-I9-I10-DEVICE-REPORTED-VITAL-STATUS-CANONICALIZATION-01
+name: I9-I10 Device Reported Vital Status PG16
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - "backend/app/services/i9/baseline_service.py"
-      - "backend/app/services/i9/nonclinical_vital_stability.py"
-      - "backend/app/services/i9/i8_projection_service.py"
-      - "backend/app/services/i10/care_subject_status_facts.py"
-      - "backend/app/services/i10/caregiver_status_digest.py"
-      - "backend/app/services/i10/care_digest_producer_worker.py"
+      - "backend/app/models.py"
+      - "backend/app/schemas/device_packet.py"
+      - "backend/app/services/i9/device_packet_service.py"
       - "backend/app/services/i9/device_reported_vital_status.py"
-      - "backend/tests/test_i9_i10_nonclinical_vital_stability.py"
-      - "backend/tests/test_i10_b14_caregiver_status_digest.py"
-      - "backend/tests/test_i10_b06_caregiver_delivery.py"
-      - "backend/tests/test_i10_b15_a02_owner_provenance.py"
+      - "backend/app/services/i10/device_reported_vital_status_producer.py"
+      - "backend/app/services/i10/care_subject_status_facts.py"
+      - "backend/alembic/versions/080_i9_device_reported_vital_status.py"
+      - "backend/tests/test_i9_i10_device_reported_vital_status.py"
       - "backend/tests/helpers/i10_postgresql_harness.py"
-      - ".github/workflows/i9-i10-nonclinical-vital-stability-pg16.yml"
+      - "backend/tests/helpers/stage_b_family_fixture.py"
+      - ".github/workflows/i9-i10-device-reported-vital-status-pg16.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: i9-i10-vital-stability-${{ github.ref }}
+  group: i9-i10-device-reported-vital-status-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  nonclinical-vital-stability:
-    name: Nonclinical vital stability PG16
+  device-reported-vital-status:
+    name: Device-reported vital status PG16
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     services:
       postgres:
         image: pgvector/pgvector:pg16
         env:
-          POSTGRES_USER: sedi_vital
-          POSTGRES_PASSWORD: sedi_vital_pass
-          POSTGRES_DB: sedi_vital
+          POSTGRES_USER: sedi_drvs
+          POSTGRES_PASSWORD: sedi_drvs_pass
+          POSTGRES_DB: sedi_drvs
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U sedi_vital -d sedi_vital"
+          --health-cmd "pg_isready -U sedi_drvs -d sedi_drvs"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
     env:
       PYTHONPATH: ${{ github.workspace }}
-      DATABASE_URL: postgresql+psycopg2://sedi_vital:sedi_vital_pass@127.0.0.1:5432/sedi_vital
-      TEST_DATABASE_URL: postgresql+psycopg2://sedi_vital:sedi_vital_pass@127.0.0.1:5432/sedi_vital
+      DATABASE_URL: postgresql+psycopg2://sedi_drvs:sedi_drvs_pass@127.0.0.1:5432/sedi_drvs
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_drvs:sedi_drvs_pass@127.0.0.1:5432/sedi_drvs
       APP_ENV: test_isolated
       ENVIRONMENT: test_isolated
       ENV: test_isolated
@@ -67,7 +65,7 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r backend/requirements.txt
           python -m pip install pytest alembic
-      - name: Prove PostgreSQL 16
+      - name: Prove PostgreSQL 16 + pgvector
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -78,6 +76,10 @@ jobs:
               ver = c.execute(text("SHOW server_version")).scalar()
               print("POSTGRES_SERVER_VERSION", ver)
               assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
           PY
       - name: Alembic single head 080
         run: |
@@ -89,25 +91,24 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           assert heads == ["080_i9_device_reported_vital_status"], heads
+          rev = script.get_revision("080_i9_device_reported_vital_status")
+          assert rev.down_revision == "079_i10_cni_owner_provenance_nullable"
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head
         run: |
           set -euo pipefail
           python -m alembic -c backend/alembic.ini upgrade head
-      - name: Focused stability + B14/B06/B15-A02 regressions
+      - name: Focused DeviceReportedVitalStatus suite
         run: |
           set -euo pipefail
-          mkdir -p /tmp/vital_stability_evidence
+          mkdir -p /tmp/drvs_evidence
           python -B -m pytest -v --tb=short --noconftest \
-            backend/tests/test_i9_i10_nonclinical_vital_stability.py \
-            backend/tests/test_i10_b14_caregiver_status_digest.py \
-            backend/tests/test_i10_b06_caregiver_delivery.py \
-            backend/tests/test_i10_b15_a02_owner_provenance.py \
-            | tee /tmp/vital_stability_evidence/pytest.txt
+            backend/tests/test_i9_i10_device_reported_vital_status.py \
+            | tee /tmp/drvs_evidence/pytest.txt
       - name: Upload pytest evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: i9-i10-vital-stability-pytest
-          path: /tmp/vital_stability_evidence/pytest.txt
+          name: i9-i10-device-reported-vital-status-pytest
+          path: /tmp/drvs_evidence/pytest.txt

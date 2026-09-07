@@ -588,4 +588,4 @@ def test_l31_alembic_single_head_073():
     from alembic.script import ScriptDirectory
 
     heads = ScriptDirectory("backend/alembic").get_heads()
-    assert heads == ["079_i10_cni_owner_provenance_nullable"]
+    assert heads == ["080_i9_device_reported_vital_status"]

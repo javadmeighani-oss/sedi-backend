@@ -786,6 +786,40 @@ class DeviceReportedCardiacEvent(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
 
 
+class DeviceReportedVitalStatus(Base):
+    """Gadget-reported STABLE|UNSTABLE vital status — DEVICE_REPORTED SoT only.
+
+    Backend must not recompute this from HR/MAD/baseline/thresholds/RAG/LLM.
+    STABLE != medically safe; UNSTABLE != danger/emergency/diagnosis.
+    """
+
+    __tablename__ = "device_reported_vital_statuses"
+    __table_args__ = (
+        UniqueConstraint("device_packet_id", name="uq_drvs_device_packet_id"),
+        CheckConstraint("status IN ('STABLE', 'UNSTABLE')", name="ck_drvs_status"),
+        CheckConstraint("source_class IN ('DEVICE_REPORTED')", name="ck_drvs_source_class"),
+        Index("ix_drvs_subject_detected", "health_subject_id", "detected_at"),
+    )
+
+    id = Column(BigInteger, Identity(start=1), primary_key=True, autoincrement=True, index=True)
+    device_packet_id = Column(
+        BigInteger,
+        ForeignKey("device_packets.id", ondelete="CASCADE", name="fk_drvs_device_packet_id"),
+        nullable=False,
+    )
+    health_subject_id = Column(
+        Integer,
+        ForeignKey("health_subjects.id", ondelete="RESTRICT", name="fk_drvs_health_subject_id"),
+        nullable=False,
+    )
+    status = Column(String(16), nullable=False)
+    source_class = Column(String(32), nullable=False, default="DEVICE_REPORTED", server_default="DEVICE_REPORTED")
+    detected_at = Column(DateTime(timezone=True), nullable=False)
+    server_received_at = Column(DateTime(timezone=True), nullable=False)
+    provenance_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, server_default=func.now(), nullable=False)
+
+
 class DeviceMobileGatewayAuthorization(Base):
     """Mobile gateway relay authorization; does not own health data."""
 

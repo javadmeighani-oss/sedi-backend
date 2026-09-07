@@ -13,6 +13,12 @@ from sqlalchemy.orm import Session
 from backend.app import models
 from backend.app.services.db03.physiological_idempotency import build_physiological_idempotency_key
 from backend.app.services.i9.device_binding_service import DeviceBindingError, resolve_subject_for_device
+from backend.app.services.i9.device_reported_vital_status import (
+    OBSERVATION_TYPE as VITAL_STATUS_OBSERVATION_TYPE,
+    SOURCE_CLASS as VITAL_STATUS_SOURCE_CLASS,
+    get_effective_device_reported_vital_status,
+    normalize_device_reported_status,
+)
 from backend.app.services.i9.health_subject_service import resolve_linked_user_id_for_subject
 from backend.app.services.vitals.vital_registry import VitalValidationError, validate_event
 
@@ -54,6 +60,7 @@ class DevicePacketIngestResult:
     binding_id: Optional[int]
     physiological_measurement_ids: List[int] = field(default_factory=list)
     cardiac_event_ids: List[int] = field(default_factory=list)
+    vital_status_ids: List[int] = field(default_factory=list)
 
 
 def _ensure_utc(dt: datetime) -> datetime:
@@ -129,10 +136,59 @@ def ingest_device_packet(
     linked_user_id = resolve_linked_user_id_for_subject(db, health_subject_id)
     pm_ids: List[int] = []
     cardiac_ids: List[int] = []
+    vital_status_ids: List[int] = []
 
     for obs in packet_in.observations:
         obs_type = obs.observation_type.strip().lower()
         obs_detected = _ensure_utc(obs.detected_at or measured_at)
+
+        if obs_type == VITAL_STATUS_OBSERVATION_TYPE:
+            try:
+                status = normalize_device_reported_status(
+                    obs.payload.get("status") if isinstance(obs.payload, dict) else None
+                )
+            except ValueError as exc:
+                raise VitalValidationError(str(exc)) from exc
+            previous = get_effective_device_reported_vital_status(
+                db, health_subject_id=health_subject_id
+            )
+            vital_row = models.DeviceReportedVitalStatus(
+                device_packet_id=packet.id,
+                health_subject_id=health_subject_id,
+                status=status,
+                source_class=VITAL_STATUS_SOURCE_CLASS,
+                detected_at=obs_detected,
+                server_received_at=server_received_at,
+                provenance_json=json.dumps(
+                    {
+                        "source": "DEVICE",
+                        "class": VITAL_STATUS_SOURCE_CLASS,
+                        "device_id": device.device_id,
+                        "client_packet_id": packet.client_packet_id,
+                    }
+                ),
+            )
+            db.add(vital_row)
+            db.flush()
+            vital_status_ids.append(int(vital_row.id))
+            new_effective = get_effective_device_reported_vital_status(
+                db, health_subject_id=health_subject_id
+            )
+            # I10 transition notify — gadget SoT only; no MAD/RAG/LLM.
+            from backend.app.services.i10.device_reported_vital_status_producer import (
+                emit_device_reported_vital_status_notifications,
+            )
+
+            emit_device_reported_vital_status_notifications(
+                db,
+                health_subject_id=health_subject_id,
+                ingested_row=vital_row,
+                previous=previous,
+                new_effective=new_effective,
+                deliver=False,
+                commit=False,
+            )
+            continue
 
         if obs_type == CARDIAC_EVENT_OBSERVATION_TYPE:
             event_code = str(obs.payload.get("event_code") or obs.payload.get("code") or "unknown")
@@ -207,6 +263,7 @@ def ingest_device_packet(
         binding_id=binding_id,
         physiological_measurement_ids=pm_ids,
         cardiac_event_ids=cardiac_ids,
+        vital_status_ids=vital_status_ids,
     )
 
 

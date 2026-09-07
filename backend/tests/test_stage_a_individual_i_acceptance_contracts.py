@@ -153,4 +153,4 @@ def test_alembic_single_head_remains_079():
     cfg = Config(str(ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     script = ScriptDirectory.from_config(cfg)
-    assert script.get_heads() == ["079_i10_cni_owner_provenance_nullable"]
+    assert script.get_heads() == ["080_i9_device_reported_vital_status"]

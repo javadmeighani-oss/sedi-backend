@@ -113,7 +113,7 @@ def test_c01_alembic_single_head_073():
         text=True,
         check=True,
     )
-    assert "079_i10_cni_owner_provenance_nullable (head)" in result.stdout
+    assert "080_i9_device_reported_vital_status (head)" in result.stdout
 
 
 def test_c02_migration_073_columns_present(db):
