@@ -82,12 +82,52 @@ def _nutrition_personalized_requirements() -> tuple[FactRequirement, ...]:
     )
 
 
+def _activity_personalized_requirements() -> tuple[FactRequirement, ...]:
+    """V1 personalized activity/exercise readiness — existing supported facts only.
+
+    No dedicated exercise planner schema. Goals/restrictions/profile reuse Gate2/I2.
+    Clinical clearance remains I4; I3 only asks for product-data readiness.
+    """
+    return (
+        FactRequirement("act.goal", "lifestyle.goal.*", 10, "prefix"),
+        FactRequirement("act.birth_year", "profile.birth_year", 20, "exact"),
+        FactRequirement("act.sex", "profile.sex", 30, "exact"),
+        FactRequirement("act.height", "profile.height_cm", 40, "exact"),
+        FactRequirement("act.weight", "profile.weight_kg", 50, "exact"),
+        FactRequirement(
+            "act.conditions",
+            "health.condition.*",
+            80,
+            "confirmed_none_or_prefix",
+            requires_confirmation=True,
+        ),
+        FactRequirement(
+            "act.medications",
+            "health.medication.*",
+            90,
+            "confirmed_none_or_prefix",
+            requires_confirmation=True,
+        ),
+        FactRequirement(
+            "act.restrictions",
+            "lifestyle.restriction.*",
+            100,
+            "confirmed_none_or_prefix",
+        ),
+    )
+
+
 def requirements_for(intent: IntentResult) -> tuple[FactRequirement, ...]:
     if (
         intent.intent_id is IntentId.NUTRITION
         and intent.request_kind is RequestKind.PERSONALIZED_PLAN
     ):
         return _nutrition_personalized_requirements()
+    if (
+        intent.intent_id is IntentId.ACTIVITY
+        and intent.request_kind is RequestKind.PERSONALIZED_PLAN
+    ):
+        return _activity_personalized_requirements()
     # Informational / other intents: no missing-info interrogation by default.
     return ()
 
@@ -378,6 +418,14 @@ _REQ_TO_TEMPLATE = {
     "nut.meal_schedule": "tpl.meal_schedule.v1",
     "nut.budget": "tpl.budget.v1",
     "nut.food_prep": "tpl.food_prep.v1",
+    "act.goal": "tpl.goal.v1",
+    "act.birth_year": "tpl.birth_year.v1",
+    "act.sex": "tpl.sex.v1",
+    "act.height": "tpl.height.v1",
+    "act.weight": "tpl.weight.v1",
+    "act.conditions": "tpl.conditions.v1",
+    "act.medications": "tpl.medications.v1",
+    "act.restrictions": "tpl.restrictions.v1",
 }
 
 

@@ -1,0 +1,155 @@
+# Primary User Exercise V1 E2E — ephemeral PostgreSQL 16
+# GATE=SEDI-V1-BE-EXERCISE-PRIMARY-USER-E2E-01
+# NO production mutation. NO deploy. NO Smart-RAG. NO frontend. NO schema change.
+name: Exercise Primary User E2E PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i8/exercise_primary_path.py"
+      - "backend/app/services/i8/unified_core.py"
+      - "backend/app/services/intelligence/orchestrator.py"
+      - "backend/app/services/intelligence/missing_information.py"
+      - "backend/app/services/intelligence/intent_registry.py"
+      - "backend/tests/test_v1_exercise_primary_user_e2e.py"
+      - "backend/tests/test_section15_i3_intent_missing_info.py"
+      - ".github/workflows/exercise-primary-user-e2e-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exercise-primary-e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  exercise-primary-e2e:
+    name: Exercise primary-user E2E PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_ex
+          POSTGRES_PASSWORD: sedi_ex_pass
+          POSTGRES_DB: sedi_ex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_ex -d sedi_ex"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_ex:sedi_ex_pass@127.0.0.1:5432/sedi_ex
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_ex:sedi_ex_pass@127.0.0.1:5432/sedi_ex
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Focused exercise primary-user E2E (CASE_01-10)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ex_evidence
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_v1_exercise_primary_user_e2e.py \
+            > /tmp/ex_evidence/exercise_e2e.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Exercise E2E (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 160 /tmp/ex_evidence/exercise_e2e.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::exercise e2e failed"
+            tail -n 160 /tmp/ex_evidence/exercise_e2e.txt
+            exit "$rc"
+          fi
+          grep -E "CASE_0[1-9]|CASE_10|passed" /tmp/ex_evidence/exercise_e2e.txt | tail -n 40
+      - name: Adjacent regressions (I3 intent registry + nutrition failclose smoke)
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_section15_i3_intent_missing_info.py \
+            -k "registry_version or activity or nutrition_kinds or readiness_exact or v1_nutrition" \
+            > /tmp/ex_evidence/exercise_reg.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Exercise adjacent I3 regressions (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/ex_evidence/exercise_reg.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::exercise adjacent regression failed"
+            tail -n 80 /tmp/ex_evidence/exercise_reg.txt
+            exit "$rc"
+          fi
+      - name: Authority smoke
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from backend.app.services.i8.exercise_primary_path import (
+              CANONICAL_AUTHORITY,
+              execute_primary_exercise_action,
+              is_activity_operational_intent,
+          )
+          from backend.app.services.intelligence.contracts import IntentId
+          from backend.app.services.intelligence.intent_registry import resolve_intent
+          from backend.app.services.intelligence.missing_information import (
+              _activity_personalized_requirements,
+          )
+          assert CANONICAL_AUTHORITY == "I8_OPERATIONAL_EXERCISE"
+          assert is_activity_operational_intent(IntentId.ACTIVITY)
+          intent = resolve_intent(message="create an exercise plan for me", language="en")
+          assert intent.intent_id is IntentId.ACTIVITY
+          ids = {r.requirement_id for r in _activity_personalized_requirements()}
+          assert "act.goal" in ids
+          assert callable(execute_primary_exercise_action)
+          print("EXERCISE_AUTHORITY_SMOKE_OK")
+          PY

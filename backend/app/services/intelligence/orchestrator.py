@@ -770,6 +770,57 @@ class IntelligenceOrchestrator:
                 skip_generator = True
                 clarification_message = None
 
+        # I8 primary-user exercise/activity — ONE canonical operational path.
+        # READY ACTIVITY intents → generate_operational_action(domain=exercise, persist=True).
+        # Never LLM-invent exercise medical prescriptions / clearances.
+        exercise_message: Optional[str] = None
+        if (
+            not terminal_safety
+            and not care_nav_handled
+            and not skip_generator
+            and intent_meta is not None
+            and readiness_meta is not None
+            and readiness_meta.status is ReadinessStatus.READY
+        ):
+            from backend.app.services.i8.exercise_primary_path import (
+                execute_primary_exercise_action,
+                is_activity_operational_intent,
+            )
+
+            if is_activity_operational_intent(intent_meta.intent_id):
+                try:
+                    if self._db is None:
+                        raise RuntimeError("exercise_path_requires_db")
+                    exercise = execute_primary_exercise_action(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        actor_user_id=authenticated_user_id,
+                        request=message,
+                        language=lang,
+                        persist=True,
+                        generation_mode="reactive",
+                    )
+                    exercise_message = exercise.user_message
+                    extra_reason_codes.append("EXERCISE_PRIMARY_PATH")
+                    extra_reason_codes.append(f"EXERCISE_STATUS_{exercise.status}")
+                    if exercise.grounded:
+                        extra_reason_codes.append("I8_EXERCISE_ACTION")
+                    if exercise.fail_safe:
+                        extra_reason_codes.append("EXERCISE_FAIL_SAFE")
+                    if exercise.action_id is not None:
+                        extra_reason_codes.append(
+                            f"I8_EXERCISE_ACTION_ID_{exercise.action_id}"
+                        )
+                except Exception:
+                    exercise_message = (
+                        "I cannot create a verified activity action from the available context."
+                        if lang == "en"
+                        else "با زمینه موجود نمی‌توانم یک اقدام فعالیت تأییدشده بسازم."
+                    )
+                    extra_reason_codes.append("EXERCISE_PRIMARY_PATH_FAIL_CLOSED")
+                skip_generator = True
+                clarification_message = None
+
         # prepare
         t0 = time.perf_counter()
         if skip_generator and terminal_safety:
@@ -844,6 +895,7 @@ class IntelligenceOrchestrator:
             out_message = (
                 directory_message
                 or nutrition_message
+                or exercise_message
                 or clarification_message
                 or ""
             )
@@ -859,8 +911,12 @@ class IntelligenceOrchestrator:
                     "empty_generation",
                     reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
                 )
-            # Directory/nutrition-owned responses are already fail-safe; skip Gate3 rewrite.
-            if directory_message is not None or nutrition_message is not None:
+            # Directory/nutrition/exercise-owned responses are already fail-safe; skip Gate3 rewrite.
+            if (
+                directory_message is not None
+                or nutrition_message is not None
+                or exercise_message is not None
+            ):
                 ctx.append_stage(
                     StageName.VALIDATE_GENERATION_RESULT,
                     "ok",
