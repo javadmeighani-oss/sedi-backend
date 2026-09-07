@@ -83013,3 +83013,89 @@ v745_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v745_FA.md
 MASTER_LOG_TIP=§452
 CURSOR_HANDOFF_TIP=v745
+
+
+## §453 — EXERCISE PRIMARY-USER V1 E2E-01
+
+GATE=SEDI-V1-BE-EXERCISE-PRIMARY-USER-E2E-01
+CERTIFICATION_PACKAGE=B
+BACKEND_V1_CERTIFICATION_TOTAL=76
+THIS_GATE_MANDATORY_CASES=10
+CERTIFICATION_COMPLETED=22
+CERTIFICATION_REMAINING=54
+GATE_RESULT=PASS
+EXERCISE_PRIMARY_USER_E2E=TRUE_GREEN
+ARCHITECTURE_CONFORMANCE=PASS
+PG16_RUNTIME_STATUS=PASS
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+
+START_HEAD=7bbace083c432f5823ed87c21520dc5557ec282d
+IMPLEMENTATION_COMMITS=36407e7039a81fbb956fc5decf81b7acc957de05
+FOLLOWUP_COMMITS=none
+DOCUMENTATION_COMMIT=recorded_after_docs_push
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ALEMBIC_HEAD_UNCHANGED=YES
+FORCE_PUSH=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+SMART_RAG_MUTATION=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+WORKFLOW_MUTATION=YES (exercise-primary-user-e2e-pg16.yml focused)
+
+### Gaps found → root causes → repairs
+EXERCISE_CHAT_ROUTE_FOUND=NO → Orchestrator never called I8 exercise → wire READY ACTIVITY → exercise_primary_path/execute_primary_exercise_action(persist=True)
+ACTIVITY_INTENT_SUPPORT_FOUND=YES (IntentId.ACTIVITY informational) → add i3.rule.activity.personalized.v1 + V1 readiness on existing facts
+EXERCISE_READINESS_FOUND=NO → _activity_personalized_requirements (goals/profile/conditions/meds/restrictions)
+PARALLEL_EXERCISE_IMPLEMENTATION_FOUND=NO dedicated planner → reuse I8 domain=exercise + I10 EXERCISE_PLAN_FOLLOW_UP; Chat SoT = I8 primary persist path only
+
+### Authority matrix
+USER_ACTIVITY_DATA=Gate2/I6 product facts
+I5=governed exercise/health knowledge
+I7=bounded personalization (not medical SoT)
+I8=operational exercise action owner
+I4=clinical/safety (unchanged)
+I10=delivery only (EXERCISE_PLAN_FOLLOW_UP)
+
+ONE_CANONICAL_EXERCISE_PATH=YES
+PARALLEL_EXERCISE_SOT=NO
+CROSS_USER_LEAK=0
+ACCOUNT_SUBSTITUTION=0
+HEALTH_SUBJECT_SUBSTITUTION=0
+UNAUTHORIZED_AUTHORITY_PATH=0
+
+### Files
+NEW backend/app/services/i8/exercise_primary_path.py
+MOD backend/app/services/intelligence/intent_registry.py
+MOD backend/app/services/intelligence/missing_information.py
+MOD backend/app/services/intelligence/orchestrator.py
+NEW backend/tests/test_v1_exercise_primary_user_e2e.py
+NEW .github/workflows/exercise-primary-user-e2e-pg16.yml
+
+### PG16 CI
+POSTGRESQL_VERSION=16.15
+TARGETED_CI_RUN_ID=34125372599
+TARGETED_CI_RESULT=success
+TARGETED_CI_COMMIT_SHA=36407e7039a81fbb956fc5decf81b7acc957de05
+PRIOR_FAILED_RUNS=none
+SELF_HEALED=NO (first-run green)
+REGRESSION_RUN_IDS=34125372599 (I3 registry + nutrition failclose smoke + authority smoke)
+REGRESSION_RESULT=PASS
+
+### Cases
+CASE_01..CASE_10=PASS
+
+### GATE_PROVES
+Primary-user V1 exercise/activity E2E; intent/readiness; Gate2/I6 goals/prefs/restrictions; canonical persistence; I5 knowledge boundary; I7 personalization boundary; I8 action; I4 clinical/safety boundary; proactive I8→I10 seam; isolation; DONE/idempotency; PG16
+
+### GATE_DOES_NOT_PROVE
+clinical exercise prescription; rehabilitation medicine; ALS exercise safety; cardiovascular clearance; fitness tracking platform; Smart-RAG; real FCM; Mother Chat/I7; frontend; production deploy
+
+NEXT_GATE_AUTHORIZED=NO
+v745_MODIFIED=NO
+v746_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v746_FA.md
+MASTER_LOG_TIP=§453
+CURSOR_HANDOFF_TIP=v746

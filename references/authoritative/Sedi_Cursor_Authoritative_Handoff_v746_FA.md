@@ -1,0 +1,61 @@
+# SEDI Cursor Authoritative Handoff - v746
+
+Exercise primary-user **V1 E2E-01** — **PASS TRUE_GREEN**. Do not modify v745 / §452.
+
+```
+VERSION=v746
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v745
+v745_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§453
+GATE=SEDI-V1-BE-EXERCISE-PRIMARY-USER-E2E-01
+CERTIFICATION_PACKAGE=B
+GATE_RESULT=PASS
+EXERCISE_PRIMARY_USER_E2E=TRUE_GREEN
+NUTRITION_PRIMARY_USER_E2E=TRUE_GREEN
+MANDATORY_CASES=10
+PASSED_CASES=10
+CERTIFICATION_COMPLETED=22
+CERTIFICATION_REMAINING=54
+BACKEND_V1_CERTIFICATION_TOTAL=76
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=7bbace083c432f5823ed87c21520dc5557ec282d
+IMPLEMENTATION_COMMITS=36407e70
+FOLLOWUP_COMMITS=none
+CI_RUN_ID=34125372599
+CI_COMMIT_SHA=36407e7039a81fbb956fc5decf81b7acc957de05
+POSTGRESQL_VERSION=16.15
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ONE_CANONICAL_EXERCISE_PATH=YES
+PARALLEL_EXERCISE_SOT=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+SMART_RAG_IMPLEMENTATION=NOT_AUTHORIZED
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Delivered
+
+- Chat READY ACTIVITY → I8 `exercise_primary_path` (persist) — no LLM exercise invent
+- I3 V1 personalized activity readiness on existing supported facts
+- CASE_01–10 certified on PostgreSQL 16 (run 34125372599)
+- I10 `EXERCISE_PLAN_FOLLOW_UP` + DONE/idempotency reused
+- §453 append-only; v745 untouched
+
+## Still open (unauthorized)
+
+1. I10 real FCM/mobile delivery hardening
+2. Managed-subject chat HS-target
+3. Smart-RAG only after architecture reapproval
+4. Nationwide directory / lab population
+5. Frontend final redesign
+6. Remaining certification packages C–…
+
+```
+NEXT_GATE_AUTHORIZED=NO
+```
