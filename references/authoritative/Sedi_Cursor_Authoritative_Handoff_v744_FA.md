@@ -1,0 +1,69 @@
+# SEDI Cursor Authoritative Handoff - v744
+
+I5 directory chat fail-safe **controlled-push PG16 CI-01** — **PASS TRUE_GREEN**. Do not modify v743 / §450.
+
+```
+VERSION=v744
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v743
+v743_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§451
+GATE=SEDI-V1-BE-I5-DIRECTORY-CHAT-FAILSAFE-CONTROLLED-PUSH-PG16-CI-01
+PARENT_GATE=SEDI-V1-BE-I5-DIRECTORY-CHAT-FAILSAFE-01
+MODE=MANDATORY_END_TO_END_CLOSURE
+GATE_RESULT=PASS
+I5_DIRECTORY_CHAT_FAILSAFE=TRUE_GREEN
+ARCHITECTURE_CONFORMANCE=PASS
+PG16_RUNTIME_STATUS=PASS
+APPROVED_BY=JAVAD
+PRODUCT_OWNER_APPROVAL=YES
+CHATGPT_ARCHITECTURE_REVIEW=PASS_ACCEPTED
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=b7b49ae33e9e33d93a2282802f3c27ee96d6004e
+IMPLEMENTATION_COMMIT=a5b75091f7eb505b0d6b0d0b0afebdc89e076d87
+CI_RUN_ID=34117981098
+CI_COMMIT_SHA=a5b75091f7eb505b0d6b0d0b0afebdc89e076d87
+POSTGRESQL_VERSION=16.15
+FOCUSED_TESTS=24_passed
+W5_REGRESSION=PASS
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ONE_CANONICAL_CHAT_DIRECTORY_PATH=YES
+CARE_NAV_LLM_FALLTHROUGH=NO
+UNSAFE_ACTIVE_LEGACY_BYPASS=NO
+RAG_PROVIDER_AUTHORITY=NO
+MEMORY_PROVIDER_AUTHORITY=NO
+I8_DIRECTORY_AUTHORITY=NO
+I10_DIRECTORY_AUTHORITY=NO
+PERSONAL_PROVIDER_CONTEXT_PRESERVED=YES
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+SMART_RAG_IMPLEMENTATION=NOT_AUTHORIZED
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Delivered
+
+- Canonical Chat → I5 `care_navigation_directory` facade over governed directory service
+- Directory miss → `NO_VERIFIED_DIRECTORY_RESULT` (no LLM provider invent)
+- RAG/Memory personal doctor context preserved as `PERSONAL_PROVIDER_CONTEXT` only
+- Lab population remains unauthorized (fail-safe)
+- Focused PG16 CI run 34117981098 green (24 tests + W5 + orchestrator smoke)
+- §451 append-only; v743 untouched
+
+## Still open (unauthorized)
+
+1. Nutrition primary-user E2E (impl and/or test per product scope)
+2. Exercise primary-user E2E
+3. I10 real FCM/mobile delivery hardening
+4. Managed-subject chat HS-target (design §435)
+5. Smart-RAG only after architecture reapproval
+6. Nationwide directory / lab population expansion
+7. Frontend final redesign
+
+```
+NEXT_GATE_AUTHORIZED=NO
+```
