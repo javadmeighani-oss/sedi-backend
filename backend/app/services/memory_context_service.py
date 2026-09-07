@@ -91,7 +91,8 @@ def build_memory_context(db: Session, user_id: int) -> Dict[str, Any]:
         "habits": list_habits(db, user_id)[:5],
         "goals": list_goals(db, user_id)[:5],
         "restrictions": list_restrictions(db, user_id)[:5],
-        "doctors": list_doctors(db, user_id)[:3],
+        "doctors": list_doctors(db, user_id)[:3],  # personal Gate2 contacts (context)
+        "doctors_authority_class": "PERSONAL_PROVIDER_CONTEXT",
         "upcoming_events": upcoming,
         "care_plan_items": list_care_plan_items(db, user_id)[:5],
         "medications": _medications_summary(db, user_id),

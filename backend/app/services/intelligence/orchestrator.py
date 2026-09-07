@@ -668,6 +668,57 @@ class IntelligenceOrchestrator:
                     ReasonCode.ADVANCED_SAFETY_RISK_ENGINE_CONNECTED.value
                 )
 
+        # I5 care-navigation — ONE canonical path via care_navigation_directory facade.
+        # DIRECTORY_HIT → structured response; DIRECTORY_MISS → fail-safe.
+        # Never fall through to LLM provider generation.
+        directory_message: Optional[str] = None
+        care_nav_handled = False
+        if not terminal_safety:
+            from backend.app.services.i5.care_navigation_directory import (
+                CareNavEntity,
+                STATUS_NO_VERIFIED,
+                STATUS_VERIFIED,
+                fail_safe_user_message,
+                is_care_navigation_query,
+                resolve_care_navigation,
+            )
+
+            if is_care_navigation_query(message):
+                care_nav_handled = True
+                try:
+                    if self._db is None:
+                        raise RuntimeError("care_nav_requires_db")
+                    care_nav = resolve_care_navigation(
+                        self._db,
+                        message,
+                        language=lang,
+                        authenticated_user_id=authenticated_user_id,
+                    )
+                    if care_nav is None:
+                        # Detector said care-nav; still fail-closed (no LLM invent).
+                        directory_message = fail_safe_user_message(
+                            CareNavEntity.SPECIALIST, lang
+                        )
+                        extra_reason_codes.append("CARE_NAVIGATION_FAIL_CLOSED")
+                        extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
+                    else:
+                        directory_message = care_nav.user_message
+                        extra_reason_codes.append(
+                            "CARE_NAVIGATION_VERIFIED"
+                            if care_nav.status == STATUS_VERIFIED
+                            else "CARE_NAVIGATION_NO_VERIFIED"
+                        )
+                        if care_nav.status == STATUS_NO_VERIFIED:
+                            extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
+                except Exception:
+                    directory_message = fail_safe_user_message(
+                        CareNavEntity.SPECIALIST, lang
+                    )
+                    extra_reason_codes.append("CARE_NAVIGATION_FAIL_CLOSED")
+                    extra_reason_codes.append("NO_VERIFIED_DIRECTORY_RESULT")
+                skip_generator = True
+                clarification_message = None
+
         # prepare
         t0 = time.perf_counter()
         if skip_generator and terminal_safety:
@@ -739,7 +790,7 @@ class IntelligenceOrchestrator:
                 ReasonCode.GENERATOR_SKIPPED_FOR_CLARIFICATION,
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-            out_message = clarification_message or ""
+            out_message = directory_message or clarification_message or ""
             t0 = time.perf_counter()
             if not out_message.strip():
                 ctx.append_stage(
@@ -752,12 +803,21 @@ class IntelligenceOrchestrator:
                     "empty_generation",
                     reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
                 )
-            ctx.append_stage(
-                StageName.VALIDATE_GENERATION_RESULT,
-                "ok",
-                ReasonCode.CLARIFICATION_RESPONSE_VALIDATED,
-                duration_ms=(time.perf_counter() - t0) * 1000.0,
-            )
+            # Directory-owned responses are already fail-safe; skip Gate3 rewrite.
+            if directory_message is not None:
+                ctx.append_stage(
+                    StageName.VALIDATE_GENERATION_RESULT,
+                    "ok",
+                    ReasonCode.RESPONSE_VALIDATED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            else:
+                ctx.append_stage(
+                    StageName.VALIDATE_GENERATION_RESULT,
+                    "ok",
+                    ReasonCode.CLARIFICATION_RESPONSE_VALIDATED,
+                    duration_ms=(time.perf_counter() - t0) * 1000.0,
+                )
         else:
             generator = self._legacy_generator
             if generator is None:
@@ -825,6 +885,18 @@ class IntelligenceOrchestrator:
             validated = self._safety_validator(text=gen_message, language=lang)
             out_message = validated.message
             post_val_status = validated.status
+            # Defense-in-depth only: primary gate already skipped generator for care-nav.
+            # If we somehow reached generation on a care-nav message, replace with fail-safe.
+            if care_nav_handled:
+                from backend.app.services.i5.care_navigation_directory import (
+                    CareNavEntity,
+                    fail_safe_user_message,
+                )
+
+                out_message = directory_message or fail_safe_user_message(
+                    CareNavEntity.SPECIALIST, lang
+                )
+                extra_reason_codes.append("CARE_NAV_LLM_FALLTHROUGH_BLOCKED")
             detected_name = raw.get("detected_name")
             if detected_name is not None and not isinstance(detected_name, str):
                 detected_name = None

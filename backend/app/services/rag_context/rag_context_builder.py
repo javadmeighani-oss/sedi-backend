@@ -233,8 +233,11 @@ def build_rag_context_pack(
             d["name"] for d in list_doctors(db, user_id)[:DOCTORS_CONTEXT_MAX]
         ]
         if doctors:
+            # Preserve personal Gate2 contacts as CONTEXT only — never governed SoT.
             stable_facts["doctors"] = doctors
+            stable_facts["doctors_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
             meta["sources"].append("user_doctors")
+            meta["provider_authority_class"] = "PERSONAL_PROVIDER_CONTEXT"
         upcoming = list_events(db, user_id, upcoming_only=True)[:EVENTS_CONTEXT_MAX]
         if upcoming:
             stable_facts["upcoming_events"] = [
@@ -304,6 +307,20 @@ def serialize_rag_pack_for_context(pack: RagContextPack, max_chars: int = RAG_CO
     meds = (pack.stable_facts or {}).get("medications") if pack.stable_facts else None
     if isinstance(meds, list) and meds:
         lines.append("Medications: " + "; ".join(str(m) for m in meds[:MEDICATIONS_CONTEXT_MAX]))
+    personal_docs = (pack.stable_facts or {}).get("doctors") if pack.stable_facts else None
+    auth_class = (
+        (pack.stable_facts or {}).get("doctors_authority_class")
+        if pack.stable_facts
+        else None
+    )
+    if isinstance(personal_docs, list) and personal_docs:
+        label = "Personal care contacts"
+        if auth_class == "PERSONAL_PROVIDER_CONTEXT":
+            label += " (context only; NOT governed directory / NOT verified providers)"
+        lines.append(
+            f"{label}: "
+            + ", ".join(str(d) for d in personal_docs[:DOCTORS_CONTEXT_MAX])
+        )
     text = "\n".join(lines)
     if len(text) > max_chars:
         text = text[: max_chars - 3] + "..."

@@ -1,0 +1,147 @@
+# I5 Directory Chat Fail-safe — ephemeral PostgreSQL 16.
+# GATE=SEDI-V1-BE-I5-DIRECTORY-CHAT-FAILSAFE-CONTROLLED-PUSH-PG16-CI-01
+# NO production mutation. NO deploy. NO Smart-RAG. NO frontend. NO schema change.
+name: I5 Directory Chat Failsafe PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i5/care_navigation_directory.py"
+      - "backend/app/services/i5/iran_directory_service.py"
+      - "backend/app/services/intelligence/orchestrator.py"
+      - "backend/app/services/rag_context/rag_context_builder.py"
+      - "backend/app/services/memory_context_service.py"
+      - "backend/tests/test_i5_directory_chat_failsafe.py"
+      - "backend/tests/test_section30_i5_w5_iran_directory.py"
+      - ".github/workflows/i5-directory-chat-failsafe-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: i5-directory-chat-failsafe-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  i5-directory-chat-failsafe:
+    name: I5 directory chat failsafe PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_i5dir
+          POSTGRES_PASSWORD: sedi_i5dir_pass
+          POSTGRES_DB: sedi_i5dir
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_i5dir -d sedi_i5dir"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_i5dir:sedi_i5dir_pass@127.0.0.1:5432/sedi_i5dir
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_i5dir:sedi_i5dir_pass@127.0.0.1:5432/sedi_i5dir
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+          PY
+      - name: Alembic single head 079
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Focused directory chat failsafe tests
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/i5dir_evidence
+          set +e
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i5_directory_chat_failsafe.py \
+            > /tmp/i5dir_evidence/failsafe_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## Failsafe pytest (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 100 /tmp/i5dir_evidence/failsafe_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::failsafe pytest failed"
+            tail -n 80 /tmp/i5dir_evidence/failsafe_pytest.txt
+            exit "$rc"
+          fi
+          grep -E "24 passed" /tmp/i5dir_evidence/failsafe_pytest.txt
+      - name: Iran directory service regression (W5 subset)
+        run: |
+          set -euo pipefail
+          set +e
+          python -B -m pytest -v --tb=short \
+            backend/tests/test_section30_i5_w5_iran_directory.py \
+            > /tmp/i5dir_evidence/w5_pytest.txt 2>&1
+          rc=$?
+          set -e
+          echo "## W5 iran directory pytest (exit=$rc)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -n 80 /tmp/i5dir_evidence/w5_pytest.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::W5 directory regression failed"
+            tail -n 80 /tmp/i5dir_evidence/w5_pytest.txt
+            exit "$rc"
+          fi
+      - name: Orchestrator smoke (care-nav import path)
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from backend.app.services.i5.care_navigation_directory import (
+              CANONICAL_AUTHORITY,
+              LAB_POPULATION_AUTHORIZED,
+              is_care_navigation_query,
+          )
+          from backend.app.services.intelligence.orchestrator import IntelligenceOrchestrator
+          assert CANONICAL_AUTHORITY == "I5_GOVERNED_CARE_DIRECTORY"
+          assert LAB_POPULATION_AUTHORIZED is False
+          assert is_care_navigation_query("Find a neurologist in Tehran")
+          assert IntelligenceOrchestrator is not None
+          print("ORCHESTRATOR_IMPORT_OK")
+          PY
