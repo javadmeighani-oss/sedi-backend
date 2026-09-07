@@ -59,7 +59,7 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r backend/requirements.txt
           python -m pip install pytest alembic
-      - name: Alembic single head is 079
+      - name: Alembic single head is 080
         run: |
           python - <<'PY'
           from alembic.config import Config
@@ -67,9 +67,9 @@ jobs:
           cfg = Config("backend/alembic.ini")
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
-          rev = script.get_revision("079_i10_cni_owner_provenance_nullable")
-          assert rev.down_revision == "078_health_subject_condition_foundation"
+          assert heads == ["080_i9_device_reported_vital_status"], heads
+          rev = script.get_revision("080_i9_device_reported_vital_status")
+          assert rev.down_revision == "079_i10_cni_owner_provenance_nullable"
           print("ALEMBIC_HEAD_OK", heads[0])
           PY
       - name: Upgrade ephemeral DB to head

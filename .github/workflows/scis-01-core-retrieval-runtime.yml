@@ -90,7 +90,7 @@ jobs:
           script = ScriptDirectory.from_config(cfg)
           heads = script.get_heads()
           print("HEADS", heads)
-          assert heads == ["079_i10_cni_owner_provenance_nullable"], heads
+          assert heads == ["080_i9_device_reported_vital_status"], heads
           rev068 = script.get_revision("068_i7_wave2_governed_memory_lifecycle")
           assert rev068.down_revision == "067_i7_lifelong_memory_foundation"
           rev067 = script.get_revision("067_i7_lifelong_memory_foundation")
@@ -120,7 +120,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("ALEMBIC_HEAD", head)
-              assert head == "079_i10_cni_owner_provenance_nullable"
+              assert head == "080_i9_device_reported_vital_status"
               ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
               print("PGVECTOR_VERSION", ext)
               assert ext
@@ -193,7 +193,7 @@ jobs:
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
               print("PYTEST_DB_ALEMBIC_HEAD", head)
-              assert head == "079_i10_cni_owner_provenance_nullable", head
+              assert head == "080_i9_device_reported_vital_status", head
           PY
 
       - name: Unit + SCIS runtime pytest
@@ -277,7 +277,7 @@ jobs:
         run: |
           {
             echo "GATE=SCIS-01"
-            echo "ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable"
+            echo "ALEMBIC_HEAD=080_i9_device_reported_vital_status"
             echo "SCIS01_REVISION=061_scis01_pgvector_kce_foundation"
             echo "PGVECTOR_INTRODUCED=YES"
             echo "PGVECTOR_PRODUCTION_APPLIED=NO"
