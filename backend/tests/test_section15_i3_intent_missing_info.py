@@ -265,7 +265,7 @@ def test_intent_result_has_no_raw_message_fragment():
 # ---------------------------------------------------------------------------
 
 
-def test_readiness_exact_and_prefix_and_unsupported():
+def test_readiness_exact_and_prefix_v1_supported_only():
     items = [
         _item(
             key="profile.height_cm",
@@ -291,8 +291,27 @@ def test_readiness_exact_and_prefix_and_unsupported():
     by_id = {o.requirement_id: o for o in r.outcomes}
     assert by_id["nut.height"].status is FactRequirementStatus.PRESENT
     assert by_id["nut.goal"].status is FactRequirementStatus.PRESENT
-    assert by_id["nut.activity"].status is FactRequirementStatus.UNAVAILABLE
     assert by_id["nut.birth_year"].status is FactRequirementStatus.MISSING
+    # V1: deferred meal_*/activity/allergy adapters are not I3 blockers.
+    assert "nut.activity" not in by_id
+    assert "nut.allergies" not in by_id
+    assert "nut.meal_prefs" not in by_id
+
+
+def test_v1_nutrition_requirements_exclude_deferred_unsupported_keys():
+    from backend.app.services.intelligence.missing_information import (
+        _nutrition_personalized_requirements,
+    )
+
+    ids = {r.requirement_id for r in _nutrition_personalized_requirements()}
+    assert "nut.goal" in ids
+    assert "nut.restrictions" in ids
+    assert "nut.activity" not in ids
+    assert "nut.allergies" not in ids
+    assert "nut.meal_prefs" not in ids
+    assert "nut.meal_schedule" not in ids
+    assert "nut.budget" not in ids
+    assert "nut.food_prep" not in ids
 
 
 def test_readiness_conflict_denied_stale_unknown_freshness_and_confirmation():
@@ -752,7 +771,21 @@ def test_readiness_confirmed_none_and_absence_not_none():
     assert by2["nut.conditions"].status is FactRequirementStatus.MISSING
 
 
-def test_readiness_allergy_confirmed_none_when_positive_unsupported():
+def test_readiness_allergy_not_i3_v1_blocker():
+    """Allergy hard constraints remain I8 safety-owned; I3 V1 does not block on them."""
+    r = evaluate_readiness(
+        snapshot=_snap(6, []),
+        intent=_intent(),
+        authenticated_user_id=6,
+        language="en",
+    )
+    by_id = {o.requirement_id: o for o in r.outcomes}
+    assert "nut.allergies" not in by_id
+    # Empty snapshot still clarifies on first supported missing fact (goal).
+    assert r.status is ReadinessStatus.NEEDS_CLARIFICATION
+
+
+def test_readiness_allergy_confirmed_none_not_required_for_v1():
     none_item = _item(
         key=CONFIRMED_NONE_ALLERGIES,
         section="health",
@@ -767,19 +800,8 @@ def test_readiness_allergy_confirmed_none_when_positive_unsupported():
         language="en",
     )
     by_id = {o.requirement_id: o for o in r.outcomes}
-    assert by_id["nut.allergies"].status is FactRequirementStatus.PRESENT
-
-
-def test_readiness_allergy_absence_stays_unavailable():
-    r = evaluate_readiness(
-        snapshot=_snap(6, []),
-        intent=_intent(),
-        authenticated_user_id=6,
-        language="en",
-    )
-    by_id = {o.requirement_id: o for o in r.outcomes}
-    assert by_id["nut.allergies"].status is FactRequirementStatus.UNAVAILABLE
-    assert by_id["nut.allergies"].status is not FactRequirementStatus.MISSING
+    assert "nut.allergies" not in by_id
+    assert r.status is ReadinessStatus.NEEDS_CLARIFICATION
 
 
 def test_readiness_one_clarification_no_values_in_metadata():
@@ -933,10 +955,11 @@ def test_height_weight_present_not_reasked():
     by_id = {o.requirement_id: o for o in r.outcomes}
     assert by_id["nut.height"].status is FactRequirementStatus.PRESENT
     assert by_id["nut.weight"].status is FactRequirementStatus.PRESENT
-    # Still blocked by unsupported activity / allergies / meal fields — not height/weight.
-    assert r.clarification is not None
-    assert r.clarification.target_key != "profile.height_cm"
-    assert r.clarification.target_key != "profile.weight_kg"
+    # V1: with supported profile + confirmed-none collections present → READY.
+    assert r.status is ReadinessStatus.READY
+    assert r.clarification is None
+    assert "nut.activity" not in by_id
+    assert "nut.meal_prefs" not in by_id
 
 
 # ---------------------------------------------------------------------------

@@ -47,22 +47,18 @@ class FactRequirement:
 
 
 def _nutrition_personalized_requirements() -> tuple[FactRequirement, ...]:
+    """V1 personalized nutrition readiness — existing supported facts only.
+
+    Unsupported meal_*/activity/allergy I2 adapters remain deferred product scope.
+    Allergy hard constraints stay I8 safety-owned (UserProfileFact), not I3 blockers.
+    No meal-table schema required for V1 readiness.
+    """
     return (
         FactRequirement("nut.goal", "lifestyle.goal.*", 10, "prefix"),
         FactRequirement("nut.birth_year", "profile.birth_year", 20, "exact"),
         FactRequirement("nut.sex", "profile.sex", 30, "exact"),
         FactRequirement("nut.height", "profile.height_cm", 40, "exact"),
         FactRequirement("nut.weight", "profile.weight_kg", 50, "exact"),
-        FactRequirement(
-            "nut.activity", "profile.activity_level", 60, "exact", supported=False
-        ),
-        FactRequirement(
-            "nut.allergies",
-            "health.allergy.*",
-            70,
-            "confirmed_none_or_prefix",
-            supported=False,
-        ),
         FactRequirement(
             "nut.conditions",
             "health.condition.*",
@@ -82,22 +78,6 @@ def _nutrition_personalized_requirements() -> tuple[FactRequirement, ...]:
             "lifestyle.restriction.*",
             100,
             "confirmed_none_or_prefix",
-        ),
-        FactRequirement(
-            "nut.meal_prefs", "nutrition.meal_preferences", 110, "exact", supported=False
-        ),
-        FactRequirement(
-            "nut.meal_schedule", "nutrition.meal_schedule", 120, "exact", supported=False
-        ),
-        FactRequirement(
-            "nut.budget", "nutrition.budget", 130, "exact", supported=False
-        ),
-        FactRequirement(
-            "nut.food_prep",
-            "nutrition.food_preparation",
-            140,
-            "exact",
-            supported=False,
         ),
     )
 

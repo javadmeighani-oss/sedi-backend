@@ -39,8 +39,14 @@ def plan_nutrition(
     request: str,
     *,
     iran_first: bool = True,
+    persist: bool = False,
 ) -> NutritionPlanResult:
-    """Legacy nutrition entrypoint — unified core, ephemeral only (no persistence)."""
+    """Legacy nutrition entrypoint — delegates to unified core.
+
+    Default remains ephemeral (persist=False) for existing unit contracts.
+    Canonical V1 Chat/I10 path uses ``nutrition_primary_path.execute_primary_nutrition_action``
+    with persist=True (I8 operational plan + coaching seam).
+    """
     if _is_unsafe(request):
         return NutritionPlanResult(
             status="UNSAFE_REQUEST_BLOCKED",
@@ -84,7 +90,7 @@ def plan_nutrition(
         actor_user_id=user_id,
         request=request,
         domain="nutrition",
-        persist=False,
+        persist=persist,
     )
     status = result.status
     if status == "MISSING_ELIGIBLE_KNOWLEDGE":
@@ -92,8 +98,9 @@ def plan_nutrition(
     if status == "UNSUPPORTED_CLINICAL_APPLICABILITY":
         status = "STALE_OR_INELIGIBLE_KNOWLEDGE"
     grounded = status in {"GROUNDED_EPHEMERAL", "ACTION_PERSISTED", "ACTION_READY"}
-    if status == "ACTION_READY":
+    if status == "ACTION_READY" and not persist:
         status = "GROUNDED_EPHEMERAL"
+    persistence = "I8_OPERATIONAL" if (persist and result.action_id is not None) else "NONE"
     return NutritionPlanResult(
         status=status,
         iran_first=iran_first,
@@ -102,8 +109,9 @@ def plan_nutrition(
         message=result.summary or result.rationale or status,
         plan={
             "domain": result.domain,
-            "persistence": "NONE",
+            "persistence": persistence,
             "clinical": False,
+            "action_id": result.action_id,
             "suggestions": [{"label": s.label, "detail": s.detail} for s in result.suggestions],
         }
         if grounded

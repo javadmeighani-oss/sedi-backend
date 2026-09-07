@@ -719,6 +719,57 @@ class IntelligenceOrchestrator:
                 skip_generator = True
                 clarification_message = None
 
+        # I8 primary-user nutrition — ONE canonical operational path.
+        # READY nutrition intents → generate_operational_action(domain=nutrition, persist=True).
+        # Never LLM-invent meal plans / therapeutic diets.
+        nutrition_message: Optional[str] = None
+        if (
+            not terminal_safety
+            and not care_nav_handled
+            and not skip_generator
+            and intent_meta is not None
+            and readiness_meta is not None
+            and readiness_meta.status is ReadinessStatus.READY
+        ):
+            from backend.app.services.i8.nutrition_primary_path import (
+                execute_primary_nutrition_action,
+                is_nutrition_operational_intent,
+            )
+
+            if is_nutrition_operational_intent(intent_meta.intent_id):
+                try:
+                    if self._db is None:
+                        raise RuntimeError("nutrition_path_requires_db")
+                    nutrition = execute_primary_nutrition_action(
+                        self._db,
+                        user_id=authenticated_user_id,
+                        actor_user_id=authenticated_user_id,
+                        request=message,
+                        language=lang,
+                        persist=True,
+                        generation_mode="reactive",
+                    )
+                    nutrition_message = nutrition.user_message
+                    extra_reason_codes.append("NUTRITION_PRIMARY_PATH")
+                    extra_reason_codes.append(f"NUTRITION_STATUS_{nutrition.status}")
+                    if nutrition.grounded:
+                        extra_reason_codes.append("I8_NUTRITION_ACTION")
+                    if nutrition.fail_safe:
+                        extra_reason_codes.append("NUTRITION_FAIL_SAFE")
+                    if nutrition.action_id is not None:
+                        extra_reason_codes.append(
+                            f"I8_NUTRITION_ACTION_ID_{nutrition.action_id}"
+                        )
+                except Exception:
+                    nutrition_message = (
+                        "I cannot create a verified nutrition action from the available context."
+                        if lang == "en"
+                        else "با زمینه موجود نمی‌توانم یک اقدام تغذیه‌ای تأییدشده بسازم."
+                    )
+                    extra_reason_codes.append("NUTRITION_PRIMARY_PATH_FAIL_CLOSED")
+                skip_generator = True
+                clarification_message = None
+
         # prepare
         t0 = time.perf_counter()
         if skip_generator and terminal_safety:
@@ -790,7 +841,12 @@ class IntelligenceOrchestrator:
                 ReasonCode.GENERATOR_SKIPPED_FOR_CLARIFICATION,
                 duration_ms=(time.perf_counter() - t0) * 1000.0,
             )
-            out_message = directory_message or clarification_message or ""
+            out_message = (
+                directory_message
+                or nutrition_message
+                or clarification_message
+                or ""
+            )
             t0 = time.perf_counter()
             if not out_message.strip():
                 ctx.append_stage(
@@ -803,8 +859,8 @@ class IntelligenceOrchestrator:
                     "empty_generation",
                     reason_code=ReasonCode.EMPTY_GENERATION_REJECTED,
                 )
-            # Directory-owned responses are already fail-safe; skip Gate3 rewrite.
-            if directory_message is not None:
+            # Directory/nutrition-owned responses are already fail-safe; skip Gate3 rewrite.
+            if directory_message is not None or nutrition_message is not None:
                 ctx.append_stage(
                     StageName.VALIDATE_GENERATION_RESULT,
                     "ok",

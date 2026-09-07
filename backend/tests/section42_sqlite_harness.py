@@ -11,7 +11,7 @@ from backend.app.database import Base
 
 
 @pytest.fixture()
-def db():
+def db(monkeypatch):
     engine = create_engine("sqlite:///:memory:", future=True)
     tables = [
         models.User.__table__,
@@ -24,11 +24,35 @@ def db():
         models.Memory.__table__,
         models.UserProfileCore.__table__,
     ]
-    if hasattr(models, "UserMemoryPurgeReceipt"):
-        tables.append(models.UserMemoryPurgeReceipt.__table__)
-    if hasattr(models, "UserI7DerivedPattern"):
-        tables.append(models.UserI7DerivedPattern.__table__)
+    for name in (
+        "UserProfileFact",
+        "KcUserFact",
+        "UserGoal",
+        "UserRestriction",
+        "UserHabit",
+        "UserLifestyleEvent",
+        "MedicalCondition",
+        "UserCondition",
+        "Medication",
+        "UserMedication",
+        "I8OperationalPlan",
+        "I8OperationalPlanAction",
+        "UserMemoryPurgeReceipt",
+        "UserI7DerivedPattern",
+    ):
+        model = getattr(models, name, None)
+        if model is not None and hasattr(model, "__table__"):
+            tables.append(model.__table__)
     Base.metadata.create_all(engine, tables=tables)
+    # I8 physiological projection requires HealthSubject tables; optional in this harness.
+    monkeypatch.setattr(
+        "backend.app.services.i8.context.get_i8_governed_context_projection",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        "backend.app.services.i8.context.projection_context_refs",
+        lambda *_a, **_k: [],
+    )
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
     session = SessionLocal()
     try:
