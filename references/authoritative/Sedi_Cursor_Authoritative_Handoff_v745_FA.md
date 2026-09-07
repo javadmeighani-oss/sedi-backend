@@ -1,0 +1,59 @@
+# SEDI Cursor Authoritative Handoff - v745
+
+Nutrition primary-user **V1 E2E-01** — **PASS TRUE_GREEN**. Do not modify v744 / §451.
+
+```
+VERSION=v745
+STATUS=CURRENT
+LOGICAL_PREDECESSOR=v744
+v744_MODIFIED=NO
+SUCCESSOR_MODE=CREATE_ONLY
+MASTER_LOG=§452
+GATE=SEDI-V1-BE-NUTRITION-PRIMARY-USER-E2E-01
+CERTIFICATION_PACKAGE=A
+GATE_RESULT=PASS
+NUTRITION_PRIMARY_USER_E2E=TRUE_GREEN
+MANDATORY_CASES=12
+PASSED_CASES=12
+CERTIFICATION_COMPLETED=12
+CERTIFICATION_REMAINING=64
+BACKEND_V1_CERTIFICATION_TOTAL=76
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+START_HEAD=8e6a52c88b4c8a2e233de89bdb96672176c550d5
+IMPLEMENTATION_COMMITS=af1759dc..d412f8cd
+CI_RUN_ID=34123362743
+CI_COMMIT_SHA=d412f8cdf0718260b08fc6866decf41f275eea04
+POSTGRESQL_VERSION=16.15
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ONE_CANONICAL_NUTRITION_PATH=YES
+PARALLEL_NUTRITION_SOT=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+SMART_RAG_IMPLEMENTATION=NOT_AUTHORIZED
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+NEXT_GATE_AUTHORIZED=NO
+```
+
+## Delivered
+
+- Chat READY nutrition → I8 `nutrition_primary_path` (persist) — no LLM meal invent
+- I3 V1 readiness uses existing supported facts (no meal-table schema)
+- CASE_01–12 certified on PostgreSQL 16 (run 34123362743)
+- I10 `NUTRITION_PLAN_FOLLOW_UP` + DONE/idempotency reused
+- §452 append-only; v744 untouched
+
+## Still open (unauthorized)
+
+1. Exercise primary-user E2E
+2. I10 real FCM/mobile delivery hardening
+3. Managed-subject chat HS-target
+4. Smart-RAG only after architecture reapproval
+5. Nationwide directory / lab population
+6. Frontend final redesign
+
+```
+NEXT_GATE_AUTHORIZED=NO
+```

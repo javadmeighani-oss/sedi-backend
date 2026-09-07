@@ -82930,3 +82930,86 @@ v744_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v744_FA.md
 MASTER_LOG_TIP=§451
 CURSOR_HANDOFF_TIP=v744
+
+
+## §452 — NUTRITION PRIMARY-USER V1 E2E-01
+
+GATE=SEDI-V1-BE-NUTRITION-PRIMARY-USER-E2E-01
+CERTIFICATION_PACKAGE=A
+BACKEND_V1_CERTIFICATION_TOTAL=76
+THIS_GATE_MANDATORY_CASES=12
+CERTIFICATION_COMPLETED=12
+CERTIFICATION_REMAINING=64
+GATE_RESULT=PASS
+NUTRITION_PRIMARY_USER_E2E=TRUE_GREEN
+ARCHITECTURE_CONFORMANCE=PASS
+PG16_RUNTIME_STATUS=PASS
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+
+START_HEAD=8e6a52c88b4c8a2e233de89bdb96672176c550d5
+IMPLEMENTATION_COMMITS=af1759dc1fc8a15faf3da6c7f52e063a631e4c49;7256bebe0be1674294daec7fa3a2bfcef100ede7;d412f8cdf0718260b08fc6866decf41f275eea04
+DOCUMENTATION_COMMIT=recorded_after_docs_push
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ALEMBIC_HEAD_UNCHANGED=YES
+FORCE_PUSH=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+SMART_RAG_MUTATION=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+WORKFLOW_MUTATION=YES (nutrition-primary-user-e2e-pg16.yml focused)
+
+### Gaps found → root causes → repairs
+NUTRITION_CHAT_ROUTE_FOUND=NO → Orchestrator never called I8 nutrition → wire READY nutrition → nutrition_primary_path/execute_primary_nutrition_action(persist=True)
+PLAN_NUTRITION_ROUTE_FOUND=NO → legacy ephemeral adapter only → keep ephemeral default; V1 Chat uses primary path
+MEAL_* I3 unsupported blocked READY forever → V1 readiness uses existing supported facts only (goals/profile/restrictions/conditions/meds)
+PARALLEL_NUTRITION_IMPLEMENTATION_FOUND=YES (ephemeral plan_nutrition + unified_core + LLM) → Chat SoT = I8 primary persist path only
+
+### Authority matrix
+USER_DATA=Gate2/I6 product facts
+I5=governed knowledge
+I7=bounded personalization (not medical SoT)
+I8=operational nutrition action owner
+I4=clinical/safety (unchanged)
+I10=delivery only (NUTRITION_PLAN_FOLLOW_UP)
+
+ONE_CANONICAL_NUTRITION_PATH=YES
+PARALLEL_NUTRITION_SOT=NO
+
+### Files
+NEW backend/app/services/i8/nutrition_primary_path.py
+MOD backend/app/services/i8/nutrition_planner.py (optional persist=)
+MOD backend/app/services/intelligence/missing_information.py
+MOD backend/app/services/intelligence/orchestrator.py
+NEW backend/tests/test_v1_nutrition_primary_user_e2e.py
+MOD backend/tests/test_section15_i3_intent_missing_info.py
+MOD backend/tests/section42_sqlite_harness.py
+NEW .github/workflows/nutrition-primary-user-e2e-pg16.yml
+
+### PG16 CI
+POSTGRESQL_VERSION=16.15
+TARGETED_CI_RUN_ID=34123362743
+TARGETED_CI_RESULT=success
+TARGETED_CI_COMMIT_SHA=d412f8cdf0718260b08fc6866decf41f275eea04
+PRIOR_FAILED_RUNS=34122373294 (consent flush); 34122676007 (CASE_04 HS/Account id collision)
+SELF_HEALED=YES
+REGRESSION_RUN_IDS=34123362743 (I3 readiness + I8 nutrition failclose + authority smoke)
+REGRESSION_RESULT=PASS
+
+### Cases
+CASE_01..CASE_12=PASS
+
+### GATE_PROVES
+Primary-user V1 nutrition domain E2E; canonical prefs/context; I5 knowledge boundary; I7 personalization boundary; I8 action; proactive; I10 seam; fail-safe; isolation; idempotency/DONE; PG16
+
+### GATE_DOES_NOT_PROVE
+medical diet therapy; diagnosis; calorie platform; nationwide food DB; Smart-RAG; real FCM; Mother Chat/I7; frontend; production deploy
+
+NEXT_GATE_AUTHORIZED=NO
+v744_MODIFIED=NO
+v745_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v745_FA.md
+MASTER_LOG_TIP=§452
+CURSOR_HANDOFF_TIP=v745
