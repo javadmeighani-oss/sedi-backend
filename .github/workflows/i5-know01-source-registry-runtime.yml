@@ -165,7 +165,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "068_i7_wave2_governed_memory_lifecycle", head
+              assert head == "080_i9_device_reported_vital_status", head
               for t in (
                   "i5_source_registry_extensions",
                   "i5_source_registry_roles",
@@ -234,7 +234,7 @@ jobs:
           command.upgrade(cfg, "head")
           with eng.connect() as c:
               head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
-              assert head == "068_i7_wave2_governed_memory_lifecycle", head
+              assert head == "080_i9_device_reported_vital_status", head
           print("RESTORE_FRESH_065_BEFORE_PYTEST=PASS")
           PY
 
@@ -308,7 +308,7 @@ jobs:
           {
             echo "GATE=I5-KNOW-01-CI-FALSE-GREEN-INTEGRITY-REMEDIATION"
             echo "COMMIT_SHA=${{ github.sha }}"
-            echo "ALEMBIC_HEAD=068_i7_wave2_governed_memory_lifecycle"
+            echo "ALEMBIC_HEAD=080_i9_device_reported_vital_status"
             echo "PRODUCTION_MIGRATION_RUN=NO"
             echo "PRODUCTION_CRAWLER_ACTIVATED=NO"
             echo "PRODUCTION_RAG_ACTIVATED=NO"
