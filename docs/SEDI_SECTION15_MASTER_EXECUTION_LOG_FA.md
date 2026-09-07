@@ -82672,3 +82672,131 @@ v742_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v742_FA.md
 MASTER_LOG_TIP=§449
 CURSOR_HANDOFF_TIP=v742
+## §450 — PRIMARY-USER REMAINING BACKEND GAP AUDIT-01
+
+GATE=SEDI-V1-BE-PRIMARY-USER-REMAINING-BACKEND-GAP-AUDIT-01
+GATE_RESULT=PASS
+MODE=READ_ONLY_TARGETED_AUDIT_DOCS_CLOSURE
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+SCENARIO_ID=SEDI-V1-REAL-FAMILY-CARE-E2E-01
+
+START_HEAD=ab02ac7869ff11182eab6467c89b848976eae410
+FINAL_HEAD=recorded in Cursor handoff v743 REPO_HEAD after docs commit
+REMOTE_HEAD_PRE=ab02ac7869ff11182eab6467c89b848976eae410
+AHEAD_BEHIND_PRE=0/0
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ALEMBIC_SINGLE_HEAD=YES
+
+BASELINE_DIRTY=PHANTOM_EOL_STAT_ONLY_v725_v733 (content hash == HEAD; restored before closure)
+MATERIAL_BASELINE_DRIFT=NO
+SOURCE_MUTATION=NO
+TEST_MUTATION=NO
+WORKFLOW_MUTATION=NO
+TEST_EXECUTED=NO
+CI_TRIGGERED=NO
+POSTGRESQL_EXECUTED=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+FORCE_PUSH=NO
+SMART_RAG_IMPLEMENTATION=NOT_AUTHORIZED
+MOTHER_NONCLINICAL_PATH_REOPENED=NO
+MOTHER_NONCLINICAL_EXISTING_EVIDENCE_REUSED=YES
+
+RULES_IN_FORCE_CHECK=PASS
+TOKEN_EFFICIENCY_CHECK=PASS
+
+### Completed evidence matrix (reuse; do not rerun)
+| Gate | Layers | Status | Tests | PG | CI | ML | Handoff | Proves | Rerun |
+|---|---|---|---|---|---|---|---|---|---|
+| I9/I10 nonclinical vital stability-02 | I9,I10 | TRUE_GREEN | nonclinical stability suite | 16 | 33968339750 | §438 | v731 | HR MAD band; caregiver digest; no clinical invent | NO |
+| I8 routine/lifestyle semantic bridge | Gate2,I8 | TRUE_GREEN | test_i8_routine_lifestyle_semantic_bridge | 16 | 33971039860 | §440 | v733 | habits/lifestyle into I8TrustedContext | NO |
+| I7→I8 bounded personalization | I7,I8 | TRUE_GREEN | test_i7_i8_bounded_personalization_seam | 16 | 33973536843 | §442 | v735 | consent-gated lifelong profile terms | NO |
+| I8 proactive follow-up LOOP-02 | I8,I10 | TRUE_GREEN | test_i8_proactive_followup_loop_02 | 16 | 34012287622 | §443 | v736 | DONE→exact I8; non-DONE isolation | NO |
+| Primary-user I8 PG16 cross-I | Gate2,I5,I7,I8,I10 | TRUE_GREEN | test_i8_primary_user_cross_i_acceptance_pg16 | 16.15 | 34013205172 | §444 | v737 | Son SELF routine path; no Mother substitution | NO |
+| 1000U/~100CC capacity harden | infra | TRUE_GREEN | capacity hardening unit+pg16 | 16 | 34029635806 | §445/§446 | v738/v739 | multiworker-ready; scan paging; T24 RAG isolation | NO |
+| Controlled load validation | infra,LocalRAG | TRUE_GREEN | controlled load + integrity repair | 16.15 | 34045890411 | §447-§449 | v740-v742 | CONNECTED_100; leak=0; RAG concurrent/auth chat | NO |
+| Stage A/B family | I1-I10 | PASS_WITH_GAPS | stage_a/b suites | 16 | 33961434460 / 33963445993 | §433/§434 | v726/v727 | family E2E with known Mother chat/I7 gaps | NO |
+
+ALREADY_TRUE_GREEN_DO_NOT_RERUN=Mother gadget→HS attribution→HR→baseline→nonclinical status→caregiver I10 delivery/prefs/idempotency/multi-caregiver; routine/lifestyle bridge; I7→I8 seam; LOOP-02 DONE; primary-user routine cross-I; 1000U capacity + controlled load LocalRAG isolation
+
+### Owner responsibility (verified, not redesigned)
+Identity/Access=Account / SELF HS / MANAGED HS / AHSA / grants
+Gate2=persisted habits/routine/lifestyle (+ goals/restrictions consumed)
+Database=FK/unique/checks/tx/provenance/idempotency
+I5=governed external knowledge + directory SoT (not chat-wired)
+RAG=retrieves evidence; MUST NOT invent diagnosis/action/provider
+I7=memory/personalization; MUST NOT mint I8 actions
+I8=operational plan/action/proactive semantics
+I9=nonclinical device evidence/semantics
+I4=sole clinical/safety where rules exist (ACTIVE_CLINICAL_DEVICE_RULE_COUNT unchanged)
+I10=notification policy/recipient/delivery/interaction; MUST NOT invent I8/I5
+
+AUTHORITY_COLLISIONS=NO on Son routine TRUE_GREEN path; residual risks=legacy notification_engine vs I10; dual UserCondition vs HealthSubjectCondition; chat Account-scoped (no HS target)
+
+### Readiness matrix (current truth)
+PRIMARY_USER_IDENTITY_STATUS=PARTIAL (Account→lazy SELF HS OK for Son; I7/I8 Account-native TRUE_GREEN; chat HS-target MISSING; no UNIQUE 1:1 SELF)
+DATABASE_STATUS=PARTIAL (079 single head; Mother NULL owner intentional; open: SELF uniqueness; dual condition stores; scheduler single-process; session-across-AI residual)
+GATE2_HABIT_LIFESTYLE_STATUS=TRUE_GREEN (storage + I8 bridge §440/§444)
+
+NUTRITION_STATUS=PARTIAL
+NUTRITION_EXACT_GAPS=no dedicated meal tables; plan_nutrition legacy/unrouted; I3 meal_* supported=False; I7 note skips nutrition; primary E2E uses routine not nutrition
+NUTRITION_IMPLEMENTATION_REQUIRED=YES (wire/consume readiness vs unified path; optional fact support) OR accept product scope=unified_core only
+NUTRITION_TEST_ONLY_REQUIRED=YES (Son SELF Gate2→I5→I8→I10→DONE for nutrition)
+
+EXERCISE_STATUS=PARTIAL (thinner than nutrition)
+EXERCISE_EXACT_GAPS=no exercise_planner; I3 activity informational only; no activity adherence; primary E2E missing
+EXERCISE_IMPLEMENTATION_REQUIRED=YES for personalized intake/composition OR scope=unified_core only
+EXERCISE_TEST_ONLY_REQUIRED=YES (domain E2E parallel to nutrition)
+
+I5_GOVERNED_KNOWLEDGE_STATUS=IMPLEMENTED (registry+KU retrieval fail-closed)
+I5_SOURCE_REGISTRY_STATUS=TRUE_GREEN
+I5_FRESHNESS_REVOCATION_STATUS=IMPLEMENTED (KU); PARTIAL (directory ACTIVE/INACTIVE only)
+I5_CARE_DIRECTORY_STATUS=PARTIAL (ORM/API exist; chat not wired; no fail-closed provider bind)
+I5_SPECIALIST_STATUS=IMPLEMENTED (IranDoctor + admin search; IRIMC pop authorized)
+I5_HOSPITAL_STATUS=PARTIAL (SBMU federated seed; not nationwide)
+I5_SPECIALTY_CENTER_STATUS=PARTIAL (facility_type subtype only)
+I5_LAB_STATUS=MISSING (ORM/API; ALLOWED_FOR_V1_POPULATION=False)
+I5_LOCATION_JURISDICTION_STATUS=PARTIAL (city/province ILIKE; no geo-radius)
+I5_DIRECTORY_PROVENANCE_STATUS=PARTIAL (source_system_label/verify timestamps; not KU-grade)
+I5_DIRECTORY_FAIL_SAFE_STATUS=MISSING on chat path (KU path has NO_ELIGIBLE_KNOWLEDGE)
+HALLUCINATED_PROVIDER_PATH_PRESENT=YES (brain does not call iran_directory; LLM can invent names)
+
+LOCAL_RAG_STATUS=IMPLEMENTED (keyword default; optional vector Stage-17 noncanonical)
+LOCAL_RAG_ALREADY_PROVEN=user isolation T24; concurrent provider+authenticated chat load §449
+LOCAL_RAG_LIMITATIONS=Account user_id only (no HS); not KU SoT; fail-open; keyword scoring
+SMART_RAG_STATUS=NOT_AUTHORIZED
+SMART_RAG_EXACT_GAP=query rewrite; hybrid product RAG; rerank; contradiction; freshness weighting; evidence sufficiency UX; structured care-directory retrieval; multilingual; injection resistance; production SCIS/pgvector activation
+SMART_RAG_ARCHITECTURE_REAPPROVAL_REQUIRED=YES
+
+I7_STATUS=TRUE_GREEN for Son Account-native; MISSING Mother accountless I7
+I8_STATUS=TRUE_GREEN foundation+routine/lifestyle+proactive DONE loop; nutrition/exercise product E2E PARTIAL
+
+I10_BACKEND_STATUS=TRUE_GREEN
+I10_BACKEND_ALREADY_PROVEN=recipient/provenance/prefs/idempotency/I8→I10/DONE→I8/non-DONE isolation/Mother nonclinical delivery
+I10_REAL_DELIVERY_GAPS=prod FCM creds path; terminated-app; token multi-register fanout; OS permission model; durable failed-retry; provider-outage recovery; real deeplink open; real FCM-tap DONE roundtrip
+
+### Defects / gaps / freeze blockers
+DEFECTS_REQUIRING_IMPLEMENTATION=chat HS-target + fail-closed managed durable write; I5 directory chat bind+fail-safe; lab population authorization; nutrition/exercise product seams if in V1 scope; FCM real-delivery hardening; optional UNIQUE SELF HS
+GAPS_REQUIRING_TEST_ONLY=nutrition domain E2E; exercise domain E2E; real-device push DONE roundtrip (needs mobile)
+SCHEMA_OR_MIGRATION_NEEDED=YES if: managed Mother I7 HS-native; UNIQUE SELF; meal_* supported facts; Smart-RAG canonical index — else NO for current nutrition/exercise I8 domains (069 already)
+ARCHITECTURE_REAPPROVAL_NEEDED=YES for Smart-RAG V1; YES for managed-subject interactive continuity (OPTION_C); YES if directory becomes clinical SoT in chat
+
+RECOMMENDED_ORDERED_NEXT_GATES=
+1. SEDI-V1-BE-NUTRITION-PRIMARY-USER-E2E-01 (impl+test or test-only per scope decision)
+2. SEDI-V1-BE-EXERCISE-PRIMARY-USER-E2E-01
+3. SEDI-V1-BE-I5-DIRECTORY-CHAT-FAILSAFE-01 (NO_HALLUCINATED_PROVIDER)
+4. SEDI-V1-BE-I10-REAL-FCM-DELIVERY-HARDENING-01 (backend+mobile coordination)
+5. SEDI-V1-BE-MANAGED-SUBJECT-CHAT-HS-TARGET-01 (design already §435; schema likely)
+6. Smart-RAG only after ARCHITECTURE_REAPPROVAL
+FINAL_BACKEND_FREEZE_BLOCKERS=hallucinated provider path if care-nav in V1; nutrition/exercise V1 scope undecided E2E; real push delivery if smart-notif V1 requires device-visible; managed Mother chat/I7 if in freeze scope; Smart-RAG if claimed as V1; production multiworker activation separate
+
+NEXT_GATE_AUTHORIZED=NO
+v742_MODIFIED=NO
+v743_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v743_FA.md
+MASTER_LOG_TIP=§450
+CURSOR_HANDOFF_TIP=v743
