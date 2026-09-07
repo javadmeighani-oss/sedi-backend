@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -161,13 +161,22 @@ def _feedback(client, user_id, notif_id, payload):
     )
 
 
+def _when_utc() -> datetime:
+    """Wall-clock UTC for seed+deliver+DONE.
+
+    HTTP DONE uses action_completion wall clock; fixtures must not seed a
+    historical local-day window that is already past expires_at.
+    """
+    return datetime.now(timezone.utc)
+
+
 def test_scenario_id():
     assert SCENARIO_ID == "SEDI-V1-REAL-FAMILY-CARE-E2E-01"
 
 
 def test_a_happy_path_done_completes_exact_action(client, db, patches):
     son = _user(db, "son")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _plan, action, when = _seed_routine_action(db, son.id, when=when)
     notif = _deliver(db, son.id, when)
@@ -187,7 +196,7 @@ def test_a_happy_path_done_completes_exact_action(client, db, patches):
 
 def test_b_repeated_done_idempotent(client, db, patches):
     son = _user(db, "son-b")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, action, when = _seed_routine_action(db, son.id, when=when)
     notif = _deliver(db, son.id, when)
@@ -199,7 +208,7 @@ def test_b_repeated_done_idempotent(client, db, patches):
 
 def test_c_completed_not_redelivered(client, db, patches):
     son = _user(db, "son-c")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, action, when = _seed_routine_action(db, son.id, when=when)
     notif = _deliver(db, son.id, when)
@@ -211,7 +220,7 @@ def test_c_completed_not_redelivered(client, db, patches):
 
 def test_d_future_same_domain_action_not_suppressed(client, db, patches):
     son = _user(db, "son-d")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, a1, when = _seed_routine_action(db, son.id, when=when, key="walk-1")
     n1 = _deliver(db, son.id, when)
@@ -226,7 +235,7 @@ def test_d_future_same_domain_action_not_suppressed(client, db, patches):
 def test_e_cross_user_blocked(client, db, patches):
     son = _user(db, "son-e")
     other = _user(db, "other-e")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, action, when = _seed_routine_action(db, son.id, when=when)
     notif = _deliver(db, son.id, when)
@@ -238,7 +247,7 @@ def test_e_cross_user_blocked(client, db, patches):
 
 def test_f_wrong_client_action_id_redirect_blocked(client, db, patches):
     son = _user(db, "son-f")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, a1, when = _seed_routine_action(db, son.id, when=when, key="a1")
     _, a2, when = _seed_routine_action(db, son.id, when=when, key="a2", summary="Other")
@@ -258,7 +267,7 @@ def test_f_wrong_client_action_id_redirect_blocked(client, db, patches):
 
 def test_g_unrelated_notification_cannot_complete(client, db, patches):
     son = _user(db, "son-g")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, action, when = _seed_routine_action(db, son.id, when=when)
     _deliver(db, son.id, when)
@@ -281,7 +290,7 @@ def test_g_unrelated_notification_cannot_complete(client, db, patches):
 
 def test_h_provenance_mismatch_fail_closed(client, db, patches):
     son = _user(db, "son-h")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, a1, when = _seed_routine_action(db, son.id, when=when, key="p1")
     _, a2, when = _seed_routine_action(db, son.id, when=when, key="p2", summary="B")
@@ -306,7 +315,7 @@ def test_h_provenance_mismatch_fail_closed(client, db, patches):
 )
 def test_i_non_active_lifecycle_fail_closed(db, patches, status, expected_code):
     son = _user(db, f"son-i-{status.lower()}")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _, action, when = _seed_routine_action(db, son.id, when=when)
     action.status = status
     db.commit()
@@ -318,10 +327,10 @@ def test_i_non_active_lifecycle_fail_closed(db, patches, status, expected_code):
 def test_i_expired_at_fail_closed(db, patches):
     """ACTIVE action past expires_at fails closed (canonical expiry gate)."""
     son = _user(db, "son-i-exp")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _, action, when = _seed_routine_action(db, son.id, when=when)
     action.status = "ACTIVE"
-    action.expires_at = datetime(2026, 9, 5, 13, 0, 0, tzinfo=timezone.utc)
+    action.expires_at = when - timedelta(hours=1)
     db.commit()
     with pytest.raises(I8ActionCompletionError) as ei:
         complete_exact_operational_action(db, actor_user_id=son.id, action_id=action.id, now=when)
@@ -343,7 +352,7 @@ def test_i_expired_at_fail_closed(db, patches):
 )
 def test_j_q_non_done_verbs_do_not_mutate_i8(client, db, patches, payload):
     son = _user(db, "son-jq")
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, action, when = _seed_routine_action(db, son.id, when=when)
     notif = _deliver(db, son.id, when)
@@ -373,7 +382,7 @@ def test_r_mother_isolation(client, db, patches):
     assert son_self.linked_user_id == son.id
     # No fake Mother User Account (HS display name is not an Account row).
     assert db.query(models.User).filter(models.User.name == "MOTHER_ALS").count() == 0
-    when = datetime(2026, 9, 5, 14, 0, 0, tzinfo=timezone.utc)
+    when = _when_utc()
     _prefs(db, son.id)
     _, action, when = _seed_routine_action(db, son.id, when=when)
     notif = _deliver(db, son.id, when)
