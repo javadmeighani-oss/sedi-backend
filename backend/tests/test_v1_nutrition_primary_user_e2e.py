@@ -206,6 +206,7 @@ def _profile(db, user_id: int) -> None:
 
 def _seed_nutrition_prefs(db, user_id: int) -> None:
     grant_memory_consent(db, user_id, commit=False)
+    db.flush()
     write_fact(db, user_id, "lifestyle", "diet_notes", "vegetarian home cooking", commit=False)
     write_fact(db, user_id, "lifestyle", "food_habits", "prefers lunch bowls", commit=False)
     create_goal(
@@ -357,6 +358,7 @@ def test_CASE_04_CROSS_USER_ISOLATION(db, patches):
     _profile(db, other.id)
     _seed_nutrition_prefs(db, son.id)
     grant_memory_consent(db, other.id, commit=False)
+    db.flush()
     write_fact(db, other.id, "lifestyle", "diet_notes", "OTHER_USER_SECRET_DIET", commit=False)
     db.commit()
 
