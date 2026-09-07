@@ -83220,8 +83220,8 @@ BRANCH=feature/section15/backend-continuity-foundation
 
 START_HEAD=4b47745b2e4603abff1fd21958ae46e858c3976d
 IMPLEMENTATION_COMMIT=cc828de5a1d32d56838df7d2a48b9772710804f0
-FINAL_HEAD=bf908f3737a5bbb71727d034836f987b54f91dbe
-DOCUMENTATION_COMMIT=docs_closure_commit_on_push
+IMPLEMENTATION_FINAL_HEAD=bf908f3737a5bbb71727d034836f987b54f91dbe
+DOCUMENTATION_COMMIT=pending_docs_repair_push
 ALEMBIC_HEAD_BEFORE=079_i10_cni_owner_provenance_nullable
 ALEMBIC_HEAD_AFTER=080_i9_device_reported_vital_status
 MIGRATION_CREATED=YES
@@ -83284,18 +83284,19 @@ I8_LOOP02=34143990917 success
 I7_I8=34143990900 success
 
 ### Failed CI chronology
-FAIL_01=34143229549 Nonclinical B14 MAD assertion — repaired; retest 34143885240
-FAIL_02=34143229524 Stage A same B14 — repaired; retest 34143885148
-FAIL_03=first-push alembic head 079 asserts — workflow repair to 080
+FAIL_01=34143229549 Nonclinical B14 MAD assertion - repaired; retest 34143885240
+FAIL_02=34143229524 Stage A same B14 - repaired; retest 34143885148
+FAIL_03=first-push alembic head 079 asserts - workflow repair to 080
 FAIL_04_OPEN=34143885145 DB-03 056 ORM seed skew (out of required scope)
 FAIL_05_OPEN=I5 KNOW-01/05 frozen head 068 fixtures; KNOW-04 unrelated planner string (collateral)
+FAIL_06_DOCS=7c7a31c9 Master Log history rewrite via encoding; repaired append-only from bf908f37
 
 ### Remaining Backend blockers
 BLOCKER_01=Smart-RAG activation (this Gate MUST NOT change Smart-RAG)
 BLOCKER_02=Real FCM
 BLOCKER_03=Mother Chat HS-target / accountless Mother I7 (PO)
 BLOCKER_04=Remaining packages under official 104
-BLOCKER_05=API authority freeze → frontend unlock
+BLOCKER_05=API authority freeze -> frontend unlock
 BLOCKER_06=DB-03 056 ORM seed skew (separate)
 BLOCKER_07=I5 KNOW frozen-head cleanup (separate)
 
