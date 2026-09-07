@@ -377,12 +377,10 @@ def test_CASE_04_CROSS_USER_ISOLATION(db, patches):
     assert all("vegetarian home cooking" not in _fact_text(f) for f in other_facts)
     assert son_self.linked_user_id == son.id
     assert mother.linked_user_id is None
-    assert (
-        db.query(models.UserMemoryFact)
-        .filter(models.UserMemoryFact.user_id == mother.id)
-        .count()
-        == 0
-    )
+    assert mother.subject_kind == "managed"
+    # Mother is accountless managed HS — no Mother Account nutrition ownership.
+    # Do not compare HealthSubject.id to UserMemoryFact.user_id (namespaces may collide numerically).
+    assert db.query(models.User).filter(models.User.name == "MOTHER_ALS").count() == 0
     assert load_trusted_context(db, son.id).user_id == son.id
     assert load_trusted_context(db, other.id).user_id == other.id
 
