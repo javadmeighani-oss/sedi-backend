@@ -83099,3 +83099,112 @@ v746_CREATE_ONLY=YES
 HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v746_FA.md
 MASTER_LOG_TIP=§453
 CURSOR_HANDOFF_TIP=v746
+
+## §454 — SCENARIO-FIRST INTEGRATION CERTIFICATION AND REPAIR-01
+
+GATE=SEDI-V1-BE-SCENARIO-FIRST-INTEGRATION-CERTIFICATION-AND-REPAIR-01
+SCENARIO_ID=SEDI-V1-REAL-FAMILY-CARE-E2E-01
+GATE_RESULT=PASS
+PRODUCT_OWNER_APPROVAL=YES
+APPROVED_BY=JAVAD
+BRANCH=feature/section15/backend-continuity-foundation
+
+START_HEAD=347bb437c56145505139965058afaeae11b3a0e9
+IMPLEMENTATION_COMMIT=fd265b3ac7726e28f70b2309f367bea4363c90b1
+DOCUMENTATION_COMMIT=recorded_after_docs_push
+ALEMBIC_HEAD=079_i10_cni_owner_provenance_nullable
+ALEMBIC_HEAD_UNCHANGED=YES
+FORCE_PUSH=NO
+SCHEMA_MUTATION=NO
+MIGRATION_MUTATION=NO
+SMART_RAG_ACTIVATED=NO
+CLINICAL_RULES_ACTIVATED=NO
+PRODUCTION_CHANGED=NO
+FRONTEND_CHANGED=NO
+
+### Official certification ledger (unchanged without PO)
+OFFICIAL_CERT_TOTAL=104
+OFFICIAL_COMPLETED=22
+OFFICIAL_REMAINING=82
+REBASELINE_APPLIED=NO
+CERTIFICATION_LEDGER_DRIFT=YES
+PROPOSED_REBASELINE=Stage B official baseline cited as 4; current repo Stage B functions=6 (FLOW_A..E + PG16/clinical invariant). Do not fold into 104 without Javad approval.
+CURRENT_STAGE_A_COUNT=12
+CURRENT_STAGE_B_COUNT=6
+
+### Exact Phase-4 scenario-relevant suites (this Gate)
+FILES=
+- backend/tests/test_v1_nutrition_primary_user_e2e.py (12 CERT + supporting)
+- backend/tests/test_v1_exercise_primary_user_e2e.py (10 CERT + supporting)
+- backend/tests/test_stage_a_individual_i_acceptance_contracts.py (12)
+- backend/tests/test_stage_b_cross_i_shared_family_e2e.py (6)
+- backend/tests/test_i5_directory_chat_failsafe.py (24)
+- backend/tests/test_i7_i8_bounded_personalization_seam.py (9)
+- backend/tests/test_i8_routine_lifestyle_semantic_bridge.py (23)
+- backend/tests/test_i8_proactive_followup_loop_02.py (24 expanded)
+- backend/tests/test_i9_i10_nonclinical_vital_stability.py (26)
+- backend/tests/test_scis_01_core_retrieval.py (18)
+
+### Flow matrix (Stage B PG16 run 34137414520 @ 347bb437)
+FLOW_A=PASS_WITH_LABELED_PARTIALS (routine/lifestyle PARTIAL; Mother accountless I7 NOT_IMPLEMENTED; Mother Chat HS PARTIAL)
+FLOW_B=PASS_WITH_LABELED_PARTIALS (governed ALS lexical/FakeScisEmbedding; Smart-RAG NOT proven; Mother Chat HS PARTIAL)
+FLOW_C=PASS
+FLOW_D=PASS
+FLOW_E=PASS
+FLOW_F=PASS (PG16.15; Alembic 079; ACTIVE_CLINICAL_DEVICE_RULE_COUNT=0)
+
+### CI evidence this Gate
+STAGE_B=34137414520 success
+STAGE_A=34137418597 @347bb437 + 34138384798 @fd265b3a success
+NUTRITION=34137474444 success
+EXERCISE=34137477887 success
+I5_DIRECTORY=34137480962 success
+I7_I8=34137484037 success
+I8_ROUTINE=34137848117 success
+I9_I10=34137897054 success
+SCIS_01=34137900171 success
+I8_LOOP02_FIRST=34137894000 FAILURE (3 fail / 21 pass)
+I8_LOOP02_REPAIR=34138384596 + 34138384679 success (24 focused + coaching regressions)
+
+### Defect ledger
+DEFECT_ID=D01_I8_LOOP02_EXPIRES_AT_CLOCK
+FAILED_TEST=test_a/b/c DONE feedback HTTP 422 Action is past expires_at
+ROOT_CAUSE=Harness seeded fixed when=2026-09-05; HTTP DONE uses wall-clock now → ACTION_EXPIRED
+AUTHORITY_OWNER=I8 action_completion expiry gate (correct); repair=test harness clock alignment
+CLASS=BUG_IN_APPROVED_ARCHITECTURE (test harness)
+FILES_CHANGED=backend/tests/test_i8_proactive_followup_loop_02.py
+WHY_CORRECT_LAYER=Do not weaken expiry; align seed window with completion clock (_when_utc)
+FOCUSED_RETEST=34138384596
+ADJACENT_REGRESSION=same workflow coaching/DONE steps
+FAMILY_RETEST=reuse Stage B 34137414520 (no production dependency change)
+RESULT=PASS
+
+### Smart-RAG (not activated)
+SMART_RAG_VENDOR_POLICY=OPENAI_ONLY
+PV1=APPROVED PV2=DEFERRED
+SMART_RAG_ACTIVATED=NO
+ENTRY=SCIS retrieval vector_search OR lexical; Chat/I5 governed retrieve; Stage17 rag_embeddings NONCANONICAL
+PARALLEL=FakeScisEmbeddingProvider / LocalRAG keyword paths in tests ≠ Smart-RAG
+BLOCKING=no OpenAI model freeze; no vector activate; no ANN; no Stage17 apply; personal PV2 deferred
+PRIOR_INVENTORY_VERIFIED_REFERENCE=36 files / 191 cases (RETEST 164 / REUSE 27) — not re-counted as new official cert
+
+### Remaining path (ordered)
+BLOCKER_01=Smart-RAG OpenAI model bakeoff + activation gate (MUST_BEFORE_BACKEND_FREEZE)
+BLOCKER_02=Real FCM / mobile delivery hardening (MUST_BEFORE_REAL_DEVICE_TEST)
+BLOCKER_03=Mother Chat HS-target + accountless Mother I7 product decision (MUST_BEFORE_FRONTEND_INTEGRATION / PO)
+BLOCKER_04=Remaining certification packages under 104 (MUST_BEFORE_BACKEND_FREEZE)
+BLOCKER_05=API authority freeze (MUST_BEFORE_FRONTEND_INTEGRATION)
+BLOCKER_06=Frontend unlock (MUST_BEFORE_PILOT) FRONTEND_UNLOCK=NO
+BLOCKER_07=Clinical device rules remain 0 (DEFERRED_POST_V1 unless PO)
+
+BACKEND_READY_FOR_SMART_RAG_GATE=YES
+BACKEND_READY_FOR_REAL_FCM_GATE=NO
+BACKEND_READY_FOR_FINAL_FREEZE=NO
+FRONTEND_UNLOCK=NO
+NEXT_GATE_AUTHORIZED=NO
+
+v746_MODIFIED=NO
+v747_CREATE_ONLY=YES
+HANDOFF_FILE=Sedi_Cursor_Authoritative_Handoff_v747_FA.md
+MASTER_LOG_TIP=§454
+CURSOR_HANDOFF_TIP=v747
