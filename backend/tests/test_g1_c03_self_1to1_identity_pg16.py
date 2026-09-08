@@ -424,7 +424,17 @@ def test_C03_07_migration_up_down_reup():
         isolated.close()
 
 
-def test_C03_07_dirty_duplicate_upgrade_fail_closed():
+def _assert_no_raw_identity_leak(err: str) -> None:
+    """Aggregate-only diagnostics: never emit identity field assignments or sample dumps."""
+    assert "linked_user_id=" not in err
+    assert "account_user_id=" not in err
+    assert "health_subject_id=" not in err
+    assert "samples=[" not in err
+    assert "groups=" in err
+    assert "no auto-delete/merge" in err
+
+
+def test_C03_07_dirty_self_duplicate_upgrade_fail_closed_masked():
     isolated = I10IsolatedPgDb.create(suffix="g1dirty", revision=_REV_080)
     try:
         SessionLocal = isolated.session_factory()
@@ -437,22 +447,19 @@ def test_C03_07_dirty_duplicate_upgrade_fail_closed():
             )
             s.add(u)
             s.flush()
-            s.add_all(
-                [
-                    models.HealthSubject(
-                        display_name="D1",
-                        linked_user_id=u.id,
-                        subject_kind="self",
-                        status="active",
-                    ),
-                    models.HealthSubject(
-                        display_name="D2",
-                        linked_user_id=u.id,
-                        subject_kind="self",
-                        status="active",
-                    ),
-                ]
+            hs1 = models.HealthSubject(
+                display_name="D1",
+                linked_user_id=u.id,
+                subject_kind="self",
+                status="active",
             )
+            hs2 = models.HealthSubject(
+                display_name="D2",
+                linked_user_id=u.id,
+                subject_kind="self",
+                status="active",
+            )
+            s.add_all([hs1, hs2])
             s.commit()
             uid = int(u.id)
         finally:
@@ -460,7 +467,11 @@ def test_C03_07_dirty_duplicate_upgrade_fail_closed():
 
         with pytest.raises(Exception) as ei:
             command.upgrade(isolated.cfg, _REV_081)
-        assert "SELF_1TO1_HARDENING_BLOCKED" in str(ei.value)
+        err = str(ei.value)
+        assert "SELF_1TO1_HARDENING_BLOCKED" in err
+        assert "HealthSubject groups=1" in err
+        _assert_no_raw_identity_leak(err)
+        assert f"linked_user_id={uid}" not in err
 
         # No auto-delete / merge: both rows remain; still at 080
         assert isolated.head() == _REV_080
@@ -472,6 +483,83 @@ def test_C03_07_dirty_duplicate_upgrade_fail_closed():
                     models.HealthSubject.linked_user_id == uid,
                     models.HealthSubject.subject_kind == "self",
                     models.HealthSubject.status == "active",
+                )
+                .count()
+            )
+            assert n == 2
+        finally:
+            s2.close()
+    finally:
+        isolated.close()
+
+
+def test_C03_07_dirty_ahsa_duplicate_upgrade_fail_closed_masked():
+    isolated = I10IsolatedPgDb.create(suffix="g1dirtya", revision=_REV_080)
+    try:
+        SessionLocal = isolated.session_factory()
+        s = SessionLocal()
+        try:
+            u = models.User(
+                name=f"dirty-ahsa-{uuid4().hex[:8]}",
+                secret_key=f"sk-dirty-ahsa-{uuid4().hex[:8]}",
+                preferred_language="en",
+            )
+            s.add(u)
+            s.flush()
+            # One active SELF HS (no HS duplicate) + two effective SELF AHSA on
+            # different subjects (allowed by uq_ahsa_active_account_subject at 080).
+            hs_self = models.HealthSubject(
+                display_name="AHSA-SELF",
+                linked_user_id=u.id,
+                subject_kind="self",
+                status="active",
+            )
+            hs_other = models.HealthSubject(
+                display_name="AHSA-OTHER",
+                linked_user_id=None,
+                subject_kind="managed",
+                status="active",
+            )
+            s.add_all([hs_self, hs_other])
+            s.flush()
+            a1 = models.AccountHealthSubjectAccess(
+                account_user_id=u.id,
+                health_subject_id=hs_self.id,
+                access_role="SELF",
+                is_active=True,
+                revoked_at=None,
+            )
+            a2 = models.AccountHealthSubjectAccess(
+                account_user_id=u.id,
+                health_subject_id=hs_other.id,
+                access_role="SELF",
+                is_active=True,
+                revoked_at=None,
+            )
+            s.add_all([a1, a2])
+            s.commit()
+            uid = int(u.id)
+        finally:
+            s.close()
+
+        with pytest.raises(Exception) as ei:
+            command.upgrade(isolated.cfg, _REV_081)
+        err = str(ei.value)
+        assert "SELF_1TO1_HARDENING_BLOCKED" in err
+        assert "AHSA groups=1" in err
+        _assert_no_raw_identity_leak(err)
+        assert f"account_user_id={uid}" not in err
+
+        assert isolated.head() == _REV_080
+        s2 = SessionLocal()
+        try:
+            n = (
+                s2.query(models.AccountHealthSubjectAccess)
+                .filter(
+                    models.AccountHealthSubjectAccess.account_user_id == uid,
+                    models.AccountHealthSubjectAccess.access_role == "SELF",
+                    models.AccountHealthSubjectAccess.is_active.is_(True),
+                    models.AccountHealthSubjectAccess.revoked_at.is_(None),
                 )
                 .count()
             )

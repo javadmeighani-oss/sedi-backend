@@ -25,51 +25,59 @@ IDX_AHSA = "uq_ahsa_active_self_account"
 
 def _fail_on_duplicate_active_self_subjects() -> None:
     conn = op.get_bind()
-    rows = conn.execute(
+    row = conn.execute(
         text(
             """
-            SELECT linked_user_id, COUNT(*) AS n
-            FROM health_subjects
-            WHERE subject_kind = 'self'
-              AND status = 'active'
-              AND linked_user_id IS NOT NULL
-            GROUP BY linked_user_id
-            HAVING COUNT(*) > 1
-            ORDER BY linked_user_id
-            LIMIT 20
+            SELECT COUNT(*) AS groups, COALESCE(SUM(n), 0) AS conflicting_rows
+            FROM (
+                SELECT linked_user_id, COUNT(*) AS n
+                FROM health_subjects
+                WHERE subject_kind = 'self'
+                  AND status = 'active'
+                  AND linked_user_id IS NOT NULL
+                GROUP BY linked_user_id
+                HAVING COUNT(*) > 1
+            ) d
             """
         )
-    ).fetchall()
-    if rows:
-        masked = ", ".join(f"linked_user_id={r[0]} count={r[1]}" for r in rows)
+    ).fetchone()
+    groups = int(row[0] or 0)
+    if groups > 0:
+        conflicting_rows = int(row[1] or 0)
         raise RuntimeError(
-            "SELF_1TO1_HARDENING_BLOCKED: duplicate active SELF HealthSubject rows "
-            f"(no auto-delete/merge). samples=[{masked}]"
+            "SELF_1TO1_HARDENING_BLOCKED: "
+            f"duplicate active SELF HealthSubject groups={groups} "
+            f"conflicting_rows={conflicting_rows} "
+            "(no auto-delete/merge)"
         )
 
 
 def _fail_on_duplicate_active_self_ahsa() -> None:
     conn = op.get_bind()
-    rows = conn.execute(
+    row = conn.execute(
         text(
             """
-            SELECT account_user_id, COUNT(*) AS n
-            FROM account_health_subject_access
-            WHERE access_role = 'SELF'
-              AND is_active IS TRUE
-              AND revoked_at IS NULL
-            GROUP BY account_user_id
-            HAVING COUNT(*) > 1
-            ORDER BY account_user_id
-            LIMIT 20
+            SELECT COUNT(*) AS groups, COALESCE(SUM(n), 0) AS conflicting_rows
+            FROM (
+                SELECT account_user_id, COUNT(*) AS n
+                FROM account_health_subject_access
+                WHERE access_role = 'SELF'
+                  AND is_active IS TRUE
+                  AND revoked_at IS NULL
+                GROUP BY account_user_id
+                HAVING COUNT(*) > 1
+            ) d
             """
         )
-    ).fetchall()
-    if rows:
-        masked = ", ".join(f"account_user_id={r[0]} count={r[1]}" for r in rows)
+    ).fetchone()
+    groups = int(row[0] or 0)
+    if groups > 0:
+        conflicting_rows = int(row[1] or 0)
         raise RuntimeError(
-            "SELF_1TO1_HARDENING_BLOCKED: duplicate effective active SELF AHSA rows "
-            f"(no auto-delete/merge). samples=[{masked}]"
+            "SELF_1TO1_HARDENING_BLOCKED: "
+            f"duplicate effective active SELF AHSA groups={groups} "
+            f"conflicting_rows={conflicting_rows} "
+            "(no auto-delete/merge)"
         )
 
 
