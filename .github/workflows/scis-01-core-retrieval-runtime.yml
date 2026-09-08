@@ -20,6 +20,8 @@ on:
       - "backend/tests/test_s02_device_i4_safety_contract.py"
       - "backend/tests/test_smart_rag_phase1_canonical_runtime.py"
       - "backend/tests/test_smart_rag_phase2a_query_intelligence.py"
+      - "backend/tests/test_smart_rag_phase2b_coreference_observability.py"
+      - "backend/tests/test_smart_rag_phase2b_pg16_observability.py"
       - "backend/tests/test_local_rag_provider.py"
       - "backend/tests/test_rag_metrics.py"
       - "backend/scripts/smart_rag_phase1_focused_verify.py"
@@ -240,6 +242,24 @@ jobs:
             backend/tests/test_smart_rag_phase2a_query_intelligence.py \
             -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_phase2a_focused.txt"
+
+      - name: Phase2-B Smart-RAG focused pytest
+        run: |
+          set -euo pipefail
+          # Authority-safe coreference + sanitized observability unit surface.
+          python -B -m pytest \
+            backend/tests/test_smart_rag_phase2b_coreference_observability.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_phase2b_focused.txt"
+
+      - name: Phase2-B PG16 observability integration
+        run: |
+          set -euo pipefail
+          # Real SCIS→I5 observability seam on isolated PG16/pgvector (no full-path mock).
+          python -B -m pytest \
+            backend/tests/test_smart_rag_phase2b_pg16_observability.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_phase2b_pg16_observability.txt"
 
       - name: OpenAI live embedding canary (Phase1 canonical)
         env:
