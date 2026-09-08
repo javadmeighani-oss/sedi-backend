@@ -1,0 +1,109 @@
+# G1 C03 SELF 1:1 schema hardening + identity PG16 certification.
+# GATE=SEDI-V1-BE-FINALCERT-G1-C03-SELF-1TO1-SCHEMA-HARDENING-AND-IDENTITY-PG16-CERTIFICATION-01
+# NO production. NO Smart-RAG. NO DRVS reopen. NO Real FCM. NO frontend.
+name: G1 C03 SELF 1to1 Identity PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/models.py"
+      - "backend/app/services/i9/health_subject_service.py"
+      - "backend/alembic/versions/081_self_health_subject_1to1_hardening.py"
+      - "backend/tests/test_g1_c03_self_1to1_identity_pg16.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - ".github/workflows/g1-c03-self-1to1-identity-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g1-c03-self-1to1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  g1-c03-identity:
+    name: G1 C03 SELF 1to1 PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_g1
+          POSTGRES_PASSWORD: sedi_g1_pass
+          POSTGRES_DB: sedi_g1
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_g1 -d sedi_g1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_g1:sedi_g1_pass@127.0.0.1:5432/sedi_g1
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_g1:sedi_g1_pass@127.0.0.1:5432/sedi_g1
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + pgvector
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
+          PY
+      - name: Alembic single head 081
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          rev = script.get_revision("081_self_health_subject_1to1_hardening")
+          assert rev.down_revision == "080_i9_device_reported_vital_status"
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Focused G1 C03 suite
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g1_c03_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g1_c03_self_1to1_identity_pg16.py \
+            | tee /tmp/g1_c03_evidence/pytest.txt
+      - name: Upload pytest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g1-c03-self-1to1-identity-pytest
+          path: /tmp/g1_c03_evidence/pytest.txt
