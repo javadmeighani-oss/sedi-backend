@@ -11,6 +11,7 @@ on:
       - "backend/app/services/i8/**"
       - "backend/app/services/local_rag/**"
       - "backend/app/services/i5/runtime_knowledge_retrieval.py"
+      - "backend/app/services/i5/retrieval_sufficiency.py"
       - "backend/app/services/rag_context/**"
       - "backend/alembic/versions/061_scis01_pgvector_kce_foundation.py"
       - "backend/tests/test_scis_01_core_retrieval.py"
@@ -18,6 +19,7 @@ on:
       - "backend/tests/test_s01_managed_subject_knowledge_e2e.py"
       - "backend/tests/test_s02_device_i4_safety_contract.py"
       - "backend/tests/test_smart_rag_phase1_canonical_runtime.py"
+      - "backend/tests/test_smart_rag_phase2a_query_intelligence.py"
       - "backend/tests/test_local_rag_provider.py"
       - "backend/tests/test_rag_metrics.py"
       - "backend/scripts/smart_rag_phase1_focused_verify.py"
@@ -228,6 +230,16 @@ jobs:
           set -euo pipefail
           python backend/scripts/smart_rag_phase1_focused_verify.py \
             | tee "${{ runner.temp }}/scis01_evidence/phase1_focused_verify.txt"
+
+      - name: Phase2-A Smart-RAG focused pytest
+        run: |
+          set -euo pipefail
+          # Deterministic query intelligence (phrase/temporal/alias/contradiction/sufficiency).
+          # Pure unit surface; runs under PG16 job env for contiguous Smart-RAG CI evidence.
+          python -B -m pytest \
+            backend/tests/test_smart_rag_phase2a_query_intelligence.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_phase2a_focused.txt"
 
       - name: OpenAI live embedding canary (Phase1 canonical)
         env:
