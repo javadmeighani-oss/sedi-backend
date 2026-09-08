@@ -1,5 +1,6 @@
 # SCIS-01 Core Retrieval Foundation — isolated PostgreSQL 16 + pgvector
 # NO Production mutation. NO crawler/RAG Production activation.
+# Phase1 Smart-RAG: OpenAI-only network canary (no Cohere CI authority).
 name: SCIS-01 Core Retrieval Runtime
 
 on:
@@ -8,11 +9,18 @@ on:
     paths:
       - "backend/app/services/scis/**"
       - "backend/app/services/i8/**"
+      - "backend/app/services/local_rag/**"
+      - "backend/app/services/i5/runtime_knowledge_retrieval.py"
+      - "backend/app/services/rag_context/**"
       - "backend/alembic/versions/061_scis01_pgvector_kce_foundation.py"
       - "backend/tests/test_scis_01_core_retrieval.py"
       - "backend/tests/test_i5_k04_scis_governed_serving.py"
       - "backend/tests/test_s01_managed_subject_knowledge_e2e.py"
       - "backend/tests/test_s02_device_i4_safety_contract.py"
+      - "backend/tests/test_smart_rag_phase1_canonical_runtime.py"
+      - "backend/tests/test_local_rag_provider.py"
+      - "backend/tests/test_rag_metrics.py"
+      - "backend/scripts/smart_rag_phase1_focused_verify.py"
       - "backend/app/services/intelligence/device_safety_input.py"
       - "backend/app/services/intelligence/device_safety_registry.py"
       - "backend/app/services/intelligence/device_safety_risk.py"
@@ -58,8 +66,8 @@ jobs:
       ENVIRONMENT: test_isolated
       ENV: test_isolated
       PYTHONDONTWRITEBYTECODE: "1"
+      # Placeholder for non-network unit/runtime steps; live canary overrides via step env.
       OPENAI_API_KEY: scis01-test-placeholder-not-used
-      # No COHERE_API_KEY in mandatory CI — deterministic FakeScisEmbeddingProvider
 
     steps:
       - name: Checkout
@@ -81,7 +89,7 @@ jobs:
           set -euo pipefail
           python backend/scripts/ci_alembic_stage17_deny_guard.py --versions-dir backend/alembic/versions
 
-      - name: Alembic single head is 079 (SCIS-01 + KNOW + I7 chain)
+      - name: Alembic single head is 080 (SCIS-01 + KNOW + I7 + I9 chain)
         run: |
           python - <<'PY'
           from alembic.config import Config
@@ -134,7 +142,7 @@ jobs:
                   "i5_source_registry_extensions",
                   "i5_reference_books",
                   "i5_source_coverage_gaps",
-                  "i5_scientific_artifacts",
+                  "i5_scientific_claims",
                   "i5_clinical_concepts",
                   "i5_clinical_studies",
               ):
@@ -169,16 +177,16 @@ jobs:
           command.upgrade(cfg, "062_i5_know01_source_registry_rights")
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "062_i5_know01_source_registry_rights"
-          command.upgrade(cfg, "063_i5_know02_artifacts_claims_taxonomy")
+          command.upgrade(cfg, "063_i5_know02_claims_taxonomy")
           with eng.connect() as c:
-              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "063_i5_know02_artifacts_claims_taxonomy"
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "063_i5_know02_claims_taxonomy"
           command.upgrade(cfg, "064_i5_know03_studies_effects_recs")
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "064_i5_know03_studies_effects_recs"
           print("UPGRADE_060_TO_064=PASS")
           PY
 
-      - name: Restore Alembic head 079 for runtime pytest
+      - name: Restore Alembic head 080 for runtime pytest
         run: |
           python - <<'PY'
           import os
@@ -203,73 +211,95 @@ jobs:
           python -B -m pytest backend/tests/test_scis_01_core_retrieval.py backend/tests/test_i5_k04_scis_governed_serving.py backend/tests/test_s01_managed_subject_knowledge_e2e.py backend/tests/test_s02_device_i4_safety_contract.py backend/tests/test_i5_s49_trusted_source_control.py backend/tests/test_db03_contracts.py::test_db03_guardrails_constants backend/tests/test_db03_contracts.py::test_alembic_versions_deny_pgvector_and_rag_embeddings backend/tests/test_db03_contracts.py::test_alembic_single_head_chain backend/tests/test_db03_contracts.py::test_knowledge_chunk_embeddings_extended_columns -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_scis01.txt"
 
-      - name: Embedding challenger eval (optional network)
+      - name: Phase1 Smart-RAG focused pytest
+        run: |
+          set -euo pipefail
+          python -B -m pytest \
+            backend/tests/test_smart_rag_phase1_canonical_runtime.py \
+            backend/tests/test_local_rag_provider.py \
+            backend/tests/test_rag_metrics.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_phase1_focused.txt"
+
+      - name: Phase1 focused verify script
+        run: |
+          set -euo pipefail
+          python backend/scripts/smart_rag_phase1_focused_verify.py \
+            | tee "${{ runner.temp }}/scis01_evidence/phase1_focused_verify.txt"
+
+      - name: OpenAI live embedding canary (Phase1 canonical)
         env:
-          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          set -euo pipefail
           python - <<'PY'
-          import os, json
+          import json
+          import os
           from pathlib import Path
+
           out = {
-            "FINDING_01_VENDOR_BILLING_PRIVACY": "DEFERRED_WITH_EXACT_REASON",
-            "FINDING_01_EMBED_V4_EVAL": "NOT_AVAILABLE_WITH_EVIDENCE",
-            "reason": [],
-            "primary_docs": [
-              "https://docs.cohere.com/docs/cohere-embed",
-              "https://developers.openai.com/api/docs/guides/embeddings",
-            ],
-            "access_date": "2026-08-10",
-            "baseline_model": "embed-multilingual-v3.0",
-            "challenger_candidate": "embed-v4.0",
-            "personal_phi_external_embed": "NO",
+              "OPENAI_LIVE_CANARY": "FAIL",
+              "OPENAI_MODEL": "text-embedding-3-large",
+              "OPENAI_REQUESTED_DIMENSIONS": 1024,
+              "OPENAI_RETURNED_DIMENSIONS": None,
+              "OPENAI_LIVE_REQUEST_COUNT": 0,
+              "COHERE_LIVE_CALL_COUNT": 0,
+              "COHERE_CANONICAL_RUNTIME": "NO",
           }
-          cohere = os.environ.get("COHERE_API_KEY")
-          openai = os.environ.get("OPENAI_API_KEY")
-          if not cohere:
-              out["reason"].append("COHERE_API_KEY secret absent in this environment")
-              out["FINDING_01_EMBED_V4_EVAL"] = "NOT_AVAILABLE_WITH_EVIDENCE"
-              out["FINDING_01_VENDOR_BILLING_PRIVACY"] = "DEFERRED_WITH_EXACT_REASON"
-              out["billing_privacy_note"] = (
-                  "Official Cohere Embed docs confirm model availability and fa/ar support; "
-                  "billing/retention/training commitments require account-level terms review "
-                  "before Production pin — not inventable in SCIS-01."
+          key = os.environ.get("OPENAI_API_KEY") or ""
+          if not key or "placeholder" in key or key.endswith("not-used"):
+              out["OPENAI_LIVE_CANARY"] = "BLOCKED_NO_EXISTING_SECURE_CREDENTIAL"
+              out["ERROR_CLASS"] = "MISSING_OR_PLACEHOLDER_OPENAI_API_KEY"
+              Path(os.environ["RUNNER_TEMP"], "scis01_evidence", "openai_live_canary.json").write_text(
+                  json.dumps(out, indent=2), encoding="utf-8"
               )
-          else:
-              try:
-                  from backend.app.services.scis.embedding.providers import CohereEmbeddingProvider
-                  p = CohereEmbeddingProvider(model="embed-multilingual-v3.0", api_key=cohere)
-                  v = p.embed_texts(["ALS supportive care"], input_type="search_query")[0]
-                  assert len(v) == 1024
-                  out["baseline_live_embed"] = "PASS"
-                  out["FINDING_01_VENDOR_BILLING_PRIVACY"] = "PASS"
-                  # v4 challenger
-                  try:
-                      p4 = CohereEmbeddingProvider(model="embed-v4.0", api_key=cohere)
-                      v4 = p4.embed_texts(["ALS supportive care"], input_type="search_query")[0]
-                      out["v4_dim"] = len(v4)
-                      out["FINDING_01_EMBED_V4_EVAL"] = "PASS"
-                  except Exception as e:
-                      out["FINDING_01_EMBED_V4_EVAL"] = "NOT_AVAILABLE_WITH_EVIDENCE"
-                      out["v4_error"] = type(e).__name__
-              except Exception as e:
-                  out["FINDING_01_VENDOR_BILLING_PRIVACY"] = "BLOCKED"
-                  out["baseline_error"] = type(e).__name__
-          if openai and "placeholder" not in openai and "not-used" not in openai:
-              try:
-                  from backend.app.services.scis.embedding.providers import OpenAIEmbeddingProvider
-                  op = OpenAIEmbeddingProvider(api_key=openai)
-                  ov = op.embed_texts(["ALS supportive care"])[0]
-                  out["openai_challenger_dim"] = len(ov)
-                  out["openai_challenger"] = "PASS"
-              except Exception as e:
-                  out["openai_challenger"] = type(e).__name__
-          else:
-              out["openai_challenger"] = "SKIPPED_NO_KEY"
-          Path(os.environ["RUNNER_TEMP"], "scis01_evidence", "embedding_challenger.json").write_text(
+              print(json.dumps(out, indent=2))
+              raise SystemExit(1)
+
+          try:
+              from backend.app.services.scis.embedding.providers import OpenAIEmbeddingProvider
+
+              provider = OpenAIEmbeddingProvider(
+                  model="text-embedding-3-large",
+                  api_key=key,
+                  dimensions=1024,
+              )
+              vectors = provider.embed_texts(
+                  ["Sedi Smart-RAG Phase1 synthetic embedding canary."]
+              )
+              out["OPENAI_LIVE_REQUEST_COUNT"] = 1
+              emb = vectors[0] if vectors else None
+              if emb is None:
+                  out["ERROR_CLASS"] = "EMPTY_EMBEDDING"
+                  raise RuntimeError("EMPTY_EMBEDDING")
+              returned = len(emb)
+              out["OPENAI_RETURNED_DIMENSIONS"] = returned
+              if returned != 1024:
+                  out["ERROR_CLASS"] = "DIMENSION_MISMATCH"
+                  raise RuntimeError("DIMENSION_MISMATCH")
+              out["OPENAI_LIVE_CANARY"] = "PASS"
+          except SystemExit:
+              raise
+          except Exception as e:
+              out["OPENAI_LIVE_CANARY"] = "FAIL"
+              out["ERROR_CLASS"] = type(e).__name__
+              Path(os.environ["RUNNER_TEMP"], "scis01_evidence", "openai_live_canary.json").write_text(
+                  json.dumps(out, indent=2), encoding="utf-8"
+              )
+              print(json.dumps(out, indent=2))
+              raise SystemExit(1)
+
+          Path(os.environ["RUNNER_TEMP"], "scis01_evidence", "openai_live_canary.json").write_text(
               json.dumps(out, indent=2), encoding="utf-8"
           )
-          print(json.dumps(out, indent=2))
+          # Safe metadata only — never print embedding vector / secret / headers.
+          print("OPENAI_LIVE_CANARY=PASS")
+          print("OPENAI_MODEL=text-embedding-3-large")
+          print("OPENAI_REQUESTED_DIMENSIONS=1024")
+          print("OPENAI_RETURNED_DIMENSIONS=1024")
+          print("OPENAI_LIVE_REQUEST_COUNT=1")
+          print("COHERE_LIVE_CALL_COUNT=0")
+          print("COHERE_CANONICAL_RUNTIME=NO")
           PY
 
       - name: Write evidence summary
@@ -284,7 +314,10 @@ jobs:
             echo "RAG_ACTIVATED=NO"
             echo "CRAWLER_ACTIVATED=NO"
             echo "PRODUCTION_CHANGED=NO"
-            echo "EMBEDDING_CI_PATH=FakeScisEmbeddingProvider"
+            echo "CANONICAL_NETWORK_PROVIDER=OPENAI_ONLY"
+            echo "COHERE_CANONICAL_RUNTIME=NO"
+            echo "COHERE_LIVE_CALL_COUNT=0"
+            echo "EMBEDDING_CI_PATH=FakeScisEmbeddingProvider_PLUS_OPENAI_LIVE_CANARY"
             echo "ANN_INDEX=NONE_EXACT_SEARCH"
           } > "${{ runner.temp }}/scis01_evidence/summary.txt"
 
