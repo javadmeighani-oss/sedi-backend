@@ -235,8 +235,11 @@ def test_g4_nutrition_exercise_user_isolation(db):
 
 
 def test_g4_personal_ne_governed_and_i5_required(db):
+    from backend.app.services.i6.consent_service import grant_memory_consent
+
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
+    grant_memory_consent(db, fam.son.id, commit=False)
     with patch(
         "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
         return_value=SimpleNamespace(status="EMPTY", items=[]),
@@ -254,8 +257,11 @@ def test_g4_personal_ne_governed_and_i5_required(db):
 
 
 def test_g4_nutrition_exercise_paths_with_governed_knowledge(db):
+    from backend.app.services.i6.consent_service import grant_memory_consent
+
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
+    grant_memory_consent(db, fam.son.id, commit=False)
     with patch(
         "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
         return_value=SimpleNamespace(status=STATUS_OK, items=[_ok_item(domain="nutrition")]),
@@ -364,17 +370,24 @@ def test_g4_c06_done_exact_expired_nondone_idempotent(client, db):
         db.refresh(expired)
         assert expired.status == "ACTIVE"
 
-        # Wrong client action id redirection blocked
+        # Wrong client action id redirection blocked (exact loop02 C06-01 semantic)
+        before_n = db.query(models.Notification).filter_by(user_id=son.id).count()
         _p3, a1 = _seed_action(db, son.id, when=when, key="redir-a1")
         _p4, a2 = _seed_action(db, son.id, when=when, key="redir-a2")
-        assert process_i8_coaching_followups(db, now=when, user_id=son.id, force=True) >= 1
+        delivered = process_i8_coaching_followups(db, now=when, user_id=son.id, force=True)
+        assert delivered >= 2
         db.flush()
         n1 = (
             db.query(models.Notification)
-            .filter(models.Notification.user_id == son.id)
+            .filter(
+                models.Notification.user_id == son.id,
+                models.Notification.source_id == str(a1.id),
+            )
             .order_by(models.Notification.id.desc())
             .first()
         )
+        assert n1 is not None
+        assert db.query(models.Notification).filter_by(user_id=son.id).count() >= before_n + 2
         r_redir = client.post(
             f"/notifications/{n1.id}/feedback",
             headers=_auth(son.id),
