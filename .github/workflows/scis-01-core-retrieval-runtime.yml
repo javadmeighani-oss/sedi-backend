@@ -142,7 +142,7 @@ jobs:
                   "i5_source_registry_extensions",
                   "i5_reference_books",
                   "i5_source_coverage_gaps",
-                  "i5_scientific_claims",
+                  "i5_scientific_artifacts",
                   "i5_clinical_concepts",
                   "i5_clinical_studies",
               ):
@@ -177,9 +177,9 @@ jobs:
           command.upgrade(cfg, "062_i5_know01_source_registry_rights")
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "062_i5_know01_source_registry_rights"
-          command.upgrade(cfg, "063_i5_know02_claims_taxonomy")
+          command.upgrade(cfg, "063_i5_know02_artifacts_claims_taxonomy")
           with eng.connect() as c:
-              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "063_i5_know02_claims_taxonomy"
+              assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "063_i5_know02_artifacts_claims_taxonomy"
           command.upgrade(cfg, "064_i5_know03_studies_effects_recs")
           with eng.connect() as c:
               assert c.execute(text("SELECT version_num FROM alembic_version")).scalar() == "064_i5_know03_studies_effects_recs"
@@ -305,6 +305,7 @@ jobs:
       - name: Write evidence summary
         if: always()
         run: |
+          mkdir -p "${{ runner.temp }}/scis01_evidence"
           {
             echo "GATE=SCIS-01"
             echo "ALEMBIC_HEAD=080_i9_device_reported_vital_status"
