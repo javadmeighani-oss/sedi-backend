@@ -1,0 +1,151 @@
+# G4 shared PG16 harness 081 alignment governance closure.
+# GATE=SEDI-V1-BE-FINALCERT-G4-SHARED-PG16-HARNESS-081-ALIGNMENT-IMPACT-VALIDATION-AND-GOVERNANCE-CLOSURE-01
+# POLICY=KEEP_081_SHARED_DEFAULT
+# NO product runtime. NO schema/migration. NO reopen of A/B/C06 packages.
+name: G4 Shared Harness 081 Governance
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - "backend/tests/test_g4_shared_harness_081_governance.py"
+      - "backend/tests/test_als_e2e_system_validation_01.py"
+      - ".github/workflows/g4-shared-harness-081-governance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g4-shared-harness-081-gov-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  g4-harness-gov:
+    name: G4 shared harness 081 governance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_g4h
+          POSTGRES_PASSWORD: sedi_g4h_pass
+          POSTGRES_DB: sedi_g4h
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_g4h -d sedi_g4h"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_g4h:sedi_g4h_pass@127.0.0.1:5432/sedi_g4h
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_g4h:sedi_g4h_pass@127.0.0.1:5432/sedi_g4h
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + pgvector
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
+          PY
+      - name: Alembic single head 081
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Stage1 harness default + override + historical protection
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g4h_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g4_shared_harness_081_governance.py \
+            | tee /tmp/g4h_evidence/harness_gov_pytest.txt
+          grep -E "test_harness_default_create_targets_alembic_head_081 PASSED" /tmp/g4h_evidence/harness_gov_pytest.txt
+          grep -E "test_explicit_revision_override_preserved_080 PASSED" /tmp/g4h_evidence/harness_gov_pytest.txt
+          grep -E "test_explicit_historical_migration_cycle_073_to_074 PASSED" /tmp/g4h_evidence/harness_gov_pytest.txt
+          grep -E "test_i10_pg_db_module_is_alembic_head PASSED" /tmp/g4h_evidence/harness_gov_pytest.txt
+          grep -E "test_g4_scenario_create_explicitly_pins_081 PASSED" /tmp/g4h_evidence/harness_gov_pytest.txt
+      - name: Stage2 current-head default consumer (I10 B01 smoke)
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i10_b01_foundation.py -k "test_notification_table_exists or test_health_subject" \
+            | tee /tmp/g4h_evidence/b01_consumer_pytest.txt
+          # At least one passed test using shared db fixture
+          grep -E "PASSED" /tmp/g4h_evidence/b01_consumer_pytest.txt | head -n 1
+      - name: Stage3 historical explicit consumer (I10 B04 mig 074)
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i10_b04_migration_074_cycle.py \
+            | tee /tmp/g4h_evidence/historical_mig_pytest.txt
+          grep -E "passed" /tmp/g4h_evidence/historical_mig_pytest.txt | tail -n 1
+      - name: Stage4 G4 081 proof preserved (representative A/B + scenario head)
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_v1_nutrition_primary_user_e2e.py -k "test_CASE_01_" \
+            backend/tests/test_v1_exercise_primary_user_e2e.py -k "test_CASE_01_" \
+            backend/tests/test_g4_a_b_c06_scenario_integration_pg16.py -k "test_g4_scenario_id_canonical or test_g4_family_identity_locks" \
+            | tee /tmp/g4h_evidence/g4_proof_pytest.txt
+          grep -E "test_CASE_01_PRIMARY_USER_NUTRITION_INPUT PASSED" /tmp/g4h_evidence/g4_proof_pytest.txt
+          grep -E "test_CASE_01_PRIMARY_USER_EXERCISE_INPUT PASSED" /tmp/g4h_evidence/g4_proof_pytest.txt
+          grep -E "test_g4_family_identity_locks PASSED" /tmp/g4h_evidence/g4_proof_pytest.txt
+      - name: Stage5 ALS default-consumer assert aligned to Alembic-head
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_als_e2e_system_validation_01.py -k "test_a_backend_baseline" \
+            | tee /tmp/g4h_evidence/als_baseline_pytest.txt
+          grep -E "test_a_backend_baseline PASSED" /tmp/g4h_evidence/als_baseline_pytest.txt
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          for f in harness_gov_pytest.txt b01_consumer_pytest.txt historical_mig_pytest.txt g4_proof_pytest.txt als_baseline_pytest.txt; do
+            echo "=== $f ===" && tail -n 3 /tmp/g4h_evidence/$f
+          done
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4-shared-harness-081-governance-pytest
+          path: /tmp/g4h_evidence/

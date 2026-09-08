@@ -341,9 +341,12 @@ def _chat(client, user, message: str, **extra):
 
 
 def test_a_backend_baseline(client, db, i10_pg_db_module):
+    from backend.tests.helpers.i10_postgresql_harness import ALEMBIC_HEAD
+
     _, isolated = i10_pg_db_module
     head = isolated.head()
-    assert head == "080_i9_device_reported_vital_status"
+    # Shared i10_pg_db_module is Alembic-head (fixture contract), not a pinned historical revision.
+    assert head == ALEMBIC_HEAD
     r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
