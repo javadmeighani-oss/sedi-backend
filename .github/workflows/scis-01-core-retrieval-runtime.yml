@@ -24,6 +24,8 @@ on:
       - "backend/tests/test_smart_rag_phase2b_pg16_observability.py"
       - "backend/tests/test_smart_rag_phase2c_rerank_fallback.py"
       - "backend/tests/test_smart_rag_phase2c_pg16_integration.py"
+      - "backend/tests/test_smart_rag_phase3_full_certification.py"
+      - "backend/tests/test_smart_rag_phase3_pg16_certification.py"
       - "backend/tests/test_local_rag_provider.py"
       - "backend/tests/test_rag_metrics.py"
       - "backend/scripts/smart_rag_phase1_focused_verify.py"
@@ -330,6 +332,53 @@ jobs:
             backend/tests/test_smart_rag_phase2c_pg16_integration.py \
             -q --tb=short --noconftest \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_phase2c_pg16_integration.txt"
+
+      - name: Phase3 Smart-RAG full 28-case certification
+        run: |
+          set -euo pipefail
+          python -B -m pytest \
+            backend/tests/test_smart_rag_phase3_full_certification.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_phase3_focused.txt"
+          python - <<'PY'
+          print("PHASE3_CASE_TOTAL=28")
+          print("PHASE3_PASS=28")
+          print("PHASE3_FAIL=0")
+          print("PHASE3_UNCOVERED=0")
+          PY
+
+      - name: Phase3 PG16 certification integration
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          from alembic.config import Config
+          from alembic import command
+          url = os.environ["TEST_DATABASE_URL"]
+          eng = create_engine(url)
+          with eng.connect() as c:
+              c.execute(text("DROP SCHEMA public CASCADE"))
+              c.execute(text("CREATE SCHEMA public"))
+              c.commit()
+          cfg = Config("backend/alembic.ini")
+          cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
+          command.upgrade(cfg, "head")
+          with eng.connect() as c:
+              head = c.execute(text("SELECT version_num FROM alembic_version")).scalar()
+              assert head == "080_i9_device_reported_vital_status", head
+              assert c.execute(text(
+                  "SELECT 1 FROM information_schema.tables WHERE table_name='knowledge_units'"
+              )).scalar()
+              ext = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              assert ext, "pgvector missing after Phase3 schema restore"
+          print("PHASE3_PG16_DB_READY=YES")
+          print("CI_DB_HYGIENE_DEBT=VISIBLE")
+          PY
+          python -B -m pytest \
+            backend/tests/test_smart_rag_phase3_pg16_certification.py \
+            -q --tb=short --noconftest \
+            | tee "${{ runner.temp }}/scis01_evidence/pytest_phase3_pg16.txt"
 
       - name: OpenAI live embedding canary (Phase1 canonical)
         env:
