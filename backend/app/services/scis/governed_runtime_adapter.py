@@ -179,16 +179,19 @@ def retrieve_scis_governed_runtime_items(
     allow_network: bool = True,
     provider: Optional[ScisEmbeddingProvider] = None,
     force_mode: Optional[RetrievalMode] = None,
+    alias_hints: Optional[Sequence[str]] = None,
 ) -> Tuple[List[RetrievedKnowledgeItem], dict]:
     """Canonical governed I5 runtime: HYBRID when OpenAI available, else lexical.
 
     Unsupported language → raises UnsupportedGovernedLanguageError (fail-closed).
+    alias_hints are NONAUTHORITATIVE retrieval hints only.
     """
     lang = normalize_governed_language(language)
     if not is_supported_governed_language(lang):
         raise UnsupportedGovernedLanguageError(lang)
 
     top_k = max(1, min(int(limit), DEFAULT_SERVING_TOP_K))
+    hints = list(alias_hints or [])[:4]
     meta: dict = {
         "requested_mode": None,
         "effective_mode": None,
@@ -197,6 +200,8 @@ def retrieve_scis_governed_runtime_items(
         "openai_failure_lexical_fallback": False,
         "cohere_used": False,
         "stage17_rag_embeddings_used": False,
+        "alias_authority": "NONAUTHORITATIVE",
+        "alias_hint_count": len(hints),
     }
 
     if force_mode == RetrievalMode.LEXICAL:
@@ -227,6 +232,7 @@ def retrieve_scis_governed_runtime_items(
             retrieval_mode=mode,
         ),
         provider=prov,
+        alias_hints=hints or None,
     )
     meta["fallback_state"] = getattr(resp.fallback_state, "value", str(resp.fallback_state))
 
@@ -247,6 +253,7 @@ def retrieve_scis_governed_runtime_items(
                     top_k=top_k,
                     retrieval_mode=RetrievalMode.LEXICAL,
                 ),
+                alias_hints=hints or None,
             )
             meta["effective_mode"] = RetrievalMode.LEXICAL.value
             meta["fallback_state"] = getattr(resp.fallback_state, "value", str(resp.fallback_state))

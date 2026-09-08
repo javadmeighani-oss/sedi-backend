@@ -11,6 +11,7 @@ from backend.app.services.scis.hybrid import RankedCandidate
 from backend.app.services.scis.lexical_query import (
     LexicalQueryPlan,
     formulate_lexical_query_plan,
+    phrase_coverage_score,
     token_coverage_score,
 )
 from backend.app.services.scis.normalize import normalize_for_language
@@ -79,20 +80,24 @@ def _rows_to_candidates(
     rows: Sequence[Any],
     *,
     coverage_tokens: Sequence[str],
+    phrases: Sequence[str],
+    language: str,
     top_k: int,
 ) -> List[RankedCandidate]:
-    scored: List[Tuple[float, float, int, Any]] = []
+    scored: List[Tuple[float, float, float, int, Any]] = []
     for row in rows:
         rank_score = float(row["rank_score"] or 0.0)
         hay = f"{row.get('search_document') or ''} {row.get('chunk_content') or ''}"
         coverage = token_coverage_score(hay, coverage_tokens)
-        scored.append((rank_score, coverage, int(row["chunk_id"]), row))
-    # Prefer FTS rank, then query-token coverage (demotes incidental acronym hits).
-    scored.sort(key=lambda x: (-x[0], -x[1], x[2]))
+        p_cov = phrase_coverage_score(hay, phrases, language=language)
+        scored.append((rank_score, p_cov, coverage, int(row["chunk_id"]), row))
+    # Prefer FTS rank, then phrase coverage, then token coverage.
+    scored.sort(key=lambda x: (-x[0], -x[1], -x[2], x[3]))
     cands: List[RankedCandidate] = []
-    for i, (rank_score, coverage, _cid, row) in enumerate(scored[:top_k], start=1):
+    for i, (rank_score, p_cov, coverage, _cid, row) in enumerate(scored[:top_k], start=1):
         payload = dict(row)
         payload["query_token_coverage"] = coverage
+        payload["query_phrase_coverage"] = p_cov
         cands.append(
             RankedCandidate(
                 chunk_id=int(row["chunk_id"]),
@@ -112,14 +117,18 @@ def lexical_search(
     language: str = "en",
     top_k: int = 20,
     domain: Optional[str] = None,
+    alias_hints: Optional[Sequence[str]] = None,
 ) -> Tuple[List[RankedCandidate], Dict[str, Any]]:
     """FTS over knowledge_chunk_embeddings.search_tsv (simple config).
 
     Uses plainto_tsquery on a deterministic QueryPlan (PRIMARY, optional FALLBACK)
     so natural-language function words are not AND-required. FA/AR rely on
     normalization, not language-specific stemming dictionaries.
+    Alias hints are non-authoritative last-resort FTS only (≤4 expansions).
     """
-    plan: LexicalQueryPlan = formulate_lexical_query_plan(query, language=language)
+    plan: LexicalQueryPlan = formulate_lexical_query_plan(
+        query, language=language, alias_hints=alias_hints
+    )
     meta: Dict[str, Any] = {
         "branch": "lexical",
         "config": "simple",
@@ -132,10 +141,14 @@ def lexical_search(
             "original_token_count": plan.original_token_count,
             "primary_token_count": plan.primary_token_count,
             "fallback_token_count": plan.fallback_token_count,
+            "phrases": list(plan.phrases),
+            "phrase_count": plan.phrase_count,
+            "alias_hints": list(plan.alias_hints),
+            "alias_authority": "NONAUTHORITATIVE",
             "used": None,
         },
     }
-    if not plan.primary_query and not plan.fallback_query:
+    if not plan.primary_query and not plan.fallback_query and not plan.alias_hints:
         return [], meta
 
     fetch_lim = max(top_k * 3, 20)
@@ -154,7 +167,21 @@ def lexical_search(
             meta["error"] = err
             return [], meta
 
+    if not rows and plan.alias_hints:
+        alias_q = " ".join(plan.alias_hints)
+        rows, err = _execute_fts(db, q=alias_q, domain=domain, lim=fetch_lim)
+        used = "alias_hint"
+        if err:
+            meta["error"] = err
+            return [], meta
+
     meta["query_plan"]["used"] = used if rows or used == "primary" else used
-    cands = _rows_to_candidates(rows, coverage_tokens=coverage_tokens, top_k=top_k)
+    cands = _rows_to_candidates(
+        rows,
+        coverage_tokens=coverage_tokens,
+        phrases=plan.phrases,
+        language=language,
+        top_k=top_k,
+    )
     meta["raw_count"] = len(cands)
     return cands, meta

@@ -277,7 +277,7 @@ def test_hybrid_openai_failure_falls_back_to_lexical_not_cohere(monkeypatch):
     monkeypatch.setenv("COHERE_API_KEY", "must-not-be-used")
     calls: List[RetrievalMode] = []
 
-    def _fake_retrieve(db_sess, request, provider=None):
+    def _fake_retrieve(db_sess, request, provider=None, **_kwargs):
         calls.append(request.retrieval_mode)
         if getattr(provider, "provider_name", None) == "cohere":
             raise AssertionError("Cohere must not be used")

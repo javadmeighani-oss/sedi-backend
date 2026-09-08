@@ -234,6 +234,8 @@ class RetrievalResult:
     escalation_required: bool = False
     personalization_applied: bool = False
     personalization_audit: dict[str, Any] = field(default_factory=dict)
+    query_intelligence: dict[str, Any] = field(default_factory=dict)
+    sufficiency_audit: dict[str, Any] = field(default_factory=dict)
     safe_user_facing_intent: str = (
         "No safe governed knowledge is available for this query; "
         "do not invent medical content."
@@ -252,6 +254,8 @@ class RetrievalResult:
             "domain_filter": self.domain_filter,
             "personalization_applied": self.personalization_applied,
             "personalization_audit": dict(self.personalization_audit),
+            "query_intelligence": dict(self.query_intelligence),
+            "sufficiency_audit": dict(self.sufficiency_audit),
             "retrieved_count": len(self.items),
             "items": [
                 {
@@ -740,12 +744,16 @@ def retrieve_knowledge_context(
     enqueue_gap_on_empty: bool = False,
     require_query_tokens: bool = False,
     personalization: Optional[RetrievalPersonalizationContext | Mapping[str, Any]] = None,
+    reference_time: Any = None,
+    timezone_name: Optional[str] = None,
+    alias_registry: Any = None,
 ) -> RetrievalResult:
     """Knowledge-DB-first retrieval with fail-closed eligibility filters.
 
     K04: prefer governed SCIS lexical evidence (no KnowledgeMemoryItem required).
     Memory plane is fallback only when SCIS returns nothing — paths are not merged.
     Personalization (CAP-OPEN-17) is post-eligibility ranking only.
+    Phase2-A: phrase/temporal/alias metadata + retrieval-set sufficiency.
     Default enqueue_gap_on_empty=False — normal serving is side-effect free.
     """
     from backend.app import models
@@ -776,6 +784,30 @@ def retrieve_knowledge_context(
         personalization_audit=pers_ctx.to_audit_dict() if pers_ctx else {},
     )
 
+    _plan, temporal, aliases = _apply_phase2a_query_intelligence(
+        result,
+        query=nq.original_query,
+        language=result.language_filter or language or "en",
+        reference_time=reference_time,
+        timezone_name=timezone_name,
+        alias_registry=alias_registry,
+    )
+
+    # Temporal ambiguity without inventing dates.
+    if temporal.clarification_required and temporal.deterministic_state == "AMBIGUOUS":
+        result.status = STATUS_INSUFFICIENT_CONTEXT
+        result.clarification_required = True
+        result.safe_user_facing_intent = (
+            "Temporal expression requires explicit reference_time and timezone; "
+            "do not invent dates."
+        )
+        result.sufficiency_audit = {
+            "sufficient": False,
+            "reason": "TEMPORAL_RESOLUTION_AMBIGUOUS",
+            "clarification_required": True,
+        }
+        return result
+
     if require_query_tokens and not nq.tokens:
         result.status = STATUS_INSUFFICIENT_CONTEXT
         result.clarification_required = True
@@ -804,6 +836,10 @@ def retrieve_knowledge_context(
         )
         return result
 
+    # Personal-history intent never grants governed access to personal vitals.
+    if temporal.personal_history_intent:
+        return _finalize_phase2a_sufficiency(result, personal_history_intent=True)
+
     # K04 primary path: governed SCIS HYBRID (lexical + KCE 1024) with lexical fallback.
     try:
         scis_items, _scis_meta = retrieve_scis_governed_runtime_items(
@@ -813,6 +849,7 @@ def retrieve_knowledge_context(
             domain=result.domain_filter,
             limit=serving_lim,
             allow_network=True,
+            alias_hints=aliases.expansions,
         )
     except UnsupportedGovernedLanguageError:
         result.status = STATUS_UNSUPPORTED_LANGUAGE
@@ -867,8 +904,7 @@ def retrieve_knowledge_context(
         result.safe_user_facing_intent = (
             "Governed SCIS knowledge matched this query after eligibility filters."
         )
-        return result
-
+        return _finalize_phase2a_sufficiency(result, personal_history_intent=False)
     # Fallback: CURRENT KnowledgeMemoryItem plane (historical path; not required for K04).
     q = db.query(models.KnowledgeMemoryItem).filter(
         models.KnowledgeMemoryItem.supersession_state == SupersessionState.CURRENT.value
@@ -1124,36 +1160,33 @@ def retrieve_knowledge_context(
             reason="LIMIT_TRUNCATED",
         )
 
-    if not result.items:
-        result.status = status_override or STATUS_NO_ELIGIBLE_KNOWLEDGE
-        lang = (result.language_filter or "").lower()
-        if lang.startswith("fa") or lang.startswith("ar"):
-            result.safe_user_facing_intent = (
-                "LANGUAGE_GAP: no governed evidence in the requested language after "
-                "eligibility filters; do not silently translate or invent medical content."
-            )
-            result.exclusion_counts["LANGUAGE_GAP"] = (
-                result.exclusion_counts.get("LANGUAGE_GAP", 0) + 1
-            )
-        else:
-            result.safe_user_facing_intent = (
-                "No safe governed knowledge matched this query after eligibility "
-                "and version filters; do not invent medical content."
-            )
-        if enqueue_gap_on_empty:
-            gap = enqueue_runtime_retrieval_gap(
-                db,
-                original_query=nq.original_query,
-                normalized_query=nq.normalized_query,
-                domain=result.domain_filter or "unknown",
-                trace_id=trace_id,
-                status=result.status,
-            )
-            result.gap_id = gap.id
-    elif status_override and status_override != STATUS_OK:
-        # Partial success with structural warnings already excluded — keep OK if items exist
+    lang = (result.language_filter or "").lower()
+    language_gap = (not result.items) and (
+        lang.startswith("fa") or lang.startswith("ar")
+    )
+    if status_override and status_override != STATUS_OK and result.items:
+        # Structural warnings already excluded — sufficiency still applies.
         pass
 
+    result = _finalize_phase2a_sufficiency(result, personal_history_intent=False)
+    if language_gap and result.status == STATUS_INSUFFICIENT_CONTEXT:
+        result.safe_user_facing_intent = (
+            "LANGUAGE_GAP: no governed evidence in the requested language after "
+            "eligibility filters; do not silently translate or invent medical content."
+        )
+        result.exclusion_counts["LANGUAGE_GAP"] = (
+            result.exclusion_counts.get("LANGUAGE_GAP", 0) + 1
+        )
+    if not result.items and enqueue_gap_on_empty:
+        gap = enqueue_runtime_retrieval_gap(
+            db,
+            original_query=nq.original_query,
+            normalized_query=nq.normalized_query,
+            domain=result.domain_filter or "unknown",
+            trace_id=trace_id,
+            status=result.status,
+        )
+        result.gap_id = gap.id
     return result
 
 
@@ -1162,3 +1195,107 @@ def assert_no_base_model_medical_fallback(result: RetrievalResult) -> None:
         raise RuntimeKnowledgeRetrievalError("BASE_MODEL_FALLBACK_MARKER_MISSING")
     if result.status != STATUS_OK and result.items:
         raise RuntimeKnowledgeRetrievalError("INCONSISTENT_NO_SAFE_RESULT")
+
+
+def _apply_phase2a_query_intelligence(
+    result: RetrievalResult,
+    *,
+    query: str,
+    language: Optional[str],
+    reference_time: Any = None,
+    timezone_name: Optional[str] = None,
+    alias_registry: Any = None,
+) -> tuple[Any, Any, Any]:
+    """CASE_02/05/10 metadata. Does not grant personal-history authority."""
+    from backend.app.services.scis.alias_expansion import expand_query_aliases
+    from backend.app.services.scis.lexical_query import formulate_lexical_query_plan
+    from backend.app.services.scis.temporal_query import parse_temporal_query_intent
+
+    lang = language or "en"
+    plan = formulate_lexical_query_plan(query, language=lang)
+    temporal = parse_temporal_query_intent(
+        query,
+        language=lang,
+        reference_time=reference_time,
+        timezone_name=timezone_name,
+    )
+    aliases = expand_query_aliases(
+        query, language=lang, registry=alias_registry
+    )
+    # Re-formulate with alias hints attached (PRIMARY bounds unchanged).
+    plan = formulate_lexical_query_plan(
+        query, language=lang, alias_hints=aliases.expansions
+    )
+    result.query_intelligence = {
+        "phrases": list(plan.phrases),
+        "phrase_count": plan.phrase_count,
+        "primary_token_count": plan.primary_token_count,
+        "fallback_token_count": plan.fallback_token_count,
+        "original_query_preserved": plan.original_query == (query or ""),
+        "temporal": temporal.to_audit_dict(),
+        "alias": aliases.to_audit_dict(),
+        "ALIAS_AUTHORITY": "NONAUTHORITATIVE",
+        "PERSONAL_NE_GOVERNED": True,
+    }
+    return plan, temporal, aliases
+
+
+def _finalize_phase2a_sufficiency(
+    result: RetrievalResult,
+    *,
+    personal_history_intent: bool,
+) -> RetrievalResult:
+    """CASE_19/20 — retrieval-set contradiction + sufficiency fail-closed."""
+    from backend.app.services.i5.retrieval_sufficiency import (
+        SUFFICIENCY_LOW_ONLY,
+        SUFFICIENCY_PERSONAL_HISTORY_BLOCKED,
+        SUFFICIENCY_UNRESOLVED_CONFLICT,
+        evaluate_retrieval_sufficiency,
+    )
+
+    decision = evaluate_retrieval_sufficiency(
+        result.items, personal_history_intent=personal_history_intent
+    )
+    result.sufficiency_audit = decision.to_audit_dict()
+    if decision.sufficient:
+        assert_no_base_model_medical_fallback(result)
+        return result
+
+    # Fail closed: clear items so synthesis cannot improvise.
+    for item in list(result.items):
+        _exclude(
+            result.exclusions,
+            result.exclusion_counts,
+            ku_id=item.knowledge_unit_id,
+            canonical_unit_id=item.canonical_unit_id,
+            reason=decision.reason,
+        )
+    result.items = []
+    result.status = STATUS_INSUFFICIENT_CONTEXT
+    result.clarification_required = True
+    result.exclusion_counts[decision.reason] = (
+        result.exclusion_counts.get(decision.reason, 0) + 1
+    )
+    if decision.reason == SUFFICIENCY_PERSONAL_HISTORY_BLOCKED:
+        result.safe_user_facing_intent = (
+            "Personal historical health data is outside governed I5 Smart-RAG; "
+            "PERSONAL != GOVERNED. Do not invent personal history from governed knowledge."
+        )
+    elif decision.reason == SUFFICIENCY_UNRESOLVED_CONFLICT:
+        result.safe_user_facing_intent = (
+            "Unresolved contradiction among governed evidence; "
+            "clarification required. Do not invent a reconciled medical answer."
+        )
+    elif decision.reason == SUFFICIENCY_LOW_ONLY:
+        result.safe_user_facing_intent = (
+            "Only LOW-strength governed evidence matched; insufficient for synthesis. "
+            "Do not invent medical content."
+        )
+    else:
+        result.safe_user_facing_intent = (
+            "No sufficient governed knowledge matched this query after eligibility "
+            "and sufficiency filters; do not invent medical content."
+        )
+    # Marker must remain true after fail-closed.
+    result.no_base_model_fallback = NO_BASE_MODEL_FALLBACK
+    return result

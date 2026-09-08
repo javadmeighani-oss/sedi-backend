@@ -66,7 +66,13 @@ def _filter_candidates(
     return kept
 
 
-def retrieve(db: Session, request: ScisRetrievalRequest, *, provider: Optional[ScisEmbeddingProvider] = None) -> ScisRetrievalResponse:
+def retrieve(
+    db: Session,
+    request: ScisRetrievalRequest,
+    *,
+    provider: Optional[ScisEmbeddingProvider] = None,
+    alias_hints: Optional[List[str]] = None,
+) -> ScisRetrievalResponse:
     trace = request.request_trace_id or str(uuid.uuid4())
     timings: Dict[str, float] = {}
     filtered: Dict[str, int] = {}
@@ -96,6 +102,7 @@ def retrieve(db: Session, request: ScisRetrievalRequest, *, provider: Optional[S
             language=request.query_language,
             top_k=max(request.top_k * 3, 20),
             domain=request.target_domain,
+            alias_hints=alias_hints,
         )
         timings["lexical_ms"] = (time.perf_counter() - t0) * 1000
         if lmeta.get("error"):

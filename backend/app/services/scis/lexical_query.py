@@ -226,10 +226,18 @@ _MAX_PRIMARY_TOKENS = 8
 _MAX_FALLBACK_TOKENS = 4
 _MIN_TOKEN_LEN = 2
 
+# Phase2-A CASE_02 — bounded adjacent phrase preservation (metadata complement).
+MAX_PHRASE_TOKENS = 3
+MAX_PHRASES_PER_QUERY = 6
+
 
 @dataclass(frozen=True)
 class LexicalQueryPlan:
-    """At most PRIMARY + one FALLBACK formulation."""
+    """At most PRIMARY + one FALLBACK formulation.
+
+    phrases: adjacent multi-token content phrases (≤3 tokens each, ≤6 total).
+    alias_hints: non-authoritative curated expansions (≤4); never clinical truth.
+    """
 
     original_query: str
     language: str
@@ -239,6 +247,8 @@ class LexicalQueryPlan:
     original_tokens: Tuple[str, ...]
     primary_tokens: Tuple[str, ...]
     fallback_tokens: Tuple[str, ...]
+    phrases: Tuple[str, ...] = ()
+    alias_hints: Tuple[str, ...] = ()
 
     @property
     def original_token_count(self) -> int:
@@ -251,6 +261,10 @@ class LexicalQueryPlan:
     @property
     def fallback_token_count(self) -> int:
         return len(self.fallback_tokens)
+
+    @property
+    def phrase_count(self) -> int:
+        return len(self.phrases)
 
 
 def _is_fa_ar(language: str | None) -> bool:
@@ -312,11 +326,65 @@ def _select_fallback_tokens(primary: Sequence[str]) -> Tuple[str, ...]:
     return tuple(t for t in primary if t in selected)
 
 
-def formulate_lexical_query_plan(query: str, *, language: str = "en") -> LexicalQueryPlan:
+def extract_important_phrases(
+    tokens: Sequence[str],
+    *,
+    language: str | None = "en",
+    max_phrase_tokens: int = MAX_PHRASE_TOKENS,
+    max_phrases: int = MAX_PHRASES_PER_QUERY,
+) -> Tuple[str, ...]:
+    """Preserve adjacent multi-token content phrases (deterministic, bounded).
+
+    Does not create clinical authority, synonyms, or translations.
+    Unigrams are not phrases. Max phrase length ≤3; max phrases ≤6.
+    """
+    if max_phrase_tokens < 2 or max_phrases < 1:
+        return ()
+    max_phrase_tokens = min(int(max_phrase_tokens), MAX_PHRASE_TOKENS)
+    max_phrases = min(int(max_phrases), MAX_PHRASES_PER_QUERY)
+    stops = _function_words(language)
+    runs: list[list[str]] = []
+    current: list[str] = []
+    for t in tokens:
+        if t in stops:
+            if current:
+                runs.append(current)
+                current = []
+            continue
+        current.append(t)
+    if current:
+        runs.append(current)
+
+    phrases: list[str] = []
+    seen: set[str] = set()
+    # Prefer longer phrases first; no unbounded n-gram explosion.
+    for run in runs:
+        if len(run) < 2:
+            continue
+        upper = min(len(run), max_phrase_tokens)
+        for length in range(upper, 1, -1):
+            for i in range(0, len(run) - length + 1):
+                phrase = " ".join(run[i : i + length])
+                if phrase in seen:
+                    continue
+                seen.add(phrase)
+                phrases.append(phrase)
+                if len(phrases) >= max_phrases:
+                    return tuple(phrases)
+    return tuple(phrases)
+
+
+def formulate_lexical_query_plan(
+    query: str,
+    *,
+    language: str = "en",
+    alias_hints: Optional[Sequence[str]] = None,
+) -> LexicalQueryPlan:
     """Build PRIMARY (+ optional FALLBACK) lexical query strings.
 
     PRIMARY: normalized query minus function words (bounded).
     FALLBACK: further drop soft care-scaffolding; keep acronyms/long terms.
+    phrases: adjacent multi-token metadata (does not replace PRIMARY/FALLBACK).
     Never expands into unbounded OR over every token.
     """
     original = query or ""
@@ -332,6 +400,22 @@ def formulate_lexical_query_plan(query: str, *, language: str = "en") -> Lexical
     elif fallback_tokens and len(primary_tokens) > _MAX_FALLBACK_TOKENS:
         fallback_query = " ".join(fallback_tokens)
 
+    phrases = extract_important_phrases(original_tokens, language=language)
+    hints: Tuple[str, ...] = ()
+    if alias_hints:
+        # Bound + dedupe; never inflate PRIMARY token budget.
+        seen_h: set[str] = set()
+        collected: list[str] = []
+        for h in alias_hints:
+            nh = normalize_for_language(str(h or ""), language).strip()
+            if not nh or nh in seen_h or nh == primary_query:
+                continue
+            seen_h.add(nh)
+            collected.append(nh)
+            if len(collected) >= 4:
+                break
+        hints = tuple(collected)
+
     # If PRIMARY empty but original had tokens, keep empty (fail closed).
     return LexicalQueryPlan(
         original_query=original,
@@ -342,6 +426,8 @@ def formulate_lexical_query_plan(query: str, *, language: str = "en") -> Lexical
         original_tokens=original_tokens,
         primary_tokens=primary_tokens,
         fallback_tokens=fallback_tokens if fallback_query else (),
+        phrases=phrases,
+        alias_hints=hints,
     )
 
 
@@ -355,3 +441,16 @@ def token_coverage_score(text: str, tokens: Sequence[str]) -> float:
         if f" {t} " in hay or hay.startswith(f"{t} ") or hay.endswith(f" {t}") or hay.strip() == t:
             hits += 1
     return hits / float(len(tokens))
+
+
+def phrase_coverage_score(text: str, phrases: Sequence[str], *, language: str = "en") -> float:
+    """Fraction of preserved phrases present as contiguous spans in haystack."""
+    if not phrases:
+        return 0.0
+    hay = f" {normalize_for_language(text or '', language)} "
+    hits = 0
+    for p in phrases:
+        needle = f" {p} "
+        if needle in hay or hay.strip() == p:
+            hits += 1
+    return hits / float(len(phrases))

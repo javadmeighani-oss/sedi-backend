@@ -182,7 +182,7 @@ def main() -> int:
 
     calls = []
 
-    def _fake_retrieve(db, request, provider=None):
+    def _fake_retrieve(db, request, provider=None, **_kwargs):
         calls.append(request.retrieval_mode)
         if getattr(provider, "provider_name", None) == "cohere":
             raise AssertionError("cohere")
