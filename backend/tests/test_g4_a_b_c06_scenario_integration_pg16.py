@@ -240,6 +240,7 @@ def test_g4_personal_ne_governed_and_i5_required(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
     grant_memory_consent(db, fam.son.id, commit=False)
+    db.flush()
     with patch(
         "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
         return_value=SimpleNamespace(status="EMPTY", items=[]),
@@ -262,6 +263,7 @@ def test_g4_nutrition_exercise_paths_with_governed_knowledge(db):
     fam = seed_stage_b_family(db, with_device=False, with_i10_grants=False, commit=False)
     _profile_tz(db, fam.son.id)
     grant_memory_consent(db, fam.son.id, commit=False)
+    db.flush()
     with patch(
         "backend.app.services.i8.unified_core.retrieve_governed_knowledge",
         return_value=SimpleNamespace(status=STATUS_OK, items=[_ok_item(domain="nutrition")]),
