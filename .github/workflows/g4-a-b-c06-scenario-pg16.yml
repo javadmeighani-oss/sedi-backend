@@ -1,0 +1,159 @@
+# G4 A+B+C06 Nutrition/Exercise/DONE-loop scenario-first PG16 revalidation.
+# GATE=SEDI-V1-BE-FINALCERT-G4-A-B-C06-NUTRITION-EXERCISE-DONE-LOOP-SCENARIO-PG16-REVALIDATION-01
+# NO production. NO Smart-RAG reopen. NO DRVS reopen. NO frozen package reopen.
+# NO I10 semantic change. NO Real FCM. NO frontend. NO schema/migration.
+# Alembic head must remain 081.
+name: G4 A B C06 Scenario PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i8/nutrition_primary_path.py"
+      - "backend/app/services/i8/exercise_primary_path.py"
+      - "backend/app/services/i8/action_completion.py"
+      - "backend/app/services/i8/unified_core.py"
+      - "backend/app/services/i8/context.py"
+      - "backend/app/services/i8/knowledge_bridge.py"
+      - "backend/app/services/i10/coaching_done.py"
+      - "backend/app/routers/notifications.py"
+      - "backend/tests/test_v1_nutrition_primary_user_e2e.py"
+      - "backend/tests/test_v1_exercise_primary_user_e2e.py"
+      - "backend/tests/test_i8_proactive_followup_loop_02.py"
+      - "backend/tests/test_g4_a_b_c06_scenario_integration_pg16.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - "backend/tests/helpers/stage_b_family_fixture.py"
+      - ".github/workflows/g4-a-b-c06-scenario-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g4-a-b-c06-scenario-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  g4-a-b-c06:
+    name: G4 A+B+C06 scenario PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_g4
+          POSTGRES_PASSWORD: sedi_g4_pass
+          POSTGRES_DB: sedi_g4
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_g4 -d sedi_g4"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_g4:sedi_g4_pass@127.0.0.1:5432/sedi_g4
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_g4:sedi_g4_pass@127.0.0.1:5432/sedi_g4
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + pgvector
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
+          PY
+      - name: Alembic single head 081
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Stage1 Nutrition Package A CASE_01..12
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g4_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_v1_nutrition_primary_user_e2e.py \
+            -k "CASE_" \
+            | tee /tmp/g4_evidence/nutrition_pytest.txt
+          for n in $(seq -w 1 12); do
+            grep -E "test_CASE_${n}_.*PASSED" /tmp/g4_evidence/nutrition_pytest.txt
+          done
+      - name: Stage2 Exercise Package B CASE_01..10
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_v1_exercise_primary_user_e2e.py \
+            -k "CASE_" \
+            | tee /tmp/g4_evidence/exercise_pytest.txt
+          for n in $(seq -w 1 10); do
+            grep -E "test_CASE_${n}_.*PASSED" /tmp/g4_evidence/exercise_pytest.txt
+          done
+      - name: Stage3 C06 DONE loop focused
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i8_proactive_followup_loop_02.py \
+            | tee /tmp/g4_evidence/c06_pytest.txt
+          grep -E "test_a_happy_path_done_completes_exact_action PASSED" /tmp/g4_evidence/c06_pytest.txt
+          grep -E "test_b_repeated_done_idempotent PASSED" /tmp/g4_evidence/c06_pytest.txt
+          grep -E "test_i_expired_at_fail_closed PASSED" /tmp/g4_evidence/c06_pytest.txt
+          grep -E "test_j_q_non_done_verbs_do_not_mutate_i8" /tmp/g4_evidence/c06_pytest.txt | grep PASSED | head -n 1
+      - name: Stage4 G4 scenario integration
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g4_a_b_c06_scenario_integration_pg16.py \
+            | tee /tmp/g4_evidence/scenario_pytest.txt
+          grep -E "test_g4_family_identity_locks PASSED" /tmp/g4_evidence/scenario_pytest.txt
+          grep -E "test_g4_nutrition_exercise_user_isolation PASSED" /tmp/g4_evidence/scenario_pytest.txt
+          grep -E "test_g4_c06_done_exact_expired_nondone_idempotent PASSED" /tmp/g4_evidence/scenario_pytest.txt
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          echo "=== NUTRITION ===" && tail -n 5 /tmp/g4_evidence/nutrition_pytest.txt
+          echo "=== EXERCISE ===" && tail -n 5 /tmp/g4_evidence/exercise_pytest.txt
+          echo "=== C06 ===" && tail -n 5 /tmp/g4_evidence/c06_pytest.txt
+          echo "=== SCENARIO ===" && tail -n 5 /tmp/g4_evidence/scenario_pytest.txt
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g4-a-b-c06-scenario-pytest
+          path: /tmp/g4_evidence/

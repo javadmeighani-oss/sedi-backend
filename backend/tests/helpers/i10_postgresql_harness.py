@@ -68,7 +68,7 @@ class I10IsolatedPgDb:
         cfg = i10_alembic_cfg(url)
         os.environ["DATABASE_URL"] = url
         os.environ["TEST_DATABASE_URL"] = url
-        target = revision or _REV_080
+        target = revision or ALEMBIC_HEAD
         command.upgrade(cfg, target)
         return cls(
             url=url,
@@ -95,7 +95,7 @@ class I10IsolatedPgDb:
 @pytest.fixture(scope="module")
 def i10_pg_db_module():
     """Module-scoped Alembic-head PostgreSQL DB for I10 B01 runtime tests."""
-    isolated = I10IsolatedPgDb.create(suffix="i10b01", revision=_REV_080)
+    isolated = I10IsolatedPgDb.create(suffix="i10b01", revision=ALEMBIC_HEAD)
     SessionLocal = isolated.session_factory()
     try:
         yield SessionLocal, isolated
