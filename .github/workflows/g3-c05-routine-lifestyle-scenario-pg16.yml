@@ -1,0 +1,137 @@
+# G3 C05 I8 Routine/Lifestyle Bridge scenario-first PG16 retest.
+# GATE=SEDI-V1-BE-FINALCERT-G3-C05-I8-ROUTINE-LIFESTYLE-BRIDGE-SCENARIO-PG16-RETEST-01
+# NO production. NO Smart-RAG reopen. NO DRVS reopen. NO C03/C01/C04 reopen.
+# NO I10 semantic change. NO Real FCM. NO frontend. NO schema/migration.
+# Alembic head must remain 081.
+name: G3 C05 Routine Lifestyle Scenario PG16
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/app/services/i8/context.py"
+      - "backend/app/services/i8/knowledge_bridge.py"
+      - "backend/app/services/i8/unified_core.py"
+      - "backend/app/services/i8/subject_context.py"
+      - "backend/tests/test_i8_routine_lifestyle_semantic_bridge.py"
+      - "backend/tests/test_g3_c05_routine_lifestyle_scenario_pg16.py"
+      - "backend/tests/helpers/stage_b_family_fixture.py"
+      - "backend/tests/helpers/i10_postgresql_harness.py"
+      - ".github/workflows/g3-c05-routine-lifestyle-scenario-pg16.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: g3-c05-routine-lifestyle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  g3-c05:
+    name: G3 C05 routine/lifestyle scenario PG16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sedi_g3
+          POSTGRES_PASSWORD: sedi_g3_pass
+          POSTGRES_DB: sedi_g3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sedi_g3 -d sedi_g3"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      DATABASE_URL: postgresql+psycopg2://sedi_g3:sedi_g3_pass@127.0.0.1:5432/sedi_g3
+      TEST_DATABASE_URL: postgresql+psycopg2://sedi_g3:sedi_g3_pass@127.0.0.1:5432/sedi_g3
+      APP_ENV: test_isolated
+      ENVIRONMENT: test_isolated
+      ENV: test_isolated
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENAI_API_KEY: ci-placeholder-not-used
+      SEDI_DISABLE_SCHEDULER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install pytest alembic
+      - name: Prove PostgreSQL 16 + pgvector
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from sqlalchemy import create_engine, text
+          eng = create_engine(os.environ["TEST_DATABASE_URL"])
+          with eng.connect() as c:
+              ver = c.execute(text("SHOW server_version")).scalar()
+              print("POSTGRES_SERVER_VERSION", ver)
+              assert str(ver).startswith("16."), ver
+              c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+              v = c.execute(text("SELECT extversion FROM pg_extension WHERE extname='vector'")).scalar()
+              print("PGVECTOR_VERSION", v)
+              assert v
+          PY
+      - name: Alembic single head 081
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+          cfg = Config("backend/alembic.ini")
+          script = ScriptDirectory.from_config(cfg)
+          heads = script.get_heads()
+          assert heads == ["081_self_health_subject_1to1_hardening"], heads
+          print("ALEMBIC_HEAD_OK", heads[0])
+          PY
+      - name: Upgrade ephemeral DB to head
+        run: |
+          set -euo pipefail
+          python -m alembic -c backend/alembic.ini upgrade head
+      - name: Stage1 C05 exact bridge suite
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/g3_evidence
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_i8_routine_lifestyle_semantic_bridge.py \
+            | tee /tmp/g3_evidence/c05_bridge_pytest.txt
+          # Core C05-01..03 evidence markers from TRUE_GREEN bridge suite
+          grep -E "test_a_valid_son_habit_loaded PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+          grep -E "test_g_son_lifestyle_event_loaded PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+          grep -E "test_e_habit_context_ref_present PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+          grep -E "test_k_lifestyle_context_ref PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+          grep -E "test_t_no_clinical_semantics_in_annotation PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+          grep -E "test_r_personal_facts_cannot_replace_i5 PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+          grep -E "test_u_user_a_never_sees_user_b PASSED" /tmp/g3_evidence/c05_bridge_pytest.txt
+      - name: Stage2 G3 scenario + exact C05-01..04
+        run: |
+          set -euo pipefail
+          python -B -m pytest -v --tb=short --noconftest \
+            backend/tests/test_g3_c05_routine_lifestyle_scenario_pg16.py \
+            | tee /tmp/g3_evidence/scenario_pytest.txt
+          grep -E "test_c05_01_habits_lifestyle_into_trusted_context PASSED" /tmp/g3_evidence/scenario_pytest.txt
+          grep -E "test_c05_02_gate2_storage_authority_preserved PASSED" /tmp/g3_evidence/scenario_pytest.txt
+          grep -E "test_c05_03_no_clinical_invention_from_lifestyle PASSED" /tmp/g3_evidence/scenario_pytest.txt
+          grep -E "test_c05_04_son_self_routine_no_mother_sub PASSED" /tmp/g3_evidence/scenario_pytest.txt
+          grep -E "test_g3_family_identity_locks PASSED" /tmp/g3_evidence/scenario_pytest.txt
+      - name: Summarize
+        run: |
+          set -euo pipefail
+          echo "=== BRIDGE ===" && tail -n 5 /tmp/g3_evidence/c05_bridge_pytest.txt
+          echo "=== SCENARIO ===" && tail -n 5 /tmp/g3_evidence/scenario_pytest.txt
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g3-c05-routine-lifestyle-pytest
+          path: /tmp/g3_evidence/
