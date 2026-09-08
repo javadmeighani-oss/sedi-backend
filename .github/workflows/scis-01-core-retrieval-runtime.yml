@@ -214,11 +214,13 @@ jobs:
       - name: Phase1 Smart-RAG focused pytest
         run: |
           set -euo pipefail
+          # Use repo conftest (db/test_user) — Stage17 bypass cases in local_rag/rag_metrics need PG fixtures.
+          # Phase1 canonical unit file is pure MagicMock; conftest is compatible with TEST_DATABASE_URL PG16.
           python -B -m pytest \
             backend/tests/test_smart_rag_phase1_canonical_runtime.py \
             backend/tests/test_local_rag_provider.py \
             backend/tests/test_rag_metrics.py \
-            -q --tb=short --noconftest \
+            -q --tb=short \
             | tee "${{ runner.temp }}/scis01_evidence/pytest_phase1_focused.txt"
 
       - name: Phase1 focused verify script
